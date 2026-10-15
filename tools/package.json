@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "rea-agents": "6.5.0"
+  },
+  "name": "mu-the-matrix-recovery-tools",
+  "private": true
+}
