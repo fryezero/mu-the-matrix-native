@@ -1,0 +1,92 @@
+{
+  "updated": "2026-10-15",
+  "target": {
+    "name": "Mu The Matrix main.exe",
+    "sha256": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
+    "bytes": 32229376,
+    "format": "PE32",
+    "architecture": "x86",
+    "image_base": "0x00400000",
+    "entry_va": "0x0e646058",
+    "embedded_file_version": "1.20.87.0",
+    "version_provenance": "embedded label only"
+  },
+  "tools": {
+    "rea": "6.5.0",
+    "rea_repository_commit": "93c620c3e7c401be40b71c480518147c76ade4dc",
+    "ghidra": "12.1.4",
+    "java_major": 21,
+    "binutils": "2.47",
+    "unicorn": "2.1.4",
+    "capstone": "5.0.9",
+    "pillow": "11.3.0"
+  },
+  "findings": {
+    "loader": {
+      "decoded_bytes": 41984000,
+      "chunks": 4,
+      "decoded_sha256": "e42182c0b148ffc94fa6b9077fe81bebd471ef6ac9f30c682218259afea1bc31",
+      "decoded_base_va": "0x0be3c000",
+      "next_entry_va": "0x0be5f280",
+      "local_evidence": "evidence/loader-recovery/recovery.json",
+      "scope": "protector layer, not gameplay source"
+    },
+    "images": {
+      "candidates": 19707,
+      "decoded": 19703,
+      "rejected_as_images": 4,
+      "local_evidence": "asset-recovery/verified-v2/manifest.json"
+    },
+    "models": {
+      "candidates": 12754,
+      "parsed": 12447,
+      "rejected": 17,
+      "unsupported": 290,
+      "versions": {
+        "10": {
+          "parsed": 701,
+          "rejected": 0
+        },
+        "12": {
+          "parsed": 180,
+          "rejected": 0
+        },
+        "15": {
+          "parsed": 11566,
+          "rejected": 17
+        },
+        "14": {
+          "unsupported": 216
+        },
+        "other": {
+          "unsupported": 74
+        }
+      },
+      "local_evidence": "model-recovery/verified-encrypted-v2/manifest.json"
+    },
+    "effects": {
+      "json_files": 370,
+      "distinct_top_level_texture_references": 92,
+      "all_references_exist": true
+    },
+    "runtime": {
+      "original_runs_on": "Windows, confirmed by user",
+      "original_crossover_result": "does not start, confirmed by user",
+      "isolated_crossover_diagnostic": "rosetta error: invalid gdt selector index 6",
+      "native_windows_capture_verified": false
+    }
+  },
+  "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
+  "gameplay_source_recovered": false,
+  "playable_source_build": false,
+  "native_macos_client": false,
+  "validation": {
+    "portable_tests_discovered": 40,
+    "portable_passed": 37,
+    "private_checks_skipped": 3,
+    "local_integration_passed": 40,
+    "source_only_checkout_passed": true,
+    "native_windows_game_capture_verified": false,
+    "remote_ci_status": "pending publication"
+  }
+}
