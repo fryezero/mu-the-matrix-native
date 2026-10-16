@@ -1,5 +1,9 @@
 # BMD model recovery
 
+## Direct client decoder comparison
+
+The [client model-loader finding](research/client-model-loader.md) connects BMD filename references to the version-dispatching read routine. Its v12 helper now has authored C that matches the actual captured instructions on all 180 installed v12 payloads, covering 3,176,971 encrypted bytes, and 4,048 synthetic cases. The checked Python parser keeps its current disjoint-buffer behavior and strict validation; the low-level C decoder separately preserves original overlap semantics. No full loader or original hierarchy behavior is established.
+
 ## Rejected-model field diagnosis
 
 [The case report](research/model-edge.md) pins all 17 rejected v15 inputs and their exact decoded field offsets. Thirteen reach complete records but use unsupported dummy-parent hierarchies. One has a NaN animation position, one an active normal-index failure, and two unsupported bone values. Native and Python decoding agree on all 17. Rejections and corpus totals remain unchanged; original client handling is unresolved.

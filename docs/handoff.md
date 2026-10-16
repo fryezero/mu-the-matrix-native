@@ -92,3 +92,22 @@ Issue #17 is merged into main through PR #18 after passing macOS/Linux CI. Read 
 Issue #19 is merged into main through PR #20 after passing macOS/Linux CI. Read `research/client-image-data.md`. The fixed second section at VA0x01a7c000, length2557764, repeats SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`. All identity flags, restored-text checks, early refusal, transfer digests and legacy math/text modes pass. Guest shut down cleanly. Ignored evidence is `evidence/image-data-run10/`; the local ASCII catalog has candidate BMD strings at 0x01aef904,0x01aefab4,0x01aefc6c. Next inspect bounded pinned-text references to those addresses and confirm instruction/function boundaries before inferring loader semantics. Do not relax the rejected-model checks without client evidence.
 
 Continue with GitHub issue #21, CLIENT-LOADER-001. Local raw literal matches occur at 0x018202c7,0x018203f0,0x01830aef; nearest prologue candidates are 0x018202b4,0x018203e0,0x01830aa6. Linear decode reaches candidate PUSH instructions, but control flow/function boundaries remain unverified. The ignored `model-loader-literal-candidates.json` and `model-loader-prologue-candidates.json` retain these observations. Validate bounded REA dossiers before assigning loader semantics. Main is the reviewed baseline; guest is shut down.
+
+## Client-linked v12 source
+
+Issue #21 is implemented on `codex/client-model-codec`. Read
+`research/client-model-loader.md` and `../reconstructed/model-codec/README.md`.
+The BMD filename caller at `0x018202b4` calls `0x012b3812`, whose v12 branch
+calls `0x0098c5f2` for both length query and decode. REA dossiers are local under
+`evidence/model-loader-first/`, `evidence/model-loader-callee/` and
+`evidence/model-codec/`. The 194-byte leaf decoder matches authored C in 4,048
+synthetic cases and all 180 installed v12 payloads, totaling 3,176,971 bytes.
+A feedback-before-store replacement fails 312 overlap cases. The C API preserves
+signed-length query/nonpositive behavior and read-after-write alias effects.
+The comparator checks full arena, two reads/one write per byte, saved registers,
+caller return, stack cleanup and both DF states, without decoder substitutes.
+Portable tests pass 94/102 with eight private skips; all 102 local integration
+pass. Complete model loading, original types and hierarchy acceptance remain
+open. Next follow v14 target `0x016ced37` or v15 setup/decode
+`0x0091a6c0`/`0x0091a730`, or validate a bounded v10 loader path with explicit
+I/O/allocation dependencies.

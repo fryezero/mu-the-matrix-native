@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Seven
+use authored geometry/image/decoder fixtures and public LEA vectors. Eight
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -119,3 +119,14 @@ python3 scripts/audit_repository.py
 The ignore rules exclude original inputs, raw ledgers, downloaded tool trees,
 exports, memory captures, builds and local environments. The staged-tree audit
 adds a format/path/content check. Review the actual staged diff as well.
+
+## Client-linked model decoder comparison
+
+The default suite adds seven authored model-codec tests and skips its private
+check unless integration is requested. That check requires the full pinned
+restored text at `evidence/x86-text-capture-09/client-text.bin`, or
+`MU_CLIENT_TEXT`, plus `MU_GAME_ROOT` and the exact ignored
+`model-recovery/verified-v14/manifest.json`. It compares all 180 pinned v12
+payloads against captured x86, authored C and the Python reader. A requested
+integration run errors if evidence is absent or any input hash differs.
+The module README documents synthetic-only comparison without installed assets.
