@@ -124,7 +124,7 @@ not reproduce the launcher's session and arguments.
 Later compatibility fixes can be authored as functions and added through
 `run_step` in `main`. Use a new step name when changing an already completed
 step's behavior. Keep fixes independent of private game bytes and test them in a
-new bottle. Portable `make test` checks all four Bash files with `bash -n` and exercises the
+new bottle. Portable `make test` checks the Bash helpers with `bash -n` and exercises the
 start/reset guard with a fake runtime. Dependency installation and UI behavior
 require an explicit local Mac run.
 
@@ -181,3 +181,73 @@ WINEPREFIX="$HOME/Library/Application Support/CrossOver/Bottles/MuMatrix32-ci-te
 ```
 
 Never run `wineserver -k` without the intended test `WINEPREFIX`.
+
+## Opt-in fast x87 translation
+
+Apple Silicon users can build the pinned external Rosetta Timewalker runtime
+in their user cache. Create a setup-owned bottle first, close its game/launcher,
+then run:
+
+```sh
+xcode-select --install # if Command Line Tools are missing
+brew install cmake llvm mingw-w64
+./mac-play/install-fast-x87.sh --bottle MyMuBottle
+```
+
+The installer fetches exactly `ab1a6a032e488c0d6eade54ce70a02d653277810`, verifies
+HEAD and tracked source cleanliness, builds with CMake/Homebrew LLVM, runs the
+upstream native x87 FLD smoke check and the authored PE32 transform benchmark.
+It enables automatic selection only when plain and patched x87 runs print the
+same checksum and the patched run logs translator activation. This is a bounded
+self-check, not proof of full x87 precision or game compatibility. It refuses
+protected bottles, including MuMatrix32. It does not reset a wineserver or start
+a game. Run it while the selected setup-owned bottle is idle.
+
+Rerun setup for an older setup-owned bottle to copy the new launcher helpers.
+`Play.command` keeps the idle-process guard and prefix-scoped display reset,
+runs the existing display probe through plain CrossOver, then uses the selected
+runtime for the launcher. A live .NET monitor probe stalled under the fast
+runtime on this host, so launcher/.NET compatibility remains experimental.
+A validated cache enables fast x87 for setup-generated launchers. The original
+MuMatrix32 quick launcher is separate and is never modified by these scripts.
+
+The cache is `~/Library/Caches/MuTheMatrix/fast-x87/COMMIT`. Build, FLD and
+benchmark logs stay there. `MU_FAST_X87_HOME` overrides that directory for both
+installation and launching. A macOS build, Rosetta runtime, selected CrossOver loader/server or built translator
+identity change invalidates validation. A missing, incomplete, modified or stale
+installation falls back to plain CrossOver before starting the launcher.
+`MU_FAST_X87=1` requires a validated install and refuses to start otherwise.
+To force plain CrossOver:
+
+```sh
+MU_FAST_X87=0 '/path/printed/by/setup/.mu-matrix-setup/Play.command'
+```
+
+If the selected fast runtime fails during startup, the launcher returns its
+failure without a second launch attempt. Close the bottle's launcher/game,
+then retry with `MU_FAST_X87=0`. To disable automatic selection persistently,
+remove the cache's `validated` marker. Reinstall and self-check after updates.
+No SIP setting or system Rosetta file changes. This runtime depends on
+undocumented internals and may change x87 precision or interact with anti-cheat.
+See [measurements, risks and limits](../docs/research/mac-performance.md).
+
+## Performance diagnostics
+
+With MinGW-w64 installed, these helpers build authored PE32 executables in the
+named setup-owned bottle and run them there. They reject protected bottles and
+a running game/launcher. They do not reset servers. Avoid concurrent workloads
+when comparing results. Both accept `MINGW_CC` and `MU_DIAGNOSTICS_OUT` overrides.
+
+```sh
+MU_FAST_X87=0 ./mac-play/diagnostics/run-fpbench.sh MyMuBottle
+MU_FAST_X87=1 ./mac-play/diagnostics/run-fpbench.sh MyMuBottle
+MU_FAST_X87=0 ./mac-play/diagnostics/run-glbench.sh MyMuBottle 120 4000
+```
+
+`fpbench.c` runs 16,384,000 dependent matrix/vertex transforms. The helper uses
+GCC `-O2 -fno-tree-vectorize`, then `-mfpmath=387` or
+`-msse2 -mfpmath=sse`. It prints elapsed time, Mverts/s and one output checksum.
+`glbench.c` measures immediate-mode call throughput including frame swaps and
+final `glFinish`. Its helper uses SSE2 arithmetic to reduce x87 overhead in the
+probe itself. Report renderer/vendor/version with the result. Context/pixel
+format failures return nonzero. Neither synthetic workload establishes game FPS.

@@ -42,6 +42,7 @@ preflight() {
     WINETRICKS=$(command -v "${WINETRICKS:-winetricks}") || die 'Install winetricks first, for example with Homebrew.'
     [ -x "$SCRIPT_DIR/cxwine" ] && [ -x "$SCRIPT_DIR/cxwineserver" ] &&
         [ -x "$SCRIPT_DIR/start-launcher.sh" ] || die 'Keep the executable helpers beside this script.'
+    [ -f "$SCRIPT_DIR/fast-x87.sh" ] || die 'Missing fast-x87 helper.'
     [ -f "$SCRIPT_DIR/diagnostics/MonitorCheck.cs" ] || die 'Missing monitor diagnostic source.'
     SOURCE=${SOURCE:-$BOTTLES/Windows10MU/drive_c/Program Files (x86)/Glitch Games Network/Mu The Matrix}
     [ -d "$SOURCE" ] || die "Source directory not found: $SOURCE"
@@ -161,6 +162,7 @@ install_display_check() {
 write_launcher() {
     local launcher="$STATE/Play.command"
     cp "$SCRIPT_DIR/start-launcher.sh" "$STATE/start-launcher.sh"
+    cp "$SCRIPT_DIR/fast-x87.sh" "$STATE/fast-x87.sh"
     chmod 700 "$STATE/start-launcher.sh"
     # %q preserves spaces and shell metacharacters without evaluating user paths.
     {
