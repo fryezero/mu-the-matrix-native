@@ -14,9 +14,10 @@ The later macOS goal does not replace exact-version source recovery. No completi
 
 | ID | Work | Completion evidence | Dependencies |
 |---|---|---|---|
-| CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine |
-| CAP-002 | Validate and import a captured image into native analysis | File hashes, VA mappings, observed restored-code coverage, unresolved regions | CAP-001 and a private capture |
-| MODEL-014 | Investigate BMD v14 envelopes | Primary-source-backed decoder plus full structural checks and malformed-input tests | Matching local files; source lead in model report |
+| RUNTIME-X86 | Test full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | Guest boot and transfer verified; Wine setup in progress |
+| CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine, unavailable; preserved as an optional validation path |
+| CAP-002 | Validate and import a captured image into native analysis | File hashes, VA mappings, observed restored-code coverage, unresolved regions | A validated private capture from RUNTIME-X86 or CAP-001, with environment provenance |
+| MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | Local checks pass; PR/CI verification pending |
 | MODEL-EDGE | Explain the 17 rejected v15 records | Case-specific evidence and tests; preserve unresolved semantics rather than broad acceptance | Matching local files |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |
 | EFFECT-001 | Recover runtime interpretation of effect JSON | Source/runtime links for enum meanings, curves, blending and transforms | Relevant code or runtime evidence |

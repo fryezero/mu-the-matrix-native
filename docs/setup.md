@@ -2,17 +2,20 @@
 
 ## Portable source checks
 
-Use Python 3.9+ and Clang. The native libraries build on macOS and Linux. The
+Use Python 3.9+, Clang/Clang++, and Crypto++. The native libraries build on macOS and Linux. The
 Windows-only capture utility has a separate cross-build.
 
 ```sh
+# macOS
+brew install cryptopp
+# Debian/Ubuntu alternative: sudo apt-get install libcrypto++-dev
 python3 -m venv tools/python
 ./tools/python/bin/python -m pip install -r asset-recovery/requirements.txt
 make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Three
+use authored geometry/image/decoder fixtures and public LEA vectors. Four
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -45,8 +48,9 @@ MU_RECOVERY_INTEGRATION=1 make test PYTHON=./tools/python/bin/python
 ```
 
 The decoder integration check needs `evidence/loader-recovery/recovery.json` and
-the original executable. Two model integration checks need the installed model
-files. The reference-comparison test also needs
+the original executable. Three model integration checks need the installed model
+files. The v14 check pins three source digests and compares decoded digests
+from the independent upstream oracle. The reference-comparison test also needs
 `evidence/model-v15-sample.bin`: the original investigator's independently
 decoded 01spa_skill payload, prefixed with the four-byte `BMD`/10 layout marker.
 It is private derived evidence, not a tracked fixture. Acquire/reproduce it from

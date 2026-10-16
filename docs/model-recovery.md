@@ -1,6 +1,19 @@
 # BMD model recovery
 
-## Expanded version-12 and version-15 recovery
+## Version-14 recovery
+
+The bounded `modulus.cpp` wrapper uses Crypto++ for the published layered cipher envelope. All **216 installed v14 files decode and pass the complete structural reader**, with no trailing-byte allowance. Every decoded payload digest matches the separately compiled, unchanged pinned upstream oracle. The full current scan has **12,754 files: 12,663 parsed, 17 rejected v15 inputs and 74 unsupported other/table envelopes**.
+
+The implementation masks selector aliases, uses each cipher's default key length, reverses overlapping outer windows, handles ThreeWay's 1020-byte window and retains the unchanged partial inner block. The installed length field includes the entire 34-byte prefix. The reader rejects mismatched lengths, incomplete prefixes and invalid native buffer sizes. It does not accept the reference encryptor's alternate plaintext-length header convention.
+
+The new fixture contains 91 independently generated synthetic oracle vectors covering all 64 cipher pairs, threshold/overlap cases, large bodies and selector aliases. Six portable test methods plus one private integration method cover envelope decoding, geometry/identity, malformed data, native buffer rejection and dependency errors. No game bytes are in these vectors. Read [the source-pinned research](research/bmd-v14.md) for the algorithm, corpus observations, oracle adaptations and dependency licenses.
+
+Current complete results are `model-recovery/verified-v14/manifest.json`. Three v14 models were exported as JSON/OBJ. Independent decoded hashes are in `evidence/v14-source/project-oracle-comparison.json`. These remain ignored local artifacts. This is structural recovery; original rendering and gameplay remain unverified.
+
+Build with Crypto++ installed, then `make -C model-recovery`. The Python v10/v12 readers and v15 Python fallback remain usable independently, but the complete default build/test suite now requires Crypto++ for v14.
+
+
+## Earlier version-12 and version-15 recovery
 
 The later encrypted-model pass adds `bmd_encrypted.py`, a Python LEA-256 reader,
 an independently implemented C accelerator in `lea256.c`, and the version-12
