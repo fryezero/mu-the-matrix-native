@@ -1,5 +1,9 @@
 # BMD model recovery
 
+## Rejected-model field diagnosis
+
+[The case report](research/model-edge.md) pins all 17 rejected v15 inputs and their exact decoded field offsets. Thirteen reach complete records but use unsupported dummy-parent hierarchies. One has a NaN animation position, one an active normal-index failure, and two unsupported bone values. Native and Python decoding agree on all 17. Rejections and corpus totals remain unchanged; original client handling is unresolved.
+
 ## Version-14 recovery
 
 The bounded `modulus.cpp` wrapper uses Crypto++ for the published layered cipher envelope. All **216 installed v14 files decode and pass the complete structural reader**, with no trailing-byte allowance. Every decoded payload digest matches the separately compiled, unchanged pinned upstream oracle. The full current scan has **12,754 files: 12,663 parsed, 17 rejected v15 inputs and 74 unsupported other/table envelopes**.

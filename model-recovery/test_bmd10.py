@@ -1,7 +1,7 @@
 import math
 import struct
 import unittest
-from bmd10 import BmdError, parse_bytes, local_matrix, transform, multiply, obj_text
+from bmd10 import BmdError, Reader, parse_bytes, local_matrix, transform, multiply, obj_text
 
 
 def fixture():
@@ -76,5 +76,38 @@ class BmdTests(unittest.TestCase):
         model=parse_bytes(fixture())
         with self.assertRaises(BmdError):obj_text(model,action=1)
         with self.assertRaises(BmdError):obj_text(model,frame=1)
+
+    def test_nonfinite_diagnostic_locates_scalar_after_mixed_fields(self):
+        reader = Reader(b'x'+struct.pack('<hhfff',0,0,1,math.inf,3))
+        reader.take(1)
+        with self.assertRaisesRegex(BmdError, r'Non-finite numeric data.*layout offset 9$'):
+            reader.unpack('hhfff')
+
+    def test_active_normal_diagnostic_locates_corner_and_value(self):
+        raw = bytearray(fixture())
+        struct.pack_into('<h',raw,198,3)
+        with self.assertRaisesRegex(BmdError, r'polygon 0: invalid active normal index 3 at corner 2.*layout offset 198$'):
+            parse_bytes(raw)
+
+    def test_negative_vertex_bone_diagnostic_locates_record(self):
+        raw = bytearray(fixture())
+        struct.pack_into('<h',raw,68,-8888)
+        with self.assertRaisesRegex(BmdError, r'vertex 1: unsupported vertex bone -8888.*layout offset 68$'):
+            parse_bytes(raw)
+
+    def test_negative_normal_bone_diagnostic_locates_record(self):
+        raw = bytearray(fixture())
+        struct.pack_into('<h',raw,140,-1)
+        with self.assertRaisesRegex(BmdError, r'normal 2: unsupported normal bone -1.*layout offset 140$'):
+            parse_bytes(raw)
+
+    def test_dummy_parent_diagnostic_locates_actual_parent_edge(self):
+        raw = bytearray(fixture())
+        struct.pack_into('<H',raw,38,3)
+        bone0 = len(raw)-59
+        struct.pack_into('<h',raw,bone0+33,1)
+        raw += b'\0'+b'child'.ljust(32,b'\0')+struct.pack('<h6f',2,0,0,0,0,0,0)+b'\1'
+        with self.assertRaisesRegex(BmdError, r'Bone 1: parent 2 references dummy bone.*layout offset 375$'):
+            parse_bytes(raw)
 
 if __name__=='__main__':unittest.main()

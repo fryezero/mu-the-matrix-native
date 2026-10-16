@@ -20,9 +20,9 @@ CrossOver remains unable to start the original. No Windows PC is currently avail
 
 ## Checks
 
-The repository discovers 88 tests. The portable run passes 81 and explicitly
-skips seven private-input checks. The opt-in local integration run passes all 88.
-A fresh 91-file source-only checkout also passes 81 tests with seven explicit skips.
+The repository discovers 93 tests. The portable run passes 86 and explicitly
+skips seven private-input checks. The opt-in local integration run passes all 93.
+A fresh 92-file source-only checkout also passes 86 tests with seven explicit skips.
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
@@ -62,3 +62,5 @@ The fixed math-data scope is merged through PR #14 after passing macOS/Linux CI.
 Authored cofactor/record-operation source matches 1,680 helper and 1,050 wrapper comparisons under explicit PC53/RNE state, including aliasing. [Arithmetic evidence and limits](research/record-math.md).
 
 Record arithmetic is merged through PR #16 after passing macOS/Linux CI. Issue #17 begins case-specific diagnosis of the 17 rejected v15 models without changing acceptance.
+
+Model issue #17 locates each rejected v15 field, including 13 dummy-parent cases. Native and Python decoding agree for all 17. Acceptance remains strict; see [the case report](research/model-edge.md).

@@ -22,7 +22,7 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | CLIENT-MATH-001 | Implemented: capture selected image constants | Fixed 76-byte scope, pinned restored text before/after, early refusal and legacy regression | PR #14 merged after passing macOS/Linux CI |
 | CLIENT-MATH-002 | Implemented: controlled cofactor/reciprocal source | 1,680 helper + 1,050 wrapper comparisons, alias negative control and PC24 boundary | PR #16 merged after passing macOS/Linux CI |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
-| MODEL-EDGE | Explain the 17 rejected v15 records | Case-specific evidence and tests; preserve unresolved semantics rather than broad acceptance | Matching local files |
+| MODEL-EDGE | Field diagnosis implemented; recover client handling of the 17 rejected v15 records | Exact field offsets, 17 native/Python matches; preserve unsupported semantics | Issue #17 diagnoses fields; original client model/transform code still needed |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |
 | EFFECT-001 | Recover runtime interpretation of effect JSON | Source/runtime links for enum meanings, curves, blending and transforms | Relevant code or runtime evidence |
 
