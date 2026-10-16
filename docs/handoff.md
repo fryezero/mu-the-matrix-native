@@ -147,7 +147,8 @@ actual pose-buffer state during affected-model rendering remains unobserved.
 
 ## Client-linked v15 key context
 
-Issue #29 / `codex/client-lea-key` adds authored C key setup for the observed
+Issue #29 / `codex/client-lea-key` merged through PR #30 after macOS/Linux CI
+run `38893633476`. It adds authored C key setup for the observed
 `0x0092a430` target. Read `research/client-lea-key.md`. The 6,446-byte original
 body matches 1,320 synthetic cases across 16/24/32-byte keys, all word alignments,
 both DF states and null/unsupported gates. It writes forward keys plus round
@@ -159,3 +160,29 @@ Raw probe, reports and test logs are under `evidence/client-lea-key/`; REA is
 helper argument passing and batch alias behavior, starting at resolved wrapper
 `0x0092be30` and helpers `0x00927060`, `0x00929370`, `0x0093bb20`. No VM startup is
 needed for the captured instruction bytes. Guest remains shut down.
+
+## Client-linked v15 ECB source
+
+Issue #31 / `codex/client-lea-decode` adds authored batch ECB source. Read
+`research/client-lea-decode.md` and `../runtime-linux/lea-compare/README.md`.
+The relocated original wrapper and AVX/scalar helpers match 12,960 valid and
+46 no-op guest cases. The ABI bridge rejects its own bad callee; wrong scalar
+batching differs in 4,094 cases. Host Unicorn checks 1,152 scalar cases with
+memory hooks, but refuses AVX. A separate host C corpus comparison matches all
+11,583 v15 payloads, 655,268,704 bytes, against the independent reader. Original
+instructions were not run on that entire corpus; structural rejections remain.
+
+The guest runner only reads pinned text, copies four selected bodies into a
+shared relocated window, and checks output/ABI with page guards and read-only
+context. It has no inside-arena read trace. Static pinned-byte checks validate
+relocation and the BMD caller's 32-byte public key. Original-address mapping
+conflicted with runner allocations; that failed probe and Unicorn AVX failures
+are retained. Guest run14, scalar/corpus reports and all test logs are ignored
+under `evidence/client-lea-decode/`; earlier probe failures are under
+`evidence/client-lea-key/`. Guest is shut down after verification.
+
+The suite discovers 135 tests, 124 portable passes plus eleven private skips;
+all 135 opt-in private checks pass. A clean source checkout is checked separately.
+Next recover original record-loading/allocation paths or the actual hierarchy
+matrix concatenate at `0x00cff83e`. Keep unknown prior dummy-slot state explicit;
+a decoder result does not justify relaxing the parser or claiming rendering.

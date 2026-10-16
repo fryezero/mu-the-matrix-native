@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Ten
+use authored geometry/image/decoder fixtures and public LEA vectors. Eleven
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -147,3 +147,18 @@ private check requires the same full pinned restored text and Unicorn, without
 installed model assets. Use `MU_CLIENT_TEXT` to override its default capture09
 path. The [finding](research/client-lea-key.md) includes the standalone command
 and excludes key/context aliasing and payload decoding from the contract.
+
+## Client-linked LEA ECB decoder
+
+Five portable decoder tests and three miniature relocation fixtures extend the
+suite. The eleventh private check validates actual scalar instructions and all
+11,583 installed v15 payloads against the independent native reader. It requires
+`MU_GAME_ROOT`, pinned text, the existing model manifest, and the exact ignored
+`evidence/model-edge/diagnostics.json`. See the [decoder finding](research/client-lea-decode.md)
+for optional `--manifest`/`--diagnostics` paths and separate result labels.
+
+Original AVX helper execution is a separate opt-in x86 guest run. The authored
+[comparison tool](../runtime-linux/lea-compare/README.md) cross-builds with
+`i686-w64-mingw32-gcc`; Linux CI builds it but never claims to run the client.
+Unicorn does not execute those AVX paths. The full guest run remains explicit
+local evidence, not a silently skipped successful integration check.

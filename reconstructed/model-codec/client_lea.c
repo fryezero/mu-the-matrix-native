@@ -56,3 +56,41 @@ void mu_client_lea_setup(void *context, const void *key, int32_t key_bytes) {
     }
     store_le(output+768, rounds);
 }
+
+static void decode_block(uint8_t *output, const uint8_t *input,
+                         const uint8_t *context, unsigned rounds) {
+    uint32_t a = load_le(input), b = load_le(input+4);
+    uint32_t c = load_le(input+8), d = load_le(input+12);
+    for (unsigned round = rounds; round > 0; --round) {
+        const uint8_t *keys = context+24u*(round-1u);
+        const uint32_t x = d;
+        const uint32_t y = (rotate_left(a, 23)-(x ^ load_le(keys))) ^ load_le(keys+4);
+        const uint32_t z = (rotate_left(b, 5)-(y ^ load_le(keys+8))) ^ load_le(keys+12);
+        const uint32_t w = (rotate_left(c, 3)-(z ^ load_le(keys+16))) ^ load_le(keys+20);
+        a = x; b = y; c = z; d = w;
+    }
+    store_le(output, a); store_le(output+4, b);
+    store_le(output+8, c); store_le(output+12, d);
+}
+
+void mu_client_lea_decode(void *destination, const void *source, uint32_t length,
+                          const void *context) {
+    if (context == NULL || destination == NULL || source == NULL || length == 0 ||
+        (length & 15u) != 0)
+        return;
+    uint8_t *output = destination;
+    const uint8_t *input = source;
+    const uint8_t *keys = context;
+    const unsigned rounds = load_le(keys+768);
+    while (length > 0) {
+        const unsigned batch = length >= 128 ? 128u : length >= 64 ? 64u : 16u;
+        uint8_t snapshot[128];
+        for (unsigned index = 0; index < batch; ++index)
+            snapshot[index] = input[index];
+        for (unsigned index = 0; index < batch; index += 16)
+            decode_block(output+index, snapshot+index, keys, rounds);
+        input += batch;
+        output += batch;
+        length -= batch;
+    }
+}
