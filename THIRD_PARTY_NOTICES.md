@@ -35,3 +35,12 @@ redistribution. CrossOver and Apple Rosetta remain separately supplied software.
 The `fpbench.c` and `glbench.c` diagnostics were authored for this investigation
 and copied from the local mu-mac-tools project, with GL error checks added here.
 They contain no game code or assets.
+
+## Immediate-mode batching and profiling
+
+`mac-play/mugl/`, `diagnostics/eipprof.c`, `diagnostics/glcheck.c` and
+`diagnostics/pe_nearest_export.py` are authored for this investigation and covered
+by the repository MIT license. `mugl/exports.txt` is an API-name manifest extracted
+from the separately installed CrossOver 26.3 i386 OpenGL DLL. No Wine/CrossOver
+implementation or binary is included. The generated proxy loads the user's
+installed Wine builtin OpenGL implementation at runtime.

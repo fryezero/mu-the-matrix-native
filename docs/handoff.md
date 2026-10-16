@@ -45,6 +45,53 @@ The previous MuMatrix32-ci-test validation passed all eight image steps and
 acceptance gates remain open. Two static selector-0x33 far-return sequences
 support the Heaven's Gate hypothesis without proving the original Rosetta fault.
 
+## Immediate-mode GL batching
+
+MAC-PERF-003 is issue #51, branch `codex/mac-gl-batching`, worktree
+`~/Documents/mu-worktrees/mac-mugl`. Read
+[`research/mac-performance.md`](research/mac-performance.md) and
+[`../mac-play/mugl/README.md`](../mac-play/mugl/README.md). The authored MIT proxy
+and 361-export generator build with `make mugl`; generated sources/DLL stay
+ignored. Portable tests compile the primitive conversion with host clang.
+Setup is default-on, rechecks the Wine system32 builtin marker, installs beside
+the cloned main.exe and records SHA-256. `MU_GL_BATCHING=0` removes the managed
+proxy and override. It refuses an active game/launcher and unmanaged DLLs.
+
+Validation uses the new setup-created MuMugl-test bottle, never MuMatrix32.
+Three 240-frame pairs at 20,000 quads/frame have matching framebuffer hashes:
+38.7/118.7 FPS at one quad/block, 65.2/118.9 at four and 76.8/119.6 at sixteen.
+All thirty-six glcheck hashes match with no state failures or GL errors. Real setup
+off/on/rerun checks pass. GAME START launched main.exe PID 888, with active fan
+buffering and 25.0 FPS. Its last saved interval has 999,569 blocks and 8,966 draws,
+with zero in-block fallbacks. No login/in-world test was performed. The bottle
+was stopped with its explicit prefix, deleted by name and absence checked. The
+final proxy digest is in the performance finding.
+Raw logs/binaries are ignored in `runtime/mac-mugl/`. CrossOver's wrapper replaces
+WINEDLLOVERRIDES; the diagnostic helper must use `--dll opengl32=b` or `n,b`.
+Initial environment-only A/B runs were rejected because the proxy never loaded.
+Native-only cannot load the real Wine builtin. Do not reuse those failed runs.
+
+Both review axes found the wireframe triangulation issue; non-fill polygon modes
+now permanently fall back, and the synthetic GL probe covers a wireframe quad.
+Display lists compile without array conversion; in-block multitexture calls use
+immediate replay.
+Server/client texture selection and other-unit arrays are preserved; modern
+buffer variants select a conservative process fallback. VAO binding is preserved
+by submitting through saved/restored default-VAO state. The extension table has
+4,096 slots because the client exceeds the prototype's 512 slots at startup.
+Ordinary VBO bindings are preserved around
+CPU array submission; GL2.1 compatibility shaders remain active. First-vertex
+flat fans/strips keep their original primitive mode. Shared globals assume one
+rendering thread
+and one current context at a time. Float32 fixed-function inputs are the measured
+domain. General GL equivalence, in-world FPS/stability and anti-cheat behavior
+remain open. Claude's reported 73% in-world OpenGL sample share supersedes the
+x87 bottleneck hypothesis. Native game recovery gates remain unchanged.
+
+Next, the owner validates login, Karutan and other in-world scenes, comparing
+builtin versus mugl with the same game settings and collecting optional stats.
+Do not stop or change the owner's MuMatrix32 bottle to obtain those numbers.
+
 ## Fast x87 compatibility path
 
 MAC-PERF-001 is issue #45 / merged PR #47. MAC-PERF-002 is issue #48, branch

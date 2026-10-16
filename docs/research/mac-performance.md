@@ -1,6 +1,7 @@
-# Fast x87 translation in CrossOver
+# CrossOver performance: x87 experiments and OpenGL batching
 
-MAC-PERF-001, issue #45. Investigation date 2026-10-16. This is an opt-in
+MAC-PERF-001, issue #45; MAC-PERF-002, issue #48; MAC-PERF-003, issue #51.
+Investigation date 2026-10-16. This is an opt-in
 compatibility path for the original client. A native editable game remains open.
 
 ## Target and reported observations
@@ -23,7 +24,9 @@ remeasured in the owner's bottle by this implementation task:
   with SSE2. Under Rosetta Timewalker, x87 reached 268 Mverts/s with the same
   printed checksum. Those earlier compilation flags were not preserved here.
 
-These observations strongly support x87 translation cost as a major bottleneck.
+These microbenchmarks established high x87 translation cost in the transform probe.
+The later in-world EIP profile below supersedes the hypothesis that x87 cost
+explains the game's low frame rate. Fast x87 did not improve the measured in-world FPS.
 They do not establish that OpenGL never limits any scene, that every x87 opcode
 uses the same slow path, or that a microbenchmark speedup transfers proportionally
 to game FPS. The owner is testing actual gameplay separately. No post-patch
@@ -100,7 +103,7 @@ printed these throughputs in Mverts/s:
 
 | Run | Plain x87 | Fast x87 | Plain SSE2 | Fast SSE2 |
 |---|---:|---:|---:|---:|
-| 1 | 2.5 | 274.8 | 456.2 | 465.4 |
+| 1 | 38.7 | 118.7 | 3.07x | `733b6dc5` |
 | 2 | 2.5 | 278.2 | 465.0 | 463.1 |
 | 3 | 2.6 | 280.8 | 468.8 | 449.8 |
 | Median | 2.5 | 278.2 | 465.0 | 463.1 |
@@ -244,3 +247,214 @@ Login, extended stability, post-patch in-world FPS, natural sleep/display recove
 and native Windows equivalence remain outside these local routing checks.
 The owner is testing in-world FPS. This task does not click GAME START, enter
 credentials or claim native editable game recovery.
+
+## MAC-PERF-003: profile and immediate-mode batching
+
+Claude supplied the following measurements on this Mac. They are attributed
+observations, separate from the disposable-bottle validation recorded below:
+
+- Fast x87 did not change in-world FPS. An in-bottle EIP sampler placed 73% of
+  the main thread's in-world samples in OPENGL32.dll, 18% in main.exe and 9% in
+  anonymous memory. Nearest-export mapping identified glTexCoord2f/glVertex3fv.
+- The client sends roughly 20,000 four-vertex GL_TRIANGLE_FAN blocks per frame,
+  plus QUADS and larger TRIANGLES blocks. glBindTexture and glPopMatrix are
+  the main boundaries between compatible draws. Each GL call crosses WoW64.
+- The prototype reduced server-select draws from roughly 20,000 to 180 per
+  frame, raised server-select FPS from 19–20 to the 25 FPS cap and reduced
+  main.exe CPU from about 95% to 48%. Owner in-world testing remains pending.
+- Claude's SSE-built glbench measured 3.5–3.7x speedup with matching framebuffer
+  hashes for one and four quads per block. This task reruns the authored build
+  at one, four and sixteen quads per block, rather than reusing those numbers.
+
+`mac-play/diagnostics/eipprof.c` snapshots the selected process's modules and
+threads, suspends each thread, reads CONTEXT_CONTROL/EIP and resumes it before
+hash aggregation. It samples at roughly one-millisecond intervals and writes
+per-thread totals plus the 4,000 hottest 64-byte buckets. Snapshot timing,
+thread-suspension latency and waiting threads bias wall-clock samples; these
+percentages are not instrumented CPU-time attribution. The helper resolves a
+process name only within its selected Wine bottle, so use a unique target name.
+The module table is a startup snapshot; dynamic loads and new threads are not
+followed. `pe_nearest_export.py` labels the nearest preceding exported RVA in a
+PE32 file. It does not recover symbols, establish exact function extents or
+classify the anonymous 9%. No raw process samples are published.
+
+### Proxy design and equivalence boundary
+
+The authored MIT proxy exports all 361 names from CrossOver 26.3's i386 OpenGL
+manifest. `gen.py` generates pass-through assembly stubs, real-function slots and
+the DEF file during `make mugl`. Custom entry points collect positions and
+current 2D texture coordinates, RGBA colors and normals. A pending batch keeps
+server GL state unchanged until synchronization. Any other export first flushes
+pending geometry; a foreign call inside Begin/End replays that open block through
+immediate mode and forwards the rest of the block. Unsupported current-attribute
+calls invalidate the cache. Refresh reads actual current attributes and shading
+state after list execution, PopAttrib or a context switch.
+
+For zero-based input vertices, `triangles.c` emits:
+
+| Input | Emitted triangle order |
+|---|---|
+| Fan / convex polygon | `(0,i,i+1)` for `i=1..n-2` |
+| Strip | `(i,i+1,i+2)` for even `i`; `(i+1,i,i+2)` for odd `i` |
+| Quad | `(i,i+1,i+2)`, `(i,i+2,i+3)`, advancing by four |
+| Quad strip | `(i,i+1,i+3)`, `(i,i+3,i+2)`, advancing by two |
+
+Fan/strip conversion preserves winding and the last provoking vertex for each
+original triangle under the legacy last-vertex convention. When the application
+selects first-vertex convention, flat fans/strips keep their original modes and
+submit separately. Smooth fan/strip conversion is unaffected. The extension
+callback and state refresh track the selected provoking convention. Quad/polygon conversion is permitted only under GL_SMOOTH. Flat
+quads/polygons retain their original primitive mode and submit separately.
+Incomplete independent lines/triangles are discarded at each block boundary;
+incomplete quads/quad strips and too-short fans/polygons emit no extra triangle.
+Hand-computed host tests exercise indices, winding, provoking order and
+short/incomplete counts. They do not establish arbitrary-driver pixel equality.
+
+Submission saves client array state, packs the varying attributes, calls
+`glInterleavedArrays` and `glDrawArrays`, restores client state, then restores
+current color, normal and texture coordinates. Constant attributes use current
+values instead of arrays. Values specified between consecutive blocks participate
+in the varying-attribute check. Attributes changed in a zero-vertex block are
+still sent on synchronization. Batch boundaries preserve order around textures,
+matrices, queries and swaps. Stats report interval totals, not per-frame counts.
+
+The implementation follows the primitive assembly and flatshading rules in the
+[Khronos OpenGL 1.1 specification](https://registry.khronos.org/OpenGL/specs/gl/glspec11.pdf),
+sections 2.6.1 and 2.13.7. State submission uses the reference contracts for
+[glInterleavedArrays](https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glInterleavedArrays.xml)
+and [display lists](https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glNewList.xml).
+Smooth shading alone does not promise identical tessellation of arbitrary quads
+and polygons. Nonplanar quads, nonuniform smooth interpolation, polygon smoothing
+and driver-selected diagonals remain outside the measured equality claim.
+
+Display-list compilation is forwarded as immediate calls and never rewritten as
+array draws. List execution flushes first and invalidates current/shading state.
+`glPolygonMode` line/point rendering permanently disables batching to avoid visible
+triangulation diagonals or repeated points. A state refresh catches these modes
+when applied inside a list. Selection/feedback render modes also disable batching
+because merged draws would change their records.
+
+`wglGetProcAddress` results use x86 trampolines that preserve integer registers and
+flags, synchronize, then jump to the real stdcall entry point. Server texture
+selection is preserved while current unit-zero coordinates are queried. Client submission selects unit zero and temporarily disables enabled
+coordinate arrays on other units, since immediate mode ignores those arrays.
+Client selector, enables and pointers are restored with the saved client state.
+Their cached snapshot is invalidated by client-state changes and context switches.
+Multitexture coordinate calls inside Begin/End use the immediate replay fallback;
+between blocks synchronization preserves the driver's other-unit current values.
+The proxy does not buffer per-vertex multitexture coordinates. Ordinary
+`glBindBuffer/ARB` bindings are saved around CPU array submission; PopClientAttrib
+invalidates that binding cache. GL2.1 conventional-attribute shaders remain active,
+and provoking convention is tracked explicitly. Modern BindBuffer variants
+select a permanent process fallback. For VAOs,
+submission saves the application binding, uses the default VAO for client-memory
+arrays, saves/restores that default client state and restores the application
+VAO afterward. This avoids the ARB nonzero-VAO/client-memory restriction. The
+trampoline passes a read-only pointer to caller stack arguments and preserves
+the original call ABI. A failed or
+exhausted trampoline allocation disables batching before returning a raw pointer.
+The table holds 4,096 entries; the original 512-entry limit was insufficient for
+the client's startup extension catalog.
+General modern extension state, generic attribute arrays and vertex-ID-dependent
+shaders are not supported by this narrow compatibility proxy. These checks do
+not establish universal GL interposition.
+
+Other limits: global buffers assume a single rendering thread and one current
+context at a time; there is no per-thread/context state store. The observed path
+uses finite float32 coordinates and in-range colors. Intercepted double/integer
+variants convert through float32 even in `MUGL_MODE=off`. True A/B uses CrossOver's
+`--dll opengl32=b` option for the builtin DLL, or `--dll opengl32=n,b` for the
+proxy. Its wrapper overwrites inherited WINEDLLOVERRIDES, so environment-only
+overrides silently failed to select the proxy in the initial discarded runs.
+Error behavior for malformed GL calls, color-index modes,
+edge flags/evaluators, all lighting/material interactions and arbitrary
+multicontext applications is unverified. Memory allocation failure aborts the
+process rather than continuing with a corrupt draw. Native Windows and game
+anti-cheat acceptance are separate from the local compatibility checks.
+
+### Setup boundary
+
+Default-on setup builds with mandatory `-O2 -msse2 -mfpmath=sse`, copies the DLL
+only into its setup-owned idle bottle's cloned game directory and writes
+`HKCU\Software\Wine\AppDefaults\main.exe\DllOverrides`, `opengl32=native,builtin`.
+`C:\windows\system32\opengl32.dll` must retain Wine's builtin DOS marker. The
+proxy loads that absolute path and rejects missing real exports. Setup refuses
+an unmanaged game DLL or non-builtin system DLL. It records proxy and builtin
+SHA-256, and rechecks them on rerun. `MU_GL_BATCHING=0` removes only a managed game
+proxy and the main.exe override value. Original files and MuMatrix32 stay intact.
+
+### Local validation of the repository build
+
+Setup created new `MuMugl-test` from the original read-only Windows10MU
+installation. .NET 4.8, the monitor check, cloned default skin, default-on proxy
+and AppDefaults override completed. The clone's main.exe retained the target
+SHA-256 above. MuMatrix32 and its processes were not stopped or modified.
+The final generated proxy SHA-256 is
+`347f72467ec5a31c42289bae4eb6f04a6b608ffb64109b3caa55017a4e0d1405`.
+The installed DLL and recorded `mugl.sha256` match; system32 remained builtin.
+
+Measured on Apple M5, macOS 27.0.1 / CrossOver 26.3, Apple OpenGL 2.1 Metal 91.7.
+Every run used SSE-built glbench, plain CrossOver translation (`MU_FAST_X87=0`),
+240 frames, 20,000 quads/frame and a 640x480 client framebuffer. Each pair has
+the same final FNV-1a framebuffer hash:
+
+| Quads/block | Builtin FPS | Proxy FPS | Ratio | Both fbhash |
+|---:|---:|---:|---:|---|
+| 1 | 38.7 | 118.7 | 3.07x | `733b6dc5` |
+| 4 | 65.2 | 118.9 | 1.82x | `1c55adc5` |
+| 16 | 76.8 | 119.6 | 1.56x | `96e9fdc5` |
+
+These are single serial pairs on a shared host, include frame swaps and final
+readback, and are not confidence intervals or in-world FPS. Proxy results cluster
+near 119 FPS, so presentation pacing may limit the measured ratios. Logs confirm
+`mugl loaded; real=C:\windows\system32\opengl32.dll mode=merge` and frame/draw
+stats. The initial environment-only override runs did not load the proxy and
+were rejected. Native-only `--dll opengl32=n` also fails because loading the real
+Wine builtin requires the builtin fallback. The corrected helper uses `n,b`.
+
+`glcheck.exe` ran in separate builtin/proxy processes both normally and with its
+`multitexture` argument. All thirty-six labeled framebuffer hashes match, both proxy invocations
+report `state-failures=0 gl-error=0`, and the proxy load log is present. Cases
+cover attribute changes between merged blocks, incomplete triangle blocks,
+zero-vertex attribute changes, PopAttrib, display-list compile/execute,
+unintercepted color setters, client vertex-array restoration, foreign calls in
+Begin/End, flat strips/fans/quads/quad strips/polygons, a wireframe quad and a
+multitexture extension trampoline in a fresh process. Additional final probes
+cover bound/restored array buffers, GLSL120 conventional-attribute shaders and
+first-vertex provoking convention under flat/smooth shading. A nonzero APPLE
+VAO retains its binding, vertex pointer, VBO association and enable state after
+submission. The multitexture probe uses a GLSL120 shader reading
+`gl_MultiTexCoord1` while a different unit's client coordinate array is enabled;
+its framebuffer, client selector, enable and pointer all match builtin behavior.
+This is synthetic coverage of these paths, not exhaustive OpenGL equivalence.
+
+Actual setup reruns with off, on and on again completed. The managed DLL was
+removed/reinstalled, the main.exe override restored, and the final recorded hash
+matched. Synthetic deployment tests also reject a foreign system DLL, symlinks,
+unmanaged game DLLs and an active game. Portable tests total 201, with 186 passes
+and fifteen explicit private-input skips. The generated PE has 361 named exports.
+Linux CI cross-builds mugl and all three diagnostics in addition to portable tests.
+
+Play.command passed the monitor check and started the real launcher. The
+provided clickstart helper clicked GAME START at window fractions
+`0.8753,0.9264`, after initialization. Wine tasklist showed main.exe PID 888.
+The final proxy logged its system32 builtin load, buffered four-vertex fans during
+loading, and reached 25.0 FPS after loading. Its last saved reporting interval
+contains 999,569 blocks, 6,035,276 input vertices and 8,966 submitted draws, with
+zero in-block fallbacks. Those are interval totals, not per-frame values. A
+roughly two-second, 25 FPS interval corresponds to about 20,000 blocks and 180
+draws/frame. No login or in-world performance/stability test was performed.
+
+Startup testing exposed overbroad fallbacks for buffer, program, provoking,
+texture-unit and VAO initialization, and exhaustion of the 512-entry prototype
+extension table. These were replaced by the state-preserving paths described
+above and a 4,096-entry table. The final main.exe run has no batching-disable
+message after its load. This prevents a successful load alone from being
+mistaken for active batching. The three-second profiler smoke run sampled
+main.exe, reporting 69 modules, 24 threads and 192 occupied buckets; it is not a
+new in-world profile.
+
+The setup-owned bottle was stopped with its explicit prefix, deleted by name,
+and its absence checked. Raw logs, diagnostics and copied setup state are ignored
+in `runtime/mac-mugl/`. A fresh clone
+contains neither game inputs nor these machine-specific logs.

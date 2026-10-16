@@ -12,7 +12,8 @@ Creates a NEW win10/win32 CrossOver bottle, or resumes one owned by this script.
 Default bottle: MuTheMatrix
 Default source: Windows10MU/drive_c/Program Files (x86)/Glitch Games Network/Mu The Matrix
 Environment: CX_ROOT overrides the CrossOver runtime directory;
-             WINETRICKS overrides the winetricks executable.
+             WINETRICKS overrides the winetricks executable;
+             MU_GL_BATCHING=0 disables default-on mugl (otherwise needs mingw-w64).
 Logs, step markers and Play.command stay inside the new bottle.
 EOF
 }
@@ -20,6 +21,8 @@ EOF
 SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd -P)
 CX_ROOT=${CX_ROOT:-/Applications/CrossOver.app/Contents/SharedSupport/CrossOver}
 BOTTLES="$HOME/Library/Application Support/CrossOver/Bottles"
+source "$SCRIPT_DIR/gl-batching.sh"
+source "$SCRIPT_DIR/diagnostics/bottle.sh"
 BOTTLE=MuTheMatrix
 SOURCE=
 while [ "$#" -gt 0 ]; do
@@ -49,6 +52,11 @@ preflight() {
     SOURCE=$(cd -- "$SOURCE" && pwd -P)
     [ -f "$SOURCE/main.exe" ] && [ -f "$SOURCE/MuTheMatrix.exe" ] || die 'Source must contain main.exe and MuTheMatrix.exe.'
     [ -z "$(find "$SOURCE" -type l -print -quit)" ] || die 'Refusing source symlinks that could link the clone to another installation.'
+    case "${MU_GL_BATCHING:-1}" in
+        1) make -C "$SCRIPT_DIR/mugl" ;;
+        0) ;;
+        *) die 'MU_GL_BATCHING must be 0 or 1' ;;
+    esac
     mkdir -p "$BOTTLES"
     BOTTLES=$(cd -- "$BOTTLES" && pwd -P)
     PREFIX="$BOTTLES/$BOTTLE"
@@ -200,6 +208,8 @@ main() {
     note "Checking cloned custom skin (log: $STATE/default-skin.log)"
     disable_custom_skin >> "$STATE/default-skin.log" 2>&1
     check_identity
+    note "Checking mugl deployment (log: $STATE/mugl.log)"
+    install_gl_batching >> "$STATE/mugl.log" 2>&1
     write_launcher
     note 'Setup complete. Play.command resets this idle bottle and checks its monitor before starting. See the research report for validation limits.'
 }

@@ -489,6 +489,59 @@
       "renderer_use_known": false,
       "authored_library_sha256": "2be7f84e3949505d3a06d0b468ea66f4339f7162b0e973c11fa942d9d1cd4372",
       "local_report": "evidence/client-pose-builder/comparison-v12-v14-v15.json (pose-builder worktree), SHA-256 d93ceb8e33ce9e268c68f4d37fe69cc378f0251ce48e6bcf9faa6b9ae0de0615"
+    },
+    "mac_gl_batching": {
+      "issue": 51,
+      "source": "mac-play/mugl",
+      "finding": "docs/research/mac-performance.md",
+      "license": "authored MIT",
+      "cross_over": "26.3",
+      "export_names": 361,
+      "proxy_sha256": "347f72467ec5a31c42289bae4eb6f04a6b608ffb64109b3caa55017a4e0d1405",
+      "validation_bottle": "MuMugl-test",
+      "frames": 240,
+      "quads_per_frame": 20000,
+      "benchmark_pairs": [
+        {
+          "quads_per_block": 1,
+          "builtin_fps": 38.7,
+          "proxy_fps": 118.7,
+          "both_fbhash": "733b6dc5"
+        },
+        {
+          "quads_per_block": 4,
+          "builtin_fps": 65.2,
+          "proxy_fps": 118.9,
+          "both_fbhash": "1c55adc5"
+        },
+        {
+          "quads_per_block": 16,
+          "builtin_fps": 76.8,
+          "proxy_fps": 119.6,
+          "both_fbhash": "96e9fdc5"
+        }
+      ],
+      "glcheck_matching_hashes": 36,
+      "glcheck_state_failures": 0,
+      "glcheck_gl_errors": 0,
+      "setup_reruns": [
+        "off",
+        "on",
+        "on"
+      ],
+      "local_evidence": "runtime/mac-mugl/",
+      "limits": "Single serial benchmark pairs, shared host, synthetic float32 fixed-function workload; owner in-world performance/stability and general GL equivalence remain open.",
+      "launcher_main_proxy_load": true,
+      "main_startup_buffered_triangle_fans": true,
+      "test_bottle_removed": true,
+      "main_observed_fps": 25.0,
+      "main_last_interval": {
+        "blocks": 999569,
+        "vertices": 6035276,
+        "draws": 8966,
+        "in_block_fallbacks": 0
+      },
+      "extension_capacity": 4096
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",

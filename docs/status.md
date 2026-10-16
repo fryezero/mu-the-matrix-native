@@ -60,7 +60,7 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 190 tests. Portable checks pass 175 and explicitly skip fifteen
+The suite discovers 201 tests. Portable checks pass 186 and explicitly skip fifteen
 private-input checks. In the pose-builder worktree, opt-in integration with
 `MU_GAME_ROOT` passes all 190.
 In the bone-tracks worktree it passed all 155 tests from before the seven launcher-guard tests.
@@ -112,6 +112,20 @@ under required-fast selection with the default filter. The matching-filter
 benchmark measured 279.1 Mverts/s fast versus 2.7 plain with matching checksum
 3.904312. The test bottle was removed. All 163 portable tests pass, with fourteen
 private-input skips; both review axes and the publication audit pass.
+
+MAC-PERF-003, issue #51, adds the authored MIT mugl OpenGL batching proxy,
+361-name export generation, host-tested primitive conversion and a default-on
+setup step with `MU_GL_BATCHING=0` opt-out. Deployment checks Wine's system32
+builtin marker and records the proxy SHA-256. The setup-created MuMugl-test
+bottle passed three plain/proxy framebuffer comparisons at 20,000 quads/frame:
+38.7 to 118.7 FPS for one quad/block, 65.2 to 118.9 for four, and 76.8 to 119.6
+for sixteen. All thirty-six GL regression hashes match, with zero state failures or
+GL errors. Setup off/on/rerun checks pass. The launcher started main.exe with
+active batching and a 25.0 FPS log; one interval reduced 999,569 blocks to 8,966
+draws. The test bottle was removed. Owner in-world testing remains open.
+The x87 hypothesis is superseded by Claude's reported in-world EIP profile,
+which places 73% of main-thread samples in OpenGL; fast x87 did not improve
+in-world FPS. These figures are compatibility evidence, not native recovery.
 
 See [measurements and limits](research/mac-performance.md) for local checks and
 Claude's separately supplied launcher-to-main/profile observations. Post-patch

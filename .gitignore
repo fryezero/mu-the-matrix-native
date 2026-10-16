@@ -32,3 +32,7 @@ __pycache__/
 *.local.json
 .env
 .env.*
+
+/mac-play/mugl/build/
+
+/mac-play/diagnostics/build/

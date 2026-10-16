@@ -34,6 +34,9 @@ jobs:
       - name: Cross-build x86 guest comparison tool
         if: runner.os == 'Linux'
         run: make -C runtime-linux/lea-compare
+      - name: Cross-build immediate-mode batching proxy
+        if: runner.os == 'Linux'
+        run: make mugl mac-diagnostics
       - name: Cross-build authored performance probes
         if: runner.os == 'Linux'
         run: |
