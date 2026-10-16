@@ -20,9 +20,9 @@ CrossOver remains unable to start the original. No Windows PC is currently avail
 
 ## Checks
 
-The repository discovers 80 tests. The portable run passes 74 and explicitly
-skips six private-input checks. The opt-in local integration run passes all 80.
-A fresh 84-file source-only checkout passes 74 tests with six explicit skips.
+The repository discovers 88 tests. The portable run passes 81 and explicitly
+skips seven private-input checks. The opt-in local integration run passes all 88.
+A fresh 91-file source-only checkout also passes 81 tests with seven explicit skips.
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
@@ -58,3 +58,5 @@ The bounded map is merged through PR #13 after passing macOS/Linux CI. Selected 
 Selected math data is now captured with exact identity and restored-text checks before/after reading. The scalar is positive zero, the template equals a standard identity matrix, and the observed feature bit selects SSE. [Evidence and limits](research/client-math-data.md).
 
 The fixed math-data scope is merged through PR #14 after passing macOS/Linux CI. Selected arithmetic reconstruction continues under issue #15.
+
+Authored cofactor/record-operation source matches 1,680 helper and 1,050 wrapper comparisons under explicit PC53/RNE state, including aliasing. [Arithmetic evidence and limits](research/record-math.md).

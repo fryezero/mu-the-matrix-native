@@ -176,6 +176,24 @@
       "inventory_evidence_id": "ev_3a3b7f26c4be6c7c51c56ede1d53b5acbc121ffe3b7b5a181e43950601600a7d",
       "selected_function_evidence_id": "ev_486f89fae4379bc3801cf0754db5c1d7861fda2329ec676b92c9afe1fb6bd31b",
       "local_map": "evidence/client-map-64k/candidate-map-v5.json"
+    },
+    "record_math": {
+      "cofactor_address": "0x00401240",
+      "cofactor_bytes": 388,
+      "cofactor_sha256": "3953e0e96ca8d44c44aafc7ba04cda9741268dd4076b7378d2726e79ba0c392e",
+      "wrapper_address": "0x004013d0",
+      "wrapper_bytes": 270,
+      "wrapper_sha256": "478df4df0c19b0eb211a0f955c1c1ed7be2f0a268959aa563539e0e270502524",
+      "cofactor_comparisons": 1680,
+      "wrapper_comparisons": 1050,
+      "mismatches": 0,
+      "x87_control_word": "0x027f",
+      "original_actual_fp_state_known": false,
+      "wrong_snapshot_negative_control_mismatches": 16,
+      "outside_scope_pc24_differences": 1471,
+      "cofactor_rea_evidence_id": "ev_5af8081d62a9556960e039094d888d0743d424b9a7b05124db9bd5be50bb7d00",
+      "local_evidence": "evidence/record-math-equivalence.json",
+      "scope": "Controlled finite synthetic cases, PC53/RNE masked state; no native Windows/game invocation or all-input claim."
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -183,13 +201,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 80,
-    "portable_passed": 74,
-    "private_checks_skipped": 6,
-    "local_integration_passed": 80,
+    "portable_tests_discovered": 88,
+    "portable_passed": 81,
+    "private_checks_skipped": 7,
+    "local_integration_passed": 88,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Scoped math-data acquisition and earlier recovery merged after passing macOS/Linux CI",
+    "remote_ci_status": "Scoped capture and earlier recovery merged; record arithmetic awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38836477521",
     "remote_ci_commit": "3162f2f5ee65a4f14aae443ad3e37847b7a07189",
     "github_source_files_verified": 58,
@@ -198,7 +216,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 84
+    "current_source_files": 91
   },
   "client_executable_section_restored": true
 }
