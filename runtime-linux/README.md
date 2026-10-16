@@ -125,3 +125,13 @@ The data manifest has a separate format and a `regions` array; check every
 file's size/hash and `complete_within_scope` after transfer. The default text
 scope retains its previous format and single-file fields. [The finding](../docs/research/client-math-data.md)
 records the successful guest run, refused packed-state attempt and limitations.
+
+## Capture the fixed second image section
+
+`--scope image-data` selects the second PE section at `0x01a7c000`, exactly
+2,557,764 virtual bytes. It excludes page padding and subsequent sections.
+The manifest format is `mu-linux-wine-image-data-capture-v1`, with a `regions`
+array and restored-text hashes before and after reading. Process/file/mapping
+checks and durable output follow the selected math-data scope. This is read-only
+acquisition of selected image memory, not proof that the entire section is
+restored or immutable. Raw bytes and string inventories remain local.

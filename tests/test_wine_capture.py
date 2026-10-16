@@ -30,6 +30,13 @@ class WineCaptureBoundaries(unittest.TestCase):
         with self.assertRaises(ValueError):
             capture.image_ranges('00001000-00002000 ---p 0 00:00 0\n', 0x1800, 16, require_executable=False)
 
+    def test_image_data_scope_is_exact_declared_second_section_without_page_padding(self):
+        self.assertEqual(capture.scope_regions('image-data'),
+                         [('client-image-data.bin', 0x01a7c000, 2557764)])
+        start, size = capture.scope_regions('image-data')[0][1:]
+        self.assertEqual(start+size, 0x01cec744)
+        self.assertLess(start+size, 0x01ced000)
+
     def test_hash_reads_selected_ranges_without_gaps_and_rejects_short_reads(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'synthetic-memory'

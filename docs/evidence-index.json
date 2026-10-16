@@ -149,6 +149,17 @@
           "feature_bit1_set": true
         },
         "limitation": "Wine compatibility state and non-atomic sequential reads; native Windows/game invocation unverified."
+      },
+      "image_data": {
+        "address": "0x01a7c000",
+        "bytes": 2557764,
+        "sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f",
+        "capture_tool_sha256": "ea29b59b3e1755671917bedf1de02f06a399345738efe4cca147e924124e3e05",
+        "local_evidence": "evidence/image-data-run10/data-capture-10/capture.json",
+        "repeat_digest_matches": true,
+        "early_packed_state_refused": true,
+        "legacy_text_math_regression_verified": true,
+        "complete_restoration_claimed": false
       }
     },
     "client_memory": {
@@ -219,13 +230,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 93,
-    "portable_passed": 86,
+    "portable_tests_discovered": 94,
+    "portable_passed": 87,
     "private_checks_skipped": 7,
-    "local_integration_passed": 93,
+    "local_integration_passed": 94,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Model diagnostics merged after passing macOS/Linux CI",
+    "remote_ci_status": "Model diagnostics merged; fixed image-data scope awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38838962482",
     "remote_ci_commit": "30bea610cbcaa45c9438f38b3fedf05fc7c81847",
     "github_source_files_verified": 58,
@@ -234,7 +245,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 92
+    "current_source_files": 93
   },
   "client_executable_section_restored": true
 }
