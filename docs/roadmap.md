@@ -19,8 +19,8 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | CAP-002 | Implemented: bounded map and first reconstructed copy behavior | REA record, eleven nearby routines mapped, 393 instruction comparisons, negative control | PR #8 merged after passing macOS/Linux CI |
 | CLIENT-MEMORY-002 | Implemented: clear64 and bounded reference search | 768 scalar/SSE/DF comparisons; no direct/absolute references found in selected inputs | PR #10 merged after passing macOS/Linux CI |
 | CLIENT-MAP-001 | Implemented: first 64 KiB candidate/reference map | 803 labeled candidates, 31-entry REA comparison, selected record-operation dossier | PR #13 merged after passing macOS/Linux CI |
-| CLIENT-MATH-001 | Implemented: capture selected image constants | Fixed 76-byte scope, pinned restored text before/after, early refusal and legacy regression | Issue #12, branch `codex/client-math-data` |
-| CLIENT-MATH-002 | Reconstruct selected cofactor/reciprocal record operation | Captured-instruction comparison with explicit x87 state and aliasing/exception limits | Verified math data and window-map finding |
+| CLIENT-MATH-001 | Implemented: capture selected image constants | Fixed 76-byte scope, pinned restored text before/after, early refusal and legacy regression | PR #14 merged after passing macOS/Linux CI |
+| CLIENT-MATH-002 | Reconstruct selected cofactor/reciprocal record operation | Captured-instruction comparison with explicit x87 state and aliasing/exception limits | Issue #15; verified math data and window-map finding |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
 | MODEL-EDGE | Explain the 17 rejected v15 records | Case-specific evidence and tests; preserve unresolved semantics rather than broad acceptance | Matching local files |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |

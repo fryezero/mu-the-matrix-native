@@ -42,7 +42,7 @@ Protected gameplay functions and types, faithful initialization capture, network
 ## Repository publication
 
 The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery)
-contains 83 reviewed source/documentation files on main. Model PR #4, runtime
+contains 84 reviewed source/documentation files on main. Model PR #4, runtime
 PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8)
 are merged. No game executable, asset pack or memory capture was uploaded.
 The initial 58-file publication was independently downloaded and compared with
@@ -56,3 +56,5 @@ The owner has no Windows PC available for the foreseeable future. The active exp
 The bounded map is merged through PR #13 after passing macOS/Linux CI. Selected image-data acquisition continues under issue #12.
 
 Selected math data is now captured with exact identity and restored-text checks before/after reading. The scalar is positive zero, the template equals a standard identity matrix, and the observed feature bit selects SSE. [Evidence and limits](research/client-math-data.md).
+
+The fixed math-data scope is merged through PR #14 after passing macOS/Linux CI. Selected arithmetic reconstruction continues under issue #15.
