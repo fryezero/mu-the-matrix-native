@@ -79,3 +79,17 @@ flag 1, x87 `0x027f` and MXCSR `0x1f80`, without stubs. It also covers 2,816
 alias/alignment cases, 256 FP-state variants and host-midpoint trig candidates.
 Results outside the SSE2 domain and non-finite values remain unverified. Five
 analytic portable tests and one private instruction check cover this entry.
+
+## Pose-builder helpers
+
+Four helpers called by the pose builder `0x012b5064`:
+`mu_quaternion_compare` (`0x00cfec33`, binary64 `> 0.001` per component on the
+binary32 difference), `mu_quaternion_slerp` (`0x00d00ca4`, with in-place
+negation of q, spherical/linear/opposite branches and binary32-rounded trig),
+`mu_quaternion_matrix` (`0x00d008bf`, nine binary64 expressions rounded once,
+column 3 untouched) and `mu_angle_matrix` (`0x00cff32a`, degrees, ZYX, binary32
+products, zero translation). The `_using` variants take trig callbacks; the
+defaults use host libm sin/cos/acos as substitutes for the client helpers.
+The [pose-builder finding](../../docs/research/client-pose-builder.md) records
+direct and in-builder instruction comparisons. `test_pose_helpers.py` adds four
+analytic portable tests.
