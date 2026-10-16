@@ -6,7 +6,7 @@ The repository currently builds recovery tools and source components. It has no 
 |---|---|---|
 | `reconstructed/boot` | `mu_decode_block` in `decoder.h` | Bounded byte decoding with explicit consumed/written lengths; portable C |
 | `reconstructed/client-memory` | `mu_copy64_forward_words` in `copy64.h` | Observed sixteen-word copy for valid spans and DF clear; portable C |
-| `reconstructed/record-math` | `mu_record_cofactor`, `mu_record_inverse` | Experimental ordered arithmetic with explicit FP/aliasing limits |
+| `reconstructed/record-math` | `mu_record_cofactor`, `mu_record_inverse`, `mu_pose_concat` | Controlled record/pose arithmetic with explicit FP/aliasing limits |
 | `reconstructed/model-codec` | `mu_bmd12_decode`, `mu_client_lea_setup`, `mu_client_lea_decode` | Client-linked rolling decoder, LEA context setup and batch ECB; portable C |
 | `asset-recovery/recover_images.py` | `decode(path)` | Recognized wrapper removal, image validation, pixel-preserving exports |
 | `asset-recovery/recover_smd.py` | `unwrap_smd`, `validate_payload` | Observed text-mesh subset with original payload preservation |

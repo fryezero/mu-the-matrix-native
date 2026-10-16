@@ -163,7 +163,8 @@ needed for the captured instruction bytes. Guest remains shut down.
 
 ## Client-linked v15 ECB source
 
-Issue #31 / `codex/client-lea-decode` adds authored batch ECB source. Read
+Issue #31 / `codex/client-lea-decode` merged through PR #32 after macOS/Linux CI
+run `38895766466`. It adds authored batch ECB source. Read
 `research/client-lea-decode.md` and `../runtime-linux/lea-compare/README.md`.
 The relocated original wrapper and AVX/scalar helpers match 12,960 valid and
 46 no-op guest cases. The ABI bridge rejects its own bad callee; wrong scalar
@@ -186,3 +187,20 @@ all 135 opt-in private checks pass. A clean source checkout is checked separatel
 Next recover original record-loading/allocation paths or the actual hierarchy
 matrix concatenate at `0x00cff83e`. Keep unknown prior dummy-slot state explicit;
 a decoder result does not justify relaxing the parser or claiming rendering.
+
+## Controlled hierarchy composition
+
+Issue #33 / `codex/pose-concat` adds `mu_pose_concat` to record-math, reusing byte
+storage helpers without changing cofactor/inverse behavior. Read
+`research/pose-concat.md`. Original `0x00cff83e..0x00cfff3b` matches 5,176 controlled
+RNE binary32 cases. A separately compiled input-snapshot variant fails 2,464.
+Of 5,200 attempts, 24 leave the finite normal/zero domain and are recorded
+separately. Initial NaN differences exposed incomplete emulator status reporting;
+new instruction hooks inspect arithmetic results directly instead of trusting
+MXCSR status alone. Raw failures, corrected report and REA are in ignored
+`evidence/pose-concat/`. Standalone validation also verifies three selected
+hierarchy call instructions. No live pose-buffer state or actual renderer is
+claimed. Guest remains shut down; this check uses existing captured bytes.
+
+Next recover rotation helper `0x00d00724` or bounded original record-loading /
+allocation behavior. Native game source, simulation and services remain open.

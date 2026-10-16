@@ -49,3 +49,16 @@ FP initialization and return store are authored harness instructions. All 1,680
 cofactor and 1,050 inverse cases match. Full arena guards and original stack,
 register, control-state and bounded-access checks accompany the comparison.
 See [the finding](../../docs/research/record-math.md) for provenance and limits.
+
+## Hierarchy pose composition
+
+`mu_pose_concat(parent, local, output)` composes twelve-field 3x4 transforms
+using separate binary32 products/additions and row-major sequential stores.
+It reuses byte-defined storage access for unaligned spans. Inputs/output may
+overlap; copying both inputs first would change 2,464 synthetic results.
+
+The [pose finding](../../docs/research/pose-concat.md) records 5,176 actual
+instruction matches under controlled RNE normal/zero arithmetic, plus 24
+explicitly out-of-domain attempts. Four analytic portable tests and one private
+instruction check extend this module. No original live pose/FP state or rendering
+is inferred. Existing cofactor/inverse binary64 contracts remain unchanged.

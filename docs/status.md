@@ -32,13 +32,16 @@ not exist yet.
 - Selected bone/pose instructions show that dummy records leave output slots
   unwritten, while children compose from prior caller-buffer contents. Those
   contents are unknown. Raw call-search totals remain candidates.
+- The hierarchy pose-composition source matches 5,176 controlled binary32
+  instruction cases; 24 out-of-domain attempts are recorded separately.
+  [Evidence](research/pose-concat.md). Actual prior pose state remains unknown.
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
 
 ## Verification
 
-The suite discovers 135 tests. Portable checks pass 124 and explicitly skip eleven
-private-input checks. Opt-in local integration passes all 135. A fresh 121-file source-only checkout
-also passes 124 with eleven explicit skips.
+The suite discovers 140 tests. Portable checks pass 128 and explicitly skip twelve
+private-input checks. Opt-in local integration passes all 140. A fresh 124-file source-only checkout
+also passes 128 with twelve explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -63,7 +66,7 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28 and #30 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28, #30 and #32 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
 The client-linked v12 milestone is merged through PR #23. Two selected v15
@@ -78,5 +81,8 @@ Hierarchy findings are merged through PR #25. Post-merge review corrections
 are merged through PR #28 after both platform checks. Strict model acceptance is unchanged.
 
 The v15 key context is merged through PR #30. The ECB source and guest comparator
-continue under issue #31. The guest is shut down. Decoder equivalence does not
+are merged through PR #32 after macOS/Linux CI. The guest is shut down. Decoder equivalence does not
 resolve the model loader's allocation, hierarchy or actual rendering behavior.
+
+Pose arithmetic continues under issue #33. Next validate original rotation/model
+record loading, keeping actual FP state and unknown prior output contents open.

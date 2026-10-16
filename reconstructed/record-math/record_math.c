@@ -77,3 +77,24 @@ void mu_record_inverse(void *destination, const void *source)
         for (size_t column = 0; column < 4; ++column)
             write_value(out, column*4+row, (float)((double)cofactors[row*4+column] * (double)reciprocal));
 }
+
+/* The actual pose helper stores row-major fields one at a time. Input values
+ * must be reread after each output store when any caller spans overlap.
+ */
+void mu_pose_concat(const void *parent, const void *local, void *destination)
+{
+    const uint8_t *a = parent, *b = local;
+    uint8_t *output = destination;
+    for (size_t row = 0; row < 3; ++row) {
+        for (size_t column = 0; column < 4; ++column) {
+            volatile float value = read_value(a, row*4) * read_value(b, column);
+            volatile float product = read_value(a, row*4+1) * read_value(b, 4+column);
+            value = value + product;
+            product = read_value(a, row*4+2) * read_value(b, 8+column);
+            value = value + product;
+            if (column == 3)
+                value = value + read_value(a, row*4+3);
+            write_value(output, row*4+column, value);
+        }
+    }
+}
