@@ -10,7 +10,8 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'mac-play/start-launcher.sh'
 
 class LauncherResetTests(unittest.TestCase):
     def run_launcher(self, tasks, query_status=0, display_status=0, server_status=0,
-                     fast_mode="auto", installed=False, stale=False, fast_status=0, modified=False):
+                     fast_mode="auto", installed=False, stale=False, fast_status=0,
+                     modified=False, only=None, wrapper_state="valid"):
         with tempfile.TemporaryDirectory(prefix='mu launcher ') as tmp:
             root = Path(tmp)
             runtime = root / 'CrossOver runtime'
@@ -31,7 +32,9 @@ class LauncherResetTests(unittest.TestCase):
                 'sw_vers': '#!/bin/bash\necho TEST_OS\n',
                 'cksum': '#!/bin/bash\necho TEST_RUNTIME\n'
                          'if [ -f "$MU_FAST_X87_HOME/source/build/libtimewalker.dylib" ]; then\n'
-                         '  "$REAL_CKSUM" "$MU_FAST_X87_HOME/source/build/libtimewalker.dylib"\nfi\n',
+                         '  "$REAL_CKSUM" "$MU_FAST_X87_HOME/source/build/libtimewalker.dylib"\nfi\n'
+                         'if [ -f "$MU_FAST_X87_HOME/x87-main-only-wrapper" ]; then\n'
+                         '  "$REAL_CKSUM" "$MU_FAST_X87_HOME/x87-main-only-wrapper" "$MU_FAST_X87_HOME/x87-main-only-wrapper.c"\nfi\n',
                 'git': f'#!/bin/bash\ncase "$*" in *rev-parse*) echo {commit};; esac\n',
             }.items():
                 tool = tools / name
@@ -39,14 +42,19 @@ class LauncherResetTests(unittest.TestCase):
                 tool.chmod(0o700)
             if installed:
                 for name in ('scripts/run-crossover.sh', 'build/libtimewalker.dylib',
-                             'build/x87-loader-wrapper', 'build/x87/bin/runtime_loader',
+                             'build/x87/bin/runtime_loader',
                              'build/x87/bin/libRuntimeRosettax87'):
                     path = cache / 'source' / name
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text('#!/bin/bash\nprintf "fast|%s|%s\\n" "$TIMEWALKER_CROSSOVER_ROOT" "$*" >> "$EVENTS"\n'
+                                    'printf "wrapper|%s|filter|%s\\n" "$TIMEWALKER_X87_LOADER_WRAPPER" "$TIMEWALKER_X87_ONLY" >> "$EVENTS"\n'
                                     'if [[ "$*" = *MuTheMatrix.exe* ]]; then exit "$FAST_STATUS"; fi\n'
                                     'exec "$CX_ROOT/bin/wine" "$@"\n')
                     path.chmod(0o700)
+                (cache / 'x87-main-only-wrapper.c').write_text('authored source')
+                wrapper = cache / 'x87-main-only-wrapper'
+                wrapper.write_text('#!/bin/bash\nexit 0\n')
+                wrapper.chmod(0o700)
                 (cache / 'validated').write_text('STALE\n' if stale else 'TEST_OS\nTEST_RUNTIME\n')
             wine = runtime / 'bin/wine'
             wine.write_text('''#!/bin/bash
@@ -66,12 +74,23 @@ esac
                        DISPLAY_STATUS=str(display_status), SERVER_STATUS=str(server_status),
                        MU_FAST_X87=fast_mode, MU_FAST_X87_HOME=str(cache),
                        FAST_STATUS=str(fast_status), REAL_CKSUM=shutil.which('cksum'), PATH=str(tools) + os.pathsep + os.environ['PATH'])
+            env.pop("TIMEWALKER_X87_ONLY", None)
+            if only is not None:
+                env["TIMEWALKER_X87_ONLY"] = only
             if installed and not stale:
                 identity = subprocess.check_output(
                     ['bash', '-c', 'source "$1"; fast_x87_identity', 'identity', str(SCRIPT.parent / 'fast-x87.sh')], env=env)
                 (cache / 'validated').write_bytes(identity)
             if modified:
                 (cache / 'source/build/libtimewalker.dylib').write_text('changed build output')
+            if installed and wrapper_state == "missing":
+                wrapper.unlink()
+            elif installed and wrapper_state == "modified":
+                wrapper.write_text('changed wrapper')
+            elif installed and wrapper_state == "source-modified":
+                (cache / 'x87-main-only-wrapper.c').write_text('changed source')
+            elif installed and wrapper_state == "not-executable":
+                wrapper.chmod(0o600)
             result = subprocess.run(['bash', str(SCRIPT)], env=env, capture_output=True, text=True)
             return result, events.read_text() if events.exists() else '', str(prefix)
 
@@ -133,8 +152,31 @@ esac
         self.assertIn('server|', lines[2])
         self.assertNotIn('fast|', lines[3])
         self.assertIn('MonitorCheck.exe', lines[3])
-        self.assertIn('fast|', lines[-1])
-        self.assertIn('MuTheMatrix.exe', lines[-1])
+        self.assertIn('fast|', lines[-2])
+        self.assertIn('MuTheMatrix.exe', lines[-2])
+        self.assertTrue(lines[-1].endswith('/x87-main-only-wrapper|filter|main.exe'))
+
+    def test_filter_override_including_empty_is_preserved(self):
+        for only in ('fp_x87', ''):
+            with self.subTest(only=only):
+                result, events, _ = self.run_launcher(
+                    '"services.exe","24","Console","1","0 K"', installed=True, only=only)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(events.splitlines()[-1].endswith('|filter|' + only))
+
+    def test_missing_modified_or_nonexecutable_wrapper_invalidates_cache(self):
+        for state in ('missing', 'modified', 'source-modified', 'not-executable'):
+            for mode in ('auto', '1'):
+                with self.subTest(state=state, mode=mode):
+                    result, events, _ = self.run_launcher(
+                        '"services.exe","24","Console","1","0 K"', installed=True,
+                        wrapper_state=state, fast_mode=mode)
+                    self.assertNotIn('fast|', events)
+                    if mode == 'auto':
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                    else:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertEqual(events, '')
 
     def test_stale_install_falls_back_to_plain(self):
         result, events, _ = self.run_launcher('"services.exe","24","Console","1","0 K"', installed=True, stale=True)

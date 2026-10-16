@@ -197,6 +197,9 @@ brew install cmake llvm mingw-w64
 The installer fetches exactly `ab1a6a032e488c0d6eade54ce70a02d653277810`, verifies
 HEAD and tracked source cleanliness, builds with CMake/Homebrew LLVM, runs the
 upstream native x87 FLD smoke check and the authored PE32 transform benchmark.
+It also builds our MIT `x87-main-only-wrapper.c` with `xcrun clang -arch arm64`
+and ad-hoc signs it in the cache, leaving the pinned upstream source unchanged.
+The fast benchmark uses this wrapper with `TIMEWALKER_X87_ONLY=fp_x87`.
 It enables automatic selection only when plain and patched x87 runs print the
 same checksum and the patched run logs translator activation. This is a bounded
 self-check, not proof of full x87 precision or game compatibility. It refuses
@@ -206,15 +209,28 @@ a game. Run it while the selected setup-owned bottle is idle.
 Rerun setup for an older setup-owned bottle to copy the new launcher helpers.
 `Play.command` keeps the idle-process guard and prefix-scoped display reset,
 runs the existing display probe through plain CrossOver, then uses the selected
-runtime for the launcher. A live .NET monitor probe stalled under the fast
-runtime on this host, so launcher/.NET compatibility remains experimental.
-A validated cache enables fast x87 for setup-generated launchers. The original
-MuMatrix32 quick launcher is separate and is never modified by these scripts.
+runtime for the launcher chain. The authored wrapper applies fast translation
+only when an argument contains `main.exe`, case-insensitively. MuTheMatrix.exe
+and its .NET dependencies use the real Wine loader directly. Applying the fast
+translator to the .NET launcher hangs on this host. The filter is inherited by
+child processes; matching any argument is a routing rule, not an executable
+identity check.
+
+A validated cache enables this filtered path for setup-generated launchers.
+`TIMEWALKER_X87_ONLY` overrides the substring; an explicitly empty value applies
+the fast runtime to everything, including .NET. For a matching diagnostic:
+
+```sh
+MU_FAST_X87=1 TIMEWALKER_X87_ONLY=fp_x87 ./mac-play/diagnostics/run-fpbench.sh MyMuBottle
+```
+
+The original MuMatrix32 quick launcher is separate and is never modified by these scripts.
 
 The cache is `~/Library/Caches/MuTheMatrix/fast-x87/COMMIT`. Build, FLD and
 benchmark logs stay there. `MU_FAST_X87_HOME` overrides that directory for both
-installation and launching. A macOS build, Rosetta runtime, selected CrossOver loader/server or built translator
-identity change invalidates validation. A missing, incomplete, modified or stale
+installation and launching. Changes to the macOS build, Rosetta runtime,
+CrossOver loaders/server, built translator or authored wrapper source/binary
+invalidate validation. A missing, incomplete, modified or stale
 installation falls back to plain CrossOver before starting the launcher.
 `MU_FAST_X87=1` requires a validated install and refuses to start otherwise.
 To force plain CrossOver:
