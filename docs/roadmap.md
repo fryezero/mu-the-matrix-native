@@ -17,7 +17,7 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | RUNTIME-X86 | Implemented: full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | PR #6 merged; continue code mapping under CAP-002 |
 | CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine, unavailable; preserved as an optional validation path |
 | CAP-002 | Implemented: bounded map and first reconstructed copy behavior | REA record, eleven nearby routines mapped, 393 instruction comparisons, negative control | PR #8 merged after passing macOS/Linux CI |
-| CLIENT-MEMORY-002 | Implemented: clear64 and bounded reference search | 768 scalar/SSE/DF comparisons; no direct/absolute references found in selected inputs | Issue #9, branch `codex/client-clear64` |
+| CLIENT-MEMORY-002 | Implemented: clear64 and bounded reference search | 768 scalar/SSE/DF comparisons; no direct/absolute references found in selected inputs | PR #10 merged after passing macOS/Linux CI |
 | CLIENT-MAP-001 | Broaden restored function/data-reference map | Pinned raw window, REA seeds/settings, reviewed candidate call graph and next validated behavior | Client-memory findings; preserve unresolved original symbols |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
 | MODEL-EDGE | Explain the 17 rejected v15 records | Case-specific evidence and tests; preserve unresolved semantics rather than broad acceptance | Matching local files |

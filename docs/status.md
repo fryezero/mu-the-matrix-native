@@ -42,12 +42,12 @@ Protected gameplay functions and types, faithful initialization capture, network
 ## Repository publication
 
 The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery)
-contains 74 reviewed source/documentation files on main. Model PR #4, runtime
+contains 79 reviewed source/documentation files on main. Model PR #4, runtime
 PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8)
 are merged. No game executable, asset pack or memory capture was uploaded.
 The initial 58-file publication was independently downloaded and compared with
 the lab snapshot; later changes are tracked through Git and checked in CI.
-Issue #9 adds the clear operation and records an unsuccessful bounded caller search; a broader function map is next.
+[Clear PR #10](https://github.com/fryezero/mu-the-matrix-recovery/pull/10) is merged after passing macOS/Linux CI. A broader bounded function map is next.
 
 ## Runtime route without a Windows PC
 
