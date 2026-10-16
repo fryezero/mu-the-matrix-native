@@ -2,7 +2,7 @@
 
 ## Portable source checks
 
-Use Python 3.9+, Clang/Clang++, and Crypto++. The native libraries build on macOS and Linux. The
+Use Python 3.9+, Clang/Clang++, and Crypto++. The native libraries build on macOS and Linux. Capstone supports bounded static code-map checks. The
 Windows-only capture utility has a separate cross-build.
 
 ```sh
@@ -10,7 +10,7 @@ Windows-only capture utility has a separate cross-build.
 brew install cryptopp
 # Debian/Ubuntu alternative: sudo apt-get install libcrypto++-dev
 python3 -m venv tools/python
-./tools/python/bin/python -m pip install -r asset-recovery/requirements.txt
+./tools/python/bin/python -m pip install -r tools/requirements-portable.txt
 make test PYTHON=./tools/python/bin/python
 ```
 
@@ -84,6 +84,13 @@ Install/configure them separately from REA. Set `GHIDRA_INSTALL_DIR` and
 Its `--objdump` option accepts your GNU objdump path. `docs/code-recovery.md`
 records raw mappings, seed addresses and the changed Ghidra analyzer profile.
 Preserve these profiles and derived-byte hashes when comparing results.
+
+## Bounded restored-code map
+
+Supply the pinned first-section capture and follow [the map finding](research/client-window-map.md).
+`map_client_window.py` limits window size and traversal budgets, labels heuristic
+origins and unresolved references, and refuses unpinned input. Its synthetic tests
+run in the portable suite with Capstone; no game data or Unicorn is needed.
 
 ## Windows helper
 

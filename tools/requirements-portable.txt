@@ -1,0 +1,2 @@
+-r ../asset-recovery/requirements.txt
+capstone==5.0.9
