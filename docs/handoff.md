@@ -2,6 +2,32 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Original launcher in CrossOver
+
+For the new original-launcher compatibility route, read
+[`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and
+[`../mac-play/README.md`](../mac-play/README.md). MAC-CROSSOVER-001 is issue #39,
+branch `codex/mac-crossover-32bit`, separate worktree `~/Documents/mu-worktrees/mac-crossover`.
+The setup creates only a new owned win10/win32 bottle and clones the user's
+installation. Use builtin windowscodecs/gdiplus, .NET 4.8, software rendering and
+the built-in IGCN skin. Native WIC was a failed earlier hypothesis; recreate any
+experimental bottle that installed it. The cloned `Template.design` is disabled
+on every rerun, including after updates. The original install remains unchanged.
+The entry point is the launcher, not main.exe. GAME START awaits owner testing.
+Claude continues that investigation in `MuMatrix32`; do not modify that bottle.
+Local validation logs are ignored under `runtime/mac-crossover-32bit/` in this
+worktree. The authored image probe and exact log decoder are included in `mac-play/`.
+The corrected fresh `MuMatrix32-ci-test` bottle passed all eight synthetic image
+steps, builtin-DLL tracing and 65.8-second launcher survival with prefix-scoped
+task identity. Rerun, restored-skin and ownership/protected-name refusal checks
+passed. The test bottle and lock are deleted. Portable checks pass 134/147 with
+thirteen explicit private skips; the shell syntax checks pass. Next have the
+owner test GAME START and Settings through the launcher, then add only supported
+fixes as separate steps. This task did not exercise either button.
+Two selector-0x33 far-return sequences at decoded-protector VAs `0x0df0aaae`
+and `0x0df55d13` support the Heaven's Gate hypothesis, without proving the fault
+path. Native gameplay acceptance gates and source-recovery work remain unchanged.
+
 ## Prepared Windows capture path
 
 Review and validate `windows-capture/capture-client.c` on Windows x64 against the pinned client. The helper identifies `main.exe` by SHA-256, opens the process for query/read access, and saves executable image regions from main.exe, IGC.dll and RGS.dll. It leaves the process running and writes a manifest with region digests and limitations. Build/smoke success under Wine does not prove native game capture.

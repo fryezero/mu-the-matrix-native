@@ -62,10 +62,17 @@ CI runs authored fixtures and reports the private skips explicitly.
 
 ## Runtime boundary
 
-The original client works on Windows and does not start in the owner's
-CrossOver setup. No Windows PC is currently available. The Mac-only guest has
-outbound networking blocked and reaches an unresolved localhost connection.
-No login or gameplay has been demonstrated. Native Windows capture/equivalence
+The original client works on Windows. Earlier isolated CrossOver `win10_64`
+starts fail with a Rosetta selector error. A new `win10`/win32 compatibility path
+uses .NET 4.8, builtin WIC/GDI+, WPF software rendering and the default IGCN skin
+in a cloned installation. The authored setup and local validation are recorded
+in [the CrossOver finding](research/mac-crossover-32bit.md), issue #39.
+The fresh test bottle passed all eight synthetic image-pipeline steps, kept
+the launcher alive for 65.8 seconds, and was deleted after validation.
+GAME START awaits the owner's interactive test; no login or gameplay has been
+demonstrated. No Windows PC is currently available. The separate Mac-only Linux
+guest still has outbound networking blocked and reaches an unresolved localhost
+connection. Native Windows capture/equivalence
 remains unverified, although the optional Windows helper builds and its own
 memory/hash smoke checks pass under Wine.
 

@@ -15,6 +15,7 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | ID | Work | Completion evidence | Dependencies |
 |---|---|---|---|
 | RUNTIME-X86 | Implemented: full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | PR #6 merged; continue code mapping under CAP-002 |
+| MAC-CROSSOVER-001 | Implemented: original-launcher setup in a new win10/win32 bottle | Authored isolated setup, builtin WIC/GDI+, cloned-skin workaround, 8/8 synthetic image steps, 65.8-second launcher survival, test bottle deleted | Issue #39; GAME START and gameplay require owner validation; native acceptance gates unchanged |
 | CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine, unavailable; preserved as an optional validation path |
 | CAP-002 | Implemented: bounded map and first reconstructed copy behavior | REA record, eleven nearby routines mapped, 393 instruction comparisons, negative control | PR #8 merged after passing macOS/Linux CI |
 | CLIENT-MEMORY-002 | Implemented: clear64 and bounded reference search | 768 scalar/SSE/DF comparisons; no direct/absolute references found in selected inputs | PR #10 merged after passing macOS/Linux CI |

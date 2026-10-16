@@ -1,0 +1,14 @@
+#!/bin/bash
+# CrossOver adapter for winetricks. Require an explicitly selected prefix.
+set -euo pipefail
+CX_ROOT=${CX_ROOT:-/Applications/CrossOver.app/Contents/SharedSupport/CrossOver}
+: "${CX_BOTTLE:?Select the setup bottle}" "${WINEPREFIX:?Select the setup prefix}"
+[ "$(basename "$WINEPREFIX")" = "$CX_BOTTLE" ] || { echo 'Bottle/prefix mismatch' >&2; exit 1; }
+unset WINEARCH
+# CrossOver's wrapper otherwise loses cwd for relative installer paths.
+if [ "$#" -gt 0 ] && [[ "$1" != /* ]] && [ -f "$1" ]; then
+    set -- "$PWD/$1" "${@:2}"
+fi
+# This diagnostic is not a Wine version. Preserve all other stderr and exit status.
+exec "$CX_ROOT/bin/wine" --bottle "$CX_BOTTLE" --workdir "$PWD" "$@" \
+    2> >(sed '/^Using a 32-bit prefix in Wow64 mode /d' >&2)

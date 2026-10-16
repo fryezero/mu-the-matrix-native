@@ -108,14 +108,22 @@ not that the game can never run in CrossOver or that the exact cause is known.
 No game-account login was performed. Network traffic was not captured, so no
 claim is made that startup attempted zero network operations.
 
+The later win10/win32 finding changes the CrossOver boundary. The exact client
+gets beyond this observed stop in a 32-bit bottle; the launcher needs .NET 4.8,
+builtin WIC/GDI+, WPF software rendering and its default skin. Native WIC breaks
+image encoding, and the copied custom `Template.design` must be disabled. Read
+[`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) for the
+authored isolated setup, real test results, static selector-0x33 candidates and
+the unresolved fault-path inference. This does not demonstrate gameplay.
+
 ## Current blocker
 
-The protected gameplay code remains inaccessible to the current faithful runtime
-capture path. The user confirmed that the original client also fails in CrossOver and is
-normally played on Windows. A compatible Windows reference environment is needed to observe initialization and recover executable
-code beyond this point. Even a successful memory capture would still require
-function/type recovery, implementation, compilation and behavior checks.
-There is no verified playable source rebuild yet.
+The 64-bit CrossOver failure above is a configuration-specific historical result.
+The full x86 guest captures below already restore client code, and the newer
+32-bit CrossOver route can initialize the original launcher. Native Windows
+equivalence, full gameplay and the reconstructed client remain open. Captured
+instructions still require function/type recovery, authored implementation,
+compilation and behavior checks. There is no verified playable source rebuild.
 
 ## Mac-only runtime recovery
 

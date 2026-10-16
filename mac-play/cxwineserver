@@ -1,0 +1,7 @@
+#!/bin/bash
+# Winetricks may request -k. Never allow a default/global prefix.
+set -euo pipefail
+CX_ROOT=${CX_ROOT:-/Applications/CrossOver.app/Contents/SharedSupport/CrossOver}
+: "${CX_BOTTLE:?Select the setup bottle}" "${WINEPREFIX:?Select the setup prefix}"
+[ "$(basename "$WINEPREFIX")" = "$CX_BOTTLE" ] || { echo 'Bottle/prefix mismatch' >&2; exit 1; }
+exec "$CX_ROOT/bin/wineserver" "$@"
