@@ -19,7 +19,8 @@
     "binutils": "2.47",
     "unicorn": "2.1.4",
     "capstone": "5.0.9",
-    "pillow": "11.3.0"
+    "pillow": "11.3.0",
+    "cryptopp": "8.9.0"
   },
   "findings": {
     "loader": {
@@ -39,9 +40,9 @@
     },
     "models": {
       "candidates": 12754,
-      "parsed": 12447,
+      "parsed": 12663,
       "rejected": 17,
-      "unsupported": 290,
+      "unsupported": 74,
       "versions": {
         "10": {
           "parsed": 701,
@@ -56,13 +57,15 @@
           "rejected": 17
         },
         "14": {
-          "unsupported": 216
+          "parsed": 216,
+          "rejected": 0
         },
         "other": {
           "unsupported": 74
         }
       },
-      "local_evidence": "model-recovery/verified-encrypted-v2/manifest.json"
+      "local_evidence": "model-recovery/verified-v14/manifest.json",
+      "v14_oracle_comparison": "evidence/v14-source/project-oracle-comparison.json"
     },
     "effects": {
       "json_files": 370,
@@ -73,7 +76,11 @@
       "original_runs_on": "Windows, confirmed by user",
       "original_crossover_result": "does not start, confirmed by user",
       "isolated_crossover_diagnostic": "rosetta error: invalid gdt selector index 6",
-      "native_windows_capture_verified": false
+      "native_windows_capture_verified": false,
+      "windows_pc_currently_available": false,
+      "alternative": "QEMU full x86-64 TCG / Debian amd64 / Linux Wine",
+      "alternative_guest_boot_verified": true,
+      "alternative_client_startup_verified": false
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -81,16 +88,18 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 40,
-    "portable_passed": 37,
-    "private_checks_skipped": 3,
-    "local_integration_passed": 40,
+    "portable_tests_discovered": 47,
+    "portable_passed": 43,
+    "private_checks_skipped": 4,
+    "local_integration_passed": 47,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
     "remote_ci_status": "passed on macOS and Linux",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964",
     "remote_ci_commit": "358354a009836105f2d9928397a4fe3f083326e7",
     "github_source_files_verified": 58,
-    "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte"
+    "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte",
+    "v14_oracle_vectors": 91,
+    "v14_private_oracle_matches": 216
   }
 }
