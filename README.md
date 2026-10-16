@@ -26,6 +26,7 @@ These are structural and component-level results for one pinned installation. Th
 |---|---|---|
 | Startup decompressor | Portable C builds; four original blocks match independent decoding byte for byte | Recovered 41,984,000-byte region is still protector material |
 | Native inspection | REA/Ghidra decompile a restored client arithmetic routine from a verified prefix | Full function map, calling conventions and behavior still need recovery |
+| Client memory operation | Authored 64-byte copy matches captured x86 in 393 overlap/alignment cases | One routine with DF clear; original type/callers unknown |
 | Mac-only runtime | QEMU x86 Linux/Wine restores a repeatable 23,572,480-byte client-code mapping | No demonstrated login/gameplay; compatibility-environment limits remain |
 | Images | 19,703 / 19,707 wrapper candidates decode; selected PNG exports match pixels | Three terrain images rejected; one candidate is actually mesh text |
 | BMD models | 12,663 / 12,754 files parse; versions 10, 12, 14 and 15 supported | 17 rejected; 74 other/table files unsupported |
@@ -46,7 +47,7 @@ python3 -m venv tools/python
 make test PYTHON=./tools/python/bin/python
 ```
 
-The default suite uses authored fixtures and public LEA test vectors. Four checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
+The default suite uses authored fixtures and public LEA test vectors. Five checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
 
 ```sh
 # Optional Windows helper cross-build with MinGW-w64
@@ -59,6 +60,7 @@ make windows
 asset-recovery/        Image wrappers and editable text-mesh readers
 model-recovery/        BMD geometry, bones, animation and encrypted envelopes
 reconstructed/boot/   Tested C startup decompressor
+reconstructed/client-memory/  Restored client behavior with instruction comparison
 windows-capture/      Read-only Windows executable-region capture source
 runtime-linux/        Mac-only x86/Wine procedure and scoped text capture
 scripts/              PE inventory, REA collection, loader recovery and emulation

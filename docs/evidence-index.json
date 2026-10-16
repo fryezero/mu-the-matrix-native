@@ -99,6 +99,19 @@
         "evidence_id": "ev_84d38c1948c96dc7db9894b05f5ef71ec9cfe82d91eda3193c70e390a6ff0f36",
         "local_evidence": "evidence/rea-restored-client-prefix.json"
       }
+    },
+    "client_memory": {
+      "function_address": "0x00401000",
+      "function_bytes": 22,
+      "function_sha256": "54396a6b24bf4ce529617c72471631a0e8f8156f25f08b4ae118ebe37f29956e",
+      "implementation": "reconstructed/client-memory/copy64.c",
+      "rea_evidence_id": "ev_24927ad2923966a8c00f6b9c78059b8bf860bd1e73e6b20fb662cdb778c8ba3b",
+      "local_rea": "evidence/rea-client-copy64.json",
+      "local_comparison": "evidence/cap002-copy64-equivalence.json",
+      "synthetic_instruction_comparisons": 393,
+      "mismatches": 0,
+      "wrong_memmove_negative_control_mismatches": 158,
+      "scope": "Valid accessible flat spans, DF clear; original type/callers and real-game execution unverified."
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -106,13 +119,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 55,
-    "portable_passed": 51,
-    "private_checks_skipped": 4,
-    "local_integration_passed": 55,
+    "portable_tests_discovered": 62,
+    "portable_passed": 57,
+    "private_checks_skipped": 5,
+    "local_integration_passed": 62,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "v14 and runtime PRs pass on macOS and Linux",
+    "remote_ci_status": "Merged model/runtime checks pass; client copy addition awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38831919151",
     "remote_ci_commit": "42ae9032fcc43a83c4001572df70aca5e7b4d71f",
     "github_source_files_verified": 58,

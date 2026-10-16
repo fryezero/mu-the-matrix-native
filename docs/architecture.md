@@ -5,6 +5,7 @@ The repository currently builds recovery tools and source components. It has no 
 | Module | Interface | Responsibility |
 |---|---|---|
 | `reconstructed/boot` | `mu_decode_block` in `decoder.h` | Bounded byte decoding with explicit consumed/written lengths; portable C |
+| `reconstructed/client-memory` | `mu_copy64_forward_words` in `copy64.h` | Observed sixteen-word copy for valid spans and DF clear; portable C |
 | `asset-recovery/recover_images.py` | `decode(path)` | Recognized wrapper removal, image validation, pixel-preserving exports |
 | `asset-recovery/recover_smd.py` | `unwrap_smd`, `validate_payload` | Observed text-mesh subset with original payload preservation |
 | `model-recovery/bmd10.py` | `parse_bytes`, `pose_matrices`, `obj_text` | Checked mesh, index, bone and animation records; recorded-pose geometry |
@@ -13,7 +14,7 @@ The repository currently builds recovery tools and source components. It has no 
 | `windows-capture` | Console helper + JSON manifest | Windows process-region acquisition for later analysis |
 | `scripts` | Local CLIs | PE inspection, REA collection, loader provenance and bounded emulation |
 
-Source bytes and provenance belong at acquisition boundaries. Readers validate counts, ranges and references before producing reusable data. The C routines use caller-owned buffers and report failure rather than silently truncating. Python-only fallback keeps model decoding usable without a native library.
+Source bytes and provenance belong at acquisition boundaries. Readers validate counts, ranges and references before producing reusable data. The C routines use caller-owned buffers. Decoders report bounds failures; the observed fixed-size copy has explicit accessible-span preconditions. Python-only fallback keeps model decoding usable without a native library.
 
 ## Future engine work
 
