@@ -27,7 +27,8 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | MODEL-HIERARCHY-001 | Implemented: selected bone/pose slot flow | Exact field/control-flow checks; unknown prior-state dependency preserved | PRs #25 and #28 merged; strict acceptance unchanged |
 | CLIENT-LEA-KEY-001 | Implemented: observed v15 key setup | 1,320 actual-instruction cases; 1,248 wrong-order failures; public vectors | PR #30 merged; ECB result follows under #31 |
 | CLIENT-LEA-DECODE-001 | Implemented: batch ECB source | 12,960 actual-code guest cases; 1,152 scalar cases; 11,583 independent-reader payload matches | PR #32 merged; complete model loading remains open |
-| CLIENT-POSE-MATH-001 | Implemented: controlled 3x4 composition | 5,176 actual-instruction matches; 24 out-of-domain attempts; 2,464 snapshot failures | Issue #33; original live pose/FP state remains open |
+| CLIENT-POSE-MATH-001 | Implemented: controlled 3x4 composition | 5,176 actual-instruction matches; 24 out-of-domain attempts; 2,464 snapshot failures | PR #34 merged; original live pose/FP state remains open |
+| CLIENT-TRIG-STATE-001 | Implemented: selected math dispatch flag capture | Four-byte repeat, early refusal, all legacy scopes unchanged | Issue #35; actual rotation/trigonometric execution remains next |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
 | MODEL-EDGE | Field diagnosis implemented; recover client handling of the 17 rejected v15 records | Exact field offsets, 17 native/Python matches; preserve unsupported semantics | Issue #17 diagnoses fields; original client model/transform code still needed |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |

@@ -39,9 +39,9 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 140 tests. Portable checks pass 128 and explicitly skip twelve
-private-input checks. Opt-in local integration passes all 140. A fresh 124-file source-only checkout
-also passes 128 with twelve explicit skips.
+The suite discovers 141 tests. Portable checks pass 129 and explicitly skip twelve
+private-input checks. Opt-in local integration passes all 141. A fresh 125-file source-only checkout
+also passes 129 with twelve explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -66,7 +66,7 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28, #30 and #32 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28, #30, #32 and #34 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
 The client-linked v12 milestone is merged through PR #23. Two selected v15
@@ -84,5 +84,10 @@ The v15 key context is merged through PR #30. The ECB source and guest comparato
 are merged through PR #32 after macOS/Linux CI. The guest is shut down. Decoder equivalence does not
 resolve the model loader's allocation, hierarchy or actual rendering behavior.
 
-Pose arithmetic continues under issue #33. Next validate original rotation/model
+Pose arithmetic is merged through PR #34 after macOS/Linux CI. Next validate original rotation/model
 record loading, keeping actual FP state and unknown prior output contents open.
+
+Issue #35 adds a fixed four-byte rotation dispatch capture. Two reads match
+value 1; early packed code is refused without a payload and every prior scope
+repeats. [Finding](research/client-trig-state.md). Actual FP state and full
+rotation/trigonometric equivalence remain open. Guest is shut down.

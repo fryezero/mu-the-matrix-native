@@ -190,7 +190,8 @@ a decoder result does not justify relaxing the parser or claiming rendering.
 
 ## Controlled hierarchy composition
 
-Issue #33 / `codex/pose-concat` adds `mu_pose_concat` to record-math, reusing byte
+Issue #33 / `codex/pose-concat` merged through PR #34 after macOS/Linux CI
+run `38898823896`. It adds `mu_pose_concat` to record-math, reusing byte
 storage helpers without changing cofactor/inverse behavior. Read
 `research/pose-concat.md`. Original `0x00cff83e..0x00cfff3b` matches 5,176 controlled
 RNE binary32 cases. A separately compiled input-snapshot variant fails 2,464.
@@ -204,3 +205,34 @@ claimed. Guest remains shut down; this check uses existing captured bytes.
 
 Next recover rotation helper `0x00d00724` or bounded original record-loading /
 allocation behavior. Native game source, simulation and services remain open.
+
+## Rotation dispatch flag captured
+
+Issue #35 / `codex/trig-state-capture` adds the fixed `trig-state` scope. Read
+`research/client-trig-state.md`. The four-byte main-image flag at `0x0bdd1cc8`
+repeats value 1 with digest `67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450`.
+Restored text and every identity flag pass. An early attempt saves only an empty
+incomplete manifest on the known packed hash; all four legacy modes repeat
+run11 formats/digests. Transfer verification and raw results are ignored in
+`evidence/trig-state-15/`; guest shut down cleanly.
+
+Rotation candidate `0x00d00724` reads three floats scaled by captured 0.5, calls
+float wrappers `0x009681bd`/`0x009fa223` three times each, and writes four floats.
+REA in `rea-rotation.json` suggests Euler-to-quaternion behavior; no authored
+source equivalence yet. Wrappers call `0x01985700`/`0x0198c4d0`, which test the
+captured flag plus x87/MXCSR state. Next emulate with actual text/data/flag under
+explicit FP settings, following actual trig code and stopping on unknown reads.
+Fallbacks also reference `0x0bdcfbc8`, not yet captured. Do not assume a live path
+from the flag alone or substitute host sine/cosine as proof. Full game recovery
+remains incomplete. Suite:141 total,129portable/twelve private skips; all141
+local integration pass. Original raw bytes stay local.
+
+A private smoke probe now runs the full rotation candidate and its actual trig
+helpers on three synthetic angle triples with flag 1, x87 PC53/RNE and MXCSR
+`0x1f80`. All return, including zero input yielding `(0,0,0,1)`. It stops on any
+read of uncaptured bytes in the flag's page; none occurred in those cases.
+`evidence/trig-state-15/probe-rotation.py` and `rotation-probe.json` preserve this
+lead. It is not an authored-source equivalence or complete ABI/access check.
+The next concrete task is now C reconstruction plus a bounded comparison suite
+using those actual helpers, without stubs. Do not count three smoke cases as a
+validated quaternion implementation.
