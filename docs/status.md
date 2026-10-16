@@ -9,24 +9,26 @@ Updated 2026-10-15. Target: the exact installed Mu The Matrix version, not an ol
 - Images: 19,703 decoded from 19,707 wrapper candidates. One remaining candidate is editable mesh text, three are inconsistent terrain images.
 - Models: 12,663 parsed from 12,754 unique BMD-extension files. V10: 701/701; v12: 180/180; v14: 216/216; v15: 11,566/11,583. Seventeen v15 inputs are rejected and 74 other/table envelopes remain unsupported.
 - 370 JSON effect descriptions parse; all 92 distinct texture references exist in the inspected installation.
-- Windows capture helper cross-compiles. SHA-256 known-vector and own-process read smoke tests pass under Wine. Native Windows capture is unverified.
+- Windows capture helper cross-compiles. SHA-256 known-vector and own-process read smoke tests pass under Wine. Native Windows capture is unverified. A Mac-only QEMU/Linux Wine experiment now yields a repeatable restored client-text region.
 
 ## Executable recovery boundary
 
-Bounded CPU emulation reaches `GetModuleHandleA("kernel32.dll")` after 1,015,078 instructions. Written image pages are confined to protector memory. No gameplay region has been demonstrated as recovered. Synthetic CPU inputs and STOP-only import traps are recorded in the private evidence.
+Earlier bounded Unicorn emulation stopped at `GetModuleHandleA("kernel32.dll")` without restoring the first client section. Full x86 QEMU/Linux Wine now restores that section at `0x00401000`, with matching late-capture hashes across runs. REA/Ghidra successfully decompiled one routine from a verified 4 KiB prefix. [The report](research/restored-client-text.md) distinguishes readable code, inferred arithmetic and unverified behavior.
 
-Both a debugger start and a direct start of an isolated copy fail in a fresh CrossOver bottle with `invalid gdt selector index 6`. The user confirmed the original also does not start in CrossOver and is normally played on Windows. No account login was performed during investigation.
+CrossOver remains unable to start the original. No Windows PC is currently available. The active runtime is an isolated Linux compatibility environment with outbound networking blocked. No login/gameplay has been demonstrated; initialization logs contain an unresolved localhost connection. Native Windows equivalence is unverified.
 
 ## Checks
 
-The repository discovers 47 tests. The portable run passes 43 and explicitly
-skips four private-input checks. The opt-in local integration run passes all 47.
-A staged checkout containing no game files or raw evidence also passes the portable suite.
+The repository discovers 55 tests. The portable run passes 51 and explicitly
+skips four private-input checks. The opt-in local integration run passes all 55.
+A staged 67-file checkout containing no game files or raw evidence also passes the portable suite.
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
 export as JSON and OBJ. The earlier GitHub CI passed on macOS and Linux; the
-v14 dependency changes require a new remote run.
+v14 PR now also passes on both platforms after correcting Linux include ordering.
+[Runtime PR #6](https://github.com/fryezero/mu-the-matrix-recovery/pull/6)
+passes macOS/Linux CI at the commit recorded in the evidence index.
 
 The corpus totals above come from complete local scans, not from CI. Raw scan
 manifests and original inputs are intentionally ignored. `docs/evidence-index.json`
@@ -38,8 +40,8 @@ Protected gameplay functions and types, faithful initialization capture, network
 
 ## Repository publication
 
-The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery) contains 58 reviewed source/documentation files. Its downloaded archive matched the local source snapshot exactly. [CI passed on macOS and Linux](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964); the evidence index records the tested commit. No game executable, asset pack or memory capture was uploaded.
+The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery) initially published 58 reviewed source/documentation files. Its downloaded archive matched that local source snapshot exactly. The runtime branch now contains 67 reviewed files, with [model PR #4](https://github.com/fryezero/mu-the-matrix-recovery/pull/4) and [runtime PR #6](https://github.com/fryezero/mu-the-matrix-recovery/pull/6) available for review. [CI passed on macOS and Linux](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964); the evidence index records the tested commit. No game executable, asset pack or memory capture was uploaded.
 
 ## Runtime route without a Windows PC
 
-The owner has no Windows PC available for the foreseeable future. The active experiment uses QEMU full x86-64 TCG, Debian amd64 and Linux Wine to avoid Rosetta. The guest has booted and SSH plus a read-only transfer mount work. Wine installation and exact-client startup are still being tested. [The research note](research/mac-runtime.md) records the approach and limitations. Compatibility-environment evidence must remain distinct from native Windows behavior.
+The owner has no Windows PC available for the foreseeable future. The active experiment uses QEMU full x86-64 TCG, Debian amd64 and Linux Wine to avoid Rosetta. The guest boots, software OpenGL and both Windows bitness probes work, and the exact copied client restores readable code. The scoped Linux capture tool and boundary tests are implemented. [The research note](research/mac-runtime.md) records the approach and limitations. Compatibility-environment evidence must remain distinct from native Windows behavior.

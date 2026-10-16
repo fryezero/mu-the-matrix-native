@@ -65,7 +65,7 @@ it does not expose gameplay. Successful records:
 `REA_GHIDRA_SEED_FILE` explicitly asserts the recovered entry as a function.
 That assertion is derived from loader arithmetic, not a discovered source name.
 
-## Bounded CPU emulation
+## Earlier bounded CPU emulation
 
 `scripts/loader_emulate.py` uses Unicorn with an explicit synthetic CPU/memory
 context. The PE sections and independently recovered protector region are mapped;
@@ -116,3 +116,9 @@ normally played on Windows. A compatible Windows reference environment is needed
 code beyond this point. Even a successful memory capture would still require
 function/type recovery, implementation, compilation and behavior checks.
 There is no verified playable source rebuild yet.
+
+## Mac-only runtime recovery
+
+Full x86 QEMU TCG with Debian/Wine now runs the exact copied client beyond the Rosetta stop. Later captures restore the first executable region at `0x00401000`, 23,572,480 bytes, SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`. An early capture exactly matches the still-packed on-disk mapping; later captures agree on the restored digest. REA/Ghidra successfully decompiled a bounded arithmetic routine from a verified 4 KiB prefix. [The restored-code report](research/restored-client-text.md) records addresses, hashes, profiles and limitations. [The runtime guide](../runtime-linux/README.md) explains the tested environment and scoped capture tool.
+
+The wider Windows-API capture remains incomplete. The isolated Wine environment showed no demonstrated login/gameplay and an unresolved localhost connection. Restored bytes and generated pseudocode are not a buildable source client or proven gameplay equivalence. All payloads and decompiler records remain private.
