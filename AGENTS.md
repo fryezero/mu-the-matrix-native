@@ -6,10 +6,13 @@ Reconstruct and understand the exact Mu The Matrix client identified in `docs/ev
 
 Start by reading `docs/status.md` and `docs/handoff.md`. Choose the next bounded task from `docs/roadmap.md` and check existing GitHub issues/branches for an owner before editing. Use a separate branch or worktree for independent agent work. Record the claimed scope, files and dependencies in the issue or PR so other agents can avoid collisions.
 
+The owner authorizes merging reviewed changes into `main` once their relevant checks pass. Use PRs to retain the evidence and review record; no additional merge confirmation is needed.
+
 ## Read when needed
 
 - Build, CI, missing local inputs, or integration tests: `docs/setup.md`.
 - Native/loader recovery, emulation, or Windows startup: `docs/code-recovery.md` and `windows-capture/README.md`.
+- Restored client functions, copy semantics, or instruction comparison: `docs/research/client-copy64.md` and `reconstructed/client-memory/README.md`.
 - Image or effect formats: `docs/asset-recovery.md`.
 - BMD geometry or encryption: `docs/model-recovery.md` and `model-recovery/SOURCES.md`.
 - New module/platform boundaries: `docs/architecture.md`.

@@ -14,10 +14,11 @@ The later macOS goal does not replace exact-version source recovery. No completi
 
 | ID | Work | Completion evidence | Dependencies |
 |---|---|---|---|
-| RUNTIME-X86 | Implemented: full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | PR #6 passes macOS/Linux CI; continue code mapping under CAP-002 |
+| RUNTIME-X86 | Implemented: full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | PR #6 merged; continue code mapping under CAP-002 |
 | CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine, unavailable; preserved as an optional validation path |
-| CAP-002 | Validate and import a captured image into native analysis | File hashes, VA mappings, observed restored-code coverage, unresolved regions | A validated private capture from RUNTIME-X86 or CAP-001, with environment provenance |
-| MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 passes macOS/Linux CI |
+| CAP-002 | Implemented: bounded map and first reconstructed copy behavior | REA record, eleven nearby routines mapped, 393 instruction comparisons, negative control | Issue #7; source branch `codex/client-copy64` |
+| CLIENT-MEMORY-002 | Recover caller/type context or validate the adjacent clear operation | Source-bound call/ABI evidence, bounded implementation and independent instruction checks | CAP-002 finding and matching private capture |
+| MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
 | MODEL-EDGE | Explain the 17 rejected v15 records | Case-specific evidence and tests; preserve unresolved semantics rather than broad acceptance | Matching local files |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |
 | EFFECT-001 | Recover runtime interpretation of effect JSON | Source/runtime links for enum meanings, curves, blending and transforms | Relevant code or runtime evidence |

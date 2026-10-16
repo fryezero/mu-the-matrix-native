@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Four
+use authored geometry/image/decoder fixtures and public LEA vectors. Five
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -56,6 +56,11 @@ decoded 01spa_skill payload, prefixed with the four-byte `BMD`/10 layout marker.
 It is private derived evidence, not a tracked fixture. Acquire/reproduce it from
 the pinned TypeScript oracle in `model-recovery/SOURCES.md`. Requested integration
 checks fail when inputs are missing rather than silently reporting full success.
+
+The client-copy integration check also needs Unicorn and the pinned restored
+first section at `evidence/x86-capture-text-08/client-text.bin`, or an explicit
+`MU_CLIENT_TEXT` path. It validates the full section digest before running the
+393 instruction comparisons. See [client-memory setup](../reconstructed/client-memory/README.md).
 
 For complete corpus scans, use the reader CLIs, supply the installation root,
 and write to a new directory outside the installation:
