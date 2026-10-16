@@ -35,7 +35,7 @@ printf 'Resetting display state for bottle %s\n' "$CX_BOTTLE"
 "$CX_ROOT/bin/wineserver" -k
 "$CX_ROOT/bin/wineserver" -w
 # Keep the known-good .NET display probe on ordinary CrossOver. The optional
-# translator is for the launcher chain; its .NET probe can stall on this host.
+# wrapper keeps .NET on the real loader and selects main.exe by default.
 "$CX_ROOT/bin/wine" --bottle "$CX_BOTTLE" --workdir "$MU_GAME_DIR" \
     "$WINEPREFIX/drive_c/MuMatrixTools/MonitorCheck.exe" ||
     die 'Display validation failed; launcher was not started.'

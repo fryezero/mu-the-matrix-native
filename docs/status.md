@@ -88,17 +88,26 @@ connection. Native Windows capture/equivalence
 remains unverified, although the optional Windows helper builds and its own
 memory/hash smoke checks pass under Wine.
 
-MAC-PERF-001, issue #45, adds an opt-in pinned Rosetta Timewalker cache build,
-matching-checksum x87 self-check, authored PE32 transform/GL probes and launcher
-selection with plain CrossOver fallback. The existing idle-process guard,
-prefix-scoped display reset and monitor validation remain. Fourteen portable
-launcher tests cover guards, selection and fallback. A fresh setup-owned
-MuFastX87-test bottle measured median plain/fast x87 throughput of 2.5/278.2
-Mverts/s with matching printed checksums. The plain monitor passed; its fast
-.NET attempt stalled, so the existing plain display path is retained. See [measurements and limits](research/mac-performance.md). Actual patched
-launcher-to-main forwarding and in-world FPS remain owner validation. MuMatrix32
-was not touched. This improves original-client compatibility; native source
-recovery acceptance gates are unchanged.
+MAC-PERF-001, issue #45 / PR #47, adds an opt-in pinned Rosetta Timewalker
+cache build, matching-checksum x87 self-check, authored PE32 transform/GL probes
+and launcher selection with plain CrossOver fallback. MAC-PERF-002, issue #48,
+adds an authored MIT wrapper that defaults fast translation to arguments
+containing `main.exe`. MuTheMatrix.exe and .NET dependencies use the real loader;
+the unfiltered fast runtime hangs on .NET. The installer builds/signs and
+fingerprints our wrapper in the cache without editing pinned upstream source.
+Caller substring overrides and an empty apply-to-all override are supported.
+The idle-process guard, prefix-scoped reset and plain monitor check remain.
+The real launcher produced its normal window in setup-owned MuX87Filter-test
+under required-fast selection with the default filter. The matching-filter
+benchmark measured 279.1 Mverts/s fast versus 2.7 plain with matching checksum
+3.904312. The test bottle was removed. All 163 portable tests pass, with fourteen
+private-input skips; both review axes and the publication audit pass.
+
+See [measurements and limits](research/mac-performance.md) for local checks and
+Claude's separately supplied launcher-to-main/profile observations. Post-patch
+in-world FPS remains owner testing. MuMatrix32 was not touched. This improves
+original-client compatibility; native source recovery acceptance gates are
+unchanged.
 
 ## Repository and next work
 

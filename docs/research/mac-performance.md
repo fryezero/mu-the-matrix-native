@@ -120,7 +120,8 @@ The plain .NET MonitorCheck passed with DISPLAY1, 1800×1169. Its fast-runtime
 attempt produced activation logs but stayed near one core for over 40 seconds
 without a result. A prefix-scoped test-bottle shutdown ended it. That is a failed
 probe, not a passed display check, and is why the generated launcher retains
-the plain display-validation path. Fast .NET launcher compatibility is unverified.
+the plain display-validation path. This unfiltered .NET failure motivated
+MAC-PERF-002 below.
 
 The final setup-generated Play.command also passed an end-to-end synthetic
 check. In the throwaway clone only, the original MuTheMatrix.exe was saved,
@@ -140,31 +141,92 @@ mode, required-fast refusal and avoiding a duplicate launch after failure.
 Both precommit review axes passed after correcting runtime fingerprints.
 Linux CI also cross-builds the three authored PE32 probes.
 
-## Launcher behavior and fallback
+## Filtered launcher behavior and fallback
+
+MAC-PERF-002 is issue #48, following PR #47. Claude reported that the unfiltered
+MuTheMatrix.exe launcher hangs at about one core without a window, consistent
+with the failed MonitorCheck above. With fast translation restricted to
+main.exe, Claude observed a normal launcher, GAME START spawning main.exe,
+and main-thread translated-code samples falling from 37–54% to about 1%.
+These are supplied observations, not remeasured profiles in this task. Server
+selection stayed at 19–20 FPS on both paths. A busy-wait frame cap is a working
+explanation; post-patch in-world FPS remains owner testing.
+
+`mac-play/x87-main-only-wrapper.c` is authored MIT code. It reads
+`TIMEWALKER_X87_RUNTIME_LOADER`, `TIMEWALKER_X87_REAL_LOADER` and
+`TIMEWALKER_X87_ONLY`. A nonempty filter matches a case-insensitive substring
+in any argument after argv[0]. A match execs `runtime_loader real_loader args...`;
+a nonmatch execs `real_loader args...` directly. Both preserve argument boundaries,
+including spaces and empty arguments. Empty/unset filters apply to everything.
+This is an argument-routing rule, not verification of the launched executable.
+
+The installer copies our source into the cache, compiles it with Apple clang
+for arm64 and ad-hoc signs the binary. The upstream checkout stays at the same
+clean pin. Its `scripts/run-crossover.sh` reads
+`x87_wrapper=${TIMEWALKER_X87_LOADER_WRAPPER:-}` and forwards that wrapper through
+WINELOADER, CX_WINELOADER and its child-process hooks. Selection exports our
+wrapper path and defaults `TIMEWALKER_X87_ONLY` to `main.exe`. An explicit empty
+override is preserved and will again route .NET through the fast translator.
+The installer self-check sets `TIMEWALKER_X87_ONLY=fp_x87`, proving the matching
+route still activates the translator without disabling the filter globally.
 
 Setup copies `start-launcher.sh` and `fast-x87.sh` into the setup-owned bottle.
-The existing process-list guard still refuses a running game/launcher or a failed
-query. The reset remains prefix-scoped and must complete before MonitorCheck.
-MonitorCheck remains on plain CrossOver. A live attempt to run this .NET probe
-through the fast runtime stayed busy for over 40 seconds without a result and
-was stopped by shutting down only the test bottle. The plain probe result is
-recorded below. MuTheMatrix.exe uses the selected runtime after successful display
-validation. This preserves #44's established display path. Fast .NET launcher
-compatibility is still experimental. Failed display validation blocks launch.
+The existing process-list guard refuses a running game/launcher or failed query.
+The reset remains prefix-scoped and completes before plain MonitorCheck.
+Failed display validation blocks launch. Installation is the opt-in. A validated
+cache enables automatic filtered selection for setup-generated launchers.
+Selection fingerprints the authored wrapper source and binary, pinned tracked
+upstream source and build outputs, macOS build, Rosetta runtime and CrossOver
+loaders/server. Missing, changed, incomplete or stale entries fall back before
+startup. Older caches lacking our wrapper must be reinstalled.
 
-Installation is the opt-in. A validated cache enables automatic selection for
-setup-generated launchers. Selection checks the pinned tracked source and build
-outputs, macOS build, Rosetta runtime checksum and CrossOver loader checksums.
-A missing, modified, incomplete or stale entry falls back before startup.
 `MU_FAST_X87=0 Play.command` forces plain CrossOver; `MU_FAST_X87=1` requires a
 validated entry. Remove `validated` to persistently disable selection. After a
-macOS/CrossOver update, rebuild and rerun the self-check.
+macOS/CrossOver update, rebuild and rerun the self-check. A runtime failure after
+selection returns its error without automatically retrying the launcher.
 
-A runtime failure after fast selection returns an error. It does not automatically
-retry the launcher, which could otherwise create a second process. Close the
-selected bottle's programs before retrying with `MU_FAST_X87=0`.
+## MAC-PERF-002 local verification
 
-## Risks and unverified behavior
+The setup script created `MuX87Filter-test` from the read-only Windows10MU
+installation, with the pinned main.exe SHA-256 above. Setup completed .NET 4.8,
+software rendering, monitor compilation, skin disabling and the APFS game clone.
+The copied start/fast helpers matched the worktree files byte-for-byte.
+An isolated cache at `runtime/mac-x87-filter/cache` was seeded by an APFS clone
+of the existing clean pinned upstream checkout/build. The installer verified the
+pin and source cleanliness, reused the upstream build, compiled our new wrapper
+and ad-hoc signed it. `file` reports arm64; `codesign --verify --strict` passes.
+The upstream tracked source remained clean after verification. The repeated
+post-setup run used a separate `TIMEWALKER_CACHE_DIR` for its signed Wine copies.
+
+The native FLD check passed. The installer used the authored wrapper with
+`TIMEWALKER_X87_ONLY=fp_x87`, observed `RosettaRuntimex87 built`, and measured
+plain x87 6.180 s / 2.7 Mverts/s and filtered fast x87 0.059 s / 279.1 Mverts/s.
+Both printed checksum `3.904312`. These are single local synthetic observations;
+the initial overlapping-setup run is not the final measurement. The separate
+ARPL UUID refusal and `PT_THUPDATE` diagnostics remain as described above.
+
+The actual setup-generated `Play.command` ran with `MU_FAST_X87=1` and the
+unset-filter default, using that isolated cache. Its plain MonitorCheck passed
+DISPLAY1 at 1800×1169. The log recorded opt-in selection and no
+`RosettaRuntimex87 built` lines during launcher startup. A PID-scoped CoreGraphics
+window list found the actual cloned MuTheMatrix.exe process's on-screen layer-0
+`MuTheMatrix` window at 794×584 logical pixels. A capture of that exact window
+showed the rendered launcher with GAME START available. No launcher substitution,
+GAME START click or login was used. Only the disposable bottle's server was
+stopped, and the bottle was deleted with its named cxbottle command; absence
+was confirmed. MuMatrix32 and its processes were not modified.
+
+Portable `make test` discovers 177 tests: 163 pass and fourteen private-input
+checks explicitly skip. Six compiled-wrapper tests cover matching/nonmatching
+routing, exact argument lists, empty/unset filters, errors and exit propagation.
+Sixteen launcher tests cover defaults, custom/empty overrides, modified or
+missing wrapper files and the existing guards/fallback behavior. Both precommit
+review axes found no implementation defects; their documentation-limits concern
+was addressed below. The staged publication audit rejected no files.
+Private screenshots, window/process records, setup/launcher/benchmark logs and
+the cache stay ignored under `runtime/mac-x87-filter/` in this worktree.
+
+## Risks and remaining limits
 
 The translator patches undocumented Rosetta internals. New macOS versions can
 break discovery, translation, exception handling or loader forwarding. An
@@ -176,13 +238,9 @@ this replacement runtime.
 
 Injected loaders and runtime patches may conflict with a game's anti-cheat or
 service rules. No anti-cheat compatibility or server acceptance claim follows
-from a synthetic local run. This is not an anti-cheat bypass. Keep the ordinary
-CrossOver path available and assess the game's rules before using the option.
+from a synthetic local run. Keep the ordinary CrossOver path available.
 
-The optional actual GAME START click was deferred because the supplied
-`clickstart` helper uses SendInput and moves the shared Mac pointer while the
-owner is testing. This task does not establish MuTheMatrix.exe → main.exe
-forwarding, login, stability, in-world FPS, natural sleep/display recovery or
-native Windows equivalence under the patched runtime. A later owner-approved
-quiet-desktop test should look for both main.exe and translator activation in
-the child log, without entering credentials.
+Login, extended stability, post-patch in-world FPS, natural sleep/display recovery
+and native Windows equivalence remain outside these local routing checks.
+The owner is testing in-world FPS. This task does not click GAME START, enter
+credentials or claim native editable game recovery.

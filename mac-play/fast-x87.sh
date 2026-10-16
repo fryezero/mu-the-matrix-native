@@ -13,7 +13,8 @@ fast_x87_identity() {
         cksum "$CX_ROOT/bin/wine" "$loader" "$server" \
             "$CX_ROOT/lib/wine/x86_64-unix/ntdll.so" /Library/Apple/usr/libexec/oah/libRosettaRuntime \
             "$FAST_X87_HOME/source/build/libtimewalker.dylib" \
-            "$FAST_X87_HOME/source/build/x87-loader-wrapper" \
+            "$FAST_X87_HOME/x87-main-only-wrapper.c" \
+            "$FAST_X87_HOME/x87-main-only-wrapper" \
             "$FAST_X87_HOME/source/build/x87/bin/runtime_loader" \
             "$FAST_X87_HOME/source/build/x87/bin/libRuntimeRosettax87"
 }
@@ -27,7 +28,8 @@ fast_x87_ready() {
         git -C "$FAST_X87_HOME/source" diff --quiet HEAD -- &&
         [ -x "$FAST_X87_HOME/source/scripts/run-crossover.sh" ] &&
         [ -f "$FAST_X87_HOME/source/build/libtimewalker.dylib" ] &&
-        [ -x "$FAST_X87_HOME/source/build/x87-loader-wrapper" ] &&
+        [ -f "$FAST_X87_HOME/x87-main-only-wrapper.c" ] &&
+        [ -x "$FAST_X87_HOME/x87-main-only-wrapper" ] &&
         [ -x "$FAST_X87_HOME/source/build/x87/bin/runtime_loader" ] &&
         [ -x "$FAST_X87_HOME/source/build/x87/bin/libRuntimeRosettax87" ]
 }
@@ -39,6 +41,8 @@ fast_x87_select() {
         auto|1)
             if fast_x87_ready 2>/dev/null; then
                 export TIMEWALKER_CROSSOVER_ROOT="$CX_ROOT"
+                export TIMEWALKER_X87_LOADER_WRAPPER="$FAST_X87_HOME/x87-main-only-wrapper"
+                export TIMEWALKER_X87_ONLY="${TIMEWALKER_X87_ONLY-main.exe}"
                 MU_WINE=("$FAST_X87_HOME/source/scripts/run-crossover.sh")
                 printf 'Using opt-in fast x87 (%s).\n' "$FAST_X87_COMMIT"
             elif [ "${MU_FAST_X87:-auto}" = 1 ]; then

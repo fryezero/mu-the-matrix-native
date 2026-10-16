@@ -47,38 +47,39 @@ support the Heaven's Gate hypothesis without proving the original Rosetta fault.
 
 ## Fast x87 compatibility path
 
-MAC-PERF-001 is issue #45, branch `codex/mac-fast-x87`, worktree
-`~/Documents/mu-worktrees/mac-x87`. Read
-[`research/mac-performance.md`](research/mac-performance.md). The optional
-installer fetches rosetta-timewalker commit
-`ab1a6a032e488c0d6eade54ce70a02d653277810` into the user cache, builds from source,
-runs the native FLD check and compares authored plain/fast PE32 x87 checksums
-before enabling selection. New `fpbench.c` and `glbench.c` helpers reject protected
-bottles. Setup copies the fast-path helper into its generated launcher; #44's
-idle-process refusal, prefix reset and monitor validation remain. Missing/stale
-validation falls back to plain CrossOver. `MU_FAST_X87=0` forces fallback;
-remove the cache's `validated` marker to disable automatic selection.
+MAC-PERF-001 is issue #45 / merged PR #47. MAC-PERF-002 is issue #48, branch
+`codex/mac-x87-main-only`, worktree `~/Documents/mu-worktrees/mac-x87-filter`.
+Read [`research/mac-performance.md`](research/mac-performance.md).
+The installer still requires clean rosetta-timewalker pin
+`ab1a6a032e488c0d6eade54ce70a02d653277810`. Our separate MIT
+`mac-play/x87-main-only-wrapper.c` is copied, compiled arm64 and ad-hoc signed
+in the cache. Its source/binary join the identity checks. No third-party source
+changes are needed. Upstream run-crossover.sh honors our wrapper override.
 
-The setup-owned MuFastX87-test bottle had the pinned client digest and was used
-only for synthetic performance and hidden monitor tests. Median plain/fast x87
-throughput was 2.5/278.2 Mverts/s, with checksum 3.904312 in all trials. Final
-plain GL throughput was 192 ns/call, 5.20 million calls/s. The fast .NET monitor
-probe stalled above 40 seconds; plain MonitorCheck passed. The launcher therefore
-keeps the plain display check and applies fast translation only to the launcher
-chain. Actual .NET launcher compatibility remains unverified. The optional actual
-GAME START probe is deferred because SendInput moves the shared host pointer
-while the owner is testing. No login/credentials are used. MuMatrix32 and its
-processes remain untouched. No actual patched launcher-to-main forwarding or
-in-world FPS claim follows from these tests. Logs are ignored in
-`runtime/mac-x87/` here; installer logs also remain under
-`~/Library/Caches/MuTheMatrix/fast-x87/COMMIT`. The generated launcher also passed a synthetic dispatch check with the authored
-PE32 probe substituted temporarily for the cloned launcher. The original cloned
-launcher was restored, then the test bottle was deleted and absence confirmed.
-Final measurements and cleanup are recorded in the finding. Portable checks discover 169 cases, pass
-155 and skip fourteen private-input checks. Both review axes pass after adding
-built-output fingerprints and matching upstream's actual Wine loader/server
-selection. Next, the owner can validate in-world FPS and stability, then perform
-a quiet-desktop launcher-to-main probe without credentials if still needed.
+Selection exports the built wrapper and defaults `TIMEWALKER_X87_ONLY=main.exe`.
+A case-insensitive substring in any argument after argv[0] selects fast
+translation; nonmatches exec the real Wine loader directly. Caller overrides
+are preserved, including empty to apply to everything. This avoids the verified
+unfiltered .NET launcher/monitor hang. The installer's matching-filter check uses
+`fp_x87`. Existing caches need reinstalling, and existing setup-owned bottles
+need a setup rerun to copy the updated helper. Idle guards, prefix-scoped reset,
+plain monitor check and explicit `MU_FAST_X87=0` fallback remain intact.
+
+Local logs and the separate cache are ignored in `runtime/mac-x87-filter/` in
+this worktree. The disposable bottle is `MuX87Filter-test`, created by setup
+from Windows10MU's read-only source. MuMatrix32 and its processes are excluded.
+The actual launcher window appeared under required-fast selection with the
+default filter. PID-scoped window enumeration and a private capture confirmed
+the normal launcher; MonitorCheck passed and no x87 translator activation
+appeared during launcher startup. A post-setup matching `fp_x87` check measured
+279.1 Mverts/s versus 2.7 plain, both printing 3.904312. The bottle was stopped
+with its explicit prefix, deleted by name and absence checked. Six wrapper and
+sixteen launcher tests pass; full make test passes 163/177 with fourteen private
+skips. Both review axes pass; publication audit rejects no files.
+See the finding for methods and limits. Next, the owner
+continues in-world FPS/stability validation. Claude's reported GAME START and
+profile improvement remain separately attributed; this task does not click
+GAME START or use credentials.
 
 ## Prepared Windows capture path
 

@@ -32,6 +32,11 @@ printf 'Verified external source commit %s\n' "$FAST_X87_COMMIT"
 make -C "$SOURCE" -j4 all build/test_x87_fld \
     LLVM_OBJCOPY="$LLVM_BIN/llvm-objcopy" LLVM_MC="$LLVM_BIN/llvm-mc" JOBS=4 \
     > "$FAST_X87_HOME/build.log" 2>&1
+# Keep the pinned third-party tree untouched; our routing wrapper lives beside it.
+cp "$SCRIPT_DIR/x87-main-only-wrapper.c" "$FAST_X87_HOME/x87-main-only-wrapper.c"
+xcrun clang -arch arm64 -std=c11 -O2 -Wall -Wextra -Werror \
+    "$FAST_X87_HOME/x87-main-only-wrapper.c" -o "$FAST_X87_HOME/x87-main-only-wrapper"
+codesign --force --sign - "$FAST_X87_HOME/x87-main-only-wrapper"
 "$SOURCE/build/x87/bin/runtime_loader" "$SOURCE/build/test_x87_fld" \
     > "$FAST_X87_HOME/fld-check.log" 2>&1
 # Build/run authored probes in the caller's setup-owned bottle. These do not kill
@@ -40,7 +45,9 @@ make -C "$SOURCE" -j4 all build/test_x87_fld \
 MU_FAST_X87=0 "$SCRIPT_DIR/diagnostics/run-fpbench.sh" "$CX_BOTTLE" \
     2>&1 | tee "$FAST_X87_HOME/fp-plain.log"
 OUT=${MU_DIAGNOSTICS_OUT:-$WINEPREFIX/.mu-matrix-setup/diagnostics}
-TIMEWALKER_CROSSOVER_ROOT="$CX_ROOT" "$SOURCE/scripts/run-crossover.sh" \
+TIMEWALKER_CROSSOVER_ROOT="$CX_ROOT" \
+TIMEWALKER_X87_LOADER_WRAPPER="$FAST_X87_HOME/x87-main-only-wrapper" \
+TIMEWALKER_X87_ONLY=fp_x87 "$SOURCE/scripts/run-crossover.sh" \
     --bottle "$CX_BOTTLE" --workdir "$OUT" "$OUT/fp_x87.exe" \
     2>&1 | tee "$FAST_X87_HOME/fp-fast.log"
 plain=$(sed -nE 's/^x87:.*\(chk ([^)]*)\).*/\1/p' "$FAST_X87_HOME/fp-plain.log" | tr -d '\r')
