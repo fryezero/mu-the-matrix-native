@@ -21,7 +21,7 @@ Preserve original files. Put acquired bytes, memory captures, derived payloads a
 
 For each reverse-engineering conclusion, record target SHA-256, source address/file offset, method, observation versus inference, coverage and unresolved behavior. Preserve failed hypotheses with their failure cause. Keep generated pseudocode, readable byte patterns, structurally parsed records and runtime-equivalent behavior distinct.
 
-The original client works on Windows and does not start in the owner's CrossOver setup. Repeating unchanged Mac startup attempts is not the next recovery strategy. The Windows helper is prepared but still needs actual Windows validation and an imported capture.
+The original client works on Windows and does not start in the owner's CrossOver setup. Repeating unchanged Mac startup attempts is not the next recovery strategy. No Windows PC is currently available. The active alternative is full x86 system emulation with Linux Wine, described in `docs/research/mac-runtime.md`. The Windows helper remains prepared; actual native Windows validation is still open. Distinguish compatibility-environment captures from native Windows evidence.
 
 Run `make test` with the configured Python. Private integration is opt-in; missing original inputs must produce an explicit skip in portable tests or an error in requested integration checks. Keep synthetic regression fixtures independent of proprietary data. Every behavior claim needs a relevant test or a precise unverified limitation.
 
