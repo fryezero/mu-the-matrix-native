@@ -111,3 +111,18 @@ pass. Complete model loading, original types and hierarchy acceptance remain
 open. Next follow v14 target `0x016ced37` or v15 setup/decode
 `0x0091a6c0`/`0x0091a730`, or validate a bounded v10 loader path with explicit
 I/O/allocation dependencies.
+
+## v15 jump slots resolved
+
+Issue #24 is implemented on `codex/model-dispatch-capture`. Read
+`research/model-dispatch.md`. Two fixed four-byte slots at `0x01d04e14` and
+`0x01d04df4` repeat targets `0x0092a430` and `0x0092be30`, both inside pinned
+text. Capture11, repeat, all three legacy scopes and transferred hashes pass;
+a controlled second startup refused known packed text with an empty manifest
+and no slot payload. Guest shut down cleanly. Raw artifacts are under
+`evidence/model-dispatch-run11/`; original preflight failure and corrected
+readiness attempt remain in `evidence/client-lea/` logs. A bounded decode-target
+REA dossier is in `evidence/client-lea-resolved/`. Next inspect key setup and
+its eight/four/single-block helpers, validate actual argument passing and
+compare authored behavior against original code before claiming a v15 decoder.
+Hierarchy issue #22 remains assigned to its separate Claude workspace.

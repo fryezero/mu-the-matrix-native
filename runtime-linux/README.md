@@ -135,3 +135,16 @@ array and restored-text hashes before and after reading. Process/file/mapping
 checks and durable output follow the selected math-data scope. This is read-only
 acquisition of selected image memory, not proof that the entire section is
 restored or immutable. Raw bytes and string inventories remain local.
+
+## Resolve model-codec dispatch slots
+
+`--scope model-dispatch` reads only the four-byte slots at `0x01d04e14` and
+`0x01d04df4`, referenced by the v15 setup/decode jump entries. It uses format
+`mu-linux-wine-model-dispatch-capture-v1` and the same restored-text before/after
+and identity checks as other data scopes. Each file holds one little-endian
+32-bit address. Resolve values against verified image mappings before treating
+a target as code or assigning an algorithm. A captured slot is runtime-state
+evidence, not proof that the game invoked the selected routine.
+
+[The dispatch finding](../docs/research/model-dispatch.md) records the observed
+targets, repeated acquisition, startup refusal and unresolved behavior.

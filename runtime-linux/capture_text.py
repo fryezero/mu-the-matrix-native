@@ -28,8 +28,11 @@ def scope_regions(scope):
     elif scope == 'image-data':
         # Exact second-section virtual span from the pinned PE, no page padding.
         regions = [('client-image-data.bin', 0x1a7c000, 2557764)]
+    elif scope == 'model-dispatch':
+        regions = [('model-key-target.bin', 0x1d04e14, 4),
+                   ('model-decode-target.bin', 0x1d04df4, 4)]
     else:
-        raise ValueError('Select a fixed text, math-data or image-data scope')
+        raise ValueError('Select a fixed text, math-data, image-data or model-dispatch scope')
     if any(not IMAGE_BASE <= address < address + size <= IMAGE_BASE + IMAGE_BYTES
            for _, address, size in regions):
         raise ValueError('Selected range is outside the pinned image')
@@ -167,10 +170,17 @@ def capture(pid, target, output, scope='text'):
              for name, address, size in regions}
     text_plan = image_ranges(maps, TEXT_START, TEXT_BYTES)
     output.mkdir(parents=True, exist_ok=False)
-    formats = {'text': 'mu-linux-wine-text-capture-v1',
-               'math-data': 'mu-linux-wine-math-capture-v1',
-               'image-data': 'mu-linux-wine-image-data-capture-v1'}
-    manifest = {'format': formats[scope],
+    metadata = {
+        'text': ('mu-linux-wine-text-capture-v1', 'Only pinned text is saved.'),
+        'math-data': ('mu-linux-wine-math-capture-v1',
+                      'Only three fixed image-data ranges are saved; text is hashed to confirm restored state.'),
+        'image-data': ('mu-linux-wine-image-data-capture-v1',
+                       'Only the fixed second image section is saved; text is hashed to confirm restored state.'),
+        'model-dispatch': ('mu-linux-wine-model-dispatch-capture-v1',
+                           'Only two fixed model-dispatch slots are saved; text is hashed to confirm restored state.'),
+    }
+    format_name, scope_limitation = metadata[scope]
+    manifest = {'format': format_name,
                 'scope': scope, 'pid': pid,
                 'process_start_ticks': before[1], 'target_sha256': source_hash,
                 'mapped_image_device_inode': list(image_identity),
@@ -180,10 +190,7 @@ def capture(pid, target, output, scope='text'):
                 'complete_within_scope': False,
                 'limitations': ['Wine compatibility environment, not native Windows.',
                                 'Unsuspended reads are not an atomic snapshot.',
-                                'Only pinned text is saved.' if scope == 'text' else
-                                ('Only three fixed image-data ranges are saved; text is hashed to confirm restored state.'
-                                 if scope == 'math-data' else
-                                 'Only the fixed second image section is saved; text is hashed to confirm restored state.'),
+                                scope_limitation,
                                 'No other modules, stacks or private allocations are selected.',
                                 'Captured bytes do not establish gameplay or behavior equivalence.']}
     if scope == 'text':
@@ -243,7 +250,7 @@ def main():
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--target', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--scope', choices=('text', 'math-data', 'image-data'), default='text')
+    parser.add_argument('--scope', choices=('text', 'math-data', 'image-data', 'model-dispatch'), default='text')
     args = parser.parse_args()
     if not sys.platform.startswith('linux'):
         parser.error('Run this inside the isolated Linux guest')

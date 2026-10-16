@@ -37,6 +37,12 @@ class WineCaptureBoundaries(unittest.TestCase):
         self.assertEqual(start+size, 0x01cec744)
         self.assertLess(start+size, 0x01ced000)
 
+    def test_model_dispatch_scope_selects_only_the_two_observed_jump_slots(self):
+        regions = capture.scope_regions('model-dispatch')
+        self.assertEqual(regions, [('model-key-target.bin', 0x01d04e14, 4),
+                                   ('model-decode-target.bin', 0x01d04df4, 4)])
+        self.assertEqual(sum(size for _, _, size in regions), 8)
+
     def test_hash_reads_selected_ranges_without_gaps_and_rejects_short_reads(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'synthetic-memory'
