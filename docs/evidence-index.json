@@ -65,7 +65,25 @@
         }
       },
       "local_evidence": "model-recovery/verified-v14/manifest.json",
-      "v14_oracle_comparison": "evidence/v14-source/project-oracle-comparison.json"
+      "v14_oracle_comparison": "evidence/v14-source/project-oracle-comparison.json",
+      "edge_diagnostics": {
+        "local_evidence": "evidence/model-edge/diagnostics.json",
+        "models": 17,
+        "native_python_payload_matches": 17,
+        "dummy_parent_files": 13,
+        "direct_dummy_parent_edges": 66,
+        "other_first_failures": [
+          "NaN animation position",
+          "active normal index",
+          "negative normal bone",
+          "negative vertex bone"
+        ],
+        "acceptance_changed": false,
+        "client_handling_verified": false,
+        "fresh_scan": "model-recovery/verified-edge/manifest.json",
+        "all_12754_statuses_unchanged": true,
+        "previous_12663_parsed_digests_unchanged": true
+      }
     },
     "effects": {
       "json_files": 370,
@@ -201,13 +219,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 88,
-    "portable_passed": 81,
+    "portable_tests_discovered": 93,
+    "portable_passed": 86,
     "private_checks_skipped": 7,
-    "local_integration_passed": 88,
+    "local_integration_passed": 93,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Record arithmetic merged after passing macOS/Linux CI",
+    "remote_ci_status": "Arithmetic merged; model diagnostics await CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38838438347",
     "remote_ci_commit": "cf16b9f6a2d46f7f2c24217822f51f9750ffbda0",
     "github_source_files_verified": 58,
@@ -216,7 +234,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 91
+    "current_source_files": 92
   },
   "client_executable_section_restored": true
 }

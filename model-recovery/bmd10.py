@@ -17,7 +17,11 @@ MAX_COUNT = 4096
 
 
 class BmdError(ValueError):
-    pass
+    def __init__(self, message, *, offset=None):
+        # Offsets refer to the decoded v10 layout including its four-byte header.
+        # Encrypted file offsets cannot be obtained by adding the envelope size.
+        self.offset = offset
+        super().__init__(message if offset is None else f'{message} at layout offset {offset}')
 
 
 class Reader:
@@ -32,9 +36,13 @@ class Reader:
         return value
 
     def unpack(self, fmt):
+        start = self.offset
         values = struct.unpack('<'+fmt, self.take(struct.calcsize('<'+fmt)))
-        if any(isinstance(v, float) and not math.isfinite(v) for v in values):
-            raise BmdError(f'Non-finite numeric data near offset {self.offset}')
+        # Reader formats are sequences of scalar fields, with no repeat counts.
+        for index, value in enumerate(values):
+            if isinstance(value, float) and not math.isfinite(value):
+                raise BmdError('Non-finite numeric data',
+                               offset=start+struct.calcsize('<'+fmt[:index]))
         return values
 
     def string(self):
@@ -88,14 +96,17 @@ def parse_bytes(raw, *, lea_block_padding=False):
         for _ in range(nt):
             mesh['uvs'].append(list(r.unpack('ff')))
         for fi in range(nf):
+            face_offset = r.offset
             block = r.take(64)
             corners = block[0]
             if corners not in (3, 4):
                 raise BmdError(f'Mesh {mi} polygon {fi}: unsupported corner count {corners}')
             arrays = [list(struct.unpack_from('<4h', block, off)) for off in (2,10,18)]
-            for indices, upper, kind in zip(arrays, (nv,nn,nt), ('vertex','normal','UV')):
-                if any(i < 0 or i >= upper for i in indices[:corners]):
-                    raise BmdError(f'Mesh {mi} polygon {fi}: invalid active {kind} index')
+            for indices, upper, kind, field in zip(arrays, (nv,nn,nt), ('vertex','normal','UV'), (2,10,18)):
+                for corner, index in enumerate(indices[:corners]):
+                    if index < 0 or index >= upper:
+                        raise BmdError(f'Mesh {mi} polygon {fi}: invalid active {kind} index {index} at corner {corner}',
+                                       offset=face_offset+field+2*corner)
             mesh['polygons'].append({'corners': corners, 'vertices': arrays[0], 'normals': arrays[1],
                                       'uvs': arrays[2], 'raw_hex': block.hex()})
         mesh['texture'] = r.string()
@@ -132,18 +143,23 @@ def parse_bytes(raw, *, lea_block_padding=False):
         # byte. No padding convention or semantic meaning is inferred.
         result['cipher_block_trailer_hex'] = trailer.hex()
     for mi, mesh in enumerate(result['meshes']):
-        for vertex in mesh['vertices']:
+        vertex_start = mesh['source_offset']+10
+        normal_start = vertex_start+16*len(mesh['vertices'])
+        for vi, vertex in enumerate(mesh['vertices']):
             if not 0 <= vertex['node'] < nb or result['bones'][vertex['node']]['dummy']:
-                raise BmdError(f'Mesh {mi}: unsupported vertex bone {vertex["node"]}')
-        for normal in mesh['normals']:
+                raise BmdError(f'Mesh {mi} vertex {vi}: unsupported vertex bone {vertex["node"]}',
+                               offset=vertex_start+16*vi)
+        for ni, normal in enumerate(mesh['normals']):
             if not 0 <= normal['node'] < nb or result['bones'][normal['node']]['dummy']:
-                raise BmdError(f'Mesh {mi}: unsupported normal bone {normal["node"]}')
+                raise BmdError(f'Mesh {mi} normal {ni}: unsupported normal bone {normal["node"]}',
+                               offset=normal_start+20*ni)
             # BindVertex can be -1 in some files; preserve it but reject other invalid indices.
             if not -1 <= normal['bind_vertex'] < len(mesh['vertices']):
                 raise BmdError(f'Mesh {mi}: invalid normal bind vertex {normal["bind_vertex"]}')
     for bi, bone in enumerate(result['bones']):
         seen = set()
         current = bi
+        parent_owner = bi
         while current != -1:
             if current in seen:
                 raise BmdError('Bone parent cycle')
@@ -151,8 +167,10 @@ def parse_bytes(raw, *, lea_block_padding=False):
             ancestor = result['bones'][current]
             if ancestor['dummy']:
                 if current != bi:
-                    raise BmdError('Bone parent references dummy bone')
+                    raise BmdError(f'Bone {parent_owner}: parent {current} references dummy bone',
+                                   offset=result['bones'][parent_owner]['source_offset']+33)
                 break
+            parent_owner = current
             current = ancestor['parent']
     result['parsed_bytes'] = r.offset
     return result
