@@ -10,7 +10,7 @@ Updated 2026-10-15. Target: the exact installed Mu The Matrix version, not an ol
 - Models: 12,663 parsed from 12,754 unique BMD-extension files. V10: 701/701; v12: 180/180; v14: 216/216; v15: 11,566/11,583. Seventeen v15 inputs are rejected and 74 other/table envelopes remain unsupported.
 - 370 JSON effect descriptions parse; all 92 distinct texture references exist in the inspected installation.
 - Windows capture helper cross-compiles. SHA-256 known-vector and own-process read smoke tests pass under Wine. Native Windows capture is unverified. A Mac-only QEMU/Linux Wine experiment now yields a repeatable restored client-text region.
-- First authored behavior from restored client code: a 64-byte word copy, matching captured instructions in 393 synthetic overlap/alignment cases. [Finding and limits](research/client-copy64.md).
+- First authored behavior from restored client code: 64-byte copy and clear operations, matching captured instructions in 393 and 768 synthetic cases. [Finding and limits](research/client-copy64.md).
 
 ## Executable recovery boundary
 
@@ -20,9 +20,9 @@ CrossOver remains unable to start the original. No Windows PC is currently avail
 
 ## Checks
 
-The repository discovers 62 tests. The portable run passes 57 and explicitly
-skips five private-input checks. The opt-in local integration run passes all 62.
-A fresh 74-file source-only checkout also passes 57 tests with five explicit skips.
+The repository discovers 65 tests. The portable run passes 59 and explicitly
+skips six private-input checks. The opt-in local integration run passes all 65.
+A fresh 79-file source-only checkout passes 59 tests with six explicit skips.
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
@@ -47,8 +47,7 @@ PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery
 are merged. No game executable, asset pack or memory capture was uploaded.
 The initial 58-file publication was independently downloaded and compared with
 the lab snapshot; later changes are tracked through Git and checked in CI.
-[Issue #9](https://github.com/fryezero/mu-the-matrix-recovery/issues/9) is the next
-bounded source-recovery task.
+Issue #9 adds the clear operation and records an unsuccessful bounded caller search; a broader function map is next.
 
 ## Runtime route without a Windows PC
 

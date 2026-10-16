@@ -36,7 +36,7 @@ observations and candidate roles, not recovered original symbols.
 | Range | Observed behavior | Remaining uncertainty |
 | --- | --- | --- |
 | `0x00401000..0x00401015` | Sixteen-word forward copy, destination in ECX/EAX | Original type and callers unknown |
-| `0x00401020..0x0040102d` | Calls `0x0194cd00` with destination, zero byte and length 64 | Candidate clear operation; CRT helper branches depend on uncaptured globals |
+| `0x00401020..0x0040102d` | Calls `0x0194cd00` with destination, zero byte and length 64 | Clear operation validated on both feature-bit paths; actual feature value unknown |
 | `0x00401030..0x0040105b` | Three-component squares/sum and call to `0x01999870` | x87 precision, control word, exceptions and original type |
 | `0x00401060..0x0040108c` | Similar operation at object offsets `0x10..0x18` | Same limits |
 | `0x00401090..0x004010bc` | Similar operation at offsets `0x20..0x28` | Same limits |
@@ -84,6 +84,6 @@ Ignored evidence on the original lab workstation:
 
 The repository contains authored source, synthetic tests and this reviewed
 finding. A fresh clone must supply private bytes to repeat instruction comparison.
-Next, recover caller/type context or validate the adjacent clear operation before
-expanding into x87 arithmetic. Keep the unresolved startup localhost connection
+The [adjacent clear operation](client-clear64.md) is now compared on both helper paths.
+Caller/type context remains unresolved before expanding into x87 arithmetic. Keep the unresolved startup localhost connection
 separate from these component results.
