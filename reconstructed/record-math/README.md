@@ -62,3 +62,20 @@ instruction matches under controlled RNE normal/zero arithmetic, plus 24
 explicitly out-of-domain attempts. Four analytic portable tests and one private
 instruction check extend this module. No original live pose/FP state or rendering
 is inferred. Existing cofactor/inverse binary64 contracts remain unchanged.
+
+## Rotation conversion
+
+`mu_rotation_quaternion(angles, quaternion)` mirrors the client helper at
+`0x00d00724`. It halves three binary32 angles, takes binary32-rounded sine and
+cosine, and writes the x,y,z,w quaternion of Rz(a2)·Ry(a1)·Rx(a0) with separately
+rounded binary32 products. All inputs are read before the ordered stores, so
+in-place spans are valid. Trigonometry uses the host libm as a substitute for
+the client SSE2 helpers. `mu_rotation_quaternion_using` takes caller sine/cosine
+callbacks, invoked in the original order.
+
+The [rotation finding](../../docs/research/client-rotation.md) records 8,012
+bitwise matches against the actual client body and trig helpers. These cases use
+flag 1, x87 `0x027f` and MXCSR `0x1f80`, without stubs. It also covers 2,816
+alias/alignment cases, 256 FP-state variants and host-midpoint trig candidates.
+Results outside the SSE2 domain and non-finite values remain unverified. Five
+analytic portable tests and one private instruction check cover this entry.

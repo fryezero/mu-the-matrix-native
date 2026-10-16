@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Twelve
+use authored geometry/image/decoder fixtures and public LEA vectors. Thirteen
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -65,6 +65,9 @@ first section at `evidence/x86-capture-text-08/client-text.bin`, or an explicit
 The record-math private check also needs the verified scoped math-data capture09
 manifest and three files. Set `MU_MATH_DATA` to that directory if needed. See
 [record-math setup and FP limits](../reconstructed/record-math/README.md).
+The rotation check also needs the second image section capture and the
+trig-state flag (`MU_IMAGE_DATA`, `MU_TRIG_FLAG`) plus `clang` for its
+midpoint scanner. See [the rotation finding](research/client-rotation.md).
 
 For complete corpus scans, use the reader CLIs, supply the installation root,
 and write to a new directory outside the installation:
