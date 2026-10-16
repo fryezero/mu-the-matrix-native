@@ -42,7 +42,7 @@ Protected gameplay functions and types, faithful initialization capture, network
 ## Repository publication
 
 The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery)
-contains 91 reviewed source/documentation files on main. Model PR #4, runtime
+contains 92 reviewed source/documentation files on main. Model PR #4, runtime
 PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8)
 are merged. No game executable, asset pack or memory capture was uploaded.
 The initial 58-file publication was independently downloaded and compared with
@@ -64,3 +64,5 @@ Authored cofactor/record-operation source matches 1,680 helper and 1,050 wrapper
 Record arithmetic is merged through PR #16 after passing macOS/Linux CI. Issue #17 begins case-specific diagnosis of the 17 rejected v15 models without changing acceptance.
 
 Model issue #17 locates each rejected v15 field, including 13 dummy-parent cases. Native and Python decoding agree for all 17. Acceptance remains strict; see [the case report](research/model-edge.md).
+
+Model diagnostics are merged through PR #18 after passing macOS/Linux CI. Issue #19 next acquires a fixed second image section to locate meaningful loader references.
