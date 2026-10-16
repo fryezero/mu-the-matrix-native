@@ -88,3 +88,26 @@ relocation fixtures run by default. The private scalar/corpus test requires the
 pinned text, installation, manifest and rejected-model diagnostics. Original
 AVX execution uses the separate opt-in x86 guest tool; normal CI only cross-builds
 that tool on Linux. Full-loader, rendering and native Windows claims remain open.
+
+## Bone-track loop
+
+`bone_tracks.h` exposes `mu_bone_tracks_read`, authored C for the bone loop
+`0x012b4225..0x012b4441` in reader `0x012b3812`. Per non-dummy bone it stores
+the name, the raw parent and a track array with 12 bytes per action. Each track
+entry points to position, Euler-rotation and quaternion arrays of 12/12/16 bytes
+per key. Each quaternion comes from record-math `mu_rotation_quaternion`.
+Client records hold 32-bit pointers, so the API works on a byte view of one
+32-bit client address window, with an allocator callback that receives the
+client's operator-new request sizes in original order. It rereads counts and
+pointers where the client does. A null allocation or an access outside the
+window returns a status; those statuses are authored conventions, not client
+behavior.
+
+The [finding](../../docs/research/client-bone-tracks.md) records the layouts,
+allocation behavior and the instruction comparison. The actual loop, memcpy,
+operator new/malloc and rotation/trig code all run. 342 synthetic comparisons
+and all 11,962 installed v12/v14/v15 models the readers accept match the
+captured instructions. A zero-size-allocation-eliding control differs in 57
+cases. `libbonetracks` links `../record-math/record_math.c` with contraction
+disabled. Seven portable tests run by default; the private instruction check
+needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.
