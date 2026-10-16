@@ -42,7 +42,7 @@ Protected gameplay functions and types, faithful initialization capture, network
 ## Repository publication
 
 The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery)
-contains 79 reviewed source/documentation files on main. Model PR #4, runtime
+contains 83 reviewed source/documentation files on main. Model PR #4, runtime
 PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8)
 are merged. No game executable, asset pack or memory capture was uploaded.
 The initial 58-file publication was independently downloaded and compared with
@@ -52,3 +52,5 @@ the lab snapshot; later changes are tracked through Git and checked in CI.
 ## Runtime route without a Windows PC
 
 The owner has no Windows PC available for the foreseeable future. The active experiment uses QEMU full x86-64 TCG, Debian amd64 and Linux Wine to avoid Rosetta. The guest boots, software OpenGL and both Windows bitness probes work, and the exact copied client restores readable code. The scoped Linux capture tool and boundary tests are implemented. [The research note](research/mac-runtime.md) records the approach and limitations. Compatibility-environment evidence must remain distinct from native Windows behavior.
+
+The bounded map is merged through PR #13 after passing macOS/Linux CI. Selected image-data acquisition continues under issue #12.
