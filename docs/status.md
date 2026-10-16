@@ -17,6 +17,9 @@ not exist yet.
   Its v12 decoder now has authored C matching 4,048 synthetic cases and all 180
   installed v12 payloads, covering 3,176,971 encrypted bytes. Exact overlap and
   signed-length behavior are preserved. [Evidence](research/client-model-loader.md).
+- The observed v15 key-setup target has authored C matching 1,320 synthetic
+  instruction cases across 16/24/32-byte keys, alignments and no-op gates.
+  This initializes a context; payload decryption is next. [Evidence](research/client-lea-key.md).
 - Images: 19,703 of 19,707 wrapper candidates decode. One remaining candidate is
   editable mesh text; three are inconsistent terrain images.
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
@@ -30,9 +33,9 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 120 tests. Portable checks pass 111 and explicitly skip nine
-private-input checks. Opt-in local integration passes all 120. A fresh 108-file source-only checkout
-also passes 111 with nine explicit skips.
+The suite discovers 126 tests. Portable checks pass 116 and explicitly skip ten
+private-input checks. Opt-in local integration passes all 126. A fresh 113-file source-only checkout
+also passes 116 with ten explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -57,7 +60,7 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23 and #26 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26 and #28 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
 The client-linked v12 milestone is merged through PR #23. Two selected v15
@@ -69,4 +72,4 @@ unfinished. Read `handoff.md` for exact local artifact paths and entry addresses
 
 The fixed v15 dispatch scope is merged through PR #26 after macOS/Linux CI.
 Hierarchy findings are merged through PR #25. Post-merge review corrections
-continue under issue #27 without changing strict model acceptance.
+are merged through PR #28 after both platform checks. Strict model acceptance is unchanged.

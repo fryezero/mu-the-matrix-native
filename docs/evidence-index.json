@@ -279,6 +279,26 @@
       "call_search_confidence": "Unanchored raw candidates, not validated caller/argument provenance.",
       "local_verification": "evidence/hierarchy-review/verification-v2.json",
       "strict_model_acceptance_changed": false
+    },
+    "client_lea_key": {
+      "issue": 29,
+      "document": "docs/research/client-lea-key.md",
+      "entry": "0x0092a430",
+      "body_bytes": 6446,
+      "body_sha256": "027959c97d01690e622312ae0c16e269a7b95cb30d3af160486349219a28b0da",
+      "rea_evidence_id": "ev_df7a2e68fc50fb733641d7bda86be57ae7c4ec92b59fed2b5aaff9bd8dc6ca4e",
+      "instruction_cases": 1320,
+      "mismatches": 0,
+      "wrong_order_failures": 1248,
+      "key_bytes": [
+        16,
+        24,
+        32
+      ],
+      "context_bytes": 772,
+      "key_context_overlap_verified": false,
+      "payload_decoder_verified": false,
+      "local_report": "evidence/client-lea-key/comparison-01.json"
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -286,22 +306,22 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 120,
-    "portable_passed": 111,
-    "private_checks_skipped": 9,
-    "local_integration_passed": 120,
+    "portable_tests_discovered": 126,
+    "portable_passed": 116,
+    "private_checks_skipped": 10,
+    "local_integration_passed": 126,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Hierarchy and dispatch merged; hierarchy review corrections await CI",
-    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38890950201",
-    "remote_ci_commit": "6bb34b4c1571abef707285e5e150383bfd31e5b4",
+    "remote_ci_status": "Hierarchy review fixes passed macOS/Linux; LEA setup awaits CI",
+    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38892589220",
+    "remote_ci_commit": "6fd939d2c757b268f1c000f4efdd4d8439025936",
     "github_source_files_verified": 58,
     "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte",
     "v14_oracle_vectors": 91,
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 108
+    "current_source_files": 113
   },
   "client_executable_section_restored": true
 }

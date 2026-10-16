@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Nine
+use authored geometry/image/decoder fixtures and public LEA vectors. Ten
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -139,3 +139,11 @@ file is outside `evidence/image-data-run10/data-capture-10/`; `MU_CLIENT_TEXT`
 also applies. The v2 report labels raw call/PUSH matches as heuristic candidates.
 A passing report does not establish all caller boundaries, argument provenance,
 prior output-buffer values or actual rendering. Strict model rejection remains.
+
+## Client-linked LEA setup
+
+Five additional portable tests cover the recovered LEA context setup. The tenth
+private check requires the same full pinned restored text and Unicorn, without
+installed model assets. Use `MU_CLIENT_TEXT` to override its default capture09
+path. The [finding](research/client-lea-key.md) includes the standalone command
+and excludes key/context aliasing and payload decoding from the contract.
