@@ -125,13 +125,15 @@ readiness attempt remain in `evidence/client-lea/` logs. A bounded decode-target
 REA dossier is in `evidence/client-lea-resolved/`. Next inspect key setup and
 its eight/four/single-block helpers, validate actual argument passing and
 compare authored behavior against original code before claiming a v15 decoder.
-Hierarchy issue #22 remains assigned to its separate Claude workspace.
+Hierarchy findings landed in PR #25; review corrections follow below.
 
 ## Hierarchy review and shared baseline
 
 PR #25 landed while the dispatch work was integrating. Post-merge independent
 reviews verified the core selected-loop observations and found two evidence
-accuracy issues, addressed under #27 in `codex/review-model-hierarchy`.
+accuracy issues, addressed under #27 in `codex/review-model-hierarchy` and merged
+through PR #28. Both platform checks passed on commit
+`6fd939d2c757b268f1c000f4efdd4d8439025936`, CI run `38892589220`.
 Raw E8/PUSH searches remain heuristic candidates; PUSH lookahead now stops at
 control transfers, including LOOP and traps. The v2 report keeps 314 raw call
 candidates and 300 buffer-push candidates, with explicit unverified provenance.
@@ -142,3 +144,18 @@ Strict parser acceptance is unchanged. Raw verification and test logs are in
 `evidence/hierarchy-review/` and `evidence/hierarchy-review-*.txt` in the original
 lab. Next continue v15 key/decode source using the resolved dispatch targets;
 actual pose-buffer state during affected-model rendering remains unobserved.
+
+## Client-linked v15 key context
+
+Issue #29 / `codex/client-lea-key` adds authored C key setup for the observed
+`0x0092a430` target. Read `research/client-lea-key.md`. The 6,446-byte original
+body matches 1,320 synthetic cases across 16/24/32-byte keys, all word alignments,
+both DF states and null/unsupported gates. It writes forward keys plus round
+count at byte 768, leaving unused context bytes untouched. An independently
+compiled reversed-order variant fails 1,248 valid cases. Key/context spans must
+be disjoint; ECB payload decoding and native Windows behavior remain unverified.
+Raw probe, reports and test logs are under `evidence/client-lea-key/`; REA is
+`evidence/client-lea-resolved/rea-key.json`. Next validate eight/four/single-block
+helper argument passing and batch alias behavior, starting at resolved wrapper
+`0x0092be30` and helpers `0x00927060`, `0x00929370`, `0x0093bb20`. No VM startup is
+needed for the captured instruction bytes. Guest remains shut down.

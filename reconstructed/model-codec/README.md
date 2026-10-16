@@ -1,4 +1,4 @@
-# Client-linked BMD decoder
+# Client-linked BMD codecs
 
 `mu_bmd12_decode` is authored C for the rolling decoder called by the selected
 client model-loading path. It matches captured instructions in 4,048 synthetic
@@ -56,3 +56,17 @@ also requires the exact ignored `model-recovery/verified-v14/manifest.json`,
 whose digest is pinned by the validator. Every selected model hash and file
 identity is checked. Both comparisons execute the actual decoder body without
 substituting any of its operations. Raw code, payloads and reports stay local.
+
+## v15 key setup
+
+`client_lea.h` exposes `mu_client_lea_setup`, a byte-defined 772-byte LEA context
+for 16/24/32-byte keys. It preserves unused context bytes and accepts unaligned,
+disjoint key/context spans. Null pointers and unsupported sizes are no-ops.
+It matches 1,320 actual captured-instruction cases, including both DF states.
+A reversed-key-order negative control fails all 1,248 valid cases.
+
+Five portable tests cover public encryption vectors, no-op gates and context
+layout/guards. A sixth explicitly skips private comparison unless integration
+is requested. Read [the finding](../../docs/research/client-lea-key.md) for exact
+identities, span requirements and the reproduction command. The ECB payload
+decoder and key/context alias behavior remain outside this component's claim.
