@@ -27,6 +27,7 @@ These are structural and component-level results for one pinned installation. Th
 | Startup decompressor | Portable C builds; four original blocks match independent decoding byte for byte | Recovered 41,984,000-byte region is still protector material |
 | Native inspection | REA/Ghidra decompile a restored client arithmetic routine from a verified prefix | Full function map, calling conventions and behavior still need recovery |
 | Client memory operation | Authored 64-byte copy/clear match captured x86 in 393 / 768 cases | Original type/callers unknown; clear feature state supplied explicitly |
+| Record arithmetic | Cofactor/inverse source matches captured x86 in 1,680 / 1,050 controlled cases | Types/callers and native FP state unknown; unsupported domains remain |
 | Code navigation | First 64 KiB mapped with explicit candidate origins and REA comparison | Heuristics are incomplete; symbols/types and outside references unresolved |
 | Mac-only runtime | QEMU x86 Linux/Wine restores a repeatable 23,572,480-byte client-code mapping | No demonstrated login/gameplay; compatibility-environment limits remain |
 | Images | 19,703 / 19,707 wrapper candidates decode; selected PNG exports match pixels | Three terrain images rejected; one candidate is actually mesh text |
@@ -48,7 +49,7 @@ python3 -m venv tools/python
 make test PYTHON=./tools/python/bin/python
 ```
 
-The default suite uses authored fixtures and public LEA test vectors. Six checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
+The default suite uses authored fixtures and public LEA test vectors. Seven checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
 
 ```sh
 # Optional Windows helper cross-build with MinGW-w64
@@ -62,6 +63,7 @@ asset-recovery/        Image wrappers and editable text-mesh readers
 model-recovery/        BMD geometry, bones, animation and encrypted envelopes
 reconstructed/boot/   Tested C startup decompressor
 reconstructed/client-memory/  Restored client behavior with instruction comparison
+reconstructed/record-math/  Controlled cofactor/inverse reconstruction
 windows-capture/      Read-only Windows executable-region capture source
 runtime-linux/        Mac-only x86/Wine procedure and scoped text capture
 scripts/              PE inventory, REA collection, loader recovery and emulation

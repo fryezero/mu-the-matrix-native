@@ -13,6 +13,7 @@ The owner authorizes merging reviewed changes into `main` once their relevant ch
 - Build, CI, missing local inputs, or integration tests: `docs/setup.md`.
 - Native/loader recovery, emulation, or Windows startup: `docs/code-recovery.md` and `windows-capture/README.md`.
 - Restored client functions, copy semantics, or instruction comparison: `docs/research/client-copy64.md` and `reconstructed/client-memory/README.md`.
+- Record arithmetic, x87 precision, cofactors or inverse aliasing: `docs/research/record-math.md` and `reconstructed/record-math/README.md`.
 - Image or effect formats: `docs/asset-recovery.md`.
 - BMD geometry or encryption: `docs/model-recovery.md` and `model-recovery/SOURCES.md`.
 - New module/platform boundaries: `docs/architecture.md`.
