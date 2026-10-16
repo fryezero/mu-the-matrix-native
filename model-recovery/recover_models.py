@@ -44,11 +44,14 @@ def main():
                 header = source.read(4)
             version = header[3] if len(header) == 4 and header[:3] == b'BMD' else None
             record['version'] = version
-            if version not in (10,12,15):
+            if version not in (10,12,14,15):
                 record.update(status='unsupported', error='Unsupported model envelope or table format')
             else:
                 model = parse_model_file(path)
                 record.update(summarize(model), status='parsed')
+                if 'modulus' in model:
+                    record['modulus'] = model['modulus']
+                    record['decoded_payload_sha256'] = model['decoded_payload_sha256']
                 if model.get('cipher_block_trailer_hex'):
                     record['cipher_block_trailer_hex'] = model['cipher_block_trailer_hex']
                 if identity(path) in selected_ids:
@@ -76,7 +79,7 @@ def main():
     manifest = {'summary': totals, 'versions': versions, 'files': records,
                 'limitations': ['Structural file decoding, not verified original engine rendering.',
                                 'ECB alignment trailers are preserved without inferring padding semantics.',
-                                'Version 14 and table formats remain unsupported.']}
+                                'Other/table envelopes remain unsupported; recognized models can still be rejected.']}
     (output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print(json.dumps({'summary':totals,'versions':versions}),flush=True)
     return 0 if not totals['rejected'] and not totals['unsupported'] else 1

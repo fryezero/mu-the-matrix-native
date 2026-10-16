@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read BMD v12/v15 envelopes into the independently validated mesh layout.
+"""Read BMD v12/v14/v15 envelopes into the validated mesh layout.
 
 The static format constants and algorithm were cross-checked with primary
 references in SOURCES.md. No original executable code is executed.
@@ -100,25 +100,64 @@ def decrypt_map(cipher):
     return bytes(output)
 
 
+@lru_cache(maxsize=1)
+def modulus_reader():
+    library = Path(__file__).with_name('libmodulus.dylib' if sys.platform == 'darwin' else 'libmodulus.so')
+    try:
+        handle = ctypes.CDLL(str(library))
+    except OSError as error:
+        raise BmdError('BMD v14 needs the Crypto++ reader; run make -C model-recovery') from error
+    function = handle.mu_modulus_decrypt
+    function.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
+                         ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t),
+                         ctypes.c_void_p, ctypes.c_size_t]
+    function.restype = ctypes.c_int
+    return function
+
+
+def decrypt_modulus(envelope):
+    if not 34 <= len(envelope) <= MAX_FILE:
+        raise BmdError('BMD v14 requires a complete 34-byte cipher prefix')
+    source = ctypes.create_string_buffer(bytes(envelope))
+    output = ctypes.create_string_buffer(len(envelope)-34)
+    written = ctypes.c_size_t()
+    error = ctypes.create_string_buffer(256)
+    if modulus_reader()(source, len(envelope), output, len(output),
+                        ctypes.byref(written), error, len(error)):
+        raise BmdError(error.value.decode('utf-8', errors='replace'))
+    if written.value != len(output):
+        raise BmdError('BMD v14 decoder returned an inconsistent payload length')
+    return output.raw
+
+
 def parse_model(raw):
     if len(raw) > MAX_FILE or len(raw) < 4 or raw[:3] != b'BMD':
         raise BmdError('Invalid BMD envelope or unsupported file size')
     version = raw[3]
     if version == 10:
         return parse_bytes(raw)
-    if version not in (12,15):
+    if version not in (12,14,15):
         raise BmdError(f'Unsupported model version {version}')
     if len(raw) < 8:
         raise BmdError('Truncated encrypted envelope')
     length, = struct.unpack_from('<I', raw, 4)
     if length != len(raw)-8:
         raise BmdError('Declared encrypted length must match the complete payload')
-    plain = decrypt_map(raw[8:]) if version == 12 else decrypt_lea(raw[8:])
+    if version == 12:
+        plain = decrypt_map(raw[8:])
+    elif version == 14:
+        plain = decrypt_modulus(raw[8:])
+    else:
+        plain = decrypt_lea(raw[8:])
     model = parse_bytes(b'BMD\x0a'+plain, lea_block_padding=version == 15)
     model.update(version=version, decoded_layout_version=10,
                  source_bytes=len(raw), source_sha256=hashlib.sha256(raw).hexdigest(),
                  decoded_payload_sha256=hashlib.sha256(plain).hexdigest(),
                  encrypted_payload_bytes=length)
+    if version == 14:
+        model['modulus'] = {'inner_selector': raw[8], 'outer_selector': raw[9],
+                            'inner_algorithm': raw[8] & 7, 'outer_algorithm': raw[9] & 7,
+                            'envelope_prefix_bytes': 34, 'decoded_payload_bytes': len(plain)}
     return model
 
 
