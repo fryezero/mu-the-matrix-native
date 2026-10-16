@@ -265,6 +265,20 @@
       "local_evidence": "evidence/model-codec/corpus-equivalence-01.json",
       "full_loader_recovered": false,
       "scope": "Flat accessible spans, signed query lengths, both DF states; actual leaf instructions, no helper substitutes; native Windows and live invocation unverified."
+    },
+    "model_hierarchy": {
+      "bone_stride": 140,
+      "pose_slot_bytes": 48,
+      "dummy_slot_written_by_selected_loop": false,
+      "dummy_parent_edges": 66,
+      "affected_files": 13,
+      "prior_slot_contents_known": false,
+      "child_output_is_composition": true,
+      "call_candidates": 314,
+      "buffer_push_candidates": 300,
+      "call_search_confidence": "Unanchored raw candidates, not validated caller/argument provenance.",
+      "local_verification": "evidence/hierarchy-review/verification-v2.json",
+      "strict_model_acceptance_changed": false
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -272,13 +286,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 103,
-    "portable_passed": 95,
-    "private_checks_skipped": 8,
-    "local_integration_passed": 103,
+    "portable_tests_discovered": 120,
+    "portable_passed": 111,
+    "private_checks_skipped": 9,
+    "local_integration_passed": 120,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Observed v15 dispatch capture merged after passing macOS/Linux CI",
+    "remote_ci_status": "Hierarchy and dispatch merged; hierarchy review corrections await CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38890950201",
     "remote_ci_commit": "6bb34b4c1571abef707285e5e150383bfd31e5b4",
     "github_source_files_verified": 58,
@@ -287,7 +301,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 101
+    "current_source_files": 108
   },
   "client_executable_section_restored": true
 }

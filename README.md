@@ -50,7 +50,7 @@ python3 -m venv tools/python
 make test PYTHON=./tools/python/bin/python
 ```
 
-The default suite uses authored fixtures and public LEA test vectors. Eight checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
+The default suite uses authored fixtures and public LEA test vectors. Nine checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
 
 ```sh
 # Optional Windows helper cross-build with MinGW-w64

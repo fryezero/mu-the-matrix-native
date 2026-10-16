@@ -4,6 +4,7 @@ No game bytes are used.  x86 fixtures are short hand-assembled sequences.
 The private pinned-input check runs only with MU_RECOVERY_INTEGRATION=1.
 """
 import importlib.util
+import json
 import os
 from pathlib import Path
 import struct
@@ -118,8 +119,25 @@ class CallSiteTests(unittest.TestCase):
         code += call(0x1000 + len(code), target)          # bare call target
         code += b'\xc3'
         region = common.Region(0x1000, code.ljust(0x300, b'\xcc'))
-        self.assertEqual(verify.direct_call_sites(region, target), [0x1007, 0x1016])
-        self.assertEqual(verify.pushes_before_call(region, 0x6fce398, target), [0x1000])
+        self.assertEqual(verify.direct_call_candidates(region, target), [0x1007, 0x1016])
+        self.assertEqual(verify.push_buffer_call_candidates(region, 0x6fce398, target), [0x1000])
+
+    def test_embedded_call_opcode_remains_only_an_unanchored_candidate(self):
+        # E8 is inside a MOV immediate, not at a decoded instruction boundary.
+        region = common.Region(0x1000, bytes.fromhex('b8e800000000c3'))
+        candidates = verify.direct_call_candidates(region, 0x1006)
+        instructions, _ = common.decode_range(region, 0x1000, 0x1007)
+        self.assertEqual(candidates, [0x1001])
+        self.assertNotIn(candidates[0], {i.address for i in instructions})
+
+    def test_push_lookahead_stops_at_control_transfers(self):
+        for transfer in (b'\xc3', b'\xeb\x00', b'\x75\x00', b'\xe2\x00',
+                         b'\xe3\x00', b'\xcc', b'\xf4', b'\x0f\x0b'):
+            with self.subTest(transfer=transfer.hex()):
+                prefix = b'\x68'+struct.pack('<I', 0x6fce398)+transfer
+                code = prefix+call(0x1000+len(prefix), 0x1100)+b'\xc3'
+                region = common.Region(0x1000, code)
+                self.assertEqual(verify.push_buffer_call_candidates(region, 0x6fce398, 0x1100), [])
 
     def test_argument_uses_counts_frame_slots(self):
         code = b'\x03\x45\x08\x03\x45\x08\x8b\x4d\x0c\xc3'   # add eax,[ebp+8] x2; mov ecx,[ebp+0xc]
@@ -171,7 +189,12 @@ class PrivateInstructionClaims(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             report = Path(folder) / 'report.json'
             code = verify.main(['--text', str(text), '--data', str(data), '--output', str(report)])
+            result = json.loads(report.read_text())
         self.assertEqual(code, 0)
+        self.assertEqual(result['report_format'], 'mu-model-hierarchy-checks-v2')
+        self.assertIn('unverified', result['call_search_confidence'])
+        self.assertIn('direct_call_candidates', result)
+        self.assertNotIn('direct_callers', result)
 
 
 if __name__ == '__main__':

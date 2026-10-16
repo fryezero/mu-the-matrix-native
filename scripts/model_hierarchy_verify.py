@@ -33,8 +33,8 @@ CONCAT_END = 0x00cfff3c
 BONE_BUFFER = 0x06fce398
 HEAP_SLOT = 0x01a7c5c8
 
-EXPECTED_CALLERS = {'reader': 3, 'plain_reader': 0, 'pose': 314, 'rest_pose': 1}
-EXPECTED_BUFFER_CALLS = 300
+EXPECTED_CALL_CANDIDATES = {'reader': 3, 'plain_reader': 0, 'pose': 314, 'rest_pose': 1}
+EXPECTED_BUFFER_CANDIDATES = 300
 EXPECTED_HEAP_SLOT = '0x7bc275e0'
 
 # (start, end, {address: exact text}) -- decoded linearly from `start`.
@@ -234,7 +234,8 @@ def concat_output_stores(region, engine=None):
     return stores
 
 
-def direct_call_sites(region, target, engine=None):
+def direct_call_candidates(region, target, engine=None):
+    """Unanchored E8 matches, not verified instruction boundaries or callers."""
     engine = engine or common.decoder()
     sites = []
     data = region.data
@@ -251,8 +252,15 @@ def direct_call_sites(region, target, engine=None):
     return sites
 
 
-def pushes_before_call(region, immediate, target, window=0x60, max_steps=13, engine=None):
-    """`push imm32` sites whose next call (within a short linear run) hits target."""
+def push_buffer_call_candidates(region, immediate, target, window=0x60, max_steps=13, engine=None):
+    """Raw PUSH candidates followed by a matching call in a straight-line run.
+
+    Entry alignment and argument provenance are not established. The lookahead
+    must not cross another control transfer before its first call.
+    """
+    from capstone import (CS_GRP_BRANCH_RELATIVE, CS_GRP_CALL, CS_GRP_INT,
+                          CS_GRP_IRET, CS_GRP_JUMP, CS_GRP_RET)
+    from capstone.x86_const import X86_INS_HLT, X86_INS_UD2
     engine = engine or common.decoder()
     needle = b'\x68' + struct.pack('<I', immediate)
     found = []
@@ -262,9 +270,13 @@ def pushes_before_call(region, immediate, target, window=0x60, max_steps=13, eng
         for step, instruction in enumerate(engine.disasm(region.read(va, length), va)):
             if step == 0 and instruction.size != 5:
                 break
-            if instruction.mnemonic == 'call':
+            if instruction.group(CS_GRP_CALL):
                 if instruction.op_str == hex(target):
                     found.append(va)
+                break
+            if (any(instruction.group(group) for group in
+                    (CS_GRP_BRANCH_RELATIVE, CS_GRP_INT, CS_GRP_IRET, CS_GRP_JUMP, CS_GRP_RET)) or
+                    instruction.id in (X86_INS_HLT, X86_INS_UD2)):
                 break
             if step >= max_steps:
                 break
@@ -283,7 +295,9 @@ def main(argv=None):
     text = common.load_text(args.text)
     data = common.load_data(args.data)
     engine = common.decoder()
-    report = {'target_sha256': common.TARGET_SHA256, 'text_sha256': common.TEXT_SHA256,
+    report = {'report_format': 'mu-model-hierarchy-checks-v2',
+              'call_search_confidence': 'Raw candidates; instruction boundaries, reachability and argument provenance are unverified.',
+              'target_sha256': common.TARGET_SHA256, 'text_sha256': common.TEXT_SHA256,
               'data_sha256': common.DATA_SHA256, 'capstone': capstone_version(),
               'bodies': {}, 'instructions': {}}
     for name, (start, end, count) in BODY_CLAIMS.items():
@@ -295,28 +309,28 @@ def main(argv=None):
     report['concat_argument_uses'] = argument_uses(text, CONCAT, CONCAT_END, engine)
     report['post_load_bone_field_stores'] = bone_field_stores(text, POST_LOAD, POST_LOAD_END, engine)
     report['concat_output_stores'] = concat_output_stores(text, engine)
-    callers = {name: [hex(x) for x in direct_call_sites(text, target, engine)]
+    callers = {name: [hex(x) for x in direct_call_candidates(text, target, engine)]
                for name, target in (('reader', READER), ('plain_reader', PLAIN_READER),
                                     ('pose', POSE), ('rest_pose', REST_POSE))}
-    report['direct_callers'] = {k: {'count': len(v), 'sites': v if len(v) <= 16 else v[:16]}
+    report['direct_call_candidates'] = {k: {'count': len(v), 'sites': v if len(v) <= 16 else v[:16]}
                                 for k, v in callers.items()}
-    pushed = pushes_before_call(text, BONE_BUFFER, POSE, engine=engine)
-    report['pose_calls_with_buffer_0x6fce398'] = len(pushed)
+    pushed = push_buffer_call_candidates(text, BONE_BUFFER, POSE, engine=engine)
+    report['pose_push_candidates_for_buffer_0x6fce398'] = len(pushed)
     report['heap_slot_runtime_value'] = hex(struct.unpack('<I', data.read(HEAP_SLOT, 4))[0])
     checks = [v['ok'] for v in report['bodies'].values()]
     checks += [v['ok'] for v in report['instructions'].values()]
     checks.append(report['pose_argument_uses'].get('8') == 3)
     checks.append(report['concat_output_stores'] == 12)
     checks.append(set(report['post_load_bone_field_stores']) == {'byte+0x28'})
-    checks.append({k: v['count'] for k, v in report['direct_callers'].items()} == EXPECTED_CALLERS)
-    checks.append(report['pose_calls_with_buffer_0x6fce398'] == EXPECTED_BUFFER_CALLS)
+    checks.append({k: v['count'] for k, v in report['direct_call_candidates'].items()} == EXPECTED_CALL_CANDIDATES)
+    checks.append(report['pose_push_candidates_for_buffer_0x6fce398'] == EXPECTED_BUFFER_CANDIDATES)
     checks.append(report['heap_slot_runtime_value'] == EXPECTED_HEAP_SLOT)
     report['all_ok'] = all(checks)
     output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ('all_ok', 'pose_argument_uses', 'concat_output_stores',
-                                              'concat_argument_uses', 'pose_calls_with_buffer_0x6fce398',
+                                              'concat_argument_uses', 'pose_push_candidates_for_buffer_0x6fce398',
                                               'heap_slot_runtime_value')}, indent=1))
-    print({k: v['count'] for k, v in report['direct_callers'].items()})
+    print({k: v['count'] for k, v in report['direct_call_candidates'].items()})
     for group in ('bodies', 'instructions'):
         for name, result in report[group].items():
             if not result['ok']:
