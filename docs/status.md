@@ -23,13 +23,16 @@ not exist yet.
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected and 74 other/table envelopes unsupported. Rejections have precise
   field diagnostics; original handling remains unknown.
+- Selected bone/pose instructions show that dummy records leave output slots
+  unwritten, while children compose from prior caller-buffer contents. Those
+  contents are unknown. Raw call-search totals remain candidates.
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
 
 ## Verification
 
-The suite discovers 103 tests. Portable checks pass 95 and explicitly skip eight
-private-input checks. Opt-in local integration passes all 103. A fresh 101-file source-only checkout
-also passes 95 with eight explicit skips.
+The suite discovers 120 tests. Portable checks pass 111 and explicitly skip nine
+private-input checks. Opt-in local integration passes all 120. A fresh 108-file source-only checkout
+also passes 111 with nine explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -65,4 +68,5 @@ networking, renderer/input/audio equivalence and a complete client build remain
 unfinished. Read `handoff.md` for exact local artifact paths and entry addresses.
 
 The fixed v15 dispatch scope is merged through PR #26 after macOS/Linux CI.
-Claude hierarchy findings are available in draft PR #25 for integration review.
+Hierarchy findings are merged through PR #25. Post-merge review corrections
+continue under issue #27 without changing strict model acceptance.

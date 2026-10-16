@@ -126,3 +126,19 @@ REA dossier is in `evidence/client-lea-resolved/`. Next inspect key setup and
 its eight/four/single-block helpers, validate actual argument passing and
 compare authored behavior against original code before claiming a v15 decoder.
 Hierarchy issue #22 remains assigned to its separate Claude workspace.
+
+## Hierarchy review and shared baseline
+
+PR #25 landed while the dispatch work was integrating. Post-merge independent
+reviews verified the core selected-loop observations and found two evidence
+accuracy issues, addressed under #27 in `codex/review-model-hierarchy`.
+Raw E8/PUSH searches remain heuristic candidates; PUSH lookahead now stops at
+control transfers, including LOOP and traps. The v2 report keeps 314 raw call
+candidates and 300 buffer-push candidates, with explicit unverified provenance.
+Prior dummy-slot contents remain unknown, and child output is a composition
+with that prior input, not necessarily equal to it. Read
+`research/model-hierarchy.md` and `handoffs/claude-model-hierarchy.md`.
+Strict parser acceptance is unchanged. Raw verification and test logs are in
+`evidence/hierarchy-review/` and `evidence/hierarchy-review-*.txt` in the original
+lab. Next continue v15 key/decode source using the resolved dispatch targets;
+actual pose-buffer state during affected-model rendering remains unobserved.

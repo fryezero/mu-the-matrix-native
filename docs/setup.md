@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Eight
+use authored geometry/image/decoder fixtures and public LEA vectors. Nine
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -130,3 +130,12 @@ restored text at `evidence/x86-text-capture-09/client-text.bin`, or
 payloads against captured x86, authored C and the Python reader. A requested
 integration run errors if evidence is absent or any input hash differs.
 The module README documents synthetic-only comparison without installed assets.
+
+## Hierarchy instruction checks
+
+The ninth private check validates selected hierarchy instructions against pinned
+text and second-image-data captures. Set `MU_CLIENT_IMAGE_DATA` when the data
+file is outside `evidence/image-data-run10/data-capture-10/`; `MU_CLIENT_TEXT`
+also applies. The v2 report labels raw call/PUSH matches as heuristic candidates.
+A passing report does not establish all caller boundaries, argument provenance,
+prior output-buffer values or actual rendering. Strict model rejection remains.
