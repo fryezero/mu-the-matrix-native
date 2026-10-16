@@ -328,7 +328,8 @@ MuMatrix32. The workaround protects startup; recovery during an active game,
 Settings value persistence, Finder double-click behavior and actual gameplay in
 the new test bottle remain unverified. The native recovery roadmap is unchanged.
 
-Final local checks on 2026-10-16 passed `make test` with the configured lab Python:
+Before integrating the concurrent bone-track work, local checks on 2026-10-16
+passed `make test` with the configured lab Python:
 154 discovered, 141 passed, thirteen explicit private-input skips, plus four Bash
 syntax checks. Private integration was not rerun. Repeated setup skipped completed
 steps, including display-check-v1, and rewrote the start helper successfully.
@@ -339,3 +340,8 @@ No capture is tracked. Both MuSettings-test and MuSettings-compare64 were stoppe
 with their individual WINEPREFIX values, deleted through cxbottle, and confirmed
 absent along with the setup lock. The four pre-existing bottles remain present.
 The staged publication audit accepted all 141 source files with zero rejections.
+
+After integrating PR #43, the complete portable suite passes 148 of 162 tests
+with fourteen explicit private-input skips. The staged audit accepts all 146
+source files, with zero rejections. The monitor/setup code is unchanged by the
+integration; both contributions and their current test counts are preserved.

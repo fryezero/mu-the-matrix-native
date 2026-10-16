@@ -28,9 +28,11 @@ synthetic main.exe sentinel survived a refused start with the same Wine PID.
 Settings was clicked and captured after reset, with no new launcher log after
 archiving/decoding the injected failure. Settings value persistence and gameplay
 in the test bottle were not exercised. Logs/captures are local and ignored at
-`runtime/mac-settings/` in that worktree. Both test bottles and the setup lock are deleted. Portable checks pass
-141/154 with thirteen private-input skips, plus four Bash syntax checks. See
-the finding for the registry snapshots and capture details. Next, observe a natural post-sleep idle start using Play.command;
+`runtime/mac-settings/` in that worktree. Both test bottles and the setup lock
+are deleted. After integrating the bone-track changes, portable checks pass
+148/162 with fourteen private-input skips, plus four Bash syntax checks. See the
+finding for the registry snapshots and capture details. Next, observe a natural
+post-sleep idle start using Play.command;
 do not trigger a host display change while another bottle is in use.
 
 Keep builtin windowscodecs/gdiplus, .NET 4.8, software rendering and the built-in
@@ -319,3 +321,50 @@ Compare it against installed v12/v14 bone data before moving into pose-builder
 interpolation at `0x012b5064`. Alternatively, reconstruct client SSE2 sine/cosine
 `0x019a72f8`/`0x019acd58` exactly to remove the libm substitution. The
 public-constant relationship must first be established against the private tables.
+
+## Bone-track loop reconstructed
+
+Issue #40 / `claude/bone-track-loop` (worktree `~/Documents/mu-worktrees/bone-tracks`)
+adds `mu_bone_tracks_read` in `reconstructed/model-codec/bone_tracks.{c,h}`,
+built as `libbonetracks` with record-math. It also adds
+`scripts/validate_bone_tracks.py`. Read `research/client-bone-tracks.md`.
+The loop `0x012b4225..0x012b4441` writes these bone fields:
+
+* `+0x22`, the dummy flag, written first and tested from the record;
+* for non-dummy bones only, the name at `+0x00`, the raw parent at `+0x20` and
+  a track-array pointer at `+0x24`.
+
+The track array has 12 bytes per action. Its three pointers lead to positions
+(12 bytes/key), Euler rotations (12 bytes/key) and quaternions (16 bytes/key)
+from `0x00d00724`. Each non-dummy bone makes 1+3×actions operator-new calls,
+with saturating sizes. Zero counts still allocate 1-byte blocks. Nothing is
+bounds-checked.
+
+Unicorn runs the actual loop, memcpy `0x0194c200`, operator new/malloc and the
+rotation/trig helpers. Only the HeapAlloc import (stub `0x7bc275e0`), the
+uncaptured heap handle `0x0bdcfc10` and memcpy feature word `0x0bdcb284`
+(values 0/1/2) are modeled. Every other uncaptured or undefined read stops a
+case.
+
+Results: 342 synthetic comparisons match. Installed models matching through the
+existing readers: v12 180/180, v14 216/216 and v15 11,566/11,566 (17
+reader-rejected v15 not run), totalling 4,759,146 rotations. An
+eliding-zero-allocation control differs in 57 comparisons. Allocation failure
+stops at uncaptured CRT state (`0x0bdcf8f0` new mode, TLS errno), as does a
+beyond-SSE2 angle (`0x0bdcfbc8`).
+
+The full report `comparison-v12-v14-v15.json` (SHA-256 `323e7c3f…dbbf`), its log
+and the test logs are ignored under `evidence/client-bone-tracks/` in that
+worktree. `model-recovery/verified-v14` there is a read-only symlink to the
+main lab, made for the model-codec integration check. Portable: 155 discovered,
+141 pass, 14 explicit skips. Opt-in integration with `MU_GAME_ROOT` (read-only
+`runtime/client`) passes all 155. No guest, CrossOver or
+main-checkout change.
+
+Next: pose-builder interpolation at `0x012b5064`, which consumes these
+per-action arrays (rotation calls at `0x012b53c9` and `0x012b53d8`). Use the
+same harness boundaries, seeding the model from this loop's output. Alternatives:
+
+* run the 17 rejected v15 files through the loop with a non-validating locator;
+* compare the sibling plaintext reader's bone loop `0x012b35c7..0x012b37e3`
+  against all 701 v10 models.

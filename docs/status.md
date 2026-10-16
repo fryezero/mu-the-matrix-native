@@ -40,15 +40,21 @@ not exist yet.
   SSE2 sine/cosine run with captured flag 1 and no stubs. The C substitutes host
   libm trig; binary32 trig results agree in all 48,072 calls, including
   host-midpoint candidates. [Evidence](research/client-rotation.md).
+- The BMD bone-track loop `0x012b4225..0x012b4441` has authored C
+  (`mu_bone_tracks_read`). The actual loop, memcpy, operator new/malloc and
+  rotation/trig code run without client stubs; only the HeapAlloc import and
+  two uncaptured globals are modelled. 342 synthetic comparisons and all 11,962
+  installed v12/v14/v15 models accepted by the readers match, including
+  4,759,146 per-key rotations. Output layouts and allocation behavior are recorded.
+  [Evidence](research/client-bone-tracks.md).
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
 
 ## Verification
 
-The suite discovers 154 tests. Portable checks pass 141 and explicitly skip thirteen
-private-input checks. In the rotation worktree, opt-in integration passes 142;
-five installed-model checks need `MU_GAME_ROOT` model data and were not run there.
-The previous full local integration passed all 141 earlier tests. A fresh
-129-file source-only checkout passes 134 with thirteen explicit skips.
+The suite discovers 162 tests. Portable checks pass 148 and explicitly skip fourteen
+private-input checks. In the bone-tracks worktree, opt-in integration with
+`MU_GAME_ROOT` passes all 155 tests from before the seven launcher-guard tests.
+The rotation worktree's opt-in integration passed 142 of the earlier 147.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -117,3 +123,11 @@ Issue #37 adds rotation source and an actual-instruction comparison with
 order fails 7,547. [Finding](research/client-rotation.md). Client SSE2 trig
 algorithms are not reconstructed. Out-of-domain angles, non-finite values and live
 caller FP state remain open. No guest run was needed.
+
+Issue #40 adds the bone-track loop source and an actual-instruction comparison.
+All 342 synthetic comparisons and every installed v12/v14/v15 model the readers
+accept match, including dummy records, zero-count allocations and overlapping
+layouts. Skipping zero-size allocations fails 57 comparisons.
+[Finding](research/client-bone-tracks.md). Client allocation failure, the real
+heap/memcpy feature state, rejected v15 files and pose-builder interpolation
+remain open. No guest run was needed.

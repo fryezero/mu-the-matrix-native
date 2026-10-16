@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Thirteen
+use authored geometry/image/decoder fixtures and public LEA vectors. Fourteen
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -68,6 +68,9 @@ manifest and three files. Set `MU_MATH_DATA` to that directory if needed. See
 The rotation check also needs the second image section capture and the
 trig-state flag (`MU_IMAGE_DATA`, `MU_TRIG_FLAG`) plus `clang` for its
 midpoint scanner. See [the rotation finding](research/client-rotation.md).
+The bone-track check uses those captures, the math-data feature word
+(`MU_MATH_DATA`) and `MU_GAME_ROOT` for installed v12/v14 models. See
+[the bone-track finding](research/client-bone-tracks.md).
 
 For complete corpus scans, use the reader CLIs, supply the installation root,
 and write to a new directory outside the installation:
