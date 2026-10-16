@@ -54,7 +54,7 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18, #20 and #23 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23 and #26 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
 The client-linked v12 milestone is merged through PR #23. Two selected v15
@@ -63,3 +63,6 @@ dispatch slots now resolve into restored client code. See
 Original types, hierarchy semantics, initialization dependencies, simulation,
 networking, renderer/input/audio equivalence and a complete client build remain
 unfinished. Read `handoff.md` for exact local artifact paths and entry addresses.
+
+The fixed v15 dispatch scope is merged through PR #26 after macOS/Linux CI.
+Claude hierarchy findings are available in draft PR #25 for integration review.

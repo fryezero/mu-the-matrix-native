@@ -114,7 +114,7 @@ I/O/allocation dependencies.
 
 ## v15 jump slots resolved
 
-Issue #24 is implemented on `codex/model-dispatch-capture`. Read
+Issue #24 is merged into main through PR #26 after passing macOS/Linux CI. Read
 `research/model-dispatch.md`. Two fixed four-byte slots at `0x01d04e14` and
 `0x01d04df4` repeat targets `0x0092a430` and `0x0092be30`, both inside pinned
 text. Capture11, repeat, all three legacy scopes and transferred hashes pass;
