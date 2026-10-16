@@ -125,15 +125,16 @@
     "local_integration_passed": 62,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Merged model/runtime checks pass; client copy addition awaits CI",
-    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38831919151",
-    "remote_ci_commit": "42ae9032fcc43a83c4001572df70aca5e7b4d71f",
+    "remote_ci_status": "Model, runtime and client-copy PRs pass on macOS/Linux and are merged",
+    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38833042149",
+    "remote_ci_commit": "8cc121a5ff2b9d5d553ac2affdfcc1859ceab883",
     "github_source_files_verified": 58,
     "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte",
     "v14_oracle_vectors": 91,
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
-    "capture_tool_sha256": "f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e"
+    "capture_tool_sha256": "f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e",
+    "current_source_files": 74
   },
   "client_executable_section_restored": true
 }

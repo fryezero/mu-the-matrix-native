@@ -26,10 +26,10 @@ A fresh 74-file source-only checkout also passes 57 tests with five explicit ski
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
-export as JSON and OBJ. The earlier GitHub CI passed on macOS and Linux; the
-v14 PR now also passes on both platforms after correcting Linux include ordering.
-[Runtime PR #6](https://github.com/fryezero/mu-the-matrix-recovery/pull/6)
-passes macOS/Linux CI at the commit recorded in the evidence index.
+export as JSON and OBJ. The copy reconstruction matches captured x86 in all
+393 synthetic cases; the wrong memmove control fails 158 cases.
+[PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8) passed macOS/Linux
+CI before merging, at the commit recorded in the evidence index.
 
 The corpus totals above come from complete local scans, not from CI. Raw scan
 manifests and original inputs are intentionally ignored. `docs/evidence-index.json`
@@ -41,7 +41,14 @@ Protected gameplay functions and types, faithful initialization capture, network
 
 ## Repository publication
 
-The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery) initially published 58 reviewed source/documentation files. Its downloaded archive matched that local source snapshot exactly. Main contains 67 reviewed files after [model PR #4](https://github.com/fryezero/mu-the-matrix-recovery/pull/4) and [runtime PR #6](https://github.com/fryezero/mu-the-matrix-recovery/pull/6) merged. The current copy64 branch has 74 reviewed files and adds the first instruction-compared client routine. [CI passed on macOS and Linux](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964); the evidence index records the tested commit. No game executable, asset pack or memory capture was uploaded.
+The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery)
+contains 74 reviewed source/documentation files on main. Model PR #4, runtime
+PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8)
+are merged. No game executable, asset pack or memory capture was uploaded.
+The initial 58-file publication was independently downloaded and compared with
+the lab snapshot; later changes are tracked through Git and checked in CI.
+[Issue #9](https://github.com/fryezero/mu-the-matrix-recovery/issues/9) is the next
+bounded source-recovery task.
 
 ## Runtime route without a Windows PC
 
