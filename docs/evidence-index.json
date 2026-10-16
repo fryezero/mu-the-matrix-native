@@ -80,7 +80,25 @@
       "windows_pc_currently_available": false,
       "alternative": "QEMU full x86-64 TCG / Debian amd64 / Linux Wine",
       "alternative_guest_boot_verified": true,
-      "alternative_client_startup_verified": false
+      "alternative_client_startup_verified": true,
+      "alternative_gameplay_verified": false,
+      "guest_wine": "8.0~repack-4",
+      "qemu": "11.1.2",
+      "guest_opengl": "Mesa LLVMpipe 22.3.6 / OpenGL 4.5",
+      "guest_network": "QEMU restrict=on; outbound TCP probe failed",
+      "restored_text": {
+        "address": "0x00401000",
+        "bytes": 23572480,
+        "sha256": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724",
+        "local_evidence": "evidence/x86-capture-text-08/capture.json",
+        "limitation": "Successful scoped first-section capture; unsuspended reads are not atomic."
+      },
+      "bounded_rea": {
+        "bytes": 4096,
+        "address": "0x00401030",
+        "evidence_id": "ev_84d38c1948c96dc7db9894b05f5ef71ec9cfe82d91eda3193c70e390a6ff0f36",
+        "local_evidence": "evidence/rea-restored-client-prefix.json"
+      }
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -88,18 +106,21 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 47,
-    "portable_passed": 43,
+    "portable_tests_discovered": 55,
+    "portable_passed": 51,
     "private_checks_skipped": 4,
-    "local_integration_passed": 47,
+    "local_integration_passed": 55,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "passed on macOS and Linux",
-    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964",
-    "remote_ci_commit": "358354a009836105f2d9928397a4fe3f083326e7",
+    "remote_ci_status": "v14 PR passes on macOS and Linux; runtime additions await CI",
+    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38830179012",
+    "remote_ci_commit": "dcfcbf5a5e19964ad65947e36d5a591ddf806a51",
     "github_source_files_verified": 58,
     "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte",
     "v14_oracle_vectors": 91,
-    "v14_private_oracle_matches": 216
-  }
+    "v14_private_oracle_matches": 216,
+    "linux_text_capture_verified": true,
+    "capture_tool_sha256": "f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e"
+  },
+  "client_executable_section_restored": true
 }

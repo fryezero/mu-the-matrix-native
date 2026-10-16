@@ -15,7 +15,7 @@ This repository gives humans and agents a common starting point: original recove
 | Build and run checks | [Setup](docs/setup.md) |
 | Choose a contribution | [Roadmap](docs/roadmap.md) and [contributing](CONTRIBUTING.md) |
 | Understand the code boundaries | [Architecture](docs/architecture.md) |
-| Recover executable code | [Code recovery](docs/code-recovery.md) and [Windows capture](windows-capture/README.md) |
+| Recover executable code | [Code recovery](docs/code-recovery.md), [Mac-only runtime](runtime-linux/README.md), [Windows helper](windows-capture/README.md) |
 | Work on assets | [Images](docs/asset-recovery.md), [models](docs/model-recovery.md), [primary sources](model-recovery/SOURCES.md) |
 
 ## Verified progress
@@ -25,7 +25,8 @@ These are structural and component-level results for one pinned installation. Th
 | Component | Verified result | Remaining gap |
 |---|---|---|
 | Startup decompressor | Portable C builds; four original blocks match independent decoding byte for byte | Recovered 41,984,000-byte region is still protector material |
-| Native inspection | REA 6.5.0 + Ghidra 12.1.4 decompile startup/protector wrappers | Protected gameplay functions remain unrecovered |
+| Native inspection | REA/Ghidra decompile a restored client arithmetic routine from a verified prefix | Full function map, calling conventions and behavior still need recovery |
+| Mac-only runtime | QEMU x86 Linux/Wine restores a repeatable 23,572,480-byte client-code mapping | No demonstrated login/gameplay; compatibility-environment limits remain |
 | Images | 19,703 / 19,707 wrapper candidates decode; selected PNG exports match pixels | Three terrain images rejected; one candidate is actually mesh text |
 | BMD models | 12,663 / 12,754 files parse; versions 10, 12, 14 and 15 supported | 17 rejected; 74 other/table files unsupported |
 | Effect descriptions | 370 JSON files parse; all 92 distinct texture references resolve locally | Original engine interpretation of their fields remains open |
@@ -59,6 +60,7 @@ asset-recovery/        Image wrappers and editable text-mesh readers
 model-recovery/        BMD geometry, bones, animation and encrypted envelopes
 reconstructed/boot/   Tested C startup decompressor
 windows-capture/      Read-only Windows executable-region capture source
+runtime-linux/        Mac-only x86/Wine procedure and scoped text capture
 scripts/              PE inventory, REA collection, loader recovery and emulation
 model-recovery/fixtures/  Public cryptographic vectors, no game data
 docs/                 Findings, architecture, roadmap and agent handoff
@@ -78,7 +80,7 @@ flowchart LR
   E --> F[Native macOS client]
 ```
 
-The immediate dependency is faithful runtime evidence. No Windows PC is available, so a [full x86 Linux/Wine experiment on the Mac](docs/research/mac-runtime.md) is now in progress. The Mac startup attempts hit `rosetta error: invalid gdt selector index 6`; that is a recorded environment failure, not evidence of a completed port. Selecting a macOS graphics framework or redesigning gameplay comes after code and behavior are understood. An older MU client is not a substitute for this exact-version target.
+The immediate dependency is faithful runtime evidence. No Windows PC is available, so a [full x86 Linux/Wine experiment on the Mac](docs/research/mac-runtime.md) now restores readable client code. The Mac startup attempts hit `rosetta error: invalid gdt selector index 6`; that is a recorded environment failure, not evidence of a completed port. Selecting a macOS graphics framework or redesigning gameplay comes after code and behavior are understood. An older MU client is not a substitute for this exact-version target.
 
 ## Target identity
 
