@@ -21,7 +21,8 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | CLIENT-MAP-001 | Implemented: first 64 KiB candidate/reference map | 803 labeled candidates, 31-entry REA comparison, selected record-operation dossier | PR #13 merged after passing macOS/Linux CI |
 | CLIENT-MATH-001 | Implemented: capture selected image constants | Fixed 76-byte scope, pinned restored text before/after, early refusal and legacy regression | PR #14 merged after passing macOS/Linux CI |
 | CLIENT-MATH-002 | Implemented: controlled cofactor/reciprocal source | 1,680 helper + 1,050 wrapper comparisons, alias negative control and PC24 boundary | PR #16 merged after passing macOS/Linux CI |
-| CLIENT-DATA-001 | Implemented: fixed second image section | Repeated digest, early refusal, identity checks and legacy scope regression | Issue #19; next validate model-loader references |
+| CLIENT-DATA-001 | Implemented: fixed second image section | Repeated digest, early refusal, identity checks and legacy scope regression | PR #20 merged; next issue #21 validates model-loader references |
+| CLIENT-LOADER-001 | Validate BMD string callers and locate model loading | Bounded REA dossiers, confirmed control flow and one tested source behavior | Issue #21; pinned text/image-data available locally |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
 | MODEL-EDGE | Field diagnosis implemented; recover client handling of the 17 rejected v15 records | Exact field offsets, 17 native/Python matches; preserve unsupported semantics | Issue #17 diagnoses fields; original client model/transform code still needed |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |
