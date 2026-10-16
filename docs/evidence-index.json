@@ -298,7 +298,34 @@
       "context_bytes": 772,
       "key_context_overlap_verified": false,
       "payload_decoder_verified": false,
-      "local_report": "evidence/client-lea-key/comparison-01.json"
+      "local_report": "evidence/client-lea-key/comparison-01.json",
+      "merged_pr": 30
+    },
+    "client_lea_decode": {
+      "issue": 31,
+      "document": "docs/research/client-lea-decode.md",
+      "wrapper": "0x0092be30",
+      "helpers": [
+        "0x00927060",
+        "0x00929370",
+        "0x0093bb20"
+      ],
+      "guest_valid_cases": 12960,
+      "guest_noop_cases": 46,
+      "guest_output_mismatches": 0,
+      "guest_abi_failures": 0,
+      "wrong_scalar_batch_differences": 4094,
+      "guest_relocated_original_code": true,
+      "guest_inside_arena_read_trace": false,
+      "guest_runner_sha256": "02f7ede8cd18059b101f3b7fe91ececcc2d297fe25f230e3340d1a7b17bd866d",
+      "scalar_instruction_cases": 1152,
+      "installed_v15_reader_matches": 11583,
+      "installed_v15_payload_bytes": 655268704,
+      "original_instructions_on_entire_corpus": false,
+      "structural_rejections_unchanged": 17,
+      "local_guest_report": "evidence/client-lea-decode/guest-comparison-14.txt",
+      "local_corpus_report": "evidence/client-lea-decode/corpus-comparison-01.json",
+      "guest_shutdown": true
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -306,22 +333,22 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 126,
-    "portable_passed": 116,
-    "private_checks_skipped": 10,
-    "local_integration_passed": 126,
+    "portable_tests_discovered": 135,
+    "portable_passed": 124,
+    "private_checks_skipped": 11,
+    "local_integration_passed": 135,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Hierarchy review fixes passed macOS/Linux; LEA setup awaits CI",
-    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38892589220",
-    "remote_ci_commit": "6fd939d2c757b268f1c000f4efdd4d8439025936",
+    "remote_ci_status": "LEA key setup passed macOS/Linux; ECB source awaits CI",
+    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38893633476",
+    "remote_ci_commit": "434ee4fbf7b8432071ce995fd4c0addc5a787709",
     "github_source_files_verified": 58,
     "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte",
     "v14_oracle_vectors": 91,
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 113
+    "current_source_files": 121
   },
   "client_executable_section_restored": true
 }

@@ -19,7 +19,10 @@ not exist yet.
   signed-length behavior are preserved. [Evidence](research/client-model-loader.md).
 - The observed v15 key-setup target has authored C matching 1,320 synthetic
   instruction cases across 16/24/32-byte keys, alignments and no-op gates.
-  This initializes a context; payload decryption is next. [Evidence](research/client-lea-key.md).
+  [Key evidence](research/client-lea-key.md). The ECB decoder now matches 12,960
+  actual-code guest cases and 1,152 scalar instruction cases. All 11,583 installed
+  payloads match the independent reader, separately from original-code testing.
+  [Decoder evidence](research/client-lea-decode.md).
 - Images: 19,703 of 19,707 wrapper candidates decode. One remaining candidate is
   editable mesh text; three are inconsistent terrain images.
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
@@ -33,9 +36,9 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 126 tests. Portable checks pass 116 and explicitly skip ten
-private-input checks. Opt-in local integration passes all 126. A fresh 113-file source-only checkout
-also passes 116 with ten explicit skips.
+The suite discovers 135 tests. Portable checks pass 124 and explicitly skip eleven
+private-input checks. Opt-in local integration passes all 135. A fresh 121-file source-only checkout
+also passes 124 with eleven explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -60,12 +63,12 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26 and #28 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28 and #30 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
 The client-linked v12 milestone is merged through PR #23. Two selected v15
 dispatch slots now resolve into restored client code. See
-[the capture finding](research/model-dispatch.md). Next trace the original v14/v15 helpers or a bounded plaintext model-loading path.
+[the capture finding](research/model-dispatch.md). Next trace the original v14 helper or bounded model record-loading/matrix code.
 Original types, hierarchy semantics, initialization dependencies, simulation,
 networking, renderer/input/audio equivalence and a complete client build remain
 unfinished. Read `handoff.md` for exact local artifact paths and entry addresses.
@@ -73,3 +76,7 @@ unfinished. Read `handoff.md` for exact local artifact paths and entry addresses
 The fixed v15 dispatch scope is merged through PR #26 after macOS/Linux CI.
 Hierarchy findings are merged through PR #25. Post-merge review corrections
 are merged through PR #28 after both platform checks. Strict model acceptance is unchanged.
+
+The v15 key context is merged through PR #30. The ECB source and guest comparator
+continue under issue #31. The guest is shut down. Decoder equivalence does not
+resolve the model loader's allocation, hierarchy or actual rendering behavior.

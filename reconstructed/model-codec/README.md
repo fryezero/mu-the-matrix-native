@@ -68,5 +68,23 @@ A reversed-key-order negative control fails all 1,248 valid cases.
 Five portable tests cover public encryption vectors, no-op gates and context
 layout/guards. A sixth explicitly skips private comparison unless integration
 is requested. Read [the finding](../../docs/research/client-lea-key.md) for exact
-identities, span requirements and the reproduction command. The ECB payload
-decoder and key/context alias behavior remain outside this component's claim.
+identities, span requirements and the reproduction command. Key/context alias behavior remains outside the
+setup contract.
+
+## v15 ECB decoder
+
+`mu_client_lea_decode` consumes a valid recovered setup context and complete
+16-byte blocks. It snapshots groups of eight, four and one block, preserving
+the observed data-overlap effects between groups. Context must be disjoint from
+data. Null/zero/unaligned-length gates are no-ops. No envelope checks or arbitrary
+context/round-count contract are implied.
+
+[The decoder finding](../../docs/research/client-lea-decode.md) records 12,960
+valid original-code guest comparisons, 46 no-op checks, 1,152 scalar instruction
+comparisons and 4,094 wrong-batch differences. Authored C also matches the
+independent reader on all 11,583 installed v15 payloads; that corpus result does
+not execute original instructions. Five portable decoder tests plus three
+relocation fixtures run by default. The private scalar/corpus test requires the
+pinned text, installation, manifest and rejected-model diagnostics. Original
+AVX execution uses the separate opt-in x86 guest tool; normal CI only cross-builds
+that tool on Linux. Full-loader, rendering and native Windows claims remain open.

@@ -19,4 +19,17 @@
  */
 void mu_client_lea_setup(void *context, const void *key, int32_t key_bytes);
 
+/* ECB decoder for a context produced by setup with a supported key size.
+ * NULL context, zero length, a nonmultiple of 16, or NULL input/output is a
+ * no-op. Otherwise context must cover its 772 readable bytes, disjoint from
+ * both caller spans. Input/output must cover length accessible bytes with no
+ * wrapping or code/stack aliasing. Unaligned and overlapping data is allowed.
+ * Reads a complete group of eight blocks, then four, then individual blocks
+ * before writing each group. Later groups can read earlier output on overlap.
+ * Contexts modified externally, flags/exceptions and arbitrary round counts
+ * are outside this logical API. No capacity/envelope validation is performed.
+ */
+void mu_client_lea_decode(void *destination, const void *source, uint32_t length,
+                          const void *context);
+
 #endif
