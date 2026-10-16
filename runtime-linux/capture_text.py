@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture pinned client text or fixed math-data ranges under Linux Wine."""
+"""Capture pinned client text or fixed image-data ranges under Linux Wine."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -21,11 +21,15 @@ RESTORED_TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f50
 def scope_regions(scope):
     if scope == 'text':
         return [('client-text.bin', TEXT_START, TEXT_BYTES)]
-    if scope != 'math-data':
-        raise ValueError('Select the fixed text or math-data scope')
-    regions = [('record-bias.bin', 0x1a7dd40, 8),
-               ('record-template.bin', 0x1cf3b00, 64),
-               ('cpu-features.bin', 0x1cf6618, 4)]
+    if scope == 'math-data':
+        regions = [('record-bias.bin', 0x1a7dd40, 8),
+                   ('record-template.bin', 0x1cf3b00, 64),
+                   ('cpu-features.bin', 0x1cf6618, 4)]
+    elif scope == 'image-data':
+        # Exact second-section virtual span from the pinned PE, no page padding.
+        regions = [('client-image-data.bin', 0x1a7c000, 2557764)]
+    else:
+        raise ValueError('Select a fixed text, math-data or image-data scope')
     if any(not IMAGE_BASE <= address < address + size <= IMAGE_BASE + IMAGE_BYTES
            for _, address, size in regions):
         raise ValueError('Selected range is outside the pinned image')
@@ -163,7 +167,10 @@ def capture(pid, target, output, scope='text'):
              for name, address, size in regions}
     text_plan = image_ranges(maps, TEXT_START, TEXT_BYTES)
     output.mkdir(parents=True, exist_ok=False)
-    manifest = {'format': 'mu-linux-wine-text-capture-v1' if scope == 'text' else 'mu-linux-wine-math-capture-v1',
+    formats = {'text': 'mu-linux-wine-text-capture-v1',
+               'math-data': 'mu-linux-wine-math-capture-v1',
+               'image-data': 'mu-linux-wine-image-data-capture-v1'}
+    manifest = {'format': formats[scope],
                 'scope': scope, 'pid': pid,
                 'process_start_ticks': before[1], 'target_sha256': source_hash,
                 'mapped_image_device_inode': list(image_identity),
@@ -174,7 +181,9 @@ def capture(pid, target, output, scope='text'):
                 'limitations': ['Wine compatibility environment, not native Windows.',
                                 'Unsuspended reads are not an atomic snapshot.',
                                 'Only pinned text is saved.' if scope == 'text' else
-                                'Only three fixed image-data ranges are saved; text is hashed to confirm restored state.',
+                                ('Only three fixed image-data ranges are saved; text is hashed to confirm restored state.'
+                                 if scope == 'math-data' else
+                                 'Only the fixed second image section is saved; text is hashed to confirm restored state.'),
                                 'No other modules, stacks or private allocations are selected.',
                                 'Captured bytes do not establish gameplay or behavior equivalence.']}
     if scope == 'text':
@@ -184,7 +193,7 @@ def capture(pid, target, output, scope='text'):
     try:
         with (proc / 'mem').open('rb', buffering=0) as memory:
             check_image_header(os.pread(memory.fileno(), 4096, IMAGE_BASE))
-            if scope == 'math-data':
+            if scope != 'text':
                 manifest['restored_text_sha256_before'] = require_restored_text(memory.fileno(), text_plan)
             written = 0
             for name, address, expected_size in regions:
@@ -197,7 +206,7 @@ def capture(pid, target, output, scope='text'):
                     manifest.update(record)
                 else:
                     manifest['regions'].append(record)
-            if scope == 'math-data':
+            if scope != 'text':
                 manifest['restored_text_sha256_after'] = require_restored_text(memory.fileno(), text_plan)
         after = process_identity((proc / 'stat').read_text())
         after_maps = (proc / 'maps').read_text()
@@ -234,7 +243,7 @@ def main():
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--target', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--scope', choices=('text', 'math-data'), default='text')
+    parser.add_argument('--scope', choices=('text', 'math-data', 'image-data'), default='text')
     args = parser.parse_args()
     if not sys.platform.startswith('linux'):
         parser.error('Run this inside the isolated Linux guest')

@@ -20,9 +20,9 @@ CrossOver remains unable to start the original. No Windows PC is currently avail
 
 ## Checks
 
-The repository discovers 93 tests. The portable run passes 86 and explicitly
-skips seven private-input checks. The opt-in local integration run passes all 93.
-A fresh 92-file source-only checkout also passes 86 tests with seven explicit skips.
+The repository discovers 94 tests. The portable run passes 87 and explicitly
+skips seven private-input checks. The opt-in local integration run passes all 94.
+A fresh 93-file source-only checkout also passes 87 tests with seven explicit skips.
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
@@ -66,3 +66,5 @@ Record arithmetic is merged through PR #16 after passing macOS/Linux CI. Issue #
 Model issue #17 locates each rejected v15 field, including 13 dummy-parent cases. Native and Python decoding agree for all 17. Acceptance remains strict; see [the case report](research/model-edge.md).
 
 Model diagnostics are merged through PR #18 after passing macOS/Linux CI. Issue #19 next acquires a fixed second image section to locate meaningful loader references.
+
+The second image section is captured twice with a matching digest, strict identity checks and preserved legacy capture modes. Read [the finding](research/client-image-data.md) for loader search seeds and limits.
