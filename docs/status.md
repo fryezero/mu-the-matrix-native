@@ -1,72 +1,64 @@
 # Current status
 
-Updated 2026-10-15. Target: the exact installed Mu The Matrix version, not an older MU substitute. Later goal: native macOS gameplay after source reconstruction and behavior validation.
+Updated 2026-10-16. The target is the exact installed Mu The Matrix client.
+The later destination is native macOS gameplay. A playable source build does
+not exist yet.
 
 ## Working components
 
-- Startup decompressor reconstructed in C and independently compared against all four original compressed blocks. The 41,984,000-byte result still contains protector code.
-- REA/Ghidra native inspection configured; startup and immediate protector wrappers decompile with explicit control-flow limitations.
-- Images: 19,703 decoded from 19,707 wrapper candidates. One remaining candidate is editable mesh text, three are inconsistent terrain images.
-- Models: 12,663 parsed from 12,754 unique BMD-extension files. V10: 701/701; v12: 180/180; v14: 216/216; v15: 11,566/11,583. Seventeen v15 inputs are rejected and 74 other/table envelopes remain unsupported.
-- 370 JSON effect descriptions parse; all 92 distinct texture references exist in the inspected installation.
-- Windows capture helper cross-compiles. SHA-256 known-vector and own-process read smoke tests pass under Wine. Native Windows capture is unverified. A Mac-only QEMU/Linux Wine experiment now yields a repeatable restored client-text region.
-- First authored behavior from restored client code: 64-byte copy and clear operations, matching captured instructions in 393 and 768 synthetic cases. [Finding and limits](research/client-copy64.md).
+- The startup decompressor is reconstructed in C. Four original compressed
+  blocks match independent decoding, but the result is still protector code.
+- The isolated QEMU x86 Linux/Wine guest restores a repeatable 23,572,480-byte
+  code section. The selected second image section is also captured twice with
+  matching digests. No Windows PC is required for this analysis route.
+- Authored 64-byte copy/clear source matches captured instructions in 393/768
+  synthetic cases. Controlled cofactor/inverse source matches 1,680/1,050 cases.
+- The BMD filename call path reaches a version-dispatching model-read routine.
+  Its v12 decoder now has authored C matching 4,048 synthetic cases and all 180
+  installed v12 payloads, covering 3,176,971 encrypted bytes. Exact overlap and
+  signed-length behavior are preserved. [Evidence](research/client-model-loader.md).
+- Images: 19,703 of 19,707 wrapper candidates decode. One remaining candidate is
+  editable mesh text; three are inconsistent terrain images.
+- Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
+  all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
+  rejected and 74 other/table envelopes unsupported. Rejections have precise
+  field diagnostics; original handling remains unknown.
+- All 370 effect JSON files parse and their 92 distinct texture references exist.
 
-## Executable recovery boundary
+## Verification
 
-Earlier bounded Unicorn emulation stopped at `GetModuleHandleA("kernel32.dll")` without restoring the first client section. Full x86 QEMU/Linux Wine now restores that section at `0x00401000`, with matching late-capture hashes across runs. REA/Ghidra successfully decompiled one routine from a verified 4 KiB prefix. [The report](research/restored-client-text.md) distinguishes readable code, inferred arithmetic and unverified behavior.
+The suite discovers 102 tests. Portable checks pass 94 and explicitly skip eight
+private-input checks. Opt-in local integration passes all 102. A fresh 100-file source-only
+checkout also passes 94 with eight explicit skips.
 
-CrossOver remains unable to start the original. No Windows PC is currently available. The active runtime is an isolated Linux compatibility environment with outbound networking blocked. No login/gameplay has been demonstrated; initialization logs contain an unresolved localhost connection. Native Windows equivalence is unverified.
+The v14 reader matches its pinned independent oracle on 216 installed files and
+91 synthetic vectors. A complete model rescan preserves every one of 12,754
+statuses and all 12,663 previously pinned parsed-input hashes. The exact-client
+v12 comparison runs actual captured leaf instructions without helper stubs.
+Its deliberately wrong feedback order fails 312 overlap cases.
 
-## Checks
+Detailed identities, counts and CI references are in `evidence-index.json`.
+Original-file scan manifests and binary evidence remain ignored local inputs;
+CI runs authored fixtures and reports the private skips explicitly.
 
-The repository discovers 94 tests. The portable run passes 87 and explicitly
-skips seven private-input checks. The opt-in local integration run passes all 94.
-A fresh 93-file source-only checkout also passes 87 tests with seven explicit skips.
-The v14 reader matches an independent upstream oracle on all 216 installed
-files and 91 authored synthetic vectors. The complete corpus scan reports
-12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
-export as JSON and OBJ. The copy reconstruction matches captured x86 in all
-393 synthetic cases; the wrong memmove control fails 158 cases.
-[PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8) passed macOS/Linux
-CI before merging, at the commit recorded in the evidence index.
+## Runtime boundary
 
-The corpus totals above come from complete local scans, not from CI. Raw scan
-manifests and original inputs are intentionally ignored. `docs/evidence-index.json`
-is the shared summary and identity index.
+The original client works on Windows and does not start in the owner's
+CrossOver setup. No Windows PC is currently available. The Mac-only guest has
+outbound networking blocked and reaches an unresolved localhost connection.
+No login or gameplay has been demonstrated. Native Windows capture/equivalence
+remains unverified, although the optional Windows helper builds and its own
+memory/hash smoke checks pass under Wine.
 
-## Still unfinished
+## Repository and next work
 
-Protected gameplay functions and types, faithful initialization capture, networking semantics, rendering equivalence, a client build from recovered source, and the eventual macOS port. A Windows memory capture does not by itself solve these tasks.
+The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
+contains reviewed authored source, synthetic fixtures and evidence summaries.
+PRs #4, #6, #8, #10, #13, #14, #16, #18 and #20 are merged after macOS/Linux checks.
+No game executable, asset pack or memory capture was uploaded.
 
-## Repository publication
-
-The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery)
-contains 93 reviewed source/documentation files on main. Model PR #4, runtime
-PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery/pull/8)
-are merged. No game executable, asset pack or memory capture was uploaded.
-The initial 58-file publication was independently downloaded and compared with
-the lab snapshot; later changes are tracked through Git and checked in CI.
-[Clear PR #10](https://github.com/fryezero/mu-the-matrix-recovery/pull/10) is merged after passing macOS/Linux CI. The [bounded 64 KiB map](research/client-window-map.md) now distinguishes 803 candidates and unresolved references, with a separate REA comparison. Original types and complete boundaries remain open.
-
-## Runtime route without a Windows PC
-
-The owner has no Windows PC available for the foreseeable future. The active experiment uses QEMU full x86-64 TCG, Debian amd64 and Linux Wine to avoid Rosetta. The guest boots, software OpenGL and both Windows bitness probes work, and the exact copied client restores readable code. The scoped Linux capture tool and boundary tests are implemented. [The research note](research/mac-runtime.md) records the approach and limitations. Compatibility-environment evidence must remain distinct from native Windows behavior.
-
-The bounded map is merged through PR #13 after passing macOS/Linux CI. Selected image-data acquisition continues under issue #12.
-
-Selected math data is now captured with exact identity and restored-text checks before/after reading. The scalar is positive zero, the template equals a standard identity matrix, and the observed feature bit selects SSE. [Evidence and limits](research/client-math-data.md).
-
-The fixed math-data scope is merged through PR #14 after passing macOS/Linux CI. Selected arithmetic reconstruction continues under issue #15.
-
-Authored cofactor/record-operation source matches 1,680 helper and 1,050 wrapper comparisons under explicit PC53/RNE state, including aliasing. [Arithmetic evidence and limits](research/record-math.md).
-
-Record arithmetic is merged through PR #16 after passing macOS/Linux CI. Issue #17 begins case-specific diagnosis of the 17 rejected v15 models without changing acceptance.
-
-Model issue #17 locates each rejected v15 field, including 13 dummy-parent cases. Native and Python decoding agree for all 17. Acceptance remains strict; see [the case report](research/model-edge.md).
-
-Model diagnostics are merged through PR #18 after passing macOS/Linux CI. Issue #19 next acquires a fixed second image section to locate meaningful loader references.
-
-The second image section is captured twice with a matching digest, strict identity checks and preserved legacy capture modes. Read [the finding](research/client-image-data.md) for loader search seeds and limits.
-
-Fixed image-data capture is merged through PR #20 after passing macOS/Linux CI. All 94 local integration tests pass; source-only and CI checks pass with seven explicit private skips. Issue #21 is the next bounded loader-recovery task. No playable source build exists yet.
+Issue #21 continues under `codex/client-model-codec`. After the v12 milestone,
+trace the original v14/v15 helpers or a bounded plaintext model-loading path.
+Original types, hierarchy semantics, initialization dependencies, simulation,
+networking, renderer/input/audio equivalence and a complete client build remain
+unfinished. Read `handoff.md` for exact local artifact paths and entry addresses.
