@@ -15,7 +15,7 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
-use authored geometry/image/decoder fixtures and public LEA vectors. Eleven
+use authored geometry/image/decoder fixtures and public LEA vectors. Twelve
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
 
@@ -162,3 +162,11 @@ Original AVX helper execution is a separate opt-in x86 guest run. The authored
 `i686-w64-mingw32-gcc`; Linux CI builds it but never claims to run the client.
 Unicorn does not execute those AVX paths. The full guest run remains explicit
 local evidence, not a silently skipped successful integration check.
+
+## Hierarchy pose arithmetic
+
+Four portable analytic tests and a twelfth private check cover 3x4 pose
+composition. The private check requires the pinned restored text and Unicorn,
+uses explicit MXCSR RNE state, and records out-of-domain attempts separately.
+See [the finding](research/pose-concat.md). The standalone command needs no
+installed assets or image-data capture and preserves unknown live pose state.
