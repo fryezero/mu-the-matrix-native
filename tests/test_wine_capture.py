@@ -43,6 +43,10 @@ class WineCaptureBoundaries(unittest.TestCase):
                                    ('model-decode-target.bin', 0x01d04df4, 4)])
         self.assertEqual(sum(size for _, _, size in regions), 8)
 
+    def test_trig_state_scope_reads_only_the_selected_dispatch_flag(self):
+        self.assertEqual(capture.scope_regions('trig-state'),
+                         [('math-dispatch-flag.bin', 0x0bdd1cc8, 4)])
+
     def test_hash_reads_selected_ranges_without_gaps_and_rejects_short_reads(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'synthetic-memory'

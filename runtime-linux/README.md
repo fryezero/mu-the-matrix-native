@@ -148,3 +148,14 @@ evidence, not proof that the game invoked the selected routine.
 
 [The dispatch finding](../docs/research/model-dispatch.md) records the observed
 targets, repeated acquisition, startup refusal and unresolved behavior.
+
+## Rotation dispatch flag
+
+The fixed `--scope trig-state` reads only four bytes at `0x0bdd1cc8`, with
+format `mu-linux-wine-trig-state-capture-v1`. It uses the same restored-text,
+process/file identity and durability guards as other data scopes. The observed
+repeat value is 1. This flag alone does not identify the live trigonometric
+path because the dispatcher also tests floating-point control state.
+See [the finding](../docs/research/client-trig-state.md) for source addresses,
+complete capture/early-refusal checks and continuation steps. Original captures
+and detailed logs remain ignored local evidence.

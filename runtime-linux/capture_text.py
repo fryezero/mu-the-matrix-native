@@ -31,8 +31,10 @@ def scope_regions(scope):
     elif scope == 'model-dispatch':
         regions = [('model-key-target.bin', 0x1d04e14, 4),
                    ('model-decode-target.bin', 0x1d04df4, 4)]
+    elif scope == 'trig-state':
+        regions = [('math-dispatch-flag.bin', 0x0bdd1cc8, 4)]
     else:
-        raise ValueError('Select a fixed text, math-data, image-data or model-dispatch scope')
+        raise ValueError('Select a fixed text, math-data, image-data, model-dispatch or trig-state scope')
     if any(not IMAGE_BASE <= address < address + size <= IMAGE_BASE + IMAGE_BYTES
            for _, address, size in regions):
         raise ValueError('Selected range is outside the pinned image')
@@ -178,6 +180,8 @@ def capture(pid, target, output, scope='text'):
                        'Only the fixed second image section is saved; text is hashed to confirm restored state.'),
         'model-dispatch': ('mu-linux-wine-model-dispatch-capture-v1',
                            'Only two fixed model-dispatch slots are saved; text is hashed to confirm restored state.'),
+        'trig-state': ('mu-linux-wine-trig-state-capture-v1',
+                       'Only the fixed trigonometric dispatch flag is saved; text is hashed to confirm restored state.'),
     }
     format_name, scope_limitation = metadata[scope]
     manifest = {'format': format_name,
@@ -250,7 +254,7 @@ def main():
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--target', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--scope', choices=('text', 'math-data', 'image-data', 'model-dispatch'), default='text')
+    parser.add_argument('--scope', choices=('text', 'math-data', 'image-data', 'model-dispatch', 'trig-state'), default='text')
     args = parser.parse_args()
     if not sys.platform.startswith('linux'):
         parser.error('Run this inside the isolated Linux guest')
