@@ -404,3 +404,46 @@ same harness boundaries, seeding the model from this loop's output. Alternatives
 * run the 17 rejected v15 files through the loop with a non-validating locator;
 * compare the sibling plaintext reader's bone loop `0x012b35c7..0x012b37e3`
   against all 701 v10 models.
+
+## Pose builder reconstructed
+
+Issue #46 / `claude/pose-builder` (worktree `~/Documents/mu-worktrees/pose-builder`)
+adds `mu_pose_build` in `reconstructed/model-codec/pose_builder.{c,h}`, built as
+`libposebuilder` with the bone-track loop and record-math. Record-math gains
+`mu_quaternion_compare`, `mu_quaternion_slerp[_using]`, `mu_quaternion_matrix`
+and `mu_angle_matrix[_using]`. The validator is `scripts/validate_pose_builder.py`.
+Read `research/client-pose-builder.md`.
+
+The builder is thiscall on the model (eight stack arguments, `ret 0x20`). Per
+non-dummy bone it takes q1/p1 from (prior action, prior frame) and q2/p2 from
+(current action `+0xa8`, integer frame). It slerps by the frame fraction unless
+all components agree within 0.001 (then it copies q1), and lerps positions.
+Out-of-range frames reset to key 0 but keep the fraction. Bone 0 can lock x/y
+to the current action's key 0, and special bone `+0x60` rebuilds its quaternions
+from head-adjusted Euler angles. The quaternion goes to global `0x075a90d8+16*i`.
+The matrix composes with the root global `0x078965ac` (rebuilt from model
+angles unless keep-root) or with `output+parent*0x30`.
+
+Every case first runs the actual bone-track loop; the builder then runs with all
+client callees (compare/fabs, slerp/acos/sin, matrix helpers, rotation,
+composition) and no stubs. Only the two uncaptured globals and caller memory
+are modeled. Results: 483 synthetic calls, 1,822 direct helper calls and 47,833
+installed calls on 180 v12, 216 v14 and 11,566 v15 models all match. Lerp differs
+in 364 and modulo frame wrap in 60. Host-libm trig agrees after binary32
+rounding in every observed call (binary64 differs by at most one ULP).
+Zero-key actions read uninitialized 1-byte heap blocks; t beyond the SSE2
+domain and far parents stop as characterization.
+
+The report `comparison-v12-v14-v15.json` (SHA-256 `d93ceb8e…0615`), its log,
+synthetic reports, disassembly listings and test logs are ignored under
+`evidence/client-pose-builder/` in that worktree. `model-recovery/verified-v14`
+there is a read-only symlink to the main lab. After rebasing onto the fast-x87
+changes: portable 190 discovered, 175 pass, 15 explicit skips. Opt-in
+integration with `MU_GAME_ROOT` (read-only `runtime/client`) passes all 190.
+No guest, CrossOver or main-checkout change.
+
+Next: trace the builder's callers (314 raw candidates) to recover how the
+prior frame/action and keep-root flag are chosen per animation tick. Then
+follow the output matrices and quaternion table into the skinning/renderer
+consumer. Alternatives: the second builder `0x012bcffb` (action-0 only), the
+17 rejected v15 files with a non-validating locator, or the v10 sibling loop.

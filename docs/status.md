@@ -47,13 +47,23 @@ not exist yet.
   installed v12/v14/v15 models accepted by the readers match, including
   4,759,146 per-key rotations. Output layouts and allocation behavior are recorded.
   [Evidence](research/client-bone-tracks.md).
+- The pose builder `0x012b5064` has authored C (`mu_pose_build`) plus its
+  quaternion compare, slerp, quaternion-to-matrix and angle-to-matrix helpers.
+  It slerps q(prior action, prior frame) toward q(current action, integer frame)
+  by the frame fraction, lerps positions, resets out-of-range frames to key 0
+  and composes each bone with the root global or its parent's output slot.
+  Seeded by the actual bone-track loop and run with no client stubs, it matches
+  483 synthetic calls, 1,822 direct helper calls and 47,833 calls on all 11,962
+  installed models the readers accept. Lerp and modulo-wrap controls fail.
+  [Evidence](research/client-pose-builder.md).
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
 
 ## Verification
 
-The suite discovers 169 tests. Portable checks pass 155 and explicitly skip fourteen
-private-input checks. In the bone-tracks worktree, opt-in integration with
-`MU_GAME_ROOT` passes all 155 tests from before the seven launcher-guard tests.
+The suite discovers 190 tests. Portable checks pass 175 and explicitly skip fifteen
+private-input checks. In the pose-builder worktree, opt-in integration with
+`MU_GAME_ROOT` passes all 190.
+In the bone-tracks worktree it passed all 155 tests from before the seven launcher-guard tests.
 The rotation worktree's opt-in integration passed 142 of the earlier 147.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
@@ -152,3 +162,10 @@ layouts. Skipping zero-size allocations fails 57 comparisons.
 [Finding](research/client-bone-tracks.md). Client allocation failure, the real
 heap/memcpy feature state, rejected v15 files and pose-builder interpolation
 remain open. No guest run was needed.
+
+Issue #46 adds the pose-builder source and an actual-instruction comparison
+seeded by the actual bone-track loop. All 483 synthetic, 1,822 helper and 47,833
+installed calls match; lerp differs in 364 and a modulo frame wrap in 60.
+[Finding](research/client-pose-builder.md). The caller's frame/action choice,
+prior output and root contents, live FP state and renderer use remain open.
+No guest or CrossOver run was needed.

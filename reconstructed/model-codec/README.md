@@ -111,3 +111,28 @@ captured instructions. A zero-size-allocation-eliding control differs in 57
 cases. `libbonetracks` links `../record-math/record_math.c` with contraction
 disabled. Seven portable tests run by default; the private instruction check
 needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.
+
+## Pose builder
+
+`pose_builder.h` exposes `mu_pose_build`, authored C for the pose builder
+`0x012b5064..0x012b58cb` (thiscall on the model object, eight stack arguments).
+Per non-dummy bone it takes the quaternion and position keys from the
+bone-track arrays for (prior action, prior frame) and (current action, integer
+current frame). It interpolates with the current frame's fraction: slerp for
+quaternions unless they compare equal within 0.001, linear for positions. It
+writes the quaternion to a per-bone global table and composes the resulting
+3x4 matrix with the root-matrix global or the parent's output slot. Frames
+outside the key range reset to key 0 while keeping the fraction. Bone 0 can lock
+its x/y position to the current action's first key. A special bone rebuilds
+its quaternions from Euler angles adjusted by head angles. The API takes a set of
+client address regions so the two globals stay at their client addresses
+(`MU_POSE_BONE_QUATERNIONS`, `MU_POSE_ROOT_MATRIX`). An out-of-range access
+returns a status; that is an authored convention.
+
+The [finding](../../docs/research/client-pose-builder.md) records the inputs,
+layouts and instruction comparison. The actual builder and all its client callees
+run, seeded by the actual bone-track loop. Synthetic, direct-helper and installed
+v12/v14/v15 cases match. Lerp and modulo-wrap controls fail. `libposebuilder`
+links the builder, the bone-track loop and record-math with contraction
+disabled. Eight portable tests run by default; the private instruction check
+needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.
