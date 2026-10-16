@@ -35,13 +35,20 @@ not exist yet.
 - The hierarchy pose-composition source matches 5,176 controlled binary32
   instruction cases; 24 out-of-domain attempts are recorded separately.
   [Evidence](research/pose-concat.md). Actual prior pose state remains unknown.
+- The rotation helper `0x00d00724` (ZYX Euler angles to x,y,z,w quaternion)
+  has authored C matching 8,012 controlled cases bitwise. Its actual body and client
+  SSE2 sine/cosine run with captured flag 1 and no stubs. The C substitutes host
+  libm trig; binary32 trig results agree in all 48,072 calls, including
+  host-midpoint candidates. [Evidence](research/client-rotation.md).
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
 
 ## Verification
 
-The suite discovers 141 tests. Portable checks pass 129 and explicitly skip twelve
-private-input checks. Opt-in local integration passes all 141. A fresh 125-file source-only checkout
-also passes 129 with twelve explicit skips.
+The suite discovers 147 tests. Portable checks pass 134 and explicitly skip thirteen
+private-input checks. In the rotation worktree, opt-in integration passes 142;
+five installed-model checks need `MU_GAME_ROOT` model data and were not run there.
+The previous full local integration passed all 141 earlier tests. A fresh
+129-file source-only checkout passes 134 with thirteen explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -66,7 +73,7 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28, #30, #32 and #34 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20, #23, #25, #26, #28, #30, #32, #34 and #36 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
 The client-linked v12 milestone is merged through PR #23. Two selected v15
@@ -91,3 +98,9 @@ Issue #35 adds a fixed four-byte rotation dispatch capture. Two reads match
 value 1; early packed code is refused without a payload and every prior scope
 repeats. [Finding](research/client-trig-state.md). Actual FP state and full
 rotation/trigonometric equivalence remain open. Guest is shut down.
+
+Issue #37 adds rotation source and an actual-instruction comparison with
+8,012 matches, 2,816 alias/alignment and 256 FP-state variants. A wrong axis
+order fails 7,547. [Finding](research/client-rotation.md). Client SSE2 trig
+algorithms are not reconstructed. Out-of-domain angles, non-finite values and live
+caller FP state remain open. No guest run was needed.

@@ -28,4 +28,21 @@ void mu_record_inverse(void *destination, const void *source);
  */
 void mu_pose_concat(const void *parent, const void *local, void *destination);
 
+/* Rotation conversion observed at 0x00d00724. Angles cover 12 readable bytes
+ * (three little-endian binary32 values a0,a1,a2); quaternion covers 16 writable
+ * bytes receiving x,y,z,w. Each angle is halved in binary64 and rounded to
+ * binary32, then sine/cosine results are rounded to binary32 before RNE binary32
+ * products in the original left-to-right order. Angles are read a2,a1,a0 and all
+ * reads precede the four ordered stores, so in-place spans are permitted.
+ * The trig callbacks receive the binary64 widening of each halved angle in
+ * original call order sin(h2),cos(h2),sin(h1),cos(h1),sin(h0),cos(h0).
+ * mu_rotation_quaternion uses the host libm sin/cos; that is a substitute for
+ * the original client trig helpers and is equal only where their binary32-rounded
+ * results agree (see docs/research/client-rotation.md). No null gate.
+ */
+typedef double (*mu_rotation_trig)(double);
+void mu_rotation_quaternion_using(const void *angles, void *quaternion,
+                                  mu_rotation_trig sine, mu_rotation_trig cosine);
+void mu_rotation_quaternion(const void *angles, void *quaternion);
+
 #endif

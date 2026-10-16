@@ -236,3 +236,45 @@ lead. It is not an authored-source equivalence or complete ABI/access check.
 The next concrete task is now C reconstruction plus a bounded comparison suite
 using those actual helpers, without stubs. Do not count three smoke cases as a
 validated quaternion implementation.
+
+## Rotation conversion reconstructed
+
+Issue #37 / `claude/rotation-reconstruct` (worktree
+`~/Documents/mu-worktrees/rotation`) adds `mu_rotation_quaternion` and
+`mu_rotation_quaternion_using` to record-math. It also adds
+`scripts/validate_rotation.py` and `scripts/scan_trig_midpoints.c`. Read
+`research/client-rotation.md`. The helper converts three binary32 angles to
+the x,y,z,w quaternion of Rz(a2)·Ry(a1)·Rx(a0). Each half angle is rounded to
+binary32, and products are rounded separately in the original order.
+
+Unicorn runs the actual 411-byte body, both float wrappers and the actual
+client trig entries without stubs. It uses captured flag 1, x87 `0x027f`,
+MXCSR `0x1f80`, the full pinned text and the verified second section. Any other
+read stops a case. All 8,012 SSE2-domain cases match bitwise, including arena,
+ABI, ordered stores and bounded access checks. Another 2,816 alias/alignment
+and 256 PC64/PC24/register/status variants also match. Wrong axis order fails
+7,547, and binary64 products with one final rounding fail 3,460. Five
+caller CALLs are verified statically.
+
+The C uses host libm sine/cosine. The client SSE2 results differ from macOS
+libm by one binary64 ULP in 718 of 48,072 calls. All agree after binary32
+rounding, including 112 scanned host-midpoint candidates run with both signs in
+every axis. Angles with |a| >= 180,224 and ±inf enter the x87 fallback, which
+stops at uncaptured `0x0bdcfbc8`. NaN returns through it, but that path is not claimed.
+Unicorn reports no MXCSR status bits. The first harness run aborted on that
+NaN path; the cause is recorded in the finding.
+
+Raw reports (`comparison-01-no-midpoints.json`, `comparison-02.json`), scanner
+output, notes and test logs are ignored under `evidence/client-rotation/` in that
+worktree. Its `evidence/` and `input/` entries otherwise symlink to the main
+lab for read-only use. Portable: 147 discovered, 134 pass, 13 explicit skips.
+Opt-in integration passes 142. Five installed-model checks need `MU_GAME_ROOT`
+data, which was not available outside the CrossOver bottle and was not used.
+No guest or CrossOver run.
+
+Next: recover the BMD bone-track loop `0x012b42ae..0x012b4441`. Per action it fills
+position (12×keys), rotation (12×keys) and 16×keys entries via `0x00d00724`.
+Compare it against installed v12/v14 bone data before moving into pose-builder
+interpolation at `0x012b5064`. Alternatively, reconstruct client SSE2 sine/cosine
+`0x019a72f8`/`0x019acd58` exactly to remove the libm substitution. The
+public-constant relationship must first be established against the private tables.

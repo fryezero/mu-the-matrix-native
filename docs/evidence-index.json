@@ -360,6 +360,40 @@
       "live_trig_path_proven": false,
       "local_evidence": "evidence/trig-state-15/captures/",
       "guest_shutdown": true
+    },
+    "client_rotation": {
+      "issue": 37,
+      "document": "docs/research/client-rotation.md",
+      "entry": "0x00d00724",
+      "body_bytes": 411,
+      "body_sha256": "1d585a53f706aed8dd37de105b739b739905065deb41350a02fe83d9153e53a2",
+      "rea_evidence_id": "ev_ab1d111d96e988e1db29bd7973e3c4018cb25b075d45fea18250bb52da7eb593",
+      "second_section_sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f",
+      "dispatch_flag_sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+      "selected_call_instructions": [
+        "0x012b442e",
+        "0x012b37d0",
+        "0x012b53c9",
+        "0x012b53d8",
+        "0x012bd130"
+      ],
+      "fpcw_initial": "0x027f",
+      "mxcsr_initial": "0x1f80",
+      "attempted_cases": 8036,
+      "instruction_cases": 8012,
+      "mismatches": 0,
+      "outside_sse2_domain_attempts": 24,
+      "alias_alignment_cases": 2816,
+      "state_variant_cases": 256,
+      "client_trig_calls": 48072,
+      "client_trig_host_libm_binary64_one_ulp_differences": 718,
+      "client_trig_host_libm_binary32_equal": 48072,
+      "midpoint_scan_sha256": "726aff70ca69f6730e0a01097dd36e7addc9e60b330141bec2ddfe82f42fc9fa",
+      "axis_order_negative_control_failures": 7547,
+      "double_intermediate_negative_control_failures": 3460,
+      "client_trig_algorithm_reconstructed": false,
+      "live_caller_fp_state_known": false,
+      "local_report": "evidence/client-rotation/comparison-02.json (rotation worktree)"
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -367,13 +401,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 141,
-    "portable_passed": 129,
-    "private_checks_skipped": 12,
-    "local_integration_passed": 141,
+    "portable_tests_discovered": 147,
+    "portable_passed": 134,
+    "private_checks_skipped": 13,
+    "local_integration_passed": 142,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Pose arithmetic passed macOS/Linux; trig-state capture awaits CI",
+    "remote_ci_status": "Trig-state capture merged through PR #36; rotation reconstruction awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38898823896",
     "remote_ci_commit": "55d652a18242d8dd8296a981b038375489016c33",
     "github_source_files_verified": 58,
@@ -382,7 +416,8 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 125
+    "current_source_files": 129,
+    "local_integration_note": "Rotation worktree: 142 of 147 pass; five installed-model checks need MU_GAME_ROOT model data and were not run there."
   },
   "client_executable_section_restored": true
 }

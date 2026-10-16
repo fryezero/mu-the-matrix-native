@@ -2,6 +2,7 @@
 
 #include <fenv.h>
 #include <float.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -97,4 +98,55 @@ void mu_pose_concat(const void *parent, const void *local, void *destination)
             write_value(output, row*4+column, value);
         }
     }
+}
+
+/* Rotation conversion at 0x00d00724. The original reads angle 2, then 1, then
+ * 0; each is widened, multiplied by binary64 0.5 and narrowed to binary32. Each
+ * float wrapper widens again, calls the client trig helper and stores its x87
+ * result as binary32. All products are scalar binary32 (MULSS), left to right.
+ */
+static float rotation_half(const uint8_t *angles, size_t index)
+{
+    volatile double scaled = (double)read_value(angles, index) * 0.5;
+    return (float)scaled;
+}
+
+void mu_rotation_quaternion_using(const void *angles, void *quaternion,
+                                  mu_rotation_trig sine, mu_rotation_trig cosine)
+{
+    const uint8_t *in = angles;
+    uint8_t *out = quaternion;
+    volatile float s[3], c[3];
+    for (size_t step = 0; step < 3; ++step) {
+        size_t index = 2 - step;
+        float half = rotation_half(in, index);
+        s[index] = (float)sine((double)half);
+        c[index] = (float)cosine((double)half);
+    }
+    volatile float left, right;
+    left = s[0] * c[1];
+    left = left * c[2];
+    right = c[0] * s[1];
+    right = right * s[2];
+    write_value(out, 0, left - right);
+    left = c[0] * s[1];
+    left = left * c[2];
+    right = s[0] * c[1];
+    right = right * s[2];
+    write_value(out, 1, left + right);
+    left = c[0] * c[1];
+    left = left * s[2];
+    right = s[0] * s[1];
+    right = right * c[2];
+    write_value(out, 2, left - right);
+    left = c[0] * c[1];
+    left = left * c[2];
+    right = s[0] * s[1];
+    right = right * s[2];
+    write_value(out, 3, left + right);
+}
+
+void mu_rotation_quaternion(const void *angles, void *quaternion)
+{
+    mu_rotation_quaternion_using(angles, quaternion, sin, cos);
 }
