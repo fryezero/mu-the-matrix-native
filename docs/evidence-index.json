@@ -111,7 +111,22 @@
       "synthetic_instruction_comparisons": 393,
       "mismatches": 0,
       "wrong_memmove_negative_control_mismatches": 158,
-      "scope": "Valid accessible flat spans, DF clear; original type/callers and real-game execution unverified."
+      "scope": "Valid accessible flat spans, DF clear; original type/callers and real-game execution unverified.",
+      "clear": {
+        "address": "0x00401020",
+        "function_sha256": "a258ffbdd85880bc768fc3d2af6309c2743c6447f2bc19fc6115434595917d79",
+        "synthetic_instruction_comparisons": 768,
+        "mismatches": 0,
+        "feature_states": [
+          0,
+          2
+        ],
+        "actual_feature_word_known": false,
+        "rea_evidence_id": "ev_945e936d6437010deb8e9d6ea07fd85097c00cd48388b188e703481966180709",
+        "local_comparison": "evidence/clear64-equivalence.json",
+        "local_reference_search": "evidence/clear64-reference-scan.json",
+        "wrong_65_byte_negative_control_mismatches": 768
+      }
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -119,13 +134,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 62,
-    "portable_passed": 57,
-    "private_checks_skipped": 5,
-    "local_integration_passed": 62,
+    "portable_tests_discovered": 65,
+    "portable_passed": 59,
+    "private_checks_skipped": 6,
+    "local_integration_passed": 65,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Model, runtime and client-copy PRs pass on macOS/Linux and are merged",
+    "remote_ci_status": "Merged earlier recovery passes; clear64 additions await CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38833042149",
     "remote_ci_commit": "8cc121a5ff2b9d5d553ac2affdfcc1859ceab883",
     "github_source_files_verified": 58,
@@ -134,7 +149,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e",
-    "current_source_files": 74
+    "current_source_files": 79
   },
   "client_executable_section_restored": true
 }

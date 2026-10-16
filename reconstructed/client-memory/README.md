@@ -14,7 +14,7 @@ Small local `memcpy` operations preserve each four-byte transfer without C
 alignment or aliasing assumptions.
 
 Build with `make -C reconstructed/client-memory` or the top-level `make test`.
-The portable tests use synthetic buffers. One private comparison is opt-in:
+The portable tests use synthetic buffers. Two private comparisons are opt-in:
 
 ```sh
 MU_RECOVERY_INTEGRATION=1 make test PYTHON=./tools/python/bin/python
@@ -41,3 +41,13 @@ cleanup and preserved registers across 393 synthetic cases. These are bounded
 instruction-equivalence checks, not execution in the original game or proof of
 a known class layout. [The finding](../../docs/research/client-copy64.md) records
 provenance, REA limitations and the nearby function map.
+
+## Clear operation
+
+`mu_clear64(destination)` clears exactly 64 writable bytes and returns the
+destination. The captured wrapper and both scalar/SSE helper paths match across
+768 synthetic cases. The original feature flag value is unknown; both possible
+bit states were supplied explicitly. The helper was executed from captured bytes
+without a stub. Use `scripts/validate_client_clear.py` with the same `--capture`
+and `--library` arguments to reproduce it. [The clear finding](../../docs/research/client-clear64.md)
+records branch coverage, reference searches and remaining limits.
