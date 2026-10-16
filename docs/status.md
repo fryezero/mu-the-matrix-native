@@ -20,9 +20,9 @@ CrossOver remains unable to start the original. No Windows PC is currently avail
 
 ## Checks
 
-The repository discovers 65 tests. The portable run passes 59 and explicitly
-skips six private-input checks. The opt-in local integration run passes all 65.
-A fresh 79-file source-only checkout passes 59 tests with six explicit skips.
+The repository discovers 77 tests. The portable run passes 71 and explicitly
+skips six private-input checks. The opt-in local integration run passes all 77.
+A fresh 83-file source-only checkout passes 71 tests with six explicit skips.
 The v14 reader matches an independent upstream oracle on all 216 installed
 files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
@@ -47,7 +47,7 @@ PR #6 and [client-copy PR #8](https://github.com/fryezero/mu-the-matrix-recovery
 are merged. No game executable, asset pack or memory capture was uploaded.
 The initial 58-file publication was independently downloaded and compared with
 the lab snapshot; later changes are tracked through Git and checked in CI.
-[Clear PR #10](https://github.com/fryezero/mu-the-matrix-recovery/pull/10) is merged after passing macOS/Linux CI. A broader bounded function map is next.
+[Clear PR #10](https://github.com/fryezero/mu-the-matrix-recovery/pull/10) is merged after passing macOS/Linux CI. The [bounded 64 KiB map](research/client-window-map.md) now distinguishes 803 candidates and unresolved references, with a separate REA comparison. Original types and complete boundaries remain open.
 
 ## Runtime route without a Windows PC
 

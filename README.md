@@ -27,6 +27,7 @@ These are structural and component-level results for one pinned installation. Th
 | Startup decompressor | Portable C builds; four original blocks match independent decoding byte for byte | Recovered 41,984,000-byte region is still protector material |
 | Native inspection | REA/Ghidra decompile a restored client arithmetic routine from a verified prefix | Full function map, calling conventions and behavior still need recovery |
 | Client memory operation | Authored 64-byte copy/clear match captured x86 in 393 / 768 cases | Original type/callers unknown; clear feature state supplied explicitly |
+| Code navigation | First 64 KiB mapped with explicit candidate origins and REA comparison | Heuristics are incomplete; symbols/types and outside references unresolved |
 | Mac-only runtime | QEMU x86 Linux/Wine restores a repeatable 23,572,480-byte client-code mapping | No demonstrated login/gameplay; compatibility-environment limits remain |
 | Images | 19,703 / 19,707 wrapper candidates decode; selected PNG exports match pixels | Three terrain images rejected; one candidate is actually mesh text |
 | BMD models | 12,663 / 12,754 files parse; versions 10, 12, 14 and 15 supported | 17 rejected; 74 other/table files unsupported |
@@ -37,13 +38,13 @@ The latest original-file scan and all binary evidence stay local. [The evidence 
 
 ## Build the recovery modules
 
-Python 3.9+, Clang/Clang++ and Crypto++ are required. The portable build targets macOS and Linux. Pillow supports image-reader tests; Crypto++ supplies the eight v14 block ciphers.
+Python 3.9+, Clang/Clang++ and Crypto++ are required. The portable build targets macOS and Linux. Pillow supports image-reader tests; Capstone checks bounded control-flow maps; Crypto++ supplies the eight v14 block ciphers.
 
 ```sh
 # macOS; on Debian/Ubuntu install libcrypto++-dev instead
 brew install cryptopp
 python3 -m venv tools/python
-./tools/python/bin/python -m pip install -r asset-recovery/requirements.txt
+./tools/python/bin/python -m pip install -r tools/requirements-portable.txt
 make test PYTHON=./tools/python/bin/python
 ```
 

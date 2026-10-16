@@ -127,6 +127,22 @@
         "local_reference_search": "evidence/clear64-reference-scan.json",
         "wrong_65_byte_negative_control_mismatches": 768
       }
+    },
+    "client_window_map": {
+      "base": "0x00401000",
+      "bytes": 65536,
+      "sha256": "a6522c311c2dab67135f05210f195859ae5e0a15a0b890401f3889fc54d9fc7f",
+      "candidate_entries": 803,
+      "candidate_limits": "Explicit seeds, aligned padding and decoded call targets remain heuristic; no complete symbols/boundaries claim.",
+      "rea_entries": 31,
+      "rea_overlap": 29,
+      "rea_only": [
+        "0x00403920",
+        "0x0040cb00"
+      ],
+      "inventory_evidence_id": "ev_3a3b7f26c4be6c7c51c56ede1d53b5acbc121ffe3b7b5a181e43950601600a7d",
+      "selected_function_evidence_id": "ev_486f89fae4379bc3801cf0754db5c1d7861fda2329ec676b92c9afe1fb6bd31b",
+      "local_map": "evidence/client-map-64k/candidate-map-v5.json"
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -134,13 +150,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 65,
-    "portable_passed": 59,
+    "portable_tests_discovered": 77,
+    "portable_passed": 71,
     "private_checks_skipped": 6,
-    "local_integration_passed": 65,
+    "local_integration_passed": 77,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Copy and clear recovery merged after passing macOS/Linux CI",
+    "remote_ci_status": "Clear and earlier recovery merged; bounded map additions await CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38834375840",
     "remote_ci_commit": "27400a2baa5d702239bc6df3986c2a2f43aaf1cc",
     "github_source_files_verified": 58,
@@ -149,7 +165,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e",
-    "current_source_files": 79
+    "current_source_files": 83
   },
   "client_executable_section_restored": true
 }

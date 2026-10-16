@@ -18,7 +18,8 @@ The later macOS goal does not replace exact-version source recovery. No completi
 | CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine, unavailable; preserved as an optional validation path |
 | CAP-002 | Implemented: bounded map and first reconstructed copy behavior | REA record, eleven nearby routines mapped, 393 instruction comparisons, negative control | PR #8 merged after passing macOS/Linux CI |
 | CLIENT-MEMORY-002 | Implemented: clear64 and bounded reference search | 768 scalar/SSE/DF comparisons; no direct/absolute references found in selected inputs | PR #10 merged after passing macOS/Linux CI |
-| CLIENT-MAP-001 | Broaden restored function/data-reference map | Pinned raw window, REA seeds/settings, reviewed candidate call graph and next validated behavior | Client-memory findings; preserve unresolved original symbols |
+| CLIENT-MAP-001 | Implemented: first 64 KiB candidate/reference map | 803 labeled candidates, 31-entry REA comparison, selected record-operation dossier | Issue #11, branch `codex/client-window-map` |
+| CLIENT-MATH-001 | Capture selected image constants and validate record arithmetic | Source/process-bound data ranges, x87/aliasing tests, observed versus inferred types | Window-map finding and preserved isolated guest |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 merged after passing macOS/Linux CI |
 | MODEL-EDGE | Explain the 17 rejected v15 records | Case-specific evidence and tests; preserve unresolved semantics rather than broad acceptance | Matching local files |
 | TERRAIN-001 | Explain three rejected terrain images and terrain formats | Exact layouts and bounded parsers checked against original files | Matching local files |
