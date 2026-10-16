@@ -51,9 +51,9 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 155 tests. Portable checks pass 141 and explicitly skip fourteen
+The suite discovers 162 tests. Portable checks pass 148 and explicitly skip fourteen
 private-input checks. In the bone-tracks worktree, opt-in integration with
-`MU_GAME_ROOT` passes all 155, including the five installed-model checks.
+`MU_GAME_ROOT` passes all 155 tests from before the seven launcher-guard tests.
 The rotation worktree's opt-in integration passed 142 of the earlier 147.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
@@ -75,8 +75,14 @@ in a cloned installation. The authored setup and local validation are recorded
 in [the CrossOver finding](research/mac-crossover-32bit.md), issue #39.
 The fresh test bottle passed all eight synthetic image-pipeline steps, kept
 the launcher alive for 65.8 seconds, and was deleted after validation.
-GAME START awaits the owner's interactive test; no login or gameplay has been
-demonstrated. No Windows PC is currently available. The separate Mac-only Linux
+The owner now reports GAME START, login and gameplay in MuMatrix32. This is
+original-client compatibility gameplay, not a recovered native build. Issue #42
+adds an idle-bottle startup reset and monitor validation. An injected stale
+source-to-monitor link reproduces the exact Settings exception; the guarded
+reset rebuilds the link and Settings opens again in MuSettings-test. Both fresh
+win32 and win10_64 bottles have valid monitor registrations. Natural sleep/display
+change recovery during an active game remains unverified. MuMatrix32 is reserved
+for Claude's frame-rate work and was not modified by this task. No Windows PC is currently available. The separate Mac-only Linux
 guest still has outbound networking blocked and reaches an unresolved localhost
 connection. Native Windows capture/equivalence
 remains unverified, although the optional Windows helper builds and its own

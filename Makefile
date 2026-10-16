@@ -11,6 +11,7 @@ test: all
 	bash -n mac-play/setup-crossover-32bit.sh
 	bash -n mac-play/cxwine
 	bash -n mac-play/cxwineserver
+	bash -n mac-play/start-launcher.sh
 	$(PYTHON) -m unittest discover -s reconstructed/boot -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s asset-recovery -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s model-recovery -p 'test_*.py' -v

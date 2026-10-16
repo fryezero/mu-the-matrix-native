@@ -199,3 +199,149 @@ network/service compatibility, actual client rendering, or gameplay. The earlier
 32-bit main.exe log shows startup beyond the observed Rosetta stop, not a playable
 client. Full x86 guest captures remain compatibility-environment evidence;
 native Windows equivalence and native macOS gameplay are still unverified.
+
+## Settings and display-state recovery, MAC-CROSSOVER-002
+
+Issue [#42](https://github.com/fryezero/mu-the-matrix-recovery/issues/42)
+adds a guarded startup reset and a synthetic monitor check. The owner reports
+pressing GAME START, logging in and playing in `MuMatrix32`. That is supplied
+compatibility-gameplay evidence, not a native macOS build or an independent
+login test by this task. Claude owns frame-rate work in that bottle. This task
+issued no Wine commands, writes or shutdowns against `MuMatrix32`; it only read
+its saved monitor-registry entry. All diagnostic mutations and shutdowns used
+`MuSettings-test`, with a fresh `MuSettings-compare64` for comparison.
+
+### Observed mechanism
+
+The fresh win10/win32 bottle and fresh win10_64 bottle both report the Apple M5
+adapter through `winemac.drv`. Both enumerate
+`DISPLAY\APPA061\0000&0000`, with monitor class GUID
+`{4D36E96E-E325-11CE-BFC1-08002BE10318}` and the corresponding Control\Class
+monitor driver. `MonitorFromWindow` returns handle `0x1`, with a primary mode of
+1800x1169 in the win32 check. The fresh win32 launcher opens Settings using
+`clickstart.exe 30 0.713 0.946 12`; a single-window capture confirms it. A synthetic
+WPF owner/CenterOwner child with a ComboBox also succeeds. The saved MuMatrix32
+registry currently contains the same valid `APPA061` Enum entry. Architecture
+alone does not reproduce the reported failure.
+
+The display graph has several distinct registry views:
+
+- `HKLM\System\CurrentControlSet\Enum\DISPLAY` contains monitor instances,
+  class GUIDs, EDID and monitor properties.
+- `HKLM\System\CurrentControlSet\Control\Video` identifies adapter/driver
+  configuration; its sibling driver entry names `winemac.drv`.
+- `HKLM\HARDWARE\DEVICEMAP\VIDEO`, value `\Device\Video0`, selects the
+  current adapter source. The `HKCC\System\CurrentControlSet\Control\Video`
+  view contains runtime source data including `GPUID`, `StateFlags`, modes and
+  `MonitorID0`. This runtime linkage is essential; inspecting only the saved
+  Enum entries misses the stale state.
+
+A controlled fault in the isolated test bottle changed the active source's
+`MonitorID0` from `DISPLAY\APPA061\0000&0000` to the reported
+`DISPLAY\Default_Monitor\0000&0000`, which had no matching Enum instance.
+Touching a diagnostic value under DEVICEMAP\VIDEO invalidated the display cache.
+No host display mode, sleep setting or other bottle changed.
+
+The native probe then returned a null `MonitorFromWindow` handle with last error
+zero. Wine emitted the exact `find_monitor_from_path` error. Clicking Settings
+in the already running launcher produced the exact decoded error:
+
+```text
+DispatcherUnhandledException
+System.ComponentModel.Win32Exception (0x80004005): Success
+at System.Windows.Window.MonitorFromWindow(IntPtr hwnd)
+at System.Windows.Window.CalculateWindowLocation(...)
+```
+
+The launcher source was read locally at `di.cs`, method `ai`, which constructs
+its Settings window, sets the launcher as Owner and calls Show. No launcher bytes
+were patched or distributed. The pinned launcher digest remains
+`c32e99ee98fc0773f850f9e76b160a9a00c867f4d745bf9e66c4b15d7f74bc3e`.
+The synthetic WPF probe also fails in the corrupted state with an invalid-window
+handle in `HwndDpiInfo.NearestMonitorInfoFromWindow` during window creation.
+This establishes the monitor-link failure mechanism for both placement and WPF
+resource initialization, without reproducing every frame of the supplied
+ComboBox initialization stack.
+
+Restoring the valid source link and invalidating the cache makes the authored
+monitor check pass again without restarting the server. A prefix-scoped server
+restart independently repairs the injected state by rebuilding the link from
+the Mac driver. After stopping only the test launcher, the broken monitor state
+persisted until reset. The final generated Play.command recovered from another
+injection, passed its monitor check and opened Settings again. The captured
+Settings window is visible, and no new launcher error log was created after the
+previous failure log was archived. The earlier failure was decoded with the
+shipped exact decoder and key `2937ecc93b`.
+
+For source context, Wine 11.0's
+[win32u display code](https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/win32u/sysparams.c)
+resolves source monitor paths against enumerated monitors in
+`update_display_cache_from_registry` and `find_monitor_from_path`; `add_monitor`
+uses `Default_Monitor` when EDID does not supply an ID. Its
+[Mac display driver](https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/winemac.drv/display.c)
+feeds monitor geometry and EDID through `macdrv_UpdateDisplayDevices`. These are
+upstream explanatory references, not a claim that the installed CrossOver binary
+is byte-identical to that source. The live isolated registry/API/launcher results
+above establish the behavior in CrossOver 26.3.
+
+### Shipped workaround and checks
+
+Setup compiles authored `diagnostics/MonitorCheck.cs` with the bottle's .NET 4.8
+compiler in the versioned `display-check-v1` step. It needs no host SDK or MinGW.
+The check creates a hidden synthetic window and validates MonitorFromWindow,
+GetMonitorInfo and the primary EnumDisplaySettings mode. It returns nonzero for
+the injected missing-monitor state and zero after repair. It contains no game
+bytes and does not alter display configuration.
+
+Setup also copies `start-launcher.sh` into its owned state directory and rewrites
+Play.command on every rerun. The launcher serializes starts with `play.lock`,
+queries that bottle's tasklist as CSV, and refuses to continue if `main.exe` or
+`MuTheMatrix.exe` is present. Query failures or unrecognized output also refuse
+the reset. It then runs wineserver `-k` and `-w` with the exported explicit
+WINEPREFIX, checks the rebuilt display state and starts the cloned launcher.
+A failed reset or monitor check prevents launch. Closing the launcher releases
+the lock. A stale lock after a forced host interruption requires inspection.
+
+There is no permanent guessed Enum/Control\Video patch. Display IDs and source
+links belong to Wine's current topology and can change with connected displays.
+The safe setup workaround rebuilds those runtime keys before each idle start and
+checks the result. A running launcher is refused too, since it could start the
+game between a process query and a shutdown. Keep this bottle dedicated to the
+game; the reset terminates other programs in that same bottle.
+
+Seven portable guard tests cover reset order/prefix, a running game, a running
+launcher, failed/invalid process queries, reset failure and display-check failure.
+A real synthetic `main.exe` sentinel in the test bottle retained its exact Wine
+PID across a refused Play.command invocation, establishing that the running-game
+guard did not kill it. This task did not start the actual game.
+
+Validation artifacts are ignored under `runtime/mac-settings/` in the
+`mac-settings` worktree, including registry snapshots, native and WPF probe
+sources/results, injected and decoded launcher logs, click results, captures,
+setup reruns, guard results and final checks. No original installation file was
+modified. The final main.exe identity matches the pinned digest above.
+
+The exact natural trigger after Mac sleep/display changes remains inferred from
+the owner's error reports and the matching injected failure. Physical sleep or
+host display changes were not induced while Claude was playing/testing in
+MuMatrix32. The workaround protects startup; recovery during an active game,
+Settings value persistence, Finder double-click behavior and actual gameplay in
+the new test bottle remain unverified. The native recovery roadmap is unchanged.
+
+Before integrating the concurrent bone-track work, local checks on 2026-10-16
+passed `make test` with the configured lab Python:
+154 discovered, 141 passed, thirteen explicit private-input skips, plus four Bash
+syntax checks. Private integration was not rerun. Repeated setup skipped completed
+steps, including display-check-v1, and rewrote the start helper successfully.
+The final Settings capture used a PID-filtered ScreenCaptureKit window capture;
+legacy screencapture returned an inconsistent parent surface for the same window
+ID. The ScreenCaptureKit image shows the Settings controls and no error dialog.
+No capture is tracked. Both MuSettings-test and MuSettings-compare64 were stopped
+with their individual WINEPREFIX values, deleted through cxbottle, and confirmed
+absent along with the setup lock. The four pre-existing bottles remain present.
+The staged publication audit accepted all 141 source files with zero rejections.
+
+After integrating PR #43, the complete portable suite passes 148 of 162 tests
+with fourteen explicit private-input skips. The staged audit accepts all 146
+source files, with zero rejections. The monitor/setup code is unchanged by the
+integration; both contributions and their current test counts are preserved.

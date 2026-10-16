@@ -4,29 +4,46 @@ Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs 
 
 ## Original launcher in CrossOver
 
-For the new original-launcher compatibility route, read
-[`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and
-[`../mac-play/README.md`](../mac-play/README.md). MAC-CROSSOVER-001 is issue #39,
-branch `codex/mac-crossover-32bit`, separate worktree `~/Documents/mu-worktrees/mac-crossover`.
-The setup creates only a new owned win10/win32 bottle and clones the user's
-installation. Use builtin windowscodecs/gdiplus, .NET 4.8, software rendering and
-the built-in IGCN skin. Native WIC was a failed earlier hypothesis; recreate any
-experimental bottle that installed it. The cloned `Template.design` is disabled
-on every rerun, including after updates. The original install remains unchanged.
-The entry point is the launcher, not main.exe. GAME START awaits owner testing.
-Claude continues that investigation in `MuMatrix32`; do not modify that bottle.
-Local validation logs are ignored under `runtime/mac-crossover-32bit/` in this
-worktree. The authored image probe and exact log decoder are included in `mac-play/`.
-The corrected fresh `MuMatrix32-ci-test` bottle passed all eight synthetic image
-steps, builtin-DLL tracing and 65.8-second launcher survival with prefix-scoped
-task identity. Rerun, restored-skin and ownership/protected-name refusal checks
-passed. The test bottle and lock are deleted. Portable checks pass 134/147 with
-thirteen explicit private skips; the shell syntax checks pass. Next have the
-owner test GAME START and Settings through the launcher, then add only supported
-fixes as separate steps. This task did not exercise either button.
-Two selector-0x33 far-return sequences at decoded-protector VAs `0x0df0aaae`
-and `0x0df55d13` support the Heaven's Gate hypothesis, without proving the fault
-path. Native gameplay acceptance gates and source-recovery work remain unchanged.
+Read [`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and
+[`../mac-play/README.md`](../mac-play/README.md). The owner now reports GAME START,
+login and gameplay in MuMatrix32. Claude owns frame-rate work there; do not edit
+that bottle or stop its processes. This is compatibility gameplay, not a native
+source build.
+
+MAC-CROSSOVER-002 is issue #42, branch `codex/mac-launcher-settings`, isolated
+worktree `~/Documents/mu-worktrees/mac-settings`. A fresh win32 and fresh win10_64
+bottle both use winemac.drv and a valid APPA061 monitor. Injecting a stale runtime
+MonitorID0 link to missing Default_Monitor reproduces the exact launcher Settings
+MonitorFromWindow/Win32Exception Success stack and Wine find_monitor_from_path
+error. A direct link repair works; a prefix-scoped server restart independently
+rebuilds the source link. The exact natural sleep/display-change trigger remains
+unverified because this task did not change the host display or sleep state.
+
+Setup now installs a synthetic MonitorCheck.exe using the bottle's .NET compiler
+and rewrites Play.command to use the shipped start helper. On an idle start it
+runs a prefix-scoped wineserver -k/-w, verifies a hidden window's monitor and the
+primary mode, then starts the launcher. A tasklist guard refuses a running game
+or launcher, failed/invalid queries, and failed reset/display checks. A live
+synthetic main.exe sentinel survived a refused start with the same Wine PID.
+Settings was clicked and captured after reset, with no new launcher log after
+archiving/decoding the injected failure. Settings value persistence and gameplay
+in the test bottle were not exercised. Logs/captures are local and ignored at
+`runtime/mac-settings/` in that worktree. Both test bottles and the setup lock
+are deleted. After integrating the bone-track changes, portable checks pass
+148/162 with fourteen private-input skips, plus four Bash syntax checks. See the
+finding for the registry snapshots and capture details. Next, observe a natural
+post-sleep idle start using Play.command;
+do not trigger a host display change while another bottle is in use.
+
+Keep builtin windowscodecs/gdiplus, .NET 4.8, software rendering and the built-in
+IGCN skin from MAC-CROSSOVER-001, issue #39 / PR #41. Native WIC was a failed
+hypothesis; recreate experimental bottles that installed it. Setup refuses
+protected/unowned bottles, clones to a bottle-specific path and disables only
+the cloned Template.design on every rerun. Original installations stay intact.
+The previous MuMatrix32-ci-test validation passed all eight image steps and
+65.8-second launcher survival before deletion. Source-recovery and native game
+acceptance gates remain open. Two static selector-0x33 far-return sequences
+support the Heaven's Gate hypothesis without proving the original Rosetta fault.
 
 ## Prepared Windows capture path
 

@@ -40,7 +40,9 @@ preflight() {
     [ -x "$CX_ROOT/bin/cxbottle" ] && [ -x "$CX_ROOT/bin/wine" ] &&
         [ -x "$CX_ROOT/bin/wineserver" ] || die "CrossOver tools missing at $CX_ROOT"
     WINETRICKS=$(command -v "${WINETRICKS:-winetricks}") || die 'Install winetricks first, for example with Homebrew.'
-    [ -x "$SCRIPT_DIR/cxwine" ] && [ -x "$SCRIPT_DIR/cxwineserver" ] || die 'Keep the executable shims beside this script.'
+    [ -x "$SCRIPT_DIR/cxwine" ] && [ -x "$SCRIPT_DIR/cxwineserver" ] &&
+        [ -x "$SCRIPT_DIR/start-launcher.sh" ] || die 'Keep the executable helpers beside this script.'
+    [ -f "$SCRIPT_DIR/diagnostics/MonitorCheck.cs" ] || die 'Missing monitor diagnostic source.'
     SOURCE=${SOURCE:-$BOTTLES/Windows10MU/drive_c/Program Files (x86)/Glitch Games Network/Mu The Matrix}
     [ -d "$SOURCE" ] || die "Source directory not found: $SOURCE"
     SOURCE=$(cd -- "$SOURCE" && pwd -P)
@@ -143,14 +145,29 @@ check_identity() {
     fi
 }
 
+install_display_check() {
+    local tools="$PREFIX/drive_c/MuMatrixTools" file
+    [ ! -L "$tools" ] || die 'Refusing symlink diagnostic directory.'
+    mkdir -p "$tools"
+    for file in "$tools/MonitorCheck.cs" "$tools/MonitorCheck.exe"; do
+        [ ! -L "$file" ] || die "Refusing symlink diagnostic file: $file"
+    done
+    cp "$SCRIPT_DIR/diagnostics/MonitorCheck.cs" "$tools/MonitorCheck.cs"
+    "$WINE" "$PREFIX/drive_c/windows/Microsoft.NET/Framework/v4.0.30319/csc.exe" \
+        /nologo /platform:x86 /target:exe '/out:C:\MuMatrixTools\MonitorCheck.exe' \
+        'C:\MuMatrixTools\MonitorCheck.cs'
+}
+
 write_launcher() {
     local launcher="$STATE/Play.command"
+    cp "$SCRIPT_DIR/start-launcher.sh" "$STATE/start-launcher.sh"
+    chmod 700 "$STATE/start-launcher.sh"
     # %q preserves spaces and shell metacharacters without evaluating user paths.
     {
         printf '#!/bin/bash\nset -euo pipefail\nunset WINEARCH\n'
         printf 'export CX_ROOT=%q CX_BOTTLE=%q WINEPREFIX=%q\n' "$CX_ROOT" "$BOTTLE" "$PREFIX"
-        printf 'cd -- %q\n' "$GAME"
-        printf 'exec %q --bottle %q --workdir %q %q\n' "$CX_ROOT/bin/wine" "$BOTTLE" "$GAME" "$GAME/MuTheMatrix.exe"
+        printf 'export MU_GAME_DIR=%q\n' "$GAME"
+        printf 'exec %q\n' "$STATE/start-launcher.sh"
     } > "$launcher"
     chmod 700 "$launcher"
     note "Double-click launcher: $launcher"
@@ -176,11 +193,12 @@ main() {
     # Keep Wine builtin windowscodecs and gdiplus. Native WIC breaks encoding.
     run_step software-rendering configure_graphics
     run_step browser-emulation configure_browser
+    run_step display-check-v1 install_display_check
     run_step clone-installation clone_installation
     note "Checking cloned custom skin (log: $STATE/default-skin.log)"
     disable_custom_skin >> "$STATE/default-skin.log" 2>&1
     check_identity
     write_launcher
-    note 'Setup complete. START, Settings, login and gameplay remain unverified.'
+    note 'Setup complete. Play.command resets this idle bottle and checks its monitor before starting. See the research report for validation limits.'
 }
 main

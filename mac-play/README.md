@@ -6,10 +6,10 @@ codecs and GDI+, selects WPF software rendering, clones your installation with
 APFS copy-on-write, disables its custom skin, and writes a double-clickable
 launcher. No game files are shipped.
 
-The launcher UI is the current validation boundary. Claude's corrected setup
-initializes the launcher and reaches its session/update servers in the separate
-`MuMatrix32` bottle. GAME START awaits the owner's interactive test. This setup
-does not establish login, gameplay or native macOS recovery. See
+The owner reports GAME START, login and gameplay in the separate MuMatrix32
+bottle. The isolated setup tests verify Settings and startup recovery from an
+injected stale monitor link. Natural sleep/display-change recovery during a game
+and a native macOS build remain open. See
 [the evidence and test report](../docs/research/mac-crossover-32bit.md).
 
 ## Requirements and use
@@ -44,7 +44,14 @@ evidence to it.
 Open the printed `Play.command` path in Finder, then double-click it. The file is
 inside the bottle's hidden `.mu-matrix-setup` folder; Finder's Go to Folder accepts
 the full path. The launcher invokes `MuTheMatrix.exe` with the cloned game
-directory as its working directory. Keep the bottle in its original location.
+directory as its working directory. Before starting, it queries that bottle's
+processes, refuses a running game or launcher, and resets its wineserver with an
+explicit WINEPREFIX. This rebuilds stale display state after sleep/display
+changes. A synthetic monitor check must pass before the launcher starts. Keep
+the bottle in its original location and dedicate it to the game, since the reset
+terminates other programs in that bottle too. Close the launcher/game before
+starting again. If a forced interruption leaves `.mu-matrix-setup/play.lock`,
+check that the bottle is idle before removing that lock.
 
 ## Isolation and reruns
 
@@ -55,7 +62,8 @@ Choose a simple bottle name containing letters, digits, underscores or hyphens.
 
 A rerun with the same bottle and source skips completed dependency and copy
 steps, disables any restored custom skin, checks the cloned executable again,
-and recreates `Play.command`.
+and recreates `Play.command` plus its start helper. The versioned display-check
+step compiles a synthetic monitor diagnostic using the installed .NET compiler.
 Changing the source requires a new bottle. An interrupted dependency installation
 can be retried. An interrupted clone leaves `drive_c/MuTheMatrix-NAME.partial`; inspect
 and remove that partial copy inside this setup-owned bottle before retrying.
@@ -113,13 +121,22 @@ copy receives a numbered suffix, preserving both. The original installation
 keeps its skin. Always start via `Play.command`; direct `main.exe` startup does
 not reproduce the launcher's session and arguments.
 
-Later START/Settings fixes can be authored as functions and added through
+Later compatibility fixes can be authored as functions and added through
 `run_step` in `main`. Use a new step name when changing an already completed
 step's behavior. Keep fixes independent of private game bytes and test them in a
-new bottle. Portable `make test` checks all three Bash files with `bash -n`;
-dependency installation and UI survival require an explicit local Mac run.
+new bottle. Portable `make test` checks all four Bash files with `bash -n` and exercises the
+start/reset guard with a fake runtime. Dependency installation and UI behavior
+require an explicit local Mac run.
 
 ## Local diagnostics
+
+`diagnostics/MonitorCheck.cs` creates a hidden synthetic window and checks
+MonitorFromWindow, GetMonitorInfo and the primary EnumDisplaySettings mode. Setup
+compiles it as `C:\MuMatrixTools\MonitorCheck.exe` in the new bottle. The start
+helper runs it after resetting the selected bottle and refuses launch on failure.
+It returns nonzero for the reproduced stale/missing-monitor state. It does not
+change monitor configuration. A permanent hardcoded monitor-registry patch is
+avoided because the Mac driver rebuilds those topology-dependent entries.
 
 `diagnostics/gdipprobe/` contains Claude's authored synthetic image-pipeline
 probe, with a nonzero exit on any failed step added here. It needs a .NET SDK to
