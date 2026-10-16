@@ -12,6 +12,36 @@ spec.loader.exec_module(capture)
 
 
 class WineCaptureBoundaries(unittest.TestCase):
+    def test_fixed_scopes_limit_data_acquisition_and_preserve_text_default(self):
+        self.assertEqual(capture.scope_regions('text'), [('client-text.bin', capture.TEXT_START, capture.TEXT_BYTES)])
+        regions = capture.scope_regions('math-data')
+        self.assertEqual([(address, size) for _, address, size in regions],
+                         [(0x1a7dd40, 8), (0x1cf3b00, 64), (0x1cf6618, 4)])
+        self.assertEqual(sum(size for _, _, size in regions), 76)
+        with self.assertRaises(ValueError):
+            capture.scope_regions('arbitrary-process-memory')
+
+    def test_readonly_data_mapping_is_accepted_only_for_data_scope(self):
+        maps = '00001000-00002000 r--p 0 00:00 0\n'
+        self.assertEqual(capture.image_ranges(maps, 0x1800, 16, require_executable=False),
+                         [(0x1800, 0x1810, 'r--p')])
+        with self.assertRaises(ValueError):
+            capture.image_ranges(maps, 0x1800, 16)
+        with self.assertRaises(ValueError):
+            capture.image_ranges('00001000-00002000 ---p 0 00:00 0\n', 0x1800, 16, require_executable=False)
+
+    def test_hash_reads_selected_ranges_without_gaps_and_rejects_short_reads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'synthetic-memory'
+            path.write_bytes(bytes(range(32)))
+            with path.open('rb') as memory:
+                digest = capture.hash_ranges(memory.fileno(), [(0, 8, 'r--p'), (16, 24, 'r--p')])
+                self.assertEqual(digest, hashlib.sha256(bytes(range(8)) + bytes(range(16, 24))).hexdigest())
+                with self.assertRaisesRegex(OSError, 'Short'):
+                    capture.hash_ranges(memory.fileno(), [(24, 40, 'r--p')])
+                with self.assertRaisesRegex(ValueError, 'restored section'):
+                    capture.require_restored_text(memory.fileno(), [(0, 32, 'r--p')])
+
     def test_header_mapping_requires_the_exact_file_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -98,6 +98,39 @@
         "address": "0x00401030",
         "evidence_id": "ev_84d38c1948c96dc7db9894b05f5ef71ec9cfe82d91eda3193c70e390a6ff0f36",
         "local_evidence": "evidence/rea-restored-client-prefix.json"
+      },
+      "math_data": {
+        "local_evidence": "evidence/x86-math-capture-09/capture.json",
+        "bytes": 76,
+        "regions": [
+          {
+            "file": "record-bias.bin",
+            "address": "0x1a7dd40",
+            "bytes": 8,
+            "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          },
+          {
+            "file": "record-template.bin",
+            "address": "0x1cf3b00",
+            "bytes": 64,
+            "sha256": "5998e9d1dd9bf48af6af87a1ef8c7783b818ac8329637ada08cc5fb329042376"
+          },
+          {
+            "file": "cpu-features.bin",
+            "address": "0x1cf6618",
+            "bytes": 4,
+            "sha256": "bce941d196c26696f1f5d701d21a8a9e414e81d6e15a48f3663313e3cd7cc4b9"
+          }
+        ],
+        "restored_text_before_after_matches": true,
+        "early_packed_state_refused": true,
+        "legacy_text_regression_verified": true,
+        "observations": {
+          "bias_positive_double_zero": true,
+          "template_matches_authored_identity": true,
+          "feature_bit1_set": true
+        },
+        "limitation": "Wine compatibility state and non-atomic sequential reads; native Windows/game invocation unverified."
       }
     },
     "client_memory": {
@@ -150,13 +183,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 77,
-    "portable_passed": 71,
+    "portable_tests_discovered": 80,
+    "portable_passed": 74,
     "private_checks_skipped": 6,
-    "local_integration_passed": 77,
+    "local_integration_passed": 80,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Bounded map and prior recovered modules merged after passing macOS/Linux CI",
+    "remote_ci_status": "Window map and earlier work merged; fixed math-data extension awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38835656686",
     "remote_ci_commit": "b29d3de49d8ce35382f949682484c3a5e5f8c4f3",
     "github_source_files_verified": 58,
@@ -164,8 +197,8 @@
     "v14_oracle_vectors": 91,
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
-    "capture_tool_sha256": "f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e",
-    "current_source_files": 83
+    "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
+    "current_source_files": 84
   },
   "client_executable_section_restored": true
 }

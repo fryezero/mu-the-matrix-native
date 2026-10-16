@@ -113,3 +113,15 @@ Transfer the complete output directory back to ignored local evidence and
 recompute its digest. Keep logs, manifests, snapshots and decompiler outputs
 private. The current next task is mapping restored functions with REA/Ghidra
 and reconstructing bounded behaviors through tests.
+
+## Capture selected math data
+
+After the client text is restored, `--scope math-data` selects exactly three
+fixed image-data ranges: an 8-byte scalar, a 64-byte template and a 4-byte feature
+word. It requires the pinned restored text digest before and after data reads,
+complete readable data mappings, and the same file/process identity checks.
+Use a new output directory with the earlier invocation plus this scope flag.
+The data manifest has a separate format and a `regions` array; check every
+file's size/hash and `complete_within_scope` after transfer. The default text
+scope retains its previous format and single-file fields. [The finding](../docs/research/client-math-data.md)
+records the successful guest run, refused packed-state attempt and limitations.

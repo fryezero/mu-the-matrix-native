@@ -50,6 +50,8 @@ The square-root callee lies outside the 4 KiB REA prefix. It was separately insp
 - `evidence/rea-restored-client-prefix.json`: complete successful REA record and generated pseudocode.
 - `runtime/x86/`: verified base, working guest disk, local SSH key, setup and run logs. These files stay ignored.
 
-The final tool source SHA-256 is `f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e`. It matches the version run inside the guest. The complete final capture was transferred and its 23,572,480-byte payload digest recomputed locally.
+The capture08 tool source SHA-256 was `f6e50e0aa69dc734eee0c30feab263a2e6da6dba65a7ca9831db3c64f64ed88e`. It matches the version run inside the guest. The complete final capture was transferred and its 23,572,480-byte payload digest recomputed locally.
 
 Next, map selected restored functions and imports, and reconstruct one bounded behavior with independent equivalence checks. Establish the unavailable localhost dependency before assuming that the current Wine initialization state matches a normal Windows session. A readable client region is progress toward source recovery; no complete client source build or native macOS game exists yet.
+
+The newer fixed-scope extension and repeated text capture09 are recorded in [the math-data finding](client-math-data.md); capture08 retains its original source identity.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture the pinned client's first executable image section under Linux Wine."""
+"""Capture pinned client text or fixed math-data ranges under Linux Wine."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -15,6 +15,21 @@ IMAGE_BASE = 0x400000
 TEXT_START = 0x401000
 TEXT_BYTES = 23572480
 IMAGE_BYTES = 260628480
+RESTORED_TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
+
+
+def scope_regions(scope):
+    if scope == 'text':
+        return [('client-text.bin', TEXT_START, TEXT_BYTES)]
+    if scope != 'math-data':
+        raise ValueError('Select the fixed text or math-data scope')
+    regions = [('record-bias.bin', 0x1a7dd40, 8),
+               ('record-template.bin', 0x1cf3b00, 64),
+               ('cpu-features.bin', 0x1cf6618, 4)]
+    if any(not IMAGE_BASE <= address < address + size <= IMAGE_BASE + IMAGE_BYTES
+           for _, address, size in regions):
+        raise ValueError('Selected range is outside the pinned image')
+    return regions
 
 
 def check_image_header(header):
@@ -41,8 +56,8 @@ def process_identity(stat):
     return pid, int(fields[19]), fields[0]
 
 
-def image_ranges(maps, start, length):
-    """Require complete readable/executable coverage of the selected image range."""
+def image_ranges(maps, start, length, require_executable=True):
+    """Require complete readable coverage, plus executable permission for text."""
     if start < 0 or length <= 0:
         raise ValueError('Invalid image range')
     limit = start + length
@@ -54,7 +69,7 @@ def image_ranges(maps, start, length):
         low, high = (int(match[i], 16) for i in (1, 2))
         low, high = max(start, low), min(limit, high)
         if low < high:
-            if 'r' not in match[3] or 'x' not in match[3]:
+            if 'r' not in match[3] or (require_executable and 'x' not in match[3]):
                 raise ValueError('Selected image range is not readable executable memory')
             ranges.append((low, high, match[3]))
     cursor = start
@@ -85,26 +100,46 @@ def mapped_image_identity(maps, target_stat):
     raise ValueError('No file-backed image header mapping')
 
 
+def range_chunks(memory_fd, ranges):
+    for low, high, _ in ranges:
+        while low < high:
+            size = min(1024 * 1024, high - low)
+            data = os.pread(memory_fd, size, low)
+            if len(data) != size:
+                raise OSError('Short process-memory read')
+            yield data
+            low += size
+
+
+def hash_ranges(memory_fd, ranges):
+    digest = hashlib.sha256()
+    for data in range_chunks(memory_fd, ranges):
+        digest.update(data)
+    return digest.hexdigest()
+
+
+def require_restored_text(memory_fd, ranges):
+    digest = hash_ranges(memory_fd, ranges)
+    if digest != RESTORED_TEXT_SHA256:
+        raise ValueError('Selected text is not the pinned restored section: ' + digest)
+    return digest
+
+
 def copy_ranges(memory_fd, destination, ranges):
     digest = hashlib.sha256()
     written = 0
     with destination.open('xb') as output:
-        for low, high, _ in ranges:
-            while low < high:
-                size = min(1024 * 1024, high - low)
-                data = os.pread(memory_fd, size, low)
-                if len(data) != size:
-                    raise OSError('Short process-memory read')
-                output.write(data)
-                digest.update(data)
-                low += size
-                written += size
+        for data in range_chunks(memory_fd, ranges):
+            output.write(data)
+            digest.update(data)
+            written += len(data)
         output.flush()
         os.fsync(output.fileno())
     return written, digest.hexdigest()
 
 
-def capture(pid, target, output):
+def capture(pid, target, output, scope='text'):
+    regions = scope_regions(scope)
     proc = Path('/proc') / str(pid)
     target = target.resolve(strict=True)
     output = output.resolve()
@@ -124,34 +159,59 @@ def capture(pid, target, output):
         raise ValueError('Process identity does not match the selected client directory')
     maps = (proc / 'maps').read_text()
     image_identity = mapped_image_identity(maps, source_stat)
-    ranges = image_ranges(maps, TEXT_START, TEXT_BYTES)
+    plans = {name: image_ranges(maps, address, size, require_executable=scope == 'text')
+             for name, address, size in regions}
+    text_plan = image_ranges(maps, TEXT_START, TEXT_BYTES)
     output.mkdir(parents=True, exist_ok=False)
-    manifest = {'format': 'mu-linux-wine-text-capture-v1', 'pid': pid,
+    manifest = {'format': 'mu-linux-wine-text-capture-v1' if scope == 'text' else 'mu-linux-wine-math-capture-v1',
+                'scope': scope, 'pid': pid,
                 'process_start_ticks': before[1], 'target_sha256': source_hash,
                 'mapped_image_device_inode': list(image_identity),
                 'started_utc': datetime.now(timezone.utc).isoformat(),
-                'address': hex(TEXT_START), 'expected_bytes': TEXT_BYTES,
+                'expected_bytes': sum(size for _, _, size in regions),
+                'capture_tool_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'complete_within_scope': False,
                 'limitations': ['Wine compatibility environment, not native Windows.',
                                 'Unsuspended reads are not an atomic snapshot.',
-                                'Only the pinned first executable image section is selected.',
+                                'Only pinned text is saved.' if scope == 'text' else
+                                'Only three fixed image-data ranges are saved; text is hashed to confirm restored state.',
                                 'No other modules, stacks or private allocations are selected.',
                                 'Captured bytes do not establish gameplay or behavior equivalence.']}
+    if scope == 'text':
+        manifest['address'] = hex(TEXT_START)
+    else:
+        manifest['regions'] = []
     try:
         with (proc / 'mem').open('rb', buffering=0) as memory:
             check_image_header(os.pread(memory.fileno(), 4096, IMAGE_BASE))
-            size, digest = copy_ranges(memory.fileno(), output / 'client-text.bin', ranges)
+            if scope == 'math-data':
+                manifest['restored_text_sha256_before'] = require_restored_text(memory.fileno(), text_plan)
+            written = 0
+            for name, address, expected_size in regions:
+                size, digest = copy_ranges(memory.fileno(), output / name, plans[name])
+                written += size
+                record = {'file': name, 'address': hex(address), 'bytes': size, 'sha256': digest}
+                if size != expected_size:
+                    raise OSError('Selected region has an unexpected length')
+                if scope == 'text':
+                    manifest.update(record)
+                else:
+                    manifest['regions'].append(record)
+            if scope == 'math-data':
+                manifest['restored_text_sha256_after'] = require_restored_text(memory.fileno(), text_plan)
         after = process_identity((proc / 'stat').read_text())
         after_maps = (proc / 'maps').read_text()
         after_image_identity = mapped_image_identity(after_maps, target.stat())
-        manifest.update(file='client-text.bin', bytes=size, sha256=digest,
-                        same_process=before[:2] == after[:2],
+        manifest.update(same_process=before[:2] == after[:2],
                         process_still_running=after[2] not in ('Z', 'X'),
-                        same_mapping_plan=ranges == image_ranges(after_maps, TEXT_START, TEXT_BYTES),
+                        same_mapping_plan=all(plans[name] == image_ranges(after_maps, address, size,
+                                                   require_executable=scope == 'text')
+                                              for name, address, size in regions) and
+                                          text_plan == image_ranges(after_maps, TEXT_START, TEXT_BYTES),
                         same_image_file=image_identity == after_image_identity,
                         target_file_unchanged=hashlib.sha256(target.read_bytes()).hexdigest() == source_hash)
         manifest['complete_within_scope'] = all(manifest[k] for k in
-            ('same_process', 'process_still_running', 'same_mapping_plan', 'same_image_file', 'target_file_unchanged')) and size == TEXT_BYTES
+            ('same_process', 'process_still_running', 'same_mapping_plan', 'same_image_file', 'target_file_unchanged')) and written == manifest['expected_bytes']
     except (OSError, ValueError, IndexError) as error:
         manifest['error'] = str(error)
     finally:
@@ -174,11 +234,12 @@ def main():
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--target', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--scope', choices=('text', 'math-data'), default='text')
     args = parser.parse_args()
     if not sys.platform.startswith('linux'):
         parser.error('Run this inside the isolated Linux guest')
     try:
-        result = capture(args.pid, args.target, args.output)
+        result = capture(args.pid, args.target, args.output, args.scope)
     except (OSError, ValueError, IndexError) as error:
         parser.exit(1, str(error) + '\n')
     print(json.dumps(result, indent=2))
