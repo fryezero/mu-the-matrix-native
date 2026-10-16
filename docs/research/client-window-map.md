@@ -72,10 +72,9 @@ but its original symbol and game subsystem remain unknown. The raw import's
 calling convention is incomplete; generated C is not a validated replacement.
 
 The selected routine references a double at `0x01a7dd40` and a template address
-`0x01cf3b00`, outside the captured text. Their runtime values are unknown. x87
+`0x01cf3b00`, outside the captured text. Their runtime values were initially unknown and are now recorded in [the scoped data finding](client-math-data.md). x87
 rounding/exception behavior and overlapping input/output effects also need
-validation. Acquire those selected image-data ranges with source/process identity
-before reconstructing this behavior; do not guess zero/identity constants.
+validation. Use the verified selected image-data capture before reconstructing this behavior; preserve the captured environment limits.
 
 ## Local records and checks
 
