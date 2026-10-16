@@ -14,7 +14,7 @@ The later macOS goal does not replace exact-version source recovery. No completi
 
 | ID | Work | Completion evidence | Dependencies |
 |---|---|---|---|
-| RUNTIME-X86 | Test full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | Guest/GL/bitness and restored text verified; map code and investigate startup limits |
+| RUNTIME-X86 | Implemented: full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | PR #6 passes macOS/Linux CI; continue code mapping under CAP-002 |
 | CAP-001 | Validate the read-only capture helper on Windows x64 with the pinned client | Exact target hash, readable manifest, region hashes, explicit failures and actual Windows test notes | Windows reference machine, unavailable; preserved as an optional validation path |
 | CAP-002 | Validate and import a captured image into native analysis | File hashes, VA mappings, observed restored-code coverage, unresolved regions | A validated private capture from RUNTIME-X86 or CAP-001, with environment provenance |
 | MODEL-014 | Implemented: all 216 BMD v14 files decode and parse | 91 synthetic oracle vectors, full corpus comparison, source-bound research | PR #4 passes macOS/Linux CI |

@@ -27,6 +27,8 @@ files and 91 authored synthetic vectors. The complete corpus scan reports
 12,663 parsed, 17 rejected and 74 unsupported files. Three selected v14 models
 export as JSON and OBJ. The earlier GitHub CI passed on macOS and Linux; the
 v14 PR now also passes on both platforms after correcting Linux include ordering.
+[Runtime PR #6](https://github.com/fryezero/mu-the-matrix-recovery/pull/6)
+passes macOS/Linux CI at the commit recorded in the evidence index.
 
 The corpus totals above come from complete local scans, not from CI. Raw scan
 manifests and original inputs are intentionally ignored. `docs/evidence-index.json`
@@ -38,7 +40,7 @@ Protected gameplay functions and types, faithful initialization capture, network
 
 ## Repository publication
 
-The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery) contains 58 reviewed source/documentation files. Its downloaded archive matched the local source snapshot exactly. [CI passed on macOS and Linux](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964); the evidence index records the tested commit. No game executable, asset pack or memory capture was uploaded.
+The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery) initially published 58 reviewed source/documentation files. Its downloaded archive matched that local source snapshot exactly. The runtime branch now contains 67 reviewed files, with [model PR #4](https://github.com/fryezero/mu-the-matrix-recovery/pull/4) and [runtime PR #6](https://github.com/fryezero/mu-the-matrix-recovery/pull/6) available for review. [CI passed on macOS and Linux](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964); the evidence index records the tested commit. No game executable, asset pack or memory capture was uploaded.
 
 ## Runtime route without a Windows PC
 
