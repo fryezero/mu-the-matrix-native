@@ -12,6 +12,11 @@ test: all
 	bash -n mac-play/cxwine
 	bash -n mac-play/cxwineserver
 	bash -n mac-play/start-launcher.sh
+	bash -n mac-play/fast-x87.sh
+	bash -n mac-play/install-fast-x87.sh
+	bash -n mac-play/diagnostics/bottle.sh
+	bash -n mac-play/diagnostics/run-fpbench.sh
+	bash -n mac-play/diagnostics/run-glbench.sh
 	$(PYTHON) -m unittest discover -s reconstructed/boot -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s asset-recovery -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s model-recovery -p 'test_*.py' -v

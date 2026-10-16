@@ -45,6 +45,41 @@ The previous MuMatrix32-ci-test validation passed all eight image steps and
 acceptance gates remain open. Two static selector-0x33 far-return sequences
 support the Heaven's Gate hypothesis without proving the original Rosetta fault.
 
+## Fast x87 compatibility path
+
+MAC-PERF-001 is issue #45, branch `codex/mac-fast-x87`, worktree
+`~/Documents/mu-worktrees/mac-x87`. Read
+[`research/mac-performance.md`](research/mac-performance.md). The optional
+installer fetches rosetta-timewalker commit
+`ab1a6a032e488c0d6eade54ce70a02d653277810` into the user cache, builds from source,
+runs the native FLD check and compares authored plain/fast PE32 x87 checksums
+before enabling selection. New `fpbench.c` and `glbench.c` helpers reject protected
+bottles. Setup copies the fast-path helper into its generated launcher; #44's
+idle-process refusal, prefix reset and monitor validation remain. Missing/stale
+validation falls back to plain CrossOver. `MU_FAST_X87=0` forces fallback;
+remove the cache's `validated` marker to disable automatic selection.
+
+The setup-owned MuFastX87-test bottle had the pinned client digest and was used
+only for synthetic performance and hidden monitor tests. Median plain/fast x87
+throughput was 2.5/278.2 Mverts/s, with checksum 3.904312 in all trials. Final
+plain GL throughput was 192 ns/call, 5.20 million calls/s. The fast .NET monitor
+probe stalled above 40 seconds; plain MonitorCheck passed. The launcher therefore
+keeps the plain display check and applies fast translation only to the launcher
+chain. Actual .NET launcher compatibility remains unverified. The optional actual
+GAME START probe is deferred because SendInput moves the shared host pointer
+while the owner is testing. No login/credentials are used. MuMatrix32 and its
+processes remain untouched. No actual patched launcher-to-main forwarding or
+in-world FPS claim follows from these tests. Logs are ignored in
+`runtime/mac-x87/` here; installer logs also remain under
+`~/Library/Caches/MuTheMatrix/fast-x87/COMMIT`. The generated launcher also passed a synthetic dispatch check with the authored
+PE32 probe substituted temporarily for the cloned launcher. The original cloned
+launcher was restored, then the test bottle was deleted and absence confirmed.
+Final measurements and cleanup are recorded in the finding. Portable checks discover 169 cases, pass
+155 and skip fourteen private-input checks. Both review axes pass after adding
+built-output fingerprints and matching upstream's actual Wine loader/server
+selection. Next, the owner can validate in-world FPS and stability, then perform
+a quiet-desktop launcher-to-main probe without credentials if still needed.
+
 ## Prepared Windows capture path
 
 Review and validate `windows-capture/capture-client.c` on Windows x64 against the pinned client. The helper identifies `main.exe` by SHA-256, opens the process for query/read access, and saves executable image regions from main.exe, IGC.dll and RGS.dll. It leaves the process running and writes a manifest with region digests and limitations. Build/smoke success under Wine does not prove native game capture.

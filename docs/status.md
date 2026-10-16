@@ -51,7 +51,7 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 162 tests. Portable checks pass 148 and explicitly skip fourteen
+The suite discovers 169 tests. Portable checks pass 155 and explicitly skip fourteen
 private-input checks. In the bone-tracks worktree, opt-in integration with
 `MU_GAME_ROOT` passes all 155 tests from before the seven launcher-guard tests.
 The rotation worktree's opt-in integration passed 142 of the earlier 147.
@@ -87,6 +87,18 @@ guest still has outbound networking blocked and reaches an unresolved localhost
 connection. Native Windows capture/equivalence
 remains unverified, although the optional Windows helper builds and its own
 memory/hash smoke checks pass under Wine.
+
+MAC-PERF-001, issue #45, adds an opt-in pinned Rosetta Timewalker cache build,
+matching-checksum x87 self-check, authored PE32 transform/GL probes and launcher
+selection with plain CrossOver fallback. The existing idle-process guard,
+prefix-scoped display reset and monitor validation remain. Fourteen portable
+launcher tests cover guards, selection and fallback. A fresh setup-owned
+MuFastX87-test bottle measured median plain/fast x87 throughput of 2.5/278.2
+Mverts/s with matching printed checksums. The plain monitor passed; its fast
+.NET attempt stalled, so the existing plain display path is retained. See [measurements and limits](research/mac-performance.md). Actual patched
+launcher-to-main forwarding and in-world FPS remain owner validation. MuMatrix32
+was not touched. This improves original-client compatibility; native source
+recovery acceptance gates are unchanged.
 
 ## Repository and next work
 
