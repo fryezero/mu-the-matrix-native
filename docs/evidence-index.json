@@ -160,6 +160,28 @@
         "early_packed_state_refused": true,
         "legacy_text_math_regression_verified": true,
         "complete_restoration_claimed": false
+      },
+      "model_dispatch": {
+        "local_evidence": "evidence/model-dispatch-run11/dispatch-capture-11/capture.json",
+        "bytes": 8,
+        "capture_tool_sha256": "9dde7db64e754ee3945585728b4ed29a86c3ca187eb94ad3d4fca22377154ae0",
+        "slots": [
+          {
+            "address": "0x01d04e14",
+            "target": "0x0092a430",
+            "sha256": "aba07ebb7084c95fd575a3f30955e6ab9bc52b89612482ecde4cd25442899d5d"
+          },
+          {
+            "address": "0x01d04df4",
+            "target": "0x0092be30",
+            "sha256": "ec514d730caf387dda906bfa17ac4d9c7dbc2ec7efc5ca1a89cd21a4cabc76de"
+          }
+        ],
+        "targets_inside_pinned_text": true,
+        "repeat_matches": true,
+        "early_packed_state_refused": true,
+        "legacy_text_math_image_verified": true,
+        "live_target_invocation_verified": false
       }
     },
     "client_memory": {
@@ -250,13 +272,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 102,
-    "portable_passed": 94,
+    "portable_tests_discovered": 103,
+    "portable_passed": 95,
     "private_checks_skipped": 8,
-    "local_integration_passed": 102,
+    "local_integration_passed": 103,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Client-linked v12 source merged after passing macOS/Linux CI",
+    "remote_ci_status": "Client-linked v12 merged; fixed dispatch capture awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38888492999",
     "remote_ci_commit": "e617b79b973b4b83801f14926a996007ad8effb6",
     "github_source_files_verified": 58,
@@ -265,7 +287,7 @@
     "v14_private_oracle_matches": 216,
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
-    "current_source_files": 100
+    "current_source_files": 101
   },
   "client_executable_section_restored": true
 }

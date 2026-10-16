@@ -27,9 +27,9 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 102 tests. Portable checks pass 94 and explicitly skip eight
-private-input checks. Opt-in local integration passes all 102. A fresh 100-file source-only
-checkout also passes 94 with eight explicit skips.
+The suite discovers 103 tests. Portable checks pass 95 and explicitly skip eight
+private-input checks. Opt-in local integration passes all 103. A fresh 101-file source-only checkout
+also passes 95 with eight explicit skips.
 
 The v14 reader matches its pinned independent oracle on 216 installed files and
 91 synthetic vectors. A complete model rescan preserves every one of 12,754
@@ -54,10 +54,12 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18 and #20, #23 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18, #20 and #23 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
-The client-linked v12 milestone is merged through PR #23. Next trace the original v14/v15 helpers or a bounded plaintext model-loading path.
+The client-linked v12 milestone is merged through PR #23. Two selected v15
+dispatch slots now resolve into restored client code. See
+[the capture finding](research/model-dispatch.md). Next trace the original v14/v15 helpers or a bounded plaintext model-loading path.
 Original types, hierarchy semantics, initialization dependencies, simulation,
 networking, renderer/input/audio equivalence and a complete client build remain
 unfinished. Read `handoff.md` for exact local artifact paths and entry addresses.
