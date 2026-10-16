@@ -91,7 +91,7 @@ covers the helper's own memory read and hash implementation.
 ## Before publishing
 
 ```sh
-git add README.md AGENTS.md CONTRIBUTING.md LICENSE LICENSE-analysis Makefile .gitignore .gitattributes docs scripts tests asset-recovery model-recovery reconstructed windows-capture tools .github companion-findings.md
+git add README.md AGENTS.md CONTRIBUTING.md LICENSE LICENSE-analysis THIRD_PARTY_NOTICES.md Makefile .gitignore .gitattributes docs scripts tests asset-recovery model-recovery reconstructed windows-capture tools .github companion-findings.md
 git diff --cached --stat
 python3 scripts/audit_repository.py
 ```

@@ -87,6 +87,10 @@
     "local_integration_passed": 40,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "pending publication"
+    "remote_ci_status": "passed on macOS and Linux",
+    "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964",
+    "remote_ci_commit": "358354a009836105f2d9928397a4fe3f083326e7",
+    "github_source_files_verified": 58,
+    "github_verification": "Downloaded archive matched all 58 reviewed source files byte for byte"
   }
 }

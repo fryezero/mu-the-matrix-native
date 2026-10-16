@@ -33,3 +33,7 @@ is the shared summary and identity index.
 ## Still unfinished
 
 Protected gameplay functions and types, faithful initialization capture, networking semantics, rendering equivalence, a client build from recovered source, and the eventual macOS port. A Windows memory capture does not by itself solve these tasks.
+
+## Repository publication
+
+The private [GitHub repository](https://github.com/fryezero/mu-the-matrix-recovery) contains 58 reviewed source/documentation files. Its downloaded archive matched the local source snapshot exactly. [CI passed on macOS and Linux](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964); the evidence index records the tested commit. No game executable, asset pack or memory capture was uploaded.

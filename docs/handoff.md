@@ -42,3 +42,7 @@ The original lab retains an archival local `lab/bootstrap` branch. The published
 GitHub `main` branch is the collaboration baseline. For new development, clone
 that repo or fetch and switch to `origin/main` once local Git authentication is
 configured; preserve ignored lab artifacts separately.
+
+## Published collaboration baseline
+
+The private repository is [fryezero/mu-the-matrix-recovery](https://github.com/fryezero/mu-the-matrix-recovery). All 58 source/documentation files were downloaded from GitHub and compared byte for byte with the reviewed local snapshot. [The first CI run](https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38826951964) passed on macOS and Linux at commit `358354a009836105f2d9928397a4fe3f083326e7`. Setup actions were then updated to Node 24 versions to remove runtime deprecation warnings. Private game inputs and raw evidence remain in the original lab only.
