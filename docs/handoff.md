@@ -95,7 +95,7 @@ Continue with GitHub issue #21, CLIENT-LOADER-001. Local raw literal matches occ
 
 ## Client-linked v12 source
 
-Issue #21 is implemented on `codex/client-model-codec`. Read
+Issue #21 is merged into main through PR #23 after passing macOS/Linux CI. Read
 `research/client-model-loader.md` and `../reconstructed/model-codec/README.md`.
 The BMD filename caller at `0x018202b4` calls `0x012b3812`, whose v12 branch
 calls `0x0098c5f2` for both length query and decode. REA dossiers are local under

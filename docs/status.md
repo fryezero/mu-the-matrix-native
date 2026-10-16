@@ -54,11 +54,10 @@ memory/hash smoke checks pass under Wine.
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
 contains reviewed authored source, synthetic fixtures and evidence summaries.
-PRs #4, #6, #8, #10, #13, #14, #16, #18 and #20 are merged after macOS/Linux checks.
+PRs #4, #6, #8, #10, #13, #14, #16, #18 and #20, #23 are merged after macOS/Linux checks.
 No game executable, asset pack or memory capture was uploaded.
 
-Issue #21 continues under `codex/client-model-codec`. After the v12 milestone,
-trace the original v14/v15 helpers or a bounded plaintext model-loading path.
+The client-linked v12 milestone is merged through PR #23. Next trace the original v14/v15 helpers or a bounded plaintext model-loading path.
 Original types, hierarchy semantics, initialization dependencies, simulation,
 networking, renderer/input/audio equivalence and a complete client build remain
 unfinished. Read `handoff.md` for exact local artifact paths and entry addresses.
