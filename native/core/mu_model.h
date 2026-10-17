@@ -68,6 +68,12 @@ typedef struct mu_model_params {
 void mu_model_default_params(mu_model_params *params);
 
 enum { MU_MODEL_REGION_COUNT = 12 };
+/* Bone slots a vertex or normal record reaches with an out-of-range bone index
+ * (MODEL-EDGE): the client's transform reads bones + index*0x30 unchecked, e.g.
+ * 0x06fce368 (timing globals) for -1. Each distinct span gets a zero-filled
+ * region at that client address: the content of a freshly loaded client's
+ * uninitialized data, labelled as such (docs/research/model-edge.md). */
+enum { MU_MODEL_FOREIGN_SPANS = 8 };
 
 typedef struct mu_model {
     const mu_bmd *bmd;
@@ -76,8 +82,10 @@ typedef struct mu_model {
     uint32_t model, object, actions, bones, meshes;  /* client addresses inside the window */
     uint32_t heap_cursor, heap_end;
     uint32_t *triangles, *texcoords;                 /* per-mesh client addresses */
-    mu_client_image regions[MU_MODEL_REGION_COUNT];
-    uint8_t *region_storage[MU_MODEL_REGION_COUNT];
+    mu_client_image regions[MU_MODEL_REGION_COUNT + MU_MODEL_FOREIGN_SPANS];
+    uint8_t *region_storage[MU_MODEL_REGION_COUNT + MU_MODEL_FOREIGN_SPANS];
+    int32_t foreign_count;                         /* foreign bone spans after the fixed regions */
+    int32_t foreign_bones[MU_MODEL_FOREIGN_SPANS]; /* their bone indices */
     mu_client_memory memory;
     mu_model_params params;
     int32_t posed;            /* 1 after a successful pose; 0 uses identity bone matrices */

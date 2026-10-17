@@ -99,6 +99,22 @@ static int command_info(const mu_options *o)
         json_string(stdout, m->texture);
         printf("}");
     }
+    printf("], \"strict_anomalies\": %d, \"anomalies\": [", bmd.strict_anomalies);
+    for (int32_t i = 0; i < bmd.anomaly_count; ++i) {
+        const mu_bmd_anomaly *x = &bmd.anomalies[i];
+        printf("%s{\"kind\": \"%s\", \"strict\": %d, \"a\": %d, \"b\": %d, \"c\": %d, \"value\": %d, \"offset\": ",
+               i ? ", " : "", mu_bmd_anomaly_name(x->kind), x->strict, x->a, x->b, x->c, x->value);
+        if (x->offset == UINT32_MAX)
+            printf("null}");
+        else
+            printf("%u}", x->offset);
+    }
+    printf("], \"unresolved_bones\": [");
+    for (int32_t i = 0, first = 1; i < bmd.bone_count; ++i)
+        if (bmd.bones[i].unresolved) {
+            printf("%s%d", first ? "" : ", ", i);
+            first = 0;
+        }
     printf("]}\n");
     mu_bmd_free(&bmd);
     return 0;

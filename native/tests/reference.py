@@ -34,9 +34,9 @@ def _load(name):
     return module
 
 
-def decode(raw):
+def decode(raw, client_layout=False):
     """(parsed model, decoded payload) through the Python readers."""
-    model = bmd_encrypted.parse_model(raw)
+    model = bmd_encrypted.parse_model(raw, client_layout=client_layout)
     version = raw[3]
     if version == 10:
         plain = raw[4:]
