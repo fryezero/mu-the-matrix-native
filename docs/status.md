@@ -86,11 +86,17 @@ not exist yet.
   effect system: a 144-byte sprite buffer rewritten whole, and a 144,000-byte
   particle buffer written as `n*144`-byte prefixes, each drawn as `GL_QUADS`.
   [Evidence](research/client-frame-loop.md).
+- Native model viewer (NATIVE-VIEW-001). `native/` builds an arm64 macOS viewer with SDL2 and OpenGL 2.1; no Wine or Rosetta. It loads v10/12/14/15 models through the repository's decoders. It animates them with the reconstructed tick and pose builder, after the bone-track loop, and skins them with the reconstructed transform. It draws them through a platform-neutral port of the mesh-draw corner loop. This is a viewer, not a client.
+  * Golden data. The viewer's vertex streams equal the authored libraries and the validators' Python models byte for byte in 50 synthetic cases. A full private run covered 12,627 installed models and 3,909,196 vertices.
+  * Mesh draw. The corner stream equals an independent rule model in every portable draw mode.
+  * Renders. Software-render hashes are pinned and are equal on macOS and Linux. Headless GL agrees with them.
+  * Limits. State, mode selection, texture parameters and the normal-texcoord table are static readings or placeholders. [Evidence](research/native-viewer.md).
 
 ## Verification
 
-The suite discovers 236 tests. Portable checks pass 218 and explicitly skip
-eighteen private-input checks. In the frameloop worktree, the new frame-map check
+The suite discovers 270 Python tests (macOS, NATIVE-VIEW-001 worktree). Portable checks pass 248 and explicitly skip
+22 private-input checks. The four private native viewer checks pass with `MU_RECOVERY_INTEGRATION=1`.
+In the previous count, the suite discovered 236 tests and skipped eighteen private-input checks. In the frameloop worktree, the new frame-map check
 passes with `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`; the full opt-in suite
 was not rerun there. In the skinning worktree, opt-in integration passed all 209
 earlier tests. The mugl and hotpatch source checks need no private inputs.
@@ -289,3 +295,5 @@ effect system's stream-VBO pattern. Everything is static and checked by
 `scripts/client_frame_static.py`. [Finding](research/client-frame-loop.md). Runtime
 per-routine counts, `IGC.dll` hook behaviour and whether animation runs per frame
 remain open. No guest or CrossOver run was needed, and nothing was patched.
+
+NATIVE-VIEW-001 (branch `claude/native-viewer`) adds the native model viewer `native/`. It is a viewer for verified model code, built with SDL2 and OpenGL 2.1, a CGL headless path and a deterministic software rasterizer. Golden data equals the reconstructed functions on synthetic models in CI and on all 12,627 posable installed models in a private run. The mesh-draw call stream equals an independent rule model. [Finding](research/native-viewer.md). The mesh draw itself was never executed, so its state and mode readings stay static. No game, bottle or registry was touched.

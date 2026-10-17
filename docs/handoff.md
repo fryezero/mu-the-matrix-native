@@ -833,3 +833,31 @@ Next: log in with a kit-built bottle and measure in-world fps against MuMatrix32
 run a long (an hour or more) session, with heavier monster load, to settle stability; decide whether to
 retire `setup-crossover-32bit.sh`. The private hotpatch build output stays in the ignored
 `mac-play/hotpatch/build/private/` and must never be committed.
+
+## Native model viewer (NATIVE-VIEW-001)
+
+Branch `claude/native-viewer`, worktree `~/Documents/mu-worktrees/native-viewer`. Read
+[`research/native-viewer.md`](research/native-viewer.md) and [`../native/README.md`](../native/README.md).
+
+**Built.**
+
+* `native/core`: portable C. It covers the checked BMD loader, client-memory layout around `mu_bone_tracks_read`/`mu_animation_tick`/`mu_pose_build`/`mu_model_transform`, the `mu_meshdraw` corner-loop port, the scene driver, the software rasterizer, textures, PNG and SHA-256.
+* `native/viewer`: SDL2 + GL 2.1 window and CGL headless rendering.
+* `native/tools/mu_render.c`: headless CLI with the `info`, `dump`, `corners`, `render`, `image` and `scan` commands.
+* `native/tests`: fixtures, the golden reference harness, the independent mesh-draw model and 16 tests (12 portable, 4 private).
+
+**Checks.**
+
+* `make test PYTHON=tools/.venv/bin/python` passes on macOS: 270 discovered, 22 explicit skips.
+* `native/tests` also passes in Ubuntu 24.04 arm64 and x86_64 containers, with identical pinned render hashes. The harness script and logs are in `~/Documents/mu-mac-tools/native/scratch/`.
+* The private checks pass with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=<MuTheMatrix>`. The full golden run used `MU_NATIVE_GOLDEN_PER_VERSION=100000 MU_NATIVE_GOLDEN_MAX_VERTICES=100000` (466 s). The corpus scan takes 6 s.
+* Local renders of installed models are in `~/Documents/mu-mac-tools/native/renders/` and are never committed.
+
+**CI.** The macOS job installs `sdl2` and `jpeg-turbo` and builds the window viewer with `make native-viewer`. Linux installs `libjpeg-dev`. The viewer test skips without `sdl2-config`.
+
+**Next.**
+
+* Execute the mesh draw and body under Unicorn with a GL recorder. Compare against `mu_meshdraw` and `mu_scene_draw_model` to settle mode selection, state, texture parameters and the `0x072acfd8` normal-texcoord writer.
+* Then do character assembly (Player skeleton, parts, keep-root attachments), followed by terrain.
+
+No game, CrossOver bottle or registry was touched.

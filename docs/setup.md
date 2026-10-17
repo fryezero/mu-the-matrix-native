@@ -33,6 +33,10 @@ REA is pinned to 6.5.0. Its repository checkout is optional and ignored. When
 needed for source inspection, use commit
 `93c620c3e7c401be40b71c480518147c76ade4dc` from `morluto/rea`.
 
+## Native viewer
+
+`make test` also builds `native/` (core and `build/mu-render`) and runs `native/tests`. The core needs only clang and Crypto++. libjpeg is optional: install `jpeg-turbo` with Homebrew or `libjpeg-dev` on Debian/Ubuntu. The windowed viewer needs SDL2: `brew install sdl2`, then `make native-viewer`. Its tests skip explicitly when `sdl2-config` is absent, and its headless GL check skips when no offscreen context can be created. The private viewer checks use `MU_GAME_ROOT`. See [the native viewer](../native/README.md).
+
 ## Private integration checks
 
 Supply the exact `main.exe` locally at `input/main.exe`. Its SHA-256 must be

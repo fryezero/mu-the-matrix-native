@@ -1,6 +1,6 @@
 # Architecture and recovery boundaries
 
-The repository currently builds recovery tools and source components. It has no recovered game loop or native-client executable target yet.
+The repository currently builds recovery tools and source components. It has no recovered game loop or native game-client target yet; `native/` builds a model viewer only.
 
 | Module | Interface | Responsibility |
 |---|---|---|
@@ -13,6 +13,8 @@ The repository currently builds recovery tools and source components. It has no 
 | `model-recovery/bmd10.py` | `parse_bytes`, `pose_matrices`, `obj_text` | Checked mesh, index, bone and animation records; recorded-pose geometry |
 | `model-recovery/bmd_encrypted.py` | `parse_model`, `parse_model_file` | Version-specific envelope decoding into the validated model layout |
 | `model-recovery/lea256.c` | `mu_lea256_decrypt` | Optional native accelerator, compared with Python and public vectors |
+| `native/core` | `mu_bmd_load`, `mu_model_*`, `mu_meshdraw_corners`, `mu_scene_draw_model`, `mu_raster_*` | Native viewer core: checked BMD loading, client-memory layout around the reconstructed animation/skinning functions, ported mesh-draw corner loop, backend-neutral per-mesh driver, deterministic software rasterizer; portable C |
+| `native/viewer` | `mu-viewer` executable | SDL2 window and OpenGL 2.1 immediate-mode backend; CGL offscreen headless renders |
 | `windows-capture` | Console helper + JSON manifest | Windows process-region acquisition for later analysis |
 | `scripts` | Local CLIs | PE inspection, REA collection, loader provenance and bounded emulation |
 
