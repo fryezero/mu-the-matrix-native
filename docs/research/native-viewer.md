@@ -166,12 +166,12 @@ No mesh was refused and no polygon has four corners. The v12, v14 and v15 vertex
 
   The viewer's values (GL_LINEAR, GL_REPEAT, top row first, LEQUAL, GREATER 0.25) are choices.
 - **The normal-indexed texcoord table is a placeholder.** Its writer (`0x072acfd8`, used by modes 4/0x1000/0x80000/0x100000) is unrecovered. The viewer substitutes 0.5 + 0.5·(normal x, y), labelled as such.
-- **Animation control is the viewer's own.** Action changes, speeds and stop flags are viewer controls; the client's action-change code is untraced. Player parts (`Player/ArmorClass*.bmd`, one key) need the shared `Player.bmd` skeleton and the keep-root attachment path, which are not wired.
+- **Animation control is the viewer's own.** Action changes, speeds and stop flags are viewer controls; the client's action-change code is untraced. Player parts and attachments are now assembled by the character mode ([NATIVE-CHAR-001](native-character.md)).
 - **Some draw paths are left out.** Mode 0x8000 and flag 0x400 need client routines and are refused. The 17 rejected v15 files remain rejected.
 
 ## Recommended next native milestones
 
-1. **Character assembly.** Player skeleton plus part models, the root setter `0x012b7019` and keep-root attachments, so equipped characters can be viewed.
+1. **Character assembly.** Done in [NATIVE-CHAR-001](native-character.md). Its open items are the world-path weapon details (lighting flag, draw `0x0176ce74`, per-part animation state, attribute branches, back-carried weapons) and action names.
 2. **Execute the mesh draw `0x012b8d1d` and body `0x012bb35a` under Unicorn** with a GL-call recorder, as planned in the CLIENT-SKIN-001 handoff. Compare against `mu_meshdraw` and this scene driver. That settles mode selection, state, textures and the normal table.
 3. **Terrain.** Recover the tile renderer `0x016cd468` (fans per tile per layer) and the terrain formats (TERRAIN-001), and render a map with the same backend.
 4. **Effects.** The JSON effect system with its 144-byte stream VBO sprites and particles (EFFECT-001).

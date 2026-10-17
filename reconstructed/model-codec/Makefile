@@ -5,8 +5,9 @@ LIB := libmodelcodec.$(SUFFIX)
 BONES := libbonetracks.$(SUFFIX)
 POSE := libposebuilder.$(SUFFIX)
 SKIN := libskinning.$(SUFFIX)
+CHAR := libcharacter.$(SUFFIX)
 
-all: $(LIB) $(BONES) $(POSE) $(SKIN)
+all: $(LIB) $(BONES) $(POSE) $(SKIN) $(CHAR)
 
 $(LIB): model_codec.c model_codec.h client_lea.c client_lea.h
 	$(CC) $(CFLAGS) -shared model_codec.c client_lea.c -o $@
@@ -24,5 +25,10 @@ $(POSE): pose_builder.c pose_builder.h bone_tracks.c bone_tracks.h ../record-mat
 # pose builder, so one library carries all four authored stages.
 $(SKIN): skinning.c skinning.h pose_builder.c pose_builder.h bone_tracks.c bone_tracks.h ../record-math/record_math.c ../record-math/record_math.h
 	$(CC) $(CFLAGS) -ffp-contract=off -shared skinning.c pose_builder.c bone_tracks.c ../record-math/record_math.c -lm -o $@
+
+# Character assembly helpers (rotation/transform position, class skin index)
+# run in chains with the skinning stack, so the library carries all stages.
+$(CHAR): character.c character.h skinning.c skinning.h pose_builder.c pose_builder.h bone_tracks.c bone_tracks.h ../record-math/record_math.c ../record-math/record_math.h
+	$(CC) $(CFLAGS) -ffp-contract=off -shared character.c skinning.c pose_builder.c bone_tracks.c ../record-math/record_math.c -lm -o $@
 
 .PHONY: all

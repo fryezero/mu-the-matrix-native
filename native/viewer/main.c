@@ -14,6 +14,12 @@
  * Esc/Q quit.
  *
  * Headless: --headless [--backend gl|soft] --out PNG [--compare].
+ *
+ * Character mode (any character option, e.g. --game-root DIR --class 1): the
+ * positional model is Player.bmd (default DIR/Data/Player/Player.bmd); class
+ * body parts, --part/--weapon/--wing items are assembled by mu_character
+ * (reconstructed rotation position, keep-root pose builder and transform) and
+ * drawn in the client's order. Left/Right change the Player action.
  */
 #define _POSIX_C_SOURCE 200809L /* lstat, opendir, strdup with -std=c11 on glibc */
 #include <dirent.h>
@@ -30,6 +36,7 @@
 
 #include "../core/mu_bmd.h"
 #include "../core/mu_camera.h"
+#include "../core/mu_character.h"
 #include "../core/mu_model.h"
 #include "../core/mu_options.h"
 #include "../core/mu_png.h"
@@ -50,7 +57,56 @@ typedef struct viewer {
     mu_camera camera, home;
     int playing;
     float speed;
+    int character;                /* character mode: the models below come from ch */
+    mu_character ch;
 } viewer;
+
+/* Drawing targets: one model in model mode; the assembled items in character
+ * mode, in the client order (body parts 5..0, weapons 0 and 1, wing). */
+enum { MAX_TARGETS = MU_CHARACTER_ITEMS };
+static int targets(viewer *v, const mu_model **models, const mu_textures **textures)
+{
+    if (!v->character) {
+        models[0] = &v->model;
+        textures[0] = &v->textures;
+        return 1;
+    }
+    static const int order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
+    int n = 0;
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
+        const mu_character_item *item = &v->ch.items[order[i]];
+        if (!item->loaded)
+            continue;
+        models[n] = &item->model;
+        textures[n++] = &item->textures;
+    }
+    return n;
+}
+
+static mu_model *animated(viewer *v) { return v->character ? &v->ch.player : &v->model; }
+static const mu_bmd *animated_bmd(viewer *v) { return v->character ? &v->ch.player_bmd : &v->bmd; }
+static void update(viewer *v)
+{
+    if (v->character)
+        mu_character_update(&v->ch);
+    else
+        mu_model_update(&v->model);
+}
+
+static int load_character(viewer *v)
+{
+    char error[1024];
+    if (mu_options_character(&v->options, &v->ch, error, sizeof error)) {
+        fprintf(stderr, "%s\n", error);
+        mu_character_free(&v->ch);
+        return 1;
+    }
+    v->character = 1;
+    snprintf(v->path, sizeof v->path, "%s", v->options.model_path ? v->options.model_path : "Player.bmd");
+    mu_options_character_camera(&v->options, &v->ch, &v->camera);
+    v->home = v->camera;
+    return 0;
+}
 
 static int load_model(viewer *v, const char *path)
 {
@@ -92,9 +148,62 @@ static int load_model(viewer *v, const char *path)
     return 0;
 }
 
-static void draw(viewer *v, mu_render_backend *backend, mu_draw_stats *stats)
+/* Software path: one raster, textures switched per target. */
+static void draw_soft(viewer *v, mu_raster *raster, mu_render_backend *backend, mu_draw_stats *stats)
 {
-    mu_scene_draw_model(&v->model, &v->options.draw, backend, stats);
+    const mu_model *models[MAX_TARGETS];
+    const mu_textures *textures[MAX_TARGETS];
+    int n = targets(v, models, textures);
+    for (int i = 0; i < n; ++i) {
+        raster->textures = textures[i]->slots;
+        raster->texture_count = textures[i]->count;
+        mu_scene_draw_model(models[i], &v->options.draw, backend, stats);
+    }
+}
+
+/* GL path: one texture set (mu_gl_backend) per target. */
+typedef struct gl_targets {
+    mu_gl_backend gl[MAX_TARGETS];
+    mu_render_backend backend[MAX_TARGETS];
+    int count;
+} gl_targets;
+
+static void gl_targets_upload(viewer *v, gl_targets *t, int front_cw, int wireframe)
+{
+    const mu_model *models[MAX_TARGETS];
+    const mu_textures *textures[MAX_TARGETS];
+    t->count = targets(v, models, textures);
+    for (int i = 0; i < t->count; ++i) {
+        memset(&t->gl[i], 0, sizeof t->gl[i]);
+        t->gl[i].front_cw = front_cw;
+        t->gl[i].wireframe = wireframe;
+        mu_gl_upload(&t->gl[i], textures[i]->slots, textures[i]->count, v->options.nearest);
+        mu_gl_backend_bind(&t->gl[i], &t->backend[i]);
+    }
+}
+
+static void gl_targets_release(gl_targets *t)
+{
+    for (int i = 0; i < t->count; ++i)
+        mu_gl_release(&t->gl[i]);
+    t->count = 0;
+}
+
+static void gl_targets_set(gl_targets *t, int front_cw, int wireframe)
+{
+    for (int i = 0; i < t->count; ++i) {
+        t->gl[i].front_cw = front_cw;
+        t->gl[i].wireframe = wireframe;
+    }
+}
+
+static void draw_gl(viewer *v, gl_targets *t, mu_draw_stats *stats)
+{
+    const mu_model *models[MAX_TARGETS];
+    const mu_textures *textures[MAX_TARGETS];
+    int n = targets(v, models, textures);
+    for (int i = 0; i < n && i < t->count; ++i)
+        mu_scene_draw_model(models[i], &v->options.draw, &t->backend[i], stats);
 }
 
 /* ---- headless ---- */
@@ -105,15 +214,13 @@ static int render_soft(viewer *v, uint8_t *pixels)
         return 1;
     raster.linear = !v->options.nearest;
     raster.front_ccw = !v->options.front_cw;
-    raster.textures = v->textures.slots;
-    raster.texture_count = v->textures.count;
     mu_camera_view(&v->camera, raster.view);
     mu_camera_projection(&v->camera, (float)v->options.width / (float)v->options.height, raster.projection);
     mu_raster_clear(&raster, v->options.background);
     mu_render_backend backend;
     mu_raster_backend(&raster, &backend);
     mu_draw_stats stats = {0, 0, 0};
-    draw(v, &backend, &stats);
+    draw_soft(v, &raster, &backend, &stats);
     memcpy(pixels, raster.color, (size_t)v->options.width * (size_t)v->options.height * 4);
     mu_raster_free(&raster);
     return 0;
@@ -127,22 +234,18 @@ static int render_gl(viewer *v, uint8_t *pixels)
         fprintf(stderr, "headless GL: %s\n", error);
         return 1;
     }
-    mu_gl_backend gl;
-    memset(&gl, 0, sizeof gl);
-    gl.front_cw = v->options.front_cw;
-    mu_gl_upload(&gl, v->textures.slots, v->textures.count, v->options.nearest);
+    static gl_targets t;
+    gl_targets_upload(v, &t, v->options.front_cw, 0);
     float view[16], projection[16];
     mu_camera_view(&v->camera, view);
     mu_camera_projection(&v->camera, (float)w / (float)h, projection);
     mu_gl_frame(w, h, v->options.background, view, projection);
-    mu_render_backend backend;
-    mu_gl_backend_bind(&gl, &backend);
     mu_draw_stats stats = {0, 0, 0};
-    draw(v, &backend, &stats);
+    draw_gl(v, &t, &stats);
     glFinish();
     mu_gl_read(w, h, pixels);
     fprintf(stderr, "GL renderer: %s\n", mu_gl_renderer());
-    mu_gl_release(&gl);
+    gl_targets_release(&t);
     mu_gl_headless_end();
     return 0;
 }
@@ -248,16 +351,17 @@ static void step_model(viewer *v, int direction)
 
 static void set_action(viewer *v, int delta)
 {
-    int32_t n = v->bmd.action_count;
+    mu_model *model = animated(v);
+    int32_t n = animated_bmd(v)->action_count;
     if (n <= 0)
         return;
-    uint16_t old = mu_model_action(&v->model);
-    float frame = mu_model_frame(&v->model);
+    uint16_t old = mu_model_action(model);
+    float frame = mu_model_frame(model);
     int32_t next = ((int32_t)old + delta + n) % n;
     /* Viewer action change: blend from the current pose (the client's own
      * action-change code, object +0x2a/+0x2c/+0xd4, has not been traced). */
-    mu_model_set_state(&v->model, (uint16_t)next, 0.0f, (float)(int)frame, old);
-    mu_model_update(&v->model);
+    mu_model_set_state(model, (uint16_t)next, 0.0f, (float)(int)frame, old);
+    update(v);
 }
 
 static void title(viewer *v, SDL_Window *window)
@@ -266,12 +370,18 @@ static void title(viewer *v, SDL_Window *window)
     int mode_index = v->options.draw.mode == 4 ? 1 : v->options.draw.mode == 0x1000 ? 2 : v->options.draw.mode == 1 ? 3 : 0;
     const char *name = strrchr(v->path, '/');
     char text[512];
-    uint16_t action = mu_model_action(&v->model);
-    snprintf(text, sizeof text, "%s  v%d  action %u/%d (%d keys)  frame %.2f  speed %.3f%s  mode %s%s%s",
-             name ? name + 1 : v->path, v->bmd.version, action, v->bmd.action_count,
-             v->bmd.action_count ? v->bmd.actions[action < v->bmd.action_count ? action : 0].keys : 0,
-             (double)mu_model_frame(&v->model), (double)v->speed, v->playing ? "" : " (paused)", mode_names[mode_index],
-             v->options.params.lighting ? "" : "  unlit", v->textures.missing ? "  [missing textures]" : "");
+    const mu_bmd *bmd = animated_bmd(v);
+    mu_model *model = animated(v);
+    uint16_t action = mu_model_action(model);
+    int missing = v->textures.missing;
+    if (v->character)
+        for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+            missing += v->ch.items[i].loaded ? v->ch.items[i].textures.missing : 0;
+    snprintf(text, sizeof text, "%s%s  v%d  action %u/%d (%d keys)  frame %.2f  speed %.3f%s  mode %s%s%s",
+             v->character ? "character " : "", name ? name + 1 : v->path, bmd->version, action, bmd->action_count,
+             bmd->action_count ? bmd->actions[action < bmd->action_count ? action : 0].keys : 0,
+             (double)mu_model_frame(model), (double)v->speed, v->playing ? "" : " (paused)", mode_names[mode_index],
+             v->options.params.lighting ? "" : "  unlit", missing ? "  [missing textures]" : "");
     SDL_SetWindowTitle(window, text);
 }
 
@@ -311,12 +421,9 @@ static int windowed(viewer *v)
     }
     SDL_GL_SetSwapInterval(1);
     fprintf(stderr, "GL renderer: %s, version %s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
-    mu_gl_backend gl;
-    memset(&gl, 0, sizeof gl);
-    gl.front_cw = v->options.front_cw;
-    mu_gl_upload(&gl, v->textures.slots, v->textures.count, v->options.nearest);
-    mu_render_backend backend;
-    mu_gl_backend_bind(&gl, &backend);
+    static gl_targets t;
+    int front_cw = v->options.front_cw, wireframe = 0;
+    gl_targets_upload(v, &t, front_cw, wireframe);
 
     uint64_t frequency = SDL_GetPerformanceFrequency(), last = SDL_GetPerformanceCounter(), start = last;
     double accumulator = 0;
@@ -363,13 +470,15 @@ static int windowed(viewer *v)
                 case SDLK_UP: v->speed *= 1.25f; break;
                 case SDLK_DOWN: v->speed /= 1.25f; break;
                 case SDLK_PERIOD: case SDLK_COMMA: {
-                    uint16_t action = mu_model_action(&v->model);
-                    float frame = (float)(int)mu_model_frame(&v->model) + (event.key.keysym.sym == SDLK_PERIOD ? 1.0f : -1.0f);
-                    int32_t keys = v->bmd.action_count ? v->bmd.actions[action < v->bmd.action_count ? action : 0].keys : 0;
+                    mu_model *model = animated(v);
+                    const mu_bmd *bmd = animated_bmd(v);
+                    uint16_t action = mu_model_action(model);
+                    float frame = (float)(int)mu_model_frame(model) + (event.key.keysym.sym == SDLK_PERIOD ? 1.0f : -1.0f);
+                    int32_t keys = bmd->action_count ? bmd->actions[action < bmd->action_count ? action : 0].keys : 0;
                     if (keys > 0)
                         frame = (float)(((int)frame % keys + keys) % keys);
-                    mu_model_set_state(&v->model, action, frame, frame, action);
-                    mu_model_update(&v->model);
+                    mu_model_set_state(model, action, frame, frame, action);
+                    update(v);
                     break;
                 }
                 case SDLK_m: {
@@ -379,24 +488,31 @@ static int windowed(viewer *v)
                 }
                 case SDLK_l:
                     v->options.params.lighting = !v->options.params.lighting;
-                    v->model.params.lighting = v->options.params.lighting;
-                    mu_model_apply_params(&v->model, &v->model.params);
-                    mu_model_update(&v->model);
+                    if (v->character) {
+                        v->ch.params.lighting = v->options.params.lighting;
+                    } else {
+                        v->model.params.lighting = v->options.params.lighting;
+                        mu_model_apply_params(&v->model, &v->model.params);
+                    }
+                    update(v);
                     break;
                 case SDLK_t: v->options.draw.alpha_test = !v->options.draw.alpha_test; break;
                 case SDLK_c: v->options.draw.cull = (int8_t)(v->options.draw.cull == -1 ? 0 : v->options.draw.cull == 0 ? 1 : -1); break;
-                case SDLK_f: gl.front_cw = !gl.front_cw; break;
-                case SDLK_g: gl.wireframe = !gl.wireframe; break;
+                case SDLK_f: front_cw = !front_cw; gl_targets_set(&t, front_cw, wireframe); break;
+                case SDLK_g: wireframe = !wireframe; gl_targets_set(&t, front_cw, wireframe); break;
                 case SDLK_s: {
-                    uint16_t action = mu_model_action(&v->model);
-                    mu_model_set_action_stop(&v->model, action, (uint8_t)!mu_model_action_stop(&v->model, action));
+                    mu_model *model = animated(v);
+                    uint16_t action = mu_model_action(model);
+                    mu_model_set_action_stop(model, action, (uint8_t)!mu_model_action_stop(model, action));
                     break;
                 }
                 case SDLK_r: v->camera = v->home; break;
                 case SDLK_n: case SDLK_p:
-                    mu_gl_release(&gl);
+                    if (v->character)
+                        break;
+                    gl_targets_release(&t);
                     step_model(v, event.key.keysym.sym == SDLK_n ? 1 : -1);
-                    mu_gl_upload(&gl, v->textures.slots, v->textures.count, v->options.nearest);
+                    gl_targets_upload(v, &t, front_cw, wireframe);
                     break;
                 case SDLK_o: {
                     int w, h;
@@ -418,12 +534,12 @@ static int windowed(viewer *v)
             accumulator -= 0.040;
             if (v->playing) {
                 uint8_t loop;
-                mu_model_tick(&v->model, v->speed, &loop);
+                mu_model_tick(animated(v), v->speed, &loop);
                 stepped = 1;
             }
         }
         if (stepped)
-            mu_model_update(&v->model);
+            update(v);
         int w, h;
         SDL_GL_GetDrawableSize(window, &w, &h);
         float view[16], projection[16];
@@ -431,7 +547,7 @@ static int windowed(viewer *v)
         mu_camera_projection(&v->camera, (float)w / (float)(h ? h : 1), projection);
         mu_gl_frame(w, h, v->options.background, view, projection);
         mu_draw_stats stats = {0, 0, 0};
-        draw(v, &backend, &stats);
+        draw_gl(v, &t, &stats);
         SDL_GL_SwapWindow(window);
         frames++;
         if ((frames & 31) == 0)
@@ -444,7 +560,7 @@ static int windowed(viewer *v)
     }
     fprintf(stderr, "frames=%llu seconds=%.2f\n", (unsigned long long)frames,
             (double)(SDL_GetPerformanceCounter() - start) / (double)frequency);
-    mu_gl_release(&gl);
+    gl_targets_release(&t);
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -461,17 +577,21 @@ int main(int argc, char **argv)
     mu_options_defaults(&v.options);
     v.options.width = 1024;
     v.options.height = 768;
-    if (mu_options_parse(&v.options, argc, argv, 1) || !v.options.model_path) {
+    if (mu_options_parse(&v.options, argc, argv, 1) || (!v.options.model_path && !v.options.character)) {
         mu_options_usage(argv[0]);
         return 2;
     }
-    if (load_model(&v, v.options.model_path))
+    if (v.options.character ? load_character(&v) : load_model(&v, v.options.model_path))
         return 1;
     v.playing = 1;
     v.speed = v.options.speed;
     int status = v.options.headless ? headless(&v) : windowed(&v);
-    mu_model_free(&v.model);
-    mu_bmd_free(&v.bmd);
-    mu_textures_free(&v.textures);
+    if (v.character) {
+        mu_character_free(&v.ch);
+    } else {
+        mu_model_free(&v.model);
+        mu_bmd_free(&v.bmd);
+        mu_textures_free(&v.textures);
+    }
     return status;
 }

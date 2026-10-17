@@ -205,3 +205,53 @@ def write_textured_model(directory, seed=1, *, version=10, four_corner=False):
         payload = tga(8 << (index % 2), 8, seed*10+index, alpha=index != 1, rle=index == 2, top_left=index == 0)
         (directory/f'{stem.upper() if index == 1 else stem}.OZT').write_bytes(ozt(payload))
     return path
+
+
+def character_layout(seed, *, bones, actions=1, keys=(1,), meshes=0, mesh_bones=None, dummies=(),
+                     texture_prefix='part'):
+    """Decoded v10 layout for character tests (NATIVE-CHAR-001).
+
+    A Player-style skeleton (meshes=0, many bones and actions) or a part/item
+    model whose vertices and normals reference bones of the shared skeleton
+    (mesh_bones: bone indices to draw from; default every non-dummy bone).
+    Parents point at a random earlier non-dummy bone (bone 0 is the root).
+    """
+    g = random.Random(seed)
+    usable = [b for b in range(bones) if b not in dummies]
+    mesh_bones = mesh_bones or usable
+    chunks = [b'BMD\x0a', name32(f'character{seed}.smd'), struct.pack('<HHH', meshes, bones, actions)]
+    for mi in range(meshes):
+        nv, nn, nt = g.randrange(8, 20), g.randrange(8, 20), g.randrange(4, 10)
+        nf = g.randrange(8, 20)
+        chunks.append(struct.pack('<hhhhh', nv, nn, nt, nf, mi))
+        for _ in range(nv):
+            chunks.append(struct.pack('<hhfff', g.choice(mesh_bones), 0, *[f32(g.uniform(-25, 25)) for _ in range(3)]))
+        for _ in range(nn):
+            v = [g.uniform(-1, 1) for _ in range(3)]
+            length = math.sqrt(sum(x*x for x in v)) or 1.0
+            chunks.append(struct.pack('<hhfffhh', g.choice(mesh_bones), 0, *[f32(x/length) for x in v],
+                                      g.randrange(nv), 0))
+        for _ in range(nt):
+            chunks.append(struct.pack('<ff', f32(g.uniform(0, 1)), f32(g.uniform(0, 1))))
+        for _ in range(nf):
+            face = bytearray(64)
+            face[0] = 3
+            for offset, upper in ((2, nv), (10, nn), (18, nt)):
+                struct.pack_into('<4h', face, offset, *([g.randrange(upper) for _ in range(3)] + [-1]))
+            chunks.append(bytes(face))
+        chunks.append(name32(f'{texture_prefix}{mi}.tga'))
+    key_counts = [keys[a % len(keys)] for a in range(actions)]
+    for a in range(actions):
+        chunks.append(struct.pack('<hB', key_counts[a], 0))
+    for b in range(bones):
+        if b in dummies:
+            chunks.append(b'\x01')
+            continue
+        parent = -1 if b == 0 else g.choice([p for p in usable if p < b])
+        chunks.append(b'\x00'+name32(f'cbone{b}')+struct.pack('<h', parent))
+        for a in range(actions):
+            for _ in range(key_counts[a]):
+                chunks.append(struct.pack('<3f', *[f32(g.uniform(-15, 15)) for _ in range(3)]))
+            for _ in range(key_counts[a]):
+                chunks.append(struct.pack('<3f', *[f32(g.uniform(-math.pi, math.pi)) for _ in range(3)]))
+    return b''.join(chunks)

@@ -112,6 +112,24 @@ int mu_model_tick(mu_model *model, float speed, uint8_t *loop);
  * or whose current/prior action has no keys, get identity bone matrices
  * instead (viewer behaviour; the client would read unrelated memory). */
 int mu_model_pose(mu_model *model);
+/* mu_pose_build with the keep-root argument set (the attachment path of the
+ * character render 0x0139be7a): the root bones compose under the shared root
+ * matrix 0x078965ac left by mu_model_rotation_position on the parent model.
+ * Translate comes from params.pose_translate. Same identity fallback. */
+int mu_model_pose_keep_root(mu_model *model);
+/* Reconstructed rotation position 0x012b7019 on this model: out =
+ * body scale * R(bone matrix) * vector, then the bone matrix is copied into
+ * the root matrix 0x078965ac. Vector and out use scratch in the object. */
+int mu_model_rotation_position(mu_model *model, int32_t bone, const float vector[3], float out[3]);
+/* Character assembly: the client poses every model of a character into the
+ * one bone buffer 0x06fce398 and composes attachments under the one root
+ * matrix 0x078965ac. This replaces the model's private bone, root and
+ * quaternion regions with caller storage shared by several models: bones
+ * MU_MODEL_SHARED_BONE_BYTES, root 0x30 bytes, quaternions
+ * MU_MODEL_SHARED_QUATERNION_BYTES. The caller owns and frees the storage. */
+#define MU_MODEL_SHARED_BONE_BYTES (MU_MODEL_MAX_BONES * 0x30u)
+#define MU_MODEL_SHARED_QUATERNION_BYTES (0x075a9ee8u - 0x075a90d8u)
+void mu_model_share(mu_model *model, uint8_t *bones, uint8_t *root, uint8_t *quaternions);
 /* mu_model_transform into the output regions. */
 int mu_model_transform_all(mu_model *model);
 /* tick (when speed != 0 is requested by the caller), pose and transform. */
