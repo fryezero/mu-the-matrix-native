@@ -344,6 +344,40 @@ static void vertex(void *context, const float xyz[3])
         v->color[k] = clamp01(r->current_color[k]);
 }
 
+void mu_raster_set(mu_raster *r, const mu_meshdraw_state *state, const mu_image *texture, int linear)
+{
+    r->state = *state;
+    r->texture = texture;
+    r->linear = linear;
+}
+
+void mu_raster_begin_mode(mu_raster *r, int mode)
+{
+    r->primitive = mode;
+    r->vertex_count = 0;
+}
+
+void mu_raster_end_mode(mu_raster *r)
+{
+    if (r->primitive == 6) {
+        for (int32_t i = 1; i + 1 < r->vertex_count; ++i) {
+            mu_raster_vertex t[3] = {r->vertices[0], r->vertices[i], r->vertices[i + 1]};
+            emit_triangle(r, t);
+        }
+    } else if (r->primitive == 7) {
+        for (int32_t i = 0; i + 3 < r->vertex_count; i += 4) {
+            mu_raster_vertex a[3] = {r->vertices[i], r->vertices[i + 1], r->vertices[i + 2]};
+            mu_raster_vertex b[3] = {r->vertices[i], r->vertices[i + 2], r->vertices[i + 3]};
+            emit_triangle(r, a);
+            emit_triangle(r, b);
+        }
+    } else {
+        for (int32_t i = 0; i + 2 < r->vertex_count; i += 3)
+            emit_triangle(r, &r->vertices[i]);
+    }
+    r->vertex_count = 0;
+}
+
 void mu_raster_backend(mu_raster *r, mu_render_backend *backend)
 {
     memset(backend, 0, sizeof *backend);

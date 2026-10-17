@@ -45,17 +45,20 @@ endif
 
 RECON := ../reconstructed
 CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_image.c core/mu_png.c core/mu_camera.c \
-            core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c
+            core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
+            core/mu_terrain.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
-             $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c
+             $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
+             $(RECON)/terrain/terrain.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
-HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h
+HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
+           $(RECON)/terrain/terrain.h
 
-all: $(BUILD)/mu-render $(BUILD)/libmumeshdraw.$(if $(filter Darwin,$(UNAME)),dylib,so)
+all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/libmumeshdraw.$(if $(filter Darwin,$(UNAME)),dylib,so)
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -77,6 +80,10 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
 $(BUILD)/mu-render: tools/mu_render.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render.c -o $(BUILD)/mu_render.o
 	$(CXX) $(BUILD)/mu_render.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+
+$(BUILD)/mu-terrain: tools/mu_terrain.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_terrain.c -o $(BUILD)/mu_terrain.o
+	$(CXX) $(BUILD)/mu_terrain.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
 # The mesh-draw module alone, for the Python equivalence tests (ctypes).
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h
