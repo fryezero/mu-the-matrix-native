@@ -447,3 +447,82 @@ prior frame/action and keep-root flag are chosen per animation tick. Then
 follow the output matrices and quaternion table into the skinning/renderer
 consumer. Alternatives: the second builder `0x012bcffb` (action-0 only), the
 17 rejected v15 files with a non-validating locator, or the v10 sibling loop.
+
+## Skinning path reconstructed
+
+Issue #53 / `claude/skinning-path` (worktree `~/Documents/mu-worktrees/skinning`)
+adds:
+
+* `mu_model_transform` and `mu_animation_tick` in
+  `reconstructed/model-codec/skinning.{c,h}`, built as `libskinning` together
+  with the pose builder, the bone-track loop and record-math;
+* record-math vector helpers `mu_vector_rotate`, `mu_vector_transform` and
+  `mu_vector_irotate`;
+* `scripts/validate_skinning.py`, which runs the actual instructions;
+* `scripts/client_render_static.py`, a static map of callers, import slots and
+  GL order.
+
+Read `research/client-skinning.md`.
+
+Callers. All 314 raw builder candidates sync, in 105 functions:
+
+* 300 write the shared bone buffer `0x06fce398`;
+* 117 take frame, prior frame, prior action, angles and head angles from one
+  object (`+0xd0`, `+0xd4`, `+0x2c`, `+0x164`, `+0x170`);
+* 140 take a computed frame, 108 of them `object+0xd0` minus a local;
+* 19 use `(int)frame - 1` as the prior;
+* 12 are bind poses and 26 are other.
+
+The tick `0x012b4dd3` has 91 candidates and is the prior-frame writer. When the
+integer frame changes, `*prior_action = model+0xa8` and
+`*prior_frame = old integer`. Keep-root calls (25) follow root setter
+`0x012b7019`, which copies a parent bone matrix into root global `0x078965ac`
+for attachments.
+
+Skinning. The transform `0x012b5bde` is reached through wrapper `0x00966ea5`
+with buffers vertices `0x078978a0`, normals `0x0812cce0` and light
+`0x06fd0918`, at per-mesh strides `0x2bf20`/`0xea60`. Each vertex uses one bone,
+with no blending. Normals are rotated only. Light is a clamped Lambert term and
+also goes to a secondary table at `0x075a9ee8`.
+
+Comparisons. The actual transform, tick and vector helpers run with no client
+stubs. Installed models chain through the actual bone-track loop and actual
+builder, and the transform reads the builder's real output window. Results:
+
+* 903 direct helper calls, 226 synthetic transforms, 24 builder-chained
+  synthetic models and 481 synthetic ticks match;
+* installed v12 180, v14 216 and v15 11,566 transforms match, covering
+  3,814,006 vertices and 3,988,165 normals, plus 35,871 installed ticks;
+* the transposed-rotation, translated-normal, prior-every-tick and ignore-lock
+  controls fail in 210, 223, 259 and 35 cases.
+
+Draw. The mesh draw `0x012b8d1d` (wrapper `0x00966e4a`, 6,361 raw calls) was
+not executed. Statically it sets cached GL state, binds the texture through
+`0x0184acf6`, issues one `glBegin(GL_TRIANGLES)`, and per corner calls
+glTexCoord2f, then glColor3fv or glColor4f, then glVertex3fv on the transform
+output, then glEnd. The body `0x012bb35a` brackets the mesh draws with
+glPushMatrix/glPopMatrix and makes no matrix call between them.
+
+The import slots are named against Debian Wine `8.0~repack-4` i386 opengl32/glu32,
+matching the guest. All 81 + 4 slots resolve, and the first slot equals the file's
+only static import name. The `.deb` (`c992aad6…8d57`, matching the bookworm
+`Packages` hash), the extracted DLLs, the report `comparison-v12-v14-v15.json`
+(`4b225477…c036`), the static report `static-05.json` and the logs are ignored
+under `evidence/client-skinning/`. A first run with v14 reader-rejected (unbuilt
+`libmodulus`) is kept as `run-01-v14-unbuilt/`.
+
+`model-recovery/verified-v14` in that worktree is an untracked read-only
+symlink to the main lab; do not stage it. Portable: 209 discovered, 192 pass,
+17 explicit skips. Opt-in integration with `MU_GAME_ROOT` (read-only
+`runtime/client`) passes all 209. No guest, CrossOver or main-checkout change.
+
+Next: execute the mesh draw `0x012b8d1d` and body `0x012bb35a` under Unicorn,
+with the OPENGL32 IAT targets mapped to an authored GL-call recorder. Seed them
+with the actual transform output on installed models, and compare against an
+authored C emitter of the same GL stream (per-corner texcoord/colour/vertex,
+state and binds). Alternatives:
+
+* trace the action-change code that writes object `+0x2a`, `+0x2c` and `+0xd4`;
+* identify the 24 immediate GL_TRIANGLE_FAN routines behind the profiled
+  four-vertex fans;
+* trace the main loop and frame cap.
