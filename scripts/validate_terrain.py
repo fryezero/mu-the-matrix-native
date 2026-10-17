@@ -45,7 +45,7 @@ KEY = bytes((0xfc, 0xcf, 0xab))
 
 # Client globals (docs/research/client-terrain.md).
 G = dict(world=0x01cf15fc, world2=0x01cf1600, layer1=0x0b735420, layer2=0x0b745420, alpha=0x0b755420,
-         att=0x0b795420, height=0x0b6f5420, light=0x0b9f5430, light2=0x0bc35430, wave=0x0b634ea8,
+         att=0x0b795420, height=0x0b6f5420, light=0x0b9f5430, light2=0x0bc35430, wave=0x0b634ea8, wave2=0x0b674ea8,
          grass_offset=0x0b5f4ea8, grass_map=0x0b5e4ea8, water=0x01cf15dc, time=0x06fce370,
          grass_disabled=0x0b7f5428, config=0x01d22c7c, pass_=0x0b5e3ea0, normal=0x0b7f5430,
          light_map=0x0bb75430, primary=0x0bab5430, uv=0x0b6b5384, corner=0x0b6b5318, idx0=0x0b6b4eac,
@@ -63,7 +63,7 @@ GL = {0x01a7c750: ('glBegin', 4), 0x01a7c760: ('glEnd', 0), 0x01a7c774: ('glTexC
       0x01a7c77c: ('glBindTexture', 8), 0x01a7c75c: ('glEnable', 4), 0x01a7c758: ('glDisable', 4),
       0x01a7c748: ('glBlendFunc', 8), 0x01a7c740: ('glDepthMask', 4)}
 OPENGL_SLOTS = (0x01a7c64c, 0x01a7c790)
-GENERIC_WORLDS = (0, 1, 2, 3, 4, 8)
+GENERIC_WORLDS = (0, 1, 2, 3, 4, 8, 142, 0x50, 0x8d)
 
 
 # --------------------------------------------------------------------------
@@ -360,7 +360,7 @@ class Scene(ctypes.Structure):
     _fields_ = [('world_index', ctypes.c_int32), ('layer1', ctypes.c_void_p), ('layer2', ctypes.c_void_p),
                 ('alpha', ctypes.c_void_p), ('attributes', ctypes.c_void_p), ('height', ctypes.c_void_p),
                 ('light', ctypes.c_void_p), ('light2', ctypes.c_void_p), ('wave', ctypes.c_void_p),
-                ('grass_offset', ctypes.c_void_p), ('grass_map', ctypes.c_void_p), ('water_height', ctypes.c_float),
+                ('wave2', ctypes.c_void_p), ('grass_offset', ctypes.c_void_p), ('grass_map', ctypes.c_void_p), ('water_height', ctypes.c_float),
                 ('time', ctypes.c_float), ('detail', ctypes.c_int32), ('grass_disabled', ctypes.c_uint8),
                 ('texture_size', SIZE_CALLBACK), ('texture_context', ctypes.c_void_p)]
 
@@ -491,7 +491,7 @@ class Authored:
                       arr(ctypes.c_float, s['alpha']), arr(ctypes.c_uint16, s['att']),
                       arr(ctypes.c_float, s['height']), arr(ctypes.c_float, s['light']),
                       arr(ctypes.c_float, s['light2']), arr(ctypes.c_float, s['wave']),
-                      arr(ctypes.c_float, s['grass_offset']), arr(ctypes.c_uint8, s['grass_map']), s['water'],
+                      arr(ctypes.c_float, s['wave2']), arr(ctypes.c_float, s['grass_offset']), arr(ctypes.c_uint8, s['grass_map']), s['water'],
                       s['time'], s['detail'], s['grass_disabled'], callback, None)
         return scene, keep
 
@@ -544,6 +544,7 @@ def synthetic_scene(seed, world=0):
     scene['light'] = [f32(g.random()) for _ in range(3 * CELLS)]
     scene['light2'] = [f32(g.uniform(-0.25, 0.25)) if seed & 1 else 0.0 for _ in range(3 * CELLS)]
     scene['wave'] = [f32(g.uniform(-10.0, 10.0)) for _ in range(CELLS)]
+    scene['wave2'] = [f32(g.uniform(-15.0, 15.0)) for _ in range(CELLS)]
     scene['grass_offset'] = [f32((g.randrange(32768) % 4) / 4.0) for _ in range(CELLS)]
     scene['grass_map'] = bytes(g.choice((1, 1, 1, 0)) for _ in range(CELLS))
     sizes = {}
@@ -592,10 +593,13 @@ class Client:
         for base, size in ((self.STUBS, 0x10000), (self.BITMAPS, 0x60000), (self.CONFIG, 0x1000),
                            (self.TEB, 0x1000), (self.GDT, 0x1000), (self.STACK, 0x40000)):
             uc.mem_map(base, size, UC_PROT_ALL)
-        gdt = b'\0' * 8 + descriptor(self.TEB, 0xfff)
+        # Flat code/data descriptors, then the TEB for fs: (SEH frames).
+        gdt = (b'\0' * 8 + descriptor(0, 0xfffff, 0x9a, 0xc) + descriptor(0, 0xfffff, 0x92, 0xc) +
+               descriptor(self.TEB, 0xfff, 0x92, 0x4))
         uc.mem_write(self.GDT, gdt)
         uc.reg_write(x86.UC_X86_REG_GDTR, (0, self.GDT, len(gdt) - 1, 0))
-        uc.reg_write(x86.UC_X86_REG_FS, 0x8)
+        uc.reg_write(x86.UC_X86_REG_SS, 2 << 3)   # 32-bit stack segment once a GDT is loaded
+        uc.reg_write(x86.UC_X86_REG_FS, 3 << 3)
         uc.mem_write(self.TEB, struct.pack('<I', 0xffffffff))
         # Import stubs: recorded GL calls; every other OpenGL slot traps.
         self.stub_names = {}
@@ -605,7 +609,7 @@ class Client:
             uc.mem_write(stub, b'\xc3' if not args else b'\xc2' + struct.pack('<H', args))
             uc.mem_write(slot, struct.pack('<I', stub))
             self.stub_names[stub] = name
-        uc.hook_add(UC_HOOK_CODE, self.on_stub, begin=self.STUBS, end=self.STUBS + 0x7ff)
+        uc.hook_add(UC_HOOK_CODE, self.on_stub, begin=self.STUBS, end=self.STUBS + 0xfff)
         for address in list(STATE_WRAPPERS) + [BIND] + list(LOOKUPS) + [SINGLETON]:
             uc.hook_add(UC_HOOK_CODE, self.on_entry, begin=address, end=address)
         uc.hook_add(UC_HOOK_MEM_UNMAPPED | UC_HOOK_MEM_FETCH_UNMAPPED, self.on_unmapped)
@@ -637,6 +641,7 @@ class Client:
 
     def on_stub(self, uc, address, size, ignored):
         if address == self.SENTINEL:
+            uc.emu_stop()   # the stop address shares a page with the stubs; chained blocks skip `until`
             return
         name = self.stub_names.get(address)
         if name is None:
@@ -700,6 +705,7 @@ class Client:
         self.write('light', 'f', s['light'])
         self.write('light2', 'f', s['light2'])
         self.write('wave', 'f', s['wave'])
+        self.write('wave2', 'f', s['wave2'])
         self.write('grass_offset', 'f', s['grass_offset'])
         self.uc.mem_write(G['grass_map'], s['grass_map'])
         self.write('water', 'f', [s['water']])
@@ -766,7 +772,7 @@ def run_client(args, authored):
     report['xor3'] = {'cases': cases, 'matches': matches}
 
     # FaceNormalize
-    cases = matches = 0
+    cases = matches = nan_only = 0
     specials = [0.0, -0.0, 1.0, 100.0, 1e-20, 3.4e38, float('nan'), float('inf')]
     for case in range(400):
         pick = lambda: g.choice(specials) if case % 5 == 0 else f32(g.uniform(-500, 500))
@@ -777,9 +783,15 @@ def run_client(args, authored):
         client.uc.mem_write(base, struct.pack('<9f', *a, *b, *c) + struct.pack('<3I', 0x7fc0dead, 1, 2))
         ok = client.call(FACE_NORMAL, [base, base + 12, base + 24, base + 36])
         got = list(struct.unpack('<3f', client.uc.mem_read(base + 36, 12)))
+        mine = authored.face_normal(a, b, c)
         cases += 1
-        matches += int(ok and compare_lists(got, authored.face_normal(a, b, c)))
-    report['face_normal'] = {'cases': cases, 'matches': matches}
+        exact = ok and compare_lists(got, mine)
+        matches += int(exact)
+        # Out-of-domain inputs (inf/huge) make NaN: x86 generates 0xffc00000,
+        # arm64 0x7fc00000. Counted apart; every other bit must agree.
+        if ok and not exact and all(fbits(x) == fbits(y) or (x != x and y != y) for x, y in zip(got, mine)):
+            nan_only += 1
+    report['face_normal'] = {'cases': cases, 'matches': matches, 'generated_nan_sign_only': nan_only}
 
     # CreateTerrainNormal and CreateTerrainLight on synthetic grids
     grids = []
@@ -909,11 +921,204 @@ def run_client(args, authored):
                                         'lengths': [len(client.stream), len(expected)]}
     report['render_terrain'] = frames
 
+    loader_checks(client, authored, report, g)
+
     # Negative control: the "natural" uv corner rule (index 2/3 instead of 1/0) must differ.
     report['negative_controls'] = negative_controls(authored)
     if args.game_root:
         report['installed'] = installed(args, authored, client)
     return report
+
+
+# --------------------------------------------------------------------------
+# Loader loops and the per-frame update, run as bounded regions of the
+# client's functions (inputs placed in their frames) or as whole calls.
+
+CRT_FSEEK, CRT_FREAD, CRT_FREE, CRT_FCLOSE, ERROR_BOX = 0x01989dab, 0x01989230, 0x0191bac2, 0x01988c95, 0x016cef3f
+WAVE = 0x016ca4fa
+ALTERNATE = 0x01ec3254
+POISON = b'\xa5'
+
+
+def install_crt(client):
+    """Entry stubs for CRT file I/O and two helpers (modelled, labelled in the report)."""
+    from unicorn import UC_HOOK_CODE
+    client.file, client.cursor, client.crt_calls, client.crt_allowed = b'', 0, [], set()
+
+    def hook(uc, address, size, ignored):
+        if address not in client.crt_allowed:
+            client.error = ('unexpected-crt', hex(address))
+            uc.emu_stop()
+            return
+        if address == CRT_FREAD:
+            buffer, item, count = client.arg(0), client.arg(1), client.arg(2)
+            chunk = client.file[client.cursor:client.cursor + item * count]
+            client.cursor += len(chunk)
+            uc.mem_write(buffer, chunk)
+            client.ret(len(chunk) // item if item else 0, 0)
+        elif address == CRT_FSEEK:
+            client.cursor = client.arg(1)
+            client.ret(0, 0)
+        else:
+            client.crt_calls.append(hex(address))
+            client.ret(0, 0)
+    for address in (CRT_FSEEK, CRT_FREAD, CRT_FREE, CRT_FCLOSE, ERROR_BOX):
+        client.uc.hook_add(UC_HOOK_CODE, hook, begin=address, end=address)
+
+
+def region(client, start, end, slots, frame_bytes):
+    uc, x86 = client.uc, client.x86
+    client.stream, client.gl_state, client.error = [], [], None
+    ebp = client.STACK + 0x3e000
+    uc.mem_write(ebp - frame_bytes, POISON * frame_bytes)
+    for offset, value in slots.items():
+        uc.mem_write(ebp + offset, struct.pack('<I', value & 0xffffffff))
+    uc.reg_write(x86.UC_X86_REG_EBP, ebp)
+    uc.reg_write(x86.UC_X86_REG_ESP, ebp - frame_bytes)
+    uc.reg_write(x86.UC_X86_REG_EFLAGS, 2)
+    uc.reg_write(x86.UC_X86_REG_FPCW, 0x27f)
+    uc.reg_write(x86.UC_X86_REG_MXCSR, 0x1f80)
+    try:
+        uc.emu_start(start, end, timeout=0, count=0)
+    except Exception as failure:  # UcError
+        client.error = client.error or ('uc', str(failure))
+    return (client.error is None and uc.reg_read(x86.UC_X86_REG_EIP) == end and
+            uc.reg_read(x86.UC_X86_REG_EBP) == ebp), uc.reg_read(x86.UC_X86_REG_EAX)
+
+
+WINDOW_AT = 0x0b5f4ea8  # scratch inside the mapped terrain area for file buffers (grass table, not read here)
+
+
+def loader_checks(client, authored, report, g):
+    install_crt(client)
+    uc = client.uc
+    big = WINDOW_AT
+
+    def bits_of(data):
+        return list(struct.unpack(f'<{len(data) // 4}I', data))
+
+    # 8-bit height loop 0x016c850c..0x016c85af ([ebp-8] buffer, [ebp-0x1c] 0x438)
+    cases = matches = 0
+    for world in (0, 0x37, 142):
+        raw = b'BM8\x04' + bytes(g.randrange(256) for _ in range(0x438 + CELLS))
+        uc.mem_write(big, raw[4:])
+        uc.mem_write(G['height'], POISON * (4 * CELLS))
+        client.write('world', 'i', [world])
+        ok, _ = region(client, 0x016c850c, 0x016c85af, {-8: big, -0x1c: 0x438}, 0x340)
+        status, mine = authored.height_bytes(raw, authored.lib.mu_terrain_height_scale(world))
+        cases += 1
+        matches += int(ok and status == 0 and compare_lists(client.read('height', 'f', CELLS), mine))
+    report['height_bytes'] = {'cases': cases, 'matches': matches}
+
+    # 24-bit height loop 0x016c8843..0x016c8958 ([ebp-0x14] whole file)
+    cases = matches = 0
+    for _ in range(2):
+        raw = b'BM6\x00' + bytes(g.randrange(256) for _ in range(54 + 3 * CELLS))
+        uc.mem_write(big, raw)
+        uc.mem_write(G['height'], POISON * (4 * CELLS))
+        ok, _ = region(client, 0x016c8843, 0x016c8958, {-0x14: big, -0x20: len(raw)}, 0x280)
+        status, mine = authored.height_rgb(raw)
+        cases += 1
+        matches += int(ok and status == 0 and compare_lists(client.read('height', 'f', CELLS), mine))
+    report['height_rgb'] = {'cases': cases, 'matches': matches}
+
+    # TerrainLight pixel loop 0x0185b366..0x0185b458 (CRT fseek/fread modelled)
+    cases = matches = 0
+    for width, height in ((256, 256), (16, 8), (3, 5)):
+        header = bytearray(54)
+        struct.pack_into('<2sI', header, 0, b'BM', 54 + 3 * width * height)
+        struct.pack_into('<III', header, 14, 40, width, height)
+        raw = b'BM6\x00' + bytes(header) + bytes(g.randrange(256) for _ in range(3 * width * height))
+        client.file, client.cursor = raw, 0
+        client.crt_allowed = {CRT_FSEEK, CRT_FREAD}
+        target = G['light_map']
+        uc.mem_write(target, POISON * (12 * CELLS))
+        ok, _ = region(client, 0x0185b366, 0x0185b458, {-4: 0x51e0f11e, 0xc: target}, 0x360)
+        status, mine = authored.light(raw)
+        got = bytes(uc.mem_read(target, 12 * CELLS))
+        n = 12 * width * height
+        cases += 1
+        matches += int(ok and status == 0 and bits_of(got[:n]) == [fbits(x) for x in mine] and
+                       got[n:] == POISON * (12 * CELLS - n))
+    report['light_bmp'] = {'cases': cases, 'matches': matches}
+
+    # Attribute tail 0x016c9faf..0x016ca15f after decryption (key at 0x01cf0448 modelled)
+    cases = matches = 0
+    good = bytes([0, 7, 255, 255]) + b''.join(struct.pack('<H', g.choice((0, 4, 8, 0x40, 0x7f, 0x500, 0x4000,
+                                                                          0xff7f))) for _ in range(CELLS))
+    bad = bytearray(good)
+    bad[4 + 2 * 1234] = 0x80
+    plains = [good, bytes([0, 3, 255, 255]) + bytes(g.choice((0, 1, 4, 8, 0x7f)) for _ in range(CELLS)),
+              bytes([1]) + good[1:], bytes(bad), good[:3] + b'\xfe' + good[4:], good[:0x10004]]
+    for plain in plains:
+        encrypted = py_xor3(plain)
+        uc.mem_write(G['key'], KEY)
+        uc.mem_write(big, encrypted)
+        uc.mem_write(G['att'], POISON * (2 * CELLS))
+        client.crt_allowed, client.crt_calls = {CRT_FREE, CRT_FCLOSE, ERROR_BOX}, []
+        ok, eax = region(client, 0x016c9faf, 0x016ca15f, {-8: big, -0x18: len(plain), -0x14: 0x51e0f11e}, 0x10160)
+        status, number, att = authored.parse_attributes(encrypted)
+        client_status = 2 if eax == 0xffffffff else 0
+        same = (ok and status == client_status and client.read('att', 'H', CELLS) == att and
+                (status != 0 or eax == number) and (hex(ERROR_BOX) in client.crt_calls) == (status == 2))
+        cases += 1
+        matches += int(same)
+    report['attributes'] = {'cases': cases, 'matches': matches}
+
+    # Map tail 0x016c9adf..0x016c9b8b
+    plain = bytes(g.randrange(256) for _ in range(2 + 3 * CELLS))
+    uc.mem_write(big, plain)
+    for name, size in (('layer1', CELLS), ('layer2', CELLS), ('alpha', 4 * CELLS)):
+        uc.mem_write(G[name], POISON * size)
+    ok, _ = region(client, 0x016c9adf, 0x016c9b8b, {-0x14: big}, 0x50)
+    number = struct.unpack('<I', uc.mem_read(client.STACK + 0x3e000 - 0x48, 4))[0]
+    status, mine_number, l1, l2, alpha = authored.parse_map(plain)
+    report['map'] = {'cases': 1, 'matches': int(ok and status == 0 and number == mine_number and
+                                              bytes(uc.mem_read(G['layer1'], CELLS)) == l1 and
+                                              bytes(uc.mem_read(G['layer2'], CELLS)) == l2 and
+                                              compare_lists(client.read('alpha', 'f', CELLS), alpha))}
+
+    # Per-frame update 0x016ca4fa: light copy + wave grids (CRT sin, SSE2 path)
+    cases = matches = 0
+    details = []
+    for world, time, alternate, box in ((0, 123456.7, 0, (0, 0, 248, 248)), (142, 98765.25, 0, (40, 60, 120, 200)),
+                                        (8, 7777777.0, 1, (100, 4, 251, 251)), (0x50, 5000.5, 0, (0, 0, 251, 251)),
+                                        (0x39, 31.0, 0, (12, 12, 60, 60)), (0x6e, 4.0e6, 1, (0, 200, 251, 251)),
+                                        (141, 2.5e6, 0, (8, 8, 248, 248)), (0, 0.0, 0, (0, 0, 251, 251))):
+        primary = [f32(g.random()) for _ in range(3 * CELLS)]
+        wave0 = [f32(g.uniform(-9, 9)) for _ in range(CELLS)]
+        wave20 = [f32(g.uniform(-9, 9)) for _ in range(CELLS)]
+        client.write('world', 'i', [world])
+        client.write('primary', 'f', primary)
+        uc.mem_write(G['light'], POISON * (12 * CELLS))
+        client.write('wave', 'f', wave0)
+        client.write('wave2', 'f', wave20)
+        client.write('time', 'f', [time])
+        uc.mem_write(ALTERNATE, struct.pack('<I', alternate))
+        for name, value in zip(('xmin', 'ymin', 'xmax', 'ymax'), box):
+            client.write(name, 'i', [value])
+        ok = client.call(WAVE, [])
+        mine_wave, mine_wave2 = floats(wave0), floats(wave20)
+        authored.lib.mu_terrain_wave.argtypes = [ctypes.c_int32, ctypes.c_float, ctypes.c_int, ctypes.c_int32,
+                                                 ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, VOIDP, VOIDP]
+        authored.lib.mu_terrain_wave(world, time, alternate, *box, mine_wave, mine_wave2)
+        expected_light = bytearray(POISON * (12 * CELLS))
+        primary_bytes = struct.pack(f'<{3 * CELLS}f', *primary)
+        for y in range(box[1], box[3] + 4):
+            for x in range(box[0], box[2] + 4):
+                i = index_repeat(x, y)
+                expected_light[12 * i:12 * i + 12] = primary_bytes[12 * i:12 * i + 12]
+        w_ok = compare_lists(client.read('wave', 'f', CELLS), list(mine_wave))
+        w2_ok = compare_lists(client.read('wave2', 'f', CELLS), list(mine_wave2))
+        l_ok = bytes(uc.mem_read(G['light'], 12 * CELLS)) == bytes(expected_light)
+        cases += 1
+        matches += int(ok and w_ok and w2_ok and l_ok)
+        details.append({'world': world, 'ok': ok, 'wave': w_ok, 'wave2': w2_ok, 'light_copy': l_ok,
+                        'error': client.error})
+    report['frame_update'] = {'cases': cases, 'matches': matches, 'details': details}
+    report['loader_substitutions'] = ['CRT fseek 0x01989dab / fread 0x01989230 (light loop)',
+                                      'free 0x0191bac2, fclose 0x01988c95, error box 0x016cef3f (attribute tail)',
+                                      'XOR key bytes at 0x01cf0448 (uncaptured): fc cf ab']
 
 
 def negative_controls(authored):
@@ -993,6 +1198,8 @@ def installed(args, authored, client):
         if path:
             raw = path.read_bytes()
             rgb, unresolved = world_is_rgb(world)
+            if unresolved:  # the runtime world object decides; the viewer goes by the file length
+                rgb = len(raw) >= 58 + 3 * CELLS
             if rgb:
                 status, height = authored.height_rgb(raw)
                 key = 'rgb'
@@ -1034,7 +1241,7 @@ def installed(args, authored, client):
         result['primary_light'] = bool(ok and compare_lists(client.read('primary', 'f', 3 * CELLS), primary))
         scene = {'world': world, 'layer1': entry['layer1'], 'layer2': entry['layer2'], 'alpha': entry['alpha'],
                  'att': entry['att'], 'height': entry['height'], 'light': primary, 'light2': [0.0] * (3 * CELLS),
-                 'wave': [0.0] * CELLS, 'grass_offset': [0.0] * CELLS, 'grass_map': bytes([1]) * CELLS,
+                 'wave': [0.0] * CELLS, 'wave2': [0.0] * CELLS, 'grass_offset': [0.0] * CELLS, 'grass_map': bytes([1]) * CELLS,
                  'water': 1201.0, 'time': 0.0, 'detail': 0, 'grass_disabled': 0,
                  'sizes': installed_sizes(data / f'World{number}')}
         client.load_scene(scene)
