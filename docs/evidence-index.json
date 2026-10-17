@@ -79,10 +79,26 @@
           "negative vertex bone"
         ],
         "acceptance_changed": false,
-        "client_handling_verified": false,
+        "client_handling_verified": true,
         "fresh_scan": "model-recovery/verified-edge/manifest.json",
         "all_12754_statuses_unchanged": true,
-        "previous_12663_parsed_digests_unchanged": true
+        "previous_12663_parsed_digests_unchanged": true,
+        "client_execution": {
+          "finding": "docs/research/model-edge.md",
+          "validator": "scripts/validate_model_edge.py",
+          "local_evidence": "evidence/model-edge-client/report.json",
+          "report_sha256": "245bee5a352588bb0f7f69b40858d1e37b17312917f1a3a14bd08947177b16ca",
+          "reader_matches": 17,
+          "authored_reader_matches": 17,
+          "pose_calls_matched": 278,
+          "transform_calls_matched": 528,
+          "draw_calls_matched": 148,
+          "synthetic_reader_matches": 300,
+          "installed_reader_sample_matches": 477,
+          "native_corner_stream_files_matched": 16,
+          "geometry_state_dependent_files": 0,
+          "client_accepts_all_17_unchecked": true
+        }
       }
     },
     "effects": {
