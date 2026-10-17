@@ -55,6 +55,19 @@ Viewer controls:
 
 Game logic advances in fixed 40 ms steps, like the client's frame driver. All options are listed by `mu-render` without arguments.
 
+## Actor mode (NATIVE-ACTOR-001)
+
+`mu-render actor` renders an animated monster or NPC ([finding](../docs/research/client-actors.md)). `--type` is a server monster class (CreateMonster table), `--monster` a monster type (`Data/Monster/Monster<type+1>.bmd`), `--npc` an NPC model index. Actions get the client's play speeds; each 40 ms step runs the reconstructed SetAction and animation step with the tick:
+
+```sh
+native/build/mu-render actor --game-root "$MU_GAME_ROOT" --type 0 --action 2 --time 1 --out walk.png \
+    --frames 12 --frame-steps 2 --strip walk-strip.png --gif walk.gif
+native/build/mu-render character --game-root "$MU_GAME_ROOT" --class 1 --pose walk --weapon-kind 1 \
+    --weapon 0 "$MU_GAME_ROOT/Data/Item/Sword01.bmd" --time 0.3 --frames 10 --gif dk-walk.gif
+```
+
+Monster actions: 0/1 idle, 2 walk, 3/4 attack, 5 hit, 6 die. `--pose stand|walk|attack` picks a Player action with the client's base Player speed (the pose mapping is a static reading).
+
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
@@ -82,6 +95,7 @@ drawn: the installed `EncTerrain*.obj` files do not decode with the client's loa
 | `core/mu_raster.*` | Deterministic software rasterizer for headless renders with host-independent hashes |
 | `core/mu_image.*`, `mu_textures.*` | OZJ/OZT/OZB unwrapping as in `recover_images.py`, plus TGA, BMP and JPEG decoding |
 | `core/mu_camera.*`, `mu_png.*`, `mu_options.*` | Camera with libm-free trigonometry, a PNG writer and SHA-256, shared options |
+| `core/mu_actor.*`, `mu_gif.*` | Monster/NPC actors: file resolution, the reconstructed opener's action speeds over the model's client memory, SetAction and the animation step per 40 ms; animated GIF writer |
 | `core/mu_terrain.*` | World loading (decryption, reconstructed parsers, heights, light, bitmaps) and the terrain raster adapter |
 | `tools/mu_terrain.c` | Headless terrain CLI (`build/mu-terrain`) |
 | `core/mu_protocol.*` | NATIVE-NET-001 network protocol: C1–C4 framing, the send obfuscation XOR, the packet builder, the receive dechunker and the serial counter. No Crypto++, no client bytes. See [the finding](../docs/research/client-net-protocol.md) |

@@ -1,6 +1,8 @@
 /* Character assembly. See mu_character.h. */
 #include "mu_character.h"
 
+#include "../../reconstructed/actors/actors.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -145,6 +147,36 @@ void mu_character_set_state(mu_character *c, uint16_t action, float frame, float
 int mu_character_tick(mu_character *c, float speed, uint8_t *loop)
 {
     return mu_model_tick(&c->player, speed, loop);
+}
+
+int mu_character_apply_player_speeds(mu_character *c)
+{
+    int unset = 0;
+    for (int32_t a = 0; a < c->player_bmd.action_count; ++a) {
+        float speed = mu_player_action_speed(a);
+        if (speed == 0.0f) {
+            speed = 0.25f;
+            unset++;
+        }
+        uint8_t *record = mu_model_host(&c->player, c->player.actions + 16u * (uint32_t)a, 8);
+        if (!record)
+            continue;
+        memcpy(record + 4, &speed, 4);
+        if (mu_player_action_loop(a))
+            record[0] = 1;
+    }
+    return unset;
+}
+
+float mu_character_action_speed(const mu_character *c, uint16_t action)
+{
+    float speed = 0.0f;
+    if (action < c->player_bmd.action_count) {
+        const uint8_t *record = mu_model_host(&c->player, c->player.actions + 16u * action + 4, 4);
+        if (record)
+            memcpy(&speed, record, 4);
+    }
+    return speed;
 }
 
 /* Model fields every slot copies from the object before its transform. */
