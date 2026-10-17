@@ -346,12 +346,13 @@ void mu_ui_sprite_init(mu_ui_sprite *sprite)
     memset(sprite, 0, sizeof *sprite);
 }
 
-void mu_ui_sprite_create(mu_ui_state *state, mu_ui_sprite *sprite, int32_t width, int32_t height,
-                         int32_t texture, int32_t datum_x, int32_t datum_y, int tile, int32_t sizing_datums,
-                         float scale_x, float scale_y)
+void mu_ui_sprite_create_frames(mu_ui_state *state, mu_ui_sprite *sprite, int32_t width, int32_t height,
+                                int32_t texture, int32_t max_frame, const int32_t (*frame_xy)[2], int32_t datum_x,
+                                int32_t datum_y, int tile, int32_t sizing_datums, float scale_x, float scale_y)
 {
     float sh;
-    sprite->bitmap = NULL;                       /* Release 0x010ad814 */
+    sprite->bitmap = NULL;                       /* Release 0x010ad814 frees the frame table */
+    sprite->has_frames = 0;
     sprite->width = (float)width;
     sprite->height = (float)height;
     sprite->texture = texture;
@@ -378,20 +379,142 @@ void mu_ui_sprite_create(mu_ui_state *state, mu_ui_sprite *sprite, int32_t width
         sprite->texcoord[2][1] = (sprite->height - 0.5f) / th;
         sprite->texcoord[3][0] = (sprite->width - 0.5f) / tw;
         sprite->texcoord[3][1] = 0.5f / th;
-        sprite->max_frame = 0;                   /* no frame-coordinate table */
-        sprite->tile = (uint8_t)tile;
+        if (frame_xy != NULL) {
+            int32_t i;
+            sprite->max_frame = max_frame;
+            sprite->has_frames = 1;
+            for (i = 0; i < max_frame && i < MU_UI_SPRITE_MAX_FRAMES; ++i) {
+                sprite->frames[i][0] = ((float)frame_xy[i][0] + 0.5f) / tw;
+                sprite->frames[i][1] = ((float)frame_xy[i][1] + 0.5f) / th;
+            }
+            sprite->end_frame = 0;
+            sprite->start_frame = 0;
+            mu_ui_sprite_set_now_frame(sprite, 0);
+            sprite->tile = 0;
+        } else {
+            sprite->max_frame = 0;
+            sprite->end_frame = -1;
+            sprite->start_frame = -1;
+            sprite->tile = (uint8_t)tile;
+        }
     } else {
         memset(sprite->texcoord, 0, sizeof sprite->texcoord);
         sprite->max_frame = 0;
+        sprite->end_frame = -1;
+        sprite->start_frame = -1;
         sprite->tile = 0;
     }
     sprite->alpha = sprite->red = sprite->green = sprite->blue = 0xff;
     sprite->datum_x = (float)datum_x;
     sprite->datum_y = (float)datum_y;
+    sprite->repeat = 0;
+    sprite->elapsed = 0.0;
+    sprite->interval = 0.0;
     sprite->sizing_datums = sizing_datums;
     sprite->scale_x = scale_x;
     sprite->scale_y = scale_y;
     sprite->show = 0;
+}
+
+void mu_ui_sprite_create(mu_ui_state *state, mu_ui_sprite *sprite, int32_t width, int32_t height,
+                         int32_t texture, int32_t datum_x, int32_t datum_y, int tile, int32_t sizing_datums,
+                         float scale_x, float scale_y)
+{
+    mu_ui_sprite_create_frames(state, sprite, width, height, texture, 0, NULL, datum_x, datum_y, tile,
+                               sizing_datums, scale_x, scale_y);
+}
+
+void mu_ui_sprite_create_image(mu_ui_state *state, mu_ui_sprite *sprite, const mu_ui_image_info *info,
+                               int32_t datum_x, int32_t datum_y, int tile, int32_t sizing_datums, float scale_x,
+                               float scale_y)
+{
+    if (info->x == 0 && info->y == 0) {
+        mu_ui_sprite_create_frames(state, sprite, info->width, info->height, info->texture, 0, NULL, datum_x,
+                                   datum_y, tile, sizing_datums, scale_x, scale_y);
+    } else {
+        int32_t frame[1][2] = {{info->x, info->y}};
+        mu_ui_sprite_create_frames(state, sprite, info->width, info->height, info->texture, 1,
+                                   (const int32_t (*)[2])frame, datum_x, datum_y, tile, sizing_datums, scale_x,
+                                   scale_y);
+    }
+}
+
+void mu_ui_sprite_set_action(mu_ui_sprite *sprite, int32_t start, int32_t end, double interval, int repeat)
+{
+    if (sprite->max_frame <= 1)
+        return;
+    sprite->now_frame = start;
+    sprite->start_frame = start;
+    sprite->end_frame = end;
+    sprite->repeat = (uint8_t)repeat;
+    sprite->interval = interval;
+}
+
+void mu_ui_sprite_set_now_frame(mu_ui_sprite *sprite, int32_t frame)
+{
+    float w, h;
+    const float *f;
+    float (*c)[2] = sprite->texcoord;
+    if (!sprite->has_frames || frame == sprite->now_frame)
+        return;
+    if (frame < sprite->start_frame || frame > sprite->end_frame)
+        return;
+    sprite->now_frame = frame;
+    w = c[3][0] - c[0][0];
+    h = c[1][1] - c[0][1];
+    f = sprite->frames[frame < MU_UI_SPRITE_MAX_FRAMES ? frame : MU_UI_SPRITE_MAX_FRAMES - 1];
+    c[0][0] = f[0];
+    c[0][1] = f[1];
+    c[3][0] = f[0] + w;
+    c[3][1] = f[1];
+    c[1][0] = f[0];
+    c[1][1] = f[1] + h;
+    c[2][0] = c[3][0];
+    c[2][1] = c[1][1];
+}
+
+void mu_ui_sprite_update(mu_ui_sprite *sprite, double delta)
+{
+    int32_t frame;
+    if (!sprite->show || sprite->max_frame <= 1)
+        return;
+    sprite->elapsed = sprite->elapsed + delta;
+    if (!(sprite->elapsed >= sprite->interval))
+        return;
+    frame = sprite->now_frame + 1;
+    if (sprite->repeat)
+        frame = frame > sprite->end_frame ? sprite->start_frame : frame;
+    else
+        frame = frame > sprite->end_frame ? sprite->end_frame : frame;
+    mu_ui_sprite_set_now_frame(sprite, frame);
+    sprite->elapsed = 0.0;
+}
+
+int mu_ui_sprite_contains(const mu_ui_sprite *sprite, int32_t x, int32_t y)
+{
+    int32_t left, top, right, bottom;
+    if (!sprite->show)
+        return 0;
+    left = mu_ui_cvtt(sprite->position[0][0] * sprite->scale_x);
+    top = mu_ui_cvtt((sprite->screen_height - sprite->position[0][1]) * sprite->scale_y);
+    right = mu_ui_cvtt(sprite->position[2][0] * sprite->scale_x);
+    bottom = mu_ui_cvtt((sprite->screen_height - sprite->position[2][1]) * sprite->scale_y);
+    return x >= left && x < right && y >= top && y < bottom;   /* PtInRect */
+}
+
+int32_t mu_ui_sprite_x(const mu_ui_sprite *sprite) { return mu_ui_cvtt(sprite->position[0][0]); }
+int32_t mu_ui_sprite_y(const mu_ui_sprite *sprite) { return mu_ui_cvtt(sprite->screen_height - sprite->position[0][1]); }
+int32_t mu_ui_sprite_width(const mu_ui_sprite *sprite) { return mu_ui_cvtt(sprite->position[3][0] - sprite->position[0][0]); }
+int32_t mu_ui_sprite_height(const mu_ui_sprite *sprite) { return mu_ui_cvtt(sprite->position[0][1] - sprite->position[1][1]); }
+
+int32_t mu_ui_sprite_texture_height(const mu_ui_sprite *sprite)
+{
+    return sprite->texture > -1 && sprite->bitmap ? mu_ui_cvtt(sprite->bitmap->height) : 0;
+}
+
+void mu_ui_sprite_show(mu_ui_sprite *sprite, int show)
+{
+    sprite->show = (uint8_t)show;
 }
 
 void mu_ui_sprite_set_position(mu_ui_sprite *sprite, int32_t x, int32_t y, int32_t which)
@@ -562,6 +685,11 @@ void mu_ui_gauge_set_value(mu_ui_gauge *gauge, uint32_t now, uint32_t total)
 void mu_ui_gauge_render(mu_ui_state *state, const mu_ui_gauge *gauge)
 {
     mu_ui_sprite_render(state, &gauge->bar);
+}
+
+void mu_ui_gauge_show(mu_ui_gauge *gauge, int show)
+{
+    mu_ui_sprite_show(&gauge->bar, show);
 }
 
 /* ---- title scene -------------------------------------------------------- */

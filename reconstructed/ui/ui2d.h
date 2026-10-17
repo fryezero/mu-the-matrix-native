@@ -31,6 +31,11 @@ enum mu_ui_op {
     MU_GL_TEXIMAGE2D, MU_GL_TEXPARAMETERI, MU_GL_TEXENVF, MU_GL_GENTEXTURES, MU_GL_CLEAR,
     MU_GL_CLEARCOLOR, MU_GLU_PERSPECTIVE, MU_GLU_ORTHO2D,
     MU_GDI_SETBKCOLOR, MU_GDI_SETTEXTCOLOR, MU_GDI_TEXTOUT, MU_GDI_GETTEXTEXTENT,
+    /* NATIVE-UI-002: SelectObject(font DC, font handle) from the text facade's
+     * SetFont, a sound request (PlayBuffer id), and a client event the UI
+     * hands to game logic (enum mu_ui_event; words after the code are its
+     * arguments).  Renderers ignore the last two. */
+    MU_GDI_SELECTOBJECT, MU_UI_SOUND, MU_UI_EVENT,
     MU_UI_OP_COUNT
 };
 
@@ -113,6 +118,7 @@ void mu_ui_render_color_bitmap(mu_ui_state *state, int32_t texture, float x, flo
                                float u, float v, float u_width, float v_height, uint32_t color);
 
 /* ---- CSprite (0xa8 bytes; vtable 0x01ab9ba8) ----------------------------- */
+enum { MU_UI_SPRITE_MAX_FRAMES = 16 };
 typedef struct mu_ui_sprite {
     float screen_height;      /* +0x08: window height / scale y */
     mu_ui_bitmap *bitmap;     /* +0x0c */
@@ -128,6 +134,15 @@ typedef struct mu_ui_sprite {
     int32_t sizing_datums;    /* +0x9c: bit 0 bottom anchor, bit 1 right anchor */
     float scale_x, scale_y;   /* +0x90, +0x94 */
     uint8_t show;             /* +0xa0 */
+    /* Frame animation (NATIVE-UI-002); the client keeps the frame table in a
+     * new[] block at +0x78, here it is inline. */
+    int32_t start_frame;      /* +0x70 */
+    int32_t end_frame;        /* +0x74 */
+    int has_frames;           /* +0x78 != NULL */
+    float frames[MU_UI_SPRITE_MAX_FRAMES][2];  /* texture coordinates of each frame's top-left corner */
+    uint8_t repeat;           /* +0x7c */
+    double interval;          /* +0x80: frame time (ms) */
+    double elapsed;           /* +0x88 */
 } mu_ui_sprite;
 
 void mu_ui_sprite_init(mu_ui_sprite *sprite);                                 /* 0x010ad7b2 */
@@ -135,6 +150,29 @@ void mu_ui_sprite_init(mu_ui_sprite *sprite);                                 /*
 void mu_ui_sprite_create(mu_ui_state *state, mu_ui_sprite *sprite, int32_t width, int32_t height,
                          int32_t texture, int32_t datum_x, int32_t datum_y, int tile, int32_t sizing_datums,
                          float scale_x, float scale_y);                       /* 0x010ad847 */
+/* The full Create 0x010ad847: max_frame frames whose top-left texel
+ * positions are frame_xy[i] (x, y), at most MU_UI_SPRITE_MAX_FRAMES. */
+void mu_ui_sprite_create_frames(mu_ui_state *state, mu_ui_sprite *sprite, int32_t width, int32_t height,
+                                int32_t texture, int32_t max_frame, const int32_t (*frame_xy)[2], int32_t datum_x,
+                                int32_t datum_y, int tile, int32_t sizing_datums, float scale_x, float scale_y);
+/* SImgInfo {texture, x, y, width, height} as passed to 0x010adc87. */
+typedef struct mu_ui_image_info {
+    int32_t texture, x, y, width, height;
+} mu_ui_image_info;
+void mu_ui_sprite_create_image(mu_ui_state *state, mu_ui_sprite *sprite, const mu_ui_image_info *info,
+                               int32_t datum_x, int32_t datum_y, int tile, int32_t sizing_datums, float scale_x,
+                               float scale_y);                                 /* 0x010adc87 */
+void mu_ui_sprite_set_action(mu_ui_sprite *sprite, int32_t start, int32_t end, double interval, int repeat); /* 0x010ae3a1 */
+void mu_ui_sprite_set_now_frame(mu_ui_sprite *sprite, int32_t frame);      /* 0x010ae3eb */
+void mu_ui_sprite_update(mu_ui_sprite *sprite, double delta);              /* 0x010ae557 */
+/* PtInSprite 0x010ae2a5 (the cursor test of CursorInObject 0x010ae375). */
+int mu_ui_sprite_contains(const mu_ui_sprite *sprite, int32_t x, int32_t y);
+int32_t mu_ui_sprite_x(const mu_ui_sprite *sprite);       /* 0x00986f2e */
+int32_t mu_ui_sprite_y(const mu_ui_sprite *sprite);       /* 0x00986f46 */
+int32_t mu_ui_sprite_width(const mu_ui_sprite *sprite);   /* 0x00986f01 */
+int32_t mu_ui_sprite_height(const mu_ui_sprite *sprite);  /* 0x00986ed4 */
+int32_t mu_ui_sprite_texture_height(const mu_ui_sprite *sprite);  /* 0x0120ddd5 */
+void mu_ui_sprite_show(mu_ui_sprite *sprite, int show);   /* 0x00986f8a */
 void mu_ui_sprite_set_position(mu_ui_sprite *sprite, int32_t x, int32_t y, int32_t which); /* 0x010add3c */
 void mu_ui_sprite_set_size(mu_ui_sprite *sprite, int32_t width, int32_t height, int32_t which); /* 0x010adfe4 */
 void mu_ui_sprite_render(mu_ui_state *state, const mu_ui_sprite *sprite);     /* 0x010ae63d */
@@ -152,6 +190,7 @@ void mu_ui_gauge_create(mu_ui_state *state, mu_ui_gauge *gauge, int32_t width, i
 void mu_ui_gauge_set_position(mu_ui_gauge *gauge, int32_t x, int32_t y);      /* 0x00aacbdd */
 void mu_ui_gauge_set_value(mu_ui_gauge *gauge, uint32_t now, uint32_t total);  /* 0x00aacceb */
 void mu_ui_gauge_render(mu_ui_state *state, const mu_ui_gauge *gauge);        /* 0x00aacfd6 */
+void mu_ui_gauge_show(mu_ui_gauge *gauge, int show);                           /* 0x00aacf9e (no back sprite) */
 
 /* ---- Title scene (CreateTitleSceneUI 0x011e230d, Render 0x011e2c8c) ---- */
 enum { MU_UI_TITLE_SPRITES = 13 };

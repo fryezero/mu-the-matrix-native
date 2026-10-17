@@ -67,6 +67,8 @@ SLOTS = {
     0x01a7c144: ('TextOutA', 'piipi'), 0x01a7c138: ('SetBkColor', 'pi'), 0x01a7c13c: ('SetTextColor', 'pi'),
     0x01a7c140: ('CreateDIBSection', 'pppppi'), 0x01a7c12c: ('CreateCompatibleDC', 'p'),
     0x01a7c120: ('CreateFontA', 'iiiiiiiiiiiiip'), 0x01a7c134: ('SelectObject', 'pp'), 0x01a7c278: ('lstrlenA', 'p'), 0x01a7c148: ('SwapBuffers', 'p'),
+    # NATIVE-UI-002 (window/widget layer): user32 rectangle helpers and the list walk's pointer check
+    0x01a7c818: ('PtInRect', 'pii'), 0x01a7c854: ('SetRect', 'piiii'), 0x01a7c488: ('IsBadReadPtr', 'pi'),
 }
 del SLOTS[0x01a7c6a8]
 FORMAT_WORDS = {'i': 1, 'f': 1, 'p': 1, 'd': 2}
