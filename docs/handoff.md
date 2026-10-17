@@ -526,3 +526,69 @@ state and binds). Alternatives:
 * identify the 24 immediate GL_TRIANGLE_FAN routines behind the profiled
   four-vertex fans;
 * trace the main loop and frame cap.
+
+## Frame loop and hot draw sites mapped
+
+Issue #55 (CLIENT-FRAME-001), branch `claude/frame-loop`, worktree
+`~/Documents/mu-worktrees/frameloop`. Read
+[`research/client-frame-loop.md`](research/client-frame-loop.md). The work is
+static; no client code ran and nothing was patched.
+
+**Loop.** The WinMain loop uses `PeekMessageW(PM_REMOVE)`. When the queue is empty
+it calls the scene dispatcher `0x01859d8a`. Scene states 3, 5 and 6 go to the frame
+driver `0x01851d39`, state 4 to the loading screen and state 2 to the intro. The
+frame driver works like this:
+
+* `[0x0bdc5ec0]` accumulates elapsed time, and game logic runs once per 40 ms
+  step (`0x01851d6b`, `0x01851f90`);
+* GetTickCount at frame start is stored in `[0x0bdc5e64]`;
+* the scene render is followed by SwapBuffers at `0x01852653`;
+* if elapsed < 40, it calls `Sleep(40 - elapsed)` (`0x0185267a`) and sets elapsed to 40.
+
+**Cap.** The cap is the immediates at `0x0185266b`, `0x0185266f` and `0x01852690`,
+with the branch `7D 26` at `0x0185266c`. The 44-byte block has SHA-256
+`37978e18…2e14`. It does not occur in the Themida-packed file, so the only way to
+change it is an in-memory write after unpacking, for example from the owner's mugl
+proxy at the first wglSwapBuffers, after verifying the block. The rendered-frame
+counter `[0x0bdc5ebc]` has 225 readers and would speed up with the frame rate.
+Logic and the wall-clock float `[0x06fce370]` would not. `IGC.dll` hooks the
+function at `0x01851d5e` and `0x018526e7`.
+
+**Draws.** The fans come from three places:
+
+* the terrain renderer `0x016cd468`, which walks the frustum box in 4×4-tile
+  blocks and emits one fan per tile per layer through `0x016cf46c` and friends,
+  plus a grass quad;
+* terrain decals `0x016cdd5f` (460 callers), one fan per covered tile;
+* 2D helpers `0x0184d9bb`/`0x0184dcb1`/…, with 243 and 170 callers.
+
+Quads are mostly the sprite routine `0x0184c39c` (433 calls in `0x0159123f`) and
+effects. All 51 sites carry return addresses for runtime attribution.
+
+**VBOs.** The calls go through data-import function-pointer slots
+`0x01a7cb54..0x01a7cc14` (GLEW-style). There is no glBufferSubData name string.
+The effect system streams two GL_STREAM_DRAW buffers:
+
+* sprite: 144 B at object `0x01d1e2c8`, a whole-buffer update per draw;
+* emitter: 144,000 B at `0x01d1e6f8`, an `n*144` prefix per draw;
+
+each followed by `glDrawArrays(GL_QUADS)` with client arrays at offsets 0, 12 and 20,
+stride 36.
+
+**Checks.** `scripts/client_frame_static.py` takes about 30 s. Its report is
+`evidence/client-frame/static-02.json` (`9627bb4f…0abe`, ignored), with the pinned
+Wine DLLs extracted alongside. Portable: 218 discovered, 200 pass, 18 explicit
+skips. The new private check passes with `MU_RECOVERY_INTEGRATION=1` and
+`MU_GAME_ROOT=runtime/client`. The full opt-in suite was not rerun. No guest,
+CrossOver bottle or main-checkout change.
+
+**Next.**
+
+* Add an opt-in glBegin return-address counter to mugl and map the counts through
+  `static-02.json`. This settles the terrain/decal/UI split and attributes the
+  unexplained glViewport/glOrtho and glActiveTexture calls (`IGC.dll` or the
+  third-party renderer).
+* Extend mugl's buffer orphaning to offset-0 prefix updates of the 144,000-byte
+  effect buffer.
+* If the owner wants a higher menu cap, prototype the verified in-memory write
+  in a test bottle, not MuMatrix32.

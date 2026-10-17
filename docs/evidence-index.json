@@ -579,6 +579,91 @@
       "authored_library_sha256": "da2d0c5ea007c8c8684c8e053305266d9d7063a73b61c747fcb6316cbd58969c",
       "local_report": "evidence/client-skinning/run/comparison-v12-v14-v15.json (skinning worktree), SHA-256 4b225477edaaff717b8ba648cf5e19ea812bf143572c619ddac232404b4fc036",
       "static_report": "evidence/client-skinning/static-05.json (skinning worktree), SHA-256 924b0b0b5cd6e1b0ac0a1ce44778753e77af6285d06674a0b4489f8b2c2f1b30"
+    },
+    "client_frame_loop": {
+      "issue": 55,
+      "document": "docs/research/client-frame-loop.md",
+      "method": "static decode of the pinned restored text and data; no client execution",
+      "message_loop": "PeekMessageW(PM_REMOVE) at 0x0120ed88; idle calls scene dispatcher 0x01859d8a at 0x0120ef38/0x0120ef54",
+      "scene_dispatch": {
+        "state_global": "0x01d1df70",
+        "2": "0x0185ad63",
+        "3": "0x01851d39",
+        "4": "0x01851adc",
+        "5": "0x01851d39",
+        "6": "0x01851d39"
+      },
+      "frame_driver": "0x01851d39",
+      "frame_driver_instruction_checks": 36,
+      "logic_step_ms": 40,
+      "logic_step_immediates": [
+        "0x01851d6e",
+        "0x01851f92"
+      ],
+      "frame_cap_ms": 40,
+      "frame_cap_mechanism": "Sleep(40 - elapsed) after SwapBuffers; GetTickCount at frame start; not a busy-wait",
+      "frame_cap_immediates": [
+        "0x0185266b",
+        "0x0185266f",
+        "0x01852690"
+      ],
+      "frame_cap_branch": "0x0185266c 7d26",
+      "frame_cap_block": "0x01852668..0x01852694",
+      "frame_cap_block_sha256": "37978e180c2e7f1dd9d0760f44b0e30ab9de431699ae982c1b8b1b2ceca52e14",
+      "frame_cap_source": "compiled-in immediate; no config, data or server input found",
+      "frame_cap_block_in_packed_file": 0,
+      "igc_hooks_in_frame_driver": [
+        "0x01851d5e call 0x10b7c7b0",
+        "0x018526e7 jmp 0x10b47590"
+      ],
+      "igc_dll_sha256": "dbe122fe94e72286b871e192b6351bafdd28216312c300ba0d97d22a51a9c29b",
+      "rendered_frame_counter": {
+        "address": "0x0bdc5ebc",
+        "readers": 225
+      },
+      "logic_step_counter": "0x0bdc5eb0",
+      "wall_clock_float": "0x06fce370 = (float)timeGetTime() in 0x012aeb2b",
+      "glbegin_hot_sites": {
+        "GL_TRIANGLE_FAN": {
+          "terrain": 9,
+          "terrain-decal": 1,
+          "2d": 11,
+          "3d-effect": 2,
+          "3d-misc": 1
+        },
+        "GL_QUADS": {
+          "terrain-grass": 1,
+          "2d": 2,
+          "3d-effect": 11,
+          "3d-object": 7,
+          "3d-scene": 3,
+          "3d-misc": 3
+        }
+      },
+      "terrain_render": "0x016cd468 -> 0x016d2e8e blocks -> 0x016d2d81 -> 0x016ccda5 -> 0x016cff65 -> fan faces 0x016cf46c..0x016cfbac",
+      "terrain_decal": "0x016cdd5f (460 raw callers) -> 0x016d197d fan per covered tile",
+      "vbo_pointer_slots": "0x01a7cb54..0x01a7cc14 data imports (call [eax]); 10 of 49 named from arguments",
+      "stream_buffers": [
+        {
+          "object": "0x01d1e2c8",
+          "size": 144,
+          "usage": "GL_STREAM_DRAW",
+          "stride": 36,
+          "draw": "0x00a6ebd1",
+          "update": "BufferSubData(0, 144) whole buffer, DrawArrays(GL_QUADS, 0, 4)"
+        },
+        {
+          "object": "0x01d1e6f8",
+          "size": 144000,
+          "usage": "GL_STREAM_DRAW",
+          "stride": 36,
+          "draw": "0x00a88720",
+          "update": "BufferSubData(0, n*144) prefix, DrawArrays(GL_QUADS, 0, 4n)"
+        }
+      ],
+      "runtime_counts_known": false,
+      "patched": false,
+      "local_report": "evidence/client-frame/static-02.json (frameloop worktree), SHA-256 9627bb4f4eb7b2d2be7b12839e787c948d27992a413a381f180e12f62edb0abe"
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -586,13 +671,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 209,
-    "portable_passed": 192,
-    "private_checks_skipped": 17,
+    "portable_tests_discovered": 218,
+    "portable_passed": 200,
+    "private_checks_skipped": 18,
     "local_integration_passed": 209,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Skinning path (issue #53) awaits CI",
+    "remote_ci_status": "Frame loop (issue #55) awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38898823896",
     "remote_ci_commit": "55d652a18242d8dd8296a981b038375489016c33",
     "github_source_files_verified": 58,
