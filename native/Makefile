@@ -64,7 +64,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
-     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT)
+     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -144,7 +144,49 @@ $(BUILD)/mu-frame-window: $(FRAME_WINDOW_SRC) viewer/gl_backend.h viewer/gl_head
 	done
 	$(CXX) $(BUILD)/frame-window/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(GLU_LIBS) -lm -o $@
 
+# ---- audio (NATIVE-AUDIO-001) ----
+# Engine, WAV decoder, script host and the reconstructed client audio logic.
+# No Crypto++ or SDL2: the offline tool builds everywhere; MP3/OGG decoding
+# uses AudioToolbox on macOS and reports the codec as unavailable elsewhere.
+AUDIO_SRC := core/mu_wav.c core/mu_audio.c core/mu_audio_decode.c core/mu_audio_host.c core/mu_png.c
+AUDIO_RECON := $(RECON)/audio/audio_system.c $(RECON)/audio/audio_world.c $(RECON)/audio/audio_options.c
+AUDIO_HEADERS := core/mu_wav.h core/mu_audio.h core/mu_audio_host.h core/mu_png.h $(RECON)/audio/client_audio.h
+AUDIO_OBJ := $(patsubst core/%.c,$(BUILD)/audio/%.o,$(AUDIO_SRC)) $(patsubst $(RECON)/audio/%.c,$(BUILD)/audio/recon_%.o,$(AUDIO_RECON))
+ifeq ($(UNAME),Darwin)
+AUDIO_LIBS := -framework AudioToolbox -framework CoreFoundation
+else
+AUDIO_LIBS :=
+endif
+AUDIO_SO := $(BUILD)/libmuaudio.$(if $(filter Darwin,$(UNAME)),dylib,so)
+
+audio: $(BUILD)/mu-audio $(AUDIO_SO)
+
+$(BUILD)/audio/%.o: core/%.c $(AUDIO_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -fPIC -c $< -o $@
+
+$(BUILD)/audio/recon_%.o: $(RECON)/audio/%.c $(AUDIO_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fPIC -c $< -o $@
+
+$(BUILD)/libmuaudio.a: $(AUDIO_OBJ)
+	rm -f $@
+	ar rcs $@ $^
+
+$(AUDIO_SO): $(AUDIO_OBJ)
+	$(CC) -shared $^ $(AUDIO_LIBS) -lm -o $@
+
+$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a
+	$(CC) $(CFLAGS) tools/mu_audio.c $(BUILD)/libmuaudio.a $(AUDIO_LIBS) -lm -o $@
+
+# Live playback through SDL2 audio (optional, like the viewer).
+audio-live: $(BUILD)/mu-audio-live
+
+$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
+	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) tools/mu_audio_live.c $(BUILD)/libmuaudio.a \
+	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all viewer frame-window clean
+.PHONY: all viewer frame-window audio audio-live clean

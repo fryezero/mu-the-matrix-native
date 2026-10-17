@@ -82,6 +82,19 @@ native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0 --headless --backend 
 client. The tile rules come from `reconstructed/terrain`, compared with the client's instructions by
 `scripts/validate_terrain.py`; see [the finding](../docs/research/client-terrain.md). Static objects are not
 drawn: the installed `EncTerrain*.obj` files do not decode with the client's loader routine.
+## Audio (NATIVE-AUDIO-001)
+
+```sh
+make -C native audio            # build/mu-audio and build/libmuaudio (no Crypto++ or SDL2 needed)
+make -C native audio-live       # build/mu-audio-live (SDL2 audio)
+scripts/extract_audio_tables.py --text CAPTURE --data DATA --out /tmp/t.json --tsv /tmp/t.tsv   # local only
+native/build/mu-audio list --table /tmp/t.tsv --root "$MU_GAME_ROOT"
+native/build/mu-audio render --table /tmp/t.tsv --root "$MU_GAME_ROOT" --script SCRIPT --out /tmp/scene.wav
+```
+
+The script language and the engine's platform choices are described in `core/mu_audio_host.h` and
+`core/mu_audio.h`; the client logic it runs is `reconstructed/audio` ([finding](../docs/research/client-audio.md)).
+MP3/OGG decode through AudioToolbox on macOS only.
 
 ## Layout
 
@@ -99,6 +112,8 @@ drawn: the installed `EncTerrain*.obj` files do not decode with the client's loa
 | `core/mu_terrain.*` | World loading (decryption, reconstructed parsers, heights, light, bitmaps) and the terrain raster adapter |
 | `tools/mu_terrain.c` | Headless terrain CLI (`build/mu-terrain`) |
 | `core/mu_protocol.*` | NATIVE-NET-001 network protocol: C1–C4 framing, the send obfuscation XOR, the packet builder, the receive dechunker and the serial counter. No Crypto++, no client bytes. See [the finding](../docs/research/client-net-protocol.md) |
+| `core/mu_wav.*`, `mu_audio*.*` | WAV decoder, FMOD-boundary software mixer, platform decoder, script host (audio) |
+| `tools/mu_audio.c`, `tools/mu_audio_live.c` | Audio CLI (`list`, `decode`, `render`, `scan`) and SDL2 live player |
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `tools/mu_render.c` | Headless CLI used by the tests |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
