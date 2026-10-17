@@ -14,7 +14,10 @@ python3 -m venv tools/python
 make test PYTHON=./tools/python/bin/python
 ```
 
-CI runs the same portable checks on macOS and Linux with Python 3.11. Unit tests
+CI runs the portable checks on Linux with Python 3.11 for every pull request. To save Actions minutes,
+the hosted macOS job runs only when the workflow is started by hand with the `macos` input; before merging,
+run `scripts/local-macos-ci.sh` on a Mac instead (`make test`, the windowed viewer, the Mach profiling tools
+and the publication audit). Unit tests
 use authored geometry/image/decoder fixtures and public LEA vectors. Fourteen
 private-input checks explicitly skip by default. A source-only checkout should
 pass without downloading or shipping the original game.
