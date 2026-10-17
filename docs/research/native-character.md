@@ -142,6 +142,8 @@ The parts' math is the same as in the copy render: the same matrices, the same t
 
 ## Verification
 
+**Labelling.** The Unicorn table below and the private native checks are reported results of single local runs: they need the restored client text and an installed client, so CI does not run them. CI runs the portable checks listed under native golden data and the four portable `test_character.py` cases.
+
 `scripts/validate_character.py` reuses the skinning, pose and bone-track validators' Unicorn machines. It uses the same boundaries: no stubs, any undefined or undeclared read stops a case, and callee-saved registers, ESP, DF, FPCW, MXCSR and x87 TOP are checked.
 
 | Comparison | Cases | Matches |
@@ -164,8 +166,9 @@ Native golden data (`native/tests/test_native_character.py`, `character_referenc
 - **Portable (CI).** `mu-render chardump` is byte-identical in 18 cases: 2 synthetic characters × 3 item sets × 3 states. A character is a v15 Player with dummies, v10 parts, and v12 weapons and wing. The states cover ticks, blends, angles, head angles, scale, lighting off and wing scale.
   - Negative control: a reference with no keep-root differs.
   - Character renders are deterministic.
-  - Headless GL agrees with the software renderer.
-- **Private.** The installed `Player.bmd` was run with the class parts of classes 0x00, 0x01, 0x02, 0x11 and 0x23. Items: Sword01/Shield01, Staff01, Axe03/Shield05, Spear02 with Wing04, and Bow01 (left hand). The output is byte-identical to the reference. An installed DK render finds every texture.
+  - Headless GL agrees with the software renderer (macOS).
+  - Malformed slots, non-finite numbers and missing inputs are refused.
+- **Private (reported).** The installed `Player.bmd` was run with the class parts of classes 0x00, 0x01, 0x02, 0x11 and 0x23. Items: Sword01/Shield01, Staff01, Axe03/Shield05, Spear02 with Wing04, and Bow01 (left hand). The output is byte-identical to the reference. An installed DK render finds every texture.
 
 ## Local renders
 

@@ -902,7 +902,7 @@ Branch `claude/native-char`, worktree `~/Documents/mu-worktrees/native-char`. Re
 * `reconstructed/model-codec/character.{c,h}` (`libcharacter`): the rotation position `0x012b7019`, the transform position `0x012b6ef1`, and the class tier, skin index and tier-2 skip helpers; also the part type/file table of the loader `0x01830aa6`.
 * `scripts/validate_character.py`: Unicorn comparison of those routines and the loader loop, plus installed `Player.bmd` → part and `Player.bmd` → item chains through the actual bone-track loop, builder, root setter and transform.
 * `native/core/mu_character.*`, `mu_model` share/keep-root/rotation-position hooks, `mu-render character|chardump`, character options and the viewer's character mode.
-* Tests: `reconstructed/model-codec/test_character.py` (4 portable, 1 private) and `native/tests/test_native_character.py` with `character_reference.py` (4 portable, 2 private).
+* Tests: `reconstructed/model-codec/test_character.py` (4 portable, 1 private) and `native/tests/test_native_character.py` with `character_reference.py` (5 portable after the review, 2 private).
 
 **Checks.**
 
@@ -918,3 +918,13 @@ Branch `claude/native-char`, worktree `~/Documents/mu-worktrees/native-char`. Re
 * Executing `0x0139be7a` under Unicorn with recorded draw calls would settle the render-flow reading.
 
 No game, CrossOver bottle or registry was touched.
+
+### Review before merge (NATIVE-CHAR-001)
+
+An independent review ran before publication, on the same branch.
+
+* **Docs vs code.** The finding, README and status match the code: link bones 33/42/47, light 0.4/0.8/0.2, the slot order 5..0 then weapons and wing, wing vector (0,0,15) at frame 2, creation scale 0.9. The ignored validator report (`character-full-03.json`, the same SHA-256 as runs 01 and 02) records 384/384 positions, 3x256 helper cases, 380 loader calls, 4 poses, 300 parts and 267 items.
+* **Labelling.** Roadmap, status and finding now mark the Unicorn and installed results as reported single private runs. CI covers the synthetic golden data.
+* **Fixes.** The new character options check their numbers before converting them to integers: slots for `--part`/`--weapon`/`--weapon-action`, and int32 range for `--class`, `--parts` and weapon actions. Before, `--weapon nan PATH` converted NaN to an int, which is undefined behaviour, and on arm64 it loaded slot 0. `mu-render image|scan|info` without a path reached a NULL dereference after the argument-count change; the commands now refuse it. The viewer title counts missing character textures. A portable regression test covers these cases.
+* **Memory safety.** An ASan/UBSan build of `mu-render` passed the portable native suites. 3,000 mutated synthetic character sets (Player, parts, weapons, wing) and Players with 1, 3, 34 and 200 bones under link bones 33/42/47 gave no finding.
+* **Checks.** `make test PYTHON=tools/.venv/bin/python` passes (282 tests, 25 explicit skips). `make native-viewer` builds with no warnings. `python3 scripts/audit_repository.py` rejects nothing. No client data, textures, renders or client bytes are committed. No absolute client path is referenced; the game root comes from `MU_GAME_ROOT` or `--game-root`. Private integration was not re-run in the review; the character agent's last run used the MuMatrixKit installation.

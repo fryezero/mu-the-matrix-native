@@ -172,6 +172,18 @@ class SyntheticCharacterTests(CharacterBuild):
         self.assertGreater(first['triangles'], 50)
         self.assertEqual((self.tmp/'a.png').read_bytes(), (self.tmp/'b.png').read_bytes())
 
+    def test_rejects_bad_slots_and_missing_inputs(self):
+        player, raws = synthetic_set(8)
+        player_path, paths = self.write(player, raws, 8)
+        for bad in (['--weapon', 'nan', paths[6]], ['--weapon', '2', paths[6]], ['--part', '-1', paths[1]],
+                    ['--part', '1e300', paths[1]], ['--weapon-action', 'inf', '1'], ['--class', '1e12']):
+            with self.subTest(bad=bad):
+                result = run('chardump', player_path, *bad, '--out', self.tmp/'r.bin', check=False)
+                self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(run('chardump', '--out', self.tmp/'r.bin', check=False).returncode, 1)
+        for command in ('image', 'scan', 'info'):
+            self.assertEqual(run(command, check=False).returncode, 2, command)
+
     @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('sdl2-config'), 'needs macOS with SDL2')
     def test_viewer_character_mode_gl_agrees_with_software(self):
         subprocess.run(['make', '-C', str(NATIVE), 'viewer'], check=True, capture_output=True)

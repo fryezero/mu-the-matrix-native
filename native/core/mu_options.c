@@ -59,6 +59,9 @@ static int number(const char *text, double *value)
     return end && *end == 0;
 }
 
+/* lo <= value <= hi; false for NaN. Keeps the character options' integer conversions defined. */
+static int in_range(double value, double lo, double hi) { return value >= lo && value <= hi; }
+
 int mu_options_parse(mu_options *o, int argc, char **argv, int first)
 {
     for (int i = first; i < argc; ++i) {
@@ -121,17 +124,17 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--seconds")) { NEED(1); o->seconds = (float)v[0]; }
         else if (!strcmp(a, "--character")) o->character = 1;
         else if (!strcmp(a, "--game-root")) { if (++i >= argc) return 1; o->game_root = argv[i]; o->character = 1; }
-        else if (!strcmp(a, "--class")) { NEED(1); o->class_byte = (int32_t)v[0] & 0xff; o->character = 1; }
-        else if (!strcmp(a, "--parts")) { NEED(1); o->part_mask = (int32_t)v[0]; o->character = 1; }
+        else if (!strcmp(a, "--class")) { NEED(1); if (!in_range(v[0], -2147483648.0, 2147483647.0)) return 1; o->class_byte = (int32_t)v[0] & 0xff; o->character = 1; }
+        else if (!strcmp(a, "--parts")) { NEED(1); if (!in_range(v[0], -2147483648.0, 2147483647.0)) return 1; o->part_mask = (int32_t)v[0]; o->character = 1; }
         else if (!strcmp(a, "--part") || !strcmp(a, "--weapon")) {
             int weapon = a[2] == 'w';
             NEED(1);
+            if (!in_range(v[0], 0, weapon ? 1 : 5) || ++i >= argc) { fprintf(stderr, "%s SLOT PATH\n", a); return 1; }
             int slot = (int)v[0];
-            if (slot < 0 || slot >= (weapon ? 2 : 6) || ++i >= argc) { fprintf(stderr, "%s SLOT PATH\n", a); return 1; }
             if (weapon) o->weapon_paths[slot] = argv[i]; else o->part_paths[slot] = argv[i];
             o->character = 1;
         }
-        else if (!strcmp(a, "--weapon-action")) { NEED(2); if (v[0] < 0 || v[0] > 1) return 1; o->weapon_actions[(int)v[0]] = (int32_t)v[1]; }
+        else if (!strcmp(a, "--weapon-action")) { NEED(2); if (!in_range(v[0], 0, 1) || !in_range(v[1], -2147483648.0, 2147483647.0)) return 1; o->weapon_actions[(int)v[0]] = (int32_t)v[1]; }
         else if (!strcmp(a, "--wing")) { if (++i >= argc) return 1; o->wing_path = argv[i]; o->character = 1; }
         else if (!strcmp(a, "--wing-scale")) { NEED(1); o->wing_scale = (float)v[0]; }
         else if (a[0] == '-' && a[1] == '-') { fprintf(stderr, "unknown option %s\n", a); return 1; }

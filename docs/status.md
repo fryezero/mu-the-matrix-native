@@ -93,14 +93,14 @@ not exist yet.
   * Review. PR #66 was merged without independent review. The post-merge review found a TGA image-ID over-read and missing SDL2/libjpeg-turbo notices, both now fixed; see the handoff.
   * Limits. State, mode selection, texture parameters and the normal-texcoord table are static readings or placeholders. [Evidence](research/native-viewer.md).
 - Character assembly (NATIVE-CHAR-001). The native viewer and `mu-render character`/`chardump` assemble a player. Inputs: the shared `Player.bmd` skeleton (model 0xa91, 390 actions), the class body parts for a class byte (types `0x3700+…` plus skin index `(class&15)+16*(tier-1)`), and weapons/shield/wing on bones 33/42/47. Items attach through the root setter `0x012b7019` and a keep-root pose.
-  * Instructions. The rotation/transform position routines (384 cases), the class tier/skin/skip helpers (3x256) and the loader's part table (380 calls) match the actual instructions under Unicorn.
-  * Installed chains. `Player.bmd` posed by the actual builder, then 300 class parts and 267 items through the actual root setter, builder and transform, are byte-identical to the authored C.
-  * Golden data. `chardump` equals an independent reference in 18 synthetic CI cases and on 5 installed characters (private).
+  * Instructions (reported, private single run; needs the restored client text, so not in CI). The rotation/transform position routines (384 cases), the class tier/skin/skip helpers (3x256) and the loader's part table (380 calls) match the actual instructions under Unicorn.
+  * Installed chains (reported, private single run). `Player.bmd` posed by the actual builder (4 poses), then 300 class parts and 267 items (141,767 item vertices) through the actual root setter, builder and transform, are byte-identical to the authored C.
+  * Golden data. `chardump` equals an independent reference in 18 synthetic cases (CI, macOS and Linux) and on 5 installed characters (reported, private).
   * Limits. The render routines themselves are static readings. World-path weapon details, attribute branches, back-carried weapons, effects and action names are open. [Evidence](research/native-character.md).
 
 ## Verification
 
-The suite discovers 281 Python tests (macOS, NATIVE-CHAR-001 worktree). Portable checks pass 256 and explicitly skip
+The suite discovers 282 Python tests (macOS, NATIVE-CHAR-001 worktree after its review). Portable checks pass 257 and explicitly skip
 25 private-input checks. The three private character checks pass with `MU_RECOVERY_INTEGRATION=1`; the four private native viewer
 checks passed in NATIVE-VIEW-001.
 Before NATIVE-CHAR-001 the suite discovered 270 tests and skipped 22 private-input checks.

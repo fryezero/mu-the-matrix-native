@@ -373,11 +373,15 @@ static void title(viewer *v, SDL_Window *window)
     const mu_bmd *bmd = animated_bmd(v);
     mu_model *model = animated(v);
     uint16_t action = mu_model_action(model);
+    int missing = v->textures.missing;
+    if (v->character)
+        for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+            missing += v->ch.items[i].loaded ? v->ch.items[i].textures.missing : 0;
     snprintf(text, sizeof text, "%s%s  v%d  action %u/%d (%d keys)  frame %.2f  speed %.3f%s  mode %s%s%s",
              v->character ? "character " : "", name ? name + 1 : v->path, bmd->version, action, bmd->action_count,
              bmd->action_count ? bmd->actions[action < bmd->action_count ? action : 0].keys : 0,
              (double)mu_model_frame(model), (double)v->speed, v->playing ? "" : " (paused)", mode_names[mode_index],
-             v->options.params.lighting ? "" : "  unlit", v->textures.missing ? "  [missing textures]" : "");
+             v->options.params.lighting ? "" : "  unlit", missing ? "  [missing textures]" : "");
     SDL_SetWindowTitle(window, text);
 }
 

@@ -577,6 +577,10 @@ int main(int argc, char **argv)
         return 2;
     }
     const char *command = argv[1];
+    if (!o.model_path && strcmp(command, "character") && strcmp(command, "chardump")) {
+        fprintf(stderr, "%s needs MODEL or ROOT\n", command);
+        return 2;
+    }
     if (!strcmp(command, "info"))
         return command_info(&o);
     if (!strcmp(command, "dump"))
