@@ -202,7 +202,11 @@ def write_textured_model(directory, seed=1, *, version=10, four_corner=False, na
     path.write_bytes(raw)
     for index, name in enumerate(names):
         stem = name.rsplit('.', 1)[0]
-        payload = tga(8 << (index % 2), 8, seed*10+index, alpha=index != 1, rle=index == 2, top_left=index == 0)
+        # The client's TGA rule (native/core/mu_textures.h) reads 32-bit pixels raw
+        # from offset 22 of the .ozt and ignores RLE and the origin bit: the
+        # fixtures are uncompressed 32-bit images, one with the top-left origin
+        # bit set (ignored) and one with a width that is padded to a power of two.
+        payload = tga((8, 16, 12)[index % 3], 8, seed*10+index, top_left=index == 0)
         (directory/f'{stem.upper() if index == 1 else stem}.OZT').write_bytes(ozt(payload))
     return path
 

@@ -816,7 +816,8 @@ def compare(machine, case_bytes, directory, corners=None):
     if not result['tables_match']:
         result['table_detail'] = {'client': [(m, len(l), len(t)) for m, l, t in client['tables']][:8],
                                   'native': [(m, len(l), len(t)) for m, l, t in tables][:8]}
-    result['digest'] = hashlib.sha256(b''.join(struct.pack('<5I', *r) for r in client['stream'])).hexdigest()
+    result['digest'] = stream_digest(client['stream'])
+    result['corners_digest'] = stream_digest([r for r in client['stream'] if r[0] < 0x100])
     result['match'] = result['stream_match'] and result['tables_match'] and result.get('corners_match', True)
     return result
 
@@ -936,11 +937,10 @@ def mutate(case, rng, variant):
 # --------------------------------------------------------------------------
 
 
-def synthetic_run(machine, directory, rng, mutations=200):
+def synthetic_models(directory):
+    """The synthetic textured models (native/tests/native_fixtures.py): (seed, path)."""
     sys.path.insert(0, str(ROOT/'native/tests'))
     import native_fixtures as nf
-    results = {'viewer_cases': 0, 'viewer_matches': 0, 'mutated_cases': 0, 'mutated_matches': 0, 'records': 0,
-               'fault_cases': 0, 'failures': [], 'digests': {}}
     models = []
     # Model 10's texture names give the loader's sub-object records (uv/highlight
     # select + uv mesh, no environment group, hidden).
@@ -950,7 +950,80 @@ def synthetic_run(machine, directory, rng, mutations=200):
         sub.mkdir(exist_ok=True)
         models.append((seed, nf.write_textured_model(sub, seed, version=version, four_corner=True,
                                                      names=named.get(seed))))
-    base = ['--action', '1', '--frame', '1.5', '--origin', '3', '4', '5']
+    return models
+
+
+SYNTHETIC_BASE = ['--action', '1', '--frame', '1.5', '--origin', '3', '4', '5']
+PINNED_SEED, PINNED_MUTATIONS = 6611, 40
+
+
+def pinned_cases(directory):
+    """Deterministic cases whose streams native/tests pins (CI-safe, synthetic):
+    every viewer option case of the three synthetic models, then mutated cases
+    from a fixed seed. Returns [(label, case bytes, corners stream or None)]."""
+    out = []
+    for seed, path in synthetic_models(directory):
+        for label, args in option_matrix(None):
+            case_bytes, corners, report = corners_case(path, SYNTHETIC_BASE+args, directory, f's{seed}{label}')
+            out.append((f's{seed}{label}', case_bytes, corners))
+    rng = random.Random(PINNED_SEED)
+    viewer = [read_case(c) for _, c, _ in out]
+    for k in range(PINNED_MUTATIONS):
+        out.append((f'm{k}', write_case(mutate(rng.choice(viewer), rng, k)), None))
+    return out
+
+
+def stream_digest(records):
+    return hashlib.sha256(b''.join(struct.pack('<5I', *r) for r in records)).hexdigest()
+
+
+def group_digest(digests):
+    """One SHA-256 over 'label digest' lines, in order."""
+    return hashlib.sha256(''.join(f'{k} {v}\n' for k, v in digests).encode()).hexdigest()
+
+
+def pinned_run(machine, directory):
+    """Client streams of the pinned cases: the digests native/tests compares with."""
+    results = {'cases': 0, 'matches': 0, 'failures': [], 'corners': [], 'replay': []}
+    for label, case_bytes, corners in pinned_cases(directory):
+        result = compare(machine, case_bytes, directory, corners)
+        results['cases'] += 1
+        results['matches'] += int(result['match'])
+        if not result['match']:
+            results['failures'].append({'case': label, **result})
+        if corners is not None:
+            results['corners'].append((label, result.get('corners_digest')))
+        else:
+            results['replay'].append((label, result.get('digest')))
+    results['corners_group'] = group_digest(results['corners'])
+    results['replay_group'] = group_digest(results['replay'])
+    return results
+
+
+def negative_controls(machine, directory):
+    """The comparison must fail when the native side gets a different input."""
+    path = synthetic_models(directory)[0][1]
+    case_bytes, _, _ = corners_case(path, SYNTHETIC_BASE+['--flags', '0x1000', '--time', '1234.5'], directory, 'neg')
+    case = read_case(case_bytes)
+    client = machine.run_case(case)
+    controls = {}
+    for name, change in (('model-colour', lambda c: c['model'].update(color=(0.5, 1.0, 1.0))),
+                         ('time', lambda c: c['globals'].update(time=1235.5)),
+                         ('flags', lambda c: c['calls'][0].update(flags=0x1800)),
+                         ('vertex-bit', lambda c: c['model']['meshes'][0].update(
+                             V=bytes([c['model']['meshes'][0]['V'][0] ^ 1])+c['model']['meshes'][0]['V'][1:]))):
+        other = read_case(case_bytes)
+        change(other)
+        native, tables = replay(write_case(other), directory)
+        controls[name] = native != client['stream'] or tables != client['tables']
+    return controls
+
+
+def synthetic_run(machine, directory, rng, mutations=200):
+    results = {'viewer_cases': 0, 'viewer_matches': 0, 'mutated_cases': 0, 'mutated_matches': 0, 'records': 0,
+               'fault_cases': 0, 'failures': [], 'digests': {}}
+    models = synthetic_models(directory)
+    base = SYNTHETIC_BASE
     cases = []
     for seed, path in models:
         for label, args in option_matrix(rng):
@@ -1051,10 +1124,13 @@ def main():
         if args.math_sweep:
             report['math_sweep'] = math_sweep(machine, random.Random(args.seed), args.math_sweep)
             machine.x87_count.clear()
+            machine.trig_stats.clear()
         names = synthetic_names(random.Random(args.seed))
         report['names_synthetic'] = names_run(machine, names)
         if args.game_root:
             report['names_installed'] = names_run(machine, installed_names(args.game_root))
+        report['negative_controls'] = negative_controls(machine, directory)
+        report['pinned'] = pinned_run(machine, directory)
         if args.case:
             report['case'] = compare(machine, args.case.read_bytes(), directory)
         else:
@@ -1073,7 +1149,9 @@ def main():
     ok = all(r.get('match', True) for r in [report.get('case', {})])
     if any(v['binary32_differences'] for v in report.get('math_sweep', {}).values()):
         ok = False
-    for key in ('synthetic', 'installed', 'names_synthetic', 'names_installed'):
+    if not all(report['negative_controls'].values()):
+        ok = False
+    for key in ('synthetic', 'installed', 'names_synthetic', 'names_installed', 'pinned'):
         if key in report and report[key]['failures']:
             ok = False
     sys.exit(0 if ok else 1)
