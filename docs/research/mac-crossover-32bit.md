@@ -391,10 +391,23 @@ a user choice; and building the public mugl dirtied the source checkout. The own
   `tests/test_mac_installer.py` pins the publication boundary, the pins' presence in the README and the
   documentation of every option.
 
-**Limits.** The adapted setup has been exercised only through `--dry-run` against the real CrossOver
-install tree (on a bottle name that does not exist) and through the synthetic suite. It has not created a
-bottle, run winetricks, the launcher or the game; the repository's `cxwine` shims (stricter than the
-owner's originals), the new default build path and `play-mu.sh` are therefore unvalidated live. The
-live figures above are single-host supplied reports. Anti-cheat and server compatibility, other macOS
+**Live run of the repository version (follow-up, `claude/kit-live-fixes`, 2026-10-17).** The adapted
+setup was run from a fresh worktree into a throwaway bottle, never MuMatrix32: fresh setup 3 min 51 s,
+exit 0, AeDebug off before .NET; the public build reached server select at 1280x800 (index capped at 2)
+at 19-20 fps; `--mugl-build private` generated from the owner's dump in 12 s with all pins matching and
+reached index 4, 1722x1076, 25.0 fps, hotpatch mask 7599 with 9/9 helpers, 18,583 inline and 50,977
+peephole sites and 0 mesh-draw fallbacks or mismatches; a prebuilt `--dll-dir` passed its pins at 25.0
+fps; `--fast-x87` through the Desktop launcher gave 25 fps at about 12 ms of work (15 ms without). Verify
+reported 38 PASS, 0 WARN, 0 FAIL; reruns take about 2 s. The account was in use elsewhere, so none of
+this logged in. The run found and fixed five bugs (README, "Live validation of the repository version"):
+a PE timestamp made every build differ so reruns reinstalled both DLLs, `--dll-dir` demanded
+`mscoree.dll`, a test failed once a real private build existed in the checkout, `play-mu.sh` truncated a
+log shared by all bottles, and verify ignored the launcher's fast-x87 setting. The shell suite is now 190
+checks. The private build output stays ignored and uncommitted. Single host and one macOS/CrossOver
+version.
+
+**Limits.** Before that follow-up the adapted setup had been exercised only through `--dry-run` and the
+synthetic suite. Login and in-world play of a kit bottle built by the repository version were not
+repeated; the in-world figures above are the owner's single-host supplied reports. Anti-cheat and server compatibility, other macOS
 or CrossOver versions, Intel Macs and the unbuilt TODO hooks are outside the evidence.
 

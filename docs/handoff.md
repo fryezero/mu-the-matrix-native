@@ -777,8 +777,8 @@ about 24.5 with v7.1 and half the frames late, 25.00 over 140 s with v7.2; front
 Not established: other hosts, macOS versions or power states, runs beyond the reported 140 s,
 login and character-select numbers, Windows-native behavior, anti-cheat and server
 compatibility. Next work: no new performance lever is reported; 25 fps remains the fixed
-40 ms logic step. A multi-minute hunting-spot run in the background would extend the
-evidence cheaply if the owner wants more.
+40 ms logic step. A 6-minute background hunting-spot soak is now reported (see
+`research/mac-performance.md`); an hour-long, heavier-load run would still extend the evidence.
 
 ## MAC-KIT-001 publication handoff
 
@@ -814,3 +814,22 @@ verify output, and delete the bottle; then decide whether to retire the older se
 The `MonitorCheck.exe` pre-launch display probe in `start-launcher.sh` is not in the kit. Fast-x87
 and the anti-cheat variants stay TODO hooks. Use disposable bottles for any crash-prone probe.
 
+
+## MAC-KIT-001 live-validation follow-up
+
+Branch `claude/kit-live-fixes`, worktree `~/Documents/mu-worktrees/kit-live`, based on main `0c1b5c8` (PR #64).
+The repository version of the kit was run live in a throwaway bottle (all three DLL paths and `--fast-x87`, to
+the server-select screen; not logged in because the account was in use elsewhere; MuMatrix32 and its processes
+untouched). It found five bugs, fixed here: PE timestamps made builds non-reproducible
+(`--no-insert-timestamp` in the kit's mscoree command and `mac-play/mugl/Makefile`), `--dll-dir` demanded
+`mscoree.dll` (the public proxy is now built when missing, and a failed DLL copy aborts), a test depended on
+a real private build in the checkout (`MUKIT_PRIVATE_BUILD_DIR`), `play-mu.sh` shared one log between bottles
+(`MuTheMatrix-<bottle>.log`), and verify ignored the launcher's fast-x87 setting. Results and timings are in
+the kit README ("Live validation of the repository version") and `research/mac-crossover-32bit.md`; the shell
+suite is 190 checks. The pre-existing README-wording test was updated to the new status text. Also recorded
+in `research/mac-performance.md` (MAC-PERF-006): a reported 6-minute background soak with v7.2.
+
+Next: log in with a kit-built bottle and measure in-world fps against MuMatrix32 once the account is free;
+run a long (an hour or more) session, with heavier monster load, to settle stability; decide whether to
+retire `setup-crossover-32bit.sh`. The private hotpatch build output stays in the ignored
+`mac-play/hotpatch/build/private/` and must never be committed.

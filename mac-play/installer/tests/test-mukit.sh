@@ -251,6 +251,19 @@ grep -q '\[do\]' "$TMPD/d2.log" && bad 'desktop rerun no-op' || ok 'desktop reru
 printf '#!/bin/zsh\necho mine\n' > "$FH/Desktop/Mine.command"
 HOME="$FH" "${DSETUP[@]}" --launcher-name Mine.command > /dev/null 2>&1 && bad 'refuse overwriting foreign .command' || ok 'refuse overwriting foreign .command'
 eq 'foreign .command untouched' "$(cat "$FH/Desktop/Mine.command")" $'#!/bin/zsh\necho mine'
+TW="$TMPD/timewalker"; mkdir -p "$TW/scripts" "$TW/build"
+TW=$(cd -- "$TW" && pwd -P)   # setup records the physical path (macOS: /var -> /private/var)
+printf '#!/bin/sh\nexit 0\n' > "$TW/scripts/run-crossover.sh"; chmod 755 "$TW/scripts/run-crossover.sh"; : > "$TW/build/libtimewalker.dylib"
+HOME="$FH" "${DSETUP[@]}" --fast-x87 --timewalker-dir "$TW" > "$TMPD/x87.log" 2>&1
+yes 'fast x87 launcher sets MU_FAST_X87=1' grep -q 'MU_FAST_X87=1' "$LF"
+yes 'fast x87 launcher passes MU_TIMEWALKER_DIR' grep -q "MU_TIMEWALKER_DIR='$TW'" "$LF"
+HOME="$FH" "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/vx87.log" 2>&1
+grep -q '^PASS  fast x87' "$TMPD/vx87.log" && ok 'verify: launcher fast x87 build present' || bad 'verify: launcher fast x87 build present'
+rm "$TW/build/libtimewalker.dylib"
+HOME="$FH" "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/vx87b.log" 2>&1
+grep -q '^WARN  fast x87' "$TMPD/vx87b.log" && ok 'verify WARNs: launcher fast x87 build missing' || bad 'verify WARNs: launcher fast x87 build missing'
+HOME="$FH" "${DSETUP[@]}" > /dev/null 2>&1
+yes 'rerun without --fast-x87 restores plain launcher' grep -q 'MU_FAST_X87=0' "$LF"
 
 echo '# build path: public mugl + mscoree proxy from the repository sources (needs MinGW and python3)'
 if command -v "${MINGW_CC:-i686-w64-mingw32-gcc}" >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
@@ -271,6 +284,16 @@ if command -v "${MINGW_CC:-i686-w64-mingw32-gcc}" >/dev/null 2>&1 && command -v 
     "$KIT_DIR/verify-mu-mac.sh" --bottle FakeBuild > "$TMPD/verify-build.log" 2>&1; rc=$?
     eq 'verify on built bottle: no FAIL' "$rc" 0
     grep -q 'kit-installed build' "$TMPD/verify-build.log" && ok 'verify accepts the kit-built mugl' || bad 'verify accepts the kit-built mugl'
+    # Rebuilds must be byte-identical (no PE timestamp), so a rerun leaves the installed DLLs alone.
+    MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/build2.log" 2>&1
+    grep -q '\[do\]   install' "$TMPD/build2.log" && bad 'build rerun: DLLs unchanged (reproducible build)' || ok 'build rerun: DLLs unchanged (reproducible build)'
+    # Prebuilt with a mugl-only --dll-dir (no mscoree.dll): the public mscoree proxy is built instead.
+    mkdir -p "$TMPD/muglonly"; cp "$DLLS/mugl-v72.dll" "$TMPD/muglonly/"
+    MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --dll-source prebuilt --dll-dir "$TMPD/muglonly" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/muglonly.log" 2>&1; rc=$?
+    eq 'prebuilt mugl-only --dll-dir exit 0' "$rc" 0
+    grep -q 'building the mscoree proxy' "$TMPD/muglonly.log" && ok 'mugl-only --dll-dir builds the mscoree proxy' || bad 'mugl-only --dll-dir builds the mscoree proxy'
+    eq 'prebuilt mugl deployed from mugl-only dir' "$(mukit_sha256 "$BG/opengl32.dll")" "$MUKIT_MUGL_V72_SHA256"
+    eq 'built mscoree deployed with mugl-only dir' "$(mukit_sha256 "$BG/mscoree.dll")" "$(mukit_sha256 "$TMPD/kitbuild/mscoree.dll")"
 else
     echo 'skip  build path (no MinGW cross-compiler or python3)'
 fi
@@ -301,7 +324,7 @@ mkdir -p "$MUKIT_BOTTLES_DIR/Foreign"; : > "$MUKIT_BOTTLES_DIR/Foreign/cxbottle.
 env -u MU_DLL_DIR "$KIT_DIR/setup-mu-mac.sh" --dry-run --bottle FakeKit --game-dir "$SRC" --dll-source prebuilt --modes '960x600' > /dev/null 2>&1 && bad 'prebuilt without --dll-dir is refused' || ok 'prebuilt without --dll-dir is refused'
 mkdir -p "$TMPD/baddlls"; cp "$DLLS"/* "$TMPD/baddlls/"; printf 'tampered' >> "$TMPD/baddlls/mugl-v72.dll"
 "${SETUP[@]}" --dll-dir "$TMPD/baddlls" > "$TMPD/tamper.log" 2>&1 && bad 'refuse DLL with the wrong SHA-256' || { grep -q 'does not match the pinned' "$TMPD/tamper.log" && ok 'refuse DLL with the wrong SHA-256' || bad 'tamper message'; }
-"${SETUP[@]}" --dry-run --dll-source build --mugl-build private > "$TMPD/priv.log" 2>&1 && bad 'private build without your own private DLL is refused' || ok 'private build without your own private DLL is refused'
+MUKIT_PRIVATE_BUILD_DIR="$TMPD/no-private-build" "${SETUP[@]}" --dry-run --dll-source build --mugl-build private > "$TMPD/priv.log" 2>&1 && bad 'private build without your own private DLL is refused' || ok 'private build without your own private DLL is refused'
 "${SETUP[@]}" --dry-run --mugl-build both > /dev/null 2>&1 && bad 'refuse bad --mugl-build' || ok 'refuse bad --mugl-build'
 sedi 's/"WineArch" = "win32"/"WineArch" = "win64"/' "$FB/cxbottle.conf"
 "${SETUP[@]}" --dry-run > /dev/null 2>&1 && bad 'refuse win64 bottle' || ok 'refuse win64 bottle'
