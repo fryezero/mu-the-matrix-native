@@ -19,8 +19,9 @@ Read [`research/client-terrain.md`](research/client-terrain.md). `reconstructed/
 running `scripts/validate_terrain.py` (pinned text, data and dispatch flag; `--game-root` adds the installed files
 and `--installed-worlds 1,143 --installed-tiles 0` checks every tile). Renders and reports stay local. Next: decode
 or capture the object placement (the `.obj` files do not decode with `0x0098c5f2`; a runtime capture of the
-loader's output buffer would avoid the protection layer), then draw `Object<n>\` models through the model path,
-then port dynamic lights and the world-specific animated tiles.
+loader's output buffer would avoid the protection layer), then draw `Object<n>\` models through the model path.
+Dynamic lights, world tiles, frustum, decals and the 24-bit height choice are done (NATIVE-TERRAIN-002,
+[`research/client-terrain-frame.md`](research/client-terrain-frame.md); `--scale-002` scales its checks).
 
 ## Original launcher in CrossOver
 

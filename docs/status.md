@@ -34,7 +34,10 @@ not exist yet.
   Twisted Karutan in both passes and every installed height, light and attribute
   file. `mu-terrain` and `mu-viewer --terrain` render worlds natively. Static
   objects are blocked: the installed `.obj` files do not decode with the routine
-  the captured loader calls.
+  the captured loader calls. NATIVE-TERRAIN-002 adds dynamic lights, the per-world
+  water/lava scrolls and animated layer, the frustum box and tests, decals and the
+  resolved 24-bit height choice (handler table; worlds 134..145), all compared in
+  Unicorn ([finding](research/client-terrain-frame.md)).
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected by the strict reader and 74 other/table envelopes are unsupported.

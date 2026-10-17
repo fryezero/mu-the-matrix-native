@@ -14,8 +14,18 @@ Two independent references are used:
   --game-root the installed worlds are decoded and selected worlds' normals,
   light and tile streams are compared on real data.
 
+NATIVE-TERRAIN-002 (skip with --skip-002, scale with --scale-002 N): the
+24-bit height selector 0x016c9868 for every world index with handler objects
+built by their own constructors, AddTerrainLight 0x016cacfc, the world tile
+streams of 36 worlds (scrolls, blend states, animated layer, neighbour face,
+world-0x22 particles), CreateFrustrum 0x016cba24, CreateFrustrum2D
+0x016d20d9, TestFrustrum2D 0x016ccce7, RenderTerrain with live frustum tests
+and RenderTerrainAlphaBitmap 0x016cdd5f, plus Python models and negative
+controls (docs/research/client-terrain-frame.md). Their substitutions are
+listed in the report under 'substitutions'.
+
 GL imports are recorded at stub addresses written into the copied import
-slots. Three calls are substituted, and only these: the texture manager
+slots. Three calls are always substituted: the texture manager
 lookups 0x00ebbec8 / 0x00c97ce3 (return a synthetic bitmap whose +0x204/+0x208
 hold the width/height floats, or null) and the singleton getter 0x00db747f
 (thread-local static initialisation; its result is only passed to a world
@@ -1710,9 +1720,9 @@ def terrain2_checks(client, authored, report, g, scale=1):
         client.extra = {}
         got = struct.unpack('<8I', uc.mem_read(F_X2D, 32))
         zoom = fdiv(f32(float(width)), 640.0)
-        scale = fmul(fmul(fmul(zoom, k1c), k18), k10)
+        cam_scale = fmul(fmul(fmul(zoom, k1c), k18), k10)
         distance = fmul(fmul(fmul(2400.0, k1c), k18), k10)
-        _, params = authored.params_2d(world, mode, width, scale, distance)
+        _, params = authored.params_2d(world, mode, width, cam_scale, distance)
         status, x2d, y2d = authored.frustum_2d(world, position, angle, params, wide)
         cases += 1
         same = ok and status == 0 and got == tuple(fbits(v) for v in x2d + y2d)
