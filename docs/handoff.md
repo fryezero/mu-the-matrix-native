@@ -972,3 +972,24 @@ Branch `claude/native-frame`, worktree `~/Documents/mu-worktrees/native-frame`. 
 **Next:** decode the world data that feeds the world FOV, far factors and near plane; port the 4x4 tile walk
 `0x016d2e8e` and character picking; trace MoveHero past target selection (path finding, move packet);
 replace the flat terrain with the terrain milestone's renderer.
+## Native audio (NATIVE-AUDIO-001)
+
+Branch `claude/native-audio`, worktree `~/Documents/mu-worktrees/native-audio`. Read
+[`research/client-audio.md`](research/client-audio.md) and [`../reconstructed/audio/README.md`](../reconstructed/audio/README.md).
+
+**Built.** `reconstructed/audio` (FMOD-boundary reconstruction of the sound system, sound table, music,
+frame block `0x0185280c`, OpenWorld volume, Option.ini, UI conversions); `scripts/validate_audio.py`
+(Unicorn comparison); `scripts/extract_audio_tables.py` (local sound/music table, never committed);
+`native/core/mu_wav.c`, `mu_audio.c`, `mu_audio_decode.c`, `mu_audio_host.c`; `native/tools/mu_audio.c`
+(`list`, `decode`, `render`, `scan`) and `mu_audio_live.c` (SDL2).
+
+**Checks.** `make test` passes on macOS with 30 new tests (3 private); the audio tests also pass in Ubuntu
+24.04 arm64 and x86_64 containers with the same pinned render hash (`scratch/audio/linux-test.sh`). The validator passes every check
+with `--random 2000`; its report and the local tables are in `~/Documents/mu-mac-tools/native/scratch/audio/`.
+Renders: `~/Documents/mu-mac-tools/native/renders/audio/` (scripts and WAVs).
+
+**Next.** Capture `0x01cf1680` to settle music indices 43/44; reconstruct the event-world music managers;
+map the SND_Play call sites to game events; wire the module into the native client frame loop.
+
+No game, CrossOver bottle or registry was touched.
+
