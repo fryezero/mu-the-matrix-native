@@ -169,7 +169,7 @@ else
     for f in Info.plist PkgInfo MacOS/MuTheMatrix Resources/AppIcon.icns Resources/mu-launch.sh Resources/mukit.sh Resources/fast-x87.sh _CodeSignature/CodeResources; do
         [ -e "$C/$f" ] && ok "bundle has $f" || bad "bundle has $f"
     done
-    eq 'only expected top-level entries' "$(ls "$C" | tr '\n' ' ')" 'Info.plist MacOS PkgInfo Resources _CodeSignature '
+    eq 'only expected top-level entries' "$(ls "$C" | LC_ALL=C sort | tr '\n' ' ')" 'Info.plist MacOS PkgInfo Resources _CodeSignature '
     if plutil -lint "$C/Info.plist" >/dev/null; then ok 'Info.plist lints'; else bad 'Info.plist lints'; fi
     px() { plutil -extract "$1" raw -o - "$C/Info.plist" 2>/dev/null; }
     eq 'CFBundleExecutable'      "$(px CFBundleExecutable)" MuTheMatrix
