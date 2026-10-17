@@ -99,7 +99,7 @@ else
 GL_LIBS := -lGL
 GL_CFLAGS :=
 endif
-VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c
+VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c viewer/terrain_view.c
 
 viewer: $(BUILD)/mu-viewer
 

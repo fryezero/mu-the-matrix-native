@@ -249,26 +249,32 @@ def py_draw_tile(scene, pass_, xf, yf, xi, yi, out):
         texture = 0x7694 + scene['layer1'][idx[0]]
         if texture not in sizes:
             return 0
-        if w in (0x3f, 0x50, 0x51, 0x90, 0x6e, 0x6f, 0x8d, 0x8e) or 0x52 <= w <= 0x5a:
-            return 4
+        additive = w == 0x3f or 0x52 <= w <= 0x5a
         blade = fmul(sizes[texture][1], 2.0)
         out.append(('bind', texture))
+        if additive:
+            out.append(('state', 3, 0))
         u = fadd(fmul(xf, 0.25), scene['grass_offset'][yi & 0xff])
         uv = [u, 0.0, fadd(u, 0.25), 0.0, fadd(u, 0.25), 1.0, u, 1.0]
-        c[3] = list(c[0])
-        c[2] = list(c[1])
+        c[3] = list(c[0])          # 0x016d127a: corner 3 = corner 0, corner 1 = corner 2
+        c[1] = list(c[2])
         c[0][2] = fadd(c[0][2], blade)
         c[1][2] = fadd(c[1][2], blade)
         c[0][0] = fadd(c[0][0], -50.0)
         c[1][0] = fadd(c[1][0], -50.0)
-        c[0][1] = fadd(c[0][1], scene['wave'][idx[0]])
-        c[1][1] = fadd(c[1][1], scene['wave'][idx[1]])
+        second = (w in (0x50, 0x51, 0x90, 0x8d, 0x8e) or
+                  (w in (0x6e, 0x6f) and scene['layer1'][idx[0]] == 4))
+        sway = scene['wave2'] if second else scene['wave']
+        c[0][1] = fadd(c[0][1], sway[idx[0]])
+        c[1][1] = fadd(c[1][1], sway[idx[1]])
         out.append(('begin', 7))
         for k in range(4):
             out.append(('tex', fbits(uv[2 * k]), fbits(uv[2 * k + 1])))
             out.append(('c3',) + tuple(fbits(v) for v in light[3 * idx[k]:3 * idx[k] + 3]))
             out.append(('v',) + tuple(fbits(v) for v in c[k]))
         out.append(('end',))
+        if additive:
+            out.append(('state', 1, 0))
         return 0
     i0 = idx[0]
     neighbour = bool(scene['att'][i0] & 0x4000)
@@ -1223,6 +1229,8 @@ def installed(args, authored, client):
             fits = version in sizes and 4 + objects * sizes[version] == len(plain)
             count('obj', 'header-fits' if fits else 'header-does-not-fit')
         decoded[number] = entry
+    # Client loops on every installed height, light map, attribute and map file.
+    out['client_loops'] = installed_loops(client, authored, data, worlds)
     # Client comparison on selected installed worlds.
     for number in args.installed_worlds:
         entry = decoded.get(number, {})
@@ -1239,17 +1247,27 @@ def installed(args, authored, client):
         ok = client.call(LIGHT, [])
         primary = authored.primary_light(normal, entry['light'], world)
         result['primary_light'] = bool(ok and compare_lists(client.read('primary', 'f', 3 * CELLS), primary))
+        time = 123456.5
+        wave, wave2 = floats([0.0] * CELLS), floats([0.0] * CELLS)
+        authored.lib.mu_terrain_wave.argtypes = [ctypes.c_int32, ctypes.c_float, ctypes.c_int, ctypes.c_int32,
+                                                 ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, VOIDP, VOIDP]
+        authored.lib.mu_terrain_wave(world, time, 0, 0, 0, 255, 255, wave, wave2)
+        rng = random.Random(number)
         scene = {'world': world, 'layer1': entry['layer1'], 'layer2': entry['layer2'], 'alpha': entry['alpha'],
                  'att': entry['att'], 'height': entry['height'], 'light': primary, 'light2': [0.0] * (3 * CELLS),
-                 'wave': [0.0] * CELLS, 'wave2': [0.0] * CELLS, 'grass_offset': [0.0] * CELLS, 'grass_map': bytes([1]) * CELLS,
-                 'water': 1201.0, 'time': 0.0, 'detail': 0, 'grass_disabled': 0,
+                 'wave': list(wave), 'wave2': list(wave2),
+                 'grass_offset': [(rng.randrange(32768) % 4) / 4.0 for _ in range(CELLS)],
+                 'grass_map': bytes([1]) * CELLS, 'water': 0.0, 'time': time, 'detail': 0, 'grass_disabled': 0,
                  'sizes': installed_sizes(data / f'World{number}')}
         client.load_scene(scene)
         built = authored.scene(scene)
         g = random.Random(number)
         tiles = matches = unsupported = 0
-        for case in range(args.installed_tiles):
-            xi, yi = g.randrange(252), g.randrange(252)
+        if args.installed_tiles <= 0:
+            coordinates = [(x, y) for y in range(255) for x in range(255)]
+        else:
+            coordinates = [(g.randrange(255), g.randrange(255)) for _ in range(args.installed_tiles)]
+        for xi, yi in coordinates:
             for pass_ in (0, 2):
                 client.write('pass_', 'i', [pass_])
                 ok = client.call(TILE, [fbits(float(xi)), fbits(float(yi)), xi, yi, fbits(1.0), 1, 0])
@@ -1262,6 +1280,75 @@ def installed(args, authored, client):
         result['tile_streams'] = {'cases': tiles, 'matches': matches, 'unsupported': unsupported}
         out['compared'][str(number)] = result
     return out
+
+
+def installed_loops(client, authored, data, worlds):
+    install_crt(client) if not hasattr(client, 'crt_allowed') else None
+    uc, big = client.uc, WINDOW_AT
+    result = {'height_bytes': [0, 0], 'height_rgb': [0, 0], 'light_bmp': [0, 0], 'attributes': [0, 0],
+              'map': [0, 0], 'failures': []}
+    for number in worlds:
+        folder = data / f'World{number}'
+        for path in sorted(folder.iterdir()):
+            name, raw = path.name.lower(), None
+            if name == 'terrainheight.ozb':
+                raw = path.read_bytes()
+                if len(raw) >= 58 + 3 * CELLS:
+                    key = 'height_rgb'
+                    uc.mem_write(big, raw)
+                    uc.mem_write(G['height'], POISON * (4 * CELLS))
+                    ok, _ = region(client, 0x016c8843, 0x016c8958, {-0x14: big, -0x20: len(raw)}, 0x280)
+                    status, mine = authored.height_rgb(raw)
+                else:
+                    key = 'height_bytes'
+                    uc.mem_write(big, raw[4:4 + 0x438 + CELLS])
+                    uc.mem_write(G['height'], POISON * (4 * CELLS))
+                    client.write('world', 'i', [number - 1])
+                    ok, _ = region(client, 0x016c850c, 0x016c85af, {-8: big, -0x1c: 0x438}, 0x340)
+                    status, mine = authored.height_bytes(raw, authored.lib.mu_terrain_height_scale(number - 1))
+                same = ok and status == 0 and compare_lists(client.read('height', 'f', CELLS), mine)
+            elif name.startswith('terrainlight') and name.endswith('.ozb'):
+                key, raw = 'light_bmp', path.read_bytes()
+                client.file, client.cursor, client.crt_allowed = raw, 0, {CRT_FSEEK, CRT_FREAD}
+                uc.mem_write(G['light_map'], POISON * (12 * CELLS))
+                ok, _ = region(client, 0x0185b366, 0x0185b458, {-4: 0x51e0f11e, 0xc: G['light_map']}, 0x360)
+                status, mine = authored.light(raw)
+                same = ok and status == 0 and compare_lists(client.read('light_map', 'f', len(mine)), mine)
+            elif name.endswith('.att'):
+                key = 'attributes'
+                kind, plain = decrypt_file(path.read_bytes(), b'ATT\x01')
+                uc.mem_write(G['key'], KEY)
+                uc.mem_write(big, plain)
+                uc.mem_write(G['att'], POISON * (2 * CELLS))
+                client.crt_allowed, client.crt_calls = {CRT_FREE, CRT_FCLOSE, ERROR_BOX}, []
+                ok, eax = region(client, 0x016c9faf, 0x016ca15f, {-8: big, -0x18: len(plain), -0x14: 0x51e0f11e},
+                                 0x10160)
+                status, number_, att = authored.parse_attributes(plain)
+                # Wrong sizes (status 1, e.g. the *_Server_64k.att files the client never opens) return -1
+                # before any cell is written; corrupt files (status 2) return -1 after writing the cells.
+                same = ok and (eax == 0xffffffff) == (status != 0) and (status == 1 or
+                                                                        client.read('att', 'H', CELLS) == att)
+            elif name.endswith('.map'):
+                key = 'map'
+                kind, plain = decrypt_file(path.read_bytes(), b'MAP\x01')
+                if len(plain) > 0x40000:
+                    result['failures'].append([path.name, 'map-too-large-for-window'])
+                    continue
+                uc.mem_write(big, plain)
+                for n, size in (('layer1', CELLS), ('layer2', CELLS), ('alpha', 4 * CELLS)):
+                    uc.mem_write(G[n], POISON * size)
+                ok, _ = region(client, 0x016c9adf, 0x016c9b8b, {-0x14: big}, 0x50)
+                status, number_, l1, l2, alpha = authored.parse_map(plain)
+                same = (ok and status == 0 and bytes(uc.mem_read(G['layer1'], CELLS)) == l1 and
+                        bytes(uc.mem_read(G['layer2'], CELLS)) == l2 and
+                        compare_lists(client.read('alpha', 'f', CELLS), alpha))
+            else:
+                continue
+            result[key][0] += 1
+            result[key][1] += int(bool(same))
+            if not same:
+                result['failures'].append([f'World{number}/{path.name}', key])
+    return result
 
 
 def world_is_rgb(world):
