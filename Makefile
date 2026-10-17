@@ -6,6 +6,7 @@ all:
 	$(MAKE) -C reconstructed/client-memory
 	$(MAKE) -C reconstructed/record-math
 	$(MAKE) -C reconstructed/model-codec
+	$(MAKE) -C reconstructed/camera
 	$(MAKE) -C native
 
 test: all
@@ -30,6 +31,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/client-memory -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/record-math -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/model-codec -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/camera -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:
