@@ -5,3 +5,4 @@
 *.md text eol=lf
 *.json text eol=lf
 *.yml text eol=lf
+/mac-play/installer/tests/fixtures/* -text

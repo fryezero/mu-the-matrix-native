@@ -12,6 +12,17 @@ injected stale monitor link. Natural sleep/display-change recovery during a game
 and a native macOS build remain open. See
 [the evidence and test report](../docs/research/mac-crossover-32bit.md).
 
+## Alternative: reproducible kit with the working bottle layout
+
+[`installer/`](installer/README.md) (MAC-KIT-001) is a second setup path. It reproduces the
+owner's hand-built `MuMatrix32` layout (`C:\MuTheMatrix`, `C:\mutools`, the mscoree mode
+proxy, mode list, `LauncherOption.if`, mugl hotpatch configuration) in a new bottle, with a
+read-only `verify-mu-mac.sh` and a synthetic test suite that `make test` runs. It does not
+replace `setup-crossover-32bit.sh` below; each refuses bottles it did not create. It ships no
+DLL: it builds the public mugl and the mscoree proxy from these sources, or installs DLLs you
+supply after a SHA-256 check. Its adaptation to a repository checkout has been exercised only
+by dry runs and the synthetic suite, not live (see its README).
+
 ## Requirements and use
 
 Use macOS with CrossOver installed, its required Rosetta support, an APFS volume

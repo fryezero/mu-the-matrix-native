@@ -1,0 +1,16 @@
+WINE REGISTRY Version 2
+;; synthetic system.reg for the fake-bottle integration test
+
+#arch=win32
+
+[Software\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full] 1
+"Release"=dword:00080eb1
+"Version"="4.8.03761"
+
+[Software\\Microsoft\\Windows NT\\CurrentVersion] 1
+"CurrentBuild"="19045"
+"ProductName"="Microsoft Windows 10"
+
+[Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug] 1
+"Auto"="0"
+"Debugger"=""

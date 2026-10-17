@@ -1,0 +1,25 @@
+WINE REGISTRY Version 2
+;; synthetic user.reg for the fake-bottle integration test
+
+#arch=win32
+
+[Environment] 1
+"MUGL_STATS"="C:\\mutools\\mugl-stats.txt"
+
+[Software\\Microsoft\\Avalon.Graphics] 1
+"DisableHWAcceleration"=dword:00000001
+
+[Software\\Microsoft\\Internet Explorer\\Main\\FeatureControl\\FEATURE_BROWSER_EMULATION] 1
+"MuTheMatrix.exe"=dword:00002af9
+
+[Software\\Wine\\AppDefaults\\main.exe\\DllOverrides] 1
+"opengl32"="native,builtin"
+
+[Software\\Wine\\AppDefaults\\MuTheMatrix.exe\\DllOverrides] 1
+"mscoree"="native"
+
+[Software\\Wine\\DllOverrides] 1
+"*gdiplus"="builtin"
+"*mscoree"="native"
+"*windowscodecs"="builtin"
+"*windowscodecsext"="builtin"

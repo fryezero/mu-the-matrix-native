@@ -1,0 +1,31 @@
+WINE REGISTRY Version 2
+;; All keys relative to REGISTRY\\User\\S-1-5-21-0-0-0-1000
+
+#arch=win32
+
+[Environment] 1792208229
+#time=1dd5de8c9c8064c
+"MUGL_STATS"="C:\\mutools\\mugl-stats.txt"
+"TEMP"=str(2):"C:\\users\\crossover\\Temp"
+
+[Software\\Microsoft\\Avalon.Graphics] 1792157146
+#time=1dd5d71da22f4d8
+"DisableHWAcceleration"=dword:00000001
+
+[Software\\Test] 1
+@="dflt"
+"Empty"=""
+"we\"ird"=dword:00000001
+"Hex"=dword:00002af9
+
+[Software\\Wine\\AppDefaults\\main.exe] 1
+"Other"="x"
+
+[Software\\Wine\\AppDefaults\\main.exe\\DllOverrides] 1792190713
+#time=1dd5dc001f6ce96
+"opengl32"="native,builtin"
+
+[Software\\Wine\\DllOverrides] 1792165854
+"*gdiplus"="builtin"
+"*windowscodecs"="builtin"
+"d3dx9_43"="native"

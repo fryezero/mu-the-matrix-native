@@ -20,6 +20,7 @@ test: all
 	bash -n mac-play/diagnostics/bottle.sh
 	bash -n mac-play/diagnostics/run-fpbench.sh
 	bash -n mac-play/diagnostics/run-glbench.sh
+	bash mac-play/installer/tests/test-mukit.sh
 	$(PYTHON) -m unittest discover -s reconstructed/boot -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s asset-recovery -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s model-recovery -p 'test_*.py' -v

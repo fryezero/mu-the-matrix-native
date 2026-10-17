@@ -345,3 +345,56 @@ After integrating PR #43, the complete portable suite passes 148 of 162 tests
 with fourteen explicit private-input skips. The staged audit accepts all 146
 source files, with zero rejections. The monitor/setup code is unchanged by the
 integration; both contributions and their current test counts are preserved.
+
+## Reproducible setup kit, MAC-KIT-001
+
+Issue [#63](https://github.com/fryezero/mu-the-matrix-recovery/issues/63) publishes the owner's
+local mu-mac-kit as `mac-play/installer/` (`setup-mu-mac.sh`, `verify-mu-mac.sh`, `play-mu.sh`,
+`lib/mukit.sh`, `registry/mu-mac.reg`, `tests/`), based on main `6f4344d`. It is an alternative to
+`setup-crossover-32bit.sh` (MAC-CROSSOVER-001), not a replacement: it reproduces the layout of the
+hand-built `MuMatrix32` bottle (`C:\MuTheMatrix`, `C:\mutools`, the mscoree display-mode proxy, a
+mode list, `LauncherOption.if`, AeDebug off, mugl hotpatch configuration) in a new `win10`/win32
+bottle, and each script refuses bottles the other created. No game file, DLL or Wine/CrossOver file
+is published and no game, bottle or Wine process was started or changed for this task.
+
+**Reported live validation (the owner's local copy, 2026-10-17; not rerun here).** CrossOver
+26.3.0.39832, macOS 27, Apple Silicon. A fresh 32-bit `win10` bottle was built in 3 min 44 s with
+verify at 0 FAIL; .NET 4.8 through winetricks and the `cxwine`/`cxwineserver` shims took 3 min 14 s;
+`winetricks win10` is needed afterwards because dotnet48 leaves winver at win7; a rerun with nothing
+to do takes about 2 s. The kit's bottle logged in and ran at spawn at 27.2 ms of work and 24.9 fps,
+against 31 to 34.5 ms and 22.7 to 23.7 fps in `MuMatrix32` (which also had per-call timing on), so
+it was at parity or better. Six bugs were found and fixed live: the .NET check trusted the `Release`
+value that Wine pre-registers as 533320 (Version 4.7.03190); winetricks on macOS caches in
+`~/.cache/winetricks`; the AeDebug registry step ran after the installer; a DLL already present in the
+copied client was not recorded as kit-managed; a DevModeIndex cap written by the kit was later kept as
+a user choice; and building the public mugl dirtied the source checkout. The owner's local suite passed
+156/156 checks. The README of the kit keeps the full table.
+
+**What this task adapted (the evidence is the synthetic suite, not a live run).**
+- Siblings that exist only on the owner's machine were replaced by repository sources and parameters:
+  the shims and `mumodes` come from `mac-play/`, the default `--dll-source build` compiles the public
+  `mac-play/mugl` (batching only; no display-mode hook, so `DevModeIndex` is capped at 2) in an ignored
+  build directory, `--mugl-build private` installs the user's own `mac-play/hotpatch` private build, and
+  `--dll-source prebuilt --dll-dir DIR` installs the user's own v7.x DLLs after a SHA-256 check.
+- Prebuilt v7.x DLLs and a private hotpatch build contain client-derived bytes and are never committed
+  or workflow artifacts; the repository holds their SHA-256 pins only (`lib/mukit.sh`, README).
+  The pins were checked against the owner's files read-only.
+- The owner's account ID, Keychain item and `/Users/...` paths are not in the tree; `--account`,
+  `MU_ACCOUNT` and `MU_KEYCHAIN_SERVICE` (in the existing automation scripts) are parameters, and a
+  test greps for them. Extra protected bottle names are an environment value.
+- `play-mu.sh` is new in the kit (derived from the owner's script; fast x87 defaults to off and the
+  timewalker directory is a parameter). `--fast-x87` stays a TODO hook and `--ac-variant no-ac` stays
+  unimplemented by design.
+- `tests/test-mukit.sh` was ported to use a stub CrossOver tree, synthetic DLLs with injected pins and a
+  portable `sed -i`; it runs on macOS (bash 3.2) and Linux, and `make test`, hence CI on both, runs it
+  with 180 checks. The default build path is exercised there when MinGW is present. A new
+  `tests/test_mac_installer.py` pins the publication boundary, the pins' presence in the README and the
+  documentation of every option.
+
+**Limits.** The adapted setup has been exercised only through `--dry-run` against the real CrossOver
+install tree (on a bottle name that does not exist) and through the synthetic suite. It has not created a
+bottle, run winetricks, the launcher or the game; the repository's `cxwine` shims (stricter than the
+owner's originals), the new default build path and `play-mu.sh` are therefore unvalidated live. The
+live figures above are single-host supplied reports. Anti-cheat and server compatibility, other macOS
+or CrossOver versions, Intel Macs and the unbuilt TODO hooks are outside the evidence.
+

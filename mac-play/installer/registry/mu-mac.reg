@@ -1,0 +1,38 @@
+REGEDIT4
+
+; mu-mac-kit registry settings for a 32-bit CrossOver bottle running Mu The Matrix.
+; Applied by setup-mu-mac.sh with: wine --bottle NAME regedit /S C:\mutools\mu-mac.reg
+; Every value below mirrors the working MuMatrix32 bottle (checked by verify-mu-mac.sh).
+
+; WPF launcher: software rendering (hardware WPF path fails under Wine).
+[HKEY_CURRENT_USER\Software\Microsoft\Avalon.Graphics]
+"DisableHWAcceleration"=dword:00000001
+
+; Launcher's embedded page: IE11 emulation (optional fix for a harmless NullReferenceException).
+[HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION]
+"MuTheMatrix.exe"=dword:00002af9
+
+; Keep Wine's builtin WIC and GDI+. Native WIC breaks GDI+ encoding
+; ("A generic error occurred in GDI+", launcher init code 0xF0).
+[HKEY_CURRENT_USER\Software\Wine\DllOverrides]
+"*windowscodecs"="builtin"
+"*windowscodecsext"="builtin"
+"*gdiplus"="builtin"
+
+; mugl OpenGL batching proxy C:\MuTheMatrix\opengl32.dll, for main.exe only.
+; C:\windows\system32\opengl32.dll must remain Wine's builtin (the proxy loads it by path).
+[HKEY_CURRENT_USER\Software\Wine\AppDefaults\main.exe\DllOverrides]
+"opengl32"="native,builtin"
+
+; mscoree.dll proxy beside the .NET launcher (curated display-mode list for its Settings box).
+[HKEY_CURRENT_USER\Software\Wine\AppDefaults\MuTheMatrix.exe\DllOverrides]
+"mscoree"="native"
+
+; mugl statistics file (also used by mu-to-server.sh to detect rendering). setup --no-stats removes it.
+[HKEY_CURRENT_USER\Environment]
+"MUGL_STATS"="C:\\mutools\\mugl-stats.txt"
+
+; No winedbg on crashes: a crashing helper once spawned winedbg and killed the game's main thread.
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug]
+"Auto"="0"
+"Debugger"=""
