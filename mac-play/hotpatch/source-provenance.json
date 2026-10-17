@@ -1,0 +1,138 @@
+{
+  "mugl/mugl_v70.c": {
+    "sha256": "c83977712df1f046f66648175f53e20c2553e8430ce9018d139898da2e4ab6a1",
+    "published_as": "mac-play/hotpatch/mugl.c"
+  },
+  "mugl/xform_v70.c": {
+    "sha256": "cce0902f2c2fe8b761b97e6d6d08408c1ed93470a2f89ff4117785e58c7cc624",
+    "published_as": "mac-play/hotpatch/xform.c"
+  },
+  "hotpatch/hp.S": {
+    "sha256": "91b7717b94f8a307d0e3d59afa8e2edb9c8a352f7b8fc9c4d15e59c98091c0a4",
+    "published_as": "mac-play/hotpatch/hp.S"
+  },
+  "hotpatch/hptest.c": {
+    "sha256": "fe06a5054bce6265615a65d9bece546d222dd1004c1f446a851a37860b6c669e",
+    "published_as": "mac-play/hotpatch/hptest.c"
+  },
+  "hotpatch/thunks.S": {
+    "sha256": "4cb45c187143cecf6367631a1cb7a1768d3749b1aa078b98f23a9fed6b49dd07",
+    "published_as": "mac-play/hotpatch/thunks.S"
+  },
+  "peep/peep.py": {
+    "sha256": "08288eb78c77dfff985de98a112ab5cc497569a26024e7053cdaaf583875f665",
+    "published_as": "mac-play/hotpatch/peep.py"
+  },
+  "mumodes/modehook.c": {
+    "sha256": "0a5526d21f2743584bf95f0646725fb5404c4e9fb00c064d7ce4fa54e73cf43b",
+    "published_as": "mac-play/mumodes/modehook.c"
+  },
+  "mumodes/mscoree_proxy.c": {
+    "sha256": "43170920ffbbee2656cbf55e3d4022b17752ff7fc51fe84851570b568c72b73c",
+    "published_as": "mac-play/mumodes/mscoree_proxy.c"
+  },
+  "mumodes/mnames.h": {
+    "sha256": "da8f18d28eaa337f1f52be2bbb8b39b48317f98129275a884ae514a08110d162",
+    "published_as": "mac-play/mumodes/mnames.h"
+  },
+  "mumodes/mscoree.def": {
+    "sha256": "cb40cbf00c98315825c3c5d99d2b36ed639b47c3a72b2c14d962fdd633c8238f",
+    "published_as": "mac-play/mumodes/mscoree.def"
+  },
+  "mumodes/mstubs.S": {
+    "sha256": "4e259fbeec6d3a207a636bcc8e3df52c6b929d453247d2d1cf45445658cfff7a",
+    "published_as": "mac-play/mumodes/mstubs.S"
+  },
+  "meshbench/meshbench.c": {
+    "sha256": "99696aa2a930a9290cbed23cf661c50d9ba917f8aad6599cc8a2f53e8d7f08f2",
+    "published_as": "mac-play/hotpatch/meshbench.c"
+  },
+  "callbench/cb.c": {
+    "sha256": "167eca6e3b64f6d2ce63f602b0b7072346024132f133c5820a2a733ecd988f93",
+    "published_as": "mac-play/hotpatch/callbench.c"
+  },
+  "callbench/loops.S": {
+    "sha256": "446154f2373f11d8d951b11555f896536bf5ce4c357f22b2cf526e5c7bcf6341",
+    "published_as": "mac-play/hotpatch/loops.S"
+  },
+  "muinput/muinput.c": {
+    "sha256": "cc753bd411023eea883ca8e522288c23d39ca8ca15ca1a9c317ca6ae27132a06",
+    "published_as": "mac-play/automation/muinput.c"
+  },
+  "winshot.swift": {
+    "sha256": "00033786a12e396aa21f2a2496e20baf4588cde6d425d68f974dc62cb415f547",
+    "published_as": "mac-play/automation/winshot.swift"
+  },
+  "mu-autologin.sh": {
+    "sha256": "3d47bf54f7d0a78e84ef414830512bf5dc0d2a8f5bf704cf785ab49bcceb0a58",
+    "published_as": "mac-play/automation/mu-autologin.sh"
+  },
+  "mu-coords.sh": {
+    "sha256": "7c4be1dbc222f7c1a138243230eb76346f49532cc76c4920b39a7a53b30a8945",
+    "published_as": "mac-play/automation/mu-coords.sh"
+  },
+  "mu-step.sh": {
+    "sha256": "e3018409ad96df23eb2bce55a5d5237809673687b023a152722914202d8ecc21",
+    "published_as": "mac-play/automation/mu-step.sh"
+  },
+  "hotpatch/wkwin.sh": {
+    "sha256": "0b3d604c8aa6bcebe46099a5fcc8c052bd28fe75c6d95e6731ad2d9e949b1341",
+    "published_as": "mac-play/automation/wkwin.sh"
+  },
+  "hotpatch/fpswin.sh": {
+    "sha256": "f8c6c645c402333af34355521d89e8c448d84a22e5679cc9daab9feafd06b8ea",
+    "published_as": "mac-play/automation/fpswin.sh"
+  },
+  "machprof/stackprof.c": {
+    "sha256": "f565cdb41f9f6e01f6841986eb04e3b26bcd90d889a6a63ef9384dfb522713c4",
+    "published_as": "mac-play/machprof/stackprof.c"
+  },
+  "machprof/ent.plist": {
+    "sha256": "60f8369ca4a2cdc0af2aaf9ec4522640d3349425b37da5268e0120fda4975078",
+    "published_as": "mac-play/machprof/ent.plist"
+  },
+  "machprof/memdump.c": {
+    "sha256": "e1da131e18947cef09d874f689af0fedbffdc206c6e1c82c76c088710da117f5",
+    "published_as": "mac-play/machprof/memdump.c"
+  },
+  "machprof/flav.c": {
+    "sha256": "23994d05d7e72cf63a49d32c34fc77b894962013487842629dad7570bc545754",
+    "published_as": "mac-play/machprof/flav.c"
+  },
+  "machprof/bytarget.py": {
+    "sha256": "240eab885ac05c1f3f8965e7323f12df62a87186937d574efebc50e9a81cf819",
+    "published_as": "mac-play/machprof/bytarget.py"
+  },
+  "machprof/chain.py": {
+    "sha256": "c2c49306222dde7a3d71f1d4a1093d859018578bd00bf8bc9922d3eebeb2d5eb",
+    "published_as": "mac-play/machprof/chain.py"
+  },
+  "machprof/fdis.py": {
+    "sha256": "18648cd9e4b57efd576e8f3d39528e99ab905561ffe077aafeefc7b11c937ea7",
+    "published_as": "mac-play/machprof/fdis.py"
+  },
+  "machprof/callsite.py": {
+    "sha256": "fdc5f5640c8efbcb9e874fb5b0e8d97abd09bc89f0b9ac81e05ecd4682ffe584",
+    "published_as": "mac-play/machprof/callsite.py"
+  },
+  "mugl/gen.py": {
+    "sha256": "a100fa48ba549368e12d8e5708d63441ddd825edb125447abe616d6ba2a9aa36",
+    "published_as": "mac-play/hotpatch/gen_exports.py",
+    "note": "packaging adaptation or consolidated local generation; original byte templates replaced by digest metadata"
+  },
+  "inliner/scan.py": {
+    "sha256": "12dcc7df3092fdadb7a45ba90f9f684cccb0ab328830f1a33fe3bbd6e58a2421",
+    "published_as": "mac-play/hotpatch/inliner.py",
+    "note": "packaging adaptation or consolidated local generation; original byte templates replaced by digest metadata"
+  },
+  "peep/runall.py": {
+    "sha256": "0d5f51b3074692c8c93c03bba47ba6dc845d5add548610350a5e86f659e7d601",
+    "published_as": "mac-play/hotpatch/generate.py",
+    "note": "packaging adaptation or consolidated local generation; original byte templates replaced by digest metadata"
+  },
+  "peep/seg.py": {
+    "sha256": "b2f2366e57d06de8b62a17f581375dcd603906bb98351ce8b077dc702084f748",
+    "published_as": "mac-play/hotpatch/generate.py",
+    "note": "packaging adaptation or consolidated local generation; original byte templates replaced by digest metadata"
+  }
+}

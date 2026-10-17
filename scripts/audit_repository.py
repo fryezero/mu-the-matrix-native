@@ -6,7 +6,7 @@ import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PRIVATE_DIRS = {'input','evidence','runtime','vendor','publish','dist','node_modules','__pycache__'}
-GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc'}
+GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
 
 
 def violations(name, content):
@@ -14,6 +14,8 @@ def violations(name, content):
     errors = []
     if any(part in PRIVATE_DIRS or part.startswith('verified') for part in path.parts):
         errors.append('local/generated directory')
+    if name.startswith('mac-play/hotpatch/') and path.name in {'hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h'}:
+        errors.append('private generated game-byte table')
     if path.suffix.lower() in GENERATED:
         errors.append('binary or generated asset type')
     if len(content) > 512*1024:

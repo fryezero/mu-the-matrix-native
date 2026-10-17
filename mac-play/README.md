@@ -18,7 +18,9 @@ Use macOS with CrossOver installed, its required Rosetta support, an APFS volume
 that supports `cp -c`, and `winetricks` on your PATH. Homebrew supplies winetricks
 with `brew install winetricks`. The dependency installers need downloads or an
 existing winetricks cache and can take several minutes. CrossOver itself and a
-legally acquired matching installation are separate prerequisites.
+legally acquired matching installation are separate prerequisites. Default GL
+batching also needs MinGW-w64 (`brew install mingw-w64`) and make. Use
+`MU_GL_BATCHING=0` during setup to opt out.
 
 From the repository root:
 
@@ -267,3 +269,58 @@ GCC `-O2 -fno-tree-vectorize`, then `-mfpmath=387` or
 final `glFinish`. Its helper uses SSE2 arithmetic to reduce x87 overhead in the
 probe itself. Report renderer/vendor/version with the result. Context/pixel
 format failures return nonzero. Neither synthetic workload establishes game FPS.
+
+## Default OpenGL batching
+
+Setup now requires MinGW-w64 (`brew install mingw-w64`) and builds the authored
+MIT [mugl proxy](mugl/README.md) with SSE math. It installs the generated DLL beside
+`main.exe` in the cloned game directory and sets its app-specific OpenGL override.
+The system32 OpenGL DLL must still carry Wine's builtin marker; setup refuses a
+foreign replacement. Every rerun rechecks deployment and records both DLL hashes
+under `.mu-matrix-setup`. Close that bottle's game/launcher before rerunning.
+
+To opt out, including removing a previously managed installation:
+
+```sh
+MU_GL_BATCHING=0 ./mac-play/setup-crossover-32bit.sh --bottle MyMuBottle
+```
+
+This opt-out does not require MinGW. Batching reduces immediate-mode thunk calls.
+The owner still needs to validate in-world performance and stability. It does not
+satisfy the native source-build acceptance gates.
+
+For an A/B test, the GL helper accepts a third numeric argument, quads per block.
+It uses process-local DLL overrides and copies the proxy into its diagnostics
+directory, without changing the game's registry settings:
+
+```sh
+MU_FAST_X87=0 MU_GL_BATCHING=0 ./mac-play/diagnostics/run-glbench.sh MyMuBottle 120 4000 4
+MU_FAST_X87=0 MU_GL_BATCHING=1 ./mac-play/diagnostics/run-glbench.sh MyMuBottle 120 4000 4
+make mac-diagnostics
+```
+
+Compare `fbhash` within the same block-size case as well as FPS. Hashes are FNV-1a
+of the final 640x480 RGBA back buffer; they establish equality for that synthetic
+scene and driver, not arbitrary game rendering. The source validates its window,
+pixel format, context and final GL error. `diagnostics/glcheck.c` additionally
+checks current attributes, incomplete blocks, display lists, client-state
+restoration, VBO/VAO bindings, conventional-attribute shaders, provoking
+conventions, flat primitives and foreign calls inside a block. Run it with builtin
+and proxy overrides and compare its hashes. A second invocation with argument
+`multitexture` exercises extension fallback in a fresh process.
+
+The sampling helper runs only in a named setup-owned bottle, including while its
+game is active. It refuses protected bottles and never resets a server:
+
+```sh
+./mac-play/diagnostics/run-eipprof.sh MyMuBottle main.exe 10
+```
+
+It suspends each target thread briefly, reads EIP and resumes it, then aggregates
+64-byte buckets and module ranges. Output is private in the bottle's diagnostics
+folder. This is intrusive wall-clock sampling, includes waiting threads and is
+not a CPU-time profiler or a native Windows profile. Threads/modules are captured
+once; later arrivals are not sampled. `pe_nearest_export.py DLL RVA...` maps a
+bucket's module-relative address to the nearest preceding export, not a proven
+function boundary. The profiler must finish normally so every suspended thread
+can resume. Do not use it during latency-sensitive gameplay.

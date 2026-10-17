@@ -1,6 +1,6 @@
 # Current status
 
-Updated 2026-10-16. The target is the exact installed Mu The Matrix client.
+Updated 2026-10-17. The target is the exact installed Mu The Matrix client.
 The later destination is native macOS gameplay. A playable source build does
 not exist yet.
 
@@ -89,11 +89,11 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 218 tests. Portable checks pass 200 and explicitly skip
+The suite discovers 236 tests. Portable checks pass 218 and explicitly skip
 eighteen private-input checks. In the frameloop worktree, the new frame-map check
 passes with `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`; the full opt-in suite
 was not rerun there. In the skinning worktree, opt-in integration passed all 209
-earlier tests.
+earlier tests. The mugl and hotpatch source checks need no private inputs.
 In the bone-tracks worktree it passed all 155 tests from before the seven launcher-guard tests.
 The rotation worktree's opt-in integration passed 142 of the earlier 147.
 
@@ -144,11 +144,36 @@ benchmark measured 279.1 Mverts/s fast versus 2.7 plain with matching checksum
 3.904312. The test bottle was removed. All 163 portable tests pass, with fourteen
 private-input skips; both review axes and the publication audit pass.
 
+MAC-PERF-003, issue #51, adds the authored MIT mugl OpenGL batching proxy,
+361-name export generation, host-tested primitive conversion and a default-on
+setup step with `MU_GL_BATCHING=0` opt-out. Deployment checks Wine's system32
+builtin marker and records the proxy SHA-256. The setup-created MuMugl-test
+bottle passed three plain/proxy framebuffer comparisons at 20,000 quads/frame:
+38.7 to 118.7 FPS for one quad/block, 65.2 to 118.9 for four, and 76.8 to 119.6
+for sixteen. All thirty-six GL regression hashes match, with zero state failures or
+GL errors. Setup off/on/rerun checks pass. The launcher started main.exe with
+active batching and a 25.0 FPS log; one interval reduced 999,569 blocks to 8,966
+draws. The test bottle was removed. Owner in-world testing remains open.
+The x87 hypothesis is superseded by Claude's reported in-world EIP profile,
+which places 73% of main-thread samples in OpenGL; fast x87 did not improve
+in-world FPS. These figures are compatibility evidence, not native recovery.
+
 See [measurements and limits](research/mac-performance.md) for local checks and
 Claude's separately supplied launcher-to-main/profile observations. Post-patch
 in-world FPS remains owner testing. MuMatrix32 was not touched. This improves
 original-client compatibility; native source recovery acceptance gates are
 unchanged.
+
+MAC-PERF-004, issue #57, publishes Claude's opt-in v7.0 CPU hotpatch source
+stacked on open PR #52. Local pinned-input generation reproduces nine helper
+patches, 18,583 inline sites and 50,977 peepholes. Original byte tables and the
+xform prologue stay private; CI uses empty tables with game hooks disabled.
+Claude reports 20.5 FPS at mask 0, 24.1 at mask 7 and 24.7 at mask 15 in the
+same approximate hunting area, and zero skinning comparison mismatches over
+more than one million in-game calls. These are prior single-host reports,
+not rerun measurements. Mesh draw at `0x012b8d1d` is the next proposed verified
+C replacement. Default setup still uses #52. No running game, bottle or registry
+was changed. [Evidence and limits](research/mac-performance.md#mac-perf-004-claude-v70-in-process-cpu-hotpatches).
 
 ## Repository and next work
 

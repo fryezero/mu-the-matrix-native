@@ -32,3 +32,10 @@ __pycache__/
 *.local.json
 .env
 .env.*
+
+/mac-play/mugl/build/
+
+/mac-play/diagnostics/build/
+
+/mac-play/hotpatch/build/
+/mac-play/machprof/build/

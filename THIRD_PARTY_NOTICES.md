@@ -35,3 +35,24 @@ redistribution. CrossOver and Apple Rosetta remain separately supplied software.
 The `fpbench.c` and `glbench.c` diagnostics were authored for this investigation
 and copied from the local mu-mac-tools project, with GL error checks added here.
 They contain no game code or assets.
+
+## Immediate-mode batching and profiling
+
+`mac-play/mugl/`, `diagnostics/eipprof.c`, `diagnostics/glcheck.c` and
+`diagnostics/pe_nearest_export.py` are authored for this investigation and covered
+by the repository MIT license. `mugl/exports.txt` is an API-name manifest extracted
+from the separately installed CrossOver 26.3 i386 OpenGL DLL. No Wine/CrossOver
+implementation or binary is included. The generated proxy loads the user's
+installed Wine builtin OpenGL implementation at runtime.
+
+## Claude v7.0 performance tools
+
+`mac-play/hotpatch`, `mac-play/mumodes`, `mac-play/machprof` and
+`mac-play/automation` publish authored code from the owner's local mu-mac-tools
+work under this repository's MIT license. Source identities and packaging
+adaptations are recorded with the performance finding. The mscoree declarations,
+DEF and jump stubs contain forwarding API names/ordinals only. No Microsoft, Wine,
+CrossOver or game implementation is included. Original game instruction bytes,
+including the xform entry prologue, are generated only into ignored local build
+directories from owner-supplied private inputs. Generated DLLs containing original
+bytes are outside the publication boundary and must not be redistributed here.

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-16",
+  "updated": "2026-10-17",
   "target": {
     "name": "Mu The Matrix main.exe",
     "sha256": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
@@ -490,6 +490,128 @@
       "authored_library_sha256": "2be7f84e3949505d3a06d0b468ea66f4339f7162b0e973c11fa942d9d1cd4372",
       "local_report": "evidence/client-pose-builder/comparison-v12-v14-v15.json (pose-builder worktree), SHA-256 d93ceb8e33ce9e268c68f4d37fe69cc378f0251ce48e6bcf9faa6b9ae0de0615"
     },
+    "mac_gl_batching": {
+      "issue": 51,
+      "source": "mac-play/mugl",
+      "finding": "docs/research/mac-performance.md",
+      "license": "authored MIT",
+      "cross_over": "26.3",
+      "export_names": 361,
+      "proxy_sha256": "347f72467ec5a31c42289bae4eb6f04a6b608ffb64109b3caa55017a4e0d1405",
+      "validation_bottle": "MuMugl-test",
+      "frames": 240,
+      "quads_per_frame": 20000,
+      "benchmark_pairs": [
+        {
+          "quads_per_block": 1,
+          "builtin_fps": 38.7,
+          "proxy_fps": 118.7,
+          "both_fbhash": "733b6dc5"
+        },
+        {
+          "quads_per_block": 4,
+          "builtin_fps": 65.2,
+          "proxy_fps": 118.9,
+          "both_fbhash": "1c55adc5"
+        },
+        {
+          "quads_per_block": 16,
+          "builtin_fps": 76.8,
+          "proxy_fps": 119.6,
+          "both_fbhash": "96e9fdc5"
+        }
+      ],
+      "glcheck_matching_hashes": 36,
+      "glcheck_state_failures": 0,
+      "glcheck_gl_errors": 0,
+      "setup_reruns": [
+        "off",
+        "on",
+        "on"
+      ],
+      "local_evidence": "runtime/mac-mugl/",
+      "limits": "Single serial benchmark pairs, shared host, synthetic float32 fixed-function workload; owner in-world performance/stability and general GL equivalence remain open.",
+      "launcher_main_proxy_load": true,
+      "main_startup_buffered_triangle_fans": true,
+      "test_bottle_removed": true,
+      "main_observed_fps": 25.0,
+      "main_last_interval": {
+        "blocks": 999569,
+        "vertices": 6035276,
+        "draws": 8966,
+        "in_block_fallbacks": 0
+      },
+      "extension_capacity": 4096
+    },
+    "mac_cpu_hotpatch_v70": {
+      "issue": 57,
+      "base_pr": 52,
+      "source_sha256": {
+        "mugl_v70.c": "c83977712df1f046f66648175f53e20c2553e8430ce9018d139898da2e4ab6a1",
+        "xform_v70.c": "cce0902f2c2fe8b761b97e6d6d08408c1ed93470a2f89ff4117785e58c7cc624"
+      },
+      "private_dump_sha256": "6e7957c9af8685f5a5fb14008131eab50470d40d2e6128397d5795a88160bfd4",
+      "target_and_original_digests": "mac-play/hotpatch/targets.json",
+      "local_evidence": "runtime/mac-hotpatch/ in the mac-hotpatch worktree; dump and listings in /tmp, not distributed",
+      "publication_verified": {
+        "helper_tables": 9,
+        "inline_sites": 18583,
+        "peephole_sites": 50977,
+        "private_proxy_cross_build": true,
+        "harness_cross_build_only": true,
+        "game_or_bottle_changed": false,
+        "portable_tests_discovered": 208,
+        "portable_passed": 193,
+        "private_checks_skipped": 15,
+        "dump_only_regeneration_matches": true,
+        "mach_tools_compile_only": true
+      },
+      "prior_reported_not_rerun": {
+        "provenance": "Claude observations supplied in owner task brief; raw measurement logs not acquired for publication",
+        "helper_randomized_cases_per_helper": 900000,
+        "helper_mismatches": 0,
+        "skinning_in_game_calls_lower_bound": 1000000,
+        "skinning_mismatches": 0,
+        "hunting_spot": "Twisted Karutan x107..112,y95..98, MU Helper auto-attack",
+        "frame_cap_fps": 25,
+        "mask_0": {
+          "fps": 20.5,
+          "work_ms": 48.5
+        },
+        "mask_7": {
+          "fps": 24.1,
+          "work_ms": 40.3
+        },
+        "mask_15": {
+          "fps": 24.7,
+          "work_ms_range": [
+            37,
+            39
+          ]
+        },
+        "spawn": "124,120 capped at 25 FPS",
+        "gl_draws_per_frame_approx": 2950,
+        "gl_time_ms_approx": 6.4,
+        "mesh_ebp_walk_attribution_percent": 44.8,
+        "direct_and_indirect_call_ns_approx": 1.25
+      },
+      "remaining_mesh": {
+        "start": "0x012b8d1d",
+        "end": "0x012bb35a",
+        "instructions": 2713,
+        "return_stack_bytes": 44,
+        "status": "planned verified C replacement; excluded from publication"
+      },
+      "limits": [
+        "Single host; noisy cross-session FPS; no new runtime measurement",
+        "Flags-dead scan is heuristic; full EFLAGS/access equivalence unverified",
+        "Compile-only CI uses empty tables and disables game patch hooks",
+        "Default installer remains PR #52; no v7.0 runtime install",
+        "Frame-cap patch installer absent from pinned v7.0 sources",
+        "Windows-native equivalence and anti-cheat compatibility unverified",
+        "Separate builds with/without anti-cheat remain a plan"
+      ]
+    },
     "client_skinning": {
       "issue": 53,
       "document": "docs/research/client-skinning.md",
@@ -671,8 +793,8 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 218,
-    "portable_passed": 200,
+    "portable_tests_discovered": 236,
+    "portable_passed": 218,
     "private_checks_skipped": 18,
     "local_integration_passed": 209,
     "source_only_checkout_passed": true,

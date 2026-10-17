@@ -16,5 +16,6 @@ diagnostic_bottle() {
     row='^"[^"]+","[0-9]+","[^"]*","[0-9]+","[^"]*"$'
     printf '%s\n' "$tasks" | grep -Eq "$row" &&
         ! printf '%s\n' "$tasks" | grep -Ev "$row|^[[:space:]]*$" >/dev/null || die 'Unrecognised process list'
+    [ "${2:-idle}" != live-profile ] || return 0
     ! printf '%s\n' "$tasks" | grep -Eiq '^"(main|MuTheMatrix)\.exe",' || die 'Close the game/launcher in this bottle first'
 }

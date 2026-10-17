@@ -34,11 +34,17 @@ jobs:
       - name: Cross-build x86 guest comparison tool
         if: runner.os == 'Linux'
         run: make -C runtime-linux/lea-compare
+      - name: Cross-build immediate-mode batching proxy
+        if: runner.os == 'Linux'
+        run: make mugl mac-diagnostics mac-hotpatch
       - name: Cross-build authored performance probes
         if: runner.os == 'Linux'
         run: |
           i686-w64-mingw32-gcc -O2 -fno-tree-vectorize -mfpmath=387 '-DMODE="x87"' mac-play/diagnostics/fpbench.c -o /tmp/fp_x87.exe
           i686-w64-mingw32-gcc -O2 -fno-tree-vectorize -msse2 -mfpmath=sse '-DMODE="SSE2"' mac-play/diagnostics/fpbench.c -o /tmp/fp_sse.exe
           i686-w64-mingw32-gcc -O2 -msse2 -mfpmath=sse mac-play/diagnostics/glbench.c -o /tmp/glbench.exe -lopengl32 -lgdi32
+      - name: Compile authored Mach profiling tools
+        if: runner.os == 'macOS'
+        run: make -C mac-play/machprof
       - name: Check repository publication boundary
         run: python scripts/audit_repository.py

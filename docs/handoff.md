@@ -45,6 +45,53 @@ The previous MuMatrix32-ci-test validation passed all eight image steps and
 acceptance gates remain open. Two static selector-0x33 far-return sequences
 support the Heaven's Gate hypothesis without proving the original Rosetta fault.
 
+## Immediate-mode GL batching
+
+MAC-PERF-003 is issue #51, branch `codex/mac-gl-batching`, worktree
+`~/Documents/mu-worktrees/mac-mugl`. Read
+[`research/mac-performance.md`](research/mac-performance.md) and
+[`../mac-play/mugl/README.md`](../mac-play/mugl/README.md). The authored MIT proxy
+and 361-export generator build with `make mugl`; generated sources/DLL stay
+ignored. Portable tests compile the primitive conversion with host clang.
+Setup is default-on, rechecks the Wine system32 builtin marker, installs beside
+the cloned main.exe and records SHA-256. `MU_GL_BATCHING=0` removes the managed
+proxy and override. It refuses an active game/launcher and unmanaged DLLs.
+
+Validation uses the new setup-created MuMugl-test bottle, never MuMatrix32.
+Three 240-frame pairs at 20,000 quads/frame have matching framebuffer hashes:
+38.7/118.7 FPS at one quad/block, 65.2/118.9 at four and 76.8/119.6 at sixteen.
+All thirty-six glcheck hashes match with no state failures or GL errors. Real setup
+off/on/rerun checks pass. GAME START launched main.exe PID 888, with active fan
+buffering and 25.0 FPS. Its last saved interval has 999,569 blocks and 8,966 draws,
+with zero in-block fallbacks. No login/in-world test was performed. The bottle
+was stopped with its explicit prefix, deleted by name and absence checked. The
+final proxy digest is in the performance finding.
+Raw logs/binaries are ignored in `runtime/mac-mugl/`. CrossOver's wrapper replaces
+WINEDLLOVERRIDES; the diagnostic helper must use `--dll opengl32=b` or `n,b`.
+Initial environment-only A/B runs were rejected because the proxy never loaded.
+Native-only cannot load the real Wine builtin. Do not reuse those failed runs.
+
+Both review axes found the wireframe triangulation issue; non-fill polygon modes
+now permanently fall back, and the synthetic GL probe covers a wireframe quad.
+Display lists compile without array conversion; in-block multitexture calls use
+immediate replay.
+Server/client texture selection and other-unit arrays are preserved; modern
+buffer variants select a conservative process fallback. VAO binding is preserved
+by submitting through saved/restored default-VAO state. The extension table has
+4,096 slots because the client exceeds the prototype's 512 slots at startup.
+Ordinary VBO bindings are preserved around
+CPU array submission; GL2.1 compatibility shaders remain active. First-vertex
+flat fans/strips keep their original primitive mode. Shared globals assume one
+rendering thread
+and one current context at a time. Float32 fixed-function inputs are the measured
+domain. General GL equivalence, in-world FPS/stability and anti-cheat behavior
+remain open. Claude's reported 73% in-world OpenGL sample share supersedes the
+x87 bottleneck hypothesis. Native game recovery gates remain unchanged.
+
+Next, the owner validates login, Karutan and other in-world scenes, comparing
+builtin versus mugl with the same game settings and collecting optional stats.
+Do not stop or change the owner's MuMatrix32 bottle to obtain those numbers.
+
 ## Fast x87 compatibility path
 
 MAC-PERF-001 is issue #45 / merged PR #47. MAC-PERF-002 is issue #48, branch
@@ -592,3 +639,61 @@ CrossOver bottle or main-checkout change.
   effect buffer.
 * If the owner wants a higher menu cap, prototype the verified in-memory write
   in a test bottle, not MuMatrix32.
+
+## MAC-PERF-004 publication handoff
+
+Issue #57 / `codex/mac-hotpatch`, worktree `~/Documents/mu-worktrees/mac-hotpatch`,
+is stacked on OPEN PR #52 (`codex/mac-gl-batching`, base `d1c86a3`). The owned
+scope is `mac-play/hotpatch`, `mumodes`, `machprof`, `automation`, generator/policy
+tests, CI cross-build and the shared performance/status/roadmap/evidence notes.
+This publishes Claude's saved v7.0 work. No main.exe or Wine process was started,
+stopped, attached to or patched, and neither MuMatrix32 nor its C:\MuTheMatrix /
+C:\mutools directories were modified. Default setup remains PR #52's proxy.
+
+Read `research/mac-performance.md`, MAC-PERF-004, and
+`../mac-play/hotpatch/README.md`. `source-provenance.json` pins the pre-packaging
+authored sources. v7.0 mugl is `c8397771…b6a1`; xform is `cce0902f…c624`.
+The owner-supplied pristine memory dump remains `/tmp/pristine.bin`, SHA-256
+`6e7957c9af8685f5a5fb14008131eab50470d40d2e6128397d5795a88160bfd4`.
+The source generator derives objdump listings from that dump, verifies identities
+and reproduces exactly nine helper patches, 18,583 inline sites and 50,977
+peepholes. The old cached `/tmp/calls.txt` differs from the derived call list by
+one nonmatching target; both listing identities are pinned and yield identical
+final tables. Original templates become length/hash metadata. The xform original
+prologue and all original/replacement tables are generated under ignored
+`mac-play/hotpatch/build/private`, never committed or uploaded.
+
+Actual local checks: `make test PYTHON=tools/.venv/bin/python` discovers 208 tests,
+193 pass and fifteen explicitly skip private inputs. `make mac-hotpatch` builds
+the compile-only proxy, mscoree mode proxy, mesh/call benchmarks and muinput.
+`make -C mac-play/hotpatch private` cross-builds the private proxy and hptest;
+neither was executed. `make -C mac-play/machprof` compiles all three x86_64 Mach
+tools without signing/attachment. All five automation scripts pass zsh parsing.
+The final staged publication audit and diff check pass. Existing compiler warnings
+are an unused legacy extra-mode installer and compact hptest indentation.
+Fresh private tables match all eighteen original/replacement helper arrays and
+both final v7.0 tables byte for byte. Full generation also succeeds using only
+`--dump`, with locally derived listings. Verification logs and reference headers
+are ignored under `runtime/mac-hotpatch/`.
+
+Claude's prior 900k/helper comparison, >1M live skinning comparison, hunting FPS,
+6.4 ms GL timing, 44.8% mesh attribution and Rosetta behavior are supplied reports,
+not rerun measurements here. Raw measurement logs were not acquired. The
+performance finding keeps those claims separate from actual publication checks.
+The pinned v7.0 source does not contain an identifiable frame-cap patch installer;
+the 25 FPS/40 ms cap remains a reported condition and the merged frame-loop
+analysis is linked. Flags-dead analysis remains heuristic and full EFLAGS/access
+identity is unverified. Broad GL equivalence and Windows-native behavior remain
+unverified. Anti-cheat variants are a plan only.
+
+Review the PR and its macOS/Linux CI before integration. Do not merge the child
+while #52 is open without preserving that dependency. No independent reviewer
+approval is supplied by this implementation task. Next performance task, under
+separate authorization, is an original-vs-C mesh draw comparison at
+`0x012b8d1d..0x012bb35a` before measuring speed. Use EBP walks, retain the old
+stack-scan misattribution, and disable AeDebug only in disposable test bottles
+before crash-prone probes. The original process-killing restart helper and later
+meshdraw experiment remain omitted. Login/movement scripts select an explicit
+test bottle and refuse MuMatrix32; login reads the password from Keychain.
+
+After #58 was merged into `codex/mac-gl-batching` and `main` (with #54/#56) was merged in, the combined tree discovers 236 tests: 218 pass and 18 explicitly skip private inputs (`make test PYTHON=tools/.venv/bin/python`). The earlier counts above are per-PR snapshots.
