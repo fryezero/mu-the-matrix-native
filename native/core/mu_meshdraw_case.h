@@ -56,8 +56,9 @@ int mu_meshdraw_case_read(const uint8_t *data, size_t size, mu_meshdraw_case *ou
 void mu_meshdraw_case_free(mu_meshdraw_case *c);
 
 /* Runs every call in order on the case's state. `sink` receives the GL calls;
- * `scratch->tables` (optional) receives the tables each mesh draw wrote. */
-void mu_meshdraw_case_run(mu_meshdraw_case *c, const mu_gl_sink *sink, mu_meshdraw_scratch *scratch,
-                          mu_meshdraw_counts *counts);
+ * `scratch->tables` (optional) receives the tables each mesh draw wrote.
+ * Stops at the first MU_MESHDRAW_FAULT and returns it, else 0. */
+int mu_meshdraw_case_run(mu_meshdraw_case *c, const mu_gl_sink *sink, mu_meshdraw_scratch *scratch,
+                         mu_meshdraw_counts *counts);
 
 #endif

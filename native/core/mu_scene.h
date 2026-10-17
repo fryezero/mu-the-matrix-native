@@ -18,8 +18,13 @@
  *  - bitmap index of texture slot k is MU_SCENE_TEXTURE_BASE + k, GL name k+1;
  *    the environment bitmaps use their client indices and names after the
  *    model's; a missing texture binds name 0;
- *  - texture type table zero, mesh flag byte zero, no sub-object records,
- *    skin fields zero;
+ *  - texture type table zero (0x012b3e2e fills it with 0 at load), mesh flag
+ *    byte zero (written 0 at 0x012b3edd), sub-object records from the texture
+ *    names as the loader builds them (mu_meshdraw_sub_from_name), skin fields
+ *    zero;
+ *  - no bitmap keeps its pixels (the client frees model texture pixels after
+ *    the upload), so mode 0x8000 stops with MU_MESHDRAW_FAULT where the
+ *    client would read through a null pointer;
  *  - each call starts from the scene defaults of 0x0184adc7 (alpha test off,
  *    texture/depth/cull/depth mask on, blend off, fog setting off) with the
  *    model colour taken from the parameters (the client keeps both across
@@ -65,7 +70,7 @@ typedef struct mu_draw_options {
 void mu_draw_default_options(mu_draw_options *options);
 
 typedef struct mu_draw_stats {
-    long meshes, corners, refused;
+    long meshes, corners, refused, faulted;
 } mu_draw_stats;
 
 int mu_scene_draw_model(const mu_model *model, const mu_draw_options *options, const mu_render_backend *backend,
@@ -81,6 +86,7 @@ typedef struct mu_scene_inputs {
     mu_meshdraw_args args;
     int32_t skip;
     mu_gl_cache cache;
+    uint8_t (*subs)[5];          /* mesh +0x1c records (meshes[i].sub points here or is NULL) */
     mu_bitmap *bitmaps;          /* bitmap_count entries */
     int32_t *bitmap_index;
     int32_t bitmap_count;

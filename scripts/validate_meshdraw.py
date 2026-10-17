@@ -111,16 +111,19 @@ BRANCHES = {
     0x12bb3cc: 'body-sub', 0x12bb46a: 'body-outline-1', 0x12bb559: 'body-outline-2',
 }
 LIGHT_PASS, TABLE_LOOP, BEGIN_SITE = 0x12b968c, 0x12b9bb3, 0x12ba891
+TEXEL_READ = 0x12bad8a   # movzx eax, byte [eax+ecx]: mode 0x8000 texel of the override bitmap
+FAULT_OP = 0x102         # stream record: the routine stopped where it reads outside memory
 
 MODEL, MESHES, ARENA, BITMAPS = 0x20000000, 0x20001000, 0x20010000, 0x30000000
 VERTICES, NORMALS, LIGHTS = 0x078978a0, 0x0812cce0, 0x06fd0918
 SECONDARY, COLOURS, TEXCOORDS = 0x075a9ee8, 0x089c2120, 0x072acfd8
 VERTEX_STRIDE, LIGHT_STRIDE = 0x2bf20, 0xea60
+MAX_MESHES, MAX_ENTRIES = 50, 15000   # mesh slots between the transform buffers; 0x2bf20 / 12
 TIME, ENV_VECTOR, SKIN_BASE = 0x06fce370, 0x0a381de0, 0x0b6b53e0
 CACHE = {'depth_test': 0x0bdc597e, 'cull': 0x0bdc597f, 'depth_mask': 0x0bdc5980, 'alpha_test': 0x0bdc58b5,
          'texture': 0x0bdc597d, 'fog': 0x0bdc597c}
 BLEND_CACHE, BIND_CACHE = 0x0bdc58c4, 0x01cf1620
-STACK, STACK_BYTES, SENTINEL = 0x31000000, 0x20000, 0x31fff000
+STACK, STACK_BYTES, SENTINEL = 0x34000000, 0x40000, 0x35000000
 TEB, GDT = 0x32000000, 0x32001000
 STUBS = 0x7a800000
 FPCW, MXCSR = 0x027f, 0x1f80
@@ -285,7 +288,7 @@ class Machine:
         uc.mem_write(DATA_BASE, data)
         self.pages = {}
         for page in {FLAG_ADDRESS & ~0xfff, FEATURE_ADDRESS & ~0xfff, BIND_CACHE & ~0xfff, CACHE['fog'] & ~0xfff,
-                     ENV_VECTOR & ~0xfff, SKIN_BASE & ~0xfff}:
+                     ENV_VECTOR & ~0xfff, SKIN_BASE & ~0xfff, STRCHR_SSE_FLAG & ~0xfff}:
             uc.mem_map(page, 0x1000, RW)
         uc.mem_write(FLAG_ADDRESS, flag)
         uc.mem_write(FEATURE_ADDRESS, feature)
@@ -295,6 +298,7 @@ class Machine:
         uc.mem_map(MODEL, 0x00800000, RW)
         uc.mem_map(BITMAPS, 0x02000000, RW)
         uc.mem_map(STACK, STACK_BYTES, RW)
+        uc.mem_map(SENTINEL, 0x1000, UC_PROT_READ | UC_PROT_EXEC)
         uc.mem_map(TEB, 0x2000, RW)
         uc.mem_map(STUBS, 0x00100000, UC_PROT_ALL)
         uc.mem_write(STUBS, b'\xcc'*0x00100000)
@@ -312,11 +316,17 @@ class Machine:
         uc.hook_add(UC_HOOK_CODE, self.lookup, begin=BITMAP_BIND_LOOKUP, end=BITMAP_BIND_LOOKUP)
         for address in BRANCHES:
             uc.hook_add(UC_HOOK_CODE, self.branch, begin=address, end=address)
-        for address in TRIG_RETURNS:
+        for address in X87_TRANSCENDENTALS:
+            uc.hook_add(UC_HOOK_CODE, self.x87, begin=address, end=address)
+        self.x87_count = collections.Counter()
+        for address in (*TRIG_RETURNS, POW_RETURN):
             uc.hook_add(UC_HOOK_CODE, self.trig, begin=address, end=address)
         uc.hook_add(UC_HOOK_CODE, self.pass_start, begin=LIGHT_PASS, end=LIGHT_PASS)
         uc.hook_add(UC_HOOK_CODE, self.pass_start, begin=TABLE_LOOP, end=TABLE_LOOP)
         uc.hook_add(UC_HOOK_CODE, self.begin_site, begin=BEGIN_SITE, end=BEGIN_SITE)
+        uc.hook_add(UC_HOOK_CODE, self.texel, begin=TEXEL_READ, end=TEXEL_READ)
+        uc.hook_add(UC_HOOK_CODE, self.entry, begin=MESH_DRAW, end=MESH_DRAW)
+        uc.hook_add(UC_HOOK_CODE, self.getptd, begin=GETPTD, end=GETPTD)
         uc.hook_add(UC_HOOK_MEM_UNMAPPED, self.unmapped)
         uc.hook_add(UC_HOOK_MEM_WRITE, self.forbidden_write, begin=TEXT_BASE, end=DATA_BASE+data_size-1)
         self.coverage = collections.Counter()
@@ -328,10 +338,14 @@ class Machine:
         def descriptor(base, limit, access, flags):
             return struct.pack('<HHBBBB', limit & 0xffff, base & 0xffff, (base >> 16) & 0xff, access,
                                ((limit >> 16) & 0xf) | (flags << 4), (base >> 24) & 0xff)
-        table = bytes(8)+descriptor(TEB, 0xfff, 0x92, 0x4)
+        # Selectors: 1 flat code, 2 flat data (DS/ES/SS, 32-bit), 3 FS at the TEB.
+        table = (bytes(8)+descriptor(0, 0xfffff, 0x9a, 0xc)+descriptor(0, 0xfffff, 0x92, 0xc)
+                 + descriptor(TEB, 0xfff, 0x92, 0x4))
         uc.mem_write(GDT, table)
         uc.reg_write(x86.UC_X86_REG_GDTR, (0, GDT, len(table)-1, 0x0))
-        uc.reg_write(x86.UC_X86_REG_FS, 1 << 3)
+        uc.reg_write(x86.UC_X86_REG_FS, 3 << 3)
+        for reg in (x86.UC_X86_REG_SS, x86.UC_X86_REG_DS, x86.UC_X86_REG_ES):
+            uc.reg_write(reg, 2 << 3)
 
     def stop(self, reason):
         if self.state['stopped'] is None:
@@ -376,16 +390,45 @@ class Machine:
         self.coverage[BRANCHES[address]] += 1
 
     def trig(self, uc, address, size, ignored):
-        name, host = TRIG_RETURNS[address]
+        # Return of the CRT call inside the client's sin/cos/pow wrapper: the
+        # binary64 arguments are still on the stack, the result is in ST0. Each
+        # result is compared with the host libm the port uses: after the
+        # wrapper's binary32 store (what the routine consumes) and as binary64.
         x86 = self.x86
-        argument = struct.unpack('<d', bytes(uc.mem_read(self.esp(), 8)))[0]
+        if address == POW_RETURN:
+            name = 'pow'
+            base, exponent_arg = struct.unpack('<dd', bytes(uc.mem_read(self.esp(), 16)))
+            host = math.pow(base, exponent_arg)
+        else:
+            name, function = TRIG_RETURNS[address]
+            host = function(struct.unpack('<d', bytes(uc.mem_read(self.esp(), 8)))[0])
         top = (uc.reg_read(x86.UC_X86_REG_FPSW) >> 11) & 7
-        mantissa, exponent = uc.reg_read(getattr(x86, f'UC_X86_REG_FP{top}'))
-        result = math.ldexp(mantissa, (exponent & 0x7fff)-16383-63) if mantissa else 0.0
+        mantissa, exponent = uc.reg_read(getattr(x86, f'UC_X86_REG_FP{(top) & 7}'))
+        if (exponent & 0x7fff) == 0x7fff:
+            result = math.nan if mantissa & ((1 << 63)-1) else math.inf
+        else:
+            result = math.ldexp(mantissa, (exponent & 0x7fff)-16383-63) if mantissa else 0.0
         result = -result if exponent & 0x8000 else result
-        entry = self.trig_stats.setdefault(name, [0, 0])
-        entry[0] += 1
-        entry[1] += int(struct.pack('<f', f32(result)) != struct.pack('<f', f32(host(argument))))
+        entry = self.trig_stats.setdefault(name, {'calls': 0, 'binary32_differences': 0, 'binary64_differences': 0})
+        entry['calls'] += 1
+        same32 = struct.pack('<f', f32(result)) == struct.pack('<f', f32(host)) or (
+            math.isnan(result) and math.isnan(host))
+        same64 = struct.pack('<d', result) == struct.pack('<d', host) or (math.isnan(result) and math.isnan(host))
+        entry['binary32_differences'] += int(not same32)
+        entry['binary64_differences'] += int(not same64)
+
+    def x87(self, uc, address, size, ignored):
+        self.x87_count[X87_TRANSCENDENTALS[address]] += 1
+
+    def getptd(self, uc, address, size, ignored):
+        # CRT _getptd (per-thread data; strtok keeps its position at +0x1c): modelled.
+        esp = self.esp()
+        uc.reg_write(self.x86.UC_X86_REG_EAX, PTD_AT)
+        uc.reg_write(self.x86.UC_X86_REG_ESP, esp+4)
+        uc.reg_write(self.x86.UC_X86_REG_EIP, self.u32(esp))
+
+    def entry(self, uc, address, size, ignored):
+        self.state['passes'] = set()   # a pass of an early-returning draw writes no table at glBegin
 
     def pass_start(self, uc, address, size, ignored):
         self.state['passes'].add(address)
@@ -403,6 +446,17 @@ class Machine:
             table = bytes(uc.mem_read(TEXCOORDS, 8*min(normals, 15001)))
         self.state['tables'].append((mesh, light, table))
         self.state['passes'] = set()
+
+    def texel(self, uc, address, size, ignored):
+        # The client reads [pixels+at]; outside the allocation (always when the
+        # loader freed it: pointer 0) it faults or reads foreign memory.
+        x86 = self.x86
+        base, at = uc.reg_read(x86.UC_X86_REG_EAX), uc.reg_read(x86.UC_X86_REG_ECX)
+        span = self.state['pixels'].get(base)
+        if base == 0 or span is None or not 0 <= at < span:
+            self.state['fault'] = ('texel', hex(base), at - (1 << 32) if at >= 1 << 31 else at)
+            uc.reg_write(x86.UC_X86_REG_EIP, SENTINEL)
+            uc.emu_stop()
 
     def unmapped(self, uc, access, address, size, value, ignored):
         self.stop(('unmapped', hex(address), size, hex(uc.reg_read(self.x86.UC_X86_REG_EIP))))
@@ -458,6 +512,7 @@ class Machine:
         # Bitmap records (+0x204 width, +0x208 height, +0x214 components, +0x215 name, +0x21a pixels).
         uc.mem_write(BITMAPS, bytes(0x00400000))
         records, at = {}, BITMAPS
+        self.pixel_spans = {}
         pixels_at = BITMAPS+0x00400000
         for b in case['bitmaps']:
             record = bytearray(0x222)
@@ -465,9 +520,8 @@ class Machine:
             if b['pixels']:
                 uc.mem_write(pixels_at, b['pixels'])
                 pixels = pixels_at
+                self.pixel_spans[pixels] = len(b['pixels'])
                 pixels_at = (pixels_at+len(b['pixels'])+15) & -16
-            struct.pack_into('<ffbIxxxxI'.replace('xxxx', ''), record, 0x204, b['width'], b['height'],
-                             b['components'], b['name'], pixels) if False else None
             struct.pack_into('<ff', record, 0x204, b['width'], b['height'])
             struct.pack_into('<b', record, 0x214, b['components'])
             struct.pack_into('<I', record, 0x215, b['name'])
@@ -489,10 +543,12 @@ class Machine:
         return records, error_record
 
     def run_case(self, case, limit=200_000_000):
+        from unicorn import UcError
         x86, uc = self.x86, self.uc
         records, error_record = self.layout(case)
         self.state = {'stopped': None, 'stream': [], 'bitmaps': records, 'error_record': error_record,
-                      'lookups': 0, 'tables': [], 'passes': set(), 'case': case}
+                      'lookups': 0, 'tables': [], 'passes': set(), 'case': case, 'fault': None,
+                      'pixels': self.pixel_spans}
         uc.mem_write(TEB, bytes(0x2000))
         uc.mem_write(TEB, struct.pack('<I', 0xffffffff))
         for call in case['calls']:
@@ -505,7 +561,7 @@ class Machine:
                 args = struct.pack('<iIIIIfiffffi'.replace('ffffi', 'fffi'), call['target'], call['flags'], VERTICES,
                                    NORMALS, LIGHTS, call['alpha'], call['select'], call['scale'], call['u'], call['v'],
                                    call['texture'])
-            esp = SENTINEL-0x100
+            esp = STACK+STACK_BYTES-0x1000
             uc.mem_write(esp, struct.pack('<I', SENTINEL)+args)
             regs = {x86.UC_X86_REG_ESP: esp, x86.UC_X86_REG_ECX: MODEL, x86.UC_X86_REG_EBP: 0x56789abc,
                     x86.UC_X86_REG_EBX: 0x12345678, x86.UC_X86_REG_ESI: 0x3456789a, x86.UC_X86_REG_EDI: 0x456789ab,
@@ -514,9 +570,15 @@ class Machine:
                 uc.reg_write(reg, value)
             uc.reg_write(x86.UC_X86_REG_FPCW, FPCW)
             uc.reg_write(x86.UC_X86_REG_MXCSR, MXCSR)
-            uc.emu_start(start, SENTINEL, count=limit)
+            try:
+                uc.emu_start(start, SENTINEL, count=limit)
+            except UcError as error:
+                return {'error': self.state['stopped'] or ('emulation', str(error),
+                                                           hex(uc.reg_read(x86.UC_X86_REG_EIP)))}
             if self.state['stopped']:
                 return {'error': self.state['stopped']}
+            if self.state['fault']:
+                break
             if uc.reg_read(x86.UC_X86_REG_EIP) != SENTINEL:
                 return {'error': ('did-not-return', hex(uc.reg_read(x86.UC_X86_REG_EIP)))}
             if uc.reg_read(x86.UC_X86_REG_ESP) != esp+4+0x2c:
@@ -531,9 +593,187 @@ class Machine:
         words = [k['depth_test'] | k['cull'] << 8 | k['depth_mask'] << 16 | k['alpha_test'] << 24,
                  k['texture'] | k['fog'] << 8, self.u32(BLEND_CACHE), self.u32(BIND_CACHE)]
         stream = list(self.state['stream'])
+        if self.state['fault']:
+            stream.append((FAULT_OP, 0, 0, 0, 0))
         stream.append((0x100, *words))
         stream.append((0x101, *struct.unpack('<3I', bytes(uc.mem_read(MODEL+0x54, 12))), 0))
-        return {'stream': stream, 'tables': self.state['tables'], 'lookups': self.state['lookups']}
+        return {'stream': stream, 'tables': self.state['tables'], 'lookups': self.state['lookups'],
+                'fault': self.state['fault']}
+
+
+# --------------------------------------------------------------------------
+# Client math wrappers on sampled arguments (sin 0x00968117, cos 0x009fa20d,
+# pow 0x009f4218), compared with the host libm the port uses.
+
+SIN, COS, POW = 0x00968117, 0x009fa20d, 0x009f4218
+# The CRT's x87 fallback (taken by the SSE2 trig for large arguments, e.g. at
+# 0x019997f5) reads an uncaptured CRT word at 0x0bdcfbc8 (the fast-math flag
+# of _set_fastmath, default 0). Only the sweep maps it, as 0: no draw case
+# reached it (the page is unmapped there and any access stops a case).
+FASTFLAG = 0x0bdcfbc8
+# x87 instructions of the CRT fallbacks. Unicorn (QEMU) evaluates fsin/fcos/
+# fyl2x through the host libm, so results on those paths are not evidence of
+# hardware x87 behaviour; they are counted and reported separately.
+X87_TRANSCENDENTALS = {0x019997ed: 'fsin', 0x019996fd: 'fcos', 0x0199a65a: 'fyl2x'}
+
+
+def st0(machine):
+    x86, uc = machine.x86, machine.uc
+    top = (uc.reg_read(x86.UC_X86_REG_FPSW) >> 11) & 7
+    mantissa, exponent = uc.reg_read(getattr(x86, f'UC_X86_REG_FP{top}'))
+    if (exponent & 0x7fff) == 0x7fff:
+        value = math.nan if mantissa & ((1 << 63)-1) else math.inf
+    else:
+        value = math.ldexp(mantissa, (exponent & 0x7fff)-16383-63) if mantissa else 0.0
+    return -value if exponent & 0x8000 else value
+
+
+def call_math(machine, address, *floats):
+    uc, x86 = machine.uc, machine.x86
+    machine.state = {'stopped': None, 'stream': [], 'fault': None}
+    esp = STACK+STACK_BYTES-0x1000
+    uc.mem_write(esp, struct.pack('<I', SENTINEL)+b''.join(struct.pack('<f', f) for f in floats))
+    uc.reg_write(x86.UC_X86_REG_ESP, esp)
+    uc.reg_write(x86.UC_X86_REG_FPCW, FPCW)
+    uc.reg_write(x86.UC_X86_REG_MXCSR, MXCSR)
+    from unicorn import UcError
+    try:
+        uc.emu_start(address, SENTINEL, count=100_000)
+    except UcError as error:
+        raise RuntimeError(f'math call stopped: {machine.state["stopped"]} {error}') from None
+    if machine.state['stopped']:
+        raise RuntimeError(f'math call stopped: {machine.state["stopped"]}')
+    value = st0(machine)
+    uc.reg_write(x86.UC_X86_REG_FPTAG, 0xffff)  # empty the x87 stack again (cdecl float return)
+    return f32(value) if not math.isnan(value) else value
+
+
+def math_sweep(machine, rng, count):
+    from unicorn import UC_PROT_READ
+    machine.uc.mem_map(FASTFLAG & ~0xfff, 0x1000, UC_PROT_READ)
+    def same(a, b):
+        return (math.isnan(a) and math.isnan(b)) or struct.pack('<f', a) == struct.pack('<f', b)
+    results = {}
+    def check(name, address, args, host):
+        entry = results.setdefault(name, {'calls': 0, 'binary32_differences': 0, 'x87_path': 0, 'examples': []})
+        before = sum(machine.x87_count.values())
+        client = call_math(machine, address, *args)
+        entry['calls'] += 1
+        x87 = sum(machine.x87_count.values()) != before
+        entry['x87_path'] += int(x87)
+        if x87:
+            return   # emulated through the host libm: no evidence either way
+        if not same(client, host):
+            entry['binary32_differences'] += 1
+            if len(entry['examples']) < 5:
+                entry['examples'].append([repr(a) for a in args]+[repr(client), repr(host)])
+    for _ in range(count):
+        # 0x400 wave: (float)(int)(time + index*0x3a3) * 0.007; 0x8000/0x4000/0x1000: time*0.002, time*0.001.
+        base = rng.randrange(-2**31, 2**31)
+        x = f32(f32(float(base)) * f32(0.007))
+        check('sin_wave', SIN, [x], f32(math.sin(x)))
+        check('sin_wave_small', SIN, [f32(f32(float(base % 2000000)) * f32(0.007))],
+              f32(math.sin(f32(f32(float(base % 2000000)) * f32(0.007)))))
+        t = f32(rng.uniform(-1e7, 1e7))
+        y = f32(t*f32(0.002))
+        check('sin_time', SIN, [y], f32(math.sin(y)))
+        z = f32(t*f32(0.001))
+        check('cos_time', COS, [z], f32(math.cos(z)))
+        w = struct.unpack('<f', struct.pack('<I', rng.randrange(0, 0x4f000000)))[0]
+        check('sin_any', SIN, [w], f32(math.sin(w)))
+    for texel in range(256):  # mode 0x8000: pow(texel/256, 2), every input
+        f = f32(texel/256.0)
+        check('pow_texel', POW, [f, 2.0], f32(math.pow(f, 2.0)))
+    return results
+
+
+# --------------------------------------------------------------------------
+# Texture-name sub-object records (BMD loader 0x012b409a..0x012b4130).
+
+NAME_PARSER, GETPTD, STRCHR_SSE_FLAG = 0x01185111, 0x019a4ba6, 0x0bdcb280
+NAME_PARSER_BODIES = {  # start, exclusive end, SHA-256 of the captured bytes
+    'name_parser': (0x01185111, 0x01185327, '4f9d53101640a0cbf20afa026c3d59e62c0121eb9eb3ab4828bf7ae2af40cb1a'),
+    'strchr': (0x0194ce60, 0x0194cf60, '2a954438dc433bab4a41b3728c0bae481942c0733579638d4a08650d92784d4f'),
+    'strcmp': (0x0195a3d0, 0x0195a460, 'bf44853397eec092b8f0cd537d7893cb621c3fcd61b558a760d05ae5ac78d9ec'),
+    'strcspn': (0x0195a460, 0x0195a4a6, 'c3a436646e0acf44b28d2087806b0dcfc4869473f1b1b8cd1e0c01d07e16cc3c'),
+    'strlen': (0x0195a4b0, 0x0195a540, '6d0818e68a7b8591aadfab0422d422a85862617da4d27584ceff92f2f4752143'),
+    'strtok': (0x01983c08, 0x01983c26, '5b52a5c0114f3c24596057ace6e59c287e7d5e7cfa168869fa3ce2d5b3131989'),
+    'strtok_s': (0x01986dac, 0x01986e55, '488cc16a10c98614751a792c4a363f38fcb9915c4db55b1215465f2822f5a674'),
+    'cookie_check': (0x0191cd7c, 0x0191cd8a, 'f35ed70e0702993bbcd466d609f6ce7413c80b567483a99db7b990499f550063'),
+}
+NAME_AT, OBJECT_AT, PTD_AT = ARENA+0x00700000, ARENA+0x00700100, ARENA+0x00700200
+
+
+def run_name_parser(machine, name, sse):
+    """Client 0x01185111 on a 32-byte name: (result byte, six object bytes)."""
+    uc, x86 = machine.uc, machine.x86
+    machine.state = {'stopped': None, 'stream': [], 'fault': None}
+    uc.mem_write(STRCHR_SSE_FLAG, struct.pack('<I', 1 if sse else 0))
+    uc.mem_write(NAME_AT, name.ljust(32, b'\0')[:32]+bytes(32))
+    uc.mem_write(OBJECT_AT, bytes(6))
+    uc.mem_write(PTD_AT, bytes(0x100))
+    esp = STACK+STACK_BYTES-0x1000
+    uc.mem_write(esp, struct.pack('<II', SENTINEL, NAME_AT))
+    uc.reg_write(x86.UC_X86_REG_ESP, esp)
+    uc.reg_write(x86.UC_X86_REG_ECX, OBJECT_AT)
+    uc.emu_start(NAME_PARSER, SENTINEL, count=1_000_000)
+    if machine.state['stopped'] or uc.reg_read(x86.UC_X86_REG_ESP) != esp+8:
+        raise RuntimeError(f'name parser stopped: {machine.state["stopped"]} on {name!r}')
+    return uc.reg_read(x86.UC_X86_REG_EAX) & 0xff, bytes(uc.mem_read(OBJECT_AT, 6))
+
+
+def synthetic_names(rng):
+    fixed = [b'', b'_', b'a_', b'_R', b'x_R.jpg', b'x_RHSN.jpg', b'x_RHSNR.jpg', b'x_HX.jpg', b'x_XR.jpg', b'x_r.jpg',
+             b'x_.jpg', b'x_R_S.jpg', b'x_R.S.jpg', b'x_S', b'a_b_N.tga', b'_N.ozj', b'skin_N_R.jpg', b'n.jpg',
+             b'master10_center.jpg', b'lightning_4sq.jpg', b'fire_sq.jpg', b's195.tga', b'mu_rgb_lights.jpg',
+             b'mu_rgb_lights.jpgX', b'Master10_center.jpg', b's195.TGA', b'fire_sq.jpg\0junk', b'q'*32,
+             b'q'*31+b'_', b'q'*30+b'_R', b'q'*28+b'_RHS', b'_RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', b'R_HSN.jpg',
+             b'.._S..', b'x_S\x80.jpg', b'x_\xd2.jpg', b'x_DC.jpg', b'x_DT.jpg']
+    alphabet = b'RHSN_.xrjDCT0\x00'
+    out = list(fixed)
+    for _ in range(4000):
+        n = rng.randrange(0, 33)
+        out.append(bytes(rng.choice(alphabet) for _ in range(n)))
+    return out
+
+
+def installed_names(game_root):
+    data = Path(game_root)/'Data'
+    data = data if data.is_dir() else Path(game_root)
+    names = set()
+    for path in sorted(data.rglob('*')):
+        if path.suffix.lower() != '.bmd' or not path.is_file():
+            continue
+        result = subprocess.run([str(native_tool()), 'info', str(path)], capture_output=True, text=True)
+        if result.returncode:
+            continue
+        for mesh in json.loads(result.stdout).get('mesh_list', []):
+            names.add(mesh['texture'].encode('latin-1'))
+    return sorted(names)
+
+
+def names_run(machine, names):
+    import ctypes
+    suffix = 'dylib' if sys.platform == 'darwin' else 'so'
+    library = ctypes.CDLL(str(ROOT/f'native/build/libmumeshdraw.{suffix}'))
+    function = library.mu_meshdraw_sub_from_name
+    function.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    function.restype = ctypes.c_int
+    results = {'names': len(names), 'matches': 0, 'records': 0, 'hidden': 0, 'failures': []}
+    for k, name in enumerate(names):
+        client, record = run_name_parser(machine, name, sse=k % 2 == 0)
+        client_b, record_b = run_name_parser(machine, name, sse=k % 2 == 1)
+        sub = ctypes.create_string_buffer(5)
+        native = function(name.ljust(32, b'\0')[:32], sub)
+        ok = (client == client_b and record == record_b and int(client != 0) == native
+              and (not native or record[:5] == sub.raw))
+        results['matches'] += int(ok)
+        results['records'] += int(bool(client))
+        results['hidden'] += int(bool(client) and record[1] != 0)
+        if not ok and len(results['failures']) < 20:
+            results['failures'].append({'name': name.hex(), 'client': [client, record.hex()],
+                                        'native': [native, sub.raw.hex()]})
+    return results
 
 
 # --------------------------------------------------------------------------
@@ -562,6 +802,7 @@ def compare(machine, case_bytes, directory, corners=None):
         return {'match': False, 'error': client['error']}
     native, tables = replay(case_bytes, directory)
     result = {'records': len(client['stream']), 'stream_match': client['stream'] == native,
+              'fault': client['fault'] is not None,
               'tables_match': [(m, l, t) for m, l, t in client['tables']] == tables, 'tables': len(tables)}
     if corners is not None:
         result['corners_match'] = corners == [r for r in client['stream'] if r[0] < 0x100]
@@ -597,7 +838,7 @@ def corners_case(model_path, args, directory, label):
 # argument: the routine derives it from the flags.
 FLAG_SETS = [0, 1, 0x41, 0x81, 0x2001, 2, 0x42, 0x82, 0x400002, 0x2002, 0x40002, 0x40, 0x2040, 4, 8, 0x200, 0x800,
              0x1000, 0x4000, 0x10000, 0x20000, 0x80000, 0x100000, 0x8000, 0x1042, 0x80040, 0x804, 0x14, 0x84, 0x2004,
-             0x20, 0x22, 0x400, 0x402, 0x420, 0x200000, 0x200002, 0x40004, 0x1010, 0x4080]
+             0x20, 0x22, 0x400, 0x402, 0x420, 0x200000, 0x200002, 0x40004, 0x1010, 0x4080, 0x44]
 
 
 def option_matrix(rng):
@@ -617,6 +858,7 @@ def option_matrix(rng):
         ['--time', '-5000.5', '--flags', '4'], ['--env-vector', '0.3', '-0.4', '0.86', '--flags', '0x800'],
         ['--time', '31337', '--flags', '0x402'], ['--color', '0.5', '0.25', '2', '--flags', '0x40004', '--alpha', '0.5'],
         ['--alpha', '0.3', '--flags', '0x80040'], ['--uv-offset', 'nan', '0', '--select', '0'],
+        ['--alpha', '0.5', '--flags', '0x44'],
     ]
     for k, extra in enumerate(extras):
         out.append((f'x{k}', extra))
@@ -647,7 +889,9 @@ def mutate(case, rng, variant):
     for x in m['meshes']:
         x['flag'] = rng.choice([0, 0, 0, 1])
         if rng.random() < 0.6:
-            x['sub'] = bytes(rng.choice([0, 0, 1]) for _ in range(4))+bytes([rng.choice([0, 1, 2, 2])])
+            x['sub'] = bytes(rng.choice([0, 0, 1]) for _ in range(4))+bytes([rng.choice([0, 1, 1, 2])])
+        if rng.random() < 0.05:
+            x['triangles'], x['tri'] = 0, b''
     g = c['globals']
     g['skin_base'] = rng.choice([0, 5, 40])
     g['time'] = f32(rng.uniform(-1e5, 1e6))
@@ -660,6 +904,13 @@ def mutate(case, rng, variant):
         if index not in known:
             c['bitmaps'].append({'index': index, 'components': rng.choice([3, 4]), 'name': 500+index % 97,
                                  'width': 64.0, 'height': 32.0, 'pixels': b''})
+    # Bitmaps whose pixels the loaders keep (0x7532, 0x7def, 0x7bd1, 0x851b):
+    # width*height*components bytes, read by mode 0x8000.
+    for index in (0x7532, 0x7def):
+        if index not in known:
+            comps, w, h = rng.choice([3, 4]), rng.choice([8, 16, 64]), rng.choice([4, 16, 32])
+            c['bitmaps'].append({'index': index, 'components': comps, 'name': 900+index % 89, 'width': float(w),
+                                 'height': float(h), 'pixels': bytes(rng.randrange(256) for _ in range(w*h*comps))})
     k = c['cache']
     k.update(depth_test=rng.choice([0, 1]), cull=rng.choice([0, 1]), depth_mask=rng.choice([0, 1]),
              alpha_test=rng.choice([0, 1]), texture=rng.choice([0, 1]), fog=rng.choice([0, 0, 1]),
@@ -668,7 +919,7 @@ def mutate(case, rng, variant):
     for _ in range(rng.choice([1, 2, 3])):
         flags = rng.choice(FLAG_SETS) | rng.choice([0, 0, 0x2000, 0x40000, 0x10, 0x400000])
         if flags & 0x8000:
-            texture = rng.choice([b['index'] for b in c['bitmaps'] if b['pixels']] or [-1])
+            texture = rng.choice([b['index'] for b in c['bitmaps'] if b['pixels']]*6+[-1, known[0] if known else -1])
         else:
             texture = rng.choice([-1, -1, -1]+known[:2])
         call = dict(kind=rng.choice([0, 0, 1]), target=rng.choice([-1, 0, 1, 2]), flags=flags,
@@ -689,12 +940,16 @@ def synthetic_run(machine, directory, rng, mutations=200):
     sys.path.insert(0, str(ROOT/'native/tests'))
     import native_fixtures as nf
     results = {'viewer_cases': 0, 'viewer_matches': 0, 'mutated_cases': 0, 'mutated_matches': 0, 'records': 0,
-               'failures': [], 'digests': {}}
+               'fault_cases': 0, 'failures': [], 'digests': {}}
     models = []
-    for seed, version in ((8, 10), (9, 15)):
+    # Model 10's texture names give the loader's sub-object records (uv/highlight
+    # select + uv mesh, no environment group, hidden).
+    named = {10: ['skin_RS.tga', 'cloth_N.tga', 'metal_H.tga']}
+    for seed, version in ((8, 10), (9, 15), (10, 10)):
         sub = Path(directory)/f'model{seed}'
         sub.mkdir(exist_ok=True)
-        models.append((seed, nf.write_textured_model(sub, seed, version=version, four_corner=True)))
+        models.append((seed, nf.write_textured_model(sub, seed, version=version, four_corner=True,
+                                                     names=named.get(seed))))
     base = ['--action', '1', '--frame', '1.5', '--origin', '3', '4', '5']
     cases = []
     for seed, path in models:
@@ -704,6 +959,7 @@ def synthetic_run(machine, directory, rng, mutations=200):
             results['viewer_cases'] += 1
             results['viewer_matches'] += int(result['match'])
             results['records'] += result.get('records', 0)
+            results['fault_cases'] += int(result.get('fault', False))
             results['digests'][f's{seed}{label}'] = result.get('digest')
             if not result['match']:
                 results['failures'].append({'case': f's{seed}{label}', **result})
@@ -714,6 +970,7 @@ def synthetic_run(machine, directory, rng, mutations=200):
         results['mutated_cases'] += 1
         results['mutated_matches'] += int(result['match'])
         results['records'] += result.get('records', 0)
+        results['fault_cases'] += int(result.get('fault', False))
         if not result['match']:
             results['failures'].append({'case': f'mutation{k}', **result})
             (Path(directory)/f'failed-mutation{k}.case').write_bytes(mutated)
@@ -723,30 +980,39 @@ def synthetic_run(machine, directory, rng, mutations=200):
 def installed_run(machine, directory, game_root, per_folder, rng):
     data = Path(game_root)/'Data'
     data = data if data.is_dir() else Path(game_root)
-    results = {'cases': 0, 'matches': 0, 'records': 0, 'models': 0, 'failures': [], 'skipped': 0}
+    results = {'cases': 0, 'matches': 0, 'records': 0, 'models': 0, 'failures': [], 'skipped': 0, 'fault_cases': 0,
+               'folders': 0}
     folders = collections.defaultdict(list)
     for path in sorted(data.rglob('*')):
         if path.suffix.lower() == '.bmd' and path.is_file():
             folders[path.parent.name].append(path)
     for folder, paths in sorted(folders.items()):
+        results['folders'] += 1
         picks = paths if len(paths) <= per_folder else rng.sample(paths, per_folder)
         for path in picks:
-            flags = rng.choice([2, 2, 2, 0x42, 0x82, 4, 0x1000, 0x40, 0x80000, 0x2002, 0x40002])
-            args = ['--flags', hex(flags), '--time', repr(rng.uniform(0, 1e6)),
+            # Mostly the dominant body flags 2, then the whole flag matrix.
+            flags = rng.choice([2, 2, 2, 0x42, 0x82, 0x2002, 0x40002] + FLAG_SETS)
+            args = ['--flags', hex(flags), '--time', repr(f32(rng.uniform(0, 1e6))),
                     '--alpha', rng.choice(['1', '1', '0.5'])]
-            if flags & 0x1000:
-                args += ['--uv-offset', '0.25', '0.5']
+            if flags & 0x1000 or rng.random() < 0.2:
+                args += ['--uv-offset', '0.25', '0.5', '--select', rng.choice(['-1', '0', '1'])]
+            if rng.random() < 0.1:
+                args += ['--select', '-2', '--color-scale', '0.75']
             try:
                 case_bytes, corners, report = corners_case(path, args, directory, 'installed')
             except RuntimeError:
                 results['skipped'] += 1
                 continue
-            if report['meshes'] == 0:
-                results['skipped'] += 1
+            case = read_case(case_bytes)
+            meshes = case['model']['meshes']
+            if report['meshes'] == 0 or len(meshes) > MAX_MESHES or any(
+                    x['vertices'] > MAX_ENTRIES or x['normals'] > MAX_ENTRIES for x in meshes):
+                results['skipped'] += 1   # no meshes, or more than the client's transform buffers hold
                 continue
             result = compare(machine, case_bytes, directory, corners)
             results['cases'] += 1
             results['models'] += 1
+            results['fault_cases'] += int(result.get('fault', False))
             results['matches'] += int(result['match'])
             results['records'] += result.get('records', 0)
             if not result['match']:
@@ -765,21 +1031,30 @@ def main():
     parser.add_argument('--mutations', type=int, default=200)
     parser.add_argument('--seed', type=int, default=20261017)
     parser.add_argument('--case', type=Path, help='compare one case file only')
+    parser.add_argument('--math-sweep', type=int, default=20000,
+                        help='sampled arguments per client math wrapper (0 to skip)')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     text = load_pinned(args.text, TEXT_BYTES, tracks.TEXT_SHA256, 'restored text')
     data = load_pinned(args.data, DATA_BYTES, tracks.DATA_SHA256, 'second image section')
     flag = load_pinned(args.flag, 4, tracks.FLAG_SHA256, 'trig dispatch flag')
     feature = load_pinned(args.feature, 4, tracks.FEATURE_SHA256, 'math feature word')
-    for name, (start, end, digest) in BODIES.items():
+    for name, (start, end, digest) in {**BODIES, **NAME_PARSER_BODIES}.items():
         if hashlib.sha256(text[start-TEXT_BASE:end-TEXT_BASE]).hexdigest() != digest:
             raise SystemExit(f'pinned body {name} differs')
     subprocess.run(['make', '-C', str(ROOT/'native')], check=True, capture_output=True)
     machine = Machine(text, data, flag, feature)
     rng = random.Random(args.seed)
     report = {'text_sha256': tracks.TEXT_SHA256, 'data_sha256': tracks.DATA_SHA256,
-              'bodies': {k: v[2] for k, v in BODIES.items()}}
+              'bodies': {k: v[2] for k, v in {**BODIES, **NAME_PARSER_BODIES}.items()}}
     with tempfile.TemporaryDirectory() as directory:
+        if args.math_sweep:
+            report['math_sweep'] = math_sweep(machine, random.Random(args.seed), args.math_sweep)
+            machine.x87_count.clear()
+        names = synthetic_names(random.Random(args.seed))
+        report['names_synthetic'] = names_run(machine, names)
+        if args.game_root:
+            report['names_installed'] = names_run(machine, installed_names(args.game_root))
         if args.case:
             report['case'] = compare(machine, args.case.read_bytes(), directory)
         else:
@@ -789,13 +1064,16 @@ def main():
     report['coverage'] = dict(sorted(machine.coverage.items()))
     report['uncovered'] = sorted(set(BRANCHES.values())-set(machine.coverage))
     report['trig'] = machine.trig_stats
+    report['x87_transcendentals_in_draw_cases'] = dict(machine.x87_count)
     text_report = json.dumps(report, indent=1)
     if args.output:
         args.output.write_text(text_report)
     print(text_report if len(text_report) < 20000 else json.dumps({k: v for k, v in report.items()
                                                                    if k not in ('synthetic',)}, indent=1)[:20000])
     ok = all(r.get('match', True) for r in [report.get('case', {})])
-    for key in ('synthetic', 'installed'):
+    if any(v['binary32_differences'] for v in report.get('math_sweep', {}).values()):
+        ok = False
+    for key in ('synthetic', 'installed', 'names_synthetic', 'names_installed'):
         if key in report and report[key]['failures']:
             ok = False
     sys.exit(0 if ok else 1)

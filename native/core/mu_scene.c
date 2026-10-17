@@ -32,6 +32,7 @@ void mu_scene_inputs_free(mu_scene_inputs *in)
     free(in->texture_type);
     free(in->bitmaps);
     free(in->bitmap_index);
+    free(in->subs);
     memset(in, 0, sizeof *in);
 }
 
@@ -47,20 +48,22 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
     in->texture_type = calloc((size_t)slots, sizeof *in->texture_type);
     in->bitmaps = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT), sizeof *in->bitmaps);
     in->bitmap_index = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT), sizeof *in->bitmap_index);
-    if (!in->meshes || !in->texture_index || !in->texture_type || !in->bitmaps || !in->bitmap_index) {
+    in->subs = calloc((size_t)slots, sizeof *in->subs);
+    if (!in->meshes || !in->texture_index || !in->texture_type || !in->bitmaps || !in->bitmap_index || !in->subs) {
         mu_scene_inputs_free(in);
         return 1;
     }
     for (int32_t i = 0; i < count; ++i) {
         const mu_bmd_mesh *bm = &b->meshes[i];
         mu_meshdraw_mesh *m = &in->meshes[i];
-        m->flag = 0;
+        m->flag = 0;  /* the loader writes 0 (0x012b3edd) */
         m->texture_slot = (int16_t)bm->texture_index;
         m->normal_count = (int16_t)bm->normal_count;
         m->triangle_count = (int16_t)bm->polygon_count;
         m->texcoords = mu_model_texcoords(model, i);
         m->triangles = mu_model_triangles(model, i);
-        m->sub = NULL;
+        /* +0x1c from the texture name, as the loader 0x012b409a..0x012b4130 */
+        m->sub = mu_meshdraw_sub_from_name((const uint8_t *)bm->texture, in->subs[i]) ? in->subs[i] : NULL;
         m->vertex_count = bm->vertex_count;
         m->texcoord_count = bm->uv_count;
         m->vertices = mu_model_vertices(model, i);
@@ -82,8 +85,8 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
         bm->name = image ? (uint32_t)k + 1 : 0;
         bm->width = image ? (float)image->width : 0.0f;
         bm->height = image ? (float)image->height : 0.0f;
-        bm->pixels = image ? image->rgba : NULL;
-        bm->pixel_bytes = image ? (uint32_t)image->width * (uint32_t)image->height * 4u : 0;
+        bm->pixels = NULL;  /* freed by the client's loaders after the upload */
+        bm->pixel_bytes = 0;
     }
     for (int32_t k = 0; k < MU_TEXTURE_SPECIAL_COUNT; ++k, ++n) {
         mu_bitmap *bm = &in->bitmaps[n];
@@ -94,8 +97,8 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
         bm->name = image ? (uint32_t)count + 1 + (uint32_t)k : 0;
         bm->width = image ? (float)image->width : 0.0f;
         bm->height = image ? (float)image->height : 0.0f;
-        bm->pixels = image ? image->rgba : NULL;
-        bm->pixel_bytes = image ? (uint32_t)image->width * (uint32_t)image->height * 4u : 0;
+        bm->pixels = NULL;  /* none of these indices keeps its pixels in the client */
+        bm->pixel_bytes = 0;
     }
     in->bitmap_count = n;
 
@@ -131,6 +134,7 @@ typedef struct adapter {
     const mu_draw_options *options;
     int32_t model_count;
     mu_meshdraw_state state;
+    int open;  /* inside glBegin/glEnd */
 } adapter;
 
 static void adapter_call(void *context, uint32_t op, const uint32_t w[4])
@@ -155,9 +159,11 @@ static void adapter_call(void *context, uint32_t op, const uint32_t w[4])
             b->prepare(b->context, &s, texture);
         if (b->begin)
             b->begin(b->context);
+        a->open = 1;
         break;
     }
     case MU_GL_OP_END:
+        a->open = 0;
         if (b->end)
             b->end(b->context);
         break;
@@ -193,17 +199,22 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
         mu_scene_inputs_free(&in);
         return 1;
     }
-    adapter a = {backend, o, in.model.mesh_count, {0}};
+    adapter a = {backend, o, in.model.mesh_count, {0}, 0};
     mu_meshdraw_state_defaults(&a.state);
     mu_gl_sink sink = {&a, adapter_call};
     mu_meshdraw_scratch scratch = {colours, table, NULL, NULL};
     mu_meshdraw_env env = {&in.model, &in.globals, &in.cache, &sink, mu_scene_bitmap, &in, &scratch};
-    mu_meshdraw_counts counts = {0, 0, 0, 0};
+    mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
     mu_meshdraw_body(&env, &in.args, in.skip, &counts);
+    /* A fault stops where the client would crash; close the open primitive
+     * for the backend (the client issues no glEnd). */
+    if (a.open && backend->end)
+        backend->end(backend->context);
     if (stats) {
-        stats->meshes += counts.drawn + counts.returned + counts.refused;
+        stats->meshes += counts.drawn + counts.returned + counts.refused + counts.faulted;
         stats->corners += counts.corners;
         stats->refused += counts.refused;
+        stats->faulted += counts.faulted;
     }
     free(colours);
     free(table);

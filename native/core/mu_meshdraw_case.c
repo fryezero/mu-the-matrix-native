@@ -264,23 +264,28 @@ static const mu_bitmap *case_bitmap(void *context, int32_t index)
     return NULL;
 }
 
-void mu_meshdraw_case_run(mu_meshdraw_case *c, const mu_gl_sink *sink, mu_meshdraw_scratch *scratch,
-                          mu_meshdraw_counts *counts)
+int mu_meshdraw_case_run(mu_meshdraw_case *c, const mu_gl_sink *sink, mu_meshdraw_scratch *scratch,
+                         mu_meshdraw_counts *counts)
 {
     mu_meshdraw_env env = {&c->model, &c->globals, &c->cache, sink, case_bitmap, c, scratch};
     for (int32_t k = 0; k < c->call_count; ++k) {
         const mu_meshdraw_call *x = &c->calls[k];
+        int status;
         if (x->kind == 0) {
-            mu_meshdraw_body(&env, &x->args, x->target, counts);
+            status = mu_meshdraw_body(&env, &x->args, x->target, counts);
         } else {
             long corners = 0;
-            int status = mu_meshdraw_mesh_draw(&env, x->target, &x->args, &corners);
+            status = mu_meshdraw_mesh_draw(&env, x->target, &x->args, &corners);
             if (counts) {
                 if (status == MU_MESHDRAW_DRAWN) counts->drawn++;
                 else if (status == MU_MESHDRAW_RETURNED) counts->returned++;
-                else counts->refused++;
+                else if (status == MU_MESHDRAW_REFUSED) counts->refused++;
+                else counts->faulted++;
                 counts->corners += corners;
             }
         }
+        if (status == MU_MESHDRAW_FAULT)
+            return MU_MESHDRAW_FAULT;
     }
+    return 0;
 }

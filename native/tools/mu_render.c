@@ -193,9 +193,6 @@ static int write_case(const char *path, const mu_model *model, const mu_draw_opt
     mu_scene_inputs in;
     if (mu_scene_inputs_build(model, draw, &in))
         return 1;
-    if (!(draw->flags & 0x8000))
-        for (int32_t k = 0; k < in.bitmap_count; ++k)
-            in.bitmaps[k].pixels = NULL;   /* only mode 0x8000 reads texels */
     mu_meshdraw_call call = {0, in.skip, in.args};
     FILE *f = fopen(path, "wb");
     int status = !f || mu_meshdraw_case_write(f, &in.globals, &in.cache, &in.model, in.bitmaps, in.bitmap_index,
@@ -234,11 +231,12 @@ static int command_corners(const mu_options *o)
     memset(&backend, 0, sizeof backend);
     backend.sink = (mu_meshdraw_sink){NULL, ignore_tc, ignore_c3, ignore_c4, ignore_v};
     backend.gl = &sink;
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     mu_scene_draw_model(&model, &draw, &backend, &stats);
     fclose(r.file);
-    printf("{\"records\": %u, \"meshes\": %ld, \"corners\": %ld, \"refused\": %ld, \"textures_missing\": %d}\n",
-           r.count, stats.meshes, stats.corners, stats.refused, textures.missing);
+    printf("{\"records\": %u, \"meshes\": %ld, \"corners\": %ld, \"refused\": %ld, \"faulted\": %ld, "
+           "\"textures_missing\": %d}\n", r.count, stats.meshes, stats.corners, stats.refused, stats.faulted,
+           textures.missing);
     mu_textures_free(&textures);
     mu_model_free(&model);
     mu_bmd_free(&bmd);
@@ -296,9 +294,14 @@ static int command_replay(const mu_options *o)
     float *table = malloc(sizeof(float) * 2 * (MU_MESHDRAW_MAX_ENTRIES + 1));
     mu_meshdraw_scratch scratch = {colours, table, &tables, write_tables};
     mu_gl_sink sink = {&r, record_call};
-    mu_meshdraw_counts counts = {0, 0, 0, 0};
-    mu_meshdraw_case_run(&c, &sink, &scratch, &counts);
-    /* Final caches and model colour, as one trailing record each (ops 0x100, 0x101). */
+    mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
+    const int faulted = mu_meshdraw_case_run(&c, &sink, &scratch, &counts) == MU_MESHDRAW_FAULT;
+    /* A fault record (op 0x102), then the final caches and model colour as one
+     * trailing record each (ops 0x100, 0x101). */
+    if (faulted) {
+        const uint32_t none[4] = {0, 0, 0, 0};
+        record_call(&r, 0x102, none);
+    }
     uint32_t cache[4] = {(uint32_t)c.cache.depth_test | (uint32_t)c.cache.cull << 8 | (uint32_t)c.cache.depth_mask << 16 |
                              (uint32_t)c.cache.alpha_test << 24,
                          (uint32_t)c.cache.texture | (uint32_t)c.cache.fog << 8, (uint32_t)c.cache.blend,
@@ -312,8 +315,8 @@ static int command_replay(const mu_options *o)
         fclose(tables.file);
     free(colours);
     free(table);
-    printf("{\"records\": %u, \"drawn\": %ld, \"returned\": %ld, \"refused\": %ld, \"corners\": %ld}\n", r.count,
-           counts.drawn, counts.returned, counts.refused, counts.corners);
+    printf("{\"records\": %u, \"drawn\": %ld, \"returned\": %ld, \"refused\": %ld, \"faulted\": %ld, "
+           "\"corners\": %ld}\n", r.count, counts.drawn, counts.returned, counts.refused, counts.faulted, counts.corners);
     mu_meshdraw_case_free(&c);
     return 0;
 }
@@ -350,7 +353,7 @@ static int command_render(const mu_options *o)
     mu_raster_backend(&raster, &backend);
     mu_draw_options draw = o->draw;
     draw.textures = o->no_textures ? NULL : &textures;
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     mu_scene_draw_model(&model, &draw, &backend, &stats);
     char hash[65];
     mu_sha256_hex(raster.color, (uint64_t)o->width * (uint64_t)o->height * 4, hash);
@@ -472,7 +475,7 @@ static void scan_file(const char *path, scan_counts counts[16], FILE *log)
                                      {&state, null_tc, null_c3, null_c4, null_v}, NULL};
         mu_draw_options options;
         mu_draw_default_options(&options);
-        mu_draw_stats stats = {0, 0, 0};
+        mu_draw_stats stats = {0, 0, 0, 0};
         mu_scene_draw_model(&model, &options, &backend, &stats);
         c->meshes += stats.meshes;
         c->refused_meshes += stats.refused;
@@ -658,7 +661,7 @@ static int command_character(const mu_options *o)
     float speed = mu_character_action_speed(&c, mu_model_action(&c.player));
     if (o->player_action < 0)
         speed = o->speed;
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     int missing = 0, items = 0;
     char hash[65] = "";
     for (int32_t n = 0; n < o->frames; ++n) {
@@ -751,7 +754,7 @@ static int command_actor(const mu_options *o)
         return 1;
     }
     mu_camera camera;
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     char hash[65] = "";
     float first_frame = 0.0f;
     for (int32_t n = 0; n < o->frames; ++n) {

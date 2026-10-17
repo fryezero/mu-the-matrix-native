@@ -219,7 +219,7 @@ static int render_soft(viewer *v, uint8_t *pixels)
     mu_raster_clear(&raster, v->options.background);
     mu_render_backend backend;
     mu_raster_backend(&raster, &backend);
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     draw_soft(v, &raster, &backend, &stats);
     memcpy(pixels, raster.color, (size_t)v->options.width * (size_t)v->options.height * 4);
     mu_raster_free(&raster);
@@ -240,7 +240,7 @@ static int render_gl(viewer *v, uint8_t *pixels)
     mu_camera_view(&v->camera, view);
     mu_camera_projection(&v->camera, (float)w / (float)h, projection);
     mu_gl_frame(w, h, v->options.background, view, projection);
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     draw_gl(v, &t, &stats);
     glFinish();
     mu_gl_read(w, h, pixels);
@@ -546,7 +546,7 @@ static int windowed(viewer *v)
         mu_camera_view(&v->camera, view);
         mu_camera_projection(&v->camera, (float)w / (float)(h ? h : 1), projection);
         mu_gl_frame(w, h, v->options.background, view, projection);
-        mu_draw_stats stats = {0, 0, 0};
+        mu_draw_stats stats = {0, 0, 0, 0};
         draw_gl(v, &t, &stats);
         SDL_GL_SwapWindow(window);
         frames++;

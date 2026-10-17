@@ -86,9 +86,16 @@ typedef struct mu_bitmap {
     float width, height;      /* +0x204, +0x208 (power-of-two upload size) */
     int8_t components;        /* +0x214: 3 JPEG, 4 TGA */
     uint32_t name;            /* +0x215: GL texture object */
-    const uint8_t *pixels;    /* +0x21a (mode 0x8000 reads one byte per corner) */
-    uint32_t pixel_bytes;     /* bound for the port's check */
+    const uint8_t *pixels;    /* +0x21a: width*height*components bytes, or NULL. The loaders
+                               * 0x00c982ea / 0x00c988fc free it after the upload except for
+                               * bitmaps 0x7532, 0x7def, 0x7bd1 (and 0x851b, JPEG only). Mode
+                               * 0x8000 reads one byte per corner. */
+    uint32_t pixel_bytes;     /* size of the pixel buffer */
 } mu_bitmap;
+
+/* A lookup miss: the client's 0x00c97c2d returns its zeroed static record
+ * 0x01ec3030 (name 0, size 0, components 0, no pixels); NULL from the
+ * callback means the same here. */
 
 typedef const mu_bitmap *(*mu_bitmap_lookup)(void *context, int32_t index);
 
@@ -163,19 +170,42 @@ typedef struct mu_meshdraw_env {
 enum {
     MU_MESHDRAW_DRAWN = 0,     /* reached glEnd */
     MU_MESHDRAW_RETURNED = 1,  /* one of the routine's early returns (no glBegin) */
-    MU_MESHDRAW_REFUSED = 2    /* index outside the supplied counts: nothing emitted */
+    MU_MESHDRAW_REFUSED = 2,   /* index outside the supplied counts: nothing emitted */
+    MU_MESHDRAW_FAULT = 3      /* stopped where the client reads outside memory: mode 0x8000
+                                * texel outside the bitmap's pixel buffer (always for a freed
+                                * buffer). Calls up to that corner were emitted, no glEnd. */
 };
+
+/* The mesh +0x1c sub-object record the BMD loader 0x012b3812 builds from the
+ * 32-byte texture name (0x012b409a..0x012b4130): the name parser 0x01185111
+ * fills six bytes; when its result byte [5] is nonzero the loader allocates
+ * five bytes, copies [0..4] (0x011850cc) and stores the pointer, else +0x1c is
+ * 0. Returns that result (1: `sub` holds the record, 0: no record). Rules:
+ *  - names "master10_center.jpg", "lightning_4sq.jpg", "fire_sq.jpg",
+ *    "s195.tga" (strcmp) give {0,1,0,0,0} (the body skips the mesh);
+ *  - otherwise from the first '_' of the name, up to the next '.', the next
+ *    four characters at most: 'R' sets [0] (body: uv/highlight select = mesh),
+ *    'H' [1] (body: mesh hidden), 'S' [2] (uv-offset mesh), 'N' [3] (no
+ *    environment group); any other character ends the scan with no record,
+ *    except for the name "mu_rgb_lights.jpg", which gives {1,0,0,0,0};
+ *  - [4] (the body's outline passes) is never set here: its cases compare a
+ *    sign-extended byte with 0x4443/0x4454 and cannot match.
+ * The local copy is followed by "RHSN\0" on the client's stack, so a name
+ * without a NUL in its 32 bytes is scanned into those bytes, as here. */
+int mu_meshdraw_sub_from_name(const uint8_t name[32], uint8_t sub[5]);
 
 /* The mesh draw 0x012b8d1d for one mesh. *corners receives the corners visited. */
 int mu_meshdraw_mesh_draw(const mu_meshdraw_env *env, int32_t mesh, const mu_meshdraw_args *args, long *corners);
 
 /* The body 0x012bb35a: glPushMatrix, the mesh draw of every mesh except
- * `skip` (with the sub-object passes), glPopMatrix. Counts are optional. */
+ * `skip` (with the sub-object passes), glPopMatrix. Counts are optional.
+ * Returns MU_MESHDRAW_FAULT (and stops at once, without glPopMatrix) when a
+ * mesh draw faulted, else 0. */
 typedef struct mu_meshdraw_counts {
-    long drawn, returned, refused, corners;
+    long drawn, returned, refused, corners, faulted;
 } mu_meshdraw_counts;
-void mu_meshdraw_body(const mu_meshdraw_env *env, const mu_meshdraw_args *args, int32_t skip,
-                      mu_meshdraw_counts *counts);
+int mu_meshdraw_body(const mu_meshdraw_env *env, const mu_meshdraw_args *args, int32_t skip,
+                     mu_meshdraw_counts *counts);
 
 /* Effective fixed-function state implied by a GL call stream: an adapter
  * for backends that do not issue GL themselves (software rasterizer). */

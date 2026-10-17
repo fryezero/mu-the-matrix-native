@@ -553,14 +553,18 @@ int mu_meshdraw_mesh_draw(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw
                 /* 0x012bacf4: alpha from one texel of the override bitmap */
                 const float *uv = mesh->texcoords + 2 * ti;
                 const mu_bitmap *b = e->bitmap(e->bitmap_context, a->texture);
-                if (!b)
-                    break;
-                float x = uv[0] * b->width;
-                float y = uv[1] * b->height;
-                y = y * (b->width - K_1);
+                const float width = b ? b->width : 0.0f, height = b ? b->height : 0.0f;
+                float x = uv[0] * width;
+                float y = uv[1] * height;
+                y = y * (width - K_1);
                 x = (x + y) * K_3;
                 const int32_t at = cvtt(x);
-                const uint8_t texel = (at >= 0 && (uint32_t)at < b->pixel_bytes) ? b->pixels[at] : 0;
+                if (!b || !b->pixels || at < 0 || (uint32_t)at >= b->pixel_bytes) {
+                    if (corners)
+                        *corners = visited;
+                    return MU_MESHDRAW_FAULT;  /* 0x012bad8a: movzx eax, byte [pixels + at] */
+                }
+                const uint8_t texel = b->pixels[at];
                 const float f = (float)texel / K_256;
                 alpha = K_1 - (float)pow((double)f, (double)K_2);
                 const float su = uv[0] + uoff, sv = uv[1] + voff;
@@ -619,23 +623,86 @@ int mu_meshdraw_mesh_draw(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw
     return MU_MESHDRAW_DRAWN;
 }
 
-/* ---- body 0x012bb35a ---- */
+/* ---- texture-name sub-object record 0x01185111 ---- */
 
-static void count(mu_meshdraw_counts *c, int status, long corners)
+/* strcmp(literal, name) 0x0195a3d0; the literal ends first, so at most
+ * strlen(literal)+1 <= 20 bytes of the 32-byte name are read. */
+static int name_is(const char *literal, const uint8_t name[32])
 {
-    if (!c)
-        return;
-    if (status == MU_MESHDRAW_DRAWN) c->drawn++;
-    else if (status == MU_MESHDRAW_RETURNED) c->returned++;
-    else c->refused++;
-    c->corners += corners;
+    for (size_t k = 0;; ++k) {
+        if ((uint8_t)literal[k] != name[k])
+            return 0;
+        if (!literal[k])
+            return 1;
+    }
 }
 
-void mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int32_t skip, mu_meshdraw_counts *c)
+int mu_meshdraw_sub_from_name(const uint8_t name[32], uint8_t sub[5])
+{
+    uint8_t o[6] = {0, 0, 0, 0, 0, 0};             /* 0x010a82be */
+    uint8_t local[37];                             /* [ebp-0x4c]: name, then "RHSN\0" at [ebp-0x2c] */
+    memcpy(local, name, 32);
+    memcpy(local + 32, "RHSN", 5);
+    uint8_t *p = NULL;                             /* strchr(local, '_') 0x0194ce60 */
+    for (size_t k = 0; k < sizeof local && local[k]; ++k)
+        if (local[k] == '_') {
+            p = local + k;
+            break;
+        }
+    if (name_is("master10_center.jpg", name) || name_is("lightning_4sq.jpg", name) || name_is("fire_sq.jpg", name) ||
+        name_is("s195.tga", name)) {
+        o[1] = 1;
+        o[5] = 1;
+    } else if (p) {
+        /* strtok(p, ".") 0x01983c08: p[0] is '_', so the token starts at p and
+         * ends at the next '.', which becomes NUL. */
+        size_t length = 0;
+        while (p + length < local + sizeof local && p[length] && p[length] != '.')
+            ++length;
+        if (p + length < local + sizeof local && p[length] == '.')
+            p[length] = 0;
+        if (length > 5)
+            length = 5;
+        /* strcspn(token, "RHSN") 0x0195a460 is nonzero: token[0] is '_'. */
+        for (size_t k = 1; k < length; ++k) {
+            const uint8_t c = p[k];
+            if (c == 'R') { o[0] = 1; o[5] = 1; }
+            else if (c == 'H') { o[1] = 1; o[5] = 1; }
+            else if (c == 'S') { o[2] = 1; o[5] = 1; }
+            else if (c == 'N') { o[3] = 1; o[5] = 1; }
+            else {
+                o[5] = 0;
+                if (name_is("mu_rgb_lights.jpg", name)) {
+                    o[0] = 1;
+                    o[5] = 1;
+                }
+                break;
+            }
+        }
+    }
+    memcpy(sub, o, 5);
+    return o[5] != 0;
+}
+
+/* ---- body 0x012bb35a ---- */
+
+static int count(mu_meshdraw_counts *c, int status, long corners)
+{
+    if (c) {
+        if (status == MU_MESHDRAW_DRAWN) c->drawn++;
+        else if (status == MU_MESHDRAW_RETURNED) c->returned++;
+        else if (status == MU_MESHDRAW_REFUSED) c->refused++;
+        else c->faulted++;
+        c->corners += corners;
+    }
+    return status == MU_MESHDRAW_FAULT;
+}
+
+int mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int32_t skip, mu_meshdraw_counts *c)
 {
     const mu_meshdraw_model *M = e->model;
     if (M->mesh_count == 0)
-        return;
+        return 0;
     gl(e, MU_GL_OP_PUSH_MATRIX, 0, 0, 0, 0);  /* 0x012b7e53 */
     for (int32_t i = 0; i < M->mesh_count; ++i) {
         mu_meshdraw_args call = *args;
@@ -646,7 +713,8 @@ void mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, in
                 continue;
             if (mesh->sub[0])
                 call.select = i;
-            count(c, mu_meshdraw_mesh_draw(e, i, &call, &corners), corners);
+            if (count(c, mu_meshdraw_mesh_draw(e, i, &call, &corners), corners))
+                return MU_MESHDRAW_FAULT;
             const uint8_t pass = mesh->sub[4];
             if (pass == 1 || pass == 2) {
                 w_blend_off(e);
@@ -657,14 +725,17 @@ void mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, in
                 mu_meshdraw_args outline = call;
                 outline.flags = pass == 1 ? 0x21 : 0x22;
                 outline.texture = -1;
-                count(c, mu_meshdraw_mesh_draw(e, i, &outline, &corners), corners);
+                if (count(c, mu_meshdraw_mesh_draw(e, i, &outline, &corners), corners))
+                    return MU_MESHDRAW_FAULT;
                 gl_color3f(e, K_1, K_1, K_1);
             }
         } else if (i != skip) {
-            count(c, mu_meshdraw_mesh_draw(e, i, &call, &corners), corners);
+            if (count(c, mu_meshdraw_mesh_draw(e, i, &call, &corners), corners))
+                return MU_MESHDRAW_FAULT;
         }
     }
     gl(e, MU_GL_OP_POP_MATRIX, 0, 0, 0, 0);   /* 0x012b7e65 */
+    return 0;
 }
 
 /* ---- effective state for non-GL backends ---- */

@@ -192,10 +192,10 @@ def ozb(payload):
     return payload[:4]+payload
 
 
-def write_textured_model(directory, seed=1, *, version=10, four_corner=False):
+def write_textured_model(directory, seed=1, *, version=10, four_corner=False, names=None):
     """Writes a synthetic model plus OZT textures for its meshes; returns the model path."""
     directory = Path(directory)
-    names = ['skin.tga', 'cloth.tga', 'metal.tga']
+    names = names or ['skin.tga', 'cloth.tga', 'metal.tga']
     layout = synthetic_layout(seed, four_corner=four_corner, texture_names=names)
     raw = {10: lambda: layout, 12: lambda: envelope_v12(layout), 15: lambda: envelope_v15(layout)}[version]()
     path = directory/f'synthetic{seed}_v{version}.bmd'
