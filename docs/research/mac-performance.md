@@ -458,3 +458,197 @@ The setup-owned bottle was stopped with its explicit prefix, deleted by name,
 and its absence checked. Raw logs, diagnostics and copied setup state are ignored
 in `runtime/mac-mugl/`. A fresh clone
 contains neither game inputs nor these machine-specific logs.
+
+## MAC-PERF-004: Claude v7.0 in-process CPU hotpatches
+
+Issue #57 publishes existing local work on `codex/mac-hotpatch`, stacked on
+OPEN PR #52, `codex/mac-gl-batching`. This is source publication, local table
+regeneration and cross-build validation. No game was started, stopped, profiled,
+patched or installed during this task. MuMatrix32 and its game/tool directories
+were not changed. The reviewed #52 proxy remains the default setup build;
+`mac-play/hotpatch` holds the opt-in v7.0 snapshot. Later meshdraw experiments
+are excluded.
+
+### Identity and evidence classes
+
+The on-disk target remains SHA-256
+`3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+Claude's `mugl.c` and saved `mugl_v70.c` match at SHA-256
+`c83977712df1f046f66648175f53e20c2553e8430ce9018d139898da2e4ab6a1`.
+The corresponding `xform.c` and `xform_v70.c` match at
+`cce0902f2c2fe8b761b97e6d6d08408c1ed93470a2f89ff4117785e58c7cc624`.
+`mac-play/hotpatch/source-provenance.json` records source hashes before packaging
+adaptations. These are authored-source identities, not binary runtime proof.
+
+The existing private pristine dump `/tmp/pristine.bin` maps offset zero to
+`0x00400000`, has 46,137,344 bytes and SHA-256
+`6e7957c9af8685f5a5fb14008131eab50470d40d2e6128397d5795a88160bfd4`.
+Its selected text `0x00401000..0x01a7c000` has SHA-256
+`338d16ec2c3c596e9d37e05f48913a22417ad2d1d910c079e9dc2c3887fc62f9`.
+This is a separate CrossOver memory image, not the earlier Linux restored-text
+capture. Full runtime dump hashes are session-specific. The private listings
+`/tmp/calls.txt` and `/tmp/ptext.dis` and the local `mu-mac-tools` tree are
+owner-supplied inputs, unavailable in a fresh clone. Their required identities
+are in `mac-play/hotpatch/targets.json`. Publication logs/reference headers are
+ignored under `runtime/mac-hotpatch/` in this worktree.
+
+The measurements below are Claude's reported prior single-host observations,
+supplied in the owner's task brief. This publication did not rerun them and did
+not acquire their raw profiling/benchmark logs. Fresh compile and table checks
+are listed separately below. The million-call observation is not attributed to
+a new harness run or to Windows-native execution. The prior merged skinning
+reconstruction and its bounded instruction/corpus comparisons are documented in
+[PR #54](https://github.com/fryezero/mu-the-matrix-recovery/pull/54). They are a
+separate evidence class from the live replacement report.
+
+### Mechanism and publication boundary
+
+After GL batching, Claude attributes the bottleneck to main.exe's unoptimized
+MSVC `/Od` x86 code under Rosetta: constant idioms, trivial accessor wrappers
+and uninlined vector arithmetic. About 2,950 downstream draws/frame consumed
+6.4 ms in selected GL timing. This supports the CPU-code hypothesis for that
+workload, not a universal claim that GL costs are negligible. Direct versus
+indirect calls both measured about 1.25 ns in `callbench`, so indirect dispatch
+alone did not explain the remaining frame time.
+
+External `mach_vm_write` changed memory but did not change observed execution.
+Claude inferred stale Rosetta translations. Applying patches inside mugl from
+wglSwapBuffers after roughly 100 frames did take effect. The in-process path
+verifies expected original/replacement bytes, changes protection, writes, restores
+protection and flushes the instruction cache. Unexpected bytes are skipped.
+This reports observed behavior; it does not establish Rosetta's internal cache
+contract. Mask changes are per-site operations, not an atomic transaction.
+
+`C:\mutools\mugl-hotpatch.txt` is polled roughly once per second. Bits are 1
+for handwritten helpers, 2 for inline trivial calls, 4 for peepholes, 8 for
+skinning and 16 for skinning comparison. The default private-build mask is 15.
+The handwritten addresses are VectorRotate `0x00d000ad`, VectorTransform
+`0x00d002b2`, self `0x00cfc94a`, index `0x00cfc922`, deref16 `0x00c9b276`,
+equality `0x00c9b0e4`, and store8 `0x00c9aa15`/`0x00c9a992`/`0x00c9a9af`.
+The original helper digests/lengths are in `targets.json`; `hp.S` contains authored
+replacement bodies. Claude reports 900,000 randomized tests per helper with zero
+mismatches in the existing `hptest.c`/`thunks.S` harness. The harness compares
+selected final registers and memory, not a complete EFLAGS/access trace.
+It was cross-built here, never executed.
+
+The SSE C skinning replacement is at `0x012b5bde..0x012b678d`, using an entry
+jump plus a trampoline into the original. It follows the semantics of the
+already merged `reconstructed/model-codec/skinning.c` in PR #54, preserving
+binary32 operation order and reusing original angle-matrix, inverse-rotate and
+world-test helpers. Build with SSE math and `-ffp-contract=off`. Verify mode
+computes into scratch buffers, runs the original and byte-compares selected
+vertices, normals, lighting/scratch values and bounds. Claude reports zero
+mismatches over more than one million real in-game calls. The source skips
+comparison when the first stack argument is zero; total calls and checked calls
+are distinct. Broad equivalence outside observed inputs remains unverified.
+
+Final v7.0 has 18,583 inline sites and 50,977 constant-idiom sites. Intermediate
+JSON holds 18,584/51,067. The final inline set excludes the ret4 call inside a
+replaced helper, and the peep set excludes 90 sites inside the replaced skinning
+body. The inline scan also reflects already-installed helper bodies. The local
+generator derives objdump listings from the pristine dump, or accepts the pinned
+private listings, and reproduces that scope using hashes instead of
+publishing original callee patterns. It requires canonical record digests to
+match the final headers. The peephole flags-dead scan remains Claude's heuristic;
+whole-program flags equivalence is unverified.
+
+No original-byte header, `.orig`, `.new`, memory dump, private site JSON, binary
+or credential is committed. The xform entry prologue also moves out of source
+into a locally generated header. `generate.py` accepts only pinned private
+inputs and an ignored output directory, checks helper digests and checks final
+record digests. The original-byte comparisons remain in the runtime installer.
+Generated source and DLLs containing those bytes must remain private. The
+publication audit rejects these specific table names and `.orig`/`.new` files.
+A compile-only CI build uses empty tables and disables main.exe hotpatch/Sleep
+installation. Default setup still installs #52's reviewed batching proxy.
+
+The Sleep IAT hook reports per-frame `work=`/`sleep=`. Work is elapsed interval
+time minus render-thread Sleep duration, including other waits and host
+scheduling. It is not exclusive CPU time. The `+time` mode times selected real
+GL calls with QPC; `full+vbo+time` enables VBO emulation and timing together.
+`mumodes/modehook.c`, shared with the authored mscoree launcher proxy, uses
+`C:\mutools\mu-modes.txt` for a curated EnumDisplaySettings list. The older
+extra-mode implementation remains unused in v7.0. No mode hook or launcher
+proxy was installed here. General GL state regression coverage from #52 has
+not been rerun for this opt-in snapshot.
+
+The reported test cap is 25 FPS / 40 ms. There is no identifiable cap installer
+in the pinned v7.0 source; this publication does not invent one. The separately
+merged [frame-loop analysis](https://github.com/fryezero/mu-the-matrix-recovery/blob/2e8d89e578204c80b6bcf6ce295193ad959bf2ea/docs/research/client-frame-loop.md)
+locates the compiled-in cap and distinguishes rendering cadence from the fixed
+40 ms game-logic step.
+
+### Reported in-world results
+
+Twisted Karutan hunting at approximately x=107..112, y=95..98, MU Helper
+auto-attack enabled, 25 FPS / 40 ms cap:
+
+| Mask | Reported FPS | Reported work/frame |
+|---|---:|---:|
+| 0 | about 20.5 | about 48.5 ms |
+| 7 | about 24.1 | about 40.3 ms |
+| 15 | about 24.7 | 37..39 ms |
+
+At spawn 124,120, the client reached the 25 FPS cap. The earlier cross-session
+history was roughly 4 FPS originally, 17 with batching, 23 with VBO emulation
+and 24.7 with the current work. These are noisy observations from different
+sessions, not controlled paired speedups. Hardware/runtime settings, sample
+counts and raw logs were not independently re-established in this publication.
+The cap can conceal headroom; neither capped FPS nor one spot proves gameplay
+stability. Windows-native equivalence remains unverified.
+
+### Remaining mesh cost and failed approaches
+
+Claude reports the remaining mesh draw routine `0x012b8d1d..0x012bb35a`,
+`ret 0x2c`, about 2,713 instructions, at 44.8% of main-thread self-time
+attribution using EBP walks. The routine submits per-corner texcoord/color/vertex
+calls through many accessor thiscalls and switches on draw-mode cases 2, 4,
+`0x1000`, `0x8000`, `0x80000`, `0x100000`. Relevant IAT slots:
+
+| Address | Import |
+|---|---|
+| `0x01a7c750` | glBegin |
+| `0x01a7c754` | glColor4f |
+| `0x01a7c760` | glEnd |
+| `0x01a7c76c` | glColor3f |
+| `0x01a7c770` | glColor3fv |
+| `0x01a7c774` | glTexCoord2f |
+| `0x01a7c778` | glVertex3fv |
+
+The x86_64 Mach profiler observed Rosetta keeping x86 EAX..EDI in ARM x0..x7
+through thread_get_state flavor 1, ESP=x4 and EBP=x5. This is observed runtime
+behavior, not a stable Apple interface. Scanning plausible call-preceded return
+addresses initially misattributed mesh-draw samples to store8 helpers.
+`EBPWALK=1` follows saved-EBP links and improved attribution. The 44.8% is a
+reported attribution, not an independently verified current-instruction sample.
+
+Other preserved failures: crashing test executables spawned winedbg, which
+killed main.exe's thread; disable AeDebug before future tests in disposable
+bottles. No registry change was made here. The old peep slice
+`mem[a-base:end]` expanded generation to 49 GB; the local fixed version uses
+`end-base`. A synthetic regression test covers the nonzero-base slice. External
+patch writes and the stack-scan attribution failures must remain in the record.
+
+Next, in a separately authorized task, port the mesh routine as an xform-style
+C replacement with original-vs-replacement verification before performance
+claims. No mesh replacement is published here. The owner authorized disabling
+anti-cheat in prior testing and plans separate builds with and without it.
+That is a plan only; this change implements neither variant and establishes
+no anti-cheat compatibility.
+
+### Publication checks
+
+Local generation matches all nine helper original/replacement arrays and both
+final v7.0 site tables. The private build cross-compiles the proxy and bit-exactness
+harness without running either. The source-only build cross-compiles the proxy,
+shared launcher mode proxy, mesh/call benchmarks and muinput. The Mach tools
+compile as x86_64, without signing or attaching. Portable generator tests cover
+input mismatch, overlapping/unequal patches, synthetic hook disabling, relative
+call validation, live-flag rejection, the slice regression and Keychain-only
+login plumbing. `make test PYTHON=tools/.venv/bin/python` and the staged
+publication audit are recorded in the handoff after their final run.
+
+Automation packaging requires explicit test-bottle/log/account selection, retains
+runtime macOS Keychain password lookup and omits the original process-killing
+restart helper. Login/movement helpers refuse MuMatrix32. No account name,
+Keychain item name, password, screenshot or personal runtime log is published.

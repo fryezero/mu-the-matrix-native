@@ -8,6 +8,13 @@ spec.loader.exec_module(audit)
 
 
 class PublicationBoundary(unittest.TestCase):
+    def test_hotpatch_game_tables_cannot_be_published_as_source(self):
+        for name in ('hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h'):
+            with self.subTest(name=name):
+                self.assertTrue(audit.violations('mac-play/hotpatch/'+name,b'/* text table */'))
+        for name in ('helper.orig','helper.new'):
+            self.assertTrue(audit.violations('mac-play/hotpatch/'+name,b'bytes'))
+
     def test_authored_source_is_allowed(self):
         self.assertEqual(audit.violations('windows-capture/capture-client.c',b'int main(void) { return 0; }'),[])
 

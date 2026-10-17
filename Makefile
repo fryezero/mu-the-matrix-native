@@ -8,6 +8,7 @@ all:
 	$(MAKE) -C reconstructed/model-codec
 
 test: all
+	for script in mac-play/automation/*.sh; do bash -n "$$script" || exit; done
 	bash -n mac-play/setup-crossover-32bit.sh
 	bash -n mac-play/cxwine
 	bash -n mac-play/cxwineserver
@@ -30,6 +31,9 @@ test: all
 mugl:
 	$(MAKE) -C mac-play/mugl
 
+mac-hotpatch:
+	$(MAKE) -C mac-play/hotpatch
+
 mac-diagnostics:
 	$(MAKE) -C mac-play/diagnostics
 
@@ -39,4 +43,4 @@ integration:
 windows:
 	$(MAKE) -C windows-capture
 
-.PHONY: all test integration windows mugl mac-diagnostics
+.PHONY: all test integration windows mugl mac-diagnostics mac-hotpatch

@@ -494,3 +494,59 @@ prior frame/action and keep-root flag are chosen per animation tick. Then
 follow the output matrices and quaternion table into the skinning/renderer
 consumer. Alternatives: the second builder `0x012bcffb` (action-0 only), the
 17 rejected v15 files with a non-validating locator, or the v10 sibling loop.
+
+## MAC-PERF-004 publication handoff
+
+Issue #57 / `codex/mac-hotpatch`, worktree `~/Documents/mu-worktrees/mac-hotpatch`,
+is stacked on OPEN PR #52 (`codex/mac-gl-batching`, base `d1c86a3`). The owned
+scope is `mac-play/hotpatch`, `mumodes`, `machprof`, `automation`, generator/policy
+tests, CI cross-build and the shared performance/status/roadmap/evidence notes.
+This publishes Claude's saved v7.0 work. No main.exe or Wine process was started,
+stopped, attached to or patched, and neither MuMatrix32 nor its C:\MuTheMatrix /
+C:\mutools directories were modified. Default setup remains PR #52's proxy.
+
+Read `research/mac-performance.md`, MAC-PERF-004, and
+`../mac-play/hotpatch/README.md`. `source-provenance.json` pins the pre-packaging
+authored sources. v7.0 mugl is `c8397771…b6a1`; xform is `cce0902f…c624`.
+The owner-supplied pristine memory dump remains `/tmp/pristine.bin`, SHA-256
+`6e7957c9af8685f5a5fb14008131eab50470d40d2e6128397d5795a88160bfd4`.
+The source generator derives objdump listings from that dump, verifies identities
+and reproduces exactly nine helper patches, 18,583 inline sites and 50,977
+peepholes. The old cached `/tmp/calls.txt` differs from the derived call list by
+one nonmatching target; both listing identities are pinned and yield identical
+final tables. Original templates become length/hash metadata. The xform original
+prologue and all original/replacement tables are generated under ignored
+`mac-play/hotpatch/build/private`, never committed or uploaded.
+
+Actual local checks: `make test PYTHON=tools/.venv/bin/python` discovers 208 tests,
+193 pass and fifteen explicitly skip private inputs. `make mac-hotpatch` builds
+the compile-only proxy, mscoree mode proxy, mesh/call benchmarks and muinput.
+`make -C mac-play/hotpatch private` cross-builds the private proxy and hptest;
+neither was executed. `make -C mac-play/machprof` compiles all three x86_64 Mach
+tools without signing/attachment. All five automation scripts pass zsh parsing.
+The final staged publication audit and diff check pass. Existing compiler warnings
+are an unused legacy extra-mode installer and compact hptest indentation.
+Fresh private tables match all eighteen original/replacement helper arrays and
+both final v7.0 tables byte for byte. Full generation also succeeds using only
+`--dump`, with locally derived listings. Verification logs and reference headers
+are ignored under `runtime/mac-hotpatch/`.
+
+Claude's prior 900k/helper comparison, >1M live skinning comparison, hunting FPS,
+6.4 ms GL timing, 44.8% mesh attribution and Rosetta behavior are supplied reports,
+not rerun measurements here. Raw measurement logs were not acquired. The
+performance finding keeps those claims separate from actual publication checks.
+The pinned v7.0 source does not contain an identifiable frame-cap patch installer;
+the 25 FPS/40 ms cap remains a reported condition and the merged frame-loop
+analysis is linked. Flags-dead analysis remains heuristic and full EFLAGS/access
+identity is unverified. Broad GL equivalence and Windows-native behavior remain
+unverified. Anti-cheat variants are a plan only.
+
+Review the PR and its macOS/Linux CI before integration. Do not merge the child
+while #52 is open without preserving that dependency. No independent reviewer
+approval is supplied by this implementation task. Next performance task, under
+separate authorization, is an original-vs-C mesh draw comparison at
+`0x012b8d1d..0x012bb35a` before measuring speed. Use EBP walks, retain the old
+stack-scan misattribution, and disable AeDebug only in disposable test bottles
+before crash-prone probes. The original process-killing restart helper and later
+meshdraw experiment remain omitted. Login/movement scripts select an explicit
+test bottle and refuse MuMatrix32; login reads the password from Keychain.
