@@ -361,6 +361,7 @@ void mu_raster_set(mu_raster *r, const mu_meshdraw_state *state, const mu_image 
 {
     r->state = *state;
     r->texture = texture;
+    r->texture_slot = -1;   /* no per-slot filter/wrap: `linear` decides */
     r->linear = linear;
 }
 

@@ -1024,9 +1024,15 @@ Branch `claude/native-unicorn`, worktree `~/Documents/mu-worktrees/native-unicor
   * negative controls: 4/4 fail;
   * pinned CI groups: equal to the test pins.
 * A two-change perturbation of the port fails 11 cases.
-* `make test PYTHON=tools/.venv/bin/python`: 274 run, 23 explicit skips, all OK (macOS).
-* `make -C native viewer` builds with `-Werror`.
-* Private native tests: all 20 pass with `MU_RECOVERY_INTEGRATION=1` and the evidence paths from `main-exe-study` (714 s; the mesh-draw execution test runs the validator at 3 models per folder).
+* `make test PYTHON=tools/.venv/bin/python`: 315 run, 28 explicit skips, all OK (macOS). This was after the rebase on the
+  NATIVE-CHAR-001, NATIVE-TERRAIN-001 and NATIVE-NET-001 merges; before it, 274 run with 23 skips.
+* `make -C native all viewer` builds with `-Werror`.
+* Private native tests: all 49 pass with `MU_RECOVERY_INTEGRATION=1` and the evidence paths from `main-exe-study` (321 s; the
+  mesh-draw execution test runs the validator at 3 models per folder). Before the rebase, 20 of 20 passed.
+* After the rebase:
+  * the terrain path uses the GL blend enums of the new `mu_meshdraw_state`;
+  * character items pass their own textures to the scene, so bitmap names and component counts are set;
+  * a class-1 character renders textured: `meshdraw-character-class1-{soft,gl}.png`, 16 pixels over 8/255.
 * `scripts/audit_repository.py` on the staged tree: 0 rejected.
 * Local renders: `~/Documents/mu-mac-tools/native/renders/meshdraw-*.png`.
   * Headless GL with `--compare` on Monster05, Sword01, Bonfire01, CR_shield01 and ArmorClass01, plus `0x1000` chrome and
