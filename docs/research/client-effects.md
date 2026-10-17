@@ -133,8 +133,8 @@ and `scan` (every installed `.ein`; 370 files, 0 load failures). Renders stay lo
 Render state applied by the native draw that is a **static reading** of the EffectManager render `0x00a7a30e` and
 the effect texture loader `0x00a90987`, not compared: depth test on, depth writes off, alpha test off,
 `GL_MODULATE`, `GL_LINEAR`, `GL_REPEAT`, no mipmaps. Culling for particle systems is left off: the particle draw does
-not set it, and the state left by earlier passes was not recovered. `MU_BLEND_DST_COLOR` was added to the shared
-software rasterizer for the multiply mode.
+not set it, and the state left by earlier passes was not recovered. The shared software rasterizer gained
+`GL_DST_COLOR` (`0x306`) as a blend factor for the multiply mode.
 
 ## 5. Limits and next steps
 

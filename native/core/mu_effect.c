@@ -232,20 +232,6 @@ void mu_effect_camera(mu_fx_camera *c, const float eye[3], const float target[3]
     mu_fx_camera_set(c, eye, forward, up);
 }
 
-static uint8_t blend_factor(uint32_t gl)
-{
-    switch (gl) {
-    case 0: return MU_BLEND_ZERO;
-    case 1: return MU_BLEND_ONE;
-    case 0x300: return MU_BLEND_SRC_COLOR;
-    case 0x301: return MU_BLEND_ONE_MINUS_SRC_COLOR;
-    case 0x302: return MU_BLEND_SRC_ALPHA;
-    case 0x303: return MU_BLEND_ONE_MINUS_SRC_ALPHA;
-    case 0x306: return MU_BLEND_DST_COLOR;
-    default: return MU_BLEND_ONE;
-    }
-}
-
 uint32_t mu_effect_draw(mu_effect *e, const mu_fx_camera *camera, mu_raster *raster)
 {
     mu_fx_draw_state s;
@@ -253,10 +239,11 @@ uint32_t mu_effect_draw(mu_effect *e, const mu_fx_camera *camera, mu_raster *ras
     if (!s.visible || n == 0)
         return 0;
     mu_meshdraw_state state;
-    memset(&state, 0, sizeof state);
+    mu_meshdraw_state_defaults(&state);
     state.blend = s.blend;
-    state.src = blend_factor(s.src);
-    state.dst = blend_factor(s.dst);
+    state.src = s.src;   /* GL blend factors, as the raster takes them */
+    state.dst = s.dst;
+    state.fog = 0;
     state.depth_test = 1;
     state.depth_mask = 0;
     state.cull = 0;
