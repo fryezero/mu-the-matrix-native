@@ -1041,6 +1041,72 @@
         "Other macOS versions, power states, runs beyond 140 s and login/character-select numbers not covered",
         "Windows-native behavior, anti-cheat and server compatibility unverified"
       ]
+    },
+    "mac_setup_kit": {
+      "issue": 63,
+      "base_commit": "6f4344d",
+      "document": "docs/research/mac-crossover-32bit.md",
+      "readme": "mac-play/installer/README.md",
+      "files": [
+        "setup-mu-mac.sh",
+        "verify-mu-mac.sh",
+        "play-mu.sh",
+        "lib/mukit.sh",
+        "registry/mu-mac.reg",
+        "tests/test-mukit.sh",
+        "tests/fixtures/ (synthetic)"
+      ],
+      "target_main_exe_sha256": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
+      "pins_sha256": {
+        "launcher_MuTheMatrix_exe": "c32e99ee98fc0773f850f9e76b160a9a00c867f4d745bf9e66c4b15d7f74bc3e",
+        "mugl_v72_user_supplied": "e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60",
+        "mugl_v71_user_supplied": "85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2",
+        "mugl_v70_user_supplied": "c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c",
+        "mscoree_proxy_user_supplied": "6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac",
+        "crossover_26_3_i386_builtin_opengl32": "0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56",
+        "dotnet48_installer": "95889d6de3f2070c07790ad6cf2000d33d9a1bdfc6a381725ab82ab1c314fd53"
+      },
+      "relation": "alternative to mac-play/setup-crossover-32bit.sh (MAC-CROSSOVER-001); each refuses bottles it did not create",
+      "publication_verified": {
+        "binaries_or_dlls_committed": false,
+        "account_or_keychain_names_in_tree": false,
+        "machine_paths_in_tree": false,
+        "prebuilt_pins_checked_against_owner_files_read_only": true,
+        "shell_checks": 180,
+        "shell_checks_linux_without_mingw_zsh": 166,
+        "portable_tests_discovered": 254,
+        "portable_passed": 236,
+        "private_checks_skipped": 18,
+        "new_python_tests": 9,
+        "dry_run_against_real_crossover_tree": true,
+        "live_bottle_created": false,
+        "game_or_bottle_changed": false
+      },
+      "prior_reported_not_rerun": {
+        "provenance": "Owner's local mu-mac-kit live validation, supplied in the task brief and the kit README",
+        "date": "2026-10-17",
+        "crossover": "26.3.0.39832",
+        "macos": "27",
+        "fresh_bottle_total_s": 224,
+        "dotnet48_s": 194,
+        "winver_step_needed": true,
+        "local_checks_passed": 156,
+        "live_bugs_fixed": 6,
+        "spawn_fps_kit_bottle": 24.9,
+        "spawn_work_ms_kit_bottle": 27.2,
+        "spawn_fps_reference_bottle": [
+          22.7,
+          23.7
+        ]
+      },
+      "limits": [
+        "Adapted repository version not run live (dry run and synthetic tests only)",
+        "Live figures are single-host supplied reports",
+        "Repository cxwine shims, default build path and play-mu.sh not validated under winetricks or in the game",
+        "Default public mugl has no display-mode hook (DevModeIndex capped at 2)",
+        "Fast x87 and anti-cheat variant options are TODO hooks",
+        "Other CrossOver/macOS versions and Intel Macs untested"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -1048,8 +1114,8 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 245,
-    "portable_passed": 227,
+    "portable_tests_discovered": 254,
+    "portable_passed": 236,
     "private_checks_skipped": 18,
     "local_integration_passed": 209,
     "source_only_checkout_passed": true,

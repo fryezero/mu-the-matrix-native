@@ -73,3 +73,13 @@ The v7.2 `mac-play/hotpatch/mugl.c` is authored code from the owner's local mu-m
 work, published under this repository's MIT license with the same boundary as v7.0
 and v7.1. It adds no original game bytes and no Microsoft, Wine, CrossOver or game
 implementation; it calls the documented Win32 waitable-timer API.
+
+## Mac setup kit
+
+`mac-play/installer/` is authored shell code from the owner's local mu-mac-tools work, published
+under this repository's MIT license. It contains no Microsoft, CrossOver, Wine, winetricks or game
+code or binaries. It invokes CrossOver, winetricks (which downloads Microsoft's .NET Framework
+installer under Microsoft's terms) and MinGW-w64 from the user's machine, and records SHA-256 values
+of Microsoft's installer, a CrossOver builtin and user-supplied proxy DLLs only. Prebuilt mugl DLLs
+contain client-derived bytes and are not part of the repository.
+

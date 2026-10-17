@@ -779,3 +779,38 @@ login and character-select numbers, Windows-native behavior, anti-cheat and serv
 compatibility. Next work: no new performance lever is reported; 25 fps remains the fixed
 40 ms logic step. A multi-minute hunting-spot run in the background would extend the
 evidence cheaply if the owner wants more.
+
+## MAC-KIT-001 publication handoff
+
+Issue #63 / `claude/mac-setup-kit`, worktree `~/Documents/mu-worktrees/mac-setup-kit`, stacked after
+PR #62 (MAC-PERF-006), based on main `6f4344d`. The owned scope is the new `mac-play/installer/`
+(`setup-mu-mac.sh`, `verify-mu-mac.sh`, `play-mu.sh`, `lib/mukit.sh`, `registry/mu-mac.reg`, `README.md`,
+`tests/`), `tests/test_mac_installer.py`, the `make test` hook, `.gitignore`/`.gitattributes` entries and
+the shared notes. `~/Documents/mu-mac-tools` was read only. No main.exe, Wine process or game was
+started and neither MuMatrix32 nor MuMatrixKit was touched; the only bottle name used for the
+real-CrossOver dry run (`MuRepoDryRun`) does not exist and was not created.
+
+Read `research/mac-crossover-32bit.md` (MAC-KIT-001) and `../mac-play/installer/README.md`. Differences
+from the owner's live-validated local copy: paths now come from the repository (`mac-play/cxwine`,
+`cxwineserver`, `mumodes`, `mugl`, `hotpatch`) or parameters (`--dll-dir`, `--dotnet-installer`,
+`--helpers-dir`, `--timewalker-dir`, `--mugl-build`); `--dll-source build` is the default and builds the
+public batching-only mugl (DevModeIndex capped at 2); `--dll-source current` and `--mugl-repo` are gone;
+`play-mu.sh` is part of the kit and defaults to plain Rosetta; the pins stay in `lib/mukit.sh` with
+`MUKIT_*_SHA256` environment overrides that exist only for the synthetic tests. Account ID and Keychain
+item names appear nowhere in the tree; autologin uses the existing `MU_ACCOUNT`/`MU_KEYCHAIN_SERVICE`.
+Prebuilt DLL hashes (v7.2 `e37cf5d5...`, v7.1 `85a8e3b6...`, v7.0 `c06534df...`, mscoree `6f2d2ace...`)
+were checked against the owner's files read-only.
+
+Actual local checks: `make test PYTHON=tools/.venv/bin/python` discovers 254 tests (236 pass, 18 explicit
+private skips; the 9 new tests are `tests/test_mac_installer.py`) and runs the 180-check shell suite;
+the same suite passed 180/180 in an Ubuntu 24.04 container with MinGW, python3 and zsh, and 166/166
+without them (those checks skipped); `python3 scripts/audit_repository.py`; `--dry-run` of the setup
+against the real CrossOver tree and a synthetic client folder. Not run: a live bottle build, the
+repository shims under winetricks, the new default build path's DLL in the game, any game start.
+
+Next work: on a throwaway bottle (never MuMatrix32 or MuMatrixKit, game not running), run the kit once
+with `--dll-source build` and once with `--dll-source prebuilt --dll-dir ...`, record timings and the
+verify output, and delete the bottle; then decide whether to retire the older setup or merge the two.
+The `MonitorCheck.exe` pre-launch display probe in `start-launcher.sh` is not in the kit. Fast-x87
+and the anti-cheat variants stay TODO hooks. Use disposable bottles for any crash-prone probe.
+

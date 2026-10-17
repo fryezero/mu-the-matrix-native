@@ -204,6 +204,18 @@ patch site or original byte is added. These are supplied single-host reports, no
 the new code was only compiled here. Default setup still uses #52. No running game or
 bottle was changed. [Evidence and limits](research/mac-performance.md#mac-perf-006-claude-v72-precise-frame-pacing-waits).
 
+MAC-KIT-001, issue #63, publishes the owner's reproducible Mac setup kit as
+`mac-play/installer/`: an idempotent setup, a read-only verify, a launcher script and a
+synthetic test suite that reproduce the hand-built MuMatrix32 layout in a new win32
+bottle. The owner reports that the local copy built a fresh bottle in 3 min 44 s with
+.NET 4.8 and ran in world at parity or better than MuMatrix32, after six live-found bugs
+were fixed. This publication replaced machine-specific siblings with repository sources and
+parameters, ships no DLL (pinned SHA-256 only; prebuilt v7.x DLLs are user supplied), keeps
+account and Keychain names out of the tree, and runs its 180-check suite on macOS and Linux
+in CI. The adapted setup has not been run live, only dry-run and tested synthetically. It
+sits beside the older `setup-crossover-32bit.sh`. No game or bottle was changed.
+[Evidence and limits](research/mac-crossover-32bit.md#reproducible-setup-kit-mac-kit-001).
+
 ## Repository and next work
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)
