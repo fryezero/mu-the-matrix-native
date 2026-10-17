@@ -411,3 +411,13 @@ synthetic suite. Login and in-world play of a kit bottle built by the repository
 repeated; the in-world figures above are the owner's single-host supplied reports. Anti-cheat and server compatibility, other macOS
 or CrossOver versions, Intel Macs and the unbuilt TODO hooks are outside the evidence.
 
+## Double-click app, MAC-BUNDLE-001
+
+`mac-play/bundle/` builds "Mu The Matrix.app", described in [its README](../../mac-play/bundle/README.md).
+`make test` passed, including the bundle's 112 checks; the 64 portable checks also passed on Ubuntu
+24.04. Observed at runtime on 2026-10-17 under the game lock, in MuMatrixKit with fast x87 and no
+login: the built app ran preflight, started the launcher and quit after 6 s. After GAME START,
+`main.exe` ran under timewalker and reached server select (1722x1076) 38 s after the start.
+`LauncherOption.if` was unchanged. MuMatrix32 was not used. The settings window and the error
+dialogs were exercised only with synthetic bottles.
+

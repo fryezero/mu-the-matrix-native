@@ -928,3 +928,13 @@ An independent review ran before publication, on the same branch.
 * **Fixes.** The new character options check their numbers before converting them to integers: slots for `--part`/`--weapon`/`--weapon-action`, and int32 range for `--class`, `--parts` and weapon actions. Before, `--weapon nan PATH` converted NaN to an int, which is undefined behaviour, and on arm64 it loaded slot 0. `mu-render image|scan|info` without a path reached a NULL dereference after the argument-count change; the commands now refuse it. The viewer title counts missing character textures. A portable regression test covers these cases.
 * **Memory safety.** An ASan/UBSan build of `mu-render` passed the portable native suites. 3,000 mutated synthetic character sets (Player, parts, weapons, wing) and Players with 1, 3, 34 and 200 bones under link bones 33/42/47 gave no finding.
 * **Checks.** `make test PYTHON=tools/.venv/bin/python` passes (282 tests, 25 explicit skips). `make native-viewer` builds with no warnings. `python3 scripts/audit_repository.py` rejects nothing. No client data, textures, renders or client bytes are committed. No absolute client path is referenced; the game root comes from `MU_GAME_ROOT` or `--game-root`. Private integration was not re-run in the review; the character agent's last run used the MuMatrixKit installation.
+
+## Mu The Matrix.app (MAC-BUNDLE-001)
+
+Branch `claude/mac-bundle`. Read `../mac-play/bundle/README.md`. `make mac-bundle` builds
+`mac-play/bundle/build/Mu The Matrix.app`. One live start in MuMatrixKit reached server select;
+MuMatrix32 was untouched.
+
+Next: the owner selects MuMatrix32 in the first-run settings window and can optionally run
+`make -C mac-play/bundle install`. Notarization and a universal build are still open.
+

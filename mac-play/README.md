@@ -23,6 +23,10 @@ DLL: it builds the public mugl and the mscoree proxy from these sources, or inst
 supply after a SHA-256 check. Its adaptation to a repository checkout has been exercised only
 by dry runs and the synthetic suite, not live (see its README).
 
+To start such a bottle by double-click, build "Mu The Matrix.app" with `make mac-bundle`
+([`bundle/`](bundle/README.md), MAC-BUNDLE-001). It has a settings window for the bottle,
+fast x87 and the resolution, clear preflight errors, and logs in `~/Library/Logs/MuTheMatrix`.
+
 ## Requirements and use
 
 Use macOS with CrossOver installed, its required Rosetta support, an APFS volume

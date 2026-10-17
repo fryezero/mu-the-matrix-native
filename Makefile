@@ -22,6 +22,7 @@ test: all
 	bash -n mac-play/diagnostics/run-fpbench.sh
 	bash -n mac-play/diagnostics/run-glbench.sh
 	bash mac-play/installer/tests/test-mukit.sh
+	bash mac-play/bundle/tests/test-bundle.sh
 	$(PYTHON) -m unittest discover -s reconstructed/boot -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s asset-recovery -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s model-recovery -p 'test_*.py' -v
@@ -40,6 +41,9 @@ native-viewer:
 mac-hotpatch:
 	$(MAKE) -C mac-play/hotpatch
 
+mac-bundle:
+	$(MAKE) -C mac-play/bundle
+
 mac-diagnostics:
 	$(MAKE) -C mac-play/diagnostics
 
@@ -49,4 +53,4 @@ integration:
 windows:
 	$(MAKE) -C windows-capture
 
-.PHONY: all test integration windows mugl mac-diagnostics mac-hotpatch native-viewer
+.PHONY: all test integration windows mugl mac-bundle mac-diagnostics mac-hotpatch native-viewer
