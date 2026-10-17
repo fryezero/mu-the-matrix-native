@@ -2,6 +2,16 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Actors (NATIVE-ACTOR-001)
+
+Read [`research/client-actors.md`](research/client-actors.md). `reconstructed/actors` (libactors), `native/core/mu_actor.*`
+and `mu-render actor --type/--monster/--npc` render animated monsters and NPCs; `mu-render character --pose` animates
+players. Compare with the client by running `scripts/validate_actors.py` (pinned text and data; about 17 s); it
+also regenerates the extracted class, NPC and Player-speed headers. `scripts/actor_static.py` regenerates the monster
+action table. Renders stay local (`~/Documents/mu-mac-tools/native/renders/actors/`). Next: trace the monster
+weapon/attachment render path in RenderCharacter `0x01363260`, load item attribute data for exact player weapon
+actions, and drive the world-specific map processors with their singleton state.
+
 ## Native terrain (NATIVE-TERRAIN-001)
 
 Read [`research/client-terrain.md`](research/client-terrain.md). `reconstructed/terrain`, `native/core/mu_terrain.*`,
