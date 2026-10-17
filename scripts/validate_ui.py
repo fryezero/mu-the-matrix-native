@@ -78,6 +78,10 @@ class State(Structure):
                 ('screen_rate_y', c_float), ('lookup', LOOKUPFN), ('lookup_user', c_void_p)]
 
 
+class FontSpec(Structure):
+    _fields_ = [('height', c_int32), ('weight', c_int32), ('quality', c_int32), ('face_text', c_int32)]
+
+
 class LoginText(Structure):
     _fields_ = [('text454', c_char_p), ('text455', c_char_p), ('format456', c_char_p),
                 ('version_bytes', c_uint8*5)]
@@ -111,6 +115,7 @@ def library(path=None):
         'mu_ui_render_text': [P, P, c_int32, c_int32, c_char_p, c_int32, c_int32, c_int32, P],
         'mu_ui_open_tga': [P, P, c_size_t, c_uint32, c_uint32, c_uint32, c_uint32, P],
         'mu_ui_font_height': [c_uint32],
+        'mu_ui_font_for': [c_uint32, c_int],
         'mu_ui_render_color_bitmap': [P, c_int32] + [c_float]*8 + [c_uint32],
         'mu_ui_login_overlay': [P, P, P, c_uint32, P],
     }
@@ -120,6 +125,7 @@ def library(path=None):
     lib.mu_ui_text_dib_stride.restype = c_int32
     lib.mu_ui_open_tga.restype = c_int
     lib.mu_ui_font_height.restype = c_int32
+    lib.mu_ui_font_for.restype = FontSpec
     return lib
 
 
@@ -694,6 +700,55 @@ def validate_text(client, lib, rng, report):
                                                                      1679, 1680, 1920)}
 
 
+# ---- fonts -------------------------------------------------------------------
+
+def validate_fonts(client, lib, report):
+    """CreateFonts 0x0182a0da: CreateFontA arguments for every window-width band."""
+    client.machine.allow((0x0182a0da, cm.function_extent(client.text, 0x0182a0da)))
+    count = 0
+    names = {0: b'FaceZero', 18: b'FaceEighteen'}
+    for width in (640, 799, 800, 1023, 1024, 1279, 1280, 1679, 1680, 1722, 2560):
+        authored = Authored(lib, width, 768, {})
+        client.prepare(authored.state, {})
+        m = client.machine
+        strings = {}
+        for index, name in names.items():
+            address = m.alloc(len(name) + 1, define=True)
+            m.write(address, name + b'\0')
+            strings[index] = address
+        m.put32(0x01cf0c20, 0)                                   # character set byte table entry 0
+        vtable = m.alloc(0x40, define=True)
+        sink = cm.STUB_BASE + 0x90000
+        m.put32(vtable + 0x34, sink)
+        objects = []
+        for slot in (0x06fc9c58, 0x06fc9c5c, 0x06fc9c60):
+            obj = m.alloc(0x10, define=True)
+            m.put32(obj, vtable)
+            m.put32(slot, obj)
+            objects.append(obj)
+        m.put32(0x06fc9c9c, 0x1234)                              # g_hDC
+        handles = iter(range(0x100, 0x200))
+        m.handlers['CreateFontA'] = lambda mm, words: next(handles)
+        client.stub(0x0095f027, lambda mm: strings[mm.args(1)[0]])  # GlobalText[index]
+        client.stub(0x011a191a, lambda mm: 0)
+        m.stub(sink, lambda mm: 0, 4)
+        client.stub(0x011a07b2, lambda mm: objects[0])
+        client.stub(0x011a0834, lambda mm: 1)
+        m.call(0x0182a0da)
+        fonts = [c[1] for c in m.calls if c[0] == 'CreateFontA']
+        expected = []
+        for which in range(4):
+            spec = lib.mu_ui_font_for(width, which)
+            face = strings[18] if spec.face_text == 18 else strings[0]
+            expected.append((spec.height, 0, 0, 0, spec.weight, 0, 0, 0, 0, 0, 0, spec.quality, 0, face))
+        if fonts != expected:
+            raise AssertionError(f'CreateFontA for width {width}: client {fonts} authored {expected}')
+        if struct.unpack('<i', m.read(0x0b437bf4, 4))[0] != lib.mu_ui_font_height(width):
+            raise AssertionError(f'font height global differs for width {width}')
+        count += 1
+    report['font_cases'] = count
+
+
 # ---- login overlay ---------------------------------------------------------
 
 LOGIN_FUNCTIONS = (0x01857ed9, 0x00ec52a9, 0x0184e01a, 0x011a08fd, 0x011a0998, 0x011a09f3, 0x011a0a4e,
@@ -1100,6 +1155,7 @@ def validate_jpeg(client, lib, native, rng, report, game_root=None, limit=None, 
     count = 0
     errors = {}
     warning_codes = {}
+    truncated_pixel_differences, truncated_pixel_matches = [], []
     for path in chosen:
         payload = path.read_bytes()
         mutations = [('original', payload)]
@@ -1131,8 +1187,14 @@ def validate_jpeg(client, lib, native, rng, report, game_root=None, limit=None, 
             if (result_c != 0) != (result_a != 0):
                 raise AssertionError(f'OpenJpeg {path.name}/{mutation}: client {result_c} native {result_a}')
             problem = diff(calls_c, authored.calls)
-            if problem:
+            if problem and mutation == 'truncated' and [c[0] for c in calls_c] == [c[0] for c in authored.calls]:
+                # Truncated data: IJG 6b and libjpeg-turbo both insert a fake EOI but fill the missing
+                # blocks differently; the call sequence must still agree, the pixels may not.
+                truncated_pixel_differences.append(path.name)
+            elif problem:
                 raise AssertionError(f'OpenJpeg {path.name}/{mutation}: {problem}')
+            elif mutation == 'truncated':
+                truncated_pixel_matches.append(path.name)
             if result_a == 1 and bitmap.buffer:
                 ctypes.CDLL(None).free(bitmap.buffer)
             count += 1
@@ -1140,6 +1202,8 @@ def validate_jpeg(client, lib, native, rng, report, game_root=None, limit=None, 
     report['jpeg_cases'] = count
     report['jpeg_client_errors'] = errors
     report['jpeg_client_warning_codes'] = warning_codes
+    report['jpeg_truncated_pixel_matches'] = len(truncated_pixel_matches)
+    report['jpeg_truncated_pixel_differences'] = sorted(truncated_pixel_differences)
     report['jpeg_installed_files'] = len(chosen)
     report['jpeg_installed_total'] = len(files)
 
@@ -1151,7 +1215,7 @@ def main():
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--library')
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--only', choices=['draw', 'sprites', 'title', 'text', 'login', 'tga', 'jpeg'],
+    parser.add_argument('--only', choices=['draw', 'sprites', 'title', 'text', 'fonts', 'login', 'tga', 'jpeg'],
                         action='append')
     parser.add_argument('--tga-limit', type=int)
     parser.add_argument('--jpeg-large', type=int, help='large installed OZJ files to include (default 12)')
@@ -1165,7 +1229,7 @@ def main():
     client = Client(text, data)
     rng = random.Random(args.seed)
     report = {'text_sha256': common.TEXT_SHA256, 'data_sha256': common.DATA_SHA256, 'seed': args.seed}
-    only = set(args.only or ['draw', 'sprites', 'title', 'text', 'login', 'tga', 'jpeg'])
+    only = set(args.only or ['draw', 'sprites', 'title', 'text', 'fonts', 'login', 'tga', 'jpeg'])
     if 'draw' in only:
         validate_draw(client, lib, rng, report)
     if 'sprites' in only:
@@ -1174,6 +1238,8 @@ def main():
         validate_title(client, lib, rng, report)
     if 'text' in only:
         validate_text(client, lib, rng, report)
+    if 'fonts' in only:
+        validate_fonts(client, lib, report)
     if 'login' in only:
         validate_login(client, lib, rng, report)
     if 'tga' in only:

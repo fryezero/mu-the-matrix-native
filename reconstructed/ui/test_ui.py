@@ -350,6 +350,7 @@ class UiTests(unittest.TestCase):
         self.assertEqual(result['title_scene_cases'], 40)
         self.assertEqual(result['text_cases'], 140)
         self.assertEqual(result['login_overlay_cases'], 48)
+        self.assertEqual(result['font_cases'], 11)
         self.assertGreaterEqual(result['tga_cases'], 48)
         if game:
             self.assertEqual(result['tga_installed_files'], 40)

@@ -66,7 +66,7 @@ SLOTS = {
     0x01a7c128: ('GetTextExtentPointA', 'ppip'), 0x01a7c11c: ('GetTextExtentPoint32A', 'ppip'),
     0x01a7c144: ('TextOutA', 'piipi'), 0x01a7c138: ('SetBkColor', 'pi'), 0x01a7c13c: ('SetTextColor', 'pi'),
     0x01a7c140: ('CreateDIBSection', 'pppppi'), 0x01a7c12c: ('CreateCompatibleDC', 'p'),
-    0x01a7c134: ('SelectObject', 'pp'), 0x01a7c278: ('lstrlenA', 'p'), 0x01a7c148: ('SwapBuffers', 'p'),
+    0x01a7c120: ('CreateFontA', 'iiiiiiiiiiiiip'), 0x01a7c134: ('SelectObject', 'pp'), 0x01a7c278: ('lstrlenA', 'p'), 0x01a7c148: ('SwapBuffers', 'p'),
 }
 del SLOTS[0x01a7c6a8]
 FORMAT_WORDS = {'i': 1, 'f': 1, 'p': 1, 'd': 2}

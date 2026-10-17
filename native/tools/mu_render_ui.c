@@ -1,7 +1,7 @@
 /* `mu-render ui`: headless renders of the client's 2D screens (NATIVE-UI-001).
  *
  *   mu-render ui title --root GAME [--size 1024x768] [--progress 37/100] [--variant s5|battle] --out t.png
- *   mu-render ui login --root GAME [--size 1024x768] [--font Tahoma] [--version 1.04.05] --out l.png
+ *   mu-render ui login --root GAME [--size 1024x768] [--font Tahoma] [--version 10000] --out l.png
  *   mu-render ui text  --font Tahoma --size 800x600 --string "..." --out t.png
  *
  * The draw calls come from the reconstructed client routines in
@@ -220,7 +220,7 @@ static int render_text(const ui_options *o)
  * black frame: the 3D login world, the UI-manager windows and the cursor are
  * not part of this slice.  GlobalText[454..456] (encrypted Data\Lang.mpr)
  * and the version bytes (packed third section) are inputs; the defaults are
- * placeholders. */
+ * the strings observed on the live screen. */
 static int render_login(const ui_options *o)
 {
     static const texture_entry LOGIN_TEXTURES[] = {
@@ -234,7 +234,7 @@ static int render_login(const ui_options *o)
     mu_ui_text text;
     mu_ui_font font;
     mu_ui_login_text strings;
-    const char *version = o->version ? o->version : "?????";
+    const char *version = o->version ? o->version : "10000";
     float fade = o->fade - 0.02f;     /* the overlay adds 0.02 before drawing */
     int loaded = 0;
     if (mu_ui_raster_init(&raster, o->width, o->height))
@@ -256,9 +256,11 @@ static int render_login(const ui_options *o)
     mu_ui_text_init(&text, &state);
     text.dib = calloc((size_t)mu_ui_text_dib_stride(text.dib_width) * (size_t)text.dib_height, 1);
     memset(&strings, 0, sizeof strings);
-    strings.text454 = o->text454 ? o->text454 : "Copyright (c) WEBZEN, INC. All rights reserved.";
-    strings.text455 = o->text455 ? o->text455 : "  Mu The Matrix";
-    strings.format456 = o->format456 ? o->format456 : "Version %s";
+    /* Defaults: the strings the installed client showed in a live capture on
+     * 2026-10-17 (read off the screen; the encrypted text file is not decoded). */
+    strings.text454 = o->text454 ? o->text454 : "Mu The Matrix, Private Server Since 2005 / ";
+    strings.text455 = o->text455 ? o->text455 : "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.";
+    strings.format456 = o->format456 ? o->format456 : "Ver %s";
     for (int i = 0; i < 5; ++i)
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
     clear(&state);
@@ -268,7 +270,7 @@ static int render_login(const ui_options *o)
     int result = finish(o, &raster, "login", loaded, 3);
     fprintf(stderr, "login: font %s %s (%d px), strings %s\n", font.face,
             font.backend ? "CoreText" : "placeholder", font.height,
-            o->text454 || o->text455 || o->format456 ? "from options" : "placeholders");
+            o->text454 || o->text455 || o->format456 ? "from options" : "observed live defaults");
     free(text.dib);
     mu_ui_font_close(&font);
     mu_ui_assets_free(&assets);
