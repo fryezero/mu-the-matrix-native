@@ -160,3 +160,14 @@ builder. Synthetic and all installed v12/v14/v15 calls match, and four negative
 controls fail. `libskinning` links the transform, the pose builder, the bone-track
 loop and record-math with contraction disabled. Eleven portable tests run by
 default; the private check needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.
+
+## Character assembly helpers
+
+`character.h` exposes authored C for the routines that assemble a player:
+
+- the rotation position (root setter) `0x012b7019`, which scales a rotated vector by the body scale and copies a parent bone matrix into the root global `0x078965ac` used by the pose builder's keep-root path;
+- the transform position `0x012b6ef1`;
+- the class tier `0x0139cb8a`, skin index `0x0139d6a2` and tier-2 skip `0x0139d89f`;
+- the body-part type and file-name rules of the loader `0x01830aa6`.
+
+All of them run against the actual instructions in `scripts/validate_character.py`, together with installed `Player.bmd` → part and `Player.bmd` → item chains through the actual loop, builder and transform. See the [finding](../../docs/research/native-character.md). `libcharacter` links them with the skinning stack. Four portable tests run by default; the private check needs `MU_RECOVERY_INTEGRATION=1`, plus `MU_GAME_ROOT` for the installed chains.

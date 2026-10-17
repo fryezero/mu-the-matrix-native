@@ -9,7 +9,7 @@
 
 /* Character assembly for the native viewer (NATIVE-CHAR-001).
  *
- * Follows the character render 0x0139be7a (docs/research/native-character.md):
+ * Follows the character copy render 0x0139be7a (docs/research/native-character.md):
  *   1. the Player.bmd model takes the object's action and is posed into the
  *      shared bone buffer 0x06fce398 (keep root 0, translate 0);
  *   2. body-part slots 5..0 copy the object's scale, lighting flag, position

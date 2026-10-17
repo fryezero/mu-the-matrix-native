@@ -23,6 +23,20 @@ native/build/mu-render corners MODEL.bmd --out /tmp/m.ops --mode 4
 native/build/mu-render scan "$MU_GAME_ROOT/Data"                # read-only corpus pass
 ```
 
+Character mode (NATIVE-CHAR-001, [finding](../docs/research/native-character.md)) assembles a player from the shared `Player.bmd` skeleton. Class body parts come from a class byte: low nibble class, high nibble evolution flags. Slots 1..5 (helm..boots) can be overridden with `--part`. Weapon slot 0 links to bone 33 (right hand), slot 1 to bone 42 (left hand) and `--wing` to bone 47:
+
+```sh
+G="$MU_GAME_ROOT"
+native/build/mu-viewer --game-root "$G" --class 1 --action 4 --prior-action 4 \
+    --weapon 0 "$G/Data/Item/Sword01.bmd" --weapon 1 "$G/Data/Item/Shield01.bmd"
+native/build/mu-render character --game-root "$G" --class 0 --action 10 --prior-action 10 --frame 1 \
+    --prior-frame 1 --weapon 0 "$G/Data/Item/Staff01.bmd" --out /tmp/dw.png
+native/build/mu-render chardump --game-root "$G" --class 0x11 --part 2 "$G/Data/Player/ArmorMale05.bmd" \
+    --wing "$G/Data/Item/Wing04.bmd" --out /tmp/c.bin      # golden data for the tests
+```
+
+`--origin`, `--angles`, `--head`, `--scale` (default 0.9, the creation value), `--color`, `--lighting` and `--wing-scale` set the character object. The animation options drive the Player. `--prior-action` should normally equal `--action`: at an integer frame the pose shows the prior key. In the viewer, Left and Right change the Player action.
+
 Viewer controls:
 
 - Mouse: left drag orbits, right drag (or Shift+left) pans, the wheel zooms.
@@ -38,6 +52,7 @@ Game logic advances in fixed 40 ms steps, like the client's frame driver. All op
 |---|---|
 | `core/mu_bmd.*` | Envelope decoding through the repository's v12/v15 client-linked decoders and the v14 Crypto++ reader, then a C port of every `bmd10.py` check |
 | `core/mu_model.*` | Lays the model out as client memory, runs `mu_bone_tracks_read` once, then calls `mu_animation_tick`, `mu_pose_build` and `mu_model_transform` unchanged |
+| `core/mu_character.*` | Character assembly: Player pose into one shared bone/root buffer, body parts skinned against it, items attached through the reconstructed rotation position and a keep-root pose |
 | `core/mu_meshdraw.*` | Platform-neutral port of the per-corner loop and colour pass from `mac-play/hotpatch/meshdraw.c` (no Windows or x86 dependencies, no client addresses) |
 | `core/mu_scene.*` | Per-mesh client order: pre-loop colour, colour pass, state and texture, one `GL_TRIANGLES` block |
 | `core/mu_raster.*` | Deterministic software rasterizer for headless renders with host-independent hashes |
@@ -45,7 +60,7 @@ Game logic advances in fixed 40 ms steps, like the client's frame driver. All op
 | `core/mu_camera.*`, `mu_png.*`, `mu_options.*` | Camera with libm-free trigonometry, a PNG writer and SHA-256, shared options |
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `tools/mu_render.c` | Headless CLI used by the tests |
-| `tests/` | Synthetic fixtures, golden reference harness, independent mesh-draw model, unittest suite |
+| `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), independent mesh-draw model, unittest suites |
 
 ## Tests
 
