@@ -101,6 +101,54 @@ int mu_character_animation_step(const mu_client_memory *memory, uint32_t charact
                                 const mu_character_services *services, const mu_tick_globals *globals,
                                 uint8_t *result, float *speed);
 
+/* ------------------------------------------------------------------ */
+/* Server monster class -> model (CreateMonster 0x0137fbac) and NPC model
+ * files (OpenNpc 0x01808a40). These two tables are extracted by executing
+ * the client routines under Unicorn (scripts/validate_actors.py), not
+ * reconstructed code; see docs/research/client-actors.md for the assumptions
+ * (world 0, rand() = 0, world-specific map processors declining). */
+enum {
+    MU_CLASS_MONSTER = 1,       /* OpenMonsterModel(type); model = type + 0x7a5 */
+    MU_CLASS_NPC = 2,           /* OpenNpc(index); model = index */
+    MU_CLASS_PLAYER_MODEL = 3,  /* CreateCharacter with the Player model 0xa91 and part slots */
+    MU_CLASS_OTHER = 4,         /* no opener call observed */
+    MU_CLASS_DEFAULT = 5        /* switch default: unknown class shown as monster type 0 */
+};
+
+typedef struct mu_monster_class {
+    uint16_t server_class;
+    uint8_t kind;
+    uint16_t model;             /* model index passed to CreateCharacter 0x0137f6c2 */
+    uint16_t opened;            /* OpenMonsterModel type or OpenNpc index */
+    uint32_t scale_bits;        /* object +0xa0; 0 = not written (character create leaves 0.9) */
+    struct { uint16_t type; uint8_t level; } slots[8];  /* character +0x1c4 + k*0x3fc */
+} mu_monster_class;
+
+typedef struct mu_monster_class_speed {
+    uint16_t server_class;
+    uint16_t model;
+    uint8_t action;
+    uint32_t speed_bits;        /* 0x7fc0dead: speed not written (loop only) */
+    uint8_t loop;
+} mu_monster_class_speed;
+
+typedef struct mu_npc_model {
+    uint16_t index;
+    const char *directory;
+    const char *name;
+    int32_t number;             /* -1: "<name>.bmd" */
+    uint32_t speed_bits[16];    /* 0 = not written */
+} mu_npc_model;
+
+const mu_monster_class *mu_monster_class_find(uint32_t server_class);
+const mu_monster_class_speed *mu_monster_class_speeds_for(uint32_t server_class, uint32_t *count);
+const mu_npc_model *mu_npc_find(uint32_t index);
+/* Object scale for a class row (0.9 when CreateMonster leaves it). */
+float mu_monster_class_scale(const mu_monster_class *row);
+/* AccessModel 0x018202b4 file name: "<dir><name>.bmd" for number -1,
+ * "<dir><name>0<n>.bmd" below 10, "<dir><name><n>.bmd" otherwise. */
+int mu_access_model_file(const char *directory, const char *name, int32_t number, char *out, uint32_t size);
+
 /* Generated operation record (see monster_open_table.h). */
 enum {
     MU_MONSTER_OP_SPEED = 1,        /* SetActionSpeed(action, value) on the model, checked */

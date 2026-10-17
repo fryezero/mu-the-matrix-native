@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "monster_open_table.h"
+#include "monster_class_table.h"
+#include "npc_table.h"
 
 /* OpenMonsterModel 0x0180b0f4 (action part) and helpers. Client memory is
  * read where the original reads it and written in the original order. */
@@ -429,4 +431,55 @@ int mu_character_animation_step(const mu_client_memory *memory, uint32_t charact
     }
     *result = loop;
     return MU_ACTOR_OK;
+}
+
+/* ------------------------------------------------------------------ */
+/* Extracted tables. */
+
+const mu_monster_class *mu_monster_class_find(uint32_t server_class)
+{
+    for (uint32_t i = 0; i < MU_MONSTER_CLASS_ROWS; ++i)
+        if (mu_monster_classes[i].server_class == server_class)
+            return &mu_monster_classes[i];
+    return NULL;
+}
+
+const mu_monster_class_speed *mu_monster_class_speeds_for(uint32_t server_class, uint32_t *count)
+{
+    *count = 0;
+    for (uint32_t i = 0; i < MU_MONSTER_CLASS_SPEED_ROWS; ++i) {
+        if (mu_monster_class_speeds[i].server_class != server_class)
+            continue;
+        uint32_t n = 0;
+        while (i + n < MU_MONSTER_CLASS_SPEED_ROWS && mu_monster_class_speeds[i + n].server_class == server_class)
+            ++n;
+        *count = n;
+        return &mu_monster_class_speeds[i];
+    }
+    return NULL;
+}
+
+const mu_npc_model *mu_npc_find(uint32_t index)
+{
+    for (uint32_t i = 0; i < MU_NPC_ROWS; ++i)
+        if (mu_npc_models[i].index == index)
+            return &mu_npc_models[i];
+    return NULL;
+}
+
+float mu_monster_class_scale(const mu_monster_class *row)
+{
+    return row->scale_bits ? bits_float(row->scale_bits) : 0.9f;
+}
+
+int mu_access_model_file(const char *directory, const char *name, int32_t number, char *out, uint32_t size)
+{
+    int written;
+    if (number == -1)
+        written = snprintf(out, size, "%s%s.bmd", directory, name);
+    else if (number < 10)
+        written = snprintf(out, size, "%s%s0%d.bmd", directory, name, number);
+    else
+        written = snprintf(out, size, "%s%s%d.bmd", directory, name, number);
+    return written > 0 && (uint32_t)written < size;
 }

@@ -238,15 +238,23 @@ class ActorMachine:
         uc.reg_write(x86.UC_X86_REG_ESP, esp+4+cleanup)
         uc.reg_write(x86.UC_X86_REG_EIP, ret)
 
-    def execute(self, start, arguments, regions, stubs, *, ecx=0, cleanup=0, count=0):
+    def execute(self, start, arguments, regions, stubs, *, ecx=0, cleanup=0, count=0, frame=None):
+        """Run from start with a sentinel return. With frame=(size, slots), start is inside a
+        routine whose standard EBP frame (PUSH EBP; MOV EBP,ESP; SEH registration) is already
+        built: EBP = ENTRY_ESP-4 holds the caller's EBP, [EBP-0xc] the saved fs:[0], ESP =
+        EBP-size, and slots maps EBP-relative offsets to initial dwords."""
         uc, x86 = self.uc, self.x86
         self.regions = regions
         self.map_regions(regions)
         self.stubs = stubs
+        added = False
         for address in stubs:
             if address not in self.stub_hooks:
                 self.stub_hooks[address] = uc.hook_add(self.UC_HOOK_CODE, self.stub_entry, begin=address,
                                                        end=address)
+                added = True
+        if added:
+            uc.ctl_flush_tb()  # blocks translated before a hook existed would bypass it
         self.argument_bytes = 4*len(arguments)
         self.state = {'stopped': None, 'seh_writes': 0}
         uc.mem_write(STACK, b'\xa5'*STACK_BYTES)
@@ -262,6 +270,16 @@ class ActorMachine:
             lane = 0x7ff4dead5eed0000+index*0x0101010101
             uc.reg_write(getattr(x86, f'UC_X86_REG_XMM{index}'), lane | (lane << 64))
         uc.reg_write(x86.UC_X86_REG_ESP, ENTRY_ESP)
+        if frame is not None:
+            size, slots = frame
+            ebp = ENTRY_ESP-4
+            uc.mem_write(ebp, struct.pack('<I', self.preserved[x86.UC_X86_REG_EBP]))
+            uc.mem_write(ebp-0xc, struct.pack('<I', SEH_HEAD))
+            uc.mem_write(TIB, struct.pack('<I', ebp-0x10))
+            for offset, value in slots.items():
+                uc.mem_write(ebp+offset, struct.pack('<I', value & 0xffffffff))
+            uc.reg_write(x86.UC_X86_REG_EBP, ebp)
+            uc.reg_write(x86.UC_X86_REG_ESP, ebp-size)
         uc.reg_write(x86.UC_X86_REG_EFLAGS, 2)
         uc.reg_write(x86.UC_X86_REG_FPCW, FPCW)
         uc.reg_write(x86.UC_X86_REG_FPSW, 0)
