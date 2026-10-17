@@ -8,6 +8,7 @@ This is the first native macOS rendering milestone. It is an arm64 viewer that d
 brew install cryptopp sdl2 jpeg-turbo      # Debian/Ubuntu: libcrypto++-dev libsdl2-dev libjpeg-dev
 make -C native                             # core + headless tool build/mu-render (macOS and Linux)
 make -C native viewer                      # windowed viewer build/mu-viewer (SDL2 + OpenGL 2.1)
+make -C native frame-window                # frame-loop skeleton window build/mu-frame-window (NATIVE-FRAME-001)
 ```
 
 Without libjpeg, JPEG textures are reported as missing (`MU_NO_JPEG=1` forces that). The core needs only clang and Crypto++, which BMD v14 already requires.
@@ -25,6 +26,8 @@ native/build/mu-render scan "$MU_GAME_ROOT/Data"                # read-only corp
 native/build/mu-proto build C1 F1 010203 --xor                 # compose a packet
 native/build/mu-proto parse c106f1010203                       # classify a frame
 native/build/mu-proto dechunk c106f1010203c2000700aabbcc        # split a stream
+native/build/mu-frame [MODEL.bmd] --out-dir DIR --frames 180      # headless frame loop, scripted clicks and zoom
+native/build/mu-frame-window [MODEL.bmd]                          # client camera, click-to-move, wheel zoom, 25 FPS cap
 ```
 
 Character mode (NATIVE-CHAR-001, [finding](../docs/research/native-character.md)) assembles a player from the shared `Player.bmd` skeleton. Class body parts come from a class byte: low nibble class, high nibble evolution flags. Slots 1..5 (helm..boots) can be overridden with `--part`. Weapon slot 0 links to bone 33 (right hand), slot 1 to bone 42 (left hand) and `--wing` to bone 47:
@@ -40,6 +43,8 @@ native/build/mu-render chardump --game-root "$G" --class 0x11 --part 2 "$G/Data/
 ```
 
 `--origin`, `--angles`, `--head`, `--scale` (default 0.9, the creation value), `--color`, `--lighting` and `--wing-scale` set the character object. The animation options drive the Player. `--prior-action` should normally equal `--action`: at an integer frame the pose shows the prior key. In the viewer, Left and Right change the Player action.
+
+The frame-loop skeleton (`core/mu_frame.*`, [finding](../docs/research/client-camera-input.md)) runs the client's 40 ms logic steps and frame cap, its in-world camera, wheel FOV zoom, key scan and terrain picking from `reconstructed/camera`. The terrain is a flat placeholder and the hero walks in a straight line.
 
 Viewer controls:
 
@@ -82,6 +87,7 @@ drawn: the installed `EncTerrain*.obj` files do not decode with the client's loa
 | `core/mu_protocol.*` | NATIVE-NET-001 network protocol: C1–C4 framing, the send obfuscation XOR, the packet builder, the receive dechunker and the serial counter. No Crypto++, no client bytes. See [the finding](../docs/research/client-net-protocol.md) |
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `tools/mu_render.c` | Headless CLI used by the tests |
+| `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), independent mesh-draw model, unittest suites |
 
 ## Tests

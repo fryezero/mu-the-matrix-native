@@ -948,3 +948,17 @@ MuMatrix32 was untouched.
 Next: the owner selects MuMatrix32 in the first-run settings window and can optionally run
 `make -C mac-play/bundle install`. Notarization and a universal build are still open.
 
+
+## Camera, picking, input and frame loop (NATIVE-FRAME-001)
+
+Branch `claude/native-frame`, worktree `~/Documents/mu-worktrees/native-frame`. Read
+[`research/client-camera-input.md`](research/client-camera-input.md) and
+[`../reconstructed/camera/README.md`](../reconstructed/camera/README.md).
+
+**Checks.** `scripts/validate_camera.py --cases 1000 --mutations` (private captures): 33,250 comparisons,
+0 mismatches; 11/11 mutations detected. Portable: `reconstructed/camera/test_client_camera.py`,
+`native/tests/test_native_frame.py`. Renders stay local in `~/Documents/mu-mac-tools/native/renders/frame/`.
+
+**Next:** decode the world data that feeds the world FOV, far factors and near plane; port the 4x4 tile walk
+`0x016d2e8e` and character picking; trace MoveHero past target selection (path finding, move packet);
+replace the flat terrain with the terrain milestone's renderer.
