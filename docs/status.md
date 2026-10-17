@@ -171,9 +171,27 @@ xform prologue stay private; CI uses empty tables with game hooks disabled.
 Claude reports 20.5 FPS at mask 0, 24.1 at mask 7 and 24.7 at mask 15 in the
 same approximate hunting area, and zero skinning comparison mismatches over
 more than one million in-game calls. These are prior single-host reports,
-not rerun measurements. Mesh draw at `0x012b8d1d` is the next proposed verified
-C replacement. Default setup still uses #52. No running game, bottle or registry
+not rerun measurements; the 44.8% mesh-draw attribution it cites was later
+corrected (below). Default setup still uses #52. No running game, bottle or registry
 was changed. [Evidence and limits](research/mac-performance.md#mac-perf-004-claude-v70-in-process-cpu-hotpatches).
+
+MAC-PERF-005, issue #59, publishes Claude's opt-in v7.1 source: a native
+replacement of the per-corner loop of mesh draw routine `0x012b8d1d`, a native
+light-table precompute, a frame-pacing fix, direct batch append and zero-copy or
+strided batch arrays, plus the `glstride` framebuffer-hash test. The three small
+original patch-site byte sequences stay private (SHA-256 in `targets.json`,
+generated into an ignored header); CI builds with zero tables and no game hooks.
+Local checks: private regeneration matches the pinned digests and a private rebuild
+has an instruction stream identical to Claude's DLL; neither was run. Claude reports
+zero mismatches over about 9.5M call-stream, 8.2M direct-append and 2.5M light-table
+verification meshes, equal framebuffer hashes at five masks, and, in the default
+7599 mask, 24.1 fps at the hunting spot (22.6 at mask 15) with 33.8 ms of work. These
+are supplied single-host reports, not rerun. The correction: the v7.0 finding that
+the routine took 44.8% of main-thread self time came from a profile of a build
+without frame pointers and charged mugl's own code to the caller; the routine's true
+self time is about 3%. 25 fps remains the fixed 40 ms logic-step cap, with no single
+dominant hotspot left. Default setup still uses #52. No running game or bottle was
+changed. [Evidence and limits](research/mac-performance.md#mac-perf-005-claude-v71-mesh-draw-loop-frame-pacing-and-zero-copy-batches).
 
 ## Repository and next work
 

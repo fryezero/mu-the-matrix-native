@@ -610,6 +610,173 @@
         "Frame-cap patch installer absent from pinned v7.0 sources",
         "Windows-native equivalence and anti-cheat compatibility unverified",
         "Separate builds with/without anti-cheat remain a plan"
+      ],
+      "superseded_claim": {
+        "field": "prior_reported_not_rerun.mesh_ebp_walk_attribution_percent",
+        "reason": "misattribution: mugl was built without frame pointers, so its own code was charged to the main.exe caller; corrected in mac_meshdraw_v71 (true self time about 3%)"
+      }
+    },
+    "mac_meshdraw_v71": {
+      "issue": 59,
+      "base_commit": "f629ef9",
+      "document": "docs/research/mac-performance.md",
+      "notes": "mac-play/hotpatch/meshdraw-notes.md",
+      "source_sha256": {
+        "mugl_v71.c": "6279845618918c0ac58e196e376034837e2aa8fded0e337f3c14458f91da106b",
+        "meshdraw_v71.c": "ac3f115b60328e09a4d38cda4bf660911aea27aa717c5ba4e4be6660fbac4397",
+        "xform.c": "cce0902f2c2fe8b761b97e6d6d08408c1ed93470a2f89ff4117785e58c7cc624",
+        "glstride.c": "f839350500693f62ea4868563a1ad31e3cffe6e56373fbd6acda878f89296192"
+      },
+      "private_dump_sha256": "6e7957c9af8685f5a5fb14008131eab50470d40d2e6128397d5795a88160bfd4",
+      "target_and_original_digests": "mac-play/hotpatch/targets.json",
+      "routine": {
+        "start": "0x012b8d1d",
+        "end": "0x012bb35a",
+        "return": "ret 0x2c",
+        "loop": "0x012ba8a0..0x012bb229",
+        "loop_patch": "0x012ba899",
+        "light_loop_patch": "0x012b968c",
+        "glend_call": "0x012bb22e"
+      },
+      "patch_sites": [
+        {
+          "name": "md_orig",
+          "address": "0x012ba899",
+          "length": 7,
+          "sha256": "355023af2686cfbf5335cba28ef89dfca17c9cc3eb6043c59e1c2eb4c88ecc27"
+        },
+        {
+          "name": "md_lorig",
+          "address": "0x012b968c",
+          "length": 6,
+          "sha256": "9eb319545d47b325950363a6e9249e9baecb22908524870f7f7e3216fd5bad11"
+        },
+        {
+          "name": "md_prologue",
+          "address": "0x012b8d1d",
+          "length": 10,
+          "sha256": "833295b143f6c61d43538e2797ec268aaf684fbdb1422a214666855fed44f53c"
+        }
+      ],
+      "pacing": {
+        "frame_driver": "0x01851d39",
+        "skipped_sleep_call": "0x0185267a",
+        "return_address": "0x01852680",
+        "scene_state": "0x01d1df70",
+        "in_world_state_value": 6,
+        "period_ms": 40
+      },
+      "default_mask": 7599,
+      "mask_bits": {
+        "32": "native loop",
+        "64": "verify",
+        "128": "direct batch append",
+        "256": "light precompute",
+        "512": "routine timer",
+        "1024": "frame pacing",
+        "2048": "zero-copy",
+        "4096": "strided arrays",
+        "8192": "unverified 0x20/0x200000 vertex paths"
+      },
+      "publication_verified": {
+        "private_site_digests_match_dump": true,
+        "private_tables_match_v70_digests": true,
+        "private_rebuild_same_size_as_claude_dll": true,
+        "private_rebuild_instruction_stream_identical": true,
+        "dlls_executed_or_installed": false,
+        "game_or_bottle_changed": false,
+        "portable_tests_discovered": 241,
+        "portable_passed": 223,
+        "private_checks_skipped": 18,
+        "new_portable_tests": 5,
+        "compile_only_ci_build": "make mac-hotpatch mac-diagnostics (includes glstride.exe)"
+      },
+      "prior_reported_not_rerun": {
+        "provenance": "Claude observations supplied in owner task brief and meshdraw-notes.md; raw logs not acquired for publication",
+        "verification_zero_mismatches": {
+          "call_stream_meshes": 9550000,
+          "call_stream_corners_first_session": 3990000000,
+          "direct_append_meshes": 8190000,
+          "light_table_meshes": 2475000,
+          "glstride_equal_masks": [
+            0,
+            15,
+            2063,
+            4111,
+            6159
+          ]
+        },
+        "mode_coverage_percent": {
+          "2": 96,
+          "4": 2.3,
+          "0x1000": 1.1,
+          "0x40": 0.1
+        },
+        "mode_0x80000_meshes_seen": 50,
+        "fallbacks_seen": 0,
+        "spawn_124_120": {
+          "mask_15": {
+            "work_ms": 38.8,
+            "fps": 23.1
+          },
+          "mask_943": {
+            "work_ms": 34.3,
+            "fps": 19.6
+          },
+          "mask_1967": {
+            "work_ms": 33.8,
+            "fps": 24.2
+          },
+          "mask_4015": {
+            "work_ms": 33.6,
+            "fps": 24.2
+          },
+          "mask_8111": {
+            "work_ms": 32.7,
+            "fps": 23.6
+          },
+          "note": "masks 943..8111 include the timer bit 512"
+        },
+        "hunting_spot_116_101": {
+          "mask_15": {
+            "work_ms": 42.4,
+            "fps": 22.6
+          },
+          "mask_431": {
+            "work_ms": 35.8,
+            "fps": 22.0
+          },
+          "mask_7599": {
+            "work_ms": 33.8,
+            "fps": 24.1
+          }
+        },
+        "routine_ms_per_frame": {
+          "original": [
+            16.8,
+            17.4
+          ],
+          "native_direct": [
+            10.7,
+            11.5
+          ],
+          "native_loop": 4.0
+        },
+        "mesh_routine_self_time_percent_frame_pointer_build": 3,
+        "frame_cap_fps": 25,
+        "headroom_ms": [
+          6,
+          8
+        ]
+      },
+      "limits": [
+        "Single host; runtime figures are supplied reports, not rerun",
+        "Flag 0x20 shadow and 0x200000 cull vertex paths never observed; only with bit 8192",
+        "Mode 0x8000 and flag 0x400 run the original loop; mode 0x100000 and 0x80000 (once, 50 meshes) not directly verified",
+        "Verification compares GL call streams, batch bytes and light tables, not EFLAGS or memory access traces",
+        "Strided arrays not shown to raise fps (8111: 32.7 ms, 23.6 fps)",
+        "Windows-native equivalence, anti-cheat and server compatibility unverified",
+        "Default installer remains PR #52; no v7.1 runtime install by this task"
       ]
     },
     "client_skinning": {
@@ -793,8 +960,8 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 236,
-    "portable_passed": 218,
+    "portable_tests_discovered": 241,
+    "portable_passed": 223,
     "private_checks_skipped": 18,
     "local_integration_passed": 209,
     "source_only_checkout_passed": true,

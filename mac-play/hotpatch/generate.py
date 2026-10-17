@@ -48,7 +48,15 @@ def cbytes(data):
     return '{' + ','.join(str(x) for x in data) + '}'
 
 
-def tables(output, helpers, inline, peephole, prologue, private):
+def meshdraw_header(sites):
+    """Original patch-site bytes for meshdraw.c; zero-filled when no private input is supplied."""
+    lines = ['/* PRIVATE generated input. Never publish this file. */']
+    for name, data in sites:
+        lines.append(f'static const unsigned char {name}[{len(data)}] = {cbytes(data)};')
+    return '\n'.join(lines) + '\n'
+
+
+def tables(output, helpers, inline, peephole, prologue, private, md_sites=None):
     for records in ([(a, o, n) for _, a, o, n in helpers], inline, peephole):
         validate_records(sorted(records))
     output.mkdir(parents=True, exist_ok=True)
@@ -70,6 +78,9 @@ def tables(output, helpers, inline, peephole, prologue, private):
             lines.append(f'{{0x{a:x},' + (f'{len(old)},' if length else '') + cbytes(old) + ',' + cbytes(new) + '},')
         (output / filename).write_text('\n'.join(lines) + '\n};\n')
     (output / 'xform-prologue.h').write_text('/* PRIVATE generated input. */\nstatic const unsigned char xf_prologue[16] = ' + cbytes(prologue) + ';\n')
+    if md_sites is None:
+        md_sites = [('md_orig', bytes(7)), ('md_lorig', bytes(6)), ('md_prologue', bytes(10))]
+    (output / 'meshdraw-orig.h').write_text(meshdraw_header(md_sites))
     (output / 'private-build.h').write_text(f'#define MUGL_PRIVATE_TABLES {int(private)}\n')
 
 
@@ -140,6 +151,10 @@ def private_tables(args, config):
         originals[h['name']] = old
     xf = config['xform']; a = xf['address']
     prologue = checked(mem[a-base:a-base+xf['length']], xf, 'xform prologue')
+    md_sites = []
+    for site in config['meshdraw_sites']:
+        a = site['address']
+        md_sites.append((site['name'], checked(mem[a-base:a-base+site['length']], site, site['name'])))
     with args.calls.open() as f:
         calls = [tuple(int(v,16) for v in line.split()) for line in f if line.strip()]
     inline = [r for r in inliner.scan(mem, calls, config) if not exclude(r[0],len(r[1]),config)]
@@ -160,10 +175,10 @@ def private_tables(args, config):
         expected = config['generated'][name]
         if len(records) != expected['count'] or records_digest(records) != expected['sha256']:
             raise ValueError(f'{name} result differs from Claude v7.0: {len(records)} records, {records_digest(records)}')
-    tables(args.out,helpers,inline,peephole,prologue,True)
+    tables(args.out,helpers,inline,peephole,prologue,True,md_sites)
     mapping = {'vrot':'vrot','vtrans':'vtrans','self':'self','index':'index','deref16':'deref16','eq':'eq','store8a':'st_a','store8b':'st_b','store8c':'st_c'}
     (args.out/'orig.h').write_text('/* PRIVATE harness input. */\n'+'\n'.join(f'static const unsigned char orig_{mapping[n]}[] = {cbytes(o)};' for n,o in originals.items())+'\n')
-    return {'inline':len(inline),'peephole':len(peephole),'helpers':len(helpers),'dump_sha256':digest(mem)}
+    return {'inline':len(inline),'peephole':len(peephole),'helpers':len(helpers),'meshdraw_sites':len(md_sites),'dump_sha256':digest(mem)}
 
 
 def main():

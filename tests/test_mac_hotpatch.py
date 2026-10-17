@@ -4,6 +4,7 @@ import io
 import importlib.util
 import json
 from pathlib import Path
+import re
 import struct
 import sys
 import tempfile
@@ -36,7 +37,7 @@ class GeneratorTests(unittest.TestCase):
             self.assertNotIn('0x12b5bde',(output/'hotpatches.h').read_text())
             hp.tables(output,[('fixture',16,b'abc',b'xyz')],[(32,b'abcde',b'vwxyz')],[],bytes(16),True)
             self.assertEqual((output/'private-build.h').read_text(),'#define MUGL_PRIVATE_TABLES 1\n')
-        for name in ('hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h'):
+        for name in ('hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h','meshdraw-orig.h'):
             self.assertFalse((SOURCE/name).exists(),name)
 
     def test_offline_listing_derivation_keeps_direct_calls_only(self):
@@ -83,6 +84,70 @@ class GeneratorTests(unittest.TestCase):
         self.assertNotIn('pkill',text)
         self.assertNotIn('mu-to-server.sh',text)
         self.assertNotIn('set -x',text)
+
+
+class MeshDrawPublicationTests(unittest.TestCase):
+    def setUp(self):
+        self.mugl = (SOURCE/'mugl.c').read_text()
+        self.meshdraw = (SOURCE/'meshdraw.c').read_text()
+        self.targets = json.loads((SOURCE/'targets.json').read_text())
+
+    def test_patch_site_originals_are_hash_pinned_and_header_is_not_source(self):
+        sites = {site['name']: site for site in self.targets['meshdraw_sites']}
+        self.assertEqual(set(sites),{'md_orig','md_lorig','md_prologue'})
+        addresses = {name: int(re.search(rf'#define {macro} (0x[0-9a-fA-F]+)',self.meshdraw).group(1),16)
+                     for name,macro in [('md_orig','MD_PATCH'),('md_lorig','MD_LPATCH'),('md_prologue','MD_ENTRY')]}
+        for name,site in sites.items():
+            with self.subTest(name=name):
+                self.assertEqual(site['address'],addresses[name])
+                self.assertRegex(site['sha256'],r'^[0-9a-f]{64}$')
+                # The C source compares/copies exactly this many bytes of the generated array.
+                self.assertRegex(self.meshdraw,rf'{name}, (?:j, )?{site["length"]}\b')
+        self.assertIn('#include "meshdraw-orig.h"',self.meshdraw)
+        for name in sites:
+            self.assertIsNone(re.search(rf'{name}\[[0-9]*\]\s*=',self.meshdraw),'original bytes must stay in the generated header')
+        self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',self.meshdraw))
+
+    def test_synthetic_meshdraw_header_has_zero_tables_and_private_one_is_exact_size(self):
+        with tempfile.TemporaryDirectory() as td:
+            output = Path(td)
+            hp.tables(output,[],[],[],bytes(16),False)
+            text = (output/'meshdraw-orig.h').read_text()
+            for name,length in [('md_orig',7),('md_lorig',6),('md_prologue',10)]:
+                self.assertIn(f'static const unsigned char {name}[{length}] = {{'+','.join(['0']*length)+'};',text)
+            hp.tables(output,[],[],[],bytes(16),True,[('md_orig',b'\x01\x02')])
+            self.assertIn('md_orig[2] = {1,2};',(output/'meshdraw-orig.h').read_text())
+        for site in self.targets['meshdraw_sites']:
+            with self.assertRaises(ValueError):
+                hp.checked(bytes(site['length']),site,site['name'])
+
+    def test_mask_bits_are_documented_and_default_is_their_sum(self):
+        default = int(re.search(r'int want = (\d+);',self.mugl).group(1))
+        mask = int(re.search(r'want = v & (\d+);',self.mugl).group(1))
+        readme = (SOURCE/'README.md').read_text()
+        rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
+        self.assertEqual(rows,{1<<k for k in range(14)})
+        self.assertEqual(mask,(1<<14)-1)
+        self.assertEqual(default,7599)
+        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12)))
+        self.assertEqual(default & (8192|64|16|512),0,'diagnostic and unverified bits stay off by default')
+        self.assertIn('md_untested = (mask & 8192) != 0',self.mugl)
+
+    def test_synthetic_build_cannot_apply_game_patches(self):
+        self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES')
+        self.assertIn('0x8000',self.meshdraw)
+        self.assertRegex(self.meshdraw,r'if \(mode == 0x8000\) \{ md_fallback\+\+')
+        self.assertRegex(self.meshdraw,r'\(flags & 0x420\) == 0x400')
+
+    def test_provenance_records_v71_sources_and_new_diagnostic(self):
+        provenance = json.loads((SOURCE/'source-provenance.json').read_text())
+        for source,published in [('mugl/mugl_v71.c','mac-play/hotpatch/mugl.c'),('mugl/meshdraw_v71.c','mac-play/hotpatch/meshdraw.c'),
+                                 ('glstride/glstride.c','mac-play/diagnostics/glstride.c')]:
+            with self.subTest(source=source):
+                self.assertRegex(provenance[source]['sha256'],r'^[0-9a-f]{64}$')
+                self.assertEqual(provenance[source]['published_as'],published)
+                self.assertTrue((ROOT/published).is_file())
+        self.assertEqual(provenance['mugl/xform_v70.c']['published_as'],'mac-play/hotpatch/xform.c')  # xform.c is unchanged between v7.0 and v7.1
 
 
 if __name__ == '__main__':

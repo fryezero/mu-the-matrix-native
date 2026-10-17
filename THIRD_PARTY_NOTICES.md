@@ -56,3 +56,13 @@ CrossOver or game implementation is included. Original game instruction bytes,
 including the xform entry prologue, are generated only into ignored local build
 directories from owner-supplied private inputs. Generated DLLs containing original
 bytes are outside the publication boundary and must not be redistributed here.
+
+## Claude v7.1 mesh-draw tools
+
+`mac-play/hotpatch/meshdraw.c`, the v7.1 `mugl.c` and `mac-play/diagnostics/glstride.c`
+are authored code from the owner's local mu-mac-tools work, published under this
+repository's MIT license with the same boundary as the v7.0 tools. The three
+original patch-site byte sequences used by `meshdraw.c` are generated only into the
+ignored build directory from owner-supplied private input; `targets.json` records
+their addresses, lengths and SHA-256 only. No Microsoft, Wine, CrossOver or game
+implementation is included.

@@ -134,5 +134,19 @@
     "sha256": "b2f2366e57d06de8b62a17f581375dcd603906bb98351ce8b077dc702084f748",
     "published_as": "mac-play/hotpatch/generate.py",
     "note": "packaging adaptation or consolidated local generation; original byte templates replaced by digest metadata"
+  },
+  "mugl/mugl_v71.c": {
+    "sha256": "6279845618918c0ac58e196e376034837e2aa8fded0e337f3c14458f91da106b",
+    "published_as": "mac-play/hotpatch/mugl.c",
+    "note": "v7.1 supersedes mugl/mugl_v70.c for this published path; packaging adaptation: private-build.h include and MUGL_PRIVATE_TABLES gate on hotpatch/Sleep installation (as for v7.0)"
+  },
+  "mugl/meshdraw_v71.c": {
+    "sha256": "ac3f115b60328e09a4d38cda4bf660911aea27aa717c5ba4e4be6660fbac4397",
+    "published_as": "mac-play/hotpatch/meshdraw.c",
+    "note": "packaging adaptation: the three original patch-site byte arrays (md_orig, md_lorig, md_prologue) replaced by an include of a locally generated ignored header; addresses, lengths and SHA-256 are in targets.json"
+  },
+  "glstride/glstride.c": {
+    "sha256": "f839350500693f62ea4868563a1ad31e3cffe6e56373fbd6acda878f89296192",
+    "published_as": "mac-play/diagnostics/glstride.c"
   }
 }

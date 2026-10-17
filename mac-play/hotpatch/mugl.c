@@ -60,11 +60,16 @@ static int mstk_valid = 1; static int mmode_known = 1; static GLenum mmode = GL_
 static GLint saved_array_buffer; static GLuint bound_buf[2]; /* game's GL_ARRAY_BUFFER / GL_ELEMENT_ARRAY_BUFFER */ /* game's GL_ARRAY_BUFFER binding, unbound while our arrays are owned */
 static int merge_enabled = 1, batching_enabled = 1, nodraw;
 /* timing mode ("+time" in the mode file): QPC time spent inside selected real GL calls */
-static int time_mode; static long long tm_ticks[8]; static long tm_calls[8];
-static const char *tm_names[8] = {"draw", "arrays", "clientattrib", "popattrib", "enable", "bindtex", "swap", "other"};
+static int time_mode; static long long tm_ticks[10]; static long tm_calls[10];
+static const char *tm_names[10] = {"draw", "arrays", "clientattrib", "popattrib", "enable", "bindtex", "swap", "pack", "meshloop", "meshtotal"};
 #define TIMED(slot, stmt) do { if (time_mode) { LARGE_INTEGER t0_, t1_; QueryPerformanceCounter(&t0_); stmt; QueryPerformanceCounter(&t1_); tm_ticks[slot] += t1_.QuadPart - t0_.QuadPart; tm_calls[slot]++; } else { stmt; } } while (0)
 
 typedef struct { GLfloat t[2], c[4], n[3], v[3]; } Vtx;
+typedef char vtx_layout_check[(sizeof(Vtx) == 48 && offsetof(Vtx, v) == 36) ? 1 : -1];
+static int zero_copy_full;   /* hotpatch bit 2048: draw T2F_C4F_N3F_V3F batches straight from vb */
+static int strided_arrays, owned_strided;   /* hotpatch bit 4096: all batch formats read vb in place (stride 48) */
+typedef void (WINAPI *PFNptr4)(GLint, GLenum, GLsizei, const void *);
+typedef void (WINAPI *PFNptr3)(GLenum, GLsizei, const void *);
 static Vtx *vb; static int vcount, vcap;     /* batch vertices */
 static int block_start;                      /* index of first vertex of the open block */
 static GLfloat *pack; static int packcap;
@@ -95,10 +100,10 @@ static void release_arrays(void)
     TIMED(2, R(glPopClientAttrib, PFN0)());
     if (saved_array_buffer) { ((void (WINAPI *)(GLenum, GLuint))real_bindbuf)(0x8892, (GLuint)saved_array_buffer); real_bind[0] = (GLuint)saved_array_buffer; }
     saved_array_buffer = 0;
-    owned = 0; owned_fmt = 0; owned_ptr = NULL;
+    owned = 0; owned_fmt = 0; owned_ptr = NULL; owned_strided = 0;
 }
 
-static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad;
+static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6];
 static void stats_tick(void)
 {
     if (!st_file) return;
@@ -108,11 +113,17 @@ static void stats_tick(void)
     if (qpf.QuadPart && st_frames) { double sl = (double)sleep_ticks / qpf.QuadPart; fprintf(st_file, "work=%.2fms sleep=%.2fms ", (secs - sl) * 1000 / st_frames, sl * 1000 / st_frames); }
     sleep_ticks = 0;
     if (xf_calls) { fprintf(st_file, "xform calls=%ld checked=%ld mismatches=%ld\n", xf_calls, xf_checked, xf_bad); xf_calls = 0; }
+    md_stats(st_file);
     if (time_mode && qpf.QuadPart && st_frames) {
         fprintf(st_file, "time/frame:");
-        for (int k = 0; k < 8; k++) if (tm_calls[k]) fprintf(st_file, " %s=%.2fms(%ld)", tm_names[k], tm_ticks[k] * 1000.0 / qpf.QuadPart / st_frames, tm_calls[k] / st_frames);
+        for (int k = 0; k < 10; k++) if (tm_calls[k]) fprintf(st_file, " %s=%.2fms(%ld)", tm_names[k], tm_ticks[k] * 1000.0 / qpf.QuadPart / st_frames, tm_calls[k] / st_frames);
+        static const char *fn[6] = {"T2F_C4F_N3F_V3F", "C4F_N3F_V3F", "T2F_N3F_V3F", "N3F_V3F", "T2F_V3F", "V3F"};
+        fprintf(st_file, "\n  packed verts/frame:");
+        for (int k = 0; k < 6; k++) if (st_fmtverts[k]) fprintf(st_file, " %s=%lld", fn[k], st_fmtverts[k] / st_frames);
+        memset(st_fmtverts, 0, sizeof st_fmtverts);
         fprintf(st_file, "\n"); memset(tm_ticks, 0, sizeof tm_ticks); memset(tm_calls, 0, sizeof tm_calls);
     }
+    if (st_pace_skips) { fprintf(st_file, "pace: skipped game sleeps=%ld ", st_pace_skips); st_pace_skips = 0; }
     fprintf(st_file, "skipped=%ld orphans=%ld/%ld subKB=%ld vbo=%d ", st_skipped, st_orphans, st_subs, st_sub_bytes / 1024, vbo_emu); st_skipped = 0; st_orphans = st_subs = 0; st_sub_bytes = st_sub_calls = 0;
     fprintf(st_file, "fps=%.1f blocks=%ld verts=%ld v/block=%.1f draws=%ld v/draw=%.1f fallbacks=%ld\n",
             st_frames / secs, st_blocks, st_verts, st_blocks ? (double)st_verts / st_blocks : 0.0,
@@ -185,6 +196,7 @@ static void send_current(void) { set_gl_t(cur_t); set_gl_c(cur_c); set_gl_n(cur_
 static void submit_batch(void)
 {
     if (vcount == 0) return;
+    LARGE_INTEGER sb_t0; if (time_mode) QueryPerformanceCounter(&sb_t0);
     int vt = set_t && varies(offsetof(Vtx, t), sizeof(vb[0].t));
     int vc = set_c && varies(offsetof(Vtx, c), sizeof(vb[0].c));
     int vn = set_n && varies(offsetof(Vtx, n), sizeof(vb[0].n));
@@ -204,15 +216,22 @@ static void submit_batch(void)
     int has_t = fmt == GL_T2F_C4F_N3F_V3F || fmt == GL_T2F_N3F_V3F || fmt == GL_T2F_V3F;
     int has_c = fmt == GL_T2F_C4F_N3F_V3F || fmt == GL_C4F_N3F_V3F;
     int has_n = fmt != GL_T2F_V3F && fmt != GL_V3F;
-    if (vcount * stride > packcap) { packcap = vcount * stride * 2; pack = realloc(pack, sizeof(GLfloat) * packcap); }
-    GLfloat *o = pack;
-    for (int i = 0; i < vcount; i++) {
-        Vtx *p = &vb[i];
-        if (has_t) { *o++ = p->t[0]; *o++ = p->t[1]; }
-        if (has_c) { memcpy(o, p->c, 16); o += 4; }
-        if (has_n) { memcpy(o, p->n, 12); o += 3; }
-        memcpy(o, p->v, 12); o += 3;
+    st_fmtverts[stride == 12 ? 0 : stride == 10 ? 1 : stride == 8 ? 2 : stride == 6 ? 3 : stride == 5 ? 4 : 5] += vcount;
+    GLfloat *src = pack; int strided = 0;
+    if (zero_copy_full && fmt == GL_T2F_C4F_N3F_V3F) src = (GLfloat *)vb;   /* Vtx is exactly the T2F_C4F_N3F_V3F layout */
+    else if (strided_arrays) strided = 1;   /* arrays read vb in place with stride sizeof(Vtx) */
+    else {
+        if (vcount * stride > packcap) { packcap = vcount * stride * 2; pack = realloc(pack, sizeof(GLfloat) * packcap); }
+        GLfloat *o = pack; src = pack;
+        for (int i = 0; i < vcount; i++) {
+            Vtx *p = &vb[i];
+            if (has_t) { *o++ = p->t[0]; *o++ = p->t[1]; }
+            if (has_c) { memcpy(o, p->c, 16); o += 4; }
+            if (has_n) { memcpy(o, p->n, 12); o += 3; }
+            memcpy(o, p->v, 12); o += 3;
+        }
     }
+    if (time_mode) { LARGE_INTEGER t1_; QueryPerformanceCounter(&t1_); tm_ticks[7] += t1_.QuadPart - sb_t0.QuadPart; tm_calls[7]++; }
     if (!owned) {
         /* our arrays live in client memory: no array buffer may be bound while they are owned,
            and the client attribute stack is only used with binding 0 */
@@ -221,9 +240,19 @@ static void submit_batch(void)
         saved_array_buffer = bound;
         TIMED(2, R(glPushClientAttrib, PFNpca)(GL_CLIENT_VERTEX_ARRAY_BIT)); owned = 1; owned_fmt = 0; owned_ptr = NULL;
     }
-    if (fmt != owned_fmt || pack != owned_ptr) {
-        TIMED(1, R(glInterleavedArrays, PFNia)(fmt, 0, pack));
-        owned_fmt = fmt; owned_ptr = pack;
+    if (strided) {
+        /* glInterleavedArrays with stride 48 sets the enables and pointers; formats whose later attributes are not at the
+           packed offsets get those pointers corrected. Same attribute values per vertex as the packed arrays. */
+        GLfloat *base = fmt == GL_C4F_N3F_V3F ? vb[0].c : fmt == GL_N3F_V3F ? vb[0].n : fmt == GL_V3F ? vb[0].v : vb[0].t;
+        if (fmt != owned_fmt || base != owned_ptr || !owned_strided) {
+            TIMED(1, R(glInterleavedArrays, PFNia)(fmt, sizeof(Vtx), base));
+            if (fmt == GL_T2F_V3F || fmt == GL_T2F_N3F_V3F) TIMED(1, R(glVertexPointer, PFNptr4)(3, GL_FLOAT, sizeof(Vtx), vb[0].v));
+            if (fmt == GL_T2F_N3F_V3F) TIMED(1, R(glNormalPointer, PFNptr3)(GL_FLOAT, sizeof(Vtx), vb[0].n));
+            owned_fmt = fmt; owned_ptr = base; owned_strided = 1;
+        }
+    } else if (fmt != owned_fmt || src != owned_ptr || owned_strided) {
+        TIMED(1, R(glInterleavedArrays, PFNia)(fmt, 0, src));
+        owned_fmt = fmt; owned_ptr = src; owned_strided = 0;
     }
     if (!nodraw) TIMED(0, R(glDrawArrays, PFNda)(batch_mode, 0, vcount));
     /* drawing with an array leaves that current value undefined */
@@ -798,7 +827,33 @@ static void check_mode_file(void)
    real work per frame (frame time minus sleep) even when the game sits at the 25 fps cap. */
 static void (WINAPI *real_sleep)(DWORD);
 static DWORD render_tid;
-static void WINAPI hook_sleep(DWORD ms) { if (GetCurrentThreadId() != render_tid) { real_sleep(ms); return; } LARGE_INTEGER a, b; QueryPerformanceCounter(&a); real_sleep(ms); QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - a.QuadPart; }
+/* Frame pacing fix (hotpatch bit 1024): the frame driver 0x01851d39 sleeps 40 - (previous frame's work) after the
+   current frame, so frames whose work alternates lose time (e.g. 25/45 ms frames pace at 42.5 ms). With the fix
+   its Sleep at 0x0185267a is skipped and mugl paces swaps to a 40 ms schedule instead. The driver's logic-time
+   accumulator still tracks real time (the slept time it assumes reappears in its next elapsed measurement). */
+static int pace_fix, pace_swapped; static long long pace_next;
+static void WINAPI hook_sleep(DWORD ms)
+{
+    if (GetCurrentThreadId() != render_tid) { real_sleep(ms); return; }
+    if (pace_fix && pace_swapped && __builtin_return_address(0) == (void *)0x01852680) { pace_swapped = 0; st_pace_skips++; return; }
+    LARGE_INTEGER a, b; QueryPerformanceCounter(&a); real_sleep(ms); QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - a.QuadPart;
+}
+/* Only in the in-game scene (scene state [0x01d1df70] == 6, see client-frame-loop.md); login/character screens and
+   frames that do not swap keep the original sleep. */
+static void pace_wait(void)
+{
+    pace_swapped = 0;
+    if (!pace_fix || !real_sleep || !qpf.QuadPart || *(volatile int *)0x01d1df70 != 6) { pace_next = 0; return; }
+    pace_swapped = 1;
+    const long long period = qpf.QuadPart * 40 / 1000;
+    LARGE_INTEGER now; QueryPerformanceCounter(&now);
+    if (!pace_next || now.QuadPart >= pace_next + period) { pace_next = now.QuadPart + period; return; }   /* first or > 1 period late: restart */
+    if (now.QuadPart < pace_next) {
+        DWORD ms = (DWORD)(((pace_next - now.QuadPart) * 1000 + qpf.QuadPart / 2) / qpf.QuadPart);
+        if (ms) { real_sleep(ms); LARGE_INTEGER b; QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - now.QuadPart; }
+    }
+    pace_next += period;   /* slightly late frames keep the schedule, so the next one can catch up */
+}
 static void hook_sleep_iat(void)
 {
     if (real_sleep) return;
@@ -888,11 +943,24 @@ static int hp_peep(int on)
     return n;
 }
 #include "xform.c"
+#include "meshdraw.c"
 static void hp_set(int mask)
 {
     int f = hp_funcs(mask & 1), s = hp_sites((mask & 2) != 0), p = hp_peep((mask & 4) != 0);
     int x = xf_install((mask & 8) != 0, (mask & 16) != 0);
     if (st_file) fprintf(st_file, "xform %s%s: %d\n", (mask & 8) ? "on" : "off", (mask & 16) ? " (verify)" : "", x);
+    md_untested = (mask & 8192) != 0;
+    int md = md_install((mask & 96) != 0, (mask & 64) != 0, (mask & 128) != 0);
+    int ml = md_light_install((mask & 256) != 0 && (mask & 96) != 0), mt = md_timer_install((mask & 512) != 0);
+    if (st_file) fprintf(st_file, "meshdraw %s%s%s: %d light %s: %d timer %s: %d\n", (mask & 96) ? "on" : "off", (mask & 128) ? " direct" : "",
+                         (mask & 64) ? " (verify)" : "", md, (mask & 256) && (mask & 96) ? "on" : "off", ml, (mask & 512) ? "on" : "off", mt);
+    pace_fix = (mask & 1024) != 0;
+    if (zero_copy_full != ((mask & 2048) != 0) || strided_arrays != ((mask & 4096) != 0)) {
+        flush_pending(); release_arrays(); update_busy(); zero_copy_full = (mask & 2048) != 0; strided_arrays = (mask & 4096) != 0;
+    }
+    if (st_file) fprintf(st_file, "strided batch arrays %s\n", strided_arrays ? "on" : "off");
+    if (st_file) fprintf(st_file, "zero-copy full-format batches %s\n", zero_copy_full ? "on" : "off");
+    if (st_file) fprintf(st_file, "frame pacing fix %s\n", pace_fix ? "on" : "off");
     if (st_file) { fprintf(st_file, "=== hotpatch mask %d: funcs %d/%d sites %d peep %d\n", mask, f, (int)(sizeof hot_patches / sizeof hot_patches[0]), s, p); fflush(st_file); }
 }
 static DWORD hp_check;
@@ -901,9 +969,12 @@ static void check_hotpatch_file(void)
     DWORD now = GetTickCount();
     if (now - hp_check < 1000) return;
     hp_check = now;
-    int want = 15;   /* default: everything on (16 = xform verify, diagnostic) */
+    int want = 7599;   /* default (v7.1): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096; was 15. Bits: everything on (16 = xform verify, 32 = meshdraw, 64 = meshdraw verify, 128 = meshdraw direct batch append,
+                        256 = meshdraw light precompute (with 32/64), 512 = mesh routine timer, 1024 = frame pacing fix,
+                        2048 = zero-copy T2F_C4F_N3F_V3F batches, 4096 = strided batch arrays,
+                        8192 = meshdraw unverified vertex paths) */
     FILE *f = fopen("C:\\mutools\\mugl-hotpatch.txt", "r");
-    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 31; fclose(f); }
+    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 16383; fclose(f); }
     if (want != hp_state) { hp_set(want); hp_state = want; }
 }
 
@@ -914,6 +985,7 @@ BOOL WINAPI mugl_wglSwapBuffers(HDC dc)
     check_mode_file();
     if (++total_frames > 100 && MUGL_PRIVATE_TABLES) { render_tid = GetCurrentThreadId(); check_hotpatch_file(); hook_sleep_iat(); }   /* main.exe code is unpacked long before the first frames */
     st_frames++; stats_tick();
+    pace_wait();
     BOOL r_; TIMED(6, r_ = R(wglSwapBuffers, PFNswap)(dc)); return r_;
 }
 
