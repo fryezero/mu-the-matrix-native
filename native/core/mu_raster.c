@@ -151,7 +151,8 @@ static float factor(uint32_t which, const float src[4], const float dst[4], int 
     case MU_GL_ONE_MINUS_SRC_COLOR: return 1.0f - src[channel];
     case MU_GL_SRC_ALPHA: return src[3];
     case MU_GL_ONE_MINUS_SRC_ALPHA: return 1.0f - src[3];
-    default: (void)dst; return 1.0f;
+    case 0x306: return dst[channel];   /* GL_DST_COLOR: effect multiply blending (NATIVE-FX-001) */
+    default: return 1.0f;
     }
 }
 
