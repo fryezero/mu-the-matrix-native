@@ -851,7 +851,7 @@ static void precise_wait(long long ticks)
 }
 static void pace_stats(FILE *f)
 {
-    unsigned lg = *(volatile unsigned *)0x0bdc5eb0, dl = lg - pc_logic0; pc_logic0 = lg;   /* driver's logic-step counter (40 ms steps) */
+    unsigned lg = MUGL_PRIVATE_TABLES ? *(volatile unsigned *)0x0bdc5eb0 : 0, dl = lg - pc_logic0; pc_logic0 = lg;   /* driver's logic-step counter (40 ms steps); publication adaptation: never read a client address in the compile-only build, which can be loaded by other processes */
     if (!pace_fix || !qpf.QuadPart) return;
     fprintf(f, "pace: logic steps=%u waits=%ld late=%ld restarts=%ld overshoot avg=%.2fms (<1:%ld 1-5:%ld 5-20:%ld 20+:%ld) other_sleeps=%ld"
                " | frame ms <30:%ld 30-38:%ld 38-42:%ld 42-50:%ld 50-60:%ld 60-80:%ld 80+:%ld\n",

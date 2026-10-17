@@ -135,6 +135,8 @@ class MeshDrawPublicationTests(unittest.TestCase):
 
     def test_synthetic_build_cannot_apply_game_patches(self):
         self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES')
+        # the stats line must not dereference the client's logic counter in the compile-only build
+        self.assertIn('MUGL_PRIVATE_TABLES ? *(volatile unsigned *)0x0bdc5eb0 : 0',self.function_body('static void pace_stats(FILE *f)'))
         self.assertIn('0x8000',self.meshdraw)
         self.assertRegex(self.meshdraw,r'if \(mode == 0x8000\) \{ md_fallback\+\+')
         self.assertRegex(self.meshdraw,r'\(flags & 0x420\) == 0x400')

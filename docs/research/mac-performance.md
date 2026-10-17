@@ -881,8 +881,13 @@ produced by running the game logic faster.
 `mugl_v72.c` is identical to Claude's local `mugl.c`. Publication keeps the packaging adaptation
 from v7.0/v7.1 (`private-build.h` include, hotpatch and Sleep-IAT installation gated on
 `MUGL_PRIVATE_TABLES`), so the compile-only CI build still installs nothing and never reaches the new timer
-code. The v7.1 to v7.2 diff adds addresses and arithmetic only (no byte arrays); the hotpatch targets and
-digests (`targets.json`) are unchanged.
+code. One further adaptation, found in review: Claude's `pace_stats` read the driver's logic counter at
+`0x0bdc5eb0` on every stats tick, before checking `pace_fix`. With `MUGL_STATS` set (it is a bottle-wide
+environment value) a proxy loaded by any other process, for example the GL probes, would dereference a client
+address that may be unmapped there. The read is now gated on `MUGL_PRIVATE_TABLES` (a test pins it), so the
+published compile-only build never reads a client address; private builds behave as Claude's. The v7.1 to
+v7.2 diff adds addresses and arithmetic only (no byte arrays); the hotpatch targets and digests
+(`targets.json`) are unchanged.
 
 Checks actually run: `make test PYTHON=tools/.venv/bin/python` (245 discovered, 227 pass, 18
 explicit private-input skips; four new portable tests pin the timer wait with its `Sleep` fallback, the
