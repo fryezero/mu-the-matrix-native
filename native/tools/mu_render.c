@@ -814,11 +814,16 @@ static int command_actor(const mu_options *o)
     return status;
 }
 
+int mu_render_ui_main(int argc, char **argv);
+
 int main(int argc, char **argv)
 {
+    if (argc >= 2 && !strcmp(argv[1], "ui"))
+        return mu_render_ui_main(argc, argv);
     if (argc < 2) {
-        fprintf(stderr, "usage: %s info|dump|corners|replay|render|image|scan|character|chardump|actor MODEL|CASE|ROOT [options]\n",
-                argv[0]);
+        fprintf(stderr, "usage: %s info|dump|corners|replay|render|image|scan|character|chardump|actor MODEL|CASE|ROOT [options]\n"
+                        "       %s ui title|text ... (see mu-render ui)\n",
+                argv[0], argv[0]);
         mu_options_usage(argv[0]);
         return 2;
     }

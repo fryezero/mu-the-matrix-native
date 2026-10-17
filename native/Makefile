@@ -46,25 +46,35 @@ endif
 RECON := ../reconstructed
 CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
-            core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c
+            core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
+            core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
              $(RECON)/terrain/terrain.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
-             $(RECON)/actors/actors.c
+             $(RECON)/actors/actors.c \
+             $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h)
+           $(RECON)/terrain/terrain.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(wildcard $(RECON)/ui/*.h)
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
+# The GDI text boundary uses CoreText on macOS (placeholder font elsewhere).
+ifeq ($(UNAME),Darwin)
+UI_LIBS := -framework CoreText -framework CoreGraphics -framework CoreFoundation
+else
+UI_LIBS :=
+endif
+
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
-     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) audio
+     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -83,9 +93,18 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
 	rm -f $@
 	ar rcs $@ $^
 
-$(BUILD)/mu-render: tools/mu_render.c $(LIB)
+$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render.c -o $(BUILD)/mu_render.o
-	$(CXX) $(BUILD)/mu_render.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_ui.c -o $(BUILD)/mu_render_ui.o
+	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# The 2D layer alone (reconstruction + software GL + assets), for the Python
+# validator and tests (ctypes).
+UI_LIB_SRC := core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c $(RECON)/ui/ui2d.c \
+              $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c core/mu_png.c
+$(BUILD)/libmuui.$(SHLIB_EXT): $(UI_LIB_SRC) $(HEADERS)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -fPIC -shared $(UI_LIB_SRC) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/mu-terrain: tools/mu_terrain.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_terrain.c -o $(BUILD)/mu_terrain.o
