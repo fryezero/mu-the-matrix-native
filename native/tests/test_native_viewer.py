@@ -5,16 +5,19 @@ Portable (synthetic data only, run in CI on macOS and Linux):
   * golden data: `mu-render dump` equals the reconstructed libraries and the
     validators' pure-Python models byte for byte, through independently built
     client memory (native/tests/reference.py);
-  * mesh draw: the ported per-corner loop and colour pass equal an independent
-    Python statement of the rules in every portable draw mode
-    (native/tests/meshdraw_reference.py), plus direct ctypes checks;
+  * mesh draw: the GL call streams of the port on the synthetic cases equal
+    pinned digests of the client's own mesh draw 0x012b8d1d / body 0x012bb35a
+    executed under Unicorn (scripts/validate_meshdraw.py, which recomputes the
+    same digests from the client; docs/research/client-meshdraw-exec.md), the
+    texture-name sub-object records, refusal and fault conventions;
   * textures: OZT/OZB/TGA/BMP decoding against Pillow;
   * renders: software-rasterizer SHA-256 regression hashes and PNG round trip;
   * the windowed viewer builds and its headless GL output agrees with the
     software renderer (macOS with SDL2; explicit skip otherwise).
 Private (MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT): installed-model golden
-sample per version, the full corpus scan, texture decoding against Pillow and
-GL/software render agreement. Renders of installed assets stay in a temporary
+sample per version, the full corpus scan, texture decoding against Pillow,
+GL/software render agreement, and the mesh-draw execution harness against the
+pinned restored client text (synthetic, mutated and installed cases). Renders of installed assets stay in a temporary
 directory.
 """
 import ctypes
@@ -36,8 +39,9 @@ NATIVE = HERE.parent
 ROOT = NATIVE.parent
 sys.path.insert(0, str(HERE))
 import native_fixtures as nf  # noqa: E402
-import meshdraw_reference as mr  # noqa: E402
 import reference  # noqa: E402
+sys.path.insert(0, str(ROOT/'scripts'))
+import validate_meshdraw as vm  # noqa: E402  (case format and pinned cases; Unicorn only when executed)
 
 TOOL = NATIVE/'build/mu-render'
 VIEWER = NATIVE/'build/mu-viewer'
@@ -47,11 +51,11 @@ PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
 # Software-rasterizer regression hashes (raw RGBA8 pixels) for the synthetic
 # textured model; see RenderTests.
 RENDER_HASHES = {
-    'default': 'a3e3e713e4bcaeebbce4d8b2cf7cd8fddd96c1ff0993aa2071b9a369fcc16e13',
-    'nearest-yaw': '0706ffb76e438f8a890cd02efb2a38c86867ef4b136c928debeaa54b6024f96f',
-    'blend-alpha': 'a9118fa33b08f74ae2e4f1a7414aea5e981c12f6be55acf18f6a10e35bb1c735',
-    'additive-env': '222cd899561ac73197e5d204e778bddca897cbcac38d84b80799c41e9810147b',
-    'alpha-test-unlit': '6c2f397b6650e66023577ccde409fd2a2fed88bc0c5c1df44785a6ee0e5ffb3c',
+    'default': '2a2a4d0abad6e80f8c4b339a073e1f2637c7d4cc4ecc25dd5995f38d994f3e3f',
+    'linear-yaw': 'a65ccc386b0427b91d193102a6797148eab54f4a94cd3cca0e1c30f07948878c',
+    'blend-alpha': '0c9389141ba0cffed2516ba25363b51e9bcf23e2d0a73dc4ed28ec3e618f0211',
+    'additive-env': 'a789b0d3a6ad9effd7ad80b3ad6853b217269211dea44497020400e25f5e8444',
+    'alpha-test-unlit': '64db42038ad6bce745f191cda8b705303bd808d1ea01ee5b43a77fa32f2bc67b',
 }
 
 
@@ -224,112 +228,103 @@ class GoldenDataTests(NativeBuild):
                             expected['meshes'][0]['vertices'])
 
 
-MODES = [
-    ({}, []), ({'alpha': 0.5}, ['--alpha', '0.5']), ({'alpha': math.nan}, ['--alpha', 'nan']),
-    ({'lighting': 0}, ['--lighting', '0']), ({'lighting': 0, 'alpha': 0.25}, ['--lighting', '0', '--alpha', '0.25']),
-    ({'mode': 4}, ['--mode', '4']),
-    ({'mode': 0x1000, 'uoff': 0.25, 'voff': -0.5}, ['--mode', '0x1000', '--uv-offset', '0.25', '-0.5']),
-    ({'mode': 0x80000, 'alpha': 0.5}, ['--mode', '0x80000', '--alpha', '0.5']), ({'mode': 0x100000}, ['--mode', '0x100000']),
-    ({'mode': 1}, ['--mode', '1']), ({'mode': 0x40, 'flags': 0x40}, ['--mode', '0x40', '--flags', '0x40']),
-    ({'uv_mesh': 1, 'uoff': 0.5, 'voff': 0.125}, ['--uv-mesh', '1', '--uv-offset', '0.5', '0.125']),
-    ({'flags': 0x20}, ['--flags', '0x20']), ({'flags': 0x420}, ['--flags', '0x420']),
-    ({'flags': 0x200000}, ['--flags', '0x200000']),
-    ({'flags': 0x200000, 'voff': 5.0}, ['--flags', '0x200000', '--uv-offset', '0', '5']),
-    ({'secondary': 1}, ['--secondary', '1']), ({'skip': 1}, ['--light-skip-mesh', '1']),
-    ({'colour': (0.5, 0.25, 2.0), 'mode': 4}, ['--color', '0.5', '0.25', '2', '--mode', '4']),
-    ({'flags': 0x2080}, ['--flags', '0x2080']), ({'flags': 0x10}, ['--flags', '0x10']),
-    ({'flags': 0x400000}, ['--flags', '0x400000']), ({'flags': 0x40001}, ['--flags', '0x40001']),
-    ({'flags': 1, 'alpha': 0.5}, ['--flags', '1', '--alpha', '0.5']),
-    ({'alpha_test': 1, 'cull': 0}, ['--alpha-test', '--cull', '0']),
-]
+# Digests of the client's GL call streams for the pinned synthetic cases
+# (validate_meshdraw.pinned_cases): one SHA-256 over "label digest" lines.
+# validate_meshdraw.py recomputes both from the client's instructions under
+# Unicorn (report "pinned"); the private test below ties them together.
+CLIENT_CORNERS_GROUP = '9d9cf95c32ad48c51ad25b749e5f33841c87db9c58dc1deded05d5997d8ccc00'   # 207 viewer cases, `mu-render corners`
+CLIENT_REPLAY_GROUP = '86f3593ad959e835e18255b0518c69efccd395c2140ae11a4953a80ffa4d901c'     # 40 mutated cases, `mu-render replay` (with fault/cache/colour records)
+CLIENT_STREAMS = {   # a few individual corners digests, for diagnosis
+    's8f2': 'dc5d71bb1c6eb7b7328c9a2fb20a5bc84e0003f821caea7e61ccaffbf7461881',      # body flags 2 (dominant)
+    's9f1000': 'da78fcad44feb7ed541c82f158a76123b2d711b7b3fbbac82c35fd943d92e67d',   # v15, environment 0x1000
+    's10f2': 'aff2100d1f921f453f77978d9ccdfa4ca816540a61f3a17d0336b5d0703f8de3',     # sub-object texture names
+    's8f400': '026e33aca7b766d42679c415c9c74990b26e2c0b7dca14b7eb2a9f7cf8aa797e',    # 0x400 wave (client sin)
+    's10f8000': '2664e8346386a097ed6c66ffa3b30d0b952b7bd41b0c9523e1d2b5d33339ea74',  # 0x8000: fault at texel read
+}
+
+
+def stream(path):
+    return vm.read_stream(Path(path).read_bytes())
 
 
 class MeshDrawTests(NativeBuild):
-    def test_call_stream_equals_the_independent_rule_model(self):
-        records = 0
-        for seed, version in ((8, 10), (9, 15)):
-            layout = nf.synthetic_layout(seed, four_corner=True)
-            raw = layout if version == 10 else nf.envelope_v15(layout)
-            path = self.tmp/f'md{seed}.bmd'
-            path.write_bytes(raw)
-            model, _ = reference.decode(raw)
-            base = ['--action', '1', '--frame', '1.5', '--origin', '3', '4', '5']
-            for options, args in MODES:
-                with self.subTest(seed=seed, args=args):
-                    run('dump', path, '--out', self.tmp/'md.bin', *base, *args)
-                    dump = reference.read_dump(self.tmp/'md.bin')
-                    result = json.loads(run('corners', path, '--out', self.tmp/'md.ops', *base, *args).stdout)
-                    expected = mr.model_stream(model, dump, dict(options, origin=(3.0, 4.0, 5.0)))
-                    observed = mr.read_corners(self.tmp/'md.ops')
-                    self.assertEqual([pk(r) for r in observed], [pk(r) for r in expected])
-                    self.assertEqual(result['refused'], 0)
-                    records += len(observed)
-        self.assertGreater(records, 8000)
+    def test_streams_equal_the_client_digests(self):
+        corners, replays = [], []
+        for label, case_bytes, recorded in vm.pinned_cases(self.tmp):
+            if recorded is not None:
+                corners.append((label, vm.stream_digest(recorded)))
+            else:
+                native, _ = vm.replay(case_bytes, self.tmp)
+                replays.append((label, vm.stream_digest(native)))
+        self.assertEqual((len(corners), len(replays)), (207, vm.PINNED_MUTATIONS))
+        observed = dict(corners)
+        for label, digest in CLIENT_STREAMS.items():
+            self.assertEqual(observed[label], digest, label)
+        self.assertEqual(vm.group_digest(corners), CLIENT_CORNERS_GROUP)
+        self.assertEqual(vm.group_digest(replays), CLIENT_REPLAY_GROUP)
 
-    def test_client_call_paths_are_refused_not_approximated(self):
-        path = self.tmp/'refuse.bmd'
-        path.write_bytes(nf.synthetic_layout(10))
-        for args in (['--mode', '0x8000'], ['--flags', '0x400']):
-            result = json.loads(run('corners', path, '--out', self.tmp/'r.ops', *args).stdout)
-            self.assertEqual(result['refused'], result['meshes'])
-            self.assertEqual(result['corners'], 0)
-            ops = [r[1] for r in mr.read_corners(self.tmp/'r.ops')]
-            self.assertNotIn(mr.OP_VERTEX, ops)
+    def test_digest_detects_a_changed_input(self):
+        path = vm.synthetic_models(self.tmp)[0][1]
+        a = vm.corners_case(path, vm.SYNTHETIC_BASE+['--flags', '0x1000', '--client-time', '100'], self.tmp, 'a')[1]
+        b = vm.corners_case(path, vm.SYNTHETIC_BASE+['--flags', '0x1000', '--client-time', '101'], self.tmp, 'b')[1]
+        self.assertNotEqual(vm.stream_digest(a), vm.stream_digest(b))
 
-    def test_module_directly_bounds_indices_and_handles_nan_alpha(self):
+    def test_texture_name_records(self):
         library = ctypes.CDLL(str(NATIVE/f'build/libmumeshdraw.{SUFFIX}'))
-        TC = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_float, ctypes.c_float)
-        C3 = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(ctypes.c_float))
-        C4 = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float)
-        V = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(ctypes.c_float))
-
-        class Sink(ctypes.Structure):
-            _fields_ = [('context', ctypes.c_void_p), ('texcoord', TC), ('color3', C3), ('color4', C4), ('vertex', V)]
-
-        class Mesh(ctypes.Structure):
-            _fields_ = [('triangles', ctypes.c_void_p), ('triangle_count', ctypes.c_int32),
-                        ('texcoords', ctypes.c_void_p), ('texcoord_count', ctypes.c_int32),
-                        ('vertices', ctypes.c_void_p), ('vertex_count', ctypes.c_int32),
-                        ('light_colors', ctypes.c_void_p), ('normal_texcoords', ctypes.c_void_p),
-                        ('normal_count', ctypes.c_int32), ('model_color', ctypes.c_void_p), ('origin', ctypes.c_void_p)]
-
-        class Params(ctypes.Structure):
-            _fields_ = [('mode', ctypes.c_int32), ('flags', ctypes.c_uint32), ('alpha', ctypes.c_float),
-                        ('u_offset', ctypes.c_float), ('v_offset', ctypes.c_float), ('apply_uv_offset', ctypes.c_uint8),
-                        ('light_colors', ctypes.c_uint8)]
-        log = []
-        sink = Sink(None, TC(lambda c, s, t: log.append(('t', s, t))), C3(lambda c, p: log.append(('c3', p[0], p[1], p[2]))),
-                    C4(lambda c, r, g, b, a: log.append(('c4', r, g, b, a))), V(lambda c, p: log.append(('v', p[0], p[1], p[2]))))
-        triangle = bytearray(0x24)
-        triangle[0] = 3
-        struct.pack_into('<4h', triangle, 2, 0, 1, 2, 0)
-        struct.pack_into('<4h', triangle, 0xa, 0, 1, 1, 0)
-        struct.pack_into('<4h', triangle, 0x12, 1, 0, 1, 0)
-        tri = (ctypes.c_uint8*0x24).from_buffer_copy(triangle)
-        floats = lambda values: (ctypes.c_float*len(values))(*values)
-        tex, verts = floats([0, 0, 0.5, 0.25]), floats([1, 2, 3, 4, 5, 6, 7, 8, 9])
-        lights, table, colour, origin = floats([0.1, 0.2, 0.3, 0.4, 0.5, 0.6]), floats([0.0]*4), floats([1, 1, 1]), floats([0, 0, 0])
-        mesh = Mesh(ctypes.addressof(tri), 1, ctypes.addressof(tex), 2, ctypes.addressof(verts), 3, ctypes.addressof(lights),
-                    ctypes.addressof(table), 2, ctypes.addressof(colour), ctypes.addressof(origin))
-        corners = ctypes.c_long()
-        function = library.mu_meshdraw_corners
+        function = library.mu_meshdraw_sub_from_name
+        function.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         function.restype = ctypes.c_int
-        status = function(ctypes.byref(mesh), ctypes.byref(Params(2, 0, math.nan, 0, 0, 0, 1)), ctypes.byref(sink),
-                          ctypes.byref(corners))
-        self.assertEqual((status, corners.value), (0, 3))
-        self.assertEqual([entry[0] for entry in log], ['t', 'c4', 'v']*3)   # NaN alpha takes glColor4f
-        self.assertEqual(log[0][1:], (0.5, 0.25))
-        log.clear()
-        mesh.vertex_count = 2   # corner 2 uses vertex 2: refused before any call
-        status = function(ctypes.byref(mesh), ctypes.byref(Params(2, 0, 1.0, 0, 0, 0, 1)), ctypes.byref(sink),
-                          ctypes.byref(corners))
-        self.assertEqual((status, log), (2, []))
-        mesh.vertex_count, mesh.normal_count = 3, 1
-        status = function(ctypes.byref(mesh), ctypes.byref(Params(2, 0, 1.0, 0, 0, 0, 0)), ctypes.byref(sink),
-                          ctypes.byref(corners))
-        self.assertEqual(status, 0)   # normals unused without light colours
-        self.assertEqual(function(ctypes.byref(mesh), ctypes.byref(Params(2, 0, 1.0, 0, 0, 0, 1)), ctypes.byref(sink),
-                                  ctypes.byref(corners)), 2)
+        # (name, record or None); every row equals the client's parser 0x01185111
+        # executed under Unicorn (validate_meshdraw.py synthetic_names).
+        table = [
+            (b'skin.jpg', None), (b'x_R.jpg', b'\1\0\0\0\0'), (b'x_RHSN.jpg', b'\1\1\1\1\0'),
+            (b'x_RHSNR.jpg', b'\1\1\1\1\0'), (b'x_HX.jpg', None), (b'x_XR.jpg', None), (b'x_.jpg', None),
+            (b'x_R_S.jpg', None), (b'a_b_N.tga', None), (b'wizard_gloves_02.jpg', None),
+            (b'master10_center.jpg', b'\0\1\0\0\0'), (b'lightning_4sq.jpg', b'\0\1\0\0\0'),
+            (b'fire_sq.jpg', b'\0\1\0\0\0'), (b's195.tga', b'\0\1\0\0\0'), (b's195.TGA', None),
+            (b'mu_rgb_lights.jpg', b'\1\0\0\0\0'), (b'x_DC.jpg', None), (b'q'*32, None),
+            (b'q'*31+b'_', b'\1\1\1\1\0'),   # unterminated: the scan runs into "RHSN" on the client's stack
+        ]
+        for name, expected in table:
+            with self.subTest(name=name):
+                record = ctypes.create_string_buffer(5)
+                has = function(name.ljust(32, b'\0')[:32], record)
+                self.assertEqual(has, int(expected is not None))
+                if expected is not None:
+                    self.assertEqual(record.raw, expected)
+
+    def test_sub_object_names_hide_and_select_meshes(self):
+        begins = {}
+        for label, names in (('plain', None), ('named', ['a_R.tga', 'b.tga', 'c_H.tga'])):
+            directory = self.tmp/label
+            directory.mkdir(exist_ok=True)
+            path = nf.write_textured_model(directory, 14, four_corner=True, names=names)
+            run('corners', path, '--out', self.tmp/f'{label}.ops', '--uv-offset', '0.5', '0.25')
+            begins[label] = [r for r in stream(self.tmp/f'{label}.ops') if r[0] in (1, 3)]
+        self.assertEqual(sum(r[0] == 1 for r in begins['plain']), 3)
+        self.assertEqual(sum(r[0] == 1 for r in begins['named']), 2)   # 'H': the body skips mesh 2
+        # 'R': the body passes the mesh as select, so mesh 0 gets the uv offset.
+        self.assertNotEqual(begins['plain'][1], begins['named'][1])
+
+    def test_mode_8000_faults_where_the_client_reads_freed_pixels(self):
+        path = nf.write_textured_model(self.tmp, 15, four_corner=True)
+        report = json.loads(run('corners', path, '--out', self.tmp/'f.ops', '--flags', '0x8000').stdout)
+        self.assertEqual((report['faulted'], report['refused']), (1, 0))
+        ops = [r[0] for r in stream(self.tmp/'f.ops')]
+        self.assertEqual(ops[-1], 1)                     # stopped after glBegin, at the first texel read
+        self.assertNotIn(14, ops)                        # no glPopMatrix: the client would have crashed
+
+    def test_out_of_range_index_refused_before_any_call(self):
+        path = nf.write_textured_model(self.tmp, 16, four_corner=True)
+        case_bytes = vm.corners_case(path, [], self.tmp, 'bad')[0]
+        case = vm.read_case(case_bytes)
+        mesh = case['model']['meshes'][1]
+        tri = bytearray(mesh['tri'])
+        struct.pack_into('<h', tri, 2, mesh['vertices'])     # corner 0 of triangle 0 past the vertex count
+        mesh['tri'] = bytes(tri)
+        native, _ = vm.replay(vm.write_case(case), self.tmp)
+        good, _ = vm.replay(case_bytes, self.tmp)
+        self.assertEqual(sum(r[0] == 1 for r in native), sum(r[0] == 1 for r in good)-1)
 
 
 class TextureTests(NativeBuild):
@@ -389,9 +384,9 @@ class TextureTests(NativeBuild):
 class RenderTests(NativeBuild):
     SETTINGS = {
         'default': [],
-        'nearest-yaw': ['--nearest', '--yaw', '35', '--pitch', '-10', '--action', '1', '--frame', '2.5'],
-        'blend-alpha': ['--alpha', '0.6', '--flags', '0x40000', '--background', '0', '0', '0'],
-        'additive-env': ['--mode', '0x1000', '--flags', '0x40', '--uv-offset', '0.1', '0.2'],
+        'linear-yaw': ['--linear', '--yaw', '35', '--pitch', '-10', '--action', '1', '--frame', '2.5'],
+        'blend-alpha': ['--alpha', '0.6', '--flags', '0x40002', '--background', '0', '0', '0'],
+        'additive-env': ['--flags', '0x1040', '--client-time', '2500', '--uv-offset', '0.1', '0.2'],
         'alpha-test-unlit': ['--alpha-test', '--lighting', '0', '--color', '0.8', '0.6', '1.0', '--cull', '0'],
     }
 
@@ -557,6 +552,40 @@ class PrivateInstalledTests(NativeBuild):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 report = json.loads(result.stdout)
                 self.assertLess(report['pixels_over_8'], 320*240//200)
+
+    def test_private_client_mesh_draw_execution(self):
+        """The client's mesh draw, body, texture-name parser and math wrappers
+        executed under Unicorn against the port (scripts/validate_meshdraw.py)."""
+        text = Path(os.environ.get('MU_CLIENT_TEXT', ROOT/'evidence/x86-text-capture-09/client-text.bin'))
+        data = Path(os.environ.get('MU_IMAGE_DATA', ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'))
+        flag = Path(os.environ.get('MU_TRIG_FLAG', ROOT/'evidence/trig-state-15/captures/late/math-dispatch-flag.bin'))
+        feature = Path(os.environ.get('MU_MATH_DATA', ROOT/'evidence/x86-math-capture-09'))/'cpu-features.bin'
+        report = self.tmp/'meshdraw.json'
+        subprocess.run([sys.executable, str(ROOT/'scripts/validate_meshdraw.py'), '--text', str(text), '--data', str(data),
+                        '--flag', str(flag), '--feature', str(feature), '--game-root', os.environ['MU_GAME_ROOT'],
+                        '--per-folder', os.environ.get('MU_MESHDRAW_PER_FOLDER', '3'), '--mutations', '300',
+                        '--math-sweep', '20000', '--output', str(report)], check=True, capture_output=True)
+        result = json.loads(report.read_text())
+        synthetic, installed = result['synthetic'], result['installed']
+        self.assertEqual(synthetic['viewer_matches'], synthetic['viewer_cases'])
+        self.assertEqual(synthetic['mutated_matches'], synthetic['mutated_cases'])
+        self.assertGreaterEqual(synthetic['viewer_cases'], 207)
+        self.assertEqual(installed['matches'], installed['cases'])
+        self.assertGreater(installed['cases'], 250)
+        self.assertEqual(result['uncovered'], [])
+        self.assertTrue(all(result['negative_controls'].values()))
+        for key in ('names_synthetic', 'names_installed'):
+            self.assertEqual(result[key]['matches'], result[key]['names'], key)
+        self.assertGreater(result['names_installed']['names'], 1000)
+        for name, entry in result['math_sweep'].items():
+            self.assertEqual(entry['binary32_differences'], 0, name)
+        self.assertEqual(result['x87_transcendentals_in_draw_cases'], {})
+        # The CI pins above are the client's own streams.
+        pinned = result['pinned']
+        self.assertEqual(pinned['matches'], pinned['cases'])
+        self.assertEqual(pinned['corners_group'], CLIENT_CORNERS_GROUP)
+        self.assertEqual(pinned['replay_group'], CLIENT_REPLAY_GROUP)
+        self.assertEqual({k: v for k, v in pinned['corners'] if k in CLIENT_STREAMS}, CLIENT_STREAMS)
 
 
 if __name__ == '__main__':

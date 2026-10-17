@@ -338,6 +338,8 @@ a harness setup failure, not a client result.
 
 ## 4. Mesh draw GL sequence (static)
 
+The mesh draw and body have since been executed under Unicorn and ported; where this static reading differs, [client-meshdraw-exec.md](client-meshdraw-exec.md) is authoritative.
+
 **Import names.** The OPENGL32 block at `0x01a7c64c..0x01a7c78c` holds 81 slots.
 Every slot value minus Wine opengl32's preferred base `0x7a800000` is an export
 RVA of the pinned DLL. The first slot is `wglDeleteContext`, which is exactly the

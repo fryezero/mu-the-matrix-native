@@ -37,13 +37,15 @@ void mu_options_usage(const char *program)
     fprintf(stderr,
             "usage: %s [options] MODEL.bmd\n"
             "  animation: --action N --frame F --prior-action N --prior-frame F --ticks N --speed F --stop\n"
-            "  draw:      --mode M --flags F --alpha F --uv-offset U V --uv-mesh I --alpha-test --cull 0|1\n"
+            "  draw:      --flags F --alpha F --select I --color-scale F --uv-offset U V --skip-mesh I --texture N\n"
+            "             --client-time MS --env-vector X Y Z --alpha-test --cull 0|1\n"
             "  model:     --scale F --origin X Y Z --angles X Y Z --head X Y --color R G B --lighting 0|1\n"
             "             --light-angles X Y Z --secondary 0|1 --ambient F --light-scale F --light-min F\n"
             "             --vertex-scale F --bone-scale F --world N --scene N --bounds-mode N --light-override 0|1\n"
             "             --pose-translate 0|1 --translate 0|1 --special-bone N --light-skip-mesh N --root-height F\n"
-            "  view:      --width W --height H --yaw D --pitch D --zoom F --fov D --nearest --front-cw\n"
-            "             --background R G B --textures DIR --no-textures --out PATH --backend soft|gl --headless --compare --seconds S\n"
+            "  view:      --width W --height H --yaw D --pitch D --zoom F --fov D --linear --front-cw\n"
+            "             --background R G B --textures DIR --no-textures --out PATH --case-out PATH --tables-out PATH\n"
+            "             --backend soft|gl --headless --compare --seconds S\n"
             "  character: --character --game-root DIR --class C --parts MASK --part SLOT PATH --weapon SLOT PATH\n"
             "             --weapon-action SLOT N --wing PATH --wing-scale F   (MODEL = Player.bmd, default from --game-root;\n"
             "             --origin/--angles/--head/--scale/--color/--lighting set the object; slots 1..5 helm..boots)\n"
@@ -83,11 +85,15 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--ticks")) { NEED(1); o->ticks = (int32_t)v[0]; }
         else if (!strcmp(a, "--speed")) { NEED(1); o->speed = (float)v[0]; }
         else if (!strcmp(a, "--stop")) o->stop = 1;
-        else if (!strcmp(a, "--mode")) { NEED(1); o->draw.mode = (int32_t)v[0]; }
         else if (!strcmp(a, "--flags")) { NEED(1); o->draw.flags = (uint32_t)(int64_t)v[0]; }
         else if (!strcmp(a, "--alpha")) { NEED(1); o->draw.alpha = (float)v[0]; }
         else if (!strcmp(a, "--uv-offset")) { NEED(2); o->draw.u_offset = (float)v[0]; o->draw.v_offset = (float)v[1]; }
-        else if (!strcmp(a, "--uv-mesh")) { NEED(1); o->draw.uv_offset_mesh = (int32_t)v[0]; }
+        else if (!strcmp(a, "--select")) { NEED(1); o->draw.select = (int32_t)v[0]; }
+        else if (!strcmp(a, "--color-scale")) { NEED(1); o->draw.color_scale = (float)v[0]; }
+        else if (!strcmp(a, "--skip-mesh")) { NEED(1); o->draw.skip_mesh = (int32_t)v[0]; }
+        else if (!strcmp(a, "--texture")) { NEED(1); o->draw.texture = (int32_t)v[0]; }
+        else if (!strcmp(a, "--client-time")) { NEED(1); o->draw.time = (float)v[0]; }
+        else if (!strcmp(a, "--env-vector")) { NEED(3); for (int k = 0; k < 3; ++k) o->draw.env_vector[k] = (float)v[k]; }
         else if (!strcmp(a, "--alpha-test")) o->draw.alpha_test = 1;
         else if (!strcmp(a, "--cull")) { NEED(1); o->draw.cull = (int8_t)v[0]; }
         else if (!strcmp(a, "--scale")) { NEED(1); o->params.body_scale = (float)v[0]; o->scale_set = 1; }
@@ -119,12 +125,15 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--pitch")) { NEED(1); o->pitch = (float)v[0]; }
         else if (!strcmp(a, "--zoom")) { NEED(1); o->zoom = (float)v[0]; }
         else if (!strcmp(a, "--fov")) { NEED(1); o->fov = (float)v[0]; }
-        else if (!strcmp(a, "--nearest")) o->nearest = 1;
+        else if (!strcmp(a, "--linear")) o->linear = 1;
+        else if (!strcmp(a, "--nearest")) o->linear = 0;
         else if (!strcmp(a, "--front-cw")) o->front_cw = 1;
         else if (!strcmp(a, "--background")) { NEED(3); for (int k = 0; k < 3; ++k) o->background[k] = (uint8_t)v[k]; }
         else if (!strcmp(a, "--textures")) { if (++i >= argc) return 1; o->texture_dir = argv[i]; }
         else if (!strcmp(a, "--no-textures")) o->no_textures = 1;
         else if (!strcmp(a, "--out")) { if (++i >= argc) return 1; o->output = argv[i]; }
+        else if (!strcmp(a, "--case-out")) { if (++i >= argc) return 1; o->case_output = argv[i]; }
+        else if (!strcmp(a, "--tables-out")) { if (++i >= argc) return 1; o->tables_output = argv[i]; }
         else if (!strcmp(a, "--backend")) { if (++i >= argc) return 1; o->backend = argv[i]; }
         else if (!strcmp(a, "--headless")) o->headless = 1;
         else if (!strcmp(a, "--compare")) o->compare = 1;

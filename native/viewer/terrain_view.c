@@ -78,8 +78,7 @@ static void g_state(void *c, int32_t state, int32_t argument)
     mu_world_state(state, argument, &s);
     if (s.blend) {
         glEnable(GL_BLEND);
-        glBlendFunc(s.src == MU_BLEND_ONE ? GL_ONE : GL_SRC_ALPHA, s.dst == MU_BLEND_ONE ? GL_ONE
-                                                                                          : GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc((GLenum)s.src, (GLenum)s.dst);  /* the client's GL enums */
     } else {
         glDisable(GL_BLEND);
     }

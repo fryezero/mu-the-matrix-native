@@ -357,16 +357,16 @@ void mu_world_state(int32_t state, int32_t argument, mu_meshdraw_state *o)
     switch (state) {
     case MU_TERRAIN_STATE_ALPHA:   /* 0x0184a990 */
         o->blend = 1;
-        o->src = MU_BLEND_SRC_ALPHA;
-        o->dst = MU_BLEND_ONE_MINUS_SRC_ALPHA;
+        o->src = MU_GL_SRC_ALPHA;
+        o->dst = MU_GL_ONE_MINUS_SRC_ALPHA;
         o->depth_mask = argument ? 1 : 0;
         o->alpha_test = 1;
         o->cull = 0;
         break;
     case MU_TERRAIN_STATE_ADDITIVE: /* 0x0184aa2b */
         o->blend = 1;
-        o->src = MU_BLEND_ONE;
-        o->dst = MU_BLEND_ONE;
+        o->src = MU_GL_ONE;
+        o->dst = MU_GL_ONE;
         o->depth_mask = 0;
         o->cull = 0;
         break;

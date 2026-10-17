@@ -8,12 +8,15 @@
  *
  * Controls: left drag orbit, right drag (or shift+left) pan, wheel zoom,
  * Space play/pause, Left/Right previous/next action, Up/Down speed,
- * ',' '.' step frame (paused), M draw mode (2, 4, 0x1000, 1), L lighting,
+ * ',' '.' step frame (paused), M render flags (2, 0x42, 4, 0x1000, 0x4000, 1;
+ * the mesh draw derives its mode from them), L lighting,
  * T alpha test, C cull (state/off/on), F front face, G wireframe, S stop flag,
  * N/P next/previous model in the directory, R reset camera, O screenshot,
  * Esc/Q quit.
  *
  * Headless: --headless [--backend gl|soft] --out PNG [--compare].
+ * Windowed, the client time global (--client-time, milliseconds) advances with the
+ * wall clock so the environment flags animate; headless keeps --client-time fixed.
  *
  * Character mode (any character option, e.g. --game-root DIR --class 1): the
  * positional model is Player.bmd (default DIR/Data/Player/Player.bmd); class
@@ -148,6 +151,15 @@ static int load_model(viewer *v, const char *path)
     return 0;
 }
 
+/* Draw options for one target: its bitmap records (GL names, component
+ * counts) come from its textures. */
+static mu_draw_options target_options(const viewer *v, const mu_textures *textures)
+{
+    mu_draw_options o = v->options.draw;
+    o.textures = v->options.no_textures ? NULL : textures;
+    return o;
+}
+
 /* Software path: one raster, textures switched per target. */
 static void draw_soft(viewer *v, mu_raster *raster, mu_render_backend *backend, mu_draw_stats *stats)
 {
@@ -157,7 +169,10 @@ static void draw_soft(viewer *v, mu_raster *raster, mu_render_backend *backend, 
     for (int i = 0; i < n; ++i) {
         raster->textures = textures[i]->slots;
         raster->texture_count = textures[i]->count;
-        mu_scene_draw_model(models[i], &v->options.draw, backend, stats);
+        raster->texture_filter = textures[i]->filter;
+        raster->texture_wrap = textures[i]->wrap;
+        const mu_draw_options o = target_options(v, textures[i]);
+        mu_scene_draw_model(models[i], &o, backend, stats);
     }
 }
 
@@ -177,7 +192,7 @@ static void gl_targets_upload(viewer *v, gl_targets *t, int front_cw, int wirefr
         memset(&t->gl[i], 0, sizeof t->gl[i]);
         t->gl[i].front_cw = front_cw;
         t->gl[i].wireframe = wireframe;
-        mu_gl_upload(&t->gl[i], textures[i]->slots, textures[i]->count, v->options.nearest);
+        mu_gl_upload(&t->gl[i], textures[i], v->options.linear);
         mu_gl_backend_bind(&t->gl[i], &t->backend[i]);
     }
 }
@@ -202,8 +217,10 @@ static void draw_gl(viewer *v, gl_targets *t, mu_draw_stats *stats)
     const mu_model *models[MAX_TARGETS];
     const mu_textures *textures[MAX_TARGETS];
     int n = targets(v, models, textures);
-    for (int i = 0; i < n && i < t->count; ++i)
-        mu_scene_draw_model(models[i], &v->options.draw, &t->backend[i], stats);
+    for (int i = 0; i < n && i < t->count; ++i) {
+        const mu_draw_options o = target_options(v, textures[i]);
+        mu_scene_draw_model(models[i], &o, &t->backend[i], stats);
+    }
 }
 
 /* ---- headless ---- */
@@ -212,14 +229,14 @@ static int render_soft(viewer *v, uint8_t *pixels)
     mu_raster raster;
     if (mu_raster_init(&raster, v->options.width, v->options.height))
         return 1;
-    raster.linear = !v->options.nearest;
+    raster.linear = v->options.linear;
     raster.front_ccw = !v->options.front_cw;
     mu_camera_view(&v->camera, raster.view);
     mu_camera_projection(&v->camera, (float)v->options.width / (float)v->options.height, raster.projection);
     mu_raster_clear(&raster, v->options.background);
     mu_render_backend backend;
     mu_raster_backend(&raster, &backend);
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     draw_soft(v, &raster, &backend, &stats);
     memcpy(pixels, raster.color, (size_t)v->options.width * (size_t)v->options.height * 4);
     mu_raster_free(&raster);
@@ -240,7 +257,7 @@ static int render_gl(viewer *v, uint8_t *pixels)
     mu_camera_view(&v->camera, view);
     mu_camera_projection(&v->camera, (float)w / (float)h, projection);
     mu_gl_frame(w, h, v->options.background, view, projection);
-    mu_draw_stats stats = {0, 0, 0};
+    mu_draw_stats stats = {0, 0, 0, 0};
     draw_gl(v, &t, &stats);
     glFinish();
     mu_gl_read(w, h, pixels);
@@ -366,8 +383,6 @@ static void set_action(viewer *v, int delta)
 
 static void title(viewer *v, SDL_Window *window)
 {
-    static const char *mode_names[] = {"2", "4", "0x1000", "1"};
-    int mode_index = v->options.draw.mode == 4 ? 1 : v->options.draw.mode == 0x1000 ? 2 : v->options.draw.mode == 1 ? 3 : 0;
     const char *name = strrchr(v->path, '/');
     char text[512];
     const mu_bmd *bmd = animated_bmd(v);
@@ -377,10 +392,10 @@ static void title(viewer *v, SDL_Window *window)
     if (v->character)
         for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
             missing += v->ch.items[i].loaded ? v->ch.items[i].textures.missing : 0;
-    snprintf(text, sizeof text, "%s%s  v%d  action %u/%d (%d keys)  frame %.2f  speed %.3f%s  mode %s%s%s",
+    snprintf(text, sizeof text, "%s%s  v%d  action %u/%d (%d keys)  frame %.2f  speed %.3f%s  flags 0x%x%s%s",
              v->character ? "character " : "", name ? name + 1 : v->path, bmd->version, action, bmd->action_count,
              bmd->action_count ? bmd->actions[action < bmd->action_count ? action : 0].keys : 0,
-             (double)mu_model_frame(model), (double)v->speed, v->playing ? "" : " (paused)", mode_names[mode_index],
+             (double)mu_model_frame(model), (double)v->speed, v->playing ? "" : " (paused)", v->options.draw.flags,
              v->options.params.lighting ? "" : "  unlit", missing ? "  [missing textures]" : "");
     SDL_SetWindowTitle(window, text);
 }
@@ -425,6 +440,7 @@ static int windowed(viewer *v)
     int front_cw = v->options.front_cw, wireframe = 0;
     gl_targets_upload(v, &t, front_cw, wireframe);
 
+    const float time0 = v->options.draw.time;
     uint64_t frequency = SDL_GetPerformanceFrequency(), last = SDL_GetPerformanceCounter(), start = last;
     double accumulator = 0;
     int running = 1, dragging = 0, panning = 0;
@@ -482,8 +498,11 @@ static int windowed(viewer *v)
                     break;
                 }
                 case SDLK_m: {
-                    int32_t m = v->options.draw.mode;
-                    v->options.draw.mode = m == 2 ? 4 : m == 4 ? 0x1000 : m == 0x1000 ? 1 : 2;
+                    static const uint32_t cycle[] = {2, 0x42, 4, 0x1000, 0x4000, 1};
+                    size_t k = 0;
+                    while (k < sizeof cycle / sizeof cycle[0] && cycle[k] != v->options.draw.flags)
+                        ++k;
+                    v->options.draw.flags = cycle[(k + 1) % (sizeof cycle / sizeof cycle[0])];
                     break;
                 }
                 case SDLK_l:
@@ -546,7 +565,8 @@ static int windowed(viewer *v)
         mu_camera_view(&v->camera, view);
         mu_camera_projection(&v->camera, (float)w / (float)(h ? h : 1), projection);
         mu_gl_frame(w, h, v->options.background, view, projection);
-        mu_draw_stats stats = {0, 0, 0};
+        v->options.draw.time = time0 + (float)((double)(now - start) * 1000.0 / (double)frequency);
+        mu_draw_stats stats = {0, 0, 0, 0};
         draw_gl(v, &t, &stats);
         SDL_GL_SwapWindow(window);
         frames++;

@@ -102,7 +102,8 @@ static void draw(const mu_frame_world *w, hero_model *hero, mu_gl_backend *gl)
     if (hero->loaded) {
         mu_draw_options options;
         mu_draw_default_options(&options);
-        mu_draw_stats stats = {0, 0, 0};
+        options.textures = &hero->textures;   /* bitmap GL names and component counts */
+        mu_draw_stats stats = {0, 0, 0, 0};
         mu_scene_draw_model(&hero->model, &options, &backend, &stats);
     }
 }
@@ -220,7 +221,7 @@ static int headless(const char *model_path, int32_t width, int32_t height, int32
     mu_gl_backend gl;
     memset(&gl, 0, sizeof gl);
     if (hero.loaded)
-        mu_gl_upload(&gl, hero.textures.slots, hero.textures.count, 0);
+        mu_gl_upload(&gl, &hero.textures, 0);
     static mu_frame_world world;
     mu_frame_world_init(&world, (uint32_t)width, (uint32_t)height, 128, 128);
     uint8_t *pixels = malloc((size_t)width * (size_t)height * 4);
@@ -301,7 +302,7 @@ static int windowed(const char *model_path, int32_t width, int32_t height, doubl
     mu_gl_backend gl;
     memset(&gl, 0, sizeof gl);
     if (hero.loaded)
-        mu_gl_upload(&gl, hero.textures.slots, hero.textures.count, 0);
+        mu_gl_upload(&gl, &hero.textures, 0);
     static mu_frame_world world;
     mu_frame_world_init(&world, (uint32_t)dw, (uint32_t)dh, 128, 128);
     world.clock.frame_tick = SDL_GetTicks();
