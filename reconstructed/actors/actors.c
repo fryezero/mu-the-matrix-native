@@ -6,6 +6,7 @@
 #include "monster_open_table.h"
 #include "monster_class_table.h"
 #include "npc_table.h"
+#include "player_action_table.h"
 
 /* OpenMonsterModel 0x0180b0f4 (action part) and helpers. Client memory is
  * read where the original reads it and written in the original order. */
@@ -541,5 +542,71 @@ int32_t mu_player_unarmed_stop_action(uint8_t class_byte, int32_t world, int32_t
             return 8;
         return rand_function(context) % 20 == 0 ? 9 : 8;
     default: return 1;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Player actions (speeds extracted; pose mapping a static reading). */
+
+float mu_player_action_speed(int32_t action)
+{
+    if (action < 0 || action >= MU_PLAYER_ACTION_COUNT)
+        return 0.0f;
+    return bits_float(mu_player_action_speeds[action]);
+}
+
+int mu_player_action_loop(int32_t action)
+{
+    if (action < 0 || action >= MU_PLAYER_ACTION_COUNT)
+        return 0;
+    return mu_player_action_loops[action];
+}
+
+static int32_t rand_one(void *context) { (void)context; return 1; }
+
+int32_t mu_player_pose_action(int pose, int weapon, uint8_t class_byte, int32_t world)
+{
+    int base = class_byte & 0xf;
+    int32_t stand = mu_player_unarmed_stop_action(class_byte, world, rand_one, NULL);
+    switch (pose) {
+    case MU_POSE_STAND:
+        switch (weapon) {
+        case MU_WEAPON_NONE: return stand;
+        case MU_WEAPON_ONE_HAND: return base == 9 ? 0x1d : base == 15 ? 0x25 : 0xb;
+        case MU_WEAPON_TWO_HAND: return 0xc;
+        case MU_WEAPON_SPEAR: return 0xe;
+        case MU_WEAPON_STAFF: return 0xb;
+        case MU_WEAPON_TWO_HAND_STAFF: return 0xe;
+        case MU_WEAPON_BOW: return 0xf;
+        case MU_WEAPON_CROSSBOW: return 0x10;
+        default: return stand;
+        }
+    case MU_POSE_WALK:
+        switch (weapon) {
+        case MU_WEAPON_NONE: return stand == 2 ? 0x33 : 0x32;
+        case MU_WEAPON_ONE_HAND: return base == 9 ? 0x3f : base == 15 ? 0x46 : 0x34;
+        case MU_WEAPON_TWO_HAND: return base == 10 ? 0x40 : 0x35;
+        case MU_WEAPON_SPEAR: return 0x37;
+        case MU_WEAPON_STAFF: return 0x34;
+        case MU_WEAPON_TWO_HAND_STAFF: return 0x37;
+        case MU_WEAPON_BOW: return 0x38;
+        case MU_WEAPON_CROSSBOW: return 0x39;
+        default: return 0x32;
+        }
+    case MU_POSE_ATTACK:
+        switch (weapon) {
+        case MU_WEAPON_NONE:
+            return (base == 7 || base == 8 || base == 9 || base == 12 || base == 14) ? 0x70 : 0x6f;
+        case MU_WEAPON_ONE_HAND: return 0x71;
+        case MU_WEAPON_TWO_HAND: return 0x75;
+        case MU_WEAPON_SPEAR: return 0x7b;
+        case MU_WEAPON_STAFF: return 0x71;
+        case MU_WEAPON_TWO_HAND_STAFF: return 0xa3;
+        case MU_WEAPON_BOW: return 0x7e;
+        case MU_WEAPON_CROSSBOW: return 0x7f;
+        default: return 0x6f;
+        }
+    default:
+        return stand;
     }
 }

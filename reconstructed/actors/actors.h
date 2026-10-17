@@ -120,6 +120,33 @@ int32_t mu_player_unarmed_stop_action(uint8_t class_byte, int32_t world, int32_t
                                       void *context);
 
 /* ------------------------------------------------------------------ */
+/* Player actions.
+ *
+ * Base play speed and loop flag of a Player action (extracted from the speed
+ * section of the player loader 0x01830aa6 under emulation; 0 / not written
+ * speeds return 0). The hero attack-speed adjustment 0x0138d9cf is not
+ * applied. */
+float mu_player_action_speed(int32_t action);
+int mu_player_action_loop(int32_t action);
+#define MU_PLAYER_ACTION_TOTAL 0x186
+
+/* Pose -> Player action. STATIC READING ONLY (not executed): the branch
+ * structure of SetPlayerStop 0x01391e55, the walk chooser 0x0139002a and
+ * SetPlayerAttack 0x01392bde, reduced to a weapon kind. In the client the
+ * kind comes from the weapon item index (0xae6 + 512*group: swords, axes,
+ * maces < 0x10e6, spears < 0x12e6, bows/crossbows < 0x14e6, staffs < 0x16e6)
+ * and item-attribute bytes (+0x251 kind, +0x253 two-handed) that are runtime
+ * item data, plus mounts, buffs, safe zones and special items that are not
+ * modelled here. Unarmed stand is the validated 0x0139d6da with rand() fixed
+ * to 1; the attack combo counter (character +0x28) and rand() are taken as 0. */
+enum { MU_POSE_STAND = 0, MU_POSE_WALK = 1, MU_POSE_ATTACK = 2 };
+enum {
+    MU_WEAPON_NONE = 0, MU_WEAPON_ONE_HAND = 1, MU_WEAPON_TWO_HAND = 2, MU_WEAPON_SPEAR = 3,
+    MU_WEAPON_STAFF = 4, MU_WEAPON_TWO_HAND_STAFF = 5, MU_WEAPON_BOW = 6, MU_WEAPON_CROSSBOW = 7
+};
+int32_t mu_player_pose_action(int pose, int weapon, uint8_t class_byte, int32_t world);
+
+/* ------------------------------------------------------------------ */
 /* Server monster class -> model (CreateMonster 0x0137fbac) and NPC model
  * files (OpenNpc 0x01808a40). These two tables are extracted by executing
  * the client routines under Unicorn (scripts/validate_actors.py), not

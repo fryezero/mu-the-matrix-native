@@ -45,14 +45,19 @@ MANAGER_ADDRESS = 0x20000000
 MODEL_BASE, MODEL_SLOT = 0x21000000, 0x1000
 ACTION_CAPACITY = 32
 MONSTER_TYPES = 0x259
-BODIES = {  # start, exclusive end
-    'open_monster': (0x0180b0f4, 0x0181f25c),
-    'set_action_speed': (0x012bd437, 0x012bd471),
-    'set_action_loop': (0x012bd471, 0x012bd4a4),
-    'get_action': (0x012bcf9d, 0x012bcfca),
-    'action_at': (0x00eaaa44, 0x00eaaa73),
-    'npc_texture_world': (0x009dacb8, 0x009dacdb),
-    'character_speed': (0x013960d2, 0x013966a8),
+BODIES = {  # start, exclusive end, SHA-256 of the captured bytes
+    'open_monster': (0x0180b0f4, 0x0181f25c, 'c6c97b78666594a237c87a824299fbadf5dd5ea6a0d5e97b1a3885f3a14bb73e'),
+    'set_action_speed': (0x012bd437, 0x012bd471, '0a354359ad501962b05a3b4388e23d3c6de7f0ba987339b2b57c4c6602548f33'),
+    'set_action_loop': (0x012bd471, 0x012bd4a4, '2420935b433ced77dc5843e78204e7ac94ace6d0323915a929df32bb8f43ef87'),
+    'get_action': (0x012bcf9d, 0x012bcfca, 'ce63dbae68bd8836df752e6890b5dd1f5f38bb4b2934625aca9d4d0bebd6a14b'),
+    'action_at': (0x00eaaa44, 0x00eaaa73, '3f2c722111c6524140ff913317763fbddb062bfddd0fc0ca5802d4816c0b3b4b'),
+    'npc_texture_world': (0x009dacb8, 0x009dacdb, 'd2129e6fa8fc0b28ee3e75a44d60cdfbe7a75793a3189ea35f3e36675bdbbccb'),
+    'character_step': (0x013960d2, 0x013966a8, '98736eafe60c031a1630b8dc9115d4d614a5ec76715e5d7b757484303ae4ad27'),
+    'set_action': (0x012affa4, 0x012b001a, '1505c3f4e0493da318652a309ee428994c61a86629902a9ceeba87acfecbda85'),
+    'unarmed_stop': (0x0139d6da, 0x0139d89f, '2ad0fa438a137b0928b221e03786c513d95d770dfb2cf3a83dfb9b07ad06438a'),
+    'create_monster': (0x0137fbac, 0x0138ce1c, '0c9b634eb2dd3750960c82d8989c29303ffc78df054d90a2b217d0bacb8c0df2'),
+    'open_npc': (0x01808a40, 0x0180ae1e, 'df11b6ea3f2934291eb0b8952094ff67d83a97dd459f79d1580b6939732a7706'),
+    'player_loader': (0x01830aa6, 0x0183220e, '478d847d4e532fef82ea34e6b4b9c727be1772c049b6743ad52d55db222608fe'),
 }
 
 
@@ -966,9 +971,12 @@ def main():
     data = am.load_pinned(args.data, am.DATA_BYTES, am.DATA_SHA256, 'second image section')
     machine = am.ActorMachine(text, data)
     authored = Authored(Path(args.library))
-    bodies = {name: {'start': hex(s), 'end_exclusive': hex(e),
-                     'sha256': hashlib.sha256(text[s-am.TEXT_BASE:e-am.TEXT_BASE]).hexdigest()}
-              for name, (s, e) in BODIES.items()}
+    bodies = {}
+    for name, (s, e, digest) in BODIES.items():
+        observed = hashlib.sha256(text[s-am.TEXT_BASE:e-am.TEXT_BASE]).hexdigest()
+        if observed != digest:
+            raise SystemExit(f'{name}: captured body differs from the pinned digest')
+        bodies[name] = {'start': hex(s), 'end_exclusive': hex(e), 'sha256': digest}
     import actor_static
     lifted = actor_static.lift_all(actor_static.Image(text, data))
     results = []

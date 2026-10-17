@@ -81,6 +81,13 @@ int mu_character_set_item(mu_character *character, int item, const char *path, i
 void mu_character_set_state(mu_character *character, uint16_t action, float frame, float prior_frame,
                             uint16_t prior_action);
 int mu_character_tick(mu_character *character, float speed, uint8_t *loop);
+/* NATIVE-ACTOR-001: writes the client's base Player play speeds and loop flags
+ * (reconstructed/actors player table, extracted from the player loader) into
+ * the Player model's action records; actions the loader leaves unset get
+ * 0.25 (viewer choice). Returns the number of unset actions. */
+int mu_character_apply_player_speeds(mu_character *character);
+/* Play speed in the Player model's action record (0 outside the actions). */
+float mu_character_action_speed(const mu_character *character, uint16_t action);
 /* Poses and skins every loaded model in the order above. */
 int mu_character_update(mu_character *character);
 /* Axis-aligned bounds of every transformed vertex; returns 0 when there are none. */

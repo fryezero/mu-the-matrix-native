@@ -2,6 +2,7 @@
 #include "mu_options.h"
 
 #include "mu_character.h"
+#include "../../reconstructed/actors/actors.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -259,11 +260,22 @@ int mu_options_character(const mu_options *o, mu_character *c, char *error, size
     p->scale = o->scale_set ? o->params.body_scale : 0.9f;
     p->wing_scale = o->wing_scale > 0 ? o->wing_scale : p->scale;
     p->lighting = o->params.lighting;
-    mu_character_set_state(c, (uint16_t)o->action, o->frame, o->prior_frame, (uint16_t)o->prior_action);
+    int32_t action = o->action, ticks = o->ticks;
+    float speed = o->speed;
+    if (o->player_action >= 0) {
+        /* --pose: the client's base Player speeds, the pose -> action static reading, and one
+         * animation step per 40 ms logic step over --time (NATIVE-ACTOR-001). */
+        mu_character_apply_player_speeds(c);
+        action = mu_player_pose_action(o->player_action, o->weapon_kind,
+                                       (uint8_t)(o->class_byte >= 0 ? o->class_byte : 0), o->params.world);
+        speed = mu_character_action_speed(c, (uint16_t)action);
+        ticks = (int32_t)(o->time / 0.04f + 0.5f);
+    }
+    mu_character_set_state(c, (uint16_t)action, o->frame, o->prior_frame, (uint16_t)o->prior_action);
     if (o->stop)
-        mu_model_set_action_stop(&c->player, (uint16_t)o->action, 1);
-    for (int32_t k = 0; k < o->ticks; ++k)
-        if (mu_character_tick(c, o->speed, NULL) != MU_MODEL_OK) {
+        mu_model_set_action_stop(&c->player, (uint16_t)action, 1);
+    for (int32_t k = 0; k < ticks; ++k)
+        if (mu_character_tick(c, speed, NULL) != MU_MODEL_OK) {
             snprintf(error, error_size, "tick failed");
             return 1;
         }

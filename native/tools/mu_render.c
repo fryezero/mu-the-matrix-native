@@ -513,6 +513,33 @@ static int command_chardump(const mu_options *o)
     return 0;
 }
 
+/* Writes the frames side by side (--strip) and as an animated GIF (--gif). */
+static int write_animation(const mu_options *o, const uint8_t *frames)
+{
+    int status = 0;
+    size_t frame_bytes = (size_t)o->width * (size_t)o->height * 4;
+    if (o->strip_path) {
+        int32_t strip_width = o->width * o->frames;
+        uint8_t *strip = malloc(frame_bytes * (size_t)o->frames);
+        if (!strip)
+            return 1;
+        for (int32_t y = 0; y < o->height; ++y)
+            for (int32_t n = 0; n < o->frames; ++n)
+                memcpy(strip + ((size_t)y * (size_t)strip_width + (size_t)n * (size_t)o->width) * 4,
+                       frames + frame_bytes * (size_t)n + (size_t)y * (size_t)o->width * 4, (size_t)o->width * 4);
+        if (mu_png_write(o->strip_path, strip, strip_width, o->height)) {
+            fprintf(stderr, "cannot write %s\n", o->strip_path);
+            status = 1;
+        }
+        free(strip);
+    }
+    if (o->gif_path && mu_gif_write(o->gif_path, frames, o->width, o->height, o->frames, 4 * o->frame_steps)) {
+        fprintf(stderr, "cannot write %s\n", o->gif_path);
+        status = 1;
+    }
+    return status;
+}
+
 static int command_character(const mu_options *o)
 {
     static mu_character c;
@@ -533,35 +560,64 @@ static int command_character(const mu_options *o)
     mu_options_character_camera(o, &c, &camera);
     mu_camera_view(&camera, raster.view);
     mu_camera_projection(&camera, (float)o->width / (float)o->height, raster.projection);
-    mu_raster_clear(&raster, o->background);
-    mu_render_backend backend;
-    mu_raster_backend(&raster, &backend);
-    mu_draw_stats stats = {0, 0, 0};
-    int missing = 0, items = 0;
-    /* Client order: body parts 5..0, weapons 0 and 1, wing. */
-    static const int order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
-    for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
-        const mu_character_item *item = &c.items[order[n]];
-        if (!item->loaded)
-            continue;
-        raster.textures = item->textures.slots;
-        raster.texture_count = item->textures.count;
-        mu_scene_draw_model(&item->model, &o->draw, &backend, &stats);
-        missing += item->textures.missing;
-        items++;
-    }
-    char hash[65];
-    mu_sha256_hex(raster.color, (uint64_t)o->width * (uint64_t)o->height * 4, hash);
-    if (o->output && mu_png_write(o->output, raster.color, o->width, o->height)) {
-        fprintf(stderr, "cannot write %s\n", o->output);
+    size_t frame_bytes = (size_t)o->width * (size_t)o->height * 4;
+    uint8_t *frames = malloc(frame_bytes * (size_t)o->frames);
+    if (!frames) {
+        mu_raster_free(&raster);
+        mu_character_free(&c);
         return 1;
     }
+    float speed = mu_character_action_speed(&c, mu_model_action(&c.player));
+    if (o->player_action < 0)
+        speed = o->speed;
+    mu_draw_stats stats = {0, 0, 0};
+    int missing = 0, items = 0;
+    char hash[65] = "";
+    for (int32_t n = 0; n < o->frames; ++n) {
+        if (n) {
+            /* Further frames (--frames): advance the Player animation, then pose and skin again. */
+            for (int32_t step = 0; step < o->frame_steps; ++step)
+                mu_character_tick(&c, speed, NULL);
+            if (mu_character_update(&c) != MU_MODEL_OK) {
+                fprintf(stderr, "character update failed\n");
+                break;
+            }
+        }
+        mu_raster_clear(&raster, o->background);
+        mu_render_backend backend;
+        mu_raster_backend(&raster, &backend);
+        missing = items = 0;
+        /* Client order: body parts 5..0, weapons 0 and 1, wing. */
+        static const int order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
+        for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
+            const mu_character_item *item = &c.items[order[k]];
+            if (!item->loaded)
+                continue;
+            raster.textures = item->textures.slots;
+            raster.texture_count = item->textures.count;
+            mu_scene_draw_model(&item->model, &o->draw, &backend, &stats);
+            missing += item->textures.missing;
+            items++;
+        }
+        memcpy(frames + frame_bytes * (size_t)n, raster.color, frame_bytes);
+        if (n == 0)
+            mu_sha256_hex(raster.color, frame_bytes, hash);
+    }
+    int status = 0;
+    if (o->output && mu_png_write(o->output, frames, o->width, o->height)) {
+        fprintf(stderr, "cannot write %s\n", o->output);
+        status = 1;
+    }
+    status |= write_animation(o, frames);
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"items\": %d, \"meshes\": %ld, \"corners\": %ld,"
-           " \"refused\": %ld, \"triangles\": %ld, \"textures_missing\": %d}\n",
-           hash, o->width, o->height, items, stats.meshes, stats.corners, stats.refused, raster.triangles, missing);
+           " \"refused\": %ld, \"triangles\": %ld, \"textures_missing\": %d, \"action\": %u, \"speed\": %.9g,"
+           " \"frame\": %.9g}\n",
+           hash, o->width, o->height, items, stats.meshes, stats.corners, stats.refused, raster.triangles, missing,
+           mu_model_action(&c.player), (double)speed, (double)mu_model_frame(&c.player));
+    free(frames);
     mu_raster_free(&raster);
     mu_character_free(&c);
-    return 0;
+    return status;
 }
 
 static int command_actor(const mu_options *o)
@@ -640,21 +696,7 @@ static int command_actor(const mu_options *o)
         fprintf(stderr, "cannot write %s\n", o->output);
         status = 1;
     }
-    if (o->strip_path) {
-        int32_t strip_width = o->width * o->frames;
-        uint8_t *strip = malloc(frame_bytes * (size_t)o->frames);
-        if (strip) {
-            for (int32_t y = 0; y < o->height; ++y)
-                for (int32_t n = 0; n < o->frames; ++n)
-                    memcpy(strip + ((size_t)y * (size_t)strip_width + (size_t)n * (size_t)o->width) * 4,
-                           frames + frame_bytes * (size_t)n + (size_t)y * (size_t)o->width * 4, (size_t)o->width * 4);
-            if (mu_png_write(o->strip_path, strip, strip_width, o->height))
-                status = 1;
-            free(strip);
-        }
-    }
-    if (o->gif_path && mu_gif_write(o->gif_path, frames, o->width, o->height, o->frames, 4 * o->frame_steps))
-        status = 1;
+    status |= write_animation(o, frames);
     printf("{\"file\": ");
     json_string(stdout, spec.path);
     printf(", \"server_class\": %d, \"monster_type\": %d, \"npc_index\": %d, \"model_index\": %d, \"scale\": %.9g,"
