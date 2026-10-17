@@ -906,7 +906,7 @@ Branch `claude/native-char`, worktree `~/Documents/mu-worktrees/native-char`. Re
 
 **Checks.**
 
-* The validator passes everything (ignored report `evidence/native-char/character-full-02.json`, `bca220a3…94ae3b`, 90 s).
+* The validator passes everything (ignored report `evidence/native-char/character-full-03.json`, `bca220a3…94ae3b`, 90 s, MuMatrixKit game root).
 * The private character tests pass with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=…`.
 * Local renders are in `~/Documents/mu-mac-tools/native/renders/char/` and are never committed.
 

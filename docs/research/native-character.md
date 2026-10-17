@@ -156,7 +156,7 @@ The parts' math is the same as in the copy render: the same matrices, the same t
 
 The negative control is a rotation position without the body scale. It differs in 40 of 40 cases.
 
-Report `evidence/native-char/character-full-02.json` (ignored), SHA-256 `bca220a3…94ae3b`. The authored library is `1764b49d…71499`. The run took 90 s on one core. An earlier identical run is kept as `character-full-01.json`.
+Report `evidence/native-char/character-full-03.json` (ignored), SHA-256 `bca220a3…94ae3b`. It was produced from the read-only MuMatrixKit installation, and an earlier run on another installed copy gave the identical report. The authored library is `1764b49d…71499`. The run took 90 s on one core. An earlier identical run is kept as `character-full-01.json`.
 
 Native golden data (`native/tests/test_native_character.py`, `character_reference.py`):
 
