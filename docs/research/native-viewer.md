@@ -5,7 +5,7 @@ This is the first native macOS rendering milestone. It builds an arm64 viewer, w
 - loads a client BMD model of any supported version and its textures;
 - animates the model with the reconstructed animation tick `0x012b4dd3` and pose builder `0x012b5064`, after the reconstructed bone-track loop `0x012b4225`;
 - skins it with the reconstructed CPU transform `0x012b5bde`;
-- draws it with the per-corner rules of the mesh draw `0x012b8d1d`.
+- draws it with a port of the mesh draw `0x012b8d1d` and body `0x012bb35a` whose GL call stream equals the client's own routine executed under Unicorn ([client-meshdraw-exec.md](client-meshdraw-exec.md)).
 
 This is a viewer. It is not a game client, and it does not change any acceptance gate in `roadmap.md`. The source is in [`native/`](../../native/README.md).
 
@@ -29,7 +29,7 @@ The viewer uses OpenGL 2.1 (legacy compatibility context) through SDL2.
 | Layout checks | C port of every `model-recovery/bmd10.py` check | yes; tested for equal acceptance |
 | Bone tracks | `bone_tracks.c` `mu_bone_tracks_read` | no |
 | Tick, pose, skin | `skinning.c` `mu_animation_tick`, `pose_builder.c` `mu_pose_build`, `skinning.c` `mu_model_transform`, `record_math.c` | no |
-| Corner loop and colour pass | `native/core/mu_meshdraw.c`, a port of `mac-play/hotpatch/meshdraw.c` `md_run`/`md_light_run` | ported: same rules and operation order, explicit host pointers |
+| Mesh draw, body, state wrappers, normal-texcoord table | `native/core/mu_meshdraw.c`, ported from the instructions and compared with the executed routine (CLIENT-MESHDRAW-EXEC-001) | ported: literal GL call stream, explicit host pointers |
 | Images | wrapper rules of `asset-recovery/recover_images.py` | C decoders (TGA, BMP, libjpeg) |
 
 `native/core/mu_model.c` lays the checked model out as client memory and owns these choices:
@@ -50,7 +50,7 @@ The figures below are of two kinds. Keep them apart when citing this milestone.
 - **CI-verified on every push** (synthetic data only, `make test` on `macos-latest` arm64 and `ubuntu-latest` x86_64):
   - the loader agreement and malformed-input checks;
   - the 50 golden cases (42 synthetic + 8 v14 oracle vectors);
-  - the 50 mesh-draw streams against `meshdraw_reference.py`;
+  - 207 viewer and 40 mutated mesh-draw streams against digests of the client's own streams (pinned from the Unicorn validator, which recomputes them);
   - texture decoding against Pillow;
   - the five pinned software-render hashes, on macOS arm64 and Linux x86_64.
 
@@ -103,25 +103,14 @@ Private, installed (`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT`):
 
 ### Mesh-draw equivalence
 
-`native/tests/meshdraw_reference.py` is a second implementation of the rules. It was written from `meshdraw-notes.md` and the static state reading, not from the C module (reported by the author; the repository cannot show authorship order), with binary32 rounding of every operation. It is fed the transform outputs that the golden test verified, and must match `mu-render corners` bitwise. That stream records the state, the pre-loop colour, begin/end and every texcoord, colour and vertex call.
+Superseded by CLIENT-MESHDRAW-EXEC-001 ([client-meshdraw-exec.md](client-meshdraw-exec.md)). The port is compared with the client's mesh draw and body executed under Unicorn: every GL call, the final caches and model colour, and the tables each draw wrote. Synthetic viewer, mutated and installed cases all match, and every branch probe is reached. CI pins the client-verified stream digests (`MeshDrawTests`). The private test re-runs the validator and checks that the pins equal the client's streams. The earlier independent rule model (`meshdraw_reference.py`) encoded the old static reading and has been removed.
 
-- 25 option sets x 2 models (v10, v15) = 50 streams, more than 8,000 records.
-- Coverage:
+What changed against the static reading:
 
-| Draw mode / flag | Rule | Covered |
-|---|---|---|
-| 2 | mesh UVs; uv offset on the selected mesh; per-normal colour with the light byte | yes (light on/off, mesh skip, secondary-light select) |
-| 4 | object colour + normal-table texcoord | yes |
-| 0x1000, 0x80000, 0x100000 | object colour + normal-table texcoord + uv offset | yes |
-| 1, 0x40, others | no attributes | yes for 1 and 0x40 (the shared default branch); other values not exercised |
-| alpha >= 0.99 / < 0.99 / NaN | glColor3fv / glColor4f / glColor4f | yes |
-| flag 0x20 | planar projection about the origin (2000, 4000, 5) | yes (also 0x420: 0x20 wins) |
-| flag 0x200000 | skip corner when voff > z of corners 0..2 | yes (no cull and partial cull) |
-| colour pass | L*C, or S*C + 0.2 with model +0xcb == 1 | yes |
-| mode 0x8000, flag 0x400 | client calls (alpha/colour mutation, client sine) | refused, emits nothing; tested |
-| state reading | blend/depth/cull/alpha from flags 1, 0x10, 0x40, 0x80, 0x2000, 0x40000, 0x400000 | yes (static reading only) |
-
-Direct ctypes checks cover refusing out-of-range indices before any call, and NaN alpha. In game, modes 2, 4, 0x1000 and 0x40 were the only ones observed (meshdraw-notes.md). The 0x20 and 0x200000 paths were never seen there, so in-game evidence for them is still missing.
+* The draw mode is derived from the flags. The `--mode` and `--uv-mesh` options are gone; `--select`, `--color-scale`, `--skip-mesh`, `--texture`, `--time` and `--env-vector` set the routine's other inputs.
+* The normal-texcoord table is the routine's own writer, not 0.5 + 0.5·normal.
+* Mode 0x8000 and flag 0x400 are ported. In the viewer, 0x8000 stops where the client faults: model bitmaps keep no pixels.
+* The mesh `+0x1c` records come from the texture names.
 
 ### Textures
 
@@ -130,7 +119,7 @@ Direct ctypes checks cover refusing out-of-range indices before any call, and Na
 
 ### Renders
 
-- `mu-render render` uses the software rasterizer. Five settings on a synthetic textured model have pinned SHA-256 hashes of the raw RGBA pixels: default, nearest filtering with a pose, blend with cull, additive environment mode, and alpha test unlit. CI checks the same hashes on macOS arm64 and Ubuntu x86_64. The author also reports them on Ubuntu 24.04 arm64 and x86_64 in local docker containers (x86_64 emulated). The PNG round trip and repeat determinism are checked, and the three envelopes render identically.
+- `mu-render render` uses the software rasterizer. Five settings on a synthetic textured model have pinned SHA-256 hashes of the raw RGBA pixels: default (client GL_NEAREST), forced linear filtering with a pose, alpha blend with cull (`0x40002`), additive environment (`0x1040`), and alpha test unlit. CI checks the same hashes on macOS arm64 and Ubuntu x86_64. They were re-pinned for CLIENT-MESHDRAW-EXEC-001: the fixture TGAs now follow the client's TGA rule (32-bit, uncompressed, one with the ignored origin bit, one padded to a power of two). The earlier pins were also reported on Ubuntu 24.04 arm64 and x86_64 containers; the new ones were not. The PNG round trip and repeat determinism are checked, and the three envelopes render identically.
 - `mu-viewer --headless --backend gl --compare` renders through CGL and an FBO and compares with the software path.
   - Synthetic, test bound: under 1% of pixels may differ by more than 8/255.
   - Installed models (reported, private): Monster05: 4 of 307,200 pixels differ by more than 8/255.
@@ -156,23 +145,15 @@ No mesh was refused and no polygon has four corners. The v12, v14 and v15 vertex
 
 ## Not established (gaps)
 
-- **State and texture setup is a static reading.** The flag-to-state mapping, the pre-loop colour and the mesh texture bind follow the static reading; the mesh draw body was never executed. These are unknown:
-  - the draw-mode selection from the caller's flags;
-  - the uv-offset mesh selector;
-  - texture filtering, wrap, mipmaps and row order;
-  - the alpha-test reference;
-  - the depth function;
-  - fog.
-
-  The viewer's values (GL_LINEAR, GL_REPEAT, top row first, LEQUAL, GREATER 0.25) are choices.
-- **The normal-indexed texcoord table is a placeholder.** Its writer (`0x072acfd8`, used by modes 4/0x1000/0x80000/0x100000) is unrecovered. The viewer substitutes 0.5 + 0.5·(normal x, y), labelled as such.
+- **Live draw arguments.** The mesh draw's rules are verified by execution, but the flags, alpha, select and texture arguments and the model fields that game callers pass are unknown. The viewer defaults to body flags 2, the dominant immediate. Texture filtering, wrap, row order, mipmaps, depth function, alpha reference and fog are static readings of the loaders and scene setup ([client-meshdraw-exec.md](client-meshdraw-exec.md#static-readings-not-executed)).
+- **Large time values.** sin/cos arguments of magnitude 90,112 or more take the CRT's x87 fallback. Unicorn evaluates it with the host libm, so the port's equality there is unverified. This affects wave 0x400 after about 3.6 hours of client time.
 - **Animation control is the viewer's own.** Action changes, speeds and stop flags are viewer controls; the client's action-change code is untraced. Player parts and attachments are now assembled by the character mode ([NATIVE-CHAR-001](native-character.md)).
-- **Some draw paths are left out.** Mode 0x8000 and flag 0x400 need client routines and are refused. The 17 rejected v15 files remain rejected.
+- **Some inputs stay unsupported.** Mode 0x8000 faults in the viewer, as the client would on a freed pixel buffer. The 17 rejected v15 files remain rejected.
 
 ## Recommended next native milestones
 
 1. **Character assembly.** Done in [NATIVE-CHAR-001](native-character.md). Its open items are the world-path weapon details (lighting flag, draw `0x0176ce74`, per-part animation state, attribute branches, back-carried weapons) and action names.
-2. **Execute the mesh draw `0x012b8d1d` and body `0x012bb35a` under Unicorn** with a GL-call recorder, as planned in the CLIENT-SKIN-001 handoff. Compare against `mu_meshdraw` and this scene driver. That settles mode selection, state, textures and the normal table.
+2. **Done:** the mesh draw and body executed under Unicorn ([CLIENT-MESHDRAW-EXEC-001](client-meshdraw-exec.md)).
 3. **Terrain.** Done for the ground itself (NATIVE-TERRAIN-001, [client-terrain.md](client-terrain.md)); static objects wait for the `.obj` placement.
 4. **Effects.** The JSON effect system with its 144-byte stream VBO sprites and particles (EFFECT-001).
 5. **UI and fonts.** The 2D helpers `0x0184d9bb`/`0x0184dcb1` and the bitmap font path.

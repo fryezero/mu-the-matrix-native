@@ -1107,6 +1107,48 @@
         "Fast x87 and anti-cheat variant options are TODO hooks",
         "Other CrossOver/macOS versions and Intel Macs untested"
       ]
+    },
+    "client_meshdraw_exec": {
+      "finding": "docs/research/client-meshdraw-exec.md",
+      "validator": "scripts/validate_meshdraw.py",
+      "routines_executed": [
+        "0x012b8d1d mesh draw",
+        "0x012bb35a body",
+        "0x0184a6da..0x0184acf6 GL state wrappers",
+        "0x01185111 texture-name parser",
+        "0x00968117/0x009fa20d/0x009f4218 sin/cos/pow wrappers"
+      ],
+      "modelled": [
+        "bitmap lookups 0x00c97c2d/0x00ebbec8",
+        "CRT _getptd 0x019a4ba6",
+        "case memory and initial GL caches",
+        "TEB/SEH head",
+        "fast-math word 0x0bdcfbc8 (math sweep only)"
+      ],
+      "synthetic_viewer_matches": "207/207",
+      "mutated_matches": "500/500",
+      "installed_matches": "2713/2713",
+      "installed_folders": 122,
+      "gl_records_compared": 7033092,
+      "branch_probes_reached": "64/64",
+      "fault_cases_synthetic_installed": [
+        17,
+        71
+      ],
+      "texture_names_matched_synthetic_installed": [
+        "4038/4038",
+        "9461/9461"
+      ],
+      "negative_controls_failed": "4/4",
+      "math_binary32_differences": 0,
+      "sse2_trig_domain": "|x| < 90112; larger arguments take the x87 fallback, which Unicorn evaluates with the host libm (not evidence)",
+      "pinned_ci_digest_groups": {
+        "corners_207": "9d9cf95c32ad48c51ad25b749e5f33841c87db9c58dc1deded05d5997d8ccc00",
+        "replay_40": "86f3593ad959e835e18255b0518c69efccd395c2140ae11a4953a80ffa4d901c"
+      },
+      "mesh_flag_and_sub_record_source": "static: loader 0x012b3812 writes +0x00 = 0 (0x012b3edd) and +0x1c from the parser (0x012b409a..0x012b4130)",
+      "live_caller_arguments_known": false,
+      "local_report": "~/Documents/mu-mac-tools/native/scratch/unicorn (validator JSON reports kept locally, not committed)"
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",

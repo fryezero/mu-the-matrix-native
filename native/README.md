@@ -1,6 +1,6 @@
 # Native viewer (NATIVE-VIEW-001)
 
-This is the first native macOS rendering milestone. It is an arm64 viewer that does not use Wine or Rosetta. It loads a client BMD model and its textures, animates it with the reconstructed animation tick and pose builder, skins it with the reconstructed CPU transform (`mu_model_transform`) and draws it with the ported per-corner rules of the client's mesh draw routine `0x012b8d1d`. It is a model viewer, not a game client. See [the finding](../docs/research/native-viewer.md) for evidence and limits.
+This is the first native macOS rendering milestone. It is an arm64 viewer that does not use Wine or Rosetta. It loads a client BMD model and its textures, animates it with the reconstructed animation tick and pose builder, skins it with the reconstructed CPU transform (`mu_model_transform`) and draws it with a port of the client's mesh draw `0x012b8d1d` and body `0x012bb35a`. That port's GL call stream equals the routine executed under Unicorn ([CLIENT-MESHDRAW-EXEC-001](../docs/research/client-meshdraw-exec.md)). It is a model viewer, not a game client. See [the finding](../docs/research/native-viewer.md) for evidence and limits.
 
 ## Build
 
@@ -20,7 +20,8 @@ native/build/mu-viewer "$MU_GAME_ROOT/Data/Monster/Monster01.bmd"
 native/build/mu-viewer --headless --backend gl --compare --out /tmp/m.png MODEL.bmd
 native/build/mu-render render MODEL.bmd --out /tmp/m.png        # software rasterizer, prints SHA-256
 native/build/mu-render dump MODEL.bmd --out /tmp/m.bin --action 1 --frame 2.5 --ticks 3
-native/build/mu-render corners MODEL.bmd --out /tmp/m.ops --mode 4
+native/build/mu-render corners MODEL.bmd --out /tmp/m.ops --flags 0x1000 --time 2500 --case-out /tmp/m.case
+native/build/mu-render replay /tmp/m.case --out /tmp/r.ops --tables-out /tmp/r.tables
 native/build/mu-render scan "$MU_GAME_ROOT/Data"                # read-only corpus pass
 
 native/build/mu-proto build C1 F1 010203 --xor                 # compose a packet
@@ -50,7 +51,7 @@ Viewer controls:
 
 - Mouse: left drag orbits, right drag (or Shift+left) pans, the wheel zooms.
 - Animation: Space plays or pauses. Left and Right switch actions. Up and Down change the speed. `,` and `.` step one frame while paused. S toggles the action's stop flag.
-- Drawing: M cycles the draw mode (2, 4, 0x1000, 1). L toggles lighting and T toggles the alpha test. C cycles culling (follow the state reading, off, on). F flips the front face and G toggles wireframe.
+- Drawing: M cycles the render flags (2, 0x42, 4, 0x1000, 0x4000, 1); the mesh draw derives its mode from them. L toggles lighting and T toggles the alpha test. C cycles culling (follow the state reading, off, on). F flips the front face and G toggles wireframe.
 - Files and view: N and P load the next or previous model in the directory. R resets the camera. O saves a screenshot.
 
 Game logic advances in fixed 40 ms steps, like the client's frame driver. All options are listed by `mu-render` without arguments.
@@ -103,10 +104,11 @@ MP3/OGG decode through AudioToolbox on macOS only.
 | `core/mu_bmd.*` | Envelope decoding through the repository's v12/v15 client-linked decoders and the v14 Crypto++ reader, then a C port of every `bmd10.py` check |
 | `core/mu_model.*` | Lays the model out as client memory, runs `mu_bone_tracks_read` once, then calls `mu_animation_tick`, `mu_pose_build` and `mu_model_transform` unchanged |
 | `core/mu_character.*` | Character assembly: Player pose into one shared bone/root buffer, body parts skinned against it, items attached through the reconstructed rotation position and a keep-root pose |
-| `core/mu_meshdraw.*` | Platform-neutral port of the per-corner loop and colour pass from `mac-play/hotpatch/meshdraw.c` (no Windows or x86 dependencies, no client addresses) |
-| `core/mu_scene.*` | Per-mesh client order: pre-loop colour, colour pass, state and texture, one `GL_TRIANGLES` block |
+| `core/mu_meshdraw.*` | Platform-neutral port of the mesh draw, body, GL state wrappers, normal-texcoord table and texture-name sub-object parser, emitting the literal GL call stream |
+| `core/mu_meshdraw_case.*` | Self-contained mesh-draw case files (inputs + calls) shared with `scripts/validate_meshdraw.py` |
+| `core/mu_scene.*` | Builds the client inputs for a BMD and forwards the stream to a backend (effective state per `glBegin`) |
 | `core/mu_raster.*` | Deterministic software rasterizer for headless renders with host-independent hashes |
-| `core/mu_image.*`, `mu_textures.*` | OZJ/OZT/OZB unwrapping as in `recover_images.py`, plus TGA, BMP and JPEG decoding |
+| `core/mu_image.*`, `mu_textures.*` | OZJ/OZT/OZB unwrapping as in `recover_images.py`, TGA, BMP and JPEG decoding, and the client's upload rules (TGA/JPEG rule, power-of-two padding, per-texture filter and wrap) |
 | `core/mu_camera.*`, `mu_png.*`, `mu_options.*` | Camera with libm-free trigonometry, a PNG writer and SHA-256, shared options |
 | `core/mu_actor.*`, `mu_gif.*` | Monster/NPC actors: file resolution, the reconstructed opener's action speeds over the model's client memory, SetAction and the animation step per 40 ms; animated GIF writer |
 | `core/mu_terrain.*` | World loading (decryption, reconstructed parsers, heights, light, bitmaps) and the terrain raster adapter |
@@ -117,8 +119,8 @@ MP3/OGG decode through AudioToolbox on macOS only.
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `tools/mu_render.c` | Headless CLI used by the tests |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
-| `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), independent mesh-draw model, unittest suites |
+| `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 
 ## Tests
 
-`make test` runs `native/tests`. The portable checks build everything from authored synthetic models and textures. The private checks run with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=...`. Set `MU_NATIVE_GOLDEN_PER_VERSION` and `MU_NATIVE_GOLDEN_MAX_VERTICES` to widen the installed golden sample. Renders of installed assets stay local and are never committed.
+`make test` runs `native/tests`. The portable checks build everything from authored synthetic models and textures. The private checks run with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=...`. Set `MU_NATIVE_GOLDEN_PER_VERSION` and `MU_NATIVE_GOLDEN_MAX_VERTICES` to widen the installed golden sample. The private mesh-draw execution test needs Unicorn (`tools/requirements-lock.txt`) and the pinned evidence (`MU_CLIENT_TEXT`, `MU_IMAGE_DATA`, `MU_TRIG_FLAG`, `MU_MATH_DATA`, or the default `evidence/` paths); `MU_MESHDRAW_PER_FOLDER` widens its installed sample. Renders of installed assets stay local and are never committed.

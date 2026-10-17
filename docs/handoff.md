@@ -993,3 +993,57 @@ map the SND_Play call sites to game events; wire the module into the native clie
 
 No game, CrossOver bottle or registry was touched.
 
+## Mesh draw executed (CLIENT-MESHDRAW-EXEC-001)
+
+Branch `claude/native-unicorn`, worktree `~/Documents/mu-worktrees/native-unicorn`. Read
+[`research/client-meshdraw-exec.md`](research/client-meshdraw-exec.md).
+
+**Built.**
+
+* `native/core/mu_meshdraw.{c,h}`: a port of the mesh draw `0x012b8d1d`, body `0x012bb35a`, GL state wrappers
+  and the `0x072acfd8` normal-texcoord writer, emitting the literal GL call stream. It also ports the
+  texture-name parser `0x01185111` (`mu_meshdraw_sub_from_name`). New conventions: `MU_MESHDRAW_FAULT` stops
+  where mode 0x8000 would read outside a pixel buffer; out-of-range indices are refused.
+* `native/core/mu_meshdraw_case.{c,h}`: self-contained case files. They are written by `mu-render corners --case-out`
+  and replayed by `mu-render replay`.
+* Scene, textures and viewer:
+  * `mu_scene` builds mesh `+0x1c` records from the texture names and keeps no pixel buffers;
+  * `mu_textures` applies the client upload rules;
+  * the GL backend uses per-texture filter and wrap with the client's GL enums;
+  * the viewer's M key cycles flags, and windowed time advances.
+* `scripts/validate_meshdraw.py`: the Unicorn harness, also covering the name parser, a math sweep, pinned CI
+  cases and negative controls.
+
+**Checks run.**
+
+* Validator, full configuration (`--per-folder 30 --mutations 500 --math-sweep 200000`, 9 min 40 s):
+  * synthetic: 207/207 viewer and 500/500 mutated cases;
+  * installed: 2,713/2,713 cases (7,033,092 records in total), 64/64 branch probes reached;
+  * texture names: 9,461/9,461 installed and 4,038/4,038 synthetic;
+  * math: 0 binary32 differences;
+  * negative controls: 4/4 fail;
+  * pinned CI groups: equal to the test pins.
+* A two-change perturbation of the port fails 11 cases.
+* `make test PYTHON=tools/.venv/bin/python`: 274 run, 23 explicit skips, all OK (macOS).
+* `make -C native viewer` builds with `-Werror`.
+* Private native tests: all 20 pass with `MU_RECOVERY_INTEGRATION=1` and the evidence paths from `main-exe-study` (714 s; the mesh-draw execution test runs the validator at 3 models per folder).
+* `scripts/audit_repository.py` on the staged tree: 0 rejected.
+* Local renders: `~/Documents/mu-mac-tools/native/renders/meshdraw-*.png`.
+  * Headless GL with `--compare` on Monster05, Sword01, Bonfire01, CR_shield01 and ArmorClass01, plus `0x1000` chrome and
+    `0x42` additive variants.
+  * At most 23 pixels per 512x512 frame differ from the software path by more than 8/255.
+
+**Corrections to earlier notes.**
+
+* The WIP commit message said the scene setup's fog mode is GL_EXP. It is
+  `glFogi(GL_FOG_MODE, GL_LINEAR)` (`0x0184b073`).
+* The viewer's previous normal-table placeholder and state reading are replaced by the executed rules.
+
+**Next.**
+
+* Character assembly (Player skeleton, part models, keep-root attachments).
+* Find the live callers' flags and model fields (`+0x44`, `+0x94`, `+0xa4..+0xa6`, `+0xca`, `+0xcb`) and any
+  writer of sub-object `[4]`.
+* Port or verify the CRT x87 trig fallback for arguments of magnitude 90,112 or more.
+
+No game, CrossOver bottle or registry was touched; installed BMDs were read only.
