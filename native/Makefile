@@ -58,7 +58,10 @@ LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
            $(RECON)/terrain/terrain.h
 
-all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/libmumeshdraw.$(if $(filter Darwin,$(UNAME)),dylib,so)
+SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
+
+all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
+     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT)
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -89,6 +92,16 @@ $(BUILD)/mu-terrain: tools/mu_terrain.c $(LIB)
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared core/mu_meshdraw.c -o $@
+
+# ---- network protocol module (NATIVE-NET-001) ----
+# Self-contained: framing + send obfuscation only, no Crypto++ or client bytes.
+$(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) tools/mu_proto.c core/mu_protocol.c -o $@
+
+$(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) -fPIC -shared core/mu_protocol.c -o $@
 
 # ---- windowed viewer ----
 SDL_CONFIG ?= sdl2-config

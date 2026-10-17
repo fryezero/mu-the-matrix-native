@@ -21,6 +21,10 @@ native/build/mu-render render MODEL.bmd --out /tmp/m.png        # software raste
 native/build/mu-render dump MODEL.bmd --out /tmp/m.bin --action 1 --frame 2.5 --ticks 3
 native/build/mu-render corners MODEL.bmd --out /tmp/m.ops --mode 4
 native/build/mu-render scan "$MU_GAME_ROOT/Data"                # read-only corpus pass
+
+native/build/mu-proto build C1 F1 010203 --xor                 # compose a packet
+native/build/mu-proto parse c106f1010203                       # classify a frame
+native/build/mu-proto dechunk c106f1010203c2000700aabbcc        # split a stream
 ```
 
 Character mode (NATIVE-CHAR-001, [finding](../docs/research/native-character.md)) assembles a player from the shared `Player.bmd` skeleton. Class body parts come from a class byte: low nibble class, high nibble evolution flags. Slots 1..5 (helm..boots) can be overridden with `--part`. Weapon slot 0 links to bone 33 (right hand), slot 1 to bone 42 (left hand) and `--wing` to bone 47:
@@ -75,6 +79,7 @@ drawn: the installed `EncTerrain*.obj` files do not decode with the client's loa
 | `core/mu_camera.*`, `mu_png.*`, `mu_options.*` | Camera with libm-free trigonometry, a PNG writer and SHA-256, shared options |
 | `core/mu_terrain.*` | World loading (decryption, reconstructed parsers, heights, light, bitmaps) and the terrain raster adapter |
 | `tools/mu_terrain.c` | Headless terrain CLI (`build/mu-terrain`) |
+| `core/mu_protocol.*` | NATIVE-NET-001 network protocol: C1–C4 framing, the send obfuscation XOR, the packet builder, the receive dechunker and the serial counter. No Crypto++, no client bytes. See [the finding](../docs/research/client-net-protocol.md) |
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `tools/mu_render.c` | Headless CLI used by the tests |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), independent mesh-draw model, unittest suites |
