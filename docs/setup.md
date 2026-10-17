@@ -75,6 +75,12 @@ midpoint scanner. See [the rotation finding](research/client-rotation.md).
 The bone-track check uses those captures, the math-data feature word
 (`MU_MATH_DATA`) and `MU_GAME_ROOT` for installed v12/v14 models. See
 [the bone-track finding](research/client-bone-tracks.md).
+The network-protocol check (`scripts/validate_protocol.py`) needs Unicorn, the
+restored first section and the second image section
+(`evidence/image-data-run10/data-capture-10/client-image-data.bin`, or `--data`),
+and `native/build/libmuprotocol.*` from `make -C native`. It runs the client's
+own `AddData`/`XorData` and `nRecv` and compares the authored C byte for byte.
+See [the network-protocol finding](research/client-net-protocol.md).
 
 For complete corpus scans, use the reader CLIs, supply the installation root,
 and write to a new directory outside the installation:

@@ -108,6 +108,8 @@ not exist yet.
   * Golden data. `chardump` equals an independent reference in 18 synthetic cases (CI, macOS and Linux) and on 5 installed characters (reported, private).
   * Limits. The render routines themselves are static readings. World-path weapon details, attribute branches, back-carried weapons, effects and action names are open. [Evidence](research/native-character.md).
 
+- Network protocol layer (NATIVE-NET-001). `native/core/mu_protocol.*` plus the `mu-proto` CLI reconstruct the client's own framing and send obfuscation around its `ws2_32` calls: C1/C2/C3/C4 headers and size rules, the 32-byte chained send XOR (`XorData` `0x00d52055`), the packet builder (`Begin`/`AddData`/`WriteSize`) and the receive dechunker (`nRecv` `0x01290792`). The authored C equals the client's actual instructions under Unicorn (`scripts/validate_protocol.py`: 500 build cases, 300 receive-framing cases, 0 mismatches). The C3/C4 CryptoModule (17 block ciphers identified by emulation KATs, key string recovered) and the receive dispatcher / login + server-list packet bodies are mapped but documented as the next step, not reconstructed. Offline only; no server contact, no bottle touched. [Evidence](research/client-net-protocol.md).
+
 ## Verification
 
 The suite discovers 282 Python tests (macOS, NATIVE-CHAR-001 worktree after its review). Portable checks pass 257 and explicitly skip
@@ -315,3 +317,5 @@ per-routine counts, `IGC.dll` hook behaviour and whether animation runs per fram
 remain open. No guest or CrossOver run was needed, and nothing was patched.
 
 NATIVE-VIEW-001 (branch `claude/native-viewer`) adds the native model viewer `native/`. It is a viewer for verified model code, built with SDL2 and OpenGL 2.1, a CGL headless path and a deterministic software rasterizer. Golden data equals the reconstructed functions on synthetic models in CI and on all 12,627 posable installed models in a private run. The mesh-draw call stream equals an independent rule model. [Finding](research/native-viewer.md). The mesh draw itself was never executed, so its state and mode readings stay static. No game, bottle or registry was touched.
+
+NATIVE-NET-001 (branch `claude/native-net`) adds the client's network protocol layer under `native/core/mu_protocol.*` with the `mu-proto` CLI, portable tests and a Unicorn validator. It reconstructs the C1/C2/C3/C4 framing, the chained send XOR, the packet builder and the receive dechunker from the restored `main.exe`, verified bit-exact against the client's own `AddData`/`XorData`/`nRecv` instructions (`scripts/validate_protocol.py`). The C3/C4 CryptoModule cipher (primitives identified by emulation) and the receive dispatcher plus login/server-list packet bodies are mapped statically and left as the documented next step. The `ws2_32` calls are platform boundaries; protection modules were not analysed. Offline only. [Finding](research/client-net-protocol.md).
