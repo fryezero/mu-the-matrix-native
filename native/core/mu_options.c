@@ -38,7 +38,7 @@ void mu_options_usage(const char *program)
             "usage: %s [options] MODEL.bmd\n"
             "  animation: --action N --frame F --prior-action N --prior-frame F --ticks N --speed F --stop\n"
             "  draw:      --flags F --alpha F --select I --color-scale F --uv-offset U V --skip-mesh I --texture N\n"
-            "             --time MS --env-vector X Y Z --alpha-test --cull 0|1\n"
+            "             --client-time MS --env-vector X Y Z --alpha-test --cull 0|1\n"
             "  model:     --scale F --origin X Y Z --angles X Y Z --head X Y --color R G B --lighting 0|1\n"
             "             --light-angles X Y Z --secondary 0|1 --ambient F --light-scale F --light-min F\n"
             "             --vertex-scale F --bone-scale F --world N --scene N --bounds-mode N --light-override 0|1\n"
@@ -92,7 +92,7 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--color-scale")) { NEED(1); o->draw.color_scale = (float)v[0]; }
         else if (!strcmp(a, "--skip-mesh")) { NEED(1); o->draw.skip_mesh = (int32_t)v[0]; }
         else if (!strcmp(a, "--texture")) { NEED(1); o->draw.texture = (int32_t)v[0]; }
-        else if (!strcmp(a, "--time")) { NEED(1); o->draw.time = (float)v[0]; }
+        else if (!strcmp(a, "--client-time")) { NEED(1); o->draw.time = (float)v[0]; }
         else if (!strcmp(a, "--env-vector")) { NEED(3); for (int k = 0; k < 3; ++k) o->draw.env_vector[k] = (float)v[k]; }
         else if (!strcmp(a, "--alpha-test")) o->draw.alpha_test = 1;
         else if (!strcmp(a, "--cull")) { NEED(1); o->draw.cull = (int8_t)v[0]; }

@@ -107,7 +107,7 @@ Superseded by CLIENT-MESHDRAW-EXEC-001 ([client-meshdraw-exec.md](client-meshdra
 
 What changed against the static reading:
 
-* The draw mode is derived from the flags. The `--mode` and `--uv-mesh` options are gone; `--select`, `--color-scale`, `--skip-mesh`, `--texture`, `--time` and `--env-vector` set the routine's other inputs.
+* The draw mode is derived from the flags. The `--mode` and `--uv-mesh` options are gone; `--select`, `--color-scale`, `--skip-mesh`, `--texture`, `--client-time` (the time global, milliseconds) and `--env-vector` set the routine's other inputs.
 * The normal-texcoord table is the routine's own writer, not 0.5 + 0.5·normal.
 * Mode 0x8000 and flag 0x400 are ported. In the viewer, 0x8000 stops where the client faults: model bitmaps keep no pixels.
 * The mesh `+0x1c` records come from the texture names.

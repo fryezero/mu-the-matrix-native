@@ -155,6 +155,8 @@ int main(int argc, char **argv)
     if (hero.loaded) {
         raster.textures = hero.textures.slots;
         raster.texture_count = hero.textures.count;
+        raster.texture_filter = hero.textures.filter;
+        raster.texture_wrap = hero.textures.wrap;
     }
     mu_render_backend backend;
     mu_raster_backend(&raster, &backend);
@@ -193,7 +195,8 @@ int main(int argc, char **argv)
             if (hero.loaded) {
                 mu_draw_options options;
                 mu_draw_default_options(&options);
-                mu_draw_stats stats = {0, 0, 0};
+                options.textures = &hero.textures;   /* bitmap GL names and component counts */
+                mu_draw_stats stats = {0, 0, 0, 0};
                 mu_scene_draw_model(&hero.model, &options, &backend, &stats);
             }
             mu_sha256_hex(raster.color, (uint64_t)width * (uint64_t)height * 4, hash);

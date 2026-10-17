@@ -20,7 +20,7 @@ native/build/mu-viewer "$MU_GAME_ROOT/Data/Monster/Monster01.bmd"
 native/build/mu-viewer --headless --backend gl --compare --out /tmp/m.png MODEL.bmd
 native/build/mu-render render MODEL.bmd --out /tmp/m.png        # software rasterizer, prints SHA-256
 native/build/mu-render dump MODEL.bmd --out /tmp/m.bin --action 1 --frame 2.5 --ticks 3
-native/build/mu-render corners MODEL.bmd --out /tmp/m.ops --flags 0x1000 --time 2500 --case-out /tmp/m.case
+native/build/mu-render corners MODEL.bmd --out /tmp/m.ops --flags 0x1000 --client-time 2500 --case-out /tmp/m.case
 native/build/mu-render replay /tmp/m.case --out /tmp/r.ops --tables-out /tmp/r.tables
 native/build/mu-render scan "$MU_GAME_ROOT/Data"                # read-only corpus pass
 

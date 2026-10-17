@@ -15,8 +15,8 @@
  * Esc/Q quit.
  *
  * Headless: --headless [--backend gl|soft] --out PNG [--compare].
- * Windowed, the client time global (--time, milliseconds) advances with the
- * wall clock so the environment flags animate; headless keeps --time fixed.
+ * Windowed, the client time global (--client-time, milliseconds) advances with the
+ * wall clock so the environment flags animate; headless keeps --client-time fixed.
  *
  * Character mode (any character option, e.g. --game-root DIR --class 1): the
  * positional model is Player.bmd (default DIR/Data/Player/Player.bmd); class

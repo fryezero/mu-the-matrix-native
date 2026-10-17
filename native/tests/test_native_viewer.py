@@ -265,8 +265,8 @@ class MeshDrawTests(NativeBuild):
 
     def test_digest_detects_a_changed_input(self):
         path = vm.synthetic_models(self.tmp)[0][1]
-        a = vm.corners_case(path, vm.SYNTHETIC_BASE+['--flags', '0x1000', '--time', '100'], self.tmp, 'a')[1]
-        b = vm.corners_case(path, vm.SYNTHETIC_BASE+['--flags', '0x1000', '--time', '101'], self.tmp, 'b')[1]
+        a = vm.corners_case(path, vm.SYNTHETIC_BASE+['--flags', '0x1000', '--client-time', '100'], self.tmp, 'a')[1]
+        b = vm.corners_case(path, vm.SYNTHETIC_BASE+['--flags', '0x1000', '--client-time', '101'], self.tmp, 'b')[1]
         self.assertNotEqual(vm.stream_digest(a), vm.stream_digest(b))
 
     def test_texture_name_records(self):
@@ -386,7 +386,7 @@ class RenderTests(NativeBuild):
         'default': [],
         'linear-yaw': ['--linear', '--yaw', '35', '--pitch', '-10', '--action', '1', '--frame', '2.5'],
         'blend-alpha': ['--alpha', '0.6', '--flags', '0x40002', '--background', '0', '0', '0'],
-        'additive-env': ['--flags', '0x1040', '--time', '2500', '--uv-offset', '0.1', '0.2'],
+        'additive-env': ['--flags', '0x1040', '--client-time', '2500', '--uv-offset', '0.1', '0.2'],
         'alpha-test-unlit': ['--alpha-test', '--lighting', '0', '--color', '0.8', '0.6', '1.0', '--cull', '0'],
     }
 

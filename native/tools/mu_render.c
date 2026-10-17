@@ -686,7 +686,11 @@ static int command_character(const mu_options *o)
                 continue;
             raster.textures = item->textures.slots;
             raster.texture_count = item->textures.count;
-            mu_scene_draw_model(&item->model, &o->draw, &backend, &stats);
+            raster.texture_filter = item->textures.filter;
+            raster.texture_wrap = item->textures.wrap;
+            mu_draw_options draw = o->draw;   /* the item's bitmap records (GL names, component counts) */
+            draw.textures = o->no_textures ? NULL : &item->textures;
+            mu_scene_draw_model(&item->model, &draw, &backend, &stats);
             missing += item->textures.missing;
             items++;
         }
@@ -742,10 +746,14 @@ static int command_actor(const mu_options *o)
         mu_actor_free(&actor);
         return 1;
     }
-    raster.linear = !o->nearest;
+    raster.linear = o->linear;
     raster.front_ccw = !o->front_cw;
     raster.textures = actor.textures.slots;
     raster.texture_count = actor.textures.count;
+    raster.texture_filter = actor.textures.filter;
+    raster.texture_wrap = actor.textures.wrap;
+    mu_draw_options draw = o->draw;   /* the actor's bitmap records (GL names, component counts) */
+    draw.textures = o->no_textures ? NULL : &actor.textures;
     size_t frame_bytes = (size_t)o->width * (size_t)o->height * 4;
     uint8_t *frames = malloc(frame_bytes * (size_t)o->frames);
     if (!frames) {
@@ -777,7 +785,7 @@ static int command_actor(const mu_options *o)
         mu_raster_clear(&raster, o->background);
         mu_render_backend backend;
         mu_raster_backend(&raster, &backend);
-        mu_scene_draw_model(&actor.model, &o->draw, &backend, &stats);
+        mu_scene_draw_model(&actor.model, &draw, &backend, &stats);
         memcpy(frames + frame_bytes * (size_t)n, raster.color, frame_bytes);
         if (n == 0)
             mu_sha256_hex(raster.color, frame_bytes, hash);

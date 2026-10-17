@@ -854,10 +854,10 @@ def option_matrix(rng):
         ['--select', '1', '--flags', '0x40'], ['--uv-offset', '0.25', '-0.5', '--flags', '0x1000', '--select', '-1'],
         ['--uv-offset', '0', '5', '--flags', '0x200000'], ['--secondary', '1'], ['--light-skip-mesh', '1'],
         ['--skip-mesh', '2'], ['--texture', '0x9001'], ['--texture', '0x9001', '--flags', '0x8000'],
-        ['--time', '123456.75', '--flags', '0x1000'], ['--time', '98765.5', '--flags', '0x4000'],
-        ['--time', '4321.25', '--flags', '0x204'], ['--time', '777.5', '--flags', '0x20000'],
-        ['--time', '-5000.5', '--flags', '4'], ['--env-vector', '0.3', '-0.4', '0.86', '--flags', '0x800'],
-        ['--time', '31337', '--flags', '0x402'], ['--color', '0.5', '0.25', '2', '--flags', '0x40004', '--alpha', '0.5'],
+        ['--client-time', '123456.75', '--flags', '0x1000'], ['--client-time', '98765.5', '--flags', '0x4000'],
+        ['--client-time', '4321.25', '--flags', '0x204'], ['--client-time', '777.5', '--flags', '0x20000'],
+        ['--client-time', '-5000.5', '--flags', '4'], ['--env-vector', '0.3', '-0.4', '0.86', '--flags', '0x800'],
+        ['--client-time', '31337', '--flags', '0x402'], ['--color', '0.5', '0.25', '2', '--flags', '0x40004', '--alpha', '0.5'],
         ['--alpha', '0.3', '--flags', '0x80040'], ['--uv-offset', 'nan', '0', '--select', '0'],
         ['--alpha', '0.5', '--flags', '0x44'],
     ]
@@ -1003,7 +1003,7 @@ def pinned_run(machine, directory):
 def negative_controls(machine, directory):
     """The comparison must fail when the native side gets a different input."""
     path = synthetic_models(directory)[0][1]
-    case_bytes, _, _ = corners_case(path, SYNTHETIC_BASE+['--flags', '0x1000', '--time', '1234.5'], directory, 'neg')
+    case_bytes, _, _ = corners_case(path, SYNTHETIC_BASE+['--flags', '0x1000', '--client-time', '1234.5'], directory, 'neg')
     case = read_case(case_bytes)
     client = machine.run_case(case)
     controls = {}
@@ -1065,7 +1065,7 @@ def installed_run(machine, directory, game_root, per_folder, rng):
         for path in picks:
             # Mostly the dominant body flags 2, then the whole flag matrix.
             flags = rng.choice([2, 2, 2, 0x42, 0x82, 0x2002, 0x40002] + FLAG_SETS)
-            args = ['--flags', hex(flags), '--time', repr(f32(rng.uniform(0, 1e6))),
+            args = ['--flags', hex(flags), '--client-time', repr(f32(rng.uniform(0, 1e6))),
                     '--alpha', rng.choice(['1', '1', '0.5'])]
             if flags & 0x1000 or rng.random() < 0.2:
                 args += ['--uv-offset', '0.25', '0.5', '--select', rng.choice(['-1', '0', '1'])]

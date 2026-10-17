@@ -117,9 +117,10 @@ not exist yet.
 
 ## Verification
 
-The suite discovers 315 Python tests (macOS, CLIENT-MESHDRAW-EXEC-001 worktree rebased on the character, terrain and network
-merges). Portable checks pass 287 and explicitly skip 28 private-input checks. All 49 `native/tests` checks, including the private
-viewer, character and terrain checks and the mesh-draw execution harness, pass with `MU_RECOVERY_INTEGRATION=1`.
+The suite discovers 380 Python tests (macOS, CLIENT-MESHDRAW-EXEC-001 worktree rebased on main through the audio merge, #75).
+Portable checks pass 345 and explicitly skip 35 private-input checks, and `scripts/local-macos-ci.sh` passes. Before the frame,
+actor and audio merges, all 49 `native/tests` checks passed with `MU_RECOVERY_INTEGRATION=1`, including the private viewer,
+character and terrain checks and the mesh-draw execution harness.
 Before that, the NATIVE-CHAR-001 worktree discovered 282 tests with 25 skips.
 Before NATIVE-CHAR-001 the suite discovered 270 tests and skipped 22 private-input checks.
 In the previous count, the suite discovered 236 tests and skipped eighteen private-input checks. In the frameloop worktree, the new frame-map check

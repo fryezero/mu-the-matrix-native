@@ -256,7 +256,10 @@ static long quad(const mu_render_backend *b, const float color[3], const float a
 
 long mu_frame_draw_world(const mu_frame_world *w, const mu_render_backend *b, int32_t radius, int draw_box)
 {
-    mu_meshdraw_state state = {0, 1, 1, 0, 0, 0, MU_BLEND_ONE, MU_BLEND_ZERO};
+    mu_meshdraw_state state;
+    mu_meshdraw_state_defaults(&state);   /* depth test/mask on, blend off (GL_ONE, GL_ZERO) */
+    state.cull = 0;
+    state.texture = 0;
     long triangles = 0;
     b->prepare(b->context, &state, -1);
     b->begin(b->context);

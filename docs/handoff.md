@@ -1024,8 +1024,14 @@ Branch `claude/native-unicorn`, worktree `~/Documents/mu-worktrees/native-unicor
   * negative controls: 4/4 fail;
   * pinned CI groups: equal to the test pins.
 * A two-change perturbation of the port fails 11 cases.
-* `make test PYTHON=tools/.venv/bin/python`: 315 run, 28 explicit skips, all OK (macOS). This was after the rebase on the
-  NATIVE-CHAR-001, NATIVE-TERRAIN-001 and NATIVE-NET-001 merges; before it, 274 run with 23 skips.
+* `scripts/local-macos-ci.sh` passes after rebasing on main through #75 (frame loop, actors, audio). It runs `make test`
+  (380 run, 35 skips), the viewer build, machprof and the audit. Earlier counts were 315/28 after the character, terrain and
+  network merges, and 274/23 before any rebase.
+* Integration with #73/#74:
+  * `mu_frame`, `mu-frame`, `mu-frame-window` and `mu-render actor` pass their textures to the scene, and the rasterizer gets
+    per-texture filter and wrap;
+  * the frame's world state uses `mu_meshdraw_state_defaults`;
+  * the draw-time option is now `--client-time MS`, because `--time` is the actor/character animation time in seconds.
 * `make -C native all viewer` builds with `-Werror`.
 * Private native tests: all 49 pass with `MU_RECOVERY_INTEGRATION=1` and the evidence paths from `main-exe-study` (321 s; the
   mesh-draw execution test runs the validator at 3 models per folder). Before the rebase, 20 of 20 passed.
