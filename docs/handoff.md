@@ -495,6 +495,151 @@ follow the output matrices and quaternion table into the skinning/renderer
 consumer. Alternatives: the second builder `0x012bcffb` (action-0 only), the
 17 rejected v15 files with a non-validating locator, or the v10 sibling loop.
 
+## Skinning path reconstructed
+
+Issue #53 / `claude/skinning-path` (worktree `~/Documents/mu-worktrees/skinning`)
+adds:
+
+* `mu_model_transform` and `mu_animation_tick` in
+  `reconstructed/model-codec/skinning.{c,h}`, built as `libskinning` together
+  with the pose builder, the bone-track loop and record-math;
+* record-math vector helpers `mu_vector_rotate`, `mu_vector_transform` and
+  `mu_vector_irotate`;
+* `scripts/validate_skinning.py`, which runs the actual instructions;
+* `scripts/client_render_static.py`, a static map of callers, import slots and
+  GL order.
+
+Read `research/client-skinning.md`.
+
+Callers. All 314 raw builder candidates sync, in 105 functions:
+
+* 300 write the shared bone buffer `0x06fce398`;
+* 117 take frame, prior frame, prior action, angles and head angles from one
+  object (`+0xd0`, `+0xd4`, `+0x2c`, `+0x164`, `+0x170`);
+* 140 take a computed frame, 108 of them `object+0xd0` minus a local;
+* 19 use `(int)frame - 1` as the prior;
+* 12 are bind poses and 26 are other.
+
+The tick `0x012b4dd3` has 91 candidates and is the prior-frame writer. When the
+integer frame changes, `*prior_action = model+0xa8` and
+`*prior_frame = old integer`. Keep-root calls (25) follow root setter
+`0x012b7019`, which copies a parent bone matrix into root global `0x078965ac`
+for attachments.
+
+Skinning. The transform `0x012b5bde` is reached through wrapper `0x00966ea5`
+with buffers vertices `0x078978a0`, normals `0x0812cce0` and light
+`0x06fd0918`, at per-mesh strides `0x2bf20`/`0xea60`. Each vertex uses one bone,
+with no blending. Normals are rotated only. Light is a clamped Lambert term and
+also goes to a secondary table at `0x075a9ee8`.
+
+Comparisons. The actual transform, tick and vector helpers run with no client
+stubs. Installed models chain through the actual bone-track loop and actual
+builder, and the transform reads the builder's real output window. Results:
+
+* 903 direct helper calls, 226 synthetic transforms, 24 builder-chained
+  synthetic models and 481 synthetic ticks match;
+* installed v12 180, v14 216 and v15 11,566 transforms match, covering
+  3,814,006 vertices and 3,988,165 normals, plus 35,871 installed ticks;
+* the transposed-rotation, translated-normal, prior-every-tick and ignore-lock
+  controls fail in 210, 223, 259 and 35 cases.
+
+Draw. The mesh draw `0x012b8d1d` (wrapper `0x00966e4a`, 6,361 raw calls) was
+not executed. Statically it sets cached GL state, binds the texture through
+`0x0184acf6`, issues one `glBegin(GL_TRIANGLES)`, and per corner calls
+glTexCoord2f, then glColor3fv or glColor4f, then glVertex3fv on the transform
+output, then glEnd. The body `0x012bb35a` brackets the mesh draws with
+glPushMatrix/glPopMatrix and makes no matrix call between them.
+
+The import slots are named against Debian Wine `8.0~repack-4` i386 opengl32/glu32,
+matching the guest. All 81 + 4 slots resolve, and the first slot equals the file's
+only static import name. The `.deb` (`c992aad6…8d57`, matching the bookworm
+`Packages` hash), the extracted DLLs, the report `comparison-v12-v14-v15.json`
+(`4b225477…c036`), the static report `static-05.json` and the logs are ignored
+under `evidence/client-skinning/`. A first run with v14 reader-rejected (unbuilt
+`libmodulus`) is kept as `run-01-v14-unbuilt/`.
+
+`model-recovery/verified-v14` in that worktree is an untracked read-only
+symlink to the main lab; do not stage it. Portable: 209 discovered, 192 pass,
+17 explicit skips. Opt-in integration with `MU_GAME_ROOT` (read-only
+`runtime/client`) passes all 209. No guest, CrossOver or main-checkout change.
+
+Next: execute the mesh draw `0x012b8d1d` and body `0x012bb35a` under Unicorn,
+with the OPENGL32 IAT targets mapped to an authored GL-call recorder. Seed them
+with the actual transform output on installed models, and compare against an
+authored C emitter of the same GL stream (per-corner texcoord/colour/vertex,
+state and binds). Alternatives:
+
+* trace the action-change code that writes object `+0x2a`, `+0x2c` and `+0xd4`;
+* identify the 24 immediate GL_TRIANGLE_FAN routines behind the profiled
+  four-vertex fans;
+* trace the main loop and frame cap.
+
+## Frame loop and hot draw sites mapped
+
+Issue #55 (CLIENT-FRAME-001), branch `claude/frame-loop`, worktree
+`~/Documents/mu-worktrees/frameloop`. Read
+[`research/client-frame-loop.md`](research/client-frame-loop.md). The work is
+static; no client code ran and nothing was patched.
+
+**Loop.** The WinMain loop uses `PeekMessageW(PM_REMOVE)`. When the queue is empty
+it calls the scene dispatcher `0x01859d8a`. Scene states 3, 5 and 6 go to the frame
+driver `0x01851d39`, state 4 to the loading screen and state 2 to the intro. The
+frame driver works like this:
+
+* `[0x0bdc5ec0]` accumulates elapsed time, and game logic runs once per 40 ms
+  step (`0x01851d6b`, `0x01851f90`);
+* GetTickCount at frame start is stored in `[0x0bdc5e64]`;
+* the scene render is followed by SwapBuffers at `0x01852653`;
+* if elapsed < 40, it calls `Sleep(40 - elapsed)` (`0x0185267a`) and sets elapsed to 40.
+
+**Cap.** The cap is the immediates at `0x0185266b`, `0x0185266f` and `0x01852690`,
+with the branch `7D 26` at `0x0185266c`. The 44-byte block has SHA-256
+`37978e18…2e14`. It does not occur in the Themida-packed file, so the only way to
+change it is an in-memory write after unpacking, for example from the owner's mugl
+proxy at the first wglSwapBuffers, after verifying the block. The rendered-frame
+counter `[0x0bdc5ebc]` has 225 readers and would speed up with the frame rate.
+Logic and the wall-clock float `[0x06fce370]` would not. `IGC.dll` hooks the
+function at `0x01851d5e` and `0x018526e7`.
+
+**Draws.** The fans come from three places:
+
+* the terrain renderer `0x016cd468`, which walks the frustum box in 4×4-tile
+  blocks and emits one fan per tile per layer through `0x016cf46c` and friends,
+  plus a grass quad;
+* terrain decals `0x016cdd5f` (460 callers), one fan per covered tile;
+* 2D helpers `0x0184d9bb`/`0x0184dcb1`/…, with 243 and 170 callers.
+
+Quads are mostly the sprite routine `0x0184c39c` (433 calls in `0x0159123f`) and
+effects. All 51 sites carry return addresses for runtime attribution.
+
+**VBOs.** The calls go through data-import function-pointer slots
+`0x01a7cb54..0x01a7cc14` (GLEW-style). There is no glBufferSubData name string.
+The effect system streams two GL_STREAM_DRAW buffers:
+
+* sprite: 144 B at object `0x01d1e2c8`, a whole-buffer update per draw;
+* emitter: 144,000 B at `0x01d1e6f8`, an `n*144` prefix per draw;
+
+each followed by `glDrawArrays(GL_QUADS)` with client arrays at offsets 0, 12 and 20,
+stride 36.
+
+**Checks.** `scripts/client_frame_static.py` takes about 30 s. Its report is
+`evidence/client-frame/static-02.json` (`9627bb4f…0abe`, ignored), with the pinned
+Wine DLLs extracted alongside. Portable: 218 discovered, 200 pass, 18 explicit
+skips. The new private check passes with `MU_RECOVERY_INTEGRATION=1` and
+`MU_GAME_ROOT=runtime/client`. The full opt-in suite was not rerun. No guest,
+CrossOver bottle or main-checkout change.
+
+**Next.**
+
+* Add an opt-in glBegin return-address counter to mugl and map the counts through
+  `static-02.json`. This settles the terrain/decal/UI split and attributes the
+  unexplained glViewport/glOrtho and glActiveTexture calls (`IGC.dll` or the
+  third-party renderer).
+* Extend mugl's buffer orphaning to offset-0 prefix updates of the 144,000-byte
+  effect buffer.
+* If the owner wants a higher menu cap, prototype the verified in-memory write
+  in a test bottle, not MuMatrix32.
+
 ## MAC-PERF-004 publication handoff
 
 Issue #57 / `codex/mac-hotpatch`, worktree `~/Documents/mu-worktrees/mac-hotpatch`,
@@ -550,3 +695,5 @@ stack-scan misattribution, and disable AeDebug only in disposable test bottles
 before crash-prone probes. The original process-killing restart helper and later
 meshdraw experiment remain omitted. Login/movement scripts select an explicit
 test bottle and refuse MuMatrix32; login reads the password from Keychain.
+
+After #58 was merged into `codex/mac-gl-batching` and `main` (with #54/#56) was merged in, the combined tree discovers 236 tests: 218 pass and 18 explicitly skip private inputs (`make test PYTHON=tools/.venv/bin/python`). The earlier counts above are per-PR snapshots.

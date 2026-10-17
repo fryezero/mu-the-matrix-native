@@ -486,7 +486,7 @@
       "negative_control_modulo_wrap_differences": 60,
       "trig_host_libm_binary32_equal": true,
       "live_caller_state_known": false,
-      "renderer_use_known": false,
+      "renderer_use_known": true,
       "authored_library_sha256": "2be7f84e3949505d3a06d0b468ea66f4339f7162b0e973c11fa942d9d1cd4372",
       "local_report": "evidence/client-pose-builder/comparison-v12-v14-v15.json (pose-builder worktree), SHA-256 d93ceb8e33ce9e268c68f4d37fe69cc378f0251ce48e6bcf9faa6b9ae0de0615"
     },
@@ -611,6 +611,181 @@
         "Windows-native equivalence and anti-cheat compatibility unverified",
         "Separate builds with/without anti-cheat remain a plan"
       ]
+    },
+    "client_skinning": {
+      "issue": 53,
+      "document": "docs/research/client-skinning.md",
+      "transform": "0x012b5bde..0x012b678a",
+      "transform_instructions": 908,
+      "transform_sha256": "a546b109d885d267c1269b62cf2cdf694ee0d8faf3440979ffe7fa03f38bd2e9",
+      "transform_calling_convention": "thiscall, ECX model, twelve stack arguments, ret 0x30",
+      "tick": "0x012b4dd3..0x012b5061",
+      "tick_instructions": 180,
+      "tick_sha256": "047f50df9bf736daaef507c39d40f76b5673583bb2b831453ed61b39d3ae2d20",
+      "helpers": {
+        "vector_rotate": "0x00d000ad",
+        "vector_transform": "0x00d002b2",
+        "vector_irotate": "0x00cfff3c",
+        "angle_matrix": "0x00cff32a",
+        "world_test": "0x0095fb7c",
+        "scene_state": "0x009b0bc1"
+      },
+      "default_buffers": {
+        "vertices": "0x078978a0",
+        "normals": "0x0812cce0",
+        "lights": "0x06fd0918",
+        "secondary_light": "0x075a9ee8",
+        "colours": "0x089c2120",
+        "bones": "0x06fce398"
+      },
+      "skinning": "one bone per vertex, no blending; normals rotated only; clamped per-normal Lambert light",
+      "pose_call_candidates": 314,
+      "pose_call_candidates_synced": 314,
+      "pose_call_functions": 105,
+      "pose_call_classes": {
+        "object_fields": 117,
+        "object_prior_computed_frame": 140,
+        "prior_frame_minus_one": 19,
+        "bind_pose": 12,
+        "other": 26
+      },
+      "tick_call_candidates": 91,
+      "prior_frame_rule": "the tick stores prior action = model+0xa8 and prior frame = old integer frame when the integer part changes",
+      "keep_root_calls": 25,
+      "root_setter": "0x012b7019",
+      "client_stubs": 0,
+      "modelled_boundaries": [
+        "uncaptured globals: bone scale, light override, world, bounds mode, scene state, secondary light table",
+        "caller output arrays, box, bounds, mesh records and unloaded model fields"
+      ],
+      "direct_helper_calls": 903,
+      "direct_helper_matches": 903,
+      "synthetic_transform_calls": 226,
+      "synthetic_transform_matches": 226,
+      "builder_chained_synthetic_calls": 24,
+      "builder_chained_synthetic_matches": 24,
+      "synthetic_tick_calls": 481,
+      "synthetic_tick_matches": 481,
+      "installed_transform_models": {
+        "v12": 180,
+        "v14": 216,
+        "v15": 11566
+      },
+      "installed_transform_matches": 11962,
+      "installed_vertices": 3814006,
+      "installed_normals": 3988165,
+      "installed_tick_calls": 35871,
+      "installed_tick_matches": 35871,
+      "seeded_by_actual_bone_track_loop_and_pose_builder": true,
+      "v15_reader_rejected_not_run": 17,
+      "negative_controls": {
+        "transposed_vertex_rotation": 210,
+        "translated_normals": 223,
+        "prior_every_tick": 259,
+        "ignore_lock_limit": 35
+      },
+      "trig_host_libm_binary32_equal": true,
+      "opengl32_slots_named": 81,
+      "glu32_slots_named": 4,
+      "wine_package_sha256": "c992aad6a47d81b719514f5d06c5df10267f1e40a6f4f3b4e3f655cbbf308d57",
+      "mesh_draw": "0x012b8d1d (static only): one glBegin(GL_TRIANGLES) per mesh; per corner glTexCoord2f, glColor3fv/glColor4f, glVertex3fv; glEnd",
+      "mesh_draw_executed": false,
+      "glbegin_sites": {
+        "GL_QUADS": 27,
+        "GL_TRIANGLE_FAN": 24,
+        "GL_TRIANGLES": 10,
+        "GL_LINES": 6,
+        "GL_LINE_STRIP": 1
+      },
+      "live_object_state_known": false,
+      "authored_library_sha256": "da2d0c5ea007c8c8684c8e053305266d9d7063a73b61c747fcb6316cbd58969c",
+      "local_report": "evidence/client-skinning/run/comparison-v12-v14-v15.json (skinning worktree), SHA-256 4b225477edaaff717b8ba648cf5e19ea812bf143572c619ddac232404b4fc036",
+      "static_report": "evidence/client-skinning/static-05.json (skinning worktree), SHA-256 924b0b0b5cd6e1b0ac0a1ce44778753e77af6285d06674a0b4489f8b2c2f1b30"
+    },
+    "client_frame_loop": {
+      "issue": 55,
+      "document": "docs/research/client-frame-loop.md",
+      "method": "static decode of the pinned restored text and data; no client execution",
+      "message_loop": "PeekMessageW(PM_REMOVE) at 0x0120ed88; idle calls scene dispatcher 0x01859d8a at 0x0120ef38/0x0120ef54",
+      "scene_dispatch": {
+        "state_global": "0x01d1df70",
+        "2": "0x0185ad63",
+        "3": "0x01851d39",
+        "4": "0x01851adc",
+        "5": "0x01851d39",
+        "6": "0x01851d39"
+      },
+      "frame_driver": "0x01851d39",
+      "frame_driver_instruction_checks": 36,
+      "logic_step_ms": 40,
+      "logic_step_immediates": [
+        "0x01851d6e",
+        "0x01851f92"
+      ],
+      "frame_cap_ms": 40,
+      "frame_cap_mechanism": "Sleep(40 - elapsed) after SwapBuffers; GetTickCount at frame start; not a busy-wait",
+      "frame_cap_immediates": [
+        "0x0185266b",
+        "0x0185266f",
+        "0x01852690"
+      ],
+      "frame_cap_branch": "0x0185266c 7d26",
+      "frame_cap_block": "0x01852668..0x01852694",
+      "frame_cap_block_sha256": "37978e180c2e7f1dd9d0760f44b0e30ab9de431699ae982c1b8b1b2ceca52e14",
+      "frame_cap_source": "compiled-in immediate; no config, data or server input found",
+      "frame_cap_block_in_packed_file": 0,
+      "igc_hooks_in_frame_driver": [
+        "0x01851d5e call 0x10b7c7b0",
+        "0x018526e7 jmp 0x10b47590"
+      ],
+      "igc_dll_sha256": "dbe122fe94e72286b871e192b6351bafdd28216312c300ba0d97d22a51a9c29b",
+      "rendered_frame_counter": {
+        "address": "0x0bdc5ebc",
+        "readers": 225
+      },
+      "logic_step_counter": "0x0bdc5eb0",
+      "wall_clock_float": "0x06fce370 = (float)timeGetTime() in 0x012aeb2b",
+      "glbegin_hot_sites": {
+        "GL_TRIANGLE_FAN": {
+          "terrain": 9,
+          "terrain-decal": 1,
+          "2d": 11,
+          "3d-effect": 2,
+          "3d-misc": 1
+        },
+        "GL_QUADS": {
+          "terrain-grass": 1,
+          "2d": 2,
+          "3d-effect": 11,
+          "3d-object": 7,
+          "3d-scene": 3,
+          "3d-misc": 3
+        }
+      },
+      "terrain_render": "0x016cd468 -> 0x016d2e8e blocks -> 0x016d2d81 -> 0x016ccda5 -> 0x016cff65 -> fan faces 0x016cf46c..0x016cfbac",
+      "terrain_decal": "0x016cdd5f (460 raw callers) -> 0x016d197d fan per covered tile",
+      "vbo_pointer_slots": "0x01a7cb54..0x01a7cc14 data imports (call [eax]); 10 of 49 named from arguments",
+      "stream_buffers": [
+        {
+          "object": "0x01d1e2c8",
+          "size": 144,
+          "usage": "GL_STREAM_DRAW",
+          "stride": 36,
+          "draw": "0x00a6ebd1",
+          "update": "BufferSubData(0, 144) whole buffer, DrawArrays(GL_QUADS, 0, 4)"
+        },
+        {
+          "object": "0x01d1e6f8",
+          "size": 144000,
+          "usage": "GL_STREAM_DRAW",
+          "stride": 36,
+          "draw": "0x00a88720",
+          "update": "BufferSubData(0, n*144) prefix, DrawArrays(GL_QUADS, 0, 4n)"
+        }
+      ],
+      "runtime_counts_known": false,
+      "patched": false,
+      "local_report": "evidence/client-frame/static-02.json (frameloop worktree), SHA-256 9627bb4f4eb7b2d2be7b12839e787c948d27992a413a381f180e12f62edb0abe"
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -618,13 +793,13 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 208,
-    "portable_passed": 193,
-    "private_checks_skipped": 15,
-    "local_integration_passed": 190,
+    "portable_tests_discovered": 236,
+    "portable_passed": 218,
+    "private_checks_skipped": 18,
+    "local_integration_passed": 209,
     "source_only_checkout_passed": true,
     "native_windows_game_capture_verified": false,
-    "remote_ci_status": "Pose builder (issue #46) awaits CI",
+    "remote_ci_status": "Frame loop (issue #55) awaits CI",
     "remote_ci_run": "https://github.com/fryezero/mu-the-matrix-recovery/actions/runs/38898823896",
     "remote_ci_commit": "55d652a18242d8dd8296a981b038375489016c33",
     "github_source_files_verified": 58,
@@ -634,7 +809,7 @@
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
     "current_source_files": 129,
-    "local_integration_note": "Pose-builder worktree: all 190 pass with MU_GAME_ROOT set to the read-only runtime/client copy."
+    "local_integration_note": "Skinning worktree: all 209 pass with MU_GAME_ROOT set to the read-only runtime/client copy."
   },
   "client_executable_section_restored": true
 }

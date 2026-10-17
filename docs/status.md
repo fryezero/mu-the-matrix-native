@@ -56,13 +56,44 @@ not exist yet.
   483 synthetic calls, 1,822 direct helper calls and 47,833 calls on all 11,962
   installed models the readers accept. Lerp and modulo-wrap controls fail.
   [Evidence](research/client-pose-builder.md).
+- CPU skinning. The model transform `0x012b5bde` (`mu_model_transform`)
+  multiplies each vertex by one bone matrix from the pose builder, applies
+  body scale/origin, rotates normals and computes clamped per-normal light.
+  The animation tick `0x012b4dd3` (`mu_animation_tick`) sets the prior
+  frame/action when the integer frame changes. Against the actual
+  instructions, with no client stubs, they match:
+  * 226 synthetic transforms, 24 synthetic models chained through the actual
+    builder and 481 synthetic ticks;
+  * all 11,962 installed models the readers accept, run after the actual
+    bone-track loop and builder (3,814,006 vertices), plus 35,871 installed
+    ticks.
+
+  Four negative controls fail. All 314 builder call candidates are classified.
+  Keep-root calls follow a root setter used for attachments. The mesh draw
+  `0x012b8d1d` emits one `glBegin(GL_TRIANGLES)` per mesh with per-corner
+  glTexCoord2f, glColor and glVertex3fv straight from the transform output;
+  this is a static reading against import slots named from the guest's Wine
+  opengl32. [Evidence](research/client-skinning.md).
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
+- Frame loop (static). The frame driver `0x01851d39` runs game logic in fixed
+  40 ms steps from an accumulator. It caps rendering at 25 FPS with
+  `Sleep(40 - elapsed)` after SwapBuffers, timed by GetTickCount. The 40 is a
+  compiled-in immediate at `0x0185266b`, `0x0185266f` and `0x01852690`; no
+  config, data or server value feeds it. Themida packs the code, so the bytes are
+  not in `main.exe` and changing the cap needs an in-memory write after unpacking.
+  The four-vertex fans come from the terrain tile renderer (one per tile per layer),
+  terrain decals and 2D UI helpers. The only per-frame VBO streaming is the JSON
+  effect system: a 144-byte sprite buffer rewritten whole, and a 144,000-byte
+  particle buffer written as `n*144`-byte prefixes, each drawn as `GL_QUADS`.
+  [Evidence](research/client-frame-loop.md).
 
 ## Verification
 
-The suite discovers 201 tests. Portable checks pass 186 and explicitly skip fifteen
-private-input checks. In the pose-builder worktree, opt-in integration with
-`MU_GAME_ROOT` passes all 190.
+The suite discovers 236 tests. Portable checks pass 218 and explicitly skip
+eighteen private-input checks. In the frameloop worktree, the new frame-map check
+passes with `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`; the full opt-in suite
+was not rerun there. In the skinning worktree, opt-in integration passed all 209
+earlier tests. The mugl and hotpatch source checks need no private inputs.
 In the bone-tracks worktree it passed all 155 tests from before the seven launcher-guard tests.
 The rotation worktree's opt-in integration passed 142 of the earlier 147.
 
@@ -194,3 +225,20 @@ installed calls match; lerp differs in 364 and a modulo frame wrap in 60.
 [Finding](research/client-pose-builder.md). The caller's frame/action choice,
 prior output and root contents, live FP state and renderer use remain open.
 No guest or CrossOver run was needed.
+
+Issue #53 adds the model transform and animation tick sources, a static map of
+the pose-builder callers and the mesh draw's GL order. The transform matches on
+every installed model the readers accept, chained through the actual loop and
+builder, and the tick matches on 35,871 installed calls. Transposed rotation,
+translated normals, per-tick prior updates and an ignored lock limit all fail.
+[Finding](research/client-skinning.md). The draw routine was not executed, and
+live object state, action changes and the frame loop remain open. No guest or
+CrossOver run was needed.
+
+Issue #55 (CLIENT-FRAME-001) maps the message loop, scene dispatcher and frame driver,
+including the 40 ms Sleep cap and the fixed 40 ms logic step. It also labels all
+24 fan and 27 quad glBegin sites with their return addresses and recovers the
+effect system's stream-VBO pattern. Everything is static and checked by
+`scripts/client_frame_static.py`. [Finding](research/client-frame-loop.md). Runtime
+per-routine counts, `IGC.dll` hook behaviour and whether animation runs per frame
+remain open. No guest or CrossOver run was needed, and nothing was patched.
