@@ -10,7 +10,13 @@
  * client's own. Free camera: W/S/A/D move the focus point over the ground,
  * Q/E turn, the mouse drag orbits, the wheel zooms, R resets, Space pauses the
  * clock (water and grass sway), G toggles wireframe, O saves a screenshot.
- * Game logic is not run; the clock only feeds the terrain animation. */
+ * NATIVE-TERRAIN-002: L toggles dynamic lights (AddTerrainLight sources around
+ * the focus point), F the client's frustum culling around the focus point
+ * (CreateFrustrum box from this camera, CreateFrustrum2D polygon), K a decal
+ * (Effect\flare01, RenderTerrainAlphaBitmap) under the focus point, 4 the
+ * graphics option 4 (0x4000 neighbour faces). Headless: --lights --frustum
+ * --decal --detail N. Game logic is not run; the clock only feeds the terrain
+ * animation (water/lava scroll, sway, the 32-frame animated layer). */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,31 +40,38 @@ typedef struct terrain_view {
     const char *root, *out, *backend;
     int32_t world, width, height;
     int headless, compare, wireframe, paused;
+    int lights, frustum, decal, detail;
     float seconds, time;
     mu_camera camera;
     mu_world *map;
-    GLuint names[MU_WORLD_BITMAPS];
+    GLuint names[MU_WORLD_BITMAPS], extra_names[MU_WORLD_EXTRA];
 } terrain_view;
+
+static GLuint gl_upload(const mu_image *image, int linear, int clamp)
+{
+    GLuint name = 0;
+    glGenTextures(1, &name);
+    glBindTexture(GL_TEXTURE_2D, name);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    GLint filter = linear ? GL_LINEAR : GL_NEAREST; /* loader argument 0x2601 / 0x2600 */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+    GLint wrap = clamp ? GL_CLAMP : GL_REPEAT;      /* 0x2900 / 0x2901 */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->rgba);
+    return name;
+}
 
 static void gl_textures(terrain_view *v)
 {
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i) {
         const mu_image *image = &v->map->bitmaps[i];
-        v->names[i] = 0;
-        if (image->width <= 0)
-            continue;
-        GLuint name = 0;
-        glGenTextures(1, &name);
-        glBindTexture(GL_TEXTURE_2D, name);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        GLint filter = v->map->bitmap_linear[i] ? GL_LINEAR : GL_NEAREST; /* loader argument 0x2601 / 0x2600 */
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);   /* 0x2901 */
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                     image->rgba);
-        v->names[i] = name;
+        v->names[i] = image->width > 0 ? gl_upload(image, v->map->bitmap_linear[i], 0) : 0;
+    }
+    for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i) {
+        const mu_image *image = &v->map->extra[i];
+        v->extra_names[i] = image->width > 0 ? gl_upload(image, v->map->extra_linear[i], v->map->extra_clamp[i]) : 0;
     }
 }
 
@@ -68,6 +81,11 @@ static void gl_release(terrain_view *v)
         if (v->names[i]) {
             glDeleteTextures(1, &v->names[i]);
             v->names[i] = 0;
+        }
+    for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i)
+        if (v->extra_names[i]) {
+            glDeleteTextures(1, &v->extra_names[i]);
+            v->extra_names[i] = 0;
         }
 }
 
@@ -98,6 +116,9 @@ static void g_bind(void *c, int32_t texture)
     terrain_view *v = c;
     const int32_t i = texture - MU_TERRAIN_TEXTURE_TILE;
     GLuint name = i >= 0 && i < MU_WORLD_BITMAPS ? v->names[i] : 0;
+    for (int32_t k = 0; !name && k < MU_WORLD_EXTRA; ++k)
+        if (v->map->extra[k].width > 0 && v->map->extra_id[k] == texture)
+            name = v->extra_names[k];
     if (name) {
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, name);
@@ -122,6 +143,40 @@ static void place_camera(terrain_view *v)
     v->camera.target[2] = mu_world_height_at(v->map, v->camera.target[0], v->camera.target[1]);
 }
 
+/* The NATIVE-TERRAIN-002 frame for the focus point: visible box (the client's
+ * frustum, or a square sized by the camera distance), light copy and waves
+ * over it, then the demo light sources. */
+static void frame_setup(terrain_view *v, int32_t w, mu_terrain_frustum *frustum)
+{
+    memset(frustum, 0, sizeof *frustum);
+    if (v->frustum) {
+        float view[16], eye[3], rows[12];
+        mu_camera_view(&v->camera, view);
+        mu_camera_eye(&v->camera, eye);
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 4; ++j)
+                rows[4 * i + j] = view[4 * j + i];
+        mu_world_client_frustum(v->map, rows, eye, v->camera.target, -48.5f, w, 3, v->camera.distance * 1.4f,
+                                v->camera.fov_y, frustum);
+    } else {
+        int32_t radius = (int32_t)(v->camera.distance * 2.5f / 100.0f) + 24;
+        int32_t cx = (int32_t)(v->camera.target[0] / 100.0f), cy = (int32_t)(v->camera.target[1] / 100.0f);
+        int32_t x0 = cx - radius, y0 = cy - radius, x1 = cx + radius, y1 = cy + radius;
+        frustum->x_min = x0 < 0 ? 0 : x0 & ~3;
+        frustum->y_min = y0 < 0 ? 0 : y0 & ~3;
+        frustum->x_max = x1 > 251 ? 251 : x1;
+        frustum->y_max = y1 > 251 ? 251 : y1;
+    }
+    mu_world_frame_box(v->map, v->time, frustum->x_min, frustum->y_min, frustum->x_max, frustum->y_max);
+    if (v->lights) {
+        const float *t = v->camera.target;
+        static const float warm[3] = {1.0f, 0.55f, 0.25f}, blue[3] = {0.2f, 0.35f, 1.0f}, white[3] = {1.0f, 1.0f, 1.0f};
+        mu_world_add_light(v->map, t[0], t[1], white, 1);              /* character-scene highlight: (1,1,1), 1 */
+        mu_world_add_light(v->map, t[0] + 300.0f, t[1] + 200.0f, warm, 4);
+        mu_world_add_light(v->map, t[0] - 500.0f, t[1] - 300.0f, blue, 3);
+    }
+}
+
 static void draw_gl(terrain_view *v, int32_t w, int32_t h, mu_terrain_tile_stats *stats)
 {
     static const uint8_t background[4] = {0, 0, 0, 255};
@@ -132,20 +187,24 @@ static void draw_gl(terrain_view *v, int32_t w, int32_t h, mu_terrain_tile_stats
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CCW);
     glPolygonMode(GL_FRONT_AND_BACK, v->wireframe ? GL_LINE : GL_FILL);
-    mu_world_frame(v->map, v->time);
+    mu_terrain_frustum frustum;
+    frame_setup(v, w, &frustum);
     mu_terrain_sink sink = {v, g_state, g_bind, g_begin, g_tex, g_c3, g_c4, g_v, g_end};
     mu_terrain_scene scene;
     mu_world_scene(v->map, &scene);
     mu_terrain_tile_stats local;
     memset(&local, 0, sizeof local);
-    /* Viewer-side visibility (the client's frustum tests are not ported): a
-     * square of tiles around the focus point, sized by the camera distance. */
-    int32_t radius = (int32_t)(v->camera.distance * 2.5f / 100.0f) + 24;
-    int32_t cx = (int32_t)(v->camera.target[0] / 100.0f), cy = (int32_t)(v->camera.target[1] / 100.0f);
-    int32_t x0 = cx - radius, y0 = cy - radius;
-    x0 = x0 < 0 ? 0 : x0 & ~3;
-    y0 = y0 < 0 ? 0 : y0 & ~3;
-    mu_terrain_draw(&scene, x0, y0, cx + radius, cy + radius, mu_terrain_alpha_layers(v->map->world), &sink, &local);
+    if (v->frustum)
+        mu_terrain_render(&scene, &frustum, 5, 0, mu_terrain_alpha_layers(v->map->world), &sink, &local);
+    else
+        mu_terrain_draw(&scene, frustum.x_min, frustum.y_min, frustum.x_max, frustum.y_max,
+                        mu_terrain_alpha_layers(v->map->world), &sink, &local);
+    if (v->decal) {
+        static const float white[3] = {1.0f, 1.0f, 1.0f};
+        g_state(v, MU_TERRAIN_STATE_ADDITIVE, 0);
+        mu_terrain_decal(&scene, 0x7ef7, v->camera.target[0], v->camera.target[1], 2.0f, 2.0f, white, v->time * 0.05f,
+                         1.0f, 5.0f, 1, 0, &sink);
+    }
     if (stats)
         *stats = local;
 }
@@ -155,13 +214,28 @@ static int render_soft(terrain_view *v, uint8_t *pixels)
     mu_raster raster;
     if (mu_raster_init(&raster, v->width, v->height))
         return 1;
+    raster.front_ccw = 1;
     mu_camera_view(&v->camera, raster.view);
     mu_camera_projection(&v->camera, (float)v->width / (float)v->height, raster.projection);
     static const uint8_t background[4] = {0, 0, 0, 255};
     mu_raster_clear(&raster, background);
-    mu_world_frame(v->map, v->time);
     mu_world_draw_stats stats;
-    mu_world_draw_raster(v->map, &raster, 0, 0, 251, 251, &stats);
+    if (v->lights || v->frustum || v->decal) {
+        mu_terrain_frustum frustum;
+        frame_setup(v, v->width, &frustum);
+        if (v->frustum)
+            mu_world_draw_raster_view(v->map, &raster, &frustum, 5, 0, &stats);
+        else
+            mu_world_draw_raster(v->map, &raster, frustum.x_min, frustum.y_min, frustum.x_max, frustum.y_max, &stats);
+        if (v->decal) {
+            static const float white[3] = {1.0f, 1.0f, 1.0f};
+            mu_world_decal_raster(v->map, &raster, 0x7ef7, v->camera.target[0], v->camera.target[1], 2.0f, 2.0f, white,
+                                  v->time * 0.05f, 1.0f, 5.0f, 1, 0, MU_TERRAIN_STATE_ADDITIVE);
+        }
+    } else {
+        mu_world_frame(v->map, v->time);
+        mu_world_draw_raster(v->map, &raster, 0, 0, 251, 251, &stats);
+    }
     memcpy(pixels, raster.color, (size_t)v->width * (size_t)v->height * 4);
     mu_raster_free(&raster);
     return 0;
@@ -266,6 +340,10 @@ static int windowed(terrain_view *v)
                 case SDLK_ESCAPE: running = 0; break;
                 case SDLK_SPACE: v->paused = !v->paused; break;
                 case SDLK_g: v->wireframe = !v->wireframe; break;
+                case SDLK_l: v->lights = !v->lights; break;
+                case SDLK_f: v->frustum = !v->frustum; break;
+                case SDLK_k: v->decal = !v->decal; break;
+                case SDLK_4: v->map->detail = v->map->detail >= 4 ? 0 : 4; break;
                 case SDLK_r:
                     v->camera.target[0] = v->camera.target[1] = 12800.0f;
                     v->camera.distance = 6000.0f;
@@ -315,9 +393,12 @@ static int windowed(terrain_view *v)
         ++frames;
         if (frames % 60 == 0) {
             char text[256];
-            snprintf(text, sizeof text, "World%d  faces %ld  alpha %ld  grass %ld  refused %ld  t=%.1fs",
+            snprintf(text, sizeof text,
+                     "World%d  faces %ld  alpha %ld  grass %ld  refused %ld  t=%.1fs  [L]ights %s [F]rustum %s "
+                     "[K] decal %s [4] detail %d",
                      v->map->report.folder, stats.faces, stats.alpha_faces, stats.grass, stats.unsupported,
-                     (double)v->time / 1000.0);
+                     (double)v->time / 1000.0, v->lights ? "on" : "off", v->frustum ? "on" : "off",
+                     v->decal ? "on" : "off", v->map->detail);
             SDL_SetWindowTitle(window, text);
         }
         if (v->seconds > 0.0f && (double)(now - start) / (double)frequency >= (double)v->seconds)
@@ -353,6 +434,10 @@ int mu_terrain_viewer_main(int argc, char **argv)
     for (int i = 3; i < argc; ++i) {
         const char *k = argv[i], *val = i + 1 < argc ? argv[i + 1] : "";
         if (!strcmp(k, "--headless")) v.headless = 1;
+        else if (!strcmp(k, "--lights")) v.lights = 1;
+        else if (!strcmp(k, "--frustum")) v.frustum = 1;
+        else if (!strcmp(k, "--decal")) v.decal = 1;
+        else if (!strcmp(k, "--detail")) { v.detail = atoi(val); ++i; }
         else if (!strcmp(k, "--compare")) v.compare = 1;
         else if (!strcmp(k, "--world")) { v.world = atoi(val); ++i; }
         else if (!strcmp(k, "--out")) { v.out = val; ++i; }
@@ -379,6 +464,8 @@ int mu_terrain_viewer_main(int argc, char **argv)
         fprintf(stderr, "%s\n", error);
         return 1;
     }
+    v.map->detail = v.detail;
+    mu_world_load_extra(v.map, v.root, 0x7ef7, "Effect/flare01.jpg", 1, 1);   /* decal texture, LINEAR + CLAMP */
     place_camera(&v);
     int status = v.headless ? headless(&v) : windowed(&v);
     mu_world_free(v.map);

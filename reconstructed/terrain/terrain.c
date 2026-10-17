@@ -890,7 +890,7 @@ int mu_terrain_frustum_2d_params_for(int32_t w, int32_t mode, int32_t screen_wid
         return 1;
     }
     if (mode == 0) {
-        const float s = w == 0x8b ? 5.0f : camera_scale;
+        const float s = camera_scale; /* the 5.0f of world 0x8b applies only outside scene states 3 and 5 */
         p->distance = distance_2400;
         p->near_offset = p->distance * 0.19f;
         p->back_offset = p->distance * (w == 0x3f ? 0.35f : 0.47f);

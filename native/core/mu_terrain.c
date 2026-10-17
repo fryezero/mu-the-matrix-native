@@ -86,6 +86,14 @@ const char *mu_world_bitmap_file(int32_t w, int32_t bitmap, char *buffer, size_t
     } else if (i >= 115 && i <= 198) {
         snprintf(buffer, size, "ExtTile%02d.tga", i - 114);
         return buffer;
+    } else if (i >= 200 && i < 232) {
+        /* 0x018392db: wt%02d frames, Object131 for worlds 0x80..0x82, else Object8; GL_LINEAR */
+        *linear = 1;
+        snprintf(buffer, size, "../Object%d/wt%02d.jpg", (w >= 0x80 && w <= 0x82) ? 131 : 8, i - 200);
+        return buffer;
+    } else if (i == 0x7723 - MU_TERRAIN_TEXTURE_TILE) {
+        *linear = 1;   /* World114\TileBright.jpg, the 0x4000 neighbour face texture */
+        return snprintf(buffer, size, "../World114/TileBright.jpg") < (int)size ? buffer : NULL;
     }
     if (!name)
         return NULL;
@@ -160,8 +168,8 @@ static void load_bitmaps(mu_world *w, const char *root, int32_t folder)
         const char *slash = strrchr(name, '/');
         char sub[1024];
         const char *dir = directory, *file = name;
-        if (slash) {   /* "../Object64/x.jpg" */
-            snprintf(sub, sizeof sub, "%s/Data/Object64", root);
+        if (slash) {   /* "../Object64/x.jpg", "../World114/x.jpg" */
+            snprintf(sub, sizeof sub, "%s/Data/%.*s", root, (int)(slash - name - 3), name + 3);
             dir = sub;
             file = slash + 1;
         }
@@ -306,24 +314,105 @@ void mu_world_free(mu_world *w)
         return;
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i)
         mu_image_free(&w->bitmaps[i]);
+    for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i)
+        mu_image_free(&w->extra[i]);
     free(w);
+}
+
+int mu_world_load_extra(mu_world *w, const char *root, int32_t id, const char *relative, int linear, int clamp)
+{
+    char directory[1200], resolved[1400], message[256];
+    const char *slash = strrchr(relative, '/');
+    if (!slash)
+        return 1;
+    snprintf(directory, sizeof directory, "%s/Data/%.*s", root, (int)(slash - relative), relative);
+    for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i) {
+        if (w->extra[i].width > 0)
+            continue;
+        if (!mu_image_resolve(directory, slash + 1, resolved, sizeof resolved) ||
+            mu_image_load_file(resolved, &w->extra[i], message, sizeof message) != MU_IMAGE_OK)
+            return 1;
+        w->extra_id[i] = id;
+        w->extra_linear[i] = (uint8_t)linear;
+        w->extra_clamp[i] = (uint8_t)clamp;
+        return 0;
+    }
+    return 1;
+}
+
+const mu_image *mu_world_bitmap_wrap(const mu_world *w, int32_t id, int *linear, int *clamp)
+{
+    const int32_t i = id - MU_TERRAIN_TEXTURE_TILE;
+    if (clamp)
+        *clamp = 0;
+    if (i >= 0 && i < MU_WORLD_BITMAPS && w->bitmaps[i].width > 0) {
+        if (linear)
+            *linear = w->bitmap_linear[i];
+        return &w->bitmaps[i];
+    }
+    for (int32_t k = 0; k < MU_WORLD_EXTRA; ++k)
+        if (w->extra[k].width > 0 && w->extra_id[k] == id) {
+            if (linear)
+                *linear = w->extra_linear[k];
+            if (clamp)
+                *clamp = w->extra_clamp[k];
+            return &w->extra[k];
+        }
+    return NULL;
+}
+
+const mu_image *mu_world_bitmap(const mu_world *w, int32_t id, int *linear)
+{
+    return mu_world_bitmap_wrap(w, id, linear, NULL);
+}
+
+void mu_world_frame_box(mu_world *w, float time, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+{
+    w->time = time;
+    w->box[0] = x0;
+    w->box[1] = y0;
+    w->box[2] = x1;
+    w->box[3] = y1;
+    const long steps = time > 0.0f ? (long)(time / 40.0f) : 0;
+    w->frame_counter = (int32_t)(steps % 32);
+    mu_terrain_frame_light(w->primary, w->light, x0, y0, x1, y1);
+    mu_terrain_wave(w->world, time, 0, x0, y0, x1, y1, w->wave, w->wave2);
+}
+
+void mu_world_add_light(mu_world *w, float x, float y, const float rgb[3], int32_t range)
+{
+    mu_terrain_add_light(x, y, rgb, range, w->light);
+}
+
+int mu_world_client_frustum(const mu_world *w, const float rows[12], const float camera_position[3],
+                            const float hero[3], float camera_angle_x, int32_t screen_width, int32_t zoom_mode,
+                            float view_far, float fov, mu_terrain_frustum *f)
+{
+    memset(f, 0, sizeof *f);
+    mu_terrain_frustum_create((float)screen_width / 640.0f, view_far, fov, rows, camera_position, f);
+    mu_terrain_frustum_2d_params params;
+    if (!mu_terrain_frustum_2d_params_for(w->world, zoom_mode, screen_width, 1.0f, 2400.0f, &params))
+        return MU_TERRAIN_UNSUPPORTED;
+    const float angle[3] = {camera_angle_x, 0.0f, -45.0f};
+    return mu_terrain_frustum_2d(w->world, hero, angle, &params, 0, f->x2d, f->y2d);
 }
 
 void mu_world_frame(mu_world *w, float time)
 {
-    w->time = time;
-    memcpy(w->light, w->primary, sizeof w->light);
+    mu_world_frame_box(w, time, 0, 0, 251, 251);   /* rows/columns 0..254 (box + 3) */
+    memcpy(&w->light[3 * 255 * 256], &w->primary[3 * 255 * 256], 3 * 256 * sizeof(float));
+    for (int32_t y = 0; y < 255; ++y)
+        memcpy(&w->light[3 * (y * 256 + 255)], &w->primary[3 * (y * 256 + 255)], 3 * sizeof(float));
     mu_terrain_wave(w->world, time, 0, 0, 0, 255, 255, w->wave, w->wave2);
 }
 
 static int texture_size(void *context, int32_t texture, float *width, float *height)
 {
-    const mu_world *w = context;
-    const int32_t i = texture - MU_TERRAIN_TEXTURE_TILE;
-    if (i < 0 || i >= MU_WORLD_BITMAPS || w->bitmaps[i].width <= 0)
+    const mu_image *image = mu_world_bitmap(context, texture, NULL);
+    if (!image)
         return 0;
-    *width = (float)w->bitmaps[i].width;
-    *height = (float)w->bitmaps[i].height;
+    *width = (float)image->width;
+    *height = (float)image->height;
     return 1;
 }
 
@@ -345,6 +434,7 @@ void mu_world_scene(mu_world *w, mu_terrain_scene *s)
     s->water_height = w->water_height;
     s->time = w->time;
     s->detail = w->detail;
+    s->frame_counter = w->frame_counter;
     s->texture_size = texture_size;
     s->texture_context = w;
 }
@@ -397,15 +487,12 @@ static void r_state(void *c, int32_t state, int32_t argument)
 static void r_bind(void *c, int32_t texture)
 {
     raster_context *x = c;
-    const int32_t i = texture - MU_TERRAIN_TEXTURE_TILE;
-    x->texture = NULL;
     x->linear = 0;
-    if (i >= 0 && i < MU_WORLD_BITMAPS && x->world->bitmaps[i].width > 0) {
-        x->texture = &x->world->bitmaps[i];
-        x->linear = x->world->bitmap_linear[i];
-    } else {
+    int clamp = 0;
+    x->texture = mu_world_bitmap_wrap(x->world, texture, &x->linear, &clamp);
+    x->raster->clamp = (uint8_t)clamp;
+    if (!x->texture)
         x->missing++;
-    }
     mu_raster_set(x->raster, &x->state, x->texture, x->linear);
 }
 
@@ -436,16 +523,23 @@ static void r_vertex(void *c, const float xyz[3])
     x->backend.sink.vertex(x->backend.sink.context, xyz);
 }
 
+static void raster_sink(raster_context *x, mu_world *w, mu_raster *raster, mu_terrain_sink *sink)
+{
+    memset(x, 0, sizeof *x);
+    x->world = w;
+    x->raster = raster;
+    mu_raster_backend(raster, &x->backend);
+    mu_world_state(MU_TERRAIN_STATE_OPAQUE, 0, &x->state);
+    const mu_terrain_sink s = {x, r_state, r_bind, r_begin, r_texcoord, r_color3, r_color4, r_vertex, r_end};
+    *sink = s;
+}
+
 int mu_world_draw_raster(mu_world *w, mu_raster *raster, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
                          mu_world_draw_stats *stats)
 {
     raster_context x;
-    memset(&x, 0, sizeof x);
-    x.world = w;
-    x.raster = raster;
-    mu_raster_backend(raster, &x.backend);
-    mu_world_state(MU_TERRAIN_STATE_OPAQUE, 0, &x.state);
-    mu_terrain_sink sink = {&x, r_state, r_bind, r_begin, r_texcoord, r_color3, r_color4, r_vertex, r_end};
+    mu_terrain_sink sink;
+    raster_sink(&x, w, raster, &sink);
     mu_terrain_scene scene;
     mu_world_scene(w, &scene);
     mu_world_draw_stats local;
@@ -455,6 +549,38 @@ int mu_world_draw_raster(mu_world *w, mu_raster *raster, int32_t x0, int32_t y0,
     if (stats)
         *stats = local;
     return status;
+}
+
+int mu_world_draw_raster_view(mu_world *w, mu_raster *raster, const mu_terrain_frustum *frustum,
+                              int32_t scene_state, int top_view, mu_world_draw_stats *stats)
+{
+    raster_context x;
+    mu_terrain_sink sink;
+    raster_sink(&x, w, raster, &sink);
+    mu_terrain_scene scene;
+    mu_world_scene(w, &scene);
+    mu_world_draw_stats local;
+    memset(&local, 0, sizeof local);
+    int status = mu_terrain_render(&scene, frustum, scene_state, top_view, mu_terrain_alpha_layers(w->world), &sink,
+                                   &local.tiles);
+    local.missing_texture_binds = x.missing;
+    if (stats)
+        *stats = local;
+    return status;
+}
+
+long mu_world_decal_raster(mu_world *w, mu_raster *raster, int32_t texture, float px, float py, float size_x,
+                           float size_y, const float rgb[3], float rotation, float alpha, float height, int follow,
+                           int flip, int32_t state)
+{
+    raster_context x;
+    mu_terrain_sink sink;
+    raster_sink(&x, w, raster, &sink);
+    sink.state(&x, state, 1);
+    mu_terrain_scene scene;
+    mu_world_scene(w, &scene);
+    return mu_terrain_decal(&scene, texture, px, py, size_x, size_y, rgb, rotation, alpha, height, follow, flip,
+                            &sink);
 }
 
 float mu_world_height_at(const mu_world *w, float x, float y)

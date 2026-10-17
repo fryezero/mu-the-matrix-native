@@ -177,6 +177,118 @@ class RuleModelTests(Build):
     def test_uv_negative_control(self):
         self.assertTrue(vt.negative_controls(self.authored)['uv_natural_index_differs'])
 
+    # NATIVE-TERRAIN-002
+
+    def test_height_choice_resolved(self):
+        for world in range(256):
+            rgb, unresolved = self.authored.height_is_rgb(world)
+            self.assertEqual((rgb, unresolved), (vt.py_height_is_rgb(world), 0), world)
+        self.assertEqual([w for w in range(0x80, 0x95) if self.authored.lib.mu_terrain_world_handler_flag(w) == 1],
+                         list(range(0x86, 0x92)))
+        self.assertEqual(self.authored.lib.mu_terrain_world_handler_flag(0x41), -1)
+
+    def test_world_tile_streams(self):
+        g = random.Random(9)
+        compared = effects_seen = 0
+        for seed, world in enumerate(vt.SPECIAL_WORLDS):
+            scene = vt.synthetic_scene(600 + seed, world, extended=True)
+            state = [seed]
+
+            def rand():
+                state[0] = (state[0] * 214013 + 2531011) & 0xffffffff
+                return (state[0] >> 16) & 0x7fff
+            scene['random'] = rand
+            built = self.authored.scene(scene)
+            for case in range(40):
+                xi, yi = g.randrange(1, 254), g.randrange(1, 254)
+                built[0].detail = scene['detail'] = 4 if case % 2 else 0
+                for pass_ in (0, 2):
+                    start = state[0]
+                    scene['effects_out'].clear()
+                    status, stream = self.authored.draw_tile(built, pass_, float(xi), float(yi), xi, yi)
+                    c_effects = list(scene['effects_out'])
+                    state[0] = start
+                    model_scene = dict(scene, effects=[])
+                    expected = []
+                    py_status = vt.py_draw_tile(model_scene, pass_, float(xi), float(yi), xi, yi, expected)
+                    self.assertEqual(status, py_status, (world, xi, yi, pass_))
+                    if status != 4:
+                        self.assertEqual(stream, expected, (world, xi, yi, pass_))
+                        self.assertEqual(c_effects, model_scene['effects'], (world, xi, yi))
+                        effects_seen += len(c_effects)
+                        compared += 1
+        self.assertGreater(compared, 2500)
+
+    def test_add_light(self):
+        g = random.Random(10)
+        for case in range(12):
+            base = [vt.f32(g.uniform(-0.5, 1.5)) for _ in range(3 * 65536)]
+            x, y = vt.f32(g.uniform(-200, 25800)), vt.f32(g.uniform(-200, 25800))
+            light = [vt.f32(g.uniform(-1, 2)) for _ in range(3)]
+            light_range = g.choice([0, 1, 2, 4])
+            mine = self.authored.add_light(x, y, light, light_range, base)
+            self.assertTrue(vt.compare_lists(mine, vt.py_add_light(x, y, light, light_range, base)), case)
+        # falloff: (range - distance) / range at the cell under the light, no upper clamp
+        zero = [0.0] * (3 * 65536)
+        lit = self.authored.add_light(12850.0, 12850.0, [2.0, 1.0, 0.5], 2, zero)
+        i = 3 * (128 * 256 + 128)
+        self.assertAlmostEqual(lit[i], 2.0 * (2 - 0.5 ** 0.5) / 2, places=5)
+        self.assertGreater(lit[i], 1.0)
+
+    def test_frustum_and_culling(self):
+        rows = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+        f = self.authored.frustum_create(2.0, 3000.0, 35.0, rows, [12800.0, 12800.0, 900.0])
+        self.assertEqual(list(f.vertex)[:3], [12800.0, 12800.0, 900.0])
+        self.assertTrue(all(0 <= v <= 251 for v in (f.x_min, f.y_min, f.x_max, f.y_max)))
+        self.assertEqual([f.x_min % 4, f.y_min % 4], [0, 0])
+        ok, params = self.authored.params_2d(0, 3, 1280, 1.0, 2400.0)
+        self.assertEqual(ok, 1)
+        self.assertEqual(params[0], 3300.0)
+        status, xs, ys = self.authored.frustum_2d(0, [12800.0, 12800.0, 0.0], [-48.5, 0.0, -45.0], params, 0)
+        self.assertEqual(status, 0)
+        # the hero cell is inside its own polygon, a far cell is not; scene states 1..4 accept everything
+        test = self.authored.lib.mu_terrain_test_frustum_2d
+        self.assertEqual(test(vt.floats(xs), vt.floats(ys), 5, 128.0, 128.0, 0.0), 1)
+        self.assertEqual(test(vt.floats(xs), vt.floats(ys), 5, 10.0, 10.0, 0.0), 0)
+        self.assertEqual(test(vt.floats(xs), vt.floats(ys), 2, 10.0, 10.0, 0.0), 1)
+        g = random.Random(11)
+        for _ in range(500):
+            x, y, r = vt.f32(g.uniform(90, 170)), vt.f32(g.uniform(90, 170)), g.choice([0.0, -80.0])
+            self.assertEqual(test(vt.floats(xs), vt.floats(ys), 5, x, y, r), vt.py_test_frustum_2d(xs, ys, 5, x, y, r))
+        scene = vt.synthetic_scene(12, 0)
+        built = self.authored.scene(scene)
+        frustum = vt.Frustum()
+        frustum.x_min, frustum.y_min, frustum.x_max, frustum.y_max = 112, 112, 144, 144
+        for i in range(4):
+            frustum.x2d[i], frustum.y2d[i] = xs[i], ys[i]
+        status, culled = self.authored.render(built, frustum, 5, 0, 1)
+        status, everything = self.authored.render(built, frustum, 5, 1, 1)   # top view: whole box
+        self.assertLess(len(culled), len(everything))
+        status, box = self.authored.draw(built, (112, 112, 144, 144), 1)
+        self.assertEqual(everything, box)
+
+    def test_decal(self):
+        scene = vt.synthetic_scene(13, 0)
+        scene['att'] = [0] * 65536
+        built = self.authored.scene(scene)
+        fans, stream = self.authored.decal(built, 0x7ef7, 12850.0, 12850.0, 2.0, 2.0, [1.0, 0.5, 0.25], 0.0, 1.0,
+                                           5.0, 1, 0)
+        self.assertEqual(fans, 49)                       # n = (int)2 + 1 = 3: 7 x 7 tiles
+        self.assertEqual(stream[0], ('c3', vt.fbits(1.0), vt.fbits(0.5), vt.fbits(0.25)))
+        self.assertEqual(stream[1], ('bind', 0x7ef7))
+        self.assertEqual(sum(1 for item in stream if item[0] == 'begin'), 49)
+        texcoords = [(vt.frombits(t[1]), vt.frombits(t[2])) for t in stream if t[0] == 'tex']
+        inside = [uv for uv in texcoords if 0.0 <= uv[0] <= 1.0 and 0.0 <= uv[1] <= 1.0]
+        self.assertGreater(len(inside), 0)
+        fans, stream = self.authored.decal(built, 0x7ef7, 12850.0, 12850.0, 2.0, 2.0, [1.0, 1.0, 1.0], 0.0, 0.5,
+                                           5.0, 0, 1)
+        self.assertEqual(stream[0][0], 'c4')
+        vertices = [vt.frombits(v[3]) for v in stream if v[0] == 'v']
+        self.assertTrue(all(z == 5.0 for z in vertices))   # flat at `height` when not following the terrain
+        scene['att'] = [0x200] * 65536
+        self.assertEqual(self.authored.decal(self.authored.scene(scene), 0x7ef7, 12850.0, 12850.0, 2.0, 2.0,
+                                             [1.0, 1.0, 1.0], 0.0, 1.0, 5.0, 1, 0)[0], 0)
+
 
 class ToolTests(Build):
     def setUp(self):
@@ -224,6 +336,42 @@ class ToolTests(Build):
         self.assertGreater(render['skipped'], 0)
         self.assertEqual(render['faces'] + render['skipped'] // 2, 252*252)
 
+    def test_lights_decal_frustum_options(self):
+        write_world(self.root, 1, seed=8)
+        effect = self.root/'Data'/'Effect'
+        effect.mkdir(parents=True)
+        (effect/'flare01.OZJ').write_bytes(ozj_tga(32, 32, 9))
+        base = ['--world', 0, '--width', 160, '--height', 100, '--target', '12850,12850', '--yaw', -45, '--pitch', 45,
+                '--distance', 2500, '--time', 1234]
+        plain = json.loads(run('render', self.root, *base).stdout)
+        lit = json.loads(run('render', self.root, *base, '--light', '12850,12850,1,0.5,0.2,4').stdout)
+        self.assertNotEqual(plain['sha256'], lit['sha256'])
+        self.assertEqual(lit['lights'], 1)
+        decal = json.loads(run('render', self.root, *base, '--decal', '12850,12850,2,30').stdout)
+        self.assertEqual(decal['decal_fans'], 49)
+        culled = json.loads(run('render', self.root, *base, '--frustum', '12850,12850').stdout)
+        self.assertEqual(culled['frustum_status'], 0)
+        self.assertLess(culled['faces'], plain['faces'])
+        box = culled['frustum_box']
+        self.assertTrue(box[0] <= 128 <= box[2] and box[1] <= 128 <= box[3], box)
+        legacy = json.loads(run('render', self.root, *base, '--light', '12850,12850,1,0.5,0.2,4', '--legacy').stdout)
+        self.assertEqual(legacy['sha256'], plain['sha256'])
+
+    def test_animated_layer_world(self):
+        # world index 7 (Atlans): layer-2 water (5) under partial alpha is the additive Object8\wt%02d layer
+        data = write_world(self.root, 8, seed=10)
+        objects = self.root/'Data'/'Object8'
+        objects.mkdir(parents=True)
+        for n in range(32):
+            (objects/f'wt{n:02d}.OZJ').write_bytes(ozj_tga(32, 32, 100 + n))
+        report = json.loads(run('render', self.root, '--world', 7, '--width', 120, '--height', 80, '--time', 0).stdout)
+        later = json.loads(run('render', self.root, '--world', 7, '--width', 120, '--height', 80,
+                               '--time', 40 * 5).stdout)
+        self.assertEqual((report['status'], report['unsupported'], report['missing_texture_binds']), (0, 0, 0))
+        self.assertEqual((report['frame_counter'], later['frame_counter']), (0, 5))
+        self.assertNotEqual(report['sha256'], later['sha256'])
+        self.assertTrue(data.exists())
+
     def test_missing_files_refused(self):
         data = write_world(self.root, 1)
         (data/'TerrainHeight.OZB').unlink()
@@ -260,12 +408,14 @@ class ViewerTests(Build):
             self.skipTest('viewer needs SDL2')
         with tempfile.TemporaryDirectory() as tmp:
             write_world(tmp, 1, seed=7)
-            result = subprocess.run([str(VIEWER), '--terrain', tmp, '--world', '0', '--headless', '--backend', 'gl',
-                                     '--compare', '--width', '200', '--height', '120', '--distance', '3000'],
-                                    capture_output=True, text=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            report = json.loads(result.stdout)
-            self.assertLess(report['pixels_over_8'], report['pixels'] * 0.10)
+            for extra in ([], ['--lights', '--frustum', '--decal', '--detail', '4', '--target', '12850,12850',
+                               '--yaw', '-45']):
+                result = subprocess.run([str(VIEWER), '--terrain', tmp, '--world', '0', '--headless', '--backend',
+                                         'gl', '--compare', '--width', '200', '--height', '120', '--distance', '3000',
+                                         *extra], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                report = json.loads(result.stdout)
+                self.assertLess(report['pixels_over_8'], report['pixels'] * 0.10)
 
 
 @unittest.skipUnless(PRIVATE and os.environ.get('MU_GAME_ROOT'),
@@ -293,13 +443,19 @@ class PrivateInstalledTests(Build):
     def test_lorencia_and_twisted_karutan(self):
         root = os.environ['MU_GAME_ROOT']
         with tempfile.TemporaryDirectory() as tmp:
-            for world in (0, 142):
+            for world in (0, 142, 63, 7):   # + Vulcanus (lava scroll) and Atlans (animated layer), NATIVE-TERRAIN-002
                 report = json.loads(run('render', root, '--world', world, '--width', 320, '--height', 200,
                                         '--out', Path(tmp)/f'{world}.png').stdout)
                 self.assertEqual((report['status'], report['unsupported'], report['missing_texture_binds']),
                                  (0, 0, 0), world)
                 self.assertEqual(report['faces'] + report['skipped'] // 2, 252*252)
-                self.assertGreater(report['grass'], 0)
+                if world != 7:   # Atlans draws no grass
+                    self.assertGreater(report['grass'], 0)
+                view = json.loads(run('render', root, '--world', world, '--width', 320, '--height', 200, '--target',
+                                      '12850,12850', '--frustum', '12850,12850', '--detail', 4, '--decal',
+                                      '12850,12850,2,0', '--light', '12850,12850,1,1,1,1').stdout)
+                self.assertEqual((view['status'], view['frustum_status'], view['missing_texture_binds']), (0, 0, 0))
+                self.assertGreater(view['faces'], 100)
 
 
 if __name__ == '__main__':

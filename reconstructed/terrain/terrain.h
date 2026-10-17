@@ -327,10 +327,11 @@ typedef struct mu_terrain_frustum_2d_params {
  *              3400, 3400; offsets distance * 0.19f and distance * 0.47f;
  *              widths (1200, 540), (1300, 540), (1500, 580), (1600, 660),
  *              (1600, 660) times s;
- *   mode 0:    s = camera_scale (0x0098ac7c: [c+0xc]->+0x1c * +0x18 * [c+0x10]
- *              * the zoom getter 0x0098c6b4), 5.0f in world 0x8b; distance =
- *              distance_2400 (0x0098ac45(2400.0f)); offsets 0.19 / 0.47
- *              (0.35 in world 0x3f), widths 1190*s (1900*s in 0x3f), 540*s.
+ *   mode 0:    s = camera_scale (0x0098ac7c: screen_width / 640 * [c+0xc]->+0x1c
+ *              * +0x18 * [c+0x10]); distance = distance_2400 (0x0098ac45(2400.0f));
+ *              offsets 0.19 / 0.47 (0.35 in world 0x3f), widths 1190*s (1900*s
+ *              in 0x3f), 540*s. (Outside scene states 3 and 5 world 0x8b uses
+ *              s = 5; scene state 3 never takes the 0x3f variant.)
  * Returns 0 for an unknown mode (the client then keeps zeros). */
 int mu_terrain_frustum_2d_params_for(int32_t world_index, int32_t mode, int32_t screen_width, float camera_scale,
                                      float distance_2400, mu_terrain_frustum_2d_params *params);

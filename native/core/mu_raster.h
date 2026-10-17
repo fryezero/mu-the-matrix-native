@@ -44,6 +44,7 @@ typedef struct mu_raster {
     int32_t vertex_count, vertex_capacity;
     long triangles, fragments;
     int primitive;             /* mode of the open primitive (4, 6 or 7) */
+    uint8_t clamp;             /* 1: GL_CLAMP-like wrap (coordinates clamped to the edge texels), 0: GL_REPEAT */
 } mu_raster;
 
 int mu_raster_init(mu_raster *raster, int32_t width, int32_t height);

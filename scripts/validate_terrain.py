@@ -432,6 +432,53 @@ def py_draw_tile(scene, pass_, xf, yf, xi, yi, out):
     return status
 
 
+def py_add_light(x, y, light, light_range, buffer, variant=None):
+    """AddTerrainLight 0x016cacfc; variant 'clamp1' also clamps above at 1, 'noclamp' drops the 0 clamp
+    (negative controls)."""
+    out = list(buffer)
+    rf = f32(float(light_range))
+    xf, yf = fdiv(x, 100.0), fdiv(y, 100.0)
+    xi, yi = cvtt(xf), cvtt(yf)
+    row = f32(float(yi - light_range))
+    for yy in range(yi - light_range, yi + light_range + 1):
+        column = f32(float(xi - light_range))
+        for xx in range(xi - light_range, xi + light_range + 1):
+            dx, dy = fsub(xf, column), fsub(yf, row)
+            d = fadd(fmul(dx, dx), fmul(dy, dy))
+            lf = fdiv(fsub(rf, f32(math.sqrt(d))), rf)
+            if gt(lf, 0.0):
+                i = index_repeat(xx, yy)
+                for k in range(3):
+                    v = fadd(fmul(light[k], lf), out[3 * i + k])
+                    if variant != 'noclamp' and v == v and 0.0 > v:
+                        v = 0.0
+                    if variant == 'clamp1' and gt(v, 1.0):
+                        v = 1.0
+                    out[3 * i + k] = v
+            column = fadd(column, 1.0)
+        row = fadd(row, 1.0)
+    return out
+
+
+def py_test_frustum_2d(xs, ys, state, x, y, r):
+    if 1 <= state <= 4:
+        return 1
+    j = 3
+    for i in range(4):
+        d = fsub(fmul(fsub(xs[i], x), fsub(ys[j], y)), fmul(fsub(xs[j], x), fsub(ys[i], y)))
+        if r == r and d == d and r >= d:
+            return 0
+        j = i
+    return 1
+
+
+def py_height_is_rgb(world):
+    """0x016c9868 with the handler table of 0x00ea488e."""
+    literal = (world in (0x2a, 0x3f, 0x64, 0x65, 0x6e, 0x6f, 0x70, 0x7a) or 0x52 <= world <= 0x5a or
+               0x7b <= world <= 0x85)
+    return int(literal or 0x86 <= world <= 0x91)
+
+
 def py_walk(scene, pass_, box, out):
     x0, y0, x1, y1 = box
     by = float(y0)
@@ -1149,7 +1196,7 @@ def run_client(args, authored):
 
     loader_checks(client, authored, report, g)
     if not args.skip_002:
-        terrain2_checks(client, authored, report, g)
+        terrain2_checks(client, authored, report, g, args.scale_002)
 
     # Negative control: the "natural" uv corner rule (index 2/3 instead of 1/0) must differ.
     report['negative_controls'] = negative_controls(authored)
@@ -1330,12 +1377,16 @@ def loader_checks(client, authored, report, g):
         authored.lib.mu_terrain_wave.argtypes = [ctypes.c_int32, ctypes.c_float, ctypes.c_int, ctypes.c_int32,
                                                  ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, VOIDP, VOIDP]
         authored.lib.mu_terrain_wave(world, time, alternate, *box, mine_wave, mine_wave2)
-        expected_light = bytearray(POISON * (12 * CELLS))
+        poison = (ctypes.c_float * (3 * CELLS)).from_buffer_copy(POISON * (12 * CELLS))
+        authored.lib.mu_terrain_frame_light(floats(primary), poison, *box)   # authored copy rule
+        expected_light = bytes(poison)
         primary_bytes = struct.pack(f'<{3 * CELLS}f', *primary)
+        python_light = bytearray(POISON * (12 * CELLS))
         for y in range(box[1], box[3] + 4):
             for x in range(box[0], box[2] + 4):
                 i = index_repeat(x, y)
-                expected_light[12 * i:12 * i + 12] = primary_bytes[12 * i:12 * i + 12]
+                python_light[12 * i:12 * i + 12] = primary_bytes[12 * i:12 * i + 12]
+        assert bytes(python_light) == expected_light
         w_ok = compare_lists(client.read('wave', 'f', CELLS), list(mine_wave))
         w2_ok = compare_lists(client.read('wave2', 'f', CELLS), list(mine_wave2))
         l_ok = bytes(uc.mem_read(G['light'], 12 * CELLS)) == bytes(expected_light)
@@ -1404,7 +1455,7 @@ def random_rotation(g):
             f32(m[2][0]), f32(m[2][1]), f32(m[2][2]), f32(g.uniform(-30000, 0))]
 
 
-def terrain2_checks(client, authored, report, g):
+def terrain2_checks(client, authored, report, g, scale=1):
     uc = client.uc
     out = {}
 
@@ -1461,7 +1512,12 @@ def terrain2_checks(client, authored, report, g):
             flags.setdefault('rgb', []).append(world)
         if not same:
             mismatches.append([world, ok, got, mine])
-    out['height_choice'] = {'cases': cases, 'matches': matches, 'constructors_run': [built, ok_ctors],
+    literal_only = sum(1 for w_ in range(0x100) if (w_ in flags.get('rgb', [])) !=
+                       bool(py_height_is_rgb(w_) and not 0x86 <= w_ <= 0x91))
+    out['height_choice'] = {'cases': cases, 'matches': matches,
+                            'python_model_equal': sum(1 for w_ in range(0x100) if (w_ in flags.get('rgb', [])) ==
+                                                      bool(py_height_is_rgb(w_))),
+                            'negative_control_literal_only_differs': literal_only, 'constructors_run': [built, ok_ctors],
                             'rgb_worlds': flags.get('rgb', []), 'mismatches': mismatches[:8],
                             'handler_flag_bytes': {hex(c): v[2].hex() for c, v in sorted(handlers.items())},
                             'constructor_errors': {hex(c): v[4] for c, v in sorted(handlers.items()) if not v[1]}}
@@ -1469,7 +1525,7 @@ def terrain2_checks(client, authored, report, g):
     # (2) AddTerrainLight 0x016cacfc on synthetic buffers.
     cases = matches = 0
     buffer_address = G['light']
-    for case in range(160):
+    for case in range(160 * scale):
         base = [f32(g.uniform(-0.5, 1.5)) for _ in range(3 * CELLS)] if case % 8 == 0 else None
         if base is None:
             base = list(struct.unpack(f'<{3 * CELLS}f', bytes(uc.mem_read(buffer_address, 12 * CELLS))))
@@ -1487,6 +1543,26 @@ def terrain2_checks(client, authored, report, g):
         cases += 1
         matches += int(ok and got == struct.pack(f'<{3 * CELLS}f', *mine))
     out['add_light'] = {'cases': cases, 'matches': matches}
+    # Negative controls: an upper clamp at 1 or no lower clamp must disagree with the client somewhere.
+    differ = {'clamp1': 0, 'noclamp': 0, 'python_model': 0}
+    for case in range(40 * scale):
+        base = [f32(g.uniform(-0.5, 1.5)) for _ in range(3 * CELLS)]
+        x, y = f32(g.uniform(500, 25000)), f32(g.uniform(500, 25000))
+        light = [f32(g.uniform(-1.5, 2.5)) for _ in range(3)]
+        light_range = g.choice([1, 2, 4])
+        uc.mem_write(buffer_address, struct.pack(f'<{3 * CELLS}f', *base))
+        uc.mem_write(client.CONFIG + 0x400, struct.pack('<3f', *light))
+        client.call(ADD_LIGHT, [fbits(x), fbits(y), client.CONFIG + 0x400, light_range, buffer_address])
+        got = bytes(uc.mem_read(buffer_address, 12 * CELLS))
+        for variant in (None, 'clamp1', 'noclamp'):
+            model = struct.pack(f'<{3 * CELLS}f', *py_add_light(x, y, light, light_range, base, variant))
+            if variant is None:
+                differ['python_model'] += int(model == got)
+            else:
+                differ[variant] += int(model != got)
+    out['add_light']['negative_controls'] = {'cases': 40, 'clamp1_differs': differ['clamp1'],
+                                             'noclamp_differs': differ['noclamp'],
+                                             'python_model_equal': differ['python_model']}
 
     # (3) Tile streams of the world-specific branches (extended synthetic scenes).
     rand_state = [12345]
@@ -1516,7 +1592,7 @@ def terrain2_checks(client, authored, report, g):
         built_scene = authored.scene(scene)
         effects = scene['effects_out']
         per = streams['per_world'].setdefault(hex(world), [0, 0, 0])
-        for case in range(120):
+        for case in range(120 * scale):
             xi, yi = g.randrange(1, 254), g.randrange(1, 254)
             detail = 4 if case % 2 else 0
             client.uc.mem_write(client.CONFIG + 0x2c, struct.pack('<i', detail))
@@ -1551,12 +1627,34 @@ def terrain2_checks(client, authored, report, g):
                                                  'effects': [client_effects, list(effects)]}
     client.extra = {}
     streams['gl_color3f_calls'] = getattr(client, 'color3f', 0)
+    # Python model of the world rules and two negative controls on the same client streams.
+    client.extra = {CHAOS_EFFECTS: ret_with(0)}
+    neg = {'python_model_equal': 0, 'compared': 0, 'generic_scroll_differs': 0, 'generic_blend_differs': 0}
+    for world, wrong in ((0x1e, 0), (0x8d, 0), (0x70, 0), (0x33, 0), (0x5b, 0), (7, 0), (0x3f, 0)):
+        scene = synthetic_scene(900 + world, world, extended=True)
+        client.load_scene(scene)
+        for case in range(60 * scale):
+            xi, yi = g.randrange(1, 254), g.randrange(1, 254)
+            client.write('pass_', 'i', [0])
+            ok = client.call(TILE, [fbits(float(xi)), fbits(float(yi)), xi, yi, fbits(1.0), 1, 0])
+            model = []
+            if py_draw_tile(scene, 0, float(xi), float(yi), xi, yi, model) == 4:
+                continue
+            neg['compared'] += 1
+            neg['python_model_equal'] += int(ok and model == client.stream)
+            other = dict(scene, world=wrong)
+            perturbed = []
+            py_draw_tile(other, 0, float(xi), float(yi), xi, yi, perturbed)
+            key = 'generic_blend_differs' if world in (0x33, 0x5b) else 'generic_scroll_differs'
+            neg[key] += int(perturbed != client.stream)
+    client.extra = {}
+    streams['model_and_negative_controls'] = neg
     out['world_tile_streams'] = streams
 
     # (4) CreateFrustrum 0x016cba24, 3D part (up to its CreateFrustrum2D call).
     cases = matches = 0
     frustums = []
-    for case in range(40):
+    for case in range(40 * scale):
         rows = random_rotation(g)
         client.modelview = mat_rows_to_gl(rows)
         aspect = f32(g.choice([1.0, 1728 / 640.0, 1280 / 640.0, g.uniform(0.5, 4.0)]))
@@ -1584,7 +1682,7 @@ def terrain2_checks(client, authored, report, g):
     # (5) CreateFrustrum2D 0x016d20d9 (camera singleton and screen width substituted).
     camera, sub = client.OBJECTS + 0x8000, client.OBJECTS + 0x8100
     cases = matches = 0
-    for case in range(60):
+    for case in range(60 * scale):
         world = g.choice([0, 2, 0x3f, 0x8b, 0x86, 142, 0x22, 80])
         mode = g.choice([0, 1, 2, 3, 4, 5])
         width = g.choice([640, 800, 1024, 1280, 1728, 1920])
@@ -1624,9 +1722,9 @@ def terrain2_checks(client, authored, report, g):
                                                    'client': got, 'authored': [fbits(v) for v in x2d + y2d]}
     out.setdefault('frustum_2d', {}).update({'cases': cases, 'matches': matches})
 
-    # (6) TestFrustrum2D 0x016ccce7.
-    cases = matches = 0
-    for case in range(3000):
+    # (6) TestFrustrum2D 0x016ccce7 (and its Python model; negative control: the range with the wrong sign).
+    cases = matches = model_equal = flipped = 0
+    for case in range(3000 * scale):
         if case % 500 == 0:
             xs = [f32(g.uniform(0, 256)) for _ in range(4)]
             ys = [f32(g.uniform(0, 256)) for _ in range(4)]
@@ -1640,11 +1738,14 @@ def terrain2_checks(client, authored, report, g):
         mine = authored.lib.mu_terrain_test_frustum_2d(floats(xs), floats(ys), state, x, y, r)
         cases += 1
         matches += int(ok and got == mine)
-    out['test_frustum_2d'] = {'cases': cases, 'matches': matches}
+        model_equal += int(got == py_test_frustum_2d(xs, ys, state, x, y, r))
+        flipped += int(state == 5 and got != py_test_frustum_2d(xs, ys, 5, x, y, -r))
+    out['test_frustum_2d'] = {'cases': cases, 'matches': matches, 'python_model_equal': model_equal,
+                              'negative_control_range_sign_differs': flipped}
 
     # (7) RenderTerrain 0x016cd468 with the frustum tests live (top view off, main scene).
     cases = matches = 0
-    for case in range(4):
+    for case in range(4 * scale):
         scene = synthetic_scene(700 + case, g.choice([0, 142, 7, 0x3f]), extended=True)
         client.load_scene(scene)
         cx, cy = g.uniform(20, 230), g.uniform(20, 230)
@@ -1681,7 +1782,7 @@ def terrain2_checks(client, authored, report, g):
 
     # (8) RenderTerrainAlphaBitmap 0x016cdd5f (decals).
     cases = matches = fans = 0
-    for case in range(60):
+    for case in range(60 * scale):
         world = g.choice([0, 142, 0x8d])
         scene = synthetic_scene(800 + case % 3, world, extended=True)
         if case % 3 == 0:
@@ -1854,9 +1955,11 @@ def installed(args, authored, client):
                  'wave': list(wave), 'wave2': list(wave2),
                  'grass_offset': [(rng.randrange(32768) % 4) / 4.0 for _ in range(CELLS)],
                  'grass_map': bytes([1]) * CELLS, 'water': 0.0, 'time': time, 'detail': 0, 'grass_disabled': 0,
-                 'sizes': installed_sizes(data / f'World{number}')}
+                 'sizes': tool_sizes(args.game_root, world) or installed_sizes(data / f'World{number}'),
+                 'frame_counter': 7, 'hero_z': 150.0}
         client.load_scene(scene)
         built = authored.scene(scene)
+        client.extra = {CHAOS_EFFECTS: ret_with(0)}
         g = random.Random(number)
         tiles = matches = unsupported = 0
         if args.installed_tiles <= 0:
@@ -1864,6 +1967,9 @@ def installed(args, authored, client):
         else:
             coordinates = [(g.randrange(255), g.randrange(255)) for _ in range(args.installed_tiles)]
         for xi, yi in coordinates:
+            detail = 4 if (xi + yi) % 2 else 0   # graphics option >= 4 on half the tiles (0x4000 neighbour faces)
+            client.uc.mem_write(client.CONFIG + 0x2c, struct.pack('<i', detail))
+            built[0].detail = detail
             for pass_ in (0, 2):
                 client.write('pass_', 'i', [pass_])
                 ok = client.call(TILE, [fbits(float(xi)), fbits(float(yi)), xi, yi, fbits(1.0), 1, 0])
@@ -1873,7 +1979,9 @@ def installed(args, authored, client):
                     continue
                 tiles += 1
                 matches += int(ok and client.stream == expected)
-        result['tile_streams'] = {'cases': tiles, 'matches': matches, 'unsupported': unsupported}
+        client.extra = {}
+        result['tile_streams'] = {'cases': tiles, 'matches': matches, 'unsupported': unsupported,
+                                  'bitmaps': len(scene['sizes'])}
         out['compared'][str(number)] = result
     return out
 
@@ -1948,9 +2056,23 @@ def installed_loops(client, authored, data, worlds):
 
 
 def world_is_rgb(world):
-    static = (world in (0x2a, 0x3f, 0x64, 0x65, 0x6e, 0x6f, 0x70, 0x7a) or 0x52 <= world <= 0x5a or
-              0x7b <= world <= 0x85)
-    return static, not static
+    """0x016c9868 with the handler table (NATIVE-TERRAIN-002): nothing is left to the file length."""
+    return bool(py_height_is_rgb(world)), False
+
+
+def tool_sizes(game_root, world):
+    """Bitmap sizes as the native loader resolves them (mu-terrain export trailer), or None."""
+    import subprocess
+    tool = ROOT / 'native/build/mu-terrain'
+    if not tool.exists():
+        return None
+    out = subprocess.run([str(tool), 'export', str(game_root), '--world', str(world)], capture_output=True).stdout
+    trailer = out[out.rfind(b'{"time"'):]
+    try:
+        bitmaps = json.loads(trailer)['bitmaps']
+    except (ValueError, KeyError):
+        return None
+    return {int(k): (float(v[0]), float(v[1])) for k, v in bitmaps.items()}
 
 
 TILE_FILES = ['TileGrass01.OZJ', 'TileGrass02.OZJ', 'TileGround01.OZJ', 'TileGround02.OZJ', 'TileGround03.OZJ',
@@ -2018,6 +2140,7 @@ def main():
     parser.add_argument('--game-root')
     parser.add_argument('--grids', type=int, default=3)
     parser.add_argument('--skip-002', action='store_true', help='skip the NATIVE-TERRAIN-002 checks')
+    parser.add_argument('--scale-002', type=int, default=1, help='multiply the NATIVE-TERRAIN-002 case counts')
     parser.add_argument('--worlds', type=int, default=len(GENERIC_WORLDS))
     parser.add_argument('--tiles', type=int, default=150)
     parser.add_argument('--installed-worlds', type=lambda s: [int(x) for x in s.split(',') if x], default=[1])
