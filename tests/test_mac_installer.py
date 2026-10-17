@@ -106,7 +106,9 @@ class InstallerPinsAndOptions(unittest.TestCase):
 
     def test_relation_to_existing_setup_is_documented(self):
         self.assertIn('Relation to `setup-crossover-32bit.sh`', self.readme)
-        self.assertIn('has **not** been run live', self.readme)
+        self.assertIn('It was itself run live on 2026-10-17 in a throwaway bottle', self.readme)
+        self.assertIn('Live validation of the repository version', self.readme)
+        self.assertIn('(no login;', self.readme)
         mac_play = (ROOT / 'mac-play' / 'README.md').read_text()
         self.assertIn('installer/README.md', mac_play)
 

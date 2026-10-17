@@ -200,7 +200,7 @@ calls (7-14 ms took 17-45 ms) whenever the game is not the frontmost Mac app, no
 the client's inactive throttle or a double sleep. Claude reports 25.00 fps in the
 background over 140 s with 99.6% of frames at 38-42 ms, versus about 24.5 fps with half
 the frames late for v7.1, and 24.95 fps frontmost; the logic still runs at 25 Hz. No new
-patch site or original byte is added. These are supplied single-host reports, not rerun;
+patch site or original byte is added. A later 6-minute background soak at a hunting spot (MU Helper on) kept a 25.00 fps median with no growth in memory and no deaths or disconnects; one 2-second interval dipped to 6.3 fps and recovered, and an hour-long session is still open. These are supplied single-host reports, not rerun;
 the new code was only compiled here. Default setup still uses #52. No running game or
 bottle was changed. [Evidence and limits](research/mac-performance.md#mac-perf-006-claude-v72-precise-frame-pacing-waits).
 
@@ -212,8 +212,14 @@ bottle. The owner reports that the local copy built a fresh bottle in 3 min 44 s
 were fixed. This publication replaced machine-specific siblings with repository sources and
 parameters, ships no DLL (pinned SHA-256 only; prebuilt v7.x DLLs are user supplied), keeps
 account and Keychain names out of the tree, and runs its 180-check suite on macOS and Linux
-in CI. The adapted setup has not been run live, only dry-run and tested synthetically. It
-sits beside the older `setup-crossover-32bit.sh`. No game or bottle was changed.
+in CI. A follow-up live run of the repository version in a throwaway bottle (`claude/kit-live-fixes`)
+covered the public build, the private hotpatch build, a prebuilt `--dll-dir` and `--fast-x87` up to the
+server-select screen (25.0 fps with the hotpatch builds, 19-20 fps with the public proxy; not logged in
+because the account was in use elsewhere), found five bugs (non-reproducible PE timestamps, a
+`--dll-dir` that demanded `mscoree.dll`, a test that depended on the checkout, a log shared by all
+bottles, and verify ignoring the launcher's fast-x87 setting) and fixed them; the suite is now 190 checks.
+It sits beside the older `setup-crossover-32bit.sh`. The throwaway bottle was the only bottle created;
+MuMatrix32 was not touched.
 [Evidence and limits](research/mac-crossover-32bit.md#reproducible-setup-kit-mac-kit-001).
 
 ## Repository and next work

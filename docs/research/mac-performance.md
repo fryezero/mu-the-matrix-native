@@ -896,7 +896,15 @@ tables, and the documented cause and limits), `make mugl mac-diagnostics mac-hot
 cross-build set) and `python3 scripts/audit_repository.py`. The new code was compiled but not
 executed: it only runs in a private build inside the game.
 
-Not established: other hosts, macOS versions or power states (single host); runs longer than the reported 140 s;
+**Background soak (reported, not rerun here).** Claude reports a 6-minute (not 60-minute) background run with MU
+Helper on, standing at Twisted Karutan 119,100, with mugl v7.2 (mask 7599): fps median 25.00 in every sample; one
+2-second interval dipped to 6.3 fps (a 142 ms frame) and recovered by itself; work median 25-30 ms; memory fell from
+380 to 298 MB (no growth); CPU 67-77%; 0 deaths, disconnects or crashes; 0 mesh-draw fallbacks or mismatches.
+The monster load was light. This extends the 140 s figure but is one short run on one host, so long-session
+stability (an hour or more, heavier load) remains open.
+
+Not established: other hosts, macOS versions or power states (single host); runs longer than the reported 140 s
+and the 6-minute soak above;
 login/character-select pacing is reported to be fixed but the numbers above are spawn only;
 Windows-native behavior (the cause is specific to Wine on macOS); anti-cheat and server compatibility; and
 any effect of the waitable timer's wineserver round trips on CPU use. The MAC-PERF-005 v7.1 pacing
