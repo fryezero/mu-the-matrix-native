@@ -10,24 +10,27 @@
 #include <GL/gl.h>
 #endif
 
-void mu_gl_upload(mu_gl_backend *gl, const mu_image *const *images, int32_t count, int nearest)
+void mu_gl_upload(mu_gl_backend *gl, const mu_textures *textures, int linear)
 {
+    const int32_t count = textures ? textures->count : 0;
     gl->count = count;
     gl->textures = calloc((size_t)(count ? count : 1), sizeof *gl->textures);
     if (!gl->textures)
         return;
     for (int32_t i = 0; i < count; ++i) {
-        const mu_image *image = images ? images[i] : NULL;
+        const mu_image *image = textures->slots[i];
         if (!image || !image->rgba)
             continue;
+        const GLint filter = linear ? GL_LINEAR : (GLint)textures->filter[i];
+        const GLint wrap = (GLint)textures->wrap[i];
         GLuint name = 0;
         glGenTextures(1, &name);
         glBindTexture(GL_TEXTURE_2D, name);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, nearest ? GL_NEAREST : GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, nearest ? GL_NEAREST : GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                      image->rgba);
         gl->textures[i] = name;
@@ -46,18 +49,6 @@ void mu_gl_release(mu_gl_backend *gl)
     gl->count = 0;
 }
 
-static GLenum factor(uint8_t f)
-{
-    switch (f) {
-    case MU_BLEND_ZERO: return GL_ZERO;
-    case MU_BLEND_ONE: return GL_ONE;
-    case MU_BLEND_SRC_COLOR: return GL_SRC_COLOR;
-    case MU_BLEND_ONE_MINUS_SRC_COLOR: return GL_ONE_MINUS_SRC_COLOR;
-    case MU_BLEND_SRC_ALPHA: return GL_SRC_ALPHA;
-    default: return GL_ONE_MINUS_SRC_ALPHA;
-    }
-}
-
 static void set(GLenum capability, int on)
 {
     if (on)
@@ -66,18 +57,18 @@ static void set(GLenum capability, int on)
         glDisable(capability);
 }
 
-static void prepare(void *context, const mu_meshdraw_state *s, int32_t mesh)
+static void prepare(void *context, const mu_meshdraw_state *s, int32_t slot)
 {
     mu_gl_backend *gl = context;
     set(GL_BLEND, s->blend);
-    if (s->blend)
-        glBlendFunc(factor(s->src), factor(s->dst));
+    glBlendFunc((GLenum)s->src, (GLenum)s->dst);  /* the client's GL enums */
     set(GL_DEPTH_TEST, s->depth_test);
     glDepthMask(s->depth_mask ? GL_TRUE : GL_FALSE);
     set(GL_CULL_FACE, s->cull);
     glFrontFace(gl->front_cw ? GL_CW : GL_CCW);
     set(GL_ALPHA_TEST, s->alpha_test);
-    GLuint name = (gl->textures && mesh >= 0 && mesh < gl->count) ? gl->textures[mesh] : 0;
+    set(GL_FOG, s->fog);  /* the client's fog flag is only ever written 0 */
+    GLuint name = (gl->textures && slot >= 0 && slot < gl->count) ? gl->textures[slot] : 0;
     set(GL_TEXTURE_2D, s->texture && name != 0);
     glBindTexture(GL_TEXTURE_2D, name);
     glPolygonMode(GL_FRONT_AND_BACK, gl->wireframe ? GL_LINE : GL_FILL);
