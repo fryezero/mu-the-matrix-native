@@ -29,6 +29,8 @@ native/build/mu-proto parse c106f1010203                       # classify a fram
 native/build/mu-proto dechunk c106f1010203c2000700aabbcc        # split a stream
 native/build/mu-frame [MODEL.bmd] --out-dir DIR --frames 180      # headless frame loop, scripted clicks and zoom
 native/build/mu-frame-window [MODEL.bmd]                          # client camera, click-to-move, wheel zoom, 25 FPS cap
+native/build/mu-render ui title --root "$MU_GAME_ROOT" --size 1024x768 --out /tmp/title.png   # 2D layer
+native/build/mu-render ui login --root "$MU_GAME_ROOT" --font Tahoma --out /tmp/login.png
 ```
 
 Character mode (NATIVE-CHAR-001, [finding](../docs/research/native-character.md)) assembles a player from the shared `Player.bmd` skeleton. Class body parts come from a class byte: low nibble class, high nibble evolution flags. Slots 1..5 (helm..boots) can be overridden with `--part`. Weapon slot 0 links to bone 33 (right hand), slot 1 to bone 42 (left hand) and `--wing` to bone 47:
@@ -46,6 +48,9 @@ native/build/mu-render chardump --game-root "$G" --class 0x11 --part 2 "$G/Data/
 `--origin`, `--angles`, `--head`, `--scale` (default 0.9, the creation value), `--color`, `--lighting` and `--wing-scale` set the character object. The animation options drive the Player. `--prior-action` should normally equal `--action`: at an integer frame the pose shows the prior key. In the viewer, Left and Right change the Player action.
 
 The frame-loop skeleton (`core/mu_frame.*`, [finding](../docs/research/client-camera-input.md)) runs the client's 40 ms logic steps and frame cap, its in-world camera, wheel FOV zoom, key scan and terrain picking from `reconstructed/camera`. The terrain is a flat placeholder and the hero walks in a straight line.
+
+`mu-render ui` (NATIVE-UI-001) renders the title/loading screen and the login scene's 2D overlay with the
+reconstructed 2D routines (`reconstructed/ui`) and a software GL subset. See [the finding](../docs/research/client-ui-2d.md).
 
 Viewer controls:
 
@@ -117,7 +122,8 @@ MP3/OGG decode through AudioToolbox on macOS only.
 | `core/mu_wav.*`, `mu_audio*.*` | WAV decoder, FMOD-boundary software mixer, platform decoder, script host (audio) |
 | `tools/mu_audio.c`, `tools/mu_audio_live.c` | Audio CLI (`list`, `decode`, `render`, `scan`) and SDL2 live player |
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
-| `tools/mu_render.c` | Headless CLI used by the tests |
+| `core/mu_ui_raster.*`, `mu_ui_assets.*`, `mu_ui_font.*` | 2D layer: software GL subset, interface texture table through the reconstructed OpenTga/OpenJpeg, GDI text boundary (CoreText) |
+| `tools/mu_render.c`, `tools/mu_render_ui.c` | Headless CLI used by the tests (`mu-render ui …` for the 2D layer) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 

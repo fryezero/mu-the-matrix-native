@@ -1059,3 +1059,17 @@ Branch `claude/native-unicorn`, worktree `~/Documents/mu-worktrees/native-unicor
 * Port or verify the CRT x87 trig fallback for arguments of magnitude 90,112 or more.
 
 No game, CrossOver bottle or registry was touched; installed BMDs were read only.
+
+## Native 2D interface layer (NATIVE-UI-001)
+
+Branch `claude/native-ui`, worktree `~/Documents/mu-worktrees/native-ui`. Read
+[`research/client-ui-2d.md`](research/client-ui-2d.md) and [`../reconstructed/ui/README.md`](../reconstructed/ui/README.md).
+
+**Checks.** `make test` runs the portable checks (`reconstructed/ui/test_ui.py`, `native/tests/test_native_ui.py`).
+`scripts/validate_ui.py --game-root "$MU_GAME_ROOT"` runs the full Unicorn comparison (about 7 min; needs
+`native/build/libmuui` for OpenJpeg). Live reference captures and renders stay local under
+`~/Documents/mu-mac-tools/native/renders/ui/`.
+
+**Next:** reconstruct the legacy server-select window (`CServerSelWin`, `0x01075554`, created by
+`CreateLoginScene` `0x011e2dc0`) with CButton/CWin and its server-name text, then the MENU/CREDIT window, to
+complete the server-select screen over the 3D login world.
