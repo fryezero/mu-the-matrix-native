@@ -15,6 +15,9 @@
  *                                           skeleton, class parts, weapons, wing); see --class
  *   mu-render chardump  [PLAYER] --out FILE shared Player bones, item bones and every part/item
  *                                           transform output (character golden tests)
+ *   mu-render actor --type CLASS | --monster TYPE | --npc INDEX --action A --time T --out PNG
+ *                                           animated monster/NPC (client action speeds, SetAction,
+ *                                           animation step); --frames N --strip PNG --gif GIF
  */
 #define _POSIX_C_SOURCE 200809L /* lstat, opendir, strdup with -std=c11 on glibc */
 #include <dirent.h>
@@ -23,9 +26,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "../core/mu_actor.h"
 #include "../core/mu_bmd.h"
 #include "../core/mu_camera.h"
 #include "../core/mu_character.h"
+#include "../core/mu_gif.h"
 #include "../core/mu_model.h"
 #include "../core/mu_options.h"
 #include "../core/mu_png.h"
@@ -559,10 +564,119 @@ static int command_character(const mu_options *o)
     return 0;
 }
 
+static int command_actor(const mu_options *o)
+{
+    static mu_actor actor;
+    char error[1024];
+    const char *root = o->game_root ? o->game_root : getenv("MU_GAME_ROOT");
+    mu_actor_spec spec;
+    if (!o->actor_by) {
+        fprintf(stderr, "actor needs --type CLASS, --monster TYPE or --npc INDEX\n");
+        return 2;
+    }
+    if (mu_actor_resolve(root, o->actor_by, o->actor_id, &spec, error, sizeof error)) {
+        fprintf(stderr, "%s\n", error);
+        return 1;
+    }
+    if (o->scale_set)
+        spec.scale = o->params.body_scale;
+    if (mu_actor_load(&actor, &spec, &o->params, o->no_textures, error, sizeof error)) {
+        fprintf(stderr, "%s: %s\n", spec.path, error);
+        return 1;
+    }
+    mu_actor_set_action(&actor, o->action);
+    int32_t steps = (int32_t)(o->time / 0.04f + 0.5f);
+    uint8_t loop = 1;
+    for (int32_t step = 0; step < steps; ++step)
+        mu_actor_step(&actor, &loop);
+    mu_raster raster;
+    if (mu_raster_init(&raster, o->width, o->height)) {
+        fprintf(stderr, "bad image size\n");
+        mu_actor_free(&actor);
+        return 1;
+    }
+    raster.linear = !o->nearest;
+    raster.front_ccw = !o->front_cw;
+    raster.textures = actor.textures.slots;
+    raster.texture_count = actor.textures.count;
+    size_t frame_bytes = (size_t)o->width * (size_t)o->height * 4;
+    uint8_t *frames = malloc(frame_bytes * (size_t)o->frames);
+    if (!frames) {
+        mu_raster_free(&raster);
+        mu_actor_free(&actor);
+        return 1;
+    }
+    mu_camera camera;
+    mu_draw_stats stats = {0, 0, 0};
+    char hash[65] = "";
+    float first_frame = 0.0f;
+    for (int32_t n = 0; n < o->frames; ++n) {
+        if (n)
+            for (int32_t step = 0; step < o->frame_steps; ++step)
+                mu_actor_step(&actor, &loop);
+        if (mu_actor_update(&actor)) {
+            fprintf(stderr, "pose/skin failed\n");
+            free(frames);
+            mu_raster_free(&raster);
+            mu_actor_free(&actor);
+            return 1;
+        }
+        if (n == 0) {
+            first_frame = mu_actor_frame(&actor);
+            mu_options_camera(o, &actor.model, &camera);   /* framed once, on the first frame */
+            mu_camera_view(&camera, raster.view);
+            mu_camera_projection(&camera, (float)o->width / (float)o->height, raster.projection);
+        }
+        mu_raster_clear(&raster, o->background);
+        mu_render_backend backend;
+        mu_raster_backend(&raster, &backend);
+        mu_scene_draw_model(&actor.model, &o->draw, &backend, &stats);
+        memcpy(frames + frame_bytes * (size_t)n, raster.color, frame_bytes);
+        if (n == 0)
+            mu_sha256_hex(raster.color, frame_bytes, hash);
+    }
+    int status = 0;
+    if (o->output && mu_png_write(o->output, frames, o->width, o->height)) {
+        fprintf(stderr, "cannot write %s\n", o->output);
+        status = 1;
+    }
+    if (o->strip_path) {
+        int32_t strip_width = o->width * o->frames;
+        uint8_t *strip = malloc(frame_bytes * (size_t)o->frames);
+        if (strip) {
+            for (int32_t y = 0; y < o->height; ++y)
+                for (int32_t n = 0; n < o->frames; ++n)
+                    memcpy(strip + ((size_t)y * (size_t)strip_width + (size_t)n * (size_t)o->width) * 4,
+                           frames + frame_bytes * (size_t)n + (size_t)y * (size_t)o->width * 4, (size_t)o->width * 4);
+            if (mu_png_write(o->strip_path, strip, strip_width, o->height))
+                status = 1;
+            free(strip);
+        }
+    }
+    if (o->gif_path && mu_gif_write(o->gif_path, frames, o->width, o->height, o->frames, 4 * o->frame_steps))
+        status = 1;
+    printf("{\"file\": ");
+    json_string(stdout, spec.path);
+    printf(", \"server_class\": %d, \"monster_type\": %d, \"npc_index\": %d, \"model_index\": %d, \"scale\": %.9g,"
+           " \"actions\": %d, \"action\": %u, \"action_speed\": %.9g, \"action_loop\": %d, \"unset_actions\": %u,"
+           " \"open_status\": %d, \"steps\": %d, \"first_frame\": %.9g, \"last_frame\": %.9g, \"last_speed\": %.9g,"
+           " \"loop\": %u, \"frames\": %d, \"sha256_first\": \"%s\", \"meshes\": %ld, \"textures_missing\": %d}\n",
+           spec.server_class, spec.monster_type, spec.npc_index, spec.model_index, (double)spec.scale,
+           mu_actor_action_count(&actor), mu_actor_action(&actor),
+           (double)mu_actor_action_speed(&actor, mu_actor_action(&actor)),
+           mu_actor_action_loop(&actor, mu_actor_action(&actor)), actor.unset_actions, actor.open_status, steps,
+           (double)first_frame, (double)mu_actor_frame(&actor), (double)actor.last_speed, loop, o->frames, hash,
+           stats.meshes, actor.textures.missing);
+    free(frames);
+    mu_raster_free(&raster);
+    mu_actor_free(&actor);
+    return status;
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "usage: %s info|dump|corners|render|image|scan|character|chardump MODEL|ROOT [options]\n", argv[0]);
+        fprintf(stderr, "usage: %s info|dump|corners|render|image|scan|character|chardump|actor MODEL|ROOT [options]\n", argv[0]);
         mu_options_usage(argv[0]);
         return 2;
     }
@@ -577,7 +691,7 @@ int main(int argc, char **argv)
         return 2;
     }
     const char *command = argv[1];
-    if (!o.model_path && strcmp(command, "character") && strcmp(command, "chardump")) {
+    if (!o.model_path && strcmp(command, "character") && strcmp(command, "chardump") && strcmp(command, "actor")) {
         fprintf(stderr, "%s needs MODEL or ROOT\n", command);
         return 2;
     }
@@ -597,6 +711,8 @@ int main(int argc, char **argv)
         return command_character(&o);
     if (!strcmp(command, "chardump"))
         return command_chardump(&o);
+    if (!strcmp(command, "actor"))
+        return command_actor(&o);
     fprintf(stderr, "unknown command %s\n", command);
     return 2;
 }

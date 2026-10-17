@@ -26,6 +26,9 @@ void mu_options_defaults(mu_options *o)
     o->backend = "soft";
     o->class_byte = -1;
     o->part_mask = 0x3e;
+    o->frames = 1;
+    o->frame_steps = 2;
+    o->player_action = -1;
 }
 
 void mu_options_usage(const char *program)
@@ -42,7 +45,10 @@ void mu_options_usage(const char *program)
             "             --background R G B --textures DIR --no-textures --out PATH --backend soft|gl --headless --compare --seconds S\n"
             "  character: --character --game-root DIR --class C --parts MASK --part SLOT PATH --weapon SLOT PATH\n"
             "             --weapon-action SLOT N --wing PATH --wing-scale F   (MODEL = Player.bmd, default from --game-root;\n"
-            "             --origin/--angles/--head/--scale/--color/--lighting set the object; slots 1..5 helm..boots)\n",
+            "             --origin/--angles/--head/--scale/--color/--lighting set the object; slots 1..5 helm..boots)\n"
+            "             --pose stand|walk|attack --weapon-kind K (player actions, see reconstructed/actors)\n"
+            "  actor:     --game-root DIR --type CLASS | --monster TYPE | --npc INDEX --action A --time SECONDS\n"
+            "             --frames N --frame-steps S --strip PNG --gif GIF   (mu-render actor)\n",
             program);
 }
 
@@ -137,6 +143,26 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--weapon-action")) { NEED(2); if (!in_range(v[0], 0, 1) || !in_range(v[1], -2147483648.0, 2147483647.0)) return 1; o->weapon_actions[(int)v[0]] = (int32_t)v[1]; }
         else if (!strcmp(a, "--wing")) { if (++i >= argc) return 1; o->wing_path = argv[i]; o->character = 1; }
         else if (!strcmp(a, "--wing-scale")) { NEED(1); o->wing_scale = (float)v[0]; }
+        else if (!strcmp(a, "--type") || !strcmp(a, "--monster") || !strcmp(a, "--npc")) {
+            NEED(1);
+            if (!in_range(v[0], 0, 65535)) return 1;
+            o->actor_by = a[2] == 't' ? 1 : a[2] == 'm' ? 2 : 3;
+            o->actor_id = (int32_t)v[0];
+        }
+        else if (!strcmp(a, "--time")) { NEED(1); if (!in_range(v[0], 0, 3600)) return 1; o->time = (float)v[0]; }
+        else if (!strcmp(a, "--frames")) { NEED(1); if (!in_range(v[0], 1, 256)) return 1; o->frames = (int32_t)v[0]; }
+        else if (!strcmp(a, "--frame-steps")) { NEED(1); if (!in_range(v[0], 1, 1000)) return 1; o->frame_steps = (int32_t)v[0]; }
+        else if (!strcmp(a, "--strip")) { if (++i >= argc) return 1; o->strip_path = argv[i]; }
+        else if (!strcmp(a, "--gif")) { if (++i >= argc) return 1; o->gif_path = argv[i]; }
+        else if (!strcmp(a, "--pose")) {
+            if (++i >= argc) return 1;
+            if (!strcmp(argv[i], "stand")) o->player_action = 0;
+            else if (!strcmp(argv[i], "walk")) o->player_action = 1;
+            else if (!strcmp(argv[i], "attack")) o->player_action = 2;
+            else { fprintf(stderr, "--pose stand|walk|attack\n"); return 1; }
+            o->character = 1;
+        }
+        else if (!strcmp(a, "--weapon-kind")) { NEED(1); if (!in_range(v[0], 0, 7)) return 1; o->weapon_kind = (int32_t)v[0]; }
         else if (a[0] == '-' && a[1] == '-') { fprintf(stderr, "unknown option %s\n", a); return 1; }
         else if (!o->model_path) o->model_path = a;
         else { fprintf(stderr, "unexpected argument %s\n", a); return 1; }

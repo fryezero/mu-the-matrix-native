@@ -41,6 +41,16 @@ typedef struct mu_options {
     int32_t weapon_actions[2];
     float wing_scale;          /* <= 0: same as --scale */
     int scale_set;             /* --scale given (character default 0.9 otherwise) */
+    /* Actor mode (NATIVE-ACTOR-001, mu-render actor): see mu_actor.h. */
+    int32_t actor_by;          /* MU_ACTOR_BY_*: --type (server class), --monster, --npc; 0 = none */
+    int32_t actor_id;
+    float time;                /* seconds of animation before the first rendered frame (40 ms steps) */
+    int32_t frames;            /* frames for --strip/--gif (default 1) */
+    int32_t frame_steps;       /* animation steps between rendered frames (default 2) */
+    const char *strip_path;    /* PNG with the frames side by side */
+    const char *gif_path;      /* animated GIF of the frames */
+    int32_t player_action;     /* character mode: --pose stand|walk|attack (-1: use --action) */
+    int32_t weapon_kind;       /* character mode: --weapon-kind for --pose (MU_WEAPON_*) */
 } mu_options;
 
 void mu_options_defaults(mu_options *options);

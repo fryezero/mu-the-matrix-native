@@ -483,3 +483,63 @@ int mu_access_model_file(const char *directory, const char *name, int32_t number
         written = snprintf(out, size, "%s%s%d.bmd", directory, name, number);
     return written > 0 && (uint32_t)written < size;
 }
+
+/* ------------------------------------------------------------------ */
+/* SetAction 0x012affa4 and the unarmed stop action 0x0139d6da. */
+
+int mu_set_action(const mu_client_memory *memory, uint32_t object, int32_t action,
+                  uint32_t (*model_at)(void *context, uint32_t index), void *context)
+{
+    uint32_t type, frame;
+    int16_t count;
+    uint16_t current;
+    CHECK(read32(memory, object + 0x5c, &type));
+    uint32_t model = model_at(context, type);
+    if (!model)
+        return MU_ACTOR_OK;
+    CHECK(read16(memory, model + 0x26, &count));
+    if (action >= count)
+        return MU_ACTOR_OK;
+    CHECK(read_u16(memory, object + 0x2a, &current));
+    if ((int32_t)current == action)
+        return MU_ACTOR_OK;
+    CHECK(read_u16(memory, object + 0x2a, &current));
+    uint8_t *prior = at(memory, object + 0x2c, 2);
+    CHECK(prior);
+    prior[0] = (uint8_t)current;
+    prior[1] = (uint8_t)(current >> 8);
+    CHECK(read32(memory, object + 0xd0, &frame));
+    CHECK(write32(memory, object + 0xd4, frame));
+    uint8_t *slot = at(memory, object + 0x2a, 2);
+    CHECK(slot);
+    slot[0] = (uint8_t)action;
+    slot[1] = (uint8_t)((uint32_t)action >> 8);
+    CHECK(write32(memory, object + 0xd0, 0));
+    return MU_ACTOR_OK;
+}
+
+int32_t mu_player_unarmed_stop_action(uint8_t class_byte, int32_t world, int32_t (*rand_function)(void *context),
+                                      void *context)
+{
+    int base = class_byte & 0xf;
+    int event_world = npc_texture_world(world);
+    switch (base) {
+    case 2: return 2;
+    case 7: return 5;
+    case 8: return 6;
+    case 5: return event_world ? 1 : 3;
+    case 9: return event_world ? 1 : 6;
+    case 10:
+        if (event_world)
+            return 1;
+        return rand_function(context) % 20 == 0 ? 0x1f : 1;
+    case 11: return 1;
+    case 12: return event_world ? 1 : 2;
+    case 14: return 6;
+    case 15:
+        if (event_world)
+            return 8;
+        return rand_function(context) % 20 == 0 ? 9 : 8;
+    default: return 1;
+    }
+}

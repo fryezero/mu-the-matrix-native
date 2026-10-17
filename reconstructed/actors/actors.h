@@ -102,6 +102,24 @@ int mu_character_animation_step(const mu_client_memory *memory, uint32_t charact
                                 uint8_t *result, float *speed);
 
 /* ------------------------------------------------------------------ */
+/* SetAction 0x012affa4 (cdecl, arguments object, action). Does nothing when
+ * model_at(object+0x5c) is 0, when action >= (int16)model+0x26 (a signed
+ * compare: negative actions pass) or when the action is already current.
+ * Otherwise: prior action (+0x2c) = action (+0x2a), prior frame (+0xd4) =
+ * frame (+0xd0) copied as a dword, action = new value (u16), frame = 0. */
+int mu_set_action(const mu_client_memory *memory, uint32_t object, int32_t action,
+                  uint32_t (*model_at)(void *context, uint32_t index), void *context);
+
+/* 0x0139d6da: the stop action of an unarmed player for a class byte (low
+ * nibble = base class): 2 -> 2, 7 -> 5, 8 -> 6, 14 -> 6, 11 -> 1;
+ * 5 -> 1 in the worlds of 0x009dacb8 (0x12..0x17, 0x35, 0x61) else 3;
+ * 9 -> 1 there else 6; 12 -> 1 there else 2; 10 -> 1 there, else 0x1f when
+ * rand() % 20 == 0, else 1; 15 -> 8 there, else 9 when rand() % 20 == 0,
+ * else 8; any other class 1. rand is called only on those two paths. */
+int32_t mu_player_unarmed_stop_action(uint8_t class_byte, int32_t world, int32_t (*rand_function)(void *context),
+                                      void *context);
+
+/* ------------------------------------------------------------------ */
 /* Server monster class -> model (CreateMonster 0x0137fbac) and NPC model
  * files (OpenNpc 0x01808a40). These two tables are extracted by executing
  * the client routines under Unicorn (scripts/validate_actors.py), not

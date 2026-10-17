@@ -559,6 +559,138 @@ def step_cases(count=4000):
 
 
 # --------------------------------------------------------------------------
+# SetAction 0x012affa4 and the unarmed stop action 0x0139d6da.
+
+SET_ACTION, UNARMED_STOP = 0x012affa4, 0x0139d6da
+
+
+def set_action_cases(count=3000):
+    generator = random.Random(0x12affa4)
+    cases = []
+    for index in range(count):
+        obj = am.undefined_region('object', OBJECT, 0x400)
+        current = generator.choice([0, 1, 2, 3, 6, 0x9c, 0xffff, generator.randrange(0x10000)])
+        action = generator.choice([current, current, 0, 1, 5, 0x9c, -1, -0x8000, 0x7fff, 0x10001,
+                                   generator.randrange(-5, 300)])
+        type_ = generator.choice([0x7a5, 0xa91, 0x9fe])
+        obj.define(OBJECT+0x2a, struct.pack('<H', current))
+        obj.define(OBJECT+0x5c, struct.pack('<I', type_))
+        obj.define(OBJECT+0xd0, struct.pack('<f', am.f32(generator.uniform(-3, 40))))
+        if generator.random() < 0.5:
+            obj.define(OBJECT+0x2c, struct.pack('<H', generator.randrange(0x10000)))
+            obj.define(OBJECT+0xd4, struct.pack('<f', am.f32(generator.uniform(-3, 40))))
+        model = am.undefined_region('model', MODEL, 0xd0)
+        model.define(MODEL+0x26, struct.pack('<h', generator.choice([0, 1, 7, 0x9c, 0x9d, 300, -1, 0x7fff])))
+        cases.append({'label': f'set-action-{index}', 'regions': [obj, model], 'action': action, 'type': type_,
+                      'present': generator.random() > 0.05})
+    return cases
+
+
+def compare_set_action(machine, authored, case):
+    model_at = lambda index: MODEL if case['present'] and index == case['type'] else 0  # noqa: E731
+    client = machine.execute(SET_ACTION, [OBJECT, case['action']], copy_regions(case['regions']),
+                             {MANAGER: lambda m: MANAGER_ADDRESS, MODEL_AT: lambda m: (model_at(m.argument(0)), 4)})
+    function = authored.handle.mu_set_action
+    callback = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_void_p, ctypes.c_uint32)(lambda c, index: model_at(index))
+    function.argtypes = [ctypes.POINTER(authored.Memory), ctypes.c_uint32, ctypes.c_int32, type(callback),
+                         ctypes.c_void_p]
+    buffers, memory, images = authored.memory(case['regions'])
+    status = function(ctypes.byref(memory), OBJECT, case['action'], callback, None)
+    mine = {r.name: bytes(b) for r, b in buffers}
+    differences = []
+    if not client['ok']:
+        differences.append(('client', client['checks'], client['stopped']))
+    if status != 0:
+        differences.append(('authored-status', status))
+    for name, payload in mine.items():
+        if client['regions'].get(name) != payload:
+            differences.append(('region', name))
+    changed = client['regions']['object'] != bytes(case['regions'][0].data)
+    return {'label': case['label'], 'match': not differences, 'differences': differences, 'changed': changed}
+
+
+def compare_unarmed_stop(machine, authored, class_byte, world, rand_value):
+    calls = []
+
+    def rand(m):
+        calls.append(1)
+        return rand_value
+    client = machine.execute(UNARMED_STOP, [class_byte],
+                             [am.defined_region('world', WORLD, struct.pack('<i', world), writable=False)],
+                             {RAND: rand})
+    function = authored.handle.mu_player_unarmed_stop_action
+    mine_calls = []
+
+    def c_rand(context):
+        mine_calls.append(1)
+        return rand_value
+    callback = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)(c_rand)
+    function.argtypes = [ctypes.c_uint8, ctypes.c_int32, type(callback), ctypes.c_void_p]
+    function.restype = ctypes.c_int32
+    mine = function(class_byte, world, callback, None)
+    client_value = struct.unpack('<i', struct.pack('<I', client['eax']))[0]
+    ok = client['ok'] and client_value == mine and len(calls) == len(mine_calls)
+    return {'match': ok, 'value': client_value, 'class': class_byte, 'world': world, 'rand': rand_value,
+            'mine': mine, 'stopped': client['stopped']}
+
+
+# --------------------------------------------------------------------------
+# Player action speeds: the speed section of the player loader 0x01830aa6.
+
+PLAYER_SPEEDS_START, PLAYER_LOADER_FRAME = 0x018311c2, 0xc+0x5c
+PLAYER_MODEL_AT, PLAYER_ACTION_AT, ATTACK_SPEED = 0x0142fc46, 0x00d33153, 0x0138d9cf
+PLAYER_ACTIONS = 0x186     # the loader requires Player.bmd to have exactly 0x186 actions (0x01830b39)
+PLAYER_RECORD, PLAYER_ACTION_ARRAY = 0x25800000, 0x25000000
+
+
+def extract_player_speeds(machine):
+    """Runs the loader from 0x018311c2 (after its part loads and a temporary object array) to
+    its end. The Player model getter 0x0142fc46 and the action getter 0x00d33153 (returns
+    &Actions[a] of model 0xa91) are stubs over a declared 0x186-action model; the attack-speed
+    adjustment 0x0138d9cf, which reads the hero's stats, is recorded and skipped."""
+    model = bytearray(0xd0)
+    struct.pack_into('<hh', model, 0x24, 0, PLAYER_ACTIONS)
+    struct.pack_into('<I', model, 0x30, PLAYER_ACTION_ARRAY)
+    actions = b''.join(struct.pack('<BBBBIhBBI', 0xee, 0, 0, 0, CLASS_ACTION_SENTINEL, 10, 0, 0, 0)
+                       for _ in range(PLAYER_ACTIONS))
+    regions = [am.defined_region('player', PLAYER_RECORD, bytes(model)),
+               am.defined_region('actions', PLAYER_ACTION_ARRAY, actions),
+               am.defined_region('world', WORLD, struct.pack('<i', 0), writable=False)]
+    calls = []
+    stubs = {ACCESS_MODEL: lambda m: calls.append(('access', m.argument(0), m.cstring(m.argument(2)),
+                                                   m.argument(3))) or 0,
+             MANAGER: lambda m: MANAGER_ADDRESS, PLAYER_MODEL_AT: lambda m: PLAYER_RECORD,
+             PLAYER_ACTION_AT: lambda m: (PLAYER_ACTION_ARRAY+16*m.argument(0), 4),
+             ATTACK_SPEED: lambda m: calls.append(('attack-speed',)) or 0}
+    result = machine.execute(PLAYER_SPEEDS_START, [], regions, stubs, frame=(PLAYER_LOADER_FRAME, {}))
+    data = result['regions']['actions']
+    speeds = [struct.unpack_from('<I', data, 16*a+4)[0] for a in range(PLAYER_ACTIONS)]
+    loops = [data[16*a] for a in range(PLAYER_ACTIONS)]
+    player = result['regions']['player']
+    return {'ok': result['ok'], 'stopped': result['stopped'], 'calls': calls,
+            'speeds': [0 if v == CLASS_ACTION_SENTINEL else v for v in speeds],
+            'loops': [0 if v == 0xee else v for v in loops],
+            'head_bone': struct.unpack_from('<i', player, 0x60)[0]}
+
+
+def emit_player_table(player):
+    lines = ['/* Generated by scripts/validate_actors.py --emit-player-table from the speed section of',
+             ' * the client\'s player loader 0x01830aa6 (from 0x018311c2) executed under Unicorn over a',
+             ' * 0x186-action Player model. Base play speeds (binary32 bits, 0 = not written) and loop',
+             ' * flags per Player action; the hero attack-speed adjustment 0x0138d9cf is not applied.',
+             ' * Do not edit. */', '#ifndef MU_PLAYER_ACTION_TABLE_H', '#define MU_PLAYER_ACTION_TABLE_H', '',
+             f'#define MU_PLAYER_ACTION_COUNT {PLAYER_ACTIONS}', '',
+             'static const uint32_t mu_player_action_speeds[MU_PLAYER_ACTION_COUNT] = {']
+    for i in range(0, PLAYER_ACTIONS, 6):
+        lines.append('    ' + ', '.join(f'{v:#010x}u' for v in player['speeds'][i:i+6]) + ',')
+    lines += ['};', '', 'static const uint8_t mu_player_action_loops[MU_PLAYER_ACTION_COUNT] = {']
+    for i in range(0, PLAYER_ACTIONS, 24):
+        lines.append('    ' + ', '.join(str(v) for v in player['loops'][i:i+24]) + ',')
+    lines += ['};', '', '#endif', '']
+    return '\n'.join(lines)
+
+
+# --------------------------------------------------------------------------
 # OpenNpc 0x01808a40: NPC model index -> file, action speeds (extraction under emulation).
 
 NPC_FIRST, NPC_LAST = 0x9fe, 0xa90
@@ -827,6 +959,7 @@ def main():
     parser.add_argument('--limit', type=int)
     parser.add_argument('--emit-class-table')
     parser.add_argument('--emit-npc-table')
+    parser.add_argument('--emit-player-table')
     parser.add_argument('--classes', type=lambda v: int(v, 0), default=0x400)
     args = parser.parse_args()
     text = am.load_pinned(args.text, am.TEXT_BYTES, am.TEXT_SHA256, 'restored text')
@@ -841,12 +974,18 @@ def main():
     results = []
     for case in monster_cases()[:args.limit]:
         results.append(compare_open(machine, authored, case, lifted))
+    player = extract_player_speeds(machine)
+    if args.emit_player_table and player['ok']:
+        Path(args.emit_player_table).write_text(emit_player_table(player))
     npc_records = [extract_npc(machine, index) for index in range(NPC_FIRST, NPC_LAST+1)]
     if args.emit_npc_table:
         Path(args.emit_npc_table).write_text(emit_npc_table(npc_records))
     class_records, class_static = extract_classes(machine, text, args.classes)
     if args.emit_class_table:
         Path(args.emit_class_table).write_text(emit_class_table(class_records, text))
+    set_results = [compare_set_action(machine, authored, case) for case in set_action_cases()[:args.limit]]
+    stop_results = [compare_unarmed_stop(machine, authored, c, w, r) for c in range(256)
+                    for w in (0, 0x11, 0x12, 0x17, 0x18, 0x1e, 0x35, 0x61, -1) for r in (0, 20, 7, 0x7fff, -20, -3)]
     step_results = [compare_step(machine, authored, case) for case in step_cases()[:args.limit]]
     step_mismatches = [r for r in step_results if not r['match']]
     mismatches = [r for r in results if not r['match']]
@@ -861,6 +1000,15 @@ def main():
                                'loader_calls': sum(r['loaders'] for r in results),
                                'negative_controls': {v: sum(1 for r in results if not r['python'][v])
                                                      for v in ('unchecked-defaults', 'no-scale', 'checked-direct')}},
+              'set_action': {'cases': len(set_results), 'matches': sum(r['match'] for r in set_results),
+                             'changed': sum(r['changed'] for r in set_results),
+                             'mismatches': [r for r in set_results if not r['match']][:20]},
+              'unarmed_stop': {'cases': len(stop_results), 'matches': sum(r['match'] for r in stop_results),
+                               'values': sorted({r['value'] for r in stop_results}),
+                               'mismatches': [r for r in stop_results if not r['match']][:20]},
+              'player_speeds': {'ok': player['ok'], 'stopped': player['stopped'],
+                                'written': sum(1 for v in player['speeds'] if v), 'loops': sum(player['loops']),
+                                'head_bone': player['head_bone'], 'calls': len(player['calls'])},
               'npcs': {'count': len(npc_records), 'extracted': sum('error' not in r for r in npc_records),
                        'with_file': sum(1 for r in npc_records if r.get('file')), 'records': npc_records},
               'classes': {'count': len(class_records), 'extracted': sum('error' not in r for r in class_records),
@@ -879,12 +1027,16 @@ def main():
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=1, default=str))
     print(json.dumps({k: v for k, v in report['monster_open'].items() if k in ('cases', 'matches', 'client_faults_matched', 'negative_controls')}))
+    for key in ('set_action', 'unarmed_stop', 'player_speeds'):
+        print(json.dumps({k: v for k, v in report[key].items() if k != 'mismatches'}))
     print(json.dumps({k: v for k, v in report['npcs'].items() if k != 'records'}))
     print(json.dumps({k: v for k, v in report['classes'].items() if k not in ('errors', 'records')}))
     print(json.dumps({k: v for k, v in report['character_step'].items() if k != 'mismatches'}))
     for m in (mismatches+step_mismatches)[:10]:
         print(m)
-    return 0 if not mismatches and not step_mismatches and not class_static['static_disagree'] else 1
+    failed = mismatches or step_mismatches or class_static['static_disagree'] or \
+        report['set_action']['mismatches'] or report['unarmed_stop']['mismatches']
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':
