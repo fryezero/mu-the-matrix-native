@@ -43,6 +43,29 @@ It uses the client's default output buffers (bones `0x06fce398`, vertices `0x078
 
 ## Verification
 
+### Evidence levels
+
+The figures below are of two kinds. Keep them apart when citing this milestone.
+
+- **CI-verified on every push** (synthetic data only, `make test` on `macos-latest` arm64 and `ubuntu-latest` x86_64):
+  - the loader agreement and malformed-input checks;
+  - the 50 golden cases (42 synthetic + 8 v14 oracle vectors);
+  - the 50 mesh-draw streams against `meshdraw_reference.py`;
+  - texture decoding against Pillow;
+  - the five pinned software-render hashes, on macOS arm64 and Linux x86_64.
+
+  Headless GL agreement on the synthetic model is CI-verified on macOS only. Linux has no SDL2 in CI, so that test is skipped there explicitly.
+- **Reported, not reproducible from a clone.** These were single runs on the author's Mac against the private installed client, or in local containers whose harness lives outside the repository:
+  - the full-corpus golden run (12,627 models);
+  - the 2,402-texture comparison;
+  - the GL/software pixel counts on installed models;
+  - the culling-convention counts;
+  - the windowed frame rate;
+  - the corpus-scan totals;
+  - the Ubuntu arm64 hash run.
+
+  The private tests in `PrivateInstalledTests` re-check samples of these when run with `MU_RECOVERY_INTEGRATION=1`. The post-merge review (PR #66 comment) did not re-run them.
+
 ### Golden data
 
 `native/tests/reference.py` builds the reference state independently, with the existing validators' case builders. It uses `build_case`, `make_setup` with the prior output span zeroed, `tick_setup`, `installed_meshes` and `transform_setup`, all at other addresses and with other allocators. It runs that state twice:
@@ -66,7 +89,7 @@ Portable, synthetic (CI):
 
 Private, installed (`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT`):
 
-- The full corpus was run once with `MU_NATIVE_GOLDEN_PER_VERSION=100000 MU_NATIVE_GOLDEN_MAX_VERTICES=100000`. It took 466 s on this Mac. Each model is set to its longest action at mid-frame, blended from action 0, after 3 ticks at speed 0.37.
+- (Reported.) The full corpus was run once with `MU_NATIVE_GOLDEN_PER_VERSION=100000 MU_NATIVE_GOLDEN_MAX_VERTICES=100000`. It took 466 s on this Mac. Each model is set to its longest action at mid-frame, blended from action 0, after 3 ticks at speed 0.37.
 
   | Version | Models | Vertices | Result |
   |---|---:|---:|---|
@@ -80,7 +103,7 @@ Private, installed (`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT`):
 
 ### Mesh-draw equivalence
 
-`native/tests/meshdraw_reference.py` is a second implementation of the rules. It was written from `meshdraw-notes.md` and the static state reading, not from the C module, with binary32 rounding of every operation. It is fed the transform outputs that the golden test verified, and must match `mu-render corners` bitwise. That stream records the state, the pre-loop colour, begin/end and every texcoord, colour and vertex call.
+`native/tests/meshdraw_reference.py` is a second implementation of the rules. It was written from `meshdraw-notes.md` and the static state reading, not from the C module (reported by the author; the repository cannot show authorship order), with binary32 rounding of every operation. It is fed the transform outputs that the golden test verified, and must match `mu-render corners` bitwise. That stream records the state, the pre-loop colour, begin/end and every texcoord, colour and vertex call.
 
 - 25 option sets x 2 models (v10, v15) = 50 streams, more than 8,000 records.
 - Coverage:
@@ -90,7 +113,7 @@ Private, installed (`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT`):
 | 2 | mesh UVs; uv offset on the selected mesh; per-normal colour with the light byte | yes (light on/off, mesh skip, secondary-light select) |
 | 4 | object colour + normal-table texcoord | yes |
 | 0x1000, 0x80000, 0x100000 | object colour + normal-table texcoord + uv offset | yes |
-| 1, 0x40, others | no attributes | yes |
+| 1, 0x40, others | no attributes | yes for 1 and 0x40 (the shared default branch); other values not exercised |
 | alpha >= 0.99 / < 0.99 / NaN | glColor3fv / glColor4f / glColor4f | yes |
 | flag 0x20 | planar projection about the origin (2000, 4000, 5) | yes (also 0x420: 0x20 wins) |
 | flag 0x200000 | skip corner when voff > z of corners 0..2 | yes (no cull and partial cull) |
@@ -102,23 +125,25 @@ Direct ctypes checks cover refusing out-of-range indices before any call, and Na
 
 ### Textures
 
-- Portable: OZT (both prefix variants), OZB, TGA (raw and RLE, both origins, 24 and 32 bit) and BMP decode identically to Pillow. A synthetic JPEG decodes within 8 levels. Bad wrappers are rejected.
-- Private: 2,402 installed Monster/Player/NPC textures (1,989 JPEG, 413 TGA) are pixel-identical to `recover_images.decode`. The private test checks the first 400 Monster files.
+- Portable: OZT (both prefix variants), OZB, TGA (raw and RLE, both origins, 24 and 32 bit) and BMP decode identically to Pillow. A synthetic JPEG decodes within 8 levels. Bad wrappers are rejected. A TGA whose image-ID length runs past the end of the file is rejected; before the post-merge review fix, the uncompressed path read past the buffer (found with AddressSanitizer).
+- Private (reported): 2,402 installed Monster/Player/NPC textures (1,989 JPEG, 413 TGA) are pixel-identical to `recover_images.decode`. The private test checks the first 400 Monster files.
 
 ### Renders
 
-- `mu-render render` uses the software rasterizer. Five settings on a synthetic textured model have pinned SHA-256 hashes of the raw RGBA pixels: default, nearest filtering with a pose, blend with cull, additive environment mode, and alpha test unlit. The same hashes were obtained on macOS arm64 and on Ubuntu 24.04 arm64 and x86_64 (docker, x86_64 emulated). The PNG round trip and repeat determinism are checked, and the three envelopes render identically.
+- `mu-render render` uses the software rasterizer. Five settings on a synthetic textured model have pinned SHA-256 hashes of the raw RGBA pixels: default, nearest filtering with a pose, blend with cull, additive environment mode, and alpha test unlit. CI checks the same hashes on macOS arm64 and Ubuntu x86_64. The author also reports them on Ubuntu 24.04 arm64 and x86_64 in local docker containers (x86_64 emulated). The PNG round trip and repeat determinism are checked, and the three envelopes render identically.
 - `mu-viewer --headless --backend gl --compare` renders through CGL and an FBO and compares with the software path.
   - Synthetic, test bound: under 1% of pixels may differ by more than 8/255.
-  - Installed Monster05: 4 of 307,200 pixels differ by more than 8/255.
+  - Installed models (reported, private): Monster05: 4 of 307,200 pixels differ by more than 8/255.
   - Installed Monster167 (v15): 5 of 480,000.
   - Installed Smith01 (v10): 6 of 480,000. Mean channel difference is below 0.006.
-- The culling convention was checked empirically. With counter-clockwise front faces culled at the back, Monster05, Monster01, Smith01 and Monster20 differ from no-cull renders in 0, 6, 10 and 65 pixels at 320x240; clockwise differs in thousands. The spider (Monster10) differs either way, which suggests it has open single-sided parts.
-- The windowed viewer ran for 3 s at about 115 fps (vsync) with animation.
+- (Reported.) The culling convention was checked empirically. With counter-clockwise front faces culled at the back, Monster05, Monster01, Smith01 and Monster20 differ from no-cull renders in 0, 6, 10 and 65 pixels at 320x240; clockwise differs in thousands. The spider (Monster10) differs either way, which suggests it has open single-sided parts.
+- (Reported.) The windowed viewer ran for 3 s at about 115 fps (vsync) with animation.
 
 Local render paths are listed in the handoff and are not committed.
 
 ### Corpus pass
+
+Reported; `test_corpus_scan` pins these counts for private runs.
 
 `mu-render scan` takes 6 s. It loaded, built client memory for, ticked, posed, skinned and drew:
 

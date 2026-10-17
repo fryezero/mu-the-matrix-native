@@ -68,6 +68,8 @@ int mu_image_decode_tga(const uint8_t *data, size_t size, mu_image *image, char 
     if ((mapped && depth != 8) || (grey && depth != 8) || (!mapped && !grey && depth != 16 && depth != 24 && depth != 32))
         return image_error(error, error_size, "Unsupported TGA depth %u", depth);
     size_t offset = 18 + id_length;
+    if (offset > size)   /* the unsigned `size - offset` checks below require offset <= size */
+        return image_error(error, error_size, "Truncated TGA image ID");
     const uint8_t *palette = NULL;
     unsigned map_bytes = (map_depth + 7) / 8;
     if (colormap_type) {
