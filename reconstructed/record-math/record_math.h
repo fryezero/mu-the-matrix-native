@@ -91,4 +91,17 @@ void mu_angle_matrix_using(const void *angles, void *matrix,
                            mu_rotation_trig sine, mu_rotation_trig cosine);
 void mu_angle_matrix(const void *angles, void *matrix);
 
+/* Vector helpers used by the model transform (CLIENT-SKIN-001,
+ * docs/research/client-skinning.md). in/out cover three binary32 values,
+ * matrix is a row-major 3x4 record. Each output component is a binary32
+ * left-to-right sum of RNE binary32 products; inputs are reread for every
+ * component and out[r] is stored before out[r+1] is computed, so aliasing
+ * spans behave sequentially as in the original.
+ * mu_vector_rotate (0x00d000ad):    out[r] = (in0*m[r][0] + in1*m[r][1]) + in2*m[r][2]
+ * mu_vector_transform (0x00d002b2): out[r] = rotate term + m[r][3]
+ * mu_vector_irotate (0x00cfff3c):   out[c] = (in0*m[0][c] + in1*m[1][c]) + in2*m[2][c] */
+void mu_vector_rotate(const void *in, const void *matrix, void *out);
+void mu_vector_transform(const void *in, const void *matrix, void *out);
+void mu_vector_irotate(const void *in, const void *matrix, void *out);
+
 #endif

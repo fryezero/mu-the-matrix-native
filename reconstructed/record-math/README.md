@@ -93,3 +93,13 @@ defaults use host libm sin/cos/acos as substitutes for the client helpers.
 The [pose-builder finding](../../docs/research/client-pose-builder.md) records
 direct and in-builder instruction comparisons. `test_pose_helpers.py` adds four
 analytic portable tests.
+
+## Vector helpers
+
+The model transform `0x012b5bde` uses three helpers: `mu_vector_rotate`
+(`0x00d000ad`, row dot products), `mu_vector_transform` (`0x00d002b2`, adds the
+translation column) and `mu_vector_irotate` (`0x00cfff3c`, column dot products,
+for the transpose rotation). Each output component is a binary32 left-to-right
+sum, stored before the next is computed, with the inputs reread, so in-place use
+is sequential. The [skinning finding](../../docs/research/client-skinning.md)
+records 301 direct instruction comparisons each, 20% of them aliased.

@@ -136,3 +136,27 @@ v12/v14/v15 cases match. Lerp and modulo-wrap controls fail. `libposebuilder`
 links the builder, the bone-track loop and record-math with contraction
 disabled. Eight portable tests run by default; the private instruction check
 needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.
+
+## Model transform and animation tick
+
+`skinning.h` exposes `mu_model_transform`, authored C for the model transform
+`0x012b5bde..0x012b678d`. This is the client's CPU skinning: thiscall on the
+model, twelve stack arguments. Each vertex is transformed by one bone matrix,
+with no blending. A bone-scale global that is not exactly 1.0 selects a
+rotate-scale-translate path, and a nonzero vertex scale prescales positions.
+Translating applies the body scale and then adds the body origin. Normals are
+rotated only. With the model's lighting flag, a clamped Lambert term against
+fixed light directions goes to the light array and to a secondary global table.
+The bounding box comes from the vertex bounds or from the arguments.
+`mu_animation_tick` reconstructs the tick `0x012b4dd3`. It advances the frame,
+sets the prior frame and action when the integer frame changes, and then wraps,
+shifts or clamps.
+
+The [finding](../../docs/research/client-skinning.md) records the inputs,
+layouts, caller classification and the mesh draw's static GL order. Both routines
+run against the actual instructions, together with the record-math vector
+helpers. Installed models are chained through the actual bone-track loop and pose
+builder. Synthetic and all installed v12/v14/v15 calls match, and four negative
+controls fail. `libskinning` links the transform, the pose builder, the bone-track
+loop and record-math with contraction disabled. Eleven portable tests run by
+default; the private check needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.

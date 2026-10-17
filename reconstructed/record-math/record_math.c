@@ -354,3 +354,34 @@ void mu_angle_matrix(const void *angles, void *matrix)
 {
     mu_angle_matrix_using(angles, matrix, sin, cos);
 }
+
+/* Vector helpers 0x00d000ad, 0x00d002b2 and 0x00cfff3c. Every operand is
+ * reread from memory at the point the original loads it. */
+static void vector_rows(const uint8_t *in, const uint8_t *m, uint8_t *out, int transpose, int translate)
+{
+    for (size_t r = 0; r < 3; ++r) {
+        volatile float value = read_value(in, 0) * read_value(m, transpose ? r : r*4);
+        volatile float product = read_value(in, 1) * read_value(m, transpose ? 4+r : r*4+1);
+        value = value + product;
+        product = read_value(in, 2) * read_value(m, transpose ? 8+r : r*4+2);
+        value = value + product;
+        if (translate)
+            value = value + read_value(m, r*4+3);
+        write_value(out, r, value);
+    }
+}
+
+void mu_vector_rotate(const void *in, const void *matrix, void *out)
+{
+    vector_rows(in, matrix, out, 0, 0);
+}
+
+void mu_vector_transform(const void *in, const void *matrix, void *out)
+{
+    vector_rows(in, matrix, out, 0, 1);
+}
+
+void mu_vector_irotate(const void *in, const void *matrix, void *out)
+{
+    vector_rows(in, matrix, out, 1, 0);
+}
