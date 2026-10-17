@@ -1149,6 +1149,21 @@
       "mesh_flag_and_sub_record_source": "static: loader 0x012b3812 writes +0x00 = 0 (0x012b3edd) and +0x1c from the parser (0x012b409a..0x012b4130)",
       "live_caller_arguments_known": false,
       "local_report": "~/Documents/mu-mac-tools/native/scratch/unicorn (validator JSON reports kept locally, not committed)"
+    },
+    "client_data_tables": {
+      "task": "NATIVE-DATA-001",
+      "document": "docs/research/client-data-tables.md",
+      "codecs": {"xor3": "0x00976855", "xor3_local": "0x01072ebc", "checksum": "0x00976895", "xor3_key": "0x00f1600f"},
+      "codec_cases": {"synthetic": 11120, "installed_images": 170, "failures": 0},
+      "loaders": {"installed_files": 45, "decode_units": 43968, "decoded_bytes": 12346759, "mutations": 51, "matches": "96/96"},
+      "item_models": {"getter": "0x00eaa8cf", "records_found": 4881, "getter_indexes": 15099, "model_loader_calls": 4881, "mismatches": 0},
+      "local_evidence": "evidence/client-data-tables/",
+      "limits": [
+        "Key bytes of the uncaptured .data globals are modelled (FC CF AB, the 0x01072ebc immediates)",
+        "Loader callers and startup order not observed (outside restored text); loaders entered directly",
+        "Lang.mpr entries are zip-encrypted; password not recovered (protection boundary)",
+        "skill/minimap/movereq and other matched-only files have no located loader"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",

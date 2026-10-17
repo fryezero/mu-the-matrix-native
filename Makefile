@@ -10,6 +10,7 @@ all:
 	$(MAKE) -C reconstructed/actors
 	$(MAKE) -C reconstructed/audio
 	$(MAKE) -C reconstructed/ui
+	$(MAKE) -C reconstructed/data
 	$(MAKE) -C native
 
 test: all
@@ -38,6 +39,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/actors -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/audio -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/ui -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/data -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:

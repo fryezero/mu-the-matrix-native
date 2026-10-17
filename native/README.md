@@ -127,6 +127,10 @@ MP3/OGG decode through AudioToolbox on macOS only.
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 
+## Data tables (NATIVE-DATA-001)
+
+`make -C native build/mu-data` builds the table tool. It needs no Crypto++ or image libraries. Commands: `list [GAME_ROOT]`, `dump FILE`, `item-models FILE --json`, `model ITEM_BMD INDEX`, `decode FILE --out PATH` and `mpr Lang.mpr`. Output is local only; never commit decoded tables or text. See [the finding](../docs/research/client-data-tables.md).
+
 ## Tests
 
 `make test` runs `native/tests`. The portable checks build everything from authored synthetic models and textures. The private checks run with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=...`. Set `MU_NATIVE_GOLDEN_PER_VERSION` and `MU_NATIVE_GOLDEN_MAX_VERTICES` to widen the installed golden sample. The private mesh-draw execution test needs Unicorn (`tools/requirements-lock.txt`) and the pinned evidence (`MU_CLIENT_TEXT`, `MU_IMAGE_DATA`, `MU_TRIG_FLAG`, `MU_MATH_DATA`, or the default `evidence/` paths); `MU_MESHDRAW_PER_FOLDER` widens its installed sample. Renders of installed assets stay local and are never committed.

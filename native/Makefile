@@ -74,7 +74,8 @@ UI_LIBS :=
 endif
 
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
-     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) audio
+     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) \
+     $(BUILD)/mu-data audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -129,6 +130,14 @@ $(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
 $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared core/mu_protocol.c -o $@
+
+# Data tables (NATIVE-DATA-001): no Crypto++ or image dependencies.
+DATA_SRC := core/mu_data.c $(RECON)/data/data_codec.c $(RECON)/data/data_tables.c
+DATA_HDR := core/mu_data.h $(RECON)/data/data_codec.h $(RECON)/data/data_tables.h
+
+$(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) tools/mu_data.c $(DATA_SRC) -o $@
 
 # ---- windowed viewer ----
 SDL_CONFIG ?= sdl2-config

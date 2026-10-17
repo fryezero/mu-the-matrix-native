@@ -1073,3 +1073,27 @@ Branch `claude/native-ui`, worktree `~/Documents/mu-worktrees/native-ui`. Read
 **Next:** reconstruct the legacy server-select window (`CServerSelWin`, `0x01075554`, created by
 `CreateLoginScene` `0x011e2dc0`) with CButton/CWin and its server-name text, then the MENU/CREDIT window, to
 complete the server-select screen over the 3D login world.
+
+## Client data tables (NATIVE-DATA-001)
+
+Branch `claude/native-data`. It adds the following:
+
+* `reconstructed/data`: table codecs and a 45-entry loader catalog with exact decode-unit schedules.
+* `native/core/mu_data` and `native/build/mu-data`: list, dump, item-models, model, decode and mpr.
+* `scripts/validate_data_tables.py` and `scripts/validate_item_models.py`.
+* Portable tests: `reconstructed/data/test_data_tables.py` and `native/tests/test_native_data.py`.
+* Private tests: `tests/test_data_tables_private.py`.
+
+[Finding](research/client-data-tables.md).
+
+**Checks run:**
+
+* `make test`: 288 run, 25 private skips, all OK on macOS.
+* Private: both validators and the private native data test pass against MuMatrixKit. Reports are under `evidence/client-data-tables/`.
+* `scripts/audit_repository.py`: 0 rejected. No game data or decoded output is committed.
+
+**Next:**
+
+* Name the `mu_item_fields` from their consumers (inventory size, requirements).
+* Locate the skill/minimap/movereq loaders.
+* Lang.mpr text needs the package password, which is behind the protection boundary.
