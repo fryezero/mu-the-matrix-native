@@ -47,7 +47,8 @@ RECON := ../reconstructed
 CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
-            core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c
+            core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
+            core/mu_effect.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -55,14 +56,15 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c \
-             $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c
+             $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c \
+             $(RECON)/effects/effects.c $(RECON)/effects/effects_json.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
            $(RECON)/terrain/terrain.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
-           $(wildcard $(RECON)/ui/*.h)
+           $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -73,7 +75,7 @@ else
 UI_LIBS :=
 endif
 
-all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
+all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/mu-effect $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
      $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) \
      $(BUILD)/mu-data audio
 
@@ -115,6 +117,11 @@ $(BUILD)/mu-terrain: tools/mu_terrain.c $(LIB)
 $(BUILD)/mu-frame: tools/mu_frame.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_frame.c -o $(BUILD)/mu_frame.o
 	$(CXX) $(BUILD)/mu_frame.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+
+# Effect system driver (NATIVE-FX-001).
+$(BUILD)/mu-effect: tools/mu_effect_tool.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_effect_tool.c -o $(BUILD)/mu_effect_tool.o
+	$(CXX) $(BUILD)/mu_effect_tool.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
 # The mesh-draw module alone, for the Python equivalence tests (ctypes).
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h core/mu_meshdraw_case.c core/mu_meshdraw_case.h
