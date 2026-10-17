@@ -75,12 +75,25 @@ not exist yet.
   this is a static reading against import slots named from the guest's Wine
   opengl32. [Evidence](research/client-skinning.md).
 - All 370 effect JSON files parse and their 92 distinct texture references exist.
+- Frame loop (static). The frame driver `0x01851d39` runs game logic in fixed
+  40 ms steps from an accumulator. It caps rendering at 25 FPS with
+  `Sleep(40 - elapsed)` after SwapBuffers, timed by GetTickCount. The 40 is a
+  compiled-in immediate at `0x0185266b`, `0x0185266f` and `0x01852690`; no
+  config, data or server value feeds it. Themida packs the code, so the bytes are
+  not in `main.exe` and changing the cap needs an in-memory write after unpacking.
+  The four-vertex fans come from the terrain tile renderer (one per tile per layer),
+  terrain decals and 2D UI helpers. The only per-frame VBO streaming is the JSON
+  effect system: a 144-byte sprite buffer rewritten whole, and a 144,000-byte
+  particle buffer written as `n*144`-byte prefixes, each drawn as `GL_QUADS`.
+  [Evidence](research/client-frame-loop.md).
 
 ## Verification
 
-The suite discovers 209 tests. Portable checks pass 192 and explicitly skip
-seventeen private-input checks. In the skinning worktree, opt-in integration with
-`MU_GAME_ROOT` passes all 209.
+The suite discovers 218 tests. Portable checks pass 200 and explicitly skip
+eighteen private-input checks. In the frameloop worktree, the new frame-map check
+passes with `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`; the full opt-in suite
+was not rerun there. In the skinning worktree, opt-in integration passed all 209
+earlier tests.
 In the bone-tracks worktree it passed all 155 tests from before the seven launcher-guard tests.
 The rotation worktree's opt-in integration passed 142 of the earlier 147.
 
@@ -196,3 +209,11 @@ translated normals, per-tick prior updates and an ignored lock limit all fail.
 [Finding](research/client-skinning.md). The draw routine was not executed, and
 live object state, action changes and the frame loop remain open. No guest or
 CrossOver run was needed.
+
+Issue #55 (CLIENT-FRAME-001) maps the message loop, scene dispatcher and frame driver,
+including the 40 ms Sleep cap and the fixed 40 ms logic step. It also labels all
+24 fan and 27 quad glBegin sites with their return addresses and recovers the
+effect system's stream-VBO pattern. Everything is static and checked by
+`scripts/client_frame_static.py`. [Finding](research/client-frame-loop.md). Runtime
+per-routine counts, `IGC.dll` hook behaviour and whether animation runs per frame
+remain open. No guest or CrossOver run was needed, and nothing was patched.
