@@ -953,6 +953,94 @@
       "runtime_counts_known": false,
       "patched": false,
       "local_report": "evidence/client-frame/static-02.json (frameloop worktree), SHA-256 9627bb4f4eb7b2d2be7b12839e787c948d27992a413a381f180e12f62edb0abe"
+    },
+    "mac_pacing_v72": {
+      "issue": 61,
+      "base_commit": "5b96c26",
+      "document": "docs/research/mac-performance.md",
+      "notes": "mac-play/hotpatch/meshdraw-notes.md",
+      "source_sha256": {
+        "mugl_v72.c": "9eeed0c572234495b899ef79c85db791e9ea527287ae6e1ec40e2ace138dbdfd"
+      },
+      "supersedes_source": {
+        "mugl_v71.c": "6279845618918c0ac58e196e376034837e2aa8fded0e337f3c14458f91da106b"
+      },
+      "change_from_v71": "precise waitable-timer waits for hotpatch bit 1024; pace: stats line; no new patch site, GL change or original byte",
+      "pacing": {
+        "skipped_sleep_return_address": "0x01852680",
+        "driver_logic_counter": "0x0bdc5eb0",
+        "client_active_flag": "0x01cf0fc0",
+        "client_inactive_branch": "0x0120ee34",
+        "period_ms": 40,
+        "default_mask": 7599,
+        "bit": 1024
+      },
+      "cause_reported": "Wine Sleep() stretched by macOS timer coalescing while main.exe is not the frontmost Mac app (Sleep(7..14) took 17-45 ms); not the inactive throttle, not double sleeping; waitable timers, alertable SleepEx and event waits stayed under 1 ms late",
+      "publication_verified": {
+        "original_bytes_added": false,
+        "targets_json_changed": false,
+        "dlls_executed_or_installed": false,
+        "game_or_bottle_changed": false,
+        "portable_tests_discovered": 245,
+        "portable_passed": 227,
+        "private_checks_skipped": 18,
+        "new_portable_tests": 4,
+        "compile_only_ci_build": "make mugl mac-diagnostics mac-hotpatch"
+      },
+      "prior_reported_not_rerun": {
+        "provenance": "Claude observations supplied in the owner task brief and meshdraw-notes.md; raw logs not acquired for publication",
+        "spawn_work_ms": [
+          28,
+          29
+        ],
+        "pacing_off_6575": {
+          "background_fps": [
+            19.3,
+            21.1
+          ],
+          "frontmost_fps": 25.0
+        },
+        "v71_7599": {
+          "background_fps_avg": 24.5,
+          "late_frame_fraction": 0.5,
+          "spike_ms": [
+            60,
+            80
+          ],
+          "observed_fps": [
+            17,
+            22
+          ],
+          "frontmost_fps": 25.0
+        },
+        "v72_7599": {
+          "background_fps": 25.0,
+          "background_duration_s": 140,
+          "periods": 69,
+          "min_period_fps": 25.0,
+          "frames_38_42_ms": 3468,
+          "frames_total": 3482,
+          "avg_overshoot_ms": 0.08,
+          "frontmost_fps": 24.95
+        },
+        "logic_steps_per_period": [
+          50.4,
+          50.5
+        ],
+        "period_s": 2.01,
+        "sleep_7_14_ms_background_took_ms": [
+          17,
+          45
+        ],
+        "requested_170ms_per_2s_took_ms": 635
+      },
+      "limits": [
+        "Single host; runtime figures are supplied reports, not rerun",
+        "The new code was compiled in CI/cross-build only, not executed here",
+        "Cause established from diagnostic builds on one macOS host; no Apple-side trace",
+        "Other macOS versions, power states, runs beyond 140 s and login/character-select numbers not covered",
+        "Windows-native behavior, anti-cheat and server compatibility unverified"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
@@ -960,8 +1048,8 @@
   "playable_source_build": false,
   "native_macos_client": false,
   "validation": {
-    "portable_tests_discovered": 241,
-    "portable_passed": 223,
+    "portable_tests_discovered": 245,
+    "portable_passed": 227,
     "private_checks_skipped": 18,
     "local_integration_passed": 209,
     "source_only_checkout_passed": true,

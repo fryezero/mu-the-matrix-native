@@ -1,9 +1,9 @@
-# Claude v7.1 CPU hotpatch publication
+# Claude v7.2 CPU hotpatch publication
 
-This is an opt-in snapshot of Claude's existing local v7.1 work: the v7.0 helper,
+This is an opt-in snapshot of Claude's existing local v7.2 work: the v7.0 helper,
 inline, peephole and skinning patches plus the native mesh-draw loop in
-`meshdraw.c` (MAC-PERF-005, see `meshdraw-notes.md`), frame pacing and the
-zero-copy/strided batch arrays. The normal `make mugl` and setup installer still
+`meshdraw.c` (MAC-PERF-005, see `meshdraw-notes.md`), frame pacing with precise
+waits (v7.2, MAC-PERF-006) and the zero-copy/strided batch arrays. The normal `make mugl` and setup installer still
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
@@ -82,7 +82,7 @@ thread. Never use MuMatrix32 for these tests.
 ## Runtime controls from the original snapshot
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
-from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 7599 (v7.1; v7.0 was 15).
+from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 7599 (v7.1 and v7.2; v7.0 was 15).
 Each site is checked against its original or replacement bytes before a write;
 unexpected bytes are skipped. This is process-local patching with instruction
 cache flushes. It does not write the on-disk executable. Changing a mask is not
@@ -100,7 +100,7 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 128 | With 32/64: append directly into mugl's open batch instead of calling its entry points, when the import slots point at mugl |
 | 256 | With 32/64: native port of the per-normal light table precompute (`0x012b968c`) |
 | 512 | Time the whole mesh routine and its pre/loop/post segments (diagnostic, off by default) |
-| 1024 | Frame pacing fix: skip the frame driver's own Sleep after in-world frames and pace swaps to 40 ms |
+| 1024 | Frame pacing fix: skip the frame driver's own Sleep after in-world frames and pace swaps to 40 ms; v7.2 waits on a waitable timer, and routes other render-thread `Sleep(ms>0)` through it |
 | 2048 | Draw T2F_C4F_N3F_V3F batches straight from the vertex buffer (zero-copy) |
 | 4096 | All batch formats read the vertex buffer in place with stride 48 (no packing) |
 | 8192 | Also run the mesh-draw vertex paths for flags `0x20` and `0x200000` (never seen in game, unverified; off by default) |
@@ -136,7 +136,13 @@ state at `0x01d1df70` equal to 6) and has mugl pace the swaps to a 40 ms schedul
 instead. The driver sleeps 40 ms minus the *previous* frame's work, so lowering the
 work of alternating frames lowered the frame rate; the report says GL output is
 unchanged and the logic accumulator still tracks real time. Login and character
-screens keep the original sleep. This is a reported behavior; the merged
+screens keep the driver's sleep. v7.2 makes the waits precise: Wine's `Sleep` is
+stretched by macOS timer coalescing while the game is not the frontmost Mac app
+(`Sleep(7..14)` reported at 17-45 ms), so the 40 ms schedule and, with the bit
+set, every other render-thread `Sleep(ms>0)` wait on a waitable timer instead
+(falling back to `Sleep` if none can be created); `Sleep(0)` and other threads are
+untouched. The stats line `pace:` prints logic steps, late frames, overshoot and
+a swap-interval histogram. This is a reported behavior (`meshdraw-notes.md`, v7.2); the merged
 [frame-loop finding](https://github.com/fryezero/mu-the-matrix-recovery/blob/2e8d89e578204c80b6bcf6ce295193ad959bf2ea/docs/research/client-frame-loop.md) records the
 driver and cap locations.
 

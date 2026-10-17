@@ -193,6 +193,17 @@ self time is about 3%. 25 fps remains the fixed 40 ms logic-step cap, with no si
 dominant hotspot left. Default setup still uses #52. No running game or bottle was
 changed. [Evidence and limits](research/mac-performance.md#mac-perf-005-claude-v71-mesh-draw-loop-frame-pacing-and-zero-copy-batches).
 
+MAC-PERF-006, issue #61, publishes Claude's v7.2 `mugl.c`: the frame-pacing bit now
+waits on a waitable timer instead of Wine's `Sleep`. Claude's diagnostic builds traced
+the 17-22 fps seen with pacing on (28 ms of work) to macOS stretching Wine `Sleep`
+calls (7-14 ms took 17-45 ms) whenever the game is not the frontmost Mac app, not to
+the client's inactive throttle or a double sleep. Claude reports 25.00 fps in the
+background over 140 s with 99.6% of frames at 38-42 ms, versus about 24.5 fps with half
+the frames late for v7.1, and 24.95 fps frontmost; the logic still runs at 25 Hz. No new
+patch site or original byte is added. These are supplied single-host reports, not rerun;
+the new code was only compiled here. Default setup still uses #52. No running game or
+bottle was changed. [Evidence and limits](research/mac-performance.md#mac-perf-006-claude-v72-precise-frame-pacing-waits).
+
 ## Repository and next work
 
 The private [repository](https://github.com/fryezero/mu-the-matrix-recovery)

@@ -1,7 +1,7 @@
 # CrossOver performance: x87 experiments and OpenGL batching
 
 MAC-PERF-001, issue #45; MAC-PERF-002, issue #48; MAC-PERF-003, issue #51;
-MAC-PERF-004, issue #57; MAC-PERF-005, issue #59.
+MAC-PERF-004, issue #57; MAC-PERF-005, issue #59; MAC-PERF-006, issue #61.
 Investigation date 2026-10-16. This is an opt-in
 compatibility path for the original client. A native editable game remains open.
 
@@ -820,3 +820,84 @@ the sessions never produced, Windows-native behavior, anti-cheat or server
 compatibility, EFLAGS-level equivalence of the loop, and any hash-level check beyond
 the six `glstride` formats. The pacing fix changes timing, not GL output, but has
 only the reported six-minute disconnect-free runs as stability evidence.
+
+## MAC-PERF-006: Claude v7.2 precise frame-pacing waits
+
+Issue #61 publishes Claude's saved v7.2 `mugl.c` (SHA-256 `9eeed0c5...138dbdfd`) as the new `mac-play/hotpatch/mugl.c`, based on main
+`5b96c26` (#60 merged). The change from v7.1 is small: precise waiting code for hotpatch bit
+1024 and a stats line. There is no new patch site, no original byte, no GL change and no new mask bit
+(default still 7599). This task did source publication and cross-build/portable checks only; no game,
+Wine process or bottle was started, changed or profiled, and `~/Documents/mu-mac-tools` was read only.
+Every runtime number below is Claude's supplied single-host report from 2026-10-17; raw logs were not
+acquired and nothing was remeasured here.
+
+### Symptom
+
+With mask 7599 (bit 1024, frame pacing from MAC-PERF-005) fps fell to 17-22 in the world although the frame
+work was about 26-28 ms, well under the 40 ms budget.
+
+### Cause, from Claude's diagnostic builds
+
+Two obvious explanations were ruled out:
+
+- **Not the client's inactive-window throttle.** The active flag `[0x01cf0fc0]` stayed 1, and the inactive
+  branch of the message loop at `0x0120ee34` has no `Sleep`.
+- **Not double sleeping.** The only render-thread `Sleep` was the frame driver's, return address
+  `0x01852680`, skipped on every eligible frame, and there was one logic step per frame.
+
+What the builds did show: when main.exe is not the frontmost macOS application, Wine's `Sleep()` (timed in
+the calling process with `select()`) is stretched by macOS background timer coalescing, an App-Nap-like
+behavior. `Sleep(7..14)` took 17-45 ms, and 170 ms of requested sleep per 2 s measured 635 ms. With the game
+frontmost every wait was within 2 ms. The muinput `activate` helper only activates the window inside Wine,
+so macOS still treats the process as background. Waitable timers, alertable `SleepEx` and event waits
+with a timeout stayed under 1 ms late in the background, because the wineserver times them. Observation:
+the wait overshoots in these diagnostic runs; inference: macOS timer coalescing of the Wine client process
+is the mechanism (the process-level cause was not examined with an Apple-side trace).
+
+### Change (still bit 1024)
+
+- `pace_wait` waits on a waitable timer to the exact 40 ms deadline (relative 100 ns units, no
+  millisecond rounding) and falls back to `Sleep` if the timer cannot be created or set.
+- With bit 1024, any other render-thread `Sleep(ms > 0)` also goes through the precise timer. This
+  fixes the driver's own cap on the login and character-select screens. `Sleep(0)` and every other
+  thread are untouched; the eligible driver sleep is still skipped by return address.
+- New stats line: `pace: logic steps=.. waits=.. late=.. restarts=.. overshoot avg=..ms (...) |
+  frame ms <30 30-38 38-42 42-50 50-60 60-80 80+` giving a swap-to-swap histogram. Logic steps read the
+  driver counter at `0x0bdc5eb0`.
+
+### Reported results (spawn, 28-29 ms of work; not rerun here)
+
+| Build / mask | Background (not frontmost) | Frontmost |
+|---|---|---|
+| Pacing off (6575) | 19.3-21.1 fps | 25.0 fps |
+| v7.1, 7599 | about 24.5 fps average; about 50% late frames with 60-80 ms spikes (17-22 observed) | 25.0 fps |
+| v7.2, 7599 | 25.00 fps over 140 s: 69 periods, minimum 25.0; 3,468 of 3,482 frames at 38-42 ms; mean overshoot 0.08 ms | 24.95 fps |
+
+The logic clock stays real time: 50.4-50.5 logic steps per about 2.01 s, i.e. 25 Hz, so the improvement is not
+produced by running the game logic faster.
+
+### Publication boundary and checks run here
+
+`mugl_v72.c` is identical to Claude's local `mugl.c`. Publication keeps the packaging adaptation
+from v7.0/v7.1 (`private-build.h` include, hotpatch and Sleep-IAT installation gated on
+`MUGL_PRIVATE_TABLES`), so the compile-only CI build still installs nothing and never reaches the new timer
+code. One further adaptation, found in review: Claude's `pace_stats` read the driver's logic counter at
+`0x0bdc5eb0` on every stats tick, before checking `pace_fix`. With `MUGL_STATS` set (it is a bottle-wide
+environment value) a proxy loaded by any other process, for example the GL probes, would dereference a client
+address that may be unmapped there. The read is now gated on `MUGL_PRIVATE_TABLES` (a test pins it), so the
+published compile-only build never reads a client address; private builds behave as Claude's. The v7.1 to
+v7.2 diff adds addresses and arithmetic only (no byte arrays); the hotpatch targets and digests
+(`targets.json`) are unchanged.
+
+Checks actually run: `make test PYTHON=tools/.venv/bin/python` (245 discovered, 227 pass, 18
+explicit private-input skips; four new portable tests pin the timer wait with its `Sleep` fallback, the
+`hook_sleep` routing and untouched `Sleep(0)`/other threads, the unchanged default and absence of byte
+tables, and the documented cause and limits), `make mugl mac-diagnostics mac-hotpatch` (CI's
+cross-build set) and `python3 scripts/audit_repository.py`. The new code was compiled but not
+executed: it only runs in a private build inside the game.
+
+Not established: other hosts, macOS versions or power states (single host); runs longer than the reported 140 s;
+login/character-select pacing is reported to be fixed but the numbers above are spawn only;
+Windows-native behavior (the cause is specific to Wine on macOS); anti-cheat and server compatibility; and
+any effect of the waitable timer's wineserver round trips on CPU use. The MAC-PERF-005 v7.1 pacing
+figures (24.1-24.2 fps) do not record whether the game was frontmost; read them with this finding.
