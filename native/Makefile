@@ -44,8 +44,8 @@ JPEG_LIBS :=
 endif
 
 RECON := ../reconstructed
-CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_image.c core/mu_png.c core/mu_camera.c \
-            core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
+CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
+            core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
@@ -97,9 +97,9 @@ $(BUILD)/mu-frame: tools/mu_frame.c $(LIB)
 	$(CXX) $(BUILD)/mu_frame.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
 # The mesh-draw module alone, for the Python equivalence tests (ctypes).
-$(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h
+$(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h core/mu_meshdraw_case.c core/mu_meshdraw_case.h
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -fPIC -shared core/mu_meshdraw.c -o $@
+	$(CC) $(CFLAGS) -fPIC -shared core/mu_meshdraw.c core/mu_meshdraw_case.c -lm -o $@
 
 # ---- network protocol module (NATIVE-NET-001) ----
 # Self-contained: framing + send obfuscation only, no Crypto++ or client bytes.

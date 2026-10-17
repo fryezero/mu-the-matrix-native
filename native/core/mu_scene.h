@@ -5,34 +5,61 @@
 
 #include "mu_meshdraw.h"
 #include "mu_model.h"
+#include "mu_textures.h"
 
-/* Drives one model through a rendering backend in the client's per-mesh
- * order (docs/research/client-skinning.md, "Mesh draw GL sequence"):
- *   1. pre-loop colour when the lighting flag is clear;
- *   2. per-normal colour pass when the light byte is set;
- *   3. state from the render flags and the mesh texture bind;
- *   4. glBegin(GL_TRIANGLES); 5. the per-corner stream; 6. glEnd.
- * Steps 2 and 5 are the ported loop code (mu_meshdraw); 1 and 3 follow the
- * static reading. The backend receives GL-shaped calls only, so an OpenGL
- * backend issues literally the client's immediate-mode call sequence. */
+/* Draws one model with the port of the client's body 0x012bb35a and mesh
+ * draw 0x012b8d1d (mu_meshdraw), whose GL call stream was compared with the
+ * actual routine under emulation. The backend receives the GL-shaped calls:
+ * `gl` (optional) gets every call literally; `prepare` gets the effective
+ * fixed-function state and texture just before each glBegin, for backends
+ * that do not issue GL (the software rasterizer).
+ *
+ * Viewer choices (not client facts), documented in native-viewer.md:
+ *  - bitmap index of texture slot k is MU_SCENE_TEXTURE_BASE + k, GL name k+1;
+ *    the environment bitmaps use their client indices and names after the
+ *    model's; a missing texture binds name 0;
+ *  - texture type table zero, mesh flag byte zero, no sub-object records,
+ *    skin fields zero;
+ *  - each call starts from the scene defaults of 0x0184adc7 (alpha test off,
+ *    texture/depth/cull/depth mask on, blend off, fog setting off) with the
+ *    model colour taken from the parameters (the client keeps both across
+ *    calls). */
+
+#define MU_SCENE_TEXTURE_BASE 0x9000
+
+/* Per-corner part of the stream (glColor3f and glColor3fv both go to color3). */
+typedef struct mu_meshdraw_sink {
+    void *context;
+    void (*texcoord)(void *context, float s, float t);
+    void (*color3)(void *context, const float rgb[3]);
+    void (*color4)(void *context, float r, float g, float b, float a);
+    void (*vertex)(void *context, const float xyz[3]);
+} mu_meshdraw_sink;
 
 typedef struct mu_render_backend {
     void *context;
-    /* State and texture for mesh `mesh` (backend maps it to a texture). */
-    void (*prepare)(void *context, const mu_meshdraw_state *state, int32_t mesh);
+    /* Effective state and texture slot (index into mu_textures, -1 none) before glBegin. */
+    void (*prepare)(void *context, const mu_meshdraw_state *state, int32_t texture);
     void (*begin)(void *context);   /* glBegin(GL_TRIANGLES) */
     void (*end)(void *context);     /* glEnd() */
     mu_meshdraw_sink sink;
+    /* Optional: every GL call as recorded (state calls included). */
+    const mu_gl_sink *gl;
 } mu_render_backend;
 
 typedef struct mu_draw_options {
-    int32_t mode;                /* draw mode for every mesh (2 = mesh UVs) */
-    uint32_t flags;              /* render flags */
+    uint32_t flags;              /* render flags (default 2, the dominant immediate of the body wrapper) */
     float alpha;
+    int32_t select;              /* [ebp+0x20]: uv-offset mesh / highlight texture slot (-1 none, <= -2 all) */
+    float color_scale;           /* [ebp+0x24]: highlight colour scale */
     float u_offset, v_offset;
-    int32_t uv_offset_mesh;      /* mesh index receiving the UV offset, -1 for none */
-    uint8_t alpha_test;          /* viewer option: force alpha test on (not a client reading) */
-    int8_t cull;                 /* viewer override: -1 follow the state reading, 0 off, 1 on */
+    int32_t skip_mesh;           /* body [ebp+0x2c] */
+    int32_t texture;             /* [ebp+0x30]: bitmap override, -1 none */
+    float time;                  /* global 0x06fce370 (milliseconds) */
+    float env_vector[3];         /* global 0x0a381de0 (flag 0x800) */
+    const mu_textures *textures; /* optional: component counts and specials */
+    uint8_t alpha_test;          /* viewer override: force alpha test on (not a client reading) */
+    int8_t cull;                 /* viewer override: -1 follow the stream, 0 off, 1 on */
 } mu_draw_options;
 
 void mu_draw_default_options(mu_draw_options *options);
@@ -41,11 +68,25 @@ typedef struct mu_draw_stats {
     long meshes, corners, refused;
 } mu_draw_stats;
 
-/* Draws every mesh. Scratch buffers are allocated internally. The per-normal
- * texcoord table that modes 4/0x1000/0x80000/0x100000 read (client global
- * 0x072acfd8) is filled by a writer that has not been recovered; the viewer
- * substitutes 0.5 + 0.5 * (rotated normal x, y) and labels it as such. */
 int mu_scene_draw_model(const mu_model *model, const mu_draw_options *options, const mu_render_backend *backend,
                         mu_draw_stats *stats);
+
+/* The client-shaped inputs the scene builds for a model (for recorders that
+ * export the case, see mu_meshdraw_case.h). Arrays stay owned by `scene`. */
+typedef struct mu_scene_inputs {
+    mu_meshdraw_model model;
+    mu_meshdraw_mesh *meshes;
+    int32_t *texture_index, *texture_type;
+    mu_meshdraw_globals globals;
+    mu_meshdraw_args args;
+    int32_t skip;
+    mu_gl_cache cache;
+    mu_bitmap *bitmaps;          /* bitmap_count entries */
+    int32_t *bitmap_index;
+    int32_t bitmap_count;
+} mu_scene_inputs;
+int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *options, mu_scene_inputs *inputs);
+void mu_scene_inputs_free(mu_scene_inputs *inputs);
+const mu_bitmap *mu_scene_bitmap(void *inputs, int32_t index);
 
 #endif

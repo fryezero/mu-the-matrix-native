@@ -12,6 +12,8 @@
 typedef struct mu_options {
     const char *model_path;
     const char *output;
+    const char *case_output;   /* corners: also write the mesh-draw case */
+    const char *tables_output; /* replay: tables each mesh draw wrote */
     const char *texture_dir;
     int no_textures;
     mu_model_params params;
@@ -23,7 +25,7 @@ typedef struct mu_options {
     int stop;
     int32_t width, height;
     float yaw, pitch, zoom, fov;
-    int nearest;
+    int linear;                /* bilinear sampling for every texture (viewer choice; the client uses GL_NEAREST) */
     int front_cw;
     uint8_t background[4];
     const char *backend;       /* "soft" or "gl" */

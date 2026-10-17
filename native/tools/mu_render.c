@@ -3,8 +3,10 @@
  *   mu-render info    MODEL                 JSON summary of the checked model
  *   mu-render dump    MODEL --out FILE ...  bone matrices and transform outputs after
  *                                           the requested ticks/pose (golden-data tests)
- *   mu-render corners MODEL --out FILE ...  the GL-shaped call stream of every mesh
- *                                           (mesh-draw equivalence tests)
+ *   mu-render corners MODEL --out FILE ...  the literal GL call stream of the body/mesh-draw
+ *                                           port (--case-out FILE also writes its inputs)
+ *   mu-render replay  CASE --out FILE      run a mesh-draw case file through the port
+ *                                           (--tables-out FILE: tables each mesh draw wrote)
  *   mu-render render  MODEL --out PNG ...   software-rasterized frame; prints the
  *                                           SHA-256 of the raw RGBA pixels
  *   mu-render image   FILE --out RAW        decode a wrapped/plain texture to 8-byte header
@@ -31,6 +33,7 @@
 #include "../core/mu_camera.h"
 #include "../core/mu_character.h"
 #include "../core/mu_gif.h"
+#include "../core/mu_meshdraw_case.h"
 #include "../core/mu_model.h"
 #include "../core/mu_options.h"
 #include "../core/mu_png.h"
@@ -152,51 +155,55 @@ static int command_dump(const mu_options *o)
     return 0;
 }
 
-/* Recorder backend: op stream of everything the scene driver emits. */
+/* Recorder: the literal GL call stream (u32 op, u32 words[4] per call). */
 typedef struct recorder {
     FILE *file;
-    uint32_t mesh, count;
+    uint32_t count;
 } recorder;
 
-enum { OP_TEXCOORD = 1, OP_COLOR3 = 2, OP_COLOR4 = 3, OP_VERTEX = 4, OP_BEGIN = 5, OP_END = 6, OP_PREPARE = 7 };
-
-static void record(recorder *r, uint32_t op, float a, float b, float c, float d)
+static void record_call(void *context, uint32_t op, const uint32_t w[4])
 {
-    float values[4] = {a, b, c, d};
-    put_u32(r->file, r->mesh);
+    recorder *r = context;
     put_u32(r->file, op);
-    fwrite(values, 4, 4, r->file);
+    for (int k = 0; k < 4; ++k)
+        put_u32(r->file, w[k]);
     r->count++;
 }
 
-static void rec_prepare(void *context, const mu_meshdraw_state *s, int32_t mesh)
-{
-    recorder *r = context;
-    r->mesh = (uint32_t)mesh;
-    uint32_t packed = (uint32_t)s->blend | (uint32_t)s->depth_test << 1 | (uint32_t)s->depth_mask << 2 |
-                      (uint32_t)s->cull << 3 | (uint32_t)s->alpha_test << 4 | (uint32_t)s->texture << 5 |
-                      (uint32_t)s->src << 8 | (uint32_t)s->dst << 12;
-    record(r, OP_PREPARE, (float)packed, 0, 0, 0);
-}
-static void rec_begin(void *context) { record(context, OP_BEGIN, 0, 0, 0, 0); }
-static void rec_end(void *context) { record(context, OP_END, 0, 0, 0, 0); }
-static void rec_texcoord(void *context, float s, float t) { record(context, OP_TEXCOORD, s, t, 0, 0); }
-static void rec_color3(void *context, const float c[3]) { record(context, OP_COLOR3, c[0], c[1], c[2], 0); }
-static void rec_color4(void *context, float r, float g, float b, float a) { record(context, OP_COLOR4, r, g, b, a); }
-static void rec_vertex(void *context, const float v[3]) { record(context, OP_VERTEX, v[0], v[1], v[2], 0); }
+static void ignore_tc(void *c, float s, float t) { (void)c; (void)s; (void)t; }
+static void ignore_c3(void *c, const float v[3]) { (void)c; (void)v; }
+static void ignore_c4(void *c, float r, float g, float b, float a) { (void)c; (void)r; (void)g; (void)b; (void)a; }
+static void ignore_v(void *c, const float v[3]) { (void)c; (void)v; }
 
-static void recorder_backend(recorder *r, mu_render_backend *b)
+static void load_textures(const mu_options *o, const mu_bmd *bmd, mu_textures *textures)
 {
-    memset(b, 0, sizeof *b);
-    b->context = r;
-    b->prepare = rec_prepare;
-    b->begin = rec_begin;
-    b->end = rec_end;
-    b->sink.context = r;
-    b->sink.texcoord = rec_texcoord;
-    b->sink.color3 = rec_color3;
-    b->sink.color4 = rec_color4;
-    b->sink.vertex = rec_vertex;
+    memset(textures, 0, sizeof *textures);
+    if (o->no_textures)
+        return;
+    char directory[4096];
+    if (o->texture_dir)
+        snprintf(directory, sizeof directory, "%s", o->texture_dir);
+    else
+        mu_path_directory(o->model_path, directory, sizeof directory);
+    mu_textures_load(textures, bmd, directory);
+}
+
+static int write_case(const char *path, const mu_model *model, const mu_draw_options *draw)
+{
+    mu_scene_inputs in;
+    if (mu_scene_inputs_build(model, draw, &in))
+        return 1;
+    if (!(draw->flags & 0x8000))
+        for (int32_t k = 0; k < in.bitmap_count; ++k)
+            in.bitmaps[k].pixels = NULL;   /* only mode 0x8000 reads texels */
+    mu_meshdraw_call call = {0, in.skip, in.args};
+    FILE *f = fopen(path, "wb");
+    int status = !f || mu_meshdraw_case_write(f, &in.globals, &in.cache, &in.model, in.bitmaps, in.bitmap_index,
+                                              in.bitmap_count, &call, 1);
+    if (f)
+        fclose(f);
+    mu_scene_inputs_free(&in);
+    return status;
 }
 
 static int command_corners(const mu_options *o)
@@ -209,20 +216,105 @@ static int command_corners(const mu_options *o)
         fprintf(stderr, "animation failed\n");
         return 1;
     }
-    recorder r = {o->output ? fopen(o->output, "wb") : NULL, 0, 0};
+    mu_textures textures;
+    load_textures(o, &bmd, &textures);
+    mu_draw_options draw = o->draw;
+    draw.textures = o->no_textures ? NULL : &textures;
+    if (o->case_output && write_case(o->case_output, &model, &draw)) {
+        fprintf(stderr, "cannot write case\n");
+        return 1;
+    }
+    recorder r = {o->output ? fopen(o->output, "wb") : NULL, 0};
     if (!r.file) {
         fprintf(stderr, "cannot open output\n");
         return 1;
     }
+    mu_gl_sink sink = {&r, record_call};
     mu_render_backend backend;
-    recorder_backend(&r, &backend);
+    memset(&backend, 0, sizeof backend);
+    backend.sink = (mu_meshdraw_sink){NULL, ignore_tc, ignore_c3, ignore_c4, ignore_v};
+    backend.gl = &sink;
     mu_draw_stats stats = {0, 0, 0};
-    mu_scene_draw_model(&model, &o->draw, &backend, &stats);
+    mu_scene_draw_model(&model, &draw, &backend, &stats);
     fclose(r.file);
-    printf("{\"records\": %u, \"meshes\": %ld, \"corners\": %ld, \"refused\": %ld}\n", r.count, stats.meshes,
-           stats.corners, stats.refused);
+    printf("{\"records\": %u, \"meshes\": %ld, \"corners\": %ld, \"refused\": %ld, \"textures_missing\": %d}\n",
+           r.count, stats.meshes, stats.corners, stats.refused, textures.missing);
+    mu_textures_free(&textures);
     mu_model_free(&model);
     mu_bmd_free(&bmd);
+    return 0;
+}
+
+/* replay CASE --out STREAM [--tables-out FILE]: run a case file through the port. */
+typedef struct table_writer { FILE *file; } table_writer;
+static void write_tables(void *context, int32_t mesh, int32_t light_count, const float *light, int32_t texcoord_count,
+                         const float *texcoords)
+{
+    table_writer *t = context;
+    if (!t->file)
+        return;
+    put_u32(t->file, (uint32_t)mesh);
+    put_u32(t->file, (uint32_t)light_count);
+    fwrite(light, 4, 3 * (size_t)light_count, t->file);
+    put_u32(t->file, (uint32_t)texcoord_count);
+    fwrite(texcoords, 4, 2 * (size_t)texcoord_count, t->file);
+}
+
+static int command_replay(const mu_options *o)
+{
+    FILE *f = fopen(o->model_path, "rb");
+    if (!f) {
+        fprintf(stderr, "cannot open case\n");
+        return 1;
+    }
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    uint8_t *data = malloc(size > 0 ? (size_t)size : 1);
+    if (!data || size <= 0 || fread(data, 1, (size_t)size, f) != (size_t)size) {
+        fclose(f);
+        free(data);
+        fprintf(stderr, "cannot read case\n");
+        return 1;
+    }
+    fclose(f);
+    mu_meshdraw_case c;
+    int bad = mu_meshdraw_case_read(data, (size_t)size, &c);
+    free(data);
+    if (bad) {
+        fprintf(stderr, "malformed case\n");
+        return 1;
+    }
+    recorder r = {o->output ? fopen(o->output, "wb") : NULL, 0};
+    if (!r.file) {
+        fprintf(stderr, "cannot open output\n");
+        mu_meshdraw_case_free(&c);
+        return 1;
+    }
+    table_writer tables = {o->tables_output ? fopen(o->tables_output, "wb") : NULL};
+    float *colours = malloc(sizeof(float) * 3 * MU_MESHDRAW_MAX_ENTRIES);
+    float *table = malloc(sizeof(float) * 2 * (MU_MESHDRAW_MAX_ENTRIES + 1));
+    mu_meshdraw_scratch scratch = {colours, table, &tables, write_tables};
+    mu_gl_sink sink = {&r, record_call};
+    mu_meshdraw_counts counts = {0, 0, 0, 0};
+    mu_meshdraw_case_run(&c, &sink, &scratch, &counts);
+    /* Final caches and model colour, as one trailing record each (ops 0x100, 0x101). */
+    uint32_t cache[4] = {(uint32_t)c.cache.depth_test | (uint32_t)c.cache.cull << 8 | (uint32_t)c.cache.depth_mask << 16 |
+                             (uint32_t)c.cache.alpha_test << 24,
+                         (uint32_t)c.cache.texture | (uint32_t)c.cache.fog << 8, (uint32_t)c.cache.blend,
+                         (uint32_t)c.cache.bound};
+    record_call(&r, 0x100, cache);
+    uint32_t colour[4] = {0, 0, 0, 0};
+    memcpy(colour, c.model.color, 12);
+    record_call(&r, 0x101, colour);
+    fclose(r.file);
+    if (tables.file)
+        fclose(tables.file);
+    free(colours);
+    free(table);
+    printf("{\"records\": %u, \"drawn\": %ld, \"returned\": %ld, \"refused\": %ld, \"corners\": %ld}\n", r.count,
+           counts.drawn, counts.returned, counts.refused, counts.corners);
+    mu_meshdraw_case_free(&c);
     return 0;
 }
 
@@ -237,21 +329,15 @@ static int command_render(const mu_options *o)
         return 1;
     }
     mu_textures textures;
-    memset(&textures, 0, sizeof textures);
-    if (!o->no_textures) {
-        char directory[4096];
-        if (o->texture_dir)
-            snprintf(directory, sizeof directory, "%s", o->texture_dir);
-        else
-            mu_path_directory(o->model_path, directory, sizeof directory);
-        mu_textures_load(&textures, &bmd, directory);
-    }
+    load_textures(o, &bmd, &textures);
     mu_raster raster;
     if (mu_raster_init(&raster, o->width, o->height)) {
         fprintf(stderr, "bad image size\n");
         return 1;
     }
-    raster.linear = !o->nearest;
+    raster.linear = o->linear;
+    raster.texture_filter = textures.filter;
+    raster.texture_wrap = textures.wrap;
     raster.front_ccw = !o->front_cw;
     raster.textures = textures.slots;
     raster.texture_count = textures.count;
@@ -262,8 +348,10 @@ static int command_render(const mu_options *o)
     mu_raster_clear(&raster, o->background);
     mu_render_backend backend;
     mu_raster_backend(&raster, &backend);
+    mu_draw_options draw = o->draw;
+    draw.textures = o->no_textures ? NULL : &textures;
     mu_draw_stats stats = {0, 0, 0};
-    mu_scene_draw_model(&model, &o->draw, &backend, &stats);
+    mu_scene_draw_model(&model, &draw, &backend, &stats);
     char hash[65];
     mu_sha256_hex(raster.color, (uint64_t)o->width * (uint64_t)o->height * 4, hash);
     if (o->output && mu_png_write(o->output, raster.color, o->width, o->height)) {
@@ -381,7 +469,7 @@ static void scan_file(const char *path, scan_counts counts[16], FILE *log)
         c->posed += model.posed;
         null_sink_state state = {0};
         mu_render_backend backend = {&state, null_prepare, null_begin, null_end,
-                                     {&state, null_tc, null_c3, null_c4, null_v}};
+                                     {&state, null_tc, null_c3, null_c4, null_v}, NULL};
         mu_draw_options options;
         mu_draw_default_options(&options);
         mu_draw_stats stats = {0, 0, 0};
@@ -554,7 +642,7 @@ static int command_character(const mu_options *o)
         fprintf(stderr, "bad image size\n");
         return 1;
     }
-    raster.linear = !o->nearest;
+    raster.linear = o->linear;
     raster.front_ccw = !o->front_cw;
     mu_camera camera;
     mu_options_character_camera(o, &c, &camera);
@@ -718,7 +806,8 @@ static int command_actor(const mu_options *o)
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "usage: %s info|dump|corners|render|image|scan|character|chardump|actor MODEL|ROOT [options]\n", argv[0]);
+        fprintf(stderr, "usage: %s info|dump|corners|replay|render|image|scan|character|chardump|actor MODEL|CASE|ROOT [options]\n",
+                argv[0]);
         mu_options_usage(argv[0]);
         return 2;
     }
@@ -743,6 +832,8 @@ int main(int argc, char **argv)
         return command_dump(&o);
     if (!strcmp(command, "corners"))
         return command_corners(&o);
+    if (!strcmp(command, "replay"))
+        return command_replay(&o);
     if (!strcmp(command, "render"))
         return command_render(&o);
     if (!strcmp(command, "image"))

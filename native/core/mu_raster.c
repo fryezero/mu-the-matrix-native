@@ -14,7 +14,8 @@ int mu_raster_init(mu_raster *r, int32_t width, int32_t height)
     r->height = height;
     r->color = calloc((size_t)width * (size_t)height, 4);
     r->depth = calloc((size_t)width * (size_t)height, sizeof(float));
-    r->linear = 1;
+    r->linear = 0;
+    r->texture_slot = -1;
     r->alpha_reference = 0.25f;
     r->front_ccw = 1;
     r->current_color[0] = r->current_color[1] = r->current_color[2] = r->current_color[3] = 1.0f;
@@ -102,11 +103,22 @@ static void sample(const mu_raster *r, float s, float t, float out[4])
         return;
     }
     const int32_t w = image->width, h = image->height;
-    if (!r->linear) {
+    const int clamp = r->texture_wrap && r->texture_slot >= 0 && r->texture_wrap[r->texture_slot] == 0x2900u;
+    if (clamp) {
+        s = s < 0.0f ? 0.0f : (s > 1.0f ? 1.0f : s);
+        t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    }
+    const int linear = r->linear ||
+                       (r->texture_filter && r->texture_slot >= 0 && r->texture_filter[r->texture_slot] == 0x2601u);
+    if (!linear) {
         double x = floor((double)s * w), y = floor((double)t * h);
         long long xi = (long long)fmod(x, (double)w), yi = (long long)fmod(y, (double)h);
         if (xi < 0) xi += w;
         if (yi < 0) yi += h;
+        if (clamp) {
+            xi = (long long)(x < 0 ? 0 : (x >= w ? w - 1 : x));
+            yi = (long long)(y < 0 ? 0 : (y >= h ? h - 1 : y));
+        }
         const uint8_t *p = image->rgba + 4 * ((size_t)yi * (size_t)w + (size_t)xi);
         for (int k = 0; k < 4; ++k)
             out[k] = (float)p[k] / 255.0f;
@@ -130,15 +142,15 @@ static void sample(const mu_raster *r, float s, float t, float out[4])
     }
 }
 
-static float factor(int which, const float src[4], const float dst[4], int channel)
+static float factor(uint32_t which, const float src[4], const float dst[4], int channel)
 {
     switch (which) {
-    case MU_BLEND_ZERO: return 0.0f;
-    case MU_BLEND_ONE: return 1.0f;
-    case MU_BLEND_SRC_COLOR: return src[channel];
-    case MU_BLEND_ONE_MINUS_SRC_COLOR: return 1.0f - src[channel];
-    case MU_BLEND_SRC_ALPHA: return src[3];
-    case MU_BLEND_ONE_MINUS_SRC_ALPHA: return 1.0f - src[3];
+    case MU_GL_ZERO: return 0.0f;
+    case MU_GL_ONE: return 1.0f;
+    case MU_GL_SRC_COLOR: return src[channel];
+    case MU_GL_ONE_MINUS_SRC_COLOR: return 1.0f - src[channel];
+    case MU_GL_SRC_ALPHA: return src[3];
+    case MU_GL_ONE_MINUS_SRC_ALPHA: return 1.0f - src[3];
     default: (void)dst; return 1.0f;
     }
 }
@@ -284,11 +296,12 @@ static void emit_triangle(mu_raster *r, const mu_raster_vertex *v)
 }
 
 /* Backend callbacks. */
-static void prepare(void *context, const mu_meshdraw_state *state, int32_t mesh)
+static void prepare(void *context, const mu_meshdraw_state *state, int32_t texture)
 {
     mu_raster *r = context;
     r->state = *state;
-    r->texture = (r->textures && mesh >= 0 && mesh < r->texture_count) ? r->textures[mesh] : NULL;
+    r->texture_slot = (r->textures && texture >= 0 && texture < r->texture_count) ? texture : -1;
+    r->texture = r->texture_slot >= 0 ? r->textures[texture] : NULL;
 }
 
 static void begin(void *context) { ((mu_raster *)context)->vertex_count = 0; }
