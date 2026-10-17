@@ -36,6 +36,25 @@ class DataTablesPrivateTests(unittest.TestCase):
         self.assertEqual(report['codec']['failure_count'], 0)
         self.assertGreater(sum(report['codec']['counts'].values()), 10000)
 
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and os.environ.get('MU_GAME_ROOT'),
+                         'private pinned client captures and installation')
+    def test_item_model_mapping_matches_client(self):
+        subprocess.run(['make', '-C', str(ROOT/'native'), 'build/mu-data'], check=True, capture_output=True)
+        text = os.environ.get('MU_CLIENT_TEXT', str(ROOT/'evidence/x86-text-capture-09/client-text.bin'))
+        data = os.environ.get('MU_IMAGE_DATA', str(ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'))
+        feature = os.environ.get('MU_CPU_FEATURES', str(ROOT/'evidence/image-data-run10/math-capture-10/cpu-features.bin'))
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)/'models.json'
+            subprocess.run([sys.executable, str(ROOT/'scripts/validate_item_models.py'), '--text', text, '--data', data,
+                            '--feature', feature, '--game-root', os.environ['MU_GAME_ROOT'], '--output', str(output)],
+                           check=True, capture_output=True)
+            report = json.loads(output.read_text())
+        self.assertEqual(report['mismatch_count'], 0)
+        self.assertEqual(report['found'], report['records'])
+        self.assertEqual(report['model_loader_calls'], report['records'])
+        self.assertEqual(report['getter_queries'], 0x3af6+5)
+        self.assertTrue(report['duplicate_code_case']['match'])
+
 
 if __name__ == '__main__':
     unittest.main()
