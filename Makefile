@@ -6,6 +6,7 @@ all:
 	$(MAKE) -C reconstructed/client-memory
 	$(MAKE) -C reconstructed/record-math
 	$(MAKE) -C reconstructed/model-codec
+	$(MAKE) -C native
 
 test: all
 	for script in mac-play/automation/*.sh; do bash -n "$$script" || exit; done
@@ -28,9 +29,13 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/client-memory -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/record-math -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/model-codec -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:
 	$(MAKE) -C mac-play/mugl
+
+native-viewer:
+	$(MAKE) -C native viewer
 
 mac-hotpatch:
 	$(MAKE) -C mac-play/hotpatch
@@ -44,4 +49,4 @@ integration:
 windows:
 	$(MAKE) -C windows-capture
 
-.PHONY: all test integration windows mugl mac-diagnostics mac-hotpatch
+.PHONY: all test integration windows mugl mac-diagnostics mac-hotpatch native-viewer

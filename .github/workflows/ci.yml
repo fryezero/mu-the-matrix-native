@@ -25,10 +25,10 @@ jobs:
         run: python -m pip install -r tools/requirements-portable.txt
       - name: Install Crypto++ on Linux
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libcrypto++-dev gcc-mingw-w64-i686
+        run: sudo apt-get update && sudo apt-get install -y libcrypto++-dev gcc-mingw-w64-i686 libjpeg-dev
       - name: Install Crypto++ on macOS
         if: runner.os == 'macOS'
-        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install cryptopp
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install cryptopp sdl2 jpeg-turbo
       - name: Build and test without game files
         run: make test PYTHON=python
       - name: Cross-build x86 guest comparison tool
@@ -43,6 +43,9 @@ jobs:
           i686-w64-mingw32-gcc -O2 -fno-tree-vectorize -mfpmath=387 '-DMODE="x87"' mac-play/diagnostics/fpbench.c -o /tmp/fp_x87.exe
           i686-w64-mingw32-gcc -O2 -fno-tree-vectorize -msse2 -mfpmath=sse '-DMODE="SSE2"' mac-play/diagnostics/fpbench.c -o /tmp/fp_sse.exe
           i686-w64-mingw32-gcc -O2 -msse2 -mfpmath=sse mac-play/diagnostics/glbench.c -o /tmp/glbench.exe -lopengl32 -lgdi32
+      - name: Build the windowed native viewer
+        if: runner.os == 'macOS'
+        run: make native-viewer
       - name: Compile authored Mach profiling tools
         if: runner.os == 'macOS'
         run: make -C mac-play/machprof
