@@ -92,11 +92,18 @@ not exist yet.
   * Renders. Software-render hashes are pinned; CI checks them on macOS arm64 and Linux x86_64. Headless GL agrees with them on macOS (CI, synthetic) and on three installed models (reported).
   * Review. PR #66 was merged without independent review. The post-merge review found a TGA image-ID over-read and missing SDL2/libjpeg-turbo notices, both now fixed; see the handoff.
   * Limits. State, mode selection, texture parameters and the normal-texcoord table are static readings or placeholders. [Evidence](research/native-viewer.md).
+- Character assembly (NATIVE-CHAR-001). The native viewer and `mu-render character`/`chardump` assemble a player. Inputs: the shared `Player.bmd` skeleton (model 0xa91, 390 actions), the class body parts for a class byte (types `0x3700+…` plus skin index `(class&15)+16*(tier-1)`), and weapons/shield/wing on bones 33/42/47. Items attach through the root setter `0x012b7019` and a keep-root pose.
+  * Instructions. The rotation/transform position routines (384 cases), the class tier/skin/skip helpers (3x256) and the loader's part table (380 calls) match the actual instructions under Unicorn.
+  * Installed chains. `Player.bmd` posed by the actual builder, then 300 class parts and 267 items through the actual root setter, builder and transform, are byte-identical to the authored C.
+  * Golden data. `chardump` equals an independent reference in 18 synthetic CI cases and on 5 installed characters (private).
+  * Limits. The render routines themselves are static readings. World-path weapon details, attribute branches, back-carried weapons, effects and action names are open. [Evidence](research/native-character.md).
 
 ## Verification
 
-The suite discovers 270 Python tests (macOS, NATIVE-VIEW-001 worktree). Portable checks pass 248 and explicitly skip
-22 private-input checks. The four private native viewer checks pass with `MU_RECOVERY_INTEGRATION=1`.
+The suite discovers 281 Python tests (macOS, NATIVE-CHAR-001 worktree). Portable checks pass 256 and explicitly skip
+25 private-input checks. The three private character checks pass with `MU_RECOVERY_INTEGRATION=1`; the four private native viewer
+checks passed in NATIVE-VIEW-001.
+Before NATIVE-CHAR-001 the suite discovered 270 tests and skipped 22 private-input checks.
 In the previous count, the suite discovered 236 tests and skipped eighteen private-input checks. In the frameloop worktree, the new frame-map check
 passes with `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`; the full opt-in suite
 was not rerun there. In the skinning worktree, opt-in integration passed all 209

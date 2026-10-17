@@ -891,3 +891,30 @@ The review is a comment on PR #66. Branch `claude/native-viewer-review-fixes` fi
 * Private tests were not re-run, because the review touched no game data.
 
 **Next:** unchanged from the NATIVE-VIEW-001 entry above.
+
+## Character assembly (NATIVE-CHAR-001)
+
+Branch `claude/native-char`, worktree `~/Documents/mu-worktrees/native-char`. Read
+[`research/native-character.md`](research/native-character.md) and [`../native/README.md`](../native/README.md).
+
+**Built.**
+
+* `reconstructed/model-codec/character.{c,h}` (`libcharacter`): the rotation position `0x012b7019`, the transform position `0x012b6ef1`, and the class tier, skin index and tier-2 skip helpers; also the part type/file table of the loader `0x01830aa6`.
+* `scripts/validate_character.py`: Unicorn comparison of those routines and the loader loop, plus installed `Player.bmd` → part and `Player.bmd` → item chains through the actual bone-track loop, builder, root setter and transform.
+* `native/core/mu_character.*`, `mu_model` share/keep-root/rotation-position hooks, `mu-render character|chardump`, character options and the viewer's character mode.
+* Tests: `reconstructed/model-codec/test_character.py` (4 portable, 1 private) and `native/tests/test_native_character.py` with `character_reference.py` (4 portable, 2 private).
+
+**Checks.**
+
+* The validator passes everything (ignored report `evidence/native-char/character-full-02.json`, `bca220a3…94ae3b`, 90 s).
+* The private character tests pass with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=…`.
+* Local renders are in `~/Documents/mu-mac-tools/native/renders/char/` and are never committed.
+
+**Next.**
+
+* Trace the player stand/attack action selection, to name actions.
+* Implement the world-path weapon specifics of `0x012bd910`: item lighting flag 0, draw `0x0176ce74`, per-part animation state, and the attribute 0x54/0x59/0x72 branches.
+* Add the safe-zone back-carry matrices of `0x0139db9a`.
+* Executing `0x0139be7a` under Unicorn with recorded draw calls would settle the render-flow reading.
+
+No game, CrossOver bottle or registry was touched.
