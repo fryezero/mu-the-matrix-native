@@ -58,7 +58,7 @@ Usage: setup-mu-mac.sh [options]
 
 Environment: CX_ROOT (CrossOver runtime dir), WINETRICKS (winetricks executable),
              MINGW_CC (default i686-w64-mingw32-gcc), MU_DLL_DIR, MU_DOTNET48_INSTALLER,
-             MU_TIMEWALKER_DIR, MUKIT_BOTTLES_DIR, MUKIT_BUILD_DIR, MUKIT_PYTHON (default python3, for the public mugl's gen.py),
+             MU_TIMEWALKER_DIR, MUKIT_BOTTLES_DIR, MUKIT_BUILD_DIR, MUKIT_PRIVATE_BUILD_DIR, MUKIT_PYTHON (default python3, for the public mugl's gen.py),
              MUKIT_EXTRA_PROTECTED_BOTTLES.
 EOF
 }
@@ -126,6 +126,7 @@ MUTOOLS="$PREFIX/drive_c/mutools"
 SYS32="$PREFIX/drive_c/windows/system32"
 WINE_USED=0
 BUILD_DIR=${MUKIT_BUILD_DIR:-$KIT_DIR/build}     # ignored by git; holds the cache of locally built DLLs
+PRIVATE_BUILD_DIR=${MUKIT_PRIVATE_BUILD_DIR:-$MAC_PLAY/hotpatch/build/private}   # make -C mac-play/hotpatch private
 # winetricks 20260125 sets XDG_CACHE_HOME=~/.cache before its macOS branch, so on a Mac its cache is
 # ~/.cache/winetricks, not ~/Library/Caches/winetricks. Pin it (W_CACHE overrides).
 WT_CACHE=${W_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/winetricks}
@@ -459,21 +460,26 @@ step_launcher_options() {
 }
 
 # --- 11. proxy DLLs ------------------------------------------------------------
+# mscoree proxy from mac-play/mumodes (public source, no client-derived data): sets MSCOREE_SRC.
+build_mscoree() {
+    mukit_run mkdir -p "$BUILD_DIR"
+    # Same flags as mac-play/hotpatch/Makefile 'modes'. SSE is mandatory.
+    # No PE timestamp, so a rerun produces the same bytes and the installed copy stays "up to date".
+    mukit_run sh -c 'cd "$1" && "$2" -O2 -msse2 -mfpmath=sse -ffp-contract=off -Wall -shared mscoree_proxy.c mstubs.S mscoree.def -o "$3" -Wl,--enable-stdcall-fixup -Wl,--no-insert-timestamp -static-libgcc' \
+        sh "$MAC_PLAY/mumodes" "$MINGW_CC" "$BUILD_DIR/mscoree.dll" || mukit_die 'mscoree proxy build failed'
+    MSCOREE_SRC="$BUILD_DIR/mscoree.dll"
+}
 resolve_dlls() {   # sets MUGL_SRC / MSCOREE_SRC (may build)
     MUGL_SRC=; MSCOREE_SRC=
     if [ "$DLL_SOURCE" = build ]; then
         command -v "$MINGW_CC" >/dev/null || mukit_die "$MINGW_CC not found (brew install mingw-w64)"
-        mukit_run mkdir -p "$BUILD_DIR"
-        # mscoree proxy: same flags as mac-play/hotpatch/Makefile 'modes'. SSE is mandatory.
-        mukit_run sh -c 'cd "$1" && "$2" -O2 -msse2 -mfpmath=sse -ffp-contract=off -Wall -shared mscoree_proxy.c mstubs.S mscoree.def -o "$3" -Wl,--enable-stdcall-fixup -static-libgcc' \
-            sh "$MAC_PLAY/mumodes" "$MINGW_CC" "$BUILD_DIR/mscoree.dll" || mukit_die 'mscoree proxy build failed'
-        MSCOREE_SRC="$BUILD_DIR/mscoree.dll"
+        build_mscoree
         if [ "$NO_MUGL" = 1 ]; then
             :
         elif [ "$MUGL_BUILD" = private ]; then
             # Built by you from your own dump: python3 mac-play/hotpatch/generate.py ... && make -C mac-play/hotpatch private
-            MUGL_SRC="$MAC_PLAY/hotpatch/build/private/opengl32.dll"
-            [ -f "$MAC_PLAY/hotpatch/build/private/generation.json" ] && [ -f "$MUGL_SRC" ] ||
+            MUGL_SRC="$PRIVATE_BUILD_DIR/opengl32.dll"
+            [ -f "$PRIVATE_BUILD_DIR/generation.json" ] && [ -f "$MUGL_SRC" ] ||
                 mukit_die "--mugl-build private needs your own private build: $MUGL_SRC (see mac-play/hotpatch/README.md)"
             mukit_warn 'Installing a private hotpatch build: it contains client-derived bytes. Do not commit or redistribute it.'
         else
@@ -491,9 +497,17 @@ resolve_dlls() {   # sets MUGL_SRC / MSCOREE_SRC (may build)
     else
         MUGL_SRC="$DLL_DIR/mugl-$MUGL_VERSION.dll"; MSCOREE_SRC="$DLL_DIR/mscoree.dll"
         [ "$NO_MUGL" = 1 ] || [ -f "$MUGL_SRC" ] || mukit_die "Missing $MUGL_SRC (supply your own mugl-$MUGL_VERSION.dll in --dll-dir)"
-        [ -f "$MSCOREE_SRC" ] || mukit_die "Missing $MSCOREE_SRC (supply your own mscoree.dll in --dll-dir)"
         [ "$NO_MUGL" = 1 ] || [ "$(mukit_sha256 "$MUGL_SRC")" = "$(mukit_mugl_version_sha "$MUGL_VERSION")" ] || mukit_die "$MUGL_SRC does not match the pinned $MUGL_VERSION SHA-256"
-        [ "$(mukit_sha256 "$MSCOREE_SRC")" = "$MUKIT_MSCOREE_PROXY_SHA256" ] || mukit_die "$MSCOREE_SRC does not match the pinned mscoree proxy SHA-256"
+        if [ -f "$MSCOREE_SRC" ]; then
+            [ "$(mukit_sha256 "$MSCOREE_SRC")" = "$MUKIT_MSCOREE_PROXY_SHA256" ] || mukit_die "$MSCOREE_SRC does not match the pinned mscoree proxy SHA-256"
+        else
+            # The mscoree proxy is public source (mac-play/mumodes); a mugl-only --dll-dir
+            # (such as a folder of mugl builds) is fine: build the proxy instead of refusing.
+            command -v "$MINGW_CC" >/dev/null ||
+                mukit_die "Missing $MSCOREE_SRC and $MINGW_CC to build it (put your mscoree.dll in --dll-dir, or brew install mingw-w64)"
+            say "  [note] no mscoree.dll in --dll-dir; building the mscoree proxy from mac-play/mumodes"
+            build_mscoree
+        fi
     fi
 }
 deploy_dll() {   # deploy_dll SRC DST LABEL
@@ -513,7 +527,7 @@ deploy_dll() {   # deploy_dll SRC DST LABEL
         mukit_run cp "$dst" "$dst.mukit-backup-${hd:0:8}"
     fi
     todo "install $label from $src (${hs:0:12})"
-    mukit_run cp "$src" "$dst"
+    mukit_run cp "$src" "$dst" || mukit_die "could not install $label from $src"
     mukit_write_file "$STATE/$(basename "$dst").sha256" "$hs"$'\n'
 }
 step_dlls() {

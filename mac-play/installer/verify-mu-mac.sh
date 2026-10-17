@@ -202,15 +202,25 @@ else out INFO 'mugl-stats.txt' 'none yet'; fi
 # ------------------------------------------------------------------ launchers
 section 'Mac launchers'
 [ -x "$KIT_DIR/play-mu.sh" ] && out PASS 'play-mu.sh' 'kit launcher script present' || out FAIL 'play-mu.sh' 'missing'
-found=
+found= lx87=0 ltw=
 for c in "$HOME"/Desktop/*.command; do
     [ -f "$c" ] || continue
-    [ "$(mukit_launcher_bottle "$c" 2>/dev/null)" = "$BOTTLE" ] && found="${found:+$found, }$(basename "$c")"
+    if [ "$(mukit_launcher_bottle "$c" 2>/dev/null)" = "$BOTTLE" ]; then
+        found="${found:+$found, }$(basename "$c")"
+        grep -q 'MU_FAST_X87=1' "$c" && lx87=1
+        ltw=$(sed -nE "s/.*MU_TIMEWALKER_DIR='([^']*)'.*/\\1/p" "$c" | head -1)
+    fi
 done
 [ -n "$found" ] && out PASS 'Desktop launcher' "$found" || out WARN 'Desktop launcher' "none on ~/Desktop targets $BOTTLE"
-tw=${MU_TIMEWALKER_DIR:-}
-[ -n "$tw" ] && [ -x "$tw/scripts/run-crossover.sh" ] && [ -f "$tw/build/libtimewalker.dylib" ] &&
-    out INFO 'fast x87 (timewalker)' 'built; play-mu.sh MU_FAST_X87=1 available' || out INFO 'fast x87 (timewalker)' 'not built (optional)'
+tw_ok() { [ -n "$1" ] && [ -x "$1/scripts/run-crossover.sh" ] && [ -f "$1/build/libtimewalker.dylib" ]; }
+if [ "$lx87" = 1 ]; then
+    # The launcher asks play-mu.sh for fast x87; play-mu.sh exits if the timewalker build is gone.
+    tw_ok "$ltw" && out PASS 'fast x87 (timewalker)' "launcher uses $ltw" ||
+        out WARN 'fast x87 (timewalker)' "launcher sets MU_FAST_X87=1 but '${ltw:-<no MU_TIMEWALKER_DIR>}' is not a built rosetta-timewalker; rerun setup"
+else
+    tw=${MU_TIMEWALKER_DIR:-}
+    tw_ok "$tw" && out INFO 'fast x87 (timewalker)' 'built; setup --fast-x87 --timewalker-dir enables it' || out INFO 'fast x87 (timewalker)' 'off (optional)'
+fi
 
 printf '\nSummary: %d PASS, %d WARN, %d FAIL\n' "$NPASS" "$NWARN" "$NFAIL"
 [ "$NFAIL" = 0 ]
