@@ -1,4 +1,4 @@
-"""Native data-table tool (NATIVE-DATA-001) checks.
+"""Native data-table tool (NATIVE-DATA-001/002) checks.
 
 Portable: every table is authored here and encoded with an independent Python
 model of the client codecs, then decoded and dumped by native/build/mu-data.
@@ -47,6 +47,9 @@ def item_record(code, folder, file, name, fill=0):
     record[0x250] = 7
     struct.pack_into('<H', record, 0x254, 0x1234)
     struct.pack_into('<I', record, 0x270, 0xdeadbeef)
+    record[0x268] = 20          # durability
+    record[0x291:0x2a1] = bytes(range(1, 17))
+    record[0x2ab] = 1           # can_warehouse
     return bytes(record)
 
 
@@ -100,11 +103,68 @@ class NativeDataTests(unittest.TestCase):
         out = json.loads(run('dump', self.root/'Data/Local/Item.bmd').stdout)
         self.assertEqual((out['status'], out['records'], out['units'], out['checksum']['key']), ('ok', 4, 4, '0xe2f1'))
         item = out['items'][0]
-        self.assertEqual((item['fields']['0x250'], item['fields']['0x254'], item['fields']['0x270']),
-                         (7, 0x1234, 0xdeadbeef))
-        self.assertEqual(set(item['uninitialized']), {'0x252', '0x257', '0x261', '0x269', '0x26d', '0x289',
-                                                      '0x291', '0x2aa', '0x2b0', '0x2bb', '0x2c2'})
-        self.assertEqual(item['uninitialized']['0x291'], '00'*24)
+        a = item['attributes']
+        self.assertEqual((a['kind_a'], a['level'], a['magic_power'], a['durability'], a['can_warehouse']),
+                         (7, 0x1234, 0xdeadbeef, 20, 1))
+        self.assertEqual(a['require_class'], list(range(1, 17)))
+        self.assertEqual(a['resistance'], [0]*7)
+        self.assertEqual(list(a)[:3], ['kind_a', 'kind_b', 'type'])
+        self.assertEqual(len(a), 52)  # 50 scalars + require_class[16] + resistance[7]
+        self.assertEqual(item['unnamed'], {})  # gaps are reported only when nonzero
+        self.assertEqual(out['items'][2]['code'], 13000)
+
+    def test_item_derived_values(self):
+        lines = run('item', self.root/'Data/Local/Item.bmd', 0).stdout.decode().splitlines()
+        item, derived = json.loads(lines[0]), json.loads(lines[1])
+        self.assertEqual(item['file'], 'sword01.bmd')  # first record for a repeated code
+        # client 0x00ccc5b0 table: +L (1-4), +2L-4 (5-9), +2L-4+(L-9)(L-8)/2 (10-15); +15 excellent, +20 ancient
+        self.assertEqual(derived['max_durability']['plain'],
+                         [20, 21, 22, 23, 24, 26, 28, 30, 32, 34, 37, 41, 46, 52, 59, 67])
+        self.assertEqual(derived['max_durability']['excellent'][0], 35)
+        self.assertEqual(derived['max_durability']['ancient'][15], 87)
+        self.assertEqual((derived['store_ban'], derived['repair_ban']), (0, 1))
+        self.assertEqual(run('item', self.root/'Data/Local/Item.bmd', 99, check=False).returncode, 1)
+
+    def test_layout_catalog_and_named_tables(self):
+        layouts = {l['file']: l for l in json.loads(run('layouts').stdout)['layouts']}
+        self.assertIn('itemtooltiptext.bmd', layouts)
+        for layout in layouts.values():
+            for f in layout['fields']:
+                self.assertIn(f['evidence'], ('consumer', 'layout', 'data'))
+                self.assertLessEqual(f['offset'], layout['record_size'])
+            self.assertTrue(layout['fields'])
+        item = {f['name']: f for f in layouts['item.bmd']['fields']}
+        self.assertEqual((item['require_class']['offset'], item['require_class']['count']), (0x291, 16))
+        self.assertEqual(item['field_2b9']['evidence'], 'layout')
+        # a counted tooltip text table with the 0x00f1600f record codec and named fields
+        records = []
+        for i, (text, kind) in enumerate([(b'Attack speed: %d', 101), (b'Plain line', -1)]):
+            record = bytearray(260)
+            struct.pack_into('<H', record, 0, i)
+            record[2:2+len(text)] = text
+            struct.pack_into('<h', record, 0x102, kind)
+            records.append(bytes(record))
+        payload = b''.join(bytes(b ^ KEY3[k % 3] ^ 0xf1 for k, b in enumerate(r)) for r in records)
+        image = struct.pack('<I', 2)+payload+struct.pack('<I', checksum(payload, 0xe2f1))
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'itemtooltiptext.bmd'
+            path.write_bytes(image)
+            data = json.loads(run('dump', path).stdout)['data']
+            self.assertEqual([d['fields'] for d in data], [{'id': 0, 'text': 'Attack speed: %d', 'type': 101},
+                                                           {'id': 1, 'text': 'Plain line', 'type': -1}])
+            # a fixed unit holding several layout records is split (JewelOfHarmonyOption: 750 x 180)
+            unit = bytearray(135000)
+            struct.pack_into('<i60si14i14i', unit, 180, 2, b'Option', 0, *range(14), *range(100, 114))
+            unit[200*180+0x45] = 0x5a  # high byte of level_value[0]
+            harmony = Path(folder)/'JewelOfHarmonyOption.bmd'
+            harmony.write_bytes(xor3(bytes(unit)))
+            data = json.loads(run('dump', harmony).stdout)['data']
+            self.assertEqual(len(data), 750)
+            self.assertEqual(data[1]['fields']['name'], 'Option')
+            self.assertEqual(data[1]['fields']['level_value'], list(range(14)))
+            self.assertEqual(data[1]['fields']['zen'][-1], 113)
+            self.assertEqual(data[200]['unnamed'], {})
+            self.assertEqual(data[200]['fields']['level_value'][0], 0x5a00)
 
     def test_corrupt_and_unknown(self):
         bad = bytearray(item_file(self.records))

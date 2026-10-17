@@ -1,12 +1,15 @@
 /* mu-data: decode and dump the client's data tables locally (NATIVE-DATA-001).
  *
  *   mu-data list [GAME_ROOT]             catalog, and per-file decode status when GAME_ROOT is given
- *   mu-data dump FILE [--out PATH]       decoded records as JSON (Item.bmd with fields)
+ *   mu-data dump FILE [--out PATH]       decoded records as JSON, with named fields where a layout exists
+ *   mu-data item ITEM_BMD CODE           one item's named attributes and derived values
+ *   mu-data layouts                      the record layout catalog with per-field evidence
  *   mu-data item-models FILE [--json]    item code -> model index, folder, file, name
  *   mu-data model ITEM_BMD INDEX         what the client's model getter 0x00eaa8cf does for INDEX
  *   mu-data decode FILE --out PATH       decoded file image (raw bytes)
  *   mu-data mpr FILE                     Lang.mpr package directory (entries stay encrypted)
  *
+ * Named fields: NATIVE-DATA-002 (reconstructed/data/table_layouts.c).
  * Output is written locally only; decoded game text and tables are never part
  * of the repository.
  */
@@ -23,6 +26,8 @@ static void usage(void) {
     fputs("usage:\n"
           "  mu-data list [GAME_ROOT]\n"
           "  mu-data dump FILE [--out PATH]\n"
+          "  mu-data item ITEM_BMD CODE\n"
+          "  mu-data layouts\n"
           "  mu-data item-models FILE [--json] [--out PATH]\n"
           "  mu-data model ITEM_BMD INDEX\n"
           "  mu-data decode FILE --out PATH\n"
@@ -84,6 +89,60 @@ static void json_header(FILE *out, const mu_data_table *t) {
     fprintf(out, "\"units\":%u,\"records\":%u,\"record_size\":%u,", r->units, r->records, s->record_size);
 }
 
+static void json_field(FILE *out, const mu_record_field *f, const uint8_t *record) {
+    if (f->type == MU_FIELD_TEXT) {
+        json_string(out, record + f->offset, f->count);
+        return;
+    }
+    if (f->type == MU_FIELD_BYTES) {
+        json_hex(out, record + f->offset, f->count);
+        return;
+    }
+    if (f->count > 1) fputc('[', out);
+    for (unsigned i = 0; i < (f->count ? f->count : 1u); ++i) {
+        if (i) fputc(',', out);
+        if (f->type == MU_FIELD_F32) fprintf(out, "%.9g", (double)mu_field_float(f, record, i));
+        else fprintf(out, "%lld", (long long)mu_field_integer(f, record, i));
+    }
+    if (f->count > 1) fputc(']', out);
+}
+
+/* "fields": named values from offset `from`; "unnamed": spans not covered by
+ * any field that hold a nonzero byte, as hex keyed by offset. */
+static void json_record(FILE *out, const mu_record_layout *layout, const uint8_t *record, unsigned from,
+                        const char *fields_key) {
+    fprintf(out, "\"%s\":{", fields_key);
+    int first = 1;
+    for (uint32_t i = 0; i < layout->field_count; ++i) {
+        const mu_record_field *f = &layout->fields[i];
+        if (f->offset < from) continue;
+        fprintf(out, "%s\"%s\":", first ? "" : ",", f->name);
+        json_field(out, f, record);
+        first = 0;
+    }
+    fputs("},\"unnamed\":{", out);
+    first = 1;
+    unsigned at = from;
+    for (uint32_t i = 0; i <= layout->field_count; ++i) {
+        unsigned next = i < layout->field_count ? layout->fields[i].offset : layout->record_size;
+        if (i < layout->field_count && next < from) continue;
+        if (next > at) {
+            int nonzero = 0;
+            for (unsigned k = at; k < next; ++k) nonzero |= record[k];
+            if (nonzero) {
+                fprintf(out, "%s\"0x%03x\":", first ? "" : ",", at);
+                json_hex(out, record + at, next - at);
+                first = 0;
+            }
+        }
+        if (i < layout->field_count) {
+            unsigned end = next + mu_field_span(&layout->fields[i]);
+            if (end > at) at = end;
+        }
+    }
+    fputc('}', out);
+}
+
 static void dump_item(FILE *out, const mu_item *item) {
     fprintf(out, "{\"code\":%u,\"section\":%u,\"index\":%u,\"model_index\":%u,\"folder\":", item->code, item->section,
             item->index, item->code + MU_ITEM_MODEL_BASE);
@@ -92,24 +151,9 @@ static void dump_item(FILE *out, const mu_item *item) {
     json_string(out, (const uint8_t *)item->file, 260);
     fputs(",\"name\":", out);
     json_string(out, (const uint8_t *)item->name, 64);
-    fputs(",\"fields\":{", out);
-    for (size_t f = 0; f < mu_item_field_count; ++f)
-        fprintf(out, "%s\"0x%03x\":%u", f ? "," : "", mu_item_fields[f].offset,
-                mu_item_field_value(item, &mu_item_fields[f]));
-    /* bytes not covered by any constructor store, in place order */
-    fputs("},\"uninitialized\":{", out);
-    int first = 1;
-    unsigned at = 0x250;
-    for (size_t f = 0; f <= mu_item_field_count; ++f) {
-        unsigned next = f < mu_item_field_count ? mu_item_fields[f].offset : MU_ITEM_RECORD_SIZE;
-        if (next > at) {
-            fprintf(out, "%s\"0x%03x\":", first ? "" : ",", at);
-            json_hex(out, item->record + at, next - at);
-            first = 0;
-        }
-        if (f < mu_item_field_count) at = next + mu_item_fields[f].width;
-    }
-    fputs("}}", out);
+    fputc(',', out);
+    json_record(out, mu_record_layout_find("item.bmd"), item->record, 0x250, "attributes");
+    fputc('}', out);
 }
 
 static void dump_records(FILE *out, const mu_data_table *t) {
@@ -183,6 +227,19 @@ static void dump_records(FILE *out, const mu_data_table *t) {
         if (s->kind == MU_DATA_PET && n >= 12) size = le(p + 4, 4) * 8 + 16;
         if (s->kind == MU_DATA_COUNT_BYTES) size = t->result.records;
         size_t at = t->result.records_offset;
+        const mu_record_layout *layout = mu_record_layout_find(t->name);
+        if (layout && size && layout->record_size && size % layout->record_size == 0) {
+            /* named records; fixed units holding several records are split */
+            uint32_t index = 0;
+            for (uint32_t i = 0; i < t->result.records && at + size <= n; ++i, at += size)
+                for (size_t sub = 0; sub < size; sub += layout->record_size) {
+                    SEP();
+                    fprintf(out, "{\"i\":%u,", index++);
+                    json_record(out, layout, p + at + sub, 0, "fields");
+                    fputc('}', out);
+                }
+            break;
+        }
         for (uint32_t i = 0; i < t->result.records && size && at + size <= n; ++i, at += size) {
             SEP();
             fprintf(out, "{\"i\":%u,\"hex\":", i);
@@ -332,6 +389,59 @@ static int cmd_item_models(const char *path, int json, const char *out_path) {
     return 0;
 }
 
+static int cmd_item(const char *path, const char *code_text) {
+    mu_data_table t;
+    if (load(path, &t)) return 2;
+    char *end = NULL;
+    unsigned long code = strtoul(code_text, &end, 0);
+    mu_item item;
+    if (!end || *end || code > 0xffffffffUL || mu_item_find(&t, (uint32_t)code, &item) != 0) {
+        fprintf(stderr, "%s: no item with code %s\n", path, code_text);
+        mu_data_free(&t);
+        return 1;
+    }
+    dump_item(stdout, &item);
+    /* derived values (0x00ccc5b0, 0x016bec14, 0x016be1d9) for a plain instance */
+    printf("\n{\"max_durability\":{");
+    static const char *const states[] = {"plain", "excellent", "ancient", "excellent_ancient"};
+    for (int s = 0; s < 4; ++s) {
+        printf("%s\"%s\":[", s ? "," : "", states[s]);
+        for (int level = 0; level < 16; ++level)
+            printf("%s%u", level ? "," : "", mu_item_max_durability_at(&item, level, s & 1, s >> 1));
+        putchar(']');
+    }
+    mu_item_state plain = {(int32_t)item.code, 0, 0, 0, 0, 0};
+    printf("},\"store_ban\":%d,\"repair_ban\":%d}\n", mu_item_store_ban(&item.attributes, &plain),
+           mu_item_repair_ban(&item.attributes, &plain));
+    mu_data_free(&t);
+    return 0;
+}
+
+static const char *field_type_name(unsigned type) {
+    static const char *const names[] = {"?", "u8", "i8", "u16", "i16", "u32", "i32", "f32", "text", "bytes"};
+    return type < sizeof names / sizeof names[0] ? names[type] : "?";
+}
+
+static int cmd_layouts(void) {
+    size_t count;
+    const mu_record_layout *layouts = mu_record_layouts(&count);
+    printf("{\"layouts\":[");
+    for (size_t i = 0; i < count; ++i) {
+        const mu_record_layout *l = &layouts[i];
+        printf("%s\n{\"file\":\"%s\",\"record_size\":%u,\"fields\":[", i ? "," : "", l->file, l->record_size);
+        for (uint32_t k = 0; k < l->field_count; ++k) {
+            const mu_record_field *f = &l->fields[k];
+            printf("%s{\"name\":\"%s\",\"offset\":%u,\"type\":\"%s\",\"count\":%u,\"stride\":%u,"
+                   "\"evidence\":\"%s\"}",
+                   k ? "," : "", f->name, f->offset, field_type_name(f->type), f->count, f->stride,
+                   mu_field_evidence_name((mu_field_evidence)f->evidence));
+        }
+        printf("]}");
+    }
+    printf("]}\n");
+    return 0;
+}
+
 static int cmd_model(const char *path, const char *index_text) {
     mu_data_table t;
     if (load(path, &t)) return 2;
@@ -389,6 +499,7 @@ int main(int argc, char **argv) {
     }
     const char *cmd = argv[1];
     if (!strcmp(cmd, "list")) return cmd_list(positional[0]);
+    if (!strcmp(cmd, "layouts")) return cmd_layouts();
     if (!positional[0]) {
         usage();
         return 2;
@@ -397,6 +508,7 @@ int main(int argc, char **argv) {
     if (!strcmp(cmd, "item-models")) return cmd_item_models(positional[0], json, out);
     if (!strcmp(cmd, "decode")) return cmd_decode(positional[0], out);
     if (!strcmp(cmd, "model") && positional[1]) return cmd_model(positional[0], positional[1]);
+    if (!strcmp(cmd, "item") && positional[1]) return cmd_item(positional[0], positional[1]);
     usage();
     return 2;
 }

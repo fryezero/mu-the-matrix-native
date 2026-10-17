@@ -5,8 +5,10 @@
  *
  * Loads a table file into memory and decodes it with the reconstructed client
  * schedules in reconstructed/data (decode units, checksum decisions). Adds the
- * Item.bmd record view and the item-to-model mapping traced from the client's
- * model getter 0x00eaa8cf, and a directory listing of the Lang.mpr package.
+ * Item.bmd record view (named attributes, NATIVE-DATA-002) and the
+ * item-to-model mapping traced from the client's model getter 0x00eaa8cf,
+ * named record layouts for the other tables, and a directory listing of the
+ * Lang.mpr package.
  * No game data is embedded; callers pass installed files.
  */
 
@@ -14,6 +16,8 @@
 #include <stdint.h>
 
 #include "../../reconstructed/data/data_tables.h"
+#include "../../reconstructed/data/item_attributes.h"
+#include "../../reconstructed/data/table_layouts.h"
 
 typedef struct {
     char *name;                 /* file name as given (basename) */
@@ -45,21 +49,18 @@ typedef struct {
     char file[261];             /* +0x10c char[260], model file name */
     char name[65];              /* +0x210 char[64], display name (client code page bytes) */
     const uint8_t *record;      /* the whole decoded 708-byte record */
+    mu_item_attributes attributes; /* named fields (reconstructed/data/item_attributes.h) */
 } mu_item;
-
-/* Scalar attribute fields initialised by the record constructor 0x01184277,
- * in order: offset and width in bytes. Field meanings are not recovered. */
-typedef struct { uint16_t offset; uint8_t width; } mu_item_field;
-extern const mu_item_field mu_item_fields[];
-extern const size_t mu_item_field_count;
 
 size_t mu_item_count(const mu_data_table *table);
 /* Fills item for record i (0-based). Returns 0 or -1 when out of range. */
 int mu_item_get(const mu_data_table *table, size_t i, mu_item *item);
 /* Client lookup semantics (std::map keyed by code): last record with code. */
 int mu_item_find(const mu_data_table *table, uint32_t code, mu_item *item);
-/* Read a field value (little endian, width 1/2/4). */
-uint32_t mu_item_field_value(const mu_item *item, const mu_item_field *field);
+/* Derived values of an item instance (client routines reconstructed in
+ * item_attributes.c): maximum durability 0x00ccc5b0 at level 0..15 with the
+ * excellent / ancient options, warehouse and repair bans. */
+uint8_t mu_item_max_durability_at(const mu_item *item, int level, int excellent, int ancient);
 
 /* Model index -> item. Returns 1 and fills item when the getter would call
  * the model loader with (index, folder, file); 0 when the index is in range

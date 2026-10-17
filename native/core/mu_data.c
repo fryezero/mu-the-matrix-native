@@ -4,18 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Scalar fields zero-initialised by the item record constructor 0x01184277
- * (offset, width). Folder/file/name are the three memset spans before them. */
-const mu_item_field mu_item_fields[] = {
-    {0x250, 1}, {0x251, 1}, {0x253, 1}, {0x254, 2}, {0x256, 1}, {0x258, 2}, {0x25a, 1}, {0x25b, 1},
-    {0x25c, 2}, {0x25e, 2}, {0x260, 1}, {0x262, 2}, {0x264, 2}, {0x266, 1}, {0x267, 1}, {0x268, 1},
-    {0x26a, 2}, {0x26c, 1}, {0x270, 4}, {0x274, 4}, {0x278, 4}, {0x27c, 2}, {0x27e, 2}, {0x280, 2},
-    {0x282, 2}, {0x284, 2}, {0x286, 2}, {0x288, 1}, {0x28c, 4}, {0x290, 1}, {0x2a9, 1}, {0x2ab, 1},
-    {0x2ac, 1}, {0x2ad, 1}, {0x2ae, 1}, {0x2af, 1}, {0x2b2, 2}, {0x2b4, 2}, {0x2b6, 2}, {0x2b8, 1},
-    {0x2b9, 1}, {0x2ba, 1}, {0x2bc, 2}, {0x2be, 2}, {0x2c0, 2},
-};
-const size_t mu_item_field_count = sizeof mu_item_fields / sizeof mu_item_fields[0];
-
 static const char *base_name(const char *path) {
     const char *slash = strrchr(path, '/');
     const char *back = strrchr(path, '\\');
@@ -106,6 +94,7 @@ int mu_item_get(const mu_data_table *table, size_t i, mu_item *item) {
     memcpy(item->file, r + 0x10c, 260);
     memcpy(item->name, r + 0x210, 64);
     item->record = r;
+    mu_item_attributes_read(r, &item->attributes);
     return 0;
 }
 
@@ -118,8 +107,9 @@ int mu_item_find(const mu_data_table *table, uint32_t code, mu_item *item) {
     return -1;
 }
 
-uint32_t mu_item_field_value(const mu_item *item, const mu_item_field *field) {
-    return le(item->record + field->offset, field->width);
+uint8_t mu_item_max_durability_at(const mu_item *item, int level, int excellent, int ancient) {
+    mu_item_state state = {(int32_t)item->code, level, (uint8_t)(ancient ? 1 : 0), 0, 0, (uint8_t)(excellent ? 1 : 0)};
+    return mu_item_max_durability(&item->attributes, &state);
 }
 
 int mu_item_model(const mu_data_table *table, int32_t model_index, mu_item *item) {
