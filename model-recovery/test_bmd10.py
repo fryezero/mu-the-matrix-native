@@ -110,4 +110,87 @@ class BmdTests(unittest.TestCase):
         with self.assertRaisesRegex(BmdError, r'Bone 1: parent 2 references dummy bone.*layout offset 375$'):
             parse_bytes(raw)
 
+
+
+def client(raw):
+    return parse_bytes(bytes(raw), client_layout=True)
+
+
+class ClientLayoutTests(unittest.TestCase):
+    """client_layout=True follows the client's reader 0x012b3812: values the strict
+    reader rejects are kept raw and listed with their layout offsets."""
+
+    def kinds(self, raw):
+        return [(x['kind'], x['offset']) for x in client(raw)['client_semantics']]
+
+    def test_clean_fixture_has_no_issues_and_same_model(self):
+        strict, lenient = parse_bytes(fixture()), client(fixture())
+        self.assertEqual(lenient.pop('client_semantics'), [])
+        self.assertEqual(strict, lenient)
+
+    def test_rejected_values_are_kept_with_offsets(self):
+        cases = []
+        raw = bytearray(fixture()); struct.pack_into('<f',raw,56,math.nan); cases.append((raw, ('nonfinite', 56)))
+        raw = bytearray(fixture()); struct.pack_into('<h',raw,198,3); cases.append((raw, ('normal-index', 198)))
+        raw = bytearray(fixture()); struct.pack_into('<h',raw,68,-8888); cases.append((raw, ('vertex-bone', 68)))
+        raw = bytearray(fixture()); struct.pack_into('<h',raw,140,-1); cases.append((raw, ('normal-bone', 140)))
+        raw = bytearray(fixture()); raw[-59]=2; cases.append((raw, ('flag-nonboolean', len(raw)-59)))   # dummy byte
+        raw = bytearray(fixture()); raw += b'unknown'; cases.append((raw, ('trailer', len(fixture()))))
+        for raw, expected in cases:
+            with self.subTest(expected=expected):
+                with self.assertRaises(BmdError):
+                    parse_bytes(bytes(raw))
+                self.assertIn(expected, self.kinds(raw))
+        model = client(cases[2][0])
+        self.assertEqual(model['meshes'][0]['vertices'][1]['node'], -8888)   # raw value preserved
+
+    def test_dummy_parent_edge_listed_once_and_leaf_marked_unresolved(self):
+        raw = bytearray(fixture())
+        struct.pack_into('<H',raw,38,3)
+        bone0 = len(raw)-59
+        struct.pack_into('<h',raw,bone0+33,1)
+        raw += b'\0'+b'child'.ljust(32,b'\0')+struct.pack('<h6f',2,0,0,0,0,0,0)+b'\1'
+        model = client(raw)
+        issues = [(x['kind'], x['bone'], x['value'], x['offset']) for x in model['client_semantics']]
+        self.assertIn(('dummy-parent', 1, 2, 375), issues)
+        self.assertIn(('parent-forward', 0, 1, bone0+33), [(x['kind'], x['bone'], x['value'], x['offset'])
+                                                             for x in model['client_semantics']])
+        self.assertTrue(model['bones'][1]['client_unresolved'])
+        self.assertTrue(model['bones'][0]['client_unresolved'])   # its parent chain reaches the dummy too
+
+    def test_structural_failures_still_reject(self):
+        raw = fixture()
+        for size in range(0, len(raw), 7):
+            with self.subTest(size=size), self.assertRaises(BmdError):
+                client(raw[:size])
+        negative = bytearray(raw); struct.pack_into('<h',negative,42,-1)
+        with self.assertRaises(BmdError):
+            client(negative)
+
+    def test_strict_accepts_exactly_when_no_strict_issue(self):
+        base = fixture()
+        for offset in range(36, len(base)):
+            for value in (0x02, 0x80, 0xff, 0x7f):
+                raw = bytearray(base); raw[offset] = value
+                try:
+                    parse_bytes(bytes(raw)); strict_ok = True
+                except BmdError:
+                    strict_ok = False
+                try:
+                    issues = client(raw)['client_semantics']
+                except BmdError:
+                    self.assertFalse(strict_ok, offset)
+                    continue
+                with self.subTest(offset=offset, value=value):
+                    self.assertEqual(strict_ok, not any(x['strict'] for x in issues))
+
+    def test_obj_export_refuses_state_dependent_geometry(self):
+        raw = bytearray(fixture()); struct.pack_into('<h',raw,68,-8888)
+        with self.assertRaisesRegex(BmdError, 'bone -8888'):
+            obj_text(client(raw))
+        raw = bytearray(fixture()); struct.pack_into('<h',raw,198,3)
+        with self.assertRaisesRegex(BmdError, 'normals entry 3 past its array'):
+            obj_text(client(raw))
+
+
 if __name__=='__main__':unittest.main()

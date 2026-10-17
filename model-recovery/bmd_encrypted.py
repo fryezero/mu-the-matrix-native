@@ -130,12 +130,12 @@ def decrypt_modulus(envelope):
     return output.raw
 
 
-def parse_model(raw):
+def parse_model(raw, *, client_layout=False):
     if len(raw) > MAX_FILE or len(raw) < 4 or raw[:3] != b'BMD':
         raise BmdError('Invalid BMD envelope or unsupported file size')
     version = raw[3]
     if version == 10:
-        return parse_bytes(raw)
+        return parse_bytes(raw, client_layout=client_layout)
     if version not in (12,14,15):
         raise BmdError(f'Unsupported model version {version}')
     if len(raw) < 8:
@@ -149,7 +149,7 @@ def parse_model(raw):
         plain = decrypt_modulus(raw[8:])
     else:
         plain = decrypt_lea(raw[8:])
-    model = parse_bytes(b'BMD\x0a'+plain, lea_block_padding=version == 15)
+    model = parse_bytes(b'BMD\x0a'+plain, lea_block_padding=version == 15, client_layout=client_layout)
     model.update(version=version, decoded_layout_version=10,
                  source_bytes=len(raw), source_sha256=hashlib.sha256(raw).hexdigest(),
                  decoded_payload_sha256=hashlib.sha256(plain).hexdigest(),
@@ -161,10 +161,10 @@ def parse_model(raw):
     return model
 
 
-def parse_model_file(path):
+def parse_model_file(path, *, client_layout=False):
     path = Path(path)
     if path.stat().st_size > MAX_FILE:
         raise BmdError('File exceeds supported size limit')
-    model = parse_model(path.read_bytes())
+    model = parse_model(path.read_bytes(), client_layout=client_layout)
     model['source_path'] = str(path)
     return model

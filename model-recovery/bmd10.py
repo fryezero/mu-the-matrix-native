@@ -4,6 +4,14 @@
 Independent implementation of layouts cross-checked with xulek's ISC-declared
 bmd-loader.ts at 3f11bf89f3702261174d8efa1436d56a15c7d97a. See SOURCES.md.
 No decryption, game execution, frame-rate inference, or server access.
+
+``client_layout=True`` follows the client's model reader 0x012b3812 instead
+(docs/research/model-edge.md): the same stream walk, but no index, bone,
+parent, flag or floating-point check. Every value the strict reader would
+reject is kept raw and listed in ``client_semantics`` with its layout offset,
+because its meaning depends on client memory state. Structural limits stay:
+truncation (the client would read past its decoded buffer), negative or
+oversized counts, and the size limits.
 """
 import argparse
 import hashlib
@@ -25,8 +33,9 @@ class BmdError(ValueError):
 
 
 class Reader:
-    def __init__(self, data):
-        self.data, self.offset = data, 0
+    def __init__(self, data, issues=None):
+        # issues: client-layout mode collects non-finite values instead of raising.
+        self.data, self.offset, self.issues = data, 0, issues
 
     def take(self, size):
         if size < 0 or self.offset + size > len(self.data):
@@ -41,8 +50,11 @@ class Reader:
         # Reader formats are sequences of scalar fields, with no repeat counts.
         for index, value in enumerate(values):
             if isinstance(value, float) and not math.isfinite(value):
-                raise BmdError('Non-finite numeric data',
-                               offset=start+struct.calcsize('<'+fmt[:index]))
+                offset = start+struct.calcsize('<'+fmt[:index])
+                if self.issues is None:
+                    raise BmdError('Non-finite numeric data', offset=offset)
+                self.issues.append({'kind': 'nonfinite', 'strict': True, 'offset': offset,
+                                    'binary32_hex': self.data[offset:offset+4][::-1].hex()})
         return values
 
     def string(self):
@@ -53,7 +65,10 @@ class Reader:
     def flag(self):
         value, = self.unpack('B')
         if value not in (0, 1):
-            raise BmdError(f'Non-boolean flag {value} near offset {self.offset}')
+            if self.issues is None:
+                raise BmdError(f'Non-boolean flag {value} near offset {self.offset}')
+            # The client tests the byte for nonzero.
+            self.issues.append({'kind': 'flag-nonboolean', 'strict': True, 'offset': self.offset-1, 'value': value})
         return bool(value)
 
 
@@ -63,10 +78,16 @@ def count(value, label, maximum=MAX_COUNT):
     return value
 
 
-def parse_bytes(raw, *, lea_block_padding=False):
+def parse_bytes(raw, *, lea_block_padding=False, client_layout=False):
     if len(raw) > MAX_FILE or len(raw) < 42:
         raise BmdError('File outside supported size limits')
-    r = Reader(raw)
+    issues = [] if client_layout else None
+
+    def issue(kind, message, offset=None, strict=True, **detail):
+        if issues is None:
+            raise BmdError(message, offset=offset)
+        issues.append(dict({'kind': kind, 'strict': strict, 'offset': offset, 'message': message}, **detail))
+    r = Reader(raw, issues)
     if r.take(4) != b'BMD\x0a':
         raise BmdError('Only plaintext BMD version 10 is supported')
     name = r.string()
@@ -100,13 +121,18 @@ def parse_bytes(raw, *, lea_block_padding=False):
             block = r.take(64)
             corners = block[0]
             if corners not in (3, 4):
-                raise BmdError(f'Mesh {mi} polygon {fi}: unsupported corner count {corners}')
+                issue('corner-count', f'Mesh {mi} polygon {fi}: unsupported corner count {corners}',
+                      offset=face_offset, mesh=mi, polygon=fi, value=corners)
             arrays = [list(struct.unpack_from('<4h', block, off)) for off in (2,10,18)]
+            # The mesh draw reads corners 0..(int8)count-1; only the four stored corners are checked here.
+            active = min(max(struct.unpack_from('<b', block, 0)[0], 0), 4) if client_layout else corners
             for indices, upper, kind, field in zip(arrays, (nv,nn,nt), ('vertex','normal','UV'), (2,10,18)):
-                for corner, index in enumerate(indices[:corners]):
+                for corner, index in enumerate(indices[:active]):
                     if index < 0 or index >= upper:
-                        raise BmdError(f'Mesh {mi} polygon {fi}: invalid active {kind} index {index} at corner {corner}',
-                                       offset=face_offset+field+2*corner)
+                        issue(f'{kind.lower()}-index',
+                              f'Mesh {mi} polygon {fi}: invalid active {kind} index {index} at corner {corner}',
+                              offset=face_offset+field+2*corner, mesh=mi, polygon=fi, corner=corner, value=index,
+                              count=upper)
             mesh['polygons'].append({'corners': corners, 'vertices': arrays[0], 'normals': arrays[1],
                                       'uvs': arrays[2], 'raw_hex': block.hex()})
         mesh['texture'] = r.string()
@@ -126,7 +152,7 @@ def parse_bytes(raw, *, lea_block_padding=False):
             bone['name'] = r.string()
             parent, = r.unpack('h')
             if not -1 <= parent < nb:
-                raise BmdError(f'Bone {bi}: invalid parent {parent}')
+                issue('parent', f'Bone {bi}: invalid parent {parent}', offset=r.offset-2, bone=bi, value=parent)
             bone['parent'] = parent
             for action in result['actions']:
                 keys = action['keys']
@@ -138,7 +164,8 @@ def parse_bytes(raw, *, lea_block_padding=False):
     trailer = raw[r.offset:]
     if trailer:
         if not lea_block_padding or len(trailer) > 16 or (len(raw)-4) % 16:
-            raise BmdError(f'{len(raw)-r.offset} unparsed trailing bytes at offset {r.offset}')
+            # The client reader never looks at bytes after the last bone record.
+            issue('trailer', f'{len(raw)-r.offset} unparsed trailing bytes at offset {r.offset}', offset=r.offset)
         # Explicit decrypted ECB envelope: retain every unused block-alignment
         # byte. No padding convention or semantic meaning is inferred.
         result['cipher_block_trailer_hex'] = trailer.hex()
@@ -147,31 +174,48 @@ def parse_bytes(raw, *, lea_block_padding=False):
         normal_start = vertex_start+16*len(mesh['vertices'])
         for vi, vertex in enumerate(mesh['vertices']):
             if not 0 <= vertex['node'] < nb or result['bones'][vertex['node']]['dummy']:
-                raise BmdError(f'Mesh {mi} vertex {vi}: unsupported vertex bone {vertex["node"]}',
-                               offset=vertex_start+16*vi)
+                issue('vertex-bone', f'Mesh {mi} vertex {vi}: unsupported vertex bone {vertex["node"]}',
+                      offset=vertex_start+16*vi, mesh=mi, vertex=vi, value=vertex['node'])
         for ni, normal in enumerate(mesh['normals']):
             if not 0 <= normal['node'] < nb or result['bones'][normal['node']]['dummy']:
-                raise BmdError(f'Mesh {mi} normal {ni}: unsupported normal bone {normal["node"]}',
-                               offset=normal_start+20*ni)
+                issue('normal-bone', f'Mesh {mi} normal {ni}: unsupported normal bone {normal["node"]}',
+                      offset=normal_start+20*ni, mesh=mi, normal=ni, value=normal['node'])
             # BindVertex can be -1 in some files; preserve it but reject other invalid indices.
             if not -1 <= normal['bind_vertex'] < len(mesh['vertices']):
-                raise BmdError(f'Mesh {mi}: invalid normal bind vertex {normal["bind_vertex"]}')
+                issue('bind-vertex', f'Mesh {mi}: invalid normal bind vertex {normal["bind_vertex"]}',
+                      offset=normal_start+20*ni+16, mesh=mi, normal=ni, value=normal['bind_vertex'])
     for bi, bone in enumerate(result['bones']):
         seen = set()
         current = bi
         parent_owner = bi
         while current != -1:
+            if issues is not None and not 0 <= current < nb:
+                bone['client_unresolved'] = True   # out-of-range parent, listed above
+                break
             if current in seen:
-                raise BmdError('Bone parent cycle')
+                issue('parent-cycle', 'Bone parent cycle', bone=bi)
+                break
             seen.add(current)
             ancestor = result['bones'][current]
             if ancestor['dummy']:
                 if current != bi:
-                    raise BmdError(f'Bone {parent_owner}: parent {current} references dummy bone',
-                                   offset=result['bones'][parent_owner]['source_offset']+33)
+                    if issues is None or parent_owner == bi:
+                        # Client mode lists each direct edge once, from its own bone.
+                        issue('dummy-parent', f'Bone {parent_owner}: parent {current} references dummy bone',
+                              offset=result['bones'][parent_owner]['source_offset']+33, bone=parent_owner,
+                              value=current)
+                    bone['client_unresolved'] = True
                 break
             parent_owner = current
             current = ancestor['parent']
+    if issues is not None:
+        for bi, bone in enumerate(result['bones']):
+            if not bone['dummy'] and bone['parent'] > bi:
+                # Not rejected by the strict reader; the client's pose loop reads that slot
+                # before writing it in the same call (previous contents).
+                issue('parent-forward', f'Bone {bi}: parent {bone["parent"]} follows it', strict=False,
+                      offset=bone['source_offset']+33, bone=bi, value=bone['parent'])
+        result['client_semantics'] = issues
     result['parsed_bytes'] = r.offset
     return result
 
@@ -202,7 +246,9 @@ def pose_matrices(model, action=0, frame=0):
         raise BmdError('Requested action/frame is not recorded in model')
     matrices = {}
     # Iterative hierarchy evaluation avoids recursion-depth failure for malformed long chains.
-    pending = {i for i,b in enumerate(model['bones']) if not b['dummy']}
+    # Client-layout bones below a dummy record compose a pose slot the client does not
+    # write in that call; no matrix is invented for them.
+    pending = {i for i,b in enumerate(model['bones']) if not b['dummy'] and not b.get('client_unresolved')}
     while pending:
         progress = False
         for i in sorted(pending):
@@ -227,6 +273,13 @@ def transform(matrix, vector, point):
     return result
 
 
+def bone_matrix(matrices, node, label):
+    if node not in matrices:
+        raise BmdError(f'{label} uses bone {node}, whose matrix comes from client memory outside the '
+                       'pose (state-dependent); no geometry exported')
+    return matrices[node]
+
+
 def obj_text(model, action=0, frame=0):
     matrices = pose_matrices(model, action, frame)
     lines = [f'# Real installed BMD v{model["version"]} geometry; recorded bone action/frame applied',
@@ -236,14 +289,20 @@ def obj_text(model, action=0, frame=0):
     for i, mesh in enumerate(model['meshes']):
         lines.append(f'o mesh_{i}')
         for v in mesh['vertices']:
-            coords = transform(matrices[v['node']], v['position'], True)
+            coords = transform(bone_matrix(matrices, v['node'], f'Mesh {i} vertex'), v['position'], True)
             lines.append('v '+' '.join(format(x,'.9g') for x in coords))
         for uv in mesh['uvs']:
             lines.append('vt '+' '.join(format(x,'.9g') for x in uv))
         for n in mesh['normals']:
-            coords = transform(matrices[n['node']], n['normal'], False)
+            coords = transform(bone_matrix(matrices, n['node'], f'Mesh {i} normal'), n['normal'], False)
             lines.append('vn '+' '.join(format(x,'.9g') for x in coords))
         for face in mesh['polygons']:
+            for k in range(face['corners']):
+                for name, upper in (('vertices', len(mesh['vertices'])), ('uvs', len(mesh['uvs'])),
+                                    ('normals', len(mesh['normals']))):
+                    if not 0 <= face[name][k] < upper:
+                        raise BmdError(f'Mesh {i} polygon corner reads {name} entry {face[name][k]} past its '
+                                       'array (client memory state); no geometry exported')
             lines.append('f '+' '.join(f'{face["vertices"][k]+vo+1}/{face["uvs"][k]+to+1}/{face["normals"][k]+no+1}' for k in range(face['corners'])))
         vo += len(mesh['vertices']); no += len(mesh['normals']); to += len(mesh['uvs'])
     return '\n'.join(lines)+'\n'
