@@ -83,3 +83,18 @@ installer under Microsoft's terms) and MinGW-w64 from the user's machine, and re
 of Microsoft's installer, a CrossOver builtin and user-supplied proxy DLLs only. Prebuilt mugl DLLs
 contain client-derived bytes and are not part of the repository.
 
+
+## Native model viewer
+
+`native/` (NATIVE-VIEW-001) is authored code published under this repository's MIT license. It links,
+but does not vendor, these separately installed libraries:
+
+| Library | Use | License boundary |
+|---|---|---|
+| SDL2 (Homebrew `sdl2`, which is sdl2-compat over SDL3; Debian/Ubuntu `libsdl2-dev`) | Window, GL context and input for `build/mu-viewer` only | zlib license. No SDL source or binary is included here. |
+| libjpeg-turbo (Homebrew `jpeg-turbo`; Debian/Ubuntu `libjpeg-dev`), optional | JPEG texture decoding in the core and both executables | IJG License, Modified (3-clause) BSD License and zlib License, per its `LICENSE.md`. No libjpeg source or binary is included here. Anyone distributing a binary that links it must carry its notices, including the acknowledgement "This software is based in part on the work of the Independent JPEG Group". |
+| Crypto++ | BMD v14 decoding through `model-recovery/modulus.cpp`, as above | See the Crypto++ paragraph above. |
+
+The viewer also links the system OpenGL (Apple OpenGL framework, or `libGL` on Linux). The repository
+does not ship viewer binaries. Renders and decoded textures of installed game assets stay local and
+are covered by the game-data boundary above.

@@ -87,9 +87,10 @@ not exist yet.
   particle buffer written as `n*144`-byte prefixes, each drawn as `GL_QUADS`.
   [Evidence](research/client-frame-loop.md).
 - Native model viewer (NATIVE-VIEW-001). `native/` builds an arm64 macOS viewer with SDL2 and OpenGL 2.1; no Wine or Rosetta. It loads v10/12/14/15 models through the repository's decoders. It animates them with the reconstructed tick and pose builder, after the bone-track loop, and skins them with the reconstructed transform. It draws them through a platform-neutral port of the mesh-draw corner loop. This is a viewer, not a client.
-  * Golden data. The viewer's vertex streams equal the authored libraries and the validators' Python models byte for byte in 50 synthetic cases. A full private run covered 12,627 installed models and 3,909,196 vertices.
+  * Golden data. The viewer's vertex streams equal the authored libraries and the validators' Python models byte for byte in 50 synthetic cases (CI). A full private run covered 12,627 installed models and 3,909,196 vertices (reported, single run, not re-run in review).
   * Mesh draw. The corner stream equals an independent rule model in every portable draw mode.
-  * Renders. Software-render hashes are pinned and are equal on macOS and Linux. Headless GL agrees with them.
+  * Renders. Software-render hashes are pinned; CI checks them on macOS arm64 and Linux x86_64. Headless GL agrees with them on macOS (CI, synthetic) and on three installed models (reported).
+  * Review. PR #66 was merged without independent review. The post-merge review found a TGA image-ID over-read and missing SDL2/libjpeg-turbo notices, both now fixed; see the handoff.
   * Limits. State, mode selection, texture parameters and the normal-texcoord table are static readings or placeholders. [Evidence](research/native-viewer.md).
 
 ## Verification

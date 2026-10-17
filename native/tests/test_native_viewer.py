@@ -185,6 +185,7 @@ class GoldenDataTests(NativeBuild):
         self.assertEqual(report['prior_action'], expected['state']['prior_action'])
         self.assertEqual(report['loop'], expected['state']['loop'])
         self.assertEqual(observed['bones'], expected['bones'])
+        self.assertEqual(len(observed['meshes']), len(expected['meshes']))   # zip() alone would hide a short dump
         vertices = 0
         for mine, theirs in zip(observed['meshes'], expected['meshes']):
             for key in ('vertices', 'normals', 'lights', 'secondary'):
@@ -375,6 +376,14 @@ class TextureTests(NativeBuild):
         self.assertIsNone(self.decode('x.ozb', nf.bmp24(4, 4, 1)))
         self.assertIsNone(self.decode('x.ozj', b'\0'*64))
         self.assertIsNone(self.decode('x.ozt', nf.ozt(payload)[:30]))
+        # An image ID longer than the file must be rejected, not read past the buffer
+        # (uncompressed and RLE, plain and wrapped).
+        for rle in (False, True):
+            header = bytearray(nf.tga(1, 1, 1, rle=rle)[:18])
+            header[0] = 255
+            with self.subTest(rle=rle):
+                self.assertIsNone(self.decode('id.tga', bytes(header)))
+                self.assertIsNone(self.decode('id.ozt', nf.ozt(bytes(header)+b'\0'*4)))
 
 
 class RenderTests(NativeBuild):
@@ -495,6 +504,7 @@ class PrivateInstalledTests(NativeBuild):
                     run('dump', path, '--out', self.tmp/'p.bin', *reference.cli_arguments(state))
                     observed = reference.read_dump(self.tmp/'p.bin')
                     self.assertEqual(observed['bones'], expected['bones'])
+                    self.assertEqual(len(observed['meshes']), len(expected['meshes']))
                     for mine, theirs in zip(observed['meshes'], expected['meshes']):
                         for key in ('vertices', 'normals', 'lights', 'secondary'):
                             self.assertEqual(mine[key], theirs[key], key)

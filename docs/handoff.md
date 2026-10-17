@@ -861,3 +861,33 @@ Branch `claude/native-viewer`, worktree `~/Documents/mu-worktrees/native-viewer`
 * Then do character assembly (Player skeleton, parts, keep-root attachments), followed by terrain.
 
 No game, CrossOver bottle or registry was touched.
+
+## Post-merge review of PR #66 (NATIVE-VIEW-001)
+
+PR #66 was opened at 18:09:58Z and merged at 18:11:39Z without the independent review that
+`CONTRIBUTING.md` asks for, and with no tracking issue. Its PR and push CI were green before the merge.
+The review is a comment on PR #66. Branch `claude/native-viewer-review-fixes` fixes what it found:
+
+* `native/core/mu_image.c`: a TGA whose image-ID length (byte 0) runs past the end of the data made
+  the uncompressed path read past the buffer, because the unsigned `size - offset` wrapped.
+  AddressSanitizer showed it with an 18-byte file, and `mu-render image` returned success with garbage
+  pixels. The decoder now rejects the file. A regression test covers raw and RLE files, plain and
+  OZT-wrapped, and fails without the fix.
+* The golden tests now assert equal mesh counts before comparing meshes with `zip()`.
+* `THIRD_PARTY_NOTICES.md` now lists SDL2 (zlib) and libjpeg-turbo (IJG/BSD-3/zlib, IJG
+  acknowledgement for binary distribution). Both are linked, not vendored.
+* `research/native-viewer.md`, `roadmap.md` and `status.md` now separate CI-verified claims from
+  reported single-run ones: the full private corpus, installed textures and GL counts, Linux arm64
+  hashes, and the authorship independence of the mesh-draw model.
+
+**Checks run in the review:**
+
+* `make test`: 270 run, 22 skips, all OK on macOS.
+* A clean `make -C native all viewer` builds with `-Werror` and no warnings.
+* `python3 scripts/audit_repository.py`: 0 rejected.
+* An ASan/UBSan build passed the portable native tests, apart from two environment-only cases: the
+  ctypes dylib, and the CGL viewer, which hangs under ASan. It also passed about 2,200 mutated BMD
+  inputs and 4,000 mutated TGA/BMP/OZT/OZB inputs. The TGA bug above was its only finding.
+* Private tests were not re-run, because the review touched no game data.
+
+**Next:** unchanged from the NATIVE-VIEW-001 entry above.
