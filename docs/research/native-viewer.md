@@ -173,7 +173,7 @@ No mesh was refused and no polygon has four corners. The v12, v14 and v15 vertex
 
 1. **Character assembly.** Done in [NATIVE-CHAR-001](native-character.md). Its open items are the world-path weapon details (lighting flag, draw `0x0176ce74`, per-part animation state, attribute branches, back-carried weapons) and action names.
 2. **Execute the mesh draw `0x012b8d1d` and body `0x012bb35a` under Unicorn** with a GL-call recorder, as planned in the CLIENT-SKIN-001 handoff. Compare against `mu_meshdraw` and this scene driver. That settles mode selection, state, textures and the normal table.
-3. **Terrain.** Recover the tile renderer `0x016cd468` (fans per tile per layer) and the terrain formats (TERRAIN-001), and render a map with the same backend.
+3. **Terrain.** Done for the ground itself (NATIVE-TERRAIN-001, [client-terrain.md](client-terrain.md)); static objects wait for the `.obj` placement.
 4. **Effects.** The JSON effect system with its 144-byte stream VBO sprites and particles (EFFECT-001).
 5. **UI and fonts.** The 2D helpers `0x0184d9bb`/`0x0184dcb1` and the bitmap font path.
 6. **Input and frame loop.** A port of the 40 ms logic and frame driver.
