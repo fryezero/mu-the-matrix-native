@@ -69,8 +69,8 @@ widened value and rounded to float (`0x00961a07`). Where `lf > 0`, each channel 
 clamped below at 0. There is no upper clamp; GL clamps vertex colours.
 
 **Compared:** 800 synthetic calls (ranges −1..6, coordinates off the map, negative colours), whole 256×256×3
-grid equal; Python model equal on 40/40 extra cases. Negative controls: an upper clamp at 1 differs on 40/40,
-dropping the lower clamp on 39/40. The light copy rule is compared through the frame update (8/8 world/time/box
+grid equal; Python model equal on 200/200 extra cases. Negative controls: an upper clamp at 1 differs on 196/200,
+dropping the lower clamp on 189/200. The light copy rule is compared through the frame update (8/8 world/time/box
 sets).
 
 ## 3. World-specific tiles (compared)
@@ -118,10 +118,9 @@ The Chaos Castle per-face routine `0x009dc0b1` (worlds 0x12..0x17, 0x35, 0x61) o
 ported; the validator stubs it, and the terrain stream after it is compared.
 
 **Compared:** 36 worlds with extended synthetic scenes (scrolling tiles, lava, 0x4000 cells, the 32 animated
-bitmaps, detail 0 and 4 alternating, times including negative). In the short run: 8,626 of 8,640 tile×pass
-streams equal and 14 unsupported (0x2000 overlay faces), with 82 particles equal (position and type). Python
-model equal on 420/420; negative controls (generic world rules) differ on 28 scroll and 4 blend cases. The final
-`--scale-002 5` run is in the verification table. Installed tiles are below.
+bitmaps, detail 0 and 4 alternating, times including negative): 43,147 tile×pass streams equal, 53 unsupported
+(0x2000 overlay faces), 371 particles equal (position and type). Python model equal on 2,100/2,100; negative
+controls (generic world rules) differ on 185 scroll and 44 blend cases. Installed tiles are below.
 
 ## 4. Frustum and visible box (compared)
 
@@ -180,7 +179,7 @@ texture coordinates `((tu + x + {0,1})/size, (tv + y + {0,1})/size)` are moved b
 blend state.
 
 **Compared:** 300 calls (sizes 0.3..6, rotations, alpha 1 and < 1, follow/flip, worlds 0, 0x8e, 0x8d, off-map
-centres): full GL streams equal, about 20,000 fans.
+centres): full GL streams equal, 18,840 fans.
 
 ## 6. Installed worlds
 
@@ -217,11 +216,16 @@ Vulcanus and Atlans drew no tile at all, because every face reached an unported 
 
 ## Verification
 
+Final local run: `--scale-002 5` (synthetic) and `--installed-worlds 1,143,64,8 --installed-tiles 0`. The
+NATIVE-TERRAIN-001 synthetic checks also pass, now with nothing unsupported (2,700/2,700 tile streams).
+
 | Check | Cases | Bitwise equal |
 |---|---:|---:|
 | height selector `0x016c9868` with constructed handlers | 256 worlds | 256 |
 | AddTerrainLight `0x016cacfc` (whole grid) | 800 | 800 |
-| world tile streams, 36 worlds, both passes | 43,200 | all compared (0x2000 overlay faces unsupported) |
+| world tile streams, 36 worlds, both passes (679,893 GL calls, 371 particles) | 43,147 (+53 unsupported 0x2000 overlay faces) | 43,147 |
+| Python model of the world rules / generic-rule negative controls | 2,100 | 2,100 equal / 185 scroll and 44 blend cases differ |
+| AddTerrainLight negative controls (upper clamp / no lower clamp), of 200 | 200 | 196 / 189 differ |
 | CreateFrustrum 3D part | 200 | 200 |
 | CreateFrustrum2D | 300 | 300 |
 | TestFrustrum2D | 15,000 | 15,000 |
