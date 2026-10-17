@@ -39,11 +39,18 @@ typedef struct mu_raster {
     mu_raster_vertex *vertices;
     int32_t vertex_count, vertex_capacity;
     long triangles, fragments;
+    int primitive;             /* mode of the open primitive (4, 6 or 7) */
 } mu_raster;
 
 int mu_raster_init(mu_raster *raster, int32_t width, int32_t height);
 void mu_raster_free(mu_raster *raster);
 void mu_raster_clear(mu_raster *raster, const uint8_t rgba[4]);
+/* Primitive assembly for callers other than the scene driver (terrain):
+ * mode 4 GL_TRIANGLES, 6 GL_TRIANGLE_FAN (fanned from vertex 0), 7 GL_QUADS
+ * (each quad split 0-1-2, 0-2-3). Vertices come through the backend sink. */
+void mu_raster_set(mu_raster *raster, const mu_meshdraw_state *state, const mu_image *texture, int linear);
+void mu_raster_begin_mode(mu_raster *raster, int mode);
+void mu_raster_end_mode(mu_raster *raster);
 /* Backend for mu_scene_draw_model. */
 void mu_raster_backend(mu_raster *raster, mu_render_backend *backend);
 

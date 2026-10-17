@@ -24,7 +24,17 @@ not exist yet.
   payloads match the independent reader, separately from original-code testing.
   [Decoder evidence](research/client-lea-decode.md).
 - Images: 19,703 of 19,707 wrapper candidates decode. One remaining candidate is
-  editable mesh text; three are inconsistent terrain images.
+  editable mesh text; the three inconsistent terrain images are valid height
+  inputs, because the client reads them at a fixed offset without parsing the
+  BMP header ([terrain finding](research/client-terrain.md)).
+- Terrain (NATIVE-TERRAIN-001). `.map`/`.att` (Modulus or v12, attribute XOR),
+  8/24-bit heights, light maps, normals, light, wave and the per-tile GL stream of
+  RenderTerrainTile `0x016ccda5` have authored C (`reconstructed/terrain`) equal
+  to the actual instructions. That covers every tile of installed Lorencia and
+  Twisted Karutan in both passes and every installed height, light and attribute
+  file. `mu-terrain` and `mu-viewer --terrain` render worlds natively. Static
+  objects are blocked: the installed `.obj` files do not decode with the routine
+  the captured loader calls.
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected and 74 other/table envelopes unsupported. Rejections have precise

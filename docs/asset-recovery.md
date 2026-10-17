@@ -46,6 +46,8 @@ The initial extension-only inventory found no standard source/build files; this 
 
 ## Three rejected terrain images
 
+Explained by TERRAIN-001 ([finding](research/client-terrain.md)): the client's 8-bit height loader skips the BMP header by a fixed count (heights at file offset `0x43c`) and never parses it, so these headers do not matter. All three load through the client's own loop. The image-level rejection below still holds for the BMP view.
+
 - `Data/World11/TerrainHeight.OZB`: 66,620 bytes; reconstructed BMP advertises 24-bit 256×256 pixels and a declared file size incompatible with the payload. Not repaired or interpreted as height data.
 - `Data/World19/TerrainHeight.OZB`: 66,620 bytes; begins with zero bytes rather than a valid wrapped BMP signature.
 - `Data/World42/TerrainHeight.OZB`: 66,620 bytes; reconstructed BMP's declared length does not match actual length. Not silently accepted.

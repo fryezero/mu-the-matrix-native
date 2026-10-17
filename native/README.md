@@ -46,6 +46,21 @@ Viewer controls:
 
 Game logic advances in fixed 40 ms steps, like the client's frame driver. All options are listed by `mu-render` without arguments.
 
+## Terrain mode (NATIVE-TERRAIN-001)
+
+```sh
+native/build/mu-terrain info   "$MU_GAME_ROOT" --world 0                 # load report of Data/World1
+native/build/mu-terrain render "$MU_GAME_ROOT" --world 142 --out k.png   # software render, prints SHA-256
+native/build/mu-terrain scan   "$MU_GAME_ROOT"                           # every Data/World* folder
+native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0               # free camera: WASD/QE, drag, wheel
+native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0 --headless --backend gl --compare --out t.png
+```
+
+`--world` is the client's world index (Lorencia 0, Twisted Karutan 142); the folder is resolved like the
+client. The tile rules come from `reconstructed/terrain`, compared with the client's instructions by
+`scripts/validate_terrain.py`; see [the finding](../docs/research/client-terrain.md). Static objects are not
+drawn: the installed `EncTerrain*.obj` files do not decode with the client's loader routine.
+
 ## Layout
 
 | Path | Role |
@@ -58,6 +73,8 @@ Game logic advances in fixed 40 ms steps, like the client's frame driver. All op
 | `core/mu_raster.*` | Deterministic software rasterizer for headless renders with host-independent hashes |
 | `core/mu_image.*`, `mu_textures.*` | OZJ/OZT/OZB unwrapping as in `recover_images.py`, plus TGA, BMP and JPEG decoding |
 | `core/mu_camera.*`, `mu_png.*`, `mu_options.*` | Camera with libm-free trigonometry, a PNG writer and SHA-256, shared options |
+| `core/mu_terrain.*` | World loading (decryption, reconstructed parsers, heights, light, bitmaps) and the terrain raster adapter |
+| `tools/mu_terrain.c` | Headless terrain CLI (`build/mu-terrain`) |
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `tools/mu_render.c` | Headless CLI used by the tests |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), independent mesh-draw model, unittest suites |

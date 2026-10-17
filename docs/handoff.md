@@ -2,6 +2,16 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Native terrain (NATIVE-TERRAIN-001)
+
+Read [`research/client-terrain.md`](research/client-terrain.md). `reconstructed/terrain`, `native/core/mu_terrain.*`,
+`build/mu-terrain` and `mu-viewer --terrain` load and draw any world from `MU_GAME_ROOT`. Compare with the client by
+running `scripts/validate_terrain.py` (pinned text, data and dispatch flag; `--game-root` adds the installed files
+and `--installed-worlds 1,143 --installed-tiles 0` checks every tile). Renders and reports stay local. Next: decode
+or capture the object placement (the `.obj` files do not decode with `0x0098c5f2`; a runtime capture of the
+loader's output buffer would avoid the protection layer), then draw `Object<n>\` models through the model path,
+then port dynamic lights and the world-specific animated tiles.
+
 ## Original launcher in CrossOver
 
 Read [`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and

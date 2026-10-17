@@ -567,8 +567,12 @@ static int windowed(viewer *v)
     return 0;
 }
 
+int mu_terrain_viewer_main(int argc, char **argv);  /* viewer/terrain_view.c */
+
 int main(int argc, char **argv)
 {
+    if (argc > 1 && !strcmp(argv[1], "--terrain"))
+        return mu_terrain_viewer_main(argc, argv);
     if (mu_record_math_environment_supported() != 1) {
         fprintf(stderr, "host floating-point environment unsupported by record-math\n");
         return 2;
