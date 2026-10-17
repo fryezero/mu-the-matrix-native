@@ -1,0 +1,127 @@
+{
+  "target_sha256": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
+  "image_base": 4194304,
+  "text_start": 4198400,
+  "text_end": 27770880,
+  "dump_bytes": 46137344,
+  "dump_sha256": "6e7957c9af8685f5a5fb14008131eab50470d40d2e6128397d5795a88160bfd4",
+  "helpers": [
+    {
+      "name": "vrot",
+      "address": 13631661,
+      "length": 369,
+      "sha256": "250728dccd9ba7c60811122d82c62c8c8fc75f6290e408746f4fde439603c457",
+      "symbol": "vrot"
+    },
+    {
+      "name": "vtrans",
+      "address": 13632178,
+      "length": 428,
+      "sha256": "697638c67f6e7da903ef069c8051ad5ecdecc7c044945b4765311712066205ca",
+      "symbol": "vtrans"
+    },
+    {
+      "name": "self",
+      "address": 13617482,
+      "length": 12,
+      "sha256": "25992882b0f4cb017f9114855550dd8181349a42644f0517cc755246d09e132a",
+      "symbol": "self"
+    },
+    {
+      "name": "index",
+      "address": 13617442,
+      "length": 20,
+      "sha256": "0518ccd07aae2d4de135e2ab9c0b1c22e7898200e3c42fd1db23a397871043b5",
+      "symbol": "index"
+    },
+    {
+      "name": "deref16",
+      "address": 13218422,
+      "length": 17,
+      "sha256": "c9b402524b7b36ef719ef2752fe091e2ca8fcf61eab1ecf0c36d2edc0aae7807",
+      "symbol": "deref16"
+    },
+    {
+      "name": "eq",
+      "address": 13218020,
+      "length": 41,
+      "sha256": "56ce9ec0293db06b1821d91371406d21ab4af187f7a993779c6ea25fd0449fdd",
+      "symbol": "eq"
+    },
+    {
+      "name": "store8a",
+      "address": 13216277,
+      "length": 34,
+      "sha256": "8ff4aa9e3cc0b6313fa0f0c741b09b8c38e5f53f6be55cfa54edafe1a5a66650",
+      "symbol": "store8"
+    },
+    {
+      "name": "store8b",
+      "address": 13216146,
+      "length": 29,
+      "sha256": "002e77d72f01983ad0f6f3585218e702531a2928fa0f2f70fc669f868ce9f1a6",
+      "symbol": "store8"
+    },
+    {
+      "name": "store8c",
+      "address": 13216175,
+      "length": 29,
+      "sha256": "8404c466ca0537fb49c76659a6429d25521254f92cdacbdfb7bfad494df333ba",
+      "symbol": "store8"
+    }
+  ],
+  "xform": {
+    "address": 19618782,
+    "length": 16,
+    "sha256": "25e349cce8228878ead73f7099f302fcc8027b491c4b5d3254954e6423b7c479"
+  },
+  "inline_templates": {
+    "empty": {
+      "length": 9,
+      "sha256": "92c6d64d044b483d570bfd94cb01e9b9eef3d4c792e00f39baf084bd82571f9e",
+      "replacement": "0f1f440000"
+    },
+    "self": {
+      "length": 12,
+      "sha256": "25992882b0f4cb017f9114855550dd8181349a42644f0517cc755246d09e132a",
+      "replacement": "89c80f1f00"
+    },
+    "index4": {
+      "length": 20,
+      "sha256": "0518ccd07aae2d4de135e2ab9c0b1c22e7898200e3c42fd1db23a397871043b5",
+      "replacement": "588d048190"
+    },
+    "deref16": {
+      "length": 17,
+      "sha256": "c9b402524b7b36ef719ef2752fe091e2ca8fcf61eab1ecf0c36d2edc0aae7807",
+      "replacement": "8b0183c010"
+    },
+    "ret4": {
+      "length": 3,
+      "sha256": "e598d0c3ba86d917b177d7adde0556aa99bc355543c57aee0a3e50b684dd7e99",
+      "replacement": "8d64240490"
+    }
+  },
+  "wrapper_prefix": {
+    "length": 11,
+    "sha256": "48f260f8c5f2c65f4260fd9818d0d9663697cf6a1e38314eee68cd62ae980c9c"
+  },
+  "wrapper_suffix": {
+    "length": 2,
+    "sha256": "c4173085fbd9d83401f5d5703efd98f81db0643629655fe6e7e755f94622ab64"
+  },
+  "ret4_address": 9331248,
+  "calls_sha256": "a2ef94bdde8e5d52adcf572aae1e2edaf9cdf2d345a8a2b79693840c47a96cca",
+  "disassembly_sha256": "9b0dd8d25818d92e0e8ea2ef3eaeae9a03417e7badb55c9a15fde3f259276892",
+  "generated": {
+    "inline": {
+      "count": 18583,
+      "sha256": "a394b7788dfac140df4b16e5d00d57b9d39e79dea19f53a478715173fc74ced1"
+    },
+    "peephole": {
+      "count": 50977,
+      "sha256": "18b416cbe42ebe366623ad88a0e27b892c6156c19d689a0268136e5493747457"
+    }
+  },
+  "derived_calls_sha256": "e7051e6f4e04ea049e15eb3af7489ade8f0293c0cee6a1f95335ac2a0386c05b"
+}

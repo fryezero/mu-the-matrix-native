@@ -1,6 +1,6 @@
 # Current status
 
-Updated 2026-10-16. The target is the exact installed Mu The Matrix client.
+Updated 2026-10-17. The target is the exact installed Mu The Matrix client.
 The later destination is native macOS gameplay. A playable source build does
 not exist yet.
 
@@ -132,6 +132,17 @@ Claude's separately supplied launcher-to-main/profile observations. Post-patch
 in-world FPS remains owner testing. MuMatrix32 was not touched. This improves
 original-client compatibility; native source recovery acceptance gates are
 unchanged.
+
+MAC-PERF-004, issue #57, publishes Claude's opt-in v7.0 CPU hotpatch source
+stacked on open PR #52. Local pinned-input generation reproduces nine helper
+patches, 18,583 inline sites and 50,977 peepholes. Original byte tables and the
+xform prologue stay private; CI uses empty tables with game hooks disabled.
+Claude reports 20.5 FPS at mask 0, 24.1 at mask 7 and 24.7 at mask 15 in the
+same approximate hunting area, and zero skinning comparison mismatches over
+more than one million in-game calls. These are prior single-host reports,
+not rerun measurements. Mesh draw at `0x012b8d1d` is the next proposed verified
+C replacement. Default setup still uses #52. No running game, bottle or registry
+was changed. [Evidence and limits](research/mac-performance.md#mac-perf-004-claude-v70-in-process-cpu-hotpatches).
 
 ## Repository and next work
 

@@ -36,3 +36,6 @@ __pycache__/
 /mac-play/mugl/build/
 
 /mac-play/diagnostics/build/
+
+/mac-play/hotpatch/build/
+/mac-play/machprof/build/
