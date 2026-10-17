@@ -11,6 +11,10 @@
  *                                           (width, height) + RGBA8 rows, top row first
  *   mu-render scan    ROOT                  load/animate/skin/draw every *.bmd under ROOT
  *                                           and print per-version counts (read-only)
+ *   mu-render character [PLAYER] --out PNG  software-rendered assembled character (Player.bmd
+ *                                           skeleton, class parts, weapons, wing); see --class
+ *   mu-render chardump  [PLAYER] --out FILE shared Player bones, item bones and every part/item
+ *                                           transform output (character golden tests)
  */
 #define _POSIX_C_SOURCE 200809L /* lstat, opendir, strdup with -std=c11 on glibc */
 #include <dirent.h>
@@ -21,6 +25,7 @@
 
 #include "../core/mu_bmd.h"
 #include "../core/mu_camera.h"
+#include "../core/mu_character.h"
 #include "../core/mu_model.h"
 #include "../core/mu_options.h"
 #include "../core/mu_png.h"
@@ -437,10 +442,127 @@ static int command_scan(const mu_options *o)
     return 0;
 }
 
+/* ---- character ---- */
+static void dump_meshes(FILE *f, const mu_bmd *bmd, const mu_model *model)
+{
+    for (int32_t i = 0; i < bmd->mesh_count; ++i) {
+        uint32_t nv = (uint32_t)bmd->meshes[i].vertex_count, nn = (uint32_t)bmd->meshes[i].normal_count;
+        put_u32(f, nv);
+        put_u32(f, nn);
+        fwrite(mu_model_vertices(model, i), 12, nv, f);
+        fwrite(mu_model_normals(model, i), 12, nn, f);
+        fwrite(mu_model_lights(model, i), 4, nn, f);
+        fwrite(mu_model_secondary_lights(model, i), 4, nn, f);
+    }
+    fwrite(mu_model_box(model), 4, 12, f);
+}
+
+static int command_chardump(const mu_options *o)
+{
+    static mu_character c;
+    char error[1024];
+    if (mu_options_character(o, &c, error, sizeof error)) {
+        fprintf(stderr, "%s\n", error);
+        mu_character_free(&c);
+        return 1;
+    }
+    FILE *f = o->output ? fopen(o->output, "wb") : NULL;
+    if (!f) {
+        fprintf(stderr, "cannot open output\n");
+        mu_character_free(&c);
+        return 1;
+    }
+    /* "MUCD", version, Player bone count, Player bones after its pose, then per
+     * item slot 0..8: loaded flag, bone count and bones (weapons and wing:
+     * their own matrices right after their pose; parts: 0), mesh count, the
+     * MUVD-style mesh outputs and box. */
+    fwrite("MUCD", 1, 4, f);
+    put_u32(f, 1);
+    put_u32(f, (uint32_t)c.player_bone_count);
+    fwrite(c.player_bones, 0x30, (size_t)c.player_bone_count, f);
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
+        const mu_character_item *item = &c.items[i];
+        put_u32(f, (uint32_t)item->loaded);
+        if (!item->loaded)
+            continue;
+        uint32_t bones = item->bones ? (uint32_t)item->bmd.bone_count : 0;
+        put_u32(f, bones);
+        if (bones)
+            fwrite(item->bones, 0x30, bones, f);
+        put_u32(f, (uint32_t)item->bmd.mesh_count);
+        dump_meshes(f, &item->bmd, &item->model);
+    }
+    fclose(f);
+    printf("{\"frame\": %.9g, \"prior_frame\": %.9g, \"prior_action\": %u, \"action\": %u, \"posed\": %d, \"items\": [",
+           (double)mu_model_frame(&c.player), (double)mu_model_prior_frame(&c.player),
+           mu_model_prior_action(&c.player), mu_model_action(&c.player), c.player.posed);
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i) {
+        printf("%s", i ? ", " : "");
+        if (c.items[i].loaded)
+            json_string(stdout, c.items[i].path);
+        else
+            printf("null");
+    }
+    printf("]}\n");
+    mu_character_free(&c);
+    return 0;
+}
+
+static int command_character(const mu_options *o)
+{
+    static mu_character c;
+    char error[1024];
+    if (mu_options_character(o, &c, error, sizeof error)) {
+        fprintf(stderr, "%s\n", error);
+        mu_character_free(&c);
+        return 1;
+    }
+    mu_raster raster;
+    if (mu_raster_init(&raster, o->width, o->height)) {
+        fprintf(stderr, "bad image size\n");
+        return 1;
+    }
+    raster.linear = !o->nearest;
+    raster.front_ccw = !o->front_cw;
+    mu_camera camera;
+    mu_options_character_camera(o, &c, &camera);
+    mu_camera_view(&camera, raster.view);
+    mu_camera_projection(&camera, (float)o->width / (float)o->height, raster.projection);
+    mu_raster_clear(&raster, o->background);
+    mu_render_backend backend;
+    mu_raster_backend(&raster, &backend);
+    mu_draw_stats stats = {0, 0, 0};
+    int missing = 0, items = 0;
+    /* Client order: body parts 5..0, weapons 0 and 1, wing. */
+    static const int order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
+    for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+        const mu_character_item *item = &c.items[order[n]];
+        if (!item->loaded)
+            continue;
+        raster.textures = item->textures.slots;
+        raster.texture_count = item->textures.count;
+        mu_scene_draw_model(&item->model, &o->draw, &backend, &stats);
+        missing += item->textures.missing;
+        items++;
+    }
+    char hash[65];
+    mu_sha256_hex(raster.color, (uint64_t)o->width * (uint64_t)o->height * 4, hash);
+    if (o->output && mu_png_write(o->output, raster.color, o->width, o->height)) {
+        fprintf(stderr, "cannot write %s\n", o->output);
+        return 1;
+    }
+    printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"items\": %d, \"meshes\": %ld, \"corners\": %ld,"
+           " \"refused\": %ld, \"triangles\": %ld, \"textures_missing\": %d}\n",
+           hash, o->width, o->height, items, stats.meshes, stats.corners, stats.refused, raster.triangles, missing);
+    mu_raster_free(&raster);
+    mu_character_free(&c);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
-    if (argc < 3) {
-        fprintf(stderr, "usage: %s info|dump|corners|render|image|scan MODEL|ROOT [options]\n", argv[0]);
+    if (argc < 2) {
+        fprintf(stderr, "usage: %s info|dump|corners|render|image|scan|character|chardump MODEL|ROOT [options]\n", argv[0]);
         mu_options_usage(argv[0]);
         return 2;
     }
@@ -467,6 +589,10 @@ int main(int argc, char **argv)
         return command_image(&o);
     if (!strcmp(command, "scan"))
         return command_scan(&o);
+    if (!strcmp(command, "character"))
+        return command_character(&o);
+    if (!strcmp(command, "chardump"))
+        return command_chardump(&o);
     fprintf(stderr, "unknown command %s\n", command);
     return 2;
 }

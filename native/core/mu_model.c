@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../../reconstructed/model-codec/bone_tracks.h"
+#include "../../reconstructed/model-codec/character.h"
 #include "../../reconstructed/model-codec/pose_builder.h"
 
 /* Region indices. */
@@ -20,6 +21,7 @@ enum { R_WINDOW, R_BONES, R_LIGHTS, R_QUATERNIONS, R_SECONDARY, R_ROOT, R_VERTIC
 #define OBJECT_BOUNDS_MIN 0x30
 #define OBJECT_BOUNDS_MAX 0x40
 #define OBJECT_BOX 0x50
+#define OBJECT_SCRATCH 0x90   /* rotation-position vector (+0) and result (+0x10) */
 
 static uint32_t align_up(uint32_t value, uint32_t boundary) { return (value + boundary - 1) & ~(boundary - 1); }
 
@@ -349,7 +351,7 @@ static void identity_bones(mu_model *m)
         memcpy(mu_model_host(m, MU_MODEL_BONES + 0x30u * (uint32_t)i, 0x30), identity, sizeof identity);
 }
 
-int mu_model_pose(mu_model *m)
+static int pose(mu_model *m, uint32_t keep_root)
 {
     const mu_bmd *b = m->bmd;
     uint16_t action = mu_model_action(m), prior = mu_model_prior_action(m);
@@ -362,11 +364,43 @@ int mu_model_pose(mu_model *m)
     }
     mu_pose_arguments arguments = {MU_MODEL_BONES, get32(m, m->object + OBJECT_FRAME),
                                    get32(m, m->object + OBJECT_PRIOR_FRAME), prior, m->object + OBJECT_ANGLES,
-                                   m->object + OBJECT_HEAD, 0, m->params.pose_translate};
+                                   m->object + OBJECT_HEAD, keep_root, m->params.pose_translate};
     mu_pose_globals globals = {MU_POSE_BONE_QUATERNIONS, MU_POSE_ROOT_MATRIX};
     int status = mu_pose_build(&m->memory, m->model, &arguments, &globals);
     m->posed = status == MU_POSE_OK;
     return status == MU_POSE_OK ? MU_MODEL_OK : MU_MODEL_ERROR;
+}
+
+int mu_model_pose(mu_model *m) { return pose(m, 0); }
+int mu_model_pose_keep_root(mu_model *m) { return pose(m, 1); }
+
+int mu_model_rotation_position(mu_model *m, int32_t bone, const float vector[3], float out[3])
+{
+    if (bone < 0 || bone >= MU_MODEL_MAX_BONES)
+        return MU_MODEL_ERROR;
+    for (unsigned k = 0; k < 3; ++k)
+        putf(m, m->object + OBJECT_SCRATCH + 4 * k, vector[k]);
+    int status = mu_rotation_position(&m->memory, m->model, MU_MODEL_BONES + 0x30u * (uint32_t)bone,
+                                      m->object + OBJECT_SCRATCH, m->object + OBJECT_SCRATCH + 0x10,
+                                      MU_POSE_ROOT_MATRIX);
+    for (unsigned k = 0; k < 3; ++k)
+        out[k] = getf(m, m->object + OBJECT_SCRATCH + 0x10 + 4 * k);
+    return status == MU_CHARACTER_OK ? MU_MODEL_OK : MU_MODEL_ERROR;
+}
+
+static void share_region(mu_model *m, unsigned index, uint8_t *storage, uint32_t size)
+{
+    free(m->region_storage[index]);
+    m->region_storage[index] = NULL;
+    m->regions[index].bytes = storage;
+    m->regions[index].size = size;
+}
+
+void mu_model_share(mu_model *m, uint8_t *bones, uint8_t *root, uint8_t *quaternions)
+{
+    share_region(m, R_BONES, bones, MU_MODEL_SHARED_BONE_BYTES);
+    share_region(m, R_ROOT, root, 0x30);
+    share_region(m, R_QUATERNIONS, quaternions, MU_MODEL_SHARED_QUATERNION_BYTES);
 }
 
 int mu_model_transform_all(mu_model *m)
@@ -405,7 +439,7 @@ const float *mu_model_secondary_lights(const mu_model *m, int32_t mesh)
 {
     return (const float *)(void *)(m->region_storage[R_SECONDARY] + MU_MODEL_LIGHT_STRIDE * (uint32_t)mesh);
 }
-const float *mu_model_bone_matrices(const mu_model *m) { return (const float *)(void *)m->region_storage[R_BONES]; }
+const float *mu_model_bone_matrices(const mu_model *m) { return (const float *)(void *)m->regions[R_BONES].bytes; }
 const uint8_t *mu_model_triangles(const mu_model *m, int32_t mesh) { return mu_model_host(m, m->triangles[mesh], 0); }
 const float *mu_model_texcoords(const mu_model *m, int32_t mesh)
 {

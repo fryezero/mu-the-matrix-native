@@ -1,6 +1,8 @@
 /* Shared command-line options. See mu_options.h. */
 #include "mu_options.h"
 
+#include "mu_character.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +24,8 @@ void mu_options_defaults(mu_options *o)
     o->background[2] = 52;
     o->background[3] = 255;
     o->backend = "soft";
+    o->class_byte = -1;
+    o->part_mask = 0x3e;
 }
 
 void mu_options_usage(const char *program)
@@ -35,7 +39,10 @@ void mu_options_usage(const char *program)
             "             --vertex-scale F --bone-scale F --world N --scene N --bounds-mode N --light-override 0|1\n"
             "             --pose-translate 0|1 --translate 0|1 --special-bone N --light-skip-mesh N --root-height F\n"
             "  view:      --width W --height H --yaw D --pitch D --zoom F --fov D --nearest --front-cw\n"
-            "             --background R G B --textures DIR --no-textures --out PATH --backend soft|gl --headless --compare --seconds S\n",
+            "             --background R G B --textures DIR --no-textures --out PATH --backend soft|gl --headless --compare --seconds S\n"
+            "  character: --character --game-root DIR --class C --parts MASK --part SLOT PATH --weapon SLOT PATH\n"
+            "             --weapon-action SLOT N --wing PATH --wing-scale F   (MODEL = Player.bmd, default from --game-root;\n"
+            "             --origin/--angles/--head/--scale/--color/--lighting set the object; slots 1..5 helm..boots)\n",
             program);
 }
 
@@ -73,7 +80,7 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--uv-mesh")) { NEED(1); o->draw.uv_offset_mesh = (int32_t)v[0]; }
         else if (!strcmp(a, "--alpha-test")) o->draw.alpha_test = 1;
         else if (!strcmp(a, "--cull")) { NEED(1); o->draw.cull = (int8_t)v[0]; }
-        else if (!strcmp(a, "--scale")) { NEED(1); o->params.body_scale = (float)v[0]; }
+        else if (!strcmp(a, "--scale")) { NEED(1); o->params.body_scale = (float)v[0]; o->scale_set = 1; }
         else if (!strcmp(a, "--origin")) { NEED(3); for (int k = 0; k < 3; ++k) o->params.origin[k] = (float)v[k]; }
         else if (!strcmp(a, "--angles")) { NEED(3); for (int k = 0; k < 3; ++k) o->params.angles[k] = (float)v[k]; }
         else if (!strcmp(a, "--head")) { NEED(2); o->params.head_angles[0] = (float)v[0]; o->params.head_angles[1] = (float)v[1]; }
@@ -112,6 +119,21 @@ int mu_options_parse(mu_options *o, int argc, char **argv, int first)
         else if (!strcmp(a, "--headless")) o->headless = 1;
         else if (!strcmp(a, "--compare")) o->compare = 1;
         else if (!strcmp(a, "--seconds")) { NEED(1); o->seconds = (float)v[0]; }
+        else if (!strcmp(a, "--character")) o->character = 1;
+        else if (!strcmp(a, "--game-root")) { if (++i >= argc) return 1; o->game_root = argv[i]; o->character = 1; }
+        else if (!strcmp(a, "--class")) { NEED(1); o->class_byte = (int32_t)v[0] & 0xff; o->character = 1; }
+        else if (!strcmp(a, "--parts")) { NEED(1); o->part_mask = (int32_t)v[0]; o->character = 1; }
+        else if (!strcmp(a, "--part") || !strcmp(a, "--weapon")) {
+            int weapon = a[2] == 'w';
+            NEED(1);
+            int slot = (int)v[0];
+            if (slot < 0 || slot >= (weapon ? 2 : 6) || ++i >= argc) { fprintf(stderr, "%s SLOT PATH\n", a); return 1; }
+            if (weapon) o->weapon_paths[slot] = argv[i]; else o->part_paths[slot] = argv[i];
+            o->character = 1;
+        }
+        else if (!strcmp(a, "--weapon-action")) { NEED(2); if (v[0] < 0 || v[0] > 1) return 1; o->weapon_actions[(int)v[0]] = (int32_t)v[1]; }
+        else if (!strcmp(a, "--wing")) { if (++i >= argc) return 1; o->wing_path = argv[i]; o->character = 1; }
+        else if (!strcmp(a, "--wing-scale")) { NEED(1); o->wing_scale = (float)v[0]; }
         else if (a[0] == '-' && a[1] == '-') { fprintf(stderr, "unknown option %s\n", a); return 1; }
         else if (!o->model_path) o->model_path = a;
         else { fprintf(stderr, "unexpected argument %s\n", a); return 1; }
@@ -153,6 +175,83 @@ void mu_options_camera(const mu_options *o, const mu_model *model, mu_camera *ca
         for (int k = 0; k < 3; ++k) {
             lo[k] = -50.0f;
             hi[k] = 50.0f;
+        }
+    memset(camera, 0, sizeof *camera);
+    camera->fov_y = o->fov;
+    mu_camera_frame(camera, lo, hi);
+    camera->yaw = o->yaw;
+    camera->pitch = o->pitch;
+    camera->distance = camera->distance * o->zoom;
+    camera->near_plane = camera->near_plane * o->zoom;
+    camera->far_plane = camera->far_plane * o->zoom;
+}
+
+int mu_options_character(const mu_options *o, mu_character *c, char *error, size_t error_size)
+{
+    char player[4096];
+    if (o->model_path)
+        snprintf(player, sizeof player, "%s", o->model_path);
+    else if (o->game_root)
+        snprintf(player, sizeof player, "%s/Data/Player/Player.bmd", o->game_root);
+    else {
+        snprintf(error, error_size, "character mode needs Player.bmd or --game-root");
+        return 1;
+    }
+    if (mu_character_init(c, player, &o->params, error, error_size))
+        return 1;
+    for (int slot = 0; slot < MU_CHARACTER_PART_SLOTS; ++slot) {
+        char path[4096];
+        const char *chosen = o->part_paths[slot];
+        if (!chosen && o->class_byte >= 0 && o->game_root && (o->part_mask >> slot & 1) &&
+            mu_character_part_path(o->game_root, slot, (uint8_t)o->class_byte, path, sizeof path))
+            chosen = path;
+        if (chosen && mu_character_set_item(c, slot, chosen, o->no_textures, error, error_size))
+            return 1;
+    }
+    for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
+        c->items[MU_CHARACTER_WEAPON_ITEM(slot)].action = (uint16_t)o->weapon_actions[slot];
+        if (o->weapon_paths[slot] &&
+            mu_character_set_item(c, MU_CHARACTER_WEAPON_ITEM(slot), o->weapon_paths[slot], o->no_textures, error,
+                                  error_size))
+            return 1;
+    }
+    if (o->wing_path && mu_character_set_item(c, MU_CHARACTER_WING_ITEM, o->wing_path, o->no_textures, error,
+                                              error_size))
+        return 1;
+    mu_character_params *p = &c->params;
+    for (int k = 0; k < 3; ++k) {
+        p->position[k] = o->params.origin[k];
+        p->angles[k] = o->params.angles[k];
+        p->light[k] = o->params.color[k];
+    }
+    p->head[0] = o->params.head_angles[0];
+    p->head[1] = o->params.head_angles[1];
+    /* Object scale: creation default 0.9 (0x0137d9dd) unless --scale is given. */
+    p->scale = o->scale_set ? o->params.body_scale : 0.9f;
+    p->wing_scale = o->wing_scale > 0 ? o->wing_scale : p->scale;
+    p->lighting = o->params.lighting;
+    mu_character_set_state(c, (uint16_t)o->action, o->frame, o->prior_frame, (uint16_t)o->prior_action);
+    if (o->stop)
+        mu_model_set_action_stop(&c->player, (uint16_t)o->action, 1);
+    for (int32_t k = 0; k < o->ticks; ++k)
+        if (mu_character_tick(c, o->speed, NULL) != MU_MODEL_OK) {
+            snprintf(error, error_size, "tick failed");
+            return 1;
+        }
+    if (mu_character_update(c) != MU_MODEL_OK) {
+        snprintf(error, error_size, "character update failed");
+        return 1;
+    }
+    return 0;
+}
+
+void mu_options_character_camera(const mu_options *o, const mu_character *c, mu_camera *camera)
+{
+    float lo[3], hi[3];
+    if (!mu_character_bounds(c, lo, hi))
+        for (int k = 0; k < 3; ++k) {
+            lo[k] = -100.0f;
+            hi[k] = 100.0f;
         }
     memset(camera, 0, sizeof *camera);
     camera->fov_y = o->fov;
