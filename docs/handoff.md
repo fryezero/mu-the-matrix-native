@@ -745,3 +745,37 @@ spread over indirect/vtable calls (mostly from `0x00ea27ac`), `0x012bc07a`,
 the 40 ms logic step, so any further gain needs the logic step itself (see the
 frame-loop finding) rather than more render-path work. Dual anti-cheat builds remain a
 plan only. Use disposable bottles for any crash-prone probe.
+
+## MAC-PERF-006 publication handoff
+
+Issue #61 / `claude/mac-pacing-v72`, worktree `~/Documents/mu-worktrees/mac-pacing`, based on
+main `5b96c26` (PR #60 merged). The owned scope is `mac-play/hotpatch/mugl.c` (v7.1 to v7.2
+diff only), the v7.2 section of `mac-play/hotpatch/meshdraw-notes.md` and the README,
+`source-provenance.json`, the new `PrecisePacingTests` and the performance/status/roadmap/
+evidence/notices notes. A separate PR (reproducible Mac setup kit under `mac-play/`) does not
+touch these files. No main.exe or Wine process was started, stopped, attached to or patched,
+and neither MuMatrix32 nor MuMatrixKit was modified. `~/Documents/mu-mac-tools` was read only.
+
+Read `research/mac-performance.md`, MAC-PERF-006, and `meshdraw-notes.md` (v7.2). Cause as
+reported from Claude's diagnostic builds: with the game not frontmost, macOS coalesces the
+timers behind Wine's `Sleep` (7-14 ms took 17-45 ms), which made bit-1024 pacing jitter and
+fall to 17-22 fps. The inactive-window throttle (`[0x01cf0fc0]` stayed 1; the inactive branch
+at `0x0120ee34` has no Sleep) and double sleeping (only the driver's Sleep, return `0x01852680`)
+were ruled out. The fix waits on a waitable timer to the exact 40 ms deadline, with a `Sleep`
+fallback, and routes any other render-thread `Sleep(ms>0)` through it. `Sleep(0)` and other
+threads are unchanged, and there are no GL changes or new patch sites. `source-provenance.json`
+pins `mugl_v72.c` (`9eeed0c5...138dbdfd`) and marks `mugl_v71.c` superseded.
+
+Actual local checks: `make test PYTHON=tools/.venv/bin/python` discovers 245 tests, 227
+pass and eighteen skip private inputs (four are new); `make mugl mac-diagnostics mac-hotpatch`
+cross-builds; the audit passes. The new code was compiled, not executed, because it only
+runs inside a private build in the game. All fps, histogram and overshoot figures are Claude's
+supplied report (spawn, about 28-29 ms of work: background 19.3-21.1 fps with pacing off,
+about 24.5 with v7.1 and half the frames late, 25.00 over 140 s with v7.2; frontmost 25.0,
+25.0 and 24.95).
+
+Not established: other hosts, macOS versions or power states, runs beyond the reported 140 s,
+login and character-select numbers, Windows-native behavior, anti-cheat and server
+compatibility. Next work: no new performance lever is reported; 25 fps remains the fixed
+40 ms logic step. A multi-minute hunting-spot run in the background would extend the
+evidence cheaply if the owner wants more.

@@ -116,3 +116,32 @@ accumulator still tracks real time (the assumed sleep reappears in the next elap
 mugl is built without frame pointers, so EBPWALK attributes time spent in mugl code (including the old
 immediate-mode emulation behind the loop's GL calls) to the calling main.exe function: the 44.8% "self" of
 0x012b8d1d was mostly mugl. With the frame-pointer build the routine's own self time is ~3%.
+
+## v7.2: precise waits (bit 1024), 2026-10-17
+Published from Claude's local `mugl_v72.c` (hash in `source-provenance.json`); the reported results below are Claude's,
+supplied, single-host, and were not rerun in the publication task (see `docs/research/mac-performance.md`, MAC-PERF-006).
+
+The 17-22 fps with pacing on was not the client's inactive throttle and not double sleeping. The client's active flag
+[0x01cf0fc0] stayed 1 (the inactive branch of the message loop at 0x0120ee34 has no Sleep), and the only render-thread
+Sleep is the driver's (return 0x01852680), skipped on every eligible frame, with one logic step per frame. The cause
+reported by diagnostic builds is that Wine's Sleep() waits on the client side with select(), and macOS coalesces those
+timers whenever main.exe is not the frontmost Mac app (muinput `activate` only activates the window on the Windows
+side, so macOS still treats the process as background). In the background Sleep(7..14) took 17-45 ms (170 ms requested
+per 2 s became 635 ms). Frontmost, every wait was within 2 ms. A waitable timer, an alertable SleepEx and an event wait
+with a timeout stayed under 1 ms late in the background (the wineserver times them). The same ~28 ms of work then gave:
+- pacing off (mask 6575): background 19.3-21.1 fps; frontmost 25.0.
+- v7.1 pacing (7599): background about 24.5 fps on average but about half the frames late, with 60-80 ms spikes (17-22 fps
+  observed); frontmost 25.0.
+
+v7.2 changes only the waiting (still bit 1024; no GL change, no new patch site):
+- `pace_wait` waits on a waitable timer to the exact 40 ms deadline (relative 100 ns units, no millisecond rounding) and falls
+  back to `Sleep` if the timer cannot be created or set.
+- With bit 1024, any other render-thread `Sleep(ms > 0)` also goes through the precise timer (this fixes the driver's own
+  cap on the login and character-select screens). `Sleep(0)` and other threads are untouched.
+- New stats line: `pace: logic steps=.. waits=.. late=.. restarts=.. overshoot avg=.. | frame ms <30 30-38 38-42 42-50
+  50-60 60-80 80+` (swap-to-swap histogram). The logic-step count reads the driver counter at 0x0bdc5eb0.
+
+Result at spawn (about 28-29 ms work): v7.2 mask 7599 in the background held 25.00 fps over 140 s (69 periods, minimum 25.0;
+3,468 of 3,482 frames at 38-42 ms; mean overshoot 0.08 ms); frontmost 24.95. The logic stays real-time: 50.4-50.5 steps per
+about 2.01 s, which is 25 Hz. Not established: other hosts, macOS versions or power states; behavior on a Windows host (the
+cause is specific to Wine on macOS); long-run stability beyond the reported run.

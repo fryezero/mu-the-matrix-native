@@ -103,7 +103,7 @@ static void release_arrays(void)
     owned = 0; owned_fmt = 0; owned_ptr = NULL; owned_strided = 0;
 }
 
-static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6];
+static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6]; static void pace_stats(FILE *f);
 static void stats_tick(void)
 {
     if (!st_file) return;
@@ -123,6 +123,7 @@ static void stats_tick(void)
         memset(st_fmtverts, 0, sizeof st_fmtverts);
         fprintf(st_file, "\n"); memset(tm_ticks, 0, sizeof tm_ticks); memset(tm_calls, 0, sizeof tm_calls);
     }
+    pace_stats(st_file);
     if (st_pace_skips) { fprintf(st_file, "pace: skipped game sleeps=%ld ", st_pace_skips); st_pace_skips = 0; }
     fprintf(st_file, "skipped=%ld orphans=%ld/%ld subKB=%ld vbo=%d ", st_skipped, st_orphans, st_subs, st_sub_bytes / 1024, vbo_emu); st_skipped = 0; st_orphans = st_subs = 0; st_sub_bytes = st_sub_calls = 0;
     fprintf(st_file, "fps=%.1f blocks=%ld verts=%ld v/block=%.1f draws=%ld v/draw=%.1f fallbacks=%ld\n",
@@ -832,27 +833,69 @@ static DWORD render_tid;
    its Sleep at 0x0185267a is skipped and mugl paces swaps to a 40 ms schedule instead. The driver's logic-time
    accumulator still tracks real time (the slept time it assumes reappears in its next elapsed measurement). */
 static int pace_fix, pace_swapped; static long long pace_next;
+/* Precise waits (also bit 1024): Wine's Sleep() waits in the client with select(), and macOS coalesces those timers
+   heavily while the game is not the frontmost Mac app (measured: Sleep(7..14) took 17..45 ms, so the driver's cap
+   gave ~19 fps at 28 ms work and pacing jittered between 25 and 70 ms frames). Waits on a waitable timer are timed
+   by the wineserver and stay within 1 ms in the background as well (frontmost, both are accurate). */
+static HANDLE pace_timer; static int pace_timer_failed;
+static long pc_waits, pc_late, pc_restart, pc_iv[7], pc_os[4], pc_other; static long long pc_last_swap, pc_os_ticks; static unsigned pc_logic0;
+static void precise_wait(long long ticks)
+{
+    if (ticks <= 0) return;
+    if (!pace_timer && !pace_timer_failed) { pace_timer = CreateWaitableTimerW(NULL, TRUE, NULL); pace_timer_failed = !pace_timer; }
+    LARGE_INTEGER due; due.QuadPart = -(ticks * 10000000 / qpf.QuadPart);   /* relative, 100 ns units */
+    if (pace_timer && due.QuadPart < 0 && SetWaitableTimer(pace_timer, &due, 0, NULL, NULL, FALSE) &&
+        WaitForSingleObject(pace_timer, (DWORD)(ticks * 1000 / qpf.QuadPart) + 1000) == WAIT_OBJECT_0) return;
+    DWORD ms = (DWORD)((ticks * 1000 + qpf.QuadPart / 2) / qpf.QuadPart);
+    if (ms) real_sleep(ms);
+}
+static void pace_stats(FILE *f)
+{
+    unsigned lg = *(volatile unsigned *)0x0bdc5eb0, dl = lg - pc_logic0; pc_logic0 = lg;   /* driver's logic-step counter (40 ms steps) */
+    if (!pace_fix || !qpf.QuadPart) return;
+    fprintf(f, "pace: logic steps=%u waits=%ld late=%ld restarts=%ld overshoot avg=%.2fms (<1:%ld 1-5:%ld 5-20:%ld 20+:%ld) other_sleeps=%ld"
+               " | frame ms <30:%ld 30-38:%ld 38-42:%ld 42-50:%ld 50-60:%ld 60-80:%ld 80+:%ld\n",
+            dl, pc_waits, pc_late, pc_restart, pc_waits ? pc_os_ticks * 1000.0 / qpf.QuadPart / pc_waits : 0.0, pc_os[0], pc_os[1], pc_os[2], pc_os[3],
+            pc_other, pc_iv[0], pc_iv[1], pc_iv[2], pc_iv[3], pc_iv[4], pc_iv[5], pc_iv[6]);
+    pc_waits = pc_late = pc_restart = pc_other = 0; pc_os_ticks = 0; memset(pc_os, 0, sizeof pc_os); memset(pc_iv, 0, sizeof pc_iv);
+}
+static void pace_interval(long long t)   /* swap-to-swap interval histogram */
+{
+    if (pc_last_swap) { long long ms = (t - pc_last_swap) * 1000 / qpf.QuadPart; pc_iv[ms < 30 ? 0 : ms < 38 ? 1 : ms < 42 ? 2 : ms < 50 ? 3 : ms < 60 ? 4 : ms < 80 ? 5 : 6]++; }
+    pc_last_swap = t;
+}
 static void WINAPI hook_sleep(DWORD ms)
 {
     if (GetCurrentThreadId() != render_tid) { real_sleep(ms); return; }
-    if (pace_fix && pace_swapped && __builtin_return_address(0) == (void *)0x01852680) { pace_swapped = 0; st_pace_skips++; return; }
-    LARGE_INTEGER a, b; QueryPerformanceCounter(&a); real_sleep(ms); QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - a.QuadPart;
+    void *ret = __builtin_return_address(0);
+    if (pace_fix && pace_swapped && ret == (void *)0x01852680) { pace_swapped = 0; st_pace_skips++; return; }
+    LARGE_INTEGER a, b; QueryPerformanceCounter(&a);
+    if (pace_fix && ms && qpf.QuadPart) { pc_other++; precise_wait(qpf.QuadPart * ms / 1000); }   /* same semantics as Sleep(ms): non-alertable */
+    else real_sleep(ms);
+    QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - a.QuadPart;
 }
 /* Only in the in-game scene (scene state [0x01d1df70] == 6, see client-frame-loop.md); login/character screens and
-   frames that do not swap keep the original sleep. */
+   frames that do not swap keep the driver's sleep (made precise by the hook above). */
 static void pace_wait(void)
 {
     pace_swapped = 0;
-    if (!pace_fix || !real_sleep || !qpf.QuadPart || *(volatile int *)0x01d1df70 != 6) { pace_next = 0; return; }
+    if (!pace_fix || !real_sleep || !qpf.QuadPart) { pace_next = 0; return; }
+    LARGE_INTEGER now; QueryPerformanceCounter(&now);
+    if (*(volatile int *)0x01d1df70 != 6) { pace_next = 0; pace_interval(now.QuadPart); return; }
     pace_swapped = 1;
     const long long period = qpf.QuadPart * 40 / 1000;
-    LARGE_INTEGER now; QueryPerformanceCounter(&now);
-    if (!pace_next || now.QuadPart >= pace_next + period) { pace_next = now.QuadPart + period; return; }   /* first or > 1 period late: restart */
-    if (now.QuadPart < pace_next) {
-        DWORD ms = (DWORD)(((pace_next - now.QuadPart) * 1000 + qpf.QuadPart / 2) / qpf.QuadPart);
-        if (ms) { real_sleep(ms); LARGE_INTEGER b; QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - now.QuadPart; }
+    if (!pace_next || now.QuadPart >= pace_next + period) { pace_next = now.QuadPart + period; pc_restart++; }   /* first or > 1 period late: restart */
+    else {
+        if (now.QuadPart < pace_next) {
+            precise_wait(pace_next - now.QuadPart);
+            LARGE_INTEGER b; QueryPerformanceCounter(&b); sleep_ticks += b.QuadPart - now.QuadPart;
+            long long over = b.QuadPart - pace_next; if (over < 0) over = 0;
+            double om = over * 1000.0 / qpf.QuadPart; pc_os[om < 1 ? 0 : om < 5 ? 1 : om < 20 ? 2 : 3]++; pc_os_ticks += over; pc_waits++;
+            now = b;
+        } else pc_late++;
+        pace_next += period;   /* slightly late frames keep the schedule, so the next one can catch up */
     }
-    pace_next += period;   /* slightly late frames keep the schedule, so the next one can catch up */
+    pace_interval(now.QuadPart);
 }
 static void hook_sleep_iat(void)
 {

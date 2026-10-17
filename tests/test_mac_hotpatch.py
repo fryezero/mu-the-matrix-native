@@ -139,15 +139,59 @@ class MeshDrawPublicationTests(unittest.TestCase):
         self.assertRegex(self.meshdraw,r'if \(mode == 0x8000\) \{ md_fallback\+\+')
         self.assertRegex(self.meshdraw,r'\(flags & 0x420\) == 0x400')
 
-    def test_provenance_records_v71_sources_and_new_diagnostic(self):
+    def test_provenance_records_v72_mugl_and_v71_sources(self):
         provenance = json.loads((SOURCE/'source-provenance.json').read_text())
-        for source,published in [('mugl/mugl_v71.c','mac-play/hotpatch/mugl.c'),('mugl/meshdraw_v71.c','mac-play/hotpatch/meshdraw.c'),
+        for source,published in [('mugl/mugl_v72.c','mac-play/hotpatch/mugl.c'),('mugl/meshdraw_v71.c','mac-play/hotpatch/meshdraw.c'),
                                  ('glstride/glstride.c','mac-play/diagnostics/glstride.c')]:
             with self.subTest(source=source):
                 self.assertRegex(provenance[source]['sha256'],r'^[0-9a-f]{64}$')
                 self.assertEqual(provenance[source]['published_as'],published)
                 self.assertTrue((ROOT/published).is_file())
-        self.assertEqual(provenance['mugl/xform_v70.c']['published_as'],'mac-play/hotpatch/xform.c')  # xform.c is unchanged between v7.0 and v7.1
+        self.assertRegex(provenance['mugl/mugl_v71.c']['sha256'],r'^[0-9a-f]{64}$')
+        self.assertEqual(provenance['mugl/mugl_v71.c']['superseded_by'],'mugl/mugl_v72.c')
+        self.assertNotIn('published_as',provenance['mugl/mugl_v71.c'])
+        self.assertEqual(provenance['mugl/xform_v70.c']['published_as'],'mac-play/hotpatch/xform.c')  # xform.c is unchanged between v7.0 and v7.2
+
+
+class PrecisePacingTests(unittest.TestCase):
+    """v7.2 (MAC-PERF-006): bit 1024 waits on a waitable timer; no new patch site, no original bytes."""
+
+    def setUp(self):
+        self.mugl = (SOURCE/'mugl.c').read_text()
+
+    def function_body(self, signature):
+        start = self.mugl.index(signature)
+        return self.mugl[start:self.mugl.index('\n}\n', start)]
+
+    def test_precise_wait_uses_timer_with_sleep_fallback(self):
+        body = self.function_body('static void precise_wait(long long ticks)')
+        self.assertIn('CreateWaitableTimerW(NULL, TRUE, NULL)',body)
+        self.assertIn('SetWaitableTimer(pace_timer, &due',body)
+        self.assertIn('WaitForSingleObject(pace_timer',body)
+        self.assertIn('pace_timer_failed',body)
+        self.assertRegex(body,r'if \(ms\) real_sleep\(ms\)')   # fallback when the timer is unavailable
+        self.assertRegex(body,r'due\.QuadPart = -\(ticks \* 10000000')  # relative 100 ns units, no ms rounding
+
+    def test_sleep_hook_routes_only_positive_render_thread_sleeps_when_pacing(self):
+        body = self.function_body('static void WINAPI hook_sleep(DWORD ms)')
+        self.assertIn('GetCurrentThreadId() != render_tid) { real_sleep(ms); return; }',body)   # other threads untouched
+        self.assertRegex(body,r'if \(pace_fix && ms && qpf\.QuadPart\) \{ pc_other\+\+; precise_wait')
+        self.assertRegex(body,r'else real_sleep\(ms\)')
+        # the driver's own eligible Sleep is still skipped by return address, before any wait
+        self.assertRegex(self.mugl,r'pace_fix && pace_swapped && ret == \(void \*\)0x01852680')
+
+    def test_pacing_remains_bit_1024_and_adds_no_game_bytes(self):
+        self.assertEqual(sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12)),7599)
+        self.assertIn('pace_fix = (mask & 1024) != 0;',self.mugl)
+        self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',self.mugl))
+        self.assertIn('pace: logic steps=%u waits=%ld late=%ld restarts=%ld overshoot avg=%.2fms',self.mugl)
+        self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES')
+
+    def test_notes_record_v72_cause_and_unverified_limits(self):
+        notes = (SOURCE/'meshdraw-notes.md').read_text()
+        section = notes[notes.index('## v7.2: precise waits'):]
+        for text in ('0x01cf0fc0','0x0120ee34','0x01852680','not the frontmost Mac app','waitable timer','Not established'):
+            self.assertIn(text,section)
 
 
 if __name__ == '__main__':

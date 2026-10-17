@@ -66,3 +66,10 @@ original patch-site byte sequences used by `meshdraw.c` are generated only into 
 ignored build directory from owner-supplied private input; `targets.json` records
 their addresses, lengths and SHA-256 only. No Microsoft, Wine, CrossOver or game
 implementation is included.
+
+## Claude v7.2 precise waits
+
+The v7.2 `mac-play/hotpatch/mugl.c` is authored code from the owner's local mu-mac-tools
+work, published under this repository's MIT license with the same boundary as v7.0
+and v7.1. It adds no original game bytes and no Microsoft, Wine, CrossOver or game
+implementation; it calls the documented Win32 waitable-timer API.
