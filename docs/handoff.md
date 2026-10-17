@@ -1097,3 +1097,18 @@ Branch `claude/native-data`. It adds the following:
 * Name the `mu_item_fields` from their consumers (inventory size, requirements).
 * Locate the skill/minimap/movereq loaders.
 * Lang.mpr text needs the package password, which is behind the protection boundary.
+
+## JSON effects (NATIVE-FX-001)
+
+Branch `claude/native-effects`, worktree `~/Documents/mu-worktrees/native-effects`. Read
+[`research/client-effects.md`](research/client-effects.md) and
+[`../reconstructed/effects/README.md`](../reconstructed/effects/README.md).
+
+**Checks.** `scripts/validate_effects.py --mutations 1500 --frames 60` (private captures, `--game-root`): 1,870 cases,
+0 mismatches, 44 matched client divide faults (`--only REGEX` reruns selected cases). Portable:
+`reconstructed/effects/test_effects.py`, `native/tests/test_native_effect.py`. Renders stay local in
+`~/Documents/mu-mac-tools/native/renders/effects/`.
+
+**Next:** map the EffectManager (creation by name, lists, parenting, owner tint, frustum culling) and the callers
+that attach effects to characters, skills and world objects; then draw effects in the native viewer and frame loop
+over the real terrain.
