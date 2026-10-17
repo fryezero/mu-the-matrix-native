@@ -29,6 +29,7 @@ static const mu_data_spec SPECS[] = {
     {"statoption.bmd", "Data\\Local\\StatOption.bmd", 0x00995776, MU_DATA_COUNTED, 52, 0, 0xe2f1, 0, 0, CHK|NZ},
     {"statoptiontext.bmd", "Data\\Local\\StatOptionText.bmd", 0x00995a29, MU_DATA_COUNTED, 260, 0, 0xe2f1, 0, 0, CHK|NZ},
     {"quest.bmd", "Data\\Local\\Quest.bmd", 0x009f4866, MU_DATA_FIXED_PLAIN, 1000, 200, 0, 0, 0, 0},
+    {"socketitem.bmd", "Data\\Local\\SocketItem.bmd", 0x010a9926, MU_DATA_FIXED_PLAIN, 168, 150, 0, 0, 0, 0},
     {"playguide.bmd", "Data\\Local\\PlayGuide.bmd", 0x009d7096, MU_DATA_COUNTED, 260, 0, 0xe2f1, 0, 0, CHK|NZ},
     {"evolutionmonsterbox.bmd", "Data\\Local\\EvolutionMonsterBox.bmd", 0x00a9d8d2, MU_DATA_COUNT_BYTES, 1, 0, 0xc4a2, 0, 0, CHK|NZ},
     {"murummyoption.bmd", "Data\\Local\\MuRummyOption.bmd", 0x00bcc159, MU_DATA_COUNTED, 8, 0, 0xe2f1, 0, 0, CHK},
