@@ -697,3 +697,51 @@ meshdraw experiment remain omitted. Login/movement scripts select an explicit
 test bottle and refuse MuMatrix32; login reads the password from Keychain.
 
 After #58 was merged into `codex/mac-gl-batching` and `main` (with #54/#56) was merged in, the combined tree discovers 236 tests: 218 pass and 18 explicitly skip private inputs (`make test PYTHON=tools/.venv/bin/python`). The earlier counts above are per-PR snapshots.
+
+## MAC-PERF-005 publication handoff
+
+Issue #59 / `claude/mac-meshdraw`, worktree `~/Documents/mu-worktrees/mac-meshdraw`,
+based on main `f629ef9` (PR #52/#58 merged). The owned scope is `mac-play/hotpatch`
+(`meshdraw.c`, v7.1 `mugl.c`, `meshdraw-notes.md`, generator/targets/provenance),
+`mac-play/diagnostics/glstride.c`, the audit and tests, and the shared
+performance/status/roadmap/evidence/notices notes. This publishes Claude's saved v7.1
+work. No main.exe or Wine process was started, stopped, attached to or patched, and
+neither MuMatrix32 nor its C:\MuTheMatrix / C:\mutools directories were modified. Default
+setup remains PR #52's proxy. `~/Documents/mu-mac-tools` was read only.
+
+Read `research/mac-performance.md`, MAC-PERF-005, and `../mac-play/hotpatch/README.md`
+and `meshdraw-notes.md`. `source-provenance.json` pins `mugl_v71.c` (`62798456...`),
+`meshdraw_v71.c` (`ac3f115b...`) and `glstride.c` (`f8393505...`); `xform.c` is
+unchanged from v7.0. The three patch-site original byte sequences that `meshdraw_v71.c`
+embedded (7/6/10 bytes at `0x012ba899`, `0x012b968c`, `0x012b8d1d`) are now length plus
+SHA-256 in `targets.json` (`meshdraw_sites`); `generate.py` verifies the owner-supplied
+dump `/tmp/pristine.bin` (SHA-256 `6e7957c9...160bfd4`) against them and writes an
+ignored `build/private/meshdraw-orig.h`, and the synthetic header is zeros. The audit
+and tests reject that header name as a source file.
+
+Actual local checks: `make test PYTHON=tools/.venv/bin/python` discovers 241 tests,
+223 pass and eighteen skip private inputs (five tests are new). `make mac-hotpatch
+mac-diagnostics` cross-builds the compile-only proxy and `glstride.exe`. Full private
+generation from the dump reproduces nine helpers, 18,583 inline sites, 50,977
+peepholes and the three new digests, and `make -C mac-play/hotpatch private` builds.
+That private DLL, rebuilt at image base `0x69680000`, has the same size as Claude's
+`mugl-v71.dll` and an identical disassembly modulo data addresses. Nothing was
+executed or installed. `local_integration_passed` in the evidence index is the earlier
+value; private integration was not rerun for this change.
+
+Everything about runtime behavior (zero verification mismatches, framebuffer-hash
+equality, fps and work-time tables, the frame-pointer profile, the Winsock 10049
+reconnect during a known outage) is Claude's supplied report. Notable record points:
+the spawn "full v7.1" row is mask 4015 (not the 7599 default), the 8111 mask (adds
+strided arrays) measured lower fps than 4015, and the spawn rows include the bit-512
+timer. The v7.0 44.8% attribution is withdrawn: mugl had no frame pointers. Not
+established: the `0x20`/`0x200000` vertex paths, mode `0x8000`, inputs outside the
+reported sessions, EFLAGS or access-trace equivalence, Windows-native behavior,
+anti-cheat and server compatibility.
+
+Next work: no single dominant hotspot is reported. The remaining main.exe self time is
+spread over indirect/vtable calls (mostly from `0x00ea27ac`), `0x012bc07a`,
+`0x016d197d`, terrain decals `0x016cdd5f` and `0x016cc9e2`. Frame rate is bounded by
+the 40 ms logic step, so any further gain needs the logic step itself (see the
+frame-loop finding) rather than more render-path work. Dual anti-cheat builds remain a
+plan only. Use disposable bottles for any crash-prone probe.

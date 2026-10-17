@@ -1,6 +1,7 @@
 # CrossOver performance: x87 experiments and OpenGL batching
 
-MAC-PERF-001, issue #45; MAC-PERF-002, issue #48; MAC-PERF-003, issue #51.
+MAC-PERF-001, issue #45; MAC-PERF-002, issue #48; MAC-PERF-003, issue #51;
+MAC-PERF-004, issue #57; MAC-PERF-005, issue #59.
 Investigation date 2026-10-16. This is an opt-in
 compatibility path for the original client. A native editable game remains open.
 
@@ -599,7 +600,8 @@ stability. Windows-native equivalence remains unverified.
 
 ### Remaining mesh cost and failed approaches
 
-Claude reports the remaining mesh draw routine `0x012b8d1d..0x012bb35a`,
+**Corrected by MAC-PERF-005 below: the 44.8% figure was a misattribution.**
+Claude reported the remaining mesh draw routine `0x012b8d1d..0x012bb35a`,
 `ret 0x2c`, about 2,713 instructions, at 44.8% of main-thread self-time
 attribution using EBP walks. The routine submits per-corner texcoord/color/vertex
 calls through many accessor thiscalls and switches on draw-mode cases 2, 4,
@@ -621,6 +623,8 @@ behavior, not a stable Apple interface. Scanning plausible call-preceded return
 addresses initially misattributed mesh-draw samples to store8 helpers.
 `EBPWALK=1` follows saved-EBP links and improved attribution. The 44.8% is a
 reported attribution, not an independently verified current-instruction sample.
+It is now known to be wrong: mugl was built without frame pointers, so the EBP walk
+charged mugl's own code to the calling main.exe function (see MAC-PERF-005).
 
 Other preserved failures: crashing test executables spawned winedbg, which
 killed main.exe's thread; disable AeDebug before future tests in disposable
@@ -652,3 +656,167 @@ Automation packaging requires explicit test-bottle/log/account selection, retain
 runtime macOS Keychain password lookup and omits the original process-killing
 restart helper. Login/movement helpers refuse MuMatrix32. No account name,
 Keychain item name, password, screenshot or personal runtime log is published.
+
+## MAC-PERF-005: Claude v7.1 mesh-draw loop, frame pacing and zero-copy batches
+
+Issue #59 publishes Claude's saved v7.1 work (`mugl_v71.c`, `meshdraw_v71.c`,
+`glstride.c`) under `mac-play/hotpatch` and `mac-play/diagnostics`, based on main
+`f629ef9`. This is source publication, local private-table regeneration and
+cross-build validation. No game was started, stopped, profiled, patched or
+installed during this task, and MuMatrix32 and its game/tool directories were not
+changed. Default setup still installs the reviewed #52 proxy; v7.1 is the opt-in
+snapshot beside the v7.0 one. All runtime results below are Claude's supplied,
+single-host reports from 2026-10-17; their raw logs were not acquired and nothing
+was remeasured here.
+
+### Correction to MAC-PERF-004
+
+The v7.0 section above published "44.8% of main-thread self time" for the mesh
+draw routine `0x012b8d1d`. That was a misattribution. mugl is compiled without frame
+pointers, so the EBP-walking profiler charged samples in mugl's own code (notably
+the immediate-mode emulation behind each `glTexCoord2f`/`glColor`/`glVertex3fv` call)
+to the main.exe caller. With a frame-pointer build of mugl, Claude reports the
+routine's own self time at about 3%. A routine timer (bit 512) puts the whole
+original routine at 16.8-17.4 ms/frame at spawn (about 1,840 mesh calls and 0.98M
+corners per frame), of which the native loop itself is about 4.0 ms and the rest is
+batch submission and draws flushed from inside it. The v7.0 mask 15 results above
+remain reported observations of that build; only the attribution is withdrawn.
+
+### Mechanism
+
+Source `meshdraw.c` replaces the per-corner triangle loop `0x012ba8a0..0x012bb229`
+of the mesh draw routine, entered after `glBegin(GL_TRIANGLES)` and left at the
+`glEnd` call `0x012bb22e`. The 7 bytes at `0x012ba899` are replaced by a jump to a
+stub that calls `md_hook(ebp)`: result 1 skips to the `glEnd` call, 0 re-executes
+the displaced instruction and continues in the original loop. The routine frame
+slots, mesh/triangle layouts, the light and texcoord tables, per-mode behavior and
+vertex-flag paths are decoded in `mac-play/hotpatch/meshdraw-notes.md`.
+Observation (Claude's decode of the pristine dump) versus inference: the layout
+offsets and per-corner call order are decoded from instructions; that the
+replacement is equivalent is supported only by the verify runs below, not a proof.
+
+- Modes 2, 4, `0x1000`, `0x80000`, `0x100000` and the no-attribute modes 1 and `0x40`
+  are done natively with single binary32 SSE operations in the original order
+  (`-msse2 -mfpmath=sse -ffp-contract=off`). Mode `0x8000` and flag `0x400` call
+  client code with side effects and always run the original loop. The vertex paths
+  for flag `0x20` (planar shadow projection) and `0x200000` (low-corner cull) were
+  never seen in game and run natively only with bit 8192, otherwise the original.
+- Bit 128 appends straight into mugl's open batch buffer with SSE stores instead
+  of calling mugl's GL entry points, only when the client's import slots point at mugl
+  and a batched block is open.
+- Bit 256 ports the per-normal light table precompute `0x012b968c..0x012b996c`
+  (`T[n][k] = S[n]*C[k] + 0.2f` when `model[0xcb] == 1`, else `L[n]*C[k]`).
+- Bit 64 verifies. Without 128, the loop's five import slots point at recorders
+  while the original loop runs, and the (op, float bits) streams are compared at
+  `glEnd`. With 128, the native loop writes a scratch vertex array and the original's
+  appends to the real batch are compared byte for byte, with the current
+  texcoord/colour state. The light table is computed into a scratch copy and
+  compared with the real table at the next mesh hook of the same model and mesh.
+  A mismatch is logged and counted. In verify mode the original loop always
+  produces the rendered output.
+- Bit 512 is a routine timer, off by default. Bits 2048 and 4096 stop packing the
+  vertex buffer: bit 2048 draws `T2F_C4F_N3F_V3F` batches straight from the 48-byte
+  vertex array and 4096 reads every format in place with stride 48 (a
+  compile-time check pins `sizeof(Vtx) == 48`). Claude reports mugl's pack cost
+  falling from 2.4 ms to 2.0 and then 1.2 ms per frame.
+- Bit 1024, frame pacing. The frame driver `0x01851d39` sleeps 40 ms minus the
+  *previous* frame's work, so alternating frame costs lose time and lowering the
+  work reduced the observed frame rate (19.6 fps at 34 ms of work). With the bit,
+  the driver's `Sleep` at `0x0185267a` (identified by return address
+  `0x01852680`) is skipped after a frame that swapped in-world (scene state at
+  `0x01d1df70` equals 6), and mugl instead paces swaps to a 40 ms schedule. Login
+  and character screens keep the original sleep. GL output is unchanged and the
+  logic accumulator still follows real time. The merged
+  [frame-loop finding](client-frame-loop.md) records the driver and the cap; the 25
+  fps rate remains the game's fixed 40 ms logic step.
+
+Hotpatch mask: the v7.1 default is **7599** (bits 1, 2, 4, 8, 32, 128, 256, 1024,
+2048, 4096). 6575 is the same without pacing. Bits 16, 64, 512 and 8192 are
+diagnostic or unverified and off by default. The README table documents every bit,
+and a test pins the table, the default and the 14-bit mask limit.
+
+### Reported verification and coverage (not rerun here)
+
+All with zero mismatches, on MuMatrix32 character sessions:
+
+- Call-stream comparison (bit 64): 7.52M meshes (about 3.99G corners) at spawn and
+  the hunting spot, then 2.03M meshes at the hunting spot, 9.55M meshes in total.
+- Direct append (64|128): 1.55M + 1.13M + 1.15M + 3.78M + 0.58M meshes, about 8.2M,
+  including the login/character-select screens.
+- Light table: 265k + 270k + 1.46M + 0.48M meshes, about 2.5M, none unverified.
+- Framebuffer hash with `glstride.c` (all six batch formats), builtin OpenGL versus
+  the proxy: equal at masks 0, 15, 2063, 4111 and 6159.
+
+Scenes were town spawn, the Twisted Karutan hunting spot with MU Helper combat and
+skills, and login/character select. Mode coverage: 2 about 96%, 4 about 2.3%,
+`0x1000` about 1.1%, `0x40` under 0.1%, no fallbacks. Mode `0x80000` was seen
+once (50 meshes) and shares the `0x1000` code, so it was not verified directly.
+Modes `0x100000`, `0x8000`, flag `0x400` and the `0x20`/`0x200000` vertex paths were
+not observed. This is coverage of what the client did in those sessions, not a proof
+for all inputs.
+
+### Reported measurements (not controlled paired speedups)
+
+Same-session A/B (work ms / fps, 25 fps cap):
+
+| Scene | Mask | Work ms | fps |
+|---|---|---:|---:|
+| Spawn 124,120 | 15 | 38.8 | 23.1 |
+| | 943 (meshdraw direct + light, + timer) | 34.3 | 19.6 |
+| | 1967 (+ pacing) | 33.8 | 24.2 |
+| | 4015 (+ zero-copy) | 33.6 | 24.2 |
+| | 8111 (+ strided) | 32.7 | 23.6 |
+| Hunting spot 116,101, MU Helper on, 4 interleaved 20 s rounds | 15 | 42.4 | 22.6 |
+| | 431 (meshdraw only) | 35.8 | 22.0 |
+| | 7599 (v7.1 default) | 33.8 | 24.1 |
+
+The spawn rows 943, 1967, 4015 and 8111 all include the routine timer (bit 512), so its
+overhead is part of those numbers; the hunting-spot rows do not. Meshdraw alone cut work by 4-7 ms but did not raise fps until pacing was fixed.
+The spawn "full v7.1" 33.6 ms / 24.2 fps row is mask 4015, not the 7599 default, and no
+7599 spawn run is among the recorded rows. The 8111 row (adds strided arrays) lowered work
+to 32.7 ms but measured 23.6 fps, so strided arrays are not shown to raise fps.
+Routine time 17 to 10.7 ms/frame. The headroom against the 40 ms step is about 6-8 ms.
+
+A fresh frame-pointer profile (mask 7599, hunting spot, 30 s) reports about 42% of
+samples in the Rosetta runtime (sleeping/blocking and translated Wine/GL code), about
+25% in mugl plus Wine 32-bit DLLs and 28% in main.exe. Top main.exe self-time: indirect
+and vtable calls (mostly from `0x00ea27ac`) 5.2%, `0x012bc07a` 4.8%, `0x016d197d` 4.6%,
+`0x016cdd5f` terrain decals 4.1%, `0x016cc9e2` 4.1%, `0x005520d0` 3.1%, `0x012b8d1d`
+2.9%, `0x00d3215b` 2.6%, `0x00cd7be6` 2.5%, `0x009681bd` (sin) 2.4%. No single
+dominant hotspot remains. Claude's conclusion is that 25 fps is the game's fixed 40 ms
+logic-step cap and v7.1 only restores the headroom to reach it; the profile and the
+conclusion are reports, not independently checked.
+
+Incidental: one login failed and the client reconnected twice with Winsock error
+10049 during a known home internet outage; two 6-minute tests, with and without
+pacing, had no disconnects. Nothing links the failure to the patches, and this is not
+an anti-cheat or server-compatibility result.
+
+### Publication boundary and checks run here
+
+The three patch-site original byte sequences that `meshdraw_v71.c` kept inline
+(7, 6 and 10 bytes at `0x012ba899`, `0x012b968c` and `0x012b8d1d`) are not in source.
+`targets.json` pins address, length and SHA-256; `generate.py` checks the pristine
+dump against them and writes an ignored `meshdraw-orig.h`; the compile-only build gets
+zeros and installs nothing (`MUGL_PRIVATE_TABLES` gates every hotpatch and Sleep-IAT
+installation). `meshdraw.c` still refuses to write a site whose live bytes are not the
+expected original or replacement. The audit rejects that header name.
+
+Checks actually run: `make test PYTHON=tools/.venv/bin/python` (241 discovered, 223
+pass, 18 explicit private skips), `make mac-hotpatch mac-diagnostics` (compile-only
+v7.1 proxy and `glstride.exe`), `python3 scripts/audit_repository.py`. With the pinned
+dump, private generation reproduces the 18,583/50,977 tables and matches all three
+new site digests. A private rebuild at the reference image base
+(`0x69680000`) has the same file size (1,760,063 bytes) as Claude's `mugl-v71.dll`
+and its disassembly is identical apart from .rdata-relative addresses (the three
+byte arrays are placed differently now that they come from a header, which shifts
+some data by 32 bytes); that check compares instruction streams, not runtime
+behavior. Neither DLL was executed or installed. Five new portable tests cover the
+hash-pinned sites, zero-filled synthetic headers, mask-bit documentation and
+default, the private-build gate with the fallbacks, and provenance entries.
+
+Not established: the 0x20/0x200000 paths, mode `0x8000`, equivalence for inputs
+the sessions never produced, Windows-native behavior, anti-cheat or server
+compatibility, EFLAGS-level equivalence of the loop, and any hash-level check beyond
+the six `glstride` formats. The pacing fix changes timing, not GL output, but has
+only the reported six-minute disconnect-free runs as stability evidence.

@@ -123,5 +123,25 @@
       "sha256": "18b416cbe42ebe366623ad88a0e27b892c6156c19d689a0268136e5493747457"
     }
   },
-  "derived_calls_sha256": "e7051e6f4e04ea049e15eb3af7489ade8f0293c0cee6a1f95335ac2a0386c05b"
+  "derived_calls_sha256": "e7051e6f4e04ea049e15eb3af7489ade8f0293c0cee6a1f95335ac2a0386c05b",
+  "meshdraw_sites": [
+    {
+      "name": "md_orig",
+      "address": 19638425,
+      "length": 7,
+      "sha256": "355023af2686cfbf5335cba28ef89dfca17c9cc3eb6043c59e1c2eb4c88ecc27"
+    },
+    {
+      "name": "md_lorig",
+      "address": 19633804,
+      "length": 6,
+      "sha256": "9eb319545d47b325950363a6e9249e9baecb22908524870f7f7e3216fd5bad11"
+    },
+    {
+      "name": "md_prologue",
+      "address": 19631389,
+      "length": 10,
+      "sha256": "833295b143f6c61d43538e2797ec268aaf684fbdb1422a214666855fed44f53c"
+    }
+  ]
 }

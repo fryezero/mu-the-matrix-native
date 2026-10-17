@@ -9,7 +9,7 @@ spec.loader.exec_module(audit)
 
 class PublicationBoundary(unittest.TestCase):
     def test_hotpatch_game_tables_cannot_be_published_as_source(self):
-        for name in ('hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h'):
+        for name in ('hotpatches.h','inlinesites.h','peepsites.h','orig.h','xform-prologue.h','meshdraw-orig.h'):
             with self.subTest(name=name):
                 self.assertTrue(audit.violations('mac-play/hotpatch/'+name,b'/* text table */'))
         for name in ('helper.orig','helper.new'):
