@@ -1,9 +1,22 @@
 name: Recovery tools
 
+# Actions minutes are limited on this private repository, and macOS runners are
+# billed at ten times the Linux rate. Pull requests run Linux only, once per push
+# (no duplicate push run), and a newer push cancels the older run. The macOS job
+# runs only when started by hand; contributors run scripts/local-macos-ci.sh
+# on a Mac before merging instead.
 on:
-  push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      macos:
+        description: Also run the macOS job (billed at 10x)
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -13,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: ${{ fromJSON(inputs.macos && '["ubuntu-latest","macos-latest"]' || '["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
