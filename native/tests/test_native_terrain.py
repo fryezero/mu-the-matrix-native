@@ -215,8 +215,9 @@ class ToolTests(Build):
     def test_noground_rgb_height_and_bad_obj(self):
         write_world(self.root, 143, seed=2, rgb=True, noground=1, obj_ok=False)
         report = self.info(142)
+        # world 142 has a handler with byte +4 = 1 (NATIVE-TERRAIN-002): 24-bit, nothing left unresolved
         self.assertEqual((report['height_rgb'], report['height_rgb_unresolved'], report['height_status']),
-                         (1, 1, 0))
+                         (1, 0, 0))
         self.assertTrue(-490.0 <= report['height_min'] <= -480.0 and report['height_max'] <= -245.0, report)
         self.assertEqual(report['obj_status'], 2)
         render = json.loads(run('render', self.root, '--world', 142, '--width', 64, '--height', 64).stdout)
@@ -279,8 +280,10 @@ class PrivateInstalledTests(Build):
             self.assertEqual((r['map_status'], r['map_number'], r['att_status'], r['att_number']),
                              (0, r['folder'], 0, r['folder']), r['folder'])
             self.assertEqual(r['height_status'], 0, r['folder'])
-            if not r['height_rgb_unresolved']:
-                self.assertEqual(r['height_rgb'], 1)
+            # 0x016c9868 with the world handler table: nothing unresolved, 24-bit exactly for the literal list
+            # and the handlers of 0x86..0x91 (World67 ships a 24-bit file that the client reads as 8-bit).
+            self.assertEqual(r['height_rgb_unresolved'], 0, r['folder'])
+            self.assertEqual(r['height_rgb'], int(self.authored.height_is_rgb(r['world'])[0]), r['folder'])
             # Finding: the installed .obj files do not decode with 0x0098c5f2.
             self.assertEqual(r['obj_status'], 2, r['folder'])
         for r in rows:
