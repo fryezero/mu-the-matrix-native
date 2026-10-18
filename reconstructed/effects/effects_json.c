@@ -727,25 +727,12 @@ static int load_billboard(mu_fx_effect *e, const jvalue *root)
     return 1;
 }
 
-int mu_fx_load_json(mu_fx_effect *e, const char *text, size_t length, char *error, size_t error_size)
+/* Constructor defaults (factory 0x00a797a0 and the child construction in
+ * 0x00a760b2 pass the same values), then the base load 0x00a760b2: the node's
+ * keys, the type load, the restart and the children. Returns 0 when out of
+ * memory. */
+static int load_node(mu_fx_effect *e, const jvalue *root)
 {
-    memset(e, 0, sizeof *e);
-    jparser j = {text, text + length, 0};
-    jvalue *root = parse_value(&j, 0);
-    if (!root || j.failed) {
-        jfree(root);
-        if (error && error_size)
-            snprintf(error, error_size, "JSON parse error at byte %ld", (long)(j.p - text));
-        return MU_FX_ERROR_PARSE;
-    }
-    e->type = as_int(member(root, "Type"));
-    if (e->type != MU_FX_PARTICLE_SYSTEM && e->type != MU_FX_BILLBOARD) {
-        if (error && error_size)
-            snprintf(error, error_size, "effect type %d is not reconstructed", e->type);
-        jfree(root);
-        return MU_FX_ERROR_TYPE;
-    }
-    /* Constructor defaults (factory 0x00a797a0), then the base load 0x00a760b2. */
     e->playing = 1;
     e->scale = 1.0f;
     const jvalue *name = member(root, "Name");
@@ -764,6 +751,59 @@ int mu_fx_load_json(mu_fx_effect *e, const char *text, size_t length, char *erro
     e->random_duration = as_bool(member(root, "randomduration"));
     e->parent_duration = as_bool(member(root, "parentduration"));
     int ok = e->type == MU_FX_PARTICLE_SYSTEM ? load_particle_system(e, root) : load_billboard(e, root);
+    if (!ok)
+        return 0;
+    mu_fx_update_transform(e);
+    mu_fx_restart(e);
+    const jvalue *children = member(root, "Children");
+    size_t n = jsize(children);
+    for (size_t i = 0; i < n; ++i) {
+        const jvalue *c = item(children, i);
+        int type = as_int(member(c, "Type"));
+        if (type != MU_FX_PARTICLE_SYSTEM && type != MU_FX_BILLBOARD)
+            continue;   /* the client constructs nothing and skips the entry */
+        mu_fx_effect *child = calloc(1, sizeof *child);
+        if (!child)
+            return 0;
+        child->type = type;
+        child->managed = e->managed;   /* constructed with the parent's manager (+0x28) */
+        if (e->child_count == e->child_capacity) {
+            uint32_t capacity = e->child_capacity ? 2u * e->child_capacity : 4u;
+            mu_fx_effect **grown = realloc(e->children, capacity * sizeof *grown);
+            if (!grown) {
+                free(child);
+                return 0;
+            }
+            e->children = grown;
+            e->child_capacity = capacity;
+        }
+        e->children[e->child_count++] = child;   /* 0x00a75542: parent link, push_back */
+        child->parent = e;
+        if (!load_node(child, c))
+            return 0;
+    }
+    return 1;
+}
+
+int mu_fx_load_json(mu_fx_effect *e, const char *text, size_t length, char *error, size_t error_size)
+{
+    memset(e, 0, sizeof *e);
+    jparser j = {text, text + length, 0};
+    jvalue *root = parse_value(&j, 0);
+    if (!root || j.failed) {
+        jfree(root);
+        if (error && error_size)
+            snprintf(error, error_size, "JSON parse error at byte %ld", (long)(j.p - text));
+        return MU_FX_ERROR_PARSE;
+    }
+    e->type = as_int(member(root, "Type"));
+    if (e->type != MU_FX_PARTICLE_SYSTEM && e->type != MU_FX_BILLBOARD) {
+        if (error && error_size)
+            snprintf(error, error_size, "effect type %d is not reconstructed", e->type);
+        jfree(root);
+        return MU_FX_ERROR_TYPE;
+    }
+    int ok = load_node(e, root);
     jfree(root);
     if (!ok) {
         mu_fx_free(e);
@@ -771,13 +811,21 @@ int mu_fx_load_json(mu_fx_effect *e, const char *text, size_t length, char *erro
             snprintf(error, error_size, "out of memory");
         return MU_FX_ERROR_MEMORY;
     }
-    mu_fx_update_transform(e);
-    mu_fx_restart(e);
     return MU_FX_OK;
 }
 
 void mu_fx_free(mu_fx_effect *e)
 {
+    for (uint32_t i = 0; i < e->child_count; ++i) {
+        mu_fx_free(e->children[i]);
+        free(e->children[i]);
+    }
+    free(e->children);
+    e->children = NULL;
+    e->child_count = e->child_capacity = 0;
+    free(e->actions);
+    e->actions = NULL;
+    e->action_count = 0;
     free(e->particles);
     e->particles = NULL;
     free_curve(&e->emitter.count_curve);
