@@ -34,7 +34,7 @@ the bones); monsters/NPCs get the frame light + 0.2. Check with `native/tests/te
 `scripts/validate_model_light.py --world 94|0 --objects LOCAL/EncTerrain<n>.plain --live SNAPSHOT` (snapshots from
 `mac-play/diagnostics/lightread`, local under `~/Documents/mu-mac-tools/native/scratch/light/live/dumps/`; renders in
 `renders/light/`). Next: the hero's (1, 1, 1) branch of RenderCharacter, the ambient creatures' body light, and a lit
-check of HUD item models once NATIVE-GFX-003 lands.
+check of the HUD item models of NATIVE-GFX-003 (`native/world/world_gfx_game.c`).
 
 ## Login scene (NATIVE-LOGIN-001)
 

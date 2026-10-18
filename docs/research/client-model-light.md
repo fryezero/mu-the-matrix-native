@@ -197,6 +197,6 @@ Snapshots: `~/Documents/mu-mac-tools/native/scratch/light/live/dumps/`.
   traced. The native hero keeps (1, 1, 1).
 * The body light of ambient creatures (RenderObject's 0x017ec3d8 on the boid/fish objects) and their `+0xe4`/`+0xe8`
   are not read. NATIVE-ENV-001's colour and the default light arguments remain.
-* HUD item models (RenderItem3D) were left to NATIVE-GFX-003.
+* HUD item models (RenderItem3D, NATIVE-GFX-003's `world_gfx_game.c`) were not checked.
 * The client's GL driver state (texture environment, sRGB) was not captured. It was not needed: the remaining
   login-scene differences are within 5% except the animated after-pass glow.
