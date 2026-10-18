@@ -296,6 +296,12 @@ MUKIT_RT_CX24_ENGINE_URL=${MUKIT_RT_CX24_ENGINE_URL:-https://github.com/Sikarugi
 MUKIT_RT_CX24_ENGINE_SHA256=${MUKIT_RT_CX24_ENGINE_SHA256:-203f9e9fd6c2cc77e6525d798a434ced326145db34a356355e05659d3445fd1c}
 MUKIT_RT_TEMPLATE_URL=${MUKIT_RT_TEMPLATE_URL:-https://github.com/Sikarugir-App/Template/releases/download/v1.0/Template-1.0.24.tar.xz}
 MUKIT_RT_TEMPLATE_SHA256=${MUKIT_RT_TEMPLATE_SHA256:-4b5f89eeb9ef139936bdfad33d9b420b05ea4597cb7d63376674f7a8e171321c}
+# Preferred runtime: the CrossOver 26.3 Wine built by runtime/build-wine.sh (same speed as CrossOver; the cx24
+# engine is about 20% slower in crowded scenes). It has no public download yet: when the server owner hosts the
+# archive, put its https URL and SHA-256 here (or pass --runtime-archive/--runtime-sha256) and it becomes the
+# default. Empty = use cx24.
+MUKIT_RT_ARCHIVE_URL=${MUKIT_RT_ARCHIVE_URL:-}
+MUKIT_RT_ARCHIVE_SHA256=${MUKIT_RT_ARCHIVE_SHA256:-}
 # winetricks 20260125 (the version the kit was validated with), fetched from its release tag.
 MUKIT_WINETRICKS_URL=${MUKIT_WINETRICKS_URL:-https://raw.githubusercontent.com/Winetricks/winetricks/20260125/src/winetricks}
 MUKIT_WINETRICKS_SHA256=${MUKIT_WINETRICKS_SHA256:-431f82fc74000e6c864409f1d8fb495d696c03928808e3e8acffc45179312a7b}

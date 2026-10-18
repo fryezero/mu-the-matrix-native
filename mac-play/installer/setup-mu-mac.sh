@@ -161,6 +161,7 @@ RT_DIR=; RT_ID=; WINE_BIN=; WINESERVER_BIN=
 if [ "$RUNTIME" = free ]; then
     PREFIX=${PREFIX_OPT:-$FREE_HOME/prefix}
     case "$PREFIX" in /*) ;; *) PREFIX="$PWD/$PREFIX" ;; esac
+    if [ -z "$RT_ARCHIVE" ] && [ -n "$MUKIT_RT_ARCHIVE_URL" ]; then RT_ARCHIVE=$MUKIT_RT_ARCHIVE_URL; RT_ARCHIVE_SHA=$MUKIT_RT_ARCHIVE_SHA256; fi
     if [ -n "$RT_ARCHIVE" ]; then
         case "$RT_ARCHIVE" in
             https://*) [[ "$RT_ARCHIVE_SHA" =~ ^[0-9a-f]{64}$ ]] || mukit_die '--runtime-archive URL needs --runtime-sha256 (64 hex digits)' ;;

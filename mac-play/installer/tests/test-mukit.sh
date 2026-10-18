@@ -16,7 +16,8 @@ TMPD=$(mktemp -d "${TMPDIR:-/tmp}/mukit-test.XXXXXX")
 mkbuiltin() { { printf 'MZ'; dd if=/dev/zero bs=1 count=62 2>/dev/null; printf 'Wine builtin DLL'; printf '%s' "$2"; } > "$1"; }
 mkdll() { printf 'MZ synthetic %s' "$2" > "$1"; }
 sedi() { sed -e "$1" "$2" > "$2.tmp" && mv "$2.tmp" "$2"; }   # portable sed -i
-DLLS="$TMPD/dlls"; mkdir -p "$DLLS"
+DLLS="$TMPD/dlls"; mkdir -p "$DLLS" "$TMPD/nopgrep"
+printf '#!/bin/sh\nexit 1\n' > "$TMPD/nopgrep/pgrep"; chmod 755 "$TMPD/nopgrep/pgrep"
 mkdll "$DLLS/mugl-v75.dll" v75; mkdll "$DLLS/mugl-v72.dll" v72; mkdll "$DLLS/mugl-v71.dll" v71; mkdll "$DLLS/mugl-v70.dll" v70; mkdll "$DLLS/mscoree.dll" mscoree
 mkdll "$DLLS/ndp48.exe" dotnet
 FAKECX="$TMPD/CrossOver"; mkdir -p "$FAKECX/bin" "$FAKECX/lib/wine/i386-windows"
@@ -349,6 +350,74 @@ MUKIT_PRIVATE_BUILD_DIR="$TMPD/no-private-build" "${SETUP[@]}" --dry-run --dll-s
 sedi 's/"WineArch" = "win32"/"WineArch" = "win64"/' "$FB/cxbottle.conf"
 "${SETUP[@]}" --dry-run > /dev/null 2>&1 && bad 'refuse win64 bottle' || ok 'refuse win64 bottle'
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > /dev/null 2>&1 && bad 'verify FAILs win64' || ok 'verify FAILs win64'
+
+echo '# free runtime (no CrossOver): synthetic runtime archive, prefix and winetricks; nothing real runs'
+FH2="$TMPD/freehome"; RTSRC="$TMPD/rtsrc"; FREC="$TMPD/freerec"; mkdir -p "$RTSRC/wine/bin" "$RTSRC/wine/lib/wine/x86_64-unix" "$RTSRC/wine/lib/wine/i386-windows" "$FREC"
+printf '#!/bin/sh\n[ "$1" = --version ] && { echo "wine-11.0 (synthetic)"; exit 0; }\nprintf "%%s|%%s\\n" "${WINEPREFIX:-unset}" "$*" >> "%s/wine.calls"\nexit 0\n' "$FREC" > "$RTSRC/wine/bin/wine"
+printf '#!/bin/sh\nprintf "%%s|%%s\\n" "${WINEPREFIX:-unset}" "$*" >> "%s/wineserver.calls"\nexit 0\n' "$FREC" > "$RTSRC/wine/bin/wineserver"
+chmod 755 "$RTSRC/wine/bin/wine" "$RTSRC/wine/bin/wineserver"; : > "$RTSRC/wine/lib/wine/x86_64-unix/ntdll.so"
+mkbuiltin "$RTSRC/wine/lib/wine/i386-windows/opengl32.dll" stand-in
+(cd "$RTSRC" && tar -cJf "$TMPD/runtime.tar.xz" .)
+RTSHA=$(mukit_sha256 "$TMPD/runtime.tar.xz")
+FP="$FH2/prefix"
+mkdir -p "$FP/.mukit" "$FP/drive_c/windows/system32" "$FP/drive_c/windows/Microsoft.NET/Framework/v4.0.30319/WPF" "$FH2/tools"
+printf '%s\n' "$MUKIT_FREE_OWNER_MARKER" > "$FP/.mukit/owner"
+cp "$FIX/fake-bottle-user.reg" "$FP/user.reg"; cp "$FIX/fake-bottle-system.reg" "$FP/system.reg"
+mkbuiltin "$FP/drive_c/windows/system32/opengl32.dll" stand-in
+printf 'MZ native mscoree stand-in' > "$FP/drive_c/windows/system32/mscoree.dll"; : > "$FP/drive_c/windows/Microsoft.NET/Framework/v4.0.30319/clr.dll"
+printf '#!/bin/sh\necho synthetic winetricks; exit 0\n' > "$FH2/tools/winetricks"; chmod 755 "$FH2/tools/winetricks"
+export MUKIT_WINETRICKS_SHA256=$(mukit_sha256 "$FH2/tools/winetricks")
+FSETUP=(env MUKIT_FREE_HOME="$FH2" "$KIT_DIR/setup-mu-mac.sh" --runtime-archive "$TMPD/runtime.tar.xz" --game-dir "$SRC" --mugl-dll "$DLLS/mugl-v75.dll" --mscoree-dll "$DLLS/mscoree.dll" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify)
+"${FSETUP[@]}" --dry-run > "$TMPD/free-dry.log" 2>&1; rc=$?
+eq 'free dry-run exit 0' "$rc" 0
+grep -q 'runtime=free' "$TMPD/free-dry.log" && ok 'free runtime is the default' || bad 'free runtime is the default'
+no 'free dry-run installed nothing' test -e "$FH2/runtime"
+"${FSETUP[@]}" > "$TMPD/free1.log" 2>&1; rc=$?
+eq 'free first run exit 0' "$rc" 0
+RTID="archive-${RTSHA:0:12}"
+eq 'runtime/current names the archive runtime' "$(cat "$FH2/runtime/current" 2>/dev/null)" "$RTID"
+yes 'runtime unpacked with marker' test -f "$FH2/runtime/$RTID/.mu-runtime"
+yes 'runtime wine executable' test -x "$FH2/runtime/$RTID/wine/bin/wine"
+yes 'free: game copied' test -f "$FP/drive_c/MuTheMatrix/main.exe"
+eq 'free: mugl --mugl-dll deployed' "$(mukit_sha256 "$FP/drive_c/MuTheMatrix/opengl32.dll")" "$MUKIT_MUGL_V75_SHA256"
+eq 'free: mscoree --mscoree-dll deployed' "$(mukit_sha256 "$FP/drive_c/MuTheMatrix/mscoree.dll")" "$MUKIT_MSCOREE_PROXY_SHA256"
+eq 'free: pinned v7.5 keeps the full mode list' "$(mukit_lopt_get "$FP/drive_c/MuTheMatrix/LauncherOption.if" DevModeIndex)" 4
+grep -q 'stub cxbottle\|stub wine' "$TMPD/free1.log" && bad 'free run never calls CrossOver' || ok 'free run never calls CrossOver'
+"${FSETUP[@]}" > "$TMPD/free2.log" 2>&1; rc=$?
+eq 'free rerun exit 0' "$rc" 0
+grep -q '\[do\]' "$TMPD/free2.log" && bad 'free rerun is a no-op' || ok 'free rerun is a no-op'
+MUKIT_FREE_HOME="$FH2" "$KIT_DIR/verify-mu-mac.sh" > "$TMPD/free-verify.log" 2>&1; rc=$?
+eq 'verify (free default prefix): no FAIL' "$rc" 0
+grep -q 'PASS  Wine runtime' "$TMPD/free-verify.log" && ok 'verify names the free runtime' || bad 'verify names the free runtime'
+grep -q 'PASS  opengl32 = runtime i386 builtin' "$TMPD/free-verify.log" && ok 'verify compares opengl32 with the runtime' || bad 'verify compares opengl32 with the runtime'
+# an unpinned --mugl-dll (e.g. a public build bundled in the app) is treated like the public build
+printf 'MZ synthetic public build' > "$TMPD/public-opengl32.dll"
+"${FSETUP[@]}" --mugl-dll "$TMPD/public-opengl32.dll" --reset-config > "$TMPD/free3.log" 2>&1; rc=$?
+eq 'free unpinned mugl exit 0' "$rc" 0
+grep -q 'not a pinned mugl build' "$TMPD/free3.log" && ok 'unpinned mugl warns' || bad 'unpinned mugl warns'
+eq 'unpinned mugl caps DevModeIndex' "$(mukit_lopt_get "$FP/drive_c/MuTheMatrix/LauncherOption.if" DevModeIndex)" 2
+# play-mu.sh with the free runtime: explicit prefix, relative launcher in C:\MuTheMatrix, no CrossOver
+if command -v zsh >/dev/null 2>&1; then
+    : > "$FREC/wine.calls"; : > "$FREC/wineserver.calls"
+    env PATH="$TMPD/nopgrep:$PATH" MUKIT_FREE_HOME="$FH2" HOME="$TMPD/home" zsh "$KIT_DIR/play-mu.sh" > /dev/null 2>&1
+    eq 'play-mu free: launcher started in the prefix' "$(tail -1 "$FREC/wine.calls")" "$FP|MuTheMatrix.exe"
+    eq 'play-mu free: prefix wineserver reset' "$(tail -1 "$FREC/wineserver.calls")" "$FP|-k"
+fi
+# refusals
+FP2="$TMPD/freehome2/prefix"; mkdir -p "$FP2"; printf 'x' > "$FP2/system.reg"
+env MUKIT_FREE_HOME="$TMPD/freehome2" "$KIT_DIR/setup-mu-mac.sh" --dry-run --runtime-archive "$TMPD/runtime.tar.xz" --game-dir "$SRC" > /dev/null 2>&1 && bad 'free: refuse an unowned prefix' || ok 'free: refuse an unowned prefix'
+env MUKIT_FREE_HOME="$FH2" "$KIT_DIR/setup-mu-mac.sh" --dry-run --prefix "$MUKIT_BOTTLES_DIR/Inside" --game-dir "$SRC" > /dev/null 2>&1 && bad "free: refuse a prefix in CrossOver's bottles" || ok "free: refuse a prefix in CrossOver's bottles"
+sedi 's/^#arch=win32/#arch=win64/' "$FP/system.reg"
+"${FSETUP[@]}" --dry-run > /dev/null 2>&1 && bad 'free: refuse a 64-bit prefix' || ok 'free: refuse a 64-bit prefix'
+sedi 's/^#arch=win64/#arch=win32/' "$FP/system.reg"
+"${FSETUP[@]}" --dry-run --runtime-archive https://example.invalid/rt.tar.xz > /dev/null 2>&1 && bad 'free: URL archive needs --runtime-sha256' || ok 'free: URL archive needs --runtime-sha256'
+"${FSETUP[@]}" --dry-run --runtime bogus > /dev/null 2>&1 && bad 'refuse bad --runtime' || ok 'refuse bad --runtime'
+"${FSETUP[@]}" --dry-run --game-installer "$TMPD/nope.exe" > /dev/null 2>&1 && bad 'refuse missing --game-installer' || ok 'refuse missing --game-installer'
+env MUKIT_FREE_HOME="$TMPD/freehome3" "$KIT_DIR/setup-mu-mac.sh" --dry-run --game-installer official > "$TMPD/free-official.log" 2>&1
+grep -q 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe' "$TMPD/free-official.log" && ok 'official installer URL planned' || bad 'official installer URL planned'
+grep -q 'wineserver -p 5' "$TMPD/free-official.log" && ok 'free: 32-bit prefix created through the wineserver' || bad 'free: 32-bit prefix created through the wineserver'
+grep -q 'WS12WineCX24.0.7_7.tar.xz' "$TMPD/free-official.log" && ok 'free: default runtime download planned' || bad 'free: default runtime download planned'
+unset MUKIT_WINETRICKS_SHA256
 
 printf '\n%d passed, %d failed\n' "$NPASS" "$NFAIL"
 [ "$NFAIL" = 0 ]

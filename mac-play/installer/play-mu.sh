@@ -34,6 +34,7 @@ if [ "$RUNTIME" = free ]; then
   unset WINEARCH WINEDLLOVERRIDES
   "$RT/wine/bin/wineserver" -k 2>/dev/null
   sleep 1
+  mkdir -p "$HOME/Library/Logs"
   LOG=$HOME/Library/Logs/MuTheMatrix-${PREFIX:t}.log
   cd "$PREFIX/drive_c/MuTheMatrix" || exit 1
   exec "$RT/wine/bin/wine" MuTheMatrix.exe >"$LOG" 2>&1
