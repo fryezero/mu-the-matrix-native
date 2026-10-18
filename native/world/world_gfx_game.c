@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef WG_SKILLS_ONLY   /* tests build the skill decoder alone */
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION 1
 #include <OpenGL/gl.h>
@@ -421,6 +422,8 @@ int wg_items_icons(void *user, const mu_gfx_item_draw *items, int n, uint8_t *rg
     w->icons += w->drawn - before;
     return w->drawn > before ? 0 : 1;
 }
+
+#endif /* WG_SKILLS_ONLY */
 
 /* ---- skills ----------------------------------------------------------------------------- */
 

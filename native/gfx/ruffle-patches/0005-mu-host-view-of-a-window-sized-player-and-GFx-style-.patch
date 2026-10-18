@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: fryezero <108418382+fryezero@users.noreply.github.com>
 Date: Sun, 18 Oct 2026 14:35:25 -0500
-Subject: [PATCH 5/5] mu: host view of a window-sized player and GFx-style hit
+Subject: [PATCH 5/7] mu: host view of a window-sized player and GFx-style hit
  test
 
 Player::set_gfx_view keeps a NoScale stage of the host window's size while

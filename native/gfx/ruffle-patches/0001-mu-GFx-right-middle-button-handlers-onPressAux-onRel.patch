@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: fryezero <108418382+fryezero@users.noreply.github.com>
 Date: Sun, 18 Oct 2026 14:35:24 -0500
-Subject: [PATCH 1/5] mu: GFx right/middle button handlers (onPressAux,
+Subject: [PATCH 1/7] mu: GFx right/middle button handlers (onPressAux,
  onReleaseAux, ...)
 
 Scaleform GFx calls onPressAux/onReleaseAux(controllerIdx, keyboardOrMouse,

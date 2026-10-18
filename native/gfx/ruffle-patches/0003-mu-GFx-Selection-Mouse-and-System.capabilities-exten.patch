@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: fryezero <108418382+fryezero@users.noreply.github.com>
 Date: Sun, 18 Oct 2026 14:35:24 -0500
-Subject: [PATCH 3/5] mu: GFx Selection, Mouse and System.capabilities
+Subject: [PATCH 3/7] mu: GFx Selection, Mouse and System.capabilities
  extensions
 
 Selection.disableFocusKeys (no Tab/arrow focus moves), disableFocusAutoRelease

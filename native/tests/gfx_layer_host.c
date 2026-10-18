@@ -1,4 +1,4 @@
-/* Test host for native/gfx/mu_gfx_layer.c (NATIVE-GFX-002).
+/* Test host for native/gfx/mu_gfx_layer.c (NATIVE-GFX-002/003).
  *
  *   gfx-layer-host MOVIE_DIR LIBMUGFX [OP ...]
  *
@@ -7,8 +7,10 @@
  * three demo items and runs the ops in order:
  *   key VK | text STR | click CELL | rclick CELL | hover CELL | at X Y (click)
  *   | closebtn | advance MS | composite | open MOVIE | print
+ *   | compose STR | invoke MOVIE PATH METHOD JSON ("-" path: the movie's) | items | channels
  * `print` writes one JSON line with the layer state; each input op prints
- * whether the interface took it. */
+ * whether the interface took it.  MU_GFX_SIZE=WxH sets the window size in
+ * points (default 1280x800). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,9 +26,10 @@ static void print_state(mu_gfx_layer *L)
     int32_t v[4];
     mu_gfx_layer_view(L, MU_GFX_INVENTORY, v);
     printf("], \"text_active\": %d, \"chat_sent\": \"%s\", \"main_path\": \"%s\", \"inventory_path\": \"%s\", "
-           "\"inventory_view\": [%d, %d, %d, %d], \"points\": %d}\n",
+           "\"inventory_view\": [%d, %d, %d, %d], \"points\": %d, \"base_mode\": %d, \"chat_path\": \"%s\"}\n",
            mu_gfx_layer_text_active(L), mu_gfx_layer_last_sent(L), mu_gfx_layer_path(L, MU_GFX_MAIN),
-           mu_gfx_layer_path(L, MU_GFX_INVENTORY), v[0], v[1], v[2], v[3], mu_gfx_layer_hero(L)->points);
+           mu_gfx_layer_path(L, MU_GFX_INVENTORY), v[0], v[1], v[2], v[3], mu_gfx_layer_hero(L)->points,
+           mu_gfx_layer_base_mode(L), mu_gfx_layer_path(L, MU_GFX_CHAT));
     fflush(stdout);
 }
 
@@ -46,8 +49,12 @@ int main(int argc, char **argv)
     }
     char error[512];
     double scale = getenv("MU_GFX_SCALE") ? atof(getenv("MU_GFX_SCALE")) : 1.0;
-    mu_gfx_layer_config cfg = {argv[1], argv[2], (int32_t)(1280 * scale), (int32_t)(800 * scale), 1, 0, 0, NULL, NULL,
-                               getenv("MU_GFX_LOG") ? stderr : NULL, scale};
+    int pw = 1280, ph = 800;
+    if (getenv("MU_GFX_SIZE"))
+        sscanf(getenv("MU_GFX_SIZE"), "%dx%d", &pw, &ph);
+    mu_gfx_layer_config cfg = {.movie_dir = argv[1], .lib_path = argv[2], .width = (int32_t)(pw * scale),
+                               .height = (int32_t)(ph * scale), .shared = 1, .log = getenv("MU_GFX_LOG") ? stderr : NULL,
+                               .scale = scale};
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {
         printf("{\"error\": \"%s\"}\n", error);
@@ -101,6 +108,28 @@ int main(int argc, char **argv)
         } else if (!strcmp(op, "open")) {
             mu_gfx_layer_toggle(L, atoi(a));
             i++;
+        } else if (!strcmp(op, "compose")) {
+            printf("compose took %d\n", mu_gfx_layer_compose(L, a, (int)strlen(a)));
+            i++;
+        } else if (!strcmp(op, "invoke") && i + 4 < argc) {
+            const char *path = strcmp(argv[i + 2], "-") ? argv[i + 2] : NULL;
+            const char *r = mu_gfx_layer_invoke(L, atoi(argv[i + 1]), path, argv[i + 3], argv[i + 4]);
+            printf("invoke %s = %s\n", argv[i + 3], r ? r : "(null)");
+            i += 4;
+        } else if (!strcmp(op, "items")) {
+            mu_gfx_item_draw d[16];
+            int n = mu_gfx_layer_item_draws(L, d, 16);
+            for (int k = 0; k < n; k++)
+                printf("{\"item_draw\": %d, \"code\": %d, \"level\": %d, \"slot\": [%.2f, %.2f, %.2f, %.2f], "
+                       "\"rect\": [%.2f, %.2f, %.2f, %.2f], \"frame_scale\": %.2f, \"select\": %d}\n", d[k].item,
+                       d[k].code, d[k].level, d[k].slot[0], d[k].slot[1], d[k].slot[2], d[k].slot[3], d[k].rect[0],
+                       d[k].rect[1], d[k].rect[2], d[k].rect[3], d[k].frame_scale, d[k].select);
+        } else if (!strcmp(op, "channels")) {
+            static const char *const NAMES[] = {"UIFrame", "ASData", "main", "chat", "alarmframe", "topmenu"};
+            printf("{\"channels\": {");
+            for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++)
+                printf("%s\"%s\": \"%s\"", k ? ", " : "", NAMES[k], mu_gfx_layer_channel_path(L, NAMES[k]));
+            printf("}}\n");
         } else {
             fprintf(stderr, "unknown op %s\n", op);
             return 2;

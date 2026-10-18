@@ -2026,14 +2026,10 @@ static void item_draw_from(const mu_gfx_layer *L, int idx, const float rect[4], 
     d->page_type = 1;
 }
 
-/* The per-window item pass of the inventory (0x00abfcca) through the host. */
-static int host_items(mu_gfx_layer *L, const rect_list *R)
+static int build_item_draws(mu_gfx_layer *L, const rect_list *R, mu_gfx_item_draw *draws, int max)
 {
-    if (!L->cfg.items)
-        return 0;
-    mu_gfx_item_draw draws[MAX_ITEMS + 1];
     int n = 0;
-    for (int i = 0; i < R->n; i++) {
+    for (int i = 0; i < R->n && n < max; i++) {
         mu_gfx_item_draw *d = &draws[n++];
         item_draw_from(L, R->item[i], R->r[i], d);
         d->slot[0] = R->call[i].x;     /* the slot pass's own 640 x 480 values */
@@ -2048,10 +2044,32 @@ static int host_items(mu_gfx_layer *L, const rect_list *R)
         d->select = cell >= 0 && cell < L->grid.cols * L->grid.rows && L->grid.cells[cell] &&
                     mu_grid_item_at(&L->grid, cell) == &L->items[R->item[i]].grid;
     }
+    return n;
+}
+
+#ifndef MU_GFX_NO_GL
+/* The per-window item pass of the inventory (0x00abfcca) through the host. */
+static int host_items(mu_gfx_layer *L, const rect_list *R)
+{
+    if (!L->cfg.items)
+        return 0;
+    mu_gfx_item_draw draws[MAX_ITEMS + 1];
+    int n = build_item_draws(L, R, draws, MAX_ITEMS + 1);
     L->cfg.items(L->cfg.items_user, draws, n, L->w, L->h);
     return 1;
 }
+#endif
 
+int mu_gfx_layer_item_draws(mu_gfx_layer *L, mu_gfx_item_draw *out, int max)
+{
+    if (!L || !out)
+        return 0;
+    rect_list R;
+    item_rects(L, &R);
+    return build_item_draws(L, &R, out, max);
+}
+
+#ifndef MU_GFX_NO_GL
 static int host_held(mu_gfx_layer *L, const float r[4])
 {
     if (!L->cfg.items)
@@ -2062,6 +2080,7 @@ static int host_held(mu_gfx_layer *L, const float r[4])
     L->cfg.items(L->cfg.items_user, &d, 1, L->w, L->h);
     return 1;
 }
+#endif
 
 static void blend_px(uint8_t *dst, const uint8_t *src)
 {

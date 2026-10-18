@@ -1,13 +1,19 @@
-/* A stand-in libmugfx for the GFx layer's portable tests (NATIVE-GFX-002).
+/* A stand-in libmugfx for the GFx layer's portable tests (NATIVE-GFX-002/003).
  *
- * Implements the mugfx ABI 2 without Ruffle: each "movie" is a small state
+ * Implements the mugfx ABI 3 without Ruffle: each "movie" is a small state
  * machine that answers the layer the way the converted client movies do
  * (static readings of their ActionScript, docs/research/native-gfx.md):
  * InventoryFrame reports UIInit/requestSlotInfo/requestWindowPos and turns
  * clicks on its 8 x 8 page into requestItemSlotClick/ClickR/Over/Out; main
  * reports onLoad on onFileLoad and onHotKey from onKeyUp; chat reports
  * onLoad, keeps a text buffer and reports onEnterText from onPushText; the
- * other windows report UIInit.  Calls made from inside a callback are queued
+ * other windows report UIInit.  NATIVE-GFX-003: "base" plays the client's
+ * base movie (static readings, docs/research/native-gfx3.md): it reports
+ * base/UIFrame/ASData onLoad at start, loads the LoadFrameFiles list
+ * (main and Chat report onLoad with their paths, alarmframe and topmenu
+ * too, then UIFrame onFileLoad) and is the bar and the chat at once;
+ * mugfx_set_image logs the drawn rows of the image, mugfx_resolve looks in
+ * the movie's directory, mugfx_ime logs.  Calls made from inside a callback are queued
  * and run afterwards, as mugfx does.  Every invoke is appended to the file
  * named by $MUGFX_STUB_LOG.  Synthetic: no client data. */
 #define _POSIX_C_SOURCE 200809L
@@ -22,6 +28,7 @@ typedef struct pending { MuGfx *g; char path[128], method[64], *args; } pending;
 
 struct MuGfx {
     char name[64];
+    char dir[1024];
     mugfx_callback cb;
     void *user;
     int stage_w, stage_h, vx, vy, vw, vh;   /* stage and view in points */
@@ -70,12 +77,15 @@ static void callf(MuGfx *g, const char *name, const char *fmt, double a, double 
 }
 
 static int is(const MuGfx *g, const char *name) { return !strcmp(g->name, name); }
+/* The base movie plays the bar and the chat (NATIVE-GFX-003). */
+static int is_bar(const MuGfx *g) { return is(g, "main") || is(g, "base"); }
+static int is_chat(const MuGfx *g) { return is(g, "chat") || is(g, "base"); }
 
 /* Content rectangle of a movie in stage pixels (what getBounds reports). */
 static void bounds(const MuGfx *g, float r[4])
 {
     if (is(g, "InventoryFrame")) { r[0] = g->win_x; r[1] = g->win_y; r[2] = 332; r[3] = 639; }
-    else if (is(g, "main")) { r[0] = 179; r[1] = 658; r[2] = 921; r[3] = 145; }
+    else if (is(g, "main") || is(g, "base")) { r[0] = 179; r[1] = 658; r[2] = 921; r[3] = 145; }
     else if (is(g, "chat")) { r[0] = 0; r[1] = 562; r[2] = 610; r[3] = 130; }
     else if (is(g, "CharacterInfoFrame")) { r[0] = 0; r[1] = 0; r[2] = 350; r[3] = 640; }
     else { r[0] = 900; r[1] = 300; r[2] = 200; r[3] = 100; }
@@ -104,12 +114,31 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
         bounds(g, r);
         snprintf(g->reply, sizeof g->reply, "{\"xMax\":%.1f,\"xMin\":%.1f,\"yMax\":%.1f,\"yMin\":%.1f}", r[0] + r[2],
                  r[0], r[1] + r[3], r[1]);
+    } else if (is(g, "base") && !strcmp(method, "LoadFrameFiles")) {
+        if (strstr(args, "\"main\""))
+            call(g, "main", "[\"onLoad\",\"_level0.base.UI.mcBottomFrame.main_1.mc\"]");
+        if (strstr(args, "\"Chat\""))
+            call(g, "chat", "[\"onLoad\",\"_level0.base.UI.mcBottom.Chat_2.instance96\"]");
+        if (strstr(args, "\"AlarmFrame\""))
+            call(g, "alarmframe", "[\"onLoad\",\"_level0.base.UI.mcBottom.AlarmFrame_3.instance104\"]");
+        if (strstr(args, "\"topmenu\""))
+            call(g, "topmenu", "[\"onLoad\",\"_level0.base.UI.mcBottom.topmenu_4.instance147\"]");
+        call(g, "UIFrame", "[\"onFileLoad\",{}]");
+    } else if (is(g, "base") && !strcmp(method, "testCall")) {
+        /* test hook: the movie raises a callback, e.g. a menu button's onHotKey */
+        char name[64] = "", rest[400] = "";
+        if (sscanf(args, "[\"%63[^\"]\",%399[^\n]", name, rest) == 2) {
+            size_t n = strlen(rest);
+            if (n && rest[n - 1] == ']')
+                rest[n - 1] = 0;
+            char wrapped[420];
+            snprintf(wrapped, sizeof wrapped, "[%s]", rest);
+            call(g, name, wrapped);
+        }
     } else if (is(g, "main")) {
         if (!strcmp(method, "onFileLoad"))
             call(g, "main", "[\"onLoad\",\"_level0.mc\"]");
-        else if (!strcmp(method, "onKeyUp") && (g->last_vk == 73 || g->last_vk == 67 || g->last_vk == 27))
-            callf(g, "main", "[\"onHotKey\",{\"keyCode\":%.1f}]", g->last_vk, 0);
-    } else if (is(g, "chat")) {
+    } else if (is_chat(g)) {
         if (!strcmp(method, "onFileLoad"))
             call(g, "chat", "[\"onLoad\",\"_level0.mc\"]");
         else if (!strcmp(method, "getText"))
@@ -165,6 +194,7 @@ MuGfx *mugfx_open(const char *path, int width, int height, char *err, size_t cap
     }
     const char *base = strrchr(path, '/');
     snprintf(g->name, sizeof g->name, "%s", base ? base + 1 : path);
+    snprintf(g->dir, sizeof g->dir, "%.*s", base ? (int)(base - path) : 1, base ? path : ".");
     char *dot = strstr(g->name, ".swf");
     if (dot)
         *dot = 0;
@@ -192,7 +222,13 @@ void mugfx_set_callback(MuGfx *g, mugfx_callback cb, void *user)
 
 void mugfx_start(MuGfx *g)
 {
-    if (is(g, "InventoryFrame")) {
+    if (is(g, "base")) {
+        /* base.swf's onLoad loads ExternalBase.swf, whose onLoad reports
+         * the UI frame and the data manager. */
+        call(g, "base", "[\"onLoad\"]");
+        call(g, "UIFrame", "[\"onLoad\",\"_level0.base.UI\"]");
+        call(g, "ASData", "[\"onLoad\",\"_level0.base.DataMan\"]");
+    } else if (is(g, "InventoryFrame")) {
         call(g, "UIInit", "[\"g_mcInventory\"]");
         call(g, "requestSlotInfo", "[24.75,370.0,26.0,26.0,0.0]");
         g->win_x = 348;
@@ -267,6 +303,8 @@ int mugfx_hit_test(MuGfx *g, double x, double y)
         return 0;
     if (is(g, "chat") && !g->edit)
         return 0;   /* the chat view is hitTestDisable while not editing */
+    if (is(g, "base") && g->edit && sx < 610 && sy >= 562 && sy < 692)
+        return 1;   /* the editing chat inside the base movie */
     return sx >= r[0] && sy >= r[1] && sx < r[0] + r[2] && sy < r[1] + r[3];
 }
 
@@ -314,6 +352,7 @@ int mugfx_key(MuGfx *g, int kind, int vk, uint32_t cp, int mods)
 
 int mugfx_text(MuGfx *g, const char *utf8)
 {
+    (void)is_bar;
     if (!g->edit)
         return 0;
     strncat(g->text, utf8, sizeof g->text - strlen(g->text) - 1);
@@ -351,3 +390,49 @@ void mugfx_stats(MuGfx *g, MuGfxStats *out)
 int mugfx_register_font(const char *name, const char *path, int style) { (void)name; (void)path; (void)style; return 0; }
 
 const char *mugfx_fonts_used(MuGfx *g) { (void)g; return ""; }
+
+/* ---- ABI 3 (NATIVE-GFX-003) ---- */
+
+int mugfx_set_image(MuGfx *g, const char *name, int w, int h, const uint8_t *rgba, int stride)
+{
+    if (stride <= 0)
+        stride = w * 4;
+    int x0 = w, x1 = -1, y0 = h, y1 = -1;
+    long opaque = 0;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
+            if (rgba[(size_t)y * (size_t)stride + (size_t)x * 4 + 3]) {
+                opaque++;
+                if (x < x0) x0 = x;
+                if (x > x1) x1 = x;
+                if (y < y0) y0 = y;
+                if (y > y1) y1 = y;
+            }
+    char line[256];
+    snprintf(line, sizeof line, "%dx%d opaque %ld rows %d..%d cols %d..%d", w, h, opaque, y0, y1, x0, x1);
+    logline("%s set_image %s %s%s", g->name, name, line, "");
+    return 0;
+}
+
+int mugfx_resolve(MuGfx *g, const char *name, char *out, size_t cap)
+{
+    char path[2048];
+    const char *file = strrchr(name, '\\');
+    snprintf(path, sizeof path, "%s/%s", g->dir, file ? file + 1 : name);
+    FILE *f = fopen(path, "rb");
+    if (!f)
+        return -1;
+    fclose(f);
+    snprintf(out, cap, "%s", path);
+    return (int)strlen(out);
+}
+
+int mugfx_ime(MuGfx *g, const char *utf8, int cursor, int commit)
+{
+    char c[32];
+    snprintf(c, sizeof c, "%d %d", cursor, commit);
+    logline("%s ime \"%s\" %s%s", g->name, utf8 ? utf8 : "", c, "");
+    return 1;
+}
+
+int mugfx_set_double_buffer(MuGfx *g, int on) { (void)g; (void)on; return -2; }
