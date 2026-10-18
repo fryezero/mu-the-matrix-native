@@ -385,7 +385,16 @@ sedi 's/"WineArch" = "win32"/"WineArch" = "win64"/' "$FB/cxbottle.conf"
 
 echo '# free runtime (no CrossOver): synthetic runtime archive, prefix and winetricks; nothing real runs'
 FH2="$TMPD/freehome"; RTSRC="$TMPD/rtsrc"; FREC="$TMPD/freerec"; mkdir -p "$RTSRC/wine/bin" "$RTSRC/wine/lib/wine/x86_64-unix" "$RTSRC/wine/lib/wine/i386-windows" "$FREC"
-printf '#!/bin/sh\n[ "$1" = --version ] && { echo "wine-11.0 (synthetic)"; exit 0; }\nprintf "%%s|%%s\\n" "${WINEPREFIX:-unset}" "$*" >> "%s/wine.calls"\nexit 0\n' "$FREC" > "$RTSRC/wine/bin/wine"
+cat > "$RTSRC/wine/bin/wine" <<EOS
+#!/bin/sh
+[ "\$1" = --version ] && { echo "wine-11.0 (synthetic)"; exit 0; }
+printf '%s|%s\\n' "\${WINEPREFIX:-unset}" "\$*" >> "$FREC/wine.calls"
+# "wine SETUP.exe /S" stands in for the official game installer: it "installs" two synthetic files.
+case "\$1" in *.exe) if [ "\${2:-}" = /S ]; then
+    d="\$WINEPREFIX/drive_c/Program Files/Glitch Games Network/Mu The Matrix"; mkdir -p "\$d"
+    printf 'fake main' > "\$d/main.exe"; printf 'fake launcher' > "\$d/MuTheMatrix.exe"; fi ;; esac
+exit 0
+EOS
 printf '#!/bin/sh\nprintf "%%s|%%s\\n" "${WINEPREFIX:-unset}" "$*" >> "%s/wineserver.calls"\nexit 0\n' "$FREC" > "$RTSRC/wine/bin/wineserver"
 chmod 755 "$RTSRC/wine/bin/wine" "$RTSRC/wine/bin/wineserver"; : > "$RTSRC/wine/lib/wine/x86_64-unix/ntdll.so"
 mkbuiltin "$RTSRC/wine/lib/wine/i386-windows/opengl32.dll" stand-in
@@ -466,6 +475,123 @@ grep -q 'install fast x87 file x87-main-only-wrapper' "$TMPD/fx-app-dry.log" && 
 "${AFSETUP[@]}" --fast-x87-dir "$TMPD/fx-src-nowrap" > "$TMPD/fx-app-dry2.log" 2>&1
 grep -q 'no x87-main-only-wrapper and no compiler' "$TMPD/fx-app-dry2.log" && ok 'app-layout dry run without any wrapper still warns' || bad 'app-layout dry run without any wrapper still warns'
 no 'app-layout dry runs installed nothing' test -e "$TMPD/freehome4/fast-x87"
+echo '# download progress lines (MUKIT_PROGRESS=lines) with a synthetic curl'
+# The synthetic curl: "-I" (HEAD) prints a Content-Length of 1000; a download appends 100-byte chunks to its -o file,
+# one every MUKIT_TEST_CURL_DELAY seconds, continuing from the current size with -C -. It records its pid and arguments.
+CURLBIN="$TMPD/curlbin"; mkdir -p "$CURLBIN"
+cat > "$CURLBIN/curl" <<'EOS'
+#!/bin/bash
+out=; head=0; resume=0; prev=
+for a in "$@"; do
+    [ "$prev" = -o ] && out=$a
+    [ "$prev" = -C ] && resume=1
+    case "$a" in --*) ;; -*I*) head=1 ;; esac
+    prev=$a
+done
+if [ "$head" = 1 ]; then printf 'HTTP/1.1 200 OK\r\nContent-Length: 1000\r\n\r\n'; exit 0; fi
+echo $$ > "$MUKIT_TEST_REC/curl.pid"; printf '%s\n' "$*" >> "$MUKIT_TEST_REC/curl.calls"
+[ "$resume" = 1 ] && [ -f "$out" ] || : > "$out"
+n=$(wc -c < "$out" | tr -d ' ')
+while [ "$n" -lt 1000 ]; do
+    sleep "${MUKIT_TEST_CURL_DELAY:-0}"
+    head -c 100 /dev/zero >> "$out"; n=$((n + 100))
+done
+exit 0
+EOS
+chmod 755 "$CURLBIN/curl"
+CREC="$TMPD/curlrec"; mkdir -p "$CREC"; export MUKIT_TEST_REC="$CREC"
+P=$(PATH="$CURLBIN:$PATH" MUKIT_PROGRESS=lines MUKIT_TEST_CURL_DELAY=0.3 mukit_download https://example.invalid/big.exe "$TMPD/big.exe.part" -C -); rc=$?
+eq 'progress download exit 0' "$rc" 0
+eq 'progress download size' "$(mukit_file_size "$TMPD/big.exe.part")" 1000
+case "$P" in *'MU-PROGRESS '*' 1000 big.exe'*) ok 'MU-PROGRESS lines with the Content-Length total' ;; *) bad "MU-PROGRESS lines: $P" ;; esac
+eq 'last progress line is complete' "$(printf '%s\n' "$P" | tail -1)" 'MU-PROGRESS 1000 1000 big.exe'
+P=$(PATH="$CURLBIN:$PATH" mukit_download https://example.invalid/big.exe "$TMPD/big2.part" 2>&1)
+case "$P" in *MU-PROGRESS*) bad 'default progress keeps curl bar (no MU-PROGRESS lines)' ;; *) ok 'default progress keeps curl bar (no MU-PROGRESS lines)' ;; esac
+
+echo '# cancel: SIGTERM during the game download, stale locks, --stop'
+# A copy of the free home above with the game removed, so the official-installer path runs (download, then the
+# synthetic wine "installer"). The prefix's wineserver stub records the -k calls.
+FH6="$TMPD/freehome6"; cp -R "$FH2" "$FH6"; FP6="$FH6/prefix"; rm -rf "$FP6/drive_c/MuTheMatrix"
+RT6="$FH6/runtime/$RTID"; : > "$FREC/wineserver.calls"
+CSETUP=(env MUKIT_FREE_HOME="$FH6" PATH="$CURLBIN:$PATH" MUKIT_PROGRESS=lines "$KIT_DIR/setup-mu-mac.sh" --runtime-archive "$TMPD/runtime.tar.xz"
+        --game-installer https://example.invalid/MuTheMatrix-test.exe --mugl-dll "$DLLS/mugl-v75.dll" --mscoree-dll "$DLLS/mscoree.dll"
+        --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify)
+LOCK6="$FH6/.prefix.mukit-lock"; PART6="$FH6/downloads/MuTheMatrix-test.exe.part"
+MUKIT_TEST_CURL_DELAY=0.5 "${CSETUP[@]}" > "$TMPD/cancel1.log" 2>&1 & SP=$!
+t=0; while [ "$(mukit_file_size "$PART6" 2>/dev/null || echo 0)" -lt 200 ] && [ "$t" -lt 100 ]; do sleep 0.1; t=$((t + 1)); done
+yes 'setup holds the lock while it runs' test -f "$LOCK6/owner"
+eq 'lock records the setup pid' "$(mukit_lock_get "$LOCK6" pid)" "$SP"
+eq 'lock records the prefix wineserver' "$(mukit_lock_get "$LOCK6" wineserver)" "$RT6/wine/bin/wineserver"
+yes 'lock owner is alive' mukit_lock_alive "$LOCK6"
+CPID=$(cat "$CREC/curl.pid" 2>/dev/null)
+kill -TERM "$SP"; wait "$SP"; rc=$?
+eq 'SIGTERM: setup exits 143' "$rc" 143
+grep -q 'Stopped: the installation was cancelled' "$TMPD/cancel1.log" && ok 'SIGTERM: setup says it was cancelled' || bad 'SIGTERM: setup says it was cancelled'
+no 'SIGTERM: lock removed' test -e "$LOCK6"
+sleep 0.3
+no 'SIGTERM: the download (curl) was stopped' kill -0 "$CPID" 2>/dev/null
+yes 'SIGTERM: the partial download is kept' test -s "$PART6"
+grep -q "^$FP6|-k\$" "$FREC/wineserver.calls" && ok "SIGTERM: this prefix's wineserver stopped (-k)" || bad "SIGTERM: this prefix's wineserver stopped (-k): $(cat "$FREC/wineserver.calls")"
+eq 'SIGTERM: no other prefix touched' "$(grep -cv "^$FP6|" "$FREC/wineserver.calls")" 0
+grep -q 'MU-PROGRESS [0-9]* 1000 MuTheMatrix-test.exe' "$TMPD/cancel1.log" && ok 'game download reports MU-PROGRESS' || bad 'game download reports MU-PROGRESS'
+# a stale lock (its setup was killed) is taken over; a live one is refused
+mkdir -p "$LOCK6"; printf 'pid=999999\npgid=999999\nprefix=%s\n' "$FP6" > "$LOCK6/owner"
+no 'stale lock owner is not alive' mukit_lock_alive "$LOCK6"
+bash -c 'exec -a setup-mu-mac.sh sleep 30' & LIVE=$!
+sleep 0.2
+printf 'pid=%s\n' "$LIVE" > "$TMPD/live-owner"; mkdir -p "$TMPD/livelock"; cp "$TMPD/live-owner" "$TMPD/livelock/owner"
+yes 'a running setup holds a live lock' mukit_lock_alive "$TMPD/livelock"
+mv "$LOCK6/owner" "$TMPD/stale-owner"; cp "$TMPD/live-owner" "$LOCK6/owner"
+"${CSETUP[@]}" > "$TMPD/cancel-live.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && grep -q 'Another installation is still running (process' "$TMPD/cancel-live.log" && ok 'live lock refused' || bad "live lock refused: $(tail -2 "$TMPD/cancel-live.log")"
+kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
+mv "$TMPD/stale-owner" "$LOCK6/owner"
+: > "$CREC/curl.calls"
+MUKIT_TEST_CURL_DELAY=0 "${CSETUP[@]}" > "$TMPD/cancel2.log" 2>&1; rc=$?
+eq 'Try Again after a cancel: exit 0' "$rc" 0
+grep -q 'taking over the setup lock of an installation that was stopped' "$TMPD/cancel2.log" && ok 'stale lock taken over' || bad 'stale lock taken over'
+grep -q -- '-C -' "$CREC/curl.calls" && ok 'the download resumes (curl -C -)' || bad 'the download resumes (curl -C -)'
+yes 'game installed after the resumed download' test -f "$FP6/drive_c/MuTheMatrix/main.exe"
+no 'lock released after a normal run' test -e "$LOCK6"
+no 'downloaded installer removed' test -e "$FH6/downloads/MuTheMatrix-test.exe"
+# --stop: kills what is left of a stopped setup's process group (only processes naming this install), stops this
+# prefix's wineserver and removes the lock; a lock without an owner file (older kit) is never taken over.
+: > "$FREC/wineserver.calls"
+if command -v perl >/dev/null 2>&1; then
+    # A stand-in for the stopped setup's group: a leader whose command line names this install, and a member that does not.
+    LEFT=$(perl -e 'setpgrp(0, 0); if (fork) { sleep 3000 } else { exec "sleep", "3001" }' "$FH6/downloads/leftover.part" > /dev/null 2>&1 & echo $!)
+    sleep 0.5
+    OTHER=$(ps -A -o pid=,pgid=,command= | awk -v g="$LEFT" '$2 == g && / 3001$/ { print $1 }')
+    yes 'leftover group has a member without the install path' test -n "$OTHER"
+    mkdir -p "$LOCK6"; printf 'pid=999999\npgid=%s\nprefix=%s\nwineserver=%s\n' "$LEFT" "$FP6" "$RT6/wine/bin/wineserver" > "$LOCK6/owner"
+    env MUKIT_FREE_HOME="$FH6" "$KIT_DIR/setup-mu-mac.sh" --runtime free --stop > "$TMPD/stop.log" 2>&1; rc=$?
+    eq '--stop exit 0' "$rc" 0
+    sleep 0.2
+    no '--stop killed the leftover download of that setup' kill -0 "$LEFT" 2>/dev/null
+    yes '--stop left a process that does not name this install alone' kill -0 "$OTHER"
+    grep -q 'stopped 1 leftover process' "$TMPD/stop.log" && ok '--stop reports the leftover it stopped' || bad "--stop reports the leftover it stopped: $(cat "$TMPD/stop.log")"
+    kill "$OTHER" 2>/dev/null
+    no '--stop removed the lock' test -e "$LOCK6"
+    eq "--stop: only this prefix's wineserver -k" "$(cat "$FREC/wineserver.calls")" "$FP6|-k"
+    grep -q 'Stopped. Run the setup again' "$TMPD/stop.log" && ok '--stop says what to do next' || bad '--stop says what to do next'
+else
+    echo 'skip  --stop leftover processes (no perl for setpgrp)'
+fi
+env MUKIT_FREE_HOME="$FH6" "$KIT_DIR/setup-mu-mac.sh" --runtime free --stop > /dev/null 2>&1; rc=$?
+eq '--stop without a lock exit 0' "$rc" 0
+mkdir -p "$LOCK6"
+"${CSETUP[@]}" > "$TMPD/oldlock.log" 2>&1 && bad 'a lock without owner file is refused' || { grep -q 'left by an older version' "$TMPD/oldlock.log" && ok 'a lock without owner file is refused' || bad 'old lock message'; }
+rmdir "$LOCK6"
+# leftovers of a stopped run are cleaned up: an incomplete game copy, a half-unpacked runtime, an unfinished prefix
+mkdir -p "$FP6/drive_c/MuTheMatrix.mukit-partial" "$FH6/runtime/$RTID.partial.engine"; : > "$FP6/.mukit/prefix.incomplete"
+rm -rf "$FP6/drive_c/MuTheMatrix"
+"${FSETUP[@]/$FH2/$FH6}" > "$TMPD/leftovers.log" 2>&1; rc=$?
+eq 'run after leftovers: exit 0' "$rc" 0
+grep -q 'removing the incomplete copy of a stopped installation' "$TMPD/leftovers.log" && ok 'incomplete game copy replaced' || bad 'incomplete game copy replaced'
+yes 'game copied after removing the partial copy' test -f "$FP6/drive_c/MuTheMatrix/main.exe"
+grep -q 'the prefix was being created when an installation stopped' "$TMPD/leftovers.log" && ok 'unfinished prefix step is redone' || bad 'unfinished prefix step is redone'
+no 'prefix marker removed once the step finished' test -e "$FP6/.mukit/prefix.incomplete"
+unset MUKIT_TEST_REC
 unset MUKIT_WINETRICKS_SHA256
 
 printf '\n%d passed, %d failed\n' "$NPASS" "$NFAIL"

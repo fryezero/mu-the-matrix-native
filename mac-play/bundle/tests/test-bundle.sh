@@ -297,6 +297,91 @@ EOF
     printf 'not a plist' > "$MU_SETTINGS_FILE"
     has 'corrupt settings fall back to defaults' "$("$BIN" --print-settings)" "Bottle = $(px MUDefaultBottle)"
     unset MU_SETTINGS_FILE
+
+    echo '# app: an app without the pinned DLLs says so'
+    CB=$("$BIN" --check-bundle); rc=$?
+    eq 'development build: --check-bundle exit 1' "$rc" 1
+    has 'development build: names the missing mugl' "$CB" 'mugl (opengl32.dll, EMBED_MUGL)'
+    has 'development build: names the missing fast x87' "$CB" 'fast x87 translator (EMBED_FAST_X87)'
+    has 'development build: points to make player-app' "$CB" 'make player-app'
+    has 'development build notice' "$(cat "$TMPD/build.log")" 'Do not give it to players'
+
+    echo '# app: Rosetta 2 check and install (stubbed; never runs softwareupdate)'
+    has 'rosetta present'            "$(MU_ROSETTA_CHECK=true "$BIN" --rosetta-status)" 'rosetta: installed'
+    MU_ROSETTA_CHECK=false "$BIN" --rosetta-status >/dev/null; eq 'rosetta missing: exit 1' "$?" 1
+    has 'rosetta missing: Terminal command' "$(MU_ROSETTA_CHECK=false "$BIN" --rosetta-status)" 'sudo softwareupdate --install-rosetta --agree-to-license'
+    RF="$TMPD/rosetta-installed"; rm -f "$RF"
+    R=$(MU_ROSETTA_CHECK="test -f '$RF'" MU_ROSETTA_INSTALL="touch '$RF'; echo Install of Rosetta 2 finished successfully" "$BIN" --install-rosetta); rc=$?
+    eq 'rosetta install: exit 0' "$rc" 0
+    has 'rosetta install: installed' "$R" 'rosetta: installed'
+    [ -f "$RF" ] && ok 'rosetta install: the install command ran' || bad 'rosetta install: the install command ran'
+    R=$(MU_ROSETTA_CHECK=false MU_ROSETTA_INSTALL="echo 'execution error: User canceled. (-128)' >&2; exit 1" "$BIN" --install-rosetta); rc=$?
+    eq 'rosetta prompt declined: exit 1' "$rc" 1
+    has 'rosetta prompt declined: said so' "$R" 'the administrator prompt was cancelled'
+    R=$(MU_ROSETTA_CHECK=true MU_ROSETTA_INSTALL="touch '$TMPD/should-not-run'" "$BIN" --install-rosetta)
+    has 'rosetta already there: nothing to do' "$R" 'already installed'
+    [ ! -e "$TMPD/should-not-run" ] && ok 'rosetta already there: install not run' || bad 'rosetta already there: install not run'
+
+    echo '# app: Cancel stops the whole installer tree (fake long-running installer)'
+    # The fake installer starts two children: one that dies on SIGTERM and one that ignores it (needs the SIGKILL).
+    # With FAKE_IGNORE_TERM=1 the installer itself ignores SIGTERM too, so only the escalation after the grace stops it.
+    FAKE="$TMPD/fake-setup.sh"; CR="$TMPD/cancelrec"
+    cat > "$FAKE" <<'EOS'
+#!/bin/bash
+case " $* " in *" --stop "*) printf '%s\n' "$*" >> "$MU_TEST_REC/stop.calls"; echo 'Stopped. (fake clean-up)'; exit 0 ;; esac
+[ "${FAKE_IGNORE_TERM:-0}" = 1 ] && trap '' TERM
+printf '%s %s %s\n' "$$" "$(ps -o pgid= -p $$ | tr -d ' ')" "${MUKIT_PROGRESS:-unset}" > "$MU_TEST_REC/setup.pid"
+sleep 1000 & echo $! > "$MU_TEST_REC/child1.pid"
+bash -c 'trap "" TERM; exec sleep 1001' & echo $! > "$MU_TEST_REC/child2.pid"
+echo '== 7/14 game files'
+i=0; while :; do i=$((i + 1)); echo "MU-PROGRESS $((i * 1000000)) 10000000 fake.exe"; sleep 1; done
+EOS
+    chmod 755 "$FAKE"
+    cancel_case() {   # LABEL [env...]: start --install, cancel it with SIGINT once it runs, check that everything stopped
+        local label=$1 app t=0 rc s c1 c2 alive
+        shift; rm -rf "$CR"; mkdir -p "$CR"
+        env MU_TEST_REC="$CR" MU_SETUP_SCRIPT="$FAKE" MU_CANCEL_GRACE=2 MUKIT_FREE_HOME="$TMPD/cancelhome" "$@" "$BIN" --install > "$CR/out" 2>&1 &
+        app=$!
+        while [ ! -s "$CR/child2.pid" ] && [ "$t" -lt 100 ]; do sleep 0.1; t=$((t + 1)); done
+        sleep 1.5
+        read -r s pg mp < "$CR/setup.pid"; c1=$(cat "$CR/child1.pid"); c2=$(cat "$CR/child2.pid")
+        eq "$label: installer leads its own process group" "$pg" "$s"
+        [ "$pg" != "$(ps -o pgid= -p $$ | tr -d ' ')" ] && ok "$label: not the caller's group" || bad "$label: not the caller's group"
+        eq "$label: installer asked for progress lines" "$mp" lines
+        t=$(date +%s); kill -INT "$app"; wait "$app"; rc=$?; t=$(( $(date +%s) - t ))
+        eq "$label: app exit status" "$rc" 130
+        alive=; for p in "$s" "$c1" "$c2"; do kill -0 "$p" 2>/dev/null && alive="$alive $p"; done
+        eq "$label: installer and children stopped" "$alive" ''
+        for p in "$s" "$c1" "$c2"; do kill -9 "$p" 2>/dev/null; done
+        eq "$label: clean-up run for this prefix" "$(cat "$CR/stop.calls" 2>/dev/null)" '--runtime free --stop'
+        has "$label: tells how to continue" "$(cat "$CR/out")" 'Run it again to continue'
+        has "$label: condensed download progress" "$(cat "$CR/out")" 'downloading fake.exe: '
+        CANCEL_SECONDS=$t
+    }
+    cancel_case 'cancel'
+    [ "$CANCEL_SECONDS" -lt 2 ] && ok 'cancel: no wait when the installer stops at once' || bad "cancel: took $CANCEL_SECONDS s"
+    cancel_case 'cancel (installer ignores SIGTERM)' FAKE_IGNORE_TERM=1
+    [ "$CANCEL_SECONDS" -ge 2 ] && [ "$CANCEL_SECONDS" -lt 8 ] && ok 'cancel: SIGKILL after the 2 s grace' || bad "cancel escalation took $CANCEL_SECONDS s"
+    has 'app log records the escalation' "$(cat "$TMPD/logs/app.log")" 'still running after 2 s, SIGKILL'
+
+    echo '# make player-app: refuses an app without the pinned files'
+    PB="$TMPD/pbuild"
+    if make -C "$BUNDLE_DIR" B="$PB" player-app >"$TMPD/player1.log" 2>&1; then bad 'player-app without embeds fails'; else ok 'player-app without embeds fails'; fi
+    has 'player-app names EMBED_MUGL'   "$(cat "$TMPD/player1.log")" 'EMBED_MUGL=/path/to/opengl32.dll'
+    has 'player-app names EMBED_FAST_X87' "$(cat "$TMPD/player1.log")" 'EMBED_FAST_X87=/path/to/fast-x87'
+    [ ! -e "$PB/Mu The Matrix.app" ] && ok 'player-app built nothing' || bad 'player-app built nothing'
+    EMB="$TMPD/embeds"; mkdir -p "$EMB/fx"
+    printf 'MZ synthetic mugl' > "$EMB/opengl32.dll"; printf 'MZ synthetic mscoree' > "$EMB/mscoree.dll"
+    for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87; do printf 'stub' > "$EMB/fx/$f"; done
+    if make -C "$BUNDLE_DIR" B="$PB" player-app EMBED_MUGL="$EMB/opengl32.dll" EMBED_MSCOREE="$EMB/mscoree.dll" EMBED_FAST_X87="$EMB" >"$TMPD/player2.log" 2>&1; then
+        bad 'player-app refuses a fast x87 folder without the translator'; else ok 'player-app refuses a fast x87 folder without the translator'; fi
+    if make -C "$BUNDLE_DIR" B="$PB" player-app EMBED_MUGL="$EMB/opengl32.dll" EMBED_MSCOREE="$EMB/mscoree.dll" EMBED_FAST_X87="$EMB/fx" >"$TMPD/player3.log" 2>&1; then
+        ok 'player-app with all three embeds'; else bad "player-app with all three embeds: $(tail -5 "$TMPD/player3.log")"; fi
+    PBIN="$PB/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
+    has 'player app: bundle complete' "$("$PBIN" --check-bundle)" 'bundle complete'
+    ID=$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$PBIN" --install-dry-run 2>&1)
+    has 'player app installs the bundled mugl' "$ID" 'is not a pinned mugl build'
+    has 'player app installs the bundled fast x87' "$ID" 'install fast x87 file x87-main-only-wrapper'
 fi
 
 echo

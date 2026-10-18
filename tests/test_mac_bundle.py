@@ -84,6 +84,22 @@ class BundleConsistency(unittest.TestCase):
         makefile = (ROOT / 'Makefile').read_text()
         self.assertIn('bash mac-play/bundle/tests/test-bundle.sh', makefile)
         self.assertIn('mac-bundle:', makefile)
+        self.assertIn('player-app:\n\t$(MAKE) -C mac-play/bundle player-app', makefile)
+
+    def test_player_app_requires_the_pinned_files(self):
+        # MAC-APP-002: an app without mugl, the mscoree proxy and fast x87 installs a ~4 fps game whose final check
+        # fails, so the player build refuses to build without them and verifies the result.
+        makefile = (BUNDLE / 'Makefile').read_text()
+        target = makefile[makefile.index('\nplayer-app:'):]
+        target = target[:target.index('\n\n')]
+        for var in ('EMBED_MUGL', 'EMBED_MSCOREE', 'EMBED_FAST_X87'):
+            with self.subTest(var=var):
+                self.assertIn(f'if [ -z "$({var})" ]', target)
+        self.assertIn('exit 1', target)
+        self.assertIn('--check-bundle', target)
+        swift = (BUNDLE / 'Sources' / 'main.swift').read_text()
+        self.assertIn('case "--check-bundle":', swift)
+        self.assertIn('This copy of Mu The Matrix is incomplete', swift)
 
 
 if __name__ == '__main__':

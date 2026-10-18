@@ -77,13 +77,18 @@ Usage: setup-mu-mac.sh [options]
   --timewalker-dir DIR   Existing rosetta-timewalker checkout/build, used only with --fast-x87.
   --ac-variant V         TODO hook: with-ac (default, unchanged client) | no-ac (not implemented).
   --skip-verify          Do not run verify-mu-mac.sh at the end.
+  --stop                 Stop a running or interrupted setup for this prefix/bottle and clean up: ends the setup
+                         and what it started (downloads, winetricks), stops this prefix's wineserver only, and removes
+                         the setup lock. Downloads already made are kept, so the next run continues them.
   -h, --help             This help.
 
 Environment: MUKIT_RUNTIME (free|crossover), MUKIT_FREE_HOME (free runtime folder), CX_ROOT (CrossOver
              runtime dir), WINETRICKS (winetricks executable; default: the pinned download for the free runtime),
              MINGW_CC (default i686-w64-mingw32-gcc), MU_DLL_DIR, MU_DOTNET48_INSTALLER,
              MU_TIMEWALKER_DIR, MUKIT_BOTTLES_DIR, MUKIT_BUILD_DIR, MUKIT_PRIVATE_BUILD_DIR, MUKIT_PYTHON (default python3, for the public mugl's gen.py),
-             MUKIT_EXTRA_PROTECTED_BOTTLES.
+             MUKIT_EXTRA_PROTECTED_BOTTLES, MUKIT_PROGRESS (lines: "MU-PROGRESS BYTES TOTAL NAME" download
+             progress lines instead of curl's bar; Mu The Matrix.app sets it), MUKIT_STOP_GRACE (--stop: seconds
+             before a setup that ignores SIGTERM is killed, default 10).
 EOF
 }
 
@@ -119,6 +124,7 @@ FAST_X87=0
 FAST_X87_DIR=
 AC_VARIANT=with-ac
 SKIP_VERIFY=0
+STOP=0
 MINGW_CC=${MINGW_CC:-i686-w64-mingw32-gcc}
 
 need_arg() { [ "$2" -ge 2 ] || mukit_die "$1 needs a value"; }
@@ -154,6 +160,7 @@ while [ "$#" -gt 0 ]; do
         --fast-x87-dir)  need_arg "$1" "$#"; FAST_X87_DIR=$2; FAST_X87=1; shift 2 ;;
         --ac-variant)    need_arg "$1" "$#"; AC_VARIANT=$2; shift 2 ;;
         --skip-verify)   SKIP_VERIFY=1; shift ;;
+        --stop)          STOP=1; shift ;;
         -h|--help)       usage; exit 0 ;;
         *)               mukit_die "Unknown argument: $1 (see --help)" ;;
     esac
@@ -198,7 +205,12 @@ PRIVATE_BUILD_DIR=${MUKIT_PRIVATE_BUILD_DIR:-$MAC_PLAY/hotpatch/build/private}  
 # ~/.cache/winetricks, not ~/Library/Caches/winetricks. Pin it (W_CACHE overrides).
 WT_CACHE=${W_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/winetricks}
 DOTNET_APPLIED=0
-LOCK=
+# One setup per prefix: the lock directory and the wineserver that serves this prefix (stopped on cancel).
+LOCK_DIR=$MUKIT_BOTTLES_DIR; [ "$RUNTIME" = free ] && LOCK_DIR=$FREE_HOME
+LOCK_PATH="$LOCK_DIR/.$BOTTLE.mukit-lock"
+LOCK=                                              # set while this run holds LOCK_PATH
+PREFIX_WINESERVER="$CX_ROOT/bin/wineserver"; [ "$RUNTIME" = free ] && PREFIX_WINESERVER=$WINESERVER_BIN
+LEFTOVER_PATHS=("$PREFIX"); [ "$RUNTIME" = free ] && LEFTOVER_PATHS=("$FREE_HOME" "$PREFIX")
 
 say()  { printf '%s\n' "$*"; }
 skip() { printf '  [ok]   %s\n' "$*"; }
@@ -348,14 +360,92 @@ preflight() {
         [ -z "$(find "$GAME_SRC" -type l -print -quit)" ] || mukit_die '--game-dir contains symlinks; refusing (the copy could point back into another install).'
     fi
     pick_display_modes
-    if [ "$DRY_RUN" = 0 ]; then
-        local lockdir=$MUKIT_BOTTLES_DIR
-        [ "$RUNTIME" = free ] && lockdir=$FREE_HOME
-        mkdir -p "$lockdir"
-        LOCK="$lockdir/.$BOTTLE.mukit-lock"
-        mkdir "$LOCK" 2>/dev/null || mukit_die "Setup lock exists: $LOCK. Another installation is still running: wait for it, or restart the Mac. If none is running, delete that folder and try again."
-        trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+    [ "$DRY_RUN" = 1 ] || acquire_lock
+}
+
+# ---- setup lock and stopping --------------------------------------------------------
+# acquire_lock: take LOCK_PATH. A lock left by a setup that is gone (cancelled and killed, app quit, Mac restarted)
+# is stale: what is left of that setup's process group is stopped and the lock is taken over.
+acquire_lock() {
+    mkdir -p "$LOCK_DIR" || mukit_die "Cannot create $LOCK_DIR"
+    if ! mkdir "$LOCK_PATH" 2>/dev/null; then
+        [ -f "$LOCK_PATH/owner" ] || sleep 2   # a setup that started a moment ago writes its owner file now
+        if [ ! -f "$LOCK_PATH/owner" ]; then
+            mukit_die "Setup lock exists: $LOCK_PATH (left by an older version, or another installation is starting). If no installation is running, delete that folder and try again."
+        fi
+        if mukit_lock_alive "$LOCK_PATH"; then
+            mukit_die "Setup lock exists: $LOCK_PATH. Another installation is still running (process $(mukit_lock_get "$LOCK_PATH" pid)): wait for it to finish, or stop it first (Cancel in Mu The Matrix, or setup-mu-mac.sh --stop)."
+        fi
+        say "  [note] taking over the setup lock of an installation that was stopped (process $(mukit_lock_get "$LOCK_PATH" pid) is gone)"
+        local n; n=$(mukit_kill_group_leftovers "$(mukit_lock_get "$LOCK_PATH" pgid)" "${LEFTOVER_PATHS[@]}")
+        [ "$n" = 0 ] || say "  [note] stopped $n leftover process(es) of that installation"
+        rm -f "$LOCK_PATH/owner"; rmdir "$LOCK_PATH" 2>/dev/null
+        mkdir "$LOCK_PATH" 2>/dev/null || mukit_die "Setup lock exists: $LOCK_PATH. Another installation has just started."
     fi
+    LOCK=$LOCK_PATH
+    printf 'pid=%s\npgid=%s\nprefix=%s\nwineserver=%s\nstarted=%s\n' "$$" "$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')" \
+        "$PREFIX" "$PREFIX_WINESERVER" "$(date '+%Y-%m-%d %H:%M:%S')" > "$LOCK/owner"
+}
+release_lock() {
+    [ -n "$LOCK" ] || return 0
+    rm -f "$LOCK/owner"; rmdir "$LOCK" 2>/dev/null
+    LOCK=
+}
+
+# stop_prefix_wineserver [WINESERVER]: stop this prefix's wineserver and every Wine process attached to it
+# (wineserver -k with an explicit WINEPREFIX). Only for a prefix this setup created; never another prefix's server.
+stop_prefix_wineserver() {
+    local ws=${1:-$PREFIX_WINESERVER} w t=0
+    [ -n "$ws" ] && [ -x "$ws" ] || return 0
+    [ "$(cat "$STATE/owner" 2>/dev/null)" = "$OWNER_MARKER" ] || return 0
+    WINEPREFIX="$PREFIX" "$ws" -k >/dev/null 2>&1 & w=$!
+    while kill -0 "$w" 2>/dev/null && [ "$t" -lt 15 ]; do sleep 1; t=$((t + 1)); done
+    kill "$w" 2>/dev/null
+    wait "$w" 2>/dev/null
+    return 0
+}
+
+# A cancel (Mu The Matrix sends SIGTERM to the whole process group) or Ctrl-C: end the background jobs, stop this
+# prefix's Wine processes, free the lock. Downloads keep their .part files, so the next run continues them.
+on_signal() {
+    trap '' INT TERM HUP
+    exec 2>/dev/null   # no "Terminated: 15" job notices for the download that was stopped with us
+    local j
+    for j in $(jobs -p); do kill -TERM "$j" 2>/dev/null; done
+    say 'Stopped: the installation was cancelled. Run it again to continue; finished steps and downloads are kept.'
+    stop_prefix_wineserver
+    release_lock
+    exit "$1"
+}
+
+# --stop: stop a setup that is still running for this prefix (or what is left of one), then clean up.
+stop_install() {
+    local pid= pgid= ws= n=0 t=0 cur=
+    say "Stopping the setup for $PREFIX"
+    if [ -d "$LOCK_PATH" ]; then
+        pid=$(mukit_lock_get "$LOCK_PATH" pid); pgid=$(mukit_lock_get "$LOCK_PATH" pgid); ws=$(mukit_lock_get "$LOCK_PATH" wineserver)
+        if [ -f "$LOCK_PATH/owner" ] && mukit_lock_alive "$LOCK_PATH"; then
+            say "  setup process $pid is still running: stopping it"
+            kill -TERM "$pid" 2>/dev/null
+            while kill -0 "$pid" 2>/dev/null && [ "$t" -lt "${MUKIT_STOP_GRACE:-10}" ]; do sleep 1; t=$((t + 1)); done
+            kill -0 "$pid" 2>/dev/null && { say "  it did not stop within ${MUKIT_STOP_GRACE:-10} s: killing it"; kill -KILL "$pid" 2>/dev/null; }
+        fi
+        n=$(mukit_kill_group_leftovers "$pgid" "${LEFTOVER_PATHS[@]}")
+        [ "$n" = 0 ] || say "  stopped $n leftover process(es) (downloads, winetricks)"
+    fi
+    # The server binary recorded in the lock, else this run's, else the one the launcher uses.
+    if [ -z "$ws" ] || [ ! -x "$ws" ]; then ws=$PREFIX_WINESERVER; fi
+    if [ ! -x "$ws" ] && [ "$RUNTIME" = free ]; then
+        cur=$(cat "$FREE_HOME/runtime/current" 2>/dev/null | tr -d '\r\n ')
+        [ -z "$cur" ] || ws=$(mukit_rt_wineserver "$FREE_HOME/runtime/$cur")
+    fi
+    stop_prefix_wineserver "$ws"
+    if [ -d "$LOCK_PATH" ]; then
+        if [ -f "$LOCK_PATH/owner" ] && mukit_lock_alive "$LOCK_PATH"; then mukit_die "The setup holding $LOCK_PATH is still running."; fi
+        rm -f "$LOCK_PATH/owner"; rmdir "$LOCK_PATH" 2>/dev/null || mukit_die "Could not remove the setup lock $LOCK_PATH"
+        say "  removed the setup lock"
+    fi
+    say 'Stopped. Run the setup again to continue: finished steps and downloads are kept.'
 }
 
 # The repository's public mugl (mac-play/mugl) has no display-mode hook.
@@ -403,7 +493,8 @@ extract_into() {   # extract_into ARCHIVE DIR
 }
 apply_runtime() {
     local dl="$FREE_HOME/downloads" tmp="$RT_DIR.partial" f
-    [ ! -e "$tmp" ] || mukit_run rm -rf -- "$tmp"
+    # Leftovers of an unpack that was stopped half-way.
+    for f in "$tmp" "$tmp.engine" "$tmp.template"; do [ ! -e "$f" ] || mukit_run rm -rf -- "$f"; done
     if [ -n "$RT_ARCHIVE" ]; then
         todo "install the Wine runtime from $RT_ARCHIVE"
         f=$RT_ARCHIVE
@@ -463,6 +554,7 @@ apply_winetricks_tool() {
 # 32-bit registry ("#arch=win32") when it is started with it, and the loader then runs the prefix in
 # "32-bit prefix in Wow64 mode". 64-bit prefixes fail (the protected client far-jumps to selector 0x33).
 check_prefix() {
+    if [ -f "$STATE/prefix.incomplete" ]; then say '  [redo] the prefix was being created when an installation stopped'; return 1; fi
     if [ -f "$PREFIX/system.reg" ]; then
         local arch; arch=$(mukit_prefix_arch "$PREFIX")
         [ "$arch" = win32 ] || mukit_die "Prefix $PREFIX is '${arch:-unknown}', not win32. Delete it and rerun (64-bit prefixes cannot run the game)."
@@ -481,6 +573,7 @@ apply_prefix() {
         wine_bottle wineboot -i
         return 0
     fi
+    : > "$STATE/prefix.incomplete"   # removed once wineboot has finished; a stopped run redoes this step
     WINEARCH=win32 WINEPREFIX="$PREFIX" "$WINESERVER_BIN" -p 5 || mukit_die 'could not start the wineserver'
     # wine-mono/gecko would only be replaced by .NET 4.8 later; skip their install prompts.
     steplog prefix mukit_run "${WINE_ENV[@]}" WINEPREFIX="$PREFIX" WINEDEBUG=-all WINEDLLOVERRIDES='mscoree,mshtml=' \
@@ -488,6 +581,7 @@ apply_prefix() {
     wineserver_wait
     [ "$(mukit_prefix_arch "$PREFIX")" = win32 ] || mukit_die "New prefix is not 32-bit (see $STATE/prefix.log); delete $PREFIX and rerun."
     [ ! -e "$PREFIX/drive_c/windows/syswow64" ] || mukit_die 'New prefix has syswow64 (not a 32-bit prefix).'
+    rm -f "$STATE/prefix.incomplete"
 }
 
 # --- 2. bottle ---------------------------------------------------------------
@@ -603,7 +697,11 @@ apply_game() {
     }
     todo "copy client from $GAME_SRC to C:\\MuTheMatrix (APFS clone when possible)"
     local partial="$GAME.mukit-partial"
-    [ ! -e "$partial" ] || mukit_die "Incomplete copy at $partial; inspect and remove it, then rerun."
+    # An incomplete copy (the previous run was stopped) is a copy of $GAME_SRC inside this setup's own prefix: start over.
+    if [ -e "$partial" ]; then
+        say "  [note] removing the incomplete copy of a stopped installation ($partial)"
+        mukit_run rm -rf -- "$partial"
+    fi
     [ ! -e "$GAME" ] || [ -z "$(ls -A "$GAME" 2>/dev/null)" ] || mukit_die "$GAME exists without main.exe/MuTheMatrix.exe; inspect it first."
     mukit_run mkdir -p "$PREFIX/drive_c"
     # macOS: APFS clone (cp -c). Elsewhere (the Linux test run) a plain copy.
@@ -1016,4 +1114,9 @@ main() {
     fi
     [ "$SKIP_VERIFY" = 1 ] || "$KIT_DIR/verify-mu-mac.sh" "${vargs[@]}"
 }
+if [ "$STOP" = 1 ]; then stop_install; exit 0; fi
+trap release_lock EXIT
+trap 'on_signal 130' INT
+trap 'on_signal 143' TERM
+trap 'on_signal 129' HUP
 main

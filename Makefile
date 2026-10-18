@@ -68,6 +68,10 @@ mac-hotpatch:
 mac-bundle:
 	$(MAKE) -C mac-play/bundle
 
+# Mu The Matrix.app for players: needs EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=... (see mac-play/bundle/README.md).
+player-app:
+	$(MAKE) -C mac-play/bundle player-app
+
 mac-diagnostics:
 	$(MAKE) -C mac-play/diagnostics
 
@@ -77,4 +81,4 @@ integration:
 windows:
 	$(MAKE) -C windows-capture
 
-.PHONY: all test integration windows mugl mac-bundle mac-diagnostics mac-hotpatch native-viewer
+.PHONY: all test integration windows mugl mac-bundle player-app mac-diagnostics mac-hotpatch native-viewer

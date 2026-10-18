@@ -190,8 +190,181 @@ func errorTitle(_ code: Int, free: Bool = false) -> String {
     }
 }
 
+/// A child process in its own process group (posix_spawn with POSIX_SPAWN_SETPGROUP), so everything it starts
+/// (curl, tar, winetricks, Wine) can be signalled at once with kill(-pgid). stdout and stderr arrive as chunks on a
+/// background queue; `onExit` gets the exit status (128 + signal number when it was killed by a signal).
+final class ProcessGroupChild {
+    let pid: pid_t
+    private let lock = NSLock()
+    private var exitStatus: Int32?
+    private var reader: FileHandle?            // kept: closing it would SIGPIPE the child
+    var status: Int32? { lock.lock(); defer { lock.unlock() }; return exitStatus }
+    var isRunning: Bool { status == nil }
+
+    init(executable: String, arguments: [String], environment: [String: String],
+         output: @escaping (Data) -> Void, onExit: @escaping (Int32) -> Void) throws {
+        var fds: [Int32] = [-1, -1]
+        guard pipe(&fds) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        var actions: posix_spawn_file_actions_t?
+        posix_spawn_file_actions_init(&actions)
+        defer { posix_spawn_file_actions_destroy(&actions) }
+        posix_spawn_file_actions_addopen(&actions, 0, "/dev/null", O_RDONLY, 0)
+        posix_spawn_file_actions_adddup2(&actions, fds[1], 1)
+        posix_spawn_file_actions_adddup2(&actions, fds[1], 2)
+        var attr: posix_spawnattr_t?
+        posix_spawnattr_init(&attr)
+        defer { posix_spawnattr_destroy(&attr) }
+        posix_spawnattr_setpgroup(&attr, 0)                       // new group, id = the child's pid
+        var noSignals = sigset_t(); sigemptyset(&noSignals)
+        posix_spawnattr_setsigmask(&attr, &noSignals)
+        var defaults = sigset_t(); sigfillset(&defaults); sigdelset(&defaults, SIGKILL); sigdelset(&defaults, SIGSTOP)
+        posix_spawnattr_setsigdefault(&attr, &defaults)
+        // CLOEXEC_DEFAULT: the child gets only fds 0-2, none of the app's own descriptors.
+        posix_spawnattr_setflags(&attr, Int16(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_CLOEXEC_DEFAULT))
+        let argv: [UnsafeMutablePointer<CChar>?] = ([executable] + arguments).map { strdup($0) } + [nil]
+        let envp: [UnsafeMutablePointer<CChar>?] = environment.map { strdup("\($0.key)=\($0.value)") } + [nil]
+        defer { argv.forEach { free($0) }; envp.forEach { free($0) } }
+        var child: pid_t = 0
+        let rc = posix_spawn(&child, executable, &actions, &attr, argv, envp)
+        close(fds[1])
+        guard rc == 0 else { close(fds[0]); throw POSIXError(POSIXErrorCode(rawValue: rc) ?? .EIO) }
+        pid = child
+        let reader = FileHandle(fileDescriptor: fds[0], closeOnDealloc: true)
+        self.reader = reader
+        reader.readabilityHandler = { h in
+            let data = h.availableData
+            if data.isEmpty { h.readabilityHandler = nil } else { output(data) }
+        }
+        // A plain thread blocks in waitpid for this one pid (Foundation's Process never reaps it).
+        Thread { [self] in
+            var st: Int32 = 0
+            while waitpid(child, &st, 0) < 0 && errno == EINTR {}
+            let code = (st & 0x7f) == 0 ? (st >> 8) & 0xff : 128 + (st & 0x7f)
+            lock.lock(); exitStatus = code; lock.unlock()
+            onExit(code)
+        }.start()
+    }
+
+    /// Sends `sig` to the whole process group (ESRCH, an empty group, is ignored).
+    func signalGroup(_ sig: Int32) { kill(-pid, sig) }
+}
+
+/// Splits a byte stream into lines; curl's carriage returns count as line ends too.
+final class LineSplitter {
+    private var buffer = Data()
+    private let lock = NSLock()
+    func feed(_ chunk: Data, _ line: (String) -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        buffer.append(chunk)
+        while let i = buffer.firstIndex(where: { $0 == 10 || $0 == 13 }) {
+            let l = String(decoding: buffer[buffer.startIndex..<i], as: UTF8.self)
+            buffer.removeSubrange(buffer.startIndex...i)
+            if !l.isEmpty { line(l) }
+        }
+    }
+}
+
+/// Turns the installer's "MU-PROGRESS BYTES TOTAL NAME" lines (one per second while it downloads) into
+/// "812 MB of 2.18 GB (37%) · 4.2 MB/s · about 5 minutes left". The speed is the average of the last 20 seconds.
+final class DownloadMeter {
+    private(set) var name = ""
+    private(set) var bytes: Int64 = 0
+    private(set) var total: Int64 = 0
+    private var samples: [(t: TimeInterval, b: Int64)] = []
+
+    /// Returns false when `line` is not a progress line.
+    @discardableResult
+    func feed(_ line: String, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> Bool {
+        let f = line.split(separator: " ")
+        guard f.count >= 3, f[0] == "MU-PROGRESS", let b = Int64(f[1]), let t = Int64(f[2]) else { return false }
+        let n = f.count > 3 ? f[3...].joined(separator: " ") : ""
+        if n != name || b < bytes { samples = [] }
+        name = n; bytes = b; total = t
+        samples.append((now, b))
+        samples.removeAll { now - $0.t > 20 }
+        return true
+    }
+
+    /// Bytes per second, nil until there are a few seconds of samples.
+    var speed: Double? {
+        guard let first = samples.first, let last = samples.last, last.t - first.t >= 3 else { return nil }
+        return Double(last.b - first.b) / (last.t - first.t)
+    }
+    var fraction: Double? { total > 0 ? min(1, Double(bytes) / Double(total)) : nil }
+
+    private static let formatter: ByteCountFormatter = {
+        let f = ByteCountFormatter(); f.countStyle = .file; f.allowsNonnumericFormatting = false   // "0 bytes", not "Zero KB"
+        return f
+    }()
+    static func size(_ b: Int64) -> String { formatter.string(fromByteCount: b) }
+
+    static func timeLeft(_ seconds: Double) -> String {
+        if seconds < 60 { return "less than a minute left" }
+        let m = Int((seconds / 60).rounded())
+        if m < 60 { return "about \(m) minute\(m == 1 ? "" : "s") left" }
+        let h = m / 60, r = m % 60
+        return "about \(h) hour\(h == 1 ? "" : "s")" + (r == 0 ? "" : " \(r) min") + " left"
+    }
+
+    var summary: String {
+        var parts: [String] = []
+        if total > 0 { parts.append("\(Self.size(bytes)) of \(Self.size(total)) (\(Int((fraction ?? 0) * 100))%)") }
+        else { parts.append(Self.size(bytes)) }
+        if let s = speed {
+            if s > 0 {
+                parts.append("\(Self.size(Int64(s)))/s")
+                if total > bytes { parts.append(Self.timeLeft(Double(total - bytes) / s)) }
+            } else { parts.append("waiting for data…") }
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// Rosetta 2 (Apple's translator for Intel programs; the Wine runtime is x86_64). MU_ROSETTA_CHECK and
+/// MU_ROSETTA_INSTALL replace the check and the install command (tests).
+enum Rosetta {
+    static func isInstalled() -> Bool {
+        let env = ProcessInfo.processInfo.environment
+        if let cmd = env["MU_ROSETTA_CHECK"], !cmd.isEmpty { return run("/bin/sh", ["-c", cmd]).status == 0 }
+        var info = utsname(); uname(&info)
+        let machine = withUnsafeBytes(of: &info.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+        guard machine == "arm64" else { return true }
+        return run("/usr/bin/arch", ["-x86_64", "/usr/bin/true"]).status == 0
+    }
+
+    static let terminalCommand = "sudo softwareupdate --install-rosetta --agree-to-license"
+
+    /// Installs Rosetta through the standard macOS administrator prompt (osascript "with administrator privileges").
+    static func install() -> (ok: Bool, declined: Bool, output: String) {
+        let r: (status: Int32, output: String)
+        if let cmd = ProcessInfo.processInfo.environment["MU_ROSETTA_INSTALL"], !cmd.isEmpty {
+            r = run("/bin/sh", ["-c", cmd])
+        } else {
+            let script = "do shell script \"/usr/sbin/softwareupdate --install-rosetta --agree-to-license\" with prompt "
+                + "\"Mu The Matrix wants to install Rosetta 2, Apple's free translator for Intel programs.\" with administrator privileges"
+            r = run("/usr/bin/osascript", ["-e", script])
+        }
+        // osascript reports "User canceled. (-128)" when the prompt is dismissed.
+        let declined = r.status != 0 && r.output.contains("-128")
+        return (r.status == 0, declined, r.output.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private static func run(_ exe: String, _ args: [String]) -> (status: Int32, output: String) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: exe)
+        p.arguments = args
+        let pipe = Pipe()
+        p.standardOutput = pipe; p.standardError = pipe; p.standardInput = FileHandle.nullDevice
+        do { try p.run() } catch { return (127, error.localizedDescription) }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return (p.terminationStatus, String(decoding: data, as: UTF8.self))
+    }
+}
+
 /// The bundled installer (Resources/installer/setup-mu-mac.sh; MU_SETUP_SCRIPT overrides). It runs with the
-/// free runtime and streams its output line by line; the app shows the "== N/M step" lines as progress.
+/// free runtime in its own process group and streams its output line by line; the app shows the "== N/M step"
+/// lines as progress and the "MU-PROGRESS" lines as download progress.
 enum Installer {
     static var script: URL? {
         if let p = ProcessInfo.processInfo.environment["MU_SETUP_SCRIPT"], !p.isEmpty { return URL(fileURLWithPath: p) }
@@ -206,51 +379,126 @@ enum Installer {
         return (fm.fileExists(atPath: g.path) ? g : nil, fm.fileExists(atPath: m.path) ? m : nil)
     }
 
+    /// The fast x87 translator bundled at build time (make EMBED_FAST_X87=...), passed as --fast-x87-dir.
+    static var bundledFastX87: URL? {
+        guard let fx = Bundle.main.resourceURL?.appendingPathComponent("fast-x87") else { return nil }
+        let fm = FileManager.default
+        let need = ["libtimewalker.dylib", "runtime_loader", "libRuntimeRosettax87", "x87-main-only-wrapper"]
+        return need.allSatisfy { fm.fileExists(atPath: fx.appendingPathComponent($0).path) } ? fx : nil
+    }
+
+    /// The files a player build must contain (make player-app); empty for a complete app.
+    static var missingEmbeds: [String] {
+        var m: [String] = []
+        let d = bundledDLLs
+        if d.mugl == nil { m.append("mugl (opengl32.dll, EMBED_MUGL)") }
+        if d.mscoree == nil { m.append("mscoree proxy (mscoree.dll, EMBED_MSCOREE)") }
+        if bundledFastX87 == nil { m.append("fast x87 translator (EMBED_FAST_X87)") }
+        return m
+    }
+
     /// gameDir nil = download and run the official installer.
     static func arguments(gameDir: String?, dryRun: Bool = false) -> [String] {
         var a = ["--runtime", "free", "--no-desktop"]
         if let g = gameDir { a += ["--game-dir", g] } else { a += ["--game-installer", "official"] }
         let d = bundledDLLs
         if let g = d.mugl { a += ["--mugl-dll", g.path]; if let m = d.mscoree { a += ["--mscoree-dll", m.path] } }
-        if let fx = Bundle.main.resourceURL?.appendingPathComponent("fast-x87"),
-           FileManager.default.fileExists(atPath: fx.appendingPathComponent("runtime_loader").path) {
-            a += ["--fast-x87-dir", fx.path]
-        }
+        if let fx = bundledFastX87 { a += ["--fast-x87-dir", fx.path] }
         if dryRun { a.append("--dry-run") }
         return a
     }
 
-    /// Starts the installer; `line` is called on the main queue for every output line, `done` with the status.
-    @discardableResult
-    static func start(gameDir: String?, dryRun: Bool = false, line: @escaping (String) -> Void, done: @escaping (Int32) -> Void) -> Process? {
-        guard let url = script, FileManager.default.fileExists(atPath: url.path) else {
-            line("The installer is missing from the app bundle."); done(2); return nil
-        }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/bash")
-        p.arguments = [url.path] + arguments(gameDir: gameDir, dryRun: dryRun)
+    static var environment: [String: String] {
         var env = ProcessInfo.processInfo.environment
         for k in env.keys where k.hasPrefix("CLAUDE") { env[k] = nil }
         env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin:" + (env["PATH"] ?? "")
-        p.environment = env
+        env["MUKIT_PROGRESS"] = "lines"
+        return env
+    }
+
+    /// Seconds between SIGTERM and SIGKILL when an install is cancelled (MU_CANCEL_GRACE overrides).
+    static var cancelGrace: TimeInterval {
+        ProcessInfo.processInfo.environment["MU_CANCEL_GRACE"].flatMap(TimeInterval.init) ?? 10
+    }
+
+    /// Starts the installer; `line` is called on the main queue for every output line, `done` with the status and
+    /// whether the install was cancelled. Returns nil when it could not start (then `done` was already called).
+    static func start(gameDir: String?, dryRun: Bool = false, line: @escaping (String) -> Void,
+                      done: @escaping (_ status: Int32, _ cancelled: Bool) -> Void) -> InstallSession? {
+        guard let url = script, FileManager.default.fileExists(atPath: url.path) else {
+            line("The installer is missing from the app bundle."); done(2, false); return nil
+        }
+        let s = InstallSession(line: line, done: done)
+        do {
+            try s.start(arguments: [url.path] + arguments(gameDir: gameDir, dryRun: dryRun))
+        } catch {
+            line("Could not start the installer: \(error.localizedDescription)"); done(2, false); return nil
+        }
+        return s
+    }
+
+    /// After a cancel: `setup-mu-mac.sh --runtime free --stop` stops what is left (this prefix's wineserver, leftover
+    /// downloads) and removes the setup lock, so Try Again works right away. Returns its output.
+    static func stopLeftovers() -> String {
+        guard let url = script else { return "" }
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/bash")
+        p.arguments = [url.path, "--runtime", "free", "--stop"]
+        p.environment = environment
         let pipe = Pipe()
         p.standardOutput = pipe; p.standardError = pipe; p.standardInput = FileHandle.nullDevice
-        var buffer = Data()
-        pipe.fileHandleForReading.readabilityHandler = { h in
-            let chunk = h.availableData
-            if chunk.isEmpty { h.readabilityHandler = nil; return }
-            buffer.append(chunk)
-            // curl's progress bar uses carriage returns; treat them as line ends too.
-            while let i = buffer.firstIndex(where: { $0 == 10 || $0 == 13 }) {
-                let l = String(decoding: buffer[buffer.startIndex..<i], as: UTF8.self)
-                buffer.removeSubrange(buffer.startIndex...i)
-                if !l.isEmpty { DispatchQueue.main.async { line(l) } }
+        do { try p.run() } catch { return "Could not run the clean-up: \(error.localizedDescription)" }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
+/// One installer run. cancel() stops the whole tree: SIGTERM to the process group, SIGKILL after
+/// Installer.cancelGrace seconds, then `setup-mu-mac.sh --stop` for this prefix's wineserver and the lock.
+final class InstallSession {
+    private let line: (String) -> Void
+    private let done: (Int32, Bool) -> Void
+    private var child: ProcessGroupChild?
+    private let splitter = LineSplitter()
+    private(set) var cancelRequested = false   // main queue only
+
+    init(line: @escaping (String) -> Void, done: @escaping (Int32, Bool) -> Void) { self.line = line; self.done = done }
+
+    fileprivate func start(arguments: [String]) throws {
+        child = try ProcessGroupChild(executable: "/bin/bash", arguments: arguments, environment: Installer.environment,
+            output: { [splitter, line] data in splitter.feed(data) { l in DispatchQueue.main.async { line(l) } } },
+            onExit: { [weak self] status in
+                // Let the last output lines arrive first.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    guard let self, !self.cancelRequested else { return }
+                    self.done(status, false)
+                }
+            })
+    }
+
+    var isRunning: Bool { child?.isRunning ?? false }
+    var pid: pid_t? { child?.pid }
+
+    /// Call on the main queue. `done(status, true)` follows once everything has stopped.
+    func cancel() {
+        guard !cancelRequested, let c = child, c.isRunning else { return }
+        cancelRequested = true
+        AppLog.write("install cancel: SIGTERM to process group \(c.pid)")
+        c.signalGroup(SIGTERM)
+        let grace = Installer.cancelGrace
+        DispatchQueue.global(qos: .userInitiated).async { [line, done] in
+            let deadline = Date().addingTimeInterval(grace)
+            while c.isRunning && Date() < deadline { usleep(100_000) }
+            if c.isRunning { AppLog.write("install cancel: still running after \(Int(grace)) s, SIGKILL") }
+            c.signalGroup(SIGKILL)               // the leader if it ignored SIGTERM, and any straggler in the group
+            while c.isRunning { usleep(50_000) }
+            let out = Installer.stopLeftovers()
+            AppLog.write("install cancel: clean-up\n" + out.trimmingCharacters(in: .newlines))
+            DispatchQueue.main.async {
+                for l in out.split(separator: "\n") { line(String(l)) }
+                done(c.status ?? 143, true)
             }
         }
-        p.terminationHandler = { proc in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { done(proc.terminationStatus) }
-        }
-        do { try p.run() } catch { line("Could not start the installer: \(error.localizedDescription)"); done(2); return nil }
-        return p
     }
 }
