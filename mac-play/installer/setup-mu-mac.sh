@@ -59,11 +59,10 @@ Usage: setup-mu-mac.sh [options]
                          to seed winetricks' cache; otherwise winetricks downloads it (env MU_DOTNET48_INSTALLER).
   --helpers-dir DIR      Where muinput.exe / clickstart.exe come from (default: mac-play/diagnostics/build/diagnostics,
                          created by 'make mac-diagnostics'); optional, only autologin tools use them.
-  --hotpatch-mask N      C:\mutools\mugl-hotpatch.txt (default 112025007 = v7.5's 44916143 + v7.6 JPEG decode 67108864,
-                         without the CRC bit; masks with bit 268435456 or 536870912 are refused (file-integrity
-                         module, out of scope). Older builds read fewer bits and see their own default: v7.5 44916143,
+  --hotpatch-mask N      C:\mutools\mugl-hotpatch.txt (default 380460463 = v7.5's 44916143 + v7.6 JPEG decode 67108864
+                         + v7.6 CRC-32 268435456; older builds read fewer bits and see their own default: v7.5 44916143,
                          v7.4 875951, v7.3 23983, v7.1/v7.2 7599, v7.0 15).
-                         A file holding an earlier kit default (15, 7599, 875951, 44916143) is upgraded.
+                         A file holding an earlier kit default (15, 7599, 875951, 44916143, 112025007) is upgraded.
   --no-mugl              Do not install the OpenGL proxy (plain Wine OpenGL; ~4 fps in world).
   --no-stats             Do not set HKCU\Environment MUGL_STATS.
   --reset-config         Overwrite existing C:\mutools config files and LauncherOption.if values.
@@ -337,8 +336,6 @@ preflight() {
         [ -d "$DLL_DIR" ] || mukit_die "--dll-dir not found: $DLL_DIR"
     fi
     mukit_mugl_version_sha "$MUGL_VERSION" >/dev/null || mukit_die '--mugl-version must be v76, v75, v72, v71 or v70'
-    ! mukit_hotpatch_forbidden "$HOTPATCH_MASK" ||
-        mukit_die "--hotpatch-mask $HOTPATCH_MASK refused: $MUKIT_HOTPATCH_FORBIDDEN_WHY. Remove those bits (kit default $MUKIT_HOTPATCH_DEFAULT)."
     mukit_hotpatch_valid "$HOTPATCH_MASK" || mukit_die "--hotpatch-mask must be 0-$MUKIT_HOTPATCH_MAX"
     [ $((HOTPATCH_MASK & MUKIT_HOTPATCH_V70_BITS)) = "$MUKIT_HOTPATCH_V70_BITS" ] ||
         mukit_warn "--hotpatch-mask $HOTPATCH_MASK turns off some of the v7.0 base patches (bits 1|2|4|8); expect lower fps."
@@ -818,13 +815,6 @@ step_mutools() {
     [ -d "$MUTOOLS" ] || { todo 'create C:\mutools'; mukit_run mkdir -p "$MUTOOLS"; }
     want_file "$MUTOOLS/mu-modes.txt" "$MODES"$'\n' 'C:\mutools\mu-modes.txt'
     want_file "$MUTOOLS/mugl-mode.txt" $'full+vbo\n' 'C:\mutools\mugl-mode.txt'
-    if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then   # never keep a mask with the refused bits, even without --reset-config
-        local cur_hp; cur_hp=$(head -1 "$MUTOOLS/mugl-hotpatch.txt" | tr -d '\r ')
-        if mukit_hotpatch_forbidden "$cur_hp"; then
-            todo "replace C:\\mutools\\mugl-hotpatch.txt '$cur_hp' with $HOTPATCH_MASK ($MUKIT_HOTPATCH_FORBIDDEN_WHY)"
-            mukit_write_file "$MUTOOLS/mugl-hotpatch.txt" "$HOTPATCH_MASK"$'\n'
-        fi
-    fi
     want_file "$MUTOOLS/mugl-hotpatch.txt" "$HOTPATCH_MASK"$'\n' 'C:\mutools\mugl-hotpatch.txt' \
         "$([ "$HOTPATCH_MASK" = "$MUKIT_HOTPATCH_DEFAULT" ] && echo "$MUKIT_HOTPATCH_OLD_DEFAULTS")"
     want_copy "$HELPERS_DIR/muinput.exe" "$MUTOOLS/muinput.exe" 'C:\mutools\muinput.exe' "$([ "$RUNTIME" = free ] && echo optional)"

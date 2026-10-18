@@ -121,7 +121,7 @@ static void release_arrays(void)
     owned = 0; owned_fmt = 0; owned_ptr = NULL; owned_strided = 0;
 }
 
-static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static void sh_stats(FILE *f); static void td_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6]; static void pace_stats(FILE *f); static void io_stats(FILE *f); static void ts_stats(FILE *f); static void jp_stats(FILE *f); static int jp_install(int on, int verify);
+static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static void sh_stats(FILE *f); static void td_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6]; static void pace_stats(FILE *f); static void io_stats(FILE *f); static void ts_stats(FILE *f); static void jp_stats(FILE *f); static int jp_install(int on, int verify); static void cr_stats(FILE *f); static int cr_install(int on, int verify);
 void mugl_sync_from(int idx);
 static void matrix_modified(void);
 #include "gpudiag.c"
@@ -135,7 +135,7 @@ static void stats_tick(void)
     if (qpf.QuadPart && st_frames) { double sl = (double)sleep_ticks / qpf.QuadPart; fprintf(st_file, "work=%.2fms sleep=%.2fms ", (secs - sl) * 1000 / st_frames, sl * 1000 / st_frames); }
     sleep_ticks = 0;
     if (xf_calls) { fprintf(st_file, "xform calls=%ld checked=%ld mismatches=%ld\n", xf_calls, xf_checked, xf_bad); xf_calls = 0; }
-    md_stats(st_file); sh_stats(st_file); td_stats(st_file); jp_stats(st_file);
+    md_stats(st_file); sh_stats(st_file); td_stats(st_file); jp_stats(st_file); cr_stats(st_file);
     if (time_mode && qpf.QuadPart && st_frames) {
         fprintf(st_file, "time/frame:");
         for (int k = 0; k < 11; k++) if (tm_calls[k]) fprintf(st_file, " %s=%.2fms(%ld)", tm_names[k], tm_ticks[k] * 1000.0 / qpf.QuadPart / st_frames, tm_calls[k] / st_frames);
@@ -1211,7 +1211,7 @@ static int hp_peep(int on)
 #include "decal.c"
 static void hp_set(int mask)
 {
-    if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432 | 67108864 | 134217728);   /* GL-level bits only (test programs) */
+    if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432 | 67108864 | 134217728 | 268435456 | 536870912);   /* GL-level bits only (test programs) */
     int f = hp_funcs(mask & 1), s = hp_sites((mask & 2) != 0), p = hp_peep((mask & 4) != 0);
     int x = xf_install((mask & 8) != 0, (mask & 16) != 0);
     if (st_file) fprintf(st_file, "xform %s%s: %d\n", (mask & 8) ? "on" : "off", (mask & 16) ? " (verify)" : "", x);
@@ -1227,6 +1227,8 @@ static void hp_set(int mask)
     if (st_file) fprintf(st_file, "decal %s%s%s: %d\n", (mask & 8388608) ? "on" : "off", (mask & 128) ? " direct" : "", (mask & 16777216) ? " (verify)" : "", td);
     int jp = jp_install((mask & 67108864) != 0, (mask & 134217728) != 0);
     if (st_file) fprintf(st_file, "jpeg %s%s: %d\n", (mask & 67108864) ? "on" : "off", (mask & 134217728) ? " (verify)" : "", jp);
+    int cr = cr_install((mask & 268435456) != 0, (mask & 536870912) != 0);
+    if (st_file) fprintf(st_file, "crc %s%s: %d\n", (mask & 268435456) ? "on" : "off", (mask & 536870912) ? " (verify)" : "", cr);
     pace_fix = (mask & 1024) != 0;
     ts_on_flag = (mask & 16384) != 0; ts_verify = (mask & 32768) != 0;
     qs_on_flag = (mask & 65536) != 0; qs_verify = (mask & 131072) != 0;
@@ -1249,10 +1251,10 @@ static void check_hotpatch_file(void)
     DWORD now = GetTickCount();
     if (now - hp_check < 1000) return;
     hp_check = now;
-    int want = 112025007; /* default (v7.6): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096 + 16384 terrain sort
+    int want = 380460463; /* default (v7.6): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096 + 16384 terrain sort
                           + 65536 quad batching + 262144 deferred client-array enables + 524288 off-screen culling (v7.4: 875951)
                           + 2097152 native shadows + 8388608 native decals + 33554432 specialised mesh append (v7.5: 44916143)
-                          + 67108864 native JPEG decode
+                          + 67108864 native JPEG decode + 268435456 native CRC-32
                           (v7.3: 23983; v7.1/v7.2: 7599; v7.0: 15). Bits: 16 = xform verify, 32 = meshdraw, 64 = meshdraw verify, 128 = meshdraw
                           direct batch append, 256 = meshdraw light precompute (with 32/64), 512 = mesh routine timer, 1024 = frame pacing fix,
                           2048 = zero-copy T2F_C4F_N3F_V3F batches, 4096 = strided batch arrays, 8192 = meshdraw unverified vertex paths,
@@ -1260,8 +1262,7 @@ static void check_hotpatch_file(void)
                           131072 = quad batching offscreen verification, 262144 = deferred client-array enables, 524288 = off-screen batch
                           culling, 1048576 = culling sample-count verification, 2097152 = native body shadows, 4194304 = shadow verification,
                           8388608 = native terrain decals, 16777216 = decal verification, 33554432 = specialised mesh-draw append,
-                          67108864 = native JPEG decode, 134217728 = JPEG verification, 268435456/536870912 unused,
-                          1073741824 = deferred enables (opt-in) */
+                          67108864 = native JPEG decode, 134217728 = JPEG verification, 268435456 = native CRC-32, 536870912 = CRC verification */
     FILE *f = fopen("C:\\mutools\\mugl-hotpatch.txt", "r");
     if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 2147483647; fclose(f); }
     if (!mugl_client) { const char *e = getenv("MUGL_MASK"); if (e) want = atoi(e) & 2147483647; }   /* test programs: mask from the environment */
@@ -1272,6 +1273,7 @@ static long total_frames; static HMODULE self_mod;
 #include "stall.c"
 #include "terrain.c"
 #include "jpeg.c"
+#include "crc.c"
 BOOL WINAPI mugl_wglSwapBuffers(HDC dc)
 {
     io_frame_end(); tr_frame_end();

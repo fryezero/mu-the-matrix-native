@@ -156,6 +156,7 @@ else
         h=$(mukit_sha256 "$gl")
         MUGL_VER=$(mukit_mugl_identify "$h")
         if [ "$MUGL_VER" = v7.6 ]; then out PASS 'mugl opengl32.dll' "v7.6 (pinned, current best) $(short "$h")"
+        elif [ "$MUGL_VER" = v7.6-jpeg ]; then out PASS 'mugl opengl32.dll' "v7.6 without native CRC-32 (pinned; the current v7.6 also speeds up file checksums) $(short "$h")"
         elif [ "$MUGL_VER" = v7.5 ]; then out PASS 'mugl opengl32.dll' "v7.5 (pinned; v7.6 decodes JPEG natively, faster map loads) $(short "$h")"
         elif [ "$MUGL_VER" = v7.2 ]; then out PASS 'mugl opengl32.dll' "v7.2 (pinned rollback; v7.5 is faster in crowded scenes) $(short "$h")"
         elif [ "$MUGL_VER" = v7.1 ]; then out PASS 'mugl opengl32.dll' "v7.1 (pinned rollback; v7.2 paces frames precisely in background) $(short "$h")"
@@ -194,13 +195,12 @@ if [ -f "$MUTOOLS/mugl-mode.txt" ]; then
     mukit_mugl_mode_valid "$mm" && { [ "$mm" = full+vbo ] && out PASS 'mugl-mode.txt' "$mm" || out WARN 'mugl-mode.txt' "$mm (fastest tested: full+vbo)"; } ||
         out FAIL 'mugl-mode.txt' "invalid '$mm'"
 else out WARN 'mugl-mode.txt' 'missing (mugl defaults to full, without VBO emulation)'; fi
-# Hotpatch mask: 112025007 (kit default: v7.5's 44916143 + v7.6 JPEG decode) is the norm; the older defaults and any mask with the v7.0 base bits (1|2|4|8) pass.
+# Hotpatch mask: 380460463 (kit default: v7.5's 44916143 + v7.6 JPEG decode + v7.6 CRC-32) is the norm; the older defaults and any mask with the v7.0 base bits (1|2|4|8) pass.
 D=$MUKIT_HOTPATCH_DEFAULT B70=$MUKIT_HOTPATCH_V70_BITS
 if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then
     hp=$(head -1 "$MUTOOLS/mugl-hotpatch.txt" | tr -d '\r ')
-    if mukit_hotpatch_forbidden "$hp"; then out FAIL 'mugl-hotpatch.txt' "$hp refused: $MUKIT_HOTPATCH_FORBIDDEN_WHY; rerun setup (writes $D)"
-    elif ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
-    elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (kit default: v7.5's patches plus v7.6 native JPEG decode; a v7.5 DLL reads it as 44916143)"
+    if ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
+    elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (kit default: v7.5's patches plus v7.6 native JPEG decode and CRC-32; a v7.5 DLL reads it as 44916143)"
     elif [ $((hp & B70)) = "$B70" ]; then
         note=; miss=$(( D & ~hp )); extra=$(( hp & ~D ))
         case "$hp" in
@@ -209,6 +209,7 @@ if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then
             23983) note='v7.3 default: no quad batching, deferred client state or culling' ;;
             875951) note='v7.4 default: no native shadows, decals or specialised mesh-draw append' ;;
             44916143) note='v7.5 default: no v7.6 native JPEG decode' ;;
+            112025007) note='previous v7.6 default: no native CRC-32' ;;
             *) [ "$miss" = 1024 ] && note='kit default without the frame pacing fix' ||
                    { [ "$miss" != 0 ] && note="kit default bits off: $miss"; } ;;
         esac

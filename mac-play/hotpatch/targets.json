@@ -184,6 +184,12 @@
       "address": 25907008,
       "length": 5,
       "sha256": "acb441a913fdbc3e4eccfbbda9b456d4f0dd224840684c1947ce17e3fb9d48be"
+    },
+    {
+      "name": "crc_prologue",
+      "address": 11152482,
+      "length": 6,
+      "sha256": "a2709e347500011b06f1ad79d644e4cc75fe00d555827d8ab9234b15bfc5a9d2"
     }
   ]
 }
