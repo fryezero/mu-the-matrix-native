@@ -2,6 +2,18 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Combat (NATIVE-COMBAT-001)
+
+Read [`research/client-combat.md`](research/client-combat.md). `reconstructed/combat` (libcombat), `native/core/mu_combat.*`
+and `mu-world`/`mu-walk --combat` (`--combat-weapon`, `--combat-script`, keys 1..6) fight demo-placed monsters with the
+client's attack rules, damage text and hit/death reactions; the server side is a labelled demo. Compare with the client
+with `scripts/validate_combat.py --cases 3000 --heavy-cases 300` (about 50 s; report under `evidence/native-combat/`);
+`scripts/combat_static.py` regenerates `attack_speed_table.h`. Renders stay local
+(`~/Documents/mu-mac-tools/native/renders/combat/`, scenario script in `native/scratch/combat/render_all.sh`). Next: reduce
+MoveEffect for arrows and MODEL_FIRE and RenderEffects' draw states, MoveCharacter's area-skill switch (Evil Spirit,
+Twisting Slash, Inferno) and the per-step attack routine `0x013966ea`, the Player hit/death actions, and a short live fight
+capture to compare timings.
+
 ## World character render (NATIVE-RENDERCHAR-001)
 
 Read [`research/client-renderchar.md`](research/client-renderchar.md). `reconstructed/renderchar` (librenderchar),

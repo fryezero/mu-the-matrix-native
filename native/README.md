@@ -124,6 +124,28 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/loren
     --sound-table /local/audio-tables.tsv
 ```
 
+## Combat (NATIVE-COMBAT-001)
+
+`--combat` adds the client side of a fight to `mu-world`/`mu-walk` (`core/mu_combat.*` over `reconstructed/combat`,
+[finding](../docs/research/client-combat.md)): a click on a monster selects it, the hero walks into the client's
+attack range, faces it and attacks with the SetPlayerAttack action and the SetAttackSpeed play speed; AttackTime counts
+to 15 and the end of the attack creates arrows (bows), the Fire Ball model and the Energy Ball and Heal bitmaps; keys
+1..6 cast Fire Ball, Energy Ball, Cyclone, Twisting Slash, Triple Shot and Heal. Damage text, hit reactions (action 5),
+death (action 6), fade, sinking and removal run the client routines. The server side (damage, death, respawn,
+counter-attacks) is a labelled demo.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/lorencia-demo-placement.txt \
+    --tile 182,127 --class 1 --combat-weapon sword
+native/build/mu-walk --game-root "$MU_GAME_ROOT" --headless --frames 400 --every 4 --out-dir DIR \
+    --placement native/world/lorencia-demo-placement.txt --tile 182,128 --class 2 --combat-weapon bow \
+    --combat-script "6:attack:hound;150:skill:24:spider;300:skill:26:budge dragon"
+```
+
+`--combat-weapon none|sword|twohand|spear|bow|crossbow|staff`, `--attack-speed N`, `--combat-seed N`; script items are
+separated by `;` (`F:attack:ACTOR`, `F:skill:N:ACTOR`, `F:click:ACTOR`, `F:stop`). Headless runs add `combat_frame`
+lines and a `combat` summary.
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -229,6 +251,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_hud.*`, `tools/mu_render_hud.c` | Inventory item pass and tooltips over `reconstructed/hud` (`mu-render ui inventory\|tooltip`, NATIVE-HUD-001) |
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
+| `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |

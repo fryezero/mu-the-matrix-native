@@ -178,6 +178,37 @@ static void set_action(mu_walk *w, int32_t action, float speed)
     h->play_speed = speed;
 }
 
+void mu_walk_set_action(mu_walk *w, int32_t action, float speed)
+{
+    set_action(w, action, speed);
+}
+
+int mu_walk_path_to(mu_walk *w, int32_t tile_x, int32_t tile_y)
+{
+    mu_hero *h = &w->hero;
+    w->target[0] = tile_x & 0xff;
+    w->target[1] = tile_y & 0xff;
+    mu_client_path path;
+    memcpy(&path, &h->path, sizeof path);
+    if (mu_path_finding2(&w->finder, h->tile[0], h->tile[1], w->target[0], w->target[1], &path, 0.0f, 2, 0) != 1) {
+        ++w->path_refused;
+        return 0;
+    }
+    memcpy(&h->path, &path, sizeof h->path);
+    h->movement = 1;
+    ++w->moves;
+    return 1;
+}
+
+void mu_walk_stop(mu_walk *w)
+{
+    mu_hero *h = &w->hero;
+    h->movement = 0;
+    h->run = 0;
+    int32_t action = mu_player_stop_action(h->class_byte);
+    set_action(w, action, mu_player_stop_speed(action));
+}
+
 void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_t window_width,
                   uint32_t window_height, int32_t tile_x, int32_t tile_y, float angle_z, uint8_t class_byte,
                   int32_t action_count, float near_plane)
@@ -379,6 +410,8 @@ void mu_walk_step(mu_walk *w, mu_character *character)
     mu_frame_world *f = &w->frame;
     /* 0x00ec5475 runs first in every logic step */
     mu_key_scan(&f->keys, &f->sample);
+    if (w->pre_step_hook)
+        w->pre_step_hook(w->pre_step_context, w);
     /* MoveHero 0x016a9150 (in-world tick 0x01856d3a): walk, then click */
     hero_walk(w);
     hero_click(w);

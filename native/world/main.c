@@ -35,6 +35,14 @@
  *     places them in the real game), animated with the client action tables,
  *     with the EffectManager effects their creation attaches.
  *
+ * NATIVE-COMBAT-001 (--combat, core/mu_combat): a click on a monster attacks
+ * it with the client's attack rules (range, facing, SetPlayerAttack action,
+ * SetAttackSpeed PlaySpeed, AttackTime and the end-of-attack effects); keys
+ * 1..6 cast Fire Ball, Energy Ball, Cyclone, Twisting Slash, Triple Shot and
+ * Heal at the target; damage text, hit reactions, death, fade and removal run
+ * the client routines. The server side (damage, death, respawn, counter-
+ * attacks) is a labelled DEMO. --combat-script drives it headless.
+ *
  * Built twice: build/mu-world (SDL2 + OpenGL) and, with MU_WORLD_NO_GL,
  * build/mu-walk, the headless software-only tool of `make -C native` (no
  * SDL2 or GL needed; the portable tests use it).
@@ -57,6 +65,7 @@
 #endif
 
 #include "../core/mu_character.h"
+#include "../core/mu_combat.h"
 #include "../core/mu_objects.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
@@ -126,6 +135,17 @@ typedef struct app {
     int fx_count;
     SDL_AudioDeviceID audio_device;
 #endif
+    /* NATIVE-COMBAT-001 */
+    int combat_on;
+    mu_combat_config combat_config;
+    mu_combat *combat;
+    const char *combat_script_text;
+    mu_combat_script combat_script;
+    int32_t combat_next, combat_click_stage, combat_click_x, combat_click_y;
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend combat_gl[MU_COMBAT_MODELS];
+    GLuint combat_tex[MU_COMBAT_BITMAPS];
+#endif
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -134,6 +154,15 @@ static const uint8_t sky[4] = {0, 0, 0, 255};
 /* ---- loading ---- */
 
 static void on_step(void *context, mu_walk *w);
+
+/* NATIVE-COMBAT-001: MoveHero's attack case runs before its walk and click code. */
+static void combat_pre_step(void *context, mu_walk *w)
+{
+    (void)w;
+    app *a = context;
+    if (a->combat)
+        mu_combat_pre_step(a->combat);
+}
 
 static int load(app *a)
 {
@@ -204,6 +233,27 @@ static int load(app *a)
     }
     a->walk.step_hook = on_step;
     a->walk.step_context = a;
+    if (a->combat_on) {
+        const char *file = mu_combat_weapon_file(a->combat_config.weapon);
+        char path[4096];
+        if (file) {
+            snprintf(path, sizeof path, "%s/%s", a->root, file);
+            FILE *f = fopen(path, "rb");
+            if (f) {
+                fclose(f);
+                if (mu_character_set_item(&a->ch, MU_CHARACTER_WEAPON_ITEM(0), path, 0, error, sizeof error))
+                    fprintf(stderr, "combat weapon: %s (continuing without it)\n", error);
+            }
+        }
+        a->combat = calloc(1, sizeof *a->combat);
+        if (!a->combat || mu_combat_init(a->combat, a->root, &a->walk, &a->ch, a->has_actors ? &a->actors : NULL,
+                                         &a->combat_config, error, sizeof error)) {
+            fprintf(stderr, "combat: %s\n", a->combat ? error : "out of memory");
+            return 1;
+        }
+        a->walk.pre_step_hook = combat_pre_step;
+        a->walk.pre_step_context = a;
+    }
     return 0;
 }
 
@@ -223,6 +273,8 @@ static void on_step(void *context, mu_walk *w)
     }
     if (a->has_actors)
         mu_world_actors_step(&a->actors);
+    if (a->combat)
+        mu_combat_step(a->combat);
 }
 
 /* Once per rendered frame after the frame cap: the per-frame audio block. */
@@ -278,6 +330,11 @@ static void unload(app *a)
         mu_objects_free(&a->objects);
     if (a->has_sound)
         mu_world_sound_close(&a->sound);
+    if (a->combat) {
+        mu_combat_free(a->combat);
+        free(a->combat);
+        a->combat = NULL;
+    }
     free(a->wav);
 }
 
@@ -288,9 +345,57 @@ static uint32_t pack(int x, int y)
     return ((uint32_t)(uint16_t)y << 16) | (uint16_t)x;
 }
 
+/* NATIVE-COMBAT-001: scripted attacks, skills and clicks on monsters. */
+static void combat_script(app *a, int32_t frame)
+{
+    mu_walk *w = &a->walk;
+    if (!a->combat)
+        return;
+    if (a->combat_click_stage == 1) {
+        mu_walk_message(w, MU_WM_LBUTTONDOWN, 1, pack(a->combat_click_x, a->combat_click_y));
+        a->combat_click_stage = 2;
+        return;
+    }
+    if (a->combat_click_stage == 2) {
+        mu_walk_message(w, MU_WM_LBUTTONUP, 0, pack(a->combat_click_x, a->combat_click_y));
+        a->combat_click_stage = 0;
+        return;
+    }
+    while (a->combat_next < a->combat_script.count && a->combat_script.items[a->combat_next].frame <= frame) {
+        const mu_combat_script_item *it = &a->combat_script.items[a->combat_next++];
+        int32_t actor = mu_combat_find_actor(a->combat, it->actor);
+        if (!strcmp(it->verb, "stop")) {
+            mu_combat_stop(a->combat);
+        } else if (!strcmp(it->verb, "attack")) {
+            mu_combat_attack(a->combat, actor);
+        } else if (!strcmp(it->verb, "skill")) {
+            mu_combat_cast(a->combat, it->skill, actor);
+        } else if (!strcmp(it->verb, "click") && actor >= 0) {
+            const mu_world_actor *x = &a->actors.list[actor];
+            float point[3] = {x->position[0], x->position[1], x->position[2] + 90.0f * x->actor.spec.scale};
+            int32_t sx, sy;
+            mu_view_projection(&w->frame.view, point, &sx, &sy);   /* 640x480 units, 0x0184a244 */
+            if (sx < 0 || sy < 0 || sx > 639 || sy > 479) {
+                if (!a->quiet)
+                    fprintf(stderr, "frame %d: actor %d is off screen (%d,%d), click skipped\n", frame, actor, sx, sy);
+                continue;
+            }
+            a->combat_click_x = (int)((int64_t)sx * a->width / 640);
+            a->combat_click_y = (int)((int64_t)sy * a->height / 480);
+            mu_walk_message(w, MU_WM_MOUSEMOVE, 0, pack(a->combat_click_x, a->combat_click_y));
+            a->combat_click_stage = 1;
+            if (!a->quiet)
+                fprintf(stderr, "frame %d: click on actor %d at %d,%d\n", frame, actor, a->combat_click_x,
+                        a->combat_click_y);
+            return;
+        }
+    }
+}
+
 static void script(app *a, int32_t frame)
 {
     mu_walk *w = &a->walk;
+    combat_script(a, frame);
     for (int32_t i = 0; i < a->wheel_count; ++i)
         if (a->wheel_frame[i] == frame)
             mu_walk_message(w, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)(a->wheel_delta[i] * 120) << 16, 0);
@@ -555,6 +660,14 @@ static void gl_teardown(app *a)
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
+    for (int i = 0; i < MU_COMBAT_MODELS; ++i)
+        if (a->combat_gl[i].textures)
+            mu_gl_release(&a->combat_gl[i]);
+    for (int i = 0; i < MU_COMBAT_BITMAPS; ++i)
+        if (a->combat_tex[i]) {
+            glDeleteTextures(1, &a->combat_tex[i]);
+            a->combat_tex[i] = 0;
+        }
     a->gl_ready = 0;
 }
 
@@ -625,6 +738,84 @@ static void g_effect(void *context, const mu_fx_vertex *vertices, uint32_t count
         glPopMatrix();
 }
 
+/* NATIVE-COMBAT-001: effect models through the scene draw, then the frame's
+ * quads (effect bitmaps, RenderPoints) in immediate mode. */
+static void combat_model_gl(void *context, const mu_model *model, const mu_textures *textures, int32_t slot)
+{
+    app *a = context;
+    mu_gl_backend *gl = &a->combat_gl[slot];
+    if (!gl->textures)
+        mu_gl_upload(gl, textures, 0);
+    mu_render_backend backend;
+    mu_gl_backend_bind(gl, &backend);
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    options.flags = mu_combat_model_flags(slot);
+    options.textures = textures;
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_scene_draw_model(model, &options, &backend, &ds);
+}
+
+static void combat_draw_gl(app *a)
+{
+    mu_combat *c = a->combat;
+    mu_combat_draw_models(c, combat_model_gl, a);
+    static mu_combat_quad quads[1024];
+    int32_t n = mu_combat_quads(c, quads, 1024);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_combat_quad *q = &quads[i];
+        if (q->bitmap >= 0) {
+            const mu_combat_bitmap *b = &c->bitmaps[q->bitmap];
+            if (!a->combat_tex[q->bitmap]) {
+                glGenTextures(1, &a->combat_tex[q->bitmap]);
+                glBindTexture(GL_TEXTURE_2D, a->combat_tex[q->bitmap]);
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, b->image.width, b->image.height, 0, GL_RGBA,
+                             GL_UNSIGNED_BYTE, b->image.rgba);
+            }
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, a->combat_tex[q->bitmap]);
+            glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        } else {
+            glDisable(GL_TEXTURE_2D);
+        }
+        if (q->additive)
+            glBlendFunc(GL_ONE, GL_ONE);
+        else
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if (q->depth_test)
+            glEnable(GL_DEPTH_TEST);
+        else
+            glDisable(GL_DEPTH_TEST);
+        if (q->eye_space) {   /* RenderSpriteUV draws eye-space corners with an identity modelview */
+            glMatrixMode(GL_MODELVIEW);
+            glPushMatrix();
+            glLoadIdentity();
+        }
+        glBegin(GL_QUADS);
+        for (int k = 0; k < 4; ++k) {
+            glColor4fv(q->color[k]);
+            glTexCoord2fv(q->texcoord[k]);
+            glVertex3fv(q->position[k]);
+        }
+        glEnd();
+        if (q->eye_space)
+            glPopMatrix();
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+}
+
 static long draw_gl(app *a, int32_t width, int32_t height)
 {
     const mu_client_view *v = &a->walk.frame.view;
@@ -675,12 +866,17 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         }
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         const mu_world_actor *actor = &a->actors.list[i];
+        float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
+        if (alpha <= 0.0f)
+            continue;   /* removed by the dead fade */
         mu_render_backend backend;
         mu_gl_backend_bind(&a->actor_gl[i], &backend);
         options.textures = &actor->actor.textures;
+        options.alpha = alpha;
         mu_draw_stats ds = {0, 0, 0, 0};
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
     }
+    options.alpha = 1.0f;
     mu_gl_backend plain;
     memset(&plain, 0, sizeof plain);
     mu_render_backend backend;
@@ -697,6 +893,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }
+    if (a->combat)
+        combat_draw_gl(a);
     return stats.faces;
 }
 
@@ -741,6 +939,10 @@ static long draw_soft(app *a, mu_raster *raster)
         }
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         const mu_world_actor *actor = &a->actors.list[i];
+        float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
+        if (alpha <= 0.0f)
+            continue;
+        options.alpha = alpha;
         raster->textures = actor->actor.textures.slots;
         raster->texture_count = actor->actor.textures.count;
         raster->texture_filter = actor->actor.textures.filter;
@@ -761,6 +963,8 @@ static long draw_soft(app *a, mu_raster *raster)
                                                     (float)raster->width / (float)raster->height, v->view_near,
                                                     v->view_far * 1.4f, raster);
     }
+    if (a->combat)
+        mu_combat_draw_raster(a->combat, raster);
     return stats.tiles.faces;
 }
 
@@ -784,6 +988,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            a->has_sound ? mu_world_sound_voices(&a->sound) : 0, a->has_sound ? a->sound.last_music : -1,
            a->tile_stats.faces, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
            a->effects_visible, hash ? hash : "", png ? png : "");
+    if (a->combat)
+        mu_combat_report_frame(a->combat, stdout, frame);
 }
 
 static void report_summary(const app *a, const char *renderer)
@@ -827,6 +1033,8 @@ static void report_summary(const app *a, const char *renderer)
                    (double)x->actor.last_speed, x->moves, x->arrivals, x->effect_count);
         }
     }
+    if (a->combat)
+        mu_combat_report_summary(a->combat, stdout, a->quiet);
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);
@@ -1037,6 +1245,10 @@ static int windowed(app *a)
                     running = 0;
                 else if (down && vk != 0x1b)
                     escapes = 0;
+                if (down && !e.key.repeat && a->combat && vk >= 0x31 && vk <= 0x36) {
+                    static const int32_t keys[6] = {4, 17, 22, 41, 24, 26};   /* 1..6 */
+                    mu_combat_cast(a->combat, keys[vk - 0x31], -1);
+                }
                 if (down && !e.key.repeat && vk == 0x4f) {   /* O: screenshot */
                     uint8_t *pixels = malloc((size_t)dw * (size_t)dh * 4);
                     if (pixels) {
@@ -1140,7 +1352,9 @@ static int usage(void)
                     "                [--player Player.bmd] [--quiet]\n"
                     "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
                     "                [--placement DEMO.txt] [--legacy-box]\n"
-                    "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n");
+                    "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
+                    "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
+                    "                [--attack-speed N] [--combat-seed N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n");
     return 2;
 }
 
@@ -1161,12 +1375,14 @@ int main(int argc, char **argv)
     a.backend = "gl";
     a.audio = 1;
     a.audio_rate = 44100;
+    mu_combat_default_config(&a.combat_config);
     for (int i = 1; i < argc; ++i) {
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { a.headless = 1; continue; }
         if (!strcmp(k, "--quiet")) { a.quiet = 1; continue; }
         if (!strcmp(k, "--no-audio")) { a.audio = 0; continue; }
         if (!strcmp(k, "--legacy-box")) { a.legacy_box = 1; continue; }
+        if (!strcmp(k, "--combat")) { a.combat_on = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -1192,6 +1408,24 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--audio-rate")) a.audio_rate = atoi(v);
         else if (!strcmp(k, "--placement")) a.placement = v;
         else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
+        else if (!strcmp(k, "--combat-weapon")) {
+            static const char *names[] = {"none", "sword", "twohand", "spear", "bow", "crossbow", "staff"};
+            int found = -1;
+            for (int n = 0; n < 7; ++n)
+                if (!strcmp(v, names[n]))
+                    found = n;
+            if (found < 0)
+                return usage();
+            a.combat_config.weapon = found;
+            a.combat_on = 1;
+        }
+        else if (!strcmp(k, "--attack-speed")) { a.combat_config.attack_speed = strtof(v, NULL); a.combat_on = 1; }
+        else if (!strcmp(k, "--combat-seed")) { a.combat_config.seed = (uint32_t)strtoul(v, NULL, 0); a.combat_on = 1; }
+        else if (!strcmp(k, "--combat-script")) {
+            if (mu_combat_script_parse(&a.combat_script, v))
+                return usage();
+            a.combat_on = 1;
+        }
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
