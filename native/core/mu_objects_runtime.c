@@ -389,8 +389,19 @@ static uint8_t login_custom(void *context, int32_t index)
     return (uint8_t)mu_login_custom_render(image(c->o, index), index, &c->log);
 }
 
-/* Pose and skin object i's model at its animation state with the body light of model_fields. */
-static int pose_object(mu_objects *o, uint8_t *img, mu_object_model *m)
+/* Pose and skin object i's model at its animation state with the body light of model_fields, with the
+ * arguments RenderObject's setup 0x017ec896 passes to Animation and Transform (compared in the render family,
+ * scripts/validate_object_render.py). log: mu_obj_render's call log; without its Animation/Transform events
+ * (the after-character setup) the static-object call RenderObject(o, 0, ...) is used, whose arguments are the
+ * same: Animation(..., !translate = 1) (0x017ed811/0x017ed880) and Transform(bones, min, max, OBB, translate 0,
+ * vertex scale 0, ambient 0.4, scale +0xe4, minimum +0xe8) (0x017edc95/0x017edd08).
+ *
+ * With Animation's translate the pose builder 0x012b5064 puts the body scale and origin into the root bone,
+ * and the transform 0x012b5bde rotates normals by the bone 3x3 without renormalizing: the Lambert term of a
+ * static object grows with its scale (the login sky, scale 14.84, saturates; the far ship, 0.23, is dark).
+ * The light vector is (1.3, 0, 2): the client's light-override byte is 1 (MU_CLIENT_HIGH_LIGHT). Both were
+ * missing before NATIVE-LIGHT-001 (docs/research/client-model-light.md). */
+static int pose_object(mu_objects *o, uint8_t *img, mu_object_model *m, const mu_obj_log *log)
 {
     mu_model_params p = m->model.params;
     memcpy(p.origin, img + MU_OBJF_POSITION, 12);
@@ -398,16 +409,29 @@ static int pose_object(mu_objects *o, uint8_t *img, mu_object_model *m)
     p.body_scale = mu_obj_f32(img, MU_OBJF_SCALE);
     memcpy(p.color, o->rt.model_fields + MU_MDL_COLOR, 12);
     p.lighting = o->rt.model_fields[MU_MDL_LIGHTING];
+    p.secondary_light = o->rt.model_fields[MU_MDL_SECONDARY];
     if (o->uniform_light > 0.0f)
         for (int q = 0; q < 3; ++q)
             p.color[q] = o->uniform_light;
-    /* RenderObject's Transform(bones, min, max, OBB, translate, 0, 0.4, +0xe4, +0xe8) (compared in the
-     * render family): vertex scale 0, light ambient 0.4, light scale +0xe4, light minimum +0xe8 (the
-     * record's two values, 0.8 and 0.2 by default) instead of the 0.4/0.4/0.4 of the default wrapper */
+    p.pose_translate = 1;
+    p.transform_translate = 0;
     p.vertex_scale = 0.0f;
     p.light_ambient = 0.4f;
     p.light_scale = mu_obj_f32(img, MU_OBJF_VALUE_E4);
     p.light_minimum = mu_obj_f32(img, MU_OBJF_VALUE_E8);
+    for (int32_t k = 0; log && k < log->count; ++k) {
+        const mu_obj_event *e = &log->events[k];
+        if (e->call == MU_OBJ_CALL_ANIMATION) {
+            p.pose_translate = (uint8_t)e->args[5];
+        } else if (e->call == MU_OBJ_CALL_TRANSFORM) {
+            p.transform_translate = (uint8_t)e->args[1];
+            p.vertex_scale = fbits(e->args[2]);
+            p.light_ambient = fbits(e->args[3]);
+            p.light_scale = fbits(e->args[4]);
+            p.light_minimum = fbits(e->args[5]);
+        }
+    }
+    p.light_override = MU_CLIENT_HIGH_LIGHT;
     mu_model_apply_params(&m->model, &p);
     mu_model_set_state(&m->model, mu_obj_u16(img, MU_OBJF_ACTION), mu_obj_f32(img, MU_OBJF_FRAME),
                        mu_obj_f32(img, MU_OBJF_PRIOR_FRAME), mu_obj_u16(img, MU_OBJF_PRIOR_ACTION));
@@ -425,20 +449,17 @@ static int32_t visual_rand(void *context)
     return mu_obj_msvc_rand(&c->o->rt.seed);
 }
 
-/* TransformPosition on the object's posed bones. The client poses static objects with the body origin
- * and scale in the bones (Animation's translate argument) and reads matrix * local; the native pose keeps
- * the bones in model space, so the same point is scale * (matrix * local) + origin. */
+/* TransformPosition on the object's posed bones. Static objects are posed with the body origin and scale
+ * in the bones (Animation's translate argument, as in the client), so the point is matrix * local. */
 static void visual_bone(void *context, int32_t bone, const float local[3], float out[3])
 {
     visual_context *c = context;
-    const mu_model *model = &c->m->model;
     out[0] = out[1] = out[2] = 0.0f;
     if (bone < 0 || bone >= c->m->bmd.bone_count)
         return;
-    const float *b = mu_model_bone_matrices(model) + 12 * bone;
+    const float *b = mu_model_bone_matrices(&c->m->model) + 12 * bone;
     for (int r = 0; r < 3; ++r) {
-        float v = b[4 * r] * local[0] + b[4 * r + 1] * local[1] + b[4 * r + 2] * local[2] + b[4 * r + 3];
-        out[r] = v * model->params.body_scale + model->params.origin[r];
+        out[r] = b[4 * r] * local[0] + b[4 * r + 1] * local[1] + b[4 * r + 2] * local[2] + b[4 * r + 3];
     }
 }
 
@@ -510,7 +531,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     int posed = 0;
     if (login) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
         if (m && m->loaded && status != MU_OBJ_SKIPPED)
-            posed = pose_object(o, img, m);
+            posed = pose_object(o, img, m, &log);
         login_visual(o, i, img, posed ? m : NULL);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
@@ -542,7 +563,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
             rt->visual(rt->hook_context, o, i, 1, NULL);
         return NULL;   /* a per-world custom render took the object */
     }
-    if (!posed && !pose_object(o, img, m)) {
+    if (!posed && !pose_object(o, img, m, &log)) {
         if (hook)
             rt->visual(rt->hook_context, o, i, 1, NULL);
         return NULL;
@@ -578,6 +599,37 @@ uint8_t *mu_objects_object_image(mu_objects *o, int32_t index)
     if (!o->rt.ready || index < 0 || index >= o->count)
         return NULL;
     return image(o, index);
+}
+
+void mu_objects_light_report(mu_objects *o, const mu_world *map, int32_t scene_state, FILE *out)
+{
+    for (int32_t index = 0; o->rt.ready && index < o->count; ++index) {
+        mu_draw_options options;
+        mu_object_model *m = mu_objects_prepare_index(o, index, map, scene_state, &options);
+        if (!m)
+            continue;
+        const mu_model_params *p = &m->model.params;
+        const uint8_t *img = image(o, index);
+        fprintf(out, "{\"object_light\": %d, \"type\": %d, \"scale\": %.9g, \"origin\": [%.9g, %.9g, %.9g], "
+                "\"angles\": [%.9g, %.9g, %.9g], \"action\": %u, \"prior_action\": %u, \"frame\": %.9g, "
+                "\"prior_frame\": %.9g, \"pose_translate\": %d, \"transform_translate\": %d, \"light_override\": %d, "
+                "\"ambient\": %.9g, \"light_scale\": %.9g, \"light_minimum\": %.9g, \"lighting\": %d, "
+                "\"color\": [%.9g, %.9g, %.9g], \"model\": \"%s\", \"lights\": [",
+                index, m->type, (double)p->body_scale, (double)p->origin[0], (double)p->origin[1], (double)p->origin[2],
+                (double)p->angles[0], (double)p->angles[1], (double)p->angles[2], mu_obj_u16(img, MU_OBJF_ACTION),
+                mu_obj_u16(img, MU_OBJF_PRIOR_ACTION), (double)mu_obj_f32(img, MU_OBJF_FRAME),
+                (double)mu_obj_f32(img, MU_OBJF_PRIOR_FRAME), p->pose_translate, p->transform_translate,
+                p->light_override, (double)p->light_ambient, (double)p->light_scale, (double)p->light_minimum,
+                p->lighting, (double)p->color[0], (double)p->color[1], (double)p->color[2], m->path);
+        for (int32_t mesh = 0; mesh < m->bmd.mesh_count && mesh < 8; ++mesh) {
+            const float *l = mu_model_lights(&m->model, mesh);
+            fprintf(out, "%s[", mesh ? ", " : "");
+            for (int32_t n = 0; n < m->bmd.meshes[mesh].normal_count && n < 64; ++n)
+                fprintf(out, "%s%.9g", n ? ", " : "", (double)l[n]);
+            fprintf(out, "]");
+        }
+        fprintf(out, "]}\n");
+    }
 }
 
 /* ---- NATIVE-LOGIN-001: the after-character pass ---- */
@@ -640,7 +692,7 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
     light.time = map ? map->time : 0.0f;
     memset(rt->model_fields, 0, sizeof rt->model_fields);
     mu_obj_body_light(img, rt->model_fields, &light);
-    if (mu_obj_i32(img, MU_OBJF_HIDDEN_MESH) == -2 || !pose_object(o, img, m))
+    if (mu_obj_i32(img, MU_OBJF_HIDDEN_MESH) == -2 || !pose_object(o, img, m, NULL))
         return NULL;
     mu_obj_event events[40];
     mu_obj_log log = {0, 40, 0, events};

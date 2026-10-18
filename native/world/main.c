@@ -214,7 +214,7 @@ static int load(app *a)
     else
         snprintf(player, sizeof player, "%s/Data/Player/Player.bmd", a->root);
     mu_model_params params;
-    mu_model_default_params(&params);
+    mu_model_scene_params(&params);   /* light override 1 (NATIVE-LIGHT-001) */
     params.world = a->world;
     if (mu_character_init(&a->ch, player, &params, error, sizeof error)) {
         fprintf(stderr, "%s\n", error);
@@ -1297,9 +1297,11 @@ static void report_summary(const app *a, const char *renderer)
             const mu_world_actor *x = &s->list[i];
             printf("{\"actor\": %d, \"class\": %d, \"label\": \"%s\", \"model\": %d, \"tile\": [%d, %d],"
                    " \"action\": %u, \"frame\": %.3f, \"speed\": %.4f, \"moves\": %u, \"arrivals\": %u,"
-                   " \"effects\": %d}\n", i, x->server_class, x->label, x->actor.spec.model_index, x->tile[0],
-                   x->tile[1], mu_actor_action(&x->actor), (double)mu_actor_frame(&x->actor),
-                   (double)x->actor.last_speed, x->moves, x->arrivals, x->effect_count);
+                   " \"effects\": %d, \"light\": [%.6g, %.6g, %.6g], \"light_override\": %d}\n", i, x->server_class,
+                   x->label, x->actor.spec.model_index, x->tile[0], x->tile[1], mu_actor_action(&x->actor),
+                   (double)mu_actor_frame(&x->actor), (double)x->actor.last_speed, x->moves, x->arrivals,
+                   x->effect_count, (double)x->actor.model.params.color[0], (double)x->actor.model.params.color[1],
+                   (double)x->actor.model.params.color[2], x->actor.model.params.light_override);
         }
     }
     if (a->combat)

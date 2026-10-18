@@ -112,7 +112,7 @@ static void add_model(mu_world_env *e, const char *root, int32_t type, int no_as
         mu_bmd_load_file(m->path, &m->bmd, message, sizeof message) != MU_BMD_OK)
         return;
     mu_model_params p;
-    mu_model_default_params(&p);
+    mu_model_scene_params(&p);   /* light override 1 (NATIVE-LIGHT-001) */
     p.world = e->world;
     if (mu_model_init(&m->model, &m->bmd, &p, message, sizeof message) != MU_MODEL_OK) {
         mu_bmd_free(&m->bmd);
@@ -301,7 +301,6 @@ static int r_frustum(void *c, float x, float y, float range)
 static void r_object(void *c, const mu_env_object *o, int32_t a1)
 {
     draw_context *d = c;
-    (void)a1;
     mu_world_env *e = d->e;
     int32_t slot = -1;
     for (int32_t i = 0; i < e->model_count; ++i)
@@ -320,6 +319,11 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
         p.color[k] = o->light[k];   /* viewer choice: RenderObject's light is not reconstructed */
     }
     p.body_scale = o->scale;
+    /* RenderObject(o, a1, ...): Animation(..., !a1) and Transform(..., translate a1) (the setup 0x017ec896, compared
+     * in the objects' render family): fish (a1 0) are posed with the scale in the bones, so their normals carry it
+     * into the light term; boids (a1 1) are not (NATIVE-LIGHT-001) */
+    p.pose_translate = a1 ? 0 : 1;
+    p.transform_translate = a1 ? 1 : 0;
     mu_model_apply_params(&m->model, &p);
     mu_model_set_state(&m->model, o->action, o->frame, o->prior_frame, o->prior_action);
     if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)

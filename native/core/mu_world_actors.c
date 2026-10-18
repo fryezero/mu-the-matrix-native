@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "../../reconstructed/actors/effect_class_table.h"
+#include "../../reconstructed/objects/object_render.h"
 
 #define MONSTER_IDLE 0     /* docs/research/client-actors.md section 2 (inference) */
 #define MONSTER_WALK 2
@@ -50,13 +51,34 @@ static int is_monster(const mu_world_actor *a)
     return a->actor.spec.monster_type >= 0;
 }
 
-static void place_model(mu_world_actor *a)
+/* RenderCharacter draws a monster or NPC body with RenderObject(o, translate 1, ...) (0x01364163; the translate
+ * byte [ebp-0x3c] is set to 1 at 0x013632fe): Animation without translate, Transform(..., translate 1, 0, 0.4,
+ * +0xe4, +0xe8) (0x017edd08) and the body light 0x017ec3d8. The character objects of a running client carry
+ * +5/+6/+7 = 1, +0xe4/+0xe8 = 0.8/0.2 and the object light +0xec = 0.2, and the model colour equals the frame
+ * light at the position plus 0.2 (live read, NATIVE-LIGHT-001). The light vector is the client's (light override
+ * 1, MU_CLIENT_HIGH_LIGHT, set at load by mu_model_scene_params). */
+#define ACTOR_OBJECT_LIGHT 0.2f
+static void place_model(const mu_world_actors *s, mu_world_actor *a)
 {
     mu_model_params p = a->actor.model.params;
+    float light[3] = {1.0f, 1.0f, 1.0f};
+    if (s->map) {
+        mu_obj_terrain_light(s->map->light, 6, 1, a->position[0], a->position[1], light);   /* scene 6: the world */
+        for (int k = 0; k < 3; ++k)
+            light[k] = light[k] + ACTOR_OBJECT_LIGHT;
+    }
     for (int k = 0; k < 3; ++k) {
         p.origin[k] = a->position[k];
         p.angles[k] = a->angle[k];
+        p.color[k] = light[k];
     }
+    p.lighting = 1;
+    p.pose_translate = 0;
+    p.transform_translate = 1;
+    p.vertex_scale = 0.0f;
+    p.light_ambient = 0.4f;
+    p.light_scale = 0.8f;
+    p.light_minimum = 0.2f;
     mu_model_apply_params(&a->actor.model, &p);
 }
 
@@ -79,7 +101,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
         goto fail;
     }
     mu_model_params params;
-    mu_model_default_params(&params);
+    mu_model_scene_params(&params);   /* light override 1 (NATIVE-LIGHT-001) */
     params.world = s->map->world;
     if (mu_actor_load(&a->actor, &spec, &params, no_textures, message, sizeof message))
         goto fail;
@@ -92,7 +114,7 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     a->angle[2] = (float)(direction & 7) * 45.0f;   /* demo: server direction byte times 45 degrees */
     a->idle_steps = 20 + (int32_t)(demo_rand(s) % 60u);
     mu_actor_set_action(&a->actor, MONSTER_IDLE);
-    place_model(a);
+    place_model(s, a);
     if (fx && s->has_effects) {
         for (uint32_t i = 0; i < fx->count && a->effect_count < MU_WORLD_ACTOR_EFFECTS; ++i) {
             const mu_effect_class_attach *e = &mu_effect_class_attaches[fx->first + i];
@@ -321,7 +343,7 @@ void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
 {
     for (int32_t i = 0; i < s->count; ++i) {
         mu_world_actor *a = &s->list[i];
-        place_model(a);
+        place_model(s, a);
         mu_actor_update(&a->actor);
         for (int32_t k = 0; k < a->effect_count; ++k) {
             float at[3] = {a->position[0], a->position[1], a->position[2]};

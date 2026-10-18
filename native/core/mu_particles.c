@@ -931,7 +931,10 @@ int mu_world_particles_bone_position(const mu_model *model, int32_t bone, const 
     const float *bones = model ? mu_model_bone_matrices(model) : NULL;
     if (!bones || bone < 0 || bone >= MU_MODEL_MAX_BONES)
         return 0;
-    mu_pt_transform_position(bones + 12 * bone, in, out, 1, model->params.body_scale, model->params.origin);
+    /* TransformPosition 0x012b6ef1: bones posed with Animation's translate (static objects, NATIVE-LIGHT-001)
+     * already hold the body scale and origin; model-space bones take them here */
+    mu_pt_transform_position(bones + 12 * bone, in, out, model->params.pose_translate ? 0 : 1, model->params.body_scale,
+                             model->params.origin);
     return 1;
 }
 

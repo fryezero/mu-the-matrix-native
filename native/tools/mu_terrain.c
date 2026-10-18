@@ -15,6 +15,8 @@
  *                       --object-tile X,Y --object-columns N --object-spacing U   gallery layout
  *                       --object-steps N]   the client's object lifecycle (NATIVE-OBJECTS-002): CreateObject,
  *                                           N MoveObjects steps (animation, object lights), RenderObject
+ *                      [--light-report 1]   with --object-steps: one JSON line per drawn object with its
+ *                                           RenderObject pose and light inputs and per-normal lights (NATIVE-LIGHT-001)
  *   mu-terrain objects ROOT --world N [--objects installed|gallery|PLAIN_FILE]
  *                                                JSON: object file status, records, type -> model file
  *   mu-terrain decrypt FILE                      EncTerrain .map/.att plaintext to stdout
@@ -52,7 +54,7 @@ typedef struct args {
     float hero[2], camera_angle, view_far;
     int have_frustum, top_view, legacy;
     const char *objects;          /* NULL, "installed", "gallery" or a plaintext file */
-    int32_t object_tile[2], object_columns, object_steps;
+    int32_t object_tile[2], object_columns, object_steps, light_report;
     float object_spacing;
 } args;
 
@@ -118,6 +120,7 @@ static int parse(args *a, int argc, char **argv)
         else if (!strcmp(k, "--objects")) a->objects = v;
         else if (!strcmp(k, "--object-columns")) a->object_columns = atoi(v);
         else if (!strcmp(k, "--object-steps")) a->object_steps = atoi(v);
+        else if (!strcmp(k, "--light-report")) a->light_report = atoi(v);
         else if (!strcmp(k, "--object-spacing")) a->object_spacing = strtof(v, NULL);
         else if (!strcmp(k, "--object-tile")) {
             if (sscanf(v, "%d,%d", &a->object_tile[0], &a->object_tile[1]) != 2)
@@ -398,6 +401,8 @@ static int command_render(const args *a)
     if (objects_loaded)
         objects_drawn = objects.rt.ready ? mu_objects_draw_raster(&objects, w, &raster, 0, 0, 255, 255)
                                          : draw_objects(&objects, w, &raster);
+    if (objects_loaded && objects.rt.ready && a->light_report)   /* NATIVE-LIGHT-001 */
+        mu_objects_light_report(&objects, w, 6, stdout);
     char hash[65];
     mu_sha256_hex(raster.color, (uint64_t)a->width * (uint64_t)a->height * 4, hash);
     int failed = a->out && mu_png_write(a->out, raster.color, a->width, a->height);

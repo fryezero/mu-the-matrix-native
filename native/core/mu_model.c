@@ -90,6 +90,12 @@ void mu_model_default_params(mu_model_params *p)
     p->bone_scale = 1.0f;
 }
 
+void mu_model_scene_params(mu_model_params *p)
+{
+    mu_model_default_params(p);
+    p->light_override = MU_CLIENT_HIGH_LIGHT;
+}
+
 /* Deterministic bump allocator; same policy as scripts/validate_bone_tracks.py Heap. */
 static uint32_t allocate(void *context, uint32_t request)
 {
