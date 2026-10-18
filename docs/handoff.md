@@ -103,6 +103,19 @@ body light, RequestTerrainLight) for Lorencia and Tormenta Island; `native/core/
 `0x0168fafd`), RenderObjectVisual `0x017f9758` with bone positions, other worlds' object cases, and a Tormenta re-read
 with Nighty selected.
 
+## Auto move and walk/run rules (NATIVE-PATH-002)
+
+Read sections 4 and 5 and the identity block of [`research/client-path.md`](research/client-path.md).
+`mu_path_long`/`mu_auto_path_*` (reconstructed/path) and `mu_player_run_counter`, the predicates and
+`mu_move_speed_input_from` (reconstructed/movement) drive `mu_walk`, `mu_walker`, `mu-path --long --class --boots`
+and `mu-world --boots L --auto-move X,Y` (S + click in the window). Compare with
+`scripts/validate_path.py --cases 1000 --mutations --worlds all` (about 20 minutes; `--only long,auto,run,speed_state,predicates`
+for the new families). The neighbour table now comes from `evidence/path-table-live-01` (manifest, `memread`).
+Renders stay local (`~/Documents/mu-mac-tools/native/renders/path2/`). Next: trace MoveHero's auto-move gates
+(option byte `0x0bdc5981`, the helper check, cancel byte `0x0bdc599c`, flag 3) and the arrival handler's actions,
+give the hero real gear from the character list (boots level, buffs, pets) once equipment decoding exists, and time a
+live walk/run against the native one.
+
 ## Click-to-move (NATIVE-PATH-001)
 
 Read [`research/client-path.md`](research/client-path.md). `reconstructed/path`, `native/core/mu_path.*` and
@@ -110,8 +123,8 @@ Read [`research/client-path.md`](research/client-path.md). `reconstructed/path`,
 running `scripts/validate_path.py --cases 1000 --mutations --worlds all` (needs `MU_CLIENT_TEXT`, `MU_IMAGE_DATA`,
 `MU_TRIG_FLAG`, `MU_PATH_DIRECTIONS` and `MU_GAME_ROOT`; about 3 minutes). Renders stay local
 (`~/Documents/mu-mac-tools/native/renders/path/`). The native-world window can adopt `mu_pathing`/`mu_walker` in place
-of its straight-line walk. `mu_walk` now uses this finder; the world branch's own port was removed in the reconciliation (finding). Next: capture the third section afresh to pin the neighbour table, trace the speed and
-run-counter predicates, and port the long-distance helper path `0x012b104c`.
+of its straight-line walk. `mu_walk` now uses this finder; the world branch's own port was removed in the reconciliation (finding). The
+listed next steps (neighbour table, speed and run-counter predicates, long-distance helper) are done in NATIVE-PATH-002.
 
 ## Free runtime without CrossOver (MAC-FREE-001)
 

@@ -20,8 +20,11 @@
  * The path is the client's own path finder (reconstructed/path, NATIVE-PATH-001:
  * PathFinding2 0x012b0e85, FindPath 0x012b1c45) over the world's
  * attribute grid, with the client's neighbour order (direction table
- * 0x01cf1640) and near plane 20 (0x01cf162c), both static data read from the
- * runtime data-section capture. Placeholders (labelled where used): the
+ * 0x01cf1640, pinned by a live read, NATIVE-PATH-002) and near plane 20
+ * (0x01cf162c), both static data of the third section. The run counter and
+ * CharacterMoveSpeed's predicates follow the hero's gear (mu_hero.gear), and
+ * the long-distance auto move walks the client's list (NATIVE-PATH-002).
+ * Placeholders (labelled where used): the
  * operable-object grid (static objects are not decoded) and everything the
  * hero does besides walking (attacks, skills, auto-move, packets). */
 
@@ -72,6 +75,11 @@ typedef struct mu_hero {
     float play_speed;         /* PlaySpeed of the current action (the animation step reads it) */
     uint8_t action_changed;   /* set when SetAction changed the action this step */
     uint8_t step_result;      /* AL of the last animation tick (0 when it wrapped or clamped) */
+    /* NATIVE-PATH-002: the run-counter and speed inputs besides class_byte and safe_zone (body-part
+     * boots/gloves, the hero equipment's levels, buffs, riding pet, subtype); neutral by default
+     * (no gear: only base classes 3, 4, 6 and 7 run). class_byte, safe_zone and the world are copied
+     * in every step. */
+    mu_run_input gear;
 } mu_hero;
 
 #define MU_WALK_LOG 64
@@ -103,6 +111,11 @@ typedef struct mu_walk {
      * and click code (the attack case of MoveHero runs there). */
     void (*pre_step_hook)(void *context, struct mu_walk *walk);
     void *pre_step_context;
+    /* NATIVE-PATH-002: the long-distance auto move held in the hero's PATH_t (flag 2 walks its
+     * list three nodes at a time), and its counters. */
+    mu_auto_path auto_path;
+    uint32_t auto_moves, auto_segments, auto_searches;
+    float speed, top_speed;   /* CharacterMoveSpeed of the last position step, and the highest so far */
 } mu_walk;
 
 /* Starts a session on a loaded world (mu_walk is large: allocate it
@@ -138,6 +151,16 @@ int32_t mu_walk_end_render(mu_walk *walk);
 void mu_walk_set_action(mu_walk *walk, int32_t action, float speed);
 int mu_walk_path_to(mu_walk *walk, int32_t tile_x, int32_t tile_y);
 void mu_walk_stop(mu_walk *walk);
+
+/* NATIVE-PATH-002: the long-distance auto move toward a tile, as MoveHero's S-click branch starts it
+ * (0x016ad06b: 0x0129c6be(flag 2, tile, target, mode 2, error_check 0), SendMove on success; a
+ * target on a safe-zone tile drops the auto move after the first segment, 0x016ad0a1). Each
+ * logic step then hands the follower the next three nodes when the logical tile reaches the
+ * waypoint, and a stopped hero searches again from its tile until it stands on the target.
+ * Returns 1 when the first segment started. In the click handler, S + left click (after a
+ * normal click path started) calls it; the client also gates it on option byte 0x0bdc5981 and a
+ * helper-state check (static reading, not modelled). */
+int mu_walk_auto_move_to(mu_walk *walk, int32_t tile_x, int32_t tile_y);
 
 /* One animation step: applies the hero's action to the Player model the way
  * SetAction does (prior action and frame from the model, frame 0) when it

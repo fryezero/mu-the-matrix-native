@@ -206,5 +206,92 @@ class MovementTests(unittest.TestCase):
         self.assertTrue(all(m['mismatches'] > 0 for m in parsed['mutations']))
 
 
+class RunCounterTests(unittest.TestCase):
+    """The run counter and speed predicates (NATIVE-PATH-002): worked examples of the rules that
+    scripts/validate_path.py (families run, speed_state, predicates) compares with the client."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('validate_path', ROOT / 'scripts/validate_path.py')
+        cls.V = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.V)
+        cls.lib = cls.V.load_movement_library()
+
+    def walker(self, buffs=(), **fields):
+        i = self.V.RunInput(gloves_type=-1, boots_type=-1)
+        self._ids = (ctypes.c_int32 * max(1, len(buffs)))(*buffs)
+        i.buffs = self.V.BuffSet(self._ids, len(buffs))
+        for key, value in fields.items():
+            setattr(i, key, value)
+        return i
+
+    def counter(self, run=0, **fields):
+        return self.lib.mu_player_run_counter(ctypes.byref(self.walker(**fields)), run)
+
+    def test_classes_and_boots(self):
+        self.assertEqual([self.counter(10, class_byte=c) for c in range(8)], [10, 10, 10, 11, 11, 10, 11, 11])
+        self.assertEqual(self.counter(10, class_byte=0x13), 11)                       # base class 3
+        self.assertEqual(self.counter(10, boots_type=0x0c00, boots_level=5), 11)
+        self.assertEqual(self.counter(10, boots_type=0x0c00, boots_level=4), 10)
+        self.assertEqual(self.counter(10, boots_type=-1, boots_level=9), 10)          # no boots item
+        self.assertEqual(self.counter(10, hero_boots_level=40), 11)                   # level 5 << 3
+        self.assertEqual(self.counter(10, hero_boots_level=39), 10)
+        self.assertEqual(self.counter(10, world=7, boots_type=0x0c00, boots_level=5), 10)    # Atlans: gloves count
+        self.assertEqual(self.counter(10, world=7, gloves_type=0x0a00, gloves_level=5), 11)
+        self.assertEqual(self.counter(10, subtype=0x432), 11)
+        self.assertEqual(self.counter(40, class_byte=3), 40)                          # stops at 40
+        self.assertEqual(self.counter(39, class_byte=3), 40)
+
+    def test_safe_zone_and_rides(self):
+        self.assertEqual(self.counter(30, class_byte=3, safe_zone=1), 0)
+        self.assertEqual(self.counter(30, class_byte=3, safe_zone=1, world=0x84), 31)
+        self.assertEqual(self.counter(30, class_byte=3, safe_zone=1, safe_zone_keeps_run=1), 30)
+        self.assertEqual(self.counter(30, safe_zone=1, buffs=[0xd0]), 1)              # a ride buff grows in town
+        self.assertEqual(self.counter(30, buffs=[0xcd]), 30)                          # 0xcd is a mount, not a ride buff
+        self.assertEqual(self.counter(30, mounted_item=1, safe_zone=2), 31)
+        self.assertEqual(self.counter(30, class_byte=3, class_value=0x3d5), 0)        # never-running class value
+        self.assertEqual(self.counter(30, class_byte=3, stunned=1, safe_zone=1), 30)  # SetPlayerWalk returns at once
+        self.assertEqual(self.lib.mu_player_stop_run_counter(0, 33), 0)
+        self.assertEqual(self.lib.mu_player_stop_run_counter(1, 33), 33)
+
+    def test_predicates(self):
+        self.assertEqual([w for w in range(300) if self.lib.mu_world_gloves_run(w)],
+                         [7, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x24, 0x80, 0x81, 0x82])
+        self.assertEqual([w for w in range(300) if self.lib.mu_world_forces_run(w)],
+                         [0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x35, 0x61])
+        self.assertEqual([w for w in range(300) if self.lib.mu_world_safe_zone_runs(w)], [0x84])
+        codes = (ctypes.c_int32 * 3)(-1, 0x2c01, 0x1a00)
+        present = (ctypes.c_uint8 * 3)(0, 1, 1)
+        self.assertEqual(self.lib.mu_pet_slots_ride(codes, present, (ctypes.c_uint8 * 3)(0x40, 0x40, 0x3f)), 0)
+        self.assertEqual(self.lib.mu_pet_slots_ride(codes, present, (ctypes.c_uint8 * 3)(0, 0, 0x40)), 1)
+        ids = (ctypes.c_int32 * 2)(0x1ae, 0xce)
+        self.assertEqual(self.lib.mu_mount_from_buffs(ctypes.byref(self.V.BuffSet(ids, 2))), 0x1a03)   # order
+        self.assertEqual(self.lib.mu_mount_from_buffs(ctypes.byref(self.V.BuffSet(ids, 1))), 0x28f7)
+        self.assertEqual(self.lib.mu_mount_from_buffs(ctypes.byref(self.V.BuffSet(ids, 0))), 0xffff)
+
+    def speed(self, run, **fields):
+        f = self.V.SpeedFields(object_type=0xa91, object_kind=1, helper_type=0xffff, wing_type=-1)
+        ids = fields.pop('buffs', [])
+        self._ids = (ctypes.c_int32 * max(1, len(ids)))(*ids)
+        f.buffs = self.V.BuffSet(self._ids, len(ids))
+        for key, value in fields.items():
+            setattr(f, key, value)
+        s = self.V.SpeedInput()
+        self.lib.mu_move_speed_input_from(ctypes.byref(f), ctypes.byref(s))
+        r = ctypes.c_uint8(run)
+        return self.lib.mu_character_move_speed(ctypes.byref(s), ctypes.byref(r)), r.value
+
+    def test_speed_from_fields(self):
+        self.assertEqual(self.speed(0), (12.0, 0))
+        self.assertEqual(self.speed(40), (15.0, 40))
+        self.assertEqual(self.speed(0, world=0x13), (15.0, 40))                   # forced run worlds
+        self.assertEqual(self.speed(0, buffs=[0xcf]), (17.0, 40))                 # buff mount 0x1a04 outside town
+        self.assertEqual(self.speed(25, buffs=[0xcf], safe_zone=1), (17.0, 25))   # ladder in town
+        self.assertEqual(self.speed(0, transformed=1), (20.0, 40))
+        speed, run = self.speed(40, buffs=[0x56])
+        self.assertAlmostEqual(speed, 15.0 * 0.33, places=5)
+
+
 if __name__ == '__main__':
     unittest.main()

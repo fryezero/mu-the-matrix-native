@@ -14,7 +14,7 @@
  *     mu_walker_place(&hero, 125, 125, 0.0f);    // spawn tile
  *     ...
  *     if (picked) mu_walker_click(&hero, &pathing, target_x, target_y);   // left click, target tile
- *     mu_walker_step(&hero, can_run);            // every 40 ms logic step
+ *     mu_walker_step(&hero, &pathing);           // every 40 ms logic step
  *     // hero.mover.position[0..1] and hero.mover.angle[2] drive the model;
  *     // the height (position[2]) is the caller's terrain height.
  *
@@ -24,13 +24,14 @@
 
 #include <stdint.h>
 
+#include "../../reconstructed/movement/client_movement.h"
 #include "../../reconstructed/path/client_path.h"
 
-#define MU_PATH_CELLS 65536
+#define MU_PATHING_CELLS 65536
 
 typedef struct mu_pathing {
-    uint16_t wall[MU_PATH_CELLS];       /* TerrainWall copy (attributes & 0xfaff, character bits added) */
-    uint32_t objects[MU_PATH_CELLS];    /* 0x0b7b5420: bit 0 = blocking static object (zero unless set) */
+    uint16_t wall[MU_PATHING_CELLS];       /* TerrainWall copy (attributes & 0xfaff, character bits added) */
+    uint32_t objects[MU_PATHING_CELLS];    /* 0x0b7b5420: bit 0 = blocking static object (zero unless set) */
     mu_path_finder finder;              /* the client finder object, persistent per world */
 } mu_pathing;
 
@@ -58,6 +59,11 @@ typedef struct mu_walker {
     float speed;           /* speed used by the last step */
     uint32_t sent;         /* paths handed to the network boundary (count only) */
     uint32_t steps;        /* logic steps while moving */
+    /* NATIVE-PATH-002 */
+    mu_run_input gear;     /* run-counter inputs (class, boots/gloves, buffs, pets, world); safe_zone is
+                              refreshed from the tile each step when the pathing grid is given */
+    mu_auto_path auto_path;/* the long-distance auto move kept in the hero's PATH_t */
+    uint32_t segments;     /* auto-move segments handed to the follower */
 } mu_walker;
 
 /* Places the walker at the centre of a tile, stopped. angle: Object angle[2]. */
@@ -71,16 +77,34 @@ void mu_walker_place(mu_walker *walker, int32_t tile_x, int32_t tile_y, float an
  * `sent` is incremented. Returns 1 when a new path started. */
 int mu_walker_click(mu_walker *walker, mu_pathing *pathing, int32_t target_x, int32_t target_y);
 
-/* Player base speed of CharacterMoveSpeed 0x013957b5: 12 while the run
- * counter is below 40, then 15 (mounts, wings, buffs and skills not
- * modelled). */
+/* CharacterMoveSpeed 0x013957b5 for the walker as a Player without helper or
+ * wing: 12 while the run counter is below 40, then 15; ride buffs, riding
+ * pets and the world rule as reconstructed (mu_move_speed_input_from). */
 float mu_walker_base_speed(const mu_walker *walker);
 
-/* One 40 ms logic step of a moving hero: the run counter (walk chooser
- * 0x0139002a; it advances only for characters that may run: can_run),
- * MovePath(turn), then MoveCharacterPosition at the base speed, or, on
- * arrival, stop (SetPlayerStop resets the run counter). Returns 1 on the
- * arrival step. A stopped walker is left unchanged (returns 0). */
-int mu_walker_step(mu_walker *walker, int can_run);
+/* Gear presets for mu_walker.gear (all neutral otherwise): no gear, a class
+ * byte, boots of item level 5 on the body (they let any class run). */
+void mu_walker_gear_default(mu_walker *walker, uint8_t class_byte, int32_t world);
+void mu_walker_gear_boots(mu_walker *walker, int8_t level);
+
+/* One 40 ms logic step, in MoveHero's order:
+ *  - auto move with flag 2 while stopped (0x016a9976): restart from the tile
+ *    toward the auto-move target (0x0129c6be), or reset when it has none;
+ *  - while moving: the run counter (SetPlayerWalk prefix, mu_player_run_counter
+ *    with gear; safe zone from the tile when pathing is given), the next
+ *    auto-move segment when the logical tile reaches the waypoint
+ *    (0x0129cc44, SendMove), MovePath(turn), then MoveCharacterPosition at
+ *    CharacterMoveSpeed, or, on arrival, stop (SetPlayerStop resets the run
+ *    counter).
+ * Returns 1 on the arrival step. pathing may be NULL (no restart; gear.safe_zone
+ * as set). */
+int mu_walker_step(mu_walker *walker, mu_pathing *pathing);
+
+/* The long-distance auto move of MoveHero's S-click branch (0x016ad06b):
+ * 0x0129c6be(flag 2, tile, target, mode 2, error_check 0); on success the
+ * first segment starts (SendMove) and 1 is returned. A target on a safe-zone
+ * tile resets the auto move afterwards (0x016ad0a1), so only the first
+ * segment is walked. */
+int mu_walker_auto_move(mu_walker *walker, mu_pathing *pathing, int32_t target_x, int32_t target_y);
 
 #endif

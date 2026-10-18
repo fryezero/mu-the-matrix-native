@@ -63,8 +63,10 @@ def heuristic(tx, ty, x, y):
 OTHER_DIRECTIONS = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
 
 
-def reference_find(walls, sx, sy, tx, ty, error_check, wall, directions, limit=500, mask=0x1e):
-    """Independent statement of FindPath 0x012b1c45 (distance 0): returns the path or None."""
+def reference_find(walls, sx, sy, tx, ty, error_check, wall, directions, limit=500, mask=0x1e, trim=False):
+    """Independent statement of FindPath 0x012b1c45 (distance 0): returns the path or None. trim: BuildPath's
+    variant for budgets above 500 (NATIVE-PATH-002): a target reached by n >= 500 nodes keeps the 499 nodes
+    nearest the start."""
     import heapq
     if sx == 0 or sy == 0:
         return None
@@ -98,6 +100,13 @@ def reference_find(walls, sx, sy, tx, ty, error_check, wall, directions, limit=5
         state[c] = state.get(c, 0) | 2
         if state[c] & 4:
             best_xy = (x, y)
+            if trim:
+                chain, (px, py) = [(x, y)], (x, y)
+                while (px, py) != (sx, sy):
+                    px, py = prev[py * 256 + px]
+                    chain.append((px, py))
+                if len(chain) >= 500:
+                    best_xy = chain[len(chain) - 499]
             break
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
@@ -365,7 +374,167 @@ class FollowerTests(unittest.TestCase):
             parsed = json.loads(report.read_text())
         self.assertEqual(parsed['mismatches'], 0)
         self.assertTrue(all(m['mismatches'] > 0 for m in parsed['mutations']))
-        self.assertGreaterEqual(len(parsed['families']), 9)
+        self.assertGreaterEqual(len(parsed['families']), 15)
+
+
+def corridor(rows=None):
+    """A serpentine corridor (rows y = 2, 6, ..., joined alternately at x = 252 and x = 2)."""
+    walls = [4] * 65536
+    for row in range(2, 254, 4):
+        if rows is not None and row > rows:
+            break
+        for x in range(2, 253):
+            walls[row * 256 + x] = 0
+        link = 252 if (row // 4) % 2 == 0 else 2
+        for y in range(row, min(254, row + 5)):
+            walls[y * 256 + link] = 0
+    return walls
+
+
+class LongPathTests(unittest.TestCase):
+    """The long-distance helper 0x012b104c and the auto-move PATH_t methods (NATIVE-PATH-002)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lib = V.load_library()
+
+    def grid(self, cells=None):
+        g = Grid(self.lib, cells)
+        self.addCleanup(g.close)
+        return g
+
+    def auto(self):
+        a = V.AutoPath()
+        self.lib.mu_auto_path_init(ctypes.byref(a))
+        return a
+
+    def long(self, g, a, sx, sy, tx, ty, error_check=0, distance=0.0, level=4):
+        ok = self.lib.mu_path_long(ctypes.byref(g.finder), sx, sy, tx, ty, error_check, ctypes.byref(a), distance,
+                                   level)
+        return ok, V.c_list(a)
+
+    def test_init_and_reset(self):
+        a = self.auto()
+        self.assertEqual((a.target_x, a.target_y, a.waypoint_x, a.waypoint_y, a.flag, a.mode, a.list_count),
+                         (-1, -1, -1, -1, 0, 0, 0))
+
+    def test_short_path_is_listed_whole(self):
+        g, a = self.grid(), self.auto()
+        ok, nodes = self.long(g, a, 10, 10, 40, 20)
+        self.assertEqual(ok, 1)
+        self.assertEqual((nodes[0], nodes[-1], len(nodes)), ((10, 10), (40, 20), 31))
+        self.assertEqual((a.target_x, a.target_y), (40, 20))
+
+    def test_characters_do_not_block_but_walls_do(self):
+        walls = [0] * 65536
+        for y in range(0, 256):
+            walls[y * 256 + 50] = 0x02          # a line of characters
+        g, a = self.grid(walls), self.auto()
+        ok, nodes = self.long(g, a, 40, 100, 60, 100)
+        self.assertEqual((ok, len(nodes)), (1, 21))   # straight through (mask 0x1c)
+        for y in range(0, 256):
+            walls[y * 256 + 50] = 0x04
+        g, a = self.grid(walls), self.auto()
+        ok, nodes = self.long(g, a, 40, 100, 60, 100, error_check=1)
+        self.assertEqual((ok, nodes), (0, []))      # the whole column blocks
+
+    def test_long_corridor_keeps_499_nodes(self):
+        walls = corridor()
+        g, a = self.grid(walls), self.auto()
+        ok, nodes = self.long(g, a, 3, 2, 3, 250)
+        self.assertEqual(ok, 1)
+        self.assertEqual(len(nodes), 499)
+        self.assertEqual(nodes[0], (3, 2))
+        self.assertEqual((a.target_x, a.target_y), (3, 250))      # the end tile is the target, not node 499
+        self.assertTrue(all(max(abs(p[0] - q[0]), abs(p[1] - q[1])) == 1 for p, q in zip(nodes, nodes[1:])))
+        self.assertTrue(all(walls[y * 256 + x] == 0 for x, y in nodes))
+        expected = reference_find(walls, 3, 2, 3, 250, 0, 4, V.CLIENT_DIRECTIONS, limit=300000000, mask=0x1c,
+                                  trim=True)
+        self.assertEqual(nodes, expected)
+
+    def test_unreachable_target(self):
+        walls = [0] * 65536
+        for dx in range(-2, 3):
+            for dy in range(-2, 3):
+                if max(abs(dx), abs(dy)) == 2:
+                    walls[(100 + dy) * 256 + 100 + dx] = 8
+        g, a = self.grid(walls), self.auto()
+        ok, nodes = self.long(g, a, 60, 100, 100, 100, error_check=1)
+        self.assertEqual((ok, nodes), (0, []))
+        ok, nodes = self.long(g, a, 60, 100, 100, 100, error_check=0)
+        self.assertEqual(ok, 1)
+        self.assertEqual(nodes[-1], (a.target_x, a.target_y))
+        self.assertEqual(max(abs(nodes[-1][0] - 100), abs(nodes[-1][1] - 100)), 3)   # just outside the ring
+        ok, nodes = self.long(g, a, 60, 100, 100, -1)
+        self.assertEqual((ok, nodes), (0, []))      # negative target: refused, list cleared
+
+    def test_long_search_equals_the_reference_statement(self):
+        import random
+        r = random.Random(11)
+        for case in range(25):
+            walls = [0] * 65536
+            for _ in range(80):
+                x0, y0 = r.randint(20, 230), r.randint(20, 230)
+                value = r.choice([4, 8, 0x10, 2, 0x22, 1])
+                for y in range(y0, y0 + r.randint(1, 10)):
+                    for x in range(x0, x0 + r.randint(1, 10)):
+                        walls[y * 256 + x] = value
+            sx, sy = r.randint(30, 220), r.randint(30, 220)
+            tx, ty = r.randint(30, 220), r.randint(30, 220)
+            walls[sy * 256 + sx] = 0
+            error_check = r.choice([0, 1])
+            g, a = self.grid(walls), self.auto()
+            ok, nodes = self.long(g, a, sx, sy, tx, ty, error_check)
+            expected = reference_find(walls, sx, sy, tx, ty, error_check, 4, V.CLIENT_DIRECTIONS, limit=300000000,
+                                      mask=0x1c, trim=True)
+            if expected is None:
+                self.assertEqual(ok, 0, case)
+            else:
+                self.assertEqual((ok, nodes if len(expected) > 1 else []), (1, expected if len(expected) > 1 else []),
+                                 case)
+
+    def test_segments_of_three(self):
+        g, a = self.grid(), self.auto()
+        self.long(g, a, 10, 10, 17, 10)                 # 8 nodes
+        taken = []
+        while self.lib.mu_auto_path_next(ctypes.byref(a)):
+            taken.append([(a.path.x[i], a.path.y[i]) for i in range(a.path.count)])
+            self.assertEqual((a.path.current, a.path.current_float), (0, 0))
+            self.assertEqual((a.waypoint_x, a.waypoint_y), taken[-1][-1])
+        self.assertEqual([len(t) for t in taken], [3, 3, 2])
+        self.assertEqual([p for t in taken for p in t], [(x, 10) for x in range(10, 18)])
+
+    def test_start_flags_and_effects(self):
+        g, a = self.grid(), self.auto()
+        e = V.AutoEffects()
+        start = self.lib.mu_auto_path_start
+        self.assertEqual(start(ctypes.byref(a), ctypes.byref(g.finder), 1, 10, 10, 30, 30, 2, 0, ctypes.byref(e)), 0)
+        self.assertEqual((a.flag, a.target_x, a.target_y, a.list_count), (1, 30, 30, 0))   # armed only
+        self.assertEqual(start(ctypes.byref(a), ctypes.byref(g.finder), 2, 30, 30, 30, 30, 2, 0, ctypes.byref(e)), 0)
+        self.assertTrue(e.arrived)
+        self.assertEqual(start(ctypes.byref(a), ctypes.byref(g.finder), 2, 10, 10, 30, 30, 2, 0, ctypes.byref(e)), 1)
+        self.assertEqual((e.target_set, list(e.target), e.selection_cleared), (1, [12, 12], 1))
+        self.assertEqual((a.path.count, a.list_count, a.flag, a.mode), (3, 18, 2, 2))
+        walls = [0] * 65536
+        walls[50 * 256 + 50] = 4
+        g = self.grid(walls)
+        self.assertEqual(start(ctypes.byref(a), ctypes.byref(g.finder), 2, 10, 10, 50, 50, 2, 1, ctypes.byref(e)), 0)
+        self.assertTrue(e.failure_notice)               # mode 2 failure: notice, then reset
+        self.assertEqual((a.flag, a.target_x, a.mode), (0, -1, 0))
+        self.lib.mu_auto_path_init(ctypes.byref(a))
+        a.mode = 4
+        self.lib.mu_auto_path_arrive(ctypes.byref(a))
+        self.assertEqual(a.mode, 4)                     # modes 4 and 5 keep their state on arrival
+        a.mode = 2
+        self.lib.mu_auto_path_arrive(ctypes.byref(a))
+        self.assertEqual(a.mode, 0)
+
+    def test_refresh_fills_the_list_without_a_segment(self):
+        g, a = self.grid(), self.auto()
+        e = V.AutoEffects()
+        a.waypoint_x, a.waypoint_y = 7, 8
+        self.lib.mu_auto_path_refresh(ctypes.byref(a), ctypes.byref(g.finder), 10, 10, 20, 10, ctypes.byref(e))
+        self.assertEqual((a.list_count, a.path.count, list(e.target), e.target_set), (11, 0, [7, 8], 1))
 
 
 class ReferenceStatementTests(unittest.TestCase):

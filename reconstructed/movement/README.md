@@ -15,6 +15,8 @@ levels and limits.
 | `mu_move_character_position` | MoveCharacterPosition `0x0137b351` (speed as input) |
 | `mu_move_set_action` | SetAction `0x012affa4` |
 | (path finder) | Moved to [`reconstructed/path`](../path/README.md) (NATIVE-PATH-001), the single port of PathFinding2 `0x012b0e85` / FindPath `0x012b1c45`; `native/core/mu_walk.c` uses it. `scripts/validate_movement.py` still runs its path family against that library |
+| `mu_player_run_counter`, `mu_player_stop_run_counter` | The run-counter prefix of SetPlayerWalk `0x0139002a..0x01390455` and SetPlayerStop's reset (NATIVE-PATH-002; compared by `scripts/validate_path.py`, families `run` and `speed_state`) |
+| `mu_buff_set_has`, `mu_mount_from_buffs`, `mu_world_safe_zone_runs`, `mu_world_gloves_run`, `mu_world_forces_run`, `mu_class_never_runs`, `mu_pet_slots_ride`, `mu_move_speed_input_from` | The predicates: buff lookup `0x01295ade`, buff mount `0x0106c5e9`, worlds `0x00e0558b`/`0x016a88d3`/`0x009dacb8`, class values `0x0139bd24`, riding pet `0x0139fcbf`; CharacterMoveSpeed's input from character fields (family `predicates`) |
 | `mu_player_walk_run`, `mu_player_walk_action`, `mu_player_stop_action`, `mu_player_stop_speed` | The unarmed, unmounted case of SetPlayerWalk `0x0139002a` and the stop selector `0x01391e55`, plus the stand PlaySpeeds of the player loader block `0x018311f7..0x018321e1` (tables taken under emulation for every class byte; isolated so the NATIVE-ACTOR-001 action tables can replace them) |
 
 Build with `-ffp-contract=off` (binary32 operations in source order).

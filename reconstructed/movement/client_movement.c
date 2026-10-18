@@ -2,6 +2,7 @@
 #include "client_movement.h"
 
 #include <math.h>
+#include <string.h>
 
 #include "../record-math/record_math.h"
 
@@ -408,4 +409,123 @@ float mu_player_stop_speed(int32_t action)
     case 3: return 0.24f;
     default: return 0.0f;
     }
+}
+
+/* ---- run counter and speed predicates (NATIVE-PATH-002) ---- */
+
+int mu_buff_set_has(const mu_buff_set *b, int32_t id)
+{
+    for (int32_t i = 0; b && i < b->count; ++i)
+        if (b->ids[i] == id)
+            return 1;
+    return 0;
+}
+
+/* 0x0106c5e9, in the client's test order */
+static const int32_t mount_buffs[][2] = {
+    {0xcd, 0x1a02}, {0xce, 0x1a03}, {0xcf, 0x1a04}, {0xd0, 0x1a25}, {0x133, 0x19d7}, {0x142, 0x19e3},
+    {0x143, 0x19e4}, {0x176, 0x184b}, {0x177, 0x184c}, {0x193, 0x1853}, {0x194, 0x1854}, {0x1a2, 0x185d},
+    {0x1a3, 0x185e}, {0x1b2, 0x1833}, {0x1b3, 0x1834}, {0x1bc, 0x1835}, {0x1bd, 0x1836}, {0x1ae, 0x28f7},
+};
+
+uint16_t mu_mount_from_buffs(const mu_buff_set *b)
+{
+    for (size_t i = 0; i < sizeof mount_buffs / sizeof mount_buffs[0]; ++i)
+        if (mu_buff_set_has(b, mount_buffs[i][0]))
+            return (uint16_t)mount_buffs[i][1];
+    return 0xffff;
+}
+
+int mu_world_safe_zone_runs(int32_t world)
+{
+    return world == 0x84;
+}
+
+int mu_world_gloves_run(int32_t world)
+{
+    if (world == 7 || (world >= 0x80 && world <= 0x82))   /* 0x016a88ae, 0x016a8325 */
+        return 1;
+    return (world >= 0x18 && world <= 0x1d) || world == 0x24;
+}
+
+int mu_world_forces_run(int32_t world)
+{
+    return (world >= 0x12 && world <= 0x17) || world == 0x35 || world == 0x61;
+}
+
+int mu_class_never_runs(int32_t v)
+{
+    return (v >= 0x216 && v <= 0x21b) || (v >= 0x349 && v <= 0x34c) || (v >= 0x371 && v <= 0x373) || v == 0x3c1 ||
+           v == 0x3d5;
+}
+
+int mu_pet_slots_ride(const int32_t codes[3], const uint8_t present[3], const uint8_t kind_b[3])
+{
+    for (int i = 0; i < 3; ++i)
+        if (present[i] && (uint32_t)codes[i] <= 0x2c00u && kind_b[i] == 0x40)
+            return 1;
+    return 0;
+}
+
+/* SetPlayerWalk's ride buffs (0x01390138..0x013902c6), in order */
+static const int32_t ride_buffs[] = {0xd0, 0x133, 0x142, 0x143, 0x176, 0x177, 0x193,
+                                     0x194, 0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bd};
+
+uint8_t mu_player_run_counter(const mu_run_input *in, uint8_t run)
+{
+    if (in->stunned)
+        return run;
+    int safe_runs = mu_world_safe_zone_runs(in->world);
+    if (in->safe_zone == 1 && !safe_runs && !in->safe_zone_keeps_run)
+        run = 0;
+    if (mu_class_never_runs(in->class_value))
+        return 0;
+    if (run >= 40)
+        return run;
+    int ride = in->mounted_item != 0;
+    for (size_t i = 0; !ride && i < sizeof ride_buffs / sizeof ride_buffs[0]; ++i)
+        ride = mu_buff_set_has(&in->buffs, ride_buffs[i]);
+    if (ride)
+        return (uint8_t)(run + 1);
+    if (in->safe_zone && !safe_runs)
+        return run;
+    int c = base_class(in->class_byte);
+    int gloves = mu_world_gloves_run(in->world);
+    if (c == 3 || c == 4 || c == 6 || c == 7 || (!gloves && in->boots_type != -1 && in->boots_level >= 5) ||
+        (gloves && in->gloves_type != -1 && in->gloves_level >= 5) || (!gloves && in->hero_boots_level >= 40) ||
+        (gloves && in->hero_gloves_level >= 40) || in->subtype == 0x431 || in->subtype == 0x432)
+        run = (uint8_t)(run + 1);
+    return run;
+}
+
+uint8_t mu_player_stop_run_counter(uint8_t keeps_run, uint8_t run)
+{
+    return keeps_run ? run : 0;
+}
+
+void mu_move_speed_input_from(const mu_speed_fields *f, mu_move_speed_input *in)
+{
+    memset(in, 0, sizeof *in);
+    in->move_speed = f->move_speed;
+    in->object_type = f->object_type;
+    in->object_kind = f->object_kind;
+    in->special_state = f->special_state;
+    in->helper_type = f->helper_type;
+    in->mount_type = f->helper_type == 0xffff ? (int32_t)mu_mount_from_buffs(&f->buffs) : 0xffff;
+    in->helper_option = f->helper_option;
+    in->safe_zone = f->safe_zone;
+    in->subtype = f->subtype;
+    in->mounted_item = f->mounted_item;
+    in->wing_type = f->wing_type;
+    in->transformed = f->transformed;
+    in->world_runs = (uint8_t)mu_world_forces_run(f->world);
+    in->stunned = f->stunned;
+    static const struct { int32_t id; uint32_t bit; } buff_bits[] = {
+        {0x18b, MU_BUFF_18B}, {0x38, MU_BUFF_38}, {0xb8, MU_BUFF_B8}, {0xba, MU_BUFF_BA}, {0xd1, MU_BUFF_D1},
+        {0xd2, MU_BUFF_D2}, {0xf0, MU_BUFF_F0}, {0x56, MU_BUFF_56}, {0x112, MU_BUFF_112}, {0x116, MU_BUFF_116},
+        {0x20, MU_BUFF_20}};
+    for (size_t i = 0; i < sizeof buff_bits / sizeof buff_bits[0]; ++i)
+        if (mu_buff_set_has(&f->buffs, buff_bits[i].id))
+            in->buffs |= buff_bits[i].bit;
+    in->buff_18b_bonus = f->buff_18b_bonus;
 }

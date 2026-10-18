@@ -146,4 +146,93 @@ int32_t mu_player_stop_action(uint8_t class_byte);
  * (block 0x018311f7..0x018321e1, executed): 0.28, action 3: 0.24. */
 float mu_player_stop_speed(int32_t action);
 
+/* ---- Run counter and speed predicates (NATIVE-PATH-002, docs/research/client-path.md) ----
+ * The subsystem queries that SetPlayerWalk 0x0139002a and CharacterMoveSpeed
+ * 0x013957b5 make, as functions of character fields. Executed against the
+ * client in scripts/validate_path.py (families run, speed_state,
+ * predicates). */
+
+/* The character's buff list (c + 0x35ac): the ids it holds. */
+typedef struct mu_buff_set {
+    const int32_t *ids;
+    int32_t count;
+} mu_buff_set;
+/* 0x01295ade(c + 0x35ac, id). */
+int mu_buff_set_has(const mu_buff_set *buffs, int32_t id);
+
+/* 0x0106c5e9(c): the mount a buff stands for (0xcd -> 0x1a02, 0xce -> 0x1a03,
+ * 0xcf -> 0x1a04, 0xd0 -> 0x1a25, ... 0x1ae -> 0x28f7), first match in the
+ * client's order; 0xffff without a mount buff. */
+uint16_t mu_mount_from_buffs(const mu_buff_set *buffs);
+
+/* World predicates (argument: the world index 0x01cf15fc). */
+int mu_world_safe_zone_runs(int32_t world);   /* 0x00e0558b: world 0x84 (the safe zone does not stop running) */
+int mu_world_gloves_run(int32_t world);       /* 0x016a88d3: worlds 7, 0x18..0x1d, 0x24, 0x80..0x82 (gloves count, not boots) */
+int mu_world_forces_run(int32_t world);       /* 0x009dacb8: worlds 0x12..0x17, 0x35, 0x61 (run speed 15) */
+/* 0x0139bd24(c + 0x146): class values that never run (0x216..0x21b,
+ * 0x349..0x34c, 0x371..0x373, 0x3c1, 0x3d5). */
+int mu_class_never_runs(int32_t class_value);
+
+/* 0x0139fcbf(c): one of the three item codes at c + 0x3238 has item kind B
+ * 0x40 (0x00cd6017: the code has an Item.bmd record and 0 <= code <= 0x2c00).
+ * present[i] = 0 when the code has no record. */
+int mu_pet_slots_ride(const int32_t codes[3], const uint8_t present[3], const uint8_t kind_b[3]);
+
+typedef struct mu_run_input {
+    uint8_t stunned;               /* c + 0x190: SetPlayerWalk does nothing while it is nonzero */
+    uint8_t safe_zone;             /* c + 4 (0x0095fb27) */
+    uint8_t class_byte;            /* c + 0x12 */
+    int16_t class_value;           /* c + 0x146 */
+    int32_t world;                 /* 0x01cf15fc */
+    uint8_t safe_zone_keeps_run;   /* 0x009c104e()->0x0106bdb7(c): subsystem predicate, opaque */
+    uint8_t mounted_item;          /* 0x0139fcbf(c), mu_pet_slots_ride */
+    int16_t gloves_type, boots_type;   /* body parts 4 and 5: c + 0x1c4 + k * 0x3fc (-1 none) */
+    int8_t gloves_level, boots_level;  /* c + 0x1c6 + k * 0x3fc */
+    int32_t hero_gloves_level, hero_boots_level; /* the hero's equipment 5 and 6: [0x01d1df18] + 0x1b58 +
+                                                    k * 0x12c + 0x14 (item level << 3 | options) */
+    int32_t subtype;               /* c + 0x32b4 */
+    mu_buff_set buffs;             /* c + 0x35ac */
+} mu_run_input;
+
+/* The run-counter prefix of SetPlayerWalk 0x0139002a..0x01390455, run once
+ * per moving logic step. In a safe zone (except world 0x84, or while
+ * safe_zone_keeps_run) the counter drops to 0; never-running classes keep 0.
+ * Below 40 it grows by one when a ride buff (0xd0, 0x133, 0x142, 0x143,
+ * 0x176, 0x177, 0x193, 0x194, 0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bd) or a
+ * riding pet item is present; otherwise only outside the safe zone, and then
+ * for base classes 3, 4, 6, 7, boots (gloves in mu_world_gloves_run worlds)
+ * of level 5 or more on the body part or in the hero's equipment (field
+ * >= 40), or subtype 0x431/0x432. Returns the new counter. CharacterMoveSpeed
+ * then gives 15 instead of 12 from 40 on. */
+uint8_t mu_player_run_counter(const mu_run_input *in, uint8_t run);
+
+/* SetPlayerStop 0x0138fe69: the counter drops to 0 unless
+ * 0x009c104e()->0x0106bd76(c) (subsystem predicate, opaque) holds. */
+uint8_t mu_player_stop_run_counter(uint8_t keeps_run, uint8_t run);
+
+/* The character fields CharacterMoveSpeed reads, and its input record built
+ * from them with the predicates above: helper type c + 0x322e (0x0129dcda),
+ * the buff mount 0x0106c5e9 when there is no helper, the riding pet
+ * 0x0139fcbf, transformation c + 0x3234 (0x00b9929c) and the world rule
+ * 0x009dacb8. special_state (0x009fa30a()->0x009fbb31(c)) and the buff 0x18b
+ * bonus value stay inputs. */
+typedef struct mu_speed_fields {
+    uint16_t move_speed;           /* c + 0x14c */
+    int32_t object_type;           /* o + 0x5c */
+    uint8_t object_kind;           /* o + 0x3b */
+    uint8_t special_state;         /* opaque predicate */
+    uint16_t helper_type;          /* c + 0x322e */
+    uint8_t helper_option;         /* c + 0x299f */
+    uint8_t safe_zone;             /* c + 4 */
+    int32_t subtype;               /* c + 0x32b4 */
+    uint8_t mounted_item;          /* mu_pet_slots_ride */
+    int16_t wing_type;             /* c + 0x21a4 */
+    uint8_t transformed;           /* c + 0x3234 */
+    int32_t world;
+    uint8_t stunned;               /* c + 0x190 */
+    mu_buff_set buffs;
+    double buff_18b_bonus;
+} mu_speed_fields;
+void mu_move_speed_input_from(const mu_speed_fields *fields, mu_move_speed_input *input);
+
 #endif
