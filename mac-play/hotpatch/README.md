@@ -1,9 +1,10 @@
-# Claude v7.2 CPU hotpatch publication
+# Claude v7.3 CPU hotpatch publication
 
 This is an opt-in snapshot of Claude's existing local v7.2 work: the v7.0 helper,
 inline, peephole and skinning patches plus the native mesh-draw loop in
 `meshdraw.c` (MAC-PERF-005, see `meshdraw-notes.md`), frame pacing with precise
-waits (v7.2, MAC-PERF-006) and the zero-copy/strided batch arrays. The normal `make mugl` and setup installer still
+waits (v7.2, MAC-PERF-006), the zero-copy/strided batch arrays, and v7.3 (MAC-PERF-007): terrain face
+sorting (`terrain.c`), a raised render-thread priority and long-frame diagnostics (`stall.c`). The normal `make mugl` and setup installer still
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
@@ -82,7 +83,8 @@ thread. Never use MuMatrix32 for these tests.
 ## Runtime controls from the original snapshot
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
-from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 7599 (v7.1 and v7.2; v7.0 was 15).
+from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 23983 (v7.3; v7.1 and v7.2 used 7599, v7.0 15).
+The file is read as a 16-bit mask.
 Each site is checked against its original or replacement bytes before a write;
 unexpected bytes are skipped. This is process-local patching with instruction
 cache flushes. It does not write the on-disk executable. Changing a mask is not
@@ -104,10 +106,13 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 2048 | Draw T2F_C4F_N3F_V3F batches straight from the vertex buffer (zero-copy) |
 | 4096 | All batch formats read the vertex buffer in place with stride 48 (no packing) |
 | 8192 | Also run the mesh-draw vertex paths for flags `0x20` and `0x200000` (never seen in game, unverified; off by default) |
+| 16384 | Terrain face sorting: record a run of terrain tile faces and draw opaque faces, then alpha faces, grouped by texture (`terrain.c`) |
+| 32768 | With 16384: on every 8th sorted run, draw the run in both orders into an offscreen framebuffer and count differing pixels (diagnostic) |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,
-256, 1024, 2048 and 4096. 6575 is the same without the pacing fix. Mesh-draw
+256, 1024, 2048 and 4096. 6575 is the same without the pacing fix. The v7.3 default 23983 is
+7599 plus 16384; 56751 adds the terrain verification. Mesh-draw
 modes `0x8000` and flag `0x400` call client code with side effects and always run
 the original loop. `meshdraw-notes.md` has the decoded routine and verification
 method. The source's verify path bypasses comparison
@@ -153,3 +158,35 @@ different masks checks the batch-submission paths. It is a cross-build only here
 
 See [the performance finding](../../docs/research/mac-performance.md) for source
 identities, reported measurements, failures and the remaining profile.
+
+## v7.3 additions (MAC-PERF-007)
+
+**Terrain face sorting (bit 16384).** The tile loop draws each visible tile as a 4-vertex fan: the layer-1 face
+(return address `0x016cfab3`; blending off, culling on, alpha test off), then for tiles with layer-2 alpha the
+alpha face (`0x016cfb53`; blending on, culling off, alpha test on). State and texture flip for every alpha tile,
+so mugl drew one batch per face: about 1,300 draws per frame in the default view and 3,500 with the zoomed-out F6
+camera. `terrain.c` records a run of these faces, with their state calls made virtual, until any other GL call.
+When every opaque face shares one blend-off state class and every alpha face one blend-on class, and each alpha
+face directly follows its own opaque face with identical corner positions, the run is drawn as opaque faces
+grouped by texture in first-use order, then alpha faces likewise. An alpha face that is back-facing or edge-on
+(sign of the clip-space determinant) and its opaque face stay in their original place between sorted sub-runs.
+Any other run is drawn in the original order. Afterwards the real GL state equals what the original stream
+leaves. Argument and limit: an alpha face covers exactly its own opaque face's pixels at equal depth, the depth
+test is LEQUAL and both write depth, so with depth-distinct surfaces every pixel ends as (alpha over opaque) of
+its nearest tile in either order. Depth ties between different tiles are not excluded analytically. Bit 32768
+checks them: it draws the run in both orders into an offscreen framebuffer with the window's depth size, from
+the same cleared start, and compares color and depth of every pixel.
+
+**Render-thread priority.** The render thread runs at `THREAD_PRIORITY_HIGHEST`; the wineserver maps this
+to Mach precedence on macOS. `C:\mutools\mugl-prio.txt` overrides it (-2..2, 0 = normal; polled every 2 s).
+This is not a hotpatch bit and changes no GL output.
+
+**Diagnostics.** With `MUGL_STATS`, every presented frame of 100 ms or more is logged at once as `stall: unix_ms=..
+frame=.. ms=.. scene=..`, and each stats interval gets an `io: max_frame=..` line. `C:\mutools\mugl-stall.txt` (opt-in)
+also points the client's CreateFileA/W, ReadFile, glTexImage2D, glTexSubImage2D and glGenTextures import slots at
+counting wrappers, so stall lines show file opens, reads and texture uploads with the first file names.
+`C:\mutools\mugl-shm.txt` receives the address of the presented-frame counter for `../machprof/stallprof`.
+Writing a frame count (1-20) to `C:\mutools\mugl-trace.txt` records the GL call stream of the next frames to
+`C:\mutools\mugl-trace-<frame>.txt` (glBegin callers, state calls, filtered calls, batch draws); the file format is
+in `stall.c`. The `tsort:` stats line counts runs, sorted runs, faces, draws, in-place pairs, fallbacks and
+verification results.

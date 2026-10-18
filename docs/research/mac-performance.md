@@ -1,7 +1,7 @@
 # CrossOver performance: x87 experiments and OpenGL batching
 
 MAC-PERF-001, issue #45; MAC-PERF-002, issue #48; MAC-PERF-003, issue #51;
-MAC-PERF-004, issue #57; MAC-PERF-005, issue #59; MAC-PERF-006, issue #61.
+MAC-PERF-004, issue #57; MAC-PERF-005, issue #59; MAC-PERF-006, issue #61; MAC-PERF-007.
 Investigation date 2026-10-16. This is an opt-in
 compatibility path for the original client. A native editable game remains open.
 
@@ -909,3 +909,66 @@ login/character-select pacing is reported to be fixed but the numbers above are 
 Windows-native behavior (the cause is specific to Wine on macOS); anti-cheat and server compatibility; and
 any effect of the waitable timer's wineserver round trips on CPU use. The MAC-PERF-005 v7.1 pacing
 figures (24.1-24.2 fps) do not record whether the game was frontmost; read them with this finding.
+
+## MAC-PERF-007: Claude v7.3 hitch analysis, terrain sorting and thread priority
+
+Claude's live work on 2026-10-17 in MuMatrix32 (character Nighty), twelve short sessions under the game lock, each
+run 3 minutes or less. Source: `mac-play/hotpatch/terrain.c`, `stall.c` and `mugl.c` (v7.3),
+`mac-play/machprof/stallprof.c`, `muinput` `wheel`/`kdown`/`kup`. Other agents were loading the Mac throughout
+(load average 6-15 on 4 performance + 6 efficiency cores), so absolute numbers are low and noisy. Every
+comparison below is a same-session interleaved A/B. "v7.2 config" means the v7.3 DLL with mask 7599 and normal priority.
+
+**The soak "142 ms hitch" was a ~2.9 s frame.** 142.26 ms was the mean `work` of a 2-second stats interval
+that held 25 frames at 6.3 fps: 24 frames of 38-42 ms and one frame of about 2.9 s. The mesh-draw mode counters
+show `0x80000` meshes only in that interval, which is consistent with a first-use model load. This is an
+inference: the soak had no I/O logging. The new `stall:` log (frames of 100 ms or more, with optional
+file-open, read and texture-upload counters) showed these classes:
+
+- Map warps: 0.44-3.3 s, with up to 1,235 file opens, 27 MB read and 509 texture uploads. File I/O took about
+  200 ms and uploads 45 ms. `stallprof` samples put most of the remaining CPU time in libjpeg (Huffman decode
+  and IDCT around `0x018bb7a0`) and in the Rosetta runtime.
+- First appearance of monsters or NPCs: 361-454 ms (560-753 opens).
+- Opening the warp window: 126-141 ms.
+- A `vmmap` of main.exe froze it for 2.1-3.0 s, reproduced once. `footprint` and `ps` did not.
+- Frames of 100-300 ms with no I/O, caused by CPU contention: 1 in 110 s at load ~7, but 5-33 per 15 s at
+  load 10-15.
+
+The client loads assets synchronously, so the load stalls remain (gap). Running the render thread at
+`THREAD_PRIORITY_HIGHEST` removes the contention stalls; the wineserver maps it to Mach precedence. At spawn,
+load ~14, normal priority gave 14.3 fps, 70.5 ms work and 5-9 stalls; HIGHEST gave 24.5 fps, 37.4 ms and 0.
+This is the v7.3 default, and `C:\mutools\mugl-prio.txt` overrides it.
+
+**Terrain sorting (bit 16384, default in v7.3).** A GL-stream trace (`mugl-trace.txt`) showed that terrain
+used 1,380 of 3,038 draws per frame in the default view and 3,921 of 6,411 zoomed out (F6 camera,
+Shift+wheel). The cause is the per-tile alternation of the layer-1 face (`0x016cfab3`) and the alpha face
+(`0x016cfb53`), with their state and texture. `terrain.c` draws a recorded run as opaque faces, then alpha
+faces, each grouped by texture. The preconditions, the in-place handling of back-facing pairs and the
+pixel argument are in `../../mac-play/hotpatch/README.md`. Bit 32768 compared both orders offscreen, color
+and depth of every pixel. Across five sessions, 1,565 runs gave 0 differing pixels. The scenes were Twisted
+Karutan spawn (default and zoomed out), the hunting spot with MU Helper, Devias, and Lorencia, where 8
+back-facing alpha pairs per frame are drawn in place. 964 of those runs used the final in-place-pair code.
+Depth ties between different tiles are covered only by this check, not excluded analytically.
+
+| Scene (load) | Before | After |
+|---|---|---|
+| Zoomed out, sort only (~6) | 55.0 ms work; 6,265 draws, glDrawArrays 16.2 ms | 47.5 ms; 2,835 draws, 9.2 ms |
+| Default view, sort only (~10) | 2,880 draws, GL draw 13.4 ms | 1,745 draws, 9.5-12.3 ms |
+| Spawn, v7.2 config vs v7.3 (~14) | 11.8 fps, 85.8 ms, 25-33 stalls/15 s | 22.1 fps, 44.9 ms, 0 |
+| Zoomed out, v7.2 config vs v7.3 (~14) | 8.2 fps, 124 ms, 101-107 stalls/15 s | 18.2 fps, 55 ms, 0-1 |
+| Hunting spot, MU Helper, sort only (~10) | 17.3-22.0 fps, 45-60 ms | 18.6-19.2 fps, 52-55 ms (no clear change) |
+
+Lorencia and Loren Market were empty on MTM-3, at 25 fps with 19-22 ms of work, so no busy town could be
+measured (gap). The remaining bottlenecks are below 25 fps when zoomed out and at the hunting spot. Zoomed out
+after sorting there are about 13.5 ms of GL calls: 1,693 mesh draws carrying 1.19M vertices, 635 additive
+sprite quads and 421 blended grass quads. The mesh loop takes 6 ms. At the hunting spot, wglSwapBuffers takes
+5.6 ms (1 ms elsewhere), which suggests the GPU is the limit for the skill effects. The additive sprite quads
+(blend ONE/ONE, depth mask off) are the next order-independent candidate.
+
+**Fast x87 is active in the play path.** `play-mu.sh` (default `MU_FAST_X87=1`) starts main.exe as a child
+of timewalker's `runtime_loader`, and the patched libRosettaRuntime pages are dirty. In a relaunch A/B at
+spawn (load ~7), off measured 71.7 and 52.5 ms of work (14.1 and 19.3 fps) and on measured 50.5 and 41.0 ms
+(19.9 and 23.8 fps). Nothing was changed; `MU_FAST_X87=0` is the rollback.
+
+Checks run: `make test`, `make mugl mac-diagnostics mac-hotpatch`, the private build, and
+`scripts/audit_repository.py`. Not established: Windows-native behavior, other hosts, busy towns,
+analytical exclusion of depth ties, and stability past the short runs.

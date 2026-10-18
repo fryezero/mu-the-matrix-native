@@ -3,7 +3,10 @@
 These are Claude's authored input and measurement helpers, adapted to select an
 explicit test bottle or log. Nothing here was executed against the game during
 publication. Build muinput through `make mac-hotpatch`. The existing input
-protocol includes `mclick` for the MU Helper middle-button toggle.
+protocol includes `mclick` for the MU Helper middle-button toggle. MAC-PERF-007 adds
+`kdown`/`kup` (hold a key) and `wheel FX FY STEPS`. The zoomed-out benchmark view is
+`key 75` (F6, 3D camera) then `kdown 10 wheel 0.5 0.5 -60 kup 10` (Shift+wheel out);
+the camera returns to normal after a client restart.
 
 `mu-autologin.sh` operates an already running server-list window. Set
 `MU_BOTTLE`, `MU_GAME_DIR` to the host path of that bottle's clone, `MU_ACCOUNT`

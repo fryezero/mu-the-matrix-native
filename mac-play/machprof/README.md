@@ -18,6 +18,14 @@ for this frame-pointer build, but still miss omitted/rewritten frames and are
 not a precise current x86 instruction pointer. The profiler briefly suspends
 and resumes the selected thread. No profiler was run for this publication.
 
+`stallprof PID FRAME_COUNTER_HEX SECONDS [THRESHOLD_MS] [INTERVAL_US] [THREAD] [ARM_MS]` (MAC-PERF-007) samples
+only long frames. mugl v7.3 writes the address of its presented-frame counter to `C:\mutools\mugl-shm.txt`.
+The tool polls that counter. Once the current frame is older than `ARM_MS` (default 50) it also suspends and
+samples the thread, so normal frames are not disturbed. Frames longer than the threshold are summarised with
+the same stack-scan return addresses as `stackprof`, their direct-call targets and the native regions. The
+wall-clock end time matches mugl's `stall:` lines. Do not run `vmmap`, `sample` or similar task inspectors
+while timing frames: in Claude's runs a `vmmap` of main.exe froze the game for 2-3 s.
+
 `memdump` reads a PID/range into a private file; `flav` investigates thread-state
 flavors. `bytarget.py`, `chain.py`, `fdis.py` and `callsite.py` consume a private
 VA-0x00400000 dump selected by `MU_MEMORY_DUMP`. Disassembly helpers require
