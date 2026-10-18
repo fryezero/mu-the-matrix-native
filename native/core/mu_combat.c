@@ -46,6 +46,28 @@ void mu_combat_default_config(mu_combat_config *config)
     config->latency_steps = 4;
     config->respawn_steps = 125;
     config->counter_attack = 1;
+    config->hero_hp = 400;
+    config->hero_respawn_steps = 100;
+}
+
+static void play(mu_combat *c, int32_t id)
+{
+    if (id < 0)
+        return;
+    ++c->sounds_played;
+    c->last_sound = id;
+    if (c->play_sound)
+        c->play_sound(c->sound_context, id);
+}
+
+static mu_player_state hero_state(const mu_combat *c)
+{
+    mu_player_state st;
+    memset(&st, 0, sizeof st);
+    st.class_byte = c->walk->hero.class_byte;
+    st.class_check = (uint8_t)mu_class_check(st.class_byte);
+    st.field_3324 = c->hero_3324;
+    return st;
 }
 
 /* ---------------------------------------------------------------- weapons */
@@ -172,6 +194,12 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->intent_skill = -1;
     c->attack_target = -1;
     c->pending_target = -1;
+    c->last_sound = -1;
+    c->hero_hp = config->hero_hp;
+    if (walk) {
+        c->hero_home[0] = walk->hero.tile[0];
+        c->hero_home[1] = walk->hero.tile[1];
+    }
     c->crt_seed = config->seed ? config->seed : 1u;
     c->time_step = 0.1f;
     init_env(c);
@@ -186,6 +214,11 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     for (int32_t i = 0; i < MU_PLAYER_ACTIONS; ++i)
         c->speeds[i] = -1.0f;
     mu_set_attack_speed(config->attack_speed, config->magic_speed, c->speeds);
+    /* the Player model's base speeds and loop flags of the player loader
+     * 0x01830aa6 (NATIVE-ACTOR-001's table): the hit actions 0x134..0x13a and
+     * the death actions 0x142..0x147 (which stop on their last key) */
+    if (hero)
+        mu_character_apply_player_speeds(hero);
     for (int32_t i = 0; actors && i < actors->count; ++i) {
         mu_combat_monster *m = &c->monsters[i];
         m->hp = config->monster_hp;
@@ -561,6 +594,9 @@ static void end_of_attack(mu_combat *c)
     int target_ok = c->actors && t >= 0 && t < c->actors->count;
     if (target_ok)   /* the end-of-attack angle: CreateAngle toward the target (0x013af01b) */
         angle[2] = mu_create_angle(pos[0], pos[1], c->actors->list[t].position[0], c->actors->list[t].position[1]);
+    const mu_skill_visual *visual = skill ? mu_skill_visual_find(skill) : NULL;
+    if (visual)
+        play(c, visual->end_sound);   /* the end-of-attack blocks' sounds (0x42, 0x75, 0x77, 0x73, ...) */
     switch (skill) {
     case 0:
         if (h->action >= 0x7e && h->action <= 0x81)   /* 0x013aea7a: bow actions shoot */
@@ -789,6 +825,76 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
     }
 }
 
+static float player_speed(const mu_combat *c, int32_t action);
+
+/* The damage packet on the hero: SetPlayerShock 0x0138f92f's Player branch
+ * (verified) and, with the demo's hit points, the die packet. */
+static void hero_hit(mu_combat *c, int32_t damage, int32_t type)
+{
+    mu_hero *h = &c->walk->hero;
+    if (mu_shock_gate(c->hero_dead, h->action, damage, type)) {
+        mu_player_state st = hero_state(c);
+        int32_t rands[4], action = -1, sound = -1;
+        for (int k = 0; k < 4; ++k)
+            rands[k] = (int32_t)(demo_rand(c) & 0x7fff);
+        mu_player_shock(&st, rands, 4, &action, &sound);
+        mu_walk_set_action(c->walk, action, player_speed(c, action));   /* SetAction 0x012affa4 */
+        play(c, sound);
+        ++c->stats.hero_shocks;
+    }
+    if (c->config.hero_hp > 0 && !c->hero_dead) {
+        c->hero_hp -= damage;
+        if (c->hero_hp <= 0) {
+            c->hero_dead = 1;   /* the die packet: Dead = 1 */
+            mu_combat_stop(c);
+            c->hero_attack_time = 0;
+            if (h->movement)
+                mu_walk_stop(c->walk);
+            log_line(c, "the hero dies (demo)");
+        }
+    }
+}
+
+/* MoveCharacter's dead counter for the hero: SetPlayerDie from 15 on
+ * (Player branch verified); the demo respawn after the configured delay. */
+static void hero_dead_step(mu_combat *c)
+{
+    if (!c->hero_dead)
+        return;
+    if (c->hero_respawn > 0) {
+        if (--c->hero_respawn == 0) {
+            /* demo: the server's respawn puts the hero back on its first tile */
+            mu_walk *w = c->walk;
+            w->hero.tile[0] = c->hero_home[0];
+            w->hero.tile[1] = c->hero_home[1];
+            w->hero.position[0] = (float)c->hero_home[0] * 100.0f + 50.0f;
+            w->hero.position[1] = (float)c->hero_home[1] * 100.0f + 50.0f;
+            int32_t stop = mu_player_stop_action(w->hero.class_byte);
+            mu_walk_set_action(w, stop, mu_player_stop_speed(stop));
+            c->hero_dead = 0;
+            c->hero_hp = c->config.hero_hp;
+            c->hero_3324 = 0.0f;
+            log_line(c, "the hero respawns (demo)");
+        }
+        return;
+    }
+    int die = 0;
+    c->hero_dead = mu_dead_step(c->hero_dead, &die);
+    if (die && c->hero_3324 == 0.0f) {
+        mu_player_state st = hero_state(c);
+        int32_t rands[4], action = -1, sounds[2];
+        for (int k = 0; k < 4; ++k)
+            rands[k] = (int32_t)(demo_rand(c) & 0x7fff);
+        mu_player_die(&st, rands, 4, &action, sounds);
+        mu_walk_set_action(c->walk, action, player_speed(c, action));
+        play(c, sounds[0]);
+        play(c, sounds[1]);
+        c->hero_3324 = 0.001f;   /* the voice played once */
+        ++c->stats.hero_deaths;
+        c->hero_respawn = c->config.hero_respawn_steps;
+    }
+}
+
 static void process_events(mu_combat *c)
 {
     int32_t kept = 0;
@@ -803,6 +909,7 @@ static void process_events(mu_combat *c)
         else if (e.kind == 2) {
             show_damage(c, c->hero_key, c->walk->hero.position, e.damage, e.type, 0, 0);
             ++c->stats.hero_hits;
+            hero_hit(c, e.damage, e.type);
         }
     }
     c->event_count = kept;
@@ -881,10 +988,21 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
         mu_player_attack_action(&in, &r);
         action = r.action;
         ++c->stats.attacks;
+        /* SetPlayerAttack's sound tail (0x01393924): the swing, bow or crossbow */
+        mu_player_state st = hero_state(c);
+        int32_t sound = -1;
+        int32_t used = r.rand_used < 8 ? r.rand_used : 8;
+        mu_player_attack_sound(&st, in.bow_kind, in.weapon[0], in.weapon[1], c->map ? c->map->world : 0,
+                               rands + used, 8 - used, &sound);
+        play(c, sound);
     } else {
         const mu_skill_visual *v = mu_skill_visual_find(skill);
-        action = v && v->action >= 0 ? v->action : mu_player_magic_action(h->class_byte, 0, rands[0]);
+        action = v && v->action >= 0 ? v->action
+                                     : mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands[0]);
         ++c->stats.skills;
+        /* the receive handlers' sounds of the melee skills and buffs (0x70..0x73, 0x6f) */
+        if (v && v->sound >= 0 && v->sound != 0x34d)
+            play(c, v->sound);
     }
     if (action >= 0)
         mu_walk_set_action(w, action, player_speed(c, action));
@@ -926,7 +1044,7 @@ static void hero_decide(mu_combat *c)
 {
     mu_walk *w = c->walk;
     mu_hero *h = &w->hero;
-    if (c->intent_skill < 0 || c->hero_attack_time > 0)
+    if (c->intent_skill < 0 || c->hero_attack_time > 0 || c->hero_dead)
         return;
     int32_t t = c->target;
     if (!alive(c, t)) {
@@ -991,6 +1109,11 @@ static int32_t pick_monster(mu_combat *c)
 void mu_combat_pre_step(mu_combat *c)
 {
     mu_frame_world *f = &c->walk->frame;
+    if (c->hero_dead) {   /* a dead hero neither walks nor attacks (demo) */
+        f->mouse.left_push = 0;
+        f->mouse.left = 0;
+        return;
+    }
     if (f->mouse.left_push) {
         ++c->stats.picks;
         int32_t i = pick_monster(c);
@@ -1109,6 +1232,7 @@ void mu_combat_step(mu_combat *c)
 {
     ++c->step;
     process_events(c);
+    hero_dead_step(c);
     if (c->pending_target >= 0 && c->step >= c->pending_deadline)
         demo_damage(c, c->pending_target, 0);   /* the server answers anyway */
     if (c->hero_attack_time && mu_attack_time_step(&c->hero_attack_time, MU_ATTACK_TIME_LIMIT)) {
@@ -1506,10 +1630,10 @@ void mu_combat_report_frame(const mu_combat *c, FILE *out, int32_t frame)
     const mu_hero *h = &c->walk->hero;
     fprintf(out, "{\"combat_frame\": %d, \"step\": %d, \"hero_action\": %u, \"hero_angle\": %.3f,"
             " \"attack_time\": %u, \"target\": %d, \"skill\": %d, \"points\": %d, \"fx\": %d, \"particles\": %d,"
-            " \"joints\": %d, \"lights\": %d, \"monsters\": [",
+            " \"joints\": %d, \"lights\": %d, \"hero_hp\": %d, \"hero_dead\": %u, \"sound\": %d, \"monsters\": [",
             frame, c->step, h->action, (double)h->angle[2], c->hero_attack_time, c->target, c->attack_skill,
             mu_combat_live_points(c), mu_combat_live_fx(c), mu_combat_live_particles(c), mu_combat_live_joints(c),
-            c->light_count);
+            c->light_count, c->hero_hp, c->hero_dead, c->last_sound);
     int first = 1;
     for (int32_t i = 0; c->actors && i < c->actors->count; ++i) {
         if (c->actors->list[i].actor.spec.monster_type < 0)
@@ -1561,12 +1685,12 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             " \"monster_attacks\": %u, \"hero_hits\": %u, \"picks\": %u, \"pick_hits\": %u,"
             " \"particles_created\": %u, \"joints_created\": %u, \"projectile_hits\": %u, \"area_requests\": %u,"
             " \"sprites\": %u, \"unsupported\": %u, \"hero_shocks\": %u, \"hero_deaths\": %u,"
-            " \"bitmaps_loaded\": %d, \"models_loaded\": %d}\n",
+            " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d}\n",
             c->config.weapon, (double)c->config.attack_speed, s->attacks, s->skills, s->arrows, s->fx_created,
             s->hits, s->misses, s->shocks, s->kills, s->deaths, s->removed, s->respawns, s->points_created,
             s->monster_attacks, s->hero_hits, s->picks, s->pick_hits, s->particles_created, s->joints_created,
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
-            loaded_bitmaps(c), loaded_models(c));
+            c->sounds_played, loaded_bitmaps(c), loaded_models(c));
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)
             fprintf(out, "{\"combat_log\": \"%s\"}\n", c->log[i]);

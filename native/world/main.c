@@ -172,6 +172,12 @@ static void on_step(void *context, mu_walk *w);
 static void env_sound(void *context, int32_t id);
 
 /* NATIVE-COMBAT-001: MoveHero's attack case runs before its walk and click code. */
+static void combat_sound(void *context, int32_t id)
+{
+    app *a = context;
+    mu_audio_host_play(a->sound.host, id, 0);   /* SND_Play(id, object, 0) */
+}
+
 static void combat_pre_step(void *context, mu_walk *w)
 {
     (void)w;
@@ -281,6 +287,10 @@ static int load(app *a)
         }
         a->walk.pre_step_hook = combat_pre_step;
         a->walk.pre_step_context = a;
+        if (a->has_sound) {   /* NATIVE-COMBAT-002: swings, skills, the hero's voice through SND_Play */
+            a->combat->play_sound = combat_sound;
+            a->combat->sound_context = a;
+        }
     }
     return 0;
 }
@@ -1527,7 +1537,7 @@ static int usage(void)
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
-                    "                [--attack-speed N] [--combat-seed N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
+                    "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N]\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
     return 2;
@@ -1599,6 +1609,7 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(k, "--attack-speed")) { a.combat_config.attack_speed = strtof(v, NULL); a.combat_on = 1; }
         else if (!strcmp(k, "--combat-seed")) { a.combat_config.seed = (uint32_t)strtoul(v, NULL, 0); a.combat_on = 1; }
+        else if (!strcmp(k, "--hero-hp")) { a.combat_config.hero_hp = atoi(v); a.combat_on = 1; }
         else if (!strcmp(k, "--combat-script")) {
             if (mu_combat_script_parse(&a.combat_script, v))
                 return usage();

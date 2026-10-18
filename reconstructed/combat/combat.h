@@ -358,6 +358,14 @@ int32_t mu_player_die(const mu_player_state *state, const int32_t *rands, int32_
 int32_t mu_player_attack_sound(const mu_player_state *state, int32_t bow_kind, int16_t weapon0, int16_t weapon1,
                                int32_t world, const int32_t *rands, int32_t rand_count, int32_t *sound);
 
+/* 0x00b99205(class), static reading: 1 for class nibbles 2, 5, 7, 8, 9, 12
+ * and 14 (the second voice set, and SetPlayerMagic's action 0xa5). */
+int mu_class_check(uint8_t class_byte);
+
+/* SetPlayerShock's gates before either branch (static, as mu_shock_action):
+ * 1 when the reaction runs. */
+int mu_shock_gate(uint8_t dead, int32_t action, int32_t damage, int32_t type);
+
 /* ------------------------------------------------------------------------
  * The attack timeline (static readings of MoveCharacter 0x013a85a9 and the
  * per-step attack routine 0x013966ea). An attack starts with AttackTime

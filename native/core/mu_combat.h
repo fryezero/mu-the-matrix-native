@@ -64,6 +64,9 @@ enum {
     MU_COMBAT_WEAPON_STAFF
 };
 
+/* Plays a client sound id through the sound table (SND_Play 0x00a6ac96). */
+typedef void (*mu_combat_sound_fn)(void *context, int32_t id);
+
 typedef struct mu_combat_config {
     int32_t weapon;           /* MU_COMBAT_WEAPON_* */
     float attack_speed;       /* character attribute +0x1b6 (demo value) */
@@ -74,6 +77,8 @@ typedef struct mu_combat_config {
     int32_t latency_steps;    /* demo server latency (damage after the attack starts) */
     int32_t respawn_steps;    /* demo respawn delay after removal */
     int32_t counter_attack;   /* 1: hit monsters attack the hero back (demo) */
+    int32_t hero_hp;          /* demo hit points of the hero (0: the hero cannot die) */
+    int32_t hero_respawn_steps; /* demo: steps from the death action to the respawn */
 } mu_combat_config;
 
 void mu_combat_default_config(mu_combat_config *config);
@@ -175,6 +180,15 @@ typedef struct mu_combat {
     int32_t attack_target;     /* target of the running attack */
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
+    int32_t hero_hp;           /* demo */
+    uint8_t hero_dead;         /* c + 0x23 */
+    float hero_3324;           /* c + 0x3324: SetPlayerDie's voice runs once (0.001 after it) */
+    int32_t hero_respawn;      /* demo: steps until the respawn, 0 none */
+    int32_t hero_home[2];      /* demo: the respawn tile */
+    mu_combat_sound_fn play_sound;   /* optional (mu-world sets it when sound is on) */
+    void *sound_context;
+    uint32_t sounds_played;
+    int32_t last_sound;
     int32_t pending_target;    /* demo: the projectile attack whose damage waits for its hit check */
     int32_t pending_deadline;
     int32_t pending_damage, pending_type;

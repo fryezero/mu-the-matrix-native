@@ -618,6 +618,23 @@ int mu_monster_shock_allowed(int32_t monster_class, int32_t action)
     return !(action == 3 || action == 4);
 }
 
+int mu_class_check(uint8_t class_byte)
+{
+    int cls = class_byte & 15;
+    return cls == 2 || cls == 5 || cls == 7 || cls == 8 || cls == 9 || cls == 12 || cls == 14;
+}
+
+int mu_shock_gate(uint8_t dead, int32_t action, int32_t damage, int32_t type)
+{
+    static const int32_t skip[] = {0x8f, 0x9c, 0x9f, 0xe2, 0xe3, 0xdc, 0xe0, 0xe1, 0x11d, 0x126, 0x127};
+    if (dead)
+        return 0;
+    for (size_t i = 0; i < sizeof skip / sizeof skip[0]; ++i)
+        if (action == skip[i])
+            return 0;
+    return type == 12 || type == 15 || damage > 0;
+}
+
 int32_t mu_shock_action(uint8_t dead, int32_t object_type, int32_t action, int32_t monster_class, int32_t damage,
                         int32_t type)
 {
