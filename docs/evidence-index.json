@@ -1180,6 +1180,21 @@
         "Lang.mpr entries are zip-encrypted; password not recovered (protection boundary)",
         "skill/minimap/movereq and other matched-only files have no located loader"
       ]
+    },
+    "client_item_attributes": {
+      "task": "NATIVE-DATA-002",
+      "document": "docs/research/client-item-attributes.md",
+      "item_record": {"constructor": "0x01184277", "comparator": "0x011844d9", "lookup": "0x00cd5d29", "object_accessor": "0x00ccc591", "named_fields": 52},
+      "reconstructed": {"max_durability": "0x00ccc5b0", "warehouse_ban": "0x016bec14", "repair_ban": "0x016be1d9"},
+      "validation": {"installed_codes": 4881, "synthetic_records": 300, "comparisons": 604981, "mismatches": 0, "negative_control_failures": 9542},
+      "layouts": {"tables": 28, "evidence_classes": ["consumer", "layout", "data"]},
+      "loader_search": {"checksum_call_sites": 35, "skill_minimap_movereq_loaders_found": false},
+      "local_evidence": "evidence/client-data-tables/item-fields-01.json",
+      "limits": [
+        "Many field names are static readings; data-class names are inferred from contents only",
+        "Requirement, ItemConvert bonus and price formulas not reconstructed",
+        "Harmony/socket durability contribution not modelled"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
