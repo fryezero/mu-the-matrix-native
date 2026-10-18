@@ -57,6 +57,18 @@ def load_camera_validator():
 
 
 vc = load_camera_validator()
+
+
+def load_path_validator():
+    """reconstructed/path (NATIVE-PATH-001) bindings: the single path-finder port, which the path
+    family below compares with the client under this validator's strict machine."""
+    spec = importlib.util.spec_from_file_location('validate_path_movement', ROOT / 'scripts/validate_path.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+vp = load_path_validator()
 f32, fbits, same = vc.f32, vc.fbits, vc.same
 
 # Routine bodies pinned by SHA-256 of the restored bytes (start, length, digest).
@@ -173,11 +185,6 @@ def load_library(directory=None):
         'mu_player_walk_action': ([U8, U8, P(F)], I),
         'mu_player_stop_action': ([U8], I),
         'mu_player_stop_speed': ([I], F),
-        'mu_path_finder_bytes': ([], ctypes.c_uint32),
-        'mu_path_finder_init': ([ctypes.c_void_p, ctypes.c_void_p], None),
-        'mu_find_path': ([ctypes.c_void_p, I, I, I, I, U8, I, U8, F, I, I, ctypes.c_void_p, ctypes.c_void_p], ctypes.c_int),
-        'mu_path_finding2': ([ctypes.c_void_p, I, I, I, I, P(Path_), F, I, U8, ctypes.c_void_p, ctypes.c_void_p],
-                             ctypes.c_int),
     }
     for name, (args, result) in sig.items():
         function = getattr(lib, name)
@@ -700,13 +707,21 @@ def setup_finder(guest, walls, objects, table):
     guest.heap_cursor = HEAP + 0xe0000
 
 
-def authored_finder(lib, walls, objects, table):
-    finder = ctypes.create_string_buffer(lib.mu_path_finder_bytes())
-    grid = (ctypes.c_uint16 * 65536)(*walls)
-    lib.mu_path_finder_init(finder, grid)
-    directions = (ctypes.c_int32 * 16)(*[v for pair in table for v in pair])
-    object_grid = (ctypes.c_uint32 * 65536)(*objects) if objects else None
-    return finder, grid, directions, object_grid
+class AuthoredFinder:
+    """A reconstructed/path finder over its own copy of the grids, with the neighbour table."""
+
+    def __init__(self, lib, walls, objects, table):
+        self.lib = lib
+        self.grid = (ctypes.c_uint16 * 65536)(*walls)
+        self.objects = (ctypes.c_uint32 * 65536)(*objects) if objects else None
+        self.table = (ctypes.c_int32 * 16)(*[v for pair in table for v in pair])
+        self.finder = vp.Finder()
+        if lib.mu_path_finder_init(ctypes.byref(self.finder), 256, 256, self.grid, self.objects):
+            raise MemoryError
+        self.finder.directions = ctypes.addressof(self.table)
+
+    def close(self):
+        self.lib.mu_path_finder_free(ctypes.byref(self.finder))
 
 
 def guest_path_state(guest):
@@ -717,19 +732,12 @@ def guest_path_state(guest):
     return length, xs, ys, end
 
 
-class FinderHead(ctypes.Structure):
-    """Leading fields of mu_path_finder (client_path.h); ctypes applies the C alignment."""
-    _fields_ = [('width', ctypes.c_int32), ('height', ctypes.c_int32), ('size', ctypes.c_int32),
-                ('map', ctypes.c_void_p), ('length', ctypes.c_int32), ('x', ctypes.c_uint8 * 500),
-                ('y', ctypes.c_uint8 * 500), ('end_x', ctypes.c_int16), ('end_y', ctypes.c_int16)]
-
-
-def authored_path_state(finder):
-    head = FinderHead.from_buffer(finder)
-    length = head.length
-    xs = bytes(head.x)[500 - length:] if 0 < length <= 500 else b''
-    ys = bytes(head.y)[500 - length:] if 0 < length <= 500 else b''
-    return length, xs, ys, (head.end_x, head.end_y)
+def authored_path_state(authored):
+    f = authored.finder
+    length = f.count
+    xs = bytes(f.path_x)[500 - length:] if 0 < length <= 500 else b''
+    ys = bytes(f.path_y)[500 - length:] if 0 < length <= 500 else b''
+    return length, xs, ys, (f.end_x, f.end_y)
 
 
 def case_path(guest, lib, tally, generator, count, stubs, maps=None):
@@ -766,7 +774,8 @@ def case_path(guest, lib, tally, generator, count, stubs, maps=None):
             tx, ty = max(-5, min(270, tx)), max(-5, min(260, ty))
             mode = generator.choice([2, 2, 4])
             direct = generator.random() < 0.3
-            finder, grid, directions, object_grid = authored_finder(lib, walls, objects, table)
+            authored = AuthoredFinder(lib, walls, objects, table)
+            finder = ctypes.byref(authored.finder)
             if direct:
                 check = generator.choice([0, 1])
                 limit = generator.choice([500, 500, 40, 5])
@@ -774,9 +783,8 @@ def case_path(guest, lib, tally, generator, count, stubs, maps=None):
                 guest.heap_cursor = HEAP + 0xe0000
                 result = guest.call(0x012b1c45, [sx, sy, tx, ty, check, mode, 0, bits(0.0), limit, mask], ecx=FINDER,
                                     count=20000000) & 0xff
-                mine = lib.mu_find_path(finder, sx, sy, tx, ty, check, mode, 0, 0.0, limit, mask, directions,
-                                        object_grid)
-                same_state = guest_path_state(guest) == authored_path_state(finder) if result else True
+                mine = lib.mu_path_find(finder, sx, sy, tx, ty, check, mode, 0, 0.0, limit, mask)
+                same_state = guest_path_state(guest) == authored_path_state(authored) if result else True
                 ok = result == mine and same_state
                 tally.add('find_path 0x012b1c45', ok, {'s': [sx, sy], 't': [tx, ty], 'check': check, 'mode': mode,
                                                        'limit': limit, 'mask': mask, 'client': result,
@@ -786,15 +794,15 @@ def case_path(guest, lib, tally, generator, count, stubs, maps=None):
                 guest.put(ARENA + 0x100, record)
                 result = guest.call(0x012b0e85, [sx, sy, tx, ty, ARENA + 0x100, bits(0.0), mode],
                                     count=20000000) & 0xff
-                path = Path_()
-                mine = lib.mu_path_finding2(finder, sx, sy, tx, ty, ctypes.byref(path), 0.0, mode, 0, directions,
-                                            object_grid)
+                path = vp.ClientPath()
+                mine = lib.mu_path_finding2(finder, sx, sy, tx, ty, ctypes.byref(path), 0.0, mode, 0)
                 client_record = guest.get(ARENA + 0x100, 33)
                 ok = result == mine and client_record == bytes(path)[:33]
                 tally.add('path_finding2 0x012b0e85', ok, {'s': [sx, sy], 't': [tx, ty], 'mode': mode,
                                                            'client': [result, client_record.hex()],
                                                            'authored': [mine, bytes(path)[:33].hex()],
                                                            'table': table})
+            authored.close()
 
 
 def run_range(guest, start, until, frame_size=0x400, count=5000000):
@@ -887,14 +895,14 @@ MUTATIONS = [
      'position'),
     ('set action at count', 'client_movement.c', 'if (new_action >= action_count)', 'if (new_action > action_count)', 'set_action'),
     ('class 7 male walk', 'client_movement.c', '{0, 0, 1, 0, 0, 1, 0, 1, 1, 1', '{0, 0, 1, 0, 0, 1, 0, 0, 1, 1', 'walk_select'),
-    ('heuristic weight 6', 'client_path.c', 'int32_t value = absolute(a - b) * 5 + m * 7 + 1;',
-     'int32_t value = absolute(a - b) * 6 + m * 7 + 1;', 'path'),
-    ('parent on equal cost', 'client_path.c', 'if (candidate < f->cost[c]) {', 'if (candidate <= f->cost[c]) {', 'path'),
+    # path mutations act on reconstructed/path/client_path.c (the single path-finder port)
+    ('heuristic weight 6', 'client_path.c', '(abs(dx - dy) * 5 + m * 7 + 1) * 3 / 4',
+     '(abs(dx - dy) * 6 + m * 7 + 1) * 3 / 4', 'path'),
+    ('parent on equal cost', 'client_path.c', 'if (g < f->cost[current]) {', 'if (g <= f->cost[current]) {', 'path'),
     ('last-in first-out among equal priorities', 'client_path.c',
-     'a->priority < b->priority || (a->priority == b->priority && a->sequence < b->sequence)',
-     'a->priority < b->priority || (a->priority == b->priority && a->sequence > b->sequence)', 'path'),
-    ('wall test without the mask', 'client_path.c', 'int32_t value = (int32_t)(f->map[n] & (uint32_t)mask);',
-     'int32_t value = (int32_t)(f->map[n] & (uint32_t)(mask | 0xffff));', 'path'),
+     '(a->cost == b->cost && a->sequence < b->sequence)', '(a->cost == b->cost && a->sequence > b->sequence)', 'path'),
+    ('wall test without the mask', 'client_path.c', 'int32_t w = (int32_t)f->wall[n] & wall_mask;',
+     'int32_t w = (int32_t)f->wall[n] & (wall_mask | 0xffff);', 'path'),
 ]
 
 
@@ -907,14 +915,14 @@ def run_mutations(guest, families, stubs, seed, count):
         for index, (label, filename, old, new, family) in enumerate(MUTATIONS):
             if family not in families:
                 continue
-            target = scratch / f'movement{index}'
-            shutil.copytree(ROOT / 'reconstructed' / 'movement', target, ignore=shutil.ignore_patterns('*.dylib', '*.so'))
-            (target / 'Makefile').write_text((target / 'Makefile').read_text().replace('../record-math', '../record-math'))
+            module = 'path' if family == 'path' else 'movement'
+            target = scratch / f'{module}{index}'
+            shutil.copytree(ROOT / 'reconstructed' / module, target, ignore=shutil.ignore_patterns('*.dylib', '*.so'))
             source = (target / filename).read_text()
             if source.count(old) != 1:
                 raise ValueError(f'mutation anchor not unique: {label}')
             (target / filename).write_text(source.replace(old, new))
-            lib = load_library(target)
+            lib = vp.load_library(target) if family == 'path' else load_library(target)
             tally = Tally()
             function, family_count = families[family]
             cases = max(count, family_count // 2) if family != 'path' else 100
@@ -971,8 +979,11 @@ def main(argv=None):
         for world in args.path_worlds.split(','):
             maps.append(installed_walls(args.game_root, int(world)))
 
+    path_lib = vp.load_library()
+
     def path_family(g, l, t, r, c, s):
-        return case_path(g, l, t, r, c, s, maps)
+        # the path finder is reconstructed/path; a mutation run passes its own mutated build
+        return case_path(g, l if hasattr(l, 'mu_path_find') else path_lib, t, r, c, s, maps)
 
     families = [
         ('angles', plain(case_angles), n), ('move_path', plain(case_move_path), 2 * n), ('height', case_height, 2 * n),

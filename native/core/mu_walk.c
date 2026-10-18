@@ -220,7 +220,14 @@ void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_
     w->target[0] = tile_x;
     w->target[1] = tile_y;
     memcpy(w->directions, mu_walk_default_directions, sizeof w->directions);
-    mu_path_finder_init(&w->finder, f->walls);   /* 0x012b0e65: 256 x 256 over TerrainWall */
+    /* 0x012b0e65: 256 x 256 over TerrainWall; no operable-object grid (placeholder) */
+    mu_path_finder_init(&w->finder, 256, 256, f->walls, NULL);
+    w->finder.directions = (const int32_t(*)[2])w->directions;
+}
+
+void mu_walk_free(mu_walk *w)
+{
+    mu_path_finder_free(&w->finder);
 }
 
 void mu_walk_message(mu_walk *w, uint32_t message, uint32_t wparam, uint32_t lparam)
@@ -320,15 +327,16 @@ static void hero_click(mu_walk *w)
     if (h->tile[0] == w->target[0] && h->tile[1] == w->target[1] && h->movement)
         return;
     /* PathFinding2 0x012b0e85(PositionX, PositionY, TargetX, TargetY, &Path, 0, 2) */
-    mu_path path = h->path;
-    int found = mu_path_finding2(&w->finder, h->tile[0], h->tile[1], w->target[0], w->target[1], &path, 0.0f, 2, 0,
-                                 (const int32_t(*)[2])w->directions, NULL);
+    _Static_assert(sizeof(mu_path) == sizeof(mu_client_path), "PATH_t layouts differ");
+    mu_client_path path;
+    memcpy(&path, &h->path, sizeof path);
+    int found = mu_path_finding2(&w->finder, h->tile[0], h->tile[1], w->target[0], w->target[1], &path, 0.0f, 2, 0);
     int32_t n = path.count;
     if (found != 1) {
         ++w->path_refused;
         return;
     }
-    h->path = path;      /* current = 0, sub-step 0 */
+    memcpy(&h->path, &path, sizeof h->path);   /* current = 0, sub-step 0 */
     h->movement = 1;     /* SendMove 0x016b5cd0: Movement = 1 */
     ++w->moves;
     if (pushed) {

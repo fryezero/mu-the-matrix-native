@@ -1195,6 +1195,19 @@
         "Requirement, ItemConvert bonus and price formulas not reconstructed",
         "Harmony/socket durability contribution not modelled"
       ]
+    },
+    "client_path": {
+      "task": "NATIVE-PATH-001",
+      "document": "docs/research/client-path.md",
+      "routines": {"path_finding2": "0x012b0e85", "find_path": "0x012b1c45", "build_path": "0x012b21c6", "move_path": "0x012b0846", "move_character_position": "0x0137b351", "network_boundary_untraced": "0x016b5cd0"},
+      "neighbour_table": {"address": "0x01cf1640", "sha256": "a8cc45492d67c784853284cd426fd5c48a994a55d124bd970c1da1e46616f8b5", "source": "evidence/x86-linux-capture-04/main-01ced000.bin (+0x4640; text digest equals capture09)"},
+      "comparisons": {"main_run": 7945, "installed_run": 3100, "installed_maps": 82, "mismatches": 0, "mutations_detected": "16/16", "single_path_finder": "reconstructed/path (movement port removed after #82)"},
+      "local_report": "~/Documents/mu-mac-tools/native/scratch/path (validator JSON reports kept locally, not committed)",
+      "limits": [
+        "Speed, run-counter, siege-flag, MoveHero gating and other-character rules are static readings",
+        "Long-distance helper path 0x012b104c and the BuildPath trimming variant not ported",
+        "SendMove and the move packet are outside the milestone"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
