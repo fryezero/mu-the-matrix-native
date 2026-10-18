@@ -207,7 +207,7 @@ static void blend_state(const mu_pt_gl *gl, int32_t type, int32_t blend)
     case 2: gl->state(gl->context, MU_PT_STATE_ALPHA, 1); break;
     case 3: gl->state(gl->context, MU_PT_STATE_ADD_INVERSE, 0); break;
     case 4:
-        gl->state(gl->context, MU_PT_STATE_ADD_FOG, 0);
+        gl->state(gl->context, MU_PT_STATE_OPAQUE, 0);
         gl->state(gl->context, MU_PT_STATE_ALPHA, 1);
         break;
     default: break;

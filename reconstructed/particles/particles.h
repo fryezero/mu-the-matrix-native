@@ -54,7 +54,7 @@ enum {
     MU_PT_STATE_ALPHA = 0x0184a990,     /* EnableAlphaTest(arg): (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), alpha test on */
     MU_PT_STATE_SUBTRACT = 0x0184aab7,  /* EnableAlphaBlendMinus: (ZERO, ONE_MINUS_SRC_COLOR), depth mask off */
     MU_PT_STATE_ADD_INVERSE = 0x0184ab46, /* (ONE_MINUS_SRC_COLOR, ONE), depth mask off */
-    MU_PT_STATE_ADD_FOG = 0x0184a7f3,   /* sprite blend 4: 0x0184a7f3 then EnableAlphaTest(1) */
+    MU_PT_STATE_OPAQUE = 0x0184a7f3,    /* DisableAlphaBlend: blend off, depth mask on (sprite blend 4: then EnableAlphaTest(1)) */
     MU_PT_STATE_6B7 = 0x0184a6b7,       /* extra wrappers of two kinds not ported (flare 6, 0x7f54 5) */
     MU_PT_STATE_6DA = 0x0184a6da,
     MU_PT_STATE_UNTEXTURED = 0x0184a783, /* DisableAlphaBlend-like (arg 0): depth mask on, alpha test off, texture off */

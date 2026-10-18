@@ -984,6 +984,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
                 continue;
             mu_render_backend backend;
             mu_gl_backend_bind(&a->items[draw_order[n]], &backend);
+            if (a->has_particles)   /* the part's shadow (item render 0x0176ce74, NATIVE-PARTICLE-001) */
+                mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
             options.textures = &item->textures;   /* bitmap GL names and component counts */
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
@@ -995,6 +997,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             continue;   /* removed by the dead fade */
         mu_render_backend backend;
         mu_gl_backend_bind(&a->actor_gl[i], &backend);
+        if (a->has_particles)
+            mu_world_particles_character_shadow(&a->particles, &actor->actor.model, &actor->actor.bmd, &backend);
         options.textures = &actor->actor.textures;
         options.alpha = alpha;
         mu_draw_stats ds = {0, 0, 0, 0};
@@ -1077,6 +1081,8 @@ static long draw_soft(app *a, mu_raster *raster)
             raster->texture_count = item->textures.count;
             raster->texture_filter = item->textures.filter;
             raster->texture_wrap = item->textures.wrap;
+            if (a->has_particles)
+                mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
             options.textures = &item->textures;   /* bitmap GL names and component counts */
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
@@ -1086,6 +1092,8 @@ static long draw_soft(app *a, mu_raster *raster)
         float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
         if (alpha <= 0.0f)
             continue;
+        if (a->has_particles)
+            mu_world_particles_character_shadow(&a->particles, &actor->actor.model, &actor->actor.bmd, &backend);
         options.alpha = alpha;
         raster->textures = actor->actor.textures.slots;
         raster->texture_count = actor->actor.textures.count;

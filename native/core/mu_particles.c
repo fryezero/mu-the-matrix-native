@@ -231,6 +231,12 @@ static void apply_state(mu_meshdraw_state *s, int32_t wrapper, int32_t argument)
         s->cull = 0;
         s->texture = 1;
         break;
+    case MU_PT_STATE_OPAQUE:       /* 0x0184a7f3 */
+        s->blend = 0;
+        s->depth_mask = 1;
+        s->alpha_test = 0;
+        s->texture = 1;
+        break;
     case MU_PT_STATE_UNTEXTURED:   /* 0x0184a783(0) */
         s->depth_mask = 1;
         s->alpha_test = 0;
@@ -451,8 +457,31 @@ static void s_end(void *c)
     d->shadow_open = 0;
 }
 
+static int32_t shadow_with(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
+                           int32_t state, int32_t z_offset, const mu_render_backend *backend);
+
 int32_t mu_world_particles_shadow(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
                                   const mu_render_backend *backend)
+{
+    /* EnableAlphaTest(1) before the call (RenderBoids/RenderFishs, RenderObject's shadow block) */
+    return shadow_with(p, model, bmd, rgba, MU_PT_STATE_ALPHA, 0, backend);
+}
+
+int32_t mu_world_particles_character_shadow(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd,
+                                            const mu_render_backend *backend)
+{
+    const int32_t w = p->world;
+    /* the item render's shadow block 0x0176cfab..0x0176d15b (static reading) */
+    if ((w >= 0x18 && w <= 0x1d) || w == 0x24 || w == 0xa || w == 0x84)   /* 0x009b0418, Icarus worlds */
+        return 0;
+    const int translucent = w == 7 || (w >= 0x80 && w <= 0x82);       /* 0x016a88ae */
+    const float black[4] = {0.0f, 0.0f, 0.0f, translucent ? 0.2f : 1.0f};
+    return shadow_with(p, model, bmd, black, translucent ? MU_PT_STATE_ALPHA : MU_PT_STATE_OPAQUE,
+                       w == 0x8f ? 5 : 0, backend);   /* 0x00e136f3: z offset 5 in world 0x8f */
+}
+
+static int32_t shadow_with(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
+                           int32_t state, int32_t z_offset, const mu_render_backend *backend)
 {
     if (!model || !bmd || !backend)
         return 0;
@@ -471,15 +500,14 @@ int32_t mu_world_particles_shadow(mu_world_particles *p, const mu_model *model, 
     d.p = p;
     d.backend = backend;
     mu_meshdraw_state_defaults(&d.state);
-    /* EnableAlphaTest(1) before the call (RenderBoids/RenderFishs, RenderObject's shadow block) */
-    apply_state(&d.state, MU_PT_STATE_ALPHA, 1);
+    apply_state(&d.state, state, 1);
     for (int k = 0; k < 4; ++k)
         d.shadow_rgba[k] = rgba[k];
     mu_pt_gl gl = {&d, s_state, NULL, s_begin, s_end, NULL, NULL, NULL, s_vertex, NULL, NULL};
     mu_pt_host h;
     host(p, &h);
     const float *origin = mu_model_origin(model);
-    const int32_t n = mu_pt_render_body_shadow(meshes, count, origin, -1, -1, -1, -1, 0, &h, &gl);
+    const int32_t n = mu_pt_render_body_shadow(meshes, count, origin, -1, -1, -1, -1, z_offset, &h, &gl);
     p->stats.pending_shadows++;
     p->stats.pending_shadow_vertices += (uint32_t)n;
     p->stats.shadows_total++;

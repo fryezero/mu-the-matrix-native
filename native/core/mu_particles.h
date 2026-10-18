@@ -110,6 +110,17 @@ long mu_world_particles_draw_raster(mu_world_particles *p, mu_raster *raster, co
 int32_t mu_world_particles_shadow(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
                                   const mu_render_backend *backend);
 
+/* The character part shadow of the item render 0x0176ce74 (its shadow block,
+ * a static reading): RenderBodyShadow of a posed, transformed part model,
+ * opaque black after DisableAlphaBlend 0x0184a7f3 (glColor3f(0, 0, 0)), or
+ * EnableAlphaTest(1) and glColor4f(0, 0, 0, 0.2) in Atlans (worlds 7,
+ * 0x80..0x82); none in the worlds 0x18..0x1d, 0x24, 0xa and 0x84; z offset 5
+ * in world 0x8f. The client's further conditions (the object's shadow flag
+ * +3, +0x44 != 3, the buff 0x12 and an option singleton) are taken as
+ * allowing it for the hero. Returns the vertices sent. */
+int32_t mu_world_particles_character_shadow(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd,
+                                            const mu_render_backend *backend);
+
 /* TransformPosition 0x012b6ef1 on a posed native model: bone `bone`'s matrix
  * (mu_model_bone_matrices), with the body scale and origin of the model's
  * parameters (translate). Returns 0 when the bone does not exist. */
