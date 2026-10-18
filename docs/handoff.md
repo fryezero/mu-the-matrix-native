@@ -1309,6 +1309,7 @@ installed client). Captures stay local in `~/Documents/mu-mac-tools/native/rende
 **Next:** draw the World95 login world behind the server list (record camera, like character select); reconstruct
 the main-scene init and the startup loader's steps; replace the offline session with the network layer once that is
 in scope.
+
 ## GFx interface through Ruffle (NATIVE-GFX-001)
 
 Branch `claude/native-gfx`. Read [`research/native-gfx.md`](research/native-gfx.md).
