@@ -45,6 +45,15 @@ typedef struct mu_ui_fonts {
 
 typedef const char *(*mu_ui_global_text)(void *user, int32_t index);
 
+/* Platform services the windows ask for besides drawing: a GDI font
+ * (CreateFontA, returns the handle) and a texture load (LoadBitmap). */
+typedef struct mu_ui_platform {
+    void *user;
+    uint32_t (*create_font)(void *user, int32_t height, int32_t weight, uint32_t charset, int32_t quality,
+                            const char *face);
+    void (*load_bitmap)(void *user, const char *path, uint32_t index, uint32_t filter, uint32_t wrap);
+} mu_ui_platform;
+
 typedef struct mu_ui_ctx {
     mu_ui_state *state;
     mu_ui_text *text;                 /* the CUIRenderTextOriginal behind g_pRenderText */
@@ -53,6 +62,8 @@ typedef struct mu_ui_ctx {
     const void *held_button;          /* CButton::s_pBtnHeld 0x01d1dc2c */
     mu_ui_global_text global_text;    /* GlobalText[index] (Data\Lang.mpr, an input) */
     void *global_text_user;
+    mu_ui_platform platform;
+    uint32_t charset;                 /* the font character set byte 0x01cf0c20 */
 } mu_ui_ctx;
 
 /* Client events handed to game logic through MU_UI_EVENT. */
@@ -61,7 +72,11 @@ enum mu_ui_event {
                                          asks the server for the list (network, not reconstructed) */
     MU_UI_EVENT_SERVER_CONNECT = 2,   /* a server button was chosen: (server slot); the client hides the
                                          window and starts connecting (network, not reconstructed) */
-    MU_UI_EVENT_HIDE_WINDOW = 3       /* CUIMng::HideWin(window) requested by a window */
+    MU_UI_EVENT_HIDE_WINDOW = 3,      /* CUIMng::HideWin(window) requested by a window */
+    MU_UI_EVENT_CREDITS_DONE = 4,     /* the credits reached their end record: the client sends a request
+                                         (network, not reconstructed) and switches the music */
+    MU_UI_EVENT_MUSIC_STOP = 5,       /* 0x0120f5a0 with music table entry (argument) 0x01cf1680[i] */
+    MU_UI_EVENT_MUSIC_PLAY = 6        /* 0x0120f602 with music table entry (argument) */
 };
 
 /* Text facade calls (g_pRenderText 0x011a07b2 wrappers). */

@@ -3,6 +3,7 @@
  *   mu-render ui title --root GAME [--size 1024x768] [--progress 37/100] [--variant s5|battle] --out t.png
  *   mu-render ui login --root GAME [--size 1024x768] [--font Tahoma] [--version 10000] --out l.png
  *   mu-render ui text  --font Tahoma --size 800x600 --string "..." --out t.png
+ *   mu-render ui credits --root GAME [--size 1024x768] [--credits FILE] [--time MS] --out c.png
  *   mu-render ui servers --root GAME [--size 1024x768] [--list FILE] [--select N] [--frames "x,y,d,u;..."]
  *                        [--fixed-font FACE] [--text565 T] [--text566 T] [--text567 T] --out s.png
  *
@@ -21,12 +22,14 @@
 #include "../core/mu_ui_raster.h"
 #include "../../reconstructed/ui/ui2d.h"
 #include "../../reconstructed/ui/ui_login.h"
+#include "../../reconstructed/ui/ui_credit.h"
 #include "../../reconstructed/ui/ui_server.h"
 #include "../../reconstructed/ui/ui_text.h"
 
 typedef struct ui_options {
     const char *screen, *root, *out, *font, *version, *string, *variant, *text454, *text455, *format456;
-    const char *list, *frames, *fixed_font, *text565, *text566, *text567;
+    const char *list, *frames, *fixed_font, *text565, *text566, *text567, *credits;
+    int32_t time_ms;
     int32_t select;
     float clear_gray;     /* servers: clear colour (the 3D login world is not rendered) */
     int no_text;          /* servers: blank every string (masks for comparisons) */
@@ -47,6 +50,7 @@ static int parse(ui_options *o, int argc, char **argv)
     o->variant = "s5";
     o->root = getenv("MU_GAME_ROOT");
     o->select = -2;
+    o->time_ms = 3000;
     o->fixed_font = NULL;
     if (argc < 3)
         return 1;
@@ -72,6 +76,8 @@ static int parse(ui_options *o, int argc, char **argv)
         else if (!strcmp(a, "--select") && v) { o->select = atoi(v); ++i; }
         else if (!strcmp(a, "--clear") && v) { o->clear_gray = (float)atof(v); ++i; }
         else if (!strcmp(a, "--no-text")) { o->no_text = 1; }
+        else if (!strcmp(a, "--credits") && v) { o->credits = v; ++i; }
+        else if (!strcmp(a, "--time") && v) { o->time_ms = atoi(v); ++i; }
         else if (!strcmp(a, "--size") && v) {
             if (sscanf(v, "%dx%d", &o->width, &o->height) != 2 || o->width < 16 || o->height < 16 ||
                 o->width > 4096 || o->height > 4096)
@@ -91,11 +97,12 @@ static int parse(ui_options *o, int argc, char **argv)
 
 static void usage(const char *self)
 {
-    fprintf(stderr, "usage: %s ui title|login|text|servers [--root GAME] [--size WxH] [--out PNG] [--progress N/T]\n"
+    fprintf(stderr, "usage: %s ui title|login|text|servers|credits [--root GAME] [--size WxH] [--out PNG] [--progress N/T]\n"
                     "          [--variant s5|battle] [--font FACE] [--version 5CHARS] [--string TEXT]\n"
                     "          [--text454 TEXT] [--text455 TEXT] [--format456 FMT] [--fade F]\n"
                     "          servers: [--list FILE] [--select N] [--frames \"x,y,down,up;...\"] [--fixed-font FACE]\n"
-                    "                   [--text565 TEXT] [--text566 TEXT] [--text567 TEXT] [--clear GRAY] [--no-text]\n", self);
+                    "                   [--text565 TEXT] [--text566 TEXT] [--text567 TEXT] [--clear GRAY] [--no-text]\n"
+                    "          credits: [--credits FILE] [--time MS]\n", self);
 }
 
 typedef struct texture_entry {
@@ -567,9 +574,14 @@ static int render_servers(const ui_options *o)
         ctx.input.lbutton_down = (uint8_t)down;
         ctx.input.lbutton_up = (uint8_t)up;
         mu_ui_win_update(&ctx, &win->win, 40.0);
-        for (int e = before; e < sink.event_count; ++e)
+        for (int e = before; e < sink.event_count; ++e) {
             if (sink.events[e][0] == MU_UI_EVENT_SERVER_GROUP)
                 mu_ui_server_win_update_display(&ctx, win);   /* the list reply the client waits for */
+            else if (sink.events[e][0] == MU_UI_EVENT_HIDE_WINDOW) {
+                win->win.cls->show(&ctx, &win->win, 0);      /* CUIMng::HideWin before connecting */
+                mu_ui_win_set_active(&win->win, 0);
+            }
+        }
         p += n;
     }
     ctx.input.lbutton_down = ctx.input.lbutton_up = 0;
@@ -612,6 +624,188 @@ static int render_servers(const ui_options *o)
     return result;
 }
 
+/* The login scene's 2D overlay as render_servers draws it (strings observed live). */
+static void login_overlay(const ui_options *o, mu_ui_state *state, mu_ui_ctx *ctx, mu_ui_text *text)
+{
+    mu_ui_login_text strings;
+    float fade = o->fade - 0.02f;
+    memset(&strings, 0, sizeof strings);
+    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : "Mu The Matrix, Private Server Since 2005 / ";
+    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.";
+    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : "Ver %s";
+    for (int i = 0; i < 5; ++i) {
+        const char *version = o->version ? o->version : "10000";
+        strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
+    }
+    mu_ui_ctx_set_font(ctx, ctx->fonts.normal);
+    mu_ui_login_overlay(state, text, &fade, 640, &strings);
+}
+
+/* ---- credits (NATIVE-UI-002) -------------------------------------------- */
+
+typedef struct credit_platform {
+    mu_ui_font_set *fonts;
+    mu_ui_assets *assets;
+    mu_ui_state *state;
+    int loads;
+} credit_platform;
+
+static uint32_t platform_create_font(void *user, int32_t height, int32_t weight, uint32_t charset, int32_t quality,
+                                     const char *face)
+{
+    credit_platform *p = user;
+    (void)charset;
+    (void)quality;
+    return mu_ui_font_set_add(p->fonts, face && *face ? face : p->fonts->fonts[0].face, height, weight);
+}
+
+static void platform_load_bitmap(void *user, const char *path, uint32_t index, uint32_t filter, uint32_t wrap)
+{
+    credit_platform *p = user;
+    if (mu_ui_assets_load(p->assets, p->state, path, index, filter, wrap) == MU_UI_TEXTURE_LOADED)
+        ++p->loads;
+}
+
+enum { MAX_CREDITS = 256 };
+
+/* Credits file: lines "title TEXT", "subtitle TEXT", "name TEXT", "end". */
+static int read_credits(const char *path, mu_ui_credit_record *records, char (*texts)[128], int32_t *count)
+{
+    char line[256];
+    FILE *f = fopen(path, "r");
+    if (!f)
+        return 1;
+    *count = 0;
+    while (fgets(line, sizeof line, f) && *count < MAX_CREDITS) {
+        char *nl = strchr(line, '\n'), *text = strchr(line, ' ');
+        int32_t type;
+        if (nl)
+            *nl = 0;
+        if (!strncmp(line, "title", 5)) type = MU_UI_CREDIT_TITLE;
+        else if (!strncmp(line, "subtitle", 8)) type = MU_UI_CREDIT_SUBTITLE;
+        else if (!strncmp(line, "name", 4)) type = MU_UI_CREDIT_NAME;
+        else if (!strncmp(line, "end", 3)) type = MU_UI_CREDIT_END;
+        else continue;
+        copy_text(texts[*count], 128, text ? text + 1 : "");
+        records[*count].type = type;
+        records[*count].text = texts[*count];
+        ++*count;
+    }
+    fclose(f);
+    return 0;
+}
+
+static int render_credits(const ui_options *o)
+{
+    static const texture_entry CREDIT_TEXTURES[] = {
+        {0x7b1e, "Logo\\MU-logo.tga", 0x2601, 0x2900},
+        {0x7b1f, "Logo\\MU-logo_g.tga", 0x2601, 0x2900},
+        {0x7b14, "Interface\\deco.tga", 0x2600, 0x2900},
+        {0x7b1c, "Interface\\cr_mu_lo.tga", 0x2601, 0x2900},
+        {0x7532, "Interface\\FontInput.tga", 0x2600, 0x2900},
+    };
+    /* Synthetic credits (the client's credit file is not decoded). */
+    static const mu_ui_credit_record SYNTHETIC[] = {
+        {MU_UI_CREDIT_TITLE, "Native client layer"}, {MU_UI_CREDIT_SUBTITLE, "reconstructed CCreditWin"},
+        {MU_UI_CREDIT_NAME, "CWin"}, {MU_UI_CREDIT_NAME, "CButton"}, {MU_UI_CREDIT_NAME, "CSprite"},
+        {MU_UI_CREDIT_TITLE, "Validated in Unicorn"}, {MU_UI_CREDIT_NAME, "call streams"},
+        {MU_UI_CREDIT_NAME, "object state"}, {MU_UI_CREDIT_END, ""}};
+    static mu_ui_credit_record records[MAX_CREDITS];
+    static char texts[MAX_CREDITS][128];
+    mu_ui_credits credits = {(int32_t)(sizeof SYNTHETIC / sizeof SYNTHETIC[0]), SYNTHETIC};
+    mu_ui_raster raster;
+    mu_ui_assets assets;
+    mu_ui_state state;
+    mu_ui_text text;
+    mu_ui_font_set fonts;
+    mu_ui_ctx ctx;
+    screen_sink sink;
+    credit_platform platform;
+    mu_ui_credit_win *win = calloc(1, sizeof *win);
+    int loaded = 0, result;
+    if (!win || mu_ui_raster_init(&raster, o->width, o->height))
+        return 1;
+    if (o->credits) {
+        if (read_credits(o->credits, records, texts, &credits.count)) {
+            fprintf(stderr, "cannot read %s\n", o->credits);
+            return 1;
+        }
+        credits.records = records;
+    }
+    memset(&state, 0, sizeof state);
+    memset(&sink, 0, sizeof sink);
+    sink.raster = mu_ui_raster_sink(&raster);
+    sink.fonts = &fonts;
+    state.sink.user = &sink;
+    state.sink.call = screen_call;
+    state.lookup = mu_ui_assets_lookup;
+    state.lookup_user = &assets;
+    mu_ui_state_init(&state, (uint32_t)o->width, (uint32_t)o->height);
+    mu_ui_assets_init(&assets, o->root);
+    for (size_t i = 0; i < sizeof CREDIT_TEXTURES / sizeof CREDIT_TEXTURES[0]; ++i)
+        load(&assets, &state, &CREDIT_TEXTURES[i], &loaded);
+    if (!mu_ui_assets_lookup(&assets, 0x7532))
+        mu_ui_assets_add(&assets, &state, 0x7532, 256, 32, NULL);
+    mu_ui_font_set_open(&fonts, o->font, o->fixed_font ? o->fixed_font : o->font, (uint32_t)o->width, FONT_HANDLES);
+    memset(&text, 0, sizeof text);
+    text.gdi = mu_ui_font_set_gdi(&fonts);
+    mu_ui_text_init(&text, &state);
+    text.dib = calloc((size_t)mu_ui_text_dib_stride(text.dib_width) * (size_t)text.dib_height, 1);
+    memset(&ctx, 0, sizeof ctx);
+    ctx.state = &state;
+    ctx.text = &text;
+    ctx.input.screen_width = o->width;
+    ctx.input.screen_height = o->height;
+    ctx.input.cursor_x = ctx.input.cursor_y = -1000;
+    ctx.fonts.normal = FONT_HANDLES[0];
+    ctx.fonts.bold = FONT_HANDLES[1];
+    ctx.fonts.big = FONT_HANDLES[2];
+    ctx.fonts.fixed = FONT_HANDLES[3];
+    platform.fonts = &fonts;
+    platform.assets = &assets;
+    platform.state = &state;
+    platform.loads = 0;
+    ctx.platform.user = &platform;
+    ctx.platform.create_font = platform_create_font;
+    ctx.platform.load_bitmap = platform_load_bitmap;
+
+    /* CreateLoginScene creates it; CREDIT (GFx onCreditClick) runs CUIMng::ShowWin; then 40 ms frames. */
+    mu_ui_credit_win_init(win, &credits);
+    mu_ui_credit_win_create(&ctx, win);
+    win->win.cls->show(&ctx, &win->win, 1);
+    mu_ui_win_set_active(&win->win, 1);
+    for (int32_t t = 0; t < o->time_ms; t += 40) {
+        int before = sink.event_count;
+        mu_ui_win_update(&ctx, &win->win, 40.0);
+        for (int e = before; e < sink.event_count; ++e)
+            if (sink.events[e][0] == MU_UI_EVENT_HIDE_WINDOW) {   /* CUIMng::HideWin: Show(0), SetActive(0) */
+                win->win.cls->show(&ctx, &win->win, 0);
+                mu_ui_win_set_active(&win->win, 0);
+            }
+    }
+
+    /* The login-scene render skips the 3D world while the credits show, still draws its 2D overlay (which
+     * leaves alpha blending on), then CUIMng::Render draws the window over it. */
+    clear(&state);
+    mu_ui_begin_bitmap(&state);
+    login_overlay(o, &state, &ctx, &text);
+    win->win.cls->render(&ctx, &win->win);
+    mu_ui_end_bitmap(&state);
+    result = finish(o, &raster, "credits", loaded + platform.loads, 0);
+    printf("{\"time_ms\": %d, \"image\": %d, \"image_state\": %d, \"next_record\": %d, \"names\": %d, "
+           "\"text_states\": [%d, %d, %d], \"events\": [", o->time_ms, win->image, win->image_state, win->next,
+           win->name_count, win->text_states[0], win->text_states[1], win->text_states[2]);
+    for (int e = 0; e < sink.event_count; ++e)
+        printf("%s[%d, %d]", e ? ", " : "", sink.events[e][0], sink.events[e][1]);
+    printf("]}\n");
+    free(text.dib);
+    mu_ui_font_set_close(&fonts);
+    mu_ui_assets_free(&assets);
+    mu_ui_raster_free(&raster);
+    free(win);
+    return result;
+}
+
 int mu_render_ui_main(int argc, char **argv)
 {
     ui_options o;
@@ -627,6 +821,8 @@ int mu_render_ui_main(int argc, char **argv)
         return render_login(&o);
     if (!strcmp(o.screen, "servers"))
         return render_servers(&o);
+    if (!strcmp(o.screen, "credits"))
+        return render_credits(&o);
     usage(argv[0]);
     return 2;
 }

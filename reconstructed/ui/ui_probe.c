@@ -5,6 +5,7 @@
  * ui_server.h, so object state can be compared word for word alongside the
  * platform-call streams.  Not part of the native module.
  */
+#include "ui_credit.h"
 #include "ui_server.h"
 
 #include <string.h>
@@ -17,6 +18,7 @@ int mu_ui_probe_winex(const mu_ui_winex *win, uint32_t *out);
 int mu_ui_probe_server_win(const mu_ui_server_win *win, uint32_t *out);
 int32_t mu_ui_probe_held(const mu_ui_ctx *ctx, const mu_ui_win *win);
 void mu_ui_probe_select(mu_ui_server_win *win, int32_t selected);
+int mu_ui_probe_credit_win(const mu_ui_credit_win *win, uint32_t *out);
 
 static uint32_t fw(float value)
 {
@@ -35,6 +37,7 @@ size_t mu_ui_probe_sizeof(int which)
     case 4: return sizeof(mu_ui_server_win);
     case 5: return sizeof(mu_ui_server_list);
     case 6: return sizeof(mu_ui_sprite);
+    case 7: return sizeof(mu_ui_credit_win);
     default: return 0;
     }
 }
@@ -169,4 +172,31 @@ int32_t mu_ui_probe_held(const mu_ui_ctx *ctx, const mu_ui_win *win)
 void mu_ui_probe_select(mu_ui_server_win *win, int32_t selected)
 {
     win->selected = selected;
+}
+
+int mu_ui_probe_credit_win(const mu_ui_credit_win *w, uint32_t *out)
+{
+    int n = mu_ui_probe_win(&w->win, out), i;
+    uint64_t bits;
+    n += w->win.background ? mu_ui_probe_sprite(w->win.background, out + n) : 0;
+    for (i = 0; i < 7; ++i)
+        n += mu_ui_probe_sprite(&w->sprites[i], out + n);
+    out[n++] = (uint32_t)w->image_state;
+    memcpy(&bits, &w->image_timer, 8);
+    out[n++] = (uint32_t)bits;
+    out[n++] = (uint32_t)(bits >> 32);
+    out[n++] = w->image;
+    out[n++] = w->font;
+    out[n++] = (uint32_t)w->next;
+    out[n++] = (uint32_t)w->name_count;
+    out[n++] = (uint32_t)w->rows[0];
+    out[n++] = (uint32_t)w->rows[1];
+    for (i = 0; i < 4; ++i)
+        out[n++] = (uint32_t)w->names[i];
+    for (i = 0; i < 3; ++i)
+        out[n++] = (uint32_t)w->text_states[i];
+    memcpy(&bits, &w->text_timer, 8);
+    out[n++] = (uint32_t)bits;
+    out[n++] = (uint32_t)(bits >> 32);
+    return n;
 }

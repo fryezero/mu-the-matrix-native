@@ -36,6 +36,10 @@ enum mu_ui_op {
      * hands to game logic (enum mu_ui_event; words after the code are its
      * arguments).  Renderers ignore the last two. */
     MU_GDI_SELECTOBJECT, MU_UI_SOUND, MU_UI_EVENT,
+    /* CreateFontA (13 argument words, face as data), DeleteObject (handle),
+     * and the client's LoadBitmap 0x0185baac (index, filter, wrap, check,
+     * full path; path as data). */
+    MU_GDI_CREATEFONT, MU_GDI_DELETEOBJECT, MU_UI_LOADBITMAP,
     MU_UI_OP_COUNT
 };
 

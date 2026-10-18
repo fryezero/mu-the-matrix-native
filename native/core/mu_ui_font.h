@@ -42,11 +42,12 @@ mu_ui_gdi mu_ui_font_gdi(mu_ui_font *font);
 /* The four fonts CreateFonts 0x0182a0da makes (NATIVE-UI-002), keyed by the
  * HFONT handle values the reconstruction passes to SelectObject.  The
  * set's GDI callbacks draw with the font selected last. */
-enum { MU_UI_FONT_SET_SIZE = 4 };
+enum { MU_UI_FONT_SET_SIZE = 4, MU_UI_FONT_SET_MAX = 8 };
 typedef struct mu_ui_font_set {
-    mu_ui_font fonts[MU_UI_FONT_SET_SIZE];   /* normal, bold, big, fixed */
-    mu_ui_gdi gdi[MU_UI_FONT_SET_SIZE];
-    uint32_t handles[MU_UI_FONT_SET_SIZE];
+    mu_ui_font fonts[MU_UI_FONT_SET_MAX];    /* normal, bold, big, fixed, then fonts windows create */
+    mu_ui_gdi gdi[MU_UI_FONT_SET_MAX];
+    uint32_t handles[MU_UI_FONT_SET_MAX];
+    int count;
     int current;
 } mu_ui_font_set;
 
@@ -54,6 +55,8 @@ typedef struct mu_ui_font_set {
 int mu_ui_font_set_open(mu_ui_font_set *set, const char *face, const char *fixed_face, uint32_t window_width,
                         const uint32_t handles[MU_UI_FONT_SET_SIZE]);
 void mu_ui_font_set_close(mu_ui_font_set *set);
+/* A further CreateFontA (a window's own font); returns its handle, 0 when full. */
+uint32_t mu_ui_font_set_add(mu_ui_font_set *set, const char *face, int32_t height, int32_t weight);
 /* SelectObject(dc, handle); unknown handles leave the selection unchanged. */
 void mu_ui_font_set_select(mu_ui_font_set *set, uint32_t handle);
 mu_ui_gdi mu_ui_font_set_gdi(mu_ui_font_set *set);

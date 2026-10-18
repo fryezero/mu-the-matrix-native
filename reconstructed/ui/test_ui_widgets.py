@@ -117,6 +117,88 @@ class Probe:
         return out
 
 
+def cvtt(value):
+    return int(value) if -2147483649.0 < value < 2147483648.0 else -0x80000000
+
+
+def int16(value):
+    value &= 0xffff
+    return value - 0x10000 if value & 0x8000 else value
+
+
+class CreditModel:
+    """CCreditWin's fades and credit blocks (0x009d9ab2, 0x009d9eb2, 0x009d9fc2, 0x009d9cc0) restated."""
+
+    def __init__(self, records):
+        self.records = records
+        self.bars = [255, 255, 255]
+        self.events = []
+
+    def kind(self, index):
+        return self.records[index][0] if 0 <= index < len(self.records) else 0
+
+    def start(self):
+        self.image_state, self.image_timer, self.image, self.image_alpha = 1, 0.0, 0, 0
+        self.text_states, self.text_timer, self.next, self.names = [1, 1, 1], 0.0, 0, 0
+        self.next_credits()
+
+    def next_credits(self):
+        kind = self.kind(self.next)
+        if kind == 0:
+            self.events.append('end')
+        elif kind in (1, 2):
+            self.next += 1
+        count = 0
+        while count < 4 and self.kind(self.next) == 3:
+            self.next += 1
+            count += 1
+        self.names = count
+
+    @staticmethod
+    def fade(alpha, delta, period, sign):
+        step = int16(cvtt(255.0*delta/period))
+        return int16(alpha + sign*step)
+
+    def frame(self, delta):
+        for row in range(3):
+            state = self.text_states[row]
+            if state == 1:
+                a = self.fade(self.bars[row], delta, 300.0, -1)
+                if a <= 0:
+                    self.text_states[row], a = 2, 0
+                self.bars[row] = a & 0xff
+            elif state == 2 and row == 2:
+                self.text_timer += delta
+                if self.text_timer > 2300.0:
+                    self.text_states[2], self.text_timer = 3, 0.0
+                    if self.kind(self.next) != 3:
+                        self.text_states[1] = 3
+                        if self.kind(self.next) != 2:
+                            self.text_states[0] = 3
+            elif state == 3:
+                a = self.fade(self.bars[row], delta, 300.0, 1)
+                if a >= 255:
+                    self.text_states[row], a = 1, 255
+                    if row == 2:
+                        self.next_credits()
+                self.bars[row] = a & 0xff
+        if self.image_state == 1:
+            a = self.fade(self.image_alpha, delta, 2000.0, 1)
+            if a >= 255:
+                self.image_state, a = 2, 255
+            self.image_alpha = a & 0xff
+        elif self.image_state == 2:
+            self.image_timer += delta
+            if self.image_timer > 22000.0:
+                self.image_state, self.image_timer = 3, 0.0
+        elif self.image_state == 3:
+            a = self.fade(self.image_alpha, delta, 2000.0, -1)
+            if a <= 0:
+                self.image_state, a = 1, 0
+                self.image = (self.image + 1) % 8
+            self.image_alpha = a & 0xff
+
+
 class WidgetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -326,6 +408,48 @@ class WidgetTests(unittest.TestCase):
         self.assertEqual(state['groups'][5]['click'], 1)                         # CButton saw the click
         self.assertEqual(state['selected'], -1)                                  # UpdateWhileActive did not run
 
+    # ---- the credits window --------------------------------------------------
+
+    def test_credit_fades_and_blocks_follow_the_model(self):
+        v, lib = self.v, self.lib
+        rng = random.Random(3)
+        for case in range(25):
+            records = [(1, b'Title')] + [(3, b'N%d' % i) for i in range(rng.randint(0, 6))]
+            records += [(2, b'Sub'), (3, b'X')] if rng.random() < 0.5 else [(1, b'Again'), (3, b'Y'), (3, b'Z')]
+            if rng.random() < 0.8:
+                records.append((0, b''))
+            array = (v.CreditRecord*len(records))(*[v.CreditRecord(k, t) for k, t in records])
+            credits = v.Credits(len(records), array)
+            bitmaps = self.bitmaps()
+            for index in (0x7b14, 0x7b1c, 0x7fa7, 0x7fa8):
+                bitmaps[index] = {'width': 512.0, 'height': 512.0, 'texture': 7, 'components': 4}
+            side = self.side((800, 600), bitmaps=bitmaps)
+            win = ctypes.create_string_buffer(lib.mu_ui_probe_sizeof(7))
+            ctx = ctypes.byref(side.ctx)
+            lib.mu_ui_credit_win_init(win, ctypes.byref(credits))
+            lib.mu_ui_credit_win_create(ctx, win)
+            lib.mu_ui_credit_win_show(ctx, win, 1)
+            lib.mu_ui_win_set_active(win, 1)
+            model = CreditModel(records)
+            model.start()
+            out = (c_uint32*4096)()
+            for frame in range(200):
+                delta = rng.choice([40.0, 40.0, 250.0, 1000.0, 3000.0])
+                lib.mu_ui_win_update(ctx, win, delta)
+                model.frame(delta)
+                words = list(out[:lib.mu_ui_probe_credit_win(win, out)])
+                fields = words[-18:]
+                sprites = [words[11 + 33*i:11 + 33*(i + 1)] for i in range(8)]   # background, then sprites 0..6
+                got = {'image_state': fields[0], 'image': fields[3], 'next': fields[5], 'names': fields[6],
+                       'text_states': fields[13:16], 'image_alpha': sprites[1][22] & 0xff,
+                       'bars': [sprites[5 + i][22] & 0xff for i in range(3)]}
+                want = {'image_state': model.image_state, 'image': model.image, 'next': model.next,
+                        'names': model.names, 'text_states': model.text_states, 'image_alpha': model.image_alpha,
+                        'bars': model.bars}
+                self.assertEqual(got, want, (case, frame, delta))
+                if model.events:
+                    break               # the end record hides the window (CUIMng::HideWin)
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private restored captures')
     def test_private_client_instructions(self):
         text = Path(os.environ.get('MU_CLIENT_TEXT', ROOT/'evidence/x86-text-capture-09/client-text.bin'))
@@ -340,6 +464,7 @@ class WidgetTests(unittest.TestCase):
         self.assertEqual(result['sprites']['cases'], 120)
         self.assertEqual(result['winex']['cases'], 60)
         self.assertEqual(result['server_window']['cases'], 10)
+        self.assertEqual(result['credits']['cases'], 40)
         self.assertGreater(result['server_window']['state_words'], 100000)
 
 

@@ -50,12 +50,19 @@ import model_hierarchy_common as common  # noqa: E402
 import validate_ui as vu  # noqa: E402
 
 F = cm.fbits
-OPS = vu.OPS + ['SelectObject', 'Sound', 'Event']
+OPS = vu.OPS + ['SelectObject', 'Sound', 'Event', 'CreateFont', 'DeleteObject', 'LoadBitmap']
 
 # --------------------------------------------------------------------------
 # ctypes view of the new reconstruction
 
 GLOBALTEXTFN = CFUNCTYPE(c_void_p, c_void_p, c_int32)
+CREATEFONTFN = CFUNCTYPE(c_uint32, c_void_p, c_int32, c_int32, c_uint32, c_int32, c_char_p)
+LOADBITMAPFN = CFUNCTYPE(None, c_void_p, c_char_p, c_uint32, c_uint32, c_uint32)
+CREDIT_FONT = 0x0f0f0010
+
+
+class Platform(Structure):
+    _fields_ = [('user', c_void_p), ('create_font', CREATEFONTFN), ('load_bitmap', LOADBITMAPFN)]
 
 
 class Input(Structure):
@@ -69,7 +76,16 @@ class Fonts(Structure):
 
 class Ctx(Structure):
     _fields_ = [('state', c_void_p), ('text', c_void_p), ('input', Input), ('fonts', Fonts), ('held_button', c_void_p),
-                ('global_text', GLOBALTEXTFN), ('global_text_user', c_void_p)]
+                ('global_text', GLOBALTEXTFN), ('global_text_user', c_void_p), ('platform', Platform),
+                ('charset', c_uint32)]
+
+
+class CreditRecord(Structure):
+    _fields_ = [('type', c_int32), ('text', c_char_p)]
+
+
+class Credits(Structure):
+    _fields_ = [('count', c_int32), ('records', POINTER(CreditRecord))]
 
 
 class Server(Structure):
@@ -112,6 +128,8 @@ def library(path=None):
         'mu_ui_sprite_contains': ([P, c_int32, c_int32], c_int),
         'mu_ui_winex_set_position': ([P, P, c_int32, c_int32], None), 'mu_ui_winex_show': ([P, P, c_int], None),
         'mu_ui_winex_render': ([P, P], None),
+        'mu_ui_credit_win_init': ([P, P], None), 'mu_ui_credit_win_create': ([P, P], None),
+        'mu_ui_credit_win_show': ([P, P, c_int], None), 'mu_ui_probe_credit_win': ([P, P], c_int),
     }
     for name, (args, res) in sigs.items():
         getattr(lib, name).argtypes = args
@@ -128,8 +146,8 @@ class Authored(vu.Authored):
         if name == 'glTexImage2D':
             import hashlib
             values[8] = hashlib.sha256(ctypes.string_at(data, size) if data else b'').hexdigest()
-        elif name in ('TextOut', 'GetTextExtent'):
-            values.append(ctypes.string_at(data, size).decode('latin1'))
+        elif name in ('TextOut', 'GetTextExtent', 'CreateFont', 'LoadBitmap'):
+            values.append(ctypes.string_at(data, size).decode('latin1') if data else None)
         self.calls.append((name, tuple(values)))
 
 
@@ -140,6 +158,12 @@ def normalize(calls):
             continue
         if name == 'SelectObject':
             out.append(('SelectObject', (words[1],)))
+            continue
+        if name == 'CreateFontA':
+            out.append(('CreateFont', tuple(words[:13]) + (words[-1],)))
+            continue
+        if name == 'DeleteObject':
+            out.append(('DeleteObject', (words[0],)))
             continue
         out.extend(vu.normalize_client([(name, words)]))
     return out
@@ -156,6 +180,12 @@ def normalize_authored(calls):
                 out.append(('HideWin', ()))
             elif code == 2:
                 out.append(('Connect', (argument,)))
+            elif code == 4:
+                out += [('Packet', ()), ('SendRequest', ())]
+            elif code == 5:
+                out.append(('MusicStop', (argument,)))
+            elif code == 6:
+                out.append(('MusicPlay', (argument,)))
             continue
         out.append((name, words))
     return out
@@ -183,14 +213,15 @@ VTABLES = (SSW_VTABLE, CWIN_VTABLE, CWINEX_VTABLE)
 RT_IMPL_VTABLE = 0x01ac4c68
 
 
-def closure(text, roots, extra=()):
-    """Static call closure of `roots` (direct calls) without STOPS."""
+def closure(text, roots, extra=(), stops=None):
+    """Static call closure of `roots` (direct calls) without the stubbed functions."""
+    stops = STOPS if stops is None else stops
     from capstone import Cs, CS_ARCH_X86, CS_MODE_32
     engine = Cs(CS_ARCH_X86, CS_MODE_32)
     seen, todo = {}, list(roots) + list(extra)
     while todo:
         start = todo.pop()
-        if start in seen or start in STOPS:
+        if start in seen or start in stops:
             continue
         end = EXTENTS.get(start) or cm.function_extent(text, start)
         seen[start] = end
@@ -233,7 +264,7 @@ class WidgetClient(vu.Client):
         for address, value in zip(FONT_GLOBALS, fonts):
             m.put32(address, value)
         m.write(0x01ac3bb4, b'0\0')
-        self.input = m.alloc(0x40, define=True)
+        self.input = m.alloc(0x80, define=True)
         self.stub(0x00cc3564, lambda mm: self.input, 0)
         # the text facade (g_pRenderText) and its CUIRenderTextOriginal
         width_px = int(cm.f32(640.0*state.screen_rate_x))
@@ -487,6 +518,10 @@ class Side:
         ctx.input.screen_width, ctx.input.screen_height = window
         ctx.fonts = Fonts(*FONTS)
         ctx.global_text = self._gt
+        self._create_font = CREATEFONTFN(lambda user, h, w, cs, q, face: CREDIT_FONT)
+        self._load_bitmap = LOADBITMAPFN(lambda user, path, index, f, wr: None)
+        ctx.platform.create_font = self._create_font
+        ctx.platform.load_bitmap = self._load_bitmap
         self.list = ServerList()
         self.list.group_count = len(server_list['groups'])
         self.list.notice = server_list['notice']
@@ -909,6 +944,158 @@ def validate_winex(client, lib, rng, report):
     report['winex'] = counts
 
 
+CREDIT_SIZE = 0x568
+CREDIT_ROOTS = (0x009d8de1, 0x009d8ea3, 0x009d92ec, 0x009d9432, 0x009d94a9, 0x009d95e4, 0x009d9632, 0x009d958c)
+MUSIC_TABLE = 0x01cf1680
+CREDIT_STOPS = {0x010ea60c, 0x008e7940, 0x0094997e, 0x008e83a0, 0x0120f5a0, 0x0120f602, 0x0185baac}
+
+
+def credit_list(rng):
+    records = []
+    for _ in range(rng.randint(1, 9)):
+        if rng.random() < 0.8:
+            records.append((1, phrase(rng, rng.randint(1, 3))))
+        if rng.random() < 0.6:
+            records.append((2, phrase(rng, rng.randint(1, 4))))
+        for _ in range(rng.choice([0, 1, 2, 3, 4, 5, 6])):
+            records.append((3, phrase(rng, rng.randint(1, 2))))
+    if rng.random() < 0.85:
+        records.append((0, b''))
+    return records
+
+
+def snap_credit(client, w):
+    m = client.machine
+    out = client.snap_win(w)
+    background = m.u32(w + 0x14)
+    if background:
+        out += client.snap_sprite(background)
+    for i in range(7):
+        out += client.snap_sprite(w + 0x40 + 0xa8*i)
+    out += [m.u32(w + 0x4d8), m.u32(w + 0x4e0), m.u32(w + 0x4e4), m.read(w + 0x4e8, 1)[0], m.u32(w + 0x52c),
+            m.u32(w + 0x530), m.u32(w + 0x534), m.u32(w + 0x538), m.u32(w + 0x53c)]
+    out += [m.u32(w + 0x540 + 4*i) for i in range(4)] + [m.u32(w + 0x550 + 4*i) for i in range(3)]
+    return out + [m.u32(w + 0x560), m.u32(w + 0x564)]
+
+
+def install_credits(client, records):
+    """The credit table behind 0x010ea60c: records {type, std::string} (c_str 0x008e7940 reads our pointer)."""
+    m = client.machine
+    calls = m.calls
+    addresses = []
+    for kind, text in records:
+        string = m.alloc(len(text) + 1, define=True)
+        m.write(string, text + b'\0')
+        record = m.alloc(8, define=True)
+        m.put32(record, kind)
+        m.put32(record + 4, string)
+        addresses.append(record)
+    empty = m.alloc(1, define=True)
+    fallback = m.alloc(8, define=True)
+    m.put32(fallback, 0)
+    m.put32(fallback + 4, empty)
+    client.stub(0x010ea60c, lambda mm: addresses[mm.args(1)[0]] if mm.args(1)[0] < len(addresses) else fallback)
+    client.stub(0x008e7940, lambda mm: mm.u32(mm.uc.reg_read(cm.UC_X86_REG_ECX)))
+    # music: std::string(table[i]) then the stop/play calls; the table entries are pointers to names
+    for index in (1, 0x15):
+        name = m.alloc(16, define=True)
+        m.write(name, b'music%d\0' % index)
+        m.put32(MUSIC_TABLE + 4*index, name)
+    client.stub(0x0094997e, lambda mm: (mm.put32(mm.uc.reg_read(cm.UC_X86_REG_ECX), mm.args(1)[0]),
+                                        mm.uc.reg_read(cm.UC_X86_REG_ECX))[1])
+    client.stub(0x008e83a0, lambda mm: 0)
+    table = {m.u32(MUSIC_TABLE + 4): 1, m.u32(MUSIC_TABLE + 0x54): 0x15}
+    client.stub(0x0120f5a0, lambda mm: (calls.append(('MusicStop', (table.get(mm.u32(mm.args(1)[0]), -1),))), 0)[1], 0)
+    client.stub(0x0120f602, lambda mm: (calls.append(('MusicPlay', (table.get(mm.u32(mm.args(1)[0]), -1),))), 0)[1], 0)
+
+    def load_bitmap(mm):
+        path, index, filter_, wrap, check, full = mm.args(6)
+        calls.append(('LoadBitmap', (index, filter_, wrap, check, full, client.cstr(path).decode('latin1'))))
+        return 1
+    client.stub(0x0185baac, load_bitmap, 0)
+
+    def create_font(mm, words):
+        mm.calls[-1] = ('CreateFontA', tuple(words[:13]) + (client.cstr(words[13]).decode('latin1') if words[13]
+                                                              else None,))
+        return CREDIT_FONT
+    m.handlers['CreateFontA'] = create_font
+    m.handlers['DeleteObject'] = lambda mm, words: 1
+
+
+def validate_credits(client, lib, rng, report, cases=40):
+    """CCreditWin: Create, Show/start, the fades and credit blocks through CWin::Update, Render."""
+    extra = closure(client.text, CREDIT_ROOTS, stops=STOPS | CREDIT_STOPS)
+    for start, end in extra.items():
+        client.machine.allow((start, end))
+    counts = {'cases': 0, 'frames': 0, 'render_calls': 0, 'image_cycles': 0, 'credit_blocks': 0, 'ends': 0,
+              'state_words': 0}
+    for case in range(cases):
+        window = rng.choice(WINDOWS + [(800, 600), (1024, 768), (1280, 1024)])
+        rates = (cm.f32(window[0]/640.0), cm.f32(window[1]/480.0))
+        bitmaps = ssw_bitmaps(rng)
+        for index, (w, h) in {0x7b14: (256, 128), 0x7b1c: (512, 64), 0x7fa7: (512, 512), 0x7fa8: (512, 512)}.items():
+            bitmaps[index] = {'width': float(w), 'height': float(h), 'texture': 3000 + index % 89, 'components': 4}
+        strings = {0: rng.choice([b'Tahoma', b'', b'Gulim'])}
+        records = credit_list(rng)
+        width_px, height_px = int(cm.f32(640.0*rates[0])), int(cm.f32(480.0*rates[1]))
+        dib_init = bytes((((width_px*24 + 31) & ~31) >> 3)*height_px)
+        side = Side(lib, window, bitmaps, rates, strings, {'groups': [], 'notice': b''}, dib_init)
+        client.setup(side.authored.state, bitmaps, window, strings, {'groups': [], 'notice': b''})
+        install_credits(client, records)
+        m = client.machine
+        charset = rng.choice([0, 1, 0x81])
+        m.put32(0x01cf0c20, charset)                         # the character-set byte table, entry 0
+        side.ctx.charset = charset
+        client.set_input(0, 0, 0, 0, window)
+        array = (CreditRecord*max(len(records), 1))(*[CreditRecord(k, t) for k, t in records])
+        credits = Credits(len(records), array)
+        mine = ctypes.create_string_buffer(lib.mu_ui_probe_sizeof(7))
+        lib.mu_ui_credit_win_init(mine, ctypes.byref(credits))
+        win = m.alloc(CREDIT_SIZE, define=True)             # a CUIMng member: zero-initialised static storage
+        ctx = ctypes.byref(side.ctx)
+        out = (c_uint32*4096)()
+
+        def step(label, client_fn, authored_fn):
+            m.calls.clear()
+            del side.calls[:]
+            client_fn()
+            authored_fn()
+            problem = vu.diff(normalize(m.calls), normalize_authored(side.calls))
+            if problem:
+                raise AssertionError(f'credits case {case} {window} {label}: {problem}')
+            got, want = snap_credit(client, win), list(out[:lib.mu_ui_probe_credit_win(mine, out)])
+            if got != want:
+                index = next((i for i, (a, b) in enumerate(zip(got, want)) if a != b), min(len(got), len(want)))
+                raise AssertionError(f'credits case {case} {window} {label}: state differs at {index} '
+                                     f'{got[index:index+3]} {want[index:index+3]} ({len(got)} {len(want)})')
+            counts['state_words'] += len(got)
+            return len(m.calls)
+
+        step('ctor+Create', lambda: (m.call(0x009d8de1, ecx=win), m.call(0x009d8ea3, ecx=win)),
+             lambda: lib.mu_ui_credit_win_create(ctx, mine))
+        step('Show', lambda: (m.call(0x009d9432, [1], ecx=win), m.call(0x0098285a, [1], ecx=win)),
+             lambda: (lib.mu_ui_credit_win_show(ctx, mine, 1), lib.mu_ui_win_set_active(mine, 1)))
+        counts['render_calls'] += step('Render', lambda: m.call(0x0120d26d, ecx=win),
+                                       lambda: lib.mu_ui_win_render(ctx, mine))
+        for frame in range(rng.choice([20, 60, 150])):
+            delta = rng.choice([40.0, 40.0, 250.0, 1000.0, 3000.0, 16.5, 0.0])
+            lo, hi = struct.unpack('<II', struct.pack('<d', delta))
+            image_before = m.read(win + 0x4e8, 1)[0]
+            step(f'frame {frame} dt {delta}', lambda: m.call(0x0120d0ce, [lo, hi], ecx=win),
+                 lambda: lib.mu_ui_win_update(ctx, mine, delta))
+            counts['frames'] += 1
+            counts['image_cycles'] += 1 if m.read(win + 0x4e8, 1)[0] != image_before else 0
+            counts['credit_blocks'] += sum(1 for name, _ in side.calls if name == 'Sound') + \
+                sum(1 for name, w in side.calls if False)
+            counts['ends'] += sum(1 for name, words in side.calls if name == 'Event' and words[0] == 4)
+            if frame % 25 == 0:
+                counts['render_calls'] += step(f'render {frame}', lambda: m.call(0x0120d26d, ecx=win),
+                                               lambda: lib.mu_ui_win_render(ctx, mine))
+        counts['credit_blocks'] += m.u32(win + 0x530)
+        counts['cases'] += 1
+    report['credits'] = counts
+
+
 def validate_cut_text(client, lib, rng, report):
     m = client.machine
     count = 0
@@ -939,7 +1126,7 @@ def main():
     parser.add_argument('--library')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--cases', type=int, default=60)
-    parser.add_argument('--only', choices=['server', 'cut', 'sprites', 'winex'], action='append')
+    parser.add_argument('--only', choices=['server', 'cut', 'sprites', 'winex', 'credits'], action='append')
     parser.add_argument('--output')
     args = parser.parse_args()
     text = common.load_pinned(args.text, common.TEXT_BYTES, common.TEXT_SHA256)
@@ -949,7 +1136,7 @@ def main():
     rng = random.Random(args.seed)
     report = {'text_sha256': common.TEXT_SHA256, 'data_sha256': common.DATA_SHA256, 'seed': args.seed,
               'allowlisted_functions': len(client.functions)}
-    only = set(args.only or ['server', 'cut', 'sprites', 'winex'])
+    only = set(args.only or ['server', 'cut', 'sprites', 'winex', 'credits'])
     if 'cut' in only:
         validate_cut_text(client, lib, rng, report)
     if 'sprites' in only:
@@ -958,6 +1145,8 @@ def main():
         validate_winex(client, lib, rng, report)
     if 'server' in only:
         validate_server_win(client, lib, rng, report, args.cases)
+    if 'credits' in only:
+        validate_credits(client, lib, rng, report)
     print(json.dumps(report, indent=1))
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=1) + '\n')

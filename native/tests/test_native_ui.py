@@ -373,6 +373,36 @@ class NativeUiTests(unittest.TestCase):
                                         '--frames', f'{sx + 80},{s1},1,0;{sx + 400},{s1},0,1')
             self.assertEqual(summary['events'], [[1, 5]])                          # released elsewhere
 
+    def test_credits_fade_blocks_and_end(self):
+        """CCreditWin over a synthetic root: illustrations, black text bars, blocks, the end record."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.synthetic_root(tmp, jpeg=False)
+            interface = root/'Data/Interface'
+            (interface/'deco.OZT').write_bytes(solid_ozt(189, 103, (255, 0, 0, 255)))
+            (interface/'cr_mu_lo.OZT').write_bytes(solid_ozt(290, 41, (0, 255, 255, 255)))
+            for n in range(1, 9):
+                for k in (1, 2):
+                    (interface/f'im{n}_{k}.OZJ').write_bytes(ozj(400, 400, (40*n, 200, 30*k)))
+            credits = Path(tmp)/'credits.txt'
+            credits.write_text('title First\nname One\nname Two\ntitle Second\nname Three\nend\n')
+            out = Path(tmp)/'c.png'
+            image, summary = run_tool_lines('credits', '--root', root, '--size', '800x600', '--font', '@box',
+                                            '--credits', credits, '--time', '1200', '--out', out)
+            self.assertEqual(image['unsupported'], 0)
+            self.assertEqual((summary['image'], summary['image_state'], summary['next_record']), (0, 1, 3))
+            self.assertEqual(summary['text_states'], [2, 2, 2])     # all bars faded out: the block is shown
+            width, height, rows = read_png(out)
+            self.assertEqual(pixel(rows, 5, 5), (0, 0, 0, 255))     # the window background is opaque black
+            # the logo (800x600 units, scale 1): 290x41 at (0xf1, 0x21c)
+            self.assertEqual(pixel(rows, 0xf1 + 10, 0x21c + 10), (0, 255, 255, 255))
+            # the title row carries text (placeholder boxes) at y 0x14 (640x480 units) * 600/480, in the
+            # title colour 0xffe2e2e2
+            title = [pixel(rows, x, y) for y in range(25, 40) for x in range(800)]
+            self.assertIn((226, 226, 226, 255), title)
+            _, summary = run_tool_lines('credits', '--root', root, '--size', '800x600', '--font', '@box',
+                                        '--credits', credits, '--time', '12000')
+            self.assertEqual(summary['events'], [[3, 0], [4, 0], [5, 1], [6, 21]])   # hide, request, music
+
     @unittest.skipUnless(PRIVATE and os.environ.get('MU_GAME_ROOT'), 'private installed interface files')
     def test_private_installed_server_select(self):
         root = os.environ['MU_GAME_ROOT']
@@ -382,6 +412,10 @@ class NativeUiTests(unittest.TestCase):
             self.assertEqual(image['textures'], 10)
             self.assertEqual(image['unsupported'], 0)
             self.assertEqual((summary['groups'], summary['selected'], summary['servers']), (2, 5, 7))
+            image, summary = run_tool_lines('credits', '--root', root, '--size', '1024x768', '--font', '@box',
+                                            '--time', '3000', '--out', Path(tmp)/'c.png')
+            self.assertEqual(image['textures'], 7)                  # 5 interface files + 2 illustrations
+            self.assertEqual(image['unsupported'], 0)
 
     @unittest.skipUnless(PRIVATE and os.environ.get('MU_GAME_ROOT'), 'private installed interface files')
     def test_private_installed_title_and_login(self):

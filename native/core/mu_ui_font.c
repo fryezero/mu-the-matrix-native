@@ -227,19 +227,31 @@ int mu_ui_font_set_open(mu_ui_font_set *set, const char *face, const char *fixed
         set->gdi[i] = mu_ui_font_gdi(&set->fonts[i]);
         set->handles[i] = handles[i];
     }
+    set->count = MU_UI_FONT_SET_SIZE;
     set->current = MU_UI_FONT_NORMAL;
     return failed;
 }
 
+uint32_t mu_ui_font_set_add(mu_ui_font_set *set, const char *face, int32_t height, int32_t weight)
+{
+    if (set->count >= MU_UI_FONT_SET_MAX)
+        return 0;
+    int i = set->count++;
+    mu_ui_font_open(&set->fonts[i], face, height, weight);
+    set->gdi[i] = mu_ui_font_gdi(&set->fonts[i]);
+    set->handles[i] = 0x0f0f1000u + (uint32_t)i;
+    return set->handles[i];
+}
+
 void mu_ui_font_set_close(mu_ui_font_set *set)
 {
-    for (int i = 0; i < MU_UI_FONT_SET_SIZE; ++i)
+    for (int i = 0; i < set->count; ++i)
         mu_ui_font_close(&set->fonts[i]);
 }
 
 void mu_ui_font_set_select(mu_ui_font_set *set, uint32_t handle)
 {
-    for (int i = 0; i < MU_UI_FONT_SET_SIZE; ++i)
+    for (int i = 0; i < set->count; ++i)
         if (set->handles[i] == handle)
             set->current = i;
 }
