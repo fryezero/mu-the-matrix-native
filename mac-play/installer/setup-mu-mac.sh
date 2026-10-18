@@ -22,7 +22,8 @@ usage() {
 Usage: setup-mu-mac.sh [options]
 
   --runtime R            free (default): no CrossOver; downloads the pinned open-source Wine runtime and
-                         uses the prefix in --prefix. crossover: legacy CrossOver bottle (--bottle).
+                         uses the prefix in --prefix. crossover: legacy CrossOver bottle (--bottle; --bottle
+                         without --runtime also selects crossover).
   --prefix DIR           Free runtime: the Wine prefix (default: ~/Library/Application Support/MuTheMatrix/prefix).
   --runtime-archive SRC  Free runtime: use this runtime archive (local .tar.xz or https URL, e.g. one the server
                          owner hosts, built with runtime/build-wine.sh) instead of the default download.
@@ -81,7 +82,7 @@ Environment: MUKIT_RUNTIME (free|crossover), MUKIT_FREE_HOME (free runtime folde
 EOF
 }
 
-RUNTIME=${MUKIT_RUNTIME:-free}
+RUNTIME=${MUKIT_RUNTIME:-}
 PREFIX_OPT=
 RT_ARCHIVE=
 RT_ARCHIVE_SHA=
@@ -151,6 +152,8 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 export DRY_RUN CX_ROOT
+# --bottle without --runtime keeps the earlier behaviour (CrossOver); otherwise the free runtime.
+[ -n "$RUNTIME" ] || { [ "$BOTTLE_SET" = 1 ] && RUNTIME=crossover || RUNTIME=free; }
 mukit_runtime_valid "$RUNTIME" || mukit_die '--runtime must be free or crossover'
 
 FREE_HOME=$MUKIT_FREE_HOME
@@ -213,8 +216,20 @@ wine_bottle() {
     else mukit_run "$CX_ROOT/bin/wine" --bottle "$BOTTLE" "$@"; fi
 }
 wineserver_wait() {
-    if [ "$RUNTIME" = free ]; then WINEPREFIX="$PREFIX" "$WINESERVER_BIN" -w
-    else WINEPREFIX="$PREFIX" "$CX_ROOT/bin/wineserver" -w; fi
+    if [ "$RUNTIME" != free ]; then WINEPREFIX="$PREFIX" "$CX_ROOT/bin/wineserver" -w; return; fi
+    # In a 32-bit prefix in wow64 mode the service processes (services, svchost, winedevice) stay up after the
+    # last program exits, so "wineserver -w" would wait forever. Wait a while, then stop the prefix's
+    # wineserver; it saves the registry when it exits.
+    local t=0 w
+    WINEPREFIX="$PREFIX" "$WINESERVER_BIN" -w & w=$!
+    while kill -0 "$w" 2>/dev/null && [ "$t" -lt "${MUKIT_WINESERVER_WAIT:-20}" ]; do sleep 1; t=$((t + 1)); done
+    if kill -0 "$w" 2>/dev/null; then
+        WINEPREFIX="$PREFIX" "$WINESERVER_BIN" -k 2>/dev/null
+        t=0; while kill -0 "$w" 2>/dev/null && [ "$t" -lt 30 ]; do sleep 1; t=$((t + 1)); done
+        kill "$w" 2>/dev/null
+    fi
+    wait "$w" 2>/dev/null
+    return 0
 }
 
 winetricks_bottle() {
@@ -597,8 +612,9 @@ apply_game() {
     check_game >/dev/null || [ "$DRY_RUN" = 1 ]
 }
 
-# The official installer (Actual Installer) run silently inside the prefix. /S = silent; the target folder
-# is passed with /D. Installers that ignore /D land in their default folder, which is then moved.
+# The official installer (Actual Installer) run silently inside the prefix with /S. It installs to its
+# default folder (C:\Program Files\Glitch Games Network\Mu The Matrix in a 32-bit prefix; verified with
+# MuTheMatrix-21.1.2.12.exe, 206 s), which is then moved to C:\MuTheMatrix where the kit expects the game.
 GAME_INSTALLER_DEFAULT_DIRS="Program Files/Glitch Games Network/Mu The Matrix|Program Files (x86)/Glitch Games Network/Mu The Matrix"
 apply_game_installer() {
     local exe=$GAME_INSTALLER d found=
@@ -609,8 +625,8 @@ apply_game_installer() {
     esac
     [ "$DRY_RUN" = 1 ] || mukit_write_file "$STATE/game-installer" "$(basename "$exe") sha256=$(mukit_sha256 "$exe")"$'\n'
     [ ! -e "$GAME" ] || [ -z "$(ls -A "$GAME" 2>/dev/null)" ] || mukit_die "$GAME exists without main.exe/MuTheMatrix.exe; inspect it first."
-    todo "run the official installer silently in the prefix (target C:\\MuTheMatrix; several minutes)"
-    steplog game-installer wine_bottle "$exe" /S "/D=C:\\MuTheMatrix" || mukit_warn "the installer returned an error (see $STATE/game-installer.log)"
+    todo "run the official installer silently in the prefix (about 4 minutes)"
+    steplog game-installer wine_bottle "$exe" /S || mukit_warn "the installer returned an error (see $STATE/game-installer.log)"
     [ "$DRY_RUN" = 1 ] && return 0
     wineserver_wait
     if [ ! -f "$GAME/main.exe" ]; then

@@ -55,7 +55,10 @@ plan() { echo "MU-PLAN $*"; }
 
 BOTTLES=$MUKIT_BOTTLES_DIR
 LOG_DIR=${MU_LOG_DIR:-$HOME/Library/Logs/MuTheMatrix}
-RUNTIME=${MU_RUNTIME:-free}
+BOTTLE_ENV_SET=${MU_BOTTLE:-}
+RUNTIME=${MU_RUNTIME:-}
+# The app always passes MU_RUNTIME. From a shell, MU_BOTTLE alone keeps the earlier CrossOver behaviour.
+[ -n "$RUNTIME" ] || { [ -n "$BOTTLE_ENV_SET" ] && RUNTIME=crossover || RUNTIME=free; }
 FREE_HOME=$MUKIT_FREE_HOME
 BOTTLE=${MU_BOTTLE:-}
 FAST=${MU_FAST_X87:-0}
