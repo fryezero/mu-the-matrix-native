@@ -1,5 +1,6 @@
 /* The legacy particle list: CreateParticle, MoveParticles, RenderParticles
  * (NATIVE-PARTICLE-001). See particles.h. */
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -34,6 +35,12 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_THUNDER:
         return subtype == 0;
     case MU_PT_BITMAP_SPARK3:
+        return subtype == 0 || subtype == 1;
+    case MU_PT_BITMAP_CLOUDS:
+        return subtype == 0x14;
+    case MU_PT_BITMAP_WATERFALL1:
+        return subtype == 2;
+    case MU_PT_BITMAP_SHINY1:
         return subtype == 0 || subtype == 1;
     default:
         return 0;
@@ -208,6 +215,33 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             mu_vector_rotate(burst, m, p->velocity);
         }
         break;
+    case MU_PT_BITMAP_SHINY1:
+        /* 0x015e5c73: subtypes 0 and 1 */
+        p->lifetime = 18;
+        p->angle[0] = 45.0f;
+        break;
+    case MU_PT_BITMAP_CLOUDS:
+        /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
+        p->lifetime = 300;
+        p->gravity = (float)(mu_pt_rand(h) % 1000);
+        p->alpha = 0.1f;
+        p->position[0] = (float)(mu_pt_rand(h) % 500 - 250) + p->position[0];
+        p->position[1] = (float)(mu_pt_rand(h) % 500 - 250) + p->position[1];
+        p->position[2] = (float)(mu_pt_rand(h) % 20 - 20) + p->position[2];
+        p->start[1] = (float)(mu_pt_rand(h) % 100) / 100.0f;
+        p->start[2] = p->position[2];
+        p->scale = (float)(mu_pt_rand(h) % 20 + 180) * 0.01f * p->scale;
+        p->field_7c = (float)(mu_pt_rand(h) % 10) / 100.0f;
+        p->velocity[0] = p->velocity[1] = p->velocity[2] = 0.0f;
+        break;
+    case MU_PT_BITMAP_WATERFALL1:
+        /* 0x015f1a27, subtype 2 0x015f1bb0: falling spray */
+        p->lifetime = 30;
+        p->rotation = (float)(mu_pt_rand(h) % 360);
+        p->velocity[2] = (float)(-(mu_pt_rand(h) % 5 + 7));
+        p->light[0] = p->light[1] = p->light[2] = 0.2f;
+        p->scale = 1.6f + scale;
+        break;
     default:
         break;
     }
@@ -320,6 +354,40 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             if (0.2f > p->scale)
                 p->live = 0;
             break;
+        case MU_PT_BITMAP_SHINY1:
+            /* 0x016599cd: the size follows a sine of the lifetime; subtype 1 smaller and spinning */
+            p->scale = (float)sin((double)((float)p->lifetime * 10.0f * 0.017453292f));
+            if (p->subtype == 1) {
+                p->scale = p->scale * 0.75f;
+                p->rotation = p->rotation - 12.0f;
+            }
+            break;
+        case MU_PT_BITMAP_CLOUDS:
+            /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
+            if (!(p->lifetime > 0)) {
+                p->live = 0;
+            } else if (p->lifetime > 150) {
+                if (1.0f > p->alpha)
+                    p->alpha = (float)((double)p->alpha + 0.04);
+                p->position[2] = p->position[2] + 1.0f;
+            } else {
+                if (p->alpha > 0.1f)
+                    p->alpha = p->alpha - 0.025f;
+                p->position[2] = p->position[2] - 0.5f;
+            }
+            break;
+        case MU_PT_BITMAP_WATERFALL1:
+            /* 0x01667c6f, subtype 2: shrinks, flares up and fades, falls slower */
+            p->scale = p->scale - 0.005f;
+            if (p->lifetime < 5) {
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] = p->light[k] / 1.2f;
+            } else if (p->lifetime > 20) {
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] = p->light[k] * 1.1f;
+            }
+            p->velocity[2] = p->velocity[2] + 0.1f;
+            break;
         default:
             break;
         }
@@ -380,6 +448,11 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
     case MU_PT_BITMAP_SMOKE:
         if (p->subtype == 2)
             state(out, MU_PT_STATE_SUBTRACT, 0);     /* 0x01596e05 */
+        break;
+    case MU_PT_BITMAP_CLOUDS:
+        /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
+        for (int k = 0; k < 3; ++k)
+            s->light[k] = p->light[k] * p->alpha;
         break;
     default:
         break;

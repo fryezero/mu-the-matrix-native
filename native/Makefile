@@ -51,7 +51,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
-            core/mu_particles.c
+            core/mu_particles.c core/mu_joints.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -69,7 +69,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/data/table_layouts.c \
              $(RECON)/hud/inv_grid.c $(RECON)/hud/item_slots.c $(RECON)/hud/item_pass.c \
              $(RECON)/hud/tooltip_html.c $(RECON)/hud/tooltip_format.c \
-             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c \
+             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/joints/joints.c \
              $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_fish.c \
              $(RECON)/environment/env_leaves.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
@@ -84,7 +84,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
-           $(wildcard $(RECON)/combat/*.h) \
+           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h
 

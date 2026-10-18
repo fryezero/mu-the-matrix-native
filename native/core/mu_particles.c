@@ -11,14 +11,26 @@
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
 
-/* Effect bitmaps first (MU_WORLD_PT_EFFECTS of them), then the world's rain02/rain03. */
-#define MU_WORLD_PT_EFFECTS 7
+/* Effect bitmaps first (MU_WORLD_PT_EFFECTS of them), then the world's rain02/rain03. NATIVE-JOINT-001 adds
+ * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
+ * the login scene's clouds and WATERFALL1. */
+#define MU_WORLD_PT_EFFECTS 15
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
-    MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
+    MU_JT_BITMAP_ENERGY, MU_PT_BITMAP_CLOUDS, MU_PT_BITMAP_WATERFALL1,  MU_PT_BITMAP_LIGHTNING2,
+    MU_PT_BITMAP_SHINY1, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
-    "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ"};
+    "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
+    "Data/Effect/JointThunder01.OZJ", "Data/Effect/Spark01.OZJ", "Data/Effect/JointSpirit01.OZJ",
+    "Data/Effect/JointEnergy01.OZJ", "Data/Effect/clouds.OZJ", "Data/Effect/WATERFALL1.OZJ",
+    "Data/Effect/lightning2.OZJ", "Data/Effect/Shiny01.OZJ"};
+
+/* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
+ * hs_fieldtornado (0x00e4c4de). */
+static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
+    {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -47,12 +59,22 @@ static float h_terrain(void *c, float x, float y)
     return mu_request_terrain_height(p->map->height, p->map->attributes, p->map->water_height, 6, x, y);
 }
 
+/* The owner OBJECT's +0x158 (an index into the attached objects). */
+static void h_owner(void *c, int32_t owner, float out[3])
+{
+    const mu_world_particles *p = c;
+    const uint8_t *img = p->objects ? mu_objects_object_image(p->objects, owner) : NULL;
+    if (img)
+        memcpy(out, img + MU_OBJF_POSITION, 12);
+}
+
 static void host(mu_world_particles *p, mu_pt_host *h)
 {
     memset(h, 0, sizeof *h);
     h->context = p;
     h->rand = h_rand;
     h->terrain_height = h_terrain;
+    h->owner_position = h_owner;
     h->world = p->world;
     h->world_time = p->world_time;
     h->frame_time = 0.1f;   /* [0x01cf103c] */
@@ -113,6 +135,34 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
         return 1;
     }
     load_bitmaps(p, root, no_assets);
+    p->joints = calloc(MU_JT_JOINTS, sizeof *p->joints);
+    p->effects = calloc(MU_WORLD_FX_EFFECTS, sizeof *p->effects);
+    p->joint_quads = calloc(MU_WORLD_FX_QUADS, sizeof *p->joint_quads);
+    if (!p->joints || !p->effects || !p->joint_quads) {
+        snprintf(error, error_size, "out of memory");
+        mu_world_particles_close(p);
+        return 1;
+    }
+    for (int i = 0; i < MU_WORLD_FX_MODELS; ++i) {
+        mu_world_fx_model *m = &p->models[i];
+        m->type = fx_model_files[i].type;
+        if (no_assets || fx_model_files[i].world != world)
+            continue;
+        char path[4096], message[512], directory[2048];
+        if (!mu_objects_resolve(root, fx_model_files[i].file, path, sizeof path) ||
+            mu_bmd_load_file(path, &m->bmd, message, sizeof message) != MU_BMD_OK)
+            continue;
+        mu_model_params params;
+        mu_model_default_params(&params);
+        params.world = world;
+        if (mu_model_init(&m->model, &m->bmd, &params, message, sizeof message) != MU_MODEL_OK) {
+            mu_bmd_free(&m->bmd);
+            continue;
+        }
+        mu_path_directory(path, directory, sizeof directory);
+        mu_textures_load(&m->textures, &m->bmd, directory);
+        m->loaded = 1;
+    }
     return 0;
 }
 
@@ -129,6 +179,15 @@ void mu_world_particles_close(mu_world_particles *p)
     free(t->wrap);
     mu_pt_system_free(&p->list);
     free(p->sprites);
+    for (int i = 0; i < MU_WORLD_FX_MODELS; ++i)
+        if (p->models[i].loaded) {
+            mu_textures_free(&p->models[i].textures);
+            mu_model_free(&p->models[i].model);
+            mu_bmd_free(&p->models[i].bmd);
+        }
+    free(p->joints);
+    free(p->effects);
+    free(p->joint_quads);
     memset(p, 0, sizeof *p);
 }
 
@@ -137,9 +196,18 @@ void mu_world_particles_close(mu_world_particles *p)
 int mu_world_particles_create(mu_world_particles *p, int32_t type, const float position[3], const float angle[3],
                               const float light[3], int32_t subtype, float scale)
 {
+    return mu_world_particles_create_owned(p, type, position, angle, light, subtype, scale, MU_PT_NO_OWNER);
+}
+
+int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const float position[3],
+                                    const float angle[3], const float light[3], int32_t subtype, float scale,
+                                    int32_t owner)
+{
     mu_pt_host h;
     host(p, &h);
-    const int kept = mu_pt_create(&p->list, &h, type, position, angle, light, subtype, scale, MU_PT_NO_OWNER, 0);
+    if (owner >= 0 && (!p->objects || !mu_objects_object_image(p->objects, owner)))
+        owner = MU_PT_NO_OWNER;
+    const int kept = mu_pt_create(&p->list, &h, type, position, angle, light, subtype, scale, owner, 0);
     p->stats.created = p->list.created;
     p->stats.dropped = p->list.dropped;
     p->stats.unsupported = p->list.unsupported;
@@ -158,9 +226,236 @@ int32_t mu_world_particles_sprite(mu_world_particles *p, int32_t bitmap, const f
     return i;
 }
 
+/* ---- the world objects' joints and effects (NATIVE-JOINT-001) ---- */
+
+static mu_jt_object view_of(const mu_world_particles *p, int32_t index)
+{
+    mu_jt_object o;
+    memset(&o, 0, sizeof o);
+    const uint8_t *img = p->objects ? mu_objects_object_image(p->objects, index) : NULL;
+    if (img) {
+        o.live = img[MU_OBJF_LIVE];
+        o.visible = img[MU_OBJF_VISIBLE];
+        memcpy(o.position, img + MU_OBJF_POSITION, 12);
+        memcpy(o.light, img + MU_OBJF_LIGHT, 12);
+    }
+    return o;
+}
+
+static mu_jt_object hero_view(const mu_world_particles *p)
+{
+    mu_jt_object o;
+    memset(&o, 0, sizeof o);
+    o.live = o.visible = 1;
+    memcpy(o.position, p->hero_position, sizeof o.position);
+    return o;
+}
+
+#define FX_HERO_OBJECT 0x7fffff00
+
+static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
+{
+    static mu_jt_object scratch[4];
+    static int next;
+    mu_jt_object *o = &scratch[next++ & 3];
+    if (index == FX_HERO_OBJECT) {
+        if (!p->has_hero)
+            return NULL;
+        *o = hero_view(p);
+        return o;
+    }
+    if (!p->objects || !mu_objects_object_image(p->objects, index))
+        return NULL;
+    *o = view_of(p, index);
+    return o;
+}
+
+static int32_t jt_rand(void *c) { return mu_world_particles_rand(c); }
+static float jt_height(void *c, float x, float y) { return h_terrain(c, x, y); }
+static const mu_jt_object *jt_object(void *c, int32_t index) { return fx_object(c, index); }
+
+static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect *e);
+
+static void jt_call(void *c, const mu_jt_call *call)
+{
+    fx_call(c, call, NULL);
+}
+
+static void joint_env(mu_world_particles *p, mu_jt_env *env)
+{
+    memset(env, 0, sizeof *env);
+    env->context = p;
+    env->rand = jt_rand;
+    env->height = jt_height;
+    env->object = jt_object;
+    env->call = jt_call;
+    env->world_time = p->world_time;
+}
+
+static int32_t sfx_rand(void *c) { return mu_world_particles_rand(c); }
+static float sfx_height(void *c, float x, float y) { return h_terrain(c, x, y); }
+static const mu_sfx_object *sfx_object(void *c, int32_t index) { return fx_object(c, index); }
+static int sfx_call(void *c, const mu_sfx_call *call, mu_sfx_effect *e) { return fx_call(c, call, e); }
+
+static int sfx_model(void *c, int32_t type, uint16_t action, int16_t *keys)
+{
+    const mu_world_particles *p = c;
+    *keys = 1;
+    for (int i = 0; i < MU_WORLD_FX_MODELS; ++i)
+        if (p->models[i].type == type && p->models[i].loaded) {
+            const mu_bmd *b = &p->models[i].bmd;
+            if (b->action_count > 0)
+                *keys = (int16_t)b->actions[action < b->action_count ? action : 0].keys;
+            return 1;
+        }
+    return 1;   /* a missing native model: the client has it */
+}
+
+static void effect_env(mu_world_particles *p, mu_sfx_env *env)
+{
+    memset(env, 0, sizeof *env);
+    env->context = p;
+    env->rand = sfx_rand;
+    env->height = sfx_height;
+    env->object = sfx_object;
+    env->call = sfx_call;
+    env->model = sfx_model;
+    env->hero_object = FX_HERO_OBJECT;
+}
+
+static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect *e)
+{
+    switch (call->routine) {
+    case MU_JT_CALL_SPRITE:
+        mu_world_particles_sprite(p, call->type, call->position, call->scale, call->light, call->owner, call->angle[0],
+                                  call->subtype, call->range);
+        return 0;
+    case MU_JT_CALL_PARTICLE:
+        mu_world_particles_create_owned(p, call->type, call->position, call->angle, call->light, call->subtype,
+                                        call->scale, call->owner >= 0 ? call->owner : MU_PT_NO_OWNER);
+        return 0;
+    case MU_JT_CALL_JOINT:
+        mu_world_particles_joint(p, call->type, call->position, call->target, call->angle, call->subtype,
+                                 call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0);
+        return 0;
+    case MU_JT_CALL_EFFECT:
+        mu_world_particles_effect(p, call->type, call->subtype, call->position, call->angle, call->light,
+                                  call->owner == -2 ? -1 : call->owner, 0.0f, NULL);
+        return 0;
+    case MU_SFX_CALL_ANIMATION: {
+        /* viewer choice: the model's first action advances by the effect's speed and loops */
+        int16_t keys = 1;
+        if (e) {
+            sfx_model(p, e->type, e->action, &keys);
+            e->frame = e->frame + e->velocity;
+            if (keys > 1 && e->frame >= (float)keys)
+                e->frame = e->frame - (float)keys;
+        }
+        return 1;
+    }
+    case MU_SFX_CALL_ATTRIBUTE: {
+        if (!p->map)
+            return 0;
+        const int32_t index = ((call->range & 0xff) << 8) + (call->subtype & 0xff);   /* TERRAIN_INDEX 0x016d34db */
+        return p->map->attributes[index];
+    }
+    case MU_SFX_CALL_SOUND:
+        p->stats.sounds++;
+        return 0;
+    default:
+        return 0;
+    }
+}
+
+int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
+                                 const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
+                                 float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
+                                 int32_t arg14)
+{
+    if (!p->joints)
+        return -1;
+    mu_jt_env env;
+    joint_env(p, &env);
+    const int32_t i = mu_joints_create(p->joints, MU_JT_JOINTS, type, position, target_position, angle, subtype,
+                                       target, scale, key, skill, byte10, word13, arg14, &env);
+    if (i >= 0)
+        p->stats.joints_created++;
+    else if (i == -2)
+        p->stats.joints_unsupported++;
+    else
+        p->stats.joints_full++;
+    p->stats.joints++;
+    return i;
+}
+
+int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subtype, const float position[3],
+                              const float angle[3], const float light[3], int32_t owner, float scale,
+                              const mu_sfx_info *info)
+{
+    p->stats.effects++;
+    if (!p->effects)
+        return 0;
+    for (int i = 0; i < MU_WORLD_FX_EFFECTS; ++i) {   /* the first free record of the 200 (0x013c0f46) */
+        mu_sfx_effect *e = &p->effects[i];
+        if (e->live)
+            continue;
+        mu_sfx_env env;
+        effect_env(p, &env);
+        if (mu_sfx_effect_create(e, type, subtype, position, angle, light, owner, scale, info, &env)) {
+            p->stats.effects_created++;
+            return 1;
+        }
+        p->stats.effects_unsupported++;
+        return 0;
+    }
+    p->stats.effects_full++;
+    return 0;
+}
+
+void mu_world_particles_discard_sprites(mu_world_particles *p)
+{
+    for (int32_t i = 0; p->sprites && i < MU_PT_SPRITES; ++i)
+        p->sprites->records[i].live = 0;
+}
+
+void mu_world_particles_set_hero(mu_world_particles *p, const float position[3])
+{
+    memcpy(p->hero_position, position, sizeof p->hero_position);
+    p->has_hero = 1;
+}
+
+int32_t mu_world_particles_live_joints(const mu_world_particles *p)
+{
+    return p->joints ? mu_joints_live(p->joints, MU_JT_JOINTS) : 0;
+}
+
+int32_t mu_world_particles_live_effects(const mu_world_particles *p)
+{
+    int32_t n = 0;
+    for (int i = 0; p->effects && i < MU_WORLD_FX_EFFECTS; ++i)
+        n += p->effects[i].live != 0;
+    return n;
+}
+
 void mu_world_particles_step(mu_world_particles *p, float world_time)
 {
     p->world_time = world_time;
+    if (p->effects) {   /* MoveEffects 0x0150ddb1 */
+        mu_sfx_env env;
+        effect_env(p, &env);
+        for (int i = 0; i < MU_WORLD_FX_EFFECTS; ++i)
+            if (p->effects[i].live && !mu_sfx_effect_move(&p->effects[i], &env))
+                p->effects[i].live = 0;
+    }
+    if (p->joints) {    /* MoveJoints 0x01589b06 */
+        mu_jt_env env;
+        joint_env(p, &env);
+        mu_joints_move_all(p->joints, MU_JT_JOINTS, &env, 0.1f, NULL, NULL);
+        p->stats.live_joints = (uint32_t)mu_world_particles_live_joints(p);
+        if (p->stats.live_joints > p->stats.max_joints)
+            p->stats.max_joints = p->stats.live_joints;
+        p->stats.live_effects = (uint32_t)mu_world_particles_live_effects(p);
+    }
     mu_pt_host h;
     host(p, &h);
     mu_pt_move_all(&p->list, &h);
@@ -359,16 +654,52 @@ static int bitmap_info(void *c, int32_t bitmap, mu_pt_bitmap *out)
     return 1;
 }
 
+/* RenderJoints(0) (NATIVE-JOINT-001): the joints' quads in world space, in the state of their render type. */
+static long draw_joints(mu_world_particles *p, const mu_world_particles_target *t)
+{
+    if (!p->joints || !p->joint_quads)
+        return 0;
+    const int32_t n = mu_joints_quads(p->joints, MU_JT_JOINTS, 0, p->world_time, p->joint_quads, MU_WORLD_FX_QUADS);
+    p->stats.drawn_joint_quads = (uint32_t)n;
+    long drawn = 0;
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_joint_quad *q = &p->joint_quads[i];
+        const int32_t s = slot_of(q->bitmap);
+        if (s < 0 || !p->bitmap_present[s])
+            continue;
+        mu_render_backend b;
+        if (t->backend(t->context, p, &b))
+            return drawn;
+        mu_meshdraw_state state;
+        mu_meshdraw_state_defaults(&state);
+        mu_joints_state(q->render_type, &state);
+        state.depth_test = 1;
+        b.prepare(b.context, &state, s);
+        b.begin(b.context);
+        static const int order[6] = {0, 1, 2, 0, 2, 3};
+        for (int k = 0; k < 6; ++k) {
+            b.sink.texcoord(b.sink.context, q->uv[order[k]][0], q->uv[order[k]][1]);
+            b.sink.color4(b.sink.context, q->color[0], q->color[1], q->color[2], 1.0f);
+            b.sink.vertex(b.sink.context, q->position[order[k]]);
+        }
+        b.end(b.context);
+        ++drawn;
+    }
+    return drawn;
+}
+
 long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], const mu_world_particles_target *t)
 {
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < 4; ++j)
             p->camera[4 * i + j] = modelview[4 * j + i];   /* 0x0184a569: CameraMatrix[i][j] = gl[4j + i] */
+    const long joints = draw_joints(p, t);
     draw_context d;
     memset(&d, 0, sizeof d);
     d.p = p;
     d.target = t;
     d.slot = -1;
+    d.quads = joints;
     mu_meshdraw_state_defaults(&d.state);
     d.state.depth_mask = 0;
     mu_pt_gl gl = {&d, g_state, g_bind, g_begin, g_end, g_color3, g_color4, g_tex, g_vertex, NULL, NULL};
@@ -412,6 +743,85 @@ long mu_world_particles_draw_raster(mu_world_particles *p, mu_raster *raster, co
     raster->texture_count = 0;
     raster->texture_filter = NULL;
     raster->texture_wrap = NULL;
+    raster->linear = linear;
+    return n;
+}
+
+/* ---- effect models (NATIVE-JOINT-001) ---- */
+
+int32_t mu_world_particles_draw_models(mu_world_particles *p, mu_world_particles_model_fn draw, void *context)
+{
+    int32_t drawn = 0;
+    for (int i = 0; p->effects && i < MU_WORLD_FX_EFFECTS; ++i) {
+        const mu_sfx_effect *e = &p->effects[i];
+        if (!e->live)
+            continue;
+        int32_t slot = -1;
+        for (int k = 0; k < MU_WORLD_FX_MODELS; ++k)
+            if (p->models[k].type == e->type && p->models[k].loaded)
+                slot = k;
+        if (slot < 0)
+            continue;
+        mu_world_fx_model *m = &p->models[slot];
+        mu_model_params params = m->model.params;
+        for (int k = 0; k < 3; ++k) {
+            params.origin[k] = e->position[k];
+            params.angles[k] = e->angle[k];
+            params.color[k] = e->light[k];
+        }
+        params.body_scale = e->scale;
+        params.lighting = e->flag5;   /* +0x05 LightEnable (the tornado clears it; static reading) */
+        mu_model_apply_params(&m->model, &params);
+        const int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
+        float frame = e->frame;
+        if (keys > 0 && frame >= (float)keys)
+            frame = 0.0f;
+        mu_model_set_state(&m->model, 0, frame, frame, 0);
+        if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
+            continue;
+        /* RenderObject: RenderBody(flags 2, or 0x82 when +0x80 == 0x80, alpha +0xdc, BlendMesh +0x74,
+         * BlendMeshLight +0xa8, U +0xac, V +0xb0) (NATIVE-COMBAT-002's static reading) */
+        mu_draw_options options;
+        mu_draw_default_options(&options);
+        options.flags = e->field_80 == 0x80 ? 0x82u : 2u;
+        options.alpha = e->alpha;
+        options.select = e->blend_mesh;
+        options.color_scale = e->blend_light;
+        options.u_offset = e->blend_u;
+        options.v_offset = e->blend_v;
+        options.textures = &m->textures;
+        options.time = p->world_time;
+        draw(context, &m->model, &m->textures, slot, &options);
+        ++drawn;
+    }
+    p->stats.drawn_effect_models = (uint32_t)drawn;
+    return drawn;
+}
+
+static void raster_model(void *context, const mu_model *model, const mu_textures *textures, int32_t slot,
+                         const mu_draw_options *options)
+{
+    mu_raster *raster = context;
+    (void)slot;
+    mu_render_backend backend;
+    mu_raster_backend(raster, &backend);
+    raster->textures = textures->slots;
+    raster->texture_count = textures->count;
+    raster->texture_filter = textures->filter;
+    raster->texture_wrap = textures->wrap;
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_scene_draw_model(model, options, &backend, &ds);
+    raster->textures = NULL;
+    raster->texture_count = 0;
+    raster->texture_filter = NULL;
+    raster->texture_wrap = NULL;
+}
+
+int32_t mu_world_particles_draw_models_raster(mu_world_particles *p, mu_raster *raster)
+{
+    const int linear = raster->linear;
+    raster->linear = 1;
+    const int32_t n = mu_world_particles_draw_models(p, raster_model, raster);
     raster->linear = linear;
     return n;
 }
@@ -564,6 +974,15 @@ static void v_bone(void *c, const mu_pt_visual_object *o, const char *bone, cons
     mu_world_particles_named_bone_position(v->model, v->bmd, bone, in, out);
 }
 
+/* TransformPosition(BoneTransform + 0x30 * bone, in, out, 0) (Dungeon's lightning, NATIVE-JOINT-001) */
+static void v_bone_index(void *c, const mu_pt_visual_object *o, int32_t bone, const float in[3], float out[3])
+{
+    visual_context *v = c;
+    (void)o;
+    if (v->model && v->bmd && bone < v->bmd->bone_count)
+        mu_world_particles_bone_position(v->model, bone, in, out);
+}
+
 static void v_particle(void *c, int32_t type, const float position[3], const float angle[3], const float light[3],
                        int32_t subtype, float scale, int32_t owner)
 {
@@ -577,18 +996,31 @@ static void v_sprite(void *c, int32_t bitmap, const float position[3], float sca
     mu_world_particles_sprite(((visual_context *)c)->p, bitmap, position, scale, light, owner, rotation, blend, axes);
 }
 
+/* CreateJoint(bitmap, position, position, angle, subtype, the object, scale, -1, 0, 0, -1, 0, -1, 0) of the
+ * Tormenta handler (NATIVE-JOINT-001). */
 static void v_joint(void *c, int32_t bitmap, const float position[3], const float angle[3], int32_t subtype,
                     int32_t owner, float scale)
 {
-    (void)bitmap, (void)position, (void)angle, (void)subtype, (void)owner, (void)scale;
-    ((visual_context *)c)->p->stats.joints++;   /* CreateJoint: the joint pool is not part of this module */
+    mu_world_particles_joint(((visual_context *)c)->p, bitmap, position, position, angle, subtype, owner, scale,
+                             0xffff, 0, 0, 0xffff, 0);
 }
 
+/* CreateEffect 0x013c0eaa(type, position, angle, light, subtype, the object, -1, 0, (u16)scale, 0, 0.0, -1,
+ * 0, 0): the core with scale 0 and the info block {key -1, skill 0, (u16)(int)scale, 0, -1} (NATIVE-JOINT-001). */
 static void v_effect(void *c, int32_t type, const float position[3], const float angle[3], const float light[3],
                      int32_t subtype, int32_t owner)
 {
-    (void)type, (void)position, (void)angle, (void)light, (void)subtype, (void)owner;
-    ((visual_context *)c)->p->stats.effects++;
+    mu_world_particles *p = ((visual_context *)c)->p;
+    mu_sfx_info info;
+    memset(&info, 0, sizeof info);
+    info.key = 0xffff;
+    const uint8_t *img = p->objects ? mu_objects_object_image(p->objects, owner) : NULL;
+    if (img) {
+        const float scale = mu_obj_f32(img, MU_OBJF_SCALE);
+        info.word4 = (uint16_t)(scale > -2147483904.0f && scale < 2147483648.0f ? (int32_t)scale : INT32_MIN);
+    }
+    info.field8 = 0xffff;
+    mu_world_particles_effect(p, type, subtype, position, angle, light, owner, 0.0f, &info);
 }
 
 int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object *object, int has_model,
@@ -605,6 +1037,7 @@ int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object 
     h.sprite = v_sprite;
     h.joint = v_joint;
     h.effect = v_effect;
+    h.bone_index_position = v_bone_index;
     h.world = p->world;
     h.world_time = p->world_time;
     const int handled = mu_pt_object_visual(object, &h);
@@ -616,9 +1049,16 @@ int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object 
 /* ---- hooks ---- */
 
 static void o_particle(void *c, int32_t bitmap, const float position[3], const float angle[3], const float light[3],
-                       int32_t subtype, float scale)
+                       int32_t subtype, float scale, int32_t owner)
 {
-    mu_world_particles_create(c, bitmap, position, angle, light, subtype, scale);
+    mu_world_particles_create_owned(c, bitmap, position, angle, light, subtype, scale, owner);
+}
+
+/* The login world's CreateSprite calls (CGMLogInScene_Ex slot 0x34: the ship's lanterns). */
+static void o_sprite(void *c, int32_t bitmap, const float position[3], float scale, const float light[3],
+                     int32_t owner, float rotation, int32_t blend, int32_t axes)
+{
+    mu_world_particles_sprite(c, bitmap, position, scale, light, owner, rotation, blend, axes);
 }
 
 static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model, mu_object_model *m)
@@ -653,7 +1093,9 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
     if (objects) {
         objects->rt.particle = o_particle;
         objects->rt.visual = o_visual;
+        objects->rt.sprite = o_sprite;
         objects->rt.hook_context = p;
+        p->objects = objects;
     }
     if (env)
         env->particles = p;

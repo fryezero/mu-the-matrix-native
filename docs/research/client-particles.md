@@ -211,8 +211,9 @@ handler's slot 0x34:
   0x11, 0x18, 0x19, 0x12..0x17;
 - type 9: on `rand % 500 == 1` CreateEffect(0x40e, …).
 
-These objects are HiddenMesh −2 markers. The joints and the effect belong to the joint and effect pools
-(NATIVE-COMBAT-002's modules), which do not reconstruct these kinds.
+These objects are HiddenMesh −2 markers. The joints and the effect belong to the joint and effect pools; NATIVE-JOINT-001
+reconstructs and draws them ([client-joints.md](client-joints.md)), together with the Dungeon, Devias and Noria
+visuals and the clouds, WATERFALL1 and Shiny01 kinds.
 
 ## 8. Verification
 
@@ -325,6 +326,10 @@ contact sheet:
 - `dungeon-bats`: bat shadows.
 
 ## 12. Not ported
+
+NATIVE-JOINT-001 ([client-joints.md](client-joints.md)) has since ported the Tormenta joints and effect, the login
+scene's sprites and its clouds/WATERFALL1 kinds, Shiny01 and the Dungeon/Devias/Noria visuals; the list below is
+this milestone's.
 
 - The other particle kinds (several hundred bitmaps and subtypes of the three switches), owner-following
   details beyond the owner position, and the 0x7ef7/6 and 0x7f54/5 extra state wrappers.

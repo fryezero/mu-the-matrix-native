@@ -119,7 +119,9 @@ BONE_OBJECT = 0x29300000
 MATRIX = 0x29400000
 
 KINDS = [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
-                                                            (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1)]
+                                                            (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1),
+                                                            (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
+                                                            (0x7f66, 0), (0x7f66, 1)]      # Noria's Shiny01
 
 
 def object_address(index):
@@ -138,10 +140,10 @@ OWNER_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTE
 class Particle(ctypes.Structure):
     _fields_ = [('live', ctypes.c_uint8), ('type', ctypes.c_int32), ('tex_type', ctypes.c_int32),
                 ('subtype', ctypes.c_int32), ('scale', ctypes.c_float), ('position', F3), ('angle', F3),
-                ('light', F3), ('lifetime', ctypes.c_int32), ('owner', ctypes.c_int32), ('owner_position', F3),
-                ('rotation', ctypes.c_float), ('frame', ctypes.c_int32), ('moving', ctypes.c_uint8),
-                ('gravity', ctypes.c_float), ('velocity', F3), ('start', F3), ('start_angle', F3),
-                ('time', ctypes.c_float), ('arg8', ctypes.c_int32)]
+                ('light', F3), ('alpha', ctypes.c_float), ('lifetime', ctypes.c_int32), ('owner', ctypes.c_int32),
+                ('owner_position', F3), ('rotation', ctypes.c_float), ('frame', ctypes.c_int32),
+                ('moving', ctypes.c_uint8), ('gravity', ctypes.c_float), ('velocity', F3), ('field_7c', ctypes.c_float),
+                ('start', F3), ('start_angle', F3), ('time', ctypes.c_float), ('arg8', ctypes.c_int32)]
 
 
 class Host(ctypes.Structure):
@@ -220,10 +222,13 @@ VJOINT_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, FP, FP, ctyp
 VEFFECT_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, FP, FP, FP, ctypes.c_int32, ctypes.c_int32)
 
 
+BONE_INDEX_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, P(VisualObject), ctypes.c_int32, FP, FP)
+
+
 class VisualHost(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('has_model', HAS_MODEL_FN), ('bone_position', BONE_FN),
                 ('particle', VPARTICLE_FN), ('sprite', VSPRITE_FN), ('joint', VJOINT_FN), ('effect', VEFFECT_FN),
-                ('world', ctypes.c_int32), ('world_time', ctypes.c_float)]
+                ('world', ctypes.c_int32), ('world_time', ctypes.c_float), ('bone_index_position', BONE_INDEX_FN)]
 
 
 BITMAP_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, P(Bitmap))
@@ -298,8 +303,8 @@ def compare_masked(mine, theirs, defined, mask, floats_at=()):
     return None
 
 
-PARTICLE_FLOATS = {0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x54, 0x58, 0x5c, 0x60, 0x6c, 0x70,
-                   0x74, 0x78, 0x88, 0x8c, 0x90, 0x94, 0x98, 0x9c, 0xac}
+PARTICLE_FLOATS = {0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x54, 0x58, 0x5c, 0x60, 0x6c,
+                   0x70, 0x74, 0x78, 0x7c, 0x88, 0x8c, 0x90, 0x94, 0x98, 0x9c, 0xac}
 SPRITE_FLOATS = {0x90, 0x94, 0xa0, 0xd0, 0xec, 0xf0, 0xf4, 0x110, 0x114, 0x118, 0x158, 0x15c, 0x160, 0x16c}
 
 
@@ -487,6 +492,8 @@ def family_create(m, lib, rng, cases, report, negatives):
                                     object_address(owner), arg8 & 0xffffffff], regions, shared_stubs(case, m),
                       ecx=POOL, cleanup=0x20)
         p = Particle()
+        # the record keeps a former particle's bytes where CreateParticle writes nothing (+0x44, +0x7c)
+        lib.mu_pt_particle_load(ctypes.byref(p), am.poison(PARTICLE_BYTES, 0x5d))
         host = case.host(world, world_time)
         supported = lib.mu_pt_create_record(ctypes.byref(p), ctypes.byref(host), kind[0], F3(*pos), F3(*angle),
                                             F3(*light), kind[1], scale, owner, arg8)
@@ -561,6 +568,10 @@ def random_particle(rng, kind):
     p.gravity = f32(rng.choice([0.0, 0.004, 20.0, 6.5, rf(rng, -10.0, 10.0)]))
     p.time = rf(rng, 0.0, 100.0)
     p.arg8 = rng.randrange(-10, 10)
+    p.alpha = f32(rng.choice([0.1, 1.0, 0.95, 0.12, 0.09, rf(rng, -0.5, 1.5)]))
+    p.field_7c = rf(rng, 0.0, 0.1)
+    if kind == (0x7f89, 0x14):
+        p.lifetime = rng.choice([300, 151, 150, 149, 2, 1, 0, -1, rng.randrange(-3, 301)])
     for k in range(3):
         p.position[k] = rf(rng, 0.0, 25600.0) if k < 2 else rf(rng, -100.0, 800.0)
         p.angle[k] = rf(rng, -360.0, 360.0)
@@ -1217,20 +1228,26 @@ def family_bone(m, lib, rng, cases, report, negatives):
                                                             f32(vec[2]*matrix[2])) + matrix[3]) + origin[0])
 
 
+BONE_TRANSFORM, CRT_MALLOC, CRT_FREE, HEAP = 0x06fce398, 0x019a4da0, 0x019a4d50, 0x2a800000
+
+
 def family_visual(m, lib, rng, cases, report, negatives):
     lorencia_types = [0x38, 0x69, 0x69, 0x38, 0x32, 0x5a, 0x00, 0x96]
     tormenta_types = [2, 3, 4, 5, 9, 9, 0xbf, 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0, 6, 0x1f]
+    # NATIVE-JOINT-001: Dungeon, Devias, Noria
+    other_types = {1: [0x3d, 0x3d, 0x3c, 0], 2: [0x64, 0x64, 0x63, 1], 3: [9, 0x23, 1, 0x11, 0x27, 0x27, 0x27, 2, 0x10]}
+    worlds = [0, 0x8d, 0, 0x8d, 1, 2, 3, 3]
     for n in range(cases):
-        tormenta = n % 2 == 1
-        world = 0x8d if tormenta else 0
-        typ = rng.choice(tormenta_types if tormenta else lorencia_types)
+        world = worlds[n % len(worlds)]
+        tormenta = world == 0x8d
+        typ = rng.choice(tormenta_types if tormenta else lorencia_types if world == 0 else other_types[world])
         has_model = rng.random() > 0.05
         pos = [rf(rng, 0.0, 25600.0), rf(rng, 0.0, 25600.0), rf(rng, -100.0, 400.0)]
         angle = [rf(rng, -360.0, 360.0) for _ in range(3)]
         light = [rf(rng, 0.0, 1.5) for _ in range(3)]
         scale = rf(rng, 0.1, 3.0)
         world_time = f32(rng.choice([0.0, 39.0, rng.uniform(0, 3.0e6)]))
-        rands = [rng.choice([0, 1, 50, 500, 501, rng.randrange(32768)]) for _ in range(16)]
+        rands = [rng.choice([0, 1, 50, 500, 501, 32, 8, rng.randrange(32768)]) for _ in range(48)]
         case = Case(rng, rand_values=rands)
         obj = bytearray(am.poison(0x400, 0x71))
         omask = bytearray(0x400)
@@ -1242,8 +1259,19 @@ def family_visual(m, lib, rng, cases, report, negatives):
         for a, b in ((0x5c, 4), (0x158, 12), (0x164, 12), (0xec, 12), (0xa0, 4)):
             omask[a:a+b] = b'\1'*b
         objr = am.Region('object', OBJECTS, bytes(obj), bytes(omask))
-        regions = [objr] + globals_region(world, world_time)
+        heap = am.Region('heap', HEAP, am.poison(0x10000, 0x33), bytes(0x10000))
+        regions = [objr, heap] + globals_region(world, world_time)
         log = []
+        brk = [HEAP]
+
+        def malloc(mm):   # the C runtime heap (Noria 0x27's std::vector of bone names)
+            size = (mm.argument(0) + 15) & ~15
+            at = brk[0]
+            brk[0] += max(size, 16)
+            return at
+
+        def free(mm):
+            return 0
 
         def getter(mm):
             return (MODEL if has_model else 0), 4
@@ -1279,7 +1307,8 @@ def family_visual(m, lib, rng, cases, report, negatives):
 
         def joint(mm):
             a = [mm.argument(i) for i in range(14)]
-            log.append(('joint', a[0], hex(a[1]), hex(a[2]), hex(a[3]), a[4], a[5], from_bits(a[6]), a[7:14]))
+            log.append(('joint', a[0], mm.floats(a[1], 3), mm.floats(a[2], 3), mm.floats(a[3], 3), a[4], a[5],
+                        from_bits(a[6]), a[7:14]))
             return 0
 
         def effect(mm):
@@ -1289,7 +1318,11 @@ def family_visual(m, lib, rng, cases, report, negatives):
         stubs = case.stubs(m)
         stubs.update({MODEL_CONTAINER: container, MODEL_GET: getter, BONE_MATRIX: bone_matrix,
                       TRANSFORM_POSITION: transform, CREATE_PARTICLE: particle, CREATE_SPRITE: sprite,
-                      CREATE_JOINT: joint, CREATE_EFFECT: effect})
+                      CREATE_JOINT: joint, CREATE_EFFECT: effect, CRT_MALLOC: malloc, CRT_FREE: free})
+        if world == 1:
+            # Dungeon's case ends in the default branch (event-world hooks, world manager): static reading,
+            # they answer no for world 1; the case jumps to the epilogue there
+            stubs[0x017fcb5c] = jump_stub(0x017fccc1)
         if tormenta:
             if not has_model:
                 continue   # the slot is reached after the model check of RenderObjectVisual
@@ -1325,15 +1358,21 @@ def family_visual(m, lib, rng, cases, report, negatives):
                          axes, [1, 1, 1.0]))
 
         def c_joint(ctx, b, p, a, sub, owner, sc):
-            clog.append(('joint', b, hex(OBJECTS+0x158), hex(OBJECTS+0x158), hex(OBJECTS+0x164), sub,
+            clog.append(('joint', b, [p[0], p[1], p[2]], [p[0], p[1], p[2]], [a[0], a[1], a[2]], sub,
                          object_address(owner), sc, [0xffffffff, 0, 0, 0xffffffff, 0, 0xffffffff, 0]))
+
+        def c_bone_index(ctx, o, bone, vin, vout):
+            clog.append(('transform', BONE_TRANSFORM + 0x30*bone, 0))
+            vout[0] = f32(vin[0]*2.0 + 1.0)
+            vout[1] = f32(vin[1]*2.0 - 3.0)
+            vout[2] = f32(vin[2] + 10.0)
 
         def c_effect(ctx, t, p, a, l, sub, owner):
             clog.append(('effect', t, hex(OBJECTS+0x158), hex(OBJECTS+0x164), hex(OBJECTS+0xec), sub,
                          object_address(owner), [0xffffffff, 0, int(scale) & 0xffff, 0, 0, 0xffffffff, 0, 0]))
         fns = (RAND_FN(c_rand), HAS_MODEL_FN(c_has), BONE_FN(c_bone), VPARTICLE_FN(c_particle), VSPRITE_FN(c_sprite),
                VJOINT_FN(c_joint), VEFFECT_FN(c_effect))
-        vh = VisualHost(None, *fns, world, world_time)
+        vh = VisualHost(None, *fns, world, world_time, BONE_INDEX_FN(c_bone_index))
         lib.mu_pt_object_visual(ctypes.byref(vo), ctypes.byref(vh))
         mismatch = None
         uninitialised = 0

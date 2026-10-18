@@ -18,15 +18,19 @@
  * Placements come from a local decoded EncTerrain95.plain (the installed .obj files do not decode in the
  * captured code; docs/research/client-objects.md): without one only the terrain is drawn.
  *
- * Stand-ins (not client code): the sprite and particle systems (CreateSprite 0x01692eb7 and
- * CreateParticle 0x0168fafd are not reconstructed) draw as additive billboards of the client's bitmaps;
- * the boids/bugs passes 0x00c9e4e3/0x00c9e24a, 0x00c9fd8d/0x00c9eb04, the joints, blurs and effects of the
- * render are not drawn (the login world creates none of them through the code reconstructed here). */
+ * NATIVE-JOINT-001: the lantern sprites (CreateSprite 0x01692eb7) and the mist and spray particles
+ * (CreateParticle 0x0168fafd: clouds 0x7f89 subtype 0x14 with the object as owner, WATERFALL1 0x801a
+ * subtype 2) go through the reconstructed particle module (mu_particles: MoveParticles in the tick head,
+ * RenderSprites(0) and RenderParticles(0) at the end of the 3D part) instead of NATIVE-LOGIN-001's
+ * stand-in billboards. The boids/bugs passes 0x00c9e4e3/0x00c9e24a, 0x00c9fd8d/0x00c9eb04, the blurs and
+ * effects of the render are not drawn (the login world creates none of them through the code reconstructed
+ * here). */
 
 #include <stdint.h>
 
 #include "mu_frame.h"
 #include "mu_objects.h"
+#include "mu_particles.h"
 #include "mu_raster.h"
 #include "mu_terrain.h"
 #include "mu_walk.h"
@@ -46,6 +50,9 @@ typedef struct mu_login_session {
     int draw_3d;                    /* the render drew the 3D part (the credit window was closed) */
     uint32_t steps, frames;
     long objects_drawn, after_meshes, billboards;
+    mu_world_particles particles;   /* NATIVE-JOINT-001: the sprites and particles of the scene */
+    int has_particles;
+    int32_t frame_sprites;          /* CreateSprite calls of the last RenderObjects pass */
     char error[256];
 } mu_login_session;
 

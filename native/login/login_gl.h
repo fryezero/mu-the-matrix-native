@@ -2,8 +2,8 @@
 #define MU_LOGIN_GL_H
 
 /* OpenGL 2.1 drawing of the native login scene (NATIVE-LOGIN-001, core/mu_login): the same passes as
- * mu_login_draw_soft (RenderTerrain, RenderObjects, RenderObjects_AfterCharacter, the stand-in sprites
- * and particles) through the fixed-function GL backend. Used by mu-client. */
+ * mu_login_draw_soft (RenderTerrain, RenderObjects, RenderObjects_AfterCharacter, the sprites and
+ * particles of the reconstructed particle module) through the fixed-function GL backend. Used by mu-client. */
 
 #include <stdint.h>
 

@@ -271,7 +271,7 @@ class InstalledTests(unittest.TestCase):
                                      '--combat-script', '5:click:bull fighter'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         summary = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"combat": true'))
-        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (14, 9))
+        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (15, 9))   # + Spark01, the swirl's spark joints (NATIVE-JOINT-001)
         self.assertEqual(summary['pick_hits'], 1)
         self.assertGreaterEqual(summary['kills'], 1)
 

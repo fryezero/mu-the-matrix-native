@@ -45,7 +45,11 @@ enum {
     MU_PT_BITMAP_SHINY2 = 0x7f67,       /* Effect\Shiny02.jpg (sprites) */
     MU_PT_BITMAP_THUNDER = 0x7f2b,      /* Effect\Thunder01.jpg */
     MU_PT_BITMAP_FIRE = 0x7f3c,         /* Effect\Fire01.jpg (a strip of four cells) */
-    MU_PT_BITMAP_SMOKE = 0x7f5a         /* Effect\smoke01.jpg */
+    MU_PT_BITMAP_SMOKE = 0x7f5a,        /* Effect\smoke01.jpg */
+    MU_PT_BITMAP_CLOUDS = 0x7f89,       /* Effect\clouds.jpg (the login scene's mist, NATIVE-JOINT-001) */
+    MU_PT_BITMAP_SHINY1 = 0x7f66,       /* Effect\Shiny01.jpg (Noria's lamp sparkles) */
+    MU_PT_BITMAP_LIGHTNING2 = 0x7f37,   /* Effect\lightning2.jpg (sprites of Dungeon, Devias, Noria) */
+    MU_PT_BITMAP_WATERFALL1 = 0x801a    /* Effect\WATERFALL1.jpg (the login scene's spray) */
 };
 
 /* GL state wrappers the render routines call, by client address. */
@@ -77,6 +81,7 @@ typedef struct mu_pt_particle {
     float position[3];       /* +0x20 */
     float angle[3];          /* +0x2c */
     float light[3];          /* +0x38 */
+    float alpha;             /* +0x44 (clouds: the light's factor; CreateParticle leaves it to the record) */
     int32_t lifetime;        /* +0x48 */
     int32_t owner;           /* +0x50 OBJECT pointer in the client; here an index, MU_PT_NO_OWNER for NULL */
     float owner_position[3]; /* +0x54 */
@@ -85,7 +90,8 @@ typedef struct mu_pt_particle {
     uint8_t moving;          /* +0x68 position += VectorRotate(velocity, AngleMatrix(angle)) each step */
     float gravity;           /* +0x6c */
     float velocity[3];       /* +0x70 */
-    float start[3];          /* +0x88 */
+    float field_7c;          /* +0x7c (clouds: a spin rate) */
+    float start[3];          /* +0x88 (clouds: [1] a rotation offset, [2] the starting height) */
     float start_angle[3];    /* +0x94 */
     float time;              /* +0xac */
     int32_t arg8;            /* +0xb0 CreateParticle's last argument */
@@ -107,7 +113,8 @@ typedef struct mu_pt_host {
  * for the kind (type, subtype):
  *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0, 2 and 3, rain02/rain03
  *   0x771c/0x771d 0, Thunder01 0x7f2b 0, Spark02 0x7f25 0, Spark03 0x7f26 0
- *   and 1. */
+ *   and 1; NATIVE-JOINT-001: clouds 0x7f89 0x14 and WATERFALL1 0x801a 2 (the
+ *   login scene's mist and spray), Shiny01 0x7f66 0 and 1 (Noria). */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =
@@ -400,12 +407,30 @@ typedef struct mu_pt_visual_host {
                    int32_t subtype, int32_t owner);
     int32_t world;
     float world_time;        /* [0x06fce370] */
+    /* NATIVE-JOINT-001: TransformPosition(BoneTransform 0x06fce398 + 0x30 * bone, in, out, 0) (Dungeon) */
+    void (*bone_index_position)(void *context, const mu_pt_visual_object *o, int32_t bone, const float in[3],
+                                float out[3]);
 } mu_pt_visual_host;
 
 /* RenderObjectVisual 0x017f9758 for worlds 0 (Lorencia) and 0x8d (Tormenta
  * Island, through the world manager to slot 0x34; the event-world hooks in
- * front of it answer no there). Returns 1 when the world is one of these two,
- * 0 otherwise (nothing done). In Lorencia:
+ * front of it answer no there), and (NATIVE-JOINT-001) 1 (Dungeon), 2
+ * (Devias) and 3 (Noria). Returns 1 when the world is one of these, 0
+ * otherwise (nothing done). Every sprite of the three: blend 0, axes 4, the
+ * object as owner; the bone points transform the zero vector unless said:
+ *   - Dungeon 0x3d: lightning2 0x7f37 pairs (rotation r and -r, r =
+ *     (int)(WorldTime * 0.1) % 360, light (0.4l, 0.8l, l)) at bones 15
+ *     (scale 0.3), 19 (0.3) and 21 (1.5) by index;
+ *   - Devias 0x64: a lightning2 pair (scale 2.5, light (l, l, l)) at bone
+ *     Cylinder01 + (0, 0, 150);
+ *   - Noria flares 0x7ef7 (rotation 0, light (0.4l, 0.7l, l)): type 9 Box01
+ *     1.5, 0x23 Box04 1.5, 1 light03/light02/light01 0.5, 0x11
+ *     Box03/Box08/Box11/Box14 1; type 0x27 a lightning2 pair at light01
+ *     (light (0.4l, 0.8l, l)), white flares at light06, light04, light03,
+ *     light05, light02, each with two Shiny01 particles (subtypes 0, 1) on
+ *     rand % 32 == 0, and at light07 on rand % 8 == 0 eight spark joints
+ *     0x7fd5 with Spark02 particles (angle (rand % 60 + 60, 140, rand % 30)).
+ * In Lorencia:
  *   - every object with a model draws one rand(): l = (rand % 30 + 70) * 0.01;
  *   - Waterspout01 (0x69): BlendMeshLight 1, v scroll; on rand % 2 == 0 two
  *     smoke01 particles (subtype 0, the object's light and angle) at bone Box04

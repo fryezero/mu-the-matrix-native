@@ -75,6 +75,31 @@ class EffectTests(Lib):
         e2, _ = self.create((0x43b, 0), word4=0x2d7)
         self.assertEqual(list(e2.position), [1000.0, 2000.0, 150.0])
 
+    def test_tormenta_tornado(self):
+        # NATIVE-JOINT-001: CreateEffect 0x40e (light 1 + light, 150 steps, a drift heading, a scattered start,
+        # PlayBuffer(0x582) when the hero is within 800) and MoveEffect's drift
+        hero = v.Object()
+        hero.live = 1
+        hero.position[0], hero.position[1] = 1100.0, 2100.0
+        case = self.case([157, 13, 4, 300, 200] + [0]*30, height=42.0, objects=[hero])
+        e = v.Effect()
+        env = case.env(hero_object=0)
+        ok = self.lib.mu_sfx_effect_create(ctypes.byref(e), 0x40e, 0, F3(1000.0, 2000.0, 150.0), F3(0, 0, 90.0),
+                                           F3(0.5, 0.25, 0.0), -1, 0.0, ctypes.byref(v.Info()), ctypes.byref(env))
+        self.assertEqual(ok, 1)
+        self.assertEqual((e.lifetime, e.field_70, e.flag5, e.flag_c, e.scale, e.frame), (150, 150, 0, 1, 1.0, 1.0))
+        self.assertEqual(list(e.light), [1.5, 1.25, 1.0])
+        self.assertEqual(e.heading, f32(157 / 100.0))
+        self.assertEqual(list(e.direction), [3.0, -6.0, 0.0])          # (rand % 20 - 10) * scale
+        self.assertEqual(list(e.angle), [0.0, 0.0, 0.0])
+        self.assertEqual(list(e.position), [1044.0, 1944.0, 42.0])    # (rand % 512) + p - 256, the terrain z
+        self.assertEqual([c[0] for c in case.c_calls], ['height', 'sound'])
+        case.c_calls.clear()
+        x = e.position[0]
+        self.assertEqual(self.lib.mu_sfx_effect_move(ctypes.byref(e), ctypes.byref(env)), 1)
+        self.assertEqual(e.position[0], f32(f32(f32(math.sin(e.heading)) * 2.0) + x))
+        self.assertEqual((e.lifetime, e.blend_light), (149, f32(151.0 / 150.0)))
+
     def test_arrow_motion_and_lifetime(self):
         e, case = self.create((0x43b, 0))
         before = list(e.position)

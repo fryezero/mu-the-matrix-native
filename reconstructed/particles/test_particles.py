@@ -138,6 +138,42 @@ class ParticleTests(unittest.TestCase):
         p.lifetime = 0
         self.assertEqual(self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host)), 0)
 
+    def test_login_mist_and_spray(self):
+        # NATIVE-JOINT-001: clouds 0x7f89 subtype 0x14 (the login world's mist markers, owner = the object)
+        p, ok, fx = self.create((0x7f89, 0x14), [700, 300, 40, 9, 50, 7, 3], owner=0)
+        self.assertEqual((ok, p.lifetime, p.gravity, p.alpha), (1, 300, 700.0, f32(0.1)))
+        self.assertEqual(list(p.position), [1050.0, 1790.0, 139.0])   # += (r%500-250, r%500-250, r%20-20)
+        self.assertEqual((p.start[1], p.start[2]), (f32(50.0 / 100.0), 139.0))
+        self.assertEqual(p.scale, f32(f32(f32(7 % 20 + 180) * f32(0.01)) * 1.0))
+        self.assertEqual(p.field_7c, f32(3.0 / 100.0))
+        self.assertEqual(list(p.owner_position), [100.0, 200.0, 55.0])
+        host = Fixed([0]).host()
+        p.velocity[2] = 0.0
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))   # LifeTime > 150: rises, brightens
+        self.assertEqual((p.position[2], p.alpha), (140.0, f32(f32(0.1) + 0.04)))
+        p.lifetime = 100
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))   # then sinks and fades
+        self.assertEqual((p.position[2], p.alpha), (139.5, f32(f32(f32(0.1) + 0.04) - f32(0.025))))
+        rc = self.v.RenderCall()
+        self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(self.v.Bitmap(64.0, 64.0, 3)), 0, ctypes.byref(rc))
+        self.assertEqual(rc.sprite.light[0], f32(1.0 * p.alpha))           # the light times the alpha
+        # WATERFALL1 0x801a subtype 2 (the spray markers)
+        p, ok, fx = self.create((0x801a, 2), [100, 3], scale=0.5)
+        self.assertEqual((p.lifetime, p.rotation, p.velocity[2], p.scale), (30, 100.0, -10.0, f32(1.6 + 0.5)))
+        self.assertEqual(list(p.light), [f32(0.2)]*3)
+        p.lifetime = 25
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
+        self.assertEqual((p.light[0], p.velocity[2], p.scale), (f32(f32(0.2) * f32(1.1)), f32(-10.0 + f32(0.1)),
+                                                                f32(f32(1.6 + 0.5) - f32(0.005))))
+
+    def test_noria_shiny01(self):
+        p, ok, fx = self.create((0x7f66, 1), [0])
+        self.assertEqual((ok, p.lifetime, p.angle[0], fx.calls), (1, 18, 45.0, 0))
+        host = Fixed([0]).host()
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
+        self.assertEqual(p.scale, f32(f32(math.sin(f32(f32(18.0 * 10.0) * f32(0.017453292)))) * 0.75))
+        self.assertEqual(p.rotation, -12.0)
+
     def test_wrapper_drops_only_in_world_0x8b(self):
         k = self.lib.mu_pt_wrapper_keeps
         fx = Fixed([3])
@@ -290,7 +326,24 @@ class ParticleTests(unittest.TestCase):
         self.assertEqual(list(o.light), [f32(0.59), f32(0.59), 1.0])
         handled, calls, o, n = self.visual(0x8d, 9, [5, 501])
         self.assertEqual(calls, [('effect',)])
-        self.assertEqual(self.visual(2, 0x69, [0])[0], 0)
+        self.assertEqual(self.visual(4, 0x69, [0])[0], 0)   # worlds without a ported case
+
+    def test_dungeon_devias_noria_visuals(self):
+        # NATIVE-JOINT-001: lightning2 pairs and flares; Noria 0x27's sparkles and spark joints
+        handled, calls, o, n = self.visual(2, 0x64, [0])
+        self.assertEqual([c[1] for c in calls if c[0] == 'bone'], ['Cylinder01'])
+        self.assertEqual([c[:3] for c in calls if c[0] == 'sprite'], [('sprite', 0x7f37, 2.5)]*2)
+        handled, calls, o, n = self.visual(3, 0x11, [0])
+        self.assertEqual([c[1] for c in calls if c[0] == 'bone'], ['Box03', 'Box08', 'Box11', 'Box14'])
+        self.assertEqual({c[1] for c in calls if c[0] == 'sprite'}, {0x7ef7})
+        # 0x27: the lamp sparkle on the first lamp (rand % 32 == 0), then the light07 fountain (rand % 8 == 0)
+        handled, calls, o, n = self.visual(3, 0x27, [5, 0, 1, 1, 1, 1, 0] + [70, 10]*8)
+        self.assertEqual([c[1:4] for c in calls if c[0] == 'particle'][:2], [(0x7f66, [1.0, 0.0, 0.0], 0),
+                                                                             (0x7f66, [1.0, 0.0, 0.0], 1)])
+        self.assertEqual([c[1:] for c in calls if c[0] == 'joint'], [(0x7fd5, 0, 10.0)]*8)
+        self.assertEqual(len([c for c in calls if c[0] == 'particle' and c[1] == 0x7f25]), 8)
+        handled, calls, o, n = self.visual(1, 0x3d, [0])
+        self.assertEqual([c[2] for c in calls if c[0] == 'sprite'], [f32(0.3)]*4 + [1.5]*2)   # bones 15, 19, 21
 
     def test_layout_round_trip(self):
         v = self.v

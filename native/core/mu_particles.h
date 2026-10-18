@@ -10,7 +10,9 @@
 #include "mu_scene.h"
 #include "mu_terrain.h"
 #include "mu_textures.h"
+#include "mu_joints.h"
 #include "../../reconstructed/particles/particles.h"
+#include "../../reconstructed/combat/skill_fx.h"
 
 /* The client's legacy particles, sprites and blob shadows in the native
  * session (NATIVE-PARTICLE-001, docs/research/client-particles.md).
@@ -39,7 +41,22 @@
  * translate) where the client's static-object pose folds the origin into the
  * bones. */
 
-enum { MU_WORLD_PT_BITMAPS = 9, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64 };
+/* NATIVE-JOINT-001: the module also keeps the world objects' joints and effects (the older effect family's
+ * other two pools): CreateJoint/CreateEffect from RenderObjectVisual (Tormenta Island's lightning 0x7f7d and
+ * tornado 0x40e) through reconstructed/joints and reconstructed/combat/skill_fx; MoveEffects, MoveJoints and
+ * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
+ * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
+ * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
+enum { MU_WORLD_PT_BITMAPS = 17, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 1, MU_WORLD_FX_QUADS = 8192 };
+
+typedef struct mu_world_fx_model {
+    int32_t type;
+    int loaded;
+    mu_bmd bmd;
+    mu_model model;
+    mu_textures textures;
+} mu_world_fx_model;
 
 typedef struct mu_world_particles_stats {
     uint64_t created, dropped, unsupported, overflow;
@@ -52,6 +69,11 @@ typedef struct mu_world_particles_stats {
     uint32_t pending_shadows, pending_shadow_vertices;
     uint64_t shadows_total;
     uint32_t visuals;                      /* RenderObjectVisual calls handled */
+    /* NATIVE-JOINT-001 */
+    uint64_t joints_created, joints_unsupported, joints_full;
+    uint64_t effects_created, effects_unsupported, effects_full, sounds;
+    uint32_t live_joints, max_joints, live_effects;
+    uint32_t drawn_joint_quads, drawn_effect_models;
 } mu_world_particles_stats;
 
 typedef struct mu_world_particles {
@@ -61,11 +83,21 @@ typedef struct mu_world_particles {
     mu_pt_sprites *sprites;
     uint32_t rand_state;
     uint64_t rand_calls;
-    mu_textures bitmaps;                   /* slots: 0x7f3c, 0x7f5a, 0x7ef7, 0x7f26, 0x7f2b, 0x7f25, 0x7f67, 0x771c, 0x771d */
+    mu_textures bitmaps;                   /* slots: 0x7f3c, 0x7f5a, 0x7ef7, 0x7f26, 0x7f2b, 0x7f25, 0x7f67, 0x7f7c,
+                                              0x7fd5, 0x7fd3, 0x7fd8, 0x7f89, 0x801a, 0x7f37, 0x7f66, 0x771c,
+                                              0x771d */
     int32_t bitmap_present[MU_WORLD_PT_BITMAPS];
     float camera[12];                      /* CameraMatrix 0x0bdc5918 of the last draw (row-major 3x4) */
     float world_time;
     mu_world_particles_stats stats;
+    /* NATIVE-JOINT-001: the world objects' joints and effects */
+    struct mu_objects *objects;            /* owners and targets (object images), NULL none */
+    mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
+    mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */
+    mu_world_fx_model models[MU_WORLD_FX_MODELS];
+    float hero_position[3];                /* [0x0a39d754] + 0x33ac (the tornado's sound distance) */
+    int has_hero;
+    mu_joint_quad *joint_quads;            /* MU_WORLD_FX_QUADS, the last RenderJoints */
 } mu_world_particles;
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless
@@ -81,13 +113,45 @@ int32_t mu_world_particles_rand(mu_world_particles *p);
  * owner NULL, 0). Returns 1 when kept. */
 int mu_world_particles_create(mu_world_particles *p, int32_t type, const float position[3], const float angle[3],
                               const float light[3], int32_t subtype, float scale);
+/* CreateParticle with an owner object (an index into the attached objects; -1 none): the record's owner
+ * position is the object's +0x158 with z = RequestTerrainHeight. */
+int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const float position[3],
+                                    const float angle[3], const float light[3], int32_t subtype, float scale,
+                                    int32_t owner);
+/* CreateJoint 0x0153b02c(type, position, target position, angle, subtype, target object, scale, key, skill,
+ * byte10, -1, 0, word13, arg14) on the module's joint pool. Returns the record index (< 0: none). */
+int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
+                                 const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
+                                 float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
+                                 int32_t arg14);
+/* CreateEffect 0x013c0f19(type, subtype, position, angle, light, owner object, scale, info) on the module's
+ * effect pool. Returns 1 when created. */
+int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subtype, const float position[3],
+                              const float angle[3], const float light[3], int32_t owner, float scale,
+                              const mu_sfx_info *info);
+/* The hero's position (the tornado tests its distance for PlayBuffer). */
+void mu_world_particles_set_hero(mu_world_particles *p, const float position[3]);
+/* Effect models (RenderEffects -> RenderObject, a static reading): places and poses every live model effect
+ * and calls draw with RenderObject's RenderBody options; the callback must draw before returning. */
+typedef void (*mu_world_particles_model_fn)(void *context, const mu_model *model, const mu_textures *textures,
+                                            int32_t slot, const mu_draw_options *options);
+int32_t mu_world_particles_draw_models(mu_world_particles *p, mu_world_particles_model_fn draw, void *context);
+/* The same through the software rasterizer. */
+int32_t mu_world_particles_draw_models_raster(mu_world_particles *p, mu_raster *raster);
+/* Live joints and effects. */
+int32_t mu_world_particles_live_joints(const mu_world_particles *p);
+int32_t mu_world_particles_live_effects(const mu_world_particles *p);
+
 /* CreateSprite 0x01692eb7(bitmap, position, scale, light, owner, rotation,
  * blend, axes, default sheet). */
 int32_t mu_world_particles_sprite(mu_world_particles *p, int32_t bitmap, const float position[3], float scale,
                                   const float light[3], int32_t owner, float rotation, int32_t blend, int32_t axes);
 
-/* MoveParticles 0x01616c80, one logic step (frame time 0.1). world_time is
- * the client time 0x06fce370 in ms. */
+/* Kills every live sprite without drawing (a frame rendered without output: RenderSprites' SetLive(0)). */
+void mu_world_particles_discard_sprites(mu_world_particles *p);
+
+/* MoveEffects 0x0150ddb1, MoveJoints 0x01589b06 and MoveParticles 0x01616c80, one logic step (frame time
+ * 0.1). world_time is the client time 0x06fce370 in ms. */
 void mu_world_particles_step(mu_world_particles *p, float world_time);
 
 /* Draw target: the backend for the module's bitmaps (slot = index into
@@ -97,8 +161,8 @@ typedef struct mu_world_particles_target {
     int (*backend)(void *context, const mu_world_particles *p, mu_render_backend *out);
 } mu_world_particles_target;
 
-/* The sprite section: 0x01692887 (sprites visible), RenderSprites(0) (draws
- * and kills them), RenderParticles(0), with the camera of the GL modelview
+/* RenderJoints(0) (NATIVE-JOINT-001), then the sprite section: 0x01692887 (sprites visible),
+ * RenderSprites(0) (draws and kills them), RenderParticles(0), with the camera of the GL modelview
  * (column-major). Returns the number of quads drawn. */
 long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], const mu_world_particles_target *t);
 long mu_world_particles_draw_raster(mu_world_particles *p, mu_raster *raster, const float modelview[16]);
@@ -140,9 +204,9 @@ int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object 
                                      const mu_model *model, const mu_bmd *bmd);
 
 /* Hooks the module into the object runtime (CreateParticle of the move pass,
- * RenderObjectVisual after RenderObject) and the ambient creatures
- * (CreateParticle, CreateSprite, TransformPosition, RenderBodyShadow).
- * objects/env may be NULL. */
+ * RenderObjectVisual after RenderObject, the login world's CreateSprite) and the
+ * ambient creatures (CreateParticle, CreateSprite, TransformPosition,
+ * RenderBodyShadow). objects/env may be NULL. */
 struct mu_objects;
 struct mu_world_env;
 void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects, struct mu_world_env *env);

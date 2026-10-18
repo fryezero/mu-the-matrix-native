@@ -228,8 +228,10 @@ static void spawn(mu_objects_runtime *rt, const mu_obj_event *e)
             angle[k] = fbits(e->args[4 + k]);
             light[k] = fbits(e->args[7 + k]);
         }
+        /* argument 7, the owner: the object when the event carries it (the login world's mist) */
+        const int32_t owner = e->count > 12 && e->args[12] ? e->object : -1;
         rt->particle(rt->hook_context, (int32_t)e->args[0], position, angle, light, (int32_t)e->args[10],
-                     fbits(e->args[11]));
+                     fbits(e->args[11]), owner);
         return;
     }
     if (rt->particle_count >= MU_OBJECT_PARTICLES)
@@ -449,7 +451,16 @@ static void login_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object
     mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
     for (int32_t k = 0; k < log.count; ++k) {
         const mu_obj_event *e = &events[k];
-        if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite_count < MU_OBJECT_SPRITES) {
+        if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite) {   /* CreateSprite 0x01692eb7 (NATIVE-JOINT-001) */
+            float position[3], light[3];
+            for (int q = 0; q < 3; ++q) {
+                position[q] = fbits(e->args[1 + q]);
+                light[q] = fbits(e->args[5 + q]);
+            }
+            rt->sprite(rt->hook_context, (int32_t)e->args[0], position, fbits(e->args[4]), light,
+                       e->args[9] ? e->object : -1, fbits(e->args[8]), (int32_t)e->args[10], (int32_t)e->args[11]);
+            ++rt->sprite_events;
+        } else if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite_count < MU_OBJECT_SPRITES) {
             mu_object_sprite *sp = &rt->sprites[rt->sprite_count++];
             sp->bitmap = (int32_t)e->args[0];
             for (int q = 0; q < 3; ++q) {

@@ -132,8 +132,12 @@ typedef struct mu_objects_runtime {
      * stand-in list) and RenderObjectVisual 0x017f9758 is `visual`, called by mu_objects_prepare_index after
      * RenderObject (model: the posed model, NULL when the object was not posed). */
     void (*particle)(void *context, int32_t bitmap, const float position[3], const float angle[3],
-                     const float light[3], int32_t subtype, float scale);
+                     const float light[3], int32_t subtype, float scale, int32_t owner);
     void (*visual)(void *context, struct mu_objects *objects, int32_t index, int has_model, mu_object_model *model);
+    /* NATIVE-JOINT-001: when set, the login world's CreateSprite calls (slot 0x34) go to `sprite` instead of
+     * the stand-in list (owner: the object index, -1 none). */
+    void (*sprite)(void *context, int32_t bitmap, const float position[3], float scale, const float light[3],
+                   int32_t owner, float rotation, int32_t blend, int32_t axes);
     void *hook_context;
 } mu_objects_runtime;
 
