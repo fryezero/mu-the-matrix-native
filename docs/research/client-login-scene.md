@@ -214,7 +214,9 @@ tick head moves the particles, the render ends the 3D part with RenderSprites(0)
 ## Limits and next steps
 
 * The sprite and particle systems were stand-ins until NATIVE-JOINT-001 (above).
-* The sky and ship brightness differ from the live capture (section 6).
+* The sky and ship brightness differ from the live capture (section 6). Resolved by NATIVE-LIGHT-001
+  ([model light](client-model-light.md)): the client's light vector is (1.3, 0, 2), and static objects carry their
+  scale into the normals. Login regions are now within 5% of the screenshot.
 * The credit-window branch of the tick and the GFx parts of the scene (MENU, CREDIT, the account dialog).
 * The unnamed passes of section 3 (boids, fishes, blurs, joints) are not ported; the geese are static objects of
   this world.

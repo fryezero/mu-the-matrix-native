@@ -58,6 +58,12 @@ not exist yet.
   cases, 9/9 planted mistakes) equal the actual instructions; the camera, far plane and object state match a live read
   of the server-select screen. `mu-client` and `mu-render ui login|servers --scene` draw World95 with its ship, sky and
   island behind the 2D layer; sprites and particles are stand-ins. [Evidence](research/client-login-scene.md).
+- Model lighting (NATIVE-LIGHT-001). A live read showed the client's light-override byte `0x01cf1048` = 1 (light
+  vector (1.3, 0, 2)) and RenderObject poses static objects with the body scale in the bones, so normals scale the
+  light. The native scenes now do both, and light monsters/NPCs with frame light + 0.2. The native object light equals
+  the client's pose builder and transform under the live state on 171,902 normals (login and Lorencia, Unicorn).
+  Login regions are within 5% of a live screenshot (sky 0.62 → 1.00, hull 1.48 → 0.99). Lorencia object regions
+  are within 3%, except one region next to a player's glow. [Evidence](research/client-model-light.md).
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected by the strict reader and 74 other/table envelopes are unsupported.

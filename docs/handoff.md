@@ -26,6 +26,16 @@ scene's Shiny02/flare01 sprites through the module and its clouds/WATERFALL1 kin
 (joint pool) and effect 0x40e, more particle kinds as callers need them, the character shadow's flag conditions
 (`+3`, `+0x44`, the option singleton) from RenderCharacter.
 
+## Model lighting (NATIVE-LIGHT-001)
+
+Read [`research/client-model-light.md`](research/client-model-light.md). Game scenes take `mu_model_scene_params`
+(light override 1, as read live); static objects pose with RenderObject's arguments from `mu_obj_render`'s log (scale in
+the bones); monsters/NPCs get the frame light + 0.2. Check with `native/tests/test_native_light.py` and, privately,
+`scripts/validate_model_light.py --world 94|0 --objects LOCAL/EncTerrain<n>.plain --live SNAPSHOT` (snapshots from
+`mac-play/diagnostics/lightread`, local under `~/Documents/mu-mac-tools/native/scratch/light/live/dumps/`; renders in
+`renders/light/`). Next: the hero's (1, 1, 1) branch of RenderCharacter, the ambient creatures' body light, and a lit
+check of HUD item models once NATIVE-GFX-003 lands.
+
 ## Login scene (NATIVE-LOGIN-001)
 
 Read [`research/client-login-scene.md`](research/client-login-scene.md). `mu_scenemgr_login_render_3d` /

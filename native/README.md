@@ -275,6 +275,22 @@ native/build/mu-render ui servers --root "$MU_GAME_ROOT" --scene --objects-dir L
 native/build/mu-render ui login --root "$MU_GAME_ROOT" --scene --objects-dir LOCAL --no-ui --steps 25 --out l.png
 ```
 
+## Model lighting as the client (NATIVE-LIGHT-001)
+
+The game scenes now light models with the client's inputs ([finding](../docs/research/client-model-light.md)):
+the light vector (1.3, 0, 2) of the light-override byte `0x01cf1048` = 1 (read live; `mu_model_scene_params`),
+RenderObject's pose with the body scale in the bones for static objects (normals carry the scale into the light
+term), and monsters/NPCs coloured by the frame light + 0.2 with light 0.4/0.8/0.2. The model viewer and the CLI
+model tools keep override 0 unless `--light-override 1`. Per-object light inputs:
+
+```sh
+native/build/mu-terrain render "$MU_GAME_ROOT" --world 94 --objects LOCAL/EncTerrain95.plain --object-steps 25 \
+    --light-report 1 --width 64 --height 48          # one JSON line per drawn object, per-normal lights
+```
+
+`mac-play/diagnostics/lightread PID OUT` (our own client, under the game lock) snapshots the client's lighting state;
+`scripts/validate_model_light.py` compares the native lights with the client's pose builder and transform under it.
+
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
