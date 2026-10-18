@@ -4,6 +4,7 @@
  * (built with -ffp-contract=off). */
 #include "object_render.h"
 #include "login_world.h"
+#include "charsel_world.h"
 
 #include <math.h>
 #include <string.h>
@@ -293,6 +294,10 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         mu_login_create(o, index, log);
         return MU_OBJ_OK;
     }
+    if (world == MU_CSW_WORLD) {     /* CGMCharacterScene_Ex slot 0x2c (NATIVE-CHARSEL-002) */
+        mu_csw_create(o, index, NULL, log);
+        return MU_OBJ_OK;
+    }
     return MU_OBJ_UNSUPPORTED;
 }
 
@@ -573,6 +578,10 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x30 */
         mu_login_move(o, in->now_ms, NULL, NULL);
+        return MU_OBJ_OK;
+    }
+    if (world == MU_CSW_WORLD) {     /* CGMCharacterScene_Ex slot 0x30 (NATIVE-CHARSEL-002) */
+        mu_csw_move(o, index, in->rand_fn, in->context, log);
         return MU_OBJ_OK;
     }
     return MU_OBJ_UNSUPPORTED;

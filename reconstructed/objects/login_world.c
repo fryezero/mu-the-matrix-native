@@ -288,7 +288,7 @@ int mu_login_after_render(uint8_t *o, uint8_t *model, int32_t index, uint32_t no
 
 int mu_login_after_pass(mu_obj_world *w, const mu_obj_render_inputs *in, int32_t *counter, mu_obj_log *log)
 {
-    if (in->world != MU_LOGIN_WORLD)
+    if (in->world != MU_LOGIN_WORLD && in->world != 0x5d)   /* NATIVE-CHARSEL-002: World94 is in the list too */
         return MU_OBJ_UNSUPPORTED;
     if (counter) {
         if (*counter > 0x28)

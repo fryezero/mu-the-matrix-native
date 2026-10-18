@@ -21,7 +21,8 @@
  *
  * Coverage: the generic paths of every routine, world 0 (Lorencia), world
  * 0x8d (Tormenta Island, handler class with vtable 0x01aabd10) and world 0x5e
- * (the login scene, CGMLogInScene_Ex: login_world.h, NATIVE-LOGIN-001). Branches for
+ * (the login scene, CGMLogInScene_Ex: login_world.h, NATIVE-LOGIN-001) and world 0x5d (the
+ * character select, CGMCharacterScene_Ex: charsel_world.h, NATIVE-CHARSEL-002). Branches for
  * other worlds or special object types return MU_OBJ_UNSUPPORTED (nothing is
  * guessed); the caller decides what to do. */
 
