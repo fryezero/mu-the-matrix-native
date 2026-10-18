@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Compare reconstructed CreateObject (reconstructed/objects mu_obj_create) with objects read from a running client.
+
+NATIVE-OBJECTS-002. Input: snapshots written by mac-play/diagnostics/objread (see
+scripts/live_objects_to_plain.py for the format). Each object's loader record is rebuilt from the fields
+CreateObject copies (type, start position, angle, scale, flags, light, the two values), mu_obj_create runs
+on a copy of the live bytes, and the fields CreateObject writes are compared with the live object.
+
+Fields the running game changes after creation are excluded and listed in the report: the animation
+state, bounding boxes (BMD::Transform rewrites them while drawing), and per type the values MoveObject
+or RenderObjectVisual drive (Lorencia's blend-mesh flicker and scroll, the light markers it hides).
+
+--velocity-out writes `type velocity` lines for the types whose live animation speed differs from the
+reconstructed creation value (Tormenta Island: set outside CreateObject and the world handler; source
+not traced). The native drawer reads that sidecar next to the plaintext. Outputs are decoded game
+data: keep them local.
+"""
+import argparse
+import collections
+import ctypes
+import json
+from pathlib import Path
+import struct
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from live_objects_to_plain import read_snapshot  # noqa: E402
+
+SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
+OBJ = 0x3d8
+
+
+class Record(ctypes.Structure):
+    _fields_ = [('type', ctypes.c_int16), ('pad', ctypes.c_uint8 * 2), ('position', ctypes.c_float * 3),
+                ('angle', ctypes.c_float * 3), ('vector', ctypes.c_float * 3), ('scale', ctypes.c_float),
+                ('flag_2c', ctypes.c_uint8), ('flag_2d', ctypes.c_uint8), ('flag_2e', ctypes.c_uint8),
+                ('hidden', ctypes.c_uint8), ('value_30', ctypes.c_float), ('value_34', ctypes.c_float)]
+
+
+# (offset, size, label) of the fields CreateObject writes that are compared
+FIELDS = [(0x00, 1, 'live'), (0x02, 1, '+2'), (0x05, 1, 'light enable'), (0x06, 1, 'light full'),
+          (0x07, 1, 'light dynamic'), (0x0a, 1, 'after character'), (0x0c, 1, 'alpha linear'), (0x0d, 1, 'bone buffer'),
+          (0x0e, 1, '+0xe'), (0x14, 4, '+0x14'), (0x18, 4, '+0x18'), (0x1c, 4, '+0x1c'), (0x28, 1, '+0x28'),
+          (0x2a, 2, 'action'), (0x46, 1, 'sector'), (0x68, 4, 'hidden mesh'), (0x74, 4, 'blend mesh'),
+          (0xa0, 4, 'scale'), (0xa8, 4, 'blend light'), (0xac, 4, 'blend u'), (0xb0, 4, 'blend v'), (0xb4, 4, 'timer'),
+          (0xbc, 4, 'velocity'), (0xc0, 4, 'range'), (0xc4, 4, '+0xc4'), (0xd8, 4, 'alpha target'), (0xdc, 4, 'alpha'),
+          (0xe4, 4, '+0xe4'), (0xe8, 4, '+0xe8'), (0xec, 12, 'light'), (0xf8, 12, 'direction'), (0x110, 12, 'start'),
+          (0x164, 12, 'angle'), (0x170, 12, 'head angle'), (0x368, 4, '+0x368')]
+# per world: type -> labels changed by the running game (MoveObject / RenderObjectVisual)
+DYNAMIC = {0: {0x34: {'blend light'}, 0x75: {'blend light'}, 0x7a: {'blend light'}, 0x76: {'blend v'},
+               0x77: {'blend v'}, 0x69: {'blend v', 'blend light'}, 0x82: {'hidden mesh'}, 0x83: {'hidden mesh'},
+               0x84: {'hidden mesh'}, 0x7d: {'alpha target', 'alpha'}, 0x7e: {'alpha target', 'alpha'}}}
+
+
+def compare(lib, path, velocity_out=None):
+    world, world2, count, objects = read_snapshot(path)
+    stats = collections.Counter()
+    mismatch = collections.Counter()
+    examples = []
+    velocity = collections.defaultdict(collections.Counter)
+    created_velocity = {}
+    tormenta_dynamic = collections.Counter()
+    for address, sector, raw in objects:
+        f = lambda o, n=1: struct.unpack_from('<%df' % n, raw, o)
+        r = Record()
+        r.type = struct.unpack_from('<i', raw, 0x5c)[0]
+        r.position[:] = f(0x110, 3)
+        r.angle[:] = f(0x164, 3)
+        r.vector[:] = f(0xec, 3)
+        r.scale = f(0xa0)[0]
+        r.flag_2c, r.flag_2d, r.flag_2e = raw[5], raw[6], raw[7]
+        if world == 0x8d and 0x24 <= r.type <= 0x2a:
+            tormenta_dynamic[raw[7]] += 1      # the handler clears +7 for these types
+            r.flag_2e = 1
+        r.hidden = 0
+        r.value_30, r.value_34 = f(0xe4)[0], f(0xe8)[0]
+        buf = ctypes.create_string_buffer(raw, OBJ)
+        sec = ctypes.c_int32(-1)
+        status = lib.mu_obj_create(ctypes.byref(r), world, buf, ctypes.byref(sec), 0, None)
+        if status != 0:
+            stats[f'status {status}'] += 1
+            continue
+        c = buf.raw[:OBJ]
+        skip = DYNAMIC.get(world, {}).get(r.type, set())
+        bad = []
+        for offset, size, label in FIELDS:
+            if label in skip:
+                stats['excluded ' + label] += 1
+                continue
+            if raw[offset:offset + size] != c[offset:offset + size]:
+                if label == 'velocity':
+                    velocity[r.type][f(0xbc)[0]] += 1
+                    created_velocity[r.type] = struct.unpack_from('<f', c, 0xbc)[0]
+                    continue
+                bad.append(label)
+        if sec.value != sector:
+            bad.append('sector index')
+        stats['objects'] += 1
+        if bad:
+            stats['objects with a differing field'] += 1
+            for b in bad:
+                mismatch[b] += 1
+            if len(examples) < 6:
+                examples.append({'type': r.type, 'fields': bad})
+        else:
+            stats['objects equal'] += 1
+    uniform = {t: list(v)[0] for t, v in velocity.items() if len(v) == 1}
+    out = {'snapshot': str(Path(path).name), 'world': world, 'objects': len(objects), 'stats': dict(stats),
+           'mismatched_fields': dict(mismatch), 'examples': examples,
+           'velocity_types_differing': len(velocity), 'velocity_uniform_per_type': len(uniform),
+           'velocity_objects_differing': sum(sum(v.values()) for v in velocity.values())}
+    if world == 0x8d:
+        out['tormenta_types_0x24_0x2a_light_dynamic'] = dict(tormenta_dynamic)
+    if velocity_out and velocity:
+        lines = [f'{t} {uniform[t]!r}' for t in sorted(uniform)]
+        Path(velocity_out).write_text('\n'.join(lines) + '\n')
+        out['velocity_out'] = str(velocity_out)
+    return out
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('snapshots', nargs='+')
+    p.add_argument('--library', default=str(ROOT / f'reconstructed/objects/libobjects.{SUFFIX}'))
+    p.add_argument('--velocity-out', help='sidecar for the last snapshot (type velocity lines)')
+    p.add_argument('--output')
+    args = p.parse_args(argv)
+    lib = ctypes.CDLL(args.library)
+    lib.mu_obj_create.argtypes = [ctypes.POINTER(Record), ctypes.c_int32, ctypes.c_void_p,
+                                  ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_void_p]
+    reports = []
+    for i, s in enumerate(args.snapshots):
+        r = compare(lib.mu_obj_create and lib, s, args.velocity_out if i == len(args.snapshots) - 1 else None)
+        reports.append(r)
+        print(json.dumps(r, indent=1))
+    if args.output:
+        Path(args.output).write_text(json.dumps(reports, indent=1))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
