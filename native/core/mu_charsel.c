@@ -11,7 +11,7 @@
 
 /* Placeholder: fitted to a live window capture of the character-select scene
  * (the marker comes from EncTerrain94.obj, which is not decoded). */
-const float mu_charsel_default_marker1[3] = {13990.0f, 12340.0f, 169.5f};
+const float mu_charsel_default_marker1[3] = {13617.0f, 12339.0f, 169.5f};
 
 static uint8_t *record(mu_charsel_session *s, int32_t index)
 {

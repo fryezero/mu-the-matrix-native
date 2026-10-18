@@ -49,7 +49,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
-            core/mu_world_actors.c core/mu_charsel.c
+            core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -58,7 +58,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/path/client_path.c \
              $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c \
-             $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c \
+             $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c \
              $(RECON)/effects/effects.c $(RECON)/effects/effects_json.c $(RECON)/effects/effects_tree.c \
              $(RECON)/movement/client_movement.c \
              $(RECON)/renderchar/renderchar.c $(RECON)/charsel/charsel.c
@@ -113,7 +113,7 @@ $(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world
 # validator and tests (ctypes).
 UI_LIB_SRC := core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c $(RECON)/ui/ui2d.c \
               $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c core/mu_png.c \
-              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c
+              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c
 $(BUILD)/libmuui.$(SHLIB_EXT): $(UI_LIB_SRC) $(HEADERS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -fPIC -shared $(UI_LIB_SRC) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
@@ -146,7 +146,7 @@ $(BUILD)/mu-path: tools/mu_path.c $(LIB)
 # Character-select scene, headless software build (NATIVE-CHARSEL-001).
 $(BUILD)/mu-charsel: charsel/main.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/main.c -o $(BUILD)/mu_charsel.o
-	$(CXX) $(BUILD)/mu_charsel.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/mu_charsel.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # The mesh-draw module alone, for the Python equivalence tests (ctypes).
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h core/mu_meshdraw_case.c core/mu_meshdraw_case.h
@@ -272,7 +272,7 @@ $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headles
 	for f in $(CHARSEL_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/charsel/$$(basename $$f .c).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/charsel/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/charsel/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(UI_LIBS) -lm -o $@
 
 clean:
 	rm -rf $(BUILD)

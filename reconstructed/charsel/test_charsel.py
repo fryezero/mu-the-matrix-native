@@ -194,6 +194,65 @@ class CharselTests(unittest.TestCase):
         self.assertEqual(t.selected, -1)   # nothing selected: Enter does nothing
 
 
+class CharselWindowTests(unittest.TestCase):
+    """CCharSelMainWin layout and button logic (reconstructed/ui/ui_charsel.c) without client bytes."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location('validate_charsel_window', ROOT / 'scripts/validate_charsel_window.py')
+        cls.W = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(cls.W)
+        except ImportError as error:   # capstone/unicorn are only needed by the comparison itself
+            raise unittest.SkipTest(f'validator imports unavailable: {error}')
+        subprocess.run(['make', '-s', '-C', str(ROOT / 'reconstructed/ui')], check=True)
+        cls.lib = cls.W.library()
+
+    def side(self, inp, window=(1280, 800)):
+        vw = self.W.vw
+        rates = (f32(window[0] / 640.0), f32(window[1] / 480.0))
+        bitmaps = {k: {'width': w, 'height': h, 'texture': k, 'components': 4}
+                   for k, (w, h) in {0x7b10: (256.0, 128.0), 0x7b11: (64.0, 128.0), 0x7b12: (64.0, 128.0),
+                                     0x7b13: (64.0, 128.0), 0x7b14: (64.0, 128.0)}.items()}
+        bitmaps.update(vw.vu.base_bitmaps() if hasattr(vw.vu, 'base_bitmaps') else {})
+        side = vw.Side(self.lib, window, bitmaps, rates, {0x6ae: b'tip'}, {'groups': [], 'notice': b''}, b'')
+        win = ctypes.create_string_buffer(self.lib.mu_ui_probe_sizeof(8))
+        self.lib.mu_ui_charsel_win_init(win, ctypes.byref(inp))
+        ctx = ctypes.byref(side.ctx)
+        self.lib.mu_ui_charsel_win_create(ctx, win)
+        return side, win, ctx
+
+    def test_layout_and_enable_states(self):
+        inp = self.W.Input()
+        for i in range(10):
+            inp.slots[i].live = 1 if i < 4 else 0
+            inp.slots[i].byte_17 = 0xff
+        inp.selected = 2
+        side, win, ctx = self.side(inp)
+        out = (ctypes.c_uint32 * 8192)()
+        n = self.lib.mu_ui_probe_charsel_win(win, out)
+        words = list(out[:n])
+        width, height = words[4], words[5]               # CWin rectangle (x, y, w, h at words 2..5)
+        self.assertEqual((width, height), (1280 - 0x10a + 4 * 0x36 + 6, 0x1e))
+        self.assertEqual(words[-1], 0x6ae)                # rand() 0 picks the first tip
+        self.lib.mu_ui_charsel_win_set_position(ctx, win, 0x16, 800 - height - 0xe)
+        self.lib.mu_ui_charsel_win_update_display(ctx, win)
+        n = self.lib.mu_ui_probe_charsel_win(win, out)
+        self.assertEqual(list(out[:4])[2:4], [0x16, 800 - 0x1e - 0xe])
+        # free slots: create enabled; a selection: connect and delete enabled
+        del side.calls[:]
+        inp.selected = -1
+        self.lib.mu_ui_charsel_win_update_display(ctx, win)
+        self.assertEqual(side.calls, [])                  # characters exist: no create interface
+
+    def test_empty_list_opens_create(self):
+        inp = self.W.Input()
+        inp.selected = -1
+        side, win, ctx = self.side(inp)
+        self.lib.mu_ui_charsel_win_update_display(ctx, win)
+        self.assertIn(('Event', (0x20, 0)), side.calls)
+
+
 class PrivateCharselValidation(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private pinned client captures')
     def test_instruction_comparison(self):
@@ -209,6 +268,15 @@ class PrivateCharselValidation(unittest.TestCase):
             parsed = json.loads(report.read_text())
         self.assertTrue(all(r['mismatches'] == 0 for r in parsed['results'].values()))
         self.assertTrue(all(m['mismatches'] > 0 for m in parsed['mutations']))
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private pinned client captures')
+    def test_window_comparison(self):
+        text = os.environ.get('MU_CLIENT_TEXT', str(ROOT / 'evidence/x86-text-capture-09/client-text.bin'))
+        data = os.environ.get('MU_IMAGE_DATA',
+                              str(ROOT / 'evidence/image-data-run10/data-capture-10/client-image-data.bin'))
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/validate_charsel_window.py'), '--text', text,
+                                 '--data', data, '--cases', '20', '--mutations'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-2000:])
 
 
 if __name__ == '__main__':

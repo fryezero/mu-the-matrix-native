@@ -39,6 +39,7 @@
 #endif
 
 #include "../core/mu_charsel.h"
+#include "../core/mu_charsel_ui.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_scene.h"
@@ -49,8 +50,9 @@
 #endif
 
 typedef struct app {
-    const char *root, *list_path, *out_dir, *backend;
-    int32_t width, height, frames, every, headless, quiet, slot, cycle, enter_frame;
+    const char *root, *list_path, *out_dir, *backend, *font, *tip;
+    int32_t width, height, frames, every, headless, quiet, slot, cycle, enter_frame, no_ui;
+    mu_charsel_ui *ui;
     float seconds;
     int marker_given;
     float marker[3];
@@ -121,11 +123,23 @@ static int load(app *a)
         }
         mu_charsel_select(a->s, a->slot);
     }
+    if (!a->no_ui && a->headless) {
+        a->ui = calloc(1, sizeof *a->ui);
+        if (!a->ui || mu_charsel_ui_init(a->ui, a->root, a->width, a->height, a->font, a->s, a->tip)) {
+            fprintf(stderr, "2D layer initialisation failed\n");
+            return 1;
+        }
+    }
     return 0;
 }
 
 static void unload(app *a)
 {
+    if (a->ui) {
+        mu_charsel_ui_free(a->ui);
+        free(a->ui);
+        a->ui = NULL;
+    }
     if (a->s) {
         mu_charsel_free(a->s);
         free(a->s);
@@ -439,6 +453,8 @@ static int headless(app *a)
         else if (frame == a->enter_frame + 3)
             press_enter(a, 0);
         mu_charsel_update(a->s, now);
+        if (a->ui)
+            mu_charsel_ui_update(a->ui, a->s, -1000, -1000, 0, 0);
         mu_charsel_begin_render(a->s, now);
         int save = a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
         char hash[65] = "", path[4096] = "";
@@ -453,6 +469,8 @@ static int headless(app *a)
                 draw_soft(a, &raster);
                 memcpy(pixels, raster.color, bytes);
             }
+            if (a->ui)
+                mu_charsel_ui_render(a->ui, pixels);   /* the 2D layer over the 3D frame */
             mu_sha256_hex(pixels, bytes, hash);
             snprintf(path, sizeof path, "%s/frame-%04d.png", a->out_dir, frame);
             if (mu_png_write(path, pixels, a->width, a->height)) {
@@ -587,7 +605,7 @@ static int usage(void)
     fprintf(stderr, "usage: mu-charsel --game-root ROOT [--list FILE] [--slot N] [--marker X,Y[,Z]]\n"
                     "                  [--width W --height H] [--seconds S]\n"
                     "                  [--headless --frames N --out-dir DIR --backend soft|gl --every K]\n"
-                    "                  [--cycle F] [--enter F] [--quiet]\n");
+                    "                  [--cycle F] [--enter F] [--no-ui] [--font FACE] [--tip TEXT] [--quiet]\n");
     return 2;
 }
 
@@ -603,6 +621,7 @@ int mu_charsel_tool_main(int argc, char **argv)
     a.every = 10;
     a.slot = -1;
     a.enter_frame = -10;
+    a.font = "Tahoma";
 #ifdef MU_CHARSEL_NO_GL
     a.headless = 1;
     a.backend = "soft";
@@ -613,6 +632,7 @@ int mu_charsel_tool_main(int argc, char **argv)
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { a.headless = 1; continue; }
         if (!strcmp(k, "--quiet")) { a.quiet = 1; continue; }
+        if (!strcmp(k, "--no-ui")) { a.no_ui = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -634,6 +654,8 @@ int mu_charsel_tool_main(int argc, char **argv)
         else if (!strcmp(k, "--enter")) a.enter_frame = atoi(v);
         else if (!strcmp(k, "--out-dir")) a.out_dir = v;
         else if (!strcmp(k, "--backend")) a.backend = v;
+        else if (!strcmp(k, "--font")) a.font = v;
+        else if (!strcmp(k, "--tip")) a.tip = v;
         else return usage();
     }
     if (!a.root || a.width < 64 || a.height < 64 || a.width > 8192 || a.height > 8192 || a.frames < 1)
