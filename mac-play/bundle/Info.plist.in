@@ -31,7 +31,9 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Launcher for a CrossOver installation of Mu The Matrix. Ships no game files.</string>
+	<string>Installer and launcher for Mu The Matrix on a Mac (free Wine runtime or CrossOver). Ships no game files.</string>
+	<key>MUDefaultRuntime</key>
+	<string>@DEFAULT_RUNTIME@</string>
 	<key>MUDefaultBottle</key>
 	<string>@DEFAULT_BOTTLE@</string>
 	<key>MUDefaultFastX87</key>

@@ -1,4 +1,5 @@
-# Mu The Matrix.app (MAC-BUNDLE-001): a double-clickable macOS front end for the CrossOver launcher.
+# Mu The Matrix.app (MAC-BUNDLE-001, MAC-FREE-001): a double-clickable macOS installer and launcher.
+# Default runtime: the free Wine runtime (no CrossOver); the installer is bundled in Resources/installer.
 # Builds from source with the Command Line Tools (swiftc, iconutil, plutil, codesign); ad-hoc signed.
 #
 #   make                 build/Mu The Matrix.app (B=DIR for another build directory)
@@ -7,25 +8,33 @@
 #   make clean
 #
 # Build-time defaults (used until the settings window saves a settings file):
-#   DEFAULT_BOTTLE=MuMatrixKit  DEFAULT_FAST_X87=0|1  DEFAULT_TIMEWALKER_DIR=/path/to/rosetta-timewalker
+#   DEFAULT_RUNTIME=free|crossover  DEFAULT_BOTTLE=MuMatrixKit  DEFAULT_FAST_X87=0|1  DEFAULT_TIMEWALKER_DIR=/path/to/rosetta-timewalker
+# DLLs bundled for players (Resources/dlls, passed to the installer as --mugl-dll / --mscoree-dll):
+#   EMBED_MUGL=/path/opengl32.dll  EMBED_MSCOREE=/path/mscoree.dll   (none by default; never commit them.
+#   A private mugl build contains client-derived bytes: distributing it is the server owner's decision.)
 SWIFTC ?= xcrun swiftc
 ARCH ?= $(shell uname -m)
 MIN_MACOS ?= 13.0
 VERSION ?= 1.0
 BUILD_NUMBER ?= 1
 BUNDLE_ID ?= io.github.fryezero.mu-the-matrix.launcher
+DEFAULT_RUNTIME ?= free
 DEFAULT_BOTTLE ?= MuMatrixKit
 DEFAULT_FAST_X87 ?= 0
 DEFAULT_TIMEWALKER_DIR ?=
 INSTALL_DIR ?= $(HOME)/Applications
+EMBED_MUGL ?=
+EMBED_MSCOREE ?=
 
 B ?= build
 APP := $(B)/Mu The Matrix.app
 APPQ := "$(APP)"
 SOURCES := Sources/Core.swift Sources/main.swift
 RESOURCES := mu-launch.sh ../installer/lib/mukit.sh ../fast-x87.sh
+INSTALLER_FILES := ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh \
+	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg
 STAMP := $(B)/.app-stamp
-VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)
+VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)
 
 all: $(STAMP)
 
@@ -49,13 +58,14 @@ $(B)/MuTheMatrix: $(SOURCES)
 $(B)/Info.plist: Info.plist.in Makefile
 	@mkdir -p $(B)
 	@case "$(DEFAULT_FAST_X87)" in 0) fx=false ;; 1) fx=true ;; *) echo "DEFAULT_FAST_X87 must be 0 or 1" >&2; exit 1 ;; esac; \
+	case "$(DEFAULT_RUNTIME)" in free|crossover) ;; *) echo "DEFAULT_RUNTIME must be free or crossover" >&2; exit 1 ;; esac; \
 	echo '$(DEFAULT_BOTTLE)' | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_-]*$$' || { echo "bad DEFAULT_BOTTLE" >&2; exit 1; }; \
 	sed -e 's|@BUNDLE_ID@|$(BUNDLE_ID)|' -e 's|@VERSION@|$(VERSION)|' -e 's|@BUILD@|$(BUILD_NUMBER)|' \
 	    -e 's|@MIN_MACOS@|$(MIN_MACOS)|' -e 's|@DEFAULT_BOTTLE@|$(DEFAULT_BOTTLE)|' -e "s|@DEFAULT_FAST_X87@|$$fx|" \
-	    -e 's|@DEFAULT_TIMEWALKER_DIR@|$(DEFAULT_TIMEWALKER_DIR)|' $< > $@
+	    -e 's|@DEFAULT_TIMEWALKER_DIR@|$(DEFAULT_TIMEWALKER_DIR)|' -e 's|@DEFAULT_RUNTIME@|$(DEFAULT_RUNTIME)|' $< > $@
 	plutil -lint $@
 
-$(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES)
+$(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INSTALLER_FILES)
 	rm -rf $(APPQ)
 	mkdir -p $(APPQ)/Contents/MacOS $(APPQ)/Contents/Resources
 	cp $(B)/Info.plist $(APPQ)/Contents/Info.plist
@@ -64,6 +74,12 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES)
 	cp $(B)/AppIcon.icns $(APPQ)/Contents/Resources/AppIcon.icns
 	cp $(RESOURCES) $(APPQ)/Contents/Resources/
 	chmod 755 $(APPQ)/Contents/Resources/mu-launch.sh
+	mkdir -p $(APPQ)/Contents/Resources/installer/lib $(APPQ)/Contents/Resources/installer/registry
+	cp ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh $(APPQ)/Contents/Resources/installer/
+	cp ../installer/lib/mukit.sh $(APPQ)/Contents/Resources/installer/lib/
+	cp ../installer/registry/mu-mac.reg $(APPQ)/Contents/Resources/installer/registry/
+	@if [ -n "$(EMBED_MUGL)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MUGL)" $(APPQ)/Contents/Resources/dlls/opengl32.dll && echo "bundled mugl $(EMBED_MUGL)"; fi
+	@if [ -n "$(EMBED_MSCOREE)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MSCOREE)" $(APPQ)/Contents/Resources/dlls/mscoree.dll && echo "bundled mscoree $(EMBED_MSCOREE)"; fi
 	codesign --force --sign - --timestamp=none $(APPQ)
 	codesign --verify --strict --verbose=1 $(APPQ)
 	@touch $@

@@ -1,18 +1,23 @@
 #!/bin/bash
-# Start the Mu The Matrix launcher (MuTheMatrix.exe) in a CrossOver bottle. Part of MAC-BUNDLE-001:
+# Start the Mu The Matrix launcher (MuTheMatrix.exe) with the free Wine runtime (default) or in a CrossOver
+# bottle (legacy). Part of MAC-BUNDLE-001 / MAC-FREE-001:
 # "Mu The Matrix.app" runs this copy from Contents/Resources; it also works on its own from a checkout.
 # Bash 3.2 compatible (stock macOS /bin/bash). It does what mac-play/installer/play-mu.sh does, with
 # preflight checks that report one machine-readable error line, a dry-run mode and the resolution setting.
 #
-# Usage: mu-launch.sh [--check | --dry-run | --run | --list-bottles | --list-modes]
-#   --check         preflight only (CrossOver, bottle, 32-bit, game, fast x87, resolution, not running)
+# Usage: mu-launch.sh [--check | --dry-run | --run | --list-bottles | --list-modes | --status]
+#   --check         preflight only (runtime, prefix/bottle, 32-bit, game, fast x87, resolution, not running)
 #   --dry-run       preflight, then print every action and the exact command; changes nothing
 #   --run           (default) preflight, apply the resolution, reset the bottle's wineserver, start
 #   --list-bottles  CrossOver bottles, one per line: NAME<TAB>ARCH<TAB>game|nogame
-#   --list-modes    the bottle's C:\mutools\mu-modes.txt, one WxH per line, then "current N" if known
+#   --list-modes    the prefix's C:\mutools\mu-modes.txt, one WxH per line, then "current N" if known
+#   --status        free runtime: "runtime ok|missing", "prefix ok|missing", "game ok|missing" lines
 #
 # Settings come from the environment (the app passes them from its settings plist):
-#   MU_BOTTLE          bottle name (required)
+#   MU_RUNTIME         free (default) | crossover
+#   MU_PREFIX          free: the Wine prefix (default $MUKIT_FREE_HOME/prefix)
+#   MUKIT_FREE_HOME    free: runtime folder (default ~/Library/Application Support/MuTheMatrix)
+#   MU_BOTTLE          crossover: bottle name (required)
 #   MU_FAST_X87        1 = route main.exe through rosetta-timewalker's fast x87 translator; 0 (default) plain
 #   MU_TIMEWALKER_DIR  timewalker checkout with scripts/run-crossover.sh; empty = the validated
 #                      install-fast-x87.sh cache (mac-play/fast-x87.sh)
@@ -26,7 +31,8 @@
 # Output: "MU-INFO text", "MU-PLAN action" (dry run) and, on failure, one "MU-ERROR CODE text" line.
 # Exit codes: 0 ok, 2 bad setting, 10 CrossOver missing, 11 bottle missing, 12 not a 32-bit bottle,
 # 13 game not in the bottle, 14 game already running, 15 fast x87 runtime missing, 16 resolution not
-# available, 17 resolution could not be written, 20 launcher exited right away.
+# available, 17 resolution could not be written, 20 launcher exited right away, 30 free runtime not
+# installed, 31 free prefix missing or not 32-bit.
 set -u
 HERE=$(cd -- "$(dirname -- "$0")" && pwd -P)
 # Resources layout (app) or checkout layout (mac-play/bundle next to mac-play/installer).
@@ -38,7 +44,7 @@ source "$LIB" || { echo "MU-ERROR 2 helper library missing: $LIB"; exit 2; }
 MODE=run
 case "${1:-}" in
     ''|--run) MODE=run ;; --check) MODE=check ;; --dry-run) MODE=dry ;;
-    --list-bottles) MODE=bottles ;; --list-modes) MODE=modes ;;
+    --list-bottles) MODE=bottles ;; --list-modes) MODE=modes ;; --status) MODE=status ;;
     -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d; s/^# \{0,1\}//'; exit 0 ;;
     *) echo "MU-ERROR 2 unknown option: $1"; exit 2 ;;
 esac
@@ -49,6 +55,8 @@ plan() { echo "MU-PLAN $*"; }
 
 BOTTLES=$MUKIT_BOTTLES_DIR
 LOG_DIR=${MU_LOG_DIR:-$HOME/Library/Logs/MuTheMatrix}
+RUNTIME=${MU_RUNTIME:-free}
+FREE_HOME=$MUKIT_FREE_HOME
 BOTTLE=${MU_BOTTLE:-}
 FAST=${MU_FAST_X87:-0}
 TW_DIR=${MU_TIMEWALKER_DIR:-}
@@ -67,39 +75,70 @@ if [ "$MODE" = bottles ]; then
 fi
 
 # ---------------------------------------------------------------- settings
-[ -n "$BOTTLE" ] || fail 2 "No bottle is selected. Choose one in Settings."
-mukit_valid_bottle_name "$BOTTLE" || fail 2 "Invalid bottle name '$BOTTLE' (letters, digits, _ and - only)."
+case "$RUNTIME" in free|crossover) ;; *) fail 2 "Runtime must be free or crossover, not '$RUNTIME'." ;; esac
+if [ "$RUNTIME" = free ]; then
+    PREFIX=${MU_PREFIX:-$FREE_HOME/prefix}
+    NAME=$(basename "$PREFIX")
+    RT_ID=$(cat "$FREE_HOME/runtime/current" 2>/dev/null | tr -d '\r\n ')
+    RT="$FREE_HOME/runtime/$RT_ID"
+    WINE="$RT/wine/bin/wine"; WINESERVER="$RT/wine/bin/wineserver"
+else
+    [ -n "$BOTTLE" ] || fail 2 "No bottle is selected. Choose one in Settings."
+    mukit_valid_bottle_name "$BOTTLE" || fail 2 "Invalid bottle name '$BOTTLE' (letters, digits, _ and - only)."
+    PREFIX="$BOTTLES/$BOTTLE"
+    NAME=$BOTTLE
+fi
 case "$FAST" in 0|1) ;; *) fail 2 "Fast x87 must be 0 or 1, not '$FAST'." ;; esac
 [[ "$WAIT" =~ ^[0-9]{1,2}$ ]] || fail 2 "MU_START_WAIT must be 0-99 seconds."
 [ -z "$RES" ] || mukit_mode_valid "$RES" || fail 2 "Resolution '$RES' is not of the form WIDTHxHEIGHT."
 
-PREFIX="$BOTTLES/$BOTTLE"
 GAME="$PREFIX/drive_c/MuTheMatrix"
 MODES_FILE="$PREFIX/drive_c/mutools/mu-modes.txt"
 LOPT="$GAME/LauncherOption.if"
 
 read_modes() { [ -f "$MODES_FILE" ] && tr -s ' \t\r\n' ' ' < "$MODES_FILE" | sed 's/^ //; s/ $//'; }
 
+if [ "$MODE" = status ]; then
+    [ "$RUNTIME" = free ] || fail 2 "--status is for the free runtime."
+    { [ -n "$RT_ID" ] && mukit_rt_ok "$RT"; } && echo "runtime ok $RT_ID" || echo "runtime missing"
+    [ "$(mukit_prefix_arch "$PREFIX" 2>/dev/null)" = win32 ] && echo "prefix ok" || echo "prefix missing"
+    [ -f "$GAME/MuTheMatrix.exe" ] && echo "game ok" || echo "game missing"
+    exit 0
+fi
+
 # ---------------------------------------------------------------- preflight
-[ -x "$CX_ROOT/bin/wine" ] && [ -x "$CX_ROOT/bin/wineserver" ] ||
-    fail 10 "CrossOver was not found at $CX_ROOT. Install CrossOver in /Applications and open it once."
-[ -d "$PREFIX" ] && [ -f "$PREFIX/cxbottle.conf" ] ||
-    fail 11 "The CrossOver bottle '$BOTTLE' does not exist. Choose another bottle in Settings or create it with mac-play/installer/setup-mu-mac.sh."
-arch=$(mukit_conf_get "$PREFIX/cxbottle.conf" WineArch) || arch=unset
-[ "$arch" = win32 ] || fail 12 "Bottle '$BOTTLE' is not a 32-bit bottle (WineArch=$arch). The game needs a 32-bit win10 bottle."
-[ -f "$GAME/MuTheMatrix.exe" ] || fail 13 "Mu The Matrix is not installed in bottle '$BOTTLE' (C:\\MuTheMatrix\\MuTheMatrix.exe is missing)."
+if [ "$RUNTIME" = free ]; then
+    { [ -n "$RT_ID" ] && mukit_rt_ok "$RT"; } ||
+        fail 30 "The free Wine runtime is not installed yet (in $FREE_HOME/runtime). Choose Install in Settings."
+    [ -d "$PREFIX" ] && [ -f "$PREFIX/system.reg" ] ||
+        fail 31 "The game prefix $PREFIX does not exist yet. Choose Install in Settings."
+    arch=$(mukit_prefix_arch "$PREFIX") || arch=unknown
+    [ "$arch" = win32 ] || fail 31 "The prefix $PREFIX is not a 32-bit prefix (#arch=$arch). Delete it and install again."
+    [ -f "$GAME/MuTheMatrix.exe" ] || fail 13 "Mu The Matrix is not installed in $PREFIX (C:\\MuTheMatrix\\MuTheMatrix.exe is missing). Choose Install in Settings."
+else
+    [ -x "$CX_ROOT/bin/wine" ] && [ -x "$CX_ROOT/bin/wineserver" ] ||
+        fail 10 "CrossOver was not found at $CX_ROOT. Install CrossOver in /Applications and open it once, or switch to the free runtime."
+    [ -d "$PREFIX" ] && [ -f "$PREFIX/cxbottle.conf" ] ||
+        fail 11 "The CrossOver bottle '$BOTTLE' does not exist. Choose another bottle in Settings or create it with mac-play/installer/setup-mu-mac.sh."
+    arch=$(mukit_conf_get "$PREFIX/cxbottle.conf" WineArch) || arch=unset
+    [ "$arch" = win32 ] || fail 12 "Bottle '$BOTTLE' is not a 32-bit bottle (WineArch=$arch). The game needs a 32-bit win10 bottle."
+    [ -f "$GAME/MuTheMatrix.exe" ] || fail 13 "Mu The Matrix is not installed in bottle '$BOTTLE' (C:\\MuTheMatrix\\MuTheMatrix.exe is missing)."
+fi
 
 if [ "$MODE" = modes ]; then
-    modes=$(read_modes) || fail 16 "Bottle '$BOTTLE' has no C:\\mutools\\mu-modes.txt."
-    mukit_modes_valid "$modes" || fail 16 "C:\\mutools\\mu-modes.txt in '$BOTTLE' is not a list of WxH modes."
+    modes=$(read_modes) || fail 16 "'$NAME' has no C:\\mutools\\mu-modes.txt."
+    mukit_modes_valid "$modes" || fail 16 "C:\\mutools\\mu-modes.txt in '$NAME' is not a list of WxH modes."
     for m in $modes; do echo "$m"; done
     cur=$(mukit_lopt_get "$LOPT" DevModeIndex 2>/dev/null) && [[ "$cur" =~ ^[0-9]+$ ]] && echo "current $cur"
     exit 0
 fi
 
 RUNNER=("$CX_ROOT/bin/wine")
+[ "$RUNTIME" = free ] && RUNNER=("$WINE")
 X87_ENV=()
-if [ "$FAST" = 1 ]; then
+if [ "$FAST" = 1 ] && [ "$RUNTIME" = free ]; then
+    fail 15 "Fast x87 is available with the CrossOver runtime only (for now). Turn fast x87 off in Settings."
+elif [ "$FAST" = 1 ]; then
     if [ -n "$TW_DIR" ]; then
         [ -x "$TW_DIR/scripts/run-crossover.sh" ] && [ -f "$TW_DIR/build/libtimewalker.dylib" ] ||
             fail 15 "Fast x87 is on, but $TW_DIR has no built rosetta-timewalker (scripts/run-crossover.sh, build/libtimewalker.dylib). Choose its folder in Settings or turn fast x87 off."
@@ -116,10 +155,10 @@ fi
 
 NEW_LOPT=
 if [ -n "$RES" ]; then
-    modes=$(read_modes) || fail 16 "Resolution $RES was chosen, but bottle '$BOTTLE' has no C:\\mutools\\mu-modes.txt. Choose \"Keep launcher setting\"."
+    modes=$(read_modes) || fail 16 "Resolution $RES was chosen, but '$NAME' has no C:\\mutools\\mu-modes.txt. Choose \"Keep launcher setting\"."
     idx=; i=0
     for m in $modes; do [ "$m" = "$RES" ] && { idx=$i; break; }; i=$((i + 1)); done
-    [ -n "$idx" ] || fail 16 "Resolution $RES is not in bottle '$BOTTLE''s mode list ($modes). Choose another one in Settings."
+    [ -n "$idx" ] || fail 16 "Resolution $RES is not in the mode list of '$NAME' ($modes). Choose another one in Settings."
     if [ -f "$LOPT" ]; then
         cur_idx=$(mukit_lopt_get "$LOPT" DevModeIndex) || cur_idx=
         cur_wm=$(mukit_lopt_get "$LOPT" WindowMode) || cur_wm=1
@@ -133,18 +172,28 @@ if pgrep -f 'C:\\MuTheMatrix\\main.exe' >/dev/null 2>&1 || pgrep -f 'C:\\MuTheMa
     fail 14 "Mu The Matrix is already running. Close the game and the launcher first, then start again."
 fi
 
-LOG="$LOG_DIR/wine-$BOTTLE.log"
-info "bottle $BOTTLE (win32), CrossOver $CX_ROOT"
+LOG="$LOG_DIR/wine-$NAME.log"
+if [ "$RUNTIME" = free ]; then info "free runtime $RT_ID, prefix $PREFIX (win32)"
+else info "bottle $BOTTLE (win32), CrossOver $CX_ROOT"; fi
 info "fast x87 $([ "$FAST" = 1 ] && echo "on (${RUNNER[0]})" || echo off)"
 if [ -n "$RES" ]; then info "resolution $RES = DevModeIndex $idx$([ -z "$NEW_LOPT" ] && echo ' (already set)')"; else info 'resolution: keep launcher setting'; fi
 [ "$MODE" = check ] && { info 'preflight ok'; exit 0; }
 
 DBG=(); [ -n "${MU_DEBUGMSG:-}" ] && DBG=(--debugmsg "$MU_DEBUGMSG")
-CMD=("${RUNNER[@]}" --bottle "$BOTTLE" ${DBG[@]+"${DBG[@]}"} --workdir 'C:\MuTheMatrix' 'C:\MuTheMatrix\MuTheMatrix.exe')
+if [ "$RUNTIME" = free ]; then
+    # Plain Wine: run from the game folder (relative exe), explicit prefix, no inherited WINEARCH/overrides.
+    CMD=("${RUNNER[@]}" MuTheMatrix.exe)
+    X87_ENV=(-u WINEARCH -u WINEDLLOVERRIDES WINEPREFIX="$PREFIX" WINEDEBUG="${MU_DEBUGMSG:--all}")
+    RESET=("$WINESERVER" -k)
+else
+    CMD=("${RUNNER[@]}" --bottle "$BOTTLE" ${DBG[@]+"${DBG[@]}"} --workdir 'C:\MuTheMatrix' 'C:\MuTheMatrix\MuTheMatrix.exe')
+    RESET=("$CX_ROOT/bin/wineserver" -k)
+fi
 
 if [ "$MODE" = dry ]; then
     [ -z "$NEW_LOPT" ] || plan "write $LOPT DevModeIndex:$idx (backup ${LOPT##*/}.mu-app-backup if none exists)"
-    plan "WINEPREFIX=$PREFIX $CX_ROOT/bin/wineserver -k"
+    plan "WINEPREFIX=$PREFIX ${RESET[*]}"
+    [ "$RUNTIME" = free ] && plan "cd $GAME"
     plan "env ${X87_ENV[*]:-} ${CMD[*]} > $LOG"
     info 'dry run: nothing was changed'
     exit 0
@@ -159,10 +208,13 @@ if [ -n "$NEW_LOPT" ]; then
     info "LauncherOption.if DevModeIndex set to $idx ($RES)"
 fi
 # Stale display state after sleep breaks the launcher: restart this (idle) bottle's wineserver only.
-WINEPREFIX="$PREFIX" "$CX_ROOT/bin/wineserver" -k >/dev/null 2>&1
+WINEPREFIX="$PREFIX" "${RESET[@]}" >/dev/null 2>&1
 sleep 1
 info "starting ${CMD[*]}"
-{ echo "== $(date '+%Y-%m-%d %H:%M:%S') mu-launch.sh: bottle $BOTTLE fast-x87 $FAST resolution ${RES:-keep}"; } > "$LOG"
+{ echo "== $(date '+%Y-%m-%d %H:%M:%S') mu-launch.sh: runtime $RUNTIME $NAME fast-x87 $FAST resolution ${RES:-keep}"; } > "$LOG"
+# Agent/session variables must not reach Wine processes (they would show up in Windows command lines).
+for v in $(env | sed -n 's/^\(CLAUDE[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$v"; done
+[ "$RUNTIME" = free ] && { cd "$GAME" || fail 2 "Cannot enter $GAME."; }
 nohup env ${X87_ENV[@]+"${X87_ENV[@]}"} "${CMD[@]}" >>"$LOG" 2>&1 </dev/null &
 pid=$!
 t=0

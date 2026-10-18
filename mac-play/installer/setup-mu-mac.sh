@@ -46,6 +46,10 @@ Usage: setup-mu-mac.sh [options]
                          prebuilt: install the pinned DLLs from --dll-dir (see README: they are not in the repo).
   --dll-dir DIR          Directory with your prebuilt mugl-v75.dll (or v72/v71/v70) and mscoree.dll
                          (SHA-256 pinned; env MU_DLL_DIR). Required with --dll-source prebuilt.
+  --mugl-dll FILE        Install exactly this opengl32.dll (mugl) build, e.g. the one bundled in Mu The Matrix.app;
+                         pinned builds are recognised, others are installed with a warning (implies --dll-source files).
+  --mscoree-dll FILE     Install exactly this mscoree.dll proxy (with --mugl-dll; built from source when omitted
+                         and MinGW is present, otherwise skipped).
   --mugl-version V       v75 (default, current best) | v72 | v71 | v70 (rollbacks). Only with --dll-source prebuilt.
   --mugl-build B         public (default): the repository's batching-only mac-play/mugl. private: the DLL you
                          generated with mac-play/hotpatch (build/private/opengl32.dll; never redistribute it).
@@ -92,6 +96,8 @@ ACCOUNT=
 ACCOUNT_SET=0
 DLL_SOURCE=auto
 DLL_DIR=${MU_DLL_DIR:-}
+MUGL_DLL=
+MSCOREE_DLL=
 MUGL_BUILD=public
 DOTNET_INSTALLER=${MU_DOTNET48_INSTALLER:-}
 HELPERS_DIR=$MAC_PLAY/diagnostics/build/diagnostics
@@ -124,6 +130,8 @@ while [ "$#" -gt 0 ]; do
         --account)       need_arg "$1" "$#"; ACCOUNT=$2; ACCOUNT_SET=1; shift 2 ;;
         --dll-source)    need_arg "$1" "$#"; DLL_SOURCE=$2; shift 2 ;;
         --dll-dir)       need_arg "$1" "$#"; DLL_DIR=$2; shift 2 ;;
+        --mugl-dll)      need_arg "$1" "$#"; MUGL_DLL=$2; DLL_SOURCE=files; shift 2 ;;
+        --mscoree-dll)   need_arg "$1" "$#"; MSCOREE_DLL=$2; shift 2 ;;
         --mugl-build)    need_arg "$1" "$#"; MUGL_BUILD=$2; shift 2 ;;
         --dotnet-installer) need_arg "$1" "$#"; DOTNET_INSTALLER=$2; shift 2 ;;
         --helpers-dir)   need_arg "$1" "$#"; HELPERS_DIR=$2; shift 2 ;;
@@ -277,9 +285,11 @@ preflight() {
     case "$DLL_SOURCE" in
         auto)
             if [ -n "$DLL_DIR" ]; then DLL_SOURCE=prebuilt
-            elif command -v "$MINGW_CC" >/dev/null 2>&1; then DLL_SOURCE=build
+            elif command -v "$MINGW_CC" >/dev/null 2>&1 && [ -f "$MAC_PLAY/mugl/Makefile" ] && [ -f "$MAC_PLAY/mumodes/mscoree_proxy.c" ]; then DLL_SOURCE=build
             else DLL_SOURCE=none; fi ;;
         prebuilt|build) ;;
+        files) [ -f "$MUGL_DLL" ] || mukit_die "--mugl-dll not found: $MUGL_DLL"
+               [ -z "$MSCOREE_DLL" ] || [ -f "$MSCOREE_DLL" ] || mukit_die "--mscoree-dll not found: $MSCOREE_DLL" ;;
         *) mukit_die '--dll-source must be auto, build or prebuilt' ;;
     esac
     if [ "$DLL_SOURCE" = none ]; then
@@ -327,6 +337,8 @@ preflight() {
 mugl_is_public() { [ "$NO_MUGL" = 0 ] && [ "$DLL_SOURCE" = build ] && [ "$MUGL_BUILD" = public ]; }
 # Without the mscoree proxy (no DLLs at all) neither program sees the curated mode list either.
 modes_uncurated() { [ "$DLL_SOURCE" = none ]; }
+# A --mugl-dll that is not a pinned v7.x build is treated like the public build (no mode hook).
+mugl_files_unpinned() { [ "$DLL_SOURCE" = files ] && ! mukit_mugl_identify "$(mukit_sha256 "$MUGL_DLL")" >/dev/null; }
 
 pick_display_modes() {
     local scr sw sh picked auto_idx
@@ -343,7 +355,7 @@ pick_display_modes() {
     [ -n "$MODE_INDEX" ] || MODE_INDEX=$auto_idx
     [[ "$MODE_INDEX" =~ ^[0-9]+$ ]] || mukit_die '--mode-index must be a number'
     mukit_mode_at "$MODES" "$MODE_INDEX" >/dev/null || mukit_die "--mode-index $MODE_INDEX is outside the mode list"
-    if { mugl_is_public || modes_uncurated; } && [ "$MODE_INDEX" -gt 2 ]; then
+    if { mugl_is_public || modes_uncurated || mugl_files_unpinned; } && [ "$MODE_INDEX" -gt 2 ]; then
         mukit_warn 'Public mugl build has no display-mode hook: main.exe uses its own list, capping DevModeIndex at 2 (1280x800).'
         MODE_INDEX=2
     fi
@@ -682,7 +694,7 @@ step_mutools() {
     want_file "$MUTOOLS/mugl-mode.txt" $'full+vbo\n' 'C:\mutools\mugl-mode.txt'
     want_file "$MUTOOLS/mugl-hotpatch.txt" "$HOTPATCH_MASK"$'\n' 'C:\mutools\mugl-hotpatch.txt' \
         "$([ "$HOTPATCH_MASK" = "$MUKIT_HOTPATCH_DEFAULT" ] && echo "$MUKIT_HOTPATCH_OLD_DEFAULTS")"
-    want_copy "$HELPERS_DIR/muinput.exe" "$MUTOOLS/muinput.exe" 'C:\mutools\muinput.exe'
+    want_copy "$HELPERS_DIR/muinput.exe" "$MUTOOLS/muinput.exe" 'C:\mutools\muinput.exe' "$([ "$RUNTIME" = free ] && echo optional)"
     want_copy "$HELPERS_DIR/clickstart.exe" "$MUTOOLS/clickstart.exe" 'C:\mutools\clickstart.exe' optional
     skip 'C:\mutools checked'
 }
@@ -724,6 +736,16 @@ build_mscoree() {
 }
 resolve_dlls() {   # sets MUGL_SRC / MSCOREE_SRC (may build)
     MUGL_SRC=; MSCOREE_SRC=
+    if [ "$DLL_SOURCE" = files ]; then
+        MUGL_SRC=$MUGL_DLL
+        local id; id=$(mukit_mugl_identify "$(mukit_sha256 "$MUGL_SRC")") ||
+            mukit_warn "$MUGL_SRC is not a pinned mugl build; installing it as given."
+        [ -z "${id:-}" ] || say "  [note] $MUGL_SRC is mugl $id (pinned)"
+        if [ -n "$MSCOREE_DLL" ]; then MSCOREE_SRC=$MSCOREE_DLL
+        elif command -v "$MINGW_CC" >/dev/null 2>&1; then build_mscoree
+        else mukit_warn 'No --mscoree-dll and no MinGW: the launcher keeps its own resolution list.'; fi
+        return 0
+    fi
     if [ "$DLL_SOURCE" = build ]; then
         command -v "$MINGW_CC" >/dev/null || mukit_die "$MINGW_CC not found (brew install mingw-w64)"
         build_mscoree
@@ -790,6 +812,7 @@ step_dlls() {
         mukit_pe_is_wine_builtin "$SYS32/opengl32.dll" ||
             mukit_die 'C:\windows\system32\opengl32.dll is not the Wine builtin; mugl would recurse into itself. Recreate the bottle.'
     fi
+    [ "$DLL_SOURCE" = none ] && { say '  [skip] no DLLs (no --dll-dir, --mugl-dll or MinGW)'; return 0; }
     resolve_dlls
     [ "$DRY_RUN" = 1 ] || [ -d "$GAME" ] || mukit_die 'game directory missing'
     if [ "$NO_MUGL" = 1 ]; then
@@ -797,7 +820,8 @@ step_dlls() {
     else
         deploy_dll "$MUGL_SRC" "$GAME/opengl32.dll" 'mugl C:\MuTheMatrix\opengl32.dll'
     fi
-    deploy_dll "$MSCOREE_SRC" "$GAME/mscoree.dll" 'mscoree proxy C:\MuTheMatrix\mscoree.dll'
+    if [ -n "$MSCOREE_SRC" ]; then deploy_dll "$MSCOREE_SRC" "$GAME/mscoree.dll" 'mscoree proxy C:\MuTheMatrix\mscoree.dll'
+    else say '  [skip] no mscoree proxy'; fi
 }
 
 # --- 12. Desktop launcher -----------------------------------------------------
