@@ -37,6 +37,7 @@ static void free_models(mu_objects *o)
 
 void mu_objects_free(mu_objects *o)
 {
+    mu_objects_runtime_free(o);
     free_models(o);
     free(o->records);
     o->records = NULL;
@@ -184,7 +185,7 @@ static void load_hidden(mu_objects *o, const char *path)
     char sidecar[2048];
     const char *dot = strrchr(path, '.'), *slash = strrchr(path, '/');
     size_t stem = dot && (!slash || dot > slash) ? (size_t)(dot - path) : strlen(path);
-    if (stem + sizeof ".hidden" > sizeof sidecar)
+    if (stem + sizeof ".velocity" > sizeof sidecar)
         return;
     memcpy(sidecar, path, stem);
     memcpy(sidecar + stem, ".hidden", sizeof ".hidden");
@@ -194,6 +195,20 @@ static void load_hidden(mu_objects *o, const char *path)
         if (type >= 0 && type < MU_OBJECT_TYPES && !o->hidden_type[type]) {
             o->hidden_type[type] = 1;
             ++o->hidden_types;
+        }
+    if (f)
+        fclose(f);
+    /* NATIVE-OBJECTS-002: <stem>.velocity, "type speed" lines (scripts/live_object_state.py) */
+    memset(o->rt.velocity_set, 0, sizeof o->rt.velocity_set);
+    o->rt.velocity_types = 0;
+    memcpy(sidecar + stem, ".velocity", sizeof ".velocity");
+    f = fopen(sidecar, "r");
+    float speed;
+    while (f && fscanf(f, "%d %f", &type, &speed) == 2)
+        if (type >= 0 && type < MU_OBJECT_TYPES && !o->rt.velocity_set[type]) {
+            o->rt.velocity_set[type] = 1;
+            o->rt.velocity[type] = speed;
+            ++o->rt.velocity_types;
         }
     if (f)
         fclose(f);
@@ -356,9 +371,15 @@ long mu_objects_draw_raster(mu_objects *o, const mu_world *map, mu_raster *raste
     for (int32_t i = 0; i < o->count; ++i) {
         if (!mu_objects_in_box(o, i, x0, y0, x1, y1))
             continue;
-        mu_object_model *m = mu_objects_place(o, i, map);
+        mu_draw_options object_options;
+        /* NATIVE-OBJECTS-002: with the runtime started, the client's RenderObject (body light from
+         * the terrain light, animation frame, RenderBody arguments) */
+        mu_object_model *m = o->rt.ready ? mu_objects_prepare_index(o, i, map, 6, &object_options)
+                                         : mu_objects_place(o, i, map);
         if (!m)
             continue;
+        if (o->rt.ready)
+            options = object_options;
         raster->textures = m->textures.slots;
         raster->texture_count = m->textures.count;
         raster->texture_filter = m->textures.filter;

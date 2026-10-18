@@ -29,45 +29,45 @@
 
 /* OBJECT offsets (client layout). */
 enum {
-    MU_OBJ_LIVE = 0x00,             /* u8, set by 0x0129f4a5 */
-    MU_OBJ_SHADOW = 0x03,           /* u8, RenderObject draws the body shadow when set */
-    MU_OBJ_LIGHT_ENABLE = 0x05,     /* u8, record +0x2c -> model +0x50 */
-    MU_OBJ_LIGHT_FULL = 0x06,       /* u8, record +0x2d: terrain light not scaled by 0.1 */
-    MU_OBJ_LIGHT_DYNAMIC = 0x07,    /* u8, record +0x2e: frame light (with AddTerrainLight) instead of the primary */
-    MU_OBJ_AFTER_CHARACTER = 0x0a,  /* u8, drawn by the second pass 0x016d6949 in some worlds */
-    MU_OBJ_VISIBLE = 0x0b,          /* u8, TestFrustrum2D result of the render pass */
-    MU_OBJ_ALPHA_LINEAR = 0x0c,     /* u8, 0x012af883 steps alpha linearly */
-    MU_OBJ_BONE_BUFFER = 0x0d,      /* u8, own bone buffer (0x0129f11a) instead of 0x06fce398 */
-    MU_OBJ_FLAG_E = 0x0e,           /* u8 -> model +0x51 */
-    MU_OBJ_ACTION = 0x2a,           /* u16 -> model +0xa8 */
-    MU_OBJ_PRIOR_ACTION = 0x2c,     /* u16 */
-    MU_OBJ_SECTOR = 0x46,           /* u8 */
-    MU_OBJ_TYPE = 0x5c,             /* i32 */
-    MU_OBJ_HIDDEN_MESH = 0x68,      /* i32: -1 none, -2 the whole object is not drawn, k skips mesh k */
-    MU_OBJ_BLEND_MESH = 0x74,       /* i32: mesh drawn with the blend pass (-1 none) */
-    MU_OBJ_RENDER_MODE = 0x80,      /* i32: 0x80 draws with flags 0x82 */
-    MU_OBJ_SCALE = 0xa0,            /* f32 */
-    MU_OBJ_BLEND_LIGHT = 0xa8,      /* f32 */
-    MU_OBJ_BLEND_U = 0xac, MU_OBJ_BLEND_V = 0xb0, /* f32 texture offsets of the blend mesh */
-    MU_OBJ_TIMER = 0xb4,
-    MU_OBJ_BONE_SCALE = 0xb8,       /* f32, select 1 only */
-    MU_OBJ_VELOCITY = 0xbc,         /* f32, animation speed of the move pass */
-    MU_OBJ_RANGE = 0xc0,            /* f32, TestFrustrum2D range of the render pass */
-    MU_OBJ_C4 = 0xc4,
-    MU_OBJ_FRAME = 0xd0, MU_OBJ_PRIOR_FRAME = 0xd4,
-    MU_OBJ_ALPHA_TARGET = 0xd8, MU_OBJ_ALPHA = 0xdc, MU_OBJ_ALPHA_RATE = 0xe0,
-    MU_OBJ_VALUE_E4 = 0xe4, MU_OBJ_VALUE_E8 = 0xe8, /* record +0x30/+0x34, Transform arguments */
-    MU_OBJ_LIGHT = 0xec,            /* f32[3], record +0x1c, added to the terrain light */
-    MU_OBJ_DIRECTION = 0xf8,
-    MU_OBJ_START = 0x110,           /* f32[3] */
-    MU_OBJ_BOX_MIN = 0x128, MU_OBJ_BOX_MAX = 0x134,
-    MU_OBJ_POSITION = 0x158, MU_OBJ_ANGLE = 0x164, MU_OBJ_HEAD_ANGLE = 0x170,
-    MU_OBJ_LIGHT_COPY = 0x1e8,      /* f32[3], body light copy */
-    MU_OBJ_OBB = 0x31c,
-    MU_OBJ_OWNER = 0x34c,
-    MU_OBJ_PREV = 0x350, MU_OBJ_NEXT = 0x354, /* sector list links */
-    MU_OBJ_BUFFS = 0x358,
-    MU_OBJ_EFFECTS = 0x3d0          /* attached effect container (0x00d99e3f tests it) */
+    MU_OBJF_LIVE = 0x00,             /* u8, set by 0x0129f4a5 */
+    MU_OBJF_SHADOW = 0x03,           /* u8, RenderObject draws the body shadow when set */
+    MU_OBJF_LIGHT_ENABLE = 0x05,     /* u8, record +0x2c -> model +0x50 */
+    MU_OBJF_LIGHT_FULL = 0x06,       /* u8, record +0x2d: terrain light not scaled by 0.1 */
+    MU_OBJF_LIGHT_DYNAMIC = 0x07,    /* u8, record +0x2e: frame light (with AddTerrainLight) instead of the primary */
+    MU_OBJF_AFTER_CHARACTER = 0x0a,  /* u8, drawn by the second pass 0x016d6949 in some worlds */
+    MU_OBJF_VISIBLE = 0x0b,          /* u8, TestFrustrum2D result of the render pass */
+    MU_OBJF_ALPHA_LINEAR = 0x0c,     /* u8, 0x012af883 steps alpha linearly */
+    MU_OBJF_BONE_BUFFER = 0x0d,      /* u8, own bone buffer (0x0129f11a) instead of 0x06fce398 */
+    MU_OBJF_FLAG_E = 0x0e,           /* u8 -> model +0x51 */
+    MU_OBJF_ACTION = 0x2a,           /* u16 -> model +0xa8 */
+    MU_OBJF_PRIOR_ACTION = 0x2c,     /* u16 */
+    MU_OBJF_SECTOR = 0x46,           /* u8 */
+    MU_OBJF_TYPE = 0x5c,             /* i32 */
+    MU_OBJF_HIDDEN_MESH = 0x68,      /* i32: -1 none, -2 the whole object is not drawn, k skips mesh k */
+    MU_OBJF_BLEND_MESH = 0x74,       /* i32: mesh drawn with the blend pass (-1 none) */
+    MU_OBJF_RENDER_MODE = 0x80,      /* i32: 0x80 draws with flags 0x82 */
+    MU_OBJF_SCALE = 0xa0,            /* f32 */
+    MU_OBJF_BLEND_LIGHT = 0xa8,      /* f32 */
+    MU_OBJF_BLEND_U = 0xac, MU_OBJF_BLEND_V = 0xb0, /* f32 texture offsets of the blend mesh */
+    MU_OBJF_TIMER = 0xb4,
+    MU_OBJF_BONE_SCALE = 0xb8,       /* f32, select 1 only */
+    MU_OBJF_VELOCITY = 0xbc,         /* f32, animation speed of the move pass */
+    MU_OBJF_RANGE = 0xc0,            /* f32, TestFrustrum2D range of the render pass */
+    MU_OBJF_C4 = 0xc4,
+    MU_OBJF_FRAME = 0xd0, MU_OBJF_PRIOR_FRAME = 0xd4,
+    MU_OBJF_ALPHA_TARGET = 0xd8, MU_OBJF_ALPHA = 0xdc, MU_OBJF_ALPHA_RATE = 0xe0,
+    MU_OBJF_VALUE_E4 = 0xe4, MU_OBJF_VALUE_E8 = 0xe8, /* record +0x30/+0x34, Transform arguments */
+    MU_OBJF_LIGHT = 0xec,            /* f32[3], record +0x1c, added to the terrain light */
+    MU_OBJF_DIRECTION = 0xf8,
+    MU_OBJF_START = 0x110,           /* f32[3] */
+    MU_OBJF_BOX_MIN = 0x128, MU_OBJF_BOX_MAX = 0x134,
+    MU_OBJF_POSITION = 0x158, MU_OBJF_ANGLE = 0x164, MU_OBJF_HEAD_ANGLE = 0x170,
+    MU_OBJF_LIGHT_COPY = 0x1e8,      /* f32[3], body light copy */
+    MU_OBJF_OBB = 0x31c,
+    MU_OBJF_OWNER = 0x34c,
+    MU_OBJF_PREV = 0x350, MU_OBJF_NEXT = 0x354, /* sector list links */
+    MU_OBJF_BUFFS = 0x358,
+    MU_OBJF_EFFECTS = 0x3d0          /* attached effect container (0x00d99e3f tests it) */
 };
 
 /* Model (BMD object) fields the routines write. */
@@ -169,7 +169,7 @@ typedef int32_t (*mu_obj_rand_fn)(void *context);
  * bytes; fields CreateObject does not write are left as they are (the client's
  * constructor 0x0129e792 sets them). *sector receives the sector index. The
  * operable-object registration 0x016d9f51 is logged, the sector list is not
- * built here (MU_OBJ_PREV/NEXT untouched). */
+ * built here (MU_OBJF_PREV/NEXT untouched). */
 int mu_obj_create(const mu_object_record *record, int32_t world, uint8_t *object, int32_t *sector, int32_t index,
                   mu_obj_log *log);
 
@@ -192,6 +192,12 @@ typedef struct mu_obj_world {
 typedef uint8_t (*mu_obj_answer_fn)(void *context, int32_t index);
 void mu_obj_move_pass(mu_obj_world *w, int32_t world, mu_obj_answer_fn handler_moves, void *context,
                       mu_obj_log *log);
+
+/* The world handler's slot 0x1c, which MoveObjects asks for objects of invisible sectors:
+ * the base class 0x00d5cbbc answers 0; Tormenta (0x00e4bfff) answers TestFrustrum2D(x*0.01,
+ * y*0.01, range) for types 0x1f and 0x20. */
+uint8_t mu_obj_handler_moves(const uint8_t *object, int32_t world, const float *x2d, const float *y2d,
+                             int32_t scene_state);
 
 /* ---- 5. MoveObject ---- */
 
@@ -230,6 +236,12 @@ void mu_obj_create_fire(int32_t type, const uint8_t *object, int32_t index, floa
 /* 0x012af883: alpha towards the target (linear 0.05 steps when +0xc, else
  * alpha += (target - alpha) * rate), then blend light = min(blend light, alpha). */
 void mu_obj_alpha_step(uint8_t *object);
+
+/* RenderObjectVisual 0x017f9758, the part before its first effect call for Lorencia's
+ * Waterspout01 (world 0, type 0x69): blend light 1 and the blend mesh's texture scroll
+ * v = (float)(-(int)time % 1000) * 0.001. The smoke particles and flare sprites it then creates
+ * at named bones are not reconstructed. Other worlds/types: MU_OBJ_UNSUPPORTED, object untouched. */
+int mu_obj_visual(uint8_t *object, int32_t world, float time);
 
 /* ---- 6. the render pass ---- */
 

@@ -12,7 +12,9 @@
  *                       --legacy]                     NATIVE-TERRAIN-001 behaviour (whole box, no lights)
  *                                                SHA-256 of the raw RGBA pixels
  *                      [--objects installed|gallery|PLAIN_FILE   static map objects (NATIVE-OBJECTS-001)
- *                       --object-tile X,Y --object-columns N --object-spacing U   gallery layout]
+ *                       --object-tile X,Y --object-columns N --object-spacing U   gallery layout
+ *                       --object-steps N]   the client's object lifecycle (NATIVE-OBJECTS-002): CreateObject,
+ *                                           N MoveObjects steps (animation, object lights), RenderObject
  *   mu-terrain objects ROOT --world N [--objects installed|gallery|PLAIN_FILE]
  *                                                JSON: object file status, records, type -> model file
  *   mu-terrain decrypt FILE                      EncTerrain .map/.att plaintext to stdout
@@ -50,7 +52,7 @@ typedef struct args {
     float hero[2], camera_angle, view_far;
     int have_frustum, top_view, legacy;
     const char *objects;          /* NULL, "installed", "gallery" or a plaintext file */
-    int32_t object_tile[2], object_columns;
+    int32_t object_tile[2], object_columns, object_steps;
     float object_spacing;
 } args;
 
@@ -115,6 +117,7 @@ static int parse(args *a, int argc, char **argv)
         else if (!strcmp(k, "--view-far")) a->view_far = strtof(v, NULL);
         else if (!strcmp(k, "--objects")) a->objects = v;
         else if (!strcmp(k, "--object-columns")) a->object_columns = atoi(v);
+        else if (!strcmp(k, "--object-steps")) a->object_steps = atoi(v);
         else if (!strcmp(k, "--object-spacing")) a->object_spacing = strtof(v, NULL);
         else if (!strcmp(k, "--object-tile")) {
             if (sscanf(v, "%d,%d", &a->object_tile[0], &a->object_tile[1]) != 2)
@@ -347,6 +350,29 @@ static int command_render(const args *a)
     } else {
         mu_world_frame(w, a->time);
     }
+    mu_objects objects;
+    char object_error[512] = "";
+    int objects_loaded = 0;
+    if (a->objects) {
+        objects_loaded = load_objects(a, w, &objects, 1, object_error, sizeof object_error) == MU_OBJECTS_FILE_OK;
+        if (!objects_loaded)
+            fprintf(stderr, "objects: %s\n", object_error);
+    }
+    if (objects_loaded && a->object_steps > 0 && !a->legacy) {
+        /* NATIVE-OBJECTS-002: CreateObject, then MoveObjects steps of 40 ms; each step's lights after the
+         * frame light copy, as the client's tick does */
+        mu_objects_start(&objects, a->root);
+        const float hx = a->have_frustum ? a->hero[0] : ((float)(a->box[0] + a->box[2]) * 0.5f + 0.5f) * 100.0f;
+        const float hy = a->have_frustum ? a->hero[1] : ((float)(a->box[1] + a->box[3]) * 0.5f + 0.5f) * 100.0f;
+        const int32_t tx = (int32_t)(hx / 100.0f) & 0xff, ty = (int32_t)(hy / 100.0f) & 0xff;
+        for (int32_t step = 0; step < a->object_steps; ++step) {
+            const float t = a->time - 40.0f * (float)(a->object_steps - 1 - step);
+            mu_objects_step_inputs in = {6, w->layer1[(ty << 8) + tx], t, {hx, hy, 0.0f},
+                                         a->have_frustum ? frustum.x2d : NULL, a->have_frustum ? frustum.y2d : NULL};
+            mu_objects_step(&objects, &in);
+        }
+        mu_objects_apply_lights(&objects, w);
+    }
     if (!a->legacy)
         for (int i = 0; i < a->light_count; ++i) {
             const float *l = a->lights[i];
@@ -368,15 +394,10 @@ static int command_render(const args *a)
             decal_fans += mu_world_decal_raster(w, &raster, 0x7ef7, d[0], d[1], d[2], d[2], white, d[3], 1.0f, 5.0f,
                                                 1, 0, MU_TERRAIN_STATE_ADDITIVE);
         }
-    mu_objects objects;
-    char object_error[512] = "";
     long objects_drawn = 0;
-    if (a->objects) {
-        if (load_objects(a, w, &objects, 1, object_error, sizeof object_error) == MU_OBJECTS_FILE_OK)
-            objects_drawn = draw_objects(&objects, w, &raster);
-        else
-            fprintf(stderr, "objects: %s\n", object_error);
-    }
+    if (objects_loaded)
+        objects_drawn = objects.rt.ready ? mu_objects_draw_raster(&objects, w, &raster, 0, 0, 255, 255)
+                                         : draw_objects(&objects, w, &raster);
     char hash[65];
     mu_sha256_hex(raster.color, (uint64_t)a->width * (uint64_t)a->height * 4, hash);
     int failed = a->out && mu_png_write(a->out, raster.color, a->width, a->height);

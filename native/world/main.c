@@ -226,6 +226,7 @@ static int load(app *a)
         mu_objects_init(&a->objects, a->world);
         if (mu_objects_load_dir(&a->objects, a->objects_dir, error, sizeof error) == MU_OBJECTS_FILE_OK) {
             mu_objects_load_models(&a->objects, a->root, 0);
+            mu_objects_start(&a->objects, a->root);   /* NATIVE-OBJECTS-002: CreateObject per record */
             a->has_objects = 1;
         } else {
             fprintf(stderr, "objects: %s (drawing none)\n", error);
@@ -275,6 +276,13 @@ static void on_step(void *context, mu_walk *w)
         mu_world_actors_step(&a->actors);
     if (a->combat)
         mu_combat_step(a->combat);
+    if (a->has_objects) {   /* MoveObjects in the client's in-world tick (NATIVE-OBJECTS-002) */
+        const int32_t index = ((h->tile[1] & 0xff) << 8) + (h->tile[0] & 0xff);
+        mu_objects_step_inputs in = {6, a->map->layer1[index], a->map->time,
+                                     {h->position[0], h->position[1], h->position[2]}, a->frustum.x2d,
+                                     a->frustum.y2d};
+        mu_objects_step(&a->objects, &in);
+    }
 }
 
 /* Once per rendered frame after the frame cap: the per-frame audio block. */
@@ -481,6 +489,8 @@ static void terrain_frame(app *a, uint32_t now)
         mu_terrain_frustum_2d(a->map->world, hero, angle, &params, 0, f->x2d, f->y2d);
     }
     mu_world_frame_box(a->map, (float)now, f->x_min, f->y_min, f->x_max, f->y_max);
+    if (a->has_objects)   /* the object light sources of the last MoveObjects (AddTerrainLight) */
+        mu_objects_apply_lights(&a->objects, a->map);
 }
 
 /* ---- frame logic shared by the front ends ---- */
@@ -839,19 +849,21 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_draw_options options;
     mu_draw_default_options(&options);
     a->objects_drawn = 0;
-    for (int32_t i = 0; a->has_objects && i < a->objects.count; ++i) {
-        const mu_terrain_frustum *f = &a->frustum;
-        if (!mu_objects_in_box(&a->objects, i, f->x_min - 4, f->y_min - 4, f->x_max + 4, f->y_max + 4))
-            continue;
-        mu_object_model *m = mu_objects_place(&a->objects, i, a->map);
-        if (!m)
-            continue;
-        mu_render_backend backend;
-        mu_gl_backend_bind(&a->object_gl[m->type], &backend);
-        options.textures = &m->textures;
-        mu_draw_stats ds = {0, 0, 0, 0};
-        if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
-            ++a->objects_drawn;
+    if (a->has_objects) {   /* RenderObjects: client sector/object visibility, RenderObject per entry */
+        mu_objects_visibility(&a->objects, &a->frustum, 6);
+        for (int32_t k = 0; k < a->objects.rt.draw_count; ++k) {
+            mu_draw_options object_options;
+            mu_object_model *m = mu_objects_prepare(&a->objects, k, a->map, 6, &object_options);
+            if (!m)
+                continue;
+            mu_render_backend backend;
+            mu_gl_backend_bind(&a->object_gl[m->type], &backend);
+            mu_draw_stats ds = {0, 0, 0, 0};
+            if (!mu_scene_draw_model(&m->model, &object_options, &backend, &ds))
+                ++a->objects_drawn;
+        }
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
     }
     if (a->has_character)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
@@ -882,6 +894,20 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_render_backend backend;
     mu_gl_backend_bind(&plain, &backend);
     marker(a, &backend);
+    if (a->has_objects) {   /* stand-in particles of the object fires (CreateParticle is not reconstructed) */
+        static mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
+        float eye[3], target[3];
+        effect_camera(a, eye, target);
+        for (int32_t b = 0; b < 2; ++b) {
+            mu_fx_draw_state state;
+            uint32_t n = mu_objects_particle_quads(&a->objects, b, eye, target, quads, 4 * MU_OBJECT_PARTICLES, &state);
+            if (n)
+                g_effect(a, quads, n, &state, b == 0 ? &a->objects.rt.fire : &a->objects.rt.smoke, NULL);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+    }
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
         effect_camera(a, eye, target);
@@ -915,9 +941,11 @@ static long draw_soft(app *a, mu_raster *raster)
     else
         mu_world_draw_raster_view(a->map, raster, &a->frustum, 6, 0, &stats);
     a->tile_stats = stats.tiles;
-    if (a->has_objects)   /* objects in the visible box grown by 4 tiles (a viewer cull) */
-        a->objects_drawn = mu_objects_draw_raster(&a->objects, a->map, raster, a->frustum.x_min - 4,
-                                                  a->frustum.y_min - 4, a->frustum.x_max + 4, a->frustum.y_max + 4);
+    if (a->has_objects) {   /* RenderObjects with the client's visibility (NATIVE-OBJECTS-002) */
+        float eye[3], target[3];
+        effect_camera(a, eye, target);
+        a->objects_drawn = mu_objects_render_raster(&a->objects, a->map, raster, &a->frustum, 6, eye, target);
+    }
     mu_render_backend backend;
     mu_raster_backend(raster, &backend);
     mu_draw_options options;
@@ -1018,8 +1046,16 @@ static void report_summary(const app *a, const char *renderer)
                 printf("{\"sound_log\": \"%s\"}\n", s->log[i]);
     }
     if (a->has_objects)
-        printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld}\n",
-               a->objects.count, a->objects.models_loaded, a->objects.models_missing, a->objects_drawn);
+        printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"
+               " \"objects_created\": %d, \"objects_create_unsupported\": %d, \"object_steps\": %u,"
+               " \"objects_moved\": %ld, \"object_ticks\": %ld, \"object_lights\": %ld, \"object_particles\": %ld,"
+               " \"object_sounds\": %ld, \"object_draw_list\": %d, \"object_lights_last_step\": %d,"
+               " \"objects_animated\": %d}\n",
+               a->objects.count, a->objects.models_loaded, a->objects.models_missing, a->objects_drawn,
+               a->objects.rt.created, a->objects.rt.create_unsupported, a->objects.rt.steps, a->objects.rt.moved,
+               a->objects.rt.ticks, a->objects.rt.light_events, a->objects.rt.particle_events,
+               a->objects.rt.sound_events, a->objects.rt.draw_count, a->objects.rt.light_count,
+               mu_objects_animated(&a->objects));
     if (a->has_actors) {
         const mu_world_actors *s = &a->actors;
         printf("{\"actors\": %d, \"actor_steps\": %u, \"actor_moves\": %u, \"actor_arrivals\": %u,"

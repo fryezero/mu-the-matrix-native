@@ -184,11 +184,15 @@ class Library:
         d.mu_obj_body_light.argtypes = [P, P, ctypes.POINTER(LightInputs)]
         d.mu_obj_create.argtypes = [ctypes.POINTER(Record), ctypes.c_int32, P, ctypes.POINTER(ctypes.c_int32),
                                     ctypes.c_int32, ctypes.POINTER(Log)]
+        d.mu_obj_handler_moves.argtypes = [P, ctypes.c_int32, ctypes.POINTER(ctypes.c_float),
+                                           ctypes.POINTER(ctypes.c_float), ctypes.c_int32]
+        d.mu_obj_handler_moves.restype = ctypes.c_uint8
         d.mu_obj_move_pass.argtypes = [ctypes.POINTER(World), ctypes.c_int32, ANSWER_FN, P, ctypes.POINTER(Log)]
         d.mu_obj_move.argtypes = [P, ctypes.c_int32, ctypes.POINTER(MoveInputs), ctypes.POINTER(Log)]
         d.mu_obj_move_generic.argtypes = d.mu_obj_move.argtypes
         d.mu_obj_render_pass.argtypes = [ctypes.POINTER(World), ctypes.POINTER(RenderInputs),
                                          ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(Log)]
+        d.mu_obj_visual.argtypes = [P, ctypes.c_int32, ctypes.c_float]
         d.mu_obj_render.argtypes = [P, ctypes.c_int32, P, ctypes.c_uint8, ctypes.POINTER(DrawInputs),
                                     ctypes.POINTER(Log)]
 
@@ -630,6 +634,35 @@ def family_move_pass(machine, lib, g, cases):
     return t
 
 
+# ---------------------------------------------------------------- 4b. handler slot 0x1c (Tormenta)
+
+def family_handler_moves(machine, lib, g, cases):
+    t = Tally('handler_moves')
+    for n in range(cases):
+        x2d, y2d = frustum_polygon(g)
+        cx, cy = sum(x2d) / 4, sum(y2d) / 4
+        scene = g.choice([6, 6, 2])
+        o = bytearray(poison_object(g))
+        put_i(o, 0x5c, g.choice([0x1f, 0x20, 0x1f, 0x20, g.randrange(0, 0xd0)]))
+        put_f(o, 0x158, f32((cx + g.uniform(-60, 60)) * 100), f32((cy + g.uniform(-60, 60)) * 100), 0.0)
+        put_f(o, 0xc0, f32(g.choice([-1000.0, -30.0, g.uniform(-1500, 100)])))
+        regions = global_regions(0x8d, scene, [
+            am.defined_region('object', OBJECTS, bytes(o), writable=False),
+            am.defined_region('x2d', X2D, pack_f(*x2d), writable=False),
+            am.defined_region('y2d', Y2D, pack_f(*y2d), writable=False)])
+        result = run(machine, 0x00e4bfff, [OBJECTS], regions, {}, ecx=FAKE, cleanup=4)
+        stop = stopped_reason(result)
+        if stop:
+            t.add(False, {'case': n}, stop)
+            continue
+        xs, ys = (ctypes.c_float * 4)(*x2d), (ctypes.c_float * 4)(*y2d)
+        c = lib.dll.mu_obj_handler_moves(ctypes.create_string_buffer(bytes(o), OBJ_SIZE), 0x8d, xs, ys, scene)
+        got = result['eax'] & 0xff
+        t.count('moves' if got else 'stays')
+        t.add(got == c, {'case': n, 'got': got, 'c': c})
+    return t
+
+
 # ---------------------------------------------------------------- 5. move
 
 TYPES_W0 = [0x32, 0x33, 0x34, 0x37, 0x50, 0x5a, 0x61, 0x75, 0x76, 0x77, 0x7a, 0x7d, 0x7e, 0x82, 0x83, 0x84, 0x96,
@@ -775,6 +808,29 @@ def family_move(machine, lib, g, cases):
         diff = [hex(i) for i in range(OBJ_SIZE) if guest_obj[i] != cobj.raw[i]]
         t.add(same_obj and calls == c_calls, {'case': n, 'mode': mode, 'world': world, 'type': typ, 'diff': diff[:8],
                                                'calls': calls[:4], 'c': c_calls[:4]})
+    return t
+
+
+# ---------------------------------------------------------------- 5b. RenderObjectVisual (Lorencia waterspout part)
+
+def family_visual(machine, lib, g, cases):
+    t = Tally('visual')
+    for n in range(cases):
+        o = bytearray(poison_object(g))
+        put_i(o, 0x5c, 0x69)
+        time = f32(g.choice([g.uniform(0, 3e7), g.uniform(0, 3000), 999.0, 1000.0, 0.0]))
+        regions = global_regions(0, 6, [
+            am.defined_region('object', OBJECTS, bytes(o)),
+            am.defined_region('time', TIME, pack_f(time), writable=False)])
+        stubs = {0x00966cc4: lambda m: FAKE, 0x00eaa8cf: lambda m: (MODEL, 4), 0x01989721: lambda m: 7}
+        result = run(machine, 0x017f9758, [OBJECTS], regions, stubs, until=0x017f9880)
+        stop = stopped_reason(result)
+        if stop:
+            t.add(False, {'case': n}, stop)
+            continue
+        cobj = ctypes.create_string_buffer(bytes(o), OBJ_SIZE)
+        lib.dll.mu_obj_visual(cobj, 0, time)
+        t.add(result['regions']['object'] == cobj.raw[:OBJ_SIZE], {'case': n, 'time': time})
     return t
 
 
@@ -972,7 +1028,7 @@ def family_render(machine, lib, g, cases):
 # ---------------------------------------------------------------- driver
 
 FAMILIES = {'light': family_light, 'body_light': family_body_light, 'create': family_create,
-            'move_pass': family_move_pass, 'move': family_move, 'render_pass': family_render_pass,
+            'move_pass': family_move_pass, 'handler_moves': family_handler_moves, 'move': family_move, 'visual': family_visual, 'render_pass': family_render_pass,
             'render': family_render}
 
 MUTATIONS = [
@@ -1026,8 +1082,8 @@ def mutations(machine, args):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    evidence = ROOT.parent / 'main-exe-study' / 'evidence'
-    if not evidence.exists():
+    evidence = ROOT / 'evidence'
+    if not evidence.exists():   # a worktree: the main checkout keeps the pinned captures
         evidence = Path.home() / 'Documents/main-exe-study/evidence'
     parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(evidence / 'x86-text-capture-09/client-text.bin')))
     parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(

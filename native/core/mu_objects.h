@@ -31,11 +31,14 @@
 #include <stdint.h>
 
 #include "../../reconstructed/objects/objects.h"
+#include "../../reconstructed/objects/object_render.h"
 #include "mu_bmd.h"
 #include "mu_model.h"
 #include "mu_raster.h"
 #include "mu_terrain.h"
 #include "mu_textures.h"
+#include "mu_scene.h"
+#include "mu_effect.h"
 
 #define MU_OBJECT_TYPES 300
 
@@ -56,6 +59,50 @@ typedef struct mu_object_model {
     mu_textures textures;
 } mu_object_model;
 
+/* ---- NATIVE-OBJECTS-002: the client's object lifecycle (reconstructed/objects/object_render.h) ---- */
+
+#define MU_OBJECT_PARTICLES 1024
+#define MU_OBJECT_STEP_LIGHTS 1024
+
+typedef struct mu_object_light {
+    float x, y, rgb[3];
+    int32_t range;
+} mu_object_light;
+
+/* Stand-in for the client's legacy particle system (CreateParticle 0x0168fafd is not
+ * reconstructed): a billboard of the particle's bitmap that rises and fades over its life. */
+typedef struct mu_object_particle {
+    float position[3], light[3];
+    int32_t bitmap, sub, life, age;
+    float scale;
+} mu_object_particle;
+
+typedef struct mu_objects_runtime {
+    int ready;
+    uint8_t *images;                  /* count * MU_OBJ_SIZE: client OBJECT images */
+    uint8_t **pointers;
+    int32_t *next;
+    mu_obj_world world;               /* sector lists in creation order */
+    uint8_t model_fields[MU_MDL_SIZE];
+    uint32_t seed;                    /* MSVC rand state (the client's rand() is shared; seed 1 here) */
+    int32_t render_counter;           /* 0x06fc9c90 */
+    mu_obj_event *events;
+    int32_t event_capacity;
+    int32_t *draw_list, draw_count;   /* RenderObject calls of the last render pass, in order */
+    mu_object_light lights[MU_OBJECT_STEP_LIGHTS];  /* AddTerrainLight calls of the last move pass */
+    int32_t light_count;
+    mu_object_particle particles[MU_OBJECT_PARTICLES];
+    int32_t particle_count;
+    mu_image fire, smoke;             /* Effect/Fire01.jpg 0x7f3c, Effect/smoke01.jpg 0x7f5a */
+    float velocity[MU_OBJECT_TYPES];  /* live sidecar (.velocity) for speeds set outside CreateObject */
+    uint8_t velocity_set[MU_OBJECT_TYPES];
+    int32_t velocity_types;
+    int32_t create_unsupported, created, outside;
+    uint32_t steps;
+    long ticks, moved, light_events, particle_events, sound_events, move_unsupported;
+    long drawn, draw_unsupported, draw_skipped, culled;
+} mu_objects_runtime;
+
 typedef struct mu_objects {
     int32_t world, folder;
     int status;                       /* MU_OBJECTS_FILE_* of the last load */
@@ -69,6 +116,7 @@ typedef struct mu_objects {
     float uniform_light;              /* > 0: body light (v, v, v) instead of the terrain light */
     uint8_t hidden_type[MU_OBJECT_TYPES]; /* types the running client marked +0x68 = -2 (not drawn) */
     int32_t hidden_types;
+    mu_objects_runtime rt;            /* NATIVE-OBJECTS-002 */
 } mu_objects;
 
 void mu_objects_init(mu_objects *objects, int32_t world);
@@ -113,6 +161,59 @@ int mu_objects_in_box(const mu_objects *objects, int32_t index, int32_t x0, int3
  * software raster (textures bound per model). Returns the number drawn. */
 long mu_objects_draw_raster(mu_objects *objects, const mu_world *map, mu_raster *raster, int32_t x0, int32_t y0,
                             int32_t x1, int32_t y1);
+
+/* ---- NATIVE-OBJECTS-002 ----
+ *
+ * mu_objects_start builds the client OBJECT of every record with CreateObject (mu_obj_create: sector,
+ * generic fields, world type defaults for Lorencia and Tormenta Island) and links the sector lists.
+ * Worlds whose creation case is not reconstructed keep the generic fields and take the live sidecars
+ * (.hidden types). The constructor value +0xe0 = 0.1 (alpha rate) is the live reading. */
+int mu_objects_start(mu_objects *objects, const char *game_root);
+void mu_objects_runtime_free(mu_objects *objects);
+/* Objects whose animation frame is not 0 (they have been ticked through keys). */
+int32_t mu_objects_animated(const mu_objects *objects);
+
+typedef struct mu_objects_step_inputs {
+    int32_t scene_state;              /* 0x01d1df70 (6 in the world) */
+    int32_t hero_tile;                /* HeroTile 0x0b437c10 */
+    float time;                       /* 0x06fce370 (ms) */
+    float hero[3];
+    const float *x2d, *y2d;           /* last CreateFrustrum2D polygon (Tormenta slot 0x1c) */
+} mu_objects_step_inputs;
+
+/* One logic step: MoveObjects (mu_obj_move_pass) with MoveObject for the objects it names
+ * (mu_obj_move), the animation tick of each through its model (mu_model_tick), particle and
+ * light events. Call after the frame light copy; the AddTerrainLight calls are kept in rt.lights
+ * and applied by mu_objects_apply_lights. Advances the stand-in particles one step. */
+void mu_objects_step(mu_objects *objects, const mu_objects_step_inputs *inputs);
+
+/* Re-applies the last step's AddTerrainLight calls to the frame light (after each copy). */
+void mu_objects_apply_lights(const mu_objects *objects, mu_world *map);
+
+/* RenderObjects (mu_obj_render_pass) for the frustum polygon: sector and object visibility and
+ * the draw list rt.draw_list. */
+void mu_objects_visibility(mu_objects *objects, const mu_terrain_frustum *frustum, int32_t scene_state);
+
+/* RenderObject (mu_obj_render) for draw-list entry k: body light from the terrain light, pose at
+ * the object's animation frame, and the RenderBody arguments in *options (flags, alpha, blend
+ * mesh, blend light, uv offsets, hidden mesh). Returns the model to draw, or NULL. */
+mu_object_model *mu_objects_prepare(mu_objects *objects, int32_t k, const mu_world *map, int32_t scene_state,
+                                    mu_draw_options *options);
+
+/* The same for object index i (callers that walk objects without the render pass). */
+mu_object_model *mu_objects_prepare_index(mu_objects *objects, int32_t index, const mu_world *map, int32_t scene_state,
+                                          mu_draw_options *options);
+
+/* Stand-in particle quads (4 vertices each) with their draw state; bitmap 0 fire, 1 smoke.
+ * Returns the vertex count written (capacity in vertices). */
+uint32_t mu_objects_particle_quads(const mu_objects *objects, int32_t bitmap, const float eye[3],
+                                   const float target[3], mu_fx_vertex *vertices, uint32_t capacity,
+                                   mu_fx_draw_state *state);
+
+/* Software raster: visibility, every prepared object, then the particles. Returns objects drawn. */
+long mu_objects_render_raster(mu_objects *objects, const mu_world *map, mu_raster *raster,
+                              const mu_terrain_frustum *frustum, int32_t scene_state, const float eye[3],
+                              const float target[3]);
 
 /* Case-insensitive resolution of a path relative to game_root ("Data/..."). */
 int mu_objects_resolve(const char *game_root, const char *relative, char *out, size_t size);

@@ -218,11 +218,40 @@ class LiveSnapshotTests(unittest.TestCase):
             convert(snap, plain_dir/'EncTerrain1.plain', '--version', 0)
             result = subprocess.run([str(WALK), '--game-root', root, '--headless', '--frames', '2', '--every', '2',
                                      '--out-dir', str(Path(root)/'out'), '--backend', 'soft', '--tile', '128,128',
-                                     '--no-audio', '--quiet',
-                                     '--width', '96', '--height', '64', '--objects-dir', str(plain_dir)],
+                                     '--no-audio', '--quiet',   # a 640-wide window: CreateFrustrum2D scales with it
+                                     '--width', '640', '--height', '400', '--objects-dir', str(plain_dir)],
                                     capture_output=True, text=True, check=True)
             row = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"objects"'))
             self.assertEqual((row['objects'], row['object_models'], row['objects_drawn']), (3, 2, 2))
+
+    def test_object_lifecycle_in_the_walk_session(self):
+        """NATIVE-OBJECTS-002: CreateObject, MoveObjects (street light and candle add terrain light every
+        step, the tick runs), RenderObjects culls the far object."""
+        with tempfile.TemporaryDirectory() as root:
+            write_open_world(root)
+            write_models(root, 1, ['StreetLight01.bmd', 'Candle01.bmd'])
+            snap = Path(root)/'snap.bin'
+            snapshot(snap, 0, [(90, (12850.0, 12850.0, 60.0), (0.0, 0.0, 0.0), 1.0, -1),
+                               (150, (12950.0, 12850.0, 60.0), (0.0, 0.0, 45.0), 1.0, -1),
+                               (90, (100.0, 25000.0, 60.0), (0.0, 0.0, 0.0), 1.0, -1)])
+            plain_dir = Path(root)/'plain'
+            plain_dir.mkdir()
+            convert(snap, plain_dir/'EncTerrain1.plain', '--version', 0)
+            result = subprocess.run([str(WALK), '--game-root', root, '--headless', '--frames', '6', '--every', '6',
+                                     '--out-dir', str(Path(root)/'out'), '--backend', 'soft', '--tile', '128,128',
+                                     '--no-audio', '--quiet', '--width', '640', '--height', '400',
+                                     '--objects-dir', str(plain_dir)], capture_output=True, text=True, check=True)
+            row = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"objects"'))
+            self.assertEqual((row['objects_created'], row['objects_create_unsupported']), (3, 0))
+            self.assertEqual(row['object_draw_list'], 2)                    # the far street light is culled
+            self.assertEqual(row['object_lights_last_step'], 2)             # AddTerrainLight per step, range 3
+            self.assertEqual(row['object_lights'], row['objects_moved'])   # one light per moved object (none before the first render pass)
+            self.assertGreater(row['objects_moved'], 0)
+            self.assertEqual(row['object_ticks'], row['objects_moved'])
+            out = json.loads(run('render', root, '--world', 0, '--objects', plain_dir/'EncTerrain1.plain',
+                                 '--object-steps', 3, '--target', '12850,12850', '--distance', 2000,
+                                 '--width', 96, '--height', 64).stdout)
+            self.assertEqual(out['objects']['drawn'], 3)
 
     def test_charsel_takes_markers_and_objects_from_a_directory(self):
         with tempfile.TemporaryDirectory() as root:
