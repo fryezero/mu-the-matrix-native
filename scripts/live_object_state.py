@@ -53,7 +53,38 @@ DYNAMIC = {0: {0x34: {'blend light'}, 0x75: {'blend light'}, 0x7a: {'blend light
                0x84: {'hidden mesh'}, 0x7d: {'alpha target', 'alpha'}, 0x7e: {'alpha target', 'alpha'}}}
 
 
-def compare(lib, path, velocity_out=None):
+def f32(v):
+    return struct.unpack('<f', struct.pack('<f', v))[0]
+
+
+def light_check(lib, objects, grid_path):
+    """Body-light copy +0x1e8 of the objects drawn in the snapshot's frame (+0xb set) whose flags select
+    the plain case (+6, +7: frame light, unscaled, copy written) against RequestTerrainLight on the primary
+    light (exported by `mu-terrain export`, NATIVE-TERRAIN-001) plus the object light. Where no
+    AddTerrainLight source reached the tile the frame light equals the primary light and the copy must be
+    bit-identical; elsewhere the sources only add light, so every difference must be positive."""
+    grid = ctypes.create_string_buffer(Path(grid_path).read_bytes(), 12 * 65536)
+    out = (ctypes.c_float * 3)()
+    equal, brighter, darker = 0, 0, 0
+    for address, sector, raw in objects:
+        if not (raw[6] and raw[7] and raw[0x0b]):
+            continue
+        x, y = struct.unpack_from('<2f', raw, 0x158)
+        lib.mu_obj_terrain_light(ctypes.cast(grid, ctypes.c_void_p), 6, 1, x, y, out)
+        light = struct.unpack_from('<3f', raw, 0xec)
+        expect = [f32(f32(out[k]) + light[k]) for k in range(3)]
+        live = struct.unpack_from('<3f', raw, 0x1e8)
+        if raw[0x1e8:0x1f4] == struct.pack('<3f', *expect):
+            equal += 1
+        elif all(live[k] >= expect[k] for k in range(3)):
+            brighter += 1
+        else:
+            darker += 1
+    return {'drawn_objects_compared': equal + brighter + darker, 'bit_identical': equal,
+            'brighter_by_light_sources': brighter, 'darker': darker}
+
+
+def compare(lib, path, velocity_out=None, grid=None):
     world, world2, count, objects = read_snapshot(path)
     stats = collections.Counter()
     mismatch = collections.Counter()
@@ -112,6 +143,8 @@ def compare(lib, path, velocity_out=None):
            'velocity_objects_differing': sum(sum(v.values()) for v in velocity.values())}
     if world == 0x8d:
         out['tormenta_types_0x24_0x2a_light_dynamic'] = dict(tormenta_dynamic)
+    if grid:
+        out['body_light_copy'] = light_check(lib, objects, grid)
     if velocity_out and velocity:
         lines = [f'{t} {uniform[t]!r}' for t in sorted(uniform)]
         Path(velocity_out).write_text('\n'.join(lines) + '\n')
@@ -119,19 +152,46 @@ def compare(lib, path, velocity_out=None):
     return out
 
 
+def advance(path_a, path_b):
+    """Two snapshots of the same session: the animation frame advance of objects visible in both, in
+    logic steps (frame delta / velocity; MoveObject ticks only visible objects, once per 40 ms step)."""
+    a = {address: raw for address, sector, raw in read_snapshot(path_a)[3]}
+    b = {address: raw for address, sector, raw in read_snapshot(path_b)[3]}
+    steps = collections.Counter()
+    for address, raw in a.items():
+        other = b.get(address)
+        if other is None or not (raw[0x0b] and other[0x0b]):
+            continue
+        fa, fb = struct.unpack_from('<f', raw, 0xd0)[0], struct.unpack_from('<f', other, 0xd0)[0]
+        v = struct.unpack_from('<f', raw, 0xbc)[0]
+        if fa != fb and v > 0 and fb > fa:
+            steps[round((fb - fa) / v, 2)] += 1
+    return {'pair': [Path(path_a).name, Path(path_b).name], 'steps_by_object': dict(steps)}
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('snapshots', nargs='+')
     p.add_argument('--library', default=str(ROOT / f'reconstructed/objects/libobjects.{SUFFIX}'))
     p.add_argument('--velocity-out', help='sidecar for the last snapshot (type velocity lines)')
+    p.add_argument('--primary-light', action='append', default=[],
+                   help='raw 256x256x3 float primary light per snapshot (same order), from mu-terrain export')
+    p.add_argument('--pair', nargs=2, metavar=('A', 'B'), help='frame advance between two snapshots')
     p.add_argument('--output')
     args = p.parse_args(argv)
     lib = ctypes.CDLL(args.library)
+    lib.mu_obj_terrain_light.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_uint8, ctypes.c_float,
+                                         ctypes.c_float, ctypes.c_void_p]
     lib.mu_obj_create.argtypes = [ctypes.POINTER(Record), ctypes.c_int32, ctypes.c_void_p,
                                   ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_void_p]
     reports = []
     for i, s in enumerate(args.snapshots):
-        r = compare(lib.mu_obj_create and lib, s, args.velocity_out if i == len(args.snapshots) - 1 else None)
+        r = compare(lib, s, args.velocity_out if i == len(args.snapshots) - 1 else None,
+                    args.primary_light[i] if i < len(args.primary_light) else None)
+        reports.append(r)
+        print(json.dumps(r, indent=1))
+    if args.pair:
+        r = advance(*args.pair)
         reports.append(r)
         print(json.dumps(r, indent=1))
     if args.output:

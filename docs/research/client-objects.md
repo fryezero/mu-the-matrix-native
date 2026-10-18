@@ -343,8 +343,8 @@ The validator's defaults read `evidence/x86-text-capture-09`, `evidence/image-da
 - **Placements.** Read live for World1, World94, World95 and World142 (section 6). Other worlds need a character
   standing in them; the account's characters were not moved to get them. The installed bytes themselves still
   decode only past the boundary.
-- Object lighting (the renders use the terrain primary light), animation and the client's sector visibility are
-  not ported, nor is the exact meaning of `+0x68 = -2`; skipping those types is a live reading.
+- Object lighting, animation, sector visibility and the meaning of `+0x68 = -2` (HiddenMesh: the object is not
+  drawn) are now reconstructed and compared: [client-objects-render.md](client-objects-render.md) (NATIVE-OBJECTS-002).
 - RenderObjects (sector walk, object light, animation, the meaning of `+5..+7`, `+0x68`, `+0xe4`/`+0xe8`), the
   pass's extra models ≥ 300 and fixed CreateObject calls, the region importer `0x00e22826` and the custom-map
   folder table are not ported.

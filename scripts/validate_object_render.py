@@ -1033,22 +1033,22 @@ FAMILIES = {'light': family_light, 'body_light': family_body_light, 'create': fa
 
 MUTATIONS = [
     ('terrain light without the fy term', 'object_render.c', 'a = a * fy;', 'a = a * fx;', 'light'),
-    ('body light scales by 0.1 when +6 is set', 'object_render.c', 'if (!copy || !o[MU_OBJ_LIGHT_FULL])',
-     'if (!copy || o[MU_OBJ_LIGHT_FULL])', 'body_light'),
-    ('Lorencia tree velocity 0.4 * scale', 'object_render.c', 'float v = 1.0f / mu_obj_f32(o, MU_OBJ_SCALE);',
-     'float v = mu_obj_f32(o, MU_OBJ_SCALE);', 'create'),
-    ('Tormenta 0x27 keeps range -50', 'object_render.c', 'mu_obj_set_f32(o, MU_OBJ_RANGE, -300.0f);   /* falls',
-     'mu_obj_set_f32(o, MU_OBJ_RANGE, -50.0f);   /* falls', 'create'),
-    ('move pass skips the visible test', 'object_render.c', 'if (o[MU_OBJ_LIVE] && o[MU_OBJ_VISIBLE]) {',
-     'if (o[MU_OBJ_LIVE]) {', 'move_pass'),
+    ('body light scales by 0.1 when +6 is set', 'object_render.c', 'if (!copy || !o[MU_OBJF_LIGHT_FULL])',
+     'if (!copy || o[MU_OBJF_LIGHT_FULL])', 'body_light'),
+    ('Lorencia tree velocity 0.4 * scale', 'object_render.c', 'float v = 1.0f / mu_obj_f32(o, MU_OBJF_SCALE);',
+     'float v = mu_obj_f32(o, MU_OBJF_SCALE);', 'create'),
+    ('Tormenta 0x27 keeps range -50', 'object_render.c', 'mu_obj_set_f32(o, MU_OBJF_RANGE, -300.0f);   /* falls',
+     'mu_obj_set_f32(o, MU_OBJF_RANGE, -50.0f);   /* falls', 'create'),
+    ('move pass skips the visible test', 'object_render.c', 'if (o[MU_OBJF_LIVE] && o[MU_OBJF_VISIBLE]) {',
+     'if (o[MU_OBJF_LIVE]) {', 'move_pass'),
     ('street light range 4', 'object_render.c', 'add_light(log, index, o, light, 3);\n        break;\n    }\n    case 0x96',
      'add_light(log, index, o, light, 4);\n        break;\n    }\n    case 0x96', 'move'),
     ('roof fades on HeroTile 3', 'object_render.c', 'in->hero_tile == 4 ? 0.0f : 1.0f', 'in->hero_tile == 3 ? 0.0f : 1.0f',
      'move'),
     ('sector range -180 for Tormenta', 'object_render.c', 'world == 0x8c || world == 0x8d)', 'world == 0x8c)',
      'render_pass'),
-    ('hidden -2 drawn', 'object_render.c', 'mu_obj_i32(o, MU_OBJ_HIDDEN_MESH) == -2)\n        return MU_OBJ_SKIPPED;',
-     'mu_obj_i32(o, MU_OBJ_HIDDEN_MESH) == -3)\n        return MU_OBJ_SKIPPED;', 'render'),
+    ('hidden -2 drawn', 'object_render.c', 'mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) == -2)\n        return MU_OBJ_SKIPPED;',
+     'mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) == -3)\n        return MU_OBJ_SKIPPED;', 'render'),
 ]
 
 
