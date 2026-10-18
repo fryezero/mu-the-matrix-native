@@ -91,6 +91,7 @@ static int mugl_client;      /* this process is the client (main.exe): only then
 static int cs_dirty;         /* deferred client-array enables differ from GL (lazy client state, bit 262144) */
 static int cs_lazy; static unsigned char cs_real[6], cs_want[6]; static long st_cs_skipped, st_cs_sent;
 static int lz_on, lz_n, lz_list; static long st_lz_deferred, st_lz_cancelled, st_lz_sent, st_tp_skipped; static void lz_apply(void);
+static int filter_enabled; static void mq_replay(void); static int mq_n; static int vp_ok; static GLint vp_cur[4]; static long st_vp_skipped;
 static int tr_on, tr_frames; static char *tr_buf; static size_t tr_len, tr_cap;
 static void tr_add(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 #include <stdarg.h>
@@ -106,7 +107,7 @@ static void update_busy(void)
     dirty_t = !gl_t_ok || memcmp(gl_t, cur_t, sizeof gl_t);
     dirty_c = !gl_c_ok || memcmp(gl_c, cur_c, sizeof gl_c);
     dirty_n = !gl_n_ok || memcmp(gl_n, cur_n, sizeof gl_n);
-    mugl_busy = (unsigned char)(count_mode || tr_on || ts_active_flag || cs_dirty || lz_n || mugl_in_begin || pending || owned || dirty_t || dirty_c || dirty_n);
+    mugl_busy = (unsigned char)(count_mode || tr_on || ts_active_flag || cs_dirty || lz_n || mq_n || mugl_in_begin || pending || owned || dirty_t || dirty_c || dirty_n);
 }
 static void set_gl_t(const GLfloat *v) { if (!gl_t_ok || memcmp(gl_t, v, sizeof gl_t)) { R(glTexCoord2fv, PFNfv)(v); memcpy(gl_t, v, sizeof gl_t); gl_t_ok = 1; } }
 static void set_gl_c(const GLfloat *v) { if (!gl_c_ok || memcmp(gl_c, v, sizeof gl_c)) { R(glColor4fv, PFNfv)(v); memcpy(gl_c, v, sizeof gl_c); gl_c_ok = 1; } }
@@ -149,7 +150,8 @@ static void stats_tick(void)
     pace_stats(st_file); io_stats(st_file); ts_stats(st_file);
     if (st_pace_skips) { fprintf(st_file, "pace: skipped game sleeps=%ld ", st_pace_skips); st_pace_skips = 0; }
     if (cs_lazy) { fprintf(st_file, "clientstate deferred=%ld sent=%ld ", st_cs_skipped, st_cs_sent); st_cs_skipped = st_cs_sent = 0; }
-    if (lz_on) { fprintf(st_file, "enables deferred=%ld cancelled=%ld sent=%ld texparam skipped=%ld ", st_lz_deferred, st_lz_cancelled, st_lz_sent, st_tp_skipped); st_lz_deferred = st_lz_cancelled = st_lz_sent = st_tp_skipped = 0; }
+    if (lz_on) { fprintf(st_file, "enables deferred=%ld cancelled=%ld sent=%ld texparam skipped=%ld matrix dropped=%ld replayed=%ld viewport skipped=%ld ", st_lz_deferred, st_lz_cancelled, st_lz_sent, st_tp_skipped, st_mq_dropped, st_mq_sent, st_vp_skipped);
+                 st_lz_deferred = st_lz_cancelled = st_lz_sent = st_tp_skipped = st_mq_dropped = st_mq_sent = st_vp_skipped = 0; }
     if (cull_on) { fprintf(st_file, "culled=%ld/%ld batches %ld verts ", st_cull_batches, st_cull_tested, st_cull_verts); st_cull_batches = st_cull_tested = st_cull_verts = 0; }
     if (cull_verify) { fprintf(st_file, "cullverify checked=%ld nonzero=%ld total %lld/%lld ", st_cv_checked, st_cv_bad, cv_tot_checked, cv_tot_bad); st_cv_checked = st_cv_bad = 0; }
     fprintf(st_file, "skipped=%ld orphans=%ld/%ld subKB=%ld vbo=%d ", st_skipped, st_orphans, st_subs, st_sub_bytes / 1024, vbo_emu); st_skipped = 0; st_orphans = st_subs = 0; st_sub_bytes = st_sub_calls = 0;
@@ -380,7 +382,8 @@ void mugl_sync_from(int idx)
             !strcmp(nm, "glScalef") || !strcmp(nm, "glScaled") || !strncmp(nm, "glLoadMatrix", 12) || !strncmp(nm, "glMultMatrix", 12) ||
             !strcmp(nm, "glOrtho") || !strcmp(nm, "glFrustum");
         if (mx) matrix_modified();
-        else if (lz_n) lz_apply();   /* every export except state calls (index -1) and matrix calls may observe enables */
+        else if (lz_n) lz_apply();
+        if (mq_n && !mx) mq_replay();   /* (matrix calls replay or queue in their wrappers) */   /* every export except state calls (index -1) and matrix calls may observe enables */
         if (!strncmp(nm, "wglMakeCurrent", 14) || !strncmp(nm, "wglDeleteContext", 16)) { forget_state(); mstk_valid = 0; cs_forget(); }
         if (mugl_flags[idx] & 2) release_arrays();
         if (mugl_flags[idx] & 1) send_current();
@@ -395,6 +398,7 @@ void mugl_sync(void)
     if (passthrough) return;
     flush_pending();
     lz_apply();
+    mq_replay();
     cs_apply();
     release_arrays();
     send_current();
@@ -468,6 +472,7 @@ void WINAPI mugl_glBegin(GLenum mode)
     TR("G %x %p\n", mode, __builtin_return_address(0));
     if (cs_dirty && !passthrough) { cs_apply(); update_busy(); }   /* glArrayElement may be used inside the block */
     if (lz_n && !passthrough) lz_apply();   /* vertices from here on are drawn with the deferred enables */
+    if (mq_n && !passthrough) mq_replay();   /* ... and the queued matrix calls */
     if ((ts_on_flag || qs_on_flag || ts_active_flag) && batching_enabled && merge_enabled && !mugl_in_begin && !passthrough && ts_begin_hook(mode, __builtin_return_address(0))) return;
     if (!batching_enabled || mugl_in_begin || passthrough) {
         flush_pending(); release_arrays(); send_current(); update_busy(); R(glBegin, PFN1u)(mode);
@@ -568,7 +573,7 @@ static void forget_state(void)
            cap_cache[0][GL_BLEND] = cap_cache[0][GL_CULL_FACE] = cap_cache[0][GL_ALPHA_TEST] = 0; }
     cap_ntouched = 0; cap_overflow = 0;
     memset(tex_ok, 0, sizeof tex_ok);
-    blend_ok = depth_mask_ok = matrix_mode_ok = alpha_ok = depth_func_ok = 0;
+    blend_ok = depth_mask_ok = matrix_mode_ok = alpha_ok = depth_func_ok = 0; vp_ok = 0;
 }
 static int unit_cap(GLenum cap)
 {   /* caps that are per texture unit */
@@ -605,6 +610,48 @@ static void lz_apply(void)
         if (lz_want[i] == 2) TIMED(4, R(glEnable, PFN1u)(lz_cap[i])); else TIMED(4, R(glDisable, PFN1u)(lz_cap[i]));
         unsigned char *s = &cap_cache[0][lz_cap[i]]; cap_touch(s); *s = lz_want[i]; st_lz_sent++;
     }
+    update_busy();
+}
+/* Send the queued matrix calls (cull.c) after submitting the batch specified under the old matrices. */
+static void mq_replay(void)
+{
+    if (!mq_n) return;
+    int n = mq_n; mq_n = 0;
+    flush_pending();
+    for (int i = 0; i < n; i++) {
+        const MqOp *o = &mq[i];
+        switch (o->kind) {
+        case MQ_PUSH: R(glPushMatrix, PFN0)(); break;
+        case MQ_LOADID: R(glLoadIdentity, PFN0)(); break;
+        case MQ_TRANSF: R(glTranslatef, PFNtf)(o->f[0], o->f[1], o->f[2]); break;
+        case MQ_ROTF: R(glRotatef, PFNmxr)(o->f[0], o->f[1], o->f[2], o->f[3]); break;
+        case MQ_ROTD: R(glRotated, PFNrd)(o->d[0], o->d[1], o->d[2], o->d[3]); break;
+        case MQ_SCALEF: R(glScalef, PFNtf)(o->f[0], o->f[1], o->f[2]); break;
+        case MQ_SCALED: R(glScaled, PFNtd)(o->d[0], o->d[1], o->d[2]); break;
+        case MQ_MULTF: R(glMultMatrixf, PFNmf)(o->f); break;
+        case MQ_MULTD: R(glMultMatrixd, PFNmd)(o->d); break;
+        case MQ_LOADF: R(glLoadMatrixf, PFNmf)(o->f); break;
+        case MQ_LOADD: R(glLoadMatrixd, PFNmd)(o->d); break;
+        case MQ_ORTHO: R(glOrtho, PFNod)(o->d[0], o->d[1], o->d[2], o->d[3], o->d[4], o->d[5]); break;
+        case MQ_FRUSTUM: R(glFrustum, PFNod)(o->d[0], o->d[1], o->d[2], o->d[3], o->d[4], o->d[5]); break;
+        }
+        st_mq_sent++;
+    }
+    mx_epoch++;   /* the culling cache may have read the matrices before the replay */
+    update_busy();
+}
+/* Repeated glViewport values are dropped (bit 1073741824); a change submits the batch first. Not an observer of the
+   deferred enables or matrices. */
+typedef void (WINAPI *PFNvp)(GLint, GLint, GLsizei, GLsizei);
+void WINAPI mugl_glViewport(GLint x, GLint y, GLsizei w, GLsizei h)
+{
+    TR("S glViewport\n");
+    if (lz_on && filter_enabled && !passthrough && !lz_list && vp_ok && vp_cur[0] == x && vp_cur[1] == y && vp_cur[2] == w && vp_cur[3] == h) { st_vp_skipped++; return; }
+    if (passthrough) { R(glViewport, PFNvp)(x, y, w, h); return; }
+    flush_pending();
+    if (!lz_on) { lz_apply(); mq_replay(); }
+    R(glViewport, PFNvp)(x, y, w, h);
+    if (!lz_list) { vp_cur[0] = x; vp_cur[1] = y; vp_cur[2] = w; vp_cur[3] = h; vp_ok = 1; }
     update_busy();
 }
 /* 1 = handled (recorded, cancelled or redundant) */
@@ -712,6 +759,7 @@ void WINAPI mugl_glDepthMask(GLboolean f)
 }
 void WINAPI mugl_glMatrixMode(GLenum m)
 {
+    if (mq_n && !passthrough) mq_replay();   /* queued calls belong to the current mode */
     mmode = m; mmode_known = 1;
     if (filter_enabled && matrix_mode_ok && matrix_mode == m && !passthrough) { st_skipped++; return; }
     /* matrix mode does not affect pending vertices: no flush */
@@ -749,6 +797,12 @@ void WINAPI mugl_glPushMatrix(void)
 {
     TR("push\n");
     if (passthrough) { R(glPushMatrix, PFN0)(); return; }
+    if (mq_can() && mq_n < 48) {   /* v7.6: start or nest a queued span */
+        mq[mq_n++].kind = MQ_PUSH; update_busy();
+        int m = cur_mmode_idx(); if (msp[m] < 64) mstk[m][msp[m]] = 0; msp[m]++;
+        return;
+    }
+    if (mq_n) mq_replay();
     /* no flush: pending vertices are unaffected by a push */
     R(glPushMatrix, PFN0)();
     int m = cur_mmode_idx(); if (msp[m] < 64) mstk[m][msp[m]] = 0; msp[m]++;
@@ -758,6 +812,11 @@ void WINAPI mugl_glPopMatrix(void)
     TR("pop\n");
     if (passthrough) { R(glPopMatrix, PFN0)(); return; }
     int m = cur_mmode_idx();
+    if (mq_n) {   /* v7.6: the matching push is queued: drop it and everything after it */
+        int p = mq_n - 1; while (p >= 0 && mq[p].kind != MQ_PUSH) p--;
+        if (p >= 0) { st_mq_dropped += mq_n - p + 1; mq_n = p; if (msp[m] > 0) msp[m]--; update_busy(); return; }
+        mq_replay();
+    }
     int unchanged = mstk_valid && mmode_known && msp[m] > 0 && msp[m] <= 64 && !mstk[m][msp[m] - 1];
     if (!unchanged) mugl_sync_from(-1);
     R(glPopMatrix, PFN0)();
@@ -769,6 +828,8 @@ void WINAPI mugl_glPopMatrix(void)
 void WINAPI mugl_glLoadIdentity(void)
 {
     TR("loadidentity\n");
+    if (mq_add(MQ_LOADID, 0, 0, 0, 0)) return;
+    if (mq_n) mq_replay();
     mugl_sync_from(-1); R(glLoadIdentity, PFN0)(); matrix_modified(); mx_epoch++;
 }
 
@@ -788,6 +849,7 @@ static void query_prep(GLenum p)
 {
     if (passthrough) return;
     if (lz_n) lz_apply();   /* glGet* can read enables */
+    if (mq_n) mq_replay();   /* ... and matrices or stack depths */
     if (pname_current(p)) { flush_pending(); send_current(); }
     if (pname_client(p)) { flush_pending(); cs_apply(); release_arrays(); }
     update_busy();
@@ -1002,9 +1064,9 @@ static void WINAPI mugl_ActiveTexture(GLenum unit)
 }
 
 /* calls that change current values behind our back */
-void WINAPI mugl_glPopAttrib(void) { flush_pending(); lz_apply(); TIMED(3, R(glPopAttrib, PFN0)()); tp_gen++; cur_known = 0; forget_gl_current(); forget_state(); mmode_known = 0; update_busy(); }
-void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); tp_gen++; mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
-void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); tp_gen++; mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
+void WINAPI mugl_glPopAttrib(void) { flush_pending(); lz_apply(); mq_replay(); TIMED(3, R(glPopAttrib, PFN0)()); tp_gen++; vp_ok = 0; cur_known = 0; forget_gl_current(); forget_state(); mmode_known = 0; update_busy(); }
+void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); tp_gen++; vp_ok = 0; mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
+void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); tp_gen++; vp_ok = 0; mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
 
 /* Live mode switch: C:\mutools\mugl-mode.txt holds one of full|nomerge|nofilter|off (checked ~1/s). */
 static DWORD mode_check; static char mode_cur[64] = "full";
@@ -1019,16 +1081,18 @@ static void check_mode_file(void)
     if (!m[0] || !strcmp(m, mode_cur)) return;
     strcpy(mode_cur, m);
     /* "+" tokens in any order: vbo, time, finish, samples (see gpudiag.c) */
-    int want_vbo = 0; time_mode = finish_mode = samples_mode = cull_mode = 0;
+    int want_vbo = 0, want_nomx = 0; time_mode = finish_mode = samples_mode = cull_mode = 0;
     for (char *tok = strchr(m, '+'); tok; ) {
         *tok++ = 0; char *nx = strchr(tok, '+'); if (nx) *nx = 0;
         if (!strcmp(tok, "vbo")) want_vbo = 1; else if (!strcmp(tok, "time")) time_mode = 1;
         else if (!strcmp(tok, "finish")) finish_mode = 1; else if (!strcmp(tok, "samples")) samples_mode = 1;
-        else if (!strcmp(tok, "cull")) cull_mode = 1;
+        else if (!strcmp(tok, "cull")) cull_mode = 1; else if (!strcmp(tok, "nomx")) want_nomx = 1;
         if (nx) *nx = '+';
         tok = nx;
     }
     vbo_emu_set(want_vbo);
+    if (want_nomx && mq_n) mq_replay();
+    mq_enabled = !want_nomx;
     nodraw = !strcmp(m, "nodraw"); if (nodraw) strcpy(m, "full");   /* diagnostic: skip batched draws */
     batching_enabled = strcmp(m, "off") != 0;
     merge_enabled = strcmp(m, "nomerge") != 0 && batching_enabled;
@@ -1233,7 +1297,7 @@ static void hp_set(int mask)
     ts_on_flag = (mask & 16384) != 0; ts_verify = (mask & 32768) != 0;
     qs_on_flag = (mask & 65536) != 0; qs_verify = (mask & 131072) != 0;
     cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;
-    if (lz_on != ((mask & 1073741824) != 0)) { flush_pending(); lz_apply(); lz_on = (mask & 1073741824) != 0; tp_gen++; update_busy(); }
+    if (lz_on != ((mask & 1073741824) != 0)) { flush_pending(); lz_apply(); mq_replay(); lz_on = (mask & 1073741824) != 0; tp_gen++; vp_ok = 0; update_busy(); }
     if (cs_lazy != ((mask & 262144) != 0)) { if (cs_lazy) { flush_pending(); cs_apply(); } cs_forget(); cs_lazy = (mask & 262144) != 0; update_busy(); }
     if (st_file) fprintf(st_file, "terrain sort %s%s, quad batching %s%s\n", ts_on_flag ? "on" : "off", ts_verify ? " (verify)" : "",
                          qs_on_flag ? "on" : "off", qs_verify ? " (verify)" : "");

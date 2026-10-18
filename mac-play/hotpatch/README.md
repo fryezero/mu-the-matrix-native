@@ -128,7 +128,7 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 134217728 | With 67108864: the client's own decoder runs as well and every row is compared (diagnostic) |
 | 268435456 | Native CRC-32: the table-driven CRC routine `0x00aa2c62` computed eight bytes at a time from the client's own table (`crc.c`) |
 | 536870912 | With 268435456: also run the original routine and compare (diagnostic) |
-| 1073741824 | Deferred enables and redundant texture parameters: glEnable/glDisable of caps that are not per texture unit are recorded and sent only before something can observe them (a change back cancels); repeated glTexParameteri filter/wrap values on the bound GL_TEXTURE_2D object are dropped |
+| 1073741824 | Deferred enables and redundant texture parameters: glEnable/glDisable of caps that are not per texture unit are recorded and sent only before something can observe them (a change back cancels); repeated glTexParameteri filter/wrap values on the bound GL_TEXTURE_2D object are dropped; matrix calls after a glPushMatrix are queued and a glPopMatrix that finds its push queued drops the span; repeated glViewport values are dropped (mode token `+nomx` turns the matrix queue off) |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,

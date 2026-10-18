@@ -512,7 +512,7 @@ class V76Tests(unittest.TestCase):
         self.assertIn('else if (lz_n) lz_apply();',m)   # every export except state calls (-1) and matrix calls
         self.assertIn('if (lz_n) lz_apply();   /* glGet* can read enables */',m)
         self.assertIn('void WINAPI mugl_glPopAttrib(void) { flush_pending(); lz_apply();',m)
-        self.assertIn('flush_pending();\n    lz_apply();\n    cs_apply();',m)   # mugl_sync
+        self.assertIn('flush_pending();\n    lz_apply();\n    mq_replay();\n    cs_apply();',m)   # mugl_sync
         self.assertIn('|| cs_dirty || lz_n ||',m)   # pending records make the stubs synchronize
         self.assertIn("'glNewList':8,'glEndList':0",(SOURCE/'gen_exports.py').read_text())
         self.assertIn('lz_list = 1;',m)
@@ -526,3 +526,19 @@ class V76Tests(unittest.TestCase):
         self.assertIn('memset(tex_ok, 0, sizeof tex_ok); tp_gen++;',m)   # texture deletion
         self.assertIn('TIMED(3, R(glPopAttrib, PFN0)()); tp_gen++;',m)
         self.assertIn('glcaps.c',(ROOT/'mac-play/diagnostics/Makefile').read_text())
+
+    def test_matrix_spans_and_viewport(self):
+        cull = (SOURCE/'cull.c').read_text(); m = self.mugl
+        self.assertIn('if (!mq_n || !mq_can() || mq_n == 48) return 0;',cull)   # modifiers are queued only inside a queued push span
+        self.assertIn('if (p >= 0) { st_mq_dropped += mq_n - p + 1; mq_n = p;',m)
+        self.assertIn('if (mq_n && !passthrough) mq_replay();   /* queued calls belong to the current mode */',m)
+        self.assertIn('if (mq_n && !passthrough) mq_replay();   /* ... and the queued matrix calls */',m)
+        self.assertIn('if (mq_n) mq_replay();   /* ... and matrices or stack depths */',m)
+        self.assertIn('if (mq_n && !mx) mq_replay();',m)
+        r = m[m.index('static void mq_replay(void)\n{'):]
+        r = r[:r.index('\n}\n')]
+        self.assertLess(r.index('flush_pending();'),r.index('switch (o->kind)'))   # old geometry is drawn under the old matrices
+        self.assertIn('mx_epoch++;',r)   # the culling cache re-reads the matrices
+        self.assertIn("'glViewport':16",(SOURCE/'gen_exports.py').read_text())
+        self.assertIn('vp_cur[2] == w && vp_cur[3] == h) { st_vp_skipped++; return; }',m)
+        self.assertIn('blend_ok = depth_mask_ok = matrix_mode_ok = alpha_ok = depth_func_ok = 0; vp_ok = 0;',m)

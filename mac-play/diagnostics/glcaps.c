@@ -3,7 +3,8 @@
    that mugl batches, client glDrawArrays, glClear under a toggled scissor test), observes them (glIsEnabled,
    glGetBooleanv, glPushAttrib/glPopAttrib of the enable bit, a display list compiled with enables inside), and sets
    texture filters and wraps repeatedly on two texture objects, around a glPushAttrib/glPopAttrib of the texture bit
-   and a glTexParameterf. Prints an FNV hash of the last of 400 frames and a checksum of every query answer. mugl
+   and a glTexParameterf, and pushes and pops matrices around nothing, geometry, queries, mode switches and state calls,
+   with repeated and changed viewports. Prints an FNV hash of the last of 400 frames and a checksum of every query answer. mugl
    applies the mask after frame 100; in a test program MUGL_MASK (environment) overrides C:\mutools\mugl-hotpatch.txt.
    Compare the builtin opengl32 (WINEDLLOVERRIDES=opengl32=b) with the proxy (opengl32=n,b next to the exe) at masks
    with and without 1073741824. */
@@ -78,6 +79,22 @@ static void scene(int f)
     /* 7. glTexParameterf changes a value behind glTexParameteri */
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat)GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); tri(501, 1, 0.2f);
+    /* 9. matrix spans: empty, with geometry, nested, queried, across a mode switch; viewport repeats and changes */
+    for (int i = 0; i < 24; i++) {
+        float m[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, fr(i, 30) * 0.4f - 0.2f, fr(i, 31) * 0.4f - 0.2f, 0, 1}; GLfloat g[16];
+        glViewport(0, 0, 512, 512);
+        glPushMatrix(); glMultMatrixf(m); glRotatef(fr(i, 32) * 90, 0, 0, 1); glPopMatrix();                 /* empty */
+        glPushMatrix(); glTranslatef(0.1f, 0, 0); glPushMatrix(); glLoadIdentity(); glScalef(0.5f, 0.5f, 1); glPopMatrix();
+        if (i & 1) tri(600 + i, 1, 0.3f);                                                                      /* geometry in the outer span */
+        glPopMatrix();
+        glPushMatrix(); glMultMatrixf(m); glGetFloatv(GL_MODELVIEW_MATRIX, g); q(*(unsigned *)&g[12]); glPopMatrix();
+        glPushMatrix(); glOrtho(-1, 1, -1, 1, -1, 1); glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity(); glPopMatrix();
+        glMatrixMode(GL_MODELVIEW); tri(700 + i, 0, 0.35f); glPopMatrix();
+        glPushMatrix(); glMultMatrixf(m); glEnable(GL_BLEND); glBindTexture(GL_TEXTURE_2D, texa); glDisable(GL_BLEND); glPopMatrix();   /* state calls only */
+        if (i % 6 == 2) { glViewport(64, 64, 256, 256); tri(800 + i, 1, 0.4f); glViewport(0, 0, 512, 512); }
+        if (i % 6 == 4) { glPushAttrib(GL_VIEWPORT_BIT); glViewport(32, 32, 128, 128); glPopAttrib(); glViewport(32, 32, 128, 128); tri(900 + i, 1, 0.4f); glViewport(0, 0, 512, 512); }
+        if (i % 8 == 5) { GLint d; glPushMatrix(); glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &d); q((unsigned)d); glPopMatrix(); glRasterPos2f(-0.5f, -0.5f); }
+    }
     /* 8. display list with enables compiled inside */
     glCallList(list); tri(502, 0, 0.25f);
     glDisable(GL_CULL_FACE); glDisable(GL_BLEND); glDisable(GL_ALPHA_TEST);
