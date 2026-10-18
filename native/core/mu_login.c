@@ -73,6 +73,11 @@ int mu_login_init(mu_login_session *s, const char *root, const char *objects_dir
             fprintf(stderr, "login objects: %s (terrain only)\n", error);
         }
     }
+    /* NATIVE-JOINT-001: CreateSprite / CreateParticle through the reconstructed particle module */
+    if (!mu_world_particles_open(&s->particles, root, s->map, MU_LOGIN_WORLD_INDEX, 1, 0, error, sizeof error)) {
+        s->has_particles = 1;
+        mu_world_particles_attach(&s->particles, s->has_objects ? &s->objects : NULL, NULL);
+    }
     /* the first render's frustum (the frame-light copy of the first step uses it) */
     mu_move_main_camera(&s->frame->camera, &s->frame->view, 0);
     mu_view_begin_opengl(&s->frame->view, 0, 0, 640, 480);
@@ -83,6 +88,8 @@ int mu_login_init(mu_login_session *s, const char *root, const char *objects_dir
 
 void mu_login_free(mu_login_session *s)
 {
+    if (s->has_particles)
+        mu_world_particles_close(&s->particles);
     if (s->has_objects || s->objects.records)
         mu_objects_free(&s->objects);
     if (s->map)
@@ -111,6 +118,8 @@ void mu_login_step(mu_login_session *s, uint32_t now)
         mu_objects_step(&s->objects, &in);   /* MoveObjects 0x016d82c7 with CGMLogInScene_Ex slot 0x30 */
         mu_objects_apply_lights(&s->objects, s->map);
     }
+    if (s->has_particles)   /* MoveEffects, MoveJoints, MoveParticles of the tick head (NATIVE-JOINT-001) */
+        mu_world_particles_step(&s->particles, s->map->time);
     ++s->steps;
 }
 
@@ -149,12 +158,17 @@ void mu_login_frame(mu_login_session *s, uint32_t now)
     if (!s->has_objects)
         return;
     mu_objects *o = &s->objects;
+    const uint64_t sprites = s->particles.stats.sprites_created;
     mu_objects_visibility(o, &s->frustum, MU_LOGIN_SCENE);
     for (int32_t k = 0; k < o->rt.draw_count; ++k) {
         mu_draw_options options;
         mu_objects_prepare(o, k, s->map, MU_LOGIN_SCENE, &options);
     }
     mu_objects_after_visibility(o, &s->frustum, MU_LOGIN_SCENE);
+    if (s->has_particles) {
+        s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
+        mu_world_particles_discard_sprites(&s->particles);   /* a frame without drawing: RenderSprites' kill */
+    }
 }
 
 void mu_login_eye(const mu_login_session *s, float eye[3], float target[3])
@@ -185,6 +199,7 @@ long mu_login_draw_soft(mu_login_session *s, mu_raster *raster)
     mu_raster_backend(raster, &backend);
     const int linear = raster->linear;
     raster->linear = 1;
+    const uint64_t sprites = s->particles.stats.sprites_created;
     /* RenderObjects 0x016d5020 */
     mu_objects_visibility(o, &s->frustum, MU_LOGIN_SCENE);
     for (int32_t k = 0; k < o->rt.draw_count; ++k) {
@@ -224,18 +239,10 @@ long mu_login_draw_soft(mu_login_session *s, mu_raster *raster)
     raster->texture_filter = NULL;
     raster->texture_wrap = NULL;
     raster->linear = linear;
-    /* RenderSprites / RenderParticles (stand-in billboards) */
-    float eye[3], target[3];
-    mu_login_eye(s, eye, target);
-    static mu_fx_vertex quads[4 * (MU_OBJECT_SPRITES + MU_OBJECT_PARTICLES)];
-    for (int32_t b = 0; b < o->rt.bitmap_count; ++b) {
-        mu_fx_draw_state state;
-        const uint32_t n = mu_objects_billboard_quads(o, b, eye, target, quads,
-                                                      4 * (MU_OBJECT_SPRITES + MU_OBJECT_PARTICLES), &state);
-        if (n) {
-            mu_effect_raster_quads(raster, quads, n, &state, &o->rt.bitmaps[b], NULL);
-            s->billboards += n / 4;
-        }
+    /* RenderSprites(0) / RenderParticles(0) (NATIVE-JOINT-001: the reconstructed particle module) */
+    if (s->has_particles) {
+        s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
+        s->billboards = mu_world_particles_draw_raster(&s->particles, raster, v->modelview);
     }
     return stats.tiles.faces;
 }
@@ -253,6 +260,6 @@ void mu_login_report(const mu_login_session *s, char *out, size_t size)
              MU_LOGIN_WORLD_INDEX, v->angle[0], v->angle[1], v->angle[2], v->position[0], v->position[1],
              v->position[2], v->fov, s->view_far, s->steps, s->frames, o->count, o->rt.created, o->models_loaded,
              o->models_missing, s->objects_drawn, o->rt.draw_count, o->rt.after_count, s->after_meshes,
-             o->rt.sprite_count, o->rt.particle_count, s->billboards,
+             s->frame_sprites, (int32_t)s->particles.stats.live, s->billboards,
              s->has_objects ? mu_objects_animated(o) : 0);
 }

@@ -115,6 +115,7 @@ static const struct { int32_t id; const char *dir, *name; char kind; } bitmap_fi
     {0x7f26, "Effect", "Spark03.jpg", 'j'},
     {0x7fd8, "Effect", "JointEnergy01.jpg", 'j'},
     {0x7fd3, "Effect", "JointSpirit01.jpg", 'j'},
+    {0x7fd5, "Effect", "Spark01.jpg", 'j'},         /* the Twisting Slash swirl's spark joints (NATIVE-JOINT-001) */
 };
 
 static int32_t bitmap_slot(const mu_combat *c, int32_t id)
@@ -380,21 +381,18 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call)
     }
 }
 
+/* CreateJoint through the shared joint pool helpers (NATIVE-JOINT-001: reconstructed/joints). */
 static void create_joint(mu_combat *c, int32_t type, const float position[3], const float target_position[3],
                          const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
                          uint16_t skill)
 {
-    for (int i = 0; i < MU_SFX_JOINTS; ++i) {
-        mu_sfx_joint *j = &c->joints[i];
-        if (j->live)
-            continue;
-        if (mu_sfx_joint_create(j, type, position, target_position, angle, subtype, target, scale, key, skill, 0,
-                                0xffff, 0, &c->env))
-            ++c->stats.joints_created;
-        else
-            ++c->stats.unsupported;
-        return;
-    }
+    c->jenv.serial = c->serial;
+    const int32_t i = mu_joints_create(c->joints, MU_SFX_JOINTS, type, position, target_position, angle, subtype,
+                                       target, scale, key, skill, 0, 0xffff, 0, &c->jenv);
+    if (i >= 0)
+        ++c->stats.joints_created;
+    else if (i == -2)
+        ++c->stats.unsupported;
 }
 
 static void add_light(mu_combat *c, float x, float y, const float rgb[3], int32_t range)
@@ -528,8 +526,31 @@ static int env_model(void *context, int32_t type, uint16_t action, int16_t *keys
     return 1;   /* a missing native model: the client has it */
 }
 
+/* The joint module's view of the skill environment. */
+static int32_t jt_rand(void *context) { return crt_rand(context); }
+static float jt_height(void *context, float x, float y) { return env_terrain_height(context, x, y); }
+static const mu_jt_object *jt_object(void *context, int32_t index) { return env_object(context, index); }
+static void jt_call(void *context, const mu_jt_call *call) { env_call(context, call, NULL); }
+
+/* MoveJoint's inputs: the wall test under the head (Evil Spirit's wide spirits) and the hero target. */
+static void joint_inputs(void *context, const mu_jt_joint *j, mu_jt_move_inputs *in)
+{
+    mu_combat *c = context;
+    in->wall = c->map ? c->map->attributes[(((int32_t)(j->position[1] / 100.0f) & 0xff) << 8) +
+                                           ((int32_t)(j->position[0] / 100.0f) & 0xff)] : 0;
+    in->wall_scene = 1;
+    in->is_hero_target = j->target == MU_COMBAT_HERO_OBJECT;
+}
+
 static void init_env(mu_combat *c)
 {
+    memset(&c->jenv, 0, sizeof c->jenv);
+    c->jenv.context = c;
+    c->jenv.rand = jt_rand;
+    c->jenv.height = jt_height;
+    c->jenv.object = jt_object;
+    c->jenv.call = jt_call;
+    c->jenv.serial = c->serial;
     memset(&c->env, 0, sizeof c->env);
     c->env.context = c;
     c->env.rand = crt_rand;
@@ -684,16 +705,8 @@ static void move_pools(mu_combat *c)
     for (int i = 0; i < MU_SFX_EFFECTS; ++i)
         if (c->effects[i].live && !mu_sfx_effect_move(&c->effects[i], &c->env))
             c->effects[i].live = 0;   /* an unsupported kind ends at once */
-    for (int i = 0; i < MU_SFX_JOINTS; ++i) {
-        mu_sfx_joint *j = &c->joints[i];
-        if (!j->live)
-            continue;
-        uint16_t wall = c->map ? c->map->attributes[(((int32_t)(j->position[1] / 100.0f) & 0xff) << 8) +
-                                                    ((int32_t)(j->position[0] / 100.0f) & 0xff)] : 0;
-        if (!mu_sfx_joint_move(j, &c->env, c->time_step, 1, wall,
-                               j->target == MU_COMBAT_HERO_OBJECT))
-            j->live = 0;
-    }
+    c->jenv.serial = c->serial;
+    mu_joints_move_all(c->joints, MU_SFX_JOINTS, &c->jenv, c->time_step, joint_inputs, c);
     int32_t kept = 0;
     for (int32_t i = 0; i < c->particle_count; ++i) {
         mu_sfx_particle *p = &c->particles[i];
@@ -1297,36 +1310,32 @@ int32_t mu_combat_quads(mu_combat *c, mu_combat_quad *quads, int32_t max)
     int32_t n = 0;
     float camera[12];
     camera_rows(c, camera);
-    /* RenderJoints 0x01589b56(0): ribbons in world space, in the blend of
-     * their render type; GL clamps the vertex colour (glColor3f) to 0..1 */
-    for (int i = 0; i < MU_SFX_JOINTS; ++i) {
-        const mu_sfx_joint *j = &c->joints[i];
-        if (!j->live)
-            continue;
-        mu_sfx_joint_quad jq[2 * MU_SFX_JOINT_TAILS];
-        float color[3];
-        int32_t render_type = 1;
-        int count = mu_sfx_joint_render(j, 0, color, &render_type, jq, 2 * MU_SFX_JOINT_TAILS);
-        for (int k = 0; k < count; ++k) {
-            mu_combat_quad *q = next_quad(quads, max, &n);
-            if (!q)
-                return n;
-            q->bitmap = bitmap_slot(c, j->tex_type);
-            q->depth_test = 1;
-            switch (render_type) {
-            case 3: q->src = 0; q->dst = 0x0301; break;          /* (ZERO, ONE_MINUS_SRC_COLOR) */
-            case 4: q->src = 0x0301; q->dst = 1; break;          /* (ONE_MINUS_SRC_COLOR, ONE) */
-            case 2: q->src = 0x0302; q->dst = 0x0303; break;     /* 0x0184a990(1) */
-            default: q->additive = 1; break;                     /* (ONE, ONE) */
+    /* RenderJoints 0x01589b56(0) through the shared joint helpers (NATIVE-JOINT-001): ribbons in world
+     * space, in the blend of their render type, with the colour in effect for each quad; GL clamps the
+     * vertex colour (glColor3f) to 0..1 */
+    static mu_joint_quad jq[4096];
+    const int32_t joint_quads = mu_joints_quads(c->joints, MU_SFX_JOINTS, 0, c->map ? c->map->time : 0.0f, jq, 4096);
+    for (int32_t k = 0; k < joint_quads; ++k) {
+        mu_combat_quad *q = next_quad(quads, max, &n);
+        if (!q)
+            return n;
+        q->bitmap = bitmap_slot(c, jq[k].bitmap);
+        q->depth_test = 1;
+        switch (jq[k].render_type) {
+        case 3: q->src = 0; q->dst = 0x0301; break;          /* (ZERO, ONE_MINUS_SRC_COLOR) */
+        case 4: q->src = 0x0301; q->dst = 1; break;          /* (ONE_MINUS_SRC_COLOR, ONE) */
+        case 2: q->src = 0x0302; q->dst = 0x0303; break;     /* 0x0184a990(1) */
+        default: q->additive = 1; break;                     /* (ONE, ONE) */
+        }
+        for (int v = 0; v < 4; ++v) {
+            memcpy(q->position[v], jq[k].position[v], sizeof q->position[v]);
+            q->texcoord[v][0] = jq[k].uv[v][0];
+            q->texcoord[v][1] = jq[k].uv[v][1];
+            for (int ch = 0; ch < 3; ++ch) {
+                const float col = jq[k].color[ch];
+                q->color[v][ch] = col < 0.0f ? 0.0f : (col > 1.0f ? 1.0f : col);
             }
-            for (int v = 0; v < 4; ++v) {
-                memcpy(q->position[v], jq[k].position[v], sizeof q->position[v]);
-                q->texcoord[v][0] = jq[k].uv[v][0];
-                q->texcoord[v][1] = jq[k].uv[v][1];
-                for (int ch = 0; ch < 3; ++ch)
-                    q->color[v][ch] = color[ch] < 0.0f ? 0.0f : (color[ch] > 1.0f ? 1.0f : color[ch]);
-                q->color[v][3] = 1.0f;
-            }
+            q->color[v][3] = 1.0f;
         }
     }
     /* RenderParticles 0x0159123f(0): RenderSprite billboards, additive for
@@ -1495,9 +1504,7 @@ int32_t mu_combat_live_particles(const mu_combat *c)
 
 int32_t mu_combat_live_joints(const mu_combat *c)
 {
-    int32_t n = 0;
-    for (int i = 0; i < MU_SFX_JOINTS; ++i)
-        n += c->joints[i].live != 0;
+    int32_t n = mu_joints_live(c->joints, MU_SFX_JOINTS);
     return n;
 }
 

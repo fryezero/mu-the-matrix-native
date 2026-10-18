@@ -48,6 +48,7 @@
 #include "mu_bmd.h"
 #include "mu_character.h"
 #include "mu_image.h"
+#include "mu_joints.h"
 #include "mu_model.h"
 #include "mu_scene.h"
 #include "mu_textures.h"
@@ -171,6 +172,7 @@ typedef struct mu_combat {
     mu_sfx_joint joints[MU_SFX_JOINTS];
     mu_sfx_object objects[MU_WORLD_ACTORS_MAX + 1];
     mu_sfx_env env;
+    mu_jt_env jenv;            /* NATIVE-JOINT-001: the joint module's view of env (mu_joints.h) */
     uint32_t crt_seed;         /* the client's rand() recurrence for the effect randomness */
     uint8_t serial;            /* [[0x01d1df18] + 0x2dec] */
     mu_combat_light lights[MU_COMBAT_LIGHTS];

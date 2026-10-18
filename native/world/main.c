@@ -150,6 +150,7 @@ typedef struct app {
     mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
     mu_gl_backend env_gl[MU_WORLD_ENV_MODELS + 1];   /* models, then the weather bitmaps */
     mu_gl_backend particle_gl;                       /* NATIVE-PARTICLE-001: the effect bitmaps */
+    mu_gl_backend particle_model_gl[MU_WORLD_FX_MODELS]; /* NATIVE-JOINT-001: the world objects' effect models */
     const mu_image *fx_images[64];
     GLuint fx_names[64];
     int fx_count;
@@ -359,8 +360,10 @@ static void on_step(void *context, mu_walk *w)
         if (a->has_sound)
             a->sound.rain = a->env.env.rain_level;   /* 0x0a3a9acc for the per-frame audio block */
     }
-    if (a->has_particles)   /* MoveParticles, after the other movers of the in-world tick */
+    if (a->has_particles) {   /* MoveEffects, MoveJoints, MoveParticles after the other movers of the in-world tick */
+        mu_world_particles_set_hero(&a->particles, h->position);
         mu_world_particles_step(&a->particles, a->map->time);
+    }
 }
 
 /* Once per rendered frame after the frame cap: the per-frame audio block. */
@@ -747,6 +750,7 @@ static void gl_setup(app *a)
     if (a->has_env)
         mu_gl_upload(&a->env_gl[MU_WORLD_ENV_MODELS], &a->env.bitmaps, 0);
     memset(&a->particle_gl, 0, sizeof a->particle_gl);
+    memset(a->particle_model_gl, 0, sizeof a->particle_model_gl);
     if (a->has_particles)
         mu_gl_upload(&a->particle_gl, &a->particles.bitmaps, 0);
     a->fx_count = 0;
@@ -774,6 +778,9 @@ static void gl_teardown(app *a)
             mu_gl_release(&a->object_gl[t]);
     if (a->particle_gl.textures)
         mu_gl_release(&a->particle_gl);
+    for (int i = 0; i < MU_WORLD_FX_MODELS; ++i)
+        if (a->particle_model_gl[i].textures)
+            mu_gl_release(&a->particle_model_gl[i]);
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
@@ -950,6 +957,20 @@ static int particle_gl_backend(void *context, const mu_world_particles *p, mu_re
     return 0;
 }
 
+/* NATIVE-JOINT-001: the world objects' effect models (the Tormenta tornado) through the scene draw. */
+static void particle_model_gl(void *context, const mu_model *model, const mu_textures *textures, int32_t slot,
+                              const mu_draw_options *draw_options)
+{
+    app *a = context;
+    mu_gl_backend *gl = &a->particle_model_gl[slot];
+    if (!gl->textures)
+        mu_gl_upload(gl, textures, 0);
+    mu_render_backend backend;
+    mu_gl_backend_bind(gl, &backend);
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_scene_draw_model(model, draw_options, &backend, &ds);
+}
+
 static long draw_gl(app *a, int32_t width, int32_t height)
 {
     const mu_client_view *v = &a->walk.frame.view;
@@ -1032,7 +1053,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_render_backend backend;
     mu_gl_backend_bind(&plain, &backend);
     marker(a, &backend);
-    if (a->has_particles) {   /* the sprite section: RenderSprites(0), RenderParticles(0) (NATIVE-PARTICLE-001) */
+    if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
+        mu_world_particles_draw_models(&a->particles, particle_model_gl, a);
         mu_world_particles_target target = {a, particle_gl_backend};
         mu_world_particles_draw(&a->particles, v->modelview, &target);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -1138,8 +1160,10 @@ static long draw_soft(app *a, mu_raster *raster)
     raster->texture_wrap = NULL;
     if (a->has_env)
         mu_world_env_draw_raster(&a->env, raster, v->modelview, a->legacy_box ? NULL : &a->frustum);
-    if (a->has_particles)   /* the sprite section (NATIVE-PARTICLE-001) */
+    if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
+        mu_world_particles_draw_models_raster(&a->particles, raster);
         mu_world_particles_draw_raster(&a->particles, raster, v->modelview);
+    }
     marker(a, &backend);
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
@@ -1165,7 +1189,7 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            " \"path\": [%u, %u, %u], \"target\": [%d, %d], \"fov\": %.3f, \"pitch\": %.3f, \"far\": %.2f,"
            " \"eye\": [%.2f, %.2f, %.2f], \"hero_tile\": %d, \"footsteps\": %u, \"voices\": %d, \"music\": %d,"
            " \"tiles\": %ld, \"box\": [%d, %d, %d, %d], \"effects\": %u, \"env\": [%u, %u, %u, %u, %u],"
-           " \"particles\": [%u, %u, %u, %u], \"sha256\": \"%s\", \"png\": \"%s\"}\n",
+           " \"particles\": [%u, %u, %u, %u], \"joints\": [%u, %u, %u], \"sha256\": \"%s\", \"png\": \"%s\"}\n",
            frame, now, w->steps, (double)h->position[0], (double)h->position[1], (double)h->position[2], h->tile[0],
            h->tile[1], (double)h->angle[2], h->action, (double)h->frame, h->run, h->safe_zone, h->movement,
            h->path.current, h->path.current_float, h->path.count, w->target[0], w->target[1], (double)v->fov,
@@ -1176,6 +1200,7 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            a->effects_visible, a->env.stats.live_boids, a->env.stats.live_fishs, a->env.stats.live_leaves,
            a->env.stats.drawn_objects, a->env.stats.drawn_leaves, a->particles.stats.live,
            a->particles.stats.drawn_particles, a->particles.stats.drawn_sprites, a->particles.stats.shadows,
+           a->particles.stats.live_joints, a->particles.stats.drawn_joint_quads, a->particles.stats.live_effects,
            hash ? hash : "", png ? png : "");
     if (a->combat)
         mu_combat_report_frame(a->combat, stdout, frame);
@@ -1227,16 +1252,23 @@ static void report_summary(const app *a, const char *renderer)
         printf("{\"particles\": true, \"created\": %llu, \"dropped\": %llu, \"unsupported\": %llu,"
                " \"overflow\": %llu, \"live\": %u, \"max_live\": %u, \"steps\": %u, \"sprites_created\": %llu,"
                " \"drawn_particles\": %u, \"drawn_sprites\": %u, \"shadows\": %u, \"shadow_vertices\": %u,"
-               " \"visuals\": %u, \"joints\": %llu, \"effects\": %llu, \"rand_calls\": %llu,"
-               " \"bitmaps\": [%d, %d, %d, %d, %d, %d, %d, %d, %d]}\n",
+               " \"visuals\": %u, \"joints\": %llu, \"effects\": %llu, \"rand_calls\": %llu, \"bitmaps\": [",
                (unsigned long long)p->created, (unsigned long long)p->dropped, (unsigned long long)p->unsupported,
                (unsigned long long)p->overflow, p->live, p->max_live, p->steps,
                (unsigned long long)p->sprites_created, p->drawn_particles, p->drawn_sprites, p->shadows,
                p->shadow_vertices, p->visuals, (unsigned long long)p->joints, (unsigned long long)p->effects,
-               (unsigned long long)a->particles.rand_calls, a->particles.bitmap_present[0],
-               a->particles.bitmap_present[1], a->particles.bitmap_present[2], a->particles.bitmap_present[3],
-               a->particles.bitmap_present[4], a->particles.bitmap_present[5], a->particles.bitmap_present[6],
-               a->particles.bitmap_present[7], a->particles.bitmap_present[8]);
+               (unsigned long long)a->particles.rand_calls);
+        for (int i = 0; i < MU_WORLD_PT_BITMAPS; ++i)
+            printf("%s%d", i ? ", " : "", a->particles.bitmap_present[i]);
+        printf("]}\n");
+        /* NATIVE-JOINT-001: the world objects' joint and effect pools */
+        printf("{\"joints\": true, \"created\": %llu, \"unsupported\": %llu, \"full\": %llu, \"live\": %u,"
+               " \"max_live\": %u, \"quads\": %u, \"effects_created\": %llu, \"effects_unsupported\": %llu,"
+               " \"effects_live\": %u, \"effect_models\": %u, \"sounds\": %llu}\n",
+               (unsigned long long)p->joints_created, (unsigned long long)p->joints_unsupported,
+               (unsigned long long)p->joints_full, p->live_joints, p->max_joints, p->drawn_joint_quads,
+               (unsigned long long)p->effects_created, (unsigned long long)p->effects_unsupported, p->live_effects,
+               p->drawn_effect_models, (unsigned long long)p->sounds);
     }
     if (a->has_objects)
         printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"
