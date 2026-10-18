@@ -46,9 +46,25 @@ def run(*args, check=True):
     return result
 
 
+# mu-render corners writes the literal GL stream: (op, four words) per call.
+GL_BEGIN, GL_END = 1, 2
+CORNER_KINDS = {3: 1, 5: 2, 6: 3, 7: 4}   # glTexCoord2f, glColor3fv, glColor4f, glVertex3fv
+
+
 def corner_records(path):
+    """(glBegin block, kind, four floats) for every corner call inside glBegin/glEnd:
+    kind 1 texcoord, 2 colour3, 3 colour4, 4 vertex. Block n is the n-th mesh drawn."""
     data = Path(path).read_bytes()
-    return [struct.unpack_from('<II4f', data, offset) for offset in range(0, len(data), 24)]
+    out, block, inside = [], -1, False
+    for offset in range(0, len(data), 20):
+        op = struct.unpack_from('<I', data, offset)[0]
+        if op == GL_BEGIN:
+            block, inside = block + 1, True
+        elif op == GL_END:
+            inside = False
+        elif inside and op in CORNER_KINDS:
+            out.append((block, CORNER_KINDS[op]) + struct.unpack_from('<4f', data, offset + 4))
+    return out
 
 
 def edge_layout():

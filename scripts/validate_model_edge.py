@@ -752,7 +752,7 @@ def run_transform(machine, model, foreign_state, foreign_spans, authored=None):
     return result
 
 
-def run_mesh_draw(machine, model, mesh, flags=0):
+def run_mesh_draw(machine, model, mesh, flags=0, select=-1):
     record = mesh_records(machine, model)[mesh]
     expected = [('vertices', VERTICES+mesh*VERTEX_STRIDE, 12*record['nv']),
                 ('normals', NORMALS+mesh*VERTEX_STRIDE, 12*record['nn']),
@@ -767,8 +767,8 @@ def run_mesh_draw(machine, model, mesh, flags=0):
     if record['sub']:
         arena.append(('sub', record['sub'], 5))
     machine.begin(MESH_DRAW, expected, [a for a in arena if a[2] > 0])
-    arguments = [mesh, flags, VERTICES, NORMALS, LIGHTS, bits(1.0), -1, bits(1.0), bits(0.0), bits(0.0),
-                 0xffffffff]
+    arguments = [mesh, flags, VERTICES, NORMALS, LIGHTS, bits(1.0), select & 0xffffffff, bits(1.0), bits(0.0),
+                 bits(0.0), 0xffffffff]
     return machine.call(MESH_DRAW, arguments, model, 0x2c)
 
 
@@ -1021,20 +1021,29 @@ def corner_calls(gl):
 
 
 def native_corners(tool, path, scratch):
-    """mu-render corners stream per mesh, in the same (op, bits...) form."""
+    """mu-render corners stream as one corner list per glBegin/glEnd block, in the same (op, bits...) form.
+
+    The tool writes the literal GL stream of the mesh-draw port (op, four words per call); the
+    blocks follow the body's mesh order, one per mesh that reaches glBegin."""
     import subprocess
     output = Path(scratch)/'corners.bin'
     run = subprocess.run([str(tool), 'corners', str(path), '--out', str(output)], capture_output=True, text=True)
     if run.returncode:
         return None, run.stderr.strip()
     data = output.read_bytes()
-    meshes = {}
-    for offset in range(0, len(data), 24):
-        mesh, op, a, b, c, d = struct.unpack_from('<II4I', data, offset)
-        names = {1: 't', 2: 'c3', 3: 'c4', 4: 'v'}
-        if op in names:
-            meshes.setdefault(mesh, []).append((names[op],)+(a, b, c, d)[:{1: 2, 2: 3, 3: 4, 4: 3}[op]])
-    return meshes, json.loads(run.stdout)
+    names = {3: ('t', 2), 5: ('c3', 3), 6: ('c4', 4), 7: ('v', 3)}  # glTexCoord2f, glColor3fv, glColor4f, glVertex3fv
+    blocks, inside = [], False
+    for offset in range(0, len(data), 20):
+        op, a, b, c, d = struct.unpack_from('<5I', data, offset)
+        if op == 1:
+            blocks.append([])
+            inside = True
+        elif op == 2:
+            inside = False
+        elif inside and op in names:
+            name, width = names[op]
+            blocks[-1].append((name,)+(a, b, c, d)[:width])
+    return blocks, json.loads(run.stdout)
 
 
 def analyse(machine, authored, relative, raw, native=None, scratch=None):
@@ -1122,7 +1131,7 @@ def analyse(machine, authored, relative, raw, native=None, scratch=None):
     if meshes and poses:
         first = pose_samples(layout, census)[0]
         heap_reset = []
-        client_corners = {}
+        client_corners, client_begun = {}, set()
         machine.define(model+0xa8, struct.pack('<H', first[1]))
         for lighting in (1, 0):
             machine.define(model+0x50, bytes([lighting]))
@@ -1156,6 +1165,8 @@ def analyse(machine, authored, relative, raw, native=None, scratch=None):
                 zero, stale = streams['zero'], streams['stale']
                 if lighting == 1:
                     client_corners[i] = corner_calls(zero[0])
+                    if any(c[0] == 'glBegin' for c in zero[0]):
+                        client_begun.add(i)
                 record['gl_calls'] = len(zero[0])
                 record['triangles_begun'] = sum(1 for c in zero[0] if c[0] == 'glBegin')
                 record['vertex_calls'] = sum(1 for c in zero[0] if c[0] == 'glVertex3fv')
@@ -1170,13 +1181,42 @@ def analyse(machine, authored, relative, raw, native=None, scratch=None):
                 draws.append(record)
         machine.define(model+0x50, bytes([1]))
         if native is not None and first[1:] == (0, 0.0, 0.0, 0):
+            # mu-render corners runs the mesh draws through the body 0x012bb35a, which skips a mesh
+            # whose +0x1c sub-object has byte 1 set and passes select = mesh when byte 0 is set
+            # (texture names with "_R"). Give the client the same arguments for those meshes,
+            # from the same zero state (lighting on, first pose, zero tables).
+            records = mesh_records(machine, model)
+            subs = {i: machine.read(r['sub'], 5) for i, r in enumerate(records) if r['sub']}
+            if any(sub[1] or sub[0] for sub in subs.values()):
+                run_pose(machine, model, first[2], first[3], first[4], 'zero')
+                run_transform(machine, model, 'zero', spans)
+                machine.put(TEXCOORD_TABLE, bytes(15001*8))
+                for address, size in heap_reset:
+                    machine.uc.mem_write(address, bytes(size))
+                for i, sub in subs.items():
+                    if sub[1]:
+                        client_begun.discard(i)
+                        client_corners.pop(i, None)
+                    elif sub[0]:
+                        machine.put(COLOURS+i*VERTEX_STRIDE, bytes(VERTEX_STRIDE))
+                        d = run_mesh_draw(machine, model, i, select=i)
+                        client_corners[i] = corner_calls(d['gl'])
+                        if any(c[0] == 'glBegin' for c in d['gl']):
+                            client_begun.add(i)
+                        else:
+                            client_begun.discard(i)
+                report['body_select_meshes'] = sorted(i for i, sub in subs.items() if sub[0] and not sub[1])
             # The viewer's default state (action 0, frame 0) with the client's zero state.
             observed, info = native_corners(native, Path(native_root)/relative, scratch)
             if observed is None:
                 report['native'] = {'match': False, 'error': info}
             else:
-                mismatched = [i for i in client_corners if client_corners[i] != observed.get(i, [])]
-                report['native'] = {'match': not mismatched and set(observed) <= set(client_corners),
+                # The client draws are run per mesh; meshes without glBegin have no block.
+                drawn = sorted(client_begun)
+                observed = dict(zip(drawn, observed)) if len(observed) == len(drawn) else \
+                    {('block', n): v for n, v in enumerate(observed)}
+                mismatched = [i for i in drawn if client_corners[i] != observed.get(i, [])]
+                report['native'] = {'match': not mismatched and set(observed) <= set(drawn),
                                     'meshes': len(client_corners), 'corner_records': sum(len(v) for v in client_corners.values()),
                                     'mismatched_meshes': mismatched, 'tool': info}
                 if mismatched:

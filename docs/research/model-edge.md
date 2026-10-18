@@ -124,7 +124,7 @@ Read-modify-write instructions that discard the old value (`AND [x],0`, `OR [x],
 | Mesh draw per mesh, lighting on and off, zero and stale tables | 148 | 148 |
 | Reader on synthetic payloads with every rejected value kind (154 touch foreign memory, 253 sub-objects) | 300 | 300 |
 | Reader on every 25th installed v12/v14/v15 file the strict reader accepts | 477 | 477 |
-| `mu-render corners` stream vs the client's GL corner stream (fresh state) | 16 files, 288,207 records | 16 |
+| `mu-render corners` stream vs the client's GL corner stream (fresh state; meshes with an `_R` sub-object drawn with the body's `select = mesh`) | 16 files, 287,667 records | 16 |
 
 Expectations are derived from the census, not hard-coded, and the run fails on any difference:
 
@@ -135,7 +135,9 @@ Expectations are derived from the census, not hard-coded, and the run fails on a
 * non-finite slots must be exactly the NaN bone;
 * the draw's foreign reads must be exactly the three bad corner fields.
 
-Report: `evidence/model-edge-client/report.json` (SHA-256 `245bee5a…77b16ca`, authored library `94c32581…38d4f`), 2 min 39 s.
+`mu-render corners` runs the mesh draws through the executed body port `0x012bb35a` (CLIENT-MESHDRAW-EXEC-001). The body skips a mesh whose `+0x1c` sub-object has byte 1 set and passes `select = mesh` when byte 0 is set (texture names with `_R`), which selects the highlight pass. For the native comparison the validator calls the client's mesh draw with the same arguments for those meshes (3 meshes: `selupanUp` mesh 1, `Monster151` and `Monster415` mesh 3) from the same zero state; the 148 compared draw calls above keep `select = -1`. Re-run after the rebase onto the mesh-draw port, 2026-10-17: every count above unchanged, native corner streams 16/16 (287,667 records; the highlight pass has no per-corner colours).
+
+Earlier report: `evidence/model-edge-client/report.json` (SHA-256 `245bee5a…77b16ca`, authored library `94c32581…38d4f`), 2 min 39 s.
 
 Per-file observations (executed):
 
@@ -162,7 +164,7 @@ These readings come from static analysis of the image, not from execution:
 * **Authored C.** `reconstructed/model-codec/model_reader.c` reconstructs the reader section and the bone box pass. The texture-name parser and the allocator are callbacks.
 * **Native loader.** `native/core/mu_bmd` walks the payload like the client. The strict checks become anomalies, shown by `mu-render info` and by the viewer when it loads a file.
 * **Native model.** `mu_model` maps a zero 0x30-byte region at the client address of each out-of-range vertex/normal bone. Dummy slots keep their never-written zero contents.
-* **Native draw.** `mu_edge` redirects corner indices past their arrays to appended zero entries, so the mesh draws instead of being refused. Zero is the fresh-client value for the colour table, normal buffer and vertex slots. For the heap texcoord, zero is a labelled substitute.
+* **Native draw.** `mu_edge` redirects corner indices past their arrays to appended zero entries, so the mesh-draw port draws the mesh instead of refusing it. `mu_scene_draw_model` builds the view per mesh. The appended normals extend the mesh's normal count, so the port's colour pass and normal-texcoord table also run over them. The scratch `tables` hook resets those entries to zero after the tables are written and before the corner loop. The port itself is unchanged. Zero is the fresh-client value for the colour table, normal buffer and vertex slots. For the heap texcoord, zero is a labelled substitute.
 * **Corpus.** `mu-render scan` now loads, animates and draws all 11,583 v15 files with no refused mesh. The v12/v14/v15 total is 3,832,238 vertices, up from 3,814,006.
 
 Tests:

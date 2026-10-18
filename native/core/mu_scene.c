@@ -1,6 +1,8 @@
 /* Per-model draw driver over the mesh-draw port. See mu_scene.h. */
 #include "mu_scene.h"
 
+#include "mu_edge.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -185,6 +187,52 @@ static void adapter_call(void *context, uint32_t op, const uint32_t w[4])
     }
 }
 
+/* MODEL-EDGE: meshes whose corner indices leave their arrays are drawn through
+ * a client-memory view (mu_edge.h) instead of being refused by the port. */
+typedef struct edge_views {
+    mu_edge_view *views;   /* per mesh; triangles == NULL when the mesh needs none */
+    float *colours, *table;
+} edge_views;
+
+static void edge_tables(void *context, int32_t mesh, int32_t light_count, const float *light_colors,
+                        int32_t texcoord_count, const float *normal_texcoords)
+{
+    (void)light_count;
+    (void)light_colors;
+    (void)texcoord_count;
+    (void)normal_texcoords;
+    edge_views *e = context;
+    if (e->views[mesh].triangles)
+        mu_edge_zero_tables(&e->views[mesh], e->colours, e->table);
+}
+
+static void edge_free(edge_views *e, int32_t count)
+{
+    if (!e->views)
+        return;
+    for (int32_t i = 0; i < count; ++i)
+        mu_edge_view_free(&e->views[i]);
+    free(e->views);
+    e->views = NULL;
+}
+
+/* Returns 0, or 1 when out of memory. A view that cannot be built leaves the
+ * mesh as it is (the port refuses it). */
+static int edge_apply(mu_scene_inputs *in, edge_views *e)
+{
+    const int32_t count = in->model.mesh_count;
+    e->views = calloc((size_t)(count > 0 ? count : 1), sizeof *e->views);
+    if (!e->views)
+        return 1;
+    for (int32_t i = 0; i < count; ++i) {
+        mu_meshdraw_mesh view;
+        int status = mu_edge_mesh_view(&in->meshes[i], &view, &e->views[i]);
+        if (status == 1)
+            in->meshes[i] = view;
+    }
+    return 0;
+}
+
 int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const mu_render_backend *backend,
                         mu_draw_stats *stats)
 {
@@ -199,10 +247,17 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
         mu_scene_inputs_free(&in);
         return 1;
     }
+    edge_views edge = {NULL, colours, table};
+    if (edge_apply(&in, &edge)) {
+        free(colours);
+        free(table);
+        mu_scene_inputs_free(&in);
+        return 1;
+    }
     adapter a = {backend, o, in.model.mesh_count, {0}, 0};
     mu_meshdraw_state_defaults(&a.state);
     mu_gl_sink sink = {&a, adapter_call};
-    mu_meshdraw_scratch scratch = {colours, table, NULL, NULL};
+    mu_meshdraw_scratch scratch = {colours, table, &edge, edge_tables};
     mu_meshdraw_env env = {&in.model, &in.globals, &in.cache, &sink, mu_scene_bitmap, &in, &scratch};
     mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
     mu_meshdraw_body(&env, &in.args, in.skip, &counts);
@@ -216,6 +271,7 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
         stats->refused += counts.refused;
         stats->faulted += counts.faulted;
     }
+    edge_free(&edge, in.model.mesh_count);
     free(colours);
     free(table);
     mu_scene_inputs_free(&in);
