@@ -1176,7 +1176,7 @@ def random_joint(rng, kind, objects):
     j.tail_update = rng.choice([1, 1, 0])
     j.time = vc.rfloat(rng, 0.1, 50.0)
     j.brightness = f32(rng.choice([1.0, 0.5]))
-    j.moving = rng.choice([1, 1, 0])
+    j.moving = 1   # CreateJoint sets it and these kinds never clear it (clear, the client would use an uninitialised matrix)
     return j
 
 
