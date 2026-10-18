@@ -1173,6 +1173,20 @@ captures), portable `reconstructed/audio/test_hero_sound.py`, `reconstructed/act
 **Next:** a live window-only reference capture of Lorencia for a side-by-side (the character now lives on MTM-1;
 check its location first); the bone matrix path `0x0129fd4f` for effects; NPCs assembled from part models; the
 SND_Play sites of monsters, skills and NPC voices; the zoom-mode global `[0x0bdb5880]`.
+
+## Character select (NATIVE-CHARSEL-001)
+
+Branch `claude/native-charsel`. Read [`research/client-character-select.md`](research/client-character-select.md)
+and [`../reconstructed/charsel/README.md`](../reconstructed/charsel/README.md).
+
+**Checks.** `scripts/validate_charsel.py --cases 1000 --mutations`, `scripts/validate_charsel_window.py --cases 120
+--mutations` and `scripts/validate_camera.py --only move_camera_record` (private captures); portable
+`reconstructed/charsel/test_charsel.py` and `native/tests/test_native_charsel.py`. Renders and the live capture stay
+local in `~/Documents/mu-mac-tools/native/renders/charsel/`.
+
+**Next:** decode EncTerrain94.obj (marker positions, the pedestal and scenery), port the scene-5 character pick and
+`0x009a5029`, draw the 2D layer in the window front end, and reconstruct the GFx character list boundary.
+
 ## Item attributes and table layouts (NATIVE-DATA-002)
 
 Branch `claude/native-data2`. It adds the following:

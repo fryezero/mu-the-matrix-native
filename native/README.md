@@ -115,6 +115,17 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/loren
     --sound-table /local/audio-tables.tsv
 ```
 
+## Character select (NATIVE-CHARSEL-001)
+
+`mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
+(`make -C native charsel`, SDL2 + OpenGL) render scene 5 (`core/mu_charsel*`, [finding](../docs/research/client-character-select.md)):
+World94 under its camera record, up to five synthetic characters (`--list FILE`), the selected one on slot marker 1
+with the client's highlight. Static map objects are not drawn; the marker position is a live fit (`--marker X,Y`).
+
+```sh
+native/build/mu-charsel --game-root "$MU_GAME_ROOT" --frames 50 --every 10 --cycle 10 --out-dir /tmp/charsel
+```
+
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
@@ -174,6 +185,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `tools/mu_render.c`, `tools/mu_render_ui.c` | Headless CLI used by the tests (`mu-render ui …` for the 2D layer) |
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
+| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |
