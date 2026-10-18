@@ -42,9 +42,11 @@ MUKIT_HOTPATCH_DEFAULT=380460463
 MUKIT_HOTPATCH_V70_BITS=15
 MUKIT_HOTPATCH_MAX=2147483647          # 31 bits; v7.6 reads 30 (v7.5 masks the value with 67108863, 26 bits)
 MUKIT_HOTPATCH_OLD_DEFAULTS="15 7599 875951 44916143 112025007"  # values earlier kit versions wrote; upgraded without --reset-config
-# mscoree proxy (mac-play/mumodes): v2 adds the macOS launcher window fix (winfix.c, MAC-APP-004);
-# v1 (display modes only) is recognised: verify warns, a repair or setup replaces it.
-MUKIT_MSCOREE_PROXY_SHA256=${MUKIT_MSCOREE_PROXY_SHA256:-0405b3309606bd46efa3e6338fc577fac02c7da4391054c27ffc19d466a24d47}
+# mscoree proxy (mac-play/mumodes): v3 adds the WIC stream fix that lets the launcher load the server's
+# official skin under Wine 11 (wicfix.c, MAC-APP-006); v2 added the macOS launcher window fix (winfix.c,
+# MAC-APP-004). v2 and v1 (display modes only) are recognised: verify warns, a repair or setup replaces them.
+MUKIT_MSCOREE_PROXY_SHA256=${MUKIT_MSCOREE_PROXY_SHA256:-0cf77991cdc8a26aec90349fd3641747fa9d66564abc86a002c980041ec997b4}
+MUKIT_MSCOREE_PROXY_V2_SHA256=${MUKIT_MSCOREE_PROXY_V2_SHA256:-0405b3309606bd46efa3e6338fc577fac02c7da4391054c27ffc19d466a24d47}
 MUKIT_MSCOREE_PROXY_V1_SHA256=${MUKIT_MSCOREE_PROXY_V1_SHA256:-6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac}
 # CrossOver 26.3 i386 builtin opengl32.dll (informational; verify compares to the installed CrossOver).
 MUKIT_CX263_OPENGL32_SHA256=0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56
@@ -118,6 +120,26 @@ mukit_sha256() {
 # Wine's PE builtin marker sits in the DOS stub at offset 64.
 mukit_pe_is_wine_builtin() {
     [ -f "$1" ] && [ "$(LC_ALL=C dd if="$1" bs=1 skip=64 count=16 2>/dev/null)" = 'Wine builtin DLL' ]
+}
+
+# An mscoree proxy built from mac-play/mumodes with wicfix.c (v3 or later, also your own build) logs this
+# text; without it the launcher crashes on the official skin under Wine 11 (MAC-APP-006).
+mukit_mscoree_has_wicfix() { [ -f "$1" ] && LC_ALL=C grep -aq 'WIC stream fix' "$1"; }
+
+# mukit_skin_pick DESIGN_DIR -> name of the disabled official skin to restore (Template.design.disabled
+# or .disabled.N): the newest by modification time (a game update writes the current skin), ties going
+# to the highest N (setup numbered later copies higher). Nothing printed when there is none.
+mukit_skin_pick() {
+    local f b n t best= bt=-1 bn=-1
+    for f in "$1"/Template.design.disabled "$1"/Template.design.disabled.*; do
+        [ -f "$f" ] && [ ! -L "$f" ] || continue
+        b=${f##*/}; n=${b#Template.design.disabled}; n=${n#.}
+        [ -z "$n" ] && n=0
+        case "$n" in *[!0-9]*) continue ;; esac
+        t=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null) || continue
+        if [ "$t" -gt "$bt" ] || { [ "$t" -eq "$bt" ] && [ "$n" -gt "$bn" ]; }; then best=$b; bt=$t; bn=$n; fi
+    done
+    [ -n "$best" ] && printf '%s\n' "$best"
 }
 
 # ---------------------------------------------------------------- cxbottle.conf

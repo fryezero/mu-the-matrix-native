@@ -69,7 +69,7 @@ class InstallerPinsAndOptions(unittest.TestCase):
     def test_pins_are_well_formed_documented_and_overridable_only_by_name(self):
         pins = self.pins()
         self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V77_SHA256', 'MUKIT_MUGL_V76_SHA256', 'MUKIT_MUGL_V76J_SHA256', 'MUKIT_MUGL_V75_SHA256', 'MUKIT_MUGL_V72_SHA256',
-                                     'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256', 'MUKIT_MSCOREE_PROXY_V1_SHA256',
+                                     'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256', 'MUKIT_MSCOREE_PROXY_V2_SHA256', 'MUKIT_MSCOREE_PROXY_V1_SHA256',
                                      'MUKIT_DOTNET48_INSTALLER_SHA256', 'MUKIT_RT_CX24_ENGINE_SHA256', 'MUKIT_RT_TEMPLATE_SHA256',
                                      'MUKIT_WINETRICKS_SHA256'})
         self.assertEqual(len(set(pins.values())), len(pins))
@@ -173,6 +173,51 @@ class MscoreeLauncherWindowFix(unittest.TestCase):
         self.assertIn('#include "../mumodes/modehook.c"', mugl)
         self.assertNotIn('winfix', mugl)
         self.assertNotIn('winfix', (self.mumodes / 'modehook.c').read_text())
+
+
+
+class MscoreeLauncherSkinFix(unittest.TestCase):
+    """MAC-APP-006: the official launcher skin works with the mscoree proxy's WIC stream fix, and the
+    installer restores the skin that earlier kits disabled. Static checks; the behaviour was verified live."""
+    def setUp(self):
+        self.mumodes = ROOT / 'mac-play' / 'mumodes'
+        self.proxy = (self.mumodes / 'mscoree_proxy.c').read_text()
+        self.wicfix = (self.mumodes / 'wicfix.c').read_text()
+        self.setup = (KIT / 'setup-mu-mac.sh').read_text()
+        self.verify = (KIT / 'verify-mu-mac.sh').read_text()
+        self.lib = (KIT / 'lib' / 'mukit.sh').read_text()
+
+    def test_proxy_installs_the_wic_fix(self):
+        self.assertIn('#include "wicfix.c"', self.proxy)
+        self.assertLess(self.proxy.index('winfix_install()'), self.proxy.index('wicfix_install()'))
+
+    def test_wic_fix_mechanism(self):
+        w = self.wicfix
+        # the export WPF P/Invokes is redirected when windowscodecs.dll loads (or now, if already loaded)
+        self.assertIn('"IWICImagingFactory_CreateDecoderFromStream_Proxy"', w)
+        self.assertIn('"LdrRegisterDllNotification"', w)
+        self.assertIn('GetModuleHandleA("windowscodecs.dll")', w)
+        self.assertIn('IMAGE_DIRECTORY_ENTRY_EXPORT', w)
+        # the wrapper always passes a valid pcbRead, like upstream Wine 111e5197
+        self.assertIn('pcbRead ? pcbRead : &n', w)
+        self.assertIn('if (!pcbRead && SUCCEEDED(hr) && n != cb) hr = S_FALSE;', w)
+        for m in ('wc_QueryInterface', 'wc_AddRef', 'wc_Release', 'wc_Read', 'wc_Write', 'wc_Seek', 'wc_SetSize', 'wc_CopyTo',
+                  'wc_Commit', 'wc_Revert', 'wc_LockRegion', 'wc_UnlockRegion', 'wc_Stat', 'wc_Clone'):
+            self.assertIn(m + ',' if m != 'wc_Clone' else m + '\n', w[w.index('static IStreamVtbl wc_vtbl'):])
+        self.assertIn('MU_LAUNCHER_WICFIX', w)
+        self.assertIn('WIC stream fix', w)          # the marker setup/verify look for
+
+    def test_installer_restores_the_skin_only_with_the_fix(self):
+        self.assertIn("mukit_mscoree_has_wicfix() { [ -f \"$1\" ] && LC_ALL=C grep -aq 'WIC stream fix' \"$1\"; }", self.lib)
+        self.assertIn('mukit_skin_pick()', self.lib)
+        # the skin step runs after the proxy DLL step, never deletes, and only renames
+        self.assertLess(self.setup.index('step_dlls\n'), self.setup.index('launcher skin" skin'))
+        skin = self.setup[self.setup.index('# --- 8. launcher skin'):self.setup.index('# --- 9. C:')]
+        self.assertNotIn('rm ', skin)
+        self.assertIn('mukit_run mv "$SKIN_DIR/$pick" "$file"', skin)
+        self.assertIn('skin_fix_present', skin)
+        self.assertIn("'launcher skin'", self.verify)
+        self.assertNotIn('custom skin disabled', self.verify)
 
 
 if __name__ == '__main__':

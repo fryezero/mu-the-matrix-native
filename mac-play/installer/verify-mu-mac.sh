@@ -145,8 +145,16 @@ else
         { [ -n "$h" ] && out WARN 'MuTheMatrix.exe (launcher)' "untested build $(short "$h")" || out FAIL 'MuTheMatrix.exe (launcher)' missing; }
     grep -q 'supportedRuntime version="v4.0"' "$GAME/MuTheMatrix.exe.config" 2>/dev/null &&
         out PASS 'MuTheMatrix.exe.config' 'v4.0 runtime' || out FAIL 'MuTheMatrix.exe.config' 'missing v4.0 supportedRuntime'
-    if [ -f "$GAME/Data/Launcher/Design/Template.design" ]; then out FAIL 'custom skin disabled' 'Template.design present (launcher ctor aborts)'
-    else out PASS 'custom skin disabled' "$(cd "$GAME/Data/Launcher/Design" 2>/dev/null && ls -d Template.design.disabled* 2>/dev/null | tr '\n' ' ')"; fi
+    # The official skin needs the mscoree proxy's WIC stream fix (v3, MAC-APP-006); earlier kits disabled it.
+    sk="$GAME/Data/Launcher/Design"
+    skoff=$(cd "$sk" 2>/dev/null && ls -d Template.design.disabled* 2>/dev/null | tr '\n' ' ' | sed 's/ $//')
+    if [ -f "$sk/Template.design" ]; then
+        if mukit_mscoree_has_wicfix "$GAME/mscoree.dll"; then out PASS 'launcher skin' "official skin active (Template.design $(short "$(mukit_sha256 "$sk/Template.design")"), mscoree proxy has the WIC stream fix)${skoff:+; kept: $skoff}"
+        else out FAIL 'launcher skin' "official skin Template.design present, but the mscoree proxy lacks the WIC stream fix (the launcher crashes on the skin's images under Wine 11); rerun setup or the app's repair"; fi
+    elif [ -n "$skoff" ]; then
+        if mukit_mscoree_has_wicfix "$GAME/mscoree.dll"; then out WARN 'launcher skin' "official skin disabled ($skoff); rerun setup or the app's repair to restore it"
+        else out WARN 'launcher skin' "default skin: the official skin ($skoff) stays disabled until the mscoree proxy has the WIC stream fix (v3)"; fi
+    else out PASS 'launcher skin' 'default skin (the client has no Template.design)'; fi
 
     # mugl proxy
     gl="$GAME/opengl32.dll"
@@ -168,7 +176,8 @@ else
     ms="$GAME/mscoree.dll"
     h=$(mukit_sha256 "$ms")
     if [ -z "$h" ]; then out FAIL 'mscoree proxy' 'missing (launcher Settings list != game DevModeIndex)'
-    elif [ "$h" = "$MUKIT_MSCOREE_PROXY_SHA256" ]; then out PASS 'mscoree proxy' "v2, with the macOS window fix (pinned) $(short "$h")"
+    elif [ "$h" = "$MUKIT_MSCOREE_PROXY_SHA256" ]; then out PASS 'mscoree proxy' "v3, with the macOS window fix and the WIC stream fix for the official skin (pinned) $(short "$h")"
+    elif [ "$h" = "$MUKIT_MSCOREE_PROXY_V2_SHA256" ]; then out WARN 'mscoree proxy' "v2 without the WIC stream fix (the official launcher skin stays disabled); rerun setup or the app's repair $(short "$h")"
     elif [ "$h" = "$MUKIT_MSCOREE_PROXY_V1_SHA256" ]; then out WARN 'mscoree proxy' "v1 without the macOS window fix (launcher news panel floats over the game, Dock click does not restore a minimized launcher); rerun setup or the app's repair $(short "$h")"
     elif [ "$(cat "$STATE/mscoree.dll.sha256" 2>/dev/null)" = "$h" ]; then out PASS 'mscoree proxy' "kit-installed build $(short "$h")"
     else out WARN 'mscoree proxy' "unknown build $(short "$h")"; fi
@@ -237,6 +246,8 @@ if [ -f "$MUTOOLS/winfix.log" ]; then
     l=$(grep -i 'MuTheMatrix.exe: window fix' "$MUTOOLS/winfix.log" | tail -1 | tr -d '\r')
     t=$(grep 'tray icon hook' "$MUTOOLS/winfix.log" | tail -1 | tr -d '\r' | sed 's/^ *//')
     out INFO 'launcher window fix' "${l:-no entry yet}${t:+; $t}"
+    l=$(grep 'WIC stream fix' "$MUTOOLS/winfix.log" | tail -1 | tr -d '\r' | sed 's/^ *//')
+    [ -z "$l" ] || out INFO 'launcher WIC stream fix' "$l"
 fi
 if [ -f "$MUTOOLS/mugl-stats.txt" ]; then
     out INFO 'mugl-stats.txt' "$(head -1 "$MUTOOLS/mugl-stats.txt" | tr -d '\r' | cut -c1-70)"

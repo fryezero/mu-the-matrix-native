@@ -36,7 +36,7 @@ goes wrong.
 4. The **Install Mu The Matrix** window opens. Keep **Download the game from the official site** selected and
    click **Install**. Wait until it says **"Done. Mu The Matrix is installed."** (about 45 minutes in our test),
    then click **Close**.
-5. Click **Play**. The game's launcher opens. Click **GAME START**, choose a server, and log in.
+5. Click **Play**. The game's launcher opens. Click its big green **START** button, choose a server, and log in.
 
 **Next time:** double-click **Mu The Matrix** and the launcher opens straight away. To get the settings window
 back, hold the **Option (⌥)** key while you open the app.
@@ -163,8 +163,12 @@ Terminal instead (see [Troubleshooting](#troubleshooting)). Then click **Try Aga
 
 1. In the **Mu The Matrix** window, click **Play**. A small window says **Starting the launcher…**, then the app
    closes. The Mu The Matrix launcher appears a few seconds later; the first time, it can take up to a minute.
-2. Wait until the launcher shows the **server time** and **Press GameStart to Play**.
-3. Click **GAME START**. The game window opens after about 20 seconds.
+2. Wait until the launcher shows the **Server Time** at the top left and **Press GameStart to Play**.
+3. Click the big green **START** button at the bottom right. The game window opens after about 20 seconds.
+
+   The launcher uses the server's own design (black and green, "MU THE MATRIX"). If you see an older design
+   with a **GAME START** button instead, your install is from an earlier app version: click **Repair…** in the
+   Mu The Matrix window. Both designs work the same way.
 4. Choose a server, type your account name and password, and press **Return**.
 
 Only one copy of the game can run at a time. The Mu The Matrix app never saves or reads your password.

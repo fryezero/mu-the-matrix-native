@@ -18,7 +18,8 @@ mkdll() { printf 'MZ synthetic %s' "$2" > "$1"; }
 sedi() { sed -e "$1" "$2" > "$2.tmp" && mv "$2.tmp" "$2"; }   # portable sed -i
 DLLS="$TMPD/dlls"; mkdir -p "$DLLS" "$TMPD/nopgrep"
 printf '#!/bin/sh\nexit 1\n' > "$TMPD/nopgrep/pgrep"; chmod 755 "$TMPD/nopgrep/pgrep"
-mkdll "$DLLS/mugl-v77.dll" v77; mkdll "$DLLS/mugl-v76.dll" v76; mkdll "$DLLS/mugl-v75.dll" v75; mkdll "$DLLS/mugl-v72.dll" v72; mkdll "$DLLS/mugl-v71.dll" v71; mkdll "$DLLS/mugl-v70.dll" v70; mkdll "$DLLS/mscoree.dll" mscoree
+mkdll "$DLLS/mugl-v77.dll" v77; mkdll "$DLLS/mugl-v76.dll" v76; mkdll "$DLLS/mugl-v75.dll" v75; mkdll "$DLLS/mugl-v72.dll" v72; mkdll "$DLLS/mugl-v71.dll" v71; mkdll "$DLLS/mugl-v70.dll" v70
+mkdll "$DLLS/mscoree.dll" 'mscoree with the WIC stream fix'   # carries the marker the kit looks for (wicfix.c)
 mkdll "$DLLS/ndp48.exe" dotnet
 FAKECX="$TMPD/CrossOver"; mkdir -p "$FAKECX/bin" "$FAKECX/lib/wine/i386-windows"
 for b in cxbottle wine wineserver; do printf '#!/bin/sh\necho "stub %s: should not run in tests" >&2\nexit 99\n' "$b" > "$FAKECX/bin/$b"; chmod 755 "$FAKECX/bin/$b"; done
@@ -190,7 +191,7 @@ eq 'dry-run exit 0' "$rc" 0
 yes 'snapshot is not empty (guards a vacuous comparison)' test -n "$before"
 eq 'dry-run changed nothing' "$(snap)" "$before"
 grep -q '\[dry-run\] cp .*-R' "$TMPD/dry.log" && ok 'dry-run plans clone copy' || bad 'dry-run plans clone copy'
-grep -q 'Template.design.disabled' "$TMPD/dry.log" && ok 'dry-run plans skin rename' || bad 'dry-run plans skin rename'
+grep -q 'official launcher skin (Template.design) stays active' "$TMPD/dry.log" && ok 'dry-run keeps the official skin (proxy has the WIC fix)' || bad 'dry-run keeps the official skin (proxy has the WIC fix)'
 grep -q 'winetricks' "$TMPD/dry.log" && bad 'dry-run: wine steps should be satisfied by fake registry' || ok 'dry-run: wine steps already satisfied'
 
 "${SETUP[@]}" > "$TMPD/run1.log" 2>&1; rc=$?
@@ -198,7 +199,8 @@ eq 'first run exit 0' "$rc" 0
 G="$FB/drive_c/MuTheMatrix"
 yes 'game copied'                [ -f "$G/main.exe" ]
 no  'transfer tar excluded'      [ -e "$G/.mu-recovery-transfer.tar" ]
-yes 'skin renamed'               [ -f "$G/Data/Launcher/Design/Template.design.disabled" ]
+yes 'official skin kept'         [ -f "$G/Data/Launcher/Design/Template.design" ]
+no  'official skin not disabled'  [ -e "$G/Data/Launcher/Design/Template.design.disabled" ]
 yes 'source skin untouched'      [ -f "$SRC/Data/Launcher/Design/Template.design" ]
 eq  'mugl deployed (v7.7)'       "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V77_SHA256"
 eq  'mscoree proxy deployed'     "$(mukit_sha256 "$G/mscoree.dll")" "$MUKIT_MSCOREE_PROXY_SHA256"
@@ -213,10 +215,45 @@ yes 'launcher config written (missing in source)' grep -q 'v4.8' "$G/MuTheMatrix
 eq 'second run exit 0' "$rc" 0
 if grep -q '\[do\]' "$TMPD/run2.log"; then bad "second run is a no-op: $(grep '\[do\]' "$TMPD/run2.log" | head -3 | tr '\n' ';')"; else ok 'second run is a no-op (idempotent)'; fi
 
-# A game update restoring the skin is re-disabled with a numbered suffix.
-printf 'skin2' > "$G/Data/Launcher/Design/Template.design"
-"${SETUP[@]}" > "$TMPD/run3.log" 2>&1
-yes 'restored skin -> .disabled.1' [ -f "$G/Data/Launcher/Design/Template.design.disabled.1" ]
+# MAC-APP-006: installs from earlier kits have the skin renamed. Setup restores the newest disabled copy
+# (by modification time, ties to the highest number) and keeps every other copy.
+D="$G/Data/Launcher/Design"
+mv "$D/Template.design" "$D/Template.design.disabled"; touch -t 202601010000 "$D/Template.design.disabled"
+printf 'skin-update' > "$D/Template.design.disabled.1"; touch -t 202603010000 "$D/Template.design.disabled.1"
+printf 'skin-other' > "$D/Template.design.disabled.2"; touch -t 202602010000 "$D/Template.design.disabled.2"
+printf 'not a skin copy' > "$D/Template.design.disabled.bak"; touch -t 202612010000 "$D/Template.design.disabled.bak"
+eq 'pick: newest by mtime' "$(mukit_skin_pick "$D")" Template.design.disabled.1
+"${SETUP[@]}" > "$TMPD/run3.log" 2>&1; rc=$?
+eq 'skin restore run exit 0' "$rc" 0
+eq 'newest disabled skin restored' "$(cat "$D/Template.design")" skin-update
+no  'restored copy renamed, not copied' [ -e "$D/Template.design.disabled.1" ]
+yes 'older copy kept (.disabled)'   [ -f "$D/Template.design.disabled" ]
+yes 'older copy kept (.disabled.2)' [ -f "$D/Template.design.disabled.2" ]
+yes 'unrelated file kept'           [ -f "$D/Template.design.disabled.bak" ]
+grep -q 'restore the official launcher skin: rename Template.design.disabled.1 -> Template.design' "$TMPD/run3.log" && ok 'setup reports the skin restore' || bad 'setup reports the skin restore'
+"${SETUP[@]}" > "$TMPD/run3b.log" 2>&1
+grep -q '\[do\]' "$TMPD/run3b.log" && bad 'rerun after the restore is a no-op' || ok 'rerun after the restore is a no-op'
+mkdir -p "$TMPD/pick"; for n in disabled disabled.3 disabled.12; do printf x > "$TMPD/pick/Template.design.$n"; touch -t 202601010000 "$TMPD/pick/Template.design.$n"; done
+eq 'pick: same mtime -> highest number' "$(mukit_skin_pick "$TMPD/pick")" Template.design.disabled.12
+eq 'pick: nothing to restore' "$(mukit_skin_pick "$TMPD/nopgrep")" ''
+# A proxy without the WIC stream fix (v2, or a --dll-dir without MinGW) keeps the skin disabled, as before.
+mkdir -p "$TMPD/v2dir"; cp "$DLLS/mugl-v77.dll" "$TMPD/v2dir/"; mkdll "$TMPD/v2dir/mscoree.dll" mscoree-v2
+NOFIX=(env MUKIT_MSCOREE_PROXY_SHA256="$(mukit_sha256 "$TMPD/v2dir/mscoree.dll")" MINGW_CC=no-such-mingw-gcc)
+"${NOFIX[@]}" "${SETUP[@]/#$DLLS/$TMPD/v2dir}" > "$TMPD/run3c.log" 2>&1; rc=$?
+eq 'no-fix proxy run exit 0' "$rc" 0
+eq 'no-fix proxy installed' "$(mukit_sha256 "$G/mscoree.dll")" "$(mukit_sha256 "$TMPD/v2dir/mscoree.dll")"
+no  'no-fix proxy: skin disabled' [ -e "$D/Template.design" ]
+eq  'no-fix proxy: active skin -> first free name' "$(cat "$D/Template.design.disabled.1")" skin-update
+"$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-nofix.log" 2>&1
+grep -q 'WARN  launcher skin *default skin: the official skin' "$TMPD/verify-nofix.log" && ok 'verify WARNs: official skin disabled without the fix' || bad 'verify WARNs: official skin disabled without the fix'
+printf 'skin-update' > "$D/Template.design"
+"$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-nofix2.log" 2>&1; rc=$?
+eq 'verify FAILs: official skin without the WIC fix' "$rc" 1
+grep -q 'FAIL  launcher skin *official skin Template.design present, but the mscoree proxy lacks the WIC stream fix' "$TMPD/verify-nofix2.log" && ok 'verify names the missing WIC fix' || bad 'verify names the missing WIC fix'
+rm -f "$D/Template.design"
+"${SETUP[@]}" > "$TMPD/run3d.log" 2>&1; rc=$?
+eq 'back to the fixed proxy: exit 0' "$rc" 0
+eq 'back to the fixed proxy: skin restored again' "$(cat "$D/Template.design")" skin-update
 
 # A user's later launcher resolution choice is preserved without --reset-config.
 mukit_lopt_render 2 1 '' > "$G/LauncherOption.if"
@@ -237,14 +274,21 @@ eq 'verify on fake bottle: no FAIL' "$rc" 0
 grep -q 'WARN  main.exe' "$TMPD/verify.log" && ok 'verify flags untested main.exe' || bad 'verify flags untested main.exe'
 grep -q 'v7.7 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.7' || bad 'verify accepts kit mugl v7.7'
 grep -q 'PASS  mugl-hotpatch.txt *380460463' "$TMPD/verify.log" && ok 'verify: 380460463 is the norm' || bad 'verify: 380460463 is the norm'
-grep -q 'PASS  mscoree proxy *v2, with the macOS window fix' "$TMPD/verify.log" && ok 'verify accepts the v2 mscoree proxy (window fix)' || bad 'verify accepts the v2 mscoree proxy (window fix)'
+grep -q 'PASS  mscoree proxy *v3, with the macOS window fix and the WIC stream fix' "$TMPD/verify.log" && ok 'verify accepts the v3 mscoree proxy' || bad 'verify accepts the v3 mscoree proxy'
+grep -q 'PASS  launcher skin *official skin active (Template.design .*kept: Template.design.disabled Template.design.disabled.2 Template.design.disabled.bak' "$TMPD/verify.log" && ok 'verify reports the active official skin and the kept copies' || bad 'verify reports the active official skin and the kept copies'
 # MAC-APP-004: the v1 proxy (no window fix) is recognised and flagged; winfix.log is reported.
 cp "$G/mscoree.dll" "$TMPD/mscoree.keep"; mkdll "$G/mscoree.dll" mscoree-v1
-printf 'C:\\MuTheMatrix\\MuTheMatrix.exe: window fix on\r\n  tray icon hook on\r\n' > "$FB/drive_c/mutools/winfix.log"
+printf 'C:\\MuTheMatrix\\MuTheMatrix.exe: window fix on\r\n  WIC stream fix armed\r\n  WIC stream fix on\r\n  WIC stream fix used (first decoder hr=0x00000000)\r\n  tray icon hook on\r\n' > "$FB/drive_c/mutools/winfix.log"
 MUKIT_MSCOREE_PROXY_V1_SHA256=$(mukit_sha256 "$G/mscoree.dll") "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-v1.log" 2>&1; rc=$?
-eq 'verify with v1 mscoree proxy: no FAIL' "$rc" 0
+eq 'verify with v1 mscoree proxy: exit 1 (official skin without the WIC fix)' "$rc" 1
+eq 'verify with v1 mscoree proxy: one FAIL' "$(grep -c '^FAIL' "$TMPD/verify-v1.log")" 1
+grep -q '^FAIL  launcher skin' "$TMPD/verify-v1.log" && ok 'verify with v1 mscoree proxy: the FAIL is the launcher skin' || bad 'verify with v1 mscoree proxy: the FAIL is the launcher skin'
 grep -q 'WARN  mscoree proxy *v1 without the macOS window fix' "$TMPD/verify-v1.log" && ok 'verify WARNs: v1 mscoree proxy' || bad 'verify WARNs: v1 mscoree proxy'
 grep -q 'INFO  launcher window fix *C:.MuTheMatrix.MuTheMatrix.exe: window fix on; tray icon hook on$' "$TMPD/verify-v1.log" && ok 'verify reports winfix.log' || bad 'verify reports winfix.log'
+grep -q 'INFO  launcher WIC stream fix *WIC stream fix used (first decoder hr=0x00000000)$' "$TMPD/verify-v1.log" && ok 'verify reports the WIC stream fix log' || bad 'verify reports the WIC stream fix log'
+mkdll "$G/mscoree.dll" mscoree-v2
+MUKIT_MSCOREE_PROXY_V2_SHA256=$(mukit_sha256 "$G/mscoree.dll") "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-v2.log" 2>&1
+grep -q 'WARN  mscoree proxy *v2 without the WIC stream fix' "$TMPD/verify-v2.log" && ok 'verify WARNs: v2 mscoree proxy' || bad 'verify WARNs: v2 mscoree proxy'
 cp "$TMPD/mscoree.keep" "$G/mscoree.dll"; rm -f "$FB/drive_c/mutools/winfix.log"
 
 # Rollback to v7.0 and back; the hotpatch file written by an earlier kit (15) is upgraded.
@@ -330,6 +374,7 @@ if command -v "${MINGW_CC:-i686-w64-mingw32-gcc}" >/dev/null 2>&1 && command -v 
     no 'build did not write into the checkout' test -e "$KIT_DIR/../mugl/build"
     "$KIT_DIR/verify-mu-mac.sh" --bottle FakeBuild > "$TMPD/verify-build.log" 2>&1; rc=$?
     eq 'verify on built bottle: no FAIL' "$rc" 0
+    yes 'built proxy (WIC stream fix) keeps the official skin' [ -f "$BG/Data/Launcher/Design/Template.design" ]
     grep -q 'kit-installed build' "$TMPD/verify-build.log" && ok 'verify accepts the kit-built mugl' || bad 'verify accepts the kit-built mugl'
     # Rebuilds must be byte-identical (no PE timestamp), so a rerun leaves the installed DLLs alone.
     MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/build2.log" 2>&1
@@ -345,11 +390,12 @@ if command -v "${MINGW_CC:-i686-w64-mingw32-gcc}" >/dev/null 2>&1 && command -v 
     mkdir -p "$TMPD/v1dir"; cp "$DLLS/mugl-v77.dll" "$TMPD/v1dir/"; mkdll "$TMPD/v1dir/mscoree.dll" mscoree-v1
     MUKIT_MSCOREE_PROXY_V1_SHA256=$(mukit_sha256 "$TMPD/v1dir/mscoree.dll") MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --dll-source prebuilt --dll-dir "$TMPD/v1dir" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/v1dir.log" 2>&1; rc=$?
     eq 'prebuilt --dll-dir with v1 mscoree exit 0' "$rc" 0
-    grep -q 'is the v1 mscoree proxy (no macOS window fix); building' "$TMPD/v1dir.log" && ok 'v1 mscoree in --dll-dir -> current proxy built' || bad 'v1 mscoree in --dll-dir -> current proxy built'
+    grep -q 'is the v1 mscoree proxy (no macOS window fix, no WIC stream fix); building' "$TMPD/v1dir.log" && ok 'v1 mscoree in --dll-dir -> current proxy built' || bad 'v1 mscoree in --dll-dir -> current proxy built'
     eq 'built mscoree deployed instead of v1' "$(mukit_sha256 "$BG/mscoree.dll")" "$(mukit_sha256 "$TMPD/kitbuild/mscoree.dll")"
     # The built proxy carries the window fix: it imports the hooked user32/win32u functions by name.
     if command -v strings >/dev/null 2>&1; then
-        for sym in NtUserShowWindow NtUserSetWindowPos Shell_NotifyIconW MU_LAUNCHER_WINFIX winfix.log; do
+        for sym in NtUserShowWindow NtUserSetWindowPos Shell_NotifyIconW MU_LAUNCHER_WINFIX winfix.log \
+                   IWICImagingFactory_CreateDecoderFromStream_Proxy LdrRegisterDllNotification MU_LAUNCHER_WICFIX 'WIC stream fix'; do
             strings "$BG/mscoree.dll" | grep -q "$sym" && ok "built mscoree contains $sym" || bad "built mscoree contains $sym"
         done
     fi

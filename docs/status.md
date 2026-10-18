@@ -175,11 +175,16 @@ Launcher windows on macOS (MAC-APP-004): the mscoree proxy v2 keeps the launcher
 floating over the game (Wine's Mac driver puts topmost windows above the Dock even while inactive) and makes the
 launcher's minimize-to-tray a Dock minimize that a Dock click restores; verified live in the free runtime and
 MuMatrix32. [Finding](research/mac-launcher-windows.md).
+Official launcher skin (MAC-APP-006): the server's `Template.design`, disabled since the first Mac setups, works
+again. Its crash was a Wine 11 JPEG decoder bug (NULL `pcbRead` to WPF's managed stream), worked around by mscoree
+proxy v3 (`wicfix.c`); the installer restores the skin. Verified live in both runtimes (skin, server time, GAME START,
+Dock restore). [Finding](research/mac-launcher-skin.md).
 
 The original client works on Windows. Earlier isolated CrossOver `win10_64`
 starts fail with a Rosetta selector error. A new `win10`/win32 compatibility path
 uses .NET 4.8, builtin WIC/GDI+, WPF software rendering and the default IGCN skin
-in a cloned installation. The authored setup and local validation are recorded
+in a cloned installation (the installer kit shows the server's official skin again
+with the mscoree proxy v3, [finding](research/mac-launcher-skin.md)). The authored setup and local validation are recorded
 in [the CrossOver finding](research/mac-crossover-32bit.md), issue #39.
 The fresh test bottle passed all eight synthetic image-pipeline steps, kept
 the launcher alive for 65.8 seconds, and was deleted after validation.

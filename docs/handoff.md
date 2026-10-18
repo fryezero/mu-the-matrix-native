@@ -65,10 +65,19 @@ Apple Developer ID signing/notarization. Next: publish, then a rehearsal on a se
 ## Launcher windows on macOS (MAC-APP-004)
 
 Read [`research/mac-launcher-windows.md`](research/mac-launcher-windows.md). The fix lives in
-`mac-play/mumodes/winfix.c` (mscoree proxy v2, pinned `0405b330…`; v1 `6f2d2ace…` is recognised and replaced).
+`mac-play/mumodes/winfix.c` (since mscoree proxy v2 `0405b330…`; the current proxy is v3 `0cf77991…`, see MAC-APP-006 below; v1 `6f2d2ace…` and v2 are recognised and replaced).
 `C:\mutools\winfix.log` shows whether it and the tray-icon hook are on; `MU_LAUNCHER_WINFIX=0` disables it.
 A new Wine build with a different `shell32!Shell_NotifyIconW` prologue leaves the tray hook off (the log says so):
 the Dock click then restores the window but not the launcher's faded content; add the prologue to `wf_hotpatch`.
+
+## Official launcher skin (MAC-APP-006)
+
+Read [`research/mac-launcher-skin.md`](research/mac-launcher-skin.md). The server's `Template.design` works again with
+mscoree proxy v3 (`mac-play/mumodes/wicfix.c`, pinned `0cf77991…`; v2 `0405b330…` and v1 are recognised and replaced).
+The old "custom GIF skin aborts the launcher constructor" was a Wine 11 JPEG decoder bug (NULL `pcbRead`, upstream
+fix `111e5197`). Setup's launcher skin step runs after the DLLs and renames the newest `Template.design.disabled[.N]`
+back when the installed proxy has the fix; without it the skin stays disabled. `winfix.log` shows `WIC stream fix used`;
+`MU_LAUNCHER_WICFIX=0` disables it.
 
 ## Original launcher in CrossOver
 
@@ -107,7 +116,8 @@ Keep builtin windowscodecs/gdiplus, .NET 4.8, software rendering and the built-i
 IGCN skin from MAC-CROSSOVER-001, issue #39 / PR #41. Native WIC was a failed
 hypothesis; recreate experimental bottles that installed it. Setup refuses
 protected/unowned bottles, clones to a bottle-specific path and disables only
-the cloned Template.design on every rerun. Original installations stay intact.
+the cloned Template.design on every rerun (that legacy script installs no mscoree
+proxy; the installer kit restores the skin, MAC-APP-006). Original installations stay intact.
 The previous MuMatrix32-ci-test validation passed all eight image steps and
 65.8-second launcher survival before deletion. Source-recovery and native game
 acceptance gates remain open. Two static selector-0x33 far-return sequences

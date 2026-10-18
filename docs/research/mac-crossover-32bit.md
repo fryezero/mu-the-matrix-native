@@ -43,6 +43,14 @@ Launcher Initialization code `0xF0`. Builtin windowscodecs passes that pipeline;
 native gdiplus is unnecessary. The custom animated-GIF `Template.design` still
 fails its design loader, so only the cloned skin must be disabled.
 
+**Correction (2026-10-18, MAC-APP-006):** the skin does not fail a design loader,
+and it is not a GIF problem. Wine 11's JPEG decoder calls `IStream::Read` with a
+NULL byte count, which the stream WPF hands to WIC cannot take, so the launcher
+throws in `StreamAsIStream.Read` and later crashes in a WIC finalizer. The mscoree
+proxy v3 (`mac-play/mumodes/wicfix.c`) works around it, and the kit's installer
+restores the skin. See [`mac-launcher-skin.md`](mac-launcher-skin.md). This legacy
+script installs no mscoree proxy, so it keeps disabling the skin.
+
 Claude reports that builtin codecs, .NET 4.8, software rendering and the default
 IGCN skin now allow full initialization in `MuMatrix32`, show server time, connect
 to `mtm2112.muthematrix.com:44206`, and check `dl.muthematrix.com:80` for updates.

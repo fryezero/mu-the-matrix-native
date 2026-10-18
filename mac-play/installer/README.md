@@ -68,8 +68,8 @@ What lives where (`MUKIT_FREE_HOME`, default `~/Library/Application Support/MuTh
 2. Install: `./mac-play/installer/setup-mu-mac.sh --game-installer official` (or `--game-dir "/path/to/Mu The Matrix"`),
    optionally `--runtime-archive winecx-26.3.0-mu1.tar.xz --runtime-sha256 HEX`, `--mugl-dll`/`--mscoree-dll` or
    `--dll-dir`, `--fast-x87-dir DIR`. The steps (14) are: runtime, winetricks, prefix, registry, .NET 4.8,
-   Windows version, game, launcher config, skin, `C:\mutools`, `LauncherOption.if`, DLLs, fast x87 and Desktop
-   launcher, verify. Measured times are in `docs/research/mac-free-runtime.md`.
+   Windows version, game, launcher config, `C:\mutools`, `LauncherOption.if`, DLLs, launcher skin, fast x87 and
+   Desktop launcher, verify. Measured times are in `docs/research/mac-free-runtime.md`.
 3. Start with Mu The Matrix.app, the Desktop launcher, or `MU_RUNTIME=free ./mac-play/installer/play-mu.sh`.
 
 Free-runtime specifics: the prefix is created by starting the runtime's wineserver with `WINEARCH=win32` (the
@@ -114,7 +114,7 @@ Where each input comes from:
    ./mac-play/installer/setup-mu-mac.sh --game-dir "/path/to/Mu The Matrix" [--account YourID]
    # with DLLs you own:  ... --dll-source prebuilt --dll-dir /path/to/your/dlls
    ```
-   The default bottle is `MuMatrixKit`; pick another name with `--bottle NAME`. Rerun the same command any time: completed steps are skipped, and the launcher-skin check runs again on every run in case a game update restored the skin.
+   The default bottle is `MuMatrixKit`; pick another name with `--bottle NAME`. Rerun the same command any time: completed steps are skipped, and the launcher-skin check runs again on every run (it restores the official skin that earlier kits disabled, see below).
 4. Setup ends by running `verify-mu-mac.sh --bottle MuMatrixKit`. Fix any FAIL lines using the troubleshooting table below.
 5. Double-click **"Play Mu The Matrix (MuMatrixKit).command"** on the Desktop. Wait for the launcher's server time, press GAME START and log in. Only one client can run at a time across all bottles: `play-mu.sh` refuses to start while `main.exe` or `MuTheMatrix.exe` runs anywhere. Logging in with an account kicks that account's session in any other bottle.
 6. The resolution is chosen from your screen. To change it, use the launcher's Settings: the entries there match the game's list. Or rerun setup with `--mode-index N --reset-config`.
@@ -160,7 +160,7 @@ Where each input comes from:
 | winetricks downloads .NET again although the installer is in `~/Library/Caches/winetricks` | winetricks 20260125 on macOS really uses `~/.cache/winetricks` | Fixed: the kit passes `W_CACHE` and seeds that directory |
 | Launcher: `A generic error occurred in GDI+`, Launcher Initialization `0xF0` | Native WIC (`winetricks windowscodecs`) breaks GDI+/WPF encoding | Keep builtin `windowscodecs`/`gdiplus` (step 2: `*windowscodecs`/`*gdiplus` = builtin). Never run `winetricks windowscodecs gdiplus`. |
 | Launcher crashes or renders nothing (WPF) | WPF hardware path | `Avalon.Graphics\DisableHWAcceleration=1` (step 2) |
-| Launcher constructor aborts right away | Custom animated-GIF skin `Data\Launcher\Design\Template.design` | Step 7 renames it to `.disabled`, or `.disabled.N` after an update |
+| Launcher shows "Critical Error ... Object reference not set to an instance of an object", then crashes (`Unhandled page fault`); `Data\Launcher\Log.txt` has `StreamAsIStream.Read` under `WICBitmapDecoder.GetFrame` | The server's official skin `Data\Launcher\Design\Template.design` with an mscoree proxy older than v3. Wine 11's JPEG decoder (CrossOver 26 and the free CX 26.3 runtime) calls `IStream::Read` with a NULL byte count, which WPF's managed stream cannot take (fixed upstream in Wine commit 111e5197). | Install the v3 proxy (its `wicfix.c` gives the decoder a stream that always gets a valid count; the app's Repair does it). The launcher skin step runs after the DLL step: with the fix it restores the newest `Template.design.disabled[.N]` left by earlier kits and keeps the other copies; without it (old proxy in `--dll-dir` and no MinGW) it still renames the skin away. Verify reports `launcher skin` and the last `WIC stream fix` line of `C:\mutools\winfix.log`. `MU_LAUNCHER_WICFIX=0` disables the fix for a test. Details: `docs/research/mac-crossover-32bit.md`. |
 | `.NET` error / launcher will not start | .NET 4.8 missing or `MuTheMatrix.exe.config` without v4.0 runtime | Steps 3 and 6. Verify checks `Release >= 528040`, `Version 4.8.*`, the files and the config. |
 | Settings: Critical Error / `Win32Exception at MonitorFromWindow` after Mac sleep | Stale Wine display/monitor link | Close the game and launcher, then relaunch. `play-mu.sh` resets the bottle's wineserver before each start. |
 | "Mu The Matrix is already running" dialog | `play-mu.sh` found `main.exe` or `MuTheMatrix.exe` running (in any bottle) | Close the running game first. Only one instance is supported. |
@@ -170,7 +170,7 @@ Where each input comes from:
 | mugl loaded but slow | DLL built with MinGW's default x87 math | Build with `-msse2 -mfpmath=sse` (`--dll-source build` does) |
 | Window bigger than the screen, UI cut off | Game picked 1920x1200 on an 1800x1169 screen | `C:\mutools\mu-modes.txt` plus `DevModeIndex` (steps 8 and 9). Lower it with `--mode-index`. |
 | Launcher Settings resolution differs from the game | mscoree proxy missing, or no `MuTheMatrix.exe mscoree=native` | Steps 10 and 4. `modehook.log` should list both exes with "N modes hooked". |
-| Launcher news panel floats over the game window (also when the game has focus); after the launcher's **–** button, a Dock click does not bring the launcher back | mscoree proxy v1. The launcher makes its WinForms news panel TopMost after every restore, and Wine's Mac driver keeps every topmost window above the Dock even while the app is inactive. Its minimize hides the minimized window (minimize to tray) and leaves the faded panel on screen, so a Dock click has nothing to restore. `WindowsFloatWhenInactive` does not help (tested). | Install the v2 proxy (step 10; the app's Repair does it). Verify reports `v1 without the macOS window fix` as a WARN and shows `C:\mutools\winfix.log` (`window fix on`, `tray icon hook on`). `MU_LAUNCHER_WINFIX=0` in the environment disables the fix for a test. Details: `docs/research/mac-launcher-windows.md`. |
+| Launcher news panel floats over the game window (also when the game has focus); after the launcher's **–** button, a Dock click does not bring the launcher back | mscoree proxy v1. The launcher makes its WinForms news panel TopMost after every restore, and Wine's Mac driver keeps every topmost window above the Dock even while the app is inactive. Its minimize hides the minimized window (minimize to tray) and leaves the faded panel on screen, so a Dock click has nothing to restore. `WindowsFloatWhenInactive` does not help (tested). | Install the current (v3) proxy (the app's Repair does it). Verify reports `v1 without the macOS window fix` as a WARN and shows `C:\mutools\winfix.log` (`window fix on`, `tray icon hook on`). `MU_LAUNCHER_WINFIX=0` in the environment disables the fix for a test. Details: `docs/research/mac-launcher-windows.md`. |
 | A crash spawns winedbg, which kills the game thread | AeDebug enabled | The registry step sets `AeDebug Auto=0`, `Debugger=""`. It now runs before the .NET installer, and is re-checked after it. |
 | `taskkill /im MuTheMatrix.exe` does nothing | The launcher ignores WM_CLOSE (`main.exe` closes cleanly on it) | Close the launcher window itself, or send SIGTERM to that bottle's process only (the owner's local `mu-to-server.sh`, not in the repository, did this) |
 | Launcher hangs with fast x87 | timewalker's x87 path breaks .NET/WPF | `TIMEWALKER_X87_ONLY=main.exe` (`play-mu.sh` sets it) |
@@ -202,9 +202,9 @@ Status key: **R** = reproduced by setup; **C** = checked by verify only; **N** =
 | 13 | `C:\windows\system32\opengl32.dll` stays the Wine builtin (`.wine-builtin` backup in MuMatrix32) | 10 dlls refuses to deploy otherwise; verify checks marker and hash | C (backup copy N) |
 | 14 | Client copied to `C:\MuTheMatrix` | 5 game (APFS clone, transfer tar excluded; `cp -c` itself falls back to a plain copy across volumes, `ditto` is a backstop) | R (live; HFS+ RAM-disk source tested) |
 | 15 | `MuTheMatrix.exe.config` with `useLegacyV2RuntimeActivationPolicy` + v4.8 sku (already in the Windows10MU source) | 6 launcher config (writes only if v4.0 is missing) | R/C |
-| 16 | `Data\Launcher\Design\Template.design` renamed | 7 skin (every run, numbered backups) | R |
+| 16 | `Data\Launcher\Design\Template.design` (the server's official skin) active | launcher skin (every run, after the DLLs): restores the newest `Template.design.disabled[.N]` of earlier kits when the mscoree proxy has the WIC stream fix, otherwise renames the skin to the first free `.disabled[.N]`; only renames | R (live 2026-10-18: skin, server time, GAME START to server select, Dock restore, in both runtimes) |
 | 17 | mugl proxy `C:\MuTheMatrix\opengl32.dll` (v7.x) | 10 dlls (`--dll-source build\|prebuilt`, `--mugl-build public\|private`, `--dll-dir`, `--mugl-version v72\|v71\|v70`) | R (live: prebuilt v7.1, build, mugl-repo) |
-| 18 | mscoree proxy `C:\MuTheMatrix\mscoree.dll` (modehook for the .NET launcher; v2 adds the macOS launcher window fix, MAC-APP-004) | 10 dlls | R (live: `modehook.log` lists both exes; v2: `winfix.log` says `window fix on`) |
+| 18 | mscoree proxy `C:\MuTheMatrix\mscoree.dll` (modehook for the .NET launcher; v2 adds the macOS launcher window fix, MAC-APP-004; v3 adds the WIC stream fix for the official skin, MAC-APP-006) | 10 dlls | R (live: `modehook.log` lists both exes; `winfix.log` says `window fix on`, and with v3 `WIC stream fix used`) |
 | 19 | `C:\mutools\mu-modes.txt` = `960x600 1024x640 1280x800 1600x1000 1728x1080` | 8 mutools (picked from screen or `--modes`) | R |
 | 20 | `C:\mutools\mugl-mode.txt` = `full+vbo` (MuMatrix32 currently has `full+vbo+time`, which adds per-call timing to the stats) | 8 mutools | R |
 | 21 | `C:\mutools\mugl-hotpatch.txt` = `380460463` (v7.6 kit default) | 8 mutools writes `--hotpatch-mask` (default 380460463; earlier kit defaults `15`, `7599`, `875951`, `44916143` and `112025007` are upgraded). Verify: 44916143 is the norm; 7599, 6575, 23983 and 875951 are named as older defaults; any mask with the v7.0 bits 1\|2\|4\|8 passes, with a note on missing/extra bits. | R (live: `=== hotpatch mask 7599: funcs 9/9 sites 18583 peep 50977`, 0 unexpected) |
@@ -223,10 +223,10 @@ Status key: **R** = reproduced by setup; **C** = checked by verify only; **N** =
 
 Already published in the repo:
 
-- `setup-crossover-32bit.sh`: win10/win32 bottle, dotnet48, software rendering, browser emulation, APFS clone, skin rename, public mugl.
+- `setup-crossover-32bit.sh`: win10/win32 bottle, dotnet48, software rendering, browser emulation, APFS clone, skin rename (it installs no mscoree proxy, so the official skin stays disabled there), public mugl.
 - `start-launcher.sh`: guarded wineserver reset plus `MonitorCheck.exe` display probe.
 - `install-fast-x87.sh` and `fast-x87.sh`: pinned, self-checking timewalker.
-- `mumodes/`: modehook, macOS launcher window fix (`winfix.c`) and mscoree proxy sources.
+- `mumodes/`: modehook, macOS launcher window fix (`winfix.c`), WIC stream fix for the official launcher skin (`wicfix.c`) and mscoree proxy sources.
 - `hotpatch/`: v7.0 sources plus private table regeneration.
 - `automation/`: autologin tools.
 
@@ -254,8 +254,9 @@ Not in this kit but in the repo: the `MonitorCheck.exe` pre-launch display probe
 | mugl v7.2 (`mugl-v72.dll`) | `e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60` |
 | mugl v7.1 (`mugl-v71.dll`) | `85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2` |
 | mugl v7.0 (`mugl-v70.dll`, rollback) | `c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c` |
-| mscoree proxy v2 (`mscoree.dll` in your `--dll-dir`; display modes plus the macOS launcher window fix, MAC-APP-004) | `0405b3309606bd46efa3e6338fc577fac02c7da4391054c27ffc19d466a24d47` |
-| mscoree proxy v1 (display modes only; recognised: verify WARNs, setup builds v2 instead when MinGW is present) | `6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac` |
+| mscoree proxy v3 (`mscoree.dll` in your `--dll-dir`; display modes, the macOS launcher window fix (MAC-APP-004) and the WIC stream fix for the official launcher skin (MAC-APP-006)) | `0cf77991cdc8a26aec90349fd3641747fa9d66564abc86a002c980041ec997b4` |
+| mscoree proxy v2 (window fix, no WIC stream fix; recognised: verify WARNs, the skin stays disabled, setup builds v3 instead when MinGW is present) | `0405b3309606bd46efa3e6338fc577fac02c7da4391054c27ffc19d466a24d47` |
+| mscoree proxy v1 (display modes only; recognised: verify WARNs, setup builds v3 instead when MinGW is present) | `6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac` |
 | CrossOver 26.3 i386 builtin `opengl32.dll` | `0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56` |
 | `ndp48-x86-x64-allos-enu.exe` | `95889d6de3f2070c07790ad6cf2000d33d9a1bdfc6a381725ab82ab1c314fd53` |
 | free runtime engine `WS12WineCX24.0.7_7.tar.xz` (Sikarugir Engines v1.0) | `203f9e9fd6c2cc77e6525d798a434ced326145db34a356355e05659d3445fd1c` |
