@@ -293,7 +293,8 @@ holds the mouse (`0x00abed56`). The ranges compared start after those guards.
   (`0x016ac544..`) and continues into movement.
 * Alt (`0x0107e99a`) goes through `0x016a5063`, which prefers a character under the
   cursor (`0x01cf1154`).
-* Path finding and the move packet were not traced.
+* Path finding and the move packet were not traced here; path finding and following are now in
+  [client-path.md](client-path.md) (the move packet stays untraced).
 
 ## Verification
 

@@ -49,6 +49,8 @@ native/build/mu-render chardump --game-root "$G" --class 0x11 --part 2 "$G/Data/
 
 The frame-loop skeleton (`core/mu_frame.*`, [finding](../docs/research/client-camera-input.md)) runs the client's 40 ms logic steps and frame cap, its in-world camera, wheel FOV zoom, key scan and terrain picking from `reconstructed/camera`. The terrain is a flat placeholder and the hero walks in a straight line.
 
+Click-to-move (`core/mu_path.*`, `build/mu-path`, NATIVE-PATH-001, [finding](../docs/research/client-path.md)) runs the client's path finder and path follower from `reconstructed/path` on a world's attribute map: `mu-path find|render|batch ROOT --world W --from X,Y --to X,Y` prints the client path and walk and renders it over a top-down terrain view; `--synthetic maze|rooms|noise|safezone|open` needs no game data.
+
 `mu-render ui` (NATIVE-UI-001) renders the title/loading screen and the login scene's 2D overlay with the
 reconstructed 2D routines (`reconstructed/ui`) and a software GL subset. See [the finding](../docs/research/client-ui-2d.md).
 `mu-render ui servers` and `mu-render ui credits` (NATIVE-UI-002) add the server-select and credits windows
@@ -150,6 +152,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_camera.*`, `mu_png.*`, `mu_options.*` | Camera with libm-free trigonometry, a PNG writer and SHA-256, shared options |
 | `core/mu_actor.*`, `mu_gif.*` | Monster/NPC actors: file resolution, the reconstructed opener's action speeds over the model's client memory, SetAction and the animation step per 40 ms; animated GIF writer |
 | `core/mu_terrain.*` | World loading (decryption, reconstructed parsers, heights, light, bitmaps) and the terrain raster adapter |
+| `core/mu_path.*`, `tools/mu_path.c` | Click-to-move: client path finder, hero click rules and 40 ms walk step (`build/mu-path`) |
 | `tools/mu_terrain.c` | Headless terrain CLI (`build/mu-terrain`) |
 | `core/mu_protocol.*` | NATIVE-NET-001 network protocol: C1–C4 framing, the send obfuscation XOR, the packet builder, the receive dechunker and the serial counter. No Crypto++, no client bytes. See [the finding](../docs/research/client-net-protocol.md) |
 | `core/mu_wav.*`, `mu_audio*.*` | WAV decoder, FMOD-boundary software mixer, platform decoder, script host (audio) |

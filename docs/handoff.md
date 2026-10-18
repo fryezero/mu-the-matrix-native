@@ -32,6 +32,16 @@ loader's output buffer would avoid the protection layer), then draw `Object<n>\`
 Dynamic lights, world tiles, frustum, decals and the 24-bit height choice are done (NATIVE-TERRAIN-002,
 [`research/client-terrain-frame.md`](research/client-terrain-frame.md); `--scale-002` scales its checks).
 
+## Click-to-move (NATIVE-PATH-001)
+
+Read [`research/client-path.md`](research/client-path.md). `reconstructed/path`, `native/core/mu_path.*` and
+`build/mu-path` find, follow and render click-to-move paths on any world's attribute map. Compare with the client by
+running `scripts/validate_path.py --cases 1000 --mutations --worlds all` (needs `MU_CLIENT_TEXT`, `MU_IMAGE_DATA`,
+`MU_TRIG_FLAG`, `MU_PATH_DIRECTIONS` and `MU_GAME_ROOT`; about 3 minutes). Renders stay local
+(`~/Documents/mu-mac-tools/native/renders/path/`). The native-world window can adopt `mu_pathing`/`mu_walker` in place
+of its straight-line walk. Next: capture the third section afresh to pin the neighbour table, trace the speed and
+run-counter predicates, and port the long-distance helper path `0x012b104c`.
+
 ## Original launcher in CrossOver
 
 Read [`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and
