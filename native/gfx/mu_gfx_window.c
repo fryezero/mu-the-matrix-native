@@ -10,7 +10,11 @@
  * Usage:
  *   mu-gfx-window --gfx DIR [--size 1280x800] [--headless | --headless-gl] [--out-dir DIR] [--script]
  *                 [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]
+ *                 [--standalone]
  * --scale S: pixels per point (2 = Retina); --size stays in points.
+ * NATIVE-GFX-003: a DIR with base.swf (and ExternalBase, ImageData, main,
+ * Chat, ... converted) plays the HUD as the client's base movie;
+ * --standalone keeps the NATIVE-GFX-002 main/chat players.
  * DIR holds the movies converted with
  *   gfxconvert.py --bridge --transparent --var _root.isClient=true --fontconfig English --font-subset latin
  *     --movie main --movie InventoryFrame --movie InfoPopup --movie CharacterInfoFrame --movie chat
@@ -88,7 +92,7 @@ typedef struct step { double at; const char *what; } step;
 
 static const step SCRIPT[] = {
     {400, "shot 1-hud"},
-    {500, "key I"},                     /* the bar's own hotkey handling (Main.onKeyUp -> onHotKey) */
+    {500, "key I"},                     /* window hotkey (layer key scan) */
     {1300, "shot 2-inventory"},
     {1400, "hover 9"},
     {1900, "shot 3-tooltip"},
@@ -175,6 +179,7 @@ int main(int argc, char **argv)
 {
     const char *dir = NULL, *out_dir = NULL, *log_path = NULL;
     int headless = 0, headless_gl = 0, script = 0, bench = 0, frames = 0, open_inv = 0, readback = 0, full = 0;
+    int standalone = 0;
     int w = 1280, h = 800;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--gfx") && i + 1 < argc) dir = argv[++i];
@@ -190,9 +195,11 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--open")) open_inv = 1;
         else if (!strcmp(argv[i], "--readback")) readback = 1;
         else if (!strcmp(argv[i], "--full-stage")) full = 1;
+        else if (!strcmp(argv[i], "--standalone")) standalone = 1;
         else {
             fprintf(stderr, "usage: %s --gfx DIR [--size WxH] [--headless|--headless-gl] [--out-dir DIR] [--script]\n"
-                            "       [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]\n", argv[0]);
+                            "       [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]\n"
+                            "       [--standalone]\n", argv[0]);
             return 2;
         }
     }
@@ -232,7 +239,8 @@ int main(int argc, char **argv)
         SDL_GL_SetSwapInterval(bench ? 0 : 1);
         SDL_StartTextInput();
     }
-    mu_gfx_layer_config cfg = {dir, NULL, w, h, gl && !readback, full, 1, NULL, NULL, log, g_scale};
+    mu_gfx_layer_config cfg = {.movie_dir = dir, .width = w, .height = h, .shared = gl && !readback, .full_stage = full,
+                               .demo = 1, .log = log, .scale = g_scale, .standalone = standalone};
     double t_open = now_ms();
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {
@@ -241,13 +249,14 @@ int main(int argc, char **argv)
     }
     double open_ms = now_ms() - t_open;
     static const struct { int code, level, w, h; const char *name; } DEMO[] = {
-        {0, 9, 1, 3, "Kris"}, {3584, 7, 2, 2, "Bronze Helm"}, {7181, 0, 1, 1, "Healing Potion"},
-        {2048, 11, 2, 3, "Dragon Armor"}, {1024, 0, 1, 2, "Short Bow"}, {7182, 0, 1, 1, "Mana Potion"},
+        {0, 9, 1, 3, "Kris"}, {3584, 7, 2, 2, "Bronze Helm"}, {7171, 0, 1, 1, "Healing Potion"},
+        {2048, 11, 2, 3, "Dragon Armor"}, {1024, 0, 1, 2, "Short Bow"}, {7174, 0, 1, 1, "Mana Potion"},
         {3072, 5, 2, 2, "Small Shield"}, {7180, 0, 1, 1, "Apple"}, {2560, 13, 2, 4, "Lighting Sword"}};
     for (size_t i = 0; i < sizeof DEMO / sizeof DEMO[0]; i++)
         mu_gfx_layer_add_item(L, DEMO[i].code, DEMO[i].level, DEMO[i].w, DEMO[i].h, DEMO[i].name);
     if (open_inv)
         mu_gfx_layer_show(L, MU_GFX_INVENTORY, 1);
+    mu_gfx_layer_set_location(L, "World 1", 135, 10);   /* map names are GlobalText: placeholder */
 
     uint8_t *shot = (headless || headless_gl) ? malloc((size_t)w * h * 4) : NULL;
     int next = 0, running = 1;

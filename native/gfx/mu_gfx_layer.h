@@ -1,4 +1,4 @@
-/* The GFx interface layer of the native client (NATIVE-GFX-002).
+/* The GFx interface layer of the native client (NATIVE-GFX-002, NATIVE-GFX-003).
  *
  * Plays the client's GFx windows (converted movies, native/gfx/gfxconvert.py
  * --bridge) through mugfx (Ruffle with the GFx patch series) over a host's
@@ -25,6 +25,19 @@
  * `shared`, render into IOSurfaces that the GL compositor samples directly
  * (macOS); otherwise frames are read back and uploaded.  Only movies that
  * changed are rendered.
+ *
+ * NATIVE-GFX-003: when the movie directory holds base.swf, the bar, chat
+ * and the other HUD movies run as in the client: one base movie (base.swf ->
+ * ExternalBase.swf) whose UI loader loads the movies of the client's list
+ * (LoadFrameFiles, static reading of the UIFrame handler 0x00c8f05d:
+ * ImageData; Tooltip, Popups; main; ItemDurability, Chat, AlarmFrame,
+ * topmenu, bufflist; hudPlayerName, hudMap, hudNotice), so the skill icons
+ * (ImageData + the skill data the game sends to ASData) and the item hotkey
+ * icons (the game's render target image0) appear.  Without base.swf the
+ * layer plays main.swf and chat.swf on their own (NATIVE-GFX-002).  The
+ * item windows get the client's placement (registry alignment, SetScale
+ * below 700 pixels) and the host can draw the item models over them
+ * (items callback, the per-window item pass 0x00abfcca).
  *
  * The movies and every render are client-derived and stay local. */
 #ifndef MU_GFX_LAYER_H
@@ -57,6 +70,44 @@ typedef struct mu_gfx_hero {
  * non-zero to use the layer's minimal built-in tooltip. */
 typedef int (*mu_gfx_tooltip_fn)(void *user, int32_t code, int32_t level, char *html, size_t cap);
 
+/* One item model to draw over a window (NATIVE-GFX-003): the slot call of
+ * the reconstructed slot pass 0x00ab6130 in 640 x 480 units for a stage of
+ * stage_w x stage_h points, and the cell rectangle in stage points (top-left
+ * origin).  select: the cursor is over the item (RenderItem3D spins it);
+ * held: the item hangs at the cursor (RenderObjectScreen enlarges it 1.4x). */
+typedef struct mu_gfx_item_draw {
+    int32_t item;               /* layer item index */
+    int32_t code, level, excellent;
+    float slot[4];              /* x, y, w, h in 640 x 480 units */
+    int32_t page_type, page_flag, type8_seen, frame_id;
+    float rect[4];              /* stage points, top-left origin */
+    float frame_scale;          /* window SetScale / 100 (handler +0x58) */
+    float alpha;
+    int select, held;
+} mu_gfx_item_draw;
+
+/* Draw item models over the current GL framebuffer.  The layer calls it
+ * right after the window's movie, as the client's per-window item pass
+ * 0x00abfcca does; the callee sets up glOrtho(0, stage_w, 0, stage_h, 20,
+ * 2000) over the whole viewport (stage points; the viewport is in pixels). */
+typedef void (*mu_gfx_items_fn)(void *user, const mu_gfx_item_draw *items, int n, int32_t stage_w, int32_t stage_h);
+
+/* Render the item hotkey icons into the game image `image0` (w x h pixels,
+ * RGBA rows bottom-up as glReadPixels returns them: the client renders them
+ * into a GL texture and the bar's ItemHotKey draws it flipped).  Each item's
+ * rect is its render rectangle in that image, top-left origin.  Returns 0
+ * when it drew, else the layer draws stand-ins. */
+typedef int (*mu_gfx_icons_fn)(void *user, const mu_gfx_item_draw *items, int n, uint8_t *rgba, int32_t w,
+                               int32_t h);
+
+/* A skill as the game sends it to the data movie (ASData skill.setSkillAll,
+ * static reading of 0x00c5ebaa: Index, Magic_Icon, Name, Delay,
+ * SkillUseType, MasteryType). */
+typedef struct mu_gfx_skill {
+    int32_t index, icon, delay, use_type, mastery;
+    char name[64];
+} mu_gfx_skill;
+
 typedef struct mu_gfx_layer_config {
     const char *movie_dir;      /* main.swf, InventoryFrame.swf, ... */
     const char *lib_path;       /* libmugfx; NULL: $MU_GFX_LIB, then next to the executable / repository build */
@@ -69,6 +120,11 @@ typedef struct mu_gfx_layer_config {
     FILE *log;                  /* callbacks and invokes, or NULL */
     double scale;               /* window pixels per point (Retina 2); 0 = 1.  The movies lay
                                    themselves out in points, as in a 1x window of that size */
+    /* NATIVE-GFX-003 */
+    mu_gfx_items_fn items;      /* item models over the item windows (NULL: coloured stand-ins) */
+    mu_gfx_icons_fn icons;      /* item hotkey icons (NULL: stand-ins) */
+    void *items_user;
+    int standalone;             /* 1: play main/chat on their own even when base.swf is present */
 } mu_gfx_layer_config;
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);
@@ -76,6 +132,17 @@ void mu_gfx_layer_close(mu_gfx_layer *layer);
 void mu_gfx_layer_resize(mu_gfx_layer *layer, int32_t width, int32_t height);
 
 void mu_gfx_layer_set_hero(mu_gfx_layer *layer, const mu_gfx_hero *hero);
+/* Skills the data movie knows (sent to ASData with skill.setSkillAll). */
+void mu_gfx_layer_set_skills(mu_gfx_layer *layer, const mu_gfx_skill *skills, int n);
+/* 1 when the HUD runs as the client's base movie (base.swf), 0 standalone. */
+int mu_gfx_layer_base_mode(const mu_gfx_layer *layer);
+/* Instance path of a HUD channel ("UIFrame", "ASData", "main", "chat", ...)
+ * as the movies reported it, "" when unknown. */
+const char *mu_gfx_layer_channel_path(const mu_gfx_layer *layer, const char *channel);
+/* The location the top menu shows (map name, hero cell). */
+void mu_gfx_layer_set_location(mu_gfx_layer *layer, const char *map, int x, int y);
+/* IME composition text (SDL TEXTEDITING) shown in the chat input; "" ends it. */
+int mu_gfx_layer_compose(mu_gfx_layer *layer, const char *utf8, int cursor);
 const mu_gfx_hero *mu_gfx_layer_hero(const mu_gfx_layer *layer);
 /* Put an item into the first free place of the inventory page (0x00ad49fb);
  * returns its index or -1 when it does not fit. */

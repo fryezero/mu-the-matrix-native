@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     }
     mu_gfx_layer_add_item(L, 0, 9, 1, 3, "Kris");
     mu_gfx_layer_add_item(L, 3584, 7, 2, 2, "Bronze Helm");
-    mu_gfx_layer_add_item(L, 7181, 0, 1, 1, "Healing Potion");
+    mu_gfx_layer_add_item(L, 7171, 0, 1, 1, "Healing Potion");
     for (int i = 3; i < argc; i++) {
         const char *op = argv[i], *a = i + 1 < argc ? argv[i + 1] : "0";
         double x, y;
