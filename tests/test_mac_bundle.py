@@ -49,11 +49,11 @@ class BundleConsistency(unittest.TestCase):
     def test_info_plist_template(self):
         text = (BUNDLE / 'Info.plist.in').read_text()
         fields = set(re.findall(r'@([A-Z_0-9]+)@', text))
-        self.assertEqual(fields, {'BUNDLE_ID', 'VERSION', 'BUILD', 'MIN_MACOS', 'DEFAULT_BOTTLE', 'DEFAULT_FAST_X87', 'DEFAULT_TIMEWALKER_DIR'})
+        self.assertEqual(fields, {'BUNDLE_ID', 'VERSION', 'BUILD', 'MIN_MACOS', 'DEFAULT_RUNTIME', 'DEFAULT_BOTTLE', 'DEFAULT_FAST_X87', 'DEFAULT_TIMEWALKER_DIR'})
         makefile = (BUNDLE / 'Makefile').read_text()
         for field in fields:
             self.assertIn(f'@{field}@', makefile, f'Makefile must substitute {field}')
-        values = {'BUNDLE_ID': 'x.y', 'VERSION': '1.0', 'BUILD': '1', 'MIN_MACOS': '13.0', 'DEFAULT_BOTTLE': 'B',
+        values = {'BUNDLE_ID': 'x.y', 'VERSION': '1.0', 'BUILD': '1', 'MIN_MACOS': '13.0', 'DEFAULT_RUNTIME': 'free', 'DEFAULT_BOTTLE': 'B',
                   'DEFAULT_FAST_X87': 'false', 'DEFAULT_TIMEWALKER_DIR': ''}
         plist = plistlib.loads(re.sub(r'@([A-Z_0-9]+)@', lambda m: values[m.group(1)], text).encode())
         self.assertEqual(plist['CFBundleExecutable'], 'MuTheMatrix')
@@ -66,7 +66,7 @@ class BundleConsistency(unittest.TestCase):
         swift = (BUNDLE / 'Sources' / 'Core.swift').read_text()
         readme = (BUNDLE / 'README.md').read_text()
         used = {int(c) for c in re.findall(r'\bfail (\d+) ', script)}
-        self.assertEqual(used, {2, 10, 11, 12, 13, 14, 15, 16, 17, 20})
+        self.assertEqual(used, {2, 10, 11, 12, 13, 14, 15, 16, 17, 20, 30, 31})
         for code in used - {2}:
             with self.subTest(code=code):
                 self.assertRegex(swift, rf'case {code}: return "')

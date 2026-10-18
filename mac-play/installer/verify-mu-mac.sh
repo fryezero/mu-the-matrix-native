@@ -1,5 +1,6 @@
 #!/bin/bash
-# verify-mu-mac.sh - READ-ONLY health check of a Mu The Matrix CrossOver bottle.
+# verify-mu-mac.sh - READ-ONLY health check of a Mu The Matrix Wine prefix (free runtime, the default)
+# or CrossOver bottle (--runtime crossover).
 # Inspects files only: cxbottle.conf, *.reg, DLL headers/hashes, config files. It never runs
 # wine/wineserver, never starts or stops processes and never writes anything.
 # Prints PASS/WARN/FAIL/INFO per item; exit status 1 if any FAIL.
@@ -9,17 +10,26 @@ KIT_DIR=$(cd -- "$(dirname -- "$0")" && pwd -P)
 # shellcheck source=lib/mukit.sh
 source "$KIT_DIR/lib/mukit.sh"
 
+RUNTIME=${MUKIT_RUNTIME:-free}
 BOTTLE=MuMatrixKit
+PREFIX_OPT=
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --bottle) [ "$#" -ge 2 ] || mukit_die '--bottle needs a name'; BOTTLE=$2; shift 2 ;;
-        -h|--help) printf 'Usage: verify-mu-mac.sh [--bottle NAME]   (default MuMatrixKit; read-only)\n'; exit 0 ;;
+        --runtime) [ "$#" -ge 2 ] || mukit_die '--runtime needs free or crossover'; RUNTIME=$2; shift 2 ;;
+        --prefix) [ "$#" -ge 2 ] || mukit_die '--prefix needs a directory'; PREFIX_OPT=$2; RUNTIME=free; shift 2 ;;
+        --bottle) [ "$#" -ge 2 ] || mukit_die '--bottle needs a name'; BOTTLE=$2; RUNTIME=crossover; shift 2 ;;
+        -h|--help) printf 'Usage: verify-mu-mac.sh [--runtime free|crossover] [--prefix DIR | --bottle NAME]\n  default: free runtime, prefix ~/Library/Application Support/MuTheMatrix/prefix; --bottle implies crossover (default MuMatrixKit). Read-only.\n'; exit 0 ;;
         *) mukit_die "Unknown argument: $1" ;;
     esac
 done
-mukit_valid_bottle_name "$BOTTLE" || mukit_die 'Invalid bottle name'
-
-P="$MUKIT_BOTTLES_DIR/$BOTTLE"
+mukit_runtime_valid "$RUNTIME" || mukit_die '--runtime must be free or crossover'
+if [ "$RUNTIME" = free ]; then
+    P=${PREFIX_OPT:-$MUKIT_FREE_HOME/prefix}
+    BOTTLE=$(basename "$P")
+else
+    mukit_valid_bottle_name "$BOTTLE" || mukit_die 'Invalid bottle name'
+    P="$MUKIT_BOTTLES_DIR/$BOTTLE"
+fi
 UREG="$P/user.reg"; SREG="$P/system.reg"
 SYS32="$P/drive_c/windows/system32"
 GAME="$P/drive_c/MuTheMatrix"
@@ -34,10 +44,28 @@ out() {   # out STATUS ITEM DETAIL
 section() { printf '\n[%s]\n' "$1"; }
 short() { printf '%s' "${1:0:12}"; }
 
-printf 'verify-mu-mac v%s  bottle=%s  (read-only)\n' "$MUKIT_VERSION" "$BOTTLE"
+if [ "$RUNTIME" = free ]; then printf 'verify-mu-mac v%s  runtime=free  prefix=%s  (read-only)\n' "$MUKIT_VERSION" "$P"
+else printf 'verify-mu-mac v%s  runtime=crossover  bottle=%s  (read-only)\n' "$MUKIT_VERSION" "$BOTTLE"; fi
 printf 'path: %s\n' "$P"
-if [ ! -d "$P" ]; then out FAIL 'bottle directory' 'missing'; exit 1; fi
+if [ ! -d "$P" ]; then out FAIL "$([ "$RUNTIME" = free ] && echo prefix || echo bottle) directory" 'missing'; exit 1; fi
 
+RT_DIR=
+if [ "$RUNTIME" = free ]; then
+section 'free runtime and prefix'
+cur=$(cat "$MUKIT_FREE_HOME/runtime/current" 2>/dev/null | tr -d '\r\n ')
+RT_DIR="$MUKIT_FREE_HOME/runtime/$cur"
+if [ -n "$cur" ] && mukit_rt_ok "$RT_DIR"; then out PASS 'Wine runtime' "$cur ($(sed -n 's/^source=//p' "$RT_DIR/.mu-runtime" | head -1))"
+else out FAIL 'Wine runtime' "missing or incomplete (${cur:-no runtime/current}); rerun setup"; fi
+for r in user system; do
+    if grep -q '^#arch=win32' "$P/$r.reg" 2>/dev/null; then out PASS "$r.reg arch" 'win32'
+    else out FAIL "$r.reg arch" "$(grep -m1 '^#arch=' "$P/$r.reg" 2>/dev/null || echo 'missing') (64-bit prefixes cannot run the game)"; fi
+done
+[ ! -e "$P/drive_c/windows/syswow64" ] && out PASS 'no syswow64' 'pure 32-bit prefix' ||
+    out FAIL 'no syswow64' 'syswow64 exists (not a 32-bit prefix)'
+[ "$(cat "$STATE/owner" 2>/dev/null)" = "$MUKIT_FREE_OWNER_MARKER" ] && out INFO 'created by' 'mu-mac-kit setup (free runtime)' ||
+    out INFO 'created by' 'not mu-mac-kit (manual/other prefix)'
+[ -d "/Applications/CrossOver.app" ] && out INFO 'CrossOver' 'installed (not used by this prefix)' || out INFO 'CrossOver' 'not installed (not needed)'
+else
 # ------------------------------------------------------------------ bottle
 section bottle
 arch=$(mukit_conf_get "$P/cxbottle.conf" WineArch)
@@ -56,6 +84,7 @@ appv=$(defaults read /Applications/CrossOver.app/Contents/Info.plist CFBundleSho
 out INFO 'CrossOver' "bottle ${cxv:-?}, installed ${appv:-?}"
 [ "$(cat "$STATE/owner" 2>/dev/null)" = "$MUKIT_OWNER_MARKER" ] && out INFO 'created by' 'mu-mac-kit setup' ||
     out INFO 'created by' 'not mu-mac-kit (manual/other bottle)'
+fi
 
 # ------------------------------------------------------------------ .NET
 section '.NET / launcher runtime'
@@ -99,10 +128,10 @@ done < <(mukit_registry_expectations 1)
 section 'OpenGL (system32 must stay Wine builtin)'
 if mukit_pe_is_wine_builtin "$SYS32/opengl32.dll"; then out PASS 'system32 opengl32.dll' 'Wine builtin'
 else out FAIL 'system32 opengl32.dll' 'missing or NOT builtin (mugl loads it by path; restore Wine builtin)'; fi
-cxgl="$CX_ROOT/lib/wine/i386-windows/opengl32.dll"
+if [ "$RUNTIME" = free ]; then cxgl="$RT_DIR/wine/lib/wine/i386-windows/opengl32.dll"; rtname='runtime'; else cxgl="$CX_ROOT/lib/wine/i386-windows/opengl32.dll"; rtname='CrossOver'; fi
 h=$(mukit_sha256 "$SYS32/opengl32.dll"); hc=$(mukit_sha256 "$cxgl")
-if [ -n "$hc" ] && [ "$h" = "$hc" ]; then out PASS 'opengl32 = CrossOver i386 builtin' "$(short "$h")"
-else out WARN 'opengl32 = CrossOver i386 builtin' "bottle $(short "$h") vs CrossOver $(short "${hc:-missing}")"; fi
+if [ -n "$hc" ] && [ "$h" = "$hc" ]; then out PASS "opengl32 = $rtname i386 builtin" "$(short "$h")"
+else out WARN "opengl32 = $rtname i386 builtin" "prefix $(short "$h") vs $rtname $(short "${hc:-missing}")"; fi
 
 # ------------------------------------------------------------------ game
 section 'game (C:\MuTheMatrix)'
@@ -126,7 +155,9 @@ else
     else
         h=$(mukit_sha256 "$gl")
         MUGL_VER=$(mukit_mugl_identify "$h")
-        if [ "$MUGL_VER" = v7.2 ]; then out PASS 'mugl opengl32.dll' "v7.2 (pinned, current best) $(short "$h")"
+        if [ "$MUGL_VER" = v7.6 ]; then out PASS 'mugl opengl32.dll' "v7.6 (pinned, current best) $(short "$h")"
+        elif [ "$MUGL_VER" = v7.5 ]; then out PASS 'mugl opengl32.dll' "v7.5 (pinned; v7.6 decodes JPEG natively, faster map loads) $(short "$h")"
+        elif [ "$MUGL_VER" = v7.2 ]; then out PASS 'mugl opengl32.dll' "v7.2 (pinned rollback; v7.5 is faster in crowded scenes) $(short "$h")"
         elif [ "$MUGL_VER" = v7.1 ]; then out PASS 'mugl opengl32.dll' "v7.1 (pinned rollback; v7.2 paces frames precisely in background) $(short "$h")"
         elif [ "$MUGL_VER" = v7.0 ]; then out PASS 'mugl opengl32.dll' "v7.0 (pinned rollback; v7.2 is faster) $(short "$h")"
         elif [ "$(cat "$STATE/opengl32.dll.sha256" 2>/dev/null)" = "$h" ]; then out PASS 'mugl opengl32.dll' "kit-installed build $(short "$h")"
@@ -163,12 +194,13 @@ if [ -f "$MUTOOLS/mugl-mode.txt" ]; then
     mukit_mugl_mode_valid "$mm" && { [ "$mm" = full+vbo ] && out PASS 'mugl-mode.txt' "$mm" || out WARN 'mugl-mode.txt' "$mm (fastest tested: full+vbo)"; } ||
         out FAIL 'mugl-mode.txt' "invalid '$mm'"
 else out WARN 'mugl-mode.txt' 'missing (mugl defaults to full, without VBO emulation)'; fi
-# Hotpatch mask: 44916143 (v7.5 default) is the norm; the older defaults and any mask with the v7.0 base bits (1|2|4|8) pass.
+# Hotpatch mask: 112025007 (kit default: v7.5's 44916143 + v7.6 JPEG decode) is the norm; the older defaults and any mask with the v7.0 base bits (1|2|4|8) pass.
 D=$MUKIT_HOTPATCH_DEFAULT B70=$MUKIT_HOTPATCH_V70_BITS
 if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then
     hp=$(head -1 "$MUTOOLS/mugl-hotpatch.txt" | tr -d '\r ')
-    if ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
-    elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (v7.5 default: all patches, frame pacing fix, terrain sort, quad batching, deferred client state, culling, native shadows/decals)"
+    if mukit_hotpatch_forbidden "$hp"; then out FAIL 'mugl-hotpatch.txt' "$hp refused: $MUKIT_HOTPATCH_FORBIDDEN_WHY; rerun setup (writes $D)"
+    elif ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
+    elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (kit default: v7.5's patches plus v7.6 native JPEG decode; a v7.5 DLL reads it as 44916143)"
     elif [ $((hp & B70)) = "$B70" ]; then
         note=; miss=$(( D & ~hp )); extra=$(( hp & ~D ))
         case "$hp" in
@@ -176,14 +208,15 @@ if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then
             6575)  note='v7.1 default without the frame pacing fix' ;;
             23983) note='v7.3 default: no quad batching, deferred client state or culling' ;;
             875951) note='v7.4 default: no native shadows, decals or specialised mesh-draw append' ;;
-            *) [ "$miss" = 1024 ] && note='v7.5 default without the frame pacing fix' ||
-                   { [ "$miss" != 0 ] && note="v7.5 default bits off: $miss"; } ;;
+            44916143) note='v7.5 default: no v7.6 native JPEG decode' ;;
+            *) [ "$miss" = 1024 ] && note='kit default without the frame pacing fix' ||
+                   { [ "$miss" != 0 ] && note="kit default bits off: $miss"; } ;;
         esac
         [ "$extra" != 0 ] && note="${note:+$note; }extra bits: $extra"
         [ "${MUGL_VER:-}" = v7.0 ] && note="v7.0 reads $((hp & 31))"
         out PASS 'mugl-hotpatch.txt' "$hp (v7.0 base patches on; $note)"
     else out WARN 'mugl-hotpatch.txt' "$hp (some v7.0 base patches 1|2|4|8 off; default $D)"; fi
-else out PASS 'mugl-hotpatch.txt' "absent (mugl built-in default: $D for v7.5, 875951 for v7.4, 23983 for v7.3, 7599 for v7.1/v7.2, $B70 for v7.0)"; fi
+else out PASS 'mugl-hotpatch.txt' "absent (mugl built-in default: v7.6/v7.5 44916143, 875951 for v7.4, 23983 for v7.3, 7599 for v7.1/v7.2, $B70 for v7.0)"; fi
 for t in muinput.exe clickstart.exe; do
     [ -f "$MUTOOLS/$t" ] && out PASS "$t" 'present (automation helper)' || out WARN "$t" 'missing (only needed by autologin scripts)'
 done
@@ -207,6 +240,16 @@ else out INFO 'mugl-stats.txt' 'none yet'; fi
 
 # ------------------------------------------------------------------ launchers
 section 'Mac launchers'
+if [ "$RUNTIME" = free ]; then
+    app=
+    for d in /Applications "$HOME/Applications"; do [ -d "$d/Mu The Matrix.app" ] && app="$d/Mu The Matrix.app"; done
+    [ -n "$app" ] && out PASS 'Mu The Matrix.app' "$app" || out INFO 'Mu The Matrix.app' 'not installed (Desktop launcher or play-mu.sh also work)'
+    found=
+    for c in "$HOME"/Desktop/*.command; do
+        [ -f "$c" ] && grep -q "MU_RUNTIME=free" "$c" 2>/dev/null && grep -qF "MU_PREFIX='$P'" "$c" && found="${found:+$found, }$(basename "$c")"
+    done
+    [ -n "$found" ] && out PASS 'Desktop launcher' "$found" || out INFO 'Desktop launcher' 'none (optional)'
+else
 [ -x "$KIT_DIR/play-mu.sh" ] && out PASS 'play-mu.sh' 'kit launcher script present' || out FAIL 'play-mu.sh' 'missing'
 found= lx87=0 ltw=
 for c in "$HOME"/Desktop/*.command; do
@@ -226,6 +269,8 @@ if [ "$lx87" = 1 ]; then
 else
     tw=${MU_TIMEWALKER_DIR:-}
     tw_ok "$tw" && out INFO 'fast x87 (timewalker)' 'built; setup --fast-x87 --timewalker-dir enables it' || out INFO 'fast x87 (timewalker)' 'off (optional)'
+fi
+
 fi
 
 printf '\nSummary: %d PASS, %d WARN, %d FAIL\n' "$NPASS" "$NWARN" "$NFAIL"

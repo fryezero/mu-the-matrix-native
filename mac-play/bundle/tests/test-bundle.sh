@@ -66,8 +66,8 @@ EOF
 chmod 755 "$TW/scripts/run-crossover.sh"
 
 export MU_TEST_REC="$REC" MUKIT_BOTTLES_DIR="$BOTTLES" CX_ROOT="$FAKECX" MU_LOG_DIR="$TMPD/logs"
-export MU_FAST_X87_HOME="$TMPD/no-fast-x87-cache" MU_START_WAIT=1 PATH="$STUBBIN:$PATH"
-unset MU_BOTTLE MU_FAST_X87 MU_TIMEWALKER_DIR MU_RESOLUTION MU_DEBUGMSG MU_TEST_RUNNING MU_TEST_WINE_STATUS
+export MU_FAST_X87_HOME="$TMPD/no-fast-x87-cache" MU_START_WAIT=1 PATH="$STUBBIN:$PATH" MUKIT_FREE_HOME="$TMPD/freehome"
+unset MU_RUNTIME MU_PREFIX MU_BOTTLE MU_FAST_X87 MU_TIMEWALKER_DIR MU_RESOLUTION MU_DEBUGMSG MU_TEST_RUNNING MU_TEST_WINE_STATUS
 L() { "$LAUNCH" "$@" 2>&1; }
 code() { "$LAUNCH" "$@" >/dev/null 2>&1; echo $?; }
 
@@ -79,8 +79,8 @@ has 'help lists exit codes'     "$(L --help)" '20 launcher exited right away'
 eq 'unknown option'             "$(code --bogus)" 2
 
 echo '# preflight errors'
-eq 'no bottle selected'         "$(code --check)" 2
-has 'no bottle message'         "$(L --check)" 'MU-ERROR 2 No bottle is selected'
+eq 'no bottle selected'         "$(MU_RUNTIME=crossover code --check)" 2
+has 'no bottle message'         "$(MU_RUNTIME=crossover L --check)" 'MU-ERROR 2 No bottle is selected'
 eq 'invalid bottle name'        "$(MU_BOTTLE='../x' code --check)" 2
 eq 'bad fast x87 value'         "$(MU_BOTTLE=Good MU_FAST_X87=yes code --check)" 2
 eq 'bad resolution syntax'      "$(MU_BOTTLE=Good MU_RESOLUTION=big code --check)" 2
@@ -159,6 +159,61 @@ eq 'refused start runs nothing' "$(MU_TEST_RUNNING=1 MU_BOTTLE=Good code --run)"
 [ ! -e "$REC/wineserver.calls" ] && ok 'refused start resets no server' || bad 'refused start resets no server'
 
 # ---------------------------------------------------------------- part 2: the app bundle
+echo '# free runtime (no CrossOver): synthetic runtime and prefix'
+FHM="$TMPD/freehome"; RTD="$FHM/runtime/rt1"; FPX="$FHM/prefix"
+eq 'free: runtime missing'      "$(code --check)" 30
+has 'free: install hint'        "$(L --check)" 'Choose Install in Settings'
+eq 'free: status all missing'   "$(L --status | tr '\n' ' ')" 'runtime missing prefix missing game missing '
+mkdir -p "$RTD/wine/bin" "$RTD/wine/lib/wine/x86_64-unix"; : > "$RTD/wine/lib/wine/x86_64-unix/ntdll.so"; echo 'id=rt1' > "$RTD/.mu-runtime"
+printf 'rt1\n' > "$FHM/runtime/current"
+cat > "$RTD/wine/bin/wine" <<'EOS'
+#!/bin/bash
+printf '%s\n' "$PWD" "${WINEPREFIX:-unset}" "$@" > "$MU_TEST_REC/free-wine.args"
+printf '%s\n' "${TIMEWALKER_X87_ONLY:-unset}" > "$MU_TEST_REC/free-wine.x87"
+exit 0
+EOS
+cat > "$RTD/wine/bin/wineserver" <<'EOS'
+#!/bin/bash
+printf '%s %s\n' "${WINEPREFIX:-unset}" "$*" >> "$MU_TEST_REC/free-wineserver.calls"
+EOS
+chmod 755 "$RTD/wine/bin/wine" "$RTD/wine/bin/wineserver"
+eq 'free: prefix missing'       "$(code --check)" 31
+mkdir -p "$FPX/drive_c/mutools"; printf 'WINE REGISTRY Version 2\n\n#arch=win64\n' > "$FPX/system.reg"
+eq 'free: 64-bit prefix refused' "$(code --check)" 31
+printf 'WINE REGISTRY Version 2\n\n#arch=win32\n' > "$FPX/system.reg"
+eq 'free: game missing'         "$(code --check)" 13
+mkdir -p "$FPX/drive_c/MuTheMatrix"; printf 'MZ synthetic launcher' > "$FPX/drive_c/MuTheMatrix/MuTheMatrix.exe"
+printf 'DevModeIndex:4\r\nWindowMode:1\r\nID:Player' > "$FPX/drive_c/MuTheMatrix/LauncherOption.if"
+printf '960x600 1024x640 1280x800 1600x1000 1728x1080\n' > "$FPX/drive_c/mutools/mu-modes.txt"
+eq 'free: status ready'         "$(L --status | tr '\n' ' ')" 'runtime ok rt1 prefix ok game ok '
+eq 'free: preflight ok'         "$(code --check)" 0
+eq 'free: CrossOver not needed' "$(CX_ROOT="$TMPD/none" code --check)" 0
+eq 'free: modes listed'         "$(L --list-modes | tr '\n' ' ')" '960x600 1024x640 1280x800 1600x1000 1728x1080 current 4 '
+D=$(MU_RESOLUTION=1280x800 L --dry-run)
+has 'free: plans prefix reset'  "$D" "MU-PLAN WINEPREFIX=$FPX $RTD/wine/bin/wineserver -k"
+has 'free: plans game folder'   "$D" "MU-PLAN cd $FPX/drive_c/MuTheMatrix"
+has 'free: plans launcher'      "$D" "$RTD/wine/bin/wine MuTheMatrix.exe"
+R=$(MU_RESOLUTION=1280x800 L --run); rc=$?
+eq 'free: run exit'             "$rc" 0
+sleep 1
+eq 'free: launcher args'        "$(tr '\n' '|' < "$REC/free-wine.args" 2>/dev/null)" "$FPX/drive_c/MuTheMatrix|$FPX|MuTheMatrix.exe|"
+eq 'free: prefix wineserver reset' "$(cat "$REC/free-wineserver.calls" 2>/dev/null)" "$FPX -k"
+eq 'free: DevModeIndex written' "$(LC_ALL=C sed -n 's/^DevModeIndex:\([0-9]*\).*/\1/p' "$FPX/drive_c/MuTheMatrix/LauncherOption.if" | tr -d '\r')" 2
+has 'free: fast x87 falls back without the translator' "$(MU_FAST_X87=1 L --check)" 'fast x87 not available'
+eq 'free: fast x87 missing is not an error' "$(MU_FAST_X87=1 code --check)" 0
+FX="$FHM/fast-x87"; mkdir -p "$FX"
+for f in x87-main-only-wrapper runtime_loader libRuntimeRosettax87; do printf '#!/bin/bash\nprintf "%%s\\n" "$@" > "$MU_TEST_REC/fx-%s.args"\nprintf "%%s|%%s|%%s\\n" "${TIMEWALKER_X87_ONLY:-unset}" "${WINELOADER:-unset}" "${TIMEWALKER_X87_REAL_LOADER:-unset}" > "$MU_TEST_REC/fx.env"\n' "$f" > "$FX/$f"; chmod 755 "$FX/$f"; done
+: > "$FX/libtimewalker.dylib"
+has 'free: no inner loader -> plain' "$(MU_FAST_X87=1 L --check)" 'fast x87 not available'
+printf '#!/bin/bash\nexit 0\n' > "$RTD/wine/lib/wine/x86_64-unix/wine"; chmod 755 "$RTD/wine/lib/wine/x86_64-unix/wine"
+has 'free: fast x87 on'         "$(MU_FAST_X87=1 L --check)" 'fast x87 on'
+D=$(MU_FAST_X87=1 L --dry-run)
+has 'free: x87 wrapper planned' "$D" "$FX/x87-main-only-wrapper MuTheMatrix.exe"
+has 'free: x87 only for main.exe' "$D" 'TIMEWALKER_X87_ONLY=main.exe'
+MU_FAST_X87=1 L --run > /dev/null; sleep 1
+eq 'free: x87 env at start'     "$(cat "$REC/fx.env" 2>/dev/null)" "main.exe|$FX/x87-main-only-wrapper|$RTD/wine/lib/wine/x86_64-unix/wine"
+eq 'free: MU_BOTTLE alone keeps CrossOver' "$(MU_BOTTLE=Good L --check | grep -c 'CrossOver')" 1
+
 echo '# app bundle'
 APP="$TMPD/build/Mu The Matrix.app"   # own build directory: never replaces a build/ made with custom defaults
 if [ "$(uname -s)" != Darwin ] || [ -n "${MU_BUNDLE_SKIP_BUILD:-}" ] || ! command -v xcrun >/dev/null || ! xcrun --find swiftc >/dev/null 2>&1; then
@@ -204,11 +259,18 @@ else
     P=$("$BIN" --print-settings)
     has 'defaults without file'  "$P" '(missing; defaults)'
     has 'default bottle shown'   "$P" "Bottle = $(px MUDefaultBottle)"
+    has 'default runtime is free' "$P" 'Runtime = free'
+    has 'app --status ready (synthetic free home)' "$("$BIN" --status)" 'free runtime: installed'
+    ID=$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$BIN" --install-dry-run 2>&1)
+    has 'app install plan: official installer' "$ID" 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe'
+    has 'app install plan: free runtime' "$ID" 'runtime=free'
+    eq 'app install plan exit' "$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$BIN" --install-dry-run >/dev/null 2>&1; echo $?)" 0
     mkdir -p "$TMPD/settings"
     cat > "$MU_SETTINGS_FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+<key>Runtime</key><string>crossover</string>
 <key>Bottle</key><string>Good</string>
 <key>FastX87</key><true/>
 <key>TimewalkerDir</key><string>$TW</string>
@@ -227,7 +289,7 @@ EOF
     has 'app dry run: x87 runner' "$D" "TIMEWALKER_X87_ONLY=main.exe $TW/scripts/run-crossover.sh --bottle Good"
     eq 'app dry run changes no bottle' "$(digest "$BOTTLES")" "$before"
     [ ! -e "$REC/wine.args" ] && [ ! -e "$REC/tw.args" ] && ok 'app dry run starts nothing' || bad 'app dry run starts nothing'
-    has 'app log written'        "$(cat "$TMPD/logs/app.log" 2>/dev/null)" 'cli --dry-run bottle=Good fastX87=true resolution=1600x1000 -> status 0'
+    has 'app log written'        "$(cat "$TMPD/logs/app.log" 2>/dev/null)" 'cli --dry-run runtime=crossover bottle=Good fastX87=true resolution=1600x1000 -> status 0'
     CX_ROOT="$TMPD/none" "$BIN" --check >/dev/null 2>&1; eq 'app check: CrossOver missing' "$?" 10
     sedx() { sed -e "$1" "$MU_SETTINGS_FILE" > "$MU_SETTINGS_FILE.tmp" && mv "$MU_SETTINGS_FILE.tmp" "$MU_SETTINGS_FILE"; }
     sedx 's|<string>Good</string>|<string>Missing</string>|'

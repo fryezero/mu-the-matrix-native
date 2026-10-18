@@ -16,17 +16,18 @@ TMPD=$(mktemp -d "${TMPDIR:-/tmp}/mukit-test.XXXXXX")
 mkbuiltin() { { printf 'MZ'; dd if=/dev/zero bs=1 count=62 2>/dev/null; printf 'Wine builtin DLL'; printf '%s' "$2"; } > "$1"; }
 mkdll() { printf 'MZ synthetic %s' "$2" > "$1"; }
 sedi() { sed -e "$1" "$2" > "$2.tmp" && mv "$2.tmp" "$2"; }   # portable sed -i
-DLLS="$TMPD/dlls"; mkdir -p "$DLLS"
-mkdll "$DLLS/mugl-v72.dll" v72; mkdll "$DLLS/mugl-v71.dll" v71; mkdll "$DLLS/mugl-v70.dll" v70; mkdll "$DLLS/mscoree.dll" mscoree
+DLLS="$TMPD/dlls"; mkdir -p "$DLLS" "$TMPD/nopgrep"
+printf '#!/bin/sh\nexit 1\n' > "$TMPD/nopgrep/pgrep"; chmod 755 "$TMPD/nopgrep/pgrep"
+mkdll "$DLLS/mugl-v76.dll" v76; mkdll "$DLLS/mugl-v75.dll" v75; mkdll "$DLLS/mugl-v72.dll" v72; mkdll "$DLLS/mugl-v71.dll" v71; mkdll "$DLLS/mugl-v70.dll" v70; mkdll "$DLLS/mscoree.dll" mscoree
 mkdll "$DLLS/ndp48.exe" dotnet
 FAKECX="$TMPD/CrossOver"; mkdir -p "$FAKECX/bin" "$FAKECX/lib/wine/i386-windows"
 for b in cxbottle wine wineserver; do printf '#!/bin/sh\necho "stub %s: should not run in tests" >&2\nexit 99\n' "$b" > "$FAKECX/bin/$b"; chmod 755 "$FAKECX/bin/$b"; done
 mkbuiltin "$FAKECX/lib/wine/i386-windows/opengl32.dll" stand-in
 CX_ROOT=$FAKECX; MUKIT_SKIP_PLATFORM_CHECK=1
-MUKIT_MUGL_V72_SHA256=$(mukit_sha256 "$DLLS/mugl-v72.dll"); MUKIT_MUGL_V71_SHA256=$(mukit_sha256 "$DLLS/mugl-v71.dll")
+MUKIT_MUGL_V76_SHA256=$(mukit_sha256 "$DLLS/mugl-v76.dll"); MUKIT_MUGL_V75_SHA256=$(mukit_sha256 "$DLLS/mugl-v75.dll"); MUKIT_MUGL_V72_SHA256=$(mukit_sha256 "$DLLS/mugl-v72.dll"); MUKIT_MUGL_V71_SHA256=$(mukit_sha256 "$DLLS/mugl-v71.dll")
 MUKIT_MUGL_V70_SHA256=$(mukit_sha256 "$DLLS/mugl-v70.dll"); MUKIT_MSCOREE_PROXY_SHA256=$(mukit_sha256 "$DLLS/mscoree.dll")
 MUKIT_DOTNET48_INSTALLER_SHA256=$(mukit_sha256 "$DLLS/ndp48.exe")
-export CX_ROOT MUKIT_SKIP_PLATFORM_CHECK MUKIT_MUGL_V72_SHA256 MUKIT_MUGL_V71_SHA256 MUKIT_MUGL_V70_SHA256 MUKIT_MSCOREE_PROXY_SHA256 MUKIT_DOTNET48_INSTALLER_SHA256
+export CX_ROOT MUKIT_SKIP_PLATFORM_CHECK MUKIT_MUGL_V76_SHA256 MUKIT_MUGL_V75_SHA256 MUKIT_MUGL_V72_SHA256 MUKIT_MUGL_V71_SHA256 MUKIT_MUGL_V70_SHA256 MUKIT_MSCOREE_PROXY_SHA256 MUKIT_DOTNET48_INSTALLER_SHA256
 NPASS=0 NFAIL=0
 ok()   { NPASS=$((NPASS + 1)); printf 'ok    %s\n' "$1"; }
 bad()  { NFAIL=$((NFAIL + 1)); printf 'FAIL  %s\n' "$1"; }
@@ -93,23 +94,40 @@ yes 'hotpatch 16383' mukit_hotpatch_valid 16383
 yes 'hotpatch 875951 (v7.4 default)' mukit_hotpatch_valid 875951
 yes 'hotpatch 2097151' mukit_hotpatch_valid 2097151
 yes 'hotpatch 44916143 (v7.5 default)' mukit_hotpatch_valid 44916143
+yes 'hotpatch 112025007 (kit default, v7.6 JPEG bit)' mukit_hotpatch_valid 112025007
+yes 'hotpatch 31-bit value without the refused bits' mukit_hotpatch_valid 1342177279
+yes 'hotpatch 1073741824 (opt-in deferred enables)' mukit_hotpatch_valid 1073741824
+no 'hotpatch 380460463 refused (CRC bit 268435456)' mukit_hotpatch_valid 380460463
+no 'hotpatch 536870912 refused (CRC verify bit)' mukit_hotpatch_valid 536870912
+no 'hotpatch 380050863 refused (CRC bit)' mukit_hotpatch_valid 380050863
+yes 'forbidden: 268435456' mukit_hotpatch_forbidden 268435456
+yes 'forbidden: 536870912' mukit_hotpatch_forbidden 536870912
+no 'forbidden: kit default 112025007' mukit_hotpatch_forbidden 112025007
+no 'forbidden: 1073741824' mukit_hotpatch_forbidden 1073741824
+no 'forbidden: not a number' mukit_hotpatch_forbidden x
 yes 'hotpatch 67108863' mukit_hotpatch_valid 67108863
 no 'hotpatch x'   mukit_hotpatch_valid x
-no 'hotpatch 67108864' mukit_hotpatch_valid 67108864
+yes 'hotpatch 67108864 (v7.6 JPEG bit)' mukit_hotpatch_valid 67108864
+no 'hotpatch 2147483647 refused (includes the CRC bits)' mukit_hotpatch_valid 2147483647
+no 'hotpatch 2147483648' mukit_hotpatch_valid 2147483648
 eq 'v7.5 default keeps v7.0 bits' "$((MUKIT_HOTPATCH_DEFAULT & 31))" "$MUKIT_HOTPATCH_V70_BITS"
 eq 'v7.1/v7.2 read their default' "$((MUKIT_HOTPATCH_DEFAULT & 16383))" 7599
 eq 'v7.3 reads its default' "$((MUKIT_HOTPATCH_DEFAULT & 65535))" 23983
+eq 'v7.5 reads its default (26 bits)' "$((MUKIT_HOTPATCH_DEFAULT & 67108863))" 44916143
+eq 'kit default has no CRC bit' "$((MUKIT_HOTPATCH_DEFAULT & 268435456))" 0
 eq 'v7.4 reads its default' "$((MUKIT_HOTPATCH_DEFAULT & 2097151))" 875951
 yes 'mugl mode with v7.4 diagnostics' mukit_mugl_mode_valid full+vbo+time+finish
 
 echo '# pinned hashes (real pins are tested in a subshell without the test overrides)'
-PINS=$(env -u MUKIT_MUGL_V72_SHA256 -u MUKIT_MUGL_V71_SHA256 -u MUKIT_MUGL_V70_SHA256 -u MUKIT_MSCOREE_PROXY_SHA256 -u MUKIT_DOTNET48_INSTALLER_SHA256 \
-    bash -c 'source "$1"; printf "%s %s %s %s %s %s %s" "$MUKIT_MUGL_V72_SHA256" "$MUKIT_MUGL_V71_SHA256" "$MUKIT_MUGL_V70_SHA256" "$MUKIT_MSCOREE_PROXY_SHA256" "$MUKIT_DOTNET48_INSTALLER_SHA256" "$MUKIT_MAIN_EXE_SHA256" "$MUKIT_LAUNCHER_EXE_SHA256"' _ "$KIT_DIR/lib/mukit.sh")
+PINS=$(env -u MUKIT_MUGL_V76_SHA256 -u MUKIT_MUGL_V75_SHA256 -u MUKIT_MUGL_V72_SHA256 -u MUKIT_MUGL_V71_SHA256 -u MUKIT_MUGL_V70_SHA256 -u MUKIT_MSCOREE_PROXY_SHA256 -u MUKIT_DOTNET48_INSTALLER_SHA256 \
+    bash -c 'source "$1"; printf "%s %s %s %s %s %s %s %s %s" "$MUKIT_MUGL_V76_SHA256" "$MUKIT_MUGL_V75_SHA256" "$MUKIT_MUGL_V72_SHA256" "$MUKIT_MUGL_V71_SHA256" "$MUKIT_MUGL_V70_SHA256" "$MUKIT_MSCOREE_PROXY_SHA256" "$MUKIT_DOTNET48_INSTALLER_SHA256" "$MUKIT_MAIN_EXE_SHA256" "$MUKIT_LAUNCHER_EXE_SHA256"' _ "$KIT_DIR/lib/mukit.sh")
 n=0; for h in $PINS; do n=$((n + 1)); [[ "$h" =~ ^[0-9a-f]{64}$ ]] && ok "pin $n is a SHA-256" || bad "pin $n is a SHA-256: $h"; done
-eq 'pin count' "$n" 7
-eq 'real pins are not the synthetic test hashes' "$(printf '%s\n' $PINS | sort -u | wc -l | tr -d ' ')" 7
+eq 'pin count' "$n" 9
+eq 'real pins are not the synthetic test hashes' "$(printf '%s\n' $PINS | sort -u | wc -l | tr -d ' ')" 9
 eq 'identify v7.1'     "$(mukit_mugl_identify "$MUKIT_MUGL_V71_SHA256")" v7.1
 eq 'identify v7.2'     "$(mukit_mugl_identify "$MUKIT_MUGL_V72_SHA256")" v7.2
+eq 'identify v7.5'     "$(mukit_mugl_identify "$MUKIT_MUGL_V75_SHA256")" v7.5
+eq 'identify v7.6'     "$(mukit_mugl_identify "$MUKIT_MUGL_V76_SHA256")" v7.6
 no 'identify unknown'  mukit_mugl_identify 0000
 eq 'version sha v70'   "$(mukit_mugl_version_sha v70)" "$MUKIT_MUGL_V70_SHA256"
 no 'version sha v69 unknown' mukit_mugl_version_sha v69
@@ -188,11 +206,11 @@ yes 'game copied'                [ -f "$G/main.exe" ]
 no  'transfer tar excluded'      [ -e "$G/.mu-recovery-transfer.tar" ]
 yes 'skin renamed'               [ -f "$G/Data/Launcher/Design/Template.design.disabled" ]
 yes 'source skin untouched'      [ -f "$SRC/Data/Launcher/Design/Template.design" ]
-eq  'mugl deployed (v7.2)'       "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V72_SHA256"
+eq  'mugl deployed (v7.6)'       "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V76_SHA256"
 eq  'mscoree proxy deployed'     "$(mukit_sha256 "$G/mscoree.dll")" "$MUKIT_MSCOREE_PROXY_SHA256"
 eq  'mu-modes.txt'               "$(cat "$FB/drive_c/mutools/mu-modes.txt")" '960x600 1024x640 1280x800 1600x1000 1728x1080'
 eq  'mugl-mode.txt'              "$(cat "$FB/drive_c/mutools/mugl-mode.txt")" 'full+vbo'
-eq  'mugl-hotpatch.txt'          "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
+eq  'mugl-hotpatch.txt'          "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
 eq  'LauncherOption rewritten'   "$(od -An -tx1 < "$G/LauncherOption.if" | tr -d ' \n')" "$(mukit_lopt_render 4 1 '' | od -An -tx1 | tr -d ' \n')"
 yes 'LauncherOption original kept' cmp -s "$G/LauncherOption.if.mukit-orig" "$FIX/LauncherOption.orig.if"
 yes 'launcher config written (missing in source)' grep -q 'v4.8' "$G/MuTheMatrix.exe.config"
@@ -218,13 +236,13 @@ eq 'kit writes --mode-index 2' "$(mukit_lopt_get "$G/LauncherOption.if" DevModeI
 "${SETUP[@]}" > "$TMPD/run5c.log" 2>&1
 eq 'kit-written index is not mistaken for a user choice' "$(mukit_lopt_get "$G/LauncherOption.if" DevModeIndex)" 4
 
-eq 'up-to-date DLL recorded as kit-managed' "$(cat "$FB/.mukit/opengl32.dll.sha256")" "$MUKIT_MUGL_V72_SHA256"
+eq 'up-to-date DLL recorded as kit-managed' "$(cat "$FB/.mukit/opengl32.dll.sha256")" "$MUKIT_MUGL_V76_SHA256"
 ls "$G"/*.mukit-backup-* > /dev/null 2>&1 && bad 'no backups of kit-managed DLLs' || ok 'no backups of kit-managed DLLs'
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify.log" 2>&1; rc=$?
 eq 'verify on fake bottle: no FAIL' "$rc" 0
 grep -q 'WARN  main.exe' "$TMPD/verify.log" && ok 'verify flags untested main.exe' || bad 'verify flags untested main.exe'
-grep -q 'v7.2 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.2' || bad 'verify accepts kit mugl v7.2'
-grep -q 'PASS  mugl-hotpatch.txt *44916143' "$TMPD/verify.log" && ok 'verify: 44916143 is the norm' || bad 'verify: 44916143 is the norm'
+grep -q 'v7.6 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.6' || bad 'verify accepts kit mugl v7.6'
+grep -q 'PASS  mugl-hotpatch.txt *112025007' "$TMPD/verify.log" && ok 'verify: 112025007 is the norm' || bad 'verify: 112025007 is the norm'
 
 # Rollback to v7.0 and back; the hotpatch file written by an earlier kit (15) is upgraded.
 "${SETUP[@]}" --mugl-version v70 > "$TMPD/run6.log" 2>&1; rc=$?
@@ -235,14 +253,17 @@ eq 'verify v70: no FAIL' "$rc" 0
 grep -q 'v7.0 (pinned rollback' "$TMPD/verify70.log" && ok 'verify names v7.0 rollback' || bad 'verify names v7.0 rollback'
 printf '15\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7.log" 2>&1
-eq 'back to v7.2' "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V72_SHA256"
-eq 'old kit default 15 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
+eq 'back to v7.6' "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V76_SHA256"
+eq 'old kit default 15 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
 printf '7599\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7b.log" 2>&1
-eq 'old kit default 7599 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
+eq 'old kit default 7599 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
 printf '875951\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7a.log" 2>&1
-eq 'old kit default 875951 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
+eq 'old kit default 875951 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+printf '44916143\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+"${SETUP[@]}" > "$TMPD/run7d.log" 2>&1
+eq 'old kit default 44916143 (v7.5) upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
 printf '23983\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7c.log" 2>&1
 eq 'user mask 23983 (v7.3 default) kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 23983
@@ -253,7 +274,19 @@ printf '6575\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 eq 'user mask 6575 kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 6575
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify6575.log" 2>&1
 grep -q 'PASS  mugl-hotpatch.txt *6575 .*without the frame pacing fix' "$TMPD/verify6575.log" && ok 'verify accepts 6575' || bad 'verify accepts 6575'
-printf '44916143\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+# Masks with the refused CRC bits (file-integrity module, out of scope): setup refuses them, replaces a file holding
+# one even without --reset-config, and verify fails on it.
+"${SETUP[@]}" --hotpatch-mask 380460463 > "$TMPD/run-crc.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && ok 'setup refuses --hotpatch-mask with the CRC bit' || bad 'setup refuses --hotpatch-mask with the CRC bit'
+grep -q 'refused: bits 268435456/536870912 .*file-integrity module.* out of scope' "$TMPD/run-crc.log" && ok 'refusal names the file-integrity module' || bad 'refusal names the file-integrity module'
+eq 'refused mask not written' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 6575
+printf '380460463\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+"$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-crc.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && ok 'verify fails on a mask with the CRC bit' || bad 'verify fails on a mask with the CRC bit'
+grep -q 'FAIL  mugl-hotpatch.txt *380460463 refused' "$TMPD/verify-crc.log" && ok 'verify names the refused mask' || bad 'verify names the refused mask'
+"${SETUP[@]}" > "$TMPD/run-crc2.log" 2>&1
+eq 'setup replaces a stored mask with the CRC bit' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+printf '112025007\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 
 echo '# Desktop launcher step (temporary HOME)'
 FH="$TMPD/home"; mkdir -p "$FH/Desktop"
@@ -264,6 +297,7 @@ eq 'desktop run exit 0' "$rc" 0
 yes 'launcher written + executable' [ -x "$LF" ]
 eq 'launcher targets bottle' "$(mukit_launcher_bottle "$LF")" FakeKit
 yes 'launcher calls play-mu.sh' grep -q "play-mu.sh" "$LF"
+yes 'launcher keeps normal priority (zsh NO_BG_NICE)' grep -q '^setopt NO_BG_NICE' "$LF"
 yes 'launcher plain Rosetta by default' grep -q 'MU_FAST_X87=0' "$LF"
 HOME="$FH" "${DSETUP[@]}" > "$TMPD/d2.log" 2>&1
 grep -q '\[do\]' "$TMPD/d2.log" && bad 'desktop rerun no-op' || ok 'desktop rerun no-op'
@@ -307,11 +341,11 @@ if command -v "${MINGW_CC:-i686-w64-mingw32-gcc}" >/dev/null 2>&1 && command -v 
     MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/build2.log" 2>&1
     grep -q '\[do\]   install' "$TMPD/build2.log" && bad 'build rerun: DLLs unchanged (reproducible build)' || ok 'build rerun: DLLs unchanged (reproducible build)'
     # Prebuilt with a mugl-only --dll-dir (no mscoree.dll): the public mscoree proxy is built instead.
-    mkdir -p "$TMPD/muglonly"; cp "$DLLS/mugl-v72.dll" "$TMPD/muglonly/"
+    mkdir -p "$TMPD/muglonly"; cp "$DLLS/mugl-v76.dll" "$TMPD/muglonly/"
     MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --dll-source prebuilt --dll-dir "$TMPD/muglonly" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/muglonly.log" 2>&1; rc=$?
     eq 'prebuilt mugl-only --dll-dir exit 0' "$rc" 0
     grep -q 'building the mscoree proxy' "$TMPD/muglonly.log" && ok 'mugl-only --dll-dir builds the mscoree proxy' || bad 'mugl-only --dll-dir builds the mscoree proxy'
-    eq 'prebuilt mugl deployed from mugl-only dir' "$(mukit_sha256 "$BG/opengl32.dll")" "$MUKIT_MUGL_V72_SHA256"
+    eq 'prebuilt mugl deployed from mugl-only dir' "$(mukit_sha256 "$BG/opengl32.dll")" "$MUKIT_MUGL_V76_SHA256"
     eq 'built mscoree deployed with mugl-only dir' "$(mukit_sha256 "$BG/mscoree.dll")" "$(mukit_sha256 "$TMPD/kitbuild/mscoree.dll")"
 else
     echo 'skip  build path (no MinGW cross-compiler or python3)'
@@ -338,16 +372,84 @@ mkdir -p "$MUKIT_BOTTLES_DIR/Foreign"; : > "$MUKIT_BOTTLES_DIR/Foreign/cxbottle.
 "${SETUP[@]}" --dry-run --mode-index 9 > /dev/null 2>&1 && bad 'refuse out-of-range index' || ok 'refuse out-of-range index'
 "${SETUP[@]}" --dry-run --ac-variant no-ac > /dev/null 2>&1 && bad 'no-ac TODO hook refuses' || ok 'no-ac TODO hook refuses'
 "${SETUP[@]}" --dry-run --mugl-version v69 > /dev/null 2>&1 && bad 'refuse unknown --mugl-version' || ok 'refuse unknown --mugl-version'
-"${SETUP[@]}" --dry-run --hotpatch-mask 67108864 > /dev/null 2>&1 && bad 'refuse bad --hotpatch-mask' || ok 'refuse bad --hotpatch-mask'
+"${SETUP[@]}" --dry-run --hotpatch-mask 2147483648 > /dev/null 2>&1 && bad 'refuse bad --hotpatch-mask' || ok 'refuse bad --hotpatch-mask'
 "${SETUP[@]}" --dry-run --dll-source prebuilt --dll-dir "$TMPD/nonexistent" > /dev/null 2>&1 && bad 'refuse missing --dll-dir' || ok 'refuse missing --dll-dir'
 env -u MU_DLL_DIR "$KIT_DIR/setup-mu-mac.sh" --dry-run --bottle FakeKit --game-dir "$SRC" --dll-source prebuilt --modes '960x600' > /dev/null 2>&1 && bad 'prebuilt without --dll-dir is refused' || ok 'prebuilt without --dll-dir is refused'
-mkdir -p "$TMPD/baddlls"; cp "$DLLS"/* "$TMPD/baddlls/"; printf 'tampered' >> "$TMPD/baddlls/mugl-v72.dll"
+mkdir -p "$TMPD/baddlls"; cp "$DLLS"/* "$TMPD/baddlls/"; printf 'tampered' >> "$TMPD/baddlls/mugl-v76.dll"
 "${SETUP[@]}" --dll-dir "$TMPD/baddlls" > "$TMPD/tamper.log" 2>&1 && bad 'refuse DLL with the wrong SHA-256' || { grep -q 'does not match the pinned' "$TMPD/tamper.log" && ok 'refuse DLL with the wrong SHA-256' || bad 'tamper message'; }
 MUKIT_PRIVATE_BUILD_DIR="$TMPD/no-private-build" "${SETUP[@]}" --dry-run --dll-source build --mugl-build private > "$TMPD/priv.log" 2>&1 && bad 'private build without your own private DLL is refused' || ok 'private build without your own private DLL is refused'
 "${SETUP[@]}" --dry-run --mugl-build both > /dev/null 2>&1 && bad 'refuse bad --mugl-build' || ok 'refuse bad --mugl-build'
 sedi 's/"WineArch" = "win32"/"WineArch" = "win64"/' "$FB/cxbottle.conf"
 "${SETUP[@]}" --dry-run > /dev/null 2>&1 && bad 'refuse win64 bottle' || ok 'refuse win64 bottle'
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > /dev/null 2>&1 && bad 'verify FAILs win64' || ok 'verify FAILs win64'
+
+echo '# free runtime (no CrossOver): synthetic runtime archive, prefix and winetricks; nothing real runs'
+FH2="$TMPD/freehome"; RTSRC="$TMPD/rtsrc"; FREC="$TMPD/freerec"; mkdir -p "$RTSRC/wine/bin" "$RTSRC/wine/lib/wine/x86_64-unix" "$RTSRC/wine/lib/wine/i386-windows" "$FREC"
+printf '#!/bin/sh\n[ "$1" = --version ] && { echo "wine-11.0 (synthetic)"; exit 0; }\nprintf "%%s|%%s\\n" "${WINEPREFIX:-unset}" "$*" >> "%s/wine.calls"\nexit 0\n' "$FREC" > "$RTSRC/wine/bin/wine"
+printf '#!/bin/sh\nprintf "%%s|%%s\\n" "${WINEPREFIX:-unset}" "$*" >> "%s/wineserver.calls"\nexit 0\n' "$FREC" > "$RTSRC/wine/bin/wineserver"
+chmod 755 "$RTSRC/wine/bin/wine" "$RTSRC/wine/bin/wineserver"; : > "$RTSRC/wine/lib/wine/x86_64-unix/ntdll.so"
+mkbuiltin "$RTSRC/wine/lib/wine/i386-windows/opengl32.dll" stand-in
+(cd "$RTSRC" && tar -cJf "$TMPD/runtime.tar.xz" .)
+RTSHA=$(mukit_sha256 "$TMPD/runtime.tar.xz")
+FP="$FH2/prefix"
+mkdir -p "$FP/.mukit" "$FP/drive_c/windows/system32" "$FP/drive_c/windows/Microsoft.NET/Framework/v4.0.30319/WPF" "$FH2/tools"
+printf '%s\n' "$MUKIT_FREE_OWNER_MARKER" > "$FP/.mukit/owner"
+cp "$FIX/fake-bottle-user.reg" "$FP/user.reg"; cp "$FIX/fake-bottle-system.reg" "$FP/system.reg"
+mkbuiltin "$FP/drive_c/windows/system32/opengl32.dll" stand-in
+printf 'MZ native mscoree stand-in' > "$FP/drive_c/windows/system32/mscoree.dll"; : > "$FP/drive_c/windows/Microsoft.NET/Framework/v4.0.30319/clr.dll"
+printf '#!/bin/sh\necho synthetic winetricks; exit 0\n' > "$FH2/tools/winetricks"; chmod 755 "$FH2/tools/winetricks"
+export MUKIT_WINETRICKS_SHA256=$(mukit_sha256 "$FH2/tools/winetricks")
+FSETUP=(env MUKIT_FREE_HOME="$FH2" "$KIT_DIR/setup-mu-mac.sh" --runtime-archive "$TMPD/runtime.tar.xz" --game-dir "$SRC" --mugl-dll "$DLLS/mugl-v75.dll" --mscoree-dll "$DLLS/mscoree.dll" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify)
+"${FSETUP[@]}" --dry-run > "$TMPD/free-dry.log" 2>&1; rc=$?
+eq 'free dry-run exit 0' "$rc" 0
+grep -q 'runtime=free' "$TMPD/free-dry.log" && ok 'free runtime is the default' || bad 'free runtime is the default'
+no 'free dry-run installed nothing' test -e "$FH2/runtime"
+"${FSETUP[@]}" > "$TMPD/free1.log" 2>&1; rc=$?
+eq 'free first run exit 0' "$rc" 0
+RTID="archive-${RTSHA:0:12}"
+eq 'runtime/current names the archive runtime' "$(cat "$FH2/runtime/current" 2>/dev/null)" "$RTID"
+yes 'runtime unpacked with marker' test -f "$FH2/runtime/$RTID/.mu-runtime"
+yes 'runtime wine executable' test -x "$FH2/runtime/$RTID/wine/bin/wine"
+yes 'free: game copied' test -f "$FP/drive_c/MuTheMatrix/main.exe"
+eq 'free: mugl --mugl-dll deployed' "$(mukit_sha256 "$FP/drive_c/MuTheMatrix/opengl32.dll")" "$MUKIT_MUGL_V75_SHA256"
+eq 'free: mscoree --mscoree-dll deployed' "$(mukit_sha256 "$FP/drive_c/MuTheMatrix/mscoree.dll")" "$MUKIT_MSCOREE_PROXY_SHA256"
+eq 'free: pinned v7.5 keeps the full mode list' "$(mukit_lopt_get "$FP/drive_c/MuTheMatrix/LauncherOption.if" DevModeIndex)" 4
+grep -q 'stub cxbottle\|stub wine' "$TMPD/free1.log" && bad 'free run never calls CrossOver' || ok 'free run never calls CrossOver'
+"${FSETUP[@]}" > "$TMPD/free2.log" 2>&1; rc=$?
+eq 'free rerun exit 0' "$rc" 0
+grep -q '\[do\]' "$TMPD/free2.log" && bad 'free rerun is a no-op' || ok 'free rerun is a no-op'
+MUKIT_FREE_HOME="$FH2" "$KIT_DIR/verify-mu-mac.sh" > "$TMPD/free-verify.log" 2>&1; rc=$?
+eq 'verify (free default prefix): no FAIL' "$rc" 0
+grep -q 'PASS  Wine runtime' "$TMPD/free-verify.log" && ok 'verify names the free runtime' || bad 'verify names the free runtime'
+grep -q 'PASS  opengl32 = runtime i386 builtin' "$TMPD/free-verify.log" && ok 'verify compares opengl32 with the runtime' || bad 'verify compares opengl32 with the runtime'
+# an unpinned --mugl-dll (e.g. a public build bundled in the app) is treated like the public build
+printf 'MZ synthetic public build' > "$TMPD/public-opengl32.dll"
+"${FSETUP[@]}" --mugl-dll "$TMPD/public-opengl32.dll" --reset-config > "$TMPD/free3.log" 2>&1; rc=$?
+eq 'free unpinned mugl exit 0' "$rc" 0
+grep -q 'not a pinned mugl build' "$TMPD/free3.log" && ok 'unpinned mugl warns' || bad 'unpinned mugl warns'
+eq 'unpinned mugl caps DevModeIndex' "$(mukit_lopt_get "$FP/drive_c/MuTheMatrix/LauncherOption.if" DevModeIndex)" 2
+# play-mu.sh with the free runtime: explicit prefix, relative launcher in C:\MuTheMatrix, no CrossOver
+if command -v zsh >/dev/null 2>&1; then
+    : > "$FREC/wine.calls"; : > "$FREC/wineserver.calls"
+    env PATH="$TMPD/nopgrep:$PATH" MUKIT_FREE_HOME="$FH2" HOME="$TMPD/home" zsh "$KIT_DIR/play-mu.sh" > /dev/null 2>&1
+    eq 'play-mu free: launcher started in the prefix' "$(tail -1 "$FREC/wine.calls")" "$FP|MuTheMatrix.exe"
+    eq 'play-mu free: prefix wineserver reset' "$(tail -1 "$FREC/wineserver.calls")" "$FP|-k"
+fi
+# refusals
+FP2="$TMPD/freehome2/prefix"; mkdir -p "$FP2"; printf 'x' > "$FP2/system.reg"
+env MUKIT_FREE_HOME="$TMPD/freehome2" "$KIT_DIR/setup-mu-mac.sh" --dry-run --runtime-archive "$TMPD/runtime.tar.xz" --game-dir "$SRC" > /dev/null 2>&1 && bad 'free: refuse an unowned prefix' || ok 'free: refuse an unowned prefix'
+env MUKIT_FREE_HOME="$FH2" "$KIT_DIR/setup-mu-mac.sh" --dry-run --prefix "$MUKIT_BOTTLES_DIR/Inside" --game-dir "$SRC" > /dev/null 2>&1 && bad "free: refuse a prefix in CrossOver's bottles" || ok "free: refuse a prefix in CrossOver's bottles"
+sedi 's/^#arch=win32/#arch=win64/' "$FP/system.reg"
+"${FSETUP[@]}" --dry-run > /dev/null 2>&1 && bad 'free: refuse a 64-bit prefix' || ok 'free: refuse a 64-bit prefix'
+sedi 's/^#arch=win64/#arch=win32/' "$FP/system.reg"
+"${FSETUP[@]}" --dry-run --runtime-archive https://example.invalid/rt.tar.xz > /dev/null 2>&1 && bad 'free: URL archive needs --runtime-sha256' || ok 'free: URL archive needs --runtime-sha256'
+"${FSETUP[@]}" --dry-run --runtime bogus > /dev/null 2>&1 && bad 'refuse bad --runtime' || ok 'refuse bad --runtime'
+"${FSETUP[@]}" --dry-run --game-installer "$TMPD/nope.exe" > /dev/null 2>&1 && bad 'refuse missing --game-installer' || ok 'refuse missing --game-installer'
+env MUKIT_FREE_HOME="$TMPD/freehome3" "$KIT_DIR/setup-mu-mac.sh" --dry-run --game-installer official > "$TMPD/free-official.log" 2>&1
+grep -q 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe' "$TMPD/free-official.log" && ok 'official installer URL planned' || bad 'official installer URL planned'
+grep -q 'wineserver -p 5' "$TMPD/free-official.log" && ok 'free: 32-bit prefix created through the wineserver' || bad 'free: 32-bit prefix created through the wineserver'
+grep -q 'WS12WineCX24.0.7_7.tar.xz' "$TMPD/free-official.log" && ok 'free: default runtime download planned' || bad 'free: default runtime download planned'
+unset MUKIT_WINETRICKS_SHA256
 
 printf '\n%d passed, %d failed\n' "$NPASS" "$NFAIL"
 [ "$NFAIL" = 0 ]

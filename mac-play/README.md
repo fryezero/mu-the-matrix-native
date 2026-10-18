@@ -1,4 +1,12 @@
-# Original client in a 32-bit CrossOver bottle
+# Original client on a Mac
+
+**Players: see [PLAYER-GUIDE.md](PLAYER-GUIDE.md).** The default setup needs no CrossOver: [`installer/`](installer/README.md)
+installs a free Wine runtime (CodeWeavers' open-source Wine, LGPL) and [`bundle/`](bundle/README.md) builds
+"Mu The Matrix.app", which bundles that installer. Findings, measurements and licenses:
+[docs/research/mac-free-runtime.md](../docs/research/mac-free-runtime.md) (MAC-FREE-001). The CrossOver paths
+below remain as the legacy route.
+
+## Legacy: original client in a 32-bit CrossOver bottle
 
 This setup creates a separate CrossOver `win10` template bottle with
 `WineArch=win32`. It installs .NET Framework 4.8, keeps Wine's builtin image

@@ -1,21 +1,83 @@
 # mu-mac-kit: play Mu The Matrix on an Apple Silicon Mac
 
-Repository path: `mac-play/installer/` (MAC-KIT-001, issue #63). This kit rebuilds the working CrossOver setup from scratch in a new bottle. The reference is the owner's hand-built `MuMatrix32` bottle (32-bit, .NET 4.8 launcher, mugl OpenGL batching proxy, matching resolution lists for the launcher and the game).
+Repository path: `mac-play/installer/` (MAC-KIT-001, issue #63; free runtime MAC-FREE-001). The kit sets up the
+original Windows client in a new 32-bit Wine prefix with everything the hand-built `MuMatrix32` bottle has
+(.NET 4.8 launcher, mugl OpenGL batching proxy, matching resolution lists for the launcher and the game).
 
-**Status.** The owner's local copy of this kit was verified live on 2026-10-17 (CrossOver 26.3.0.39832, macOS 27, M-series, 1800x1169 screen): a bottle built by it logs in and runs in world at the same or better fps than `MuMatrix32`. See "Live validation" at the end; those results are the owner's report and were not rerun for publication. This repository version is adapted to run from a checkout (see "Adaptations for the repository" below). It was itself run live on 2026-10-17 in a throwaway bottle, for all three DLL paths, up to the server-select screen (see "Live validation of the repository version").
+**Default: the free runtime, no CrossOver.** `setup-mu-mac.sh` downloads CodeWeavers' open-source Wine (LGPL),
+pinned by SHA-256, into `~/Library/Application Support/MuTheMatrix` and creates the prefix there. Upstream WineHQ
+builds cannot run the game (see `docs/research/mac-free-runtime.md`); CodeWeavers' Wine can, because it runs a
+32-bit prefix in wow64 mode. Two runtimes are supported:
+
+| Runtime | How the kit gets it | In-world speed (Tormenta boss area, same prefix, MU Helper on) |
+|---|---|---|
+| `cx24` (current default) | Sikarugir's build of CrossOver 24.0.7's Wine plus Sikarugir's x86_64 libraries, public GitHub release assets | 14.6 fps, 69 ms of work per frame; fast x87 does not work with it |
+| CrossOver 26.3 Wine, built by `packaging/build-wine.sh` | `--runtime-archive FILE_OR_URL`; becomes the default once the owner hosts it (`MUKIT_RT_ARCHIVE_URL`/`_SHA256` in `lib/mukit.sh`) | 18.1 fps / 55 ms (CrossOver 26.3: 18.3 / 55); with fast x87 25.0 fps (the game's cap) / 34 ms |
+
+Players normally use **Mu The Matrix.app** (`../bundle/`), which bundles this installer and runs it from an
+Install window; the player guide is `../PLAYER-GUIDE.md`. The legacy CrossOver path stays available with
+`--runtime crossover` or `--bottle NAME` (sections marked CrossOver below).
+
+**Status.** Free runtime: live-validated on 2026-10-17/18 (macOS 27.0.1, Apple M5): the full chain launcher, GAME
+START, server select, login and in world, from a prefix built by this setup, and a fresh end-to-end rehearsal with
+the official installer (see `docs/research/mac-free-runtime.md`). CrossOver: the owner's local copy of this kit was
+verified live on 2026-10-17 (CrossOver 26.3.0.39832). It was itself run live on 2026-10-17 in a throwaway bottle
+(see the sections at the end).
 
 | File | Purpose |
 |---|---|
-| `setup-mu-mac.sh` | Idempotent, step-wise installer. Every step checks the bottle first and skips work that is already done. Has `--dry-run`. |
+| `setup-mu-mac.sh` | Idempotent, step-wise installer. Every step checks the prefix first and skips work that is already done. Has `--dry-run`. |
 | `verify-mu-mac.sh` | Read-only health check. It only reads files: it never runs wine and never starts or stops anything. Prints PASS/WARN/FAIL/INFO per item and exits 1 on any FAIL. |
 | `registry/mu-mac.reg` | All registry changes, as one reviewable REGEDIT4 file imported with `regedit /S`. |
-| `play-mu.sh` | What the Desktop launcher runs: refuses a second instance, resets the bottle's idle wineserver, starts `MuTheMatrix.exe` (log `~/Library/Logs/MuTheMatrix-BOTTLE.log`). |
-| `lib/mukit.sh` | Shared parsers (Wine `.reg`, `cxbottle.conf`, `LauncherOption.if`, mode lists), pinned hashes and protected bottle names. |
-| `tests/test-mukit.sh` | Tests: parser units, `.reg`/expectation sync, shell syntax, and a synthetic-bottle integration test with stub CrossOver and synthetic DLLs (no wine, no game, temp dirs only). Runs on macOS and Linux; CI runs it on both. |
+| `play-mu.sh` | What the Desktop launcher runs: refuses a second instance, resets the prefix's idle wineserver, starts `MuTheMatrix.exe` (log `~/Library/Logs/MuTheMatrix-NAME.log`). |
+| `lib/mukit.sh` | Shared parsers (Wine `.reg`, `cxbottle.conf`, `LauncherOption.if`, mode lists), pinned hashes and download URLs, protected bottle names. |
+| `packaging/build-wine.sh` | Builds the CrossOver 26.3 Wine runtime archive from CodeWeavers' published sources (about 25 minutes). |
+| `packaging/package-fast-x87.sh` | Collects a built rosetta-timewalker (MIT) for `--fast-x87-dir` or the app. |
+| `tests/test-mukit.sh` | Tests: parser units, `.reg`/expectation sync, shell syntax, and synthetic integration tests for both runtimes with stub Wine/CrossOver, synthetic DLLs and a synthetic runtime archive (no wine, no game, temp dirs only). Runs on macOS and Linux. |
 
-No game files are ever downloaded. You point `--game-dir` at your own client folder. The repo does not document an official installer URL, so the kit does not offer one.
+The game comes from your own client folder (`--game-dir`) or from the official installer
+(`--game-installer official`: `https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe`, the link on
+`webx.muthematrix.com/downloads`, about 2.2 GB, run silently with `/S` inside the prefix).
 
-## Requirements
+## Free runtime: requirements
+
+- Apple Silicon Mac with Rosetta 2 (`softwareupdate --install-rosetta --agree-to-license`), macOS 13 or later
+  (tested: macOS 27.0.1 on an M5). Nothing from Homebrew is needed: the setup downloads a pinned winetricks.
+- About 12 GB free disk space during setup with the official installer (runtime 0.6 GB, prefix with .NET and game
+  3.7 GB, the 2.2 GB installer, deleted after a successful install), or 6 GB with `--game-dir`. Afterwards about 4.5 GB.
+- Internet access to github.com (runtime, winetricks), Microsoft's download servers (.NET 4.0 and 4.8 through
+  winetricks) and dl.muthematrix.com (game).
+- For the DLLs: `--dll-dir`/`--mugl-dll` with files you have (Mu The Matrix.app passes the ones bundled by the
+  owner), or MinGW to build the public ones, or nothing (then no mugl: low fps).
+
+What lives where (`MUKIT_FREE_HOME`, default `~/Library/Application Support/MuTheMatrix`):
+
+| Path | Content |
+|---|---|
+| `runtime/<id>/`, `runtime/current` | the Wine runtime (`wine/{bin,lib,share}` + dylibs), and which one the launcher uses |
+| `tools/winetricks` | winetricks 20260125, SHA-256 pinned |
+| `prefix/` | the Wine prefix: `drive_c/MuTheMatrix` (game), `drive_c/mutools` (mode list, mugl config), `.mukit/` (step logs) |
+| `fast-x87/` | rosetta-timewalker's x87 translator and the main.exe-only wrapper (optional) |
+| `downloads/` | runtime archives (the downloaded game installer is deleted after a successful install; the folder can be deleted after setup) |
+
+## Free runtime: step by step
+
+1. Preview (changes nothing): `./mac-play/installer/setup-mu-mac.sh --dry-run --game-installer official`
+2. Install: `./mac-play/installer/setup-mu-mac.sh --game-installer official` (or `--game-dir "/path/to/Mu The Matrix"`),
+   optionally `--runtime-archive winecx-26.3.0-mu1.tar.xz --runtime-sha256 HEX`, `--mugl-dll`/`--mscoree-dll` or
+   `--dll-dir`, `--fast-x87-dir DIR`. The steps (14) are: runtime, winetricks, prefix, registry, .NET 4.8,
+   Windows version, game, launcher config, skin, `C:\mutools`, `LauncherOption.if`, DLLs, fast x87 and Desktop
+   launcher, verify. Measured times are in `docs/research/mac-free-runtime.md`.
+3. Start with Mu The Matrix.app, the Desktop launcher, or `MU_RUNTIME=free ./mac-play/installer/play-mu.sh`.
+
+Free-runtime specifics: the prefix is created by starting the runtime's wineserver with `WINEARCH=win32` (the
+wow64 loader itself refuses that variable) and then running `wineboot` without it; the prefix's service processes
+never exit, so the setup waits for the wineserver at most `MUKIT_WINESERVER_WAIT` seconds (default 20) and then
+stops it. The official installer ignores `/D=` and installs into `C:\Program Files\Glitch Games Network\Mu The Matrix`;
+the setup moves that folder to `C:\MuTheMatrix`.
+
+## CrossOver (legacy) requirements
+
 
 - Apple Silicon Mac with Rosetta 2, and CrossOver 26.3 in `/Applications`. Tested: CrossOver 26.3.0.39832 on macOS 27.
 - `brew install winetricks`. This also pulls in `cabextract` and `p7zip`. Winetricks downloads .NET 4.0 (dotNetFx40, ~50 MB) and 4.8 (~70 MB) from Microsoft unless they are already in its cache. On macOS, winetricks 20260125 uses `~/.cache/winetricks`, not `~/Library/Caches/winetricks`. The kit passes `W_CACHE` explicitly (`$W_CACHE`, else `$XDG_CACHE_HOME/winetricks`, else `~/.cache/winetricks`) and seeds the 4.8 installer there.
@@ -37,7 +99,7 @@ Where each input comes from:
 
 > **Distribution note:** the prebuilt `mugl-v7x.dll` files and a private hotpatch build contain hotpatch tables derived from the client's unpacked memory. They are for their owner's own use. Per `docs/evidence-policy.md` they must never be committed to the repository or uploaded as a CI artifact; this repository holds only their SHA-256 values. Without them, the default public build (batching only) still works.
 
-## Step by step for a new player
+## CrossOver (legacy): step by step
 
 1. Install CrossOver and winetricks. Open CrossOver once so it finishes its own setup.
 2. Preview what will happen (this changes nothing):
@@ -59,21 +121,28 @@ Where each input comes from:
 
 | Option | Effect |
 |---|---|
-| `--bottle NAME` | Target bottle. Default `MuMatrixKit`. `MuMatrix32`, `Windows10MU`, `Steam` and `MuMatrixRecovery` are always refused, as is any existing bottle without the kit's `.mukit/owner` marker. |
+| `--runtime free\|crossover` | `free` (default) needs no CrossOver; `crossover` is the legacy bottle path (also selected by `--bottle` without `--runtime`). Env `MUKIT_RUNTIME`. |
+| `--prefix DIR` | Free runtime: the prefix (default `~/Library/Application Support/MuTheMatrix/prefix`). An existing prefix without the free marker `.mukit/owner` = `mu-free-kit-v1`, a 64-bit prefix and a prefix inside CrossOver's bottle folder are refused. |
+| `--runtime-archive SRC`, `--runtime-sha256 HEX` | Free runtime: install a runtime archive (local file or https URL; a URL needs the SHA-256) instead of the default `cx24` download, for example the CrossOver 26.3 build from `packaging/build-wine.sh`. |
+| `--game-installer SRC` | Install the game with the official Windows installer: a local `.exe`, an https URL or `official`. The download resumes when interrupted. |
+| `--mugl-dll FILE`, `--mscoree-dll FILE` | Install exactly these DLLs (Mu The Matrix.app passes the ones bundled at build time). Pinned mugl builds are recognised; another file is installed with a warning and treated like the public build (`DevModeIndex` capped at 2). |
+| `--fast-x87-dir DIR` | Free runtime: install rosetta-timewalker's x87 translator (`libtimewalker.dylib`, `runtime_loader`, `libRuntimeRosettax87`, from `packaging/package-fast-x87.sh`) and the authored main.exe-only wrapper into the runtime folder. Used only with a runtime that has the inner loader (the CrossOver 26.3 build). |
+| `--bottle NAME` | CrossOver: target bottle. Default `MuMatrixKit`. `MuMatrix32`, `Windows10MU`, `Steam` and `MuMatrixRecovery` are always refused, as is any existing bottle without the kit's `.mukit/owner` marker. |
 | `--game-dir PATH` | Client source. Copied with an APFS clone (`cp -c`), falling back to `ditto` across volumes. The 3 GB `.mu-recovery-transfer.tar` is dropped. |
 | `--modes "WxH ..."`, `--mode-index N` | Contents of `C:\mutools\mu-modes.txt` and the `DevModeIndex`. The default ladder is `960x600 1024x640 1280x800 1600x1000 1728x1080 1920x1200`. The first three are always listed; larger modes are listed only if the window fits (width + 16, height + 89). A 1800x1169 screen gives the live list with index 4 = 1728x1080. |
 | `--account ID` | Prefills `ID:` in `LauncherOption.if`. Passwords are never stored and the kit knows no account or Keychain item name. The repository's `mac-play/automation/mu-autologin.sh` takes the account and Keychain service from `MU_ACCOUNT` and `MU_KEYCHAIN_SERVICE`. |
-| `--dll-source build` (default) / `prebuilt` | `build` compiles the mscoree proxy from `mac-play/mumodes` and the mugl proxy from `mac-play/mugl` (or, with `--mugl-build private`, installs your own `mac-play/hotpatch/build/private/opengl32.dll`), using `-O2 -msse2 -mfpmath=sse` (SSE is mandatory), in `mac-play/installer/build/` (ignored by git). `prebuilt` installs the pinned DLLs from `--dll-dir` and refuses any file whose SHA-256 differs. |
-| `--dll-dir DIR` | Directory with `mugl-v72.dll`, `mugl-v71.dll`, `mugl-v70.dll`, `mscoree.dll` (env `MU_DLL_DIR`). Required with `prebuilt`. Only the selected `mugl-VERSION.dll` must be there: without `mscoree.dll` the kit builds the mscoree proxy from `mac-play/mumodes` (public source; needs MinGW), so a plain folder of mugl builds works. |
-| `--mugl-version v72\|v71\|v70` | Which pinned prebuilt mugl to install. `v72` (default) is the current best (v7.1 plus precise frame-pacing waits that hold 25 fps when the game is in the background, MAC-PERF-006). `v71` and `v70` are rollbacks. Switching back and forth is a normal rerun. |
+| `--dll-source auto` (default) / `build` / `prebuilt` | `auto`: `prebuilt` with `--dll-dir`, else `build` when MinGW and the repository sources are present, else none (no mugl, no mscoree proxy; `DevModeIndex` capped at 2). |
+| `build` / `prebuilt` | `build` compiles the mscoree proxy from `mac-play/mumodes` and the mugl proxy from `mac-play/mugl` (or, with `--mugl-build private`, installs your own `mac-play/hotpatch/build/private/opengl32.dll`), using `-O2 -msse2 -mfpmath=sse` (SSE is mandatory), in `mac-play/installer/build/` (ignored by git). `prebuilt` installs the pinned DLLs from `--dll-dir` and refuses any file whose SHA-256 differs. |
+| `--dll-dir DIR` | Directory with `mugl-v76.dll`, `mugl-v75.dll`, `mugl-v72.dll`, `mugl-v71.dll`, `mugl-v70.dll`, `mscoree.dll` (env `MU_DLL_DIR`). Required with `prebuilt`. Only the selected `mugl-VERSION.dll` must be there: without `mscoree.dll` the kit builds the mscoree proxy from `mac-play/mumodes` (public source; needs MinGW), so a plain folder of mugl builds works. |
+| `--mugl-version v76\|v75\|v72\|v71\|v70` | Which pinned prebuilt mugl to install. `v76` (default) is the current best (native JPEG decode, faster map loads, MAC-PERF-010); `v75` (MAC-PERF-009). `v72` (precise frame-pacing waits, MAC-PERF-006), `v71` and `v70` are rollbacks. Switching back and forth is a normal rerun. |
 | `--mugl-build public\|private` | Only with `--dll-source build`. `public` (default) is the batching-only proxy: no hotpatches and no display-mode hook, so `DevModeIndex` is capped at 2 (1280x800 is index 2 in both lists). A later run with another proxy raises it again, because the kit remembers the index it wrote and only keeps an index you changed yourself. |
-| `--hotpatch-mask N` | Value written to `C:\mutools\mugl-hotpatch.txt` (0-67108863). The default 44916143 is v7.5's built-in default: v7.4's 875951 plus 2097152 native body shadows, 8388608 native terrain decals and 33554432 the specialised mesh-draw append (MAC-PERF-009). 875951 is v7.1's 7599 (1\|2\|4\|8 helpers/inlining/peephole/xform, 32\|128\|256 meshdraw, 1024 frame pacing fix, 2048\|4096 zero-copy/strided batches) plus 16384 terrain sort (v7.3), 65536 quad batching, 262144 deferred client-array enables and 524288 off-screen culling (v7.4, MAC-PERF-008). Older builds read fewer bits and see their own default (v7.4 875951, v7.3 23983, v7.1/v7.2 7599, v7.0 15). 6575 is v7.1's default without the frame pacing fix. A file holding an earlier kit default (15, 7599 or 875951) is upgraded. |
+| `--hotpatch-mask N` | Value written to `C:\mutools\mugl-hotpatch.txt` (0-2147483647, without bits 268435456 and 536870912). The default 112025007 is v7.5's 44916143 plus 67108864, v7.6's native JPEG decode (MAC-PERF-010). Masks with bit 268435456 or 536870912 are refused: those bits enabled an experimental CRC-32 patch of the client's file-integrity module, which this project does not modify. Setup also replaces a stored mask that has them, and verify fails on one; a v7.5 DLL reads only 26 bits and sees 44916143. A `--mugl-build private` build needs `LJT_DIR` from `mac-play/hotpatch/build-libjpeg-turbo.sh` for the JPEG bit. A file holding 44916143 is upgraded like the older defaults. 44916143 is v7.5's built-in default: v7.4's 875951 plus 2097152 native body shadows, 8388608 native terrain decals and 33554432 the specialised mesh-draw append (MAC-PERF-009). 875951 is v7.1's 7599 (1\|2\|4\|8 helpers/inlining/peephole/xform, 32\|128\|256 meshdraw, 1024 frame pacing fix, 2048\|4096 zero-copy/strided batches) plus 16384 terrain sort (v7.3), 65536 quad batching, 262144 deferred client-array enables and 524288 off-screen culling (v7.4, MAC-PERF-008). Older builds read fewer bits and see their own default (v7.4 875951, v7.3 23983, v7.1/v7.2 7599, v7.0 15). 6575 is v7.1's default without the frame pacing fix. A file holding an earlier kit default (15, 7599 or 875951) is upgraded. |
 | `--dotnet-installer PATH`, `--helpers-dir DIR` | Optional local `ndp48` installer (SHA-256 checked) to seed winetricks' cache, and the directory of `muinput.exe`/`clickstart.exe`. |
 | `--no-mugl`, `--no-stats` | Skip the GL proxy, or remove `MUGL_STATS`. |
 | `--skip-verify` | Do not run `verify-mu-mac.sh` at the end of setup. |
 | `--reset-config` | Overwrite edited `C:\mutools\*.txt` and `LauncherOption.if` values. By default, your later changes are kept. |
 | `--launcher-name`, `--no-desktop` | Desktop `.command` handling. A `.command` file the kit did not write is never overwritten. |
-| `--fast-x87`, `--timewalker-dir DIR` | **TODO hook.** Uses an existing rosetta-timewalker build in `DIR` (env `MU_TIMEWALKER_DIR`; then `MU_FAST_X87=1` in the Desktop launcher); does not build one. The repository's own route is `mac-play/install-fast-x87.sh`. The launcher reflects the options of the latest run, so pass `--fast-x87` on every rerun if you want to keep it. MuMatrix32 runs with fast x87, and the fps comparison below used it in both bottles. |
+| `--fast-x87`, `--timewalker-dir DIR` | Free runtime: install the translator from a built rosetta-timewalker checkout (`DIR/build`). CrossOver: **TODO hook.** Uses an existing rosetta-timewalker build in `DIR` (env `MU_TIMEWALKER_DIR`; then `MU_FAST_X87=1` in the Desktop launcher); does not build one. The repository's own route is `mac-play/install-fast-x87.sh`. The launcher reflects the options of the latest run, so pass `--fast-x87` on every rerun if you want to keep it. MuMatrix32 runs with fast x87, and the fps comparison below used it in both bottles. |
 | `--ac-variant with-ac\|no-ac` | **TODO hook.** `with-ac` leaves the client untouched. `no-ac` is deliberately not implemented and exits with an error. |
 
 ## Troubleshooting
@@ -133,7 +202,7 @@ Status key: **R** = reproduced by setup; **C** = checked by verify only; **N** =
 | 18 | mscoree proxy `C:\MuTheMatrix\mscoree.dll` (modehook for the .NET launcher) | 10 dlls | R (live: `modehook.log` lists both exes) |
 | 19 | `C:\mutools\mu-modes.txt` = `960x600 1024x640 1280x800 1600x1000 1728x1080` | 8 mutools (picked from screen or `--modes`) | R |
 | 20 | `C:\mutools\mugl-mode.txt` = `full+vbo` (MuMatrix32 currently has `full+vbo+time`, which adds per-call timing to the stats) | 8 mutools | R |
-| 21 | `C:\mutools\mugl-hotpatch.txt` = `44916143` (v7.5 default) | 8 mutools writes `--hotpatch-mask` (default 44916143; earlier kit defaults `15`, `7599` and `875951` are upgraded). Verify: 44916143 is the norm; 7599, 6575, 23983 and 875951 are named as older defaults; any mask with the v7.0 bits 1\|2\|4\|8 passes, with a note on missing/extra bits. | R (live: `=== hotpatch mask 7599: funcs 9/9 sites 18583 peep 50977`, 0 unexpected) |
+| 21 | `C:\mutools\mugl-hotpatch.txt` = `112025007` (v7.6 kit default) | 8 mutools writes `--hotpatch-mask` (default 112025007; earlier kit defaults `15`, `7599` and `875951` are upgraded). Verify: 44916143 is the norm; 7599, 6575, 23983 and 875951 are named as older defaults; any mask with the v7.0 bits 1\|2\|4\|8 passes, with a note on missing/extra bits. | R (live: `=== hotpatch mask 7599: funcs 9/9 sites 18583 peep 50977`, 0 unexpected) |
 | 22 | `C:\mutools\muinput.exe`, `clickstart.exe` | 8 mutools | R |
 | 23 | `LauncherOption.if` = `DevModeIndex:4`, `WindowMode:1`, `ID:<account>` (original in `LauncherOption.if.orig`) | 9 launcher options (launcher's own byte format; original kept as `.mukit-orig`; the kit-written index is recorded in `.mukit/launcher-options.done`) | R (live: game window 1722x1076 = mode 1728x1080) |
 | 24 | Desktop `Play Mu The Matrix.command` → `play-mu.sh` | 11 desktop (`Play Mu The Matrix (BOTTLE).command`, `MU_BOTTLE=BOTTLE`) | R (live: `open` of the .command started the launcher in MuMatrixKit) |
@@ -173,12 +242,19 @@ Not in this kit but in the repo: the `MonitorCheck.exe` pre-launch display probe
 |---|---|
 | `main.exe` (tested client) | `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a` |
 | `MuTheMatrix.exe` (launcher IGCN 1.12.1.3) | `c32e99ee98fc0773f850f9e76b160a9a00c867f4d745bf9e66c4b15d7f74bc3e` |
-| mugl v7.2 (`mugl-v72.dll` in your `--dll-dir`) | `e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60` |
+| mugl v7.6 (`mugl-v76.dll` in your `--dll-dir`, default) | `8419f0915cbad211af06b7bb70e41f00b2cf39505ae0b46d708efbdd1baf6dc5` |
+| mugl v7.5 (`mugl-v75.dll`) | `95e43657c677170e0ea7335ebb63f303d882367229e7a0b5e0849992e8f343b5` |
+| mugl v7.2 (`mugl-v72.dll`) | `e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60` |
 | mugl v7.1 (`mugl-v71.dll`) | `85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2` |
 | mugl v7.0 (`mugl-v70.dll`, rollback) | `c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c` |
 | mscoree proxy (`mscoree.dll` in your `--dll-dir`) | `6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac` |
 | CrossOver 26.3 i386 builtin `opengl32.dll` | `0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56` |
 | `ndp48-x86-x64-allos-enu.exe` | `95889d6de3f2070c07790ad6cf2000d33d9a1bdfc6a381725ab82ab1c314fd53` |
+| free runtime engine `WS12WineCX24.0.7_7.tar.xz` (Sikarugir Engines v1.0) | `203f9e9fd6c2cc77e6525d798a434ced326145db34a356355e05659d3445fd1c` |
+| free runtime libraries `Template-1.0.24.tar.xz` (Sikarugir Template v1.0) | `4b5f89eeb9ef139936bdfad33d9b420b05ea4597cb7d63376674f7a8e171321c` |
+| `winetricks` 20260125 (`src/winetricks` at the release tag) | `431f82fc74000e6c864409f1d8fb495d696c03928808e3e8acffc45179312a7b` |
+| CrossOver 26.3.0 sources (`packaging/build-wine.sh`) | `ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872` |
+| official installer `MuTheMatrix-21.1.2.12.exe` as downloaded on 2026-10-18 (not pinned: the server may update it) | `6594cf2535cbb0cca58d938e91e4aa0af579581e9658400c4f1f54e00a69c8c2` |
 
 Verify also accepts:
 
