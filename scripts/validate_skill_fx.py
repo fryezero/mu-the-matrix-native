@@ -142,9 +142,9 @@ class Info(ctypes.Structure):
                 ('field1c', ctypes.c_int32)]
 
 
-class Object(ctypes.Structure):
+class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
     _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('weapon', ctypes.c_int16),
-                ('position', ctypes.c_float*3)]
+                ('position', ctypes.c_float*3), ('light', ctypes.c_float*3)]
 
 
 class Call(ctypes.Structure):
@@ -235,7 +235,7 @@ class Joint(ctypes.Structure):
                 ('field_a24', ctypes.c_uint8), ('field_a25', ctypes.c_uint8), ('tail_update', ctypes.c_uint8),
                 ('field_a3c', ctypes.c_uint8), ('field_a44', ctypes.c_uint16), ('time', ctypes.c_float),
                 ('brightness', ctypes.c_float), ('field_a54', ctypes.c_float), ('moving', ctypes.c_uint8),
-                ('field_a60', ctypes.c_int32)]
+                ('field_a60', ctypes.c_int32), ('phase', ctypes.c_int32)]   # mu_jt_joint (reconstructed/joints)
 
 
 class JointQuad(ctypes.Structure):
@@ -252,7 +252,7 @@ JOINT_FIELDS = [
     ('serial', 0xa1c, 'B', 1), ('field_a24', 0xa24, 'B', 1), ('field_a25', 0xa25, 'B', 1),
     ('tail_update', 0xa26, 'B', 1), ('field_a3c', 0xa3c, 'B', 1), ('field_a44', 0xa44, 'H', 1), ('time', 0xa48, 'f', 1),
     ('brightness', 0xa4c, 'f', 1), ('field_a54', 0xa54, 'f', 1), ('moving', 0xa5c, 'B', 1),
-    ('field_a60', 0xa60, 'i', 1),
+    ('field_a60', 0xa60, 'i', 1), ('phase', 0xa20, 'i', 1),
 ]
 JOINT_POOL, JOINT_BYTES = 0x0a4fa4f0, 0xa64
 

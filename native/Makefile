@@ -69,7 +69,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/data/table_layouts.c \
              $(RECON)/hud/inv_grid.c $(RECON)/hud/item_slots.c $(RECON)/hud/item_pass.c \
              $(RECON)/hud/tooltip_html.c $(RECON)/hud/tooltip_format.c \
-             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c \
+             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/joints/joints.c \
              $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_fish.c \
              $(RECON)/environment/env_leaves.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
@@ -84,7 +84,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
-           $(wildcard $(RECON)/combat/*.h) \
+           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h
 

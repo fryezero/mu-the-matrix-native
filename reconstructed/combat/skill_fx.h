@@ -31,6 +31,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../joints/joints.h"
+
 /* ------------------------------------------------------------------------
  * Client indices. Models are AccessModel indices (Data\Skill\...), bitmaps
  * LoadBitmap indices (Data\Effect\...), both static readings of the loaders
@@ -127,28 +129,14 @@ typedef struct mu_sfx_info {
     int32_t field1c;         /* +0x1c -> +0x2e4 */
 } mu_sfx_info;
 
-/* What the routines read of another object (the owner or target). */
-typedef struct mu_sfx_object {
-    uint8_t live;            /* +0x00 */
-    uint8_t visible;         /* +0x0b */
-    int16_t weapon;          /* +0x56 Twisting Slash: the caster's right-hand item - 0xae6 */
-    float position[3];       /* +0x158 */
-} mu_sfx_object;
+/* What the routines read of another object (the owner or target): the
+ * joint module's object view (live +0x00, visible +0x0b, weapon +0x56,
+ * position +0x158, light +0xec). */
+typedef mu_jt_object mu_sfx_object;
 
-/* One call into another subsystem, in client order. Vectors are the values
- * at the moment of the call (the client passes pointers). */
-typedef struct mu_sfx_call {
-    int32_t routine;         /* MU_SFX_CALL_* */
-    int32_t type;            /* bitmap / model / effect type */
-    int32_t subtype;
-    int32_t owner;           /* object index, -1 none, -2 the calling effect itself */
-    int32_t range;           /* AddTerrainLight range */
-    float scale;
-    float position[3];
-    float target[3];         /* CreateJoint's second position */
-    float angle[3];
-    float light[3];
-} mu_sfx_call;
+/* One call into another subsystem, in client order (the joint module's call
+ * record; vectors are the values at the moment of the call). */
+typedef mu_jt_call mu_sfx_call;
 
 typedef struct mu_sfx_env {
     void *context;
@@ -285,70 +273,27 @@ void mu_sfx_sprite_corners(const float camera[12], const mu_sfx_sprite *sprite, 
                            float uv[4][2]);
 
 /* ------------------------------------------------------------------------
- * Joints (CreateJoint 0x0153b02c, MoveJoints 0x01589b06 -> MoveJoint
- * 0x01556c26, RenderJoints 0x01589b56): ribbons of up to 50 cross-shaped
- * tails that a moving head drags behind it. 500 records of 0xa64 bytes at
- * 0x0a4fa4f0. */
-#define MU_SFX_JOINTS 500
-#define MU_SFX_JOINT_TAILS 50
+ * Joints: one implementation in reconstructed/joints (NATIVE-JOINT-001);
+ * these wrappers keep NATIVE-COMBAT-002's entry points. */
+#define MU_SFX_JOINTS MU_JT_JOINTS
+#define MU_SFX_JOINT_TAILS MU_JT_TAILS
 
 enum {
-    MU_SFX_CALL_SPRITE = 0x01692eb7,      /* CreateSprite(bitmap, pos, scale, light, owner, rotation, 0, 0) */
-    MU_SFX_CALL_AREA_ATTACK = 0x013bc25e  /* the hero's area attack request (skill, range, pos, ...) */
+    MU_SFX_CALL_SPRITE = MU_JT_CALL_SPRITE,           /* CreateSprite(bitmap, pos, scale, light, owner, rotation, blend, axes) */
+    MU_SFX_CALL_AREA_ATTACK = MU_JT_CALL_AREA_ATTACK  /* the hero's area attack request (skill, range, pos, ...) */
 };
 
-typedef struct mu_sfx_joint {
-    uint8_t live;              /* +0x000 */
-    int32_t type;              /* +0x004 bitmap */
-    int32_t tex_type;          /* +0x008 */
-    int32_t subtype;           /* +0x00c */
-    uint8_t render_type;       /* +0x010 1: (ONE, ONE), 2: 0x0184a990(1), 3: (ZERO, ONE_MINUS_SRC_COLOR), 4: (ONE_MINUS_SRC_COLOR, ONE) */
-    uint8_t faces;             /* +0x011 bit 0: the ribbon through corners 2 and 3, bit 1: through corners 0 and 1 */
-    float scale;               /* +0x014 ribbon width */
-    float position[3];         /* +0x018 */
-    float start[3];            /* +0x024 */
-    float angle[3];            /* +0x030 */
-    float light[3];            /* +0x048 */
-    int32_t target;            /* +0x054 object index (-1: none) */
-    float target_position[3];  /* +0x058 */
-    uint8_t field_64;          /* +0x064 */
-    int32_t num_tails;         /* +0x068 */
-    int32_t max_tails;         /* +0x06c */
-    float tails[MU_SFX_JOINT_TAILS][4][3]; /* +0x070: corners pos + R(-w/2,0,0), R(w/2,0,0), R(0,0,-w/2), R(0,0,w/2) */
-    int32_t lifetime;          /* +0xa00 */
-    uint8_t reached;           /* +0xa04 */
-    float velocity;            /* +0xa08 */
-    float jitter[3];           /* +0xa0c */
-    uint16_t key;              /* +0xa18 CreateJoint argument 8 */
-    uint16_t skill;            /* +0xa1a argument 9 */
-    uint8_t serial;            /* +0xa1c */
-    uint8_t field_a24, field_a25;
-    uint8_t tail_update;       /* +0xa26 */
-    uint8_t field_a3c;         /* +0xa3c argument 10 */
-    uint16_t field_a44;        /* +0xa44 argument 13 */
-    float time;                /* +0xa48 */
-    float brightness;          /* +0xa4c */
-    float field_a54;           /* +0xa54 */
-    uint8_t moving;            /* +0xa5c */
-    int32_t field_a60;         /* +0xa60 argument 14 */
-} mu_sfx_joint;
+typedef mu_jt_joint mu_sfx_joint;
 
-/* CreateJoint 0x0153b02c(type, position, target position, angle, subtype,
- * target, scale, key, skill, byte10, arg11, arg12, word13, arg14) on a
- * record that keeps its previous contents (the client builds the first tail
- * from the record's previous width +0x14 before it stores the new one; the
- * record is persistent memory). Supported (verified): JointEnergy01 0x7fd8
- * subtype 1 (Heal) and JointSpirit01 0x7fd3 subtype 0 (Evil Spirit), with
- * arg12 = 0. Returns 1 when supported. */
+/* CreateJoint through mu_jt_create (the common part runs for every kind; the
+ * record keeps its previous contents). Returns 1 when the kind is
+ * reconstructed (mu_jt_kind_supported). */
 int mu_sfx_joint_create(mu_sfx_joint *j, int32_t type, const float position[3], const float target_position[3],
                         const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
                         uint16_t skill, uint8_t byte10, uint16_t word13, int32_t arg14, const mu_sfx_env *env);
 
-/* MoveJoint 0x01556c26 for the supported kinds (verified), with the homing
- * turn MoveHumming 0x012af2f1 (CreateAngle / TurnAngle2 of reconstructed/
- * movement) and the tail shift 0x01553ba6(j, matrix, 0). wall: the terrain
- * wall attribute bit 0x100 at the head (0x016d348d) and the wall-test scene
- * flag [0x01ec8ee7]; is_hero_target: the target is the hero's object. */
+/* MoveJoint through mu_jt_move. wall: the terrain attribute at the head,
+ * wall_scene: [0x01ec8ee7]; is_hero_target: the target is the hero. */
 int mu_sfx_joint_move(mu_sfx_joint *j, const mu_sfx_env *env, float time_step, int wall_scene, uint16_t wall,
                       int is_hero_target);
 
@@ -358,10 +303,8 @@ typedef struct mu_sfx_joint_quad {
     float uv[4][2];
 } mu_sfx_joint_quad;
 
-/* RenderJoints' part for one record (verified): returns the number of quads
- * written (two per tail segment and face bit), and the colour glColor3f and
- * blend render type. mode: RenderJoints' argument (records with +0x64 == 2
- * skip mode 1, with +0x64 == 1 skip mode 2). */
+/* RenderJoints through mu_jt_render at WorldTime 0: the quads, the record
+ * colour (the first glColor3f) and the render type. */
 int mu_sfx_joint_render(const mu_sfx_joint *j, uint8_t mode, float color[3], int32_t *render_type,
                         mu_sfx_joint_quad *quads, int max);
 

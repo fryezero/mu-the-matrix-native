@@ -871,292 +871,119 @@ void mu_sfx_sprite_corners(const float camera[12], const mu_sfx_sprite *s, float
 
 /* ---------------------------------------------------------------- joints */
 
-static void joint_cross(mu_sfx_joint *j, const float m[12], int tail)
+/* The joint module (reconstructed/joints) reads its services through
+ * mu_jt_env; these adapters forward them to the skill environment. */
+static int32_t jt_rand(void *context)
 {
-    /* corners 0..3 of a tail: pos + R(-w/2, 0, 0), R(w/2, 0, 0), R(0, 0, -w/2), R(0, 0, w/2) */
-    float half_neg = -j->scale * 0.5f, half = j->scale * 0.5f;
-    const float local[4][3] = {{half_neg, 0.0f, 0.0f}, {half, 0.0f, 0.0f}, {0.0f, 0.0f, half_neg},
-                               {0.0f, 0.0f, half}};
-    for (int c = 0; c < 4; ++c) {
-        float p[3];
-        mu_vector_rotate(local[c], m, p);
-        j->tails[tail][c][0] = j->position[0] + p[0];
-        j->tails[tail][c][1] = j->position[1] + p[1];
-        j->tails[tail][c][2] = j->position[2] + p[2];
-    }
+    return env_rand(context);
+}
+
+static float jt_height(void *context, float x, float y)
+{
+    return env_height(context, x, y);
+}
+
+static const mu_jt_object *jt_object(void *context, int32_t index)
+{
+    return env_object(context, index);
+}
+
+static void jt_call(void *context, const mu_jt_call *call)
+{
+    const mu_sfx_env *env = context;
+    if (env && env->call)
+        env->call(env->context, call, NULL);
+}
+
+static void jt_env(const mu_sfx_env *env, mu_jt_env *out)
+{
+    memset(out, 0, sizeof *out);
+    out->context = (void *)(uintptr_t)env;
+    out->rand = jt_rand;
+    out->height = jt_height;
+    out->object = jt_object;
+    out->call = jt_call;
+    out->serial = env ? env->serial : 0;
 }
 
 int mu_sfx_joint_create(mu_sfx_joint *j, int32_t type, const float position[3], const float target_position[3],
                         const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
                         uint16_t skill, uint8_t byte10, uint16_t word13, int32_t arg14, const mu_sfx_env *env)
 {
-    int supported = (type == MU_SFX_BITMAP_JOINT_ENERGY && subtype == 1) ||
-                    (type == MU_SFX_BITMAP_JOINT_SPIRIT && subtype == 0);
-    if (!supported)
-        return 0;
-    /* common part 0x0153b0a6 */
-    j->live = 1;
-    j->type = type;
-    j->tex_type = type;
-    j->subtype = subtype;
-    j->render_type = 1;
-    j->faces = 3;
-    j->reached = 0;
-    j->key = key;
-    j->skill = skill;
-    j->velocity = 0.0f;
-    j->target = -1;
-    j->tail_update = 1;
-    j->field_64 = 0;
-    j->field_a24 = 0;
-    j->field_a25 = 0;
-    j->field_a3c = byte10;
-    j->field_a44 = word13;
-    copy3(j->position, position);
-    j->time = 0.0f;
-    copy3(j->start, j->position);
-    copy3(j->angle, angle);
-    j->brightness = 1.0f;
-    j->field_a54 = 0.0f;
-    j->moving = 1;
-    j->field_a60 = arg14;
-    j->light[0] = j->light[1] = j->light[2] = 1.0f;
-    j->jitter[0] = j->jitter[1] = j->jitter[2] = 0.0f;
-    if (target < 0)
-        copy3(j->target_position, target_position);   /* 0x0153b385: no target object */
-    j->target = target;
-    j->num_tails = 0;
-    {
-        /* the first tail, from the record's previous width (0x0153b676) */
-        float m[12];
-        mu_angle_matrix(j->angle, m);
-        joint_cross(j, m, 0);
-    }
-    switch (type) {
-    case MU_SFX_BITMAP_JOINT_ENERGY:
-        /* 0x0153e28e */
-        j->lifetime = 12;
-        j->scale = scale;
-        j->max_tails = 2;
-        j->velocity = 0.0f;
-        break;
-    case MU_SFX_BITMAP_JOINT_SPIRIT:
-        /* 0x01540809, subtype 0: 0x01540836 */
-        j->render_type = 3;
-        j->serial = env ? env->serial : 0;
-        j->velocity = 70.0f;
-        j->lifetime = 49;
-        j->scale = scale;
-        j->max_tails = 6;
-        if (j->skill == 0x7f5) {
-            /* 0x01540893: an additive purple variant */
-            j->render_type = 1;
-            j->light[0] = f32bits(0x3ea3d70au);   /* 0.32 */
-            j->light[1] = f32bits(0x3e2e147bu);   /* 0.17 */
-            j->light[2] = F_0_4;
-        }
-        break;
-    default:
-        break;
-    }
-    if (j->max_tails > MU_SFX_JOINT_TAILS)
-        j->max_tails = MU_SFX_JOINT_TAILS;   /* 0x0155361d */
-    return 1;
-}
-
-/* MoveHumming 0x012af2f1(position, angle, target, turn) */
-static void move_humming(const float position[3], float angle[3], const float target[3], float turn)
-{
-    float a = mu_create_angle(position[0], position[1], target[0], target[1]);
-    angle[2] = mu_turn_angle2(angle[2], a, turn);
-    float d[3] = {position[0] - target[0], position[1] - target[1], position[2] - target[2]};
-    float h = (float)sqrt((double)(d[0] * d[0] + d[1] * d[1]));
-    float b = mu_create_angle(position[2], h, target[2], 0.0f);
-    angle[0] = mu_turn_angle2(angle[0], 360.0f - b, turn);
-}
-
-/* 0x01553ba6(j, matrix, 0) */
-static void joint_tail_shift(mu_sfx_joint *j, const float m[12])
-{
-    j->num_tails = j->num_tails + 1;
-    if (j->num_tails > j->max_tails - 1)
-        j->num_tails = j->max_tails - 1;
-    for (int i = j->num_tails - 1; i >= 0; --i)
-        for (int c = 0; c < 4; ++c)
-            copy3(j->tails[i + 1][c], j->tails[i][c]);
-    joint_cross(j, m, 0);
+    mu_jt_env e;
+    jt_env(env, &e);
+    return mu_jt_create(j, type, position, target_position, angle, subtype, target, scale, key, skill, byte10,
+                        word13, arg14, &e);
 }
 
 int mu_sfx_joint_move(mu_sfx_joint *j, const mu_sfx_env *env, float time_step, int wall_scene, uint16_t wall,
                       int is_hero_target)
 {
-    int supported = (j->type == MU_SFX_BITMAP_JOINT_ENERGY && j->subtype == 1) ||
-                    (j->type == MU_SFX_BITMAP_JOINT_SPIRIT && j->subtype == 0);
-    if (!supported)
-        return 0;
-    float m[12] = {0};
-    float d0 = j->position[0] - j->target_position[0];
-    float d1 = j->position[1] - j->target_position[1];
-    if (j->moving) {
-        mu_angle_matrix(j->angle, m);
-        if (!(j->velocity == 0.0f)) {
-            float v[3] = {0.0f, -j->velocity, 0.0f}, p[3];
-            mu_vector_rotate(v, m, p);
-            j->position[0] = j->position[0] + p[0];
-            j->position[1] = j->position[1] + p[1];
-            j->position[2] = j->position[2] + p[2];
-        }
+    mu_jt_env e;
+    jt_env(env, &e);
+    const mu_jt_move_inputs in = {time_step, wall_scene, wall, is_hero_target};
+    return mu_jt_move(j, &e, &in);
+}
+
+typedef struct quad_sink {
+    mu_sfx_joint_quad *quads;
+    int max, count, corner;
+    int colored;
+    float color[3];
+} quad_sink;
+
+static void qs_color(void *context, float r, float g, float b)
+{
+    quad_sink *q = context;
+    if (q->colored)
+        return;
+    q->color[0] = r;
+    q->color[1] = g;
+    q->color[2] = b;
+    q->colored = 1;
+}
+
+static void qs_begin(void *context, int32_t mode)
+{
+    (void)mode;
+    ((quad_sink *)context)->corner = 0;
+}
+
+static void qs_texcoord(void *context, float u, float v)
+{
+    quad_sink *q = context;
+    if (q->count < q->max && q->corner < 4) {
+        q->quads[q->count].uv[q->corner][0] = u;
+        q->quads[q->count].uv[q->corner][1] = v;
     }
-    const mu_sfx_object *t = env_object(env, j->target);
-    switch (j->type) {
-    case MU_SFX_BITMAP_JOINT_ENERGY: {
-        /* 0x0155ccae, subtype 1 */
-        j->velocity = j->velocity + 4.0f;
-        if (j->target < 0)
-            break;
-        float goal[3] = {0.0f, 0.0f, 0.0f};
-        if (t)
-            copy3(goal, t->position);
-        goal[2] = goal[2] + 120.0f;
-        move_humming(j->position, j->angle, goal, 10.0f);
-        float l = (float)(12 - j->lifetime) * F_0_1;
-        j->light[0] = l * F_0_4;
-        j->light[1] = l * f32bits(0x3f19999au);   /* 0.6 */
-        j->light[2] = l * 1.0f;
-        if (j->lifetime == 1) {
-            /* the arrival flash: CreateSprite(Shiny02 0x7f67, goal, (rand % 8 + 8) * 0.2, light, target, rand % 360) */
-            mu_sfx_call c;
-            memset(&c, 0, sizeof c);
-            c.routine = MU_SFX_CALL_SPRITE;
-            c.type = 0x7f67;
-            c.angle[0] = (float)(env_rand(env) % 360);
-            c.scale = (float)(smod(env_rand(env), 8) + 8) * F_0_2;
-            copy3(c.position, goal);
-            copy3(c.light, j->light);
-            c.owner = j->target;
-            env_call(env, &c, NULL);
-        }
-        break;
-    }
-    case MU_SFX_BITMAP_JOINT_SPIRIT: {
-        /* 0x01561038, subtype 0: 0x0156105e */
-        if (j->scale == 80.0f) {
-            /* the wide spirit leaves a Laser01 (0x421) effect each step */
-            call_effect(env, NULL, 0x421, j->position, j->angle, j->light, 0, MU_SFX_NO_OWNER);
-            if (wall_scene && (wall & 0x100)) {
-                j->velocity = 0.0f;
-                j->lifetime = (int32_t)((float)j->lifetime / 5.0f);
-                goto tail;
-            }
-            if (j->lifetime % 15 == 0 && is_hero_target) {
-                mu_sfx_call c;
-                memset(&c, 0, sizeof c);
-                c.routine = MU_SFX_CALL_AREA_ATTACK;
-                c.type = j->skill;
-                c.scale = 150.0f;
-                copy3(c.position, j->position);
-                c.subtype = j->serial;
-                c.owner = -1;
-                env_call(env, &c, NULL);
-            }
-        }
-        if (j->target < 0)
-            break;
-        if (t)
-            copy3(j->target_position, t->position);
-        j->target_position[2] = j->target_position[2] + 80.0f;
-        float dist = (float)sqrt((double)(d0 * d0 + d1 * d1));
-        move_humming(j->position, j->angle, j->target_position, 10.0f);
-        if (!j->reached && j->velocity * 2.0f >= dist)
-            j->reached = 1;
-        j->jitter[0] = (float)(smod(env_rand(env), 32) - 16) * F_0_2 + j->jitter[0];
-        j->jitter[2] = (float)(smod(env_rand(env), 32) - 16) * F_0_8 + j->jitter[2];
-        j->angle[0] = j->angle[0] + j->jitter[0];
-        j->angle[2] = j->angle[2] + j->jitter[2];
-        j->jitter[0] = j->jitter[0] * f32bits(0x3f19999au);   /* 0.6 */
-        j->jitter[2] = j->jitter[2] * F_0_8;
-        float h = env_height(env, j->position[0], j->position[1]);
-        if (h + 100.0f > j->position[2]) {
-            j->jitter[0] = 0.0f;
-            j->angle[0] = -5.0f;
-        }
-        if (j->position[2] > h + 400.0f) {
-            j->jitter[0] = 0.0f;
-            j->angle[0] = 5.0f;
-        }
-        if (j->skill != 0x7f5) {
-            float l = (float)j->lifetime * F_0_1;
-            j->light[0] = l;
-            j->light[1] = l;
-            j->light[2] = l;
-            float dark = -(float)(smod(env_rand(env), 4) + 4) * f32bits(0x3c23d70au);   /* 0.01 */
-            const float shade[3] = {dark, dark, dark};
-            mu_sfx_call c;
-            memset(&c, 0, sizeof c);
-            c.routine = MU_SFX_CALL_TERRAIN_LIGHT;
-            c.position[0] = j->position[0];
-            c.position[1] = j->position[1];
-            copy3(c.light, shade);
-            c.range = 4;
-            c.owner = MU_SFX_NO_OWNER;
-            env_call(env, &c, NULL);
-        }
-        break;
-    }
-    default:
-        break;
-    }
-tail:
-    /* 0x015896fb */
-    if (j->tail_update)
-        joint_tail_shift(j, m);
-    j->time = j->time + time_step;
-    j->lifetime = j->lifetime - 1;
-    if (j->lifetime < 0)
-        j->live = 0;
-    return 1;
+}
+
+static void qs_vertex(void *context, const float v[3])
+{
+    quad_sink *q = context;
+    if (q->count < q->max && q->corner < 4)
+        copy3(q->quads[q->count].position[q->corner], v);
+    q->corner++;
+}
+
+static void qs_end(void *context)
+{
+    quad_sink *q = context;
+    if (q->corner == 4 && q->count < q->max)
+        q->count++;
 }
 
 int mu_sfx_joint_render(const mu_sfx_joint *j, uint8_t mode, float color[3], int32_t *render_type,
                         mu_sfx_joint_quad *quads, int max)
 {
-    if (!j->live || j->num_tails <= 0 || !j->faces)
-        return 0;
-    if (mode == 1 && j->field_64 == 2)
-        return 0;
-    if (mode == 2 && j->field_64 == 1)
+    quad_sink q;
+    memset(&q, 0, sizeof q);
+    q.quads = quads;
+    q.max = max;
+    const mu_jt_gl gl = {&q, NULL, NULL, qs_color, qs_begin, qs_texcoord, qs_vertex, qs_end};
+    if (mu_jt_render(j, mode, 0.0f, &gl) <= 0)
         return 0;
     *render_type = j->render_type;
-    color[0] = j->light[0] * j->brightness;
-    color[1] = j->light[1] * j->brightness;
-    color[2] = j->light[2] * j->brightness;
-    int n = 0;
-    float span = (float)(j->max_tails - 1);
-    for (int i = 0; i < j->num_tails; ++i) {
-        float u0 = (float)(j->num_tails - i) / span;
-        float u1 = (float)(j->num_tails - (i + 1)) / span;
-        if ((j->faces & 1) && n < max) {
-            mu_sfx_joint_quad *q = &quads[n++];
-            copy3(q->position[0], j->tails[i][2]);
-            copy3(q->position[1], j->tails[i][3]);
-            copy3(q->position[2], j->tails[i + 1][3]);
-            copy3(q->position[3], j->tails[i + 1][2]);
-            q->uv[0][0] = u0; q->uv[0][1] = 1.0f;
-            q->uv[1][0] = u0; q->uv[1][1] = 0.0f;
-            q->uv[2][0] = u1; q->uv[2][1] = 0.0f;
-            q->uv[3][0] = u1; q->uv[3][1] = 1.0f;
-        }
-        if ((j->faces & 2) && n < max) {
-            mu_sfx_joint_quad *q = &quads[n++];
-            copy3(q->position[0], j->tails[i][0]);
-            copy3(q->position[1], j->tails[i][1]);
-            copy3(q->position[2], j->tails[i + 1][1]);
-            copy3(q->position[3], j->tails[i + 1][0]);
-            q->uv[0][0] = u0; q->uv[0][1] = 0.0f;
-            q->uv[1][0] = u0; q->uv[1][1] = 1.0f;
-            q->uv[2][0] = u1; q->uv[2][1] = 1.0f;
-            q->uv[3][0] = u1; q->uv[3][1] = 0.0f;
-        }
-    }
-    return n;
+    copy3(color, q.colored ? q.color : j->light);
+    return q.count;
 }
