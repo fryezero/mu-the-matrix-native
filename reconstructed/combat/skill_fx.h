@@ -48,6 +48,7 @@ enum {
     MU_SFX_MODEL_LASER = 0x421,       /* Skill\Laser01.bmd (Evil Spirit's wide spirits leave one per step) */
     MU_SFX_TWISTING_SLASH = 0x453,    /* no model: spawns one swirl piece per step */
     MU_SFX_TWISTING_SWIRL = 0x454,    /* draws the caster's weapon (RenderEffects 0x015332ac) */
+    MU_SFX_MODEL_TORNADO = 0x40e,     /* Object142\hs_fieldtornado.bmd (Tormenta Island, NATIVE-JOINT-001) */
     MU_SFX_BITMAP_THUNDER = 0x7f2b,   /* Effect\Thunder01.jpg (Energy Ball) */
     MU_SFX_BITMAP_SPARK3 = 0x7f26,    /* Effect\Spark03.jpg */
     MU_SFX_BITMAP_FIRE = 0x7f3c,      /* Effect\Fire01.jpg */
@@ -68,7 +69,9 @@ enum {
     MU_SFX_CALL_DELETE = 0x0142eea4,          /* DeleteEffect(o) */
     MU_SFX_CALL_SERIAL = 0x01d1df18,          /* ++[[0x01d1df18] + 0x2dec], the hero's skill serial */
     MU_SFX_CALL_QUAKE = 0x0bdb588c,           /* the earthquake offset global (Hellfire), value in scale */
-    MU_SFX_CALL_AREA = 0x013bc25e             /* the hero's area attack request(skill, range, pos, serial, key, 0, 5, 0) */
+    MU_SFX_CALL_AREA = 0x013bc25e,            /* the hero's area attack request(skill, range, pos, serial, key, 0, 5, 0) */
+    MU_SFX_CALL_SOUND = 0x00a6ac96,           /* PlayBuffer(sound, object, 0): type = sound, owner -2 */
+    MU_SFX_CALL_ATTRIBUTE = 0x016d34db        /* TerrainWall[TERRAIN_INDEX(subtype, range)]: returns the attribute word */
 };
 
 #define MU_SFX_EFFECTS 200
@@ -116,6 +119,10 @@ typedef struct mu_sfx_effect {
     uint16_t field_364;      /* +0x364 (info word 8) */
     int32_t field_58;        /* +0x58 (info dword 0x18) */
     int32_t field_2e4;       /* +0x2e4 (info dword 0x1c) */
+    /* NATIVE-JOINT-001 */
+    uint8_t field_6;         /* +0x06 */
+    int32_t field_70;        /* +0x70 the lifetime at creation (the tornado) */
+    float heading;           /* +0x170 the tornado's heading (radians) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */
@@ -172,7 +179,9 @@ typedef struct mu_sfx_env {
  * Magic_Ground2 0x7f84 subtype 1 (Heal); the area skills' Circle01 / Circle02
  * 0x41c / 0x41d (Hellfire), Inferno01 0x457, Laser01 0x421 (Evil Spirit),
  * 0x453 / 0x454 (Twisting Slash), all subtype 0; Stone01 / Stone02 0x419 /
- * 0x41a subtypes 0 and 1 (impact and area debris). */
+ * 0x41a subtypes 0 and 1 (impact and area debris); the Tormenta tornado 0x40e
+ * subtype 0 (NATIVE-JOINT-001: the hero's object through hero_object, the
+ * PlayBuffer call through MU_SFX_CALL_SOUND). */
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
                          const float angle[3], const float light[3], int32_t owner, float scale,
                          const mu_sfx_info *info, const mu_sfx_env *env);

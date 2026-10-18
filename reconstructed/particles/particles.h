@@ -45,7 +45,9 @@ enum {
     MU_PT_BITMAP_SHINY2 = 0x7f67,       /* Effect\Shiny02.jpg (sprites) */
     MU_PT_BITMAP_THUNDER = 0x7f2b,      /* Effect\Thunder01.jpg */
     MU_PT_BITMAP_FIRE = 0x7f3c,         /* Effect\Fire01.jpg (a strip of four cells) */
-    MU_PT_BITMAP_SMOKE = 0x7f5a         /* Effect\smoke01.jpg */
+    MU_PT_BITMAP_SMOKE = 0x7f5a,        /* Effect\smoke01.jpg */
+    MU_PT_BITMAP_CLOUDS = 0x7f89,       /* Effect\clouds.jpg (the login scene's mist, NATIVE-JOINT-001) */
+    MU_PT_BITMAP_WATERFALL1 = 0x801a    /* Effect\WATERFALL1.jpg (the login scene's spray) */
 };
 
 /* GL state wrappers the render routines call, by client address. */
@@ -77,6 +79,7 @@ typedef struct mu_pt_particle {
     float position[3];       /* +0x20 */
     float angle[3];          /* +0x2c */
     float light[3];          /* +0x38 */
+    float alpha;             /* +0x44 (clouds: the light's factor; CreateParticle leaves it to the record) */
     int32_t lifetime;        /* +0x48 */
     int32_t owner;           /* +0x50 OBJECT pointer in the client; here an index, MU_PT_NO_OWNER for NULL */
     float owner_position[3]; /* +0x54 */
@@ -85,7 +88,8 @@ typedef struct mu_pt_particle {
     uint8_t moving;          /* +0x68 position += VectorRotate(velocity, AngleMatrix(angle)) each step */
     float gravity;           /* +0x6c */
     float velocity[3];       /* +0x70 */
-    float start[3];          /* +0x88 */
+    float field_7c;          /* +0x7c (clouds: a spin rate) */
+    float start[3];          /* +0x88 (clouds: [1] a rotation offset, [2] the starting height) */
     float start_angle[3];    /* +0x94 */
     float time;              /* +0xac */
     int32_t arg8;            /* +0xb0 CreateParticle's last argument */
@@ -107,7 +111,8 @@ typedef struct mu_pt_host {
  * for the kind (type, subtype):
  *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0, 2 and 3, rain02/rain03
  *   0x771c/0x771d 0, Thunder01 0x7f2b 0, Spark02 0x7f25 0, Spark03 0x7f26 0
- *   and 1. */
+ *   and 1; NATIVE-JOINT-001: clouds 0x7f89 0x14 and WATERFALL1 0x801a 2 (the
+ *   login scene's mist and spray). */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

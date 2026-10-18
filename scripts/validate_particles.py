@@ -119,7 +119,8 @@ BONE_OBJECT = 0x29300000
 MATRIX = 0x29400000
 
 KINDS = [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
-                                                            (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1)]
+                                                            (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1),
+                                                            (0x7f89, 0x14), (0x801a, 2)]   # NATIVE-JOINT-001: login mist/spray
 
 
 def object_address(index):
@@ -138,10 +139,10 @@ OWNER_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTE
 class Particle(ctypes.Structure):
     _fields_ = [('live', ctypes.c_uint8), ('type', ctypes.c_int32), ('tex_type', ctypes.c_int32),
                 ('subtype', ctypes.c_int32), ('scale', ctypes.c_float), ('position', F3), ('angle', F3),
-                ('light', F3), ('lifetime', ctypes.c_int32), ('owner', ctypes.c_int32), ('owner_position', F3),
-                ('rotation', ctypes.c_float), ('frame', ctypes.c_int32), ('moving', ctypes.c_uint8),
-                ('gravity', ctypes.c_float), ('velocity', F3), ('start', F3), ('start_angle', F3),
-                ('time', ctypes.c_float), ('arg8', ctypes.c_int32)]
+                ('light', F3), ('alpha', ctypes.c_float), ('lifetime', ctypes.c_int32), ('owner', ctypes.c_int32),
+                ('owner_position', F3), ('rotation', ctypes.c_float), ('frame', ctypes.c_int32),
+                ('moving', ctypes.c_uint8), ('gravity', ctypes.c_float), ('velocity', F3), ('field_7c', ctypes.c_float),
+                ('start', F3), ('start_angle', F3), ('time', ctypes.c_float), ('arg8', ctypes.c_int32)]
 
 
 class Host(ctypes.Structure):
@@ -298,8 +299,8 @@ def compare_masked(mine, theirs, defined, mask, floats_at=()):
     return None
 
 
-PARTICLE_FLOATS = {0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x54, 0x58, 0x5c, 0x60, 0x6c, 0x70,
-                   0x74, 0x78, 0x88, 0x8c, 0x90, 0x94, 0x98, 0x9c, 0xac}
+PARTICLE_FLOATS = {0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x54, 0x58, 0x5c, 0x60, 0x6c,
+                   0x70, 0x74, 0x78, 0x7c, 0x88, 0x8c, 0x90, 0x94, 0x98, 0x9c, 0xac}
 SPRITE_FLOATS = {0x90, 0x94, 0xa0, 0xd0, 0xec, 0xf0, 0xf4, 0x110, 0x114, 0x118, 0x158, 0x15c, 0x160, 0x16c}
 
 
@@ -487,6 +488,8 @@ def family_create(m, lib, rng, cases, report, negatives):
                                     object_address(owner), arg8 & 0xffffffff], regions, shared_stubs(case, m),
                       ecx=POOL, cleanup=0x20)
         p = Particle()
+        # the record keeps a former particle's bytes where CreateParticle writes nothing (+0x44, +0x7c)
+        lib.mu_pt_particle_load(ctypes.byref(p), am.poison(PARTICLE_BYTES, 0x5d))
         host = case.host(world, world_time)
         supported = lib.mu_pt_create_record(ctypes.byref(p), ctypes.byref(host), kind[0], F3(*pos), F3(*angle),
                                             F3(*light), kind[1], scale, owner, arg8)
@@ -561,6 +564,10 @@ def random_particle(rng, kind):
     p.gravity = f32(rng.choice([0.0, 0.004, 20.0, 6.5, rf(rng, -10.0, 10.0)]))
     p.time = rf(rng, 0.0, 100.0)
     p.arg8 = rng.randrange(-10, 10)
+    p.alpha = f32(rng.choice([0.1, 1.0, 0.95, 0.12, 0.09, rf(rng, -0.5, 1.5)]))
+    p.field_7c = rf(rng, 0.0, 0.1)
+    if kind == (0x7f89, 0x14):
+        p.lifetime = rng.choice([300, 151, 150, 149, 2, 1, 0, -1, rng.randrange(-3, 301)])
     for k in range(3):
         p.position[k] = rf(rng, 0.0, 25600.0) if k < 2 else rf(rng, -100.0, 800.0)
         p.angle[k] = rf(rng, -360.0, 360.0)

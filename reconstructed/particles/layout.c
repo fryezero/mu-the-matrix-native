@@ -16,9 +16,11 @@ static void get32(const uint8_t *b, uint32_t off, void *v)
 #define FIELDS(X)                                                                                     \
     X(0x0c, type) X(0x10, tex_type) X(0x14, subtype) X(0x18, scale) X(0x20, position[0])              \
     X(0x24, position[1]) X(0x28, position[2]) X(0x2c, angle[0]) X(0x30, angle[1]) X(0x34, angle[2])   \
-    X(0x38, light[0]) X(0x3c, light[1]) X(0x40, light[2]) X(0x48, lifetime) X(0x54, owner_position[0]) \
+    X(0x38, light[0]) X(0x3c, light[1]) X(0x40, light[2]) X(0x44, alpha) X(0x48, lifetime)             \
+    X(0x54, owner_position[0])                                                                        \
     X(0x58, owner_position[1]) X(0x5c, owner_position[2]) X(0x60, rotation) X(0x64, frame)            \
-    X(0x6c, gravity) X(0x70, velocity[0]) X(0x74, velocity[1]) X(0x78, velocity[2]) X(0x88, start[0]) \
+    X(0x6c, gravity) X(0x70, velocity[0]) X(0x74, velocity[1]) X(0x78, velocity[2]) X(0x7c, field_7c) \
+    X(0x88, start[0])                                                                                 \
     X(0x8c, start[1]) X(0x90, start[2]) X(0x94, start_angle[0]) X(0x98, start_angle[1])               \
     X(0x9c, start_angle[2]) X(0xac, time) X(0xb0, arg8)
 

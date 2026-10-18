@@ -53,6 +53,7 @@ CREATE_EFFECT, MOVE_EFFECT, CHECK_MAGIC, CHECK_ARROW = 0x013c0f19, 0x0142fd09, 0
 CREATE_SPRITE, AREA_ATTACK, FLOAT_SQRT, FLOAT_ATAN = 0x01692eb7, 0x013bc25e, 0x00961a07, 0x012b2bca
 SERIAL_STEP, QUAKE, WORLD_PREDICATE, WORLD = 0x01d1df18, 0x0bdb588c, 0x009b0418, 0x01cf15fc
 HERO_POINTER = 0x0a39d754
+ATTRIBUTE = 0x016d34db
 CREATE_EFFECT_WRAPPER, CREATE_PARTICLE, CREATE_JOINT = 0x013c0eaa, 0x0168fafd, 0x0153b02c
 TERRAIN_LIGHT, TERRAIN_HEIGHT, RAND = 0x016cacfc, 0x016cc9e2, 0x01989721
 SINE, COSINE, CRT_SQRT = 0x009681bd, 0x009fa223, 0x019856f0
@@ -133,7 +134,8 @@ class Effect(ctypes.Structure):
                 ('alpha', ctypes.c_float), ('light', ctypes.c_float*3), ('direction', ctypes.c_float*3),
                 ('position', ctypes.c_float*3), ('angle', ctypes.c_float*3), ('start', ctypes.c_float*3),
                 ('owner', ctypes.c_int32), ('field_364', ctypes.c_uint16), ('field_58', ctypes.c_int32),
-                ('field_2e4', ctypes.c_int32)]
+                ('field_2e4', ctypes.c_int32), ('field_6', ctypes.c_uint8), ('field_70', ctypes.c_int32),
+                ('heading', ctypes.c_float)]
 
 
 class Info(ctypes.Structure):
@@ -383,6 +385,7 @@ EFFECT_FIELDS = [
     ('gravity', 0xc8, 'f', 1), ('frame', 0xd0, 'f', 1), ('prior_frame', 0xd4, 'f', 1), ('alpha', 0xdc, 'f', 1),
     ('light', 0xec, 'f', 3), ('direction', 0xf8, 'f', 3), ('position', 0x158, 'f', 3), ('angle', 0x164, 'f', 3),
     ('start', 0x1d0, 'f', 3), ('field_364', 0x364, 'H', 1), ('field_58', 0x58, 'i', 1), ('field_2e4', 0x2e4, 'i', 1),
+    ('field_6', 0x06, 'B', 1), ('field_70', 0x70, 'i', 1), ('heading', 0x170, 'f', 1),
 ]
 # visible (+0x0b) is an input of the hit checks only; owner (+0x34c) is a pointer handled separately.
 
@@ -479,6 +482,7 @@ class Case:
         self.c_objects = (Object*max(1, len(objects)))(*objects) if objects else (Object*1)()
         self.c_serial_steps = 0
         self.c_quake = None
+        self.attributes = None   # TerrainWall words (the tornado's attribute test)
 
     # ---- client side
     def stubs(self, m):
@@ -581,7 +585,12 @@ class Case:
         def fatan(mm):
             return mm.x87_return(f32(math.atan(mm.float_argument(0))))
 
-        return {WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area, FLOAT_SQRT: fsqrt, FLOAT_ATAN: fatan,
+        def sound(mm):
+            self.client_calls.append(('sound', mm.argument(0), owner_of(mm.argument(1)), mm.argument(2)))
+            return 0
+
+        return {PLAY_BUFFER: sound, WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area,
+                FLOAT_SQRT: fsqrt, FLOAT_ATAN: fatan,
                 RAND: rand, TERRAIN_HEIGHT: height, SINE: sine, COSINE: cosine, CRT_SQRT: sqrt,
                 TERRAIN_LIGHT: terrain_light, CREATE_PARTICLE: particle, CREATE_JOINT: joint,
                 CREATE_EFFECT_WRAPPER: effect, OBJECT_INIT: init, MANAGER_A: zero8, MANAGER_B: zero8,
@@ -633,6 +642,11 @@ class Case:
                 self.c_calls.append(('area', c.type, c.scale, list(c.position), c.subtype))
             elif c.routine == SERIAL_STEP:
                 self.c_serial_steps += 1
+            elif c.routine == PLAY_BUFFER:
+                self.c_calls.append(('sound', c.type, c.owner, 0))
+            elif c.routine == ATTRIBUTE:
+                index = ((c.range & 0xff) << 8) + (c.subtype & 0xff)
+                return self.attributes[index] if self.attributes else 0
             elif c.routine == QUAKE:
                 self.c_quake = c.scale
             return 0
@@ -670,7 +684,9 @@ def compare_calls(client, mine, skip_tail=True):
 # Families.
 
 EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x41c, 0), (0x41d, 0), (0x457, 0),
-                (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1)]
+                (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1),
+                (0x40e, 0)]   # the Tormenta tornado (NATIVE-JOINT-001)
+TERRAIN_WALL, PLAY_BUFFER = 0x0b795420, 0x00a6ac96
 ARROW_SKILLS = [0, 0, 0, 0x7e7, 0x2d7, 0x7fe, 0x18, 0x34]
 
 
@@ -709,6 +725,12 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
         scale = f32(scale)
         info = random_info(rng, kind)
         serial = rng.randrange(0, 256)
+        tornado_hero = None
+        if kind[0] == 0x40e:
+            tornado_hero = rng.choice([0, 1])   # the tornado reads the hero's position through [0x0a39d754]
+            if rng.random() < 0.5:
+                for k in range(2):
+                    objects[tornado_hero].position[k] = f32(pos[k] + rng.uniform(-900.0, 900.0))
         case = Case(rng, objects, rand_values(rng), vc.rfloat(rng, 0.1, 400.0))
         inputs = am.defined_region('inputs', INPUTS, struct.pack('<9f', *pos, *angle, *light) + info_bytes(info),
                                    writable=False)
@@ -718,7 +740,7 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
         hero.define(HERO_DATA+0x2dec, bytes([serial]))
         regions = [inputs, record, object_region(objects), hero,
                    am.defined_region('hero-ptr', HERO_DATA_PTR, struct.pack('<I', HERO_DATA), writable=False)]
-        hero_obj = rng.choice([-1, 0, 1, owner])
+        hero_obj = rng.choice([-1, 0, 1, owner]) if tornado_hero is None else tornado_hero
         hero_char = (object_address(hero_obj) - 0x3254) & 0xffffffff if hero_obj >= 0 else 0x5000000
         regions += [am.defined_region('hero', HERO_POINTER, struct.pack('<I', hero_char), writable=False)]
         r = m.execute(CREATE_EFFECT, [kind[0], kind[1], INPUTS, INPUTS+12, INPUTS+24, object_address(owner),
@@ -789,12 +811,16 @@ def random_effect(rng, kind):
         e.angle[k] = vc.rfloat(rng, 0.1, 360.0) if k == 2 or rng.random() < 0.3 else 0.0
         e.start[k] = vc.rfloat(rng, 0.1, 30000.0)
     e.owner = rng.choice([-1, 0, 1]) if kind[0] != 0x454 else rng.choice([0, 1])   # the swirl always has its caster
+    e.heading = f32(rng.choice([0.0, 1.57, 3.13, rng.uniform(0.0, 3.14), vc.rfloat(rng, 0.1, 10.0)]))
+    if kind[0] == 0x40e:
+        e.lifetime = rng.choice([150, 149, 75, 2, 1, 0, rng.randrange(-2, 151)])
     return e
 
 
 MOVE_DEFINED = {'live', 'flag5', 'action', 'prior_action', 'client_hit', 'skill', 'type', 'subtype', 'lifetime',
                 'blend_mesh', 'scale', 'blend_light', 'velocity', 'frame', 'prior_frame', 'alpha', 'light',
-                'direction', 'position', 'angle', 'start', 'owner', 'gravity', 'key', 'blend_u', 'serial'}
+                'direction', 'position', 'angle', 'start', 'owner', 'gravity', 'key', 'blend_u', 'serial',
+                'heading'}
 
 
 def family_effect_move(m, lib, rng, cases, report, negatives):
@@ -815,6 +841,10 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
         quake = am.Region('quake', QUAKE, am.poison(4, 0x21), bytes(4))
         regions = [record, object_region(objects), model, quake,
                    am.defined_region('world', WORLD, struct.pack('<i', 0), writable=False)]
+        if kind[0] == 0x40e:
+            case.attributes = [rng.choice([0, 0, 8, 4, 0xc, 0x100, 0x108]) for _ in range(0x10000)]
+            regions.append(am.defined_region('terrain-wall', TERRAIN_WALL, struct.pack('<65536H', *case.attributes),
+                                             writable=False))
         before = Effect.from_buffer_copy(e)
         r = m.execute(MOVE_EFFECT, [POOL, 0], regions, case.stubs(m))
         env = case.env()

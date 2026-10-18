@@ -54,6 +54,14 @@ static void copy3(float out[3], const float in[3])
     out[2] = in[2];
 }
 
+/* cvttss2si: INT32_MIN for NaN and out-of-range values. */
+static int32_t trunc_i32(float value)
+{
+    if (!(value > -2147483904.0f && value < 2147483648.0f))
+        return INT32_MIN;
+    return (int32_t)value;
+}
+
 /* C's signed remainder, as the client's `and eax, 0x8000000N; jns; dec; or; inc`. */
 static int32_t smod(int32_t value, int32_t m)
 {
@@ -144,6 +152,7 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
         return sub == 0;
     case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
+    case MU_SFX_MODEL_TORNADO: return sub == 0;
     default: return 0;
     }
 }
@@ -337,6 +346,50 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         mu_angle_matrix(e->angle, m);
         mu_vector_rotate(v, m, e->direction);
         e->gravity = (float)(smod(env_rand(env), 16) + 8);
+        break;
+    }
+    case MU_SFX_MODEL_TORNADO: {
+        /* 0x013c3eab (NATIVE-JOINT-001): a field tornado a few tiles around the position, drifting */
+        e->field_6 = 0;
+        e->flag5 = 0;
+        e->light[0] = 1.0f + e->light[0];
+        e->light[1] = 1.0f + e->light[1];
+        e->light[2] = 1.0f + e->light[2];
+        e->lifetime = 150;
+        e->field_70 = e->lifetime;
+        e->flag_c = 1;
+        e->alpha = 1.0f;
+        e->scale = 1.0f;
+        e->blend_light = 1.0f;
+        e->velocity = F_0_3;
+        e->heading = (float)smod(env_rand(env), 314) / 100.0f;
+        e->field_68 = -1;
+        e->blend_mesh = -1;
+        e->angle[0] = e->angle[1] = e->angle[2] = 0.0f;
+        float dx = (float)(smod(env_rand(env), 20) - 10);
+        float dy = (float)(smod(env_rand(env), 20) - 10);
+        e->direction[0] = dx * e->scale;
+        e->direction[1] = dy * e->scale;
+        e->direction[2] = 0.0f;
+        e->position[0] = (float)smod(env_rand(env), 512) + e->position[0] - 256.0f;
+        e->position[1] = (float)smod(env_rand(env), 512) + e->position[1] - 256.0f;
+        e->position[2] = env_height(env, e->position[0], e->position[1]);
+        e->frame = 1.0f;
+        /* PlayBuffer(0x582, o, 0) when the hero ([0x0a39d754] + 0x33ac) is within 800 */
+        const mu_sfx_object *hero = env ? env_object(env, env->hero_object) : NULL;
+        if (hero) {
+            float hx = e->position[0] - hero->position[0];
+            float hy = e->position[1] - hero->position[1];
+            float d = (float)sqrt((double)(hx * hx + hy * hy));
+            if (800.0f > d) {
+                mu_sfx_call c;
+                memset(&c, 0, sizeof c);
+                c.routine = MU_SFX_CALL_SOUND;
+                c.type = 0x582;
+                c.owner = -2;
+                env_call(env, &c, e);
+            }
+        }
         break;
     }
     default:
@@ -633,6 +686,40 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
             e->gravity = e->gravity + 0.5f;
         }
         break;
+    case MU_SFX_MODEL_TORNADO: {
+        /* 0x01435ef3 (NATIVE-JOINT-001): a new heading one step in 500, a drift of 2 along it, shorter
+         * on tiles with attribute bit 8, the blend light fading with the lifetime, its own animation */
+        if (env_rand(env) % 500 == 0)
+            e->heading = (float)(env_rand(env) % 314) / 100.0f;
+        e->position[0] = (float)sin((double)e->heading) * 2.0f + e->position[0];
+        e->position[1] = (float)cos((double)e->heading) * 2.0f + e->position[1];
+        e->angle[2] = 0.0f;
+        {
+            float tx = e->position[0] / 100.0f, ty = e->position[1] / 100.0f;
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_ATTRIBUTE;
+            c.subtype = trunc_i32(tx);
+            c.range = trunc_i32(ty);
+            c.owner = -2;
+            int attribute = env && env->call ? env->call(env->context, &c, e) : 0;
+            if (attribute & 8)
+                e->lifetime = trunc_i32((float)e->lifetime * F_0_9);
+        }
+        e->blend_light = (float)(e->lifetime + 1) / 150.0f;
+        int16_t keys = 1;
+        int has_model = env && env->model ? env->model(env->context, type, e->action, &keys) : 1;
+        if (has_model) {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_ANIMATION;
+            c.type = type;
+            c.scale = e->velocity;
+            c.owner = -2;
+            env_call(env, &c, e);
+        }
+        goto lifetime;   /* 0x014ecc1f: no generic animation or motion */
+    }
     default:
         break;
     }
