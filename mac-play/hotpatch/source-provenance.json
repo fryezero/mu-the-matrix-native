@@ -142,8 +142,8 @@
   },
   "mugl/mugl_v72.c": {
     "sha256": "9eeed0c572234495b899ef79c85db791e9ea527287ae6e1ec40e2ace138dbdfd",
-    "published_as": "mac-play/hotpatch/mugl.c",
-    "note": "v7.2 supersedes mugl/mugl_v71.c; the v7.1 to v7.2 change is the precise-wait code only (mugl_v72.c is identical to local mugl/mugl.c); packaging adaptation: private-build.h include and MUGL_PRIVATE_TABLES gate on hotpatch/Sleep installation (as for v7.0/v7.1), plus the same gate on the pace_stats read of the client's logic counter at 0x0bdc5eb0 so that the compile-only build never reads a client address"
+    "note": "v7.2 supersedes mugl/mugl_v71.c; the v7.1 to v7.2 change is the precise-wait code only (mugl_v72.c is identical to local mugl/mugl.c); packaging adaptation: private-build.h include and MUGL_PRIVATE_TABLES gate on hotpatch/Sleep installation (as for v7.0/v7.1), plus the same gate on the pace_stats read of the client's logic counter at 0x0bdc5eb0 so that the compile-only build never reads a client address; v7.3 (MAC-PERF-007) edits mac-play/hotpatch/mugl.c directly in this repository (terrain.c, stall.c), so the published file is no longer byte-identical to this snapshot",
+    "base_of": "mac-play/hotpatch/mugl.c"
   },
   "mugl/meshdraw_v71.c": {
     "sha256": "ac3f115b60328e09a4d38cda4bf660911aea27aa717c5ba4e4be6660fbac4397",

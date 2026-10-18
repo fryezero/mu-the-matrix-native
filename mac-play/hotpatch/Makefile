@@ -15,7 +15,7 @@ $(BUILD)/synthetic/generated: generate.py targets.json
 	$(PYTHON) generate.py --synthetic --out $(BUILD)/synthetic
 	touch $@
 
-$(BUILD)/synthetic/opengl32.dll: mugl.c xform.c meshdraw.c ../mumodes/modehook.c $(BUILD)/exports/generated $(BUILD)/synthetic/generated
+$(BUILD)/synthetic/opengl32.dll: mugl.c xform.c meshdraw.c stall.c terrain.c ../mumodes/modehook.c $(BUILD)/exports/generated $(BUILD)/synthetic/generated
 	$(MINGW_CC) $(CFLAGS) -I$(BUILD)/exports -I$(BUILD)/synthetic -shared mugl.c $(BUILD)/exports/stubs.S $(BUILD)/exports/opengl32.def -o $@ -Wl,--enable-stdcall-fixup -static-libgcc
 
 # Explicit opt-in, using private tables already generated and checked by generate.py.

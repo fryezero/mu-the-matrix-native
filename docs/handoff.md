@@ -1151,3 +1151,11 @@ Branch `claude/native-data2`. It adds the following:
 
 * Reconstruct the requirement routine `0x00ccf659`, the ItemConvert bonus formulas (FormulaData evaluator `0x0117b5eb`) and the price routine `0x0169320b`.
 * Trace consumers for the data-only layouts (Muun, Mix, Quest).
+
+## MAC-PERF-007 (v7.3)
+
+Branch `claude/mac-perf-v73`, worktree `~/Documents/mu-worktrees/mac-perf`. The soak "hitch" was a ~2.9 s
+frame, likely a synchronous asset load. CPU contention causes frequent 100-300 ms frames, and v7.3 fixes them
+with a HIGHEST render-thread priority. Terrain face sorting (bit 16384) cuts terrain draws about 20x and was
+verified pixel-exact offscreen. Read the MAC-PERF-007 section of `research/mac-performance.md`. Next: busy-town
+measurement, sorting the additive sprites, and the kit's `--hotpatch-mask` default (still 7599).

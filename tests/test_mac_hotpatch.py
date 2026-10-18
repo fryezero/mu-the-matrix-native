@@ -126,11 +126,12 @@ class MeshDrawPublicationTests(unittest.TestCase):
         mask = int(re.search(r'want = v & (\d+);',self.mugl).group(1))
         readme = (SOURCE/'README.md').read_text()
         rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
-        self.assertEqual(rows,{1<<k for k in range(14)})
-        self.assertEqual(mask,(1<<14)-1)
-        self.assertEqual(default,7599)
-        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12)))
-        self.assertEqual(default & (8192|64|16|512),0,'diagnostic and unverified bits stay off by default')
+        self.assertEqual(rows,{1<<k for k in range(16)})
+        self.assertEqual(mask,(1<<16)-1)
+        self.assertEqual(default,23983)   # v7.3: v7.1/v7.2 default 7599 plus terrain sorting 16384
+        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14)))
+        self.assertEqual(default & 16383,7599,'v7.1/v7.2 builds read 14 bits and see their own default')
+        self.assertEqual(default & (8192|64|16|512|32768),0,'diagnostic and unverified bits stay off by default')
         self.assertIn('md_untested = (mask & 8192) != 0',self.mugl)
 
     def test_synthetic_build_cannot_apply_game_patches(self):
@@ -141,7 +142,9 @@ class MeshDrawPublicationTests(unittest.TestCase):
 
     def test_provenance_records_v72_mugl_and_v71_sources(self):
         provenance = json.loads((SOURCE/'source-provenance.json').read_text())
-        for source,published in [('mugl/mugl_v72.c','mac-play/hotpatch/mugl.c'),('mugl/meshdraw_v71.c','mac-play/hotpatch/meshdraw.c'),
+        self.assertEqual(provenance['mugl/mugl_v72.c']['base_of'],'mac-play/hotpatch/mugl.c')   # v7.3 edits it in place
+        self.assertRegex(provenance['mugl/mugl_v72.c']['sha256'],r'^[0-9a-f]{64}$')
+        for source,published in [('mugl/meshdraw_v71.c','mac-play/hotpatch/meshdraw.c'),
                                  ('glstride/glstride.c','mac-play/diagnostics/glstride.c')]:
             with self.subTest(source=source):
                 self.assertRegex(provenance[source]['sha256'],r'^[0-9a-f]{64}$')
@@ -151,6 +154,91 @@ class MeshDrawPublicationTests(unittest.TestCase):
         self.assertEqual(provenance['mugl/mugl_v71.c']['superseded_by'],'mugl/mugl_v72.c')
         self.assertNotIn('published_as',provenance['mugl/mugl_v71.c'])
         self.assertEqual(provenance['mugl/xform_v70.c']['published_as'],'mac-play/hotpatch/xform.c')  # xform.c is unchanged between v7.0 and v7.2
+
+
+class V73Tests(unittest.TestCase):
+    """v7.3 (MAC-PERF-007): terrain face sorting, render-thread priority, long-frame diagnostics. No game bytes."""
+
+    def setUp(self):
+        self.mugl = (SOURCE/'mugl.c').read_text()
+        self.terrain = (SOURCE/'terrain.c').read_text()
+        self.stall = (SOURCE/'stall.c').read_text()
+
+    def body(self, text, signature):
+        start = text.index(signature)
+        return text[start:text.index('\n}\n', start)]
+
+    def test_new_sources_are_built_and_carry_no_byte_tables(self):
+        make = (SOURCE/'Makefile').read_text()
+        self.assertIn('meshdraw.c stall.c terrain.c ../mumodes/modehook.c',make)
+        self.assertIn('#include "stall.c"\n#include "terrain.c"',self.mugl)
+        for text in (self.terrain,self.stall):
+            self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
+
+    def test_terrain_sort_is_bits_16384_and_32768_and_keyed_by_the_two_face_callers(self):
+        self.assertIn('ts_on_flag = (mask & 16384) != 0; ts_verify = (mask & 32768) != 0;',self.mugl)
+        self.assertIn('#define TS_OPAQUE_CALLER ((void *)0x016cfab3)',self.terrain)
+        self.assertIn('#define TS_ALPHA_CALLER  ((void *)0x016cfb53)',self.terrain)
+        begin = self.body(self.terrain,'static int ts_glbegin(GLenum mode, void *ret)')
+        self.assertIn('mode == GL_TRIANGLE_FAN && (ret == TS_OPAQUE_CALLER || ret == TS_ALPHA_CALLER)',begin)
+        self.assertIn('if (!terrain) { if (ts_active) ts_end(); return 0; }',begin)   # any other block ends the run first
+        # every flush (stubs, extensions, swaps) ends an open run before anything else is emitted
+        self.assertIn('if (ts_active_flag) ts_end_hook();',self.body(self.mugl,'static void flush_pending(void)'))
+        self.assertIn('if (ts_active_flag) ts_end_hook();',self.body(self.mugl,'static void WINAPI mugl_ActiveTexture(GLenum unit)'))
+
+    def test_only_listed_state_calls_become_virtual(self):
+        cap = self.body(self.terrain,'static int ts_cap(GLenum cap, int on)')
+        self.assertIn('if (cap == GL_BLEND) ts_v.blend = v; else if (cap == GL_CULL_FACE) ts_v.cull = v; else if (cap == GL_ALPHA_TEST) ts_v.atest = v;',cap)
+        self.assertIn('else return 0;',cap)
+        self.assertIn('target != GL_TEXTURE_2D || active_unit != 0) return 0;',self.terrain)
+        for fn in ('mugl_glEnable','mugl_glDisable','mugl_glBindTexture','mugl_glBlendFunc','mugl_glDepthMask','mugl_glAlphaFunc'):
+            self.assertRegex(self.mugl,r'void WINAPI '+fn+r'\([^)]*\)\n\{\n    (TR\([^\n]*\n    )?if \(ts_active_flag && ts_')
+        self.assertNotIn('ts_depthfunc',self.mugl)   # a depth-function change ends the run
+
+    def test_sorting_preconditions_and_in_place_pairs(self):
+        end = self.body(self.terrain,'static void ts_end(void)\n{')
+        self.assertIn('ts_f[i].st.dm != 2 || ts_f[i].st.blend != (ts_f[i].alpha ? 2 : 1)',end)   # depth writes on, O blend off, A blend on
+        self.assertIn('ts_same_class(&ts_f[*c].st, &ts_f[i].st)',end)
+        self.assertIn('paired = !memcmp(ts_store[o->start + k].v, ts_store[f->start + k].v, sizeof(float) * 3)',end)   # A directly after its O
+        self.assertIn('ts_f[i].unsafe = 1;',end)
+        self.assertIn('} else ts_emit_original();',end)
+        self.assertIn('ts_apply(&fin);',end)   # the real state ends as the original stream leaves it
+        plan = self.body(self.terrain,'static void ts_emit_plan(void)')
+        self.assertIn('ts_emit_sorted(s0, pair);',plan)
+        self.assertIn('for (int k = pair; k <= i; k++)',plan)
+        facing = self.body(self.terrain,'static long *ts_facing(const Vtx *v, int n)')
+        self.assertIn('m[k][2] = c[3];',facing)   # clip-space (x, y, w) determinant, no perspective divide
+        self.assertIn('return &ts_st_ambig;',facing)
+
+    def test_verification_compares_both_orders_offscreen(self):
+        verify = self.body(self.terrain,'static void ts_verify_run(const TState *start)')
+        self.assertIn('if (k == 0) ts_emit_original(); else ts_emit_plan();',verify)
+        self.assertIn('GL_DEPTH_COMPONENT, GL_UNSIGNED_INT',self.terrain)
+        self.assertIn('a[i] != b[i] || a[np + i] != b[np + i]',verify)
+        self.assertIn('GL_DEPTH_BITS',self.terrain)   # offscreen depth size follows the window
+
+    def test_render_thread_priority_defaults_to_highest_and_refuses_time_critical(self):
+        prio = self.body(self.stall,'static void prio_check(void)')
+        self.assertIn('int p = 2;',prio)
+        self.assertIn('if (p < -2 || p > 2) p = 0;',prio)
+        self.assertIn('SetThreadPriority(GetCurrentThread(), p)',prio)
+        self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES\) \{[^\n]*prio_check\(\);')
+
+    def test_io_counters_are_opt_in_and_call_the_originals(self):
+        install = self.body(self.stall,'static void io_install(HMODULE self)')
+        self.assertIn('GetFileAttributesA("C:\\\\mutools\\\\mugl-stall.txt")',install)
+        for wrapper,orig in (('io_CreateFileA','sv_cfa('),('io_ReadFile','sv_rf('),('io_TexImage2D','sv_ti(')):
+            self.assertIn(orig,self.body(self.stall,'static '+('HANDLE' if 'Create' in wrapper else 'BOOL' if 'Read' in wrapper else 'void')+' WINAPI '+wrapper))
+        self.assertIn('io_frame_end(); tr_frame_end();',self.mugl)
+
+    def test_tools_for_stalls_and_zoomed_scene(self):
+        stallprof = (ROOT/'mac-play/machprof/stallprof.c').read_text()
+        self.assertIn('usage: stallprof <pid> <frame-counter-hex> <seconds>',stallprof)
+        self.assertIn('if (tn - t_frame < arm) continue;',stallprof)   # normal frames are not sampled
+        self.assertIn('stallprof.c -o build/stallprof',(ROOT/'mac-play/machprof/Makefile').read_text())
+        muinput = (ROOT/'mac-play/automation/muinput.c').read_text()
+        self.assertIn('MOUSEEVENTF_WHEEL',muinput)
+        self.assertIn('!strcmp(c, "kdown")',muinput)
 
 
 class PrecisePacingTests(unittest.TestCase):

@@ -7,6 +7,8 @@
      mclick <fx> <fy>                     middle click (MU Helper / auto-hunt toggle)
      type <text>                          type text (Unicode key events)
      key <vk-hex>                         press and release a virtual key (e.g. 0d Enter, 09 Tab, 1b Esc)
+     kdown <vk-hex> / kup <vk-hex>        press / release a virtual key (e.g. hold 10 Shift around wheel steps)
+     wheel <fx> <fy> <steps>              mouse wheel at a client fraction, one notch (120) per step, negative = toward user
      sleep <ms>
      rect                                 print target client rect in screen coordinates
    Exit code 2 if a wait times out. */
@@ -93,6 +95,16 @@ int main(int argc, char **argv) {
         else if (!strcmp(c, "dclick") && i + 2 < argc) { double fx = atof(argv[++i]), fy = atof(argv[++i]); click_at(fx, fy, 2); }
         else if (!strcmp(c, "type") && i + 1 < argc) type_text(argv[++i]);
         else if (!strcmp(c, "key") && i + 1 < argc) vkey((WORD)strtoul(argv[++i], 0, 16));
+        else if ((!strcmp(c, "kdown") || !strcmp(c, "kup")) && i + 1 < argc) {
+            INPUT in = {0}; in.type = INPUT_KEYBOARD; in.ki.wVk = (WORD)strtoul(argv[++i], 0, 16);
+            in.ki.wScan = (WORD)MapVirtualKeyA(in.ki.wVk, 0); if (c[1] == 'u') in.ki.dwFlags = KEYEVENTF_KEYUP;
+            SendInput(1, &in, sizeof in); Sleep(80);
+        } else if (!strcmp(c, "wheel") && i + 3 < argc) {
+            double fx = atof(argv[++i]), fy = atof(argv[++i]); int n = atoi(argv[++i]), x, y; client_point(fx, fy, &x, &y);
+            SetCursorPos(x, y); Sleep(120);
+            for (int k = 0; k < (n < 0 ? -n : n); k++) { INPUT in = {0}; in.type = INPUT_MOUSE; in.mi.dwFlags = MOUSEEVENTF_WHEEL; in.mi.mouseData = (DWORD)(n < 0 ? -WHEEL_DELTA : WHEEL_DELTA); SendInput(1, &in, sizeof in); Sleep(120); }
+            printf("wheel %d at %d,%d\n", n, x, y);
+        }
         else if (!strcmp(c, "sleep") && i + 1 < argc) Sleep(atoi(argv[++i]));
         else if (!strcmp(c, "hold") && i + 1 < argc) hold_ms = atoi(argv[++i]);
         else if (!strcmp(c, "rect")) { RECT r; GetClientRect(target, &r); POINT p = {0, 0}; ClientToScreen(target, &p); printf("client %ld,%ld %ldx%ld\n", p.x, p.y, r.right, r.bottom); }
