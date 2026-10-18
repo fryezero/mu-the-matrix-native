@@ -56,6 +56,14 @@ must never be committed. The mscoree proxy and the public mugl are authored sour
 are MIT (their licenses are copied along). `x87-main-only-wrapper` is compiled from `../x87-main-only-wrapper.c`
 during the build. Without `EMBED_*` the app installs without DLLs (low fps) unless the installer finds MinGW.
 
+To hand the app to players, zip it so the bundle survives the download, and publish the zip:
+
+```sh
+ditto -c -k --keepParent "mac-play/bundle/build/Mu The Matrix.app" "Mu The Matrix.zip"
+```
+
+The players' steps (including allowing the unsigned app once) are in `../PLAYER-GUIDE.md`.
+
 ## Use
 
 Double-click **Mu The Matrix**. On the first run with the free runtime, the Install window opens in front of the

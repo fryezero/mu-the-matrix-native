@@ -649,6 +649,8 @@ apply_game_installer() {
     fi
     mukit_write_file "$STATE/game-source" "installer:$(basename "$exe")"$'\n'
     check_game >/dev/null || mukit_die "game files incomplete after the installer (see $STATE/game-installer.log)"
+    # A downloaded installer is no longer needed (2.2 GB); the launcher updates the game itself.
+    case "$GAME_INSTALLER" in https://*) rm -f -- "$exe"; say "         removed the downloaded installer $(basename "$exe")" ;; esac
 }
 
 # --- 7. launcher .NET config -------------------------------------------------

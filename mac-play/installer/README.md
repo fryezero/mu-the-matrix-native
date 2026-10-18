@@ -43,8 +43,8 @@ The game comes from your own client folder (`--game-dir`) or from the official i
 
 - Apple Silicon Mac with Rosetta 2 (`softwareupdate --install-rosetta --agree-to-license`), macOS 13 or later
   (tested: macOS 27.0.1 on an M5). Nothing from Homebrew is needed: the setup downloads a pinned winetricks.
-- About 12 GB free disk space with the official installer (runtime 0.8 GB, .NET 0.5 GB, game 3 GB, installer 2.2 GB
-  kept in `downloads/`), or 6 GB with `--game-dir`.
+- About 12 GB free disk space during setup with the official installer (runtime 0.6 GB, prefix with .NET and game
+  3.7 GB, the 2.2 GB installer, deleted after a successful install), or 6 GB with `--game-dir`. Afterwards about 4.5 GB.
 - Internet access to github.com (runtime, winetricks), Microsoft's download servers (.NET 4.0 and 4.8 through
   winetricks) and dl.muthematrix.com (game).
 - For the DLLs: `--dll-dir`/`--mugl-dll` with files you have (Mu The Matrix.app passes the ones bundled by the
@@ -58,7 +58,7 @@ What lives where (`MUKIT_FREE_HOME`, default `~/Library/Application Support/MuTh
 | `tools/winetricks` | winetricks 20260125, SHA-256 pinned |
 | `prefix/` | the Wine prefix: `drive_c/MuTheMatrix` (game), `drive_c/mutools` (mode list, mugl config), `.mukit/` (step logs) |
 | `fast-x87/` | rosetta-timewalker's x87 translator and the main.exe-only wrapper (optional) |
-| `downloads/` | runtime archives and the official installer (can be deleted after setup) |
+| `downloads/` | runtime archives (the downloaded game installer is deleted after a successful install; the folder can be deleted after setup) |
 
 ## Free runtime: step by step
 
