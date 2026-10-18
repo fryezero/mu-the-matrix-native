@@ -129,14 +129,14 @@ native/build/mu-charsel --game-root "$MU_GAME_ROOT" --frames 50 --every 10 --cyc
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
-native/build/mu-terrain info   "$MU_GAME_ROOT" --world-render 0                 # load report of Data/World1
-native/build/mu-terrain render "$MU_GAME_ROOT" --world-render 142 --out k.png   # software render, prints SHA-256
+native/build/mu-terrain info   "$MU_GAME_ROOT" --world 0                 # load report of Data/World1
+native/build/mu-terrain render "$MU_GAME_ROOT" --world 142 --out k.png   # software render, prints SHA-256
 native/build/mu-terrain scan   "$MU_GAME_ROOT"                           # every Data/World* folder
-native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world-render 0               # free camera: WASD/QE, drag, wheel
-native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world-render 0 --headless --backend gl --compare --out t.png
+native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0               # free camera: WASD/QE, drag, wheel
+native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0 --headless --backend gl --compare --out t.png
 ```
 
-`--world-render` is the client's world index (Lorencia 0, Twisted Karutan 142); the folder is resolved like the
+`--world` is the client's world index (Lorencia 0, Twisted Karutan 142); the folder is resolved like the
 client. The tile rules come from `reconstructed/terrain`, compared with the client's instructions by
 `scripts/validate_terrain.py`; see [the finding](../docs/research/client-terrain.md). Static objects are not
 drawn: the installed `EncTerrain*.obj` files do not decode with the client's loader routine.
