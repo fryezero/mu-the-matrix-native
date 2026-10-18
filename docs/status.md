@@ -46,6 +46,12 @@ not exist yet.
   labelled model gallery. A live read of a running client's object list (owner-authorized, single run) gave the
   real placements of Lorencia, World94, World95 and World142 and character-select marker 1; `mu-world` and
   `mu-charsel` draw them from local files with `--objects-dir`. [Evidence](research/client-objects.md).
+- World objects at runtime (NATIVE-OBJECTS-002). CreateObject (Lorencia cases, Tormenta handler), MoveObjects/MoveObject
+  (alpha, animation tick, Lorencia lights and CreateFire, Tormenta sounds), RenderObjects culling, RenderObject and the
+  object body light over RequestTerrainLight have authored C equal to the actual instructions (2,000 cases per
+  family, 9 planted mistakes detected) and to live object lists (13,727/13,727 created objects; drawn body lights
+  bit-identical or only brighter by light sources). `mu-world` and `mu-terrain --object-steps` light, animate, cull
+  and draw objects with blend meshes; fire particles are a labelled stand-in. [Evidence](research/client-objects-render.md).
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected by the strict reader and 74 other/table envelopes are unsupported.

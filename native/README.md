@@ -205,6 +205,21 @@ decoded `EncTerrain<n>.plain` files (made by `mac-play/diagnostics/objread` and 
 from a client you started, under the game lock; never committed); `gallery` is a labelled demo layout of every model the world loads
 (`--object-tile X,Y --object-columns N --object-spacing U`). `core/mu_objects.h` is the API for other sessions.
 
+## World objects at runtime (NATIVE-OBJECTS-002)
+
+With `--objects-dir`, `mu-world`/`mu-walk` run the client's object lifecycle (`core/mu_objects_runtime.c` over
+`reconstructed/objects/object_render.c`, [finding](../docs/research/client-objects-render.md)): CreateObject per
+record, MoveObjects every 40 ms step (animation tick, AddTerrainLight from street lights, candles and fires, fire and
+smoke particles as a labelled stand-in), RenderObjects culling and RenderObject with the body light from the terrain
+light and the blend-mesh RenderBody arguments. `mu-terrain render … --objects FILE --object-steps N` does the same
+for a still. The summary line reports `objects_created`, `object_steps`, `object_ticks`, `object_lights`,
+`object_draw_list` and `objects_animated`.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 0 --tile 146,110 --objects-dir LOCAL --headless \
+    --backend gl --width 1600 --height 1000 --frames 40 --every 39 --out-dir /tmp/fires
+```
+
 ## Audio (NATIVE-AUDIO-001)
 
 ```sh
@@ -254,6 +269,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
+| `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |

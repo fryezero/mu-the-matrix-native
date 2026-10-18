@@ -55,6 +55,20 @@ World1/94/95/142 were read live from the object list of a client we started (`ma
 `mu-world`/`mu-charsel --objects-dir` and `--objects FILE`. Next: other worlds (a character already standing
 there, under the game lock), object lighting and animation.
 
+## World objects at runtime (NATIVE-OBJECTS-002)
+
+Read [`research/client-objects-render.md`](research/client-objects-render.md). `reconstructed/objects/object_render.{h,c}`
+holds CreateObject, the move pass (MoveObjects, MoveObject, CreateFire) and the render pass (RenderObjects, RenderObject,
+body light, RequestTerrainLight) for Lorencia and Tormenta Island; `native/core/mu_objects_runtime.c` runs them in
+`mu-world`/`mu-walk` and `mu-terrain render --object-steps N`. Compare with `scripts/validate_object_render.py --cases
+2000 --mutations` (Unicorn Python, pinned text and data; about 30 s) and with live snapshots via
+`scripts/live_object_state.py` (`--primary-light` from `mu-terrain export`, `--pair A B` for the frame advance,
+`--velocity-out` for the Tormenta speed sidecar). Snapshots, sidecars and renders stay local
+(`~/Documents/mu-mac-tools/native/scratch/objects3/`, `renders/objects3/`). Render at 1600x1000: the default
+1280x800 headless size shows a pre-existing terrain artefact. Next: the legacy particle system (CreateParticle
+`0x0168fafd`), RenderObjectVisual `0x017f9758` with bone positions, other worlds' object cases, and a Tormenta re-read
+with Nighty selected.
+
 ## Click-to-move (NATIVE-PATH-001)
 
 Read [`research/client-path.md`](research/client-path.md). `reconstructed/path`, `native/core/mu_path.*` and

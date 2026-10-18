@@ -1267,6 +1267,20 @@
         "Placements and character-select markers not available; gallery renders are a demo layout",
         "Custom-map folder table, extra models >= 300, RenderObjects lighting/animation not ported"
       ]
+    },
+    "native_objects_runtime": {
+      "task": "NATIVE-OBJECTS-002",
+      "document": "docs/research/client-objects-render.md",
+      "reconstructed": {"create_object": "0x016d8538", "move_objects": "0x016d82c7", "move_object": "0x017ff238", "create_fire": "0x01616930", "render_objects": "0x016d5020", "render_object": "0x016d4fe4", "body_light": "0x017ec3d8", "request_terrain_light": ["0x016cb2f7", "0x016cb08d"], "tormenta_handler_slots": ["0x00e4c6ba", "0x00e4c95e", "0x00e4bfff"]},
+      "inputs": {"text_sha256": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724", "data_sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f"},
+      "validation": {"families": 9, "cases_per_family": 2000, "render_cases_compared": 1839, "mismatches": 0, "planted_mistakes_detected": "9/9", "live_created_objects_equal": "13727/13727", "live_body_light_bit_identical": 240, "live_body_light_darker": 0, "live_ticks_per_1046ms": 26},
+      "native": ["native/core/mu_objects_runtime.c"],
+      "local_evidence": "native/scratch/objects3/reports/object-render-final.json",
+      "limits": [
+        "Object cases of worlds other than 0 and 0x8d, RenderObjectVisual bone effects, custom render, registry, shadow and the after-character pass not ported",
+        "Legacy particle system not reconstructed: fire/smoke drawn by a labelled stand-in",
+        "Tormenta per-type animation speeds come from a live sidecar (source not traced)"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
