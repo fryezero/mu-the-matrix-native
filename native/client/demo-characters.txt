@@ -1,0 +1,7 @@
+# Demo characters (format of `mu-charsel --list`): slot class level name [item=PATH ...],
+# item paths under Data/. Invented names and levels.
+0 0x00 350 Nightfall weapon0=Item/Staff02.bmd
+1 0x01 400 Ironclad weapon0=Item/Sword04.bmd weapon1=Item/Shield01.bmd wing=Item/Wing02.bmd
+2 0x02 320 Windleaf weapon1=Item/Bow02.bmd
+3 0x03 280 Spellblade weapon0=Item/Sword05.bmd
+4 0x04 250 Crownlord weapon0=Item/Mace01.bmd
