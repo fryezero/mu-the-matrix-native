@@ -300,7 +300,7 @@ class Finder(ctypes.Structure):
                 ('parent_y', ctypes.POINTER(ctypes.c_int32)), ('queue', ctypes.POINTER(QueueEntry)),
                 ('queue_count', ctypes.c_int32), ('queue_capacity', ctypes.c_int32),
                 ('queue_sequence', ctypes.c_uint32), ('pops', ctypes.c_int32), ('pushes', ctypes.c_int32),
-                ('index_errors', ctypes.c_int32)]
+                ('index_errors', ctypes.c_int32), ('directions', ctypes.c_void_p)]
 
 
 class ClientPath(ctypes.Structure):
@@ -908,6 +908,9 @@ def run_occupancy_family(guest, lib, tally, rng, count):
         tally.add('occupancy clear 0x0137a7ce', got == bytes(wall), None)
 
 
+CLIENT_DIRECTIONS = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
+
+
 # Plausible reconstruction mistakes; each must be detected (mutation check).
 MUTATIONS = [
     ('queue ties popped last-in first-out', 'client_path.c',
@@ -918,8 +921,8 @@ MUTATIONS = [
      '(abs(dx - dy) * 5 + m * 7) * 3 / 4', 'search'),
     ('classic A* priority g(parent)+step+h', 'client_path.c',
      'mu_path_heuristic(tx, ty, nx, ny) + f->cost[current]',
-     'mu_path_heuristic(tx, ty, nx, ny) + f->cost[current] + mu_path_step_cost(mu_path_directions[d][0], '
-     'mu_path_directions[d][1])', 'search'),
+     'mu_path_heuristic(tx, ty, nx, ny) + f->cost[current] + mu_path_step_cost(dirs[d][0], dirs[d][1])',
+     'search'),
     ('passability mask 0x1c (character tiles walkable)', 'client_path.h', '#define MU_PATH_WALL_MASK 0x1e',
      '#define MU_PATH_WALL_MASK 0x1c', 'search'),
     ('no safe-zone retry level 4', 'client_path.c', '            wall = 4;', '            wall = wall_level;',
@@ -927,6 +930,11 @@ MUTATIONS = [
     ('path capacity 16', 'client_path.h', '#define MU_PATH_CLIENT_NODES 15', '#define MU_PATH_CLIENT_NODES 14',
      'search'),
     ('distance marking with >=', 'client_path.c', 'if (!(distance > s))', 'if (!(distance >= s))', 'search'),
+    # from the NATIVE-WORLD-001 path mutations (scripts/validate_movement.py)
+    ('parent replaced on equal cost', 'client_path.c', 'if (g < f->cost[current]) {', 'if (g <= f->cost[current]) {',
+     'search'),
+    ('wall test without the mask', 'client_path.c', 'int32_t w = (int32_t)f->wall[n] & wall_mask;',
+     'int32_t w = (int32_t)f->wall[n] & (wall_mask | 0xffff);', 'search'),
     ('object block ignored', 'client_path.c', 'if (f->object_flags && (f->object_flags[n] & 1u)',
      'if (0 && f->object_flags && (f->object_flags[n] & 1u)', 'search'),
     ('arrival radius < 30', 'client_path.c', 'if (whole <= 30)', 'if (whole < 30)', 'move'),

@@ -253,6 +253,7 @@ int mu_path_find(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t 
         mark_targets(f, error_check, wall_level, tx, ty, distance);
     }
 
+    const int32_t (*dirs)[2] = f->directions ? f->directions : mu_path_directions;
     int32_t best = MU_PATH_INFINITE, best_x = sx, best_y = sy;
     int32_t start = tile_index(f, sx, sy);
     if (start < 0 || start >= f->size)
@@ -268,13 +269,13 @@ int mu_path_find(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t 
         int32_t x = current % f->width, y = current / f->width;   /* 0x012b24ee (idiv) */
         f->cost[current] = budget == max_pops ? 0 : MU_PATH_INFINITE;
         for (int d = 0; d < 8; d++) {
-            int32_t nx = x + mu_path_directions[d][0], ny = y + mu_path_directions[d][1];
+            int32_t nx = x + dirs[d][0], ny = y + dirs[d][1];
             if (!in_map(f, nx, ny))
                 continue;
             int32_t n = tile_index(f, nx, ny);
             if (!(f->mark[n] & MU_PATH_CLOSED))
                 continue;
-            int32_t g = mu_path_step_cost(mu_path_directions[d][0], mu_path_directions[d][1]) + f->cost[n];
+            int32_t g = mu_path_step_cost(dirs[d][0], dirs[d][1]) + f->cost[n];
             if (g < f->cost[current]) {
                 f->cost[current] = g;
                 f->parent_x[current] = nx;
@@ -287,7 +288,7 @@ int mu_path_find(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t 
             return build_path(f, sx, sy, x, y);
         }
         for (int d = 0; d < 8; d++) {
-            int32_t nx = x + mu_path_directions[d][0], ny = y + mu_path_directions[d][1];
+            int32_t nx = x + dirs[d][0], ny = y + dirs[d][1];
             if (!in_map(f, nx, ny))
                 continue;
             int32_t n = tile_index(f, nx, ny);

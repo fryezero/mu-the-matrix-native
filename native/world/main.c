@@ -134,6 +134,7 @@ static int load(app *a)
 
 static void unload(app *a)
 {
+    mu_walk_free(&a->walk);
     if (a->has_character)
         mu_character_free(&a->ch);
     if (a->map)

@@ -75,7 +75,7 @@ The click branch comes after the walk step (`0x016ac4b4..0x016ace4f`):
 
 These tables are isolated in `mu_player_walk_*` and `mu_player_stop_*` so that the NATIVE-ACTOR-001 action tables can replace them.
 
-## 2. The path finder (verified)
+## 2. The path finder (verified; port now in `reconstructed/path`)
 
 PathFinding2 `0x012b0e85` calls the path object (`[0x06fce374]`, 256×256 over TerrainWall) through FindPath `0x012b1c45`(sx, sy, tx, ty, error check 1, wall mode, flag, distance, 500, mask 0x1e). The search works as follows:
 
@@ -84,7 +84,7 @@ PathFinding2 `0x012b0e85` calls the path object (`[0x06fce374]`, 256×256 over T
 - **Close.** The cell is closed, and if it is the target the path is built.
 - **Open neighbours.** Every neighbour whose `(attribute & 0x1e) < wall mode` is opened. Its priority is `((|a-b|*5 + min(a,b)*7 + 1)*3)/4` plus the popped cell's cost.
 - **Object cells.** Cells in the object grid `0x0b7b5420` open only as the target.
-- **Fallback.** When FindPath fails, the wall mode becomes 4 if the start is a safe-zone cell, or if the target is a safe cell without a character. A second search without the error check then goes to the cell closest to the target by the heuristic.
+- **Fallback.** When FindPath fails, the wall mode becomes 4 if the start or the target is a safe-zone cell and the target has no character (corrected during the NATIVE-PATH-001 reconciliation; this branch's first port read "safe start, or safe target without a character"). A second search without the error check then goes to the cell closest to the target by the heuristic.
 - **Result.** The first 15 cells of the path are copied.
 
 Only the single-target branch (distance 0, the plain click) is ported. The target-area branch `0x012b2584` (distance > 0, attacks and talks) is not.
@@ -215,7 +215,7 @@ Each replaced callee, and the reason it is replaced, is listed in the report.
 
 **Portable tests** (`make test`):
 
-- `reconstructed/movement/test_client_movement.py`: analytic checks plus an independent Python statement of FindPath on 40 random maps.
+- `reconstructed/movement/test_client_movement.py`: analytic checks. Its independent Python statement of FindPath now lives in `reconstructed/path/test_client_path.py` (60 random maps, corrected retry rule).
 - `native/tests/test_native_world.py`, which runs `mu-walk` on a synthetic world, Player and camera records:
   - arrival on the clicked tile at exactly 12 units per step;
   - walk 0x32 then stand 1;
@@ -245,5 +245,5 @@ These are in `~/Documents/mu-mac-tools/native/renders/world/` and are not commit
 - **Packed data.** The direction table and near plane come from a compatibility-environment capture of the packed `.data` section, not from a native Windows run. They are static data with no code writers.
 - **Not ported (static only).** The path finder's target-area branch; SetPlayerWalk and SetPlayerStop outside the minimal domain (weapons, mounts, flight, buffs); MoveHero's attack, talk, pick-up and auto-move branches; the move and stop packets.
 - **Live check.** No live in-game comparison of the walk speed or the path was made.
-- **Parallel work.** Another worktree (`native-path`) works on the path finder in parallel with its own validator. The two ports should be reconciled when both merge.
+- **Reconciled.** The path finder is now the single port in `reconstructed/path` ([client-path.md](client-path.md)); `native/core/mu_walk.c` calls it, and the path family of `scripts/validate_movement.py` compares that library with the client.
 - **Static objects.** Static objects, their collision-object cells `0x0b7b5420`, and the character bit `2` that MoveCharacters sets on occupied tiles are absent in the native session.

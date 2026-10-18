@@ -289,7 +289,7 @@ rules as the client's `0x016c9da0`) was used, with duplicate maps removed. The s
 walkable tiles, with walkable or arbitrary targets up to 40 tiles away, at distances 0 and 1. Some
 found paths are also walked.
 
-**Mutation check.** Fourteen planted mistakes were all detected:
+**Mutation check.** Sixteen planted mistakes were all detected:
 
 * LIFO ties;
 * diagonal cost 5;
@@ -304,7 +304,8 @@ found paths are also walked.
 * t = 0.5 spline weights;
 * turn snap only above 45;
 * an exact-π reciprocal in CreateAngle;
-* a strict TurnAngle wrap.
+* a strict TurnAngle wrap;
+* parent replaced on equal cost and a wall test without the mask (both from the NATIVE-WORLD-001 validator).
 
 The client's CRT `atan` (SSE2 path) and `sqrt` (x87) ran in the guest. Host libm agreed in every
 compared CreateAngle and MovePath case; that is a property of these domains, not a proof.
@@ -373,26 +374,31 @@ it walks a different path. Example: start (98, 52) with wall 1, target (99, 47) 
 path has x = 98, 97, 98, 99, 98, 98 and the other port's x = 98, 98, 98, 99, 99, 99, both with
 y = 52..47.
 
-**Coverage.** This port also covers:
+**Coverage.** Compared with the other port, this one also covers:
 
 * the target-area branch `0x012b2584` (attack and talk range);
 * the siege flag;
 * refused zero coordinates, out-of-range target logging and arbitrary budgets.
 
 It compares the finder's internal state (marks, costs, parents, touched range) after every search, and its
-14 mutations target the search rules.
+16 mutations target the search and follower rules.
 
-**Plan.** Keep one path finder: `reconstructed/path`. The two ports define the same symbols
-(`mu_path_finder`, `mu_path_finding2`), so they cannot both link into `libmunative`. When
-`claude/native-world` reaches `origin/main`, rebase this branch and do the following:
+**Done (after `claude/native-world` merged as #82).** `reconstructed/path` is the single path finder:
 
-1. Remove `reconstructed/movement/client_path.*`.
-2. Point `native/core/mu_walk.c` at `mu_path_finding2` from `reconstructed/path`. Its world grid is
-   TerrainWall with the same `& 0xfaff` rule.
-3. Move the other port's independent Python statement of FindPath (its portable test) onto this library.
-4. Keep its follower (`reconstructed/movement`), which also covers the speed predicates. Make
-   `mu_path_move` either delegate to it or stay as the cross-check. Both equal the client on the compared
-   cases.
+1. `reconstructed/movement/client_path.*` were removed. `native/core/mu_walk.c` calls `mu_path_finding2`
+   from `reconstructed/path` (new `mu_walk_free` releases the finder arrays). The finder's neighbour order
+   is a field (`directions`, NULL = the client table), so the world module keeps its table.
+2. The other port's independent Python statement of FindPath moved to `reconstructed/path/test_client_path.py`.
+   It runs on 60 random maps with four neighbour orders, with the retry rule corrected to the client's.
+3. The path family of `scripts/validate_movement.py` (strict undefined-read machine, alternative neighbour
+   tables, direct FindPath calls with limits 40/5 and mask 0xff, installed maps of worlds 0/2/3/142) now
+   compares this library with the client. At `--cases 400 --mutations` its 400 path cases have 0 mismatches,
+   and all of its mutations are detected. Its four path mutations now act on this source.
+4. Its two mutations without an equivalent here (parent replaced on equal cost, wall test without the mask)
+   were added to `scripts/validate_path.py`, which now detects 16 of 16.
+5. The follower ports stay side by side: `reconstructed/movement` (used by `mu_walk`, with the speed
+   predicates) and `mu_path_move` here (used by `mu_path`/`mu-path`). They have distinct symbols, and both
+   equal the client on their compared cases.
 
 ## Unresolved
 

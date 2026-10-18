@@ -68,6 +68,9 @@ typedef struct mu_path_finder {
     uint32_t queue_sequence;
     /* diagnostics (not client state) */
     int32_t pops, pushes, index_errors;
+    /* neighbour order; NULL = the client's table 0x01cf1640 (mu_path_directions). The validators
+     * also run the client with other tables written there. */
+    const int32_t (*directions)[2];
 } mu_path_finder;
 
 /* PATH_t at Character + 0x3194. */

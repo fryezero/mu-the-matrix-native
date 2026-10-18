@@ -39,7 +39,7 @@ Read [`research/client-path.md`](research/client-path.md). `reconstructed/path`,
 running `scripts/validate_path.py --cases 1000 --mutations --worlds all` (needs `MU_CLIENT_TEXT`, `MU_IMAGE_DATA`,
 `MU_TRIG_FLAG`, `MU_PATH_DIRECTIONS` and `MU_GAME_ROOT`; about 3 minutes). Renders stay local
 (`~/Documents/mu-mac-tools/native/renders/path/`). The native-world window can adopt `mu_pathing`/`mu_walker` in place
-of its straight-line walk. Its own finder port (`reconstructed/movement/client_path.*`, commit `a732f9b`) differs from the client in the retry rule and clashes in symbols; after it merges, rebase and keep `reconstructed/path` (plan in the finding). Next: capture the third section afresh to pin the neighbour table, trace the speed and
+of its straight-line walk. `mu_walk` now uses this finder; the world branch's own port was removed in the reconciliation (finding). Next: capture the third section afresh to pin the neighbour table, trace the speed and
 run-counter predicates, and port the long-distance helper path `0x012b104c`.
 
 ## Original launcher in CrossOver

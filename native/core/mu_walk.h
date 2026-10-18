@@ -17,8 +17,8 @@
  *     packet's Movement = 0 and SetPlayerStop;
  *   - the click-to-move start of MoveHero: terrain pick, target tile, path,
  *     SendMove's Movement = 1.
- * The path is the client's own path finder (reconstructed/movement/
- * client_path: PathFinding2 0x012b0e85, FindPath 0x012b1c45) over the world's
+ * The path is the client's own path finder (reconstructed/path, NATIVE-PATH-001:
+ * PathFinding2 0x012b0e85, FindPath 0x012b1c45) over the world's
  * attribute grid, with the client's neighbour order (direction table
  * 0x01cf1640) and near plane 20 (0x01cf162c), both static data read from the
  * runtime data-section capture. Placeholders (labelled where used): the
@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 #include "../../reconstructed/movement/client_movement.h"
-#include "../../reconstructed/movement/client_path.h"
+#include "../../reconstructed/path/client_path.h"
 #include "mu_character.h"
 #include "mu_frame.h"
 #include "mu_terrain.h"
@@ -87,7 +87,7 @@ typedef struct mu_walk {
     int32_t action_count;     /* Player model actions (SetAction bound) */
     int32_t target[2];        /* TargetX/Y 0x0b449ac0 / 0x0b449ac4 */
     int32_t directions[8][2]; /* path finder neighbour order (0x01cf1640) */
-    mu_path_finder finder;    /* the client's path object (0x06fce374) over frame.walls */
+    mu_path_finder finder;    /* the client's path object (0x06fce374) over frame.walls (heap arrays: mu_walk_free) */
     uint32_t steps, moves, arrivals, path_refused;
     uint32_t position_steps;  /* MoveCharacterPosition calls */
     double position_distance; /* their summed horizontal displacement */
@@ -104,6 +104,8 @@ void mu_walk_init(mu_walk *walk, mu_world *map, const mu_camera_info *info, uint
                   uint32_t window_height, int32_t tile_x, int32_t tile_y, float angle_z, uint8_t class_byte,
                   int32_t action_count, float near_plane);
 /* Window messages and key states, Win32 form (forwarded to mu_frame). */
+/* Releases the path finder's arrays (mu_walk_init allocates them). */
+void mu_walk_free(mu_walk *walk);
 void mu_walk_message(mu_walk *walk, uint32_t message, uint32_t wparam, uint32_t lparam);
 void mu_walk_key(mu_walk *walk, int vk, int down);
 /* Due logic steps (client accumulator); returns how many ran. character may
