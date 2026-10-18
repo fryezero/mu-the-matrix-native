@@ -2,6 +2,19 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Particles, sprites and blob shadows (NATIVE-PARTICLE-001)
+
+Read [`research/client-particles.md`](research/client-particles.md). `reconstructed/particles` (libclient_particles)
+ports the legacy particle list, RenderSprite, the sprite list, RenderBodyShadow, the bone helpers and
+RenderObjectVisual for Lorencia/Tormenta; `native/core/mu_particles.*` runs it in mu-world through hooks into the
+object runtime, the environment and `mu_combat` (`--no-particles` restores the stand-ins). Compare with
+`scripts/validate_particles.py --cases 3000 --heavy-cases 300` (about 50 s). Renders stay local
+(`~/Documents/mu-mac-tools/native/renders/particles/`, scripts `render.sh`/`all.sh` there). Other callers create
+particles through `mu_world_particles_create`/`_sprite` (supported kinds: `mu_pt_kind_supported`). Next: the login
+scene's Shiny02/flare01 sprites through the module and its clouds/WATERFALL1 kinds, the Tormenta joints 0x7f7d
+(joint pool) and effect 0x40e, more particle kinds as callers need them, the character shadow's flag conditions
+(`+3`, `+0x44`, the option singleton) from RenderCharacter.
+
 ## Login scene (NATIVE-LOGIN-001)
 
 Read [`research/client-login-scene.md`](research/client-login-scene.md). `mu_scenemgr_login_render_3d` /

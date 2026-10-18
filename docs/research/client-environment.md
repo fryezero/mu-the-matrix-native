@@ -244,6 +244,6 @@ In `~/Documents/mu-mac-tools/native/renders/env/` (not committed): headless GL f
   `0x00ca3ce1`, `0x00df150a`; the Devil Square and Chaos Castle rain creators and movers; the event-world leaf
   handlers (they return 0 outside their worlds); RenderLeaves' 0x71 branch.
 - The login-scene branch of MoveBoids (`0x01ec3254` ≠ 0).
-- RenderObject's body pass, RenderBodyShadow, CreateSprite and CreateParticle themselves (static; drawn or
-  counted by the viewer as above).
+- RenderObject's body pass (static). RenderBodyShadow, CreateSprite and CreateParticle are reconstructed and
+  drawn by NATIVE-PARTICLE-001 ([client-particles.md](client-particles.md)).
 - The pets/fairies of `0x00c9e24a`.

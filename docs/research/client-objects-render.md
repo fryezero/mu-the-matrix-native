@@ -445,6 +445,8 @@ was not re-read: that would have needed selecting Nighty in the character list. 
     skipping them, so the native draws them once, in the first pass.
 - **Tormenta speeds.** Its per-type animation speeds are set outside CreateObject and the handler; the source was not
   traced. The native uses the live per-type values.
-- **Particles.** The legacy particle system (fire, smoke, sprites) is the next reconstruction needed for exact effects.
+- **Particles.** The legacy particle system (fire, smoke, sprites), RenderObjectVisual's Lorencia cases and the
+  Tormenta slot 0x34 are reconstructed and drawn by NATIVE-PARTICLE-001 ([client-particles.md](client-particles.md));
+  the stand-ins remain behind `--no-particles`.
 - **Tormenta re-read.** A read with Nighty would need the character selected in the list (not done; no movement
   involved).
