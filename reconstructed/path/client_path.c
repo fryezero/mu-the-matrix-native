@@ -6,8 +6,10 @@
 
 #include "../record-math/record_math.h"
 
-/* 0x01cf1640 (8 int pairs; values from the unpacked data section, see the
- * finding). */
+/* 0x01cf1640 (8 int pairs in the third section, packed in the file). Pinned by
+ * SHA-256 a8cc4549...f8b5 in a manifest-backed live read of the running client
+ * (evidence path-table-live-01, 2026-10-18) and in the earlier unpacked capture
+ * x86-linux-capture-04; see the finding. */
 const int32_t mu_path_directions[8][2] = {
     {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1},
 };
@@ -209,12 +211,11 @@ static void mark_targets(mu_path_finder *f, int error_check, int32_t wall_level,
     }
 }
 
-/* 0x012b21c6 with flag 0 (the trimming variant for budgets above 500 is used
- * only by the long-distance helper path 0x012b104c, not ported). */
-static int build_path(mu_path_finder *f, int32_t sx, int32_t sy, int32_t ex, int32_t ey)
+/* 0x012b21c6, flag 0 part: follow the parents from (ex, ey) to the start, at
+ * most 500 nodes, filling path_x/path_y from the end. */
+static int build_path_nodes(mu_path_finder *f, int32_t sx, int32_t sy, int32_t ex, int32_t ey)
 {
     int32_t cx = ex, cy = ey;
-    set_end(f, ex, ey);
     for (f->count = 0; f->count < MU_PATH_MAX_STEPS; f->count++) {
         f->path_x[MU_PATH_MAX_STEPS - 1 - f->count] = (uint8_t)cx;
         f->path_y[MU_PATH_MAX_STEPS - 1 - f->count] = (uint8_t)cy;
@@ -227,6 +228,47 @@ static int build_path(mu_path_finder *f, int32_t sx, int32_t sy, int32_t ex, int
         cy = f->parent_y[index];
     }
     return 0;
+}
+
+/* BuildPath 0x012b21c6. The end tile is the found end. With trim (FindPath
+ * budgets above 500, a target reached), the parent chain is first collected
+ * as int16 pairs from the end (0x012b220b..0x012b22f5, stopping when it holds
+ * more than `size` entries); when it reaches the start with n >= 500 nodes,
+ * the flag-0 walk starts from entry n - 499 instead, so the path keeps the
+ * 499 nodes nearest the start. */
+static int build_path(mu_path_finder *f, int32_t sx, int32_t sy, int32_t ex, int32_t ey, int trim)
+{
+    set_end(f, ex, ey);
+    if (trim) {
+        int16_t cx = (int16_t)ex, cy = (int16_t)ey;
+        int32_t n = 1;
+        for (;;) {
+            if (n > f->size)
+                break;
+            if (cx == sx && cy == sy) {
+                if (n >= MU_PATH_MAX_STEPS) {
+                    /* entry n - 499 counted from the end */
+                    int32_t k = n - (MU_PATH_MAX_STEPS - 1);
+                    int16_t kx = (int16_t)ex, ky = (int16_t)ey;
+                    for (int32_t i = 0; i < k; i++) {
+                        int32_t index = tile_index(f, kx, ky);
+                        int16_t nx = (int16_t)f->parent_x[index], ny = (int16_t)f->parent_y[index];
+                        kx = nx;
+                        ky = ny;
+                    }
+                    ex = kx;
+                    ey = ky;
+                }
+                break;
+            }
+            int32_t index = tile_index(f, cx, cy);
+            int16_t nx = (int16_t)f->parent_x[index], ny = (int16_t)f->parent_y[index];
+            cx = nx;
+            cy = ny;
+            n++;
+        }
+    }
+    return build_path_nodes(f, sx, sy, ex, ey);
 }
 
 int mu_path_find(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t ty, int error_check,
@@ -285,7 +327,7 @@ int mu_path_find(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t 
         f->mark[current] |= MU_PATH_CLOSED;
         if (f->mark[current] & MU_PATH_TARGET) {
             queue_clear(f);
-            return build_path(f, sx, sy, x, y);
+            return build_path(f, sx, sy, x, y, max_pops > MU_PATH_MAX_STEPS);
         }
         for (int d = 0; d < 8; d++) {
             int32_t nx = x + dirs[d][0], ny = y + dirs[d][1];
@@ -318,7 +360,7 @@ int mu_path_find(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t 
     }
     queue_clear(f);
     if (!error_check)
-        return build_path(f, sx, sy, best_x, best_y);
+        return build_path(f, sx, sy, best_x, best_y, 0);
     return 0;
 }
 
@@ -370,6 +412,148 @@ int mu_path_finding2(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int3
     path->current = 0;
     path->current_float = 0;
     return 1;
+}
+
+/* ---- long-distance path (auto move) ---- */
+
+static void list_clear(mu_auto_path *a)
+{
+    a->list_head = 0;
+    a->list_count = 0;
+}
+
+void mu_auto_path_reset(mu_auto_path *a)
+{
+    a->target_x = -1;
+    a->target_y = -1;
+    a->flag = 0;
+    a->waypoint_x = -1;
+    a->waypoint_y = -1;
+    a->mode = 0;
+    list_clear(a);
+}
+
+void mu_auto_path_init(mu_auto_path *a)
+{
+    memset(a, 0, sizeof *a);
+    mu_auto_path_reset(a);
+}
+
+int mu_path_long(mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t ty, int error_check,
+                 mu_auto_path *a, float distance, int32_t wall_level)
+{
+    list_clear(a);   /* 0x0129e4e0 */
+    if (tx < 0 || ty < 0)
+        return 0;
+    int found = mu_path_find(f, sx, sy, tx, ty, error_check, wall_level, 0, distance, MU_PATH_LONG_BUDGET,
+                             MU_PATH_LONG_MASK);
+    if (!found)
+        return 0;
+    /* 0x012b10b7: the target follows the end tile of the search */
+    if (a->target_x != f->end_x || a->target_y != f->end_y) {
+        a->target_x = f->end_x;
+        a->target_y = f->end_y;
+    }
+    int32_t nodes = f->count < MU_PATH_MAX_STEPS ? f->count : MU_PATH_MAX_STEPS;   /* 0x012b245e(500) */
+    if (nodes <= 1)
+        return found;
+    const uint8_t *xs = mu_path_finder_x(f), *ys = mu_path_finder_y(f);
+    for (int32_t i = 0; i < nodes; i++) {   /* push_back 0x012b2d0f of {(int16)x, (int16)y} */
+        a->list_x[i] = xs[i];
+        a->list_y[i] = ys[i];
+    }
+    a->list_count = nodes;
+    return found;
+}
+
+int mu_auto_path_next(mu_auto_path *a)
+{
+    if (a->list_count == 0)
+        return 0;
+    int32_t n = a->list_count < MU_PATH_SEGMENT_NODES ? a->list_count : MU_PATH_SEGMENT_NODES;
+    a->path.count = (uint8_t)n;
+    int16_t x = 0, y = 0;
+    for (int32_t i = 0; i < n; i++) {
+        x = a->list_x[a->list_head];
+        y = a->list_y[a->list_head];
+        a->path.x[i] = (uint8_t)x;
+        a->path.y[i] = (uint8_t)y;
+        a->list_head++;   /* erase 0x0129e565 */
+        a->list_count--;
+    }
+    if (a->list_count == 0)
+        a->list_head = 0;
+    a->waypoint_x = x;
+    a->waypoint_y = y;
+    a->path.current = 0;
+    a->path.current_float = 0;
+    return 1;
+}
+
+static void effects_clear(mu_auto_path_effects *e)
+{
+    if (e)
+        memset(e, 0, sizeof *e);
+}
+
+static void walk_to_waypoint(const mu_auto_path *a, mu_auto_path_effects *e)
+{
+    if (!e)
+        return;
+    e->target_set = 1;
+    e->target[0] = a->waypoint_x;
+    e->target[1] = a->waypoint_y;
+    e->selection_cleared = 1;
+}
+
+int mu_auto_path_start(mu_auto_path *a, mu_path_finder *f, int32_t flag, int32_t sx, int32_t sy, int32_t tx,
+                       int32_t ty, int32_t mode, int32_t error_check, mu_auto_path_effects *e)
+{
+    effects_clear(e);
+    a->mode = mode;
+    if (sx == tx && sy == ty) {
+        if (e)
+            e->arrived = 1;
+        return 0;
+    }
+    a->flag = flag;
+    a->target_x = (int16_t)tx;
+    a->target_y = (int16_t)ty;
+    if (a->flag == 1)
+        return 0;
+    if (mu_path_long(f, sx, sy, tx, ty, error_check != 0, a, 0.0f, MU_PATH_LONG_LEVEL) && mu_auto_path_next(a)) {
+        walk_to_waypoint(a, e);
+        return 1;
+    }
+    if (a->mode == 2 && e)
+        e->failure_notice = 1;
+    mu_auto_path_reset(a);
+    return 0;
+}
+
+void mu_auto_path_refresh(mu_auto_path *a, mu_path_finder *f, int32_t sx, int32_t sy, int32_t tx, int32_t ty,
+                          mu_auto_path_effects *e)
+{
+    effects_clear(e);
+    if (sx != tx || sy != ty) {
+        if (mu_path_long(f, sx, sy, tx, ty, 0, a, 0.0f, MU_PATH_LONG_LEVEL)) {
+            walk_to_waypoint(a, e);
+            return;
+        }
+        mu_auto_path_reset(a);
+        if (a->mode == 2 && e)   /* read after the reset: mode is 0 here */
+            e->failure_notice = 1;
+        return;
+    }
+    if (e)
+        e->arrived = 1;
+}
+
+void mu_auto_path_arrive(mu_auto_path *a)
+{
+    if (a->mode == 4 || a->mode == 5)
+        return;
+    mu_auto_path_reset(a);
 }
 
 /* ---- angles ---- */

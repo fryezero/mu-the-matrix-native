@@ -11,12 +11,21 @@ Only CRT heap/memset services, a log call and subsystem queries outside the
 compared routines are replaced; each is listed in CLIENT_STUBS. Results are
 compared bit for bit with the C library built from reconstructed/path.
 
-Synthetic inputs (labelled): the 64-byte neighbour table 0x01cf1640, which
-lies in the packed third section, is taken from the unpacked data region of
-capture x86-linux-capture-04 (same restored text digest) and pinned by
-SHA-256; the finder's touched range starts in its reset state and its path
-arrays start zeroed (the client allocates them uninitialised); heap memory
-returned to the client is filled with a poison byte.
+Inputs: the 64-byte neighbour table 0x01cf1640 lies in the packed third
+section. It is pinned by SHA-256 and read from a capture of that section: by
+default the manifest-backed live read evidence/path-table-live-01 (memread,
+2026-10-18); the earlier unpacked capture x86-linux-capture-04 has the same
+bytes. Synthetic (labelled): the finder's touched range starts in its reset
+state and its path arrays start zeroed (the client allocates them
+uninitialised); heap memory returned to the client is filled with a poison
+byte.
+
+NATIVE-PATH-002 adds the long-distance helper 0x012b104c (budget 300,000,000,
+BuildPath's trimming variant), the auto-move PATH_t methods (next segment,
+reset, start, refresh), and the run counter and speed predicates: the
+run-counter prefix of SetPlayerWalk, SetPlayerStop's reset and
+CharacterMoveSpeed with its helper/mount/pet/world predicates executed as
+client code, compared with reconstructed/movement.
 """
 import argparse
 import ctypes
@@ -104,6 +113,27 @@ CLIENT_STUBS = {
     0x016cc9e2: (0, 'fld', 'RequestTerrainHeight: synthetic height'),
     0x0129dcda: (0, 'eax', 'helper item getter (subsystem query)'),
     0x0095fb27: (0, 'eax', 'character predicate (subsystem query)'),
+    # NATIVE-PATH-002 auto move: the arrival handler and the UI notice helpers (no path state)
+    0x0129c8b0: (0, 'eax', 'auto-move arrival handler (NPC/quest/UI actions): recorded'),
+    0x00d51b91: (0, 'eax', 'notice box constructor (UI): no-op'),
+    0x00d51baf: (8, 'eax', 'notice box setup (UI): no-op'),
+    0x0095c204: (4, 'eax', 'notice box text append (UI): no-op'),
+    0x00d51d4f: (8, 'eax', 'notice box show (UI): no-op'),
+    0x00d51ba6: (0, 'eax', 'notice box destructor (UI): no-op'),
+    0x0095c550: (4, 'eax', 'chat window getter (UI): no-op'),
+    0x0095f09a: (0, 'eax', 'chat window present (UI): false, so no system message'),
+    0x0095eba6: (0, 'eax', 'chat window handle release (UI): no-op'),
+    # NATIVE-PATH-002 run counter and speed: subsystem queries left opaque
+    0x00cd4ea8: (0, 'eax', 'item attribute table singleton getter (TLS-guarded static init)'),
+    0x00cd5d29: (4, 'eax', 'item attribute record find (std::map): synthetic records by code'),
+    0x009c104e: (0, 'eax', 'character extra-state manager singleton getter'),
+    0x0106bdb7: (4, 'eax', 'manager predicate: the safe zone keeps the run counter (opaque input)'),
+    0x0106bd76: (4, 'eax', 'manager predicate: SetPlayerStop keeps the run counter (opaque input)'),
+    0x01295ade: (4, 'eax', 'buff list lookup (std::map on c + 0x35ac): synthetic buff set'),
+    0x009fa30a: (0, 'eax', 'event-state singleton getter'),
+    0x009fbb31: (4, 'eax', 'event special-state predicate (speed 8): opaque input'),
+    0x00966c42: (0, 'eax', 'skill/option table lookup (buff 0x18b bonus argument)'),
+    0x0117b5eb: (0, 'fld', 'buff 0x18b speed bonus value: synthetic'),
 }
 
 
@@ -223,6 +253,18 @@ class Guest:
     def reset_arena(self):
         self.arena_top = ARENA
 
+    def unstubbed(self, *addresses):
+        """Run these callees as client code for the duration (they are stubbed for the other families)."""
+        guest = self
+
+        class Scope:
+            def __enter__(self):
+                self.saved = {a: guest.stubs.pop(a) for a in addresses if a in guest.stubs}
+
+            def __exit__(self, *ignored):
+                guest.stubs.update(self.saved)
+        return Scope()
+
     def alloc(self, size, fill=0):
         address = self._malloc((size,), 0)
         self.put(address, bytes([fill]) * size)
@@ -308,6 +350,18 @@ class ClientPath(ctypes.Structure):
                 ('x', ctypes.c_uint8 * 15), ('y', ctypes.c_uint8 * 15)]
 
 
+class AutoPath(ctypes.Structure):
+    _fields_ = [('path', ClientPath), ('mode', ctypes.c_int32), ('waypoint_x', ctypes.c_int16),
+                ('waypoint_y', ctypes.c_int16), ('flag', ctypes.c_int32), ('target_x', ctypes.c_int16),
+                ('target_y', ctypes.c_int16), ('list_head', ctypes.c_int32), ('list_count', ctypes.c_int32),
+                ('list_x', ctypes.c_int16 * 500), ('list_y', ctypes.c_int16 * 500)]
+
+
+class AutoEffects(ctypes.Structure):
+    _fields_ = [('target_set', ctypes.c_uint8), ('target', ctypes.c_int32 * 2), ('selection_cleared', ctypes.c_uint8),
+                ('arrived', ctypes.c_uint8), ('failure_notice', ctypes.c_uint8)]
+
+
 class Mover(ctypes.Structure):
     _fields_ = [('tile_x', ctypes.c_int32), ('tile_y', ctypes.c_int32), ('position', ctypes.c_float * 3),
                 ('angle', ctypes.c_float * 3), ('path', ClientPath)]
@@ -337,6 +391,16 @@ def load_library(directory=None):
     lib.mu_path_turn_angle.restype = ctypes.c_float
     lib.mu_path_move.argtypes = [P(Mover), ctypes.c_int, P(ctypes.c_float)]
     lib.mu_path_step_position.argtypes = [P(ctypes.c_float), P(ctypes.c_float), ctypes.c_float]
+    lib.mu_path_long.argtypes = [P(Finder)] + [ctypes.c_int32] * 4 + [ctypes.c_int, P(AutoPath), ctypes.c_float,
+                                                                      ctypes.c_int32]
+    lib.mu_auto_path_init.argtypes = [P(AutoPath)]
+    lib.mu_auto_path_reset.argtypes = [P(AutoPath)]
+    lib.mu_auto_path_next.argtypes = [P(AutoPath)]
+    lib.mu_auto_path_start.argtypes = [P(AutoPath), P(Finder)] + [ctypes.c_int32] * 7 + [P(AutoEffects)]
+    lib.mu_auto_path_refresh.argtypes = [P(AutoPath), P(Finder)] + [ctypes.c_int32] * 4 + [P(AutoEffects)]
+    lib.mu_auto_path_refresh.restype = None
+    lib.mu_auto_path_arrive.argtypes = [P(AutoPath)]
+    lib.mu_auto_path_arrive.restype = None
     lib.mu_path_clear_characters.argtypes = [P(ctypes.c_uint16), ctypes.c_int32]
     lib.mu_path_stamp_character.argtypes = [P(ctypes.c_uint16), ctypes.c_int32, ctypes.c_int32]
     return lib
@@ -908,8 +972,694 @@ def run_occupancy_family(guest, lib, tally, rng, count):
         tally.add('occupancy clear 0x0137a7ce', got == bytes(wall), None)
 
 
+# ---------------- long-distance path and auto move (NATIVE-PATH-002) ----------------
+
+LONG_PATH, AUTO_RESET, AUTO_REFRESH, AUTO_START, AUTO_NEXT = 0x012b104c, 0x0129c4d2, 0x0129c51d, 0x0129c6be, 0x0129cc44
+PATH_CTOR, LIST_PUSH_BACK, ARRIVAL = 0x0129e1b9, 0x012b2d0f, 0x0129c8b0
+TARGET_XY = 0x0b449ac0
+SELECTION = 0x01cf114c   # six dwords 0x01cf114c..0x01cf1160
+AUTO_SIZE = 0x80
+LONG_COUNT = 4_000_000_000   # instruction limit: a whole-map search through the unbalanced tree queue
+
+
+def finder_state_diff(guest, world, sx, sy):
+    """The finder object after a search, guest against C (as World.search compares it)."""
+    g, o, c = guest, world.object, world.c
+    diff = {}
+    if g.i32(o + 0x10) != c.count:
+        diff['count'] = (g.i32(o + 0x10), c.count)
+    if g.get(o + 0x14, 500) != bytes(c.path_x) or g.get(o + 0x208, 500) != bytes(c.path_y):
+        diff['path arrays'] = 'differ'
+    if struct.unpack('<hh', g.get(o + 0x3fc, 4)) != (c.end_x, c.end_y):
+        diff['end'] = (struct.unpack('<hh', g.get(o + 0x3fc, 4)), (c.end_x, c.end_y))
+    if struct.unpack('<ii', g.get(o + 0x404, 8)) != (c.touched_min, c.touched_max):
+        diff['touched'] = 'differs'
+    if struct.unpack('<II', g.get(o + 0x418 + 4, 8)) != (0, 0):
+        diff['tree'] = 'not empty'
+    if g.get(TERRAIN_WALL, 0x20000) != bytes(world.wall):
+        diff['wall'] = 'differs'
+    mark = g.get(g.u32(o + 0x400), 65536)
+    if mark != ctypes.string_at(c.mark, 65536):
+        diff['mark'] = 'differs'
+    cost = struct.unpack('<65536i', g.get(g.u32(o + 0x40c), 0x40000))
+    px = struct.unpack('<65536i', g.get(g.u32(o + 0x410), 0x40000))
+    py = struct.unpack('<65536i', g.get(g.u32(o + 0x414), 0x40000))
+    start = (sy * 256 + sx) if 0 <= sx < 256 and 0 <= sy < 256 else -1
+    for i in range(65536):
+        m = mark[i]
+        if m & 2 and cost[i] != c.cost[i]:
+            diff['cost'] = (i, cost[i], c.cost[i])
+            break
+        if m & 1 and i != start and (px[i] != c.parent_x[i] or py[i] != c.parent_y[i]):
+            diff['parent'] = (i, (px[i], py[i]), (c.parent_x[i], c.parent_y[i]))
+            break
+    return diff
+
+
+def guest_list(guest, address):
+    """std::list<{int16 x, int16 y}> at PATH_t + 0x3c: {head, size}; nodes {next, prev, value}."""
+    head, size = struct.unpack('<II', guest.get(address + 0x3c, 8))
+    out, node = [], guest.u32(head)
+    while node != head and len(out) <= size + 1:
+        out.append(struct.unpack('<hh', guest.get(node + 8, 4)))
+        node = guest.u32(node)
+    return size, out
+
+
+def c_list(a):
+    return [(a.list_x[a.list_head + i], a.list_y[a.list_head + i]) for i in range(a.list_count)]
+
+
+def guest_auto(guest, address):
+    size, nodes = guest_list(guest, address)
+    return {'path': guest.get(address, 0x21), 'mode': guest.i32(address + 0x2c),
+            'waypoint': struct.unpack('<hh', guest.get(address + 0x30, 4)), 'flag': guest.i32(address + 0x34),
+            'target': struct.unpack('<hh', guest.get(address + 0x38, 4)), 'list_size': size, 'list': nodes}
+
+
+def c_auto(a):
+    return {'path': bytes(a.path), 'mode': a.mode, 'waypoint': (a.waypoint_x, a.waypoint_y), 'flag': a.flag,
+            'target': (a.target_x, a.target_y), 'list_size': a.list_count, 'list': c_list(a)}
+
+
+def new_auto(guest):
+    address = guest.alloc(AUTO_SIZE, POISON)
+    guest.call(PATH_CTOR, [], ecx=address)
+    a = AutoPath()
+    return address, a
+
+
+def set_auto(guest, address, a, lib, rng, nodes=None):
+    """Same random auto-move state in the guest object and in C (list through the client's push_back)."""
+    guest.call(0x0129e4e0, [], ecx=address + 0x3c)   # list clear
+    lib.mu_auto_path_init(ctypes.byref(a))
+    path = ClientPath()
+    count = rng.randint(0, 15)
+    path.current, path.current_float, path.count = rng.randrange(0, 16), rng.randrange(0, 4), count
+    for i in range(15):
+        path.x[i], path.y[i] = rng.randrange(256), rng.randrange(256)
+    a.path = path
+    a.mode = rng.choice([0, 1, 2, 2, 2, 3, 4, 5])
+    a.flag = rng.choice([0, 1, 2, 2, 3])
+    a.waypoint_x, a.waypoint_y = rng.choice([(-1, -1), (rng.randrange(256), rng.randrange(256))])
+    a.target_x, a.target_y = rng.choice([(-1, -1), (rng.randrange(256), rng.randrange(256))])
+    guest.put(address, bytes(path))
+    guest.put(address + 0x2c, struct.pack('<ihhihh', a.mode, a.waypoint_x, a.waypoint_y, a.flag, a.target_x,
+                                          a.target_y))
+    value = guest.alloc(4)
+    nodes = nodes if nodes is not None else [(rng.randrange(256), rng.randrange(256))
+                                             for _ in range(rng.choice([0, 1, 2, 3, 4, 5, 7, 40]))]
+    for i, (x, y) in enumerate(nodes):
+        guest.put(value, struct.pack('<hh', x, y))
+        guest.call(LIST_PUSH_BACK, [value], ecx=address + 0x3c)
+        a.list_x[i], a.list_y[i] = x, y
+    a.list_count = len(nodes)
+
+
+def effects_snapshot(guest):
+    return {'target': struct.unpack('<ii', guest.get(TARGET_XY, 8)),
+            'selection': struct.unpack('<6i', guest.get(SELECTION, 24))}
+
+
+def guest_effects(guest, before):
+    after = effects_snapshot(guest)
+    called = [address for address, _ in guest.calls]
+    return {'target_set': after['target'] != before['target'], 'target': list(after['target']),
+            'selection_cleared': after['selection'] == (-1,) * 6, 'arrived': ARRIVAL in called,
+            'failure_notice': 0x00d51b91 in called}
+
+
+def c_effects(e, before):
+    target = list(e.target) if e.target_set else list(before['target'])
+    return {'target_set': bool(e.target_set), 'target': target, 'selection_cleared': bool(e.selection_cleared),
+            'arrived': bool(e.arrived), 'failure_notice': bool(e.failure_notice)}
+
+
+def reset_effect_globals(guest, rng):
+    guest.put(TARGET_XY, struct.pack('<ii', rng.randrange(-5, 300), rng.randrange(-5, 300)))
+    guest.put(SELECTION, struct.pack('<6i', *[rng.randrange(0, 400) for _ in range(6)]))
+
+
+def grid_enclosures(rng):
+    """Open ground with closed rings (unreachable targets inside) and a few walls."""
+    grid = grid_noise(rng, rng.choice([0.0, 0.05, 0.15]), [0x04, 0x08, 0x10, 0x02, 0x22, 0x01])
+    for _ in range(rng.randrange(20, 80)):
+        cx, cy, r = rng.randrange(4, 252), rng.randrange(4, 252), rng.randrange(1, 4)
+        for dy in range(-r - 1, r + 2):
+            for dx in range(-r - 1, r + 2):
+                if max(abs(dx), abs(dy)) == r + 1 and 0 <= cx + dx < 256 and 0 <= cy + dy < 256:
+                    grid[(cy + dy) * 256 + cx + dx] = rng.choice([0x04, 0x08, 0x10])
+    return grid
+
+
+def grid_corridor(rng):
+    """A serpentine corridor: paths of several hundred nodes (BuildPath trimming at 500)."""
+    grid = [0x04] * 65536
+    for row in range(2, 254, 4):
+        for x in range(2, 254):
+            grid[row * 256 + x] = 0
+        link = 252 if (row // 4) % 2 == 0 else 2
+        for y in range(row, min(254, row + 5)):
+            grid[y * 256 + link] = 0
+    for _ in range(rng.randrange(0, 200)):
+        grid[rng.randrange(65536)] |= rng.choice([0x01, 0x02, 0x20])
+    return grid
+
+
+LONG_GRIDS = [grid_corridor, grid_maze, grid_enclosures, lambda r: grid_noise(r, 0.3), grid_rooms,
+              lambda r: grid_noise(r, 0.0), grid_safezone]
+
+
+def long_case(rng, grid, maker):
+    for _ in range(200):
+        sx, sy = rng.randrange(1, 255), rng.randrange(1, 255)
+        if (grid[sy * 256 + sx] & 0x1c) < 4 or rng.random() < 0.03:
+            break
+    span = rng.choice([10, 40, 120, 255])
+    tx = min(255, max(0, sx + rng.randint(-span, span)))
+    ty = min(255, max(0, sy + rng.randint(-span, span)))
+    if maker is grid_corridor and rng.random() < 0.7:
+        sx, sy, tx, ty = rng.choice([2, 3]), rng.choice([2, 6, 10]), rng.randrange(2, 253), rng.choice([242, 246, 250])
+    r = rng.random()
+    if r < 0.04:
+        tx, ty = sx, sy
+    elif r < 0.07:
+        tx, ty = rng.choice([(-1, ty), (tx, -3), (300, ty)])
+    error_check = rng.random() < 0.5
+    distance = rng.choice([0.0] * 8 + [1.0, 2.5])
+    level = rng.choice([4] * 6 + [2, 8, 0x20])
+    return sx, sy, tx, ty, error_check, distance, level
+
+
+def compare_long(guest, lib, world, address, a, case):
+    sx, sy, tx, ty, error_check, distance, level = case
+    result = guest.call(LONG_PATH, [sx, sy, tx, ty, int(error_check), address, fbits(distance), level],
+                        count=LONG_COUNT) & 0xff
+    got = guest_auto(guest, address)
+    want_result = lib.mu_path_long(ctypes.byref(world.c), sx, sy, tx, ty, int(error_check), ctypes.byref(a),
+                                   distance, level) & 0xff
+    want = c_auto(a)
+    if tx >= 0 and ty >= 0:   # a negative target returns before FindPath: the finder keeps the last search
+        world.last_start = (sx, sy)
+    diff = finder_state_diff(guest, world, *getattr(world, 'last_start', (sx, sy)))
+    if result != want_result:
+        diff['result'] = (result, want_result)
+    for key in got:
+        if got[key] != want[key]:
+            diff[key] = 'differs'
+    return diff, result, world.c.count
+
+
+def run_long_family(guest, lib, tally, rng, count, stats=None):
+    done, made = 0, 0
+    while done < count:
+        maker = LONG_GRIDS[made % len(LONG_GRIDS)]
+        made += 1
+        grid = maker(rng)
+        world = World(guest, lib, grid)
+        try:
+            address, a = new_auto(guest)
+            for _ in range(min(2, count - done)):
+                case = long_case(rng, grid, maker)
+                set_auto(guest, address, a, lib, rng)
+                try:
+                    diff, result, nodes = compare_long(guest, lib, world, address, a, case)
+                except Stop as stop:
+                    tally.add('long path 0x012b104c', False, {'stop': str(stop), 'case': case})
+                    done += 1
+                    continue
+                if stats is not None:
+                    stats.append({'result': result, 'nodes': nodes, 'trimmed': nodes == 499 and result,
+                                  'pops': world.c.pops})
+                tally.add('long path 0x012b104c', not diff, {'diff': diff, 'case': case})
+                done += 1
+        finally:
+            world.close()
+
+
+def run_installed_long_family(guest, lib, tally, rng, count, root, tool, worlds, stats=None):
+    grids, seen = [], set()
+    for world_index in worlds:
+        grid = installed_grid(tool, root, world_index)
+        if grid is None:
+            continue
+        digest = hashlib.sha256(struct.pack('<65536H', *grid)).hexdigest()
+        if digest not in seen:
+            seen.add(digest)
+            grids.append((world_index, grid))
+    if not grids:
+        return
+    for k in range(count):
+        world_index, grid = grids[k % len(grids)]
+        free = [i for i in range(65536) if (grid[i] & 0x1c) < 4 and i % 256 and i >= 256]
+        if len(free) < 2:
+            continue
+        world = World(guest, lib, grid)
+        try:
+            address, a = new_auto(guest)
+            s, t = rng.choice(free), rng.choice(free)
+            case = (s % 256, s // 256, t % 256, t // 256, rng.random() < 0.3, 0.0, 4)
+            set_auto(guest, address, a, lib, rng)
+            try:
+                diff, result, nodes = compare_long(guest, lib, world, address, a, case)
+            except Stop as stop:
+                tally.add('long path, installed maps', False, {'stop': str(stop), 'world': world_index})
+                continue
+            if stats is not None:
+                stats.append({'result': result, 'nodes': nodes, 'trimmed': nodes == 499 and result,
+                              'pops': world.c.pops})
+            tally.add('long path, installed maps', not diff, {'diff': diff, 'world': world_index, 'case': case})
+        finally:
+            world.close()
+
+
+def run_auto_family(guest, lib, tally, rng, count):
+    """0x0129cc44 next segment, 0x0129c4d2 reset, 0x0129c6be start and 0x0129c51d refresh."""
+    made = 0
+    done = 0
+    while done < count:
+        grid = [grid_enclosures, lambda r: grid_noise(r, 0.1), grid_rooms][made % 3](rng)
+        made += 1
+        world = World(guest, lib, grid)
+        try:
+            address, a = new_auto(guest)
+            for _ in range(min(12, count - done)):
+                done += 1
+                set_auto(guest, address, a, lib, rng)
+                kind = rng.choice(['next', 'next', 'reset', 'start', 'start', 'start', 'refresh'])
+                reset_effect_globals(guest, rng)
+                before = effects_snapshot(guest)
+                effects = AutoEffects()
+                if kind == 'next':
+                    result = guest.call(AUTO_NEXT, [], ecx=address) & 0xff
+                    want = lib.mu_auto_path_next(ctypes.byref(a)) & 0xff
+                    case = None
+                elif kind == 'reset':
+                    guest.call(AUTO_RESET, [], ecx=address)
+                    lib.mu_auto_path_reset(ctypes.byref(a))
+                    result = want = 0
+                    case = None
+                else:
+                    sx, sy = rng.randrange(1, 255), rng.randrange(1, 255)
+                    span = rng.choice([3, 10, 30])
+                    tx = min(255, max(0, sx + rng.randint(-span, span)))
+                    ty = min(255, max(0, sy + rng.randint(-span, span)))
+                    if rng.random() < 0.12:
+                        tx, ty = sx, sy
+                    if kind == 'start':
+                        flag, mode = rng.choice([1, 2, 2, 2, 3, 0]), rng.choice([0, 1, 2, 2, 3, 4, 5])
+                        ec = rng.choice([0, 0, 1, 2])
+                        case = ('start', flag, sx, sy, tx, ty, mode, ec)
+                        result = guest.call(AUTO_START, [flag, sx, sy, tx, ty, mode, ec], ecx=address,
+                                            count=LONG_COUNT) & 0xff
+                        want = lib.mu_auto_path_start(ctypes.byref(a), ctypes.byref(world.c), flag, sx, sy, tx, ty,
+                                                      mode, ec, ctypes.byref(effects)) & 0xff
+                    else:
+                        case = ('refresh', sx, sy, tx, ty)
+                        guest.call(AUTO_REFRESH, [sx, sy, tx, ty], ecx=address, count=LONG_COUNT)
+                        lib.mu_auto_path_refresh(ctypes.byref(a), ctypes.byref(world.c), sx, sy, tx, ty,
+                                                 ctypes.byref(effects))
+                        result = want = 0
+                got_e = guest_effects(guest, before)
+                want_e = c_effects(effects, before) if kind in ('start', 'refresh') else got_e
+                got, mine = guest_auto(guest, address), c_auto(a)
+                diff = {k: (got[k], mine[k]) for k in got if got[k] != mine[k]}
+                if result != want:
+                    diff['result'] = (result, want)
+                if got_e != want_e:
+                    diff['effects'] = (got_e, want_e)
+                tally.add(f'auto move {kind}', not diff, {'diff': str(diff)[:600], 'case': case})
+        except Stop as stop:
+            tally.add('auto move', False, {'stop': str(stop)})
+        finally:
+            world.close()
+
+
+# ---------------- run counter and speed predicates (NATIVE-PATH-002) ----------------
+
+SET_PLAYER_WALK, RUN_PREFIX_END, SET_PLAYER_STOP, MOVE_SPEED = 0x0139002a, 0x01390455, 0x0138fe69, 0x013957b5
+HERO_EQUIPMENT = 0x01d1df18   # pointer to the hero's character machine (equipment at +0x1b58, 0x12c each)
+RIDE_BUFFS = [0xd0, 0x133, 0x142, 0x143, 0x176, 0x177, 0x193, 0x194, 0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bd]
+MOUNT_BUFFS = [0xcd, 0xce, 0xcf, 0x1ae] + RIDE_BUFFS
+SPEED_BUFFS = [0x18b, 0x38, 0xb8, 0xba, 0xd1, 0xd2, 0xf0, 0x56, 0x112, 0x116, 0x20]
+NOISE_BUFFS = [0x01, 0x1c, 0xcc, 0xd3, 0x134, 0x1ad, 0x1af, 0x200]
+NEVER_RUN = [0x216, 0x21b, 0x349, 0x34c, 0x371, 0x373, 0x3c1, 0x3d5]
+
+
+class BuffSet(ctypes.Structure):
+    _fields_ = [('ids', ctypes.POINTER(ctypes.c_int32)), ('count', ctypes.c_int32)]
+
+
+class RunInput(ctypes.Structure):
+    _fields_ = [('stunned', ctypes.c_uint8), ('safe_zone', ctypes.c_uint8), ('class_byte', ctypes.c_uint8),
+                ('class_value', ctypes.c_int16), ('world', ctypes.c_int32), ('safe_zone_keeps_run', ctypes.c_uint8),
+                ('mounted_item', ctypes.c_uint8), ('gloves_type', ctypes.c_int16), ('boots_type', ctypes.c_int16),
+                ('gloves_level', ctypes.c_int8), ('boots_level', ctypes.c_int8),
+                ('hero_gloves_level', ctypes.c_int32), ('hero_boots_level', ctypes.c_int32),
+                ('subtype', ctypes.c_int32), ('buffs', BuffSet)]
+
+
+class SpeedInput(ctypes.Structure):
+    _fields_ = [('move_speed', ctypes.c_uint16), ('object_type', ctypes.c_int32), ('object_kind', ctypes.c_uint8),
+                ('special_state', ctypes.c_uint8), ('helper_type', ctypes.c_uint16), ('mount_type', ctypes.c_int32),
+                ('helper_option', ctypes.c_uint8), ('safe_zone', ctypes.c_uint8), ('subtype', ctypes.c_int32),
+                ('mounted_item', ctypes.c_uint8), ('wing_type', ctypes.c_int16), ('transformed', ctypes.c_uint8),
+                ('world_runs', ctypes.c_uint8), ('stunned', ctypes.c_uint8), ('buffs', ctypes.c_uint32),
+                ('buff_18b_bonus', ctypes.c_double)]
+
+
+class SpeedFields(ctypes.Structure):
+    _fields_ = [('move_speed', ctypes.c_uint16), ('object_type', ctypes.c_int32), ('object_kind', ctypes.c_uint8),
+                ('special_state', ctypes.c_uint8), ('helper_type', ctypes.c_uint16), ('helper_option', ctypes.c_uint8),
+                ('safe_zone', ctypes.c_uint8), ('subtype', ctypes.c_int32), ('mounted_item', ctypes.c_uint8),
+                ('wing_type', ctypes.c_int16), ('transformed', ctypes.c_uint8), ('world', ctypes.c_int32),
+                ('stunned', ctypes.c_uint8), ('buffs', BuffSet), ('buff_18b_bonus', ctypes.c_double)]
+
+
+def load_movement_library(directory=None):
+    directory = Path(directory) if directory else ROOT / 'reconstructed' / 'movement'
+    subprocess.run(['make', '-C', str(directory)], check=True, capture_output=True)
+    suffix = 'dylib' if sys.platform == 'darwin' else 'so'
+    lib = ctypes.CDLL(str(directory / f'libclient_movement.{suffix}'))
+    P, I, U8 = ctypes.POINTER, ctypes.c_int32, ctypes.c_uint8
+    signatures = {
+        'mu_buff_set_has': ([P(BuffSet), I], ctypes.c_int),
+        'mu_mount_from_buffs': ([P(BuffSet)], ctypes.c_uint16),
+        'mu_world_safe_zone_runs': ([I], ctypes.c_int),
+        'mu_world_gloves_run': ([I], ctypes.c_int),
+        'mu_world_forces_run': ([I], ctypes.c_int),
+        'mu_class_never_runs': ([I], ctypes.c_int),
+        'mu_pet_slots_ride': ([P(I), P(U8), P(U8)], ctypes.c_int),
+        'mu_player_run_counter': ([P(RunInput), U8], U8),
+        'mu_player_stop_run_counter': ([U8, U8], U8),
+        'mu_move_speed_input_from': ([P(SpeedFields), P(SpeedInput)], None),
+        'mu_character_move_speed': ([P(SpeedInput), P(U8)], ctypes.c_float),
+    }
+    for name, (argtypes, restype) in signatures.items():
+        function = getattr(lib, name)
+        function.argtypes, function.restype = argtypes, restype
+    return lib
+
+
+class Equipment:
+    """One random character state, written into guest memory and given to the C ports."""
+
+    def __init__(self, rng):
+        r = rng
+        self.safe_zone = r.choice([0, 0, 0, 1, 1, 2])
+        self.class_byte = r.choice([r.randrange(256), r.choice([3, 4, 6, 7, 0x13, 0x26]), 0, 1, 2, 5])
+        self.class_value = r.choice([0, 0, 0, r.choice(NEVER_RUN), r.randrange(0x500), 0x215, 0x21c])
+        self.world = r.choice([0, 0, 2, 3, 7, 0x12, 0x17, 0x18, 0x1d, 0x24, 0x35, 0x61, 0x80, 0x82, 0x83, 0x84, 0x8d,
+                               r.randrange(-3, 200)])
+        self.keeps = r.random() < 0.15
+        self.stop_keeps = r.random() < 0.3
+        self.stunned = r.choice([0] * 12 + [1, 3])
+        self.parts = [(r.choice([-1, -1, r.randrange(0x7fff)]), r.choice([0, 3, 4, 5, 6, 13, -1, -128, 127]))
+                      for _ in range(6)]
+        self.hero_levels = [r.choice([0, 8, 32, 39, 40, 41, 47, 120, -8]) for _ in range(12)]
+        self.subtype = r.choice([0, 0, 0, 0x431, 0x432, 7, 0x430])
+        self.pet_codes = [r.choice([-1, 0, 0x1a00, 0x1a03, 0x2c00, 0x2c01, r.randrange(0x3000), 0x7fffffff])
+                          for _ in range(3)]
+        self.records = {}
+        for code in self.pet_codes + [self.parts[0][0] - 0xae6]:
+            if r.random() < 0.7:
+                self.records[code & 0xffffffff] = r.choice([0x40, 0x40, 0x3f, 0x41, 0x2b, 0])
+        buffs = set()
+        for pool, p in ((RIDE_BUFFS, 0.05), (MOUNT_BUFFS, 0.04), (SPEED_BUFFS, 0.06), (NOISE_BUFFS, 0.2)):
+            for b in pool:
+                if r.random() < p:
+                    buffs.add(b)
+        self.buffs = sorted(buffs)
+        self.helper = r.choice([0xffff] * 5 + [0x1833, 0x1a03, 0x1a04, 0x1a25, 0x28f7, r.randrange(0x10000)])
+        self.helper_option = r.choice([0, 1])
+        self.wing = r.choice([-1, -1, -1, 0x22eb, 0x230a, 0x1800])
+        self.transformed = 1 if r.random() < 0.05 else 0
+        self.special = 1 if r.random() < 0.04 else 0
+        self.move_speed = r.choice([0, 10, 12, r.randrange(65536)])
+        self.object_type = r.choice([0xa91] * 6 + [0x7a7, r.randrange(0x4000)])
+        self.object_kind = r.choice([1] * 6 + [0, 2])
+        self.bonus = f32(r.choice([0.0, 1.5, 3.0, r.uniform(-5, 5)]))
+        self.run = r.choice([0, 1, 5, 9, 10, 19, 20, 38, 39, 40, 41, 200, 255])
+        if r.random() < 0.6:
+            self.focus(r)
+
+    def focus(self, r):
+        """A neutral walker (no gear, buff, pet or special state, outside the safe zone) with one to three
+        features set to boundary values, so that each rule decides the outcome on its own."""
+        self.safe_zone, self.class_byte, self.class_value, self.world = 0, r.choice([0, 1, 2, 5, 8, 0x10]), 0, 0
+        self.keeps = self.stop_keeps = False
+        self.stunned, self.subtype, self.helper, self.wing = 0, 0, 0xffff, -1
+        self.parts = [(-1, 0)] * 6
+        self.hero_levels = [0] * 12
+        self.pet_codes, self.records, self.buffs = [-1, -1, -1], {}, []
+        self.transformed = self.special = 0
+        self.object_type, self.object_kind = 0xa91, 1
+        self.run = r.choice([0, 1, 38, 39, 40, 41])
+        features = ['safe', 'class', 'never', 'world', 'boots', 'gloves', 'hero_boots', 'hero_gloves', 'subtype',
+                    'ride_buff', 'mount_buff', 'speed_buff', 'pet', 'helper', 'wing', 'transformed', 'special',
+                    'stunned', 'keeps']
+        for feature in r.sample(features, r.choice([1, 1, 2, 3])):
+            if feature == 'safe':
+                self.safe_zone = r.choice([1, 2])
+            elif feature == 'class':
+                self.class_byte = r.choice([3, 4, 6, 7, 0x13, 0x27, 2, 5])
+            elif feature == 'never':
+                self.class_value = r.choice(NEVER_RUN + [0x215, 0x21c, 0x348, 0x34d, 0x370, 0x374, 0x3c0, 0x3d6])
+            elif feature == 'world':
+                self.world = r.choice([7, 0x17, 0x18, 0x1d, 0x1e, 0x24, 0x80, 0x82, 0x83, 0x84, 0x12, 0x11, 0x35,
+                                       0x61, 0x62])
+            elif feature in ('boots', 'gloves'):
+                k = 5 if feature == 'boots' else 4
+                self.parts[k] = (r.choice([0, 0x1234, -1]), r.choice([4, 5, 6, -1, 127]))
+            elif feature in ('hero_boots', 'hero_gloves'):
+                self.hero_levels[6 if feature == 'hero_boots' else 5] = r.choice([39, 40, 41, 47, -40])
+            elif feature == 'subtype':
+                self.subtype = r.choice([0x431, 0x432, 0x430, 0x433])
+            elif feature == 'ride_buff':
+                self.buffs = sorted(set(self.buffs + [r.choice(RIDE_BUFFS)]))
+            elif feature == 'mount_buff':
+                self.buffs = sorted(set(self.buffs + [r.choice(MOUNT_BUFFS)]))
+            elif feature == 'speed_buff':
+                self.buffs = sorted(set(self.buffs + [r.choice(SPEED_BUFFS)]))
+            elif feature == 'pet':
+                k = r.randrange(3)
+                self.pet_codes[k] = r.choice([0x1a00, 0x2c00, 0x2c01, 0, -5])
+                self.records[self.pet_codes[k] & 0xffffffff] = r.choice([0x40, 0x40, 0x41, 0x3f])
+            elif feature == 'helper':
+                self.helper = r.choice([0x1833, 0x1836, 0x1853, 0x185e, 0x184b, 0x19d7, 0x19e4, 0x1a02, 0x1a03,
+                                        0x1a04, 0x28f7, 0x1a25, 0x1a00])
+                self.helper_option = r.choice([0, 1])
+            elif feature == 'wing':
+                self.wing = r.choice([0x22eb, 0x230a, 0x248d, 0x2495, 0x1800])
+            elif feature == 'transformed':
+                self.transformed = 1
+            elif feature == 'special':
+                self.special = 1
+            elif feature == 'stunned':
+                self.stunned = r.choice([1, 2])
+            elif feature == 'keeps':
+                self.keeps = True
+                self.stop_keeps = True
+
+    def write(self, guest, records_base):
+        ch = bytearray(0x3700)
+        ch[4] = self.safe_zone
+        ch[0x12] = self.class_byte
+        ch[0x24] = self.run
+        struct.pack_into('<h', ch, 0x146, self.class_value)
+        struct.pack_into('<H', ch, 0x14c, self.move_speed)
+        ch[0x190] = self.stunned
+        for k, (kind, level) in enumerate(self.parts):
+            struct.pack_into('<hb', ch, 0x1c4 + k * 0x3fc, kind, level)
+        struct.pack_into('<h', ch, 0x21a4, self.wing)
+        ch[0x299f] = self.helper_option
+        struct.pack_into('<H', ch, 0x322e, self.helper)
+        ch[0x3234] = self.transformed
+        struct.pack_into('<3i', ch, 0x3238, *self.pet_codes)
+        struct.pack_into('<i', ch, 0x32b0, self.object_type)
+        struct.pack_into('<i', ch, 0x32b4, self.subtype)
+        ch[0x3254 + 0x3b] = self.object_kind
+        character = guest.alloc(len(ch))
+        guest.put(character, bytes(ch))
+        machine = guest.alloc(0x1b58 + 12 * 0x12c)
+        for k, level in enumerate(self.hero_levels):
+            guest.put(machine + 0x1b58 + k * 0x12c + 0x14, struct.pack('<i', level))
+        guest.put(HERO_EQUIPMENT, struct.pack('<I', machine))
+        guest.put(WORLD_GLOBAL, struct.pack('<i', self.world))
+        addresses = {}
+        for code, kind_b in self.records.items():
+            record = guest.alloc(0x2c4, POISON)
+            guest.put(record + 0x251, bytes([kind_b]))
+            addresses[code] = record
+        guest.handlers[0x00cd5d29] = lambda args, ecx: addresses.get(args[0] & 0xffffffff, 0)
+        guest.handlers[0x01295ade] = lambda args, ecx: int((args[0] & 0xffffffff) in self.buffs and
+                                                           ecx == character + 0x35ac)
+        guest.values.update({0x00cd4ea8: records_base, 0x009c104e: records_base + 0x40,
+                             0x0106bdb7: int(self.keeps) | 0x5a5a5a00, 0x0106bd76: int(self.stop_keeps) | 0x5a5a5a00,
+                             0x009fa30a: records_base + 0x80, 0x009fbb31: self.special | 0x5a5a5a00,
+                             0x00966c42: records_base + 0xc0, 0x0117b5eb: self.bonus})
+        return character
+
+    def buff_set(self):
+        self._ids = (ctypes.c_int32 * max(1, len(self.buffs)))(*self.buffs)
+        return BuffSet(self._ids, len(self.buffs))
+
+    def mounted(self, mlib):
+        codes = (ctypes.c_int32 * 3)(*self.pet_codes)
+        present = (ctypes.c_uint8 * 3)(*[int((c & 0xffffffff) in self.records) for c in self.pet_codes])
+        kinds = (ctypes.c_uint8 * 3)(*[self.records.get(c & 0xffffffff, 0) for c in self.pet_codes])
+        return mlib.mu_pet_slots_ride(codes, present, kinds)
+
+    def run_input(self, mlib):
+        i = RunInput()
+        i.stunned, i.safe_zone, i.class_byte, i.class_value = self.stunned, self.safe_zone, self.class_byte, \
+            self.class_value
+        i.world, i.safe_zone_keeps_run, i.mounted_item = self.world, int(self.keeps), self.mounted(mlib)
+        i.gloves_type, i.gloves_level = self.parts[4]
+        i.boots_type, i.boots_level = self.parts[5]
+        i.hero_gloves_level, i.hero_boots_level = self.hero_levels[5], self.hero_levels[6]
+        i.subtype = self.subtype
+        i.buffs = self.buff_set()
+        return i
+
+    def speed_fields(self, mlib):
+        f = SpeedFields()
+        f.move_speed, f.object_type, f.object_kind, f.special_state = self.move_speed, self.object_type, \
+            self.object_kind, self.special
+        f.helper_type, f.helper_option, f.safe_zone, f.subtype = self.helper, self.helper_option, self.safe_zone, \
+            self.subtype
+        f.mounted_item, f.wing_type, f.transformed, f.world = self.mounted(mlib), self.wing, self.transformed, self.world
+        f.stunned, f.buffs, f.buff_18b_bonus = self.stunned, self.buff_set(), self.bonus
+        return f
+
+
+def boundary_states(rng):
+    """Each run rule alone at its boundary, on a neutral walker (see Equipment.focus), for run 0, 39 and 40."""
+    variants = []
+    for run in (0, 39, 40):
+        variants += [('class_byte', c, run) for c in range(16)]
+        variants += [('buffs', [b], run) for b in MOUNT_BUFFS + SPEED_BUFFS[:2]]
+        variants += [('boots', level, run) for level in (4, 5, 6)]
+        variants += [('gloves', level, run) for level in (4, 5, 6)]
+        variants += [('hero_boots', level, run) for level in (39, 40, 41)]
+        variants += [('hero_gloves', level, run) for level in (39, 40, 41)]
+        variants += [('subtype', v, run) for v in (0x430, 0x431, 0x432, 0x433)]
+        variants += [('safe', (zone, world, keeps), run) for zone in (0, 1, 2) for world in (0, 0x84)
+                     for keeps in (False, True)]
+        variants += [('never', v, run) for v in NEVER_RUN + [0x215, 0x3d6]]
+        variants += [('pet', (code, kind), run) for code in (0x1a00, 0x2c00, 0x2c01) for kind in (0x40, 0x41)]
+    for feature, value, run in variants:
+        for world in ((0, 0x18) if feature in ('boots', 'gloves', 'hero_boots', 'hero_gloves') else (0,)):
+            e = Equipment(rng)
+            e.focus(random.Random(0))
+            e.safe_zone, e.class_byte, e.world, e.buffs, e.run = 0, 0, world, [], run
+            e.parts, e.hero_levels, e.subtype, e.class_value = [(-1, 0)] * 6, [0] * 12, 0, 0
+            e.pet_codes, e.records, e.keeps = [-1, -1, -1], {}, False
+            if feature == 'class_byte':
+                e.class_byte = value
+            elif feature == 'buffs':
+                e.buffs = value
+            elif feature in ('boots', 'gloves'):
+                e.parts[5 if feature == 'boots' else 4] = (0x1234, value)
+            elif feature in ('hero_boots', 'hero_gloves'):
+                e.hero_levels[6 if feature == 'hero_boots' else 5] = value
+            elif feature == 'subtype':
+                e.subtype = value
+            elif feature == 'safe':
+                e.safe_zone, e.world, e.keeps = value
+                e.class_byte = 3
+            elif feature == 'never':
+                e.class_value, e.class_byte = value, 3
+            elif feature == 'pet':
+                e.pet_codes[1] = value[0]
+                e.records[value[0]] = value[1]
+            yield e
+
+
+def run_run_family(guest, mlib, tally, rng, count):
+    """The run-counter prefix of SetPlayerWalk and SetPlayerStop's reset, as client code."""
+    states = list(boundary_states(rng))
+    with guest.unstubbed(0x0095fb27):
+        for k in range(len(states) + count):
+            guest.reset_arena()
+            records = guest.alloc(0x100)
+            e = states[k] if k < len(states) else Equipment(rng)
+            character = e.write(guest, records)
+            try:
+                if e.stunned:
+                    guest.call(SET_PLAYER_WALK, [character])   # returns at once
+                else:
+                    guest.call(SET_PLAYER_WALK, [character], until=RUN_PREFIX_END)
+            except Stop as stop:
+                tally.add('run counter 0x0139002a', False, {'stop': str(stop)})
+                continue
+            got = guest.get(character + 0x24, 1)[0]
+            want = mlib.mu_player_run_counter(ctypes.byref(e.run_input(mlib)), e.run)
+            tally.add('run counter 0x0139002a', got == want,
+                      {'got': got, 'want': want, 'state': {k: v for k, v in vars(e).items() if not k.startswith('_')}})
+            guest.put(character + 0x24, bytes([e.run]))
+            try:
+                guest.call(SET_PLAYER_STOP, [character], until=0x0138fe8c)
+            except Stop as stop:
+                tally.add('stop run counter 0x0138fe69', False, {'stop': str(stop)})
+                continue
+            got = guest.get(character + 0x24, 1)[0]
+            want = mlib.mu_player_stop_run_counter(int(e.stop_keeps), e.run)
+            tally.add('stop run counter 0x0138fe69', got == want, {'got': got, 'want': want})
+
+
+def run_speed_state_family(guest, mlib, tally, rng, count):
+    """CharacterMoveSpeed with its predicates (helper, buff mount, riding pet, transformation, world) as client
+    code; the C side derives its input from the same character fields."""
+    states = list(boundary_states(rng))
+    with guest.unstubbed(0x0095fb27, 0x0129dcda, MOVE_SPEED):
+        for k in range(len(states) + count):
+            guest.reset_arena()
+            records = guest.alloc(0x100)
+            e = states[k] if k < len(states) else Equipment(rng)
+            character = e.write(guest, records)
+            try:
+                guest.call(MOVE_SPEED, [character])
+            except Stop as stop:
+                tally.add('move speed with predicates 0x013957b5', False, {'stop': str(stop)})
+                continue
+            got, got_run = guest.st0_float(), guest.get(character + 0x24, 1)[0]
+            speed_input = SpeedInput()
+            mlib.mu_move_speed_input_from(ctypes.byref(e.speed_fields(mlib)), ctypes.byref(speed_input))
+            run = ctypes.c_uint8(e.run)
+            want = mlib.mu_character_move_speed(ctypes.byref(speed_input), ctypes.byref(run))
+            ok = same(f32(got), f32(want)) and got_run == run.value
+            tally.add('move speed with predicates 0x013957b5', ok,
+                      {'got': [got, got_run], 'want': [want, run.value],
+                       'state': {k: v for k, v in vars(e).items() if not k.startswith('_')}})
+
+
+def run_predicate_family(guest, mlib, tally, rng, count):
+    worlds = list(range(-4, 300)) + [rng.randrange(-2 ** 31, 2 ** 31) for _ in range(20)]
+    for world in worlds:
+        for address, name in ((0x00e0558b, 'mu_world_safe_zone_runs'), (0x016a88d3, 'mu_world_gloves_run'),
+                              (0x009dacb8, 'mu_world_forces_run')):
+            got = guest.call(address, [world]) & 0xff
+            tally.add(f'world predicate {hex(address)}', got == getattr(mlib, name)(world), world)
+    for value in list(range(0, 0x500)) + [rng.randrange(-2 ** 15, 2 ** 15) for _ in range(50)]:
+        got = guest.call(0x0139bd24, [value]) & 0xff
+        tally.add('class predicate 0x0139bd24', got == mlib.mu_class_never_runs(value), value)
+    guest.reset_arena()
+    holder = guest.alloc(0x3700)
+    for _ in range(count):
+        ids = sorted(set(rng.sample(MOUNT_BUFFS + NOISE_BUFFS, rng.randrange(0, 4))))
+        guest.handlers[0x01295ade] = lambda args, ecx, ids=ids: int((args[0] & 0xffffffff) in ids and
+                                                                    ecx == holder + 0x35ac)
+        got = guest.call(0x0106c5e9, [holder]) & 0xffffffff
+        array = (ctypes.c_int32 * max(1, len(ids)))(*ids)
+        want = mlib.mu_mount_from_buffs(ctypes.byref(BuffSet(array, len(ids))))
+        tally.add('buff mount 0x0106c5e9', got == want, {'buffs': ids, 'got': got, 'want': want})
+
+
 CLIENT_DIRECTIONS = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
 
+
+MOVEMENT_FAMILIES = ('run', 'speed_state', 'predicates')
 
 # Plausible reconstruction mistakes; each must be detected (mutation check).
 MUTATIONS = [
@@ -945,6 +1695,39 @@ MUTATIONS = [
      'angles'),
     ('TurnAngle wraps with >', 'client_path.c', 'if (lo >= 0.0f && (b >= a + 180.0f || lo > b))',
      'if (lo > 0.0f && (b >= a + 180.0f || lo > b))', 'angles'),
+    # NATIVE-PATH-002: long-distance path and auto move
+    ('no BuildPath trimming above budget 500', 'client_path.c',
+     'return build_path(f, sx, sy, x, y, max_pops > MU_PATH_MAX_STEPS);', 'return build_path(f, sx, sy, x, y, 0);',
+     'long'),
+    ('trimming keeps 500 nodes', 'client_path.c', 'int32_t k = n - (MU_PATH_MAX_STEPS - 1);',
+     'int32_t k = n - MU_PATH_MAX_STEPS;', 'long'),
+    ('long path mask 0x1e (characters block)', 'client_path.h', '#define MU_PATH_LONG_MASK 0x1c',
+     '#define MU_PATH_LONG_MASK 0x1e', 'long'),
+    ('long path target not moved to the end tile', 'client_path.c', '''        a->target_x = f->end_x;
+        a->target_y = f->end_y;''', '''        a->target_x = (int16_t)tx;
+        a->target_y = (int16_t)ty;''', 'long'),
+    ('segments of 4 nodes', 'client_path.h', '#define MU_PATH_SEGMENT_NODES 3', '#define MU_PATH_SEGMENT_NODES 4',
+     'auto'),
+    ('start ignores the armed flag', 'client_path.c', '''    if (a->flag == 1)
+        return 0;''', '''    if (a->flag == 9)
+        return 0;''', 'auto'),
+    # run counter and speed predicates (reconstructed/movement)
+    ('boots need level 6', 'client_movement.c', '(!gloves && in->boots_type != -1 && in->boots_level >= 5)',
+     '(!gloves && in->boots_type != -1 && in->boots_level >= 6)', 'run'),
+    ('safe zone keeps the counter', 'client_movement.c', '''    if (in->safe_zone == 1 && !safe_runs && !in->safe_zone_keeps_run)
+        run = 0;''', '''    if (in->safe_zone == 9 && !safe_runs && !in->safe_zone_keeps_run)
+        run = 0;''', 'run'),
+    ('hero boots field >= 41', 'client_movement.c', '(!gloves && in->hero_boots_level >= 40)',
+     '(!gloves && in->hero_boots_level >= 41)', 'run'),
+    ('ride buff 0x1bd missing', 'client_movement.c', '0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bd};',
+     '0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bc};', 'run'),
+    ('riding pet kind 0x41', 'client_movement.c', 'kind_b[i] == 0x40', 'kind_b[i] == 0x41', 'speed_state'),
+    ('buff mount order 0xcd/0xce swapped', 'client_movement.c', '{0xcd, 0x1a02}, {0xce, 0x1a03}',
+     '{0xce, 0x1a03}, {0xcd, 0x1a02}', 'predicates'),
+    ('gloves worlds without 0x24', 'client_movement.c', 'return (world >= 0x18 && world <= 0x1d) || world == 0x24;',
+     'return (world >= 0x18 && world <= 0x1d);', 'predicates'),
+    ('never-running classes without 0x3d5', 'client_movement.c', '''v == 0x3c1 ||
+           v == 0x3d5;''', '''v == 0x3c1;''', 'predicates'),
 ]
 
 
@@ -957,14 +1740,16 @@ def main(argv=None):
     parser.add_argument('--flag', default=os.environ.get(
         'MU_TRIG_FLAG', str(evidence / 'trig-state-15/captures/late/math-dispatch-flag.bin')))
     parser.add_argument('--directions', default=os.environ.get(
-        'MU_PATH_DIRECTIONS', str(evidence / 'x86-linux-capture-04/main-01ced000.bin')),
-        help='unpacked third-section capture holding the neighbour table 0x01cf1640')
+        'MU_PATH_DIRECTIONS', str(evidence / 'path-table-live-01/live-a-01ced000.bin')),
+        help='capture of the third section from 0x01ced000 holding the neighbour table 0x01cf1640 '
+             '(the live read path-table-live-01 or x86-linux-capture-04/main-01ced000.bin)')
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--tool', default=str(ROOT / 'native/build/mu-path'))
     parser.add_argument('--worlds', default='0,1,2,3,4,7,8,9,10,32,33,37,38,40,41,56,62,79,90,141,142')
     parser.add_argument('--cases', type=int, default=200, help='cases per family')
     parser.add_argument('--seed', type=int, default=0x50415448)
-    parser.add_argument('--only', default=None, help='comma list: search,installed,move,walk,angles,occupancy')
+    parser.add_argument('--only', default=None, help='comma list: search,installed,move,walk,angles,occupancy,'
+                                                     'long,auto,installed_long')
     parser.add_argument('--mutations', action='store_true')
     parser.add_argument('--output', default=None)
     parser.add_argument('--cross-library', default=None,
@@ -979,27 +1764,37 @@ def main(argv=None):
                              offset=DIRECTIONS_ADDRESS - DIRECTIONS_SECTION)
     guest = Guest(text, data, flag, directions)
     lib = load_library()
+    mlib = load_movement_library()
     if args.cross_library:
         CROSS['lib'] = load_cross_library(args.cross_library)
     only = set(args.only.split(',')) if args.only else None
     n = args.cases
     tally = Tally()
     stats = []
+    long_stats = []
     families = {
         'search': lambda lib_, t, r, c: run_search_family(guest, lib_, t, r, c, stats=stats),
         'move': lambda lib_, t, r, c: run_move_family(guest, lib_, t, r, c),
         'walk': lambda lib_, t, r, c: run_walk_family(guest, lib_, t, r, max(1, c // 4)),
         'angles': lambda lib_, t, r, c: run_angle_family(guest, lib_, t, r, c),
         'occupancy': lambda lib_, t, r, c: run_occupancy_family(guest, lib_, t, r, max(1, c // 20)),
+        'long': lambda lib_, t, r, c: run_long_family(guest, lib_, t, r, max(3, c // 10), stats=long_stats),
+        'auto': lambda lib_, t, r, c: run_auto_family(guest, lib_, t, r, max(12, c // 2)),
+        # these take the movement library (reconstructed/movement)
+        'run': lambda mlib_, t, r, c: run_run_family(guest, mlib_, t, r, 4 * c),
+        'speed_state': lambda mlib_, t, r, c: run_speed_state_family(guest, mlib_, t, r, 2 * c),
+        'predicates': lambda mlib_, t, r, c: run_predicate_family(guest, mlib_, t, r, c),
     }
     if args.game_root and Path(args.tool).exists():
         worlds = list(range(0, 160)) if args.worlds == 'all' else [int(w) for w in args.worlds.split(',')]
         families['installed'] = lambda lib_, t, r, c: run_installed_family(guest, lib_, t, r, c, args.game_root,
                                                                            args.tool, worlds, stats=stats)
+        families['installed_long'] = lambda lib_, t, r, c: run_installed_long_family(
+            guest, lib_, t, r, max(2, c // 25), args.game_root, args.tool, worlds, stats=long_stats)
     for name, function in families.items():
         if only and name not in only:
             continue
-        function(lib, tally, random.Random(f'{args.seed}:{name}'), n)
+        function(mlib if name in MOVEMENT_FAMILIES else lib, tally, random.Random(f'{args.seed}:{name}'), n)
     total = sum(r['cases'] for r in tally.results.values())
     bad = sum(r['mismatches'] for r in tally.results.values())
     for family, r in tally.results.items():
@@ -1011,6 +1806,10 @@ def main(argv=None):
                'max_pops': max((s['pops'] for s in stats), default=0),
                'max_closed': max((s['closed'] for s in stats), default=0),
                'mean_nodes': (sum(s['nodes'] for s in found) / len(found)) if found else 0}
+    summary['long'] = {'searches': len(long_stats), 'found': sum(1 for x in long_stats if x['result']),
+                       'trimmed': sum(1 for x in long_stats if x['trimmed']),
+                       'max_nodes': max((x['nodes'] for x in long_stats if x['result']), default=0),
+                       'max_pops': max((x['pops'] for x in long_stats), default=0)}
     print(f'total {total} comparisons, {bad} mismatches; searches {json.dumps(summary)}')
 
     mutation_results = None
@@ -1022,19 +1821,21 @@ def main(argv=None):
             scratch = Path(scratch)
             shutil.copytree(ROOT / 'reconstructed' / 'record-math', scratch / 'record-math',
                             ignore=shutil.ignore_patterns('*.dylib', '*.so'))
-            for label, filename, old, new, family in MUTATIONS:
-                target = scratch / 'path'
-                if target.exists():
-                    shutil.rmtree(target)
-                shutil.copytree(ROOT / 'reconstructed' / 'path', target, ignore=shutil.ignore_patterns('*.dylib', '*.so'))
+            for index, (label, filename, old, new, family) in enumerate(MUTATIONS):
+                module = 'movement' if family in MOVEMENT_FAMILIES else 'path'
+                target = scratch / f'{module}{index}'
+                shutil.copytree(ROOT / 'reconstructed' / module, target, ignore=shutil.ignore_patterns('*.dylib', '*.so'))
                 source = (target / filename).read_text()
                 if source.count(old) != 1:
                     raise ValueError(f'mutation anchor not unique: {label}')
                 (target / filename).write_text(source.replace(old, new))
-                mutated = load_library(target)
+                mutated = load_movement_library(target) if module == 'movement' else load_library(target)
                 t = Tally()
-                name = {'search': 'search', 'move': 'walk', 'angles': 'angles'}[family]
+                name = {'search': 'search', 'move': 'walk', 'angles': 'angles', 'long': 'long', 'auto': 'auto',
+                        'run': 'run', 'speed_state': 'speed_state', 'predicates': 'predicates'}[family]
                 count = max(40, n // 2)
+                if family == 'long':
+                    count = max(count, 140)   # 14 searches: every grid kind of LONG_GRIDS twice
                 if family == 'move':
                     families['move'](mutated, t, random.Random(f'{args.seed}:mut:{label}'), count)
                 families[name](mutated, t, random.Random(f'{args.seed}:mut:{label}'), count)

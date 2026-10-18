@@ -23,4 +23,9 @@ objread: build/objread
 build/objread: objread.c debugger-entitlement.plist | build
 	clang -O2 -Wall $< -o $@
 	codesign -s - -f --entitlements debugger-entitlement.plist $@
-.PHONY: all objread
+# memread (NATIVE-PATH-002 live read of fixed static-data ranges): same signing.
+memread: build/memread
+build/memread: memread.c debugger-entitlement.plist | build
+	clang -O2 -Wall $< -o $@
+	codesign -s - -f --entitlements debugger-entitlement.plist $@
+.PHONY: all objread memread
