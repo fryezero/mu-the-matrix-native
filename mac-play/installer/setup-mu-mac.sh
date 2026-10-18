@@ -26,7 +26,7 @@ Usage: setup-mu-mac.sh [options]
                          without --runtime also selects crossover).
   --prefix DIR           Free runtime: the Wine prefix (default: ~/Library/Application Support/MuTheMatrix/prefix).
   --runtime-archive SRC  Free runtime: use this runtime archive (local .tar.xz or https URL, e.g. one the server
-                         owner hosts, built with runtime/build-wine.sh) instead of the default download.
+                         owner hosts, built with packaging/build-wine.sh) instead of the default download.
   --runtime-sha256 HEX   SHA-256 of --runtime-archive (required with a URL).
   --bottle NAME          CrossOver runtime: bottle to create/resume (default: MuMatrixKit). Protected names
                          (MuMatrix32, Windows10MU, Steam, MuMatrixRecovery) are refused.
@@ -72,7 +72,7 @@ Usage: setup-mu-mac.sh [options]
                          --fast-x87-dir or --timewalker-dir into the runtime folder (~45% less frame work).
                          CrossOver: uses an already built --timewalker-dir (see README).
   --fast-x87-dir DIR     Free runtime: folder with libtimewalker.dylib, runtime_loader and libRuntimeRosettax87
-                         (runtime/package-fast-x87.sh; Mu The Matrix.app bundles it); implies --fast-x87.
+                         (packaging/package-fast-x87.sh; Mu The Matrix.app bundles it); implies --fast-x87.
   --timewalker-dir DIR   Existing rosetta-timewalker checkout/build, used only with --fast-x87.
   --ac-variant V         TODO hook: with-ac (default, unchanged client) | no-ac (not implemented).
   --skip-verify          Do not run verify-mu-mac.sh at the end.
@@ -388,7 +388,7 @@ pick_display_modes() {
 # The runtime folder: wine/{bin,lib,share} (the engine) plus the x86_64 dylibs it loads. For the default
 # cx24 runtime the engine's binaries look for dylibs two levels up from bin/ and lib/wine/x86_64-unix/,
 # i.e. in the runtime folder and in wine/lib; the template's dylibs go to the first and are linked
-# from the second. An --runtime-archive already has this layout (see runtime/build-wine.sh).
+# from the second. An --runtime-archive already has this layout (see packaging/build-wine.sh).
 check_runtime() {
     if mukit_rt_ok "$RT_DIR"; then skip "Wine runtime $RT_ID ($("$WINE_BIN" --version 2>/dev/null || echo '?'))"; return 0; fi
     [ "$DRY_RUN" = 1 ] && [ -x "$WINE_BIN" ] && return 0

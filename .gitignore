@@ -43,4 +43,4 @@ __pycache__/
 /mac-play/bundle/build/
 
 /native/build/
-/mac-play/installer/runtime/build/
+/mac-play/installer/packaging/build/

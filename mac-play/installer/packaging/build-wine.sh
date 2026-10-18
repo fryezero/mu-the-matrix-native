@@ -109,12 +109,12 @@ mkdir -p "$R/wine/share/wine/gecko"
 tar xf "$WORK/dl/wine-gecko-2.47.4-x86.tar.xz" -C "$R/wine/share/wine/gecko"
 cat > "$R/.mu-runtime" <<EOF
 id=$ID
-source=$CX_SRC_URL (sha256 $CX_SRC_SHA256), built by mac-play/installer/runtime/build-wine.sh
+source=$CX_SRC_URL (sha256 $CX_SRC_SHA256), built by mac-play/installer/packaging/build-wine.sh
 EOF
 cat > "$R/SOURCES.txt" <<EOF
 This runtime is free software. Corresponding sources:
 - Wine (LGPL-2.1-or-later): CodeWeavers CrossOver 26.3.0 sources, $CX_SRC_URL
-  sha256 $CX_SRC_SHA256; built unmodified with mac-play/installer/runtime/build-wine.sh (configure options there).
+  sha256 $CX_SRC_SHA256; built unmodified with mac-play/installer/packaging/build-wine.sh (configure options there).
 - wine-gecko 2.47.4 (MPL-2.0): $GECKO_URL
 - x86_64 libraries (freetype FTL/GPL-2.0, gnutls LGPL-2.1+, nettle/gmp LGPL-3.0+, libpng, zlib, ... each under its
   own license) from Sikarugir's wrapper template $LIBS_URL; sources: https://github.com/Sikarugir-App/Sikarugir-foss-sources

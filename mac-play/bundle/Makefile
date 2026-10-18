@@ -12,7 +12,7 @@
 # DLLs bundled for players (Resources/dlls, passed to the installer as --mugl-dll / --mscoree-dll):
 #   EMBED_MUGL=/path/opengl32.dll  EMBED_MSCOREE=/path/mscoree.dll   (none by default; never commit them.
 #   A private mugl build contains client-derived bytes: distributing it is the server owner's decision.)
-#   EMBED_FAST_X87=/dir  rosetta-timewalker translator from ../installer/runtime/package-fast-x87.sh (MIT); the
+#   EMBED_FAST_X87=/dir  rosetta-timewalker translator from ../installer/packaging/package-fast-x87.sh (MIT); the
 #   authored main.exe-only wrapper (../x87-main-only-wrapper.c) is compiled into Resources/fast-x87 with it.
 SWIFTC ?= xcrun swiftc
 ARCH ?= $(shell uname -m)

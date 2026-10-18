@@ -114,7 +114,7 @@ class InstallerPinsAndOptions(unittest.TestCase):
                 self.assertIsNotNone(m)
                 self.assertTrue(m.group(1).startswith('https://'))
         self.assertIn('MUKIT_RT_ARCHIVE_URL=${MUKIT_RT_ARCHIVE_URL:-}', self.lib)
-        build = (KIT / 'runtime' / 'build-wine.sh').read_text()
+        build = (KIT / 'packaging' / 'build-wine.sh').read_text()
         self.assertIn('crossover-sources-26.3.0.tar.gz', build)
         self.assertRegex(build, r'CX_SRC_SHA256=[0-9a-f]{64}')
         self.assertIn('SOURCES.txt', build)

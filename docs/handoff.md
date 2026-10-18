@@ -58,7 +58,7 @@ run-counter predicates, and port the long-distance helper path `0x012b104c`.
 Read [`research/mac-free-runtime.md`](research/mac-free-runtime.md). `mac-play/installer/setup-mu-mac.sh` defaults to
 `--runtime free` (prefix in `~/Library/Application Support/MuTheMatrix`); `--runtime crossover`/`--bottle` keeps the
 CrossOver path. Mu The Matrix.app bundles the installer (Install window). Owner decisions open: host the
-CrossOver 26.3 Wine archive from `installer/runtime/build-wine.sh` (then set `MUKIT_RT_ARCHIVE_URL`/`_SHA256`;
+CrossOver 26.3 Wine archive from `installer/packaging/build-wine.sh` (then set `MUKIT_RT_ARCHIVE_URL`/`_SHA256`;
 until then players get the slower CX24 engine), distribute the app with bundled mugl/fast-x87 (`EMBED_*`), and
 Apple Developer ID signing/notarization. Next: publish, then a rehearsal on a second Mac.
 

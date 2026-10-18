@@ -6,7 +6,7 @@ they only run 64-bit (wow64) prefixes, and in those the protected client stops d
 can run a 32-bit prefix in wow64 mode, the configuration that works in CrossOver.
 
 **Chosen runtime.** CrossOver 26.3.0's Wine, built from CodeWeavers' published sources by
-`mac-play/installer/runtime/build-wine.sh`. It matches CrossOver 26.3 in fps, and with rosetta-timewalker's
+`mac-play/installer/packaging/build-wine.sh`. It matches CrossOver 26.3 in fps, and with rosetta-timewalker's
 fast x87 it reaches the game's 25 fps cap in the Tormenta boss area. Nobody publishes a build of it yet, so the
 owner has to host the archive (132 MB). Until then the installer uses a public fallback: Sikarugir's build of
 CrossOver 24.0.7's Wine. It works end to end but is about 20% slower, and fast x87 does not work with it.
@@ -46,7 +46,7 @@ A side effect, seen with both CodeWeavers runtimes: in such a prefix, the servic
 `svchost`, `winedevice`) do not exit after the last program, so `wineserver -w` never returns. The installer waits
 at most 20 s, then stops the prefix's wineserver with `-k`, which saves the registry.
 
-## Building CrossOver 26.3's Wine (`runtime/build-wine.sh`)
+## Building CrossOver 26.3's Wine (`packaging/build-wine.sh`)
 
 Sources: `crossover-sources-26.3.0.tar.gz` from media.codeweavers.com (SHA-256 `ac99c8ca…6872`); only
 `sources/wine` is used. The build runs on the M5 under `arch -x86_64` with Apple clang (`-arch x86_64`), Homebrew
@@ -89,7 +89,7 @@ translator is not applied. x87 benchmark (`fpbench`, 16.4 M transforms):
 | CrossOver 24.0.7 engine (Sikarugir) | 1.0 Mverts/s | not applied (the engine re-executes a separate `wine-preloader`) |
 
 The installer copies three binaries (`libtimewalker.dylib`, `runtime_loader`, `libRuntimeRosettax87`, collected
-by `runtime/package-fast-x87.sh`) and builds the wrapper. The app bundles them when the owner builds it with
+by `packaging/package-fast-x87.sh`) and builds the wrapper. The app bundles them when the owner builds it with
 `EMBED_FAST_X87=…`. Fast x87 depends on undocumented Rosetta internals: a macOS update can stop it from working.
 Players can then turn it off in the app.
 

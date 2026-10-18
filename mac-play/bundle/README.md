@@ -48,7 +48,7 @@ installer (`--mugl-dll`, `--mscoree-dll`, `--fast-x87-dir`):
 
 ```sh
 make -C mac-play/bundle EMBED_MUGL=/path/to/mugl-v75.dll EMBED_MSCOREE=/path/to/mscoree.dll \
-    EMBED_FAST_X87=/path/to/fast-x87     # from ../installer/runtime/package-fast-x87.sh
+    EMBED_FAST_X87=/path/to/fast-x87     # from ../installer/packaging/package-fast-x87.sh
 ```
 
 A private mugl build contains client-derived bytes: distributing it to players is the owner's decision, and it

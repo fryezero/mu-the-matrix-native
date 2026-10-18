@@ -12,7 +12,7 @@ builds cannot run the game (see `docs/research/mac-free-runtime.md`); CodeWeaver
 | Runtime | How the kit gets it | In-world speed (Tormenta boss area, same prefix, MU Helper on) |
 |---|---|---|
 | `cx24` (current default) | Sikarugir's build of CrossOver 24.0.7's Wine plus Sikarugir's x86_64 libraries, public GitHub release assets | 14.6 fps, 69 ms of work per frame; fast x87 does not work with it |
-| CrossOver 26.3 Wine, built by `runtime/build-wine.sh` | `--runtime-archive FILE_OR_URL`; becomes the default once the owner hosts it (`MUKIT_RT_ARCHIVE_URL`/`_SHA256` in `lib/mukit.sh`) | 18.1 fps / 55 ms (CrossOver 26.3: 18.3 / 55); with fast x87 25.0 fps (the game's cap) / 34 ms |
+| CrossOver 26.3 Wine, built by `packaging/build-wine.sh` | `--runtime-archive FILE_OR_URL`; becomes the default once the owner hosts it (`MUKIT_RT_ARCHIVE_URL`/`_SHA256` in `lib/mukit.sh`) | 18.1 fps / 55 ms (CrossOver 26.3: 18.3 / 55); with fast x87 25.0 fps (the game's cap) / 34 ms |
 
 Players normally use **Mu The Matrix.app** (`../bundle/`), which bundles this installer and runs it from an
 Install window; the player guide is `../PLAYER-GUIDE.md`. The legacy CrossOver path stays available with
@@ -31,8 +31,8 @@ verified live on 2026-10-17 (CrossOver 26.3.0.39832). It was itself run live on 
 | `registry/mu-mac.reg` | All registry changes, as one reviewable REGEDIT4 file imported with `regedit /S`. |
 | `play-mu.sh` | What the Desktop launcher runs: refuses a second instance, resets the prefix's idle wineserver, starts `MuTheMatrix.exe` (log `~/Library/Logs/MuTheMatrix-NAME.log`). |
 | `lib/mukit.sh` | Shared parsers (Wine `.reg`, `cxbottle.conf`, `LauncherOption.if`, mode lists), pinned hashes and download URLs, protected bottle names. |
-| `runtime/build-wine.sh` | Builds the CrossOver 26.3 Wine runtime archive from CodeWeavers' published sources (about 25 minutes). |
-| `runtime/package-fast-x87.sh` | Collects a built rosetta-timewalker (MIT) for `--fast-x87-dir` or the app. |
+| `packaging/build-wine.sh` | Builds the CrossOver 26.3 Wine runtime archive from CodeWeavers' published sources (about 25 minutes). |
+| `packaging/package-fast-x87.sh` | Collects a built rosetta-timewalker (MIT) for `--fast-x87-dir` or the app. |
 | `tests/test-mukit.sh` | Tests: parser units, `.reg`/expectation sync, shell syntax, and synthetic integration tests for both runtimes with stub Wine/CrossOver, synthetic DLLs and a synthetic runtime archive (no wine, no game, temp dirs only). Runs on macOS and Linux. |
 
 The game comes from your own client folder (`--game-dir`) or from the official installer
@@ -123,10 +123,10 @@ Where each input comes from:
 |---|---|
 | `--runtime free\|crossover` | `free` (default) needs no CrossOver; `crossover` is the legacy bottle path (also selected by `--bottle` without `--runtime`). Env `MUKIT_RUNTIME`. |
 | `--prefix DIR` | Free runtime: the prefix (default `~/Library/Application Support/MuTheMatrix/prefix`). An existing prefix without the free marker `.mukit/owner` = `mu-free-kit-v1`, a 64-bit prefix and a prefix inside CrossOver's bottle folder are refused. |
-| `--runtime-archive SRC`, `--runtime-sha256 HEX` | Free runtime: install a runtime archive (local file or https URL; a URL needs the SHA-256) instead of the default `cx24` download, for example the CrossOver 26.3 build from `runtime/build-wine.sh`. |
+| `--runtime-archive SRC`, `--runtime-sha256 HEX` | Free runtime: install a runtime archive (local file or https URL; a URL needs the SHA-256) instead of the default `cx24` download, for example the CrossOver 26.3 build from `packaging/build-wine.sh`. |
 | `--game-installer SRC` | Install the game with the official Windows installer: a local `.exe`, an https URL or `official`. The download resumes when interrupted. |
 | `--mugl-dll FILE`, `--mscoree-dll FILE` | Install exactly these DLLs (Mu The Matrix.app passes the ones bundled at build time). Pinned mugl builds are recognised; another file is installed with a warning and treated like the public build (`DevModeIndex` capped at 2). |
-| `--fast-x87-dir DIR` | Free runtime: install rosetta-timewalker's x87 translator (`libtimewalker.dylib`, `runtime_loader`, `libRuntimeRosettax87`, from `runtime/package-fast-x87.sh`) and the authored main.exe-only wrapper into the runtime folder. Used only with a runtime that has the inner loader (the CrossOver 26.3 build). |
+| `--fast-x87-dir DIR` | Free runtime: install rosetta-timewalker's x87 translator (`libtimewalker.dylib`, `runtime_loader`, `libRuntimeRosettax87`, from `packaging/package-fast-x87.sh`) and the authored main.exe-only wrapper into the runtime folder. Used only with a runtime that has the inner loader (the CrossOver 26.3 build). |
 | `--bottle NAME` | CrossOver: target bottle. Default `MuMatrixKit`. `MuMatrix32`, `Windows10MU`, `Steam` and `MuMatrixRecovery` are always refused, as is any existing bottle without the kit's `.mukit/owner` marker. |
 | `--game-dir PATH` | Client source. Copied with an APFS clone (`cp -c`), falling back to `ditto` across volumes. The 3 GB `.mu-recovery-transfer.tar` is dropped. |
 | `--modes "WxH ..."`, `--mode-index N` | Contents of `C:\mutools\mu-modes.txt` and the `DevModeIndex`. The default ladder is `960x600 1024x640 1280x800 1600x1000 1728x1080 1920x1200`. The first three are always listed; larger modes are listed only if the window fits (width + 16, height + 89). A 1800x1169 screen gives the live list with index 4 = 1728x1080. |
@@ -253,7 +253,7 @@ Not in this kit but in the repo: the `MonitorCheck.exe` pre-launch display probe
 | free runtime engine `WS12WineCX24.0.7_7.tar.xz` (Sikarugir Engines v1.0) | `203f9e9fd6c2cc77e6525d798a434ced326145db34a356355e05659d3445fd1c` |
 | free runtime libraries `Template-1.0.24.tar.xz` (Sikarugir Template v1.0) | `4b5f89eeb9ef139936bdfad33d9b420b05ea4597cb7d63376674f7a8e171321c` |
 | `winetricks` 20260125 (`src/winetricks` at the release tag) | `431f82fc74000e6c864409f1d8fb495d696c03928808e3e8acffc45179312a7b` |
-| CrossOver 26.3.0 sources (`runtime/build-wine.sh`) | `ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872` |
+| CrossOver 26.3.0 sources (`packaging/build-wine.sh`) | `ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872` |
 | official installer `MuTheMatrix-21.1.2.12.exe` as downloaded on 2026-10-18 (not pinned: the server may update it) | `6594cf2535cbb0cca58d938e91e4aa0af579581e9658400c4f1f54e00a69c8c2` |
 
 Verify also accepts:
