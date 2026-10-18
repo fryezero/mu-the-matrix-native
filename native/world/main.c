@@ -140,6 +140,7 @@ typedef struct app {
     mu_world_particles particles;
     int has_particles, no_particles;
     uint32_t particle_seed;
+    int32_t joint_demo;            /* NATIVE-JOINT-001: --joint-demo SUB (-1 off) */
     uint32_t effects_visible;
     float *wav;
     size_t wav_frames, wav_capacity;
@@ -359,6 +360,13 @@ static void on_step(void *context, mu_walk *w)
         mu_world_env_step(&a->env, &hero, w->frame.view.position, (float)w->frame.clock.frame_tick);
         if (a->has_sound)
             a->sound.rain = a->env.env.rain_level;   /* 0x0a3a9acc for the per-frame audio block */
+    }
+    if (a->has_particles && a->joint_demo >= 0 && w->steps % 20 == 1) {
+        /* --joint-demo (a viewer test, not client behaviour): a Tormenta lightning joint 0x7f7d of the subtype
+         * above the hero every 20 steps, through the world objects' joint pool */
+        const float at[3] = {h->position[0], h->position[1], h->position[2] + 150.0f}, angle[3] = {0.0f, 0.0f, 0.0f};
+        mu_world_particles_joint(&a->particles, MU_JT_TYPE_THUNDER_BOLT, at, at, angle, a->joint_demo, -1, 1.0f, 0xffff,
+                                 0, 0, 0xffff, 0);
     }
     if (a->has_particles) {   /* MoveEffects, MoveJoints, MoveParticles after the other movers of the in-world tick */
         mu_world_particles_set_hero(&a->particles, h->position);
@@ -1665,6 +1673,7 @@ static int usage(void)
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
+                    "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
     return 2;
 }
@@ -1681,6 +1690,7 @@ int main(int argc, char **argv)
     a.class_byte = 0x01;      /* Dark Knight */
     a.env_seed = 1;           /* rand() state at world entry: the CRT default (viewer choice) */
     a.particle_seed = 1;
+    a.joint_demo = -1;
     a.tile[0] = 133;          /* Lorencia town square */
     a.tile[1] = 127;
     a.angle = 0.0f;
@@ -1754,6 +1764,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;
 #endif
         else if (!strcmp(k, "--particle-seed")) a.particle_seed = (uint32_t)strtoul(v, NULL, 0);
+        else if (!strcmp(k, "--joint-demo")) a.joint_demo = (int32_t)strtol(v, NULL, 0);
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
