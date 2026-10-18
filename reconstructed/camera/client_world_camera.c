@@ -167,6 +167,15 @@ void mu_move_main_camera(mu_world_camera *c, mu_client_view *v, uint32_t now)
         float height = c->distance - 150.0f;
         v->position[2] = height + v->position[2];
 
+        if (c->scene == 5 || c->scene == 3) {
+            /* 0x018553f3 / 0x0185555a (NATIVE-CHARSEL-001): the character-select and
+             * login scenes take the angles and the position of the world's camera
+             * record (0x0098647b()->+0xc: +0 angle, +0xc position) and skip the
+             * pitch and zoom block (jump to 0x01855a27). */
+            memcpy(v->angle, c->scene_angle, sizeof v->angle);
+            memcpy(v->position, c->scene_position, sizeof v->position);
+            goto earthquake;
+        }
         v->angle[0] = -48.5f;
         if (c->world != 0x8b) {
             int zooming = c->fov_from != c->fov_to || c->world_fov != v->fov;
@@ -191,6 +200,7 @@ void mu_move_main_camera(mu_world_camera *c, mu_client_view *v, uint32_t now)
                     v->fov = c->fov_to;
             }
         }
+    earthquake:
         v->angle[0] = v->angle[0] + c->earthquake;
         if (c->hero_tile_wall & 0x80) {
             if (200.0f >= c->lift)

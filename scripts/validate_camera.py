@@ -387,7 +387,8 @@ class WorldCamera(ctypes.Structure):
                 ('lift', ctypes.c_float), ('fov_from', ctypes.c_float), ('fov_to', ctypes.c_float),
                 ('angle_start', ctypes.c_float * 3), ('angle_end', ctypes.c_float * 3),
                 ('position_start', ctypes.c_float * 3), ('position_end', ctypes.c_float * 3),
-                ('zoom_timer', Timer), ('zoom_index', ctypes.c_int32)]
+                ('zoom_timer', Timer), ('zoom_index', ctypes.c_int32),
+                ('scene_angle', ctypes.c_float * 3), ('scene_position', ctypes.c_float * 3)]
 
 
 class KeyInput(ctypes.Structure):
@@ -1141,6 +1142,8 @@ def install_world(guest, c, view, now, extra=None):
     guest.put_u(WORLD_INFO + 0xc, WORLD_INFO2)
     guest.put_f(WORLD_INFO + 0x10, c.far_scale[2])
     guest.put_f(WORLD_INFO2 + 0x18, c.far_scale[1], c.far_scale[0], c.world_fov)
+    guest.put_f(WORLD_INFO2 + 0x0, *c.scene_angle)      # record [CAMERA ANGLE] (scenes 3/5)
+    guest.put_f(WORLD_INFO2 + 0xc, *c.scene_position)   # record [CAMERA POSITION] (scenes 3/5)
     guest.put(OBJ988, bytes(0x40))
     guest.put_f(ZOOM_OBJ + 0x68, c.zoom_level5_distance)
     guest.put(ZOOM_OBJ + 0x71, b'\x00')
@@ -1222,6 +1225,37 @@ def case_move_camera(guest, lib, tally, generator, count):
         tally.add('MoveMainCamera 0x0185498e (in-world path)', not diff, {'diff': diff, 'world': c.world})
 
 
+def record_scenario(generator):
+    """Scenes 3 and 5 (NATIVE-CHARSEL-001): the camera-record path."""
+    c, view = world_scenario(generator)
+    c.scene = generator.choice([5, 5, 3])
+    c.world = generator.choice([0x5d, 0x5d, 0x5e, 5, 0x33, 0])
+    view.top_view = 0
+    if generator.random() < 0.3:   # the installed World94 / World95 records
+        angle, position = generator.choice([((-84.5, 0.0, -80.0), (15215.0889, 12186.5361, 529.371704)),
+                                            ((-84.5, 0.0, -45.0), (24475.7969, 7581.58105, 1834.53992))])
+    else:
+        angle = tuple(f32(generator.uniform(-90, 0)) if i != 2 else f32(generator.uniform(-180, 180)) for i in range(3))
+        position = tuple(f32(generator.uniform(0, 26000)) for i in range(3))
+    for i in range(3):
+        c.scene_angle[i] = f32(angle[i])
+        c.scene_position[i] = f32(position[i])
+    return c, view
+
+
+def case_move_camera_record(guest, lib, tally, generator, count):
+    for number in range(count):
+        c, view = record_scenario(generator)
+        now = generator.getrandbits(32)
+        install_world(guest, c, view, now)
+        guest.call(ROUTINES['move_main_camera'][0], [], count=400000)
+        lib.mu_move_main_camera(ctypes.byref(c), ctypes.byref(view), now)
+        got, want = world_state(guest), c_state(c, view)
+        diff = {k: (got[k], want[k]) for k in got if not states_equal({k: got[k]}, {k: want[k]})}
+        tally.add('MoveMainCamera 0x0185498e (scene 3/5 camera-record path)', not diff,
+                  {'diff': diff, 'scene': c.scene, 'world': c.world})
+
+
 def case_zoom(guest, lib, tally, generator, count):
     skills = [0x185d, 0x185e, 0x1833, 0x1834, 0x1835, 0x1836, 0x1000, 0]
     for number in range(count):
@@ -1255,6 +1289,12 @@ MUTATIONS = [
     ('NaN converts to 0', 'client_camera.c', 'return INT32_MIN;', 'return 0;', 'projection'),
     ('camera height offset 100', 'client_world_camera.c', 'float height = c->distance - 150.0f;\n        v->position[2]',
      'float height = c->distance - 100.0f;\n        v->position[2]', 'move_camera'),
+    ('scene-5 record path keeps the old yaw', 'client_world_camera.c',
+     'memcpy(v->angle, c->scene_angle, sizeof v->angle);', 'memcpy(v->angle, c->scene_angle, 2 * sizeof(float));',
+     'move_camera_record'),
+    ('scene-5 record path without the earthquake', 'client_world_camera.c',
+     '    earthquake:\n        v->angle[0] = v->angle[0] + c->earthquake;',
+     '        v->angle[0] = v->angle[0] + c->earthquake;\n    earthquake:', 'move_camera_record'),
     ('ease end test strict', 'client_world_camera.c', 'if (t >= (float)n)', 'if (t > (float)n)', 'helpers'),
     ('no Tab exception in the key scan', 'client_input.c', '(vk == 0x1b || vk == 0x09)', '(vk == 0x1b)', 'key_scan'),
     ('frame cap at <= 40', 'client_frame.c', 'if (elapsed < MU_FRAME_STEP_MS)', 'if (elapsed <= MU_FRAME_STEP_MS)',
@@ -1323,6 +1363,7 @@ def main(argv=None):
         ('screen_vector', case_screen_vector, n), ('projection', case_projection, n),
         ('face_normalize', case_face_normalize, n), ('inside', case_inside, 2 * n), ('collision', case_collision, 4 * n),
         ('terrain_tile', case_terrain_tile, 2 * n), ('helpers', case_helpers, n), ('move_camera', case_move_camera, 2 * n),
+        ('move_camera_record', case_move_camera_record, n),
         ('zoom', case_zoom, n), ('key_scan', case_key_scan, max(20, n // 4)), ('mouse_move', case_mouse_move, n),
         ('mouse_buttons', case_mouse_buttons, n), ('frame_cap', case_frame_cap, n)]
     only = set(args.only.split(',')) if args.only else None

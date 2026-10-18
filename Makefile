@@ -15,6 +15,7 @@ all:
 	$(MAKE) -C reconstructed/effects
 	$(MAKE) -C reconstructed/movement
 	$(MAKE) -C reconstructed/renderchar
+	$(MAKE) -C reconstructed/charsel
 	$(MAKE) -C native
 
 test: all
@@ -48,6 +49,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/effects -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/movement -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/renderchar -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/charsel -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:
