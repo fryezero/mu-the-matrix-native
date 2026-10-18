@@ -1115,3 +1115,17 @@ Branch `claude/native-effects`, worktree `~/Documents/mu-worktrees/native-effect
 **Next:** map the EffectManager (creation by name, lists, parenting, owner tint, frustum culling) and the callers
 that attach effects to characters, skills and world objects; then draw effects in the native viewer and frame loop
 over the real terrain.
+
+## Walking around the world (NATIVE-WORLD-001)
+
+Branch `claude/native-world`, worktree `~/Documents/mu-worktrees/native-world`. Read
+[`research/native-world.md`](research/native-world.md) and
+[`../reconstructed/movement/README.md`](../reconstructed/movement/README.md).
+
+**Checks.** `scripts/validate_movement.py --cases 1000 --mutations --game-root "$MU_GAME_ROOT"` (private
+captures), portable `reconstructed/movement/test_client_movement.py` and `native/tests/test_native_world.py`.
+Renders stay local in `~/Documents/mu-mac-tools/native/renders/world/`.
+
+**Next:** compare the native walk with a live in-game capture; reconcile with the parallel `native-path` path-finder
+port; port the path finder's target-area branch and the
+weapon/mount cases of SetPlayerWalk/SetPlayerStop (or adopt the NATIVE-ACTOR-001 tables).

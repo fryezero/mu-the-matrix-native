@@ -74,6 +74,19 @@ native/build/mu-render character --game-root "$MU_GAME_ROOT" --class 1 --pose wa
 
 Monster actions: 0/1 idle, 2 walk, 3/4 attack, 5 hit, 6 die. `--pose stand|walk|attack` picks a Player action with the client's base Player speed (the pose mapping is a static reading).
 
+## Walking around the world (NATIVE-WORLD-001)
+
+`mu-world` (window, `make -C native world`) and `mu-walk` (headless software, built by `make -C native`) run one
+in-world session (`core/mu_walk.*`, [finding](../docs/research/native-world.md)): the world's terrain, the hero
+from the character module, the client camera with the world's camera record (Lorencia: FOV 39), click-to-move
+through the client pick and path finder, the client walk step (12 units per 40 ms step) and the wheel zoom.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT"                       # click to walk, wheel zooms
+native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --frames 900 --every 3 \
+    --out-dir DIR --walk "137,131 141,135" --wheel "290:1 470:-1"     # scripted clicks and zoom
+```
+
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
@@ -130,6 +143,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `core/mu_ui_raster.*`, `mu_ui_assets.*`, `mu_ui_font.*` | 2D layer: software GL subset, interface texture table through the reconstructed OpenTga/OpenJpeg, GDI text boundary (CoreText) |
 | `tools/mu_render.c`, `tools/mu_render_ui.c` | Headless CLI used by the tests (`mu-render ui …` for the 2D layer) |
+| `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |

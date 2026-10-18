@@ -12,6 +12,7 @@ all:
 	$(MAKE) -C reconstructed/ui
 	$(MAKE) -C reconstructed/data
 	$(MAKE) -C reconstructed/effects
+	$(MAKE) -C reconstructed/movement
 	$(MAKE) -C native
 
 test: all
@@ -42,6 +43,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/ui -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/data -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/effects -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/movement -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:
