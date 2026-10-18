@@ -105,6 +105,11 @@ int mugfx_resolve(MuGfx *g, const char *name, char *out, size_t cap);
  * shows utf8 as composing text with the caret at byte offset cursor (-1
  * hidden; "" ends it), commit 1 inserts it. */
 int mugfx_ime(MuGfx *g, const char *utf8, int cursor, int commit);
+/* Shared movies: on 1 renders into two alternating IOSurfaces;
+ * mugfx_iosurface returns the last completed frame (its seed changes when
+ * it flips), so no mugfx_gpu_wait is needed before drawing (one frame of
+ * latency at most).  0 returns to one surface. */
+int mugfx_set_double_buffer(MuGfx *g, int on);
 
 #ifdef __cplusplus
 }

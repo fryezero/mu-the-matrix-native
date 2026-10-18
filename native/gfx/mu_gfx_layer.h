@@ -125,6 +125,8 @@ typedef struct mu_gfx_layer_config {
     mu_gfx_icons_fn icons;      /* item hotkey icons (NULL: stand-ins) */
     void *items_user;
     int standalone;             /* 1: play main/chat on their own even when base.swf is present */
+    int double_buffer;          /* shared: two surfaces per movie, no GPU wait before drawing
+                                   (frames may show one frame late) */
 } mu_gfx_layer_config;
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);

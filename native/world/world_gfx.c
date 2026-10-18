@@ -79,7 +79,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     mu_gfx_layer_config cfg = {.movie_dir = movie_dir, .width = width, .height = height, .shared = shared, .demo = 1,
                                .tooltip = tooltip, .tooltip_user = g, .scale = scale,
                                .items = g->items ? wg_items_draw : NULL, .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
-                               .items_user = g->items};
+                               .items_user = g->items,
+                               .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER")};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);

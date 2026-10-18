@@ -102,6 +102,7 @@ typedef struct mugfx_api {
     int (*set_image)(MuGfx *, const char *, int, int, const uint8_t *, int);
     int (*resolve)(MuGfx *, const char *, char *, size_t);
     int (*ime)(MuGfx *, const char *, int, int);
+    int (*set_double_buffer)(MuGfx *, int);
 } mugfx_api;
 
 static int exe_dir(char *out, size_t cap)
@@ -188,6 +189,7 @@ static int api_load(mugfx_api *api, const char *explicit_path, char *error, size
     SYM(set_image, "mugfx_set_image");
     SYM(resolve, "mugfx_resolve");
     SYM(ime, "mugfx_ime");
+    SYM(set_double_buffer, "mugfx_set_double_buffer");
 #undef SYM
     return 0;
 }
@@ -1130,6 +1132,8 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
         return -1;
     }
     L->api.set_callback(mv->g, on_call, mv);
+    if (L->shared && L->cfg.double_buffer)
+        L->api.set_double_buffer(mv->g, 1);
     L->api.set_view(mv->g, L->w, L->h, 0, 0, 0, 0, L->scale);
     L->api.start(mv->g);
     mv->view[0] = mv->view[1] = 0;
@@ -1940,7 +1944,7 @@ static void render_movies(mu_gfx_layer *L, int force_readback)
             render_readback(L, mv, m);
         }
     }
-    if (submitted) {
+    if (submitted && !L->cfg.double_buffer) {
         double t = now_ms();
         L->api.gpu_wait();
         double wait = now_ms() - t;

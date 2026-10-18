@@ -10,11 +10,12 @@
  * Usage:
  *   mu-gfx-window --gfx DIR [--size 1280x800] [--headless | --headless-gl] [--out-dir DIR] [--script]
  *                 [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]
- *                 [--standalone]
+ *                 [--standalone] [--double]
  * --scale S: pixels per point (2 = Retina); --size stays in points.
  * NATIVE-GFX-003: a DIR with base.swf (and ExternalBase, ImageData, main,
  * Chat, ... converted) plays the HUD as the client's base movie;
- * --standalone keeps the NATIVE-GFX-002 main/chat players.
+ * --standalone keeps the NATIVE-GFX-002 main/chat players; --double gives
+ * every shared movie two surfaces (no GPU wait before drawing).
  * DIR holds the movies converted with
  *   gfxconvert.py --bridge --transparent --var _root.isClient=true --fontconfig English --font-subset latin
  *     --movie main --movie InventoryFrame --movie InfoPopup --movie CharacterInfoFrame --movie chat
@@ -183,7 +184,7 @@ int main(int argc, char **argv)
 {
     const char *dir = NULL, *out_dir = NULL, *log_path = NULL;
     int headless = 0, headless_gl = 0, script = 0, bench = 0, frames = 0, open_inv = 0, readback = 0, full = 0;
-    int standalone = 0;
+    int standalone = 0, double_buffer = 0;
     int w = 1280, h = 800;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--gfx") && i + 1 < argc) dir = argv[++i];
@@ -200,10 +201,11 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--readback")) readback = 1;
         else if (!strcmp(argv[i], "--full-stage")) full = 1;
         else if (!strcmp(argv[i], "--standalone")) standalone = 1;
+        else if (!strcmp(argv[i], "--double")) double_buffer = 1;
         else {
             fprintf(stderr, "usage: %s --gfx DIR [--size WxH] [--headless|--headless-gl] [--out-dir DIR] [--script]\n"
                             "       [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]\n"
-                            "       [--standalone]\n", argv[0]);
+                            "       [--standalone] [--double]\n", argv[0]);
             return 2;
         }
     }
@@ -244,7 +246,8 @@ int main(int argc, char **argv)
         SDL_StartTextInput();
     }
     mu_gfx_layer_config cfg = {.movie_dir = dir, .width = w, .height = h, .shared = gl && !readback, .full_stage = full,
-                               .demo = 1, .log = log, .scale = g_scale, .standalone = standalone};
+                               .demo = 1, .log = log, .scale = g_scale, .standalone = standalone,
+                               .double_buffer = double_buffer};
     double t_open = now_ms();
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {

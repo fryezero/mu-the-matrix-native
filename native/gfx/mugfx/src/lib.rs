@@ -677,6 +677,30 @@ pub unsafe extern "C" fn mugfx_render_shared(g: *mut MuGfx, wait: c_int) -> c_in
     -2
 }
 
+/// Double-buffered shared surface (NATIVE-GFX-003): 1 makes the movie
+/// render into one of two IOSurfaces while `mugfx_iosurface` keeps
+/// returning the last completed frame (its seed changes when the shown
+/// surface flips), so the host needs no `mugfx_gpu_wait` before drawing;
+/// frames show at most one frame later.  0 returns to one surface.
+/// Returns 0, or -2 for a non-shared movie.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mugfx_set_double_buffer(g: *mut MuGfx, on: c_int) -> c_int {
+    let Some(g) = (unsafe { g.as_ref() }) else { return -1 };
+    #[cfg(target_os = "macos")]
+    if g.kind == TargetKind::Surface {
+        return g.with_player(|p| {
+            let Some(r) = <dyn Any>::downcast_mut::<WgpuRenderBackend<surface::SurfaceTarget>>(p.renderer_mut())
+            else {
+                return -3;
+            };
+            r.target().set_double(on != 0);
+            0
+        });
+    }
+    let _ = on;
+    -2
+}
+
 /// Block until every frame submitted so far (all movies share one GPU
 /// queue) has completed.
 #[unsafe(no_mangle)]
