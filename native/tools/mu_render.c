@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 
 #include "../core/mu_actor.h"
+#include "mu_render_world.h"
 #include "../core/mu_bmd.h"
 #include "../core/mu_camera.h"
 #include "../core/mu_character.h"
@@ -847,6 +848,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "host floating-point environment unsupported by record-math\n");
         return 2;
     }
+    if (mu_render_world_args(&argc, argv))   /* NATIVE-RENDERCHAR-001 world-mode options */
+        return 2;
     mu_options o;
     mu_options_defaults(&o);
     if (mu_options_parse(&o, argc, argv, 2)) {
@@ -873,11 +876,11 @@ int main(int argc, char **argv)
     if (!strcmp(command, "scan"))
         return command_scan(&o);
     if (!strcmp(command, "character"))
-        return command_character(&o);
+        return mu_render_world_active() ? mu_render_world_character(&o) : command_character(&o);
     if (!strcmp(command, "chardump"))
         return command_chardump(&o);
     if (!strcmp(command, "actor"))
-        return command_actor(&o);
+        return mu_render_world_active() ? mu_render_world_actor(&o) : command_actor(&o);
     fprintf(stderr, "unknown command %s\n", command);
     return 2;
 }

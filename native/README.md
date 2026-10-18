@@ -64,6 +64,17 @@ Viewer controls:
 
 Game logic advances in fixed 40 ms steps, like the client's frame driver. All options are listed by `mu-render` without arguments.
 
+## World render mode (NATIVE-RENDERCHAR-001)
+
+`--world-render` draws a character or actor the way the client's world render does ([finding](../docs/research/client-renderchar.md)): item level glow passes (+0..+15), excellent and ancient passes, back-carried weapons in a safe zone, the +15 `class15_*` attachments and monster weapons on the create-assigned link bones:
+
+```sh
+native/build/mu-render character --game-root "$G" --class 1 --weapon 0 "$G/Data/Item/Sword13.bmd" --world-render \
+    --item-level all=15 --excellent weapon0=1 --attachments --world-time 900 --glow-color 0.4,0.6,1 --out /tmp/w.png
+native/build/mu-render character --game-root "$G" --class 1 --weapon 0 "$G/Data/Item/Axe07.bmd" --world-render --safe-zone --out /tmp/b.png
+native/build/mu-render actor --game-root "$G" --type 0 --world-render --actor-weapon "0=$G/Data/Item/Axe07.bmd" --out /tmp/m.png
+```
+
 ## Actor mode (NATIVE-ACTOR-001)
 
 `mu-render actor` renders an animated monster or NPC ([finding](../docs/research/client-actors.md)). `--type` is a server monster class (CreateMonster table), `--monster` a monster type (`Data/Monster/Monster<type+1>.bmd`), `--npc` an NPC model index. Actions get the client's play speeds; each 40 ms step runs the reconstructed SetAction and animation step with the tick:
@@ -93,14 +104,14 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --fram
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
-native/build/mu-terrain info   "$MU_GAME_ROOT" --world 0                 # load report of Data/World1
-native/build/mu-terrain render "$MU_GAME_ROOT" --world 142 --out k.png   # software render, prints SHA-256
+native/build/mu-terrain info   "$MU_GAME_ROOT" --world-render 0                 # load report of Data/World1
+native/build/mu-terrain render "$MU_GAME_ROOT" --world-render 142 --out k.png   # software render, prints SHA-256
 native/build/mu-terrain scan   "$MU_GAME_ROOT"                           # every Data/World* folder
-native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0               # free camera: WASD/QE, drag, wheel
-native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world 0 --headless --backend gl --compare --out t.png
+native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world-render 0               # free camera: WASD/QE, drag, wheel
+native/build/mu-viewer --terrain "$MU_GAME_ROOT" --world-render 0 --headless --backend gl --compare --out t.png
 ```
 
-`--world` is the client's world index (Lorencia 0, Twisted Karutan 142); the folder is resolved like the
+`--world-render` is the client's world index (Lorencia 0, Twisted Karutan 142); the folder is resolved like the
 client. The tile rules come from `reconstructed/terrain`, compared with the client's instructions by
 `scripts/validate_terrain.py`; see [the finding](../docs/research/client-terrain.md). Static objects are not
 drawn: the installed `EncTerrain*.obj` files do not decode with the client's loader routine.

@@ -197,7 +197,7 @@ Local renders (not committed) are under `~/Documents/mu-mac-tools/native/renders
 
 ## Not established
 
-- **Weapons and attachments on monsters are not rendered.** The class slots record item models, for example `0x0cec`. The monster render path that links them to bones (inside RenderCharacter `0x01363260`) was not traced.
+- **Weapons and attachments on monsters** are now attached by `mu-render actor --world-render --actor-weapon` with the link bones the character create assigns per model ([client-renderchar.md](client-renderchar.md)); before NATIVE-RENDERCHAR-001 they were not rendered. The class slots record item models, for example `0x0cec`. The monster render path that links them to bones (inside RenderCharacter `0x01363260`) was not traced.
 - **Map-processor and engine-state assumptions.** The world-specific processors and the 75 classes that stop are not in the table. Neither are classes that other worlds or rand() values would route differently.
 - **Player pose mapping is static only.** Run variants and mount, buff and special-item branches are not reduced. Item attribute data (two-handed flag, kind) is not loaded natively, so `--weapon-kind` is a caller choice. The hero attack speed is not applied.
 - **Effects of the opener that are not reconstructed.** Sounds, extra textures and mesh-texture switches are recorded only. Model field `+0x94` and the head bone are written into client memory, but the native draw does not interpret them.

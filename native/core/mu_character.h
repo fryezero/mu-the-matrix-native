@@ -47,6 +47,15 @@ typedef struct mu_character_item {
     int32_t link_bone;       /* weapons and wing: Player bone index (record byte +5) */
     uint16_t action;         /* weapons and wing: item action (record byte +6) */
     float *bones;            /* weapons and wing: own bone matrices right after their pose */
+    /* NATIVE-RENDERCHAR-001: link-mode attachment (RenderLinkItem 0x012bd910 with
+     * link 1, as BackCarry 0x0139db9a draws carried weapons): when carry is 1
+     * the root matrix is concat(Player bone carry_bone, carry_local) through
+     * the pose concat 0x00cff83e (carry 2: carry_local itself), the origin is
+     * the object position and the item frame is carry_frame. */
+    int32_t carry;
+    uint32_t carry_local[12];
+    int32_t carry_bone;
+    float carry_frame;
 } mu_character_item;
 
 typedef struct mu_character_params {
@@ -57,6 +66,10 @@ typedef struct mu_character_params {
     float wing_scale;        /* character +0x32f4 */
     float light[3];          /* object +0xec light times object +0xdc */
     uint8_t lighting;        /* object +5 */
+    /* NATIVE-RENDERCHAR-001: 1 = world render path (0x01363260): RenderLinkItem
+     * clears the item model's lighting flag (+0x50, 0x012bdb19) for weapons
+     * and the wing; 0 = character copy render 0x0139be7a (default). */
+    uint8_t world_items;
 } mu_character_params;
 
 typedef struct mu_character {
@@ -88,6 +101,11 @@ int mu_character_tick(mu_character *character, float speed, uint8_t *loop);
 int mu_character_apply_player_speeds(mu_character *character);
 /* Play speed in the Player model's action record (0 outside the actions). */
 float mu_character_action_speed(const mu_character *character, uint16_t action);
+/* NATIVE-RENDERCHAR-001: switch a weapon/wing slot to the link-mode root
+ * (mode 1 under Player bone `bone`, mode 2 absolute, 0 back to the default
+ * hand/wing attachment). local holds twelve binary32 bit patterns. */
+int mu_character_set_carry(mu_character *character, int item, int32_t mode, const uint32_t local[12], int32_t bone,
+                           float frame);
 /* Poses and skins every loaded model in the order above. */
 int mu_character_update(mu_character *character);
 /* Axis-aligned bounds of every transformed vertex; returns 0 when there are none. */

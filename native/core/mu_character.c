@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../../reconstructed/model-codec/character.h"
+#include "../../reconstructed/record-math/record_math.h"
 
 /* Light arguments of every transform call in 0x0139be7a: binary32 at
  * 0x01a7df0c (0.4), 0x01a7df18 (0.8) and 0x01a7df08 (0.2). */
@@ -212,8 +213,47 @@ static int attach(mu_character *c, mu_character_item *item, const float vector[3
     }
     mu_model_params p = slot_params(c, &item->model, scale, origin);
     p.pose_translate = 1;
+    if (c->params.world_items)
+        p.lighting = 0;   /* 0x012bdb19 */
     mu_model_apply_params(&item->model, &p);
     mu_model_set_state(&item->model, item->action, frame, frame, 0);
+    if (mu_model_pose_keep_root(&item->model) != MU_MODEL_OK)
+        return MU_MODEL_ERROR;
+    memcpy(item->bones, mu_model_bone_matrices(&item->model), 0x30u * (size_t)item->bmd.bone_count);
+    return mu_model_transform_all(&item->model);
+}
+
+int mu_character_set_carry(mu_character *c, int index, int32_t mode, const uint32_t local[12], int32_t bone, float frame)
+{
+    if (index < MU_CHARACTER_PART_SLOTS || index >= MU_CHARACTER_ITEMS || mode < 0 || mode > 2)
+        return MU_MODEL_ERROR;
+    mu_character_item *item = &c->items[index];
+    item->carry = mode;
+    if (mode) {
+        memcpy(item->carry_local, local, sizeof item->carry_local);
+        item->carry_bone = bone;
+        item->carry_frame = frame;
+    }
+    return MU_MODEL_OK;
+}
+
+/* Link-mode attachment (RenderLinkItem 0x012bd910, generic back path
+ * 0x012c29e4): root = concat(owner bone, local), origin = object position. */
+static int carry(mu_character *c, mu_character_item *item, float scale)
+{
+    if (item->carry == 1) {
+        if (item->carry_bone < 0 || item->carry_bone >= c->player_bone_count)
+            return MU_MODEL_ERROR;
+        mu_pose_concat(c->player_bones + 12 * item->carry_bone, item->carry_local, c->shared_root);
+    } else {
+        memcpy(c->shared_root, item->carry_local, 48);
+    }
+    mu_model_params p = slot_params(c, &item->model, scale, c->params.position);
+    p.pose_translate = 1;
+    if (c->params.world_items)
+        p.lighting = 0;   /* 0x012bdb19 */
+    mu_model_apply_params(&item->model, &p);
+    mu_model_set_state(&item->model, item->action, item->carry_frame, item->carry_frame, 0);
     if (mu_model_pose_keep_root(&item->model) != MU_MODEL_OK)
         return MU_MODEL_ERROR;
     memcpy(item->bones, mu_model_bone_matrices(&item->model), 0x30u * (size_t)item->bmd.bone_count);
@@ -249,6 +289,11 @@ int mu_character_update(mu_character *c)
     static const float zero[3] = {0.0f, 0.0f, 0.0f}, wing[3] = {0.0f, 0.0f, 15.0f};
     for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
         mu_character_item *item = &c->items[MU_CHARACTER_WEAPON_ITEM(slot)];
+        if (item->loaded && item->carry) {
+            if (carry(c, item, c->params.scale) != MU_MODEL_OK)
+                return MU_MODEL_ERROR;
+            continue;
+        }
         if (item->loaded && attach(c, item, zero, 0.0f, c->params.scale) != MU_MODEL_OK)
             return MU_MODEL_ERROR;
     }

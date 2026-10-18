@@ -2,6 +2,15 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## World character render (NATIVE-RENDERCHAR-001)
+
+Read [`research/client-renderchar.md`](research/client-renderchar.md). `reconstructed/renderchar` (librenderchar),
+`native/core/mu_renderchar.*` and `mu-render character|actor --world-render` draw the client's world passes. Compare with the
+client with `scripts/validate_renderchar.py` (sections items, kinds, back, character, linkbones; the full run takes
+about 40 minutes and regenerates `special_types.h`, `back_matrices.h`, `link_bones.h`). Renders stay local
+(`~/Documents/mu-mac-tools/native/renders/renderchar/`). Next: the EnchantEffect colour table (runtime data), the
+type-specific item branches (wings first), RenderBodyShadow `0x012bc07a`, and the monster body RenderObject `0x016d4fe4`.
+
 ## Actors (NATIVE-ACTOR-001)
 
 Read [`research/client-actors.md`](research/client-actors.md). `reconstructed/actors` (libactors), `native/core/mu_actor.*`

@@ -269,7 +269,8 @@ the filter), GL_LEQUAL, alpha GREATER 0.25, GL_MODULATE, and fog off.
 
 ## Unresolved
 
-* Live callers. The actual flags, alpha, select and texture arguments, the model
+* Live callers. For characters and items these are now traced by execution in
+  [client-renderchar.md](client-renderchar.md) (NATIVE-RENDERCHAR-001). For other callers the actual flags, alpha, select and texture arguments, the model
   fields (`+0x44`, `+0x94`, `+0xa4..+0xa6`, `+0xca`, `+0xcb`), the texture types
   and the skin base in game are unknown. The validator covers their domains,
   not their live values.
