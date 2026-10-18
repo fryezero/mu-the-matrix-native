@@ -71,6 +71,12 @@ shows the interface over the world (DIR: movies converted with `gfxconvert.py --
 _root.isClient=true --fontconfig English --font-subset latin --movie main --movie InventoryFrame --movie InfoPopup
 --movie CharacterInfoFrame --movie chat`). See [the finding](../docs/research/native-gfx.md) and
 [NATIVE-GFX-002](../docs/research/native-gfx2.md).
+NATIVE-GFX-003 ([finding](../docs/research/native-gfx3.md)) plays the HUD as the client's base movie. For that,
+convert `base ExternalBase ImageData Icons main Chat Tooltip Popups ItemDurability AlarmFrame topmenu bufflist
+hudPlayerName hudMap hudNotice` along with the windows, using the same options. The skill and item hotkey icons
+appear, and `loadBitmapFromLib` works. With a game root, mu-world draws the item models over the inventory and
+into the hotkey image. `mu-client --gfx DIR [--gfx-open ...]` shows the interface in the world scene.
+`scripts/validate_gfx3.py` compares the layer's game side with the client in Unicorn.
 
 Viewer controls:
 

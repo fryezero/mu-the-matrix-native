@@ -31,6 +31,9 @@ patch series; the compacted fonts convert; keyboard/text input, device fonts, wi
 IOSurface sharing replace the full-window read-back; a GFx layer plays the bar, inventory, tooltips, character
 window and chat over mu-world (`--gfx`).
 
+**Update (NATIVE-GFX-003, [native-gfx3.md](native-gfx3.md)).** The HUD runs as the client's base movie with its
+icons. Item models are drawn over the inventory. The client's window placement and menu are compared in Unicorn.
+
 Labels used below:
 
 * **observed**: run on this Mac under Ruffle;
