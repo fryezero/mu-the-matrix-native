@@ -1,10 +1,27 @@
 #!/usr/bin/env python3
-"""Validate BMD assets and export selected real meshes without modifying inputs."""
+"""Validate BMD assets and export selected real meshes without modifying inputs.
+
+--client-layout parses the way the client's model reader does (docs/research/
+model-edge.md): values outside the strict semantics are kept and listed per
+file under client_semantics instead of rejecting the file.
+"""
 import argparse
 import json
+import math
 from pathlib import Path
 from bmd10 import BmdError, obj_text, summarize
 from bmd_encrypted import parse_model_file
+
+
+def finite_json(value):
+    """JSON-safe copy: non-finite floats become strings (their bits are in client_semantics)."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return 'NaN' if math.isnan(value) else ('Infinity' if value > 0 else '-Infinity')
+    if isinstance(value, dict):
+        return {k: finite_json(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [finite_json(v) for v in value]
+    return value
 
 
 def main():
@@ -13,6 +30,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--asset', action='append', default=[])
     parser.add_argument('--validate-all', action='store_true')
+    parser.add_argument('--client-layout', action='store_true',
+                        help="accept values the client's reader accepts; list them instead of rejecting")
     args = parser.parse_args()
     root, output = args.root.resolve(strict=True), args.output.resolve()
     if output.exists() or output == root or root in output.parents:
@@ -47,8 +66,12 @@ def main():
             if version not in (10,12,14,15):
                 record.update(status='unsupported', error='Unsupported model envelope or table format')
             else:
-                model = parse_model_file(path)
+                model = parse_model_file(path, client_layout=args.client_layout)
                 record.update(summarize(model), status='parsed')
+                if model.get('client_semantics'):
+                    issues = model['client_semantics']
+                    record['client_semantics'] = {'count': len(issues), 'strict': sum(x['strict'] for x in issues),
+                                                  'kinds': sorted({x['kind'] for x in issues})}
                 if 'modulus' in model:
                     record['modulus'] = model['modulus']
                     record['decoded_payload_sha256'] = model['decoded_payload_sha256']
@@ -57,7 +80,7 @@ def main():
                 if identity(path) in selected_ids:
                     destination = output/path.relative_to(root)
                     destination.parent.mkdir(parents=True, exist_ok=True)
-                    destination.with_suffix('.json').write_text(json.dumps(model,indent=2,allow_nan=False)+'\n')
+                    destination.with_suffix('.json').write_text(json.dumps(finite_json(model),indent=2,allow_nan=False)+'\n')
                     record['json'] = str(destination.with_suffix('.json').relative_to(output))
                     totals['json_exports'] += 1
                     try:

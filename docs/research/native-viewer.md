@@ -143,12 +143,14 @@ Reported; `test_corpus_scan` pins these counts for private runs.
 
 No mesh was refused and no polygon has four corners. The v12, v14 and v15 vertex total is 3,814,006, the same figure as the CLIENT-SKIN-001 corpus.
 
+Since MODEL-EDGE the loader follows the client's reader, so all 11,583 v15 files load, animate and draw with no refused mesh (3,832,238 v12/v14/v15 vertices); values outside the strict semantics are listed as anomalies ([finding](model-edge.md)).
+
 ## Not established (gaps)
 
 - **Live draw arguments.** The mesh draw's rules are verified by execution, but the flags, alpha, select and texture arguments and the model fields that game callers pass are unknown. The viewer defaults to body flags 2, the dominant immediate. Texture filtering, wrap, row order, mipmaps, depth function, alpha reference and fog are static readings of the loaders and scene setup ([client-meshdraw-exec.md](client-meshdraw-exec.md#static-readings-not-executed)).
 - **Large time values.** sin/cos arguments of magnitude 90,112 or more take the CRT's x87 fallback. Unicorn evaluates it with the host libm, so the port's equality there is unverified. This affects wave 0x400 after about 3.6 hours of client time.
 - **Animation control is the viewer's own.** Action changes, speeds and stop flags are viewer controls; the client's action-change code is untraced. Player parts and attachments are now assembled by the character mode ([NATIVE-CHAR-001](native-character.md)).
-- **Some inputs stay unsupported.** Mode 0x8000 faults in the viewer, as the client would on a freed pixel buffer. The 17 rejected v15 files remain rejected.
+- **Some inputs stay unsupported.** Mode 0x8000 faults in the viewer, as the client would on a freed pixel buffer. The 17 formerly rejected v15 files now load and draw as the client does, with unknown client memory modelled as in a fresh client ([MODEL-EDGE](model-edge.md)).
 
 ## Recommended next native milestones
 

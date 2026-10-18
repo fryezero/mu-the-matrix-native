@@ -34,7 +34,8 @@ static uint32_t float_bits(float value)
 
 uint8_t *mu_model_host(const mu_model *model, uint32_t address, uint32_t length)
 {
-    for (unsigned index = 0; index < MU_MODEL_REGION_COUNT; ++index) {
+    unsigned count = model->memory.count ? model->memory.count : MU_MODEL_REGION_COUNT;
+    for (unsigned index = 0; index < count; ++index) {
         const mu_client_image *region = &model->regions[index];
         if (address < region->base)
             continue;
@@ -132,6 +133,39 @@ static int region(mu_model *m, unsigned index, uint32_t base, uint32_t size)
     return 1;
 }
 
+/* Zero regions for bone slots reached by out-of-range vertex/normal bone indices. */
+static int foreign_bone_regions(mu_model *m, const mu_bmd *b)
+{
+    for (int32_t i = 0; i < b->mesh_count; ++i) {
+        const mu_bmd_mesh *mesh = &b->meshes[i];
+        for (int32_t pass = 0; pass < 2; ++pass) {
+            int32_t count = pass ? mesh->normal_count : mesh->vertex_count;
+            for (int32_t k = 0; k < count; ++k) {
+                uint32_t record = pass ? mesh->normal_offset + 20u * (uint32_t)k : mesh->vertex_offset + 16u * (uint32_t)k;
+                int32_t bone = mu_bmd_s16(b->payload + record);
+                if (bone >= 0 && bone < b->bone_count)
+                    continue;
+                uint32_t address = MU_MODEL_BONES + (uint32_t)bone * 0x30u;   /* 32-bit wrap as the client */
+                if (mu_model_host(m, address, 0x30))
+                    continue;                  /* already mapped: a fixed region or an earlier span */
+                for (uint32_t index = 0; index < m->memory.count; ++index) {
+                    const mu_client_image *r = &m->regions[index];
+                    if (address < r->base + r->size && r->base < address + 0x30u)
+                        return 0;              /* partial overlap with another region: unsupported */
+                }
+                if (m->foreign_count >= MU_MODEL_FOREIGN_SPANS)
+                    return 0;
+                unsigned slot = MU_MODEL_REGION_COUNT + (unsigned)m->foreign_count;
+                if (!region(m, slot, address, 0x30))
+                    return 0;
+                m->foreign_bones[m->foreign_count++] = bone;
+                m->memory.count = MU_MODEL_REGION_COUNT + (uint32_t)m->foreign_count;
+            }
+        }
+    }
+    return 1;
+}
+
 static int failure(mu_model *m, char *error, size_t size, const char *message)
 {
     if (error && size)
@@ -144,7 +178,7 @@ void mu_model_free(mu_model *m)
 {
     if (!m)
         return;
-    for (unsigned index = 0; index < MU_MODEL_REGION_COUNT; ++index)
+    for (unsigned index = 0; index < MU_MODEL_REGION_COUNT + MU_MODEL_FOREIGN_SPANS; ++index)
         free(m->region_storage[index]);
     free(m->triangles);
     free(m->texcoords);
@@ -236,6 +270,8 @@ int mu_model_init(mu_model *m, const mu_bmd *b, const mu_model_params *params, c
     m->window = m->region_storage[R_WINDOW];
     m->memory.regions = m->regions;
     m->memory.count = MU_MODEL_REGION_COUNT;
+    if (!foreign_bone_regions(m, b))
+        return failure(m, error, error_size, "Out-of-range bone references exceed the supported foreign spans");
     m->triangles = calloc(nm ? nm : 1, sizeof *m->triangles);
     m->texcoords = calloc(nm ? nm : 1, sizeof *m->texcoords);
     if (!m->triangles || !m->texcoords)

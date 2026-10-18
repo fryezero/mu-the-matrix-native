@@ -106,8 +106,9 @@ MP3/OGG decode through AudioToolbox on macOS only.
 
 | Path | Role |
 |---|---|
-| `core/mu_bmd.*` | Envelope decoding through the repository's v12/v15 client-linked decoders and the v14 Crypto++ reader, then a C port of every `bmd10.py` check |
-| `core/mu_model.*` | Lays the model out as client memory, runs `mu_bone_tracks_read` once, then calls `mu_animation_tick`, `mu_pose_build` and `mu_model_transform` unchanged |
+| `core/mu_bmd.*` | Envelope decoding through the repository's v12/v15 client-linked decoders and the v14 Crypto++ reader, then the client reader's unchecked stream walk; every `bmd10.py` check becomes a listed anomaly (`mu-render info`), structural limits still reject ([MODEL-EDGE](../docs/research/model-edge.md)) |
+| `core/mu_model.*` | Lays the model out as client memory, runs `mu_bone_tracks_read` once, then calls `mu_animation_tick`, `mu_pose_build` and `mu_model_transform` unchanged; out-of-range vertex/normal bones read zero-filled spans at the client's addresses |
+| `core/mu_edge.*` | Corner indices past their arrays: the client's reads redirected to zero entries (fresh-client state), so such meshes draw instead of being refused |
 | `core/mu_character.*` | Character assembly: Player pose into one shared bone/root buffer, body parts skinned against it, items attached through the reconstructed rotation position and a keep-root pose |
 | `core/mu_meshdraw.*` | Platform-neutral port of the mesh draw, body, GL state wrappers, normal-texcoord table and texture-name sub-object parser, emitting the literal GL call stream |
 | `core/mu_meshdraw_case.*` | Self-contained mesh-draw case files (inputs + calls) shared with `scripts/validate_meshdraw.py` |

@@ -171,3 +171,24 @@ default; the private check needs `MU_RECOVERY_INTEGRATION=1` and `MU_GAME_ROOT`.
 - the body-part type and file-name rules of the loader `0x01830aa6`.
 
 All of them run against the actual instructions in `scripts/validate_character.py`, together with installed `Player.bmd` → part and `Player.bmd` → item chains through the actual loop, builder and transform. See the [finding](../../docs/research/native-character.md). `libcharacter` links them with the skinning stack. Four portable tests run by default; the private check needs `MU_RECOVERY_INTEGRATION=1`, plus `MU_GAME_ROOT` for the installed chains.
+
+## Plaintext model reader and bone boxes
+
+`model_reader.h` exposes `mu_model_read_layout`, authored C for reader
+`0x012b3812` from the name copy `0x012b3b50` to its success return
+`0x012b4477`: header and counts, the `max(count,1)` arrays, the mesh loop
+(raw 16/20/8-byte records and the first 0x24 bytes of every 64-byte polygon,
+the texture-name record), the action loop, the bone-track loop above, the stream
+release, `0x012b2df3(0)` with the bone box pass `0x012b47fd`
+(`mu_model_bone_boxes`) and the trailing memset. It checks no count, index, bone,
+parent or float, exactly like the client. The texture-name parser `0x01185111`
+is a callback (ported by CLIENT-MESHDRAW-EXEC-001), as are operator new/delete.
+The bone box pass indexes its global tables with each vertex's raw bone, so an
+out-of-range bone reads and writes outside them; supply regions for those
+addresses or expect `MU_READER_OUTSIDE_MEMORY`.
+
+`libmodelreader` also carries the pose builder and transform for the
+MODEL-EDGE chains. `scripts/validate_model_edge.py` runs the client's own
+instructions on the 17 rejected v15 files, 300 synthetic payloads and an
+installed sample, and compares this C byte for byte
+([finding](../../docs/research/model-edge.md)).

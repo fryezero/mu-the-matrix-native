@@ -6,8 +6,9 @@ BONES := libbonetracks.$(SUFFIX)
 POSE := libposebuilder.$(SUFFIX)
 SKIN := libskinning.$(SUFFIX)
 CHAR := libcharacter.$(SUFFIX)
+READER := libmodelreader.$(SUFFIX)
 
-all: $(LIB) $(BONES) $(POSE) $(SKIN) $(CHAR)
+all: $(LIB) $(BONES) $(POSE) $(SKIN) $(CHAR) $(READER)
 
 $(LIB): model_codec.c model_codec.h client_lea.c client_lea.h
 	$(CC) $(CFLAGS) -shared model_codec.c client_lea.c -o $@
@@ -30,5 +31,10 @@ $(SKIN): skinning.c skinning.h pose_builder.c pose_builder.h bone_tracks.c bone_
 # run in chains with the skinning stack, so the library carries all stages.
 $(CHAR): character.c character.h skinning.c skinning.h pose_builder.c pose_builder.h bone_tracks.c bone_tracks.h ../record-math/record_math.c ../record-math/record_math.h
 	$(CC) $(CFLAGS) -ffp-contract=off -shared character.c skinning.c pose_builder.c bone_tracks.c ../record-math/record_math.c -lm -o $@
+
+# The plaintext reader section runs before the pose builder and the transform in
+# the MODEL-EDGE chains, so one library carries the reader and those stages.
+$(READER): model_reader.c model_reader.h skinning.c skinning.h pose_builder.c pose_builder.h bone_tracks.c bone_tracks.h ../record-math/record_math.c ../record-math/record_math.h
+	$(CC) $(CFLAGS) -ffp-contract=off -shared model_reader.c skinning.c pose_builder.c bone_tracks.c ../record-math/record_math.c -lm -o $@
 
 .PHONY: all

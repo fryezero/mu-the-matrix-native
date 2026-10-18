@@ -10,7 +10,7 @@ The [client model-loader finding](research/client-model-loader.md) connects BMD 
 
 ## Rejected-model field diagnosis
 
-[The case report](research/model-edge.md) pins all 17 rejected v15 inputs and their exact decoded field offsets. Thirteen reach complete records but use unsupported dummy-parent hierarchies. One has a NaN animation position, one an active normal-index failure, and two unsupported bone values. Native and Python decoding agree on all 17. Rejections and corpus totals remain unchanged; original client handling is unresolved.
+[The case report](research/model-edge.md) pins all 17 rejected v15 inputs and their exact decoded field offsets. Thirteen reach complete records but use unsupported dummy-parent hierarchies. One has a NaN animation position, one an active normal-index failure, and two unsupported bone values. Native and Python decoding agree on all 17. Executing the client's reader, pose, skinning and mesh draw shows that the client accepts all 17 unchecked. `--client-layout` (and `client_layout=True`) reproduces that and lists each value; the strict default, its rejections and the corpus totals are unchanged.
 
 ## Version-14 recovery
 

@@ -202,7 +202,7 @@ Local renders (not committed) are under `~/Documents/mu-mac-tools/native/renders
 - **Player pose mapping is static only.** Run variants and mount, buff and special-item branches are not reduced. Item attribute data (two-handed flag, kind) is not loaded natively, so `--weapon-kind` is a caller choice. The hero attack speed is not applied.
 - **Effects of the opener that are not reconstructed.** Sounds, extra textures and mesh-texture switches are recorded only. Model field `+0x94` and the head bone are written into client memory, but the native draw does not interpret them.
 - **Native defaults.** 0.25 for client-undefined speeds, and the animation-step cadence.
-- **17 reader-rejected v15 files remain rejected**, for example `Monster151.bmd`, so those monsters cannot be rendered.
+- **17 reader-rejected v15 files** (for example `Monster151.bmd`) were rejected when this was written; since MODEL-EDGE the native loader reads them as the client does ([model-edge.md](model-edge.md)).
 
 ## Reproduce
 

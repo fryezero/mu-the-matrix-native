@@ -125,6 +125,9 @@ static int load_model(viewer *v, const char *path)
         mu_bmd_free(&bmd);
         return 1;
     }
+    if (bmd.anomaly_count)
+        fprintf(stderr, "%s: %d value(s) outside the strict BMD semantics, drawn as the client reads them "
+                        "(docs/research/model-edge.md)\n", path, (int)bmd.anomaly_count);
     if (v->loaded) {
         mu_model_free(&v->model);
         mu_bmd_free(&v->bmd);

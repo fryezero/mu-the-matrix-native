@@ -149,8 +149,19 @@ class LoaderTests(NativeBuild):
                 python_ok = True
             except Exception:
                 python_ok = False
-            native_ok = self.info(raw).returncode == 0
-            self.assertEqual(native_ok, python_ok, raw[:8].hex())
+            try:
+                reference.decode(raw, client_layout=True)
+                client_ok = True
+            except Exception:
+                client_ok = False
+            result = self.info(raw)
+            native_ok = result.returncode == 0
+            # The native loader follows the client's reader (MODEL-EDGE): it loads what
+            # bmd10.py's client_layout mode loads and is strict-clean exactly when the
+            # strict reader accepts.
+            self.assertEqual(native_ok, client_ok, raw[:8].hex())
+            if native_ok:
+                self.assertEqual(json.loads(result.stdout)['strict_anomalies'] == 0, python_ok, raw[:8].hex())
             accepted += python_ok
             rejected += not python_ok
         self.assertGreater(accepted, 20)
@@ -518,11 +529,13 @@ class PrivateInstalledTests(NativeBuild):
             self.assertEqual(result[version]['files'], files)
             self.assertEqual(result[version]['animated'], files)
         self.assertEqual(result['15']['files'], 11583)
-        self.assertEqual(result['15']['rejected'], 17)
-        self.assertEqual(result['15']['animated'], 11566)
+        # The 17 v15 files the strict reader rejects load like the client (MODEL-EDGE).
+        self.assertEqual(result['15']['rejected'], 0)
+        self.assertEqual(result['15']['animated'], 11583)
         self.assertEqual(sum(result[v]['refused_meshes'] + result[v]['init_failed'] + result[v]['anim_failed']
                              for v in result), 0)
-        self.assertEqual(sum(result[v]['vertices'] for v in ('12', '14', '15')), 3814006)
+        # 3,814,006 accepted by the strict reader plus 18,232 in the 17 MODEL-EDGE files.
+        self.assertEqual(sum(result[v]['vertices'] for v in ('12', '14', '15')), 3832238)
 
     def test_installed_textures_match_pillow(self):
         sys.path.insert(0, str(ROOT/'asset-recovery'))

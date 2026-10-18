@@ -37,8 +37,11 @@ not exist yet.
   the captured loader calls.
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
-  rejected and 74 other/table envelopes unsupported. Rejections have precise
-  field diagnostics; original handling remains unknown.
+  rejected by the strict reader and 74 other/table envelopes are unsupported.
+  The client loads all 17 unchecked (MODEL-EDGE, executed): the dummy-parent
+  bones are unused IK Chain leaves, and the other fields read unowned memory at known
+  addresses. The client-layout readers and the native viewer reproduce this
+  ([finding](research/model-edge.md)).
 - Selected bone/pose instructions show that dummy records leave output slots
   unwritten, while children compose from prior caller-buffer contents. Those
   contents are unknown. Raw call-search totals remain candidates.

@@ -4,17 +4,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Checked BMD loader for the native viewer.
+/* BMD loader for the native viewer.
  *
  * Envelopes are decoded with the repository's existing sources:
  *   v10  plaintext;
  *   v12  mu_bmd12_decode (client-linked rolling decoder, reconstructed/model-codec);
  *   v14  mu_modulus_decrypt (model-recovery/modulus.cpp, Crypto++);
  *   v15  mu_client_lea_setup + mu_client_lea_decode (client-linked LEA, reconstructed/model-codec).
- * The decoded payload is then parsed with exactly the checks of
- * model-recovery/bmd10.py (counts, finite floats, flags, active indices,
- * vertex/normal bones, parents, cycles, trailer/LEA padding). A file the
- * Python reader rejects is rejected here, and the reverse.
+ * The decoded payload is walked like the client's model reader 0x012b3812
+ * (docs/research/model-edge.md; authored C in reconstructed/model-codec/
+ * model_reader.c): it checks no index, bone reference, parent, flag or
+ * floating-point value. Every value outside the strict reader's supported
+ * semantics (model-recovery/bmd10.py) is kept raw and listed as an anomaly;
+ * "strict" anomalies are exactly the ones bmd10.py rejects, so a file is
+ * strict-clean iff the Python strict reader accepts it, and loads iff
+ * bmd10.py's client_layout mode accepts it. Structural limits still reject:
+ * truncation (the client would read past its decoded buffer), negative or
+ * oversized counts and the file size limits.
  *
  * All offsets below are payload offsets: byte 0 is the first byte after the
  * four-byte "BMD"+version header (the decoded v10 layout without its header).
@@ -39,11 +45,39 @@ typedef struct mu_bmd_action {
 } mu_bmd_action;
 
 typedef struct mu_bmd_bone {
-    uint8_t dummy;
-    int16_t parent;           /* -1 for a root; meaningless for dummy bones */
+    uint8_t dummy;            /* raw dummy byte; any nonzero value is a dummy record (client test) */
+    int16_t parent;           /* raw parent (-1 for a root); meaningless for dummy bones */
     uint32_t offset;          /* payload offset of the record's dummy byte */
+    uint8_t unresolved;       /* non-dummy bone whose parent chain reaches a dummy record or an
+                                 out-of-range parent: the client's pose builder composes a slot it
+                                 does not write in that call (prior contents) */
     char name[33];
 } mu_bmd_bone;
+
+/* Values outside the strict reader's supported semantics, as the client reads them. */
+enum {
+    MU_BMD_ANOMALY_NONFINITE = 1,     /* value: binary32 bits; a: record kind (see below) */
+    MU_BMD_ANOMALY_FLAG,              /* non-boolean lock/dummy byte; value: the byte */
+    MU_BMD_ANOMALY_CORNER_COUNT,      /* a: mesh, b: polygon, value: corner byte */
+    MU_BMD_ANOMALY_VERTEX_INDEX,      /* a: mesh, b: polygon, c: corner, value: index */
+    MU_BMD_ANOMALY_NORMAL_INDEX,
+    MU_BMD_ANOMALY_UV_INDEX,
+    MU_BMD_ANOMALY_VERTEX_BONE,       /* a: mesh, b: vertex, value: bone */
+    MU_BMD_ANOMALY_NORMAL_BONE,       /* a: mesh, b: normal, value: bone */
+    MU_BMD_ANOMALY_BIND_VERTEX,       /* a: mesh, b: normal, value: bind vertex */
+    MU_BMD_ANOMALY_PARENT,            /* a: bone, value: parent outside -1..bones-1 */
+    MU_BMD_ANOMALY_PARENT_CYCLE,      /* a: bone */
+    MU_BMD_ANOMALY_DUMMY_PARENT,      /* a: bone, value: its dummy parent */
+    MU_BMD_ANOMALY_PARENT_FORWARD,    /* a: bone, value: parent > bone (not strict) */
+    MU_BMD_ANOMALY_TRAILER            /* value: unparsed bytes after the last bone record */
+};
+
+typedef struct mu_bmd_anomaly {
+    uint8_t kind;
+    uint8_t strict;           /* 1 when model-recovery/bmd10.py (strict) rejects the file for it */
+    int32_t a, b, c, value;
+    uint32_t offset;          /* payload offset of the field */
+} mu_bmd_anomaly;
 
 typedef struct mu_bmd {
     int version;              /* envelope version 10, 12, 14 or 15 */
@@ -56,15 +90,21 @@ typedef struct mu_bmd {
     mu_bmd_mesh *meshes;
     mu_bmd_action *actions;
     mu_bmd_bone *bones;
+    mu_bmd_anomaly *anomalies;
+    int32_t anomaly_count;
+    int32_t strict_anomalies; /* anomalies with strict = 1 */
 } mu_bmd;
 
 enum { MU_BMD_OK = 0, MU_BMD_ERROR = 1 };
 
 /* Decode and parse a complete file image. On failure, *model is zeroed and
- * error receives a message (when error_size > 0). */
+ * error receives a message (when error_size > 0). Anomalies do not fail. */
 int mu_bmd_load(const uint8_t *raw, size_t size, mu_bmd *model, char *error, size_t error_size);
 int mu_bmd_load_file(const char *path, mu_bmd *model, char *error, size_t error_size);
 void mu_bmd_free(mu_bmd *model);
+
+/* Short name of an anomaly kind ("nonfinite", "normal-index", ...). */
+const char *mu_bmd_anomaly_name(int kind);
 
 /* Little-endian field readers for the payload (no alignment requirement). */
 int16_t mu_bmd_s16(const uint8_t *p);
