@@ -3,8 +3,9 @@
    that mugl batches, client glDrawArrays, glClear under a toggled scissor test), observes them (glIsEnabled,
    glGetBooleanv, glPushAttrib/glPopAttrib of the enable bit, a display list compiled with enables inside), and sets
    texture filters and wraps repeatedly on two texture objects, around a glPushAttrib/glPopAttrib of the texture bit
-   and a glTexParameterf, and pushes and pops matrices around nothing, geometry, queries, mode switches and state calls,
-   with repeated and changed viewports. Prints an FNV hash of the last of 400 frames and a checksum of every query answer. mugl
+   and a glTexParameterf, and pushes and pops matrices around nothing, geometry, queries, mode switches, state calls and
+   glDrawElements/glDrawRangeElements and extension calls, with repeated and changed viewports (these cases caught a
+   since-removed matrix-call queue that did not flush before element and extension draws). Prints an FNV hash of the last of 400 frames and a checksum of every query answer. mugl
    applies the mask after frame 100; in a test program MUGL_MASK (environment) overrides C:\mutools\mugl-hotpatch.txt.
    Compare the builtin opengl32 (WINEDLLOVERRIDES=opengl32=b) with the proxy (opengl32=n,b next to the exe) at masks
    with and without 1073741824. */
@@ -16,6 +17,7 @@ static float fr(int i, int k) { unsigned x = (unsigned)(i * 2654435761u + k * 40
 static unsigned qsum = 2166136261u;
 static void q(unsigned v) { qsum = (qsum ^ v) * 16777619u; }
 static GLuint texa, texb, list;
+static void (WINAPI *p_mtc)(GLenum, const GLfloat *); static void (WINAPI *p_dre)(GLenum, GLuint, GLuint, GLsizei, GLenum, const void *);
 static float arr[4][9];
 static void tri(int i, int ccw, float z)
 {
@@ -94,6 +96,20 @@ static void scene(int f)
         if (i % 6 == 2) { glViewport(64, 64, 256, 256); tri(800 + i, 1, 0.4f); glViewport(0, 0, 512, 512); }
         if (i % 6 == 4) { glPushAttrib(GL_VIEWPORT_BIT); glViewport(32, 32, 128, 128); glPopAttrib(); glViewport(32, 32, 128, 128); tri(900 + i, 1, 0.4f); glViewport(0, 0, 512, 512); }
         if (i % 8 == 5) { GLint d; glPushMatrix(); glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &d); q((unsigned)d); glPopMatrix(); glRasterPos2f(-0.5f, -0.5f); }
+        /* 10. array draws and extension calls inside spans, after deferred enables (the interface renderer's pattern) */
+        {
+            static const GLushort ix[6] = {0, 1, 2, 0, 2, 3};
+            for (int v = 0; v < 4; v++) { arr[v][0] = (v == 1 || v == 2); arr[v][1] = v >= 2; arr[v][2] = fr(i, 40); arr[v][3] = 0.5f; arr[v][4] = 0.8f; arr[v][5] = 0.9f;
+                                          arr[v][6] = ((v == 1 || v == 2) ? 0.3f : 0); arr[v][7] = (v >= 2 ? 0.3f : 0); arr[v][8] = 0; }
+            glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity(); glOrtho(-1, 1, -1, 1, -1, 1);
+            glMatrixMode(GL_MODELVIEW); glPushMatrix(); glLoadIdentity(); glMultMatrixf(m); glScalef(0.5f + fr(i, 41), 0.5f + fr(i, 42), 1);
+            glDisable(GL_CULL_FACE); glEnable(GL_BLEND); if (p_mtc) p_mtc(0x84C0, arr[0]);
+            glEnableClientState(GL_VERTEX_ARRAY); glEnableClientState(GL_COLOR_ARRAY);
+            glColorPointer(4, GL_FLOAT, 36, arr[0] + 2); glVertexPointer(3, GL_FLOAT, 36, arr[0] + 6);
+            if (i & 1) glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, ix); else if (p_dre) p_dre(GL_TRIANGLES, 0, 3, 6, GL_UNSIGNED_SHORT, ix);
+            glDisableClientState(GL_VERTEX_ARRAY); glDisableClientState(GL_COLOR_ARRAY);
+            glPopMatrix(); glMatrixMode(GL_PROJECTION); glPopMatrix(); glMatrixMode(GL_MODELVIEW); glDisable(GL_BLEND);
+        }
     }
     /* 8. display list with enables compiled inside */
     glCallList(list); tri(502, 0, 0.25f);
@@ -107,6 +123,8 @@ int main(void)
     PIXELFORMATDESCRIPTOR pfd = { sizeof(pfd), 1, PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, PFD_TYPE_RGBA, 32 };
     pfd.cDepthBits = 24; SetPixelFormat(dc, ChoosePixelFormat(dc, &pfd), &pfd);
     HGLRC rc = wglCreateContext(dc); wglMakeCurrent(dc, rc);
+    p_mtc = (void *)wglGetProcAddress("glMultiTexCoord4fvARB"); p_dre = (void *)wglGetProcAddress("glDrawRangeElementsEXT");
+    if (!p_dre) p_dre = (void *)wglGetProcAddress("glDrawRangeElements");
     static unsigned char tex[64 * 64 * 4];
     for (int i = 0; i < 64 * 64; i++) { tex[i * 4] = (unsigned char)(i * 7); tex[i * 4 + 1] = (unsigned char)((i / 64) * 4); tex[i * 4 + 2] = (unsigned char)(((i % 64) ^ (i / 64)) * 4); tex[i * 4 + 3] = (unsigned char)(i & 255); }
     glGenTextures(1, &texa); glBindTexture(GL_TEXTURE_2D, texa); glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);

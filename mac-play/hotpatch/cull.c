@@ -87,44 +87,24 @@ static int mx_idx(const char *n, int *cache)
    batches recorded under the old matrix. */
 #define MX_PRE(name) static int ix_ = -1; if (mugl_busy) mugl_sync_from(mx_idx(name, &ix_)); if (!passthrough) matrix_modified()
 #define MX_POST mx_epoch++
-/* v7.6 (bit 1073741824): matrix calls made after a glPushMatrix are queued; a glPopMatrix that finds its push still
-   queued drops the push and everything after it (the matrix stack ends exactly as before and nothing in between could
-   observe it). Anything that may observe the matrices sends the queue first, in order (mq_replay in mugl.c): glBegin,
-   every exported call except the filtered state calls and glViewport, glGet*, glMatrixMode, attribute pops, display
-   lists and full synchronization. */
-enum { MQ_PUSH, MQ_LOADID, MQ_TRANSF, MQ_ROTF, MQ_ROTD, MQ_SCALEF, MQ_SCALED, MQ_MULTF, MQ_MULTD, MQ_LOADF, MQ_LOADD, MQ_ORTHO, MQ_FRUSTUM };
-typedef struct { unsigned char kind; float f[16]; double d[16]; } MqOp;
-static MqOp mq[48]; static int mq_n, mq_enabled = 1; static long st_mq_dropped, st_mq_sent;
-static int mq_can(void) { return lz_on && mq_enabled && !passthrough && !lz_list && filter_enabled; }
-/* 1 = queued (only inside a queued push span) */
-static int mq_add(int kind, const float *f, int nf, const double *d, int nd)
-{
-    if (!mq_n || !mq_can() || mq_n == 48) return 0;
-    MqOp *o = &mq[mq_n++]; o->kind = (unsigned char)kind;
-    for (int i = 0; i < nf; i++) o->f[i] = f[i];
-    for (int i = 0; i < nd; i++) o->d[i] = d[i];
-    matrix_modified(); mx_epoch++;
-    return 1;
-}
 typedef void (WINAPI *PFNtf)(GLfloat, GLfloat, GLfloat); typedef void (WINAPI *PFNtd)(GLdouble, GLdouble, GLdouble);
 typedef void (WINAPI *PFNmxr)(GLfloat, GLfloat, GLfloat, GLfloat); typedef void (WINAPI *PFNrd)(GLdouble, GLdouble, GLdouble, GLdouble);
 typedef void (WINAPI *PFNmf)(const GLfloat *); typedef void (WINAPI *PFNmd)(const GLdouble *);
 typedef void (WINAPI *PFNod)(GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
 typedef GLint (WINAPI *PFNrm)(GLenum);
-void WINAPI mugl_glTranslatef(GLfloat x, GLfloat y, GLfloat z) { { float a[3] = {x, y, z}; if (mq_add(MQ_TRANSF, a, 3, 0, 0)) return; if (mq_n) mq_replay(); } MX_PRE("glTranslatef"); R(glTranslatef, PFNtf)(x, y, z); MX_POST; }
-void WINAPI mugl_glRotatef(GLfloat a, GLfloat x, GLfloat y, GLfloat z) { { float v[4] = {a, x, y, z}; if (mq_add(MQ_ROTF, v, 4, 0, 0)) return; if (mq_n) mq_replay(); } MX_PRE("glRotatef"); R(glRotatef, PFNmxr)(a, x, y, z); MX_POST; }
-void WINAPI mugl_glRotated(GLdouble a, GLdouble x, GLdouble y, GLdouble z) { { double v[4] = {a, x, y, z}; if (mq_add(MQ_ROTD, 0, 0, v, 4)) return; if (mq_n) mq_replay(); } MX_PRE("glRotated"); R(glRotated, PFNrd)(a, x, y, z); MX_POST; }
-void WINAPI mugl_glScalef(GLfloat x, GLfloat y, GLfloat z) { { float a[3] = {x, y, z}; if (mq_add(MQ_SCALEF, a, 3, 0, 0)) return; if (mq_n) mq_replay(); } MX_PRE("glScalef"); R(glScalef, PFNtf)(x, y, z); MX_POST; }
-void WINAPI mugl_glScaled(GLdouble x, GLdouble y, GLdouble z) { { double a[3] = {x, y, z}; if (mq_add(MQ_SCALED, 0, 0, a, 3)) return; if (mq_n) mq_replay(); } MX_PRE("glScaled"); R(glScaled, PFNtd)(x, y, z); MX_POST; }
-void WINAPI mugl_glMultMatrixf(const GLfloat *m) { if (mq_add(MQ_MULTF, m, 16, 0, 0)) return; if (mq_n) mq_replay(); MX_PRE("glMultMatrixf"); R(glMultMatrixf, PFNmf)(m); MX_POST; }
-void WINAPI mugl_glMultMatrixd(const GLdouble *m) { if (mq_add(MQ_MULTD, 0, 0, m, 16)) return; if (mq_n) mq_replay(); MX_PRE("glMultMatrixd"); R(glMultMatrixd, PFNmd)(m); MX_POST; }
-void WINAPI mugl_glLoadMatrixf(const GLfloat *m) { if (mq_add(MQ_LOADF, m, 16, 0, 0)) return; if (mq_n) mq_replay(); MX_PRE("glLoadMatrixf"); R(glLoadMatrixf, PFNmf)(m); MX_POST; }
-void WINAPI mugl_glLoadMatrixd(const GLdouble *m) { if (mq_add(MQ_LOADD, 0, 0, m, 16)) return; if (mq_n) mq_replay(); MX_PRE("glLoadMatrixd"); R(glLoadMatrixd, PFNmd)(m); MX_POST; }
-void WINAPI mugl_glOrtho(GLdouble l, GLdouble r, GLdouble b, GLdouble t, GLdouble n, GLdouble f) { { double a[6] = {l, r, b, t, n, f}; if (mq_add(MQ_ORTHO, 0, 0, a, 6)) return; if (mq_n) mq_replay(); } MX_PRE("glOrtho"); R(glOrtho, PFNod)(l, r, b, t, n, f); MX_POST; }
-void WINAPI mugl_glFrustum(GLdouble l, GLdouble r, GLdouble b, GLdouble t, GLdouble n, GLdouble f) { { double a[6] = {l, r, b, t, n, f}; if (mq_add(MQ_FRUSTUM, 0, 0, a, 6)) return; if (mq_n) mq_replay(); } MX_PRE("glFrustum"); R(glFrustum, PFNod)(l, r, b, t, n, f); MX_POST; }
+void WINAPI mugl_glTranslatef(GLfloat x, GLfloat y, GLfloat z) { MX_PRE("glTranslatef"); R(glTranslatef, PFNtf)(x, y, z); MX_POST; }
+void WINAPI mugl_glRotatef(GLfloat a, GLfloat x, GLfloat y, GLfloat z) { MX_PRE("glRotatef"); R(glRotatef, PFNmxr)(a, x, y, z); MX_POST; }
+void WINAPI mugl_glRotated(GLdouble a, GLdouble x, GLdouble y, GLdouble z) { MX_PRE("glRotated"); R(glRotated, PFNrd)(a, x, y, z); MX_POST; }
+void WINAPI mugl_glScalef(GLfloat x, GLfloat y, GLfloat z) { MX_PRE("glScalef"); R(glScalef, PFNtf)(x, y, z); MX_POST; }
+void WINAPI mugl_glScaled(GLdouble x, GLdouble y, GLdouble z) { MX_PRE("glScaled"); R(glScaled, PFNtd)(x, y, z); MX_POST; }
+void WINAPI mugl_glMultMatrixf(const GLfloat *m) { MX_PRE("glMultMatrixf"); R(glMultMatrixf, PFNmf)(m); MX_POST; }
+void WINAPI mugl_glMultMatrixd(const GLdouble *m) { MX_PRE("glMultMatrixd"); R(glMultMatrixd, PFNmd)(m); MX_POST; }
+void WINAPI mugl_glLoadMatrixf(const GLfloat *m) { MX_PRE("glLoadMatrixf"); R(glLoadMatrixf, PFNmf)(m); MX_POST; }
+void WINAPI mugl_glLoadMatrixd(const GLdouble *m) { MX_PRE("glLoadMatrixd"); R(glLoadMatrixd, PFNmd)(m); MX_POST; }
+void WINAPI mugl_glOrtho(GLdouble l, GLdouble r, GLdouble b, GLdouble t, GLdouble n, GLdouble f) { MX_PRE("glOrtho"); R(glOrtho, PFNod)(l, r, b, t, n, f); MX_POST; }
+void WINAPI mugl_glFrustum(GLdouble l, GLdouble r, GLdouble b, GLdouble t, GLdouble n, GLdouble f) { MX_PRE("glFrustum"); R(glFrustum, PFNod)(l, r, b, t, n, f); MX_POST; }
 GLint WINAPI mugl_glRenderMode(GLenum m)
 {
-    if (mq_n) mq_replay();
     static int ix_ = -1; if (mugl_busy) mugl_sync_from(mx_idx("glRenderMode", &ix_));
     GLint r = R(glRenderMode, PFNrm)(m);
     if (!passthrough) cull_rendermode_ok = m == GL_RENDER;
