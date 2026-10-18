@@ -1111,9 +1111,11 @@ def run_mutations(machine, args, worlds):
         lib_path = build_library(mid, tmp/f'libclient_env_mut{mid}.{SUFFIX}')
         L = Library(lib_path)
         g = random.Random(args.seed + mid)
-        disagree, cases = 0, 6
+        disagree, cases = 0, 12
         for index in range(cases):
             case = make_case(g, index, L, mworlds, fuzz=False)
+            if mid == 3:   # the landing needs the world-time window (time % 8192 < 2048)
+                case['time'] = f32(8192.0*g.randrange(1, 300) + g.uniform(0, 800))
             r = run_case(machine, L, case, max(args.ticks, 30), args.render_every, random.Random(case['seed']))
             if r['mismatch']:
                 disagree += 1

@@ -1352,3 +1352,16 @@ survey. Renders are local in `~/Documents/mu-mac-tools/native/renders/gfx/` (`pr
 Then decode `DefineCompactedFont`, register device fonts and wire keyboard/IME. Make the integration zero-copy
 (per-window viewports, shared textures). Wire CharacterInfoFrame and the item-hover tooltip.
 
+## Ambient life and weather (NATIVE-ENV-001)
+
+Branch `claude/native-env`. Read [`research/client-environment.md`](research/client-environment.md) and
+[`../reconstructed/environment/README.md`](../reconstructed/environment/README.md).
+
+**Checks.** `scripts/validate_environment.py --cases 400 --ticks 60 --mutations` (private captures): 400/400 cases,
+94/94 probes, 10/10 mutations. Portable: `reconstructed/environment/test_environment.py`,
+`native/tests/test_native_env.py` (private part: installed target worlds). Renders stay local in
+`~/Documents/mu-mac-tools/native/renders/env/`.
+
+**Next:** a live window-only capture of Lorencia/Noria to confirm the invisible-leaf reading; RenderObject
+`0x016d4fe4`, RenderBodyShadow `0x012bc07a` and CreateSprite/CreateParticle for the shadows, glows and splashes;
+the Icarus dragons and the Devil Square/Chaos Castle rain.
