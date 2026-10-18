@@ -77,6 +77,21 @@ typedef struct mu_object_particle {
     float scale;
 } mu_object_particle;
 
+/* NATIVE-LOGIN-001: CreateSprite calls of the login world's RenderObjectVisual (one frame each; the
+ * client's sprite list is redrawn and cleared by RenderSprites every frame). */
+#define MU_OBJECT_SPRITES 512
+#define MU_OBJECT_BITMAPS 8
+typedef struct mu_object_sprite {
+    int32_t bitmap;
+    float position[3], scale, light[3], rotation;
+} mu_object_sprite;
+
+/* One RenderMesh call of an after-character render (login world slot 0x3c). */
+typedef struct mu_object_mesh {
+    mu_draw_options options;          /* mesh_plus_one, flags, alpha, blend mesh, light, uv, texture */
+    mu_draw_model_fields fields;      /* model colour +0x54 at the call */
+} mu_object_mesh;
+
 typedef struct mu_objects_runtime {
     int ready;
     uint8_t *images;                  /* count * MU_OBJ_SIZE: client OBJECT images */
@@ -101,6 +116,17 @@ typedef struct mu_objects_runtime {
     uint32_t steps;
     long ticks, moved, light_events, particle_events, sound_events, move_unsupported;
     long drawn, draw_unsupported, draw_skipped, culled;
+    /* NATIVE-LOGIN-001 */
+    uint32_t now_ms;                  /* timeGetTime of the step and the frame (mu_objects_set_clock) */
+    float play_speed[MU_OBJECT_TYPES];   /* action 0 PlaySpeeds set by a world handler's creation hook */
+    uint8_t play_speed_set[MU_OBJECT_TYPES];
+    mu_object_sprite sprites[MU_OBJECT_SPRITES];
+    int32_t sprite_count;
+    int32_t bitmap_ids[MU_OBJECT_BITMAPS];
+    mu_image bitmaps[MU_OBJECT_BITMAPS]; /* effect bitmaps of the sprites and particles, by client index */
+    int32_t bitmap_count;
+    int32_t *after_list, after_count; /* RenderObjects_AfterCharacter draws of the last frame */
+    long sprite_events, after_meshes;
 } mu_objects_runtime;
 
 typedef struct mu_objects {
@@ -214,6 +240,28 @@ uint32_t mu_objects_particle_quads(const mu_objects *objects, int32_t bitmap, co
 long mu_objects_render_raster(mu_objects *objects, const mu_world *map, mu_raster *raster,
                               const mu_terrain_frustum *frustum, int32_t scene_state, const float eye[3],
                               const float target[3]);
+
+/* ---- NATIVE-LOGIN-001: the login world's handler in the runtime (reconstructed/objects/login_world.h) ----
+ *
+ * World 0x5e runs CGMLogInScene_Ex: its creation hook (types 0x26/0x36 hidden, range -428.571, the ship's
+ * action PlaySpeed 0.23), move hook (scroll, pulsing blend light), custom render (+0xa), RenderObjectVisual
+ * (lantern sprites, mist particles: stand-in billboards) and, after the characters, the ship's glow meshes. */
+
+/* timeGetTime for the next step and frame (the pulse of 0x00cfec8d). */
+void mu_objects_set_clock(mu_objects *objects, uint32_t now_ms);
+/* RenderObjects_AfterCharacter (mu_login_after_pass) for the frustum polygon: rt.after_list.
+ * Worlds other than 0x5e: none. */
+void mu_objects_after_visibility(mu_objects *objects, const mu_terrain_frustum *frustum, int32_t scene_state);
+/* The after-character draw of rt.after_list[k]: the RenderObject setup (body light, pose) and the
+ * world's slot 0x3c, whose RenderMesh calls land in meshes (at most capacity). Returns the model, or
+ * NULL; *count receives the mesh calls. */
+mu_object_model *mu_objects_prepare_after(mu_objects *objects, int32_t k, const mu_world *map, int32_t scene_state,
+                                          mu_object_mesh *meshes, int32_t capacity, int32_t *count);
+/* Stand-in billboards (sprites of this frame and particles) of bitmap table entry `slot`
+ * (rt.bitmap_ids[slot]), 4 vertices each, additive. Returns the vertex count. */
+uint32_t mu_objects_billboard_quads(const mu_objects *objects, int32_t slot, const float eye[3],
+                                    const float target[3], mu_fx_vertex *vertices, uint32_t capacity,
+                                    mu_fx_draw_state *state);
 
 /* Case-insensitive resolution of a path relative to game_root ("Data/..."). */
 int mu_objects_resolve(const char *game_root, const char *relative, char *out, size_t size);

@@ -7,6 +7,10 @@
  *   mu-render ui inventory|tooltip ... (NATIVE-HUD-001, tools/mu_render_hud.c)
  *   mu-render ui servers --root GAME [--size 1024x768] [--list FILE] [--select N] [--frames "x,y,d,u;..."]
  *                        [--fixed-font FACE] [--text565 T] [--text566 T] [--text567 T] --out s.png
+ *   login and servers take --scene [--objects-dir DIR] [--steps N] (NATIVE-LOGIN-001): the 3D login world
+ *   (core/mu_login: World95, its camera record, the objects of a local decoded EncTerrain95.plain with the
+ *   login world's handler) after N logic steps of 40 ms, drawn under the 2D layer instead of black;
+ *   --no-ui draws the 3D part alone.
  *
  * The draw calls come from the reconstructed client routines in
  * reconstructed/ui (validated against the client by scripts/validate_ui.py);
@@ -17,7 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../core/mu_login.h"
 #include "../core/mu_png.h"
+#include "../core/mu_raster.h"
 #include "../core/mu_ui_assets.h"
 #include "../core/mu_ui_font.h"
 #include "../core/mu_ui_raster.h"
@@ -34,6 +40,9 @@ typedef struct ui_options {
     int32_t select;
     float clear_gray;     /* servers: clear colour (the 3D login world is not rendered) */
     int no_text;          /* servers: blank every string (masks for comparisons) */
+    int scene, no_ui;     /* NATIVE-LOGIN-001: the 3D login world under the 2D layer */
+    const char *objects_dir;
+    int32_t steps;
     float fade;
     int32_t width, height;
     uint32_t now, total;
@@ -53,6 +62,8 @@ static int parse(ui_options *o, int argc, char **argv)
     o->select = -2;
     o->time_ms = 3000;
     o->fixed_font = NULL;
+    o->steps = 25;
+    o->objects_dir = getenv("MU_OBJECTS_PLAIN_DIR");
     if (argc < 3)
         return 1;
     o->screen = argv[2];
@@ -77,6 +88,10 @@ static int parse(ui_options *o, int argc, char **argv)
         else if (!strcmp(a, "--select") && v) { o->select = atoi(v); ++i; }
         else if (!strcmp(a, "--clear") && v) { o->clear_gray = (float)atof(v); ++i; }
         else if (!strcmp(a, "--no-text")) { o->no_text = 1; }
+        else if (!strcmp(a, "--scene")) { o->scene = 1; }
+        else if (!strcmp(a, "--no-ui")) { o->no_ui = 1; }
+        else if (!strcmp(a, "--objects-dir") && v) { o->objects_dir = v; ++i; }
+        else if (!strcmp(a, "--steps") && v) { o->steps = atoi(v); ++i; }
         else if (!strcmp(a, "--credits") && v) { o->credits = v; ++i; }
         else if (!strcmp(a, "--time") && v) { o->time_ms = atoi(v); ++i; }
         else if (!strcmp(a, "--size") && v) {
@@ -103,7 +118,8 @@ static void usage(const char *self)
                     "          [--text454 TEXT] [--text455 TEXT] [--format456 FMT] [--fade F]\n"
                     "          servers: [--list FILE] [--select N] [--frames \"x,y,down,up;...\"] [--fixed-font FACE]\n"
                     "                   [--text565 TEXT] [--text566 TEXT] [--text567 TEXT] [--clear GRAY] [--no-text]\n"
-                    "          credits: [--credits FILE] [--time MS]\n", self);
+                    "          credits: [--credits FILE] [--time MS]\n"
+                    "          login, servers: [--scene [--objects-dir DIR] [--steps N] [--no-ui]]\n", self);
 }
 
 typedef struct texture_entry {
@@ -162,6 +178,50 @@ static int finish(const ui_options *o, mu_ui_raster *raster, const char *screen,
            o->out ? "\"" : "");
     free(top);
     return 0;
+}
+
+/* NATIVE-LOGIN-001: the login scene's 3D part (mu_scenemgr_login_render_3d order, core/mu_login) into the
+ * 2D raster, which the overlay then draws on (the client draws both into one frame). Returns 0 when drawn. */
+static int scene_background(const ui_options *o, mu_ui_raster *ui)
+{
+    mu_login_session *s = calloc(1, sizeof *s);
+    mu_raster r;
+    if (!s || mu_raster_init(&r, o->width, o->height)) {
+        free(s);
+        return 1;
+    }
+    int status = 1;
+    if (mu_login_init(s, o->root, o->objects_dir, (uint32_t)o->width, (uint32_t)o->height, 20.0f)) {
+        fprintf(stderr, "login scene: %s\n", s->error);
+    } else {
+        uint32_t now = 1000;
+        for (int32_t k = 0; k < o->steps; ++k, now += 40) {
+            mu_login_step(s, now);   /* the scene-3 tick head, then a frame (one logic step per 40 ms frame) */
+            mu_login_frame(s, now);
+        }
+        if (getenv("MU_LOGIN_DUMP_LIGHT"))
+            for (int32_t i = 0; s->has_objects && i < s->objects.count; ++i) {
+                const uint8_t *img = s->objects.rt.images + (size_t)i * MU_OBJ_SIZE;
+                fprintf(stderr, "light t%d (%.0f,%.0f) vis%d copy %.3f %.3f %.3f frame %.2f\n",
+                        mu_obj_i32(img, MU_OBJF_TYPE), mu_obj_f32(img, MU_OBJF_POSITION),
+                        mu_obj_f32(img, MU_OBJF_POSITION + 4), img[MU_OBJF_VISIBLE],
+                        mu_obj_f32(img, MU_OBJF_LIGHT_COPY), mu_obj_f32(img, MU_OBJF_LIGHT_COPY + 4),
+                        mu_obj_f32(img, MU_OBJF_LIGHT_COPY + 8), mu_obj_f32(img, MU_OBJF_FRAME));
+            }
+        mu_login_begin_render(s, now, 1);
+        mu_login_draw_soft(s, &r);
+        size_t row = (size_t)o->width * 4;
+        for (int32_t y = 0; y < o->height; ++y)
+            memcpy(ui->rgba + (size_t)(o->height - 1 - y) * row, r.color + (size_t)y * row, row);
+        char report[1024];
+        mu_login_report(s, report, sizeof report);
+        printf("%s\n", report);
+        status = 0;
+    }
+    mu_login_free(s);
+    free(s);
+    mu_raster_free(&r);
+    return status;
 }
 
 static void clear(mu_ui_state *state)
@@ -292,9 +352,13 @@ static int render_login(const ui_options *o)
     for (int i = 0; i < 5; ++i)
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
     clear(&state);
-    mu_ui_begin_bitmap(&state);
-    mu_ui_login_overlay(&state, &text, &fade, 640, &strings);
-    mu_ui_end_bitmap(&state);
+    if (o->scene && scene_background(o, &raster))
+        return 1;
+    if (!o->no_ui) {
+        mu_ui_begin_bitmap(&state);
+        mu_ui_login_overlay(&state, &text, &fade, 640, &strings);
+        mu_ui_end_bitmap(&state);
+    }
     int result = finish(o, &raster, "login", loaded, 3);
     fprintf(stderr, "login: font %s %s (%d px), strings %s\n", font.face,
             font.backend ? "CoreText" : "placeholder", font.height,
@@ -604,6 +668,8 @@ static int render_servers(const ui_options *o)
         state.sink.call(state.sink.user, MU_GL_CLEARCOLOR, color, 4, NULL, 0);
         state.sink.call(state.sink.user, MU_GL_CLEAR, &mask, 1, NULL, 0);
     }
+    if (o->scene && scene_background(o, &raster))
+        return 1;
     mu_ui_begin_bitmap(&state);
     mu_ui_ctx_set_font(&ctx, ctx.fonts.normal);
     mu_ui_login_overlay(&state, &text, &fade, 640, &strings);   /* 0x01858108..: logo and copyright lines */

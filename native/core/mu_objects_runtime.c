@@ -6,6 +6,8 @@
  * labelled stand-in (mu_object_particle). */
 #include "mu_objects.h"
 
+#include "../../reconstructed/objects/login_world.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +29,13 @@ static void runtime_free(mu_objects_runtime *rt)
     free(rt->next);
     free(rt->events);
     free(rt->draw_list);
+    free(rt->after_list);
     mu_image_free(&rt->fire);
     mu_image_free(&rt->smoke);
+    for (int32_t i = 0; i < rt->bitmap_count; ++i)
+        mu_image_free(&rt->bitmaps[i]);
+    rt->bitmap_count = 0;
+    rt->after_list = NULL;
     rt->images = NULL;
     rt->pointers = NULL;
     rt->next = NULL;
@@ -69,7 +76,8 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     rt->event_capacity = 4 * n + 4096;
     rt->events = calloc((size_t)rt->event_capacity, sizeof *rt->events);
     rt->draw_list = calloc((size_t)(n ? n : 1), sizeof *rt->draw_list);
-    if (!rt->images || !rt->pointers || !rt->next || !rt->events || !rt->draw_list) {
+    rt->after_list = calloc((size_t)(n ? n : 1), sizeof *rt->after_list);
+    if (!rt->images || !rt->pointers || !rt->next || !rt->events || !rt->draw_list || !rt->after_list) {
         runtime_free(rt);
         return 1;
     }
@@ -82,7 +90,15 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         rt->next[i] = -1;
         mu_obj_set_f32(img, MU_OBJF_ALPHA_RATE, 0.1f);   /* constructor 0x0129e792 (live value) */
         int32_t sector = -1;
-        const int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, NULL);
+        mu_obj_event created[4];
+        mu_obj_log create_log = {0, 4, 0, created};
+        const int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, &create_log);
+        for (int32_t k = 0; k < create_log.count; ++k)   /* a handler's PlaySpeed write (login world type 5) */
+            if (created[k].call == MU_OBJ_CALL_PLAY_SPEED && created[k].args[1] == 0 &&
+                created[k].args[0] < MU_OBJECT_TYPES) {
+                rt->play_speed[created[k].args[0]] = fbits(created[k].args[2]);
+                rt->play_speed_set[created[k].args[0]] = 1;
+            }
         if (status == MU_OBJ_SKIPPED) {
             ++rt->outside;
             continue;
@@ -109,6 +125,16 @@ int mu_objects_start(mu_objects *o, const char *game_root)
     rt->seed = 1;
     load_bitmap(game_root, "Fire01.jpg", &rt->fire);
     load_bitmap(game_root, "smoke01.jpg", &rt->smoke);
+    if (o->world == MU_LOGIN_WORLD) {   /* the login world's sprite and particle bitmaps (startup loader) */
+        static const struct { int32_t id; const char *name; } b[] = {
+            {MU_LOGIN_BITMAP_SHINY02, "Shiny02.jpg"}, {MU_LOGIN_BITMAP_FLARE01, "flare01.jpg"},
+            {MU_LOGIN_BITMAP_CLOUDS, "clouds.jpg"}, {MU_LOGIN_BITMAP_WATERFALL, "WATERFALL1.jpg"}};
+        for (size_t k = 0; k < sizeof b / sizeof b[0] && rt->bitmap_count < MU_OBJECT_BITMAPS; ++k) {
+            rt->bitmap_ids[rt->bitmap_count] = b[k].id;
+            load_bitmap(game_root, b[k].name, &rt->bitmaps[rt->bitmap_count]);
+            ++rt->bitmap_count;
+        }
+    }
     rt->ready = 1;
     return 0;
 }
@@ -135,12 +161,12 @@ static int32_t step_rand(void *context)
 }
 
 /* Action PlaySpeeds of object models are set by the model loader (not traced); worlds 0 and 0x8d
- * never ask for them. */
+ * never ask for them. The login world's creation hook sets type 5 action 0 to 0.23. */
 static float step_speed(void *context, int32_t type, int32_t action)
 {
-    (void)context;
-    (void)type;
-    (void)action;
+    step_context *c = context;
+    if (action == 0 && type >= 0 && type < MU_OBJECT_TYPES && c->o->rt.play_speed_set[type])
+        return c->o->rt.play_speed[type];
     return 0.0f;
 }
 
@@ -172,6 +198,27 @@ static void tick(mu_objects *o, int32_t index, float speed)
     ++o->rt.ticks;
 }
 
+/* Stand-in lifetimes and motion per bitmap (the legacy particle system is not reconstructed). */
+static int32_t particle_life(int32_t bitmap)
+{
+    switch (bitmap) {
+    case MU_OBJ_BITMAP_FIRE: return 24;
+    case MU_LOGIN_BITMAP_CLOUDS: return 40;
+    case MU_LOGIN_BITMAP_WATERFALL: return 20;
+    default: return 32;
+    }
+}
+
+static float particle_rise(int32_t bitmap)
+{
+    switch (bitmap) {
+    case MU_OBJ_BITMAP_FIRE: return 2.5f;
+    case MU_LOGIN_BITMAP_CLOUDS: return 1.0f;
+    case MU_LOGIN_BITMAP_WATERFALL: return -2.0f;
+    default: return 3.0f;
+    }
+}
+
 static void spawn(mu_objects_runtime *rt, const mu_obj_event *e)
 {
     if (rt->particle_count >= MU_OBJECT_PARTICLES)
@@ -184,7 +231,7 @@ static void spawn(mu_objects_runtime *rt, const mu_obj_event *e)
     }
     p->sub = (int32_t)e->args[10];
     p->scale = fbits(e->args[11]);
-    p->life = p->bitmap == MU_OBJ_BITMAP_FIRE ? 24 : 32;
+    p->life = particle_life(p->bitmap);
     p->age = 0;
 }
 
@@ -195,7 +242,7 @@ static void particles_step(mu_objects_runtime *rt)
         mu_object_particle p = rt->particles[i];
         if (++p.age >= p.life)
             continue;
-        p.position[2] += p.bitmap == MU_OBJ_BITMAP_FIRE ? 2.5f : 3.0f;
+        p.position[2] += particle_rise(p.bitmap);
         rt->particles[kept++] = p;
     }
     rt->particle_count = kept;
@@ -222,6 +269,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
     mi.speed = step_speed;
     mi.rand_fn = step_rand;
     mi.context = &c;
+    mi.now_ms = rt->now_ms;
     mu_obj_event local[64];
     for (int32_t k = 0; k < pass.count; ++k) {
         const mu_obj_event *e = &pass.events[k];
@@ -286,6 +334,7 @@ void mu_objects_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t s
 {
     mu_objects_runtime *rt = &o->rt;
     rt->draw_count = 0;
+    rt->sprite_count = 0;   /* RenderSprites draws and clears the frame's sprites */
     if (!rt->ready)
         return;
     render_context c = {o};
@@ -314,6 +363,98 @@ mu_object_model *mu_objects_prepare(mu_objects *o, int32_t k, const mu_world *ma
     return mu_objects_prepare_index(o, o->rt.draw_list[k], map, scene_state, options);
 }
 
+/* The login world's custom render (slot 0x38) as the custom-render answer of RenderObject: its
+ * RenderBody call is kept for the draw. */
+typedef struct custom_context {
+    mu_objects *o;
+    mu_obj_log log;
+} custom_context;
+
+static uint8_t login_custom(void *context, int32_t index)
+{
+    custom_context *c = context;
+    return (uint8_t)mu_login_custom_render(image(c->o, index), index, &c->log);
+}
+
+/* Pose and skin object i's model at its animation state with the body light of model_fields. */
+static int pose_object(mu_objects *o, uint8_t *img, mu_object_model *m)
+{
+    mu_model_params p = m->model.params;
+    memcpy(p.origin, img + MU_OBJF_POSITION, 12);
+    memcpy(p.angles, img + MU_OBJF_ANGLE, 12);
+    p.body_scale = mu_obj_f32(img, MU_OBJF_SCALE);
+    memcpy(p.color, o->rt.model_fields + MU_MDL_COLOR, 12);
+    p.lighting = o->rt.model_fields[MU_MDL_LIGHTING];
+    if (o->uniform_light > 0.0f)
+        for (int q = 0; q < 3; ++q)
+            p.color[q] = o->uniform_light;
+    /* RenderObject's Transform(bones, min, max, OBB, translate, 0, 0.4, +0xe4, +0xe8) (compared in the
+     * render family): vertex scale 0, light ambient 0.4, light scale +0xe4, light minimum +0xe8 (the
+     * record's two values, 0.8 and 0.2 by default) instead of the 0.4/0.4/0.4 of the default wrapper */
+    p.vertex_scale = 0.0f;
+    p.light_ambient = 0.4f;
+    p.light_scale = mu_obj_f32(img, MU_OBJF_VALUE_E4);
+    p.light_minimum = mu_obj_f32(img, MU_OBJF_VALUE_E8);
+    mu_model_apply_params(&m->model, &p);
+    mu_model_set_state(&m->model, mu_obj_u16(img, MU_OBJF_ACTION), mu_obj_f32(img, MU_OBJF_FRAME),
+                       mu_obj_f32(img, MU_OBJF_PRIOR_FRAME), mu_obj_u16(img, MU_OBJF_PRIOR_ACTION));
+    return mu_model_pose(&m->model) == MU_MODEL_OK && mu_model_transform_all(&m->model) == MU_MODEL_OK;
+}
+
+typedef struct visual_context {
+    mu_objects *o;
+    const mu_object_model *m;
+} visual_context;
+
+static int32_t visual_rand(void *context)
+{
+    visual_context *c = context;
+    return mu_obj_msvc_rand(&c->o->rt.seed);
+}
+
+/* TransformPosition on the object's posed bones. The client poses static objects with the body origin
+ * and scale in the bones (Animation's translate argument) and reads matrix * local; the native pose keeps
+ * the bones in model space, so the same point is scale * (matrix * local) + origin. */
+static void visual_bone(void *context, int32_t bone, const float local[3], float out[3])
+{
+    visual_context *c = context;
+    const mu_model *model = &c->m->model;
+    out[0] = out[1] = out[2] = 0.0f;
+    if (bone < 0 || bone >= c->m->bmd.bone_count)
+        return;
+    const float *b = mu_model_bone_matrices(model) + 12 * bone;
+    for (int r = 0; r < 3; ++r) {
+        float v = b[4 * r] * local[0] + b[4 * r + 1] * local[1] + b[4 * r + 2] * local[2] + b[4 * r + 3];
+        out[r] = v * model->params.body_scale + model->params.origin[r];
+    }
+}
+
+static void login_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m)
+{
+    mu_objects_runtime *rt = &o->rt;
+    visual_context c = {o, m};
+    mu_obj_event events[64];
+    mu_obj_log log = {0, 64, 0, events};
+    mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
+    for (int32_t k = 0; k < log.count; ++k) {
+        const mu_obj_event *e = &events[k];
+        if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite_count < MU_OBJECT_SPRITES) {
+            mu_object_sprite *sp = &rt->sprites[rt->sprite_count++];
+            sp->bitmap = (int32_t)e->args[0];
+            for (int q = 0; q < 3; ++q) {
+                sp->position[q] = fbits(e->args[1 + q]);
+                sp->light[q] = fbits(e->args[5 + q]);
+            }
+            sp->scale = fbits(e->args[4]);
+            sp->rotation = fbits(e->args[8]);
+            ++rt->sprite_events;
+        } else if (e->call == MU_OBJ_CALL_PARTICLE) {
+            spawn(rt, e);
+            ++rt->particle_events;
+        }
+    }
+}
+
 mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_world *map, int32_t scene_state,
                                           mu_draw_options *options)
 {
@@ -323,6 +464,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     uint8_t *img = image(o, i);
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
+    const int login = o->world == MU_LOGIN_WORLD;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -333,11 +475,24 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     in.light.scene_state = scene_state;
     in.light.terrain_ready = map != NULL;
     in.light.time = map ? map->time : 0.0f;
+    mu_obj_event custom_events[4];
+    custom_context cc = {o, {0, 4, 0, custom_events}};
+    if (login) {
+        in.custom_render = login_custom;
+        in.context = &cc;
+    }
     mu_obj_event local[16];
     mu_obj_log log = {0, 16, 0, local};
     memset(rt->model_fields, 0, sizeof rt->model_fields);
     const int status = mu_obj_render(img, i, rt->model_fields, 0, &in, &log);
-    mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
+    int posed = 0;
+    if (login) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
+        if (m && m->loaded && status != MU_OBJ_SKIPPED)
+            posed = pose_object(o, img, m);
+        login_visual(o, i, img, posed ? m : NULL);
+    } else {
+        mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
+    }
     if (status == MU_OBJ_SKIPPED) {
         ++rt->draw_skipped;
         return NULL;
@@ -350,21 +505,12 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     for (int32_t j = 0; j < log.count; ++j)
         if (local[j].call == MU_OBJ_CALL_BODY)
             body = &local[j];
+    for (int32_t j = 0; !body && j < cc.log.count; ++j)
+        if (custom_events[j].call == MU_OBJ_CALL_BODY)
+            body = &custom_events[j];   /* the login world's custom render drew the body */
     if (status == MU_OBJ_OK && !body)
         return NULL;   /* a per-world custom render took the object */
-    mu_model_params p = m->model.params;
-    memcpy(p.origin, img + MU_OBJF_POSITION, 12);
-    memcpy(p.angles, img + MU_OBJF_ANGLE, 12);
-    p.body_scale = mu_obj_f32(img, MU_OBJF_SCALE);
-    memcpy(p.color, rt->model_fields + MU_MDL_COLOR, 12);
-    p.lighting = rt->model_fields[MU_MDL_LIGHTING];
-    if (o->uniform_light > 0.0f)
-        for (int q = 0; q < 3; ++q)
-            p.color[q] = o->uniform_light;
-    mu_model_apply_params(&m->model, &p);
-    mu_model_set_state(&m->model, mu_obj_u16(img, MU_OBJF_ACTION), mu_obj_f32(img, MU_OBJF_FRAME),
-                       mu_obj_f32(img, MU_OBJF_PRIOR_FRAME), mu_obj_u16(img, MU_OBJF_PRIOR_ACTION));
-    if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
+    if (!posed && !pose_object(o, img, m))
         return NULL;
     mu_draw_default_options(options);
     options->textures = &m->textures;
@@ -388,6 +534,181 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     options->time = map ? map->time : 0.0f;
     ++rt->drawn;
     return m;
+}
+
+/* ---- NATIVE-LOGIN-001: the after-character pass ---- */
+
+void mu_objects_set_clock(mu_objects *o, uint32_t now_ms) { o->rt.now_ms = now_ms; }
+
+void mu_objects_after_visibility(mu_objects *o, const mu_terrain_frustum *f, int32_t scene_state)
+{
+    mu_objects_runtime *rt = &o->rt;
+    rt->after_count = 0;
+    if (!rt->ready || o->world != MU_LOGIN_WORLD)
+        return;
+    mu_obj_render_inputs in;
+    memset(&in, 0, sizeof in);
+    in.world = o->world;
+    in.scene_state = scene_state;
+    in.x2d = f->x2d;
+    in.y2d = f->y2d;
+    mu_obj_log log = {0, rt->event_capacity, 0, rt->events};
+    mu_login_after_pass(&rt->world, &in, &rt->render_counter, &log);
+    for (int32_t k = 0; k < log.count; ++k)
+        if (log.events[k].call == MU_OBJ_CALL_AFTER_DRAW && rt->after_count < o->count)
+            rt->after_list[rt->after_count++] = log.events[k].object;
+}
+
+/* Texture slot whose BMD texture name is `name` (case-insensitive), or -1. */
+static int32_t texture_slot(const mu_object_model *m, const char *name)
+{
+    for (int32_t k = 0; k < m->bmd.mesh_count; ++k) {
+        const char *a = m->bmd.meshes[k].texture, *b = name;
+        while (*a && *b && (*a | 0x20) == (*b | 0x20)) {
+            ++a;
+            ++b;
+        }
+        if (!*a && !*b)
+            return k;
+    }
+    return -1;
+}
+
+mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_world *map, int32_t scene_state,
+                                          mu_object_mesh *meshes, int32_t capacity, int32_t *count)
+{
+    mu_objects_runtime *rt = &o->rt;
+    *count = 0;
+    if (!rt->ready || k < 0 || k >= rt->after_count)
+        return NULL;
+    const int32_t i = rt->after_list[k];
+    uint8_t *img = image(o, i);
+    const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
+    mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
+    if (!m || !m->loaded || 0.01f > mu_obj_f32(img, MU_OBJF_ALPHA))
+        return NULL;   /* the setup 0x017ec896 refuses */
+    mu_obj_light_inputs light;
+    memset(&light, 0, sizeof light);
+    light.primary = map ? map->primary : NULL;
+    light.frame = map ? map->light : NULL;
+    light.scene_state = scene_state;
+    light.terrain_ready = map != NULL;
+    light.time = map ? map->time : 0.0f;
+    memset(rt->model_fields, 0, sizeof rt->model_fields);
+    mu_obj_body_light(img, rt->model_fields, &light);
+    if (mu_obj_i32(img, MU_OBJF_HIDDEN_MESH) == -2 || !pose_object(o, img, m))
+        return NULL;
+    mu_obj_event events[40];
+    mu_obj_log log = {0, 40, 0, events};
+    mu_login_after_render(img, rt->model_fields, i, rt->now_ms, NULL, NULL, &log);
+    float color[3];
+    memcpy(color, rt->model_fields + MU_MDL_COLOR, 12);   /* the colour the slot restores last */
+    float current[3];
+    memcpy(current, m->model.params.color, 12);
+    for (int32_t e = 0; e < log.count; ++e) {
+        const mu_obj_event *ev = &events[e];
+        if (ev->call == MU_OBJ_CALL_COLOR) {
+            for (int q = 0; q < 3; ++q)
+                current[q] = fbits(ev->args[q]);
+            continue;
+        }
+        if (ev->call != MU_OBJ_CALL_MESH || *count >= capacity)
+            continue;
+        mu_object_mesh *mesh = &meshes[(*count)++];
+        mu_draw_default_options(&mesh->options);
+        mesh->options.textures = &m->textures;
+        mesh->options.mesh_plus_one = (int32_t)ev->args[0] + 1;
+        mesh->options.flags = ev->args[1];
+        mesh->options.alpha = fbits(ev->args[2]);
+        mesh->options.select = (int32_t)ev->args[3];
+        mesh->options.color_scale = fbits(ev->args[4]);
+        mesh->options.u_offset = fbits(ev->args[5]);
+        mesh->options.v_offset = fbits(ev->args[6]);
+        int32_t texture = (int32_t)ev->args[7];
+        if (texture == MU_LOGIN_BITMAP_SAILBOAT) {   /* Object95\HSSailboat04_R.jpg: the model's own slot */
+            const int32_t slot = texture_slot(m, "HSSailboat04_R.jpg");
+            texture = slot >= 0 ? MU_SCENE_TEXTURE_BASE + slot : -1;
+        }
+        mesh->options.texture = texture;
+        mesh->options.time = map ? map->time : 0.0f;
+        memset(&mesh->fields, 0, sizeof mesh->fields);
+        memcpy(mesh->fields.color, current, sizeof current);
+        mesh->options.fields = NULL;   /* set by the caller after copying (points into the array) */
+        ++rt->after_meshes;
+    }
+    (void)color;
+    return m;
+}
+
+uint32_t mu_objects_billboard_quads(const mu_objects *o, int32_t slot, const float eye[3], const float target[3],
+                                    mu_fx_vertex *v, uint32_t capacity, mu_fx_draw_state *state)
+{
+    const mu_objects_runtime *rt = &o->rt;
+    memset(state, 0, sizeof *state);
+    if (slot < 0 || slot >= rt->bitmap_count)
+        return 0;
+    const int32_t bitmap = rt->bitmap_ids[slot];
+    const mu_image *image = &rt->bitmaps[slot];
+    state->visible = 1;
+    state->blend = 1;
+    state->texture = image->width > 0;
+    state->src = 1u;   /* additive (ONE, ONE), as sprites and these particles are drawn bright */
+    state->dst = 1u;
+    float forward[3] = {target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]};
+    float right[3] = {forward[1], -forward[0], 0.0f};
+    float len = sqrtf(right[0] * right[0] + right[1] * right[1]);
+    if (len <= 0.0f)
+        len = 1.0f;
+    right[0] /= len;
+    right[1] /= len;
+    /* up = right x forward, normalised (the billboard faces the camera) */
+    float up[3] = {right[1] * forward[2] - right[2] * forward[1], right[2] * forward[0] - right[0] * forward[2],
+                   right[0] * forward[1] - right[1] * forward[0]};
+    float ul = sqrtf(up[0] * up[0] + up[1] * up[1] + up[2] * up[2]);
+    if (ul <= 0.0f)
+        ul = 1.0f;
+    for (int q = 0; q < 3; ++q)
+        up[q] /= ul;
+    const float base = image->width > 0 ? (float)image->width * 0.5f : 32.0f;
+    uint32_t n = 0;
+    static const float corner[4][2] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+    static const float uv[4][2] = {{0, 1}, {1, 1}, {1, 0}, {0, 0}};
+    for (int32_t i = 0; i < rt->sprite_count && n + 4 <= capacity; ++i) {
+        const mu_object_sprite *sp = &rt->sprites[i];
+        if (sp->bitmap != bitmap)
+            continue;
+        const float size = base * sp->scale;
+        const float rc = cosf(sp->rotation * 0.017453292f), rs = sinf(sp->rotation * 0.017453292f);
+        const float color[4] = {sp->light[0], sp->light[1], sp->light[2], 1.0f};
+        for (int q = 0; q < 4; ++q) {
+            const float cx = corner[q][0] * rc - corner[q][1] * rs, cy = corner[q][0] * rs + corner[q][1] * rc;
+            mu_fx_vertex *x = &v[n++];
+            for (int k = 0; k < 3; ++k)
+                x->position[k] = sp->position[k] + (right[k] * cx + up[k] * cy) * size;
+            x->texcoord[0] = uv[q][0];
+            x->texcoord[1] = uv[q][1];
+            memcpy(x->color, color, sizeof color);
+        }
+    }
+    for (int32_t i = 0; i < rt->particle_count && n + 4 <= capacity; ++i) {
+        const mu_object_particle *p = &rt->particles[i];
+        if (p->bitmap != bitmap)
+            continue;
+        const float f = (float)p->age / (float)p->life;
+        const float size = base * 0.5f * p->scale * (1.0f + f);
+        const float fade = f < 0.2f ? f * 5.0f : (1.0f - f) * 1.25f;
+        const float color[4] = {p->light[0] * fade * 4.0f, p->light[1] * fade * 4.0f, p->light[2] * fade * 4.0f, 1.0f};
+        for (int q = 0; q < 4; ++q) {
+            mu_fx_vertex *x = &v[n++];
+            for (int k = 0; k < 3; ++k)
+                x->position[k] = p->position[k] + (right[k] * corner[q][0] + up[k] * corner[q][1]) * size;
+            x->texcoord[0] = uv[q][0];
+            x->texcoord[1] = uv[q][1];
+            memcpy(x->color, color, sizeof color);
+        }
+    }
+    state->vertex_count = n;
+    return n;
 }
 
 /* ---- stand-in particles ---- */
