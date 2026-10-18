@@ -1108,6 +1108,19 @@ Branch `claude/native-ui2`. Read [`research/client-ui-widgets.md`](research/clie
 the server message box `0x010750e1`), `CUIMng::Update`'s focus and docking (`0x011e3143`, `0x011e3823`), and the
 GFx layer (MENU/CREDIT/EXIT buttons).
 
+## In-game interface: GFx boundary, item grid, item pass, tooltips (NATIVE-HUD-001)
+
+Branch `claude/native-hud`. Read [`research/client-hud.md`](research/client-hud.md).
+
+**Checks.** `make test` runs `reconstructed/hud/test_hud.py` and `native/tests/test_native_hud.py` (synthetic game
+root). `scripts/validate_hud.py --sections grid,slots,pass,item3d,html,format --cases 100` runs the Unicorn
+comparison; `MU_GAME_ROOT` makes the format section use the installed itemtooltiptext formats (never written out).
+Renders and live captures stay local under `~/Documents/mu-mac-tools/native/renders/hud/`.
+
+**Next:** the tooltip builder `0x00f0eb44` as a whole (price, set/socket/excellent blocks, name colours) and the
+remaining formatter types; RenderObjectScreen `0x016c2d82`/RenderPartObject `0x017e63f4`; a capture of the routine
+that fills the item render-info map `0x06fbb624` (true scale); native windows fed by the GFx boundary.
+
 ## Client data tables (NATIVE-DATA-001)
 
 Branch `claude/native-data`. It adds the following:
