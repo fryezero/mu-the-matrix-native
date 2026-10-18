@@ -146,8 +146,10 @@ $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/
 	$(CC) $(CFLAGS) -fPIC -shared core/mu_protocol.c -o $@
 
 # Data tables (NATIVE-DATA-001): no Crypto++ or image dependencies.
-DATA_SRC := core/mu_data.c $(RECON)/data/data_codec.c $(RECON)/data/data_tables.c
-DATA_HDR := core/mu_data.h $(RECON)/data/data_codec.h $(RECON)/data/data_tables.h
+DATA_SRC := core/mu_data.c $(RECON)/data/data_codec.c $(RECON)/data/data_tables.c $(RECON)/data/item_attributes.c \
+	$(RECON)/data/table_layouts.c
+DATA_HDR := core/mu_data.h $(RECON)/data/data_codec.h $(RECON)/data/data_tables.h $(RECON)/data/item_attributes.h \
+	$(RECON)/data/table_layouts.h
 
 $(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
 	@mkdir -p $(BUILD)

@@ -1129,3 +1129,25 @@ Renders stay local in `~/Documents/mu-mac-tools/native/renders/world/`.
 **Next:** compare the native walk with a live in-game capture; reconcile with the parallel `native-path` path-finder
 port; port the path finder's target-area branch and the
 weapon/mount cases of SetPlayerWalk/SetPlayerStop (or adopt the NATIVE-ACTOR-001 tables).
+
+## Item attributes and table layouts (NATIVE-DATA-002)
+
+Branch `claude/native-data2`. It adds the following:
+
+* `reconstructed/data/item_attributes.*`: named Item.bmd attributes, plus C for max durability `0x00ccc5b0` and the warehouse/repair bans.
+* `reconstructed/data/table_layouts.*`: record layouts for Item.bmd and 27 tables, each field with an evidence class.
+* `mu-data`: named JSON dumps, `item ITEM_BMD CODE` and `layouts`.
+* `scripts/validate_item_fields.py`.
+* Tests: `reconstructed/data/test_item_attributes.py`, `native/tests/test_native_data.py` and the private `tests/test_data_tables_private.py`.
+
+[Finding](research/client-item-attributes.md).
+
+**Checks run:**
+
+* The private validator: 604,981 comparisons, 0 mismatches. Report under `evidence/client-data-tables/`.
+* Synthetic tests and `make test`.
+
+**Next:**
+
+* Reconstruct the requirement routine `0x00ccf659`, the ItemConvert bonus formulas (FormulaData evaluator `0x0117b5eb`) and the price routine `0x0169320b`.
+* Trace consumers for the data-only layouts (Muun, Mix, Quest).

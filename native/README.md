@@ -150,7 +150,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 
 ## Data tables (NATIVE-DATA-001)
 
-`make -C native build/mu-data` builds the table tool. It needs no Crypto++ or image libraries. Commands: `list [GAME_ROOT]`, `dump FILE`, `item-models FILE --json`, `model ITEM_BMD INDEX`, `decode FILE --out PATH` and `mpr Lang.mpr`. Output is local only; never commit decoded tables or text. See [the finding](../docs/research/client-data-tables.md).
+`make -C native build/mu-data` builds the table tool. It needs no Crypto++ or image libraries. Commands: `list [GAME_ROOT]`, `dump FILE`, `item-models FILE --json`, `model ITEM_BMD INDEX`, `decode FILE --out PATH` and `mpr Lang.mpr`. Output is local only; never commit decoded tables or text. See [the finding](../docs/research/client-data-tables.md). NATIVE-DATA-002 adds named fields to `dump`, plus `item ITEM_BMD CODE` (attributes, client max durability, bans) and `layouts` ([finding](../docs/research/client-item-attributes.md)).
 
 ## Tests
 

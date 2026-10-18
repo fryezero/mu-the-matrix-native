@@ -119,7 +119,7 @@ The decoded payload is a zip archive with 141 entries: `\Text(kor).txt`, `\Skill
   - arcabattlescript: counted, R 264, key `0xa4c6`;
   - itemleveltooltip: whole minus 4, key `0xe2f1`.
   
-  Keys came from the checksum agreement with `0x00976895` over all 65,536 keys. Their decode units are not observed. movereq.bmd and parts of minimap.bmd show `buf ^ key3 ^ 0x98` patterns, which fits the `0x00f1600f` codec with a key whose low byte is `0x98` (inference from file bytes only).
+  Keys came from the checksum agreement with `0x00976895` over all 65,536 keys. Their decode units are not observed. NATIVE-DATA-002 found no checksum call, key immediate or path string for them in the restored text ([details](client-item-attributes.md#skillbmd-minimapbmd-movereqbmd-loaders-static)). movereq.bmd and parts of minimap.bmd show `buf ^ key3 ^ 0x98` patterns, which fits the `0x00f1600f` codec with a key whose low byte is `0x98` (inference from file bytes only).
 - **Not referenced by any restored path string**: credit.bmd, mixold.bmd (the Mix loader leaves 864 bytes unread), jewelofharmonysmelt.bmd (named only in an error message) and G_Camera_Angle_Position.bmd.
 - **Another format**: CustomText, CustomRank, DailyReward, ItemBank, ItemOptionSystem_Exc, ItemPriceSystem, ServerInfo, ServerListDisplay and Lang.template share an identical 64-byte prefix. Their names do not occur in main.exe's restored strings. Presumably IGC.dll loads them; that module is opaque by scope.
 - **Other agents' areas, located but not catalogued**: terrain `.att`/`.map`/`.obj` loaders, `*.mapack` (`0x00975391`, key `0xb6fd`) and `*.mab` (`0x0097db09`, key `0xe7ca`).
@@ -163,7 +163,7 @@ Static, inside `0x00cd558e`:
 
 - u32 code `+0x000`, u16 section `+0x004`, u16 index `+0x006`;
 - char[260] folder `+0x008`, char[260] file `+0x10c`, char[64] name `+0x210`;
-- 45 zero-initialised scalar fields from `+0x250` to `+0x2c0`, with widths 1/2/4. `mu_item_fields` lists them; `mu-data dump` prints them by offset, with uncovered spans (for example 24 bytes at `+0x291`) as hex. Field meanings are not recovered.
+- 45 zero-initialised scalar fields from `+0x250` to `+0x2c0`, with widths 1/2/4. NATIVE-DATA-002 names them, and the arrays and flags the constructor misses, from their consumers; see [client-item-attributes.md](client-item-attributes.md).
 
 ## Native module and CLI
 
@@ -201,6 +201,6 @@ Private reports stay under `evidence/client-data-tables/`.
 
 - Callers and startup order are not observed. Loader inputs are the installed files, entered directly.
 - The `.data` key bytes are a model. The emulator runs in a Linux/Wine-derived capture, which says nothing about native Windows equivalence.
-- Record field meanings, other than item folder/file/name and code, are not recovered. The next step is to trace consumers (inventory size, requirements, option tables) to name `mu_item_fields`.
+- Record fields: Item.bmd and 27 other layouts are named in NATIVE-DATA-002 ([client-item-attributes.md](client-item-attributes.md)), with per-field evidence classes.
 - The Lang.mpr contents (localized text, skills, gates/moves, NPC names) need the package password, which sits behind the protection boundary.
 - skill.bmd, minimap.bmd, movereq.bmd and the other matched-only files need their loaders. Those are presumably in non-restored code; a capture of the routine that loads them would close this.
