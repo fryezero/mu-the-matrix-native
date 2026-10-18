@@ -161,6 +161,9 @@ of these rules and runs the tool on a synthetic world tree.
 
 ## 5. Static objects: blocked
 
+NATIVE-OBJECTS-001 ([client-objects.md](client-objects.md)) verified the loader, record layout and object model
+table against the client, and showed that the client's own loader instructions refuse every installed file.
+
 The object loader `0x016d9ac5` decodes `EncTerrain<n>.obj` with `0x0098c5f2` and reads: version, map
 number, int16 count, then per record int16 type, position, angle, scale and version-dependent extras (30,
 32, 33, 45, 46 or 54 bytes). Every installed `.obj` length (dated Feb 2026, like `main.exe`) equals

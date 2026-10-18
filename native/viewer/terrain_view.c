@@ -16,7 +16,11 @@
  * (Effect\flare01, RenderTerrainAlphaBitmap) under the focus point, 4 the
  * graphics option 4 (0x4000 neighbour faces). Headless: --lights --frustum
  * --decal --detail N. Game logic is not run; the clock only feeds the terrain
- * animation (water/lava scroll, sway, the 32-frame animated layer). */
+ * animation (water/lava scroll, sway, the 32-frame animated layer).
+ * NATIVE-OBJECTS-001: --objects installed|gallery|PLAIN_FILE draws static map
+ * objects through the mesh-draw port (mu_objects; the installed files are
+ * refused, see docs/research/client-objects.md); --object-tile X,Y,
+ * --object-columns N and --object-spacing U lay out the gallery; B toggles them. */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +34,7 @@
 #endif
 
 #include "../core/mu_camera.h"
+#include "../core/mu_objects.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_terrain.h"
@@ -45,6 +50,14 @@ typedef struct terrain_view {
     mu_camera camera;
     mu_world *map;
     GLuint names[MU_WORLD_BITMAPS], extra_names[MU_WORLD_EXTRA];
+    /* NATIVE-OBJECTS-001 */
+    const char *objects_source;
+    int32_t object_tile[2], object_columns;
+    float object_spacing;
+    int has_objects, show_objects;
+    long objects_drawn;
+    mu_objects objects;
+    mu_gl_backend object_gl[MU_OBJECT_TYPES];
 } terrain_view;
 
 static GLuint gl_upload(const mu_image *image, int linear, int clamp)
@@ -75,8 +88,20 @@ static void gl_textures(terrain_view *v)
     }
 }
 
+static void gl_objects(terrain_view *v)
+{
+    for (int32_t t = 0; v->has_objects && t < MU_OBJECT_TYPES; ++t) {
+        memset(&v->object_gl[t], 0, sizeof v->object_gl[t]);
+        if (v->objects.models[t] && v->objects.models[t]->loaded)
+            mu_gl_upload(&v->object_gl[t], &v->objects.models[t]->textures, 0);
+    }
+}
+
 static void gl_release(terrain_view *v)
 {
+    for (int32_t t = 0; v->has_objects && t < MU_OBJECT_TYPES; ++t)
+        if (v->object_gl[t].textures)
+            mu_gl_release(&v->object_gl[t]);
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i)
         if (v->names[i]) {
             glDeleteTextures(1, &v->names[i]);
@@ -205,8 +230,55 @@ static void draw_gl(terrain_view *v, int32_t w, int32_t h, mu_terrain_tile_stats
         mu_terrain_decal(&scene, 0x7ef7, v->camera.target[0], v->camera.target[1], 2.0f, 2.0f, white, v->time * 0.05f,
                          1.0f, 5.0f, 1, 0, &sink);
     }
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    v->objects_drawn = 0;
+    if (v->has_objects && v->show_objects) {
+        mu_draw_options options;
+        mu_draw_default_options(&options);
+        for (int32_t i = 0; i < v->objects.count; ++i) {
+            mu_object_model *m = mu_objects_place(&v->objects, i, v->map);
+            if (!m)
+                continue;
+            mu_render_backend backend;
+            mu_gl_backend_bind(&v->object_gl[m->type], &backend);
+            options.textures = &m->textures;
+            mu_draw_stats ds = {0, 0, 0, 0};
+            if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+                ++v->objects_drawn;
+        }
+    }
     if (stats)
         *stats = local;
+}
+
+static void soft_objects(terrain_view *v, mu_raster *raster)
+{
+    v->objects_drawn = 0;
+    if (!v->has_objects || !v->show_objects)
+        return;
+    mu_render_backend backend;
+    mu_raster_backend(raster, &backend);
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    raster->linear = 1;
+    for (int32_t i = 0; i < v->objects.count; ++i) {
+        mu_object_model *m = mu_objects_place(&v->objects, i, v->map);
+        if (!m)
+            continue;
+        raster->textures = m->textures.slots;
+        raster->texture_count = m->textures.count;
+        raster->texture_filter = m->textures.filter;
+        raster->texture_wrap = m->textures.wrap;
+        options.textures = &m->textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+            ++v->objects_drawn;
+    }
+    raster->textures = NULL;
+    raster->texture_count = 0;
+    raster->texture_filter = NULL;
+    raster->texture_wrap = NULL;
 }
 
 static int render_soft(terrain_view *v, uint8_t *pixels)
@@ -236,6 +308,7 @@ static int render_soft(terrain_view *v, uint8_t *pixels)
         mu_world_frame(v->map, v->time);
         mu_world_draw_raster(v->map, &raster, 0, 0, 251, 251, &stats);
     }
+    soft_objects(v, &raster);
     memcpy(pixels, raster.color, (size_t)v->width * (size_t)v->height * 4);
     mu_raster_free(&raster);
     return 0;
@@ -249,6 +322,7 @@ static int render_gl(terrain_view *v, uint8_t *pixels)
         return 1;
     }
     gl_textures(v);
+    gl_objects(v);
     draw_gl(v, v->width, v->height, NULL);
     glFinish();
     mu_gl_read(v->width, v->height, pixels);
@@ -271,6 +345,9 @@ static int headless(terrain_view *v)
     char hash[65];
     mu_sha256_hex(pixels, bytes, hash);
     printf("{\"backend\": \"%s\", \"sha256\": \"%s\"", gl ? "gl" : "soft", hash);
+    if (v->has_objects)
+        printf(", \"objects\": %d, \"objects_drawn\": %ld, \"object_models\": %d", v->objects.count,
+               v->objects_drawn, v->objects.models_loaded);
     if (!status && v->compare) {
         status = gl ? render_soft(v, other) : render_gl(v, other);
         long differ = 0;
@@ -314,6 +391,7 @@ static int windowed(terrain_view *v)
     }
     SDL_GL_SetSwapInterval(1);
     gl_textures(v);
+    gl_objects(v);
     uint64_t frequency = SDL_GetPerformanceFrequency(), last = SDL_GetPerformanceCounter(), start = last;
     long frames = 0;
     int running = 1, dragging = 0;
@@ -343,6 +421,7 @@ static int windowed(terrain_view *v)
                 case SDLK_l: v->lights = !v->lights; break;
                 case SDLK_f: v->frustum = !v->frustum; break;
                 case SDLK_k: v->decal = !v->decal; break;
+                case SDLK_b: v->show_objects = !v->show_objects; break;
                 case SDLK_4: v->map->detail = v->map->detail >= 4 ? 0 : 4; break;
                 case SDLK_r:
                     v->camera.target[0] = v->camera.target[1] = 12800.0f;
@@ -395,10 +474,10 @@ static int windowed(terrain_view *v)
             char text[256];
             snprintf(text, sizeof text,
                      "World%d  faces %ld  alpha %ld  grass %ld  refused %ld  t=%.1fs  [L]ights %s [F]rustum %s "
-                     "[K] decal %s [4] detail %d",
+                     "[K] decal %s [4] detail %d  o[B]jects %ld",
                      v->map->report.folder, stats.faces, stats.alpha_faces, stats.grass, stats.unsupported,
                      (double)v->time / 1000.0, v->lights ? "on" : "off", v->frustum ? "on" : "off",
-                     v->decal ? "on" : "off", v->map->detail);
+                     v->decal ? "on" : "off", v->map->detail, v->objects_drawn);
             SDL_SetWindowTitle(window, text);
         }
         if (v->seconds > 0.0f && (double)(now - start) / (double)frequency >= (double)v->seconds)
@@ -426,6 +505,10 @@ int mu_terrain_viewer_main(int argc, char **argv)
     v.camera.fov_y = 50.0f;
     v.camera.near_plane = 50.0f;
     v.camera.far_plane = 80000.0f;
+    v.object_tile[0] = v.object_tile[1] = 128;
+    v.object_columns = 12;
+    v.object_spacing = 600.0f;
+    v.show_objects = 1;
     if (argc < 3) {
         fprintf(stderr, "usage: mu-viewer --terrain ROOT --world N [--headless --out PNG --backend gl|soft]\n");
         return 2;
@@ -446,6 +529,14 @@ int mu_terrain_viewer_main(int argc, char **argv)
         else if (!strcmp(k, "--height")) { v.height = atoi(val); ++i; }
         else if (!strcmp(k, "--seconds")) { v.seconds = strtof(val, NULL); ++i; }
         else if (!strcmp(k, "--time")) { v.time = strtof(val, NULL); ++i; }
+        else if (!strcmp(k, "--objects")) { v.objects_source = val; ++i; }
+        else if (!strcmp(k, "--object-columns")) { v.object_columns = atoi(val); ++i; }
+        else if (!strcmp(k, "--object-spacing")) { v.object_spacing = strtof(val, NULL); ++i; }
+        else if (!strcmp(k, "--object-tile")) {
+            if (sscanf(val, "%d,%d", &v.object_tile[0], &v.object_tile[1]) != 2)
+                return 2;
+            ++i;
+        }
         else if (!strcmp(k, "--yaw")) { v.camera.yaw = strtof(val, NULL); ++i; }
         else if (!strcmp(k, "--pitch")) { v.camera.pitch = strtof(val, NULL); ++i; }
         else if (!strcmp(k, "--distance")) { v.camera.distance = strtof(val, NULL); ++i; }
@@ -467,7 +558,26 @@ int mu_terrain_viewer_main(int argc, char **argv)
     v.map->detail = v.detail;
     mu_world_load_extra(v.map, v.root, 0x7ef7, "Effect/flare01.jpg", 1, 1);   /* decal texture, LINEAR + CLAMP */
     place_camera(&v);
+    if (v.objects_source) {
+        mu_objects_init(&v.objects, v.world);
+        int st;
+        if (!strcmp(v.objects_source, "installed"))
+            st = mu_objects_load_installed(&v.objects, v.root, error, sizeof error);
+        else if (!strcmp(v.objects_source, "gallery"))
+            st = mu_objects_gallery(&v.objects, v.root, v.map, v.object_tile[0], v.object_tile[1], v.object_columns,
+                                    v.object_spacing, error, sizeof error);
+        else
+            st = mu_objects_load_plain_file(&v.objects, v.objects_source, error, sizeof error);
+        if (st == MU_OBJECTS_FILE_OK) {
+            mu_objects_load_models(&v.objects, v.root, 0);
+            v.has_objects = 1;
+        } else {
+            fprintf(stderr, "objects: %s\n", error);
+        }
+    }
     int status = v.headless ? headless(&v) : windowed(&v);
+    if (v.objects_source)
+        mu_objects_free(&v.objects);
     mu_world_free(v.map);
     return status;
 }
