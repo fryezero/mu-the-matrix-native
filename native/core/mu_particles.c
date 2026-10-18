@@ -14,17 +14,18 @@
 /* Effect bitmaps first (MU_WORLD_PT_EFFECTS of them), then the world's rain02/rain03. NATIVE-JOINT-001 adds
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1. */
-#define MU_WORLD_PT_EFFECTS 13
+#define MU_WORLD_PT_EFFECTS 15
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
-    MU_JT_BITMAP_ENERGY, MU_PT_BITMAP_CLOUDS, MU_PT_BITMAP_WATERFALL1,  MU_PT_BITMAP_RAIN_SPLASH,
-    MU_PT_BITMAP_RAIN_RING};
+    MU_JT_BITMAP_ENERGY, MU_PT_BITMAP_CLOUDS, MU_PT_BITMAP_WATERFALL1,  MU_PT_BITMAP_LIGHTNING2,
+    MU_PT_BITMAP_SHINY1, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
     "Data/Effect/JointThunder01.OZJ", "Data/Effect/Spark01.OZJ", "Data/Effect/JointSpirit01.OZJ",
-    "Data/Effect/JointEnergy01.OZJ", "Data/Effect/clouds.OZJ", "Data/Effect/WATERFALL1.OZJ"};
+    "Data/Effect/JointEnergy01.OZJ", "Data/Effect/clouds.OZJ", "Data/Effect/WATERFALL1.OZJ",
+    "Data/Effect/lightning2.OZJ", "Data/Effect/Shiny01.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -973,6 +974,15 @@ static void v_bone(void *c, const mu_pt_visual_object *o, const char *bone, cons
     mu_world_particles_named_bone_position(v->model, v->bmd, bone, in, out);
 }
 
+/* TransformPosition(BoneTransform + 0x30 * bone, in, out, 0) (Dungeon's lightning, NATIVE-JOINT-001) */
+static void v_bone_index(void *c, const mu_pt_visual_object *o, int32_t bone, const float in[3], float out[3])
+{
+    visual_context *v = c;
+    (void)o;
+    if (v->model && v->bmd && bone < v->bmd->bone_count)
+        mu_world_particles_bone_position(v->model, bone, in, out);
+}
+
 static void v_particle(void *c, int32_t type, const float position[3], const float angle[3], const float light[3],
                        int32_t subtype, float scale, int32_t owner)
 {
@@ -1027,6 +1037,7 @@ int mu_world_particles_object_visual(mu_world_particles *p, mu_pt_visual_object 
     h.sprite = v_sprite;
     h.joint = v_joint;
     h.effect = v_effect;
+    h.bone_index_position = v_bone_index;
     h.world = p->world;
     h.world_time = p->world_time;
     const int handled = mu_pt_object_visual(object, &h);

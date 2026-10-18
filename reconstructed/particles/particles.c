@@ -1,5 +1,6 @@
 /* The legacy particle list: CreateParticle, MoveParticles, RenderParticles
  * (NATIVE-PARTICLE-001). See particles.h. */
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,6 +40,8 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 0x14;
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
+    case MU_PT_BITMAP_SHINY1:
+        return subtype == 0 || subtype == 1;
     default:
         return 0;
     }
@@ -212,6 +215,11 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             mu_vector_rotate(burst, m, p->velocity);
         }
         break;
+    case MU_PT_BITMAP_SHINY1:
+        /* 0x015e5c73: subtypes 0 and 1 */
+        p->lifetime = 18;
+        p->angle[0] = 45.0f;
+        break;
     case MU_PT_BITMAP_CLOUDS:
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
         p->lifetime = 300;
@@ -345,6 +353,14 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->scale = p->scale - (p->subtype == 1 ? 2.0f : 0.5f);
             if (0.2f > p->scale)
                 p->live = 0;
+            break;
+        case MU_PT_BITMAP_SHINY1:
+            /* 0x016599cd: the size follows a sine of the lifetime; subtype 1 smaller and spinning */
+            p->scale = (float)sin((double)((float)p->lifetime * 10.0f * 0.017453292f));
+            if (p->subtype == 1) {
+                p->scale = p->scale * 0.75f;
+                p->rotation = p->rotation - 12.0f;
+            }
             break;
         case MU_PT_BITMAP_CLOUDS:
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
