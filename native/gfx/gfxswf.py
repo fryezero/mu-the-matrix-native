@@ -309,18 +309,23 @@ def parse_font(tag: Tag) -> dict:
 
 
 def parse_compacted_font(tag: Tag) -> dict:
-    """GFx DefineCompactedFont: id then the compacted font data; the name is a
-    length-prefixed string near the start of the data block."""
+    """GFx DefineCompactedFont: id, then the font name as a NUL-terminated
+    string (the client's six are "Slate Mobile"), then the compacted glyph
+    data (not decoded).  Older readings took a length-prefixed name; both are
+    accepted."""
     d = tag.data
     fid = struct.unpack_from('<H', d, 0)[0]
     name = ''
-    # Scan for the first printable length-prefixed name in the first bytes.
-    for p in range(2, min(len(d) - 1, 16)):
-        n = d[p]
-        s = d[p + 1:p + 1 + n]
-        if 2 <= n <= 64 and all(32 <= c < 127 for c in s):
-            name = s.decode()
-            break
+    end = d.find(b'\0', 2, 2 + 66)
+    if end > 3 and all(32 <= c < 127 for c in d[2:end]):
+        name = d[2:end].decode()
+    else:
+        for p in range(2, min(len(d) - 1, 16)):
+            n = d[p]
+            s = d[p + 1:p + 1 + n]
+            if 2 <= n <= 64 and all(32 <= c < 127 for c in s):
+                name = s.decode()
+                break
     return {'id': fid, 'name': name, 'bytes': len(d), 'kind': tag.name}
 
 

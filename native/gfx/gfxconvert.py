@@ -15,8 +15,13 @@ What GFx adds and what this converter does with it:
 * `ImportAssets2` from `gfxfontlib.swf`: the GFx font library.  The imported
   font is copied in (renamed to its `$Symbol` name, as GFx's font map resolves
   it), so the movie needs no import at run time.
-* `DefineCompactedFont` (1005), external sounds/gradients: reported, not
-  converted.
+* `DefineCompactedFont` (1005, GFx's packed font format; six movies, all the
+  font "Slate Mobile"): replaced by the DefineFont2/3 of the same name that
+  other movies of the same GFx directory carry (NATIVE-GFX-002), with the
+  compacted font's character id, so the movie's text fields keep their font.
+  The packed glyph data itself is not decoded.  Without such a font the
+  fontconfig `$NormalFont` font is used under that name.
+* External sounds/gradients: reported, not converted.
 
 The conversion is a local preprocessing step; its outputs contain client data
 and must stay out of the repository.
@@ -227,6 +232,30 @@ class FontResolver:
             self._libs[rel] = g.parse_movie(data)
         return self._libs[rel]
 
+    def font_by_name(self, name: str):
+        """-> (tags, source) of the glyph-richest DefineFont2/3 called `name`
+        in the GFx directory's movies (cached), or (None, reason)."""
+        if not hasattr(self, '_named'):
+            self._named = {}
+        if name in self._named:
+            return self._named[name]
+        best = (None, f'no movie defines {name!r} with glyphs')
+        best_glyphs = 0
+        for path in sorted(self.movie_dir.glob('*.ozg')):
+            try:
+                movie = g.parse_movie(g.read_container(path)[1])
+            except (g.FormatError, OSError, ValueError):
+                continue
+            fonts = font_tags_by_name(movie)
+            for (fname, _bold), tags in fonts.items():
+                if fname != name:
+                    continue
+                info = g.parse_font(tags[0])
+                if info['glyphs'] > best_glyphs:
+                    best, best_glyphs = (tags, f'{path.stem}:{fname} ({info["glyphs"]} glyphs)'), info['glyphs']
+        self._named[name] = best
+        return best
+
     def resolve(self, url: str, symbol: str):
         """-> (tags, source description) or (None, reason)."""
         if self.mapping and symbol in self.mapping['map']:
@@ -334,7 +363,20 @@ def convert_movie(path: Path, fonts: FontResolver | None = None, drop_background
             if kept:
                 out += body[start:pos]
             continue
-        if code in (1002, 1003, 1004, 1005, 1006, 1007):
+        if code == 1005:
+            info = g.parse_compacted_font(tag)
+            tags, source = fonts.font_by_name(info['name']) if info['name'] else (None, 'unnamed')
+            if not tags:
+                tags, source = fonts.resolve('gfxfontlib.swf', '$NormalFont')
+            if not tags:
+                report.note(report.unconverted, f'{tag.name} {info["name"]} ({source})')
+                continue
+            for ft in tags:
+                out += g.encode_tag(ft.code, rename_font(ft, info['id'], info['name'] if ft.code in (48, 75) else None),
+                                    force_long=True)
+            report.fonts_inlined.append(f'{info["name"]}(compacted)<-{source}')
+            continue
+        if code in (1002, 1003, 1004, 1006, 1007):
             report.note(report.unconverted, tag.name)
             continue
         out += body[start:pos]
