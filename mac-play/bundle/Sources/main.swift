@@ -31,11 +31,16 @@ if let arg = cliArgs.first {
         // Headless install (what the Install window runs); --install-dry-run prints the plan and changes nothing.
         // Ctrl-C (SIGINT) or SIGTERM cancels like the window's Cancel button: the installer runs in its own process
         // group, so the app forwards the cancel to the whole tree and cleans up.
-        let gameDir = cliArgs.dropFirst().first
+        var rest = Array(cliArgs.dropFirst()), runtimeArchive: String?
+        if let i = rest.firstIndex(of: "--runtime-archive") {
+            guard i + 1 < rest.count else { FileHandle.standardError.write(Data("--runtime-archive needs a file\n".utf8)); exit(2) }
+            runtimeArchive = rest[i + 1]; rest.removeSubrange(i...(i + 1))
+        }
+        let gameDir = rest.first
         var finished = false, status: Int32 = 0
-        AppLog.write("cli \(arg) source=\(gameDir ?? "official installer")")
+        AppLog.write("cli \(arg) source=\(gameDir ?? "official installer") runtime=\(runtimeArchive ?? "default")")
         let meter = DownloadMeter(); var lastProgress = Date.distantPast
-        let session = Installer.start(gameDir: gameDir, dryRun: arg == "--install-dry-run", line: { l in
+        let session = Installer.start(gameDir: gameDir, runtimeArchive: runtimeArchive, dryRun: arg == "--install-dry-run", line: { l in
             if meter.feed(l) {
                 // One condensed progress line every 15 seconds instead of one per second.
                 guard Date().timeIntervalSince(lastProgress) >= 15 else { return }
@@ -84,8 +89,10 @@ if let arg = cliArgs.first {
           --dry-run         preflight and print what a start would do; changes nothing
           --check           preflight only
           --status          free runtime install state (exit 0 when ready)
-          --install [GAME_DIR]          install without a window (default: download the official game)
-          --install-dry-run [GAME_DIR]  print the installer's plan; changes nothing
+          --install [--runtime-archive FILE] [GAME_DIR]
+                            install without a window (default: download the official game and the default
+                            Wine runtime; --runtime-archive: use a Wine runtime file you already have)
+          --install-dry-run [--runtime-archive FILE] [GAME_DIR]  print the installer's plan; changes nothing
           --check-bundle    exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
           --rosetta-status  exit 0 when Rosetta 2 is installed
           --install-rosetta install Rosetta 2 (asks for administrator approval)
@@ -365,6 +372,9 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
     private let downloadRadio = NSButton(radioButtonWithTitle: "Download the game from the official site (about 2.2 GB)", target: nil, action: nil)
     private let folderRadio = NSButton(radioButtonWithTitle: "Use a Mu The Matrix folder I already have…", target: nil, action: nil)
     private let folderLabel = label("", small: true)
+    private let runtimeCheck = NSButton(checkboxWithTitle: "Use a faster Windows layer file I already have…", target: nil, action: nil)
+    private let runtimeLabel = label("", small: true)
+    private var runtimeFile: String?
     private let step = label("Ready. Takes about 10 minutes plus the game download (2.2 GB) and needs about 12 GB of free space.")
     private let detail = label("", small: true)
     private let bar = NSProgressIndicator()
@@ -412,6 +422,11 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
         folderLabel.maximumNumberOfLines = 1
         folderLabel.lineBreakMode = .byTruncatingMiddle
         folderLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        runtimeCheck.target = self; runtimeCheck.action = #selector(runtimeChanged)
+        runtimeLabel.maximumNumberOfLines = 2
+        runtimeLabel.lineBreakMode = .byTruncatingMiddle
+        runtimeLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        showRuntimeChoice()
         step.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
         bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = Double(total); bar.style = .bar
         logView.isEditable = false
@@ -423,7 +438,7 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
         let spacer = NSView(); spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let logButton = NSButton(title: "Open Log Folder", target: self, action: #selector(openLogs))
         let buttons = NSStackView(views: [logButton, spacer, closeButton, startButton])
-        let stack = NSStackView(views: [head, downloadRadio, folderRadio, folderLabel, step, bar, detail, scroll, buttons])
+        let stack = NSStackView(views: [head, downloadRadio, folderRadio, folderLabel, runtimeCheck, runtimeLabel, step, bar, detail, scroll, buttons])
         stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 10
         stack.setCustomSpacing(16, after: head)
         stack.edgeInsets = NSEdgeInsets(top: 18, left: 20, bottom: 18, right: 20)
@@ -437,6 +452,7 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
             step.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
             folderLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, constant: -40),
+            runtimeLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, constant: -40),
             buttons.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
         ])
     }
@@ -453,6 +469,44 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
     }
     @objc private func openLogs() { openLog() }
 
+    // ---- optional: a Wine runtime file the player already has (the faster CrossOver 26.3 build)
+
+    private func showRuntimeChoice() {
+        runtimeCheck.state = runtimeFile == nil ? .off : .on
+        runtimeLabel.stringValue = runtimeFile ?? "Optional. If your server team gave you \(RuntimeFile.testedName), choose it here: busy places run faster with it. Already installed? Click Install to apply it; the game and your settings stay."
+    }
+    @objc private func runtimeChanged() {
+        if runtimeCheck.state == .on { chooseRuntime() } else { runtimeFile = nil; showRuntimeChoice() }
+    }
+    /// Also used by the app menu's "Use Windows Layer File…".
+    @objc func chooseRuntime() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false; panel.canChooseFiles = true; panel.allowsMultipleSelection = false
+        panel.message = "Choose the Windows layer file (\(RuntimeFile.testedName), or another .tar.xz from your server team). It is unpacked, not moved."
+        panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+        if panel.runModal() == .OK, let url = panel.url {
+            if url.path.hasSuffix(".tar.xz") { runtimeFile = url.path } else {
+                let a = NSAlert(); a.messageText = "That is not a Windows layer file"
+                a.informativeText = "Choose a file whose name ends in .tar.xz, such as \(RuntimeFile.testedName)."
+                a.runModal()
+            }
+        }
+        showRuntimeChoice()
+    }
+
+    /// Before installing from a runtime file: a file that is not the tested build gets a warning (on the main queue).
+    private func confirmRuntimeFile(tested: Bool) -> Bool {
+        guard let f = runtimeFile, !tested else { return true }
+        AppLog.write("runtime file is not the tested build: \(f)")
+        let a = NSAlert()
+        a.alertStyle = .warning
+        a.messageText = "This Windows layer file is not the one Mu The Matrix was tested with"
+        a.informativeText = "\((f as NSString).lastPathComponent) does not match \(RuntimeFile.testedName). It may be damaged, a different version, or not from your server team. Only use it if you trust where it came from.\n\nIf it does not work, untick the option and click Repair… to go back to the standard Windows layer."
+        a.addButton(withTitle: "Cancel")
+        a.addButton(withTitle: "Use It Anyway")
+        return a.runModal() == .alertSecondButtonReturn
+    }
+
     /// Test hook (MU_AUTOTEST_INSTALL=1): press Install programmatically, optionally with a game folder
     /// (MU_AUTOTEST_GAME_DIR). Same code path as the button, without the questions; used for the recorded rehearsal.
     func autotest(gameDir: String?) {
@@ -466,7 +520,7 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func setBusy(_ busy: Bool) {
-        startButton.isEnabled = !busy; downloadRadio.isEnabled = !busy; folderRadio.isEnabled = !busy
+        startButton.isEnabled = !busy; downloadRadio.isEnabled = !busy; folderRadio.isEnabled = !busy; runtimeCheck.isEnabled = !busy
         closeButton.title = busy ? "Cancel" : "Close"
         closeButton.isEnabled = true
     }
@@ -475,12 +529,15 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func startInstall() {
         setBusy(true)
-        step.stringValue = "Checking your Mac…"; detail.stringValue = ""
+        step.stringValue = runtimeFile == nil ? "Checking your Mac…" : "Checking your Mac and the Windows layer file…"; detail.stringValue = ""
+        let file = runtimeFile
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let rosetta = Rosetta.isInstalled()
+            let tested = file.map(RuntimeFile.isTested) ?? true
             DispatchQueue.main.async {
                 guard let self else { return }
                 if !rosetta { self.offerRosetta(); return }
+                guard self.confirmRuntimeFile(tested: tested) else { self.setBusy(false); self.step.stringValue = "Ready."; return }
                 guard self.confirmIncompleteApp() else { self.setBusy(false); self.step.stringValue = "Ready."; return }
                 self.runInstaller()
             }
@@ -549,10 +606,10 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
         step.stringValue = "Starting…"; detail.stringValue = ""
         startedAt = Date()
         window?.title = "Install Mu The Matrix"
-        AppLog.write("install start source=\(folder ?? "official installer")")
+        AppLog.write("install start source=\(folder ?? "official installer") runtime=\(runtimeFile ?? "default")")
         // Keep the Mac from idle-sleeping while the installer runs (closing the lid still sleeps it).
         activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .idleSystemSleepDisabled], reason: "Installing Mu The Matrix")
-        session = Installer.start(gameDir: folder, line: { [weak self] l in self?.handle(l) },
+        session = Installer.start(gameDir: folder, runtimeArchive: runtimeFile, line: { [weak self] l in self?.handle(l) },
                                   done: { [weak self] st, cancelled in self?.finished(st, cancelled: cancelled) })
     }
 
@@ -713,6 +770,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(withTitle: "About Mu The Matrix", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings(_:)), keyEquivalent: ",")
+        appMenu.addItem(withTitle: "Use Windows Layer File…", action: #selector(useRuntimeFile(_:)), keyEquivalent: "")
         appMenu.addItem(withTitle: "Open Log", action: #selector(openLogAction(_:)), keyEquivalent: "l")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Mu The Matrix", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -721,6 +779,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openLogAction(_ sender: Any?) { openLog() }
+
+    /// Opens the installer and asks for a Wine runtime file (install or repair with it).
+    @objc func useRuntimeFile(_ sender: Any?) {
+        showSettings(nil); showInstaller()
+        guard let w = installWindow, !w.isInstalling else { return }
+        w.chooseRuntime()
+    }
 
     @objc func showSettings(_ sender: Any?) {
         if settingsWindow == nil {

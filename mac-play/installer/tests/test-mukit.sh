@@ -411,6 +411,10 @@ grep -q 'stub cxbottle\|stub wine' "$TMPD/free1.log" && bad 'free run never call
 "${FSETUP[@]}" > "$TMPD/free2.log" 2>&1; rc=$?
 eq 'free rerun exit 0' "$rc" 0
 grep -q '\[do\]' "$TMPD/free2.log" && bad 'free rerun is a no-op' || ok 'free rerun is a no-op'
+# a repair without --runtime-archive keeps the installed archive runtime (no switch back to cx24)
+env MUKIT_FREE_HOME="$FH2" "$KIT_DIR/setup-mu-mac.sh" --dry-run --game-dir "$SRC" --mugl-dll "$DLLS/mugl-v75.dll" --mscoree-dll "$DLLS/mscoree.dll" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/free-keep.log" 2>&1
+grep -q "runtime=free ($RTID)" "$TMPD/free-keep.log" && ok 'repair keeps the archive runtime' || bad 'repair keeps the archive runtime'
+grep -q 'WS12WineCX24\|select runtime' "$TMPD/free-keep.log" && bad 'repair does not switch to cx24' || ok 'repair does not switch to cx24'
 MUKIT_FREE_HOME="$FH2" "$KIT_DIR/verify-mu-mac.sh" > "$TMPD/free-verify.log" 2>&1; rc=$?
 eq 'verify (free default prefix): no FAIL' "$rc" 0
 grep -q 'PASS  Wine runtime' "$TMPD/free-verify.log" && ok 'verify names the free runtime' || bad 'verify names the free runtime'

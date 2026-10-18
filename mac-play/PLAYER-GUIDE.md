@@ -7,7 +7,8 @@ goes wrong.
 > **Speed today (October 2026):** in quiet places the game reaches its maximum of 25 frames per second. In
 > crowded places, such as boss areas, expect about 15. A faster version of the free Windows layer (25 frames
 > per second everywhere in our tests) comes once the server team publishes it. You then get it through
-> [Updating](#updating).
+> [Updating](#updating). If your server team already gave you the file, see
+> [Using a faster Windows layer file](#using-a-faster-windows-layer-file).
 
 ---
 
@@ -213,6 +214,24 @@ The list offers the sizes that fit your screen, plus the three smallest ones.
      skipped and the game is not downloaded again; new parts, such as a faster Windows layer, are installed.
      Your game settings are kept.
 
+## Using a faster Windows layer file
+
+Your server team may give you a file named **winecx-26.3.0-mu1.tar.xz** (about 130 MB). It is a faster version
+of the free Windows layer: crowded places reach 25 frames per second instead of about 15.
+
+1. Quit the game and the launcher.
+2. Open the app. In the menu bar, click **Mu The Matrix** > **Use Windows Layer File…**.
+3. Choose the file (it is usually in your Downloads folder) and click **Open**.
+4. Click **Install**. If the game is already installed, this takes about a minute: only the Windows layer
+   changes; the game and your settings stay.
+
+You can also tick **Use a faster Windows layer file I already have…** in the Install window when you install
+the game for the first time.
+
+Later repairs keep using the faster layer. If the app says **This Windows layer file is not the one Mu The
+Matrix was tested with**, the file is damaged or a different version: click **Cancel** and ask your server team
+for the file again.
+
 ## Uninstalling
 
 1. Quit the game and the launcher.
@@ -306,7 +325,9 @@ These points decide what players actually get. Check them before you share the l
    fallback. It is about 20% slower, and fast x87 does not work with it. During installation the log shows
    "fast x87 installed, but runtime cx24.0.7-7 has no inner loader". The speed note at the top of this guide
    describes that state. Once the archive is hosted, rebuild the app and update the note; existing players get
-   the faster runtime with **Repair…**.
+   the faster runtime with **Repair…**. Until then you can hand players the archive itself: **Use Windows Layer
+   File…** installs it (see [Using a faster Windows layer file](#using-a-faster-windows-layer-file)); the app
+   warns when a file does not match the tested SHA-256 (`RuntimeFile.testedSHA256` in `bundle/Sources/Core.swift`).
 4. **Gatekeeper.** The app is ad-hoc signed. Every player has to do step 3 for every newly downloaded version.
    An Apple Developer ID with notarization (paid) would remove that step.
 5. **Game installer link.** The installer downloads `https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe`.

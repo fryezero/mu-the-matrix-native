@@ -265,6 +265,12 @@ else
     has 'app install plan: official installer' "$ID" 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe'
     has 'app install plan: free runtime' "$ID" 'runtime=free'
     eq 'app install plan exit' "$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$BIN" --install-dry-run >/dev/null 2>&1; echo $?)" 0
+    printf 'synthetic runtime archive' > "$TMPD/rt-file.tar.xz"
+    RD=$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$BIN" --install-dry-run --runtime-archive "$TMPD/rt-file.tar.xz" 2>&1)
+    has 'app install plan: runtime from a local file' "$RD" "install the Wine runtime from $TMPD/rt-file.tar.xz"
+    hasnt 'app install plan: no default runtime download with a file' "$RD" 'WS12WineCX24'
+    has 'app install plan: game still from the official installer' "$RD" 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe'
+    eq 'app refuses --runtime-archive without a file' "$("$BIN" --install-dry-run --runtime-archive >/dev/null 2>&1; echo $?)" 2
     mkdir -p "$TMPD/settings"
     cat > "$MU_SETTINGS_FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
