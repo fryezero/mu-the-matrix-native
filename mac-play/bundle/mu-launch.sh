@@ -5,13 +5,15 @@
 # Bash 3.2 compatible (stock macOS /bin/bash). It does what mac-play/installer/play-mu.sh does, with
 # preflight checks that report one machine-readable error line, a dry-run mode and the resolution setting.
 #
-# Usage: mu-launch.sh [--check | --dry-run | --run | --list-bottles | --list-modes | --status]
+# Usage: mu-launch.sh [--check | --dry-run | --run | --list-bottles | --list-modes | --status | --fps-counter [on|off]]
 #   --check         preflight only (runtime, prefix/bottle, 32-bit, game, fast x87, resolution, not running)
 #   --dry-run       preflight, then print every action and the exact command; changes nothing
 #   --run           (default) preflight, apply the resolution, reset the bottle's wineserver, start
 #   --list-bottles  CrossOver bottles, one per line: NAME<TAB>ARCH<TAB>game|nogame
 #   --list-modes    the prefix's C:\mutools\mu-modes.txt, one WxH per line, then "current N" if known
 #   --status        free runtime: "runtime ok|missing", "prefix ok|missing", "game ok|missing" lines
+#   --fps-counter [on|off]  show or hide mugl's in-game FPS counter (C:\mutools\mugl-fps.txt, keeping its
+#                   corner; the game picks it up within a second, also while running); prints "fps-counter on|off"
 #
 # Settings come from the environment (the app passes them from its settings plist):
 #   MU_RUNTIME         free (default) | crossover
@@ -41,8 +43,10 @@ else LIB="$HERE/../installer/lib/mukit.sh"; FASTX87="$HERE/../fast-x87.sh"; fi
 # shellcheck source=../installer/lib/mukit.sh
 source "$LIB" || { echo "MU-ERROR 2 helper library missing: $LIB"; exit 2; }
 
-MODE=run
+MODE=run; FPS_SET=
 case "${1:-}" in
+    --fps-counter) MODE=fps; FPS_SET=${2:-}
+        case "$FPS_SET" in ''|on|off) ;; *) echo "MU-ERROR 2 --fps-counter takes on or off, not '$FPS_SET'"; exit 2 ;; esac ;;
     ''|--run) MODE=run ;; --check) MODE=check ;; --dry-run) MODE=dry ;;
     --list-bottles) MODE=bottles ;; --list-modes) MODE=modes ;; --status) MODE=status ;;
     -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d; s/^# \{0,1\}//'; exit 0 ;;
@@ -98,6 +102,19 @@ case "$FAST" in 0|1) ;; *) fail 2 "Fast x87 must be 0 or 1, not '$FAST'." ;; esa
 GAME="$PREFIX/drive_c/MuTheMatrix"
 MODES_FILE="$PREFIX/drive_c/mutools/mu-modes.txt"
 LOPT="$GAME/LauncherOption.if"
+
+FPS_FILE="$PREFIX/drive_c/mutools/mugl-fps.txt"
+if [ "$MODE" = fps ]; then
+    [ -d "$PREFIX/drive_c/mutools" ] || fail 13 "'$NAME' has no C:\\mutools folder; install the game first."
+    corner=$(awk 'NR == 1 { print $2 }' "$FPS_FILE" 2>/dev/null)
+    case "$corner" in tl|tr|bl|br) ;; *) corner=tl ;; esac
+    case "$FPS_SET" in
+        on) printf '1 %s\n' "$corner" > "$FPS_FILE" || fail 17 "Could not write $FPS_FILE." ;;
+        off) printf '0 %s\n' "$corner" > "$FPS_FILE" || fail 17 "Could not write $FPS_FILE." ;;
+    esac
+    [ "$(awk 'NR == 1 { print $1 }' "$FPS_FILE" 2>/dev/null)" = 1 ] && echo "fps-counter on" || echo "fps-counter off"
+    exit 0
+fi
 
 read_modes() { [ -f "$MODES_FILE" ] && tr -s ' \t\r\n' ' ' < "$MODES_FILE" | sed 's/^ //; s/ $//'; }
 

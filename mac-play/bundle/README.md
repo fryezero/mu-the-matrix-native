@@ -107,6 +107,7 @@ the app. It also opens when "Start the game right away" is off, and from the err
 | Resolution | "Keep launcher setting" (default) changes nothing. A mode from the bottle's `C:\mutools\mu-modes.txt` sets `DevModeIndex` in `C:\MuTheMatrix\LauncherOption.if` before each start, in the launcher's own byte format, keeping `WindowMode` and `ID`. The first change saves the original as `LauncherOption.if.mu-app-backup`. With the public batching-only mugl, the kit caps the index at 2 (see the kit README). |
 | Fast x87 | Free runtime: on (default) uses the installed translator in `fast-x87/` for `main.exe` when the runtime has the inner loader (CrossOver 26.3 build), otherwise plain Rosetta with a note. CrossOver: off = plain `wine`; on = `main.exe` runs through rosetta-timewalker with `TIMEWALKER_X87_ONLY=main.exe`; the .NET launcher stays on the plain loader. |
 | Timewalker | With fast x87 on: a built rosetta-timewalker folder (`scripts/run-crossover.sh`, `build/libtimewalker.dylib`), as with `play-mu.sh` `MU_TIMEWALKER_DIR`. **Auto** uses the validated cache from `../install-fast-x87.sh` (checked with `fast_x87_ready` from `../fast-x87.sh`). |
+| FPS counter | Shows or hides mugl's in-game FPS counter: writes `C:\mutools\mugl-fps.txt` of the selected prefix or bottle at once (`mu-launch.sh --fps-counter on\|off`), so it also works while the game runs. The checkbox mirrors the file, which Ctrl+Shift+F in the game also toggles. Disabled until the game is installed. |
 | Start right away | Off: the window opens on every start. |
 
 **Mu The Matrix > Use Windows Layer File…** (or the checkbox in the Install window) installs a Wine runtime archive the
@@ -174,6 +175,7 @@ APP="mac-play/bundle/build/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
 "$APP" --install [DIR]    # install without a window (what the Install window runs); Ctrl-C cancels like Cancel
 "$APP" --install --runtime-archive FILE [DIR]  # same, with a Wine runtime file you already have
 "$APP" --check-bundle     # exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
+"$APP" --fps-counter [on|off]  # show / hide the in-game FPS counter (no argument: print the state)
 "$APP" --rosetta-status   # exit 0 when Rosetta 2 is installed
 "$APP" --install-rosetta  # install Rosetta 2 through the administrator prompt
 "$APP" --version

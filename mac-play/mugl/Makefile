@@ -11,7 +11,7 @@ $(BUILD)/generated: gen.py exports.txt
 	$(PYTHON) gen.py --out $(BUILD)
 	touch $@
 
-$(BUILD)/opengl32.dll: mugl.c triangles.c triangles.h $(BUILD)/generated
+$(BUILD)/opengl32.dll: mugl.c fps.c triangles.c triangles.h $(BUILD)/generated
 	$(MINGW_CC) $(CFLAGS) -I$(BUILD) -shared mugl.c triangles.c $(BUILD)/stubs.S $(BUILD)/opengl32.def -o $@ -static-libgcc -Wl,--no-insert-timestamp
 
 clean:
