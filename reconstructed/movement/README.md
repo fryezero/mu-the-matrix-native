@@ -14,6 +14,7 @@ levels and limits.
 | `mu_character_move_speed` | CharacterMoveSpeed `0x013957b5` (subsystem predicates as inputs) |
 | `mu_move_character_position` | MoveCharacterPosition `0x0137b351` (speed as input) |
 | `mu_set_action` | SetAction `0x012affa4` |
+| `mu_path_finding2`, `mu_find_path` (`client_path.*`) | PathFinding2 `0x012b0e85` and the path object's FindPath `0x012b1c45` with its open tree, heuristic, step cost and path build (single-target branch; the neighbour order of the packed table `0x01cf1640` is a parameter) |
 | `mu_player_walk_run`, `mu_player_walk_action`, `mu_player_stop_action`, `mu_player_stop_speed` | The unarmed, unmounted case of SetPlayerWalk `0x0139002a` and the stop selector `0x01391e55`, plus the stand PlaySpeeds of the player loader block `0x018311f7..0x018321e1` (tables taken under emulation for every class byte; isolated so the NATIVE-ACTOR-001 action tables can replace them) |
 
 Build with `-ffp-contract=off` (binary32 operations in source order).

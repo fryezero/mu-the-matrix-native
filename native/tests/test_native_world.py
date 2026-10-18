@@ -212,13 +212,14 @@ class PrivateLorenciaTests(unittest.TestCase):
         root = os.environ['MU_GAME_ROOT']
         with tempfile.TemporaryDirectory() as folder:
             frames, summary, logs, _ = walk(root, '--backend', 'soft', '--tile', '133,127', '--walk',
-                                            '138,128 143,134 140,140', '--frames', '260', '--every', '65',
-                                            '--width', '320', '--height', '200', '--out-dir', folder)
+                                            '137,131 141,135 143,140 138,143', '--frames', '300', '--every', '100',
+                                            '--width', '1280', '--height', '800', '--out-dir', folder)
         self.assertEqual((summary['folder'], summary['camera_key']), (1, 0))   # Lorencia uses the global record
         self.assertEqual(summary['world_fov'], 39.0)
         self.assertAlmostEqual(summary['distance'], 9.1, places=5)
         self.assertAlmostEqual(summary['z_distance'], 0.179, places=5)
-        self.assertGreaterEqual(summary['arrivals'], 3, logs)
+        self.assertEqual(summary['arrivals'], 4, logs)
+        self.assertIn('click-to-move: tile 138,143 (11 cells)', logs)   # the client path finder goes around walls
         self.assertEqual({f['safe'] for f in frames}, {1})              # Lorencia town is a safe zone
         self.assertAlmostEqual(summary['units_per_step'], 12.0, places=3)
 

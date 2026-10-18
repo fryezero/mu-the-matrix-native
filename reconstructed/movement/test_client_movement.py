@@ -57,7 +57,10 @@ def load():
             ('mu_move_character_position', [P(PositionInput), P(F), P(F), P(F)], None),
             ('mu_set_action', [P(ctypes.c_uint16), P(ctypes.c_uint16), P(F), P(F), I, I], ctypes.c_int),
             ('mu_player_walk_run', [U8, U8, I, U8], U8), ('mu_player_walk_action', [U8, U8, P(F)], I),
-            ('mu_player_stop_action', [U8], I), ('mu_player_stop_speed', [I], F)]:
+            ('mu_player_stop_action', [U8], I), ('mu_player_stop_speed', [I], F),
+            ('mu_path_finder_bytes', [], ctypes.c_uint32), ('mu_path_finder_init', [ctypes.c_void_p, ctypes.c_void_p], None),
+            ('mu_path_finding2', [ctypes.c_void_p, I, I, I, I, P(Path_), F, I, U8, ctypes.c_void_p, ctypes.c_void_p],
+             ctypes.c_int)]:
         function = getattr(lib, name)
         function.argtypes, function.restype = args, result
     return lib
@@ -68,6 +71,72 @@ def player_speed_input(**fields):
     for key, value in fields.items():
         setattr(s, key, value)
     return s
+
+
+DIRECTIONS = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
+
+
+def reference_find(walls, sx, sy, tx, ty, error_check, wall, directions, limit=500, mask=0x1e):
+    """Independent statement of FindPath 0x012b1c45 (distance 0): returns the path or None."""
+    import heapq
+    if sx == 0 or sy == 0:
+        return None
+    target = ty * 256 + tx
+    if not 0 <= target < 65536:
+        return None
+    if error_check and not wall > walls[target] and not walls[target] & 0x20:
+        return None
+    state, cost, prev = {target: 4}, {}, {}
+    start = sy * 256 + sx
+    state[start] = state.get(start, 0) | 1
+    heap, seq = [(0, 0, start)], 1
+    best, best_xy = 0x743aa380, (sx, sy)
+
+    def h(x, y):
+        a, b = abs(x - tx), abs(y - ty)
+        return (abs(a - b) * 5 + min(a, b) * 7 + 1) * 3 // 4
+
+    for left in range(limit, 0, -1):
+        if not heap:
+            break
+        _, _, c = heapq.heappop(heap)
+        x, y = c % 256, c // 256
+        cost[c] = 0 if left == limit else 0x743aa380
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 256 and 0 <= ny < 256 and state.get(ny * 256 + nx, 0) & 2:
+                candidate = (7 if dx and dy else 5) + cost[ny * 256 + nx]
+                if candidate < cost[c]:
+                    cost[c], prev[c] = candidate, (nx, ny)
+        state[c] = state.get(c, 0) | 2
+        if state[c] & 4:
+            best_xy = (x, y)
+            break
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < 256 and 0 <= ny < 256):
+                continue
+            n = ny * 256 + nx
+            if state.get(n, 0) & 1 or not wall > (walls[n] & mask):
+                continue
+            heapq.heappush(heap, (h(nx, ny) + cost[c], seq, n))
+            seq += 1
+            state[n] = state.get(n, 0) | 1
+            prev[n] = (x, y)
+        if not error_check and h(x, y) < best:
+            best, best_xy = h(x, y), (x, y)
+    else:
+        if error_check:
+            return None
+    if error_check and not state.get(best_xy[1] * 256 + best_xy[0], 0) & 4:
+        return None
+    path, (x, y) = [], best_xy
+    while len(path) < 500:
+        path.append((x, y))
+        if (x, y) == (sx, sy):
+            return path[::-1]
+        x, y = prev[y * 256 + x]
+    return None
 
 
 class MovementTests(unittest.TestCase):
@@ -188,6 +257,58 @@ class MovementTests(unittest.TestCase):
                          [1, 1, 2, 1, 1, 3, 1, 5, 6, 6, 1, 1, 2, 1, 6, 8])
         self.assertAlmostEqual(self.lib.mu_player_stop_speed(1), 0.28, places=6)
         self.assertAlmostEqual(self.lib.mu_player_stop_speed(3), 0.24, places=6)
+
+    def path_finding2(self, walls, sx, sy, tx, ty, wall=2, directions=DIRECTIONS):
+        finder = ctypes.create_string_buffer(self.lib.mu_path_finder_bytes())
+        grid = (ctypes.c_uint16 * 65536)(*walls)
+        self.lib.mu_path_finder_init(finder, grid)
+        table = (ctypes.c_int32 * 16)(*[v for pair in directions for v in pair])
+        path = Path_()
+        found = self.lib.mu_path_finding2(finder, sx, sy, tx, ty, ctypes.byref(path), 0.0, wall, 0, table, None)
+        return found, [(path.x[i], path.y[i]) for i in range(path.count)]
+
+    def test_path_finder_open_ground_and_walls(self):
+        walls = [0] * 65536
+        found, cells = self.path_finding2(walls, 100, 100, 104, 102)
+        self.assertEqual(found, 1)
+        self.assertEqual((cells[0], cells[-1], len(cells)), ((100, 100), (104, 102), 5))
+        for x in range(90, 111):        # a wall with a gap at x = 111
+            walls[105 * 256 + x] = 4
+        found, cells = self.path_finding2(walls, 100, 100, 100, 110)
+        self.assertEqual(found, 1)
+        self.assertTrue(all(walls[y * 256 + x] == 0 for x, y in cells))
+        self.assertEqual(len(cells), 15)   # the first 15 cells of a longer path
+        walls[120 * 256 + 120] = 4         # blocked target: the closest reachable cell instead
+        found, cells = self.path_finding2(walls, 116, 120, 120, 120)
+        self.assertEqual((found, cells[-1]), (1, (119, 120)))
+        found, cells = self.path_finding2(walls, 100, 100, 100, 100)
+        self.assertEqual(found, 0)         # a one-cell path does not move
+
+    def test_path_finder_equals_the_reference_statement(self):
+        import random
+        g = random.Random(7)
+        for case in range(40):
+            walls = [0] * 65536
+            for _ in range(60):
+                x0, y0 = g.randint(60, 190), g.randint(60, 190)
+                value = g.choice([4, 4, 1, 2, 0x20, 0x40])
+                for y in range(y0, y0 + g.randint(1, 8)):
+                    for x in range(x0, x0 + g.randint(1, 8)):
+                        walls[y * 256 + x] = value
+            sx, sy = g.randint(80, 170), g.randint(80, 170)
+            tx, ty = sx + g.randint(-16, 16), sy + g.randint(-16, 16)
+            directions = g.choice([DIRECTIONS, DIRECTIONS[::-1], DIRECTIONS[2:] + DIRECTIONS[:2]])
+            wall = g.choice([2, 4])
+            expected = reference_find(walls, sx, sy, tx, ty, 1, wall, directions)
+            if expected is None:
+                start, goal = walls[sy * 256 + sx], walls[ty * 256 + tx]
+                second = 4 if (start & 1) or ((goal & 1) and not goal & 2) else wall
+                expected = reference_find(walls, sx, sy, tx, ty, 0, second, directions)
+            found, cells = self.path_finding2(walls, sx, sy, tx, ty, wall, directions)
+            if expected is None or len(expected) <= 1:
+                self.assertEqual(found, 0, case)
+            else:
+                self.assertEqual((found, cells), (1, expected[:15]), case)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private pinned client captures')
     def test_instruction_comparison(self):

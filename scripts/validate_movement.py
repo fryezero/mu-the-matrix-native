@@ -20,6 +20,9 @@ Families:
   walk_select      SetPlayerWalk 0x0139002a up to 0x01391c19, every class byte (minimal domain)
   stop_select      player stop selector 0x01391e55, every class byte (minimal domain)
   loader_speeds    player loader block 0x018311f7..0x018321e1 (action PlaySpeeds)
+  path             PathFinding2 0x012b0e85 and FindPath 0x012b1c45 (path object, open tree, path
+                   build) on synthetic and (--game-root) installed attribute maps, several
+                   direction tables (the client's table at 0x01cf1640 is packed data)
 
 Usage:
   python3 scripts/validate_movement.py --text .../client-text.bin --data .../client-image-data.bin \
@@ -69,9 +72,19 @@ ROUTINES = {
     'set_player_walk': (0x0139002a, 0x1e2b, 'ec4b52ccd891fda86a186abf97e36b37f600073c1cc7ca11a3979f0cdd4ece41'),
     'player_stop_select': (0x01391e55, 0xc88, 'ebb5b79bfe91918e584069d06aef1472630340ac053d7f653deae1bd27098dee'),
     'player_loader_speeds': (0x018311f7, 0xfea, 'd0db6d0290ca9e9b0cc886e88d58dfe60945c57b26c1e410e6a8f185847e0d53'),
+    'path_finding2': (0x012b0e85, 0x1c7, '361a18e5813b76746f898f0b073663ca18207d8ae5d603f8e64ee0ac7599705c'),
+    'find_path': (0x012b1c45, 0x581, '73c083787c9d97439b78c6a105dfe6dca87e5b819eda16817ad576a0555c83dd'),
+    'path_build': (0x012b21c6, 0x207, '1cffd1fbfdeb1f6091590bb7cd51867dfeeb4c5b3ec5657fbf8fbac76666854a'),
+    'open_insert': (0x012b198d, 0x15a, 'c6c5ed3d060b8775886befac8bd4b11f27a8c831fbc9d62a3f3483aa53a85ed7'),
+    'open_pop': (0x012b240a, 0x54, '10c0ef7152fc826eb10467405d2a929a79148e332c22bb88ff03dcf75d41187a'),
+    'path_heuristic': (0x012b1bcf, 0x65, '68b23f1d77c4ec628269f81fcc252e3415d6a409dd12ff90dcdd3f1a54772cbc'),
+    'tree_remove': (0x01212d4b, 0x1f7, 'ff44e9569739e741badccdb19a30e9f2652b72d9784349e39b2962cb202f1016'),
 }
 
 CHKSTK_PROBE = 0x0191c5c7   # `test [eax], eax` page probe of _chkstk 0x0191c5a0 (value not consumed)
+# `push dword [ebp-0x60]` in FindPath: the local holds a byte (mov byte [ebp-0x60], al) and the callee
+# 0x012b21c6 reads only that byte (movzx eax, byte [ebp+0x18]); the upper bytes are never consumed.
+BYTE_ARGUMENT_PUSHES = {0x012b1fc5, 0x012b0efe, 0x012b0f93}   # (and the flag byte of PathFinding2)
 HERO = 0x0a39d754
 WORLD = 0x01cf15fc
 SCENE = 0x01d1df70
@@ -88,9 +101,29 @@ ITEM = ARENA + 0xe000
 STATS = ARENA + 0x10000
 
 
+HEAP, HEAP_SIZE = 0x40000000, 0x400000   # path object, its arrays and the open-tree nodes
+FINDER = HEAP
+FAR_COST = 0x743aa380
+WALL_GRID = 0x0b795420     # TerrainWall (u16 per cell)
+OBJECT_GRID = 0x0b7b5420   # operable-object cells (u32 per cell)
+DIRECTIONS = 0x01cf1640
+FINDER_POINTER = 0x06fce374
+TREE_VTABLE = 0x01ac7efc
+
+
 class MovementGuest(vc.Guest):
+    def __init__(self, *args):
+        super().__init__(*args)
+        uc = self.uc
+        uc.mem_map(HEAP, HEAP_SIZE, self.u.UC_PROT_READ | self.u.UC_PROT_WRITE)
+        shadow = bytearray(HEAP_SIZE)
+        self.tracked.append((HEAP, HEAP_SIZE, shadow))
+        uc.hook_add(self.u.UC_HOOK_MEM_READ | self.u.UC_HOOK_MEM_WRITE, self._access, begin=HEAP,
+                    end=HEAP + HEAP_SIZE - 1, user_data=shadow)
+        self.heap_cursor = HEAP + 0xe0000
+
     def _constant_store(self, eip):
-        if eip == CHKSTK_PROBE:
+        if eip in BYTE_ARGUMENT_PUSHES or eip == CHKSTK_PROBE:
             return True
         return super()._constant_store(eip)
 
@@ -140,6 +173,11 @@ def load_library(directory=None):
         'mu_player_walk_action': ([U8, U8, P(F)], I),
         'mu_player_stop_action': ([U8], I),
         'mu_player_stop_speed': ([I], F),
+        'mu_path_finder_bytes': ([], ctypes.c_uint32),
+        'mu_path_finder_init': ([ctypes.c_void_p, ctypes.c_void_p], None),
+        'mu_find_path': ([ctypes.c_void_p, I, I, I, I, U8, I, U8, F, I, I, ctypes.c_void_p, ctypes.c_void_p], ctypes.c_int),
+        'mu_path_finding2': ([ctypes.c_void_p, I, I, I, I, P(Path_), F, I, U8, ctypes.c_void_p, ctypes.c_void_p],
+                             ctypes.c_int),
     }
     for name, (args, result) in sig.items():
         function = getattr(lib, name)
@@ -597,6 +635,168 @@ def case_loader_speeds(guest, lib, tally, generator, count, stubs):
     return {hex(i): [loop, speed] for i, (loop, speed) in table.items() if loop or speed}
 
 
+# ---------------- path finder ----------------
+
+# The client's table at 0x01cf1640 (packed in the file; read from the runtime data-section capture,
+# --data-section) comes first; the other orders check that the port follows the table it is given.
+CLIENT_DIRECTIONS = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
+DIRECTION_TABLES = [
+    CLIENT_DIRECTIONS, CLIENT_DIRECTIONS,
+    [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)],
+    [(1, 1), (-1, 1), (1, -1), (-1, -1), (0, 1), (1, 0), (0, -1), (-1, 0)],
+]
+DATA_SECTION_BASE, DATA_SECTION_SHA256 = 0x01ced000, \
+    '0571c519b1c4eaf97a143d2dd29bf2a3799e56b2f613cda0d084f4b857c1dc6f'
+
+
+def read_data_section(path):
+    """Static values from the runtime capture of the section at 0x01ced000 (x86-linux-capture-04)."""
+    payload = Path(path).read_bytes()
+    if hashlib.sha256(payload).hexdigest() != DATA_SECTION_SHA256:
+        raise ValueError('data-section capture does not match the pinned digest')
+    table = struct.unpack_from('<16i', payload, 0x01cf1640 - DATA_SECTION_BASE)
+    near = struct.unpack_from('<f', payload, 0x01cf162c - DATA_SECTION_BASE)[0]
+    return [(table[2 * i], table[2 * i + 1]) for i in range(8)], near
+
+
+def synthetic_walls(generator):
+    cells = bytearray(65536 * 2)
+    walls = [0] * 65536
+    for _ in range(generator.randint(20, 160)):
+        x0, y0 = generator.randint(0, 250), generator.randint(0, 250)
+        w, h = generator.randint(1, 12), generator.randint(1, 12)
+        value = generator.choice([4, 4, 4, 1, 1, 2, 0x20, 0x24, 8, 0x40, 0x10, 3, 5])
+        for y in range(y0, min(256, y0 + h)):
+            for x in range(x0, min(256, x0 + w)):
+                walls[y * 256 + x] = value
+    struct.pack_into('<65536H', cells, 0, *walls)
+    return walls
+
+
+def installed_walls(root, world):
+    tool = ROOT / 'native/build/mu-terrain'
+    subprocess.run(['make', '-C', str(ROOT / 'native')], check=True, capture_output=True)
+    raw = subprocess.run([str(tool), 'export', str(root), '--world', str(world)], check=True,
+                         capture_output=True).stdout
+    offset = 10 * 65536
+    return list(struct.unpack_from('<65536H', raw, offset))
+
+
+def setup_finder(guest, walls, objects, table):
+    guest.put(WALL_GRID, struct.pack('<65536H', *walls))
+    guest.put(OBJECT_GRID, struct.pack('<65536I', *objects) if objects else bytes(4 * 65536))
+    guest.put(DIRECTIONS, b''.join(struct.pack('<ii', dx, dy) for dx, dy in table))
+    state, cost, px, py = HEAP + 0x1000, HEAP + 0x20000, HEAP + 0x60000, HEAP + 0xa0000
+    obj = bytearray(0x428)
+    struct.pack_into('<iiiI', obj, 0, 256, 256, 65536, WALL_GRID)
+    struct.pack_into('<IiiIII', obj, 0x400, state, FAR_COST, -1, cost, px, py)
+    struct.pack_into('<III', obj, 0x418, TREE_VTABLE, 0, 0)
+    guest.put(FINDER, bytes(obj[:0x14]))              # +0x14..+0x3fb (path arrays) stay undefined
+    guest.put(FINDER + 0x3fc, bytes(obj[0x3fc:]))
+    guest.put(state, bytes(65536))
+    guest.put(FINDER_POINTER, struct.pack('<I', FINDER))
+    # CRT memset feature word (as in validate_bone_tracks.py): bit 1 selects `rep stosb`; any value clears alike
+    guest.put(0x0bdcb284, struct.pack('<I', 2))
+    guest.heap_cursor = HEAP + 0xe0000
+
+
+def authored_finder(lib, walls, objects, table):
+    finder = ctypes.create_string_buffer(lib.mu_path_finder_bytes())
+    grid = (ctypes.c_uint16 * 65536)(*walls)
+    lib.mu_path_finder_init(finder, grid)
+    directions = (ctypes.c_int32 * 16)(*[v for pair in table for v in pair])
+    object_grid = (ctypes.c_uint32 * 65536)(*objects) if objects else None
+    return finder, grid, directions, object_grid
+
+
+def guest_path_state(guest):
+    length = struct.unpack('<i', guest.get(FINDER + 0x10, 4))[0]
+    xs = guest.get(FINDER + 0x14 + 500 - length, length) if 0 < length <= 500 else b''
+    ys = guest.get(FINDER + 0x208 + 500 - length, length) if 0 < length <= 500 else b''
+    end = struct.unpack('<hh', guest.get(FINDER + 0x3fc, 4))
+    return length, xs, ys, end
+
+
+class FinderHead(ctypes.Structure):
+    """Leading fields of mu_path_finder (client_path.h); ctypes applies the C alignment."""
+    _fields_ = [('width', ctypes.c_int32), ('height', ctypes.c_int32), ('size', ctypes.c_int32),
+                ('map', ctypes.c_void_p), ('length', ctypes.c_int32), ('x', ctypes.c_uint8 * 500),
+                ('y', ctypes.c_uint8 * 500), ('end_x', ctypes.c_int16), ('end_y', ctypes.c_int16)]
+
+
+def authored_path_state(finder):
+    head = FinderHead.from_buffer(finder)
+    length = head.length
+    xs = bytes(head.x)[500 - length:] if 0 < length <= 500 else b''
+    ys = bytes(head.y)[500 - length:] if 0 < length <= 500 else b''
+    return length, xs, ys, (head.end_x, head.end_y)
+
+
+def case_path(guest, lib, tally, generator, count, stubs, maps=None):
+    stubs.values.update({0x00db732d: 0})
+    maps = maps or []
+    grids = max(2, count // 25)
+    per = max(1, count // grids)
+    for g_index in range(grids):
+        if maps and g_index % 2 == 1:
+            walls = maps[(g_index // 2) % len(maps)]
+        else:
+            walls = synthetic_walls(generator)
+        objects = None
+        if generator.random() < 0.3:
+            objects = [1 if generator.random() < 0.02 else 0 for _ in range(65536)]
+        table = generator.choice(DIRECTION_TABLES)
+        for _ in range(per):
+            guest.reset_memory()
+            setup_finder(guest, walls, objects, table)
+            free = [i for i in (generator.randrange(65536) for _ in range(64)) if walls[i] & 0x1e == 0]
+            start = generator.choice(free) if free else generator.randrange(65536)
+            sx, sy = start % 256, start // 256
+            r = generator.random()
+            if r < 0.6:
+                tx, ty = sx + generator.randint(-14, 14), sy + generator.randint(-14, 14)
+            elif r < 0.85:
+                tx, ty = sx + generator.randint(-40, 40), sy + generator.randint(-40, 40)
+            elif r < 0.9:
+                tx, ty = sx, sy
+            else:
+                tx, ty = generator.randint(-3, 260), generator.randint(-3, 258)
+            if generator.random() < 0.03:
+                sx = 0
+            tx, ty = max(-5, min(270, tx)), max(-5, min(260, ty))
+            mode = generator.choice([2, 2, 4])
+            direct = generator.random() < 0.3
+            finder, grid, directions, object_grid = authored_finder(lib, walls, objects, table)
+            if direct:
+                check = generator.choice([0, 1])
+                limit = generator.choice([500, 500, 40, 5])
+                mask = generator.choice([0x1e, 0x1e, 0xff])
+                guest.heap_cursor = HEAP + 0xe0000
+                result = guest.call(0x012b1c45, [sx, sy, tx, ty, check, mode, 0, bits(0.0), limit, mask], ecx=FINDER,
+                                    count=20000000) & 0xff
+                mine = lib.mu_find_path(finder, sx, sy, tx, ty, check, mode, 0, 0.0, limit, mask, directions,
+                                        object_grid)
+                same_state = guest_path_state(guest) == authored_path_state(finder) if result else True
+                ok = result == mine and same_state
+                tally.add('find_path 0x012b1c45', ok, {'s': [sx, sy], 't': [tx, ty], 'check': check, 'mode': mode,
+                                                       'limit': limit, 'mask': mask, 'client': result,
+                                                       'authored': mine, 'table': table})
+            else:
+                record = bytes(33)
+                guest.put(ARENA + 0x100, record)
+                result = guest.call(0x012b0e85, [sx, sy, tx, ty, ARENA + 0x100, bits(0.0), mode],
+                                    count=20000000) & 0xff
+                path = Path_()
+                mine = lib.mu_path_finding2(finder, sx, sy, tx, ty, ctypes.byref(path), 0.0, mode, 0, directions,
+                                            object_grid)
+                client_record = guest.get(ARENA + 0x100, 33)
+                ok = result == mine and client_record == bytes(path)[:33]
+                tally.add('path_finding2 0x012b0e85', ok, {'s': [sx, sy], 't': [tx, ty], 'mode': mode,
+                                                           'client': [result, client_record.hex()],
+                                                           'authored': [mine, bytes(path)[:33].hex()],
+                                                           'table': table})
+
+
 def run_range(guest, start, until, frame_size=0x400, count=5000000):
     """Runs a straight block inside a function body with a fresh EBP frame (locals undefined)."""
     uc, x = guest.uc, guest.x
@@ -656,25 +856,45 @@ def install_stubs(guest):
     for address, cleanup, kind, reason in STUB_TABLE:
         stubs.add(address, cleanup, reason, kind=kind)
     stubs.add(0x01295ade, 4, 'buff predicate on the character buff list: synthetic set', fn=buff)
+
+    def allocate(args, ecx):
+        size = (args[0] + 15) & ~15
+        address = guest.heap_cursor
+        guest.heap_cursor += size
+        if guest.heap_cursor > HEAP + HEAP_SIZE:
+            raise vc.Stop('heap exhausted')
+        return address
+
+    stubs.add(0x0191ba7b, 0, 'operator new: bump allocator in the tracked heap (fresh, undefined bytes)', fn=allocate)
+    stubs.add(0x0191baab, 0, 'operator delete (sized): no-op')
+    stubs.add(0x00db732d, 0, 'event-map predicate of PathFinding2: false (no special target)')
     stubs.add(0x00d33153, 4, 'Player action record accessor: synthetic action array',
               fn=lambda args, ecx: ACT + 16 * (args[0] & 0xffff))
     return stubs
 
 
 MUTATIONS = [
-    ('near-zero threshold 0.001', 'if (0.0001f > client_fabs(nx))', 'if (0.001f > client_fabs(nx))', 'angles'),
-    ('far angle abs for any flag', 'if (abs_flag == 1 && 0.0f > d)', 'if (abs_flag && 0.0f > d)', 'angles'),
-    ('turn target wrap at 0', 'if (0.0f > target)\n        target = target + 360.0f;\n    if (180.0f > a) {', 'if (0.0f >= target)\n        target = target + 360.0f;\n    if (180.0f > a) {', 'angles'),
-    ('arrival radius < 30', 'if (cvtt(distance) <= 30) {', 'if (cvtt(distance) < 30) {', 'move_path'),
-    ('spline weights swapped', 'tx = tx + px[2] * 0.2265625f;', 'tx = tx + px[2] * 0.8671875f;', 'move_path'),
-    ('snap at > 45', 'if (far >= 45.0f)', 'if (far > 45.0f)', 'move_path'),
-    ('height x before y', 'left = left * yd;', 'left = left * xd;', 'height'),
-    ('walk speed 10', 'speed = *run < 40 ? 12.0f : 15.0f;', 'speed = *run < 40 ? 10.0f : 15.0f;', 'speed'),
-    ('dinorant +50', 'position[2] = ground + 30.0f;', 'position[2] = ground + 50.0f;', 'position'),
-    ('velocity +y', 'float velocity[3] = {0.0f, -in->speed, 0.0f}', 'float velocity[3] = {0.0f, in->speed, 0.0f}',
+    ('near-zero threshold 0.001', 'client_movement.c', 'if (0.0001f > client_fabs(nx))', 'if (0.001f > client_fabs(nx))', 'angles'),
+    ('far angle abs for any flag', 'client_movement.c', 'if (abs_flag == 1 && 0.0f > d)', 'if (abs_flag && 0.0f > d)', 'angles'),
+    ('turn target wrap at 0', 'client_movement.c', 'if (0.0f > target)\n        target = target + 360.0f;\n    if (180.0f > a) {', 'if (0.0f >= target)\n        target = target + 360.0f;\n    if (180.0f > a) {', 'angles'),
+    ('arrival radius < 30', 'client_movement.c', 'if (cvtt(distance) <= 30) {', 'if (cvtt(distance) < 30) {', 'move_path'),
+    ('spline weights swapped', 'client_movement.c', 'tx = tx + px[2] * 0.2265625f;', 'tx = tx + px[2] * 0.8671875f;', 'move_path'),
+    ('snap at > 45', 'client_movement.c', 'if (far >= 45.0f)', 'if (far > 45.0f)', 'move_path'),
+    ('height x before y', 'client_movement.c', 'left = left * yd;', 'left = left * xd;', 'height'),
+    ('walk speed 10', 'client_movement.c', 'speed = *run < 40 ? 12.0f : 15.0f;', 'speed = *run < 40 ? 10.0f : 15.0f;', 'speed'),
+    ('dinorant +50', 'client_movement.c', 'position[2] = ground + 30.0f;', 'position[2] = ground + 50.0f;', 'position'),
+    ('velocity +y', 'client_movement.c', 'float velocity[3] = {0.0f, -in->speed, 0.0f}', 'float velocity[3] = {0.0f, in->speed, 0.0f}',
      'position'),
-    ('set action at count', 'if (new_action >= action_count)', 'if (new_action > action_count)', 'set_action'),
-    ('class 7 male walk', '{0, 0, 1, 0, 0, 1, 0, 1, 1, 1', '{0, 0, 1, 0, 0, 1, 0, 0, 1, 1', 'walk_select'),
+    ('set action at count', 'client_movement.c', 'if (new_action >= action_count)', 'if (new_action > action_count)', 'set_action'),
+    ('class 7 male walk', 'client_movement.c', '{0, 0, 1, 0, 0, 1, 0, 1, 1, 1', '{0, 0, 1, 0, 0, 1, 0, 0, 1, 1', 'walk_select'),
+    ('heuristic weight 6', 'client_path.c', 'int32_t value = absolute(a - b) * 5 + m * 7 + 1;',
+     'int32_t value = absolute(a - b) * 6 + m * 7 + 1;', 'path'),
+    ('parent on equal cost', 'client_path.c', 'if (candidate < f->cost[c]) {', 'if (candidate <= f->cost[c]) {', 'path'),
+    ('last-in first-out among equal priorities', 'client_path.c',
+     'a->priority < b->priority || (a->priority == b->priority && a->sequence < b->sequence)',
+     'a->priority < b->priority || (a->priority == b->priority && a->sequence > b->sequence)', 'path'),
+    ('wall test without the mask', 'client_path.c', 'int32_t value = (int32_t)(f->map[n] & (uint32_t)mask);',
+     'int32_t value = (int32_t)(f->map[n] & (uint32_t)(mask | 0xffff));', 'path'),
 ]
 
 
@@ -684,18 +904,21 @@ def run_mutations(guest, families, stubs, seed, count):
         scratch = Path(scratch)
         shutil.copytree(ROOT / 'reconstructed' / 'record-math', scratch / 'record-math',
                         ignore=shutil.ignore_patterns('*.dylib', '*.so'))
-        for index, (label, old, new, family) in enumerate(MUTATIONS):
+        for index, (label, filename, old, new, family) in enumerate(MUTATIONS):
+            if family not in families:
+                continue
             target = scratch / f'movement{index}'
             shutil.copytree(ROOT / 'reconstructed' / 'movement', target, ignore=shutil.ignore_patterns('*.dylib', '*.so'))
             (target / 'Makefile').write_text((target / 'Makefile').read_text().replace('../record-math', '../record-math'))
-            source = (target / 'client_movement.c').read_text()
+            source = (target / filename).read_text()
             if source.count(old) != 1:
                 raise ValueError(f'mutation anchor not unique: {label}')
-            (target / 'client_movement.c').write_text(source.replace(old, new))
+            (target / filename).write_text(source.replace(old, new))
             lib = load_library(target)
             tally = Tally()
             function, family_count = families[family]
-            function(guest, lib, tally, random.Random(f'{seed}:{family}'), max(count, family_count // 2), stubs)
+            cases = max(count, family_count // 2) if family != 'path' else 100
+            function(guest, lib, tally, random.Random(f'{seed}:{family}'), cases, stubs)
             bad = sum(r['mismatches'] for r in tally.results.values())
             results.append({'mutation': label, 'family': family, 'mismatches': bad,
                             'cases': sum(r['cases'] for r in tally.results.values())})
@@ -713,7 +936,19 @@ def main(argv=None):
     parser.add_argument('--only', default=None, help='comma-separated family names')
     parser.add_argument('--output', default=None, help='write the JSON report here')
     parser.add_argument('--mutations', action='store_true', help='also check that planted mistakes are detected')
+    parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'),
+                        help='installed client: path cases also run on its attribute maps')
+    parser.add_argument('--path-worlds', default='0,2,3,142', help='world indices for the installed maps')
+    parser.add_argument('--data-section', default=os.environ.get(
+        'MU_DATA_SECTION', str(ROOT / 'evidence/x86-linux-capture-04/main-01ced000.bin')),
+        help='runtime capture of the section at 0x01ced000: checks the direction table and near plane')
     args = parser.parse_args(argv)
+    data_section = None
+    if args.data_section and Path(args.data_section).exists():
+        table, near = read_data_section(args.data_section)
+        data_section = {'directions': table, 'near': near}
+        if table != CLIENT_DIRECTIONS or near != 20.0:
+            raise ValueError(f'data-section values differ from the recorded ones: {table} {near}')
     text = vc.load_pinned(args.text, vc.TEXT_BYTES, vc.TEXT_SHA256, 'restored text')
     data = vc.load_pinned(args.data, vc.DATA_BYTES, vc.DATA_SHA256, 'second image section')
     digests = {}
@@ -731,11 +966,19 @@ def main(argv=None):
     def plain(function):
         return lambda g, l, t, r, c, s=None: function(g, l, t, r, c)
 
+    maps = []
+    if args.game_root and (not args.only or 'path' in args.only.split(',')):
+        for world in args.path_worlds.split(','):
+            maps.append(installed_walls(args.game_root, int(world)))
+
+    def path_family(g, l, t, r, c, s):
+        return case_path(g, l, t, r, c, s, maps)
+
     families = [
         ('angles', plain(case_angles), n), ('move_path', plain(case_move_path), 2 * n), ('height', case_height, 2 * n),
         ('speed', case_speed, 2 * n), ('position', case_position, n), ('set_action', case_set_action, n),
         ('walk_select', case_walk_select, 256 * 3 * 7), ('stop_select', case_stop_select, 512),
-        ('loader_speeds', case_loader_speeds, 4)]
+        ('loader_speeds', case_loader_speeds, 4), ('path', path_family, n)]
     only = set(args.only.split(',')) if args.only else None
     extra = {}
     for name, function, count in families:
@@ -748,11 +991,12 @@ def main(argv=None):
             extra[name] = result
     mutation_results = None
     if args.mutations:
-        table = {name: (function, count) for name, function, count in families}
+        table = {name: (function, count) for name, function, count in families if not only or name in only}
         mutation_results = run_mutations(guest, table, stubs, args.seed, max(600, n // 4))
         for entry in mutation_results:
             print(f"mutation {entry['mutation']:32s} {entry['mismatches']:5d}/{entry['cases']} detected")
     report = {'routines': {k: {'start': hex(v[0]), 'bytes': v[1], 'sha256': digests[k]} for k, v in ROUTINES.items()},
+              'installed_maps': args.path_worlds if maps else None, 'data_section': data_section,
               'client_stubs': {hex(k): v for k, v in sorted(stubs.reasons.items())}, 'results': tally.results,
               'extra': extra, 'mutations': mutation_results, 'seed': args.seed, 'cases': n}
     total = sum(r['cases'] for r in tally.results.values())

@@ -17,15 +17,19 @@
  *     packet's Movement = 0 and SetPlayerStop;
  *   - the click-to-move start of MoveHero: terrain pick, target tile, path,
  *     SendMove's Movement = 1.
- * Placeholders (labelled where used): the path finder (the client's A*
- * 0x012b1c45 is not ported; a straight cell walk with the client's wall rule
- * "attribute >= mode blocks" stands in), the near plane, and everything the
+ * The path is the client's own path finder (reconstructed/movement/
+ * client_path: PathFinding2 0x012b0e85, FindPath 0x012b1c45) over the world's
+ * attribute grid, with the client's neighbour order (direction table
+ * 0x01cf1640) and near plane 20 (0x01cf162c), both static data read from the
+ * runtime data-section capture. Placeholders (labelled where used): the
+ * operable-object grid (static objects are not decoded) and everything the
  * hero does besides walking (attacks, skills, auto-move, packets). */
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "../../reconstructed/movement/client_movement.h"
+#include "../../reconstructed/movement/client_path.h"
 #include "mu_character.h"
 #include "mu_frame.h"
 #include "mu_terrain.h"
@@ -71,6 +75,9 @@ typedef struct mu_hero {
 
 #define MU_WALK_LOG 64
 
+/* The client's path-finder neighbour order (0x01cf1640). */
+extern const int32_t mu_walk_default_directions[8][2];
+
 typedef struct mu_walk {
     mu_frame_world frame;     /* clock, camera, input, pick; heights/walls are the world's */
     mu_world *map;            /* mu_world_frame updates its light and wave grids */
@@ -79,6 +86,8 @@ typedef struct mu_walk {
     int32_t world;            /* client world index (0x01cf15fc) */
     int32_t action_count;     /* Player model actions (SetAction bound) */
     int32_t target[2];        /* TargetX/Y 0x0b449ac0 / 0x0b449ac4 */
+    int32_t directions[8][2]; /* path finder neighbour order (0x01cf1640) */
+    mu_path_finder finder;    /* the client's path object (0x06fce374) over frame.walls */
     uint32_t steps, moves, arrivals, path_refused;
     uint32_t position_steps;  /* MoveCharacterPosition calls */
     double position_distance; /* their summed horizontal displacement */
@@ -86,16 +95,11 @@ typedef struct mu_walk {
     int32_t log_count;
 } mu_walk;
 
-/* Placeholder path finder: from (sx, sy) toward (tx, ty) one cell at a time
- * (diagonal first, then the free axis), at most MU_PATH_CELLS cells,
- * stopping before a cell whose attribute is >= wall_mode (the client's A*
- * blocking rule). Returns the number of cells (>= 2 when the hero can move). */
-int32_t mu_walk_straight_path(const uint16_t *attributes, int32_t sx, int32_t sy, int32_t tx, int32_t ty,
-                              int32_t wall_mode, mu_path *path);
-
-/* Starts a session on a loaded world. The hero stands at the centre of tile
+/* Starts a session on a loaded world (mu_walk is large: allocate it
+ * statically or on the heap). The hero stands at the centre of tile
  * (tile_x, tile_y), facing angle_z, with the class byte's stand action.
- * window_* are the drawable pixels. near_plane is the placeholder near value. */
+ * window_* are the drawable pixels. near_plane: the client's CameraViewNear
+ * 0x01cf162c is 20. */
 void mu_walk_init(mu_walk *walk, mu_world *map, const mu_camera_info *info, uint32_t window_width,
                   uint32_t window_height, int32_t tile_x, int32_t tile_y, float angle_z, uint8_t class_byte,
                   int32_t action_count, float near_plane);

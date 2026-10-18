@@ -142,49 +142,18 @@ int mu_camera_info_load(const char *root, int32_t folder, mu_camera_info *info, 
     return status ? 1 : 0;
 }
 
-/* ---- placeholder path ---- */
+/* ---- path ---- */
+
+/* The client's neighbour order, the direction table 0x01cf1640 (packed in the
+ * executable file; read from the runtime data-section capture
+ * x86-linux-capture-04/main-01ced000.bin, see docs/research/native-world.md). */
+const int32_t mu_walk_default_directions[8][2] = {
+    {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}
+};
 
 static int32_t cell_index(int32_t x, int32_t y)
 {
     return (int32_t)(((uint32_t)y & 0xffu) << 8) + (int32_t)((uint32_t)x & 0xffu);
-}
-
-static int blocked(const uint16_t *attributes, int32_t x, int32_t y, int32_t wall_mode)
-{
-    if (x < 0 || y < 0 || x > 255 || y > 255)
-        return 1;
-    return (int32_t)attributes[cell_index(x, y)] >= wall_mode;   /* 0x012b2584: map value >= wall blocks */
-}
-
-static int32_t sign(int32_t v)
-{
-    return v > 0 ? 1 : v < 0 ? -1 : 0;
-}
-
-int32_t mu_walk_straight_path(const uint16_t *attributes, int32_t sx, int32_t sy, int32_t tx, int32_t ty,
-                              int32_t wall_mode, mu_path *path)
-{
-    memset(path, 0, sizeof *path);
-    int32_t x = sx, y = sy, n = 0;
-    path->x[n] = (uint8_t)x;
-    path->y[n++] = (uint8_t)y;
-    while (n < MU_PATH_CELLS && (x != tx || y != ty)) {
-        int32_t dx = sign(tx - x), dy = sign(ty - y);
-        if (!blocked(attributes, x + dx, y + dy, wall_mode)) {
-            x += dx;
-            y += dy;
-        } else if (dx && dy && !blocked(attributes, x + dx, y, wall_mode)) {
-            x += dx;
-        } else if (dx && dy && !blocked(attributes, x, y + dy, wall_mode)) {
-            y += dy;
-        } else {
-            break;
-        }
-        path->x[n] = (uint8_t)x;
-        path->y[n++] = (uint8_t)y;
-    }
-    path->count = (uint8_t)n;
-    return n;
 }
 
 /* ---- session ---- */
@@ -250,6 +219,8 @@ void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_
     memcpy(f->hero, h->position, sizeof f->hero);
     w->target[0] = tile_x;
     w->target[1] = tile_y;
+    memcpy(w->directions, mu_walk_default_directions, sizeof w->directions);
+    mu_path_finder_init(&w->finder, f->walls);   /* 0x012b0e65: 256 x 256 over TerrainWall */
 }
 
 void mu_walk_message(mu_walk *w, uint32_t message, uint32_t wparam, uint32_t lparam)
@@ -348,19 +319,12 @@ static void hero_click(mu_walk *w)
     }
     if (h->tile[0] == w->target[0] && h->tile[1] == w->target[1] && h->movement)
         return;
-    /* PathFinding2 0x012b0e85(PositionX, PositionY, TargetX, TargetY, &Path, 0, 2):
-     * placeholder straight path; wall mode 4 when the start tile is a safe
-     * zone or the target is a safe tile without a character (0x012b0f2c). */
-    mu_path path;
-    int32_t n = mu_walk_straight_path(w->map->attributes, h->tile[0], h->tile[1], w->target[0], w->target[1], 2, &path);
-    if (n <= 1) {
-        uint16_t start = w->map->attributes[cell_index(h->tile[0], h->tile[1])];
-        uint16_t goal = w->map->attributes[cell_index(w->target[0], w->target[1])];
-        if ((start & 1) || ((goal & 1) && !(goal & 2)))
-            n = mu_walk_straight_path(w->map->attributes, h->tile[0], h->tile[1], w->target[0], w->target[1], 4,
-                                      &path);
-    }
-    if (n <= 1) {
+    /* PathFinding2 0x012b0e85(PositionX, PositionY, TargetX, TargetY, &Path, 0, 2) */
+    mu_path path = h->path;
+    int found = mu_path_finding2(&w->finder, h->tile[0], h->tile[1], w->target[0], w->target[1], &path, 0.0f, 2, 0,
+                                 (const int32_t(*)[2])w->directions, NULL);
+    int32_t n = path.count;
+    if (found != 1) {
         ++w->path_refused;
         return;
     }

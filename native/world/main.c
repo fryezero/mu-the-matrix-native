@@ -15,7 +15,7 @@
  * next tile's centre is projected with the client projection 0x0184a244 and
  * a mouse move, left down and left up are sent there on three frames, so the
  * click goes through the same window-procedure, pick and path code as a
- * mouse. --wheel sends WM_MOUSEWHEEL (+1 = zoom in) on the given frames.
+ * mouse (tiles off screen are skipped). --wheel sends WM_MOUSEWHEEL (+1 = zoom in) on the given frames.
  * In the window the mouse works as in the client: left click (or hold) moves,
  * Shift holds position, the wheel zooms. Esc twice quits, O saves a PNG.
  *
@@ -178,10 +178,12 @@ static void script(app *a, int32_t frame)
                                          point[1]);
     int32_t sx, sy;
     mu_view_projection(&w->frame.view, point, &sx, &sy);   /* 640x480 units, 0x0184a244 */
-    if (sx < 0) sx = 0;
-    if (sy < 0) sy = 0;
-    if (sx > 639) sx = 639;
-    if (sy > 479) sy = 479;
+    if (sx < 0 || sy < 0 || sx > 639 || sy > 479) {
+        if (!a->quiet)
+            fprintf(stderr, "frame %d: tile %d,%d is off screen (%d,%d), skipped\n", frame, t[0], t[1], sx, sy);
+        a->idle_frames = 0;
+        return;
+    }
     a->click_x = (int)((int64_t)sx * a->width / 640);
     a->click_y = (int)((int64_t)sy * a->height / 480);
     mu_walk_message(w, MU_WM_MOUSEMOVE, 0, pack(a->click_x, a->click_y));
@@ -702,7 +704,7 @@ int main(int argc, char **argv)
     a.tile[0] = 133;          /* Lorencia town square */
     a.tile[1] = 127;
     a.angle = 0.0f;
-    a.near_plane = 20.0f;     /* placeholder: the client's 0x01cf162c is in its packed data section */
+    a.near_plane = 20.0f;     /* CameraViewNear 0x01cf162c (static data, runtime data-section capture) */
     a.backend = "gl";
     for (int i = 1; i < argc; ++i) {
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
