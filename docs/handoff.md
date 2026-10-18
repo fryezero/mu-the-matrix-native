@@ -79,6 +79,13 @@ fix `111e5197`). Setup's launcher skin step runs after the DLLs and renames the 
 back when the installed proxy has the fix; without it the skin stays disabled. `winfix.log` shows `WIC stream fix used`;
 `MU_LAUNCHER_WICFIX=0` disables it.
 
+## Launcher "Hash Protection" 0xA4 dialog (MAC-APP-005, paused)
+
+Read [`research/mac-launcher-hash-dialog.md`](research/mac-launcher-hash-dialog.md). The launcher's `File.ReadAllBytes`
+gets a short read (EndOfStream) in about 1-2 % of starts. Forced kills leave no broken file, so a clean-up step
+would not help. The protection is a black box: do not analyse or bypass it. Next step: about 300 automated starts
+each with and without `gcConcurrent` disabled for the launcher, to test the Wine/XNU EFAULT-offset hypothesis.
+
 ## Original launcher in CrossOver
 
 Read [`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and

@@ -179,6 +179,10 @@ Official launcher skin (MAC-APP-006): the server's `Template.design`, disabled s
 again. Its crash was a Wine 11 JPEG decoder bug (NULL `pcbRead` to WPF's managed stream), worked around by mscoree
 proxy v3 (`wicfix.c`); the installer restores the skin. Verified live in both runtimes (skin, server time, GAME START,
 Dock restore). [Finding](research/mac-launcher-skin.md).
+Launcher "Hash Protection" code 0xA4 dialog (MAC-APP-005, paused by the owner): rare (2 in about 135 test starts),
+not caused by a file left half-written by a forced kill (snapshots show none; it also follows clean closes). The
+leading, unconfirmed hypothesis is a macOS-specific short read in Wine's `NtReadFile` retry path. No fix yet.
+[Finding](research/mac-launcher-hash-dialog.md).
 
 The original client works on Windows. Earlier isolated CrossOver `win10_64`
 starts fail with a Rosetta selector error. A new `win10`/win32 compatibility path
