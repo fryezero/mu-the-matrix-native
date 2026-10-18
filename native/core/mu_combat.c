@@ -810,6 +810,21 @@ static void show_damage(mu_combat *c, int32_t key, const float position[3], int3
                                                          terrain_height, (void *)c->map);
 }
 
+/* NATIVE-ITEMS-001: the voice inputs of a monster (SetPlayerShock / SetPlayerDie's monster branches):
+ * the model's sound slots from OpenMonsterModel (extracted); o + 0x60 is taken as 0 (viewer choice: the
+ * demo actors carry no subtype). */
+static mu_monster_voice monster_voice(const mu_combat *c, int32_t i)
+{
+    const mu_world_actor *a = &c->actors->list[i];
+    mu_monster_voice v;
+    memset(&v, 0, sizeof v);
+    v.object_type = a->actor.spec.model_index;
+    v.object_kind = 0;
+    v.field_3324 = c->monsters[i].voice_3324;
+    v.has_model = mu_monster_sound_slots(a->actor.spec.model_index - 0x7a5, v.slots);
+    return v;
+}
+
 static void monster_hit(mu_combat *c, const mu_combat_event *e)
 {
     int32_t i = e->actor;
@@ -826,6 +841,19 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
         if (action >= 0) {
             set_monster_action(c, i, action);
             ++c->stats.shocks;
+        }
+        if (mu_shock_gate(m->dead, mu_actor_action(&a->actor), e->damage, e->type) &&
+            a->actor.spec.model_index != 0xa91) {   /* SetPlayerShock's sound tail (NATIVE-ITEMS-001) */
+            mu_monster_voice v = monster_voice(c, i);
+            uint32_t saved = c->crt_seed;
+            int32_t r[2] = {crt_rand(c), 0}, act, snd;
+            int32_t used = mu_monster_shock(&v, a->server_class, mu_actor_action(&a->actor), r, 1, &act, &snd);
+            if (!used)
+                c->crt_seed = saved;   /* rand() is called only on the slot path */
+            if (snd >= 0) {
+                play(c, snd);
+                ++c->stats.monster_voices;
+            }
         }
         ++c->stats.hits;
     } else {
@@ -1146,6 +1174,11 @@ static int32_t pick_monster(mu_combat *c)
     return best;
 }
 
+int32_t mu_combat_pick(mu_combat *c)
+{
+    return pick_monster(c);
+}
+
 void mu_combat_pre_step(mu_combat *c)
 {
     mu_frame_world *f = &c->walk->frame;
@@ -1185,6 +1218,7 @@ static void respawn(mu_combat *c, int32_t i)
     a->idle_steps = 20;
     m->saved_wander = -1;
     m->hp = c->config.monster_hp;
+    m->voice_3324 = 0.0f;
     m->dead = 0;
     m->removed = 0;
     m->fade_timer = 0.0f;
@@ -1231,6 +1265,16 @@ static void monster_step(mu_combat *c, int32_t i)
             if (mu_actor_action(&a->actor) != 6)
                 ++c->stats.deaths;
             set_monster_action(c, i, 6);
+            /* SetPlayerDie's sound block, once: c + 0x3324 = 0.001 after it (NATIVE-ITEMS-001) */
+            mu_monster_voice v = monster_voice(c, i);
+            int32_t r[1] = {0}, act, snd;
+            mu_monster_die(&v, r, 0, &act, &snd);
+            if (snd >= 0) {
+                play(c, snd);
+                ++c->stats.monster_voices;
+            }
+            if (m->voice_3324 == 0.0f && v.has_model)
+                m->voice_3324 = 0.001f;
         }
         return;
     }
@@ -1719,11 +1763,13 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             " \"monster_attacks\": %u, \"hero_hits\": %u, \"picks\": %u, \"pick_hits\": %u,"
             " \"particles_created\": %u, \"joints_created\": %u, \"projectile_hits\": %u, \"area_requests\": %u,"
             " \"sprites\": %u, \"unsupported\": %u, \"hero_shocks\": %u, \"hero_deaths\": %u,"
+            " \"monster_voices\": %u,"
             " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d, \"skill_table\": %d}\n",
             c->config.weapon, (double)c->config.attack_speed, s->attacks, s->skills, s->arrows, s->fx_created,
             s->hits, s->misses, s->shocks, s->kills, s->deaths, s->removed, s->respawns, s->points_created,
             s->monster_attacks, s->hero_hits, s->picks, s->pick_hits, s->particles_created, s->joints_created,
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
+            s->monster_voices,
             c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang));
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)
