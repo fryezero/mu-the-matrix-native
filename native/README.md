@@ -146,6 +146,27 @@ native/build/mu-walk --game-root "$MU_GAME_ROOT" --headless --frames 400 --every
 separated by `;` (`F:attack:ACTOR`, `F:skill:N:ACTOR`, `F:click:ACTOR`, `F:stop`). Headless runs add `combat_frame`
 lines and a `combat` summary.
 
+## Ambient life and weather (NATIVE-ENV-001)
+
+`mu-world`/`mu-walk` (and mu-client's world scene) run the client's environment routines from
+`reconstructed/environment` through `core/mu_env.*`: every logic step MoveLeaves (behind the tick's guard),
+MoveBoids and MoveFishs; every frame the birds, bats, butterflies, crows, fish shoals, fish and rats they spawn
+(their BMD models, animated with the reconstructed tick), the leaf/snow/bubble/rain particles as RenderPlane3D quads
+or RenderSprite billboards, and the world's clear colour. The ambient sounds (aBird1/aBird2/aBat, the rat) go to the
+audio engine. Leaf particles stay invisible in worlds without `leaf01.OZJ` (Lorencia, Noria), as in the client:
+its `.jpg` load replaces and empties the `.tga` bitmap ([finding](../docs/research/client-environment.md)).
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 2 --tile 210,36            # Devias snow
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 7 --tile 21,29 --headless --backend gl \
+    --frames 300 --every 10 --out-dir /tmp/atlans                                       # Atlans shoals
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 141 --tile 118,150          # Tormenta Island rain
+```
+
+`--no-env` disables the module, `--env-seed N` sets the rand() state at world entry (default 1), and
+`--env-tga-leaves` loads the leaf `.tga` the client unloads (a viewer option, not client behaviour). Frame reports
+add `"env": [boids, fishs, leaves, models drawn, particles drawn]`; the summary adds an `"env"` line.
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -267,6 +288,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001) |
+| `core/mu_env.*` | Ambient creatures and weather over `reconstructed/environment`: models, weather bitmaps, step and draw (NATIVE-ENV-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
