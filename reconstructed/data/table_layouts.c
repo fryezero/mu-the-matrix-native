@@ -63,11 +63,15 @@ static const mu_record_field ITEM_SET_TYPE[] = {
     F(0x0, U16, CONSUMER, 4, 0, 0, "set_index"), S(0x8, U16, DATA, "field_8"),
 };
 
-/* ItemSetOption.bmd, 468 bytes. */
+/* ItemSetOption.bmd, 468 bytes: records at manager +0x1b804 (loader 0x009ddf86), read by 0x009de132:
+ * tier options [6][2] for 2..7 equipped parts, two extra options, ten full-set and ten more options. */
 static const mu_record_field ITEM_SET_OPTION[] = {
-    T(0x000, 64, DATA, "name"), T(0x040, 64, DATA, "name_2"),
-    F(0x080, I32, DATA, 12, 0, 0, "option"), F(0x0b0, I32, DATA, 12, 0, 0, "option_value"),
-    F(0x0e0, I32, DATA, 43, 0, 0, "extra"),
+    T(0x000, 64, CONSUMER, "name"), T(0x040, 64, CONSUMER, "name_2"),
+    F(0x080, I32, CONSUMER, 12, 0, 0, "tier_option"), F(0x0b0, I32, CONSUMER, 12, 0, 0, "tier_value"),
+    F(0x0e0, I32, CONSUMER, 2, 0, 0, "extra_option"), F(0x0e8, I32, CONSUMER, 2, 0, 0, "extra_value"),
+    S(0x0f0, I32, DATA, "part_count"),
+    F(0x0f4, I32, CONSUMER, 10, 0, 0, "full_option"), F(0x11c, I32, CONSUMER, 10, 0, 0, "full_value"),
+    F(0x144, I32, CONSUMER, 10, 0, 0, "special_option"), F(0x16c, I32, CONSUMER, 10, 0, 0, "special_value"),
 };
 
 /* ItemSetOptionText.bmd, 102 bytes: constructor 0x01184b4b, comparator 0x01184b7e. */
@@ -128,14 +132,16 @@ static const mu_record_field PLAY_GUIDE[] = {
     S(0x00, I32, DATA, "index"), T(0x04, 256, DATA, "url"),
 };
 
-/* MonsterSkill.bmd, 48 bytes. */
+/* MonsterSkill.bmd, 48 bytes: the loader copies skill[10] and field_2c to the table at
+ * 0x0a381fd8 + monster * 0x2c; 0x01395f66 picks the attack action by the slot of the current skill. */
 static const mu_record_field MONSTER_SKILL[] = {
-    S(0x00, I32, DATA, "monster"), F(0x04, I32, DATA, 10, 0, 0, "skill"), S(0x2c, I32, DATA, "field_2c"),
+    S(0x00, I32, CONSUMER, "monster"), F(0x04, I32, CONSUMER, 10, 0, 0, "skill"), S(0x2c, I32, LAYOUT, "field_2c"),
 };
 
-/* MasterSkillTreeData.bmd, 24 bytes; MasterSkillTooltip.bmd, 808 bytes. */
+/* MasterSkillTreeData.bmd, 24 bytes, copied to 0x01d22d70 + i * 0x18; 0x00bb0250 stops at the first
+ * zero slot and keeps the records whose class mask has the player's class bit. MasterSkillTooltip.bmd, 808 bytes. */
 static const mu_record_field MASTER_SKILL_TREE[] = {
-    S(0x00, U16, DATA, "slot"), S(0x02, U16, DATA, "field_2"), S(0x04, U8, DATA, "field_4"), S(0x05, U8, DATA, "field_5"),
+    S(0x00, U8, CONSUMER, "slot"), S(0x01, U8, DATA, "field_1"), S(0x02, U16, CONSUMER, "class_mask"), S(0x04, U8, DATA, "field_4"), S(0x05, U8, DATA, "field_5"),
     S(0x06, U8, DATA, "max_level"), S(0x07, U8, DATA, "field_7"), S(0x08, U32, DATA, "field_8"),
     S(0x0c, U32, DATA, "field_c"), S(0x10, U32, DATA, "skill"), S(0x14, U32, DATA, "field_14"),
 };
@@ -144,12 +150,16 @@ static const mu_record_field MASTER_SKILL_TOOLTIP[] = {
     T(0x046, 256, DATA, "description"), T(0x146, 256, DATA, "text_3"),
 };
 
-/* SkillTooltipText.bmd, 808 bytes: constructor 0x0118501e. */
+/* SkillTooltipText.bmd, 808 bytes: constructor 0x0118501e, tooltip renderer 0x0117da56 / 0x0117eab5.
+ * Lines carry a color and a show condition (0x0117ea69); the description is a format string whose
+ * value comes from two formula arguments, as float when value_is_float == 1, capped at value_cap. */
 static const mu_record_field SKILL_TOOLTIP_TEXT[] = {
-    S(0x000, U16, LAYOUT, "skill"), T(0x002, 256, DATA, "name"), S(0x104, U32, LAYOUT, "field_104"),
-    S(0x108, U32, LAYOUT, "field_108"), T(0x10c, 256, DATA, "description"), S(0x20c, U32, LAYOUT, "field_20c"),
-    S(0x210, U32, LAYOUT, "field_210"), T(0x214, 256, DATA, "text_3"), S(0x314, U32, LAYOUT, "field_314"),
-    F(0x318, I32, DATA, 4, 0, 0, "field_318"),
+    S(0x000, U16, LAYOUT, "skill"), T(0x002, 256, DATA, "name"), S(0x104, U32, CONSUMER, "name_color"),
+    S(0x108, U32, CONSUMER, "description_condition"), T(0x10c, 256, CONSUMER, "description"),
+    S(0x20c, U32, CONSUMER, "description_color"), S(0x210, U32, CONSUMER, "text_3_condition"),
+    T(0x214, 256, CONSUMER, "text_3"), S(0x314, U32, CONSUMER, "text_3_color"),
+    S(0x318, I32, CONSUMER, "value_argument_1"), S(0x31c, I32, CONSUMER, "value_argument_2"),
+    S(0x320, I32, CONSUMER, "value_is_float"), S(0x324, I32, CONSUMER, "value_cap"),
 };
 
 /* Quest.bmd, 1000 bytes: header only. */
