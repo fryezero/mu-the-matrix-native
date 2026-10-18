@@ -1,0 +1,31 @@
+# NATIVE-GFX-001: a small C ABI around Ruffle (MIT OR Apache-2.0) for the
+# native client's GFx windows.  Ruffle is an external, pinned dependency:
+# native/gfx/fetch-ruffle.sh clones it (no Ruffle source is vendored in this
+# repository) and links native/gfx/.deps/ruffle, which the paths below use.
+[package]
+name = "mugfx"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ruffle_core = { path = "../.deps/ruffle/core", features = ["default_font"] }
+ruffle_render_wgpu = { path = "../.deps/ruffle/render/wgpu" }
+futures = "0.3.32"
+serde_json = "1.0.150"
+url = "2"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+
+[[bin]]
+name = "mugfx-shot"
+path = "src/bin/mugfx-shot.rs"
+
+[profile.release]
+debug = false
+
+[workspace]
