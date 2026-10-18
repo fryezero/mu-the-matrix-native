@@ -33,6 +33,7 @@
 #include "../../reconstructed/objects/objects.h"
 #include "mu_bmd.h"
 #include "mu_model.h"
+#include "mu_raster.h"
 #include "mu_terrain.h"
 #include "mu_textures.h"
 
@@ -66,6 +67,8 @@ typedef struct mu_objects {
     int32_t models_loaded, models_missing, types_used;
     int32_t skipped_types;            /* records whose type is outside 0..299 */
     float uniform_light;              /* > 0: body light (v, v, v) instead of the terrain light */
+    uint8_t hidden_type[MU_OBJECT_TYPES]; /* types the running client marked +0x68 = -2 (not drawn) */
+    int32_t hidden_types;
 } mu_objects;
 
 void mu_objects_init(mu_objects *objects, int32_t world);
@@ -81,7 +84,13 @@ int mu_objects_load_installed(mu_objects *objects, const char *game_root, char *
 /* Records from a decoded plaintext (the bytes after the v12 decode). The map
  * number check is applied the same way. */
 int mu_objects_load_plain(mu_objects *objects, const uint8_t *plain, size_t size, char *error, size_t error_size);
+/* An optional sidecar next to the file (same name, extension .hidden) lists, one per line, the types whose
+ * objects the running client had marked +0x68 = -2; mu_objects_place skips them (live reading, see the
+ * finding). */
 int mu_objects_load_plain_file(mu_objects *objects, const char *path, char *error, size_t error_size);
+/* Local decoded files for several worlds: <directory>/EncTerrain<folder>.plain (the naming of
+ * scripts/live_objects_to_plain.py outputs). MU_OBJECTS_FILE_MISSING when the world has none. */
+int mu_objects_load_dir(mu_objects *objects, const char *directory, char *error, size_t error_size);
 /* Demo layout: one record per type whose model file exists, in rows of
  * `columns` starting at tile (tile_x, tile_y), spaced `spacing` world units,
  * standing on the terrain (z from mu_world_height_at). Not client data. */
@@ -95,6 +104,15 @@ int mu_objects_load_models(mu_objects *objects, const char *game_root, int no_te
 /* Places object `index` (origin, angles, body scale, light) and poses and
  * skins its model. Returns the model to draw, or NULL when it has none. */
 mu_object_model *mu_objects_place(mu_objects *objects, int32_t index, const mu_world *map);
+
+/* 1 when object `index` stands inside the tile box [x0, x1] x [y0, y1] (inclusive; a viewer
+ * cull, the client walks visible sectors instead). */
+int mu_objects_in_box(const mu_objects *objects, int32_t index, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
+
+/* Places and draws every object inside the tile box through the mesh-draw port into a
+ * software raster (textures bound per model). Returns the number drawn. */
+long mu_objects_draw_raster(mu_objects *objects, const mu_world *map, mu_raster *raster, int32_t x0, int32_t y0,
+                            int32_t x1, int32_t y1);
 
 /* Case-insensitive resolution of a path relative to game_root ("Data/..."). */
 int mu_objects_resolve(const char *game_root, const char *relative, char *out, size_t size);

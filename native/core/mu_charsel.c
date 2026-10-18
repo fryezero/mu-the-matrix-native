@@ -9,9 +9,10 @@
 
 #include "../../reconstructed/movement/client_movement.h"
 
-/* Placeholder: fitted to a live window capture of the character-select scene
- * (the marker comes from EncTerrain94.obj, which is not decoded). */
-const float mu_charsel_default_marker1[3] = {13617.0f, 12339.0f, 169.5f};
+/* Marker 1 (object type 14 of EncTerrain94.obj) as CreateObject stored it in the running client: live
+ * single-run read of the object list (NATIVE-OBJECTS-001, docs/research/client-objects.md section 6). The
+ * earlier window-capture fit was (13617, 12339, 169.5). */
+const float mu_charsel_default_marker1[3] = {13629.30078125f, 12338.5654296875f, 164.49984741210938f};
 
 static uint8_t *record(mu_charsel_session *s, int32_t index)
 {

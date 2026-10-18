@@ -23,10 +23,12 @@
  *
  * Placeholders (not client data):
  *   - the slot markers live in EncTerrain94.obj, which the captured client
- *     code does not decode (docs/research/client-terrain.md section 5); the
- *     marker positions are inputs (default: mu_charsel_default_marker1, fitted
- *     to a live capture, see the finding);
- *   - static map objects (buildings, floors of World94) are not drawn;
+ *     code does not decode (docs/research/client-objects.md); the marker
+ *     positions are inputs (default: mu_charsel_default_marker1, marker 1 as
+ *     read from the running client's object list; the front end takes the
+ *     markers of a local decoded EncTerrain94.plain with --objects-dir);
+ *   - static map objects are drawn only from a local decoded file
+ *     (mu-charsel --objects-dir);
  *   - the CHARACTER fields CreateCharacter 0x0137d8a1 initialises are set to
  *     the values the scene reads (live, visible, Player type);
  *   - the particle 0x8022 is reported, not drawn (effect system).
@@ -66,7 +68,7 @@ void mu_charsel_list_default(mu_charsel_list *list);
  * Relative item paths are taken under ROOT/Data. Returns 0 on success. */
 int mu_charsel_list_parse(const char *text, const char *root, mu_charsel_list *list, char *error, size_t error_size);
 
-/* Default position of marker 1 (placeholder, see the finding). */
+/* Default position of marker 1 (live read, docs/research/client-objects.md). */
 extern const float mu_charsel_default_marker1[3];
 
 typedef struct mu_charsel_decal {

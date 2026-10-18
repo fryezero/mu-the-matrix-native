@@ -40,6 +40,7 @@
 
 #include "../core/mu_charsel.h"
 #include "../core/mu_charsel_ui.h"
+#include "../core/mu_objects.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_scene.h"
@@ -58,7 +59,13 @@ typedef struct app {
     float marker[3];
     mu_charsel_list list;
     mu_charsel_session *s;
+    /* NATIVE-OBJECTS-001: static objects and markers from a local decoded EncTerrain94.plain */
+    const char *objects_dir;
+    mu_objects objects;
+    int has_objects;
+    long objects_drawn;
 #ifndef MU_CHARSEL_NO_GL
+    mu_gl_backend object_gl[MU_OBJECT_TYPES];
     GLuint tiles[MU_WORLD_BITMAPS], extras[MU_WORLD_EXTRA];
     mu_gl_backend items[MU_CHARSEL_MAX_ENTRIES][MU_CHARACTER_ITEMS];
     int gl_ready;
@@ -111,11 +118,27 @@ static int load(app *a)
     float markers[MU_CHARSEL_MARKERS][3];
     for (int k = 0; k < MU_CHARSEL_MARKERS; ++k)
         memcpy(markers[k], a->marker_given ? a->marker : mu_charsel_default_marker1, sizeof markers[k]);
+    if (a->objects_dir) {
+        mu_objects_init(&a->objects, MU_CHARSEL_WORLD);
+        if (mu_objects_load_dir(&a->objects, a->objects_dir, error, sizeof error) != MU_OBJECTS_FILE_OK) {
+            fprintf(stderr, "objects: %s\n", error);
+            return 1;
+        }
+        a->has_objects = 1;
+        /* marker k is the object of type 13 + k (CreateObject 0x00daa2b2); the last one of a type wins */
+        for (int32_t i = 0; i < a->objects.count && !a->marker_given; ++i) {
+            int32_t k = a->objects.records[i].type - 13;
+            if (k >= 0 && k < MU_CHARSEL_MARKERS)
+                memcpy(markers[k], a->objects.records[i].position, sizeof markers[k]);
+        }
+    }
     if (mu_charsel_init(a->s, a->root, &a->list, (const float(*)[3])markers, (uint32_t)a->width,
                         (uint32_t)a->height, 20.0f)) {
         fprintf(stderr, "%s\n", a->s->error);
         return 1;
     }
+    if (a->has_objects)
+        mu_objects_load_models(&a->objects, a->root, 0);
     if (a->slot >= 0) {
         if (mu_charsel_entry_of(a->s, a->slot) < 0) {
             fprintf(stderr, "slot %d is not in the list\n", a->slot);
@@ -169,6 +192,8 @@ static long draw_soft(app *a, mu_raster *raster)
     mu_world_draw_stats stats;
     memset(&stats, 0, sizeof stats);
     mu_world_draw_raster_view(s->map, raster, &frustum, MU_CHARSEL_SCENE, 0, &stats);
+    if (a->has_objects)
+        a->objects_drawn = mu_objects_draw_raster(&a->objects, s->map, raster, 0, 0, 255, 255);
     if (s->draw_entry >= 0) {
         mu_render_backend backend;
         mu_raster_backend(raster, &backend);
@@ -285,6 +310,11 @@ static void gl_setup(app *a)
             if (a->s->character_loaded[e] && a->s->characters[e].items[i].loaded)
                 mu_gl_upload(&a->items[e][i], &a->s->characters[e].items[i].textures, 0);
         }
+    for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t) {
+        memset(&a->object_gl[t], 0, sizeof a->object_gl[t]);
+        if (a->has_objects && a->objects.models[t] && a->objects.models[t]->loaded)
+            mu_gl_upload(&a->object_gl[t], &a->objects.models[t]->textures, 0);
+    }
     a->gl_ready = 1;
 }
 
@@ -301,6 +331,9 @@ static void gl_teardown(app *a)
     for (int e = 0; e < MU_CHARSEL_MAX_ENTRIES; ++e)
         for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
             mu_gl_release(&a->items[e][i]);
+    for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t)
+        if (a->object_gl[t].textures)
+            mu_gl_release(&a->object_gl[t]);
     a->gl_ready = 0;
 }
 
@@ -322,6 +355,22 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_terrain_render(&scene, &frustum, MU_CHARSEL_SCENE, 0, mu_terrain_alpha_layers(s->map->world), &sink, &stats);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
+    a->objects_drawn = 0;
+    if (a->has_objects) {
+        mu_draw_options options;
+        mu_draw_default_options(&options);
+        for (int32_t i = 0; i < a->objects.count; ++i) {
+            mu_object_model *m = mu_objects_place(&a->objects, i, s->map);
+            if (!m)
+                continue;
+            mu_render_backend backend;
+            mu_gl_backend_bind(&a->object_gl[m->type], &backend);
+            options.textures = &m->textures;
+            mu_draw_stats ds = {0, 0, 0, 0};
+            if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+                ++a->objects_drawn;
+        }
+    }
     if (s->draw_entry >= 0) {
         mu_draw_options options;
         mu_draw_default_options(&options);
@@ -380,12 +429,12 @@ static void report_summary(const app *a, const char *renderer)
     printf("{\"summary\": true, \"renderer\": \"%s\", \"world\": %d, \"folder\": %d, \"camera_key\": %d,"
            " \"camera_angle\": [%.3f, %.3f, %.3f], \"camera_position\": [%.3f, %.3f, %.3f], \"fov\": %.3f,"
            " \"characters\": %d, \"marker1\": [%.2f, %.2f, %.2f], \"steps\": %u, \"frames\": %u,"
-           " \"enter_requests\": %d}\n",
+           " \"enter_requests\": %d, \"objects\": %d, \"objects_drawn\": %ld}\n",
            renderer, MU_CHARSEL_WORLD, s->map->report.folder, s->info.key, (double)s->info.angle[0],
            (double)s->info.angle[1], (double)s->info.angle[2], (double)s->info.position[0],
            (double)s->info.position[1], (double)s->info.position[2], (double)s->info.fov, s->list.count,
            (double)s->scene.position[1][0], (double)s->scene.position[1][1], (double)s->scene.position[1][2], s->steps,
-           s->frames, s->enter_requests);
+           s->frames, s->enter_requests, a->has_objects ? a->objects.count : 0, a->objects_drawn);
     for (int32_t i = 0; i < s->list.count; ++i) {
         const mu_charsel_entry *e = &s->list.entries[i];
         const uint8_t *r = s->records + (size_t)e->slot * MU_CHARSEL_RECORD;
@@ -605,7 +654,8 @@ static int usage(void)
     fprintf(stderr, "usage: mu-charsel --game-root ROOT [--list FILE] [--slot N] [--marker X,Y[,Z]]\n"
                     "                  [--width W --height H] [--seconds S]\n"
                     "                  [--headless --frames N --out-dir DIR --backend soft|gl --every K]\n"
-                    "                  [--cycle F] [--enter F] [--no-ui] [--font FACE] [--tip TEXT] [--quiet]\n");
+                    "                  [--cycle F] [--enter F] [--no-ui] [--font FACE] [--tip TEXT] [--quiet]\n"
+                    "                  [--objects-dir DIR]   local decoded EncTerrain94.plain: objects + markers\n");
     return 2;
 }
 
@@ -638,6 +688,7 @@ int mu_charsel_tool_main(int argc, char **argv)
         ++i;
         if (!strcmp(k, "--game-root")) a.root = v;
         else if (!strcmp(k, "--list")) a.list_path = v;
+        else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
         else if (!strcmp(k, "--slot")) a.slot = atoi(v);
         else if (!strcmp(k, "--marker")) {
             a.marker[2] = 169.5f;

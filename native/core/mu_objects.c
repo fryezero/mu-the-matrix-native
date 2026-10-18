@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../../reconstructed/model-codec/model_codec.h"
+#include "mu_scene.h"
 
 void mu_objects_init(mu_objects *o, int32_t world)
 {
@@ -175,6 +176,29 @@ int mu_objects_load_installed(mu_objects *o, const char *game_root, char *error,
     return status;
 }
 
+/* Optional sidecar <path without extension>.hidden: types the running client had marked +0x68 = -2. */
+static void load_hidden(mu_objects *o, const char *path)
+{
+    memset(o->hidden_type, 0, sizeof o->hidden_type);
+    o->hidden_types = 0;
+    char sidecar[2048];
+    const char *dot = strrchr(path, '.'), *slash = strrchr(path, '/');
+    size_t stem = dot && (!slash || dot > slash) ? (size_t)(dot - path) : strlen(path);
+    if (stem + sizeof ".hidden" > sizeof sidecar)
+        return;
+    memcpy(sidecar, path, stem);
+    memcpy(sidecar + stem, ".hidden", sizeof ".hidden");
+    FILE *f = fopen(sidecar, "r");
+    int type;
+    while (f && fscanf(f, "%d", &type) == 1)
+        if (type >= 0 && type < MU_OBJECT_TYPES && !o->hidden_type[type]) {
+            o->hidden_type[type] = 1;
+            ++o->hidden_types;
+        }
+    if (f)
+        fclose(f);
+}
+
 int mu_objects_load_plain_file(mu_objects *o, const char *path, char *error, size_t error_size)
 {
     size_t size = 0;
@@ -185,7 +209,20 @@ int mu_objects_load_plain_file(mu_objects *o, const char *path, char *error, siz
     }
     int status = mu_objects_load_plain(o, plain, size, error, error_size);
     free(plain);
+    if (status == MU_OBJECTS_FILE_OK)
+        load_hidden(o, path);
     return status;
+}
+
+int mu_objects_load_dir(mu_objects *o, const char *directory, char *error, size_t error_size)
+{
+    char path[2048];
+    int n = snprintf(path, sizeof path, "%s/EncTerrain%d.plain", directory, o->folder);
+    if (n <= 0 || (size_t)n >= sizeof path) {
+        snprintf(error, error_size, "path too long");
+        return o->status = MU_OBJECTS_FILE_ERROR;
+    }
+    return mu_objects_load_plain_file(o, path, error, error_size);
 }
 
 int mu_objects_gallery(mu_objects *o, const char *game_root, const mu_world *map, int32_t tile_x, int32_t tile_y,
@@ -270,7 +307,8 @@ mu_object_model *mu_objects_place(mu_objects *o, int32_t index, const mu_world *
     if (index < 0 || index >= o->count)
         return NULL;
     const mu_object_record *r = &o->records[index];
-    if (r->type < 0 || r->type >= MU_OBJECT_TYPES || !o->models[r->type] || !o->models[r->type]->loaded)
+    if (r->type < 0 || r->type >= MU_OBJECT_TYPES || !o->models[r->type] || !o->models[r->type]->loaded ||
+        o->hidden_type[r->type])
         return NULL;
     mu_object_model *m = o->models[r->type];
     mu_model_params p = m->model.params;
@@ -294,4 +332,46 @@ mu_object_model *mu_objects_place(mu_objects *o, int32_t index, const mu_world *
     if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
         return NULL;
     return m;
+}
+
+int mu_objects_in_box(const mu_objects *o, int32_t index, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+{
+    if (index < 0 || index >= o->count)
+        return 0;
+    const float *p = o->records[index].position;
+    const float x = p[0] / 100.0f, y = p[1] / 100.0f;
+    return x >= (float)x0 && x < (float)(x1 + 1) && y >= (float)y0 && y < (float)(y1 + 1);
+}
+
+long mu_objects_draw_raster(mu_objects *o, const mu_world *map, mu_raster *raster, int32_t x0, int32_t y0, int32_t x1,
+                            int32_t y1)
+{
+    mu_render_backend backend;
+    mu_raster_backend(raster, &backend);
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    const int linear = raster->linear;
+    raster->linear = 1;
+    long drawn = 0;
+    for (int32_t i = 0; i < o->count; ++i) {
+        if (!mu_objects_in_box(o, i, x0, y0, x1, y1))
+            continue;
+        mu_object_model *m = mu_objects_place(o, i, map);
+        if (!m)
+            continue;
+        raster->textures = m->textures.slots;
+        raster->texture_count = m->textures.count;
+        raster->texture_filter = m->textures.filter;
+        raster->texture_wrap = m->textures.wrap;
+        options.textures = &m->textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+            ++drawn;
+    }
+    raster->textures = NULL;
+    raster->texture_count = 0;
+    raster->texture_filter = NULL;
+    raster->texture_wrap = NULL;
+    raster->linear = linear;
+    return drawn;
 }

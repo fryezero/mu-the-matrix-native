@@ -23,6 +23,7 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #include <dirent.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -263,9 +264,16 @@ static int command_objects(const args *a)
     printf(", \"model_folder\": %d, \"records\": [", mu_objects_folder(a->world));
     for (int32_t i = 0; i < o.count; ++i) {
         const mu_object_record *r = &o.records[i];
-        printf("%s[%d, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.4f]", i ? ", " : "", r->type, (double)r->position[0],
-               (double)r->position[1], (double)r->position[2], (double)r->angle[0], (double)r->angle[1],
-               (double)r->angle[2], (double)r->scale);
+        const float v[7] = {r->position[0], r->position[1], r->position[2], r->angle[0], r->angle[1], r->angle[2],
+                            r->scale};
+        printf("%s[%d", i ? ", " : "", r->type);
+        for (int k = 0; k < 7; ++k) {   /* some installed records carry NaN fields: JSON null */
+            if (isfinite(v[k]))
+                printf(k == 6 ? ", %.4f" : ", %.3f", (double)v[k]);
+            else
+                printf(", null");
+        }
+        printf("]");
     }
     printf("], \"models\": {");
     int first = 1;
