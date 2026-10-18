@@ -11,6 +11,10 @@
  *                                                     client visibility around the hero position
  *                       --legacy]                     NATIVE-TERRAIN-001 behaviour (whole box, no lights)
  *                                                SHA-256 of the raw RGBA pixels
+ *                      [--objects installed|gallery|PLAIN_FILE   static map objects (NATIVE-OBJECTS-001)
+ *                       --object-tile X,Y --object-columns N --object-spacing U   gallery layout]
+ *   mu-terrain objects ROOT --world N [--objects installed|gallery|PLAIN_FILE]
+ *                                                JSON: object file status, records, type -> model file
  *   mu-terrain decrypt FILE                      EncTerrain .map/.att plaintext to stdout
  *   mu-terrain export  ROOT --world N            grids as raw little-endian arrays + JSON trailer
  *   mu-terrain scan    ROOT                      load every Data/World* folder (read-only)
@@ -24,7 +28,9 @@
 #include <string.h>
 
 #include "../core/mu_camera.h"
+#include "../core/mu_objects.h"
 #include "../core/mu_png.h"
+#include "../core/mu_scene.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_terrain.h"
 
@@ -42,6 +48,9 @@ typedef struct args {
     int32_t detail, zoom;
     float hero[2], camera_angle, view_far;
     int have_frustum, top_view, legacy;
+    const char *objects;          /* NULL, "installed", "gallery" or a plaintext file */
+    int32_t object_tile[2], object_columns;
+    float object_spacing;
 } args;
 
 static int parse(args *a, int argc, char **argv)
@@ -63,6 +72,10 @@ static int parse(args *a, int argc, char **argv)
     a->zoom = 3;
     a->camera_angle = -48.5f;
     a->view_far = 3000.0f;
+    a->object_tile[0] = 128;
+    a->object_tile[1] = 128;
+    a->object_columns = 12;
+    a->object_spacing = 600.0f;
     if (argc < 3)
         return 1;
     a->command = argv[1];
@@ -99,6 +112,13 @@ static int parse(args *a, int argc, char **argv)
         else if (!strcmp(k, "--zoom")) a->zoom = atoi(v);
         else if (!strcmp(k, "--camera-angle")) a->camera_angle = strtof(v, NULL);
         else if (!strcmp(k, "--view-far")) a->view_far = strtof(v, NULL);
+        else if (!strcmp(k, "--objects")) a->objects = v;
+        else if (!strcmp(k, "--object-columns")) a->object_columns = atoi(v);
+        else if (!strcmp(k, "--object-spacing")) a->object_spacing = strtof(v, NULL);
+        else if (!strcmp(k, "--object-tile")) {
+            if (sscanf(v, "%d,%d", &a->object_tile[0], &a->object_tile[1]) != 2)
+                return 1;
+        }
         else if (!strcmp(k, "--light")) {
             if (a->light_count >= 16)
                 return 1;
@@ -170,6 +190,97 @@ static mu_world *load(const args *a, int textures)
     if (!w)
         fprintf(stderr, "%s\n", error);
     return w;
+}
+
+/* Loads the requested object records (and, when models is set, their models). */
+static int load_objects(const args *a, const mu_world *w, mu_objects *o, int models, char *error, size_t size)
+{
+    mu_objects_init(o, a->world);
+    int status;
+    if (!strcmp(a->objects, "installed"))
+        status = mu_objects_load_installed(o, a->root, error, size);
+    else if (!strcmp(a->objects, "gallery"))
+        status = mu_objects_gallery(o, a->root, w, a->object_tile[0], a->object_tile[1], a->object_columns,
+                                    a->object_spacing, error, size);
+    else
+        status = mu_objects_load_plain_file(o, a->objects, error, size);
+    if (status == MU_OBJECTS_FILE_OK && models)
+        mu_objects_load_models(o, a->root, !a->textures);
+    return status;
+}
+
+static void objects_json(FILE *f, const mu_objects *o, const char *error, long drawn)
+{
+    fprintf(f, "\"objects\": {\"source\": \"%s\", \"status\": %d, \"error\": \"%s\", \"folder\": %d, "
+               "\"version\": %u, \"map\": %u, \"count\": %d, \"types\": %d, \"models_loaded\": %d, "
+               "\"models_missing\": %d, \"skipped_types\": %d, \"drawn\": %ld}",
+            o->source, o->status, o->status == MU_OBJECTS_FILE_OK ? "" : error, o->folder, o->header.version,
+            o->header.map, o->count, o->types_used, o->models_loaded, o->models_missing, o->skipped_types, drawn);
+}
+
+/* Draws every placed object through the mesh-draw port into the raster. */
+static long draw_objects(mu_objects *o, const mu_world *w, mu_raster *raster)
+{
+    mu_render_backend backend;
+    mu_raster_backend(raster, &backend);
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    raster->linear = 1;
+    long drawn = 0;
+    for (int32_t i = 0; i < o->count; ++i) {
+        mu_object_model *m = mu_objects_place(o, i, w);
+        if (!m)
+            continue;
+        raster->textures = m->textures.slots;
+        raster->texture_count = m->textures.count;
+        raster->texture_filter = m->textures.filter;
+        raster->texture_wrap = m->textures.wrap;
+        options.textures = &m->textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+            ++drawn;
+    }
+    raster->textures = NULL;
+    raster->texture_count = 0;
+    raster->texture_filter = NULL;
+    raster->texture_wrap = NULL;
+    return drawn;
+}
+
+static int command_objects(const args *a)
+{
+    mu_world *w = load(a, 0);
+    if (!w)
+        return 1;
+    args b = *a;
+    if (!b.objects)
+        b.objects = "installed";
+    mu_objects o;
+    char error[512] = "";
+    load_objects(&b, w, &o, 0, error, sizeof error);
+    printf("{\"world\": %d, ", a->world);
+    objects_json(stdout, &o, error, 0);
+    printf(", \"model_folder\": %d, \"records\": [", mu_objects_folder(a->world));
+    for (int32_t i = 0; i < o.count; ++i) {
+        const mu_object_record *r = &o.records[i];
+        printf("%s[%d, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.4f]", i ? ", " : "", r->type, (double)r->position[0],
+               (double)r->position[1], (double)r->position[2], (double)r->angle[0], (double)r->angle[1],
+               (double)r->angle[2], (double)r->scale);
+    }
+    printf("], \"models\": {");
+    int first = 1;
+    for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t) {
+        char relative[512], path[2048];
+        if (!mu_objects_model_file(a->world, t, relative, sizeof relative))
+            continue;
+        int exists = mu_objects_resolve(a->root, relative, path, sizeof path);
+        printf("%s\"%d\": [\"%s\", %d]", first ? "" : ", ", t, relative, exists);
+        first = 0;
+    }
+    printf("}}\n");
+    mu_objects_free(&o);
+    mu_world_free(w);
+    return 0;
 }
 
 static int command_render(const args *a)
@@ -249,6 +360,15 @@ static int command_render(const args *a)
             decal_fans += mu_world_decal_raster(w, &raster, 0x7ef7, d[0], d[1], d[2], d[2], white, d[3], 1.0f, 5.0f,
                                                 1, 0, MU_TERRAIN_STATE_ADDITIVE);
         }
+    mu_objects objects;
+    char object_error[512] = "";
+    long objects_drawn = 0;
+    if (a->objects) {
+        if (load_objects(a, w, &objects, 1, object_error, sizeof object_error) == MU_OBJECTS_FILE_OK)
+            objects_drawn = draw_objects(&objects, w, &raster);
+        else
+            fprintf(stderr, "objects: %s\n", object_error);
+    }
     char hash[65];
     mu_sha256_hex(raster.color, (uint64_t)a->width * (uint64_t)a->height * 4, hash);
     int failed = a->out && mu_png_write(a->out, raster.color, a->width, a->height);
@@ -264,6 +384,11 @@ static int command_render(const args *a)
                frustum_status, frustum.x_min, frustum.y_min, frustum.x_max, frustum.y_max, (double)frustum.x2d[0],
                (double)frustum.y2d[0], (double)frustum.x2d[1], (double)frustum.y2d[1], (double)frustum.x2d[2],
                (double)frustum.y2d[2], (double)frustum.x2d[3], (double)frustum.y2d[3]);
+    if (a->objects) {
+        printf(", ");
+        objects_json(stdout, &objects, object_error, objects_drawn);
+        mu_objects_free(&objects);
+    }
     printf("}\n");
     mu_raster_free(&raster);
     mu_world_free(w);
@@ -373,7 +498,7 @@ int main(int argc, char **argv)
         return command_decrypt(argv[2]);
     args a;
     if (parse(&a, argc, argv)) {
-        fprintf(stderr, "usage: mu-terrain info|render|export|scan ROOT [--world N] [options]\n"
+        fprintf(stderr, "usage: mu-terrain info|render|export|scan|objects ROOT [--world N] [options]\n"
                         "       mu-terrain decrypt FILE\n");
         return 2;
     }
@@ -391,6 +516,8 @@ int main(int argc, char **argv)
         return command_export(&a);
     if (!strcmp(a.command, "scan"))
         return command_scan(&a);
+    if (!strcmp(a.command, "objects"))
+        return command_objects(&a);
     fprintf(stderr, "unknown command %s\n", a.command);
     return 2;
 }
