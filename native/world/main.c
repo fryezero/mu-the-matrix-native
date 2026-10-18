@@ -302,6 +302,8 @@ static int load(app *a)
         }
         a->walk.pre_step_hook = combat_pre_step;
         a->walk.pre_step_context = a;
+        if (a->has_particles)   /* NATIVE-PARTICLE-001: the skills' sprites and their legacy particle kinds */
+            a->combat->legacy_particles = &a->particles;
         if (a->has_sound) {   /* NATIVE-COMBAT-002: swings, skills, the hero's voice through SND_Play */
             a->combat->play_sound = combat_sound;
             a->combat->sound_context = a;
@@ -1184,14 +1186,15 @@ static void report_summary(const app *a, const char *renderer)
                " \"overflow\": %llu, \"live\": %u, \"max_live\": %u, \"steps\": %u, \"sprites_created\": %llu,"
                " \"drawn_particles\": %u, \"drawn_sprites\": %u, \"shadows\": %u, \"shadow_vertices\": %u,"
                " \"visuals\": %u, \"joints\": %llu, \"effects\": %llu, \"rand_calls\": %llu,"
-               " \"bitmaps\": [%d, %d, %d, %d, %d, %d, %d]}\n",
+               " \"bitmaps\": [%d, %d, %d, %d, %d, %d, %d, %d, %d]}\n",
                (unsigned long long)p->created, (unsigned long long)p->dropped, (unsigned long long)p->unsupported,
                (unsigned long long)p->overflow, p->live, p->max_live, p->steps,
                (unsigned long long)p->sprites_created, p->drawn_particles, p->drawn_sprites, p->shadows,
                p->shadow_vertices, p->visuals, (unsigned long long)p->joints, (unsigned long long)p->effects,
                (unsigned long long)a->particles.rand_calls, a->particles.bitmap_present[0],
                a->particles.bitmap_present[1], a->particles.bitmap_present[2], a->particles.bitmap_present[3],
-               a->particles.bitmap_present[4], a->particles.bitmap_present[5], a->particles.bitmap_present[6]);
+               a->particles.bitmap_present[4], a->particles.bitmap_present[5], a->particles.bitmap_present[6],
+               a->particles.bitmap_present[7], a->particles.bitmap_present[8]);
     }
     if (a->has_objects)
         printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"

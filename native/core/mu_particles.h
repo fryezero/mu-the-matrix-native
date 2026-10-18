@@ -39,7 +39,7 @@
  * translate) where the client's static-object pose folds the origin into the
  * bones. */
 
-enum { MU_WORLD_PT_BITMAPS = 7, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64 };
+enum { MU_WORLD_PT_BITMAPS = 9, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64 };
 
 typedef struct mu_world_particles_stats {
     uint64_t created, dropped, unsupported, overflow;
@@ -61,7 +61,7 @@ typedef struct mu_world_particles {
     mu_pt_sprites *sprites;
     uint32_t rand_state;
     uint64_t rand_calls;
-    mu_textures bitmaps;                   /* slots: 0x7f3c, 0x7f5a, 0x7ef7, 0x7f26, 0x7f2b, 0x771c, 0x771d */
+    mu_textures bitmaps;                   /* slots: 0x7f3c, 0x7f5a, 0x7ef7, 0x7f26, 0x7f2b, 0x7f25, 0x7f67, 0x771c, 0x771d */
     int32_t bitmap_present[MU_WORLD_PT_BITMAPS];
     float camera[12];                      /* CameraMatrix 0x0bdc5918 of the last draw (row-major 3x4) */
     float world_time;

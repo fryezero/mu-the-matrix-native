@@ -40,7 +40,9 @@ enum {
     MU_PT_BITMAP_RAIN_SPLASH = 0x771c,  /* rain02 */
     MU_PT_BITMAP_RAIN_RING = 0x771d,    /* rain03 */
     MU_PT_BITMAP_FLARE = 0x7ef7,        /* Effect\flare01.jpg */
+    MU_PT_BITMAP_SPARK2 = 0x7f25,       /* Effect\Spark02.jpg */
     MU_PT_BITMAP_SPARK3 = 0x7f26,       /* Effect\Spark03.jpg */
+    MU_PT_BITMAP_SHINY2 = 0x7f67,       /* Effect\Shiny02.jpg (sprites) */
     MU_PT_BITMAP_THUNDER = 0x7f2b,      /* Effect\Thunder01.jpg */
     MU_PT_BITMAP_FIRE = 0x7f3c,         /* Effect\Fire01.jpg (a strip of four cells) */
     MU_PT_BITMAP_SMOKE = 0x7f5a         /* Effect\smoke01.jpg */
@@ -103,8 +105,9 @@ typedef struct mu_pt_host {
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed
  * for the kind (type, subtype):
- *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0 and 2, rain02/rain03
- *   0x771c/0x771d 0, Thunder01 0x7f2b 0, Spark03 0x7f26 0 and 1. */
+ *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0, 2 and 3, rain02/rain03
+ *   0x771c/0x771d 0, Thunder01 0x7f2b 0, Spark02 0x7f25 0, Spark03 0x7f26 0
+ *   and 1. */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

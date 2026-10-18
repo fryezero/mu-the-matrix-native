@@ -25,7 +25,9 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
-        return subtype == 0 || subtype == 2;
+        return subtype == 0 || subtype == 2 || subtype == 3;
+    case MU_PT_BITMAP_SPARK2:
+        return subtype == 0;
     case MU_PT_BITMAP_RAIN_SPLASH:
     case MU_PT_BITMAP_RAIN_RING:
         return subtype == 0;
@@ -151,6 +153,14 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             p->scale = (float)(mu_pt_rand(h) % 32 + 48) * 0.01f;   /* (type 0x844 would take rand % 3 + 28) */
             p->angle[0] = (float)(mu_pt_rand(h) % 360);
             p->rotation = (float)(mu_pt_cvttss2si(h ? h->world_time : 0.0f) % 360);
+        } else if (subtype == 3) {                  /* 0x015c5a12 */
+            p->lifetime = 10;
+            p->scale = (float)(mu_pt_rand(h) % 32 + 80) * 0.01f;
+            p->angle[0] = (float)(mu_pt_rand(h) % 90 - 45);
+            p->angle[2] = (float)(mu_pt_rand(h) % 360);
+            p->velocity[0] = 0.0f;
+            p->velocity[1] = -(float)(mu_pt_rand(h) % 8 + 40);
+            p->velocity[2] = 0.0f;
         } else {                                    /* 2: 0x015c6146 */
             p->lifetime = 50;
             p->scale = (float)(mu_pt_rand(h) % 64 + 64) * 0.01f;
@@ -166,6 +176,20 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         for (int k = 0; k < 3; ++k)
             p->position[k] = (float)(mu_pt_rand(h) % 10 - 5) * 1.0f + p->position[k];
         break;
+    case MU_PT_BITMAP_SPARK2: {
+        /* 0x015dc098, subtype 0 */
+        float m[12], v[3];
+        p->scale = (float)(mu_pt_rand(h) % 4 + 4) * 0.1f;
+        p->lifetime = mu_pt_rand(h) % 16 + 24;
+        p->angle[2] = (float)(mu_pt_rand(h) % 360);
+        mu_angle_matrix(p->angle, m);
+        p->gravity = (float)(mu_pt_rand(h) % 16 + 6);
+        v[0] = 0.0f;
+        v[1] = (float)(mu_pt_rand(h) % 20 + 20) * 0.1f;
+        v[2] = 0.0f;
+        mu_vector_rotate(v, m, p->velocity);
+        break;
+    }
     case MU_PT_BITMAP_THUNDER:
         /* 0x015bda75 */
         p->scale = (float)(mu_pt_rand(h) % 8 + 6) * scale * 0.1f;
@@ -234,6 +258,14 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->gravity = p->gravity + 0.2f;
                 p->position[2] = p->position[2] + p->gravity;
                 p->scale = p->scale + 0.05f;
+            } else if (p->subtype == 3) {                    /* 0x0163402e */
+                float l = (float)p->lifetime / 8.0f;
+                p->light[0] = l * 0.8f;
+                p->light[1] = l * 0.8f;
+                p->light[2] = l;
+                for (int k = 0; k < 3; ++k)
+                    p->velocity[k] = 0.4f * p->velocity[k];
+                p->scale = p->scale + 0.1f;
             } else {                                         /* 2: 0x01634fa9 */
                 float l = (float)p->lifetime / 50.0f;
                 p->light[0] = p->light[1] = p->light[2] = l;
@@ -261,6 +293,23 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                     p->light[k] = p->light[k] - 0.05f;
             }
             break;
+        case MU_PT_BITMAP_SPARK2: {
+            /* 0x0165006b, subtype 0: fade, fall, bounce off the terrain, and the velocity once more */
+            float l = (float)p->lifetime / 16.0f;
+            p->light[0] = p->light[1] = p->light[2] = l;
+            p->position[2] = p->position[2] + p->gravity;
+            p->gravity = p->gravity - 2.0f;
+            float ground = h && h->terrain_height ? h->terrain_height(h->context, p->position[0], p->position[1])
+                                                  : 0.0f;
+            if (ground > p->position[2]) {
+                p->position[2] = ground;
+                p->gravity = -p->gravity * 0.6f;
+                p->lifetime = p->lifetime - 4;
+            }
+            for (int k = 0; k < 3; ++k)
+                p->position[k] = p->position[k] + p->velocity[k];
+            break;
+        }
         case MU_PT_BITMAP_THUNDER:
             /* 0x0162bedc */
             p->rotation = p->rotation + p->gravity;

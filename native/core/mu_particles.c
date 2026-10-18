@@ -11,13 +11,14 @@
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
 
-static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,
-                                                        MU_PT_BITMAP_FLARE,  MU_PT_BITMAP_SPARK3,
-                                                        MU_PT_BITMAP_THUNDER, MU_PT_BITMAP_RAIN_SPLASH,
-                                                        MU_PT_BITMAP_RAIN_RING};
-static const char *const effect_files[5] = {"Data/Effect/Fire01.OZJ", "Data/Effect/smoke01.OZJ",
-                                            "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
-                                            "Data/Effect/Thunder01.OZJ"};
+/* Effect bitmaps first (MU_WORLD_PT_EFFECTS of them), then the world's rain02/rain03. */
+#define MU_WORLD_PT_EFFECTS 7
+static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
+    MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
+    MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
+    "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
+    "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ"};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -73,7 +74,7 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
         return;
     for (int32_t i = 0; i < MU_WORLD_PT_BITMAPS; ++i) {
         char relative[512], path[2048], error[256];
-        if (i < 5) {
+        if (i < MU_WORLD_PT_EFFECTS) {
             /* LoadBitmap("Effect\\...", index, GL_LINEAR, GL_CLAMP) in the effect loader (0x01820f19 ...) */
             t->filter[i] = 0x2601;
             t->wrap[i] = 0x2900;
