@@ -187,7 +187,7 @@ These are in `~/Documents/mu-mac-tools/native/renders/char/` and are not committ
 ## Not established (gaps)
 
 - **Action names.** The stand action per weapon type (`SetPlayerStop`-style code) is untraced. Actions are chosen by index. The pattern 4 = sword stand, 8 = bow, 10 = staff fits the renders and a known MU enum ordering; that is an inference.
-- **Weapons in hand in the world path.** Not implemented:
+- **Weapons in hand in the world path.** Now covered by [client-renderchar.md](client-renderchar.md) (NATIVE-RENDERCHAR-001). Previously not implemented:
   - item lighting flag 0 and drawing through `0x0176ce74`;
   - per-part animation state, including the client's choice of weapon actions and speeds per character action;
   - the 0x54/0x59/0x72 attribute branches;
