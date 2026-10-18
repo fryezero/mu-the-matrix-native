@@ -26,7 +26,8 @@ Usage: setup-mu-mac.sh [options]
                          without --runtime also selects crossover).
   --prefix DIR           Free runtime: the Wine prefix (default: ~/Library/Application Support/MuTheMatrix/prefix).
   --runtime-archive SRC  Free runtime: use this runtime archive (local .tar.xz or https URL, e.g. one the server
-                         owner hosts, built with packaging/build-wine.sh) instead of the default download.
+                         owner hosts, built with packaging/build-wine.sh) instead of the default download. Later
+                         runs without it keep using an installed archive runtime.
   --runtime-sha256 HEX   SHA-256 of --runtime-archive (required with a URL).
   --bottle NAME          CrossOver runtime: bottle to create/resume (default: MuMatrixKit). Protected names
                          (MuMatrix32, Windows10MU, Steam, MuMatrixRecovery) are refused.
@@ -185,6 +186,10 @@ if [ "$RUNTIME" = free ]; then
         RT_ID="archive-${RT_ARCHIVE_SHA:0:12}"
     else
         RT_ID=cx24.0.7-7
+        # Without an archive, keep an archive runtime the launcher already uses (installed earlier from a file
+        # or URL) instead of switching a repair back to the slower default.
+        _cur=$(cat "$FREE_HOME/runtime/current" 2>/dev/null | tr -d '\r\n ')
+        case "$_cur" in archive-*) ! mukit_rt_ok "$FREE_HOME/runtime/$_cur" || RT_ID=$_cur ;; esac
     fi
     RT_DIR="$FREE_HOME/runtime/$RT_ID"
     WINE_BIN=$(mukit_rt_wine "$RT_DIR"); WINESERVER_BIN=$(mukit_rt_wineserver "$RT_DIR")

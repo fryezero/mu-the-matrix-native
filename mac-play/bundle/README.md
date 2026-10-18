@@ -109,6 +109,11 @@ the app. It also opens when "Start the game right away" is off, and from the err
 | Timewalker | With fast x87 on: a built rosetta-timewalker folder (`scripts/run-crossover.sh`, `build/libtimewalker.dylib`), as with `play-mu.sh` `MU_TIMEWALKER_DIR`. **Auto** uses the validated cache from `../install-fast-x87.sh` (checked with `fast_x87_ready` from `../fast-x87.sh`). |
 | Start right away | Off: the window opens on every start. |
 
+**Mu The Matrix > Use Windows Layer File…** (or the checkbox in the Install window) installs a Wine runtime archive the
+player already has, such as the CrossOver 26.3 build (`winecx-26.3.0-mu1.tar.xz`) before it has a public download. The
+installer runs with `--runtime-archive FILE`; on an installed game only the runtime step does work. A file whose SHA-256
+differs from `RuntimeFile.testedSHA256` gets a warning first. Later repairs without a file keep the installed archive runtime.
+
 The settings are stored as an XML plist at `~/Library/Application Support/MuTheMatrix/Launcher.plist`,
 with the keys `Runtime` (string `free` or `crossover`), `Bottle` (string), `FastX87` (bool), `TimewalkerDir` (string, empty = Auto), `Resolution`
 (string `WxH`, empty = keep) and `StartImmediately` (bool). You can edit the file directly. Missing,
@@ -167,6 +172,7 @@ APP="mac-play/bundle/build/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
 "$APP" --status           # free runtime: runtime / prefix / game installed?
 "$APP" --install-dry-run  # the installer's plan (download the official game); changes nothing
 "$APP" --install [DIR]    # install without a window (what the Install window runs); Ctrl-C cancels like Cancel
+"$APP" --install --runtime-archive FILE [DIR]  # same, with a Wine runtime file you already have
 "$APP" --check-bundle     # exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
 "$APP" --rosetta-status   # exit 0 when Rosetta 2 is installed
 "$APP" --install-rosetta  # install Rosetta 2 through the administrator prompt

@@ -2,6 +2,7 @@
 // and the bundled installer (Resources/installer/setup-mu-mac.sh). Everything that touches Wine, CrossOver
 // or a prefix lives in those scripts; this file only stores settings, writes the app log and runs them.
 import Foundation
+import CryptoKit
 
 /// The user settings, stored as a plain XML plist (default
 /// ~/Library/Application Support/MuTheMatrix/Launcher.plist, override with MU_SETTINGS_FILE).
@@ -397,10 +398,12 @@ enum Installer {
         return m
     }
 
-    /// gameDir nil = download and run the official installer.
-    static func arguments(gameDir: String?, dryRun: Bool = false) -> [String] {
+    /// gameDir nil = download and run the official installer. runtimeArchive = a Wine runtime file the player
+    /// already has (--runtime-archive; the installer hashes and checks it); nil = the default download.
+    static func arguments(gameDir: String?, runtimeArchive: String? = nil, dryRun: Bool = false) -> [String] {
         var a = ["--runtime", "free", "--no-desktop"]
         if let g = gameDir { a += ["--game-dir", g] } else { a += ["--game-installer", "official"] }
+        if let r = runtimeArchive { a += ["--runtime-archive", r] }
         let d = bundledDLLs
         if let g = d.mugl { a += ["--mugl-dll", g.path]; if let m = d.mscoree { a += ["--mscoree-dll", m.path] } }
         if let fx = bundledFastX87 { a += ["--fast-x87-dir", fx.path] }
@@ -423,14 +426,14 @@ enum Installer {
 
     /// Starts the installer; `line` is called on the main queue for every output line, `done` with the status and
     /// whether the install was cancelled. Returns nil when it could not start (then `done` was already called).
-    static func start(gameDir: String?, dryRun: Bool = false, line: @escaping (String) -> Void,
+    static func start(gameDir: String?, runtimeArchive: String? = nil, dryRun: Bool = false, line: @escaping (String) -> Void,
                       done: @escaping (_ status: Int32, _ cancelled: Bool) -> Void) -> InstallSession? {
         guard let url = script, FileManager.default.fileExists(atPath: url.path) else {
             line("The installer is missing from the app bundle."); done(2, false); return nil
         }
         let s = InstallSession(line: line, done: done)
         do {
-            try s.start(arguments: [url.path] + arguments(gameDir: gameDir, dryRun: dryRun))
+            try s.start(arguments: [url.path] + arguments(gameDir: gameDir, runtimeArchive: runtimeArchive, dryRun: dryRun))
         } catch {
             line("Could not start the installer: \(error.localizedDescription)"); done(2, false); return nil
         }
@@ -452,6 +455,27 @@ enum Installer {
         p.waitUntilExit()
         return String(decoding: data, as: UTF8.self)
     }
+}
+
+/// A Wine runtime archive the player already has: the faster CrossOver 26.3 build (packaging/build-wine.sh) until
+/// it has a public download. The installer checks its layout; the app compares its SHA-256 with the tested build.
+enum RuntimeFile {
+    static let testedName = "winecx-26.3.0-mu1.tar.xz"
+    static let testedSHA256 = "c50cb614576764fa0c08595d6901402353c1954f20b3b7ad997286727f116599"
+
+    /// Hex SHA-256 of the file, read in 1 MB chunks; nil when it cannot be read.
+    static func sha256(of path: String) -> String? {
+        guard let h = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { try? h.close() }
+        var hasher = SHA256()
+        do {
+            // read(upToCount:) returns nil or empty data at the end of the file.
+            while let chunk = try h.read(upToCount: 1 << 20), !chunk.isEmpty { hasher.update(data: chunk) }
+        } catch { return nil }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func isTested(_ path: String) -> Bool { sha256(of: path) == testedSHA256 }
 }
 
 /// One installer run. cancel() stops the whole tree: SIGTERM to the process group, SIGKILL after
