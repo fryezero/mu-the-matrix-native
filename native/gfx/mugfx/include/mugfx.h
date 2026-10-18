@@ -52,12 +52,15 @@ void mugfx_adapter(char *out, size_t cap);
 int mugfx_abi_version(void);
 
 /* macOS: render into an IOSurface (BGRA, premultiplied alpha) instead of a
- * read-back texture.  mugfx_render_shared renders and waits for the GPU;
+ * read-back texture.  mugfx_render_shared renders (and with wait, waits for
+ * the GPU; else call mugfx_gpu_wait once after rendering all movies);
  * mugfx_iosurface returns the IOSurfaceRef with its size and a seed that
  * changes when the surface is replaced (rebind the GL texture then).
  * mugfx_render still works (reads the surface) for headless captures. */
 MuGfx *mugfx_open_shared(const char *swf_path, int width, int height, char *err, size_t err_cap);
-int mugfx_render_shared(MuGfx *g);
+int mugfx_render_shared(MuGfx *g, int wait);
+/* Wait for every frame submitted so far (one GPU queue for all movies). */
+void mugfx_gpu_wait(void);
 void *mugfx_iosurface(MuGfx *g, int *width, int *height, uint32_t *seed);
 
 /* GFx Movie::HitTest with shapes: 1 when a visible shape not under a

@@ -625,11 +625,13 @@ pub unsafe extern "C" fn mugfx_render(g: *mut MuGfx, rgba: *mut u8, capacity: us
     0
 }
 
-/// Shared (IOSurface) movies: render the current frame into the surface and
-/// wait until the GPU has finished it, so the host's GL draw that samples the
-/// surface sees the complete frame.  Returns 0 on success.
+/// Shared (IOSurface) movies: render the current frame into the surface.
+/// With `wait`, block until the GPU has finished it, so the host's GL draw
+/// that samples the surface sees the complete frame; without, the host
+/// renders several movies and calls `mugfx_gpu_wait` once before drawing.
+/// Returns 0 on success.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mugfx_render_shared(g: *mut MuGfx) -> c_int {
+pub unsafe extern "C" fn mugfx_render_shared(g: *mut MuGfx, wait: c_int) -> c_int {
     let Some(g) = (unsafe { g.as_ref() }) else { return -1 };
     #[cfg(target_os = "macos")]
     if g.kind == TargetKind::Surface {
@@ -639,7 +641,13 @@ pub unsafe extern "C" fn mugfx_render_shared(g: *mut MuGfx) -> c_int {
         let ok = g.with_player(|p| {
             let renderer =
                 <dyn Any>::downcast_mut::<WgpuRenderBackend<surface::SurfaceTarget>>(p.renderer_mut());
-            renderer.map(|r| r.target().wait_idle(&descriptors().unwrap().device)).is_some()
+            renderer
+                .map(|r| {
+                    if wait != 0 {
+                        r.target().wait_idle(&descriptors().unwrap().device)
+                    }
+                })
+                .is_some()
         });
         let t_total = t.elapsed();
         let mut s = g.stats.borrow_mut();
@@ -649,6 +657,15 @@ pub unsafe extern "C" fn mugfx_render_shared(g: *mut MuGfx) -> c_int {
         return if ok { 0 } else { -3 };
     }
     -2
+}
+
+/// Block until every frame submitted so far (all movies share one GPU
+/// queue) has completed.
+#[unsafe(no_mangle)]
+pub extern "C" fn mugfx_gpu_wait() {
+    if let Ok(d) = descriptors() {
+        let _ = d.device.poll(wgpu::PollType::Wait { submission_index: None, timeout: None });
+    }
 }
 
 /// The IOSurfaceRef of a shared movie (NULL otherwise), its size and a seed
