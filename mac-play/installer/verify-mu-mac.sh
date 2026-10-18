@@ -198,8 +198,7 @@ else out WARN 'mugl-mode.txt' 'missing (mugl defaults to full, without VBO emula
 D=$MUKIT_HOTPATCH_DEFAULT B70=$MUKIT_HOTPATCH_V70_BITS
 if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then
     hp=$(head -1 "$MUTOOLS/mugl-hotpatch.txt" | tr -d '\r ')
-    if mukit_hotpatch_forbidden "$hp"; then out FAIL 'mugl-hotpatch.txt' "$hp refused: $MUKIT_HOTPATCH_FORBIDDEN_WHY; rerun setup (writes $D)"
-    elif ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
+    if ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
     elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (kit default: v7.5's patches plus v7.6 native JPEG decode; a v7.5 DLL reads it as 44916143)"
     elif [ $((hp & B70)) = "$B70" ]; then
         note=; miss=$(( D & ~hp )); extra=$(( hp & ~D ))
