@@ -164,6 +164,21 @@ class PathFinderTests(unittest.TestCase):
         ok, nodes, _ = g.find2(100, 100, 110, 100)
         self.assertNotIn((103, 100), nodes)
 
+    def test_retry_level_needs_a_target_without_character(self):
+        # 0x012b0f2c..0x012b0f7a: level 4 only when (start or target safe) and the target has no
+        # character. A safe start with a character on the target keeps level 2.
+        g = self.grid()
+        g.set(150, 150, 0x01)
+        for dx, dy in ((-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)):
+            g.set(150 + dx, 150 + dy, 0x02)
+        g.set(150, 156, 0x03)
+        ok, nodes, _ = g.find2(150, 150, 150, 156)
+        self.assertFalse(ok)          # level 2: the ring of characters is closed
+        g.set(150, 156, 0x01)
+        ok, nodes, _ = g.find2(150, 150, 150, 156)
+        self.assertTrue(ok)           # level 4 passes the ring
+        self.assertEqual(nodes[-1], (150, 156))
+
     def test_distance_targets(self):
         g = self.grid()
         ok, nodes, _ = g.find2(70, 70, 80, 70, distance=1.0)

@@ -117,6 +117,34 @@ once (`0x012b0e65` from `0x0185ae54`), so the finder works directly on TerrainWa
   fails the first search; the second walks to the explored tile with the smallest heuristic, usually
   next to it.
 
+## Paths to a target area: attack and talk range
+
+The distance argument turns the search into "walk until within range". The target marking is
+verified for any distance (section 1). The callers' range values are a static reading.
+
+* **Hero click.** The normal hero click uses distance 0 (`0x016ace20`).
+* **Character target.** The branch at `0x016aab55..0x016aabd3` (a click on a character or NPC) computes a
+  range. It starts at 1.0 and is overridden in this order:
+  * 2.0 when the weapon in slot 0 (`[0x01d1df18]+0x1b68`) is in item group 3 (`0x600..0x7ff`);
+  * 6.0 when `0x0139d994()` holds;
+  * 7.0 for character class value 9 (`+0x146`);
+  * 8.0 when `0x00cd6017(item, 0x54)` holds.
+
+  The walk starts only when `|dx| + |dy| > (int)range` and the check `0x016a53b4` passes. The search is
+  then `PathFinding2(..., range, 2)`.
+* **Action handler.** The action-at-target handler `0x01697c17` (`+0x39` = 3, `0x01697cab`) uses the same
+  values; there the class-9 rule comes after the item rule.
+* **Special branch.** The special branch at `0x016aca06` uses 1.0.
+* **Other non-zero callers.** Two more sites pass a variable range: `0x00957e89` passes an integer
+  distance as float, and `0x0107f2eb` passes a record field `+0x18`.
+* **Other callers.** The remaining 22 of the 28 call sites pass 0. The non-hero characters and some other
+  callers pass level 4 directly or use it as their retry.
+
+With distance d, each tile that is not blocked (with `error_check`, `level > TerrainWall`) and lies in
+the diamond `|i| + |j| <= (int)d` or strictly inside the circle of radius d is a goal. With d = 1 that is
+the target and its four orthogonal neighbours, so the hero stops beside the target and not on it. The
+first goal popped ends the search.
+
 ## 2. Following the path (verified)
 
 **MovePath `0x012b0846(character, turn)`** runs once per 40 ms logic step while the character moves:
@@ -283,7 +311,7 @@ compared CreateAngle and MovePath case; that is a property of these domains, not
 
 **Tests.**
 
-* **Portable** (`make test`): `reconstructed/path/test_client_path.py` (17 checks of rules and worked
+* **Portable** (`make test`): `reconstructed/path/test_client_path.py` (18 checks of rules and worked
   examples) and `native/tests/test_native_path.py` (synthetic maps through `mu-path`).
 * **Private** (`MU_RECOVERY_INTEGRATION=1` with the capture variables): the instruction comparison at 80
   cases plus mutations, and the Lorencia dump, walk and render.
@@ -323,6 +351,49 @@ rasterizer. On top of it:
 needs a new click from the player. Local renders (not committed) are under
 `~/Documents/mu-mac-tools/native/renders/path/`.
 
+## Reconciliation with NATIVE-WORLD-001
+
+The native-world branch (`claude/native-world`, commit `a732f9b`, not yet in `origin/main`) also ports
+the path finder (`reconstructed/movement/client_path.*`). Its follower ports MovePath, the angle helpers,
+CharacterMoveSpeed and MoveCharacterPosition, compared in its own `scripts/validate_movement.py`. Both
+ports read the neighbour table from the same capture.
+
+**Cross-validation.** `scripts/validate_path.py --cross-library <its libclient_movement>` runs the other
+port beside the client on every distance-0 search; it returns -1 for other distances. One run (1,000
+synthetic and 940 installed searches, seed default) gave these results:
+
+* this port: 0 mismatches against the client;
+* the native-world port: 0 of 695 installed cases and **2 of 377 synthetic cases** different from the
+  client.
+
+The difference is the PathFinding2 retry rule. The client (`0x012b0f2c..0x012b0f7a`) raises the level to 4
+only when `(start is safe || target is safe) && target has no character`. The other port raises it when
+`start is safe || (target is safe && no character)`. So with a safe start and a character on the target,
+it walks a different path. Example: start (98, 52) with wall 1, target (99, 47) with wall 3. The client
+path has x = 98, 97, 98, 99, 98, 98 and the other port's x = 98, 98, 98, 99, 99, 99, both with
+y = 52..47.
+
+**Coverage.** This port also covers:
+
+* the target-area branch `0x012b2584` (attack and talk range);
+* the siege flag;
+* refused zero coordinates, out-of-range target logging and arbitrary budgets.
+
+It compares the finder's internal state (marks, costs, parents, touched range) after every search, and its
+14 mutations target the search rules.
+
+**Plan.** Keep one path finder: `reconstructed/path`. The two ports define the same symbols
+(`mu_path_finder`, `mu_path_finding2`), so they cannot both link into `libmunative`. When
+`claude/native-world` reaches `origin/main`, rebase this branch and do the following:
+
+1. Remove `reconstructed/movement/client_path.*`.
+2. Point `native/core/mu_walk.c` at `mu_path_finding2` from `reconstructed/path`. Its world grid is
+   TerrainWall with the same `& 0xfaff` rule.
+3. Move the other port's independent Python statement of FindPath (its portable test) onto this library.
+4. Keep its follower (`reconstructed/movement`), which also covers the speed predicates. Make
+   `mu_path_move` either delegate to it or stay as the cross-check. Both equal the client on the compared
+   cases.
+
 ## Unresolved
 
 * **Static readings.** The siege-flag predicates, the speed rules beyond the player base, the run-counter
@@ -333,10 +404,5 @@ needs a new click from the player. Local renders (not committed) are under
 * **Long-distance path.** The long-distance helper path is not reconstructed: `0x012b104c`, the
   `PATH_t` methods `0x0129c4d2..0x0129d4ca`, a budget of 300,000,000 and the trimming BuildPath variant.
 * **Network.** SendMove and everything after it are outside this milestone.
-* **Overlap with NATIVE-WORLD-001.** The native-world branch (`claude/native-world`, not merged at the
-  time of writing) ports MovePath, the angle helpers, CharacterMoveSpeed and MoveCharacterPosition
-  independently (`reconstructed/movement`). Both ports are compared with the same client instructions.
-  The symbol names do not clash. After both merge, one follower can serve both modules. The path finder,
-  the click rules and the occupancy loop exist only here.
 * **Neighbour table.** The table comes from a manifest-less capture. A fresh restored capture of the
   third section would pin it properly.

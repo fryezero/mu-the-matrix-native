@@ -415,6 +415,19 @@ def grid_maze(rng):
     return grid
 
 
+CROSS = {'lib': None}   # optional second port (--cross-library), compared on distance-0 searches
+
+
+def load_cross_library(path):
+    lib = ctypes.CDLL(str(path))
+    lib.mu_path_finder_bytes.restype = ctypes.c_uint32
+    lib.mu_path_finder_init.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint16)]
+    lib.mu_path_finding2.argtypes = [ctypes.c_void_p] + [ctypes.c_int32] * 4 + [
+        ctypes.POINTER(ClientPath), ctypes.c_float, ctypes.c_int32, ctypes.c_uint8,
+        ctypes.POINTER((ctypes.c_int32 * 2) * 8), ctypes.POINTER(ctypes.c_uint32)]
+    return lib
+
+
 class World:
     """One TerrainWall/object-flag state, mirrored in the guest and in C."""
 
@@ -436,12 +449,23 @@ class World:
         if lib.mu_path_finder_init(ctypes.byref(self.c), 256, 256, self.wall, self.objects):
             raise MemoryError
         self.out = guest.alloc(0x40)
+        self.cross = None
+        if CROSS['lib'] is not None:
+            other = CROSS['lib']
+            self.cross_wall = (ctypes.c_uint16 * 65536)(*grid)
+            self.cross = ctypes.create_string_buffer(other.mu_path_finder_bytes())
+            other.mu_path_finder_init(self.cross, self.cross_wall)
+            self.cross_directions = ((ctypes.c_int32 * 2) * 8)(*[(ctypes.c_int32 * 2)(*d) for d in
+                                                               [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0),
+                                                                (-1, 1), (0, 1), (1, 1)]])
 
     def close(self):
         self.lib.mu_path_finder_free(ctypes.byref(self.c))
 
     def set_wall(self, index, value):
         self.wall[index] = value
+        if self.cross is not None:
+            self.cross_wall[index] = value
         self.guest.put(TERRAIN_WALL + 2 * index, struct.pack('<H', value))
 
     def search(self, sx, sy, tx, ty, distance, wall_level, siege=False):
@@ -498,6 +522,19 @@ class World:
             if m & 1 and i != start and (px[i] != c.parent_x[i] or py[i] != c.parent_y[i]):
                 diff['parent'] = (i, (px[i], py[i]), (c.parent_x[i], c.parent_y[i]))
                 break
+        if self.cross is not None and distance == 0.0:
+            other = ClientPath()
+            ctypes.memmove(ctypes.byref(other), filler, 0x21)
+            r = CROSS['lib'].mu_path_finding2(self.cross, sx, sy, tx, ty, ctypes.byref(other), distance, wall_level,
+                                              1 if siege else 0, ctypes.byref(self.cross_directions), self.objects)
+            self.cross_result = (r & 0xff == result and bytes(other) == guest_state['path']
+                                 and bytes(self.cross_wall) == guest_state['wall'])
+            self.cross_detail = {'case': (sx, sy, tx, ty, wall_level, siege), 'client': (result, guest_state['path'].hex()),
+                                 'cross': (r, bytes(other).hex()),
+                                 'start_wall': self.wall[sy * 256 + sx] if 0 <= sx < 256 and 0 <= sy < 256 else None,
+                                 'target_wall': self.wall[ty * 256 + tx] if 0 <= tx < 256 and 0 <= ty < 256 else None}
+        else:
+            self.cross_result = None
         stats = {'nodes': path.count if want else 0, 'pops': c.pops, 'closed': sum(1 for m in mark if m & 2)}
         return diff, guest_state, c_state, stats
 
@@ -580,6 +617,8 @@ def run_search_family(guest, lib, tally, rng, count, family='PathFinding2 synthe
                     stats.append(st)
                 tally.add(family, not diff, {'diff': diff, 'case': (sx, sy, tx, ty, distance, level, siege),
                                              'got': got['result'], 'want': want['result']})
+                if world.cross_result is not None:
+                    tally.add('cross: second port vs client (synthetic)', world.cross_result, world.cross_detail)
                 done += 1
         finally:
             world.close()
@@ -631,6 +670,8 @@ def run_installed_family(guest, lib, tally, rng, count, root, tool, worlds, stat
                     stats.append(st)
                 tally.add('PathFinding2 installed', not diff,
                           {'diff': diff, 'world': world_index, 'case': (sx, sy, tx, ty, distance)})
+                if world.cross_result is not None:
+                    tally.add('cross: second port vs client (installed)', world.cross_result, world.cross_detail)
                 path = got['path']
                 if got['result'] and rng.random() < 0.35:
                     n = path[2]
@@ -918,6 +959,9 @@ def main(argv=None):
     parser.add_argument('--only', default=None, help='comma list: search,installed,move,walk,angles,occupancy')
     parser.add_argument('--mutations', action='store_true')
     parser.add_argument('--output', default=None)
+    parser.add_argument('--cross-library', default=None,
+                        help='another path-finder port (NATIVE-WORLD-001 libclient_movement) to compare on '
+                             'distance-0 searches')
     args = parser.parse_args(argv)
 
     text = load_pinned(args.text, TEXT_BYTES, TEXT_SHA256, 'restored text')
@@ -927,6 +971,8 @@ def main(argv=None):
                              offset=DIRECTIONS_ADDRESS - DIRECTIONS_SECTION)
     guest = Guest(text, data, flag, directions)
     lib = load_library()
+    if args.cross_library:
+        CROSS['lib'] = load_cross_library(args.cross_library)
     only = set(args.only.split(',')) if args.only else None
     n = args.cases
     tally = Tally()
