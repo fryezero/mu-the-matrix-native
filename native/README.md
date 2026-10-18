@@ -62,9 +62,15 @@ reconstructed slot pass and RenderItem3D and draws the item models under the cli
 the reconstructed formatter cases, `mu-render ui tooltip --item CODE[:LEVEL]` draws one tooltip. See
 [the HUD finding](../docs/research/client-hud.md).
 
-`native/gfx` (NATIVE-GFX-001) plays the client's GFx windows with a pinned external Ruffle. It holds the
-movie inventory, the GFx→SWF converter, the `mugfx` C ABI and the `mu-gfx-window` prototype. Build:
-`native/gfx/fetch-ruffle.sh && native/gfx/build-mugfx.sh`. See [the finding](../docs/research/native-gfx.md).
+`native/gfx` (NATIVE-GFX-001/002) plays the client's GFx windows with a pinned external Ruffle plus the GFx
+patch series `native/gfx/ruffle-patches` (applied by `apply-ruffle-patches.sh`, which `fetch-ruffle.sh` runs). It
+holds the movie inventory, the GFx→SWF converter, the `mugfx` C ABI, the GFx layer `mu_gfx_layer.c` (bar,
+inventory, tooltips, character window, chat; loads libmugfx at run time) and `mu-gfx-window`. Build:
+`native/gfx/fetch-ruffle.sh && native/gfx/build-mugfx.sh`. `mu-world --gfx DIR [--gfx-open inventory,character]`
+shows the interface over the world (DIR: movies converted with `gfxconvert.py --bridge --transparent --var
+_root.isClient=true --fontconfig English --font-subset latin --movie main --movie InventoryFrame --movie InfoPopup
+--movie CharacterInfoFrame --movie chat`). See [the finding](../docs/research/native-gfx.md) and
+[NATIVE-GFX-002](../docs/research/native-gfx2.md).
 
 Viewer controls:
 
