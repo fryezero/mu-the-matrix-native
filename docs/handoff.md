@@ -62,6 +62,14 @@ CrossOver 26.3 Wine archive from `installer/packaging/build-wine.sh` (then set `
 until then players get the slower CX24 engine), distribute the app with bundled mugl/fast-x87 (`EMBED_*`), and
 Apple Developer ID signing/notarization. Next: publish, then a rehearsal on a second Mac.
 
+## Launcher windows on macOS (MAC-APP-004)
+
+Read [`research/mac-launcher-windows.md`](research/mac-launcher-windows.md). The fix lives in
+`mac-play/mumodes/winfix.c` (mscoree proxy v2, pinned `0405b330…`; v1 `6f2d2ace…` is recognised and replaced).
+`C:\mutools\winfix.log` shows whether it and the tray-icon hook are on; `MU_LAUNCHER_WINFIX=0` disables it.
+A new Wine build with a different `shell32!Shell_NotifyIconW` prologue leaves the tray hook off (the log says so):
+the Dock click then restores the window but not the launcher's faded content; add the prologue to `wf_hotpatch`.
+
 ## Original launcher in CrossOver
 
 Read [`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) and

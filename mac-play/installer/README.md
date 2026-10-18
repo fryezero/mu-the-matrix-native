@@ -170,6 +170,7 @@ Where each input comes from:
 | mugl loaded but slow | DLL built with MinGW's default x87 math | Build with `-msse2 -mfpmath=sse` (`--dll-source build` does) |
 | Window bigger than the screen, UI cut off | Game picked 1920x1200 on an 1800x1169 screen | `C:\mutools\mu-modes.txt` plus `DevModeIndex` (steps 8 and 9). Lower it with `--mode-index`. |
 | Launcher Settings resolution differs from the game | mscoree proxy missing, or no `MuTheMatrix.exe mscoree=native` | Steps 10 and 4. `modehook.log` should list both exes with "N modes hooked". |
+| Launcher news panel floats over the game window (also when the game has focus); after the launcher's **–** button, a Dock click does not bring the launcher back | mscoree proxy v1. The launcher makes its WinForms news panel TopMost after every restore, and Wine's Mac driver keeps every topmost window above the Dock even while the app is inactive. Its minimize hides the minimized window (minimize to tray) and leaves the faded panel on screen, so a Dock click has nothing to restore. `WindowsFloatWhenInactive` does not help (tested). | Install the v2 proxy (step 10; the app's Repair does it). Verify reports `v1 without the macOS window fix` as a WARN and shows `C:\mutools\winfix.log` (`window fix on`, `tray icon hook on`). `MU_LAUNCHER_WINFIX=0` in the environment disables the fix for a test. Details: `docs/research/mac-launcher-windows.md`. |
 | A crash spawns winedbg, which kills the game thread | AeDebug enabled | The registry step sets `AeDebug Auto=0`, `Debugger=""`. It now runs before the .NET installer, and is re-checked after it. |
 | `taskkill /im MuTheMatrix.exe` does nothing | The launcher ignores WM_CLOSE (`main.exe` closes cleanly on it) | Close the launcher window itself, or send SIGTERM to that bottle's process only (the owner's local `mu-to-server.sh`, not in the repository, did this) |
 | Launcher hangs with fast x87 | timewalker's x87 path breaks .NET/WPF | `TIMEWALKER_X87_ONLY=main.exe` (`play-mu.sh` sets it) |
@@ -203,7 +204,7 @@ Status key: **R** = reproduced by setup; **C** = checked by verify only; **N** =
 | 15 | `MuTheMatrix.exe.config` with `useLegacyV2RuntimeActivationPolicy` + v4.8 sku (already in the Windows10MU source) | 6 launcher config (writes only if v4.0 is missing) | R/C |
 | 16 | `Data\Launcher\Design\Template.design` renamed | 7 skin (every run, numbered backups) | R |
 | 17 | mugl proxy `C:\MuTheMatrix\opengl32.dll` (v7.x) | 10 dlls (`--dll-source build\|prebuilt`, `--mugl-build public\|private`, `--dll-dir`, `--mugl-version v72\|v71\|v70`) | R (live: prebuilt v7.1, build, mugl-repo) |
-| 18 | mscoree proxy `C:\MuTheMatrix\mscoree.dll` (modehook for the .NET launcher) | 10 dlls | R (live: `modehook.log` lists both exes) |
+| 18 | mscoree proxy `C:\MuTheMatrix\mscoree.dll` (modehook for the .NET launcher; v2 adds the macOS launcher window fix, MAC-APP-004) | 10 dlls | R (live: `modehook.log` lists both exes; v2: `winfix.log` says `window fix on`) |
 | 19 | `C:\mutools\mu-modes.txt` = `960x600 1024x640 1280x800 1600x1000 1728x1080` | 8 mutools (picked from screen or `--modes`) | R |
 | 20 | `C:\mutools\mugl-mode.txt` = `full+vbo` (MuMatrix32 currently has `full+vbo+time`, which adds per-call timing to the stats) | 8 mutools | R |
 | 21 | `C:\mutools\mugl-hotpatch.txt` = `380460463` (v7.6 kit default) | 8 mutools writes `--hotpatch-mask` (default 380460463; earlier kit defaults `15`, `7599`, `875951`, `44916143` and `112025007` are upgraded). Verify: 44916143 is the norm; 7599, 6575, 23983 and 875951 are named as older defaults; any mask with the v7.0 bits 1\|2\|4\|8 passes, with a note on missing/extra bits. | R (live: `=== hotpatch mask 7599: funcs 9/9 sites 18583 peep 50977`, 0 unexpected) |
@@ -225,7 +226,7 @@ Already published in the repo:
 - `setup-crossover-32bit.sh`: win10/win32 bottle, dotnet48, software rendering, browser emulation, APFS clone, skin rename, public mugl.
 - `start-launcher.sh`: guarded wineserver reset plus `MonitorCheck.exe` display probe.
 - `install-fast-x87.sh` and `fast-x87.sh`: pinned, self-checking timewalker.
-- `mumodes/`: modehook and mscoree proxy sources.
+- `mumodes/`: modehook, macOS launcher window fix (`winfix.c`) and mscoree proxy sources.
 - `hotpatch/`: v7.0 sources plus private table regeneration.
 - `automation/`: autologin tools.
 
@@ -253,7 +254,8 @@ Not in this kit but in the repo: the `MonitorCheck.exe` pre-launch display probe
 | mugl v7.2 (`mugl-v72.dll`) | `e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60` |
 | mugl v7.1 (`mugl-v71.dll`) | `85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2` |
 | mugl v7.0 (`mugl-v70.dll`, rollback) | `c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c` |
-| mscoree proxy (`mscoree.dll` in your `--dll-dir`) | `6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac` |
+| mscoree proxy v2 (`mscoree.dll` in your `--dll-dir`; display modes plus the macOS launcher window fix, MAC-APP-004) | `0405b3309606bd46efa3e6338fc577fac02c7da4391054c27ffc19d466a24d47` |
+| mscoree proxy v1 (display modes only; recognised: verify WARNs, setup builds v2 instead when MinGW is present) | `6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac` |
 | CrossOver 26.3 i386 builtin `opengl32.dll` | `0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56` |
 | `ndp48-x86-x64-allos-enu.exe` | `95889d6de3f2070c07790ad6cf2000d33d9a1bdfc6a381725ab82ab1c314fd53` |
 | free runtime engine `WS12WineCX24.0.7_7.tar.xz` (Sikarugir Engines v1.0) | `203f9e9fd6c2cc77e6525d798a434ced326145db34a356355e05659d3445fd1c` |

@@ -42,7 +42,10 @@ MUKIT_HOTPATCH_DEFAULT=380460463
 MUKIT_HOTPATCH_V70_BITS=15
 MUKIT_HOTPATCH_MAX=2147483647          # 31 bits; v7.6 reads 30 (v7.5 masks the value with 67108863, 26 bits)
 MUKIT_HOTPATCH_OLD_DEFAULTS="15 7599 875951 44916143 112025007"  # values earlier kit versions wrote; upgraded without --reset-config
-MUKIT_MSCOREE_PROXY_SHA256=${MUKIT_MSCOREE_PROXY_SHA256:-6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac}
+# mscoree proxy (mac-play/mumodes): v2 adds the macOS launcher window fix (winfix.c, MAC-APP-004);
+# v1 (display modes only) is recognised: verify warns, a repair or setup replaces it.
+MUKIT_MSCOREE_PROXY_SHA256=${MUKIT_MSCOREE_PROXY_SHA256:-0405b3309606bd46efa3e6338fc577fac02c7da4391054c27ffc19d466a24d47}
+MUKIT_MSCOREE_PROXY_V1_SHA256=${MUKIT_MSCOREE_PROXY_V1_SHA256:-6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac}
 # CrossOver 26.3 i386 builtin opengl32.dll (informational; verify compares to the installed CrossOver).
 MUKIT_CX263_OPENGL32_SHA256=0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56
 MUKIT_DOTNET48_INSTALLER_SHA256=${MUKIT_DOTNET48_INSTALLER_SHA256:-95889d6de3f2070c07790ad6cf2000d33d9a1bdfc6a381725ab82ab1c314fd53}

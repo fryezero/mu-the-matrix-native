@@ -901,7 +901,15 @@ resolve_dlls() {   # sets MUGL_SRC / MSCOREE_SRC (may build)
         MUGL_SRC="$DLL_DIR/mugl-$MUGL_VERSION.dll"; MSCOREE_SRC="$DLL_DIR/mscoree.dll"
         [ "$NO_MUGL" = 1 ] || [ -f "$MUGL_SRC" ] || mukit_die "Missing $MUGL_SRC (supply your own mugl-$MUGL_VERSION.dll in --dll-dir)"
         [ "$NO_MUGL" = 1 ] || [ "$(mukit_sha256 "$MUGL_SRC")" = "$(mukit_mugl_version_sha "$MUGL_VERSION")" ] || mukit_die "$MUGL_SRC does not match the pinned $MUGL_VERSION SHA-256"
-        if [ -f "$MSCOREE_SRC" ]; then
+        if [ -f "$MSCOREE_SRC" ] && [ "$(mukit_sha256 "$MSCOREE_SRC")" = "$MUKIT_MSCOREE_PROXY_V1_SHA256" ]; then
+            # The previous proxy (display modes only): prefer the current public source with the window fix.
+            if command -v "$MINGW_CC" >/dev/null 2>&1; then
+                say "  [note] $MSCOREE_SRC is the v1 mscoree proxy (no macOS window fix); building the current proxy from mac-play/mumodes"
+                build_mscoree
+            else
+                mukit_warn "$MSCOREE_SRC is the v1 mscoree proxy without the macOS window fix (MAC-APP-004); installing it. Put the v2 mscoree.dll in --dll-dir or install MinGW."
+            fi
+        elif [ -f "$MSCOREE_SRC" ]; then
             [ "$(mukit_sha256 "$MSCOREE_SRC")" = "$MUKIT_MSCOREE_PROXY_SHA256" ] || mukit_die "$MSCOREE_SRC does not match the pinned mscoree proxy SHA-256"
         else
             # The mscoree proxy is public source (mac-play/mumodes); a mugl-only --dll-dir

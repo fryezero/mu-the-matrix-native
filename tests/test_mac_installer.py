@@ -69,7 +69,7 @@ class InstallerPinsAndOptions(unittest.TestCase):
     def test_pins_are_well_formed_documented_and_overridable_only_by_name(self):
         pins = self.pins()
         self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V77_SHA256', 'MUKIT_MUGL_V76_SHA256', 'MUKIT_MUGL_V76J_SHA256', 'MUKIT_MUGL_V75_SHA256', 'MUKIT_MUGL_V72_SHA256',
-                                     'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256',
+                                     'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256', 'MUKIT_MSCOREE_PROXY_V1_SHA256',
                                      'MUKIT_DOTNET48_INSTALLER_SHA256', 'MUKIT_RT_CX24_ENGINE_SHA256', 'MUKIT_RT_TEMPLATE_SHA256',
                                      'MUKIT_WINETRICKS_SHA256'})
         self.assertEqual(len(set(pins.values())), len(pins))
@@ -126,6 +126,53 @@ class InstallerPinsAndOptions(unittest.TestCase):
         self.assertIn('(no login;', self.readme)
         mac_play = (ROOT / 'mac-play' / 'README.md').read_text()
         self.assertIn('installer/README.md', mac_play)
+
+
+class MscoreeLauncherWindowFix(unittest.TestCase):
+    """MAC-APP-004: the mscoree proxy keeps the launcher's news panel from floating over the game and
+    makes minimize go to the Dock (Dock click restores it). Static checks; the behaviour was verified live."""
+    def setUp(self):
+        self.mumodes = ROOT / 'mac-play' / 'mumodes'
+        self.proxy = (self.mumodes / 'mscoree_proxy.c').read_text()
+        self.winfix = (self.mumodes / 'winfix.c').read_text()
+
+    def test_proxy_installs_the_window_fix_after_the_mode_hook(self):
+        self.assertIn('#include "winfix.c"', self.proxy)
+        self.assertLess(self.proxy.index('modehook_install();'), self.proxy.index('winfix_install()'))
+        self.assertIn('C:\\\\mutools\\\\winfix.log', self.proxy)
+
+    def test_window_fix_mechanisms(self):
+        w = self.winfix
+        # 1. no always-on-top windows: winemac puts them above the Dock even while the app is inactive
+        self.assertIn('after == HWND_TOPMOST', w)
+        self.assertIn('after = HWND_NOTOPMOST', w)
+        # 2. a minimized window is never hidden (it stays a Dock tile); owned windows hide with their owner
+        self.assertIn('cmd == SW_HIDE && iconic', w)
+        self.assertIn('fl &= ~SWP_HIDEWINDOW', w)
+        self.assertIn('ShowOwnedPopups(h, FALSE)', w)
+        self.assertIn('ShowOwnedPopups(h, TRUE)', w)
+        # 3. a Dock click (Wine's SC_RESTORE) is forwarded to the launcher's tray icon
+        self.assertIn('HCBT_SYSCOMMAND', w)
+        self.assertIn('SC_RESTORE', w)
+        self.assertIn('"Shell_NotifyIconW"', w)
+        self.assertIn('WM_LBUTTONDOWN, WM_LBUTTONUP', w)
+        # hooks go through user32's imports of win32u (Wine only), with an opt-out
+        self.assertIn('"NtUserShowWindow"', w)
+        self.assertIn('"NtUserSetWindowPos"', w)
+        self.assertIn('MU_LAUNCHER_WINFIX', w)
+        self.assertIn('GetModuleHandleA("win32u.dll")', w)
+
+    def test_hotpatch_accepts_both_wine_builds_prologues(self):
+        # free runtime shell32: push ebp; mov ebp,esp. CrossOver's shell32: lea ecx,[esp+4] (stack realignment).
+        self.assertIn('p[0] == 0x55 && ((p[1] == 0x89 && p[2] == 0xE5)', self.winfix)
+        self.assertIn('p[0] == 0x8D && p[1] == 0x4C && p[2] == 0x24 && p[3] == 0x04', self.winfix)
+        self.assertIn('else return NULL;', self.winfix)
+
+    def test_mugl_does_not_pull_in_the_launcher_window_fix(self):
+        mugl = (ROOT / 'mac-play' / 'hotpatch' / 'mugl.c').read_text()
+        self.assertIn('#include "../mumodes/modehook.c"', mugl)
+        self.assertNotIn('winfix', mugl)
+        self.assertNotIn('winfix', (self.mumodes / 'modehook.c').read_text())
 
 
 if __name__ == '__main__':
