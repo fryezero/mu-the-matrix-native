@@ -99,6 +99,10 @@ typedef struct mu_walk {
      * characters and the hero's per-character routine 0x013b23f8. */
     void (*step_hook)(void *context, struct mu_walk *walk);
     void *step_context;
+    /* NATIVE-COMBAT-001: called after the key scan, before MoveHero's walk
+     * and click code (the attack case of MoveHero runs there). */
+    void (*pre_step_hook)(void *context, struct mu_walk *walk);
+    void *pre_step_context;
 } mu_walk;
 
 /* Starts a session on a loaded world (mu_walk is large: allocate it
@@ -125,6 +129,15 @@ void mu_walk_step(mu_walk *walk, mu_character *character);
  * mouse ray (view.projection / view.modelview are then the GL matrices). */
 void mu_walk_begin_render(mu_walk *walk, uint32_t now);
 int32_t mu_walk_end_render(mu_walk *walk);
+
+/* NATIVE-COMBAT-001: the hero's SetAction 0x012affa4 with the PlaySpeed
+ * the animation step uses; a path toward a tile through the client path
+ * finder (PathFinding2 0x012b0e85, Movement = 1, like the click start;
+ * returns 1 when a path was found); and the stop packet's Movement = 0 with
+ * SetPlayerStop's stand action. */
+void mu_walk_set_action(mu_walk *walk, int32_t action, float speed);
+int mu_walk_path_to(mu_walk *walk, int32_t tile_x, int32_t tile_y);
+void mu_walk_stop(mu_walk *walk);
 
 /* One animation step: applies the hero's action to the Player model the way
  * SetAction does (prior action and frame from the model, frame 0) when it
