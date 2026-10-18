@@ -1365,6 +1365,7 @@ Branch `claude/native-env`. Read [`research/client-environment.md`](research/cli
 **Next:** a live window-only capture of Lorencia/Noria to confirm the invisible-leaf reading; RenderObject
 `0x016d4fe4`, RenderBodyShadow `0x012bc07a` and CreateSprite/CreateParticle for the shadows, glows and splashes;
 the Icarus dragons and the Devil Square/Chaos Castle rain.
+
 ## GFx interface in the native client (NATIVE-GFX-002)
 
 Branch `claude/native-gfx2`. Read [`research/native-gfx2.md`](research/native-gfx2.md).
