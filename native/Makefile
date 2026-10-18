@@ -310,9 +310,9 @@ $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	done
 	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
-CLIENT_GL_SRC := $(CLIENT_SRC) viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
+CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
 
-$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/client
 	for f in $(CLIENT_GL_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
