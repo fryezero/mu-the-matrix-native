@@ -152,6 +152,12 @@ native/build/mu-walk --game-root "$MU_GAME_ROOT" --headless --frames 400 --every
 separated by `;` (`F:attack:ACTOR`, `F:skill:N:ACTOR`, `F:click:ACTOR`, `F:stop`). Headless runs add `combat_frame`
 lines and a `combat` summary.
 
+NATIVE-COMBAT-002: skills and projectiles are drawn by the client's older effect system (`reconstructed/combat/skill_fx.*`,
+verified: CreateEffect/MoveEffect, particles, joints, the spell hit check) with effect lights on the terrain; keys
+7, 8, 9, 0 add Evil Spirit, Hellfire, Inferno and Cyclone; the hero's hits and death take SetPlayerShock/SetPlayerDie's
+actions and voices; swings, casts and voices play through the sound table. `--hero-hp N` sets the demo hero's hit
+points (death, respawn at the home tile after 100 steps).
+
 ## Ambient life and weather (NATIVE-ENV-001)
 
 `mu-world`/`mu-walk` (and mu-client's world scene) run the client's environment routines from
@@ -308,8 +314,8 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_hud.*`, `tools/mu_render_hud.c` | Inventory item pass and tooltips over `reconstructed/hud` (`mu-render ui inventory\|tooltip`, NATIVE-HUD-001) |
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
-| `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001) |
 | `core/mu_env.*` | Ambient creatures and weather over `reconstructed/environment`: models, weather bitmaps, step and draw (NATIVE-ENV-001) |
+| `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
