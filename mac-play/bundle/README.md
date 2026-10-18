@@ -60,6 +60,11 @@ app is run anyway, the Install window warns before installing ("This copy of Mu 
 **Cancel** / **Install Anyway**) and, after the failed check, says that the app is incomplete instead of showing a
 generic failure.
 
+Use the v2 mscoree proxy (`mac-play/mumodes`, pinned in the installer README; MAC-APP-004): besides the display-mode
+list it fixes the launcher's windows on macOS (its news panel no longer floats over the game, and minimize sends
+the launcher to the Dock, from where a click restores it). An app built with the v1 proxy still works, but verify
+reports the proxy as a WARN.
+
 A private mugl build contains client-derived bytes: distributing it to players is the owner's decision, and it
 must never be committed. The mscoree proxy and the public mugl are authored sources (MIT); the timewalker files
 are MIT (their licenses are copied along). `x87-main-only-wrapper` is compiled from `../x87-main-only-wrapper.c`

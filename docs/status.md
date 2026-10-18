@@ -171,6 +171,10 @@ CrossOver 26.3 Wine matches CrossOver (18.1 vs 18.3 fps in a busy scene) and rea
 The installer and "Mu The Matrix.app" now default to this free runtime; a fresh install with the official installer
 was rehearsed end to end (44 min 50 s, mostly the 2.2 GB download) and reached the world.
 [Finding](research/mac-free-runtime.md), [player guide](../mac-play/PLAYER-GUIDE.md).
+Launcher windows on macOS (MAC-APP-004): the mscoree proxy v2 keeps the launcher's TopMost news panel from
+floating over the game (Wine's Mac driver puts topmost windows above the Dock even while inactive) and makes the
+launcher's minimize-to-tray a Dock minimize that a Dock click restores; verified live in the free runtime and
+MuMatrix32. [Finding](research/mac-launcher-windows.md).
 
 The original client works on Windows. Earlier isolated CrossOver `win10_64`
 starts fail with a Rosetta selector error. A new `win10`/win32 compatibility path

@@ -168,7 +168,9 @@ else
     ms="$GAME/mscoree.dll"
     h=$(mukit_sha256 "$ms")
     if [ -z "$h" ]; then out FAIL 'mscoree proxy' 'missing (launcher Settings list != game DevModeIndex)'
-    elif [ "$h" = "$MUKIT_MSCOREE_PROXY_SHA256" ] || [ "$(cat "$STATE/mscoree.dll.sha256" 2>/dev/null)" = "$h" ]; then out PASS 'mscoree proxy' "$(short "$h")"
+    elif [ "$h" = "$MUKIT_MSCOREE_PROXY_SHA256" ]; then out PASS 'mscoree proxy' "v2, with the macOS window fix (pinned) $(short "$h")"
+    elif [ "$h" = "$MUKIT_MSCOREE_PROXY_V1_SHA256" ]; then out WARN 'mscoree proxy' "v1 without the macOS window fix (launcher news panel floats over the game, Dock click does not restore a minimized launcher); rerun setup or the app's repair $(short "$h")"
+    elif [ "$(cat "$STATE/mscoree.dll.sha256" 2>/dev/null)" = "$h" ]; then out PASS 'mscoree proxy' "kit-installed build $(short "$h")"
     else out WARN 'mscoree proxy' "unknown build $(short "$h")"; fi
 fi
 
@@ -231,6 +233,11 @@ if [ -f "$MUTOOLS/modehook.log" ]; then
         out INFO "modehook $e" "${l:-no entry yet}"
     done
 else out INFO 'modehook.log' 'none yet (created on first launch)'; fi
+if [ -f "$MUTOOLS/winfix.log" ]; then
+    l=$(grep -i 'MuTheMatrix.exe: window fix' "$MUTOOLS/winfix.log" | tail -1 | tr -d '\r')
+    t=$(grep 'tray icon hook' "$MUTOOLS/winfix.log" | tail -1 | tr -d '\r' | sed 's/^ *//')
+    out INFO 'launcher window fix' "${l:-no entry yet}${t:+; $t}"
+fi
 if [ -f "$MUTOOLS/mugl-stats.txt" ]; then
     out INFO 'mugl-stats.txt' "$(head -1 "$MUTOOLS/mugl-stats.txt" | tr -d '\r' | cut -c1-70)"
     l=$(tail -c 2000000 "$MUTOOLS/mugl-stats.txt" | LC_ALL=C grep -a '^=== hotpatch mask' | tail -1 | tr -d '\r')

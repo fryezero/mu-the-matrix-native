@@ -169,6 +169,10 @@ Terminal instead (see [Troubleshooting](#troubleshooting)). Then click **Try Aga
 
 Only one copy of the game can run at a time. The Mu The Matrix app never saves or reads your password.
 
+The launcher's **–** button puts the launcher in the Dock (its Dock icon is called **wine**). Click that icon,
+or the small launcher picture at the right end of the Dock, to bring the launcher back. While you play,
+the launcher stays behind the game window.
+
 **The next times:** double-click **Mu The Matrix** in Applications (or in the Dock). The launcher opens
 straight away, without the settings window. To see the settings window again, hold the **Option (⌥)** key
 while you open the app, and keep holding it until the window appears.
@@ -287,6 +291,7 @@ message with the buttons **Settings…**, **Open Log** and **Quit** (and sometim
 | **The launcher stopped right away** | Close the game and the launcher and open the app again. If it happens again, hold Option while opening the app, click **Repair…** and then **Install**. |
 | **This resolution is not available** | Hold Option while opening the app and set **Resolution** to **Keep launcher setting**. |
 | The launcher does not appear | Wait a minute: the first start can be slow. If nothing appears, open the app again. If you get **Mu The Matrix is already running**, restart your Mac. |
+| The launcher's news picture stays on top of the game window, or the launcher does not come back when you click it in the Dock | Fixed in the current app. Hold Option while opening the app, click **Repair…** and then **Install**: this installs the updated launcher helper (`mscoree.dll`). |
 | An error in the launcher after your Mac was asleep | Close the launcher and the game, then open Mu The Matrix again. Every start resets the game's Windows layer. |
 | macOS asks whether "wine" may accept incoming network connections | Click **Allow**. |
 | The game is slow | Choose a smaller **Resolution**. Leave **Fast x87** ticked. The game shows at most 25 frames per second by design; see the speed note at the top. |

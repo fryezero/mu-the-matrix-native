@@ -237,6 +237,15 @@ eq 'verify on fake bottle: no FAIL' "$rc" 0
 grep -q 'WARN  main.exe' "$TMPD/verify.log" && ok 'verify flags untested main.exe' || bad 'verify flags untested main.exe'
 grep -q 'v7.7 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.7' || bad 'verify accepts kit mugl v7.7'
 grep -q 'PASS  mugl-hotpatch.txt *380460463' "$TMPD/verify.log" && ok 'verify: 380460463 is the norm' || bad 'verify: 380460463 is the norm'
+grep -q 'PASS  mscoree proxy *v2, with the macOS window fix' "$TMPD/verify.log" && ok 'verify accepts the v2 mscoree proxy (window fix)' || bad 'verify accepts the v2 mscoree proxy (window fix)'
+# MAC-APP-004: the v1 proxy (no window fix) is recognised and flagged; winfix.log is reported.
+cp "$G/mscoree.dll" "$TMPD/mscoree.keep"; mkdll "$G/mscoree.dll" mscoree-v1
+printf 'C:\\MuTheMatrix\\MuTheMatrix.exe: window fix on\r\n  tray icon hook on\r\n' > "$FB/drive_c/mutools/winfix.log"
+MUKIT_MSCOREE_PROXY_V1_SHA256=$(mukit_sha256 "$G/mscoree.dll") "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-v1.log" 2>&1; rc=$?
+eq 'verify with v1 mscoree proxy: no FAIL' "$rc" 0
+grep -q 'WARN  mscoree proxy *v1 without the macOS window fix' "$TMPD/verify-v1.log" && ok 'verify WARNs: v1 mscoree proxy' || bad 'verify WARNs: v1 mscoree proxy'
+grep -q 'INFO  launcher window fix *C:.MuTheMatrix.MuTheMatrix.exe: window fix on; tray icon hook on$' "$TMPD/verify-v1.log" && ok 'verify reports winfix.log' || bad 'verify reports winfix.log'
+cp "$TMPD/mscoree.keep" "$G/mscoree.dll"; rm -f "$FB/drive_c/mutools/winfix.log"
 
 # Rollback to v7.0 and back; the hotpatch file written by an earlier kit (15) is upgraded.
 "${SETUP[@]}" --mugl-version v70 > "$TMPD/run6.log" 2>&1; rc=$?
@@ -332,6 +341,18 @@ if command -v "${MINGW_CC:-i686-w64-mingw32-gcc}" >/dev/null 2>&1 && command -v 
     grep -q 'building the mscoree proxy' "$TMPD/muglonly.log" && ok 'mugl-only --dll-dir builds the mscoree proxy' || bad 'mugl-only --dll-dir builds the mscoree proxy'
     eq 'prebuilt mugl deployed from mugl-only dir' "$(mukit_sha256 "$BG/opengl32.dll")" "$MUKIT_MUGL_V77_SHA256"
     eq 'built mscoree deployed with mugl-only dir' "$(mukit_sha256 "$BG/mscoree.dll")" "$(mukit_sha256 "$TMPD/kitbuild/mscoree.dll")"
+    # A --dll-dir with the v1 mscoree proxy (no window fix): the current proxy is built instead.
+    mkdir -p "$TMPD/v1dir"; cp "$DLLS/mugl-v77.dll" "$TMPD/v1dir/"; mkdll "$TMPD/v1dir/mscoree.dll" mscoree-v1
+    MUKIT_MSCOREE_PROXY_V1_SHA256=$(mukit_sha256 "$TMPD/v1dir/mscoree.dll") MUKIT_BUILD_DIR="$TMPD/kitbuild" "$KIT_DIR/setup-mu-mac.sh" --bottle FakeBuild --dll-source prebuilt --dll-dir "$TMPD/v1dir" --modes '960x600 1024x640 1280x800 1600x1000 1728x1080' --no-desktop --skip-verify > "$TMPD/v1dir.log" 2>&1; rc=$?
+    eq 'prebuilt --dll-dir with v1 mscoree exit 0' "$rc" 0
+    grep -q 'is the v1 mscoree proxy (no macOS window fix); building' "$TMPD/v1dir.log" && ok 'v1 mscoree in --dll-dir -> current proxy built' || bad 'v1 mscoree in --dll-dir -> current proxy built'
+    eq 'built mscoree deployed instead of v1' "$(mukit_sha256 "$BG/mscoree.dll")" "$(mukit_sha256 "$TMPD/kitbuild/mscoree.dll")"
+    # The built proxy carries the window fix: it imports the hooked user32/win32u functions by name.
+    if command -v strings >/dev/null 2>&1; then
+        for sym in NtUserShowWindow NtUserSetWindowPos Shell_NotifyIconW MU_LAUNCHER_WINFIX winfix.log; do
+            strings "$BG/mscoree.dll" | grep -q "$sym" && ok "built mscoree contains $sym" || bad "built mscoree contains $sym"
+        done
+    fi
 else
     echo 'skip  build path (no MinGW cross-compiler or python3)'
 fi
