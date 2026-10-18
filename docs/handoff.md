@@ -1295,3 +1295,17 @@ entirely off screen are not drawn (524288); default mask 875951, verification bi
 (at most 10 ms queued per 40 ms frame, see the MAC-PERF-008 section of `research/mac-performance.md`). The setup kit
 writes 875951 and `mu-autologin.sh` defaults to MTM-1. Next: the crowded MTM-1 boss scene (18-19 fps, CPU-bound),
 culling meshes before the mesh loop runs, and a busy town.
+
+## Scene flow, offline (NATIVE-SHELL-001)
+
+Branch `claude/native-shell`. Read [`research/client-scene-manager.md`](research/client-scene-manager.md) and
+[`../reconstructed/scene/README.md`](../reconstructed/scene/README.md).
+
+**Checks.** `scripts/validate_scene.py --cases 1000 --loading-ui-cases 120 --mutations` (private captures): 7,000 cases
++ 120 loading-screen cases, 0 mismatches, 8 planted mistakes detected. Portable: `reconstructed/scene/test_scene.py`,
+`native/tests/test_native_shell.py` (`mu-shell` over synthetic data; the private test runs the demo session over the
+installed client). Captures stay local in `~/Documents/mu-mac-tools/native/renders/shell/`.
+
+**Next:** draw the World95 login world behind the server list (record camera, like character select); reconstruct
+the main-scene init and the startup loader's steps; replace the offline session with the network layer once that is
+in scope.
