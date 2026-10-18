@@ -7,6 +7,7 @@ all:
 	$(MAKE) -C reconstructed/record-math
 	$(MAKE) -C reconstructed/model-codec
 	$(MAKE) -C reconstructed/camera
+	$(MAKE) -C reconstructed/path
 	$(MAKE) -C reconstructed/actors
 	$(MAKE) -C reconstructed/audio
 	$(MAKE) -C reconstructed/ui
@@ -39,6 +40,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/record-math -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/model-codec -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/camera -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/path -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/actors -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/audio -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/ui -p 'test_*.py' -v
