@@ -308,6 +308,11 @@ def ok(result):
 class Report:
     def __init__(self):
         self.families = {}
+        self.coverage = {}
+
+    def cover(self, family, key):
+        entry = self.coverage.setdefault(family, {})
+        entry[key] = entry.get(key, 0) + 1
 
     def add(self, family, equal, failure=None):
         entry = self.families.setdefault(family, {'cases': 0, 'equal': 0, 'first_failures': []})
@@ -784,6 +789,8 @@ def family_player_attack(m, lib, rng, cases, report, negatives):
             lib.mu_player_attack_action(ctypes.byref(inp), ctypes.byref(res))
             action = res.action
         client_actions = [x[2] for x in record if x[0] == 'set_action']
+        report.cover('player_attack', ('monster ' if monster else 'player ') +
+                     (hex(client_actions[0]) if client_actions else 'none'))
         equal = ok(r)
         if equal:
             if monster and obj_type in (0x7c5, 0x2c1b, 0x28):
@@ -950,13 +957,13 @@ def main():
         start = time.time()
         family(m, lib, rng, cases, report, negatives)
         timing[name] = round(time.time()-start, 2)
-    result = {'nan_pairs_equal': NAN_COUNT[0], 'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'bodies': bodies,
+    result = {'coverage': report.coverage, 'nan_pairs_equal': NAN_COUNT[0], 'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'bodies': bodies,
               'families': report.families, 'negative_controls': negatives, 'seconds': timing}
     all_equal = all(f['cases'] == f['equal'] for f in report.families.values())
     result['all_equal'] = all_equal
     summary = {k: f"{v['equal']}/{v['cases']}" for k, v in report.families.items()}
-    print(json.dumps({'summary': summary, 'negative_controls': negatives, 'seconds': timing, 'all_equal': all_equal},
-                     indent=1))
+    print(json.dumps({'summary': summary, 'negative_controls': negatives, 'seconds': timing, 'all_equal': all_equal,
+                      'player_attack_actions': len(report.coverage.get('player_attack', {}))}, indent=1))
     for k, v in report.families.items():
         if v['first_failures']:
             print(k, json.dumps(v['first_failures'][:3], default=str))
