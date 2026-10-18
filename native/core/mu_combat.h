@@ -26,9 +26,16 @@
  * timing, the respawn after removal, the skill ranges, auto-repeating the
  * attack while the target lives, and the picking of a monster under the
  * cursor (a cylinder around the actor, not the client's selection routine).
- * Viewer choices: projectile speed and trajectory where the client's
- * MoveEffect paths were not reduced, sprite blend modes of the effect
- * bitmaps. Each is labelled in mu_combat.c. */
+ * NATIVE-COMBAT-002: the skills' visuals run the client's older effect
+ * system (reconstructed/combat/skill_fx: CreateEffect / MoveEffect for the
+ * supported types, the particles and the joints they emit, the hit checks
+ * that end a projectile at its target, the area skills' own end-of-attack
+ * code) in three pools moved once per logic step; models draw through the
+ * scene draw with the effect's blend mesh, particles as RenderSprite
+ * billboards and joints as RenderJoints ribbons in their blend modes.
+ * Viewer choices left: the animation player of effect models (frame +=
+ * speed, looping), sprites (CreateSprite) and the effect kinds the
+ * reconstruction does not cover are counted, not drawn. */
 #ifndef MU_COMBAT_NATIVE_H
 #define MU_COMBAT_NATIVE_H
 
@@ -37,10 +44,12 @@
 #include <stdio.h>
 
 #include "../../reconstructed/combat/combat.h"
+#include "../../reconstructed/combat/skill_fx.h"
 #include "mu_bmd.h"
 #include "mu_character.h"
 #include "mu_image.h"
 #include "mu_model.h"
+#include "mu_scene.h"
 #include "mu_textures.h"
 #include "mu_walk.h"
 #include "mu_world_actors.h"
@@ -79,30 +88,32 @@ typedef struct mu_combat_bitmap {
     int loaded;
 } mu_combat_bitmap;
 
-/* A model the effects draw (Data/Skill). */
+/* A model the effects draw (Data/Skill, the demo weapon for Twisting Slash). */
 typedef struct mu_combat_model {
-    int32_t type;             /* client model index (0x43b MODEL_ARROW, 0x413 MODEL_FIRE) */
+    int32_t type;             /* client model index (0x43b MODEL_ARROW, 0x413 MODEL_FIRE, ...) */
     int loaded;
     mu_bmd bmd;
     mu_model model;
     mu_textures textures;
 } mu_combat_model;
 
-enum { MU_COMBAT_MODEL_ARROW = 0, MU_COMBAT_MODEL_FIRE = 1, MU_COMBAT_MODELS = 2 };
+enum {
+    MU_COMBAT_MODEL_ARROW = 0, MU_COMBAT_MODEL_FIRE, MU_COMBAT_MODEL_CIRCLE, MU_COMBAT_MODEL_CIRCLE_LIGHT,
+    MU_COMBAT_MODEL_INFERNO, MU_COMBAT_MODEL_LASER, MU_COMBAT_MODEL_STONE1, MU_COMBAT_MODEL_STONE2,
+    MU_COMBAT_MODEL_WEAPON, MU_COMBAT_MODELS
+};
 
-enum { MU_FX_ARROW = 1, MU_FX_FIRE, MU_FX_ENERGY, MU_FX_HEAL };
-
-typedef struct mu_combat_fx {
-    int32_t kind;             /* MU_FX_* (0 = free) */
-    int32_t life;             /* steps left (client LifeTime +0x6c) */
-    int32_t target;           /* actor index, -1 hero, -2 none */
-    float position[3], velocity[3];
-    float angle[3];
-    float scale;
-} mu_combat_fx;
-
-#define MU_COMBAT_FX 64
+#define MU_COMBAT_PARTICLES 2048
+#define MU_COMBAT_LIGHTS 256
 #define MU_COMBAT_EVENTS 64
+#define MU_COMBAT_HERO_OBJECT MU_WORLD_ACTORS_MAX   /* object index of the hero in the effect environment */
+
+/* One AddTerrainLight call of the last logic step (re-applied after the
+ * frame light copy of every rendered frame). */
+typedef struct mu_combat_light {
+    float x, y, rgb[3];
+    int32_t range;
+} mu_combat_light;
 
 /* A pending demo server message. */
 typedef struct mu_combat_event {
@@ -132,6 +143,8 @@ typedef struct mu_combat_stats {
     uint32_t attacks, skills, arrows, fx_created, hits, misses, kills, removed, respawns;
     uint32_t points_created, monster_attacks, hero_hits, picks, pick_hits;
     uint32_t shocks, deaths;
+    uint32_t particles_created, joints_created, projectile_hits, area_requests, unsupported, sprites;
+    uint32_t hero_shocks, hero_deaths;
 } mu_combat_stats;
 
 typedef struct mu_combat {
@@ -142,7 +155,17 @@ typedef struct mu_combat {
     const mu_world *map;
     mu_point points[MU_POINTS];
     mu_combat_monster monsters[MU_WORLD_ACTORS_MAX];
-    mu_combat_fx fx[MU_COMBAT_FX];
+    mu_sfx_effect effects[MU_SFX_EFFECTS];
+    mu_sfx_particle particles[MU_COMBAT_PARTICLES];
+    int32_t particle_count;
+    mu_sfx_joint joints[MU_SFX_JOINTS];
+    mu_sfx_object objects[MU_WORLD_ACTORS_MAX + 1];
+    mu_sfx_env env;
+    uint32_t crt_seed;         /* the client's rand() recurrence for the effect randomness */
+    uint8_t serial;            /* [[0x01d1df18] + 0x2dec] */
+    mu_combat_light lights[MU_COMBAT_LIGHTS];
+    int32_t light_count;
+    float time_step;           /* [0x01cf103c] */
     mu_combat_event events[MU_COMBAT_EVENTS];
     int32_t event_count;
     /* hero */
@@ -152,6 +175,10 @@ typedef struct mu_combat {
     int32_t attack_target;     /* target of the running attack */
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
+    int32_t pending_target;    /* demo: the projectile attack whose damage waits for its hit check */
+    int32_t pending_deadline;
+    int32_t pending_damage, pending_type;
+    uint8_t pending_flag8;
     uint8_t hero_counter;      /* c + 0x28 */
     int16_t weapon_item[2];    /* c + 0x19ac (client item indices of the demo weapon) */
     float speeds[MU_PLAYER_ACTIONS];   /* SetAttackSpeed result; < 0 for actions it does not store */
@@ -206,22 +233,28 @@ typedef struct mu_combat_quad {
     uint8_t eye_space;
     uint8_t additive;         /* blend (ONE, ONE) instead of (SRC_ALPHA, ONE_MINUS_SRC_ALPHA) */
     uint8_t depth_test;
+    uint32_t src, dst;        /* when non-zero: the GL blend factors (they override additive) */
 } mu_combat_quad;
 
-/* The frame's quads: effect bitmaps, then RenderPoints (mode 0) through
- * RenderNumber and RenderSpriteUV with the session's camera modelview.
- * Returns the number of quads written. */
+/* The frame's quads: joints (RenderJoints), particles (RenderParticles mode
+ * 0 through RenderSprite), then RenderPoints (mode 0) through RenderNumber
+ * and RenderSpriteUV with the session's camera modelview. Returns the
+ * number of quads written. */
 int32_t mu_combat_quads(mu_combat *combat, mu_combat_quad *quads, int32_t max);
 
 /* Effect models: places and poses the model of every live model effect and
- * calls draw for it (the callback must draw before returning: the model
- * instance is shared). Returns the number of models drawn. */
-typedef void (*mu_combat_model_fn)(void *context, const mu_model *model, const mu_textures *textures, int32_t slot);
-/* Render flags of an effect model slot: the arrow with the default texture
- * flag 2, the fire model with 0x42 (texture + bright, the additive ONE/ONE
- * state of the mesh draw; viewer choice, RenderEffects was not reduced). */
-uint32_t mu_combat_model_flags(int32_t slot);
+ * calls draw for it with the options RenderObject passes to RenderBody
+ * (flags 2, or 0x82 for effects with +0x80 == 0x80; the effect's alpha,
+ * blend mesh, its light and texture scroll). The callback must draw before
+ * returning: the model instance is shared. Returns the number of models. */
+typedef void (*mu_combat_model_fn)(void *context, const mu_model *model, const mu_textures *textures, int32_t slot,
+                                   const mu_draw_options *options);
 int32_t mu_combat_draw_models(mu_combat *combat, mu_combat_model_fn draw, void *context);
+
+/* AddTerrainLight calls of the last logic step, applied to the world's frame
+ * light after its per-frame copy (the client copies in its move phase and
+ * the effects add during the same step). */
+void mu_combat_terrain_lights(const mu_combat *combat, mu_world *map);
 
 /* Software drawing of the frame's effect models and quads into a raster
  * whose view/projection are the session's (mu_raster textures are restored). */
@@ -250,8 +283,10 @@ int mu_combat_script_parse(mu_combat_script *script, const char *text);
 void mu_combat_report_frame(const mu_combat *combat, FILE *out, int32_t frame);
 void mu_combat_report_summary(const mu_combat *combat, FILE *out, int quiet);
 
-/* Live points and effects (reports). */
+/* Live points, effects, particles and joints (reports). */
 int32_t mu_combat_live_points(const mu_combat *combat);
 int32_t mu_combat_live_fx(const mu_combat *combat);
+int32_t mu_combat_live_particles(const mu_combat *combat);
+int32_t mu_combat_live_joints(const mu_combat *combat);
 
 #endif

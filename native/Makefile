@@ -68,7 +68,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/data/table_layouts.c \
              $(RECON)/hud/inv_grid.c $(RECON)/hud/item_slots.c $(RECON)/hud/item_pass.c \
              $(RECON)/hud/tooltip_html.c $(RECON)/hud/tooltip_format.c \
-             $(RECON)/combat/combat.c \
+             $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c \
              $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_fish.c \
              $(RECON)/environment/env_leaves.c $(RECON)/environment/env_world.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))

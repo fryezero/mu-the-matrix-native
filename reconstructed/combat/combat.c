@@ -593,7 +593,11 @@ static const mu_skill_visual skills[] = {
     {2, "Meteorite", MU_SKILL_RECEIVE_MAGIC, -1, 0x413, 0, 1, 0, 0x34d, 0x42},
     {4, "Fire Ball", MU_SKILL_RECEIVE_MAGIC, -1, 0x413, 1, 1, 0, 0x34d, 0x42},
     {7, "Ice", MU_SKILL_RECEIVE_MAGIC, -1, 0x412, 0, 1, 0, 0x34d, 0x78},
+    {9, "Evil Spirit", MU_SKILL_RECEIVE_MAGIC, -1, 0x7fd3, 0, 8, 0, 0x34d, 0x75},
+    {10, "Hellfire", MU_SKILL_RECEIVE_AREA, 0xa9, 0x41c, 0, 2, 0, -1, 0x77},
     {11, "Power Wave", MU_SKILL_RECEIVE_MAGIC, -1, 0x41f, 0, 3, 0, 0x34d, 0x76},
+    {12, "Aqua Beam", MU_SKILL_RECEIVE_AREA, 0xa7, 0x7f4e, 0, 1, 0, -1, 0x7a},
+    {14, "Inferno", MU_SKILL_RECEIVE_AREA, 0xa8, 0x457, 0, 1, 0, -1, -1},
     {17, "Energy Ball", MU_SKILL_RECEIVE_MAGIC, -1, 0x437, 0, 1, 0, 0x34d, -1},
     {19, "Falling Slash", MU_SKILL_RECEIVE_MAGIC, 0x89, -1, 0, 0, 0, 0x70, -1},
     {20, "Lunge", MU_SKILL_RECEIVE_MAGIC, 0x8a, -1, 0, 0, 0, 0x71, -1},
@@ -604,8 +608,8 @@ static const mu_skill_visual skills[] = {
     {26, "Heal", MU_SKILL_RECEIVE_MAGIC, -1, 0x7f84, 0, 1, 0, 0x6f, -1},
     {27, "Greater Defense", MU_SKILL_RECEIVE_MAGIC, -1, -1, 0, 0, 0, 0x6f, -1},
     {28, "Greater Damage", MU_SKILL_RECEIVE_MAGIC, -1, -1, 0, 0, 0, 0x6f, -1},
-    {41, "Twisting Slash", MU_SKILL_RECEIVE_AREA, 0x8e, -1, 0, 0, 0, -1, -1},
-    {42, "Rageful Blow", MU_SKILL_RECEIVE_AREA, 0x8f, -1, 0, 0, 0, -1, -1},
+    {41, "Twisting Slash", MU_SKILL_RECEIVE_AREA, 0x8e, 0x453, 0, 1, 0, -1, 0x73},
+    {42, "Rageful Blow", MU_SKILL_RECEIVE_AREA, 0x8f, 0x461, 0, 1, 0, -1, 0x95},
     {43, "Death Stab", MU_SKILL_RECEIVE_AREA, 0x9e, -1, 0, 0, 0, -1, -1},
 };
 
