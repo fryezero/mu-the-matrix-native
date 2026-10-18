@@ -6,9 +6,12 @@ Portable (synthetic data only):
   * `mu-render ui title|login|text` on a synthetic game root (OZT textures,
     Pillow-encoded OZJ textures, the placeholder font): texture counts, frame
     geometry, and SHA-256 regression hashes where no JPEG is involved.
-Private (MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT): the title and login
-renders of the installed interface files load every texture and draw; the
-PNGs stay in a temporary directory.
+  * `mu-render ui servers` (NATIVE-UI-002) on a synthetic root: the
+    server-select window's layout, the selected group's check frame, hover and
+    pressed frames, and the click events.
+Private (MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT): the title, login and
+server-select renders of the installed interface files load every texture
+and draw; the PNGs stay in a temporary directory.
 """
 import ctypes
 from ctypes import POINTER, c_float, c_int, c_int32, c_size_t, c_uint8, c_uint32, c_void_p
@@ -88,6 +91,18 @@ def read_png(path):
 
 def pixel(rows, x, y):
     return tuple(rows[y][x*4:x*4 + 4])
+
+
+def run_tool_lines(*args):
+    result = subprocess.run([str(TOOL), 'ui', *[str(a) for a in args]], capture_output=True, text=True)
+    if result.returncode:
+        raise AssertionError(f'mu-render ui {args} failed: {result.stderr}')
+    return [json.loads(line) for line in result.stdout.strip().splitlines()]
+
+
+def frame_strip(width, height, colours):
+    """A vertical strip of button frames, `height` rows each."""
+    return ozt(width, height*len(colours), [[colours[y // height]]*width for y in range(height*len(colours))])
 
 
 def run_tool(*args, env=None):
@@ -278,6 +293,129 @@ class NativeUiTests(unittest.TestCase):
             self.assertEqual(first['primitives'], 3)
             if HASHES['text-640']:
                 self.assertEqual(first['framebuffer_sha256'], HASHES['text-640'])
+
+    # ---- server select (NATIVE-UI-002) -----------------------------------
+
+    GROUP_FRAMES = [(200, 0, 0, 255), (0, 200, 0, 255), (0, 0, 200, 255), (200, 200, 0, 255)]
+    SERVER_FRAMES = [(10, 120, 120, 255), (120, 10, 120, 255), (120, 120, 10, 255)]
+
+    def server_root(self, tmp):
+        root = self.synthetic_root(tmp, jpeg=False)
+        interface = root/'Data/Interface'
+        (interface/'cha_bt.OZT').write_bytes(frame_strip(108, 26, self.GROUP_FRAMES))
+        (interface/'server_b2_all.OZT').write_bytes(frame_strip(193, 26, self.SERVER_FRAMES))
+        (interface/'server_deco_all.OZT').write_bytes(solid_ozt(160, 96, (90, 90, 90, 255)))
+        (interface/'server_ex03.OZT').write_bytes(solid_ozt(4, 4, (255, 255, 255, 255)))
+        (interface/'server_ex01.OZT').write_bytes(solid_ozt(512, 12, (220, 220, 220, 255)))
+        (interface/'server_ex02.OZJ').write_bytes(ozj(6, 4, (128, 128, 128)))
+        (interface/'server_b2_loding.OZJ').write_bytes(ozj(160, 4, (0, 255, 0)))
+        return root
+
+    @staticmethod
+    def server_layout(textures, width=1024, height=768):
+        """CServerSelWin geometry: notice box 6 + 6 + 10 lines of the side texture (4 px, absent without
+        libjpeg); window 465 x (box + 556) centred; group column from the bottom (SetPosition 0x0107592f)."""
+        box = 12 + (40 if textures == 10 else 0)
+        win_h = box + 0x22c
+        x, y = (width - 0x1d1)//2, (height - win_h)//2
+        side_y = win_h + y - (26*11 + box + 10)
+        return x, side_y
+
+    def test_server_select_layout_and_selected_group(self):
+        """1024x768: window 465x608 centred at (279, 80); group button 5 at (279, 340), servers at x 415."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.server_root(tmp)
+            out = Path(tmp)/'servers.png'
+            image, summary = run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box',
+                                            '--out', out)
+            self.assertIn(image['textures'], (10, 8))          # 8 without libjpeg
+            self.assertEqual(image['unsupported'], 0)
+            x, side_y = self.server_layout(image['textures'])
+            self.assertEqual((summary['groups'], summary['selected'], summary['servers']), (2, 5, 7))
+            self.assertEqual(summary['events'], [[1, 5]])       # the click on group button 5
+            self.assertEqual(summary['sounds'], 1)
+            width, height, rows = read_png(out)
+            # the clicked group button shows its check frame (frame 3) without a hover
+            self.assertEqual(pixel(rows, x + 5, side_y + 3), self.GROUP_FRAMES[3])
+            # the right column's group button (15) is unchecked: frame 0
+            right_x = x + 108 + 193 + 0x38
+            self.assertEqual(pixel(rows, right_x + 4, side_y + 3), self.GROUP_FRAMES[0])
+            # server buttons 0..6 next to the column, 26 px apart, frame 0; none below
+            server_x = x + 108 + 0x1c
+            for i in range(7):
+                self.assertEqual(pixel(rows, server_x + 5, side_y + 2 + 26*i), self.SERVER_FRAMES[0])
+            self.assertEqual(pixel(rows, server_x + 5, side_y + 2 + 26*7), (0, 0, 0, 255))
+            # unused top buttons are hidden
+            self.assertEqual(pixel(rows, x + (465 - 108)//2 + 4, side_y - 60), (0, 0, 0, 255))
+
+    def test_server_select_hover_press_and_click(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.server_root(tmp)
+            hover, press = Path(tmp)/'hover.png', Path(tmp)/'press.png'
+            image, _ = run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box')
+            x, side_y = self.server_layout(image['textures'])
+            sx, s0, s1 = x + 108 + 0x1c + 5, side_y + 5, side_y + 26 + 5
+            _, summary = run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box',
+                                        '--frames', f'{sx + 80},{s0},0,0', '--out', hover)
+            self.assertEqual(summary['events'], [[1, 5]])
+            rows = read_png(hover)[2]
+            self.assertEqual(pixel(rows, sx, s0), self.SERVER_FRAMES[1])           # over
+            self.assertEqual(pixel(rows, sx, s1), self.SERVER_FRAMES[0])
+            run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box',
+                           '--frames', f'{sx + 80},{s1},1,0', '--out', press)
+            rows = read_png(press)[2]
+            self.assertEqual(pixel(rows, sx, s1), self.SERVER_FRAMES[2])           # down
+            _, summary = run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box',
+                                        '--frames', f'{sx + 80},{s1},1,0;{sx + 80},{s1},0,1')
+            self.assertEqual(summary['events'], [[1, 5], [3, 0], [2, 1]])          # hide window, connect slot 1
+            self.assertEqual(summary['sounds'], 2)
+            _, summary = run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box',
+                                        '--frames', f'{sx + 80},{s1},1,0;{sx + 400},{s1},0,1')
+            self.assertEqual(summary['events'], [[1, 5]])                          # released elsewhere
+
+    def test_credits_fade_blocks_and_end(self):
+        """CCreditWin over a synthetic root: illustrations, black text bars, blocks, the end record."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.synthetic_root(tmp, jpeg=False)
+            interface = root/'Data/Interface'
+            (interface/'deco.OZT').write_bytes(solid_ozt(189, 103, (255, 0, 0, 255)))
+            (interface/'cr_mu_lo.OZT').write_bytes(solid_ozt(290, 41, (0, 255, 255, 255)))
+            for n in range(1, 9):
+                for k in (1, 2):
+                    (interface/f'im{n}_{k}.OZJ').write_bytes(ozj(400, 400, (40*n, 200, 30*k)))
+            credits = Path(tmp)/'credits.txt'
+            credits.write_text('title First\nname One\nname Two\ntitle Second\nname Three\nend\n')
+            out = Path(tmp)/'c.png'
+            image, summary = run_tool_lines('credits', '--root', root, '--size', '800x600', '--font', '@box',
+                                            '--credits', credits, '--time', '1200', '--out', out)
+            self.assertEqual(image['unsupported'], 0)
+            self.assertEqual((summary['image'], summary['image_state'], summary['next_record']), (0, 1, 3))
+            self.assertEqual(summary['text_states'], [2, 2, 2])     # all bars faded out: the block is shown
+            width, height, rows = read_png(out)
+            self.assertEqual(pixel(rows, 5, 5), (0, 0, 0, 255))     # the window background is opaque black
+            # the logo (800x600 units, scale 1): 290x41 at (0xf1, 0x21c)
+            self.assertEqual(pixel(rows, 0xf1 + 10, 0x21c + 10), (0, 255, 255, 255))
+            # the title row carries text (placeholder boxes) at y 0x14 (640x480 units) * 600/480, in the
+            # title colour 0xffe2e2e2
+            title = [pixel(rows, x, y) for y in range(25, 40) for x in range(800)]
+            self.assertIn((226, 226, 226, 255), title)
+            _, summary = run_tool_lines('credits', '--root', root, '--size', '800x600', '--font', '@box',
+                                        '--credits', credits, '--time', '12000')
+            self.assertEqual(summary['events'], [[3, 0], [4, 0], [5, 1], [6, 21]])   # hide, request, music
+
+    @unittest.skipUnless(PRIVATE and os.environ.get('MU_GAME_ROOT'), 'private installed interface files')
+    def test_private_installed_server_select(self):
+        root = os.environ['MU_GAME_ROOT']
+        with tempfile.TemporaryDirectory() as tmp:
+            image, summary = run_tool_lines('servers', '--root', root, '--size', '1024x768', '--font', '@box',
+                                            '--out', Path(tmp)/'s.png')
+            self.assertEqual(image['textures'], 10)
+            self.assertEqual(image['unsupported'], 0)
+            self.assertEqual((summary['groups'], summary['selected'], summary['servers']), (2, 5, 7))
+            image, summary = run_tool_lines('credits', '--root', root, '--size', '1024x768', '--font', '@box',
+                                            '--time', '3000', '--out', Path(tmp)/'c.png')
+            self.assertEqual(image['textures'], 7)                  # 5 interface files + 2 illustrations
+            self.assertEqual(image['unsupported'], 0)
 
     @unittest.skipUnless(PRIVATE and os.environ.get('MU_GAME_ROOT'), 'private installed interface files')
     def test_private_installed_title_and_login(self):

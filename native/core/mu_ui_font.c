@@ -197,3 +197,70 @@ mu_ui_gdi mu_ui_font_gdi(mu_ui_font *font)
     gdi.text_out = box_text_out;
     return gdi;
 }
+
+/* ---- font set (NATIVE-UI-002) ------------------------------------------ */
+
+static void set_extent(void *user, const char *text, int length, int32_t *cx, int32_t *cy)
+{
+    mu_ui_font_set *set = user;
+    mu_ui_gdi *gdi = &set->gdi[set->current];
+    gdi->extent(gdi->user, text, length, cx, cy);
+}
+
+static void set_text_out(void *user, uint8_t *dib, int32_t stride, int32_t width, int32_t height, int32_t x,
+                         int32_t y, const char *text, int length)
+{
+    mu_ui_font_set *set = user;
+    mu_ui_gdi *gdi = &set->gdi[set->current];
+    gdi->text_out(gdi->user, dib, stride, width, height, x, y, text, length);
+}
+
+int mu_ui_font_set_open(mu_ui_font_set *set, const char *face, const char *fixed_face, uint32_t window_width,
+                        const uint32_t handles[MU_UI_FONT_SET_SIZE])
+{
+    int failed = 0;
+    memset(set, 0, sizeof *set);
+    for (int i = 0; i < MU_UI_FONT_SET_SIZE; ++i) {
+        mu_ui_font_spec spec = mu_ui_font_for(window_width, i);
+        failed |= mu_ui_font_open(&set->fonts[i], i == MU_UI_FONT_FIXED ? fixed_face : face, spec.height,
+                                  spec.weight);
+        set->gdi[i] = mu_ui_font_gdi(&set->fonts[i]);
+        set->handles[i] = handles[i];
+    }
+    set->count = MU_UI_FONT_SET_SIZE;
+    set->current = MU_UI_FONT_NORMAL;
+    return failed;
+}
+
+uint32_t mu_ui_font_set_add(mu_ui_font_set *set, const char *face, int32_t height, int32_t weight)
+{
+    if (set->count >= MU_UI_FONT_SET_MAX)
+        return 0;
+    int i = set->count++;
+    mu_ui_font_open(&set->fonts[i], face, height, weight);
+    set->gdi[i] = mu_ui_font_gdi(&set->fonts[i]);
+    set->handles[i] = 0x0f0f1000u + (uint32_t)i;
+    return set->handles[i];
+}
+
+void mu_ui_font_set_close(mu_ui_font_set *set)
+{
+    for (int i = 0; i < set->count; ++i)
+        mu_ui_font_close(&set->fonts[i]);
+}
+
+void mu_ui_font_set_select(mu_ui_font_set *set, uint32_t handle)
+{
+    for (int i = 0; i < set->count; ++i)
+        if (set->handles[i] == handle)
+            set->current = i;
+}
+
+mu_ui_gdi mu_ui_font_set_gdi(mu_ui_font_set *set)
+{
+    mu_ui_gdi gdi;
+    gdi.user = set;
+    gdi.extent = set_extent;
+    gdi.text_out = set_text_out;
+    return gdi;
+}
