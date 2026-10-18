@@ -1,6 +1,9 @@
-# Click-to-move: path finding and path following (NATIVE-PATH-001)
+# Click-to-move: path finding and path following (NATIVE-PATH-001, NATIVE-PATH-002)
 
-This finding recovers what the client does between a terrain click and the hero's walk:
+This finding recovers what the client does between a terrain click and the hero's walk. NATIVE-PATH-002 added
+the pinned neighbour table, the long-distance auto move (section 4) and the walk/run rules (section 5).
+
+NATIVE-PATH-001 covered:
 
 * the path finder (search rules, node budget, heuristic, neighbour order, blocking attribute bits,
   tie-breaking and the behaviour on unreachable targets);
@@ -28,12 +31,24 @@ native code that is not client behaviour.
 | Trig dispatch flag `0x0bdd1cc8` (value 1) | `67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450` |
 | Neighbour table `0x01cf1640`, 64 bytes | `a8cc45492d67c784853284cd426fd5c48a994a55d124bd970c1da1e46616f8b5` |
 
-The neighbour table lies in the third section (`0x01ced000`), which is packed in the file and was
-not part of the restored captures. Its 64 bytes come from the unpacked third-section region of the
-earlier experimental capture `evidence/x86-linux-capture-04/` (file offset `0x4640`). That capture
-has no manifest, but its text region has the pinned restored-text digest above. No direct writer of the table
-was found in the restored text. The validator pins it by digest; every routine body it executes is pinned
-by start, length and SHA-256 (`ROUTINES` in the script and in its JSON report).
+**Neighbour table (pinned, NATIVE-PATH-002).** The table lies in the third section (`0x01ced000`), which is
+packed in the file, so no file offset holds it. Two captures of the running client give the same 64 bytes,
+(-1,-1), (0,-1), (1,-1), (-1,0), (1,0), (-1,1), (0,1), (1,1):
+
+* **Live read with a manifest** (`evidence/path-table-live-01/capture.json`, 2026-10-18). Under the game lock
+  (held 15:41:23–15:43:15), `mu-to-server.sh` started the play bottle's client (MuMatrix32, the pinned
+  `main.exe`) to the server-select screen. There was no account login. `mac-play/diagnostics/memread.c` is a
+  read-only `task_for_pid` + `mach_vm_read_overwrite` tool. It copied `0x01cf1640+64`, the page `0x01cf1000`
+  and the first 32 KiB of the section, twice, 3 s apart. The client was then closed with taskkill (WM_CLOSE).
+  Both table copies hash to the digest above. No protection code was read or touched.
+* **The earlier capture** `evidence/x86-linux-capture-04/` (Linux/Wine guest, file offset `0x4640`). It has no
+  manifest, but its text has the pinned restored-text digest.
+
+The 32 KiB range differs from capture-04 in 51 bytes, all mutable globals; the table and the page around it are
+unchanged. No writer of the table was found in the restored text, so it is static data. `scripts/validate_path.py`
+now reads it from the live read by default and still pins it by digest. Every routine body the validator
+executes is pinned by start, length and SHA-256 (`ROUTINES` in the script and in its JSON report). NATIVE-PATH-002
+added every client span its new families execute, from a coverage run: 65 spans.
 
 ## 1. The path finder (verified)
 
@@ -100,8 +115,8 @@ once (`0x012b0e65` from `0x0185ae54`), so the finder works directly on TerrainWa
   or the budget runs out, the path to the popped tile with the smallest heuristic (first one on ties) is
   built.
 * **BuildPath** (`0x012b21c6`, flag 0): it follows the parents from the end tile to the start, at most 500
-  nodes. The trimming variant (flag 1, budgets above 500) is used only by the long-distance helper path
-  `0x012b104c`. It was not ported.
+  nodes. FindPath uses the trimming variant (flag 1) when a target is reached with a budget above 500, which only
+  the long-distance helper does. Section 4 covers it (verified).
 
 **What this means for a click** (verified consequences):
 
@@ -173,16 +188,10 @@ first goal popped ends the search.
 record-math. The height is then set from `RequestTerrainHeight 0x016cc9e2`, plus 90 in worlds 8/10/0x84
 and 30 in some other cases (static). The object timer `+0xb4` grows by 0.15.
 
-**Speed** (`CharacterMoveSpeed 0x013957b5`, static reading; the comparison feeds synthetic speeds):
-
-* A player walks at 12 units per step while the run counter (Character `+0x24`) is below 40, and at 15
-  after that. That is 3 or 3.75 tiles per second.
-* The walk chooser `0x0139002a` advances the counter by one per moving step, up to 40, but only when
-  equipment or buff conditions allow running: certain buffs, the wing check `0x0139fcbf`, or specific
-  item states.
-* SetPlayerStop `0x0138fe69` resets the counter (unless a mount predicate holds).
-* Mounts and special items give 15 to 19, a few states 8 or 20, and slowing buffs multiply by 0.5 or
-  0.33.
+**Speed** (`CharacterMoveSpeed 0x013957b5`): a player walks at 12 units per step while the run counter
+(Character `+0x24`) is below 40, and at 15 after that, which is 3 or 3.75 tiles per second. Section 5 gives the
+run counter and the speed predicates (verified in NATIVE-PATH-002). The walk comparisons here feed synthetic
+speeds.
 
 **Other characters** (`0x013b852a`, static): when a character is not moving and its tile differs from
 its server target `(+0x2d, +0x2e)`, the client runs PathFinding2 with level 2. In two event-world cases
@@ -218,6 +227,136 @@ While the hero moves (`0x016a9a74..`), each logic step does the following:
 3. MovePath runs with turning.
 4. If the walk has not arrived, MoveCharacterPosition moves the object.
 5. On arrival, the client calls `0x016a8904`, SetPlayerStop and the action-at-target handler `0x01697c17`.
+
+## 4. Long-distance path and auto move (NATIVE-PATH-002, verified)
+
+**The hero's PATH_t is larger.** The PATH_t at Character `+0x3194` is bigger than the 0x21 bytes that
+PathFinding2 fills. Its constructor `0x0129e1b9` zeroes the bytes and resets an auto-move state:
+
+| Offset | Field |
+|---|---|
+| `+0x00..+0x20` | the follower's path (current, sub-target, count, X[15], Y[15]) |
+| `+0x2c` | mode: what happens on arrival (1..5; the S-click uses 2) |
+| `+0x30/+0x32` | waypoint: the last node of the current segment (int16) |
+| `+0x34` | flag: 0 idle, 1 armed, 2 walk the list, 3 re-search every step |
+| `+0x38/+0x3a` | target (int16) |
+| `+0x3c` | `std::list` of `{int16 x, int16 y}` (head, size; nodes `{next, prev, value}`) |
+
+**The long-distance helper** `0x012b104c(sx, sy, tx, ty, error_check, path, distance, level)`:
+
+1. It clears the list and refuses a negative target.
+2. It runs FindPath with flag 0, a budget of **300,000,000** (so in practice until the queue is empty) and mask
+   **0x1c**. With this mask, character tiles do not block.
+3. On success the target becomes the end tile the search reached, and the list gets min(nodes, 500) nodes from
+   the start. A path of a single node leaves the list empty but still returns 1.
+
+Every caller passes level 4 and distance 0. Consequences:
+
+* **A target reached by n >= 500 nodes.** BuildPath's trimming variant collects the parent chain as int16 pairs
+  (giving up after more than 65,536 entries), then starts the flag-0 walk at entry n − 499. The list holds the
+  499 nodes nearest the start, but the target stays the true end.
+* **An unreachable target without error_check.** The whole connected region is explored. The path leads to the
+  explored tile with the smallest heuristic (first one on ties), and the target becomes that tile. If that tile
+  is more than 500 nodes away, BuildPath fails and so does the helper.
+* **An unreachable target with error_check.** The helper fails after exploring the region.
+
+**The PATH_t methods:**
+
+* **Next segment** `0x0129cc44`. It takes min(list, 3) nodes off the front of the list into the follower's path,
+  with current 0 and sub-target 0. The waypoint becomes the last node taken. An empty list returns 0. It also
+  posts a UI notice (text `0x14c3`, not reproduced).
+* **Reset** `0x0129c4d2`. Target and waypoint become (−1, −1), flag 0, mode 0, and the list is cleared. The
+  follower's path bytes stay as they are.
+* **Start** `0x0129c6be(flag, sx, sy, tx, ty, mode, error_check)`:
+  1. The mode is stored.
+  2. If the start equals the target, the arrival handler `0x0129c8b0` runs and the call returns 0.
+  3. Otherwise flag and target are stored. Flag 1 stops here, armed.
+  4. Then the helper runs (level 4, distance 0, `error_check != 0`) and takes the next segment. On success,
+     TargetX/Y `0x0b449ac0/c4` become the waypoint, the six selection globals `0x01cf114c..0x01cf1160` become
+     −1, and the call returns 1.
+  5. On failure, mode 2 shows a notice and the state is reset.
+* **Refresh** `0x0129c51d(sx, sy, tx, ty)`. A single caller (`0x01265803`) uses it. It refills the list with
+  error_check 0 and sets TargetX/Y to the current waypoint without taking a segment. A failure resets the state;
+  the mode-2 notice test reads the mode after the reset, so it never fires.
+
+**MoveHero's use** (`0x016a97b9..0x016a9a74` and `0x016a9bdb..0x016a9c7c`, static reading). Each logic step:
+
+1. **Flag 2, hero stopped.** The hero walks on toward the target: start(2, tile, target, mode, 0), then SendMove.
+   A target of −1 resets the state.
+2. **Flag 2, moving.** After SetPlayerWalk: when the logical tile (`+0x180/+0x184`) equals the waypoint, the next
+   segment replaces the follower's path, followed by SendMove. The logical tile reaches the waypoint one node
+   before the object does, so the hero does not stop between segments. It heads from between the last two nodes
+   straight to the next segment's first node.
+3. **List empty.** When the list runs out (after 499 nodes), the hero stops for one step, then case 1 searches
+   again from where it stands. On the target tile, the arrival handler runs.
+4. **Flag 3.** Re-runs start every step (not ported).
+5. **Cancel byte.** The byte `0x0bdc599c` cancels with a notice (not ported).
+
+**The trigger** (static). The plain click branch at `0x016acef2..0x016ad0a1` runs only after a normal click path
+started. It starts the auto move with flag 2 and mode 2 toward the clicked tile when all of these hold:
+
+* the clicked tile has none of the bits 0x1/0x4/0x8;
+* option byte `0x0bdc5981` is set;
+* the key check `0xec53bb(0x53)` ('S') passes;
+* a helper-state check passes.
+
+Right after, a target on a safe-zone tile resets the auto move, so only the first segment is walked. Other
+subsystems also call start: 23 call sites, including the UI at `0x0095xxxx`, `0x00c79xxx` and `0x00d4c..d50xxx`
+(NPC and quest navigation, not traced). The arrival handler's part that touches the state is static: modes 4
+and 5 keep it, every other mode resets it. Its other effects are NPC, quest and UI calls.
+
+## 5. Walk or run: the run counter and speed (NATIVE-PATH-002, verified)
+
+**The run counter.** SetPlayerWalk `0x0139002a..0x01390455` runs once per moving step. Its run-counter prefix
+works like this:
+
+1. A character with `+0x190 > 0` skips the whole routine.
+2. In a safe zone (`+4 == 1`) the counter drops to 0. Two exceptions: world `0x84` (`0x00e0558b`), and the opaque
+   manager predicate `0x009c104e()->0x0106bdb7(c)`.
+3. Class values `+0x146` in `0x216..0x21b`, `0x349..0x34c`, `0x371..0x373`, `0x3c1` and `0x3d5` (`0x0139bd24`)
+   keep 0.
+4. From 40 on, nothing changes.
+5. Below 40, the counter grows by one when either of these is present:
+   * a **ride buff** (`0x01295ade` on the buff list `+0x35ac`: 0xd0, 0x133, 0x142, 0x143, 0x176, 0x177, 0x193,
+     0x194, 0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bd);
+   * a **riding pet**: one of the three item codes at `+0x3238` has Item.bmd kind B 0x40 (`0x0139fcbf`, via
+     `0x00cd6017`: the code has a record and is at most 0x2c00).
+6. Otherwise it grows only outside the safe zone (or in world `0x84`), when any of these holds:
+   * base class (`+0x12 & 0xf`) 3, 4, 6 or 7;
+   * **boots** (body part 5: type `+0x1c4 + 5 × 0x3fc` not −1 and level `+0x1c6 + 5 × 0x3fc` >= 5);
+   * the hero's equipment slot 6 `[0x01d1df18] + 0x1b58 + 6 × 0x12c + 0x14` >= 40, that is, item level 5 in the
+     level << 3 encoding;
+   * subtype `+0x32b4` of 0x431 or 0x432.
+
+   In worlds 7, 0x18..0x1d, 0x24 and 0x80..0x82 (`0x016a88d3`) the gloves count instead of the boots: body
+   part 4 and equipment slot 5.
+
+SetPlayerStop `0x0138fe69` sets the counter to 0 unless the opaque predicate `0x009c104e()->0x0106bd76(c)` holds.
+
+**The speed.** CharacterMoveSpeed was already ported, compared with its predicates stubbed. Its predicates are now
+functions of character fields:
+
+* helper type: the word `+0x322e` (`0x0129dcda`);
+* without a helper, the **buff mount** `0x0106c5e9`: buffs 0xcd, 0xce, 0xcf, 0xd0, 0x133, 0x142, 0x143, 0x176,
+  0x177, 0x193, 0x194, 0x1a2, 0x1a3, 0x1b2, 0x1b3, 0x1bc, 0x1bd and 0x1ae map to the mounts 0x1a02, 0x1a03,
+  0x1a04, 0x1a25, 0x19d7, 0x19e3, 0x19e4, 0x184b, 0x184c, 0x1853, 0x1854, 0x185d, 0x185e, 0x1833, 0x1834, 0x1835,
+  0x1836 and 0x28f7 (first match in this order);
+* the riding pet `0x0139fcbf`;
+* transformation: the byte `+0x3234` (`0x00b9929c`);
+* the run-speed worlds `0x009dacb8`: 0x12..0x17, 0x35 and 0x61.
+
+The special-state predicate `0x009fa30a()->0x009fbb31(c)` (an event-map state) and the value of the buff `0x18b`
+bonus stay opaque inputs.
+
+**What this means for the hero:**
+
+* A character of any other base class (0, 1, 2, 5, 8..15) without boots +5, ride buff or riding pet walks at 12
+  units per step everywhere. The equipment test reads the hero's own equipment (`[0x01d1df18]`) whichever
+  character SetPlayerWalk runs for; whether other characters reach it was not traced.
+* Classes 3, 4, 6 and 7, boots or gloves +5, ride buffs and riding pets let the counter grow. The hero runs at 15
+  from the 40th moving step, 1.6 s after starting to move. The counter is cleared at every stop.
+* Inside a safe zone the counter stays at 0, except with a ride buff or riding pet (and in world 0x84).
+* Mounts reach 15..19 and the forced-run worlds 15, as ported in CharacterMoveSpeed.
 
 ## Verification
 

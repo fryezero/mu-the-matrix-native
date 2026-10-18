@@ -145,8 +145,8 @@ int mu_camera_info_load(const char *root, int32_t folder, mu_camera_info *info, 
 /* ---- path ---- */
 
 /* The client's neighbour order, the direction table 0x01cf1640 (packed in the
- * executable file; read from the runtime data-section capture
- * x86-linux-capture-04/main-01ced000.bin, see docs/research/native-world.md). */
+ * executable file; pinned by SHA-256 in the manifest-backed live read
+ * path-table-live-01 and in x86-linux-capture-04, see docs/research/client-path.md). */
 const int32_t mu_walk_default_directions[8][2] = {
     {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}
 };

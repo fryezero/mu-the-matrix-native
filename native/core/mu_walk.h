@@ -20,8 +20,11 @@
  * The path is the client's own path finder (reconstructed/path, NATIVE-PATH-001:
  * PathFinding2 0x012b0e85, FindPath 0x012b1c45) over the world's
  * attribute grid, with the client's neighbour order (direction table
- * 0x01cf1640) and near plane 20 (0x01cf162c), both static data read from the
- * runtime data-section capture. Placeholders (labelled where used): the
+ * 0x01cf1640, pinned by a live read, NATIVE-PATH-002) and near plane 20
+ * (0x01cf162c), both static data of the third section. The run counter and
+ * CharacterMoveSpeed's predicates follow the hero's gear (mu_hero.gear), and
+ * the long-distance auto move walks the client's list (NATIVE-PATH-002).
+ * Placeholders (labelled where used): the
  * operable-object grid (static objects are not decoded) and everything the
  * hero does besides walking (attacks, skills, auto-move, packets). */
 
