@@ -1321,6 +1321,8 @@ static int headless(app *a)
         advance(a, now);
 #ifndef MU_WORLD_NO_GL
         int gfx_draw = a->gfx && a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
+        if (a->gfx)
+            world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
         if (a->gfx && !gfx_draw)
             world_gfx_frame(a->gfx, (double)(now - gfx_clock), 0);
 #endif
@@ -1530,6 +1532,7 @@ static int windowed(app *a)
         if (a->gfx) {
             static uint32_t gfx_last;
             uint32_t t = SDL_GetTicks();
+            world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
             world_gfx_frame(a->gfx, gfx_last ? (double)(t - gfx_last) : 0.0, 1);
             gfx_last = t;
         }
