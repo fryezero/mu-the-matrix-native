@@ -1,0 +1,36 @@
+# DEMO PLACEMENT for Lorencia (world 0) - NOT client data and NOT a server reading.
+#
+# In the real game the server places every monster and NPC and sends their
+# movement. The native walk-around session has no server, so this file stands
+# in for the create packets: server class, tile and direction are choices made
+# for the NATIVE-WORLD-002 demo (near the town square and in the field east of
+# town), not the game's spawn table. What the client does with each line is
+# reconstructed: class -> model and scale (CreateMonster), action speeds
+# (OpenMonsterModel / OpenNpc), the animation step, MovePath and
+# MoveCharacterPosition, and the effects the creation attaches.
+#
+#     actor <server-class> <tile-x> <tile-y> <direction 0..7> [wander <radius>] [label <text>]
+
+# Town NPCs (classes of the CreateMonster table whose opener is OpenNpc and
+# whose model has its own meshes; the Female01/Man01/Girl01 NPCs are assembled
+# from part models, which the native module does not load).
+actor 251 140 121 6 label smith
+actor 254 129 117 2 label wizard
+actor 240 141 133 4 label storage
+actor 241 147 125 6 label guild master
+actor 492 131 136 5 label gambler
+actor 238 125 133 2 label goblin (pub)
+
+# Classes whose creation attaches EffectManager effects (0x0137fbac cases):
+# 873 opens new_maple with leaf_particle_F2e, 750 opens hs_dimensiondoorA with
+# twister02/03-cyan01. They are not Lorencia spawns; they show the effects
+# where the client creates them.
+actor 873 136 131 0 label maple tree (effects)
+actor 750 146 133 6 label dimension door (effects)
+
+# Field monsters east of town (outside the safe zone), wandering like the
+# server would move them.
+actor 0 181 125 2 wander 4 label bull fighter
+actor 1 185 131 6 wander 4 label hound
+actor 2 178 133 0 wander 3 label budge dragon
+actor 3 187 122 4 wander 4 label spider

@@ -1,4 +1,5 @@
-/* mu-world: the first native "walk around the world" build (NATIVE-WORLD-001).
+/* mu-world: the first native "walk around the world" build (NATIVE-WORLD-001),
+ * made alive by NATIVE-WORLD-002 (docs/research/native-world-alive.md).
  *
  * One window (SDL2 + OpenGL 2.1) or a headless run (CGL/GLX offscreen, or the
  * deterministic software rasterizer) of one in-world session (core/mu_walk):
@@ -18,6 +19,21 @@
  * mouse (tiles off screen are skipped). --wheel sends WM_MOUSEWHEEL (+1 = zoom in) on the given frames.
  * In the window the mouse works as in the client: left click (or hold) moves,
  * Shift holds position, the wheel zooms. Esc twice quits, O saves a PNG.
+ *
+ * NATIVE-WORLD-002 adds, at the points of the client loop where they run:
+ *   - sound (core/mu_world_audio): every logic step HeroTile, the foot-flag
+ *     reset and the footstep trigger with PlayWalkSound; every rendered frame
+ *     after the cap the per-frame ambient/music block; SDL2 audio in the
+ *     window, a WAV file headless (--wav). --sound-table is the locally
+ *     extracted table (scripts/extract_audio_tables.py --tsv);
+ *   - the terrain as RenderTerrain draws it in the client: the CreateFrustrum
+ *     box and 2D polygon from the camera (zoom mode 0 with the world camera
+ *     record), the 4x4 block and tile tests, the per-frame light copy and
+ *     waves over that box, and the time-driven water scroll and animated
+ *     layer (--legacy-box draws the NATIVE-WORLD-001 square instead);
+ *   - monsters and NPCs from a DEMO placement file (--placement; the server
+ *     places them in the real game), animated with the client action tables,
+ *     with the EffectManager effects their creation attaches.
  *
  * Built twice: build/mu-world (SDL2 + OpenGL) and, with MU_WORLD_NO_GL,
  * build/mu-walk, the headless software-only tool of `make -C native` (no
@@ -46,6 +62,9 @@
 #include "../core/mu_scene.h"
 #include "../core/mu_terrain.h"
 #include "../core/mu_walk.h"
+#include "../core/mu_wav.h"
+#include "../core/mu_world_actors.h"
+#include "../core/mu_world_audio.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_headless.h"
@@ -79,12 +98,35 @@ typedef struct app {
     /* stats */
     double walked;
     uint32_t moving_steps;
+    /* NATIVE-WORLD-002 */
+    const char *sound_table, *placement, *wav_path;
+    int audio, legacy_box, audio_rate;
+    mu_world_sound sound;
+    int has_sound;
+    mu_world_actors actors;
+    int has_actors;
+    mu_terrain_frustum frustum;
+    mu_terrain_tile_stats tile_stats;
+    uint32_t effects_visible;
+    float *wav;
+    size_t wav_frames, wav_capacity;
+    uint64_t audio_frames;         /* stereo frames produced since start */
+    uint32_t audio_start;          /* clock (ms) at which audio started */
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
+    const mu_image *fx_images[64];
+    GLuint fx_names[64];
+    int fx_count;
+    SDL_AudioDeviceID audio_device;
+#endif
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
 static const uint8_t sky[4] = {0, 0, 0, 255};
 
 /* ---- loading ---- */
+
+static void on_step(void *context, mu_walk *w);
 
 static int load(app *a)
 {
@@ -129,6 +171,81 @@ static int load(app *a)
     mu_hero *h = &a->walk.hero;
     mu_character_set_state(&a->ch, h->action, 0.0f, 0.0f, h->action);
     mu_walk_place(&a->walk, &a->ch);
+    if (a->audio) {
+        if (mu_world_sound_open(&a->sound, a->root, a->sound_table, (uint32_t)a->audio_rate, a->world, error,
+                                sizeof error)) {
+            fprintf(stderr, "sound: %s\n", error);
+            return 1;
+        }
+        a->has_sound = 1;
+    }
+    if (a->placement) {
+        if (mu_world_actors_load(&a->actors, a->root, a->map, a->placement, 0, error, sizeof error)) {
+            fprintf(stderr, "placement: %s\n", error);
+            return 1;
+        }
+        a->has_actors = 1;
+    }
+    a->walk.step_hook = on_step;
+    a->walk.step_context = a;
+    return 0;
+}
+
+/* End of every logic step (mu_walk_step): the client's MoveCharacters runs
+ * the hero's per-character routine (foot reset after its animation step,
+ * footstep trigger in 0x013b23f8) and every other character. HeroTile was set
+ * at the end of MoveHero, which mu_world_sound_hero_step does first. */
+static void on_step(void *context, mu_walk *w)
+{
+    app *a = context;
+    const mu_hero *h = &w->hero;
+    if (a->has_sound) {
+        mu_world_sound_hero hero = {{h->position[0], h->position[1]}, {h->tile[0], h->tile[1]}, h->action,
+                                    h->frame, h->step_result, h->safe_zone, 0xa91};
+        int32_t id = mu_world_sound_hero_step(&a->sound, &hero, a->map->layer1, a->map->attributes);
+        (void)id;
+    }
+    if (a->has_actors)
+        mu_world_actors_step(&a->actors);
+}
+
+/* Once per rendered frame after the frame cap: the per-frame audio block. */
+static void sound_frame(app *a)
+{
+    if (!a->has_sound)
+        return;
+    const mu_hero *h = &a->walk.hero;
+    mu_world_sound_hero hero = {{h->position[0], h->position[1]}, {h->tile[0], h->tile[1]}, h->action, h->frame,
+                                h->step_result, h->safe_zone, 0xa91};
+    uint16_t attribute = a->map->attributes[((h->tile[1] & 0xff) << 8) + (h->tile[0] & 0xff)];
+    mu_world_sound_frame(&a->sound, &hero, attribute);
+}
+
+/* Mixes the audio due at clock `now` (ms since the audio start) into buffer
+ * (headless WAV) or returns the frame count for the caller. */
+static uint32_t audio_due(app *a, uint32_t now)
+{
+    uint64_t due = (uint64_t)(now - a->audio_start) * (uint64_t)mu_world_sound_rate(&a->sound) / 1000u;
+    return due > a->audio_frames ? (uint32_t)(due - a->audio_frames) : 0;
+}
+
+static int wav_append(app *a, uint32_t frames)
+{
+    if (!frames)
+        return 0;
+    if (a->wav_frames + frames > a->wav_capacity) {
+        size_t capacity = a->wav_capacity ? a->wav_capacity * 2 : 1u << 20;
+        while (capacity < a->wav_frames + frames)
+            capacity *= 2;
+        float *grown = realloc(a->wav, capacity * 2 * sizeof *grown);
+        if (!grown)
+            return 1;
+        a->wav = grown;
+        a->wav_capacity = capacity;
+    }
+    mu_world_sound_mix(&a->sound, a->wav + a->wav_frames * 2, frames);
+    a->wav_frames += frames;
+    a->audio_frames += frames;
     return 0;
 }
 
@@ -139,6 +256,11 @@ static void unload(app *a)
         mu_character_free(&a->ch);
     if (a->map)
         mu_world_free(a->map);
+    if (a->has_actors)
+        mu_world_actors_free(&a->actors);
+    if (a->has_sound)
+        mu_world_sound_close(&a->sound);
+    free(a->wav);
 }
 
 /* ---- script ---- */
@@ -193,6 +315,51 @@ static void script(app *a, int32_t frame)
         fprintf(stderr, "frame %d: click toward tile %d,%d at %d,%d\n", frame, t[0], t[1], a->click_x, a->click_y);
 }
 
+/* ---- terrain frame (NATIVE-TERRAIN-002 in the client's frame order) ---- */
+
+static void terrain_box(const app *a, int32_t box[4]);
+
+/* RenderTerrain's view: CreateFrustrum 0x016cba24 from the GL modelview the
+ * camera left (aspect = window width / 640, far [0x01cf1630] = the far plane
+ * MoveMainCamera set, fov [0x01cf1634]) and CreateFrustrum2D 0x016d20d9 around
+ * the hero in zoom mode 0, whose scale and distance come from the world
+ * camera record (0x0098ac7c: width / 640 * Distance * Z_Distance * scale;
+ * 0x0098ac45(2400) = 2400 * Distance * Z_Distance * scale). Then the
+ * per-frame update 0x016ca4fa over the box: light copy, waves, and the
+ * animated-layer counter; the water UV scroll follows the world time. */
+static void terrain_frame(app *a, uint32_t now)
+{
+    const mu_client_view *v = &a->walk.frame.view;
+    mu_terrain_frustum *f = &a->frustum;
+    memset(f, 0, sizeof *f);
+    if (a->legacy_box) {
+        int32_t box[4];
+        terrain_box(a, box);
+        f->x_min = box[0];
+        f->y_min = box[1];
+        f->x_max = box[2];
+        f->y_max = box[3];
+        mu_world_frame(a->map, (float)now);
+        return;
+    }
+    float rows[12];
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+            rows[4 * i + j] = v->modelview[4 * j + i];   /* 0x0184a569: m[i][j] = gl[4j + i] */
+    int32_t width = (int32_t)v->window_width;
+    mu_terrain_frustum_create((float)width / 640.0f, v->view_far, v->fov, rows, v->position, f);
+    const mu_camera_info *c = &a->info;
+    float factor = c->distance * c->z_distance * 1.0f;   /* camera scale +0x10 = 1 */
+    mu_terrain_frustum_2d_params params;
+    const float hero[3] = {a->walk.hero.position[0], a->walk.hero.position[1], a->walk.hero.position[2]};
+    if (mu_terrain_frustum_2d_params_for(a->map->world, 0, width, (float)width / 640.0f * factor, 2400.0f * factor,
+                                         &params)) {
+        const float angle[3] = {v->angle[0], v->angle[1], v->angle[2]};
+        mu_terrain_frustum_2d(a->map->world, hero, angle, &params, 0, f->x2d, f->y2d);
+    }
+    mu_world_frame_box(a->map, (float)now, f->x_min, f->y_min, f->x_max, f->y_max);
+}
+
 /* ---- frame logic shared by the front ends ---- */
 
 static int32_t advance(app *a, uint32_t now)
@@ -210,7 +377,9 @@ static int32_t advance(app *a, uint32_t now)
     if (a->has_character)
         mu_walk_place(w, &a->ch);
     mu_walk_begin_render(w, now);
-    mu_world_frame(a->map, (float)now);
+    terrain_frame(a, now);
+    if (a->has_actors)
+        mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
     return steps;
 }
 
@@ -222,6 +391,17 @@ static void terrain_box(const app *a, int32_t box[4])
     box[1] = y0 < 0 ? 0 : y0 & ~3;
     box[2] = x1 > 254 ? 254 : x1;
     box[3] = y1 > 254 ? 254 : y1;
+}
+
+/* Camera of the EffectManager frustum 0x00a8d821: the camera position and
+ * the view direction of the modelview (its third row, negated). */
+static void effect_camera(const app *a, float eye[3], float target[3])
+{
+    const mu_client_view *v = &a->walk.frame.view;
+    for (int k = 0; k < 3; ++k) {
+        eye[k] = v->position[k];
+        target[k] = v->position[k] - v->modelview[4 * k + 2] * 1000.0f;
+    }
 }
 
 /* Viewer aid (not a client reading): a flat marker on the clicked point
@@ -325,6 +505,11 @@ static void gl_setup(app *a)
         if (a->has_character && item->loaded)
             mu_gl_upload(&a->items[i], &item->textures, 0);
     }
+    for (int32_t i = 0; i < MU_WORLD_ACTORS_MAX; ++i)
+        memset(&a->actor_gl[i], 0, sizeof a->actor_gl[i]);
+    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
+        mu_gl_upload(&a->actor_gl[i], &a->actors.list[i].actor.textures, 0);
+    a->fx_count = 0;
     a->gl_ready = 1;
 }
 
@@ -339,7 +524,79 @@ static void gl_teardown(app *a)
         }
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
         mu_gl_release(&a->items[i]);
+    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
+        mu_gl_release(&a->actor_gl[i]);
+    for (int i = 0; i < a->fx_count; ++i)
+        glDeleteTextures(1, &a->fx_names[i]);
+    a->fx_count = 0;
     a->gl_ready = 0;
+}
+
+/* Effect texture as the effect loader sets it up (0x00a90987 with the base
+ * load's arguments): GL_LINEAR, GL_REPEAT, GL_MODULATE, no mipmaps. */
+static GLuint fx_texture(app *a, const mu_image *image)
+{
+    for (int i = 0; i < a->fx_count; ++i)
+        if (a->fx_images[i] == image)
+            return a->fx_names[i];
+    if (a->fx_count == (int)(sizeof a->fx_names / sizeof a->fx_names[0]) || image->width <= 0)
+        return 0;
+    GLuint name = 0;
+    glGenTextures(1, &name);
+    glBindTexture(GL_TEXTURE_2D, name);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->rgba);
+    a->fx_images[a->fx_count] = image;
+    a->fx_names[a->fx_count++] = name;
+    return name;
+}
+
+/* One visible effect of the EffectManager render pass 0x00a7a30e: depth
+ * writes and alpha test off (the pass saves and restores them), the depth
+ * test as the preceding pass left it (on), GL_QUADS. */
+static void g_effect(void *context, const mu_fx_vertex *vertices, uint32_t count, const mu_fx_draw_state *state,
+                     const mu_image *texture, const float *matrix)
+{
+    app *a = context;
+    if (!state->visible || !count)
+        return;
+    if (state->blend) {
+        glEnable(GL_BLEND);
+        glBlendFunc((GLenum)state->src, (GLenum)state->dst);
+    } else {
+        glDisable(GL_BLEND);
+    }
+    glDepthMask(GL_FALSE);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
+    GLuint name = state->texture && texture ? fx_texture(a, texture) : 0;
+    if (name) {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, name);
+    } else {
+        glDisable(GL_TEXTURE_2D);
+    }
+    if (matrix) {
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glMultMatrixf(matrix);
+    }
+    glBegin(GL_QUADS);
+    for (uint32_t i = 0; i + 3 < count; i += 4)
+        for (uint32_t k = 0; k < 4; ++k) {
+            const mu_fx_vertex *v = &vertices[i + k];
+            glTexCoord2fv(v->texcoord);
+            glColor4fv(v->color);
+            glVertex3fv(v->position);
+        }
+    glEnd();
+    if (matrix)
+        glPopMatrix();
 }
 
 static long draw_gl(app *a, int32_t width, int32_t height)
@@ -354,9 +611,12 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_world_scene(a->map, &scene);
     mu_terrain_tile_stats stats;
     memset(&stats, 0, sizeof stats);
-    int32_t box[4];
-    terrain_box(a, box);
-    mu_terrain_draw(&scene, box[0], box[1], box[2], box[3], mu_terrain_alpha_layers(a->map->world), &sink, &stats);
+    if (a->legacy_box)
+        mu_terrain_draw(&scene, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
+                        mu_terrain_alpha_layers(a->map->world), &sink, &stats);
+    else   /* RenderTerrain with the client's block and tile tests, in-game scene state 6 */
+        mu_terrain_render(&scene, &a->frustum, 6, 0, mu_terrain_alpha_layers(a->map->world), &sink, &stats);
+    a->tile_stats = stats;
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
     mu_draw_options options;
@@ -372,11 +632,30 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
+    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
+        const mu_world_actor *actor = &a->actors.list[i];
+        mu_render_backend backend;
+        mu_gl_backend_bind(&a->actor_gl[i], &backend);
+        options.textures = &actor->actor.textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
+    }
     mu_gl_backend plain;
     memset(&plain, 0, sizeof plain);
     mu_render_backend backend;
     mu_gl_backend_bind(&plain, &backend);
     marker(a, &backend);
+    if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
+        float eye[3], target[3];
+        effect_camera(a, eye, target);
+        glEnable(GL_DEPTH_TEST);
+        a->effects_visible = mu_effect_scene_render_to(&a->actors.effects, eye, target, v->fov,
+                                                       (float)width / (float)height, v->view_near,
+                                                       v->view_far * 1.4f, g_effect, a);
+        glBindTexture(GL_TEXTURE_2D, 0);   /* the pass ends with glBindTexture(GL_TEXTURE_2D, 0) */
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+    }
     return stats.faces;
 }
 
@@ -390,10 +669,13 @@ static long draw_soft(app *a, mu_raster *raster)
     memcpy(raster->view, v->modelview, sizeof raster->view);
     memcpy(raster->projection, v->projection, sizeof raster->projection);
     mu_raster_clear(raster, sky);
-    int32_t box[4];
-    terrain_box(a, box);
     mu_world_draw_stats stats;
-    mu_world_draw_raster(a->map, raster, box[0], box[1], box[2], box[3], &stats);
+    if (a->legacy_box)
+        mu_world_draw_raster(a->map, raster, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
+                             &stats);
+    else
+        mu_world_draw_raster_view(a->map, raster, &a->frustum, 6, 0, &stats);
+    a->tile_stats = stats.tiles;
     mu_render_backend backend;
     mu_raster_backend(raster, &backend);
     mu_draw_options options;
@@ -413,11 +695,28 @@ static long draw_soft(app *a, mu_raster *raster)
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
+    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
+        const mu_world_actor *actor = &a->actors.list[i];
+        raster->textures = actor->actor.textures.slots;
+        raster->texture_count = actor->actor.textures.count;
+        raster->texture_filter = actor->actor.textures.filter;
+        raster->texture_wrap = actor->actor.textures.wrap;
+        options.textures = &actor->actor.textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
+    }
     raster->textures = NULL;
     raster->texture_count = 0;
     raster->texture_filter = NULL;
     raster->texture_wrap = NULL;
     marker(a, &backend);
+    if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
+        float eye[3], target[3];
+        effect_camera(a, eye, target);
+        a->effects_visible = mu_effect_scene_render(&a->actors.effects, eye, target, v->fov,
+                                                    (float)raster->width / (float)raster->height, v->view_near,
+                                                    v->view_far * 1.4f, raster);
+    }
     return stats.tiles.faces;
 }
 
@@ -431,12 +730,16 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
     printf("{\"frame\": %d, \"tick\": %u, \"steps\": %u, \"hero\": [%.2f, %.2f, %.2f], \"tile\": [%d, %d],"
            " \"angle\": %.3f, \"action\": %u, \"frame_anim\": %.3f, \"run\": %u, \"safe\": %u, \"moving\": %u,"
            " \"path\": [%u, %u, %u], \"target\": [%d, %d], \"fov\": %.3f, \"pitch\": %.3f, \"far\": %.2f,"
-           " \"eye\": [%.2f, %.2f, %.2f], \"sha256\": \"%s\", \"png\": \"%s\"}\n",
+           " \"eye\": [%.2f, %.2f, %.2f], \"hero_tile\": %d, \"footsteps\": %u, \"voices\": %d, \"music\": %d,"
+           " \"tiles\": %ld, \"box\": [%d, %d, %d, %d], \"effects\": %u, \"sha256\": \"%s\", \"png\": \"%s\"}\n",
            frame, now, w->steps, (double)h->position[0], (double)h->position[1], (double)h->position[2], h->tile[0],
            h->tile[1], (double)h->angle[2], h->action, (double)h->frame, h->run, h->safe_zone, h->movement,
            h->path.current, h->path.current_float, h->path.count, w->target[0], w->target[1], (double)v->fov,
            (double)v->angle[0], (double)v->view_far, (double)v->position[0], (double)v->position[1],
-           (double)v->position[2], hash ? hash : "", png ? png : "");
+           (double)v->position[2], a->has_sound ? a->sound.hero_tile : -1, a->has_sound ? a->sound.footsteps : 0,
+           a->has_sound ? mu_world_sound_voices(&a->sound) : 0, a->has_sound ? a->sound.last_music : -1,
+           a->tile_stats.faces, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
+           a->effects_visible, hash ? hash : "", png ? png : "");
 }
 
 static void report_summary(const app *a, const char *renderer)
@@ -450,6 +753,33 @@ static void report_summary(const app *a, const char *renderer)
            (double)a->info.z_distance, (double)a->walk.frame.view.view_near, w->steps, w->moves, w->arrivals,
            w->path_refused, w->frame.picks, w->frame.pick_hits, a->walked, a->moving_steps, w->position_steps,
            w->position_steps ? w->position_distance / w->position_steps : 0.0);
+    if (a->has_sound) {
+        const mu_world_sound *s = &a->sound;
+        printf("{\"sound\": true, \"table\": %s, \"steps\": %u, \"frames\": %u, \"footsteps\": %u,"
+               " \"soil\": %u, \"grass\": %u, \"snow\": %u, \"swim\": %u, \"bridge\": %u, \"foot_resets\": %u,"
+               " \"ambient_plays\": %u, \"ambient_stops\": %u, \"music_plays\": %u, \"music_stops\": %u,"
+               " \"delegates\": %u, \"last_music\": %d, \"wav_frames\": %zu, \"rate\": %u}\n",
+               s->has_table ? "true" : "false", s->steps, s->frames, s->footsteps, s->footstep_ids[0],
+               s->footstep_ids[1], s->footstep_ids[2], s->footstep_ids[3], s->bridge_steps, s->resets,
+               s->ambient_plays, s->ambient_stops, s->music_plays, s->music_stops, s->delegates, s->last_music,
+               a->wav_frames, mu_world_sound_rate(s));
+        if (!a->quiet)
+            for (int32_t i = 0; i < s->log_count; ++i)
+                printf("{\"sound_log\": \"%s\"}\n", s->log[i]);
+    }
+    if (a->has_actors) {
+        const mu_world_actors *s = &a->actors;
+        printf("{\"actors\": %d, \"actor_steps\": %u, \"actor_moves\": %u, \"actor_arrivals\": %u,"
+               " \"effect_instances\": %u}\n", s->count, s->steps, s->moves, s->arrivals, s->effect_instances);
+        for (int32_t i = 0; i < s->count; ++i) {
+            const mu_world_actor *x = &s->list[i];
+            printf("{\"actor\": %d, \"class\": %d, \"label\": \"%s\", \"model\": %d, \"tile\": [%d, %d],"
+                   " \"action\": %u, \"frame\": %.3f, \"speed\": %.4f, \"moves\": %u, \"arrivals\": %u,"
+                   " \"effects\": %d}\n", i, x->server_class, x->label, x->actor.spec.model_index, x->tile[0],
+                   x->tile[1], mu_actor_action(&x->actor), (double)mu_actor_frame(&x->actor),
+                   (double)x->actor.last_speed, x->moves, x->arrivals, x->effect_count);
+        }
+    }
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);
@@ -493,6 +823,7 @@ static int headless(app *a)
         return 1;
     uint32_t now = 100000;
     a->walk.frame.clock.frame_tick = now;
+    a->audio_start = now;
     for (int32_t frame = 0; frame < a->frames; ++frame) {
         script(a, frame);
         advance(a, now);
@@ -522,6 +853,17 @@ static int headless(app *a)
         int32_t sleep = mu_walk_end_render(&a->walk);
         if (sleep > 0)
             now += (uint32_t)sleep;
+        sound_frame(a);   /* after the cap, as 0x0185280c in the frame driver */
+        if (a->has_sound && a->wav_path && wav_append(a, audio_due(a, now))) {
+            fprintf(stderr, "audio buffer allocation failed\n");
+            return 1;
+        }
+    }
+    if (a->has_sound && a->wav_path) {
+        if (mu_wav_write16(a->wav_path, a->wav, (uint32_t)a->wav_frames, 2, mu_world_sound_rate(&a->sound))) {
+            fprintf(stderr, "cannot write %s\n", a->wav_path);
+            return 1;
+        }
     }
 #ifndef MU_WORLD_NO_GL
     report_summary(a, gl ? mu_gl_renderer() : "software");
@@ -540,6 +882,49 @@ static int headless(app *a)
 
 #ifndef MU_WORLD_NO_GL
 /* ---- window ---- */
+
+/* SDL2 audio output: the engine's mix of the frames due at now + lead,
+ * queued from the main thread after each frame (no audio callback, so the
+ * engine is only touched by the thread that runs the game logic). */
+static void audio_open(app *a)
+{
+    if (!a->has_sound)
+        return;
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
+        fprintf(stderr, "SDL audio: %s (continuing without sound output)\n", SDL_GetError());
+        return;
+    }
+    SDL_AudioSpec want, have;
+    memset(&want, 0, sizeof want);
+    want.freq = (int)mu_world_sound_rate(&a->sound);
+    want.format = AUDIO_F32SYS;
+    want.channels = 2;
+    want.samples = 1024;
+    a->audio_device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+    if (!a->audio_device) {
+        fprintf(stderr, "SDL audio: %s (continuing without sound output)\n", SDL_GetError());
+        return;
+    }
+    SDL_PauseAudioDevice(a->audio_device, 0);
+}
+
+static void audio_pump(app *a, uint32_t now)
+{
+    if (!a->has_sound)
+        return;
+    const uint32_t lead = 120;   /* ms queued ahead of the clock */
+    uint32_t frames = audio_due(a, now + lead);
+    if (!frames)
+        return;
+    static float buffer[2 * 48000];
+    uint32_t rate = mu_world_sound_rate(&a->sound);
+    if (frames > rate)   /* after a stall, drop instead of queueing seconds of audio */
+        frames = rate;
+    mu_world_sound_mix(&a->sound, buffer, frames);
+    a->audio_frames += frames;
+    if (a->audio_device)
+        SDL_QueueAudio(a->audio_device, buffer, frames * 2 * (uint32_t)sizeof(float));
+}
 
 static int windowed(app *a)
 {
@@ -571,8 +956,10 @@ static int windowed(app *a)
     a->width = dw;
     a->height = dh;
     gl_setup(a);
+    audio_open(a);
     a->walk.frame.clock.frame_tick = SDL_GetTicks();
     uint32_t start = SDL_GetTicks(), frames = 0;
+    a->audio_start = start;
     int running = 1, escapes = 0;
     int32_t printed = 0;
     (void)script_width;
@@ -621,6 +1008,8 @@ static int windowed(app *a)
         int32_t sleep = mu_walk_end_render(&a->walk);
         if (sleep > 0)
             SDL_Delay((uint32_t)sleep);
+        sound_frame(a);   /* after the cap, as 0x0185280c in the frame driver */
+        audio_pump(a, SDL_GetTicks());
         if (frames % 25 == 0) {
             const mu_hero *h = &a->walk.hero;
             char title[160];
@@ -642,8 +1031,13 @@ static int windowed(app *a)
     }
     double elapsed = (SDL_GetTicks() - start) / 1000.0;
     printf("{\"frames\": %u, \"seconds\": %.2f, \"fps\": %.2f, \"logic_steps\": %u, \"walked\": %.1f,"
-           " \"arrivals\": %u}\n", frames, elapsed, elapsed > 0 ? frames / elapsed : 0.0, a->walk.steps, a->walked,
-           a->walk.arrivals);
+           " \"arrivals\": %u, \"audio_device\": %s, \"audio_seconds\": %.2f}\n", frames, elapsed,
+           elapsed > 0 ? frames / elapsed : 0.0, a->walk.steps, a->walked, a->walk.arrivals,
+           a->audio_device ? "true" : "false",
+           a->has_sound ? (double)a->audio_frames / (double)mu_world_sound_rate(&a->sound) : 0.0);
+    report_summary(a, mu_gl_renderer());
+    if (a->audio_device)
+        SDL_CloseAudioDevice(a->audio_device);
     gl_teardown(a);
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
@@ -696,7 +1090,9 @@ static int usage(void)
     fprintf(stderr, "usage: mu-world --game-root ROOT [--world N] [--class C] [--tile X,Y] [--angle D] [--near Z]\n"
                     "                [--width W --height H] [--seconds S] [--walk \"X,Y ...\"] [--wheel \"F:+1 ...\"]\n"
                     "                [--headless --frames N --out-dir DIR --backend gl|soft --every K --pause P]\n"
-                    "                [--player Player.bmd] [--quiet]\n");
+                    "                [--player Player.bmd] [--quiet]\n"
+                    "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
+                    "                [--placement DEMO.txt] [--legacy-box]\n");
     return 2;
 }
 
@@ -715,10 +1111,14 @@ int main(int argc, char **argv)
     a.angle = 0.0f;
     a.near_plane = 20.0f;     /* CameraViewNear 0x01cf162c (static data, runtime data-section capture) */
     a.backend = "gl";
+    a.audio = 1;
+    a.audio_rate = 44100;
     for (int i = 1; i < argc; ++i) {
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { a.headless = 1; continue; }
         if (!strcmp(k, "--quiet")) { a.quiet = 1; continue; }
+        if (!strcmp(k, "--no-audio")) { a.audio = 0; continue; }
+        if (!strcmp(k, "--legacy-box")) { a.legacy_box = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -739,8 +1139,14 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--backend")) a.backend = v;
         else if (!strcmp(k, "--walk")) { if (parse_waypoints(&a, v)) return usage(); }
         else if (!strcmp(k, "--wheel")) { if (parse_wheels(&a, v)) return usage(); }
+        else if (!strcmp(k, "--sound-table")) a.sound_table = v;
+        else if (!strcmp(k, "--wav")) a.wav_path = v;
+        else if (!strcmp(k, "--audio-rate")) a.audio_rate = atoi(v);
+        else if (!strcmp(k, "--placement")) a.placement = v;
         else return usage();
     }
+    if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
+        return usage();
     if (!a.root || a.width < 64 || a.height < 64 || a.width > 8192 || a.height > 8192 || a.frames < 1 ||
         a.tile[0] < 0 || a.tile[1] < 0 || a.tile[0] > 255 || a.tile[1] > 255)
         return usage();

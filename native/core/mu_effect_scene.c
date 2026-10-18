@@ -205,8 +205,22 @@ static void normalize(float v[3])
             v[k] = (float)(v[k] / l);
 }
 
+static void raster_draw(void *context, const mu_fx_vertex *vertices, uint32_t count, const mu_fx_draw_state *state,
+                        const mu_image *texture, const float *matrix)
+{
+    mu_effect_raster_quads((mu_raster *)context, vertices, count, state, texture, matrix);
+}
+
 uint32_t mu_effect_scene_render(mu_effect_scene *s, const float eye[3], const float target[3], float fov_degrees,
                                 float aspect, float near_plane, float far_plane, mu_raster *raster)
+{
+    return mu_effect_scene_render_to(s, eye, target, fov_degrees, aspect, near_plane, far_plane,
+                                     raster ? raster_draw : NULL, raster);
+}
+
+uint32_t mu_effect_scene_render_to(mu_effect_scene *s, const float eye[3], const float target[3], float fov_degrees,
+                                   float aspect, float near_plane, float far_plane, mu_effect_draw_fn draw,
+                                   void *context)
 {
     float forward[3] = {target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]};
     normalize(forward);
@@ -232,9 +246,8 @@ uint32_t mu_effect_scene_render(mu_effect_scene *s, const float eye[3], const fl
         const mu_image *texture = node_texture(s, visible[i]);
         mu_fx_draw_state state;
         uint32_t count = mu_fx_draw(visible[i], &s->frustum.camera, texture != NULL, s->vertices, &state);
-        if (raster)
-            mu_effect_raster_quads(raster, s->vertices, count, &state, texture,
-                                   state.multiply_matrix ? visible[i]->matrix : NULL);
+        if (draw)
+            draw(context, s->vertices, count, &state, texture, state.multiply_matrix ? visible[i]->matrix : NULL);
         s->vertices_drawn += count;
     }
     free(visible);

@@ -81,4 +81,13 @@ void mu_effect_scene_update(mu_effect_scene *scene, float dt);
 uint32_t mu_effect_scene_render(mu_effect_scene *scene, const float eye[3], const float target[3], float fov_degrees,
                                 float aspect, float near_plane, float far_plane, mu_raster *raster);
 
+/* The same render pass with a caller draw (e.g. OpenGL): for each visible
+ * effect in octree order, its filled quads, draw state, texture and the
+ * SpaceIsLocal matrix (NULL when none). draw may be NULL (fill only). */
+typedef void (*mu_effect_draw_fn)(void *context, const mu_fx_vertex *vertices, uint32_t count,
+                                  const mu_fx_draw_state *state, const mu_image *texture, const float *matrix);
+uint32_t mu_effect_scene_render_to(mu_effect_scene *scene, const float eye[3], const float target[3],
+                                   float fov_degrees, float aspect, float near_plane, float far_plane,
+                                   mu_effect_draw_fn draw, void *context);
+
 #endif
