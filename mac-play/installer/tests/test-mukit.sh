@@ -94,7 +94,8 @@ yes 'hotpatch 16383' mukit_hotpatch_valid 16383
 yes 'hotpatch 875951 (v7.4 default)' mukit_hotpatch_valid 875951
 yes 'hotpatch 2097151' mukit_hotpatch_valid 2097151
 yes 'hotpatch 44916143 (v7.5 default)' mukit_hotpatch_valid 44916143
-yes 'hotpatch 112025007 (kit default, v7.6 JPEG bit)' mukit_hotpatch_valid 112025007
+yes 'hotpatch 380460463 (kit default, v7.6 JPEG and CRC bits)' mukit_hotpatch_valid 380460463
+yes 'hotpatch 112025007 (previous kit default) valid' mukit_hotpatch_valid 112025007
 yes 'hotpatch 30-bit value accepted' mukit_hotpatch_valid 380050863
 yes 'hotpatch 67108863' mukit_hotpatch_valid 67108863
 no 'hotpatch x'   mukit_hotpatch_valid x
@@ -105,7 +106,7 @@ eq 'v7.5 default keeps v7.0 bits' "$((MUKIT_HOTPATCH_DEFAULT & 31))" "$MUKIT_HOT
 eq 'v7.1/v7.2 read their default' "$((MUKIT_HOTPATCH_DEFAULT & 16383))" 7599
 eq 'v7.3 reads its default' "$((MUKIT_HOTPATCH_DEFAULT & 65535))" 23983
 eq 'v7.5 reads its default (26 bits)' "$((MUKIT_HOTPATCH_DEFAULT & 67108863))" 44916143
-eq 'kit default has no CRC bit' "$((MUKIT_HOTPATCH_DEFAULT & 268435456))" 0
+eq 'kit default has the CRC bit' "$((MUKIT_HOTPATCH_DEFAULT & 268435456))" 268435456
 eq 'v7.4 reads its default' "$((MUKIT_HOTPATCH_DEFAULT & 2097151))" 875951
 yes 'mugl mode with v7.4 diagnostics' mukit_mugl_mode_valid full+vbo+time+finish
 
@@ -119,6 +120,7 @@ eq 'identify v7.1'     "$(mukit_mugl_identify "$MUKIT_MUGL_V71_SHA256")" v7.1
 eq 'identify v7.2'     "$(mukit_mugl_identify "$MUKIT_MUGL_V72_SHA256")" v7.2
 eq 'identify v7.5'     "$(mukit_mugl_identify "$MUKIT_MUGL_V75_SHA256")" v7.5
 eq 'identify v7.6'     "$(mukit_mugl_identify "$MUKIT_MUGL_V76_SHA256")" v7.6
+eq 'identify v7.6 without CRC' "$(mukit_mugl_identify "$MUKIT_MUGL_V76J_SHA256")" v7.6-jpeg
 no 'identify unknown'  mukit_mugl_identify 0000
 eq 'version sha v70'   "$(mukit_mugl_version_sha v70)" "$MUKIT_MUGL_V70_SHA256"
 no 'version sha v69 unknown' mukit_mugl_version_sha v69
@@ -201,7 +203,7 @@ eq  'mugl deployed (v7.6)'       "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUG
 eq  'mscoree proxy deployed'     "$(mukit_sha256 "$G/mscoree.dll")" "$MUKIT_MSCOREE_PROXY_SHA256"
 eq  'mu-modes.txt'               "$(cat "$FB/drive_c/mutools/mu-modes.txt")" '960x600 1024x640 1280x800 1600x1000 1728x1080'
 eq  'mugl-mode.txt'              "$(cat "$FB/drive_c/mutools/mugl-mode.txt")" 'full+vbo'
-eq  'mugl-hotpatch.txt'          "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+eq  'mugl-hotpatch.txt'          "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 380460463
 eq  'LauncherOption rewritten'   "$(od -An -tx1 < "$G/LauncherOption.if" | tr -d ' \n')" "$(mukit_lopt_render 4 1 '' | od -An -tx1 | tr -d ' \n')"
 yes 'LauncherOption original kept' cmp -s "$G/LauncherOption.if.mukit-orig" "$FIX/LauncherOption.orig.if"
 yes 'launcher config written (missing in source)' grep -q 'v4.8' "$G/MuTheMatrix.exe.config"
@@ -233,7 +235,7 @@ ls "$G"/*.mukit-backup-* > /dev/null 2>&1 && bad 'no backups of kit-managed DLLs
 eq 'verify on fake bottle: no FAIL' "$rc" 0
 grep -q 'WARN  main.exe' "$TMPD/verify.log" && ok 'verify flags untested main.exe' || bad 'verify flags untested main.exe'
 grep -q 'v7.6 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.6' || bad 'verify accepts kit mugl v7.6'
-grep -q 'PASS  mugl-hotpatch.txt *112025007' "$TMPD/verify.log" && ok 'verify: 112025007 is the norm' || bad 'verify: 112025007 is the norm'
+grep -q 'PASS  mugl-hotpatch.txt *380460463' "$TMPD/verify.log" && ok 'verify: 380460463 is the norm' || bad 'verify: 380460463 is the norm'
 
 # Rollback to v7.0 and back; the hotpatch file written by an earlier kit (15) is upgraded.
 "${SETUP[@]}" --mugl-version v70 > "$TMPD/run6.log" 2>&1; rc=$?
@@ -245,16 +247,19 @@ grep -q 'v7.0 (pinned rollback' "$TMPD/verify70.log" && ok 'verify names v7.0 ro
 printf '15\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7.log" 2>&1
 eq 'back to v7.6' "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V76_SHA256"
-eq 'old kit default 15 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+eq 'old kit default 15 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 380460463
 printf '7599\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7b.log" 2>&1
-eq 'old kit default 7599 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+eq 'old kit default 7599 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 380460463
 printf '875951\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7a.log" 2>&1
-eq 'old kit default 875951 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+eq 'old kit default 875951 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 380460463
 printf '44916143\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7d.log" 2>&1
-eq 'old kit default 44916143 (v7.5) upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
+eq 'old kit default 44916143 (v7.5) upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 380460463
+printf '112025007\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+"${SETUP[@]}" > "$TMPD/run7e.log" 2>&1
+eq 'old kit default 112025007 (v7.6 without CRC) upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 380460463
 printf '23983\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7c.log" 2>&1
 eq 'user mask 23983 (v7.3 default) kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 23983
@@ -265,7 +270,7 @@ printf '6575\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 eq 'user mask 6575 kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 6575
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify6575.log" 2>&1
 grep -q 'PASS  mugl-hotpatch.txt *6575 .*without the frame pacing fix' "$TMPD/verify6575.log" && ok 'verify accepts 6575' || bad 'verify accepts 6575'
-printf '112025007\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+printf '380460463\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 
 echo '# Desktop launcher step (temporary HOME)'
 FH="$TMPD/home"; mkdir -p "$FH/Desktop"

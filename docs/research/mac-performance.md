@@ -1154,7 +1154,11 @@ ran as well: 1,074 images (sessions 2-4) and 761 images (final build) compared r
 per Tormenta entry (same images): 237 -> 142 ms; first login: 273 -> 166 ms; Lorencia: 25 ms for 153 images.
 
 **Native CRC-32 (bit 268435456).** Slicing-by-8 from the client's own table: 107 -> 31 ms per Tormenta entry
-(244 calls, 43 MB); 732 + 488 calls compared live, 0 mismatches.
+(244 calls, 43 MB); 732 + 488 calls compared live, 0 mismatches. Restored as the kit default (380460463) on
+2026-10-18: the rebuilt DLL (288a8a9a…) has the same `.text` as the build measured here, and a live login to
+Tormenta with the verification bit (917331375) compared 244 calls (42.9 MB) with 0 mismatches, 30.4 ms native
+against 102.4 ms for the client's routine, next to 449 native JPEG decodes and 25 fps in world. The CRC result is
+bit-exact: the client still computes the same checksums and acts on them as before.
 
 | Scene (load) | v7.5 (44916143) | v7.6 (380460463) |
 |---|---|---|

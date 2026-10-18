@@ -59,10 +59,10 @@ Usage: setup-mu-mac.sh [options]
                          to seed winetricks' cache; otherwise winetricks downloads it (env MU_DOTNET48_INSTALLER).
   --helpers-dir DIR      Where muinput.exe / clickstart.exe come from (default: mac-play/diagnostics/build/diagnostics,
                          created by 'make mac-diagnostics'); optional, only autologin tools use them.
-  --hotpatch-mask N      C:\mutools\mugl-hotpatch.txt (default 112025007 = v7.5's 44916143 + v7.6 JPEG decode 67108864,
-                         without the CRC bit; older builds read fewer bits and see their own default: v7.5 44916143,
+  --hotpatch-mask N      C:\mutools\mugl-hotpatch.txt (default 380460463 = v7.5's 44916143 + v7.6 JPEG decode 67108864
+                         + v7.6 CRC-32 268435456; older builds read fewer bits and see their own default: v7.5 44916143,
                          v7.4 875951, v7.3 23983, v7.1/v7.2 7599, v7.0 15).
-                         A file holding an earlier kit default (15, 7599, 875951, 44916143) is upgraded.
+                         A file holding an earlier kit default (15, 7599, 875951, 44916143, 112025007) is upgraded.
   --no-mugl              Do not install the OpenGL proxy (plain Wine OpenGL; ~4 fps in world).
   --no-stats             Do not set HKCU\Environment MUGL_STATS.
   --reset-config         Overwrite existing C:\mutools config files and LauncherOption.if values.
