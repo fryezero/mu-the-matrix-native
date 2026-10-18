@@ -90,6 +90,7 @@ static int ts_active_flag;   /* terrain run open (terrain.c) */
 static int mugl_client;      /* this process is the client (main.exe): only then are code patches, pacing and client reads used */
 static int cs_dirty;         /* deferred client-array enables differ from GL (lazy client state, bit 262144) */
 static int cs_lazy; static unsigned char cs_real[6], cs_want[6]; static long st_cs_skipped, st_cs_sent;
+static int lz_on, lz_n, lz_list; static long st_lz_deferred, st_lz_cancelled, st_lz_sent, st_tp_skipped; static void lz_apply(void);
 static int tr_on, tr_frames; static char *tr_buf; static size_t tr_len, tr_cap;
 static void tr_add(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 #include <stdarg.h>
@@ -105,7 +106,7 @@ static void update_busy(void)
     dirty_t = !gl_t_ok || memcmp(gl_t, cur_t, sizeof gl_t);
     dirty_c = !gl_c_ok || memcmp(gl_c, cur_c, sizeof gl_c);
     dirty_n = !gl_n_ok || memcmp(gl_n, cur_n, sizeof gl_n);
-    mugl_busy = (unsigned char)(count_mode || tr_on || ts_active_flag || cs_dirty || mugl_in_begin || pending || owned || dirty_t || dirty_c || dirty_n);
+    mugl_busy = (unsigned char)(count_mode || tr_on || ts_active_flag || cs_dirty || lz_n || mugl_in_begin || pending || owned || dirty_t || dirty_c || dirty_n);
 }
 static void set_gl_t(const GLfloat *v) { if (!gl_t_ok || memcmp(gl_t, v, sizeof gl_t)) { R(glTexCoord2fv, PFNfv)(v); memcpy(gl_t, v, sizeof gl_t); gl_t_ok = 1; } }
 static void set_gl_c(const GLfloat *v) { if (!gl_c_ok || memcmp(gl_c, v, sizeof gl_c)) { R(glColor4fv, PFNfv)(v); memcpy(gl_c, v, sizeof gl_c); gl_c_ok = 1; } }
@@ -148,6 +149,7 @@ static void stats_tick(void)
     pace_stats(st_file); io_stats(st_file); ts_stats(st_file);
     if (st_pace_skips) { fprintf(st_file, "pace: skipped game sleeps=%ld ", st_pace_skips); st_pace_skips = 0; }
     if (cs_lazy) { fprintf(st_file, "clientstate deferred=%ld sent=%ld ", st_cs_skipped, st_cs_sent); st_cs_skipped = st_cs_sent = 0; }
+    if (lz_on) { fprintf(st_file, "enables deferred=%ld cancelled=%ld sent=%ld texparam skipped=%ld ", st_lz_deferred, st_lz_cancelled, st_lz_sent, st_tp_skipped); st_lz_deferred = st_lz_cancelled = st_lz_sent = st_tp_skipped = 0; }
     if (cull_on) { fprintf(st_file, "culled=%ld/%ld batches %ld verts ", st_cull_batches, st_cull_tested, st_cull_verts); st_cull_batches = st_cull_tested = st_cull_verts = 0; }
     if (cull_verify) { fprintf(st_file, "cullverify checked=%ld nonzero=%ld total %lld/%lld ", st_cv_checked, st_cv_bad, cv_tot_checked, cv_tot_bad); st_cv_checked = st_cv_bad = 0; }
     fprintf(st_file, "skipped=%ld orphans=%ld/%ld subKB=%ld vbo=%d ", st_skipped, st_orphans, st_subs, st_sub_bytes / 1024, vbo_emu); st_skipped = 0; st_orphans = st_subs = 0; st_sub_bytes = st_sub_calls = 0;
@@ -222,6 +224,7 @@ static void send_current(void) { set_gl_t(cur_t); set_gl_c(cur_c); set_gl_n(cur_
 static void submit_batch(void)
 {
     if (vcount == 0) return;
+    if (lz_n) lz_apply();   /* not expected: deferred enables are sent at glBegin */
     if (batch_mode == GL_TRIANGLES && cull_batch(vb, vcount)) { vcount = 0; set_t = set_c = set_n = 0; return; }   /* no fragment: not drawn */
     LARGE_INTEGER sb_t0; if (time_mode) QueryPerformanceCounter(&sb_t0);
     int vt = set_t && varies(offsetof(Vtx, t), sizeof(vb[0].t));
@@ -373,9 +376,11 @@ void mugl_sync_from(int idx)
     if (cs_dirty && idx >= 0 && idx < (int)sizeof mugl_flags && (mugl_flags[idx] & 2)) cs_apply();
     if (idx >= 0 && idx < (int)sizeof mugl_flags) {
         const char *nm = mugl_names[idx];
-        if (!strcmp(nm, "glTranslatef") || !strcmp(nm, "glTranslated") || !strcmp(nm, "glRotatef") || !strcmp(nm, "glRotated") ||
+        int mx = !strcmp(nm, "glTranslatef") || !strcmp(nm, "glTranslated") || !strcmp(nm, "glRotatef") || !strcmp(nm, "glRotated") ||
             !strcmp(nm, "glScalef") || !strcmp(nm, "glScaled") || !strncmp(nm, "glLoadMatrix", 12) || !strncmp(nm, "glMultMatrix", 12) ||
-            !strcmp(nm, "glOrtho") || !strcmp(nm, "glFrustum")) matrix_modified();
+            !strcmp(nm, "glOrtho") || !strcmp(nm, "glFrustum");
+        if (mx) matrix_modified();
+        else if (lz_n) lz_apply();   /* every export except state calls (index -1) and matrix calls may observe enables */
         if (!strncmp(nm, "wglMakeCurrent", 14) || !strncmp(nm, "wglDeleteContext", 16)) { forget_state(); mstk_valid = 0; cs_forget(); }
         if (mugl_flags[idx] & 2) release_arrays();
         if (mugl_flags[idx] & 1) send_current();
@@ -389,6 +394,7 @@ void mugl_sync(void)
 {
     if (passthrough) return;
     flush_pending();
+    lz_apply();
     cs_apply();
     release_arrays();
     send_current();
@@ -461,6 +467,7 @@ void WINAPI mugl_glBegin(GLenum mode)
 {
     TR("G %x %p\n", mode, __builtin_return_address(0));
     if (cs_dirty && !passthrough) { cs_apply(); update_busy(); }   /* glArrayElement may be used inside the block */
+    if (lz_n && !passthrough) lz_apply();   /* vertices from here on are drawn with the deferred enables */
     if ((ts_on_flag || qs_on_flag || ts_active_flag) && batching_enabled && merge_enabled && !mugl_in_begin && !passthrough && ts_begin_hook(mode, __builtin_return_address(0))) return;
     if (!batching_enabled || mugl_in_begin || passthrough) {
         flush_pending(); release_arrays(); send_current(); update_busy(); R(glBegin, PFN1u)(mode);
@@ -577,10 +584,48 @@ static unsigned char *cap_slot(GLenum cap)
 }
 static int ts_cap(GLenum cap, int on); static int ts_tex(GLenum target, GLuint tex); static int ts_blendfunc(GLenum s, GLenum d);
 static int ts_depthmask(GLboolean m); static int ts_alphafunc(GLenum f, GLclampf r);
+/* ---- deferred enables and redundant texture parameters (bit 1073741824, v7.6) ----
+   Zoomed out in the boss fight about 3,200 glEnable/glDisable calls per frame reached GL, and in a two-frame trace 61%
+   of them were undone before anything could observe them (mostly GL_CULL_FACE and GL_FRAGMENT_PROGRAM_ARB toggled by
+   the effect and interface code); every call is a 32-to-64-bit thunk under CrossOver. With the bit, an enable or
+   disable of a cap that is not per texture unit and whose real state is known is recorded instead of sent: the batch
+   recorded so far is submitted first (it was specified under the old state), a change back cancels the record, and
+   the records are sent before anything that can observe them: glBegin (any later geometry), every exported call except
+   the state calls mugl filters (enable/disable, texture binding, blend function, depth mask, alpha and depth
+   function) and the matrix calls, glGet*, glPopAttrib, display lists and full synchronization. While a display list is
+   compiled nothing is deferred. glTexParameteri of GL_TEXTURE_2D's filters and wraps on a known non-zero binding is
+   dropped when it repeats the value last set on that texture object; any other parameter call on it, glPopAttrib,
+   texture deletion and display lists forget the recorded values. */
+static GLenum lz_cap[64]; static unsigned char lz_want[64];
+static void lz_apply(void)
+{
+    if (!lz_n) return;
+    int n = lz_n; lz_n = 0;
+    for (int i = 0; i < n; i++) {
+        if (lz_want[i] == 2) TIMED(4, R(glEnable, PFN1u)(lz_cap[i])); else TIMED(4, R(glDisable, PFN1u)(lz_cap[i]));
+        unsigned char *s = &cap_cache[0][lz_cap[i]]; cap_touch(s); *s = lz_want[i]; st_lz_sent++;
+    }
+    update_busy();
+}
+/* 1 = handled (recorded, cancelled or redundant) */
+static int lz_set(GLenum cap, unsigned char *s, unsigned char want)
+{
+    if (!lz_on || passthrough || lz_list || !s || !*s || unit_cap(cap) || !filter_enabled) return 0;
+    int i = 0; while (i < lz_n && lz_cap[i] != cap) i++;
+    unsigned char eff = i < lz_n ? lz_want[i] : *s;
+    if (eff == want) { st_skipped++; return 1; }
+    if (i == lz_n && lz_n == 64) return 0;
+    flush_pending();   /* the vertices so far were specified under the old state */
+    if (i < lz_n) { lz_cap[i] = lz_cap[lz_n - 1]; lz_want[i] = lz_want[lz_n - 1]; lz_n--; st_lz_cancelled++; }   /* back to the real state */
+    else { lz_cap[lz_n] = cap; lz_want[lz_n] = want; lz_n++; st_lz_deferred++; }
+    update_busy();
+    return 1;
+}
 void WINAPI mugl_glEnable(GLenum cap)
 {
     if (ts_active_flag && ts_cap(cap, 1)) return;
     unsigned char *s = cap_slot(cap);
+    if (lz_set(cap, s, 2)) { TR("E %x ~ %p\n", cap, __builtin_return_address(0)); return; }
     TR("E %x%s %p\n", cap, filter_enabled && s && *s == 2 && !passthrough ? " =" : "", __builtin_return_address(0));
     if (filter_enabled && s && *s == 2 && !passthrough) { st_skipped++; return; }
     mugl_sync_from(-1); TIMED(4, R(glEnable, PFN1u)(cap)); if (s) { cap_touch(s); *s = 2; }
@@ -589,6 +634,7 @@ void WINAPI mugl_glDisable(GLenum cap)
 {
     if (ts_active_flag && ts_cap(cap, 0)) return;
     unsigned char *s = cap_slot(cap);
+    if (lz_set(cap, s, 1)) { TR("D %x ~ %p\n", cap, __builtin_return_address(0)); return; }
     TR("D %x%s %p\n", cap, filter_enabled && s && *s == 1 && !passthrough ? " =" : "", __builtin_return_address(0));
     if (filter_enabled && s && *s == 1 && !passthrough) { st_skipped++; return; }
     mugl_sync_from(-1); TIMED(4, R(glDisable, PFN1u)(cap)); if (s) { cap_touch(s); *s = 1; }
@@ -604,10 +650,50 @@ void WINAPI mugl_glBindTexture(GLenum target, GLuint tex)
     if (target == GL_TEXTURE_2D && u >= 0 && u < 8) { tex_cache[u] = tex; tex_ok[u] = 1; }
 }
 typedef void (WINAPI *PFNdt)(GLsizei, const GLuint *);
+static unsigned tp_gen = 1, tp_g[65536]; static GLint tp_val[65536][4];
 void WINAPI mugl_glDeleteTextures(GLsizei n, const GLuint *t)
 {
-    mugl_sync_from(-1); R(glDeleteTextures, PFNdt)(n, t); memset(tex_ok, 0, sizeof tex_ok);
+    mugl_sync_from(-1); R(glDeleteTextures, PFNdt)(n, t); memset(tex_ok, 0, sizeof tex_ok); tp_gen++;
 }
+static int tp_idx = -1, tp_idxf = -1, tp_idxiv = -1, tp_idxfv = -1;
+static int tp_export(int *cache, const char *n) { if (*cache < 0) for (int i = 0; i < (int)(sizeof mugl_names / sizeof mugl_names[0]); i++) if (!strcmp(mugl_names[i], n)) { *cache = i; break; } return *cache; }
+static GLuint tp_bound(GLenum target)
+{
+    int u = active_unit;
+    return target == GL_TEXTURE_2D && u >= 0 && u < 8 && tex_ok[u] && tex_cache[u] < 65536 ? tex_cache[u] : 0;
+}
+typedef void (WINAPI *PFNtpi)(GLenum, GLenum, GLint); typedef void (WINAPI *PFNtpf)(GLenum, GLenum, GLfloat); typedef void (WINAPI *PFNtpv)(GLenum, GLenum, const void *);
+void WINAPI mugl_glTexParameteri(GLenum target, GLenum pname, GLint v)
+{
+    GLuint t = tp_bound(target);
+    int k = pname == GL_TEXTURE_MIN_FILTER ? 0 : pname == GL_TEXTURE_MAG_FILTER ? 1 : pname == GL_TEXTURE_WRAP_S ? 2 : pname == GL_TEXTURE_WRAP_T ? 3 : -1;
+    int ok = lz_on && !passthrough && !lz_list && filter_enabled && t && k >= 0;
+    if (ok && tp_g[t] == tp_gen && tp_val[t][k] == v) { st_tp_skipped++; return; }
+    if (mugl_busy) mugl_sync_from(tp_export(&tp_idx, "glTexParameteri"));
+    R(glTexParameteri, PFNtpi)(target, pname, v);
+    if (!t || passthrough || lz_list) return;
+    if (!ok) { tp_g[t] = 0; return; }
+    if (tp_g[t] != tp_gen) { tp_g[t] = tp_gen; tp_val[t][0] = tp_val[t][1] = tp_val[t][2] = tp_val[t][3] = (GLint)0x80000000; }
+    tp_val[t][k] = v;
+}
+void WINAPI mugl_glTexParameterf(GLenum target, GLenum pname, GLfloat v)
+{
+    if (mugl_busy) mugl_sync_from(tp_export(&tp_idxf, "glTexParameterf"));
+    R(glTexParameterf, PFNtpf)(target, pname, v); GLuint t = tp_bound(target); if (t) tp_g[t] = 0;
+}
+void WINAPI mugl_glTexParameteriv(GLenum target, GLenum pname, const GLint *v)
+{
+    if (mugl_busy) mugl_sync_from(tp_export(&tp_idxiv, "glTexParameteriv"));
+    R(glTexParameteriv, PFNtpv)(target, pname, v); GLuint t = tp_bound(target); if (t) tp_g[t] = 0;
+}
+void WINAPI mugl_glTexParameterfv(GLenum target, GLenum pname, const GLfloat *v)
+{
+    if (mugl_busy) mugl_sync_from(tp_export(&tp_idxfv, "glTexParameterfv"));
+    R(glTexParameterfv, PFNtpv)(target, pname, v); GLuint t = tp_bound(target); if (t) tp_g[t] = 0;
+}
+typedef void (WINAPI *PFNnl)(GLuint, GLenum);
+void WINAPI mugl_glNewList(GLuint l, GLenum m) { mugl_sync(); R(glNewList, PFNnl)(l, m); lz_list = 1; tp_gen++; update_busy(); }
+void WINAPI mugl_glEndList(void) { mugl_sync(); R(glEndList, PFN0)(); lz_list = 0; tp_gen++; forget_state(); update_busy(); }
 typedef void (WINAPI *PFN2u)(GLenum, GLenum);
 void WINAPI mugl_glBlendFunc(GLenum sf, GLenum df)
 {
@@ -701,6 +787,7 @@ static int emu_query(GLenum p, GLint *out)
 static void query_prep(GLenum p)
 {
     if (passthrough) return;
+    if (lz_n) lz_apply();   /* glGet* can read enables */
     if (pname_current(p)) { flush_pending(); send_current(); }
     if (pname_client(p)) { flush_pending(); cs_apply(); release_arrays(); }
     update_busy();
@@ -786,7 +873,7 @@ void WINAPI mugl_glInterleavedArrays(GLenum f, GLsizei st, const void *p)
 typedef void (WINAPI *PFNde)(GLenum, GLsizei, GLenum, const void *);
 void WINAPI mugl_glDrawElements(GLenum m, GLsizei n, GLenum t, const void *idx)
 {
-    if (!passthrough) { flush_pending(); cs_apply(); release_arrays(); send_current(); dq_switch(DC_ARRAYS); }
+    if (!passthrough) { flush_pending(); lz_apply(); cs_apply(); release_arrays(); send_current(); dq_switch(DC_ARRAYS); }
     R(glDrawElements, PFNde)(m, n, t, emu_ptr(1, idx));
     forget_gl_current(); update_busy();
 }
@@ -915,9 +1002,9 @@ static void WINAPI mugl_ActiveTexture(GLenum unit)
 }
 
 /* calls that change current values behind our back */
-void WINAPI mugl_glPopAttrib(void) { flush_pending(); TIMED(3, R(glPopAttrib, PFN0)()); cur_known = 0; forget_gl_current(); forget_state(); mmode_known = 0; update_busy(); }
-void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
-void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
+void WINAPI mugl_glPopAttrib(void) { flush_pending(); lz_apply(); TIMED(3, R(glPopAttrib, PFN0)()); tp_gen++; cur_known = 0; forget_gl_current(); forget_state(); mmode_known = 0; update_busy(); }
+void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); tp_gen++; mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
+void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); tp_gen++; mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
 
 /* Live mode switch: C:\mutools\mugl-mode.txt holds one of full|nomerge|nofilter|off (checked ~1/s). */
 static DWORD mode_check; static char mode_cur[64] = "full";
@@ -1146,6 +1233,7 @@ static void hp_set(int mask)
     ts_on_flag = (mask & 16384) != 0; ts_verify = (mask & 32768) != 0;
     qs_on_flag = (mask & 65536) != 0; qs_verify = (mask & 131072) != 0;
     cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;
+    if (lz_on != ((mask & 1073741824) != 0)) { flush_pending(); lz_apply(); lz_on = (mask & 1073741824) != 0; tp_gen++; update_busy(); }
     if (cs_lazy != ((mask & 262144) != 0)) { if (cs_lazy) { flush_pending(); cs_apply(); } cs_forget(); cs_lazy = (mask & 262144) != 0; update_busy(); }
     if (st_file) fprintf(st_file, "terrain sort %s%s, quad batching %s%s\n", ts_on_flag ? "on" : "off", ts_verify ? " (verify)" : "",
                          qs_on_flag ? "on" : "off", qs_verify ? " (verify)" : "");
@@ -1176,7 +1264,8 @@ static void check_hotpatch_file(void)
                           8388608 = native terrain decals, 16777216 = decal verification, 33554432 = specialised mesh-draw append,
                           67108864 = native JPEG decode, 134217728 = JPEG verification, 268435456 = native CRC-32, 536870912 = CRC verification */
     FILE *f = fopen("C:\\mutools\\mugl-hotpatch.txt", "r");
-    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 1073741823; fclose(f); }
+    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 2147483647; fclose(f); }
+    if (!mugl_client) { const char *e = getenv("MUGL_MASK"); if (e) want = atoi(e) & 2147483647; }   /* test programs: mask from the environment */
     if (want != hp_state) { hp_set(want); hp_state = want; }
 }
 

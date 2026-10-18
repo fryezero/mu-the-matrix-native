@@ -15,7 +15,7 @@ typedef void (WINAPI *PFNtsi)(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLe
 typedef void (WINAPI *PFNgt)(GLsizei, GLuint *);
 static PFNcfa sv_cfa; static PFNcfw sv_cfw; static PFNrf sv_rf; static PFNti sv_ti; static PFNtsi sv_tsi; static PFNgt sv_gt;
 typedef struct { long open, read, tex, gen; long long read_b, tex_b, t_open, t_read, t_tex; } IoCnt;
-static IoCnt io_f, io_iv, io_bg;   /* this frame (render thread), this stats interval (render thread), other threads */
+static IoCnt io_f, io_iv, io_bg; static double io_ms(long long t);   /* this frame (render thread), this stats interval (render thread), other threads */
 static char io_names[6][40]; static int io_nnames;
 static long long io_last_swap, io_max_frame; static long io_stalls_iv;
 static volatile long mugl_presented;   /* presented frames, read by stallprof */
@@ -57,6 +57,95 @@ static void WINAPI io_TexSubImage2D(GLenum tg, GLint l, GLint x, GLint y, GLsize
 }
 static void WINAPI io_GenTextures(GLsizei n, GLuint *t) { sv_gt(n, t); io_cur()->gen += n; }
 
+/* v7.6: more timed import slots (same opt-in), for the remaining map-load time: file mappings, handles, sizes and
+   seeks, attributes and searches, virtual memory, waits, critical sections, heap and IsBadReadPtr. Per frame the five
+   most expensive are appended to the stall line ("api: name=n/ms"). */
+enum { AP_CLOSE, AP_CFM, AP_MAP, AP_UNMAP, AP_FSIZE, AP_FSIZEX, AP_SEEK, AP_ATTR, AP_FIND, AP_VALLOC, AP_VFREE, AP_WAIT, AP_ENTER,
+       AP_LEAVE, AP_HALLOC, AP_HFREE, AP_BADREAD, AP_FTYPE, AP_N };
+static const char *const ap_names[AP_N] = {"CloseHandle", "CreateFileMappingA", "MapViewOfFile", "UnmapViewOfFile", "GetFileSize",
+    "GetFileSizeEx", "SetFilePointer", "GetFileAttributesA", "FindFirstFileA", "VirtualAlloc", "VirtualFree", "WaitForSingleObject",
+    "RtlEnterCriticalSection", "RtlLeaveCriticalSection", "RtlAllocateHeap", "HeapFree", "IsBadReadPtr", "GetFileType"};
+static void *ap_real[AP_N]; static long ap_n[AP_N], ap_niv[AP_N]; static long long ap_t[AP_N], ap_tiv[AP_N];
+#define AP_HOOK(i, R, name, P, A) static R WINAPI ap_##name P { \
+    if (GetCurrentThreadId() != render_tid) return ((R (WINAPI *)P)ap_real[i]) A; \
+    long long t0 = io_qpc(); R r = ((R (WINAPI *)P)ap_real[i]) A; ap_t[i] += io_qpc() - t0; ap_n[i]++; return r; }
+#define AP_HOOKV(i, name, P, A) static void WINAPI ap_##name P { \
+    if (GetCurrentThreadId() != render_tid) { ((void (WINAPI *)P)ap_real[i]) A; return; } \
+    long long t0 = io_qpc(); ((void (WINAPI *)P)ap_real[i]) A; ap_t[i] += io_qpc() - t0; ap_n[i]++; }
+AP_HOOK(AP_CLOSE, BOOL, CloseHandle, (HANDLE h), (h))
+AP_HOOK(AP_CFM, HANDLE, CreateFileMappingA, (HANDLE h, LPSECURITY_ATTRIBUTES a, DWORD p, DWORD hi, DWORD lo, LPCSTR n), (h, a, p, hi, lo, n))
+AP_HOOK(AP_MAP, LPVOID, MapViewOfFile, (HANDLE h, DWORD a, DWORD hi, DWORD lo, SIZE_T n), (h, a, hi, lo, n))
+AP_HOOK(AP_UNMAP, BOOL, UnmapViewOfFile, (LPCVOID p), (p))
+AP_HOOK(AP_FSIZE, DWORD, GetFileSize, (HANDLE h, LPDWORD hi), (h, hi))
+AP_HOOK(AP_FSIZEX, BOOL, GetFileSizeEx, (HANDLE h, PLARGE_INTEGER s), (h, s))
+AP_HOOK(AP_SEEK, DWORD, SetFilePointer, (HANDLE h, LONG d, PLONG hi, DWORD m), (h, d, hi, m))
+AP_HOOK(AP_ATTR, DWORD, GetFileAttributesA, (LPCSTR n), (n))
+AP_HOOK(AP_FIND, HANDLE, FindFirstFileA, (LPCSTR n, LPWIN32_FIND_DATAA d), (n, d))
+AP_HOOK(AP_VALLOC, LPVOID, VirtualAlloc, (LPVOID a, SIZE_T n, DWORD t, DWORD p), (a, n, t, p))
+AP_HOOK(AP_VFREE, BOOL, VirtualFree, (LPVOID a, SIZE_T n, DWORD t), (a, n, t))
+AP_HOOK(AP_WAIT, DWORD, WaitForSingleObject, (HANDLE h, DWORD ms), (h, ms))
+/* callers of RtlEnterCriticalSection on the render thread (return addresses), for the stall line */
+#define AP_CH 512
+static uint32_t ap_ca[AP_CH]; static long ap_cn[AP_CH]; static int ap_trace_callers = 1;
+/* First return address on the stack (above our frame) that lies in main.exe game code below the statically linked
+   libraries (0x018b0000) and follows a call instruction: the game function behind a CRT/heap call. */
+static uint32_t ap_game_caller(const uint32_t *sp)
+{
+    for (int i = 0; i < 48; i++) {
+        uint32_t v = sp[i];
+        if (v < 0x00401010 || v >= 0x018b0000) continue;
+        const unsigned char *q = (const unsigned char *)(uintptr_t)v;
+        if (q[-5] == 0xE8 || (q[-6] == 0xFF && q[-5] == 0x15) || (q[-2] == 0xFF && (q[-1] & 0xF8) == 0xD0) ||
+            (q[-3] == 0xFF && (q[-2] & 0xF8) == 0x50)) return v;
+    }
+    return 0;
+}
+static void ap_count_caller(uint32_t ra)
+{
+    uint32_t h = (ra * 2654435761u) >> 23;
+    for (int k = 0; k < 8; k++, h = (h + 1) & (AP_CH - 1)) if (!ap_ca[h] || ap_ca[h] == ra) { ap_ca[h] = ra; ap_cn[h]++; break; }
+}
+static void WINAPI ap_RtlEnterCriticalSection(void *c)
+{
+    if (GetCurrentThreadId() != render_tid) { ((void (WINAPI *)(void *))ap_real[AP_ENTER])(c); return; }
+    if (ap_trace_callers) ap_count_caller(ap_game_caller((const uint32_t *)__builtin_frame_address(0) + 2));
+    long long t0 = io_qpc(); ((void (WINAPI *)(void *))ap_real[AP_ENTER])(c); ap_t[AP_ENTER] += io_qpc() - t0; ap_n[AP_ENTER]++;
+}
+static void ap_callers(FILE *f)
+{
+    for (int k = 0; k < 10; k++) {
+        int b = -1; for (int i = 0; i < AP_CH; i++) if (ap_cn[i] && (b < 0 || ap_cn[i] > ap_cn[b])) b = i;
+        if (b < 0) break;
+        fprintf(f, " %08x=%ld", ap_ca[b], ap_cn[b]); ap_cn[b] = -ap_cn[b];
+    }
+    memset(ap_ca, 0, sizeof ap_ca); memset(ap_cn, 0, sizeof ap_cn);
+}
+AP_HOOKV(AP_LEAVE, RtlLeaveCriticalSection, (void *c), (c))
+static LPVOID WINAPI ap_RtlAllocateHeap(HANDLE h, ULONG f, SIZE_T n)
+{
+    if (GetCurrentThreadId() != render_tid) return ((LPVOID (WINAPI *)(HANDLE, ULONG, SIZE_T))ap_real[AP_HALLOC])(h, f, n);
+    if (ap_trace_callers) ap_count_caller(ap_game_caller((const uint32_t *)__builtin_frame_address(0) + 2) | 1);   /* odd: heap */
+    long long t0 = io_qpc(); LPVOID r = ((LPVOID (WINAPI *)(HANDLE, ULONG, SIZE_T))ap_real[AP_HALLOC])(h, f, n);
+    ap_t[AP_HALLOC] += io_qpc() - t0; ap_n[AP_HALLOC]++; return r;
+}
+AP_HOOK(AP_HFREE, BOOL, HeapFree, (HANDLE h, DWORD f, LPVOID p), (h, f, p))
+AP_HOOK(AP_BADREAD, BOOL, IsBadReadPtr, (const void *p, UINT_PTR n), (p, n))
+AP_HOOK(AP_FTYPE, DWORD, GetFileType, (HANDLE h), (h))
+static void *const ap_hooks[AP_N] = {(void *)ap_CloseHandle, (void *)ap_CreateFileMappingA, (void *)ap_MapViewOfFile, (void *)ap_UnmapViewOfFile,
+    (void *)ap_GetFileSize, (void *)ap_GetFileSizeEx, (void *)ap_SetFilePointer, (void *)ap_GetFileAttributesA, (void *)ap_FindFirstFileA,
+    (void *)ap_VirtualAlloc, (void *)ap_VirtualFree, (void *)ap_WaitForSingleObject, (void *)ap_RtlEnterCriticalSection,
+    (void *)ap_RtlLeaveCriticalSection, (void *)ap_RtlAllocateHeap, (void *)ap_HeapFree, (void *)ap_IsBadReadPtr, (void *)ap_GetFileType};
+static void ap_print(FILE *f, const long *n, const long long *t)
+{
+    int used[AP_N] = {0};
+    for (int k = 0; k < 5; k++) {
+        int b = -1;
+        for (int i = 0; i < AP_N; i++) if (!used[i] && n[i] && (b < 0 || t[i] > t[b])) b = i;
+        if (b < 0) break;
+        used[b] = 1; fprintf(f, " %s=%ld/%.1fms", ap_names[b], n[b], io_ms(t[b]));
+    }
+}
+
 /* Point every main.exe import slot holding one of fns[] at the matching hook; returns slots changed. */
 static int iat_hook(void *const *fns, void *const *hooks, void **saved, int nf)
 {
@@ -90,6 +179,19 @@ static void io_install(HMODULE self)
     int n = iat_hook(fns, hooks, saved, 9);
     sv_cfa = (PFNcfa)(saved[0] ? saved[0] : saved[1]); sv_cfw = (PFNcfw)(saved[2] ? saved[2] : saved[3]);
     sv_rf = (PFNrf)(saved[4] ? saved[4] : saved[5]); sv_ti = (PFNti)saved[6]; sv_tsi = (PFNtsi)saved[7]; sv_gt = (PFNgt)saved[8];
+    {   /* v7.6 timed slots: the export of kernel32, kernelbase or ntdll that main.exe imports */
+        HMODULE nt = GetModuleHandleA("ntdll.dll");
+        int na = 0;
+        for (int i = 0; i < AP_N; i++) {
+            void *cand[3] = { (void *)GetProcAddress(k32, ap_names[i]), (void *)GetProcAddress(kb, ap_names[i]), (void *)GetProcAddress(nt, ap_names[i]) };
+            for (int c = 0; c < 3; c++) {
+                if (!cand[c]) continue;
+                void *saved_one = NULL; int got = iat_hook(&cand[c], &ap_hooks[i], &saved_one, 1);
+                if (got) { ap_real[i] = saved_one; na += got; break; }
+            }
+        }
+        fprintf(st_file, "api hooks: %d slots\n", na);
+    }
     fprintf(st_file, "io hooks: %d slots (CreateFileA %d W %d ReadFile %d TexImage2D %d TexSubImage2D %d GenTextures %d)\n", n,
             sv_cfa != NULL, sv_cfw != NULL, sv_rf != NULL, sv_ti != NULL, sv_tsi != NULL, sv_gt != NULL);
     fflush(st_file);
@@ -121,12 +223,14 @@ static void io_frame_end(void)
                     u, total_frames, io_ms(dt), MUGL_PRIVATE_TABLES && mugl_client ? *(volatile int *)0x01d1df70 : -1, io_f.open, io_ms(io_f.t_open), io_f.read,
                     io_f.read_b / 1024, io_ms(io_f.t_read), io_f.tex, io_f.tex_b / 1024, io_ms(io_f.t_tex), io_f.gen);
             for (int i = 0; i < io_nnames; i++) fprintf(st_file, " %s", io_names[i]);
+            if (io_hooked) { fprintf(st_file, " | api:"); ap_print(st_file, ap_n, ap_t); fprintf(st_file, " | game callers (odd = heap):"); ap_callers(st_file); }
             fprintf(st_file, "\n"); fflush(st_file);
             io_stalls_iv++;
         }
     }
     io_last_swap = now;
     io_add(&io_iv, &io_f); memset(&io_f, 0, sizeof io_f); io_nnames = 0;
+    for (int i = 0; i < AP_N; i++) { ap_niv[i] += ap_n[i]; ap_tiv[i] += ap_t[i]; ap_n[i] = 0; ap_t[i] = 0; }
 }
 /* Called from stats_tick: one totals line per interval. */
 static void io_stats(FILE *f)
@@ -135,6 +239,8 @@ static void io_stats(FILE *f)
     fprintf(f, "io: max_frame=%.1fms stalls=%ld open=%ld(%.1fms) read=%ld/%lldKB(%.1fms) tex=%ld/%lldKB(%.1fms) gen=%ld | bg open=%ld read=%ld/%lldKB tex=%ld\n",
             io_ms(io_max_frame), io_stalls_iv, io_iv.open, io_ms(io_iv.t_open), io_iv.read, io_iv.read_b / 1024, io_ms(io_iv.t_read),
             io_iv.tex, io_iv.tex_b / 1024, io_ms(io_iv.t_tex), io_iv.gen, io_bg.open, io_bg.read, io_bg.read_b / 1024, io_bg.tex);
+    fprintf(f, "  api:"); ap_print(f, ap_niv, ap_tiv); fprintf(f, " | game callers (odd = heap):"); ap_callers(f); fprintf(f, "\n");
+    memset(ap_niv, 0, sizeof ap_niv); memset(ap_tiv, 0, sizeof ap_tiv);
     memset(&io_iv, 0, sizeof io_iv); memset(&io_bg, 0, sizeof io_bg); io_max_frame = 0; io_stalls_iv = 0;
 }
 

@@ -131,8 +131,8 @@ class MeshDrawPublicationTests(unittest.TestCase):
         mask = int(re.search(r'want = v & (\d+);',self.mugl).group(1))
         readme = (SOURCE/'README.md').read_text()
         rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
-        self.assertEqual(rows,{1<<k for k in range(30)})
-        self.assertEqual(mask,(1<<30)-1)
+        self.assertEqual(rows,{1<<k for k in range(31)})
+        self.assertEqual(mask,(1<<31)-1)
         # v7.6: v7.5's 44916143 plus native JPEG decode 67108864 and native CRC-32 268435456
         self.assertEqual(default,380460463)
         self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19,21,23,25,26,28)))
@@ -502,3 +502,27 @@ class V76Tests(unittest.TestCase):
         self.assertIn('if (x != cr_base[i]) cr_linear = 0;',self.crc)
         self.assertIn('if (n < 64 || !cr_prepare(t)) return cr_bytes_loop(t, c, p, n);',self.crc)
         self.assertIn('return pcrc;',self.crc)
+
+    def test_deferred_enables_are_sent_before_every_observer(self):
+        m = self.mugl
+        self.assertIn('if (lz_on != ((mask & 1073741824) != 0))',m)
+        self.assertIn('if (!lz_on || passthrough || lz_list || !s || !*s || unit_cap(cap) || !filter_enabled) return 0;',m)
+        self.assertIn('flush_pending();   /* the vertices so far were specified under the old state */',m)
+        self.assertIn('if (lz_n && !passthrough) lz_apply();   /* vertices from here on are drawn with the deferred enables */',m)
+        self.assertIn('else if (lz_n) lz_apply();',m)   # every export except state calls (-1) and matrix calls
+        self.assertIn('if (lz_n) lz_apply();   /* glGet* can read enables */',m)
+        self.assertIn('void WINAPI mugl_glPopAttrib(void) { flush_pending(); lz_apply();',m)
+        self.assertIn('flush_pending();\n    lz_apply();\n    cs_apply();',m)   # mugl_sync
+        self.assertIn('|| cs_dirty || lz_n ||',m)   # pending records make the stubs synchronize
+        self.assertIn("'glNewList':8,'glEndList':0",(SOURCE/'gen_exports.py').read_text())
+        self.assertIn('lz_list = 1;',m)
+
+    def test_texture_parameter_filter_forgets_on_every_other_writer(self):
+        m = self.mugl
+        self.assertIn('if (ok && tp_g[t] == tp_gen && tp_val[t][k] == v) { st_tp_skipped++; return; }',m)
+        for writer in ('mugl_glTexParameterf','mugl_glTexParameteriv','mugl_glTexParameterfv'):
+            body = m[m.index('void WINAPI '+writer):]
+            self.assertIn('if (t) tp_g[t] = 0;',body[:body.index('\n}\n')])
+        self.assertIn('memset(tex_ok, 0, sizeof tex_ok); tp_gen++;',m)   # texture deletion
+        self.assertIn('TIMED(3, R(glPopAttrib, PFN0)()); tp_gen++;',m)
+        self.assertIn('glcaps.c',(ROOT/'mac-play/diagnostics/Makefile').read_text())

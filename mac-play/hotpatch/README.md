@@ -87,7 +87,7 @@ thread. Never use MuMatrix32 for these tests.
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
 from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 44916143 (v7.5; v7.4 used 875951, v7.3 23983,
-v7.1 and v7.2 7599, v7.0 15). The file is read as a 26-bit mask; v7.4 reads 21 bits, v7.3 16 bits and v7.1/v7.2 14 bits
+v7.1 and v7.2 7599, v7.0 15). The file is read as a 31-bit mask (v7.6; v7.5 read 26 bits); v7.4 reads 21 bits, v7.3 16 bits and v7.1/v7.2 14 bits
 of the same value, so 44916143 gives each older build its own default. Only in `main.exe` are the code patches (bits
 1-512, 8192, 2097152-33554432) and the
 frame pacing (1024) applied; any other process that loads the private build (a test program) gets the GL-level bits only.
@@ -128,6 +128,7 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 134217728 | With 67108864: the client's own decoder runs as well and every row is compared (diagnostic) |
 | 268435456 | Native CRC-32: the table-driven CRC routine `0x00aa2c62` computed eight bytes at a time from the client's own table (`crc.c`) |
 | 536870912 | With 268435456: also run the original routine and compare (diagnostic) |
+| 1073741824 | Deferred enables and redundant texture parameters: glEnable/glDisable of caps that are not per texture unit are recorded and sent only before something can observe them (a change back cancels); repeated glTexParameteri filter/wrap values on the bound GL_TEXTURE_2D object are dropped |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,
