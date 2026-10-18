@@ -1025,6 +1025,20 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         glDisable(GL_BLEND);
         glDisable(GL_ALPHA_TEST);
     }
+    else if (a->has_objects) {   /* --no-particles: the NATIVE-OBJECTS-002 stand-in billboards of the object fires */
+        static mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
+        float eye[3], target[3];
+        effect_camera(a, eye, target);
+        for (int32_t b = 0; b < 2; ++b) {
+            mu_fx_draw_state state;
+            uint32_t n = mu_objects_particle_quads(&a->objects, b, eye, target, quads, 4 * MU_OBJECT_PARTICLES, &state);
+            if (n)
+                g_effect(a, quads, n, &state, b == 0 ? &a->objects.rt.fire : &a->objects.rt.smoke, NULL);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+    }
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
         effect_camera(a, eye, target);
