@@ -9,14 +9,20 @@ instructions in Unicorn. The native module `native/core/mu_objects` loads and dr
 The installed `.obj` files still do not decode. The client's own loader instructions, run on them, return a map
 number that OpenWorld rejects for all 84 files. Every in-scope explanation was checked and ruled out (section 3). The
 transformation that makes these files readable therefore happens outside the captured `main.exe` game code, at the
-protection boundary. Per scope it was not analysed. Object *placement* is therefore not drawn from installed data.
-The renders show the object models of a world in a labelled demo layout instead.
+protection boundary. Per scope it was not analysed.
+
+The real placements were then read from a running client (section 6). With the owner's authorization, three short
+sessions of a client this project started read the object list CreateObject had built from plain game memory. The
+reads are read-only and use no hook. That gives the placements of World1 (Lorencia), World94 (character select),
+World95 (login scene) and World142 (Tormenta Island), and the character-select marker 1. The native tools draw them
+from local plaintext files.
 
 Labels:
 
 - **Verified**: actual client instructions ran in Unicorn on the pinned captures and matched the authored code.
 - **Static**: a reading of decoded instructions that was not executed.
 - **Boundary**: the code path leaves what this project may analyse.
+- **Live (single run)**: read from the memory of a running client this project started, not instruction-compared.
 
 ## Identity
 
@@ -219,6 +225,108 @@ Tests:
   112/43 models.
 - `tests/test_objects_private.py` runs the Unicorn validator.
 
+## 6. Placements read from the running client (live, single run)
+
+**Authorization and rules.** The owner explicitly authorized a live read. It followed `GAME-LOCK.md`:
+
+- the lock was held from 23:20 to 23:28 on 2026-10-17;
+- three client sessions in the play bottle (MuMatrix32, same pinned `main.exe`, same `.obj` files as MuMatrixKit),
+  each under 3 minutes and quit right after the read;
+- only clients this project started were read;
+- no character was moved: FryeZEN2 and Nighty only entered the world and quit; Nighty was the last character
+  selected.
+
+`IGC.dll`, `RGS.dll`, the packer and anti-cheat code were not analysed, patched or hooked.
+
+**Method.** `mac-play/diagnostics/objread.c` is a macOS host tool. It is ad-hoc signed with the debugger
+entitlement and uses `task_for_pid` and `mach_vm_read_overwrite`. It never writes and never suspends. It reads the
+world index `[0x01cf15fc]`, the `.obj` count global `[0x0bdb5888]` and the 256 sector lists at `0x0bdb61f0`. In each
+list the head is at `+4` and objects are linked through `+0x354`, as CreateObject builds them (section 1). For each
+object it copies the 0x3d8 bytes. `scripts/live_objects_to_plain.py` maps the CreateObject fields back to a record:
+
+- type `+0x5c`;
+- position `+0x158` (equal to the start position `+0x110` for every object but the moved marker);
+- angle `+0x164`, scale `+0xa0`;
+- flags `+5..+7`, light `+0xec`, values `+0xe4`/`+0xe8`.
+
+It writes a plaintext in the loader's layout, choosing the record version the installed file's length implies for
+the count.
+
+| Snapshot (when) | World | Count global | Objects in the sectors | Installed file length = 4 + count × size |
+|---|---|---:|---:|---|
+| login screen | 94 (World95) | 47 | 47 | 1,414 = 4 + 47 × 30 (version 0) |
+| character select | 93 (World94) | 237 | 237 | 7,114 = 4 + 237 × 30 (version 0) |
+| FryeZEN2 in Lorencia, 145,134 | 0 (World1) | 2,833 | 2,833 | 84,994 = 4 + 2,833 × 30 (version 0) |
+| Nighty on Tormenta Island, 135,10 | 141 (World142) | 8,061 | 8,061 | 362,749 = 4 + 8,061 × 45 (version 3) |
+
+In every world the number of linked objects equals the file's count, and the count fits the installed file's
+length for exactly one version. That fits the reading that each record became exactly one object. It also suggests
+that the transformation preserves the record layout once undone.
+
+**Limits of the reconstruction.**
+
+- Records come out in sector order, not file order.
+- Fields the version does not carry are left out.
+- Two records each in World94 and World95 hold NaN angles and scale at position (0, 0) (types 0 and 63).
+  CreateObject accepted them, so they come from the file.
+- A perf agent briefly swapped `opengl32.dll` in the play bottle during the first session (LOCK-INCIDENT-perf009).
+  That affects drawing only; the counts above match the installed files, so the reads were not repeated.
+
+**`+0x68 = -2`.** Whole types carry this value at runtime:
+
+- Lorencia: PoseBox01 (133);
+- World94: 14, 15, 39, 40, 54..56;
+- World95: 38, 54;
+- World142: 27 types (2,191 objects).
+
+None of these files is version 4, so the value comes from the worlds' code, not from the hidden byte. The
+character-select handler sets it for types 0x26..0x28, 0x36..0x39 (NATIVE-CHARSEL-001). The converter writes those
+types to a sidecar `EncTerrain<n>.hidden`, and the native drawer skips them. This is a live reading. With them
+skipped, the black slabs of Lorencia's invisible PoseBox objects and the stray cubes in the character-select scene
+disappear, and the renders match the client's screenshots.
+
+**Character-select markers (live).** `EncTerrain94.obj` holds only two marker objects:
+
+- type 14 (marker 1) at **(13629.3008, 12338.5654, 164.4998)** (bits `4654f534 4640ca43 43247ff6`);
+- type 15 (marker 2) at (−136.21, 17173.0, −1044.95), outside the map.
+
+Types 13, 16 and 17 are absent. The earlier window-capture fit (13617, 12339, 169.5) was 12.3 units off in x. The
+z difference is not visible, because the render forces 169.5. `mu_charsel_default_marker1` now holds the read
+value. `mu-charsel --objects-dir DIR` takes the markers of a local `EncTerrain94.plain`.
+
+**Native use.** All of these take local plaintexts (`EncTerrain<n>.plain` plus `.hidden` in one directory):
+
+- `mu-world --objects-dir DIR` (objects within the visible box grown by 4 tiles);
+- `mu-charsel --objects-dir DIR` (objects and markers);
+- `mu-terrain`/`mu-viewer --terrain --objects FILE`.
+
+```sh
+make -C mac-play/diagnostics objread                       # macOS host tool
+mac-play/diagnostics/build/objread <main.exe pid> snap.bin # client you started, under the lock
+scripts/live_objects_to_plain.py snap.bin --installed "$MU_GAME_ROOT/Data/World1/EncTerrain1.obj" \
+    --out LOCAL/EncTerrain1.plain                           # decoded game data: keep local
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 0 --tile 145,134 --objects-dir LOCAL
+native/build/mu-charsel --game-root "$MU_GAME_ROOT" --objects-dir LOCAL
+```
+
+Local renders (not committed), in `~/Documents/mu-mac-tools/native/renders/objects/`:
+
+- `lorencia-live-overview-gl.png`, `lorencia-live-town-{gl,soft}.png`;
+- `mu-world-lorencia-145-134-live-objects-gl.png` (compare `live-reference/lorencia-145-134-client.png`);
+- `charsel-live-objects-soft.png` (compare `live-reference/charsel-client.png`);
+- `mu-world-world142-135-10-live-objects-gl.png`, `world95-login-live-gl.png`.
+
+Lorencia's town has 2,780 of 2,833 objects drawn: the 53 PoseBox objects are skipped. Headless GL and software
+differ on 2.7 % of pixels by more than 8/255.
+
+Tests:
+
+- portable: `native/tests/test_native_objects.py` `LiveSnapshotTests` builds synthetic snapshots and checks the
+  converter, the version choice, the hidden sidecar, `mu-walk --objects-dir`, and markers and objects in
+  `mu-charsel`;
+- private: `LiveReadPrivateTests` (`MU_OBJECTS_PLAIN_DIR`) checks the local plaintexts against the installed
+  files' lengths and model table.
+
 ## Reproduce
 
 ```sh
@@ -232,13 +340,11 @@ The validator's defaults read `evidence/x86-text-capture-09`, `evidence/image-da
 
 ## Unresolved and next steps
 
-- **Placements.** The installed `.obj` bytes become readable only past the boundary. An in-scope way to get them
-  would be a bounded live read of the decoded plaintext, or of the object list, from a client the project starts
-  itself. That needs the owner's approval: the live-test rules and the game lock. The read could happen right after
-  `0x016d9ac5`'s second v12 call (`0x016d9bbc`, buffer `[ebp-0xc]`, length `[ebp-0x18]`), or from the sector table
-  `0x0bdb61f0`. The plaintext would load through `--objects PLAIN_FILE` unchanged. It must stay local.
-- Character-select markers 13..17 come from `EncTerrain94.obj` and stay undecoded; the native default for
-  marker 1 remains the live fit of the character-select finding.
+- **Placements.** Read live for World1, World94, World95 and World142 (section 6). Other worlds need a character
+  standing in them; the account's characters were not moved to get them. The installed bytes themselves still
+  decode only past the boundary.
+- Object lighting (the renders use the terrain primary light), animation and the client's sector visibility are
+  not ported, nor is the exact meaning of `+0x68 = -2`; skipping those types is a live reading.
 - RenderObjects (sector walk, object light, animation, the meaning of `+5..+7`, `+0x68`, `+0xe4`/`+0xe8`), the
   pass's extra models ≥ 300 and fixed CreateObject calls, the region importer `0x00e22826` and the custom-map
   folder table are not ported.

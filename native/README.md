@@ -125,7 +125,9 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/loren
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
 (`make -C native charsel`, SDL2 + OpenGL) render scene 5 (`core/mu_charsel*`, [finding](../docs/research/client-character-select.md)):
 World94 under its camera record, up to five synthetic characters (`--list FILE`), the selected one on slot marker 1
-with the client's highlight. Static map objects are not drawn; the marker position is a live fit (`--marker X,Y`).
+with the client's highlight. Marker 1 defaults to the position read from the running client; `--objects-dir DIR`
+draws World94's static objects and takes the markers from a local decoded `EncTerrain94.plain`
+([objects finding](../docs/research/client-objects.md), section 6).
 
 ```sh
 native/build/mu-charsel --game-root "$MU_GAME_ROOT" --frames 50 --every 10 --cycle 10 --out-dir /tmp/charsel
@@ -150,7 +152,9 @@ drawn: the installed `EncTerrain*.obj` files do not decode with the client's loa
 `mu-terrain objects ROOT --world N` reports the object file (the installed files are refused by OpenWorld's map
 check after the client's decode, see [the finding](../docs/research/client-objects.md)), its records and the type →
 model table. `mu-terrain render … --objects installed|gallery|PLAIN_FILE` and `mu-viewer --terrain … --objects …`
-(B toggles) draw objects; `gallery` is a labelled demo layout of every model the world loads
+(B toggles) draw objects, and `mu-world --objects-dir DIR` draws them in the walk-around session from local
+decoded `EncTerrain<n>.plain` files (made by `mac-play/diagnostics/objread` and `scripts/live_objects_to_plain.py`
+from a client you started, under the game lock; never committed); `gallery` is a labelled demo layout of every model the world loads
 (`--object-tile X,Y --object-columns N --object-spacing U`). `core/mu_objects.h` is the API for other sessions.
 
 ## Audio (NATIVE-AUDIO-001)

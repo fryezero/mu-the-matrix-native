@@ -16,4 +16,9 @@ build/glvbench.exe: glvbench.c | build
 	$(MINGW_CC) $(CFLAGS) $< -o $@ -lopengl32 -lgdi32
 build/eipprof.exe: eipprof.c | build
 	$(MINGW_CC) $(CFLAGS) $< -o $@
-.PHONY: all
+# macOS host tool (NATIVE-OBJECTS-001 live read): clang, ad-hoc signed with the debugger entitlement.
+objread: build/objread
+build/objread: objread.c debugger-entitlement.plist | build
+	clang -O2 -Wall $< -o $@
+	codesign -s - -f --entitlements debugger-entitlement.plist $@
+.PHONY: all objread

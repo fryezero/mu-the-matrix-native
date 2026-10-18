@@ -43,7 +43,9 @@ not exist yet.
   actual instructions (1,002 synthetic files, 60,000 world/type pairs). Run on the installed files, the client's
   own loader instructions make OpenWorld refuse all 84: the transformation that makes them readable lies past the
   protection boundary. `mu-terrain`/`mu-viewer --terrain --objects` draw objects from a decoded plaintext or a
-  labelled model gallery. [Evidence](research/client-objects.md).
+  labelled model gallery. A live read of a running client's object list (owner-authorized, single run) gave the
+  real placements of Lorencia, World94, World95 and World142 and character-select marker 1; `mu-world` and
+  `mu-charsel` draw them from local files with `--objects-dir`. [Evidence](research/client-objects.md).
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected by the strict reader and 74 other/table envelopes are unsupported.

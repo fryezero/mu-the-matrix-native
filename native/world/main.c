@@ -57,6 +57,7 @@
 #endif
 
 #include "../core/mu_character.h"
+#include "../core/mu_objects.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_scene.h"
@@ -105,6 +106,11 @@ typedef struct app {
     int has_sound;
     mu_world_actors actors;
     int has_actors;
+    /* NATIVE-OBJECTS-001: static objects from local decoded files (--objects-dir) */
+    const char *objects_dir;
+    mu_objects objects;
+    int has_objects;
+    long objects_drawn;
     mu_terrain_frustum frustum;
     mu_terrain_tile_stats tile_stats;
     uint32_t effects_visible;
@@ -113,6 +119,7 @@ typedef struct app {
     uint64_t audio_frames;         /* stereo frames produced since start */
     uint32_t audio_start;          /* clock (ms) at which audio started */
 #ifndef MU_WORLD_NO_GL
+    mu_gl_backend object_gl[MU_OBJECT_TYPES];
     mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
     const mu_image *fx_images[64];
     GLuint fx_names[64];
@@ -186,6 +193,15 @@ static int load(app *a)
         }
         a->has_actors = 1;
     }
+    if (a->objects_dir) {
+        mu_objects_init(&a->objects, a->world);
+        if (mu_objects_load_dir(&a->objects, a->objects_dir, error, sizeof error) == MU_OBJECTS_FILE_OK) {
+            mu_objects_load_models(&a->objects, a->root, 0);
+            a->has_objects = 1;
+        } else {
+            fprintf(stderr, "objects: %s (drawing none)\n", error);
+        }
+    }
     a->walk.step_hook = on_step;
     a->walk.step_context = a;
     return 0;
@@ -258,6 +274,8 @@ static void unload(app *a)
         mu_world_free(a->map);
     if (a->has_actors)
         mu_world_actors_free(&a->actors);
+    if (a->has_objects)
+        mu_objects_free(&a->objects);
     if (a->has_sound)
         mu_world_sound_close(&a->sound);
     free(a->wav);
@@ -505,6 +523,11 @@ static void gl_setup(app *a)
         if (a->has_character && item->loaded)
             mu_gl_upload(&a->items[i], &item->textures, 0);
     }
+    for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t) {
+        memset(&a->object_gl[t], 0, sizeof a->object_gl[t]);
+        if (a->has_objects && a->objects.models[t] && a->objects.models[t]->loaded)
+            mu_gl_upload(&a->object_gl[t], &a->objects.models[t]->textures, 0);
+    }
     for (int32_t i = 0; i < MU_WORLD_ACTORS_MAX; ++i)
         memset(&a->actor_gl[i], 0, sizeof a->actor_gl[i]);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
@@ -526,6 +549,9 @@ static void gl_teardown(app *a)
         mu_gl_release(&a->items[i]);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
         mu_gl_release(&a->actor_gl[i]);
+    for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t)
+        if (a->object_gl[t].textures)
+            mu_gl_release(&a->object_gl[t]);
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
@@ -621,6 +647,21 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     glDepthMask(GL_TRUE);
     mu_draw_options options;
     mu_draw_default_options(&options);
+    a->objects_drawn = 0;
+    for (int32_t i = 0; a->has_objects && i < a->objects.count; ++i) {
+        const mu_terrain_frustum *f = &a->frustum;
+        if (!mu_objects_in_box(&a->objects, i, f->x_min - 4, f->y_min - 4, f->x_max + 4, f->y_max + 4))
+            continue;
+        mu_object_model *m = mu_objects_place(&a->objects, i, a->map);
+        if (!m)
+            continue;
+        mu_render_backend backend;
+        mu_gl_backend_bind(&a->object_gl[m->type], &backend);
+        options.textures = &m->textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+            ++a->objects_drawn;
+    }
     if (a->has_character)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
             const mu_character_item *item = &a->ch.items[draw_order[n]];
@@ -676,6 +717,9 @@ static long draw_soft(app *a, mu_raster *raster)
     else
         mu_world_draw_raster_view(a->map, raster, &a->frustum, 6, 0, &stats);
     a->tile_stats = stats.tiles;
+    if (a->has_objects)   /* objects in the visible box grown by 4 tiles (a viewer cull) */
+        a->objects_drawn = mu_objects_draw_raster(&a->objects, a->map, raster, a->frustum.x_min - 4,
+                                                  a->frustum.y_min - 4, a->frustum.x_max + 4, a->frustum.y_max + 4);
     mu_render_backend backend;
     mu_raster_backend(raster, &backend);
     mu_draw_options options;
@@ -767,6 +811,9 @@ static void report_summary(const app *a, const char *renderer)
             for (int32_t i = 0; i < s->log_count; ++i)
                 printf("{\"sound_log\": \"%s\"}\n", s->log[i]);
     }
+    if (a->has_objects)
+        printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld}\n",
+               a->objects.count, a->objects.models_loaded, a->objects.models_missing, a->objects_drawn);
     if (a->has_actors) {
         const mu_world_actors *s = &a->actors;
         printf("{\"actors\": %d, \"actor_steps\": %u, \"actor_moves\": %u, \"actor_arrivals\": %u,"
@@ -1092,7 +1139,8 @@ static int usage(void)
                     "                [--headless --frames N --out-dir DIR --backend gl|soft --every K --pause P]\n"
                     "                [--player Player.bmd] [--quiet]\n"
                     "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
-                    "                [--placement DEMO.txt] [--legacy-box]\n");
+                    "                [--placement DEMO.txt] [--legacy-box]\n"
+                    "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n");
     return 2;
 }
 
@@ -1143,6 +1191,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--wav")) a.wav_path = v;
         else if (!strcmp(k, "--audio-rate")) a.audio_rate = atoi(v);
         else if (!strcmp(k, "--placement")) a.placement = v;
+        else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
