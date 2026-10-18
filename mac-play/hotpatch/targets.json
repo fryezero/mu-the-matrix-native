@@ -154,6 +154,36 @@
       "address": 23911775,
       "length": 9,
       "sha256": "5193bb53bbffe81f6e7cb69b4766400b427b720f1db75602af2d27a8c6e60abc"
+    },
+    {
+      "name": "jp_rh_orig",
+      "address": 25907360,
+      "length": 7,
+      "sha256": "4a69b87d925e9bfe523b9e7c9d6da14beac2e6f1ec5441c8775897ab49eb1b45"
+    },
+    {
+      "name": "jp_sd_orig",
+      "address": 25908352,
+      "length": 7,
+      "sha256": "4a69b87d925e9bfe523b9e7c9d6da14beac2e6f1ec5441c8775897ab49eb1b45"
+    },
+    {
+      "name": "jp_rs_orig",
+      "address": 25908192,
+      "length": 7,
+      "sha256": "4a69b87d925e9bfe523b9e7c9d6da14beac2e6f1ec5441c8775897ab49eb1b45"
+    },
+    {
+      "name": "jp_fd_orig",
+      "address": 25907024,
+      "length": 7,
+      "sha256": "4a69b87d925e9bfe523b9e7c9d6da14beac2e6f1ec5441c8775897ab49eb1b45"
+    },
+    {
+      "name": "jp_dt_orig",
+      "address": 25907008,
+      "length": 5,
+      "sha256": "acb441a913fdbc3e4eccfbbda9b456d4f0dd224840684c1947ce17e3fb9d48be"
     }
   ]
 }

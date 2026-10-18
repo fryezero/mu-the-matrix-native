@@ -200,7 +200,8 @@ def main():
     if args.synthetic:
         if args.dump or args.calls or args.disassembly:
             p.error('--synthetic cannot be combined with private inputs')
-        tables(args.out,[],[],[],bytes(16),False)
+        sites = json.loads((HERE/'targets.json').read_text())['meshdraw_sites']
+        tables(args.out,[],[],[],bytes(16),False,[(s['name'],bytes(s['length'])) for s in sites])
         return
     if args.dump is None or bool(args.calls) != bool(args.disassembly):
         p.error('Supply --dump; optional --calls and --disassembly must be paired')

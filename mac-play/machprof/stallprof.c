@@ -10,7 +10,8 @@
    "STALL <unix_ms_end> <frame_ms> samples=<n> x86=<n>", then "  callee <addr> <n>" (target of the call made at the
    first return address; 0 = indirect call), "  leaf <addr> <n> (-> callee)" (first return address, i.e. the
    caller of the running code), "  incl <addr> <n>" (any depth) and "  native <n> <region>". Output goes to stdout.
-   Wall-clock times use gettimeofday so they can be matched with mugl's stall lines (same host clock). */
+   NPC=1 (MAC-PERF-010) adds "  npc <region> +0x<offset> <n>": the 16 most frequent 256-byte offset bins of the native pcs
+   inside their regions. Wall-clock times use gettimeofday so they can be matched with mugl's stall lines (same host clock). */
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <stdio.h>
@@ -60,6 +61,7 @@ static void report(int pid, double end_ms, double frame_ms)
 {
     static E leaf[4096], incl[8192], tgt[4096]; int nl = 0, ni = 0, nt = 0, x86 = 0;
     static char *rn[256]; static unsigned rc[256]; int nr = 0;
+    static E nb[4096]; int nn = 0; static char *nbn[4096];
     for (int k = 0; k < ns; k++) {
         S *s = &smp[k];
         if (!s->n) {
@@ -69,6 +71,13 @@ static void report(int pid, double end_ms, double frame_ms)
             int j; for (j = 0; j < nr; j++) if (!strcmp(rn[j], b)) break;
             if (j == nr && nr < 256) { rn[nr] = strdup(b); rc[nr++] = 0; }
             if (j < nr) rc[j]++;
+            if (getenv("NPC") && j < nr) {   /* native pc histogram: region index in the top byte, 256-byte bins of the offset */
+                struct proc_regioninfo ri;
+                unsigned off = 0;
+                if (proc_pidinfo(pid, PROC_PIDREGIONINFO, s->npc, &ri, sizeof ri) == sizeof ri) off = (unsigned)(s->npc - ri.pri_address);
+                unsigned key = ((unsigned)j << 24) | ((off >> 8) & 0xffffff);
+                int before = nn; bump(nb, &nn, 4096, key); if (nn > before) nbn[nn - 1] = rn[j];
+            }
             continue;
         }
         x86++;
@@ -84,6 +93,10 @@ static void report(int pid, double end_ms, double frame_ms)
     for (int i = 0; i < nt && i < 12; i++) printf("  callee %08x %u\n", tgt[i].a, tgt[i].n);
     for (int i = 0; i < nl && i < 12; i++) printf("  leaf %08x %u (-> %08x)\n", leaf[i].a, leaf[i].n, call_target(leaf[i].a));
     for (int i = 0; i < ni && i < 30; i++) printf("  incl %08x %u\n", incl[i].a, incl[i].n);
+    if (nn) {
+        qsort(nb, nn, sizeof(E), cmp);
+        for (int i = 0; i < nn && i < 16; i++) printf("  npc %s +0x%x %u\n", rn[nb[i].a >> 24], (nb[i].a & 0xffffff) << 8, nb[i].n);
+    }
     for (int j = 0; j < nr; j++) { printf("  native %u %s\n", rc[j], rn[j]); free(rn[j]); }
     fflush(stdout);
 }

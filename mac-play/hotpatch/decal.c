@@ -52,6 +52,12 @@ static td_orig_fn td_orig;
 static long td_calls, td_tiles, td_checked, td_bad;
 static long long td_tot_calls, td_tot_tiles, td_tot_checked, td_tot_bad, td_tot_direct;
 
+/* v7.6: the client's VectorRotate (0x00d000ad) inline, in its operation order (hp.S's verified rewrite):
+   out[r] = (in0 * m[r][0] + in1 * m[r][1]) + in2 * m[r][2]. Bit 16777216 still compares against the original routine. */
+static inline void td_vrot(const float *in, const float *m, float *out)
+{
+    for (int r = 0; r < 3; r++) { float a = in[0] * m[r * 4] + in[1] * m[r * 4 + 1]; out[r] = a + in[2] * m[r * 4 + 2]; }
+}
 static int td_visible(float fx, float fy)
 {
     const int32_t xi = _mm_cvtt_ss2si(_mm_set_ss(fx)), yi = _mm_cvtt_ss2si(_mm_set_ss(fy));
@@ -148,7 +154,7 @@ static void td_impl(uint32_t tex, float x, float y, float sx, float sy, const fl
             uv[3][0] = ui * invx;         uv[3][1] = (vj + one) * invy; uv[3][2] = 0.0f;
             for (int k = 0; k < 4; k++) {
                 uv[k][0] = uv[k][0] - C; uv[k][1] = uv[k][1] - C;
-                td_client_vrot(uv[k], M, r[k]);
+                td_vrot(uv[k], M, r[k]);
                 r[k][0] = r[k][0] * ratio; r[k][0] = r[k][0] + C; r[k][1] = r[k][1] + C;
             }
             td_tile(tx, ty, one, 1, &r[0][0], hadd, flat, vflip);

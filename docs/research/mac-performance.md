@@ -1120,3 +1120,103 @@ Checks run: `tests/test_mac_hotpatch.py` (38) and the other `tests/test_mac*.py`
 Not established: Windows-native behavior, other hosts, a busy town, stability past the short runs, decal and shadow
 paths not seen in this scene (world 0x91 shadows, world 0x8d decal visibility), and the attribution of the
 translated-code samples.
+
+## MAC-PERF-010: Claude v7.6 native JPEG decoding and load-stall analysis
+
+Claude's live work on 2026-10-17/18 (23:50-02:15) in MuMatrix32, MTM-1: Nighty at the Tormenta Island boss fight
+(135,10, MU Helper on as in MAC-PERF-008/009) and FryeZEN2 in Lorencia, entered from character selection. Thirteen
+short sessions under the game lock, each run 3 minutes or less; another agent (MAC-FREE-001) and macOS Spotlight
+indexing loaded the Mac in several sessions (load average up to 74), so only interleaved same-session pairs at low
+load are quoted. Sources: `mac-play/hotpatch/jpeg.c`, `jpegdec.c`, `build-libjpeg-turbo.sh`, `decal.c`,
+`stall.c`, `gpudiag.c`; `mac-play/diagnostics/glcaps.c`; `mac-play/machprof/stallprof.c` (`NPC=1`).
+
+**Where a map entry goes.** Entering the Tormenta map from character selection took 2.5-3.0 s in one frame
+(1,250-1,350 file opens, 46-54 MB read, 240-320 JPEG textures, 270-630 texture uploads). `stallprof` with native-pc
+bins (2.86 s stall, 1,996 samples): 28% of the samples were in one 256-byte range of the Rosetta runtime, the
+system-call path (blocking file, mapping and server calls), 7% elsewhere in the runtime and translated 64-bit code,
+and 57% in 32-bit code: a table-driven CRC-32 loop of the client's file-integrity module 9%, the client's IJG 6b
+decoder about 6% (OpenJpeg inclusive about 7.5%), a second whole-file hashing routine of the same module 4-6%, and a large
+library function at `0x0047a6d0` (statically linked Scaleform GFx, presumably its ActionScript interpreter) 7% in
+an EBP-walk profile. Timed import slots showed the file-integrity module's CreateFileMappingA/MapViewOfFile/
+UnmapViewOfFile/CloseHandle calls (about 490 mappings and 1,800 handle closes per entry) as the main system-call
+cost; this project does not modify that module. About 3.6 million RtlEnter/LeaveCriticalSection pairs and
+0.8 million heap allocations per entry, mostly from GFx, looked expensive in the first measurement, but a
+microbenchmark put a Wine critical-section pair at 5-6 ns: the cost was the timing itself
+(QueryPerformanceCounter is about 90 ns under Rosetta). JPEG decoding is therefore a smaller share than assumed.
+
+**Native JPEG decode (bit 67108864).** libjpeg-turbo 3.1.2, built for i686 with two source changes (no h1v2 fancy
+upsampling, which 6b does not have; SSE2 as the only SIMD level), replaces the client's decoder in its three
+binary-mode loaders (see the hotpatch README for the hooks and the conditions). Offline, its output equals an IJG 6b
+reference build byte for byte on all 32,896 decodable installed OZJ/JPG files of both bottles (3,986 of them
+progressive); both reject the same 18 files. Under Rosetta, turbo with SSE2 decoded a sample set in 12.5 ms against
+25 ms for 6b built with `-O2` (AVX2 was slower than SSE2). Live, with the verification bit the client's own decoder
+ran as well: 1,074 images (sessions 2-4) and 761 images (final build) compared row by row, 0 mismatches. Decode time
+per Tormenta entry (same images): 237 -> 142 ms; first login: 273 -> 166 ms; Lorencia: 25 ms for 153 images.
+
+**Not published: a native CRC-32.** An experimental slicing-by-8 replacement for the file-integrity module's CRC loop
+was measured in these sessions (107 -> 31 ms per Tormenta entry). It was removed before publication: the CRC loop
+belongs to the client's file-integrity module, which this project does not modify. The published default
+112025007 is v7.5's 44916143 plus native JPEG decode (67108864) only; bits 268435456/536870912 are unused.
+
+| Scene (load) | v7.5 (44916143) | v7.6 as measured (380460463, including the removed CRC bit) |
+|---|---|---|
+| Tormenta map entry from character selection, interleaved x3 (2-4) | 2,851 / 2,642 / 2,641 ms (mean 2,711) | 2,474 / 2,604 / 2,643 ms (mean 2,574) |
+| Lorencia map entry (FryeZEN2), one pair (~1.8) | 1,105 ms (selection screen 345 ms) | 869 ms (284 ms) |
+| Lorencia, standing (1.7-1.9) | 25.00 fps; 11.95 / 12.13 ms work | 25.00 fps; 11.80 / 11.94 ms |
+| Boss fight, default view (3.2) | (MAC-PERF-009: 25.0 fps, 33-35 ms) | 24.97 fps; 35.6 ms |
+| Boss fight zoomed out, F6 + Shift+wheel (3.2-4.7) | (MAC-PERF-009: 23.2-23.9 fps, 41.7-43.1 ms) | 22.5-23.2 fps, 43.2-44.5 ms; busier moments 20.3-21.5 fps, 46-49 ms |
+
+The map entries got about 5% (Tormenta) and 20% (Lorencia, one pair) faster with both bits. About 76 ms of the
+Tormenta gain came from the removed CRC bit, so the published default (JPEG only) saves about 95 ms of decode time per
+Tormenta entry (237 -> 142 ms); its effect on the whole entry was not measured separately. The rest of the entry is
+system calls of the file-integrity module, GFx and other client loading, none changed. First appearances of monsters and the warp
+window were not measured separately: in the boss fight the monsters are loaded with the map, and during steady play
+the JPEG stats lines show 1-5 images at a time, decoded natively in 0.1-3 ms.
+
+**Zoomed out (goal 25 fps, not reached).** The zoomed-out boss fight ran at 20.3-23.2 fps in this round's sessions
+(work 43-49 ms, depending on how many players and effects were on screen). Measured and ruled out:
+- *Sending less vertex data.* `+cull` per-triangle potential: of 1.35M mesh vertices per frame, 437k are drawn with
+  GL_CULL_FACE on and 200-211k of those are back-facing; triangles entirely outside the view are 1.6%. GL time per
+  mesh vertex is about 3 ns (3.9 ms for 1.27M), so CPU back-face culling would save about 0.6 ms of GL time for a
+  similar CPU cost.
+- *Fewer GL calls.* A two-frame trace counted about 17,500 calls per frame that reach Wine. Deferring
+  glEnable/glDisable until something can observe them cancelled 61% of them, and repeated glTexParameteri values were
+  dropped: about 2,500 fewer calls per frame, and no measurable change (43.2-44.5 vs 43.9-44.0 ms). Dropping empty
+  glPushMatrix/glPopMatrix spans cost 3 ms per frame in the default view and an early build drew the interface with a
+  stale projection (glDrawElements and extension calls did not flush the queue; `glcaps` now covers that case), so
+  the queue was removed. The deferred enables stay as opt-in bit 1073741824. A call into Wine is cheap; the 18%
+  runtime system-call bin of zoomed-out frames is time inside the GL draw calls themselves (about 8 ms of GL calls
+  per frame for 2,400 draws), not per-call overhead.
+- *GPU.* `+finish`: 5.6-6.1 ms of GPU work still queued at the swap, so the GPU is not the limit.
+- *Terrain draws.* Back-facing alpha terrain pairs split the sorted runs (about 1,200 terrain draws per frame zoomed
+  out). Moving strictly back-facing pairs whose window box meets no later face was verified exact (175 runs drawn both
+  ways offscreen, 0 differing pixels) but only 19% of them qualify (neighbouring tiles' boxes overlap); 10-15% fewer
+  terrain draws and no frame-time change, so it was not kept.
+- *CPU profile.* EBP-walk profile of the zoomed-out frames: x86 62% of the samples (game code 54%, mugl 24%:
+  `md_run_vtx` 6.6%, native decals 3.9%, `submit_batch` 3.0%, skinning 2.9%, shadows 2.8%; the CRT sin/cos wrapper
+  `0x009681bd` 3.6%; a 1,400-instruction effect routine `0x01553ba6` 3.4%), translated driver code 16%, runtime 21%.
+  No single item is large enough. The decals' four VectorRotate calls per tile now run inline in the client's operation
+  order (29,446 decals compared with the verification bit, 0 mismatches).
+Reaching 25 fps zoomed out would need about 5-9 ms less work per frame in this scene, spread over game code, mugl and
+the GL driver.
+
+**Launch priority.** zsh runs a background job (`&`) at nice +5 (option BG_NICE, on by default), so the Desktop
+`.command` launchers and `mu-to-server.sh` started CrossOver's wineserver, the launcher and main.exe at nice 5: under
+load from other processes the game got less CPU than it should. `setopt NO_BG_NICE` before the launch fixes it
+(checked: main.exe and the wineserver at nice 0); applied to the local launch scripts. The installer-generated
+`.command` (`mac-play/installer/setup-mu-mac.sh`) has the same pattern. The .NET launcher used about 25% of one core
+(about 6,500 context switches per second) while the game ran; putting it on background QoS (`taskpolicy -b`) in an
+A/B under heavy load showed no clear effect on the game's frame time, so nothing was changed there.
+
+**Installed.** The live sessions ran `mugl-v76.dll` (private build with `LJT_DIR`) in MuMatrix32 with mask 380460463,
+which included the since-removed CRC bit; the published v7.6 build has no CRC code and defaults to 112025007. Rollback:
+`builds/mugl-v75.dll` with mask 44916143. The kit installer is not changed here; MAC-FREE-001 owns it and sets its
+default to 112025007. v7.6's JPEG bit is inert unless the private build is made with `LJT_DIR`.
+
+Checks run: `tests/test_mac_hotpatch.py` and `tests/test_mac_diagnostics.py`, `make -C mac-play/hotpatch private`
+(with `LJT_DIR`) and the synthetic build, `make -C mac-play/diagnostics`, `make -C mac-play/machprof`,
+`scripts/audit_repository.py`; `glcaps`, `glcstate` and `glstride` in the MuMatrixKit bottle print the builtin
+opengl32's hashes with the proxy loaded (`--dll opengl32=n,b`; without it CrossOver loaded the builtin and the
+comparison was meaningless). Not established: Windows-native behavior, other hosts, the warp window and
+first-sight loads in a busy town, corrupt or truncated JPEG files (they fall back to the client's decoder, but the
+fallback decision rests on turbo reporting an error or warning), and the file-integrity module (not analysed or modified).

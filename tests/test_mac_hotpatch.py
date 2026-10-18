@@ -95,9 +95,13 @@ class MeshDrawPublicationTests(unittest.TestCase):
 
     def test_patch_site_originals_are_hash_pinned_and_header_is_not_source(self):
         sites = {site['name']: site for site in self.targets['meshdraw_sites']}
-        self.assertEqual(set(sites),{'md_orig','md_lorig','md_prologue','sh_orig','td_prologue'})
+        self.assertEqual(set(sites),{'md_orig','md_lorig','md_prologue','sh_orig','td_prologue','jp_rh_orig','jp_sd_orig','jp_rs_orig',
+                                     'jp_fd_orig','jp_dt_orig'})
+        jpeg = (SOURCE/'jpeg.c').read_text()
         sources = {'md_orig':(self.meshdraw,'MD_PATCH'),'md_lorig':(self.meshdraw,'MD_LPATCH'),'md_prologue':(self.meshdraw,'MD_ENTRY'),
-                   'sh_orig':((SOURCE/'shadow.c').read_text(),'SH_PATCH'),'td_prologue':((SOURCE/'decal.c').read_text(),'TD_ENTRY')}
+                   'sh_orig':((SOURCE/'shadow.c').read_text(),'SH_PATCH'),'td_prologue':((SOURCE/'decal.c').read_text(),'TD_ENTRY'),
+                   'jp_rh_orig':(jpeg,'JP_READ_HEADER'),'jp_sd_orig':(jpeg,'JP_START'),'jp_rs_orig':(jpeg,'JP_READ_SCANLINES'),
+                   'jp_fd_orig':(jpeg,'JP_FINISH'),'jp_dt_orig':(jpeg,'JP_DESTROY_THUNK')}
         for name,site in sites.items():
             with self.subTest(name=name):
                 text,macro = sources[name]
@@ -127,15 +131,17 @@ class MeshDrawPublicationTests(unittest.TestCase):
         mask = int(re.search(r'want = v & (\d+);',self.mugl).group(1))
         readme = (SOURCE/'README.md').read_text()
         rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
-        self.assertEqual(rows,{1<<k for k in range(26)})
-        self.assertEqual(mask,(1<<26)-1)
-        # v7.5: v7.4's 875951 plus native shadows 2097152, native decals 8388608, specialised mesh append 33554432
-        self.assertEqual(default,44916143)
-        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19,21,23,25)))
+        self.assertEqual(rows,{1<<k for k in range(31)})
+        self.assertEqual(mask,(1<<31)-1)
+        # v7.6: v7.5's 44916143 plus native JPEG decode 67108864
+        self.assertEqual(default,112025007)
+        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19,21,23,25,26)))
+        self.assertEqual(default & 67108863,44916143,'v7.5 reads 26 bits and sees its own default')
         self.assertEqual(default & 2097151,875951,'v7.4 reads 21 bits and sees its own default')
         self.assertEqual(default & 16383,7599,'v7.1/v7.2 builds read 14 bits and see their own default')
         self.assertEqual(default & 65535,23983,'v7.3 reads 16 bits and sees its own default')
-        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576|4194304|16777216),0,'diagnostic and unverified bits stay off by default')
+        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576|4194304|16777216|134217728|268435456|536870912|1073741824),0,
+                         'diagnostic, unused and opt-in bits stay off by default')
         self.assertIn('md_untested = (mask & 8192) != 0',self.mugl)
 
     def test_synthetic_build_cannot_apply_game_patches(self):
@@ -317,7 +323,7 @@ class V74Tests(unittest.TestCase):
         self.assertIn('cs_lazy = (mask & 262144) != 0',self.mugl)
         self.assertIn('cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;',self.mugl)
         # code patches, pacing and reads of client addresses only in main.exe; test programs get the GL-level bits
-        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432);',self.mugl)
+        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432 | 67108864 | 134217728);',self.mugl)
         self.assertIn('mugl_client = !lstrcmpiA(b, "main.exe");',self.mugl)
 
     def test_quad_runs_are_keyed_by_the_two_callers_and_smooth_quads(self):
@@ -451,3 +457,70 @@ class V75Tests(unittest.TestCase):
         terrain = (SOURCE/'terrain.c').read_text()
         writes = set(re.findall(r'cap_cache\[0\]\[(GL_[A-Z_]+)\] = ',terrain))
         self.assertEqual(writes,{'GL_BLEND','GL_CULL_FACE','GL_ALPHA_TEST'})
+
+
+class V76Tests(unittest.TestCase):
+    """MAC-PERF-010: native JPEG decode for the client's IJG 6b. No game bytes."""
+    def setUp(self):
+        self.mugl = (SOURCE/'mugl.c').read_text()
+        self.jpeg = (SOURCE/'jpeg.c').read_text()
+        self.jpegdec = (SOURCE/'jpegdec.c').read_text()
+        self.make = (SOURCE/'Makefile').read_text()
+
+    def test_sources_are_included_built_and_carry_no_byte_tables(self):
+        self.assertIn('#include "jpeg.c"\n',self.mugl)
+        self.assertIn('jpeg.c jpegdec.c jpegdec.h',self.make)
+        # The file-integrity module's CRC loop is out of scope: no source, wiring or pinned site for it.
+        self.assertFalse((SOURCE/'crc.c').exists())
+        self.assertNotIn('crc',self.mugl.lower())
+        self.assertNotIn('0x00aa2c62',self.mugl)
+        self.assertIn('JPEG_FLAGS := -DMUGL_JPEG -I$(LJT_DIR)',self.make)   # turbo is linked only when LJT_DIR is given
+        for text in (self.jpeg,self.jpegdec):
+            self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
+        self.assertIn('static int jp_install(int on, int verify) { (void)on; (void)verify; return 0; }',self.jpeg)   # inert without turbo
+
+    def test_bits(self):
+        self.assertIn('int jp = jp_install((mask & 67108864) != 0, (mask & 134217728) != 0);',self.mugl)
+        self.assertNotIn('268435456) != 0',self.mugl)   # bits 268435456/536870912 are unused
+
+    def test_jpeg_native_only_for_binary_mode_loaders_and_default_parameters(self):
+        self.assertIn('if (ret != 0x00c98446 && ret != 0x00a900bb && ret != 0x00a9027b)',self.jpeg)   # jpeg_start_decompress callers
+        self.assertIn('if (ret != 0x00c98438 && ret != 0x00a900a3 && ret != 0x00a90263)',self.jpeg)   # jpeg_read_header callers
+        self.assertIn('((jp_fseek_fn)JP_FSEEK)(f, -(long)n, 1);',self.jpeg)   # the client reads the header from the file as before
+        p = self.jpeg[self.jpeg.index('static int jp_params_default'):]
+        for cond in ('CI32(ci, O_SCALE_NUM) == 1','CI32(ci, O_DCT) == 0','CI8(ci, O_FANCY) == 1','CI8(ci, O_SMOOTH) == 1','!CI8(ci, O_QUANT)',
+                     '!CI8(ci, O_ARITH)','CI32(ci, O_PROGRESS) == 0'):
+            self.assertIn(cond,p)
+        self.assertIn('CI32(err, 0x14) = 0x43;',self.jpeg)   # too few scanlines: 6b's JERR_TOO_LITTLE_DATA through error_exit
+
+    def test_turbo_refuses_streams_6b_decodes_differently(self):
+        self.assertIn("if (ft != 0xC0 && ft != 0xC1 && ft != 0xC2) return MJ_FRAME;",self.jpegdec)
+        self.assertIn('return warn ? MJ_WARNING : MJ_OK;',self.jpegdec)
+        script = (SOURCE/'build-libjpeg-turbo.sh').read_text()
+        self.assertIn('SHA=8f0012234b464ce50890c490f18194f913a7b1f4e6a03d6644179fa0f867d0cf',script)
+        self.assertIn('v_in_group \\* 2 == v_out_group && do_fancy',script)   # no h1v2 fancy upsampling, as in 6b
+        self.assertIn('jpeg_simd_cpu_support() & JSIMD_SSE2',script)
+
+    def test_deferred_enables_are_sent_before_every_observer(self):
+        m = self.mugl
+        self.assertIn('if (lz_on != ((mask & 1073741824) != 0))',m)
+        self.assertIn('if (!lz_on || passthrough || lz_list || !s || !*s || unit_cap(cap) || !filter_enabled) return 0;',m)
+        self.assertIn('flush_pending();   /* the vertices so far were specified under the old state */',m)
+        self.assertIn('if (lz_n && !passthrough) lz_apply();   /* vertices from here on are drawn with the deferred enables */',m)
+        self.assertIn('else if (lz_n) lz_apply();',m)   # every export except state calls (-1) and matrix calls
+        self.assertIn('if (lz_n) lz_apply();   /* glGet* can read enables */',m)
+        self.assertIn('void WINAPI mugl_glPopAttrib(void) { flush_pending(); lz_apply();',m)
+        self.assertIn('flush_pending();\n    lz_apply();\n    cs_apply();',m)   # mugl_sync
+        self.assertIn('|| cs_dirty || lz_n ||',m)   # pending records make the stubs synchronize
+        self.assertIn("'glNewList':8,'glEndList':0",(SOURCE/'gen_exports.py').read_text())
+        self.assertIn('lz_list = 1;',m)
+
+    def test_texture_parameter_filter_forgets_on_every_other_writer(self):
+        m = self.mugl
+        self.assertIn('if (ok && tp_g[t] == tp_gen && tp_val[t][k] == v) { st_tp_skipped++; return; }',m)
+        for writer in ('mugl_glTexParameterf','mugl_glTexParameteriv','mugl_glTexParameterfv'):
+            body = m[m.index('void WINAPI '+writer):]
+            self.assertIn('if (t) tp_g[t] = 0;',body[:body.index('\n}\n')])
+        self.assertIn('memset(tex_ok, 0, sizeof tex_ok); tp_gen++;',m)   # texture deletion
+        self.assertIn('TIMED(3, R(glPopAttrib, PFN0)()); tp_gen++;',m)
+        self.assertIn('glcaps.c',(ROOT/'mac-play/diagnostics/Makefile').read_text())

@@ -4,6 +4,12 @@ BUILD := build
 # Mandatory for Claude v7.0's binary32 operation order under Rosetta.
 CFLAGS := -O2 -msse2 -mfpmath=sse -ffp-contract=off -Wall
 
+# Optional native JPEG decode (v7.6): LJT_DIR=<dir printed by build-libjpeg-turbo.sh>. Without it the bits are inert.
+ifdef LJT_DIR
+JPEG_SRC := jpegdec.c $(LJT_DIR)/libjpeg.a
+JPEG_FLAGS := -DMUGL_JPEG -I$(LJT_DIR)
+endif
+
 # The default cross-build has no game patch tables and cannot apply game hooks.
 all: $(BUILD)/synthetic/opengl32.dll diagnostics modes
 
@@ -15,13 +21,13 @@ $(BUILD)/synthetic/generated: generate.py targets.json
 	$(PYTHON) generate.py --synthetic --out $(BUILD)/synthetic
 	touch $@
 
-$(BUILD)/synthetic/opengl32.dll: mugl.c xform.c meshdraw.c shadow.c decal.c stall.c terrain.c gpudiag.c ../mumodes/modehook.c $(BUILD)/exports/generated $(BUILD)/synthetic/generated
-	$(MINGW_CC) $(CFLAGS) -I$(BUILD)/exports -I$(BUILD)/synthetic -shared mugl.c $(BUILD)/exports/stubs.S $(BUILD)/exports/opengl32.def -o $@ -Wl,--enable-stdcall-fixup -static-libgcc
+$(BUILD)/synthetic/opengl32.dll: mugl.c xform.c meshdraw.c shadow.c decal.c stall.c terrain.c gpudiag.c ../mumodes/modehook.c jpeg.c jpegdec.c jpegdec.h $(BUILD)/exports/generated $(BUILD)/synthetic/generated
+	$(MINGW_CC) $(CFLAGS) -I$(BUILD)/exports $(JPEG_FLAGS) -I$(BUILD)/synthetic -shared mugl.c $(JPEG_SRC) $(BUILD)/exports/stubs.S $(BUILD)/exports/opengl32.def -o $@ -Wl,--enable-stdcall-fixup -static-libgcc
 
 # Explicit opt-in, using private tables already generated and checked by generate.py.
 private: $(BUILD)/exports/generated
 	test -f $(BUILD)/private/generation.json
-	$(MINGW_CC) $(CFLAGS) -I$(BUILD)/exports -I$(BUILD)/private -shared mugl.c $(BUILD)/exports/stubs.S $(BUILD)/exports/opengl32.def -o $(BUILD)/private/opengl32.dll -Wl,--enable-stdcall-fixup -static-libgcc
+	$(MINGW_CC) $(CFLAGS) -I$(BUILD)/exports $(JPEG_FLAGS) -I$(BUILD)/private -shared mugl.c $(JPEG_SRC) $(BUILD)/exports/stubs.S $(BUILD)/exports/opengl32.def -o $(BUILD)/private/opengl32.dll -Wl,--enable-stdcall-fixup -static-libgcc
 	$(MINGW_CC) $(CFLAGS) -I$(BUILD)/private hptest.c hp.S thunks.S -o $(BUILD)/private/hptest.exe
 
 diagnostics:

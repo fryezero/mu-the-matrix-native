@@ -1,4 +1,4 @@
-# Claude v7.5 CPU hotpatch publication
+# Claude v7.6 CPU hotpatch publication
 
 This is an opt-in snapshot of Claude's existing local v7.2 work: the v7.0 helper,
 inline, peephole and skinning patches plus the native mesh-draw loop in
@@ -7,7 +7,8 @@ waits (v7.2, MAC-PERF-006), the zero-copy/strided batch arrays, v7.3 (MAC-PERF-0
 sorting (`terrain.c`), a raised render-thread priority and long-frame diagnostics (`stall.c`), and v7.4
 (MAC-PERF-008): effect-sprite and grass quad batching (`quads.c`), deferred client-array enables, off-screen batch
 culling (`cull.c`) and draw/GPU diagnostics (`gpudiag.c`), and v7.5 (MAC-PERF-009): native body shadows
-(`shadow.c`), native terrain decals (`decal.c`) and a specialised mesh-draw append. The normal `make mugl` and setup installer still
+(`shadow.c`), native terrain decals (`decal.c`) and a specialised mesh-draw append, and v7.6 (MAC-PERF-010): native JPEG
+decoding for the client's IJG 6b (`jpeg.c`, `jpegdec.c`, libjpeg-turbo). The normal `make mugl` and setup installer still
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
@@ -86,10 +87,11 @@ thread. Never use MuMatrix32 for these tests.
 ## Runtime controls from the original snapshot
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
-from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 44916143 (v7.5; v7.4 used 875951, v7.3 23983,
-v7.1 and v7.2 7599, v7.0 15). The file is read as a 26-bit mask; v7.4 reads 21 bits, v7.3 16 bits and v7.1/v7.2 14 bits
-of the same value, so 44916143 gives each older build its own default. Only in `main.exe` are the code patches (bits
-1-512, 8192, 2097152-33554432) and the
+from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 112025007 (v7.6; v7.5 used 44916143, v7.4
+875951, v7.3 23983, v7.1 and v7.2 7599, v7.0 15). The file is read as a 31-bit mask; v7.5 reads 26 bits, v7.4 21 bits,
+v7.3 16 bits and v7.1/v7.2 14 bits of the same value, so 112025007 gives each older build its own default. In a test
+program the environment variable `MUGL_MASK` overrides the file. Only in `main.exe` are the code patches (bits
+1-512, 8192, 2097152-134217728) and the
 frame pacing (1024) applied; any other process that loads the private build (a test program) gets the GL-level bits only.
 Each site is checked against its original or replacement bytes before a write;
 unexpected bytes are skipped. This is process-local patching with instruction
@@ -124,13 +126,20 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 8388608 | Native terrain decals: the ground-effect routine `0x016cdd5f` and its per-tile fan `0x016d197d` (`decal.c`); with 128 the fans go straight into mugl |
 | 16777216 | With 8388608: run every decal natively record-only, then the original with recorders, and compare the GL call streams and the client globals it writes (diagnostic) |
 | 33554432 | With 128: the mesh-draw direct append specialised per attribute kind (`md_run_vtx` in `meshdraw.c`); bit 64 verifies it |
+| 67108864 | Native JPEG decode: libjpeg-turbo (6b-exact build) decodes for the client's IJG 6b in the three binary-mode JPEG loaders (`jpeg.c`, `jpegdec.c`; needs `LJT_DIR` at build time) |
+| 134217728 | With 67108864: the client's own decoder runs as well and every row is compared (diagnostic) |
+| 268435456 | Unused (reserved) |
+| 536870912 | Unused (reserved) |
+| 1073741824 | Deferred enables and redundant texture parameters: glEnable/glDisable of caps that are not per texture unit are recorded and sent only before something can observe them (a change back cancels); repeated glTexParameteri filter/wrap values on the bound GL_TEXTURE_2D object are dropped (opt-in: no measurable gain, see MAC-PERF-010) |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,
 256, 1024, 2048 and 4096. 6575 is the same without the pacing fix. The v7.3 default 23983 is
 7599 plus 16384; 56751 adds the terrain verification. The v7.4 default 875951 is 23983 plus 65536, 262144 and
 524288; 2056111 adds all three verifications (32768, 131072, 1048576). The v7.5 default 44916143 is 875951 plus
-2097152, 8388608 and 33554432; 65887727 adds the mesh-draw, shadow and decal verifications (64, 4194304, 16777216). Mesh-draw
+2097152, 8388608 and 33554432; 65887727 adds the mesh-draw, shadow and decal verifications (64, 4194304, 16777216). The v7.6
+default 112025007 is 44916143 plus 67108864 (native JPEG); 263020015 adds the JPEG, mesh-draw and decal verifications
+(134217728, 64, 16777216). Mesh-draw
 modes `0x8000` and flag `0x400` call client code with side effects and always run
 the original loop. `meshdraw-notes.md` has the decoded routine and verification
 method. The source's verify path bypasses comparison
@@ -296,3 +305,34 @@ with the constant colour/normal parts hoisted, so the corner loop has no per-cor
 the samples). Entries now record when they leave 0 (in `mugl_glEnable/Disable`; `terrain.c` writes three fixed
 unit-0 caps, which are cleared explicitly), and only those are cleared; overflow of the 2,048-entry list falls back
 to the memset. Same cache contents, no mask bit.
+
+## v7.6 additions (MAC-PERF-010)
+
+**Native JPEG decode (bit 67108864, `jpeg.c` + `jpegdec.c`).** The client links IJG libjpeg 6b statically; its texture
+loaders decode OZJ files with it synchronously. With the bit, the entries of `jpeg_read_header`, `jpeg_start_decompress`,
+`jpeg_read_scanlines` and `jpeg_finish_decompress` (7 pinned prologue bytes each, trampolines to the originals) and the
+`jpeg_destroy_decompress` jump thunk lead to wrappers. For the three loaders that open the file in binary mode (OpenJpeg
+`0x00c982ea` and two at `0x00a90000`, recognised by return address) the rest of the file is read with the client's fread
+and put back with its fseek, the client's own marker reader parses the header as before, and at `jpeg_start_decompress`
+libjpeg-turbo decodes the whole stream if the client's parameters are the library defaults and the frame is SOF0/1/2
+with 8-bit precision and the colour space and component count the client found. Rows are then handed out by
+`jpeg_read_scanlines`; `jpeg_finish_decompress` keeps 6b's too-few-scanlines error and calls the source's term_source
+and the client's jpeg_abort. Anything else (other loaders, other parameters, any turbo error or warning, another
+thread) runs the client's decoder. The decoder is libjpeg-turbo 3.1.2 built by `build-libjpeg-turbo.sh` (pinned
+tarball; h1v2 fancy upsampling disabled because 6b has none; SSE2 only, AVX2 measured slower under Rosetta). Build with
+`make private LJT_DIR=<dir printed by the script>`; without `LJT_DIR` the bits are inert. Bit 134217728 lets the
+client's decoder run too and compares every row and the output dimensions.
+
+**Not patched: the file-integrity CRC.** At every map entry the client also runs a table-driven CRC-32 over whole
+files. That loop belongs to the client's file-integrity module, which this project does not modify; a native
+version measured during MAC-PERF-010 was removed before publication.
+
+**Opt-in experiments.** Bit 1073741824 defers glEnable/glDisable of non-unit caps until something can observe them
+and drops repeated glTexParameteri filter/wrap values; it saved about 2,500 thunk calls per frame but did not change
+the frame time measurably, so it is off by default. A queue that dropped empty glPushMatrix/glPopMatrix spans cost
+about 3 ms per frame and was removed. `../diagnostics/glcaps.c` is the framebuffer-hash test for these paths.
+
+**Diagnostics.** With `C:\mutools\mugl-stall.txt` the stall line also times file-mapping, handle, wait, critical-section
+and heap imports and attributes heap and critical-section calls to game callers (diagnostic only: every timed call
+costs two QueryPerformanceCounter calls, about 90 ns each under Rosetta, so the game runs slower). `+cull` reports the
+per-triangle culling potential. `../machprof/stallprof` with `NPC=1` histograms native pcs.
