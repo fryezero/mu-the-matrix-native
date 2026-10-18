@@ -1,7 +1,9 @@
-# NATIVE-GFX-001: a small C ABI around Ruffle (MIT OR Apache-2.0) for the
+# NATIVE-GFX-001/002: a small C ABI around Ruffle (MIT OR Apache-2.0) for the
 # native client's GFx windows.  Ruffle is an external, pinned dependency:
 # native/gfx/fetch-ruffle.sh clones it (no Ruffle source is vendored in this
-# repository) and links native/gfx/.deps/ruffle, which the paths below use.
+# repository), applies the GFx patch series native/gfx/ruffle-patches on a
+# separate worktree and links native/gfx/.deps/ruffle, which the paths below
+# use.
 [package]
 name = "mugfx"
 version = "0.1.0"
@@ -20,6 +22,14 @@ serde_json = "1.0.150"
 url = "2"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 image = { version = "0.25.10", default-features = false, features = ["png"] }
+tracing = "0.1"
+
+# macOS: render into an IOSurface shared with the host's OpenGL compositor.
+[target.'cfg(target_os = "macos")'.dependencies]
+wgpu = "30.0.1"
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFDictionary", "CFNumber", "CFString"] }
+objc2-io-surface = { version = "0.3.2", default-features = false, features = ["std", "IOSurfaceRef", "IOSurfaceTypes", "libc", "objc2", "objc2-core-foundation"] }
+objc2-metal = { version = "0.3.2", default-features = false, features = ["std", "MTLDevice", "MTLTexture", "MTLResource", "MTLAllocation", "MTLPixelFormat", "MTLTypes", "objc2-io-surface"] }
 
 [[bin]]
 name = "mugfx-shot"
