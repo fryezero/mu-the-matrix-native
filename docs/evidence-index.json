@@ -1253,6 +1253,20 @@
         "Effect bone rotation (0x0129fd4f) not traced",
         "No live side-by-side capture"
       ]
+    },
+    "native_objects": {
+      "task": "NATIVE-OBJECTS-001",
+      "document": "docs/research/client-objects.md",
+      "reconstructed": {"object_loader": "0x016d9ac5", "record_constructor": "0x0180778f", "object_model_pass": "0x018392db"},
+      "inputs": {"text_sha256": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724", "data_sha256": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f", "section3_sha256": "0571c519b1c4eaf97a143d2dd29bf2a3799e56b2f613cda0d084f4b857c1dc6f"},
+      "validation": {"synthetic_obj_files": 1002, "records": 7979, "negative_controls_detected": "4/4", "installed_obj_decodes_equal": "84/84", "installed_obj_accepted_by_openworld": 0, "model_table_pairs": 60000, "mismatches": 0},
+      "native": ["native/core/mu_objects"],
+      "local_evidence": "native/scratch/objects/validate-objects.json",
+      "limits": [
+        "Installed EncTerrain*.obj bytes are refused by the client's own loader: transformation past the protection boundary, not analysed",
+        "Placements and character-select markers not available; gallery renders are a demo layout",
+        "Custom-map folder table, extra models >= 300, RenderObjects lighting/animation not ported"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",

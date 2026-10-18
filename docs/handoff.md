@@ -32,6 +32,15 @@ loader's output buffer would avoid the protection layer), then draw `Object<n>\`
 Dynamic lights, world tiles, frustum, decals and the 24-bit height choice are done (NATIVE-TERRAIN-002,
 [`research/client-terrain-frame.md`](research/client-terrain-frame.md); `--scale-002` scales its checks).
 
+## Static objects (NATIVE-OBJECTS-001)
+
+Read [`research/client-objects.md`](research/client-objects.md). `reconstructed/objects`, `native/core/mu_objects.*`,
+`mu-terrain objects|render --objects` and `mu-viewer --terrain --objects` implement the `.obj` loader, record layout
+and object model table; `scripts/validate_objects.py` compares them with the client. The installed `.obj` files are
+refused by the client's own loader instructions (transformation past the protection boundary). Next, with the
+owner's approval only: a bounded live read of the decoded plaintext after `0x016d9ac5`'s second v12 call (local
+only, loaded through `--objects PLAIN_FILE`).
+
 ## Click-to-move (NATIVE-PATH-001)
 
 Read [`research/client-path.md`](research/client-path.md). `reconstructed/path`, `native/core/mu_path.*` and
