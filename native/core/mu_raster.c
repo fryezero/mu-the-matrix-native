@@ -103,7 +103,9 @@ static void sample(const mu_raster *r, float s, float t, float out[4])
         return;
     }
     const int32_t w = image->width, h = image->height;
-    const int clamp = r->texture_wrap && r->texture_slot >= 0 && r->texture_wrap[r->texture_slot] == 0x2900u;
+    /* r->clamp: GL_CLAMP terrain-side bitmaps (decals, NATIVE-TERRAIN-002) */
+    const int clamp = r->clamp ||
+                      (r->texture_wrap && r->texture_slot >= 0 && r->texture_wrap[r->texture_slot] == 0x2900u);
     if (clamp) {
         s = s < 0.0f ? 0.0f : (s > 1.0f ? 1.0f : s);
         t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);

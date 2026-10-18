@@ -14,8 +14,18 @@ Two independent references are used:
   --game-root the installed worlds are decoded and selected worlds' normals,
   light and tile streams are compared on real data.
 
+NATIVE-TERRAIN-002 (skip with --skip-002, scale with --scale-002 N): the
+24-bit height selector 0x016c9868 for every world index with handler objects
+built by their own constructors, AddTerrainLight 0x016cacfc, the world tile
+streams of 36 worlds (scrolls, blend states, animated layer, neighbour face,
+world-0x22 particles), CreateFrustrum 0x016cba24, CreateFrustrum2D
+0x016d20d9, TestFrustrum2D 0x016ccce7, RenderTerrain with live frustum tests
+and RenderTerrainAlphaBitmap 0x016cdd5f, plus Python models and negative
+controls (docs/research/client-terrain-frame.md). Their substitutions are
+listed in the report under 'substitutions'.
+
 GL imports are recorded at stub addresses written into the copied import
-slots. Three calls are substituted, and only these: the texture manager
+slots. Three calls are always substituted: the texture manager
 lookups 0x00ebbec8 / 0x00c97ce3 (return a synthetic bitmap whose +0x204/+0x208
 hold the width/height floats, or null) and the singleton getter 0x00db747f
 (thread-local static initialisation; its result is only passed to a world
@@ -61,8 +71,13 @@ SINGLETON = 0x00db747f
 GL = {0x01a7c750: ('glBegin', 4), 0x01a7c760: ('glEnd', 0), 0x01a7c774: ('glTexCoord2f', 8),
       0x01a7c770: ('glColor3fv', 4), 0x01a7c754: ('glColor4f', 16), 0x01a7c778: ('glVertex3fv', 4),
       0x01a7c77c: ('glBindTexture', 8), 0x01a7c75c: ('glEnable', 4), 0x01a7c758: ('glDisable', 4),
-      0x01a7c748: ('glBlendFunc', 8), 0x01a7c740: ('glDepthMask', 4)}
+      0x01a7c748: ('glBlendFunc', 8), 0x01a7c740: ('glDepthMask', 4), 0x01a7c76c: ('glColor3f', 12),
+      0x01a7c784: ('glGetFloatv', 8)}
 OPENGL_SLOTS = (0x01a7c64c, 0x01a7c790)
+# Substituted only by the NATIVE-TERRAIN-002 checks that need them (labelled in the report):
+CRT_RAND, PARTICLE, CHAOS_EFFECTS, CAMERA_SINGLETON, SCREEN_WIDTH = 0x01989721, 0x0168fafd, 0x009dc0b1, 0x0098647b, 0x016bc355
+FRAME_COUNTER, HERO_POINTER, WATER_MOVE = 0x0b6b53e0, 0x0a39d754, 0x0b6b4ea8
+EXTRA_HOOKS = (CRT_RAND, PARTICLE, CHAOS_EFFECTS, CAMERA_SINGLETON, SCREEN_WIDTH)
 GENERIC_WORLDS = (0, 1, 2, 3, 4, 8, 142, 0x50, 0x8d)
 
 
@@ -225,9 +240,91 @@ def py_tile_corners(att, height, water, xf, yf, xi, yi, lod=1, picking=0):
     return 'built', idx, c
 
 
-SPECIAL = set([0x1e, 0x5e, 0x7a, 0x8d, 0x22, 0x3f, 0x64, 0x65, 0x6e, 0x6f, 0x70, 0x8a, 0x8c, 7, 0x85, 0x27, 0x62,
-               0x63, 0x33, 0x50, 0x51, 0x5b, 0x5c, 0x71, 0x91, 0x35, 0x61] + list(range(0x52, 0x5b)) +
-              list(range(0x80, 0x83)) + list(range(0x2d, 0x33)) + list(range(0x45, 0x4b)) + list(range(0x12, 0x18)))
+def cvtt(x):
+    """cvttss2si: NaN and out-of-range give 0x80000000."""
+    if x != x or not -2147483904.0 < x < 2147483648.0:
+        return -2147483648
+    return int(x)
+
+
+def crem(a, m):
+    """C remainder (sign of the dividend)."""
+    r = abs(a) % m
+    return -r if a < 0 else r
+
+
+LAVA = set([0x3f] + list(range(0x52, 0x5b)))
+ADDITIVE = set([7, 0x80, 0x81, 0x82])
+CHAOS = set(list(range(0x12, 0x18)) + [0x35, 0x61])
+
+
+def py_scroll(scene, layer, xf, yf):
+    """Layer-1 offsets of 0x016cff65 (water, lava and per-world scrolling tiles)."""
+    w, time = scene['world'], scene['time']
+    t = cvtt(time)
+    fwd = lambda m: fdiv(f32(float(crem(t, m))), float(m))
+    bwd = lambda m: fdiv(-f32(float(crem(t, m))), float(m))
+    cosv = lambda: f32(math.cos(fmul(time, f32(0.0001))))
+    cos25 = lambda: fmul(fmul(fadd(cosv(), 1.0), 0.5), 0.5)
+    offset, k = [0.0, 0.0], 0.0
+    generic = lambda: ([fwd(20000), cos25()], f32(0.0015))
+    if layer == 5:
+        if w == 0x1e:
+            offset, k = [bwd(20000), cos25()], f32(0.0015)
+        elif w == 0x5e:
+            offset, k = [bwd(20000), fwd(20000)], f32(0.0015)
+        elif w == 0x7a:
+            offset, k = [fwd(50000), fmul(fadd(cosv(), 1.0), f32(0.1))], f32(0.0015)
+        elif w == 0x8d:
+            offset, k = [0.0, 0.0], 0.0
+        else:
+            offset, k = generic()
+        if w == 0x22 and scene.get('random'):
+            rand = scene['random']
+            if rand() % 50 == 0:
+                x = fadd(fmul(xf, 100.0), fmul(f32(float(rand() % 100 + 1)), 1.0))
+                y = fadd(fmul(yf, 100.0), fmul(f32(float(rand() % 100 + 1)), 1.0))
+                scene.setdefault('effects', []).append(('effect', 0x7f90, fbits(x), fbits(y),
+                                                        fbits(fadd(scene.get('hero_z', 0.0), 10.0))))
+    if w in LAVA:
+        if layer == 0xb:
+            offset, k = generic()
+    elif w in (0x6e, 0x64, 0x65, 0x6f):
+        if layer == 6:
+            offset, k = generic()
+    elif w == 0x70:
+        if 0x15 <= layer <= 0x18:
+            f, b, c = fwd(30000), bwd(30000), cos25()
+            offset = {0x15: [c, f], 0x16: [f, c], 0x17: [b, c], 0x18: [c, b]}[layer]
+            k = f32(0.002)
+    elif w == 0x7a:
+        if layer == 0x10:
+            offset, k = generic()
+    elif w in (0x8a, 0x8c, 0x8d):
+        table = {0x8a: {0x20: 2, 0x21: 3, 0x22: 1}, 0x8c: {0x14: 1, 0x15: 2, 0x16: 3},
+                 0x8d: {0x17: 0, 0x1e: 0, 0x18: 1, 0x1f: 1, 0x19: 2, 0x20: 2, 0x1a: 3, 0x21: 3}}[w]
+        if layer in table:
+            c = cos25()
+            offset = [[fwd(20000), c], [c, bwd(20000)], [bwd(20000), c], [c, fwd(20000)]][table[layer]]
+            k = f32(0.0015)
+    return offset, k
+
+
+def py_face_alpha_state(w, layer):
+    """RenderFace 0x016cf46c blend choice: True = alpha state, None = nothing drawn."""
+    if w == 0x27:
+        return None if layer == 0x64 else layer == 3
+    if 0x62 <= w <= 0x63 or 0x2d <= w <= 0x32:
+        return layer == 4
+    if w == 0x33:
+        return layer == 2
+    if 0x45 <= w <= 0x4a:
+        return layer == 10
+    if w in (0x50, 0x51):
+        return layer == 12
+    if w in (0x5b, 0x5c):
+        return layer == 9
+    return layer == 0xe
 
 
 def py_draw_tile(scene, pass_, xf, yf, xi, yi, out):
@@ -283,44 +380,54 @@ def py_draw_tile(scene, pass_, xf, yf, xi, yi, out):
         layer, layer1_drawn = scene['layer2'][i0], False
     else:
         layer, layer1_drawn = scene['layer1'][i0], True
-        if layer == 5:
-            if w in (0x1e, 0x5e, 0x7a, 0x8d):
-                return 4
-            t = int(scene['time'])
-            offset[0] = fdiv(f32(float(int(math.fmod(t, 20000)))), 20000.0)
-            cv = f32(math.cos(fmul(scene['time'], f32(0.0001))))
-            offset[1] = fmul(fmul(fadd(cv, 1.0), 0.5), 0.5)
-            k = f32(0.0015)
-        if w == 0x22:
-            return 4
-    if w in SPECIAL:
-        return 4
+        offset, k = py_scroll(scene, layer, xf, yf)
     texture = 0x7630 + layer
     if texture not in sizes:
         return 4
 
-    def emit(texture, uv, alpha_face):
-        out.append(('state', 2, 1) if (alpha_face or layer == 0xe and texture == 0x7630 + layer and
-                                       not alpha_face) else ('state', 1, 0))
-        out.append(('bind', texture))
+    def corners(uv, colour):
         out.append(('begin', 6))
         for q in range(4):
-            i = idx[q]
             out.append(('tex', fbits(uv[2 * q]), fbits(uv[2 * q + 1])))
-            rgb = [fadd(light[3 * i + j], light2[3 * i + j]) for j in range(3)]
-            if alpha_face:
-                out.append(('c4',) + tuple(fbits(v) for v in rgb) + (fbits(alpha[i]),))
-            else:
-                out.append(('c3',) + tuple(fbits(v) for v in rgb))
+            out.append(colour(idx[q]))
             out.append(('v',) + tuple(fbits(v) for v in c[q]))
         out.append(('end',))
+    lit = lambda i: tuple(fbits(fadd(light[3 * i + j], light2[3 * i + j])) for j in range(3))
 
     uv = py_tile_uv(sizes[texture][0], sizes[texture][1], xf, yf, 0, offset, scene['wave'], k, idx)
-    emit(texture, uv, False)
-    status = 4 if (scene['detail'] >= 4 and neighbour) else 0
-    if not any(gt(alpha[i], 0.0) for i in idx) or not layer1_drawn:
+    blend = py_face_alpha_state(w, layer)
+    status = 0
+    if blend is not None:
+        out.append(('state', 2, 1) if blend else ('state', 1, 0))
+        if w in (0x71, 0x91) and scene['detail'] >= 4 and scene['att'][i0] & 0x2000:
+            return 4
+        out.append(('bind', texture))
+        corners(uv, lambda i: ('c3',) + lit(i))
+    if scene['detail'] >= 4 and neighbour:
+        around = [index(xi - 1, yi), index(xi + 1, yi), index(xi, yi + 1), index(xi, yi - 1)]
+        if any(not 0 <= a < CELLS for a in around):
+            status = 3
+        else:
+            out.append(('bind', 0x7723))
+            edge = not all(scene['att'][a] & 0x4000 for a in around)
+            out.append(('state', 3, 0))
+            a = 0.5 if edge else f32(0.8)
+            corners(uv, lambda i: ('c4', fbits(f32(0.8)), fbits(f32(0.8)), fbits(f32(0.8)), fbits(a)))
+            out.append(('state', 1, 0))
+    if not any(gt(alpha[i], 0.0) for i in idx):
         return status
     layer2 = scene['layer2'][i0]
+    if (w in ADDITIVE and layer2 == 5) or (w == 0x85 and layer2 == 4):
+        animated = 0x7630 + 200 + scene.get('frame_counter', 0)
+        if animated not in sizes:
+            return 4
+        uv = py_tile_uv(sizes[animated][0], sizes[animated][1], xf, yf, 1, [0.0, 0.0], scene['wave'], 0.0, idx)
+        out.append(('state', 3, 0))
+        out.append(('bind', animated))
+        corners(uv, lambda i: ('c3', fbits(alpha[i]), fbits(alpha[i]), fbits(alpha[i])))
+        return status
+    if not layer1_drawn:
+        return status
     if layer2 != 5:
         offset = [0.0, 0.0]
     if layer2 == 0xff:
@@ -329,8 +436,57 @@ def py_draw_tile(scene, pass_, xf, yf, xi, yi, out):
     if texture2 not in sizes:
         return 4
     uv = py_tile_uv(sizes[texture2][0], sizes[texture2][1], xf, yf, 0, offset, scene['wave'], 0.0, idx)
-    emit(texture2, uv, True)
+    out.append(('state', 2, 1))
+    out.append(('bind', texture2))
+    corners(uv, lambda i: ('c4',) + lit(i) + (fbits(alpha[i]),))
     return status
+
+
+def py_add_light(x, y, light, light_range, buffer, variant=None):
+    """AddTerrainLight 0x016cacfc; variant 'clamp1' also clamps above at 1, 'noclamp' drops the 0 clamp
+    (negative controls)."""
+    out = list(buffer)
+    rf = f32(float(light_range))
+    xf, yf = fdiv(x, 100.0), fdiv(y, 100.0)
+    xi, yi = cvtt(xf), cvtt(yf)
+    row = f32(float(yi - light_range))
+    for yy in range(yi - light_range, yi + light_range + 1):
+        column = f32(float(xi - light_range))
+        for xx in range(xi - light_range, xi + light_range + 1):
+            dx, dy = fsub(xf, column), fsub(yf, row)
+            d = fadd(fmul(dx, dx), fmul(dy, dy))
+            lf = fdiv(fsub(rf, f32(math.sqrt(d))), rf)
+            if gt(lf, 0.0):
+                i = index_repeat(xx, yy)
+                for k in range(3):
+                    v = fadd(fmul(light[k], lf), out[3 * i + k])
+                    if variant != 'noclamp' and v == v and 0.0 > v:
+                        v = 0.0
+                    if variant == 'clamp1' and gt(v, 1.0):
+                        v = 1.0
+                    out[3 * i + k] = v
+            column = fadd(column, 1.0)
+        row = fadd(row, 1.0)
+    return out
+
+
+def py_test_frustum_2d(xs, ys, state, x, y, r):
+    if 1 <= state <= 4:
+        return 1
+    j = 3
+    for i in range(4):
+        d = fsub(fmul(fsub(xs[i], x), fsub(ys[j], y)), fmul(fsub(xs[j], x), fsub(ys[i], y)))
+        if r == r and d == d and r >= d:
+            return 0
+        j = i
+    return 1
+
+
+def py_height_is_rgb(world):
+    """0x016c9868 with the handler table of 0x00ea488e."""
+    literal = (world in (0x2a, 0x3f, 0x64, 0x65, 0x6e, 0x6f, 0x70, 0x7a) or 0x52 <= world <= 0x5a or
+               0x7b <= world <= 0x85)
+    return int(literal or 0x86 <= world <= 0x91)
 
 
 def py_walk(scene, pass_, box, out):
@@ -360,6 +516,9 @@ def py_draw(scene, box, alpha_layers, out):
 
 SIZE_CALLBACK = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float),
                                  ctypes.POINTER(ctypes.c_float))
+RANDOM_CALLBACK = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p)
+EFFECT_CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float),
+                                   ctypes.POINTER(ctypes.c_float))
 
 
 class Scene(ctypes.Structure):
@@ -368,7 +527,15 @@ class Scene(ctypes.Structure):
                 ('light', ctypes.c_void_p), ('light2', ctypes.c_void_p), ('wave', ctypes.c_void_p),
                 ('wave2', ctypes.c_void_p), ('grass_offset', ctypes.c_void_p), ('grass_map', ctypes.c_void_p), ('water_height', ctypes.c_float),
                 ('time', ctypes.c_float), ('detail', ctypes.c_int32), ('grass_disabled', ctypes.c_uint8),
-                ('texture_size', SIZE_CALLBACK), ('texture_context', ctypes.c_void_p)]
+                ('texture_size', SIZE_CALLBACK), ('texture_context', ctypes.c_void_p),
+                ('frame_counter', ctypes.c_int32), ('random', RANDOM_CALLBACK), ('effect', EFFECT_CALLBACK),
+                ('effect_context', ctypes.c_void_p), ('hero_z', ctypes.c_float)]
+
+
+class Frustum(ctypes.Structure):
+    _fields_ = [('vertex', ctypes.c_float * 15), ('normal', ctypes.c_float * 15), ('d', ctypes.c_float * 5),
+                ('x_min', ctypes.c_int32), ('y_min', ctypes.c_int32), ('x_max', ctypes.c_int32),
+                ('y_max', ctypes.c_int32), ('x2d', ctypes.c_float * 4), ('y2d', ctypes.c_float * 4)]
 
 
 class Stats(ctypes.Structure):
@@ -418,6 +585,67 @@ class Authored:
         lib.mu_terrain_draw.argtypes = [ctypes.POINTER(Scene), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
                                         ctypes.c_int32, ctypes.c_int, ctypes.POINTER(Sink), ctypes.POINTER(Stats)]
         lib.mu_terrain_height_scale.restype = ctypes.c_float
+        self.setup_002()
+
+    def setup_002(self):
+        lib = self.lib
+        lib.mu_terrain_height_is_rgb.argtypes = [ctypes.c_int32, VOIDP]
+        lib.mu_terrain_world_handler_flag.argtypes = [ctypes.c_int32]
+        lib.mu_terrain_add_light.argtypes = [ctypes.c_float, ctypes.c_float, VOIDP, ctypes.c_int32, VOIDP]
+        lib.mu_terrain_frame_light.argtypes = [VOIDP, VOIDP] + [ctypes.c_int32] * 4
+        lib.mu_terrain_water_move.argtypes = [ctypes.c_int32, ctypes.c_float]
+        lib.mu_terrain_water_move.restype = ctypes.c_float
+        lib.mu_terrain_frustum_create.argtypes = [ctypes.c_float, ctypes.c_float, ctypes.c_float, VOIDP, VOIDP,
+                                                  ctypes.POINTER(Frustum)]
+        lib.mu_terrain_frustum_2d_params_for.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_int32,
+                                                         ctypes.c_float, ctypes.c_float, VOIDP]
+        lib.mu_terrain_frustum_2d.argtypes = [ctypes.c_int32, VOIDP, VOIDP, VOIDP, ctypes.c_int, VOIDP, VOIDP]
+        lib.mu_terrain_test_frustum_2d.argtypes = [VOIDP, VOIDP, ctypes.c_int32, ctypes.c_float, ctypes.c_float,
+                                                   ctypes.c_float]
+        lib.mu_terrain_render.argtypes = [ctypes.POINTER(Scene), ctypes.POINTER(Frustum), ctypes.c_int32, ctypes.c_int,
+                                          ctypes.c_int, ctypes.POINTER(Sink), ctypes.POINTER(Stats)]
+        lib.mu_terrain_decal.argtypes = [ctypes.POINTER(Scene), ctypes.c_int32] + [ctypes.c_float] * 4 + [
+            VOIDP, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_int, ctypes.c_int, ctypes.POINTER(Sink)]
+        lib.mu_terrain_decal.restype = ctypes.c_long
+
+    def height_is_rgb(self, world):
+        unresolved = ctypes.c_int()
+        return self.lib.mu_terrain_height_is_rgb(world, ctypes.byref(unresolved)), unresolved.value
+
+    def add_light(self, x, y, light, light_range, buffer):
+        grid = floats(buffer)
+        self.lib.mu_terrain_add_light(x, y, floats(light), light_range, grid)
+        return list(grid)
+
+    def frustum_create(self, aspect, view_far, fov, modelview12, position):
+        f = Frustum()
+        self.lib.mu_terrain_frustum_create(aspect, view_far, fov, floats(modelview12), floats(position),
+                                           ctypes.byref(f))
+        return f
+
+    def frustum_2d(self, world, position, angle, params, wide):
+        x, y = floats([0.0] * 4), floats([0.0] * 4)
+        status = self.lib.mu_terrain_frustum_2d(world, floats(position), floats(angle), floats(params), wide, x, y)
+        return status, list(x), list(y)
+
+    def params_2d(self, world, mode, width, scale, distance):
+        out = floats([0.0] * 5)
+        ok = self.lib.mu_terrain_frustum_2d_params_for(world, mode, width, scale, distance, out)
+        return ok, list(out)
+
+    def render(self, scene_built, frustum, scene_state, top_view, alpha_layers):
+        out = []
+        sink = self.recorder(out)
+        status = self.lib.mu_terrain_render(ctypes.byref(scene_built[0]), ctypes.byref(frustum), scene_state,
+                                            top_view, alpha_layers, ctypes.byref(sink), ctypes.byref(Stats()))
+        return status, out
+
+    def decal(self, scene_built, texture, x, y, sx, sy, light, rotation, alpha, height, follow, flip):
+        out = []
+        sink = self.recorder(out)
+        fans = self.lib.mu_terrain_decal(ctypes.byref(scene_built[0]), texture, x, y, sx, sy, floats(light),
+                                         rotation, alpha, height, follow, flip, ctypes.byref(sink))
+        return fans, out
 
     def xor3(self, data, key=KEY):
         buffer = ctypes.create_string_buffer(bytes(data), len(data))
@@ -493,12 +721,26 @@ class Authored:
             return 1
         callback = SIZE_CALLBACK(size)
         keep.append(callback)
+        effects = []
+
+        def rand(context):
+            source = s.get('random')
+            return source() if source else 0
+
+        def effect(context, kind, position, light):
+            effects.append(('effect', kind, fbits(position[0]), fbits(position[1]), fbits(position[2])))
+        random_cb = RANDOM_CALLBACK(rand) if s.get('random') else RANDOM_CALLBACK()
+        effect_cb = EFFECT_CALLBACK(effect)
+        keep += [random_cb, effect_cb, effects]
+        s['effects_out'] = effects
         scene = Scene(s['world'], arr(ctypes.c_uint8, s['layer1']), arr(ctypes.c_uint8, s['layer2']),
                       arr(ctypes.c_float, s['alpha']), arr(ctypes.c_uint16, s['att']),
                       arr(ctypes.c_float, s['height']), arr(ctypes.c_float, s['light']),
                       arr(ctypes.c_float, s['light2']), arr(ctypes.c_float, s['wave']),
-                      arr(ctypes.c_float, s['wave2']), arr(ctypes.c_float, s['grass_offset']), arr(ctypes.c_uint8, s['grass_map']), s['water'],
-                      s['time'], s['detail'], s['grass_disabled'], callback, None)
+                      arr(ctypes.c_float, s['wave2']), arr(ctypes.c_float, s['grass_offset']),
+                      arr(ctypes.c_uint8, s['grass_map']), s['water'],
+                      s['time'], s['detail'], s['grass_disabled'], callback, None, s.get('frame_counter', 0),
+                      random_cb, effect_cb, None, s.get('hero_z', 0.0))
         return scene, keep
 
     @staticmethod
@@ -535,16 +777,27 @@ class Authored:
 # --------------------------------------------------------------------------
 # Synthetic scenes.
 
-def synthetic_scene(seed, world=0):
+def synthetic_scene(seed, world=0, extended=False):
+    """extended adds the world-specific tiles (scrolling/lava layers, 0x4000 neighbour cells, the animated
+    layer bitmaps 0x76f8.., TileBright 0x7723) used by NATIVE-TERRAIN-002."""
     g = random.Random(seed)
     layer_pool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 0xe, 0xff]
+    if extended:
+        layer_pool = [0, 1, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 0xb, 0xb, 0xc, 0xe, 0x10, 0x14, 0x15, 0x16, 0x17, 0x18,
+                      0x19, 0x1a, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x64, 0xff]
     scene = {'world': world, 'water': 1201.0, 'time': g.choice([0.0, 12345.5, 250000.0]), 'detail': g.choice([0, 4]),
              'grass_disabled': 0}
+    if extended:
+        scene['time'] = g.choice([0.0, 12345.5, 250000.0, 98765.25, 3.5e6, -1234.75])
+        scene['frame_counter'] = g.randrange(32)
+        scene['hero_z'] = f32(g.uniform(0.0, 500.0))
     scene['layer1'] = bytes(g.choice(layer_pool[:-1]) for _ in range(CELLS))
     scene['layer2'] = bytes(g.choice(layer_pool) for _ in range(CELLS))
     alpha_pool = [0.0, 0.0, 0.0, 1.0, f32(128 / 255.0), f32(1 / 255.0), f32(254 / 255.0)]
     scene['alpha'] = [g.choice(alpha_pool) for _ in range(CELLS)]
     att_pool = [0, 0, 0, 1, 4, 8, 0x40, 0x44, 0x80 & 0, 0x0100 & 0xfaff, 0x1000, 0x2000]
+    if extended:
+        att_pool += [0x4000, 0x4000, 0x4000, 0x4040, 0x200, 0x6000]
     scene['att'] = [g.choice(att_pool) for _ in range(CELLS)]
     scene['height'] = [f32(g.uniform(-50.0, 400.0)) for _ in range(CELLS)]
     scene['light'] = [f32(g.random()) for _ in range(3 * CELLS)]
@@ -558,6 +811,10 @@ def synthetic_scene(seed, world=0):
         sizes[0x7630 + layer] = (float(g.choice((64, 128, 256, 512))), float(g.choice((64, 128, 256))))
     for layer in (0, 1):
         sizes[0x7694 + layer] = (256.0, 64.0)
+    if extended:
+        for n in range(32):
+            sizes[0x76f8 + n] = (float(g.choice((64, 128, 256))), float(g.choice((64, 128, 256))))
+        sizes[0x7723] = (128.0, 128.0)
     scene['sizes'] = sizes
     return scene
 
@@ -580,7 +837,9 @@ def descriptor(base, limit, access=0x93, flags=0xc):
 class Client:
     STUBS, BITMAPS, CONFIG, TEB, GDT, STACK = 0x00100000, 0x00180000, 0x001f0000, 0x00280000, 0x00290000, 0x00300000
     SENTINEL = 0x00100ff0
-    BSS = ((0x01cf0000, 0x01d30000), (0x01ec3000, 0x01ec4000), (0x06fce000, 0x06fcf000), (0x0b5e0000, 0x0bde0000))
+    BSS = ((0x01cf0000, 0x01d30000), (0x01ec3000, 0x01ec4000), (0x01ec9000, 0x01eca000), (0x06fce000, 0x06fcf000),
+           (0x0a39d000, 0x0a39e000), (0x0b5e0000, 0x0bde0000))
+    OBJECTS = 0x00200000   # synthetic hero, camera, world manager and handler objects (0x10000 bytes)
 
     def __init__(self, text, data, flag=None):
         from unicorn import (Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED,
@@ -596,7 +855,7 @@ class Client:
             uc.mem_map(low, high - low, UC_PROT_ALL)
         if flag is not None:
             uc.mem_write(FLAG_ADDRESS, flag)
-        for base, size in ((self.STUBS, 0x10000), (self.BITMAPS, 0x60000), (self.CONFIG, 0x1000),
+        for base, size in ((self.STUBS, 0x10000), (self.BITMAPS, 0x60000), (self.CONFIG, 0x1000), (self.OBJECTS, 0x10000),
                            (self.TEB, 0x1000), (self.GDT, 0x1000), (self.STACK, 0x40000)):
             uc.mem_map(base, size, UC_PROT_ALL)
         # Flat code/data descriptors, then the TEB for fs: (SEH frames).
@@ -618,6 +877,10 @@ class Client:
         uc.hook_add(UC_HOOK_CODE, self.on_stub, begin=self.STUBS, end=self.STUBS + 0xfff)
         for address in list(STATE_WRAPPERS) + [BIND] + list(LOOKUPS) + [SINGLETON]:
             uc.hook_add(UC_HOOK_CODE, self.on_entry, begin=address, end=address)
+        self.extra = {}   # optional substitutions, only while a check installs them (see EXTRA_HOOKS)
+        for address in EXTRA_HOOKS:
+            uc.hook_add(UC_HOOK_CODE, self.on_extra, begin=address, end=address)
+        self.modelview = [0.0] * 16
         uc.hook_add(UC_HOOK_MEM_UNMAPPED | UC_HOOK_MEM_FETCH_UNMAPPED, self.on_unmapped)
         uc.mem_write(G['config'], struct.pack('<I', self.CONFIG - 0x20 + 0x20 - 0x20))
         self.bitmaps = {}
@@ -666,6 +929,12 @@ class Client:
             self.stream.append(('c4', self.farg(0), self.farg(1), self.farg(2), self.farg(3)))
         elif name == 'glVertex3fv':
             self.stream.append(('v',) + self.read_floats(self.arg(0), 3))
+        elif name == 'glColor3f':   # recorded like glColor3fv (same GL state); counted apart in 'gl_color3f'
+            self.stream.append(('c3', self.farg(0), self.farg(1), self.farg(2)))
+            self.color3f = getattr(self, 'color3f', 0) + 1
+        elif name == 'glGetFloatv':
+            self.uc.mem_write(self.arg(1), struct.pack('<16f', *self.modelview))
+            self.gl_state.append((name, self.arg(0)))
         else:
             self.gl_state.append((name, self.arg(0)))
 
@@ -679,6 +948,11 @@ class Client:
             self.ret(self.bitmaps.get(self.arg(0), 0), 4)
         elif address == SINGLETON:
             self.ret(self.CONFIG + 0x800, 0)
+
+    def on_extra(self, uc, address, size, ignored):
+        handler = self.extra.get(address)
+        if handler:
+            handler(self)
 
     def on_unmapped(self, uc, access, address, size, value, ignored):
         self.error = ('unmapped', hex(address), size, hex(uc.reg_read(self.x86.UC_X86_REG_EIP)))
@@ -719,6 +993,9 @@ class Client:
         self.uc.mem_write(G['grass_disabled'], bytes([s['grass_disabled']]))
         self.uc.mem_write(self.CONFIG + 0x2c, struct.pack('<i', s['detail']))
         self.uc.mem_write(G['config'], struct.pack('<I', self.CONFIG))
+        self.uc.mem_write(FRAME_COUNTER, struct.pack('<i', s.get('frame_counter', 0)))
+        self.uc.mem_write(HERO_POINTER, struct.pack('<I', self.OBJECTS))
+        self.uc.mem_write(self.OBJECTS + 0x33ac, struct.pack('<4f', 0.0, 0.0, s.get('hero_z', 0.0), 0.0))
         self.set_bitmaps(s['sizes'])
 
     # -- execution
@@ -928,6 +1205,8 @@ def run_client(args, authored):
     report['render_terrain'] = frames
 
     loader_checks(client, authored, report, g)
+    if not args.skip_002:
+        terrain2_checks(client, authored, report, g, args.scale_002)
 
     # Negative control: the "natural" uv corner rule (index 2/3 instead of 1/0) must differ.
     report['negative_controls'] = negative_controls(authored)
@@ -1108,12 +1387,16 @@ def loader_checks(client, authored, report, g):
         authored.lib.mu_terrain_wave.argtypes = [ctypes.c_int32, ctypes.c_float, ctypes.c_int, ctypes.c_int32,
                                                  ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, VOIDP, VOIDP]
         authored.lib.mu_terrain_wave(world, time, alternate, *box, mine_wave, mine_wave2)
-        expected_light = bytearray(POISON * (12 * CELLS))
+        poison = (ctypes.c_float * (3 * CELLS)).from_buffer_copy(POISON * (12 * CELLS))
+        authored.lib.mu_terrain_frame_light(floats(primary), poison, *box)   # authored copy rule
+        expected_light = bytes(poison)
         primary_bytes = struct.pack(f'<{3 * CELLS}f', *primary)
+        python_light = bytearray(POISON * (12 * CELLS))
         for y in range(box[1], box[3] + 4):
             for x in range(box[0], box[2] + 4):
                 i = index_repeat(x, y)
-                expected_light[12 * i:12 * i + 12] = primary_bytes[12 * i:12 * i + 12]
+                python_light[12 * i:12 * i + 12] = primary_bytes[12 * i:12 * i + 12]
+        assert bytes(python_light) == expected_light
         w_ok = compare_lists(client.read('wave', 'f', CELLS), list(mine_wave))
         w2_ok = compare_lists(client.read('wave2', 'f', CELLS), list(mine_wave2))
         l_ok = bytes(uc.mem_read(G['light'], 12 * CELLS)) == bytes(expected_light)
@@ -1125,6 +1408,430 @@ def loader_checks(client, authored, report, g):
     report['loader_substitutions'] = ['CRT fseek 0x01989dab / fread 0x01989230 (light loop)',
                                       'free 0x0191bac2, fclose 0x01988c95, error box 0x016cef3f (attribute tail)',
                                       'XOR key bytes at 0x01cf0448 (uncaptured): fc cf ab']
+
+
+# --------------------------------------------------------------------------
+# NATIVE-TERRAIN-002: height handler table, dynamic lights, world tiles,
+# frustum, decals.
+
+HEIGHT_SELECTOR, HANDLER_GETTER, WORLD_MANAGER = 0x016c9868, 0x00d5cbe3, 0x01ec91b8
+# Handler classes registered by 0x00ea488e: world -> constructor (the function that stores the class vtable
+# after the base constructor 0x00d5c99f). Literal 24-bit worlds 0x7a..0x85 never reach the handler.
+HANDLER_CTORS = {0x39: 0x00e9ee7a, 0x3a: 0x00e9ee7a, 0x3e: 0x00e42f50, 0x3f: 0x00e93073, 0x40: 0x00dc6bdd,
+                 0x45: 0x00dd3866, 0x46: 0x00dd8960, 0x47: 0x00dde612, 0x48: 0x00de54fc, 0x4f: 0x00e6ecaf,
+                 0x50: 0x00e1399d, 0x51: 0x00e1399d, 0x52: 0x00e30672, 0x5b: 0x00d6a5f7, 0x5c: 0x00d7a126,
+                 0x60: 0x00d7a126, 0x65: 0x00d7a126, 0x6f: 0x00d7a126, 0x5d: 0x00daa127, 0x5e: 0x00e24976,
+                 0x5f: 0x00dbd130, 0x64: 0x00e6ef95, 0x6e: 0x00e26010, 0x70: 0x00de57f4, 0x71: 0x00e343cc,
+                 0x72: 0x00e203f9, 0x73: 0x00e22373, 0x74: 0x00e3dfec, 0x75: 0x00e3ec82, 0x76: 0x00e3f93a,
+                 0x77: 0x00e40651, 0x78: 0x00e4134d, 0x79: 0x00d584f1, 0x7a: 0x00e5430b, 0x7b: 0x00e18da5,
+                 0x83: 0x00e43236, 0x84: 0x00e00b07, 0x85: 0x00d807bd, 0x86: 0x00d83d84, 0x87: 0x00e3a2b7,
+                 0x88: 0x00d93567, 0x89: 0x00e08c06, 0x8a: 0x00e05835, 0x8b: 0x00d9c03a, 0x8c: 0x00d99f1c,
+                 0x8d: 0x00e4be37, 0x8e: 0x00e66fb8, 0x8f: 0x00e0e1ad, 0x90: 0x00e45fea, 0x91: 0x00d75255}
+for _w in range(0x7c, 0x80):
+    HANDLER_CTORS[_w] = 0x00e18da5
+ADD_LIGHT, FRUSTUM, FRUSTUM_3D_STOP, FRUSTUM_2D, TEST_2D, DECAL = (0x016cacfc, 0x016cba24, 0x016cc48f, 0x016d20d9,
+                                                                   0x016ccce7, 0x016cdd5f)
+CAMERA_POSITION, CAMERA_ANGLE, VIEW_FAR, FOV = 0x0bdc5ab4, 0x0bdc58f0, 0x01cf1630, 0x01cf1634
+F_VERTEX, F_NORMAL, F_D, F_X2D, F_Y2D = 0x0bdb5430, 0x0bdb546c, 0x0b6b53e4, 0x0b6b5400, 0x0b6b5410
+SCENE_STATE, ZOOM_MODE = 0x01d1df70, 0x0bdb5880
+SPECIAL_WORLDS = (0x1e, 0x5e, 0x7a, 0x8d, 0x22, 0x3f, 0x52, 0x56, 0x64, 0x65, 0x6e, 0x6f, 0x70, 0x8a, 0x8c, 7, 0x80,
+                  0x82, 0x85, 0x27, 0x62, 0x2d, 0x30, 0x33, 0x45, 0x4a, 0x50, 0x51, 0x5b, 0x5c, 0x71, 0x91, 0x12,
+                  0x35, 0, 142)
+
+
+def ret_with(value, argument_bytes=0):
+    return lambda client: client.ret(value & 0xffffffff, argument_bytes)
+
+
+def mat_rows_to_gl(rows12):
+    """3x4 row-major rotation (rows 0..2) -> column-major glGetFloatv layout."""
+    gl = [0.0] * 16
+    for i in range(3):
+        for j in range(4):
+            gl[4 * j + i] = rows12[4 * i + j]
+    gl[15] = 1.0
+    return gl
+
+
+def random_rotation(g):
+    """A modelview-like 3x4: rotation about z then x (camera pitch/yaw) and a translation."""
+    yaw, pitch = math.radians(g.uniform(-180, 180)), math.radians(g.uniform(-80, -10))
+    cy, sy, cp, sp = math.cos(yaw), math.sin(yaw), math.cos(pitch), math.sin(pitch)
+    rz = [[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]]
+    rx = [[1, 0, 0], [0, cp, -sp], [0, sp, cp]]
+    m = [[sum(rx[i][k] * rz[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    return [f32(m[0][0]), f32(m[0][1]), f32(m[0][2]), f32(g.uniform(-5000, 5000)),
+            f32(m[1][0]), f32(m[1][1]), f32(m[1][2]), f32(g.uniform(-5000, 5000)),
+            f32(m[2][0]), f32(m[2][1]), f32(m[2][2]), f32(g.uniform(-30000, 0))]
+
+
+def terrain2_checks(client, authored, report, g, scale=1):
+    uc = client.uc
+    out = {}
+
+    # (1) 24-bit height choice: build each registered handler by running its constructor, install it as the
+    # manager's current handler as OpenWorld's 0x00ea468f would, then run the selector 0x016c9868 itself.
+    manager, handlers = client.OBJECTS + 0x9000, {}
+    uc.mem_write(WORLD_MANAGER, struct.pack('<I', manager))
+    # Two imports some handler members call while constructing (stubbed, labelled):
+    # QueryPerformanceFrequency / QueryPerformanceCounter (slots 0x01a7c214 / 0x01a7c210) and RtlAllocateHeap (slot 0x01a7c5c8, bump allocator).
+    from unicorn import UC_HOOK_CODE
+    qpf_stub, alloc_stub, heap = client.OBJECTS + 0xff00, client.OBJECTS + 0xff10, [client.OBJECTS + 0xc000]
+    uc.mem_write(qpf_stub, b'\xc2\x04\x00')
+    uc.mem_write(alloc_stub, b'\xc2\x0c\x00')
+    uc.mem_write(0x01a7c214, struct.pack('<I', qpf_stub))
+    uc.mem_write(0x01a7c210, struct.pack('<I', qpf_stub))   # QueryPerformanceCounter: same shape
+    uc.mem_write(0x01a7c5c8, struct.pack('<I', alloc_stub))
+
+    def on_import(uc_, address, size, ignored):
+        if address == qpf_stub:
+            uc_.mem_write(client.arg(0), struct.pack('<Q', 10000000))
+            uc_.reg_write(client.x86.UC_X86_REG_EAX, 1)
+        else:
+            size_ = (client.arg(2) + 15) & ~15
+            uc_.mem_write(heap[0], b'\0' * size_)
+            uc_.reg_write(client.x86.UC_X86_REG_EAX, heap[0])
+            heap[0] += size_
+    uc.hook_add(UC_HOOK_CODE, on_import, begin=qpf_stub, end=alloc_stub)
+    # CRT int64 -> double helper 0x0191c350 takes its AVX-512 path unless bit 0x20 of [0x01cf6610] is set
+    # (the CPU-feature word is uncaptured BSS); select the SSE2 path.
+    uc.mem_write(0x01cf6610, bytes([uc.mem_read(0x01cf6610, 1)[0] | 0x20]))
+    built = ok_ctors = 0
+    for slot, ctor in enumerate(sorted(set(HANDLER_CTORS.values()))):
+        obj = client.OBJECTS + 0xa000 + 0x80 * slot
+        uc.mem_write(obj, b'\xa5' * 0x80)
+        ok = client.call(ctor, [], ecx=obj)
+        built += 1
+        ok_ctors += int(ok)
+        handlers[ctor] = (obj, ok, bytes(uc.mem_read(obj + 4, 3)), struct.unpack('<I', uc.mem_read(obj, 4))[0],
+                          client.error)
+    cases = matches = 0
+    flags, mismatches = {}, []
+    for world in range(0x100):
+        ctor = HANDLER_CTORS.get(world)
+        obj = handlers[ctor][0] if ctor else 0
+        uc.mem_write(manager + 0x10, struct.pack('<I', obj))
+        client.write('world', 'i', [world])
+        ok = client.call(HEIGHT_SELECTOR, [world])
+        got = client.uc.reg_read(client.x86.UC_X86_REG_EAX) & 0xff
+        mine, unresolved = authored.height_is_rgb(world)
+        cases += 1
+        same = ok and got == mine and unresolved == 0
+        matches += int(same)
+        if got:
+            flags.setdefault('rgb', []).append(world)
+        if not same:
+            mismatches.append([world, ok, got, mine])
+    literal_only = sum(1 for w_ in range(0x100) if (w_ in flags.get('rgb', [])) !=
+                       bool(py_height_is_rgb(w_) and not 0x86 <= w_ <= 0x91))
+    out['height_choice'] = {'cases': cases, 'matches': matches,
+                            'python_model_equal': sum(1 for w_ in range(0x100) if (w_ in flags.get('rgb', [])) ==
+                                                      bool(py_height_is_rgb(w_))),
+                            'negative_control_literal_only_differs': literal_only, 'constructors_run': [built, ok_ctors],
+                            'rgb_worlds': flags.get('rgb', []), 'mismatches': mismatches[:8],
+                            'handler_flag_bytes': {hex(c): v[2].hex() for c, v in sorted(handlers.items())},
+                            'constructor_errors': {hex(c): v[4] for c, v in sorted(handlers.items()) if not v[1]}}
+
+    # (2) AddTerrainLight 0x016cacfc on synthetic buffers.
+    cases = matches = 0
+    buffer_address = G['light']
+    for case in range(160 * scale):
+        base = [f32(g.uniform(-0.5, 1.5)) for _ in range(3 * CELLS)] if case % 8 == 0 else None
+        if base is None:
+            base = list(struct.unpack(f'<{3 * CELLS}f', bytes(uc.mem_read(buffer_address, 12 * CELLS))))
+            if case == 1:
+                base = [f32(g.random()) for _ in range(3 * CELLS)]
+        uc.mem_write(buffer_address, struct.pack(f'<{3 * CELLS}f', *base))
+        x = f32(g.choice([g.uniform(-300, 25900), g.uniform(0, 200), 12850.0, -1.0e9, 25555.5]))
+        y = f32(g.choice([g.uniform(-300, 25900), g.uniform(25300, 25700), 64.0]))
+        light = [f32(g.uniform(-1.0, 2.0)) for _ in range(3)]
+        light_range = g.choice([0, 1, 1, 1, 2, 3, 4, 6, -1])
+        uc.mem_write(client.CONFIG + 0x400, struct.pack('<3f', *light))
+        ok = client.call(ADD_LIGHT, [fbits(x), fbits(y), client.CONFIG + 0x400, light_range, buffer_address])
+        got = bytes(uc.mem_read(buffer_address, 12 * CELLS))
+        mine = authored.add_light(x, y, light, light_range, base)
+        cases += 1
+        matches += int(ok and got == struct.pack(f'<{3 * CELLS}f', *mine))
+    out['add_light'] = {'cases': cases, 'matches': matches}
+    # Negative controls: an upper clamp at 1 or no lower clamp must disagree with the client somewhere.
+    differ = {'clamp1': 0, 'noclamp': 0, 'python_model': 0}
+    for case in range(40 * scale):
+        base = [f32(g.uniform(-0.5, 1.5)) for _ in range(3 * CELLS)]
+        x, y = f32(g.uniform(500, 25000)), f32(g.uniform(500, 25000))
+        light = [f32(g.uniform(-1.5, 2.5)) for _ in range(3)]
+        light_range = g.choice([1, 2, 4])
+        uc.mem_write(buffer_address, struct.pack(f'<{3 * CELLS}f', *base))
+        uc.mem_write(client.CONFIG + 0x400, struct.pack('<3f', *light))
+        client.call(ADD_LIGHT, [fbits(x), fbits(y), client.CONFIG + 0x400, light_range, buffer_address])
+        got = bytes(uc.mem_read(buffer_address, 12 * CELLS))
+        for variant in (None, 'clamp1', 'noclamp'):
+            model = struct.pack(f'<{3 * CELLS}f', *py_add_light(x, y, light, light_range, base, variant))
+            if variant is None:
+                differ['python_model'] += int(model == got)
+            else:
+                differ[variant] += int(model != got)
+    out['add_light']['negative_controls'] = {'cases': 40, 'clamp1_differs': differ['clamp1'],
+                                             'noclamp_differs': differ['noclamp'],
+                                             'python_model_equal': differ['python_model']}
+
+    # (3) Tile streams of the world-specific branches (extended synthetic scenes).
+    rand_state = [12345]
+
+    def crt_rand():
+        rand_state[0] = (rand_state[0] * 214013 + 2531011) & 0xffffffff
+        return (rand_state[0] >> 16) & 0x7fff
+    streams = {'cases': 0, 'matches': 0, 'unsupported': 0, 'calls': 0, 'effects': 0, 'per_world': {}}
+    particles = []
+    client.extra = {CRT_RAND: lambda c: c.ret(crt_rand(), 0),
+                    PARTICLE: lambda c: (particles.append(('effect', c.arg(0)) + c.read_floats(c.arg(1), 3)),
+                                         c.ret(0, 0)),
+                    CHAOS_EFFECTS: ret_with(0)}
+    # seeds whose first rand() % 50 == 0, so world 0x22's water tiles spawn particles
+    particle_seeds = [v for v in range(200000) if ((((v * 214013 + 2531011) & 0xffffffff) >> 16) & 0x7fff) % 50 == 0][:40]
+    for seed, world in enumerate(SPECIAL_WORLDS):
+        scene = synthetic_scene(500 + seed, world, extended=True)
+        if world == 0x22:   # mostly water on layer 1
+            scene['layer1'] = bytes(5 if i % 3 else b for i, b in enumerate(scene['layer1']))
+        client.load_scene(scene)
+        mine_rand = [12345]
+
+        def authored_rand():
+            mine_rand[0] = (mine_rand[0] * 214013 + 2531011) & 0xffffffff
+            return (mine_rand[0] >> 16) & 0x7fff
+        scene['random'] = authored_rand
+        built_scene = authored.scene(scene)
+        effects = scene['effects_out']
+        per = streams['per_world'].setdefault(hex(world), [0, 0, 0])
+        for case in range(120 * scale):
+            xi, yi = g.randrange(1, 254), g.randrange(1, 254)
+            detail = 4 if case % 2 else 0
+            client.uc.mem_write(client.CONFIG + 0x2c, struct.pack('<i', detail))
+            built_scene[0].detail = detail
+            seed_value = particle_seeds[case % len(particle_seeds)] if world == 0x22 else 777 + case
+            for pass_ in (0, 2):
+                rand_state[0] = mine_rand[0] = seed_value
+                del particles[:]
+                del effects[:]
+                client.write('pass_', 'i', [pass_])
+                ok = client.call(TILE, [fbits(float(xi)), fbits(float(yi)), xi, yi, fbits(1.0), 1, 0])
+                status, expected = authored.draw_tile(built_scene, pass_, float(xi), float(yi), xi, yi)
+                streams['cases'] += 1
+                per[0] += 1
+                if status == 4:
+                    streams['unsupported'] += 1
+                    per[2] += 1
+                    continue
+                client_effects = [tuple(e[:2]) + tuple(e[2:]) for e in particles]
+                same = ok and client.stream == expected and client_effects == list(effects)
+                streams['matches'] += int(same)
+                streams['effects'] += len(effects)
+                per[1] += int(same)
+                streams['calls'] += len(expected)
+                if not same and 'first_mismatch' not in streams:
+                    diff = next((i for i, (a, b) in enumerate(zip(client.stream, expected)) if a != b),
+                                min(len(client.stream), len(expected)))
+                    streams['first_mismatch'] = {'world': world, 'tile': [xi, yi], 'pass': pass_, 'ok': ok,
+                                                 'error': client.error, 'at': diff,
+                                                 'client': client.stream[max(0, diff - 2):diff + 6],
+                                                 'authored': expected[max(0, diff - 2):diff + 6],
+                                                 'effects': [client_effects, list(effects)]}
+    client.extra = {}
+    streams['gl_color3f_calls'] = getattr(client, 'color3f', 0)
+    # Python model of the world rules and two negative controls on the same client streams.
+    client.extra = {CHAOS_EFFECTS: ret_with(0)}
+    neg = {'python_model_equal': 0, 'compared': 0, 'generic_scroll_differs': 0, 'generic_blend_differs': 0}
+    for world, wrong in ((0x1e, 0), (0x8d, 0), (0x70, 0), (0x33, 0), (0x5b, 0), (7, 0), (0x3f, 0)):
+        scene = synthetic_scene(900 + world, world, extended=True)
+        client.load_scene(scene)
+        for case in range(60 * scale):
+            xi, yi = g.randrange(1, 254), g.randrange(1, 254)
+            client.write('pass_', 'i', [0])
+            ok = client.call(TILE, [fbits(float(xi)), fbits(float(yi)), xi, yi, fbits(1.0), 1, 0])
+            model = []
+            if py_draw_tile(scene, 0, float(xi), float(yi), xi, yi, model) == 4:
+                continue
+            neg['compared'] += 1
+            neg['python_model_equal'] += int(ok and model == client.stream)
+            other = dict(scene, world=wrong)
+            perturbed = []
+            py_draw_tile(other, 0, float(xi), float(yi), xi, yi, perturbed)
+            key = 'generic_blend_differs' if world in (0x33, 0x5b) else 'generic_scroll_differs'
+            neg[key] += int(perturbed != client.stream)
+    client.extra = {}
+    streams['model_and_negative_controls'] = neg
+    out['world_tile_streams'] = streams
+
+    # (4) CreateFrustrum 0x016cba24, 3D part (up to its CreateFrustrum2D call).
+    cases = matches = 0
+    frustums = []
+    for case in range(40 * scale):
+        rows = random_rotation(g)
+        client.modelview = mat_rows_to_gl(rows)
+        aspect = f32(g.choice([1.0, 1728 / 640.0, 1280 / 640.0, g.uniform(0.5, 4.0)]))
+        view_far = f32(g.choice([2000.0, 2400.0, 3700.0, g.uniform(500, 8000)]))
+        fov = f32(g.choice([30.0, 35.0, 45.0, g.uniform(10, 90)]))
+        position = [f32(g.uniform(-2000, 27000)), f32(g.uniform(-2000, 27000)), f32(g.uniform(0, 3000))]
+        uc.mem_write(VIEW_FAR, struct.pack('<2f', view_far, fov))
+        uc.mem_write(CAMERA_POSITION, struct.pack('<3f', *position))
+        ok = client.call(FRUSTUM, [fbits(aspect), client.CONFIG + 0x500, 0], until=FRUSTUM_3D_STOP)
+        got_v = struct.unpack('<15I', uc.mem_read(F_VERTEX, 60))
+        got_n = struct.unpack('<15I', uc.mem_read(F_NORMAL, 60))
+        got_d = struct.unpack('<5I', uc.mem_read(F_D, 20))
+        got_box = [client.read(n, 'i', 1)[0] for n in ('xmin', 'ymin', 'xmax', 'ymax')]
+        f = authored.frustum_create(aspect, view_far, fov, rows, position)
+        same = (ok and got_v == tuple(fbits(v) for v in f.vertex) and got_n == tuple(fbits(v) for v in f.normal) and
+                got_d == tuple(fbits(v) for v in f.d) and got_box == [f.x_min, f.y_min, f.x_max, f.y_max])
+        cases += 1
+        matches += int(same)
+        frustums.append(f)
+        if not same and 'first_mismatch' not in out.setdefault('frustum_3d', {}):
+            out['frustum_3d']['first_mismatch'] = {'ok': ok, 'error': client.error, 'box': [got_box, [
+                f.x_min, f.y_min, f.x_max, f.y_max]], 'v': [got_v[:6], [fbits(v) for v in f.vertex][:6]]}
+    out.setdefault('frustum_3d', {}).update({'cases': cases, 'matches': matches})
+
+    # (5) CreateFrustrum2D 0x016d20d9 (camera singleton and screen width substituted).
+    camera, sub = client.OBJECTS + 0x8000, client.OBJECTS + 0x8100
+    cases = matches = 0
+    for case in range(60 * scale):
+        world = g.choice([0, 2, 0x3f, 0x8b, 0x86, 142, 0x22, 80])
+        mode = g.choice([0, 1, 2, 3, 4, 5])
+        width = g.choice([640, 800, 1024, 1280, 1728, 1920])
+        k1c, k18, k10 = (f32(g.choice([1.0, g.uniform(0.5, 1.5)])) for _ in range(3))
+        fov = f32(35.0)
+        uc.mem_write(camera, b'\0' * 0x100)
+        uc.mem_write(camera + 0xc, struct.pack('<I', sub))
+        uc.mem_write(camera + 0x10, struct.pack('<f', k10))
+        uc.mem_write(sub, b'\0' * 0x100)
+        uc.mem_write(sub + 0x18, struct.pack('<3f', k18, k1c, fov))
+        uc.mem_write(FOV, struct.pack('<f', fov))
+        client.write('world', 'i', [world])
+        uc.mem_write(SCENE_STATE, struct.pack('<i', 5))
+        uc.mem_write(ZOOM_MODE, struct.pack('<i', mode))
+        uc.mem_write(0x01cf1860, struct.pack('<f', 0.0))
+        uc.mem_write(0x0bdc5ef0, struct.pack('<f', 1.0))
+        angle = [f32(g.uniform(-90, 0)), 0.0, f32(-45.0)]
+        uc.mem_write(CAMERA_ANGLE, struct.pack('<3f', *angle))
+        position = [f32(g.uniform(0, 25600)), f32(g.uniform(0, 25600)), f32(g.uniform(0, 1000))]
+        uc.mem_write(client.CONFIG + 0x500, struct.pack('<3f', *position))
+        wide = g.choice([0, 0, 1])
+        client.extra = {CAMERA_SINGLETON: ret_with(camera), SCREEN_WIDTH: ret_with(width)}
+        uc.mem_write(F_X2D, b'\0' * 32)
+        ok = client.call(FRUSTUM_2D, [client.CONFIG + 0x500, wide])
+        client.extra = {}
+        got = struct.unpack('<8I', uc.mem_read(F_X2D, 32))
+        zoom = fdiv(f32(float(width)), 640.0)
+        cam_scale = fmul(fmul(fmul(zoom, k1c), k18), k10)
+        distance = fmul(fmul(fmul(2400.0, k1c), k18), k10)
+        _, params = authored.params_2d(world, mode, width, cam_scale, distance)
+        status, x2d, y2d = authored.frustum_2d(world, position, angle, params, wide)
+        cases += 1
+        same = ok and status == 0 and got == tuple(fbits(v) for v in x2d + y2d)
+        matches += int(same)
+        if not same and 'first_mismatch' not in out.setdefault('frustum_2d', {}):
+            out['frustum_2d']['first_mismatch'] = {'world': world, 'mode': mode, 'ok': ok, 'error': client.error,
+                                                   'client': got, 'authored': [fbits(v) for v in x2d + y2d]}
+    out.setdefault('frustum_2d', {}).update({'cases': cases, 'matches': matches})
+
+    # (6) TestFrustrum2D 0x016ccce7 (and its Python model; negative control: the range with the wrong sign).
+    cases = matches = model_equal = flipped = 0
+    for case in range(3000 * scale):
+        if case % 500 == 0:
+            xs = [f32(g.uniform(0, 256)) for _ in range(4)]
+            ys = [f32(g.uniform(0, 256)) for _ in range(4)]
+            uc.mem_write(F_X2D, struct.pack('<4f', *xs) + struct.pack('<4f', *ys))
+            state = g.choice([0, 1, 4, 5, 5, 5])
+            uc.mem_write(SCENE_STATE, struct.pack('<i', state))
+        x, y = f32(g.uniform(-10, 266)), f32(g.uniform(-10, 266))
+        r = g.choice([0.0, -80.0, f32(g.uniform(-200, 200))])
+        ok = client.call(TEST_2D, [fbits(x), fbits(y), fbits(r)])
+        got = client.uc.reg_read(client.x86.UC_X86_REG_EAX) & 0xff
+        mine = authored.lib.mu_terrain_test_frustum_2d(floats(xs), floats(ys), state, x, y, r)
+        cases += 1
+        matches += int(ok and got == mine)
+        model_equal += int(got == py_test_frustum_2d(xs, ys, state, x, y, r))
+        flipped += int(state == 5 and got != py_test_frustum_2d(xs, ys, 5, x, y, -r))
+    out['test_frustum_2d'] = {'cases': cases, 'matches': matches, 'python_model_equal': model_equal,
+                              'negative_control_range_sign_differs': flipped}
+
+    # (7) RenderTerrain 0x016cd468 with the frustum tests live (top view off, main scene).
+    cases = matches = 0
+    for case in range(4 * scale):
+        scene = synthetic_scene(700 + case, g.choice([0, 142, 7, 0x3f]), extended=True)
+        client.load_scene(scene)
+        cx, cy = g.uniform(20, 230), g.uniform(20, 230)
+        f = Frustum()
+        f.x_min, f.y_min = max(0, int(cx) - 12) & ~3, max(0, int(cy) - 12) & ~3
+        f.x_max, f.y_max = min(251, f.x_min + 20), min(251, f.y_min + 20)
+        poly = [(cx - 9, cy + 8), (cx + 9, cy + 8), (cx + 3, cy - 6), (cx - 3, cy - 6)]
+        for i, (px, py) in enumerate(poly):
+            f.x2d[i], f.y2d[i] = f32(px), f32(py)
+        for name, value in zip(('xmin', 'ymin', 'xmax', 'ymax'), (f.x_min, f.y_min, f.x_max, f.y_max)):
+            client.write(name, 'i', [value])
+        uc.mem_write(F_X2D, struct.pack('<4f', *f.x2d) + struct.pack('<4f', *f.y2d))
+        uc.mem_write(SCENE_STATE, struct.pack('<i', 5))
+        uc.mem_write(G['force'], b'\0')
+        uc.mem_write(G['alpha_flag'], b'\1')
+        client.extra = {CHAOS_EFFECTS: ret_with(0)}
+        ok = client.call(RENDER, [0], until=RENDER_STOP)
+        client.extra = {}
+        water = struct.unpack('<I', uc.mem_read(WATER_MOVE, 4))[0]
+        status, expected = authored.render(authored.scene(scene), f, 5, 0, 1)
+        cases += 1
+        same = (ok and client.stream == expected and
+                water == fbits(authored.lib.mu_terrain_water_move(scene['world'], scene['time'])))
+        matches += int(same)
+        out.setdefault('render_frustum', {}).setdefault('calls', []).append(len(expected))
+        if not same and 'first_mismatch' not in out['render_frustum']:
+            diff = next((i for i, (a, b) in enumerate(zip(client.stream, expected)) if a != b),
+                        min(len(client.stream), len(expected)))
+            out['render_frustum']['first_mismatch'] = {'ok': ok, 'error': client.error, 'at': diff,
+                                                       'client': client.stream[diff:diff + 4],
+                                                       'authored': expected[diff:diff + 4],
+                                                       'lengths': [len(client.stream), len(expected)]}
+    out['render_frustum'].update({'cases': cases, 'matches': matches})
+
+    # (8) RenderTerrainAlphaBitmap 0x016cdd5f (decals).
+    cases = matches = fans = 0
+    for case in range(60 * scale):
+        world = g.choice([0, 142, 0x8d])
+        scene = synthetic_scene(800 + case % 3, world, extended=True)
+        if case % 3 == 0:
+            client.load_scene(scene)
+            built_scene = authored.scene(scene)
+        x, y = f32(g.uniform(-200, 25800)), f32(g.uniform(-200, 25800))
+        sx, sy = f32(g.choice([1.0, 2.0, 3.5, g.uniform(0.3, 6)])), f32(g.choice([1.0, 2.0, g.uniform(0.3, 6)]))
+        light = [f32(g.random()) for _ in range(3)]
+        rotation = f32(g.choice([0.0, 45.0, g.uniform(-360, 360)]))
+        alpha = f32(g.choice([1.0, 0.5, g.random()]))
+        height = f32(g.choice([0.0, 5.0, g.uniform(-50, 300)]))
+        follow, flip = g.choice([0, 1, 1]), g.choice([0, 0, 1])
+        uc.mem_write(client.CONFIG + 0x600, struct.pack('<3f', *light))
+        texture = g.choice([0x7630, 0x7631, 0x7694])
+        ok = client.call(DECAL, [texture, fbits(x), fbits(y), fbits(sx), fbits(sy), client.CONFIG + 0x600,
+                                 fbits(rotation), fbits(alpha), fbits(height), follow, flip])
+        count, expected = authored.decal(built_scene, texture, x, y, sx, sy, light, rotation, alpha, height,
+                                         follow, flip)
+        cases += 1
+        fans += count
+        same = ok and client.stream == expected
+        matches += int(same)
+        if not same and 'first_mismatch' not in out.setdefault('decal', {}):
+            diff = next((i for i, (a, b) in enumerate(zip(client.stream, expected)) if a != b),
+                        min(len(client.stream), len(expected)))
+            out['decal']['first_mismatch'] = {'ok': ok, 'error': client.error, 'at': diff,
+                                              'client': client.stream[diff:diff + 4],
+                                              'authored': expected[diff:diff + 4],
+                                              'lengths': [len(client.stream), len(expected)]}
+    out.setdefault('decal', {}).update({'cases': cases, 'matches': matches, 'fans': fans})
+    out['substitutions'] = ['QueryPerformanceFrequency / QueryPerformanceCounter / RtlAllocateHeap imports while running handler constructors',
+                            'CRT rand 0x01989721 (MSVC recurrence, fixed seed per case) and CreateParticle '
+                            '0x0168fafd (arguments recorded) in the world-0x22 water tiles',
+                            'Chaos Castle per-face effects 0x009dc0b1 (returns at once)',
+                            'camera singleton 0x0098647b (synthetic camera object) and screen width 0x016bc355 '
+                            'in CreateFrustrum2D',
+                            'glGetFloatv(GL_MODELVIEW_MATRIX) returns the case matrix',
+                            'glColor3f recorded like glColor3fv']
+    report.update(out)
 
 
 def negative_controls(authored):
@@ -1258,9 +1965,11 @@ def installed(args, authored, client):
                  'wave': list(wave), 'wave2': list(wave2),
                  'grass_offset': [(rng.randrange(32768) % 4) / 4.0 for _ in range(CELLS)],
                  'grass_map': bytes([1]) * CELLS, 'water': 0.0, 'time': time, 'detail': 0, 'grass_disabled': 0,
-                 'sizes': installed_sizes(data / f'World{number}')}
+                 'sizes': tool_sizes(args.game_root, world) or installed_sizes(data / f'World{number}'),
+                 'frame_counter': 7, 'hero_z': 150.0}
         client.load_scene(scene)
         built = authored.scene(scene)
+        client.extra = {CHAOS_EFFECTS: ret_with(0)}
         g = random.Random(number)
         tiles = matches = unsupported = 0
         if args.installed_tiles <= 0:
@@ -1268,6 +1977,9 @@ def installed(args, authored, client):
         else:
             coordinates = [(g.randrange(255), g.randrange(255)) for _ in range(args.installed_tiles)]
         for xi, yi in coordinates:
+            detail = 4 if (xi + yi) % 2 else 0   # graphics option >= 4 on half the tiles (0x4000 neighbour faces)
+            client.uc.mem_write(client.CONFIG + 0x2c, struct.pack('<i', detail))
+            built[0].detail = detail
             for pass_ in (0, 2):
                 client.write('pass_', 'i', [pass_])
                 ok = client.call(TILE, [fbits(float(xi)), fbits(float(yi)), xi, yi, fbits(1.0), 1, 0])
@@ -1277,7 +1989,9 @@ def installed(args, authored, client):
                     continue
                 tiles += 1
                 matches += int(ok and client.stream == expected)
-        result['tile_streams'] = {'cases': tiles, 'matches': matches, 'unsupported': unsupported}
+        client.extra = {}
+        result['tile_streams'] = {'cases': tiles, 'matches': matches, 'unsupported': unsupported,
+                                  'bitmaps': len(scene['sizes'])}
         out['compared'][str(number)] = result
     return out
 
@@ -1352,9 +2066,23 @@ def installed_loops(client, authored, data, worlds):
 
 
 def world_is_rgb(world):
-    static = (world in (0x2a, 0x3f, 0x64, 0x65, 0x6e, 0x6f, 0x70, 0x7a) or 0x52 <= world <= 0x5a or
-              0x7b <= world <= 0x85)
-    return static, not static
+    """0x016c9868 with the handler table (NATIVE-TERRAIN-002): nothing is left to the file length."""
+    return bool(py_height_is_rgb(world)), False
+
+
+def tool_sizes(game_root, world):
+    """Bitmap sizes as the native loader resolves them (mu-terrain export trailer), or None."""
+    import subprocess
+    tool = ROOT / 'native/build/mu-terrain'
+    if not tool.exists():
+        return None
+    out = subprocess.run([str(tool), 'export', str(game_root), '--world', str(world)], capture_output=True).stdout
+    trailer = out[out.rfind(b'{"time"'):]
+    try:
+        bitmaps = json.loads(trailer)['bitmaps']
+    except (ValueError, KeyError):
+        return None
+    return {int(k): (float(v[0]), float(v[1])) for k, v in bitmaps.items()}
 
 
 TILE_FILES = ['TileGrass01.OZJ', 'TileGrass02.OZJ', 'TileGround01.OZJ', 'TileGround02.OZJ', 'TileGround03.OZJ',
@@ -1421,6 +2149,8 @@ def main():
                                                    'libterrain.so')))
     parser.add_argument('--game-root')
     parser.add_argument('--grids', type=int, default=3)
+    parser.add_argument('--skip-002', action='store_true', help='skip the NATIVE-TERRAIN-002 checks')
+    parser.add_argument('--scale-002', type=int, default=1, help='multiply the NATIVE-TERRAIN-002 case counts')
     parser.add_argument('--worlds', type=int, default=len(GENERIC_WORLDS))
     parser.add_argument('--tiles', type=int, default=150)
     parser.add_argument('--installed-worlds', type=lambda s: [int(x) for x in s.split(',') if x], default=[1])

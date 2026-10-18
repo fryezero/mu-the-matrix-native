@@ -71,11 +71,20 @@ float mu_terrain_height_scale(int32_t world_index);
 int mu_terrain_height_rgb(const uint8_t *file, size_t size, float *height);
 
 /* 0x016c9868: 1 when the client loads the 24-bit height file for this world
- * index. Static part only: indices 0x2a, 0x3f, 0x52..0x5a, 0x64, 0x65,
- * 0x6e..0x70, 0x7a..0x85. The routine finally asks a configuration object
- * (0x00ea594b / 0x00ea2713, a virtual call) that was not resolved; the
- * returned *unresolved is 1 when that call would decide. */
+ * index. Literal checks: 0x2a, 0x3f, 0x52..0x5a, 0x64, 0x65, 0x6e..0x70,
+ * 0x7a..0x85. Otherwise the routine asks the current world handler
+ * ([[0x01ec91b8] + 0x10], set by OpenWorld through 0x00ea468f) through its
+ * vtable slot 1, which every handler class inherits from 0x00d5cbe3 (return
+ * byte +4). See mu_terrain_world_handler_flag. *unresolved is always 0 now
+ * (kept for the NATIVE-TERRAIN-001 signature). */
 int mu_terrain_height_is_rgb(int32_t world_index, int *unresolved);
+
+/* The world handler table built by 0x00ea488e (one shared handler object per
+ * class, registered for the listed worlds): -1 when no handler is registered
+ * (0x00ea2713 then returns 0), else the handler's byte +4, which the base
+ * constructor 0x00d5c99f clears and only the constructors of the handlers of
+ * worlds 0x86..0x91 set to 1. */
+int mu_terrain_world_handler_flag(int32_t world_index);
 
 /* 0x0185b243: width and height from the BMP info header (file offsets 22 and
  * 26), then width*height pixels of three bytes from offset 58 (bfOffBits is
@@ -172,27 +181,37 @@ typedef struct mu_terrain_scene {
     uint8_t grass_disabled;       /* [0x0b7f5428] */
     mu_terrain_texture_size texture_size;
     void *texture_context;
+    /* NATIVE-TERRAIN-002 (appended; zero = the NATIVE-TERRAIN-001 behaviour) */
+    int32_t frame_counter;        /* [0x0b6b53e0]: (n + 1) % 32 per 40 ms logic step, animated layer frame */
+    int (*random)(void *context); /* CRT rand() 0x01989721 for the world-0x22 water particles; NULL skips them */
+    void (*effect)(void *context, int32_t type, const float position[3], const float light[3]);
+    void *effect_context;         /* passed to random() and effect() */
+    float hero_z;                 /* hero position z ([0x0a39d754] + 0x33ac + 8) used by those particles */
 } mu_terrain_scene;
 
 typedef struct mu_terrain_tile_stats {
     long faces, alpha_faces, grass, skipped, unsupported;
 } mu_terrain_tile_stats;
 
-/* 1 when 0x016cff65 or 0x016cf46c has a world-specific branch for this world
- * index (water variants, animated or additive layers, extra faces). Those
- * branches are not reconstructed; mu_terrain_draw_tile reports them. */
+/* Unported world-specific paths of 0x016cff65 / 0x016cf46c (NATIVE-TERRAIN-002
+ * ported the water/lava scrolls, the per-world blend states, the additive
+ * animated layer, the 0x4000 neighbour face and the world-0x22 particles):
+ * bit 1 = the 0x2000 overlay faces of worlds 0x71 and 0x91 at graphics option
+ * >= 4 (reported per tile as MU_TERRAIN_UNSUPPORTED), bit 2 = the Chaos
+ * Castle per-face effects 0x009dc0b1 (worlds 0x12..0x17, 0x35, 0x61; effect
+ * spawns only, the terrain stream is drawn). 0 for every other world. */
 int mu_terrain_world_has_special_paths(int32_t world_index);
 
-/* 0x016ccda5 followed by 0x016cff65 for one tile, generic world path.
- * pass 0 is the opaque pass ([0x0b5e3ea0] = 0): one face of layer 1 (or of
- * layer 2 when all four alpha values are >= 1), then the alpha face of layer
- * 2 when any alpha value is > 0 and layer 1 was drawn. pass 2 is the grass
- * pass: a GL_QUADS blade where every alpha is <= 0, grass is enabled and
- * the layer-1 grass bitmap exists. Returns MU_TERRAIN_OK, or
- * MU_TERRAIN_UNSUPPORTED (nothing emitted for the unsupported part) when the
- * tile reaches a branch listed in mu_terrain_world_has_special_paths, the
- * 0x4000 neighbour face, or the additive layer-2 faces; or
- * MU_TERRAIN_BAD_INDEX. */
+/* 0x016ccda5 followed by 0x016cff65 for one tile. pass 0 is the opaque pass
+ * ([0x0b5e3ea0] = 0): one face of layer 1 (or of layer 2 when all four alpha
+ * values are >= 1 and attribute bit 0x4000 is clear) with the world's UV
+ * scroll and blend state, the 0x4000 neighbour face at detail >= 4, then
+ * either the additive animated layer (worlds 7, 0x80..0x82, 0x85) or the
+ * alpha face of layer 2 when any alpha value is > 0. pass 2 is the grass
+ * pass: a GL_QUADS blade where every alpha is <= 0, grass is enabled and the
+ * layer-1 grass bitmap exists. Returns MU_TERRAIN_OK, MU_TERRAIN_UNSUPPORTED
+ * (nothing emitted for that part) for a 0x2000 overlay face or a missing
+ * bitmap the client would dereference, or MU_TERRAIN_BAD_INDEX. */
 int mu_terrain_draw_tile(const mu_terrain_scene *scene, int32_t pass, float xf, float yf, int32_t xi, int32_t yi,
                          const mu_terrain_sink *sink, mu_terrain_tile_stats *stats);
 
@@ -233,5 +252,135 @@ void mu_terrain_grass_offsets(uint32_t *rand_state, float *offset);
  * world does not write it. */
 void mu_terrain_wave(int32_t world_index, float time, int alternate, int32_t x_min, int32_t y_min, int32_t x_max,
                      int32_t y_max, float *wave, float *wave2);
+
+/* ---------------------------------------------------------------------------
+ * NATIVE-TERRAIN-002: dynamic lights, animated tiles, frustum, decals.
+ * ------------------------------------------------------------------------- */
+
+/* Light copy of the per-frame update 0x016ca4fa: frame light = primary light
+ * for rows y_min..y_max+3 and columns x_min..x_max+3 of the visible box
+ * (repeat indexing 0x016d34db), bit for bit. The rest of `light` is left
+ * as it was (the client keeps last frame's values there). */
+void mu_terrain_frame_light(const float *primary, float *light, int32_t x_min, int32_t y_min, int32_t x_max,
+                            int32_t y_max);
+
+/* AddTerrainLight 0x016cacfc(x, y, light, range, buffer): x, y in world
+ * units. xf = x / 100, yf = y / 100, xi = (int)xf, yi = (int)yf; rows
+ * yi-range..yi+range outer, columns xi-range..xi+range inner, with float
+ * counters; lf = (range - sqrt(dx*dx + dy*dy)) / range (dx = xf - column,
+ * dy = yf - row, sqrt of the widened value rounded to float, 0x00961a07);
+ * where lf > 0: buffer[repeat(x, y)][k] = light[k] * lf + buffer[k], then
+ * clamped below at 0 (no upper clamp). The client calls it from 204 sites
+ * (objects, characters, items, effects, the selected character of the
+ * character scene 0x01857a0c) between the light copy and RenderTerrain. */
+void mu_terrain_add_light(float x, float y, const float light[3], int32_t range, float *buffer);
+
+/* RenderTerrain's store to [0x0b6b4ea8] (a texture offset no routine in the
+ * captured text reads): world 8 (t % 40000) * 2.5e-5f, 0x2a (t % 50000) *
+ * 2e-5f, 0x5e (t % 20000) * 1e-4f, else (t % 20000) * 5e-5f, t = (int)time.
+ * Only when not picking. */
+float mu_terrain_water_move(int32_t world_index, float time);
+
+/* Additive animated layer texture of RenderTerrainFace (worlds 7, 0x80..0x82
+ * on layer-2 tiles 5, world 0x85 on layer-2 tiles 4): 0x7630 + 200 +
+ * frame_counter, i.e. the 32 bitmaps 0x76f8 + n that the world loader
+ * 0x018392db loads from Object131\wt%02d.jpg (worlds 0x80..0x82) or
+ * Object8\wt%02d.jpg (every other world), GL_LINEAR/GL_REPEAT. */
+int32_t mu_terrain_animated_texture(int32_t frame_counter);
+
+/* Frustum of CreateFrustrum 0x016cba24 (aspect, position, flag). */
+typedef struct mu_terrain_frustum {
+    float vertex[5][3];      /* 0x0bdb5430: apex (camera) then the four far corners */
+    float normal[5][3];      /* 0x0bdb546c: FaceNormalize of (0,1,2) (0,2,3) (0,3,4) (0,4,1) (3,2,1) */
+    float d[5];              /* 0x0b6b53e4: -(v . n), v = vertex 0 for faces 0..3, vertex 1 for face 4 */
+    int32_t x_min, y_min, x_max, y_max; /* 0x0b6b53f8, 0x0b6b53fc, 0x01cf15e0, 0x01cf15e4 */
+    float x2d[4], y2d[4];    /* 0x0b6b5400, 0x0b6b5410: CreateFrustrum2D polygon in tile units */
+} mu_terrain_frustum;
+
+/* The 3D part of 0x016cba24, up to its CreateFrustrum2D call:
+ *   distance = view_far * 0.9f ([0x01cf1630])
+ *   width = tan(fov * 0.5f * 3.141592f / 180.0f) * distance * aspect + 100.0f
+ *           (fov [0x01cf1634], tan of the widened value rounded to float)
+ *   height = width * 3.0f / 4.0f
+ *   corners (0,0,0), (-w, h, -d), (w, h, -d), (w, -h, -d), (-w, -h, -d)
+ *   vertex[i] = VectorIRotate(corner, modelview) + camera_position
+ * modelview is the 3x4 row-major matrix the client reads with
+ * glGetFloatv(GL_MODELVIEW_MATRIX) (0x0184a569: m[i][j] = gl[4j + i]).
+ * The bounding box of the five vertices starts at (25600, 25600, 0, 0); each
+ * bound is (int)(v / 100) / 4 * 4 -+ 4 and clamped to 0..251. */
+void mu_terrain_frustum_create(float aspect, float view_far, float fov, const float modelview[12],
+                               const float camera_position[3], mu_terrain_frustum *frustum);
+
+/* Distances of CreateFrustrum2D 0x016d20d9 (selected by the camera zoom
+ * mode, see mu_terrain_frustum_2d_params). */
+typedef struct mu_terrain_frustum_2d_params {
+    float distance;        /* [ebp-0x10] */
+    float near_offset;     /* [ebp-0x2c] */
+    float back_offset;     /* [ebp-0x28] */
+    float width_far;       /* [ebp-0x20] */
+    float width_near;      /* [ebp-0x24] */
+} mu_terrain_frustum_2d_params;
+
+/* The zoom-mode switch of 0x016d20d9 ([0x0bdb5880], 0..5) for the main
+ * scene (scene state 5, world not 6):
+ *   mode 1..5: s = screen_width / 640.0f + 0.1f; distance 2700, 3000, 3300,
+ *              3400, 3400; offsets distance * 0.19f and distance * 0.47f;
+ *              widths (1200, 540), (1300, 540), (1500, 580), (1600, 660),
+ *              (1600, 660) times s;
+ *   mode 0:    s = camera_scale (0x0098ac7c: screen_width / 640 * [c+0xc]->+0x1c
+ *              * +0x18 * [c+0x10]); distance = distance_2400 (0x0098ac45(2400.0f));
+ *              offsets 0.19 / 0.47 (0.35 in world 0x3f), widths 1190*s (1900*s
+ *              in 0x3f), 540*s. (Outside scene states 3 and 5 world 0x8b uses
+ *              s = 5; scene state 3 never takes the 0x3f variant.)
+ * Returns 0 for an unknown mode (the client then keeps zeros). */
+int mu_terrain_frustum_2d_params_for(int32_t world_index, int32_t mode, int32_t screen_width, float camera_scale,
+                                     float distance_2400, mu_terrain_frustum_2d_params *params);
+
+/* The geometric part of 0x016d20d9 after the switch:
+ *   wide (second argument): width_far *= 1.51f, width_near *= 1.2f
+ *   lift = max(0, cos((a + camera_angle[0]) * 0.017453292f) * 10 - 9.2f) * distance,
+ *          a = 71 (67 in worlds 0x86 and 0x8b), max = 0x0184f93f
+ *   p0 = (-wf, (distance - back) + lift, 0), p1 = (wf, same, 0),
+ *   p2 = (wn, near - back, 0),               p3 = (-wn, same, 0)
+ *   angle = (0, 0, 45) (world 0x49 and the "webzen" world 6 use the camera
+ *          angle instead: not reconstructed, returns MU_TERRAIN_UNSUPPORTED)
+ *   x2d[i] = (VectorRotate(p_i, AngleMatrix(angle))[0] + position[0]) * 0.01f,
+ *   y2d likewise with component 1.
+ * The routine first re-applies the camera field of view when the camera
+ * object's value differs from [0x01cf1634]; that side effect is not part of
+ * this function. */
+int mu_terrain_frustum_2d(int32_t world_index, const float position[3], const float camera_angle[3],
+                          const mu_terrain_frustum_2d_params *params, int wide, float x2d[4], float y2d[4]);
+
+/* TestFrustrum2D 0x016ccce7(x, y, range): 1 when scene_state ([0x01d1df70])
+ * is 1..4, else for i = 0..3 with j the previous corner (3 for i = 0):
+ * d = (x2d[i] - x) * (y2d[j] - y) - (x2d[j] - x) * (y2d[i] - y); returns 0 as
+ * soon as range >= d (comiss), 1 after the four edges. */
+int mu_terrain_test_frustum_2d(const float x2d[4], const float y2d[4], int32_t scene_state, float x, float y,
+                               float range);
+
+/* RenderTerrain 0x016cd468 (not picking) with the client's visibility:
+ * blocks of 4 x 4 tiles over the frustum box, a block is walked when
+ * TestFrustrum2D(bx + 2, by + 2, -80) passes or top_view ([0x0bdc58b7]) is
+ * set, a tile when TestFrustrum2D(x + 0.5, y + 0.5, 0) passes or top_view.
+ * Same passes and states as mu_terrain_draw. */
+int mu_terrain_render(const mu_terrain_scene *scene, const mu_terrain_frustum *frustum, int32_t scene_state,
+                      int top_view, int alpha_layers, const mu_terrain_sink *sink, mu_terrain_tile_stats *stats);
+
+/* RenderTerrainAlphaBitmap 0x016cdd5f(texture, x, y, size_x, size_y, light,
+ * rotation, alpha, height, follow, flip): a texture laid on the terrain
+ * (shadows, magic circles, selection rings; 460 call sites). glColor3fv(light)
+ * when alpha == 1 (ucomiss), else glColor4f(light, alpha); bind(texture);
+ * then for every tile y, x in -n..n (float counters, n = (int)max(size_x,
+ * size_y) + 1) around (int)(x / 100), (int)(y / 100) that 0x016d2050 accepts
+ * (index in range, attribute bit 0x200 clear; world 0x8d also refuses bit 8
+ * and layer-1 tile 14), the texture coordinates of the four tile corners,
+ * rotated about (0.5, 0.5) by AngleMatrix(0, 0, rotation) and stretched by
+ * size_x / size_y in u, go to 0x016d197d: one GL_TRIANGLE_FAN with corners at
+ * terrain height + height (follow != 0) or at height, v flipped (1 - v) when
+ * flip != 0. Returns the number of fans. */
+long mu_terrain_decal(const mu_terrain_scene *scene, int32_t texture, float x, float y, float size_x, float size_y,
+                      const float light[3], float rotation, float alpha, float height, int follow, int flip,
+                      const mu_terrain_sink *sink);
 
 #endif

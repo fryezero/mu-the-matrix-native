@@ -102,6 +102,11 @@ The script language and the engine's platform choices are described in `core/mu_
 `core/mu_audio.h`; the client logic it runs is `reconstructed/audio` ([finding](../docs/research/client-audio.md)).
 MP3/OGG decode through AudioToolbox on macOS only.
 
+NATIVE-TERRAIN-002 ([finding](../docs/research/client-terrain-frame.md)): `mu-terrain render` takes
+`--light X,Y,R,G,B,RANGE`, `--decal X,Y,SIZE,ROT`, `--detail 4`, `--frustum HX,HY` (client culling around a hero
+position) and `--legacy`; `mu-viewer --terrain` toggles lights (L), the client frustum (F), a decal (K) and the
+graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now draw.
+
 ## Layout
 
 | Path | Role |

@@ -62,9 +62,9 @@ groups (`0x018308d6`: Blood Castle → 12, Chaos Castle → 19, Kalima → 25, `
   * 24-bit `0x016c8746`: skips 4 + 14 + 40 bytes; per cell `b2 | b1 << 8 | b0 << 16`, converted through
     binary64, `+ -500.0f`.
   * The selector's literal checks name worlds 0x2a, 0x3f, 82..90, 100, 101, 110..112, 122..133. Otherwise a
-    virtual call on a runtime world object (`0x00ea594b` → `0x00ea2713`) decides; it is not statically
-    recoverable. Every literal 24-bit world ships a 196,666-byte file and the others 66,620 or 196,666 bytes,
-    so the viewer uses the file length when the literal checks do not decide (27 folders are 24-bit).
+    virtual call on a runtime world object (`0x00ea594b` → `0x00ea2713`) decides. NATIVE-TERRAIN-002 resolved
+    it: only the handlers of worlds 134..145 answer 1 ([client-terrain-frame.md](client-terrain-frame.md));
+    the viewer no longer uses the file length (World67 has a 24-bit file the client reads as 8-bit).
 * **`TerrainLight.OZB`** (`0x0185b243` via `0x016cb561`): skips 4 bytes, reads the 14+40-byte headers,
   then `width × height` triples from file offset 58 in file order as `(R, G, B) / 255.0f` →
   `0x0bb75430`. **`TerrainLight_2.OZB`** (`0x016cb624`, World38 and World146 only) gives an additive offset
@@ -191,6 +191,10 @@ Headless GL agrees with the software renderer up to rasterization differences: 3
 edges. The windowed view ran at about 13 fps with every tile drawn in immediate mode.
 
 ## Unresolved
+
+NATIVE-TERRAIN-002 ([client-terrain-frame.md](client-terrain-frame.md)) resolved the 24-bit height choice and
+ported dynamic lights, the world-specific tiles, decals and the frustum box; what remains of the list below is
+noted there.
 
 * `.obj` decoding (section 5), hence objects, their BMD models and object lighting.
 * Runtime-object predicates: the 24-bit height choice for unlisted worlds, the event check `0x00db747f`

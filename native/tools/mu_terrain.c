@@ -3,7 +3,13 @@
  *   mu-terrain info    ROOT --world N            JSON load report of Data/World<folder>
  *   mu-terrain render  ROOT --world N --out PNG  software-rasterized view; prints the
  *                      [--width W --height H --target X,Y --yaw D --pitch D
- *                       --distance U --fov D --time MS --box X0,Y0,X1,Y1 --seed S --no-textures]
+ *                       --distance U --fov D --time MS --box X0,Y0,X1,Y1 --seed S --no-textures
+ *                       --light X,Y,R,G,B,RANGE ...   AddTerrainLight sources (NATIVE-TERRAIN-002)
+ *                       --decal X,Y,SIZE,ROTATION ... Effect\flare01 decals (additive)
+ *                       --detail N                    graphics option (>= 4: 0x4000 neighbour faces)
+ *                       --frustum HX,HY [--zoom M --camera-angle D --view-far U --top-view]
+ *                                                     client visibility around the hero position
+ *                       --legacy]                     NATIVE-TERRAIN-001 behaviour (whole box, no lights)
  *                                                SHA-256 of the raw RGBA pixels
  *   mu-terrain decrypt FILE                      EncTerrain .map/.att plaintext to stdout
  *   mu-terrain export  ROOT --world N            grids as raw little-endian arrays + JSON trailer
@@ -29,6 +35,13 @@ typedef struct args {
     int have_target, textures;
     int32_t box[4];
     uint32_t seed;
+    float lights[16][6];
+    int light_count;
+    float decals[16][4];
+    int decal_count;
+    int32_t detail, zoom;
+    float hero[2], camera_angle, view_far;
+    int have_frustum, top_view, legacy;
 } args;
 
 static int parse(args *a, int argc, char **argv)
@@ -47,6 +60,9 @@ static int parse(args *a, int argc, char **argv)
     a->box[1] = 0;
     a->box[2] = 251;
     a->box[3] = 251;
+    a->zoom = 3;
+    a->camera_angle = -48.5f;
+    a->view_far = 3000.0f;
     if (argc < 3)
         return 1;
     a->command = argv[1];
@@ -56,6 +72,14 @@ static int parse(args *a, int argc, char **argv)
         const char *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--no-textures")) {
             a->textures = 0;
+            continue;
+        }
+        if (!strcmp(k, "--top-view")) {
+            a->top_view = 1;
+            continue;
+        }
+        if (!strcmp(k, "--legacy")) {
+            a->legacy = 1;
             continue;
         }
         if (!v)
@@ -71,6 +95,27 @@ static int parse(args *a, int argc, char **argv)
         else if (!strcmp(k, "--fov")) a->fov = strtof(v, NULL);
         else if (!strcmp(k, "--time")) a->time = strtof(v, NULL);
         else if (!strcmp(k, "--seed")) a->seed = (uint32_t)strtoul(v, NULL, 10);
+        else if (!strcmp(k, "--detail")) a->detail = atoi(v);
+        else if (!strcmp(k, "--zoom")) a->zoom = atoi(v);
+        else if (!strcmp(k, "--camera-angle")) a->camera_angle = strtof(v, NULL);
+        else if (!strcmp(k, "--view-far")) a->view_far = strtof(v, NULL);
+        else if (!strcmp(k, "--light")) {
+            if (a->light_count >= 16)
+                return 1;
+            float *l = a->lights[a->light_count++];
+            if (sscanf(v, "%f,%f,%f,%f,%f,%f", &l[0], &l[1], &l[2], &l[3], &l[4], &l[5]) != 6)
+                return 1;
+        } else if (!strcmp(k, "--decal")) {
+            if (a->decal_count >= 16)
+                return 1;
+            float *d = a->decals[a->decal_count++];
+            if (sscanf(v, "%f,%f,%f,%f", &d[0], &d[1], &d[2], &d[3]) != 4)
+                return 1;
+        } else if (!strcmp(k, "--frustum")) {
+            if (sscanf(v, "%f,%f", &a->hero[0], &a->hero[1]) != 2)
+                return 1;
+            a->have_frustum = 1;
+        }
         else if (!strcmp(k, "--target")) {
             if (sscanf(v, "%f,%f", &a->target[0], &a->target[1]) != 2)
                 return 1;
@@ -132,7 +177,9 @@ static int command_render(const args *a)
     mu_world *w = load(a, a->textures);
     if (!w)
         return 1;
-    mu_world_frame(w, a->time);
+    w->detail = a->detail;
+    if (!a->legacy && a->decal_count)
+        mu_world_load_extra(w, a->root, 0x7ef7, "Effect/flare01.jpg", 1, 1); /* 0x7ef7: LINEAR, CLAMP */
     mu_raster raster;
     if (mu_raster_init(&raster, a->width, a->height)) {
         mu_world_free(w);
@@ -156,15 +203,68 @@ static int command_render(const args *a)
     static const uint8_t background[4] = {0, 0, 0, 255};
     mu_raster_clear(&raster, background);
     mu_world_draw_stats stats;
-    int status = mu_world_draw_raster(w, &raster, a->box[0], a->box[1], a->box[2], a->box[3], &stats);
+    mu_terrain_frustum frustum;
+    int status, frustum_status = -1;
+    if (a->have_frustum && !a->legacy) {
+        /* the client's view around the hero: rows of the camera that looks at the hero */
+        mu_camera client = camera;
+        client.target[0] = a->hero[0];
+        client.target[1] = a->hero[1];
+        client.target[2] = mu_world_height_at(w, a->hero[0], a->hero[1]);
+        client.yaw = -45.0f;                      /* the client's fixed CameraAngle[2] direction */
+        client.pitch = 90.0f + a->camera_angle;
+        client.distance = 1000.0f;
+        float view[16], eye[3];
+        mu_camera_view(&client, view);
+        mu_camera_eye(&client, eye);
+        float rows[12];
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 4; ++j)
+                rows[4 * i + j] = view[4 * j + i];
+        const float hero[3] = {a->hero[0], a->hero[1], client.target[2]};
+        frustum_status = mu_world_client_frustum(w, rows, eye, hero, a->camera_angle, a->width, a->zoom,
+                                                 a->view_far, a->fov, &frustum);
+        mu_world_frame_box(w, a->time, frustum.x_min, frustum.y_min, frustum.x_max, frustum.y_max);
+    } else {
+        mu_world_frame(w, a->time);
+    }
+    if (!a->legacy)
+        for (int i = 0; i < a->light_count; ++i) {
+            const float *l = a->lights[i];
+            const float rgb[3] = {l[2], l[3], l[4]};
+            mu_world_add_light(w, l[0], l[1], rgb, (int32_t)l[5]);
+        }
+    if (a->legacy) {
+        w->detail = 0;
+        status = mu_world_draw_raster(w, &raster, a->box[0], a->box[1], a->box[2], a->box[3], &stats);
+    } else if (a->have_frustum)
+        status = mu_world_draw_raster_view(w, &raster, &frustum, 5, a->top_view, &stats);
+    else
+        status = mu_world_draw_raster(w, &raster, a->box[0], a->box[1], a->box[2], a->box[3], &stats);
+    long decal_fans = 0;
+    if (!a->legacy)
+        for (int i = 0; i < a->decal_count; ++i) {
+            const float *d = a->decals[i];
+            static const float white[3] = {1.0f, 1.0f, 1.0f};
+            decal_fans += mu_world_decal_raster(w, &raster, 0x7ef7, d[0], d[1], d[2], d[2], white, d[3], 1.0f, 5.0f,
+                                                1, 0, MU_TERRAIN_STATE_ADDITIVE);
+        }
     char hash[65];
     mu_sha256_hex(raster.color, (uint64_t)a->width * (uint64_t)a->height * 4, hash);
     int failed = a->out && mu_png_write(a->out, raster.color, a->width, a->height);
     printf("{\"sha256\": \"%s\", \"status\": %d, \"faces\": %ld, \"alpha_faces\": %ld, \"grass\": %ld, "
            "\"skipped\": %ld, \"unsupported\": %ld, \"missing_texture_binds\": %ld, \"triangles\": %ld, "
-           "\"fragments\": %ld}\n",
+           "\"fragments\": %ld, \"lights\": %d, \"decal_fans\": %ld, \"frame_counter\": %d",
            hash, status, stats.tiles.faces, stats.tiles.alpha_faces, stats.tiles.grass, stats.tiles.skipped,
-           stats.tiles.unsupported, stats.missing_texture_binds, raster.triangles, raster.fragments);
+           stats.tiles.unsupported, stats.missing_texture_binds, raster.triangles, raster.fragments,
+           a->legacy ? 0 : a->light_count, decal_fans, w->frame_counter);
+    if (frustum_status >= 0)
+        printf(", \"frustum_status\": %d, \"frustum_box\": [%d, %d, %d, %d], \"frustum_2d\": [%.3f, %.3f, %.3f, "
+               "%.3f, %.3f, %.3f, %.3f, %.3f]",
+               frustum_status, frustum.x_min, frustum.y_min, frustum.x_max, frustum.y_max, (double)frustum.x2d[0],
+               (double)frustum.y2d[0], (double)frustum.x2d[1], (double)frustum.y2d[1], (double)frustum.x2d[2],
+               (double)frustum.y2d[2], (double)frustum.x2d[3], (double)frustum.y2d[3]);
+    printf("}\n");
     mu_raster_free(&raster);
     mu_world_free(w);
     return failed;
