@@ -15,15 +15,19 @@ MUKIT_BOTTLES_DIR=${MUKIT_BOTTLES_DIR:-$HOME/Library/Application Support/CrossOv
 # defeats the check, so do not set these for a real install.
 MUKIT_MAIN_EXE_SHA256=${MUKIT_MAIN_EXE_SHA256:-3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a}
 MUKIT_LAUNCHER_EXE_SHA256=${MUKIT_LAUNCHER_EXE_SHA256:-c32e99ee98fc0773f850f9e76b160a9a00c867f4d745bf9e66c4b15d7f74bc3e}
-# Prebuilt mugl DLLs (supplied by the user with --dll-dir, never in this repository): v7.5 is the default
-# (MAC-PERF-009: native shadows, decals, mesh append); v7.2 (precise frame pacing waits, MAC-PERF-006),
+# Prebuilt mugl DLLs (supplied by the user with --dll-dir, never in this repository): v7.6 is the default
+# (MAC-PERF-010: native JPEG decode, faster map loads), v7.5 (MAC-PERF-009: native shadows, decals, mesh append); v7.2 (precise frame pacing waits, MAC-PERF-006),
 # v7.1 and v7.0 stay selectable as rollbacks.
+MUKIT_MUGL_V76_SHA256=${MUKIT_MUGL_V76_SHA256:-985d1e3cc9f47f1af1e87aac9b1a974cc5cae41443f8cb0fe5dd499d73565a25}
 MUKIT_MUGL_V75_SHA256=${MUKIT_MUGL_V75_SHA256:-95e43657c677170e0ea7335ebb63f303d882367229e7a0b5e0849992e8f343b5}
 MUKIT_MUGL_V72_SHA256=${MUKIT_MUGL_V72_SHA256:-e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60}
 MUKIT_MUGL_V71_SHA256=${MUKIT_MUGL_V71_SHA256:-85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2}
 MUKIT_MUGL_V70_SHA256=${MUKIT_MUGL_V70_SHA256:-c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c}
-MUKIT_MUGL_DEFAULT_VERSION=v75
-# Hotpatch masks (C:\mutools\mugl-hotpatch.txt). v7.5's built-in default is 44916143: v7.4's 875951 plus
+MUKIT_MUGL_DEFAULT_VERSION=v76
+# Hotpatch masks (C:\mutools\mugl-hotpatch.txt). The kit default 112025007 is v7.5's 44916143 plus 67108864 native
+# JPEG decode (v7.6, MAC-PERF-010; the kit's own --mugl-build private needs LJT_DIR from
+# mac-play/hotpatch/build-libjpeg-turbo.sh for it), deliberately without v7.6's CRC bit 268435456.
+# v7.5's built-in default is 44916143: v7.4's 875951 plus
 # 2097152 native body shadows, 8388608 native terrain decals and 33554432 the specialised mesh-draw append
 # (MAC-PERF-009). v7.4's 875951 is v7.1's 7599
 # (1|2|4|8 helpers/inlining/peephole/xform, 32|128|256 meshdraw, 1024 frame pacing fix,
@@ -31,10 +35,10 @@ MUKIT_MUGL_DEFAULT_VERSION=v75
 # batching, 262144 deferred client-array enables and 524288 off-screen culling (v7.4). Older builds read
 # fewer bits of the same value and see their own default: v7.4 21 bits (875951), v7.3 16 bits (23983), v7.1/v7.2 14 bits (7599),
 # v7.0 5 bits (15). 6575 = v7.1's default without the frame pacing fix.
-MUKIT_HOTPATCH_DEFAULT=44916143
+MUKIT_HOTPATCH_DEFAULT=112025007
 MUKIT_HOTPATCH_V70_BITS=15
-MUKIT_HOTPATCH_MAX=67108863            # v7.5 masks the value with 67108863 (26 bits)
-MUKIT_HOTPATCH_OLD_DEFAULTS="15 7599 875951"  # values earlier kit versions wrote; upgraded without --reset-config
+MUKIT_HOTPATCH_MAX=2147483647          # 31 bits; v7.6 reads 30 (v7.5 masks the value with 67108863, 26 bits)
+MUKIT_HOTPATCH_OLD_DEFAULTS="15 7599 875951 44916143"  # values earlier kit versions wrote; upgraded without --reset-config
 MUKIT_MSCOREE_PROXY_SHA256=${MUKIT_MSCOREE_PROXY_SHA256:-6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac}
 # CrossOver 26.3 i386 builtin opengl32.dll (informational; verify compares to the installed CrossOver).
 MUKIT_CX263_OPENGL32_SHA256=0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56
@@ -260,11 +264,12 @@ mukit_screen_size() {
 
 # ---------------------------------------------------------------- mutools config values
 mukit_mugl_mode_valid() { [[ "$1" =~ ^(full|nomerge|nofilter|off|nodraw)(\+vbo)?(\+time)?(\+finish)?(\+samples)?(\+cull)?$ ]]; }
-mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,8}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ]; }
+mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,10}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ]; }
 
-# mukit_mugl_version_sha VERSION -> pinned SHA-256 of mugl/builds/mugl-VERSION.dll (v75 | v72 | v71 | v70).
+# mukit_mugl_version_sha VERSION -> pinned SHA-256 of mugl/builds/mugl-VERSION.dll (v76 | v75 | v72 | v71 | v70).
 mukit_mugl_version_sha() {
     case "$1" in
+        v76) printf '%s\n' "$MUKIT_MUGL_V76_SHA256" ;;
         v75) printf '%s\n' "$MUKIT_MUGL_V75_SHA256" ;;
         v72) printf '%s\n' "$MUKIT_MUGL_V72_SHA256" ;;
         v71) printf '%s\n' "$MUKIT_MUGL_V71_SHA256" ;;
@@ -273,9 +278,10 @@ mukit_mugl_version_sha() {
     esac
 }
 
-# mukit_mugl_identify SHA -> "v7.5" / "v7.2" / "v7.1" / "v7.0" for the pinned builds (returns 1 otherwise).
+# mukit_mugl_identify SHA -> "v7.6" / "v7.5" / "v7.2" / "v7.1" / "v7.0" for the pinned builds (returns 1 otherwise).
 mukit_mugl_identify() {
     case "$1" in
+        "$MUKIT_MUGL_V76_SHA256") echo v7.6 ;;
         "$MUKIT_MUGL_V75_SHA256") echo v7.5 ;;
         "$MUKIT_MUGL_V72_SHA256") echo v7.2 ;;
         "$MUKIT_MUGL_V71_SHA256") echo v7.1 ;;

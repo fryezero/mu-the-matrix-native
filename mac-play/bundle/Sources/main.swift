@@ -92,6 +92,7 @@ final class SettingsWindowController: NSWindowController {
     private let startNote = label("Hold ⌥ Option while opening the app to see this window again.", small: true)
     private let status = label("", small: true)
     private var bottleNames: [String] = []
+    private var grid: NSGridView?
 
     init(settings: LauncherSettings) {
         self.settings = settings
@@ -148,6 +149,7 @@ final class SettingsWindowController: NSWindowController {
             [NSGridCell.emptyContentView, startCheck],
             [NSGridCell.emptyContentView, startNote],
         ])
+        self.grid = grid
         grid.column(at: 0).xPlacement = .trailing
         grid.rowSpacing = 8
         grid.columnSpacing = 8
@@ -226,6 +228,8 @@ final class SettingsWindowController: NSWindowController {
             installState.stringValue = "Uses a CrossOver bottle chosen below."
         }
         fastCheck.isEnabled = true
+        // Rows 2 (Bottle), 6 and 7 (Timewalker folder and note) only apply to the CrossOver runtime.
+        for r in [2, 6, 7] where r < (grid?.numberOfRows ?? 0) { grid?.row(at: r).isHidden = isFree }
         fastCheck.title = isFree ? "Fast x87 math for main.exe (rosetta-timewalker; used when installed)"
                                  : "Run main.exe through rosetta-timewalker (fast x87 math)"
     }

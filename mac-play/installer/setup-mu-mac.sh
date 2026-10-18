@@ -45,13 +45,13 @@ Usage: setup-mu-mac.sh [options]
                          build: compile from this repository with MinGW (mac-play/mugl or, with
                          --mugl-build private, your own hotpatch build, plus mac-play/mumodes' mscoree proxy).
                          prebuilt: install the pinned DLLs from --dll-dir (see README: they are not in the repo).
-  --dll-dir DIR          Directory with your prebuilt mugl-v75.dll (or v72/v71/v70) and mscoree.dll
+  --dll-dir DIR          Directory with your prebuilt mugl-v76.dll (or v75/v72/v71/v70) and mscoree.dll
                          (SHA-256 pinned; env MU_DLL_DIR). Required with --dll-source prebuilt.
   --mugl-dll FILE        Install exactly this opengl32.dll (mugl) build, e.g. the one bundled in Mu The Matrix.app;
                          pinned builds are recognised, others are installed with a warning (implies --dll-source files).
   --mscoree-dll FILE     Install exactly this mscoree.dll proxy (with --mugl-dll; built from source when omitted
                          and MinGW is present, otherwise skipped).
-  --mugl-version V       v75 (default, current best) | v72 | v71 | v70 (rollbacks). Only with --dll-source prebuilt.
+  --mugl-version V       v76 (default, current best) | v75 | v72 | v71 | v70 (rollbacks). Only with --dll-source prebuilt.
   --mugl-build B         public (default): the repository's batching-only mac-play/mugl. private: the DLL you
                          generated with mac-play/hotpatch (build/private/opengl32.dll; never redistribute it).
                          Only with --dll-source build.
@@ -59,9 +59,10 @@ Usage: setup-mu-mac.sh [options]
                          to seed winetricks' cache; otherwise winetricks downloads it (env MU_DOTNET48_INSTALLER).
   --helpers-dir DIR      Where muinput.exe / clickstart.exe come from (default: mac-play/diagnostics/build/diagnostics,
                          created by 'make mac-diagnostics'); optional, only autologin tools use them.
-  --hotpatch-mask N      C:\mutools\mugl-hotpatch.txt (default 44916143 = v7.5 default; older builds read
-                         fewer bits and see their own default: v7.4 875951, v7.3 23983, v7.1/v7.2 7599, v7.0 15).
-                         A file holding an earlier kit default (15, 7599, 875951) is upgraded.
+  --hotpatch-mask N      C:\mutools\mugl-hotpatch.txt (default 112025007 = v7.5's 44916143 + v7.6 JPEG decode 67108864,
+                         without the CRC bit; older builds read fewer bits and see their own default: v7.5 44916143,
+                         v7.4 875951, v7.3 23983, v7.1/v7.2 7599, v7.0 15).
+                         A file holding an earlier kit default (15, 7599, 875951, 44916143) is upgraded.
   --no-mugl              Do not install the OpenGL proxy (plain Wine OpenGL; ~4 fps in world).
   --no-stats             Do not set HKCU\Environment MUGL_STATS.
   --reset-config         Overwrite existing C:\mutools config files and LauncherOption.if values.
@@ -322,7 +323,7 @@ preflight() {
         [ -n "$DLL_DIR" ] || mukit_die '--dll-source prebuilt needs --dll-dir (or MU_DLL_DIR) with your pinned mugl/mscoree DLLs; the repository does not ship them. Use the default --dll-source build otherwise.'
         [ -d "$DLL_DIR" ] || mukit_die "--dll-dir not found: $DLL_DIR"
     fi
-    mukit_mugl_version_sha "$MUGL_VERSION" >/dev/null || mukit_die '--mugl-version must be v75, v72, v71 or v70'
+    mukit_mugl_version_sha "$MUGL_VERSION" >/dev/null || mukit_die '--mugl-version must be v76, v75, v72, v71 or v70'
     mukit_hotpatch_valid "$HOTPATCH_MASK" || mukit_die "--hotpatch-mask must be 0-$MUKIT_HOTPATCH_MAX"
     [ $((HOTPATCH_MASK & MUKIT_HOTPATCH_V70_BITS)) = "$MUKIT_HOTPATCH_V70_BITS" ] ||
         mukit_warn "--hotpatch-mask $HOTPATCH_MASK turns off some of the v7.0 base patches (bits 1|2|4|8); expect lower fps."
