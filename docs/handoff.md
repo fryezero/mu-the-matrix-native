@@ -1309,3 +1309,20 @@ installed client). Captures stay local in `~/Documents/mu-mac-tools/native/rende
 **Next:** draw the World95 login world behind the server list (record camera, like character select); reconstruct
 the main-scene init and the startup loader's steps; replace the offline session with the network layer once that is
 in scope.
+
+## GFx interface through Ruffle (NATIVE-GFX-001)
+
+Branch `claude/native-gfx`. Read [`research/native-gfx.md`](research/native-gfx.md).
+
+**Build.** `native/gfx/fetch-ruffle.sh` (Ruffle `nightly-2026-10-17`, commit `061b39b0…`, into `$MU_GFX_DEPS`;
+Temurin JDK if no `java`), then `native/gfx/build-mugfx.sh` (Rust via rustup; `mugfx`, `mugfx-shot`,
+`native/build/mu-gfx-window`). Not part of `make test`; CI skips the Ruffle test.
+
+**Checks.** `native/tests/test_native_gfx.py`: 10 portable tests, plus 2 private ones with
+`MU_RECOVERY_INTEGRATION=1`. `gfx_inventory.py` gives the inventory and `ruffle_survey.py` the 179-movie
+survey. Renders are local in `~/Documents/mu-mac-tools/native/renders/gfx/` (`proto/`, `survey/`).
+
+**Next:** AS2 polyfills or Ruffle patches for `onReleaseAux`, `hitTestDisable` and the CLIK focus extensions.
+Then decode `DefineCompactedFont`, register device fonts and wire keyboard/IME. Make the integration zero-copy
+(per-window viewports, shared textures). Wire CharacterInfoFrame and the item-hover tooltip.
+

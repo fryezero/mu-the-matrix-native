@@ -98,3 +98,14 @@ but does not vendor, these separately installed libraries:
 The viewer also links the system OpenGL (Apple OpenGL framework, or `libGL` on Linux). The repository
 does not ship viewer binaries. Renders and decoded textures of installed game assets stay local and
 are covered by the game-data boundary above.
+
+## GFx prototype (NATIVE-GFX-001)
+
+`native/gfx/mugfx` links Ruffle (https://github.com/ruffle-rs/ruffle, MIT OR Apache-2.0) and its crates. They
+come from a pinned checkout that `native/gfx/fetch-ruffle.sh` clones outside the repository. No Ruffle source
+or binary is included here. The dependency graph (`native/gfx/mugfx/Cargo.lock`, 317 crates) is under
+MIT/Apache-2.0/Zlib/ISC/BSD/Unicode-3.0/Unlicense terms. Ruffle's `default_font` embeds a Noto Sans subset
+(OFL-1.1). Anyone distributing a built `libmugfx` must carry these notices. The fetch script may download a
+Temurin JDK (GPL-2.0 with Classpath Exception). The JDK is used only to build Ruffle and is not linked. Movies
+converted from the installed client and their renders are game data and stay local.
+

@@ -62,6 +62,10 @@ reconstructed slot pass and RenderItem3D and draws the item models under the cli
 the reconstructed formatter cases, `mu-render ui tooltip --item CODE[:LEVEL]` draws one tooltip. See
 [the HUD finding](../docs/research/client-hud.md).
 
+`native/gfx` (NATIVE-GFX-001) plays the client's GFx windows with a pinned external Ruffle. It holds the
+movie inventory, the GFx→SWF converter, the `mugfx` C ABI and the `mu-gfx-window` prototype. Build:
+`native/gfx/fetch-ruffle.sh && native/gfx/build-mugfx.sh`. See [the finding](../docs/research/native-gfx.md).
+
 Viewer controls:
 
 - Mouse: left drag orbits, right drag (or Shift+left) pans, the wheel zooms.
