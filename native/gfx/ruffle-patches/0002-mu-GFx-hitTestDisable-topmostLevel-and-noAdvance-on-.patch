@@ -1,0 +1,332 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 14:35:24 -0500
+Subject: [PATCH 2/5] mu: GFx hitTestDisable, topmostLevel and noAdvance on
+ MovieClip
+
+hitTestDisable: the clip and its children are ignored by mouse picking and
+hitTest (HUD bars and the chat view use it so clicks reach the game).
+topmostLevel: the clip is drawn above the whole stage with its ancestors'
+transforms and is picked first (CLIK PopUpManager, dropdown menus).
+noAdvance: the clip's and its children's frames and onEnterFrame stop.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/avm1/globals/movie_clip.rs   |  60 ++++++++++++-
+ core/src/display_object.rs            | 117 ++++++++++++++++++++++++++
+ core/src/display_object/movie_clip.rs |  23 ++++-
+ core/src/display_object/stage.rs      |   3 +
+ 4 files changed, 201 insertions(+), 2 deletions(-)
+
+diff --git a/core/src/avm1/globals/movie_clip.rs b/core/src/avm1/globals/movie_clip.rs
+index 829c28b5..c6c6dc41 100644
+--- a/core/src/avm1/globals/movie_clip.rs
++++ b/core/src/avm1/globals/movie_clip.rs
+@@ -10,7 +10,7 @@ use crate::avm1::{self, ArrayBuilder, Object, Value};
+ use crate::backend::navigator::NavigationMethod;
+ use crate::context::UpdateContext;
+ use crate::display_object::{
+-    Bitmap, BoundsMode, EditText, GotoInfo, MovieClip, StopOrPlay, TInteractiveObject,
++    Bitmap, BoundsMode, EditText, GfxFlag, GotoInfo, MovieClip, StopOrPlay, TInteractiveObject,
+ };
+ use crate::ecma_conversions::f64_to_wrapping_i32;
+ use crate::prelude::*;
+@@ -77,6 +77,10 @@ const PROTO_DECLS: StaticDeclarations = declare_static_properties! {
+     "transform" => property(mc_getter!(transform), mc_setter!(set_transform); DONT_ENUM | VERSION_8);
+     "blendMode" => property(mc_getter!(blend_mode), mc_setter!(set_blend_mode); DONT_DELETE | DONT_ENUM | VERSION_8);
+     "scale9Grid" => property(mc_getter!(scale_9_grid), mc_setter!(set_scale_9_grid); DONT_DELETE | DONT_ENUM | VERSION_8);
++    // Scaleform GFx extensions (mu patch).
++    "hitTestDisable" => property(mc_getter!(gfx_hit_test_disable), mc_setter!(set_gfx_hit_test_disable); DONT_DELETE | DONT_ENUM);
++    "topmostLevel" => property(mc_getter!(gfx_topmost_level), mc_setter!(set_gfx_topmost_level); DONT_DELETE | DONT_ENUM);
++    "noAdvance" => property(mc_getter!(gfx_no_advance), mc_setter!(set_gfx_no_advance); DONT_DELETE | DONT_ENUM);
+     "getURL" => method(mc_method!(get_url); DONT_ENUM | DONT_DELETE);
+     "unloadMovie" => method(mc_method!(unload_movie); DONT_ENUM | DONT_DELETE);
+     "loadVariables" => method(mc_method!(load_variables); DONT_ENUM | DONT_DELETE);
+@@ -1845,3 +1849,57 @@ fn get_text_snapshot<'gc>(
+     let text_snapshot_class = text_snapshot_class.coerce_to_object_or_bare(activation)?;
+     text_snapshot_class.construct(activation, &[this.into()])
+ }
++
++// ---- Scaleform GFx extension properties (mu patch) -------------------------
++
++fn gfx_flag_value<'gc>(this: MovieClip<'gc>, which: GfxFlag) -> Result<Value<'gc>, Error<'gc>> {
++    Ok(this.gfx_flag(which).into())
++}
++
++fn gfx_hit_test_disable<'gc>(
++    this: MovieClip<'gc>,
++    _activation: &mut Activation<'_, 'gc>,
++) -> Result<Value<'gc>, Error<'gc>> {
++    gfx_flag_value(this, GfxFlag::HitTestDisable)
++}
++
++fn set_gfx_hit_test_disable<'gc>(
++    this: MovieClip<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++    value: Value<'gc>,
++) -> Result<(), Error<'gc>> {
++    this.set_gfx_flag(GfxFlag::HitTestDisable, value.as_bool(activation.swf_version()));
++    Ok(())
++}
++
++fn gfx_topmost_level<'gc>(
++    this: MovieClip<'gc>,
++    _activation: &mut Activation<'_, 'gc>,
++) -> Result<Value<'gc>, Error<'gc>> {
++    gfx_flag_value(this, GfxFlag::TopmostLevel)
++}
++
++fn set_gfx_topmost_level<'gc>(
++    this: MovieClip<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++    value: Value<'gc>,
++) -> Result<(), Error<'gc>> {
++    this.set_gfx_flag(GfxFlag::TopmostLevel, value.as_bool(activation.swf_version()));
++    Ok(())
++}
++
++fn gfx_no_advance<'gc>(
++    this: MovieClip<'gc>,
++    _activation: &mut Activation<'_, 'gc>,
++) -> Result<Value<'gc>, Error<'gc>> {
++    gfx_flag_value(this, GfxFlag::NoAdvance)
++}
++
++fn set_gfx_no_advance<'gc>(
++    this: MovieClip<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++    value: Value<'gc>,
++) -> Result<(), Error<'gc>> {
++    this.set_gfx_flag(GfxFlag::NoAdvance, value.as_bool(activation.swf_version()));
++    Ok(())
++}
+diff --git a/core/src/display_object.rs b/core/src/display_object.rs
+index 0904753c..f0856d64 100644
+--- a/core/src/display_object.rs
++++ b/core/src/display_object.rs
+@@ -793,6 +793,14 @@ impl<'gc> DisplayObjectBase<'gc> {
+         self.contains_flag(DisplayObjectFlags::TRANSFORMED_BY_SCRIPT)
+     }
+ 
++    fn gfx_flag(&self, which: GfxFlag) -> bool {
++        self.contains_flag(which.bits())
++    }
++
++    fn set_gfx_flag(&self, which: GfxFlag, value: bool) {
++        self.set_flag(which.bits(), value);
++    }
++
+     fn set_transformed_by_script(&self, value: bool) {
+         self.set_flag(DisplayObjectFlags::TRANSFORMED_BY_SCRIPT, value);
+     }
+@@ -957,11 +965,65 @@ struct DrawCacheInfo {
+     filters: Vec<Filter>,
+ }
+ 
++thread_local! {
++    /// Set while the GFx `topmostLevel` objects are drawn (mu patch).
++    static GFX_TOPMOST_PASS: Cell<bool> = const { Cell::new(false) };
++}
++
++/// Visible Scaleform GFx `topmostLevel` objects below `root`, in render order
++/// (mu patch).  The subtree of a topmost object is not searched further.
++pub fn gfx_collect_topmost<'gc>(root: DisplayObject<'gc>, out: &mut Vec<DisplayObject<'gc>>) {
++    if let Some(container) = root.as_container() {
++        for child in container.iter_render_list() {
++            if !child.visible() || child.avm1_removed() {
++                continue;
++            }
++            if child.gfx_flag(GfxFlag::TopmostLevel) {
++                out.push(child);
++            } else {
++                gfx_collect_topmost(child, out);
++            }
++        }
++    }
++}
++
++/// Draw the GFx `topmostLevel` objects above the rest of the stage, each with
++/// the transforms of its ancestors (mu patch).  The normal pass skips them.
++pub fn gfx_render_topmost<'gc>(stage: DisplayObject<'gc>, context: &mut RenderContext<'_, 'gc>) {
++    let mut list = Vec::new();
++    gfx_collect_topmost(stage, &mut list);
++    if list.is_empty() {
++        return;
++    }
++    GFX_TOPMOST_PASS.with(|p| p.set(true));
++    for obj in list {
++        let mut chain = Vec::new();
++        let mut node = obj.parent();
++        while let Some(parent) = node {
++            chain.push(parent);
++            node = parent.parent();
++        }
++        for parent in chain.iter().rev() {
++            context.transform_stack.push(&parent.base().transform(true));
++        }
++        obj.render(context);
++        for _ in &chain {
++            context.transform_stack.pop();
++        }
++    }
++    GFX_TOPMOST_PASS.with(|p| p.set(false));
++}
++
+ pub fn render_base<'gc>(
+     this: DisplayObject<'gc>,
+     context: &mut RenderContext<'_, 'gc>,
+     options: RenderOptions,
+ ) {
++    // GFx `topmostLevel` objects are drawn by `gfx_render_topmost` (mu patch).
++    if this.gfx_flag(GfxFlag::TopmostLevel) && !GFX_TOPMOST_PASS.with(|p| p.get()) {
++        return;
++    }
++
+     if options.skip_masks && this.maskee().is_some() {
+         // Skip rendering masks (unless we are rendering one explicitly).
+         return;
+@@ -2226,6 +2288,31 @@ pub trait TDisplayObject<'gc>:
+         self.base().set_lock_root(value);
+     }
+ 
++    /// Scaleform GFx extension flags (mu patch): `hitTestDisable`,
++    /// `topmostLevel`, `noAdvance`.
++    #[no_dynamic]
++    fn gfx_flag(self, which: GfxFlag) -> bool {
++        self.base().gfx_flag(which)
++    }
++
++    #[no_dynamic]
++    fn set_gfx_flag(self, which: GfxFlag, value: bool) {
++        self.base().set_gfx_flag(which, value);
++    }
++
++    /// GFx `hitTestDisable` on this object or one of its ancestors (mu patch).
++    #[no_dynamic]
++    fn gfx_hit_test_disabled(self) -> bool {
++        let mut node: Option<DisplayObject<'gc>> = Some(self.into());
++        while let Some(obj) = node {
++            if obj.gfx_flag(GfxFlag::HitTestDisable) {
++                return true;
++            }
++            node = obj.parent();
++        }
++        false
++    }
++
+     /// Whether this display object has been transformed by ActionScript.
+     /// When this flag is set, changes from SWF `PlaceObject` tags are ignored.
+     #[no_dynamic]
+@@ -2989,6 +3076,24 @@ impl<'gc> DisplayObject<'gc> {
+     }
+ }
+ 
++/// Scaleform GFx extension properties stored as display object flags (mu patch).
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum GfxFlag {
++    HitTestDisable,
++    TopmostLevel,
++    NoAdvance,
++}
++
++impl GfxFlag {
++    fn bits(self) -> DisplayObjectFlags {
++        match self {
++            GfxFlag::HitTestDisable => DisplayObjectFlags::GFX_HIT_TEST_DISABLE,
++            GfxFlag::TopmostLevel => DisplayObjectFlags::GFX_TOPMOST_LEVEL,
++            GfxFlag::NoAdvance => DisplayObjectFlags::GFX_NO_ADVANCE,
++        }
++    }
++}
++
+ bitflags! {
+     /// Bit flags used by `DisplayObject`.
+     #[derive(Clone, Copy)]
+@@ -3065,6 +3170,18 @@ bitflags! {
+         /// (they need to be instantiated "manually" by
+         /// `Sprite.constructChildren`).
+         const MANUAL_FRAME_CONSTRUCT  = 1 << 16;
++
++        /// Scaleform GFx `hitTestDisable` (mu patch): the object and its
++        /// children are ignored by mouse picking and hit tests.
++        const GFX_HIT_TEST_DISABLE    = 1 << 17;
++
++        /// Scaleform GFx `topmostLevel` (mu patch): the object is drawn above
++        /// every other object of the stage and picked first.
++        const GFX_TOPMOST_LEVEL       = 1 << 18;
++
++        /// Scaleform GFx `noAdvance` (mu patch): the object's timeline and its
++        /// children's do not advance.
++        const GFX_NO_ADVANCE          = 1 << 19;
+     }
+ }
+ 
+diff --git a/core/src/display_object/movie_clip.rs b/core/src/display_object/movie_clip.rs
+index 8f264dd7..a92228e8 100644
+--- a/core/src/display_object/movie_clip.rs
++++ b/core/src/display_object/movie_clip.rs
+@@ -24,7 +24,7 @@ use crate::display_object::interactive::{
+ };
+ use crate::display_object::{
+     Avm1Button, Avm1TextFieldBinding, Avm2Button, BoundsMode, DisplayObjectBase, DisplayObjectPtr,
+-    EditText, Graphic, MorphShape, Text, Video,
++    EditText, GfxFlag, Graphic, MorphShape, Text, Video,
+ };
+ use crate::drawing::Drawing;
+ use crate::events::{ButtonKeyCode, ClipEvent, ClipEventResult};
+@@ -449,6 +449,16 @@ impl<'gc> MovieClip<'gc> {
+ 
+     /// Execute all other timeline actions on this object.
+     pub fn run_frame_avm1(self, context: &mut UpdateContext<'gc>) {
++        // Scaleform GFx `noAdvance` (mu patch): neither this clip nor any clip
++        // below a `noAdvance` ancestor runs its frame or onEnterFrame.
++        let mut node: Option<DisplayObject<'gc>> = Some(self.into());
++        while let Some(obj) = node {
++            if obj.gfx_flag(GfxFlag::NoAdvance) {
++                return;
++            }
++            node = obj.parent();
++        }
++
+         if !self.movie().is_action_script_3() {
+             // Run my load/enterFrame clip event.
+             let is_load_frame = !self.0.contains_flag(MovieClipFlags::INITIALIZED);
+@@ -2682,6 +2692,11 @@ impl<'gc> TDisplayObject<'gc> for MovieClip<'gc> {
+             return false;
+         }
+ 
++        // Scaleform GFx `hitTestDisable` (mu patch).
++        if self.gfx_flag(GfxFlag::HitTestDisable) {
++            return false;
++        }
++
+         if options.contains(HitTestOptions::SKIP_MASK) && self.maskee().is_some() {
+             return false;
+         }
+@@ -3027,6 +3042,12 @@ impl<'gc> TInteractiveObject<'gc> for MovieClip<'gc> {
+             return None;
+         }
+ 
++        // Scaleform GFx `hitTestDisable` (mu patch): the clip and its children
++        // are transparent to the mouse.
++        if self.gfx_flag(GfxFlag::HitTestDisable) {
++            return None;
++        }
++
+         if self.visible() {
+             let this: InteractiveObject<'gc> = self.into();
+ 
+diff --git a/core/src/display_object/stage.rs b/core/src/display_object/stage.rs
+index 3c73b541..86f3d553 100644
+--- a/core/src/display_object/stage.rs
++++ b/core/src/display_object/stage.rs
+@@ -643,6 +643,9 @@ impl<'gc> Stage<'gc> {
+ 
+         self.render(context);
+ 
++        // Scaleform GFx `topmostLevel` objects (mu patch).
++        crate::display_object::gfx_render_topmost(self.into(), context);
++
+         self.focus_tracker().render_highlight(context);
+ 
+         if self.should_letterbox() {

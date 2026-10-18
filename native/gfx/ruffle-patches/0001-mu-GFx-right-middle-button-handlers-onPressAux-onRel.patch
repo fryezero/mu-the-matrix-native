@@ -1,0 +1,171 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 14:35:24 -0500
+Subject: [PATCH 1/5] mu: GFx right/middle button handlers (onPressAux,
+ onReleaseAux, ...)
+
+Scaleform GFx calls onPressAux/onReleaseAux(controllerIdx, keyboardOrMouse,
+button) and onReleaseOutsideAux/onDragOverAux/onDragOutAux(controllerIdx,
+button) for the right (1) and middle (2) mouse buttons; a clip with any of
+these handlers is in button mode.  Mu The Matrix's item slots send their
+right-click request from onReleaseAux (MUItemSlot) and CLIK's Button maps
+all five to its press/release/drag handlers.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/display_object/movie_clip.rs | 26 +++++++++++++++
+ core/src/events.rs                    | 46 ++++++++++++++++++++++++++-
+ core/src/player.rs                    | 15 +++++++++
+ 3 files changed, 86 insertions(+), 1 deletion(-)
+
+diff --git a/core/src/display_object/movie_clip.rs b/core/src/display_object/movie_clip.rs
+index 6f1a27a8..8f264dd7 100644
+--- a/core/src/display_object/movie_clip.rs
++++ b/core/src/display_object/movie_clip.rs
+@@ -2899,6 +2899,18 @@ impl<'gc> TInteractiveObject<'gc> for MovieClip<'gc> {
+             }
+         }
+ 
++        // GFx `*Aux` button events (mu patch) follow the button rules too.
++        if event.gfx_aux_method().is_some()
++            && ((!self.visible()
++                && !matches!(
++                    event,
++                    ClipEvent::RightReleaseOutside | ClipEvent::MiddleReleaseOutside
++                ))
++                || !self.enabled(context))
++        {
++            return ClipEventResult::NotHandled;
++        }
++
+         ClipEventResult::Handled
+     }
+ 
+@@ -2976,6 +2988,20 @@ impl<'gc> TInteractiveObject<'gc> for MovieClip<'gc> {
+                     event == ClipEvent::Unload,
+                 );
+             }
++
++            // Scaleform GFx extension (mu patch): right/middle button events
++            // call the clip's `*Aux` handlers.
++            if let Some((name, args)) = event.gfx_aux_method() {
++                context.action_queue.queue_action(
++                    self.into(),
++                    ActionType::Method {
++                        object,
++                        name: AvmString::new_utf8(context.gc(), name),
++                        args: args.iter().map(|&a| a.into()).collect(),
++                    },
++                    false,
++                );
++            }
+         }
+ 
+         handled
+diff --git a/core/src/events.rs b/core/src/events.rs
+index a1f52a70..8e5b0885 100644
+--- a/core/src/events.rs
++++ b/core/src/events.rs
+@@ -300,6 +300,20 @@ pub enum ClipEvent<'gc> {
+     /// Analogous to [`ClipEvent::ReleaseOutside`], but for middle mouse button.
+     MiddleReleaseOutside,
+ 
++    /// Scaleform GFx extension (mu patch): the mouse moved out of the object
++    /// pressed with a non-primary button (`button`: 1 right, 2 middle) while
++    /// that button is held (`onDragOutAux`).
++    AuxDragOut {
++        button: u8,
++    },
++
++    /// Scaleform GFx extension (mu patch): the mouse moved back over the object
++    /// pressed with a non-primary button while that button is held
++    /// (`onDragOverAux`).
++    AuxDragOver {
++        button: u8,
++    },
++
+     Unload,
+ 
+     /// Mouse wheel was turned over a particular display object.
+@@ -314,7 +328,7 @@ pub enum ClipEvent<'gc> {
+ 
+ impl ClipEvent<'_> {
+     /// Method names for button event handles.
+-    pub const BUTTON_EVENT_METHODS: [&'static str; 7] = [
++    pub const BUTTON_EVENT_METHODS: [&'static str; 12] = [
+         "onDragOver",
+         "onDragOut",
+         "onPress",
+@@ -322,6 +336,13 @@ impl ClipEvent<'_> {
+         "onReleaseOutside",
+         "onRollOut",
+         "onRollOver",
++        // Scaleform GFx extensions (mu patch): handlers for the right and
++        // middle mouse buttons also put a clip in button mode.
++        "onDragOverAux",
++        "onDragOutAux",
++        "onPressAux",
++        "onReleaseAux",
++        "onReleaseOutsideAux",
+     ];
+ 
+     pub const BUTTON_EVENT_FLAGS: ClipEventFlag = ClipEventFlag::from_bits_truncate(
+@@ -419,9 +440,32 @@ impl ClipEvent<'_> {
+                 | Self::ReleaseOutside
+                 | Self::RightReleaseOutside
+                 | Self::MiddleReleaseOutside
++                | Self::AuxDragOut { .. }
++                | Self::AuxDragOver { .. }
+         )
+     }
+ 
++    /// Scaleform GFx extension (mu patch): the `*Aux` handler a non-primary
++    /// mouse button event calls, with its arguments as GFx passes them:
++    /// `onPressAux`/`onReleaseAux(controllerIdx, keyboardOrMouse, button)` and
++    /// `onReleaseOutsideAux`/`onDragOverAux`/`onDragOutAux(controllerIdx, button)`;
++    /// `button` is 1 for the right and 2 for the middle button.
++    pub fn gfx_aux_method(self) -> Option<(&'static str, &'static [i32])> {
++        match self {
++            ClipEvent::RightPress => Some(("onPressAux", &[0, 0, 1])),
++            ClipEvent::MiddlePress => Some(("onPressAux", &[0, 0, 2])),
++            ClipEvent::RightRelease => Some(("onReleaseAux", &[0, 0, 1])),
++            ClipEvent::MiddleRelease => Some(("onReleaseAux", &[0, 0, 2])),
++            ClipEvent::RightReleaseOutside => Some(("onReleaseOutsideAux", &[0, 1])),
++            ClipEvent::MiddleReleaseOutside => Some(("onReleaseOutsideAux", &[0, 2])),
++            ClipEvent::AuxDragOut { button: 1 } => Some(("onDragOutAux", &[0, 1])),
++            ClipEvent::AuxDragOut { .. } => Some(("onDragOutAux", &[0, 2])),
++            ClipEvent::AuxDragOver { button: 1 } => Some(("onDragOverAux", &[0, 1])),
++            ClipEvent::AuxDragOver { .. } => Some(("onDragOverAux", &[0, 2])),
++            _ => None,
++        }
++    }
++
+     /// Returns the method name of the event handler for this event.
+     ///
+     /// `ClipEvent::Data` returns `None` rather than `onData` because its behavior
+diff --git a/core/src/player.rs b/core/src/player.rs
+index c3756621..949184c8 100644
+--- a/core/src/player.rs
++++ b/core/src/player.rs
+@@ -1784,6 +1784,21 @@ impl Player {
+                             },
+                         ));
+                     }
++                    // Scaleform GFx extension (mu patch): `onDragOutAux` /
++                    // `onDragOverAux` for an object pressed with the right or
++                    // middle button while that button is held.
++                    for (button, code) in [(MouseButton::Right, 1u8), (MouseButton::Middle, 2u8)] {
++                        if !context.input.is_mouse_down(button) {
++                            continue;
++                        }
++                        if let Some(down) = context.mouse_data.pressed(button) {
++                            if InteractiveObject::option_ptr_eq(Some(down), cur_over_object) {
++                                events.push((down, ClipEvent::AuxDragOut { button: code }));
++                            } else if InteractiveObject::option_ptr_eq(Some(down), new_over_object) {
++                                events.push((down, ClipEvent::AuxDragOver { button: code }));
++                            }
++                        }
++                    }
+                 }
+             }
+             if !skip_mouse_hover && !new_over_object_updated {

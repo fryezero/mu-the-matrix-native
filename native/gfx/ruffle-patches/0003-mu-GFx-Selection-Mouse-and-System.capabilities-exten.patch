@@ -1,0 +1,443 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 14:35:24 -0500
+Subject: [PATCH 3/5] mu: GFx Selection, Mouse and System.capabilities
+ extensions
+
+Selection.disableFocusKeys (no Tab/arrow focus moves), disableFocusAutoRelease
+(clicking outside keeps the focus), disableFocusRolloverEvent and
+alwaysEnableArrowKeys (stored), numFocusGroups, getFocusBitmask,
+getControllerMaskByFocusGroup, get/setControllerFocusGroup, findFocus/
+moveFocus (no candidate) and captureFocus; Mouse.setCursorType,
+getTopMostEntity, getButtonsState, getPosition and the cursor/button
+constants; System.capabilities.numControllers = 1, which CLIK's focus code
+loops over (without it no CLIK TextInput takes the focus).  Mouse picking at
+an arbitrary stage point (run_mouse_pick_at) checks topmostLevel clips
+first.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/avm1/globals/mouse.rs               |  97 ++++++++++++++
+ core/src/avm1/globals/selection.rs           | 130 +++++++++++++++++++
+ core/src/avm1/globals/system_capabilities.rs |   3 +
+ core/src/focus_tracker.rs                    |  29 +++++
+ core/src/player.rs                           |  43 +++++-
+ 5 files changed, 297 insertions(+), 5 deletions(-)
+
+diff --git a/core/src/avm1/globals/mouse.rs b/core/src/avm1/globals/mouse.rs
+index 66aff0cd..5c31c756 100644
+--- a/core/src/avm1/globals/mouse.rs
++++ b/core/src/avm1/globals/mouse.rs
+@@ -3,6 +3,7 @@ use crate::avm1::error::Error;
+ use crate::avm1::property_decl::{DeclContext, StaticDeclarations};
+ use crate::avm1::{Object, Value};
+ use crate::avm1_stub;
++use ruffle_macros::istr;
+ 
+ const OBJECT_DECLS: StaticDeclarations = declare_static_properties! {
+     "show" => method(show_mouse; DONT_DELETE | DONT_ENUM | READ_ONLY);
+@@ -10,6 +11,18 @@ const OBJECT_DECLS: StaticDeclarations = declare_static_properties! {
+     "setTrailer" => method(set_trailer; DONT_DELETE | DONT_ENUM | READ_ONLY);
+     "setTrailerPosition" => method(set_trailer_position; DONT_DELETE | DONT_ENUM | READ_ONLY);
+     "setTrailerMode" => method(set_trailer_mode; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    // Scaleform GFx extensions (mu patch).
++    "ARROW" => value(0; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "HAND" => value(1; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "IBEAM" => value(2; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "BUTTON" => value(3; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "LEFT" => value(0; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "RIGHT" => value(1; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "MIDDLE" => value(2; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "setCursorType" => method(gfx_set_cursor_type; DONT_DELETE | DONT_ENUM);
++    "getTopMostEntity" => method(gfx_get_top_most_entity; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "getButtonsState" => method(gfx_get_buttons_state; DONT_DELETE | DONT_ENUM | READ_ONLY);
++    "getPosition" => method(gfx_get_position; DONT_DELETE | DONT_ENUM | READ_ONLY);
+ };
+ 
+ pub fn create<'gc>(context: &mut DeclContext<'_, 'gc>) -> Object<'gc> {
+@@ -64,3 +77,87 @@ fn set_trailer_mode<'gc>(
+     avm1_stub!(activation, "Mouse", "setTrailerMode");
+     Ok(Value::Undefined)
+ }
++
++// ---- Scaleform GFx extensions (mu patch) -----------------------------------
++
++/// `Mouse.setCursorType(type[, mouseIndex])`: 0 arrow, 1 hand, 2 I-beam,
++/// 3 button (hand).  The host learns the shape through the UI backend.
++fn gfx_set_cursor_type<'gc>(
++    activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    use crate::backend::ui::MouseCursor;
++    let kind = args.get(0).copied().unwrap_or(Value::Undefined).coerce_to_i32(activation)?;
++    let cursor = match kind {
++        1 | 3 => MouseCursor::Hand,
++        2 => MouseCursor::IBeam,
++        _ => MouseCursor::Arrow,
++    };
++    activation.context.ui.set_mouse_cursor(cursor);
++    Ok(Value::Undefined)
++}
++
++/// `Mouse.getTopMostEntity([x, y][, testAll])` (or `([testAll])`): the
++/// topmost object under the point (default: the mouse), or undefined.
++fn gfx_get_top_most_entity<'gc>(
++    activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    use crate::display_object::TDisplayObject;
++    use crate::display_object::TInteractiveObject;
++    let mut point = *activation.context.mouse_position;
++    let mut test_all = true;
++    if let (Some(x), Some(y)) = (args.get(0), args.get(1))
++        && matches!(x, Value::Number(_))
++    {
++        let x = x.coerce_to_f64(activation)?;
++        let y = y.coerce_to_f64(activation)?;
++        point = crate::prelude::Point::from_pixels(x, y);
++        if let Some(v) = args.get(2) {
++            test_all = v.as_bool(activation.swf_version());
++        }
++    } else if let Some(v) = args.get(0) {
++        test_all = v.as_bool(activation.swf_version());
++    }
++    let hit = crate::player::run_mouse_pick_at(activation.context, point, !test_all);
++    Ok(hit
++        .map(|o| o.as_displayobject().object1_or_undef())
++        .unwrap_or(Value::Undefined))
++}
++
++/// `Mouse.getButtonsState([mouseIndex])`: bit 0 left, bit 1 right, bit 2 middle.
++fn gfx_get_buttons_state<'gc>(
++    activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    _args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    use crate::events::MouseButton;
++    let input = &activation.context.input;
++    let mut bits = 0;
++    if input.is_mouse_down(MouseButton::Left) {
++        bits |= 1;
++    }
++    if input.is_mouse_down(MouseButton::Right) {
++        bits |= 2;
++    }
++    if input.is_mouse_down(MouseButton::Middle) {
++        bits |= 4;
++    }
++    Ok(bits.into())
++}
++
++/// `Mouse.getPosition([mouseIndex])`: a `flash.geom.Point`-like {x, y} in
++/// stage pixels.
++fn gfx_get_position<'gc>(
++    activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    _args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    let pos = *activation.context.mouse_position;
++    let point = Object::new(&activation.context.strings, Some(activation.prototypes().object));
++    point.set(istr!("x"), Value::from(pos.x.to_pixels()), activation)?;
++    point.set(istr!("y"), Value::from(pos.y.to_pixels()), activation)?;
++    Ok(point.into())
++}
+diff --git a/core/src/avm1/globals/selection.rs b/core/src/avm1/globals/selection.rs
+index a4afc017..8ffacb96 100644
+--- a/core/src/avm1/globals/selection.rs
++++ b/core/src/avm1/globals/selection.rs
+@@ -13,6 +13,19 @@ const OBJECT_DECLS: StaticDeclarations = declare_static_properties! {
+     "getFocus" => method(get_focus; DONT_ENUM | DONT_DELETE | READ_ONLY);
+     "setFocus" => method(set_focus; DONT_ENUM | DONT_DELETE | READ_ONLY);
+     "setSelection" => method(set_selection; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    // Scaleform GFx extensions (mu patch).
++    "disableFocusKeys" => property(gfx_get_disable_focus_keys, gfx_set_disable_focus_keys; DONT_ENUM | DONT_DELETE);
++    "disableFocusAutoRelease" => property(gfx_get_disable_focus_auto_release, gfx_set_disable_focus_auto_release; DONT_ENUM | DONT_DELETE);
++    "disableFocusRolloverEvent" => property(gfx_get_disable_focus_rollover_event, gfx_set_disable_focus_rollover_event; DONT_ENUM | DONT_DELETE);
++    "alwaysEnableArrowKeys" => property(gfx_get_always_enable_arrow_keys, gfx_set_always_enable_arrow_keys; DONT_ENUM | DONT_DELETE);
++    "numFocusGroups" => value(1; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "getFocusBitmask" => method(gfx_get_focus_bitmask; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "getControllerMaskByFocusGroup" => method(gfx_get_controller_mask_by_focus_group; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "getControllerFocusGroup" => method(gfx_get_controller_focus_group; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "setControllerFocusGroup" => method(gfx_set_controller_focus_group; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "findFocus" => method(gfx_find_focus; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "moveFocus" => method(gfx_find_focus; DONT_ENUM | DONT_DELETE | READ_ONLY);
++    "captureFocus" => method(gfx_capture_focus; DONT_ENUM | DONT_DELETE | READ_ONLY);
+ };
+ 
+ pub fn create<'gc>(context: &mut DeclContext<'_, 'gc>) -> Object<'gc> {
+@@ -143,3 +156,120 @@ pub fn set_focus<'gc>(
+         }
+     }
+ }
++
++// ---- Scaleform GFx extensions (mu patch) -----------------------------------
++//
++// One controller and one focus group, as the client plays its movies with a
++// mouse and a keyboard: focus group 0 holds controller 0 (mask 1).
++
++use crate::focus_tracker::GfxFocusOption;
++
++macro_rules! gfx_focus_option {
++    ($get:ident, $set:ident, $option:expr) => {
++        fn $get<'gc>(
++            activation: &mut Activation<'_, 'gc>,
++            _this: Object<'gc>,
++            _args: &[Value<'gc>],
++        ) -> Result<Value<'gc>, Error<'gc>> {
++            Ok(activation.context.focus_tracker.gfx_option($option).into())
++        }
++
++        fn $set<'gc>(
++            activation: &mut Activation<'_, 'gc>,
++            _this: Object<'gc>,
++            args: &[Value<'gc>],
++        ) -> Result<Value<'gc>, Error<'gc>> {
++            let value = args
++                .get(0)
++                .copied()
++                .unwrap_or(Value::Undefined)
++                .as_bool(activation.swf_version());
++            activation.context.focus_tracker.set_gfx_option($option, value);
++            Ok(Value::Undefined)
++        }
++    };
++}
++
++gfx_focus_option!(gfx_get_disable_focus_keys, gfx_set_disable_focus_keys, GfxFocusOption::DisableFocusKeys);
++gfx_focus_option!(
++    gfx_get_disable_focus_auto_release,
++    gfx_set_disable_focus_auto_release,
++    GfxFocusOption::DisableFocusAutoRelease
++);
++gfx_focus_option!(
++    gfx_get_disable_focus_rollover_event,
++    gfx_set_disable_focus_rollover_event,
++    GfxFocusOption::DisableFocusRolloverEvent
++);
++gfx_focus_option!(
++    gfx_get_always_enable_arrow_keys,
++    gfx_set_always_enable_arrow_keys,
++    GfxFocusOption::AlwaysEnableArrowKeys
++);
++
++/// `Selection.getFocusBitmask(obj)`: bit n set when controller n focuses `obj`.
++fn gfx_get_focus_bitmask<'gc>(
++    activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    let Some(focus) = activation.context.focus_tracker.get() else {
++        return Ok(0.into());
++    };
++    let Some(target) = args.get(0).copied() else {
++        return Ok(0.into());
++    };
++    let start_clip = activation.target_clip_or_root();
++    let object = activation.resolve_target_display_object(start_clip, target, false)?;
++    let focused = object.is_some_and(|o| {
++        crate::display_object::DisplayObject::ptr_eq(o, focus.as_displayobject())
++    });
++    Ok(if focused { 1 } else { 0 }.into())
++}
++
++fn gfx_get_controller_mask_by_focus_group<'gc>(
++    _activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    let group = match args.get(0) {
++        Some(Value::Number(n)) => *n,
++        _ => 0.0,
++    };
++    Ok(if group == 0.0 { 1 } else { 0 }.into())
++}
++
++fn gfx_get_controller_focus_group<'gc>(
++    _activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    _args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    Ok(0.into())
++}
++
++fn gfx_set_controller_focus_group<'gc>(
++    _activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    _args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    Ok(false.into())
++}
++
++/// `Selection.findFocus` / `moveFocus`: directional focus search.  The client
++/// sets `disableFocusKeys`, so its movies navigate with their own handlers;
++/// no candidate is returned.
++fn gfx_find_focus<'gc>(
++    _activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    _args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    Ok(Value::Null)
++}
++
++fn gfx_capture_focus<'gc>(
++    _activation: &mut Activation<'_, 'gc>,
++    _this: Object<'gc>,
++    _args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    Ok(Value::Undefined)
++}
+diff --git a/core/src/avm1/globals/system_capabilities.rs b/core/src/avm1/globals/system_capabilities.rs
+index 6c48fae3..64dc4a5c 100644
+--- a/core/src/avm1/globals/system_capabilities.rs
++++ b/core/src/avm1/globals/system_capabilities.rs
+@@ -39,6 +39,9 @@ const OBJECT_DECLS: StaticDeclarations = declare_static_properties! {
+     "hasIME" => property(get_has_ime);
+     "supports32BitProcesses" => property(get_has_32_bit_support);
+     "supports64BitProcesses" => property(get_has_64_bit_support);
++    // Scaleform GFx extension (mu patch): one controller (mouse + keyboard).
++    // CLIK's focus code loops over `numControllers`.
++    "numControllers" => value(1);
+ };
+ 
+ pub fn create<'gc>(context: &mut DeclContext<'_, 'gc>) -> Object<'gc> {
+diff --git a/core/src/focus_tracker.rs b/core/src/focus_tracker.rs
+index 02b5888b..63791626 100644
+--- a/core/src/focus_tracker.rs
++++ b/core/src/focus_tracker.rs
+@@ -22,6 +22,22 @@ use swf::{Color, Rectangle, Twips};
+ pub struct FocusTrackerData<'gc> {
+     focus: Lock<Option<InteractiveObject<'gc>>>,
+     highlight: Cell<Highlight>,
++    /// Scaleform GFx `Selection` options (mu patch), see [`GfxFocusOption`].
++    gfx_options: Cell<u8>,
++}
++
++/// Scaleform GFx `Selection` extension properties (mu patch).
++#[derive(Copy, Clone, Debug, PartialEq, Eq)]
++pub enum GfxFocusOption {
++    /// `Selection.disableFocusKeys`: Tab and the arrow keys do not move focus.
++    DisableFocusKeys = 1,
++    /// `Selection.disableFocusAutoRelease`: clicking outside a focused object
++    /// keeps its focus.
++    DisableFocusAutoRelease = 2,
++    /// `Selection.disableFocusRolloverEvent`: stored only.
++    DisableFocusRolloverEvent = 4,
++    /// `Selection.alwaysEnableArrowKeys`: stored only.
++    AlwaysEnableArrowKeys = 8,
+ }
+ 
+ #[derive(Copy, Clone)]
+@@ -64,10 +80,23 @@ impl<'gc> FocusTracker<'gc> {
+             FocusTrackerData {
+                 focus: Lock::new(None),
+                 highlight: Cell::new(Highlight::Inactive),
++                gfx_options: Cell::new(0),
+             },
+         ))
+     }
+ 
++    /// A Scaleform GFx `Selection` option (mu patch).
++    pub fn gfx_option(&self, option: GfxFocusOption) -> bool {
++        self.0.gfx_options.get() & option as u8 != 0
++    }
++
++    pub fn set_gfx_option(&self, option: GfxFocusOption, value: bool) {
++        let bits = self.0.gfx_options.get();
++        self.0
++            .gfx_options
++            .set(if value { bits | option as u8 } else { bits & !(option as u8) });
++    }
++
+     pub fn highlight(&self) -> Highlight {
+         self.0.highlight.get()
+     }
+diff --git a/core/src/player.rs b/core/src/player.rs
+index 949184c8..3c2d2406 100644
+--- a/core/src/player.rs
++++ b/core/src/player.rs
+@@ -1363,7 +1363,11 @@ impl Player {
+             }
+ 
+             // KeyPress events also take precedence over tabbing.
++            // Scaleform GFx `Selection.disableFocusKeys` turns tabbing off (mu patch).
+             if !key_press_handled
++                && !context
++                    .focus_tracker
++                    .gfx_option(crate::focus_tracker::GfxFocusOption::DisableFocusKeys)
+                 && let InputEvent::KeyDown {
+                     key_code: KeyCode::TAB,
+                     ..
+@@ -1378,6 +1382,9 @@ impl Player {
+             // Note that keyboard navigation works only when the highlight is visible.
+             if !key_press_handled
+                 && context.focus_tracker.highlight().is_visible()
++                && !context
++                    .focus_tracker
++                    .gfx_option(crate::focus_tracker::GfxFocusOption::DisableFocusKeys)
+                 && let Some(focus) = context.focus_tracker.get()
+             {
+                 if matches!(
+@@ -1984,10 +1991,12 @@ impl Player {
+         });
+         if should_focus {
+             tracker.set_by_mouse(pressed_object, context);
+-        } else if tracker
+-            .get()
+-            .is_some_and(|int| int.is_focusable_by_mouse(context))
++        } else if !tracker.gfx_option(crate::focus_tracker::GfxFocusOption::DisableFocusAutoRelease)
++            && tracker
++                .get()
++                .is_some_and(|int| int.is_focusable_by_mouse(context))
+         {
++            // (Scaleform GFx `Selection.disableFocusAutoRelease` keeps the focus, mu patch.)
+             // Need to clear the focus if an object focusable by mouse was un-focused.
+             tracker.set_by_mouse(None, context);
+         }
+@@ -3276,11 +3285,35 @@ fn run_mouse_pick<'gc>(
+     context: &mut UpdateContext<'gc>,
+     require_button_mode: bool,
+ ) -> Option<InteractiveObject<'gc>> {
++    let point = *context.mouse_position;
++    run_mouse_pick_at(context, point, require_button_mode)
++}
++
++/// Mouse pick at a stage point (mu patch: also used by GFx
++/// `Mouse.getTopMostEntity` and the host's hit test).
++pub fn run_mouse_pick_at<'gc>(
++    context: &mut UpdateContext<'gc>,
++    point: Point<Twips>,
++    require_button_mode: bool,
++) -> Option<InteractiveObject<'gc>> {
++    // Scaleform GFx `topmostLevel` objects are drawn above everything else and
++    // are picked first (mu patch).
++    let mut topmost = Vec::new();
++    crate::display_object::gfx_collect_topmost(context.stage.into(), &mut topmost);
++    for obj in topmost.into_iter().rev() {
++        if let Some(interactive) = obj.as_interactive()
++            && !obj.movie().is_action_script_3()
++            && let Some(hit) =
++                interactive.mouse_pick_avm1(context, point, require_button_mode)
++        {
++            return Some(hit);
++        }
++    }
+     context.stage.iter_render_list().rev().find_map(|level| {
+         level.as_interactive().and_then(|l| {
+             if l.as_displayobject().movie().is_action_script_3() {
+                 let pick = l
+-                    .mouse_pick_avm2(context, *context.mouse_position, require_button_mode)
++                    .mouse_pick_avm2(context, point, require_button_mode)
+                     .combine_with_parent(context.stage.into());
+ 
+                 if let Avm2MousePick::Hit(target) = pick {
+@@ -3295,7 +3328,7 @@ fn run_mouse_pick<'gc>(
+                     None
+                 }
+             } else {
+-                l.mouse_pick_avm1(context, *context.mouse_position, require_button_mode)
++                l.mouse_pick_avm1(context, point, require_button_mode)
+             }
+         })
+     })
