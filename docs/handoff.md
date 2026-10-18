@@ -1159,3 +1159,14 @@ frame, likely a synchronous asset load. CPU contention causes frequent 100-300 m
 with a HIGHEST render-thread priority. Terrain face sorting (bit 16384) cuts terrain draws about 20x and was
 verified pixel-exact offscreen. Read the MAC-PERF-007 section of `research/mac-performance.md`. Next: busy-town
 measurement, sorting the additive sprites, and the kit's `--hotpatch-mask` default (still 7599).
+
+## Effect layer (NATIVE-FX-002)
+
+Branch `claude/native-fx2`. Read [`research/client-effect-manager.md`](research/client-effect-manager.md).
+
+**Checks.** `scripts/validate_effect_tree.py --mutations 600 --clones 400 --scenes 300 --frames 30` (private captures,
+`--game-root`): 1,670 cases, 0 mismatches. Portable: `reconstructed/effects/test_effect_tree.py`,
+`native/tests/test_native_effect.py`. Demo: `native/build/mu-effect scene "$MU_GAME_ROOT" --world 0 --demo --out x.png`.
+
+**Next:** decode the map-object and Muun effect tables, attach effects to native characters (bones), move the scene
+pass into the frame loop and the OpenGL viewer.

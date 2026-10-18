@@ -2,27 +2,11 @@
  * docs/research/client-effects.md. Each function names the client routine it
  * mirrors; statements keep the client's binary32 operation order. */
 #include "effects.h"
+#include "effects_internal.h"
 
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* ---- client scalar helpers ---- */
-
-static const float NEAR_EPS = 9.99999997e-7f;   /* 0x01a80990 / -0x01a80994 */
-
-/* 0x00a72592 */
-static int near_zero(float x) { return NEAR_EPS > x && x > -NEAR_EPS; }
-/* 0x00a7edb7 */
-static int near_equal(float a, float b) { return near_zero(a - b); }
-
-/* CRT wrappers 0x00961a07 (sqrt), 0x009fa223 (cos), 0x009681bd (sin). */
-static float crt_sqrtf(float x) { return (float)sqrt((double)x); }
-static float crt_cosf(float x) { return (float)cos((double)x); }
-static float crt_sinf(float x) { return (float)sin((double)x); }
-
-/* (float) of an unsigned 32-bit value through the client's double path. */
-static float u32_to_float(uint32_t v) { return (float)(double)v; }
 
 /* 0x0191c080: truncation through a 64-bit conversion, low 32 bits kept. */
 static int32_t ftol(float x)
@@ -87,95 +71,6 @@ static int32_t random_int(mu_fx_rng *rng, int32_t lo, int32_t hi)
 
 /* 0x00a82491: minimum by unsigned comparison. */
 static int32_t min_unsigned(int32_t a, int32_t b) { return (uint32_t)a < (uint32_t)b ? a : b; }
-
-/* ---- vectors (client Vector3 helpers 0x00cfc8f2..0x00cfd2fa) ---- */
-
-static void v3_set(float o[3], float x, float y, float z) { o[0] = x; o[1] = y; o[2] = z; }
-static void v3_copy(float o[3], const float a[3]) { o[0] = a[0]; o[1] = a[1]; o[2] = a[2]; }
-static void v3_add(float o[3], const float a[3], const float b[3])
-{
-    float x = a[0] + b[0], y = a[1] + b[1], z = a[2] + b[2];
-    o[0] = x; o[1] = y; o[2] = z;
-}
-static void v3_sub(float o[3], const float a[3], const float b[3])
-{
-    float x = a[0] - b[0], y = a[1] - b[1], z = a[2] - b[2];
-    o[0] = x; o[1] = y; o[2] = z;
-}
-static void v3_scale(float o[3], const float a[3], float s)
-{
-    float x = a[0] * s, y = a[1] * s, z = a[2] * s;
-    o[0] = x; o[1] = y; o[2] = z;
-}
-static void v3_cross(float o[3], const float a[3], const float b[3])
-{
-    float z = a[0] * b[1] - a[1] * b[0];
-    float y = a[2] * b[0] - a[0] * b[2];
-    float x = a[1] * b[2] - a[2] * b[1];
-    o[0] = x; o[1] = y; o[2] = z;
-}
-/* 0x00cfd03b */
-static float v3_length_squared(const float a[3])
-{
-    float s = a[0] * a[0];
-    s = s + a[1] * a[1];
-    s = s + a[2] * a[2];
-    return s;
-}
-/* 0x00cfd020 */
-static float v3_length(const float a[3]) { return crt_sqrtf(v3_length_squared(a)); }
-/* 0x00cfd21b (dot) */
-static float v3_dot(const float a[3], const float b[3])
-{
-    float s = a[0] * b[0];
-    s = s + a[1] * b[1];
-    s = s + a[2] * b[2];
-    return s;
-}
-/* 0x00cfd15f: normalize in place, near-zero length gives the zero vector. */
-static void v3_normalize(float v[3])
-{
-    float length = v3_length(v);
-    if (near_zero(length)) {
-        v3_set(v, 0.0f, 0.0f, 0.0f);
-        return;
-    }
-    float inverse = 1.0f / length;
-    v3_scale(v, v, inverse);
-}
-/* 0x00cf213d: point through a column-major matrix. */
-static void m_point(float o[3], const float m[16], const float v[3])
-{
-    float x = m[0] * v[0];
-    x = x + m[4] * v[1];
-    x = x + m[8] * v[2];
-    float y = m[1] * v[0];
-    y = y + m[5] * v[1];
-    y = y + m[9] * v[2];
-    float z = m[2] * v[0];
-    z = z + m[6] * v[1];
-    z = z + m[10] * v[2];
-    x = x + m[12];
-    y = y + m[13];
-    z = z + m[14];
-    o[0] = x; o[1] = y; o[2] = z;
-}
-/* 0x00cf22ce: direction through the upper 3x3. */
-static void m_vector(float o[3], const float m[16], const float v[3])
-{
-    float x = m[0] * v[0];
-    x = x + m[4] * v[1];
-    x = x + m[8] * v[2];
-    float y = m[1] * v[0];
-    y = y + m[5] * v[1];
-    y = y + m[9] * v[2];
-    float z = m[2] * v[0];
-    z = z + m[6] * v[1];
-    z = z + m[10] * v[2];
-    o[0] = x; o[1] = y; o[2] = z;
-}
-/* 0x00cfd083 */
-static int v3_near_zero(const float a[3]) { return near_zero(v3_length_squared(a)); }
 
 /* ---- matrices ---- */
 
@@ -618,7 +513,7 @@ static int32_t emission_count(const mu_fx_effect *e, float dt, mu_fx_rng *rng)
         t = t - burst->time;
         if (0.0f > t)
             t = e->duration + t;
-        if (t >= 0.0f && dt > t + NEAR_EPS)
+        if (t >= 0.0f && dt > t + MU_FX_NEAR_EPS)
             count = (int32_t)((uint32_t)count + (uint32_t)burst->count);
     }
     int32_t room = (int32_t)(e->capacity - e->count);
@@ -781,11 +676,11 @@ static void terrain_collider(mu_fx_effect *e, float dt, const mu_fx_terrain *ter
             v3_copy(velocity, tmp);
         }
         float h = terrain->height(terrain->context, position[0], position[1]);
-        if (!(position[2] + NEAR_EPS >= h))
+        if (!(position[2] + MU_FX_NEAR_EPS >= h))
             continue;
         float below = velocity[2] * dt;
         below = below + position[2];
-        below = below - NEAR_EPS;
+        below = below - MU_FX_NEAR_EPS;
         if (!(h >= below))
             continue;
         float n[3], reflected[3];
@@ -816,7 +711,11 @@ static void particle_loop(mu_fx_effect *e, mu_fx_rng *rng)
 {
     if (0.0f < e->time_left)
         return;
-    if (e->random_duration) {
+    if (e->parent_duration && e->parent) {
+        /* the parent's remaining time (+0xec, unlike the billboard's parent duration) and looping */
+        e->time_left = e->parent->time_left;
+        e->looping = e->parent->looping;
+    } else if (e->random_duration) {
         float r = (float)(mu_fx_rand(rng) % 1000);
         float span = e->max_duration - e->min_duration;
         float v = r * span;
@@ -886,9 +785,16 @@ static int billboard_update(mu_fx_effect *e, float dt, mu_fx_rng *rng)
 {
     e->time_left = e->time_left - dt;
     if (!(0.0f < e->time_left)) {
-        if (!e->looping || !e->drawn)
+        /* parentduration reads the parent (+0x24) without a null check; only
+         * children carry it in the installed files. */
+        if (e->parent_duration && !e->parent)
+            return 0;
+        if (!(e->looping || (e->parent_duration && e->parent->looping)) || !e->drawn)
             return 1;
-        if (e->random_duration) {
+        if (e->parent_duration) {
+            e->time_left = e->parent->duration;
+            e->looping = e->parent->looping;
+        } else if (e->random_duration) {
             float r = (float)(mu_fx_rand(rng) % 1000);
             float span = e->max_duration - e->min_duration;
             float v = r * span;
@@ -994,6 +900,18 @@ void mu_fx_restart(mu_fx_effect *e)
     } else {
         billboard_reset(e);
     }
+    for (uint32_t i = 0; i < e->child_count; ++i)               /* 0x00a76898 restarts the children */
+        mu_fx_restart(e->children[i]);
+}
+
+/* Type update (vtable +0x1c) for the node update in effects_tree.c. */
+int mu_fxi_type_update(mu_fx_effect *e, float dt, mu_fx_rng *rng, const mu_fx_terrain *terrain)
+{
+    if (e->type == MU_FX_PARTICLE_SYSTEM)
+        particle_update(e, dt, rng, terrain);
+    else if (!billboard_update(e, dt, rng))
+        e->faulted = 1;
+    return !e->faulted;
 }
 
 void mu_fx_update(mu_fx_effect *e, float dt, mu_fx_rng *rng, const mu_fx_terrain *terrain)
@@ -1022,6 +940,20 @@ static void put_color(mu_fx_vertex *v, const float color[4], float brightness, i
     }
     for (int j = 1; j < 4; ++j)
         memcpy(v[j].color, v[0].color, sizeof v[0].color);
+}
+
+/* Owner tint (fills 0x00a8b246 and 0x00a707b0): with the tint flag (+0xdc)
+ * and both owner flags set, the colour is replaced by (owner tint, alpha)
+ * while the vertices are filled, then restored. */
+static const float *owner_color(const mu_fx_effect *e, const float color[4], float out[4])
+{
+    if (!e->owner_tint || !e->owner || !e->owner->flag5 || !e->owner->flag6)
+        return color;
+    out[0] = e->owner->tint[0];
+    out[1] = e->owner->tint[1];
+    out[2] = e->owner->tint[2];
+    out[3] = color[3];
+    return out;
 }
 
 /* 0x00a8a55c */
@@ -1121,7 +1053,8 @@ static void particle_fill(mu_fx_effect *e, const mu_fx_camera *camera, mu_fx_ver
         v[1].texcoord[0] = p->uv0[0]; v[1].texcoord[1] = p->uv1[1];
         v[2].texcoord[0] = p->uv1[0]; v[2].texcoord[1] = p->uv1[1];
         v[3].texcoord[0] = p->uv1[0]; v[3].texcoord[1] = p->uv0[1];
-        put_color(v, p->color, p->brightness, e->blending == MU_FX_BLEND_ADDITIVE);
+        float tinted[4];
+        put_color(v, owner_color(e, p->color, tinted), p->brightness, e->blending == MU_FX_BLEND_ADDITIVE);
     }
 }
 
@@ -1192,7 +1125,8 @@ static void billboard_fill(const mu_fx_effect *e, const mu_fx_camera *camera, mu
     v[1].texcoord[0] = e->uv0[0]; v[1].texcoord[1] = e->uv1[1];
     v[2].texcoord[0] = e->uv1[0]; v[2].texcoord[1] = e->uv1[1];
     v[3].texcoord[0] = e->uv1[0]; v[3].texcoord[1] = e->uv0[1];
-    put_color(v, e->color, e->brightness, e->blending == MU_FX_BLEND_ADDITIVE);
+    float tinted[4];
+    put_color(v, owner_color(e, e->color, tinted), e->brightness, e->blending == MU_FX_BLEND_ADDITIVE);
 }
 
 uint32_t mu_fx_draw(mu_fx_effect *e, const mu_fx_camera *camera, int texture_loaded, mu_fx_vertex *vertices,
@@ -1200,6 +1134,11 @@ uint32_t mu_fx_draw(mu_fx_effect *e, const mu_fx_camera *camera, int texture_loa
 {
     mu_fx_draw_state s;
     memset(&s, 0, sizeof s);
+    if (e->owner && !e->owner->visible) {   /* both draws: [owner + 0x38] == 0 returns at once */
+        if (state)
+            *state = s;
+        return 0;
+    }
     if (e->type == MU_FX_PARTICLE_SYSTEM) {
         e->drawn = 1;
         s.visible = 1;

@@ -170,6 +170,18 @@ typedef struct mu_fx_terrain {
 
 enum { MU_FX_PARTICLE_SYSTEM = 0, MU_FX_BILLBOARD = 1 };
 
+/* Fields of the client's world object (characters, monsters, map objects)
+ * that the effect code reads through the effect's owner pointer (+0xd8). */
+typedef struct mu_fx_owner {
+    uint8_t flag5, flag6;     /* object +5, +6: the owner tint needs both set */
+    uint16_t action;          /* +0x2a current action */
+    uint8_t visible;          /* +0x38: both draws return before any GL call when 0 */
+    float frame;              /* +0xd0 animation frame */
+    float tint[3];            /* +0x1e8 colour that replaces the effect colour when tinting */
+} mu_fx_owner;
+
+struct mu_fx_octree_node;
+
 /* Common effect node fields (base class, client constructor 0x00a76b51). */
 typedef struct mu_fx_effect {
     int32_t type;
@@ -222,6 +234,19 @@ typedef struct mu_fx_effect {
     mu_fx_curve_component bb_size;          /* slot 2 */
     mu_fx_texcoord_animation bb_texcoord;   /* slot 3 */
     mu_fx_force_lifetime bb_force;          /* slot 4 */
+
+    /* node tree, owner and EffectManager links (NATIVE-FX-002, effects_tree.c) */
+    struct mu_fx_effect *parent;            /* +0x24 */
+    struct mu_fx_effect **children;         /* +0xb4 std::list of shared pointers, push_back order */
+    uint32_t child_count, child_capacity;
+    uint8_t managed;          /* +0x28 != NULL: created for the EffectManager, kept in its octree */
+    float bbox[6];            /* +0x98 axis-aligned box: min xyz, max xyz (type routine vtable +0x0c) */
+    struct mu_fx_octree_node *cell;         /* +0xb0 octree node holding this effect */
+    int32_t *actions;         /* +0xc4 std::vector<int> of owner actions that gate playing */
+    uint32_t action_count;
+    float start_frame;        /* +0xd0 owner frame at which a gated effect starts */
+    const mu_fx_owner *owner; /* +0xd8 */
+    uint8_t owner_tint;       /* +0xdc: replace the colour by the owner tint while filling */
 } mu_fx_effect;
 
 /* ---- loading (.ein JSON, see effects_json.c) ---- */
@@ -257,6 +282,109 @@ typedef struct mu_fx_draw_state {
  * which is not modelled (no owner). Returns the vertex count. */
 uint32_t mu_fx_draw(mu_fx_effect *effect, const mu_fx_camera *camera, int texture_loaded, mu_fx_vertex *vertices,
                     mu_fx_draw_state *state);
+
+/* ---- effect tree, owner and EffectManager (NATIVE-FX-002, effects_tree.c) ----
+ *
+ * mu_fx_load_json builds the whole tree: the client's base load 0x00a760b2
+ * reads "Children" after the node's own keys, its type load and restart; each
+ * child of Type 0 or 1 is constructed (children of other types are skipped),
+ * loaded by the same routine and appended to the parent (0x00a75542).
+ * mu_fx_free releases the children. */
+
+/* World transform 0x00a76dfe: M = R(z, y, x) * scale, T = position; then
+ * M = external * M when `external` is given and not the identity, otherwise
+ * M = parent.M * M (world scale times the parent's) when the parent's matrix
+ * is not the identity. */
+void mu_fx_transform(mu_fx_effect *effect, const float *external);
+
+/* Node update 0x00a75708(dt, external, owner): transform, owner action gate,
+ * type update, bounding box, octree maintenance (when `tree` is given and the
+ * effect is managed), then every child with (dt, NULL, owner). Stops at the
+ * first node whose emitter faults (the client's integer divide exception);
+ * returns 0 then. */
+int mu_fx_node_update(mu_fx_effect *effect, float dt, const float *external, const mu_fx_owner *owner,
+                      mu_fx_rng *rng, const mu_fx_terrain *terrain, struct mu_fx_octree_node *tree);
+
+/* Bounding box, type routine vtable +0x0c (particles 0x00a88970, billboard
+ * 0x00a6ed9b). */
+void mu_fx_bounding_box(mu_fx_effect *effect);
+
+/* Owner of the effect and its children (0x00a76a30). */
+void mu_fx_set_owner(mu_fx_effect *effect, const mu_fx_owner *owner);
+
+/* Number of nodes in the tree and the node at pre-order index `index`. */
+uint32_t mu_fx_tree_count(const mu_fx_effect *effect);
+mu_fx_effect *mu_fx_tree_node(mu_fx_effect *effect, uint32_t index);
+
+/* Instance of a template (0x00a75934 with the type clone, vtable +0x18):
+ * the template's loaded parameters with a new position, rotation and scale;
+ * children are cloned with their own transforms and the same gate and tint
+ * settings. `actions` may be NULL when action_count is 0 (no gate). */
+int mu_fx_clone(mu_fx_effect *out, const mu_fx_effect *source, const float position[3], const float rotation[3],
+                float scale, int owner_tint, const int32_t *actions, uint32_t action_count, float start_frame);
+
+/* View frustum record (client camera object 0x0bdc5ae8, 0x90 bytes): the
+ * camera fields the fills read, then six planes (normal, d), filled by
+ * 0x00a8d821. */
+typedef struct mu_fx_frustum {
+    mu_fx_camera camera;
+    float planes[6][4];       /* +0x30: near, far, left, top, right, bottom */
+} mu_fx_frustum;
+/* 0x00a8d821(eye, forward, up, fov, aspect, near, far); fov in radians. */
+void mu_fx_frustum_set(mu_fx_frustum *frustum, const float eye[3], const float forward[3], const float up[3],
+                       float fov, float aspect, float near_plane, float far_plane);
+/* 0x00a8d7c8: 0 when the sphere is entirely behind one plane. The client
+ * passes the squared half diagonal of a box as `radius_squared`. */
+int mu_fx_frustum_sphere(const mu_fx_frustum *frustum, const float center[3], float radius_squared);
+
+/* EffectManager octree (node 0x44 bytes: box, depth, 8 children, std::list of
+ * effects). The root spans (-12750, -12750, -25500)..(38250, 38250, 25500)
+ * (EffectManager init 0x00a79534); nodes split to depth 6. */
+typedef struct mu_fx_octree_node {
+    float bbox[6];
+    uint32_t depth;
+    struct mu_fx_octree_node *child[8];
+    mu_fx_effect **items;
+    uint32_t count, capacity;
+} mu_fx_octree_node;
+extern const float MU_FX_OCTREE_ROOT[6];
+mu_fx_octree_node *mu_fx_octree_create(const float bbox[6], uint32_t depth);
+void mu_fx_octree_free(mu_fx_octree_node *node);
+int mu_fx_octree_insert(mu_fx_octree_node *node, mu_fx_effect *effect);   /* 0x00a8df54 */
+void mu_fx_octree_remove(mu_fx_octree_node *node, mu_fx_effect *effect);  /* 0x00a8e4d7 */
+/* 0x00a8e59f: visible effects in the client's order (node list, then the
+ * eight children). Returns the number found; at most `capacity` are stored. */
+uint32_t mu_fx_octree_query(const mu_fx_octree_node *node, const mu_fx_frustum *frustum, mu_fx_effect **out,
+                            uint32_t capacity);
+
+/* EffectManager render 0x00a7a30e: the GL state around the effect draws.
+ * Given the state before the pass, describes what the client does: it queries
+ * GL_ALPHA_TEST, GL_TEXTURE_2D, GL_BLEND, the blend factors and the depth
+ * write mask, turns depth writes and alpha test off when they were on, draws
+ * every visible effect, binds texture 0 and restores all of them. Depth test
+ * and the depth function are not touched. With no visible effect it returns
+ * before any GL call. */
+typedef struct mu_fx_gl_state {
+    uint8_t alpha_test, texture_2d, blend, depth_mask;
+    uint32_t blend_src, blend_dst;
+} mu_fx_gl_state;
+typedef struct mu_fx_gl_call { uint32_t op, a, b; } mu_fx_gl_call;
+enum { MU_FX_GL_GET_BOOLEAN = 1, MU_FX_GL_GET_INTEGER, MU_FX_GL_DEPTH_MASK, MU_FX_GL_ENABLE, MU_FX_GL_DISABLE,
+       MU_FX_GL_BIND_TEXTURE, MU_FX_GL_BLEND_FUNC, MU_FX_GL_DRAW_EFFECTS, MU_FX_GL_GEN_TEXTURES,
+       MU_FX_GL_TEX_PARAMETER, MU_FX_GL_TEX_ENV, MU_FX_GL_BUILD_MIPMAPS, MU_FX_GL_TEX_IMAGE };
+enum { MU_FX_GL_NEW_TEXTURE = 0xffffffffu };   /* stands for the name glGenTextures returned */
+/* Writes the call sequence (at most 24 entries); MU_FX_GL_DRAW_EFFECTS marks
+ * where the effect draws happen. Returns the number of calls. */
+uint32_t mu_fx_manager_render_calls(const mu_fx_gl_state *before, uint32_t visible, mu_fx_gl_call out[24]);
+
+/* Effect texture upload 0x00a90987(pixels, width, height, format, filter,
+ * wrap, mipmap): nothing without pixels or with a zero size; otherwise a new
+ * texture name, wrap S/T, GL_MODULATE, then either filters and glTexImage2D
+ * or (mipmap) a *_MIPMAP_NEAREST minification filter and gluBuild2DMipmaps.
+ * The effect base load requests GL_LINEAR, GL_REPEAT and no mipmaps
+ * (0x00a7620a). Writes at most 12 calls; returns the count. */
+uint32_t mu_fx_texture_upload_calls(int has_pixels, int32_t width, int32_t height, uint32_t format, uint32_t filter,
+                                    uint32_t wrap, int mipmap, mu_fx_gl_call out[12]);
 
 /* ---- matrix helpers used above (exposed for tests) ---- */
 void mu_fx_rotation_matrix(float out[16], float rz, float ry, float rx);       /* 0x00cef49d */

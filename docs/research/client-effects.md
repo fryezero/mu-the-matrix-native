@@ -146,3 +146,8 @@ not set it, and the state left by earlier passes was not recovered. The shared s
 * `sqrt`, `sin` and `cos` use host libm in the C and the client's CRT (SSE2 path, flag `0x0bdd1cc8` = 1) in the
   validator; they agreed on every compared case, but that is not a proof for all inputs.
 * Next: map the EffectManager and its callers, then attach effects to native characters and terrain objects.
+* Update (NATIVE-FX-002, [client-effect-manager.md](client-effect-manager.md)): trees, parentduration, owners,
+  instancing, the octree, culling and the render pass are now compared. Two statements above are corrected there:
+  the owner tint replaces the colour only while filling (it is restored), and the EffectManager render does not set
+  the depth test (it turns depth writes and alpha test off and restores them). Factory instances never reach the
+  `rand() % 0` fault: the emitter constructor replaces `Frequency` 0 by 1.
