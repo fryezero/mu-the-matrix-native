@@ -446,13 +446,62 @@ found paths are also walked.
 * a strict TurnAngle wrap;
 * parent replaced on equal cost and a wall test without the mask (both from the NATIVE-WORLD-001 validator).
 
+**NATIVE-PATH-002 result at `--cases 1000 --mutations --worlds all`** (local run, 20 minutes on one core; the
+report is kept in `~/Documents/mu-mac-tools/native/scratch/path2/reports/`): **22,715 comparisons, 0 mismatches,
+30 of 30 planted mistakes detected.** The NATIVE-PATH-001 families above were repeated with the same counts and
+gave 0 mismatches. The new families:
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Long-distance helper `0x012b104c`, synthetic grids (corridor, maze, enclosures, noise, rooms, open, crowded safe zone) | 100 | 0 |
+| Long-distance helper, installed attribute maps | 40 | 0 |
+| Auto move: start / refresh / next segment / reset | 214 / 58 / 152 / 76 | 0 |
+| Run-counter prefix of SetPlayerWalk (596 boundary states, then random and focused states) | 4,276 | 0 |
+| SetPlayerStop's counter reset | 4,276 | 0 |
+| CharacterMoveSpeed with its predicates executed | 2,276 | 0 |
+| World predicates `0x00e0558b`, `0x016a88d3`, `0x009dacb8` (worlds −4..299 and 20 random) | 3 × 324 | 0 |
+| Class predicate `0x0139bd24` | 1,330 | 0 |
+| Buff mount `0x0106c5e9` | 1,000 | 0 |
+
+Of the 140 long searches, 124 found a path. Eight of those were trimmed to 499 nodes. The longest exploration
+took 32,764 pops.
+
+**How the families run.** The client objects are built by the client's own code: the PATH_t through its
+constructor, and its list through the client's `push_back` and node allocator.
+
+* **Long.** After every search the comparison covers the whole finder state, as for PathFinding2, plus the
+  PATH_t fields and the list contents.
+* **Auto move.** The comparison covers the PATH_t, the list, TargetX/Y, the six selection globals, the arrival
+  call and the notice call.
+* **Run and speed.** The client runs SetPlayerWalk up to `0x01390455`, SetPlayerStop up to `0x0138fe8c`, and the
+  whole CharacterMoveSpeed on a synthetic character record and hero equipment. The run-counter prefix and the
+  speed predicates run as client code: `0x0095fb27`, `0x0129dcda`, `0x0106c5e9`, `0x0139fcbf`/`0x00cd6017`,
+  `0x00b9929c` and the world and class predicates.
+
+**Replaced services.** These are listed in `CLIENT_STUBS`:
+
+* the item-table singleton and record lookup, which give synthetic records with kind B;
+* the buff list lookup, which gives a synthetic set and checks that it was asked for the right character's list;
+* the two opaque manager predicates;
+* the event special-state predicate;
+* the buff `0x18b` bonus;
+* the arrival handler and the UI notice helpers.
+
+The 14 new mutations target the trimming, the 0x1c mask, the end-tile target, the segment size, the armed flag,
+the boots and equipment thresholds, the safe-zone reset, a ride buff, the pet kind, the mount order, the gloves
+worlds and a never-running class. All 14 were detected.
+
 The client's CRT `atan` (SSE2 path) and `sqrt` (x87) ran in the guest. Host libm agreed in every
 compared CreateAngle and MovePath case; that is a property of these domains, not a proof.
 
 **Tests.**
 
-* **Portable** (`make test`): `reconstructed/path/test_client_path.py` (18 checks of rules and worked
-  examples) and `native/tests/test_native_path.py` (synthetic maps through `mu-path`).
+* **Portable** (`make test`):
+  * `reconstructed/path/test_client_path.py`: rules and worked examples. NATIVE-PATH-002 adds the long path, the
+    trimming, a reference statement with trimming on 25 random maps, segments, and start/refresh effects.
+  * `reconstructed/movement/test_client_movement.py`: the run-counter rules, predicates and speed from fields.
+  * `native/tests/test_native_path.py` (synthetic maps through `mu-path`, including `--class/--boots/--long`).
+  * `native/tests/test_native_world.py` (boots and `--auto-move` in `mu-walk`).
 * **Private** (`MU_RECOVERY_INTEGRATION=1` with the capture variables): the instruction comparison at 80
   cases plus mutations, and the Lorencia dump, walk and render.
 
@@ -464,8 +513,13 @@ about 1.2 MB with the finder's arrays. `mu_walker` is the hero:
 
 * `mu_walker_click` applies the click rules above and PathFinding2. It counts the network hand-off in
   `sent` and does not perform it;
-* `mu_walker_step` runs one 40 ms step: the run counter (placeholder condition `can_run`), MovePath with
-  turning, then the position step at the player base speed;
+* `mu_walker_step(walker, pathing)` runs one 40 ms step in MoveHero's order:
+  * the auto-move restart;
+  * the run counter (`mu_player_run_counter` with `walker.gear`; the safe zone comes from the tile);
+  * the next auto-move segment at the waypoint;
+  * MovePath with turning;
+  * the position step at CharacterMoveSpeed;
+* `mu_walker_auto_move` is the S-click branch (NATIVE-PATH-002);
 * `mu_pathing_set_characters` reproduces the occupancy loop.
 
 The height of the object is left to the caller.
@@ -477,7 +531,27 @@ native/build/mu-path render "$MU_GAME_ROOT" --world 0 --from 130,125 --to 160,14
 native/build/mu-path batch  "$MU_GAME_ROOT" --world 142 --count 4 --out-dir renders/
 native/build/mu-path render --synthetic maze --seed 3 --from 5,5 --to 30,30 --out maze.png
 native/build/mu-path att    "$MU_GAME_ROOT" --world 0 --out lorencia.att.u16
+native/build/mu-path render "$MU_GAME_ROOT" --world 0 --from 176,127 --to 215,175 --long --run --out auto.png
+native/build/mu-path find   --synthetic open --from 10,10 --to 60,10 --class 3     # runs from the 40th step
 ```
+
+`--class C` and `--boots L` set the run-counter inputs. `--run` is `--boots 5`. `--long` walks with the auto
+move. The JSON gives `run_steps`, `first_run_step`, `max_speed`, `seconds` and, with `--long`, `segments` and
+`searches`.
+
+**The world session (NATIVE-PATH-002).** `mu_walk` (used by `mu-world`, `mu-walk` and `mu-client`) calls the run
+counter with `mu_hero.gear` and builds CharacterMoveSpeed's input with `mu_move_speed_input_from`. It runs the auto
+move as MoveHero does: `mu_walk_auto_move_to`, plus S + left click after a normal click path. `mu-world` and
+`mu-walk` take `--boots L` and `--auto-move X,Y`, and print a `{"run": ...}` line.
+
+**Local renders** (not committed) are under `~/Documents/mu-mac-tools/native/renders/path2/`:
+
+* `lorencia-auto-move-run.png`: 50 nodes, 17 segments, running from step 40;
+* `lorencia-clicks-walk.png`: the same trip by four clicks at walking speed;
+* `maze-auto-move.png`: five searches, 703 segments;
+* `devias-auto-move.png`;
+* `open-run-class3.png` and `open-walk-class0.png`;
+* `world-auto-move/`: `mu-world` GL frames of the Lorencia auto move with boots +5.
 
 **The render.** The terrain is drawn top-down and orthographically through the terrain mode's software
 rasterizer. On top of it:
@@ -541,13 +615,19 @@ It compares the finder's internal state (marks, costs, parents, touched range) a
 
 ## Unresolved
 
-* **Static readings.** The siege-flag predicates, the speed rules beyond the player base, the run-counter
-  conditions, the MoveHero gating and special-target branches, and the other-character branch are static
-  readings only.
+* **Static readings.** These were not executed:
+  * the siege-flag predicates;
+  * the MoveHero gating and special-target branches;
+  * MoveHero's use of the auto move (restart, segment at the waypoint, S-click trigger and its option and helper
+    gates, the cancel byte, flag 3);
+  * the arrival handler's NPC, quest and UI actions;
+  * the other-character branch.
+* **Opaque inputs.** These stay inputs of the run and speed rules: the manager predicates
+  `0x0106bdb7`/`0x0106bd76`, the event special state `0x009fbb31` and the buff `0x18b` bonus value.
 * **Not ported.** The height step after MoveCharacterPosition is not ported, and the native module uses
   the caller's terrain height.
-* **Long-distance path.** The long-distance helper path is not reconstructed: `0x012b104c`, the
-  `PATH_t` methods `0x0129c4d2..0x0129d4ca`, a budget of 300,000,000 and the trimming BuildPath variant.
+* **Auto-move callers.** The other 20 callers of the auto-move start (UI, NPC and quest navigation) are not
+  traced.
 * **Network.** SendMove and everything after it are outside this milestone.
-* **Neighbour table.** The table comes from a manifest-less capture. A fresh restored capture of the
-  third section would pin it properly.
+* **Live check.** No live comparison of the walk/run timing or of an auto move was made. Only the neighbour table
+  was read live.
