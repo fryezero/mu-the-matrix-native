@@ -544,19 +544,29 @@ def pick_search(rng, grid):
 
 
 def run_search_family(guest, lib, tally, rng, count, family='PathFinding2 synthetic', grids=None, stats=None):
-    makers = grids or [lambda r: grid_noise(r, 0.0), lambda r: grid_noise(r, 0.1), lambda r: grid_noise(r, 0.25),
-                       lambda r: grid_noise(r, 0.4), grid_rooms, grid_maze, grid_safezone]
-    done = 0
+    makers = grids or [lambda r: grid_noise(r, 0.1), grid_safezone, lambda r: grid_noise(r, 0.25), grid_rooms,
+                       lambda r: grid_noise(r, 0.0), grid_maze, lambda r: grid_noise(r, 0.4)]
+    done, made = 0, 0
     while done < count:
-        maker = makers[done % len(makers)] if isinstance(makers, list) else makers
+        maker = makers[made % len(makers)] if isinstance(makers, list) else makers
+        made += 1
         grid = maker(rng)
         objects = None
         if rng.random() < 0.3:
             objects = [1 if rng.random() < 0.03 else 0 for _ in range(65536)]
         world = World(guest, lib, grid, objects)
         try:
-            for _ in range(min(12, count - done)):
+            for _ in range(min(6, count - done)):
                 sx, sy, tx, ty, distance, level, siege = pick_search(rng, grid)
+                if maker is grid_safezone and rng.random() < 0.8 and 2 <= sx <= 253 and 2 <= sy <= 253 and \
+                        max(abs(tx - sx), abs(ty - sy)) > 1:
+                    # start enclosed by characters inside the safe zone: only the level-4 retry escapes
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            if dx or dy:
+                                world.set_wall((sy + dy) * 256 + sx + dx, 0x03)
+                    level, distance, siege = 2, rng.choice([0.0, 0.0, 1.0]), False
+                    world.set_wall(ty * 256 + tx, 0x01)
                 if rng.random() < 0.3:   # a character tile appears or leaves between searches
                     index = rng.randrange(65536)
                     world.set_wall(index, world.wall[index] ^ 0x02)
@@ -825,6 +835,10 @@ def run_angle_family(guest, lib, tally, rng, count):
             b = rng.choice([f32(a + step), f32(a + 180.0), f32(a - step), f32(a - 180.0), f32(f32(a + step) - 360.0),
                             f32(f32(a - step) + 360.0), f32(f32(a + step) - 360.0), rng.uniform(0, 360)])
             b = f32(b)
+        if rng.random() < 0.1:   # step equal to the angle: the lo == 0 boundary of both wrap tests
+            a = f32(rng.uniform(1.0, 179.0))
+            step = a
+            b = f32(rng.choice([f32(a + 180.0), rng.uniform(a + 180.0, 360.0), rng.uniform(0.0, a)]))
         guest.call(TURN_ANGLE, [fbits(a), fbits(b), fbits(step)])
         got = guest.st0_float()
         want = lib.mu_path_turn_angle(a, b, step)
