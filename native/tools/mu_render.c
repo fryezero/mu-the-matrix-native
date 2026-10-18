@@ -832,15 +832,19 @@ static int command_actor(const mu_options *o)
 }
 
 int mu_render_ui_main(int argc, char **argv);
+int mu_charsel_tool_main(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
     if (argc >= 2 && !strcmp(argv[1], "ui"))
         return mu_render_ui_main(argc, argv);
+    if (argc >= 2 && !strcmp(argv[1], "charsel"))   /* NATIVE-CHARSEL-001, headless software scene */
+        return mu_charsel_tool_main(argc - 1, argv + 1);
     if (argc < 2) {
         fprintf(stderr, "usage: %s info|dump|corners|replay|render|image|scan|character|chardump|actor MODEL|CASE|ROOT [options]\n"
-                        "       %s ui title|text ... (see mu-render ui)\n",
-                argv[0], argv[0]);
+                        "       %s ui title|text ... (see mu-render ui)\n"
+                        "       %s charsel --game-root ROOT ... (character-select scene)\n",
+                argv[0], argv[0], argv[0]);
         mu_options_usage(argv[0]);
         return 2;
     }

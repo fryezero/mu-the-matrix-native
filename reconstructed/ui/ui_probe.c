@@ -5,6 +5,7 @@
  * ui_server.h, so object state can be compared word for word alongside the
  * platform-call streams.  Not part of the native module.
  */
+#include "ui_charsel.h"
 #include "ui_credit.h"
 #include "ui_server.h"
 
@@ -19,6 +20,8 @@ int mu_ui_probe_server_win(const mu_ui_server_win *win, uint32_t *out);
 int32_t mu_ui_probe_held(const mu_ui_ctx *ctx, const mu_ui_win *win);
 void mu_ui_probe_select(mu_ui_server_win *win, int32_t selected);
 int mu_ui_probe_credit_win(const mu_ui_credit_win *win, uint32_t *out);
+int mu_ui_probe_charsel_win(const mu_ui_charsel_win *win, uint32_t *out);
+int32_t mu_ui_probe_charsel_held(const mu_ui_ctx *ctx, const mu_ui_charsel_win *win);
 
 static uint32_t fw(float value)
 {
@@ -38,6 +41,8 @@ size_t mu_ui_probe_sizeof(int which)
     case 5: return sizeof(mu_ui_server_list);
     case 6: return sizeof(mu_ui_sprite);
     case 7: return sizeof(mu_ui_credit_win);
+    case 8: return sizeof(mu_ui_charsel_win);
+    case 9: return sizeof(mu_ui_charsel_input);
     default: return 0;
     }
 }
@@ -199,4 +204,28 @@ int mu_ui_probe_credit_win(const mu_ui_credit_win *w, uint32_t *out)
     out[n++] = (uint32_t)bits;
     out[n++] = (uint32_t)(bits >> 32);
     return n;
+}
+
+/* NATIVE-CHARSEL-001: CCharSelMainWin (0x518 bytes). */
+int mu_ui_probe_charsel_win(const mu_ui_charsel_win *w, uint32_t *out)
+{
+    int n = mu_ui_probe_win(&w->win, out), i;
+    for (i = 0; i < 2; ++i)
+        n += mu_ui_probe_sprite(&w->sprites[i], out + n);
+    for (i = 0; i < 4; ++i)
+        n += mu_ui_probe_button(&w->buttons[i], out + n);
+    out[n++] = w->warning;
+    out[n++] = (uint32_t)(int32_t)w->tip;
+    return n;
+}
+
+int32_t mu_ui_probe_charsel_held(const mu_ui_ctx *ctx, const mu_ui_charsel_win *w)
+{
+    int i;
+    if (!ctx->held_button)
+        return -1;
+    for (i = 0; i < 4; ++i)
+        if (ctx->held_button == &w->buttons[i])
+            return i;
+    return -2;
 }

@@ -49,7 +49,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
-            core/mu_world_actors.c
+            core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -58,10 +58,10 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/path/client_path.c \
              $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c \
-             $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c \
+             $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c \
              $(RECON)/effects/effects.c $(RECON)/effects/effects_json.c $(RECON)/effects/effects_tree.c \
              $(RECON)/movement/client_movement.c \
-             $(RECON)/renderchar/renderchar.c
+             $(RECON)/renderchar/renderchar.c $(RECON)/charsel/charsel.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -70,7 +70,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/terrain/terrain.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
-           $(wildcard $(RECON)/renderchar/*.h)
+           $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -83,7 +83,7 @@ endif
 
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/mu-effect $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
      $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) \
-     $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path audio
+     $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -102,17 +102,18 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
 	rm -f $@
 	ar rcs $@ $^
 
-$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world.c tools/mu_render_world.h $(LIB)
+$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world.c tools/mu_render_world.h charsel/main.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render.c -o $(BUILD)/mu_render.o
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_ui.c -o $(BUILD)/mu_render_ui.o
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_world.c -o $(BUILD)/mu_render_world.o
-	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -DMU_CHARSEL_TOOL_ONLY -c charsel/main.c -o $(BUILD)/mu_render_charsel.o
+	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(BUILD)/mu_render_charsel.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # The 2D layer alone (reconstruction + software GL + assets), for the Python
 # validator and tests (ctypes).
 UI_LIB_SRC := core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c $(RECON)/ui/ui2d.c \
               $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c core/mu_png.c \
-              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c
+              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c
 $(BUILD)/libmuui.$(SHLIB_EXT): $(UI_LIB_SRC) $(HEADERS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -fPIC -shared $(UI_LIB_SRC) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
@@ -141,6 +142,11 @@ $(BUILD)/mu-walk: world/main.c $(LIB) $(BUILD)/libmuaudio.a
 $(BUILD)/mu-path: tools/mu_path.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_path.c -o $(BUILD)/mu_path.o
 	$(CXX) $(BUILD)/mu_path.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+
+# Character-select scene, headless software build (NATIVE-CHARSEL-001).
+$(BUILD)/mu-charsel: charsel/main.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/main.c -o $(BUILD)/mu_charsel.o
+	$(CXX) $(BUILD)/mu_charsel.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # The mesh-draw module alone, for the Python equivalence tests (ctypes).
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h core/mu_meshdraw_case.c core/mu_meshdraw_case.h
@@ -180,9 +186,10 @@ GL_CFLAGS :=
 endif
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c viewer/terrain_view.c
 
-viewer: $(BUILD)/mu-viewer $(BUILD)/mu-frame-window $(BUILD)/mu-world
+viewer: $(BUILD)/mu-viewer $(BUILD)/mu-frame-window $(BUILD)/mu-world $(BUILD)/mu-charsel-window
 frame-window: $(BUILD)/mu-frame-window
 world: $(BUILD)/mu-world
+charsel: $(BUILD)/mu-charsel-window
 
 $(BUILD)/mu-viewer: $(VIEWER_SRC) viewer/gl_backend.h $(LIB)
 	@mkdir -p $(BUILD)/viewer
@@ -257,7 +264,17 @@ $(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB) 
 	$(CXX) $(BUILD)/world/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(AUDIO_LIBS) -lm -o $@
 
+# Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
+CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_headless.c
+
+$(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB)
+	@mkdir -p $(BUILD)/charsel
+	for f in $(CHARSEL_SRC); do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/charsel/$$(basename $$f .c).o || exit 1; \
+	done
+	$(CXX) $(BUILD)/charsel/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(UI_LIBS) -lm -o $@
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all viewer frame-window world audio audio-live clean
+.PHONY: all viewer frame-window world charsel audio audio-live clean

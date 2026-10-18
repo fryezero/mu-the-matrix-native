@@ -1,0 +1,361 @@
+# The character-select scene (NATIVE-CHARSEL-001)
+
+This milestone recovers the client's character-select screen, scene state 5:
+
+* the 3D scene: which world it loads, its camera, where the characters stand, how they animate and how the
+  selected one is highlighted;
+* its 2D layer: the legacy window `CCharSelMainWin` and the boundary to the GFx (Scaleform) parts;
+* how the character list (class, level, name, equipment) becomes the characters on screen. The list is the
+  server's data; here it is a synthetic input, and no packet is traced.
+
+The client routines are reconstructed in C (`reconstructed/charsel`, `reconstructed/ui/ui_charsel.c`, the scene
+3/5 path of `reconstructed/camera`) and compared with the client's instructions in Unicorn. The native session
+`native/core/mu_charsel` and the tools `mu-charsel`, `mu-render charsel` and `mu-charsel-window` render the scene
+on macOS arm64 with up to five synthetic characters.
+
+Labels:
+
+* **verified**: the client's instructions ran in Unicorn and matched the reconstruction on every compared case;
+* **live**: compared with a window-only capture of the running game;
+* **static**: read from decoded instructions, not executed;
+* **placeholder**: native code standing in for data the client has and this work does not.
+
+Pinned inputs: restored text capture09 (`2bd5f2e9…3724`) and second section run10 (`c985e2e6…672f`). The
+validators pin every executed routine by SHA-256 (`scripts/validate_charsel.py` `PINNED`).
+
+## 1. Scene flow (static)
+
+The frame driver serves scene 5 with the logic tick `0x01856e6c` and the render `0x018576b3`
+([camera and input](client-camera-input.md)).
+
+**Creation.** The first tick sets InitCharacterScene `0x0bdc5ca2` and calls CreateCharacterScene `0x01851540`:
+
+* world index `0x5d` (`0x01cf15fc`, `0x01cf1600`), OpenWorld `0x0182876e` → folder **World94**;
+* OpenCharacterSceneData `0x0182a553`: the window textures (`Interface\deco.tga` 0x7b10, `b_create.tga`
+  0x7b11, `server_menu_b_all.tga` 0x7b12, `b_connect.tga` 0x7b13, `b_delete.tga` 0x7b14, `character_ex.tga`,
+  the `server_ex*` frame), `Logo\chasellight.jpg` 0x8022 and the `Logo`/`NewFace` models;
+* the creation-preview character `0xa39d780` (CreateCharacter with model 0x136);
+* SelectedHero `0x01cf1864` = -1;
+* `CUIMng::CreateCharacterScene` `0x011e2f2a` (section 5);
+* for each of CharactersClient 0..9 the world handler's SetCharacterPosition (section 3), then a GFx call that
+  depends on whether any character exists (`0x00b4b82c` / `0x00b4b927`).
+
+**Tick** (`0x01856e6c`, verified, section 6): the terrain frame update `0x016ca4fa`, MoveCharacters
+`0x0137a7ce` (the animation step), effect and UI updates, the GFx manager update, MoveCharacterCamera
+`0x01854529`, then the Enter and Esc keys.
+
+**Render** (`0x018576b3`, verified, section 4): MoveMainCamera, BeginOpengl(0, 0, width, 480), CreateFrustrum,
+CreateScreenVector, then the scene.
+
+## 2. World and camera (verified)
+
+MoveMainCamera `0x0185498e` has a branch for scenes 5 and 3 (`0x018553f3`, `0x0185555a`). After the in-world
+position is computed, the branch replaces CameraAngle (all three components) and CameraPosition with the world
+camera record (`0x0098647b()->+0xc`: angle `+0`, position `+0xc`). It skips the pitch and zoom block and jumps
+to the common tail at `0x01855a27`: the earthquake shake is still added to the pitch, followed by the lift zone,
+the world 5 sway and the distance smoothing. The far plane at zoom level 0 is `2400 · Distance · Z_Distance ·
+scale`. The FOV is the record's, because scenes other than 6 always take the world FOV (`0x01851a7f`).
+
+The record of World94 (`Data\World94\Camera_Angle_Position.bmd`, decoded with the existing loader):
+
+| Field | Value |
+|---|---|
+| Angle X/Y/Z | -84.5, 0, -80 |
+| Position | 15215.089, 12186.536, 529.372 |
+| FOV | 35 |
+| Distance, Z_Distance | 9.1, 0.527996 → far 11,531.4 (×1.4 in the projection) |
+
+The camera looks almost horizontally (5.5° down) toward -x. World95 (world 0x5e), the login scene, has angle
+(-84.5, 0, -45).
+
+`reconstructed/camera` takes the record as `scene_angle`/`scene_position`. `validate_camera.py` adds a family for
+this path: **1,000/1,000 cases match** in the full run (scenes 3 and 5, the installed records and random ones,
+shake and lift inputs; the whole validator: 34,250 comparisons, 0 mismatches). Two new planted mistakes are
+detected, among the 13 mutations: the yaw not taken, and the shake skipped.
+
+**The legacy camera table.** MoveCharacterCamera `0x01854529` → `0x01854879` still computes the classic camera
+walk from the tables at `0x01cf17c0`/`0x01cf17cc`, which are packed in the file. The runtime data-section capture
+`x86-linux-capture-04/main-01ced000.bin` holds them; entry 5 (scene 5) is position (200, -800, 250) and angle
+(-87, 0, -10), with CameraFOV 45. These are the "scene-3/5 camera tables" the camera finding left open. They are
+written in every logic step, and MoveMainCamera overwrites them in every render pass, before BeginOpengl reads
+the camera (static reading). They therefore have no visible effect and are not ported.
+
+## 3. Character slots (verified; marker positions placeholder)
+
+The world handler of world 0x5d is a `CGMCharacterScene_Ex` (RTTI `.?AVCGMCharacterScene_Ex@@`, base
+`BaseMap`, vtable `0x01aa7338`, 0x8c bytes). It is found through the world-handler registry and a
+`__RTDynamicCast` (`0x0121469f`). It holds five position vectors (`+0x14`) and five angle vectors (`+0x50`), which
+its constructor `0x00daa127` zeroes.
+
+**CreateObject** (vtable slot 11, `0x00daa2b2`) runs for every static map object of the world. Objects of types
+13 to 17 are the **slot markers 0 to 4**:
+
+* marker k stores the object's position and the angle (0, 0, yaw_k), where yaw is **115, 90, 75, 60 and 35**
+  (the classic MU yaws);
+* SetCharacterPosition(k) runs;
+* the object's `+0x68` is set to -2.
+
+Types 0x26..0x28, 0x36..0x39, 0x45 and 0x50 also get `+0x68` = -2. Types 0x3c and 0x3d get `+0xc0` =
+-428.571. Outside world 0x5d the routine returns 0. Vtable slots 12 and 13 animate map objects of other types
+and emit their effects. They belong to the static objects, which are out of scope.
+
+**SetCharacterPosition** `0x00da9ff3`(slot) copies **marker 1's** position and angle into the slot's
+character. The source index is the constant 1 (`push 0xc; pop eax; shl eax, 0`), so every character stands on
+the same marker, facing yaw 90. This fits the screen: the client draws only one character (section 4). Callers:
+CreateCharacterScene for slots 0..9, CreateObject, and the character-created handler `0x0122b648`.
+
+**Verified:** `validate_charsel.py` runs CreateObject on sequences of 1 to 6 synthetic map objects (all marker
+types, the hidden types, 0x3c/0x3d, other types and other worlds) and SetCharacterPosition with slots including
+-1, 400 and 0x7fffffff. In the full run, 1,000 + 1,000 cases match: the scene object, map object and record
+bytes, and the return values. While building this, the validator caught a misreading of mine: an extra
+"stale argument" for marker 17 came from a disassembly listing filtered by `grep`. The client pushes 4
+normally.
+
+**Marker positions: placeholder.** The markers come from `EncTerrain94.obj`, which the captured client code
+does not decode ([terrain finding](client-terrain.md), section 5). The native default for marker 1,
+**(13617, 12339, 169.5)**, is a **live fit**. The window-only capture shows the character on a pedestal object
+at a known screen position. With the verified camera, the ray through the centre of the pedestal disc meets the
+plane z = 169.5, the height the render forces (section 4), at that point. The rendered character overlaps the
+live one in body position and size (`renders/charsel/fit/overlay.png`). The other four markers are not needed
+by the client's drawing and stay unknown.
+
+## 4. The render (verified)
+
+RenderCharacterScene `0x018576b3` returns 0 before InitCharacterScene, or while the protocol state `0x06fca2c4`
+is below 0x33 (the character list has not arrived). Otherwise it does the following:
+
+1. It clears the fog byte `0x0bdc597c`. If the character pick `0x016b47bf(1)` hits and the CInput byte
+   `+0x1f` is set (double click), it enters the game through `0x0185a75a(0)`, unless CCharSelMainWin
+   `0x009a5029` refuses (any nonzero refuses here).
+2. It calls MoveMainCamera, `glColor3f(1,1,1)` and `glClearColor(255.0, 0, 0, 1)`. The red component pushed is
+   255.0 (`0x01a7df30`), which GL clamps.
+3. It calls BeginOpengl(0, 0, 0x016bc355(), 480), CreateFrustrum(width/640, record position, 0) and
+   CreateScreenVector(MouseX, MouseY, &MouseTarget, 1).
+4. It sets the light (`OBJECT+0xec`) of CharactersClient 0..9 to 0. If the selected character is live:
+   EnableAlphaBlend, light (1,1,1), AddTerrainLight(x, y, (1,1,1), 1, frame light `0x0b9f5430`), and
+   DisableAlphaBlend.
+5. It sets the z of every character 0..9 to **169.5**, or **194.5** when CHARACTER `+0x322e` is the mount
+   0x1a03.
+6. It calls RenderTerrain(0) and RenderObjects. **Only character `[0x01cf1154]` is drawn**, by
+   RenderCharacter `0x01363260` when it is live and visible, plus `0x00d8bd8f` for Player models.
+7. It runs the joint, effect, blur, quest and point passes.
+8. **Selection highlight**, when the selected character is live:
+   * luminosity `sin(WorldTime·0.0015)·0.3 + 0.5` through the C runtime's sin;
+   * EnableAlphaBlend;
+   * two ground decals RenderTerrainAlphaBitmap(0x8036 `Skill\gmmzine.jpg`, x, y, size, size, light·lum,
+     rotation, 1, 5, 1, 0), with size 1.8 and rotation `+WorldTime·0.01`, then size 1.2 and rotation
+     `−WorldTime·0.01`;
+   * DisableAlphaBlend;
+   * the character light becomes 0.15;
+   * CreateParticle(0x8022 `Logo\chasellight.jpg`, position, angles, light, 5, 1.0, 0, 0).
+9. If a character is selected, its name goes to `0x0121d4c9()->0x009eaebe`.
+10. It draws the 2D layers: the UI helper, GFx, CUIMng (`0x01858c72`), the cursor and the frame end.
+
+**Verified:** `mu_charsel_render` logs every call the client makes, in order. The validator stubs each callee,
+records its arguments (vectors by value, character pointers as (index, offset)) and compares the log, the fog
+byte, every byte of the records and the return value. Inputs include random selected and shown indices (also
+out of range), mounts, liveness, visibility, world time up to 3·10⁷ ms, the pick, the double-click byte and the
+screen width. Result: **1,000/1,000 cases match**: 806 drew the scene, 558 drew the highlight, 474 drew a character and 97 entered the game by double click. The C runtime sin ran as client code (the SSE2 path behind the
+captured dispatch flag) and agreed with the host libm in every highlight case.
+
+**Inside RenderCharacter (static).** In scene 5 the character's light is 0.4 instead of the terrain light
+(`0x01367530`), and the body light `CHARACTER+0x1b8` becomes `0.4 + OBJECT light` (`0x013675c2`). A second
+block (`0x01367c0e`, reached for the hero pointer `[0xa39d754]`) uses 0.5. The native session uses 0.4 + light.
+RenderCharacter itself belongs to NATIVE-RENDERCHAR-001.
+
+## 5. The 2D layer
+
+`CUIMng::CreateCharacterScene` `0x011e2f2a` (static) creates:
+
+* `CMsgWin` (`+0x8`), centred;
+* the server-message window `+0x63a8` (`0x010750e1`) at (10, width·0.0516667 + 10). It shows "You are logged in
+  as Free Player" on the live screen and is not reconstructed;
+* the option window `+0x458`;
+* **CCharSelMainWin** `+0x4bb0` at (0x16, screen height − window height − 0xe), followed by UpdateDisplay and
+  ShowWin.
+
+**CCharSelMainWin** (vtable `0x01a7ec20`, 0x518 bytes; verified):
+
+* sprite 0, `deco.tga`, 189×103, placed above the right end;
+* sprite 1, an untextured bar, colour (0,0,0), alpha 0x8f, screen width − 0x10a wide and 21 high, beside the
+  Menu button;
+* four 54×30 buttons: **Create** (frames down 2, over 1, disable 3), **Menu** (no disable frame), **Connect**
+  and **Delete**. The window is `bar width + 4·54 + 6` wide.
+
+Its behaviour:
+
+* **Create.** The tip line index is `{0x6ae, 0x6cb, 0x6cc}[rand() % 3]`. The warning flag `+0x510` is set when
+  any of characters 0..9 is live with CHARACTER `+0x14 & 0x10`.
+* **SetPosition.** Create and Menu go at the left, Connect and Delete at the right edge, the bar at
+  (Menu.x + 56, y + 5), and the deco at (right − (189 − 0x16), y − 0x3b).
+* **UpdateDisplay.** Create is enabled when a slot is free (10 slots, or the 0x010a5dca count in the other slot
+  mode) and the `0x0095f75d()->+4` flag is clear. Connect and Delete are enabled when a character is selected;
+  Delete also needs that flag clear. With no live character (and the GFx create interface closed), the GFx
+  create-character interface opens.
+* **UpdateWhileActive.** Connect enters the game unless `0x009a5029` returns exactly 1. Menu opens the GFx menu
+  (`0x00c8c8b1`) and Create the GFx create interface.
+* **Delete** (`0x009a553c`). It refuses with a message when CHARACTER `+0x17 != 0xff` (0x676), when the level is
+  700 or above on servers without the `0x01072a96` flag (CUIMng message 0x83), when `+0x14 & 0x12` (0x1a1) or
+  when `+0x3634 == 1` (0x166e). Otherwise it asks for confirmation with GlobalText 0x6b0 and the name.
+* **RenderControls.** The sprites, alpha test, the tip in `ff27d9ff` centred in the bar, and, with the warning
+  flag, GlobalText 0x1b4/0x1b5 at (320, 330/348) in black on translucent yellow (`0x011a0998` sets the text
+  colour, `0x011a09f3` the background). Then the buttons.
+
+**Verified:** `scripts/validate_charsel_window.py` runs the client's window code on the UI-002 Unicorn machine,
+together with CWin, CButton, CSprite and the text facade as client code:
+
+| Item | Result |
+|---|---|
+| Cases | 120 (8 window sizes) |
+| Render calls | 32,210 |
+| Update frames | 2,494 (clicks, held presses, edges) |
+| Compared state words | 915,990 |
+| Events reached | Create, Menu, Connect, message, notice and confirmation |
+| Mismatches | 0 |
+| Planted mistakes detected | 7 of 7 |
+
+The comparison found two errors in my first reconstruction: the text and background colour setters were swapped,
+and Connect is refused only by the value 1.
+
+**GFx boundary (static).** The character list on the right side of the screen (ten entries with class, title,
+name and level), the create-character and menu interfaces and the message boxes are GFx movies:
+
+* `0x00b4bed3` is `SelectIndex`. It sets SelectedHero and the shown character `0x01cf1154` to the index and
+  calls `SetCharSelArrow`;
+* `0x00b4bd6c`(list index, enter) maps the list row through its `+0xa8` table to a slot. A live slot becomes the
+  shown and selected character, otherwise both become -1. It then runs UpdateDisplay and, with `enter`, the same
+  connect check as the Connect button.
+
+They are not reconstructed. The native session selects a slot the way SelectIndex does.
+
+**Live (window-only capture, 2026-10-17).** Compared over every pixel the native window draws, on a 1722×1048
+client area:
+
+| Element | Pixels | Mean absolute error |
+|---|---:|---:|
+| Menu button | 1,370 | 0.00/255 |
+| Connect and Delete buttons | 5,002 | 0.86/255 (the translucent deco edges blend with the 3D scene) |
+
+The Create button differs because the live account has all ten slots in use, so Create shows its disable
+frame. The tip line reads "Long game time may be harmful to your health" (GlobalText is not decoded; the native
+string is the observed one).
+
+## 6. Selection and the tick (verified)
+
+The tick (`0x01856e6c`) works as follows:
+
+1. It returns while the protocol state is below 0x33.
+2. On the first step it creates the scene. It then runs the movers, the GFx update (`0x00ac9613`(scene)) and
+   MoveCharacterCamera, and returns while the GFx movie is busy (`0x00aae6f9` = 1).
+3. **Enter** (`0x00ec53a7(0x0d)`, unless CInput `+0x31`). It is ignored while the GFx movie or the GFx flags
+   `+0x22c->+0x79/+0x78`, the globals `0x01d22d1e`/`0x06fca007` or CUIMng `+0x464` block it, or while SelectedHero
+   is outside 0..9. Otherwise it plays sound 25. If the shown character `0x01cf1154` is set, SelectedHero takes
+   it. Unless `0x009a5029` returns 1, `0x0185a75a(0)` starts the loading scene.
+4. **Esc.** It opens the GFx menu, or closes the GFx window `+0x22c` and clears CUIMng `+0x65b9`.
+
+**Verified:** 1,000/1,000 cases match in the full run (call log, InitCharacterScene, SelectedHero and
+`+0x65b9`). Among them, Enter started the loading scene 68 times, was refused by `0x009a5029` 34 times and took
+the selection from `0x01cf1154` 74 times; Esc opened the GFx menu 47 times and closed the GFx window 24 times.
+
+## 7. The character list feeds the slots (verified for CreateHero, static for the list)
+
+The list handlers create each character with **CreateHero** `0x0137f824`(slot, class, skin, x, y, angle). It
+works as follows:
+
+1. CreateCharacter `0x0137d8a1`(c, 0xa91, 0, 0, angle) (not reconstructed).
+2. Light 0.3, key `+0x3e` = slot, position x/y, class `+0x12`, skin `+0x13`, the buff reset `0x01295f18`.
+3. In scene 3 (login) a preset equipment set. Otherwise the class body parts `0x3700/0x3750/0x37a0/0x37f0/0x3840
+   + skin index` and empty weapons, wing and helper.
+4. `0x0128ed7d`, then flag `+0x14` = 0.
+5. **SetCharacterScale** `0x01394f6f`: a helmet in a 17-entry list shows the face part (slot 0 = 0x3700 + skin),
+   the part scales, and in scene 5 **object scale 1.7**. The world values are 0.9/0.88/0.95/0.92/1.03/0.99/0.8/1.1
+   by base class, 1.1 under buffs 0x1a8/0x1a9, and 0.9/0.88 in event worlds.
+6. **SetPlayerStop** `0x0138fe69`, the stand action.
+
+The character-created handler `0x0122b648` then sets the level (`+0x144`), the class byte and the name, and
+places the character. The handler of the full list presumably does the same and decodes the equipment
+(`0x01394870`, see [native-character.md](native-character.md)); that handler was not traced (packet data).
+
+**Verified:** CreateHero 1,000/1,000 and SetCharacterScale 1,000/1,000 cases match in the full run (every record
+byte and the call log; all class bytes, helmet types, scenes 3 to 6, event worlds, buffs).
+
+**Idle animation (static plus verified parts).** Every character plays its stand action. In scene 5,
+SetPlayerStop's stance branch (`0x01391f89`) follows the scene-6 safe-zone path, which NATIVE-WORLD-001 verified
+for unarmed characters: base classes 0..15 → actions 1 1 2 1 1 3 1 5 6 6 1 1 2 1 6 8. The animation tick's
+scene-5 rule (the wrap test at keys + 2) is part of the verified tick ([skinning](client-skinning.md)).
+Equipped characters take the weapon stand actions of [client-actors.md](client-actors.md) (static).
+
+## 8. Native module
+
+`native/core/mu_charsel` builds a session from the reconstructed code:
+
+* World94 through `mu_terrain`, with the client frustum (scene 5) and the highlight textures;
+* the camera through `mu_move_main_camera` with the World94 record;
+* the character list: synthetic, or a text file `slot class level name [helm=…|armor=…|weapon0=…|wing=…]`
+  with up to five entries. Each entry becomes a client-layout record through `mu_charsel_create_hero` and
+  `mu_charsel_set_character_position`. Its models are assembled by `mu_character` (public API: init, set item,
+  set state, tick, update) with scale 1.7, marker 1's position and yaw 90, the stand action and the scene-5
+  tick;
+* per logic step, `mu_charsel_tick_step` (Enter) and one animation step per character;
+* per frame, `mu_charsel_render` gives the frame light, the drawn character and the two decals. The decals are
+  drawn through the terrain decal port with the additive state;
+* the 2D layer: CCharSelMainWin through the 2D software GL over the finished 3D frame (`core/mu_charsel_ui`).
+
+Front ends: `mu-charsel` and `mu-render charsel` (headless, software, with the 2D layer), and `mu-charsel-window`
+(`make -C native charsel`: an SDL2/OpenGL window, 1..5 or Left/Right select, Enter is the client's Enter; also
+headless GL). Options: `--slot`, `--list`, `--marker X,Y[,Z]`, `--cycle F`, `--enter F`, `--no-ui`.
+
+```sh
+native/build/mu-charsel --game-root "$MU_GAME_ROOT" --width 1722 --height 1048 --frames 50 --every 10 \
+    --cycle 10 --out-dir /tmp/charsel
+make -C native charsel && native/build/mu-charsel-window --game-root "$MU_GAME_ROOT"
+```
+
+Local renders, not committed, are under `~/Documents/mu-mac-tools/native/renders/charsel/`:
+
+* `cycle/contact-sheet.png`: the five synthetic characters selected in turn;
+* `fit/overlay.png` and `fit/ui-strips.png`: native over live;
+* `gl/`: headless OpenGL;
+* `live/`: the window-only captures, kept local.
+
+**Not drawn**, and stated in the tool's help and module header:
+
+* the static map objects of World94 (the pedestal, trees and waterfalls), so most of the screen stays black
+  where the world has no terrain (63,878 no-ground cells);
+* the particle 0x8022;
+* the GFx list and interfaces;
+* the cursor and the server-message window.
+
+The window front end draws the 3D scene only; the 2D layer is composed in the headless modes. On the very first
+frame the deco sprite is drawn without the alpha test, because RenderControls enables it only after the
+sprites. The client's state carries over from earlier frames.
+
+## Verification summary
+
+| Comparison | Cases | Result |
+|---|---:|---|
+| MoveMainCamera scene 3/5 record path (`validate_camera.py`) | 1,000 | 0 mismatches; 34,250 comparisons, 0 mismatches over the whole validator; 13/13 mutations |
+| CreateObject sequences, SetCharacterPosition | 1,000 + 1,000 | 0 mismatches |
+| SetCharacterScale, CreateHero | 1,000 + 1,000 | 0 mismatches |
+| RenderCharacterScene | 1,000 | 0 mismatches |
+| Scene-5 tick | 1,000 | 0 mismatches |
+| `validate_charsel.py` planted mistakes | 12 | 12 detected |
+| CCharSelMainWin (`validate_charsel_window.py`) | 120 | 0 mismatches, 915,990 state words; 7/7 mutations |
+| Live: window pixels, marker fit | 1 capture | Menu button exact; character overlap |
+
+**Tests.**
+
+* Portable: `reconstructed/charsel/test_charsel.py` (scene routines and window logic, no client bytes),
+  `reconstructed/camera/test_client_camera.py` (record path) and `native/tests/test_native_charsel.py` (a
+  synthetic World94 tree and Player.bmd: camera, records, selection cycle, Enter, the list file, determinism,
+  refusals, headless GL).
+* Private (`MU_RECOVERY_INTEGRATION=1`): both validators, and the installed World94.
+
+## Open points
+
+* Marker positions (EncTerrain94.obj), the static objects and their animation (vtable slots 12/13).
+* The character pick `0x016b47bf` in scene 5 (OBB tests) and `0x009a5029`'s checks.
+* RenderCharacter's scene-5 light branches, and which of them the hero pointer selects.
+* The GFx list, create, menu and message interfaces; the server-message window `+0x63a8`.
+* The list handler's equipment decoding (packet data, deliberately not traced).
+* GlobalText (`Data\Lang.mpr`) for the tip and warning strings.

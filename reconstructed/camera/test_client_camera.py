@@ -223,6 +223,22 @@ class CameraTests(unittest.TestCase):
         self.assertEqual(view.position[2], 850.0)
         self.assertEqual((c.distance, c.zoom_level), (1000.0, 0))
 
+    def test_character_select_camera_record(self):
+        # NATIVE-CHARSEL-001: scenes 3/5 take the world record's angle and position
+        c, view = self.world()
+        c.scene, c.world, c.world_fov = 5, 0x5d, 35.0
+        c.far_scale[0], c.far_scale[1] = 9.1, 0.528
+        for i, (a, p) in enumerate(zip((-84.5, 0.0, -80.0), (15215.0889, 12186.5361, 529.371704))):
+            c.scene_angle[i], c.scene_position[i] = a, f32(p)
+        self.lib.mu_move_main_camera(ctypes.byref(c), ctypes.byref(view), 5000)
+        self.assertEqual(list(view.angle), [-84.5, 0.0, -80.0])
+        self.assertEqual(list(view.position), [f32(15215.0889), f32(12186.5361), f32(529.371704)])
+        self.assertEqual(view.view_far, f32(f32(f32(2400.0 * f32(9.1)) * f32(0.528)) * 1.0))
+        self.assertEqual(view.fov, 35.0)
+        c.earthquake = 1.5
+        self.lib.mu_move_main_camera(ctypes.byref(c), ctypes.byref(view), 5040)
+        self.assertEqual(view.angle[0], -83.0)   # the shake still adds to the pitch
+
     def test_wheel_zoom_limits_and_transition(self):
         c, view = self.world()
         self.lib.mu_move_main_camera(ctypes.byref(c), ctypes.byref(view), 5000)

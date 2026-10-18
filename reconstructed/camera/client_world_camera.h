@@ -3,7 +3,8 @@
 
 /* In-world camera update of the client (MoveMainCamera 0x0185498e) and the
  * mouse-wheel FOV zoom (0x018588d9, 0x0185a9bf). Authored names. Only the
- * ordinary in-world path is modelled (scene 6, not top view, no
+ * ordinary in-world path (scene 6) and the camera-record path of scenes 3
+ * and 5 are modelled (not top view, no
  * scripted/tour camera object, not the special worlds listed in
  * docs/research/client-camera-input.md); the world/scene predicates the
  * client evaluates through other subsystems are explicit inputs. */
@@ -61,6 +62,10 @@ typedef struct mu_world_camera {
     float position_end[3];      /* 0x0bdc5acc */
     mu_tick_timer zoom_timer;   /* 0x0bdc5ed0 (done byte = zoom settled) */
     int32_t zoom_index;         /* 0x0bdc5914 */
+    /* scenes 3 and 5 (NATIVE-CHARSEL-001): the world camera record's
+     * [CAMERA ANGLE] (+0) and [CAMERA POSITION] (+0xc), input */
+    float scene_angle[3];
+    float scene_position[3];
 } mu_world_camera;
 
 /* World entry (0x0185613e first tick): yaw -45, settled zoom, index 2,
