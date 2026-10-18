@@ -303,8 +303,9 @@ These are in `~/Documents/mu-mac-tools/native/renders/world2/` and are not commi
 
 ## Unresolved
 
-- **Live comparison.** No live side-by-side capture was made for this milestone, because the game lock was held and
-  the character's location was not checked (see the handoff).
+- **Live comparison.** No live side-by-side capture of Lorencia was made. A short locked session (2 minutes) logged in
+  on MTM-1 and found the character on Tormenta Island (135,10), not in Lorencia. The character was left where the
+  user put it and the client was closed. A capture needs the character in Lorencia.
 - **Static readings.** The zoom mode in `[0x0bdb5880]`, the MoveSpeed default and the visibility condition of the
   trigger are static readings. The character-state predicate `0x0106b9f7` is opaque.
 - **Not ported.**
