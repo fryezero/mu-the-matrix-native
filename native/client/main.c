@@ -10,6 +10,8 @@
  *             [--sound-table TSV] [--placement FILE] [--no-audio] [--seconds S]
  *   mu-client --game-root ROOT --headless --out-dir DIR [--backend gl|soft]
  *             [--frames N] [--every K] [--auto | --script "F:ACTION ..."] [--wav OUT.wav]
+ *   --gfx DIR [--gfx-open inventory,character]: the client's GFx interface
+ *             in the world scene (NATIVE-GFX-003, as mu-world --gfx; GL only)
  *
  * Headless actions (frame numbers count dispatcher passes): enter, esc, left,
  * right, tab, back, text:STRING, click:group:N, click:server:N, click:X,Y,
@@ -38,6 +40,7 @@
 #include "../login/login_gl.h"
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_headless.h"
+#include "../world/world_gfx.h"
 #endif
 
 #include "../core/mu_frame.h"
@@ -56,6 +59,7 @@ typedef struct action {
 typedef struct front {
     const char *root, *session, *out_dir, *backend, *sound_table, *placement, *wav_path, *font;
     const char *world_objects, *charsel_objects, *login_objects;
+    const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
     float seconds;
     action actions[MAX_ACTIONS];
@@ -80,6 +84,8 @@ typedef struct front {
     int click_stage, click_x, click_y;
     int32_t release_frame[16], release_vk[16], release_count;
 #ifndef MU_CLIENT_NO_GL
+    world_gfx *gfx;
+    uint32_t gfx_clock;
     SDL_Window *window;
     GLuint screen_texture;
     int32_t dw, dh;
@@ -235,6 +241,16 @@ static void on_opened(void *user, int kind, void *embed)
         mu_world_embed_gl_setup(embed);
     if (!f->headless && kind == MU_SHELL_EMBED_WORLD)
         mu_world_embed_resize(embed, f->dw, f->dh);
+    if (kind == MU_SHELL_EMBED_WORLD && f->gfx_dir && !f->gfx) {
+        /* The GFx interface over the world scene, as mu-world --gfx (the
+         * client's GFx manager draws after the 3D pass in the main scene). */
+        char error[512];
+        f->gfx = world_gfx_open(f->gfx_dir, f->root, f->width, f->height, f->headless ? 1.0 : f->scale, 1,
+                                f->gfx_open, error, sizeof error);
+        if (!f->gfx)
+            fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
+        f->gfx_clock = on_ticks(f);
+    }
 #endif
 }
 
@@ -251,6 +267,10 @@ static void on_closing(void *user, int kind, void *embed)
         mu_login_gl_teardown(f->login_gl);
         f->login_gl = NULL;
         return;
+    }
+    if (kind == MU_SHELL_EMBED_WORLD && f->gfx) {
+        world_gfx_close(f->gfx);
+        f->gfx = NULL;
     }
     if (kind == MU_SHELL_EMBED_CHARSEL)
         mu_charsel_embed_gl_teardown(embed);
@@ -272,12 +292,22 @@ static void compose(front *f)
         }
     } else if (f->gl) {
 #ifndef MU_CLIENT_NO_GL
-        if (view == MU_SHELL_VIEW_LOGIN && f->login_gl)
+        if (view == MU_SHELL_VIEW_LOGIN && f->login_gl) {
             mu_login_gl_draw(f->login_gl, mu_shell_login(f->shell), f->width, f->height);
-        else if (view == MU_SHELL_VIEW_CHARSEL)
+        } else if (view == MU_SHELL_VIEW_CHARSEL) {
             mu_charsel_embed_draw_gl(mu_shell_charsel(f->shell), f->width, f->height);
-        else
-            mu_world_embed_draw_gl(mu_shell_world(f->shell), f->width, f->height);
+        } else {
+            mu_world_embed *w = mu_shell_world(f->shell);
+            mu_world_embed_draw_gl(w, f->width, f->height);
+            if (f->gfx) {
+                uint32_t now = on_ticks(f);
+                const mu_walk *walk = mu_world_embed_walk(w);
+                world_gfx_set_location(f->gfx, mu_world_embed_folder(w) - 1, walk->hero.position[0],
+                                       walk->hero.position[1]);
+                world_gfx_frame(f->gfx, (double)(now - f->gfx_clock), 1);
+                f->gfx_clock = now;
+            }
+        }
         glFinish();
         mu_gl_read(f->width, f->height, f->pixels);
 #endif
@@ -622,6 +652,8 @@ static int windowed(front *f)
     while (!mu_shell_quit(f->shell)) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
+            if (f->gfx && mu_shell_scene(f->shell) == MU_SCENE_MAIN && world_gfx_event(f->gfx, &e, f->scale))
+                continue;   /* the GFx interface took it */
             if (e.type == SDL_QUIT) {
                 mu_shell_request_quit(f->shell);
             } else if (e.type == SDL_MOUSEMOTION) {
@@ -690,7 +722,8 @@ static int usage(void)
             "                 [--sound-table TSV] [--placement FILE] [--no-audio] [--seconds S]\n"
             "                 [--world-objects DIR] [--charsel-objects DIR] [--login-objects DIR] [--objects-dir DIR]\n"
             "                 [--headless --out-dir DIR --backend gl|soft --frames N --every K]\n"
-            "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n");
+            "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
+            "                 [--gfx DIR [--gfx-open inventory,character]]\n");
     return 2;
 }
 
@@ -737,6 +770,8 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--every")) f.every = atoi(v);
         else if (!strcmp(k, "--wav")) f.wav_path = v;
         else if (!strcmp(k, "--script")) { if (parse_script(&f, v)) return usage(); }
+        else if (!strcmp(k, "--gfx")) f.gfx_dir = v;
+        else if (!strcmp(k, "--gfx-open")) f.gfx_open = v;
         else return usage();
     }
     if (!f.root || f.width < 64 || f.height < 64 || f.width > 8192 || f.height > 8192 || f.frames < 1)
