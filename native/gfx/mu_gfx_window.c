@@ -9,7 +9,8 @@
  *
  * Usage:
  *   mu-gfx-window --gfx DIR [--size 1280x800] [--headless | --headless-gl] [--out-dir DIR] [--script]
- *                 [--frames N] [--bench] [--open] [--readback] [--full-stage] [--log FILE]
+ *                 [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]
+ * --scale S: pixels per point (2 = Retina); --size stays in points.
  * DIR holds the movies converted with
  *   gfxconvert.py --bridge --transparent --var _root.isClient=true --fontconfig English --font-subset latin
  *     --movie main --movie InventoryFrame --movie InfoPopup --movie CharacterInfoFrame --movie chat
@@ -120,6 +121,8 @@ static int vk_of(const char *name)
     return (unsigned char)name[0];
 }
 
+static double g_scale = 1.0;
+
 static void run_step(mu_gfx_layer *L, const char *what, char *shot, size_t cap, FILE *log)
 {
     double x, y;
@@ -147,6 +150,8 @@ static void run_step(mu_gfx_layer *L, const char *what, char *shot, size_t cap, 
         mu_gfx_layer_mouse(L, 2, 1, x, y);
     } else if (!strncmp(what, "move ", 5)) {
         sscanf(what + 5, "%lf %lf", &x, &y);
+        x *= g_scale;   /* script points -> window pixels */
+        y *= g_scale;
         mu_gfx_layer_mouse(L, 0, 0, x, y);
     } else if (!strcmp(what, "close inventory")) {
         /* The movie's own close button: its clip bounds include a wide
@@ -176,6 +181,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--out-dir") && i + 1 < argc) out_dir = argv[++i];
         else if (!strcmp(argv[i], "--log") && i + 1 < argc) log_path = argv[++i];
         else if (!strcmp(argv[i], "--size") && i + 1 < argc) sscanf(argv[++i], "%dx%d", &w, &h);
+        else if (!strcmp(argv[i], "--scale") && i + 1 < argc) g_scale = atof(argv[++i]);
         else if (!strcmp(argv[i], "--frames") && i + 1 < argc) frames = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--headless")) headless = 1;
         else if (!strcmp(argv[i], "--headless-gl")) headless_gl = 1;
@@ -186,7 +192,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--full-stage")) full = 1;
         else {
             fprintf(stderr, "usage: %s --gfx DIR [--size WxH] [--headless|--headless-gl] [--out-dir DIR] [--script]\n"
-                            "       [--frames N] [--bench] [--open] [--readback] [--full-stage] [--log FILE]\n", argv[0]);
+                            "       [--frames N] [--bench] [--open] [--readback] [--full-stage] [--scale S] [--log FILE]\n", argv[0]);
             return 2;
         }
     }
@@ -194,6 +200,10 @@ int main(int argc, char **argv)
         fprintf(stderr, "mu-gfx-window: --gfx DIR is required\n");
         return 2;
     }
+    if (!(g_scale > 0))
+        g_scale = 1.0;
+    w = (int)(w * g_scale);   /* --size is in points; the drawable is in pixels */
+    h = (int)(h * g_scale);
     FILE *log = log_path ? fopen(log_path, "w") : NULL;
     SDL_Window *win = NULL;
     SDL_GLContext ctx = NULL;
@@ -222,7 +232,7 @@ int main(int argc, char **argv)
         SDL_GL_SetSwapInterval(bench ? 0 : 1);
         SDL_StartTextInput();
     }
-    mu_gfx_layer_config cfg = {dir, NULL, w, h, gl && !readback, full, 1, NULL, NULL, log};
+    mu_gfx_layer_config cfg = {dir, NULL, w, h, gl && !readback, full, 1, NULL, NULL, log, g_scale};
     double t_open = now_ms();
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {

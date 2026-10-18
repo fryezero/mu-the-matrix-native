@@ -17,9 +17,11 @@
 
 typedef struct world_gfx world_gfx;
 
-/* `open` lists windows to show at start ("inventory,character,chat"). */
-world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, int shared,
-                          const char *open, char *error, size_t error_size);
+/* width/height in drawable pixels, scale = pixels per window point (Retina
+ * 2: the movies lay out in points and draw at full resolution).  `open`
+ * lists windows to show at start ("inventory,character"). */
+world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
+                          int shared, const char *open, char *error, size_t error_size);
 void world_gfx_close(world_gfx *g);
 /* 1 when the interface took the event. */
 int world_gfx_event(world_gfx *g, const SDL_Event *e, double scale);

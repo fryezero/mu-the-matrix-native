@@ -1192,7 +1192,7 @@ static int headless(app *a)
     if (gl)
         gl_setup(a);
     if (gl && a->gfx_dir) {
-        a->gfx = world_gfx_open(a->gfx_dir, a->root, a->width, a->height, 1, a->gfx_open, error, sizeof error);
+        a->gfx = world_gfx_open(a->gfx_dir, a->root, a->width, a->height, 1.0, 1, a->gfx_open, error, sizeof error);
         if (!a->gfx)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
     }
@@ -1364,7 +1364,7 @@ static int windowed(app *a)
     gl_setup(a);
     if (a->gfx_dir) {
         char error[512];
-        a->gfx = world_gfx_open(a->gfx_dir, a->root, dw, dh, 1, a->gfx_open, error, sizeof error);
+        a->gfx = world_gfx_open(a->gfx_dir, a->root, dw, dh, scale, 1, a->gfx_open, error, sizeof error);
         if (a->gfx)
             SDL_StartTextInput();
         else

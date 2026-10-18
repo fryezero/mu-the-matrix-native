@@ -60,8 +60,8 @@ static void demo_items(world_gfx *g)
     }
 }
 
-world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, int shared,
-                          const char *open, char *error, size_t error_size)
+world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
+                          int shared, const char *open, char *error, size_t error_size)
 {
     world_gfx *g = calloc(1, sizeof *g);
     if (!g) {
@@ -71,7 +71,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     g->root = game_root;
     g->scratch = malloc(sizeof *g->scratch);
     mu_hud_tip_tables_load(game_root, &g->tables);
-    mu_gfx_layer_config cfg = {movie_dir, NULL, width, height, shared, 0, 1, tooltip, g, NULL};
+    mu_gfx_layer_config cfg = {movie_dir, NULL, width, height, shared, 0, 1, tooltip, g, NULL, scale};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);

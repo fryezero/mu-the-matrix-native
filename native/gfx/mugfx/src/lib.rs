@@ -929,26 +929,31 @@ pub unsafe extern "C" fn mugfx_text_focus(g: *mut MuGfx) -> c_int {
     }) as c_int
 }
 
-/// Show only a part of the stage (a window-sized player): the movie keeps a
-/// `stage_w` x `stage_h` stage (what it lays itself out against) and the
-/// render target becomes `w` x `h` pixels showing the stage area at
-/// (`x`, `y`).  Mouse coordinates passed to the movie are relative to that
-/// area.  `w` or `h` <= 0 restores the full-stage view.  Returns 0.
+/// Show only a part of the stage (a window-sized player) and set the
+/// backing scale.  The movie keeps a `stage_w` x `stage_h` stage in points
+/// (what it lays itself out against); the render target becomes
+/// `w * scale` x `h * scale` pixels showing the stage area at (`x`, `y`)
+/// points.  Mouse coordinates passed to the movie are viewport pixels.
+/// `w` or `h` <= 0 shows the whole stage.  `scale` <= 0 means 1 (a Retina
+/// window passes 2 so the interface keeps its size and draws sharp).
+/// Returns 0.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mugfx_set_view(g: *mut MuGfx, stage_w: c_int, stage_h: c_int, x: c_int, y: c_int,
-                                        w: c_int, h: c_int) -> c_int {
+                                        w: c_int, h: c_int, scale: f64) -> c_int {
     let Some(g) = (unsafe { g.as_ref() }) else { return -1 };
+    let scale = if scale > 0.0 { scale } else { 1.0 };
     let (vw, vh, view) = if w > 0 && h > 0 {
-        (w as u32, h as u32, Some([stage_w as f64, stage_h as f64, x as f64, y as f64]))
+        (w as f64, h as f64, Some([stage_w as f64, stage_h as f64, x as f64, y as f64]))
     } else {
-        (stage_w.max(1) as u32, stage_h.max(1) as u32, None)
+        (stage_w.max(1) as f64, stage_h.max(1) as f64, Some([stage_w as f64, stage_h as f64, 0.0, 0.0]))
     };
+    let (pw, ph) = ((vw * scale).round().max(1.0) as u32, (vh * scale).round().max(1.0) as u32);
     g.with_player(|p| {
-        p.set_viewport_dimensions(ViewportDimensions { width: vw, height: vh, scale_factor: 1.0 });
+        p.set_viewport_dimensions(ViewportDimensions { width: pw, height: ph, scale_factor: scale });
         p.set_gfx_view(view);
     });
-    g.width.set(vw);
-    g.height.set(vh);
+    g.width.set(pw);
+    g.height.set(ph);
     g.run_pending();
     0
 }

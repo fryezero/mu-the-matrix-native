@@ -76,10 +76,12 @@ int mugfx_key(MuGfx *g, int kind, int vk, uint32_t codepoint, int mods);
 int mugfx_text(MuGfx *g, const char *utf8);
 /* 1 when a text field of the movie has keyboard focus. */
 int mugfx_text_focus(MuGfx *g);
-/* Window-sized player: the movie keeps a stage_w x stage_h stage, the render
- * target becomes w x h showing the stage area at (x, y); mouse coordinates
- * are then relative to that area.  w or h <= 0 restores the full stage. */
-int mugfx_set_view(MuGfx *g, int stage_w, int stage_h, int x, int y, int w, int h);
+/* Window-sized player and backing scale: the movie keeps a stage_w x
+ * stage_h stage (points); the render target becomes w*scale x h*scale
+ * pixels showing the stage area at (x, y) points; mouse coordinates are
+ * viewport pixels.  w or h <= 0 shows the whole stage; scale <= 0 means 1
+ * (Retina: 2, the interface keeps its size and draws sharp). */
+int mugfx_set_view(MuGfx *g, int stage_w, int stage_h, int x, int y, int w, int h, double scale);
 void mugfx_size(MuGfx *g, int *width, int *height);
 /* Device fonts: map a font name used by the movies to a font file (style 0
  * regular, 1 bold, 2 italic, 3 bold italic; name "*" = fallback).  Defaults

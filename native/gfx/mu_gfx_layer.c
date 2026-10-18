@@ -80,7 +80,7 @@ typedef struct mugfx_api {
     int (*key)(MuGfx *, int, int, uint32_t, int);
     int (*text)(MuGfx *, const char *);
     int (*text_focus)(MuGfx *);
-    int (*set_view)(MuGfx *, int, int, int, int, int, int);
+    int (*set_view)(MuGfx *, int, int, int, int, int, int, double);
     void (*size)(MuGfx *, int *, int *);
     void (*stats)(MuGfx *, MuGfxStats *);
 } mugfx_api;
@@ -204,7 +204,9 @@ struct mu_gfx_layer {
     movie mv[MU_GFX_MOVIES];
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
-    int32_t w, h;
+    int32_t w, h;               /* the movies' stage in points */
+    int32_t px_w, px_h;         /* window pixels */
+    double scale;               /* pixels per point (Retina 2) */
     int shared;
     mu_gfx_hero hero, shown;    /* current values, values last sent to main */
     int hero_dirty_char;
@@ -215,7 +217,7 @@ struct mu_gfx_layer {
     float win_x, win_y, slot_x, slot_y, slot_w, slot_h, gap_x, gap_y;
     int have_slot;
     /* chat */
-    int chat_edit;
+    int chat_edit, chat_ready;
     char last_sent[256];
     /* skills */
     int selected_skill;
@@ -866,12 +868,14 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
     mv->file = FILES[m];
     mv->L = L;
     mv->id = m;
-    mv->g = L->shared ? L->api.open_shared(path, L->w, L->h, err, sizeof err) : L->api.open(path, L->w, L->h, err, sizeof err);
+    mv->g = L->shared ? L->api.open_shared(path, L->px_w, L->px_h, err, sizeof err)
+                      : L->api.open(path, L->px_w, L->px_h, err, sizeof err);
     if (!mv->g) {
         snprintf(error, cap, "%s: %s", path, err);
         return -1;
     }
     L->api.set_callback(mv->g, on_call, mv);
+    L->api.set_view(mv->g, L->w, L->h, 0, 0, 0, 0, L->scale);
     L->api.start(mv->g);
     mv->view[0] = mv->view[1] = 0;
     mv->view[2] = L->w;
@@ -943,10 +947,7 @@ static void init_movies(mu_gfx_layer *L)
                     "\"strBlock\":\"Block\",\"typeFormatWHISPER\":\"W\",\"typeFormatPARTY\":\"P\","
                     "\"typeFormatGUILD\":\"G\",\"typeFormatUNION\":\"U\",\"typeFormatGENS\":\"Gens\"}]");
             invokef(L, MU_GFX_CHAT, chat->path, "CloseEditText", "[]");
-            /* The library's view starts with its own test lines (ChatView.testChatType). */
-            invokef(L, MU_GFX_CHAT, chat->path, "ClearAllChatHistory", "[]");
             chat->open = 1;
-            mu_gfx_layer_chat(L, 3, "", "Welcome to MU (native client, offline demo).");
         }
     }
     movie *inv = &L->mv[MU_GFX_INVENTORY];
@@ -1008,8 +1009,11 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
         return NULL;
     }
     L->cfg = *c;
-    L->w = c->width > 0 ? c->width : 1280;
-    L->h = c->height > 0 ? c->height : 800;
+    L->px_w = c->width > 0 ? c->width : 1280;
+    L->px_h = c->height > 0 ? c->height : 800;
+    L->scale = c->scale > 0 ? c->scale : 1.0;
+    L->w = (int32_t)lround(L->px_w / L->scale);
+    L->h = (int32_t)lround(L->px_h / L->scale);
     L->held = L->hover = L->capture = -1;
     L->potions = 25;
     demo_hero(&L->hero);
@@ -1067,13 +1071,15 @@ void mu_gfx_layer_close(mu_gfx_layer *L)
 
 void mu_gfx_layer_resize(mu_gfx_layer *L, int32_t w, int32_t h)
 {
-    if (!L || w <= 0 || h <= 0 || (w == L->w && h == L->h))
+    if (!L || w <= 0 || h <= 0 || (w == L->px_w && h == L->px_h))
         return;
-    L->w = w;
-    L->h = h;
+    L->px_w = w;
+    L->px_h = h;
+    w = L->w = (int32_t)lround(w / L->scale);
+    h = L->h = (int32_t)lround(h / L->scale);
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         if (L->mv[m].g) {
-            L->api.set_view(L->mv[m].g, w, h, 0, 0, 0, 0);
+            L->api.set_view(L->mv[m].g, w, h, 0, 0, 0, 0, L->scale);
             L->mv[m].view[0] = L->mv[m].view[1] = 0;
             L->mv[m].view[2] = w;
             L->mv[m].view[3] = h;
@@ -1132,7 +1138,7 @@ static void update_view(mu_gfx_layer *L, int m)
     if (!memcmp(nv, mv->view, sizeof nv))
         return;
     memcpy(mv->view, nv, sizeof nv);
-    L->api.set_view(mv->g, L->w, L->h, nv[0], nv[1], nv[2], nv[3]);
+    L->api.set_view(mv->g, L->w, L->h, nv[0], nv[1], nv[2], nv[3], L->scale);
     mv->frame_valid = 0;
     L->view_changes++;
     logf_(L, "%s view %d,%d %dx%d", mv->file, nv[0], nv[1], nv[2], nv[3]);
@@ -1160,11 +1166,13 @@ static int stacking(const mu_gfx_layer *L, int out[MU_GFX_MOVIES])
     return n;
 }
 
-static int local(const movie *mv, double x, double y, double *lx, double *ly)
+/* Window point (x, y) -> the movie's viewport pixels; 1 when inside its view. */
+static int local(const mu_gfx_layer *L, const movie *mv, double x, double y, double *lx, double *ly)
 {
-    *lx = x - mv->view[0];
-    *ly = y - mv->view[1];
-    return *lx >= 0 && *ly >= 0 && *lx < mv->view[2] && *ly < mv->view[3];
+    double px = x - mv->view[0], py = y - mv->view[1];
+    *lx = px * L->scale;
+    *ly = py * L->scale;
+    return px >= 0 && py >= 0 && px < mv->view[2] && py < mv->view[3];
 }
 
 int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y)
@@ -1173,13 +1181,15 @@ int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y
         return 0;
     int stack[MU_GFX_MOVIES], n = stacking(L, stack);
     double lx, ly;
+    x /= L->scale;      /* window pixels -> stage points */
+    y /= L->scale;
     if (kind == 0) {
         L->mouse_x = x;
         L->mouse_y = y;
         int over = 0;
         for (int i = 0; i < n; i++) {
             movie *mv = &L->mv[stack[i]];
-            int inside = local(mv, x, y, &lx, &ly);
+            int inside = local(L, mv, x, y, &lx, &ly);
             /* Every visible movie sees the move (roll-outs), outside ones
              * at their own coordinates. */
             L->api.mouse(mv->g, 0, 0, lx, ly);
@@ -1193,14 +1203,14 @@ int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y
         L->capture = -1;
         if (m < 0)
             return 0;
-        local(&L->mv[m], x, y, &lx, &ly);
+        local(L, &L->mv[m], x, y, &lx, &ly);
         L->api.mouse(L->mv[m].g, 2, button, lx, ly);
         L->mv[m].view_dirty = 1;
         return 1;
     }
     for (int i = 0; i < n; i++) {
         movie *mv = &L->mv[stack[i]];
-        if (!local(mv, x, y, &lx, &ly) || !L->api.hit_test(mv->g, lx, ly))
+        if (!local(L, mv, x, y, &lx, &ly) || !L->api.hit_test(mv->g, lx, ly))
             continue;
         if (kind == 1) {
             L->capture = stack[i];
@@ -1234,7 +1244,7 @@ int mu_gfx_layer_cursor(const mu_gfx_layer *L)
     for (int i = 0; i < n; i++) {
         const movie *mv = &L->mv[stack[i]];
         double lx, ly;
-        if (local(mv, L->mouse_x, L->mouse_y, &lx, &ly) && L->api.hit_test(mv->g, lx, ly))
+        if (local(L, mv, L->mouse_x, L->mouse_y, &lx, &ly) && L->api.hit_test(mv->g, lx, ly))
             return L->api.cursor(mv->g);
     }
     return 0;
@@ -1337,6 +1347,13 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         if (L->mv[m].g && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
             L->api.advance(L->mv[m].g, dt);
+    /* The chat view fills itself with test lines once its CLIK components
+     * initialise (ChatView.testChatType); clear them, then greet (layer choice). */
+    if (!L->chat_ready && L->time_ms >= 200 && L->mv[MU_GFX_CHAT].path[0]) {
+        L->chat_ready = 1;
+        invokef(L, MU_GFX_CHAT, L->mv[MU_GFX_CHAT].path, "ClearAllChatHistory", "[]");
+        mu_gfx_layer_chat(L, 3, "", "Welcome to MU (native client, offline demo).");
+    }
 }
 
 /* ---- rendering ------------------------------------------------------------------------------------ */
@@ -1452,8 +1469,9 @@ static void blend_px(uint8_t *dst, const uint8_t *src)
         dst[c] = (uint8_t)((src[c] * a + dst[c] * (255 - a)) / 255);
 }
 
-static void fill_cpu(uint8_t *rgba, int32_t W, int32_t H, const float r[4], const float rgb[3])
+static void fill_cpu(uint8_t *rgba, int32_t W, int32_t H, const float rp[4], const float rgb[3], double scale)
 {
+    const float r[4] = {rp[0] * (float)scale, rp[1] * (float)scale, rp[2] * (float)scale, rp[3] * (float)scale};
     for (int y = (int)r[1] + 2; y < (int)(r[1] + r[3]) - 2; y++)
         for (int x = (int)r[0] + 2; x < (int)(r[0] + r[2]) - 2; x++) {
             if (x < 0 || y < 0 || x >= W || y >= H)
@@ -1496,12 +1514,13 @@ void mu_gfx_layer_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H
         }
         int w = 0, h = 0;
         L->api.size(mv->g, &w, &h);
+        int ox = (int)lround(mv->view[0] * L->scale), oy = (int)lround(mv->view[1] * L->scale);
         for (int y = 0; y < h; y++) {
-            int wy = mv->view[1] + y;
+            int wy = oy + y;
             if (wy < 0 || wy >= H)
                 continue;
             for (int x = 0; x < w; x++) {
-                int wx = mv->view[0] + x;
+                int wx = ox + x;
                 const uint8_t *src = mv->rgba + ((size_t)y * (size_t)w + (size_t)x) * 4;
                 if (wx >= 0 && wx < W && src[3])
                     blend_px(rgba + ((size_t)wy * (size_t)W + (size_t)wx) * 4, src);
@@ -1510,12 +1529,12 @@ void mu_gfx_layer_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H
         if (order[k] == MU_GFX_INVENTORY) {
             item_rects(L, &R);
             for (int i = 0; i < R.n; i++)
-                fill_cpu(rgba, W, H, R.r[i], L->items[R.item[i]].rgb);
+                fill_cpu(rgba, W, H, R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
     }
     float hr[4];
     if (held_rect(L, hr))
-        fill_cpu(rgba, W, H, hr, L->items[L->held].rgb);
+        fill_cpu(rgba, W, H, hr, L->items[L->held].rgb, L->scale);
 }
 
 #ifndef MU_GFX_NO_GL
@@ -1529,8 +1548,9 @@ static void quad(float x, float y, float w, float h, float s1, float t1)
     glEnd();
 }
 
-static void fill_gl(const float r[4], const float rgb[3])
+static void fill_gl(const float rp[4], const float rgb[3], double scale)
 {
+    const float r[4] = {rp[0] * (float)scale, rp[1] * (float)scale, rp[2] * (float)scale, rp[3] * (float)scale};
     glColor4f(rgb[0], rgb[1], rgb[2], 0.8f);
     glBegin(GL_QUADS);
     glVertex2f(r[0] + 2, r[1] + 2); glVertex2f(r[0] + r[2] - 2, r[1] + 2);
@@ -1542,7 +1562,7 @@ static void draw_movie_gl(mu_gfx_layer *L, movie *mv, int m)
 {
     if (!mv->frame_valid)
         return;
-    float x = (float)mv->view[0], y = (float)mv->view[1];
+    float x = (float)(mv->view[0] * L->scale), y = (float)(mv->view[1] * L->scale);
 #ifdef __APPLE__
     if (L->shared) {
         int w = 0, h = 0;
@@ -1609,11 +1629,11 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    glOrtho(0, L->w, L->h, 0, -1, 1);
+    glOrtho(0, L->px_w, L->px_h, 0, -1, 1);
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    glViewport(0, 0, L->w, L->h);
+    glViewport(0, 0, L->px_w, L->px_h);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glDisable(GL_LIGHTING);
@@ -1633,12 +1653,12 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
         if (order[k] == MU_GFX_INVENTORY) {
             item_rects(L, &R);
             for (int i = 0; i < R.n; i++)
-                fill_gl(R.r[i], L->items[R.item[i]].rgb);
+                fill_gl(R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
     }
     float hr[4];
     if (held_rect(L, hr))
-        fill_gl(hr, L->items[L->held].rgb);
+        fill_gl(hr, L->items[L->held].rgb, L->scale);
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
@@ -1670,8 +1690,8 @@ int mu_gfx_layer_cell_center(const mu_gfx_layer *L, int32_t cell, double *x, dou
     if (!L || !L->have_slot || cell < 0 || cell >= L->grid.cols * L->grid.rows)
         return 0;
     int col = cell % L->grid.cols, row = cell / L->grid.cols;
-    *x = L->win_x + L->slot_x + (float)col * (L->slot_w + L->gap_x) + L->slot_w / 2;
-    *y = L->win_y + L->slot_y + (float)row * (L->slot_h + L->gap_y) + L->slot_h / 2;
+    *x = (L->win_x + L->slot_x + (float)col * (L->slot_w + L->gap_x) + L->slot_w / 2) * L->scale;
+    *y = (L->win_y + L->slot_y + (float)row * (L->slot_h + L->gap_y) + L->slot_h / 2) * L->scale;
     return 1;
 }
 

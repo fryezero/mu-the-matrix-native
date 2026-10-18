@@ -13,7 +13,7 @@
 //!   --text STRING               typed text
 //!   --hit X Y                   GFx hit test -> 0/1
 //!   --cursor / --focus          cursor shape / text focus
-//!   --view SW SH X Y W H        window-sized player (see mugfx_set_view)
+//!   --view SW SH X Y W H [S]    window-sized player, backing scale S (see mugfx_set_view)
 //!   --font NAME PATH STYLE      register a device font
 //!   --shot PATH                 render now and write a PNG
 //!
@@ -209,9 +209,16 @@ fn main() {
             }
             "--view" => {
                 let v: Vec<c_int> = (1..=6).map(|j| num(k + j) as c_int).collect();
-                unsafe { mugfx_set_view(g, v[0], v[1], v[2], v[3], v[4], v[5]) };
-                println!("view {v:?}");
-                k += 7;
+                let mut n = 7;
+                let scale = if ops.get(k + 7).is_some_and(|s| !s.starts_with("--")) {
+                    n = 8;
+                    num(k + 7)
+                } else {
+                    1.0
+                };
+                unsafe { mugfx_set_view(g, v[0], v[1], v[2], v[3], v[4], v[5], scale) };
+                println!("view {v:?} x{scale}");
+                k += n;
             }
             "--font" => {
                 let r = unsafe { mugfx_register_font(c(arg(k + 1)).as_ptr(), c(arg(k + 2)).as_ptr(), num(k + 3) as c_int) };

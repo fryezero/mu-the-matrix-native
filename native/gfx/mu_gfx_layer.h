@@ -67,6 +67,8 @@ typedef struct mu_gfx_layer_config {
     mu_gfx_tooltip_fn tooltip;
     void *tooltip_user;
     FILE *log;                  /* callbacks and invokes, or NULL */
+    double scale;               /* window pixels per point (Retina 2); 0 = 1.  The movies lay
+                                   themselves out in points, as in a 1x window of that size */
 } mu_gfx_layer_config;
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);
@@ -105,7 +107,7 @@ const char *mu_gfx_layer_invoke(mu_gfx_layer *layer, int movie, const char *path
 const char *mu_gfx_layer_path(const mu_gfx_layer *layer, int movie);
 /* Window-pixel centre of an inventory cell (scripted input). */
 int mu_gfx_layer_cell_center(const mu_gfx_layer *layer, int32_t cell, double *x, double *y);
-/* Window-pixel view rectangle of a movie's player. */
+/* View rectangle of a movie's player in stage points (pixels / scale). */
 void mu_gfx_layer_view(const mu_gfx_layer *layer, int movie, int32_t rect[4]);
 
 /* Advance the movies by dt (ms) and run the 40 ms game steps (feeds). */
