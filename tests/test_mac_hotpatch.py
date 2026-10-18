@@ -79,6 +79,7 @@ class GeneratorTests(unittest.TestCase):
 
     def test_no_credentials_or_process_restart_in_autologin(self):
         text = (ROOT/'mac-play/automation/mu-autologin.sh').read_text()
+        self.assertIn('${SUBSERVER_FX:-0.498} ${SUBSERVER_FY:-0.468}',text)   # default MTM-1, env override kept
         self.assertIn('security find-generic-password',text)
         self.assertIn('"$MU_ACCOUNT"',text)
         self.assertNotIn('pkill',text)
@@ -126,12 +127,14 @@ class MeshDrawPublicationTests(unittest.TestCase):
         mask = int(re.search(r'want = v & (\d+);',self.mugl).group(1))
         readme = (SOURCE/'README.md').read_text()
         rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
-        self.assertEqual(rows,{1<<k for k in range(16)})
-        self.assertEqual(mask,(1<<16)-1)
-        self.assertEqual(default,23983)   # v7.3: v7.1/v7.2 default 7599 plus terrain sorting 16384
-        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14)))
+        self.assertEqual(rows,{1<<k for k in range(21)})
+        self.assertEqual(mask,(1<<21)-1)
+        # v7.4: v7.3's 23983 plus quad batching 65536, deferred client-array enables 262144, off-screen culling 524288
+        self.assertEqual(default,875951)
+        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19)))
         self.assertEqual(default & 16383,7599,'v7.1/v7.2 builds read 14 bits and see their own default')
-        self.assertEqual(default & (8192|64|16|512|32768),0,'diagnostic and unverified bits stay off by default')
+        self.assertEqual(default & 65535,23983,'v7.3 reads 16 bits and sees its own default')
+        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576),0,'diagnostic and unverified bits stay off by default')
         self.assertIn('md_untested = (mask & 8192) != 0',self.mugl)
 
     def test_synthetic_build_cannot_apply_game_patches(self):
@@ -170,7 +173,7 @@ class V73Tests(unittest.TestCase):
 
     def test_new_sources_are_built_and_carry_no_byte_tables(self):
         make = (SOURCE/'Makefile').read_text()
-        self.assertIn('meshdraw.c stall.c terrain.c ../mumodes/modehook.c',make)
+        self.assertIn('meshdraw.c stall.c terrain.c gpudiag.c ../mumodes/modehook.c',make)
         self.assertIn('#include "stall.c"\n#include "terrain.c"',self.mugl)
         for text in (self.terrain,self.stall):
             self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
@@ -181,7 +184,7 @@ class V73Tests(unittest.TestCase):
         self.assertIn('#define TS_ALPHA_CALLER  ((void *)0x016cfb53)',self.terrain)
         begin = self.body(self.terrain,'static int ts_glbegin(GLenum mode, void *ret)')
         self.assertIn('mode == GL_TRIANGLE_FAN && (ret == TS_OPAQUE_CALLER || ret == TS_ALPHA_CALLER)',begin)
-        self.assertIn('if (!terrain) { if (ts_active) ts_end(); return 0; }',begin)   # any other block ends the run first
+        self.assertIn('if (!kind || (ts_active && kind != ts_kind)) { if (ts_active) ts_end(); if (!kind) return 0; }',begin)   # any other block ends the run first
         # every flush (stubs, extensions, swaps) ends an open run before anything else is emitted
         self.assertIn('if (ts_active_flag) ts_end_hook();',self.body(self.mugl,'static void flush_pending(void)'))
         self.assertIn('if (ts_active_flag) ts_end_hook();',self.body(self.mugl,'static void WINAPI mugl_ActiveTexture(GLenum unit)'))
@@ -211,8 +214,9 @@ class V73Tests(unittest.TestCase):
         self.assertIn('return &ts_st_ambig;',facing)
 
     def test_verification_compares_both_orders_offscreen(self):
-        verify = self.body(self.terrain,'static void ts_verify_run(const TState *start)')
-        self.assertIn('if (k == 0) ts_emit_original(); else ts_emit_plan();',verify)
+        self.assertIn('ts_verify_px(start, ts_emit_plan, 0, NULL)',self.body(self.terrain,'static void ts_verify_run(const TState *start)'))
+        verify = self.body(self.terrain,'static long ts_verify_px(')
+        self.assertIn('if (k == 0) ts_emit_original(); else plan();',verify)
         self.assertIn('GL_DEPTH_COMPONENT, GL_UNSIGNED_INT',self.terrain)
         self.assertIn('a[i] != b[i] || a[np + i] != b[np + i]',verify)
         self.assertIn('GL_DEPTH_BITS',self.terrain)   # offscreen depth size follows the window
@@ -222,7 +226,7 @@ class V73Tests(unittest.TestCase):
         self.assertIn('int p = 2;',prio)
         self.assertIn('if (p < -2 || p > 2) p = 0;',prio)
         self.assertIn('SetThreadPriority(GetCurrentThread(), p)',prio)
-        self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES\) \{[^\n]*prio_check\(\);')
+        self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES && mugl_client\) \{[^\n]*prio_check\(\);')
 
     def test_io_counters_are_opt_in_and_call_the_originals(self):
         install = self.body(self.stall,'static void io_install(HMODULE self)')
@@ -275,13 +279,110 @@ class PrecisePacingTests(unittest.TestCase):
         self.assertIn('pace: logic steps=%u waits=%ld late=%ld restarts=%ld overshoot avg=%.2fms',self.mugl)
         self.assertRegex(self.mugl,r'total_frames > 100 && MUGL_PRIVATE_TABLES')
         # the stats line must not dereference the client's logic counter in the compile-only build
-        self.assertIn('MUGL_PRIVATE_TABLES ? *(volatile unsigned *)0x0bdc5eb0 : 0',self.function_body('static void pace_stats(FILE *f)\n{'))
+        self.assertIn('MUGL_PRIVATE_TABLES && mugl_client ? *(volatile unsigned *)0x0bdc5eb0 : 0',self.function_body('static void pace_stats(FILE *f)\n{'))
 
     def test_notes_record_v72_cause_and_unverified_limits(self):
         notes = (SOURCE/'meshdraw-notes.md').read_text()
         section = notes[notes.index('## v7.2: precise waits'):]
         for text in ('0x01cf0fc0','0x0120ee34','0x01852680','not the frontmost Mac app','waitable timer','Not established'):
             self.assertIn(text,section)
+
+
+class V74Tests(unittest.TestCase):
+    """v7.4 (MAC-PERF-008): quad batching, deferred client-array enables, off-screen culling, draw/GPU diagnostics."""
+
+    def setUp(self):
+        self.mugl = (SOURCE/'mugl.c').read_text()
+        self.terrain = (SOURCE/'terrain.c').read_text()
+        self.quads = (SOURCE/'quads.c').read_text()
+        self.cull = (SOURCE/'cull.c').read_text()
+        self.diag = (SOURCE/'gpudiag.c').read_text()
+        self.exports = (SOURCE/'gen_exports.py').read_text()
+
+    def body(self, text, signature):
+        start = text.index(signature)
+        return text[start:text.index('\n}\n', start)]
+
+    def test_new_sources_are_included_and_carry_no_byte_tables(self):
+        self.assertIn('#include "quads.c"',self.terrain)
+        self.assertIn('#include "gpudiag.c"\n#include "cull.c"',self.mugl)
+        for text in (self.quads,self.cull,self.diag):
+            self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
+        for name in ('glDrawArrays','glEnableClientState','glDisableClientState','glTranslatef','glMultMatrixf','glLoadMatrixf','glRenderMode'):
+            self.assertRegex(self.exports,rf"'{name}':\d+")
+
+    def test_bits(self):
+        self.assertIn('qs_on_flag = (mask & 65536) != 0; qs_verify = (mask & 131072) != 0;',self.mugl)
+        self.assertIn('cs_lazy = (mask & 262144) != 0',self.mugl)
+        self.assertIn('cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;',self.mugl)
+        # code patches, pacing and reads of client addresses only in main.exe; test programs get the GL-level bits
+        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192);',self.mugl)
+        self.assertIn('mugl_client = !lstrcmpiA(b, "main.exe");',self.mugl)
+
+    def test_quad_runs_are_keyed_by_the_two_callers_and_smooth_quads(self):
+        self.assertIn('#define QS_SPRITE_CALLER ((void *)0x0184c914)',self.terrain)
+        self.assertIn('#define QS_GRASS_CALLER  ((void *)0x016d16bf)',self.terrain)
+        begin = self.body(self.terrain,'static int ts_glbegin(GLenum mode, void *ret)')
+        self.assertIn('mode == GL_QUADS && shade_model == GL_SMOOTH && (ret == QS_SPRITE_CALLER || ret == QS_GRASS_CALLER)',begin)
+        self.assertIn('if (!kind || (ts_active && kind != ts_kind)) { if (ts_active) ts_end(); if (!kind) return 0; }',begin)
+
+    def test_a_face_passes_only_faces_it_commutes_with(self):
+        plan = self.body(self.quads,'static void qs_plan(void)')
+        self.assertIn('if (!memcmp(&b->st, &f->st, sizeof(TState))) { join = k; break; }',plan)
+        self.assertIn('if (!(qs_disjoint(f, b) || (f->add && b->all_add))) break;',plan)
+        self.assertIn('f->add = qs_add_ok && f->st.blend == 2 && f->st.bs == GL_ONE && f->st.bd == GL_ONE && f->st.dm == 1;',plan)
+        start = self.body(self.quads,'static void qs_run_start(void)')
+        self.assertIn('eq == 0x8006 && eqa == 0x8006 && !lo',start)   # FUNC_ADD for color and alpha, no logic op
+        box = self.body(self.quads,'static void qs_bbox(TFace *f, const double *mvp)')
+        self.assertIn('if (qs_depth_clamp) { f->full = 1; continue; }',box)
+        self.assertIn('f->x0 = (int)floor(x0) - 2;',box)
+        self.assertIn('if (!(q[k][3] > 1e-5)) { f->full = 1; break; }',box)
+
+    def test_quad_verification_compares_both_orders_from_a_window_copy(self):
+        end = self.body(self.quads,'static void qs_end_run(const TState *fin)')
+        self.assertIn('ts_verify_px(&start, qs_emit_plan, 1, &blit)',end)
+        self.assertIn('ts_apply(fin);',end)
+        self.assertIn('GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST',self.quads)
+        verify = self.body(self.terrain,'static long ts_verify_px(')
+        self.assertIn('if (k == 0) ts_emit_original(); else plan();',verify)
+
+    def test_client_array_enables_are_sent_before_anything_that_observes_them(self):
+        cs = self.body(self.mugl,'static void cs_set(GLenum a, unsigned char v)')
+        self.assertIn('if (cs_lazy && !passthrough && k >= 0 && cs_real[k])',cs)
+        self.assertIn('if (cs_dirty && idx >= 0 && idx < (int)sizeof mugl_flags && (mugl_flags[idx] & 2)) cs_apply();',self.mugl)
+        self.assertIn('if (cs_dirty && !passthrough) { cs_apply(); update_busy(); }',self.body(self.mugl,'void WINAPI mugl_glBegin(GLenum mode)'))
+        self.assertIn('cs_apply();',self.body(self.mugl,'void mugl_sync(void)\n{'))
+        self.assertIn('if (pname_client(p)) { flush_pending(); cs_apply(); release_arrays(); }',self.mugl)
+        self.assertIn('if (!passthrough) { cs_apply(); cs_forget(); }',self.body(self.mugl,'void WINAPI mugl_glPopClientAttrib(void)'))
+        self.assertIn('strstr(exts[i].name, "ClientActiveTexture")) cs_forget();',self.mugl)
+        self.assertIn('cs_dirty ||',self.body(self.mugl,'static void update_busy(void)'))
+
+    def test_culling_uses_x_y_and_w_planes_with_margin_and_fresh_matrices(self):
+        code = self.body(self.cull,'static unsigned cull_code(const float *p)')
+        self.assertIn('double e = 1e-5 * (1.0 + fabs(c[0]) + fabs(c[1]) + fabs(c[3]));',code)
+        self.assertNotIn('c[2]',code.split('double e')[1])   # no near/far planes
+        batch = self.body(self.cull,'static int cull_batch(const Vtx *v, int n)')
+        self.assertIn('if (!cull_code(v[0].v)) return 0;',batch)
+        self.assertIn('if (_mm_movemask_ps(bad) & 14) return 0;',batch)
+        self.assertIn('if (mx_seen != mx_epoch || mx_always)',batch)
+        self.assertIn('if (batch_mode == GL_TRIANGLES && cull_batch(vb, vcount))',self.mugl)
+        # the epoch advances after the real matrix call (a flush inside the call re-reads the old matrix)
+        self.assertIn('R(glTranslatef, PFNtf)(x, y, z); MX_POST; }',self.cull)
+        self.assertIn('R(glPopMatrix, PFN0)();\n    if (!unchanged) mx_epoch++;',self.mugl)
+        self.assertIn('mugl_sync_from(-1); R(glLoadIdentity, PFN0)(); matrix_modified(); mx_epoch++;',self.mugl)
+        self.assertIn('cull_rendermode_ok = m == GL_RENDER;',self.cull)
+        check = self.body(self.cull,'static void cull_check(const Vtx *v, int n)')
+        self.assertIn('dq_begin(0x8914',check)
+        self.assertIn('R(glPopAttrib, PFN0)();',check)
+
+    def test_diagnostics_are_mode_tokens(self):
+        for tok in ('vbo','time','finish','samples','cull'):
+            self.assertIn(f'!strcmp(tok, "{tok}")',self.mugl)
+        self.assertIn('R(glFinish, PFN0)();',self.diag)
+        self.assertIn('0x8914 /* GL_SAMPLES_PASSED */',self.diag)
+        diags = (ROOT/'mac-play/diagnostics').glob('gl*.c')
+        names = {p.name for p in diags}
+        self.assertTrue({'glvbench.c','glcstate.c'} <= names)
 
 
 if __name__ == '__main__':

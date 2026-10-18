@@ -1213,3 +1213,13 @@ Branch `claude/native-fx2`. Read [`research/client-effect-manager.md`](research/
 
 **Next:** decode the map-object and Muun effect tables, attach effects to native characters (bones), move the scene
 pass into the frame loop and the OpenGL viewer.
+
+## MAC-PERF-008 (v7.4)
+
+Branch `claude/mac-perf-v74`, worktree `~/Documents/mu-worktrees/mac-perf2` (local commit, not pushed). Sprite and
+grass quads are batched by commutation (bit 65536), effect client-array enables are deferred (262144) and batches
+entirely off screen are not drawn (524288); default mask 875951, verification bits 131072 and 1048576 (0 differences,
+0 samples). Zoomed out now reaches 25 fps at load ~4 (v7.3: 24.4-24.8; 20-21 under load 8). The GPU is not the limit
+(at most 10 ms queued per 40 ms frame, see the MAC-PERF-008 section of `research/mac-performance.md`). The setup kit
+writes 875951 and `mu-autologin.sh` defaults to MTM-1. Next: the crowded MTM-1 boss scene (18-19 fps, CPU-bound),
+culling meshes before the mesh loop runs, and a busy town.

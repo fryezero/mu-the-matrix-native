@@ -6,7 +6,7 @@ CUSTOM = {  # export -> internal stdcall symbol with arg bytes
  'glColor3f':12,'glColor3fv':4,'glColor4f':16,'glColor4fv':4,'glColor3ub':12,'glColor3ubv':4,'glColor4ub':16,'glColor4ubv':4,'glColor3d':24,'glColor4d':32,
  'glNormal3f':12,'glNormal3fv':4,
  'glPopAttrib':0,'glCallList':4,'glCallLists':12,
- 'wglGetProcAddress':4,'wglSwapBuffers':4,'glShadeModel':4,'glEnable':4,'glDisable':4,'glBindTexture':8,'glBlendFunc':8,'glDepthMask':4,'glMatrixMode':4,'glAlphaFunc':8,'glDepthFunc':4,'glDeleteTextures':8,'glGetFloatv':8,'glGetDoublev':8,'glGetIntegerv':8,'glGetBooleanv':8,'glVertexPointer':16,'glNormalPointer':12,'glColorPointer':16,'glTexCoordPointer':16,'glIndexPointer':12,'glEdgeFlagPointer':8,'glInterleavedArrays':12,'glDrawElements':16,'glPushClientAttrib':4,'glPopClientAttrib':0,'glPushMatrix':0,'glPopMatrix':0,'glLoadIdentity':0,
+ 'wglGetProcAddress':4,'wglSwapBuffers':4,'glShadeModel':4,'glEnable':4,'glDisable':4,'glBindTexture':8,'glBlendFunc':8,'glDepthMask':4,'glMatrixMode':4,'glAlphaFunc':8,'glDepthFunc':4,'glDeleteTextures':8,'glGetFloatv':8,'glGetDoublev':8,'glGetIntegerv':8,'glGetBooleanv':8,'glVertexPointer':16,'glNormalPointer':12,'glColorPointer':16,'glTexCoordPointer':16,'glIndexPointer':12,'glEdgeFlagPointer':8,'glInterleavedArrays':12,'glDrawElements':16,'glPushClientAttrib':4,'glPopClientAttrib':0,'glDrawArrays':12,'glTranslatef':12,'glRotatef':16,'glRotated':32,'glScalef':12,'glScaled':24,'glMultMatrixf':4,'glMultMatrixd':4,'glLoadMatrixf':4,'glLoadMatrixd':4,'glOrtho':48,'glFrustum':48,'glRenderMode':4,'glEnableClientState':4,'glDisableClientState':4,'glPushMatrix':0,'glPopMatrix':0,'glLoadIdentity':0,
 }
 from pathlib import Path
 import argparse

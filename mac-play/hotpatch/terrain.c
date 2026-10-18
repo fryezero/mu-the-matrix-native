@@ -26,9 +26,14 @@
 #define TS_ALPHA_CALLER  ((void *)0x016cfb53)
 #define TS_UNK 0xffffffffu
 typedef struct { unsigned char blend, cull, atest, dm; GLuint tex; GLenum bs, bd, af; GLclampf ar; } TState;
-typedef struct { int start, n; TState st; unsigned char alpha, unsafe; } TFace;
+typedef struct { int start, n; TState st; unsigned char alpha, unsafe, add, full, empty; int x0, y0, x1, y1; } TFace;   /* add..y1: quad runs */
 
 #define ts_active ts_active_flag
+static int ts_kind;                                  /* open run: 1 terrain faces, 2 effect/grass quads (quads.c) */
+static void *qs_first_caller;
+#define QS_SPRITE_CALLER ((void *)0x0184c914)
+#define QS_GRASS_CALLER  ((void *)0x016d16bf)
+static void qs_run_start(void); static void qs_end_run(const TState *fin); static int qs_cls(void);
 #define ts_in_face ts_in_face_flag
 static TState ts_v;                                  /* virtual state during a run */
 static TFace *ts_f; static int ts_nf, ts_capf;
@@ -74,14 +79,18 @@ static void ts_end(void);
 static int ts_glbegin(GLenum mode, void *ret)
 {
     int terrain = mode == GL_TRIANGLE_FAN && (ret == TS_OPAQUE_CALLER || ret == TS_ALPHA_CALLER);
-    if (!terrain) { if (ts_active) ts_end(); return 0; }
+    /* v7.4: effect sprite and grass quads (quads.c); GL_QUADS become triangles only under smooth shading */
+    int quads = qs_on_flag && mode == GL_QUADS && shade_model == GL_SMOOTH && (ret == QS_SPRITE_CALLER || ret == QS_GRASS_CALLER);
+    int kind = terrain && ts_on_flag ? 1 : quads ? 2 : 0;
+    if (!kind || (ts_active && kind != ts_kind)) { if (ts_active) ts_end(); if (!kind) return 0; }
     if (!ts_active) {
         if (!ts_can_start()) return 0;
         flush_pending();
-        ts_real(&ts_v); ts_nf = 0; vcount = 0; set_t = set_c = set_n = 0; ts_active = 1;
+        ts_real(&ts_v); ts_nf = 0; vcount = 0; set_t = set_c = set_n = 0; ts_active = 1; ts_kind = kind;
         R(glGetFloatv, PFNget)(GL_MODELVIEW_MATRIX, ts_mv); R(glGetFloatv, PFNget)(GL_PROJECTION_MATRIX, ts_pr);
         ((void (WINAPI *)(GLenum, GLint *))real_glGetIntegerv)(GL_FRONT_FACE, &ts_front);
         ((void (WINAPI *)(GLenum, GLint *))real_glGetIntegerv)(GL_CULL_FACE_MODE, &ts_cullmode);
+        if (kind == 2) { qs_first_caller = ret; qs_run_start(); }
     }
     ensure_known();
     if (ts_nf == ts_capf) { ts_capf = ts_capf ? ts_capf * 2 : 4096; ts_f = realloc(ts_f, sizeof(TFace) * ts_capf); }
@@ -93,7 +102,7 @@ static int ts_glbegin(GLenum mode, void *ret)
 static void ts_glend(void)
 {
     mugl_in_begin = 0; ts_in_face = 0; st_blocks++; st_verts += vcount - block_start;
-    st_modes[GL_TRIANGLE_FAN]++; st_modeverts[GL_TRIANGLE_FAN] += vcount - block_start;
+    st_modes[cur_mode]++; st_modeverts[cur_mode] += vcount - block_start;
     convert_open_block();
     ts_f[ts_nf].n = vcount - ts_f[ts_nf].start; ts_nf++;
     update_busy();
@@ -146,7 +155,7 @@ static void ts_draw_group(const int *idx, int n)
         memcpy(&vb[vcount], &ts_store[f->start], sizeof(Vtx) * f->n); vcount += f->n;
     }
     if (!vcount) return;
-    set_t = set_c = set_n = 1; batch_mode = GL_TRIANGLES; submit_batch(); ts_st_draws++;
+    set_t = set_c = set_n = 1; batch_mode = GL_TRIANGLES; batch_cls = ts_kind == 2 ? qs_cls() : DC_TERRAIN; submit_batch(); ts_st_draws++;
 }
 static int *ts_order; static int ts_capo;
 /* Original order, consecutive faces with identical state merged (what mugl did before). */
@@ -235,20 +244,26 @@ static void ts_read(int k, int w, int h)
     R(glReadPixels, PFNrp)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, ts_px[k]);
     R(glReadPixels, PFNrp)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, ts_px[k] + (size_t)w * h * 4);
 }
-static void ts_verify_run(const TState *start)
+static void ts_emit_plan(void);
+static int ts_blit_start(int w, int h);
+/* Draw the run in the original order and with plan() offscreen from the same start (cleared, or with blit the
+   window's current color and depth), read both back and count differing pixels. */
+static long ts_verify_px(const TState *start, void (*plan)(void), int blit, int *used_blit)
 {
     GLint vp[4]; ((void (WINAPI *)(GLenum, GLint *))real_glGetIntegerv)(GL_VIEWPORT, vp);
     int w = vp[0] + vp[2], h = vp[1] + vp[3];
-    if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || !ts_fbo_ready(w, h)) { ts_st_verr++; return; }
+    if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || !ts_fbo_ready(w, h)) return -1;
     release_arrays();
     ts_bindfb(0x8D40, ts_fbo);
     TState st0 = *start; GLboolean sc = ((GLboolean (WINAPI *)(GLenum))real_glIsEnabled)(GL_SCISSOR_TEST);
     if (sc) R(glDisable, PFN1u)(GL_SCISSOR_TEST);
+    if (used_blit) *used_blit = 0;
     for (int k = 0; k < 2; k++) {
         TState clr = st0; clr.dm = 2; ts_apply(&clr);
-        R(glClear, PFNpca)(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (!(blit && ts_blit_start(w, h))) R(glClear, PFNpca)(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        else if (used_blit) *used_blit = 1;
         ts_apply(&st0);
-        if (k == 0) ts_emit_original(); else ts_emit_plan();
+        if (k == 0) ts_emit_original(); else plan();
         release_arrays();
         ts_read(k, w, h);
     }
@@ -256,9 +271,15 @@ static void ts_verify_run(const TState *start)
     ts_bindfb(0x8D40, 0);
     long bad = 0; const unsigned *a = (const unsigned *)ts_px[0], *b = (const unsigned *)ts_px[1]; size_t np = (size_t)w * h;
     for (size_t i = 0; i < np; i++) if (a[i] != b[i] || a[np + i] != b[np + i]) bad++;
+    ts_apply(&st0);
+    return bad;
+}
+static void ts_verify_run(const TState *start)
+{
+    long bad = ts_verify_px(start, ts_emit_plan, 0, NULL);
+    if (bad < 0) { ts_st_verr++; return; }
     ts_st_checked++; ts_tot_checked++;
     if (bad) { ts_st_bad++; ts_st_badpx += bad; ts_tot_bad++; }
-    ts_apply(&st0);
 }
 
 /* End of a run: draw it and leave the real state as the original stream would. */
@@ -279,6 +300,7 @@ static void ts_end(void)
     if (ts_capv < nv) { ts_capv = nv * 2; ts_store = realloc(ts_store, sizeof(Vtx) * ts_capv); }
     memcpy(ts_store, vb, sizeof(Vtx) * nv); vcount = 0; set_t = set_c = set_n = 0;
     if (ts_capo < ts_nf) { ts_capo = ts_nf * 2 + 16; ts_order = realloc(ts_order, sizeof(int) * ts_capo); }
+    if (ts_kind == 2) { qs_end_run(&fin); goto reopen; }
     ts_st_runs++; ts_st_faces += ts_nf;
     /* classes: all O faces must share one blend-off class, all A faces one blend-on class */
     int ocls = -1, acls = -1, ok = ts_nf > 0;
@@ -319,6 +341,7 @@ static void ts_end(void)
         ts_emit_plan();
     } else ts_emit_original();
     ts_apply(&fin);
+reopen:
     vcount = 0; set_t = set_c = set_n = 0; pending = 0;
     if (open_v || open_n) {
         if (open_n > vcap) { vcap = open_n * 2; vb = realloc(vb, sizeof(Vtx) * vcap); }
@@ -327,8 +350,10 @@ static void ts_end(void)
     }
     update_busy();
 }
+static void qs_stats(FILE *f);
 static void ts_stats(FILE *f)
 {
+    qs_stats(f);
     if (!ts_on_flag && !ts_st_runs) return;
     fprintf(f, "tsort: runs=%ld sorted=%ld faces=%ld draws=%ld in-place pairs(back=%ld ambiguous=%ld) fallback(classes=%ld pair=%ld)",
             ts_st_runs, ts_st_sorted, ts_st_faces, ts_st_draws, ts_st_back, ts_st_ambig, ts_st_classes, ts_st_pair);
@@ -343,3 +368,5 @@ static void ts_stats(FILE *f)
 static void ts_end_hook(void) { ts_end(); }
 static int ts_begin_hook(GLenum mode, void *ret) { return ts_glbegin(mode, ret); }
 static void ts_glend_hook(void) { ts_glend(); }
+
+#include "quads.c"

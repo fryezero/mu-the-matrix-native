@@ -163,21 +163,26 @@ if [ -f "$MUTOOLS/mugl-mode.txt" ]; then
     mukit_mugl_mode_valid "$mm" && { [ "$mm" = full+vbo ] && out PASS 'mugl-mode.txt' "$mm" || out WARN 'mugl-mode.txt' "$mm (fastest tested: full+vbo)"; } ||
         out FAIL 'mugl-mode.txt' "invalid '$mm'"
 else out WARN 'mugl-mode.txt' 'missing (mugl defaults to full, without VBO emulation)'; fi
-# Hotpatch mask: 7599 (v7.1 default) is the norm; any mask with the v7.0 base bits (1|2|4|8) passes.
+# Hotpatch mask: 875951 (v7.4 default) is the norm; the older defaults and any mask with the v7.0 base bits (1|2|4|8) pass.
 D=$MUKIT_HOTPATCH_DEFAULT B70=$MUKIT_HOTPATCH_V70_BITS
 if [ -f "$MUTOOLS/mugl-hotpatch.txt" ]; then
     hp=$(head -1 "$MUTOOLS/mugl-hotpatch.txt" | tr -d '\r ')
     if ! mukit_hotpatch_valid "$hp"; then out FAIL 'mugl-hotpatch.txt' "invalid '$hp' (0-$MUKIT_HOTPATCH_MAX)"
-    elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (v7.1 default: all patches + frame pacing fix)"
+    elif [ "$hp" = "$D" ]; then out PASS 'mugl-hotpatch.txt' "$hp (v7.4 default: all patches, frame pacing fix, terrain sort, quad batching, deferred client state, culling)"
     elif [ $((hp & B70)) = "$B70" ]; then
         note=; miss=$(( D & ~hp )); extra=$(( hp & ~D ))
-        [ "$miss" = 1024 ] && note='v7.1 default without the frame pacing fix' ||
-            { [ "$miss" != 0 ] && note="v7.1 default bits off: $miss"; }
+        case "$hp" in
+            7599)  note='v7.1/v7.2 default: no terrain sort, quad batching, deferred client state or culling' ;;
+            6575)  note='v7.1 default without the frame pacing fix' ;;
+            23983) note='v7.3 default: no quad batching, deferred client state or culling' ;;
+            *) [ "$miss" = 1024 ] && note='v7.4 default without the frame pacing fix' ||
+                   { [ "$miss" != 0 ] && note="v7.4 default bits off: $miss"; } ;;
+        esac
         [ "$extra" != 0 ] && note="${note:+$note; }extra bits: $extra"
         [ "${MUGL_VER:-}" = v7.0 ] && note="v7.0 reads $((hp & 31))"
         out PASS 'mugl-hotpatch.txt' "$hp (v7.0 base patches on; $note)"
     else out WARN 'mugl-hotpatch.txt' "$hp (some v7.0 base patches 1|2|4|8 off; default $D)"; fi
-else out PASS 'mugl-hotpatch.txt' "absent (mugl built-in default: $D for v7.1, $B70 for v7.0)"; fi
+else out PASS 'mugl-hotpatch.txt' "absent (mugl built-in default: $D for v7.4, 23983 for v7.3, 7599 for v7.1/v7.2, $B70 for v7.0)"; fi
 for t in muinput.exe clickstart.exe; do
     [ -f "$MUTOOLS/$t" ] && out PASS "$t" 'present (automation helper)' || out WARN "$t" 'missing (only needed by autologin scripts)'
 done
