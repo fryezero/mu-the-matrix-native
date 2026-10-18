@@ -101,6 +101,7 @@ typedef struct mugfx_api {
     void (*stats)(MuGfx *, MuGfxStats *);
     int (*set_image)(MuGfx *, const char *, int, int, const uint8_t *, int);
     int (*resolve)(MuGfx *, const char *, char *, size_t);
+    int (*ime)(MuGfx *, const char *, int, int);
 } mugfx_api;
 
 static int exe_dir(char *out, size_t cap)
@@ -186,6 +187,7 @@ static int api_load(mugfx_api *api, const char *explicit_path, char *error, size
     SYM(stats, "mugfx_stats");
     SYM(set_image, "mugfx_set_image");
     SYM(resolve, "mugfx_resolve");
+    SYM(ime, "mugfx_ime");
 #undef SYM
     return 0;
 }
@@ -1816,17 +1818,31 @@ int mu_gfx_layer_text(mu_gfx_layer *L, const char *utf8)
 {
     if (!L || !L->chat_edit || !L->mv[MU_GFX_CHAT].g)
         return 0;
+    if (L->composing) {   /* the IME committed: the composing text is replaced */
+        L->api.ime(L->mv[MU_GFX_CHAT].g, "", -1, 0);
+        L->composing = 0;
+        L->compose[0] = 0;
+    }
     L->api.text(L->mv[MU_GFX_CHAT].g, utf8);
     return 1;
 }
 
 int mu_gfx_layer_compose(mu_gfx_layer *L, const char *utf8, int cursor)
 {
-    (void)cursor;
+    /* The composing text goes into the chat's input field as Ruffle's IME
+     * preedit (the client shows it through its own IME movie IME.swf and
+     * fscommand TextInput; that path is not played, layer choice). */
     if (!L || !L->chat_edit || !L->mv[MU_GFX_CHAT].g)
         return 0;
     snprintf(L->compose, sizeof L->compose, "%s", utf8 ? utf8 : "");
     L->composing = L->compose[0] != 0;
+    /* cursor: code points (SDL) -> UTF-8 bytes (mugfx_ime) */
+    int byte = cursor < 0 ? -1 : 0;
+    for (int cp = 0; cursor >= 0 && cp < cursor && L->compose[byte]; cp++)
+        do
+            byte++;
+        while ((L->compose[byte] & 0xc0) == 0x80);
+    L->api.ime(L->mv[MU_GFX_CHAT].g, L->compose, byte, 0);
     return 1;
 }
 

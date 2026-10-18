@@ -101,6 +101,10 @@ const char *mugfx_fonts_used(MuGfx *g);
  * pixels (straight-alpha RGBA, stride bytes per row or 0, top row first). */
 int mugfx_set_image(MuGfx *g, const char *name, int width, int height, const uint8_t *rgba, int stride);
 int mugfx_resolve(MuGfx *g, const char *name, char *out, size_t cap);
+/* IME composition (SDL_TEXTEDITING) for the focused text field: commit 0
+ * shows utf8 as composing text with the caret at byte offset cursor (-1
+ * hidden; "" ends it), commit 1 inserts it. */
+int mugfx_ime(MuGfx *g, const char *utf8, int cursor, int commit);
 
 #ifdef __cplusplus
 }

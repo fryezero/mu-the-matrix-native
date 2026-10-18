@@ -1,4 +1,4 @@
-/* SDL2 front end of the GFx layer (NATIVE-GFX-002): turns SDL events into
+/* SDL2 front end of the GFx layer (NATIVE-GFX-002/003): turns SDL events into
  * mu_gfx_layer input.  Header-only so that the layer itself stays free of
  * SDL; hosts that already use SDL (mu-world, mu-gfx-window) include it. */
 #ifndef MU_GFX_SDL_H
@@ -70,6 +70,8 @@ static inline int mu_gfx_sdl_event(mu_gfx_layer *layer, const SDL_Event *e, doub
     }
     case SDL_TEXTINPUT:
         return mu_gfx_layer_text(layer, e->text.text);
+    case SDL_TEXTEDITING:   /* IME composition (NATIVE-GFX-003) */
+        return mu_gfx_layer_compose(layer, e->edit.text, e->edit.start);
     default:
         return 0;
     }

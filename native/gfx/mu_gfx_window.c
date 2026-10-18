@@ -107,7 +107,9 @@ static const step SCRIPT[] = {
     {3900, "shot 6-character"},
     {4000, "key Enter"},
     {4100, "text hello from the Mac"},
+    {4150, "compose  ime"},             /* IME composition (preedit) */
     {4300, "shot 7-chat-typing"},
+    {4350, "text  IME"},                /* the IME commits */
     {4400, "key Enter"},
     {4800, "shot 8-chat-sent"},
     {4900, "key 2"},
@@ -142,6 +144,8 @@ static void run_step(mu_gfx_layer *L, const char *what, char *shot, size_t cap, 
         mu_gfx_layer_key(L, 0, vk, ch, 0);
     } else if (!strncmp(what, "text ", 5)) {
         mu_gfx_layer_text(L, what + 5);
+    } else if (!strncmp(what, "compose ", 8)) {
+        mu_gfx_layer_compose(L, what + 8, (int)strlen(what + 8));
     } else if (!strncmp(what, "hover ", 6) && mu_gfx_layer_cell_center(L, atoi(what + 6), &x, &y)) {
         mu_gfx_layer_mouse(L, 0, 0, x, y);
     } else if (!strncmp(what, "click ", 6) && mu_gfx_layer_cell_center(L, atoi(what + 6), &x, &y)) {

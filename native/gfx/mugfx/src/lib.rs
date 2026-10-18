@@ -47,7 +47,7 @@ use ruffle_core::backend::ui::{
 };
 use ruffle_core::context::UpdateContext;
 use ruffle_core::events::{
-    KeyDescriptor, KeyLocation, LogicalKey, MouseButton, NamedKey, PhysicalKey, TextControlCode,
+    ImeEvent, KeyDescriptor, KeyLocation, LogicalKey, MouseButton, NamedKey, PhysicalKey, TextControlCode,
 };
 use ruffle_core::external::{
     ExternalInterfaceProvider, FsCommandProvider, Value as ExternalValue,
@@ -935,6 +935,23 @@ pub unsafe extern "C" fn mugfx_text(g: *mut MuGfx, utf8: *const c_char) -> c_int
         handled |= g.event(PlayerEvent::TextInput { codepoint });
     }
     handled as c_int
+}
+
+/// IME composition for the focused text field (NATIVE-GFX-003): `commit`
+/// 0 shows `utf8` as the composing text (SDL_TEXTEDITING; the caret at the
+/// UTF-8 byte offset `cursor`, -1 hides it; "" ends the composition), 1
+/// inserts it.  Returns 1 when the movie handled it.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mugfx_ime(g: *mut MuGfx, utf8: *const c_char, cursor: c_int, commit: c_int) -> c_int {
+    let Some(g) = (unsafe { g.as_ref() }) else { return 0 };
+    let text = unsafe { cstr(utf8) }.unwrap_or("").to_string();
+    let event = if commit != 0 {
+        ImeEvent::Commit(text)
+    } else {
+        let at = if cursor < 0 { None } else { Some(((cursor as usize).min(text.len()), (cursor as usize).min(text.len()))) };
+        ImeEvent::Preedit(text, at)
+    };
+    g.event(PlayerEvent::Ime(event)) as c_int
 }
 
 /// 1 when a text field of the movie has keyboard focus (the host then sends
