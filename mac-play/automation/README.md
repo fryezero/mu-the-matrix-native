@@ -28,3 +28,10 @@ that prohibits game interaction.
 `MU_STATS_FILE=/private/mugl-stats.txt zsh wkwin.sh 20` reads new FPS/work
 samples for twenty seconds. `fpswin.sh` prints FPS samples and their mean.
 These helpers average interval samples without weighting by frame count.
+
+## Launch priority (MAC-PERF-010)
+
+zsh starts background jobs (`cmd &`) at nice +5 (option BG_NICE, on by default). A zsh launcher that starts
+`play-mu.sh` with `&` therefore runs CrossOver's wineserver, the launcher and main.exe at nice 5, and under load from
+other processes the game gets less CPU. Put `setopt NO_BG_NICE` before the launch line (or launch from bash). The local
+`mu-to-server.sh` and the Desktop `.command` files have it; the installer-generated `.command` should get it too.
