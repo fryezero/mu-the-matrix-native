@@ -10,6 +10,13 @@ pinned Ruffle. This milestone makes them usable as the native client's interface
   character window and chat with their game side;
 * `mu-world --gfx DIR`: the real HUD and windows over the native 3D world.
 
+**Update (NATIVE-GFX-003, [native-gfx3.md](native-gfx3.md)).** The HUD now runs as the client's base movie
+(`base.swf` → `ExternalBase.swf` and its UI loader), which brings the skill icons (`ImageData`), the item hotkey
+icons (game image `image0`) and a chat without the leftover rows. `loadBitmapFromLib` works through `loadClip`.
+Item models are drawn over the inventory. The window placement and the menu take the client's form, compared in
+Unicorn. Two Ruffle patches (0006, 0007) join the series. The stand-alone `main`/`chat` mode below remains for
+movie directories without `base.swf`.
+
 Labels:
 
 * **observed**: run on this Mac (Apple M5, macOS 27) under the patched Ruffle;

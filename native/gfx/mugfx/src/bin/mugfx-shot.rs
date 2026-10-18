@@ -1,5 +1,5 @@
 //! mugfx-shot: load one converted GFx movie with Ruffle, run a script of
-//! game-side operations and input on it, and write PNGs (NATIVE-GFX-001/002).
+//! game-side operations and input on it, and write PNGs (NATIVE-GFX-001/002/003).
 //!
 //!   mugfx-shot IN.swf OUT.png [--size WxH] [--shared] [--frames N] [OPS...]
 //!
@@ -16,6 +16,11 @@
 //!   --view SW SH X Y W H [S]    window-sized player, backing scale S (see mugfx_set_view)
 //!   --font NAME PATH STYLE      register a device font
 //!   --shot PATH                 render now and write a PNG
+//!   --image NAME W H RRGGBBAA   game image filled with one colour (mugfx_set_image)
+//!   --ime TEXT CURSOR COMMIT    IME composition (mugfx_ime)
+//!   --resolve NAME              file a movie-relative name resolves to
+//!   --double 0|1                double-buffered shared surface; --seed prints the shown surface's seed
+//!   --pixel X Y                 render now and print the RGBA at a viewport pixel
 //!
 //! ExternalInterface calls from the movie are printed as `call NAME ARGS`;
 //! with MUGFX_LOG=warn Ruffle's warnings (unimplemented Flash APIs) go to
@@ -229,6 +234,48 @@ fn main() {
                 let (ok, drawn, _) = shot(g, arg(k + 1));
                 println!("shot {} ok={ok} drawn={drawn}", arg(k + 1));
                 k += 2;
+            }
+            "--image" => {
+                let (iw, ih) = (num(k + 2) as usize, num(k + 3) as usize);
+                let hex = arg(k + 4);
+                let px: Vec<u8> = (0..4).map(|j| u8::from_str_radix(&hex[j * 2..j * 2 + 2], 16).unwrap()).collect();
+                let rgba: Vec<u8> = px.iter().copied().cycle().take(iw * ih * 4).collect();
+                let r = unsafe { mugfx_set_image(g, c(arg(k + 1)).as_ptr(), iw as c_int, ih as c_int, rgba.as_ptr(), 0) };
+                println!("image {} {}x{} {} -> {r}", arg(k + 1), iw, ih, hex);
+                k += 5;
+            }
+            "--ime" => {
+                let r = unsafe { mugfx_ime(g, c(arg(k + 1)).as_ptr(), num(k + 2) as c_int, num(k + 3) as c_int) };
+                println!("ime {:?} -> {r}", arg(k + 1));
+                k += 4;
+            }
+            "--resolve" => {
+                let mut out = vec![0 as c_char; 4096];
+                let r = unsafe { mugfx_resolve(g, c(arg(k + 1)).as_ptr(), out.as_mut_ptr(), out.len()) };
+                let path = if r >= 0 { reply(out.as_ptr()) } else { "-".into() };
+                println!("resolve {} -> {path}", arg(k + 1));
+                k += 2;
+            }
+            "--double" => {
+                let r = unsafe { mugfx_set_double_buffer(g, num(k + 1) as c_int) };
+                println!("double {} -> {r}", arg(k + 1));
+                k += 2;
+            }
+            "--seed" => {
+                let mut seed = 0u32;
+                let p = unsafe { mugfx_iosurface(g, std::ptr::null_mut(), std::ptr::null_mut(), &mut seed) };
+                println!("seed {} {}", seed, !p.is_null());
+                k += 1;
+            }
+            "--pixel" => {
+                let (mut w, mut h): (c_int, c_int) = (0, 0);
+                unsafe { mugfx_size(g, &mut w, &mut h) };
+                let mut rgba = vec![0u8; (w * h * 4) as usize];
+                unsafe { mugfx_render(g, rgba.as_mut_ptr(), rgba.len()) };
+                let (x, y) = (num(k + 1) as usize, num(k + 2) as usize);
+                let o = (y * w as usize + x) * 4;
+                println!("pixel {x} {y} -> {:?}", &rgba[o..o + 4]);
+                k += 3;
             }
             other => panic!("unknown option {other}"),
         }

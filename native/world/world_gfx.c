@@ -1,4 +1,4 @@
-/* The GFx interface over mu-world's 3D view (NATIVE-GFX-002); see world_gfx.h. */
+/* The GFx interface over mu-world's 3D view (NATIVE-GFX-002/003); see world_gfx.h. */
 #include "world_gfx.h"
 
 #include <stdio.h>
@@ -9,12 +9,16 @@
 #include "../core/mu_hud_tip.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "../gfx/mu_gfx_sdl.h"
+#include "world_gfx_game.h"
 
 struct world_gfx {
     mu_gfx_layer *layer;
     mu_hud_tip_tables tables;
     const char *root;
     mu_hud_inventory *scratch;
+    wg_items *items;            /* item models over the windows and in the hotkey image (NATIVE-GFX-003) */
+    double time_ms;
+    int skills;
 };
 
 /* The InfoPopup HTML of an item through the tooltip pipeline (core/mu_hud_tip). */
@@ -71,7 +75,12 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     g->root = game_root;
     g->scratch = malloc(sizeof *g->scratch);
     mu_hud_tip_tables_load(game_root, &g->tables);
-    mu_gfx_layer_config cfg = {movie_dir, NULL, width, height, shared, 0, 1, tooltip, g, NULL, scale};
+    g->items = game_root && !getenv("MU_GFX_NO_ITEM_MODELS") ? wg_items_open(game_root) : NULL;
+    mu_gfx_layer_config cfg = {.movie_dir = movie_dir, .width = width, .height = height, .shared = shared, .demo = 1,
+                               .tooltip = tooltip, .tooltip_user = g, .scale = scale,
+                               .items = g->items ? wg_items_draw : NULL, .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
+                               .items_user = g->items,
+                               .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER")};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -80,6 +89,13 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         return NULL;
     }
     demo_items(g);
+    mu_gfx_skill *skills = malloc(1024 * sizeof *skills);
+    if (skills) {
+        g->skills = wg_skills_load(game_root, skills, 1024);
+        if (g->skills > 0)
+            mu_gfx_layer_set_skills(g->layer, skills, g->skills);
+        free(skills);
+    }
     if (open) {
         if (strstr(open, "inventory"))
             mu_gfx_layer_show(g->layer, MU_GFX_INVENTORY, 1);
@@ -94,6 +110,7 @@ void world_gfx_close(world_gfx *g)
     if (!g)
         return;
     mu_gfx_layer_close(g->layer);
+    wg_items_close(g->items);
     mu_hud_tip_tables_free(&g->tables);
     free(g->scratch);
     free(g);
@@ -108,9 +125,22 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
 {
     if (!g)
         return;
+    g->time_ms += dt_ms;
+    wg_items_set_time(g->items, g->time_ms);
     mu_gfx_layer_advance(g->layer, dt_ms);
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);
+}
+
+void world_gfx_set_location(world_gfx *g, int world, float x, float y)
+{
+    if (!g)
+        return;
+    /* The top menu's map name is GlobalText (Lang.mpr, encrypted): the data
+     * folder's name stands in.  Cells are 100 world units. */
+    char name[32];
+    snprintf(name, sizeof name, "World %d", world + 1);
+    mu_gfx_layer_set_location(g->layer, name, (int)(x / 100.0f), (int)(y / 100.0f));
 }
 
 void world_gfx_report(world_gfx *g, char *out, size_t cap)
@@ -120,8 +150,12 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap)
     long renders = 0;
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         renders += st.renders[m];
+    long drawn = 0, missing = 0, icons = 0;
+    wg_items_counts(g ? g->items : NULL, &drawn, &missing, &icons);
     snprintf(out, cap, "\"gfx\": {\"shared\": %d, \"renders\": %ld, \"callbacks\": %ld, \"invokes\": %ld, "
-                       "\"inventory_open\": %d, \"tooltips\": %d}",
+                       "\"inventory_open\": %d, \"tooltips\": %d, \"base_mode\": %d, \"skills\": %d, "
+                       "\"item_models\": %ld, \"item_models_missing\": %ld, \"icon_models\": %ld}",
              st.shared, renders, st.callbacks, st.invokes, mu_gfx_layer_is_open(g ? g->layer : NULL, MU_GFX_INVENTORY),
-             g && g->tables.have_tooltip);
+             g && g->tables.have_tooltip, mu_gfx_layer_base_mode(g ? g->layer : NULL), g ? g->skills : 0, drawn,
+             missing, icons);
 }

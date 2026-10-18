@@ -1,4 +1,4 @@
-/* The GFx interface layer of the native client (NATIVE-GFX-002); see mu_gfx_layer.h.
+/* The GFx interface layer of the native client (NATIVE-GFX-002/003); see mu_gfx_layer.h.
  *
  * Client facts used here (static readings, docs/research/client-hud.md and
  * the movies' own ActionScript, read locally with JPEXS):
@@ -19,6 +19,23 @@
  *   - InfoPopup: SetInfoPopup(x, y, w, h, html) positions itself around the
  *     rectangle; SetInfoPopupMainSmall(x, y, w, h, hotkey, name) for the bar;
  *     SetInfoPopupClose hides it.
+ * NATIVE-GFX-003 (static readings of the client, docs/research/native-gfx3.md):
+ *   - the HUD is one base movie: base.swf loads ExternalBase.swf, whose
+ *     UIFrame reports onLoad; the game answers with LoadFrameFiles and the
+ *     movie list of 0x00c8f05d; ASData (DataMan) gets skill.setSkillAll with
+ *     {Index, Magic_Icon, Name, Delay, SkillUseType, MasteryType} (0x00c5ebaa);
+ *     the main frame's handler sends InitMenuInfo (0x00c71fc2: menu ids, not
+ *     key codes, GlobalText labels) and registers image0 (0x00c71f4b);
+ *   - item hotkey icons: each occupied slot gets a 20 x 20 render rectangle
+ *     in image0, x stepping by 32 and wrapping (0x00c552b1); the bar draws
+ *     _root.getBitmap(0) flipped (Frame.mainAssets.ItemHotKey.DrawIcon);
+ *   - window registry 0x00ac4a79: InventoryFrame alignment 11 (Align_Right),
+ *     CharacterInfoFrame and InfoPopup 9 (none); the window creator 0x00ac9edc
+ *     sends SetAlign + SetWindowSize(window size) unless the alignment is 9,
+ *     and SetScale(83) below 700 pixels of height for most windows
+ *     (handler +0x58 = scale / 100, used by the item pass);
+ *   - menu id 1 toggles CharacterInfoFrame (0x00c714bd case 1 -> 0x00c733cf),
+ *     id 14 InventoryFrame (case 14 -> 0x00c73a2f).
  * Host choices (not client facts) are marked "layer choice". */
 #define _POSIX_C_SOURCE 200809L
 #define _DARWIN_C_SOURCE 1
@@ -83,6 +100,10 @@ typedef struct mugfx_api {
     int (*set_view)(MuGfx *, int, int, int, int, int, int, double);
     void (*size)(MuGfx *, int *, int *);
     void (*stats)(MuGfx *, MuGfxStats *);
+    int (*set_image)(MuGfx *, const char *, int, int, const uint8_t *, int);
+    int (*resolve)(MuGfx *, const char *, char *, size_t);
+    int (*ime)(MuGfx *, const char *, int, int);
+    int (*set_double_buffer)(MuGfx *, int);
 } mugfx_api;
 
 static int exe_dir(char *out, size_t cap)
@@ -166,6 +187,10 @@ static int api_load(mugfx_api *api, const char *explicit_path, char *error, size
     SYM(set_view, "mugfx_set_view");
     SYM(size, "mugfx_size");
     SYM(stats, "mugfx_stats");
+    SYM(set_image, "mugfx_set_image");
+    SYM(resolve, "mugfx_resolve");
+    SYM(ime, "mugfx_ime");
+    SYM(set_double_buffer, "mugfx_set_double_buffer");
 #undef SYM
     return 0;
 }
@@ -189,6 +214,7 @@ typedef struct movie {
     int tex_w, tex_h;
 #endif
     double next_bounds_ms;
+    int alias;                  /* plays inside another movie's player (base mode chat): not rendered/advanced */
 } movie;
 
 typedef struct item {
@@ -197,6 +223,16 @@ typedef struct item {
     char name[64];
     float rgb[3];
 } item;
+
+#define ICON_W 512              /* image0 size (layer choice: the item render passes 512.0) */
+#define ICON_H 512
+#define MAX_SKILLS 1024
+#define MAX_CHANNELS 16
+
+typedef struct hotkey_item {
+    int32_t code, level, count;
+    float render[4];            /* renderX, renderY, renderW, renderH in image0 */
+} hotkey_item;
 
 struct mu_gfx_layer {
     mu_gfx_layer_config cfg;
@@ -235,6 +271,21 @@ struct mu_gfx_layer {
     double gpu_wait_ms;
     long gpu_waits;
     char reply[256];
+    /* NATIVE-GFX-003 */
+    int base_mode;
+    struct { char name[24], path[128]; } channels[MAX_CHANNELS];
+    int nchannels;
+    int ui_loaded, main_inited, chat_inited, skills_sent, icons_dirty, scene_sent;
+    mu_gfx_skill skills[MAX_SKILLS];
+    int nskills;
+    hotkey_item hotkeys[4];
+    uint8_t *icon_rgba;
+    float inv_scale, char_scale;   /* SetScale / 100 (handler +0x58) */
+    char compose[256];
+    int composing;
+    int in_callback;
+    char map_name[64];
+    int map_x, map_y, map_sent;
 };
 
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat"};
@@ -366,6 +417,30 @@ static void commas(char *out, size_t cap, int64_t v)
     out[o] = 0;
 }
 
+/* ---- HUD channels (base mode) ----------------------------------------------------- */
+
+static void set_channel(mu_gfx_layer *L, const char *name, const char *path)
+{
+    for (int i = 0; i < L->nchannels; i++)
+        if (!strcmp(L->channels[i].name, name)) {
+            snprintf(L->channels[i].path, sizeof L->channels[i].path, "%s", path);
+            return;
+        }
+    if (L->nchannels < MAX_CHANNELS) {
+        snprintf(L->channels[L->nchannels].name, sizeof L->channels[0].name, "%s", name);
+        snprintf(L->channels[L->nchannels].path, sizeof L->channels[0].path, "%s", path);
+        L->nchannels++;
+    }
+}
+
+static const char *channel(const mu_gfx_layer *L, const char *name)
+{
+    for (int i = 0; i < L->nchannels; i++)
+        if (!strcmp(L->channels[i].name, name))
+            return L->channels[i].path;
+    return "";
+}
+
 /* ---- game -> movie --------------------------------------------------------------- */
 
 static const char *invokef(mu_gfx_layer *L, int m, const char *path, const char *method, const char *fmt, ...)
@@ -373,12 +448,17 @@ static const char *invokef(mu_gfx_layer *L, int m, const char *path, const char 
     movie *mv = &L->mv[m];
     if (!mv->g || !path || !path[0])
         return NULL;
-    char *args = malloc(16384);
-    if (!args)
-        return NULL;
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(args, 16384, fmt, ap);
+    int len = vsnprintf(NULL, 0, fmt, ap);
+    va_end(ap);
+    if (len < 0)
+        return NULL;
+    char *args = malloc((size_t)len + 1);
+    if (!args)
+        return NULL;
+    va_start(ap, fmt);
+    vsnprintf(args, (size_t)len + 1, fmt, ap);
     va_end(ap);
     L->invokes++;
     const char *r = L->api.invoke(mv->g, path, method, args);
@@ -446,21 +526,147 @@ static void feed_main(mu_gfx_layer *L)
     L->shown = L->hero;
 }
 
+static const float ICON_PALETTE[8][3] = {{.85f, .35f, .25f}, {.35f, .55f, .9f}, {.95f, .8f, .3f}, {.55f, .75f, .4f},
+                                         {.7f, .45f, .85f}, {.3f, .8f, .8f}, {.9f, .55f, .2f}, {.8f, .8f, .8f}};
+
+/* image0: the item hotkey icons (game image of base.swf).  Render
+ * rectangles as the client lays them out (0x00c552b1, static): x from 0 in
+ * steps of 32, wrapping to the next row of 32 when past the image width;
+ * each icon 20 x 20 (the double 20.0 at 0x01a83c80). */
+static void layout_hotkeys(mu_gfx_layer *L)
+{
+    int x = 0, y = 0;
+    for (int i = 0; i < 4; i++) {
+        hotkey_item *h = &L->hotkeys[i];
+        if (h->count <= 0)
+            continue;
+        h->render[0] = (float)x;
+        h->render[1] = (float)y;
+        h->render[2] = h->render[3] = 20.0f;
+        x += 32;
+        if (x > ICON_W) {
+            x = 0;
+            y += 32;
+        }
+    }
+}
+
+static void update_icons(mu_gfx_layer *L)
+{
+    movie *mv = &L->mv[MU_GFX_MAIN];
+    if (!L->base_mode || !mv->g)
+        return;
+    if (L->in_callback) {   /* mugfx refuses images from inside the movie: retry from pump */
+        L->icons_dirty = 1;
+        return;
+    }
+    L->icons_dirty = 0;
+    if (!L->icon_rgba && !(L->icon_rgba = malloc((size_t)ICON_W * ICON_H * 4)))
+        return;
+    memset(L->icon_rgba, 0, (size_t)ICON_W * ICON_H * 4);
+    mu_gfx_item_draw draws[4];
+    int n = 0;
+    for (int i = 0; i < 4; i++) {
+        hotkey_item *h = &L->hotkeys[i];
+        if (h->count <= 0)
+            continue;
+        mu_gfx_item_draw *d = &draws[n++];
+        memset(d, 0, sizeof *d);
+        d->item = -1;
+        d->code = h->code;
+        d->level = h->level;
+        memcpy(d->rect, h->render, sizeof d->rect);
+        d->slot[0] = h->render[0] * 640.0f / ICON_W;      /* the image as a 640 x 480 "screen" */
+        d->slot[1] = h->render[1] * 480.0f / ICON_H;
+        d->slot[2] = h->render[2] * 640.0f / ICON_W;
+        d->slot[3] = h->render[3] * 480.0f / ICON_H;
+        d->frame_scale = 1.0f;
+        d->alpha = 1.0f;
+    }
+    if (!L->cfg.icons || L->cfg.icons(L->cfg.items_user, draws, n, L->icon_rgba, ICON_W, ICON_H)) {
+        /* Stand-ins (layer choice): a coloured square per item group, in the
+         * bottom-up row order the bar's flipped bitmap fill expects. */
+        for (int k = 0; k < n; k++) {
+            const float *rgb = ICON_PALETTE[(draws[k].code >> 9) & 7];
+            for (int yy = 2; yy < 18; yy++)
+                for (int xx = 2; xx < 18; xx++) {
+                    int px = (int)draws[k].rect[0] + xx, row = ICON_H - 1 - ((int)draws[k].rect[1] + yy);
+                    if (px < 0 || px >= ICON_W || row < 0 || row >= ICON_H)
+                        continue;
+                    uint8_t *o = L->icon_rgba + ((size_t)row * ICON_W + (size_t)px) * 4;
+                    int edge = xx < 4 || yy < 4 || xx >= 16 || yy >= 16;
+                    for (int c = 0; c < 3; c++)
+                        o[c] = (uint8_t)(255 * rgb[c] * (edge ? 0.6f : 1.0f));
+                    o[3] = 255;
+                }
+        }
+    }
+    L->api.set_image(mv->g, "image0", ICON_W, ICON_H, L->icon_rgba, 0);
+    logf_(L, "game: image0 (%d item icons)", n);
+}
+
 static void feed_item_hotkeys(mu_gfx_layer *L)
 {
-    char path[128];
+    char path[160], list[1024];
+    size_t n = 0;
     snprintf(path, sizeof path, "%s.mcItemHotKey", L->mv[MU_GFX_MAIN].path);
-    /* Icons come from the client's root image movie (gSystem.Image), which is
-     * not loaded; the counts show (layer choice: one potion slot). */
-    invokef(L, MU_GFX_MAIN, path, "setItemHotKeyAll",
-            "[[{\"slot\":0,\"selectGroup\":1,\"itemType\":7181,\"itemLevel\":0,\"itemCount\":%d},"
-            "{\"slot\":1,\"selectGroup\":0},{\"slot\":2,\"selectGroup\":0},{\"slot\":3,\"selectGroup\":0}]]",
-            L->potions);
+    L->hotkeys[0].count = L->potions;   /* layer choice: one potion slot */
+    layout_hotkeys(L);
+    for (int i = 0; i < 4; i++) {
+        const hotkey_item *h = &L->hotkeys[i];
+        if (h->count > 0)
+            n += (size_t)snprintf(list + n, sizeof list - n,
+                                  "%s{\"slot\":%d,\"selectGroup\":1,\"itemType\":%d,\"itemLevel\":%d,"
+                                  "\"itemCount\":%d,\"InventoryIndex\":-1,\"renderX\":%g,\"renderY\":%g,"
+                                  "\"renderW\":%g,\"renderH\":%g}", i ? "," : "", i, h->code, h->level, h->count,
+                                  h->render[0], h->render[1], h->render[2], h->render[3]);
+        else
+            n += (size_t)snprintf(list + n, sizeof list - n, "%s{\"slot\":%d,\"selectGroup\":0}", i ? "," : "", i);
+    }
+    /* The image first: ItemHotKey.DrawIcon fetches _root.getBitmap(0) while
+     * setItemHotKeyAll runs (inside a callback the update is deferred). */
+    if (L->api.set_image && L->base_mode)
+        update_icons(L);
+    invokef(L, MU_GFX_MAIN, path, "setItemHotKeyAll", "[[%s]]", list);
+}
+
+/* The skill table of the data movie (0x00c5e990 / 0x00c5ebaa). */
+static void send_skills(mu_gfx_layer *L)
+{
+    const char *path = channel(L, "ASData");
+    if (!path[0])
+        return;
+    size_t cap = (size_t)L->nskills * 256 + 16;
+    char *list = malloc(cap), p[160];
+    if (!list)
+        return;
+    size_t n = 0;
+    for (int i = 0; i < L->nskills && n + 256 < cap; i++) {
+        char name[160];
+        json_quote(name, sizeof name, L->skills[i].name);
+        n += (size_t)snprintf(list + n, cap - n,
+                              "%s{\"Index\":%d,\"Magic_Icon\":%d,\"Name\":%s,\"Delay\":%d,\"SkillUseType\":%d,"
+                              "\"MasteryType\":%d}", i ? "," : "", L->skills[i].index, L->skills[i].icon, name,
+                              L->skills[i].delay, L->skills[i].use_type, L->skills[i].mastery);
+    }
+    list[n] = 0;
+    snprintf(p, sizeof p, "%s.skill", path);
+    invokef(L, MU_GFX_MAIN, p, "setSkillAll", "[[%s]]", list);
+    free(list);
+    L->skills_sent = 1;
+}
+
+static const mu_gfx_skill *skill_info(const mu_gfx_layer *L, int index)
+{
+    for (int i = 0; i < L->nskills; i++)
+        if (L->skills[i].index == index)
+            return &L->skills[i];
+    return NULL;
 }
 
 static void feed_skills(mu_gfx_layer *L)
 {
-    char path[128], slots[1024];
+    char path[160], slots[1024];
     size_t n = 0;
     snprintf(path, sizeof path, "%s.mcSkillHotKey", L->mv[MU_GFX_MAIN].path);
     for (int i = 0; i < 10; i++)
@@ -539,9 +745,10 @@ static void show_item_tooltip(mu_gfx_layer *L, int cell)
     if (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html, sizeof html))
         builtin_tooltip(it, html, sizeof html);
     json_quote(quoted, sizeof quoted, html);
-    float x = L->win_x + L->slot_x + it->grid.col * (L->slot_w + L->gap_x);
-    float y = L->win_y + L->slot_y + it->grid.row * (L->slot_h + L->gap_y);
-    float w = it->grid.width * L->slot_w, h = it->grid.height * L->slot_h;
+    float sc = L->inv_scale;
+    float x = L->win_x + (L->slot_x + it->grid.col * (L->slot_w + L->gap_x)) * sc;
+    float y = L->win_y + (L->slot_y + it->grid.row * (L->slot_h + L->gap_y)) * sc;
+    float w = it->grid.width * L->slot_w * sc, h = it->grid.height * L->slot_h * sc;
     tip->open = 1;
     invokef(L, MU_GFX_TOOLTIP, tip->path, "SetInfoPopup", "[%d,%d,%d,%d,%s]", (int)x, (int)y, (int)w, (int)h,
             quoted);
@@ -642,7 +849,7 @@ static void inventory_click_r(mu_gfx_layer *L, int index)
     mu_grid_item *gi = index >= 0 && index < L->grid.cols * L->grid.rows ? mu_grid_item_at(&L->grid, index) : NULL;
     if (gi && L->grid.cells[index]) {
         logf_(L, "game: right click item %u code %d at cell %d", gi->id, gi->code, index);
-        if (gi->code == 7181 || gi->code == 7182) {
+        if (gi->code >= 14 * 512 && gi->code <= 14 * 512 + 3) {   /* apple, healing potions (14,0..3) */
             L->hero.hp = L->hero.max_hp;
             logf_(L, "game: potion restores HP");
         }
@@ -721,16 +928,27 @@ static void chat_submit(mu_gfx_layer *L)
 
 /* ---- movie -> game ---------------------------------------------------------------------------- */
 
+static const char *on_call_(movie *mv, const char *name, const char *args);
+
 static const char *on_call(void *user, const char *name, const char *args)
 {
     movie *mv = user;
     mu_gfx_layer *L = mv->L;
     L->callbacks++;
+    L->in_callback++;
+    const char *r = on_call_(mv, name, args);
+    L->in_callback--;
+    return r;
+}
+
+static const char *on_call_(movie *mv, const char *name, const char *args)
+{
+    mu_gfx_layer *L = mv->L;
     if (strcmp(name, "TweenTimeSet") && strcmp(name, "requestSlotInfo") && strcmp(name, "EQUIPrequestSlotInfo"))
         logf_(L, "%s -> %s %.300s", mv->file, name, args);
     double v[8];
     int n = json_numbers(args, v, 8);
-    char s[256];
+    char s[256] = "";
     mv->view_dirty = 1;
     if (!strcmp(name, "UIInit") && json_string(args, 0, s, sizeof s)) {
         snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
@@ -741,9 +959,36 @@ static const char *on_call(void *user, const char *name, const char *args)
         return NULL;
     }
     if (!strcmp(name, "fscommand")) {
-        if (json_string(args, 1, s, sizeof s) && mv->id == MU_GFX_CHAT)
+        /* The chat's TextInput focusIn/focusOut (the client's IME signal);
+         * in base mode it comes through the base movie. */
+        if (json_string(args, 1, s, sizeof s) && (mv->id == MU_GFX_CHAT || (L->base_mode && mv->id == MU_GFX_MAIN)))
             L->chat_edit = !strcmp(s, "focusIn") ? 1 : !strcmp(s, "focusOut") ? 0 : L->chat_edit;
         return NULL;
+    }
+    if (L->base_mode && mv->id == MU_GFX_MAIN) {
+        /* The base movie's channels (KeyMovieClip EventCall names). */
+        if (json_string(args, 0, s, sizeof s) && !strcmp(s, "onLoad")) {
+            char path[128] = "";
+            json_string(args, 1, path, sizeof path);
+            set_channel(L, name, path);
+            if (!strcmp(name, "UIFrame"))
+                L->ui_loaded = 0;                           /* LoadFrameFiles follows (pump) */
+            else if (!strcmp(name, "ASData"))
+                L->skills_sent = 0;
+            else if (!strcmp(name, "main"))
+                snprintf(L->mv[MU_GFX_MAIN].path, sizeof L->mv[MU_GFX_MAIN].path, "%s", path);
+            else if (!strcmp(name, "chat"))
+                snprintf(L->mv[MU_GFX_CHAT].path, sizeof L->mv[MU_GFX_CHAT].path, "%s", path);
+            return NULL;
+        }
+        if (!strcmp(name, "UIFrame") && !strcmp(s, "onFileLoad")) {
+            L->ui_loaded = 1;
+            return NULL;
+        }
+        if (!strcmp(name, "chat"))
+            goto chat_channel;
+        if (strcmp(name, "main"))
+            return NULL;
     }
     switch (mv->id) {
     case MU_GFX_MAIN:
@@ -753,18 +998,17 @@ static const char *on_call(void *user, const char *name, const char *args)
                 if (json_string(args, 1, path, sizeof path))
                     snprintf(mv->path, sizeof mv->path, "%s", path);
             } else if (!strcmp(s, "onHotKey")) {
-                int key = (int)json_field(args, "keyCode", 0);
+                /* A menu button: keyCode is the client's menu id (0x00c71fc2),
+                 * dispatched by 0x00c714bd (static): id 1 toggles
+                 * CharacterInfoFrame (0x00c733cf), id 14 InventoryFrame
+                 * (0x00c73a2f); the other windows are not played. */
+                int id = (int)json_field(args, "keyCode", -1);
                 L->key_used = 1;
-                if (key == 'I' || key == 'V')
-                    mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
-                else if (key == 'C')
+                logf_(L, "game: menu id %d", id);
+                if (id == 1)
                     mu_gfx_layer_toggle(L, MU_GFX_CHARACTER);
-                else if (key == 27) {
-                    if (L->mv[MU_GFX_INVENTORY].open || L->mv[MU_GFX_CHARACTER].open) {
-                        mu_gfx_layer_show(L, MU_GFX_INVENTORY, 0);
-                        mu_gfx_layer_show(L, MU_GFX_CHARACTER, 0);
-                    }
-                }
+                else if (id == 14)
+                    mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
             } else if (!strcmp(s, "onSelectSkill")) {
                 L->key_used = 1;
                 int slot = (int)json_field(args, "slot", 0), skill = (int)json_field(args, "skill", 0);
@@ -777,12 +1021,16 @@ static const char *on_call(void *user, const char *name, const char *args)
                     L->hero.ag -= 20;
             } else if (!strcmp(s, "onSkillTooltip")) {
                 int slot = (int)json_field(args, "slot", 0), skill = (int)json_field(args, "skill", 0);
-                char hotkey[8], label[48];
+                char hotkey[8], label[160];
                 snprintf(hotkey, sizeof hotkey, "%d", (slot + 1) % 10);
-                snprintf(label, sizeof label, "Skill %d", skill);
+                const mu_gfx_skill *sk = skill_info(L, skill);
+                if (sk && sk->name[0])
+                    json_quote(label, sizeof label, sk->name);
+                else
+                    snprintf(label, sizeof label, "\"Skill %d\"", skill);
                 L->mv[MU_GFX_TOOLTIP].open = 1;
                 invokef(L, MU_GFX_TOOLTIP, L->mv[MU_GFX_TOOLTIP].path, "SetInfoPopupMainSmall",
-                        "[%d,%d,%d,%d,\"%s\",\"%s\"]", (int)json_field(args, "x", 0), (int)json_field(args, "y", 0),
+                        "[%d,%d,%d,%d,\"%s\",%s]", (int)json_field(args, "x", 0), (int)json_field(args, "y", 0),
                         (int)json_field(args, "w", 32), (int)json_field(args, "h", 32), hotkey, label);
             } else if (!strcmp(s, "offSkillTooltip") || !strcmp(s, "offItemTooltip") ||
                        !strcmp(s, "offExpTooltip")) {
@@ -834,6 +1082,7 @@ static const char *on_call(void *user, const char *name, const char *args)
         }
         return NULL;
     case MU_GFX_CHAT:
+    chat_channel:
         if (!strcmp(name, "chat") && json_string(args, 0, s, sizeof s)) {
             if (!strcmp(s, "onLoad")) {
                 char path[96];
@@ -864,10 +1113,19 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
 {
     movie *mv = &L->mv[m];
     char path[4096], err[512];
-    snprintf(path, sizeof path, "%s/%s.swf", L->cfg.movie_dir, FILES[m]);
     mv->file = FILES[m];
     mv->L = L;
     mv->id = m;
+    if (L->base_mode && m == MU_GFX_MAIN)
+        mv->file = "base";
+    if (L->base_mode && m == MU_GFX_CHAT) {
+        /* The base movie loads Chat itself: the chat plays inside its player. */
+        mv->file = "Chat";
+        mv->g = L->mv[MU_GFX_MAIN].g;
+        mv->alias = 1;
+        return 0;
+    }
+    snprintf(path, sizeof path, "%s/%s.swf", L->cfg.movie_dir, mv->file);
     mv->g = L->shared ? L->api.open_shared(path, L->px_w, L->px_h, err, sizeof err)
                       : L->api.open(path, L->px_w, L->px_h, err, sizeof err);
     if (!mv->g) {
@@ -875,6 +1133,8 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
         return -1;
     }
     L->api.set_callback(mv->g, on_call, mv);
+    if (L->shared && L->cfg.double_buffer)
+        L->api.set_double_buffer(mv->g, 1);
     L->api.set_view(mv->g, L->w, L->h, 0, 0, 0, 0, L->scale);
     L->api.start(mv->g);
     mv->view[0] = mv->view[1] = 0;
@@ -907,56 +1167,232 @@ static void slot_gap(mu_gfx_layer *L)
     L->gap_y = y8 > y0 ? (float)(y8 - y0) - L->slot_h : 0;
 }
 
+/* Window placement of the window creator 0x00ac9edc (static): registry
+ * alignment InventoryFrame 11 (MUDefines.Align_Right), CharacterInfoFrame
+ * and InfoPopup 9 (Align_None: no SetAlign/SetWindowSize); SetWindowSize
+ * gets the window size (0x01cf1624/8) and SetScale(83) applies below 700
+ * pixels of height to both (handler +0x58 = scale / 100). */
+static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9};
+
 static void window_sizes(mu_gfx_layer *L)
 {
-    /* GetWindowWidth/Height of MUComponent come from the host. */
-    for (int m = MU_GFX_INVENTORY; m <= MU_GFX_CHARACTER; m++)
-        invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h - (m == MU_GFX_INVENTORY ? 120 : 0));
-}
-
-static void init_movies(mu_gfx_layer *L)
-{
-    movie *m_main = &L->mv[MU_GFX_MAIN], *chat = &L->mv[MU_GFX_CHAT];
-    /* main.gfx places Frame.Main as "mc"; the client's UI loader triggers
-     * its onFileLoad, which reports main/onLoad with the path (layer plays
-     * the loader). */
-    invokef(L, MU_GFX_MAIN, "_level0.mc", "onFileLoad", "[]");
-    if (m_main->path[0]) {
-        invokef(L, MU_GFX_MAIN, m_main->path, "InitMenuInfo",
-                "[{\"IngameShop\":{\"keyCode\":88,\"key\":\"X\",\"label\":\"In-game shop\"},"
-                "\"CharacterInfo\":{\"keyCode\":67,\"key\":\"C\",\"label\":\"Character\"},"
-                "\"Inventory\":{\"label\":\"Inventory\",\"subMenu\":[{\"keyCode\":73,\"key\":\"I\",\"label\":\"Inventory\"},"
-                "{\"keyCode\":75,\"key\":\"K\",\"label\":\"Gremory case\"}]},"
-                "\"Quest\":{\"keyCode\":84,\"key\":\"T\",\"label\":\"Quest\"},"
-                "\"Community\":{\"label\":\"Community\",\"subMenu\":[{\"keyCode\":70,\"key\":\"F\",\"label\":\"Friends\"}]},"
-                "\"System\":{\"label\":\"System\",\"subMenu\":[{\"keyCode\":27,\"key\":\"ESC\",\"label\":\"System\"}]}}]");
-        m_main->open = 1;
-        feed_main(L);
-        feed_skills(L);
-        feed_item_hotkeys(L);
-    }
-    /* chat.swf is a symbol library; the UI loader attaches "Chat" (layer plays it). */
-    if (chat->g) {
-        invokef(L, MU_GFX_CHAT, "_level0", "attachMovie", "[\"Chat\",\"mc\",10]");
-        L->api.advance(chat->g, 0.0);
-        invokef(L, MU_GFX_CHAT, "_level0.mc", "onFileLoad", "[]");
-        if (chat->path[0]) {
-            invokef(L, MU_GFX_CHAT, chat->path, "InitData",
-                    "[{\"MaxInputSize\":\"60\",\"MaxUsetNameSize\":\"10\",\"strNormal\":\"All\",\"strParty\":\"Party\","
-                    "\"strGuild\":\"Guild\",\"strGens\":\"Gens\",\"strWhisper\":\"Whisper\",\"strSystem\":\"System\","
-                    "\"strBlock\":\"Block\",\"typeFormatWHISPER\":\"W\",\"typeFormatPARTY\":\"P\","
-                    "\"typeFormatGUILD\":\"G\",\"typeFormatUNION\":\"U\",\"typeFormatGENS\":\"Gens\"}]");
-            invokef(L, MU_GFX_CHAT, chat->path, "CloseEditText", "[]");
-            chat->open = 1;
+    for (int m = MU_GFX_INVENTORY; m <= MU_GFX_CHARACTER; m++) {
+        if (!L->mv[m].path[0])
+            continue;
+        float scale = (m != MU_GFX_TOOLTIP && L->h < 700) ? 0.83f : 1.0f;
+        if (m == MU_GFX_INVENTORY)
+            L->inv_scale = scale;
+        else if (m == MU_GFX_CHARACTER)
+            L->char_scale = scale;
+        if (scale != 1.0f)
+            invokef(L, m, L->mv[m].path, "SetScale", "[%g]", scale * 100.0f);
+        if (WINDOW_ALIGN[m] != 9) {
+            invokef(L, m, L->mv[m].path, "SetAlign", "[%d]", WINDOW_ALIGN[m]);
+            invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h);
         }
     }
+}
+
+/* InitMenuInfo as the main frame's handler builds it (0x00c71fc2, executed
+ * under Unicorn by scripts/validate_gfx3.py: groups, submenus, ids and
+ * GlobalText numbers equal): keyCode is a menu id (dispatched by
+ * 0x00c714bd; ids 13/14/15 toggle PetInventoryFrame, InventoryFrame,
+ * GremoryCase, static), key and label are
+ * GlobalText strings (Data/Lang.mpr, encrypted: English stand-ins where
+ * the entry's role is known, "GlobalText <n>" placeholders otherwise;
+ * MU_GFX_GT_IDS=1 shows the numbers everywhere). */
+typedef struct menu_entry { const char *group; int id; int key_gt; const char *key; int label_gt; const char *label; } menu_entry;
+static const menu_entry MENU[] = {
+    {"IngameShop", 0, 0xd5c, "X", 0xd5d, "In-game shop"},
+    {"CharacterInfo", 1, 0xd5e, "C", 0xd5f, "Character"},
+    {"Inventory", -1, -1, "", 0xd61, "Inventory"},
+    {"Inventory/", 13, 0x10f6, "", 0x10b9, "Pet inventory"},      /* toggles PetInventoryFrame */
+    {"Inventory/", 14, 0xd60, "I", 0xd7d, "Inventory"},           /* toggles InventoryFrame (0x00c73a2f) */
+    {"Inventory/", 15, 0x118d, "", 0x118e, "Gremory case"},       /* toggles GremoryCase */
+    {"Quest", -1, -1, "", 0xd63, "Quest"},
+    {"Quest/", 2, 0xd62, "", 0xd63, NULL},
+    {"Quest/", 0x16, -1, "CTRL+T", 0x193b, NULL},
+    {"Community", -1, -1, "", 0xd64, "Community"},
+    {"Community/", 9, 0xd76, "", 0x3de, NULL},
+    {"Community/", 10, 0xd78, "", 0xee2, NULL},
+    {"Community/", 11, 0xd79, "", 0xee3, NULL},
+    {"Community/", 12, 0xf4c, "", 0xf4d, NULL},
+    {"System", -1, -1, "", 0xd65, "System"},
+    {"System/", 4, 0xd72, "", 0xd75, NULL},
+    {"System/", 5, 0xd73, "", 0x927, NULL},
+    {"System/", 7, 0xd77, "", 0x1021, NULL},
+    {"System/", 8, 0xecc, "", 0xd4f, NULL},
+};
+
+static size_t menu_item(char *out, size_t cap, const menu_entry *e, int gt_ids)
+{
+    char key[32], label[48];
+    if (gt_ids && e->key_gt >= 0)
+        snprintf(key, sizeof key, "GT%d", e->key_gt);
+    else
+        snprintf(key, sizeof key, "%s", e->key);
+    if (gt_ids || !e->label)   /* unknown text: a labelled placeholder */
+        snprintf(label, sizeof label, "GlobalText %d", e->label_gt);
+    else
+        snprintf(label, sizeof label, "%s", e->label);
+    return (size_t)snprintf(out, cap, "{\"keyCode\":%d,\"key\":\"%s\",\"label\":\"%s\"", e->id, key, label);
+}
+
+static void init_menu(mu_gfx_layer *L)
+{
+    int gt = getenv("MU_GFX_GT_IDS") && atoi(getenv("MU_GFX_GT_IDS"));
+    char buf[4096];
+    size_t n = 0;
+    n += (size_t)snprintf(buf + n, sizeof buf - n, "[{");
+    int ngroups = 0;
+    for (size_t i = 0; i < sizeof MENU / sizeof MENU[0]; i++) {
+        const menu_entry *e = &MENU[i];
+        if (strchr(e->group, '/'))
+            continue;
+        n += (size_t)snprintf(buf + n, sizeof buf - n, "%s\"%s\":", ngroups++ ? "," : "", e->group);
+        n += menu_item(buf + n, sizeof buf - n, e, gt);
+        char sub[32];
+        snprintf(sub, sizeof sub, "%s/", e->group);
+        int nsub = 0;
+        for (size_t k = 0; k < sizeof MENU / sizeof MENU[0]; k++)
+            if (!strcmp(MENU[k].group, sub)) {
+                n += (size_t)snprintf(buf + n, sizeof buf - n, "%s", nsub++ ? "}," : ",\"subMenu\":[");
+                n += menu_item(buf + n, sizeof buf - n, &MENU[k], gt);
+            }
+        n += (size_t)snprintf(buf + n, sizeof buf - n, "%s}", nsub ? "}]" : "");
+    }
+    snprintf(buf + n, sizeof buf - n, "}]");
+    invokef(L, MU_GFX_MAIN, L->mv[MU_GFX_MAIN].path, "InitMenuInfo", "%s", buf);
+}
+
+/* The other HUD movies of the base movie: the location in the top menu
+ * (topmenu setMapName / setPosition; the map name is GlobalText, the host
+ * supplies it) and the alarm frame's event boxes off (no ranking, PC room or
+ * play-time events offline: layer choice). */
+static void init_hud(mu_gfx_layer *L)
+{
+    const char *alarm = channel(L, "alarmframe");
+    if (alarm[0]) {
+        invokef(L, MU_GFX_MAIN, alarm, "SetRankingScoreVisible", "[false]");
+        invokef(L, MU_GFX_MAIN, alarm, "setPCRoomInfo", "[{\"enable\":false}]");
+        invokef(L, MU_GFX_MAIN, alarm, "setPlayTimeInfo", "[{\"enable\":false}]");
+    }
+    L->map_sent = 0;
+}
+
+static void feed_location(mu_gfx_layer *L)
+{
+    const char *top = channel(L, "topmenu");
+    if (!top[0])
+        return;
+    char q[160];
+    json_quote(q, sizeof q, L->map_name);
+    invokef(L, MU_GFX_MAIN, top, "setMapName", "[%s]", q);
+    invokef(L, MU_GFX_MAIN, top, "setPosition", "[{\"x\":%d,\"y\":%d}]", L->map_x, L->map_y);
+    L->map_sent = 1;
+}
+
+void mu_gfx_layer_set_location(mu_gfx_layer *L, const char *map, int x, int y)
+{
+    if (!L)
+        return;
+    if (map && strcmp(map, L->map_name))
+        snprintf(L->map_name, sizeof L->map_name, "%s", map), L->map_sent = 0;
+    if (x != L->map_x || y != L->map_y)
+        L->map_x = x, L->map_y = y, L->map_sent = 0;
+}
+
+static void init_main(mu_gfx_layer *L)
+{
+    movie *m_main = &L->mv[MU_GFX_MAIN];
+    L->main_inited = 1;
+    init_menu(L);
+    m_main->open = 1;
+    feed_main(L);
+    feed_skills(L);
+    feed_item_hotkeys(L);
+}
+
+static void init_chat(mu_gfx_layer *L)
+{
+    movie *chat = &L->mv[MU_GFX_CHAT];
+    L->chat_inited = 1;
+    invokef(L, MU_GFX_CHAT, chat->path, "InitData",
+            "[{\"MaxInputSize\":\"60\",\"MaxUsetNameSize\":\"10\",\"strNormal\":\"All\",\"strParty\":\"Party\","
+            "\"strGuild\":\"Guild\",\"strGens\":\"Gens\",\"strWhisper\":\"Whisper\",\"strSystem\":\"System\","
+            "\"strBlock\":\"Block\",\"typeFormatWHISPER\":\"W\",\"typeFormatPARTY\":\"P\","
+            "\"typeFormatGUILD\":\"G\",\"typeFormatUNION\":\"U\",\"typeFormatGENS\":\"Gens\"}]");
+    invokef(L, MU_GFX_CHAT, chat->path, "CloseEditText", "[]");
+    chat->open = 1;
+}
+
+/* The base movie's UI loader list (0x00c8f05d, static), limited to the
+ * movies present in the movie directory (a missing one would keep the
+ * loader waiting). */
+static void load_frame_files(mu_gfx_layer *L)
+{
+    static const struct { const char *slot; const char *files[6]; } LIST[] = {
+        {"mcData", {"ImageData"}},
+        {"mcTopLevel", {"Tooltip", "Popups"}},
+        {"mcBottomFrame", {"main"}},
+        {"mcBottom", {"ItemDurability", "Chat", "AlarmFrame", "topmenu", "bufflist"}},
+        {"mcBottomHud", {"hudPlayerName", "hudMap", "hudNotice"}},
+    };
+    char buf[1024];
+    size_t n = (size_t)snprintf(buf, sizeof buf, "[{");
+    for (size_t i = 0; i < sizeof LIST / sizeof LIST[0]; i++) {
+        n += (size_t)snprintf(buf + n, sizeof buf - n, "%s\"%s\":[", i ? "," : "", LIST[i].slot);
+        int k = 0;
+        for (int f = 0; f < 6 && LIST[i].files[f]; f++) {
+            char name[96], found[4096];
+            snprintf(name, sizeof name, "%s.swf", LIST[i].files[f]);
+            if (L->api.resolve(L->mv[MU_GFX_MAIN].g, name, found, sizeof found) < 0) {
+                logf_(L, "game: %s not converted, left out of LoadFrameFiles", name);
+                continue;
+            }
+            n += (size_t)snprintf(buf + n, sizeof buf - n, "%s\"%s\"", k++ ? "," : "", LIST[i].files[f]);
+        }
+        n += (size_t)snprintf(buf + n, sizeof buf - n, "]");
+    }
+    snprintf(buf + n, sizeof buf - n, "}]");
+    invokef(L, MU_GFX_MAIN, channel(L, "UIFrame"), "LoadFrameFiles", "%s", buf);
+}
+
+/* Deferred game-side steps (outside the movies' callbacks). */
+static void pump(mu_gfx_layer *L)
+{
+    if (L->base_mode) {
+        static const char *const SENT = "sent";
+        if (channel(L, "UIFrame")[0] && strcmp(channel(L, "LoadFrameFiles"), SENT)) {
+            set_channel(L, "LoadFrameFiles", SENT);
+            load_frame_files(L);
+        }
+        if (L->ui_loaded && !L->scene_sent) {
+            L->scene_sent = 1;
+            invokef(L, MU_GFX_MAIN, channel(L, "UIFrame"), "changeScene", "[6]");   /* GameScene.Main */
+            init_hud(L);
+        }
+        if (channel(L, "ASData")[0] && !L->skills_sent)
+            send_skills(L);
+    }
+    if (L->mv[MU_GFX_MAIN].path[0] && !L->main_inited)
+        init_main(L);
+    if (L->mv[MU_GFX_CHAT].path[0] && !L->chat_inited)
+        init_chat(L);
+    if (L->icons_dirty)
+        update_icons(L);
+    if (L->base_mode && L->ui_loaded && !L->map_sent && L->map_name[0])
+        feed_location(L);
+}
+
+static void init_windows(mu_gfx_layer *L)
+{
     movie *inv = &L->mv[MU_GFX_INVENTORY];
     if (inv->path[0]) {
         invokef(L, MU_GFX_INVENTORY, inv->path, "InitText",
                 "[{\"Title\":\"Inventory\",\"Zen\":\"\",\"Ruud\":\"\",\"Artifact\":\"Artifact\","
                 "\"PrivateStore\":\"Personal S\",\"ExtensionBag\":\"Expanded\",\"Repair\":\"Repair\","
                 "\"Divide\":\"Divide\",\"Disassemble\":\"Disassemb\",\"Bundle\":\"Bundle\"}]");
-        invokef(L, MU_GFX_INVENTORY, inv->path, "SetAlign", "[4]");   /* right, as the live window */
         zen_text(L);
         slot_gap(L);
         slot_states(L);
@@ -972,6 +1408,71 @@ static void init_movies(mu_gfx_layer *L)
     hide_tooltip(L);
     L->order[L->norder++] = MU_GFX_INVENTORY;
     L->order[L->norder++] = MU_GFX_CHARACTER;
+}
+
+static void init_movies(mu_gfx_layer *L)
+{
+    movie *m_main = &L->mv[MU_GFX_MAIN], *chat = &L->mv[MU_GFX_CHAT];
+    if (L->base_mode) {
+        /* base.swf runs the client's loader by itself (its onLoad loads
+         * ExternalBase.swf); the game side answers its channels (pump).
+         * Advance until the UI loader finished (bounded). */
+        for (int i = 0; i < 200 && !(L->ui_loaded && L->main_inited && L->chat_inited && L->skills_sent); i++) {
+            L->api.advance(m_main->g, 40.0);
+            pump(L);
+        }
+        logf_(L, "game: base movie %s (UIFrame %s, main %s, chat %s)", L->ui_loaded ? "loaded" : "NOT loaded",
+              channel(L, "UIFrame"), m_main->path, chat->path);
+    } else {
+        /* main.gfx places Frame.Main as "mc"; the client's UI loader triggers
+         * its onFileLoad, which reports main/onLoad with the path (layer plays
+         * the loader). */
+        invokef(L, MU_GFX_MAIN, "_level0.mc", "onFileLoad", "[]");
+        /* chat.swf is a symbol library; the UI loader attaches "Chat" (layer plays it). */
+        if (chat->g) {
+            invokef(L, MU_GFX_CHAT, "_level0", "attachMovie", "[\"Chat\",\"mc\",10]");
+            L->api.advance(chat->g, 0.0);
+            invokef(L, MU_GFX_CHAT, "_level0.mc", "onFileLoad", "[]");
+        }
+        pump(L);
+    }
+    init_windows(L);
+}
+
+/* Demo skill table (layer choice): indices 1..60, icon = index (the
+ * installed leftover skill.bmd carries Magic_Icon = index for these), the
+ * normal skill sheet (SkillUseType 0).  Hosts replace it with
+ * mu_gfx_layer_set_skills. */
+static void demo_skills(mu_gfx_layer *L)
+{
+    L->nskills = 0;
+    for (int i = 1; i <= 60 && L->nskills < MAX_SKILLS; i++) {
+        mu_gfx_skill *k = &L->skills[L->nskills++];
+        memset(k, 0, sizeof *k);
+        k->index = i;
+        k->icon = i;
+        snprintf(k->name, sizeof k->name, "Skill %d", i);
+    }
+}
+
+void mu_gfx_layer_set_skills(mu_gfx_layer *L, const mu_gfx_skill *skills, int n)
+{
+    if (!L || !skills || n < 0)
+        return;
+    L->nskills = n > MAX_SKILLS ? MAX_SKILLS : n;
+    memcpy(L->skills, skills, (size_t)L->nskills * sizeof *skills);
+    L->skills_sent = 0;
+    if (L->base_mode && channel(L, "ASData")[0])
+        send_skills(L);
+    if (L->main_inited)
+        feed_skills(L);   /* the slots look their skills up again */
+}
+
+int mu_gfx_layer_base_mode(const mu_gfx_layer *L) { return L && L->base_mode; }
+
+const char *mu_gfx_layer_channel_path(const mu_gfx_layer *L, const char *name)
+{
+    return L && name ? channel(L, name) : "";
 }
 
 static void demo_hero(mu_gfx_hero *h)
@@ -1029,6 +1530,14 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
 #endif
     mu_grid_construct(&L->grid);
     mu_grid_init(&L->grid, 1, 0, 0, 0, 8, 8, 0);   /* 0x00ab7277(1, 8, 8, 1): inventory page */
+    L->inv_scale = L->char_scale = 1.0f;
+    L->hotkeys[0].code = 14 * 512 + 3;              /* demo hotkey item: a healing potion (layer choice) */
+    demo_skills(L);
+    {
+        char base[4096];
+        snprintf(base, sizeof base, "%s/base.swf", c->movie_dir);
+        L->base_mode = !c->standalone && access(base, R_OK) == 0;
+    }
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         if (open_movie(L, m, error, cap)) {
             if (L->shared && m == 0) {   /* no IOSurface: fall back to read-back */
@@ -1060,10 +1569,11 @@ void mu_gfx_layer_close(mu_gfx_layer *L)
         if (mv->tex)
             glDeleteTextures(1, &mv->tex);
 #endif
-        if (mv->g)
+        if (mv->g && !mv->alias)
             L->api.close(mv->g);
         free(mv->rgba);
     }
+    free(L->icon_rgba);
     if (L->api.dl)
         dlclose(L->api.dl);
     free(L);
@@ -1078,7 +1588,7 @@ void mu_gfx_layer_resize(mu_gfx_layer *L, int32_t w, int32_t h)
     w = L->w = (int32_t)lround(w / L->scale);
     h = L->h = (int32_t)lround(h / L->scale);
     for (int m = 0; m < MU_GFX_MOVIES; m++)
-        if (L->mv[m].g) {
+        if (L->mv[m].g && !L->mv[m].alias) {
             L->api.set_view(L->mv[m].g, w, h, 0, 0, 0, 0, L->scale);
             L->mv[m].view[0] = L->mv[m].view[1] = 0;
             L->mv[m].view[2] = w;
@@ -1105,7 +1615,7 @@ const mu_gfx_hero *mu_gfx_layer_hero(const mu_gfx_layer *L)
 static int visible(const mu_gfx_layer *L, int m)
 {
     const movie *mv = &L->mv[m];
-    return mv->g && (mv->open || (m == MU_GFX_TOOLTIP && mv->open));
+    return mv->g && !mv->alias && mv->open;
 }
 
 static void update_view(mu_gfx_layer *L, int m)
@@ -1281,20 +1791,28 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
     }
     if (!main->g)
         return 0;
-    /* The bar's own Key listeners turn keys into onHotKey (Main.onKeyUp)
-     * and onSelectSkill (SkillHotKeyPage.onKeyDown); keys they use belong
-     * to the interface. */
+    /* The bar's own Key listener turns digit/QWER keys into onSelectSkill
+     * (SkillHotKeyPage.onKeyDown); keys it uses belong to the interface. */
     L->key_used = 0;
     L->api.key(main->g, down ? 0 : 1, vk, codepoint, mods);
-    /* Frame.Main.onKeyUp is a clip key handler (it fires for the clip with
-     * keyboard focus, which the client's GFx manager gives the bar); the
-     * layer calls it after the key reached the player, so Key.getCode()
-     * reads this key (layer choice). */
-    if (down)
-        L->main_down_vk = vk;
-    else if (main->path[0] && L->main_down_vk == vk)
-        invokef(L, MU_GFX_MAIN, main->path, "onKeyUp", "[]");
     int used = L->key_used;
+    /* Window hotkeys: the client's own key scan opens the windows (the menu
+     * ids of InitMenuInfo are not key codes, so Frame.Main.onKeyUp does not
+     * produce them); the scan is not reconstructed, the layer maps I/V, C
+     * and Esc (layer choice). */
+    if (down && !mods) {
+        if (vk == 'I' || vk == 'V') {
+            mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
+            used = 1;
+        } else if (vk == 'C') {
+            mu_gfx_layer_toggle(L, MU_GFX_CHARACTER);
+            used = 1;
+        } else if (vk == 27 && (L->mv[MU_GFX_INVENTORY].open || L->mv[MU_GFX_CHARACTER].open)) {
+            mu_gfx_layer_show(L, MU_GFX_INVENTORY, 0);
+            mu_gfx_layer_show(L, MU_GFX_CHARACTER, 0);
+            used = 1;
+        }
+    }
     static const int UI_KEYS[] = {'I', 'V', 'C', 'X', 'K', 'T', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
     for (size_t i = 0; i < sizeof UI_KEYS / sizeof UI_KEYS[0]; i++)
         if (vk == UI_KEYS[i])
@@ -1308,7 +1826,31 @@ int mu_gfx_layer_text(mu_gfx_layer *L, const char *utf8)
 {
     if (!L || !L->chat_edit || !L->mv[MU_GFX_CHAT].g)
         return 0;
+    if (L->composing) {   /* the IME committed: the composing text is replaced */
+        L->api.ime(L->mv[MU_GFX_CHAT].g, "", -1, 0);
+        L->composing = 0;
+        L->compose[0] = 0;
+    }
     L->api.text(L->mv[MU_GFX_CHAT].g, utf8);
+    return 1;
+}
+
+int mu_gfx_layer_compose(mu_gfx_layer *L, const char *utf8, int cursor)
+{
+    /* The composing text goes into the chat's input field as Ruffle's IME
+     * preedit (the client shows it through its own IME movie IME.swf and
+     * fscommand TextInput; that path is not played, layer choice). */
+    if (!L || !L->chat_edit || !L->mv[MU_GFX_CHAT].g)
+        return 0;
+    snprintf(L->compose, sizeof L->compose, "%s", utf8 ? utf8 : "");
+    L->composing = L->compose[0] != 0;
+    /* cursor: code points (SDL) -> UTF-8 bytes (mugfx_ime) */
+    int byte = cursor < 0 ? -1 : 0;
+    for (int cp = 0; cursor >= 0 && cp < cursor && L->compose[byte]; cp++)
+        do
+            byte++;
+        while ((L->compose[byte] & 0xc0) == 0x80);
+    L->api.ime(L->mv[MU_GFX_CHAT].g, L->compose, byte, 0);
     return 1;
 }
 
@@ -1345,8 +1887,9 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
             feed_character(L);
     }
     for (int m = 0; m < MU_GFX_MOVIES; m++)
-        if (L->mv[m].g && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
+        if (L->mv[m].g && !L->mv[m].alias && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
             L->api.advance(L->mv[m].g, dt);
+    pump(L);
     /* The chat view fills itself with test lines once its CLIK components
      * initialise (ChatView.testChatType); clear them, then greet (layer choice). */
     if (!L->chat_ready && L->time_ms >= 200 && L->mv[MU_GFX_CHAT].path[0]) {
@@ -1405,7 +1948,7 @@ static void render_movies(mu_gfx_layer *L, int force_readback)
             render_readback(L, mv, m);
         }
     }
-    if (submitted) {
+    if (submitted && !L->cfg.double_buffer) {
         double t = now_ms();
         L->api.gpu_wait();
         double wait = now_ms() - t;
@@ -1421,8 +1964,15 @@ void mu_gfx_layer_render(mu_gfx_layer *L)
         render_movies(L, 0);
 }
 
-/* Item stand-ins over the inventory, placed by the reconstructed slot pass. */
-typedef struct rect_list { float r[MAX_ITEMS + 1][4]; int item[MAX_ITEMS + 1]; int n; mu_gfx_layer *L; } rect_list;
+/* Items over the inventory, placed by the reconstructed slot pass: the
+ * host's item models (cfg.items) or coloured stand-ins. */
+typedef struct rect_list {
+    float r[MAX_ITEMS + 1][4];
+    int item[MAX_ITEMS + 1];
+    mu_slot_call call[MAX_ITEMS + 1];
+    int n;
+    mu_gfx_layer *L;
+} rect_list;
 
 static void emit_rect(void *user, const mu_slot_call *call)
 {
@@ -1436,6 +1986,7 @@ static void emit_rect(void *user, const mu_slot_call *call)
     r[1] = call->y / mu_gfx_rate_y(L->h);
     r[2] = call->w / mu_gfx_rate_x(L->w);
     r[3] = call->h / mu_gfx_rate_y(L->h);
+    R->call[R->n] = *call;
     R->item[R->n++] = (int)((const item *)call->item - L->items);
 }
 
@@ -1446,7 +1997,7 @@ static void item_rects(mu_gfx_layer *L, rect_list *R)
     if (!L->have_slot || !L->mv[MU_GFX_INVENTORY].open)
         return;
     mu_slot_page page = {&L->grid, L->slot_x, L->slot_y, L->slot_w, L->slot_h, L->gap_x, L->gap_y};
-    mu_slot_frame frame = {1, MU_ALIGN_TOP_LEFT, L->win_x, L->win_y, 1.0f, 1.0f, &page, 1, 1};
+    mu_slot_frame frame = {1, MU_ALIGN_TOP_LEFT, L->win_x, L->win_y, 1.0f, L->inv_scale, &page, 1, 1};
     mu_slot_pass(&frame, L->w, L->h, mu_gfx_rate_x(L->w), mu_gfx_rate_y(L->h), NULL, emit_rect, R);
 }
 
@@ -1455,12 +2006,85 @@ static int held_rect(const mu_gfx_layer *L, float r[4])
     if (L->held < 0)
         return 0;
     const item *it = &L->items[L->held];
-    r[2] = it->grid.width * (L->slot_w > 0 ? L->slot_w : 26);
-    r[3] = it->grid.height * (L->slot_h > 0 ? L->slot_h : 26);
+    r[2] = it->grid.width * (L->slot_w > 0 ? L->slot_w : 26) * L->inv_scale;
+    r[3] = it->grid.height * (L->slot_h > 0 ? L->slot_h : 26) * L->inv_scale;
     r[0] = (float)L->mouse_x - r[2] / 2;
     r[1] = (float)L->mouse_y - r[3] / 2;
     return 1;
 }
+
+static void item_draw_from(const mu_gfx_layer *L, int idx, const float rect[4], mu_gfx_item_draw *d)
+{
+    const item *it = &L->items[idx];
+    memset(d, 0, sizeof *d);
+    d->item = idx;
+    d->code = it->grid.code;
+    d->level = it->level;
+    memcpy(d->rect, rect, sizeof d->rect);
+    d->slot[0] = rect[0] * mu_gfx_rate_x(L->w);
+    d->slot[1] = rect[1] * mu_gfx_rate_y(L->h);
+    d->slot[2] = rect[2] * mu_gfx_rate_x(L->w);
+    d->slot[3] = rect[3] * mu_gfx_rate_y(L->h);
+    d->frame_scale = L->inv_scale;
+    d->alpha = 1.0f;
+    d->page_type = 1;
+}
+
+static int build_item_draws(mu_gfx_layer *L, const rect_list *R, mu_gfx_item_draw *draws, int max)
+{
+    int n = 0;
+    for (int i = 0; i < R->n && n < max; i++) {
+        mu_gfx_item_draw *d = &draws[n++];
+        item_draw_from(L, R->item[i], R->r[i], d);
+        d->slot[0] = R->call[i].x;     /* the slot pass's own 640 x 480 values */
+        d->slot[1] = R->call[i].y;
+        d->slot[2] = R->call[i].w;
+        d->slot[3] = R->call[i].h;
+        d->page_type = R->call[i].page_type;
+        d->page_flag = R->call[i].page_flag;
+        d->type8_seen = R->call[i].type8_seen;
+        d->frame_id = (int32_t)R->call[i].frame_id;
+        int cell = L->hover;
+        d->select = cell >= 0 && cell < L->grid.cols * L->grid.rows && L->grid.cells[cell] &&
+                    mu_grid_item_at(&L->grid, cell) == &L->items[R->item[i]].grid;
+    }
+    return n;
+}
+
+#ifndef MU_GFX_NO_GL
+/* The per-window item pass of the inventory (0x00abfcca) through the host. */
+static int host_items(mu_gfx_layer *L, const rect_list *R)
+{
+    if (!L->cfg.items)
+        return 0;
+    mu_gfx_item_draw draws[MAX_ITEMS + 1];
+    int n = build_item_draws(L, R, draws, MAX_ITEMS + 1);
+    L->cfg.items(L->cfg.items_user, draws, n, L->w, L->h);
+    return 1;
+}
+#endif
+
+int mu_gfx_layer_item_draws(mu_gfx_layer *L, mu_gfx_item_draw *out, int max)
+{
+    if (!L || !out)
+        return 0;
+    rect_list R;
+    item_rects(L, &R);
+    return build_item_draws(L, &R, out, max);
+}
+
+#ifndef MU_GFX_NO_GL
+static int host_held(mu_gfx_layer *L, const float r[4])
+{
+    if (!L->cfg.items)
+        return 0;
+    mu_gfx_item_draw d;
+    item_draw_from(L, L->held, r, &d);
+    d.held = 1;
+    L->cfg.items(L->cfg.items_user, &d, 1, L->w, L->h);
+    return 1;
+}
+#endif
 
 static void blend_px(uint8_t *dst, const uint8_t *src)
 {
@@ -1546,6 +2170,30 @@ static void quad(float x, float y, float w, float h, float s1, float t1)
     glTexCoord2f(s1, t1); glVertex2f(x + w, y + h);
     glTexCoord2f(0, t1); glVertex2f(x, y + h);
     glEnd();
+}
+
+/* The host's item pass runs with its own matrices and state. */
+static void host_gl_begin(const mu_gfx_layer *L)
+{
+    if (!L->cfg.items)
+        return;
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+}
+
+static void host_gl_end(const mu_gfx_layer *L)
+{
+    if (!L->cfg.items)
+        return;
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glPopAttrib();
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 static void fill_gl(const float rp[4], const float rgb[3], double scale)
@@ -1652,13 +2300,22 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
         draw_movie_gl(L, &L->mv[order[k]], order[k]);
         if (order[k] == MU_GFX_INVENTORY) {
             item_rects(L, &R);
-            for (int i = 0; i < R.n; i++)
-                fill_gl(R.r[i], L->items[R.item[i]].rgb, L->scale);
+            host_gl_begin(L);
+            int drawn = host_items(L, &R);
+            host_gl_end(L);
+            if (!drawn)
+                for (int i = 0; i < R.n; i++)
+                    fill_gl(R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
     }
     float hr[4];
-    if (held_rect(L, hr))
-        fill_gl(hr, L->items[L->held].rgb, L->scale);
+    if (held_rect(L, hr)) {
+        host_gl_begin(L);
+        int drawn = host_held(L, hr);
+        host_gl_end(L);
+        if (!drawn)
+            fill_gl(hr, L->items[L->held].rgb, L->scale);
+    }
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
@@ -1690,8 +2347,9 @@ int mu_gfx_layer_cell_center(const mu_gfx_layer *L, int32_t cell, double *x, dou
     if (!L || !L->have_slot || cell < 0 || cell >= L->grid.cols * L->grid.rows)
         return 0;
     int col = cell % L->grid.cols, row = cell / L->grid.cols;
-    *x = (L->win_x + L->slot_x + (float)col * (L->slot_w + L->gap_x) + L->slot_w / 2) * L->scale;
-    *y = (L->win_y + L->slot_y + (float)row * (L->slot_h + L->gap_y) + L->slot_h / 2) * L->scale;
+    float sc = L->inv_scale;
+    *x = (L->win_x + (L->slot_x + (float)col * (L->slot_w + L->gap_x) + L->slot_w / 2) * sc) * L->scale;
+    *y = (L->win_y + (L->slot_y + (float)row * (L->slot_h + L->gap_y) + L->slot_h / 2) * sc) * L->scale;
     return 1;
 }
 

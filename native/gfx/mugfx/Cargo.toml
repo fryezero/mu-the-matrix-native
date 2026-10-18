@@ -1,4 +1,4 @@
-# NATIVE-GFX-001/002: a small C ABI around Ruffle (MIT OR Apache-2.0) for the
+# NATIVE-GFX-001/002/003: a small C ABI around Ruffle (MIT OR Apache-2.0) for the
 # native client's GFx windows.  Ruffle is an external, pinned dependency:
 # native/gfx/fetch-ruffle.sh clones it (no Ruffle source is vendored in this
 # repository), applies the GFx patch series native/gfx/ruffle-patches on a
@@ -23,6 +23,7 @@ url = "2"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 tracing = "0.1"
+async-channel = "2.5.0"
 
 # macOS: render into an IOSurface shared with the host's OpenGL compositor.
 [target.'cfg(target_os = "macos")'.dependencies]

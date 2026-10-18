@@ -1,4 +1,4 @@
-/* The GFx interface over mu-world's 3D view (NATIVE-GFX-002).
+/* The GFx interface over mu-world's 3D view (NATIVE-GFX-002/003).
  *
  * `mu-world --gfx DIR` opens native/gfx/mu_gfx_layer over the world: the
  * client's bottom bar, inventory, item tooltips, character window and chat,
@@ -7,7 +7,11 @@
  * the world (client-hud.md, "UI pass order").  Clicks and keys the
  * interface takes do not reach the walk session.  With a game root, the
  * demo inventory uses the client's Item.bmd sizes and names, and tooltips
- * come from itemtooltip/itemtooltiptext through core/mu_hud_tip. */
+ * come from itemtooltip/itemtooltiptext through core/mu_hud_tip.
+ * NATIVE-GFX-003: with a converted base movie the HUD runs as the client's
+ * base movie; item models are drawn over the inventory and into the item
+ * hotkey image (world_gfx_game.c); the skill icons use the installed
+ * skill.bmd's icon numbers. */
 #ifndef MU_WORLD_GFX_H
 #define MU_WORLD_GFX_H
 
@@ -27,6 +31,8 @@ void world_gfx_close(world_gfx *g);
 int world_gfx_event(world_gfx *g, const SDL_Event *e, double scale);
 /* Advance by dt and, with draw, composite over the current GL framebuffer. */
 void world_gfx_frame(world_gfx *g, double dt_ms, int draw);
+/* Hero location for the top menu (world index, world position). */
+void world_gfx_set_location(world_gfx *g, int world, float x, float y);
 /* One summary line (JSON object body) for the run report. */
 void world_gfx_report(world_gfx *g, char *out, size_t cap);
 

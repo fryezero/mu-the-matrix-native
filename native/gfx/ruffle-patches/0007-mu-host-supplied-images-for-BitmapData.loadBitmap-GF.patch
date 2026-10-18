@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 15:41:26 -0500
+Subject: [PATCH 7/7] mu: host-supplied images for BitmapData.loadBitmap (GFx
+ game images)
+
+GFx lets the game provide the bitmaps of a movie's external images (the
+client renders its item icons into base.swf's image0 and the bar draws
+them with loadBitmap).  Player::set_gfx_image registers or updates an
+image by export name; BitmapData.loadBitmap returns it, sharing the
+pixels, before looking at the movie's library.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/avm1/globals/bitmap_data.rs | 11 +++++++++
+ core/src/avm1/runtime.rs             | 17 ++++++++++++++
+ core/src/player.rs                   | 35 ++++++++++++++++++++++++++++
+ 3 files changed, 63 insertions(+)
+
+diff --git a/core/src/avm1/globals/bitmap_data.rs b/core/src/avm1/globals/bitmap_data.rs
+index 99ebc323..8fe0809b 100644
+--- a/core/src/avm1/globals/bitmap_data.rs
++++ b/core/src/avm1/globals/bitmap_data.rs
+@@ -1318,6 +1318,17 @@ fn load_bitmap<'gc>(
+         .unwrap_or(&Value::Undefined)
+         .coerce_to_string(activation)?;
+ 
++    // mu patch: an image the host supplies under this name (GFx external
++    // image provided by the game) is shared, not copied.
++    if let Some(bitmap_data) = activation.context.avm1.gfx_image(&name.to_utf8_lossy()) {
++        return Ok(new_bitmap_data(
++            this.get_local_stored(istr!("prototype"), activation),
++            bitmap_data,
++            activation,
++        )
++        .into());
++    }
++
+     let library = &*activation.context.library;
+ 
+     let movie = <DisplayObject as crate::display_object::TDisplayObject>::movie(
+diff --git a/core/src/avm1/runtime.rs b/core/src/avm1/runtime.rs
+index 073af1ef..3d2aa156 100644
+--- a/core/src/avm1/runtime.rs
++++ b/core/src/avm1/runtime.rs
+@@ -104,6 +104,12 @@ pub struct Avm1<'gc> {
+     /// More examples of this are in the movieclip_invalid_get_bounds_X tests.
+     use_new_invalid_bounds_value: bool,
+ 
++    /// Images the host supplies by export name (mu patch): GFx lets the game
++    /// provide the bitmaps of a movie's external images (for example the
++    /// client's render targets `image0`..`image7` of base.swf).
++    /// `BitmapData.loadBitmap(name)` returns these, sharing their pixels.
++    gfx_images: std::collections::HashMap<String, crate::bitmap::bitmap_data::BitmapData<'gc>>,
++
+     #[cfg(feature = "avm_debug")]
+     pub debug_output: bool,
+ }
+@@ -128,9 +134,20 @@ impl<'gc> Avm1<'gc> {
+             #[cfg(feature = "avm_debug")]
+             debug_output: false,
+             use_new_invalid_bounds_value: false,
++            gfx_images: std::collections::HashMap::new(),
+         }
+     }
+ 
++    /// A host-supplied image (mu patch), see `gfx_images`.
++    pub fn gfx_image(&self, name: &str) -> Option<crate::bitmap::bitmap_data::BitmapData<'gc>> {
++        self.gfx_images.get(name).copied()
++    }
++
++    /// Register or replace a host-supplied image (mu patch).
++    pub fn set_gfx_image(&mut self, name: &str, image: crate::bitmap::bitmap_data::BitmapData<'gc>) {
++        self.gfx_images.insert(name.to_string(), image);
++    }
++
+     pub fn load_player_globals(context: &mut UpdateContext<'gc>) {
+         avm1::globals::load_playerglobal(context);
+     }
+diff --git a/core/src/player.rs b/core/src/player.rs
+index e54e1a54..ff9f89fd 100644
+--- a/core/src/player.rs
++++ b/core/src/player.rs
+@@ -1005,6 +1005,41 @@ impl Player {
+         self.needs_render = true;
+     }
+ 
++    /// Supply or update a host image (mu patch): straight-alpha RGBA rows,
++    /// top row first.  `BitmapData.loadBitmap(name)` in any movie of this
++    /// player returns it (sharing the pixels), as GFx returns the images a
++    /// game provides for a movie's external images.  Bitmaps the movie
++    /// already holds see the new pixels when the size is unchanged.
++    pub fn set_gfx_image(&mut self, name: &str, width: u32, height: u32, rgba: &[u8]) {
++        if width == 0 || height == 0 || rgba.len() < (width as usize) * (height as usize) * 4 {
++            return;
++        }
++        self.mutate_with_update_context(|context| {
++            use crate::bitmap::bitmap_data::{BitmapData, Color};
++            use ruffle_render::bitmap::PixelRegion;
++            let gc = context.gc();
++            let image = match context.avm1.gfx_image(name) {
++                Some(image) if image.width() == width && image.height() == height && !image.disposed() => image,
++                _ => {
++                    let image = BitmapData::new(gc, width, height, true, 0);
++                    context.avm1.set_gfx_image(name, image);
++                    image
++                }
++            };
++            let target = image.overwrite_cpu_pixels_from_gpu(gc).0;
++            let mut write = target.borrow_mut(gc);
++            for y in 0..height {
++                for x in 0..width {
++                    let i = ((y * width + x) * 4) as usize;
++                    let color = Color::rgba(rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]);
++                    write.set_pixel32_raw(x, y, color.to_premultiplied_alpha(true));
++                }
++            }
++            write.set_cpu_dirty(gc, PixelRegion::for_whole_size(width, height));
++        });
++        self.needs_render = true;
++    }
++
+     /// Topmost object under a viewport point, as GFx `Movie::HitTest` with
+     /// shapes (mu patch).  `None` when the point hits nothing.
+     pub fn gfx_hit_test(&mut self, x: f64, y: f64) -> bool {

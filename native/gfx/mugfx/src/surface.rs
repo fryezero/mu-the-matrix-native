@@ -6,10 +6,15 @@
 //! A frame therefore reaches the GL compositor without the GPU -> CPU -> GL
 //! copy of `TextureTarget`: the only synchronisation is waiting for the
 //! frame's command buffer to complete (`wait_idle`).
+//!
+//! NATIVE-GFX-003: with `set_double`, the target alternates between two
+//! surfaces.  A frame renders into the back surface while the host keeps
+//! sampling the last completed one (`display`); the host then needs no
+//! GPU wait before compositing, at one frame of latency at most.
 
 use std::fmt;
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 use objc2_core_foundation::{CFDictionary, CFNumber, CFRetained, CFString};
 use objc2_io_surface::{
@@ -26,18 +31,37 @@ static SEED: AtomicU32 = AtomicU32::new(1);
 
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
-pub struct SurfaceTarget {
+struct Buffer {
     surface: CFRetained<IOSurfaceRef>,
     texture: wgpu::Texture,
-    size: (u32, u32),
     seed: u32,
+    done: Arc<AtomicBool>,
+}
+
+#[derive(Default)]
+struct Flip {
+    back: usize,            // the surface the next frame renders into
+    display: usize,         // the surface the host samples
+    pending: Option<usize>, // submitted, not known complete
+}
+
+pub struct SurfaceTarget {
+    bufs: Vec<Buffer>,
+    flip: Mutex<Flip>,
+    want_double: AtomicBool,
+    size: (u32, u32),
     last: Mutex<Option<wgpu::SubmissionIndex>>,
 }
 
 impl fmt::Debug for SurfaceTarget {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SurfaceTarget").field("size", &self.size).field("seed", &self.seed).finish()
+        f.debug_struct("SurfaceTarget").field("size", &self.size).field("buffers", &self.bufs.len()).finish()
     }
+}
+
+fn buffer(device: &wgpu::Device, size: (u32, u32)) -> Result<Buffer, String> {
+    let (surface, texture) = create(device, size)?;
+    Ok(Buffer { surface, texture, seed: SEED.fetch_add(1, Ordering::Relaxed), done: Arc::new(AtomicBool::new(true)) })
 }
 
 #[derive(Debug)]
@@ -111,27 +135,75 @@ fn create(device: &wgpu::Device, (w, h): (u32, u32)) -> Result<(CFRetained<IOSur
 impl SurfaceTarget {
     pub fn new(device: &wgpu::Device, size: (u32, u32)) -> Result<Self, String> {
         let size = (size.0.max(1), size.1.max(1));
-        let (surface, texture) = create(device, size)?;
-        Ok(Self { surface, texture, size, seed: SEED.fetch_add(1, Ordering::Relaxed), last: Mutex::new(None) })
+        Ok(Self {
+            bufs: vec![buffer(device, size)?],
+            flip: Mutex::new(Flip::default()),
+            want_double: AtomicBool::new(false),
+            size,
+            last: Mutex::new(None),
+        })
+    }
+
+    /// Ask for two alternating surfaces (true) or one (false); applied when
+    /// the next frame starts.
+    pub fn set_double(&self, on: bool) {
+        self.want_double.store(on, Ordering::Release);
+    }
+
+    fn apply_double(&mut self, device: &wgpu::Device, on: bool) -> Result<(), String> {
+        self.wait_idle(device);
+        if on && self.bufs.len() == 1 {
+            self.bufs.push(buffer(device, self.size)?);
+            *self.flip.lock().unwrap() = Flip { back: 1, display: 0, pending: None };
+        } else if !on && self.bufs.len() == 2 {
+            let display = self.flip.lock().unwrap().display;
+            let keep = self.bufs.swap_remove(display);
+            self.bufs = vec![keep];
+            *self.flip.lock().unwrap() = Flip::default();
+        }
+        Ok(())
     }
 
     pub fn size(&self) -> (u32, u32) {
         self.size
     }
 
+    /// The surface the host shows: in double mode the last completed frame
+    /// (checks the pending one without blocking).
+    fn display(&self, device: &wgpu::Device) -> &Buffer {
+        let mut f = self.flip.lock().unwrap();
+        if let Some(p) = f.pending {
+            if !self.bufs[p].done.load(Ordering::Acquire) {
+                let _ = device.poll(wgpu::PollType::Poll);
+            }
+            if self.bufs[p].done.load(Ordering::Acquire) {
+                f.display = p;
+                f.pending = None;
+            }
+        }
+        &self.bufs[f.display]
+    }
+
     pub fn seed(&self) -> u32 {
-        self.seed
+        self.display(&crate::descriptors().unwrap().device).seed
     }
 
     pub fn iosurface_ptr(&self) -> *mut std::ffi::c_void {
-        CFRetained::as_ptr(&self.surface).as_ptr().cast()
+        let b = self.display(&crate::descriptors().unwrap().device);
+        CFRetained::as_ptr(&b.surface).as_ptr().cast()
     }
 
-    /// Block until the last submitted frame has completed on the GPU.
+    /// Block until the last submitted frame has completed on the GPU (it
+    /// becomes the displayed one).
     pub fn wait_idle(&self, device: &wgpu::Device) {
         let index = self.last.lock().unwrap().take();
         if index.is_some() {
             let _ = device.poll(wgpu::PollType::Wait { submission_index: index, timeout: None });
+        }
+        let mut f = self.flip.lock().unwrap();
+        if let Some(p) = f.pending.take() {
+            self.bufs[p].done.store(true, Ordering::Release);
+            f.display = p;
         }
     }
 
@@ -143,9 +215,10 @@ impl SurfaceTarget {
         if out.len() < w * h * 4 {
             return false;
         }
-        unsafe { self.surface.lock(IOSurfaceLockOptions::ReadOnly, std::ptr::null_mut()) };
-        let stride = self.surface.bytes_per_row();
-        let base = self.surface.base_address().as_ptr() as *const u8;
+        let surface = &self.bufs[self.flip.lock().unwrap().display].surface;
+        unsafe { surface.lock(IOSurfaceLockOptions::ReadOnly, std::ptr::null_mut()) };
+        let stride = surface.bytes_per_row();
+        let base = surface.base_address().as_ptr() as *const u8;
         for y in 0..h {
             let row = unsafe { std::slice::from_raw_parts(base.add(y * stride), w * 4) };
             for x in 0..w {
@@ -159,7 +232,7 @@ impl SurfaceTarget {
                 }
             }
         }
-        unsafe { self.surface.unlock(IOSurfaceLockOptions::ReadOnly, std::ptr::null_mut()) };
+        unsafe { surface.unlock(IOSurfaceLockOptions::ReadOnly, std::ptr::null_mut()) };
         true
     }
 }
@@ -172,15 +245,21 @@ impl RenderTarget for SurfaceTarget {
         if size == self.size {
             return;
         }
-        match create(device, size) {
-            Ok((surface, texture)) => {
-                self.surface = surface;
-                self.texture = texture;
-                self.size = size;
-                self.seed = SEED.fetch_add(1, Ordering::Relaxed);
+        self.wait_idle(device);
+        let n = self.bufs.len();
+        let mut bufs = Vec::with_capacity(n);
+        for _ in 0..n {
+            match buffer(device, size) {
+                Ok(b) => bufs.push(b),
+                Err(e) => {
+                    tracing::error!("mugfx: IOSurface resize to {size:?} failed: {e}");
+                    return;
+                }
             }
-            Err(e) => tracing::error!("mugfx: IOSurface resize to {size:?} failed: {e}"),
         }
+        self.bufs = bufs;
+        self.size = size;
+        *self.flip.lock().unwrap() = if n == 2 { Flip { back: 1, display: 0, pending: None } } else { Flip::default() };
     }
 
     fn format(&self) -> wgpu::TextureFormat {
@@ -196,7 +275,30 @@ impl RenderTarget for SurfaceTarget {
     }
 
     fn get_next_texture(&mut self) -> Option<Self::Frame> {
-        Some(SurfaceFrame(self.texture.create_view(&Default::default())))
+        let want = self.want_double.load(Ordering::Acquire);
+        if want != (self.bufs.len() == 2) {
+            if let Err(e) = self.apply_double(&crate::descriptors().unwrap().device, want) {
+                tracing::error!("mugfx: double buffering: {e}");
+                self.want_double.store(false, Ordering::Release);
+            }
+        }
+        if self.bufs.len() == 2 {
+            // The back surface must not be the displayed one: if the last
+            // frame has not completed yet, wait for it (it then displays).
+            let (back, display, pending) = {
+                let f = self.flip.lock().unwrap();
+                (f.back, f.display, f.pending)
+            };
+            if back == display && pending.is_some() {
+                self.wait_idle(&crate::descriptors().unwrap().device);
+            }
+            let mut f = self.flip.lock().unwrap();
+            if f.back == f.display {
+                f.back ^= 1;
+            }
+        }
+        let back = self.flip.lock().unwrap().back;
+        Some(SurfaceFrame(self.bufs[back].texture.create_view(&Default::default())))
     }
 
     fn submit<I: IntoIterator<Item = wgpu::CommandBuffer>>(
@@ -208,6 +310,15 @@ impl RenderTarget for SurfaceTarget {
     ) -> wgpu::SubmissionIndex {
         let index = queue.submit(command_buffers);
         *self.last.lock().unwrap() = Some(index.clone());
+        if self.bufs.len() == 2 {
+            let mut f = self.flip.lock().unwrap();
+            let b = f.back;
+            let done = self.bufs[b].done.clone();
+            done.store(false, Ordering::Release);
+            queue.on_submitted_work_done(move || done.store(true, Ordering::Release));
+            f.pending = Some(b);
+            f.back = b ^ 1;
+        }
         index
     }
 }

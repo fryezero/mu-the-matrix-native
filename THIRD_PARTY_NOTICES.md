@@ -109,9 +109,10 @@ MIT/Apache-2.0/Zlib/ISC/BSD/Unicode-3.0/Unlicense terms. Ruffle's `default_font`
 Temurin JDK (GPL-2.0 with Classpath Exception). The JDK is used only to build Ruffle and is not linked. Movies
 converted from the installed client and their renders are game data and stay local.
 
-NATIVE-GFX-002 adds `native/gfx/ruffle-patches`, five patches applied to that checkout on a separate worktree by
+NATIVE-GFX-002 adds `native/gfx/ruffle-patches`, five patches (seven since NATIVE-GFX-003) applied to that checkout on a separate worktree by
 `native/gfx/apply-ruffle-patches.sh`. The patches are authored for this repository and carry its licence; their
 diff context lines quote Ruffle source under Ruffle's MIT OR Apache-2.0 licence. On macOS `mugfx` also uses the
 `objc2-metal`, `objc2-io-surface` and `objc2-core-foundation` crates (MIT/Apache-2.0/Zlib). The device-font map
-points at fonts installed with macOS; no font file is included.
+points at fonts installed with macOS; no font file is included. NATIVE-GFX-003 adds a direct dependency on
+`async-channel` (Apache-2.0 OR MIT), which is already in Ruffle's graph.
 

@@ -2,7 +2,8 @@
 
 Portable (synthetic data authored here, no client bytes):
   * the Ruffle patch series (native/gfx/ruffle-patches) is a well-formed
-    five-patch `git am` series that only touches Ruffle's core crate; when a
+    `git am` series (five NATIVE-GFX-002 patches, two more since
+    NATIVE-GFX-003) that only touches Ruffle's core crate; when a
     pristine pinned Ruffle checkout is present ($MU_GFX_DEPS), it applies;
   * gfxconvert.py replaces a GFx DefineCompactedFont by the same-named
     DefineFont3 of another movie (under the compacted font's id), and falls
@@ -168,20 +169,21 @@ def lines_after(out, op):
 
 class PatchSeries(unittest.TestCase):
     def test_series_is_well_formed(self):
-        self.assertEqual(len(PATCHES), 5)
+        self.assertEqual(len(PATCHES), 7)   # 0001-0005 NATIVE-GFX-002, 0006-0007 NATIVE-GFX-003
         subjects = []
         for i, p in enumerate(PATCHES, 1):
             text = p.read_text()
             m = re.search(r'^Subject: \[PATCH (\d+)/(\d+)\] (mu: .*)$', text, re.M)
             self.assertIsNotNone(m, p.name)
-            self.assertEqual((int(m.group(1)), int(m.group(2))), (i, 5))
+            self.assertEqual((int(m.group(1)), int(m.group(2))), (i, len(PATCHES)))
             subjects.append(m.group(3))
             files = re.findall(r'^diff --git a/(\S+) b/', text, re.M)
             self.assertTrue(files)
             self.assertTrue(all(f.startswith('core/src/') for f in files), files)
             self.assertIn('Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>', text)
         joined = '\n'.join(subjects)
-        for word in ('onPressAux', 'hitTestDisable', 'Selection', 'TextField', 'host view'):
+        for word in ('onPressAux', 'hitTestDisable', 'Selection', 'TextField', 'host view', 'load order',
+                     'host-supplied images'):
             self.assertIn(word, joined)
         script = (NATIVE/'gfx/apply-ruffle-patches.sh').read_text()
         self.assertIn(RUFFLE_REV, script)
@@ -203,7 +205,7 @@ class PatchSeries(unittest.TestCase):
                 self.assertEqual(r.returncode, 0, r.stderr)
                 log = subprocess.run(['git', '-C', str(wt), 'log', '--format=%s', f'{RUFFLE_REV}..HEAD'],
                                      capture_output=True, text=True).stdout.splitlines()
-                self.assertEqual(len(log), 5)
+                self.assertEqual(len(log), len(PATCHES))
             finally:
                 subprocess.run(['git', '-C', str(pristine), 'worktree', 'remove', '--force', str(wt)])
 
@@ -300,7 +302,7 @@ class LayerWithStub(unittest.TestCase):
         self.assertEqual((s[0]['main_path'], s[0]['inventory_path']), ('_level0.mc', '_level0.g_mcInventory'))
         self.assertEqual(s[0]['cells'], [0, 1, 3])                   # 0x00ad49fb first-fit of 1x3, 2x2, 1x1
         self.assertEqual(s[0]['inventory_open'], 0)
-        # 'I' reaches the bar, whose onKeyUp reports onHotKey(73): the inventory opens.
+        # 'I' opens the inventory (the layer's key scan; NATIVE-GFX-003: the bar's menu ids are not key codes).
         self.assertEqual(s[1]['inventory_open'], 1)
         self.assertIn('InventoryFrame _level0.g_mcInventory.SetVisible [true]', log)
         # The player is sized to the window: content 948..1280 x 20..659, padded to 32 px.
@@ -324,7 +326,7 @@ class LayerWithStub(unittest.TestCase):
         self.assertIn('at 640 300 took 0', out)
         self.assertIn('closebtn took 1', out)
         self.assertEqual((s[6]['inventory_open'], s[6]['character_open']), (0, 1))
-        # Esc reaches the bar's System hotkey and closes the open windows.
+        # Esc closes the open windows (layer key scan).
         self.assertEqual(s[7]['character_open'], 0)
 
     def test_retina_scale_keeps_stage_points(self):
@@ -337,7 +339,7 @@ class LayerWithStub(unittest.TestCase):
         self.assertEqual(s['inventory_view'], [928, 0, 352, 672])       # points, as at scale 1
         self.assertEqual(s['inventory_open'], 0)
         self.assertIn('at 640 300 took 0', out)
-        self.assertIn('InventoryFrame _level0.g_mcInventory.SetWindowSize [1280,680]', log)
+        self.assertIn('InventoryFrame _level0.g_mcInventory.SetWindowSize [1280,800]', log)   # the window size (0x00ac9edc)
 
     def test_missing_library_fails_cleanly(self):
         r = subprocess.run([str(self.host), str(self.dir/'movies'), str(self.dir/'nope.so')], capture_output=True,

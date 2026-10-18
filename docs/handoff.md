@@ -1433,3 +1433,33 @@ Branch `claude/native-gfx2`. Read [`research/native-gfx2.md`](research/native-gf
 **Next:** `loadBitmapFromLib` and the data/image movies (hotkey icons), RenderItem3D models over the item
 windows, the expanded inventory and shops, the GFx layer in mu-client's world scene, double-buffered surfaces.
 
+## The client's HUD movie, icons and item models (NATIVE-GFX-003)
+
+Branch `claude/native-gfx3`. Read [`research/native-gfx3.md`](research/native-gfx3.md).
+
+**Build.** `native/gfx/fetch-ruffle.sh` (now 7 patches) and `native/gfx/build-mugfx.sh` (mugfx ABI 3). Movies:
+convert `base ExternalBase ImageData Icons main Chat Tooltip Popups ItemDurability AlarmFrame topmenu bufflist
+hudPlayerName hudMap hudNotice InventoryFrame InfoPopup CharacterInfoFrame` with the NATIVE-GFX-002 options.
+Without `base.swf` the layer keeps the stand-alone main/chat players.
+
+**Run.**
+
+* `native/build/mu-world --game-root "$MU_GAME_ROOT" --gfx DIR [--gfx-open inventory,character]`: item models,
+  skill.bmd icons. `MU_GFX_NO_ITEM_MODELS=1` and `MU_GFX_SINGLE_BUFFER=1` turn those features off.
+* `native/build/mu-client ... --gfx DIR`.
+* `native/build/mu-gfx-window --gfx DIR [--double] [--standalone]`.
+
+**Checks.**
+
+* `native/tests/test_native_gfx3.py`: 12 tests.
+* `scripts/validate_gfx3.py --cases 40 --mutations`: needs Unicorn (`tools/python`) and the captures
+  (`MU_CLIENT_TEXT`/`MU_IMAGE_DATA` or `evidence/`).
+* Renders are local in `~/Documents/mu-mac-tools/native/renders/gfx3/`.
+
+**Next.**
+
+* Feed the remaining HUD movies: bufflist with buff icons, hudMap, hudPlayerName, Tooltip/Popups,
+  ItemDurability.
+* The expanded inventory and the shops, with item models.
+* Reconstruct the client's window-hotkey key scan and the armour-part height rule (`0x06fbc830`).
+* Crop the base movie's view to its visible parts.
