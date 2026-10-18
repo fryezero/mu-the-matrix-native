@@ -449,6 +449,23 @@ env MUKIT_FREE_HOME="$TMPD/freehome3" "$KIT_DIR/setup-mu-mac.sh" --dry-run --gam
 grep -q 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe' "$TMPD/free-official.log" && ok 'official installer URL planned' || bad 'official installer URL planned'
 grep -q 'wineserver -p 5' "$TMPD/free-official.log" && ok 'free: 32-bit prefix created through the wineserver' || bad 'free: 32-bit prefix created through the wineserver'
 grep -q 'WS12WineCX24.0.7_7.tar.xz' "$TMPD/free-official.log" && ok 'free: default runtime download planned' || bad 'free: default runtime download planned'
+# fast x87 dry run from the app's layout (Resources/installer, no x87-main-only-wrapper.c beside it): a source
+# folder that brings its own wrapper is copied, not built, so the dry run must not warn that it is missing.
+APPRES="$TMPD/appres"; mkdir -p "$APPRES/installer/lib" "$APPRES/installer/registry" "$TMPD/fx-src" "$TMPD/fx-src-nowrap"
+cp "$KIT_DIR/setup-mu-mac.sh" "$KIT_DIR/verify-mu-mac.sh" "$KIT_DIR/play-mu.sh" "$APPRES/installer/"
+cp "$KIT_DIR/lib/mukit.sh" "$APPRES/installer/lib/"; cp "$KIT_DIR/registry/mu-mac.reg" "$APPRES/installer/registry/"
+for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87; do
+    printf 'stub' > "$TMPD/fx-src/$f"; printf 'stub' > "$TMPD/fx-src-nowrap/$f"
+done
+printf 'stub' > "$TMPD/fx-src/x87-main-only-wrapper"
+AFSETUP=(env MUKIT_FREE_HOME="$TMPD/freehome4" "$APPRES/installer/setup-mu-mac.sh" --dry-run --runtime-archive "$TMPD/runtime.tar.xz" --game-dir "$SRC" --no-desktop --skip-verify)
+"${AFSETUP[@]}" --fast-x87-dir "$TMPD/fx-src" > "$TMPD/fx-app-dry.log" 2>&1; rc=$?
+eq 'app-layout fast x87 dry run exit 0' "$rc" 0
+grep -q 'no x87-main-only-wrapper' "$TMPD/fx-app-dry.log" && bad 'app-layout dry run: bundled wrapper not reported missing' || ok 'app-layout dry run: bundled wrapper not reported missing'
+grep -q 'install fast x87 file x87-main-only-wrapper' "$TMPD/fx-app-dry.log" && ok 'app-layout dry run plans the wrapper copy' || bad 'app-layout dry run plans the wrapper copy'
+"${AFSETUP[@]}" --fast-x87-dir "$TMPD/fx-src-nowrap" > "$TMPD/fx-app-dry2.log" 2>&1
+grep -q 'no x87-main-only-wrapper and no compiler' "$TMPD/fx-app-dry2.log" && ok 'app-layout dry run without any wrapper still warns' || bad 'app-layout dry run without any wrapper still warns'
+no 'app-layout dry runs installed nothing' test -e "$TMPD/freehome4/fast-x87"
 unset MUKIT_WINETRICKS_SHA256
 
 printf '\n%d passed, %d failed\n' "$NPASS" "$NFAIL"

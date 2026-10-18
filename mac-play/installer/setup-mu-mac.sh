@@ -278,7 +278,7 @@ preflight() {
     [ "$(id -u)" != 0 ] || mukit_die 'Do not run the setup as root (sudo); run it as your normal user.'
     if [ "$RUNTIME" = free ]; then
         if [ "${MUKIT_SKIP_PLATFORM_CHECK:-0}" != 1 ] && ! mukit_rosetta_ok; then
-            mukit_die 'Rosetta 2 is not installed. Install it with: softwareupdate --install-rosetta --agree-to-license (then rerun).'
+            mukit_die 'Rosetta 2 is not installed. Install it in Terminal with: sudo softwareupdate --install-rosetta --agree-to-license (then try again).'
         fi
         [ ! -L "$PREFIX" ] || mukit_die 'Refusing a symlinked prefix.'
         case "$PREFIX" in "$MUKIT_BOTTLES_DIR"/*) mukit_die "Refusing a prefix inside CrossOver's bottle folder ($PREFIX)." ;; esac
@@ -343,7 +343,7 @@ preflight() {
     if [ -n "$GAME_SRC" ]; then
         [ -d "$GAME_SRC" ] || mukit_die "--game-dir not found: $GAME_SRC"
         GAME_SRC=$(cd -- "$GAME_SRC" && pwd -P)
-        [ -f "$GAME_SRC/main.exe" ] && [ -f "$GAME_SRC/MuTheMatrix.exe" ] || mukit_die '--game-dir must contain main.exe and MuTheMatrix.exe'
+        [ -f "$GAME_SRC/main.exe" ] && [ -f "$GAME_SRC/MuTheMatrix.exe" ] || mukit_die "The game folder (--game-dir) must contain main.exe and MuTheMatrix.exe: $GAME_SRC. Choose the folder that has both files."
         case "$GAME_SRC/" in "$PREFIX/"*) mukit_die '--game-dir cannot be inside the target prefix.' ;; esac
         [ -z "$(find "$GAME_SRC" -type l -print -quit)" ] || mukit_die '--game-dir contains symlinks; refusing (the copy could point back into another install).'
     fi
@@ -353,7 +353,7 @@ preflight() {
         [ "$RUNTIME" = free ] && lockdir=$FREE_HOME
         mkdir -p "$lockdir"
         LOCK="$lockdir/.$BOTTLE.mukit-lock"
-        mkdir "$LOCK" 2>/dev/null || mukit_die "Setup lock exists: $LOCK (another setup running? remove it if stale)."
+        mkdir "$LOCK" 2>/dev/null || mukit_die "Setup lock exists: $LOCK. Another installation is still running: wait for it, or restart the Mac. If none is running, delete that folder and try again."
         trap 'rmdir "$LOCK" 2>/dev/null' EXIT
     fi
 }
@@ -409,7 +409,7 @@ apply_runtime() {
         f=$RT_ARCHIVE
         case "$RT_ARCHIVE" in https://*)
             f="$dl/runtime-$RT_ID.tar.xz"
-            mukit_fetch "$RT_ARCHIVE" "$RT_ARCHIVE_SHA" "$f" || mukit_die "runtime download failed: $RT_ARCHIVE" ;;
+            mukit_fetch "$RT_ARCHIVE" "$RT_ARCHIVE_SHA" "$f" || mukit_die "runtime download failed: $RT_ARCHIVE (check the internet connection, then try again)" ;;
         *) [ "$(mukit_sha256 "$f")" = "$RT_ARCHIVE_SHA" ] || mukit_die "$f does not match --runtime-sha256" ;;
         esac
         extract_into "$f" "$tmp"
@@ -418,8 +418,8 @@ apply_runtime() {
         fi
     else
         todo "download the free Wine runtime (CrossOver 24.0.7 open-source Wine, ~265 MB, LGPL) and its libraries"
-        mukit_fetch "$MUKIT_RT_CX24_ENGINE_URL" "$MUKIT_RT_CX24_ENGINE_SHA256" "$dl/$(basename "$MUKIT_RT_CX24_ENGINE_URL")" || mukit_die 'runtime download failed'
-        mukit_fetch "$MUKIT_RT_TEMPLATE_URL" "$MUKIT_RT_TEMPLATE_SHA256" "$dl/$(basename "$MUKIT_RT_TEMPLATE_URL")" || mukit_die 'runtime library download failed'
+        mukit_fetch "$MUKIT_RT_CX24_ENGINE_URL" "$MUKIT_RT_CX24_ENGINE_SHA256" "$dl/$(basename "$MUKIT_RT_CX24_ENGINE_URL")" || mukit_die 'runtime download failed (check the internet connection, then try again)'
+        mukit_fetch "$MUKIT_RT_TEMPLATE_URL" "$MUKIT_RT_TEMPLATE_SHA256" "$dl/$(basename "$MUKIT_RT_TEMPLATE_URL")" || mukit_die 'runtime library download failed (check the internet connection, then try again)'
         extract_into "$dl/$(basename "$MUKIT_RT_CX24_ENGINE_URL")" "$tmp.engine"
         extract_into "$dl/$(basename "$MUKIT_RT_TEMPLATE_URL")" "$tmp.template"
         mukit_run mkdir -p "$tmp"
@@ -455,7 +455,7 @@ check_winetricks_tool() {
 }
 apply_winetricks_tool() {
     todo "download winetricks 20260125 (pinned SHA-256)"
-    mukit_fetch "$MUKIT_WINETRICKS_URL" "$MUKIT_WINETRICKS_SHA256" "$FREE_HOME/tools/winetricks" || mukit_die 'winetricks download failed'
+    mukit_fetch "$MUKIT_WINETRICKS_URL" "$MUKIT_WINETRICKS_SHA256" "$FREE_HOME/tools/winetricks" || mukit_die 'winetricks download failed (check the internet connection, then try again)'
     mukit_run chmod 755 "$FREE_HOME/tools/winetricks"
 }
 
@@ -631,7 +631,7 @@ apply_game_installer() {
     case "$GAME_INSTALLER" in https://*)
         exe="$FREE_HOME/downloads/$(basename "${GAME_INSTALLER%%\?*}")"
         todo "download the official game installer $GAME_INSTALLER (about 2.2 GB; resumes if interrupted)"
-        mukit_fetch "$GAME_INSTALLER" - "$exe" || mukit_die "game installer download failed: $GAME_INSTALLER" ;;
+        mukit_fetch "$GAME_INSTALLER" - "$exe" || mukit_die "game installer download failed: $GAME_INSTALLER (check the internet connection, then try again; it resumes)" ;;
     esac
     [ "$DRY_RUN" = 1 ] || mukit_write_file "$STATE/game-installer" "$(basename "$exe") sha256=$(mukit_sha256 "$exe")"$'\n'
     [ ! -e "$GAME" ] || [ -z "$(ls -A "$GAME" 2>/dev/null)" ] || mukit_die "$GAME exists without main.exe/MuTheMatrix.exe; inspect it first."
@@ -917,7 +917,13 @@ step_fast_x87_free() {
         todo "install fast x87 file $f"
         mukit_run cp "$s" "$d"
     done
-    if [ ! -x "$fx/x87-main-only-wrapper" ] || [ "$DRY_RUN" = 1 ]; then
+    # A dry run copies nothing, so $fx never has the wrapper yet; when the source folder brings its own (as the
+    # app's Resources/fast-x87 does), the copy planned above installs it and there is nothing to build.
+    local src_wrapper=0
+    { [ -f "$src/x87-main-only-wrapper" ] || [ -f "$src/x87/bin/x87-main-only-wrapper" ]; } && src_wrapper=1
+    if [ "$DRY_RUN" = 1 ] && [ "$src_wrapper" = 1 ]; then
+        :
+    elif [ ! -x "$fx/x87-main-only-wrapper" ] || [ "$DRY_RUN" = 1 ]; then
         if [ -f "$MAC_PLAY/x87-main-only-wrapper.c" ] && command -v xcrun >/dev/null 2>&1; then
             todo 'build the main.exe-only loader wrapper (mac-play/x87-main-only-wrapper.c)'
             mukit_run xcrun clang -arch arm64 -O2 -o "$fx/x87-main-only-wrapper" "$MAC_PLAY/x87-main-only-wrapper.c" || mukit_die 'wrapper build failed'

@@ -162,7 +162,7 @@ eq 'refused start runs nothing' "$(MU_TEST_RUNNING=1 MU_BOTTLE=Good code --run)"
 echo '# free runtime (no CrossOver): synthetic runtime and prefix'
 FHM="$TMPD/freehome"; RTD="$FHM/runtime/rt1"; FPX="$FHM/prefix"
 eq 'free: runtime missing'      "$(code --check)" 30
-has 'free: install hint'        "$(L --check)" 'Choose Install in Settings'
+has 'free: install hint'        "$(L --check)" 'Click Install... to set it up'
 eq 'free: status all missing'   "$(L --status | tr '\n' ' ')" 'runtime missing prefix missing game missing '
 mkdir -p "$RTD/wine/bin" "$RTD/wine/lib/wine/x86_64-unix"; : > "$RTD/wine/lib/wine/x86_64-unix/ntdll.so"; echo 'id=rt1' > "$RTD/.mu-runtime"
 printf 'rt1\n' > "$FHM/runtime/current"
