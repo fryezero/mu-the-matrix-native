@@ -42,6 +42,11 @@
  * Heal at the target; damage text, hit reactions, death, fade and removal run
  * the client routines. The server side (damage, death, respawn, counter-
  * attacks) is a labelled DEMO. --combat-script drives it headless.
+ * NATIVE-ENV-001 adds the client's ambient life and weather (core/mu_env):
+ * every logic step MoveLeaves (behind the tick's guard), MoveBoids and
+ * MoveFishs; every frame the render routines' models and particles and the
+ * world's clear colour (--no-env disables it, --env-tga-leaves loads the
+ * leaf .tga the client unloads, a viewer option).
  *
  * Built twice: build/mu-world (SDL2 + OpenGL) and, with MU_WORLD_NO_GL,
  * build/mu-walk, the headless software-only tool of `make -C native` (no
@@ -66,6 +71,7 @@
 
 #include "../core/mu_character.h"
 #include "../core/mu_combat.h"
+#include "../core/mu_env.h"
 #include "../core/mu_objects.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
@@ -122,6 +128,10 @@ typedef struct app {
     long objects_drawn;
     mu_terrain_frustum frustum;
     mu_terrain_tile_stats tile_stats;
+    /* NATIVE-ENV-001 */
+    mu_world_env env;
+    int has_env, no_env, env_tga;
+    uint32_t env_seed;
     uint32_t effects_visible;
     float *wav;
     size_t wav_frames, wav_capacity;
@@ -130,6 +140,7 @@ typedef struct app {
 #ifndef MU_WORLD_NO_GL
     mu_gl_backend object_gl[MU_OBJECT_TYPES];
     mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
+    mu_gl_backend env_gl[MU_WORLD_ENV_MODELS + 1];   /* models, then the weather bitmaps */
     const mu_image *fx_images[64];
     GLuint fx_names[64];
     int fx_count;
@@ -154,6 +165,7 @@ static const uint8_t sky[4] = {0, 0, 0, 255};
 /* ---- loading ---- */
 
 static void on_step(void *context, mu_walk *w);
+static void env_sound(void *context, int32_t id);
 
 /* NATIVE-COMBAT-001: MoveHero's attack case runs before its walk and click code. */
 static void combat_pre_step(void *context, mu_walk *w)
@@ -232,6 +244,17 @@ static int load(app *a)
             fprintf(stderr, "objects: %s (drawing none)\n", error);
         }
     }
+    if (!a->no_env) {
+        if (mu_world_env_open(&a->env, a->root, a->map, a->world, a->env_seed, 0, a->env_tga, error, sizeof error)) {
+            fprintf(stderr, "environment: %s\n", error);
+            return 1;
+        }
+        a->has_env = 1;
+        if (a->has_sound) {
+            a->env.sound = env_sound;
+            a->env.sound_context = a;
+        }
+    }
     a->walk.step_hook = on_step;
     a->walk.step_context = a;
     if (a->combat_on) {
@@ -258,6 +281,14 @@ static int load(app *a)
     return 0;
 }
 
+/* SND_Play of the ambient creatures (aBird1/aBird2/aBat/the rat). */
+static void env_sound(void *context, int32_t id)
+{
+    app *a = context;
+    if (a->has_sound)
+        mu_audio_host_play(a->sound.host, id, 0);
+}
+
 /* End of every logic step (mu_walk_step): the client's MoveCharacters runs
  * the hero's per-character routine (foot reset after its animation step,
  * footstep trigger in 0x013b23f8) and every other character. HeroTile was set
@@ -282,6 +313,14 @@ static void on_step(void *context, mu_walk *w)
                                      {h->position[0], h->position[1], h->position[2]}, a->frustum.x2d,
                                      a->frustum.y2d};
         mu_objects_step(&a->objects, &in);
+    }
+    if (a->has_env) {   /* MoveLeaves (guarded), MoveBoids, MoveFishs in the tick's order */
+        mu_world_env_hero hero = {{h->position[0], h->position[1], h->position[2]}, {h->tile[0], h->tile[1]},
+                                  h->action, h->safe_zone, mu_hero_tile(a->map->layer1, h->position[0],
+                                                                        h->position[1])};
+        mu_world_env_step(&a->env, &hero, w->frame.view.position, (float)w->frame.clock.frame_tick);
+        if (a->has_sound)
+            a->sound.rain = a->env.env.rain_level;   /* 0x0a3a9acc for the per-frame audio block */
     }
 }
 
@@ -336,6 +375,8 @@ static void unload(app *a)
         mu_world_actors_free(&a->actors);
     if (a->has_objects)
         mu_objects_free(&a->objects);
+    if (a->has_env)
+        mu_world_env_close(&a->env);
     if (a->has_sound)
         mu_world_sound_close(&a->sound);
     if (a->combat) {
@@ -647,6 +688,12 @@ static void gl_setup(app *a)
         memset(&a->actor_gl[i], 0, sizeof a->actor_gl[i]);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
         mu_gl_upload(&a->actor_gl[i], &a->actors.list[i].actor.textures, 0);
+    memset(a->env_gl, 0, sizeof a->env_gl);
+    for (int32_t i = 0; a->has_env && i < a->env.model_count; ++i)
+        if (a->env.models[i].loaded)
+            mu_gl_upload(&a->env_gl[i], &a->env.models[i].textures, 0);
+    if (a->has_env)
+        mu_gl_upload(&a->env_gl[MU_WORLD_ENV_MODELS], &a->env.bitmaps, 0);
     a->fx_count = 0;
     a->gl_ready = 1;
 }
@@ -664,6 +711,9 @@ static void gl_teardown(app *a)
         mu_gl_release(&a->items[i]);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
         mu_gl_release(&a->actor_gl[i]);
+    for (int32_t i = 0; i <= MU_WORLD_ENV_MODELS; ++i)
+        if (a->env_gl[i].textures)
+            mu_gl_release(&a->env_gl[i]);
     for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t)
         if (a->object_gl[t].textures)
             mu_gl_release(&a->object_gl[t]);
@@ -826,10 +876,21 @@ static void combat_draw_gl(app *a)
     glDisable(GL_BLEND);
 }
 
+static int env_gl_backend(void *context, const mu_world_env *e, int32_t slot, mu_render_backend *out)
+{
+    app *a = context;
+    (void)e;
+    mu_gl_backend_bind(&a->env_gl[slot < 0 ? MU_WORLD_ENV_MODELS : slot], out);
+    return 0;
+}
+
 static long draw_gl(app *a, int32_t width, int32_t height)
 {
     const mu_client_view *v = &a->walk.frame.view;
-    mu_gl_frame(width, height, sky, v->modelview, v->projection);
+    uint8_t clear[4] = {sky[0], sky[1], sky[2], sky[3]};
+    if (a->has_env)
+        mu_world_env_clear(&a->env, clear);   /* glClearColor of the render scene 0x0185916b */
+    mu_gl_frame(width, height, clear, v->modelview, v->projection);
     glViewport(v->gl_viewport[0], v->gl_viewport[1], v->gl_viewport[2], v->gl_viewport[3]);
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CCW);
@@ -889,6 +950,13 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
     }
     options.alpha = 1.0f;
+    if (a->has_env) {
+        mu_world_env_target target = {a, env_gl_backend};
+        mu_world_env_draw(&a->env, v->modelview, a->legacy_box ? NULL : &a->frustum, &target);
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_ALPHA_TEST);
+    }
     mu_gl_backend plain;
     memset(&plain, 0, sizeof plain);
     mu_render_backend backend;
@@ -933,7 +1001,10 @@ static long draw_soft(app *a, mu_raster *raster)
     const mu_client_view *v = &a->walk.frame.view;
     memcpy(raster->view, v->modelview, sizeof raster->view);
     memcpy(raster->projection, v->projection, sizeof raster->projection);
-    mu_raster_clear(raster, sky);
+    uint8_t clear[4] = {sky[0], sky[1], sky[2], sky[3]};
+    if (a->has_env)
+        mu_world_env_clear(&a->env, clear);
+    mu_raster_clear(raster, clear);
     mu_world_draw_stats stats;
     if (a->legacy_box)
         mu_world_draw_raster(a->map, raster, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
@@ -983,6 +1054,8 @@ static long draw_soft(app *a, mu_raster *raster)
     raster->texture_count = 0;
     raster->texture_filter = NULL;
     raster->texture_wrap = NULL;
+    if (a->has_env)
+        mu_world_env_draw_raster(&a->env, raster, v->modelview, a->legacy_box ? NULL : &a->frustum);
     marker(a, &backend);
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
@@ -1007,7 +1080,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            " \"angle\": %.3f, \"action\": %u, \"frame_anim\": %.3f, \"run\": %u, \"safe\": %u, \"moving\": %u,"
            " \"path\": [%u, %u, %u], \"target\": [%d, %d], \"fov\": %.3f, \"pitch\": %.3f, \"far\": %.2f,"
            " \"eye\": [%.2f, %.2f, %.2f], \"hero_tile\": %d, \"footsteps\": %u, \"voices\": %d, \"music\": %d,"
-           " \"tiles\": %ld, \"box\": [%d, %d, %d, %d], \"effects\": %u, \"sha256\": \"%s\", \"png\": \"%s\"}\n",
+           " \"tiles\": %ld, \"box\": [%d, %d, %d, %d], \"effects\": %u, \"env\": [%u, %u, %u, %u, %u],"
+           " \"sha256\": \"%s\", \"png\": \"%s\"}\n",
            frame, now, w->steps, (double)h->position[0], (double)h->position[1], (double)h->position[2], h->tile[0],
            h->tile[1], (double)h->angle[2], h->action, (double)h->frame, h->run, h->safe_zone, h->movement,
            h->path.current, h->path.current_float, h->path.count, w->target[0], w->target[1], (double)v->fov,
@@ -1015,7 +1089,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            (double)v->position[2], a->has_sound ? a->sound.hero_tile : -1, a->has_sound ? a->sound.footsteps : 0,
            a->has_sound ? mu_world_sound_voices(&a->sound) : 0, a->has_sound ? a->sound.last_music : -1,
            a->tile_stats.faces, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
-           a->effects_visible, hash ? hash : "", png ? png : "");
+           a->effects_visible, a->env.stats.live_boids, a->env.stats.live_fishs, a->env.stats.live_leaves,
+           a->env.stats.drawn_objects, a->env.stats.drawn_leaves, hash ? hash : "", png ? png : "");
     if (a->combat)
         mu_combat_report_frame(a->combat, stdout, frame);
 }
@@ -1044,6 +1119,17 @@ static void report_summary(const app *a, const char *renderer)
         if (!a->quiet)
             for (int32_t i = 0; i < s->log_count; ++i)
                 printf("{\"sound_log\": \"%s\"}\n", s->log[i]);
+    }
+    if (a->has_env) {
+        const mu_world_env_stats *e = &a->env.stats;
+        printf("{\"env\": true, \"world\": %d, \"models\": %d, \"leaf_bitmap\": %d, \"steps\": %u,"
+               " \"leaf_steps\": %u, \"max_boids\": %u, \"max_fishs\": %u, \"max_leaves\": %u, \"sounds\": %u,"
+               " \"bird\": %u, \"bat\": %u, \"rat\": %u, \"particles\": %u, \"inits\": %u, \"kills\": %u,"
+               " \"rand_calls\": %llu, \"rain_level\": %d, \"tormenta_rain\": %.3f}\n",
+               a->env.world, a->env.model_count, a->env.bitmap_present[0], e->steps, e->leaf_steps, e->max_boids,
+               e->max_fishs, e->max_leaves, e->sounds, e->sound_bird, e->sound_bat, e->sound_rat, e->particles,
+               e->inits, e->kills, (unsigned long long)a->env.env.rand_calls, a->env.env.rain_level,
+               (double)a->env.env.tormenta.rain);
     }
     if (a->has_objects)
         printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"
@@ -1390,7 +1476,8 @@ static int usage(void)
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
-                    "                [--attack-speed N] [--combat-seed N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n");
+                    "                [--attack-speed N] [--combat-seed N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
+                    "                [--no-env] [--env-tga-leaves] [--env-seed N]\n");
     return 2;
 }
 
@@ -1404,6 +1491,7 @@ int main(int argc, char **argv)
     a.every = 10;
     a.pause = 8;
     a.class_byte = 0x01;      /* Dark Knight */
+    a.env_seed = 1;           /* rand() state at world entry: the CRT default (viewer choice) */
     a.tile[0] = 133;          /* Lorencia town square */
     a.tile[1] = 127;
     a.angle = 0.0f;
@@ -1419,6 +1507,8 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-audio")) { a.audio = 0; continue; }
         if (!strcmp(k, "--legacy-box")) { a.legacy_box = 1; continue; }
         if (!strcmp(k, "--combat")) { a.combat_on = 1; continue; }
+        if (!strcmp(k, "--no-env")) { a.no_env = 1; continue; }
+        if (!strcmp(k, "--env-tga-leaves")) { a.env_tga = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -1462,6 +1552,7 @@ int main(int argc, char **argv)
                 return usage();
             a.combat_on = 1;
         }
+        else if (!strcmp(k, "--env-seed")) a.env_seed = (uint32_t)strtoul(v, NULL, 0);
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
