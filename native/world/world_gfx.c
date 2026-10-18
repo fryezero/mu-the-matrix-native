@@ -7,6 +7,7 @@
 
 #include "../core/mu_hud.h"
 #include "../core/mu_hud_tip.h"
+#include "../core/mu_lang.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "../gfx/mu_gfx_sdl.h"
 #include "world_gfx_game.h"
@@ -20,6 +21,35 @@ struct world_gfx {
     double time_ms;
     int skills;
 };
+
+/* GlobalText for the layer's labels: the tables read from the client
+ * (NATIVE-LANG-001, MU_LANG_DIR). */
+static const char *lang_text(void *user, int32_t index)
+{
+    return mu_lang_text(user, index);
+}
+
+/* The skill table the game sends to ASData (SkillInfo builder 0x00c5ebaa:
+ * Index, Magic_Icon, Name, Delay, SkillUseType, MasteryType; records whose
+ * first byte is set are skipped) from the client's Skill(Kor) table. */
+static int lang_skills(const mu_lang *lang, mu_gfx_skill *out, int max)
+{
+    int n = 0;
+    for (size_t i = 0; i < mu_lang_skill_count(lang) && n < max; i++) {
+        const mu_lang_skill *s = mu_lang_skill_at(lang, i);
+        if (s->skip)
+            continue;
+        mu_gfx_skill *k = &out[n++];
+        memset(k, 0, sizeof *k);
+        k->index = s->index;
+        k->icon = s->icon;
+        k->delay = s->delay;
+        k->use_type = s->use_type;
+        k->mastery = s->mastery;
+        mu_lang_ascii(k->name, sizeof k->name, s->name);
+    }
+    return n;
+}
 
 /* The InfoPopup HTML of an item through the tooltip pipeline (core/mu_hud_tip). */
 static int tooltip(void *user, int32_t code, int32_t level, char *html, size_t cap)
@@ -80,7 +110,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .tooltip = tooltip, .tooltip_user = g, .scale = scale,
                                .items = g->items ? wg_items_draw : NULL, .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
                                .items_user = g->items,
-                               .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER")};
+                               .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER"),
+                               .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared()};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -91,7 +122,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     demo_items(g);
     mu_gfx_skill *skills = malloc(1024 * sizeof *skills);
     if (skills) {
-        g->skills = wg_skills_load(game_root, skills, 1024);
+        g->skills = mu_lang_skill_count(mu_lang_shared()) ? lang_skills(mu_lang_shared(), skills, 1024)
+                                                          : wg_skills_load(game_root, skills, 1024);
         if (g->skills > 0)
             mu_gfx_layer_set_skills(g->layer, skills, g->skills);
         free(skills);
@@ -136,10 +168,15 @@ void world_gfx_set_location(world_gfx *g, int world, float x, float y)
 {
     if (!g)
         return;
-    /* The top menu's map name is GlobalText (Lang.mpr, encrypted): the data
-     * folder's name stands in.  Cells are 100 world units. */
-    char name[32];
-    snprintf(name, sizeof name, "World %d", world + 1);
+    /* The top menu's map name: the map-name function 0x016baaa6 over the
+     * GlobalText read from the client (NATIVE-LANG-001); without the tables
+     * the data folder's name stands in.  Cells are 100 world units. */
+    char name[64];
+    const char *map = mu_lang_map_name(mu_lang_shared(), world);
+    if (map)
+        mu_lang_ascii(name, sizeof name, map);
+    else
+        snprintf(name, sizeof name, "World %d", world + 1);
     mu_gfx_layer_set_location(g->layer, name, (int)(x / 100.0f), (int)(y / 100.0f));
 }
 

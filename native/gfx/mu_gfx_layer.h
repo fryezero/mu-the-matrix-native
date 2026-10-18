@@ -108,6 +108,11 @@ typedef struct mu_gfx_skill {
     char name[64];
 } mu_gfx_skill;
 
+/* GlobalText[index] for the labels the client takes from Data\Lang.mpr
+ * (NATIVE-LANG-001: native/core/mu_lang.c over the local plaintext); NULL
+ * when unknown, then the layer keeps its stand-in. */
+typedef const char *(*mu_gfx_text_fn)(void *user, int32_t index);
+
 typedef struct mu_gfx_layer_config {
     const char *movie_dir;      /* main.swf, InventoryFrame.swf, ... */
     const char *lib_path;       /* libmugfx; NULL: $MU_GFX_LIB, then next to the executable / repository build */
@@ -127,6 +132,9 @@ typedef struct mu_gfx_layer_config {
     int standalone;             /* 1: play main/chat on their own even when base.swf is present */
     int double_buffer;          /* shared: two surfaces per movie, no GPU wait before drawing
                                    (frames may show one frame late) */
+    /* NATIVE-LANG-001 */
+    mu_gfx_text_fn text;        /* GlobalText (menu, window and chat labels); NULL: stand-ins */
+    void *text_user;
 } mu_gfx_layer_config;
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);

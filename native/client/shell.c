@@ -14,6 +14,7 @@
 #include "../../reconstructed/ui/ui_text.h"
 #include "../core/mu_audio_host.h"
 #include "../core/mu_charsel_ui.h"
+#include "../core/mu_lang.h"
 #include "../core/mu_ui_assets.h"
 #include "../core/mu_ui_font.h"
 #include "../core/mu_ui_raster.h"
@@ -40,7 +41,8 @@ typedef struct region {
 static const char *const LOGIN_THEME = "data\\music\\login_theme.mp3";
 static const uint32_t FONT_HANDLES[4] = {0x0f0f0001u, 0x0f0f0002u, 0x0f0f0003u, 0x0f0f0004u};
 
-/* GlobalText strings the scenes show, read off the live screen (Data\Lang.mpr is not decoded). */
+/* GlobalText strings the scenes show, read off the live screen: used when no
+ * table read from the client is loaded (NATIVE-LANG-001, MU_LANG_DIR). */
 static const char *const TEXT_454 = "Mu The Matrix, Private Server Since 2005 / ";
 static const char *const TEXT_455 = "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.";
 static const char *const TEXT_565 = "Mu The Matrix Private Server";
@@ -204,6 +206,9 @@ static void sink_call(void *user, int op, const uint32_t *words, int count, cons
 static const char *global_text(void *user, int32_t index)
 {
     (void)user;
+    const char *text = mu_lang_text(mu_lang_shared(), index);
+    if (text)
+        return text;
     switch (index) {
     case 0x235: return TEXT_565;
     case 0x236: return TEXT_566;
@@ -1051,9 +1056,9 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
         mu_ui_begin_bitmap(&s->state);
         mu_ui_login_text strings;
         memset(&strings, 0, sizeof strings);
-        strings.text454 = TEXT_454;
-        strings.text455 = TEXT_455;
-        strings.format456 = "Ver %s";
+        strings.text454 = mu_lang_text_or(mu_lang_shared(), 454, TEXT_454);
+        strings.text455 = mu_lang_text_or(mu_lang_shared(), 455, TEXT_455);
+        strings.format456 = "Ver %s";   /* GlobalText[456] is a format: kept fixed in the shell */
         for (int i = 0; i < 5; ++i)
             strings.version_bytes[i] = (uint8_t)("10000"[i] + i + 1);
         ensure_font_texture(s);

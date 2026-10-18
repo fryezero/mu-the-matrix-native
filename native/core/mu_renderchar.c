@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../../reconstructed/renderchar/link_bones.h"
+#include "mu_lang.h"
 #include "../../reconstructed/record-math/record_math.h"
 
 void mu_renderchar_default_env(mu_renderchar_env *env)
@@ -14,6 +15,7 @@ void mu_renderchar_default_env(mu_renderchar_env *env)
     env->quality = 5;
     env->glow_color[0] = env->glow_color[1] = env->glow_color[2] = 1.0f;
     env->render_type = 2;
+    env->lang = mu_lang_shared();
 }
 
 static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_renderchar_env *env, const float light[3],
@@ -33,6 +35,10 @@ static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_rend
         it->light[k] = light[k];
         it->enchant[k] = env->glow_color[k];
     }
+    /* PartObjectColor's EnchantEffect colour 0x010ffd7a(type - 0xae6): the first entry of the item code,
+     * else the table's default (NATIVE-LANG-001) */
+    if (!env->glow_override && g->type >= 0xae6)
+        mu_lang_enchant_first(env->lang, g->type - 0xae6, it->enchant);
     it->object_alpha = alpha;
     it->blend_mesh = -1;
     it->time = env->time;

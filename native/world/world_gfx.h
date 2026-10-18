@@ -11,7 +11,10 @@
  * NATIVE-GFX-003: with a converted base movie the HUD runs as the client's
  * base movie; item models are drawn over the inventory and into the item
  * hotkey image (world_gfx_game.c); the skill icons use the installed
- * skill.bmd's icon numbers. */
+ * skill.bmd's icon numbers.  NATIVE-LANG-001: with MU_LANG_DIR (the tables
+ * read from the running client) the labels, the skill table (names, icons)
+ * and the top menu's map name come from the client's GlobalText and
+ * Skill(Kor) tables. */
 #ifndef MU_WORLD_GFX_H
 #define MU_WORLD_GFX_H
 
