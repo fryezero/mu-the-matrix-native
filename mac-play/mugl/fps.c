@@ -1,15 +1,16 @@
 /* In-game FPS counter (MAC-APP-003). Included by mugl.c and hotpatch/mugl.c; drawn from mugl_wglSwapBuffers.
 
    C:\mutools\mugl-fps.txt: "1" shows the counter, "0" (or no file) hides it; an optional second word picks the
-   corner (tl, tr, bl, br; default tl). The file is re-read about once a second, so the Mac app can change it while
-   the game runs. Ctrl+Shift+F in the game window toggles the counter and writes the file, so the choice is kept.
+   corner (tl, tr, bl, br; default tl). The file is re-read about once a second, so the Mac app's "FPS counter"
+   checkbox (mu-launch.sh --fps-counter on|off) changes it while the game runs. There is deliberately no in-game
+   hotkey: the client already uses the obvious combinations (Ctrl+Shift+F opens its "Window Switching" panel).
 
    The counter is the average over the last half second of frames presented (wglSwapBuffers calls), with the frame
    time in milliseconds, in a dark box: green from 24 fps, yellow from 15, red below. It is drawn with the real GL
    entry points (never the batching layer) inside glPushAttrib(GL_ALL_ATTRIB_BITS) / glPopAttrib and pushed
    projection/modelview matrices, so every piece of GL state the game or mugl tracks (current colour, matrix mode,
    enables, texture bindings on all units, viewport, blending) is exactly as before. About 60 GL calls per frame,
-   all rectangles (glRectf); nothing at all while it is hidden. */
+   all rectangles (glRectf); while hidden only the once-a-second file read. */
 
 #ifndef GL_TEXTURE0
 #define GL_TEXTURE0 0x84C0
@@ -26,17 +27,18 @@ typedef void (WINAPI *PFNfps_cmask)(GLboolean, GLboolean, GLboolean, GLboolean);
 
 static int fps_on, fps_corner;            /* corner: 0 tl, 1 tr, 2 bl, 3 br */
 static DWORD fps_file_checked;
-static int fps_keys_down;                 /* Ctrl+Shift+F held at the last frame (edge detection) */
 static LARGE_INTEGER fps_freq, fps_t0;
 static long fps_frames;
 static double fps_value = -1;             /* last half-second average; < 0 until the first one */
 static void *fps_activetex;               /* glActiveTexture(ARB) if the game asked for it; see mugl_wglGetProcAddress */
 
-/* 3x5 glyphs, one row per element (bit 2 = left column): 0-9, '.', 'F', 'P', 'S', 'M', ' ' */
+/* 5-row glyphs, one row per element, the leftmost column in the highest of fps_width bits: 0-9, '.', 'F', 'P',
+   'S', 'M' (5 wide, so it does not read as H), ' ' */
 static const unsigned char fps_font[16][5] = {
     {7,5,5,5,7}, {2,6,2,2,7}, {7,1,7,4,7}, {7,1,7,1,7}, {5,5,7,1,1}, {7,4,7,1,7}, {7,4,7,5,7}, {7,1,1,2,2},
-    {7,5,7,5,7}, {7,5,7,1,7}, {0,0,0,0,2}, {7,4,6,4,4}, {7,5,7,4,4}, {7,4,7,1,7}, {5,7,7,5,5}, {0,0,0,0,0},
+    {7,5,7,5,7}, {7,5,7,1,7}, {0,0,0,0,2}, {7,4,6,4,4}, {7,5,7,4,4}, {7,4,7,1,7}, {17,27,21,17,17}, {0,0,0,0,0},
 };
+static const unsigned char fps_width[16] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3,5,3};
 static int fps_glyph(char c)
 {
     if (c >= '0' && c <= '9') return c - '0';
@@ -56,29 +58,6 @@ static void fps_read_file(void)
     }
     if (on && !fps_on) { fps_frames = 0; fps_t0.QuadPart = 0; fps_value = -1; }
     fps_on = on; fps_corner = corner;
-}
-
-static void fps_write_file(void)
-{
-    static const char *cn[4] = {"tl", "tr", "bl", "br"};
-    FILE *f = fopen("C:\\mutools\\mugl-fps.txt", "w");
-    if (f) { fprintf(f, "%d %s\n", fps_on, cn[fps_corner & 3]); fclose(f); }
-}
-
-/* Ctrl+Shift+F, only while a window of this process is in front (so typing elsewhere never toggles it). */
-static void fps_poll_keys(void)
-{
-    int down = 0;
-    if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
-        HWND fg = GetForegroundWindow(); DWORD pid = 0;
-        if (fg) GetWindowThreadProcessId(fg, &pid);
-        down = pid == GetCurrentProcessId() && (GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('F') & 0x8000);
-    }
-    if (down && !fps_keys_down) {
-        fps_on = !fps_on; fps_frames = 0; fps_t0.QuadPart = 0; fps_value = -1;
-        fps_write_file(); fps_file_checked = GetTickCount();
-    }
-    fps_keys_down = down;
 }
 
 static void fps_text(char *out, size_t n)
@@ -101,11 +80,14 @@ static void fps_draw(HDC dc)
     geti(GL_ATTRIB_STACK_DEPTH, &da); geti(GL_PROJECTION_STACK_DEPTH, &dp); geti(GL_MODELVIEW_STACK_DEPTH, &dm);
     if (da >= max_attrib || dp >= max_proj || dm >= max_mv) return;
     char text[32]; fps_text(text, sizeof text);
-    int len = (int)strlen(text);
-    float s = (float)(H >= 480 ? H / 240 : 2);              /* pixel size: 4 at 1080 rows */
-    float pad = 2 * s, tw = len * 4 * s - s, th = 5 * s;
+    int len = (int)strlen(text), cols = -1;
+    for (int i = 0; i < len; i++) cols += fps_width[fps_glyph(text[i])] + 1;
+    float s = (float)(H >= 640 ? H / 320 : 2);              /* pixel size: 3 at 1080 rows */
+    float pad = 1.5f * s, tw = cols * s, th = 5 * s;
     float bw = tw + 2 * pad, bh = th + 2 * pad, m = 4 * s;
-    float x0 = (fps_corner & 1) ? W - m - bw : m, y0 = (fps_corner & 2) ? H - m - bh : m;   /* top-left origin */
+    /* Top corners sit 8 pixels down: below the client's map-name bar, above its Event Inventory button, and narrow
+       enough to end before the round buttons beside the bar. */
+    float x0 = (fps_corner & 1) ? W - m - bw : m, y0 = (fps_corner & 2) ? H - m - bh : 8 * s;   /* top-left origin */
 
     ((PFNfps_bits)real_glPushAttrib)(GL_ALL_ATTRIB_BITS);
     if (fps_activetex)                                       /* texturing off on every unit, then unit 0 active */
@@ -130,16 +112,18 @@ static void fps_draw(HDC dc)
     else if (fps_value >= 15) color(1, 0.85f, 0.2f, 1);
     else color(1, 0.35f, 0.3f, 1);
     float x = x0 + pad, y = y0 + pad;
-    for (int i = 0; i < len; i++, x += 4 * s) {
-        const unsigned char *g = fps_font[fps_glyph(text[i])];
+    for (int i = 0; i < len; i++) {
+        int gi = fps_glyph(text[i]), gw = fps_width[gi];
+        const unsigned char *g = fps_font[gi];
         for (int r = 0; r < 5; r++) {                        /* one rectangle per horizontal run */
-            for (int c = 0; c < 3; ) {
-                if (!(g[r] >> (2 - c) & 1)) { c++; continue; }
-                int e = c; while (e < 3 && (g[r] >> (2 - e) & 1)) e++;
+            for (int c = 0; c < gw; ) {
+                if (!(g[r] >> (gw - 1 - c) & 1)) { c++; continue; }
+                int e = c; while (e < gw && (g[r] >> (gw - 1 - e) & 1)) e++;
                 rect(x + c * s, y + r * s, x + e * s, y + (r + 1) * s);
                 c = e;
             }
         }
+        x += (gw + 1) * s;
     }
 
     ((PFNfps_0)real_glPopMatrix)();
@@ -152,7 +136,6 @@ static void fps_frame(HDC dc)
 {
     DWORD now = GetTickCount();
     if (!fps_file_checked || now - fps_file_checked >= 1000) { fps_read_file(); fps_file_checked = now ? now : 1; }
-    fps_poll_keys();
     if (!fps_on) return;
     LARGE_INTEGER t; QueryPerformanceCounter(&t);
     if (!fps_freq.QuadPart) QueryPerformanceFrequency(&fps_freq);

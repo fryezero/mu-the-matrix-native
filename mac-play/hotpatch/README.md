@@ -341,6 +341,6 @@ per-triangle culling potential. `../machprof/stallprof` with `NPC=1` histograms 
 ## v7.7 additions (MAC-APP-003)
 
 The in-game FPS counter from `../mugl/fps.c` (see the mugl README): drawn from `mugl_wglSwapBuffers` after the batch is
-flushed and before frame pacing, controlled by `C:\mutools\mugl-fps.txt` and Ctrl+Shift+F. It is not a hotpatch bit
+flushed and before frame pacing, controlled by `C:\mutools\mugl-fps.txt` (the app's FPS counter checkbox). It is not a hotpatch bit
 and does not touch main.exe; the default mask is unchanged (380460463).
 

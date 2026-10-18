@@ -208,11 +208,11 @@ The game can show how smoothly it runs: a small box in the top-left corner with 
 the time per frame, for example **25.0 FPS 40.0 MS**. 25 FPS is the game's maximum. The number is green from 24
 FPS, yellow from 15 and red below 15.
 
-- **In the game:** press **Ctrl+Shift+F** to show or hide it.
-- **In the app:** hold **Option (⌥)** while you open the app and tick or untick **FPS counter**. This works even
-  while the game is running.
+To turn it on or off, open the **Mu The Matrix** app (hold **Option (⌥)** while you open it if it starts the game
+right away) and tick or untick **FPS counter**. This also works while you are playing: open the app, change the
+tick, and the game shows or hides the counter within a second.
 
-The app and the game remember your choice for the next time you play. The counter is off until you turn it on.
+Your choice is kept for the next time you play. The counter is off until you turn it on.
 
 ## Updating
 

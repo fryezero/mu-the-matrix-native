@@ -68,7 +68,7 @@ class InstallerPinsAndOptions(unittest.TestCase):
 
     def test_pins_are_well_formed_documented_and_overridable_only_by_name(self):
         pins = self.pins()
-        self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V76_SHA256', 'MUKIT_MUGL_V76J_SHA256', 'MUKIT_MUGL_V75_SHA256', 'MUKIT_MUGL_V72_SHA256',
+        self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V77_SHA256', 'MUKIT_MUGL_V76_SHA256', 'MUKIT_MUGL_V76J_SHA256', 'MUKIT_MUGL_V75_SHA256', 'MUKIT_MUGL_V72_SHA256',
                                      'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256',
                                      'MUKIT_DOTNET48_INSTALLER_SHA256', 'MUKIT_RT_CX24_ENGINE_SHA256', 'MUKIT_RT_TEMPLATE_SHA256',
                                      'MUKIT_WINETRICKS_SHA256'})
