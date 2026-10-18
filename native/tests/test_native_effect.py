@@ -116,6 +116,28 @@ class NativeEffectTests(unittest.TestCase):
                     '--size', '32x32')
         self.assertEqual((s['faulted'], s['particles'], s['rand_calls']), (1, 0, 1))
 
+    def test_tree_render_draws_every_node(self):
+        document = particle_system(Children=[billboard(), particle_system(Name='child')])
+        s = summary('render', self.write('tree.ein', document), '--out', self.root / 't.png', '--frames', 8,
+                    '--size', '64x64')
+        self.assertEqual(s['nodes'], 3)
+        self.assertGreater(s['vertices'], 4 * s['particles'])   # the children's quads are drawn too
+
+    def test_scene_factory_octree_and_culling(self):
+        self.write('a.ein', particle_system(Children=[billboard()]))
+        self.write('b.ein', billboard())
+        args = ['scene', self.root, '--flat', '--target', '13000,13000', '--size', '96x64', '--frames', 6,
+                '--effect', 'Data\\Effect\\a.ein@0,0,50@20', '--effect', 'Data\\Effect\\A.EIN@150,0,50@20',
+                '--effect', 'Data\\Effect\\b.ein@-30000,0,0@10']
+        a = summary(*args, '--out', self.root / 's1.png')
+        b = summary(*args, '--out', self.root / 's2.png')
+        self.assertEqual((a['instances'], a['templates'], a['nodes']), (3, 2, 5))
+        self.assertEqual(a['visible'], 4)                         # b lies outside the manager's world box
+        self.assertEqual(a['sha256'], b['sha256'])
+        self.assertEqual((self.root / 's1.png').read_bytes(), (self.root / 's2.png').read_bytes())
+        missing = tool('scene', self.root, '--flat', '--effect', 'Data\\Effect\\none.ein@0,0,0', check=False)
+        self.assertNotEqual(missing.returncode, 0)
+
     def test_scan(self):
         self.write('a.ein', particle_system())
         self.write('b.ein', billboard())
@@ -142,6 +164,14 @@ class PrivateNativeEffectTests(unittest.TestCase):
             out = Path(folder) / 'sheet.png'
             tool('sheet', first, '--out', out, '--frames', 10, '--size', '96x96')
             self.assertGreater(out.stat().st_size, 0)
+
+    def test_demo_scene_over_terrain(self):
+        root = Path(os.environ['MU_GAME_ROOT'])
+        with tempfile.TemporaryDirectory() as folder:
+            s = summary('scene', root, '--world', 0, '--demo', '--frames', 12, '--size', '160x100',
+                        '--out', Path(folder) / 'scene.png')
+        self.assertEqual((s['instances'], s['templates'], s['world']), (10, 10, 0))
+        self.assertGreater(s['visible'], 0)
 
 
 if __name__ == '__main__':

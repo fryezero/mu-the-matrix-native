@@ -106,12 +106,26 @@ static int derive_root(const char *ein_path, char *out, unsigned long size)
     return 0;
 }
 
+static uint32_t node_vertices(const mu_fx_effect *e)
+{
+    uint32_t need = e->type == MU_FX_PARTICLE_SYSTEM ? 4u * e->capacity : 4u;
+    for (uint32_t i = 0; i < e->child_count; ++i) {
+        uint32_t c = node_vertices(e->children[i]);
+        if (c > need)
+            need = c;
+    }
+    return need;
+}
+
 static int allocate_vertices(mu_effect *e)
 {
-    uint32_t need = e->fx.type == MU_FX_PARTICLE_SYSTEM ? 4u * e->fx.capacity : 4u;
+    uint32_t need = node_vertices(&e->fx);
     e->vertex_capacity = need;
     e->vertices = calloc(need ? need : 1u, sizeof *e->vertices);
-    return e->vertices != NULL;
+    e->node_count = mu_fx_tree_count(&e->fx);
+    e->node_textures = calloc(e->node_count, sizeof *e->node_textures);
+    e->node_texture_loaded = calloc(e->node_count, 1);
+    return e->vertices && e->node_textures && e->node_texture_loaded;
 }
 
 int mu_effect_load_text(mu_effect *e, const char *text, unsigned long length, uint32_t seed, char *error,
@@ -122,6 +136,9 @@ int mu_effect_load_text(mu_effect *e, const char *text, unsigned long length, ui
         return MU_EFFECT_ERROR;
     mu_fx_rng_seed(&e->rng, seed);
     if (!allocate_vertices(e)) {
+        free(e->vertices);
+        free(e->node_textures);
+        free(e->node_texture_loaded);
         mu_fx_free(&e->fx);
         snprintf(error, error_size, "out of memory");
         return MU_EFFECT_ERROR;
@@ -168,6 +185,13 @@ int mu_effect_load_file(mu_effect *e, const char *path, const char *game_root, u
         if (mu_image_load_file(e->texture_path, &e->texture, image_error, sizeof image_error) == MU_IMAGE_OK)
             e->texture_loaded = 1;
     }
+    for (uint32_t i = 1; root[0] && i < e->node_count; ++i) {   /* each child has its own "Texture" */
+        char texture_path[4096], image_error[256];
+        const mu_fx_effect *node = mu_fx_tree_node(&e->fx, i);
+        if (mu_effect_resolve_path(root, node->texture, texture_path, sizeof texture_path) &&
+            mu_image_load_file(texture_path, &e->node_textures[i], image_error, sizeof image_error) == MU_IMAGE_OK)
+            e->node_texture_loaded[i] = 1;
+    }
     return MU_EFFECT_OK;
 }
 
@@ -176,6 +200,11 @@ void mu_effect_free(mu_effect *e)
     mu_fx_free(&e->fx);
     if (e->texture_loaded)
         mu_image_free(&e->texture);
+    for (uint32_t i = 1; i < e->node_count; ++i)
+        if (e->node_texture_loaded && e->node_texture_loaded[i])
+            mu_image_free(&e->node_textures[i]);
+    free(e->node_textures);
+    free(e->node_texture_loaded);
     free(e->vertices);
     memset(e, 0, sizeof *e);
 }
@@ -203,7 +232,7 @@ static void ground_normal(void *context, float x, float y, float out[3])
 void mu_effect_update(mu_effect *e, float dt)
 {
     static const mu_fx_terrain ground = {NULL, ground_height, ground_normal};
-    mu_fx_update(&e->fx, dt, &e->rng, &ground);
+    mu_fx_node_update(&e->fx, dt, NULL, NULL, &e->rng, e->terrain ? e->terrain : &ground, NULL);
     e->frame++;
 }
 
@@ -232,24 +261,23 @@ void mu_effect_camera(mu_fx_camera *c, const float eye[3], const float target[3]
     mu_fx_camera_set(c, eye, forward, up);
 }
 
-uint32_t mu_effect_draw(mu_effect *e, const mu_fx_camera *camera, mu_raster *raster)
+void mu_effect_raster_quads(mu_raster *raster, const mu_fx_vertex *vertices, uint32_t n, const mu_fx_draw_state *s,
+                            const mu_image *texture, const float *matrix)
 {
-    mu_fx_draw_state s;
-    uint32_t n = mu_fx_draw(&e->fx, camera, e->texture_loaded, e->vertices, &s);
-    if (!s.visible || n == 0)
-        return 0;
+    if (!s->visible || n == 0)
+        return;
     mu_meshdraw_state state;
     mu_meshdraw_state_defaults(&state);
-    state.blend = s.blend;
-    state.src = s.src;   /* GL blend factors, as the raster takes them */
-    state.dst = s.dst;
+    state.blend = s->blend;
+    state.src = s->src;   /* GL blend factors, as the raster takes them */
+    state.dst = s->dst;
     state.fog = 0;
     state.depth_test = 1;
     state.depth_mask = 0;
     state.cull = 0;
     state.alpha_test = 0;
-    state.texture = s.texture;
-    const mu_image *slot = e->texture_loaded ? &e->texture : NULL;
+    state.texture = s->texture;
+    const mu_image *slot = texture;
     const mu_image *const *saved_textures = raster->textures;
     int32_t saved_count = raster->texture_count;
     int saved_linear = raster->linear;
@@ -261,13 +289,13 @@ uint32_t mu_effect_draw(mu_effect *e, const mu_fx_camera *camera, mu_raster *ras
     backend.prepare(backend.context, &state, 0);
     float saved_view[16];
     memcpy(saved_view, raster->view, sizeof saved_view);
-    if (s.multiply_matrix)
-        mu_mat4_multiply(saved_view, e->fx.matrix, raster->view);
+    if (matrix)
+        mu_mat4_multiply(saved_view, matrix, raster->view);
     backend.begin(backend.context);
     static const int corner[6] = {0, 1, 2, 0, 2, 3};
     for (uint32_t q = 0; q + 3 < n; q += 4) {
         for (int k = 0; k < 6; ++k) {
-            const mu_fx_vertex *v = &e->vertices[q + (uint32_t)corner[k]];
+            const mu_fx_vertex *v = &vertices[q + (uint32_t)corner[k]];
             backend.sink.texcoord(backend.sink.context, v->texcoord[0], v->texcoord[1]);
             backend.sink.color4(backend.sink.context, v->color[0], v->color[1], v->color[2], v->color[3]);
             backend.sink.vertex(backend.sink.context, v->position);
@@ -278,5 +306,32 @@ uint32_t mu_effect_draw(mu_effect *e, const mu_fx_camera *camera, mu_raster *ras
     raster->textures = saved_textures;
     raster->texture_count = saved_count;
     raster->linear = saved_linear;
+}
+
+const mu_image *mu_effect_node_texture(const mu_effect *e, uint32_t node)
+{
+    if (node == 0)
+        return e->texture_loaded ? &e->texture : NULL;
+    return node < e->node_count && e->node_texture_loaded[node] ? &e->node_textures[node] : NULL;
+}
+
+uint32_t mu_effect_draw_node(mu_effect *e, uint32_t node, const mu_fx_camera *camera, mu_raster *raster)
+{
+    mu_fx_effect *fx = mu_fx_tree_node(&e->fx, node);
+    if (!fx)
+        return 0;
+    const mu_image *texture = mu_effect_node_texture(e, node);
+    mu_fx_draw_state s;
+    uint32_t n = mu_fx_draw(fx, camera, texture != NULL, e->vertices, &s);
+    if (raster)
+        mu_effect_raster_quads(raster, e->vertices, n, &s, texture, s.multiply_matrix ? fx->matrix : NULL);
     return n;
+}
+
+uint32_t mu_effect_draw(mu_effect *e, const mu_fx_camera *camera, mu_raster *raster)
+{
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < e->node_count; ++i)
+        total += mu_effect_draw_node(e, i, camera, raster);
+    return total;
 }
