@@ -635,6 +635,53 @@ int mu_shock_gate(uint8_t dead, int32_t action, int32_t damage, int32_t type)
     return type == 12 || type == 15 || damage > 0;
 }
 
+int mu_skeleton_form(int32_t kind)
+{
+    return kind == 0x422 || kind == 0x423 || kind == 0x424 || kind == 0x426 || kind == 0x427 || kind == 0x428;
+}
+
+static int32_t monster_sound(const mu_monster_voice *v, int32_t slot)
+{
+    return 0xd2 + (v->object_kind == 9 ? 5 : 0) + slot;
+}
+
+int32_t mu_monster_shock(const mu_monster_voice *v, int32_t monster_class, int32_t action_now, const int32_t *rands,
+                         int32_t rand_count, int32_t *action, int32_t *sound)
+{
+    int32_t used = 0;
+    *action = mu_monster_shock_allowed(monster_class, action_now) ? 5 : -1;
+    *sound = -1;
+    if (!(v->field_3324 == 0.0f))
+        return used;
+    if (mu_skeleton_form(v->object_kind)) {
+        *sound = 0x7b;
+        return used;
+    }
+    if (v->object_type == 0x7b3 || !v->has_model || v->slots[2] == -1)
+        return used;
+    int32_t r = take_rand(rands, rand_count, &used) % 2;     /* and eax, 0x80000001 + sign fix */
+    *sound = monster_sound(v, v->slots[2 + r]);
+    return used;
+}
+
+int32_t mu_monster_die(const mu_monster_voice *v, const int32_t *rands, int32_t rand_count, int32_t *action,
+                       int32_t *sound)
+{
+    int32_t used = 0;
+    *action = 6;
+    *sound = -1;
+    if (!(v->field_3324 == 0.0f))
+        return used;
+    if (v->world_voice) {
+        *sound = 0x5e + take_rand(rands, rand_count, &used) % 2;
+        return used;
+    }
+    if (!v->has_model || v->slots[4] == -1)
+        return used;
+    *sound = monster_sound(v, v->slots[4]);
+    return used;
+}
+
 int32_t mu_shock_action(uint8_t dead, int32_t object_type, int32_t action, int32_t monster_class, int32_t damage,
                         int32_t type)
 {

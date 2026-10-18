@@ -610,3 +610,20 @@ int32_t mu_player_pose_action(int pose, int weapon, uint8_t class_byte, int32_t 
         return stand;
     }
 }
+
+/* ---------------------------------------------------------------- monster sound slots (NATIVE-ITEMS-001) */
+
+#include "monster_sound_table.h"
+
+int mu_monster_sound_slots(int32_t type, int16_t out[10])
+{
+    for (int k = 0; k < 10; ++k)
+        out[k] = -1;
+    for (size_t i = 0; i < sizeof mu_monster_sound_table / sizeof mu_monster_sound_table[0]; ++i)
+        if (mu_monster_sound_table[i].type == type) {
+            for (int k = 0; k < 10; ++k)
+                out[k] = mu_monster_sound_table[i].slots[k];
+            return 1;
+        }
+    return 0;
+}
