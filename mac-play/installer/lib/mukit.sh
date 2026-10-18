@@ -15,12 +15,14 @@ MUKIT_BOTTLES_DIR=${MUKIT_BOTTLES_DIR:-$HOME/Library/Application Support/CrossOv
 # defeats the check, so do not set these for a real install.
 MUKIT_MAIN_EXE_SHA256=${MUKIT_MAIN_EXE_SHA256:-3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a}
 MUKIT_LAUNCHER_EXE_SHA256=${MUKIT_LAUNCHER_EXE_SHA256:-c32e99ee98fc0773f850f9e76b160a9a00c867f4d745bf9e66c4b15d7f74bc3e}
-# Prebuilt mugl DLLs (supplied by the user with --dll-dir, never in this repository): v7.2 is the default
-# (v7.1 + precise frame pacing waits, MAC-PERF-006); v7.1/v7.0 stay selectable as rollbacks.
+# Prebuilt mugl DLLs (supplied by the user with --dll-dir, never in this repository): v7.5 is the default
+# (MAC-PERF-009: native shadows, decals, mesh append); v7.2 (precise frame pacing waits, MAC-PERF-006),
+# v7.1 and v7.0 stay selectable as rollbacks.
+MUKIT_MUGL_V75_SHA256=${MUKIT_MUGL_V75_SHA256:-95e43657c677170e0ea7335ebb63f303d882367229e7a0b5e0849992e8f343b5}
 MUKIT_MUGL_V72_SHA256=${MUKIT_MUGL_V72_SHA256:-e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60}
 MUKIT_MUGL_V71_SHA256=${MUKIT_MUGL_V71_SHA256:-85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2}
 MUKIT_MUGL_V70_SHA256=${MUKIT_MUGL_V70_SHA256:-c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c}
-MUKIT_MUGL_DEFAULT_VERSION=v72
+MUKIT_MUGL_DEFAULT_VERSION=v75
 # Hotpatch masks (C:\mutools\mugl-hotpatch.txt). v7.5's built-in default is 44916143: v7.4's 875951 plus
 # 2097152 native body shadows, 8388608 native terrain decals and 33554432 the specialised mesh-draw append
 # (MAC-PERF-009). v7.4's 875951 is v7.1's 7599
@@ -260,9 +262,10 @@ mukit_screen_size() {
 mukit_mugl_mode_valid() { [[ "$1" =~ ^(full|nomerge|nofilter|off|nodraw)(\+vbo)?(\+time)?(\+finish)?(\+samples)?(\+cull)?$ ]]; }
 mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,8}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ]; }
 
-# mukit_mugl_version_sha VERSION -> pinned SHA-256 of mugl/builds/mugl-VERSION.dll (v72 | v71 | v70).
+# mukit_mugl_version_sha VERSION -> pinned SHA-256 of mugl/builds/mugl-VERSION.dll (v75 | v72 | v71 | v70).
 mukit_mugl_version_sha() {
     case "$1" in
+        v75) printf '%s\n' "$MUKIT_MUGL_V75_SHA256" ;;
         v72) printf '%s\n' "$MUKIT_MUGL_V72_SHA256" ;;
         v71) printf '%s\n' "$MUKIT_MUGL_V71_SHA256" ;;
         v70) printf '%s\n' "$MUKIT_MUGL_V70_SHA256" ;;
@@ -270,14 +273,71 @@ mukit_mugl_version_sha() {
     esac
 }
 
-# mukit_mugl_identify SHA -> "v7.2" / "v7.1" / "v7.0" for the pinned builds (returns 1 otherwise).
+# mukit_mugl_identify SHA -> "v7.5" / "v7.2" / "v7.1" / "v7.0" for the pinned builds (returns 1 otherwise).
 mukit_mugl_identify() {
     case "$1" in
+        "$MUKIT_MUGL_V75_SHA256") echo v7.5 ;;
         "$MUKIT_MUGL_V72_SHA256") echo v7.2 ;;
         "$MUKIT_MUGL_V71_SHA256") echo v7.1 ;;
         "$MUKIT_MUGL_V70_SHA256") echo v7.0 ;;
         *) return 1 ;;
     esac
+}
+
+# ---------------------------------------------------------------- free runtime (MAC-FREE-001)
+# The default runtime needs no CrossOver: CodeWeavers' open-source Wine (LGPL-2.1+), which can run a
+# 32-bit prefix in wow64 mode (upstream WineHQ builds cannot; see docs/research/mac-free-runtime.md).
+# Everything lives under one folder: runtime/, tools/winetricks, prefix/ (the Wine prefix), downloads/.
+MUKIT_FREE_HOME=${MUKIT_FREE_HOME:-$HOME/Library/Application Support/MuTheMatrix}
+MUKIT_FREE_OWNER_MARKER="mu-free-kit-v1"
+# Runtime "cx24": Sikarugir's build of CrossOver 24.0.7's Wine (engine) + the dylibs of Sikarugir's
+# wrapper template (freetype, gnutls, ...). Both are public GitHub release assets; URLs and SHA-256 pinned.
+MUKIT_RT_CX24_ENGINE_URL=${MUKIT_RT_CX24_ENGINE_URL:-https://github.com/Sikarugir-App/Engines/releases/download/v1.0/WS12WineCX24.0.7_7.tar.xz}
+MUKIT_RT_CX24_ENGINE_SHA256=${MUKIT_RT_CX24_ENGINE_SHA256:-203f9e9fd6c2cc77e6525d798a434ced326145db34a356355e05659d3445fd1c}
+MUKIT_RT_TEMPLATE_URL=${MUKIT_RT_TEMPLATE_URL:-https://github.com/Sikarugir-App/Template/releases/download/v1.0/Template-1.0.24.tar.xz}
+MUKIT_RT_TEMPLATE_SHA256=${MUKIT_RT_TEMPLATE_SHA256:-4b5f89eeb9ef139936bdfad33d9b420b05ea4597cb7d63376674f7a8e171321c}
+# winetricks 20260125 (the version the kit was validated with), fetched from its release tag.
+MUKIT_WINETRICKS_URL=${MUKIT_WINETRICKS_URL:-https://raw.githubusercontent.com/Winetricks/winetricks/20260125/src/winetricks}
+MUKIT_WINETRICKS_SHA256=${MUKIT_WINETRICKS_SHA256:-431f82fc74000e6c864409f1d8fb495d696c03928808e3e8acffc45179312a7b}
+# The official game installer, as linked from the server's download page (webx.muthematrix.com/downloads).
+MUKIT_GAME_INSTALLER_URL=${MUKIT_GAME_INSTALLER_URL:-https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe}
+
+mukit_runtime_valid() { case "$1" in free|crossover) return 0 ;; *) return 1 ;; esac; }
+
+# A runtime directory holds wine/bin/wine and wine/bin/wineserver (+ the dylibs they load).
+mukit_rt_wine()       { printf '%s\n' "$1/wine/bin/wine"; }
+mukit_rt_wineserver() { printf '%s\n' "$1/wine/bin/wineserver"; }
+mukit_rt_ok() { [ -x "$1/wine/bin/wine" ] && [ -x "$1/wine/bin/wineserver" ] && [ -f "$1/wine/lib/wine/x86_64-unix/ntdll.so" ] && [ -f "$1/.mu-runtime" ]; }
+
+# mukit_prefix_arch PREFIX -> win32 / win64 from the registry header Wine writes ("#arch=win32").
+mukit_prefix_arch() {
+    [ -f "$1/system.reg" ] || return 1
+    local a; a=$(sed -n 's/^#arch=//p' "$1/system.reg" | head -1 | tr -d '\r')
+    [ -n "$a" ] || return 1
+    printf '%s\n' "$a"
+}
+
+# Rosetta 2 runs the x86_64 Wine; arch(1) fails when it is not installed.
+mukit_rosetta_ok() { [ "$(uname -m)" != arm64 ] || /usr/bin/arch -x86_64 /usr/bin/true 2>/dev/null; }
+
+# mukit_free_kb PATH -> free kilobytes on PATH's volume.
+mukit_free_kb() { df -Pk "$1" 2>/dev/null | awk 'NR == 2 {print $4}'; }
+
+# mukit_fetch URL SHA256 DEST: download to DEST (resumable, verified, atomic). An existing DEST with the
+# right hash is reused. SHA256 "-" skips the check (only for the game installer, which the server updates).
+mukit_fetch() {
+    local url=$1 sha=$2 dest=$3 got
+    if [ -f "$dest" ] && { [ "$sha" = - ] || [ "$(mukit_sha256 "$dest")" = "$sha" ]; }; then return 0; fi
+    if [ "${DRY_RUN:-0}" = 1 ]; then printf '[dry-run] download %s -> %s\n' "$url" "$dest"; return 0; fi
+    mkdir -p "$(dirname "$dest")" || return 1
+    curl -fL --retry 3 --retry-delay 5 -C - --progress-bar -o "$dest.part" "$url" || {
+        # A stale partial file from another version can make the resume fail; restart once.
+        rm -f "$dest.part"; curl -fL --retry 3 --retry-delay 5 --progress-bar -o "$dest.part" "$url" || return 1; }
+    if [ "$sha" != - ]; then
+        got=$(mukit_sha256 "$dest.part")
+        [ "$got" = "$sha" ] || { rm -f "$dest.part"; mukit_warn "download of $url has SHA-256 $got, expected $sha"; return 1; }
+    fi
+    mv -f "$dest.part" "$dest"
 }
 
 # ---------------------------------------------------------------- desktop launchers
