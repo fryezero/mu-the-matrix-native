@@ -73,6 +73,7 @@
 #include "../core/mu_combat.h"
 #include "../core/mu_env.h"
 #include "../core/mu_objects.h"
+#include "../core/mu_particles.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_scene.h"
@@ -133,6 +134,10 @@ typedef struct app {
     mu_world_env env;
     int has_env, no_env, env_tga;
     uint32_t env_seed;
+    /* NATIVE-PARTICLE-001 */
+    mu_world_particles particles;
+    int has_particles, no_particles;
+    uint32_t particle_seed;
     uint32_t effects_visible;
     float *wav;
     size_t wav_frames, wav_capacity;
@@ -142,6 +147,7 @@ typedef struct app {
     mu_gl_backend object_gl[MU_OBJECT_TYPES];
     mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
     mu_gl_backend env_gl[MU_WORLD_ENV_MODELS + 1];   /* models, then the weather bitmaps */
+    mu_gl_backend particle_gl;                       /* NATIVE-PARTICLE-001: the effect bitmaps */
     const mu_image *fx_images[64];
     GLuint fx_names[64];
     int fx_count;
@@ -265,6 +271,15 @@ static int load(app *a)
             a->env.sound_context = a;
         }
     }
+    if (!a->no_particles) {   /* NATIVE-PARTICLE-001: CreateParticle, CreateSprite, RenderBodyShadow */
+        if (mu_world_particles_open(&a->particles, a->root, a->map, a->world, a->particle_seed, 0, error,
+                                    sizeof error)) {
+            fprintf(stderr, "particles: %s\n", error);
+            return 1;
+        }
+        a->has_particles = 1;
+        mu_world_particles_attach(&a->particles, a->has_objects ? &a->objects : NULL, a->has_env ? &a->env : NULL);
+    }
     a->walk.step_hook = on_step;
     a->walk.step_context = a;
     if (a->combat_on) {
@@ -336,6 +351,8 @@ static void on_step(void *context, mu_walk *w)
         if (a->has_sound)
             a->sound.rain = a->env.env.rain_level;   /* 0x0a3a9acc for the per-frame audio block */
     }
+    if (a->has_particles)   /* MoveParticles, after the other movers of the in-world tick */
+        mu_world_particles_step(&a->particles, a->map->time);
 }
 
 /* Once per rendered frame after the frame cap: the per-frame audio block. */
@@ -391,6 +408,8 @@ static void unload(app *a)
         mu_objects_free(&a->objects);
     if (a->has_env)
         mu_world_env_close(&a->env);
+    if (a->has_particles)
+        mu_world_particles_close(&a->particles);
     if (a->has_sound)
         mu_world_sound_close(&a->sound);
     if (a->combat) {
@@ -710,6 +729,9 @@ static void gl_setup(app *a)
             mu_gl_upload(&a->env_gl[i], &a->env.models[i].textures, 0);
     if (a->has_env)
         mu_gl_upload(&a->env_gl[MU_WORLD_ENV_MODELS], &a->env.bitmaps, 0);
+    memset(&a->particle_gl, 0, sizeof a->particle_gl);
+    if (a->has_particles)
+        mu_gl_upload(&a->particle_gl, &a->particles.bitmaps, 0);
     a->fx_count = 0;
     a->gl_ready = 1;
 }
@@ -733,6 +755,8 @@ static void gl_teardown(app *a)
     for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t)
         if (a->object_gl[t].textures)
             mu_gl_release(&a->object_gl[t]);
+    if (a->particle_gl.textures)
+        mu_gl_release(&a->particle_gl);
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
@@ -901,6 +925,14 @@ static int env_gl_backend(void *context, const mu_world_env *e, int32_t slot, mu
     return 0;
 }
 
+static int particle_gl_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
+{
+    app *a = context;
+    (void)p;
+    mu_gl_backend_bind(&a->particle_gl, out);
+    return 0;
+}
+
 static long draw_gl(app *a, int32_t width, int32_t height)
 {
     const mu_client_view *v = &a->walk.frame.view;
@@ -979,19 +1011,13 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_render_backend backend;
     mu_gl_backend_bind(&plain, &backend);
     marker(a, &backend);
-    if (a->has_objects) {   /* stand-in particles of the object fires (CreateParticle is not reconstructed) */
-        static mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
-        float eye[3], target[3];
-        effect_camera(a, eye, target);
-        for (int32_t b = 0; b < 2; ++b) {
-            mu_fx_draw_state state;
-            uint32_t n = mu_objects_particle_quads(&a->objects, b, eye, target, quads, 4 * MU_OBJECT_PARTICLES, &state);
-            if (n)
-                g_effect(a, quads, n, &state, b == 0 ? &a->objects.rt.fire : &a->objects.rt.smoke, NULL);
-        }
+    if (a->has_particles) {   /* the sprite section: RenderSprites(0), RenderParticles(0) (NATIVE-PARTICLE-001) */
+        mu_world_particles_target target = {a, particle_gl_backend};
+        mu_world_particles_draw(&a->particles, v->modelview, &target);
         glBindTexture(GL_TEXTURE_2D, 0);
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
+        glDisable(GL_ALPHA_TEST);
     }
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
@@ -1073,6 +1099,8 @@ static long draw_soft(app *a, mu_raster *raster)
     raster->texture_wrap = NULL;
     if (a->has_env)
         mu_world_env_draw_raster(&a->env, raster, v->modelview, a->legacy_box ? NULL : &a->frustum);
+    if (a->has_particles)   /* the sprite section (NATIVE-PARTICLE-001) */
+        mu_world_particles_draw_raster(&a->particles, raster, v->modelview);
     marker(a, &backend);
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
@@ -1098,7 +1126,7 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            " \"path\": [%u, %u, %u], \"target\": [%d, %d], \"fov\": %.3f, \"pitch\": %.3f, \"far\": %.2f,"
            " \"eye\": [%.2f, %.2f, %.2f], \"hero_tile\": %d, \"footsteps\": %u, \"voices\": %d, \"music\": %d,"
            " \"tiles\": %ld, \"box\": [%d, %d, %d, %d], \"effects\": %u, \"env\": [%u, %u, %u, %u, %u],"
-           " \"sha256\": \"%s\", \"png\": \"%s\"}\n",
+           " \"particles\": [%u, %u, %u, %u], \"sha256\": \"%s\", \"png\": \"%s\"}\n",
            frame, now, w->steps, (double)h->position[0], (double)h->position[1], (double)h->position[2], h->tile[0],
            h->tile[1], (double)h->angle[2], h->action, (double)h->frame, h->run, h->safe_zone, h->movement,
            h->path.current, h->path.current_float, h->path.count, w->target[0], w->target[1], (double)v->fov,
@@ -1107,7 +1135,9 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            a->has_sound ? mu_world_sound_voices(&a->sound) : 0, a->has_sound ? a->sound.last_music : -1,
            a->tile_stats.faces, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
            a->effects_visible, a->env.stats.live_boids, a->env.stats.live_fishs, a->env.stats.live_leaves,
-           a->env.stats.drawn_objects, a->env.stats.drawn_leaves, hash ? hash : "", png ? png : "");
+           a->env.stats.drawn_objects, a->env.stats.drawn_leaves, a->particles.stats.live,
+           a->particles.stats.drawn_particles, a->particles.stats.drawn_sprites, a->particles.stats.shadows,
+           hash ? hash : "", png ? png : "");
     if (a->combat)
         mu_combat_report_frame(a->combat, stdout, frame);
 }
@@ -1147,6 +1177,21 @@ static void report_summary(const app *a, const char *renderer)
                e->max_fishs, e->max_leaves, e->sounds, e->sound_bird, e->sound_bat, e->sound_rat, e->particles,
                e->inits, e->kills, (unsigned long long)a->env.env.rand_calls, a->env.env.rain_level,
                (double)a->env.env.tormenta.rain);
+    }
+    if (a->has_particles) {
+        const mu_world_particles_stats *p = &a->particles.stats;
+        printf("{\"particles\": true, \"created\": %llu, \"dropped\": %llu, \"unsupported\": %llu,"
+               " \"overflow\": %llu, \"live\": %u, \"max_live\": %u, \"steps\": %u, \"sprites_created\": %llu,"
+               " \"drawn_particles\": %u, \"drawn_sprites\": %u, \"shadows\": %u, \"shadow_vertices\": %u,"
+               " \"visuals\": %u, \"joints\": %llu, \"effects\": %llu, \"rand_calls\": %llu,"
+               " \"bitmaps\": [%d, %d, %d, %d, %d, %d, %d]}\n",
+               (unsigned long long)p->created, (unsigned long long)p->dropped, (unsigned long long)p->unsupported,
+               (unsigned long long)p->overflow, p->live, p->max_live, p->steps,
+               (unsigned long long)p->sprites_created, p->drawn_particles, p->drawn_sprites, p->shadows,
+               p->shadow_vertices, p->visuals, (unsigned long long)p->joints, (unsigned long long)p->effects,
+               (unsigned long long)a->particles.rand_calls, a->particles.bitmap_present[0],
+               a->particles.bitmap_present[1], a->particles.bitmap_present[2], a->particles.bitmap_present[3],
+               a->particles.bitmap_present[4], a->particles.bitmap_present[5], a->particles.bitmap_present[6]);
     }
     if (a->has_objects)
         printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"
@@ -1538,7 +1583,7 @@ static int usage(void)
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
-                    "                [--no-env] [--env-tga-leaves] [--env-seed N]\n"
+                    "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
     return 2;
 }
@@ -1554,6 +1599,7 @@ int main(int argc, char **argv)
     a.pause = 8;
     a.class_byte = 0x01;      /* Dark Knight */
     a.env_seed = 1;           /* rand() state at world entry: the CRT default (viewer choice) */
+    a.particle_seed = 1;
     a.tile[0] = 133;          /* Lorencia town square */
     a.tile[1] = 127;
     a.angle = 0.0f;
@@ -1571,6 +1617,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--combat")) { a.combat_on = 1; continue; }
         if (!strcmp(k, "--no-env")) { a.no_env = 1; continue; }
         if (!strcmp(k, "--env-tga-leaves")) { a.env_tga = 1; continue; }
+        if (!strcmp(k, "--no-particles")) { a.no_particles = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -1620,6 +1667,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--gfx")) a.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;
 #endif
+        else if (!strcmp(k, "--particle-seed")) a.particle_seed = (uint32_t)strtoul(v, NULL, 0);
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
