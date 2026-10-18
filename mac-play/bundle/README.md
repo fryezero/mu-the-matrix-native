@@ -68,7 +68,7 @@ The players' steps (including allowing the unsigned app once) are in `../PLAYER-
 
 Double-click **Mu The Matrix**. On the first run with the free runtime, the Install window opens in front of the
 settings window: choose "Download the game from the official site" or "Use a Mu The Matrix folder I already
-have…", press **Install** and watch the steps (about 20 minutes with the download; the log is in
+have…", press **Install** and watch the steps (about 10 minutes plus the 2.2 GB game download, 45 minutes in total in the recorded test; the log is in
 `~/Library/Logs/MuTheMatrix/app.log`). Then press **Play**. Later double-clicks run a preflight check, start the launcher and quit the app. The
 launcher and game keep running. To get the settings window back, hold **⌥ Option** while opening
 the app. It also opens when "Start the game right away" is off, and from the error dialog.
@@ -108,7 +108,7 @@ These conditions are checked before anything is changed:
 | 10 | CrossOver is not installed | `$CX_ROOT/bin/wine` or `wineserver` missing (default `/Applications/CrossOver.app/...`) |
 | 11 | The CrossOver bottle was not found | no `Bottles/NAME/cxbottle.conf` |
 | 12 | The bottle is not a 32-bit bottle | `WineArch` is not `win32` (64-bit bottles fail with the Rosetta GDT error) |
-| 13 | Mu The Matrix is not installed in this bottle | no `C:\MuTheMatrix\MuTheMatrix.exe` |
+| 13 | Mu The Matrix is not installed in this bottle ("… is not installed yet" with the free runtime) | no `C:\MuTheMatrix\MuTheMatrix.exe` |
 | 14 | Mu The Matrix is already running | the game or launcher runs in any bottle |
 | 15 | The fast x87 runtime is missing | fast x87 on, but the folder or validated cache is missing |
 | 16 | This resolution is not available | no `mu-modes.txt`, or the mode is not in it |

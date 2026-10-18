@@ -173,7 +173,9 @@ Matrix.app” is free of malware that may harm your Mac or compromise your priva
 "Security", **Open Anyway** next to the message about Mu The Matrix.app, confirm with the password or Touch ID,
 then **Open Anyway** in the next dialog. In this session the dialog and the Privacy & Security pane were
 observed, but the buttons could not be clicked: no accessibility access for automation. The Open Anyway clicks
-are therefore not verified here. The alternative was performed and works: `xattr -dr com.apple.quarantine
+are therefore not verified here. A second check during the player-guide review (same Mac and macOS) showed the same
+dialog; while it was still open, the Security section listed only "Allow applications from: App Store & Known
+Developers" and no Open Anyway row, so the guide tells players to click Done first. The alternative was performed and works: `xattr -dr com.apple.quarantine
 "/Applications/Mu The Matrix.app"`, after which the app opens normally. A launch attempted while the Gatekeeper
 dialog was still open stayed blocked in `_dyld_start` until the dialog was dismissed. Binaries the installer
 copies out of the app (fast x87) have their quarantine flag removed, and downloads made with `curl` carry none.

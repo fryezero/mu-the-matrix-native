@@ -112,12 +112,12 @@ fi
 # ---------------------------------------------------------------- preflight
 if [ "$RUNTIME" = free ]; then
     { [ -n "$RT_ID" ] && mukit_rt_ok "$RT"; } ||
-        fail 30 "The free Wine runtime is not installed yet (in $FREE_HOME/runtime). Choose Install in Settings."
+        fail 30 "The free Wine runtime is not installed yet (in $FREE_HOME/runtime). Click Install... to set it up."
     [ -d "$PREFIX" ] && [ -f "$PREFIX/system.reg" ] ||
-        fail 31 "The game prefix $PREFIX does not exist yet. Choose Install in Settings."
+        fail 31 "The game prefix $PREFIX does not exist yet. Click Install... to set it up."
     arch=$(mukit_prefix_arch "$PREFIX") || arch=unknown
     [ "$arch" = win32 ] || fail 31 "The prefix $PREFIX is not a 32-bit prefix (#arch=$arch). Delete it and install again."
-    [ -f "$GAME/MuTheMatrix.exe" ] || fail 13 "Mu The Matrix is not installed in $PREFIX (C:\\MuTheMatrix\\MuTheMatrix.exe is missing). Choose Install in Settings."
+    [ -f "$GAME/MuTheMatrix.exe" ] || fail 13 "Mu The Matrix is not installed in $PREFIX (C:\\MuTheMatrix\\MuTheMatrix.exe is missing). Click Install... to set it up."
 else
     [ -x "$CX_ROOT/bin/wine" ] && [ -x "$CX_ROOT/bin/wineserver" ] ||
         fail 10 "CrossOver was not found at $CX_ROOT. Install CrossOver in /Applications and open it once, or switch to the free runtime."

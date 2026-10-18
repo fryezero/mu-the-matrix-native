@@ -222,7 +222,7 @@ final class SettingsWindowController: NSWindowController {
             let st = LaunchScript.freeStatus()
             let ready = st.runtime && st.prefix && st.game
             installState.stringValue = ready ? "Installed (free runtime, ~/Library/Application Support/MuTheMatrix)."
-                : "Not installed yet. Press Install… (downloads Wine, .NET 4.8 and the game; about 20 minutes)."
+                : "Not installed yet. Click Install… (downloads Wine, .NET 4.8 and the game; about 10 minutes plus the game download)."
             installButton.title = ready ? "Repair…" : "Install…"
         } else {
             installState.stringValue = "Uses a CrossOver bottle chosen below."
@@ -283,7 +283,7 @@ final class SettingsWindowController: NSWindowController {
     @objc private func saveOnly() {
         guard persist() else { return }
         let r = LaunchScript.run("--check", settings: settings)
-        status.stringValue = r.error.map { "Saved. Check: \(errorTitle($0.code)). \($0.message)" } ?? "Saved. Preflight check passed."
+        status.stringValue = r.error.map { "Saved. Check: \(errorTitle($0.code, free: settings.runtime == "free")). \($0.message)" } ?? "Saved. Preflight check passed."
     }
     @objc private func chooseTimewalker() {
         let panel = NSOpenPanel()
@@ -302,7 +302,7 @@ final class InstallWindowController: NSWindowController {
     private let downloadRadio = NSButton(radioButtonWithTitle: "Download the game from the official site (about 2.2 GB)", target: nil, action: nil)
     private let folderRadio = NSButton(radioButtonWithTitle: "Use a Mu The Matrix folder I already have…", target: nil, action: nil)
     private let folderLabel = label("", small: true)
-    private let step = label("Ready. Installing takes about 20 minutes (most of it downloads) and needs about 12 GB of free space.")
+    private let step = label("Ready. Takes about 10 minutes plus the game download (2.2 GB) and needs about 12 GB of free space.")
     private let bar = NSProgressIndicator()
     private let logView = NSTextView()
     private lazy var startButton = NSButton(title: "Install", target: self, action: #selector(startInstall))
@@ -417,7 +417,7 @@ final class InstallWindowController: NSWindowController {
         AppLog.write("install finished status \(status)")
         bar.doubleValue = ok ? bar.maxValue : bar.doubleValue
         step.stringValue = ok ? "Done. Mu The Matrix is installed. Close this window and press Play."
-            : "The installation stopped (status \(status)). The last lines above say why; fix it and press Install again: finished steps are skipped."
+            : "The installation stopped (status \(status)). The last lines above say why; fix it and click Try Again: finished steps are skipped."
         closeButton.title = ok ? "Close" : "Close"
         startButton.title = ok ? "Done" : "Try Again"
         startButton.isEnabled = !ok
@@ -533,14 +533,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppLog.write("mu-launch.sh status \(r.status)\n" + r.output.trimmingCharacters(in: .newlines))
         progress?.orderOut(nil); progress = nil
         guard let err = r.error else { NSApp.terminate(nil); return }
+        let free = LauncherSettings.load().runtime == "free"
         let alert = NSAlert()
         alert.alertStyle = err.code == 14 ? .informational : .warning
-        alert.messageText = errorTitle(err.code)
+        alert.messageText = errorTitle(err.code, free: free)
         alert.informativeText = err.message + "\n\nLog: \(AppLog.url.path)"
         alert.addButton(withTitle: "Settings…")
         alert.addButton(withTitle: "Open Log")
         alert.addButton(withTitle: "Quit")
-        let needsInstall = [30, 31].contains(err.code) || (err.code == 13 && LauncherSettings.load().runtime == "free")
+        let needsInstall = [30, 31].contains(err.code) || (err.code == 13 && free)
         if err.code == 10 { alert.addButton(withTitle: "Get CrossOver") }
         if needsInstall { alert.addButton(withTitle: "Install…") }
         NSApp.activate(ignoringOtherApps: true)
@@ -551,7 +552,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch response {
         case .alertFirstButtonReturn:
             showSettings(nil)
-            settingsWindow?.showStatus("Last start failed: \(errorTitle(err.code)). \(err.message)")
+            settingsWindow?.showStatus("Last start failed: \(errorTitle(err.code, free: free)). \(err.message)")
         case .alertSecondButtonReturn: openLog(); NSApp.terminate(nil)
         case NSApplication.ModalResponse(rawValue: NSApplication.ModalResponse.alertThirdButtonReturn.rawValue + 1):
             NSWorkspace.shared.open(URL(string: "https://www.codeweavers.com/crossover")!); NSApp.terminate(nil)

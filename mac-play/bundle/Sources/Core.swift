@@ -171,8 +171,9 @@ enum LaunchScript {
     }
 }
 
-/// User-facing titles for the script's exit codes.
-func errorTitle(_ code: Int) -> String {
+/// User-facing titles for the script's exit codes (`free`: the free runtime, where there is no bottle).
+func errorTitle(_ code: Int, free: Bool = false) -> String {
+    if free && code == 13 { return errorTitle(30) }
     switch code {
     case 10: return "CrossOver is not installed"
     case 11: return "The CrossOver bottle was not found"
