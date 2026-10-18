@@ -51,6 +51,9 @@ The frame-loop skeleton (`core/mu_frame.*`, [finding](../docs/research/client-ca
 
 `mu-render ui` (NATIVE-UI-001) renders the title/loading screen and the login scene's 2D overlay with the
 reconstructed 2D routines (`reconstructed/ui`) and a software GL subset. See [the finding](../docs/research/client-ui-2d.md).
+`mu-render ui servers` and `mu-render ui credits` (NATIVE-UI-002) add the server-select and credits windows
+of the legacy window layer over synthetic server and credit data; `--frames "x,y,down,up;..."` drives hover,
+press and click. See [the widget finding](../docs/research/client-ui-widgets.md).
 
 Viewer controls:
 

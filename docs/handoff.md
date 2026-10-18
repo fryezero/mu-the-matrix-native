@@ -1077,6 +1077,18 @@ Branch `claude/native-ui`, worktree `~/Documents/mu-worktrees/native-ui`. Read
 `CreateLoginScene` `0x011e2dc0`) with CButton/CWin and its server-name text, then the MENU/CREDIT window, to
 complete the server-select screen over the 3D login world.
 
+## Native window layer: server select and credits (NATIVE-UI-002)
+
+Branch `claude/native-ui2`. Read [`research/client-ui-widgets.md`](research/client-ui-widgets.md).
+
+**Checks.** `make test` runs `reconstructed/ui/test_ui_widgets.py` and the server/credits checks in
+`native/tests/test_native_ui.py`. `scripts/validate_ui_widgets.py --cases 120` runs the full Unicorn comparison
+(a few minutes). Renders and live captures stay local under `~/Documents/mu-mac-tools/native/renders/ui2/`.
+
+**Next:** the character-select windows (`CreateCharacterScene` `0x011e2f2a`: `CCharSelMainWin` `0x009a492e`,
+the server message box `0x010750e1`), `CUIMng::Update`'s focus and docking (`0x011e3143`, `0x011e3823`), and the
+GFx layer (MENU/CREDIT/EXIT buttons).
+
 ## Client data tables (NATIVE-DATA-001)
 
 Branch `claude/native-data`. It adds the following:

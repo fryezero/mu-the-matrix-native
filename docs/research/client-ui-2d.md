@@ -339,11 +339,10 @@ capture reduced 2:1 as follows:
 
 * **The 3D login world.** The ship scene behind the login and server-select screens is
   not rendered (terrain/models/effects milestones).
-* **UI-manager windows.** The legacy windows drawn by the UI manager are not
-  reconstructed yet. These are the server list (`CServerSelWin`, created by
-  `0x01075554` from `CreateLoginScene` `0x011e2dc0`, with textures `server_b2_all`,
-  `server_b2_loding`, `server_deco_all`), the MENU/CREDIT buttons and the notice box.
-  `CLoginWin::Create` `0x00cdc29d` has no callers and appears unused. Many GFx (Scaleform) movies exist; which windows they replace is open.
+* **UI-manager windows.** The server-select window, the widget classes and the credits
+  window are covered by [client-ui-widgets.md](client-ui-widgets.md) (NATIVE-UI-002).
+  The MENU/CREDIT buttons are a GFx (Scaleform) movie. `CLoginWin::Create` `0x00cdc29d`
+  has no callers and appears unused.
 * **GDI shapes.** GDI's exact hinting and glyph shapes are not reproduced. CoreText
   metrics differ by about 0.5% in width.
 * **Encrypted inputs.** `GlobalText` (`Data\Lang.mpr`, encrypted) is not decoded. The
