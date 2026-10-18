@@ -26,6 +26,11 @@ the same stack-scan return addresses as `stackprof`, their direct-call targets a
 wall-clock end time matches mugl's `stall:` lines. Do not run `vmmap`, `sample` or similar task inspectors
 while timing frames: in Claude's runs a `vmmap` of main.exe froze the game for 2-3 s.
 
+`MOD=<hex>` (MAC-PERF-009) adds a second code range: the PE module containing that address (MZ header at a 64K
+boundary, SizeOfImage). With a mugl build made with `-fno-omit-frame-pointer`, EBP walks then continue through mugl
+frames instead of stopping there; `incl.py` turns such CHAINS output plus private dumps of main.exe and the loaded
+module into self/inclusive shares per function (main.exe addresses, mugl symbols) and callee trees.
+
 `memdump` reads a PID/range into a private file; `flav` investigates thread-state
 flavors. `bytarget.py`, `chain.py`, `fdis.py` and `callsite.py` consume a private
 VA-0x00400000 dump selected by `MU_MEMORY_DUMP`. Disassembly helpers require

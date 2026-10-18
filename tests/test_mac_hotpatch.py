@@ -95,26 +95,26 @@ class MeshDrawPublicationTests(unittest.TestCase):
 
     def test_patch_site_originals_are_hash_pinned_and_header_is_not_source(self):
         sites = {site['name']: site for site in self.targets['meshdraw_sites']}
-        self.assertEqual(set(sites),{'md_orig','md_lorig','md_prologue'})
-        addresses = {name: int(re.search(rf'#define {macro} (0x[0-9a-fA-F]+)',self.meshdraw).group(1),16)
-                     for name,macro in [('md_orig','MD_PATCH'),('md_lorig','MD_LPATCH'),('md_prologue','MD_ENTRY')]}
+        self.assertEqual(set(sites),{'md_orig','md_lorig','md_prologue','sh_orig','td_prologue'})
+        sources = {'md_orig':(self.meshdraw,'MD_PATCH'),'md_lorig':(self.meshdraw,'MD_LPATCH'),'md_prologue':(self.meshdraw,'MD_ENTRY'),
+                   'sh_orig':((SOURCE/'shadow.c').read_text(),'SH_PATCH'),'td_prologue':((SOURCE/'decal.c').read_text(),'TD_ENTRY')}
         for name,site in sites.items():
             with self.subTest(name=name):
-                self.assertEqual(site['address'],addresses[name])
+                text,macro = sources[name]
+                self.assertEqual(site['address'],int(re.search(rf'#define {macro} (0x[0-9a-fA-F]+)',text).group(1),16))
                 self.assertRegex(site['sha256'],r'^[0-9a-f]{64}$')
                 # The C source compares/copies exactly this many bytes of the generated array.
-                self.assertRegex(self.meshdraw,rf'{name}, (?:j, )?{site["length"]}\b')
+                self.assertRegex(text,rf'{name}, (?:j, )?{site["length"]}\b')
+                self.assertIsNone(re.search(rf'{name}\[[0-9]*\]\s*=',text),'original bytes must stay in the generated header')
+                self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
         self.assertIn('#include "meshdraw-orig.h"',self.meshdraw)
-        for name in sites:
-            self.assertIsNone(re.search(rf'{name}\[[0-9]*\]\s*=',self.meshdraw),'original bytes must stay in the generated header')
-        self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',self.meshdraw))
 
     def test_synthetic_meshdraw_header_has_zero_tables_and_private_one_is_exact_size(self):
         with tempfile.TemporaryDirectory() as td:
             output = Path(td)
             hp.tables(output,[],[],[],bytes(16),False)
             text = (output/'meshdraw-orig.h').read_text()
-            for name,length in [('md_orig',7),('md_lorig',6),('md_prologue',10)]:
+            for name,length in [('md_orig',7),('md_lorig',6),('md_prologue',10),('sh_orig',7),('td_prologue',9)]:
                 self.assertIn(f'static const unsigned char {name}[{length}] = {{'+','.join(['0']*length)+'};',text)
             hp.tables(output,[],[],[],bytes(16),True,[('md_orig',b'\x01\x02')])
             self.assertIn('md_orig[2] = {1,2};',(output/'meshdraw-orig.h').read_text())
@@ -127,14 +127,15 @@ class MeshDrawPublicationTests(unittest.TestCase):
         mask = int(re.search(r'want = v & (\d+);',self.mugl).group(1))
         readme = (SOURCE/'README.md').read_text()
         rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
-        self.assertEqual(rows,{1<<k for k in range(21)})
-        self.assertEqual(mask,(1<<21)-1)
-        # v7.4: v7.3's 23983 plus quad batching 65536, deferred client-array enables 262144, off-screen culling 524288
-        self.assertEqual(default,875951)
-        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19)))
+        self.assertEqual(rows,{1<<k for k in range(26)})
+        self.assertEqual(mask,(1<<26)-1)
+        # v7.5: v7.4's 875951 plus native shadows 2097152, native decals 8388608, specialised mesh append 33554432
+        self.assertEqual(default,44916143)
+        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19,21,23,25)))
+        self.assertEqual(default & 2097151,875951,'v7.4 reads 21 bits and sees its own default')
         self.assertEqual(default & 16383,7599,'v7.1/v7.2 builds read 14 bits and see their own default')
         self.assertEqual(default & 65535,23983,'v7.3 reads 16 bits and sees its own default')
-        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576),0,'diagnostic and unverified bits stay off by default')
+        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576|4194304|16777216),0,'diagnostic and unverified bits stay off by default')
         self.assertIn('md_untested = (mask & 8192) != 0',self.mugl)
 
     def test_synthetic_build_cannot_apply_game_patches(self):
@@ -173,7 +174,7 @@ class V73Tests(unittest.TestCase):
 
     def test_new_sources_are_built_and_carry_no_byte_tables(self):
         make = (SOURCE/'Makefile').read_text()
-        self.assertIn('meshdraw.c stall.c terrain.c gpudiag.c ../mumodes/modehook.c',make)
+        self.assertIn('meshdraw.c shadow.c decal.c stall.c terrain.c gpudiag.c ../mumodes/modehook.c',make)
         self.assertIn('#include "stall.c"\n#include "terrain.c"',self.mugl)
         for text in (self.terrain,self.stall):
             self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
@@ -316,7 +317,7 @@ class V74Tests(unittest.TestCase):
         self.assertIn('cs_lazy = (mask & 262144) != 0',self.mugl)
         self.assertIn('cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;',self.mugl)
         # code patches, pacing and reads of client addresses only in main.exe; test programs get the GL-level bits
-        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192);',self.mugl)
+        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432);',self.mugl)
         self.assertIn('mugl_client = !lstrcmpiA(b, "main.exe");',self.mugl)
 
     def test_quad_runs_are_keyed_by_the_two_callers_and_smooth_quads(self):
@@ -387,3 +388,66 @@ class V74Tests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class V75Tests(unittest.TestCase):
+    """MAC-PERF-009: native body shadows, terrain decals, specialised mesh append, forget_state without a full memset."""
+    def setUp(self):
+        self.mugl = (SOURCE/'mugl.c').read_text()
+        self.shadow = (SOURCE/'shadow.c').read_text()
+        self.decal = (SOURCE/'decal.c').read_text()
+        self.meshdraw = (SOURCE/'meshdraw.c').read_text()
+        self.make = (SOURCE/'Makefile').read_text()
+
+    def test_sources_are_included_built_and_carry_no_byte_tables(self):
+        self.assertIn('#include "meshdraw.c"\n#include "shadow.c"\n#include "decal.c"',self.mugl)
+        self.assertIn('shadow.c decal.c',self.make)
+        for text in (self.shadow,self.decal):
+            self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
+
+    def test_bits(self):
+        self.assertIn('int sh = sh_install((mask & 2097152) != 0, (mask & 4194304) != 0);',self.mugl)
+        self.assertIn('int td = td_install((mask & 8388608) != 0, (mask & 16777216) != 0);',self.mugl)
+        self.assertIn('md_fast = (mask & 33554432) != 0;',self.mugl)
+
+    def test_shadow_hook_keeps_the_original_glbegin_and_resumes_at_glend(self):
+        self.assertIn('#define SH_PATCH 0x012bc181',self.shadow)   # after glBegin: its return address is unchanged
+        self.assertIn('"    mov $0x012bc58c, %eax\\n"',self.shadow)
+        self.assertIn('"1:  andl $0, -0x10(%ebp)\\n"',self.shadow)
+        self.assertIn('"    mov $0x012bc18f, %eax\\n"',self.shadow)
+        run = self.shadow[self.shadow.index('static long sh_run'):]
+        self.assertIn('l0 = (l0 + k1c) * l2 / (l2 - k20) + l0;',run)
+        self.assertIn('p[2] = a5 + p[2];',run)
+        self.assertIn('if (sh_rec || md_rec) return 0;',self.shadow)
+
+    def test_shadow_height_matches_the_client_lookup_order(self):
+        h = self.shadow[self.shadow.index('static float sh_height'):self.shadow.index('static long sh_run')]
+        self.assertIn('if (scene == 1 || scene == 2 || scene == 4) return 0.0f;',h)
+        self.assertIn('if (0.0f > x || 0.0f > y) return 0.0f;',h)
+        self.assertIn('if (idx >= 0x10000u) return MD_K(0x01cf15dc);',h)
+        self.assertIn('const float a = (H[i01] - H[i00]) * fy + H[i00];',h)
+        self.assertIn('return (b - a) * fx + a;',h)
+
+    def test_decal_writes_the_client_globals_and_verify_compares_them(self):
+        self.assertIn('#define TD_ENTRY 0x016cdd5f',self.decal)
+        for g in ('0x0b6b4eac','0x0b6b52e8','0x0b6b52ec','0x0b6b52f0','0x0b6b5318'):
+            self.assertIn(g,self.decal)
+        self.assertIn('td_orig(tex, x, y, sx, sy, colour, angle, alpha, hadd, flat, vflip);',self.decal)
+        self.assertIn('int gbad = md_na > 1 &&',self.decal)
+        self.assertIn('if (alpha == one) {',self.decal)   # ordered equality: NaN takes glColor4f like the client's jp
+
+    def test_specialised_mesh_append_falls_back_for_special_vertex_paths(self):
+        f = self.meshdraw[self.meshdraw.index('static long md_run_vtx'):]
+        self.assertIn('if (!md_fast || (flags & 0x200020)) return md_run(bp, MD_OUT_VTX, vo);',f)
+        self.assertIn('md_cur_corners = md_run_vtx(bp, &md_vexp);',self.meshdraw)   # bit 64 verifies the same function
+
+    def test_forget_state_clears_every_entry_that_can_be_nonzero(self):
+        f = self.mugl[self.mugl.index('static void forget_state(void)\n{'):]
+        f = f[:f.index('\n}\n')]
+        self.assertIn('if (cap_overflow) memset(cap_cache, 0, sizeof cap_cache);',f)
+        self.assertIn('cap_cache[0][GL_BLEND] = cap_cache[0][GL_CULL_FACE] = cap_cache[0][GL_ALPHA_TEST] = 0;',f)
+        self.assertIn('if (s) { cap_touch(s); *s = 2; }',self.mugl)
+        self.assertIn('if (s) { cap_touch(s); *s = 1; }',self.mugl)
+        terrain = (SOURCE/'terrain.c').read_text()
+        writes = set(re.findall(r'cap_cache\[0\]\[(GL_[A-Z_]+)\] = ',terrain))
+        self.assertEqual(writes,{'GL_BLEND','GL_CULL_FACE','GL_ALPHA_TEST'})

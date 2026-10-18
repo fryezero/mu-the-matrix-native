@@ -1047,3 +1047,76 @@ Checks run: `make test` subsets (`tests/test_mac_hotpatch.py`, `mac-play/install
 `make -C mac-play/hotpatch private` and the synthetic build, `make -C mac-play/diagnostics`, `glcstate` and
 `glstride` hashes in the MuMatrixKit test bottle. Not established: Windows-native behavior, other hosts, a busy town,
 stability past the short runs, exactness of the additive commutation beyond the 398 verified runs.
+
+## MAC-PERF-009: Claude v7.5 native shadows, terrain decals and mesh append
+
+Claude's live work on 2026-10-17 (21:50-23:35) in MuMatrix32, character Nighty on MTM-1 at Tormenta Island 135,10
+(boss fight, many players and effects, MU Helper on), five sessions under the game lock, each run 3 minutes or less.
+The Mac was quiet (load average 1.7-3.7, noted per row). Sources: `mac-play/hotpatch/shadow.c`, `decal.c`,
+`meshdraw.c` (`md_run_vtx`) and `mugl.c` (v7.5); `mac-play/machprof/stackprof.c` (`MOD=`) and `incl.py`. Comparisons
+are same-session interleaved A/B runs of 14 s switching only the mask file (the 2-second `fps=` samples averaged
+unweighted). v7.4 = mask 875951, v7.5 = 44916143.
+
+**Where the boss-fight time went (v7.4).** EBP-walk profiles of the render thread (25 s, 1 ms interval) grouped by
+function (`incl.py`): the body-shadow routine `0x012bc07a` (called per character from RenderCharacter `0x01363260`
+through `0x0176ce74` and `0x017edf43`, and from the effect path) took 21% of the x86 samples inclusive, half of it in
+the terrain height lookup `0x016cc9e2` it calls for every projected corner (about 216,000 corners per frame). The
+glVertex3fv calls behind it ran in mugl and are on top of that. With shadows native and a frame-pointer mugl build
+(`-fno-omit-frame-pointer`, `MOD=` so the walk continues through mugl), the next items were the terrain-decal routine
+`0x016cdd5f` with its tile fan `0x016d197d` (14% inclusive; about 30,000 fans per frame), mugl's native mesh loop
+`md_run` (15.5-16.7%; about 900 meshes and 1.1M corners per frame), the 512 KB `memset` in `forget_state` on every
+glPopAttrib (about 3%), `submit_batch` (4%, mostly the culling transform), skinning `xf_impl` (2.6%) and a long tail
+of client code under 2.5% each.
+
+**Native body shadows (bit 2097152).** The 7 bytes after the routine's `glBegin(GL_TRIANGLES)` (return address
+`0x012bc181`, pinned `sh_orig`) jump to a C loop that computes the projection and the height lookup in the client's
+operation order and appends the vertices into mugl's open batch (bit 128), then resumes at the client's `glEnd` call.
+Verification (bit 4194304, the original loop run with recorders, appended vertices compared bit for bit): 31,897
+meshes / 93.8M corners (session 2) + 64,191 / 188.7M (session 5), 0 mismatches.
+
+**Native terrain decals (bit 8388608).** The routine entry (pinned `td_prologue`) jumps to a C port of the routine
+and its tile fan; it still calls the client's own AngleMatrix, VectorRotate and texture bind, and writes the globals
+the tile routine leaves behind. Verification (bit 16777216, native run record-only, then the original through a
+trampoline with recorders; GL call streams and globals compared): 65,043 (session 3) + 91,432 (session 5) decal calls
+covering about 1M tiles per 2 s, 0 mismatches.
+
+**Specialised mesh append (bit 33554432) and forget_state.** `md_run_vtx` splits the direct append per attribute
+kind and hoists the constant colour/normal. Bit 64 verification: 961,268 meshes / 1.08G corners (session 4) +
+1,039,386 / 1.23G (session 5) plus 623,121 light tables, 0 mismatches. `forget_state` now clears only the enable-cache
+entries that can be non-zero (recorded when set, plus terrain.c's three fixed caps); no mask bit.
+
+| Scene (load) | v7.4 (875951) | v7.5 step | Result |
+|---|---|---|---|
+| Boss fight, + native shadows, frame-pointer build (3.2-3.7) | 20.16-21.00 fps; 47.7-49.9 ms | 2973103 | 23.70-24.57 fps; 40.0-42.1 ms |
+| Boss fight, shadows vs + decals, frame-pointer build (2.8-3.5) | (shadows only) 24.66-24.96; 37.1-39.9 | 11361711 | 25.00-25.01; 36.4-38.1 |
+| Boss fight, without vs with mesh append (3.0-3.6) | (11361711) 24.96-25.01; 35.4-38.0 | 44916143 | 24.99-25.03; 32.8-34.2 |
+| Boss fight, v7.4 vs v7.5, release build (2.1-2.6) | 22.74-22.80 fps; 43.9-44.0 ms | 44916143 | 24.99-25.00 fps; 33.0-34.4 ms |
+| Boss fight, v7.4 vs v7.5, final build (2.2-3.1) | 21.07-22.19 fps; 45.1-47.5 ms | 44916143 | 24.99-25.01 fps; 33.2-34.7 ms |
+| Boss fight zoomed out, F6 + Shift+wheel (1.7-1.9) | 17.82-18.20 fps; 55.0-56.2 ms | 44916143 | 23.23-23.88 fps; 41.7-43.1 ms |
+
+The boss fight now reaches the 25 fps cap with about 6 ms of margin (work 33-35 ms instead of 45-50). Zoomed out
+over the same fight it is not yet at the cap. The spawn point was not re-measured: Nighty stays at the boss spot,
+where the user left him, and moving there and back would have changed that. No scene got slower.
+
+**The Rosetta share.** Samples whose thread state was not 32-bit x86 split into (a) `/usr/libexec/rosetta/runtime`,
+almost all in one 256-byte PC range: the blocking wait while the frame waits for the 40 ms pace (about 6 ms of each
+frame at 34 ms of work, 17-19% of samples); and (b) samples that `proc_regionfilename` names libRosettaRuntime but
+that lie in one 112 MB region at offsets up to 0x6b5xxxx, far beyond the 416 KB library. This is the runtime-translated
+code region (the 64-bit Wine/GL side). Its top three 64-byte ranges hold about 4% of all samples, which looks like
+copy loops (for example the client-array vertex copy at draw time: about 60 MB per frame in this scene), but the
+samples cannot be mapped back to x86-64 addresses (inference). Real libRosettaRuntime code (translator, dispatch,
+exceptions) was 0.1% of samples and the fast-x87 library 0.01%. So there is no sign of self-modifying code, frequent
+retranslation, exception or x87 slow paths to fix. The remaining non-x86 cost is translated driver work proportional
+to the data submitted. Reducing the 48-byte vertex stream is the next lever (gap; MAC-PERF-008's `glvbench` found
+packing in the client slower).
+
+**Installed.** `mugl-v75.dll` (private build) in MuMatrix32 with mask 44916143; rollback `builds/mugl-v74.dll` with
+mask 875951. The kit (`mac-play/installer`) now writes 44916143 and upgrades the earlier kit defaults 15, 7599 and
+875951. Older builds read fewer bits of it and see their own defaults (v7.4 875951, v7.3 23983, v7.1/v7.2 7599,
+v7.0 15).
+
+Checks run: `tests/test_mac_hotpatch.py` (38) and the other `tests/test_mac*.py` (72 total), `mac-play/installer/tests/test-mukit.sh`
+202/202, `make -C mac-play/hotpatch all` (synthetic) and `private`, `make -C mac-play/machprof`, `scripts/audit_repository.py`.
+Not established: Windows-native behavior, other hosts, a busy town, stability past the short runs, decal and shadow
+paths not seen in this scene (world 0x91 shadows, world 0x8d decal visibility), and the attribution of the
+translated-code samples.

@@ -79,7 +79,7 @@ def tables(output, helpers, inline, peephole, prologue, private, md_sites=None):
         (output / filename).write_text('\n'.join(lines) + '\n};\n')
     (output / 'xform-prologue.h').write_text('/* PRIVATE generated input. */\nstatic const unsigned char xf_prologue[16] = ' + cbytes(prologue) + ';\n')
     if md_sites is None:
-        md_sites = [('md_orig', bytes(7)), ('md_lorig', bytes(6)), ('md_prologue', bytes(10))]
+        md_sites = [('md_orig', bytes(7)), ('md_lorig', bytes(6)), ('md_prologue', bytes(10)), ('sh_orig', bytes(7)), ('td_prologue', bytes(9))]
     (output / 'meshdraw-orig.h').write_text(meshdraw_header(md_sites))
     (output / 'private-build.h').write_text(f'#define MUGL_PRIVATE_TABLES {int(private)}\n')
 

@@ -198,6 +198,78 @@ static long md_run(uint8_t *bp, int out, MdVtxOut *vo)
     return corners;
 }
 
+/* ---- v7.5 (MAC-PERF-009, bit 33554432): md_run(MD_OUT_VTX) specialised per attribute kind for the plain vertex
+   path. Same values in the same order as md_run's direct append; each 48-byte Vtx is written from registers that
+   hold the constant parts (colour/normal) so the corner loop has no per-corner mode or output tests. Meshes with the
+   0x20 / 0x200000 vertex paths use md_run. Verified by bit 64 like md_run (the verify path uses this function too). */
+static int md_fast;
+static long md_run_vtx(uint8_t *bp, MdVtxOut *vo)
+{
+    const uint32_t flags = *(uint32_t *)(bp + 0x0c);
+    if (!md_fast || (flags & 0x200020)) return md_run(bp, MD_OUT_VTX, vo);
+    uint8_t *model = *(uint8_t **)(bp - 0x10);
+    const int32_t mi = *(int32_t *)(bp + 0x08);
+    const uint8_t *vbase = *(uint8_t **)(bp + 0x10) + mi * 0x2bf20;
+    const float alpha = *(float *)(bp + 0x1c), uoff = *(float *)(bp + 0x28), voff = *(float *)(bp + 0x2c);
+    const uint8_t *mesh = *(uint8_t **)(bp - 0x20);
+    const int32_t mode = *(int32_t *)(bp - 0x38);
+    const int uvflag = *(uint8_t *)(bp - 0x31) != 0, light = *(uint8_t *)(bp - 0x21) != 0;
+    const int ntri = *(const int16_t *)(mesh + 0x0a);
+    const uint8_t *tris = *(uint8_t *const *)(mesh + 0x18);
+    const float *tcs = *(const float *const *)(mesh + 0x14);
+    const float *ltab = (const float *)(uintptr_t)(0x089c2120 + mi * 0x2bf20);
+    const float *ntab = (const float *)(uintptr_t)0x072acfd8;
+    const float *mcol = (const float *)(model + 0x54);
+    const float calpha = alpha >= MD_K(0x01a82fe0) ? 1.0f : alpha;
+    int kind;
+    switch (mode) { case 2: kind = 1; break; case 4: kind = 2; break; case 0x1000: case 0x80000: case 0x100000: kind = 3; break; default: kind = 0; }
+    Vtx *obuf = *vo->buf; int ocount = *vo->count, ocap = *vo->cap;
+    long need = ocount;
+    for (int t = 0; t < ntri; t++) { const int n = *(const int8_t *)(tris + t * 0x24); if (n > 0) need += n; }
+    if (need > ocap) {
+        int nc = ocap ? ocap : 8192; while (nc < need) nc *= 2;
+        Vtx *nb = realloc(obuf, sizeof(Vtx) * nc); if (!nb) abort(); obuf = nb; ocap = nc;
+    }
+    float t0 = vo->t[0], t1 = vo->t[1], c0 = vo->c[0], c1 = vo->c[1], c2 = vo->c[2], c3 = vo->c[3];
+    const float n0 = vo->n[0], n1 = vo->n[1], n2 = vo->n[2];
+    if (kind == 2 || kind == 3) { c0 = mcol[0]; c1 = mcol[1]; c2 = mcol[2]; c3 = calpha; }   /* colour constant over the mesh */
+    float *o = (float *)&obuf[ocount];
+    long corners = 0;
+#define MDF_STORE(vp) do { const float *v_ = (const float *)(vp); \
+        _mm_storeu_ps(o, _mm_setr_ps(t0, t1, c0, c1)); _mm_storeu_ps(o + 4, _mm_setr_ps(c2, c3, n0, n1)); \
+        o[8] = n2; _mm_storel_pi((__m64 *)(o + 9), _mm_loadl_pi(_mm_setzero_ps(), (const __m64 *)v_)); o[11] = v_[2]; o += 12; } while (0)
+    for (int t = 0; t < ntri; t++) {
+        const uint8_t *tri = tris + t * 0x24;
+        const int n = *(const int8_t *)tri;
+        if (n <= 0) continue;
+        const int16_t *tv = (const int16_t *)(tri + 0x02), *tn = (const int16_t *)(tri + 0x0a), *tt = (const int16_t *)(tri + 0x12);
+        corners += n;
+        switch (kind) {
+        case 1:
+            if (light) {
+                if (uvflag) for (int j = 0; j < n; j++) { const float *uv = tcs + tt[j] * 2, *l = ltab + tn[j] * 3; t0 = uv[0] + uoff; t1 = uv[1] + voff;
+                                                          c0 = l[0]; c1 = l[1]; c2 = l[2]; c3 = calpha; MDF_STORE(vbase + tv[j] * 12); }
+                else for (int j = 0; j < n; j++) { const float *uv = tcs + tt[j] * 2, *l = ltab + tn[j] * 3; t0 = uv[0]; t1 = uv[1];
+                                                   c0 = l[0]; c1 = l[1]; c2 = l[2]; c3 = calpha; MDF_STORE(vbase + tv[j] * 12); }
+            } else {
+                if (uvflag) for (int j = 0; j < n; j++) { const float *uv = tcs + tt[j] * 2; t0 = uv[0] + uoff; t1 = uv[1] + voff; MDF_STORE(vbase + tv[j] * 12); }
+                else for (int j = 0; j < n; j++) { const float *uv = tcs + tt[j] * 2; t0 = uv[0]; t1 = uv[1]; MDF_STORE(vbase + tv[j] * 12); }
+            }
+            break;
+        case 2: for (int j = 0; j < n; j++) { const float *e = ntab + tn[j] * 2; t0 = e[0]; t1 = e[1]; MDF_STORE(vbase + tv[j] * 12); } break;
+        case 3: for (int j = 0; j < n; j++) { const float *e = ntab + tn[j] * 2; t0 = e[0] + uoff; t1 = e[1] + voff; MDF_STORE(vbase + tv[j] * 12); } break;
+        default: for (int j = 0; j < n; j++) MDF_STORE(vbase + tv[j] * 12); break;
+        }
+    }
+#undef MDF_STORE
+    if (corners) {   /* md_run sets the tracked values and flags only when a corner was emitted */
+        if (kind) { vo->t[0] = t0; vo->t[1] = t1; vo->set_t = 1; }
+        if (kind == 2 || kind == 3 || (kind == 1 && light)) { vo->c[0] = c0; vo->c[1] = c1; vo->c[2] = c2; vo->c[3] = c3; vo->set_c = 1; }
+    }
+    *vo->buf = obuf; *vo->count = ocount + (int)corners; *vo->cap = ocap;
+    return corners;
+}
+
 /* ---- verification recorders (installed in the IAT only while the original loop runs) ---- */
 static int md_verify, md_rec;
 static void *md_saved[5];   /* real targets of c4, end, c3v, tc, v3v slots */
@@ -419,7 +491,7 @@ int md_hook(uint8_t *bp)
         md_native++; md_tot_native++;
         if (md_direct && md_direct_ok()) {
             MdVtxOut vo; md_vo_init(&vo, &vb, &vcount, &vcap);
-            md_tot_corners += md_run(bp, MD_OUT_VTX, &vo);
+            md_tot_corners += md_run_vtx(bp, &vo);
             memcpy(cur_t, vo.t, sizeof cur_t); memcpy(cur_c, vo.c, sizeof cur_c); set_t = vo.set_t; set_c = vo.set_c;
             md_tot_direct++;
         } else md_tot_corners += md_run(bp, MD_OUT_CALL, NULL);
@@ -431,7 +503,7 @@ int md_hook(uint8_t *bp)
     md_cur_mode = mode; md_cur_flags = flags;
     if (md_direct && md_direct_ok()) {
         md_svn = 0; md_vo_init(&md_vexp, &md_sv, &md_svn, &md_svcap);
-        md_cur_corners = md_run(bp, MD_OUT_VTX, &md_vexp);
+        md_cur_corners = md_run_vtx(bp, &md_vexp);
         md_vstart = vcount;
         md_saved_end = MD_SLOT(MD_IAT_END); MD_SLOT(MD_IAT_END) = (void *)md_rec_end_direct; md_rec = 2;
         return 0;

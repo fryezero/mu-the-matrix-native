@@ -142,6 +142,18 @@
       "address": 19631389,
       "length": 10,
       "sha256": "833295b143f6c61d43538e2797ec268aaf684fbdb1422a214666855fed44f53c"
+    },
+    {
+      "name": "sh_orig",
+      "address": 19644801,
+      "length": 7,
+      "sha256": "5a7a51231d6f407b05ceab845e98ad3af0a9f970345249cb926deaa73567bd4a"
+    },
+    {
+      "name": "td_prologue",
+      "address": 23911775,
+      "length": 9,
+      "sha256": "5193bb53bbffe81f6e7cb69b4766400b427b720f1db75602af2d27a8c6e60abc"
     }
   ]
 }
