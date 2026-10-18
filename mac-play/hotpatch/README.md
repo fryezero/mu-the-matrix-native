@@ -1,4 +1,4 @@
-# Claude v7.4 CPU hotpatch publication
+# Claude v7.5 CPU hotpatch publication
 
 This is an opt-in snapshot of Claude's existing local v7.2 work: the v7.0 helper,
 inline, peephole and skinning patches plus the native mesh-draw loop in
@@ -6,7 +6,8 @@ inline, peephole and skinning patches plus the native mesh-draw loop in
 waits (v7.2, MAC-PERF-006), the zero-copy/strided batch arrays, v7.3 (MAC-PERF-007): terrain face
 sorting (`terrain.c`), a raised render-thread priority and long-frame diagnostics (`stall.c`), and v7.4
 (MAC-PERF-008): effect-sprite and grass quad batching (`quads.c`), deferred client-array enables, off-screen batch
-culling (`cull.c`) and draw/GPU diagnostics (`gpudiag.c`). The normal `make mugl` and setup installer still
+culling (`cull.c`) and draw/GPU diagnostics (`gpudiag.c`), and v7.5 (MAC-PERF-009): native body shadows
+(`shadow.c`), native terrain decals (`decal.c`) and a specialised mesh-draw append. The normal `make mugl` and setup installer still
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
@@ -85,9 +86,10 @@ thread. Never use MuMatrix32 for these tests.
 ## Runtime controls from the original snapshot
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
-from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 875951 (v7.4; v7.3 used 23983, v7.1 and
-v7.2 7599, v7.0 15). The file is read as a 21-bit mask; v7.3 reads 16 bits and v7.1/v7.2 14 bits of the same value, so
-875951 gives each older build its own default. Only in `main.exe` are the code patches (bits 1-512, 8192) and the
+from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 44916143 (v7.5; v7.4 used 875951, v7.3 23983,
+v7.1 and v7.2 7599, v7.0 15). The file is read as a 26-bit mask; v7.4 reads 21 bits, v7.3 16 bits and v7.1/v7.2 14 bits
+of the same value, so 44916143 gives each older build its own default. Only in `main.exe` are the code patches (bits
+1-512, 8192, 2097152-33554432) and the
 frame pacing (1024) applied; any other process that loads the private build (a test program) gets the GL-level bits only.
 Each site is checked against its original or replacement bytes before a write;
 unexpected bytes are skipped. This is process-local patching with instruction
@@ -117,12 +119,18 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 262144 | Deferred client-array enables: send glEnable/DisableClientState of the six fixed arrays only before something can observe them |
 | 524288 | Off-screen batch culling: do not submit a batch whose vertices all lie outside one clip plane (x, y or w) (`cull.c`) |
 | 1048576 | With 524288: rasterize every 16th culled batch inside a samples-passed query with all tests off and count non-zero results (diagnostic) |
+| 2097152 | Native body shadows: the per-triangle loop of the shadow routine `0x012bc07a`, including the terrain height lookup per corner (`shadow.c`); with 128 the vertices go straight into mugl's open batch |
+| 4194304 | With 2097152: verify every shadow mesh against the original loop (vertex stream or, with 128, the appended vertices) (diagnostic) |
+| 8388608 | Native terrain decals: the ground-effect routine `0x016cdd5f` and its per-tile fan `0x016d197d` (`decal.c`); with 128 the fans go straight into mugl |
+| 16777216 | With 8388608: run every decal natively record-only, then the original with recorders, and compare the GL call streams and the client globals it writes (diagnostic) |
+| 33554432 | With 128: the mesh-draw direct append specialised per attribute kind (`md_run_vtx` in `meshdraw.c`); bit 64 verifies it |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,
 256, 1024, 2048 and 4096. 6575 is the same without the pacing fix. The v7.3 default 23983 is
 7599 plus 16384; 56751 adds the terrain verification. The v7.4 default 875951 is 23983 plus 65536, 262144 and
-524288; 2056111 adds all three verifications (32768, 131072, 1048576). Mesh-draw
+524288; 2056111 adds all three verifications (32768, 131072, 1048576). The v7.5 default 44916143 is 875951 plus
+2097152, 8388608 and 33554432; 65887727 adds the mesh-draw, shadow and decal verifications (64, 4194304, 16777216). Mesh-draw
 modes `0x8000` and flag `0x400` call client code with side effects and always run
 the original loop. `meshdraw-notes.md` has the decoded routine and verification
 method. The source's verify path bypasses comparison
@@ -251,3 +259,40 @@ observers of array state, perspective batches in and out of view under every kin
 build in a test bottle must print the builtin OpenGL's hash. A stale-matrix build failed it. `../diagnostics/glvbench.c`
 measures submission cost by vertex layout and transport (client arrays were fastest; VBO streaming with
 glBufferSubData per draw was about 50 times slower).
+
+## v7.5 additions (MAC-PERF-009)
+
+Profiled in the MTM-1 boss fight at Tormenta Island (many players and effects, MU Helper on) with `../machprof`
+(`stackprof` EBP walks; `MOD=` and a `-fno-omit-frame-pointer` build attribute mugl's own time; `incl.py` groups the
+samples by function). The body-shadow routine and the terrain height lookup it calls per corner were about 21% of the
+main thread's x86 samples, the terrain-decal routine and its tile fan about 14%, and after those the native mesh-draw
+loop (`md_run`, 16.7%).
+
+**Native body shadows (bit 2097152, `shadow.c`).** The shadow routine `0x012bc07a` projects each mesh's transformed
+vertices onto the ground: per corner a planar projection away from the model origin, then the client's terrain height
+lookup `0x016cc9e2` (bilinear over the height map, or a fixed height in world 0x91), then `glVertex3fv`. The 7 bytes
+after its `glBegin(GL_TRIANGLES)` (return address `0x012bc181`, so mugl sees the same caller) jump to `sh_entry`,
+which emits the mesh's vertices natively and resumes at the `glEnd` call `0x012bc58c`. The height lookup is ported in
+the client's operation order (its x87 float return is exact); the world and scene tests are read once per mesh. With
+bit 128 the vertices are appended straight into mugl's open batch (what `mugl_glVertex3fv` does). Bit 4194304 runs the
+original loop for every mesh with the `glVertex3fv`/`glEnd` slots on recorders and compares the vertex streams (or,
+direct, the appended vertices) bit for bit.
+
+**Native terrain decals (bit 8388608, `decal.c`).** Ground effects are drawn by `0x016cdd5f` as one
+`GL_TRIANGLE_FAN` per visible terrain tile under the effect (about 30,000 fans per frame in the boss fight), each
+through the tile routine `0x016d197d`. The routine entry (pinned `td_prologue`) jumps to `td_wrap`, a C port of both
+in the client's operation order: colour call, the client's own AngleMatrix (`0x00cff32a`) and texture bind
+(`0x0184acf6`), the tile visibility test (`0x016d2050`), texture coordinates rotated by the client's VectorRotate
+(`0x00d000ad`), corner heights, and the client globals the tile routine writes (`0x0b6b4eac`, `0x0b6b52e8..f0`,
+`0x0b6b5318`). With bit 128 the fans go to `mugl_glBegin`, a direct append and `mugl_glEnd`. Bit 16777216 runs each
+decal natively record-only (no bind), then the original through a trampoline with the colour/begin/texcoord/vertex/end
+slots on recorders, and compares the call streams and the globals.
+
+**Specialised mesh-draw append (bit 33554432).** `md_run_vtx` is `md_run`'s direct append split per attribute kind,
+with the constant colour/normal parts hoisted, so the corner loop has no per-corner mode or output tests. The 0x20 and
+0x200000 vertex paths still use `md_run`. Bit 64 verifies it (the verify path calls the same function).
+
+**forget_state without a 512 KB memset.** Every `glPopAttrib` cleared the whole 8 x 64K enable cache (about 3% of
+the samples). Entries now record when they leave 0 (in `mugl_glEnable/Disable`; `terrain.c` writes three fixed
+unit-0 caps, which are cleared explicitly), and only those are cleared; overflow of the 2,048-entry list falls back
+to the memset. Same cache contents, no mask bit.

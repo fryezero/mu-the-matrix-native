@@ -61,8 +61,8 @@ static int mstk_valid = 1; static int mmode_known = 1; static GLenum mmode = GL_
 static GLint saved_array_buffer; static GLuint bound_buf[2]; /* game's GL_ARRAY_BUFFER / GL_ELEMENT_ARRAY_BUFFER */ /* game's GL_ARRAY_BUFFER binding, unbound while our arrays are owned */
 static int merge_enabled = 1, batching_enabled = 1, nodraw;
 /* timing mode ("+time" in the mode file): QPC time spent inside selected real GL calls */
-static int time_mode; static long long tm_ticks[10]; static long tm_calls[10];
-static const char *tm_names[10] = {"draw", "arrays", "clientattrib", "popattrib", "enable", "bindtex", "swap", "pack", "meshloop", "meshtotal"};
+static int time_mode; static long long tm_ticks[11]; static long tm_calls[11];
+static const char *tm_names[11] = {"draw", "arrays", "clientattrib", "popattrib", "enable", "bindtex", "swap", "pack", "meshloop", "meshtotal", "shadow"};
 #define TIMED(slot, stmt) do { if (time_mode) { LARGE_INTEGER t0_, t1_; QueryPerformanceCounter(&t0_); stmt; QueryPerformanceCounter(&t1_); tm_ticks[slot] += t1_.QuadPart - t0_.QuadPart; tm_calls[slot]++; } else { stmt; } } while (0)
 
 typedef struct { GLfloat t[2], c[4], n[3], v[3]; } Vtx;
@@ -120,7 +120,7 @@ static void release_arrays(void)
     owned = 0; owned_fmt = 0; owned_ptr = NULL; owned_strided = 0;
 }
 
-static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6]; static void pace_stats(FILE *f); static void io_stats(FILE *f); static void ts_stats(FILE *f);
+static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static void sh_stats(FILE *f); static void td_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6]; static void pace_stats(FILE *f); static void io_stats(FILE *f); static void ts_stats(FILE *f);
 void mugl_sync_from(int idx);
 static void matrix_modified(void);
 #include "gpudiag.c"
@@ -134,10 +134,10 @@ static void stats_tick(void)
     if (qpf.QuadPart && st_frames) { double sl = (double)sleep_ticks / qpf.QuadPart; fprintf(st_file, "work=%.2fms sleep=%.2fms ", (secs - sl) * 1000 / st_frames, sl * 1000 / st_frames); }
     sleep_ticks = 0;
     if (xf_calls) { fprintf(st_file, "xform calls=%ld checked=%ld mismatches=%ld\n", xf_calls, xf_checked, xf_bad); xf_calls = 0; }
-    md_stats(st_file);
+    md_stats(st_file); sh_stats(st_file); td_stats(st_file);
     if (time_mode && qpf.QuadPart && st_frames) {
         fprintf(st_file, "time/frame:");
-        for (int k = 0; k < 10; k++) if (tm_calls[k]) fprintf(st_file, " %s=%.2fms(%ld)", tm_names[k], tm_ticks[k] * 1000.0 / qpf.QuadPart / st_frames, tm_calls[k] / st_frames);
+        for (int k = 0; k < 11; k++) if (tm_calls[k]) fprintf(st_file, " %s=%.2fms(%ld)", tm_names[k], tm_ticks[k] * 1000.0 / qpf.QuadPart / st_frames, tm_calls[k] / st_frames);
         static const char *fn[6] = {"T2F_C4F_N3F_V3F", "C4F_N3F_V3F", "T2F_N3F_V3F", "N3F_V3F", "T2F_V3F", "V3F"};
         fprintf(st_file, "\n  packed verts/frame:");
         for (int k = 0; k < 6; k++) if (st_fmtverts[k]) fprintf(st_file, " %s=%lld", fn[k], st_fmtverts[k] / st_frames);
@@ -545,9 +545,22 @@ static GLenum alpha_func; static GLclampf alpha_ref; static int alpha_ok;
 static GLenum depth_func; static int depth_func_ok;
 static int active_unit;                       /* tracked via glActiveTexture(ARB) wrapper */
 static int filter_enabled = 1;
+/* v7.5: forget_state() ran a 512 KB memset of cap_cache on every glPopAttrib (about 3% of the boss-fight samples).
+   Entries become non-zero only in mugl_glEnable/Disable (recorded here when they leave 0) and in terrain.c's three
+   unit-0 caps (cleared explicitly), so clearing the recorded entries leaves the same all-zero cache. */
+static unsigned cap_touched[2048]; static int cap_ntouched, cap_overflow;
+static void cap_touch(unsigned char *s)
+{
+    if (*s) return;
+    if (cap_ntouched < 2048) cap_touched[cap_ntouched++] = (unsigned)(s - &cap_cache[0][0]); else cap_overflow = 1;
+}
 static void forget_state(void)
 {
-    memset(cap_cache, 0, sizeof cap_cache); memset(tex_ok, 0, sizeof tex_ok);
+    if (cap_overflow) memset(cap_cache, 0, sizeof cap_cache);
+    else { for (int i = 0; i < cap_ntouched; i++) (&cap_cache[0][0])[cap_touched[i]] = 0;
+           cap_cache[0][GL_BLEND] = cap_cache[0][GL_CULL_FACE] = cap_cache[0][GL_ALPHA_TEST] = 0; }
+    cap_ntouched = 0; cap_overflow = 0;
+    memset(tex_ok, 0, sizeof tex_ok);
     blend_ok = depth_mask_ok = matrix_mode_ok = alpha_ok = depth_func_ok = 0;
 }
 static int unit_cap(GLenum cap)
@@ -570,7 +583,7 @@ void WINAPI mugl_glEnable(GLenum cap)
     unsigned char *s = cap_slot(cap);
     TR("E %x%s %p\n", cap, filter_enabled && s && *s == 2 && !passthrough ? " =" : "", __builtin_return_address(0));
     if (filter_enabled && s && *s == 2 && !passthrough) { st_skipped++; return; }
-    mugl_sync_from(-1); TIMED(4, R(glEnable, PFN1u)(cap)); if (s) *s = 2;
+    mugl_sync_from(-1); TIMED(4, R(glEnable, PFN1u)(cap)); if (s) { cap_touch(s); *s = 2; }
 }
 void WINAPI mugl_glDisable(GLenum cap)
 {
@@ -578,7 +591,7 @@ void WINAPI mugl_glDisable(GLenum cap)
     unsigned char *s = cap_slot(cap);
     TR("D %x%s %p\n", cap, filter_enabled && s && *s == 1 && !passthrough ? " =" : "", __builtin_return_address(0));
     if (filter_enabled && s && *s == 1 && !passthrough) { st_skipped++; return; }
-    mugl_sync_from(-1); TIMED(4, R(glDisable, PFN1u)(cap)); if (s) *s = 1;
+    mugl_sync_from(-1); TIMED(4, R(glDisable, PFN1u)(cap)); if (s) { cap_touch(s); *s = 1; }
 }
 typedef void (WINAPI *PFNbt)(GLenum, GLuint);
 void WINAPI mugl_glBindTexture(GLenum target, GLuint tex)
@@ -1107,9 +1120,11 @@ static int hp_peep(int on)
 }
 #include "xform.c"
 #include "meshdraw.c"
+#include "shadow.c"
+#include "decal.c"
 static void hp_set(int mask)
 {
-    if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192);   /* GL-level bits only (test programs) */
+    if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432);   /* GL-level bits only (test programs) */
     int f = hp_funcs(mask & 1), s = hp_sites((mask & 2) != 0), p = hp_peep((mask & 4) != 0);
     int x = xf_install((mask & 8) != 0, (mask & 16) != 0);
     if (st_file) fprintf(st_file, "xform %s%s: %d\n", (mask & 8) ? "on" : "off", (mask & 16) ? " (verify)" : "", x);
@@ -1118,6 +1133,11 @@ static void hp_set(int mask)
     int ml = md_light_install((mask & 256) != 0 && (mask & 96) != 0), mt = md_timer_install((mask & 512) != 0);
     if (st_file) fprintf(st_file, "meshdraw %s%s%s: %d light %s: %d timer %s: %d\n", (mask & 96) ? "on" : "off", (mask & 128) ? " direct" : "",
                          (mask & 64) ? " (verify)" : "", md, (mask & 256) && (mask & 96) ? "on" : "off", ml, (mask & 512) ? "on" : "off", mt);
+    int sh = sh_install((mask & 2097152) != 0, (mask & 4194304) != 0);
+    if (st_file) fprintf(st_file, "shadow %s%s%s: %d\n", (mask & 2097152) ? "on" : "off", (mask & 128) ? " direct" : "", (mask & 4194304) ? " (verify)" : "", sh);
+    md_fast = (mask & 33554432) != 0;
+    int td = td_install((mask & 8388608) != 0, (mask & 16777216) != 0);
+    if (st_file) fprintf(st_file, "decal %s%s%s: %d\n", (mask & 8388608) ? "on" : "off", (mask & 128) ? " direct" : "", (mask & 16777216) ? " (verify)" : "", td);
     pace_fix = (mask & 1024) != 0;
     ts_on_flag = (mask & 16384) != 0; ts_verify = (mask & 32768) != 0;
     qs_on_flag = (mask & 65536) != 0; qs_verify = (mask & 131072) != 0;
@@ -1139,16 +1159,18 @@ static void check_hotpatch_file(void)
     DWORD now = GetTickCount();
     if (now - hp_check < 1000) return;
     hp_check = now;
-    int want = 875951;   /* default (v7.4): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096 + 16384 terrain sort
-                          + 65536 quad batching + 262144 deferred client-array enables + 524288 off-screen culling
+    int want = 44916143; /* default (v7.5): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096 + 16384 terrain sort
+                          + 65536 quad batching + 262144 deferred client-array enables + 524288 off-screen culling (v7.4: 875951)
+                          + 2097152 native shadows + 8388608 native decals + 33554432 specialised mesh append
                           (v7.3: 23983; v7.1/v7.2: 7599; v7.0: 15). Bits: 16 = xform verify, 32 = meshdraw, 64 = meshdraw verify, 128 = meshdraw
                           direct batch append, 256 = meshdraw light precompute (with 32/64), 512 = mesh routine timer, 1024 = frame pacing fix,
                           2048 = zero-copy T2F_C4F_N3F_V3F batches, 4096 = strided batch arrays, 8192 = meshdraw unverified vertex paths,
                           16384 = terrain face sorting, 32768 = terrain sort offscreen verification, 65536 = sprite/grass quad batching,
                           131072 = quad batching offscreen verification, 262144 = deferred client-array enables, 524288 = off-screen batch
-                          culling, 1048576 = culling sample-count verification */
+                          culling, 1048576 = culling sample-count verification, 2097152 = native body shadows, 4194304 = shadow verification,
+                          8388608 = native terrain decals, 16777216 = decal verification, 33554432 = specialised mesh-draw append */
     FILE *f = fopen("C:\\mutools\\mugl-hotpatch.txt", "r");
-    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 2097151; fclose(f); }
+    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 67108863; fclose(f); }
     if (want != hp_state) { hp_set(want); hp_state = want; }
 }
 

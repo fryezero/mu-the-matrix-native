@@ -2,7 +2,9 @@
    Rosetta keeps x86 EAX..EDI in ARM x0..x7, so ESP = x4, EBP = x5. For each sample we scan the x86 stack
    for return addresses into [lo,hi) that follow a call instruction.
    usage: stackprof <pid> <thread-index|-1 busiest> <seconds> <lo-hex> <hi-hex> [interval_us]
-   output: "L <addr> n" (first return address = caller of the running leaf), "I <addr> n" (inclusive, any depth) */
+   output: "L <addr> n" (first return address = caller of the running leaf), "I <addr> n" (inclusive, any depth)
+   MOD=<hex address inside a PE module> (v7.5) also accepts return addresses inside that module (found by its MZ header
+   at a 64K boundary and SizeOfImage), so EBP walks continue through a frame-pointer build of mugl. */
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <stdio.h>
@@ -18,9 +20,12 @@ static void add(E *h, unsigned a) { unsigned i = (a * 2654435761u) >> 14 & (HS -
 static int cmp(const void *x, const void *y) { return (int)((E *)y)->n - (int)((E *)x)->n; }
 static task_t task; static unsigned lo, hi; static int ebpwalk;
 static unsigned char *code; /* snapshot of [lo,hi) */
+static unsigned lo2, hi2; static unsigned char *code2;
 static int is_ret(unsigned v) {
-    if (v < lo + 8 || v >= hi) return 0;
-    unsigned char *p = code + (v - lo);
+    unsigned char *p;
+    if (v >= lo + 8 && v < hi) p = code + (v - lo);
+    else if (code2 && v >= lo2 + 8 && v < hi2) p = code2 + (v - lo2);
+    else return 0;
     if (p[-5] == 0xE8) return 1;                                   /* call rel32 */
     if (p[-2] == 0xFF && ((p[-1] >> 3) & 7) == 2 && (p[-1] >> 6) == 3) return 1;   /* call reg */
     if (p[-2] == 0xFF && ((p[-1] >> 3) & 7) == 2 && (p[-1] >> 6) == 0 && (p[-1] & 7) != 4 && (p[-1] & 7) != 5) return 1; /* call [reg] */
@@ -35,6 +40,14 @@ int main(int argc, char **argv) {
     if (task_for_pid(mach_task_self(), pid, &task)) { fprintf(stderr, "task_for_pid failed\n"); return 1; }
     code = malloc(hi - lo);
     for (unsigned a = lo; a < hi; a += 4096) { mach_vm_size_t got = 0; if (mach_vm_read_overwrite(task, a, 4096, (mach_vm_address_t)(code + (a - lo)), &got)) memset(code + (a - lo), 0, 4096); }
+    if (getenv("MOD")) {
+        unsigned a = strtoul(getenv("MOD"), 0, 16) & ~0xffffu; unsigned char hb[4096];
+        for (int k = 0; k < 256; k++, a -= 0x10000) { mach_vm_size_t g = 0; if (!mach_vm_read_overwrite(task, a, 4096, (mach_vm_address_t)hb, &g) && hb[0] == 'M' && hb[1] == 'Z') break; }
+        unsigned pe = *(unsigned *)(hb + 0x3c); unsigned size = *(unsigned *)(hb + pe + 0x50);
+        lo2 = a; hi2 = a + size; code2 = malloc(size);
+        for (unsigned b = lo2; b < hi2; b += 4096) { mach_vm_size_t got = 0; if (mach_vm_read_overwrite(task, b, 4096, (mach_vm_address_t)(code2 + (b - lo2)), &got)) memset(code2 + (b - lo2), 0, 4096); }
+        fprintf(stderr, "module %x-%x\n", lo2, hi2);
+    }
     thread_act_array_t th; mach_msg_type_number_t nth; task_threads(task, &th, &nth);
     if (want < 0) {
         unsigned long long t0[512] = {0};

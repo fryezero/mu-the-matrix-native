@@ -92,11 +92,14 @@ yes 'hotpatch 7599 (v7.1 default)' mukit_hotpatch_valid 7599
 yes 'hotpatch 16383' mukit_hotpatch_valid 16383
 yes 'hotpatch 875951 (v7.4 default)' mukit_hotpatch_valid 875951
 yes 'hotpatch 2097151' mukit_hotpatch_valid 2097151
+yes 'hotpatch 44916143 (v7.5 default)' mukit_hotpatch_valid 44916143
+yes 'hotpatch 67108863' mukit_hotpatch_valid 67108863
 no 'hotpatch x'   mukit_hotpatch_valid x
-no 'hotpatch 2097152' mukit_hotpatch_valid 2097152
-eq 'v7.4 default keeps v7.0 bits' "$((MUKIT_HOTPATCH_DEFAULT & 31))" "$MUKIT_HOTPATCH_V70_BITS"
+no 'hotpatch 67108864' mukit_hotpatch_valid 67108864
+eq 'v7.5 default keeps v7.0 bits' "$((MUKIT_HOTPATCH_DEFAULT & 31))" "$MUKIT_HOTPATCH_V70_BITS"
 eq 'v7.1/v7.2 read their default' "$((MUKIT_HOTPATCH_DEFAULT & 16383))" 7599
 eq 'v7.3 reads its default' "$((MUKIT_HOTPATCH_DEFAULT & 65535))" 23983
+eq 'v7.4 reads its default' "$((MUKIT_HOTPATCH_DEFAULT & 2097151))" 875951
 yes 'mugl mode with v7.4 diagnostics' mukit_mugl_mode_valid full+vbo+time+finish
 
 echo '# pinned hashes (real pins are tested in a subshell without the test overrides)'
@@ -189,7 +192,7 @@ eq  'mugl deployed (v7.2)'       "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUG
 eq  'mscoree proxy deployed'     "$(mukit_sha256 "$G/mscoree.dll")" "$MUKIT_MSCOREE_PROXY_SHA256"
 eq  'mu-modes.txt'               "$(cat "$FB/drive_c/mutools/mu-modes.txt")" '960x600 1024x640 1280x800 1600x1000 1728x1080'
 eq  'mugl-mode.txt'              "$(cat "$FB/drive_c/mutools/mugl-mode.txt")" 'full+vbo'
-eq  'mugl-hotpatch.txt'          "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 875951
+eq  'mugl-hotpatch.txt'          "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
 eq  'LauncherOption rewritten'   "$(od -An -tx1 < "$G/LauncherOption.if" | tr -d ' \n')" "$(mukit_lopt_render 4 1 '' | od -An -tx1 | tr -d ' \n')"
 yes 'LauncherOption original kept' cmp -s "$G/LauncherOption.if.mukit-orig" "$FIX/LauncherOption.orig.if"
 yes 'launcher config written (missing in source)' grep -q 'v4.8' "$G/MuTheMatrix.exe.config"
@@ -221,7 +224,7 @@ ls "$G"/*.mukit-backup-* > /dev/null 2>&1 && bad 'no backups of kit-managed DLLs
 eq 'verify on fake bottle: no FAIL' "$rc" 0
 grep -q 'WARN  main.exe' "$TMPD/verify.log" && ok 'verify flags untested main.exe' || bad 'verify flags untested main.exe'
 grep -q 'v7.2 (pinned' "$TMPD/verify.log" && ok 'verify accepts kit mugl v7.2' || bad 'verify accepts kit mugl v7.2'
-grep -q 'PASS  mugl-hotpatch.txt *875951' "$TMPD/verify.log" && ok 'verify: 875951 is the norm' || bad 'verify: 875951 is the norm'
+grep -q 'PASS  mugl-hotpatch.txt *44916143' "$TMPD/verify.log" && ok 'verify: 44916143 is the norm' || bad 'verify: 44916143 is the norm'
 
 # Rollback to v7.0 and back; the hotpatch file written by an earlier kit (15) is upgraded.
 "${SETUP[@]}" --mugl-version v70 > "$TMPD/run6.log" 2>&1; rc=$?
@@ -233,10 +236,13 @@ grep -q 'v7.0 (pinned rollback' "$TMPD/verify70.log" && ok 'verify names v7.0 ro
 printf '15\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7.log" 2>&1
 eq 'back to v7.2' "$(mukit_sha256 "$G/opengl32.dll")" "$MUKIT_MUGL_V72_SHA256"
-eq 'old kit default 15 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 875951
+eq 'old kit default 15 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
 printf '7599\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7b.log" 2>&1
-eq 'old kit default 7599 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 875951
+eq 'old kit default 7599 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
+printf '875951\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+"${SETUP[@]}" > "$TMPD/run7a.log" 2>&1
+eq 'old kit default 875951 upgraded' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 44916143
 printf '23983\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 "${SETUP[@]}" > "$TMPD/run7c.log" 2>&1
 eq 'user mask 23983 (v7.3 default) kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 23983
@@ -247,7 +253,7 @@ printf '6575\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 eq 'user mask 6575 kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 6575
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify6575.log" 2>&1
 grep -q 'PASS  mugl-hotpatch.txt *6575 .*without the frame pacing fix' "$TMPD/verify6575.log" && ok 'verify accepts 6575' || bad 'verify accepts 6575'
-printf '875951\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+printf '44916143\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 
 echo '# Desktop launcher step (temporary HOME)'
 FH="$TMPD/home"; mkdir -p "$FH/Desktop"
@@ -332,7 +338,7 @@ mkdir -p "$MUKIT_BOTTLES_DIR/Foreign"; : > "$MUKIT_BOTTLES_DIR/Foreign/cxbottle.
 "${SETUP[@]}" --dry-run --mode-index 9 > /dev/null 2>&1 && bad 'refuse out-of-range index' || ok 'refuse out-of-range index'
 "${SETUP[@]}" --dry-run --ac-variant no-ac > /dev/null 2>&1 && bad 'no-ac TODO hook refuses' || ok 'no-ac TODO hook refuses'
 "${SETUP[@]}" --dry-run --mugl-version v69 > /dev/null 2>&1 && bad 'refuse unknown --mugl-version' || ok 'refuse unknown --mugl-version'
-"${SETUP[@]}" --dry-run --hotpatch-mask 2097152 > /dev/null 2>&1 && bad 'refuse bad --hotpatch-mask' || ok 'refuse bad --hotpatch-mask'
+"${SETUP[@]}" --dry-run --hotpatch-mask 67108864 > /dev/null 2>&1 && bad 'refuse bad --hotpatch-mask' || ok 'refuse bad --hotpatch-mask'
 "${SETUP[@]}" --dry-run --dll-source prebuilt --dll-dir "$TMPD/nonexistent" > /dev/null 2>&1 && bad 'refuse missing --dll-dir' || ok 'refuse missing --dll-dir'
 env -u MU_DLL_DIR "$KIT_DIR/setup-mu-mac.sh" --dry-run --bottle FakeKit --game-dir "$SRC" --dll-source prebuilt --modes '960x600' > /dev/null 2>&1 && bad 'prebuilt without --dll-dir is refused' || ok 'prebuilt without --dll-dir is refused'
 mkdir -p "$TMPD/baddlls"; cp "$DLLS"/* "$TMPD/baddlls/"; printf 'tampered' >> "$TMPD/baddlls/mugl-v72.dll"
