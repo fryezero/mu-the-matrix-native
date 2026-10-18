@@ -12,7 +12,7 @@ Portable (synthetic data authored here, no client bytes):
     setItemHotKeyAll with the client's render rectangles; the window
     registry placement (InventoryFrame SetAlign 11 + SetWindowSize with the
     window size, none for CharacterInfoFrame) and SetScale(83) below 700
-    pixels; menu ids (1 character, 4 inventory); IME composition; the item
+    pixels; menu ids (1 character, 14 inventory); IME composition; the item
     draws the host's item pass receives;
   * the installed skill.bmd decoder (world_gfx_game.c) on a synthetic file;
   * when native/gfx/mugfx is built (CI has no Rust): synthetic movies check
@@ -22,6 +22,9 @@ Portable (synthetic data authored here, no client bytes):
     movie, IME preedit and double-buffered shared surfaces.
 Private (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT and a built mugfx): the
 client's base movie set converts and the layer runs it on the real library.
+Private (MU_RECOVERY_INTEGRATION=1, the pinned captures and Unicorn):
+scripts/validate_gfx3.py runs the client routines and compares them with the
+layer, planted mistakes included.
 """
 import json
 import os
@@ -189,7 +192,9 @@ class BaseMovieWithStub(unittest.TestCase):
                                           '"Name":"Skill 1","Delay":0,"SkillUseType":0,"MasteryType":0}'))
         menu = next(l for l in log if '.InitMenuInfo ' in l)
         self.assertIn('"CharacterInfo":{"keyCode":1,"key":"C","label":"Character"}', menu)
-        self.assertIn('{"keyCode":5,"key":"","label":"GlobalText 2343"}', menu)      # GT 0x927, placeholder
+        self.assertIn('"System":{"keyCode":-1,"key":"","label":"System","subMenu":[{"keyCode":4,"key":"",'
+                      '"label":"GlobalText 3445"},{"keyCode":5,"key":"","label":"GlobalText 2343"}', menu)
+        self.assertIn('{"keyCode":14,"key":"I","label":"Inventory"}', menu)
         self.assertIn('{"keyCode":22,"key":"CTRL+T","label":"GlobalText 6459"}', menu)
         # image0 before the hotkeys, the stand-in square in GL row order (bottom-up rows).
         i_image = log.index('base set_image image0 512x512 opaque 256 rows 494..509 cols 2..17')
@@ -219,11 +224,11 @@ class BaseMovieWithStub(unittest.TestCase):
 
     def test_menu_ids_and_hotkeys(self):
         out, log = self.run_host('invoke', 0, '_level0', 'testCall', '["main","onHotKey",{"keyCode":1}]', 'print',
-                                 'invoke', 0, '_level0', 'testCall', '["main","onHotKey",{"keyCode":4}]', 'print',
+                                 'invoke', 0, '_level0', 'testCall', '["main","onHotKey",{"keyCode":14}]', 'print',
                                  'key', 27, 'print', 'key', 67, 'print')
         s = states(out)
         self.assertEqual((s[0]['character_open'], s[0]['inventory_open']), (1, 0))   # id 1: CharacterInfoFrame
-        self.assertEqual((s[1]['character_open'], s[1]['inventory_open']), (1, 1))   # id 4: inventory (layer choice)
+        self.assertEqual((s[1]['character_open'], s[1]['inventory_open']), (1, 1))   # id 14: InventoryFrame
         self.assertEqual((s[2]['character_open'], s[2]['inventory_open']), (0, 0))   # Esc closes them
         self.assertEqual(s[3]['character_open'], 1)                                  # C: layer key scan
         self.assertFalse(any('.onKeyUp' in l for l in log))   # menu ids are not key codes: no bar key handler
@@ -366,6 +371,26 @@ class InstalledBaseMovie(unittest.TestCase):
             self.assertEqual(s[-1]['inventory_open'], 1)
             draws = [json.loads(l) for l in r.stdout.splitlines() if l.startswith('{"item_draw"')]
             self.assertEqual(len(draws), 3)
+
+
+CAPTURES = (Path(os.environ.get('MU_CLIENT_TEXT', ROOT/'evidence/x86-text-capture-09/client-text.bin')),
+            Path(os.environ.get('MU_IMAGE_DATA', ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')))
+try:
+    import unicorn  # noqa: F401
+    HAVE_UNICORN = True
+except ImportError:
+    HAVE_UNICORN = False
+
+
+@unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and HAVE_UNICORN and CC and
+                     all(p.exists() for p in CAPTURES), 'needs MU_RECOVERY_INTEGRATION=1, Unicorn and the captures')
+class ClientRoutines(unittest.TestCase):
+    def test_validator_matches_the_client(self):
+        r = subprocess.run([sys.executable, str(ROOT/'scripts/validate_gfx3.py'), '--cases', '6', '--mutations',
+                            '--text', str(CAPTURES[0]), '--data', str(CAPTURES[1])],
+                           capture_output=True, text=True, timeout=900)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn('all cases match', r.stdout)
 
 
 if __name__ == '__main__':

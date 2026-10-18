@@ -34,7 +34,8 @@
  *     sends SetAlign + SetWindowSize(window size) unless the alignment is 9,
  *     and SetScale(83) below 700 pixels of height for most windows
  *     (handler +0x58 = scale / 100, used by the item pass);
- *   - menu id 1 toggles CharacterInfoFrame (0x00c714bd case 1 -> 0x00c733cf).
+ *   - menu id 1 toggles CharacterInfoFrame (0x00c714bd case 1 -> 0x00c733cf),
+ *     id 14 InventoryFrame (case 14 -> 0x00c73a2f).
  * Host choices (not client facts) are marked "layer choice". */
 #define _POSIX_C_SOURCE 200809L
 #define _DARWIN_C_SOURCE 1
@@ -998,15 +999,15 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                     snprintf(mv->path, sizeof mv->path, "%s", path);
             } else if (!strcmp(s, "onHotKey")) {
                 /* A menu button: keyCode is the client's menu id (0x00c71fc2),
-                 * dispatched by 0x00c714bd.  Id 1 toggles CharacterInfoFrame
-                 * (static); id 4 (Inventory submenu, first entry) opening the
-                 * inventory is a layer choice. */
+                 * dispatched by 0x00c714bd (static): id 1 toggles
+                 * CharacterInfoFrame (0x00c733cf), id 14 InventoryFrame
+                 * (0x00c73a2f); the other windows are not played. */
                 int id = (int)json_field(args, "keyCode", -1);
                 L->key_used = 1;
                 logf_(L, "game: menu id %d", id);
                 if (id == 1)
                     mu_gfx_layer_toggle(L, MU_GFX_CHARACTER);
-                else if (id == 4)
+                else if (id == 14)
                     mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
             } else if (!strcmp(s, "onSelectSkill")) {
                 L->key_used = 1;
@@ -1192,8 +1193,11 @@ static void window_sizes(mu_gfx_layer *L)
     }
 }
 
-/* InitMenuInfo as the main frame's handler builds it (0x00c71fc2, static):
- * keyCode is a menu id (dispatched by 0x00c714bd), key and label are
+/* InitMenuInfo as the main frame's handler builds it (0x00c71fc2, executed
+ * under Unicorn by scripts/validate_gfx3.py: groups, submenus, ids and
+ * GlobalText numbers equal): keyCode is a menu id (dispatched by
+ * 0x00c714bd; ids 13/14/15 toggle PetInventoryFrame, InventoryFrame,
+ * GremoryCase, static), key and label are
  * GlobalText strings (Data/Lang.mpr, encrypted: English stand-ins where
  * the entry's role is known, "GlobalText <n>" placeholders otherwise;
  * MU_GFX_GT_IDS=1 shows the numbers everywhere). */
@@ -1202,22 +1206,22 @@ static const menu_entry MENU[] = {
     {"IngameShop", 0, 0xd5c, "X", 0xd5d, "In-game shop"},
     {"CharacterInfo", 1, 0xd5e, "C", 0xd5f, "Character"},
     {"Inventory", -1, -1, "", 0xd61, "Inventory"},
-    {"Inventory/", 4, 0xd72, "I", 0xd75, "Inventory"},
-    {"Inventory/", 5, 0xd73, "", 0x927, NULL},
-    {"Inventory/", 7, 0xd77, "", 0x1021, NULL},
-    {"Inventory/", 8, 0xecc, "", 0xd4f, NULL},
+    {"Inventory/", 13, 0x10f6, "", 0x10b9, "Pet inventory"},      /* toggles PetInventoryFrame */
+    {"Inventory/", 14, 0xd60, "I", 0xd7d, "Inventory"},           /* toggles InventoryFrame (0x00c73a2f) */
+    {"Inventory/", 15, 0x118d, "", 0x118e, "Gremory case"},       /* toggles GremoryCase */
     {"Quest", -1, -1, "", 0xd63, "Quest"},
-    {"Quest/", 9, 0xd76, "", 0x3de, NULL},
-    {"Quest/", 10, 0xd78, "", 0xee2, NULL},
-    {"Quest/", 11, 0xd79, "", 0xee3, NULL},
-    {"Quest/", 12, 0xf4c, "", 0xf4d, NULL},
+    {"Quest/", 2, 0xd62, "", 0xd63, NULL},
+    {"Quest/", 0x16, -1, "CTRL+T", 0x193b, NULL},
     {"Community", -1, -1, "", 0xd64, "Community"},
-    {"Community/", 2, 0xd62, "", 0xd63, NULL},
-    {"Community/", 0x16, -1, "CTRL+T", 0x193b, NULL},
+    {"Community/", 9, 0xd76, "", 0x3de, NULL},
+    {"Community/", 10, 0xd78, "", 0xee2, NULL},
+    {"Community/", 11, 0xd79, "", 0xee3, NULL},
+    {"Community/", 12, 0xf4c, "", 0xf4d, NULL},
     {"System", -1, -1, "", 0xd65, "System"},
-    {"System/", 13, 0x10f6, "", 0x10b9, NULL},
-    {"System/", 14, 0xd60, "", 0xd7d, NULL},
-    {"System/", 15, 0x118d, "", 0x118e, NULL},
+    {"System/", 4, 0xd72, "", 0xd75, NULL},
+    {"System/", 5, 0xd73, "", 0x927, NULL},
+    {"System/", 7, 0xd77, "", 0x1021, NULL},
+    {"System/", 8, 0xecc, "", 0xd4f, NULL},
 };
 
 static size_t menu_item(char *out, size_t cap, const menu_entry *e, int gt_ids)
