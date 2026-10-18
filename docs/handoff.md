@@ -37,9 +37,11 @@ Dynamic lights, world tiles, frustum, decals and the 24-bit height choice are do
 Read [`research/client-objects.md`](research/client-objects.md). `reconstructed/objects`, `native/core/mu_objects.*`,
 `mu-terrain objects|render --objects` and `mu-viewer --terrain --objects` implement the `.obj` loader, record layout
 and object model table; `scripts/validate_objects.py` compares them with the client. The installed `.obj` files are
-refused by the client's own loader instructions (transformation past the protection boundary). Next, with the
-owner's approval only: a bounded live read of the decoded plaintext after `0x016d9ac5`'s second v12 call (local
-only, loaded through `--objects PLAIN_FILE`).
+refused by the client's own loader instructions (transformation past the protection boundary). The placements of
+World1/94/95/142 were read live from the object list of a client we started (`mac-play/diagnostics/objread`,
+`scripts/live_objects_to_plain.py`, finding section 6); the plaintexts stay local and load through
+`mu-world`/`mu-charsel --objects-dir` and `--objects FILE`. Next: other worlds (a character already standing
+there, under the game lock), object lighting and animation.
 
 ## Click-to-move (NATIVE-PATH-001)
 

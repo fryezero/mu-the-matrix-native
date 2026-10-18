@@ -111,9 +111,14 @@ bytes, and the return values. While building this, the validator caught a misrea
 "stale argument" for marker 17 came from a disassembly listing filtered by `grep`. The client pushes 4
 normally.
 
-**Marker positions: placeholder.** The markers come from `EncTerrain94.obj`, which the captured client code
-does not decode ([terrain finding](client-terrain.md), section 5). The native default for marker 1,
-**(13617, 12339, 169.5)**, is a **live fit**. The window-only capture shows the character on a pedestal object
+**Marker positions.** NATIVE-OBJECTS-001 read the object list of a running client
+([client-objects.md](client-objects.md), section 6, live single run). Marker 1 (type 14) is at
+**(13629.3008, 12338.5654, 164.4998)**, which is now the native default. Marker 2 (type 15) lies outside the map,
+and types 13, 16 and 17 are not in the file. The earlier fit, below, was 12.3 units off in x.
+
+The markers come from `EncTerrain94.obj`, which the captured client code does not decode
+([terrain finding](client-terrain.md), section 5). The previous native default for marker 1,
+**(13617, 12339, 169.5)**, was a **live fit**. The window-only capture shows the character on a pedestal object
 at a known screen position. With the verified camera, the ray through the centre of the pedestal disc meets the
 plane z = 169.5, the height the render forces (section 4), at that point. The rendered character overlaps the
 live one in body position and size (`renders/charsel/fit/overlay.png`). The other four markers are not needed
