@@ -18,7 +18,7 @@ MUKIT_LAUNCHER_EXE_SHA256=${MUKIT_LAUNCHER_EXE_SHA256:-c32e99ee98fc0773f850f9e76
 # Prebuilt mugl DLLs (supplied by the user with --dll-dir, never in this repository): v7.6 is the default
 # (MAC-PERF-010: native JPEG decode, faster map loads), v7.5 (MAC-PERF-009: native shadows, decals, mesh append); v7.2 (precise frame pacing waits, MAC-PERF-006),
 # v7.1 and v7.0 stay selectable as rollbacks.
-MUKIT_MUGL_V76_SHA256=${MUKIT_MUGL_V76_SHA256:-985d1e3cc9f47f1af1e87aac9b1a974cc5cae41443f8cb0fe5dd499d73565a25}
+MUKIT_MUGL_V76_SHA256=${MUKIT_MUGL_V76_SHA256:-8419f0915cbad211af06b7bb70e41f00b2cf39505ae0b46d708efbdd1baf6dc5}
 MUKIT_MUGL_V75_SHA256=${MUKIT_MUGL_V75_SHA256:-95e43657c677170e0ea7335ebb63f303d882367229e7a0b5e0849992e8f343b5}
 MUKIT_MUGL_V72_SHA256=${MUKIT_MUGL_V72_SHA256:-e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60}
 MUKIT_MUGL_V71_SHA256=${MUKIT_MUGL_V71_SHA256:-85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2}

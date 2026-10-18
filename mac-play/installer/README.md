@@ -242,7 +242,7 @@ Not in this kit but in the repo: the `MonitorCheck.exe` pre-launch display probe
 |---|---|
 | `main.exe` (tested client) | `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a` |
 | `MuTheMatrix.exe` (launcher IGCN 1.12.1.3) | `c32e99ee98fc0773f850f9e76b160a9a00c867f4d745bf9e66c4b15d7f74bc3e` |
-| mugl v7.6 (`mugl-v76.dll` in your `--dll-dir`, default) | `985d1e3cc9f47f1af1e87aac9b1a974cc5cae41443f8cb0fe5dd499d73565a25` |
+| mugl v7.6 (`mugl-v76.dll` in your `--dll-dir`, default) | `8419f0915cbad211af06b7bb70e41f00b2cf39505ae0b46d708efbdd1baf6dc5` |
 | mugl v7.5 (`mugl-v75.dll`) | `95e43657c677170e0ea7335ebb63f303d882367229e7a0b5e0849992e8f343b5` |
 | mugl v7.2 (`mugl-v72.dll`) | `e37cf5d52c990cf38c18137ba3faacb339bb0a949816297a40027fd7203d5a60` |
 | mugl v7.1 (`mugl-v71.dll`) | `85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2` |
