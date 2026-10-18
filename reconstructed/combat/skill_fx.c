@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "../record-math/record_math.h"
+#include "../movement/client_movement.h"
 
 static float f32bits(uint32_t bits)
 {
@@ -419,4 +420,481 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     }
     e->lifetime = e->lifetime - 1;
     return 1;
+}
+
+/* ---------------------------------------------------------------- particles */
+
+int mu_sfx_particle_create(mu_sfx_particle *p, int32_t type, const float position[3], const float angle[3],
+                           const float light[3], int32_t subtype, float scale, int32_t owner, int32_t arg8,
+                           const mu_sfx_env *env)
+{
+    memset(p, 0, sizeof *p);
+    int supported = owner < 0 && ((type == MU_SFX_BITMAP_FIRE && (subtype == 0 || subtype == 5)) ||
+                                  (type == MU_SFX_BITMAP_THUNDER && subtype == 0) ||
+                                  (type == MU_SFX_BITMAP_SPARK3 && (subtype == 0 || subtype == 1)));
+    if (!supported)
+        return 0;
+    /* common initialisation 0x015ae7e4..0x015aebed */
+    p->live = 1;
+    p->type = type;
+    p->tex_type = type;
+    p->subtype = subtype;
+    copy3(p->position, position);
+    copy3(p->start, position);
+    copy3(p->light, light);
+    p->scale = scale;
+    p->gravity = 0.0f;
+    p->lifetime = 2;
+    p->frame = 0;
+    p->owner = owner;
+    p->rotation = 0.0f;
+    p->moving = 1;
+    p->time = 0.0f;
+    p->arg8 = arg8;
+    copy3(p->angle, angle);
+    copy3(p->start_angle, angle);
+    p->velocity[0] = p->velocity[1] = p->velocity[2] = 0.0f;
+    p->owner_position[0] = p->owner_position[1] = p->owner_position[2] = 0.0f;
+    switch (type) {
+    case MU_SFX_BITMAP_FIRE:
+        /* subtype 0: 0x015ba5b3; subtypes 5 and 17: 0x015ba7e1 (the scale argument counts) */
+        p->lifetime = 24;
+        p->velocity[0] = 0.0f;
+        p->velocity[1] = -(float)(smod(env_rand(env), 16) + 32) * F_0_1;
+        p->velocity[2] = 0.0f;
+        if (subtype == 0)
+            p->scale = (float)(smod(env_rand(env), 64) + 128) * f32bits(0x3c23d70au);   /* 0.01 */
+        else
+            p->scale = (float)(smod(env_rand(env), 64) + 128) * scale * f32bits(0x3c23d70au);
+        p->rotation = (float)(env_rand(env) % 360);
+        break;
+    case MU_SFX_BITMAP_THUNDER:
+        /* 0x015bda75 */
+        p->scale = (float)(smod(env_rand(env), 8) + 6) * scale * F_0_1;
+        p->rotation = (float)(env_rand(env) % 360);
+        p->gravity = 20.0f;
+        break;
+    case MU_SFX_BITMAP_SPARK3:
+        /* subtype 1: 0x015dd4c7 */
+        if (subtype == 1) {
+            float m[12];
+            static const float burst[3] = {0.0f, -50.0f, 0.0f};
+            p->angle[0] = (float)(env_rand(env) % 360);
+            p->angle[1] = (float)(env_rand(env) % 360);
+            p->angle[2] = (float)(env_rand(env) % 360);
+            mu_angle_matrix(p->angle, m);
+            mu_vector_rotate(burst, m, p->velocity);
+        }
+        break;
+    default:
+        break;
+    }
+    return 1;
+}
+
+int mu_sfx_particle_move(mu_sfx_particle *p, float time_step)
+{
+    /* loop head 0x01616f12: records without life are erased */
+    if (p->lifetime <= 0 || !p->live)
+        return 0;
+    if (p->moving) {
+        /* MovePosition 0x012af52d */
+        float m[12], d[3];
+        mu_angle_matrix(p->angle, m);
+        mu_vector_rotate(p->velocity, m, d);
+        p->position[0] = p->position[0] + d[0];
+        p->position[1] = p->position[1] + d[1];
+        p->position[2] = p->position[2] + d[2];
+    }
+    switch (p->type) {
+    case MU_SFX_BITMAP_FIRE:
+        /* subtype 0: 0x01628302; 5: 0x016283f6 (also turns) */
+        p->gravity = p->gravity + f32bits(0x3b83126fu);   /* 0.004 */
+        p->scale = p->scale - f32bits(0x3d23d70au);       /* 0.04 */
+        if (p->subtype == 5)
+            p->rotation = p->rotation + 5.0f;
+        p->frame = (23 - p->lifetime) / 6;
+        p->position[2] = p->gravity * 10.0f + p->position[2];
+        break;
+    case MU_SFX_BITMAP_THUNDER:
+        /* 0x0162bee7 */
+        p->rotation = p->rotation + p->gravity;
+        break;
+    case MU_SFX_BITMAP_SPARK3:
+        /* 0x01650c17 / 0x01650c74 */
+        p->scale = p->scale - (p->subtype == 1 ? 2.0f : 0.5f);
+        if (F_0_2 > p->scale)
+            p->live = 0;
+        break;
+    default:
+        break;
+    }
+    /* tail 0x0168ee31 */
+    p->lifetime = p->lifetime - 1;
+    p->time = p->time + time_step;
+    return 1;
+}
+
+int mu_sfx_particle_render(const mu_sfx_particle *p, const mu_sfx_bitmap_info *bitmap, uint8_t mode,
+                           mu_sfx_sprite *sprite)
+{
+    if (mode == 1 && p->position[2] > 350.0f)
+        return 0;
+    if (mode == 2 && 300.0f >= p->position[2])
+        return 0;
+    memset(sprite, 0, sizeof *sprite);
+    float width = bitmap->width * p->scale, height = bitmap->height * p->scale;
+    sprite->additive = bitmap->components == 3;
+    sprite->bitmap = p->tex_type;
+    copy3(sprite->position, p->position);
+    copy3(sprite->light, p->light);
+    sprite->axes = 4;
+    sprite->width = width;
+    sprite->height = height;
+    sprite->rotation = p->rotation;
+    sprite->u = 0.0f;
+    sprite->v = 0.0f;
+    sprite->uw = 1.0f;
+    sprite->vh = 1.0f;
+    if (p->type == MU_SFX_BITMAP_FIRE) {
+        /* 0x01597adf (subtype 0: the angle's x as rotation) / 0x015978bb */
+        sprite->width = width * 0.25f;
+        sprite->rotation = p->subtype == 0 ? p->angle[0] : p->rotation;
+        sprite->u = (float)(p->frame % 4) * 0.25f;
+        sprite->uw = 0.25f;
+    }
+    return 1;
+}
+
+void mu_sfx_sprite_corners(const float camera[12], const mu_sfx_sprite *s, float corners[4][3], float uv[4][2])
+{
+    float eye[3];
+    for (int r = 0; r < 3; ++r)
+        eye[r] = ((camera[4 * r] * s->position[0] + camera[4 * r + 1] * s->position[1]) +
+                  camera[4 * r + 2] * s->position[2]) + camera[4 * r + 3];
+    float w = s->width * 0.5f, h = s->height * 0.5f;
+    if (s->rotation == 0.0f) {
+        const float sx[4] = {-1.0f, 1.0f, 1.0f, -1.0f}, sy[4] = {-1.0f, -1.0f, 1.0f, 1.0f};
+        for (int k = 0; k < 4; ++k) {
+            corners[k][0] = sx[k] < 0.0f ? eye[0] - w : eye[0] + w;
+            corners[k][1] = sy[k] < 0.0f ? eye[1] - h : eye[1] + h;
+            corners[k][2] = eye[2];
+        }
+    } else {
+        float a[3] = {0.0f, 0.0f, 0.0f}, m[12];
+        if (s->axes & 1)
+            a[0] = s->rotation;
+        if (s->axes & 2)
+            a[1] = s->rotation;
+        if (s->axes & 4)
+            a[2] = s->rotation;
+        mu_angle_matrix(a, m);
+        const float local[4][3] = {{-w, -h, 0.0f}, {w, -h, 0.0f}, {w, h, 0.0f}, {-w, h, 0.0f}};
+        for (int k = 0; k < 4; ++k) {
+            mu_vector_rotate(local[k], m, corners[k]);
+            corners[k][0] = corners[k][0] + eye[0];
+            corners[k][1] = corners[k][1] + eye[1];
+            corners[k][2] = corners[k][2] + eye[2];
+        }
+    }
+    uv[0][0] = s->u;
+    uv[0][1] = s->v;
+    uv[1][0] = s->u + s->uw;
+    uv[1][1] = s->v;
+    uv[2][0] = s->u + s->uw;
+    uv[2][1] = s->v + s->vh;
+    uv[3][0] = s->u;
+    uv[3][1] = s->v + s->vh;
+}
+
+/* ---------------------------------------------------------------- joints */
+
+static void joint_cross(mu_sfx_joint *j, const float m[12], int tail)
+{
+    /* corners 0..3 of a tail: pos + R(-w/2, 0, 0), R(w/2, 0, 0), R(0, 0, -w/2), R(0, 0, w/2) */
+    float half_neg = -j->scale * 0.5f, half = j->scale * 0.5f;
+    const float local[4][3] = {{half_neg, 0.0f, 0.0f}, {half, 0.0f, 0.0f}, {0.0f, 0.0f, half_neg},
+                               {0.0f, 0.0f, half}};
+    for (int c = 0; c < 4; ++c) {
+        float p[3];
+        mu_vector_rotate(local[c], m, p);
+        j->tails[tail][c][0] = j->position[0] + p[0];
+        j->tails[tail][c][1] = j->position[1] + p[1];
+        j->tails[tail][c][2] = j->position[2] + p[2];
+    }
+}
+
+int mu_sfx_joint_create(mu_sfx_joint *j, int32_t type, const float position[3], const float target_position[3],
+                        const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
+                        uint16_t skill, uint8_t byte10, uint16_t word13, int32_t arg14, const mu_sfx_env *env)
+{
+    int supported = (type == MU_SFX_BITMAP_JOINT_ENERGY && subtype == 1) ||
+                    (type == MU_SFX_BITMAP_JOINT_SPIRIT && subtype == 0);
+    if (!supported)
+        return 0;
+    /* common part 0x0153b0a6 */
+    j->live = 1;
+    j->type = type;
+    j->tex_type = type;
+    j->subtype = subtype;
+    j->render_type = 1;
+    j->faces = 3;
+    j->reached = 0;
+    j->key = key;
+    j->skill = skill;
+    j->velocity = 0.0f;
+    j->target = -1;
+    j->tail_update = 1;
+    j->field_64 = 0;
+    j->field_a24 = 0;
+    j->field_a25 = 0;
+    j->field_a3c = byte10;
+    j->field_a44 = word13;
+    copy3(j->position, position);
+    j->time = 0.0f;
+    copy3(j->start, j->position);
+    copy3(j->angle, angle);
+    j->brightness = 1.0f;
+    j->field_a54 = 0.0f;
+    j->moving = 1;
+    j->field_a60 = arg14;
+    j->light[0] = j->light[1] = j->light[2] = 1.0f;
+    j->jitter[0] = j->jitter[1] = j->jitter[2] = 0.0f;
+    if (target < 0)
+        copy3(j->target_position, target_position);   /* 0x0153b385: no target object */
+    j->target = target;
+    j->num_tails = 0;
+    {
+        /* the first tail, from the record's previous width (0x0153b676) */
+        float m[12];
+        mu_angle_matrix(j->angle, m);
+        joint_cross(j, m, 0);
+    }
+    switch (type) {
+    case MU_SFX_BITMAP_JOINT_ENERGY:
+        /* 0x0153e28e */
+        j->lifetime = 12;
+        j->scale = scale;
+        j->max_tails = 2;
+        j->velocity = 0.0f;
+        break;
+    case MU_SFX_BITMAP_JOINT_SPIRIT:
+        /* 0x01540809, subtype 0: 0x01540836 */
+        j->render_type = 3;
+        j->serial = env ? env->serial : 0;
+        j->velocity = 70.0f;
+        j->lifetime = 49;
+        j->scale = scale;
+        j->max_tails = 6;
+        if (j->skill == 0x7f5) {
+            /* 0x01540893: an additive purple variant */
+            j->render_type = 1;
+            j->light[0] = f32bits(0x3ea3d70au);   /* 0.32 */
+            j->light[1] = f32bits(0x3e2e147bu);   /* 0.17 */
+            j->light[2] = F_0_4;
+        }
+        break;
+    default:
+        break;
+    }
+    if (j->max_tails > MU_SFX_JOINT_TAILS)
+        j->max_tails = MU_SFX_JOINT_TAILS;   /* 0x0155361d */
+    return 1;
+}
+
+/* MoveHumming 0x012af2f1(position, angle, target, turn) */
+static void move_humming(const float position[3], float angle[3], const float target[3], float turn)
+{
+    float a = mu_create_angle(position[0], position[1], target[0], target[1]);
+    angle[2] = mu_turn_angle2(angle[2], a, turn);
+    float d[3] = {position[0] - target[0], position[1] - target[1], position[2] - target[2]};
+    float h = (float)sqrt((double)(d[0] * d[0] + d[1] * d[1]));
+    float b = mu_create_angle(position[2], h, target[2], 0.0f);
+    angle[0] = mu_turn_angle2(angle[0], 360.0f - b, turn);
+}
+
+/* 0x01553ba6(j, matrix, 0) */
+static void joint_tail_shift(mu_sfx_joint *j, const float m[12])
+{
+    j->num_tails = j->num_tails + 1;
+    if (j->num_tails > j->max_tails - 1)
+        j->num_tails = j->max_tails - 1;
+    for (int i = j->num_tails - 1; i >= 0; --i)
+        for (int c = 0; c < 4; ++c)
+            copy3(j->tails[i + 1][c], j->tails[i][c]);
+    joint_cross(j, m, 0);
+}
+
+int mu_sfx_joint_move(mu_sfx_joint *j, const mu_sfx_env *env, float time_step, int wall_scene, uint16_t wall,
+                      int is_hero_target)
+{
+    int supported = (j->type == MU_SFX_BITMAP_JOINT_ENERGY && j->subtype == 1) ||
+                    (j->type == MU_SFX_BITMAP_JOINT_SPIRIT && j->subtype == 0);
+    if (!supported)
+        return 0;
+    float m[12] = {0};
+    float d0 = j->position[0] - j->target_position[0];
+    float d1 = j->position[1] - j->target_position[1];
+    if (j->moving) {
+        mu_angle_matrix(j->angle, m);
+        if (!(j->velocity == 0.0f)) {
+            float v[3] = {0.0f, -j->velocity, 0.0f}, p[3];
+            mu_vector_rotate(v, m, p);
+            j->position[0] = j->position[0] + p[0];
+            j->position[1] = j->position[1] + p[1];
+            j->position[2] = j->position[2] + p[2];
+        }
+    }
+    const mu_sfx_object *t = env_object(env, j->target);
+    switch (j->type) {
+    case MU_SFX_BITMAP_JOINT_ENERGY: {
+        /* 0x0155ccae, subtype 1 */
+        j->velocity = j->velocity + 4.0f;
+        if (j->target < 0)
+            break;
+        float goal[3] = {0.0f, 0.0f, 0.0f};
+        if (t)
+            copy3(goal, t->position);
+        goal[2] = goal[2] + 120.0f;
+        move_humming(j->position, j->angle, goal, 10.0f);
+        float l = (float)(12 - j->lifetime) * F_0_1;
+        j->light[0] = l * F_0_4;
+        j->light[1] = l * f32bits(0x3f19999au);   /* 0.6 */
+        j->light[2] = l * 1.0f;
+        if (j->lifetime == 1) {
+            /* the arrival flash: CreateSprite(Shiny02 0x7f67, goal, (rand % 8 + 8) * 0.2, light, target, rand % 360) */
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_SPRITE;
+            c.type = 0x7f67;
+            c.angle[0] = (float)(env_rand(env) % 360);
+            c.scale = (float)(smod(env_rand(env), 8) + 8) * F_0_2;
+            copy3(c.position, goal);
+            copy3(c.light, j->light);
+            c.owner = j->target;
+            env_call(env, &c, NULL);
+        }
+        break;
+    }
+    case MU_SFX_BITMAP_JOINT_SPIRIT: {
+        /* 0x01561038, subtype 0: 0x0156105e */
+        if (j->scale == 80.0f) {
+            /* the wide spirit leaves a Laser01 (0x421) effect each step */
+            call_effect(env, NULL, 0x421, j->position, j->angle, j->light, 0, MU_SFX_NO_OWNER);
+            if (wall_scene && (wall & 0x100)) {
+                j->velocity = 0.0f;
+                j->lifetime = (int32_t)((float)j->lifetime / 5.0f);
+                goto tail;
+            }
+            if (j->lifetime % 15 == 0 && is_hero_target) {
+                mu_sfx_call c;
+                memset(&c, 0, sizeof c);
+                c.routine = MU_SFX_CALL_AREA_ATTACK;
+                c.type = j->skill;
+                c.scale = 150.0f;
+                copy3(c.position, j->position);
+                c.subtype = j->serial;
+                c.owner = -1;
+                env_call(env, &c, NULL);
+            }
+        }
+        if (j->target < 0)
+            break;
+        if (t)
+            copy3(j->target_position, t->position);
+        j->target_position[2] = j->target_position[2] + 80.0f;
+        float dist = (float)sqrt((double)(d0 * d0 + d1 * d1));
+        move_humming(j->position, j->angle, j->target_position, 10.0f);
+        if (!j->reached && j->velocity * 2.0f >= dist)
+            j->reached = 1;
+        j->jitter[0] = (float)(smod(env_rand(env), 32) - 16) * F_0_2 + j->jitter[0];
+        j->jitter[2] = (float)(smod(env_rand(env), 32) - 16) * F_0_8 + j->jitter[2];
+        j->angle[0] = j->angle[0] + j->jitter[0];
+        j->angle[2] = j->angle[2] + j->jitter[2];
+        j->jitter[0] = j->jitter[0] * f32bits(0x3f19999au);   /* 0.6 */
+        j->jitter[2] = j->jitter[2] * F_0_8;
+        float h = env_height(env, j->position[0], j->position[1]);
+        if (h + 100.0f > j->position[2]) {
+            j->jitter[0] = 0.0f;
+            j->angle[0] = -5.0f;
+        }
+        if (j->position[2] > h + 400.0f) {
+            j->jitter[0] = 0.0f;
+            j->angle[0] = 5.0f;
+        }
+        if (j->skill != 0x7f5) {
+            float l = (float)j->lifetime * F_0_1;
+            j->light[0] = l;
+            j->light[1] = l;
+            j->light[2] = l;
+            float dark = -(float)(smod(env_rand(env), 4) + 4) * f32bits(0x3c23d70au);   /* 0.01 */
+            const float shade[3] = {dark, dark, dark};
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_TERRAIN_LIGHT;
+            c.position[0] = j->position[0];
+            c.position[1] = j->position[1];
+            copy3(c.light, shade);
+            c.range = 4;
+            c.owner = MU_SFX_NO_OWNER;
+            env_call(env, &c, NULL);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+tail:
+    /* 0x015896fb */
+    if (j->tail_update)
+        joint_tail_shift(j, m);
+    j->time = j->time + time_step;
+    j->lifetime = j->lifetime - 1;
+    if (j->lifetime < 0)
+        j->live = 0;
+    return 1;
+}
+
+int mu_sfx_joint_render(const mu_sfx_joint *j, uint8_t mode, float color[3], int32_t *render_type,
+                        mu_sfx_joint_quad *quads, int max)
+{
+    if (!j->live || j->num_tails <= 0 || !j->faces)
+        return 0;
+    if (mode == 1 && j->field_64 == 2)
+        return 0;
+    if (mode == 2 && j->field_64 == 1)
+        return 0;
+    *render_type = j->render_type;
+    color[0] = j->light[0] * j->brightness;
+    color[1] = j->light[1] * j->brightness;
+    color[2] = j->light[2] * j->brightness;
+    int n = 0;
+    float span = (float)(j->max_tails - 1);
+    for (int i = 0; i < j->num_tails; ++i) {
+        float u0 = (float)(j->num_tails - i) / span;
+        float u1 = (float)(j->num_tails - (i + 1)) / span;
+        if ((j->faces & 1) && n < max) {
+            mu_sfx_joint_quad *q = &quads[n++];
+            copy3(q->position[0], j->tails[i][2]);
+            copy3(q->position[1], j->tails[i][3]);
+            copy3(q->position[2], j->tails[i + 1][3]);
+            copy3(q->position[3], j->tails[i + 1][2]);
+            q->uv[0][0] = u0; q->uv[0][1] = 1.0f;
+            q->uv[1][0] = u0; q->uv[1][1] = 0.0f;
+            q->uv[2][0] = u1; q->uv[2][1] = 0.0f;
+            q->uv[3][0] = u1; q->uv[3][1] = 1.0f;
+        }
+        if ((j->faces & 2) && n < max) {
+            mu_sfx_joint_quad *q = &quads[n++];
+            copy3(q->position[0], j->tails[i][0]);
+            copy3(q->position[1], j->tails[i][1]);
+            copy3(q->position[2], j->tails[i + 1][1]);
+            copy3(q->position[3], j->tails[i + 1][0]);
+            q->uv[0][0] = u0; q->uv[0][1] = 0.0f;
+            q->uv[1][0] = u0; q->uv[1][1] = 1.0f;
+            q->uv[2][0] = u1; q->uv[2][1] = 1.0f;
+            q->uv[3][0] = u1; q->uv[3][1] = 0.0f;
+        }
+    }
+    return n;
 }

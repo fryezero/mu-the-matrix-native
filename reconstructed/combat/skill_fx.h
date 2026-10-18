@@ -192,4 +192,165 @@ void mu_sfx_check_magic(mu_sfx_effect *e, const mu_sfx_env *env);
  * VectorRotate(direction, AngleMatrix(angle)) (rotate) or += direction. */
 void mu_sfx_effect_advance(mu_sfx_effect *e, int rotate);
 
+/* ------------------------------------------------------------------------
+ * Particles (CreateParticle 0x015ae7b0, MoveParticles 0x01616c80,
+ * RenderParticles 0x0159123f). The client keeps them in a list of shared
+ * records (0x0a3a9adc); the record fields used here: */
+typedef struct mu_sfx_particle {
+    uint8_t live;            /* +0x08 */
+    int32_t type;            /* +0x0c */
+    int32_t tex_type;        /* +0x10 the bitmap drawn */
+    int32_t subtype;         /* +0x14 */
+    float scale;             /* +0x18 */
+    float position[3];       /* +0x20 */
+    float angle[3];          /* +0x2c */
+    float light[3];          /* +0x38 */
+    int32_t lifetime;        /* +0x48 */
+    int32_t owner;           /* +0x50 object index, -1 none */
+    float owner_position[3]; /* +0x54 */
+    float rotation;          /* +0x60 degrees */
+    int32_t frame;           /* +0x64 sprite-sheet cell */
+    uint8_t moving;          /* +0x68 position += VectorRotate(velocity, AngleMatrix(angle)) each step */
+    float gravity;           /* +0x6c */
+    float velocity[3];       /* +0x70 */
+    float start[3];          /* +0x88 */
+    float start_angle[3];    /* +0x94 */
+    float time;              /* +0xac */
+    int32_t arg8;            /* +0xb0 CreateParticle argument 8 */
+} mu_sfx_particle;
+
+/* CreateParticle 0x015ae7b0(type, position, angle, light, subtype, scale,
+ * owner, arg8) for the supported kinds (verified): Fire01 0x7f3c subtypes 0
+ * and 5 (arrow and Fire Ball trails), Thunder01 0x7f2b subtype 0 (Energy
+ * Ball), Spark03 0x7f26 subtypes 0 and 1 (Energy Ball glow and impact).
+ * Without an owner (owner < 0). Returns 1 when supported. The wrapper
+ * 0x0168fafd may drop a particle in some worlds (rand() % [0x0a39d768]); the
+ * world-agnostic default keeps every particle. */
+int mu_sfx_particle_create(mu_sfx_particle *p, int32_t type, const float position[3], const float angle[3],
+                           const float light[3], int32_t subtype, float scale, int32_t owner, int32_t arg8,
+                           const mu_sfx_env *env);
+
+/* One logic step of MoveParticles 0x01616c80 for one record (verified):
+ * returns 0 when the client removes the record at the head of the step
+ * (LifeTime <= 0 or not live), else moves it (the motion flag, the kind's
+ * case, LifeTime - 1, time += time_step [0x01cf103c]) and returns 1. */
+int mu_sfx_particle_move(mu_sfx_particle *p, float time_step);
+
+/* The bitmap record RenderParticles reads (+0x204 width, +0x208 height,
+ * +0x214 component count; the loaders store the uploaded texture size). */
+typedef struct mu_sfx_bitmap_info {
+    float width, height;
+    int8_t components;
+} mu_sfx_bitmap_info;
+
+/* Arguments of RenderSprite 0x0184c39c(bitmap, position, width, height,
+ * light, rotation, u, v, u width, v height, rotation axes). */
+typedef struct mu_sfx_sprite {
+    int32_t bitmap;
+    float position[3];
+    float width, height;
+    float light[3];
+    float rotation;
+    float u, v, uw, vh;
+    int32_t axes;            /* bit 0 x, bit 1 y, bit 2 z: the axes the rotation turns about */
+    uint8_t additive;        /* blend wrapper 3 (ONE, ONE) for 3-component bitmaps, else 0x0184a990(0) */
+} mu_sfx_sprite;
+
+/* RenderParticles' per-record part (verified): skips the record in mode 1
+ * when z > 350 and in mode 2 when 300 >= z; otherwise the blend state and
+ * one RenderSprite call. Returns the number of sprites (0 or 1). */
+int mu_sfx_particle_render(const mu_sfx_particle *p, const mu_sfx_bitmap_info *bitmap, uint8_t mode,
+                           mu_sfx_sprite *sprite);
+
+/* RenderSprite's corners (static reading): the position is transformed by
+ * the camera matrix 0x0bdc5918 (row-major 3x4), half width / height
+ * w = width / 2, h = height / 2; rotation 0 gives (x-w, y-h), (x+w, y-h),
+ * (x+w, y+h), (x-w, y+h) at the eye z, otherwise (+-w, +-h, 0) turned by
+ * AngleMatrix of the rotation on the axes of `axes` and added to the eye
+ * position. uv[i] = (u, v), (u+uw, v), (u+uw, v+vh), (u, v+vh); drawn as
+ * GL_QUADS with glColor3fv(light) for 3-component bitmaps. */
+void mu_sfx_sprite_corners(const float camera[12], const mu_sfx_sprite *sprite, float corners[4][3],
+                           float uv[4][2]);
+
+/* ------------------------------------------------------------------------
+ * Joints (CreateJoint 0x0153b02c, MoveJoints 0x01589b06 -> MoveJoint
+ * 0x01556c26, RenderJoints 0x01589b56): ribbons of up to 50 cross-shaped
+ * tails that a moving head drags behind it. 500 records of 0xa64 bytes at
+ * 0x0a4fa4f0. */
+#define MU_SFX_JOINTS 500
+#define MU_SFX_JOINT_TAILS 50
+
+enum {
+    MU_SFX_CALL_SPRITE = 0x01692eb7,      /* CreateSprite(bitmap, pos, scale, light, owner, rotation, 0, 0) */
+    MU_SFX_CALL_AREA_ATTACK = 0x013bc25e  /* the hero's area attack request (skill, range, pos, ...) */
+};
+
+typedef struct mu_sfx_joint {
+    uint8_t live;              /* +0x000 */
+    int32_t type;              /* +0x004 bitmap */
+    int32_t tex_type;          /* +0x008 */
+    int32_t subtype;           /* +0x00c */
+    uint8_t render_type;       /* +0x010 1: (ONE, ONE), 2: 0x0184a990(1), 3: (ZERO, ONE_MINUS_SRC_COLOR), 4: (ONE_MINUS_SRC_COLOR, ONE) */
+    uint8_t faces;             /* +0x011 bit 0: the ribbon through corners 2 and 3, bit 1: through corners 0 and 1 */
+    float scale;               /* +0x014 ribbon width */
+    float position[3];         /* +0x018 */
+    float start[3];            /* +0x024 */
+    float angle[3];            /* +0x030 */
+    float light[3];            /* +0x048 */
+    int32_t target;            /* +0x054 object index (-1: none) */
+    float target_position[3];  /* +0x058 */
+    uint8_t field_64;          /* +0x064 */
+    int32_t num_tails;         /* +0x068 */
+    int32_t max_tails;         /* +0x06c */
+    float tails[MU_SFX_JOINT_TAILS][4][3]; /* +0x070: corners pos + R(-w/2,0,0), R(w/2,0,0), R(0,0,-w/2), R(0,0,w/2) */
+    int32_t lifetime;          /* +0xa00 */
+    uint8_t reached;           /* +0xa04 */
+    float velocity;            /* +0xa08 */
+    float jitter[3];           /* +0xa0c */
+    uint16_t key;              /* +0xa18 CreateJoint argument 8 */
+    uint16_t skill;            /* +0xa1a argument 9 */
+    uint8_t serial;            /* +0xa1c */
+    uint8_t field_a24, field_a25;
+    uint8_t tail_update;       /* +0xa26 */
+    uint8_t field_a3c;         /* +0xa3c argument 10 */
+    uint16_t field_a44;        /* +0xa44 argument 13 */
+    float time;                /* +0xa48 */
+    float brightness;          /* +0xa4c */
+    float field_a54;           /* +0xa54 */
+    uint8_t moving;            /* +0xa5c */
+    int32_t field_a60;         /* +0xa60 argument 14 */
+} mu_sfx_joint;
+
+/* CreateJoint 0x0153b02c(type, position, target position, angle, subtype,
+ * target, scale, key, skill, byte10, arg11, arg12, word13, arg14) on a
+ * record that keeps its previous contents (the client builds the first tail
+ * from the record's previous width +0x14 before it stores the new one; the
+ * record is persistent memory). Supported (verified): JointEnergy01 0x7fd8
+ * subtype 1 (Heal) and JointSpirit01 0x7fd3 subtype 0 (Evil Spirit), with
+ * arg12 = 0. Returns 1 when supported. */
+int mu_sfx_joint_create(mu_sfx_joint *j, int32_t type, const float position[3], const float target_position[3],
+                        const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
+                        uint16_t skill, uint8_t byte10, uint16_t word13, int32_t arg14, const mu_sfx_env *env);
+
+/* MoveJoint 0x01556c26 for the supported kinds (verified), with the homing
+ * turn MoveHumming 0x012af2f1 (CreateAngle / TurnAngle2 of reconstructed/
+ * movement) and the tail shift 0x01553ba6(j, matrix, 0). wall: the terrain
+ * wall attribute bit 0x100 at the head (0x016d348d) and the wall-test scene
+ * flag [0x01ec8ee7]; is_hero_target: the target is the hero's object. */
+int mu_sfx_joint_move(mu_sfx_joint *j, const mu_sfx_env *env, float time_step, int wall_scene, uint16_t wall,
+                      int is_hero_target);
+
+/* One textured quad of RenderJoints (GL_QUADS, uv per corner). */
+typedef struct mu_sfx_joint_quad {
+    float position[4][3];
+    float uv[4][2];
+} mu_sfx_joint_quad;
+
+/* RenderJoints' part for one record (verified): returns the number of quads
+ * written (two per tail segment and face bit), and the colour glColor3f and
+ * blend render type. mode: RenderJoints' argument (records with +0x64 == 2
+ * skip mode 1, with +0x64 == 1 skip mode 2). */
+int mu_sfx_joint_render(const mu_sfx_joint *j, uint8_t mode, float color[3], int32_t *render_type,
+                        mu_sfx_joint_quad *quads, int max);
+
 #endif
