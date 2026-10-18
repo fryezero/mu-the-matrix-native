@@ -13,6 +13,15 @@ Read [`research/client-login-scene.md`](research/client-login-scene.md). `mu_sce
 `renders/login/`). `objread` takes an optional globals output. Next: the sprite and particle systems (CreateSprite
 `0x01692eb7`, CreateParticle `0x0168fafd`, RenderSprites/RenderParticles), the vertex-light inputs behind the sky/ship
 brightness difference, and the exact command of the 1280×800 pale-terrain report (not reproduced here).
+## Combat effects (NATIVE-COMBAT-002)
+
+Read section 8 of [`research/client-combat.md`](research/client-combat.md). `reconstructed/combat/skill_fx.*` ports the
+older effect system (effects, particles, joints) and the hero's hit/death voices; `mu-world --combat` draws skills
+through it (keys 1..9, 0; `--hero-hp`). Compare with `scripts/validate_skill_fx.py --cases 3000` (about 35 s). Renders
+stay local (`~/Documents/mu-mac-tools/native/renders/combat2/`, script `native/scratch/combat2/render_all.sh`). Next:
+CreateSprite `0x01692eb7`, the swirl's smoke/spark particles and `0x7fd5` joints, Inferno's burst `0x013c07f4`,
+monster hurt/death sounds (model sound slots), RenderObject's effect draw executed, a live fight capture outside a PvP
+area.
 
 ## Combat (NATIVE-COMBAT-001)
 

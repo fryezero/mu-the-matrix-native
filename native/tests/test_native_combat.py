@@ -14,6 +14,11 @@ class 3, Monster10.bmd):
     removal 100 steps after the die packet, the demo respawn;
   * bows create arrows, skills take their actions and create their effects,
     a scripted click picks the monster, monsters hit back (red text);
+  * NATIVE-COMBAT-002: skills through the older effect pools (effects,
+    particles, joints, effect lights), Evil Spirit joints and area requests,
+    Hellfire/Inferno/Twisting Slash area effects, the hero's hit (0x134,
+    voice 0x69+) and death (0x142 at dead 15, voice 0x6c) through
+    SetPlayerShock/SetPlayerDie and the demo respawn at the home tile;
   * runs are deterministic.
 Private (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT): a Lorencia fight with the
 demo placement loads every damage bitmap and both effect models and kills.
@@ -203,8 +208,44 @@ class WeaponAndSkillTests(Build):
                   '--combat-script', '2:skill:4:spider')
         self.assertIn(starts(out['frames'])[0], (0xa1, 0xa2))              # SetPlayerMagic
         self.assertGreaterEqual(out['summary']['fx_created'], 1)           # MODEL_FIRE at the end of the attack
+        self.assertGreaterEqual(out['summary']['particles_created'], 1)    # its Fire01 trail
+        self.assertTrue(any(f['lights'] for f in out['frames']))
         out = run(self.root, self.placement, '--frames', '60', '--class', '1', '--combat-script', '2:skill:22:spider')
         self.assertEqual(starts(out['frames'])[0], 0x8c)                   # Cyclone
+
+    def test_area_skills(self):
+        out = run(self.root, self.placement, '--frames', '60', '--combat-weapon', 'staff', '--class', '0',
+                  '--combat-script', '2:skill:9:spider')
+        s = out['summary']
+        self.assertGreaterEqual(s['joints_created'], 8)                    # Evil Spirit: JointSpirit01 ribbons
+        self.assertGreaterEqual(s['area_requests'], 1)
+        self.assertIn(0x75, [f['sound'] for f in out['frames']])           # sEvil
+        self.assertEqual(s['unsupported'], 0)
+        for skill in (10, 14):                                             # Hellfire circles, Inferno ring
+            out = run(self.root, self.placement, '--frames', '60', '--combat-weapon', 'staff', '--class', '0',
+                      '--combat-script', f'2:skill:{skill}:spider')
+            self.assertGreaterEqual(out['summary']['fx_created'], 1, skill)
+            self.assertGreaterEqual(out['summary']['area_requests'], 1, skill)
+        out = run(self.root, self.placement, '--frames', '60', '--class', '1', '--combat-script', '2:skill:41:spider')
+        self.assertGreaterEqual(out['summary']['fx_created'], 1)           # the swirl effect 0x453
+        self.assertIn(0x73, [f['sound'] for f in out['frames']])           # sKnightSkill4
+
+    def test_hero_hit_death_and_respawn(self):
+        out = run(self.root, self.placement, '--frames', '260', '--hero-hp', '30', '--combat-seed', '11',
+                  '--combat-script', '2:attack:spider')
+        frames = out['frames']
+        self.assertGreaterEqual(out['summary']['hero_shocks'], 1)
+        self.assertEqual(out['summary']['hero_deaths'], 1)
+        dead = [i for i, f in enumerate(frames) if f['hero_dead']]
+        first = dead[0]
+        self.assertTrue(all(frames[i]['hero_action'] != 0x142 for i in dead if frames[i]['hero_dead'] < 15))
+        at15 = next(i for i in dead if frames[i]['hero_dead'] == 15)
+        self.assertEqual(frames[at15]['hero_action'], 0x142)               # SetPlayerDie, class 0 male
+        self.assertEqual(frames[at15]['sound'], 0x6c)                      # pMaleDie
+        self.assertLessEqual(frames[first]['hero_hp'], 0)
+        back = dead[-1] + 1
+        self.assertEqual((frames[back]['hero_dead'], frames[back]['hero_hp']), (0, 30))
+        self.assertEqual(out['walk'][back]['tile'], [120, 120])            # the demo respawn at home
 
     def test_click_picks_the_monster(self):
         out = run(self.root, self.placement, '--frames', '40', '--combat-script', '3:click:spider')
@@ -230,7 +271,7 @@ class InstalledTests(unittest.TestCase):
                                      '--combat-script', '5:click:bull fighter'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         summary = next(json.loads(l) for l in result.stdout.splitlines() if l.startswith('{"combat": true'))
-        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (10, 2))
+        self.assertEqual((summary['bitmaps_loaded'], summary['models_loaded']), (14, 9))
         self.assertEqual(summary['pick_hits'], 1)
         self.assertGreaterEqual(summary['kills'], 1)
 

@@ -1,4 +1,4 @@
-# Client-side combat: attacks, skills, hit reactions, death and damage text (NATIVE-COMBAT-001)
+# Client-side combat: attacks, skills, hit reactions, death and damage text (NATIVE-COMBAT-001, NATIVE-COMBAT-002)
 
 This milestone recovers what the client does in a fight and joins it to the native walk-around world:
 
@@ -7,6 +7,9 @@ This milestone recovers what the client does in a fight and joins it to the nati
 - skills: the action each skill takes and the visual its end of attack creates, for a representative set of classes;
 - monster reactions: the hit reaction, the death action, the fade and the removal, and the monster attack;
 - the floating damage text: colours, scales, the rise and fade, the font and its layout.
+
+NATIVE-COMBAT-002 (section 8) adds the older effect system that draws skills and projectiles (effects, particles,
+joints), the area skills, the hero's own hit and death, and the combat sounds.
 
 There is no server. Who hits, the damage, the death and the respawn are a clearly labelled demo; the client's side of
 each message is reconstructed.
@@ -317,7 +320,7 @@ per family), the regenerated header, and a Lorencia fight with installed data.
   latency of the damage and die messages, the respawn 125 steps after removal, the monsters' counter-attack (within 1.5
   tiles every 50 steps), the skill ranges (2 for melee skills, 6 otherwise), repeating the attack while the target
   lives, and the picking (a cylinder of 70 × 200 units around the actor).
-- **Viewer choices.** Projectiles fly straight at their static speed and disappear at or behind their target; arrows at
+- **Viewer choices** (NATIVE-COMBAT-001, replaced by the client's effect code in section 8). Projectiles fly straight at their static speed and disappear at or behind their target; arrows at
   60 units per step; the Fire01 model is laid along its flight and drawn with the additive flag `0x42`; the Thunder01
   billboard is 120 units and Heal a 220-unit ground quad, both additive.
 
@@ -347,15 +350,110 @@ software rasterizer; the same summary as the GL run). The window ran at 24.95 FP
   fixed latency.
 - **Effects.** MoveEffect's arrow branch, how each effect is drawn (blend, billboard size, model orientation), impact
   effects, CreateParticle/CreateJoint visuals and the skills handled in MoveCharacter's own switch (Evil Spirit,
-  Twister, Hellfire, Aqua Beam, Inferno, Twisting Slash) were not reduced. The per-step attack routine `0x013966ea` is
+  Twister, Hellfire, Aqua Beam, Inferno, Twisting Slash) were not reduced (NATIVE-COMBAT-002: most reduced, section 8). The per-step attack routine `0x013966ea` is
   mapped (it sets the AttackTime limit) but its skill cases are not.
 - **Skill data.** The skill table (names, ranges, mana) is in the encrypted Lang.mpr; skill names are inference.
   Whether `0x00b99205(class)` selects `0xa5` for a class, and the base-skill mapping `0x00bb1c32` for master skills,
   were not traced.
 - **Player hit and death actions** (`0x134..0x13a`, `0x142..0x147`) and the sounds of hits, attacks and deaths are
-  recorded only.
+  recorded only (NATIVE-COMBAT-002: reconstructed, section 8).
 - **Static readings** that were not executed: the attack case of MoveHero, the receive handlers, the dead counter, the
   alpha step, the thousands formatter and RenderSpriteUV's vertex part.
+
+## 8. The older effect system, area skills, the hero's hit and death, sounds (NATIVE-COMBAT-002)
+
+NATIVE-COMBAT-002 swaps the display choices of section 6 for the client's own effect code
+(`reconstructed/combat/skill_fx.*`) and adds the area skills, the hero's own hit and death, and the combat sounds.
+
+### Routines
+
+| Routine | Address | Status |
+|---|---|---|
+| CreateEffect, types `0x43b` (Arrow01) sub 0/2, `0x413` (Fire01) sub 1, `0x7f2b` (Thunder01) sub 0, `0x7f84` (Magic_Ground2) sub 1, `0x41c`/`0x41d` (Circle01/02), `0x457` (Inferno01), `0x421` (Laser01), `0x453`/`0x454` (Twisting Slash spawner and swirl), `0x419`/`0x41a` (Stone01/02) sub 0/1 | `0x013c0f19` | verified |
+| MoveEffect, the same types: prologue (Luminosity `(rand%4+7)*0.1`), owner StartPosition, type cases, the effect-model animation, the rotated move `0x0150df8e`, lifetime | `0x0142fd09` | verified (the PlayAnimation call is compared as a call) |
+| CheckClientMagic (2D distance ≤ 100 to the owner, LifeTime 1, impact: 2 stones for Fire Ball, a Spark03 burst for Energy Ball) | `0x013be199` | verified |
+| CheckClientArrow (an arrow ends within 100 of a live visible character) | `0x013bd374` | static |
+| Heal's three JointEnergy01 ribbons | `0x0142d83b` | verified (inside MoveEffect) |
+| CreateParticle `0x7f3c` sub 0/5, `0x7f2b` sub 0, `0x7f26` sub 0/1 (core of the wrapper `0x0168fafd`) | `0x015ae7b0` | verified |
+| MoveParticles, those types (time step 0.1, gravity, frame strips, scale fade) | `0x01616c80` | verified (per-particle part from `0x01616f7c`) |
+| RenderParticles → RenderSprite (strip UVs, rotation, additive) | `0x0159123f`, `0x0184c39c` | verified (per-particle part from `0x015912e9`) |
+| CreateJoint `0x7fd8` sub 1 (Heal), `0x7fd3` sub 0 (Evil Spirit, also the purple `0x7f5` variant) | `0x0153b02c` | verified |
+| MoveJoint (MoveHumming `0x012af2f1`, tail shift `0x01553ba6`, wide spirit's Laser01 per step and area request every 15 steps, the wall stop) | `0x01556c26` | verified |
+| RenderJoints (500-record pool, tail quads, UVs, render type and blend) | `0x01589b56` | verified |
+| RenderEffects → RenderObject → RenderBody (flags 2 or `0x82` when `+0x80 == 0x80`, alpha `+0xdc`, BlendMesh `+0x74`, BlendMeshLight `+0xa8`, UV scroll `+0xac/+0xb0`) | `0x015181fa`, `0x016d4fe4` | static |
+| Area skills in MoveCharacter's AttackTime switch: Evil Spirit 9, Hellfire 10, Aqua Beam 12, Inferno 14, Twisting Slash 41, Rageful Blow 42 | `0x013a90c0` → `0x013acd62`, `0x013abb52`, `0x013ac8a2`, `0x013acc46`, `0x013aba81`, `0x013a94a4` | static |
+| Inferno ring | `0x0142da3e(pos, 0)` | static |
+| Area attack request (skill, range, position, serial, key, 0, 5, 0) | `0x013bc25e` | static (reported as a call; the native demo applies damage in range) |
+| SetPlayerShock, Player branch (actions `0x134/0x136/0x138/0x13a`, voices) | `0x0138f92f` | verified |
+| SetPlayerDie, Player branch (actions `0x142/0x144..0x147`, voices, `+0x3324 = 0.001`) | `0x01393a61` | verified |
+| SetPlayerAttack's sound tail (bow `0x55`, crossbow `0x56`, staff `0x76`, light sword `0x3e`, swords `0x3c+rand%2`; world `0x49` silent) | `0x01393924` | verified |
+| Class check (class nibbles 2, 5, 7, 8, 9, 12, 14) | `0x00b99205` | verified (inside the voice family) |
+
+Lifetimes (verified): arrow 30, Fire Ball 60, Energy Ball 20, Heal 20, Circle01 45, Circle02 40, Inferno01 15, Laser01
+1, Twisting Slash spawner 5 and swirl 25, stones `rand%16+32`. Fire Ball (and the flare `0x7ef7`) decrements the
+lifetime before the test; the others test first (an arrow lives 31 steps). Hellfire's Circle01 and Inferno01, when the
+hero owns them, take the hero's skill serial and request an area attack of range 300 and 400; Evil Spirit's wide
+spirits request one of range 150 every 15 steps.
+
+### Verification
+
+`scripts/validate_skill_fx.py --cases 3000` (Unicorn, `scripts/actor_machine.py` strict regions, the x87 and libm
+helpers of `scripts/validate_combat.py`), single private run, 34 s; it reports the SHA-256 of 12 routine bodies (for
+example CreateEffect `55df5b8b…`, MoveEffect `972e9d6b…`, CreateParticle `c0c5836e…`, RenderSprite `58680480…`):
+
+| Family | Client routine | Cases | Equal | Negative control (disagreements) |
+|---|---|---:|---:|---|
+| effect_create | `0x013c0f19` (15 type/subtype pairs × 200) | 3000 | 3000 | arrow speed 60: 400; Energy Ball not lifted: 199 |
+| effect_move | `0x0142fd09` | 3000 | 3000 | decrement first: 244; unrotated move: 2582 |
+| check_magic | `0x013be199` (217 hits) | 3000 | 3000 | 3D distance: 193 |
+| particle_create | `0x015ae7b0` | 3000 | 3000 | Fire01 scaled by the argument: 484 |
+| particle_move | `0x01616c80` | 3000 | 3000 | rise without the ×10: 706 |
+| particle_render | `0x0159123f` + `0x0184c39c` | 3000 | 3000 | full-width strip: 972 |
+| joint_create | `0x0153b02c` | 3000 | 3000 | first tail from the new width: 2574 |
+| joint_move | `0x01556c26` | 3000 | 3000 | forward along +y: 2214 |
+| joint_render | `0x01589b56` | 3000 | 3000 | UVs over the drawn tails: 849 |
+| player_voice | `0x0138f92f`, `0x01393a61`, `0x01393924` | 3000 | 3000 | always action 5: 630 |
+
+The ignored report is `evidence/native-combat/report-skillfx-01.json` (SHA-256 `eab5ebc7…d539`). Portable checks:
+`reconstructed/combat/test_skill_fx.py` (worked examples: the bow offset, the arrow's 31 steps, Fire Ball's 60, Energy
+Ball's light, the hit check, the area lifetimes, Fire01's strip and rise, Spark03's scale death, the joints' first
+tail and ribbon UVs, the voices and swing sounds) and `native/tests/test_native_combat.py` (area skills, the hero's hit,
+death at Dead 15 and respawn); private: the Unicorn comparison (60 cases per family).
+
+### Native module and mu-world
+
+- **Client behaviour.** `native/core/mu_combat.*` keeps the three pools (200 effects, 2048 particles, 500 joints) and
+  moves them each logic step in the client order (effects, joints, particles); the end of the attack creates what the
+  client's blocks create (arrows, Fire01, Thunder01, Magic_Ground2, Evil Spirit's eight spirits, Hellfire's circles,
+  Inferno's ring and Inferno01, the Twisting Slash spawner) with the client's sounds; effect lights go to the terrain
+  light grid (AddTerrainLight `0x016cacfc`); effect models draw with RenderObject's flags, alpha, blend mesh and UV
+  scroll; particles as RenderSprite quads; joints as their tail quads with the client blend of each render type. The
+  hero's hits and death run SetPlayerShock/SetPlayerDie (action, voice; death from Dead 15). Sounds go through
+  `reconstructed/audio` (SND_Play by the sound table index): swings, bow and crossbow, casts (`0x42`, `0x75`, `0x77`,
+  `0x73`, `0x95`), the hero's voices.
+- **Demo.** A projectile's damage arrives at its hit check (40-step deadline), area damage at the client's area
+  requests within their range, Twisting Slash within 250 units; the hero's 400 hit points (`--hero-hp`), and a
+  respawn at the home tile 100 steps after death.
+- **Viewer choices.** Effect models play their first action at the client speed; Triple Shot's spread of ±8 degrees
+  is static.
+
+Keys 7, 8, 9, 0 cast Evil Spirit (9), Hellfire (10), Inferno (14) and Cyclone (22) besides keys 1..6.
+
+**Local renders** (`~/Documents/mu-mac-tools/native/renders/combat2/`, not committed; contact sheet, MP4 with the
+session's sound): `dw-spells` (Fire Ball with its fire trail and stones, Energy Ball, Evil Spirit), `dw-area`
+(Hellfire's pentagram and fire, Inferno's ring), `elf-bow` (Triple Shot fire trails, Heal's blue ribbons, arrows),
+`dk-swirl` (Twisting Slash, Cyclone), `hero-death` (hits, voice, death pose, respawn).
+
+### Not established (NATIVE-COMBAT-002)
+
+- **Live comparison.** None: Nighty stands in a PvP area, so no fight was run.
+- **CreateSprite** `0x01692eb7` (Heal's flash, the swirl's flare) is not reconstructed; the swirl's smoke and spark
+  particles (`0x7f5a` sub 3, `0x7f25`) and `0x7fd5` joints, the stones' Fire01 subtypes 1..3 and Inferno's burst
+  `0x013c07f4` are counted as unsupported and not drawn.
+- **Monster sounds** (hurt and death come from the model's sound slots from `+0xb6`) are not wired; skeleton-form and
+  transformed-ring voices are excluded; the arrow skills `0x7e7`, `0x7fc`, `0x7fd`, `0x2d8` are not reduced.
+- **Static readings**: RenderObject's draw of effect models, the swirl's draw of the caster's weapon
+  (`0x015332ac`), CheckClientArrow, the AttackTime switch cases and the Inferno ring.
 
 ## Reproduce
 
@@ -363,6 +461,7 @@ software rasterizer; the same summary as the GL run). The window ran at 24.95 FP
 make -C reconstructed/combat && make -C native && make -C native world
 ./tools/python/bin/python scripts/combat_static.py --emit-c reconstructed/combat/attack_speed_table.h
 ./tools/python/bin/python scripts/validate_combat.py --cases 3000 --heavy-cases 300 --output /new/local/report.json
+./tools/python/bin/python scripts/validate_skill_fx.py --cases 3000 --output /new/local/report-skillfx.json
 python3 -m unittest discover -s reconstructed/combat -p 'test_*.py'
 python3 -m unittest native.tests.test_native_combat
 ```

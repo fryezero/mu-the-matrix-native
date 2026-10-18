@@ -1,0 +1,368 @@
+#ifndef MU_SKILL_FX_H
+#define MU_SKILL_FX_H
+
+/* The client's older effect system for skills and projectiles
+ * (NATIVE-COMBAT-002, docs/research/client-combat.md section 8).
+ *
+ * Three pools carry what a skill shows:
+ *   - effects: CreateEffect 0x013c0f19 into 200 records of 0x3d8 bytes at
+ *     0x0a4ca430, moved once per logic step by MoveEffect 0x0142fd09 (from
+ *     MoveEffects 0x0150ddb1) and drawn by RenderEffects 0x015181fa (model
+ *     types through RenderObject 0x016d4fe4; bitmap types draw nothing
+ *     themselves, they emit particles and joints while they move);
+ *   - particles: CreateParticle 0x0168fafd / 0x015ae7b0 (a list of shared
+ *     records at 0x0a3a9adc), MoveParticles 0x01616c80, RenderParticles
+ *     0x0159123f (camera-facing sprites);
+ *   - joints: CreateJoint 0x0153b02c (500 records of 0xa64 bytes at
+ *     0x0a4fa4f0), ribbons that chase a target.
+ *
+ * Authored C ports; addresses are the routines in the pinned restored text
+ * (capture09). Every client operation is binary32 SSE: build with
+ * -ffp-contract=off. Functions marked verified equal the client's
+ * instructions under Unicorn (scripts/validate_skill_fx.py); the rest are
+ * static readings and say so.
+ *
+ * Calls the client makes into other subsystems (AddTerrainLight,
+ * CreateParticle, CreateJoint, nested CreateEffect, the animation player,
+ * the projectile hit checks, DeleteEffect) are reported through the
+ * environment's call hook in client order, so that a caller can run them and
+ * a validator can compare them with the client's. */
+
+#include <stddef.h>
+#include <stdint.h>
+
+/* ------------------------------------------------------------------------
+ * Client indices. Models are AccessModel indices (Data\Skill\...), bitmaps
+ * LoadBitmap indices (Data\Effect\...), both static readings of the loaders
+ * 0x018202b4 and 0x0185baac. */
+enum {
+    MU_SFX_MODEL_STONE1 = 0x419,      /* Skill\Stone01.bmd */
+    MU_SFX_MODEL_STONE2 = 0x41a,      /* Skill\Stone02.bmd */
+    MU_SFX_MODEL_CIRCLE = 0x41c,      /* Skill\Circle01.bmd (Hellfire) */
+    MU_SFX_MODEL_CIRCLE_LIGHT = 0x41d,/* Skill\Circle02.bmd */
+    MU_SFX_MODEL_FIRE = 0x413,        /* Skill\Fire01.bmd */
+    MU_SFX_MODEL_ARROW = 0x43b,       /* Skill\Arrow01.bmd */
+    MU_SFX_MODEL_INFERNO = 0x457,     /* Skill\Inferno01.bmd */
+    MU_SFX_MODEL_LASER = 0x421,       /* Skill\Laser01.bmd (Evil Spirit's wide spirits leave one per step) */
+    MU_SFX_TWISTING_SLASH = 0x453,    /* no model: spawns one swirl piece per step */
+    MU_SFX_TWISTING_SWIRL = 0x454,    /* draws the caster's weapon (RenderEffects 0x015332ac) */
+    MU_SFX_BITMAP_THUNDER = 0x7f2b,   /* Effect\Thunder01.jpg (Energy Ball) */
+    MU_SFX_BITMAP_SPARK3 = 0x7f26,    /* Effect\Spark03.jpg */
+    MU_SFX_BITMAP_FIRE = 0x7f3c,      /* Effect\Fire01.jpg */
+    MU_SFX_BITMAP_MAGIC_GROUND2 = 0x7f84, /* Effect\Magic_Ground2.jpg (Heal) */
+    MU_SFX_BITMAP_JOINT_SPIRIT = 0x7fd3,  /* Effect\JointSpirit01.jpg (Evil Spirit) */
+    MU_SFX_BITMAP_JOINT_ENERGY = 0x7fd8   /* Effect\JointEnergy01.jpg (Heal) */
+};
+
+/* Client routines reported through the call hook. */
+enum {
+    MU_SFX_CALL_TERRAIN_LIGHT = 0x016cacfc,   /* AddTerrainLight(x, y, light, range, frame light 0x0b9f5430) */
+    MU_SFX_CALL_PARTICLE = 0x0168fafd,        /* CreateParticle(bitmap, pos, angle, light, sub, scale, owner, 0) */
+    MU_SFX_CALL_JOINT = 0x0153b02c,           /* CreateJoint(bitmap, pos, target pos, angle, sub, target, scale, ...) */
+    MU_SFX_CALL_EFFECT = 0x013c0eaa,          /* CreateEffect(type, pos, angle, light, sub, owner, ...) */
+    MU_SFX_CALL_ANIMATION = 0x012b4dd3,       /* model PlayAnimation(&frame, &prior, &prior action, speed, pos, angle) */
+    MU_SFX_CALL_CHECK_ARROW = 0x013bd374,     /* the arrow hit check (CheckClientArrow) */
+    MU_SFX_CALL_CHECK_MAGIC = 0x013be199,     /* the spell hit check (CheckClientMagic) */
+    MU_SFX_CALL_DELETE = 0x0142eea4,          /* DeleteEffect(o) */
+    MU_SFX_CALL_SERIAL = 0x01d1df18,          /* ++[[0x01d1df18] + 0x2dec], the hero's skill serial */
+    MU_SFX_CALL_QUAKE = 0x0bdb588c,           /* the earthquake offset global (Hellfire), value in scale */
+    MU_SFX_CALL_AREA = 0x013bc25e             /* the hero's area attack request(skill, range, pos, serial, key, 0, 5, 0) */
+};
+
+#define MU_SFX_EFFECTS 200
+#define MU_SFX_EFFECT_BYTES 0x3d8
+#define MU_SFX_NO_OWNER (-1)
+
+/* One effect record: the OBJECT fields the effect routines here read or
+ * write, client offsets in the comments. owner is an index into the
+ * environment's object table (the client stores an OBJECT pointer at
+ * +0x34c; -1 = none). */
+typedef struct mu_sfx_effect {
+    uint8_t live;            /* +0x00 */
+    uint8_t flag5;           /* +0x05 (CreateEffect stores 1) */
+    uint8_t visible;         /* +0x0b (RenderEffects' frustum test) */
+    uint8_t flag_c;          /* +0x0c */
+    uint16_t action;         /* +0x2a current action (0xff: animation done) */
+    uint16_t prior_action;   /* +0x2c */
+    uint8_t client_hit;      /* +0x3b the client tests the hit itself (CreateEffect info byte 4) */
+    uint16_t skill;          /* +0x3c (info word 2) */
+    uint8_t info6;           /* +0x45 (info byte 6) */
+    uint16_t key;            /* +0x54 owner key (info word 0) */
+    uint16_t serial;         /* +0x56 arrows: the hero's skill serial byte */
+    int32_t type;            /* +0x5c */
+    int32_t subtype;         /* +0x60 */
+    int32_t field_68;        /* +0x68 (CreateEffect stores -1) */
+    int32_t lifetime;        /* +0x6c */
+    int32_t blend_mesh;      /* +0x74 the mesh drawn bright (-1 none) */
+    int32_t field_78;        /* +0x78 */
+    int32_t field_80;        /* +0x80 */
+    float scale;             /* +0xa0 */
+    float scale_arg;         /* +0xa4 */
+    float blend_light;       /* +0xa8 brightness of the blend mesh */
+    float blend_u, blend_v;  /* +0xac, +0xb0 texture scroll of the blend mesh */
+    float velocity;          /* +0xbc animation speed */
+    float gravity;           /* +0xc8 */
+    float frame;             /* +0xd0 animation frame */
+    float prior_frame;       /* +0xd4 */
+    float alpha;             /* +0xdc */
+    float light[3];          /* +0xec */
+    float direction[3];      /* +0xf8 motion per step, in the effect's frame */
+    float position[3];       /* +0x158 */
+    float angle[3];          /* +0x164 degrees */
+    float start[3];          /* +0x1d0 the owner's position on the ground */
+    int32_t owner;           /* +0x34c */
+    uint16_t field_364;      /* +0x364 (info word 8) */
+    int32_t field_58;        /* +0x58 (info dword 0x18) */
+    int32_t field_2e4;       /* +0x2e4 (info dword 0x1c) */
+} mu_sfx_effect;
+
+/* CreateEffect's info block (argument 8, 0x20 bytes). */
+typedef struct mu_sfx_info {
+    uint16_t key;            /* +0x00 -> +0x54 */
+    uint16_t skill;          /* +0x02 -> +0x3c */
+    uint16_t word4;          /* +0x04: low byte -> +0x3b; arrows of 0x7e7, 0x7fc, 0x7fd, 0x7fe, 0x2d7 skip the bow offset */
+    uint16_t word6;          /* +0x06: low byte -> +0x45 */
+    uint16_t field8;         /* +0x08 -> +0x364 */
+    int32_t field18;         /* +0x18 -> +0x58 */
+    int32_t field1c;         /* +0x1c -> +0x2e4 */
+} mu_sfx_info;
+
+/* What the routines read of another object (the owner or target). */
+typedef struct mu_sfx_object {
+    uint8_t live;            /* +0x00 */
+    uint8_t visible;         /* +0x0b */
+    int16_t weapon;          /* +0x56 Twisting Slash: the caster's right-hand item - 0xae6 */
+    float position[3];       /* +0x158 */
+} mu_sfx_object;
+
+/* One call into another subsystem, in client order. Vectors are the values
+ * at the moment of the call (the client passes pointers). */
+typedef struct mu_sfx_call {
+    int32_t routine;         /* MU_SFX_CALL_* */
+    int32_t type;            /* bitmap / model / effect type */
+    int32_t subtype;
+    int32_t owner;           /* object index, -1 none, -2 the calling effect itself */
+    int32_t range;           /* AddTerrainLight range */
+    float scale;
+    float position[3];
+    float target[3];         /* CreateJoint's second position */
+    float angle[3];
+    float light[3];
+} mu_sfx_call;
+
+typedef struct mu_sfx_env {
+    void *context;
+    /* rand() 0x01989721 in call order (non-negative 15-bit values in the client). */
+    int32_t (*rand)(void *context);
+    /* RequestTerrainHeight 0x016cc9e2. */
+    float (*height)(void *context, float x, float y);
+    /* The object behind an owner index (NULL: no object). */
+    const mu_sfx_object *(*object)(void *context, int32_t index);
+    /* Reports one call; for MU_SFX_CALL_ANIMATION returns the player's
+     * result (1 while the animation runs), otherwise ignored. NULL: calls are
+     * not reported (animations report 1). */
+    int (*call)(void *context, const mu_sfx_call *call, mu_sfx_effect *effect);
+    /* The model of an effect type: 0 when the client has no model for it
+     * (MoveEffect then returns at once), else 1 and *keys = number of keys of
+     * action `action` (+8 of the 16-byte action record). NULL: every type has
+     * a model with 1 key. */
+    int (*model)(void *context, int32_t type, uint16_t action, int16_t *keys);
+    /* The hero's skill serial byte [[0x01d1df18] + 0x2dec] (arrows). */
+    uint8_t serial;
+    /* When set, the two hit checks are reported as calls instead of run. */
+    uint8_t report_checks;
+    /* Object index of the hero ([0x0a39d754] + 0x3254), -1 none. */
+    int32_t hero_object;
+} mu_sfx_env;
+
+/* CreateEffect 0x013c0f19 for the supported types and subtypes, from a
+ * zeroed record (the object initialiser 0x0129eb81 is taken as clearing
+ * every field, a static reading). Returns 1 when the type and subtype are
+ * reconstructed, 0 otherwise (the record is then left zeroed).
+ * Supported (verified): MODEL_ARROW 0x43b subtypes 0 and 2, MODEL_FIRE 0x413
+ * subtype 1 (Fire Ball), Thunder01 0x7f2b subtype 0 (Energy Ball),
+ * Magic_Ground2 0x7f84 subtype 1 (Heal); the area skills' Circle01 / Circle02
+ * 0x41c / 0x41d (Hellfire), Inferno01 0x457, Laser01 0x421 (Evil Spirit),
+ * 0x453 / 0x454 (Twisting Slash), all subtype 0; Stone01 / Stone02 0x419 /
+ * 0x41a subtypes 0 and 1 (impact and area debris). */
+int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
+                         const float angle[3], const float light[3], int32_t owner, float scale,
+                         const mu_sfx_info *info, const mu_sfx_env *env);
+
+/* MoveEffect 0x0142fd09, one logic step of one live effect, for the types
+ * mu_sfx_effect_create supports. Returns 1 when the type is reconstructed. */
+int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env);
+
+/* The spell hit check 0x013be199 (static reading, its effect on MoveEffect
+ * verified as a recorded call): when the target object (+0x34c) is live and
+ * visible and within 100 units of the effect in x/y, LifeTime becomes 1 and
+ * the impact is created (Fire Ball: two Stone01/Stone02 effects, Energy Ball:
+ * a Spark03 particle of subtype 1, scale 6). */
+void mu_sfx_check_magic(mu_sfx_effect *e, const mu_sfx_env *env);
+
+/* The generic effect motion 0x0150df8e(o, rotate): position +=
+ * VectorRotate(direction, AngleMatrix(angle)) (rotate) or += direction. */
+void mu_sfx_effect_advance(mu_sfx_effect *e, int rotate);
+
+/* ------------------------------------------------------------------------
+ * Particles (CreateParticle 0x015ae7b0, MoveParticles 0x01616c80,
+ * RenderParticles 0x0159123f). The client keeps them in a list of shared
+ * records (0x0a3a9adc); the record fields used here: */
+typedef struct mu_sfx_particle {
+    uint8_t live;            /* +0x08 */
+    int32_t type;            /* +0x0c */
+    int32_t tex_type;        /* +0x10 the bitmap drawn */
+    int32_t subtype;         /* +0x14 */
+    float scale;             /* +0x18 */
+    float position[3];       /* +0x20 */
+    float angle[3];          /* +0x2c */
+    float light[3];          /* +0x38 */
+    int32_t lifetime;        /* +0x48 */
+    int32_t owner;           /* +0x50 object index, -1 none */
+    float owner_position[3]; /* +0x54 */
+    float rotation;          /* +0x60 degrees */
+    int32_t frame;           /* +0x64 sprite-sheet cell */
+    uint8_t moving;          /* +0x68 position += VectorRotate(velocity, AngleMatrix(angle)) each step */
+    float gravity;           /* +0x6c */
+    float velocity[3];       /* +0x70 */
+    float start[3];          /* +0x88 */
+    float start_angle[3];    /* +0x94 */
+    float time;              /* +0xac */
+    int32_t arg8;            /* +0xb0 CreateParticle argument 8 */
+} mu_sfx_particle;
+
+/* CreateParticle 0x015ae7b0(type, position, angle, light, subtype, scale,
+ * owner, arg8) for the supported kinds (verified): Fire01 0x7f3c subtypes 0
+ * and 5 (arrow and Fire Ball trails), Thunder01 0x7f2b subtype 0 (Energy
+ * Ball), Spark03 0x7f26 subtypes 0 and 1 (Energy Ball glow and impact).
+ * Without an owner (owner < 0). Returns 1 when supported. The wrapper
+ * 0x0168fafd may drop a particle in some worlds (rand() % [0x0a39d768]); the
+ * world-agnostic default keeps every particle. */
+int mu_sfx_particle_create(mu_sfx_particle *p, int32_t type, const float position[3], const float angle[3],
+                           const float light[3], int32_t subtype, float scale, int32_t owner, int32_t arg8,
+                           const mu_sfx_env *env);
+
+/* One logic step of MoveParticles 0x01616c80 for one record (verified):
+ * returns 0 when the client removes the record at the head of the step
+ * (LifeTime <= 0 or not live), else moves it (the motion flag, the kind's
+ * case, LifeTime - 1, time += time_step [0x01cf103c]) and returns 1. */
+int mu_sfx_particle_move(mu_sfx_particle *p, float time_step);
+
+/* The bitmap record RenderParticles reads (+0x204 width, +0x208 height,
+ * +0x214 component count; the loaders store the uploaded texture size). */
+typedef struct mu_sfx_bitmap_info {
+    float width, height;
+    int8_t components;
+} mu_sfx_bitmap_info;
+
+/* Arguments of RenderSprite 0x0184c39c(bitmap, position, width, height,
+ * light, rotation, u, v, u width, v height, rotation axes). */
+typedef struct mu_sfx_sprite {
+    int32_t bitmap;
+    float position[3];
+    float width, height;
+    float light[3];
+    float rotation;
+    float u, v, uw, vh;
+    int32_t axes;            /* bit 0 x, bit 1 y, bit 2 z: the axes the rotation turns about */
+    uint8_t additive;        /* blend wrapper 3 (ONE, ONE) for 3-component bitmaps, else 0x0184a990(0) */
+} mu_sfx_sprite;
+
+/* RenderParticles' per-record part (verified): skips the record in mode 1
+ * when z > 350 and in mode 2 when 300 >= z; otherwise the blend state and
+ * one RenderSprite call. Returns the number of sprites (0 or 1). */
+int mu_sfx_particle_render(const mu_sfx_particle *p, const mu_sfx_bitmap_info *bitmap, uint8_t mode,
+                           mu_sfx_sprite *sprite);
+
+/* RenderSprite's corners (static reading): the position is transformed by
+ * the camera matrix 0x0bdc5918 (row-major 3x4), half width / height
+ * w = width / 2, h = height / 2; rotation 0 gives (x-w, y-h), (x+w, y-h),
+ * (x+w, y+h), (x-w, y+h) at the eye z, otherwise (+-w, +-h, 0) turned by
+ * AngleMatrix of the rotation on the axes of `axes` and added to the eye
+ * position. uv[i] = (u, v), (u+uw, v), (u+uw, v+vh), (u, v+vh); drawn as
+ * GL_QUADS with glColor3fv(light) for 3-component bitmaps. */
+void mu_sfx_sprite_corners(const float camera[12], const mu_sfx_sprite *sprite, float corners[4][3],
+                           float uv[4][2]);
+
+/* ------------------------------------------------------------------------
+ * Joints (CreateJoint 0x0153b02c, MoveJoints 0x01589b06 -> MoveJoint
+ * 0x01556c26, RenderJoints 0x01589b56): ribbons of up to 50 cross-shaped
+ * tails that a moving head drags behind it. 500 records of 0xa64 bytes at
+ * 0x0a4fa4f0. */
+#define MU_SFX_JOINTS 500
+#define MU_SFX_JOINT_TAILS 50
+
+enum {
+    MU_SFX_CALL_SPRITE = 0x01692eb7,      /* CreateSprite(bitmap, pos, scale, light, owner, rotation, 0, 0) */
+    MU_SFX_CALL_AREA_ATTACK = 0x013bc25e  /* the hero's area attack request (skill, range, pos, ...) */
+};
+
+typedef struct mu_sfx_joint {
+    uint8_t live;              /* +0x000 */
+    int32_t type;              /* +0x004 bitmap */
+    int32_t tex_type;          /* +0x008 */
+    int32_t subtype;           /* +0x00c */
+    uint8_t render_type;       /* +0x010 1: (ONE, ONE), 2: 0x0184a990(1), 3: (ZERO, ONE_MINUS_SRC_COLOR), 4: (ONE_MINUS_SRC_COLOR, ONE) */
+    uint8_t faces;             /* +0x011 bit 0: the ribbon through corners 2 and 3, bit 1: through corners 0 and 1 */
+    float scale;               /* +0x014 ribbon width */
+    float position[3];         /* +0x018 */
+    float start[3];            /* +0x024 */
+    float angle[3];            /* +0x030 */
+    float light[3];            /* +0x048 */
+    int32_t target;            /* +0x054 object index (-1: none) */
+    float target_position[3];  /* +0x058 */
+    uint8_t field_64;          /* +0x064 */
+    int32_t num_tails;         /* +0x068 */
+    int32_t max_tails;         /* +0x06c */
+    float tails[MU_SFX_JOINT_TAILS][4][3]; /* +0x070: corners pos + R(-w/2,0,0), R(w/2,0,0), R(0,0,-w/2), R(0,0,w/2) */
+    int32_t lifetime;          /* +0xa00 */
+    uint8_t reached;           /* +0xa04 */
+    float velocity;            /* +0xa08 */
+    float jitter[3];           /* +0xa0c */
+    uint16_t key;              /* +0xa18 CreateJoint argument 8 */
+    uint16_t skill;            /* +0xa1a argument 9 */
+    uint8_t serial;            /* +0xa1c */
+    uint8_t field_a24, field_a25;
+    uint8_t tail_update;       /* +0xa26 */
+    uint8_t field_a3c;         /* +0xa3c argument 10 */
+    uint16_t field_a44;        /* +0xa44 argument 13 */
+    float time;                /* +0xa48 */
+    float brightness;          /* +0xa4c */
+    float field_a54;           /* +0xa54 */
+    uint8_t moving;            /* +0xa5c */
+    int32_t field_a60;         /* +0xa60 argument 14 */
+} mu_sfx_joint;
+
+/* CreateJoint 0x0153b02c(type, position, target position, angle, subtype,
+ * target, scale, key, skill, byte10, arg11, arg12, word13, arg14) on a
+ * record that keeps its previous contents (the client builds the first tail
+ * from the record's previous width +0x14 before it stores the new one; the
+ * record is persistent memory). Supported (verified): JointEnergy01 0x7fd8
+ * subtype 1 (Heal) and JointSpirit01 0x7fd3 subtype 0 (Evil Spirit), with
+ * arg12 = 0. Returns 1 when supported. */
+int mu_sfx_joint_create(mu_sfx_joint *j, int32_t type, const float position[3], const float target_position[3],
+                        const float angle[3], int32_t subtype, int32_t target, float scale, uint16_t key,
+                        uint16_t skill, uint8_t byte10, uint16_t word13, int32_t arg14, const mu_sfx_env *env);
+
+/* MoveJoint 0x01556c26 for the supported kinds (verified), with the homing
+ * turn MoveHumming 0x012af2f1 (CreateAngle / TurnAngle2 of reconstructed/
+ * movement) and the tail shift 0x01553ba6(j, matrix, 0). wall: the terrain
+ * wall attribute bit 0x100 at the head (0x016d348d) and the wall-test scene
+ * flag [0x01ec8ee7]; is_hero_target: the target is the hero's object. */
+int mu_sfx_joint_move(mu_sfx_joint *j, const mu_sfx_env *env, float time_step, int wall_scene, uint16_t wall,
+                      int is_hero_target);
+
+/* One textured quad of RenderJoints (GL_QUADS, uv per corner). */
+typedef struct mu_sfx_joint_quad {
+    float position[4][3];
+    float uv[4][2];
+} mu_sfx_joint_quad;
+
+/* RenderJoints' part for one record (verified): returns the number of quads
+ * written (two per tail segment and face bit), and the colour glColor3f and
+ * blend render type. mode: RenderJoints' argument (records with +0x64 == 2
+ * skip mode 1, with +0x64 == 1 skip mode 2). */
+int mu_sfx_joint_render(const mu_sfx_joint *j, uint8_t mode, float color[3], int32_t *render_type,
+                        mu_sfx_joint_quad *quads, int max);
+
+#endif

@@ -172,6 +172,12 @@ static void on_step(void *context, mu_walk *w);
 static void env_sound(void *context, int32_t id);
 
 /* NATIVE-COMBAT-001: MoveHero's attack case runs before its walk and click code. */
+static void combat_sound(void *context, int32_t id)
+{
+    app *a = context;
+    mu_audio_host_play(a->sound.host, id, 0);   /* SND_Play(id, object, 0) */
+}
+
 static void combat_pre_step(void *context, mu_walk *w)
 {
     (void)w;
@@ -281,6 +287,10 @@ static int load(app *a)
         }
         a->walk.pre_step_hook = combat_pre_step;
         a->walk.pre_step_context = a;
+        if (a->has_sound) {   /* NATIVE-COMBAT-002: swings, skills, the hero's voice through SND_Play */
+            a->combat->play_sound = combat_sound;
+            a->combat->sound_context = a;
+        }
     }
     return 0;
 }
@@ -556,6 +566,8 @@ static int32_t advance(app *a, uint32_t now)
         mu_walk_place(w, &a->ch);
     mu_walk_begin_render(w, now);
     terrain_frame(a, now);
+    if (a->combat)
+        mu_combat_terrain_lights(a->combat, a->map);   /* effect lights after the frame light copy */
     if (a->has_actors)
         mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
     return steps;
@@ -804,7 +816,8 @@ static void g_effect(void *context, const mu_fx_vertex *vertices, uint32_t count
 
 /* NATIVE-COMBAT-001: effect models through the scene draw, then the frame's
  * quads (effect bitmaps, RenderPoints) in immediate mode. */
-static void combat_model_gl(void *context, const mu_model *model, const mu_textures *textures, int32_t slot)
+static void combat_model_gl(void *context, const mu_model *model, const mu_textures *textures, int32_t slot,
+                            const mu_draw_options *draw_options)
 {
     app *a = context;
     mu_gl_backend *gl = &a->combat_gl[slot];
@@ -812,9 +825,7 @@ static void combat_model_gl(void *context, const mu_model *model, const mu_textu
         mu_gl_upload(gl, textures, 0);
     mu_render_backend backend;
     mu_gl_backend_bind(gl, &backend);
-    mu_draw_options options;
-    mu_draw_default_options(&options);
-    options.flags = mu_combat_model_flags(slot);
+    mu_draw_options options = *draw_options;   /* RenderObject's RenderBody arguments (mu_combat) */
     options.textures = textures;
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_scene_draw_model(model, &options, &backend, &ds);
@@ -851,7 +862,9 @@ static void combat_draw_gl(app *a)
         } else {
             glDisable(GL_TEXTURE_2D);
         }
-        if (q->additive)
+        if (q->src || q->dst)
+            glBlendFunc((GLenum)q->src, (GLenum)q->dst);   /* RenderJoints' render types (NATIVE-COMBAT-002) */
+        else if (q->additive)
             glBlendFunc(GL_ONE, GL_ONE);
         else
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1406,9 +1419,10 @@ static int windowed(app *a)
                     running = 0;
                 else if (down && vk != 0x1b)
                     escapes = 0;
-                if (down && !e.key.repeat && a->combat && vk >= 0x31 && vk <= 0x36) {
-                    static const int32_t keys[6] = {4, 17, 22, 41, 24, 26};   /* 1..6 */
-                    mu_combat_cast(a->combat, keys[vk - 0x31], -1);
+                if (down && !e.key.repeat && a->combat && vk >= 0x30 && vk <= 0x39) {
+                    /* 1..6 (NATIVE-COMBAT-001), 7 Evil Spirit, 8 Hellfire, 9 Inferno, 0 Cyclone */
+                    static const int32_t keys[10] = {22, 4, 17, 22, 41, 24, 26, 9, 10, 14};
+                    mu_combat_cast(a->combat, keys[vk - 0x30], -1);
                 }
                 if (down && !e.key.repeat && vk == 0x4f) {   /* O: screenshot */
                     uint8_t *pixels = malloc((size_t)dw * (size_t)dh * 4);
@@ -1523,7 +1537,7 @@ static int usage(void)
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
-                    "                [--attack-speed N] [--combat-seed N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
+                    "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N]\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
     return 2;
@@ -1595,6 +1609,7 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(k, "--attack-speed")) { a.combat_config.attack_speed = strtof(v, NULL); a.combat_on = 1; }
         else if (!strcmp(k, "--combat-seed")) { a.combat_config.seed = (uint32_t)strtoul(v, NULL, 0); a.combat_on = 1; }
+        else if (!strcmp(k, "--hero-hp")) { a.combat_config.hero_hp = atoi(v); a.combat_on = 1; }
         else if (!strcmp(k, "--combat-script")) {
             if (mu_combat_script_parse(&a.combat_script, v))
                 return usage();

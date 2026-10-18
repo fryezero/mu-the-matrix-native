@@ -15,6 +15,100 @@ static float mu_f32(uint32_t bits)
 
 #include "attack_speed_table.h"
 
+/* ---------------------------------------------------------------- the hero's hit, death and attack sounds */
+
+static int32_t take_rand(const int32_t *rands, int32_t count, int32_t *used)
+{
+    int32_t v = *used < count ? rands[*used] : 0;
+    ++*used;
+    return v;
+}
+
+int32_t mu_player_shock(const mu_player_state *s, const int32_t *rands, int32_t rand_count, int32_t *action,
+                        int32_t *sound)
+{
+    int32_t used = 0;
+    if (s->state_59)
+        *action = 0x136;
+    else if (s->state_5a)
+        *action = 0x138;
+    else if (s->state_72)
+        *action = 0x13a;
+    else
+        *action = 0x134;
+    *sound = -1;
+    if (!(s->field_3324 == 0.0f))
+        return used;
+    if (s->predicate) {
+        *sound = 0x7b;   /* mBone1: the skeleton form */
+        return used;
+    }
+    int32_t cls = s->class_byte & 15;
+    if (!s->class_check) {
+        if (cls == 4 && take_rand(rands, rand_count, &used) % 5 != 0) {
+            if (s->transform != 0x1a25)
+                *sound = 0x1c6;
+        } else if (s->transform != 0x1a25) {
+            *sound = 0x69 + take_rand(rands, rand_count, &used) % 3;
+        }
+    } else if (s->transform != 0x1a25) {
+        *sound = 0x6d + take_rand(rands, rand_count, &used) % 2;
+    }
+    return used;
+}
+
+int32_t mu_player_die(const mu_player_state *s, const int32_t *rands, int32_t rand_count, int32_t *action,
+                      int32_t sounds[2])
+{
+    int32_t used = 0, cls = s->class_byte & 15;
+    if (s->state_59)
+        *action = 0x144;
+    else if (s->state_5a)
+        *action = 0x145;
+    else if (s->state_72)
+        *action = 0x147;
+    else if (cls == 13)
+        *action = 0x146;
+    else
+        *action = 0x142;
+    sounds[0] = sounds[1] = -1;
+    if (!(s->field_3324 == 0.0f))
+        return used;
+    if (s->world_voice) {
+        sounds[0] = 0x5e + take_rand(rands, rand_count, &used) % 2;
+        return used;
+    }
+    if (s->predicate)
+        return used;   /* the model's own death sound (not the Player voice) */
+    if (!s->class_check)
+        sounds[0] = cls == 4 ? 0x1c7 : 0x6c;
+    else
+        sounds[0] = 0x6e;
+    if (s->transform == 0x1a25)
+        sounds[1] = 0x2b9;
+    return used;
+}
+
+int32_t mu_player_attack_sound(const mu_player_state *s, int32_t bow_kind, int16_t weapon0, int16_t weapon1,
+                               int32_t world, const int32_t *rands, int32_t rand_count, int32_t *sound)
+{
+    int32_t used = 0;
+    *sound = -1;
+    if (world == 0x49 || !(s->field_3324 == 0.0f) || s->predicate)
+        return used;
+    if (bow_kind == 1)
+        *sound = 0x55;
+    else if (bow_kind == 2)
+        *sound = 0x56;
+    else if (weapon0 >= 0x12f3 && weapon0 < 0x12f5)
+        *sound = 0x76;
+    else if (weapon0 == 0xaf0 || weapon0 == 0x10e6)
+        *sound = 0x3e;
+    else if (weapon0 != -1 || weapon1 != -1)
+        *sound = 0x3c + take_rand(rands, rand_count, &used) % 2;
+    return used;
+}
+
 /* ---------------------------------------------------------------- points */
 
 int32_t mu_point_create(mu_point *points, const float position[3], int32_t value, const float color[3], float scale,
@@ -524,6 +618,23 @@ int mu_monster_shock_allowed(int32_t monster_class, int32_t action)
     return !(action == 3 || action == 4);
 }
 
+int mu_class_check(uint8_t class_byte)
+{
+    int cls = class_byte & 15;
+    return cls == 2 || cls == 5 || cls == 7 || cls == 8 || cls == 9 || cls == 12 || cls == 14;
+}
+
+int mu_shock_gate(uint8_t dead, int32_t action, int32_t damage, int32_t type)
+{
+    static const int32_t skip[] = {0x8f, 0x9c, 0x9f, 0xe2, 0xe3, 0xdc, 0xe0, 0xe1, 0x11d, 0x126, 0x127};
+    if (dead)
+        return 0;
+    for (size_t i = 0; i < sizeof skip / sizeof skip[0]; ++i)
+        if (action == skip[i])
+            return 0;
+    return type == 12 || type == 15 || damage > 0;
+}
+
 int32_t mu_shock_action(uint8_t dead, int32_t object_type, int32_t action, int32_t monster_class, int32_t damage,
                         int32_t type)
 {
@@ -593,7 +704,11 @@ static const mu_skill_visual skills[] = {
     {2, "Meteorite", MU_SKILL_RECEIVE_MAGIC, -1, 0x413, 0, 1, 0, 0x34d, 0x42},
     {4, "Fire Ball", MU_SKILL_RECEIVE_MAGIC, -1, 0x413, 1, 1, 0, 0x34d, 0x42},
     {7, "Ice", MU_SKILL_RECEIVE_MAGIC, -1, 0x412, 0, 1, 0, 0x34d, 0x78},
+    {9, "Evil Spirit", MU_SKILL_RECEIVE_MAGIC, -1, 0x7fd3, 0, 8, 0, 0x34d, 0x75},
+    {10, "Hellfire", MU_SKILL_RECEIVE_AREA, 0xa9, 0x41c, 0, 2, 0, -1, 0x77},
     {11, "Power Wave", MU_SKILL_RECEIVE_MAGIC, -1, 0x41f, 0, 3, 0, 0x34d, 0x76},
+    {12, "Aqua Beam", MU_SKILL_RECEIVE_AREA, 0xa7, 0x7f4e, 0, 1, 0, -1, 0x7a},
+    {14, "Inferno", MU_SKILL_RECEIVE_AREA, 0xa8, 0x457, 0, 1, 0, -1, -1},
     {17, "Energy Ball", MU_SKILL_RECEIVE_MAGIC, -1, 0x437, 0, 1, 0, 0x34d, -1},
     {19, "Falling Slash", MU_SKILL_RECEIVE_MAGIC, 0x89, -1, 0, 0, 0, 0x70, -1},
     {20, "Lunge", MU_SKILL_RECEIVE_MAGIC, 0x8a, -1, 0, 0, 0, 0x71, -1},
@@ -604,8 +719,8 @@ static const mu_skill_visual skills[] = {
     {26, "Heal", MU_SKILL_RECEIVE_MAGIC, -1, 0x7f84, 0, 1, 0, 0x6f, -1},
     {27, "Greater Defense", MU_SKILL_RECEIVE_MAGIC, -1, -1, 0, 0, 0, 0x6f, -1},
     {28, "Greater Damage", MU_SKILL_RECEIVE_MAGIC, -1, -1, 0, 0, 0, 0x6f, -1},
-    {41, "Twisting Slash", MU_SKILL_RECEIVE_AREA, 0x8e, -1, 0, 0, 0, -1, -1},
-    {42, "Rageful Blow", MU_SKILL_RECEIVE_AREA, 0x8f, -1, 0, 0, 0, -1, -1},
+    {41, "Twisting Slash", MU_SKILL_RECEIVE_AREA, 0x8e, 0x453, 0, 1, 0, -1, 0x73},
+    {42, "Rageful Blow", MU_SKILL_RECEIVE_AREA, 0x8f, 0x461, 0, 1, 0, -1, 0x95},
     {43, "Death Stab", MU_SKILL_RECEIVE_AREA, 0x9e, -1, 0, 0, 0, -1, -1},
 };
 
