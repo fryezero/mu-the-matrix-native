@@ -65,7 +65,23 @@ typedef struct mu_draw_options {
     const mu_textures *textures; /* optional: component counts and specials */
     uint8_t alpha_test;          /* viewer override: force alpha test on (not a client reading) */
     int8_t cull;                 /* viewer override: -1 follow the stream, 0 off, 1 on */
+    /* NATIVE-RENDERCHAR-001 (zero = previous behaviour):
+     * mesh_plus_one: 0 draws the body 0x012bb35a, k > 0 only mesh k-1 through
+     * the mesh draw 0x012b8d1d (the RenderMesh default-buffer wrapper);
+     * fields: model fields the world render writes before a pass (NULL = the
+     * model parameters' colour, other fields zero). */
+    int32_t mesh_plus_one;
+    const struct mu_draw_model_fields *fields;
 } mu_draw_options;
+
+/* Model fields of one world-render pass (renderchar.h mu_rc_draw). */
+typedef struct mu_draw_model_fields {
+    float color[3];              /* +0x54 body light */
+    int32_t hide_typed;          /* +0x40 */
+    float alt_color[3];          /* +0x44 */
+    uint8_t alt_on_skin;         /* +0xca */
+    uint8_t flag_a5;             /* +0xa5 */
+} mu_draw_model_fields;
 
 void mu_draw_default_options(mu_draw_options *options);
 

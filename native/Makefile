@@ -48,7 +48,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
-            core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c
+            core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -59,7 +59,8 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c \
              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c \
              $(RECON)/effects/effects.c $(RECON)/effects/effects_json.c $(RECON)/effects/effects_tree.c \
-             $(RECON)/movement/client_movement.c $(RECON)/movement/client_path.c
+             $(RECON)/movement/client_movement.c $(RECON)/movement/client_path.c \
+             $(RECON)/renderchar/renderchar.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -67,7 +68,8 @@ LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
            $(RECON)/terrain/terrain.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
-           $(RECON)/movement/client_movement.h $(RECON)/movement/client_path.h
+           $(RECON)/movement/client_movement.h $(RECON)/movement/client_path.h \
+           $(wildcard $(RECON)/renderchar/*.h)
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -99,10 +101,11 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
 	rm -f $@
 	ar rcs $@ $^
 
-$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c $(LIB)
+$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world.c tools/mu_render_world.h $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render.c -o $(BUILD)/mu_render.o
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_ui.c -o $(BUILD)/mu_render_ui.o
-	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_world.c -o $(BUILD)/mu_render_world.o
+	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # The 2D layer alone (reconstruction + software GL + assets), for the Python
 # validator and tests (ctypes).

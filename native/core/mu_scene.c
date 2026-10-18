@@ -115,6 +115,14 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
     memcpy(M->origin, p->origin, sizeof M->origin);
     M->light_mesh = (int8_t)p->light_skip_mesh;
     M->secondary_light = p->secondary_light;
+    if (o->fields) {
+        const mu_draw_model_fields *f = o->fields;
+        memcpy(M->color, f->color, sizeof M->color);
+        M->hide_typed = f->hide_typed;
+        memcpy(M->alt_color, f->alt_color, sizeof M->alt_color);
+        M->alt_on_skin = f->alt_on_skin;
+        M->flag_a5 = f->flag_a5;
+    }
 
     in->globals.time = o->time;
     memcpy(in->globals.env_vector, o->env_vector, sizeof in->globals.env_vector);
@@ -260,7 +268,18 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     mu_meshdraw_scratch scratch = {colours, table, &edge, edge_tables};
     mu_meshdraw_env env = {&in.model, &in.globals, &in.cache, &sink, mu_scene_bitmap, &in, &scratch};
     mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
-    mu_meshdraw_body(&env, &in.args, in.skip, &counts);
+    if (o->mesh_plus_one > 0) {
+        long corners = 0;
+        int r = o->mesh_plus_one - 1 < in.model.mesh_count
+                    ? mu_meshdraw_mesh_draw(&env, o->mesh_plus_one - 1, &in.args, &corners) : MU_MESHDRAW_RETURNED;
+        counts.corners += corners;
+        if (r == MU_MESHDRAW_DRAWN) counts.drawn++;
+        else if (r == MU_MESHDRAW_RETURNED) counts.returned++;
+        else if (r == MU_MESHDRAW_REFUSED) counts.refused++;
+        else counts.faulted++;
+    } else {
+        mu_meshdraw_body(&env, &in.args, in.skip, &counts);
+    }
     /* A fault stops where the client would crash; close the open primitive
      * for the backend (the client issues no glEnd). */
     if (a.open && backend->end)
