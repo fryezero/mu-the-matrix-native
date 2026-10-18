@@ -90,6 +90,7 @@ KILL_CLEANUP = 0x009b0451
 MODEL_CONTAINER, MODEL_GET = 0x00966cc4, 0x00eaa8cf
 CREATE_PARTICLE, CREATE_SPRITE, CREATE_JOINT, CREATE_EFFECT = 0x0168fafd, 0x01692eb7, 0x0153b02c, 0x013c0eaa
 WORLD, TIME, DT, DIVISOR = 0x01cf15fc, 0x06fce370, 0x01cf103c, 0x0a39d768
+SCENE_FLAG = 0x01d1df70   # SceneFlag (read through 0x009b0bc1 by WATERFALL2, NATIVE-CHARSEL-002)
 CAMERA_MATRIX = 0x0bdc5918
 POOL, SPRITES, BITMAPS = 0x0a3a9adc, 0x0a3da070, 0x0bdc5f00
 VERTICES = 0x078978a0
@@ -121,7 +122,9 @@ MATRIX = 0x29400000
 KINDS = [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
                                                             (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1),
                                                             (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
-                                                            (0x7f66, 0), (0x7f66, 1)]      # Noria's Shiny01
+                                                            (0x7f66, 0), (0x7f66, 1),      # Noria's Shiny01
+                                                            # NATIVE-CHARSEL-002: the character-select scene
+                                                            (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5)]
 
 
 def object_address(index):
@@ -149,7 +152,7 @@ class Particle(ctypes.Structure):
 class Host(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('terrain_height', HEIGHT_FN),
                 ('owner_position', OWNER_FN), ('world', ctypes.c_int32), ('world_time', ctypes.c_float),
-                ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32)]
+                ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32)]
 
 
 class Bitmap(ctypes.Structure):
@@ -363,8 +366,9 @@ def mid_frame(size, slots=None):
     return (size, out)
 
 
-def globals_region(world=0, world_time=0.0, dt=0.1, divisor=1):
-    return [am.defined_region('world', WORLD, struct.pack('<i', world), writable=False),
+def globals_region(world=0, world_time=0.0, dt=0.1, divisor=1, scene=6):
+    return [am.defined_region('scene', SCENE_FLAG, struct.pack('<i', scene), writable=False),
+            am.defined_region('world', WORLD, struct.pack('<i', world), writable=False),
             am.defined_region('time', TIME, struct.pack('<f', world_time), writable=False),
             am.defined_region('dt', DT, struct.pack('<f', dt), writable=False),
             am.defined_region('divisor', DIVISOR, struct.pack('<i', divisor), writable=False)]
@@ -412,7 +416,7 @@ class Case:
             out.append(am.Region(f'owner{i}', object_address(i), bytes(raw), bytes(mask), writable=False))
         return out
 
-    def host(self, world=0, world_time=0.0, dt=0.1, divisor=1):
+    def host(self, world=0, world_time=0.0, dt=0.1, divisor=1, scene=6):
         def rand(ctx):
             v = self.rand_values[self.c_rand % len(self.rand_values)]
             self.c_rand += 1
@@ -428,7 +432,7 @@ class Case:
                 out[k] = pos[k]
         fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner))
         self._keep.append(fns)
-        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor)
+        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene)
 
 
 class Report:
@@ -482,19 +486,20 @@ def family_create(m, lib, rng, cases, report, negatives):
         scale = f32(rng.choice([1.0, 1.0, 0.5, 2.0, 4.0, rf(rng, 0.1, 8.0)]))
         arg8 = rng.randrange(-2**31, 2**31)
         owner = rng.choice([-1, -1, 0])
-        world = rng.choice([0, 2, 0x22, 0x8d, 0x8b])
+        world = rng.choice([0, 2, 0x22, 0x8d, 0x8b, 0x5d])
         world_time = f32(rng.choice([0.0, 39.0, 123456.0, rng.uniform(0, 3.0e6)]))
+        scene = rng.choice([6, 5, 5, 3])
         case = Case(rng, height=rng.uniform(-50, 400), owners=[[rf(rng, 0, 25600), rf(rng, 0, 25600), 150.0]])
         inputs = am.defined_region('inputs', INPUTS, struct.pack('<9f', *pos, *angle, *light), writable=False)
         record = am.defined_region('particle', PARTICLE, am.poison(PARTICLE_BYTES, 0x5d))
-        regions = [inputs, record] + globals_region(world, world_time) + case.owner_regions()
+        regions = [inputs, record] + globals_region(world, world_time, scene=scene) + case.owner_regions()
         r = m.execute(CREATE_CORE, [kind[0], INPUTS, INPUTS+12, INPUTS+24, kind[1], bits(scale),
                                     object_address(owner), arg8 & 0xffffffff], regions, shared_stubs(case, m),
                       ecx=POOL, cleanup=0x20)
         p = Particle()
         # the record keeps a former particle's bytes where CreateParticle writes nothing (+0x44, +0x7c)
         lib.mu_pt_particle_load(ctypes.byref(p), am.poison(PARTICLE_BYTES, 0x5d))
-        host = case.host(world, world_time)
+        host = case.host(world, world_time, scene=scene)
         supported = lib.mu_pt_create_record(ctypes.byref(p), ctypes.byref(host), kind[0], F3(*pos), F3(*angle),
                                             F3(*light), kind[1], scale, owner, arg8)
         mismatch = None
@@ -513,6 +518,10 @@ def family_create(m, lib, rng, cases, report, negatives):
         report.add('create', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                      'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('create', f'{kind[0]:#x}/{kind[1]}' + (' owner' if owner >= 0 else ''))
+        if vc.ok(r) and kind == (0x801b, 2):
+            # negative control (NATIVE-CHARSEL-002): WATERFALL2's light without the scene-5 rule
+            l = struct.unpack('<f', r['regions']['particle'][0x38:0x3c])[0]
+            negatives['create_waterfall2_no_scene'] += not same(l, f32(0.4))
         if vc.ok(r) and kind == (0x7f3c, 1):
             # negative control: Fire01 subtype 1 sized like subtype 0
             sc = struct.unpack('<f', r['regions']['particle'][0x18:0x1c])[0]
@@ -572,6 +581,10 @@ def random_particle(rng, kind):
     p.field_7c = rf(rng, 0.0, 0.1)
     if kind == (0x7f89, 0x14):
         p.lifetime = rng.choice([300, 151, 150, 149, 2, 1, 0, -1, rng.randrange(-3, 301)])
+    if kind in ((0x801b, 2), (0x8022, 5)):   # NATIVE-CHARSEL-002: the fades at LifeTime 10
+        p.lifetime = rng.choice([40, 22, 11, 10, 9, 2, 1, rng.randrange(1, 41)])
+    if kind == (0x8017, 0):
+        p.scale = f32(rng.choice([0.01, 0.02, 0.019, 0.021, rf(rng, 0.0, 2.0)]))
     for k in range(3):
         p.position[k] = rf(rng, 0.0, 25600.0) if k < 2 else rf(rng, -100.0, 800.0)
         p.angle[k] = rf(rng, -360.0, 360.0)
@@ -632,6 +645,10 @@ def family_move(m, lib, rng, cases, report, negatives):
         report.add('move', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                    'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('move', f'{kind[0]:#x}/{kind[1]}' + (' owner' if p.owner >= 0 else ''))
+        if vc.ok(r) and kind == (0x8022, 5):
+            # negative control (NATIVE-CHARSEL-002): the selection light without its rise
+            z = struct.unpack('<f', r['regions']['particle'][0x28:0x2c])[0]
+            negatives['move_chasellight_no_rise'] += not same(z, f32(p.position[2] - p.gravity))
         if vc.ok(r) and kind == (0x7f5a, 0):
             # negative control: smoke light over 16 steps instead of 8
             l = struct.unpack('<f', r['regions']['particle'][0x38:0x3c])[0]
@@ -1518,7 +1535,8 @@ FAMILIES = [('create', family_create), ('wrapper', family_wrapper), ('move', fam
 HEAVY = {'sprite_create', 'sprite_render'}
 NEGATIVES = ['create_fire1_large', 'wrapper_no_exempt', 'move_smoke_light_16', 'wind_unclamped',
              'render_fire_full_width', 'sprite_v_unflipped', 'sprite_sheet_rounded', 'sprite_render_no_alpha',
-             'shadow_origin_height', 'bone_no_scale', 'bone_lookup_loose', 'visual_second_drop', 'visual_uninitialised_input_seen']
+             'shadow_origin_height', 'bone_no_scale', 'bone_lookup_loose', 'visual_second_drop', 'visual_uninitialised_input_seen',
+             'create_waterfall2_no_scene', 'move_chasellight_no_rise']
 
 
 def default_evidence(relative):

@@ -43,7 +43,7 @@ class Fixed:
         self.values, self.calls, self.height = list(values), 0, f32(height)
         self.heights = []
 
-    def host(self, world=0, world_time=0.0, dt=0.1, divisor=1):
+    def host(self, world=0, world_time=0.0, dt=0.1, divisor=1, scene=6):
         v = vp()
 
         def rand(ctx):
@@ -58,7 +58,7 @@ class Fixed:
         def owner(ctx, index, out):
             out[0], out[1], out[2] = 100.0, 200.0, 300.0
         self.fns = (v.RAND_FN(rand), v.HEIGHT_FN(height), v.OWNER_FN(owner))
-        return v.Host(None, *self.fns, world, f32(world_time), f32(dt), divisor)
+        return v.Host(None, *self.fns, world, f32(world_time), f32(dt), divisor, scene)
 
 
 class ParticleTests(unittest.TestCase):
@@ -68,10 +68,10 @@ class ParticleTests(unittest.TestCase):
         cls.lib = cls.v.load_library(LIB)
         cls.lib.mu_pt_kind_supported.restype = ctypes.c_int
 
-    def create(self, kind, rands, scale=1.0, world=0, world_time=0.0, owner=-1, angle=(0.0, 0.0, 0.0)):
+    def create(self, kind, rands, scale=1.0, world=0, world_time=0.0, owner=-1, angle=(0.0, 0.0, 0.0), scene=6):
         v = self.v
         fx = Fixed(rands, height=55.0)
-        host = fx.host(world, world_time)
+        host = fx.host(world, world_time, scene=scene)
         p = v.Particle()
         ok = self.lib.mu_pt_create_record(ctypes.byref(p), ctypes.byref(host), kind[0], v.F3(1000.0, 2000.0, 150.0),
                                           v.F3(*angle), v.F3(1.0, 0.5, 0.25), kind[1], f32(scale), owner, 7)
@@ -165,6 +165,51 @@ class ParticleTests(unittest.TestCase):
         self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
         self.assertEqual((p.light[0], p.velocity[2], p.scale), (f32(f32(0.2) * f32(1.1)), f32(-10.0 + f32(0.1)),
                                                                 f32(f32(1.6 + 0.5) - f32(0.005))))
+
+    def test_charsel_kinds(self):
+        # NATIVE-CHARSEL-002: WATERFALL2 0x801b subtype 2 (the falls' spray), dimmer in the character select
+        p, ok, fx = self.create((0x801b, 2), [100, 3, 4, 15, 5, 30], scale=0.5, scene=5)
+        self.assertEqual((ok, p.lifetime, p.rotation, fx.calls), (1, 40, 100.0, 6))
+        self.assertEqual((p.scale, p.velocity[2]), (f32(f32(f32(3 + 6) * f32(0.1)) + 0.5), -4.0))
+        self.assertEqual(list(p.light), [0.25]*3)
+        self.assertEqual(list(p.position), [1005.0, 1995.0, 160.0])   # += (r%20-10, r%20-10, r%40-20)
+        p, ok, fx = self.create((0x801b, 2), [100, 3, 4, 15, 5, 30], scene=6)
+        self.assertEqual(list(p.light), [f32(0.4)]*3)
+        host = Fixed([13, 2]).host()
+        p.lifetime = 9
+        p.light[0] = 1.0
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))   # below 10 steps the light fades
+        self.assertEqual((p.velocity[0], p.velocity[1]), (f32(f32(3.0) * f32(0.1)), f32(f32(-8.0) * f32(0.1))))
+        self.assertEqual(p.light[0], f32(1.0 / f32(1.1)))
+        # WATERFALL3 0x801c subtype 0xe (the falls' mist): no case of its own before the second chain
+        p, ok, fx = self.create((0x801c, 0xe), [10, 1, 2, 4, 25, 0, 7], scale=2.0)
+        self.assertEqual((ok, p.lifetime, p.rotation, p.velocity[2], fx.calls), (1, 30, 10.0, 7.0, 7))
+        self.assertEqual(p.scale, f32(f32(f32(14.0) * f32(0.05)) * 2.0))
+        self.assertEqual(list(p.position), [1005.0, 1980.0, 147.0])
+        p.light[0] = 1.0
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(Fixed([0]).host()))
+        self.assertEqual(p.light[0], f32(f32(1.0 / f32(1.1)) / f32(1.1)))   # divided twice
+        self.assertEqual(p.velocity[2], f32(f32(7.0 - f32(0.6)) - 2.5))
+        # fantaB 0x8017 subtype 0 (the lamps' sparks)
+        p, ok, fx = self.create((0x8017, 0), [8, 1])
+        self.assertEqual((ok, p.lifetime, p.velocity[0], p.velocity[1], p.velocity[2]),
+                         (1, 24, f32(3.0 * f32(0.4)), 0.0, f32(6.0 * f32(0.2))))
+        self.assertEqual(list(p.start), list(p.position))
+        p.scale = f32(0.01)
+        p.lifetime = 20
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(Fixed([0]).host()))
+        self.assertEqual((p.scale, p.light[0]), (0.0, f32(f32(20.0) / f32(25.0))))
+        # chasellight 0x8022 subtype 5 (the selection light): drawn with Impack03, rises by its gravity
+        p, ok, fx = self.create((0x8022, 5), [1, 30, 20, 150, 5, 9, 100, 64])
+        self.assertEqual((ok, p.lifetime, p.tex_type, fx.calls), (1, 21, 0x7b78, 8))
+        self.assertEqual(p.position[0], f32(1000.0 + 5.0))
+        self.assertEqual(p.position[1], f32(f32(100 - 65) + f32(2000.0 - 5.0)))
+        self.assertEqual(p.position[2], f32(64.0 + 150.0))                   # the argument's z
+        self.assertEqual(p.scale, f32(f32(f32(25.0) * f32(0.01)) * f32(1.3)))
+        self.assertEqual(p.gravity, f32(f32(f32(29.0) * f32(0.05)) * f32(1.3)))
+        z, p.light[0] = p.position[2], 1.0
+        self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(Fixed([0]).host()))
+        self.assertEqual((p.light[0], p.position[2]), (f32(1.05), f32(z + p.gravity)))
 
     def test_noria_shiny01(self):
         p, ok, fx = self.create((0x7f66, 1), [0])
