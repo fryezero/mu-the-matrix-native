@@ -455,6 +455,13 @@ session's sound): `dw-spells` (Fire Ball with its fire trail and stones, Energy 
 - **Static readings**: RenderObject's draw of effect models, the swirl's draw of the caster's weapon
   (`0x015332ac`), CheckClientArrow, the AttackTime switch cases and the Inferno ring.
 
+### NATIVE-JOINT-001
+
+The joint code moved to `reconstructed/joints` (one implementation; `mu_sfx_joint` is `mu_jt_joint` and the
+`mu_sfx_joint_*` functions wrap `mu_jt_*`). `mu_combat` creates, moves and draws its joints through
+`native/core/mu_joints.*`, so the Twisting Slash swirl's spark streaks `0x7fd5` draw (Spark01). Correction: Heal's
+arrival flash is CreateSprite(Shiny02, …, blend 0, axes 4), not (…, 0, 0). See [client-joints.md](client-joints.md).
+
 ## Reproduce
 
 ```sh

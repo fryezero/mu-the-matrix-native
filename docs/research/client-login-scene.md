@@ -203,9 +203,17 @@ original command line the cause was not found; it remains open.
   `MU_OBJECTS_PLAIN_DIR`: camera and far plane equal to the live read, 47 objects, 2 after-character objects,
   10 sprites), `validate_scene.py --only login_render login_tick_head`.
 
+## NATIVE-JOINT-001
+
+The stand-ins are gone: the lantern sprites go through CreateSprite/RenderSprites and the mist (clouds `0x7f89`
+subtype 0x14, owner = the marker) and spray (WATERFALL1 `0x801a` subtype 2) through CreateParticle/MoveParticles/
+RenderParticles of the reconstructed particle module (verified kinds, [client-joints.md](client-joints.md)); the
+tick head moves the particles, the render ends the 3D part with RenderSprites(0) and RenderParticles(0). The report's
+`sprites` is the CreateSprite count of the last RenderObjects pass, `particles` the live particles.
+
 ## Limits and next steps
 
-* The sprite and particle systems (CreateSprite, CreateParticle, RenderSprites/RenderParticles) are stand-ins.
+* The sprite and particle systems were stand-ins until NATIVE-JOINT-001 (above).
 * The sky and ship brightness differ from the live capture (section 6).
 * The credit-window branch of the tick and the GFx parts of the scene (MENU, CREDIT, the account dialog).
 * The unnamed passes of section 3 (boids, fishes, blurs, joints) are not ported; the geese are static objects of

@@ -2,6 +2,17 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Joints, world-object effects, login particles (NATIVE-JOINT-001)
+
+Read [`research/client-joints.md`](research/client-joints.md) (section 5 is the per-world survey of particle, joint
+and effect creators). `reconstructed/joints` (libclient_joints) is the single joint implementation (`skill_fx`
+wraps it); `native/core/mu_joints.*` runs it for `mu_combat` and for the world objects in `mu_particles` (which also
+keeps their effects: the Tormenta tornado). Compare with `scripts/validate_joints.py --cases 3000` (about 2 min),
+`validate_skill_fx.py` and `validate_particles.py` (both extended). Renders are local
+(`~/Documents/mu-mac-tools/native/renders/joints/`, `render.sh`/`sheets.py`). `mu-world --joint-demo SUB` shows a
+lightning subtype anywhere. Next: MoveObject's kinds of the other worlds once their object lists are decoded, the
+character-select scene's object lifecycle and kinds, Inferno's burst, RenderObject's effect draw executed.
+
 ## Particles, sprites and blob shadows (NATIVE-PARTICLE-001)
 
 Read [`research/client-particles.md`](research/client-particles.md). `reconstructed/particles` (libclient_particles)

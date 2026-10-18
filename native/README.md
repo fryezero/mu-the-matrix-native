@@ -205,6 +205,26 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --world 0 --tile 142,130 --obj
 native/build/mu-world --game-root "$MU_GAME_ROOT" --world 2 --tile 210,36                         # shadow on snow
 ```
 
+## Joints, world-object effects, login particles (NATIVE-JOINT-001)
+
+`core/mu_joints.*` runs the client's joint pool from `reconstructed/joints`
+([finding](../docs/research/client-joints.md)) for both owners: the skills (`mu_combat`, now with the swirl's spark
+streaks) and the world objects (`mu_particles`, which also keeps their effects). In `mu-world`/`mu-walk`/mu-client:
+
+- Tormenta Island's crystals throw lightning joints `0x7f7d` (bolts, arcs, rings) and its markers raise the field
+  tornado `0x40e` (an effect model); the Dungeon, Devias and Noria object visuals are ported (not seen without their
+  decoded object lists);
+- MoveEffects, MoveJoints, MoveParticles each step; effect models and RenderJoints(0) before the sprite section;
+- the login scene's lantern sprites and its mist and spray particles go through the particle module (no stand-ins).
+
+The summary adds a `"joints"` line, frame reports `"joints": [live, quads, effects]`. `--joint-demo SUB` (a viewer
+test, not client behaviour) creates a lightning joint of subtype SUB above the hero every 20 steps.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 141 --tile 82,19 --objects-dir LOCAL   # crystals, tornado
+native/build/mu-world --game-root "$MU_GAME_ROOT" --tile 133,127 --joint-demo 0x1a                # demo bolt
+```
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -342,7 +362,8 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
 | `core/mu_env.*` | Ambient creatures and weather over `reconstructed/environment`: models, weather bitmaps, step and draw (NATIVE-ENV-001) |
-| `core/mu_particles.*` | Particles, sprites and blob shadows over `reconstructed/particles`: effect bitmaps, step, sprite pass, shadows, the object/environment/skill hooks (NATIVE-PARTICLE-001) |
+| `core/mu_particles.*` | Particles, sprites and blob shadows over `reconstructed/particles`: effect bitmaps, step, sprite pass, shadows, the object/environment/skill hooks (NATIVE-PARTICLE-001); the world objects' joints and effects, the login scene's sprites and particles (NATIVE-JOINT-001) |
+| `core/mu_joints.*` | The joint pool over `reconstructed/joints`: slot search, MoveJoints, RenderJoints as quads, render-type state (NATIVE-JOINT-001) |
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
