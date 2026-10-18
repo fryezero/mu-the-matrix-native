@@ -28,6 +28,7 @@
 #define MU_OBJECTS_H
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdint.h>
 
 #include "../../reconstructed/objects/objects.h"
@@ -241,6 +242,14 @@ mu_object_model *mu_objects_prepare(mu_objects *objects, int32_t k, const mu_wor
 /* The same for object index i (callers that walk objects without the render pass). */
 mu_object_model *mu_objects_prepare_index(mu_objects *objects, int32_t index, const mu_world *map, int32_t scene_state,
                                           mu_draw_options *options);
+
+/* NATIVE-LIGHT-001: one JSON line per drawable object (every object RenderObject draws), posed as RenderObject
+ * poses it: {"object_light": index, "type", "scale", "origin", "angles", "action", "prior_action", "frame",
+ * "prior_frame", "pose_translate", "transform_translate", "light_override", "ambient", "light_scale",
+ * "light_minimum", "lighting", "color": [r, g, b], "model": file, "lights": [[mesh 0 light values], ...]} (binary32 values
+ * printed exactly, at most 64 values per mesh, 8 meshes). Re-runs RenderObject; diagnostics, tests and
+ * scripts/validate_model_light.py. */
+void mu_objects_light_report(mu_objects *objects, const mu_world *map, int32_t scene_state, FILE *out);
 
 /* Stand-in particle quads (4 vertices each) with their draw state; bitmap 0 fire, 1 smoke.
  * Returns the vertex count written (capacity in vertices). */

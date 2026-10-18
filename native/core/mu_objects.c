@@ -299,7 +299,7 @@ int mu_objects_load_models(mu_objects *o, const char *game_root, int no_textures
             continue;
         }
         mu_model_params p;
-        mu_model_default_params(&p);
+        mu_model_scene_params(&p);   /* light override 1 (NATIVE-LIGHT-001) */
         p.world = o->world;
         if (mu_model_init(&m->model, &m->bmd, &p, message, sizeof message) != MU_MODEL_OK) {
             mu_bmd_free(&m->bmd);
@@ -333,6 +333,13 @@ mu_object_model *mu_objects_place(mu_objects *o, int32_t index, const mu_world *
         p.color[k] = 1.0f;
     }
     p.body_scale = r->scale;
+    /* RenderObject's Animation/Transform arguments (see pose_object in mu_objects_runtime.c) */
+    p.pose_translate = 1;
+    p.transform_translate = 0;
+    p.vertex_scale = 0.0f;
+    p.light_ambient = 0.4f;
+    p.light_scale = r->value_30;
+    p.light_minimum = r->value_34;
     if (o->uniform_light > 0.0f) {
         for (int k = 0; k < 3; ++k)
             p.color[k] = o->uniform_light;

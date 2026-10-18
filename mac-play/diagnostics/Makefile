@@ -28,4 +28,9 @@ memread: build/memread
 build/memread: memread.c debugger-entitlement.plist | build
 	clang -O2 -Wall $< -o $@
 	codesign -s - -f --entitlements debugger-entitlement.plist $@
-.PHONY: all objread memread
+# lightread (NATIVE-LIGHT-001 live read of the model lighting inputs): same signing.
+lightread: build/lightread
+build/lightread: lightread.c debugger-entitlement.plist | build
+	clang -O2 -Wall $< -o $@
+	codesign -s - -f --entitlements debugger-entitlement.plist $@
+.PHONY: all objread memread lightread

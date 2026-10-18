@@ -173,7 +173,7 @@ static int load_entry(mu_charsel_session *s, const char *root, int32_t i)
     char player[4096];
     snprintf(player, sizeof player, "%s/Data/Player/Player.bmd", root);
     mu_model_params params;
-    mu_model_default_params(&params);
+    mu_model_scene_params(&params);   /* light override 1 (NATIVE-LIGHT-001) */
     params.world = MU_CHARSEL_WORLD;
     params.scene_state = MU_CHARSEL_SCENE;   /* the animation tick's scene-5 rule */
     if (mu_character_init(ch, player, &params, s->error, sizeof s->error))

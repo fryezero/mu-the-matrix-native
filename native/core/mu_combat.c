@@ -168,7 +168,7 @@ static void load_models(mu_combat *c, const char *root)
             continue;
         }
         mu_model_params p;
-        mu_model_default_params(&p);
+        mu_model_scene_params(&p);   /* light override 1 (NATIVE-LIGHT-001) */
         p.world = c->map ? c->map->world : 0;
         if (mu_model_init(&m->model, &m->bmd, &p, message, sizeof message) != MU_MODEL_OK) {
             mu_bmd_free(&m->bmd);

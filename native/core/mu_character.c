@@ -192,6 +192,7 @@ static mu_model_params slot_params(const mu_character *c, const mu_model *model,
     }
     p.head_angles[0] = p.head_angles[1] = 0.0f;
     p.lighting = c->params.lighting;
+    p.light_override = c->player.params.light_override;   /* one global 0x01cf1048 for every model */
     p.transform_translate = 1;
     p.vertex_scale = 0.0f;
     p.light_ambient = LIGHT_AMBIENT;

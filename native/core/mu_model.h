@@ -67,6 +67,15 @@ typedef struct mu_model_params {
 
 void mu_model_default_params(mu_model_params *params);
 
+/* The client's light-override byte 0x01cf1048 (HighLight): initialised data that the restored text only reads
+ * (Transform 0x012b5c05). It holds 1 in the Linux run capture of the data section and in reads of our own running
+ * client in the login scene and in the world (NATIVE-LIGHT-001), so every lit model draw of the game uses the light
+ * vector (1.3, 0, 2). mu_model_default_params keeps 0 (the viewer's and the client-verified digests' input);
+ * game scenes use mu_model_scene_params. */
+#define MU_CLIENT_HIGH_LIGHT 1
+/* mu_model_default_params with the game-scene globals (light override MU_CLIENT_HIGH_LIGHT). */
+void mu_model_scene_params(mu_model_params *params);
+
 enum { MU_MODEL_REGION_COUNT = 12 };
 /* Bone slots a vertex or normal record reaches with an out-of-range bone index
  * (MODEL-EDGE): the client's transform reads bones + index*0x30 unchecked, e.g.
