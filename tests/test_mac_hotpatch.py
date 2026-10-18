@@ -96,12 +96,12 @@ class MeshDrawPublicationTests(unittest.TestCase):
     def test_patch_site_originals_are_hash_pinned_and_header_is_not_source(self):
         sites = {site['name']: site for site in self.targets['meshdraw_sites']}
         self.assertEqual(set(sites),{'md_orig','md_lorig','md_prologue','sh_orig','td_prologue','jp_rh_orig','jp_sd_orig','jp_rs_orig',
-                                     'jp_fd_orig','jp_dt_orig','crc_prologue'})
+                                     'jp_fd_orig','jp_dt_orig'})
         jpeg = (SOURCE/'jpeg.c').read_text()
         sources = {'md_orig':(self.meshdraw,'MD_PATCH'),'md_lorig':(self.meshdraw,'MD_LPATCH'),'md_prologue':(self.meshdraw,'MD_ENTRY'),
                    'sh_orig':((SOURCE/'shadow.c').read_text(),'SH_PATCH'),'td_prologue':((SOURCE/'decal.c').read_text(),'TD_ENTRY'),
                    'jp_rh_orig':(jpeg,'JP_READ_HEADER'),'jp_sd_orig':(jpeg,'JP_START'),'jp_rs_orig':(jpeg,'JP_READ_SCANLINES'),
-                   'jp_fd_orig':(jpeg,'JP_FINISH'),'jp_dt_orig':(jpeg,'JP_DESTROY_THUNK'),'crc_prologue':((SOURCE/'crc.c').read_text(),'CR_ENTRY')}
+                   'jp_fd_orig':(jpeg,'JP_FINISH'),'jp_dt_orig':(jpeg,'JP_DESTROY_THUNK')}
         for name,site in sites.items():
             with self.subTest(name=name):
                 text,macro = sources[name]
@@ -133,14 +133,15 @@ class MeshDrawPublicationTests(unittest.TestCase):
         rows = {int(m.group(1)) for m in re.finditer(r'^\| (\d+) \|',readme,re.M)}
         self.assertEqual(rows,{1<<k for k in range(31)})
         self.assertEqual(mask,(1<<31)-1)
-        # v7.6: v7.5's 44916143 plus native JPEG decode 67108864 and native CRC-32 268435456
-        self.assertEqual(default,380460463)
-        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19,21,23,25,26,28)))
+        # v7.6: v7.5's 44916143 plus native JPEG decode 67108864
+        self.assertEqual(default,112025007)
+        self.assertEqual(default,sum(1<<k for k in (0,1,2,3,5,7,8,10,11,12,14,16,18,19,21,23,25,26)))
         self.assertEqual(default & 67108863,44916143,'v7.5 reads 26 bits and sees its own default')
         self.assertEqual(default & 2097151,875951,'v7.4 reads 21 bits and sees its own default')
         self.assertEqual(default & 16383,7599,'v7.1/v7.2 builds read 14 bits and see their own default')
         self.assertEqual(default & 65535,23983,'v7.3 reads 16 bits and sees its own default')
-        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576|4194304|16777216|134217728|536870912),0,'diagnostic and unverified bits stay off by default')
+        self.assertEqual(default & (8192|64|16|512|32768|131072|1048576|4194304|16777216|134217728|268435456|536870912|1073741824),0,
+                         'diagnostic, unused and opt-in bits stay off by default')
         self.assertIn('md_untested = (mask & 8192) != 0',self.mugl)
 
     def test_synthetic_build_cannot_apply_game_patches(self):
@@ -322,7 +323,7 @@ class V74Tests(unittest.TestCase):
         self.assertIn('cs_lazy = (mask & 262144) != 0',self.mugl)
         self.assertIn('cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;',self.mugl)
         # code patches, pacing and reads of client addresses only in main.exe; test programs get the GL-level bits
-        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432 | 67108864 | 134217728 | 268435456 | 536870912);',self.mugl)
+        self.assertIn('if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192 | 2097152 | 4194304 | 8388608 | 16777216 | 33554432 | 67108864 | 134217728);',self.mugl)
         self.assertIn('mugl_client = !lstrcmpiA(b, "main.exe");',self.mugl)
 
     def test_quad_runs_are_keyed_by_the_two_callers_and_smooth_quads(self):
@@ -459,25 +460,28 @@ class V75Tests(unittest.TestCase):
 
 
 class V76Tests(unittest.TestCase):
-    """MAC-PERF-010: native JPEG decode for the client's IJG 6b, native CRC-32. No game bytes."""
+    """MAC-PERF-010: native JPEG decode for the client's IJG 6b. No game bytes."""
     def setUp(self):
         self.mugl = (SOURCE/'mugl.c').read_text()
         self.jpeg = (SOURCE/'jpeg.c').read_text()
         self.jpegdec = (SOURCE/'jpegdec.c').read_text()
-        self.crc = (SOURCE/'crc.c').read_text()
         self.make = (SOURCE/'Makefile').read_text()
 
     def test_sources_are_included_built_and_carry_no_byte_tables(self):
-        self.assertIn('#include "jpeg.c"\n#include "crc.c"',self.mugl)
-        self.assertIn('jpeg.c crc.c jpegdec.c jpegdec.h',self.make)
+        self.assertIn('#include "jpeg.c"\n',self.mugl)
+        self.assertIn('jpeg.c jpegdec.c jpegdec.h',self.make)
+        # The file-integrity module's CRC loop is out of scope: no source, wiring or pinned site for it.
+        self.assertFalse((SOURCE/'crc.c').exists())
+        self.assertNotIn('crc',self.mugl.lower())
+        self.assertNotIn('0x00aa2c62',self.mugl)
         self.assertIn('JPEG_FLAGS := -DMUGL_JPEG -I$(LJT_DIR)',self.make)   # turbo is linked only when LJT_DIR is given
-        for text in (self.jpeg,self.jpegdec,self.crc):
+        for text in (self.jpeg,self.jpegdec):
             self.assertIsNone(re.search(r'unsigned char[^;=]*\[[^\]]*\]\s*=\s*\{\s*0x',text))
         self.assertIn('static int jp_install(int on, int verify) { (void)on; (void)verify; return 0; }',self.jpeg)   # inert without turbo
 
     def test_bits(self):
         self.assertIn('int jp = jp_install((mask & 67108864) != 0, (mask & 134217728) != 0);',self.mugl)
-        self.assertIn('int cr = cr_install((mask & 268435456) != 0, (mask & 536870912) != 0);',self.mugl)
+        self.assertNotIn('268435456) != 0',self.mugl)   # bits 268435456/536870912 are unused
 
     def test_jpeg_native_only_for_binary_mode_loaders_and_default_parameters(self):
         self.assertIn('if (ret != 0x00c98446 && ret != 0x00a900bb && ret != 0x00a9027b)',self.jpeg)   # jpeg_start_decompress callers
@@ -496,12 +500,6 @@ class V76Tests(unittest.TestCase):
         self.assertIn('SHA=8f0012234b464ce50890c490f18194f913a7b1f4e6a03d6644179fa0f867d0cf',script)
         self.assertIn('v_in_group \\* 2 == v_out_group && do_fancy',script)   # no h1v2 fancy upsampling, as in 6b
         self.assertIn('jpeg_simd_cpu_support() & JSIMD_SSE2',script)
-
-    def test_crc_slicing_is_derived_from_the_clients_table_and_requires_linearity(self):
-        self.assertIn('cr_t[k][i] = (cr_t[k - 1][i] >> 8) ^ cr_t[0][cr_t[k - 1][i] & 0xff];',self.crc)
-        self.assertIn('if (x != cr_base[i]) cr_linear = 0;',self.crc)
-        self.assertIn('if (n < 64 || !cr_prepare(t)) return cr_bytes_loop(t, c, p, n);',self.crc)
-        self.assertIn('return pcrc;',self.crc)
 
     def test_deferred_enables_are_sent_before_every_observer(self):
         m = self.mugl

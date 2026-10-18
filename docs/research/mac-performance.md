@@ -1121,25 +1121,25 @@ Not established: Windows-native behavior, other hosts, a busy town, stability pa
 paths not seen in this scene (world 0x91 shadows, world 0x8d decal visibility), and the attribution of the
 translated-code samples.
 
-## MAC-PERF-010: Claude v7.6 native JPEG decoding, native CRC-32 and load-stall analysis
+## MAC-PERF-010: Claude v7.6 native JPEG decoding and load-stall analysis
 
 Claude's live work on 2026-10-17/18 (23:50-02:15) in MuMatrix32, MTM-1: Nighty at the Tormenta Island boss fight
 (135,10, MU Helper on as in MAC-PERF-008/009) and FryeZEN2 in Lorencia, entered from character selection. Thirteen
 short sessions under the game lock, each run 3 minutes or less; another agent (MAC-FREE-001) and macOS Spotlight
 indexing loaded the Mac in several sessions (load average up to 74), so only interleaved same-session pairs at low
-load are quoted. Sources: `mac-play/hotpatch/jpeg.c`, `jpegdec.c`, `build-libjpeg-turbo.sh`, `crc.c`, `decal.c`,
+load are quoted. Sources: `mac-play/hotpatch/jpeg.c`, `jpegdec.c`, `build-libjpeg-turbo.sh`, `decal.c`,
 `stall.c`, `gpudiag.c`; `mac-play/diagnostics/glcaps.c`; `mac-play/machprof/stallprof.c` (`NPC=1`).
 
 **Where a map entry goes.** Entering the Tormenta map from character selection took 2.5-3.0 s in one frame
 (1,250-1,350 file opens, 46-54 MB read, 240-320 JPEG textures, 270-630 texture uploads). `stallprof` with native-pc
 bins (2.86 s stall, 1,996 samples): 28% of the samples were in one 256-byte range of the Rosetta runtime, the
 system-call path (blocking file, mapping and server calls), 7% elsewhere in the runtime and translated 64-bit code,
-and 57% in 32-bit code: the table-driven CRC-32 routine `0x00aa2c62` 9%, the client's IJG 6b decoder about 6%
-(OpenJpeg inclusive about 7.5%), a second whole-file hashing routine of the same file-checksum code 4-6%, and a large
+and 57% in 32-bit code: a table-driven CRC-32 loop of the client's file-integrity module 9%, the client's IJG 6b
+decoder about 6% (OpenJpeg inclusive about 7.5%), a second whole-file hashing routine of the same module 4-6%, and a large
 library function at `0x0047a6d0` (statically linked Scaleform GFx, presumably its ActionScript interpreter) 7% in
-an EBP-walk profile. Timed import slots showed the file-checksum code's CreateFileMappingA/MapViewOfFile/
+an EBP-walk profile. Timed import slots showed the file-integrity module's CreateFileMappingA/MapViewOfFile/
 UnmapViewOfFile/CloseHandle calls (about 490 mappings and 1,800 handle closes per entry) as the main system-call
-cost; that code was not changed beyond the CRC routine. About 3.6 million RtlEnter/LeaveCriticalSection pairs and
+cost; this project does not modify that module. About 3.6 million RtlEnter/LeaveCriticalSection pairs and
 0.8 million heap allocations per entry, mostly from GFx, looked expensive in the first measurement, but a
 microbenchmark put a Wine critical-section pair at 5-6 ns: the cost was the timing itself
 (QueryPerformanceCounter is about 90 ns under Rosetta). JPEG decoding is therefore a smaller share than assumed.
@@ -1153,10 +1153,12 @@ progressive); both reject the same 18 files. Under Rosetta, turbo with SSE2 deco
 ran as well: 1,074 images (sessions 2-4) and 761 images (final build) compared row by row, 0 mismatches. Decode time
 per Tormenta entry (same images): 237 -> 142 ms; first login: 273 -> 166 ms; Lorencia: 25 ms for 153 images.
 
-**Native CRC-32 (bit 268435456).** Slicing-by-8 from the client's own table: 107 -> 31 ms per Tormenta entry
-(244 calls, 43 MB); 732 + 488 calls compared live, 0 mismatches.
+**Not published: a native CRC-32.** An experimental slicing-by-8 replacement for the file-integrity module's CRC loop
+was measured in these sessions (107 -> 31 ms per Tormenta entry). It was removed before publication: the CRC loop
+belongs to the client's file-integrity module, which this project does not modify. The published default
+112025007 is v7.5's 44916143 plus native JPEG decode (67108864) only; bits 268435456/536870912 are unused.
 
-| Scene (load) | v7.5 (44916143) | v7.6 (380460463) |
+| Scene (load) | v7.5 (44916143) | v7.6 as measured (380460463, including the removed CRC bit) |
 |---|---|---|
 | Tormenta map entry from character selection, interleaved x3 (2-4) | 2,851 / 2,642 / 2,641 ms (mean 2,711) | 2,474 / 2,604 / 2,643 ms (mean 2,574) |
 | Lorencia map entry (FryeZEN2), one pair (~1.8) | 1,105 ms (selection screen 345 ms) | 869 ms (284 ms) |
@@ -1164,8 +1166,10 @@ per Tormenta entry (same images): 237 -> 142 ms; first login: 273 -> 166 ms; Lor
 | Boss fight, default view (3.2) | (MAC-PERF-009: 25.0 fps, 33-35 ms) | 24.97 fps; 35.6 ms |
 | Boss fight zoomed out, F6 + Shift+wheel (3.2-4.7) | (MAC-PERF-009: 23.2-23.9 fps, 41.7-43.1 ms) | 22.5-23.2 fps, 43.2-44.5 ms; busier moments 20.3-21.5 fps, 46-49 ms |
 
-The map entries got about 5% (Tormenta) and 20% (Lorencia, one pair) faster; the rest of the entry is system calls
-of the file-checksum code, GFx and other client loading, none changed. First appearances of monsters and the warp
+The map entries got about 5% (Tormenta) and 20% (Lorencia, one pair) faster with both bits. About 76 ms of the
+Tormenta gain came from the removed CRC bit, so the published default (JPEG only) saves about 95 ms of decode time per
+Tormenta entry (237 -> 142 ms); its effect on the whole entry was not measured separately. The rest of the entry is
+system calls of the file-integrity module, GFx and other client loading, none changed. First appearances of monsters and the warp
 window were not measured separately: in the boss fight the monsters are loaded with the map, and during steady play
 the JPEG stats lines show 1-5 images at a time, decoded natively in 0.1-3 ms.
 
@@ -1204,11 +1208,10 @@ load from other processes the game got less CPU than it should. `setopt NO_BG_NI
 (about 6,500 context switches per second) while the game ran; putting it on background QoS (`taskpolicy -b`) in an
 A/B under heavy load showed no clear effect on the game's frame time, so nothing was changed there.
 
-**Installed.** `mugl-v76.dll` (private build with `LJT_DIR`) in MuMatrix32 with mask 380460463; rollback
-`builds/mugl-v75.dll` with mask 44916143. The kit installer was not changed (it is being reworked); its default
-should become 380460463, which needs `MUKIT_HOTPATCH_MAX` raised to 2147483647, the 8-digit check in
-`mukit_hotpatch_valid` widened and 44916143 added to `MUKIT_HOTPATCH_OLD_DEFAULTS`; v7.6's JPEG bit is inert unless the
-private build is made with `LJT_DIR`.
+**Installed.** The live sessions ran `mugl-v76.dll` (private build with `LJT_DIR`) in MuMatrix32 with mask 380460463,
+which included the since-removed CRC bit; the published v7.6 build has no CRC code and defaults to 112025007. Rollback:
+`builds/mugl-v75.dll` with mask 44916143. The kit installer is not changed here; MAC-FREE-001 owns it and sets its
+default to 112025007. v7.6's JPEG bit is inert unless the private build is made with `LJT_DIR`.
 
 Checks run: `tests/test_mac_hotpatch.py` and `tests/test_mac_diagnostics.py`, `make -C mac-play/hotpatch private`
 (with `LJT_DIR`) and the synthetic build, `make -C mac-play/diagnostics`, `make -C mac-play/machprof`,
@@ -1216,4 +1219,4 @@ Checks run: `tests/test_mac_hotpatch.py` and `tests/test_mac_diagnostics.py`, `m
 opengl32's hashes with the proxy loaded (`--dll opengl32=n,b`; without it CrossOver loaded the builtin and the
 comparison was meaningless). Not established: Windows-native behavior, other hosts, the warp window and
 first-sight loads in a busy town, corrupt or truncated JPEG files (they fall back to the client's decoder, but the
-fallback decision rests on turbo reporting an error or warning), the purpose of the file-checksum code (not analysed).
+fallback decision rests on turbo reporting an error or warning), and the file-integrity module (not analysed or modified).

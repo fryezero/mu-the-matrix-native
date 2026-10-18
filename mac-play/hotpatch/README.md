@@ -8,7 +8,7 @@ sorting (`terrain.c`), a raised render-thread priority and long-frame diagnostic
 (MAC-PERF-008): effect-sprite and grass quad batching (`quads.c`), deferred client-array enables, off-screen batch
 culling (`cull.c`) and draw/GPU diagnostics (`gpudiag.c`), and v7.5 (MAC-PERF-009): native body shadows
 (`shadow.c`), native terrain decals (`decal.c`) and a specialised mesh-draw append, and v7.6 (MAC-PERF-010): native JPEG
-decoding for the client's IJG 6b (`jpeg.c`, `jpegdec.c`, libjpeg-turbo) and a native CRC-32 (`crc.c`). The normal `make mugl` and setup installer still
+decoding for the client's IJG 6b (`jpeg.c`, `jpegdec.c`, libjpeg-turbo). The normal `make mugl` and setup installer still
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
@@ -87,11 +87,11 @@ thread. Never use MuMatrix32 for these tests.
 ## Runtime controls from the original snapshot
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
-from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 380460463 (v7.6; v7.5 used 44916143, v7.4
+from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 112025007 (v7.6; v7.5 used 44916143, v7.4
 875951, v7.3 23983, v7.1 and v7.2 7599, v7.0 15). The file is read as a 31-bit mask; v7.5 reads 26 bits, v7.4 21 bits,
-v7.3 16 bits and v7.1/v7.2 14 bits of the same value, so 380460463 gives each older build its own default. In a test
+v7.3 16 bits and v7.1/v7.2 14 bits of the same value, so 112025007 gives each older build its own default. In a test
 program the environment variable `MUGL_MASK` overrides the file. Only in `main.exe` are the code patches (bits
-1-512, 8192, 2097152-536870912) and the
+1-512, 8192, 2097152-134217728) and the
 frame pacing (1024) applied; any other process that loads the private build (a test program) gets the GL-level bits only.
 Each site is checked against its original or replacement bytes before a write;
 unexpected bytes are skipped. This is process-local patching with instruction
@@ -128,8 +128,8 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 33554432 | With 128: the mesh-draw direct append specialised per attribute kind (`md_run_vtx` in `meshdraw.c`); bit 64 verifies it |
 | 67108864 | Native JPEG decode: libjpeg-turbo (6b-exact build) decodes for the client's IJG 6b in the three binary-mode JPEG loaders (`jpeg.c`, `jpegdec.c`; needs `LJT_DIR` at build time) |
 | 134217728 | With 67108864: the client's own decoder runs as well and every row is compared (diagnostic) |
-| 268435456 | Native CRC-32: the table-driven CRC routine `0x00aa2c62` computed eight bytes at a time from the client's own table (`crc.c`) |
-| 536870912 | With 268435456: also run the original routine and compare (diagnostic) |
+| 268435456 | Unused (reserved) |
+| 536870912 | Unused (reserved) |
 | 1073741824 | Deferred enables and redundant texture parameters: glEnable/glDisable of caps that are not per texture unit are recorded and sent only before something can observe them (a change back cancels); repeated glTexParameteri filter/wrap values on the bound GL_TEXTURE_2D object are dropped (opt-in: no measurable gain, see MAC-PERF-010) |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
@@ -138,8 +138,8 @@ and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 1
 7599 plus 16384; 56751 adds the terrain verification. The v7.4 default 875951 is 23983 plus 65536, 262144 and
 524288; 2056111 adds all three verifications (32768, 131072, 1048576). The v7.5 default 44916143 is 875951 plus
 2097152, 8388608 and 33554432; 65887727 adds the mesh-draw, shadow and decal verifications (64, 4194304, 16777216). The v7.6
-default 380460463 is 44916143 plus 67108864 (native JPEG) and 268435456 (native CRC-32); 1068326383 adds the JPEG, CRC,
-mesh-draw and decal verifications (134217728, 536870912, 64, 16777216). Mesh-draw
+default 112025007 is 44916143 plus 67108864 (native JPEG); 263020015 adds the JPEG, mesh-draw and decal verifications
+(134217728, 64, 16777216). Mesh-draw
 modes `0x8000` and flag `0x400` call client code with side effects and always run
 the original loop. `meshdraw-notes.md` has the decoded routine and verification
 method. The source's verify path bypasses comparison
@@ -323,10 +323,9 @@ tarball; h1v2 fancy upsampling disabled because 6b has none; SSE2 only, AVX2 mea
 `make private LJT_DIR=<dir printed by the script>`; without `LJT_DIR` the bits are inert. Bit 134217728 lets the
 client's decoder run too and compares every row and the output dimensions.
 
-**Native CRC-32 (bit 268435456, `crc.c`).** `0x00aa2c62` is a table-driven byte-wise CRC update that the client runs
-over whole files at every map entry (about 43 MB at Tormenta Island). The entry jumps to a slicing-by-8 version whose
-tables are derived from the client's own table (checked to be linear over GF(2), otherwise the byte loop runs); buffers
-under 64 bytes use the byte loop. Bit 536870912 also runs the original and compares.
+**Not patched: the file-integrity CRC.** At every map entry the client also runs a table-driven CRC-32 over whole
+files. That loop belongs to the client's file-integrity module, which this project does not modify; a native
+version measured during MAC-PERF-010 was removed before publication.
 
 **Opt-in experiments.** Bit 1073741824 defers glEnable/glDisable of non-unit caps until something can observe them
 and drops repeated glTexParameteri filter/wrap values; it saved about 2,500 thunk calls per frame but did not change
