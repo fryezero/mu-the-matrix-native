@@ -1,10 +1,12 @@
 # Mu The Matrix.app
 
-`mac-play/bundle/` (MAC-BUNDLE-001) builds a double-clickable macOS app that starts the original
-launcher, `MuTheMatrix.exe`, in a CrossOver bottle. It replaces the Desktop `.command` files that run
-`play-mu.sh`. The app ships no game files and does not create bottles: it starts a bottle made by
-[`../installer/`](../installer/README.md) or a hand-built bottle with the same layout (`C:\MuTheMatrix`,
-optionally `C:\mutools\mu-modes.txt`).
+`mac-play/bundle/` (MAC-BUNDLE-001, MAC-FREE-001) builds a double-clickable macOS app that installs and starts
+the original launcher, `MuTheMatrix.exe`. **By default it needs no CrossOver:** it bundles the
+[installer](../installer/README.md) and runs it with the free Wine runtime from an Install window, then starts
+the game from `~/Library/Application Support/MuTheMatrix/prefix`. A CrossOver bottle (made by the installer's
+`--runtime crossover` or by hand, with `C:\MuTheMatrix` and optionally `C:\mutools\mu-modes.txt`) stays
+selectable as the legacy runtime. The app ships no game files. Non-technical players: see
+[`../PLAYER-GUIDE.md`](../PLAYER-GUIDE.md).
 
 ## Build
 
@@ -33,26 +35,47 @@ make -C mac-play/bundle DEFAULT_BOTTLE=MuMatrix32 DEFAULT_FAST_X87=1 \
     DEFAULT_TIMEWALKER_DIR=/path/to/rosetta-timewalker
 ```
 
-They end up in `Info.plist` (`MUDefaultBottle`, `MUDefaultFastX87`, `MUDefaultTimewalkerDir`). Without
-them, the app defaults to bottle `MuMatrixKit`, fast x87 off and the timewalker set to Auto.
+They end up in `Info.plist` (`MUDefaultRuntime`, `MUDefaultBottle`, `MUDefaultFastX87`, `MUDefaultTimewalkerDir`).
+Without them, the app defaults to the free runtime (`DEFAULT_RUNTIME=free`; `crossover` for the legacy path),
+bottle `MuMatrixKit` for the CrossOver runtime, fast x87 on for the free runtime (used when installed) and off for
+CrossOver, and the timewalker set to Auto.
+
+### A build for players (owner)
+
+The installer needs DLLs for good speed, and players cannot build them. The server owner bundles them at build time;
+they go to `Contents/Resources/dlls` and `Contents/Resources/fast-x87` and the Install window passes them to the
+installer (`--mugl-dll`, `--mscoree-dll`, `--fast-x87-dir`):
+
+```sh
+make -C mac-play/bundle EMBED_MUGL=/path/to/mugl-v75.dll EMBED_MSCOREE=/path/to/mscoree.dll \
+    EMBED_FAST_X87=/path/to/fast-x87     # from ../installer/runtime/package-fast-x87.sh
+```
+
+A private mugl build contains client-derived bytes: distributing it to players is the owner's decision, and it
+must never be committed. The mscoree proxy and the public mugl are authored sources (MIT); the timewalker files
+are MIT (their licenses are copied along). `x87-main-only-wrapper` is compiled from `../x87-main-only-wrapper.c`
+during the build. Without `EMBED_*` the app installs without DLLs (low fps) unless the installer finds MinGW.
 
 ## Use
 
-Double-click **Mu The Matrix**. On the first run, the settings window opens. Choose the bottle and
-press **Play**. Later double-clicks run a preflight check, start the launcher and quit the app. The
+Double-click **Mu The Matrix**. On the first run with the free runtime, the Install window opens in front of the
+settings window: choose "Download the game from the official site" or "Use a Mu The Matrix folder I already
+have…", press **Install** and watch the steps (about 20 minutes with the download; the log is in
+`~/Library/Logs/MuTheMatrix/app.log`). Then press **Play**. Later double-clicks run a preflight check, start the launcher and quit the app. The
 launcher and game keep running. To get the settings window back, hold **⌥ Option** while opening
 the app. It also opens when "Start the game right away" is off, and from the error dialog.
 
 | Setting | Effect |
 |---|---|
-| Bottle | Any CrossOver bottle. The list marks bottles that are not 32-bit or have no `C:\MuTheMatrix`. |
+| Runtime | **Free Wine runtime** (default) or **CrossOver bottle (legacy)**. With the free runtime the Game row shows whether it is installed and offers **Install…** / **Repair…** (rerunning the installer skips finished steps). |
+| Bottle | CrossOver runtime only: any CrossOver bottle. The list marks bottles that are not 32-bit or have no `C:\MuTheMatrix`. |
 | Resolution | "Keep launcher setting" (default) changes nothing. A mode from the bottle's `C:\mutools\mu-modes.txt` sets `DevModeIndex` in `C:\MuTheMatrix\LauncherOption.if` before each start, in the launcher's own byte format, keeping `WindowMode` and `ID`. The first change saves the original as `LauncherOption.if.mu-app-backup`. With the public batching-only mugl, the kit caps the index at 2 (see the kit README). |
-| Fast x87 | Off: plain CrossOver `wine`. On: `main.exe` runs through rosetta-timewalker with `TIMEWALKER_X87_ONLY=main.exe`; the .NET launcher stays on the plain loader. |
+| Fast x87 | Free runtime: on (default) uses the installed translator in `fast-x87/` for `main.exe` when the runtime has the inner loader (CrossOver 26.3 build), otherwise plain Rosetta with a note. CrossOver: off = plain `wine`; on = `main.exe` runs through rosetta-timewalker with `TIMEWALKER_X87_ONLY=main.exe`; the .NET launcher stays on the plain loader. |
 | Timewalker | With fast x87 on: a built rosetta-timewalker folder (`scripts/run-crossover.sh`, `build/libtimewalker.dylib`), as with `play-mu.sh` `MU_TIMEWALKER_DIR`. **Auto** uses the validated cache from `../install-fast-x87.sh` (checked with `fast_x87_ready` from `../fast-x87.sh`). |
 | Start right away | Off: the window opens on every start. |
 
 The settings are stored as an XML plist at `~/Library/Application Support/MuTheMatrix/Launcher.plist`,
-with the keys `Bottle` (string), `FastX87` (bool), `TimewalkerDir` (string, empty = Auto), `Resolution`
+with the keys `Runtime` (string `free` or `crossover`), `Bottle` (string), `FastX87` (bool), `TimewalkerDir` (string, empty = Auto), `Resolution`
 (string `WxH`, empty = keep) and `StartImmediately` (bool). You can edit the file directly. Missing,
 mistyped or unreadable values fall back to the defaults.
 
@@ -83,6 +106,8 @@ These conditions are checked before anything is changed:
 | 16 | This resolution is not available | no `mu-modes.txt`, or the mode is not in it |
 | 17 | The resolution could not be saved | writing `LauncherOption.if` failed |
 | 20 | The launcher stopped right away | the launcher exited with a non-zero status within the watch time |
+| 30 | Mu The Matrix is not installed yet | free runtime: no runtime in `runtime/current` (the dialog offers **Install…**) |
+| 31 | The game folder is missing or damaged | free runtime: the prefix is missing or not 32-bit (`#arch=win32`) |
 | 2 | Could not be started | invalid setting or internal error |
 
 ## Logs
@@ -104,12 +129,15 @@ APP="mac-play/bundle/build/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
 "$APP" --print-settings   # effective settings, settings file and log directory
 "$APP" --check            # preflight only; exit code as in the table above
 "$APP" --dry-run          # preflight plus every planned action (MU-PLAN lines); changes nothing
+"$APP" --status           # free runtime: runtime / prefix / game installed?
+"$APP" --install-dry-run  # the installer's plan (download the official game); changes nothing
+"$APP" --install [DIR]    # install without a window (what the Install window runs)
 "$APP" --version
 ```
 
-The environment variables `MU_SETTINGS_FILE`, `MU_LOG_DIR`, `CX_ROOT`, `MUKIT_BOTTLES_DIR` and
-`MU_LAUNCH_SCRIPT` override the file locations, which the tests use. `mu-launch.sh` also runs on its
-own from a checkout, with the settings in `MU_BOTTLE`, `MU_FAST_X87`, `MU_TIMEWALKER_DIR` and
+The environment variables `MU_SETTINGS_FILE`, `MU_LOG_DIR`, `MUKIT_FREE_HOME`, `CX_ROOT`, `MUKIT_BOTTLES_DIR`,
+`MU_LAUNCH_SCRIPT` and `MU_SETUP_SCRIPT` override the file locations, which the tests use. `mu-launch.sh` also runs on its
+own from a checkout, with the settings in `MU_RUNTIME` (default free; `MU_BOTTLE` alone selects CrossOver), `MU_PREFIX`, `MU_BOTTLE`, `MU_FAST_X87`, `MU_TIMEWALKER_DIR` and
 `MU_RESOLUTION` (see its header). It also has the options `--list-bottles` and `--list-modes`, which
 the settings window uses.
 
@@ -118,7 +146,9 @@ the settings window uses.
 `tests/test-bundle.sh` runs as part of `make test`. Its first part runs on macOS and Linux. It uses a
 synthetic bottle tree, a stub CrossOver whose `wine` and `wineserver` only record their arguments, and
 a stub `pgrep`, so a running game cannot affect the results. It covers:
-- every preflight error and its code;
+- every preflight error and its code, for both runtimes;
+- the free runtime: status, a stubbed start (explicit `WINEPREFIX`, launcher started from the game folder, scoped
+  `wineserver -k`), the fast-x87 fallback and the fast-x87 environment;
 - the bottle and mode listings;
 - a dry run that leaves the bottle tree byte-identical and starts nothing;
 - a stubbed start, which checks the scoped `wineserver -k`, the exact launcher arguments, the
@@ -142,7 +172,8 @@ or credentials.
 
 The test results and the live check are recorded in `docs/research/mac-crossover-32bit.md`
 (MAC-BUNDLE-001). Known limits:
-- The app is ad-hoc signed and not notarized.
+- The app is ad-hoc signed and not notarized: players must allow it once (see `../PLAYER-GUIDE.md`). A seamless
+  first start needs an Apple Developer ID and notarization (owner's decision).
 - It is built for the host architecture only.
 - The 4-second watch cannot detect a launcher that fails later; check `wine-BOTTLE.log` in that case.
 - The resolution setting relies on the bottle's mscoree mode proxy, which makes the launcher's list

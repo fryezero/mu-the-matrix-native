@@ -68,8 +68,10 @@ class InstallerPinsAndOptions(unittest.TestCase):
 
     def test_pins_are_well_formed_documented_and_overridable_only_by_name(self):
         pins = self.pins()
-        self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V72_SHA256', 'MUKIT_MUGL_V71_SHA256',
-                                     'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256', 'MUKIT_DOTNET48_INSTALLER_SHA256'})
+        self.assertEqual(set(pins), {'MUKIT_MAIN_EXE_SHA256', 'MUKIT_LAUNCHER_EXE_SHA256', 'MUKIT_MUGL_V75_SHA256', 'MUKIT_MUGL_V72_SHA256',
+                                     'MUKIT_MUGL_V71_SHA256', 'MUKIT_MUGL_V70_SHA256', 'MUKIT_MSCOREE_PROXY_SHA256',
+                                     'MUKIT_DOTNET48_INSTALLER_SHA256', 'MUKIT_RT_CX24_ENGINE_SHA256', 'MUKIT_RT_TEMPLATE_SHA256',
+                                     'MUKIT_WINETRICKS_SHA256'})
         self.assertEqual(len(set(pins.values())), len(pins))
         for name, digest in pins.items():
             with self.subTest(pin=name):
@@ -103,6 +105,19 @@ class InstallerPinsAndOptions(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIn(name, self.lib)
                 self.assertIn(name, existing)
+
+    def test_free_runtime_downloads_are_pinned_https(self):
+        # The free runtime is fetched over https and checked against pinned SHA-256 values (MAC-FREE-001).
+        for name in ('MUKIT_RT_CX24_ENGINE_URL', 'MUKIT_RT_TEMPLATE_URL', 'MUKIT_WINETRICKS_URL', 'MUKIT_GAME_INSTALLER_URL'):
+            with self.subTest(url=name):
+                m = re.search(rf'^{name}=\$\{{{name}:-(\S+)\}}$', self.lib, re.M)
+                self.assertIsNotNone(m)
+                self.assertTrue(m.group(1).startswith('https://'))
+        self.assertIn('MUKIT_RT_ARCHIVE_URL=${MUKIT_RT_ARCHIVE_URL:-}', self.lib)
+        build = (KIT / 'runtime' / 'build-wine.sh').read_text()
+        self.assertIn('crossover-sources-26.3.0.tar.gz', build)
+        self.assertRegex(build, r'CX_SRC_SHA256=[0-9a-f]{64}')
+        self.assertIn('SOURCES.txt', build)
 
     def test_relation_to_existing_setup_is_documented(self):
         self.assertIn('Relation to `setup-crossover-32bit.sh`', self.readme)

@@ -360,6 +360,13 @@ final class InstallWindowController: NSWindowController {
     }
     @objc private func openLogs() { openLog() }
 
+    /// Test hook (MU_AUTOTEST_INSTALL=1): press Install programmatically, optionally with a game folder
+    /// (MU_AUTOTEST_GAME_DIR). Same code path as the button; used for the recorded rehearsal.
+    func autotest(gameDir: String?) {
+        if let g = gameDir { folder = g; folderLabel.stringValue = g; folderRadio.state = .on; downloadRadio.state = .off }
+        startInstall()
+    }
+
     private func append(_ text: String) {
         logView.textStorage?.append(NSAttributedString(string: text + "\n", attributes: [.font: logView.font as Any, .foregroundColor: NSColor.textColor]))
         logView.scrollToEndOfDocument(nil)
@@ -435,7 +442,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard s.runtime == "free" else { return true }
             let st = LaunchScript.freeStatus(); return st.runtime && st.prefix && st.game
         }()
-        if !freeReady {
+        let env = ProcessInfo.processInfo.environment
+        if env["MU_AUTOTEST_INSTALL"] == "1" {
+            showSettings(nil); showInstaller()
+            installWindow?.autotest(gameDir: env["MU_AUTOTEST_GAME_DIR"].flatMap { $0.isEmpty ? nil : $0 })
+        } else if !freeReady {
             // First start with the free runtime: settings behind, the installer in front.
             showSettings(nil); showInstaller()
         } else if !LauncherSettings.fileExists || option || !s.startImmediately {
