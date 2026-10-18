@@ -3,7 +3,9 @@
  * One handle plays one converted GFx movie (gfxconvert.py --bridge).
  * NATIVE-GFX-001: open, advance, render (read back), invoke, variables, mouse.
  * NATIVE-GFX-002: keyboard/text input, GFx hit test, cursor, device fonts,
- * window-sized players, IOSurface sharing (macOS), ABI version. */
+ * window-sized players, IOSurface sharing (macOS), ABI version.
+ * NATIVE-GFX-003 (ABI 3): movies load other movies (loadClip) from the root
+ * movie's directory; game images (mugfx_set_image). */
 #ifndef MUGFX_H
 #define MUGFX_H
 
@@ -16,7 +18,7 @@ extern "C" {
 
 typedef struct MuGfx MuGfx;
 
-#define MUGFX_ABI_VERSION 2
+#define MUGFX_ABI_VERSION 3
 
 /* ExternalInterface.call(name, ...) from the movie; args_json is a JSON array.
  * fscommand(cmd, arg) arrives as name "fscommand" with [cmd, arg].
@@ -88,6 +90,17 @@ void mugfx_size(MuGfx *g, int *width, int *height);
  * map the client's names to macOS fonts. */
 int mugfx_register_font(const char *name, const char *path, int style);
 const char *mugfx_fonts_used(MuGfx *g);
+
+/* NATIVE-GFX-003.  Movies load other movies with MovieClipLoader.loadClip
+ * (the client's base movie, UI loader and Icons.swf): names resolve in the
+ * root movie's directory, '\\' as separator, then the file name alone, also
+ * case-insensitively.  mugfx_resolve reports the file a name maps to.
+ * Game images: GFx lets the game provide the bitmaps of a movie's external
+ * images (base.swf's render targets image0..image7);
+ * BitmapData.loadBitmap(name) returns the image given here and shares its
+ * pixels (straight-alpha RGBA, stride bytes per row or 0, top row first). */
+int mugfx_set_image(MuGfx *g, const char *name, int width, int height, const uint8_t *rgba, int stride);
+int mugfx_resolve(MuGfx *g, const char *name, char *out, size_t cap);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,112 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 15:41:26 -0500
+Subject: [PATCH 6/7] mu: GFx movie load order (root onLoad after the first
+ frame, onLoadComplete with onLoadInit)
+
+Scaleform GFx calls the onLoad a movie's root timeline defines in its
+first frame (a level or a movie loaded into a clip), and loads local
+movies synchronously, so MovieClipLoader's onLoadComplete already sees
+the loaded movie's clips.  The client's base.swf / ExternalBase.swf and
+its UI loader (core.MovieLoader.onLoadComplete calls onFileLoad on the
+loaded clips) rely on both.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/display_object/movie_clip.rs | 17 ++++++++++--
+ core/src/loader.rs                    | 38 ++++++++++++++-------------
+ 2 files changed, 35 insertions(+), 20 deletions(-)
+
+diff --git a/core/src/display_object/movie_clip.rs b/core/src/display_object/movie_clip.rs
+index a92228e8..19e456a3 100644
+--- a/core/src/display_object/movie_clip.rs
++++ b/core/src/display_object/movie_clip.rs
+@@ -462,10 +462,19 @@ impl<'gc> MovieClip<'gc> {
+         if !self.movie().is_action_script_3() {
+             // Run my load/enterFrame clip event.
+             let is_load_frame = !self.0.contains_flag(MovieClipFlags::INITIALIZED);
+-            if is_load_frame {
++            // Scaleform GFx (mu patch): the root timeline of a movie (a level
++            // or a movie loaded into a clip) gets its `onLoad` after its first
++            // frame ran, so an `onLoad` the first frame defines is called (the
++            // client's base.swf and ExternalBase.swf rely on it).
++            let gfx_movie_root = is_load_frame
++                && (self.is_root()
++                    || self
++                        .parent()
++                        .is_none_or(|parent| parent.movie() != self.movie()));
++            if is_load_frame && !gfx_movie_root {
+                 self.event_dispatch(context, ClipEvent::Load);
+                 self.0.set_initialized(true);
+-            } else {
++            } else if !is_load_frame {
+                 self.event_dispatch(context, ClipEvent::EnterFrame);
+             }
+ 
+@@ -474,6 +483,10 @@ impl<'gc> MovieClip<'gc> {
+             if self.playing() {
+                 self.run_frame_internal(context, true, true, false);
+             }
++            if gfx_movie_root {
++                self.event_dispatch(context, ClipEvent::Load);
++                self.0.set_initialized(true);
++            }
+         }
+     }
+ 
+diff --git a/core/src/loader.rs b/core/src/loader.rs
+index 33adb41c..2c956f69 100644
+--- a/core/src/loader.rs
++++ b/core/src/loader.rs
+@@ -2190,24 +2190,12 @@ impl<'gc> MovieLoader<'gc> {
+         }
+ 
+         match vm_data {
+-            MovieLoaderVMData::Avm1 {
+-                broadcaster,
+-                base_clip,
+-            } => {
+-                if let Some(broadcaster) = broadcaster {
+-                    Avm1::run_stack_frame_for_method(
+-                        base_clip,
+-                        broadcaster,
+-                        istr!(uc, "broadcastMessage"),
+-                        // TODO: Pass an actual httpStatus argument instead of 0.
+-                        &[
+-                            istr!(uc, "onLoadComplete").into(),
+-                            target_clip.object1_or_undef(),
+-                            status.into(),
+-                        ],
+-                        uc,
+-                    );
+-                }
++            MovieLoaderVMData::Avm1 { .. } => {
++                // Scaleform GFx (mu patch): `onLoadComplete` is broadcast with
++                // `onLoadInit`, after the loaded movie's first frame, so the
++                // listener sees the movie's clips (the client's
++                // `core.MovieLoader.onLoadComplete` calls `onFileLoad` on them).
++                let _ = status;
+             }
+             // This is fired after we process the movie's first frame,
+             // in `MovieClip.on_exit_frame`
+@@ -2384,6 +2372,20 @@ impl<'gc> MovieLoader<'gc> {
+                     base_clip,
+                 } = self.vm_data
+                 {
++                    // mu patch: `onLoadComplete` here (see `movie_loader`).
++                    queue.queue_action(
++                        base_clip,
++                        ActionType::Method {
++                            object: broadcaster,
++                            name: istr!(strings, "broadcastMessage"),
++                            args: vec![
++                                istr!(strings, "onLoadComplete").into(),
++                                self.target_clip.object1_or_undef(),
++                                0.into(),
++                            ],
++                        },
++                        false,
++                    );
+                     queue.queue_action(
+                         base_clip,
+                         ActionType::Method {

@@ -22,6 +22,12 @@
 //! (`mugfx_set_view`) and, on macOS, rendering straight into an IOSurface
 //! that the host's OpenGL compositor samples (`mugfx_open_shared`), which
 //! removes the GPU -> CPU -> GL copy.
+//!
+//! NATIVE-GFX-003 (ABI 3) lets movies load other movies (`loadClip`) from
+//! the root movie's directory (`navigator.rs`), as the client's base movie,
+//! UI loader and item windows (`Icons.swf`) do, and lets the host supply the
+//! game images of a movie (`mugfx_set_image`, GFx's game-provided external
+//! images such as base.swf's `image0`, through the patch series).
 
 use std::any::Any;
 use std::cell::{Cell, RefCell};
@@ -33,6 +39,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use ruffle_core::backend::locale::DeterministicLocaleBackend;
+use ruffle_core::backend::navigator::NullExecutor;
 use ruffle_core::backend::log::LogBackend;
 use ruffle_core::backend::ui::{
     DialogResultFuture, FileFilter, FontDefinition, FullscreenError, LanguageIdentifier, MouseCursor,
@@ -58,6 +65,7 @@ use url::Url;
 
 #[cfg(target_os = "macos")]
 mod surface;
+mod navigator;
 
 /// `const char *callback(void *user, const char *name, const char *args_json)`.
 /// The returned string (JSON, may be NULL) must stay valid until the next call.
@@ -375,6 +383,10 @@ pub struct MuGfx {
     height: Cell<u32>,
     reply: RefCell<CString>,
     stats: RefCell<MuGfxStats>,
+    /// Futures of `loadClip` and other loads (polled after each player step).
+    executor: RefCell<NullExecutor>,
+    /// Directory of the root movie (base of relative loads).
+    base: std::path::PathBuf,
 }
 
 #[derive(Default, Clone, Copy)]
@@ -415,6 +427,8 @@ impl MuGfx {
         if IN_PLAYER.with(|c| c.get()) {
             return;
         }
+        // Finish movie loads first: their futures lock the player.
+        self.executor.borrow_mut().run();
         loop {
             let jobs: Vec<Pending> = self.pending.borrow_mut().drain(..).collect();
             if jobs.is_empty() {
@@ -449,7 +463,9 @@ fn build_player(path: &str, w: u32, h: u32, kind: TargetKind) -> Result<Box<MuGf
     let movie = movie_from_path(Path::new(path), None).map_err(|e| e.to_string())?;
     let slot = Arc::new(Mutex::new(CallbackSlot { callback: None, user: std::ptr::null_mut(), calls: 0 }));
     let ui = Rc::new(UiState::default());
-    let builder = PlayerBuilder::new();
+    let executor = NullExecutor::new();
+    let base = Path::new(path).parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    let builder = PlayerBuilder::new().with_navigator(navigator::MuNavigator::new(base, &executor));
     let builder = match kind {
         TargetKind::Readback => {
             let target = TextureTarget::new(&descriptors.device, (w, h)).map_err(|e| e.to_string())?;
@@ -492,6 +508,8 @@ fn build_player(path: &str, w: u32, h: u32, kind: TargetKind) -> Result<Box<MuGf
         height: Cell::new(h),
         reply: RefCell::new(CString::default()),
         stats: RefCell::new(MuGfxStats::default()),
+        executor: RefCell::new(executor),
+        base: base.to_path_buf(),
     }))
 }
 
@@ -1029,5 +1047,49 @@ pub unsafe extern "C" fn mugfx_needs_render(g: *mut MuGfx) -> c_int {
 /// ABI version of this library (the host checks it after dlopen).
 #[unsafe(no_mangle)]
 pub extern "C" fn mugfx_abi_version() -> c_int {
-    2
+    3
+}
+
+/// Supply or update a game image of the movie (GFx: the bitmaps a game
+/// provides for a movie's external images, for example base.swf's render
+/// targets `image0`..`image7`).  `BitmapData.loadBitmap(name)` in the movie
+/// (and the movies it loaded) returns it and shares its pixels.  `rgba` is
+/// straight-alpha RGBA, `stride` bytes per row (0: width*4), top row first.
+/// Returns 0 on success.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mugfx_set_image(g: *mut MuGfx, name: *const c_char, width: c_int, height: c_int,
+                                         rgba: *const u8, stride: c_int) -> c_int {
+    let Some(g) = (unsafe { g.as_ref() }) else { return -1 };
+    let Some(name) = (unsafe { cstr(name) }) else { return -1 };
+    if width <= 0 || height <= 0 || rgba.is_null() || IN_PLAYER.with(|c| c.get()) {
+        return -2;
+    }
+    let (w, h) = (width as usize, height as usize);
+    let stride = if stride <= 0 { w * 4 } else { stride as usize };
+    if stride < w * 4 {
+        return -2;
+    }
+    let src = unsafe { std::slice::from_raw_parts(rgba, stride * (h - 1) + w * 4) };
+    let mut packed = Vec::with_capacity(w * h * 4);
+    for y in 0..h {
+        packed.extend_from_slice(&src[y * stride..y * stride + w * 4]);
+    }
+    g.with_player(|p| p.set_gfx_image(name, w as u32, h as u32, &packed));
+    0
+}
+
+/// The local file a movie-relative name (as a movie passes it to `loadClip`)
+/// resolves to for the movie `g`, written to `out`; returns its length or -1.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mugfx_resolve(g: *mut MuGfx, name: *const c_char, out: *mut c_char, cap: usize) -> c_int {
+    let (Some(g), Some(name)) = (unsafe { g.as_ref() }, unsafe { cstr(name) }) else { return -1 };
+    let base = g.base.clone();
+    match navigator::local_file(&base, name) {
+        Some(p) => {
+            let s = p.to_string_lossy();
+            write_error(out, cap, &s);
+            s.len() as c_int
+        }
+        None => -1,
+    }
 }
