@@ -1,0 +1,9 @@
+# Demo server list (format of `mu-render ui servers --list`): invented names and loads.
+notice OFFLINE DEMO: local server list. The native client does not connect to any server.
+group left 0 1 Offline|Native client offline demo, no network connection
+server 15 0 Offline-1 (demo)
+server 48 1 Offline-2 (demo)
+server 83 2 Offline-3 (demo)
+server 130 3 Offline-4 (closed, demo)
+group right 2 2 Test|Second demo group
+server 5 0 Test-1 (demo)

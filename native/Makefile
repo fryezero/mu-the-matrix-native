@@ -60,6 +60,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/actors/actors.c $(RECON)/path/client_path.c \
              $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c \
              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c \
+             $(RECON)/ui/ui_loading.c $(RECON)/scene/scene.c \
              $(RECON)/effects/effects.c $(RECON)/effects/effects_json.c $(RECON)/effects/effects_tree.c \
              $(RECON)/movement/client_movement.c \
              $(RECON)/renderchar/renderchar.c $(RECON)/charsel/charsel.c \
@@ -76,7 +77,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h \
-           $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h)
+           $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -89,7 +90,7 @@ endif
 
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/mu-effect $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
      $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) \
-     $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel audio
+     $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel $(BUILD)/mu-shell audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -120,7 +121,8 @@ $(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world
 # validator and tests (ctypes).
 UI_LIB_SRC := core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c $(RECON)/ui/ui2d.c \
               $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c core/mu_png.c \
-              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c
+              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c \
+              $(RECON)/ui/ui_loading.c
 $(BUILD)/libmuui.$(SHLIB_EXT): $(UI_LIB_SRC) $(HEADERS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -fPIC -shared $(UI_LIB_SRC) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
@@ -193,10 +195,11 @@ GL_CFLAGS :=
 endif
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c viewer/terrain_view.c
 
-viewer: $(BUILD)/mu-viewer $(BUILD)/mu-frame-window $(BUILD)/mu-world $(BUILD)/mu-charsel-window
+viewer: $(BUILD)/mu-viewer $(BUILD)/mu-frame-window $(BUILD)/mu-world $(BUILD)/mu-charsel-window $(BUILD)/mu-client
 frame-window: $(BUILD)/mu-frame-window
 world: $(BUILD)/mu-world
 charsel: $(BUILD)/mu-charsel-window
+client: $(BUILD)/mu-client
 
 $(BUILD)/mu-viewer: $(VIEWER_SRC) viewer/gl_backend.h $(LIB)
 	@mkdir -p $(BUILD)/viewer
@@ -281,7 +284,34 @@ $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headles
 	done
 	$(CXX) $(BUILD)/charsel/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) $(UI_LIBS) -lm -o $@
 
+# ---- mu-client: the client's scene flow, offline (NATIVE-SHELL-001) ----
+# client/shell.c runs reconstructed/scene over the character-select and world
+# sessions, which world/world_embed.c and charsel/charsel_embed.c compile from
+# world/main.c and charsel/main.c unchanged. build/mu-shell is the headless
+# software build (portable tests), build/mu-client the SDL2 + OpenGL window.
+CLIENT_SRC := client/main.c client/shell.c client/offline-session.c world/world_embed.c charsel/charsel_embed.c
+CLIENT_HDR := client/shell.h client/offline-session.h world/world_embed.h charsel/charsel_embed.h world/main.c charsel/main.c
+
+$(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
+	@mkdir -p $(BUILD)/shell
+	for f in $(CLIENT_SRC); do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
+	    -o $(BUILD)/shell/$$(basename $$f .c).o || exit 1; \
+	done
+	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+CLIENT_GL_SRC := $(CLIENT_SRC) viewer/gl_backend.c viewer/gl_headless.c
+
+$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
+	@mkdir -p $(BUILD)/client
+	for f in $(CLIENT_GL_SRC); do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
+	    -o $(BUILD)/client/$$(basename $$f .c).o || exit 1; \
+	done
+	$(CXX) $(BUILD)/client/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all viewer frame-window world charsel audio audio-live clean
+.PHONY: all viewer frame-window world charsel client audio audio-live clean

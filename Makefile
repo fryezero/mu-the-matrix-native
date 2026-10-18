@@ -18,6 +18,7 @@ all:
 	$(MAKE) -C reconstructed/charsel
 	$(MAKE) -C reconstructed/hud
 	$(MAKE) -C reconstructed/objects
+	$(MAKE) -C reconstructed/scene
 	$(MAKE) -C native
 
 test: all
@@ -54,6 +55,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/charsel -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/hud -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/objects -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/scene -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:

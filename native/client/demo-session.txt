@@ -1,0 +1,15 @@
+# Offline demo session for mu-client (NATIVE-SHELL-001).
+#
+# In the real client the server list, the login answer, the character list
+# and the join-map answer come from the server through the network layer,
+# which is outside this project's scope. These local files stand in for
+# them; nothing here is client data (names, levels and positions are
+# invented, item paths name files of the installed client under Data/).
+servers demo-servers.txt
+characters demo-characters.txt
+# join SLOT WORLD X,Y [ANGLE]: where the character in SLOT enters the world
+join 0 0 133,127        # Lorencia town square
+join 1 0 140,130 90
+join 2 2 197,48         # Devias
+join 3 3 175,110        # Noria
+join 4 0 136,124

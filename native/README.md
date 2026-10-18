@@ -133,6 +133,28 @@ draws World94's static objects and takes the markers from a local decoded `EncTe
 native/build/mu-charsel --game-root "$MU_GAME_ROOT" --frames 50 --every 10 --cycle 10 --out-dir /tmp/charsel
 ```
 
+## The client's scene flow, offline (NATIVE-SHELL-001)
+
+`mu-client` (`make -C native client`, SDL2 + OpenGL) runs the client's own scene manager (`reconstructed/scene`,
+[finding](../docs/research/client-scene-manager.md)) over the native modules: title with the startup progress →
+login overlay and server select → an OFFLINE DEMO account panel (any input, nothing stored) → character select
+(mu-charsel's session) → loading screen → the world (mu-world's session) with the chosen character's class and
+equipment → Esc back to character select. There is no server connection: `client/offline-session.*` answers the
+server list, login, character list and join from `client/demo-session.txt` (a real session would come from the
+network layer, which is out of scope). `world/world_embed.c` and `charsel/charsel_embed.c` compile mu-world's and
+mu-charsel's `main.c` unchanged as modules. `build/mu-shell` is the headless software build (`make -C native`).
+
+```sh
+native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt
+native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt --headless --backend gl \
+    --auto --frames 400 --every 20 --out-dir /tmp/shell                # whole flow, scripted, PNG captures
+native/build/mu-shell --game-root "$MU_GAME_ROOT" --script "10:enter 14:text:demo 18:enter 40:enter" --wav /tmp/m.wav
+```
+
+In the window: click a server (or Enter), type anything and press Enter, choose a character with Left/Right or 1..5,
+Enter plays, Esc returns (world → character select → server list), Esc twice on the server list quits.
+`--sound-table`, `--placement`, `--world-objects` and `--charsel-objects` pass mu-world's and mu-charsel's options.
+
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh
@@ -208,6 +230,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |
+| `client/`, `world/world_embed.*`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; mu-world and mu-charsel as modules (NATIVE-SHELL-001) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 
 ## Data tables (NATIVE-DATA-001)
