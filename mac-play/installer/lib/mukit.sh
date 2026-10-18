@@ -21,14 +21,16 @@ MUKIT_MUGL_V72_SHA256=${MUKIT_MUGL_V72_SHA256:-e37cf5d52c990cf38c18137ba3faacb33
 MUKIT_MUGL_V71_SHA256=${MUKIT_MUGL_V71_SHA256:-85a8e3b6ea2f7d2602b14fc27e33496cfe136f14f4488e3dc5baffd4f15d3ca2}
 MUKIT_MUGL_V70_SHA256=${MUKIT_MUGL_V70_SHA256:-c06534dfe7a101856028153c7ed9f4db1f33cd497a9e012a5ae872a0896db31c}
 MUKIT_MUGL_DEFAULT_VERSION=v72
-# Hotpatch masks (C:\mutools\mugl-hotpatch.txt). v7.1's built-in default is 7599
+# Hotpatch masks (C:\mutools\mugl-hotpatch.txt). v7.4's built-in default is 875951: v7.1's 7599
 # (1|2|4|8 helpers/inlining/peephole/xform, 32|128|256 meshdraw, 1024 frame pacing fix,
-# 2048|4096 zero-copy/strided batches); 6575 = the same without the frame pacing fix.
-# v7.0 reads only the low 5 bits (7599 & 31 = 15), so 7599 is right for both builds.
-MUKIT_HOTPATCH_DEFAULT=7599
+# 2048|4096 zero-copy/strided batches) plus 16384 terrain face sorting (v7.3), 65536 sprite/grass quad
+# batching, 262144 deferred client-array enables and 524288 off-screen culling (v7.4). Older builds read
+# fewer bits of the same value and see their own default: v7.3 16 bits (23983), v7.1/v7.2 14 bits (7599),
+# v7.0 5 bits (15). 6575 = v7.1's default without the frame pacing fix.
+MUKIT_HOTPATCH_DEFAULT=875951
 MUKIT_HOTPATCH_V70_BITS=15
-MUKIT_HOTPATCH_MAX=16383          # v7.1 masks the value with 16383
-MUKIT_HOTPATCH_OLD_DEFAULTS="15"  # values earlier kit versions wrote; upgraded without --reset-config
+MUKIT_HOTPATCH_MAX=2097151             # v7.4 masks the value with 2097151 (21 bits)
+MUKIT_HOTPATCH_OLD_DEFAULTS="15 7599"  # values earlier kit versions wrote; upgraded without --reset-config
 MUKIT_MSCOREE_PROXY_SHA256=${MUKIT_MSCOREE_PROXY_SHA256:-6f2d2acea2a48eb789ab7867a6c0a4e97d6db3263d1ae3b1a729f9cc7a5639ac}
 # CrossOver 26.3 i386 builtin opengl32.dll (informational; verify compares to the installed CrossOver).
 MUKIT_CX263_OPENGL32_SHA256=0965d21be959f804d0dedaa4a52da952befbc9b73df573229c0074390823ec56
@@ -253,8 +255,8 @@ mukit_screen_size() {
 }
 
 # ---------------------------------------------------------------- mutools config values
-mukit_mugl_mode_valid() { [[ "$1" =~ ^(full|nomerge|nofilter|off|nodraw)(\+vbo)?(\+time)?$ ]]; }
-mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,5}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ]; }
+mukit_mugl_mode_valid() { [[ "$1" =~ ^(full|nomerge|nofilter|off|nodraw)(\+vbo)?(\+time)?(\+finish)?(\+samples)?(\+cull)?$ ]]; }
+mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,7}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ]; }
 
 # mukit_mugl_version_sha VERSION -> pinned SHA-256 of mugl/builds/mugl-VERSION.dll (v72 | v71 | v70).
 mukit_mugl_version_sha() {

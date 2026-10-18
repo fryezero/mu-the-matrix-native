@@ -87,6 +87,9 @@ static long st_breaks[400]; static long st_skipped; static long st_orphans, st_s
 /* One-shot GL stream trace (diagnostic, v7.3): C:\mutools\mugl-trace.txt holding a frame count starts it; the
    stream of the next frames is written to C:\mutools\mugl-trace-<frame>.txt (see trace format in stall.c). */
 static int ts_active_flag;   /* terrain run open (terrain.c) */
+static int mugl_client;      /* this process is the client (main.exe): only then are code patches, pacing and client reads used */
+static int cs_dirty;         /* deferred client-array enables differ from GL (lazy client state, bit 262144) */
+static int cs_lazy; static unsigned char cs_real[6], cs_want[6]; static long st_cs_skipped, st_cs_sent;
 static int tr_on, tr_frames; static char *tr_buf; static size_t tr_len, tr_cap;
 static void tr_add(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 #include <stdarg.h>
@@ -102,7 +105,7 @@ static void update_busy(void)
     dirty_t = !gl_t_ok || memcmp(gl_t, cur_t, sizeof gl_t);
     dirty_c = !gl_c_ok || memcmp(gl_c, cur_c, sizeof gl_c);
     dirty_n = !gl_n_ok || memcmp(gl_n, cur_n, sizeof gl_n);
-    mugl_busy = (unsigned char)(count_mode || tr_on || ts_active_flag || mugl_in_begin || pending || owned || dirty_t || dirty_c || dirty_n);
+    mugl_busy = (unsigned char)(count_mode || tr_on || ts_active_flag || cs_dirty || mugl_in_begin || pending || owned || dirty_t || dirty_c || dirty_n);
 }
 static void set_gl_t(const GLfloat *v) { if (!gl_t_ok || memcmp(gl_t, v, sizeof gl_t)) { R(glTexCoord2fv, PFNfv)(v); memcpy(gl_t, v, sizeof gl_t); gl_t_ok = 1; } }
 static void set_gl_c(const GLfloat *v) { if (!gl_c_ok || memcmp(gl_c, v, sizeof gl_c)) { R(glColor4fv, PFNfv)(v); memcpy(gl_c, v, sizeof gl_c); gl_c_ok = 1; } }
@@ -118,6 +121,10 @@ static void release_arrays(void)
 }
 
 static LARGE_INTEGER qpf; static long long sleep_ticks; static long xf_calls, xf_checked, xf_bad; static void md_stats(FILE *f); static long st_pace_skips; static long long st_fmtverts[6]; static void pace_stats(FILE *f); static void io_stats(FILE *f); static void ts_stats(FILE *f);
+void mugl_sync_from(int idx);
+static void matrix_modified(void);
+#include "gpudiag.c"
+#include "cull.c"
 static void stats_tick(void)
 {
     if (!st_file) return;
@@ -137,8 +144,12 @@ static void stats_tick(void)
         memset(st_fmtverts, 0, sizeof st_fmtverts);
         fprintf(st_file, "\n"); memset(tm_ticks, 0, sizeof tm_ticks); memset(tm_calls, 0, sizeof tm_calls);
     }
+    cull_stats(st_file, st_frames); dc_stats(st_file, st_frames);
     pace_stats(st_file); io_stats(st_file); ts_stats(st_file);
     if (st_pace_skips) { fprintf(st_file, "pace: skipped game sleeps=%ld ", st_pace_skips); st_pace_skips = 0; }
+    if (cs_lazy) { fprintf(st_file, "clientstate deferred=%ld sent=%ld ", st_cs_skipped, st_cs_sent); st_cs_skipped = st_cs_sent = 0; }
+    if (cull_on) { fprintf(st_file, "culled=%ld/%ld batches %ld verts ", st_cull_batches, st_cull_tested, st_cull_verts); st_cull_batches = st_cull_tested = st_cull_verts = 0; }
+    if (cull_verify) { fprintf(st_file, "cullverify checked=%ld nonzero=%ld total %lld/%lld ", st_cv_checked, st_cv_bad, cv_tot_checked, cv_tot_bad); st_cv_checked = st_cv_bad = 0; }
     fprintf(st_file, "skipped=%ld orphans=%ld/%ld subKB=%ld vbo=%d ", st_skipped, st_orphans, st_subs, st_sub_bytes / 1024, vbo_emu); st_skipped = 0; st_orphans = st_subs = 0; st_sub_bytes = st_sub_calls = 0;
     fprintf(st_file, "fps=%.1f blocks=%ld verts=%ld v/block=%.1f draws=%ld v/draw=%.1f fallbacks=%ld\n",
             st_frames / secs, st_blocks, st_verts, st_blocks ? (double)st_verts / st_blocks : 0.0,
@@ -211,6 +222,7 @@ static void send_current(void) { set_gl_t(cur_t); set_gl_c(cur_c); set_gl_n(cur_
 static void submit_batch(void)
 {
     if (vcount == 0) return;
+    if (batch_mode == GL_TRIANGLES && cull_batch(vb, vcount)) { vcount = 0; set_t = set_c = set_n = 0; return; }   /* no fragment: not drawn */
     LARGE_INTEGER sb_t0; if (time_mode) QueryPerformanceCounter(&sb_t0);
     int vt = set_t && varies(offsetof(Vtx, t), sizeof(vb[0].t));
     int vc = set_c && varies(offsetof(Vtx, c), sizeof(vb[0].c));
@@ -270,7 +282,13 @@ static void submit_batch(void)
         owned_fmt = fmt; owned_ptr = src; owned_strided = 0;
     }
     TR("DRAW %x %d fmt=%x\n", batch_mode, vcount, fmt);
-    if (!nodraw) TIMED(0, R(glDrawArrays, PFNda)(batch_mode, 0, vcount));
+    dq_switch(batch_cls);
+    if (cull_mode && batch_mode == GL_TRIANGLES) cull_diag(vb, vcount, batch_cls);
+    if (!nodraw) {
+        if (time_mode) { LARGE_INTEGER t0_, t1_; QueryPerformanceCounter(&t0_); R(glDrawArrays, PFNda)(batch_mode, 0, vcount); QueryPerformanceCounter(&t1_);
+                         tm_ticks[0] += t1_.QuadPart - t0_.QuadPart; tm_calls[0]++; dc_add(batch_cls, t1_.QuadPart - t0_.QuadPart, vcount); }
+        else R(glDrawArrays, PFNda)(batch_mode, 0, vcount);
+    }
     /* drawing with an array leaves that current value undefined */
     if (has_t) gl_t_ok = 0;
     if (has_c) gl_c_ok = 0;
@@ -310,9 +328,35 @@ static void fallback_open_block(void)
     update_busy();
 }
 
+/* ---- lazy client-array enables (hotpatch bit 262144, v7.4) ----
+   The effect code draws each sprite from a vertex buffer as glEnableClientState x3, glDrawArrays, glDisableClientState
+   x3 (about 2,800 calls per frame zoomed out). With the bit, enables of the vertex, normal, color, index, texture
+   coordinate and edge-flag arrays are recorded and sent only when something can observe them: before any call that
+   uses or reads array state (the generated stubs with the "release" flag: draws, glArrayElement, glInterleavedArrays,
+   client attribute push/pop, glGet*, glIsEnabled, wgl*; array-related extensions, display lists, glBegin) and on full
+   synchronization. A disable followed by an enable of the same array before the next such call cancels out, so the
+   arrays GL sees at every draw are the ones the client asked for. State that mugl cannot know (after a client
+   attribute pop, glInterleavedArrays or a client texture unit change) makes the next call pass through. */
+static int cs_idx_en = -1, cs_idx_dis = -1;
+typedef void (WINAPI *PFN1e)(GLenum);
+static void release_arrays(void);
+static void cs_forget(void) { memset(cs_real, 0, sizeof cs_real); memset(cs_want, 0, sizeof cs_want); cs_dirty = 0; }
+static void cs_apply(void)
+{
+    if (!cs_dirty) return;
+    release_arrays();   /* the client's own array state must be current */
+    for (int k = 0; k < 6; k++) {
+        if (!cs_real[k] || cs_want[k] == cs_real[k]) continue;
+        if (cs_want[k] == 2) R(glEnableClientState, PFN1e)(0x8074 + k); else R(glDisableClientState, PFN1e)(0x8074 + k);
+        cs_real[k] = cs_want[k]; st_cs_sent++;
+    }
+    cs_dirty = 0;
+}
+
 /* Called by pass-through stubs with the export index (registers preserved by the stub). */
 void mugl_sync(void);
 static void ts_end_hook(void); static int ts_begin_hook(GLenum mode, void *ret); static void ts_glend_hook(void); static int ts_on_flag, ts_in_face_flag, ts_verify;
+static int qs_on_flag, qs_verify;   /* quad runs (quads.c) */
 static void flush_pending(void)
 {
     if (ts_active_flag) ts_end_hook();
@@ -326,12 +370,13 @@ void mugl_sync_from(int idx)
     if (passthrough) { update_busy(); return; } /* inside a real glBegin/glEnd: nothing may be emitted */
     if ((pending || mugl_in_begin) && idx >= 0 && idx < 400) st_breaks[idx]++;
     flush_pending();
+    if (cs_dirty && idx >= 0 && idx < (int)sizeof mugl_flags && (mugl_flags[idx] & 2)) cs_apply();
     if (idx >= 0 && idx < (int)sizeof mugl_flags) {
         const char *nm = mugl_names[idx];
         if (!strcmp(nm, "glTranslatef") || !strcmp(nm, "glTranslated") || !strcmp(nm, "glRotatef") || !strcmp(nm, "glRotated") ||
             !strcmp(nm, "glScalef") || !strcmp(nm, "glScaled") || !strncmp(nm, "glLoadMatrix", 12) || !strncmp(nm, "glMultMatrix", 12) ||
             !strcmp(nm, "glOrtho") || !strcmp(nm, "glFrustum")) matrix_modified();
-        if (!strncmp(nm, "wglMakeCurrent", 14) || !strncmp(nm, "wglDeleteContext", 16)) { forget_state(); mstk_valid = 0; }
+        if (!strncmp(nm, "wglMakeCurrent", 14) || !strncmp(nm, "wglDeleteContext", 16)) { forget_state(); mstk_valid = 0; cs_forget(); }
         if (mugl_flags[idx] & 2) release_arrays();
         if (mugl_flags[idx] & 1) send_current();
         if (mugl_flags[idx] & 4) forget_gl_current(); /* array draws may leave current values at the last element */
@@ -344,11 +389,28 @@ void mugl_sync(void)
 {
     if (passthrough) return;
     flush_pending();
+    cs_apply();
     release_arrays();
     send_current();
     forget_gl_current(); /* unknown call (extension draw, list, ...) may change current values */
     update_busy();
 }
+static void cs_set(GLenum a, unsigned char v)
+{
+    int k = (int)a - 0x8074;
+    if (k < 0 || k > 5) k = -1;
+    if (cs_lazy && !passthrough && k >= 0 && cs_real[k]) { cs_want[k] = v; cs_dirty = memcmp(cs_want, cs_real, sizeof cs_real) != 0; st_cs_skipped++; update_busy(); return; }
+    /* pass-through, exactly like the generated stub */
+    if (cs_idx_en < 0) for (int i = 0; i < (int)(sizeof mugl_names / sizeof mugl_names[0]); i++) {
+        if (!strcmp(mugl_names[i], "glEnableClientState")) cs_idx_en = i;
+        if (!strcmp(mugl_names[i], "glDisableClientState")) cs_idx_dis = i;
+    }
+    if (mugl_busy) mugl_sync_from(v == 2 ? cs_idx_en : cs_idx_dis);
+    if (v == 2) R(glEnableClientState, PFN1e)(a); else R(glDisableClientState, PFN1e)(a);
+    if (k >= 0 && !passthrough) { cs_real[k] = cs_want[k] = v; cs_dirty = memcmp(cs_want, cs_real, sizeof cs_real) != 0; update_busy(); }
+}
+void WINAPI mugl_glEnableClientState(GLenum a) { cs_set(a, 2); }
+void WINAPI mugl_glDisableClientState(GLenum a) { cs_set(a, 1); }
 
 static GLenum shade_model = GL_SMOOTH;
 /* Batch class of a primitive: triangle-like blocks are converted to GL_TRIANGLES
@@ -398,7 +460,8 @@ static void convert_open_block(void)
 void WINAPI mugl_glBegin(GLenum mode)
 {
     TR("G %x %p\n", mode, __builtin_return_address(0));
-    if ((ts_on_flag || ts_active_flag) && batching_enabled && merge_enabled && !mugl_in_begin && !passthrough && ts_begin_hook(mode, __builtin_return_address(0))) return;
+    if (cs_dirty && !passthrough) { cs_apply(); update_busy(); }   /* glArrayElement may be used inside the block */
+    if ((ts_on_flag || qs_on_flag || ts_active_flag) && batching_enabled && merge_enabled && !mugl_in_begin && !passthrough && ts_begin_hook(mode, __builtin_return_address(0))) return;
     if (!batching_enabled || mugl_in_begin || passthrough) {
         flush_pending(); release_arrays(); send_current(); update_busy(); R(glBegin, PFN1u)(mode);
         passthrough = 1; /* real block in progress: nothing else may be emitted until glEnd */
@@ -407,7 +470,7 @@ void WINAPI mugl_glBegin(GLenum mode)
     GLenum cls = merge_enabled ? canon(mode) : 0;
     if (pending && !(cls && cls == batch_mode)) { submit_batch(); pending = 0; }
     ensure_known();
-    if (!pending) { vcount = 0; set_t = set_c = set_n = 0; batch_mode = cls ? cls : mode; }
+    if (!pending) { vcount = 0; set_t = set_c = set_n = 0; batch_mode = cls ? cls : mode; batch_cls = dc_of(__builtin_return_address(0)); }
     cur_mode = mode; block_start = vcount; mugl_in_begin = 1; pending = 0;
     update_busy();
 }
@@ -599,6 +662,7 @@ void WINAPI mugl_glPopMatrix(void)
     int unchanged = mstk_valid && mmode_known && msp[m] > 0 && msp[m] <= 64 && !mstk[m][msp[m] - 1];
     if (!unchanged) mugl_sync_from(-1);
     R(glPopMatrix, PFN0)();
+    if (!unchanged) mx_epoch++;   /* after the call: the flush above may re-read the matrices */
     if (msp[m] > 0) msp[m]--;
     if (!unchanged) matrix_modified();          /* the restored matrix differs for the enclosing level */
     else st_skipped++;
@@ -606,7 +670,7 @@ void WINAPI mugl_glPopMatrix(void)
 void WINAPI mugl_glLoadIdentity(void)
 {
     TR("loadidentity\n");
-    mugl_sync_from(-1); R(glLoadIdentity, PFN0)(); matrix_modified();
+    mugl_sync_from(-1); R(glLoadIdentity, PFN0)(); matrix_modified(); mx_epoch++;
 }
 
 /* ---- queries: only current-value and client-array queries need synchronization ---- */
@@ -625,7 +689,7 @@ static void query_prep(GLenum p)
 {
     if (passthrough) return;
     if (pname_current(p)) { flush_pending(); send_current(); }
-    if (pname_client(p)) { flush_pending(); release_arrays(); }
+    if (pname_client(p)) { flush_pending(); cs_apply(); release_arrays(); }
     update_busy();
 }
 typedef void (WINAPI *PFNgv)(GLenum, void *);
@@ -700,21 +764,28 @@ void WINAPI mugl_glTexCoordPointer(GLint sz, GLenum t, GLsizei st, const void *p
 void WINAPI mugl_glNormalPointer(GLenum t, GLsizei st, const void *p) { pre_array_call(); R(glNormalPointer, PFNptr3)(t, st, emu_ptr(0, p)); }
 void WINAPI mugl_glIndexPointer(GLenum t, GLsizei st, const void *p) { pre_array_call(); R(glIndexPointer, PFNptr3)(t, st, emu_ptr(0, p)); }
 void WINAPI mugl_glEdgeFlagPointer(GLsizei st, const void *p) { pre_array_call(); ((void (WINAPI *)(GLsizei, const void *))real_glEdgeFlagPointer)(st, emu_ptr(0, p)); }
-void WINAPI mugl_glInterleavedArrays(GLenum f, GLsizei st, const void *p) { pre_array_call(); R(glInterleavedArrays, PFNptr3)(f, st, emu_ptr(0, p)); }
+void WINAPI mugl_glInterleavedArrays(GLenum f, GLsizei st, const void *p)
+{
+    if (!passthrough) cs_apply();
+    pre_array_call(); R(glInterleavedArrays, PFNptr3)(f, st, emu_ptr(0, p));
+    if (!passthrough) cs_forget();   /* the format sets the enables */
+}
 typedef void (WINAPI *PFNde)(GLenum, GLsizei, GLenum, const void *);
 void WINAPI mugl_glDrawElements(GLenum m, GLsizei n, GLenum t, const void *idx)
 {
-    if (!passthrough) { flush_pending(); release_arrays(); send_current(); }
+    if (!passthrough) { flush_pending(); cs_apply(); release_arrays(); send_current(); dq_switch(DC_ARRAYS); }
     R(glDrawElements, PFNde)(m, n, t, emu_ptr(1, idx));
     forget_gl_current(); update_busy();
 }
 void WINAPI mugl_glPushClientAttrib(GLbitfield mask)
 {
+    if (!passthrough) cs_apply();
     pre_array_call(); R(glPushClientAttrib, PFNpca)(mask);
     if (bind_sp < 16) { bind_stack[bind_sp][0] = emu_bind[0]; bind_stack[bind_sp][1] = emu_bind[1]; } bind_sp++;
 }
 void WINAPI mugl_glPopClientAttrib(void)
 {
+    if (!passthrough) { cs_apply(); cs_forget(); }
     pre_array_call(); R(glPopClientAttrib, PFN0)();
     if (bind_sp > 0 && --bind_sp < 16) {
         emu_bind[0] = bind_stack[bind_sp][0]; emu_bind[1] = bind_stack[bind_sp][1];
@@ -771,7 +842,7 @@ static void WINAPI mugl_GetBufferParameteriv(GLenum t, GLenum pname, GLint *v)
 }
 static void WINAPI mugl_DrawRangeElements(GLenum m, GLuint lo, GLuint hi, GLsizei n, GLenum t, const void *idx)
 {
-    if (!passthrough) { flush_pending(); release_arrays(); send_current(); }
+    if (!passthrough) { flush_pending(); cs_apply(); release_arrays(); send_current(); }
     ((void (WINAPI *)(GLenum, GLuint, GLuint, GLsizei, GLenum, const void *))real_drawrange)(m, lo, hi, n, t, emu_ptr(1, idx));
     forget_gl_current(); update_busy();
 }
@@ -832,11 +903,11 @@ static void WINAPI mugl_ActiveTexture(GLenum unit)
 
 /* calls that change current values behind our back */
 void WINAPI mugl_glPopAttrib(void) { flush_pending(); TIMED(3, R(glPopAttrib, PFN0)()); cur_known = 0; forget_gl_current(); forget_state(); mmode_known = 0; update_busy(); }
-void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
-void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
+void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
+void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); mx_epoch++; cur_known = 0; forget_gl_current(); forget_state(); mstk_valid = 0; update_busy(); }
 
 /* Live mode switch: C:\mutools\mugl-mode.txt holds one of full|nomerge|nofilter|off (checked ~1/s). */
-static DWORD mode_check; static char mode_cur[16] = "full";
+static DWORD mode_check; static char mode_cur[64] = "full";
 static void check_mode_file(void)
 {
     DWORD now = GetTickCount();
@@ -844,11 +915,19 @@ static void check_mode_file(void)
     mode_check = now;
     FILE *f = fopen("C:\\mutools\\mugl-mode.txt", "r");
     if (!f) return;
-    char m[16] = ""; if (fscanf(f, "%15s", m) != 1) m[0] = 0; fclose(f);
+    char m[64] = ""; if (fscanf(f, "%63s", m) != 1) m[0] = 0; fclose(f);
     if (!m[0] || !strcmp(m, mode_cur)) return;
     strcpy(mode_cur, m);
-    time_mode = strstr(m, "+time") != NULL; if (time_mode) *strstr(m, "+time") = 0;
-    char *plus = strchr(m, '+'); int want_vbo = plus && !strcmp(plus + 1, "vbo"); if (plus) *plus = 0;
+    /* "+" tokens in any order: vbo, time, finish, samples (see gpudiag.c) */
+    int want_vbo = 0; time_mode = finish_mode = samples_mode = cull_mode = 0;
+    for (char *tok = strchr(m, '+'); tok; ) {
+        *tok++ = 0; char *nx = strchr(tok, '+'); if (nx) *nx = 0;
+        if (!strcmp(tok, "vbo")) want_vbo = 1; else if (!strcmp(tok, "time")) time_mode = 1;
+        else if (!strcmp(tok, "finish")) finish_mode = 1; else if (!strcmp(tok, "samples")) samples_mode = 1;
+        else if (!strcmp(tok, "cull")) cull_mode = 1;
+        if (nx) *nx = '+';
+        tok = nx;
+    }
     vbo_emu_set(want_vbo);
     nodraw = !strcmp(m, "nodraw"); if (nodraw) strcpy(m, "full");   /* diagnostic: skip batched draws */
     batching_enabled = strcmp(m, "off") != 0;
@@ -892,7 +971,7 @@ static void precise_wait(long long ticks)
 }
 static void pace_stats(FILE *f)
 {
-    unsigned lg = MUGL_PRIVATE_TABLES ? *(volatile unsigned *)0x0bdc5eb0 : 0, dl = lg - pc_logic0; pc_logic0 = lg;   /* driver's logic-step counter (40 ms steps); publication adaptation: never read a client address in the compile-only build, which can be loaded by other processes */
+    unsigned lg = MUGL_PRIVATE_TABLES && mugl_client ? *(volatile unsigned *)0x0bdc5eb0 : 0, dl = lg - pc_logic0; pc_logic0 = lg;   /* driver's logic-step counter (40 ms steps); publication adaptation: never read a client address in the compile-only build, which can be loaded by other processes */
     if (!pace_fix || !qpf.QuadPart) return;
     fprintf(f, "pace: logic steps=%u waits=%ld late=%ld restarts=%ld overshoot avg=%.2fms (<1:%ld 1-5:%ld 5-20:%ld 20+:%ld) other_sleeps=%ld"
                " | frame ms <30:%ld 30-38:%ld 38-42:%ld 42-50:%ld 50-60:%ld 60-80:%ld 80+:%ld\n",
@@ -1030,6 +1109,7 @@ static int hp_peep(int on)
 #include "meshdraw.c"
 static void hp_set(int mask)
 {
+    if (!mugl_client) mask &= ~(1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024 | 8192);   /* GL-level bits only (test programs) */
     int f = hp_funcs(mask & 1), s = hp_sites((mask & 2) != 0), p = hp_peep((mask & 4) != 0);
     int x = xf_install((mask & 8) != 0, (mask & 16) != 0);
     if (st_file) fprintf(st_file, "xform %s%s: %d\n", (mask & 8) ? "on" : "off", (mask & 16) ? " (verify)" : "", x);
@@ -1040,7 +1120,11 @@ static void hp_set(int mask)
                          (mask & 64) ? " (verify)" : "", md, (mask & 256) && (mask & 96) ? "on" : "off", ml, (mask & 512) ? "on" : "off", mt);
     pace_fix = (mask & 1024) != 0;
     ts_on_flag = (mask & 16384) != 0; ts_verify = (mask & 32768) != 0;
-    if (st_file) fprintf(st_file, "terrain sort %s%s\n", ts_on_flag ? "on" : "off", ts_verify ? " (verify)" : "");
+    qs_on_flag = (mask & 65536) != 0; qs_verify = (mask & 131072) != 0;
+    cull_on = (mask & 524288) != 0; cull_verify = (mask & 1048576) != 0;
+    if (cs_lazy != ((mask & 262144) != 0)) { if (cs_lazy) { flush_pending(); cs_apply(); } cs_forget(); cs_lazy = (mask & 262144) != 0; update_busy(); }
+    if (st_file) fprintf(st_file, "terrain sort %s%s, quad batching %s%s\n", ts_on_flag ? "on" : "off", ts_verify ? " (verify)" : "",
+                         qs_on_flag ? "on" : "off", qs_verify ? " (verify)" : "");
     if (zero_copy_full != ((mask & 2048) != 0) || strided_arrays != ((mask & 4096) != 0)) {
         flush_pending(); release_arrays(); update_busy(); zero_copy_full = (mask & 2048) != 0; strided_arrays = (mask & 4096) != 0;
     }
@@ -1055,13 +1139,16 @@ static void check_hotpatch_file(void)
     DWORD now = GetTickCount();
     if (now - hp_check < 1000) return;
     hp_check = now;
-    int want = 23983;   /* default (v7.3): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096 + 16384 terrain sort
-                         (v7.1/v7.2: 7599; v7.0: 15). Bits: 16 = xform verify, 32 = meshdraw, 64 = meshdraw verify, 128 = meshdraw direct
-                         batch append, 256 = meshdraw light precompute (with 32/64), 512 = mesh routine timer, 1024 = frame pacing fix,
-                         2048 = zero-copy T2F_C4F_N3F_V3F batches, 4096 = strided batch arrays, 8192 = meshdraw unverified vertex paths,
-                         16384 = terrain face sorting, 32768 = terrain sort offscreen verification */
+    int want = 875951;   /* default (v7.4): 1|2|4|8 helpers/inlining/peephole/xform + 32|128|256 meshdraw + 1024|2048|4096 + 16384 terrain sort
+                          + 65536 quad batching + 262144 deferred client-array enables + 524288 off-screen culling
+                          (v7.3: 23983; v7.1/v7.2: 7599; v7.0: 15). Bits: 16 = xform verify, 32 = meshdraw, 64 = meshdraw verify, 128 = meshdraw
+                          direct batch append, 256 = meshdraw light precompute (with 32/64), 512 = mesh routine timer, 1024 = frame pacing fix,
+                          2048 = zero-copy T2F_C4F_N3F_V3F batches, 4096 = strided batch arrays, 8192 = meshdraw unverified vertex paths,
+                          16384 = terrain face sorting, 32768 = terrain sort offscreen verification, 65536 = sprite/grass quad batching,
+                          131072 = quad batching offscreen verification, 262144 = deferred client-array enables, 524288 = off-screen batch
+                          culling, 1048576 = culling sample-count verification */
     FILE *f = fopen("C:\\mutools\\mugl-hotpatch.txt", "r");
-    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 65535; fclose(f); }
+    if (f) { int v; if (fscanf(f, "%d", &v) == 1) want = v & 2097151; fclose(f); }
     if (want != hp_state) { hp_set(want); hp_state = want; }
 }
 
@@ -1071,9 +1158,11 @@ static long total_frames; static HMODULE self_mod;
 BOOL WINAPI mugl_wglSwapBuffers(HDC dc)
 {
     io_frame_end(); tr_frame_end();
-    mugl_sync();
+    mugl_sync(); mx_epoch++;
     check_mode_file();
-    if (++total_frames > 100 && MUGL_PRIVATE_TABLES) { render_tid = GetCurrentThreadId(); check_hotpatch_file(); hook_sleep_iat(); if (total_frames == 101 && st_file) io_publish(); io_install(self_mod); tr_check(); prio_check(); }   /* main.exe code is unpacked long before the first frames */
+    if (++total_frames > 100 && MUGL_PRIVATE_TABLES && !mugl_client) check_hotpatch_file();   /* test programs: GL-level bits */
+    if (total_frames > 100 && MUGL_PRIVATE_TABLES && mugl_client) { render_tid = GetCurrentThreadId(); check_hotpatch_file(); hook_sleep_iat(); if (total_frames == 101 && st_file) io_publish(); io_install(self_mod); tr_check(); prio_check(); }   /* main.exe code is unpacked long before the first frames */
+    dc_finish(); if (samples_mode || dq_n) dq_frame();
     st_frames++; stats_tick();
     pace_wait();
     BOOL r_; TIMED(6, r_ = R(wglSwapBuffers, PFNswap)(dc)); return r_;
@@ -1109,9 +1198,11 @@ PROC WINAPI mugl_wglGetProcAddress(LPCSTR name)
     void **slot = &e->real;
     /* cmp byte [mugl_busy],0 ; jne +6 ; jmp [slot] ; pushad ; pushfd ; call mugl_sync ; popfd ; popad ; jmp [slot] */
     unsigned char *q = c;
-    *q++ = 0x80; *q++ = 0x3d; *(void **)q = &mugl_busy; q += 4; *q++ = 0x00;
-    *q++ = 0x75; *q++ = 0x06;
-    *q++ = 0xff; *q++ = 0x25; *(void ***)q = slot; q += 4;
+    if (!strstr(name, "Matrix")) {   /* matrix extensions always reach mugl_sync_ext (matrix epoch for culling) */
+        *q++ = 0x80; *q++ = 0x3d; *(void **)q = &mugl_busy; q += 4; *q++ = 0x00;
+        *q++ = 0x75; *q++ = 0x06;
+        *q++ = 0xff; *q++ = 0x25; *(void ***)q = slot; q += 4;
+    }
     *q++ = 0x60; *q++ = 0x9c;
     *q++ = 0x68; *(int *)q = nexts - 1; q += 4;                                      /* push index */
     *q++ = 0xe8; *(int *)q = (int)((unsigned char *)mugl_sync_ext - (q + 4)); q += 4; /* call mugl_sync_ext */
@@ -1125,11 +1216,13 @@ PROC WINAPI mugl_wglGetProcAddress(LPCSTR name)
 void mugl_sync_ext(int i)
 {
     if (count_mode && i >= 0 && i < 512) st_ext[i]++;
+    if (i >= 0 && i < nexts && strstr(exts[i].name, "Matrix")) mx_always = 1;   /* the real call follows this sync: no epoch can be set after it */
     TR("X %s\n", (i >= 0 && i < nexts) ? exts[i].name : "?");
     if (passthrough) return;
     unsigned char f = (i >= 0 && i < nexts) ? exts[i].flags : 7;
     flush_pending();
     if (i >= 0 && i < nexts && strstr(exts[i].name, "Matrix")) matrix_modified();
+    if (f & 2) { cs_apply(); if (i >= 0 && i < nexts && strstr(exts[i].name, "ClientActiveTexture")) cs_forget(); }   /* texture coordinate enables are per client unit */
     if (f & 2) release_arrays();
     if (f & 1) send_current();
     if (f & 4) forget_gl_current();
@@ -1270,6 +1363,9 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
     (void)reserved;
     if (reason == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(inst); self_mod = inst;
+        { char exe[MAX_PATH] = ""; GetModuleFileNameA(NULL, exe, sizeof exe); const char *b = exe;
+          for (const char *q = exe; *q; q++) if (*q == '\\' || *q == '/') b = q + 1;
+          mugl_client = !lstrcmpiA(b, "main.exe"); }
         if (!load_real(inst)) return FALSE;
         modehook_install();   /* curated mode list shared with the launcher's version.dll proxy */
     }

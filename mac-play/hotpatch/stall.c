@@ -118,7 +118,7 @@ static void io_frame_end(void)
             FILETIME ft; GetSystemTimeAsFileTime(&ft);
             unsigned long long u = ((unsigned long long)ft.dwHighDateTime << 32 | ft.dwLowDateTime) / 10000 - 11644473600000ULL;
             fprintf(st_file, "stall: unix_ms=%llu frame=%ld ms=%.1f scene=%d open=%ld(%.1fms) read=%ld/%lldKB(%.1fms) tex=%ld/%lldKB(%.1fms) gen=%ld |",
-                    u, total_frames, io_ms(dt), MUGL_PRIVATE_TABLES ? *(volatile int *)0x01d1df70 : -1, io_f.open, io_ms(io_f.t_open), io_f.read,
+                    u, total_frames, io_ms(dt), MUGL_PRIVATE_TABLES && mugl_client ? *(volatile int *)0x01d1df70 : -1, io_f.open, io_ms(io_f.t_open), io_f.read,
                     io_f.read_b / 1024, io_ms(io_f.t_read), io_f.tex, io_f.tex_b / 1024, io_ms(io_f.t_tex), io_f.gen);
             for (int i = 0; i < io_nnames; i++) fprintf(st_file, " %s", io_names[i]);
             fprintf(st_file, "\n"); fflush(st_file);

@@ -1,10 +1,12 @@
-# Claude v7.3 CPU hotpatch publication
+# Claude v7.4 CPU hotpatch publication
 
 This is an opt-in snapshot of Claude's existing local v7.2 work: the v7.0 helper,
 inline, peephole and skinning patches plus the native mesh-draw loop in
 `meshdraw.c` (MAC-PERF-005, see `meshdraw-notes.md`), frame pacing with precise
-waits (v7.2, MAC-PERF-006), the zero-copy/strided batch arrays, and v7.3 (MAC-PERF-007): terrain face
-sorting (`terrain.c`), a raised render-thread priority and long-frame diagnostics (`stall.c`). The normal `make mugl` and setup installer still
+waits (v7.2, MAC-PERF-006), the zero-copy/strided batch arrays, v7.3 (MAC-PERF-007): terrain face
+sorting (`terrain.c`), a raised render-thread priority and long-frame diagnostics (`stall.c`), and v7.4
+(MAC-PERF-008): effect-sprite and grass quad batching (`quads.c`), deferred client-array enables, off-screen batch
+culling (`cull.c`) and draw/GPU diagnostics (`gpudiag.c`). The normal `make mugl` and setup installer still
 use PR #52's reviewed `../mugl` proxy. No target is installed, no bottle is
 changed and no process is started by these build commands.
 
@@ -83,8 +85,10 @@ thread. Never use MuMatrix32 for these tests.
 ## Runtime controls from the original snapshot
 
 The private build checks `C:\mutools\mugl-hotpatch.txt` about once per second
-from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 23983 (v7.3; v7.1 and v7.2 used 7599, v7.0 15).
-The file is read as a 16-bit mask.
+from wglSwapBuffers after 100 frames. Missing configuration defaults to mask 875951 (v7.4; v7.3 used 23983, v7.1 and
+v7.2 7599, v7.0 15). The file is read as a 21-bit mask; v7.3 reads 16 bits and v7.1/v7.2 14 bits of the same value, so
+875951 gives each older build its own default. Only in `main.exe` are the code patches (bits 1-512, 8192) and the
+frame pacing (1024) applied; any other process that loads the private build (a test program) gets the GL-level bits only.
 Each site is checked against its original or replacement bytes before a write;
 unexpected bytes are skipped. This is process-local patching with instruction
 cache flushes. It does not write the on-disk executable. Changing a mask is not
@@ -108,11 +112,17 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 8192 | Also run the mesh-draw vertex paths for flags `0x20` and `0x200000` (never seen in game, unverified; off by default) |
 | 16384 | Terrain face sorting: record a run of terrain tile faces and draw opaque faces, then alpha faces, grouped by texture (`terrain.c`) |
 | 32768 | With 16384: on every 8th sorted run, draw the run in both orders into an offscreen framebuffer and count differing pixels (diagnostic) |
+| 65536 | Effect-sprite and grass quad batching: record a run of those quads and draw faces with identical state together, moving a face only past faces it commutes with (`quads.c`) |
+| 131072 | With 65536: on every 16th run, draw the run in both orders offscreen, from a copy of the window, and count differing pixels (diagnostic) |
+| 262144 | Deferred client-array enables: send glEnable/DisableClientState of the six fixed arrays only before something can observe them |
+| 524288 | Off-screen batch culling: do not submit a batch whose vertices all lie outside one clip plane (x, y or w) (`cull.c`) |
+| 1048576 | With 524288: rasterize every 16th culled batch inside a samples-passed query with all tests off and count non-zero results (diagnostic) |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,
 256, 1024, 2048 and 4096. 6575 is the same without the pacing fix. The v7.3 default 23983 is
-7599 plus 16384; 56751 adds the terrain verification. Mesh-draw
+7599 plus 16384; 56751 adds the terrain verification. The v7.4 default 875951 is 23983 plus 65536, 262144 and
+524288; 2056111 adds all three verifications (32768, 131072, 1048576). Mesh-draw
 modes `0x8000` and flag `0x400` call client code with side effects and always run
 the original loop. `meshdraw-notes.md` has the decoded routine and verification
 method. The source's verify path bypasses comparison
@@ -121,7 +131,8 @@ different counters. Checked output ranges are vertices, normals, light values,
 scratch scalars and bounds. Allocator failures and arbitrary state are unverified.
 
 `C:\mutools\mugl-mode.txt` supports `full`, `nomerge`, `nofilter`, `off`,
-`nodraw`, the `+vbo` switch and `+time` GL timing. `full+vbo+time` is valid.
+`nodraw`, and `+` tokens in any order: `+vbo` (VBO emulation), `+time` (GL timing, with v7.4 per draw class),
+`+finish`, `+samples` and `+cull` (v7.4 diagnostics, below). `full+vbo+time` is valid.
 QPC measures selected downstream GL calls. `MUGL_STATS` enables a private log;
 `work=` is wall interval time minus render-thread Sleep time per frame,
 and includes other waits/host scheduling. It is not pure sampled CPU time.
@@ -190,3 +201,53 @@ Writing a frame count (1-20) to `C:\mutools\mugl-trace.txt` records the GL call 
 `C:\mutools\mugl-trace-<frame>.txt` (glBegin callers, state calls, filtered calls, batch draws); the file format is
 in `stall.c`. The `tsort:` stats line counts runs, sorted runs, faces, draws, in-place pairs, fallbacks and
 verification results.
+
+## v7.4 additions (MAC-PERF-008)
+
+**Quad batching (bit 65536, `quads.c`).** Zoomed out the client draws about 780 effect sprite quads per frame from
+return address `0x0184c914` and about 830 grass quads from `0x016d16bf`, each a 4-vertex `glBegin(GL_QUADS)` block,
+changing only the texture and (sprites) the blend function between them: a darkening quad (ZERO,
+ONE_MINUS_SRC_COLOR) and an additive one (ONE, ONE) alternate. Such a run is recorded with the terrain machinery
+(the same virtual state) and drawn as batches of faces with identical state. A face joins the latest batch with its
+state only if it commutes with every later batch: their window-space boxes are disjoint (2 pixels of margin; each
+triangle clipped to the near plane, the face unbounded when depth clamping is on or a clipped vertex has w <= 1e-5),
+or the face lies entirely outside one clip plane (draws nothing), or both are additive without depth writes (blend
+ONE, ONE with FUNC_ADD for color and alpha, logic op off, depth mask off). Order inside a batch is kept. Every
+inverted pair of faces has been checked, so the drawn sequence is reachable from the original by swapping
+commuting neighbours. Additive commutation relies on exact clamped addition in the 8-bit framebuffer; bit 131072
+checks it with the terrain sort's offscreen comparison, starting from a blit of the window's color and depth. Only
+smooth-shaded quads are taken (flat shading would change the provoking vertex). The `qsort:` stats line counts
+runs, faces, state groups (the draws without the bit), draws, unbounded, off-screen and additive faces.
+
+**Deferred client-array enables (bit 262144).** The effect code draws each sprite from its vertex buffer as
+`glEnableClientState` x3, `glDrawArrays`, `glDisableClientState` x3, about 2,800 calls per frame zoomed out. With
+the bit, enables of the vertex, normal, color, index, texture-coordinate and edge-flag arrays are recorded and sent
+only before something can observe them: generated stubs with the "release" flag (draws, glArrayElement,
+interleaved arrays, client attribute push/pop, glGet*, glIsEnabled, wgl*), array-related extensions, display
+lists, glBegin, glDrawElements/glDrawRangeElements, client-state queries and full synchronization. A disable
+followed by an enable before the next such call cancels out. After a client attribute pop, glInterleavedArrays or
+a client texture unit change the state is unknown and the next call passes through.
+
+**Off-screen culling (bit 524288, `cull.c`).** Zoomed out about a third of the mesh batches (575 of 1,704, 377k of
+1.17M vertices) are entirely outside the view. mugl does not submit a triangle batch whose bounding box has all 8
+corners outside one of x = w, x = -w, y = w, y = -w or w = 0 (relative margin 1e-5 in double precision; batches with
+a NaN position are left to GL); such a batch produces no fragment. The first vertex is tested first, so a visible
+batch costs one transform. The matrices are re-read only after a change: matrix calls are wrapped (translate,
+rotate, scale, multiply, load, ortho, frustum, load identity, pop, display lists) and advance an epoch after the
+real call, as does each frame; matrix extensions turn the cache off. Culling pauses outside `GL_RENDER`. Bit 1048576
+rasterizes every 16th culled batch with color and depth writes and the depth, alpha, stencil, scissor and
+face-culling tests off inside a `GL_SAMPLES_PASSED` query; the count must be 0. That check found the first version's
+bug (the epoch advanced before the real matrix call, so a batch flushed inside that call re-cached the old matrix).
+
+**Draw/GPU diagnostics (`gpudiag.c`, mode-file tokens).** `+time` adds a `draw classes:` line (terrain, mesh,
+sprite, grass, other glBegin, the client's own array draws: ms, draws and vertices per frame). `+finish` times a
+glFinish before the swap (GPU work still queued at the end of the frame). `+samples` wraps each class run in a
+`GL_SAMPLES_PASSED` query (fragments passing the depth test per class). `+cull` estimates the culling potential per
+class (exact per-vertex test and the box test; slow). The client's `glDrawArrays` is now a custom export with the
+generated stub's synchronization.
+
+**Tests.** `../diagnostics/glcstate.c` is a framebuffer-hash test for bits 262144 and 524288 (effect pattern,
+observers of array state, perspective batches in and out of view under every kind of matrix call); the private
+build in a test bottle must print the builtin OpenGL's hash. A stale-matrix build failed it. `../diagnostics/glvbench.c`
+measures submission cost by vertex layout and transport (client arrays were fastest; VBO streaming with
+glBufferSubData per draw was about 50 times slower).

@@ -1,7 +1,7 @@
 # CrossOver performance: x87 experiments and OpenGL batching
 
 MAC-PERF-001, issue #45; MAC-PERF-002, issue #48; MAC-PERF-003, issue #51;
-MAC-PERF-004, issue #57; MAC-PERF-005, issue #59; MAC-PERF-006, issue #61; MAC-PERF-007.
+MAC-PERF-004, issue #57; MAC-PERF-005, issue #59; MAC-PERF-006, issue #61; MAC-PERF-007; MAC-PERF-008.
 Investigation date 2026-10-16. This is an opt-in
 compatibility path for the original client. A native editable game remains open.
 
@@ -972,3 +972,78 @@ spawn (load ~7), off measured 71.7 and 52.5 ms of work (14.1 and 19.3 fps) and o
 Checks run: `make test`, `make mugl mac-diagnostics mac-hotpatch`, the private build, and
 `scripts/audit_repository.py`. Not established: Windows-native behavior, other hosts, busy towns,
 analytical exclusion of depth ties, and stability past the short runs.
+
+## MAC-PERF-008: Claude v7.4 quad batching, deferred client state and off-screen culling
+
+Claude's live work on 2026-10-17 (20:00-21:25) in MuMatrix32, character Nighty, nine short sessions under the game
+lock, each run 3 minutes or less. Sources: `mac-play/hotpatch/quads.c`, `cull.c`, `gpudiag.c`, `terrain.c` and
+`mugl.c` (v7.4); `mac-play/diagnostics/glcstate.c` and `glvbench.c`. Other agents were running but fewer than in
+MAC-PERF-007: load average 4-9 (2.4-5.5 in the final sessions). Comparisons are same-session interleaved A/B runs of
+14-15 s on the v7.4 DLL, "v7.3" meaning mask 23983 and "v7.4" the new default 875951. The 2-second `fps=` samples
+are averaged unweighted.
+
+**Where the zoomed-out time went.** The new `+time` class split (F6 camera, Twisted Karutan spawn, load ~8): mesh
+draws 5.5-6.0 ms for 1,704 batches and 1.17M vertices, sprite quads 1.0 ms (~750 draws), grass quads 0.7 ms (~406
+draws), the client's own effect `glDrawArrays` 0.9 ms (~410 draws), terrain 0.3 ms; plus about 2,800
+`glEnable/DisableClientState` calls. `glvbench` (1,700 x 690-vertex draws per frame) found client arrays with the
+48-byte vertex fastest: 7.8 ms submission; dropping the unused normal array did not help (8.0), packing to 36 bytes
+cost more (9.3), one VBO re-specified per draw took 14.5 ms, and a streamed VBO with `glBufferSubData` per draw took
+about 440 ms. The vertex format was therefore left alone; the cost is per vertex (about 4.7 ns) and per draw.
+`+cull` showed that 575 of the 1,704 mesh batches (377k vertices) lie entirely outside the view; at the spawn view
+1,007 of 1,310 (672k of 971k vertices) do. The client's object culling is coarser than the frustum.
+
+**Quad batching (bit 65536).** Sprite quads (`0x0184c914`) alternate a darkening blend (ZERO, ONE_MINUS_SRC_COLOR)
+and an additive one (ONE, ONE) with texture changes; grass quads (`0x016d16bf`) alternate two textures. A face may
+pass earlier faces only when it commutes with them: disjoint window-space boxes, no fragment at all (outside a clip
+plane), or both additive without depth writes. About half of the sprite faces at the hunting spot were entirely off
+screen. Draws: spawn 470 -> about 60 sprite and grass draws per frame, hunting spot (Twisted Karutan 119,100) 400 ->
+45, zoomed out 1,150 -> about 380 (overlapping grass limits it). Offscreen verification (bit 131072), both orders
+drawn from a blit of the window's color and depth: 57 (spawn) + 169 (zoomed out, first version) + 66 (hunting
+spot) + 57 (zoomed out, final build) + 49 (boss fight) = 398 runs, 0 differing pixels.
+
+**Deferred client-array enables (bit 262144).** The effect pattern's disable/enable pairs cancel; `glcstate` (framebuffer
+hash, 150 frames) printed the builtin OpenGL's hash with and without the bit and logged about 10,700 deferred and
+2,000 sent calls per 2 s.
+
+**Off-screen culling (bit 524288).** Batches whose bounding box lies outside x = +-w, y = +-w or behind the eye are
+not submitted. Verification (bit 1048576) rasterizes every 16th culled batch inside a samples-passed query with all
+tests off. Its first run found a real bug: the matrix epoch advanced before the real matrix call, so a batch flushed
+inside that call re-cached the old matrix, and 17% of the checked batches had fragments. After the fix (epoch after
+the call) 22,261 (spawn) + 35,211 + 16,835 (zoomed out) + 1,707 (boss scene) checked batches had 0 samples. The
+strengthened `glcstate` (large matrix steps) fails with the buggy build and matches builtin with the fixed one.
+
+| Scene (load) | v7.3 (mask 23983) | v7.4 (mask 875951) |
+|---|---|---|
+| Spawn, Twisted Karutan 122,119 (~5) | 25.00 / 24.99 fps; work 31.2 / 33.5 ms; ~1,825 draws | 24.99 / 25.00 fps; 29.5 / 24.8 ms; ~393 draws; mesh draw 4.0 -> 1.1 ms |
+| Zoomed out, F6 + Shift+wheel (~4) | 24.40 / 24.80 fps; 40.9 / 40.2 ms; ~2,950 draws | 24.99 / 25.00 fps; 37.3 / 36.1 ms; ~1,554 draws |
+| Zoomed out, earlier sessions (~6-8) | 20.3-21.2 fps; 47-49 ms | 22.4-24.9 fps; 39-45 ms |
+| Hunting spot 119,100, MU Helper (~9), quad batching only | 23.20 / 24.67 fps; 42.7 / 38.2 ms | 24.86 / 24.94 fps; 38.0 / 36.1 ms |
+| Boss fight, Tormenta Island 135,10, MTM-1, MU Helper, many players (~4) | 15.47 / 18.07 fps; 65.0 / 55.7 ms | 17.97 / 19.30 fps; 55.8 / 52.2 ms |
+
+The zoomed-out view reaches the 25 fps cap at load ~4 and comes close under load. The boss scene changes from
+second to second, so its pairs are noisy, but v7.4 was ahead in both.
+
+**What fills the GPU.** `+finish` (glFinish before the swap) measured the GPU work still queued at the end of a
+frame: 3.0 ms at spawn, 4.8 ms zoomed out, 4.9-6.6 ms at the Twisted Karutan hunting spot and 9.3-9.9 ms in the boss
+fight. `+samples` counted fragments passing the depth test: spawn 15.6M per frame (8x the 1728x1080 window), hunting
+spot 20-30M (sprites up to 7M, other immediate-mode effect meshes 3-8M, the client's array effects 6-7M), boss fight
+70-85M (other effect meshes 47-58M, sprites 18-27M): blended effect overdraw is the fill. Texture uploads: none at the
+hunting spot, about 17 small ones per second (8 KB) in the boss fight. The swap took 0.9-1.6 ms at the hunting spot,
+not the 5.6 ms of MAC-PERF-007 (then at load 10-15). With 40 ms frames and at most 10 ms of GPU work, the GPU is not
+the limit in these scenes; the CPU is (work 36-65 ms). Fragment work can only be cut without changing the image by
+not drawing what produces no fragments (the culled batches and off-screen quads above); overdraw that is visible
+cannot be removed exactly, so no further GPU reduction was made.
+
+**Lorencia** was not re-measured: the user had moved Nighty to the MTM-1 boss spot during this work, and warping
+away would have left the character elsewhere. MAC-PERF-007 found Lorencia empty and at the cap (gap).
+
+**Also in v7.4.** Code patches, pacing and reads of client addresses are limited to `main.exe`, so a test program can
+load the private build with the GL-level bits (this is how `glcstate` runs). Matrix calls are custom exports that
+also record `matrix_modified()` when mugl is idle (a stub reaches mugl only when busy). The kit
+(`mac-play/installer`) now writes 875951 and upgrades the earlier kit defaults 15 and 7599; older builds read fewer
+bits of it and see their own defaults (v7.3 23983, v7.1/v7.2 7599, v7.0 15). Rollback: `mugl-v73.dll` with mask 23983.
+
+Checks run: `make test` subsets (`tests/test_mac_hotpatch.py`, `mac-play/installer/tests/test-mukit.sh` 198/198),
+`make -C mac-play/hotpatch private` and the synthetic build, `make -C mac-play/diagnostics`, `glcstate` and
+`glstride` hashes in the MuMatrixKit test bottle. Not established: Windows-native behavior, other hosts, a busy town,
+stability past the short runs, exactness of the additive commutation beyond the 398 verified runs.
