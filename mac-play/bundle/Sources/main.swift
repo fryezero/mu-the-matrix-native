@@ -328,6 +328,9 @@ final class InstallWindowController: NSWindowController {
         downloadRadio.target = self; downloadRadio.action = #selector(sourceChanged)
         folderRadio.target = self; folderRadio.action = #selector(chooseFolder)
         downloadRadio.state = .on
+        folderLabel.maximumNumberOfLines = 1
+        folderLabel.lineBreakMode = .byTruncatingMiddle
+        folderLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = Double(total); bar.style = .bar
         logView.isEditable = false
         logView.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
@@ -348,6 +351,7 @@ final class InstallWindowController: NSWindowController {
             stack.topAnchor.constraint(equalTo: content.topAnchor), stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
             bar.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
+            folderLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, constant: -40),
             buttons.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
         ])
     }
@@ -397,8 +401,11 @@ final class InstallWindowController: NSWindowController {
             }
             step.stringValue = "Step " + body
             append(l)
-        } else if l.contains("%") && l.contains("#") {
-            if let pct = l.split(separator: " ").last { step.stringValue = step.stringValue.components(separatedBy: " — ").first! + " — downloading \(pct)" }
+        } else if l.range(of: #"^[\s#=O\-]*([0-9]+(\.[0-9])?%)?\s*$"#, options: .regularExpression) != nil {
+            // curl's progress bar: show the percentage in the step line, keep it out of the log view.
+            if let pct = l.split(separator: " ").last, pct.hasSuffix("%") {
+                step.stringValue = step.stringValue.components(separatedBy: " — ").first! + " — downloading \(pct)"
+            }
         } else {
             append(l)
         }
