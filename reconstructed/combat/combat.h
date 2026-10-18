@@ -308,6 +308,57 @@ typedef struct mu_fade_state {
 void mu_dead_fade(uint8_t dead, mu_fade_state *state);
 
 /* ------------------------------------------------------------------------
+ * The hero's own hit, death and attack sounds (NATIVE-COMBAT-002). */
+
+/* Inputs of the Player-model branches of SetPlayerShock 0x0138f92f and
+ * SetPlayerDie 0x01393a61 and of SetPlayerAttack's sound tail: the
+ * character fields and the answers of the engine services they call. */
+typedef struct mu_player_state {
+    uint8_t class_byte;       /* c + 0x12 (class = low nibble 0x0095f5cc) */
+    uint8_t state_59;         /* 0x0129ddd4(c, 1, 0x59) */
+    uint8_t state_5a;         /* 0x0129ddd4(c, 0, 0x5a) */
+    uint8_t state_72;         /* 0x0129ddd4(c, 1, 0x72) */
+    uint8_t predicate;        /* 0x0139f3db(o) */
+    uint8_t class_check;      /* 0x00b99205(class): the second voice set */
+    uint16_t transform;       /* 0x0129dcda(c): 0x1a25 silences the voice */
+    float field_3324;         /* c + 0x3324: the sound block runs only when it is 0 */
+    uint8_t world_voice;      /* 0x009dacb8([0x01cf15fc]) == 1 (SetPlayerDie) */
+} mu_player_state;
+
+/* SetPlayerShock 0x0138f92f for the Player model, not riding (0x0106bdb7
+ * false), after the gates of mu_shock_action (verified): SetAction 0x136
+ * (state 0x59), 0x138 (state 0x5a), 0x13a (state 0x72) or 0x134; then, when
+ * c + 0x3324 == 0: 0x7b (mBone1) when the predicate (the skeleton form) is
+ * true, else the voice: class nibble 4 with
+ * rand() % 5 != 0: 0x1c6 (pDarkPain) unless transformed; class nibble 4 with
+ * rand() % 5 == 0 or another class without the class check: 0x69 + rand() %
+ * 3 unless transformed; with the class check: 0x6d + rand() % 2 unless
+ * transformed. *sound = -1 when nothing plays. rand values in call order;
+ * returns the number used. */
+int32_t mu_player_shock(const mu_player_state *state, const int32_t *rands, int32_t rand_count, int32_t *action,
+                        int32_t *sound);
+
+/* SetPlayerDie 0x01393a61 for the Player model when the predicate is false
+ * (verified; the skeleton form's death with its 0x435 / 0x436 effects is not
+ * reconstructed): SetAction 0x144 (state 0x59), 0x145 (state 0x5a), 0x147
+ * (state 0x72), 0x146 (class nibble 13) or 0x142; then, when c + 0x3324 ==
+ * 0: 0x5e + rand() % 2 in the worlds of 0x009dacb8, else the voice 0x1c7
+ * (class nibble 4, pDarkDeath), 0x6c (pMaleDie) or 0x6e with the class check
+ * (pFemaleScream2), and 0x2b9 as well when transformed; the block then
+ * stores c + 0x3324 = 0.001, so the voice plays once. sounds: up to 2. */
+int32_t mu_player_die(const mu_player_state *state, const int32_t *rands, int32_t rand_count, int32_t *action,
+                      int32_t sounds[2]);
+
+/* SetPlayerAttack's sound for the Player model (verified; 0x01393924): when
+ * c + 0x3324 == 0 and the predicate is false (the skeleton form plays the
+ * model's sound table instead, not reconstructed): bow 0x55 (eBow), crossbow 0x56
+ * (eCrossbow), right-hand items 0x12f3..0x12f4 0x76, items 0xaf0 / 0x10e6
+ * 0x3e (eSwingLightSword), any other weapon in either hand 0x3c + rand() % 2
+ * (eSwingWeapon1/2), no weapon: nothing. world 0x49 skips it. */
+int32_t mu_player_attack_sound(const mu_player_state *state, int32_t bow_kind, int16_t weapon0, int16_t weapon1,
+                               int32_t world, const int32_t *rands, int32_t rand_count, int32_t *sound);
+
+/* ------------------------------------------------------------------------
  * The attack timeline (static readings of MoveCharacter 0x013a85a9 and the
  * per-step attack routine 0x013966ea). An attack starts with AttackTime
  * (c + 0x21) = 1, set with the action by the action packet 0x78/0x79, the

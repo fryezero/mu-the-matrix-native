@@ -52,6 +52,7 @@ SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 CREATE_EFFECT, MOVE_EFFECT, CHECK_MAGIC, CHECK_ARROW = 0x013c0f19, 0x0142fd09, 0x013be199, 0x013bd374
 CREATE_SPRITE, AREA_ATTACK, FLOAT_SQRT, FLOAT_ATAN = 0x01692eb7, 0x013bc25e, 0x00961a07, 0x012b2bca
 SERIAL_STEP, QUAKE, WORLD_PREDICATE, WORLD = 0x01d1df18, 0x0bdb588c, 0x009b0418, 0x01cf15fc
+HERO_POINTER = 0x0a39d754
 CREATE_EFFECT_WRAPPER, CREATE_PARTICLE, CREATE_JOINT = 0x013c0eaa, 0x0168fafd, 0x0153b02c
 TERRAIN_LIGHT, TERRAIN_HEIGHT, RAND = 0x016cacfc, 0x016cc9e2, 0x01989721
 SINE, COSINE, CRT_SQRT = 0x009681bd, 0x009fa223, 0x019856f0
@@ -309,6 +310,12 @@ def compare_joint(j, raw, mask, names):
     return None
 
 
+class PlayerState(ctypes.Structure):
+    _fields_ = [('class_byte', ctypes.c_uint8), ('state_59', ctypes.c_uint8), ('state_5a', ctypes.c_uint8),
+                ('state_72', ctypes.c_uint8), ('predicate', ctypes.c_uint8), ('class_check', ctypes.c_uint8),
+                ('transform', ctypes.c_uint16), ('field_3324', ctypes.c_float), ('world_voice', ctypes.c_uint8)]
+
+
 RAND_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)
 HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_float, ctypes.c_float)
 OBJECT_FN = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32)
@@ -352,6 +359,16 @@ def load_library(path):
     lib.mu_sfx_joint_move.restype = ctypes.c_int
     lib.mu_sfx_joint_render.argtypes = [P(Joint), ctypes.c_uint8, F3, P(ctypes.c_int32), P(JointQuad), ctypes.c_int]
     lib.mu_sfx_joint_render.restype = ctypes.c_int
+    I32P = P(ctypes.c_int32)
+    lib.mu_player_shock.argtypes = [P(PlayerState), I32P, ctypes.c_int32, I32P, I32P]
+    lib.mu_player_shock.restype = ctypes.c_int32
+    lib.mu_player_die.argtypes = [P(PlayerState), I32P, ctypes.c_int32, I32P, I32P]
+    lib.mu_player_die.restype = ctypes.c_int32
+    lib.mu_player_attack_sound.argtypes = [P(PlayerState), ctypes.c_int32, ctypes.c_int16, ctypes.c_int16,
+                                           ctypes.c_int32, I32P, ctypes.c_int32, I32P]
+    lib.mu_player_attack_sound.restype = ctypes.c_int32
+    lib.mu_player_attack_action.argtypes = [P(vc.AttackInput), P(vc.AttackResult)]
+    lib.mu_player_attack_action.restype = None
     return lib
 
 
@@ -1333,11 +1350,155 @@ def family_joint_render(m, lib, rng, cases, report, negatives):
             negatives['joint_uv_drawn_tails'] += not same(u, f32(1.0))
 
 
+SET_PLAYER_SHOCK, SET_PLAYER_DIE, SET_PLAYER_ATTACK = 0x0138f92f, 0x01393a61, 0x01392bde
+CHAR = 0x24000000
+CHAR_OBJ = CHAR + 0x3254
+
+
+def random_player_state(rng):
+    st = PlayerState()
+    st.class_byte = rng.choice([0, 1, 2, 3, 4, 13, 0x14, 0x24, rng.randrange(0, 256)])
+    st.state_59, st.state_5a, st.state_72 = (rng.random() < 0.15, rng.random() < 0.15, rng.random() < 0.15)
+    st.predicate = rng.random() < 0.15
+    st.class_check = rng.random() < 0.4
+    st.transform = rng.choice([0, 0, 0, 0x1a25, 0x123])
+    st.field_3324 = f32(rng.choice([0.0, 0.0, 0.0, -0.0, 1.0, float('nan')]))
+    st.world_voice = rng.random() < 0.15
+    return st
+
+
+def player_stubs(st, rands, record, rand_index):
+    def state(mm):
+        a, b = mm.argument(0), mm.argument(1)
+        value = {(1, 0x59): st.state_59, (0, 0x5a): st.state_5a, (1, 0x72): st.state_72}.get((a, b), 0)
+        record.append(('state', a, b))
+        return 0xbe00 | value, 8
+
+    def rand(mm):
+        v = rands[rand_index[0]] if rand_index[0] < len(rands) else 0
+        rand_index[0] += 1
+        return v
+
+    def recorder(name, value=0, cleanup=0, argc=0):
+        def stub(mm):
+            record.append((name,) + tuple(mm.argument(i) for i in range(argc)))
+            return value, cleanup
+        return stub
+
+    def set_action(mm):
+        record.append(('set_action', mm.argument(1)))
+        return 0
+
+    def sound(mm):
+        record.append(('sound', mm.argument(0)))
+        return 0
+    return {0x0129ddd4: state, 0x01989721: rand, 0x012affa4: set_action, 0x00a6ac96: sound,
+            0x013a084d: recorder('tail_13a084d'), 0x0139f3db: lambda mm: 0xaa00 | st.predicate,
+            0x00b99205: lambda mm: (1 if st.class_check else 0), 0x0129dcda: lambda mm: 0xab0000 | st.transform,
+            0x009dacb8: lambda mm: 0xab00 | st.world_voice}
+
+
+def player_regions(st, action, world):
+    c = am.undefined_region('character', CHAR, 0x3400)
+    c.define(CHAR+0x12, bytes([st.class_byte]))
+    c.define(CHAR+0x23, bytes([0]))
+    c.define(CHAR+0x32b0, struct.pack('<i', 0xa91))
+    c.define(CHAR+0x3324, struct.pack('<f', st.field_3324))
+    c.define(CHAR+0x38, bytes([7]))
+    c.define(CHAR_OBJ+0x2a, struct.pack('<H', action))
+    c.define(CHAR_OBJ+0x5c, struct.pack('<i', 0xa91))
+    return [c, am.defined_region('world', WORLD, struct.pack('<i', world), writable=False),
+            am.defined_region('hero', HERO_POINTER, struct.pack('<I', 0x05000000), writable=False)]
+
+
+def family_player_voice(m, lib, rng, cases, report, negatives):
+    """SetPlayerShock / SetPlayerDie (Player branches) and SetPlayerAttack's sound tail."""
+    kinds = ['shock', 'die', 'attack']
+    item_groups = [-1, -1, 0xae6, 0xaf0, 0x10e6, 0x10e7, 0x12e6, 0x12f3, 0x12f4, 0x12f5, 0x14e6, 0x2000]
+    for n in range(cases):
+        kind = kinds[n % 3]
+        st = random_player_state(rng)
+        rands = [rng.choice([0, 1, 2, 3, 4, 5, 0x7fff, rng.randrange(0, 0x8000)]) for _ in range(8)]
+        record, rand_index = [], [0]
+        world = rng.choice([0, 0, 0, 0x49, 7])
+        stubs = player_stubs(st, rands, record, rand_index)
+        action_now = rng.choice([0, 0x71, 0x134, 0x8f])
+        if kind == 'shock':
+            action_now = rng.choice([0, 0x71, 0x134])   # not one of the eleven actions that block the reaction
+            stubs[0x009c104e] = lambda mm: 0x0a000000
+            stubs[0x0106bdb7] = lambda mm: (0, 4)   # not riding
+            r = m.execute(SET_PLAYER_SHOCK, [CHAR, rng.choice([1, 50, 999]), rng.choice([0, 1, 3])],
+                          player_regions(st, action_now, world), stubs)
+            act = ctypes.c_int32()
+            snd = ctypes.c_int32()
+            used = lib.mu_player_shock(ctypes.byref(st), (ctypes.c_int32*8)(*rands), 8, ctypes.byref(act),
+                                       ctypes.byref(snd))
+            mine = [('set_action', act.value)] + ([('sound', snd.value)] if snd.value >= 0 else [])
+        elif kind == 'die':
+            st.predicate = 0   # the skeleton form's death (0x435 / 0x436 effects) is not reconstructed
+            for addr, cleanup in ((0x00a0361c, 4), (0x0095c50b, 4), (0x00a06d72, 0), (0x0095f144, 0),
+                                  (0x00c71772, 0), (0x0095eb91, 0), (0x0095f6db, 0), (0x009a176b, 4),
+                                  (0x009a19ae, 4), (0x009a1a3c, 0)):
+                stubs[addr] = (lambda mm, k=cleanup: (0x0b000000, k))
+            stubs[0x009a1a51] = lambda mm: 0   # no party window to update
+            r = m.execute(SET_PLAYER_DIE, [CHAR], player_regions(st, action_now, world), stubs)
+            act = ctypes.c_int32()
+            snds = (ctypes.c_int32*2)()
+            used = lib.mu_player_die(ctypes.byref(st), (ctypes.c_int32*8)(*rands), 8, ctypes.byref(act), snds)
+            mine = ([('set_action', act.value)] if not st.predicate else []) + \
+                [('sound', x) for x in snds if x >= 0]
+        else:
+            st.predicate = 0   # the skeleton form's attack sounds (the model's sound table) are not reconstructed
+            weapon = [rng.choice(item_groups), rng.choice(item_groups)]
+            bow = rng.choice([0, 0, 0, 1, 2])
+            inp = vc.AttackInput(object_type=0xa91, class_byte=st.class_byte, safe_zone=0, counter=rng.randrange(0, 256),
+                                 wing=-1, two_handed=0, bow_kind=bow, dual=0, state_72=0)
+            inp.weapon[0], inp.weapon[1] = weapon
+            inp.attr_present[0] = inp.attr_present[1] = 0
+            inp.rand_values = (ctypes.c_int32*8)(*rands)
+            inp.rand_count = 8
+            res = vc.AttackResult()
+            lib.mu_player_attack_action(ctypes.byref(inp), ctypes.byref(res))
+            regions = player_regions(st, action_now, world)
+            regions[0].define(CHAR+4, bytes([0]))
+            regions[0].define(CHAR+0x28, bytes([inp.counter]))
+            regions[0].define(CHAR+0x19ac, struct.pack('<h', weapon[0]))
+            regions[0].define(CHAR+0x19ac+0x3fc, struct.pack('<h', weapon[1]))
+            regions[0].define(CHAR+0x21a4, struct.pack('<h', -1))
+            stubs.update({0x00cd4ea8: lambda mm: 0x5f000001, 0x00cd5d29: lambda mm: 0, 0x0138d9cf: lambda mm: 0,
+                          0x01392afd: lambda mm: 0, 0x0139d8f8: lambda mm: bow, 0x0139d9ed: lambda mm: 0xde00,
+                          0x00db747f: lambda mm: 0})
+            stubs[0x0129ddd4] = lambda mm: (0xbe00, 8)
+            r = m.execute(SET_PLAYER_ATTACK, [CHAR], regions, stubs)
+            snd = ctypes.c_int32()
+            rest = rands[res.rand_used:]
+            used_sound = lib.mu_player_attack_sound(ctypes.byref(st), bow, weapon[0], weapon[1], world,
+                                                    (ctypes.c_int32*8)(*(rest + [0]*(8-len(rest)))), len(rest),
+                                                    ctypes.byref(snd))
+            used = res.rand_used + used_sound
+            mine = ([('set_action', res.action)] if res.action >= 0 else []) + \
+                ([('sound', snd.value)] if snd.value >= 0 else [])
+        client = [x for x in record if x[0] in ('set_action', 'sound')]
+        equal = vc.ok(r) and client == mine and rand_index[0] == used
+        if equal and kind == 'die':
+            # the sound block marks itself done: c + 0x3324 = 0.001
+            after = struct.unpack('<f', r['regions']['character'][0x3324:0x3328])[0]
+            expected = f32(0.001) if st.field_3324 == 0.0 else st.field_3324
+            equal = same(after, expected)
+        report.add('player_voice', equal, {'case': n, 'kind': kind, 'client': client, 'c': mine,
+                                           'rand': [rand_index[0], used], 'stopped': r['stopped'],
+                                           'error': r['error'], 'checks': r['checks']})
+        report.cover('player_voice', kind + ' ' + ' '.join(hex(x[1]) for x in client))
+        if vc.ok(r) and kind == 'shock' and client and not st.state_59 and not st.state_5a and not st.state_72:
+            # negative control: the monster's hit action 5 for the hero
+            negatives['player_shock_action_5'] += client[0] != ('set_action', 5)
+
+
 FAMILIES = [('effect_create', family_effect_create), ('effect_move', family_effect_move),
             ('check_magic', family_check_magic), ('particle_create', family_particle_create),
             ('particle_move', family_particle_move), ('particle_render', family_particle_render),
             ('joint_create', family_joint_create), ('joint_move', family_joint_move),
-            ('joint_render', family_joint_render)]
+            ('joint_render', family_joint_render), ('player_voice', family_player_voice)]
 
 
 def main():
@@ -1361,7 +1522,7 @@ def main():
     negatives = {k: 0 for k in ['create_arrow_speed_60', 'create_energy_no_lift', 'move_decrement_first',
                                 'move_unrotated', 'check_magic_3d', 'particle_fire_scaled', 'particle_rise_no_10',
                                 'particle_fire_full_width', 'joint_first_tail_new_width', 'joint_forward_plus_y',
-                                'joint_uv_drawn_tails']}
+                                'joint_uv_drawn_tails', 'player_shock_action_5']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

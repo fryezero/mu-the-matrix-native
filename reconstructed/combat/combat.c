@@ -15,6 +15,100 @@ static float mu_f32(uint32_t bits)
 
 #include "attack_speed_table.h"
 
+/* ---------------------------------------------------------------- the hero's hit, death and attack sounds */
+
+static int32_t take_rand(const int32_t *rands, int32_t count, int32_t *used)
+{
+    int32_t v = *used < count ? rands[*used] : 0;
+    ++*used;
+    return v;
+}
+
+int32_t mu_player_shock(const mu_player_state *s, const int32_t *rands, int32_t rand_count, int32_t *action,
+                        int32_t *sound)
+{
+    int32_t used = 0;
+    if (s->state_59)
+        *action = 0x136;
+    else if (s->state_5a)
+        *action = 0x138;
+    else if (s->state_72)
+        *action = 0x13a;
+    else
+        *action = 0x134;
+    *sound = -1;
+    if (!(s->field_3324 == 0.0f))
+        return used;
+    if (s->predicate) {
+        *sound = 0x7b;   /* mBone1: the skeleton form */
+        return used;
+    }
+    int32_t cls = s->class_byte & 15;
+    if (!s->class_check) {
+        if (cls == 4 && take_rand(rands, rand_count, &used) % 5 != 0) {
+            if (s->transform != 0x1a25)
+                *sound = 0x1c6;
+        } else if (s->transform != 0x1a25) {
+            *sound = 0x69 + take_rand(rands, rand_count, &used) % 3;
+        }
+    } else if (s->transform != 0x1a25) {
+        *sound = 0x6d + take_rand(rands, rand_count, &used) % 2;
+    }
+    return used;
+}
+
+int32_t mu_player_die(const mu_player_state *s, const int32_t *rands, int32_t rand_count, int32_t *action,
+                      int32_t sounds[2])
+{
+    int32_t used = 0, cls = s->class_byte & 15;
+    if (s->state_59)
+        *action = 0x144;
+    else if (s->state_5a)
+        *action = 0x145;
+    else if (s->state_72)
+        *action = 0x147;
+    else if (cls == 13)
+        *action = 0x146;
+    else
+        *action = 0x142;
+    sounds[0] = sounds[1] = -1;
+    if (!(s->field_3324 == 0.0f))
+        return used;
+    if (s->world_voice) {
+        sounds[0] = 0x5e + take_rand(rands, rand_count, &used) % 2;
+        return used;
+    }
+    if (s->predicate)
+        return used;   /* the model's own death sound (not the Player voice) */
+    if (!s->class_check)
+        sounds[0] = cls == 4 ? 0x1c7 : 0x6c;
+    else
+        sounds[0] = 0x6e;
+    if (s->transform == 0x1a25)
+        sounds[1] = 0x2b9;
+    return used;
+}
+
+int32_t mu_player_attack_sound(const mu_player_state *s, int32_t bow_kind, int16_t weapon0, int16_t weapon1,
+                               int32_t world, const int32_t *rands, int32_t rand_count, int32_t *sound)
+{
+    int32_t used = 0;
+    *sound = -1;
+    if (world == 0x49 || !(s->field_3324 == 0.0f) || s->predicate)
+        return used;
+    if (bow_kind == 1)
+        *sound = 0x55;
+    else if (bow_kind == 2)
+        *sound = 0x56;
+    else if (weapon0 >= 0x12f3 && weapon0 < 0x12f5)
+        *sound = 0x76;
+    else if (weapon0 == 0xaf0 || weapon0 == 0x10e6)
+        *sound = 0x3e;
+    else if (weapon0 != -1 || weapon1 != -1)
+        *sound = 0x3c + take_rand(rands, rand_count, &used) % 2;
+    return used;
+}
+
 /* ---------------------------------------------------------------- points */
 
 int32_t mu_point_create(mu_point *points, const float position[3], int32_t value, const float color[3], float scale,
