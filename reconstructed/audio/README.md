@@ -16,6 +16,7 @@ table with a software mixer; the validator implements it with a recorder.
 | `audio_system.c` | FMOD wrapper init `0x010aad03`, create with path cache `0x010aaa97`, play `0x010aaffb`, settings `0x010ab480`/`0x010ab506`, group control; sound table `0x00a6ab76`..`0x00a6ae37`; PlayMp3 `0x0120f602`, StopMp3 `0x0120f5a0`; options-UI level conversions |
 | `audio_world.c` | per-frame ambient loops and music selection `0x0185280c`..`0x01854498`; OpenWorld music-group volume `0x018290be`..`0x018293a6` |
 | `audio_options.c` | `Data/Sound/Option.ini` read (`0x010ab7e0`) and write (`0x010ab573`, double format `0x00943757`) |
+| `hero_sound.c` | NATIVE-WORLD-002: PlayWalkSound `0x013b1f61`, the footstep trigger `0x013b8090` in `0x013b23f8`, the foot reset `0x013a773c`, HeroTile `0x016ad7a5`; compared by `scripts/validate_hero_sound.py` ([finding](../../docs/research/native-world-alive.md)) |
 
 ## Comparison scope
 

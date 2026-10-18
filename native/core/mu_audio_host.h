@@ -69,6 +69,14 @@ mu_audio_client *mu_audio_host_client(mu_audio_host *host);
 /* Applies one command (without the time field). Returns 0, 1 for "end", or
  * -1 with a message. */
 int mu_audio_host_command(mu_audio_host *host, const char *command, char *error, size_t error_size);
+/* SND_Play of a table id (loaded from the table first when needed), as the
+ * client's game code calls it. Returns 1 when it started playing. */
+int mu_audio_host_play(mu_audio_host *host, int32_t id, int32_t loop);
+/* The per-frame world selection state from now on (the "world" command). */
+void mu_audio_host_set_world(mu_audio_host *host, const mu_world_audio_state *state, int32_t boss_zone);
+/* Observer of the per-frame block's events (mu_world_audio_event_kind). */
+void mu_audio_host_set_observer(mu_audio_host *host, void (*observer)(void *ctx, int kind, int32_t a, int32_t b),
+                                void *ctx);
 /* One client frame: per-frame world selection (when active) then System::update. */
 void mu_audio_host_tick(mu_audio_host *host);
 

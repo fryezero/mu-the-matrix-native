@@ -20,6 +20,8 @@ struct mu_audio_host {
     int32_t boss_zone;
     uint32_t rand_state;
     int delegate_logged;
+    void (*observer)(void *ctx, int kind, int32_t a, int32_t b);
+    void *observer_ctx;
 };
 
 static char *copy_string(const char *text, size_t length)
@@ -304,6 +306,7 @@ static int32_t host_boss(void *ctx, int32_t world, int32_t x, int32_t y)
 static void host_event(void *ctx, int kind, int32_t a, int32_t b)
 {
     mu_audio_host *host = ctx;
+    if (host->observer) host->observer(host->observer_ctx, kind, a, b);
     switch (kind) {
     case MU_WORLD_SND_PLAY:
         if (ensure_loaded(host, a)) mu_audio_snd_play(&host->client, a, NULL, b);
@@ -326,6 +329,26 @@ static void host_event(void *ctx, int kind, int32_t a, int32_t b)
         }
         break;
     }
+}
+
+int mu_audio_host_play(mu_audio_host *host, int32_t id, int32_t loop)
+{
+    if (!ensure_loaded(host, id)) return 0;
+    return mu_audio_snd_play(&host->client, id, NULL, loop);
+}
+
+void mu_audio_host_set_world(mu_audio_host *host, const mu_world_audio_state *state, int32_t boss_zone)
+{
+    host->world = *state;
+    host->boss_zone = boss_zone;
+    host->world_active = 1;
+}
+
+void mu_audio_host_set_observer(mu_audio_host *host, void (*observer)(void *ctx, int kind, int32_t a, int32_t b),
+                                void *ctx)
+{
+    host->observer = observer;
+    host->observer_ctx = ctx;
 }
 
 void mu_audio_host_tick(mu_audio_host *host)

@@ -1161,6 +1161,18 @@ Renders stay local in `~/Documents/mu-mac-tools/native/renders/world/`.
 port; port the path finder's target-area branch and the
 weapon/mount cases of SetPlayerWalk/SetPlayerStop (or adopt the NATIVE-ACTOR-001 tables).
 
+
+## A living native world (NATIVE-WORLD-002)
+
+Branch `claude/native-world2`. Read [`research/native-world-alive.md`](research/native-world-alive.md).
+
+**Checks.** `scripts/validate_hero_sound.py --cases 10000` and `scripts/extract_effect_classes.py --emit-c` (private
+captures), portable `reconstructed/audio/test_hero_sound.py`, `reconstructed/actors/test_effect_class_table.py` and
+`native/tests/test_native_world2.py`. Renders and the WAV stay local in `~/Documents/mu-mac-tools/native/renders/world2/`.
+
+**Next:** a live window-only reference capture of Lorencia for a side-by-side (the character now lives on MTM-1;
+check its location first); the bone matrix path `0x0129fd4f` for effects; NPCs assembled from part models; the
+SND_Play sites of monsters, skills and NPC voices; the zoom-mode global `[0x0bdb5880]`.
 ## Item attributes and table layouts (NATIVE-DATA-002)
 
 Branch `claude/native-data2`. It adds the following:

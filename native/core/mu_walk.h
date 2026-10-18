@@ -71,6 +71,7 @@ typedef struct mu_hero {
     float frame, prior_frame;        /* o + 0xd0 / 0xd4 (mirrors of the Player model) */
     float play_speed;         /* PlaySpeed of the current action (the animation step reads it) */
     uint8_t action_changed;   /* set when SetAction changed the action this step */
+    uint8_t step_result;      /* AL of the last animation tick (0 when it wrapped or clamped) */
 } mu_hero;
 
 #define MU_WALK_LOG 64
@@ -93,6 +94,11 @@ typedef struct mu_walk {
     double position_distance; /* their summed horizontal displacement */
     char log[MU_WALK_LOG][80];
     int32_t log_count;
+    /* NATIVE-WORLD-002: called at the end of every logic step (after MoveHero
+     * and the hero's animation step), where MoveCharacters runs the other
+     * characters and the hero's per-character routine 0x013b23f8. */
+    void (*step_hook)(void *context, struct mu_walk *walk);
+    void *step_context;
 } mu_walk;
 
 /* Starts a session on a loaded world (mu_walk is large: allocate it

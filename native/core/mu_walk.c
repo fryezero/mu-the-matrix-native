@@ -359,6 +359,7 @@ int mu_walk_animate(mu_walk *w, mu_character *character)
     }
     uint8_t loop = 0;
     int status = mu_character_tick(character, h->play_speed, &loop);
+    h->step_result = loop;
     h->frame = mu_model_frame(player);
     h->prior_frame = mu_model_prior_frame(player);
     return status;
@@ -384,6 +385,8 @@ void mu_walk_step(mu_walk *w, mu_character *character)
     /* MoveCharacters 0x0137a7ce (0x01856eca): the character animation step */
     if (character)
         mu_walk_animate(w, character);
+    if (w->step_hook)
+        w->step_hook(w->step_context, w);
     ++w->steps;
 }
 

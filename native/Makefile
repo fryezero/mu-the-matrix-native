@@ -48,7 +48,8 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
-            core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c
+            core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
+            core/mu_world_actors.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -131,9 +132,10 @@ $(BUILD)/mu-effect: tools/mu_effect_tool.c $(LIB)
 	$(CXX) $(BUILD)/mu_effect_tool.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
 # Walk-around session, headless software build (NATIVE-WORLD-001).
-$(BUILD)/mu-walk: world/main.c $(LIB)
+# NATIVE-WORLD-002 links the audio library (in-world sound, WAV output).
+$(BUILD)/mu-walk: world/main.c $(LIB) $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c world/main.c -o $(BUILD)/mu_walk.o
-	$(CXX) $(BUILD)/mu_walk.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/mu_walk.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # Click-to-move demonstrator (NATIVE-PATH-001).
 $(BUILD)/mu-path: tools/mu_path.c $(LIB)
@@ -203,9 +205,12 @@ $(BUILD)/mu-frame-window: $(FRAME_WINDOW_SRC) viewer/gl_backend.h viewer/gl_head
 # Engine, WAV decoder, script host and the reconstructed client audio logic.
 # No Crypto++ or SDL2: the offline tool builds everywhere; MP3/OGG decoding
 # uses AudioToolbox on macOS and reports the codec as unavailable elsewhere.
-AUDIO_SRC := core/mu_wav.c core/mu_audio.c core/mu_audio_decode.c core/mu_audio_host.c core/mu_png.c
-AUDIO_RECON := $(RECON)/audio/audio_system.c $(RECON)/audio/audio_world.c $(RECON)/audio/audio_options.c
-AUDIO_HEADERS := core/mu_wav.h core/mu_audio.h core/mu_audio_host.h core/mu_png.h $(RECON)/audio/client_audio.h
+AUDIO_SRC := core/mu_wav.c core/mu_audio.c core/mu_audio_decode.c core/mu_audio_host.c core/mu_png.c \
+             core/mu_world_audio.c
+AUDIO_RECON := $(RECON)/audio/audio_system.c $(RECON)/audio/audio_world.c $(RECON)/audio/audio_options.c \
+               $(RECON)/audio/hero_sound.c
+AUDIO_HEADERS := core/mu_wav.h core/mu_audio.h core/mu_audio_host.h core/mu_png.h $(RECON)/audio/client_audio.h \
+                 core/mu_world_audio.h $(RECON)/audio/hero_sound.h
 AUDIO_OBJ := $(patsubst core/%.c,$(BUILD)/audio/%.o,$(AUDIO_SRC)) $(patsubst $(RECON)/audio/%.c,$(BUILD)/audio/recon_%.o,$(AUDIO_RECON))
 ifeq ($(UNAME),Darwin)
 AUDIO_LIBS := -framework AudioToolbox -framework CoreFoundation
@@ -244,12 +249,13 @@ $(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.
 WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_headless.c
 
-$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB)
+$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/world
 	for f in $(WORLD_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/world/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/world/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	  $(GL_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 clean:
 	rm -rf $(BUILD)
