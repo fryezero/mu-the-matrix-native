@@ -51,6 +51,7 @@ SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 
 CREATE_EFFECT, MOVE_EFFECT, CHECK_MAGIC, CHECK_ARROW = 0x013c0f19, 0x0142fd09, 0x013be199, 0x013bd374
 CREATE_SPRITE, AREA_ATTACK, FLOAT_SQRT, FLOAT_ATAN = 0x01692eb7, 0x013bc25e, 0x00961a07, 0x012b2bca
+SERIAL_STEP, QUAKE, WORLD_PREDICATE, WORLD = 0x01d1df18, 0x0bdb588c, 0x009b0418, 0x01cf15fc
 CREATE_EFFECT_WRAPPER, CREATE_PARTICLE, CREATE_JOINT = 0x013c0eaa, 0x0168fafd, 0x0153b02c
 TERRAIN_LIGHT, TERRAIN_HEIGHT, RAND = 0x016cacfc, 0x016cc9e2, 0x01989721
 SINE, COSINE, CRT_SQRT = 0x009681bd, 0x009fa223, 0x019856f0
@@ -141,7 +142,8 @@ class Info(ctypes.Structure):
 
 
 class Object(ctypes.Structure):
-    _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('position', ctypes.c_float*3)]
+    _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('weapon', ctypes.c_int16),
+                ('position', ctypes.c_float*3)]
 
 
 class Call(ctypes.Structure):
@@ -318,7 +320,7 @@ MODEL_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctype
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
                 ('call', CALL_FN), ('model', MODEL_FN), ('serial', ctypes.c_uint8),
-                ('report_checks', ctypes.c_uint8)]
+                ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32)]
 
 
 def load_library(path):
@@ -426,6 +428,7 @@ def random_object(rng):
     o = Object()
     o.live = rng.choice([0, 1, 1, 1, 2])
     o.visible = rng.choice([0, 1, 1, 1])
+    o.weapon = rng.choice([0, 9, 0x600, 0x603, 0x7ff, 0x800, 0x1000])
     for k in range(3):
         o.position[k] = vc.rfloat(rng, 0.05, 30000.0) if k < 2 else vc.rfloat(rng, 0.05, 500.0)
     return o
@@ -439,8 +442,9 @@ def object_region(objects, writable=False):
         base = 0x400*i
         data[base] = o.live
         data[base+0x0b] = o.visible
+        struct.pack_into('<h', data, base+0x56, o.weapon)
         struct.pack_into('<3f', data, base+0x158, *o.position)
-        for a, n in ((0, 1), (0x0b, 1), (0x158, 12)):
+        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12)):
             mask[base+a:base+a+n] = b'\1'*n
     return am.Region('objects', OBJECTS, bytes(data), bytes(mask), writable)
 
@@ -456,6 +460,8 @@ class Case:
         self.client_rand = self.c_rand = 0
         self.animation, self.keys, self.has_model = animation, keys, has_model
         self.c_objects = (Object*max(1, len(objects)))(*objects) if objects else (Object*1)()
+        self.c_serial_steps = 0
+        self.c_quake = None
 
     # ---- client side
     def stubs(self, m):
@@ -501,8 +507,9 @@ class Case:
 
         def effect(mm):
             a = [mm.argument(i) for i in range(14)]
+            sub = a[4] - (1 << 32) if a[4] & 0x80000000 else a[4]
             self.client_calls.append(('effect', a[0], mm.floats(a[1], 3), mm.floats(a[2], 3), mm.floats(a[3], 3),
-                                      a[4], owner_of(a[5]), a[6:14]))
+                                      sub, owner_of(a[5]), a[6:14]))
             return 0
 
         def init(mm):
@@ -548,13 +555,16 @@ class Case:
             self.client_calls.append(('area', a[0], from_bits(a[1]), mm.floats(a[2], 3), a[3]))
             return 0
 
+        def world_predicate(mm):
+            return 0
+
         def fsqrt(mm):
             return mm.x87_return(f32(math.sqrt(mm.float_argument(0))) if mm.float_argument(0) >= 0 else float('nan'))
 
         def fatan(mm):
             return mm.x87_return(f32(math.atan(mm.float_argument(0))))
 
-        return {CREATE_SPRITE: sprite, AREA_ATTACK: area, FLOAT_SQRT: fsqrt, FLOAT_ATAN: fatan,
+        return {WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area, FLOAT_SQRT: fsqrt, FLOAT_ATAN: fatan,
                 RAND: rand, TERRAIN_HEIGHT: height, SINE: sine, COSINE: cosine, CRT_SQRT: sqrt,
                 TERRAIN_LIGHT: terrain_light, CREATE_PARTICLE: particle, CREATE_JOINT: joint,
                 CREATE_EFFECT_WRAPPER: effect, OBJECT_INIT: init, MANAGER_A: zero8, MANAGER_B: zero8,
@@ -562,7 +572,7 @@ class Case:
                 CHECK_ARROW: check('arrow'), CHECK_MAGIC: check('magic'), DELETE_EFFECT: delete}
 
     # ---- C side
-    def env(self, serial=0, report_checks=1):
+    def env(self, serial=0, report_checks=1, hero_object=-1):
         def rand(ctx):
             v = self.rand_values[self.c_rand] if self.c_rand < len(self.rand_values) else 0
             self.c_rand += 1
@@ -600,8 +610,14 @@ class Case:
             elif c.routine == CREATE_SPRITE:
                 self.c_calls.append(('sprite', c.type, list(c.position), c.scale, list(c.light), c.owner,
                                      c.angle[0]))
+            elif c.routine == AREA_ATTACK and c.range:
+                self.c_calls.append(('area', c.type, c.scale, list(c.position), c.subtype))
             elif c.routine == AREA_ATTACK:
                 self.c_calls.append(('area', c.type, c.scale, list(c.position), c.subtype))
+            elif c.routine == SERIAL_STEP:
+                self.c_serial_steps += 1
+            elif c.routine == QUAKE:
+                self.c_quake = c.scale
             return 0
 
         def model(ctx, t, action, keys):
@@ -612,6 +628,7 @@ class Case:
         env.rand, env.height, env.object, env.call, env.model = self._keep
         env.serial = serial
         env.report_checks = report_checks
+        env.hero_object = hero_object
         return env
 
 
@@ -635,7 +652,8 @@ def compare_calls(client, mine, skip_tail=True):
 # --------------------------------------------------------------------------
 # Families.
 
-EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1)]
+EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x41c, 0), (0x41d, 0), (0x457, 0),
+                (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1)]
 ARROW_SKILLS = [0, 0, 0, 0x7e7, 0x2d7, 0x7fe, 0x18, 0x34]
 
 
@@ -683,11 +701,14 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
         hero.define(HERO_DATA+0x2dec, bytes([serial]))
         regions = [inputs, record, object_region(objects), hero,
                    am.defined_region('hero-ptr', HERO_DATA_PTR, struct.pack('<I', HERO_DATA), writable=False)]
+        hero_obj = rng.choice([-1, 0, 1, owner])
+        hero_char = (object_address(hero_obj) - 0x3254) & 0xffffffff if hero_obj >= 0 else 0x5000000
+        regions += [am.defined_region('hero', HERO_POINTER, struct.pack('<I', hero_char), writable=False)]
         r = m.execute(CREATE_EFFECT, [kind[0], kind[1], INPUTS, INPUTS+12, INPUTS+24, object_address(owner),
                                       bits(scale), INPUTS+36], regions, case.stubs(m), ecx=POOL, cleanup=0x20)
         e = Effect()
         F3 = ctypes.c_float*3
-        env = case.env(serial=serial)
+        env = case.env(serial=serial, hero_object=hero_obj)
         supported = lib.mu_sfx_effect_create(ctypes.byref(e), kind[0], kind[1], F3(*pos), F3(*angle), F3(*light),
                                               owner, scale, ctypes.byref(info), ctypes.byref(env))
         mismatch = None
@@ -702,6 +723,10 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
                 mismatch = compare_calls(case.client_calls, case.c_calls)
             if mismatch is None and case.client_rand != case.c_rand:
                 mismatch = ('rand calls', case.client_rand, case.c_rand)
+            if mismatch is None:
+                after = r['regions']['hero-data'][0x2dec]
+                if after != (serial + case.c_serial_steps) & 0xff:
+                    mismatch = ('serial', serial, after, case.c_serial_steps)
         equal = supported and vc.ok(r) and mismatch is None
         report.add('effect_create', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                             'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
@@ -736,19 +761,23 @@ def random_effect(rng, kind):
     e.frame = vc.rfloat(rng, 0.1, 10.0)
     e.prior_frame = vc.rfloat(rng, 0.1, 10.0)
     e.alpha = 1.0
+    e.gravity = f32(rng.choice([17.0, 8.0, 0.0, -3.0, vc.rfloat(rng, 0.2, 30.0)]))
+    e.key = rng.randrange(0, 0x10000)
+    e.blend_u = vc.rfloat(rng, 0.2, 1.0)
+    e.serial = rng.randrange(0, 256)
     for k in range(3):
         e.light[k] = vc.rfloat(rng, 0.1, 1.0)
         e.direction[k] = rng.choice([0.0, -50.0, -60.0, -70.0, vc.rfloat(rng, 0.1, 100.0)])
         e.position[k] = vc.rfloat(rng, 0.05, 30000.0) if k < 2 else vc.rfloat(rng, 0.05, 600.0)
         e.angle[k] = vc.rfloat(rng, 0.1, 360.0) if k == 2 or rng.random() < 0.3 else 0.0
         e.start[k] = vc.rfloat(rng, 0.1, 30000.0)
-    e.owner = rng.choice([-1, 0, 1])
+    e.owner = rng.choice([-1, 0, 1]) if kind[0] != 0x454 else rng.choice([0, 1])   # the swirl always has its caster
     return e
 
 
 MOVE_DEFINED = {'live', 'flag5', 'action', 'prior_action', 'client_hit', 'skill', 'type', 'subtype', 'lifetime',
                 'blend_mesh', 'scale', 'blend_light', 'velocity', 'frame', 'prior_frame', 'alpha', 'light',
-                'direction', 'position', 'angle', 'start', 'owner'}
+                'direction', 'position', 'angle', 'start', 'owner', 'gravity', 'key', 'blend_u', 'serial'}
 
 
 def family_effect_move(m, lib, rng, cases, report, negatives):
@@ -766,7 +795,9 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
         model.define(MODEL+0x30, struct.pack('<I', MODEL+0x1000))
         for a in range(0x100):
             model.define(MODEL+0x1000+16*a+8, struct.pack('<h', keys))
-        regions = [record, object_region(objects), model]
+        quake = am.Region('quake', QUAKE, am.poison(4, 0x21), bytes(4))
+        regions = [record, object_region(objects), model, quake,
+                   am.defined_region('world', WORLD, struct.pack('<i', 0), writable=False)]
         before = Effect.from_buffer_copy(e)
         r = m.execute(MOVE_EFFECT, [POOL, 0], regions, case.stubs(m))
         env = case.env()
@@ -779,6 +810,10 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
                 mismatch = compare_calls(case.client_calls, case.c_calls)
             if mismatch is None and case.client_rand != case.c_rand:
                 mismatch = ('rand calls', case.client_rand, case.c_rand)
+            if mismatch is None and case.c_quake is not None:
+                q = struct.unpack('<f', r['regions']['quake'])[0]
+                if not same(q, case.c_quake):
+                    mismatch = ('quake', q, case.c_quake)
         equal = supported and vc.ok(r) and mismatch is None
         report.add('effect_move', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                           'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})

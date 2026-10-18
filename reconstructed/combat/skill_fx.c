@@ -133,16 +133,56 @@ static void call_plain(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine)
 
 /* ---------------------------------------------------------------- CreateEffect */
 
+static int effect_supported(int32_t type, int32_t sub)
+{
+    switch (type) {
+    case MU_SFX_MODEL_ARROW: return sub == 0 || sub == 2;
+    case MU_SFX_MODEL_FIRE: return sub == 1;
+    case MU_SFX_BITMAP_THUNDER: return sub == 0;
+    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 1;
+    case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
+    case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
+        return sub == 0;
+    case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
+    default: return 0;
+    }
+}
+
+static int is_hero_owner(const mu_sfx_effect *e, const mu_sfx_env *env)
+{
+    return env && env->hero_object >= 0 && e->owner == env->hero_object;
+}
+
+static void call_serial_step(const mu_sfx_env *env, mu_sfx_effect *e)
+{
+    mu_sfx_call c;
+    memset(&c, 0, sizeof c);
+    c.routine = MU_SFX_CALL_SERIAL;
+    c.owner = MU_SFX_NO_OWNER;
+    env_call(env, &c, e);
+}
+
+/* the hero's area attack request 0x013bc25e(skill, range, position, serial, key, 0, 5, 0) */
+static void call_area(const mu_sfx_env *env, mu_sfx_effect *e, float range)
+{
+    mu_sfx_call c;
+    memset(&c, 0, sizeof c);
+    c.routine = MU_SFX_CALL_AREA;
+    c.type = e->skill;
+    c.scale = range;
+    copy3(c.position, e->position);
+    c.subtype = (uint8_t)e->serial;
+    c.range = e->key;
+    c.owner = MU_SFX_NO_OWNER;
+    env_call(env, &c, e);
+}
+
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
                          const float angle[3], const float light[3], int32_t owner, float scale,
                          const mu_sfx_info *info, const mu_sfx_env *env)
 {
     memset(e, 0, sizeof *e);
-    int supported = (type == MU_SFX_MODEL_ARROW && (subtype == 0 || subtype == 2)) ||
-                    (type == MU_SFX_MODEL_FIRE && subtype == 1) ||
-                    (type == MU_SFX_BITMAP_THUNDER && subtype == 0) ||
-                    (type == MU_SFX_BITMAP_MAGIC_GROUND2 && subtype == 1);
-    if (!supported)
+    if (!effect_supported(type, subtype))
         return 0;
     mu_sfx_info none;
     if (!info) {
@@ -240,6 +280,65 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         /* 0x013c80a3 */
         e->lifetime = 20;
         break;
+    case MU_SFX_MODEL_CIRCLE:
+        /* 0x013cff78 */
+        e->lifetime = 45;
+        e->blend_mesh = 0;
+        if (subtype == 0 && is_hero_owner(e, env)) {
+            e->serial = env->serial;
+            call_serial_step(env, e);
+            call_area(env, e, 300.0f);
+        }
+        break;
+    case MU_SFX_MODEL_CIRCLE_LIGHT:
+        /* 0x013d00c2 */
+        e->lifetime = 40;
+        e->blend_mesh = 0;
+        break;
+    case MU_SFX_MODEL_INFERNO:
+        /* 0x013c9ba4, subtype 0: 0x013c9bfc */
+        e->blend_mesh = -2;
+        e->scale = F_0_9;
+        e->velocity = 0.5f;
+        e->light[0] = e->light[1] = e->light[2] = F_0_8;
+        e->lifetime = 15;
+        if (is_hero_owner(e, env) && subtype < 2) {
+            e->serial = env->serial;
+            call_area(env, e, 400.0f);
+        }
+        break;
+    case MU_SFX_MODEL_LASER:
+        /* 0x013ce3ea, subtype 0 */
+        e->lifetime = 1;
+        e->blend_mesh = 0;
+        e->blend_light = e->light[0];
+        e->scale = f32bits(0x3fa66666u);   /* 1.3 */
+        e->field_80 = 0x80;                /* RenderObject draws it with flags 0x82 */
+        break;
+    case MU_SFX_TWISTING_SLASH:
+        /* 0x013ce7e5 */
+        e->lifetime = 5;
+        call_serial_step(env, e);
+        break;
+    case MU_SFX_TWISTING_SWIRL:
+        /* 0x013ce80d */
+        e->lifetime = 25;
+        e->serial = env ? env->serial : 0;
+        break;
+    case MU_SFX_MODEL_STONE1:
+    case MU_SFX_MODEL_STONE2: {
+        /* 0x013d49a0: subtype 0 flings the stone out (0x013d49cc), subtype 1 lifts it (0x013d4b0a) */
+        float v[3] = {0.0f, 0.0f, 0.0f}, m[12];
+        if (subtype == 0)
+            v[1] = (float)(smod(env_rand(env), 256) + 64) * F_0_1;
+        e->lifetime = smod(env_rand(env), 16) + 32;
+        e->scale = (float)(smod(env_rand(env), 4) + 8) * F_0_1;
+        e->angle[2] = (float)(env_rand(env) % 360);
+        mu_angle_matrix(e->angle, m);
+        mu_vector_rotate(v, m, e->direction);
+        e->gravity = (float)(smod(env_rand(env), 16) + 8);
+        break;
+    }
     default:
         break;
     }
@@ -320,9 +419,7 @@ static void heal_joints(mu_sfx_effect *e, const mu_sfx_env *env)
 int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
 {
     int32_t type = e->type, sub = e->subtype;
-    int supported = (type == MU_SFX_MODEL_ARROW && (sub == 0 || sub == 2)) || (type == MU_SFX_MODEL_FIRE && sub == 1) ||
-                    (type == MU_SFX_BITMAP_THUNDER && sub == 0) || (type == MU_SFX_BITMAP_MAGIC_GROUND2 && sub == 1);
-    if (!supported)
+    if (!effect_supported(type, sub))
         return 0;
     /* prologue 0x0142fd2d: Luminosity = (rand % 4 + 7) * 0.1, dimmed over the
      * last five steps */
@@ -376,11 +473,175 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         /* 0x0143fbda, subtypes >= 1 except 4, 6..13, 19 */
         heal_joints(e, env);
         break;
+    case MU_SFX_MODEL_CIRCLE:
+        /* 0x01457a30 */
+        e->blend_light = (float)e->lifetime * F_0_1;
+        break;
+    case MU_SFX_MODEL_CIRCLE_LIGHT: {
+        /* 0x014581dd, subtype 0 */
+        int32_t odds = 4;
+        if (e->lifetime >= 30)
+            e->blend_light = (float)(40 - e->lifetime) * F_0_1;
+        else
+            e->blend_light = (float)e->lifetime * F_0_1;
+        e->blend_u = -(float)e->lifetime * f32bits(0x3c23d70au);   /* 0.01 */
+        {
+            mu_sfx_call q;
+            memset(&q, 0, sizeof q);
+            q.routine = MU_SFX_CALL_QUAKE;
+            q.scale = (float)(env_rand(env) % 6 - 6) * F_0_1;
+            q.owner = MU_SFX_NO_OWNER;
+            env_call(env, &q, e);
+        }
+        if (env_rand(env) % odds == 0) {
+            /* a stone flies out of the circle */
+            float v[3] = {0.0f, 0.0f, 0.0f}, a[3] = {0.0f, 0.0f, 0.0f}, m[12], p[3];
+            v[1] = (float)(env_rand(env) % 300);
+            a[2] = (float)(env_rand(env) % 360);
+            mu_angle_matrix(a, m);
+            mu_vector_rotate(v, m, p);
+            p[0] = p[0] + e->position[0];
+            p[1] = p[1] + e->position[1];
+            p[2] = p[2] + e->position[2];
+            call_effect(env, e, MU_SFX_MODEL_STONE1 + smod(env_rand(env), 2), p, e->angle, e->light, 1,
+                        MU_SFX_NO_OWNER);
+        }
+        light[0] = lum * 1.0f;
+        light[1] = lum * F_0_8;
+        light[2] = lum * F_0_2;
+        call_terrain_light(env, e, light, 4);
+        break;
+    }
+    case MU_SFX_MODEL_INFERNO:
+        /* 0x0144e52d, subtype 0 (< 4, not 2) */
+        e->blend_light = (float)e->lifetime / 20.0f;
+        light[0] = -lum * 0.5f;
+        light[1] = -lum * 0.5f;
+        light[2] = -lum * 0.5f;
+        call_terrain_light(env, e, light, 5);
+        break;
+    case MU_SFX_MODEL_LASER:
+        /* 0x0144f626, subtype 0: nothing */
+        break;
+    case MU_SFX_TWISTING_SLASH:
+        /* 0x0144f7ae: one swirl piece per step, subtype 4 - LifeTime, owned by the caster */
+        {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_EFFECT;
+            c.type = MU_SFX_TWISTING_SWIRL;
+            c.subtype = 4 - e->lifetime;
+            c.owner = e->owner;
+            copy3(c.position, e->position);
+            copy3(c.angle, e->angle);
+            copy3(c.light, e->light);
+            env_call(env, &c, e);
+        }
+        break;
+    case MU_SFX_TWISTING_SWIRL: {
+        /* 0x0144f829: the piece circles the caster's feet */
+        switch (sub) {
+        case 1: e->alpha = f32bits(0x3f19999au); break;   /* 0.6 */
+        case 2: e->alpha = 0.5f; break;
+        case 3: e->alpha = F_0_4; break;
+        case 4: e->alpha = F_0_3; break;
+        default: break;
+        }
+        const mu_sfx_object *o = env_object(env, e->owner);
+        int16_t weapon = o ? o->weapon : 0;
+        float reach[3] = {0.0f, (weapon >= 0x600 && weapon < 0x800) ? -180.0f : -150.0f, 0.0f}, m[12], p[3];
+        mu_angle_matrix(e->angle, m);
+        mu_vector_rotate(reach, m, p);
+        e->position[0] = p[0] + e->start[0];
+        e->position[1] = p[1] + e->start[1];
+        e->position[2] = p[2] + e->start[2];
+        e->angle[2] = e->angle[2] - 18.0f;
+        call_particle(env, e, 0x7f5a, e->position, e->angle, e->light, 3, 1.0f, MU_SFX_NO_OWNER);
+        light[0] = lum * F_0_3;
+        light[1] = lum * F_0_3;
+        light[2] = lum * F_0_3;
+        call_terrain_light(env, e, light, 3);
+        light[0] = light[1] = light[2] = 1.0f;
+        for (int k = 0; k < 4; ++k) {
+            float a[3], q[3];
+            a[0] = (float)(env_rand(env) % 60 - 30);
+            a[1] = 0.0f;
+            a[2] = (float)(env_rand(env) % 30 + 90);
+            a[0] = a[0] + e->angle[0];
+            a[1] = a[1] + e->angle[1];
+            a[2] = a[2] + e->angle[2];
+            copy3(q, e->position);
+            q[0] = (float)(env_rand(env) % 20 - 10) + q[0];
+            q[1] = (float)(env_rand(env) % 20 - 10) + q[1];
+            call_joint(env, e, 0x7fd5, q, q, a, 0, MU_SFX_NO_OWNER, 10.0f);
+            if (k == 0)
+                call_particle(env, e, 0x7f25, q, a, light, 0, 1.0f, MU_SFX_NO_OWNER);
+        }
+        {
+            float q[3];
+            copy3(q, e->position);
+            q[2] = q[2] + 20.0f;
+            const float glow[3] = {1.0f, F_0_8, f32bits(0x3f19999au)};
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = 0x01692eb7;   /* CreateSprite(flare01 0x7ef7, pos, 2, light, the effect, 0) */
+            c.type = 0x7ef7;
+            copy3(c.position, q);
+            c.scale = 2.0f;
+            copy3(c.light, glow);
+            c.owner = -2;
+            env_call(env, &c, e);
+        }
+        break;
+    }
+    case MU_SFX_MODEL_STONE1:
+    case MU_SFX_MODEL_STONE2:
+        if (sub == 0) {
+            /* 0x01459d34: bounce on the ground */
+            e->position[0] = e->position[0] + e->direction[0];
+            e->position[1] = e->position[1] + e->direction[1];
+            e->position[2] = e->position[2] + e->direction[2];
+            e->direction[0] = F_0_9 * e->direction[0];
+            e->direction[1] = F_0_9 * e->direction[1];
+            e->direction[2] = F_0_9 * e->direction[2];
+            e->position[2] = e->position[2] + e->gravity;
+            e->gravity = e->gravity - 3.0f;
+            float h = env_height(env, e->position[0], e->position[1]);
+            if (h > e->position[2]) {
+                e->position[2] = h;
+                e->gravity = -e->gravity * 0.5f;
+                e->lifetime = e->lifetime - 4;
+                e->angle[0] = e->angle[0] - e->scale * 128.0f;
+            } else {
+                e->angle[0] = e->angle[0] - e->scale * 32.0f;
+            }
+            if (env_rand(env) % 10 == 0)
+                call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, e->light, env_rand(env) % 3 + 1,
+                              1.0f, MU_SFX_NO_OWNER);
+        } else {
+            /* 0x0145a0d2: rises */
+            float m[12], p[3];
+            mu_angle_matrix(e->angle, m);
+            mu_vector_rotate(e->direction, m, p);
+            e->position[0] = e->position[0] + p[0];
+            e->position[1] = e->position[1] + p[1];
+            e->position[2] = e->position[2] + p[2];
+            e->direction[0] = F_0_9 * e->direction[0];
+            e->direction[1] = F_0_9 * e->direction[1];
+            e->direction[2] = F_0_9 * e->direction[2];
+            e->position[2] = e->position[2] + e->gravity;
+            e->gravity = e->gravity + 0.5f;
+        }
+        break;
     default:
         break;
     }
 
-    /* after the switch 0x014eca00: the animation of model types */
+    /* after the switch 0x014eca00: types 0x453, 0x454, 0x461, ... skip the
+     * animation and the motion (0x014ecb6e) */
+    if (type == MU_SFX_TWISTING_SLASH || type == MU_SFX_TWISTING_SWIRL)
+        goto lifetime;
+    /* the animation of model types */
     if (type >= 0x190 && type < 0x7a4) {
         int16_t keys = 1;
         int has_model = env && env->model ? env->model(env->context, type, e->action, &keys) : 1;
@@ -404,6 +665,7 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     if (!(type >= 0x7f4e && type <= 0x7f50))
         mu_sfx_effect_advance(e, !(type == MU_SFX_MODEL_FIRE && sub == 14));
 
+lifetime:
     /* lifetime 0x0150cb88 */
     if (type == MU_SFX_MODEL_FIRE || type == 0x7ef7) {
         e->lifetime = e->lifetime - 1;

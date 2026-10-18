@@ -43,6 +43,9 @@ enum {
     MU_SFX_MODEL_FIRE = 0x413,        /* Skill\Fire01.bmd */
     MU_SFX_MODEL_ARROW = 0x43b,       /* Skill\Arrow01.bmd */
     MU_SFX_MODEL_INFERNO = 0x457,     /* Skill\Inferno01.bmd */
+    MU_SFX_MODEL_LASER = 0x421,       /* Skill\Laser01.bmd (Evil Spirit's wide spirits leave one per step) */
+    MU_SFX_TWISTING_SLASH = 0x453,    /* no model: spawns one swirl piece per step */
+    MU_SFX_TWISTING_SWIRL = 0x454,    /* draws the caster's weapon (RenderEffects 0x015332ac) */
     MU_SFX_BITMAP_THUNDER = 0x7f2b,   /* Effect\Thunder01.jpg (Energy Ball) */
     MU_SFX_BITMAP_SPARK3 = 0x7f26,    /* Effect\Spark03.jpg */
     MU_SFX_BITMAP_FIRE = 0x7f3c,      /* Effect\Fire01.jpg */
@@ -60,7 +63,10 @@ enum {
     MU_SFX_CALL_ANIMATION = 0x012b4dd3,       /* model PlayAnimation(&frame, &prior, &prior action, speed, pos, angle) */
     MU_SFX_CALL_CHECK_ARROW = 0x013bd374,     /* the arrow hit check (CheckClientArrow) */
     MU_SFX_CALL_CHECK_MAGIC = 0x013be199,     /* the spell hit check (CheckClientMagic) */
-    MU_SFX_CALL_DELETE = 0x0142eea4           /* DeleteEffect(o) */
+    MU_SFX_CALL_DELETE = 0x0142eea4,          /* DeleteEffect(o) */
+    MU_SFX_CALL_SERIAL = 0x01d1df18,          /* ++[[0x01d1df18] + 0x2dec], the hero's skill serial */
+    MU_SFX_CALL_QUAKE = 0x0bdb588c,           /* the earthquake offset global (Hellfire), value in scale */
+    MU_SFX_CALL_AREA = 0x013bc25e             /* the hero's area attack request(skill, range, pos, serial, key, 0, 5, 0) */
 };
 
 #define MU_SFX_EFFECTS 200
@@ -125,6 +131,7 @@ typedef struct mu_sfx_info {
 typedef struct mu_sfx_object {
     uint8_t live;            /* +0x00 */
     uint8_t visible;         /* +0x0b */
+    int16_t weapon;          /* +0x56 Twisting Slash: the caster's right-hand item - 0xae6 */
     float position[3];       /* +0x158 */
 } mu_sfx_object;
 
@@ -164,6 +171,8 @@ typedef struct mu_sfx_env {
     uint8_t serial;
     /* When set, the two hit checks are reported as calls instead of run. */
     uint8_t report_checks;
+    /* Object index of the hero ([0x0a39d754] + 0x3254), -1 none. */
+    int32_t hero_object;
 } mu_sfx_env;
 
 /* CreateEffect 0x013c0f19 for the supported types and subtypes, from a
@@ -172,7 +181,10 @@ typedef struct mu_sfx_env {
  * reconstructed, 0 otherwise (the record is then left zeroed).
  * Supported (verified): MODEL_ARROW 0x43b subtypes 0 and 2, MODEL_FIRE 0x413
  * subtype 1 (Fire Ball), Thunder01 0x7f2b subtype 0 (Energy Ball),
- * Magic_Ground2 0x7f84 subtype 1 (Heal). */
+ * Magic_Ground2 0x7f84 subtype 1 (Heal); the area skills' Circle01 / Circle02
+ * 0x41c / 0x41d (Hellfire), Inferno01 0x457, Laser01 0x421 (Evil Spirit),
+ * 0x453 / 0x454 (Twisting Slash), all subtype 0; Stone01 / Stone02 0x419 /
+ * 0x41a subtypes 0 and 1 (impact and area debris). */
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
                          const float angle[3], const float light[3], int32_t owner, float scale,
                          const mu_sfx_info *info, const mu_sfx_env *env);
