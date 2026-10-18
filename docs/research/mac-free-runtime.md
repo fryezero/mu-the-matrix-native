@@ -164,6 +164,12 @@ button. Install from a folder took 5 min 12 s; the window showed the step progre
 Matrix is installed.", and the settings window switched to "Installed / Repair…". Window screenshots were checked
 and kept local.
 
+**Cancel and resume (MAC-APP-002).** The app runs the installer in its own process group. Cancel sends SIGTERM to
+the group, SIGKILL after 10 s, then `setup-mu-mac.sh --stop` stops the prefix's own wineserver (which leaves the
+group when it daemonizes) and removes the setup lock; a lock whose setup is gone is also taken over by the next run.
+In a scratch folder, the app's `--install` was cancelled three times during the runtime download (2026-10-18): no
+process was left, the lock was gone, and each new run continued the `.part` file (16 MB, then 45 MB).
+
 ## Gatekeeper
 
 The app is ad-hoc signed, not notarized. A copy with a quarantine flag (as after a browser download) is rejected

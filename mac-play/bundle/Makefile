@@ -2,7 +2,10 @@
 # Default runtime: the free Wine runtime (no CrossOver); the installer is bundled in Resources/installer.
 # Builds from source with the Command Line Tools (swiftc, iconutil, plutil, codesign); ad-hoc signed.
 #
-#   make                 build/Mu The Matrix.app (B=DIR for another build directory)
+#   make                 build/Mu The Matrix.app (B=DIR for another build directory): a DEVELOPMENT build
+#   make player-app EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=...
+#                        the build to hand to players: refuses to build unless all three are given and valid,
+#                        then checks the result with the app's own --check-bundle
 #   make test            static checks + dry-run tests (tests/test-bundle.sh)
 #   make install         copy the app to $(INSTALL_DIR) (default ~/Applications)
 #   make clean
@@ -92,6 +95,29 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 	codesign --verify --strict --verbose=1 $(APPQ)
 	@touch $@
 	@echo "built $(APP)"
+	@if [ -z "$(EMBED_MUGL)" ] || [ -z "$(EMBED_MSCOREE)" ] || [ -z "$(EMBED_FAST_X87)" ]; then \
+	  echo "NOTE: development build without all of EMBED_MUGL, EMBED_MSCOREE and EMBED_FAST_X87."; \
+	  echo "      Do not give it to players (the game would run at about 4 fps); build theirs with make player-app."; fi
+
+# The build for players. Without the pinned DLLs an app installs a game that runs at about 4 fps and whose final check
+# fails ("The installation stopped"), so this target refuses to build unless all three embeds are present.
+player-app:
+	@missing=; \
+	if [ -z "$(EMBED_MUGL)" ]; then missing="$$missing\n  EMBED_MUGL=/path/to/opengl32.dll      the mugl build (for example mugl-v76.dll)"; \
+	elif [ "$$(head -c 2 "$(EMBED_MUGL)" 2>/dev/null)" != MZ ]; then missing="$$missing\n  EMBED_MUGL=$(EMBED_MUGL): not a DLL (missing or no MZ header)"; fi; \
+	if [ -z "$(EMBED_MSCOREE)" ]; then missing="$$missing\n  EMBED_MSCOREE=/path/to/mscoree.dll    the mscoree display-mode proxy"; \
+	elif [ "$$(head -c 2 "$(EMBED_MSCOREE)" 2>/dev/null)" != MZ ]; then missing="$$missing\n  EMBED_MSCOREE=$(EMBED_MSCOREE): not a DLL (missing or no MZ header)"; fi; \
+	if [ -z "$(EMBED_FAST_X87)" ]; then missing="$$missing\n  EMBED_FAST_X87=/path/to/fast-x87      from ../installer/packaging/package-fast-x87.sh"; \
+	else for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87; do \
+	  [ -f "$(EMBED_FAST_X87)/$$f" ] || missing="$$missing\n  EMBED_FAST_X87=$(EMBED_FAST_X87): no $$f"; done; fi; \
+	if [ -n "$$missing" ]; then \
+	  printf '\n*** make player-app: refusing to build an app for players without the pinned files:%b\n\n' "$$missing" >&2; \
+	  printf '*** Without them the game runs at about 4 fps and the installation ends with a failed check.\n' >&2; \
+	  printf '*** See README.md, "A build for players". (make without player-app builds a development app.)\n\n' >&2; \
+	  exit 1; fi
+	$(MAKE) all
+	"$(APP)/Contents/MacOS/MuTheMatrix" --check-bundle
+	@echo "player app ready: $(APP)"
 
 test:
 	bash tests/test-bundle.sh
@@ -105,4 +131,4 @@ install: all
 clean:
 	rm -rf $(B)
 
-.PHONY: all test install clean
+.PHONY: all player-app test install clean

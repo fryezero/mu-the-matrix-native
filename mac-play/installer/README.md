@@ -47,6 +47,8 @@ The game comes from your own client folder (`--game-dir`) or from the official i
   3.7 GB, the 2.2 GB installer, deleted after a successful install), or 6 GB with `--game-dir`. Afterwards about 4.5 GB.
 - Internet access to github.com (runtime, winetricks), Microsoft's download servers (.NET 4.0 and 4.8 through
   winetricks) and dl.muthematrix.com (game).
+- Download progress: curl's progress bar; with `MUKIT_PROGRESS=lines` (set by Mu The Matrix.app) one
+  `MU-PROGRESS BYTES TOTAL NAME` line per second instead (TOTAL from the server's Content-Length, 0 if unknown).
 - For the DLLs: `--dll-dir`/`--mugl-dll` with files you have (Mu The Matrix.app passes the ones bundled by the
   owner), or MinGW to build the public ones, or nothing (then no mugl: low fps).
 
@@ -140,6 +142,7 @@ Where each input comes from:
 | `--dotnet-installer PATH`, `--helpers-dir DIR` | Optional local `ndp48` installer (SHA-256 checked) to seed winetricks' cache, and the directory of `muinput.exe`/`clickstart.exe`. |
 | `--no-mugl`, `--no-stats` | Skip the GL proxy, or remove `MUGL_STATS`. |
 | `--skip-verify` | Do not run `verify-mu-mac.sh` at the end of setup. |
+| `--stop` | Stop a running or interrupted setup for this prefix (or bottle) and clean up: SIGTERM to the setup recorded in the lock (SIGKILL after `MUKIT_STOP_GRACE` seconds, default 10), SIGKILL to what is left of its process group (only processes whose command line names the runtime folder or the prefix), `wineserver -k` for this prefix only, then the lock is removed. Partial downloads are kept. Mu The Matrix.app runs it after a cancel. |
 | `--reset-config` | Overwrite edited `C:\mutools\*.txt` and `LauncherOption.if` values. By default, your later changes are kept. |
 | `--launcher-name`, `--no-desktop` | Desktop `.command` handling. A `.command` file the kit did not write is never overwritten. |
 | `--fast-x87`, `--timewalker-dir DIR` | Free runtime: install the translator from a built rosetta-timewalker checkout (`DIR/build`). CrossOver: **TODO hook.** Uses an existing rosetta-timewalker build in `DIR` (env `MU_TIMEWALKER_DIR`; then `MU_FAST_X87=1` in the Desktop launcher); does not build one. The repository's own route is `mac-play/install-fast-x87.sh`. The launcher reflects the options of the latest run, so pass `--fast-x87` on every rerun if you want to keep it. MuMatrix32 runs with fast x87, and the fps comparison below used it in both bottles. |
@@ -173,7 +176,8 @@ Where each input comes from:
 | Game freezes while profiling with fast x87 on | eipprof plus timewalker | Don't profile with x87 on |
 | Mesa llvmpipe/zink slower or broken | Tested and reverted | Stay on builtin Wine GL plus mugl. Leftover `MESA_LOG`/`ZINK_DEBUG` env values are harmless and not reproduced. |
 | Setup: "Bottle ... was not created by this kit" | Name collision | Use a new `--bottle` name |
-| Setup: "Setup lock exists" / "Incomplete copy at ...mukit-partial" | Interrupted run | Make sure no setup is running, remove the lock or partial folder, rerun |
+| Setup: "Setup lock exists" | Another setup for the same prefix is running | Wait for it, or stop it with `--stop`. The lock directory holds an `owner` file (`pid=`, `pgid=`, `prefix=`, `wineserver=`); a lock whose setup is gone (killed, Mac restarted) is taken over automatically, after the leftovers of its process group are stopped. Only a lock without `owner` (older kit) must be removed by hand. |
+| A run was stopped (Ctrl-C, SIGTERM, Cancel in the app) | | The setup traps INT/TERM/HUP: it ends its background jobs, stops this prefix's wineserver and removes the lock. The next run continues: downloads resume from their `.part` files, an incomplete game copy (`C:\MuTheMatrix.mukit-partial`) or half-unpacked runtime is removed and redone, and a prefix whose creation was interrupted (`.mukit/prefix.incomplete`) runs `wineboot` again. |
 | Autologin types the account into the wrong field | `LauncherOption.if ID:` prefills Account, and focus stays there | `mu-autologin.sh` detects this and presses Tab |
 
 ## Inventory: every manual tweak and the step that reproduces it

@@ -341,21 +341,87 @@ mukit_rosetta_ok() { [ "$(uname -m)" != arm64 ] || /usr/bin/arch -x86_64 /usr/bi
 # mukit_free_kb PATH -> free kilobytes on PATH's volume.
 mukit_free_kb() { df -Pk "$1" 2>/dev/null | awk 'NR == 2 {print $4}'; }
 
+# mukit_file_size FILE -> size in bytes (GNU stat first; BSD stat has no -c).
+mukit_file_size() { stat -c %s "$1" 2>/dev/null || stat -f %z "$1" 2>/dev/null; }
+
+# mukit_download URL OUT [CURL_ARGS...]: curl to OUT. Progress: curl's bar by default; with MUKIT_PROGRESS=lines
+# (Mu The Matrix.app sets it) curl is quiet and one "MU-PROGRESS BYTES TOTAL NAME" line is printed every second,
+# BYTES = size of OUT so far (a resumed download counts what it already had), TOTAL = Content-Length or 0 if unknown.
+mukit_download() {
+    local url=$1 out=$2 total pid rc
+    shift 2
+    if [ "${MUKIT_PROGRESS:-bar}" != lines ]; then
+        curl -fL --retry 3 --retry-delay 5 "$@" --progress-bar -o "$out" "$url"
+        return
+    fi
+    total=$(curl -fsSIL --max-time 20 "$url" 2>/dev/null | tr -d '\r' |
+        awk 'tolower($1) == "content-length:" && $2 ~ /^[0-9]+$/ { n = $2 } END { print n + 0 }')
+    curl -fL --retry 3 --retry-delay 5 "$@" -sS -o "$out" "$url" &
+    pid=$!
+    # Polled in the shell (not "wait" alone) so a cancel's SIGTERM is handled within a second.
+    while kill -0 "$pid" 2>/dev/null; do
+        printf 'MU-PROGRESS %s %s %s\n' "$(mukit_file_size "$out" || echo 0)" "${total:-0}" "$(basename "${out%.part}")"
+        { sleep 1; } 2>/dev/null   # braces: bash's own "Terminated" notice on a cancel goes nowhere
+    done
+    wait "$pid"; rc=$?
+    printf 'MU-PROGRESS %s %s %s\n' "$(mukit_file_size "$out" || echo 0)" "${total:-0}" "$(basename "${out%.part}")"
+    return "$rc"
+}
+
 # mukit_fetch URL SHA256 DEST: download to DEST (resumable, verified, atomic). An existing DEST with the
 # right hash is reused. SHA256 "-" skips the check (only for the game installer, which the server updates).
+# A cancelled download leaves DEST.part behind; the next run continues it (curl -C -).
 mukit_fetch() {
     local url=$1 sha=$2 dest=$3 got
     if [ -f "$dest" ] && { [ "$sha" = - ] || [ "$(mukit_sha256 "$dest")" = "$sha" ]; }; then return 0; fi
     if [ "${DRY_RUN:-0}" = 1 ]; then printf '[dry-run] download %s -> %s\n' "$url" "$dest"; return 0; fi
     mkdir -p "$(dirname "$dest")" || return 1
-    curl -fL --retry 3 --retry-delay 5 -C - --progress-bar -o "$dest.part" "$url" || {
+    mukit_download "$url" "$dest.part" -C - || {
         # A stale partial file from another version can make the resume fail; restart once.
-        rm -f "$dest.part"; curl -fL --retry 3 --retry-delay 5 --progress-bar -o "$dest.part" "$url" || return 1; }
+        rm -f "$dest.part"; mukit_download "$url" "$dest.part" || return 1; }
     if [ "$sha" != - ]; then
         got=$(mukit_sha256 "$dest.part")
         [ "$got" = "$sha" ] || { rm -f "$dest.part"; mukit_warn "download of $url has SHA-256 $got, expected $sha"; return 1; }
     fi
     mv -f "$dest.part" "$dest"
+}
+
+# ---------------------------------------------------------------- setup lock (one setup per prefix)
+# The lock is a directory with an "owner" file: pid=, pgid=, prefix=, wineserver= (KEY=VALUE lines). A lock whose
+# setup is gone (killed, Mac restarted) is stale and may be taken over; mukit_lock_get LOCK KEY reads a value.
+mukit_lock_get() { sed -n "s/^$2=//p" "$1/owner" 2>/dev/null | head -1; }
+
+# mukit_lock_alive LOCK -> 0 while the setup that holds LOCK still runs. A lock without an owner file (an older kit,
+# or one being created right now) counts as alive: it is never removed automatically.
+mukit_lock_alive() {
+    local pid
+    [ -f "$1/owner" ] || return 0
+    pid=$(mukit_lock_get "$1" pid)
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+    kill -0 "$pid" 2>/dev/null || return 1
+    # The pid may have been reused by an unrelated process after a restart.
+    ps -o command= -p "$pid" 2>/dev/null | grep -q 'setup-mu-mac' || return 1
+    return 0
+}
+
+# mukit_kill_group_leftovers PGID PATH...: SIGKILL what is left of a stopped setup's process group (curl, tar,
+# winetricks), but only processes whose command line names one of PATH (the runtime folder or the prefix). Never
+# touches the caller's own group. Prints the number of processes signalled.
+mukit_kill_group_leftovers() {
+    local pgid=$1 own n=0 p
+    shift
+    [[ "$pgid" =~ ^[0-9]+$ ]] && [ "$pgid" -gt 1 ] || { echo 0; return 0; }
+    own=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')
+    [ "$pgid" != "$own" ] || { echo 0; return 0; }
+    for p in $(ps -A -o pid=,pgid=,command= 2>/dev/null |
+               MUKIT_PG="$pgid" MUKIT_SELF="$$" MUKIT_PATHS="$(printf '%s\n' "$@")" awk '
+        BEGIN { n = split(ENVIRON["MUKIT_PATHS"], paths, "\n") }
+        $2 == ENVIRON["MUKIT_PG"] && $1 != ENVIRON["MUKIT_SELF"] && $0 !~ /--stop/ {
+            for (i = 1; i <= n; i++) if (paths[i] != "" && index($0, paths[i])) { print $1; break }
+        }'); do
+        kill -KILL "$p" 2>/dev/null && n=$((n + 1))
+    done
+    echo "$n"
 }
 
 # ---------------------------------------------------------------- desktop launchers

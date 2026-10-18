@@ -54,7 +54,7 @@ If something does not work, see [Troubleshooting](#troubleshooting).
 | macOS | 13 Ventura or newer. Only macOS 27 has been tested. | Same window, line **macOS**. |
 | Free disk space | About 12 GB (about 6 GB if you already have the game files). After installation the game uses about 5 GB. | **Apple menu > System Settings > General > Storage**. |
 | Internet | About 2.6 GB is downloaded: the game (2.2 GB) from the official Mu The Matrix server, the free Windows layer ("Wine") from GitHub, and Microsoft .NET Framework 4.8 from Microsoft. | — |
-| Rosetta 2 | Apple's free translator for Intel programs. Many Macs already have it. | You do not need to check: the installer checks in its first seconds and tells you if it is missing (see [Troubleshooting](#troubleshooting)). |
+| Rosetta 2 | Apple's free translator for Intel programs. Many Macs already have it. | You do not need to check. When you click **Install**, the app checks for it and, if it is missing, offers to install it for you (see [Rosetta 2](#if-the-app-asks-for-rosetta-2)). |
 | Account | Your Mu The Matrix account. If you do not have one yet, create it on the official Mu The Matrix website. | — |
 
 ### 2. Get the app
@@ -112,26 +112,51 @@ the **Mu The Matrix** settings window is behind it.
    - **Use a Mu The Matrix folder I already have…**, if you already have the game files, for example copied
      from a Windows PC. In the window that opens, select the folder that contains **MuTheMatrix.exe** and
      **main.exe**, and click **Open**. The folder is copied, not moved.
-2. Click **Install**.
-3. Wait. The line above the progress bar shows the current step, for example **Step 7/14 game files —
-   downloading 42.0%**. There are 14 steps. The box below it lists what the installer is doing.
+2. Click **Install**. If Rosetta 2 is missing, the app first offers to install it: see
+   [If the app asks for Rosetta 2](#if-the-app-asks-for-rosetta-2).
+3. Wait. The line above the progress bar shows the current step, for example **Step 7 of 14: game files**.
+   While something downloads, the line under the bar shows how much has arrived, the speed and the time left,
+   for example **Downloading MuTheMatrix-21.1.2.12.exe: 812 MB of 2.18 GB (37%) · 4.2 MB/s · about 5 minutes
+   left**. The window title and the app's Dock icon show the overall percentage. The box below lists what the
+   installer is doing.
    - The whole installation took **about 45 minutes** in our test. The game download alone took 35 minutes; it
      is quicker on a fast connection. With your own game folder, it takes **about 5 to 10 minutes**.
-   - The two long steps are **Step 5/14 .NET Framework 4.8** (about 4 minutes; Microsoft's installer is
-     downloaded from Microsoft) and **Step 7/14 game files** (the download, then about 2 to 4 minutes to install).
+   - The two long steps are **Step 5 of 14: Microsoft .NET Framework 4.8** (about 4 minutes; Microsoft's
+     installer is downloaded from Microsoft) and **Step 7 of 14: game files** (the 2.2 GB download, then about 2
+     to 4 minutes to install).
    - Lines that start with **WARNING** are normal; only an **Error:** line stops the installation.
-   - Keep your Mac plugged in and awake (lid open) until the installation has finished.
+   - The app keeps your Mac awake while it installs. Keep it plugged in and do not close the lid until the
+     installation has finished.
    - If macOS asks whether Mu The Matrix may access a folder, click **Allow**.
 4. When the window says **"Done. Mu The Matrix is installed. Close this window and press Play."**, click
    **Close**.
 
 **If the installation stops** (for example, because the internet connection dropped), the line above the
-progress bar says **"The installation stopped (status 1)."** Look at the last **Error:** line in the box and
-find it in [Troubleshooting](#troubleshooting). Then click **Try Again**. The installer skips the parts that
-are already done, and an interrupted download continues where it stopped.
+progress bar says **"The installation stopped:"** followed by the reason, for example *"The installation
+stopped: game installer download failed: …"*. Find the reason in [Troubleshooting](#troubleshooting). Then click
+**Try Again**. The installer skips the parts that are already done, and an interrupted download continues where
+it stopped.
 
-To stop an installation yourself, click **Cancel**, then **Stop**. Before you start again, restart your Mac:
-a download that had already started can keep running in the background until you do.
+**To stop an installation yourself**, click **Cancel**, then **Stop** (closing the window or quitting the app
+asks the same question). The window shows **"Stopping the installation…"** for a few seconds while the app ends
+everything the installer started, downloads included, and then **"The installation was stopped."** Click **Try
+Again** when you want to continue: finished steps and the part already downloaded are kept. You do not need to
+restart your Mac.
+
+#### If the app asks for Rosetta 2
+
+Rosetta 2 is a free tool from Apple that lets a Mac with an Apple chip run programs made for Intel processors.
+The game's Windows layer needs it. Many Macs already have it; if yours does not, a message **"Mu The Matrix needs
+Rosetta 2"** appears when you click **Install**.
+
+1. Click **Install Rosetta**.
+2. macOS asks for permission in its standard window, with the text *Mu The Matrix wants to install Rosetta 2,
+   Apple's free translator for Intel programs*. Type your Mac login password (or use **Touch ID** if the window
+   offers it) and click **OK**.
+3. Wait a minute or two. The installation then starts by itself.
+
+If you click **Not Now**, or cancel the permission window, the Install window explains how to install Rosetta in
+Terminal instead (see [Troubleshooting](#troubleshooting)). Then click **Try Again**.
 
 ### 5. Play
 
@@ -216,13 +241,14 @@ message with the buttons **Settings…**, **Open Log** and **Quit** (and sometim
 | **"Mu The Matrix.app" Not Opened** | Do [step 3](#3-allow-the-app-to-open-first-time-only). |
 | No **Open Anyway** button in Privacy & Security | Open the app once more, click **Done**, then look again. The button only appears for about an hour after you try to open the app. |
 | **"Mu The Matrix" is damaged and can't be opened** | Use the Terminal line under *Advanced* in [step 3](#3-allow-the-app-to-open-first-time-only). |
-| **Error: Rosetta 2 is not installed.** | Open **Terminal** (Applications > Utilities), paste `sudo softwareupdate --install-rosetta --agree-to-license` and press **Return**. Type your Mac password when asked (nothing appears while you type) and press **Return**. Wait until it says the install finished, then click **Try Again**. |
+| **Mu The Matrix needs Rosetta 2**, or **Rosetta 2 is needed before the installation can start.** / **Rosetta 2 could not be installed.** | Click **Install Rosetta** in the message (see [If the app asks for Rosetta 2](#if-the-app-asks-for-rosetta-2)). If that does not work: open **Terminal** (Applications > Utilities), paste `sudo softwareupdate --install-rosetta --agree-to-license` and press **Return**. Type your Mac password when asked (nothing appears while you type) and press **Return**. Wait until it says the install finished, then click **Try Again**. |
 | **Error: Not enough free disk space: … GB free, about 12 GB needed.** | Free up space, then click **Try Again**. |
 | **Error: … download failed** (runtime, runtime library, winetricks or game installer) | Check your internet connection, then click **Try Again**. A download that was cut off continues where it stopped. If the *game installer* download fails again and again, the download link may have changed: tell your server team. Meanwhile you can download the game on another computer and use **Use a Mu The Matrix folder I already have…**. |
 | **Error: winetricks dotnet48 failed** | Click **Try Again**. If it fails again, send the logs (see below). |
-| **Error: Setup lock exists: …** | Another installation is still running, for example after you stopped one or quit the app during the installation. Restart your Mac, then click **Install** again. If the message still appears, delete the folder named in the message (in Finder, press **Shift-Command-.** to show hidden folders) and try again. |
+| **Error: Setup lock exists: …** | Another installation is still running, for example in a second copy of the app. Wait for it to finish or click **Cancel** there. A lock left by an installation that was stopped is removed automatically, so this message only stays if an installation really runs. If you are sure none does, restart your Mac and try again. If the message says *"left by an older version"*, delete the folder named in the message (in Finder, press **Shift-Command-.** to show hidden folders) and try again. |
 | **Error: The game folder (--game-dir) must contain main.exe and MuTheMatrix.exe** | You chose the wrong folder. Choose the folder that contains both files. |
-| **The installation stopped (status 1).** right after a line **Summary: … FAIL** | The check at the end found a problem. Send the logs to your server team. |
+| **This copy of Mu The Matrix is incomplete** (when you click Install), or **The game was installed, but this copy of Mu The Matrix is incomplete.** | The app you downloaded was built without the files that make the game fast; the game would run at about 4 frames per second. Tell your server team and download **Mu The Matrix.zip** again. After replacing the app, hold Option while opening it and click **Repair…**. |
+| **The installation finished, but the final check found a problem.** | The lines starting with **FAIL** in the box say what. Click **Try Again**; if it happens again, send the logs to your server team. |
 | **Mu The Matrix is not installed yet** (when you click Play) | Click **Install…** in that message, or hold Option while opening the app and click **Install…**. |
 | **The game folder is missing or damaged** | Click **Install…**. If the message says *"is not a 32-bit prefix"*, delete the folder `~/Library/Application Support/MuTheMatrix/prefix` first, then install again. |
 | **Mu The Matrix is already running** | The game or the launcher is still open, maybe hidden. Close it (look in the Dock), then open the app again. If you cannot find it, restart your Mac. |
@@ -255,6 +281,10 @@ On 2026-10-18, on a Mac with an M5 chip and macOS 27.0.1:
   was viewed. The **Open Anyway** button there was not clicked in this test; it is the standard way macOS
   offers for apps that are not registered with Apple. The Terminal line under *Advanced* was used successfully.
 - The app's own checks (`--check`, `--dry-run`, `--status`, `--install-dry-run`) were run against an empty folder.
+- Cancel (MAC-APP-002) was tested with the app's command-line install, which uses the same code as the Install
+  window, in an empty scratch folder: stopped three times during the Wine runtime download. Each time no process
+  was left, the lock was gone and the next run continued the download. Cancel during a Wine step, the Rosetta
+  install and the "incomplete app" messages were tested with stand-ins only.
 
 ---
 
@@ -263,13 +293,14 @@ On 2026-10-18, on a Mac with an M5 chip and macOS 27.0.1:
 These points decide what players actually get. Check them before you share the link.
 
 1. **Publish the zip.** No public download exists yet. Step 2 needs a real link.
-2. **Build the player app with the DLLs.** Build it with `EMBED_MUGL=…`, `EMBED_MSCOREE=…` and `EMBED_FAST_X87=…`
-   (see `bundle/README.md`). Without them, a player's Mac (which has no MinGW) installs without mugl and the
-   mscoree proxy. The game then runs at about 4 frames per second, the window size is capped at 1280×800, and
-   the final check fails, so the Install window ends with "The installation stopped (status 1)". The
-   rehearsed build bundled mugl **v7.6**, a private hotpatch build that contains client-derived bytes; giving
-   it to players is your decision. With the public batching-only mugl, larger window sizes are not offered in
-   the game (DevModeIndex capped at 2).
+2. **Build the player app with `make player-app`.** It needs `EMBED_MUGL=…`, `EMBED_MSCOREE=…` and
+   `EMBED_FAST_X87=…` (see `bundle/README.md`) and refuses to build without them. A plain `make` builds a
+   development app without them: on a player's Mac (no MinGW) it installs without mugl and the mscoree proxy,
+   the game runs at about 4 frames per second, the window size is capped at 1280×800 and the final check fails.
+   Such an app warns the player before installing ("This copy of Mu The Matrix is incomplete"). The rehearsed
+   build bundled mugl **v7.6**, a private hotpatch build that contains client-derived bytes; giving it to
+   players is your decision. With the public batching-only mugl, larger window sizes are not offered in the game
+   (DevModeIndex capped at 2).
 3. **Host the faster runtime.** `MUKIT_RT_ARCHIVE_URL` in `installer/lib/mukit.sh` is still empty. Until the
    CrossOver 26.3 Wine archive is hosted and its URL and SHA-256 are set, players get the CrossOver 24.0.7
    fallback. It is about 20% slower, and fast x87 does not work with it. During installation the log shows
@@ -281,8 +312,8 @@ These points decide what players actually get. Check them before you share the l
 5. **Game installer link.** The installer downloads `https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe`.
    If that file is renamed or removed on the server, new installations fail at step 7 until `MUKIT_GAME_INSTALLER_URL`
    is updated and the app is rebuilt.
-6. **Rosetta.** On a Mac without Rosetta 2, the installation stops in its first seconds and the player has to
-   use Terminal (see Troubleshooting). The app could offer to install Rosetta itself.
-7. **Stopping an installation.** **Cancel > Stop** ends only the installer script. A running download or Wine
-   step keeps going in the background, which is why the guide tells players to restart the Mac before trying
-   again. The app should stop the whole process group.
+6. **Rosetta.** On a Mac without Rosetta 2, the app offers to install it (`softwareupdate --install-rosetta`
+   through the standard macOS administrator prompt). This was tested with a stubbed check and install only: the
+   test Mac already has Rosetta.
+7. **Stopping an installation.** **Cancel > Stop** stops the installer's whole process group (downloads,
+   winetricks, Wine), then this prefix's wineserver, and removes the setup lock, so **Try Again** works at once.

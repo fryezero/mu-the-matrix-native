@@ -44,17 +44,27 @@ CrossOver, and the timewalker set to Auto.
 
 The installer needs DLLs for good speed, and players cannot build them. The server owner bundles them at build time;
 they go to `Contents/Resources/dlls` and `Contents/Resources/fast-x87` and the Install window passes them to the
-installer (`--mugl-dll`, `--mscoree-dll`, `--fast-x87-dir`):
+installer (`--mugl-dll`, `--mscoree-dll`, `--fast-x87-dir`). Build the players' app with `player-app`:
 
 ```sh
-make -C mac-play/bundle EMBED_MUGL=/path/to/mugl-v75.dll EMBED_MSCOREE=/path/to/mscoree.dll \
+make player-app EMBED_MUGL=/path/to/mugl-v76.dll EMBED_MSCOREE=/path/to/mscoree.dll \
     EMBED_FAST_X87=/path/to/fast-x87     # from ../installer/packaging/package-fast-x87.sh
+# same as: make -C mac-play/bundle player-app EMBED_...
 ```
+
+`player-app` refuses to build unless all three are given: both DLLs must exist and start with `MZ`, and the fast
+x87 folder must hold `libtimewalker.dylib`, `runtime_loader` and `libRuntimeRosettax87`. After the build it runs
+the app's `--check-bundle`. A plain `make` (or `make mac-bundle`) is a development build and says so: without the
+DLLs, a player's Mac (no MinGW) installs a game that runs at about 4 fps and whose final check fails. If such an
+app is run anyway, the Install window warns before installing ("This copy of Mu The Matrix is incomplete", with
+**Cancel** / **Install Anyway**) and, after the failed check, says that the app is incomplete instead of showing a
+generic failure.
 
 A private mugl build contains client-derived bytes: distributing it to players is the owner's decision, and it
 must never be committed. The mscoree proxy and the public mugl are authored sources (MIT); the timewalker files
 are MIT (their licenses are copied along). `x87-main-only-wrapper` is compiled from `../x87-main-only-wrapper.c`
-during the build. Without `EMBED_*` the app installs without DLLs (low fps) unless the installer finds MinGW.
+during the build. Without `EMBED_*` the app installs without DLLs (low fps) unless the installer finds MinGW
+(a development machine started from Terminal).
 
 To hand the app to players, zip it so the bundle survives the download, and publish the zip:
 
@@ -69,7 +79,24 @@ The players' steps (including allowing the unsigned app once) are in `../PLAYER-
 Double-click **Mu The Matrix**. On the first run with the free runtime, the Install window opens in front of the
 settings window: choose "Download the game from the official site" or "Use a Mu The Matrix folder I already
 have…", press **Install** and watch the steps (about 10 minutes plus the 2.2 GB game download, 45 minutes in total in the recorded test; the log is in
-`~/Library/Logs/MuTheMatrix/app.log`). Then press **Play**. Later double-clicks run a preflight check, start the launcher and quit the app. The
+`~/Library/Logs/MuTheMatrix/app.log`). Then press **Play**.
+
+The Install window, in more detail (MAC-APP-002):
+- **Rosetta 2.** Before the installer starts, the app checks for Rosetta 2 (`arch -x86_64 /usr/bin/true`). If it is
+  missing, it explains what Rosetta is and offers to install it: `softwareupdate --install-rosetta --agree-to-license`
+  run through the standard macOS administrator prompt (`osascript … with administrator privileges`). If the player
+  declines or the install fails, the window shows the Terminal command instead. The installer's own Rosetta error
+  leads to the same offer.
+- **Progress.** Step lines read "Step 7 of 14: game files". The app runs the installer with `MUKIT_PROGRESS=lines`,
+  so downloads report `MU-PROGRESS BYTES TOTAL NAME` once a second; the window shows the size so far, the total, the
+  speed (average of the last 20 s) and the time left, and the bar moves within the step. The window title and the
+  Dock icon show the overall percentage. The Mac does not idle-sleep while the installer runs.
+- **Cancel.** The installer runs in its own process group (`posix_spawn` with `POSIX_SPAWN_SETPGROUP`). **Cancel >
+  Stop**, closing the window or quitting the app sends SIGTERM to the whole group, waits up to 10 s
+  (`MU_CANCEL_GRACE`), sends SIGKILL to what is left, then runs `setup-mu-mac.sh --runtime free --stop`: it stops
+  this prefix's wineserver (`wineserver -k` with an explicit `WINEPREFIX`; Wine's server leaves the process group)
+  and removes the setup lock. Partial downloads are kept, so **Try Again** continues them; no restart is needed.
+- **Failures** show the installer's last `Error:` line instead of an exit status. Later double-clicks run a preflight check, start the launcher and quit the app. The
 launcher and game keep running. To get the settings window back, hold **⌥ Option** while opening
 the app. It also opens when "Start the game right away" is off, and from the error dialog.
 
@@ -139,12 +166,17 @@ APP="mac-play/bundle/build/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
 "$APP" --dry-run          # preflight plus every planned action (MU-PLAN lines); changes nothing
 "$APP" --status           # free runtime: runtime / prefix / game installed?
 "$APP" --install-dry-run  # the installer's plan (download the official game); changes nothing
-"$APP" --install [DIR]    # install without a window (what the Install window runs)
+"$APP" --install [DIR]    # install without a window (what the Install window runs); Ctrl-C cancels like Cancel
+"$APP" --check-bundle     # exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
+"$APP" --rosetta-status   # exit 0 when Rosetta 2 is installed
+"$APP" --install-rosetta  # install Rosetta 2 through the administrator prompt
 "$APP" --version
 ```
 
 The environment variables `MU_SETTINGS_FILE`, `MU_LOG_DIR`, `MUKIT_FREE_HOME`, `CX_ROOT`, `MUKIT_BOTTLES_DIR`,
-`MU_LAUNCH_SCRIPT` and `MU_SETUP_SCRIPT` override the file locations, which the tests use. `mu-launch.sh` also runs on its
+`MU_LAUNCH_SCRIPT` and `MU_SETUP_SCRIPT` override the file locations, which the tests use. `MU_CANCEL_GRACE` sets the
+seconds between SIGTERM and SIGKILL on a cancel (default 10); `MU_ROSETTA_CHECK` and `MU_ROSETTA_INSTALL` replace the
+Rosetta check and install commands (shell commands; the tests use stand-ins). `mu-launch.sh` also runs on its
 own from a checkout, with the settings in `MU_RUNTIME` (default free; `MU_BOTTLE` alone selects CrossOver), `MU_PREFIX`, `MU_BOTTLE`, `MU_FAST_X87`, `MU_TIMEWALKER_DIR` and
 `MU_RESOLUTION` (see its header). It also has the options `--list-bottles` and `--list-modes`, which
 the settings window uses.
@@ -171,7 +203,13 @@ app and checks:
 - the ad-hoc signature (`codesign --verify --strict`);
 - the icon's ten renditions, including 1024 px;
 - the app's `--print-settings`, `--dry-run` and `--check` with a settings plist, the app log, and the
-  fallback for a corrupt plist.
+  fallback for a corrupt plist;
+- `--check-bundle` on the development build (lists what is missing) and on a `make player-app` build with
+  synthetic embeds; `player-app` refusing to build without them or with an incomplete fast x87 folder;
+- `--rosetta-status` and `--install-rosetta` with a stubbed check and install (installed, declined, already there);
+- Cancel with a fake long-running installer that starts children, one of which ignores SIGTERM: the installer leads
+  its own process group, Ctrl-C stops all of them (at once, or by SIGKILL after the grace when the installer itself
+  ignores SIGTERM), and the `--stop` clean-up runs.
 
 `tests/test_mac_bundle.py` checks the publication boundary: text sources only, and no personal paths
 or credentials.
