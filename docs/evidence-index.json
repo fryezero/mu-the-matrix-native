@@ -1208,6 +1208,51 @@
         "Long-distance helper path 0x012b104c and the BuildPath trimming variant not ported",
         "SendMove and the move packet are outside the milestone"
       ]
+    },
+    "native_world_alive": {
+      "task": "NATIVE-WORLD-002",
+      "document": "docs/research/native-world-alive.md",
+      "reconstructed": {
+        "play_walk_sound": "0x013b1f61",
+        "footstep_trigger": "0x013b8090..0x013b8187",
+        "foot_reset": "0x013a773c..0x013a777e",
+        "hero_tile": "0x016ad7a5..0x016ad81f"
+      },
+      "validation": {
+        "play_walk_sound_cases": 10000,
+        "trigger_cases": 10000,
+        "reset_cases": 1250,
+        "hero_tile_cases": 10000,
+        "mismatches": 0,
+        "negative_controls_detected": "all"
+      },
+      "extracted": {
+        "effect_classes": [
+          750,
+          751,
+          752,
+          753,
+          758,
+          873
+        ],
+        "stopped": [
+          838,
+          925
+        ],
+        "table": "reconstructed/actors/effect_class_table.h"
+      },
+      "native": [
+        "native/core/mu_world_audio",
+        "native/core/mu_world_actors",
+        "native/world/lorencia-demo-placement.txt (demo)"
+      ],
+      "local_evidence": "native/scratch/world2/reports/hero-sound-10000.json",
+      "limits": [
+        "Placement and wander are demo stand-ins for the server",
+        "Zoom mode 0 and MoveSpeed 10 are static readings",
+        "Effect bone rotation (0x0129fd4f) not traced",
+        "No live side-by-side capture"
+      ]
     }
   },
   "private_evidence_policy": "Relative paths identify ignored local evidence; raw records and game bytes are not distributed.",
