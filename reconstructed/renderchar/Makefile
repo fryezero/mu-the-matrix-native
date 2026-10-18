@@ -1,0 +1,11 @@
+CC := clang
+CFLAGS := -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -fPIC
+SUFFIX := $(if $(filter Darwin,$(shell uname -s)),dylib,so)
+LIB := librenderchar.$(SUFFIX)
+
+all: $(LIB)
+
+$(LIB): renderchar.c renderchar.h special_types.h back_matrices.h ../record-math/record_math.c
+	$(CC) $(CFLAGS) -ffp-contract=off -shared renderchar.c ../record-math/record_math.c -lm -o $@
+
+.PHONY: all
