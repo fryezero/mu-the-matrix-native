@@ -39,4 +39,23 @@ void mu_ui_font_close(mu_ui_font *font);
 /* GDI callbacks for mu_ui_text, bound to `font`. */
 mu_ui_gdi mu_ui_font_gdi(mu_ui_font *font);
 
+/* The four fonts CreateFonts 0x0182a0da makes (NATIVE-UI-002), keyed by the
+ * HFONT handle values the reconstruction passes to SelectObject.  The
+ * set's GDI callbacks draw with the font selected last. */
+enum { MU_UI_FONT_SET_SIZE = 4 };
+typedef struct mu_ui_font_set {
+    mu_ui_font fonts[MU_UI_FONT_SET_SIZE];   /* normal, bold, big, fixed */
+    mu_ui_gdi gdi[MU_UI_FONT_SET_SIZE];
+    uint32_t handles[MU_UI_FONT_SET_SIZE];
+    int current;
+} mu_ui_font_set;
+
+/* face: GlobalText[0]; fixed_face: GlobalText[18]. */
+int mu_ui_font_set_open(mu_ui_font_set *set, const char *face, const char *fixed_face, uint32_t window_width,
+                        const uint32_t handles[MU_UI_FONT_SET_SIZE]);
+void mu_ui_font_set_close(mu_ui_font_set *set);
+/* SelectObject(dc, handle); unknown handles leave the selection unchanged. */
+void mu_ui_font_set_select(mu_ui_font_set *set, uint32_t handle);
+mu_ui_gdi mu_ui_font_set_gdi(mu_ui_font_set *set);
+
 #endif
