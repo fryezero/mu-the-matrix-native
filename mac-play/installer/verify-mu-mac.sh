@@ -155,8 +155,9 @@ else
     else
         h=$(mukit_sha256 "$gl")
         MUGL_VER=$(mukit_mugl_identify "$h")
-        if [ "$MUGL_VER" = v7.6 ]; then out PASS 'mugl opengl32.dll' "v7.6 (pinned, current best) $(short "$h")"
-        elif [ "$MUGL_VER" = v7.6-jpeg ]; then out PASS 'mugl opengl32.dll' "v7.6 without native CRC-32 (pinned; the current v7.6 also speeds up file checksums) $(short "$h")"
+        if [ "$MUGL_VER" = v7.7 ]; then out PASS 'mugl opengl32.dll' "v7.7 (pinned, current best) $(short "$h")"
+        elif [ "$MUGL_VER" = v7.6 ]; then out PASS 'mugl opengl32.dll' "v7.6 (pinned rollback; v7.7 adds the in-game FPS counter) $(short "$h")"
+        elif [ "$MUGL_VER" = v7.6-jpeg ]; then out PASS 'mugl opengl32.dll' "v7.6 without native CRC-32 (pinned; v7.7 also speeds up file checksums and has the FPS counter) $(short "$h")"
         elif [ "$MUGL_VER" = v7.5 ]; then out PASS 'mugl opengl32.dll' "v7.5 (pinned; v7.6 decodes JPEG natively, faster map loads) $(short "$h")"
         elif [ "$MUGL_VER" = v7.2 ]; then out PASS 'mugl opengl32.dll' "v7.2 (pinned rollback; v7.5 is faster in crowded scenes) $(short "$h")"
         elif [ "$MUGL_VER" = v7.1 ]; then out PASS 'mugl opengl32.dll' "v7.1 (pinned rollback; v7.2 paces frames precisely in background) $(short "$h")"

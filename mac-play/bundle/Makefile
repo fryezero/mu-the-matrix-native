@@ -103,7 +103,7 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 # fails ("The installation stopped"), so this target refuses to build unless all three embeds are present.
 player-app:
 	@missing=; \
-	if [ -z "$(EMBED_MUGL)" ]; then missing="$$missing\n  EMBED_MUGL=/path/to/opengl32.dll      the mugl build (for example mugl-v76.dll)"; \
+	if [ -z "$(EMBED_MUGL)" ]; then missing="$$missing\n  EMBED_MUGL=/path/to/opengl32.dll      the mugl build (for example mugl-v77.dll)"; \
 	elif [ "$$(head -c 2 "$(EMBED_MUGL)" 2>/dev/null)" != MZ ]; then missing="$$missing\n  EMBED_MUGL=$(EMBED_MUGL): not a DLL (missing or no MZ header)"; fi; \
 	if [ -z "$(EMBED_MSCOREE)" ]; then missing="$$missing\n  EMBED_MSCOREE=/path/to/mscoree.dll    the mscoree display-mode proxy"; \
 	elif [ "$$(head -c 2 "$(EMBED_MSCOREE)" 2>/dev/null)" != MZ ]; then missing="$$missing\n  EMBED_MSCOREE=$(EMBED_MSCOREE): not a DLL (missing or no MZ header)"; fi; \

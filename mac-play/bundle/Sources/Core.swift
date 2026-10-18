@@ -123,12 +123,12 @@ enum LaunchScript {
         return Bundle.main.url(forResource: "mu-launch", withExtension: "sh")
     }
 
-    /// Runs the script synchronously with one mode flag and returns its combined output.
-    static func run(_ mode: String, settings: LauncherSettings) -> LaunchResult {
+    /// Runs the script synchronously with one mode flag (plus its arguments) and returns its combined output.
+    static func run(_ mode: String, _ extra: [String] = [], settings: LauncherSettings) -> LaunchResult {
         guard let script = url else { return LaunchResult(status: 2, output: "MU-ERROR 2 mu-launch.sh is missing from the app bundle.") }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/bash")
-        p.arguments = [script.path, mode]
+        p.arguments = [script.path, mode] + extra
         var env = ProcessInfo.processInfo.environment
         for (k, v) in settings.environment { env[k] = v }
         p.environment = env
@@ -151,6 +151,15 @@ enum LaunchScript {
         var s = LauncherSettings.load(); s.runtime = "free"; s.resolution = ""; s.fastX87 = false
         let lines = run("--status", settings: s).lines
         return (lines.contains { $0.hasPrefix("runtime ok") }, lines.contains("prefix ok"), lines.contains("game ok"))
+    }
+
+    /// The in-game FPS counter (mugl, C:\mutools\mugl-fps.txt): `on` nil reads it, true/false sets it.
+    /// Returns the state afterwards, or nil when the prefix/bottle has no game folder yet.
+    @discardableResult
+    static func fpsCounter(_ on: Bool? = nil, settings: LauncherSettings) -> Bool? {
+        let r = run("--fps-counter", on.map { [$0 ? "on" : "off"] } ?? [], settings: settings)
+        guard r.status == 0 else { return nil }
+        return r.lines.contains("fps-counter on")
     }
 
     static func bottles() -> [(name: String, arch: String, hasGame: Bool)] {

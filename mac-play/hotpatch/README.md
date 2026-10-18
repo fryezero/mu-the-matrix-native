@@ -337,3 +337,10 @@ about 3 ms per frame and was removed. `../diagnostics/glcaps.c` is the framebuff
 and heap imports and attributes heap and critical-section calls to game callers (diagnostic only: every timed call
 costs two QueryPerformanceCounter calls, about 90 ns each under Rosetta, so the game runs slower). `+cull` reports the
 per-triangle culling potential. `../machprof/stallprof` with `NPC=1` histograms native pcs.
+
+## v7.7 additions (MAC-APP-003)
+
+The in-game FPS counter from `../mugl/fps.c` (see the mugl README): drawn from `mugl_wglSwapBuffers` after the batch is
+flushed and before frame pacing, controlled by `C:\mutools\mugl-fps.txt` (the app's FPS counter checkbox). It is not a hotpatch bit
+and does not touch main.exe; the default mask is unchanged (380460463).
+

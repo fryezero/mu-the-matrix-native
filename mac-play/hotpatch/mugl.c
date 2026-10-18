@@ -1274,6 +1274,7 @@ static long total_frames; static HMODULE self_mod;
 #include "terrain.c"
 #include "jpeg.c"
 #include "crc.c"
+#include "../mugl/fps.c"
 BOOL WINAPI mugl_wglSwapBuffers(HDC dc)
 {
     io_frame_end(); tr_frame_end();
@@ -1282,6 +1283,7 @@ BOOL WINAPI mugl_wglSwapBuffers(HDC dc)
     if (++total_frames > 100 && MUGL_PRIVATE_TABLES && !mugl_client) check_hotpatch_file();   /* test programs: GL-level bits */
     if (total_frames > 100 && MUGL_PRIVATE_TABLES && mugl_client) { render_tid = GetCurrentThreadId(); check_hotpatch_file(); hook_sleep_iat(); if (total_frames == 101 && st_file) io_publish(); io_install(self_mod); tr_check(); prio_check(); }   /* main.exe code is unpacked long before the first frames */
     dc_finish(); if (samples_mode || dq_n) dq_frame();
+    fps_activetex = real_activetex; fps_frame(dc);
     st_frames++; stats_tick();
     pace_wait();
     BOOL r_; TIMED(6, r_ = R(wglSwapBuffers, PFNswap)(dc)); return r_;

@@ -461,9 +461,11 @@ void WINAPI mugl_glPopAttrib(void) { mugl_sync(); R(glPopAttrib, PFN0)(); cur_kn
 void WINAPI mugl_glCallList(GLuint l) { mugl_sync(); R(glCallList, PFNcl)(l); cur_known = 0; }
 void WINAPI mugl_glCallLists(GLsizei n, GLenum type, const void *lists) { mugl_sync(); R(glCallLists, PFNcls)(n, type, lists); cur_known = 0; }
 
+#include "fps.c"
 BOOL WINAPI mugl_wglSwapBuffers(HDC dc)
 {
     mugl_sync();
+    fps_activetex = (void *)active_texture; fps_frame(dc);
     st_frames++; stats_tick();
     return R(wglSwapBuffers, PFNswap)(dc);
 }

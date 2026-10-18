@@ -23,6 +23,22 @@ slow under Rosetta. `make test` tests generation and compiles `triangles.c` with
 host clang without needing Wine, Windows headers or a game installation. Linux CI
 also cross-builds the proxy and diagnostics.
 
+## In-game FPS counter (MAC-APP-003)
+
+`fps.c`, shared with the hotpatch build, draws a small counter in a corner of the game window just before each
+`wglSwapBuffers`: the average frames per second over the last half second and the frame time, for example
+`25.0 FPS 40.0 MS`, green from 24 fps, yellow from 15, red below. It is off by default.
+
+- `C:\mutools\mugl-fps.txt`: `1` shows it, `0` or no file hides it; an optional second word picks the corner
+  (`tl` default, `tr`, `bl`, `br`). Re-read about once a second, so it can change while the game runs.
+- The app's **FPS counter** checkbox and `mu-launch.sh --fps-counter on|off` write the file. There is no in-game
+  hotkey: the client already uses the obvious combinations (Ctrl+Shift+F opens its "Window Switching" panel).
+
+It draws about 60 rectangles with the real GL entry points, never through the batching layer, inside
+`glPushAttrib(GL_ALL_ATTRIB_BITS)` with pushed projection and modelview matrices. Every value the game or mugl tracks
+(current colour, matrix mode, enables, texture bindings on all units, viewport, blending) is unchanged afterwards. It
+skips a frame if the attribute or matrix stacks have no room left. While hidden, it costs one file read per second.
+
 ## Deployment and diagnostics
 
 Run the parent setup script for a new bottle. It installs mugl by default beside

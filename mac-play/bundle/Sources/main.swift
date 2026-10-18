@@ -3,7 +3,7 @@
 // Double-click: start the launcher (free Wine runtime by default, or a CrossOver bottle) and quit. The settings window opens instead on
 // the first run (no settings file), when Option is held, when "Start right away" is off, or after an error.
 // Command line (no window): --dry-run, --check, --status, --install, --install-dry-run, --check-bundle, --rosetta-status,
-// --install-rosetta, --print-settings, --settings-path, --version, --help.
+// --install-rosetta, --fps-counter, --print-settings, --settings-path, --version, --help.
 import AppKit
 
 let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "dev"
@@ -80,6 +80,17 @@ if let arg = cliArgs.first {
         if !r.output.isEmpty { print(r.output) }
         print(r.ok ? "rosetta: installed" : r.declined ? "rosetta: not installed (the administrator prompt was cancelled)" : "rosetta: install failed")
         exit(r.ok ? 0 : 1)
+    case "--fps-counter":
+        // Show or hide the in-game FPS counter for the configured prefix/bottle (no option: print the state).
+        let want: Bool?
+        switch cliArgs.dropFirst().first {
+        case nil: want = nil
+        case "on": want = true
+        case "off": want = false
+        case let v?: FileHandle.standardError.write(Data("--fps-counter takes on or off, not \(v)\n".utf8)); exit(2)
+        }
+        guard let state = LaunchScript.fpsCounter(want, settings: s) else { print("fps-counter unavailable (install the game first)"); exit(1) }
+        print("fps-counter \(state ? "on" : "off")"); exit(0)
     case "--settings-path": print(LauncherSettings.fileURL.path); exit(0)
     case "--version": print("Mu The Matrix.app \(appVersion)"); exit(0)
     case "--help", "-h":
@@ -96,6 +107,7 @@ if let arg = cliArgs.first {
           --check-bundle    exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
           --rosetta-status  exit 0 when Rosetta 2 is installed
           --install-rosetta install Rosetta 2 (asks for administrator approval)
+          --fps-counter [on|off]  show or hide the in-game FPS counter (also while the game runs)
           --print-settings  show the effective settings and file locations
           --settings-path   print the settings plist path
           --version
@@ -139,6 +151,7 @@ final class SettingsWindowController: NSWindowController {
     private let fastCheck = NSButton(checkboxWithTitle: "Run main.exe through rosetta-timewalker (fast x87 math)", target: nil, action: nil)
     private let twPath = label("")
     private let twNote = label("", small: true)
+    private let fpsCheck = NSButton(checkboxWithTitle: "Show the FPS counter in the game", target: nil, action: nil)
     private let startCheck = NSButton(checkboxWithTitle: "Start the game right away when the app opens", target: nil, action: nil)
     private let startNote = label("Hold ⌥ Option while opening the app to see this window again.", small: true)
     private let status = label("", small: true)
@@ -178,6 +191,8 @@ final class SettingsWindowController: NSWindowController {
         installRow.widthAnchor.constraint(equalToConstant: 440).isActive = true
         bottlePopup.target = self; bottlePopup.action = #selector(bottleChanged)
         fastCheck.target = self; fastCheck.action = #selector(fastChanged)
+        fpsCheck.target = self; fpsCheck.action = #selector(fpsChanged)
+        fpsCheck.toolTip = "Frames per second and frame time in the top-left corner. Takes effect within a second, also while the game runs."
         twPath.maximumNumberOfLines = 1
         twPath.lineBreakMode = .byTruncatingMiddle
         twPath.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -197,6 +212,7 @@ final class SettingsWindowController: NSWindowController {
             [label("Fast x87:"), fastCheck],
             [label("Timewalker:"), twRow],
             [NSGridCell.emptyContentView, twNote],
+            [label("FPS counter:"), fpsCheck],
             [NSGridCell.emptyContentView, startCheck],
             [NSGridCell.emptyContentView, startNote],
         ])
@@ -253,6 +269,21 @@ final class SettingsWindowController: NSWindowController {
         startCheck.state = settings.startImmediately ? .on : .off
         refreshTimewalker()
         refreshModes()
+        refreshFPS()
+    }
+
+    /// The checkbox mirrors C:\mutools\mugl-fps.txt of the selected prefix/bottle (also toggled in game).
+    private func refreshFPS() {
+        let state = LaunchScript.fpsCounter(settings: collect())
+        fpsCheck.isEnabled = state != nil
+        fpsCheck.state = state == true ? .on : .off
+    }
+    @objc private func fpsChanged() {
+        let on = fpsCheck.state == .on
+        let state = LaunchScript.fpsCounter(on, settings: collect())
+        AppLog.write("fps counter \(on ? "on" : "off") -> \(state.map { $0 ? "on" : "off" } ?? "failed")")
+        if state == nil { status.stringValue = "Could not change the FPS counter: install the game first." }
+        refreshFPS()
     }
 
     private func refreshTimewalker() {
@@ -325,10 +356,10 @@ final class SettingsWindowController: NSWindowController {
 
     func showStatus(_ text: String) { status.stringValue = text }
 
-    @objc private func bottleChanged() { settings = collect(); refreshModes() }
-    @objc private func runtimeChanged() { settings = collect(); refreshRuntime(); refreshModes() }
+    @objc private func bottleChanged() { settings = collect(); refreshModes(); refreshFPS() }
+    @objc private func runtimeChanged() { settings = collect(); refreshRuntime(); refreshModes(); refreshFPS() }
     @objc private func install() { if persist() { onInstall?() } }
-    func reloadAfterInstall() { refreshRuntime(); refreshModes() }
+    func reloadAfterInstall() { refreshRuntime(); refreshModes(); refreshFPS() }
     @objc private func fastChanged() { refreshTimewalker() }
     @objc private func showLog() { openLog() }
     @objc private func saveOnly() {
@@ -835,6 +866,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppLog.write("mu-launch.sh status \(r.status)\n" + r.output.trimmingCharacters(in: .newlines))
         progress?.orderOut(nil); progress = nil
         guard let err = r.error else { NSApp.terminate(nil); return }
+        if err.code == 14 {
+            // Opened while playing: show the settings (e.g. to turn the FPS counter on or off) instead of an error.
+            showSettings(nil)
+            settingsWindow?.showStatus("Mu The Matrix is already running. Changes to the FPS counter apply right away; the other settings apply the next time the game starts.")
+            return
+        }
         let free = LauncherSettings.load().runtime == "free"
         let alert = NSAlert()
         alert.alertStyle = err.code == 14 ? .informational : .warning

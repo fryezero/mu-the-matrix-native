@@ -186,6 +186,7 @@ Most players only ever change **Resolution**.
 | **Game** | Shows **Installed** or **Not installed yet**, with an **Install…** or **Repair…** button. **Repair…** runs the installer again: it fixes missing parts and installs updates, without downloading the game again. | Use **Repair…** after an app update, or if the game stopped starting. |
 | **Resolution** | The size of the game window. | See [Choosing the window size](#choosing-the-window-size). |
 | **Fast x87** | A speed-up for the game's 3D maths. It is used when your installation supports it; otherwise it changes nothing. | Leave it ticked. |
+| **FPS counter** | Shows the frames per second in the top-left corner of the game. | Tick it if you want to see it. See [The FPS counter](#the-fps-counter). |
 | **Start the game right away when the app opens** | When this is ticked, double-clicking the app starts the launcher directly. | Untick it if you want to see this window every time. |
 | **Open Log** | Shows the app's log file in the Finder. | Use it when your server team asks for the log. |
 | **Save** / **Play** | **Save** stores your choices and checks them. **Play** stores them and starts the launcher. | — |
@@ -200,6 +201,18 @@ The installer picks the largest window size that fits your screen. To change it,
   to **Keep launcher setting**, which is the default.
 
 The list offers the sizes that fit your screen, plus the three smallest ones.
+
+## The FPS counter
+
+The game can show how smoothly it runs: a small box in the top-left corner with the frames per second (FPS) and
+the time per frame, for example **25.0 FPS 40.0 MS**. 25 FPS is the game's maximum. The number is green from 24
+FPS, yellow from 15 and red below 15.
+
+To turn it on or off, open the **Mu The Matrix** app (hold **Option (⌥)** while you open it if it starts the game
+right away) and tick or untick **FPS counter**. This also works while you are playing: open the app, change the
+tick, and the game shows or hides the counter within a second.
+
+Your choice is kept for the next time you play. The counter is off until you turn it on.
 
 ## Updating
 

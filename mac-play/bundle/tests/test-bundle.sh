@@ -189,6 +189,12 @@ eq 'free: status ready'         "$(L --status | tr '\n' ' ')" 'runtime ok rt1 pr
 eq 'free: preflight ok'         "$(code --check)" 0
 eq 'free: CrossOver not needed' "$(CX_ROOT="$TMPD/none" code --check)" 0
 eq 'free: modes listed'         "$(L --list-modes | tr '\n' ' ')" '960x600 1024x640 1280x800 1600x1000 1728x1080 current 4 '
+eq 'fps counter off without a file' "$(L --fps-counter)" 'fps-counter off'
+eq 'fps counter on'             "$(L --fps-counter on)" 'fps-counter on'
+eq 'fps counter file'           "$(cat "$FPX/drive_c/mutools/mugl-fps.txt")" '1 tl'
+printf '1 br\n' > "$FPX/drive_c/mutools/mugl-fps.txt"
+eq 'fps counter off keeps the corner' "$(L --fps-counter off; cat "$FPX/drive_c/mutools/mugl-fps.txt")" "$(printf 'fps-counter off\n0 br')"
+eq 'fps counter refuses other values' "$(L --fps-counter maybe >/dev/null; echo $?)" 2
 D=$(MU_RESOLUTION=1280x800 L --dry-run)
 has 'free: plans prefix reset'  "$D" "MU-PLAN WINEPREFIX=$FPX $RTD/wine/bin/wineserver -k"
 has 'free: plans game folder'   "$D" "MU-PLAN cd $FPX/drive_c/MuTheMatrix"
@@ -261,6 +267,11 @@ else
     has 'default bottle shown'   "$P" "Bottle = $(px MUDefaultBottle)"
     has 'default runtime is free' "$P" 'Runtime = free'
     has 'app --status ready (synthetic free home)' "$("$BIN" --status)" 'free runtime: installed'
+    eq 'app --fps-counter on'  "$("$BIN" --fps-counter on)" 'fps-counter on'
+    eq 'app --fps-counter reads the file' "$("$BIN" --fps-counter)" 'fps-counter on'
+    eq 'app --fps-counter off' "$("$BIN" --fps-counter off)" 'fps-counter off'
+    eq 'app --fps-counter refuses other values' "$("$BIN" --fps-counter maybe >/dev/null 2>&1; echo $?)" 2
+    eq 'app --fps-counter without a game' "$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$BIN" --fps-counter >/dev/null 2>&1; echo $?)" 1
     ID=$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$BIN" --install-dry-run 2>&1)
     has 'app install plan: official installer' "$ID" 'download https://dl.muthematrix.com/MuTheMatrix-21.1.2.12.exe'
     has 'app install plan: free runtime' "$ID" 'runtime=free'
