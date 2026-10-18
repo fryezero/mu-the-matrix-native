@@ -7,7 +7,8 @@
 #   MU_PREFIX          free runtime: the prefix (default ~/Library/Application Support/MuTheMatrix/prefix)
 #   MUKIT_FREE_HOME    free runtime folder (default ~/Library/Application Support/MuTheMatrix)
 #   MU_BOTTLE          crossover: bottle to start (default MuMatrixKit)
-#   MU_FAST_X87=1      crossover: route main.exe through an existing rosetta-timewalker build (default 0)
+#   MU_FAST_X87        free: 1 (default) uses the fast x87 translator when the setup installed it; 0 = off.
+#                      crossover: 1 routes main.exe through an existing rosetta-timewalker build (default 0)
 #   MU_TIMEWALKER_DIR  that checkout/build (only with MU_FAST_X87=1)
 #   CX_ROOT            CrossOver runtime directory
 #   MU_DEBUGMSG        crossover: passed to wine --debugmsg; free: WINEDEBUG
@@ -37,6 +38,15 @@ if [ "$RUNTIME" = free ]; then
   mkdir -p "$HOME/Library/Logs"
   LOG=$HOME/Library/Logs/MuTheMatrix-${PREFIX:t}.log
   cd "$PREFIX/drive_c/MuTheMatrix" || exit 1
+  FX="$HOME_DIR/fast-x87"; INNER="$RT/wine/lib/wine/x86_64-unix/wine"
+  if [ "${MU_FAST_X87:-1}" = 1 ] && [ -x "$FX/x87-main-only-wrapper" ] && [ -x "$FX/runtime_loader" ] && [ -f "$FX/libtimewalker.dylib" ] && [ -x "$INNER" ]; then
+    # Fast x87 for main.exe only (rosetta-timewalker); the .NET launcher keeps the plain loader.
+    export WINESERVER="$RT/wine/bin/wineserver" WINELOADER="$FX/x87-main-only-wrapper" DYLD_INSERT_LIBRARIES="$FX/libtimewalker.dylib" \
+      TIMEWALKER_X87_ACTIVE=1 TIMEWALKER_X87_ONLY=main.exe TIMEWALKER_X87_REAL_LOADER="$INNER" TIMEWALKER_X87_RUNTIME_LOADER="$FX/runtime_loader" \
+      TIMEWALKER_CROSSOVER_LOADER="$FX/x87-main-only-wrapper" TIMEWALKER_CROSSOVER_LOADER_SOURCE="$INNER" \
+      TIMEWALKER_CROSSOVER_WINESERVER="$RT/wine/bin/wineserver" TIMEWALKER_CROSSOVER_WINESERVER_SOURCE="$RT/wine/bin/wineserver"
+    exec "$FX/x87-main-only-wrapper" MuTheMatrix.exe >"$LOG" 2>&1
+  fi
   exec "$RT/wine/bin/wine" MuTheMatrix.exe >"$LOG" 2>&1
 fi
 CX=${CX_ROOT:-/Applications/CrossOver.app/Contents/SharedSupport/CrossOver}

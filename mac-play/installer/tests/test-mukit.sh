@@ -266,6 +266,7 @@ eq 'desktop run exit 0' "$rc" 0
 yes 'launcher written + executable' [ -x "$LF" ]
 eq 'launcher targets bottle' "$(mukit_launcher_bottle "$LF")" FakeKit
 yes 'launcher calls play-mu.sh' grep -q "play-mu.sh" "$LF"
+yes 'launcher keeps normal priority (zsh NO_BG_NICE)' grep -q '^setopt NO_BG_NICE' "$LF"
 yes 'launcher plain Rosetta by default' grep -q 'MU_FAST_X87=0' "$LF"
 HOME="$FH" "${DSETUP[@]}" > "$TMPD/d2.log" 2>&1
 grep -q '\[do\]' "$TMPD/d2.log" && bad 'desktop rerun no-op' || ok 'desktop rerun no-op'

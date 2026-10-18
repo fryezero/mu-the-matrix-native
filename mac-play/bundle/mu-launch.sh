@@ -139,8 +139,18 @@ fi
 RUNNER=("$CX_ROOT/bin/wine")
 [ "$RUNTIME" = free ] && RUNNER=("$WINE")
 X87_ENV=()
+FREE_X87=0
 if [ "$FAST" = 1 ] && [ "$RUNTIME" = free ]; then
-    fail 15 "Fast x87 is available with the CrossOver runtime only (for now). Turn fast x87 off in Settings."
+    # Free runtime: rosetta-timewalker's x87 translator for main.exe only, installed by the setup into
+    # $FREE_HOME/fast-x87. It needs a runtime with the inner loader (wine/lib/wine/x86_64-unix/wine, as in the
+    # CrossOver 26.3 build); otherwise, or when it is not installed, the game starts with plain Rosetta.
+    FX="$FREE_HOME/fast-x87"; INNER="$RT/wine/lib/wine/x86_64-unix/wine"
+    if [ -x "$FX/x87-main-only-wrapper" ] && [ -x "$FX/runtime_loader" ] && [ -x "$FX/libRuntimeRosettax87" ] &&
+       [ -f "$FX/libtimewalker.dylib" ] && [ -x "$INNER" ]; then
+        FREE_X87=1
+    else
+        info "fast x87 not available for this runtime (not installed, or the runtime has no inner loader); using plain Rosetta"
+    fi
 elif [ "$FAST" = 1 ]; then
     if [ -n "$TW_DIR" ]; then
         [ -x "$TW_DIR/scripts/run-crossover.sh" ] && [ -f "$TW_DIR/build/libtimewalker.dylib" ] ||
@@ -176,9 +186,9 @@ if pgrep -f 'C:\\MuTheMatrix\\main.exe' >/dev/null 2>&1 || pgrep -f 'C:\\MuTheMa
 fi
 
 LOG="$LOG_DIR/wine-$NAME.log"
-if [ "$RUNTIME" = free ]; then info "free runtime $RT_ID, prefix $PREFIX (win32)"
+if [ "$RUNTIME" = free ]; then info "free runtime $RT_ID, prefix $PREFIX (win32), fast x87 $([ "$FREE_X87" = 1 ] && echo on || echo off)"
 else info "bottle $BOTTLE (win32), CrossOver $CX_ROOT"; fi
-info "fast x87 $([ "$FAST" = 1 ] && echo "on (${RUNNER[0]})" || echo off)"
+[ "$RUNTIME" = free ] || info "fast x87 $([ "$FAST" = 1 ] && echo "on (${RUNNER[0]})" || echo off)"
 if [ -n "$RES" ]; then info "resolution $RES = DevModeIndex $idx$([ -z "$NEW_LOPT" ] && echo ' (already set)')"; else info 'resolution: keep launcher setting'; fi
 [ "$MODE" = check ] && { info 'preflight ok'; exit 0; }
 
@@ -187,6 +197,15 @@ if [ "$RUNTIME" = free ]; then
     # Plain Wine: run from the game folder (relative exe), explicit prefix, no inherited WINEARCH/overrides.
     CMD=("${RUNNER[@]}" MuTheMatrix.exe)
     X87_ENV=(-u WINEARCH -u WINEDLLOVERRIDES WINEPREFIX="$PREFIX" WINEDEBUG="${MU_DEBUGMSG:--all}")
+    if [ "$FREE_X87" = 1 ]; then
+        # Every Wine process starts through the wrapper (WINELOADER); only main.exe gets the translator.
+        CMD=("$FX/x87-main-only-wrapper" MuTheMatrix.exe)
+        X87_ENV+=(WINESERVER="$WINESERVER" WINELOADER="$FX/x87-main-only-wrapper" DYLD_INSERT_LIBRARIES="$FX/libtimewalker.dylib"
+                  TIMEWALKER_X87_ACTIVE=1 TIMEWALKER_X87_ONLY=main.exe TIMEWALKER_X87_REAL_LOADER="$INNER"
+                  TIMEWALKER_X87_RUNTIME_LOADER="$FX/runtime_loader" TIMEWALKER_CROSSOVER_LOADER="$FX/x87-main-only-wrapper"
+                  TIMEWALKER_CROSSOVER_LOADER_SOURCE="$INNER" TIMEWALKER_CROSSOVER_WINESERVER="$WINESERVER"
+                  TIMEWALKER_CROSSOVER_WINESERVER_SOURCE="$WINESERVER")
+    fi
     RESET=("$WINESERVER" -k)
 else
     CMD=("${RUNNER[@]}" --bottle "$BOTTLE" ${DBG[@]+"${DBG[@]}"} --workdir 'C:\MuTheMatrix' 'C:\MuTheMatrix\MuTheMatrix.exe')

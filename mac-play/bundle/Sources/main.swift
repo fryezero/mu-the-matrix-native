@@ -2,7 +2,7 @@
 //
 // Double-click: start the launcher (free Wine runtime by default, or a CrossOver bottle) and quit. The settings window opens instead on
 // the first run (no settings file), when Option is held, when "Start right away" is off, or after an error.
-// Command line (no window): --dry-run, --check, --status, --install-dry-run, --print-settings, --settings-path,
+// Command line (no window): --dry-run, --check, --status, --install, --install-dry-run, --print-settings, --settings-path,
 // --version, --help.
 import AppKit
 
@@ -27,11 +27,12 @@ if let arg = cliArgs.first {
         let st = LaunchScript.freeStatus()
         print("free runtime: \(st.runtime ? "installed" : "missing")\nprefix: \(st.prefix ? "ok" : "missing")\ngame: \(st.game ? "installed" : "missing")")
         exit(st.runtime && st.prefix && st.game ? 0 : 1)
-    case "--install-dry-run":
-        // The installer's plan for "download the official game"; changes nothing.
+    case "--install-dry-run", "--install":
+        // Headless install (what the Install window runs); --install-dry-run prints the plan and changes nothing.
         let gameDir = cliArgs.dropFirst().first
         let sem = DispatchSemaphore(value: 0); var status: Int32 = 0
-        Installer.start(gameDir: gameDir, dryRun: true, line: { print($0) }, done: { status = $0; sem.signal() })
+        AppLog.write("cli \(arg) source=\(gameDir ?? "official installer")")
+        Installer.start(gameDir: gameDir, dryRun: arg == "--install-dry-run", line: { print($0); fflush(stdout) }, done: { status = $0; sem.signal() })
         while sem.wait(timeout: .now()) == .timedOut { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
         exit(status)
     case "--settings-path": print(LauncherSettings.fileURL.path); exit(0)
@@ -43,6 +44,7 @@ if let arg = cliArgs.first {
           --dry-run         preflight and print what a start would do; changes nothing
           --check           preflight only
           --status          free runtime install state (exit 0 when ready)
+          --install [GAME_DIR]          install without a window (default: download the official game)
           --install-dry-run [GAME_DIR]  print the installer's plan; changes nothing
           --print-settings  show the effective settings and file locations
           --settings-path   print the settings plist path
@@ -223,7 +225,9 @@ final class SettingsWindowController: NSWindowController {
         } else {
             installState.stringValue = "Uses a CrossOver bottle chosen below."
         }
-        fastCheck.isEnabled = !isFree
+        fastCheck.isEnabled = true
+        fastCheck.title = isFree ? "Fast x87 math for main.exe (rosetta-timewalker; used when installed)"
+                                 : "Run main.exe through rosetta-timewalker (fast x87 math)"
     }
 
     private func refreshModes() {
@@ -251,7 +255,7 @@ final class SettingsWindowController: NSWindowController {
         s.runtime = isFree ? "free" : "crossover"
         if !bottleNames.isEmpty { s.bottle = bottleNames[bottlePopup.indexOfSelectedItem] }
         s.resolution = (resolutionPopup.selectedItem?.representedObject as? String) ?? ""
-        s.fastX87 = fastCheck.state == .on && !isFree
+        s.fastX87 = fastCheck.state == .on
         s.startImmediately = startCheck.state == .on
         return s
     }

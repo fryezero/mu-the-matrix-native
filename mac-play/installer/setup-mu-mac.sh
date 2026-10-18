@@ -67,8 +67,11 @@ Usage: setup-mu-mac.sh [options]
   --reset-config         Overwrite existing C:\mutools config files and LauncherOption.if values.
   --launcher-name NAME   Desktop .command file name (default: "Play Mu The Matrix (BOTTLE).command").
   --no-desktop           Do not install a Desktop launcher (Mu The Matrix.app does not need one).
-  --fast-x87             TODO hook: use rosetta-timewalker fast x87 if already built (see README; point
-                         --timewalker-dir or MU_TIMEWALKER_DIR at it).
+  --fast-x87             Use rosetta-timewalker fast x87 for main.exe. Free runtime: installs it from
+                         --fast-x87-dir or --timewalker-dir into the runtime folder (~45% less frame work).
+                         CrossOver: uses an already built --timewalker-dir (see README).
+  --fast-x87-dir DIR     Free runtime: folder with libtimewalker.dylib, runtime_loader and libRuntimeRosettax87
+                         (runtime/package-fast-x87.sh; Mu The Matrix.app bundles it); implies --fast-x87.
   --timewalker-dir DIR   Existing rosetta-timewalker checkout/build, used only with --fast-x87.
   --ac-variant V         TODO hook: with-ac (default, unchanged client) | no-ac (not implemented).
   --skip-verify          Do not run verify-mu-mac.sh at the end.
@@ -111,6 +114,7 @@ RESET_CONFIG=0
 LAUNCHER_NAME=
 NO_DESKTOP=0
 FAST_X87=0
+FAST_X87_DIR=
 AC_VARIANT=with-ac
 SKIP_VERIFY=0
 MINGW_CC=${MINGW_CC:-i686-w64-mingw32-gcc}
@@ -145,6 +149,7 @@ while [ "$#" -gt 0 ]; do
         --launcher-name) need_arg "$1" "$#"; LAUNCHER_NAME=$2; shift 2 ;;
         --no-desktop)    NO_DESKTOP=1; shift ;;
         --fast-x87)      FAST_X87=1; shift ;;
+        --fast-x87-dir)  need_arg "$1" "$#"; FAST_X87_DIR=$2; FAST_X87=1; shift 2 ;;
         --ac-variant)    need_arg "$1" "$#"; AC_VARIANT=$2; shift 2 ;;
         --skip-verify)   SKIP_VERIFY=1; shift ;;
         -h|--help)       usage; exit 0 ;;
@@ -849,7 +854,8 @@ step_desktop() {
     f="$HOME/Desktop/$name"
     [ -x "$KIT_DIR/play-mu.sh" ] || mukit_die "Missing $KIT_DIR/play-mu.sh"
     local twenv=
-    hook_fast_x87 && { x87=1; twenv=" MU_TIMEWALKER_DIR='$(cd -- "$TIMEWALKER_DIR" && pwd -P)'"; }
+    if [ "$RUNTIME" = free ]; then [ "$FAST_X87" = 1 ] && x87=1
+    else hook_fast_x87 && { x87=1; twenv=" MU_TIMEWALKER_DIR='$(cd -- "$TIMEWALKER_DIR" && pwd -P)'"; }; fi
     if [ "$RUNTIME" = free ]; then rtenv="MU_RUNTIME=free MU_PREFIX='$PREFIX'"; else rtenv="MU_BOTTLE='$BOTTLE'"; fi
     content=$(cat <<EOF
 #!/bin/zsh
@@ -857,6 +863,7 @@ step_desktop() {
 # play-mu.sh refuses a second instance, resets this bottle's wineserver (stale display state
 # after sleep breaks the launcher) and starts C:\\MuTheMatrix\\MuTheMatrix.exe.
 export $rtenv MU_FAST_X87=$x87$twenv
+setopt NO_BG_NICE   # zsh runs '&' jobs at nice +5 by default; the game must run at normal priority
 nohup '$KIT_DIR/play-mu.sh' >/dev/null 2>&1 &
 sleep 1
 osascript -e 'tell application "Terminal" to close (every window whose name contains "Play Mu The Matrix")' >/dev/null 2>&1 &
@@ -871,6 +878,46 @@ EOF
     todo "write Desktop launcher '$name' (MU_FAST_X87=$x87)"
     mukit_write_file "$f" "$content"
     mukit_run chmod 755 "$f"
+}
+
+# --- free runtime: fast x87 ---------------------------------------------------------
+# Copies rosetta-timewalker's x87 translator (MIT) into the runtime folder and builds the authored main.exe-only
+# loader wrapper (mac-play/x87-main-only-wrapper.c) unless the source folder already has it. play-mu.sh and
+# Mu The Matrix.app use it when the runtime has the inner loader (the CrossOver 26.3 build does; cx24 does not).
+step_fast_x87_free() {
+    [ "$FAST_X87" = 1 ] || { say '  [skip] fast x87 not requested (--fast-x87 / --fast-x87-dir)'; return 0; }
+    local src=$FAST_X87_DIR fx="$FREE_HOME/fast-x87" f s d
+    if [ -z "$src" ] && [ -n "$TIMEWALKER_DIR" ]; then src="$TIMEWALKER_DIR/build"; fi
+    [ -n "$src" ] || { mukit_warn 'fast x87 requested without --fast-x87-dir or --timewalker-dir; skipped.'; return 0; }
+    local missing=0
+    for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87; do
+        s="$src/$f"; [ -f "$s" ] || s="$src/x87/bin/$f"
+        [ -f "$s" ] || { mukit_warn "fast x87: $f not found in $src"; missing=1; }
+    done
+    [ "$missing" = 0 ] || { mukit_warn 'fast x87 skipped (incomplete translator folder).'; return 0; }
+    mukit_run mkdir -p "$fx"
+    for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 x87-main-only-wrapper LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md; do
+        s="$src/$f"; [ -f "$s" ] || s="$src/x87/bin/$f"
+        [ -f "$s" ] || continue
+        d="$fx/$f"
+        [ -f "$d" ] && [ "$(mukit_sha256 "$s")" = "$(mukit_sha256 "$d")" ] && continue
+        todo "install fast x87 file $f"
+        mukit_run cp "$s" "$d"
+    done
+    if [ ! -x "$fx/x87-main-only-wrapper" ] || [ "$DRY_RUN" = 1 ]; then
+        if [ -f "$MAC_PLAY/x87-main-only-wrapper.c" ] && command -v xcrun >/dev/null 2>&1; then
+            todo 'build the main.exe-only loader wrapper (mac-play/x87-main-only-wrapper.c)'
+            mukit_run xcrun clang -arch arm64 -O2 -o "$fx/x87-main-only-wrapper" "$MAC_PLAY/x87-main-only-wrapper.c" || mukit_die 'wrapper build failed'
+            mukit_run codesign -f -s - "$fx/x87-main-only-wrapper" >/dev/null 2>&1
+        elif [ ! -x "$fx/x87-main-only-wrapper" ]; then
+            mukit_warn 'fast x87: no x87-main-only-wrapper and no compiler; skipped.'; return 0
+        fi
+    fi
+    # Copied out of a downloaded app: drop the quarantine flag, or macOS refuses to run the helpers.
+    [ "$DRY_RUN" = 1 ] || xattr -dr com.apple.quarantine "$fx" 2>/dev/null || true
+    [ -x "$RT_DIR/wine/lib/wine/x86_64-unix/wine" ] || [ "$DRY_RUN" = 1 ] ||
+        mukit_warn "fast x87 installed, but runtime $RT_ID has no inner loader: the game runs with plain Rosetta (use the CrossOver 26.3 runtime archive)."
+    skip "fast x87 translator in $fx"
 }
 
 # --- 13. TODO hooks -------------------------------------------------------------
@@ -936,7 +983,8 @@ main() {
     say "== $((i + 7))/$n C:\\mutools";             step_mutools
     say "== $((i + 8))/$n LauncherOption.if";      step_launcher_options
     say "== $((i + 9))/$n proxy DLLs";            step_dlls
-    say "== $((i + 10))/$n Desktop launcher";      step_desktop
+    if [ "$RUNTIME" = free ]; then say "== $((i + 10))/$n fast x87 and Desktop launcher"; step_fast_x87_free; step_desktop
+    else say "== $((i + 10))/$n Desktop launcher"; step_desktop; fi
     say "== $n/$n verify"
     local vargs=(--bottle "$BOTTLE"); [ "$RUNTIME" = free ] && vargs=(--runtime free --prefix "$PREFIX")
     if [ "$DRY_RUN" = 1 ]; then

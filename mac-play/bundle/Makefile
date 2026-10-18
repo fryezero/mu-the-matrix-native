@@ -12,6 +12,8 @@
 # DLLs bundled for players (Resources/dlls, passed to the installer as --mugl-dll / --mscoree-dll):
 #   EMBED_MUGL=/path/opengl32.dll  EMBED_MSCOREE=/path/mscoree.dll   (none by default; never commit them.
 #   A private mugl build contains client-derived bytes: distributing it is the server owner's decision.)
+#   EMBED_FAST_X87=/dir  rosetta-timewalker translator from ../installer/runtime/package-fast-x87.sh (MIT); the
+#   authored main.exe-only wrapper (../x87-main-only-wrapper.c) is compiled into Resources/fast-x87 with it.
 SWIFTC ?= xcrun swiftc
 ARCH ?= $(shell uname -m)
 MIN_MACOS ?= 13.0
@@ -25,6 +27,7 @@ DEFAULT_TIMEWALKER_DIR ?=
 INSTALL_DIR ?= $(HOME)/Applications
 EMBED_MUGL ?=
 EMBED_MSCOREE ?=
+EMBED_FAST_X87 ?=
 
 B ?= build
 APP := $(B)/Mu The Matrix.app
@@ -34,7 +37,7 @@ RESOURCES := mu-launch.sh ../installer/lib/mukit.sh ../fast-x87.sh
 INSTALLER_FILES := ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh \
 	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg
 STAMP := $(B)/.app-stamp
-VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)
+VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)|$(EMBED_FAST_X87)
 
 all: $(STAMP)
 
@@ -79,6 +82,11 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 	cp ../installer/lib/mukit.sh $(APPQ)/Contents/Resources/installer/lib/
 	cp ../installer/registry/mu-mac.reg $(APPQ)/Contents/Resources/installer/registry/
 	@if [ -n "$(EMBED_MUGL)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MUGL)" $(APPQ)/Contents/Resources/dlls/opengl32.dll && echo "bundled mugl $(EMBED_MUGL)"; fi
+	@if [ -n "$(EMBED_FAST_X87)" ]; then mkdir -p $(APPQ)/Contents/Resources/fast-x87 && \
+	  for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87 LICENSE LICENSE-rosettax87_jit THIRD_PARTY_NOTICES.md SOURCE.txt; do \
+	    [ ! -f "$(EMBED_FAST_X87)/$$f" ] || cp "$(EMBED_FAST_X87)/$$f" $(APPQ)/Contents/Resources/fast-x87/; done && \
+	  xcrun clang -arch arm64 -O2 -o $(APPQ)/Contents/Resources/fast-x87/x87-main-only-wrapper ../x87-main-only-wrapper.c && \
+	  echo "bundled fast x87 $(EMBED_FAST_X87)"; fi
 	@if [ -n "$(EMBED_MSCOREE)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MSCOREE)" $(APPQ)/Contents/Resources/dlls/mscoree.dll && echo "bundled mscoree $(EMBED_MSCOREE)"; fi
 	codesign --force --sign - --timestamp=none $(APPQ)
 	codesign --verify --strict --verbose=1 $(APPQ)
