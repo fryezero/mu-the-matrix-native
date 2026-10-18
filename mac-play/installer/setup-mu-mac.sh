@@ -771,19 +771,52 @@ apply_launcher_config() {
     mukit_write_file "$f" "$LAUNCHER_CONFIG"
 }
 
-# --- 8. launcher skin (every run; game updates may restore it) ---------------
-check_skin() {
-    if [ "$DRY_RUN" = 1 ] && [ ! -d "$GAME" ] && [ -f "$GAME_SRC/Data/Launcher/Design/Template.design" ]; then
-        return 1   # dry-run: the copied client will still contain the custom skin
+# --- 8. launcher skin (every run, after the proxy DLLs; game updates may change it) ---------------
+# The server's official skin (Data\Launcher\Design\Template.design) needs the mscoree proxy's WIC
+# stream fix (mac-play/mumodes/wicfix.c, proxy v3): without it Wine 11's JPEG decoder makes the launcher
+# crash on the skin's images. Earlier kits renamed the skin to Template.design.disabled[.N]; with the fix
+# the newest disabled copy is renamed back (the others stay as they are). Without the fix (no MinGW, an
+# old proxy in --dll-dir) the skin stays disabled, as before. Files are only renamed, never deleted.
+SKIN_DIR=
+skin_fix_present() {   # the mscoree proxy installed by the proxy DLL step (planned, in a dry run) has the fix
+    local f="$GAME/mscoree.dll"
+    if [ "$DRY_RUN" = 1 ] && [ -n "${MSCOREE_SRC:-}" ]; then
+        if [ ! -f "$MSCOREE_SRC" ]; then [ -f "$MAC_PLAY/mumodes/wicfix.c" ]; return; fi   # built from this checkout
+        f=$MSCOREE_SRC
     fi
-    if [ ! -f "$GAME/Data/Launcher/Design/Template.design" ]; then skip 'custom launcher skin Template.design disabled/absent'; return 0; fi
+    mukit_mscoree_has_wicfix "$f"
+}
+check_skin() {
+    SKIN_DIR="$GAME/Data/Launcher/Design"
+    local c
+    for c in "$GAME/Data" "$GAME/Data/Launcher" "$SKIN_DIR" "$SKIN_DIR/Template.design"; do
+        [ ! -L "$c" ] || mukit_die "Refusing symlink in the launcher skin path: $c"
+    done
+    if [ "$DRY_RUN" = 1 ] && [ ! -d "$GAME" ]; then
+        [ -f "$GAME_SRC/Data/Launcher/Design/Template.design" ] || { skip 'no official launcher skin in the client (default skin)'; return 0; }
+        skin_fix_present && { skip 'official launcher skin (Template.design) stays active'; return 0; }
+        todo 'rename Template.design -> Template.design.disabled (the mscoree proxy lacks the WIC stream fix)'
+        return 0
+    fi
+    if skin_fix_present; then
+        if [ -f "$SKIN_DIR/Template.design" ]; then skip 'official launcher skin Template.design active'; return 0; fi
+        [ -n "$(mukit_skin_pick "$SKIN_DIR")" ] && return 1
+        skip 'no official launcher skin in the client (default skin)'; return 0
+    fi
+    if [ ! -f "$SKIN_DIR/Template.design" ]; then skip 'official launcher skin disabled (the mscoree proxy lacks the WIC stream fix)'; return 0; fi
     return 1
 }
 apply_skin() {
-    local file="$GAME/Data/Launcher/Design/Template.design" backup n=1
+    local file="$SKIN_DIR/Template.design" backup n=1 pick
+    if [ ! -f "$file" ]; then   # the fix is present: restore the newest disabled copy
+        pick=$(mukit_skin_pick "$SKIN_DIR")
+        todo "restore the official launcher skin: rename $pick -> Template.design (other copies kept)"
+        mukit_run mv "$SKIN_DIR/$pick" "$file"
+        return 0
+    fi
     backup="$file.disabled"
-    while [ -e "$backup" ]; do backup="$file.disabled.$n"; n=$((n + 1)); done
-    todo "rename Template.design -> $(basename "$backup") (custom GIF skin aborts the launcher constructor)"
+    while [ -e "$backup" ] || [ -L "$backup" ]; do backup="$file.disabled.$n"; n=$((n + 1)); done
+    todo "rename Template.design -> $(basename "$backup") (the mscoree proxy lacks the WIC stream fix; the launcher would crash on the official skin)"
     mukit_run mv "$file" "$backup"
 }
 
@@ -901,13 +934,17 @@ resolve_dlls() {   # sets MUGL_SRC / MSCOREE_SRC (may build)
         MUGL_SRC="$DLL_DIR/mugl-$MUGL_VERSION.dll"; MSCOREE_SRC="$DLL_DIR/mscoree.dll"
         [ "$NO_MUGL" = 1 ] || [ -f "$MUGL_SRC" ] || mukit_die "Missing $MUGL_SRC (supply your own mugl-$MUGL_VERSION.dll in --dll-dir)"
         [ "$NO_MUGL" = 1 ] || [ "$(mukit_sha256 "$MUGL_SRC")" = "$(mukit_mugl_version_sha "$MUGL_VERSION")" ] || mukit_die "$MUGL_SRC does not match the pinned $MUGL_VERSION SHA-256"
-        if [ -f "$MSCOREE_SRC" ] && [ "$(mukit_sha256 "$MSCOREE_SRC")" = "$MUKIT_MSCOREE_PROXY_V1_SHA256" ]; then
-            # The previous proxy (display modes only): prefer the current public source with the window fix.
+        local msh old=
+        msh=$( [ -f "$MSCOREE_SRC" ] && mukit_sha256 "$MSCOREE_SRC")
+        if [ -n "$msh" ] && [ "$msh" = "$MUKIT_MSCOREE_PROXY_V1_SHA256" ]; then old='v1 mscoree proxy (no macOS window fix, no WIC stream fix)'
+        elif [ -n "$msh" ] && [ "$msh" = "$MUKIT_MSCOREE_PROXY_V2_SHA256" ]; then old='v2 mscoree proxy (no WIC stream fix for the official launcher skin)'; fi
+        if [ -n "$old" ]; then
+            # An earlier proxy: prefer the current public source (window fix, WIC stream fix).
             if command -v "$MINGW_CC" >/dev/null 2>&1; then
-                say "  [note] $MSCOREE_SRC is the v1 mscoree proxy (no macOS window fix); building the current proxy from mac-play/mumodes"
+                say "  [note] $MSCOREE_SRC is the $old; building the current proxy from mac-play/mumodes"
                 build_mscoree
             else
-                mukit_warn "$MSCOREE_SRC is the v1 mscoree proxy without the macOS window fix (MAC-APP-004); installing it. Put the v2 mscoree.dll in --dll-dir or install MinGW."
+                mukit_warn "$MSCOREE_SRC is the $old; installing it, so the launcher keeps its default skin. Put the current (v3) mscoree.dll in --dll-dir or install MinGW."
             fi
         elif [ -f "$MSCOREE_SRC" ]; then
             [ "$(mukit_sha256 "$MSCOREE_SRC")" = "$MUKIT_MSCOREE_PROXY_SHA256" ] || mukit_die "$MSCOREE_SRC does not match the pinned mscoree proxy SHA-256"
@@ -1099,10 +1136,10 @@ main() {
     fi
     run_step "$((i + 4))/$n game files" game
     run_step "$((i + 5))/$n launcher .NET config" launcher_config
-    run_step "$((i + 6))/$n launcher skin" skin
-    say "== $((i + 7))/$n C:\\mutools";             step_mutools
-    say "== $((i + 8))/$n LauncherOption.if";      step_launcher_options
-    say "== $((i + 9))/$n proxy DLLs";            step_dlls
+    say "== $((i + 6))/$n C:\\mutools";             step_mutools
+    say "== $((i + 7))/$n LauncherOption.if";      step_launcher_options
+    say "== $((i + 8))/$n proxy DLLs";            step_dlls
+    run_step "$((i + 9))/$n launcher skin" skin    # after the DLLs: depends on the installed mscoree proxy
     if [ "$RUNTIME" = free ]; then say "== $((i + 10))/$n fast x87 and Desktop launcher"; step_fast_x87_free; step_desktop
     else say "== $((i + 10))/$n Desktop launcher"; step_desktop; fi
     say "== $n/$n verify"

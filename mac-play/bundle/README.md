@@ -60,10 +60,11 @@ app is run anyway, the Install window warns before installing ("This copy of Mu 
 **Cancel** / **Install Anyway**) and, after the failed check, says that the app is incomplete instead of showing a
 generic failure.
 
-Use the v2 mscoree proxy (`mac-play/mumodes`, pinned in the installer README; MAC-APP-004): besides the display-mode
-list it fixes the launcher's windows on macOS (its news panel no longer floats over the game, and minimize sends
-the launcher to the Dock, from where a click restores it). An app built with the v1 proxy still works, but verify
-reports the proxy as a WARN.
+Use the v3 mscoree proxy (`mac-play/mumodes`, pinned in the installer README): besides the display-mode list it
+fixes the launcher's windows on macOS (MAC-APP-004: its news panel no longer floats over the game, and minimize
+sends the launcher to the Dock, from where a click restores it) and lets the launcher show the server's official
+skin (MAC-APP-006: WIC stream fix). An app built with the v2 or v1 proxy still works with the default skin (the
+installer keeps the official skin disabled then), and verify reports the proxy as a WARN.
 
 A private mugl build contains client-derived bytes: distributing it to players is the owner's decision, and it
 must never be committed. The mscoree proxy and the public mugl are authored sources (MIT); the timewalker files

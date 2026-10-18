@@ -389,10 +389,10 @@ let installStepNames: [String: String] = [
     "registry re-check after .NET": "Windows settings, second check",
     "game files": "game files",
     "launcher .NET config": "launcher settings",
-    "launcher skin": "launcher appearance",
     "C:\\mutools": "window sizes and speed settings",
     "LauncherOption.if": "window size",
-    "proxy DLLs": "speed-up files (mugl)",
+    "proxy DLLs": "speed-up and launcher fix files (mugl, mscoree)",
+    "launcher skin": "the server's launcher design",
     "fast x87 and Desktop launcher": "fast 3D maths (fast x87)",
     "verify": "final check",
 ]

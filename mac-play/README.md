@@ -138,9 +138,12 @@ Keep Wine's builtin `windowscodecs` and `gdiplus`. Installing native WIC with
 Do not install `gdiplus` either. If you used an earlier experimental setup that
 installed native WIC, create a fresh bottle; this script refuses its old marker.
 
-The clone's `Data/Launcher/Design/Template.design` contains the custom skin that
-still fails Wine's design loader. Setup renames it to `Template.design.disabled`
-so the launcher uses its built-in IGCN skin. This check runs on every invocation,
+The clone's `Data/Launcher/Design/Template.design` contains the server's official
+skin. Under Wine 11 it crashes the launcher unless the mscoree proxy v3 with the WIC
+stream fix is installed (`mumodes/wicfix.c`; see `docs/research/mac-launcher-skin.md`).
+This legacy script installs no mscoree proxy, so it renames the skin to
+`Template.design.disabled` and the launcher uses its built-in IGCN skin. The
+`installer/` kit installs the proxy and keeps (or restores) the official skin. This check runs on every invocation,
 including after a game update. If `.disabled` already exists, the next disabled
 copy receives a numbered suffix, preserving both. The original installation
 keeps its skin. Always start via `Play.command`; direct `main.exe` startup does

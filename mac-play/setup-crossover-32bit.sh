@@ -116,6 +116,9 @@ configure_browser() {
 
 disable_custom_skin() {
     local design="$GAME/Data/Launcher/Design" file backup n=1 component
+    # The server's official skin needs the mscoree proxy's WIC stream fix under Wine 11
+    # (mac-play/mumodes/wicfix.c, docs/research/mac-launcher-skin.md). This legacy script installs no
+    # mscoree proxy, so it keeps the skin disabled; mac-play/installer restores it.
     # Updates may restore the custom skin. Recheck every run, without a step marker.
     for component in "$GAME" "$GAME/Data" "$GAME/Data/Launcher" "$design"; do
         [ ! -L "$component" ] || die "Refusing symlink in cloned skin path: $component"
@@ -130,7 +133,7 @@ disable_custom_skin() {
             n=$((n + 1))
         done
         mv "$file" "$backup"
-        note "Disabled cloned custom skin: $backup"
+        note "Disabled cloned official skin (needs the mscoree proxy v3, which this script does not install): $backup"
     else
         note 'Custom skin absent; using the built-in default IGCN skin.'
     fi
