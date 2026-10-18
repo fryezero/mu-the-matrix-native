@@ -95,11 +95,20 @@ yes 'hotpatch 875951 (v7.4 default)' mukit_hotpatch_valid 875951
 yes 'hotpatch 2097151' mukit_hotpatch_valid 2097151
 yes 'hotpatch 44916143 (v7.5 default)' mukit_hotpatch_valid 44916143
 yes 'hotpatch 112025007 (kit default, v7.6 JPEG bit)' mukit_hotpatch_valid 112025007
-yes 'hotpatch 30-bit value accepted' mukit_hotpatch_valid 380050863
+yes 'hotpatch 31-bit value without the refused bits' mukit_hotpatch_valid 1342177279
+yes 'hotpatch 1073741824 (opt-in deferred enables)' mukit_hotpatch_valid 1073741824
+no 'hotpatch 380460463 refused (CRC bit 268435456)' mukit_hotpatch_valid 380460463
+no 'hotpatch 536870912 refused (CRC verify bit)' mukit_hotpatch_valid 536870912
+no 'hotpatch 380050863 refused (CRC bit)' mukit_hotpatch_valid 380050863
+yes 'forbidden: 268435456' mukit_hotpatch_forbidden 268435456
+yes 'forbidden: 536870912' mukit_hotpatch_forbidden 536870912
+no 'forbidden: kit default 112025007' mukit_hotpatch_forbidden 112025007
+no 'forbidden: 1073741824' mukit_hotpatch_forbidden 1073741824
+no 'forbidden: not a number' mukit_hotpatch_forbidden x
 yes 'hotpatch 67108863' mukit_hotpatch_valid 67108863
 no 'hotpatch x'   mukit_hotpatch_valid x
 yes 'hotpatch 67108864 (v7.6 JPEG bit)' mukit_hotpatch_valid 67108864
-yes 'hotpatch 2147483647 (max)' mukit_hotpatch_valid 2147483647
+no 'hotpatch 2147483647 refused (includes the CRC bits)' mukit_hotpatch_valid 2147483647
 no 'hotpatch 2147483648' mukit_hotpatch_valid 2147483648
 eq 'v7.5 default keeps v7.0 bits' "$((MUKIT_HOTPATCH_DEFAULT & 31))" "$MUKIT_HOTPATCH_V70_BITS"
 eq 'v7.1/v7.2 read their default' "$((MUKIT_HOTPATCH_DEFAULT & 16383))" 7599
@@ -265,6 +274,18 @@ printf '6575\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 eq 'user mask 6575 kept' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 6575
 "$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify6575.log" 2>&1
 grep -q 'PASS  mugl-hotpatch.txt *6575 .*without the frame pacing fix' "$TMPD/verify6575.log" && ok 'verify accepts 6575' || bad 'verify accepts 6575'
+# Masks with the refused CRC bits (file-integrity module, out of scope): setup refuses them, replaces a file holding
+# one even without --reset-config, and verify fails on it.
+"${SETUP[@]}" --hotpatch-mask 380460463 > "$TMPD/run-crc.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && ok 'setup refuses --hotpatch-mask with the CRC bit' || bad 'setup refuses --hotpatch-mask with the CRC bit'
+grep -q 'refused: bits 268435456/536870912 .*file-integrity module.* out of scope' "$TMPD/run-crc.log" && ok 'refusal names the file-integrity module' || bad 'refusal names the file-integrity module'
+eq 'refused mask not written' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 6575
+printf '380460463\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
+"$KIT_DIR/verify-mu-mac.sh" --bottle FakeKit > "$TMPD/verify-crc.log" 2>&1; rc=$?
+[ "$rc" != 0 ] && ok 'verify fails on a mask with the CRC bit' || bad 'verify fails on a mask with the CRC bit'
+grep -q 'FAIL  mugl-hotpatch.txt *380460463 refused' "$TMPD/verify-crc.log" && ok 'verify names the refused mask' || bad 'verify names the refused mask'
+"${SETUP[@]}" > "$TMPD/run-crc2.log" 2>&1
+eq 'setup replaces a stored mask with the CRC bit' "$(cat "$FB/drive_c/mutools/mugl-hotpatch.txt")" 112025007
 printf '112025007\n' > "$FB/drive_c/mutools/mugl-hotpatch.txt"
 
 echo '# Desktop launcher step (temporary HOME)'

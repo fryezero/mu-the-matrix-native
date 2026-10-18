@@ -264,7 +264,13 @@ mukit_screen_size() {
 
 # ---------------------------------------------------------------- mutools config values
 mukit_mugl_mode_valid() { [[ "$1" =~ ^(full|nomerge|nofilter|off|nodraw)(\+vbo)?(\+time)?(\+finish)?(\+samples)?(\+cull)?$ ]]; }
-mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,10}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ]; }
+# Bits 268435456 and 536870912 belonged to an experimental native CRC-32 for the client's file-integrity module.
+# That module is out of scope (this project does not modify it) and current mugl source has no such patch; the kit
+# refuses masks with either bit, so no build that still carries the code can be told to apply it.
+MUKIT_HOTPATCH_FORBIDDEN=805306368     # 268435456 | 536870912
+MUKIT_HOTPATCH_FORBIDDEN_WHY='bits 268435456/536870912 (a CRC-32 patch of the client'"'"'s file-integrity module) are out of scope: this project does not modify that module'
+mukit_hotpatch_forbidden() { [[ "$1" =~ ^[0-9]{1,10}$ ]] && [ $(( 10#$1 & MUKIT_HOTPATCH_FORBIDDEN )) != 0 ]; }
+mukit_hotpatch_valid()  { [[ "$1" =~ ^[0-9]{1,10}$ ]] && [ "$1" -le "$MUKIT_HOTPATCH_MAX" ] && ! mukit_hotpatch_forbidden "$1"; }
 
 # mukit_mugl_version_sha VERSION -> pinned SHA-256 of mugl/builds/mugl-VERSION.dll (v76 | v75 | v72 | v71 | v70).
 mukit_mugl_version_sha() {
