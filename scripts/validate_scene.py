@@ -197,6 +197,8 @@ def library(path=None):
         getattr(lib, name).restype = None
     lib.mu_scenemgr_dispatch_target.argtypes = [c_int32]
     lib.mu_scenemgr_dispatch_target.restype = c_int32
+    lib.mu_scenemgr_login_render_3d.restype = c_int32
+    lib.mu_scenemgr_login_tick_head.restype = c_int32
     return lib
 
 
