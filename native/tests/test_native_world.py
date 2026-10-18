@@ -139,6 +139,29 @@ class WalkTests(Build):
         self.assertIn(0x4f, actions)                      # run action once the counter reaches 40
         self.assertEqual(actions.index(0x4f), [f['run'] for f in moving].index(40))
 
+    def test_boots_let_class_1_run(self):
+        """NATIVE-PATH-002: boots of item level 5 (--boots 5) let a class-1 hero's run counter grow."""
+        frames, summary, logs, result = walk(self.root, '--backend', 'soft', '--class', '1', '--boots', '5',
+                                             '--tile', '120,40', '--walk', '120,54', '--frames', '120', '--every', '1',
+                                             '--width', '160', '--height', '100', '--out-dir', Path(self.tmp.name) / 'g')
+        moving = [f for f in frames if f['moving']][1:]
+        self.assertIn(0x4f, [f['action'] for f in moving])
+        self.assertGreater(summary['units_per_step'], 12.0)
+        run = next(json.loads(line) for line in result.stdout.splitlines() if line.startswith('{"run"'))
+        self.assertEqual((run['boots'], run['top_speed']), (5, 15.0))
+
+    def test_long_distance_auto_move(self):
+        """NATIVE-PATH-002: the client's long-distance auto move: one search, three-node segments, arrival."""
+        frames, summary, logs, result = walk(self.root, '--backend', 'soft', '--tile', '120,40', '--auto-move',
+                                             '130,90', '--pause', '1', '--frames', '700', '--every', '50', '--width',
+                                             '160', '--height', '100', '--out-dir', Path(self.tmp.name) / 'h')
+        run = next(json.loads(line) for line in result.stdout.splitlines() if line.startswith('{"run"'))
+        self.assertEqual((run['auto_moves'], run['auto_searches'], run['auto_flag']), (1, 1, 0))
+        self.assertEqual(run['tile'], [130, 90])
+        self.assertEqual(run['auto_segments'], 17)          # 51 nodes, three per segment
+        self.assertIn('auto move: tile 130,90 (51 nodes listed)', logs)
+        self.assertIn('auto move arrived: tile 130,90', logs)
+
     def test_safe_zone_resets_the_run_counter(self):
         frames, _, _, _ = walk(self.root, '--backend', 'soft', '--class', '3', '--tile', '120,103', '--walk',
                                '126,103', '--frames', '60', '--every', '1', '--width', '160', '--height', '100',

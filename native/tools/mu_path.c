@@ -1,7 +1,9 @@
 /* mu-path: click-to-move demonstrator of the native path module (NATIVE-PATH-001).
  *
- *   mu-path find   SOURCE --from X,Y --to X,Y [--repath]      JSON: client path, search, walk
+ *   mu-path find   SOURCE --from X,Y --to X,Y [--repath] [--long] [--run] [--class C] [--boots L]
+ *                                                              JSON: client path, search, walk
  *   mu-path render SOURCE --from X,Y --to X,Y --out PNG [--size N] [--margin T] [--no-terrain] [--repath]
+ *                  [--long] [--run] [--class C] [--boots L]
  *   mu-path batch  SOURCE --count N --out-dir DIR [--seed S] [--size N]   random clicks, one PNG each
  *   mu-path att    ROOT --world W --out FILE|-                 the loaded 256 x 256 attribute cells (u16 LE)
  *
@@ -10,9 +12,15 @@
  *
  * The search is the client's PathFinding2 with the hero click arguments (distance 0, level
  * TW_CHARACTER); the walk runs the client's 40 ms hero step (MovePath with turning, then
- * MoveCharacterPosition at the player base speed). --repath clicks the same target again
+ * MoveCharacterPosition at CharacterMoveSpeed). --repath clicks the same target again
  * whenever the walker stops short of it (a demo choice: the client gets a new click from
  * the player). Nothing is sent anywhere: the network boundary is only counted ("sent").
+ *
+ * NATIVE-PATH-002: the run counter follows SetPlayerWalk's rule for the hero's class (--class,
+ * default 0) and gear: --boots L puts boots of item level L on the body; --run is --boots 5
+ * (any class then runs: 12 units per step, 15 from the 40th moving step). --long walks with the
+ * client's long-distance auto move instead of a click (0x0129c6be: one search of up to 500
+ * nodes, handed over three nodes at a time, re-searched from where the list ends).
  */
 #define _POSIX_C_SOURCE 200809L
 #include <math.h>
@@ -30,7 +38,8 @@ typedef struct args {
     const char *command, *root, *out, *synthetic, *out_dir;
     int32_t world, size, margin, count;
     int32_t from[2], to[2];
-    int have_from, have_to, terrain, repath, run;
+    int have_from, have_to, terrain, repath, run, long_move, boots;
+    uint8_t class_byte;
     uint32_t seed;
 } args;
 
@@ -65,6 +74,11 @@ static int parse(args *a, int argc, char **argv)
         }
         if (!strcmp(k, "--run")) {
             a->run = 1;
+            a->boots = 5;
+            continue;
+        }
+        if (!strcmp(k, "--long")) {
+            a->long_move = 1;
             continue;
         }
         if (!v)
@@ -86,6 +100,10 @@ static int parse(args *a, int argc, char **argv)
             a->margin = atoi(v);
         else if (!strcmp(k, "--count"))
             a->count = atoi(v);
+        else if (!strcmp(k, "--class"))
+            a->class_byte = (uint8_t)strtol(v, NULL, 0);
+        else if (!strcmp(k, "--boots"))
+            a->boots = atoi(v);
         else if (!strcmp(k, "--from")) {
             if (parse_pair(v, a->from))
                 return 1;
@@ -112,15 +130,15 @@ static int synthesize(const char *kind, uint32_t seed, uint16_t *grid)
 {
     uint32_t s = seed ? seed : 1;
     if (!strcmp(kind, "open")) {
-        memset(grid, 0, MU_PATH_CELLS * sizeof *grid);
+        memset(grid, 0, MU_PATHING_CELLS * sizeof *grid);
     } else if (!strcmp(kind, "noise")) {
-        for (int i = 0; i < MU_PATH_CELLS; i++)
+        for (int i = 0; i < MU_PATHING_CELLS; i++)
             grid[i] = (lcg(&s) % 100) < 28 ? MU_TW_NOMOVE : 0;
     } else if (!strcmp(kind, "safezone")) {
-        for (int i = 0; i < MU_PATH_CELLS; i++)
+        for (int i = 0; i < MU_PATHING_CELLS; i++)
             grid[i] = (uint16_t)(MU_TW_SAFEZONE | ((lcg(&s) % 100) < 30 ? MU_TW_CHARACTER : 0));
     } else if (!strcmp(kind, "rooms")) {
-        memset(grid, 0, MU_PATH_CELLS * sizeof *grid);
+        memset(grid, 0, MU_PATHING_CELLS * sizeof *grid);
         for (int r = 0; r < 140; r++) {
             int x0 = (int)(lcg(&s) % 250), y0 = (int)(lcg(&s) % 250);
             int w = 3 + (int)(lcg(&s) % 26), h = 3 + (int)(lcg(&s) % 26);
@@ -136,7 +154,7 @@ static int synthesize(const char *kind, uint32_t seed, uint16_t *grid)
         static uint8_t seen[CELLS * CELLS];
         static int16_t stack[CELLS * CELLS * 2];
         memset(seen, 0, sizeof seen);
-        for (int i = 0; i < MU_PATH_CELLS; i++)
+        for (int i = 0; i < MU_PATHING_CELLS; i++)
             grid[i] = MU_TW_NOMOVE;
         int top = 0;
         stack[top++] = (int16_t)(lcg(&s) % CELLS);
@@ -182,7 +200,7 @@ static int synthesize(const char *kind, uint32_t seed, uint16_t *grid)
 
 typedef struct source {
     mu_world *world;            /* NULL for synthetic maps */
-    uint16_t attributes[MU_PATH_CELLS];
+    uint16_t attributes[MU_PATHING_CELLS];
     char label[64];
 } source;
 
@@ -224,19 +242,28 @@ typedef struct run {
     int32_t end_tile[2];
     float end_angle;
     uint32_t sent;
+    int32_t run_steps, first_run_step; /* moving steps at the run speed, first such step (-1: none) */
+    float max_speed;
+    uint32_t segments, searches;       /* auto move: segments taken, long searches made */
 } run;
 
 static void simulate(const args *a, mu_pathing *pathing, run *r)
 {
     mu_walker hero;
     mu_walker_place(&hero, a->from[0], a->from[1], 0.0f);
-    r->closed_map = calloc(MU_PATH_CELLS, 1);
+    mu_walker_gear_default(&hero, a->class_byte, a->world);
+    if (a->boots)
+        mu_walker_gear_boots(&hero, (int8_t)a->boots);
+    r->closed_map = calloc(MU_PATHING_CELLS, 1);
     r->trace[0][0] = hero.mover.position[0];
     r->trace[0][1] = hero.mover.position[1];
     r->trace_count = 1;
-    int max_clicks = a->repath ? 40 : 1;
+    r->first_run_step = -1;
+    int max_clicks = a->repath && !a->long_move ? 40 : 1;
     for (int click = 0; click < max_clicks; click++) {
-        int started = mu_walker_click(&hero, pathing, a->to[0], a->to[1]);
+        int started = a->long_move ? mu_walker_auto_move(&hero, pathing, a->to[0], a->to[1])
+                                   : mu_walker_click(&hero, pathing, a->to[0], a->to[1]);
+        r->searches += (uint32_t)a->long_move;
         if (click == 0) {
             mu_path_finder *f = &pathing->finder;
             r->found = started;
@@ -247,7 +274,7 @@ static void simulate(const args *a, mu_pathing *pathing, run *r)
                 memcpy(r->full_x, mu_path_finder_x(f), (size_t)f->count);
                 memcpy(r->full_y, mu_path_finder_y(f), (size_t)f->count);
             }
-            for (int i = 0; i < MU_PATH_CELLS; i++)
+            for (int i = 0; i < MU_PATHING_CELLS; i++)
                 if (f->mark[i] & MU_PATH_CLOSED) {
                     r->closed_map[i] = 1;
                     r->closed++;
@@ -256,9 +283,20 @@ static void simulate(const args *a, mu_pathing *pathing, run *r)
         if (!started)
             break;
         r->clicks++;
-        for (int step = 0; step < 4000 && hero.moving; step++) {
-            r->arrivals += mu_walker_step(&hero, a->run);
+        for (int step = 0; step < 40000 && (hero.moving || hero.auto_path.flag == 2); step++) {
+            uint32_t sent = hero.sent, segments = hero.segments;
+            int moving = hero.moving;
+            r->arrivals += mu_walker_step(&hero, pathing);
+            if (hero.sent != sent && hero.segments != segments && !moving)
+                r->searches++;   /* a restart from where the list ended */
             r->steps++;
+            if (hero.moving && hero.speed > 12.0f) {
+                if (r->first_run_step < 0)
+                    r->first_run_step = r->steps;
+                r->run_steps++;
+            }
+            if (hero.speed > r->max_speed)
+                r->max_speed = hero.speed;
             if (r->trace_count < MAX_TRACE) {
                 r->trace[r->trace_count][0] = hero.mover.position[0];
                 r->trace[r->trace_count][1] = hero.mover.position[1];
@@ -272,6 +310,7 @@ static void simulate(const args *a, mu_pathing *pathing, run *r)
     r->end_tile[1] = hero.mover.tile_y;
     r->end_angle = hero.mover.angle[2];
     r->sent = hero.sent;
+    r->segments = hero.segments;
 }
 
 static void print_json(FILE *out, const args *a, const source *src, const run *r)
@@ -284,6 +323,10 @@ static void print_json(FILE *out, const args *a, const source *src, const run *r
     fprintf(out, "], \"full_path_nodes\": %d, \"pops\": %d, \"explored\": %d, ", r->full_count, r->pops, r->closed);
     fprintf(out, "\"clicks\": %d, \"sent\": %u, \"steps\": %d, \"arrivals\": %d, \"end_tile\": [%d, %d], ", r->clicks,
             r->sent, r->steps, r->arrivals, r->end_tile[0], r->end_tile[1]);
+    fprintf(out, "\"run_steps\": %d, \"first_run_step\": %d, \"max_speed\": %.9g, \"seconds\": %.2f, ",
+            r->run_steps, r->first_run_step, (double)r->max_speed, (double)r->steps * 0.04);
+    if (a->long_move)
+        fprintf(out, "\"long\": 1, \"segments\": %u, \"searches\": %u, ", r->segments, r->searches);
     fprintf(out, "\"end_position\": [%.9g, %.9g], \"end_angle\": %.9g, \"reached\": %d}\n",
             (double)r->trace[r->trace_count - 1][0], (double)r->trace[r->trace_count - 1][1], (double)r->end_angle,
             r->end_tile[0] == (a->to[0] & 255) && r->end_tile[1] == (a->to[1] & 255));
@@ -345,7 +388,7 @@ static int render(const args *a, source *src, mu_pathing *pathing, const run *r,
     /* box: from, to, path, explored tiles, plus a margin, square, inside 0..254 */
     int32_t bx0 = a->from[0] < a->to[0] ? a->from[0] : a->to[0], bx1 = a->from[0] < a->to[0] ? a->to[0] : a->from[0];
     int32_t by0 = a->from[1] < a->to[1] ? a->from[1] : a->to[1], by1 = a->from[1] < a->to[1] ? a->to[1] : a->from[1];
-    for (int i = 0; i < MU_PATH_CELLS; i++)
+    for (int i = 0; i < MU_PATHING_CELLS; i++)
         if (r->closed_map[i]) {
             int32_t x = i % 256, y = i / 256;
             if (x < bx0) bx0 = x;
@@ -478,7 +521,7 @@ static int command_att(const args *a)
     }
     FILE *f = (!a->out || !strcmp(a->out, "-")) ? stdout : fopen(a->out, "wb");
     int failed = !f;
-    for (int i = 0; f && i < MU_PATH_CELLS; i++) {
+    for (int i = 0; f && i < MU_PATHING_CELLS; i++) {
         uint8_t b[2] = {(uint8_t)(src->attributes[i] & 0xff), (uint8_t)(src->attributes[i] >> 8)};
         failed |= fwrite(b, 1, 2, f) != 2;
     }
@@ -559,7 +602,7 @@ int main(int argc, char **argv)
                 " [--seed S])\n"
                 "               [--from X,Y --to X,Y] [--out PNG] [--out-dir DIR --count N] [--size N]"
                 " [--margin T]\n"
-                "               [--no-terrain] [--repath] [--run]\n"
+                "               [--no-terrain] [--repath] [--run] [--long] [--class C] [--boots L]\n"
                 "       mu-path att ROOT --world W --out FILE|-\n");
         return 2;
     }

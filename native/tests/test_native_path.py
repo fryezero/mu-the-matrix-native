@@ -1,9 +1,10 @@
-"""Native click-to-move (NATIVE-PATH-001) checks.
+"""Native click-to-move (NATIVE-PATH-001, NATIVE-PATH-002) checks.
 
 Portable (synthetic attribute maps only): `mu-path find` on the built-in
 synthetic maps (open ground, maze, safe zone with characters), the 15-node
 client path, repeated clicks, render determinism and the PNG output, the batch
-mode, and the attribute dump refusing a missing game root.
+mode, the attribute dump refusing a missing game root, the run-counter rule (class, boots,
+safe zone) and the long-distance auto move (NATIVE-PATH-002).
 Private (MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT): the Lorencia attribute
 dump, a walk in the Lorencia safe zone and a rendered path over the terrain.
 The instruction-level comparison with the client is scripts/validate_path.py.
@@ -62,6 +63,36 @@ class NativePathTests(unittest.TestCase):
         walk = find('--synthetic', 'open', '--from', '10,10', '--to', '24,10')
         running = find('--synthetic', 'open', '--from', '10,10', '--to', '24,10', '--run')
         self.assertLess(running['steps'], walk['steps'])
+
+    def test_run_counter_rules(self):
+        """NATIVE-PATH-002: SetPlayerWalk's run rule. A class-0 hero without gear walks at 12; base class 3
+        or boots of item level 5 run at 15 from the 40th moving step; level-4 boots do not; a safe zone
+        keeps the counter at 0."""
+        base = ('--synthetic', 'open', '--from', '10,10', '--to', '60,10')
+        walk = find(*base)
+        self.assertEqual((walk['max_speed'], walk['first_run_step'], walk['run_steps']), (12, -1, 0))
+        for extra in (('--class', '3'), ('--boots', '5'), ('--run',)):
+            r = find(*base, *extra)
+            self.assertEqual((r['max_speed'], r['first_run_step']), (15, 40), extra)
+            self.assertEqual(r['run_steps'], r['steps'] - 40)   # every step from the 40th on
+            self.assertLess(r['steps'], walk['steps'])
+        self.assertEqual(find(*base, '--boots', '4')['max_speed'], 12)
+        r = find('--synthetic', 'safezone', '--seed', '4', '--from', '120,120', '--to', '135,121', '--class', '3')
+        self.assertEqual(r['max_speed'], 12)
+
+    def test_long_distance_auto_move(self):
+        """NATIVE-PATH-002: the client's long-distance auto move (0x0129c6be): one search of up to 500 nodes,
+        handed to the follower three nodes at a time, searched again where the list ends."""
+        r = find('--synthetic', 'open', '--from', '10,10', '--to', '200,150', '--long')
+        self.assertEqual((r['found'], r['reached'], r['long']), (1, 1, 1))
+        self.assertEqual(r['full_path_nodes'], 191)
+        self.assertEqual((r['segments'], r['searches']), (64, 1))      # ceil(191 / 3)
+        self.assertEqual(r['end_position'], [20050, 15050])
+        r = find('--synthetic', 'maze', '--seed', '3', '--from', '5,5', '--to', '250,250', '--long')
+        self.assertEqual(r['reached'], 1)
+        self.assertEqual(r['full_path_nodes'], 499)                     # the trimmed first search
+        self.assertGreater(r['searches'], 1)
+        self.assertGreater(r['segments'], 499 // 3)
 
     def test_maze_and_unreachable_targets(self):
         r = find('--synthetic', 'maze', '--seed', '3', '--from', '5,5', '--to', '30,30')

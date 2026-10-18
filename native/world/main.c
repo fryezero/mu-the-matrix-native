@@ -99,6 +99,8 @@ typedef struct app {
     float angle, near_plane, seconds;
     uint8_t class_byte;
     int32_t waypoints[MAX_WAYPOINTS][2], waypoint_count;
+    /* NATIVE-PATH-002: hero boots level (run counter) and a long-distance auto move */
+    int32_t boots, auto_target[2], has_auto, auto_started;
     int32_t wheel_frame[MAX_WHEELS], wheel_delta[MAX_WHEELS], wheel_count;
     mu_world *map;
     mu_camera_info info;
@@ -233,6 +235,10 @@ static int load(app *a)
     mu_walk_init(&a->walk, a->map, &a->info, (uint32_t)a->width, (uint32_t)a->height, a->tile[0], a->tile[1], a->angle,
                  a->class_byte, a->ch.player_bmd.action_count, a->near_plane);
     mu_hero *h = &a->walk.hero;
+    if (a->boots) {   /* boots of that item level on the body part (SetPlayerWalk's run rule) */
+        h->gear.boots_type = 0x0c00;
+        h->gear.boots_level = (int8_t)a->boots;
+    }
     mu_character_set_state(&a->ch, h->action, 0.0f, 0.0f, h->action);
     mu_walk_place(&a->walk, &a->ch);
     if (a->audio) {
@@ -494,8 +500,17 @@ static void script(app *a, int32_t frame)
         a->idle_frames = 0;
         return;
     }
-    if (a->next_waypoint >= a->waypoint_count)
+    if (a->next_waypoint >= a->waypoint_count) {
+        /* NATIVE-PATH-002: after the clicks, the long-distance auto move (once) */
+        if (a->has_auto && !a->auto_started && !w->hero.movement && ++a->idle_frames >= a->pause) {
+            a->auto_started = 1;
+            int started = mu_walk_auto_move_to(w, a->auto_target[0], a->auto_target[1]);
+            if (!a->quiet)
+                fprintf(stderr, "frame %d: auto move toward tile %d,%d: %s\n", frame, a->auto_target[0],
+                        a->auto_target[1], started ? "started" : "refused");
+        }
         return;
+    }
     if (w->hero.movement) {
         a->idle_frames = 0;
         return;
@@ -1177,6 +1192,11 @@ static void report_summary(const app *a, const char *renderer)
            (double)a->info.z_distance, (double)a->walk.frame.view.view_near, w->steps, w->moves, w->arrivals,
            w->path_refused, w->frame.picks, w->frame.pick_hits, a->walked, a->moving_steps, w->position_steps,
            w->position_steps ? w->position_distance / w->position_steps : 0.0);
+    if (a->boots || a->has_auto)
+        printf("{\"run\": true, \"boots\": %d, \"run_counter\": %u, \"top_speed\": %.3f, \"auto_moves\": %u,"
+               " \"auto_segments\": %u, \"auto_searches\": %u, \"auto_flag\": %d, \"tile\": [%d, %d]}\n", a->boots,
+               w->hero.run, (double)w->top_speed, w->auto_moves, w->auto_segments, w->auto_searches,
+               w->auto_path.flag, w->hero.tile[0], w->hero.tile[1]);
     if (a->has_sound) {
         const mu_world_sound *s = &a->sound;
         printf("{\"sound\": true, \"table\": %s, \"steps\": %u, \"frames\": %u, \"footsteps\": %u,"
@@ -1603,6 +1623,7 @@ static int usage(void)
                     "                [--width W --height H] [--seconds S] [--walk \"X,Y ...\"] [--wheel \"F:+1 ...\"]\n"
                     "                [--headless --frames N --out-dir DIR --backend gl|soft --every K --pause P]\n"
                     "                [--player Player.bmd] [--quiet]\n"
+                    "                [--boots L] [--auto-move X,Y]   run gear; long-distance auto move (S+click)\n"
                     "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
@@ -1662,6 +1683,11 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--out-dir")) a.out_dir = v;
         else if (!strcmp(k, "--backend")) a.backend = v;
         else if (!strcmp(k, "--walk")) { if (parse_waypoints(&a, v)) return usage(); }
+        else if (!strcmp(k, "--boots")) a.boots = atoi(v);
+        else if (!strcmp(k, "--auto-move")) {
+            if (sscanf(v, "%d,%d", &a.auto_target[0], &a.auto_target[1]) != 2) return usage();
+            a.has_auto = 1;
+        }
         else if (!strcmp(k, "--wheel")) { if (parse_wheels(&a, v)) return usage(); }
         else if (!strcmp(k, "--sound-table")) a.sound_table = v;
         else if (!strcmp(k, "--wav")) a.wav_path = v;

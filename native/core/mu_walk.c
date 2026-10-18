@@ -200,6 +200,67 @@ int mu_walk_path_to(mu_walk *w, int32_t tile_x, int32_t tile_y)
     return 1;
 }
 
+/* SendMove 0x016b5cd0 for a segment of the auto move: the PATH_t is the hero's. */
+static void auto_take_segment(mu_walk *w)
+{
+    memcpy(&w->hero.path, &w->auto_path.path, sizeof w->hero.path);
+    w->hero.movement = 1;
+    ++w->auto_segments;
+    ++w->moves;
+}
+
+int mu_walk_auto_move_to(mu_walk *w, int32_t tile_x, int32_t tile_y)
+{
+    mu_hero *h = &w->hero;
+    mu_auto_path_effects e;
+    memcpy(&w->auto_path.path, &h->path, sizeof w->auto_path.path);
+    int started = mu_auto_path_start(&w->auto_path, &w->finder, 2, h->tile[0], h->tile[1], tile_x & 0xff,
+                                     tile_y & 0xff, 2, 0, &e);
+    if (e.arrived)
+        mu_auto_path_arrive(&w->auto_path);
+    if (started) {
+        ++w->auto_moves;
+        ++w->auto_searches;
+        auto_take_segment(w);
+        w->target[0] = e.target[0];   /* TargetX/Y = the waypoint */
+        w->target[1] = e.target[1];
+        char text[80];
+        snprintf(text, sizeof text, "auto move: tile %d,%d (%d nodes listed)", w->auto_path.target_x,
+                 w->auto_path.target_y, w->auto_path.list_count + w->auto_path.path.count);
+        log_line(w, text);
+    }
+    /* 0x016ad0a1 */
+    if (w->auto_path.target_x >= 0 && w->auto_path.target_y >= 0 &&
+        (w->frame.walls[cell_index(w->auto_path.target_x, w->auto_path.target_y)] & 1))
+        mu_auto_path_reset(&w->auto_path);
+    return started;
+}
+
+/* MoveHero 0x016a97b9..0x016a9a74 for flag 2 (no cancel byte 0x0bdc599c, no flag 3): a stopped hero
+ * walks on toward the auto-move target, or the auto move is dropped when it has none. */
+static void hero_auto(mu_walk *w)
+{
+    mu_hero *h = &w->hero;
+    mu_auto_path *a = &w->auto_path;
+    if (a->flag != 2 || h->movement)
+        return;
+    if (a->target_x == -1 || a->target_y == -1) {
+        mu_auto_path_reset(a);
+        return;
+    }
+    mu_auto_path_effects e;
+    memcpy(&a->path, &h->path, sizeof a->path);
+    if (mu_auto_path_start(a, &w->finder, 2, h->tile[0], h->tile[1], a->target_x, a->target_y, a->mode, 0, &e)) {
+        ++w->auto_searches;
+        auto_take_segment(w);
+    } else if (e.arrived) {
+        mu_auto_path_arrive(a);
+        char text[80];
+        snprintf(text, sizeof text, "auto move arrived: tile %d,%d", h->tile[0], h->tile[1]);
+        log_line(w, text);
+    }
+}
+
 void mu_walk_stop(mu_walk *w)
 {
     mu_hero *h = &w->hero;
@@ -254,6 +315,10 @@ void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_
     /* 0x012b0e65: 256 x 256 over TerrainWall; no operable-object grid (placeholder) */
     mu_path_finder_init(&w->finder, 256, 256, f->walls, NULL);
     w->finder.directions = (const int32_t(*)[2])w->directions;
+    /* NATIVE-PATH-002: no gear (body parts empty), no auto move */
+    h->gear.gloves_type = -1;
+    h->gear.boots_type = -1;
+    mu_auto_path_init(&w->auto_path);
 }
 
 void mu_walk_free(mu_walk *w)
@@ -278,11 +343,21 @@ static void hero_walk(mu_walk *w)
     mu_hero *h = &w->hero;
     if (!h->movement)
         return;
-    /* SetPlayerWalk 0x0139002a: run counter, walk action and its PlaySpeed */
-    h->run = mu_player_walk_run(h->class_byte, h->safe_zone, w->world, h->run);
+    /* SetPlayerWalk 0x0139002a: run counter (NATIVE-PATH-002 rule with the hero's gear), walk action
+     * and its PlaySpeed */
+    h->gear.class_byte = h->class_byte;
+    h->gear.safe_zone = h->safe_zone;
+    h->gear.world = w->world;
+    h->run = mu_player_run_counter(&h->gear, h->run);
     float speed;
     int32_t action = mu_player_walk_action(h->class_byte, h->run, &speed);
     set_action(w, action, speed);
+    /* 0x016a9c0a: auto move flag 2 and the logical tile on the waypoint: the next segment (0x0129cc44) */
+    if (w->auto_path.flag == 2 && h->tile[0] == w->auto_path.waypoint_x && h->tile[1] == w->auto_path.waypoint_y) {
+        memcpy(&w->auto_path.path, &h->path, sizeof w->auto_path.path);
+        if (mu_auto_path_next(&w->auto_path))
+            auto_take_segment(w);
+    }
     if (mu_move_path(&h->path, h->tile, h->position, h->angle, 1)) {
         /* 0x016a8904(c, 1): stop position packet, Movement = 0; then
          * SetPlayerStop 0x0138fe69: run counter 0, stand action */
@@ -296,20 +371,28 @@ static void hero_walk(mu_walk *w)
         log_line(w, text);
         return;
     }
-    /* MoveCharacterPosition 0x0137b351 with CharacterMoveSpeed 0x013957b5 */
+    /* MoveCharacterPosition 0x0137b351 with CharacterMoveSpeed 0x013957b5; its predicates from the
+     * hero's fields (NATIVE-PATH-002): no helper or wing, buff mount, riding pet, world rule */
+    mu_speed_fields fields;
+    memset(&fields, 0, sizeof fields);
+    fields.object_type = 0xa91;  /* Player */
+    fields.object_kind = 1;
+    fields.helper_type = 0xffff; /* no pet or mount item */
+    fields.safe_zone = h->safe_zone;
+    fields.subtype = h->gear.subtype;
+    fields.mounted_item = h->gear.mounted_item;
+    fields.wing_type = -1;
+    fields.world = w->world;
+    fields.buffs = h->gear.buffs;
     mu_move_speed_input in;
-    memset(&in, 0, sizeof in);
-    in.object_type = 0xa91;      /* Player */
-    in.object_kind = 1;
-    in.helper_type = 0xffff;     /* no pet or mount */
-    in.mount_type = 0xffff;
-    in.safe_zone = h->safe_zone;
-    in.wing_type = -1;
-    int32_t world = w->world;    /* 0x009dacb8: the Chaos Castle group forces run speed */
-    in.world_runs = (uint8_t)((world >= 0x12 && world <= 0x17) || world == 0x35 || world == 0x61);
+    mu_move_speed_input_from(&fields, &in);
+    int32_t world = w->world;
     mu_position_input p;
     memset(&p, 0, sizeof p);
     p.speed = mu_character_move_speed(&in, &h->run);
+    w->speed = p.speed;
+    if (p.speed > w->top_speed)
+        w->top_speed = p.speed;
     p.world = world;
     p.helper_type = 0xffff;
     p.safe_zone = h->safe_zone;
@@ -357,6 +440,7 @@ static void hero_click(mu_walk *w)
     }
     if (h->tile[0] == w->target[0] && h->tile[1] == w->target[1] && h->movement)
         return;
+    int auto_click = mu_key_is(&f->keys, f->sample.active, 0x53, MU_KEY_REPEAT);   /* 'S' (0x016acf3f) */
     /* PathFinding2 0x012b0e85(PositionX, PositionY, TargetX, TargetY, &Path, 0, 2) */
     _Static_assert(sizeof(mu_path) == sizeof(mu_client_path), "PATH_t layouts differ");
     mu_client_path path;
@@ -375,6 +459,9 @@ static void hero_click(mu_walk *w)
         snprintf(text, sizeof text, "click-to-move: tile %d,%d (%d cells)", w->target[0], w->target[1], n);
         log_line(w, text);
     }
+    /* 0x016acef2..0x016ad06b: S held and the clicked tile without bits 0xd: the long-distance auto move */
+    if (auto_click && pushed && !(f->walls[cell_index(w->target[0], w->target[1])] & 0xd))
+        mu_walk_auto_move_to(w, w->target[0], w->target[1]);
 }
 
 int mu_walk_animate(mu_walk *w, mu_character *character)
@@ -412,7 +499,8 @@ void mu_walk_step(mu_walk *w, mu_character *character)
     mu_key_scan(&f->keys, &f->sample);
     if (w->pre_step_hook)
         w->pre_step_hook(w->pre_step_context, w);
-    /* MoveHero 0x016a9150 (in-world tick 0x01856d3a): walk, then click */
+    /* MoveHero 0x016a9150 (in-world tick 0x01856d3a): auto move, walk, then click */
+    hero_auto(w);
     hero_walk(w);
     hero_click(w);
     /* MoveCharacters 0x0137a7ce (0x01856eca): the character animation step */
