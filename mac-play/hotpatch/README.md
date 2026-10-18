@@ -124,6 +124,10 @@ an all-or-nothing transaction, and other game threads are not suspended.
 | 8388608 | Native terrain decals: the ground-effect routine `0x016cdd5f` and its per-tile fan `0x016d197d` (`decal.c`); with 128 the fans go straight into mugl |
 | 16777216 | With 8388608: run every decal natively record-only, then the original with recorders, and compare the GL call streams and the client globals it writes (diagnostic) |
 | 33554432 | With 128: the mesh-draw direct append specialised per attribute kind (`md_run_vtx` in `meshdraw.c`); bit 64 verifies it |
+| 67108864 | Native JPEG decode: libjpeg-turbo (6b-exact build) decodes for the client's IJG 6b in the three binary-mode JPEG loaders (`jpeg.c`, `jpegdec.c`; needs `LJT_DIR` at build time) |
+| 134217728 | With 67108864: the client's own decoder runs as well and every row is compared (diagnostic) |
+| 268435456 | Native CRC-32: the table-driven CRC routine `0x00aa2c62` computed eight bytes at a time from the client's own table (`crc.c`) |
+| 536870912 | With 268435456: also run the original routine and compare (diagnostic) |
 
 Mask 0 restores these patches, 7 omits skinning, 15 enables all v7.0 replacements,
 and 31 enables skinning verification too. The v7.1 default 7599 is 15 plus 32, 128,

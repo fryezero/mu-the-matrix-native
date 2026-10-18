@@ -94,6 +94,10 @@ void WINAPI mugl_glDrawArrays(GLenum m, GLint first, GLsizei n)
    (exact per-vertex outcodes) and of those that a cheap test on the 8 corners of the batch's bounding box rejects.
    Reads the matrices with glGetFloatv per batch, so it is slow; it only estimates what culling could save. */
 static int cull_mode; static long long cu_verts[DC_N], cu_out[DC_N], cu_box[DC_N]; static long cu_bout[DC_N], cu_bbox[DC_N], cu_batches[DC_N];
+/* v7.6: per-triangle potential of visible GL_TRIANGLES batches: vertices of triangles entirely outside one x/y/w plane,
+   of 16-triangle chunks whose bounding box is, and of back-facing triangles while GL_CULL_FACE culls them (all w > 0). */
+typedef GLboolean (WINAPI *PFNcuis)(GLenum); typedef void (WINAPI *PFNcugi)(GLenum, GLint *);
+static long long cu_tri_out[DC_N], cu_chunk_out[DC_N], cu_back[DC_N], cu_cullon[DC_N];
 static unsigned cu_code(const double *m, double x, double y, double z)
 {
     double c[4]; for (int r = 0; r < 4; r++) c[r] = m[r] * x + m[4 + r] * y + m[8 + r] * z + m[12 + r];
@@ -111,6 +115,33 @@ static void cull_diag(const Vtx *v, int n, int cls)
     }
     unsigned box = 63;
     for (int k = 0; k < 8; k++) box &= cu_code(m, k & 1 ? hi[0] : lo[0], k & 2 ? hi[1] : lo[1], k & 4 ? hi[2] : lo[2]);
+    if (!all && batch_mode == GL_TRIANGLES) {
+        GLint cf = 0, cm = GL_BACK, ff = GL_CCW;
+        cf = R(glIsEnabled, PFNcuis)(GL_CULL_FACE);
+        R(glGetIntegerv, PFNcugi)(GL_CULL_FACE_MODE, &cm); R(glGetIntegerv, PFNcugi)(GL_FRONT_FACE, &ff);
+        if (cf) cu_cullon[cls] += n;
+        for (int t = 0; t + 2 < n; t += 3) {
+            double c[3][4]; unsigned oc = 15;
+            for (int j = 0; j < 3; j++) {
+                const float *p = v[t + j].v;
+                for (int r = 0; r < 4; r++) c[j][r] = m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r];
+                oc &= (c[j][0] > c[j][3]) | (c[j][0] < -c[j][3]) << 1 | (c[j][1] > c[j][3]) << 2 | (c[j][1] < -c[j][3]) << 3;
+            }
+            if (oc) { cu_tri_out[cls] += 3; continue; }
+            if (cf && c[0][3] > 0 && c[1][3] > 0 && c[2][3] > 0) {
+                double ax = c[0][0] / c[0][3], ay = c[0][1] / c[0][3], bx = c[1][0] / c[1][3], by = c[1][1] / c[1][3], qx = c[2][0] / c[2][3], qy = c[2][1] / c[2][3];
+                double area = (bx - ax) * (qy - ay) - (qx - ax) * (by - ay);
+                int front = ff == GL_CCW ? area > 0 : area < 0;
+                if (cm == GL_FRONT_AND_BACK || (cm == GL_BACK && !front && area != 0) || (cm == GL_FRONT && front)) cu_back[cls] += 3;
+            }
+        }
+        for (int t = 0; t + 2 < n; t += 48) {
+            int e = t + 48 < n ? t + 48 : n - n % 3; float l[3] = {1e30f, 1e30f, 1e30f}, h[3] = {-1e30f, -1e30f, -1e30f};
+            for (int i = t; i < e; i++) for (int k = 0; k < 3; k++) { if (v[i].v[k] < l[k]) l[k] = v[i].v[k]; if (v[i].v[k] > h[k]) h[k] = v[i].v[k]; }
+            unsigned cb = 15; for (int k = 0; k < 8; k++) cb &= cu_code(m, k & 1 ? h[0] : l[0], k & 2 ? h[1] : l[1], k & 4 ? h[2] : l[2]) & 15;
+            if (cb) cu_chunk_out[cls] += e - t;
+        }
+    }
     cu_batches[cls]++; cu_verts[cls] += n;
     if (all) { cu_bout[cls]++; cu_out[cls] += n; }
     if (box) { cu_bbox[cls]++; cu_box[cls] += n; }
@@ -122,7 +153,11 @@ static void cull_stats(FILE *f, long frames)
     for (int k = 0; k < DC_N; k++) if (cu_batches[k])
         fprintf(f, " %s=%ld/%ld batches %lld/%lld v (box %ld, %lld v)", dc_names[k], cu_bout[k] / frames, cu_batches[k] / frames, cu_out[k] / frames, cu_verts[k] / frames,
                 cu_bbox[k] / frames, cu_box[k] / frames);
+    fprintf(f, "\n  per-triangle potential/frame (visible triangle batches):");
+    for (int k = 0; k < DC_N; k++) if (cu_batches[k])
+        fprintf(f, " %s=tri-out %lld chunk-out %lld back %lld (cull-on %lld v)", dc_names[k], cu_tri_out[k] / frames, cu_chunk_out[k] / frames, cu_back[k] / frames, cu_cullon[k] / frames);
     fprintf(f, "\n");
+    memset(cu_tri_out, 0, sizeof cu_tri_out); memset(cu_chunk_out, 0, sizeof cu_chunk_out); memset(cu_back, 0, sizeof cu_back); memset(cu_cullon, 0, sizeof cu_cullon);
     memset(cu_verts, 0, sizeof cu_verts); memset(cu_out, 0, sizeof cu_out); memset(cu_box, 0, sizeof cu_box);
     memset(cu_bout, 0, sizeof cu_bout); memset(cu_bbox, 0, sizeof cu_bbox); memset(cu_batches, 0, sizeof cu_batches);
 }
