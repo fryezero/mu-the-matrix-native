@@ -56,6 +56,11 @@ reconstructed 2D routines (`reconstructed/ui`) and a software GL subset. See [th
 `mu-render ui servers` and `mu-render ui credits` (NATIVE-UI-002) add the server-select and credits windows
 of the legacy window layer over synthetic server and credit data; `--frames "x,y,down,up;..."` drives hover,
 press and click. See [the widget finding](../docs/research/client-ui-widgets.md).
+`mu-render ui inventory` (NATIVE-HUD-001) places items in the inventory grid by their Item.bmd size, runs the
+reconstructed slot pass and RenderItem3D and draws the item models under the client's orthographic item pass
+(the GFx frame is a plain stand-in); `--hover N` adds the item's tooltip from itemtooltip/itemtooltiptext through
+the reconstructed formatter cases, `mu-render ui tooltip --item CODE[:LEVEL]` draws one tooltip. See
+[the HUD finding](../docs/research/client-hud.md).
 
 Viewer controls:
 
@@ -183,6 +188,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `viewer/` | SDL2 window, OpenGL immediate-mode backend, CGL offscreen context for headless GL |
 | `core/mu_ui_raster.*`, `mu_ui_assets.*`, `mu_ui_font.*` | 2D layer: software GL subset, interface texture table through the reconstructed OpenTga/OpenJpeg, GDI text boundary (CoreText) |
 | `tools/mu_render.c`, `tools/mu_render_ui.c` | Headless CLI used by the tests (`mu-render ui …` for the 2D layer) |
+| `core/mu_hud.*`, `tools/mu_render_hud.c` | Inventory item pass and tooltips over `reconstructed/hud` (`mu-render ui inventory\|tooltip`, NATIVE-HUD-001) |
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |

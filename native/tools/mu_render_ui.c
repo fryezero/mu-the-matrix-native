@@ -4,6 +4,7 @@
  *   mu-render ui login --root GAME [--size 1024x768] [--font Tahoma] [--version 10000] --out l.png
  *   mu-render ui text  --font Tahoma --size 800x600 --string "..." --out t.png
  *   mu-render ui credits --root GAME [--size 1024x768] [--credits FILE] [--time MS] --out c.png
+ *   mu-render ui inventory|tooltip ... (NATIVE-HUD-001, tools/mu_render_hud.c)
  *   mu-render ui servers --root GAME [--size 1024x768] [--list FILE] [--select N] [--frames "x,y,d,u;..."]
  *                        [--fixed-font FACE] [--text565 T] [--text566 T] [--text567 T] --out s.png
  *
@@ -806,8 +807,12 @@ static int render_credits(const ui_options *o)
     return result;
 }
 
+int mu_render_hud_main(int argc, char **argv);
+
 int mu_render_ui_main(int argc, char **argv)
 {
+    if (argc >= 3 && (!strcmp(argv[2], "inventory") || !strcmp(argv[2], "tooltip")))
+        return mu_render_hud_main(argc, argv);    /* NATIVE-HUD-001 (tools/mu_render_hud.c) */
     ui_options o;
     if (parse(&o, argc, argv)) {
         usage(argv[0]);
