@@ -52,6 +52,12 @@ not exist yet.
   family, 9 planted mistakes detected) and to live object lists (13,727/13,727 created objects; drawn body lights
   bit-identical or only brighter by light sources). `mu-world` and `mu-terrain --object-steps` light, animate, cull
   and draw objects with blend meshes; fire particles are a labelled stand-in. [Evidence](research/client-objects-render.md).
+- Login scene 3D world (NATIVE-LOGIN-001). The login render's 3D part `0x01857ed9..0x0185810e` and tick head
+  (`reconstructed/scene`, 1,000 + 1,000 cases) and the login world's handler `CGMLogInScene_Ex` (create, move, visual,
+  custom render and after-character slots, RenderObjects_AfterCharacter; `reconstructed/objects/login_world.c`, 6 × 2,000
+  cases, 9/9 planted mistakes) equal the actual instructions; the camera, far plane and object state match a live read
+  of the server-select screen. `mu-client` and `mu-render ui login|servers --scene` draw World95 with its ship, sky and
+  island behind the 2D layer; sprites and particles are stand-ins. [Evidence](research/client-login-scene.md).
 - Models: 12,663 of 12,754 unique BMD-extension files parse. Versions 10/12/14 pass
   all 701/180/216 files; v15 passes 11,566 of 11,583. Seventeen v15 inputs remain
   rejected by the strict reader and 74 other/table envelopes are unsupported.

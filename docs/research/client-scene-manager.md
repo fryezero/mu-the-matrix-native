@@ -192,9 +192,8 @@ software-only headless build used by the portable tests. Local captures: `~/Docu
 
 ## 9. Limits and next steps
 
-* **3D login world.** World95 (`0x5e`) behind the login and server-select screens is not drawn (black). Its terrain is a
-  small patch (46,147 of 65,536 cells have no ground); the scene is mostly static objects, which need local decoded
-  object files ([objects](client-objects.md)). Its camera uses MoveMainCamera's record path like character select.
+* **3D login world.** Drawn since NATIVE-LOGIN-001 ([login scene](client-login-scene.md)): the render's 3D part and
+  the tick head are reconstructed and verified, and `mu-client` draws World95 behind the overlay.
 * **The startup loader** `0x0182049e` itself (what each progress step loads) is a static reading of its call sites only.
 * **Main-scene init** (`0x0185613e` first step) and the handler `0x0125294e` are static readings; the GFx menus and the
   GFx account dialog are not reconstructed.

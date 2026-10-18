@@ -24,3 +24,7 @@ Unicorn and compares the call/write stream and the globals. Network sends (the p
 `MU_SCENE_NET_SEND` record.
 
 `make` builds `libscene`; `test_scene.py` holds the portable checks and the opt-in private comparison.
+
+NATIVE-LOGIN-001 adds the login scene's 3D part: `mu_scenemgr_login_render_3d` (the render `0x01857ed9` up to
+BeginBitmap, with the camera far plane `0x0098ac45` inlined) and `mu_scenemgr_login_tick_head` (the tick `0x01857236`
+up to MoveCharacterCamera); see `docs/research/client-login-scene.md`.

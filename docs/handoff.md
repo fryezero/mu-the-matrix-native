@@ -2,6 +2,18 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Login scene (NATIVE-LOGIN-001)
+
+Read [`research/client-login-scene.md`](research/client-login-scene.md). `mu_scenemgr_login_render_3d` /
+`mu_scenemgr_login_tick_head` (reconstructed/scene), `reconstructed/objects/login_world.c` (CGMLogInScene_Ex) and
+`native/core/mu_login` + `native/login/login_gl.c` draw World95 behind the login overlay in `mu-client`
+(`--login-objects DIR` with the local `EncTerrain95.plain`) and `mu-render ui login|servers --scene`. Compare with
+`scripts/validate_scene.py --only login_render login_tick_head` and `scripts/validate_login_world.py --cases 2000
+--mutations` (about 30 s); live snapshots and screenshots are local (`~/Documents/mu-mac-tools/native/scratch/login/live/`,
+`renders/login/`). `objread` takes an optional globals output. Next: the sprite and particle systems (CreateSprite
+`0x01692eb7`, CreateParticle `0x0168fafd`, RenderSprites/RenderParticles), the vertex-light inputs behind the sky/ship
+brightness difference, and the exact command of the 1280×800 pale-terrain report (not reproduced here).
+
 ## Combat (NATIVE-COMBAT-001)
 
 Read [`research/client-combat.md`](research/client-combat.md). `reconstructed/combat` (libcombat), `native/core/mu_combat.*`
