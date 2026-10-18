@@ -91,6 +91,7 @@ typedef struct mu_object_mesh {
     mu_draw_options options;          /* mesh_plus_one, flags, alpha, blend mesh, light, uv, texture */
     mu_draw_model_fields fields;      /* model colour +0x54 at the call */
 } mu_object_mesh;
+struct mu_objects;
 
 typedef struct mu_objects_runtime {
     int ready;
@@ -127,6 +128,13 @@ typedef struct mu_objects_runtime {
     int32_t bitmap_count;
     int32_t *after_list, after_count; /* RenderObjects_AfterCharacter draws of the last frame */
     long sprite_events, after_meshes;
+    /* NATIVE-PARTICLE-001: when set, CreateParticle calls of the move pass go to `particle` (instead of the
+     * stand-in list) and RenderObjectVisual 0x017f9758 is `visual`, called by mu_objects_prepare_index after
+     * RenderObject (model: the posed model, NULL when the object was not posed). */
+    void (*particle)(void *context, int32_t bitmap, const float position[3], const float angle[3],
+                     const float light[3], int32_t subtype, float scale);
+    void (*visual)(void *context, struct mu_objects *objects, int32_t index, int has_model, mu_object_model *model);
+    void *hook_context;
 } mu_objects_runtime;
 
 typedef struct mu_objects {
@@ -262,6 +270,8 @@ mu_object_model *mu_objects_prepare_after(mu_objects *objects, int32_t k, const 
 uint32_t mu_objects_billboard_quads(const mu_objects *objects, int32_t slot, const float eye[3],
                                     const float target[3], mu_fx_vertex *vertices, uint32_t capacity,
                                     mu_fx_draw_state *state);
+/* The client OBJECT image of object `index` (MU_OBJF_* offsets), NULL before mu_objects_start. */
+uint8_t *mu_objects_object_image(mu_objects *objects, int32_t index);
 
 /* Case-insensitive resolution of a path relative to game_root ("Data/..."). */
 int mu_objects_resolve(const char *game_root, const char *relative, char *out, size_t size);

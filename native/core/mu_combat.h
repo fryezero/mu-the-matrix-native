@@ -152,8 +152,13 @@ typedef struct mu_combat_stats {
     uint32_t hero_shocks, hero_deaths;
 } mu_combat_stats;
 
+struct mu_world_particles;
+
 typedef struct mu_combat {
     mu_combat_config config;
+    /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
+     * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */
+    struct mu_world_particles *legacy_particles;
     mu_walk *walk;
     mu_character *hero_character;
     mu_world_actors *actors;

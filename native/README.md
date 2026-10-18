@@ -179,6 +179,26 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --world 141 --tile 118,150    
 `--env-tga-leaves` loads the leaf `.tga` the client unloads (a viewer option, not client behaviour). Frame reports
 add `"env": [boids, fishs, leaves, models drawn, particles drawn]`; the summary adds an `"env"` line.
 
+## Particles, sprites and blob shadows (NATIVE-PARTICLE-001)
+
+`core/mu_particles.*` runs the client's older particle and sprite system from `reconstructed/particles`
+([finding](../docs/research/client-particles.md)) in `mu-world`/`mu-walk`/mu-client:
+
+- CreateParticle from the object move pass (the fires and smoke of CreateFire), RenderObjectVisual (Lorencia's
+  Waterspout smoke, MerchantAnimal flares; Tormenta's joints are counted), the rain splashes and the skills;
+- MoveParticles once per logic step after the other movers;
+- the sprite section after the environment: RenderSprites(0) (the butterfly glow, crow eyes, flares, Heal flash),
+  then RenderParticles(0) with the client's bitmaps (`Data/Effect/*.OZJ`, the world's rain02/rain03);
+- RenderBodyShadow for the ambient creatures and the hero's and monsters' parts.
+
+`--no-particles` restores the stand-ins, `--particle-seed N` sets the module's rand() (default 1). The summary adds
+a `"particles"` line, frame reports `"particles": [live, particles drawn, sprites drawn, shadows]`.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 0 --tile 142,130 --objects-dir LOCAL   # fountain smoke
+native/build/mu-world --game-root "$MU_GAME_ROOT" --world 2 --tile 210,36                         # shadow on snow
+```
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -258,7 +278,8 @@ from a client you started, under the game lock; never committed); `gallery` is a
 With `--objects-dir`, `mu-world`/`mu-walk` run the client's object lifecycle (`core/mu_objects_runtime.c` over
 `reconstructed/objects/object_render.c`, [finding](../docs/research/client-objects-render.md)): CreateObject per
 record, MoveObjects every 40 ms step (animation tick, AddTerrainLight from street lights, candles and fires, fire and
-smoke particles as a labelled stand-in), RenderObjects culling and RenderObject with the body light from the terrain
+smoke particles through the particle module of NATIVE-PARTICLE-001, a labelled stand-in with `--no-particles`),
+RenderObjects culling and RenderObject with the body light from the terrain
 light and the blend-mesh RenderBody arguments. `mu-terrain render … --objects FILE --object-steps N` does the same
 for a still. The summary line reports `objects_created`, `object_steps`, `object_ticks`, `object_lights`,
 `object_draw_list` and `objects_animated`.
@@ -315,6 +336,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_walk.*`, `world/` | Walk-around session and its front ends `mu-world` / `mu-walk` (NATIVE-WORLD-001) |
 | `core/mu_world_audio.*`, `core/mu_world_actors.*` | In-world sound, demo-placed actors and their effects (NATIVE-WORLD-002) |
 | `core/mu_env.*` | Ambient creatures and weather over `reconstructed/environment`: models, weather bitmaps, step and draw (NATIVE-ENV-001) |
+| `core/mu_particles.*` | Particles, sprites and blob shadows over `reconstructed/particles`: effect bitmaps, step, sprite pass, shadows, the object/environment/skill hooks (NATIVE-PARTICLE-001) |
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |

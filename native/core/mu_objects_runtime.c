@@ -221,6 +221,17 @@ static float particle_rise(int32_t bitmap)
 
 static void spawn(mu_objects_runtime *rt, const mu_obj_event *e)
 {
+    if (rt->particle) {   /* CreateParticle 0x0168fafd (NATIVE-PARTICLE-001) */
+        float position[3], angle[3], light[3];
+        for (int k = 0; k < 3; ++k) {
+            position[k] = fbits(e->args[1 + k]);
+            angle[k] = fbits(e->args[4 + k]);
+            light[k] = fbits(e->args[7 + k]);
+        }
+        rt->particle(rt->hook_context, (int32_t)e->args[0], position, angle, light, (int32_t)e->args[10],
+                     fbits(e->args[11]));
+        return;
+    }
     if (rt->particle_count >= MU_OBJECT_PARTICLES)
         return;
     mu_object_particle *p = &rt->particles[rt->particle_count++];
@@ -490,15 +501,22 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         if (m && m->loaded && status != MU_OBJ_SKIPPED)
             posed = pose_object(o, img, m);
         login_visual(o, i, img, posed ? m : NULL);
-    } else {
+    } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
+    /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
+    const int hook = rt->visual && !login, has_model = m && m->loaded;
     if (status == MU_OBJ_SKIPPED) {
         ++rt->draw_skipped;
+        if (hook)
+            rt->visual(rt->hook_context, o, i, has_model, NULL);
         return NULL;
     }
-    if (!m || !m->loaded)
+    if (!has_model) {
+        if (hook)
+            rt->visual(rt->hook_context, o, i, 0, NULL);
         return NULL;
+    }
     if (status == MU_OBJ_UNSUPPORTED)
         ++rt->draw_unsupported;
     const mu_obj_event *body = NULL;
@@ -508,10 +526,16 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     for (int32_t j = 0; !body && j < cc.log.count; ++j)
         if (custom_events[j].call == MU_OBJ_CALL_BODY)
             body = &custom_events[j];   /* the login world's custom render drew the body */
-    if (status == MU_OBJ_OK && !body)
+    if (status == MU_OBJ_OK && !body) {
+        if (hook)
+            rt->visual(rt->hook_context, o, i, 1, NULL);
         return NULL;   /* a per-world custom render took the object */
-    if (!posed && !pose_object(o, img, m))
+    }
+    if (!posed && !pose_object(o, img, m)) {
+        if (hook)
+            rt->visual(rt->hook_context, o, i, 1, NULL);
         return NULL;
+    }
     mu_draw_default_options(options);
     options->textures = &m->textures;
     if (body) {
@@ -533,7 +557,16 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     options->time = map ? map->time : 0.0f;
     ++rt->drawn;
+    if (hook)   /* after RenderObject's draw arguments, as in RenderObjects */
+        rt->visual(rt->hook_context, o, i, 1, m);
     return m;
+}
+
+uint8_t *mu_objects_object_image(mu_objects *o, int32_t index)
+{
+    if (!o->rt.ready || index < 0 || index >= o->count)
+        return NULL;
+    return image(o, index);
 }
 
 /* ---- NATIVE-LOGIN-001: the after-character pass ---- */

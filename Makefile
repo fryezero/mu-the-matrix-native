@@ -21,6 +21,7 @@ all:
 	$(MAKE) -C reconstructed/scene
 	$(MAKE) -C reconstructed/combat
 	$(MAKE) -C reconstructed/environment
+	$(MAKE) -C reconstructed/particles
 	$(MAKE) -C native
 
 test: all
@@ -60,6 +61,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/scene -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/combat -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/environment -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/particles -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:

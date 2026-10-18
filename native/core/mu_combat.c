@@ -11,6 +11,7 @@
 #include "../../reconstructed/movement/client_movement.h"
 #include "mu_raster.h"
 #include "mu_scene.h"
+#include "mu_particles.h"
 #include "../../reconstructed/path/client_path.h"
 
 #define HERO_KEY 0x1234          /* any key: the hero's own key 0x06fca288 */
@@ -368,6 +369,12 @@ static void create_particle(mu_combat *c, const mu_sfx_call *call)
                                call->owner >= 0 ? call->owner : -1, 0, &c->env)) {
         ++c->particle_count;
         ++c->stats.particles_created;
+    } else if (c->legacy_particles && mu_pt_kind_supported(call->type, call->subtype)) {
+        /* NATIVE-PARTICLE-001: kinds of the legacy particle module (Fire01 1..3, smoke01 3, Spark02 0);
+         * the owner is not modelled there (these calls pass none) */
+        mu_world_particles_create(c->legacy_particles, call->type, call->position, call->angle, call->light,
+                                  call->subtype, call->scale);
+        ++c->stats.particles_created;
     } else {
         ++c->stats.unsupported;
     }
@@ -493,7 +500,12 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         return 0;
     }
     case MU_SFX_CALL_SPRITE:
-        ++c->stats.sprites;   /* CreateSprite is not reconstructed */
+        ++c->stats.sprites;
+        /* CreateSprite 0x01692eb7(bitmap, position, scale, light, owner, rotation = angle x, 0, 0)
+         * through the legacy particle module (NATIVE-PARTICLE-001) */
+        if (c->legacy_particles)
+            mu_world_particles_sprite(c->legacy_particles, call->type, call->position, call->scale, call->light,
+                                      call->owner, call->angle[0], 0, 0);
         return 0;
     default:
         return 0;

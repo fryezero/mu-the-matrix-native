@@ -30,10 +30,14 @@
  *
  * Viewer choices (not client readings): RenderObject 0x016d4fe4's body
  * pass is drawn with the default render flags and the object's light as the
- * model colour; blob shadows (RenderBodyShadow 0x012bc07a), the butterfly
- * and crow glow sprites and the rain splash particles (CreateParticle) are
- * counted, not drawn; billboards are drawn in the world pass (the client
- * draws them in its BeginSprite pass). */
+ * model colour; billboards are drawn in the world pass (the client draws them
+ * in its BeginSprite pass). With a particle module attached (`particles`,
+ * NATIVE-PARTICLE-001) the blob shadows (RenderBodyShadow 0x012bc07a), the
+ * butterfly and crow glow sprites (CreateSprite, crow eyes at bone 1 through
+ * TransformPosition) and the rain splash particles (CreateParticle) are
+ * created and drawn; without one they are counted. */
+
+struct mu_world_particles;
 
 enum { MU_WORLD_ENV_MODELS = 12, MU_WORLD_ENV_BITMAPS = 5 };
 
@@ -72,6 +76,8 @@ typedef struct mu_world_env {
     float camera[3][4];                  /* CameraMatrix of the last draw */
     int32_t blend;                       /* RenderLeaves state: 0 alpha test, 1 additive */
     int32_t slot;                        /* bound bitmap slot */
+    float shadow_rgba[4];                /* glColor4f before RenderBodyShadow */
+    struct mu_world_particles *particles; /* NATIVE-PARTICLE-001 (NULL: counted only) */
     mu_world_env_stats stats;
 } mu_world_env;
 

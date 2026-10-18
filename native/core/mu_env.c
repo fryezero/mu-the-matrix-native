@@ -7,6 +7,7 @@
 
 #include "mu_env.h"
 #include "mu_objects.h"
+#include "mu_particles.h"
 #include "../../reconstructed/movement/client_movement.h"
 
 static const int32_t bitmap_ids[MU_WORLD_ENV_BITMAPS] = {MU_ENV_BITMAP_LEAF1, MU_ENV_BITMAP_LEAF2, MU_ENV_BITMAP_RAIN,
@@ -72,8 +73,10 @@ static void h_animate(void *c, mu_env_object *o, float speed)
 static void h_particle(void *c, int32_t bitmap, const float p[3], const float a[3], const float l[3], int32_t s,
                        float scale)
 {
-    (void)bitmap, (void)p, (void)a, (void)l, (void)s, (void)scale;
-    ((mu_world_env *)c)->stats.particles++;
+    mu_world_env *e = c;
+    e->stats.particles++;
+    if (e->particles)   /* CreateParticle 0x0168fafd (NATIVE-PARTICLE-001) */
+        mu_world_particles_create(e->particles, bitmap, p, a, l, s, scale);
 }
 
 static void h_kill(void *c, mu_env_object *o)
@@ -334,13 +337,20 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
 
 static void r_sprite(void *c, int32_t bitmap, const float p[3], float scale, const float l[3], const mu_env_object *o)
 {
-    (void)bitmap, (void)p, (void)scale, (void)l, (void)o;
-    ((draw_context *)c)->e->stats.sprites++;
+    mu_world_env *e = ((draw_context *)c)->e;
+    e->stats.sprites++;
+    /* CreateSprite 0x01692eb7(bitmap, position, scale, light, owner, 0, 0 (additive), 4) (NATIVE-PARTICLE-001) */
+    if (e->particles)
+        mu_world_particles_sprite(e->particles, bitmap, p, scale, l, (int32_t)(o - e->env.boids), 0.0f, 0, 4);
 }
 
 static void r_bone(void *c, const mu_env_object *o, int32_t bone, const float v[3], float out[3])
 {
-    (void)c, (void)o, (void)bone;
+    mu_world_env *e = ((draw_context *)c)->e;
+    mu_world_env_model *m = model_of(e, o->type);
+    /* TransformPosition 0x012b6ef1(BoneTransform[bone], v, out, 1) on the model r_object just posed */
+    if (e->particles && m && m->loaded && mu_world_particles_bone_position(&m->model, bone, v, out))
+        return;
     out[0] = v[0];
     out[1] = v[1];
     out[2] = v[2];
@@ -356,8 +366,28 @@ static void r_alpha_blend(void *c) { ((draw_context *)c)->e->blend = 1; }
 
 static void r_shadow(void *c, const mu_env_object *o, const float origin[3])
 {
-    (void)o, (void)origin;
-    ((draw_context *)c)->e->stats.shadows++;
+    draw_context *d = c;
+    mu_world_env *e = d->e;
+    e->stats.shadows++;
+    if (!e->particles)
+        return;
+    /* RenderBodyShadow 0x012bc07a with BodyOrigin = origin (the terrain under the object), on the model r_object
+     * just posed and transformed (NATIVE-PARTICLE-001) */
+    int32_t slot = -1;
+    for (int32_t i = 0; i < e->model_count; ++i)
+        if (e->models[i].type == o->type && e->models[i].loaded)
+            slot = i;
+    if (slot < 0)
+        return;
+    mu_world_env_model *m = &e->models[slot];
+    mu_render_backend backend;
+    if (d->target->backend(d->target->context, e, slot, &backend))
+        return;
+    mu_model_params p = m->model.params;
+    for (int k = 0; k < 3; ++k)
+        p.origin[k] = origin[k];
+    mu_model_apply_params(&m->model, &p);   /* BodyOrigin (model +0x78) only: the vertices stay as transformed */
+    mu_world_particles_shadow(e->particles, &m->model, &m->bmd, e->shadow_rgba, &backend);
 }
 
 static void r_bind(void *c, int32_t bitmap)
@@ -428,7 +458,11 @@ static void r_color3(void *c, float r, float g, float b)
 
 static void r_color4(void *c, float r, float g, float b, float a)
 {
-    (void)c, (void)r, (void)g, (void)b, (void)a;   /* the shadow colour (shadows are not drawn) */
+    mu_world_env *e = ((draw_context *)c)->e;   /* the shadow colour */
+    e->shadow_rgba[0] = r;
+    e->shadow_rgba[1] = g;
+    e->shadow_rgba[2] = b;
+    e->shadow_rgba[3] = a;
 }
 
 static void r_plane(void *c, const float p[3], const float corners[4][3], int32_t count)
