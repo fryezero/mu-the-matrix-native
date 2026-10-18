@@ -1,5 +1,7 @@
 #!/bin/sh
-# Fetch the pinned Ruffle checkout used by native/gfx (NATIVE-GFX-001).
+# Fetch the pinned Ruffle checkout used by native/gfx (NATIVE-GFX-001), then
+# apply the GFx patch series (apply-ruffle-patches.sh, NATIVE-GFX-002;
+# MU_GFX_PRISTINE=1 links the unpatched checkout instead).
 #
 # Ruffle (https://github.com/ruffle-rs/ruffle) is dual-licensed MIT OR
 # Apache-2.0; it is an external dependency and none of its source is stored
@@ -26,7 +28,11 @@ if [ "$got" != "$RUFFLE_REV" ]; then
     echo "fetch-ruffle: $DEST is at $got, expected $RUFFLE_REV" >&2
     exit 1
 fi
-ln -sfn "$DEST" "$HERE/.deps/ruffle"
+if [ "${MU_GFX_PRISTINE:-0}" = 1 ]; then
+    ln -sfn "$DEST" "$HERE/.deps/ruffle"
+else
+    "$HERE/apply-ruffle-patches.sh"
+fi
 
 if ! java -version >/dev/null 2>&1 && [ ! -x "$DEPS/jdk/Contents/Home/bin/java" ] && [ ! -x "$DEPS/jdk/bin/java" ]; then
     case "$(uname -s)-$(uname -m)" in

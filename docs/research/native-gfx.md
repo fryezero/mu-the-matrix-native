@@ -26,6 +26,11 @@ Results:
 The remaining gaps are bounded and listed below: GFx-only ActionScript extensions, six compacted fonts, the
 GPU→GL copy and a font library shared between movies.
 
+**Update (NATIVE-GFX-002, [native-gfx2.md](native-gfx2.md)).** The extensions are implemented as a pinned Ruffle
+patch series; the compacted fonts convert; keyboard/text input, device fonts, window-sized players and
+IOSurface sharing replace the full-window read-back; a GFx layer plays the bar, inventory, tooltips, character
+window and chat over mu-world (`--gfx`).
+
 Labels used below:
 
 * **observed**: run on this Mac under Ruffle;

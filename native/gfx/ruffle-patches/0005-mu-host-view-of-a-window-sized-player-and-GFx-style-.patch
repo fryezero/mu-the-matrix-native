@@ -1,0 +1,115 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 14:35:25 -0500
+Subject: [PATCH 5/5] mu: host view of a window-sized player and GFx-style hit
+ test
+
+Player::set_gfx_view keeps a NoScale stage of the host window's size while
+the viewport (render target) shows only the window's area, so each GFx
+window can be rendered into a texture of its own size.  Player::gfx_hit_test
+reports whether a visible shape (not under hitTestDisable) covers a
+viewport point, as GFx Movie::HitTest does.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/display_object/stage.rs | 25 ++++++++++++++++++++++++-
+ core/src/player.rs               | 22 ++++++++++++++++++++++
+ 2 files changed, 46 insertions(+), 1 deletion(-)
+
+diff --git a/core/src/display_object/stage.rs b/core/src/display_object/stage.rs
+index 86f3d553..901875f9 100644
+--- a/core/src/display_object/stage.rs
++++ b/core/src/display_object/stage.rs
+@@ -95,6 +95,11 @@ pub struct StageData<'gc> {
+     /// it doesn't include any additional transformations of the content.
+     letterbox_matrix: Cell<Matrix>,
+ 
++    /// Host view of a window-sized player (mu patch): the stage size the movie
++    /// sees in `NoScale` mode and the offset of the rendered viewport inside
++    /// it, in stage pixels: `[stage_w, stage_h, offset_x, offset_y]`.
++    gfx_view: Cell<Option<[f64; 4]>>,
++
+     /// The bounds of the current viewport in twips, used for culling.
+     view_bounds: Cell<Rectangle<Twips>>,
+ 
+@@ -188,6 +193,7 @@ impl<'gc> Stage<'gc> {
+                 movie: Lock::new(movie),
+                 viewport_matrix: Cell::new(Matrix::IDENTITY),
+                 letterbox_matrix: Cell::new(Matrix::IDENTITY),
++                gfx_view: Cell::new(None),
+                 focus_tracker: FocusTracker::new(gc_context),
+             },
+         ));
+@@ -216,6 +222,11 @@ impl<'gc> Stage<'gc> {
+         self.0.viewport_matrix.get()
+     }
+ 
++    /// Set the host view of a window-sized player (mu patch), see `gfx_view`.
++    pub fn set_gfx_view(self, view: Option<[f64; 4]>) {
++        self.0.gfx_view.set(view);
++    }
++
+     pub fn letterbox(self) -> Letterbox {
+         self.0.letterbox.get()
+     }
+@@ -493,7 +504,14 @@ impl<'gc> Stage<'gc> {
+         let viewport_size = context.renderer.viewport_dimensions();
+ 
+         // Update stage size based on scale mode and DPI.
+-        let new_stage_size = if self.0.scale_mode.get() == StageScaleMode::NoScale {
++        let gfx_view = self.0.gfx_view.get();
++        let new_stage_size = if let (Some([w, h, _, _]), StageScaleMode::NoScale) =
++            (gfx_view, self.0.scale_mode.get())
++        {
++            // mu patch: the stage keeps the host window's size while the
++            // viewport covers only a part of it.
++            (w.round() as u32, h.round() as u32)
++        } else if self.0.scale_mode.get() == StageScaleMode::NoScale {
+             // Viewport size is adjusted for HiDPI.
+             let width = f64::from(viewport_size.width) / viewport_size.scale_factor;
+             let height = f64::from(viewport_size.height) / viewport_size.scale_factor;
+@@ -562,6 +580,11 @@ impl<'gc> Stage<'gc> {
+         } else {
+             height_delta / 2.0
+         };
++        // mu patch: shift the viewport to its part of the stage.
++        let (tx, ty) = match gfx_view {
++            Some([_, _, ox, oy]) => (tx - ox * scale_x, ty - oy * scale_y),
++            None => (tx, ty),
++        };
+ 
+         // The viewport can be additionally translated from within the SWF header.
+         let stage_tx = {
+diff --git a/core/src/player.rs b/core/src/player.rs
+index 3c2d2406..e54e1a54 100644
+--- a/core/src/player.rs
++++ b/core/src/player.rs
+@@ -992,6 +992,28 @@ impl Player {
+         self.needs_render = true;
+     }
+ 
++    /// Render only a part of the stage (mu patch): the movie keeps a
++    /// `NoScale` stage of `stage_w` x `stage_h` pixels while the viewport
++    /// (the render target) shows the area starting at (`offset_x`,
++    /// `offset_y`).  Mouse coordinates stay relative to the viewport.
++    /// `None` restores the normal view.
++    pub fn set_gfx_view(&mut self, view: Option<[f64; 4]>) {
++        self.mutate_with_update_context(|context| {
++            context.stage.set_gfx_view(view);
++            context.stage.build_matrices(context);
++        });
++        self.needs_render = true;
++    }
++
++    /// Topmost object under a viewport point, as GFx `Movie::HitTest` with
++    /// shapes (mu patch).  `None` when the point hits nothing.
++    pub fn gfx_hit_test(&mut self, x: f64, y: f64) -> bool {
++        self.mutate_with_update_context(|context| {
++            let point = context.stage.inverse_view_matrix() * Point::from_pixels(x, y);
++            run_mouse_pick_at(context, point, false).is_some()
++        })
++    }
++
+     pub fn set_show_menu(&mut self, show_menu: bool) {
+         self.mutate_with_update_context(|context| {
+             let stage = context.stage;

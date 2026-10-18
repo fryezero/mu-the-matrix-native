@@ -1,0 +1,252 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: fryezero <108418382+fryezero@users.noreply.github.com>
+Date: Sun, 18 Oct 2026 14:35:25 -0500
+Subject: [PATCH 4/5] mu: GFx TextField extensions (appendHtml, textAutoSize,
+ verticalAlign)
+
+appendHtml(html) appends to the field's HTML; textAutoSize "shrink" scales
+the laid-out text down until it fits the field, "fit" scales it to fill
+it (the text is laid out again at width / scale so its alignment holds);
+verticalAlign "center"/"bottom" offsets the text inside the field.
+hitTestDisable and shadowColor exist as plain properties.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/src/avm1/globals/text_field.rs  | 82 +++++++++++++++++++++++
+ core/src/display_object/edit_text.rs | 98 +++++++++++++++++++++++++++-
+ 2 files changed, 178 insertions(+), 2 deletions(-)
+
+diff --git a/core/src/avm1/globals/text_field.rs b/core/src/avm1/globals/text_field.rs
+index 5710bc12..10c86ed7 100644
+--- a/core/src/avm1/globals/text_field.rs
++++ b/core/src/avm1/globals/text_field.rs
+@@ -98,6 +98,12 @@ const PROTO_DECLS: StaticDeclarations = declare_static_properties! {
+     "condenseWhite" => property(tf_getter!(condense_white), tf_setter!(set_condense_white));
+     "mouseWheelEnabled" => property(tf_getter!(mouse_wheel_enabled), tf_setter!(set_mouse_wheel_enabled));
+     "styleSheet" => property(tf_getter!(style_sheet), tf_setter!(set_style_sheet));
++    // Scaleform GFx extensions (mu patch).
++    "appendHtml" => method(tf_method!(gfx_append_html); DONT_ENUM | DONT_DELETE);
++    "textAutoSize" => property(tf_getter!(gfx_text_auto_size), tf_setter!(gfx_set_text_auto_size); DONT_ENUM | DONT_DELETE);
++    "verticalAlign" => property(tf_getter!(gfx_vertical_align), tf_setter!(gfx_set_vertical_align); DONT_ENUM | DONT_DELETE);
++    "hitTestDisable" => value(false; DONT_ENUM);
++    "shadowColor" => value(0; DONT_ENUM);
+ };
+ 
+ pub fn create_class<'gc>(
+@@ -963,3 +969,79 @@ pub fn set_style_sheet<'gc>(
+     this.set_style_sheet_avm1(activation.context, style_sheet);
+     Ok(())
+ }
++
++// ---- Scaleform GFx extensions (mu patch) -----------------------------------
++
++/// `TextField.appendHtml(html)`: append HTML text to the field's HTML.
++fn gfx_append_html<'gc>(
++    this: EditText<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++    args: &[Value<'gc>],
++) -> Result<Value<'gc>, Error<'gc>> {
++    let Some(value) = args.get(0) else {
++        return Ok(Value::Undefined);
++    };
++    let text = value.coerce_to_string(activation)?;
++    let mut html = this.html_text();
++    html.push_str(&text);
++    this.set_html_text(&html, activation.context);
++    Ok(Value::Undefined)
++}
++
++fn gfx_text_auto_size<'gc>(
++    this: EditText<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++) -> Result<Value<'gc>, Error<'gc>> {
++    let name = match this.gfx_text_auto_size() {
++        1 => AvmString::new_utf8(activation.gc(), "shrink"),
++        2 => AvmString::new_utf8(activation.gc(), "fit"),
++        _ => AvmString::new_utf8(activation.gc(), "none"),
++    };
++    Ok(name.into())
++}
++
++fn gfx_set_text_auto_size<'gc>(
++    this: EditText<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++    value: Value<'gc>,
++) -> Result<(), Error<'gc>> {
++    let text = value.coerce_to_string(activation)?;
++    let mode = if &text == b"shrink" {
++        1
++    } else if &text == b"fit" {
++        2
++    } else {
++        0
++    };
++    this.set_gfx_text_auto_size(mode, activation.context);
++    Ok(())
++}
++
++fn gfx_vertical_align<'gc>(
++    this: EditText<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++) -> Result<Value<'gc>, Error<'gc>> {
++    let name = match this.gfx_vertical_align() {
++        1 => AvmString::new_utf8(activation.gc(), "center"),
++        2 => AvmString::new_utf8(activation.gc(), "bottom"),
++        _ => AvmString::new_utf8(activation.gc(), "none"),
++    };
++    Ok(name.into())
++}
++
++fn gfx_set_vertical_align<'gc>(
++    this: EditText<'gc>,
++    activation: &mut Activation<'_, 'gc>,
++    value: Value<'gc>,
++) -> Result<(), Error<'gc>> {
++    let text = value.coerce_to_string(activation)?;
++    let mode = if &text == b"center" {
++        1
++    } else if &text == b"bottom" {
++        2
++    } else {
++        0
++    };
++    this.set_gfx_vertical_align(mode);
++    Ok(())
++}
+diff --git a/core/src/display_object/edit_text.rs b/core/src/display_object/edit_text.rs
+index 422efa6c..3371c6d1 100644
+--- a/core/src/display_object/edit_text.rs
++++ b/core/src/display_object/edit_text.rs
+@@ -182,6 +182,15 @@ pub struct EditTextData<'gc> {
+     /// Indicates if the text is scrollable using the mouse wheel.
+     mouse_wheel_enabled: Cell<bool>,
+ 
++    /// Scaleform GFx `textAutoSize` (mu patch): 0 none, 1 shrink, 2 fit.
++    gfx_text_auto_size: Cell<u8>,
++
++    /// Scaleform GFx `verticalAlign` (mu patch): 0 none/top, 1 center, 2 bottom.
++    gfx_vertical_align: Cell<u8>,
++
++    /// Layout scale applied by `textAutoSize` (mu patch).
++    gfx_layout_scale: Cell<f32>,
++
+     /// Flags indicating the text field's settings.
+     flags: Cell<EditTextFlag>,
+ 
+@@ -335,6 +344,9 @@ impl<'gc> EditText<'gc> {
+                 bounds: Cell::new(*swf_tag.bounds()),
+                 autosize_lazy_bounds: Cell::new(None),
+                 autosize: Cell::new(autosize),
++                gfx_text_auto_size: Cell::new(0),
++                gfx_vertical_align: Cell::new(0),
++                gfx_layout_scale: Cell::new(1.0),
+                 variable: Lock::new(variable),
+                 bound_display_object: Lock::new(None),
+                 class: Lock::new(None),
+@@ -781,6 +793,7 @@ impl<'gc> EditText<'gc> {
+             bounds.x_min + Self::GUTTER - Twips::from_pixels(self.0.hscroll.get()),
+             bounds.y_min + Self::GUTTER - self.0.vertical_scroll_offset(),
+         );
++        let matrix = matrix * self.gfx_layout_adjust();
+ 
+         if self.font_type() == FontType::Device {
+             // Device text cannot be scaled independently in x/y.
+@@ -793,6 +806,47 @@ impl<'gc> EditText<'gc> {
+         }
+     }
+ 
++    /// Scaleform GFx `verticalAlign` offset and `textAutoSize` scale of the
++    /// laid-out text inside the field (mu patch).
++    fn gfx_layout_adjust(self) -> Matrix {
++        let scale = self.0.gfx_layout_scale.get();
++        let valign = self.0.gfx_vertical_align.get();
++        let mut dy = Twips::ZERO;
++        if valign != 0 {
++            let avail = self.0.bounds.get().height() - Self::GUTTER * 2;
++            let text_h = self.0.layout.borrow().text_size().height().to_pixels() * scale as f64;
++            let free = avail - Twips::from_pixels(text_h);
++            if free > Twips::ZERO {
++                dy = if valign == 1 { free / 2 } else { free };
++            }
++        }
++        if scale == 1.0 && dy == Twips::ZERO {
++            return Matrix::IDENTITY;
++        }
++        Matrix::translate(Twips::ZERO, dy) * Matrix::scale(scale, scale)
++    }
++
++    /// Scaleform GFx `textAutoSize` ("none", "shrink", "fit"; mu patch).
++    pub fn gfx_text_auto_size(self) -> u8 {
++        self.0.gfx_text_auto_size.get()
++    }
++
++    pub fn set_gfx_text_auto_size(self, mode: u8, context: &mut UpdateContext<'gc>) {
++        if self.0.gfx_text_auto_size.replace(mode) != mode {
++            self.relayout(context);
++        }
++    }
++
++    /// Scaleform GFx `verticalAlign` ("none"/"top", "center", "bottom"; mu patch).
++    pub fn gfx_vertical_align(self) -> u8 {
++        self.0.gfx_vertical_align.get()
++    }
++
++    pub fn set_gfx_vertical_align(self, mode: u8) {
++        self.0.gfx_vertical_align.set(mode);
++        self.invalidate_cached_bitmap();
++    }
++
+     /// Returns the matrix for transforming from this object's
+     /// local space into its layout coordinate space.
+     fn local_to_layout_matrix(self) -> Option<Matrix> {
+@@ -894,8 +948,48 @@ impl<'gc> EditText<'gc> {
+             is_word_wrap,
+             font_type: self.0.font_type(),
+         };
+-        let new_layout =
+-            html::lower_from_text_spans(&text_spans, context, layout_params, content_width);
++        let mut new_layout = html::lower_from_text_spans(
++            &text_spans,
++            context,
++            layout_params.clone(),
++            content_width,
++        );
++
++        // Scaleform GFx `textAutoSize` (mu patch): "shrink" scales the text
++        // down until it fits the field, "fit" scales it to fill the field.
++        // The text is laid out again at width / scale so that its alignment
++        // holds after scaling.
++        let mut gfx_scale = 1.0f32;
++        let gfx_mode = self.0.gfx_text_auto_size.get();
++        if gfx_mode != 0 && autosize == AutoSizeMode::None {
++            let bounds = self.0.bounds.get();
++            let avail_w = (self.local_width_to_layout_width(bounds.width()) - padding).to_pixels();
++            let avail_h = (bounds.height() - padding).to_pixels();
++            let size = new_layout.text_size();
++            let (tw, th) = (size.width().to_pixels(), size.height().to_pixels());
++            if tw > 0.0 && th > 0.0 && avail_w > 0.0 && avail_h > 0.0 {
++                let mut scale = if is_word_wrap {
++                    avail_h / th
++                } else {
++                    (avail_w / tw).min(avail_h / th)
++                };
++                if gfx_mode == 1 {
++                    scale = scale.min(1.0);
++                }
++                if (scale - 1.0).abs() > 1e-3 {
++                    gfx_scale = scale as f32;
++                    let scaled_width =
++                        content_width.map(|w| Twips::from_pixels(w.to_pixels() / scale));
++                    new_layout = html::lower_from_text_spans(
++                        &text_spans,
++                        context,
++                        layout_params,
++                        scaled_width,
++                    );
++                }
++            }
++        }
++        self.0.gfx_layout_scale.set(gfx_scale);
+         drop(text_spans);
+ 
+         unlock!(Gc::write(context.gc(), self.0), EditTextData, layout).replace(new_layout);

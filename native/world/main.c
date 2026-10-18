@@ -84,6 +84,7 @@
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_headless.h"
+#include "world_gfx.h"
 #endif
 
 #define MAX_WAYPOINTS 64
@@ -145,6 +146,9 @@ typedef struct app {
     GLuint fx_names[64];
     int fx_count;
     SDL_AudioDeviceID audio_device;
+    /* NATIVE-GFX-002: the GFx interface over the world (--gfx DIR) */
+    const char *gfx_dir, *gfx_open;
+    world_gfx *gfx;
 #endif
     /* NATIVE-COMBAT-001 */
     int combat_on;
@@ -1187,6 +1191,11 @@ static int headless(app *a)
     }
     if (gl)
         gl_setup(a);
+    if (gl && a->gfx_dir) {
+        a->gfx = world_gfx_open(a->gfx_dir, a->root, a->width, a->height, 1.0, 1, a->gfx_open, error, sizeof error);
+        if (!a->gfx)
+            fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
+    }
 #endif
     mu_raster raster;
     memset(&raster, 0, sizeof raster);
@@ -1199,17 +1208,27 @@ static int headless(app *a)
     if (!pixels)
         return 1;
     uint32_t now = 100000;
+#ifndef MU_WORLD_NO_GL
+    uint32_t gfx_clock = now;
+#endif
     a->walk.frame.clock.frame_tick = now;
     a->audio_start = now;
     for (int32_t frame = 0; frame < a->frames; ++frame) {
         script(a, frame);
         advance(a, now);
+#ifndef MU_WORLD_NO_GL
+        int gfx_draw = a->gfx && a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
+        if (a->gfx && !gfx_draw)
+            world_gfx_frame(a->gfx, (double)(now - gfx_clock), 0);
+#endif
         int save = a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
         char hash[65] = "", path[4096] = "";
         if (save) {
             if (gl) {
 #ifndef MU_WORLD_NO_GL
                 draw_gl(a, a->width, a->height);
+                if (a->gfx)
+                    world_gfx_frame(a->gfx, (double)(now - gfx_clock), 1);
                 glFinish();
                 mu_gl_read(a->width, a->height, pixels);
 #endif
@@ -1226,6 +1245,9 @@ static int headless(app *a)
         }
         if (!a->quiet && (save || frame == a->frames - 1))
             report_frame(a, frame, now, save ? hash : NULL, save ? path : NULL);
+#ifndef MU_WORLD_NO_GL
+        gfx_clock = now;
+#endif
         now += 12;   /* virtual render time, then the client's cap */
         int32_t sleep = mu_walk_end_render(&a->walk);
         if (sleep > 0)
@@ -1244,6 +1266,13 @@ static int headless(app *a)
     }
 #ifndef MU_WORLD_NO_GL
     report_summary(a, gl ? mu_gl_renderer() : "software");
+    if (a->gfx) {
+        char line[512];
+        world_gfx_report(a->gfx, line, sizeof line);
+        printf("{%s}\n", line);
+        world_gfx_close(a->gfx);
+        a->gfx = NULL;
+    }
     if (gl) {
         gl_teardown(a);
         mu_gl_headless_end();
@@ -1333,6 +1362,14 @@ static int windowed(app *a)
     a->width = dw;
     a->height = dh;
     gl_setup(a);
+    if (a->gfx_dir) {
+        char error[512];
+        a->gfx = world_gfx_open(a->gfx_dir, a->root, dw, dh, scale, 1, a->gfx_open, error, sizeof error);
+        if (a->gfx)
+            SDL_StartTextInput();
+        else
+            fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
+    }
     audio_open(a);
     a->walk.frame.clock.frame_tick = SDL_GetTicks();
     uint32_t start = SDL_GetTicks(), frames = 0;
@@ -1344,6 +1381,8 @@ static int windowed(app *a)
     while (running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
+            if (a->gfx && world_gfx_event(a->gfx, &e, scale))
+                continue;   /* the interface took it */
             if (e.type == SDL_QUIT) {
                 running = 0;
             } else if (e.type == SDL_MOUSEMOTION) {
@@ -1384,6 +1423,12 @@ static int windowed(app *a)
         script(a, (int32_t)frames);
         advance(a, SDL_GetTicks());
         draw_gl(a, dw, dh);
+        if (a->gfx) {
+            static uint32_t gfx_last;
+            uint32_t t = SDL_GetTicks();
+            world_gfx_frame(a->gfx, gfx_last ? (double)(t - gfx_last) : 0.0, 1);
+            gfx_last = t;
+        }
         SDL_GL_SwapWindow(window);
         ++frames;
         int32_t sleep = mu_walk_end_render(&a->walk);
@@ -1419,6 +1464,8 @@ static int windowed(app *a)
     report_summary(a, mu_gl_renderer());
     if (a->audio_device)
         SDL_CloseAudioDevice(a->audio_device);
+    world_gfx_close(a->gfx);
+    a->gfx = NULL;
     gl_teardown(a);
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
@@ -1477,7 +1524,8 @@ static int usage(void)
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
-                    "                [--no-env] [--env-tga-leaves] [--env-seed N]\n");
+                    "                [--no-env] [--env-tga-leaves] [--env-seed N]\n"
+                    "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
     return 2;
 }
 
@@ -1553,6 +1601,10 @@ int main(int argc, char **argv)
             a.combat_on = 1;
         }
         else if (!strcmp(k, "--env-seed")) a.env_seed = (uint32_t)strtoul(v, NULL, 0);
+#ifndef MU_WORLD_NO_GL
+        else if (!strcmp(k, "--gfx")) a.gfx_dir = v;
+        else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;
+#endif
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))

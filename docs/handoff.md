@@ -1365,3 +1365,24 @@ Branch `claude/native-env`. Read [`research/client-environment.md`](research/cli
 **Next:** a live window-only capture of Lorencia/Noria to confirm the invisible-leaf reading; RenderObject
 `0x016d4fe4`, RenderBodyShadow `0x012bc07a` and CreateSprite/CreateParticle for the shadows, glows and splashes;
 the Icarus dragons and the Devil Square/Chaos Castle rain.
+
+## GFx interface in the native client (NATIVE-GFX-002)
+
+Branch `claude/native-gfx2`. Read [`research/native-gfx2.md`](research/native-gfx2.md).
+
+**Build.** `native/gfx/fetch-ruffle.sh` (now also applies `native/gfx/ruffle-patches` on a worktree
+`$MU_GFX_DEPS/ruffle-061b39b0c3ec-mu`), then `native/gfx/build-mugfx.sh` (libmugfx, mugfx-shot,
+`native/build/mu-gfx-window`). mu-world/mu-client build without Rust: the layer `dlopen`s libmugfx
+(`MU_GFX_LIB` overrides the path). Movies: `gfxconvert.py --bridge --transparent --var _root.isClient=true
+--fontconfig English --font-subset latin` for main, InventoryFrame, InfoPopup, CharacterInfoFrame, chat.
+
+**Run.** `native/build/mu-world --game-root "$MU_GAME_ROOT" --gfx DIR [--gfx-open inventory,character]`
+(I/C/Enter/1-0/Esc, mouse); `native/build/mu-gfx-window --gfx DIR [--headless-gl|--headless] [--scale 2]
+[--bench --open] [--readback] [--full-stage]`. `MU_GFX_LOG=FILE` logs every callback and invoke.
+
+**Checks.** `native/tests/test_native_gfx2.py` (14 tests; Ruffle ones skip without mugfx). Renders local in
+`~/Documents/mu-mac-tools/native/renders/gfx2/`.
+
+**Next:** `loadBitmapFromLib` and the data/image movies (hotkey icons), RenderItem3D models over the item
+windows, the expanded inventory and shops, the GFx layer in mu-client's world scene, double-buffered surfaces.
+

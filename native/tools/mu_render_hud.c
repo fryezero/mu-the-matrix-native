@@ -23,6 +23,7 @@
 #include "../core/mu_bmd.h"
 #include "../core/mu_data.h"
 #include "../core/mu_hud.h"
+#include "../core/mu_hud_tip.h"
 #include "../core/mu_model.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
@@ -132,163 +133,6 @@ static void hex_rgb(const char *hex, uint8_t rgb[3])
     rgb[2] = (uint8_t)v;
 }
 
-/* ---- tooltip lines ----------------------------------------------------- */
-
-enum { MAX_LINES = 40 };
-
-typedef struct tip {
-    char text[MAX_LINES][256];
-    int32_t color[MAX_LINES];
-    int32_t count, unsupported, from_tables;
-} tip;
-
-typedef struct tables {
-    mu_data_table items, tooltip, text;
-    int have_items, have_tooltip, have_text;
-} tables;
-
-static void load_tables(const char *root, tables *t)
-{
-    memset(t, 0, sizeof *t);
-    if (!root)
-        return;
-    char path[4096];
-    snprintf(path, sizeof path, "%s/Data/Local/item.bmd", root);
-    t->have_items = mu_data_load(path, NULL, &t->items) == 0 && t->items.result.status == 0;
-    snprintf(path, sizeof path, "%s/Data/Local/itemtooltip.bmd", root);
-    t->have_tooltip = mu_data_load(path, NULL, &t->tooltip) == 0;
-    snprintf(path, sizeof path, "%s/Data/Local/itemtooltiptext.bmd", root);
-    t->have_text = mu_data_load(path, NULL, &t->text) == 0;
-}
-
-static void free_tables(tables *t)
-{
-    if (t->have_items)
-        mu_data_free(&t->items);
-    if (t->have_tooltip)
-        mu_data_free(&t->tooltip);
-    if (t->have_text)
-        mu_data_free(&t->text);
-}
-
-static int16_t s16(const uint8_t *p) { return (int16_t)(p[0] | p[1] << 8); }
-
-static const uint8_t *tooltip_record(const tables *t, int32_t code)
-{
-    if (!t->have_tooltip)
-        return NULL;
-    for (size_t i = 0; (i + 1) * 136 <= t->tooltip.size; i++) {
-        const uint8_t *r = t->tooltip.bytes + i * 136;
-        if (r[4] == 0)
-            break;
-        if (((int32_t)r[0] << 9) + s16(r + 2) == code)
-            return r;
-    }
-    return NULL;
-}
-
-static const uint8_t *tooltip_text(const tables *t, int32_t id)
-{
-    if (!t->have_text || t->text.size < 4)
-        return NULL;
-    uint32_t n = (uint32_t)t->text.bytes[0] | (uint32_t)t->text.bytes[1] << 8 | (uint32_t)t->text.bytes[2] << 16 |
-                 (uint32_t)t->text.bytes[3] << 24;
-    for (uint32_t i = 0; i < n && 4 + (size_t)(i + 1) * 260 <= t->text.size; i++) {
-        const uint8_t *r = t->text.bytes + 4 + (size_t)i * 260;
-        if ((r[0] | r[1] << 8) == id)
-            return r;
-    }
-    return NULL;
-}
-
-static void add_line(tip *tp, const char *text, int32_t color)
-{
-    if (tp->count >= MAX_LINES)
-        return;
-    snprintf(tp->text[tp->count], sizeof tp->text[0], "%s", text);
-    tp->color[tp->count++] = color;
-}
-
-/* The table-driven part of the builder 0x00f0eb44: name line, then up to 15
- * configured lines through the formatter cases.  Not reconstructed (and not
- * drawn): the runtime-patched header (0x00f0edf1) and GlobalText lines, price,
- * set/socket/excellent/harmony blocks and the full name-colour rules. */
-static void build_tip(const hud_options *o, const tables *t, const mu_hud_item *it, tip *tp)
-{
-    memset(tp, 0, sizeof *tp);
-    mu_ttf_item item = {it->durability, it->durability, 0, 0, 0, 0};
-    mu_ttf_inputs in;
-    memset(&in, 0, sizeof in);
-    in.hero_strength = (uint16_t)o->hero[0];
-    in.hero_agility = (uint16_t)o->hero[1];
-    in.hero_energy = (uint16_t)o->hero[2];
-    in.hero_level = o->hero[3];
-    in.manager_1c = -1;
-    if (it->has_record) {
-        const mu_item_attributes *a = &it->record.attributes;
-        item.defense = a->defense;
-        item.magic_power = (int32_t)a->magic_power;
-        item.attack_speed = a->attack_speed;
-        in.req_strength = a->require_strength;           /* base values: the level formula 0x00ccf659 is not reconstructed */
-        in.req_agility = a->require_dexterity;
-        in.req_energy = a->require_energy;
-        in.req_level = a->require_level;
-        in.kind_a_3 = a->kind_a == 3;
-    }
-    const uint8_t *rec = tooltip_record(t, it->code);
-    char name[160];
-    if (rec && s16(rec + 0x4a) == -1 && it->has_record)
-        snprintf(name, sizeof name, "%s", it->record.name);
-    else if (rec)
-        snprintf(name, sizeof name, "%.64s", (const char *)rec + 4);
-    else
-        snprintf(name, sizeof name, "%s", it->name);
-    if ((!rec || rec[0x48]) && it->level > 0) {
-        size_t n = strlen(name);
-        snprintf(name + n, sizeof name - n, " +%d", it->level);
-    }
-    add_line(tp, name, rec ? rec[0x44] : 3);
-    if (!rec) {
-        static const struct { int32_t type; const char *fmt; } SYN[] = {
-            {4, "Dur [%d/%d]"}, {5, "Lv %d"}, {6, "Str %d"}, {202, "(need %d str)"}, {101, "Speed %d"}};
-        for (size_t k = 0; k < sizeof SYN / sizeof SYN[0]; k++) {
-            char out[0x100];
-            int32_t color = 0, tc[MAX_LINES] = {0};
-            if (mu_tooltip_format(out, SYN[k].fmt, SYN[k].type, &item, it->level, &in, tp->count, &color, tc) == 0 &&
-                out[0])
-                add_line(tp, out, color);
-        }
-        return;
-    }
-    tp->from_tables = 1;
-    for (int i = 0; i < 15; i++) {
-        int32_t id = s16(rec + 0x4c + 4 * i);
-        const uint8_t *tr = tooltip_text(t, id);
-        if (!tr)
-            break;                                      /* the builder stops at the first missing text */
-        int32_t color = rec[0x4e + 4 * i], type = s16(tr + 0x102);
-        char fmt[257];
-        memcpy(fmt, tr + 2, 256);
-        fmt[256] = 0;
-        if (type == -1) {
-            add_line(tp, fmt, color);
-            continue;
-        }
-        char out[0x100];
-        int32_t tc[MAX_LINES + 1];
-        for (int k = 0; k < tp->count; k++)
-            tc[k] = tp->color[k];
-        if (mu_tooltip_format(out, fmt, type, &item, it->level, &in, tp->count, &color, tc) != 0) {
-            tp->unsupported++;
-            continue;
-        }
-        for (int k = 0; k < tp->count; k++)
-            tp->color[k] = tc[k];
-        if (out[0])
-            add_line(tp, out, color);
-    }
-}
-
 /* ---- the scene --------------------------------------------------------- */
 
 typedef struct scene {
@@ -344,7 +188,7 @@ static void draw_text(scene *sc, float x, float y, float box_w, const char *s, c
                       NULL);
 }
 
-static void draw_tip(scene *sc, const tip *tp, float x, float y, int32_t *box_out)
+static void draw_tip(scene *sc, const mu_hud_tip *tp, float x, float y, int32_t *box_out)
 {
     int32_t widest = 0, line_h = sc->font.height + 2;
     for (int i = 0; i < tp->count; i++) {
@@ -373,26 +217,18 @@ static void draw_tip(scene *sc, const tip *tp, float x, float y, int32_t *box_ou
     }
 }
 
-static int write_html(const char *path, const tip *tp)
+static int write_html(const char *path, const mu_hud_tip *tp)
 {
-    mu_tooltip_line lines[MAX_LINES];
-    for (int i = 0; i < tp->count; i++)
-        lines[i] = (mu_tooltip_line){tp->text[i], tp->color[i], 0, 0};
-    size_t n = mu_tooltip_html(NULL, 0, lines, tp->count, NULL);
-    char *html = malloc(n + 1), *utf = malloc(2 * n + 1);
-    if (!html || !utf) {
-        free(html);
-        free(utf);
+    size_t n = mu_hud_tip_html(tp, NULL, 0);
+    char *utf = malloc(n + 1);
+    if (!utf)
         return 1;
-    }
-    mu_tooltip_html(html, n + 1, lines, tp->count, NULL);
-    mu_latin1_to_utf8(utf, 2 * n + 1, html);
+    mu_hud_tip_html(tp, utf, n + 1);
     FILE *f = fopen(path, "wb");
     if (f) {
         fputs(utf, f);
         fclose(f);
     }
-    free(html);
     free(utf);
     return f ? 0 : 1;
 }
@@ -480,8 +316,8 @@ static const int32_t SYNTHETIC_ITEMS[][2] = {
 
 static int render_inventory(const hud_options *o)
 {
-    tables t;
-    load_tables(o->root, &t);
+    mu_hud_tip_tables t;
+    mu_hud_tip_tables_load(o->root, &t);
     mu_hud_trs_table trs;
     char path[4096];
     int have_trs = 0;
@@ -572,8 +408,8 @@ static int render_inventory(const hud_options *o)
     mu_raster_free(&r);
     int32_t box[4] = {0, 0, 0, 0}, tip_lines = 0, unsupported = 0;
     if (o->hover >= 0 && o->hover < inv.count) {
-        tip tp;
-        build_tip(o, &t, &inv.items[o->hover], &tp);
+        mu_hud_tip tp;
+        mu_hud_tip_build(&t, &inv.items[o->hover], o->hero, &tp);
         for (int32_t k = 0; k < n; k++)
             if (draws[k].item == o->hover)
                 draw_tip(&sc, &tp, draws[k].cell_rect[0] - 200.0f, draws[k].cell_rect[1] + draws[k].cell_rect[3],
@@ -594,14 +430,14 @@ static int render_inventory(const hud_options *o)
     scene_close(&sc);
     if (have_trs)
         mu_hud_trs_free(&trs);
-    free_tables(&t);
+    mu_hud_tip_tables_free(&t);
     return result;
 }
 
 static int render_tooltip(const hud_options *o)
 {
-    tables t;
-    load_tables(o->root, &t);
+    mu_hud_tip_tables t;
+    mu_hud_tip_tables_load(o->root, &t);
     int code = 0, level = 0;
     if (o->item)
         sscanf(o->item, "%d:%d", &code, &level);
@@ -609,14 +445,14 @@ static int render_tooltip(const hud_options *o)
     mu_hud_inventory_init(&inv);
     if (mu_hud_inventory_add(&inv, t.have_items ? &t.items : NULL, o->root, code, level, 1, 1) < 0) {
         fprintf(stderr, "item %d does not fit\n", code);
-        free_tables(&t);
+        mu_hud_tip_tables_free(&t);
         return 1;
     }
     scene sc;
     if (scene_open(&sc, o))
         return 1;
-    tip tp;
-    build_tip(o, &t, &inv.items[0], &tp);
+    mu_hud_tip tp;
+    mu_hud_tip_build(&t, &inv.items[0], o->hero, &tp);
     int32_t box[4];
     draw_tip(&sc, &tp, 16.0f, 16.0f, box);
     if (o->html_out)
@@ -626,7 +462,7 @@ static int render_tooltip(const hud_options *o)
              tp.count, tp.unsupported, tp.from_tables, box[0], box[1], box[2], box[3]);
     int result = finish(o, &sc, extra);
     scene_close(&sc);
-    free_tables(&t);
+    mu_hud_tip_tables_free(&t);
     return result;
 }
 
