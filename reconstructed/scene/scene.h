@@ -148,6 +148,7 @@ typedef struct mu_scenemgr_globals {
     uint16_t server_port;          /* 0x01cf185c */
     uint32_t music_login;          /* 0x01cf1680[32] (char *, data\music\login_theme.mp3) */
     uint32_t id_buffer;            /* 0x0b436580: account-name buffer (address) */
+    float view_far;                /* 0x01cf1630 CameraViewFar (NATIVE-LOGIN-001: written by the login render) */
 } mu_scenemgr_globals;
 
 /* Which routine the dispatcher runs for a SceneFlag value. */
@@ -199,6 +200,54 @@ void mu_scenemgr_start_loading(const mu_scenemgr_host *host, mu_scenemgr_globals
  * world itself is loaded elsewhere (the join-map handler and the first
  * scene-6 tick); the loading frame stays on screen meanwhile. */
 void mu_scenemgr_loading(const mu_scenemgr_host *host, mu_scenemgr_globals *g, uint32_t hdc);
+
+/* ---- the login scene's 3D part (NATIVE-LOGIN-001, docs/research/client-login-scene.md) ---- */
+
+/* Callees of the scene-3 tick head and render (names: client calls are named
+ * by address; the descriptive names are readings, see the research note). */
+#define MU_SC_CAMERA_RECORD 0x0098647bu      /* camera-record manager singleton: +0xc record, +0x10 far scale */
+#define MU_SC_SCREEN_WIDTH 0x016bc355u       /* window width in pixels */
+#define MU_SC_CREATE_FRUSTUM 0x016cba24u     /* CreateFrustrum(aspect, &position, 0), vector in text */
+#define MU_SC_GL_COLOR3F 0x01a7c76cu         /* import slot */
+#define MU_SC_RENDER_TERRAIN 0x016cd468u
+#define MU_SC_RENDER_OBJECTS 0x016d5020u
+#define MU_SC_RENDER_OBJECTS_AFTER 0x016d6949u
+#define MU_SC_FRAME_LIGHT 0x016ca4fau         /* frame-light copy of the logic step */
+#define MU_SC_MOVE_OBJECTS 0x016d82c7u
+#define MU_SC_MOVE_CHARACTERS 0x0137a7ceu
+#define MU_SC_RENDER_CHARACTERS 0x0137a3c2u
+#define MU_SC_MOVE_CHARACTER_CAMERA 0x01854529u
+#define MU_SC_PUSH_IDENTITY 0x0184a699u
+#define MU_SC_POP_MATRIX 0x0184a6abu
+#define MU_SC_RENDER_SPRITES 0x0169270eu     /* ecx 0x0a3da070 (sprite list; CreateSprite 0x01692eb7) */
+#define MU_SC_RENDER_PARTICLES 0x0159123fu   /* ecx 0x0a3a9adc (billboard quads) */
+
+/* Login render 0x01857ed9, its 3D part up to BeginBitmap (0x01857ed9..0x0185810e).
+ * Returns 0 before the scene is created (InitLogIn [0x0bdc5b86] clear; the
+ * client returns 0 then), else 1. In order: the fog byte cleared,
+ * MoveMainCamera, glColor3f(1,1,1), glClearColor(0,0,0,1), BeginOpengl(0, 0,
+ * 640, 480), CreateFrustrum(width / 640, camera-record position, 0); unless
+ * the credit window is open (CUIMng+0x4648, byte +0xc): CameraViewFar = 2400 *
+ * Distance * Z_Distance * scale (0x0098ac45 inlined), RenderTerrain(0),
+ * RenderCharacters, 0x00c9e4e3, RenderObjects, 0x01589b56(0), RenderEffects
+ * (0x015181fa on the pool 0x0a4ca430), 0x01692887, 0x01538145, 0x00c9fd8d(0),
+ * RenderObjects_AfterCharacter, 0x00b990b0()->0x00eb0dee; then the identity
+ * push, RenderSprites(0), RenderParticles(0), pop and BeginBitmap. The 2D part
+ * that follows is reconstructed/ui's login overlay (mu_ui_login_overlay). */
+int mu_scenemgr_login_render_3d(const mu_scenemgr_host *host, mu_scenemgr_globals *g);
+
+/* Login tick 0x01857236 up to MoveCharacterCamera (0x01857236..0x01857322):
+ * the creation 0x01851804 on the first step; unless the credit window is open,
+ * the frame-light copy, MoveObjects, 0x00c9e24a, MoveJoints (0x01537a43),
+ * MoveCharacters, 0x0106bcc5 on 0x009c104e(1), MoveEffects (0x0150ddb1),
+ * 0x01589b06, MoveParticles (0x0159122d), 0x0106bcc5 on 0x009c104e(0),
+ * 0x00c9eb04, 0x00b990b0()->0x00eb0d64, 0x009c2aea()->0x009b9913, the GFx
+ * update 0x00ac9613(SceneFlag) and MoveCharacterCamera. Returns 1 when that
+ * block ran, 0 when the credit window is open (the client then goes on with
+ * its GFx branch at 0x01857448, not reconstructed here). The creation runs as
+ * a host call (MU_SC_LOGIN_CREATE) so the host can run mu_scenemgr_login_create. */
+#define MU_SC_LOGIN_CREATE 0x01851804u
+int mu_scenemgr_login_tick_head(const mu_scenemgr_host *host, mu_scenemgr_globals *g);
 
 /* Return to character select, the network handler 0x0125294e subcode 1
  * after its answer (static reading, not executed): SceneFlag = 5,

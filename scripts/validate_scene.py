@@ -22,6 +22,9 @@ Client code run unmodified (pinned below):
   creation 0x01851804, the scene-3 tick tail 0x01857621..0x018576a7, the
   frame-driver music block 0x0185276c..0x0185280c, start loading 0x0185a75a,
   loading scene 0x01851adc, and the stack probe 0x0191c5a0.
+  NATIVE-LOGIN-001: the login render's 3D part 0x01857ed9..0x0185810e (with
+  the camera far-plane leaf 0x0098ac45 as client code) and the login tick
+  head 0x01857236..0x01857322.
   With reconstructed/ui: CLoadingScene::Create 0x00cdb74c and ::Render
   0x00cdb94f over the client's CSprite routines (GL call streams compared
   with validate_ui's machinery).
@@ -67,7 +70,15 @@ ROUTINES = {
     'frame_music': (0x0185276c, 0x0185280c),
     'start_loading': (0x0185a75a, 0x0185a9bf),
     'loading': (0x01851adc, 0x01851d39),
+    # NATIVE-LOGIN-001: the login scene's 3D part
+    'login_render': (0x01857ed9, 0x0185810e),
+    'login_tick_head': (0x01857236, 0x01857322),
 }
+# Blocks that stop at one of several addresses (the end above or an early exit).
+BLOCK_ENDS = {'login_render': (0x0185810e, 0x018588cd), 'login_tick_head': (0x01857322, 0x01857448)}
+# Leaf client routines run as client code inside a block (besides the block itself).
+EXTRA_CODE = {'login_render': [(0x0098ac45, 0x0098ac7c), (0x018588cd, 0x018588ce)],
+              'login_tick_head': [(0x01857448, 0x01857449)]}
 PINNED = {}   # filled from PINNED_JSON below at import
 
 # Stack argument words of every callee (thiscall callees pop them; cdecl
@@ -98,12 +109,24 @@ CALLEES = {
     # loading
     0x01989721: (0, 0), 0x0194cd00: (3, 0), 0x0191ba7b: (1, 0), 0x00cdb6ca: (0, 0), 0x00cdb74c: (0, 0),
     0x0184adc7: (4, 0), 0x0184f793: (0, 0), 0x00cdb94f: (0, 0), 0x0184f8d7: (0, 0), 0x0184b6dd: (0, 0),
+    # login render (3D part)
+    0x016bc355: (0, 0), 0x0098647b: (0, 0), 0x016cba24: (3, 0), 0x016cd468: (1, 0), 0x0137a3c2: (0, 0),
+    0x00c9e4e3: (0, 0), 0x016d5020: (0, 0), 0x01589b56: (1, 0), 0x015181fa: (1, 4), 0x01692887: (0, 0),
+    0x01538145: (0, 0), 0x00c9fd8d: (1, 0), 0x016d6949: (0, 0), 0x00b990b0: (0, 0), 0x00eb0dee: (0, 0),
+    0x0184a699: (0, 0), 0x0169270e: (1, 4), 0x0159123f: (1, 4), 0x0184a6ab: (0, 0),
+    # login tick head
+    0x01851804: (0, 0), 0x016ca4fa: (0, 0), 0x016d82c7: (0, 0), 0x00c9e24a: (0, 0), 0x01537a43: (0, 0),
+    0x0137a7ce: (0, 0), 0x009c104e: (1, 0), 0x0106bcc5: (1, 4), 0x0150ddb1: (0, 0), 0x01589b06: (0, 0),
+    0x0159122d: (0, 0), 0x00c9eb04: (0, 0), 0x00eb0d64: (0, 0), 0x009c2aea: (0, 0), 0x009b9913: (0, 0),
+    0x00ac9613: (1, 4), 0x01854529: (0, 0),
 }
+# argument index of a pointer to three floats whose words are compared (as text)
+VECTOR_ARG = {0x016cba24: 1}
 # sprintf takes a variable list: the format decides (see Client.sprintf).
 VARARGS = {0x009619dd}
 PACKET = {0x00d51b91, 0x00d51baf, 0x00d51c9b, 0x00d51d4f, 0x00d51ba6, 0x00d51d10}
 IMPORTS = {0x01a7c6cc: (4, 16), 0x01a7c6e8: (1, 4), 0x01a7c148: (1, 4), 0x01a7c49c: (0, 0),
-           0x01a7c83c: (4, 16)}
+           0x01a7c83c: (4, 16), 0x01a7c76c: (3, 12)}
 # argument index holding a C string whose content is compared
 STRING_ARG = {0x0185baac: 0, 0x009619dd: 1, 0x01206598: 1}
 # std::string arguments (resolved through the constructor stub)
@@ -125,7 +148,7 @@ GLOBALS = [
     ('login_flag_656f', 0x0b43656f, 'B'), ('login_flag_6570', 0x0b436570, 'B'),
     ('login_flag_1109', 0x01cf1109, 'B'), ('login_flag_71e1', 0x0b4371e1, 'B'),
     ('server_address', 0x01cf1858, 'I'), ('server_port', 0x01cf185c, 'H'),
-    ('music_login', 0x01cf1700, 'I'),
+    ('music_login', 0x01cf1700, 'I'), ('view_far', 0x01cf1630, 'f'),
 ]
 ID_BUFFER = 0x0b436580
 HERO_POINTER = 0x01d1df1c
@@ -158,7 +181,7 @@ class Globals(Structure):
                 ('login_flag_5eb8', c_uint8), ('login_flag_5b7b', c_uint8), ('login_flag_656e', c_uint8),
                 ('login_flag_656f', c_uint8), ('login_flag_6570', c_uint8), ('login_flag_1109', c_uint8),
                 ('login_flag_71e1', c_uint8), ('server_address', c_uint32), ('server_port', c_uint16),
-                ('music_login', c_uint32), ('id_buffer', c_uint32)]
+                ('music_login', c_uint32), ('id_buffer', c_uint32), ('view_far', c_float)]
 
 
 def library(path=None):
@@ -168,7 +191,8 @@ def library(path=None):
     for name, args in {'mu_scenemgr_dispatch': [P, P, c_uint32], 'mu_scenemgr_intro': [P, P, c_uint32],
                        'mu_scenemgr_login_create': [P, P], 'mu_scenemgr_login_tick_tail': [P, P],
                        'mu_scenemgr_frame_music': [P, P], 'mu_scenemgr_start_loading': [P, P, c_int32],
-                       'mu_scenemgr_loading': [P, P, c_uint32], 'mu_scenemgr_return_to_character': [P]}.items():
+                       'mu_scenemgr_loading': [P, P, c_uint32], 'mu_scenemgr_return_to_character': [P],
+                       'mu_scenemgr_login_render_3d': [P, P], 'mu_scenemgr_login_tick_head': [P, P]}.items():
         getattr(lib, name).argtypes = args
         getattr(lib, name).restype = None
     lib.mu_scenemgr_dispatch_target.argtypes = [c_int32]
@@ -276,7 +300,7 @@ class Client:
     def prepare(self, case, script, tracer, routine_name):
         m = self.m
         m.reset()
-        m.allowed = [ROUTINES[routine_name], CHKSTK]
+        m.allowed = [ROUTINES[routine_name], CHKSTK] + EXTRA_CODE.get(routine_name, [])
         for slot, address in self.import_stub.items():
             m.uc.mem_write(slot, struct.pack('<I', address))
         self.strings = {}   # std::string object -> char pointer
@@ -348,6 +372,8 @@ class Client:
         args = list(raw)
         if routine in STRING_ARG:
             text = c_string(m, args[STRING_ARG[routine]])
+        if routine in VECTOR_ARG:
+            text = '%08x %08x %08x' % struct.unpack('<3I', m.read(args[VECTOR_ARG[routine]], 12))
         if routine in STD_STRING_ARG:
             i = STD_STRING_ARG[routine]
             pointer = self.strings.get(args[i])
@@ -363,7 +389,9 @@ class Client:
 THISCALL = {0x01185472, 0x00aef92d, 0x00cd5d29, 0x00ac9be9, 0x01206785, 0x0185cf00, 0x0185d160, 0x0185daa0,
             0x011e230d, 0x00f2951e, 0x011e2c8c, 0x011e2bc3, 0x00a05a22, 0x01206888, 0x0185d0a0, 0x011e2dc0,
             0x00f2f47f, 0x00b95a14, 0x00b49bf4, 0x00b4b848, 0x00988d22, 0x008e7f90, 0x009a13f4, 0x0129deaa,
-            0x011e3598, 0x00a00031, 0x00a0033e, 0x00b4c117, 0x00cdb6ca, 0x00cdb74c, 0x00cdb94f}
+            0x011e3598, 0x00a00031, 0x00a0033e, 0x00b4c117, 0x00cdb6ca, 0x00cdb74c, 0x00cdb94f,
+            0x015181fa, 0x01692887, 0x01538145, 0x00eb0dee, 0x0169270e, 0x0159123f, 0x01537a43, 0x0106bcc5,
+            0x0150ddb1, 0x0159122d, 0x00eb0d64, 0x009b9913, 0x00ac9613}
 
 
 def seed_globals(m, g):
@@ -493,7 +521,16 @@ def heap_objects(m, rng, case):
     m.write(config + 4, bytes([rng.choice([0, 1, 2, 255])]))
     loading_memory = m.alloc(0x2a8, define=True)
     single = m.alloc(0x300, define=True)
-    case.update(ui=ui, gfx=gfx, owner=owner, state=state, music=music, server=server, hero=hero, record=record,
+    camera_record = m.alloc(0x40, define=True)
+    m.write(camera_record, struct.pack('<9f', *(cm.f32(rng.uniform(-90, 90)) for _ in range(3)),
+                                       *(cm.f32(rng.uniform(0, 25600)) for _ in range(2)), cm.f32(rng.uniform(0, 2000)),
+                                       cm.f32(rng.choice([0.325, rng.uniform(0, 2)])),
+                                       cm.f32(rng.choice([32.1, rng.uniform(0, 40)])), 35.0))
+    camera = m.alloc(0x20, define=True)
+    m.put32(camera + 0xc, camera_record)
+    m.write(camera + 0x10, struct.pack('<f', cm.f32(rng.choice([1.0, 1.0, rng.uniform(0.5, 2.0)]))))
+    m.write(ui + 0x4654, bytes([rng.choice([0, 0, 0, 1])]))
+    case.update(camera=camera, ui=ui, gfx=gfx, owner=owner, state=state, music=music, server=server, hero=hero, record=record,
                 saved=saved, config=config, loading_memory=loading_memory, single=single)
     return case
 
@@ -511,6 +548,7 @@ def make_case(client, rng, routine):
         0x00c74245: case['single'], 0x00f2efe9: case['single'], 0x00f2bb92: case['single'],
         0x0095f6db: case['single'], 0x00988c5c: case['single'], 0x0129deaa: case['single'],
         0x01a7c49c: rng.getrandbits(32), 0x01989721: rng.randint(0, 0x7fff),
+        0x0098647b: case['camera'], 0x016bc355: rng.choice([640, 800, 1280, 1722, 1920, rng.randint(1, 4000)]),
     }
     if routine == 'start_loading':
         handles[0x009a13f4] = rng.choice([0, case['record'], case['record']])
@@ -557,6 +595,29 @@ def run_block(m, start, end, frame=0x400):
         raise cm.CaseError('; '.join(m.errors[:4]))
 
 
+def run_block_ends(m, start, ends, frame=0x400):
+    """Run a function from its entry until EIP reaches one of `ends` (the 3D part of a larger routine)."""
+    uc = m.uc
+    ebp = cm.STACK_BASE + cm.STACK_SIZE - 0x2000
+    uc.reg_write(cm.UC_X86_REG_ESP, ebp - frame)
+    uc.reg_write(cm.UC_X86_REG_EBP, ebp)
+    for register in (cm.UC_X86_REG_EAX, cm.UC_X86_REG_ECX, cm.UC_X86_REG_EDX, cm.UC_X86_REG_EBX,
+                     cm.UC_X86_REG_ESI, cm.UC_X86_REG_EDI):
+        uc.reg_write(register, 0)
+    hooks = [uc.hook_add(cm.UC_HOOK_CODE, lambda u, a, s, d: u.emu_stop(), begin=e, end=e) for e in ends[1:]]
+    try:
+        uc.emu_start(start, ends[0], count=2_000_000)
+    except cm.UcError as error:
+        m.errors.append(f'{error} at eip {uc.reg_read(cm.UC_X86_REG_EIP):#x}')
+    finally:
+        for h in hooks:
+            uc.hook_del(h)
+    if uc.reg_read(cm.UC_X86_REG_EIP) not in ends and not m.errors:
+        m.errors.append(f'block stopped at {uc.reg_read(cm.UC_X86_REG_EIP):#x}')
+    if m.errors:
+        raise cm.CaseError('; '.join(m.errors[:4]))
+
+
 def client_run(client, routine, case, g, hdc, start):
     m = client.m
     if routine == 'dispatch':
@@ -573,6 +634,8 @@ def client_run(client, routine, case, g, hdc, start):
         m.call(0x0185a75a, [start])
     elif routine == 'loading':
         m.call(0x01851adc, [hdc])
+    elif routine in BLOCK_ENDS:
+        run_block_ends(m, ROUTINES[routine][0], BLOCK_ENDS[routine])
 
 
 def authored_run(lib, routine, host, g, hdc, start):
@@ -583,7 +646,9 @@ def authored_run(lib, routine, host, g, hdc, start):
      'login_tail': lambda: lib.mu_scenemgr_login_tick_tail(hp, gp),
      'frame_music': lambda: lib.mu_scenemgr_frame_music(hp, gp),
      'start_loading': lambda: lib.mu_scenemgr_start_loading(hp, gp, start),
-     'loading': lambda: lib.mu_scenemgr_loading(hp, gp, hdc)}[routine]()
+     'loading': lambda: lib.mu_scenemgr_loading(hp, gp, hdc),
+     'login_render': lambda: lib.mu_scenemgr_login_render_3d(hp, gp),
+     'login_tick_head': lambda: lib.mu_scenemgr_login_tick_head(hp, gp)}[routine]()
 
 
 def run_case(client, lib, routine, seed, mutate=None):
@@ -723,6 +788,8 @@ def mutations():
         ('dispatch', 'scene 3 <-> 5', lambda g: setattr(g, 'scene', {3: 4, 5: 2, 4: 3, 2: 5}.get(g.scene, 3))),
         ('login_create', 'remember flag flipped', lambda g: setattr(g, 'remember_id', 0 if g.remember_id else 1)),
         ('intro', 'scene already 3', lambda g: setattr(g, 'scene', 3 if g.scene != 3 else 2)),
+        ('login_render', 'login not created', lambda g: setattr(g, 'init_login', 1 - g.init_login)),
+        ('login_tick_head', 'scene passed to the GFx update', lambda g: setattr(g, 'scene', g.scene + 1)),
     ]
 
 
@@ -776,6 +843,8 @@ def main(argv=None):
             calls += sum(1 for e in trace_c if e[0] == 'call')
             writes += sum(1 for e in trace_c if e[0] == 'write')
             sends += sum(1 for e in trace_c if e[0] == 'call' and e[1] == NET_SEND)
+            if any(e[0] == 'call' and e[1] in (0x016cd468, 0x016d82c7) for e in trace_c):
+                outcomes['3D part ran'] = outcomes.get('3D part ran', 0) + 1
             outcome = f'{g0.scene}->{glob_c["scene"]}'
             outcomes[outcome] = outcomes.get(outcome, 0) + 1
         stats[routine] = {'cases': n, 'calls': calls, 'object_writes': writes, 'net_sends': sends,
@@ -816,6 +885,8 @@ PINNED_JSON = """{
  "frame_music": "ae7f48f571a5dd1eb8d3eafeeefacdbe75d0f08cc05fed1eee5d5558bd184747",
  "start_loading": "5cd7792c564f12b840179b4e539765314972cc811eeab60d13d9fe92717f7b67",
  "loading": "f8e88b133046f9a6c86c80bbaafe622b355c6a0af2e71e79537cef5bb5d14744",
+ "login_render": "2c6317943d1e9eeafb2d45f9bdf48a0d05c7ba208359eea79b0382b75cde0658",
+ "login_tick_head": "2239f0d5d5cbab893b134a6fd0b9882babb3cafbe06a7cb74045f23b8e3c47dc",
  "chkstk": "0f8ce31cd9b1ce0c271e496c2447217aee128105e3fb255669f8cb2607ef4519"
 }"""
 PINNED.update(json.loads(PINNED_JSON))
