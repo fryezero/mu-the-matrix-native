@@ -9,7 +9,9 @@
  *
  *   2 title     mu_scenemgr_intro: the title textures, the title screen with the
  *               startup progress 0..9 (CreateTitleSceneUI/RenderTitleSceneUI)
- *   3 login     mu_scenemgr_login_create + the scene-3 tick: the login overlay,
+ *   3 login     mu_scenemgr_login_create + the scene-3 tick: the 3D login world
+ *               (core/mu_login, NATIVE-LOGIN-001: the tick head and the render's
+ *               3D part from reconstructed/scene) under the login overlay,
  *               the server-select window with the offline session's list, an
  *               OFFLINE DEMO account panel (placeholder for the GFx login
  *               dialog: any input, nothing kept), protocol 0x14 -> the tick
@@ -40,13 +42,14 @@
 
 #include "../../reconstructed/scene/scene.h"
 #include "../charsel/charsel_embed.h"
+#include "../core/mu_login.h"
 #include "../world/world_embed.h"
 #include "offline-session.h"
 
 typedef struct mu_shell mu_shell;
 
-enum { MU_SHELL_VIEW_2D = 0, MU_SHELL_VIEW_CHARSEL = 1, MU_SHELL_VIEW_WORLD = 2 };
-enum { MU_SHELL_EMBED_CHARSEL = 1, MU_SHELL_EMBED_WORLD = 2 };
+enum { MU_SHELL_VIEW_2D = 0, MU_SHELL_VIEW_CHARSEL = 1, MU_SHELL_VIEW_WORLD = 2, MU_SHELL_VIEW_LOGIN = 3 };
+enum { MU_SHELL_EMBED_CHARSEL = 1, MU_SHELL_EMBED_WORLD = 2, MU_SHELL_EMBED_LOGIN = 3 };
 
 typedef struct mu_shell_platform {
     void *user;
@@ -72,6 +75,7 @@ typedef struct mu_shell_config {
     const char *placement;         /* world demo actors, may be NULL */
     const char *world_objects;     /* local decoded world objects, may be NULL */
     const char *charsel_objects;   /* local decoded EncTerrain94.plain, may be NULL */
+    const char *login_objects;     /* local decoded EncTerrain95.plain (login world), may be NULL */
     uint32_t title_step_ms;        /* platform.pause between the title's progress frames */
     int quiet;
 } mu_shell_config;
@@ -95,6 +99,7 @@ void mu_shell_frame(mu_shell *s, uint32_t now);
 int mu_shell_view(const mu_shell *s);
 mu_charsel_embed *mu_shell_charsel(mu_shell *s);
 mu_world_embed *mu_shell_world(mu_shell *s);
+mu_login_session *mu_shell_login(mu_shell *s);
 /* The 2D layer over the frame (top-down RGBA, width x height). */
 void mu_shell_overlay(mu_shell *s, uint8_t *rgba);
 /* After the frame is shown: the music block and audio update; returns the

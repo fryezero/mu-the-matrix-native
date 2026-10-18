@@ -119,7 +119,7 @@ def pack_f(*values):
 
 class Event(ctypes.Structure):
     _fields_ = [('call', ctypes.c_uint32), ('object', ctypes.c_int32), ('count', ctypes.c_int32),
-                ('args', ctypes.c_uint32 * 12)]
+                ('args', ctypes.c_uint32 * 16)]
 
 
 class Log(ctypes.Structure):
@@ -143,7 +143,7 @@ class MoveInputs(ctypes.Structure):
     _fields_ = [('world', ctypes.c_int32), ('scene_state', ctypes.c_int32), ('hero_tile', ctypes.c_int32),
                 ('time', ctypes.c_float), ('hero', ctypes.c_float * 3), ('has_model', ctypes.c_uint8),
                 ('model_has_actions', ctypes.c_uint8), ('speed', SPEED_FN), ('rand_fn', RAND_FN),
-                ('context', ctypes.c_void_p)]
+                ('context', ctypes.c_void_p), ('now_ms', ctypes.c_uint32)]
 
 
 class World(ctypes.Structure):

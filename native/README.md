@@ -208,6 +208,21 @@ In the window: click a server (or Enter), type anything and press Enter, choose 
 Enter plays, Esc returns (world → character select → server list), Esc twice on the server list quits.
 `--sound-table`, `--placement`, `--world-objects` and `--charsel-objects` pass mu-world's and mu-charsel's options.
 
+## The login scene's 3D world (NATIVE-LOGIN-001)
+
+Behind the login overlay and the server list, `mu-client` now draws World95 (`core/mu_login`, `login/login_gl.c`,
+[finding](../docs/research/client-login-scene.md)): the fixed camera record, the terrain (the sea), and with
+`--login-objects DIR` (or `--objects-dir DIR` for all three scenes) the 47 objects of a local decoded
+`EncTerrain95.plain` through the object lifecycle with the login world's handler `CGMLogInScene_Ex` (ship with its
+glow meshes, wakes, sky, island beam, geese; lantern sprites and mist particles are stand-in billboards). The shell
+runs the reconstructed tick head and render 3D part. `mu-render ui login|servers --scene` renders the same headless.
+
+```sh
+native/build/mu-client --game-root "$MU_GAME_ROOT" --login-objects LOCAL
+native/build/mu-render ui servers --root "$MU_GAME_ROOT" --scene --objects-dir LOCAL --size 1722x1048 --out s.png
+native/build/mu-render ui login --root "$MU_GAME_ROOT" --scene --objects-dir LOCAL --no-ui --steps 25 --out l.png
+```
+
 ## Terrain mode (NATIVE-TERRAIN-001)
 
 ```sh

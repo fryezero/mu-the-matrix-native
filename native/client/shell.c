@@ -26,7 +26,7 @@ enum {
     H_UI = 0x10000000u, H_OWNER = 0x10010000u, H_GFX = 0x10020000u, H_GFX_A0 = 0x10030000u,
     H_STATE = 0x10040000u, H_CONFIG = 0x10050000u, H_HERO = 0x10060000u, H_RECORD = 0x10070000u,
     H_TABLE = 0x10080000u, H_LOADING = 0x10090000u, H_SINGLE = 0x100a0000u, H_MUSIC_LOGIN = 0x100b0000u,
-    H_SERVER = 0x100c0000u, H_ID = 0x100d0000u, H_GLOBALS = 0x01d1df00u
+    H_SERVER = 0x100c0000u, H_ID = 0x100d0000u, H_CAMERA = 0x100e0000u, H_GLOBALS = 0x01d1df00u
 };
 
 typedef struct region {
@@ -34,7 +34,7 @@ typedef struct region {
     uint8_t *bytes;
 } region;
 
-#define REGIONS 15
+#define REGIONS 16
 #define TRANSITIONS 64
 
 static const char *const LOGIN_THEME = "data\\music\\login_theme.mp3";
@@ -57,7 +57,7 @@ struct mu_shell {
     region regions[REGIONS];
     uint8_t ui_mem[0x6600], owner_mem[0x240], gfx_mem[0x100], gfx_a0_mem[0x40], state_mem[0x40], config_mem[16],
         hero_mem[0x400], record_mem[0x200], table_mem[16], loading_mem[0x2a8], single_mem[0x300], music_mem[64],
-        server_mem[32], id_mem[64], globals_mem[0x40];
+        server_mem[32], id_mem[64], globals_mem[0x40], camera_mem[0x60];
     /* the 2D layer (one software GL subset over the frame) */
     mu_ui_raster raster;
     mu_ui_assets assets;
@@ -80,6 +80,8 @@ struct mu_shell {
     mu_charsel_ui *charsel_ui;
     int32_t enter_seen;
     mu_world_embed *world;
+    mu_login_session *login;        /* NATIVE-LOGIN-001: the 3D login world */
+    int login_draw3d;               /* the login render's 3D block ran this frame */
     int join_answer;                /* the offline session answered a join request */
     int32_t hero_slot;
     uint8_t hero_class;
@@ -175,7 +177,7 @@ static void regions_init(mu_shell *s)
         {H_TABLE, sizeof s->table_mem, s->table_mem}, {H_LOADING, sizeof s->loading_mem, s->loading_mem},
         {H_SINGLE, sizeof s->single_mem, s->single_mem}, {H_MUSIC_LOGIN, sizeof s->music_mem, s->music_mem},
         {H_SERVER, sizeof s->server_mem, s->server_mem}, {H_ID, sizeof s->id_mem, s->id_mem},
-        {H_GLOBALS, sizeof s->globals_mem, s->globals_mem}};
+        {H_GLOBALS, sizeof s->globals_mem, s->globals_mem}, {H_CAMERA, sizeof s->camera_mem, s->camera_mem}};
     memcpy(s->regions, r, sizeof r);
     poke(s, H_OWNER + 0x22c, H_GFX, 4);
     poke(s, H_OWNER + 0xa0, H_GFX_A0, 4);
@@ -360,6 +362,53 @@ static void close_world(mu_shell *s)
     }
 }
 
+/* NATIVE-LOGIN-001: OpenWorld(0x5e) in the login scene's creation: the 3D login world. The camera-record
+ * manager the render reads (0x0098647b: +0xc the record, +0x10 the far scale) mirrors the session's record. */
+static void close_login(mu_shell *s)
+{
+    if (s->login) {
+        if (s->platform.embed_closing)
+            s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_LOGIN, s->login);
+        mu_login_free(s->login);
+        free(s->login);
+        s->login = NULL;
+    }
+}
+
+static void open_login(mu_shell *s)
+{
+    if (s->login)
+        return;
+    s->login = calloc(1, sizeof *s->login);
+    if (!s->login)
+        return;
+    if (mu_login_init(s->login, s->cfg.root, s->cfg.login_objects, (uint32_t)s->cfg.width, (uint32_t)s->cfg.height,
+                      20.0f)) {
+        snprintf(s->status, sizeof s->status, "login world: %s", s->login->error);
+        if (!s->cfg.quiet)
+            fprintf(stderr, "%s (the login screen stays black)\n", s->status);
+        mu_login_free(s->login);
+        free(s->login);
+        s->login = NULL;
+        return;
+    }
+    const mu_camera_info *info = &s->login->info;
+    uint32_t record = H_CAMERA + 0x20u;
+    poke(s, H_CAMERA + 0xc, record, 4);
+    float one = 1.0f;
+    uint32_t bits;
+    memcpy(&bits, &one, 4);
+    poke(s, H_CAMERA + 0x10, bits, 4);
+    const float fields[9] = {info->angle[0], info->angle[1], info->angle[2], info->position[0], info->position[1],
+                             info->position[2], info->z_distance, info->distance, info->fov};
+    for (uint32_t i = 0; i < 9; ++i) {
+        memcpy(&bits, &fields[i], 4);
+        poke(s, record + 4u * i, bits, 4);
+    }
+    if (s->platform.embed_opened)
+        s->platform.embed_opened(s->platform.user, MU_SHELL_EMBED_LOGIN, s->login);
+}
+
 /* CreateCharacterScene (the scene-5 tick's first step) with the session's list. */
 static int open_charsel(mu_shell *s)
 {
@@ -527,6 +576,8 @@ static uint32_t host_call(void *user, const mu_scenemgr_call *c)
         return 0;
     /* login scene */
     case MU_SC_OPEN_WORLD:
+        if ((int32_t)c->args[0] == MU_SCENE_LOGIN_WORLD)
+            open_login(s);
         if (s->audio)
             mu_audio_set_group_volume(mu_audio_host_client(s->audio), MU_AUDIO_GROUP_MUSIC,
                                       mu_audio_world_music_volume((int32_t)c->args[0]));
@@ -547,6 +598,15 @@ static uint32_t host_call(void *user, const mu_scenemgr_call *c)
         return 0;
     }
     case 0x011e2dc0u: server_open(s); return 0;   /* CUIMng::CreateLoginScene */
+    /* the login tick head and render (NATIVE-LOGIN-001) */
+    case MU_SC_LOGIN_CREATE: mu_scenemgr_login_create(&s->host, &s->g); return 0;
+    case MU_SC_MOVE_OBJECTS:
+        if (s->login && s->g.scene == MU_SCENE_LOGIN)
+            mu_login_step(s->login, s->now);   /* the frame-light copy and MoveObjects */
+        return 0;
+    case MU_SC_CAMERA_RECORD: return H_CAMERA;
+    case MU_SC_SCREEN_WIDTH: return (uint32_t)s->cfg.width;
+    case MU_SC_RENDER_TERRAIN: s->login_draw3d = 1; return 0;
     case 0x0121c055u:   /* connect: the offline session's server list arrives (handler 0x0127ec2f) */
         if (s->server_created) {
             mu_ui_server_win_open(&s->ctx, s->server);
@@ -614,11 +674,9 @@ static uint32_t host_call(void *user, const mu_scenemgr_call *c)
 
 static void login_frame(mu_shell *s)
 {
-    if (!s->g.init_login) {
-        s->g.init_login = 1;
+    if (!s->g.init_login)
         s->panel = 0;
-        mu_scenemgr_login_create(&s->host, &s->g);
-    }
+    mu_scenemgr_login_tick_head(&s->host, &s->g);   /* creation on the first step, then the 3D movers */
     for (int k = 0; k < s->key_count; ++k) {
         int vk = s->keys[k][0];
         if (!s->keys[k][1])
@@ -669,6 +727,15 @@ static void login_frame(mu_shell *s)
     }
     mu_scenemgr_login_tick_tail(&s->host, &s->g);
     log_transition(s, "login accepted (offline session), character list requested");
+    if (s->g.scene == MU_SCENE_LOGIN) {
+        /* the login render 0x01857ed9, its 3D part; the front end draws what it names */
+        s->login_draw3d = 0;
+        mu_scenemgr_login_render_3d(&s->host, &s->g);
+        if (s->login)
+            mu_login_begin_render(s->login, s->now, s->login_draw3d);
+    } else {
+        close_login(s);   /* scene 5 opens World94 */
+    }
 }
 
 static void charsel_frame(mu_shell *s, uint32_t now)
@@ -831,6 +898,7 @@ void mu_shell_free(mu_shell *s)
         return;
     close_charsel(s);
     close_world(s);
+    close_login(s);
     free(s->title);
     free(s->server);
     free(s->text.dib);
@@ -922,7 +990,14 @@ int mu_shell_view(const mu_shell *s)
         return MU_SHELL_VIEW_CHARSEL;
     if (s->g.scene == MU_SCENE_MAIN && s->world)
         return MU_SHELL_VIEW_WORLD;
+    if (s->g.scene == MU_SCENE_LOGIN && s->login)
+        return MU_SHELL_VIEW_LOGIN;
     return MU_SHELL_VIEW_2D;
+}
+
+mu_login_session *mu_shell_login(mu_shell *s)
+{
+    return s->login;
 }
 
 mu_charsel_embed *mu_shell_charsel(mu_shell *s)

@@ -109,6 +109,51 @@ class SceneTests(unittest.TestCase):
         self.assertEqual((g.id_length, g.id_present, g.id_field_1118), (5, 1, 10))
         self.assertEqual(struct.pack('<f', g.login_fade), bytes(4))
 
+    def test_login_render_3d_order_and_far_plane(self):
+        # NATIVE-LOGIN-001: the camera-record manager (0x0098647b) at 0x5000: +0xc the record, +0x10 the scale
+        memory = {}
+        for address, value in ((0x500c, 0x5100), (0x5010, struct.unpack('<I', struct.pack('<f', 1.0))[0])):
+            for i in range(4):
+                memory[address + i] = (value >> (8 * i)) & 0xff
+        record = struct.pack('<9f', -84.5, 0.0, -45.0, 24475.797, 7581.581, 1834.54, 0.324999, 32.1, 35.0)
+        for i, b in enumerate(record):
+            memory[0x5100 + i] = b
+        h = Host({0x0098647b: 0x5000, 0x016bc355: 1280, 0x011e228b: 0x6000}, memory)
+        g = self.globals(init_login=0)
+        self.assertEqual(self.lib.mu_scenemgr_login_render_3d(ctypes.byref(h.c), ctypes.byref(g)), 0)
+        self.assertEqual(h.calls, [])
+        g = self.globals(init_login=1, gl_cache_597c=1)
+        self.assertEqual(self.lib.mu_scenemgr_login_render_3d(ctypes.byref(h.c), ctypes.byref(g)), 1)
+        r = h.routines()
+        self.assertEqual(g.gl_cache_597c, 0)
+        order = [0x0185498e, 0x0184adc7, 0x016cba24, 0x016cd468, 0x016d5020, 0x016d6949, 0x0169270e, 0x0184f793]
+        self.assertEqual([x for x in r if x in order], order)
+        self.assertIn((0x0184adc7, 0, (0, 0, 640, 480), None), h.calls)
+        frustum = next(c for c in h.calls if c[0] == 0x016cba24)
+        self.assertEqual(frustum[2][0], struct.unpack('<I', struct.pack('<f', 2.0))[0])   # 1280 / 640
+        self.assertEqual(frustum[3], '%08x %08x %08x' % struct.unpack('<3I', record[12:24]))
+        f = lambda x: struct.unpack('<f', struct.pack('<f', x))[0]
+        self.assertEqual(g.view_far, f(f(f(2400.0) * f(32.1)) * f(0.324999)))
+        memory[0x6000 + 0x4654] = 1   # the credit window is open: no 3D block
+        h2 = Host({0x0098647b: 0x5000, 0x016bc355: 1280, 0x011e228b: 0x6000}, memory)
+        self.lib.mu_scenemgr_login_render_3d(ctypes.byref(h2.c), ctypes.byref(g))
+        self.assertNotIn(0x016cd468, h2.routines())
+        self.assertIn(0x0184f793, h2.routines())
+
+    def test_login_tick_head(self):
+        h = Host({0x011e228b: 0x6000})
+        g = self.globals(init_login=0, scene=3)
+        self.assertEqual(self.lib.mu_scenemgr_login_tick_head(ctypes.byref(h.c), ctypes.byref(g)), 1)
+        r = h.routines()
+        self.assertEqual(g.init_login, 1)
+        self.assertEqual(r[0], 0x01851804)                    # the creation on the first step
+        self.assertLess(r.index(0x016ca4fa), r.index(0x016d82c7))   # frame light before MoveObjects
+        self.assertEqual(r[-1], 0x01854529)                   # MoveCharacterCamera last
+        self.assertIn((0x00ac9613, 0, (3,), None), [(c[0], 0, c[2], c[3]) for c in h.calls])
+        h = Host({0x011e228b: 0x6000}, {0x6000 + 0x4654: 1})
+        self.assertEqual(self.lib.mu_scenemgr_login_tick_head(ctypes.byref(h.c), ctypes.byref(g)), 0)
+        self.assertEqual(h.routines(), [0x011e228b])
+
     def test_login_tail_needs_protocol_0x14(self):
         for protocol, scene in ((0x13, 3), (0x14, 5), (0x33, 3)):
             h, g = Host(), self.globals(scene=3, protocol=protocol)

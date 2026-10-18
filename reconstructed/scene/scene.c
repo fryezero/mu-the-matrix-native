@@ -4,6 +4,8 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 /* ---- host helpers ---- */
 
@@ -345,4 +347,99 @@ void mu_scenemgr_return_to_character(mu_scenemgr_globals *g)
     g->init_main = 0;
     g->login_flag_5eb8 = 0;
     g->protocol = 0;
+}
+
+/* ---- the login scene's 3D part (NATIVE-LOGIN-001) ---- */
+
+static uint32_t fbits(float v)
+{
+    uint32_t u;
+    memcpy(&u, &v, 4);
+    return u;
+}
+
+static float bitsf(uint32_t u)
+{
+    float v;
+    memcpy(&v, &u, 4);
+    return v;
+}
+
+static uint8_t credit_open(const mu_scenemgr_host *h)
+{
+    uint32_t ui = call(h, MU_SC_UI_MANAGER, 0);
+    return (uint8_t)peek(h, ui + 0x4648u + 0xcu, 1);
+}
+
+int mu_scenemgr_login_render_3d(const mu_scenemgr_host *h, mu_scenemgr_globals *g)
+{
+    if (!g->init_login)
+        return 0;
+    g->gl_cache_597c = 0;
+    call(h, MU_SC_MOVE_MAIN_CAMERA, 0);
+    call(h, MU_SC_GL_COLOR3F, 3, fbits(1.0f), fbits(1.0f), fbits(1.0f));
+    int32_t width = (int32_t)call(h, MU_SC_SCREEN_WIDTH, 0);
+    call(h, MU_SC_GL_CLEAR_COLOR, 4, 0u, 0u, 0u, fbits(1.0f));
+    call(h, MU_SC_BEGIN_OPENGL, 4, 0u, 0u, 0x280u, 0x1e0u);
+    uint32_t position[3];
+    for (uint32_t i = 0; i < 3; ++i) {
+        uint32_t record = peek(h, call(h, MU_SC_CAMERA_RECORD, 0) + 0xcu, 4);
+        position[i] = peek(h, record + 0xcu + 4u * i, 4);
+    }
+    char vector[40];
+    snprintf(vector, sizeof vector, "%08x %08x %08x", position[0], position[1], position[2]);
+    float aspect = (float)width / 640.0f;
+    call_text(h, MU_SC_CREATE_FRUSTUM, 0, vector, 3, fbits(aspect), MU_SCENE_STACK, 0u);
+    if (!credit_open(h)) {
+        /* 0x0098ac45(2400): 2400 * record Distance (+0x1c) * Z_Distance (+0x18) * manager +0x10 */
+        uint32_t manager = call(h, MU_SC_CAMERA_RECORD, 0);
+        uint32_t record = peek(h, manager + 0xcu, 4);
+        float far = 2400.0f * bitsf(peek(h, record + 0x1cu, 4));
+        far = far * bitsf(peek(h, record + 0x18u, 4));
+        far = far * bitsf(peek(h, manager + 0x10u, 4));
+        g->view_far = far;
+        call(h, MU_SC_RENDER_TERRAIN, 1, 0u);
+        call(h, MU_SC_RENDER_CHARACTERS, 0);
+        call(h, 0x00c9e4e3u, 0);
+        call(h, MU_SC_RENDER_OBJECTS, 0);
+        call(h, 0x01589b56u, 1, 0u);
+        call_this(h, 0x015181fau, 0x0a4ca430u, 1, 0u);
+        call_this(h, 0x01692887u, 0x0a3da070u, 0);
+        call_this(h, 0x01538145u, 0x0a3a0e28u, 0);
+        call(h, 0x00c9fd8du, 1, 0u);
+        call(h, MU_SC_RENDER_OBJECTS_AFTER, 0);
+        call_this(h, 0x00eb0deeu, call(h, 0x00b990b0u, 0), 0);
+    }
+    call(h, MU_SC_PUSH_IDENTITY, 0);
+    call_this(h, MU_SC_RENDER_SPRITES, 0x0a3da070u, 1, 0u);
+    call_this(h, MU_SC_RENDER_PARTICLES, 0x0a3a9adcu, 1, 0u);
+    call(h, MU_SC_POP_MATRIX, 0);
+    call(h, MU_SC_BEGIN_BITMAP, 0);
+    return 1;
+}
+
+int mu_scenemgr_login_tick_head(const mu_scenemgr_host *h, mu_scenemgr_globals *g)
+{
+    if (!g->init_login) {
+        g->init_login = 1;
+        call(h, MU_SC_LOGIN_CREATE, 0);
+    }
+    if (credit_open(h))
+        return 0;
+    call(h, MU_SC_FRAME_LIGHT, 0);
+    call(h, MU_SC_MOVE_OBJECTS, 0);
+    call(h, 0x00c9e24au, 0);
+    call_this(h, 0x01537a43u, 0x0a3a0e28u, 0);
+    call(h, MU_SC_MOVE_CHARACTERS, 0);
+    call_this(h, 0x0106bcc5u, call(h, 0x009c104eu, 1, 1u), 1, 1u);   /* pops the getter's argument word */
+    call_this(h, 0x0150ddb1u, 0x0a4ca430u, 0);
+    call(h, 0x01589b06u, 0);
+    call_this(h, 0x0159122du, 0x0a3a9adcu, 0);
+    call_this(h, 0x0106bcc5u, call(h, 0x009c104eu, 1, 0u), 1, 0u);
+    call(h, 0x00c9eb04u, 0);
+    call_this(h, 0x00eb0d64u, call(h, 0x00b990b0u, 0), 0);
+    call_this(h, 0x009b9913u, call(h, 0x009c2aeau, 0), 0);
+    call_this(h, 0x00ac9613u, call(h, 0x00ac3bf7u, 0), 1, (uint32_t)g->scene);
+    call(h, MU_SC_MOVE_CHARACTER_CAMERA, 0);
+    return 1;
 }

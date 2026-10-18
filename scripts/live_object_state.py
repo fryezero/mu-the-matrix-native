@@ -50,7 +50,9 @@ FIELDS = [(0x00, 1, 'live'), (0x02, 1, '+2'), (0x05, 1, 'light enable'), (0x06, 
 # per world: type -> labels changed by the running game (MoveObject / RenderObjectVisual)
 DYNAMIC = {0: {0x34: {'blend light'}, 0x75: {'blend light'}, 0x7a: {'blend light'}, 0x76: {'blend v'},
                0x77: {'blend v'}, 0x69: {'blend v', 'blend light'}, 0x82: {'hidden mesh'}, 0x83: {'hidden mesh'},
-               0x84: {'hidden mesh'}, 0x7d: {'alpha target', 'alpha'}, 0x7e: {'alpha target', 'alpha'}}}
+               0x84: {'hidden mesh'}, 0x7d: {'alpha target', 'alpha'}, 0x7e: {'alpha target', 'alpha'}},
+           # login world (NATIVE-LOGIN-001): CGMLogInScene_Ex's move scroll and pulse, its custom render's +0xa
+           0x5e: {0x01: {'blend v'}, 0x0d: {'blend light', 'after character'}, 0x05: {'after character'}}}
 
 
 def f32(v):

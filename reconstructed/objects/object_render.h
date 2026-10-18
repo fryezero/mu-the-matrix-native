@@ -19,8 +19,9 @@
  * scripts/validate_object_render.py compares the logs and the object bytes
  * with the client's instructions run in Unicorn.
  *
- * Coverage: the generic paths of every routine, world 0 (Lorencia) and world
- * 0x8d (Tormenta Island, handler class with vtable 0x01aabd10). Branches for
+ * Coverage: the generic paths of every routine, world 0 (Lorencia), world
+ * 0x8d (Tormenta Island, handler class with vtable 0x01aabd10) and world 0x5e
+ * (the login scene, CGMLogInScene_Ex: login_world.h, NATIVE-LOGIN-001). Branches for
  * other worlds or special object types return MU_OBJ_UNSUPPORTED (nothing is
  * guessed); the caller decides what to do. */
 
@@ -81,7 +82,7 @@ enum { MU_OBJ_OK = 0, MU_OBJ_SKIPPED = 1, MU_OBJ_UNSUPPORTED = 2, MU_OBJ_BAD_ARG
 
 /* ---- event log ---- */
 
-#define MU_OBJ_EVENT_ARGS 12
+#define MU_OBJ_EVENT_ARGS 16
 typedef struct mu_obj_event {
     uint32_t call;                      /* client address of the callee */
     int32_t object;                     /* index of the object it concerns (-1 none) */
@@ -214,6 +215,7 @@ typedef struct mu_obj_move_inputs {
     mu_obj_speed_fn speed;      /* PlaySpeed of (type, action) from the model's action table */
     mu_obj_rand_fn rand_fn;
     void *context;
+    uint32_t now_ms;            /* timeGetTime (world 0x5e's pulse, NATIVE-LOGIN-001) */
 } mu_obj_move_inputs;
 
 /* MoveObject 0x017ff238: roof fade (world 0 types 0x7d/0x7e by HeroTile 4, world 2),
