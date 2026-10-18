@@ -230,7 +230,10 @@ static void marker(const app *a, const mu_render_backend *b)
     const mu_walk *w = &a->walk;
     if (!w->hero.movement)
         return;
-    mu_meshdraw_state state = {0, 1, 1, 0, 0, 0, MU_BLEND_ONE, MU_BLEND_ZERO};
+    mu_meshdraw_state state;
+    mu_meshdraw_state_defaults(&state);   /* depth test and writes on, blend off (ONE, ZERO) */
+    state.cull = 0;
+    state.texture = 0;
     b->prepare(b->context, &state, -1);
     b->begin(b->context);
     const float red[3] = {0.95f, 0.2f, 0.1f};
@@ -256,8 +259,7 @@ static void g_state(void *c, int32_t state, int32_t argument)
     mu_world_state(state, argument, &s);
     if (s.blend) {
         glEnable(GL_BLEND);
-        glBlendFunc(s.src == MU_BLEND_ONE ? GL_ONE : GL_SRC_ALPHA, s.dst == MU_BLEND_ONE ? GL_ONE
-                                                                                          : GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc((GLenum)s.src, (GLenum)s.dst);   /* GL blend factors */
     } else {
         glDisable(GL_BLEND);
     }
@@ -320,7 +322,7 @@ static void gl_setup(app *a)
         memset(&a->items[i], 0, sizeof a->items[i]);
         const mu_character_item *item = &a->ch.items[i];
         if (a->has_character && item->loaded)
-            mu_gl_upload(&a->items[i], item->textures.slots, item->textures.count, 0);
+            mu_gl_upload(&a->items[i], &item->textures, 0);
     }
     a->gl_ready = 1;
 }
@@ -365,7 +367,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
                 continue;
             mu_render_backend backend;
             mu_gl_backend_bind(&a->items[draw_order[n]], &backend);
-            mu_draw_stats ds = {0, 0, 0};
+            options.textures = &item->textures;   /* bitmap GL names and component counts */
+            mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
     mu_gl_backend plain;
@@ -403,11 +406,16 @@ static long draw_soft(app *a, mu_raster *raster)
                 continue;
             raster->textures = item->textures.slots;
             raster->texture_count = item->textures.count;
-            mu_draw_stats ds = {0, 0, 0};
+            raster->texture_filter = item->textures.filter;
+            raster->texture_wrap = item->textures.wrap;
+            options.textures = &item->textures;   /* bitmap GL names and component counts */
+            mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
     raster->textures = NULL;
     raster->texture_count = 0;
+    raster->texture_filter = NULL;
+    raster->texture_wrap = NULL;
     marker(a, &backend);
     return stats.tiles.faces;
 }

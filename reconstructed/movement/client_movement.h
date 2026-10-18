@@ -116,8 +116,8 @@ void mu_move_character_position(const mu_position_input *input, float position[3
 /* SetAction 0x012affa4(o, action): when action < the model's action count
  * and differs from the current one, the current action and frame become the
  * prior ones and the frame restarts at 0. Returns 1 when it changed. */
-int mu_set_action(uint16_t *action, uint16_t *prior_action, float *frame, float *prior_frame, int32_t action_count,
-                  int32_t new_action);
+int mu_move_set_action(uint16_t *action, uint16_t *prior_action, float *frame, float *prior_frame, int32_t action_count,
+                       int32_t new_action);
 
 /* ---- Player walk/stand selection: the minimal case (isolated) ----
  * Recovered by executing SetPlayerWalk 0x0139002a (up to its tail

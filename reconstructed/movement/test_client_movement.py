@@ -55,7 +55,7 @@ def load():
             ('mu_request_terrain_height', [P(F), P(ctypes.c_uint16), F, I, F, F], F),
             ('mu_character_move_speed', [P(SpeedInput), P(U8)], F),
             ('mu_move_character_position', [P(PositionInput), P(F), P(F), P(F)], None),
-            ('mu_set_action', [P(ctypes.c_uint16), P(ctypes.c_uint16), P(F), P(F), I, I], ctypes.c_int),
+            ('mu_move_set_action', [P(ctypes.c_uint16), P(ctypes.c_uint16), P(F), P(F), I, I], ctypes.c_int),
             ('mu_player_walk_run', [U8, U8, I, U8], U8), ('mu_player_walk_action', [U8, U8, P(F)], I),
             ('mu_player_stop_action', [U8], I), ('mu_player_stop_speed', [I], F),
             ('mu_path_finder_bytes', [], ctypes.c_uint32), ('mu_path_finder_init', [ctypes.c_void_p, ctypes.c_void_p], None),
@@ -236,10 +236,10 @@ class MovementTests(unittest.TestCase):
     def test_set_action(self):
         a, b = ctypes.c_uint16(1), ctypes.c_uint16(0)
         f, g = ctypes.c_float(3.5), ctypes.c_float(1.0)
-        self.assertEqual(self.lib.mu_set_action(a, b, f, g, 0x186, 0x32), 1)
+        self.assertEqual(self.lib.mu_move_set_action(a, b, f, g, 0x186, 0x32), 1)
         self.assertEqual((a.value, b.value, f.value, g.value), (0x32, 1, 0.0, 3.5))
-        self.assertEqual(self.lib.mu_set_action(a, b, f, g, 0x186, 0x32), 0)   # same action: unchanged
-        self.assertEqual(self.lib.mu_set_action(a, b, f, g, 0x186, 0x186), 0)  # out of range
+        self.assertEqual(self.lib.mu_move_set_action(a, b, f, g, 0x186, 0x32), 0)   # same action: unchanged
+        self.assertEqual(self.lib.mu_move_set_action(a, b, f, g, 0x186, 0x186), 0)  # out of range
 
     def test_minimal_walk_and_stand_tables(self):
         speed = ctypes.c_float()

@@ -168,7 +168,7 @@ def load_library(directory=None):
         'mu_request_terrain_height': ([P(F), P(ctypes.c_uint16), F, I, F, F], F),
         'mu_character_move_speed': ([P(SpeedInput), P(U8)], F),
         'mu_move_character_position': ([P(PositionInput), P(F), P(F), P(F)], None),
-        'mu_set_action': ([P(ctypes.c_uint16), P(ctypes.c_uint16), P(F), P(F), I, I], ctypes.c_int),
+        'mu_move_set_action': ([P(ctypes.c_uint16), P(ctypes.c_uint16), P(F), P(F), I, I], ctypes.c_int),
         'mu_player_walk_run': ([U8, U8, I, U8], U8),
         'mu_player_walk_action': ([U8, U8, P(F)], I),
         'mu_player_stop_action': ([U8], I),
@@ -513,7 +513,7 @@ def case_set_action(guest, lib, tally, generator, count, stubs):
         a, b = ctypes.c_uint16(action), ctypes.c_uint16(prior)
         fa, fb = ctypes.c_float(frame), ctypes.c_float(prior_frame)
         if not null_model:
-            lib.mu_set_action(ctypes.byref(a), ctypes.byref(b), ctypes.byref(fa), ctypes.byref(fb), n,
+            lib.mu_move_set_action(ctypes.byref(a), ctypes.byref(b), ctypes.byref(fa), ctypes.byref(fb), n,
                               struct.unpack('<i', struct.pack('<I', new & 0xffffffff))[0])
         ca, cb = struct.unpack('<HH', guest.get(OBJ + 0x2a, 4))
         cfa, cfb = struct.unpack('<ff', guest.get(OBJ + 0xd0, 8))

@@ -173,7 +173,7 @@ static float ground(const mu_walk *w, float x, float y)
 static void set_action(mu_walk *w, int32_t action, float speed)
 {
     mu_hero *h = &w->hero;
-    if (mu_set_action(&h->action, &h->prior_action, &h->frame, &h->prior_frame, w->action_count, action))
+    if (mu_move_set_action(&h->action, &h->prior_action, &h->frame, &h->prior_frame, w->action_count, action))
         h->action_changed = 1;
     h->play_speed = speed;
 }

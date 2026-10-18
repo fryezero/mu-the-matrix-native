@@ -343,8 +343,8 @@ void mu_move_character_position(const mu_position_input *in, float position[3], 
     *timer = *timer + 0.15f;
 }
 
-int mu_set_action(uint16_t *action, uint16_t *prior_action, float *frame, float *prior_frame, int32_t action_count,
-                  int32_t new_action)
+int mu_move_set_action(uint16_t *action, uint16_t *prior_action, float *frame, float *prior_frame, int32_t action_count,
+                       int32_t new_action)
 {
     if (new_action >= action_count)
         return 0;
