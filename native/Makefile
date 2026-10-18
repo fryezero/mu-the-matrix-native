@@ -193,11 +193,16 @@ ifeq ($(UNAME),Darwin)
 GL_LIBS := -framework OpenGL
 GLU_LIBS :=
 GL_CFLAGS := -DGL_SILENCE_DEPRECATION
+DL_LIBS :=
 else
 GL_LIBS := -lGL
 GLU_LIBS := -lGLU
 GL_CFLAGS :=
+DL_LIBS := -ldl
 endif
+# NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
+GFX_SRC := world/world_gfx.c gfx/mu_gfx_layer.c
+GFX_CFLAGS := -I gfx -I $(RECON)/hud
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c viewer/terrain_view.c
 
 viewer: $(BUILD)/mu-viewer $(BUILD)/mu-frame-window $(BUILD)/mu-world $(BUILD)/mu-charsel-window $(BUILD)/mu-client
@@ -269,15 +274,15 @@ $(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
 	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
 
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.
-WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_headless.c
+WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
 
-$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/world
 	for f in $(WORLD_SRC); do \
-	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/world/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
-	  $(GL_LIBS) $(AUDIO_LIBS) -lm -o $@
+	  $(GL_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
 CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_headless.c
@@ -305,16 +310,16 @@ $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	done
 	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
-CLIENT_GL_SRC := $(CLIENT_SRC) viewer/gl_backend.c viewer/gl_headless.c
+CLIENT_GL_SRC := $(CLIENT_SRC) viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
 
 $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/client
 	for f in $(CLIENT_GL_SRC); do \
-	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
 	    -o $(BUILD)/client/$$(basename $$f .c).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/client/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
-	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 clean:
 	rm -rf $(BUILD)
