@@ -61,6 +61,7 @@ typedef struct app {
     mu_charsel_session *s;
     /* NATIVE-OBJECTS-001: static objects and markers from a local decoded EncTerrain94.plain */
     const char *objects_dir;
+    const char *objects_out;       /* NATIVE-CHARSEL-002: --objects-out FILE, the objects' state after the run */
     mu_objects objects;
     int has_objects;
     long objects_drawn;
@@ -718,6 +719,20 @@ static int headless(app *a)
         if (sleep > 0)
             now += (uint32_t)sleep;
     }
+    if (a->objects_out && a->s->has_objects) {   /* the objects' state for the live comparison (NATIVE-CHARSEL-002) */
+        FILE *f = fopen(a->objects_out, "w");
+        for (int32_t i = 0; f && i < a->s->objects->count; ++i) {
+            const uint8_t *o = mu_objects_object_image(a->s->objects, i);
+            if (!o)
+                continue;
+            fprintf(f, "%d %d %.3f %.3f %.3f %u %u %.6f\n", i, mu_obj_i32(o, MU_OBJF_TYPE),
+                    (double)mu_obj_f32(o, MU_OBJF_POSITION), (double)mu_obj_f32(o, MU_OBJF_POSITION + 4),
+                    (double)mu_obj_f32(o, MU_OBJF_POSITION + 8), o[MU_OBJF_VISIBLE], o[MU_OBJF_AFTER_CHARACTER],
+                    (double)mu_obj_f32(o, MU_OBJF_BLEND_V));
+        }
+        if (f)
+            fclose(f);
+    }
 #ifndef MU_CHARSEL_NO_GL
     report_summary(a, gl ? mu_gl_renderer() : "software");
     if (gl) {
@@ -839,7 +854,8 @@ static int usage(void)
                     "                  [--width W --height H] [--seconds S]\n"
                     "                  [--headless --frames N --out-dir DIR --backend soft|gl --every K]\n"
                     "                  [--cycle F] [--enter F] [--no-ui] [--font FACE] [--tip TEXT] [--quiet]\n"
-                    "                  [--objects-dir DIR]   local decoded EncTerrain94.plain: objects + markers\n");
+                    "                  [--objects-dir DIR]   local decoded EncTerrain94.plain: objects + markers\n"
+                    "                  [--objects-out FILE]  per object: index type x y z visible(+0xb) after(+0xa) blend_v\n");
     return 2;
 }
 
@@ -873,6 +889,7 @@ int mu_charsel_tool_main(int argc, char **argv)
         if (!strcmp(k, "--game-root")) a.root = v;
         else if (!strcmp(k, "--list")) a.list_path = v;
         else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
+        else if (!strcmp(k, "--objects-out")) a.objects_out = v;
         else if (!strcmp(k, "--slot")) a.slot = atoi(v);
         else if (!strcmp(k, "--marker")) {
             a.marker[2] = 169.5f;
