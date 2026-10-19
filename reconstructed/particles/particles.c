@@ -42,6 +42,14 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
         return subtype == 0 || subtype == 1;
+    case MU_PT_BITMAP_WATERFALL2:
+        return subtype == 2;
+    case MU_PT_BITMAP_WATERFALL3:
+        return subtype == 0xe;
+    case MU_PT_BITMAP_FANTA_B:
+        return subtype == 0;
+    case MU_PT_BITMAP_CHASELLIGHT:
+        return subtype == 5;
     default:
         return 0;
     }
@@ -242,6 +250,54 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->light[0] = p->light[1] = p->light[2] = 0.2f;
         p->scale = 1.6f + scale;
         break;
+    case MU_PT_BITMAP_WATERFALL2:
+        /* NATIVE-CHARSEL-002. 0x015f27cb: every subtype; subtype 2 0x015f281f; the tail 0x015f2b24 */
+        p->lifetime = 30;
+        p->rotation = (float)(mu_pt_rand(h) % 360);
+        p->lifetime = 40;
+        p->scale = (float)(mu_pt_rand(h) % 6 + 6) * 0.1f + scale;
+        p->velocity[2] = (float)(-(mu_pt_rand(h) % 3 + 3));
+        if (h && h->scene_state == 5) {             /* 0x009b0bc1(SceneFlag) == 5: the character select */
+            p->light[0] = p->light[1] = p->light[2] = 0.25f;
+        } else {                                    /* (subtype 7 keeps the argument light) */
+            p->light[0] = p->light[1] = p->light[2] = 0.4f;
+        }
+        p->position[0] = ((float)(mu_pt_rand(h) % 20) - 10.0f) + p->position[0];
+        p->position[1] = ((float)(mu_pt_rand(h) % 20) - 10.0f) + p->position[1];
+        p->position[2] = ((float)(mu_pt_rand(h) % 40) - 20.0f) + p->position[2];
+        break;
+    case MU_PT_BITMAP_WATERFALL3:
+        /* 0x015f34b8: no case among 0..3, 0xc, 0x10..0x19; the second chain 0x015f4466, subtype 0xe
+         * 0x015f4e42, then the position jitter 0x015f5079 */
+        p->rotation = (float)(mu_pt_rand(h) % 360);
+        p->scale = (float)(mu_pt_rand(h) % 10 + 10) * 0.02f;
+        p->lifetime = 30;
+        p->velocity[2] = (float)(mu_pt_rand(h) % 5 + 5);
+        p->scale = (float)(mu_pt_rand(h) % 10 + 10) * 0.05f * scale;
+        p->position[0] = ((float)(mu_pt_rand(h) % 40) - 20.0f) + p->position[0];
+        p->position[1] = ((float)(mu_pt_rand(h) % 40) - 20.0f) + p->position[1];
+        p->position[2] = ((float)(mu_pt_rand(h) % 20) - 10.0f) + p->position[2];
+        break;
+    case MU_PT_BITMAP_FANTA_B:
+        /* 0x015f1549, subtype 0 (none of 5..9): 0x015f1743, 0x015f1827 */
+        p->lifetime = 24;
+        p->velocity[0] = (float)(mu_pt_rand(h) % 10 - 5) * 0.4f;
+        p->velocity[1] = 0.0f;
+        p->velocity[2] = (float)(mu_pt_rand(h) % 10 + 5) * 0.2f;
+        copy3(p->start, p->position);
+        break;
+    case MU_PT_BITMAP_CHASELLIGHT:
+        /* 0x015b53a8: not 0..3 -> 0x015b55a6; subtype 5 0x015b57d1 draws Impack03 */
+        p->lifetime = mu_pt_rand(h) % 3 + 20;
+        p->position[0] = (float)(mu_pt_rand(h) % 50 - 25) + p->position[0];
+        p->position[1] = (float)(mu_pt_rand(h) % 50 - 25) + p->position[1];
+        p->position[2] = ((float)(mu_pt_rand(h) % 200 - 100) + 250.0f) + p->position[2];
+        p->tex_type = MU_PT_BITMAP_IMPACK03;
+        p->scale = (float)(mu_pt_rand(h) % 10 + 20) * 0.01f * 1.3f;
+        p->gravity = (float)(mu_pt_rand(h) % 10 + 20) * 0.05f * 1.3f;
+        p->position[1] = (float)(mu_pt_rand(h) % 130 - 65) + p->position[1];
+        p->position[2] = (float)(mu_pt_rand(h) % 130) + position[2];   /* the argument's z */
+        break;
     default:
         break;
     }
@@ -387,6 +443,50 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                     p->light[k] = p->light[k] * 1.1f;
             }
             p->velocity[2] = p->velocity[2] + 0.1f;
+            break;
+        case MU_PT_BITMAP_WATERFALL2:
+            /* NATIVE-CHARSEL-002. 0x01668bbd (not subtype 5) 0x01668de1: grows, drifts, fades below 10 */
+            p->scale = p->scale + 0.03f;
+            p->velocity[0] = (float)(mu_pt_rand(h) % 20 - 10) * 0.1f;
+            p->velocity[1] = (float)(mu_pt_rand(h) % 20 - 10) * 0.1f;
+            p->velocity[2] = p->velocity[2] + 0.1f;
+            if (p->lifetime < 10)
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] = p->light[k] / 1.1f;
+            break;
+        case MU_PT_BITMAP_WATERFALL3:
+            /* 0x016696f4, subtype 0xe 0x0166a631, then the common tail 0x0166b810 (not subtype 0x11) */
+            p->scale = p->scale + 0.05f;
+            p->velocity[2] = p->velocity[2] - 0.6f;
+            for (int k = 0; k < 3; ++k)
+                p->light[k] = p->light[k] / 1.1f;
+            p->scale = p->scale + 0.005f;
+            p->velocity[2] = p->velocity[2] - 2.5f;
+            for (int k = 0; k < 3; ++k)
+                p->light[k] = p->light[k] / 1.1f;
+            break;
+        case MU_PT_BITMAP_FANTA_B:
+            /* 0x016672be, subtype 0 0x01667872: shrinks, slows, rises, fades over 25 steps */
+            p->scale = p->scale - 0.02f;
+            if (0.0f > p->scale)
+                p->scale = 0.0f;
+            p->velocity[0] = p->velocity[0] * 0.95f;
+            p->velocity[1] = p->velocity[1] * 0.95f;
+            p->position[2] = p->position[2] + 1.0f;
+            p->light[0] = (float)p->lifetime / 25.0f;
+            p->light[1] = p->light[0];
+            p->light[2] = p->light[0];
+            break;
+        case MU_PT_BITMAP_CHASELLIGHT:
+            /* 0x0161d91f, subtype 5: brightens from 10 steps up, fades below; rises by its gravity */
+            if (p->lifetime >= 10) {
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] = p->light[k] * 1.05f;
+            } else {
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] = p->light[k] / 1.16f;
+            }
+            p->position[2] = p->position[2] + p->gravity;
             break;
         default:
             break;

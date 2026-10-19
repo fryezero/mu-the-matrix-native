@@ -32,6 +32,21 @@
  *   - the CHARACTER fields CreateCharacter 0x0137d8a1 initialises are set to
  *     the values the scene reads (live, visible, Player type);
  *   - the particle 0x8022 is reported, not drawn (effect system).
+ *
+ * NATIVE-CHARSEL-002 (docs/research/client-character-select.md section 9):
+ *   - World94's objects run the client's lifecycle with the scene's handler
+ *     CGMCharacterScene_Ex (mu_charsel_attach_objects: CreateObject per
+ *     record, MoveObjects per logic step, RenderObjects / RenderObjectVisual /
+ *     RenderObjects_AfterCharacter per frame, reconstructed/objects/charsel_world);
+ *   - the session keeps the reconstructed particle module (mu_world_particles,
+ *     scene 5): the handler's sprites, particles and effects, and
+ *     RenderCharacterScene's selection light CreateParticle(0x8022, ..., 5),
+ *     moved each logic step (MoveEffects, MoveJoints, MoveParticles) and drawn
+ *     by RenderSprites(0) / RenderParticles(0);
+ *   - the frame light of a logic step is the primary light over the last
+ *     frustum box grown by 3 tiles (0x016ca4fa, as the login scene);
+ *   - the drawn character casts its parts' shadows (RenderBodyShadow through
+ *     the item render's shadow block, mu_world_particles_character_shadow).
  */
 
 #include <stdint.h>
@@ -39,6 +54,8 @@
 #include "../../reconstructed/charsel/charsel.h"
 #include "mu_character.h"
 #include "mu_frame.h"
+#include "mu_objects.h"
+#include "mu_particles.h"
 #include "mu_terrain.h"
 #include "mu_walk.h"
 
@@ -93,10 +110,18 @@ typedef struct mu_charsel_session {
     int32_t draw_entry;            /* list entry drawn this frame, -1 none */
     mu_charsel_decal decals[2];
     int32_t decal_count;
-    int32_t particles;
+    int32_t particles_created;     /* CreateParticle calls of the last render (the selection light 0x8022) */
     int32_t enter_requests;        /* 0x0185a75a calls seen (Enter / double click) */
     uint32_t steps, frames;
     char error[256];
+    /* NATIVE-CHARSEL-002 */
+    mu_objects *objects;           /* World94's objects (the caller's, see mu_charsel_attach_objects), NULL none */
+    int has_objects;
+    mu_world_particles particles;  /* sprites, particles, joints, effects of the scene (scene 5) */
+    int has_particles;
+    mu_terrain_frustum frustum;    /* the last render's frustum (the frame light box of the next step) */
+    int32_t frame_sprites;         /* CreateSprite calls of the last RenderObjects pass */
+    long objects_drawn, after_meshes, billboards, shadows;
 } mu_charsel_session;
 
 /* Loads World94, its camera record, Player.bmd and the list's models, creates
@@ -128,5 +153,15 @@ int32_t mu_charsel_end_render(mu_charsel_session *s);
 
 /* Terrain frustum of the render (CreateFrustrum(width/640, record position, 0)). */
 int mu_charsel_frustum(const mu_charsel_session *s, mu_terrain_frustum *frustum);
+
+/* NATIVE-CHARSEL-002: starts the object lifecycle of World94 on objects (loaded records and models, kept
+ * by the caller and freed after the session): CreateObject per record with CGMCharacterScene_Ex's hook, the
+ * particle module attached for the handler's sprites, particles and effects. Returns 0 on success. */
+int mu_charsel_attach_objects(mu_charsel_session *s, const char *game_root, mu_objects *objects);
+
+/* A frame without drawing (headless frames that are not saved): RenderObjects with RenderObject and
+ * RenderObjectVisual per drawn object, the after-character visibility, the frame's sprites killed. Call
+ * after mu_charsel_begin_render. */
+void mu_charsel_frame_objects(mu_charsel_session *s);
 
 #endif

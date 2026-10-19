@@ -14,6 +14,14 @@ through `mu-charsel` / `mu-render charsel` (headless, software rasterizer):
 `mu-charsel-window --headless` (OpenGL) is checked when SDL2 and an offscreen
 context exist. Private (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT): the
 installed World94 and class parts.
+
+NATIVE-CHARSEL-002 (synthetic EncTerrain94.plain and Object94 models): the
+object lifecycle with CGMCharacterScene_Ex (the marker hidden, the pedestal and
+the waterfall after the character, the falls' WATERFALL3 particle every frame,
+the lamp's two sprites and its terrain light), the selection light 0x8022,
+--objects-out, determinism. Private with MU_OBJECTS_PLAIN_DIR:
+the installed World94 with the live placements (237 objects created, 221
+visible and 38 after-character objects as in the live read, part shadows).
 """
 import json
 import os
@@ -110,6 +118,23 @@ class Build(unittest.TestCase):
         return Path(self.tmp.name) / name
 
 
+# type, x, y, z, angle, scale (NATIVE-CHARSEL-002): in front of the camera, which looks toward -x
+OBJECT_RECORDS = [(0x0e, MARKER[0], MARKER[1], 164.5, 0.0, 1.0), (0x3c, MARKER[0] - 2.0, MARKER[1], 166.5, 0.0, 0.75),
+                  (0x18, 11300.0, 12700.0, 200.0, 0.0, 1.0), (0x37, 11350.0, 12650.0, 150.0, 0.0, 1.0),
+                  (0x49, 11450.0, 12200.0, 300.0, 0.0, 1.0), (2, 11200.0, 12400.0, 150.0, 0.0, 1.0)]
+
+
+def write_objects(root):
+    sys.path.insert(0, str(HERE))
+    from test_native_objects import obj_plain, write_models
+    write_models(root, 94, ['Object15.bmd', 'Object61.bmd', 'Object25.bmd', 'Object56.bmd', 'Object74.bmd',
+                            'Object03.bmd'])
+    plain = Path(root) / 'plain'
+    plain.mkdir(exist_ok=True)
+    (plain / 'EncTerrain94.plain').write_bytes(obj_plain(94, OBJECT_RECORDS))
+    return plain
+
+
 class CharselTests(Build):
     def test_camera_record_and_records(self):
         frames, summary, entries, _ = run(self.root, '--marker', self.marker, '--frames', '3', '--every', '1',
@@ -175,6 +200,40 @@ class CharselTests(Build):
         self.assertEqual(result.returncode, 2)
 
 
+class LifecycleTests(Build):
+    """NATIVE-CHARSEL-002: World94's objects through the client's lifecycle."""
+
+    def test_handler_objects_and_effects(self):
+        plain = write_objects(self.root)
+        state = self.out('objects.txt')
+        frames, summary, _, _ = run(self.root, '--objects-dir', plain, '--frames', '30', '--every', '10',
+                                    '--width', '320', '--height', '200', '--out-dir', self.out('life'),
+                                    '--objects-out', state)
+        self.assertEqual((summary['lifecycle'], summary['objects'], summary['objects_created']), (1, 6, 6))
+        self.assertEqual(summary['marker1'], [MARKER[0], MARKER[1], 164.5])   # marker 1 from the plaintext
+        self.assertEqual(summary['object_steps'], summary['steps'])
+        rows = {int(r[1]): r for r in (line.split() for line in state.read_text().splitlines())}
+        self.assertEqual(int(rows[0x3c][6]), 1)          # the custom render made the pedestal after-character
+        self.assertEqual(int(rows[0x18][6]), 1)          # and the waterfall
+        self.assertEqual(int(rows[2][6]), 0)
+        steps = summary['steps']
+        # slot 0x30 scrolls per step the objects the last render saw (+0xb): every step but the first
+        self.assertAlmostEqual(float(rows[0x18][7]), f32(-0.02 * (steps - 1)), places=3)
+        last = frames[-1]
+        self.assertGreaterEqual(last['after_meshes'], 2)  # RenderBody of the waterfall, mesh 0 of the pedestal
+        self.assertEqual(last['sprites'], 2)              # the lamp: Shiny02 and magic_ground1_3
+        self.assertGreater(summary['particles_created'], 30)   # WATERFALL3 every frame, the selection light
+        self.assertGreater(summary['terrain_lights'], 0)       # the lamp's AddTerrainLight
+        self.assertGreater(last['live_particles'], 0)
+
+    def test_lifecycle_frames_are_deterministic(self):
+        plain = write_objects(self.root)
+        args = ('--objects-dir', plain, '--frames', '15', '--every', '7', '--width', '200', '--height', '120')
+        a, _, _, _ = run(self.root, *args, '--out-dir', self.out('e1'))
+        b, _, _, _ = run(self.root, *args, '--out-dir', self.out('e2'))
+        self.assertEqual([r['sha256'] for r in a], [r['sha256'] for r in b])
+
+
 class WindowToolTests(Build):
     def test_gl_headless(self):
         build = subprocess.run(['make', '-C', str(NATIVE), 'charsel'], capture_output=True, text=True)
@@ -201,6 +260,23 @@ class PrivateCharselTests(unittest.TestCase):
             self.assertAlmostEqual(summary['fov'], 35.0, places=3)
             self.assertEqual(len(entries), 5)
             self.assertEqual(frames[-1]['decals'], 2)
+
+    @unittest.skipUnless(os.environ.get('MU_OBJECTS_PLAIN_DIR'), 'the local decoded EncTerrain94.plain')
+    def test_installed_scene_with_the_live_placements(self):
+        subprocess.run(['make', '-C', str(NATIVE)], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / 'objects.txt'
+            frames, summary, _, _ = run(os.environ['MU_GAME_ROOT'], '--objects-dir', os.environ['MU_OBJECTS_PLAIN_DIR'],
+                                        '--frames', '10', '--every', '9', '--width', '1722', '--height', '1048',
+                                        '--out-dir', tmp, '--objects-out', state)
+            rows = [line.split() for line in state.read_text().splitlines()]
+        # the live read of 2026-10-18 (docs/research/client-character-select.md section 9)
+        self.assertEqual((summary['objects'], summary['objects_created']), (237, 237))
+        self.assertEqual(sum(int(r[5]) for r in rows), 221)       # +0xb set by RenderObjects
+        self.assertEqual(sum(int(r[6]) for r in rows), 38)        # +0xa set by the custom render
+        self.assertEqual(summary['after_character'], 38)
+        self.assertGreater(frames[-1]['live_particles'], 0)
+        self.assertGreater(frames[-1]['shadows'], 0)          # the drawn character's part shadows
 
 
 if __name__ == '__main__':

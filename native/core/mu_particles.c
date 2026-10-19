@@ -13,19 +13,24 @@
 
 /* Effect bitmaps first (MU_WORLD_PT_EFFECTS of them), then the world's rain02/rain03. NATIVE-JOINT-001 adds
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
- * the login scene's clouds and WATERFALL1. */
-#define MU_WORLD_PT_EFFECTS 15
+ * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
+ * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
+#define MU_WORLD_PT_EFFECTS 21
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
     MU_JT_BITMAP_ENERGY, MU_PT_BITMAP_CLOUDS, MU_PT_BITMAP_WATERFALL1,  MU_PT_BITMAP_LIGHTNING2,
-    MU_PT_BITMAP_SHINY1, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    MU_PT_BITMAP_SHINY1, MU_PT_BITMAP_WATERFALL2, MU_PT_BITMAP_WATERFALL3, MU_PT_BITMAP_FANTA_B,
+    MU_PT_BITMAP_SPARK04, MU_PT_BITMAP_MAGIC_GROUND13, MU_PT_BITMAP_IMPACK03,
+    MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
     "Data/Effect/JointThunder01.OZJ", "Data/Effect/Spark01.OZJ", "Data/Effect/JointSpirit01.OZJ",
     "Data/Effect/JointEnergy01.OZJ", "Data/Effect/clouds.OZJ", "Data/Effect/WATERFALL1.OZJ",
-    "Data/Effect/lightning2.OZJ", "Data/Effect/Shiny01.OZJ"};
+    "Data/Effect/lightning2.OZJ", "Data/Effect/Shiny01.OZJ", "Data/Effect/WATERFALL2.OZJ",
+    "Data/Effect/WATERFALL3.OZJ", "Data/Effect/fantaB.OZJ", "Data/Effect/Spark04.OZJ",
+    "Data/Effect/magic_ground1_3.OZJ", "Data/Effect/Impack03.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -79,6 +84,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->world_time = p->world_time;
     h->frame_time = 0.1f;   /* [0x01cf103c] */
     h->drop_divisor = 1;
+    h->scene_state = p->scene_state;   /* SceneFlag (NATIVE-CHARSEL-002: WATERFALL2 in scene 5) */
 }
 
 /* ---- assets ---- */
@@ -97,8 +103,9 @@ static void load_bitmaps(mu_world_particles *p, const char *root, int no_assets)
     for (int32_t i = 0; i < MU_WORLD_PT_BITMAPS; ++i) {
         char relative[512], path[2048], error[256];
         if (i < MU_WORLD_PT_EFFECTS) {
-            /* LoadBitmap("Effect\\...", index, GL_LINEAR, GL_CLAMP) in the effect loader (0x01820f19 ...) */
-            t->filter[i] = 0x2601;
+            /* LoadBitmap("Effect\\...", index, GL_LINEAR, GL_CLAMP) in the effect loader (0x01820f19 ...);
+             * Impack03 0x7b78: GL_NEAREST in OpenCharacterSceneData (0x0182a6c2, static) */
+            t->filter[i] = bitmap_ids[i] == MU_PT_BITMAP_IMPACK03 ? 0x2600 : 0x2601;
             t->wrap[i] = 0x2900;
             snprintf(relative, sizeof relative, "%s", effect_files[i]);
         } else {
@@ -127,6 +134,7 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
     p->world = world;
     p->map = map;
     p->rand_state = seed;
+    p->scene_state = 6;   /* the in-world scene; the login and character-select sessions set theirs */
     p->sprites = calloc(1, sizeof *p->sprites);
     if (!p->sprites || mu_pt_system_init(&p->list, MU_WORLD_PT_CAPACITY)) {
         snprintf(error, error_size, "out of memory");
@@ -1064,6 +1072,19 @@ static void o_sprite(void *c, int32_t bitmap, const float position[3], float sca
     mu_world_particles_sprite(c, bitmap, position, scale, light, owner, rotation, blend, axes);
 }
 
+/* The character-select world's CreateEffect calls (CGMCharacterScene_Ex slot 0x34, NATIVE-CHARSEL-002): the
+ * wrapper 0x013c0eaa(type, position, angle, light, subtype, the object, -1, 0, 0, 0, 0.0, -1, 0, 0), i.e. the
+ * core with scale 0 and the info block {key -1, skill 0, word4 0, 0, -1}. */
+static void o_effect(void *c, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                     const float light[3], int32_t owner)
+{
+    mu_sfx_info info;
+    memset(&info, 0, sizeof info);
+    info.key = 0xffff;
+    info.field8 = 0xffff;
+    mu_world_particles_effect(c, type, subtype, position, angle, light, owner, 0.0f, &info);
+}
+
 static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model, mu_object_model *m)
 {
     mu_world_particles *p = c;
@@ -1097,6 +1118,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.particle = o_particle;
         objects->rt.visual = o_visual;
         objects->rt.sprite = o_sprite;
+        objects->rt.effect = o_effect;
         objects->rt.hook_context = p;
         p->objects = objects;
     }

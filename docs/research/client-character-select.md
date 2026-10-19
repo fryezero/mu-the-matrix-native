@@ -323,7 +323,8 @@ Local renders, not committed, are under `~/Documents/mu-mac-tools/native/renders
 * `gl/`: headless OpenGL;
 * `live/`: the window-only captures, kept local.
 
-**Not drawn**, and stated in the tool's help and module header:
+**Not drawn**, and stated in the tool's help and module header (NATIVE-CHARSEL-002, section 9, draws the objects
+through the lifecycle and the particle 0x8022):
 
 * the static map objects of World94 (the pedestal, trees and waterfalls), so most of the screen stays black
   where the world has no terrain (63,878 no-ground cells);
@@ -347,6 +348,9 @@ sprites. The client's state carries over from earlier frames.
 | `validate_charsel.py` planted mistakes | 12 | 12 detected |
 | CCharSelMainWin (`validate_charsel_window.py`) | 120 | 0 mismatches, 915,990 state words; 7/7 mutations |
 | Live: window pixels, marker fit | 1 capture | Menu button exact; character overlap |
+| CGMCharacterScene_Ex slots, CreateObject/MoveObject world 0x5d, after pass (`validate_charsel_world.py`, section 9) | 12,000 | 0 mismatches; 10/10 mutations |
+| Particle kinds 0x801b/0x801c/0x8017/0x8022 (`validate_particles.py`, all 12 families) | 30,494 | 0 mismatches; 2 new negative controls |
+| Live (section 9): object state, scroll advance, native +0xb/+0xa | 4 snapshots | 237/237 equal; 103 steps exact; 237/237 equal |
 
 **Tests.**
 
@@ -356,9 +360,136 @@ sprites. The client's state carries over from earlier frames.
   refusals, headless GL).
 * Private (`MU_RECOVERY_INTEGRATION=1`): both validators, and the installed World94.
 
+## 9. The scene's objects at runtime (NATIVE-CHARSEL-002)
+
+NATIVE-CHARSEL-001 drew World94's objects statically. This milestone reconstructs the rest of the scene's world
+handler, runs World94's objects through the client's lifecycle (NATIVE-OBJECTS-002) and the particle module
+(NATIVE-PARTICLE-001/JOINT-001), and compares the result with the client's instructions and with a live read.
+
+### CGMCharacterScene_Ex (verified)
+
+`CGMCharacterScene_Ex` (vtable `0x01aa7338`) overrides the same five handler slots as the login world's
+`CGMLogInScene_Ex`; each first tests `[0x01cf15fc] == 0x5d` (`0x00daa1f5`). `reconstructed/objects/charsel_world.c`:
+
+| Slot | Routine | What it does |
+|---|---|---|
+| 0x2c | `0x00daa2b2` | +0x64 = 0; types 0x0d..0x11, the slot markers (section 3): marker vectors, SetCharacterPosition, HiddenMesh −2; types 0x26..0x28, 0x36..0x39, 0x45, 0x50 (emitters): HiddenMesh −2; 0x3c, 0x3d: range −428.571 |
+| 0x30 | `0x00daa82b` | type 0x18: blend v −0.02 per step, 0x19/0x1a: −0.03 (the waterfalls scroll); type 0x49 (lamps): l = (rand % 4 + 3)·0.1, AddTerrainLight(x, y, (0.2l, 0.6l, l), 3, frame light) |
+| 0x34 | `0x00daa9dd` | 0x1f: three Spark04 `0x8155` sprites on bones 6/7/8; 0x26: clouds `0x7f89` 0x14 (rand % 6, owner); 0x27/0x28: effect stardr01 `0x5ac` subtype 0/1 (rand % 100 / % 200); 0x36: WATERFALL1 2 (rand % 2); 0x37: WATERFALL3 `0x801c` 0xe every frame at 2× scale; 0x38: WATERFALL2 `0x801b` 2 (rand % 3); 0x39: effect `0x59a` 3; 0x45: water `0x802a` 1; 0x50: smoke01 0x45 (rand % 8); 0x49: at bone 1 a Shiny02 sprite (light (0.4, sin(WorldTime·0.7)·0.2 + 0.8, 0.4), scale 1.2 + (rand % 30)/90, rotation −((int)WorldTime % 3600)·0.1) and a magic_ground1_3 `0x8145` sprite, and on rand % 3 a fantaB `0x8017` particle 15 above the bone |
+| 0x38 | `0x00dab4d7` | types 4, 7, 8, 0xc, 0x18, 0x19, 0x1a, 0x1f, 0x21, 0x24, 0x3d, 0x47: +0xa = 1, nothing drawn; 0x3c (the pedestal): RenderMesh(1, …) and +0xa = 1 |
+| 0x3c | `0x00dab5ed` | the same types: RenderBody(2, …, hidden mesh, −1) after the character; 0x3c: RenderMesh(0, 2, alpha, −2, …) |
+
+RenderObjects_AfterCharacter `0x016d6949` lists world 0x5d next to 0x5e, and the first-draw predicate `0x017fe909`
+has no case for either: `mu_login_after_pass` serves both.
+
+The JOINT-001 survey (client-joints.md section 5) attributed a "selected character" routine `0x00da9974..` with joint
+`0x7f78` and effects `0x7f84`/`0x4bc`/`0x4bd` to the character select. That routine is `0x00da9685`, called from a
+monster handler (vtable `0x01aa7264`, monster types 0x398..0x39b, models 0x940..0x945); it is not part of this scene.
+
+Bitmaps (static, LoadBitmap call sites): `0x8155` `Effect\Spark04.jpg`, `0x8145` `Effect\magic_ground1_3.jpg`, `0x801b`
+`WATERFALL2`, `0x801c` `WATERFALL3`, `0x802a` `effect\water.jpg`, `0x8017` `Effect\fantaB.jpg`, `0x7b78` `Effect\Impack03.jpg`
+(OpenCharacterSceneData, GL_NEAREST). `0x5ac` is `Data\Effect\stardr01.bmd`; `0x59a` (`zu_sealeaf04`) is loaded only by
+other worlds' model passes.
+
+**Verified:** `scripts/validate_charsel_world.py --cases 2000 --mutations` (Unicorn, the routines pinned by SHA-256):
+
+| Family | Cases | Equal | Coverage |
+|---|---:|---:|---|
+| create (CreateObject `0x016d8538` world 0x5d + slot 0x2c, the marker vectors) | 2,000 | 2,000 | 531 markers, 498 hidden emitters |
+| move (MoveObject world 0x5d + slot 0x30) | 2,000 | 2,000 | 462 terrain lights |
+| visual (slot 0x34; sin wrapper and sprite temporary as client code) | 2,000 | 2,000 | 1,676 sprites, 591 particles, 154 effects |
+| custom (slot 0x38) | 2,000 | 2,000 | 987 handled |
+| after (slot 0x3c) | 2,000 | 2,000 | 192 meshes, 760 bodies |
+| after_pass (`0x016d6949`, world 0x5d) | 2,000 | 2,000 | 6,423 draws |
+
+12,000 cases, 0 mismatches; 10 of 10 planted mistakes detected.
+
+### Particle kinds (verified)
+
+`reconstructed/particles` adds the kinds the scene creates (create, move and render cases of CreateParticle
+`0x015ae7b0`, MoveParticles and RenderParticles):
+
+| Kind | Create | Move |
+|---|---|---|
+| WATERFALL2 `0x801b` 2 | LifeTime 40, rotation r%360, scale (r%6+6)·0.1 + scale, velocity z −(r%3+3), light 0.25 **in scene 5** (SceneFlag through `0x009b0bc1`; 0.4 otherwise), position += (r%20−10, r%20−10, r%40−20) | scale +0.03, velocity x/y (r%20−10)·0.1, z +0.1, light ÷1.1 below LifeTime 10 |
+| WATERFALL3 `0x801c` 0xe | no case before the second subtype chain: rotation r%360, LifeTime 30, velocity z r%5+5, scale (r%10+10)·0.05·scale, position jitter | scale +0.05 +0.005, velocity z −0.6 −2.5, light ÷1.1 twice |
+| fantaB `0x8017` 0 | LifeTime 24, velocity ((r%10−5)·0.4, 0, (r%10+5)·0.2), start = position | scale −0.02 (≥ 0), velocity x/y ×0.95, z +1, light LifeTime/25 |
+| chasellight `0x8022` 5 | LifeTime r%3+20, drawn with Impack03 `0x7b78`, position += (r%50−25, r%50−25 then r%130−65, …), z = the argument's z + r%130, scale (r%10+20)·0.01·1.3, gravity (r%10+20)·0.05·1.3 | light ×1.05 from LifeTime 10, ÷1.16 below; z += gravity |
+
+All four render through the generic path. `scripts/validate_particles.py --cases 3000 --heavy-cases 300`: 30,494
+cases over 12 families, 0 mismatches; two new negative controls (WATERFALL2 without the scene rule, the selection
+light without its rise) disagree.
+
+### Native
+
+* `native/core/mu_objects_runtime.c` runs world 0x5d like 0x5e: creation, MoveObject's scroll and lamp lights, the
+  custom render (the pedestal's mesh 1 in RenderObjects), RenderObjectVisual (sprites, particles and CreateEffect
+  through `rt.effect`) and the after-character pass (RenderBody and mesh 0).
+* `mu_charsel` (session): `mu_charsel_attach_objects` starts the lifecycle on the front end's objects; each logic step
+  copies the frame light over the last frustum box (+3 tiles), runs MoveObjects, MoveCharacters, MoveEffects/
+  MoveJoints/MoveParticles; each render creates RenderCharacterScene's selection light CreateParticle(0x8022, …, 5)
+  in the particle module (scene 5).
+* **CreateFrustrum2D in scene 5.** Zoom mode 0 scales the polygon by the camera object: s = `0x016bc355()`/640 ·
+  Distance · Z_Distance · scale (`0x0098ac7c`) and distance 2400 · Distance · Z_Distance · scale (`0x0098ac45`), from
+  the scene's camera record (static reading of both helpers; the polygon itself is verified in NATIVE-TERRAIN-002).
+  TestFrustrum2D passes everything only in scenes 1..4, so in scene 5 the polygon decides what RenderObjects draws.
+  NATIVE-CHARSEL-001 used the in-world values (1, 2400): the polygon was 4.8 times too small and culled the left
+  waterfall, the castle and the cliffs. `mu_world_client_frustum_scaled` takes the two values.
+* `charsel/main.c` draws in the render's order: terrain, RenderObjects, the shown character with each part's shadow
+  (the item render's shadow block, `mu_world_particles_character_shadow`, static), the effect models,
+  RenderObjects_AfterCharacter, the highlight decals, then RenderJoints/RenderSprites/RenderParticles. Headless frames
+  that are not saved still run RenderObjects (`mu_charsel_frame_objects`). `--objects-out FILE` writes each object's
+  type, position, +0xb, +0xa and blend v. `mu-client` gets all of this through `charsel_embed.c` (function names
+  unchanged).
+
+Viewer choices: the module's own rand(); the joints are drawn after the decals instead of before the
+after-character pass (the scene creates none); effect kinds that are not reconstructed (stardr01 `0x5ac`, `0x59a`)
+are released at creation.
+
+### Live read (2026-10-18)
+
+The owner authorized a read-only live read. It followed `GAME-LOCK.md`: lock held 20:11:01–20:13:27; the play
+bottle's client went to the server select (`mu-to-server.sh`), logged into the account and **stopped at the character
+select** (no Enter, no character entered the world); four objread snapshots with the scene globals (20:12:18, :20,
+:22, :23) and one window-only screenshot; then the client was closed with taskkill (WM_CLOSE) and the launcher
+closed on a WM_CLOSE (its own X button was not needed). Snapshots and the screenshot stay local
+(`~/Documents/mu-mac-tools/native/scratch/charsel2/live/`, `renders/charsel2/live/`).
+
+* Globals: SceneFlag 5, world 93 (0x5d), CameraAngle (−84.5, 0, −80), CameraPosition (15215.0889, 12186.5361,
+  529.3717), FOV 35, CameraViewFar 11531.4326 — the native session reports the same values.
+* `scripts/live_object_state.py` (World94 rules added): **237/237 objects** equal `mu_obj_create` in both snapshots
+  apart from the handler-driven fields. Between the first and last snapshot WorldTime advanced 4,120 ms = 103 logic
+  steps, and every waterfall MoveObjects moved (visible in both) scrolled by exactly 103 × 0.02 / 0.03; the one culled
+  waterfall did not move.
+* The native session (`mu-charsel --objects-out`) sets +0xb (RenderObjects' visibility) and +0xa (the custom render)
+  on the same objects as the live client: **237/237 equal, 221 visible, 38 after-character**.
+
+**Screenshot** (1722×1048 client area, `renders/charsel2/compare-live-before-after.png`, `compare-live-gl.png`): the
+native frame has the live composition (both waterfalls with their spray, the castle, the cliffs, the pedestal glow, the
+lamps' glows). Mean absolute difference against the live capture, left waterfall region: 48.7 (before) → 16.2
+(after); pedestal region 11.9 → 5.6; the whole 3D area 29.3 → 21.7 (the live character is a different, winged
+character and the GFx list covers the right edge).
+
+Local renders (not committed), `~/Documents/mu-mac-tools/native/renders/charsel2/` (`render.sh`, `sheets.py`):
+`before/`, `after/` (software), `after-gl/` (headless GL), `after-cycle/contact-sheet.png`, `after-anim/anim.gif`.
+
+### Tests
+
+* Portable: `reconstructed/objects/test_charsel_world.py` (every slot, the marker vectors, the after pass for 0x5d),
+  `reconstructed/particles/test_particles.py` (the four kinds), `native/tests/test_native_charsel.py` `LifecycleTests`
+  (a synthetic EncTerrain94.plain and Object94 models: markers hidden, after-character flags, the scroll, the lamp's
+  sprites and light, particles, determinism).
+* Private: `tests/test_charsel_world_private.py` (the Unicorn validator; the live snapshots with
+  `MU_CHARSEL_DUMP_DIR`), `native/tests/test_native_charsel.py` with `MU_OBJECTS_PLAIN_DIR` (237 created, 221 visible,
+  38 after-character, part shadows).
+
+
 ## Open points
 
-* Marker positions (EncTerrain94.obj), the static objects and their animation (vtable slots 12/13).
+* The effect stardr01 `0x5ac` (CreateEffect `0x013f41b4` poses the model and spawns `0x5ad` at a bone; MoveEffect and
+  the draw not traced) and `0x59a`; the particle kinds `0x802a` 1 and smoke01 0x45 (their emitter types 0x45 and 0x50
+  are not placed in World94).
+* Marker positions other than marker 1, and the objects' animation PlaySpeeds (no World94 handler sets any).
 * The character pick `0x016b47bf` in scene 5 (OBB tests) and `0x009a5029`'s checks.
 * RenderCharacter's scene-5 light branches, and which of them the hero pointer selects.
 * The GFx list, create, menu and message interfaces; the server-message window `+0x63a8`.

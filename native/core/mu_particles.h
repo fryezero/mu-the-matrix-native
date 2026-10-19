@@ -47,7 +47,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 17, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 23, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 1, MU_WORLD_FX_QUADS = 8192 };
 
 typedef struct mu_world_fx_model {
@@ -84,8 +84,8 @@ typedef struct mu_world_particles {
     uint32_t rand_state;
     uint64_t rand_calls;
     mu_textures bitmaps;                   /* slots: 0x7f3c, 0x7f5a, 0x7ef7, 0x7f26, 0x7f2b, 0x7f25, 0x7f67, 0x7f7c,
-                                              0x7fd5, 0x7fd3, 0x7fd8, 0x7f89, 0x801a, 0x7f37, 0x7f66, 0x771c,
-                                              0x771d */
+                                              0x7fd5, 0x7fd3, 0x7fd8, 0x7f89, 0x801a, 0x7f37, 0x7f66, 0x801b,
+                                              0x801c, 0x8017, 0x8155, 0x8145, 0x7b78, 0x771c, 0x771d */
     int32_t bitmap_present[MU_WORLD_PT_BITMAPS];
     float camera[12];                      /* CameraMatrix 0x0bdc5918 of the last draw (row-major 3x4) */
     float world_time;
@@ -98,6 +98,7 @@ typedef struct mu_world_particles {
     float hero_position[3];                /* [0x0a39d754] + 0x33ac (the tornado's sound distance) */
     int has_hero;
     mu_joint_quad *joint_quads;            /* MU_WORLD_FX_QUADS, the last RenderJoints */
+    int32_t scene_state;                   /* SceneFlag [0x01d1df70] for the kinds that test it (6 by default) */
 } mu_world_particles;
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless

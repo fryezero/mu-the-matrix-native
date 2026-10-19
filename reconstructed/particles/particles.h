@@ -49,7 +49,15 @@ enum {
     MU_PT_BITMAP_CLOUDS = 0x7f89,       /* Effect\clouds.jpg (the login scene's mist, NATIVE-JOINT-001) */
     MU_PT_BITMAP_SHINY1 = 0x7f66,       /* Effect\Shiny01.jpg (Noria's lamp sparkles) */
     MU_PT_BITMAP_LIGHTNING2 = 0x7f37,   /* Effect\lightning2.jpg (sprites of Dungeon, Devias, Noria) */
-    MU_PT_BITMAP_WATERFALL1 = 0x801a    /* Effect\WATERFALL1.jpg (the login scene's spray) */
+    MU_PT_BITMAP_WATERFALL1 = 0x801a,   /* Effect\WATERFALL1.jpg (the login scene's spray) */
+    /* NATIVE-CHARSEL-002: the character-select scene (World94) */
+    MU_PT_BITMAP_WATERFALL2 = 0x801b,   /* Effect\WATERFALL2.jpg (the falls' spray, object type 0x38) */
+    MU_PT_BITMAP_WATERFALL3 = 0x801c,   /* Effect\WATERFALL3.jpg (the falls' mist, object type 0x37) */
+    MU_PT_BITMAP_FANTA_B = 0x8017,      /* Effect\fantaB.jpg (the lamps' sparks, object type 0x49) */
+    MU_PT_BITMAP_CHASELLIGHT = 0x8022,  /* Logo\chasellight.jpg (the selection light, RenderCharacterScene) */
+    MU_PT_BITMAP_IMPACK03 = 0x7b78,     /* Effect\Impack03.jpg (drawn by 0x8022 subtype 5) */
+    MU_PT_BITMAP_SPARK04 = 0x8155,      /* Effect\Spark04.jpg (sprites of object type 0x1f) */
+    MU_PT_BITMAP_MAGIC_GROUND13 = 0x8145 /* Effect\magic_ground1_3.jpg (sprites of object type 0x49) */
 };
 
 /* GL state wrappers the render routines call, by client address. */
@@ -107,6 +115,7 @@ typedef struct mu_pt_host {
     float world_time;        /* [0x06fce370], ms */
     float frame_time;        /* [0x01cf103c], 0.1 in game */
     int32_t drop_divisor;    /* [0x0a39d768], the wrapper's drop rate in world 0x8b */
+    int32_t scene_state;     /* SceneFlag [0x01d1df70] (0x009b0bc1): WATERFALL2 tests scene 5 (NATIVE-CHARSEL-002) */
 } mu_pt_host;
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed
@@ -114,7 +123,9 @@ typedef struct mu_pt_host {
  *   Fire01 0x7f3c 0..6 and 17, smoke01 0x7f5a 0, 2 and 3, rain02/rain03
  *   0x771c/0x771d 0, Thunder01 0x7f2b 0, Spark02 0x7f25 0, Spark03 0x7f26 0
  *   and 1; NATIVE-JOINT-001: clouds 0x7f89 0x14 and WATERFALL1 0x801a 2 (the
- *   login scene's mist and spray), Shiny01 0x7f66 0 and 1 (Noria). */
+ *   login scene's mist and spray), Shiny01 0x7f66 0 and 1 (Noria);
+ *   NATIVE-CHARSEL-002: WATERFALL2 0x801b 2, WATERFALL3 0x801c 0xe, fantaB
+ *   0x8017 0 and chasellight 0x8022 5 (the character-select scene). */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

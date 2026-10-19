@@ -388,10 +388,19 @@ int mu_world_client_frustum(const mu_world *w, const float rows[12], const float
                             const float hero[3], float camera_angle_x, int32_t screen_width, int32_t zoom_mode,
                             float view_far, float fov, mu_terrain_frustum *f)
 {
+    return mu_world_client_frustum_scaled(w, rows, camera_position, hero, camera_angle_x, screen_width, zoom_mode,
+                                          view_far, fov, 1.0f, 2400.0f, f);
+}
+
+int mu_world_client_frustum_scaled(const mu_world *w, const float rows[12], const float camera_position[3],
+                                   const float hero[3], float camera_angle_x, int32_t screen_width, int32_t zoom_mode,
+                                   float view_far, float fov, float camera_scale, float distance_2400,
+                                   mu_terrain_frustum *f)
+{
     memset(f, 0, sizeof *f);
     mu_terrain_frustum_create((float)screen_width / 640.0f, view_far, fov, rows, camera_position, f);
     mu_terrain_frustum_2d_params params;
-    if (!mu_terrain_frustum_2d_params_for(w->world, zoom_mode, screen_width, 1.0f, 2400.0f, &params))
+    if (!mu_terrain_frustum_2d_params_for(w->world, zoom_mode, screen_width, camera_scale, distance_2400, &params))
         return MU_TERRAIN_UNSUPPORTED;
     const float angle[3] = {camera_angle_x, 0.0f, -45.0f};
     return mu_terrain_frustum_2d(w->world, hero, angle, &params, 0, f->x2d, f->y2d);

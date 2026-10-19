@@ -2,6 +2,17 @@
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Character-select scene at runtime (NATIVE-CHARSEL-002)
+
+Read section 9 of [`research/client-character-select.md`](research/client-character-select.md).
+`reconstructed/objects/charsel_world.c` (CGMCharacterScene_Ex) runs in the object lifecycle for world 0x5d;
+`mu_charsel_attach_objects` and the session's particle module give `mu-charsel`, `mu-charsel-window` and `mu-client`
+the scene's sprites, particles and shadows. Compare with `scripts/validate_charsel_world.py --cases 2000 --mutations`
+(about 25 s) and `validate_particles.py` (extended); live snapshots and screenshots are local
+(`~/Documents/mu-mac-tools/native/scratch/charsel2/live/`, `renders/charsel2/`, `render.sh`/`sheets.py`;
+`mu-charsel --objects-out` for the per-object comparison). Next: the stardr01 effect `0x5ac` (CreateEffect
+`0x013f41b4` and its child `0x5ad`), the scene-5 character pick, the GFx character list.
+
 ## Joints, world-object effects, login particles (NATIVE-JOINT-001)
 
 Read [`research/client-joints.md`](research/client-joints.md) (section 5 is the per-world survey of particle, joint

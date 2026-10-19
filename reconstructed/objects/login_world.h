@@ -94,7 +94,9 @@ int mu_login_after_render(uint8_t *object, uint8_t *model, int32_t index, uint32
  * TestFrustrum2D(x*0.01, y*0.01, range), and when visible or in top view the draw 0x016d6791 is logged
  * (MU_OBJ_CALL_AFTER_DRAW). The world-group predicates before the world test are taken as answering no for
  * world 0x5e; the option 0x009a645f answers no outside world 0x27 and the first-draw predicate 0x017fe909
- * has no world 0x5e case. Returns MU_OBJ_UNSUPPORTED for other worlds. */
+ * has no world 0x5e case. World 0x5d (the character select, NATIVE-CHARSEL-002) takes the same path: it is
+ * in the world list and the predicate has no case for it either. Returns MU_OBJ_UNSUPPORTED for other
+ * worlds. */
 int mu_login_after_pass(mu_obj_world *w, const mu_obj_render_inputs *inputs, int32_t *counter, mu_obj_log *log);
 
 #endif

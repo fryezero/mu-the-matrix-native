@@ -264,6 +264,18 @@ draws World94's static objects and takes the markers from a local decoded `EncTe
 native/build/mu-charsel --game-root "$MU_GAME_ROOT" --frames 50 --every 10 --cycle 10 --out-dir /tmp/charsel
 ```
 
+NATIVE-CHARSEL-002 ([finding](../docs/research/client-character-select.md), section 9): with `--objects-dir` the
+objects run the client's lifecycle with the scene's handler `CGMCharacterScene_Ex` (`reconstructed/objects/charsel_world.c`):
+the waterfalls scroll, their spray and mist particles, the lamps' sprites and terrain light, the pedestal's glow mesh
+after the character, the selection light 0x8022 and the drawn character's part shadows, through the particle module
+in scene 5. CreateFrustrum2D takes the camera record's Distance and Z_Distance (the polygon culls in scene 5).
+`--objects-out FILE` writes each object's state (+0xb, +0xa, blend v) for the live comparison.
+
+```sh
+native/build/mu-charsel --game-root "$MU_GAME_ROOT" --objects-dir LOCAL_PLAIN_DIR --width 1722 --height 1048 \
+    --frames 60 --every 59 --out-dir /tmp/charsel2
+```
+
 ## The client's scene flow, offline (NATIVE-SHELL-001)
 
 `mu-client` (`make -C native client`, SDL2 + OpenGL) runs the client's own scene manager (`reconstructed/scene`,
@@ -408,7 +420,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_joints.*` | The joint pool over `reconstructed/joints`: slot search, MoveJoints, RenderJoints as quads, render-type state (NATIVE-JOINT-001) |
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002); monster hurt and death sounds (NATIVE-ITEMS-001) |
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
-| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
+| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |

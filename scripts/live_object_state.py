@@ -52,7 +52,13 @@ DYNAMIC = {0: {0x34: {'blend light'}, 0x75: {'blend light'}, 0x7a: {'blend light
                0x77: {'blend v'}, 0x69: {'blend v', 'blend light'}, 0x82: {'hidden mesh'}, 0x83: {'hidden mesh'},
                0x84: {'hidden mesh'}, 0x7d: {'alpha target', 'alpha'}, 0x7e: {'alpha target', 'alpha'}},
            # login world (NATIVE-LOGIN-001): CGMLogInScene_Ex's move scroll and pulse, its custom render's +0xa
-           0x5e: {0x01: {'blend v'}, 0x0d: {'blend light', 'after character'}, 0x05: {'after character'}}}
+           0x5e: {0x01: {'blend v'}, 0x0d: {'blend light', 'after character'}, 0x05: {'after character'}},
+           # character select (NATIVE-CHARSEL-002): CGMCharacterScene_Ex's scroll and its custom render's +0xa
+           0x5d: {0x18: {'blend v', 'after character'}, 0x19: {'blend v', 'after character'},
+                  0x1a: {'blend v', 'after character'}, 4: {'after character'}, 7: {'after character'},
+                  8: {'after character'}, 0xc: {'after character'}, 0x1f: {'after character'},
+                  0x21: {'after character'}, 0x24: {'after character'}, 0x3c: {'after character'},
+                  0x3d: {'after character'}, 0x47: {'after character'}}}
 
 
 def f32(v):
@@ -168,7 +174,24 @@ def advance(path_a, path_b):
         v = struct.unpack_from('<f', raw, 0xbc)[0]
         if fa != fb and v > 0 and fb > fa:
             steps[round((fb - fa) / v, 2)] += 1
-    return {'pair': [Path(path_a).name, Path(path_b).name], 'steps_by_object': dict(steps)}
+    out = {'pair': [Path(path_a).name, Path(path_b).name], 'steps_by_object': dict(steps)}
+    if read_snapshot(path_a)[0] == 0x5d:
+        # CGMCharacterScene_Ex slot 0x30 (NATIVE-CHARSEL-002): blend v -0.02 (type 0x18) / -0.03 (0x19, 0x1a) per
+        # step for the objects MoveObjects moved (visible in both snapshots), unchanged for the others
+        scroll = collections.Counter()
+        for address, raw in a.items():
+            other = b.get(address)
+            t = struct.unpack_from('<i', raw, 0x5c)[0]
+            if other is None or t not in (0x18, 0x19, 0x1a):
+                continue
+            va, vb = struct.unpack_from('<f', raw, 0xb0)[0], struct.unpack_from('<f', other, 0xb0)[0]
+            step = 0.02 if t == 0x18 else 0.03
+            scroll[f'type {t:#x} visible {raw[0x0b]}{other[0x0b]} steps {round((va - vb) / step, 2)}'] += 1
+        out['charsel_scroll_steps'] = dict(scroll)
+        out['after_character_flags'] = dict(collections.Counter(
+            f'type {struct.unpack_from("<i", raw, 0x5c)[0]:#x} +0xa {raw[0x0a]} visible {raw[0x0b]}'
+            for raw in b.values() if raw[0x0a]))
+    return out
 
 
 def main(argv=None):

@@ -155,8 +155,8 @@ path for want of placements: decoded object lists exist only for Lorencia, Torme
 | | MoveObject `0x018009f2` | drop01 `0x7fcd` 0 | not ported; not visible |
 | Tormenta 0x8d | handler slot 0x34 `0x00e4ef4b` | joints `0x7f7d` 0x10..0x1a, effect `0x40e` | ported, verified, drawn |
 | | handler slots 0x30, 0x64/0x68 | none / rain02, rain03 | ported (ENV-001, PARTICLE-001) |
-| World94 0x5d (character select) | handler slot 0x34 `0x00daa9dd` | sprites `0x8155`×3, Shiny02, `0x8145`; particles clouds 0x14, WATERFALL1 2, `0x801b` 2, `0x801c` 0xe, `0x802a` 1, `0x8017` 0, smoke01 0x45; effects `0x5ac` 0/1, `0x59a` 3 | clouds/WATERFALL1 kinds ported; the scene draws World94's objects statically (no lifecycle), so not visible |
-| | `0x00da9974..` (selected character) | joint `0x7f78` 2, effects `0x7f84` 0xd, `0x4bc` 1, `0x4bd` 3 | not ported |
+| World94 0x5d (character select) | handler slot 0x34 `0x00daa9dd` | sprites `0x8155`×3, Shiny02, `0x8145`; particles clouds 0x14, WATERFALL1 2, `0x801b` 2, `0x801c` 0xe, `0x802a` 1, `0x8017` 0, smoke01 0x45; effects `0x5ac` 0/1, `0x59a` 3 | NATIVE-CHARSEL-002: the handler and the sprites, clouds, WATERFALL1/2/3 and fantaB kinds ported, verified, drawn through the lifecycle; `0x802a` 1, smoke01 0x45 (types not placed) and the effects not ported |
+| | `0x00da9974..` | joint `0x7f78` 2, effects `0x7f84` 0xd, `0x4bc` 1, `0x4bd` 3 | correction (NATIVE-CHARSEL-002): this is `0x00da9685` of a monster handler (vtable `0x01aa7264`, monsters 0x398..0x39b), not the character select |
 | World95 0x5e (login) | handler slot 0x34 `0x00e24be1` | Shiny02/flare01 sprites ×10, clouds `0x7f89` 0x14, WATERFALL1 `0x801a` 2 | ported, verified, drawn |
 | ambient (other worlds) | RenderBoids `0x00c9fd8d` | lightning2, Fire01, flare01, clouds 0x12 for boid types `0x472`, `0x7c6`, `0x1a3`, `0x1a4` (Icarus, Elbeland) | not in these worlds |
 | | MoveFishs `0x00ca05b3` | joints `0x7fd6` 4 (worlds 8, 0x21, 0x86), `0x7ff9` 0 (0x22), `0x7f79` 8 (Kalima) | not in these worlds |
