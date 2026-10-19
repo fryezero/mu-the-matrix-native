@@ -1561,6 +1561,17 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
         mu_combat_report_frame(a->combat, stdout, frame);
     if (a->ground)
         mu_world_items_report_frame(a->ground, stdout, frame);
+    if (a->names) {   /* NATIVE-NAMES-001: what the movie shows (key, type, x, y, clip visible, info visible, hp,
+                       * hp bar, bubble) */
+        printf("{\"names_frame\": %d, \"plates\": [", frame);
+        for (int32_t i = 0; i < a->names->names.plate_count; ++i) {
+            const mu_names_plate *p = &a->names->names.plates[i];
+            printf("%s[%d, %d, %.2f, %.2f, %d, %d, %d, %d, \"%s\"]", i ? ", " : "", (int)p->key, (int)p->type,
+                   (double)p->x, (double)p->y, p->mc_visible, p->info_visible, (int)p->hp, p->hp_show,
+                   p->message[0] ? "msg" : "");
+        }
+        printf("], \"selected\": %d}\n", (int)a->names->names.window.selected);
+    }
 }
 
 static void report_summary(const app *a, const char *renderer)

@@ -171,8 +171,9 @@ void mu_world_names_step(mu_world_names *wn)
             continue;
         const mu_combat_monster *m = &wn->combat->monsters[i];
         int32_t key = actor_key(wn, i);
-        if (m->dead && !wn->dead_seen[i]) {
-            /* SetPlayerDie 0x01393a61: a non-Player model's plate goes at once (removeInfo) */
+        if (m->dead >= 15 && !wn->dead_seen[i]) {
+            /* MoveCharacter calls SetPlayerDie 0x01393a61 from dead counter 15 on (mu_combat); for a
+             * non-Player model it removes the plate (removeInfo) */
             wn->dead_seen[i] = 1;
             mu_names_remove(&wn->names, key, 0);
             wn->shown[i] = 0;
@@ -185,7 +186,7 @@ void mu_world_names_step(mu_world_names *wn)
             actor_record(wn, i);
             wn->shown[i] = (uint8_t)mu_names_add(&wn->names, key);
         }
-        if (!m->dead && m->hp != wn->hp_seen[i]) {
+        if (!wn->dead_seen[i] && m->hp != wn->hp_seen[i]) {
             /* DEMO: the monster HP packet (0x0126eecf -> setHp) after each change */
             wn->hp_seen[i] = m->hp;
             c->hp = (uint32_t)(m->hp > 0 ? m->hp : 0);
