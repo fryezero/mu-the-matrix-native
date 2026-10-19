@@ -97,8 +97,10 @@ BODIES = {
     'object_attribute': (0x016da00b, 0x016daa01), 'create_item': (0x016daa27, 0x016db5ae),
     'viewport': (0x0122c216, 0x0122c426), 'move_items': (0x017ea1aa, 0x017ea38b),
     'sparkle': (0x017f7290, 0x017f746f), 'render_items': (0x017e9495, 0x017ea1aa),
-    'select_item': (0x016b4fc0, 0x016b5157), 'label_color': (0x00c84f00, 0x00c84fcf),
-    'item_code': (0x00f09ddc, 0x00f09e3f),
+    'select_item': (0x016b4fc0, 0x016b5157), 'label_color': (0x00c84f00, 0x00c84fd1),
+    'test_frustum': (0x016ccc14, 0x016ccce7), 'set_player_shock': (0x0138f92f, 0x0138fe69),
+    'set_player_die': (0x01393a61, 0x013944d9),
+    'item_code': (0x00f09ddc, 0x00f09e41),
 }
 
 OBJ = 0x22000000            # an OBJECT outside the pool
@@ -1551,6 +1553,39 @@ def family_select(m, lib, rng, cases, report, negatives):
 
 
 # --------------------------------------------------------------------------
+# frustum
+
+def family_frustum(m, lib, rng, cases, report, negatives):
+    lib.mu_gi_test_frustum.argtypes = [ctypes.POINTER(ctypes.c_float*15), ctypes.POINTER(ctypes.c_float*5),
+                                       ctypes.POINTER(ctypes.c_float*3), ctypes.c_float]
+    lib.mu_gi_test_frustum.restype = ctypes.c_int32
+    for n in range(cases):
+        normals = []
+        for _ in range(5):
+            v = [rng.uniform(-1, 1) for _ in range(3)]
+            length = math.sqrt(sum(x*x for x in v)) or 1.0
+            normals += [f32(x/length) for x in v]
+        dist = [f32(rng.uniform(-30000, 30000)) for _ in range(5)]
+        pos = [f32(rng.uniform(0, 25600)), f32(rng.uniform(0, 25600)), f32(rng.uniform(-200, 800))]
+        rng_range = f32(rng.choice([400.0, 400.0, 0.0, -80.0, rng.uniform(-1000, 1000)]))
+        regions = [am.defined_region('normals', 0x0bdb546c, struct.pack('<15f', *normals), writable=False),
+                   am.defined_region('distances', 0x0b6b53e4, struct.pack('<5f', *dist), writable=False),
+                   am.defined_region('position', OBJ, struct.pack('<3f', *pos), writable=False)]
+        r = m.execute(0x016ccc14, [OBJ, bits(rng_range)], regions, {})
+        mine = lib.mu_gi_test_frustum((ctypes.c_float*15)(*normals), (ctypes.c_float*5)(*dist),
+                                      (ctypes.c_float*3)(*pos), rng_range)
+        client = r['eax'] & 0xff if vc.ok(r) else None
+        report.add('frustum', vc.ok(r) and client == mine, {'case': n, 'client': client, 'c': mine,
+                                                             'stopped': r['stopped'], 'error': r['error']})
+        report.cover('frustum', 'visible' if mine else 'culled')
+        if vc.ok(r):
+            # negative control: the range ignored
+            negatives['frustum_no_range'] += lib.mu_gi_test_frustum((ctypes.c_float*15)(*normals),
+                                                                   (ctypes.c_float*5)(*dist),
+                                                                   (ctypes.c_float*3)(*pos), 0.0) != client
+
+
+# --------------------------------------------------------------------------
 # monster_voice
 
 class MonsterVoice(ctypes.Structure):
@@ -1657,9 +1692,9 @@ def family_monster_voice(m, lib, rng, cases, report, negatives):
 FAMILIES = [('item_angle', family_item_angle), ('label_color', family_label_color),
             ('object_attr', family_object_attr), ('name', family_name), ('create', family_create),
             ('viewport', family_viewport), ('move', family_move), ('render', family_render),
-            ('select', family_select), ('monster_voice', family_monster_voice)]
+            ('select', family_select), ('frustum', family_frustum), ('monster_voice', family_monster_voice)]
 NEGATIVES = ['angle_no_record', 'color_shifted', 'attr_scale_one', 'name_no_level', 'create_one_sound',
-             'viewport_no_cap', 'move_all_weapons', 'render_one_coin', 'select_last_hit', 'monster_idle_slot']
+             'viewport_no_cap', 'move_all_weapons', 'render_one_coin', 'select_last_hit', 'frustum_no_range', 'monster_idle_slot']
 
 
 def default_evidence(relative):

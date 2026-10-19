@@ -874,6 +874,23 @@ void mu_gi_render_plan(const mu_gi_item *it, int32_t index, const mu_gi_host *ho
     plan->screen_y = (int16_t)sy;
 }
 
+/* ------------------------------------------------------------------ TestFrustrum 0x016ccc14 */
+
+int32_t mu_gi_test_frustum(const float normal[5][3], const float distance[5], const float position[3], float range)
+{
+    for (int i = 0; i < 5; ++i) {
+        volatile float d = position[0] * normal[i][0];
+        volatile float t = position[1] * normal[i][1];
+        d = d + t;
+        t = position[2] * normal[i][2];
+        d = d + t;
+        d = d + distance[i];
+        if (-range > d)
+            return 0;
+    }
+    return 1;
+}
+
 /* ------------------------------------------------------------------ SelectItem 0x016b4fc0 */
 
 int32_t mu_gi_select(mu_gi_item *items, int32_t count, mu_gi_ray_test hit, void *context)

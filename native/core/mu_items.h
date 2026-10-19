@@ -116,6 +116,7 @@ typedef struct mu_world_items {
     mu_walk *walk;
     const mu_world *map;
     struct mu_world_particles *particles;
+    const mu_terrain_frustum *frustum;   /* the frame's CreateFrustrum (set by the caller; NULL: all visible) */
     mu_data_table item_table;
     int has_table;
     mu_gi_record *records;      /* per code 0..0x2c00, lazily filled */

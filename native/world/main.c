@@ -352,6 +352,7 @@ static int load(app *a)
         } else {
             if (a->has_particles)
                 a->ground->particles = &a->particles;
+            a->ground->frustum = &a->frustum;   /* RenderItems' TestFrustrum uses the frame's planes */
             if (a->has_sound) {
                 a->ground->play_sound = env_sound;
                 a->ground->sound_context = a;

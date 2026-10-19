@@ -818,10 +818,10 @@ int32_t mu_world_items_draw(mu_world_items *it, mu_world_item_draw_fn draw, void
         mu_gi_object *o = &gi->object;
         if (!o->live)
             continue;
-        /* TestFrustrum2D(position / 100, 400): a viewer stand-in, the terrain frustum's tile box */
-        int visible = 1;
+        /* TestFrustrum 0x016ccc14(position, 400) against the frame's CreateFrustrum planes */
+        int visible = it->frustum ? mu_gi_test_frustum(it->frustum->normal, it->frustum->d, o->position, 400.0f) : 1;
         int32_t slot = -1;
-        mu_world_item_model *m = model_for(it, o->type >= 0x18e6 && o->type < 0x22e6 ? o->type : o->type, &slot);
+        mu_world_item_model *m = visible ? model_for(it, o->type, &slot) : NULL;
         mu_gi_render_env env;
         memset(&env, 0, sizeof env);
         env.visible = visible;
@@ -833,6 +833,8 @@ int32_t mu_world_items_draw(mu_world_items *it, mu_world_item_draw_fn draw, void
         mu_gi_render_plan_t plan;
         mu_gi_render_plan(gi, i, &it->host, &env, &plan);
         o->visible = (uint8_t)plan.visible;
+        if (!visible)
+            continue;
         o->screen_x = plan.screen_x;
         o->screen_y = plan.screen_y;
         if (!m) {

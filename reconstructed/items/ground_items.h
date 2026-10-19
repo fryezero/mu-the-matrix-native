@@ -273,6 +273,12 @@ void mu_gi_render_plan(const mu_gi_item *it, int32_t index, const mu_gi_host *ho
 /* The zen pile: number of coins min(max(sqrt(amount)/2, 3), 80) (truncation as the client's cvttss2si/cdq/sar). */
 int32_t mu_gi_zen_coins(int32_t amount, const mu_gi_host *host);
 
+/* ---- TestFrustrum 0x016ccc14(position, range) (verified) ----
+ * RenderItems' visibility: for the five planes of CreateFrustrum (normals
+ * 0x0bdb546c, distances 0x0b6b53e4) d = ((x*nx + y*ny) + z*nz) + dist; 0 as
+ * soon as -range > d (comiss), else 1. RenderItems passes range 400. */
+int32_t mu_gi_test_frustum(const float normal[5][3], const float distance[5], const float position[3], float range);
+
 /* ---- SelectItem 0x016b4fc0 (verified) ----
  * Every live, visible item gets LightEnable 1 and light 0.2; the first whose
  * OBB (+0x31c) the mouse ray hits (0x018500bf) gets LightEnable 0, light 1.5
