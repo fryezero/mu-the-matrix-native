@@ -447,7 +447,6 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002) |
 | `core/mu_names.*`, `core/mu_world_names.*`, `core/mu_label.*`, `world/world_names_gfx.*` | Overhead names, monster HP boxes and chat bubbles: hudPlayerName's game side over `reconstructed/names`, its feed from the session, the shared label helper for the stand-in, the calls to the real movie (NATIVE-NAMES-001) |
-| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
