@@ -30,7 +30,8 @@ typedef struct mu_label_image {
     uint8_t *rgba;                        /* top row first, straight alpha */
 } mu_label_image;
 
-/* Opens the faces (face NULL: "Arial"; "@box" forces the placeholder font). */
+/* Opens the faces (face NULL: "Arial"; "@box" forces the placeholder font, which is also used when CoreText is
+ * missing or the face is unknown). */
 int mu_label_fonts_open(mu_label_fonts *fonts, const char *face);
 void mu_label_fonts_close(mu_label_fonts *fonts);
 

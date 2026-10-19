@@ -10,13 +10,13 @@ int mu_label_fonts_open(mu_label_fonts *f, const char *face)
 {
     static const int32_t sizes[MU_LABEL_SIZES] = {12, 14, 16};
     memset(f, 0, sizeof *f);
-    int any = 0;
     for (int i = 0; i < MU_LABEL_SIZES; ++i) {
         f->size[i] = sizes[i];
-        f->open[i] = mu_ui_font_open(&f->font[i], face ? face : "Arial", sizes[i], 400) == 0;
-        any |= f->open[i];
+        /* non-zero means the box placeholder font (no CoreText, e.g. Linux): still usable */
+        (void)mu_ui_font_open(&f->font[i], face ? face : "Arial", sizes[i], 400);
+        f->open[i] = 1;
     }
-    return any ? 0 : 1;
+    return 0;
 }
 
 void mu_label_fonts_close(mu_label_fonts *f)
