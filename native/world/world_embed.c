@@ -40,6 +40,7 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->placement = c->placement;
     a->objects_dir = c->objects_dir;
     a->quiet = c->quiet;
+    a->hero_name = c->hero_name;
     a->backend = "soft";
     a->pause = 8;
     if (load(a)) {
@@ -159,3 +160,14 @@ int32_t mu_world_embed_folder(const mu_world_embed *e)
 {
     return e->a.map ? e->a.map->report.folder : -1;
 }
+
+#ifndef MU_WORLD_NO_GL
+void mu_world_embed_set_gfx(mu_world_embed *e, struct world_gfx *gfx, double scale)
+{
+    e->a.gfx = gfx;
+    if (gfx)
+        names_gfx_attach(&e->a, scale);
+    else if (e->a.names)
+        mu_names_set_sink(&e->a.names->names, NULL);
+}
+#endif

@@ -249,6 +249,8 @@ static void on_opened(void *user, int kind, void *embed)
                                 f->gfx_open, error, sizeof error);
         if (!f->gfx)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
+        else
+            mu_world_embed_set_gfx(embed, f->gfx, f->headless ? 1.0 : f->scale);
         f->gfx_clock = on_ticks(f);
     }
 #endif
@@ -269,6 +271,7 @@ static void on_closing(void *user, int kind, void *embed)
         return;
     }
     if (kind == MU_SHELL_EMBED_WORLD && f->gfx) {
+        mu_world_embed_set_gfx(embed, NULL, 1.0);
         world_gfx_close(f->gfx);
         f->gfx = NULL;
     }

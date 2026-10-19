@@ -255,6 +255,8 @@ struct mu_gfx_layer {
     /* chat */
     int chat_edit, chat_ready;
     char last_sent[256];
+    void (*chat_hook)(void *user, const char *text);   /* NATIVE-NAMES-001: the sent line (bubble echo) */
+    void *chat_hook_user;
     /* skills */
     int selected_skill;
     int32_t potions;
@@ -1114,6 +1116,8 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                 snprintf(L->last_sent, sizeof L->last_sent, "%s", text);
                 /* Local echo (layer choice): the server would send it back. */
                 mu_gfx_layer_chat(L, 1, L->hero.name, text);
+                if (L->chat_hook)
+                    L->chat_hook(L->chat_hook_user, text);
             } else if (!strcmp(s, "onFocuseText")) {
                 if (strstr(args, "\"focused\":true"))
                     chat_open(L, 1);
@@ -2445,3 +2449,28 @@ int mu_gfx_layer_item_cell(const mu_gfx_layer *L, int i)
 int mu_gfx_layer_item_count(const mu_gfx_layer *L) { return L ? L->nitems : 0; }
 
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *L) { return L ? L->last_sent : ""; }
+
+/* ---- NATIVE-NAMES-001: hudPlayerName ---------------------------------------------------------- */
+
+int mu_gfx_layer_set_variable(mu_gfx_layer *L, int m, const char *path, const char *value_json)
+{
+    if (!L || m < 0 || m >= MU_GFX_MOVIES || !L->mv[m].g || !path || !path[0] || !L->api.set_variable)
+        return 0;
+    L->mv[m].view_dirty = 1;
+    return L->api.set_variable(L->mv[m].g, path, value_json);
+}
+
+void mu_gfx_layer_set_chat_hook(mu_gfx_layer *L, void (*hook)(void *user, const char *text), void *user)
+{
+    if (!L)
+        return;
+    L->chat_hook = hook;
+    L->chat_hook_user = user;
+}
+
+const char *mu_gfx_layer_get_variable(mu_gfx_layer *L, int m, const char *path)
+{
+    if (!L || m < 0 || m >= MU_GFX_MOVIES || !L->mv[m].g || !path || !path[0] || !L->api.get_variable)
+        return NULL;
+    return L->api.get_variable(L->mv[m].g, path);
+}

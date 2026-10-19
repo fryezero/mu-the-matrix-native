@@ -39,4 +39,8 @@ void world_gfx_set_location(world_gfx *g, int world, float x, float y);
 /* One summary line (JSON object body) for the run report. */
 void world_gfx_report(world_gfx *g, char *out, size_t cap);
 
+/* NATIVE-NAMES-001: the GFx layer (world_names_gfx.c drives hudPlayerName through it). */
+struct mu_gfx_layer;
+struct mu_gfx_layer *world_gfx_layer(world_gfx *g);
+
 #endif

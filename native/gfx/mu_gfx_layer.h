@@ -180,6 +180,13 @@ void mu_gfx_layer_chat(mu_gfx_layer *layer, int type, const char *name, const ch
 /* Run a JSON-argument GFx invoke on a movie (tests, scripted runs). */
 const char *mu_gfx_layer_invoke(mu_gfx_layer *layer, int movie, const char *path, const char *method,
                                 const char *args_json);
+/* NATIVE-NAMES-001: set an AS2 property (path "a.b._x", JSON value) on a movie;
+ * returns non-zero when the player accepted it. */
+int mu_gfx_layer_set_variable(mu_gfx_layer *layer, int movie, const char *path, const char *value_json);
+/* An AS2 property as JSON (valid until the next call), NULL when unavailable. */
+const char *mu_gfx_layer_get_variable(mu_gfx_layer *layer, int movie, const char *path);
+/* Called with each line the chat input sends (after the local echo). */
+void mu_gfx_layer_set_chat_hook(mu_gfx_layer *layer, void (*hook)(void *user, const char *text), void *user);
 /* The instance path of a movie's window (e.g. "_level0.g_mcInventory"). */
 const char *mu_gfx_layer_path(const mu_gfx_layer *layer, int movie);
 /* Window-pixel centre of an inventory cell (scripted input). */

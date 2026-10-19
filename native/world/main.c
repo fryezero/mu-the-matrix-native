@@ -93,10 +93,13 @@
 #include "../core/mu_wav.h"
 #include "../core/mu_world_actors.h"
 #include "../core/mu_world_audio.h"
+#include "../core/mu_world_names.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_headless.h"
+#include "../gfx/mu_gfx_layer.h"
 #include "world_gfx.h"
+#include "world_names_gfx.h"
 #endif
 
 #define MAX_WAYPOINTS 64
@@ -152,6 +155,13 @@ typedef struct app {
     int has_particles, no_particles;
     uint32_t particle_seed;
     int32_t joint_demo;            /* NATIVE-JOINT-001: --joint-demo SUB (-1 off) */
+    /* NATIVE-NAMES-001: hudPlayerName's game side (names, HP bars, chat bubbles); --no-names, --hero-name,
+     * --chat-script "F:text ...", --monster-info 0|1 */
+    mu_world_names *names;
+    int no_names, no_monster_info;
+    const char *hero_name, *chat_script_text;
+    int32_t chat_frame[16], chat_count;
+    char chat_text[16][64];
     uint32_t effects_visible;
     float *wav;
     size_t wav_frames, wav_capacity;
@@ -170,6 +180,8 @@ typedef struct app {
     /* NATIVE-GFX-002: the GFx interface over the world (--gfx DIR) */
     const char *gfx_dir, *gfx_open;
     world_gfx *gfx;
+    world_names_gfx names_gfx;     /* NATIVE-NAMES-001: hudPlayerName through the layer */
+    GLuint names_tex;
 #endif
     /* NATIVE-COMBAT-001 */
     int combat_on;
@@ -361,6 +373,12 @@ static int load(app *a)
             a->walk.pre_step_context = a;
         }
     }
+    if (!a->no_names) {   /* NATIVE-NAMES-001: the join and viewport packets' addInfo */
+        a->names = calloc(1, sizeof *a->names);
+        mu_world_names_config nc = {a->hero_name, 0, NULL, NULL, !a->no_monster_info};
+        if (a->names)
+            mu_world_names_init(a->names, &nc, &a->walk, a->has_actors ? &a->actors : NULL, a->combat);
+    }
     return 0;
 }
 
@@ -394,6 +412,8 @@ static void on_step(void *context, mu_walk *w)
         mu_world_items_watch_combat(a->ground, a->combat);
         mu_world_items_step(a->ground);
     }
+    if (a->names)   /* NATIVE-NAMES-001: HP packets, SetPlayerDie's removeInfo, respawns */
+        mu_world_names_step(a->names);
     if (a->has_objects) {   /* MoveObjects in the client's in-world tick (NATIVE-OBJECTS-002) */
         const int32_t index = ((h->tile[1] & 0xff) << 8) + (h->tile[0] & 0xff);
         mu_objects_step_inputs in = {6, a->map->layer1[index], a->map->time,
@@ -488,6 +508,11 @@ static void unload(app *a)
         mu_world_items_close(a->ground);
         free(a->ground);
         a->ground = NULL;
+    }
+    if (a->names) {
+        mu_world_names_free(a->names);
+        free(a->names);
+        a->names = NULL;
     }
     free(a->wav);
 }
@@ -609,6 +634,9 @@ static void script(app *a, int32_t frame)
     mu_walk *w = &a->walk;
     combat_script(a, frame);
     item_script(a, frame);
+    for (int32_t i = 0; a->names && i < a->chat_count; ++i)   /* NATIVE-NAMES-001: the hero's chat, echoed */
+        if (a->chat_frame[i] == frame)
+            mu_world_names_chat(a->names, a->names->names.env.hero ? a->names->names.env.hero->name : "", a->chat_text[i]);
     for (int32_t i = 0; i < a->wheel_count; ++i)
         if (a->wheel_frame[i] == frame)
             mu_walk_message(w, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)(a->wheel_delta[i] * 120) << 16, 0);
@@ -734,6 +762,14 @@ static int32_t advance(app *a, uint32_t now)
         mu_combat_terrain_lights(a->combat, a->map);   /* effect lights after the frame light copy */
     if (a->has_actors)
         mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
+    if (a->names) {   /* NATIVE-NAMES-001: 0x009a1618 in the tick, the hudPlayerName handler's update */
+#ifndef MU_WORLD_NO_GL
+        if (a->gfx)
+            world_names_gfx_frame(&a->names_gfx);
+#endif
+        a->names->hero_wing = a->has_character && a->ch.items[MU_CHARACTER_WING_ITEM].loaded;
+        mu_world_names_frame(a->names, now);
+    }
     return steps;
 }
 
@@ -1196,6 +1232,53 @@ static void particle_model_gl(void *context, const mu_model *model, const mu_tex
     mu_scene_draw_model(model, draw_options, &backend, &ds);
 }
 
+/* NATIVE-NAMES-001: the stand-in plates as one window-sized overlay texture (no movie running). */
+static void names_gl(app *a, int32_t width, int32_t height)
+{
+    size_t bytes = (size_t)width * (size_t)height * 4;
+    uint8_t *overlay = calloc(bytes, 1);
+    if (!overlay)
+        return;
+    mu_world_names_draw(a->names, overlay, width, height);
+    if (!a->names_tex)
+        glGenTextures(1, &a->names_tex);
+    glBindTexture(GL_TEXTURE_2D, a->names_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay);
+    free(overlay);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, width, height, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glViewport(0, 0, width, height);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex2f(0, 0);
+    glTexCoord2f(1, 0); glVertex2f((float)width, 0);
+    glTexCoord2f(1, 1); glVertex2f((float)width, (float)height);
+    glTexCoord2f(0, 1); glVertex2f(0, (float)height);
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
 static long draw_gl(app *a, int32_t width, int32_t height)
 {
     const mu_client_view *v = &a->walk.frame.view;
@@ -1322,6 +1405,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         combat_draw_gl(a);
     if (a->ground)
         items_labels_gl(a, width, height);
+    if (a->names && !world_names_gfx_active(&a->names_gfx))
+        names_gl(a, width, height);
     return stats.faces;
 }
 
@@ -1442,6 +1527,8 @@ static long draw_soft(app *a, mu_raster *raster)
         for (int32_t i = 0; i < n; ++i)
             mu_world_items_label_blit(a->ground, &labels[i], raster->color, raster->width, raster->height);
     }
+    if (a->names)   /* NATIVE-NAMES-001: the stand-in for the movie's plates (core/mu_label) */
+        mu_world_names_draw(a->names, raster->color, raster->width, raster->height);
     return stats.tiles.faces;
 }
 
@@ -1570,12 +1657,42 @@ static void report_summary(const app *a, const char *renderer)
         mu_combat_report_summary(a->combat, stdout, a->quiet);
     if (a->ground)
         mu_world_items_report_summary(a->ground, stdout);
+    if (a->names) {   /* NATIVE-NAMES-001 */
+        char line[512];
+        mu_names_report(&a->names->names, line, sizeof line);
+        printf("{%s}\n", line);
+        if (!a->quiet)
+            for (int32_t i = 0; i < a->names->names.plate_count; ++i) {
+                const mu_names_plate *p = &a->names->names.plates[i];
+                printf("{\"plate\": %d, \"type\": %d, \"x\": %.2f, \"y\": %.2f, \"visible\": %d, \"info\": %d,"
+                       " \"hp\": %d, \"message\": %d}\n", (int)p->key, (int)p->type, (double)p->x, (double)p->y,
+                       p->mc_visible, p->info_visible, (int)p->hp, p->message[0] != 0);
+            }
+    }
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);
 }
 
 /* ---- headless ---- */
+
+#ifndef MU_WORLD_NO_GL
+/* NATIVE-NAMES-001: the chat input's lines come back as the server echo would (demo) and show as bubbles. */
+static void names_chat_hook(void *user, const char *text)
+{
+    app *a = user;
+    if (a->names && a->names->names.env.hero)
+        mu_world_names_chat(a->names, a->names->names.env.hero->name, text);
+}
+
+static void names_gfx_attach(app *a, double scale)
+{
+    if (!a->names || !a->gfx)
+        return;
+    world_names_gfx_attach(&a->names_gfx, a->gfx, &a->names->names, scale);
+    mu_gfx_layer_set_chat_hook(world_gfx_layer(a->gfx), names_chat_hook, a);
+}
+#endif
 
 static int headless(app *a)
 {
@@ -1604,6 +1721,8 @@ static int headless(app *a)
         a->gfx = world_gfx_open(a->gfx_dir, a->root, a->width, a->height, 1.0, 1, a->gfx_open, error, sizeof error);
         if (!a->gfx)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
+        else
+            names_gfx_attach(a, 1.0);
     }
 #endif
     mu_raster raster;
@@ -1776,8 +1895,10 @@ static int windowed(app *a)
     if (a->gfx_dir) {
         char error[512];
         a->gfx = world_gfx_open(a->gfx_dir, a->root, dw, dh, scale, 1, a->gfx_open, error, sizeof error);
-        if (a->gfx)
+        if (a->gfx) {
             SDL_StartTextInput();
+            names_gfx_attach(a, scale);
+        }
         else
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
     }
@@ -1930,6 +2051,28 @@ static int parse_wheels(app *a, const char *text)
     return 0;
 }
 
+/* NATIVE-NAMES-001: "F:text;F:text" (the hero's chat lines on the given frames). */
+static int parse_chat(app *a, const char *text)
+{
+    const char *p = text;
+    while (*p && a->chat_count < 16) {
+        char *end;
+        long f = strtol(p, &end, 10);
+        if (end == p || *end != ':')
+            return 1;
+        const char *t = end + 1, *e = strchr(t, ';');
+        size_t len = e ? (size_t)(e - t) : strlen(t);
+        if (len >= sizeof a->chat_text[0])
+            len = sizeof a->chat_text[0] - 1;
+        a->chat_frame[a->chat_count] = (int32_t)f;
+        memcpy(a->chat_text[a->chat_count], t, len);
+        a->chat_text[a->chat_count][len] = 0;
+        a->chat_count++;
+        p = e ? e + 1 : t + len;
+    }
+    return 0;
+}
+
 static int usage(void)
 {
     fprintf(stderr, "usage: mu-world --game-root ROOT [--world N] [--class C] [--tile X,Y] [--angle D] [--near Z]\n"
@@ -1946,7 +2089,8 @@ static int usage(void)
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
-                    "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
+                    "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
+                    "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n");
     return 2;
 }
 
@@ -1984,6 +2128,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-particles")) { a.no_particles = 1; continue; }
         if (!strcmp(k, "--items")) { a.items_on = 1; continue; }
         if (!strcmp(k, "--no-items")) { a.no_items = 1; continue; }
+        if (!strcmp(k, "--no-names")) { a.no_names = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -2048,6 +2193,9 @@ int main(int argc, char **argv)
 #endif
         else if (!strcmp(k, "--particle-seed")) a.particle_seed = (uint32_t)strtoul(v, NULL, 0);
         else if (!strcmp(k, "--joint-demo")) a.joint_demo = (int32_t)strtol(v, NULL, 0);
+        else if (!strcmp(k, "--hero-name")) a.hero_name = v;
+        else if (!strcmp(k, "--monster-info")) a.no_monster_info = !atoi(v);
+        else if (!strcmp(k, "--chat-script")) { if (parse_chat(&a, v)) return usage(); }
         else return usage();
     }
     if (a.audio_rate < 8000 || a.audio_rate > 48000 || (a.wav_path && !a.audio))
