@@ -543,6 +543,8 @@ static void combat_script(app *a, int32_t frame)
     while (a->combat_next < a->combat_script.count && a->combat_script.items[a->combat_next].frame <= frame) {
         const mu_combat_script_item *it = &a->combat_script.items[a->combat_next++];
         int32_t actor = mu_combat_find_actor(a->combat, it->actor);
+        if (actor < 0 && it->actor[0] && strcmp(it->verb, "stop"))   /* was silent before the parser fix */
+            fprintf(stderr, "frame %d: combat script: no actor \"%s\" (%s)\n", frame, it->actor, it->verb);
         if (!strcmp(it->verb, "stop")) {
             mu_combat_stop(a->combat);
         } else if (!strcmp(it->verb, "attack")) {

@@ -259,6 +259,46 @@ class WeaponAndSkillTests(Build):
             self.assertNotEqual(result.returncode, 0, text)
 
 
+class ScriptTests(Build):
+    """NATIVE-NPC-001 fix: a --combat-script with more than one item cast
+    nothing when its items were separated by spaces (the form the header
+    documents) or commas; only ';' split items, so the first actor label
+    swallowed the rest and resolved to no actor."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.two = Path(cls.tmp.name)/'two.txt'
+        cls.two.write_text('# demo\nactor 3 123 120 6 label spider\nactor 3 118 120 6 label big spider\n')
+
+    def summary(self, script, frames=400):
+        out = run(self.root, self.two, '--frames', str(frames), '--combat-script', script)
+        return out, {k: out['summary'][k] for k in ('skills', 'fx_created', 'kills')}
+
+    def test_every_separator_casts_both_items(self):
+        _, single = self.summary('2:skill:4:spider')
+        out, ref = self.summary('2:skill:4:spider;150:skill:4:big spider')
+        self.assertGreater(ref['skills'], single['skills'])
+        self.assertEqual(ref['kills'], 2)
+        targets = {f['target'] for f in out['frames']}
+        self.assertTrue({0, 1} <= targets)
+        for script in ('2:skill:4:spider 150:skill:4:big spider', '2:skill:4:spider,150:skill:4:big spider',
+                       '  2:skill:4:spider ;  150:skill:4:big spider  ', '2:skill:4:spider\t150:skill:4:big spider'):
+            self.assertEqual(self.summary(script)[1], ref, script)
+
+    def test_parser_keeps_labels_with_spaces_and_mixed_verbs(self):
+        out, _ = self.summary('2:attack:big spider 40:stop 60:skill:4:spider', frames=200)
+        targets = [f['target'] for f in out['frames']]
+        self.assertEqual(targets[5], 1)                           # attack on "big spider" (actor 1)
+        self.assertTrue(any(t == 0 for t in targets[70:]))        # then the skill on "spider"
+        self.assertGreater(out['summary']['skills'], 0)
+
+    def test_unknown_actor_is_reported(self):
+        out = run(self.root, self.two, '--frames', '20', '--combat-script', '2:skill:4:nobody 5:attack:spider')
+        self.assertIn('no actor "nobody"', out['result'].stderr)
+        self.assertTrue(any(f['target'] == 0 for f in out['frames']))
+
+
 @unittest.skipUnless(PRIVATE, 'set MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT')
 class InstalledTests(unittest.TestCase):
     def test_lorencia_fight(self):
