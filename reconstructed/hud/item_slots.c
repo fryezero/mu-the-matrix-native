@@ -207,3 +207,89 @@ int mu_slot_wrapper(int item_present, const mu_slot_wrapper_in *in, const mu_ite
     out->overlay_scale = 1.0f;
     return 1;
 }
+
+/* ---- RenderObjectScreen 0x016c2d82 ---- */
+
+static int ros_player_posed(int32_t type)
+{
+    return (type >= 0x18e6 && type < 0x22e6) || type == 0xace || type == 0xacf || type == 0xad0 || type == 0xae5;
+}
+
+void mu_hud_object_screen(const mu_hud_ros_in *in, mu_hud_ros_out *out)
+{
+    memset(out, 0, sizeof *out);
+    int32_t level = (in->level_word >> 3) & 0xf;                         /* 0x016c2dbd */
+    int32_t level_word = in->level_word;
+    if (in->has_record && in->kind_a == 0xc)                              /* 0x016c2de0 */
+        level_word = 0;
+    float position[3] = {in->position[0], in->position[1], in->position[2]};
+    float scale = in->scale;
+    if (in->held)                                                         /* 0x016c2e30 */
+        scale = scale * 1.4f;
+    if (in->select == 1) {                                                /* 0x016c2e4a */
+        out->spin = 1;
+        out->spin_angle = in->time * 0.2f;
+    }
+    int32_t type = in->type, pose = in->type;
+    if (ros_player_posed(type)) {                                         /* 0x016c2e82 */
+        pose = 0xa91;
+    } else if (type == 0x26f2) {                                          /* 0x016c2ed6 (patched site) */
+        if (level == 0)
+            pose = type = 0x3890;
+        else if (level == 2)
+            pose = type = 0x3891;
+    }
+    out->pose_model = pose;
+    out->render_type = type;
+    if (!in->pose_model_exists)                                           /* 0x016c2f27 */
+        return;
+    out->drawn = 1;
+    float height = 0.0f;                                                  /* 0x016c2f50 */
+    int kind4 = in->has_record && in->item_kind == 4;
+    if (type >= 0x18e6 && type < 0x1ae6) {
+        height = -160.0f;
+        if (kind4)
+            height = height - 10.0f;
+        if (type == 0x1927 || type == 0x192c)
+            position[0] = position[0] + 0.04f;
+        if (type >= 0x193b && type <= 0x1940)
+            height = height + 10.0f;
+    } else if (type >= 0x1ae6 && type < 0x1ce6) {
+        height = -100.0f;
+        if (kind4)
+            height = height - 13.0f;
+        if (type >= 0x1b3a && type <= 0x1b3f)
+            height = height + 13.0f;
+        if (type == 0x1b40)
+            height = height - 32.0f;
+    } else if (type >= 0x1ee6 && type < 0x20e6) {
+        height = -70.0f;
+    } else if (type >= 0x1ce6 && type < 0x1ee6) {
+        height = -50.0f;
+    }
+    if (type == 0xace || type == 0xad0 || type == 0xacf || type == 0xae5)  /* 0x016c312c */
+        height = -100.0f;
+    out->height = height;
+    if (in->anim_present && in->has_state) {                              /* 0x016c318e */
+        out->action = in->anim_action;
+        out->anim_frame = in->state_frame;
+        out->anim_prior_frame = in->state_prior_frame;
+        out->anim_prior_action = in->state_prior_action;
+        if (in->tick) {
+            out->ticked = 1;
+            out->tick_speed = in->anim_speed;
+        }
+    }
+    for (int k = 0; k < 3; ++k) {
+        out->position[k] = position[k];
+        out->light[k] = 1.0f;                                             /* 0x016c3364 */
+    }
+    out->scale = scale;
+    out->alpha = in->object_alpha;
+    out->lighting = 0;                                                    /* 0x016c32ca */
+    out->level_word = level_word;
+    out->excellent = in->excellent;
+    out->set_bits = in->set_bits;
+    out->a2c = in->a2c;
+    out->a30 = in->a30;
+}

@@ -376,14 +376,18 @@ static mu_world_item_model *model_for(mu_world_items *it, int32_t type, int32_t 
     memset(m, 0, sizeof *m);
     m->type = type;
     mu_item item;
-    char path[2048], message[512], directory[2048];
-    if (mu_item_model(&it->item_table, type, &item) != 1) {
+    char path[2048], message[512], directory[2048], special[256];
+    if (mu_item_model(&it->item_table, type, &item) == 1) {
+        snprintf(path, sizeof path, "%s/%s%s", it->game_root, item.folder, item.file);
+    } else if (mu_gi_special_model_file(type, special, sizeof special)) {
+        /* models outside Item.bmd: the item-model loader 0x0183220e's AccessModel calls (NATIVE-FIDELITY-001) */
+        snprintf(path, sizeof path, "%s/%s", it->game_root, special);
+    } else {
         m->failed = 1;
-        snprintf(message, sizeof message, "model 0x%x: no Item.bmd record (special model not resolved)", type);
+        snprintf(message, sizeof message, "model 0x%x: no Item.bmd record and no loader entry", type);
         log_line(it, message);
         return NULL;
     }
-    snprintf(path, sizeof path, "%s/%s%s", it->game_root, item.folder, item.file);
     for (char *p = path; *p; ++p)
         if (*p == '\\')
             *p = '/';

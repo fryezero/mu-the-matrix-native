@@ -226,6 +226,307 @@ def env_section(text, data, args):
                         control_no_flag6_flag7_writes=not writes[6] and not writes[7])
 
 
+# ---------------------------------------------------------------- object_screen
+ROS = 0x016c2d82
+ROS_PATCH_SITE, ROS_PATCH = 0x016c2ed6, bytes.fromhex('813d243b5e0bf2260000')   # cmp [0x0b5e3b24], 0x26f2
+ITEM_ANGLE, ITEM_HEAD, ITEM_VEC = 0x0b5e3c2c, 0x0b5e3c38, 0x0b5e3c20
+POS, STATE, ANIMREC = 0x2d000000, 0x2d000100, 0x2d000200
+
+
+class RosIn(ctypes.Structure):
+    _fields_ = [('type', ctypes.c_int32), ('level_word', ctypes.c_int32), ('excellent', ctypes.c_int32),
+                ('set_bits', ctypes.c_int32), ('position', ctypes.c_float * 3), ('select', ctypes.c_int32),
+                ('held', ctypes.c_uint8), ('a2c', ctypes.c_int32), ('a30', ctypes.c_int32), ('scale', ctypes.c_float),
+                ('has_state', ctypes.c_int32), ('state_prior_action', ctypes.c_uint16), ('state_frame', ctypes.c_float),
+                ('state_prior_frame', ctypes.c_float), ('tick', ctypes.c_uint8), ('time', ctypes.c_float),
+                ('has_record', ctypes.c_int32), ('kind_a', ctypes.c_int32), ('item_kind', ctypes.c_int32),
+                ('anim_present', ctypes.c_int32), ('anim_action', ctypes.c_uint16), ('anim_speed', ctypes.c_float),
+                ('pose_model_exists', ctypes.c_int32), ('object_alpha', ctypes.c_float)]
+
+
+class RosOut(ctypes.Structure):
+    _fields_ = [('drawn', ctypes.c_int32), ('spin', ctypes.c_int32), ('spin_angle', ctypes.c_float),
+                ('pose_model', ctypes.c_int32), ('render_type', ctypes.c_int32), ('height', ctypes.c_float),
+                ('action', ctypes.c_uint16), ('anim_frame', ctypes.c_float), ('anim_prior_frame', ctypes.c_float),
+                ('anim_prior_action', ctypes.c_uint16), ('ticked', ctypes.c_int32), ('tick_speed', ctypes.c_float),
+                ('position', ctypes.c_float * 3), ('scale', ctypes.c_float), ('alpha', ctypes.c_float),
+                ('light', ctypes.c_float * 3), ('lighting', ctypes.c_uint8), ('level_word', ctypes.c_int32),
+                ('excellent', ctypes.c_int32), ('set_bits', ctypes.c_int32), ('a2c', ctypes.c_int32),
+                ('a30', ctypes.c_int32)]
+
+
+def ros_client(world_args, case):
+    import validate_renderchar as vr
+    w = vr.World(*world_args)
+    m = w.m
+    m.write(ROS_PATCH_SITE, ROS_PATCH)
+    pose = 0xa91 if (0x18e6 <= case['type'] < 0x22e6 or case['type'] in (0xace, 0xacf, 0xad0, 0xae5)) else case['type']
+    level = (case['level_word'] >> 3) & 0xf
+    if case['type'] == 0x26f2 and level in (0, 2):
+        pose = 0x3890 if level == 0 else 0x3891
+    if case['pose_exists']:
+        w.add_model(pose, vr.MODEL, bones=4, meshes=1, actions=4)
+    if case['record'] is not None:
+        w.add_record(case['type'] - 0xae6, case['record'][0], 0, case['record'][1])
+    m.ensure(0x06fce370, 4)
+    m.w32(0x06fce370, case['time'])
+    m.map(POS, 0x1000)
+    m.write(POS, struct.pack('<3I', *case['position']))
+    m.write(STATE, struct.pack('<HHII', 0, case['state'][0], case['state'][1], case['state'][2]))
+    m.write(ANIMREC, struct.pack('<iiHHI', 20, 0, case['anim'][0], 0, case['anim'][1]) if case['anim'] else b'')
+    for address in (ITEM_ANGLE, ITEM_HEAD, ITEM_VEC):
+        m.ensure(address, 12)
+    m.write(ITEM_ANGLE, struct.pack('<3I', *case['angle']))
+    rec = []
+    m.stub(0x0111d824, lambda mm: (rec.append(('anim_lookup', mm.ecx(), mm.arg(0))) or
+                                   (ANIMREC if case['anim'] else 0)), 4)
+
+    def animation(mm):
+        model = mm.ecx()
+        a = [mm.arg(i) for i in range(8)]
+        rec.append(('animation', model, a, mm.r32(model + 0x90), struct.unpack('<H', mm.read(model + 0xa8, 2))[0]))
+        return 0
+    m.stub(0x012b5064, animation, 0x20)
+    m.stub(0x012b4dd3, lambda mm: rec.append(('tick', mm.ecx(), [mm.arg(i) for i in range(6)])) or 0, 0x18)
+    m.stub(0x0184a244, lambda mm: rec.append(('project',)) or 0, 0)
+
+    def rpo(mm):
+        a = [mm.arg(i) for i in range(16)]
+        o = a[0]
+        rec.append(('rpo', a, mm.read(o + 5, 1)[0], mm.r32(o + 0xa0), [mm.r32(o + 0x158 + 4 * k) for k in range(3)],
+                    mm.r32(o + 0xdc), mm.r32(o + 0x5c), [mm.r32(a[3] + 4 * k) for k in range(3)]))
+        return 0
+    m.stub(0x017e63f4, rpo, 0)
+    args = [case['type'], case['level_word'], case['excellent'], case['set_bits'], POS, case['select'], case['held'],
+            case['a2c'], case['a30'], case['scale'], STATE if case['has_state'] else 0, case['tick']]
+    result = m.run(ROS, args)
+    angle1 = m.r32(ITEM_ANGLE + 4)
+    return result, rec, angle1
+
+
+def ros_compare(lib, world_args, case):
+    result, rec, angle1 = ros_client(world_args, case)
+    if not result['ok']:
+        return ('stopped', result['stopped'], result['error']), None, None
+    anim = [r for r in rec if r[0] == 'animation']
+    ticks = [r for r in rec if r[0] == 'tick']
+    rpos = [r for r in rec if r[0] == 'rpo']
+    client = {'drawn': int(bool(anim)), 'spin': angle1 != case['angle'][1]}
+    alpha_bits = None
+    if anim:
+        a = anim[0]
+        client.update(height=a[3], action=a[4], anim=(a[2][1], a[2][2], a[2][3] & 0xffff),
+                      animation_tail=(a[2][0], a[2][4], a[2][5], a[2][6], a[2][7]))
+        client['ticked'] = ticks[0][2][3] if ticks else None
+    if rpos:
+        r = rpos[0]
+        alpha_bits = r[5]
+        client.update(rpo_args=(r[1][1], r[1][2], r[1][4], r[1][5], r[1][6], r[1][7]) + tuple(r[1][8:16]),
+                      lighting=r[2], scale=r[3], position=tuple(r[4]), object_type=r[6], light=tuple(r[7]))
+    client['spin_angle'] = angle1 if client['spin'] else None
+    c = RosIn(type=case['type'], level_word=case['level_word'], excellent=case['excellent'], set_bits=case['set_bits'],
+              select=case['select'], held=case['held'], a2c=case['a2c'], a30=case['a30'], scale=u2f(case['scale']),
+              has_state=case['has_state'], state_prior_action=case['state'][0], state_frame=u2f(case['state'][1]),
+              state_prior_frame=u2f(case['state'][2]), tick=case['tick'], time=u2f(case['time']),
+              has_record=int(case['record'] is not None), kind_a=(case['record'] or (0, 0))[0],
+              item_kind=(case['record'] or (0, 0))[1], anim_present=int(bool(case['anim'])),
+              anim_action=(case['anim'] or (0, 0))[0], anim_speed=u2f((case['anim'] or (0, 0))[1]),
+              pose_model_exists=case['pose_exists'], object_alpha=u2f(alpha_bits or 0))
+    for k in range(3):
+        c.position[k] = u2f(case['position'][k])
+    out = RosOut()
+    lib.mu_hud_object_screen(ctypes.byref(c), ctypes.byref(out))
+    native = {'drawn': out.drawn, 'spin': bool(out.spin)}
+    if out.drawn:
+        native.update(height=f2u(out.height), action=out.action,
+                      anim=(f2u(out.anim_frame), f2u(out.anim_prior_frame), out.anim_prior_action),
+                      animation_tail=(0x06fce398, ITEM_ANGLE, ITEM_HEAD, 0, 0))
+        native['ticked'] = f2u(out.tick_speed) if out.ticked else None
+        native.update(rpo_args=(out.render_type, 0, f2u(out.alpha), out.level_word & 0xffffffff, out.excellent,
+                                out.set_bits, 1, 1, 1,
+                                0, 2, out.a2c & 0xffffffff, out.a30 & 0xffffffff, 0),
+                      lighting=out.lighting, scale=f2u(out.scale), position=tuple(f2u(v) for v in out.position),
+                      object_type=out.render_type, light=tuple(f2u(v) for v in out.light))
+    native['spin_angle'] = f2u(out.spin_angle) if out.spin else None
+    return client, native, rec
+
+
+def random_ros_case(rng):
+    def fb(lo, hi):
+        return f2u(rng.uniform(lo, hi))
+    group = rng.choice([0, 1, 2, 4, 5, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 13, 14, 15])
+    index = rng.randrange(0, 64) if rng.random() < 0.8 else rng.randrange(512)
+    t = 0xae6 + group * 512 + index
+    t = rng.choice([t] * 8 + [0x26f2, 0x26f2, 0xace, 0xacf, 0xad0, 0xae5, 0x1927, 0x192c, 0x193c, 0x1b3a, 0x1b40,
+                              0x1b3f, rng.randrange(0x18e6, 0x22e6)])
+    anim = None if rng.random() < 0.6 else (rng.randrange(0, 6), fb(0.05, 0.6))
+    return {'type': t, 'level_word': rng.choice([rng.randrange(16) << 3, 0, 16, rng.randrange(0x100)]),
+            'excellent': rng.choice([0, 0, 1, rng.randrange(64)]), 'set_bits': rng.choice([0, 0, 1, 5, 0x22]),
+            'position': [fb(0, 1700), fb(0, 1000), rng.choice([f2u(-100.0), f2u(-130.0), f2u(-140.0)])],
+            'select': rng.choice([0, 0, 1, 2]), 'held': rng.choice([0, 0, 0, 1]), 'a2c': rng.choice([0, -1, 7]) & 0xffffffff,
+            'a30': rng.choice([0, -1, 3]) & 0xffffffff, 'scale': fb(0.0005, 1.5),
+            'has_state': rng.choice([0, 1, 1]), 'state': (rng.randrange(0, 6), fb(0, 9), fb(0, 9)),
+            'tick': rng.choice([0, 1, 1]), 'time': fb(0, 3e6),
+            'record': None if rng.random() < 0.15 or t < 0xae6 else (rng.choice([0, 0, 0xc, rng.randrange(256)]),
+                                                         rng.choice([0, 0, 4, 4, rng.randrange(16)])),
+            'anim': anim, 'pose_exists': int(rng.random() < 0.95), 'angle': [fb(-90, 90), fb(-180, 180), fb(-90, 90)]}
+
+
+def object_screen_section(text, data, args):
+    lib = build('reconstructed/hud', f'libmu_hud.{SUFFIX}')
+    lib.mu_hud_object_screen.argtypes = [ctypes.POINTER(RosIn), ctypes.POINTER(RosOut)]
+    flag = default_evidence('trig-state-15/captures/late/math-dispatch-flag.bin').read_bytes()[:4]
+    feature = default_evidence('x86-math-capture-09/cpu-features.bin').read_bytes()[:4]
+    world_args = (text, data, flag, feature)
+    rng = random.Random(args.seed + 5)
+    tally = Tally()
+    cover = {'armour_on_player': 0, 'box_remap': 0, 'animated': 0, 'ticked': 0, 'held': 0, 'spin': 0, 'kind_a_0c': 0,
+             'no_model': 0, 'height_nonzero': 0}
+    control = 0
+    for i in range(args.cases):
+        case = random_ros_case(rng)
+        client, native, rec = ros_compare(lib, world_args, case)
+        tally.check(i, client, native)
+        if native and native.get('drawn'):
+            cover['armour_on_player'] += 0x18e6 <= case['type'] < 0x22e6
+            cover['box_remap'] += case['type'] == 0x26f2 and native['rpo_args'][0] != 0x26f2
+            cover['animated'] += native['action'] != 0
+            cover['ticked'] += native['ticked'] is not None
+            cover['height_nonzero'] += native['height'] != 0
+            cover['kind_a_0c'] += bool(case['record'] and case['record'][0] == 0xc)
+            # negative control: NATIVE-GFX-003's stand-in (armour centred, own skeleton: height 0 on the item model)
+            control += 0x18e6 <= case['type'] < 0x22e6 and isinstance(client, dict) and client.get('height') != 0
+        elif native:
+            cover['no_model'] += 1
+        cover['held'] += case['held']
+        cover['spin'] += case['select'] == 1
+    return tally.report(coverage=cover, patched_site=hex(ROS_PATCH_SITE), patch_bytes=ROS_PATCH.hex(),
+                        control_armour_height_detected=control)
+
+
+# ---------------------------------------------------------------- special_models
+LOADER, ACCESS_MODEL = 0x0183220e, 0x018202b4
+SPECIAL_HEADER = ROOT / 'reconstructed/items/special_models.h'
+
+
+def loader_calls(world_args):
+    """The item-model loader 0x0183220e executed: its AccessModel(model, dir, name, number) calls in order."""
+    import validate_renderchar as vr
+    w = vr.World(*world_args)
+    m = w.m
+    calls = []
+
+    def access(mm):
+        calls.append((mm.arg(0), cstring(mm, mm.arg(1)), cstring(mm, mm.arg(2)), mm.arg(3) - (1 << 32)
+                      if mm.arg(3) & 0x80000000 else mm.arg(3)))
+        return 0
+    m.stub(ACCESS_MODEL, access, 0)
+    m.stub(0x0181fbe9, lambda mm: 0, 0)              # OpenTexture (recorded by World otherwise)
+    m.stub(0x0185baac, lambda mm: 1, 0)              # LoadBitmap
+    m.stub(0x00eaaa75, lambda mm: 0, 8)              # model mesh-flag getter: no model
+    m.stub(0x00d2b17c, lambda mm: 0, 0)              # item render registry fill
+    m.stub(0x0121d5cd, lambda mm: 0x01ec3030, 0)     # a singleton getter
+    m.stub(0x00a92b5d, lambda mm: 0, 0)
+    m.stub(0x009619dd, lambda mm: 0, 0)              # sprintf of the bitmap names (LoadBitmap is stubbed)
+    result = m.run(LOADER, [])
+    return result, calls
+
+
+def cstring(mm, address):
+    out = bytearray()
+    while len(out) < 256:
+        b = mm.read(address + len(out), 1)
+        if b == b'\0':
+            break
+        out += b
+    return out.decode('latin1')
+
+
+def access_model_name(world_args, name, number):
+    """AccessModel 0x018202b4 executed: the file name it passes to the BMD open 0x012b3812."""
+    import validate_renderchar as vr
+    w = vr.World(*world_args)
+    m = w.m
+    w.add_model(0x3890, vr.MODEL)
+    m.uc.hook_del(m.hooks.pop(ACCESS_MODEL))       # World records AccessModel: execute it here
+    m.stubs.pop(ACCESS_MODEL)
+    m.map(0x2e000000, 0x1000)
+    m.write(0x2e000000, b'Data\\Item\\\0')
+    m.write(0x2e000100, name.encode() + b'\0')
+    seen = []
+
+    def sprintf(mm):
+        # the C library sprintf with the client's own format string (%s, %d only in these formats)
+        fmt, args, k = cstring(mm, mm.arg(1)), [], 2
+        for spec in re.findall(r'%[sd]', fmt):
+            value = mm.arg(k)
+            args.append(cstring(mm, value) if spec == '%s' else value - (1 << 32) if value & 0x80000000 else value)
+            k += 1
+        text_out = (fmt % tuple(args)).encode('latin1') + b'\0'
+        mm.write(mm.arg(0), text_out)
+        return len(text_out) - 1
+    m.stub(0x009619dd, sprintf, 0)
+    m.stub(0x012b3812, lambda mm: seen.append((cstring(mm, mm.arg(0)), cstring(mm, mm.arg(1)))) or 1, 0xc)
+    result = m.run(ACCESS_MODEL, [0x3890, 0x2e000000, 0x2e000100, number & 0xffffffff])
+    return result, seen
+
+
+def emit_special_models(path, calls):
+    lines = ['/* Generated by scripts/validate_fidelity.py --emit-special-models (NATIVE-FIDELITY-001): the',
+             ' * AccessModel(model, folder, name, number) calls of the item-model loader 0x0183220e, executed under',
+             ' * Unicorn, in call order. The file is folder + name + (number < 0 ? "" : number < 10 ? "0<n>" : "<n>")',
+             ' * + ".bmd" (AccessModel 0x018202b4\'s sprintf formats, also executed). */',
+             '#ifndef MU_GI_SPECIAL_MODELS_H', '#define MU_GI_SPECIAL_MODELS_H', '',
+             'static const struct { int32_t model; const char *folder, *name; int32_t number; } mu_gi_special_models[] = {']
+    for model, folder, name, number in calls:
+        lines.append('    {0x%04x, "%s", "%s", %d},' % (model, folder.replace('\\', '\\\\'), name, number))
+    lines += ['};', '', '#endif', '']
+    path.write_text('\n'.join(lines))
+
+
+def header_calls(path):
+    out = []
+    for m in re.finditer(r'\{0x([0-9a-f]+), "([^"]*)", "([^"]*)", (-?\d+)\}', path.read_text()):
+        out.append((int(m.group(1), 16), m.group(2).replace('\\\\', '\\'), m.group(3), int(m.group(4))))
+    return out
+
+
+def special_models_section(text, data, args):
+    flag = default_evidence('trig-state-15/captures/late/math-dispatch-flag.bin').read_bytes()[:4]
+    feature = default_evidence('x86-math-capture-09/cpu-features.bin').read_bytes()[:4]
+    world_args = (text, data, flag, feature)
+    result, calls = loader_calls(world_args)
+    if args.emit_special_models:
+        emit_special_models(args.emit_special_models, calls)
+    tally = Tally()
+    tally.check('loader', calls, header_calls(SPECIAL_HEADER))
+    lib = build('reconstructed/items', f'libclient_items.{SUFFIX}')
+    lib.mu_gi_special_model_file.argtypes = [ctypes.c_int32, ctypes.c_char_p, ctypes.c_size_t]
+    lib.mu_gi_special_model_file.restype = ctypes.c_int
+    names = 0
+    for number in (-1, 0, 2, 9, 10, 13, 99):
+        r, seen = access_model_name(world_args, 'MagicBox', number)
+        expected = None
+        if number == -1:
+            expected = 'MagicBox.bmd'
+        else:
+            expected = 'MagicBox%s%d.bmd' % ('0' if number < 10 else '', number)
+        tally.check(('format', number), seen[0][1] if seen else r['stopped'], expected)
+    for model, folder, name, number in calls:
+        buf = ctypes.create_string_buffer(256)
+        ok = lib.mu_gi_special_model_file(model, buf, 256)
+        expected = folder + name + ('' if number < 0 else ('0%d' % number if number < 10 else '%d' % number)) + '.bmd'
+        tally.check(('file', hex(model)), buf.value.decode() if ok else None, expected)
+        names += 1
+    installed = None
+    if args.game_root:
+        installed = sum((args.game_root / (folder + name + ('' if number < 0 else ('0%d' % number if number < 10 else
+                                                                                 '%d' % number)) + '.bmd'
+                                           ).replace('\\', '/')).exists() for _, folder, name, number in calls)
+    return tally.report(loader_ok=result['ok'], access_model_calls=len(calls), installed_files=installed,
+                        control_loader_ran=result['ok'] and len(calls) > 30)
+
+
 # ---------------------------------------------------------------- main
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -238,6 +539,7 @@ def main():
     parser.add_argument('--env-steps', type=int, default=200)
     parser.add_argument('--cases', type=int, default=400)
     parser.add_argument('--game-root', type=Path)
+    parser.add_argument('--emit-special-models', type=Path)
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     text = rmach.load_pinned(args.text, rmach.TEXT_BYTES, rmach.TEXT_SHA256, 'text')

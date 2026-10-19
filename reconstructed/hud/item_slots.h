@@ -182,6 +182,74 @@ typedef struct mu_slot_wrapper_out {
 int mu_slot_wrapper(int item_present, const mu_slot_wrapper_in *in, const mu_item3d_in *sys,
                     mu_slot_wrapper_out *out);
 
+/* ---- RenderObjectScreen 0x016c2d82 (NATIVE-FIDELITY-001) ------------
+ * The item model of an inventory cell, a hotkey or the held item:
+ *   level = (level word >> 3) & 15; kind A 0xc (0x00cd5fac): the level word passed on is 0
+ *   held (arg 7): scale *= 1.4; select == 1: item angle [1] (0x0b5e3c2c) = time * 0.2
+ *   pose model (0x0b5e3b24) = type; armour parts 0x18e6..0x22e5 and 0xace/0xacf/0xad0/0xae5 pose the
+ *     Player model 0xa91; type 0x26f2 by level: 0 -> 0x3890, 2 -> 0x3891 (also the drawn type).
+ *     The compare at 0x016c2ed6 is a runtime-patched jump in the capture; its leftover bytes
+ *     (0b f2 26 00 00) are the tail of `cmp dword ptr [0x0b5e3b24], 0x26f2` (inferred, as RenderPartObject's
+ *     own 0x26f2 rule 0x017e645f).
+ *   no pose model: return.  Pose-model height +0x90 by the drawn type: helms 0x18e6..0x1ae5 -160 (record type
+ *     +0x252 == 4: -10 more; 0x193b..0x1940 +10; 0x1927/0x192c: position x += 0.04), armours 0x1ae6..0x1ce5 -100
+ *     (type 4: -13; 0x1b3a..0x1b3f +13; 0x1b40 -32), gloves 0x1ee6..0x20e5 -70, pants 0x1ce6..0x1ee5 -50,
+ *     else 0; 0xace/0xacf/0xad0/0xae5 -100.
+ *   InvenItemAnimation (Lang.mpr table 0x06fbc830, lookup 0x0111d824 by code): with a record and the item's
+ *     animation state (arg 11, item +0x108): pose action +0xa8 = record +8, Animation(0x06fce398, state +4,
+ *     state +8, state +2, angle, head angle, 0, 0) and, when arg 12 is set, the tick 0x012b4dd3(state +4,
+ *     +8, +2, record +0xc speed, 0x0b5e3c20, angle); otherwise action 0 and Animation(..., 0, 0, 0, ...).
+ *   the object: a stack CHARACTER (0x0129d272), its object's type = the drawn type, ItemObjectAttribute
+ *     0x016da00b, then +5 (LightEnable) = 0, scale +0xa0 = scale, position = arg 5, light (1, 1, 1);
+ *     RenderPartObject(o, type, 0, light, o alpha, level word, excellent, set bits, 1, 1, 1, 0, 2, a2c, a30, 0).
+ * RenderPartObject 0x017e63f4 then copies +5 into the model's lighting byte +0x50 (cleared: one flat colour),
+ * runs the body light 0x017ec3d8 and Transform with the constants 0.4 / 0.8 / 0.2, and RenderObjDraw sets the
+ * body colour from the light argument (1, 1, 1) (static readings; RenderObjDraw is verified). */
+typedef struct mu_hud_ros_in {
+    int32_t type;               /* arg 1: model index (code + 0xae6 on RenderItem3D's general path) */
+    int32_t level_word;         /* arg 2 */
+    int32_t excellent, set_bits;/* args 3, 4 */
+    float position[3];          /* arg 5 */
+    int32_t select;             /* arg 6 */
+    uint8_t held;               /* arg 7 */
+    int32_t a2c, a30;           /* args 8, 9 */
+    float scale;                /* arg 10 */
+    int32_t has_state;          /* arg 11 != NULL */
+    uint16_t state_prior_action;/* state +2 */
+    float state_frame, state_prior_frame; /* state +4, +8 */
+    uint8_t tick;               /* arg 12 */
+    float time;                 /* 0x06fce370 */
+    int32_t has_record;         /* the type's Item.bmd record (0x00cd5d29 on type - 0xae6) */
+    int32_t kind_a;             /* record +0x250 */
+    int32_t item_kind;          /* record +0x252 */
+    int32_t anim_present;       /* InvenItemAnimation has the code */
+    uint16_t anim_action;       /* its record +8 */
+    float anim_speed;           /* its record +0xc */
+    int32_t pose_model_exists;  /* the model getter's answer for the pose model */
+    float object_alpha;         /* object +0xdc after ItemObjectAttribute */
+} mu_hud_ros_in;
+
+typedef struct mu_hud_ros_out {
+    int32_t drawn;              /* 0: no pose model (nothing after the model getter) */
+    int32_t spin;               /* the item angle [1] was set */
+    float spin_angle;
+    int32_t pose_model, render_type;
+    float height;               /* pose model +0x90 */
+    uint16_t action;            /* pose model +0xa8 */
+    float anim_frame, anim_prior_frame;
+    uint16_t anim_prior_action;
+    int32_t ticked;
+    float tick_speed;
+    float position[3];          /* object +0x158 (x may gain 0.04) */
+    float scale;                /* object +0xa0 */
+    float alpha;
+    float light[3];
+    uint8_t lighting;           /* object +5 */
+    int32_t level_word, excellent, set_bits, a2c, a30;
+} mu_hud_ros_out;
+
+void mu_hud_object_screen(const mu_hud_ros_in *in, mu_hud_ros_out *out);
+
 #ifdef __cplusplus
 }
 #endif
