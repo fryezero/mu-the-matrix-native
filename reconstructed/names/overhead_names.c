@@ -210,6 +210,40 @@ int mu_hn_strife_gens(const mu_hn_character *c, const mu_hn_env *env)
     return 0;
 }
 
+/* SetMonsterInfo 0x013b8ade's object kind (o + 0x3b): the range rule, then
+ * the class list of its compare chain (lifted: scripts/validate_names.py
+ * executes the routine for every class and checks this table). */
+static const uint16_t kind_overrides[][2] = {
+    {367, 4}, {368, 4}, {369, 4}, {370, 4}, {371, 4}, {375, 4}, {376, 4}, {377, 4}, {379, 4}, {380, 4}, {381, 4},
+    {382, 4}, {383, 4}, {384, 4}, {385, 4}, {406, 4}, {407, 4}, {408, 4}, {414, 4}, {415, 4}, {416, 4}, {417, 4},
+    {450, 4}, {451, 128}, {452, 4}, {453, 4}, {464, 4}, {465, 4}, {467, 4}, {468, 4}, {469, 4}, {470, 4}, {471, 4},
+    {472, 4}, {473, 4}, {474, 4}, {475, 4}, {478, 4}, {479, 4}, {492, 4}, {522, 4}, {540, 4}, {541, 4}, {542, 4},
+    {543, 4}, {544, 4}, {545, 4}, {546, 4}, {547, 4}, {566, 4}, {567, 4}, {568, 4}, {577, 4}, {578, 4}, {579, 4},
+    {580, 4}, {581, 4}, {582, 4}, {583, 4}, {584, 4}, {604, 4}, {643, 4}, {651, 4}, {658, 4}, {659, 4}, {660, 4},
+    {661, 4}, {662, 4}, {663, 4}, {664, 4}, {665, 4}, {666, 4}, {667, 4}, {668, 4}, {669, 4}, {682, 4}, {683, 4},
+    {684, 4}, {685, 4}, {686, 4}, {687, 4}, {688, 4}, {689, 8}, {695, 4}, {704, 8}, {705, 8}, {708, 8}, {719, 4},
+    {720, 4}, {721, 4}, {722, 4}, {723, 4}, {724, 4}, {725, 4}, {748, 4}, {750, 4}, {751, 4}, {752, 4}, {753, 4},
+    {758, 4}, {764, 4}, {765, 4}, {766, 4}, {821, 8}, {822, 8}, {838, 128}, {851, 8}, {852, 8}, {853, 8},
+    {866, 128}, {873, 4}, {874, 128}, {890, 8}, {891, 4}, {925, 128}, {939, 4}, {940, 4}, {941, 4}, {962, 8},
+    {982, 8}, {983, 8},
+};
+
+uint8_t mu_hn_monster_kind(int32_t monster_class)
+{
+    for (size_t i = 0; i < sizeof kind_overrides / sizeof kind_overrides[0]; ++i)
+        if (kind_overrides[i][0] == monster_class)
+            return (uint8_t)kind_overrides[i][1];
+    if (monster_class == 0xc8 || monster_class >= 0x104)
+        return 2;
+    if (monster_class > 0xc8)
+        return 4;
+    if (monster_class >= 0x96 || monster_class > 0x6e)
+        return 2;
+    if (monster_class >= 0x64)
+        return 8;
+    return 2;
+}
+
 /* ---- addInfo ---- */
 
 int mu_hn_add_info(mu_hn_window *w, const mu_hn_character *c, const mu_hn_env *env, mu_hn_info *info)

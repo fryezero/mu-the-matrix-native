@@ -201,6 +201,13 @@ int32_t mu_hn_cvtt(float value);
 /* HP percentage of addInfo and setHp: (float)(double)hp / (float)(double)max * 100, truncated. */
 int32_t mu_hn_hp_percent(uint32_t hp, uint32_t max);
 
+/* SetMonsterInfo 0x013b8ade (verified for the kind; static for the rest):
+ * the object kind of a monster class: 2 monster, 4 NPC, 8 trap, 0x80 other.
+ * The routine also copies the Npcname(kor) record (name 0x011427c7, name
+ * height +0x1c -> c + 0x158, mark +0x20 -> c + 0x15c, byte +0x24 -> o + 0x10).
+ * hudPlayerName takes kinds 1 and 2 only: NPCs get no name plate. */
+uint8_t mu_hn_monster_kind(int32_t monster_class);
+
 /* ---- the routines ---- */
 
 /* addInfo 0x00c82fd1 (verified).  Returns 1 and fills info when the movie

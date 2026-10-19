@@ -54,6 +54,7 @@ SECURITY_COOKIE = 0x01cf65c0
 # client routines (investigator labels)
 HEIGHT, NAME, CLASS_COLOR, PK_COLOR, GUILD_COLOR = 0x00c8526e, 0x00c84d8a, 0x00c84f00, 0x00c8502c, 0x00c85093
 GENS_FRAME, STRIFE, GUILD_TEXT, SERVER_TEXT = 0x00c84d08, 0x00c851f4, 0x00c8510c, 0x00c850e1
+SET_MONSTER_INFO = 0x013b8ade
 ADD_INFO, UPDATE, SET_HP, REMOVE, SELECT, MESSAGE, BUBBLE = (0x00c82fd1, 0x00c81d1e, 0x00c83afa, 0x00c83a04,
                                                              0x00c83c9a, 0x00c83d2a, 0x0169d87f)
 ENTRY_CTOR = 0x00c8734a
@@ -187,6 +188,8 @@ def load_library(path=LIB):
     lib.mu_hn_chat_bubble.restype = ctypes.c_int32
     lib.mu_hn_info_json.argtypes = [P(Info), ctypes.c_char_p, ctypes.c_size_t]
     lib.mu_hn_info_json.restype = ctypes.c_size_t
+    lib.mu_hn_monster_kind.argtypes = [ctypes.c_int32]
+    lib.mu_hn_monster_kind.restype = ctypes.c_uint8
     return lib
 
 
@@ -1381,7 +1384,51 @@ def validate_bubble(client, lib, rng, cases):
     return dict(counts)
 
 
+
+def validate_kind(client, lib, rng, cases):
+    """SetMonsterInfo 0x013b8ade: the kind of every class 0..4095 plus random larger ones, and the record copies."""
+    host = Host(rng, {}, None)
+    client.reset(host)
+    m = client.m
+    m.allow((SET_MONSTER_INFO, cm.function_extent(client.text, SET_MONSTER_INFO)))
+    record = {}
+
+    def table(field):
+        def handler(_):
+            assert client.ecx() == 0x06fbb664
+            return record[field]
+        return handler
+    name_ptr = m.alloc(32, define=True)
+    m.write(name_ptr, b'NpcName\0')
+    client.stub(0x011427c7, lambda _: name_ptr)
+    client.stub(0x011427e0, table('height'))
+    client.stub(0x011427f9, table('mark'))
+    client.stub(0x01142812, table('byte24'))
+    seen = []
+    client.stub(0x0129de8d, lambda _: seen.append((client.ecx(), m.args(1)[0])))
+    m.put32(WORLD, 0)
+    m.put32(0x06fca284, 0x1234)
+    ch = m.alloc(0x3700, define=True)
+    classes = list(range(4096)) + [rng.randrange(4096, 32768) for _ in range(cases)]
+    kinds = Counter()
+    for cls in classes:
+        record.update(height=rng.randrange(0, 1 << 16), mark=rng.randrange(-5, 1000), byte24=rng.randrange(256))
+        m.write(ch, b'\0' * 0x3700)
+        seen.clear()
+        m.call(SET_MONSTER_INFO, (ch, cls))
+        k = m.read(ch + 0x328f, 1)[0]
+        assert k == lib.mu_hn_monster_kind(cls), ('kind', cls, k, lib.mu_hn_monster_kind(cls))
+        assert struct.unpack('<H', m.read(ch + 0x158, 2))[0] == record['height'] & 0xffff, 'name height'
+        assert s32(m.u32(ch + 0x15c)) == record['mark'], 'mark'
+        assert m.read(ch + 0x3264, 1)[0] == record['byte24'], 'o + 0x10'
+        assert struct.unpack('<h', m.read(ch + 0x146, 2))[0] == struct.unpack('<h', struct.pack('<H', cls & 0xffff))[0]
+        assert seen == [(ch, name_ptr)], ('name', seen)
+        kinds[k] += 1
+    return {'classes': len(classes), 'kinds': {str(k): v for k, v in sorted(kinds.items())}}
+
+
 SECTIONS['small'] = validate_small
+SECTIONS['kind'] = validate_kind
 SECTIONS['bubble'] = validate_bubble
 
 
