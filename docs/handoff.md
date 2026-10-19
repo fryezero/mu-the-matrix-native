@@ -1499,3 +1499,36 @@ Without `base.swf` the layer keeps the stand-alone main/chat players.
 * The expanded inventory and the shops, with item models.
 * Reconstruct the client's window-hotkey key scan and the armour-part height rule (`0x06fbc830`).
 * Crop the base movie's view to its visible parts.
+
+## Dropped items, labels, pick-up, monster voices (NATIVE-ITEMS-001)
+
+NATIVE-ITEMS-001 (branch `claude/native-items`) reconstructs the client's items on the ground
+([finding](research/client-ground-items.md)).
+
+**What.**
+
+* `reconstructed/items`: packet 0x20 `0x0122c216`, CreateItem `0x016daa27`, ItemObjectAttribute `0x016da00b`,
+  ItemAngle `0x01802a66` and the name builder `0x017ea422` (lifted by `scripts/items_static.py`), MoveItems
+  `0x017ea1aa` + sparkle `0x017f7290`, RenderItems `0x017e9495`, TestFrustrum `0x016ccc14`, SelectItem `0x016b4fc0`,
+  label colours `0x00c84f00`; static readings of the hudPlayerName label path (addItem, per-frame anchor, Alt
+  setItemView), MoveHero's pick-up case, space-bar pick-up, delete/answer handlers.
+* Monster hurt/death sounds: `mu_monster_shock`/`mu_monster_die` (`reconstructed/combat`) over
+  `reconstructed/actors/monster_sound_table.h` (`scripts/actor_static.py --emit-sounds`), wired in `mu_combat`.
+* `native/core/mu_items.*` + mu-world/mu-walk: demo drops from kills, fall/land/sparkle, item render passes, labels,
+  click/space pick-up, Alt, `--item-script`. The sparkle uses NATIVE-JOINT-001's Shiny01 particle kind; label
+  strings use NATIVE-LANG-001's GlobalText/skill/NPC tables when `MU_LANG_DIR` is set.
+
+**Checks.** `scripts/validate_items.py --cases 3000 --heavy-cases 300` (Unicorn, `tools/python`, captures under
+`evidence/`): 22,200 cases, 0 mismatches; `reconstructed/items/test_items.py`, `native/tests/test_native_items.py`
+(portable; private parts with `MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT`). Renders are local in
+`~/Documents/mu-mac-tools/native/renders/items/`.
+
+**Next.**
+
+* Feed hudPlayerName (addItem/removeItem/setItemView) through NATIVE-GFX-003's interface instead of the native
+  overlay, and put picked-up items into the inventory grid.
+* Trace the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for armour.
+* Wire the set-item prefix/tier tables (ItemSetType/ItemSetOption) for exact label texts; resolve the special
+  models' files; use NATIVE-LANG-001's EnchantEffect colours for the item glow.
+* A short live check of label colours and drop sizes when a safe spot with drops is available.
+

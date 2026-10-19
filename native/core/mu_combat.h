@@ -144,6 +144,7 @@ typedef struct mu_combat_monster {
     int32_t aggro;            /* demo: attacks the hero */
     int32_t cooldown;         /* demo: steps until the next counter-attack */
     float home[3];
+    float voice_3324;         /* c + 0x3324: SetPlayerDie's sound block marks it 0.001 (NATIVE-ITEMS-001) */
 } mu_combat_monster;
 
 typedef struct mu_combat_stats {
@@ -152,6 +153,7 @@ typedef struct mu_combat_stats {
     uint32_t shocks, deaths;
     uint32_t particles_created, joints_created, projectile_hits, area_requests, unsupported, sprites;
     uint32_t hero_shocks, hero_deaths;
+    uint32_t monster_voices;  /* NATIVE-ITEMS-001: monster hurt and death sounds played */
 } mu_combat_stats;
 
 struct mu_world_particles;
@@ -240,6 +242,10 @@ void mu_combat_step(mu_combat *combat);
 void mu_combat_attack(mu_combat *combat, int32_t actor);
 void mu_combat_cast(mu_combat *combat, int32_t skill, int32_t actor);
 void mu_combat_stop(mu_combat *combat);
+/* NATIVE-ITEMS-001: the monster under the mouse ray (the demo picking of
+ * the click), -1 if none. The item selection runs when none is. */
+int32_t mu_combat_pick(mu_combat *combat);
+
 /* Actor index by label or number ("bull fighter", "3"), -1 if none. */
 int32_t mu_combat_find_actor(const mu_combat *combat, const char *name);
 

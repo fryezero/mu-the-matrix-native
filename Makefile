@@ -63,6 +63,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/combat -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/environment -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/particles -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/items -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/joints -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 

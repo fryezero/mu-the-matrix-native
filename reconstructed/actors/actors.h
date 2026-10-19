@@ -69,6 +69,12 @@ int mu_monster_open(const mu_client_memory *memory, int32_t type, int32_t world,
  * 0 .. MU_MONSTER_TYPE_COUNT - 1. */
 int mu_monster_model_file(int32_t type, char *out, uint32_t size);
 
+/* NATIVE-ITEMS-001: the ten model sound slots (model +0xb6) OpenMonsterModel
+ * sets through SetMonsterSound 0x018329fa for the model of monster type
+ * `type` (model index 0x7a5 + type; extracted table monster_sound_table.h).
+ * Returns 1 and fills out, or 0 (out all -1) when no opener sets them. */
+int mu_monster_sound_slots(int32_t type, int16_t out[10]);
+
 /* ------------------------------------------------------------------ */
 /* Character animation step 0x013960d2 (cdecl, arguments character, object;
  * returns AL). Callers 0x013a763e and 0x013a6e64 pass a character record and

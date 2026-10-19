@@ -225,6 +225,32 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --world 141 --tile 82,19 --obj
 native/build/mu-world --game-root "$MU_GAME_ROOT" --tile 133,127 --joint-demo 0x1a                # demo bolt
 ```
 
+## Dropped items and labels (NATIVE-ITEMS-001)
+
+`core/mu_items.*` runs the client's dropped items from `reconstructed/items`
+([finding](../docs/research/client-ground-items.md)) in `mu-world`/`mu-walk`/mu-client, on with `--combat` or
+`--items`:
+
+- a demo server's item viewport message (a monster's death drops from a labelled demo table) → CreateItem: the item
+  appears 180 units up, falls (gravity 20, -6 a step), spins and lands in ItemAngle's pose (weapons +40 higher, armour
+  standing on a Player mannequin), with its drop sound and a Shiny01 sparkle every 48 steps;
+- RenderItems through the item render passes (level glow, excellent, ancient), the zen pile, TestFrustrum, the
+  selection light of SelectItem under the mouse;
+- the hudPlayerName labels: the name builder's text and colour class, anchored 35 above the item (the hovered one
+  follows the cursor), ItemNameMC's box; Alt toggles them;
+- a click walks to the selected item and picks it up within 1.5 tiles; space takes the nearest within 300; the
+  monsters' hurt and death sounds play from their model sound slots.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/lorencia-demo-placement.txt \
+    --tile 182,127 --class 1 --combat-weapon sword           # kill, then click or space to pick up, Alt for labels
+native/build/mu-world --game-root "$MU_GAME_ROOT" --tile 133,127 --items --headless --backend gl --frames 140 \
+    --out-dir DIR --item-script "2:drop:0x1c0f:0:134,126;4:drop:1:0xcf:135,127;40:hover:0;70:pick:0;120:alt"
+```
+
+`--item-script` items: `F:drop:CODE[:LEVEL[:X,Y]]`, `F:alt`, `F:space`, `F:hover:N`, `F:pick:N`; `--item-seed`,
+`--item-latency`, `--item-despawn`, `--no-items`. Headless runs add `items_frame` lines and an `items` summary.
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -380,7 +406,8 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_env.*` | Ambient creatures and weather over `reconstructed/environment`: models, weather bitmaps, step and draw (NATIVE-ENV-001) |
 | `core/mu_particles.*` | Particles, sprites and blob shadows over `reconstructed/particles`: effect bitmaps, step, sprite pass, shadows, the object/environment/skill hooks (NATIVE-PARTICLE-001); the world objects' joints and effects, the login scene's sprites and particles (NATIVE-JOINT-001) |
 | `core/mu_joints.*` | The joint pool over `reconstructed/joints`: slot search, MoveJoints, RenderJoints as quads, render-type state (NATIVE-JOINT-001) |
-| `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002) |
+| `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002); monster hurt and death sounds (NATIVE-ITEMS-001) |
+| `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |

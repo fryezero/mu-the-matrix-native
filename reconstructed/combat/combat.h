@@ -367,6 +367,41 @@ int mu_class_check(uint8_t class_byte);
 int mu_shock_gate(uint8_t dead, int32_t action, int32_t damage, int32_t type);
 
 /* ------------------------------------------------------------------------
+ * Monster hurt and death sounds (NATIVE-ITEMS-001; verified by
+ * scripts/validate_items.py, family monster_voice). The model's ten sound
+ * slots (model +0xb6) come from OpenMonsterModel's SetMonsterSound 0x018329fa
+ * (reconstructed/actors: mu_monster_sound_slots); ids are 0xd2 (the monster
+ * block) + 5 when o + 0x60 == 9 + the slot. */
+typedef struct mu_monster_voice {
+    int32_t object_type;      /* o + 0x5c */
+    int32_t object_kind;      /* o + 0x60 (0x0139f3db: 0x422..0x424, 0x426..0x428 are the skeleton forms) */
+    float field_3324;         /* c + 0x3324: the sound blocks run only when it is 0 */
+    int32_t has_model;        /* the model getter 0x00966cc4/0x00eaa8cf returned a model */
+    int16_t slots[10];        /* model + 0xb6 */
+    uint8_t world_voice;      /* 0x009dacb8([0x01cf15fc]) == 1 (SetPlayerDie) */
+} mu_monster_voice;
+
+/* 0x0139f3db(o): o + 0x60 in {0x422, 0x423, 0x424, 0x426, 0x427, 0x428}. */
+int mu_skeleton_form(int32_t object_kind);
+/* SetPlayerShock 0x0138f92f for a non-Player object after mu_shock_gate:
+ * SetAction(5) when mu_monster_shock_allowed (action: 5 or -1), then, when
+ * c + 0x3324 == 0: 0x7b (mBone1) for a skeleton form; nothing for model
+ * 0x7b3 or without a model or with slot 2 == -1; else
+ * 0xd2 + (kind == 9 ? 5 : 0) + slot[2 + rand() % 2]. *sound = -1 when
+ * nothing plays. Returns the number of rand values used. */
+int32_t mu_monster_shock(const mu_monster_voice *v, int32_t monster_class, int32_t action_now, const int32_t *rands,
+                         int32_t rand_count, int32_t *action, int32_t *sound);
+/* SetPlayerDie 0x01393a61 for a non-Player object whose model takes the
+ * default case (not 0x7be, 0x7c3, 0x813, 0x818, 0x81b, 0x81c, 0x864, 0x887,
+ * 0x920, 0x2c1b): SetAction(6), then, when c + 0x3324 == 0: 0x5e + rand() % 2
+ * in the worlds of 0x009dacb8, else (no model: nothing) slot 4 != -1:
+ * 0xd2 + (kind == 9 ? 5 : 0) + slot[4]; the block then stores
+ * c + 0x3324 = 0.001 (not when the model getter returned NULL: the routine
+ * returns there). Returns the number of rand values used. */
+int32_t mu_monster_die(const mu_monster_voice *v, const int32_t *rands, int32_t rand_count, int32_t *action,
+                       int32_t *sound);
+
+/* ------------------------------------------------------------------------
  * The attack timeline (static readings of MoveCharacter 0x013a85a9 and the
  * per-step attack routine 0x013966ea). An attack starts with AttackTime
  * (c + 0x21) = 1, set with the action by the action packet 0x78/0x79, the

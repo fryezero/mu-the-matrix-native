@@ -450,7 +450,8 @@ session's sound): `dw-spells` (Fire Ball with its fire trail and stones, Energy 
 - **CreateSprite** `0x01692eb7` (Heal's flash, the swirl's flare) is not reconstructed; the swirl's smoke and spark
   particles (`0x7f5a` sub 3, `0x7f25`) and `0x7fd5` joints, the stones' Fire01 subtypes 1..3 and Inferno's burst
   `0x013c07f4` are counted as unsupported and not drawn.
-- **Monster sounds** (hurt and death come from the model's sound slots from `+0xb6`) are not wired; skeleton-form and
+- **Monster sounds** (hurt and death come from the model's sound slots from `+0xb6`) are not wired (NATIVE-ITEMS-001:
+  reconstructed, verified and wired, [client-ground-items.md](client-ground-items.md#6-monster-hurt-and-death-sounds-verified)); skeleton-form and
   transformed-ring voices are excluded; the arrow skills `0x7e7`, `0x7fc`, `0x7fd`, `0x2d8` are not reduced.
 - **Static readings**: RenderObject's draw of effect models, the swirl's draw of the caster's weapon
   (`0x015332ac`), CheckClientArrow, the AttackTime switch cases and the Inferno ring.

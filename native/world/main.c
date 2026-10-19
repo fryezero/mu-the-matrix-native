@@ -48,6 +48,15 @@
  * world's clear colour (--no-env disables it, --env-tga-leaves loads the
  * leaf .tga the client unloads, a viewer option).
  *
+ * NATIVE-ITEMS-001 (core/mu_items, on with --combat or --items): monsters that
+ * die drop DEMO items (the server's item viewport message, made up here), which
+ * fall, spin and land as CreateItem/MoveItems do, render through RenderItems'
+ * plan with the item render passes and carry hudPlayerName-style labels (the
+ * name builder's text and colour class); the mouse selects them (SelectItem),
+ * a click walks there and picks up, the space bar takes the nearest, Alt toggles
+ * the labels; --item-script drives it headless. Monsters play their hurt and
+ * death sounds (the model's sound slots).
+ *
  * Built twice: build/mu-world (SDL2 + OpenGL) and, with MU_WORLD_NO_GL,
  * build/mu-walk, the headless software-only tool of `make -C native` (no
  * SDL2 or GL needed; the portable tests use it).
@@ -72,10 +81,12 @@
 #include "../core/mu_character.h"
 #include "../core/mu_combat.h"
 #include "../core/mu_env.h"
+#include "../core/mu_items.h"
 #include "../core/mu_objects.h"
 #include "../core/mu_particles.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
+#include "../core/mu_renderchar.h"
 #include "../core/mu_scene.h"
 #include "../core/mu_terrain.h"
 #include "../core/mu_walk.h"
@@ -171,6 +182,16 @@ typedef struct app {
     mu_gl_backend combat_gl[MU_COMBAT_MODELS];
     GLuint combat_tex[MU_COMBAT_BITMAPS];
 #endif
+    /* NATIVE-ITEMS-001 */
+    int items_on, no_items;
+    mu_world_items_config items_config;
+    mu_world_items *ground;    /* NATIVE-ITEMS-001: dropped items (a->ground are the hero's GL item sets) */
+    const char *item_script_text;
+    mu_world_item_script item_script;
+    int32_t item_next, item_click_stage, item_click_x, item_click_y, item_alt;
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend item_gl[MU_WORLD_ITEM_MODELS];
+#endif
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -192,6 +213,8 @@ static void combat_pre_step(void *context, mu_walk *w)
 {
     (void)w;
     app *a = context;
+    if (a->ground)   /* NATIVE-ITEMS-001: a click on the selected item starts the pick-up walk */
+        mu_world_items_pre_step(a->ground);
     if (a->combat)
         mu_combat_pre_step(a->combat);
 }
@@ -317,6 +340,27 @@ static int load(app *a)
             a->combat->sound_context = a;
         }
     }
+    if ((a->combat_on || a->items_on) && !a->no_items) {   /* NATIVE-ITEMS-001 */
+        a->ground = calloc(1, sizeof *a->ground);
+        if (!a->ground ||
+            mu_world_items_open(a->ground, a->root, &a->walk, &a->items_config, error, sizeof error)) {
+            fprintf(stderr, "items: %s (continuing without them)\n", a->ground ? error : "out of memory");
+            if (a->ground)
+                mu_world_items_close(a->ground);
+            free(a->ground);
+            a->ground = NULL;
+        } else {
+            if (a->has_particles)
+                a->ground->particles = &a->particles;
+            a->ground->frustum = &a->frustum;   /* RenderItems' TestFrustrum uses the frame's planes */
+            if (a->has_sound) {
+                a->ground->play_sound = env_sound;
+                a->ground->sound_context = a;
+            }
+            a->walk.pre_step_hook = combat_pre_step;
+            a->walk.pre_step_context = a;
+        }
+    }
     return 0;
 }
 
@@ -346,6 +390,10 @@ static void on_step(void *context, mu_walk *w)
         mu_world_actors_step(&a->actors);
     if (a->combat)
         mu_combat_step(a->combat);
+    if (a->ground) {   /* NATIVE-ITEMS-001: the demo server's drops, MoveItems, the pick-up mode */
+        mu_world_items_watch_combat(a->ground, a->combat);
+        mu_world_items_step(a->ground);
+    }
     if (a->has_objects) {   /* MoveObjects in the client's in-world tick (NATIVE-OBJECTS-002) */
         const int32_t index = ((h->tile[1] & 0xff) << 8) + (h->tile[0] & 0xff);
         mu_objects_step_inputs in = {6, a->map->layer1[index], a->map->time,
@@ -436,6 +484,11 @@ static void unload(app *a)
         free(a->combat);
         a->combat = NULL;
     }
+    if (a->ground) {
+        mu_world_items_close(a->ground);
+        free(a->ground);
+        a->ground = NULL;
+    }
     free(a->wav);
 }
 
@@ -493,10 +546,69 @@ static void combat_script(app *a, int32_t frame)
     }
 }
 
+/* NATIVE-ITEMS-001: scripted drops, label toggles, hovers and clicks on items. */
+static int32_t nth_live_item(const app *a, int32_t n)
+{
+    for (int32_t i = 0; i < MU_GI_ITEMS; ++i)
+        if (a->ground->pool[i].object.live && n-- == 0)
+            return i;
+    return -1;
+}
+
+static void item_script(app *a, int32_t frame)
+{
+    mu_walk *w = &a->walk;
+    if (!a->ground)
+        return;
+    if (a->item_click_stage == 1) {
+        mu_walk_message(w, MU_WM_LBUTTONDOWN, 1, pack(a->item_click_x, a->item_click_y));
+        a->item_click_stage = 2;
+        return;
+    }
+    if (a->item_click_stage == 2) {
+        mu_walk_message(w, MU_WM_LBUTTONUP, 0, pack(a->item_click_x, a->item_click_y));
+        a->item_click_stage = 0;
+        return;
+    }
+    while (a->item_next < a->item_script.count && a->item_script.items[a->item_next].frame <= frame) {
+        const mu_world_item_script_entry *e = &a->item_script.items[a->item_next++];
+        if (!strcmp(e->verb, "drop")) {
+            const float *h = w->hero.position;
+            float x = e->has_xy ? e->x * 100.0f + 50.0f : h[0] + 150.0f, y = e->has_xy ? e->y * 100.0f + 50.0f : h[1];
+            mu_world_items_drop(a->ground, e->a, e->b < 0 ? 0 : e->b, 0, 0, e->a == MU_GI_CODE_ZEN ? 1234 : 0, x, y, 1);
+        } else if (!strcmp(e->verb, "alt")) {
+            mu_world_items_alt(a->ground);
+        } else if (!strcmp(e->verb, "space")) {
+            mu_world_items_space(a->ground);
+        } else if (!strcmp(e->verb, "hover") || !strcmp(e->verb, "pick")) {
+            int32_t slot = nth_live_item(a, e->a < 0 ? 0 : e->a);
+            if (slot < 0)
+                continue;
+            const mu_gi_object *o = &a->ground->pool[slot].object;
+            float point[3] = {o->position[0], o->position[1], o->position[2] + 10.0f};
+            int32_t sx, sy;
+            mu_view_projection(&w->frame.view, point, &sx, &sy);   /* 640x480 units, 0x0184a244 */
+            if (sx < 0 || sy < 0 || sx > 639 || sy > 479)
+                continue;
+            a->item_click_x = (int)((int64_t)sx * a->width / 640);
+            a->item_click_y = (int)((int64_t)sy * a->height / 480);
+            mu_walk_message(w, MU_WM_MOUSEMOVE, 0, pack(a->item_click_x, a->item_click_y));
+            if (!strcmp(e->verb, "pick")) {
+                a->item_click_stage = 1;
+                if (!a->quiet)
+                    fprintf(stderr, "frame %d: click on item %d at %d,%d\n", frame, slot, a->item_click_x,
+                            a->item_click_y);
+                return;
+            }
+        }
+    }
+}
+
 static void script(app *a, int32_t frame)
 {
     mu_walk *w = &a->walk;
     combat_script(a, frame);
+    item_script(a, frame);
     for (int32_t i = 0; i < a->wheel_count; ++i)
         if (a->wheel_frame[i] == frame)
             mu_walk_message(w, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)(a->wheel_delta[i] * 120) << 16, 0);
@@ -612,6 +724,11 @@ static int32_t advance(app *a, uint32_t now)
     if (a->has_character)
         mu_walk_place(w, &a->ch);
     mu_walk_begin_render(w, now);
+    if (a->ground) {   /* SelectObjects: with Alt held items come first, else only without a monster under the cursor */
+        int alt = a->item_alt || w->frame.sample.down[0x12];
+        int no_character = !(a->combat && mu_combat_pick(a->combat) >= 0);
+        mu_world_items_select(a->ground, alt, no_character);
+    }
     terrain_frame(a, now);
     if (a->combat)
         mu_combat_terrain_lights(a->combat, a->map);   /* effect lights after the frame light copy */
@@ -800,6 +917,9 @@ static void gl_teardown(app *a)
             glDeleteTextures(1, &a->combat_tex[i]);
             a->combat_tex[i] = 0;
         }
+    for (int i = 0; i < MU_WORLD_ITEM_MODELS; ++i)
+        if (a->item_gl[i].textures)
+            mu_gl_release(&a->item_gl[i]);
     a->gl_ready = 0;
 }
 
@@ -885,6 +1005,103 @@ static void combat_model_gl(void *context, const mu_model *model, const mu_textu
     options.textures = textures;
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_scene_draw_model(model, &options, &backend, &ds);
+}
+
+/* NATIVE-ITEMS-001: RenderItems' RenderPartObject calls through the item render passes, then the labels as a
+ * screen-space overlay (the hudPlayerName movie draws them over the 3D view). */
+static void items_model_gl(void *context, const mu_world_item_draw *d)
+{
+    app *a = context;
+    mu_gl_backend *gl = &a->item_gl[d->slot];
+    if (!gl->textures)
+        mu_gl_upload(gl, d->textures, 0);
+    mu_render_backend backend;
+    mu_gl_backend_bind(gl, &backend);
+    mu_renderchar_glow glow = {d->type, d->level, d->option1, d->ext, d->has_record, d->kind_a, d->kind_b,
+                               d->item_kind};
+    mu_renderchar_env env;
+    mu_renderchar_default_env(&env);
+    env.time = a->map->time;
+    env.quality = a->ground->config.quality;
+    memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    options.textures = d->textures;
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_renderchar_stats rs = {0, 0};
+    mu_renderchar_draw_item(d->model, &glow, &env, d->light, d->alpha, &options, &backend, &ds, &rs);
+}
+
+static void items_labels_gl(app *a, int32_t width, int32_t height)
+{
+    static mu_world_item_label labels[MU_WORLD_ITEM_LABELS];
+    int32_t n = mu_world_items_labels(a->ground, labels, MU_WORLD_ITEM_LABELS);
+    if (!n)
+        return;
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0.0, (double)width, (double)height, 0.0, -1.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glViewport(0, 0, width, height);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_world_item_label *l = &labels[i];
+        float x0 = l->anchor[0] + l->box.bg_x, y0 = l->anchor[1] + l->box.bg_y;
+        glDisable(GL_TEXTURE_2D);
+        glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+        glBegin(GL_QUADS);
+        glVertex2f(x0, y0);
+        glVertex2f(x0 + l->box.bg_w, y0);
+        glVertex2f(x0 + l->box.bg_w, y0 + l->box.bg_h);
+        glVertex2f(x0, y0 + l->box.bg_h);
+        glEnd();
+        int32_t tw = l->text_width, th = l->text_height;
+        if (tw <= 0 || th <= 0 || tw > 2048 || th > 256)
+            continue;
+        uint8_t *rgba = malloc((size_t)tw * (size_t)th * 4);
+        if (!rgba || mu_world_items_label_bitmap(a->ground, l, rgba, tw, th)) {
+            free(rgba);
+            continue;
+        }
+        GLuint tex;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tw, th, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+        free(rgba);
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glColor4f(l->rgb[0], l->rgb[1], l->rgb[2], 1.0f);
+        float tx = l->anchor[0] + l->box.text_x + 3.0f, ty = l->anchor[1] + l->box.text_y + 2.0f;
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex2f(tx, ty);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex2f(tx + (float)tw, ty);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex2f(tx + (float)tw, ty + (float)th);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex2f(tx, ty + (float)th);
+        glEnd();
+        glDeleteTextures(1, &tex);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
 }
 
 static void combat_draw_gl(app *a)
@@ -1049,6 +1266,12 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
     }
     options.alpha = 1.0f;
+    if (a->ground) {   /* RenderItems after the characters (0x0185988d in the render scene) */
+        mu_world_items_draw(a->ground, items_model_gl, a);
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_ALPHA_TEST);
+    }
     if (a->has_env) {
         mu_world_env_target target = {a, env_gl_backend};
         mu_world_env_draw(&a->env, v->modelview, a->legacy_box ? NULL : &a->frustum, &target);
@@ -1097,12 +1320,39 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     }
     if (a->combat)
         combat_draw_gl(a);
+    if (a->ground)
+        items_labels_gl(a, width, height);
     return stats.faces;
 }
 
 #endif
 
 /* ---- software ---- */
+
+static void items_model_raster(void *context, const mu_world_item_draw *d)
+{
+    mu_raster *raster = ((void **)context)[0];
+    const app *a = ((void **)context)[1];
+    raster->textures = d->textures->slots;
+    raster->texture_count = d->textures->count;
+    raster->texture_filter = d->textures->filter;
+    raster->texture_wrap = d->textures->wrap;
+    mu_render_backend backend;
+    mu_raster_backend(raster, &backend);
+    mu_renderchar_glow glow = {d->type, d->level, d->option1, d->ext, d->has_record, d->kind_a, d->kind_b,
+                               d->item_kind};
+    mu_renderchar_env env;
+    mu_renderchar_default_env(&env);
+    env.time = a->map->time;
+    env.quality = a->ground->config.quality;
+    memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    options.textures = d->textures;
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_renderchar_stats rs = {0, 0};
+    mu_renderchar_draw_item(d->model, &glow, &env, d->light, d->alpha, &options, &backend, &ds, &rs);
+}
 
 static long draw_soft(app *a, mu_raster *raster)
 {
@@ -1162,6 +1412,10 @@ static long draw_soft(app *a, mu_raster *raster)
         mu_draw_stats ds = {0, 0, 0, 0};
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
     }
+    if (a->ground) {   /* RenderItems (NATIVE-ITEMS-001) */
+        void *context[2] = {raster, a};
+        mu_world_items_draw(a->ground, items_model_raster, context);
+    }
     raster->textures = NULL;
     raster->texture_count = 0;
     raster->texture_filter = NULL;
@@ -1182,6 +1436,12 @@ static long draw_soft(app *a, mu_raster *raster)
     }
     if (a->combat)
         mu_combat_draw_raster(a->combat, raster);
+    if (a->ground) {   /* the labels over the frame (NATIVE-ITEMS-001) */
+        static mu_world_item_label labels[MU_WORLD_ITEM_LABELS];
+        int32_t n = mu_world_items_labels(a->ground, labels, MU_WORLD_ITEM_LABELS);
+        for (int32_t i = 0; i < n; ++i)
+            mu_world_items_label_blit(a->ground, &labels[i], raster->color, raster->width, raster->height);
+    }
     return stats.tiles.faces;
 }
 
@@ -1212,6 +1472,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            hash ? hash : "", png ? png : "");
     if (a->combat)
         mu_combat_report_frame(a->combat, stdout, frame);
+    if (a->ground)
+        mu_world_items_report_frame(a->ground, stdout, frame);
 }
 
 static void report_summary(const app *a, const char *renderer)
@@ -1306,6 +1568,8 @@ static void report_summary(const app *a, const char *renderer)
     }
     if (a->combat)
         mu_combat_report_summary(a->combat, stdout, a->quiet);
+    if (a->ground)
+        mu_world_items_report_summary(a->ground, stdout);
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);
@@ -1553,6 +1817,10 @@ static int windowed(app *a)
                     running = 0;
                 else if (down && vk != 0x1b)
                     escapes = 0;
+                if (down && !e.key.repeat && a->ground && vk == 0x12)   /* Alt: setItemView(!view) (0x00efc7d3) */
+                    mu_world_items_alt(a->ground);
+                if (down && !e.key.repeat && a->ground && vk == 0x20)   /* space: the nearest item (0x00efd9ab) */
+                    mu_world_items_space(a->ground);
                 if (down && !e.key.repeat && a->combat && vk >= 0x30 && vk <= 0x39) {
                     /* 1..6 (NATIVE-COMBAT-001), 7 Evil Spirit, 8 Hellfire, 9 Inferno, 0 Cyclone */
                     static const int32_t keys[10] = {22, 4, 17, 22, 41, 24, 26, 9, 10, 14};
@@ -1674,6 +1942,8 @@ static int usage(void)
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
+                    "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y]] F:alt F:space F:hover:N F:pick:N\"]\n"
+                    "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n");
@@ -1701,6 +1971,7 @@ int main(int argc, char **argv)
     a.audio = 1;
     a.audio_rate = 44100;
     mu_combat_default_config(&a.combat_config);
+    mu_world_items_default_config(&a.items_config);
     for (int i = 1; i < argc; ++i) {
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { a.headless = 1; continue; }
@@ -1711,6 +1982,8 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-env")) { a.no_env = 1; continue; }
         if (!strcmp(k, "--env-tga-leaves")) { a.env_tga = 1; continue; }
         if (!strcmp(k, "--no-particles")) { a.no_particles = 1; continue; }
+        if (!strcmp(k, "--items")) { a.items_on = 1; continue; }
+        if (!strcmp(k, "--no-items")) { a.no_items = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -1761,6 +2034,14 @@ int main(int argc, char **argv)
             a.combat_on = 1;
         }
         else if (!strcmp(k, "--env-seed")) a.env_seed = (uint32_t)strtoul(v, NULL, 0);
+        else if (!strcmp(k, "--item-script")) {
+            if (mu_world_items_script_parse(&a.item_script, v))
+                return usage();
+            a.items_on = 1;
+        }
+        else if (!strcmp(k, "--item-seed")) a.items_config.seed = (uint32_t)strtoul(v, NULL, 0);
+        else if (!strcmp(k, "--item-latency")) a.items_config.drop_latency = atoi(v);
+        else if (!strcmp(k, "--item-despawn")) a.items_config.despawn_steps = atoi(v);
 #ifndef MU_WORLD_NO_GL
         else if (!strcmp(k, "--gfx")) a.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;
