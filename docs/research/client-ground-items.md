@@ -220,9 +220,11 @@ monsters' hurt and death sounds go through `mu_combat`'s SND_Play.
   render); armour models load their bitmaps from `Data/Player` when `Data/Item` lacks them (the classic
   `OpenTexture(…, "Player\\")`; this client's texture folder rule is not traced); `0x00cd1534` (patched) is answered
   with the grade test its leftover code shows (grades 1, 3, 5, 6, 7, 8); the label text uses mu_ui_font with a stand-in
-  face, a black 50 % background and English stand-ins for GlobalText `0xb0..0xb3` (Lang.mpr is not decoded; other
-  special-item strings show as `[Text n]`); the set prefix and set tier tables are not wired; demo monsters carry no
-  `o + 0x60`.
+  face and a black 50 % background; GlobalText, the skill names (`0x00961620`) and NPC names (`0x011427c7`) come from
+  NATIVE-LANG-001's local tables when `MU_LANG_DIR` is set (the installed strings give e.g. "Short Sword
+  +9+Skill+Option+Luck"), otherwise English stand-ins (" +Skill", " +Option", " +Luck") and `[Text n]`; the set
+  prefix and set tier tables are not wired; the special models (`0x3890..0x38a7`, `0x270f..0x2712`) do not resolve to
+  files through Item.bmd and are not drawn (counted as `model_missing`); demo monsters carry no `o + 0x60`.
 
 ```sh
 native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/lorencia-demo-placement.txt \
@@ -249,6 +251,5 @@ voices, space pick-up).
 - **Static only.** The addItem HTML and anchor, the per-frame label loop, setItemView and the Alt toggle,
   SelectObjects, MoveHero's pick-up case and the request packets, the answer and delete handlers, the space-bar
   pick-up, ClearItems, the AS layout.
-- **Not reproduced.** The pentagram/errtel lookups of CreateItem; the set-item prefix `0x009e0551` and set tier table;
-  GlobalText; the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for item models;
+- **Not reproduced.** The pentagram/errtel lookups of CreateItem; the set-item prefix `0x009e0551` and set tier table; the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for item models;
   the inventory side of a pick-up (NATIVE-GFX-003's interface is not fed).

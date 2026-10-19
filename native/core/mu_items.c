@@ -10,6 +10,7 @@
 #include "../../reconstructed/movement/client_movement.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "mu_combat.h"
+#include "mu_lang.h"
 #include "mu_particles.h"
 
 #define CODE_LIMIT 0x2c00
@@ -149,17 +150,20 @@ static const char *name_text(void *context, int32_t id)
     static char buf[8][48];
     static int next;
     (void)context;
-    switch (id) {   /* GlobalText of the plain-item suffixes (English stand-ins; Lang.mpr is not decoded) */
-    case 0xb0: return " +Skill";
-    case 0xb1: return " +Option";
-    case 0xb2: return " +Luck";
-    case 0xb3: return "Skill";
-    default:
+    const char *standin = NULL;
+    switch (id) {   /* English stand-ins of the plain-item suffixes when Lang.mpr's tables are absent */
+    case 0xb0: standin = " +Skill"; break;
+    case 0xb1: standin = " +Option"; break;
+    case 0xb2: standin = " +Luck"; break;
+    case 0xb3: standin = "Skill"; break;
+    default: {
+        char *b = buf[next++ & 7];
+        snprintf(b, sizeof buf[0], "[Text %d]", (int)id);
+        standin = b;
         break;
     }
-    char *b = buf[next++ & 7];
-    snprintf(b, sizeof buf[0], "[Text %d]", (int)id);
-    return b;
+    }
+    return mu_lang_text_or(mu_lang_shared(), id, standin);   /* GlobalText (NATIVE-LANG-001, MU_LANG_DIR) */
 }
 
 static const char *name_prefix(void *context, const mu_gi_item_data *item)
@@ -184,6 +188,25 @@ static const char *name_table(void *context, int32_t key)
     return buf;
 }
 
+/* 0x00961620 on 0x06fbb138 is the skill table's lookup (entry +8: the name). */
+static const char *name_skill(void *context, int32_t key)
+{
+    const mu_lang_skill *sk = mu_lang_skill_get(mu_lang_shared(), key);
+    return sk && sk->name ? sk->name : name_table(context, key);
+}
+
+/* 0x011427c7 on 0x06fbb664 is the Npcname table's name getter. */
+static const char *name_npc(void *context, int32_t key)
+{
+    const char *n = mu_lang_npc_name(mu_lang_shared(), key);
+    return n ? n : name_table(context, key);
+}
+
+static const char *name_text_string(void *context, int32_t id)
+{
+    return name_text(context, id);   /* 0x011753c3: GlobalText as a std::string */
+}
+
 static int32_t name_level_key(void *context, int32_t level)
 {
     (void)context;
@@ -193,8 +216,8 @@ static int32_t name_level_key(void *context, int32_t level)
 static void name_build(void *context, mu_gi_item *gi)
 {
     mu_world_items *it = context;
-    mu_gi_name_env env = {it, host_record, name_text, name_prefix, name_set_tier, name_table, name_table,
-                          name_level_key, name_table, 1};
+    mu_gi_name_env env = {it, host_record, name_text, name_prefix, name_set_tier, name_skill, name_text_string,
+                          name_level_key, name_npc, 1};
     mu_gi_name_sink sink;
     memset(&sink, 0, sizeof sink);
     mu_gi_name_build(gi, &env, &sink);

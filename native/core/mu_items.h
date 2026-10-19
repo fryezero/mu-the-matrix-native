@@ -27,9 +27,11 @@
  * (a fixed latency after a monster's death), where (the monster's position
  * plus a small offset), the zen amounts, the pick-up answer and its latency,
  * the despawn time. Viewer choices: the mouse ray test is a box of the
- * object's +-30 bounding box (the client tests its OBB +0x31c); label text uses mu_ui_font (CoreText) with a stand-in face and
- * the GlobalText strings the names need are English stand-ins (Lang.mpr is
- * not decoded); the label background is a translucent black box. */
+ * object's +-30 bounding box (the client tests its OBB +0x31c); label text
+ * uses mu_ui_font (CoreText) with a stand-in face; GlobalText, skill and NPC
+ * strings come from NATIVE-LANG-001's tables when MU_LANG_DIR provides them,
+ * English stand-ins otherwise; the label background is a translucent black
+ * box. */
 #ifndef MU_ITEMS_NATIVE_H
 #define MU_ITEMS_NATIVE_H
 

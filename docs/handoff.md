@@ -1515,7 +1515,8 @@ NATIVE-ITEMS-001 (branch `claude/native-items`) reconstructs the client's items 
 * Monster hurt/death sounds: `mu_monster_shock`/`mu_monster_die` (`reconstructed/combat`) over
   `reconstructed/actors/monster_sound_table.h` (`scripts/actor_static.py --emit-sounds`), wired in `mu_combat`.
 * `native/core/mu_items.*` + mu-world/mu-walk: demo drops from kills, fall/land/sparkle, item render passes, labels,
-  click/space pick-up, Alt, `--item-script`. The sparkle uses NATIVE-JOINT-001's Shiny01 particle kind.
+  click/space pick-up, Alt, `--item-script`. The sparkle uses NATIVE-JOINT-001's Shiny01 particle kind; label
+  strings use NATIVE-LANG-001's GlobalText/skill/NPC tables when `MU_LANG_DIR` is set.
 
 **Checks.** `scripts/validate_items.py --cases 3000 --heavy-cases 300` (Unicorn, `tools/python`, captures under
 `evidence/`): 22,200 cases, 0 mismatches; `reconstructed/items/test_items.py`, `native/tests/test_native_items.py`
@@ -1527,6 +1528,7 @@ NATIVE-ITEMS-001 (branch `claude/native-items`) reconstructs the client's items 
 * Feed hudPlayerName (addItem/removeItem/setItemView) through NATIVE-GFX-003's interface instead of the native
   overlay, and put picked-up items into the inventory grid.
 * Trace the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for armour.
-* Decode Lang.mpr's GlobalText and wire the set-item prefix/tier tables for exact label texts.
+* Wire the set-item prefix/tier tables (ItemSetType/ItemSetOption) for exact label texts; resolve the special
+  models' files; use NATIVE-LANG-001's EnchantEffect colours for the item glow.
 * A short live check of label colours and drop sizes when a safe spot with drops is available.
 
