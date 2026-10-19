@@ -51,7 +51,8 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
-            core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c
+            core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
+            core/mu_label.c core/mu_names.c core/mu_world_names.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -74,7 +75,8 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/environment/env_leaves.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
-             $(RECON)/items/ground_items.c
+             $(RECON)/items/ground_items.c \
+             $(RECON)/names/overhead_names.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -88,7 +90,8 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h \
-           $(wildcard $(RECON)/items/*.h)
+           $(wildcard $(RECON)/items/*.h) \
+           $(RECON)/names/overhead_names.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -157,6 +160,7 @@ $(BUILD)/mu-effect: tools/mu_effect_tool.c $(LIB)
 $(BUILD)/mu-walk: world/main.c $(LIB) $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c world/main.c -o $(BUILD)/mu_walk.o
 	$(CXX) $(BUILD)/mu_walk.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/mu_walk.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(AUDIO_LIBS) $(UI_LIBS) -lm -o $@
 
 # Click-to-move demonstrator (NATIVE-PATH-001).
 $(BUILD)/mu-path: tools/mu_path.c $(LIB)
@@ -212,7 +216,7 @@ GL_CFLAGS :=
 DL_LIBS := -ldl
 endif
 # NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
-GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c
+GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c
 GFX_CFLAGS := -I gfx -I $(RECON)/hud
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c viewer/terrain_view.c
 
@@ -294,6 +298,7 @@ $(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h world/w
 	done
 	$(CXX) $(BUILD)/world/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
+	  $(GL_LIBS) $(AUDIO_LIBS) $(UI_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
 CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_headless.c

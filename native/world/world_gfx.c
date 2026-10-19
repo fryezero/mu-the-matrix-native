@@ -196,3 +196,9 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap)
              g && g->tables.have_tooltip, mu_gfx_layer_base_mode(g ? g->layer : NULL), g ? g->skills : 0, drawn,
              missing, icons);
 }
+
+/* NATIVE-NAMES-001: the layer, for the hudPlayerName game side (world_names_gfx.c). */
+mu_gfx_layer *world_gfx_layer(world_gfx *g)
+{
+    return g ? g->layer : NULL;
+}

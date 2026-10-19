@@ -1,5 +1,6 @@
 /* Dropped items in the walk-around world (NATIVE-ITEMS-001). See mu_items.h. */
 #include "mu_items.h"
+#include "mu_label.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -946,23 +947,8 @@ int32_t mu_world_items_labels(mu_world_items *it, mu_world_item_label *labels, i
 int mu_world_items_label_bitmap(mu_world_items *it, const mu_world_item_label *l, uint8_t *rgba, int32_t width,
                                 int32_t height)
 {
-    if (!it->has_font || width <= 0 || height <= 0)
-        return 1;
-    int32_t stride = ((width * 24 + 31) & ~31) >> 3;
-    uint8_t *dib = calloc((size_t)stride * (size_t)height, 1);
-    if (!dib)
-        return 1;
-    mu_ui_gdi gdi = mu_ui_font_gdi(&it->font);
-    gdi.text_out(gdi.user, dib, stride, width, height, 0, 0, l->text, (int)strlen(l->text));
-    for (int32_t y = 0; y < height; ++y)
-        for (int32_t x = 0; x < width; ++x) {
-            uint8_t v = dib[y * stride + x * 3];
-            uint8_t *o = rgba + ((size_t)y * (size_t)width + (size_t)x) * 4;
-            o[0] = o[1] = o[2] = 255;
-            o[3] = v;
-        }
-    free(dib);
-    return 0;
+    /* the shared glyph path of the overhead labels (core/mu_label, NATIVE-NAMES-001) */
+    return it->has_font ? mu_label_plain(&it->font, l->text, rgba, width, height) : 1;
 }
 
 void mu_world_items_label_blit(mu_world_items *it, const mu_world_item_label *l, uint8_t *frame, int32_t width,

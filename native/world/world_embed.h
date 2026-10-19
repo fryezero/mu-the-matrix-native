@@ -35,6 +35,7 @@ typedef struct mu_world_embed_config {
      * replacing the class parts, 6/7 weapons, 8 wing); empty strings skipped */
     const char *items[MU_CHARACTER_ITEMS];
     int quiet;
+    const char *hero_name;         /* NATIVE-NAMES-001: the hero's name plate (NULL: the demo name) */
 } mu_world_embed_config;
 
 mu_world_embed *mu_world_embed_open(const mu_world_embed_config *config, char *error, size_t error_size);
@@ -57,6 +58,9 @@ long mu_world_embed_draw_soft(mu_world_embed *e, mu_raster *raster);
 int mu_world_embed_gl_setup(mu_world_embed *e);
 void mu_world_embed_gl_teardown(mu_world_embed *e);
 long mu_world_embed_draw_gl(mu_world_embed *e, int32_t width, int32_t height);
+/* NATIVE-NAMES-001: hudPlayerName draws the names when the front end runs the GFx interface (NULL detaches). */
+struct world_gfx;
+void mu_world_embed_set_gfx(mu_world_embed *e, struct world_gfx *gfx, double scale);
 #endif
 
 /* Sound: stereo float frames due now (0 without sound), mixing them. */
