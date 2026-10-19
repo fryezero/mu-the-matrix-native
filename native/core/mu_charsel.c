@@ -286,11 +286,33 @@ int mu_charsel_init(mu_charsel_session *s, const char *root, const mu_charsel_li
     s->tick.scene = MU_CHARSEL_SCENE;
     s->tick.protocol = 0x35;
     s->tick.initialised = 1;
+    /* NATIVE-CHARSEL-002: the particle module (scene 5) and the first render's frustum (the frame-light box
+     * of the first step) */
+    if (!mu_world_particles_open(&s->particles, root, s->map, MU_CHARSEL_WORLD, 1, 0, error, sizeof error)) {
+        s->has_particles = 1;
+        s->particles.scene_state = MU_CHARSEL_SCENE;
+    }
+    mu_move_main_camera(&f->camera, &f->view, 0);
+    mu_view_begin_opengl(&f->view, 0, 0, 640, 480);
+    mu_charsel_frustum(s, &s->frustum);
+    return 0;
+}
+
+int mu_charsel_attach_objects(mu_charsel_session *s, const char *root, mu_objects *objects)
+{
+    if (!objects || mu_objects_start(objects, root))   /* CreateObject per record, CGMCharacterScene_Ex slot 0x2c */
+        return 1;
+    s->objects = objects;
+    s->has_objects = 1;
+    if (s->has_particles)
+        mu_world_particles_attach(&s->particles, objects, NULL);
     return 0;
 }
 
 void mu_charsel_free(mu_charsel_session *s)
 {
+    if (s->has_particles)
+        mu_world_particles_close(&s->particles);
     for (int i = 0; i < MU_CHARSEL_MAX_ENTRIES; ++i)
         if (s->character_loaded[i])
             mu_character_free(&s->characters[i]);
@@ -320,11 +342,19 @@ static void step(mu_charsel_session *s)
 {
     mu_frame_world *f = &s->frame;
     mu_key_scan(&f->keys, &f->sample);   /* 0x00ec5475 before every logic step */
-    /* scene tick 0x01856e6c: the terrain frame light (0x016ca4fa) first */
-    const float *pos = s->info.position;
-    int32_t cx = (int32_t)(pos[0] / 100.0f), cy = (int32_t)(pos[1] / 100.0f);
-    mu_world_frame_box(s->map, (float)f->now, cx - 48 < 0 ? 0 : cx - 48, cy - 48 < 0 ? 0 : cy - 48,
-                       cx + 48 > 255 ? 255 : cx + 48, cy + 48 > 255 ? 255 : cy + 48);
+    /* scene tick 0x01856e6c: the terrain frame light (0x016ca4fa) first, the primary light over the last
+     * frustum box grown by 3 tiles (NATIVE-CHARSEL-002, as the login scene's tick head) */
+    const mu_terrain_frustum *fr = &s->frustum;
+    int32_t x0 = fr->x_min, y0 = fr->y_min, x1 = fr->x_max + 3, y1 = fr->y_max + 3;
+    mu_world_frame_box(s->map, (float)f->now, x0 < 0 ? 0 : x0, y0 < 0 ? 0 : y0, x1 > 255 ? 255 : x1,
+                       y1 > 255 ? 255 : y1);
+    /* MoveObjects 0x016d82c7 with CGMCharacterScene_Ex slot 0x30 (NATIVE-CHARSEL-002) */
+    if (s->has_objects) {
+        mu_objects_set_clock(s->objects, f->now);
+        mu_objects_step_inputs in = {MU_CHARSEL_SCENE, 0, s->map->time, {0.0f, 0.0f, 0.0f}, fr->x2d, fr->y2d};
+        mu_objects_step(s->objects, &in);
+        mu_objects_apply_lights(s->objects, s->map);
+    }
     mu_charsel_tick *t = &s->tick;
     t->initialised = s->initialised;
     t->selected = s->selected;
@@ -346,6 +376,9 @@ static void step(mu_charsel_session *s)
         uint8_t loop = 0;
         mu_character_tick(ch, mu_character_action_speed(ch, mu_model_action(&ch->player)), &loop);
     }
+    /* MoveEffects 0x0150ddb1, MoveJoints 0x01589b06, MoveParticles 0x0159122d (NATIVE-CHARSEL-002) */
+    if (s->has_particles)
+        mu_world_particles_step(&s->particles, s->map->time);
     ++s->steps;
 }
 
@@ -389,7 +422,7 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
     mu_charsel_render(&frame, lookup, s, &fog, &s->log);
     s->draw_entry = -1;
     s->decal_count = 0;
-    s->particles = 0;
+    s->particles_created = 0;
     for (int32_t i = 0; i < s->log.count; ++i) {
         const mu_charsel_event *e = &s->log.events[i];
         switch (e->call) {
@@ -413,8 +446,18 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
                 d->rotation = fbits(e->args[8]);
             }
             break;
-        case 0x0168fafd:
-            ++s->particles;
+        case 0x0168fafd:     /* CreateParticle(0x8022 Logo\\chasellight.jpg, position, angle, light, 5, 1.0, NULL, 0) */
+            ++s->particles_created;
+            if (s->has_particles && e->count >= 12) {
+                float position[3], angle[3], light[3];
+                for (int k = 0; k < 3; ++k) {
+                    position[k] = fbits(e->args[1 + k]);
+                    angle[k] = fbits(e->args[4 + k]);
+                    light[k] = fbits(e->args[7 + k]);
+                }
+                mu_world_particles_create(&s->particles, (int32_t)e->args[0], position, angle, light,
+                                          (int32_t)e->args[10], fbits(e->args[11]));
+            }
             break;
         case 0x0185a75a:
             ++s->enter_requests;
@@ -440,7 +483,31 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
             ch->params.light[k] = 0.4f + object_light;
         mu_character_update(ch);
     }
+    /* the render's frustum (CreateFrustrum) and the objects' clock (NATIVE-CHARSEL-002) */
+    mu_charsel_frustum(s, &s->frustum);
+    if (s->has_objects)
+        mu_objects_set_clock(s->objects, now);
+    if (s->has_particles)
+        s->particles.world_time = s->map->time;
     ++s->frames;
+}
+
+void mu_charsel_frame_objects(mu_charsel_session *s)
+{
+    const uint64_t sprites = s->particles.stats.sprites_created;
+    if (s->has_objects) {
+        mu_objects *o = s->objects;
+        mu_objects_visibility(o, &s->frustum, MU_CHARSEL_SCENE);
+        for (int32_t k = 0; k < o->rt.draw_count; ++k) {
+            mu_draw_options options;
+            mu_objects_prepare(o, k, s->map, MU_CHARSEL_SCENE, &options);
+        }
+        mu_objects_after_visibility(o, &s->frustum, MU_CHARSEL_SCENE);
+    }
+    if (s->has_particles) {
+        s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
+        mu_world_particles_discard_sprites(&s->particles);   /* a frame without drawing: RenderSprites' kill */
+    }
 }
 
 int32_t mu_charsel_end_render(mu_charsel_session *s)

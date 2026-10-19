@@ -68,6 +68,8 @@ typedef struct app {
     mu_gl_backend object_gl[MU_OBJECT_TYPES];
     GLuint tiles[MU_WORLD_BITMAPS], extras[MU_WORLD_EXTRA];
     mu_gl_backend items[MU_CHARSEL_MAX_ENTRIES][MU_CHARACTER_ITEMS];
+    mu_gl_backend particle_gl;                     /* NATIVE-CHARSEL-002: the particle module's bitmaps */
+    mu_gl_backend particle_model_gl[MU_WORLD_FX_MODELS];
     int gl_ready;
 #endif
 } app;
@@ -137,8 +139,12 @@ static int load(app *a)
         fprintf(stderr, "%s\n", a->s->error);
         return 1;
     }
-    if (a->has_objects)
+    if (a->has_objects) {
         mu_objects_load_models(&a->objects, a->root, 0);
+        /* NATIVE-CHARSEL-002: the client's object lifecycle with CGMCharacterScene_Ex */
+        if (mu_charsel_attach_objects(a->s, a->root, &a->objects))
+            fprintf(stderr, "objects: the lifecycle did not start (static objects are not drawn)\n");
+    }
     if (a->slot >= 0) {
         if (mu_charsel_entry_of(a->s, a->slot) < 0) {
             fprintf(stderr, "slot %d is not in the list\n", a->slot);
@@ -180,6 +186,66 @@ static void select_next(app *a, int step)
 
 /* ---- software ---- */
 
+#define MU_CHARSEL_AFTER_MESHES 32
+
+/* The drawn character's parts in the client's order, each after its shadow (RenderCharacter 0x01363260: the
+ * shadow first, then the parts; the item render's shadow block, NATIVE-CHARSEL-002). */
+typedef void (*part_backend_fn)(app *a, int entry, int part, mu_render_backend *out);
+
+static void draw_character(app *a, part_backend_fn part_backend, mu_raster *raster)
+{
+    mu_charsel_session *s = a->s;
+    if (s->draw_entry < 0)
+        return;
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    const mu_character *ch = &s->characters[s->draw_entry];
+    for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+        const mu_character_item *item = &ch->items[draw_order[n]];
+        if (!item->loaded)
+            continue;
+        mu_render_backend backend;
+        part_backend(a, s->draw_entry, draw_order[n], &backend);
+        if (raster) {
+            raster->textures = item->textures.slots;
+            raster->texture_count = item->textures.count;
+            raster->texture_filter = item->textures.filter;
+            raster->texture_wrap = item->textures.wrap;
+        }
+        if (s->has_particles && mu_world_particles_character_shadow(&s->particles, &item->model, &item->bmd, &backend))
+            ++s->shadows;
+        options.textures = &item->textures;
+        mu_draw_stats ds = {0, 0, 0, 0};
+        mu_scene_draw_model(&item->model, &options, &backend, &ds);
+    }
+    if (raster) {
+        raster->textures = NULL;
+        raster->texture_count = 0;
+        raster->texture_filter = NULL;
+        raster->texture_wrap = NULL;
+    }
+}
+
+/* ---- software ---- */
+
+static mu_raster *soft_raster;
+
+static void soft_part_backend(app *a, int entry, int part, mu_render_backend *out)
+{
+    (void)a;
+    (void)entry;
+    (void)part;
+    mu_raster_backend(soft_raster, out);
+}
+
+static void soft_bind(mu_raster *raster, const mu_object_model *m)
+{
+    raster->textures = m ? m->textures.slots : NULL;
+    raster->texture_count = m ? m->textures.count : 0;
+    raster->texture_filter = m ? m->textures.filter : NULL;
+    raster->texture_wrap = m ? m->textures.wrap : NULL;
+}
+
 static long draw_soft(app *a, mu_raster *raster)
 {
     mu_charsel_session *s = a->s;
@@ -191,40 +257,69 @@ static long draw_soft(app *a, mu_raster *raster)
     mu_charsel_frustum(s, &frustum);
     mu_world_draw_stats stats;
     memset(&stats, 0, sizeof stats);
-    mu_world_draw_raster_view(s->map, raster, &frustum, MU_CHARSEL_SCENE, 0, &stats);
-    if (a->has_objects)
-        a->objects_drawn = mu_objects_draw_raster(&a->objects, s->map, raster, 0, 0, 255, 255);
-    if (s->draw_entry >= 0) {
-        mu_render_backend backend;
-        mu_raster_backend(raster, &backend);
-        mu_draw_options options;
-        mu_draw_default_options(&options);
+    mu_world_draw_raster_view(s->map, raster, &frustum, MU_CHARSEL_SCENE, 0, &stats);   /* RenderTerrain(0) */
+    mu_render_backend backend;
+    mu_raster_backend(raster, &backend);
+    const int linear = raster->linear;
+    s->objects_drawn = s->after_meshes = s->billboards = s->shadows = 0;
+    const uint64_t sprites = s->particles.stats.sprites_created;
+    a->objects_drawn = 0;
+    if (s->has_objects) {   /* RenderObjects 0x016d5020 with CGMCharacterScene_Ex (NATIVE-CHARSEL-002) */
+        mu_objects *o = s->objects;
         raster->linear = 1;
-        raster->front_ccw = 1;
-        const mu_character *ch = &s->characters[s->draw_entry];
-        for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
-            const mu_character_item *item = &ch->items[draw_order[n]];
-            if (!item->loaded)
+        mu_objects_visibility(o, &frustum, MU_CHARSEL_SCENE);
+        for (int32_t k = 0; k < o->rt.draw_count; ++k) {
+            mu_draw_options options;
+            mu_object_model *m = mu_objects_prepare(o, k, s->map, MU_CHARSEL_SCENE, &options);
+            if (!m)
                 continue;
-            raster->textures = item->textures.slots;
-            raster->texture_count = item->textures.count;
-            raster->texture_filter = item->textures.filter;
-            raster->texture_wrap = item->textures.wrap;
-            options.textures = &item->textures;
+            soft_bind(raster, m);
             mu_draw_stats ds = {0, 0, 0, 0};
-            mu_scene_draw_model(&item->model, &options, &backend, &ds);
+            if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+                ++s->objects_drawn;
         }
-        raster->textures = NULL;
-        raster->texture_count = 0;
-        raster->texture_filter = NULL;
-        raster->texture_wrap = NULL;
+        soft_bind(raster, NULL);
+        a->objects_drawn = s->objects_drawn;
+    } else if (a->has_objects) {
+        a->objects_drawn = mu_objects_draw_raster(&a->objects, s->map, raster, 0, 0, 255, 255);
     }
+    raster->linear = 1;
+    raster->front_ccw = 1;
+    soft_raster = raster;
+    draw_character(a, soft_part_backend, raster);   /* RenderCharacter(shown) */
+    if (s->has_particles)   /* RenderEffects 0x015181fa: the effect models */
+        mu_world_particles_draw_models_raster(&s->particles, raster);
+    if (s->has_objects) {   /* RenderObjects_AfterCharacter 0x016d6949 */
+        mu_objects *o = s->objects;
+        mu_objects_after_visibility(o, &frustum, MU_CHARSEL_SCENE);
+        for (int32_t k = 0; k < o->rt.after_count; ++k) {
+            mu_object_mesh meshes[MU_CHARSEL_AFTER_MESHES];
+            int32_t count = 0;
+            mu_object_model *m = mu_objects_prepare_after(o, k, s->map, MU_CHARSEL_SCENE, meshes,
+                                                          MU_CHARSEL_AFTER_MESHES, &count);
+            if (!m)
+                continue;
+            soft_bind(raster, m);
+            for (int32_t j = 0; j < count; ++j) {
+                meshes[j].options.fields = &meshes[j].fields;
+                mu_draw_stats ds = {0, 0, 0, 0};
+                if (!mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds))
+                    ++s->after_meshes;
+            }
+        }
+        soft_bind(raster, NULL);
+    }
+    raster->linear = linear;
     for (int32_t i = 0; i < s->decal_count; ++i) {
         const mu_charsel_decal *d = &s->decals[i];
         /* EnableAlphaBlend 0x0184aa2b, then RenderTerrainAlphaBitmap(0x8036, x, y, size, size, light,
          * rotation, 1, 5, 1, 0) */
         mu_world_decal_raster(s->map, raster, 0x8036, d->x, d->y, d->size, d->size, d->light, d->rotation, 1.0f, 5.0f,
                               1, 0, MU_TERRAIN_STATE_ADDITIVE);
+    }
+    if (s->has_particles) {   /* RenderJoints(0), RenderSprites(0), RenderParticles(0) */
+        s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
+        s->billboards = mu_world_particles_draw_raster(&s->particles, raster, v->modelview);
     }
     return stats.tiles.faces;
 }
@@ -315,6 +410,10 @@ static void gl_setup(app *a)
         if (a->has_objects && a->objects.models[t] && a->objects.models[t]->loaded)
             mu_gl_upload(&a->object_gl[t], &a->objects.models[t]->textures, 0);
     }
+    memset(&a->particle_gl, 0, sizeof a->particle_gl);
+    memset(a->particle_model_gl, 0, sizeof a->particle_model_gl);
+    if (a->s->has_particles)   /* NATIVE-CHARSEL-002 */
+        mu_gl_upload(&a->particle_gl, &a->s->particles.bitmaps, 0);
     a->gl_ready = 1;
 }
 
@@ -334,7 +433,39 @@ static void gl_teardown(app *a)
     for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t)
         if (a->object_gl[t].textures)
             mu_gl_release(&a->object_gl[t]);
+    if (a->particle_gl.textures)
+        mu_gl_release(&a->particle_gl);
+    for (int i = 0; i < MU_WORLD_FX_MODELS; ++i)
+        if (a->particle_model_gl[i].textures)
+            mu_gl_release(&a->particle_model_gl[i]);
     a->gl_ready = 0;
+}
+
+static void gl_part_backend(app *a, int entry, int part, mu_render_backend *out)
+{
+    mu_gl_backend_bind(&a->items[entry][part], out);
+}
+
+static int particle_gl_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
+{
+    app *a = context;
+    (void)p;
+    mu_gl_backend_bind(&a->particle_gl, out);
+    return 0;
+}
+
+/* RenderEffects' effect models through the scene draw (NATIVE-JOINT-001's helper). */
+static void particle_model_gl(void *context, const mu_model *model, const mu_textures *textures, int32_t slot,
+                              const mu_draw_options *draw_options)
+{
+    app *a = context;
+    mu_gl_backend *gl = &a->particle_model_gl[slot];
+    if (!gl->textures)
+        mu_gl_upload(gl, textures, 0);
+    mu_render_backend backend;
+    mu_gl_backend_bind(gl, &backend);
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_scene_draw_model(model, draw_options, &backend, &ds);
 }
 
 static long draw_gl(app *a, int32_t width, int32_t height)
@@ -356,7 +487,24 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
     a->objects_drawn = 0;
-    if (a->has_objects) {
+    s->objects_drawn = s->after_meshes = s->billboards = s->shadows = 0;
+    const uint64_t sprites = s->particles.stats.sprites_created;
+    if (s->has_objects) {   /* RenderObjects 0x016d5020 with CGMCharacterScene_Ex (NATIVE-CHARSEL-002) */
+        mu_objects *o = s->objects;
+        mu_objects_visibility(o, &frustum, MU_CHARSEL_SCENE);
+        for (int32_t k = 0; k < o->rt.draw_count; ++k) {
+            mu_draw_options options;
+            mu_object_model *m = mu_objects_prepare(o, k, s->map, MU_CHARSEL_SCENE, &options);
+            if (!m)
+                continue;
+            mu_render_backend backend;
+            mu_gl_backend_bind(&a->object_gl[m->type], &backend);
+            mu_draw_stats ds = {0, 0, 0, 0};
+            if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+                ++s->objects_drawn;
+        }
+        a->objects_drawn = s->objects_drawn;
+    } else if (a->has_objects) {   /* static placement (the lifecycle did not start) */
         mu_draw_options options;
         mu_draw_default_options(&options);
         for (int32_t i = 0; i < a->objects.count; ++i) {
@@ -371,19 +519,31 @@ static long draw_gl(app *a, int32_t width, int32_t height)
                 ++a->objects_drawn;
         }
     }
-    if (s->draw_entry >= 0) {
-        mu_draw_options options;
-        mu_draw_default_options(&options);
-        const mu_character *ch = &s->characters[s->draw_entry];
-        for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
-            const mu_character_item *item = &ch->items[draw_order[n]];
-            if (!item->loaded)
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    draw_character(a, gl_part_backend, NULL);   /* RenderCharacter(shown), each part after its shadow */
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    if (s->has_particles)   /* RenderEffects 0x015181fa: the effect models */
+        mu_world_particles_draw_models(&s->particles, particle_model_gl, a);
+    if (s->has_objects) {   /* RenderObjects_AfterCharacter 0x016d6949 */
+        mu_objects *o = s->objects;
+        mu_objects_after_visibility(o, &frustum, MU_CHARSEL_SCENE);
+        for (int32_t k = 0; k < o->rt.after_count; ++k) {
+            mu_object_mesh meshes[MU_CHARSEL_AFTER_MESHES];
+            int32_t count = 0;
+            mu_object_model *m = mu_objects_prepare_after(o, k, s->map, MU_CHARSEL_SCENE, meshes,
+                                                          MU_CHARSEL_AFTER_MESHES, &count);
+            if (!m)
                 continue;
             mu_render_backend backend;
-            mu_gl_backend_bind(&a->items[s->draw_entry][draw_order[n]], &backend);
-            options.textures = &item->textures;
-            mu_draw_stats ds = {0, 0, 0, 0};
-            mu_scene_draw_model(&item->model, &options, &backend, &ds);
+            mu_gl_backend_bind(&a->object_gl[m->type], &backend);
+            for (int32_t j = 0; j < count; ++j) {
+                meshes[j].options.fields = &meshes[j].fields;
+                mu_draw_stats ds = {0, 0, 0, 0};
+                if (!mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds))
+                    ++s->after_meshes;
+            }
         }
     }
     for (int32_t i = 0; i < s->decal_count; ++i) {
@@ -393,6 +553,15 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     }
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
+    if (s->has_particles) {   /* RenderJoints(0), RenderSprites(0), RenderParticles(0) */
+        s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
+        mu_world_particles_target target = {a, particle_gl_backend};
+        s->billboards = mu_world_particles_draw(&s->particles, v->modelview, &target);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_ALPHA_TEST);
+    }
     return stats.faces;
 }
 #endif
@@ -416,11 +585,14 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
     printf("{\"frame\": %d, \"tick\": %u, \"steps\": %u, \"selected\": %d, \"shown\": %d, \"drawn_entry\": %d,"
            " \"position\": [%.2f, %.2f, %.2f], \"scale\": %.3f, \"action\": %d, \"frame_anim\": %.3f,"
            " \"decals\": %d, \"particles\": %d, \"enter_requests\": %d, \"fov\": %.3f, \"angle\": [%.2f, %.2f, %.2f],"
-           " \"eye\": [%.2f, %.2f, %.2f], \"far\": %.2f, \"sha256\": \"%s\", \"png\": \"%s\"}\n",
+           " \"eye\": [%.2f, %.2f, %.2f], \"far\": %.2f, \"objects_drawn\": %ld, \"after_meshes\": %ld,"
+           " \"sprites\": %d, \"live_particles\": %u, \"billboards\": %ld, \"shadows\": %ld,"
+           " \"sha256\": \"%s\", \"png\": \"%s\"}\n",
            frame, now, s->steps, s->selected, s->shown, s->draw_entry, (double)pos[0], (double)pos[1], (double)pos[2],
-           (double)scale, action, (double)anim, s->decal_count, s->particles, s->enter_requests, (double)v->fov,
+           (double)scale, action, (double)anim, s->decal_count, s->particles_created, s->enter_requests, (double)v->fov,
            (double)v->angle[0], (double)v->angle[1], (double)v->angle[2], (double)v->position[0],
-           (double)v->position[1], (double)v->position[2], (double)v->view_far, hash ? hash : "", png ? png : "");
+           (double)v->position[1], (double)v->position[2], (double)v->view_far, s->objects_drawn, s->after_meshes,
+           s->frame_sprites, s->particles.stats.live, s->billboards, s->shadows, hash ? hash : "", png ? png : "");
 }
 
 static void report_summary(const app *a, const char *renderer)
@@ -429,12 +601,19 @@ static void report_summary(const app *a, const char *renderer)
     printf("{\"summary\": true, \"renderer\": \"%s\", \"world\": %d, \"folder\": %d, \"camera_key\": %d,"
            " \"camera_angle\": [%.3f, %.3f, %.3f], \"camera_position\": [%.3f, %.3f, %.3f], \"fov\": %.3f,"
            " \"characters\": %d, \"marker1\": [%.2f, %.2f, %.2f], \"steps\": %u, \"frames\": %u,"
-           " \"enter_requests\": %d, \"objects\": %d, \"objects_drawn\": %ld}\n",
+           " \"enter_requests\": %d, \"objects\": %d, \"objects_drawn\": %ld, \"lifecycle\": %d,"
+           " \"objects_created\": %d, \"object_steps\": %u, \"particles_created\": %llu, \"sprites_created\": %llu,"
+           " \"effects_created\": %llu, \"effects_unsupported\": %llu, \"terrain_lights\": %ld}\n",
            renderer, MU_CHARSEL_WORLD, s->map->report.folder, s->info.key, (double)s->info.angle[0],
            (double)s->info.angle[1], (double)s->info.angle[2], (double)s->info.position[0],
            (double)s->info.position[1], (double)s->info.position[2], (double)s->info.fov, s->list.count,
            (double)s->scene.position[1][0], (double)s->scene.position[1][1], (double)s->scene.position[1][2], s->steps,
-           s->frames, s->enter_requests, a->has_objects ? a->objects.count : 0, a->objects_drawn);
+           s->frames, s->enter_requests, a->has_objects ? a->objects.count : 0, a->objects_drawn, s->has_objects,
+           s->has_objects ? s->objects->rt.created : 0, s->has_objects ? s->objects->rt.steps : 0u,
+           (unsigned long long)s->particles.stats.created, (unsigned long long)s->particles.stats.sprites_created,
+           (unsigned long long)s->particles.stats.effects_created,
+           (unsigned long long)s->particles.stats.effects_unsupported,
+           s->has_objects ? s->objects->rt.light_events : 0L);
     for (int32_t i = 0; i < s->list.count; ++i) {
         const mu_charsel_entry *e = &s->list.entries[i];
         const uint8_t *r = s->records + (size_t)e->slot * MU_CHARSEL_RECORD;
@@ -507,6 +686,8 @@ static int headless(app *a)
         mu_charsel_begin_render(a->s, now);
         int save = a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
         char hash[65] = "", path[4096] = "";
+        if (!save)
+            mu_charsel_frame_objects(a->s);   /* the frame's RenderObjects pass without output (NATIVE-CHARSEL-002) */
         if (save) {
             if (gl) {
 #ifndef MU_CHARSEL_NO_GL

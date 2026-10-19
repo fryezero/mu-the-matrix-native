@@ -139,6 +139,11 @@ typedef struct mu_objects_runtime {
      * the stand-in list (owner: the object index, -1 none). */
     void (*sprite)(void *context, int32_t bitmap, const float position[3], float scale, const float light[3],
                    int32_t owner, float rotation, int32_t blend, int32_t axes);
+    /* NATIVE-CHARSEL-002: the character-select world's CreateEffect calls (slot 0x34: stardr01 0x5ac, 0x59a);
+     * owner: the object index, -1 none. */
+    void (*effect)(void *context, int32_t type, int32_t subtype, const float position[3], const float angle[3],
+                   const float light[3], int32_t owner);
+    long effect_events;
     void *hook_context;
 } mu_objects_runtime;
 
@@ -266,16 +271,20 @@ long mu_objects_render_raster(mu_objects *objects, const mu_world *map, mu_raste
  *
  * World 0x5e runs CGMLogInScene_Ex: its creation hook (types 0x26/0x36 hidden, range -428.571, the ship's
  * action PlaySpeed 0.23), move hook (scroll, pulsing blend light), custom render (+0xa), RenderObjectVisual
- * (lantern sprites, mist particles: stand-in billboards) and, after the characters, the ship's glow meshes. */
+ * (lantern sprites, mist particles: stand-in billboards) and, after the characters, the ship's glow meshes.
+ * NATIVE-CHARSEL-002: world 0x5d runs CGMCharacterScene_Ex the same way (reconstructed/objects/charsel_world.h):
+ * creation (markers and emitters hidden), move (scroll, the lamps' AddTerrainLight), the custom render (the
+ * after-character types, the pedestal's mesh 1), RenderObjectVisual (sprites, particles, CreateEffect through
+ * rt.effect) and the after-character pass (RenderBody, the pedestal's glow mesh 0). */
 
 /* timeGetTime for the next step and frame (the pulse of 0x00cfec8d). */
 void mu_objects_set_clock(mu_objects *objects, uint32_t now_ms);
 /* RenderObjects_AfterCharacter (mu_login_after_pass) for the frustum polygon: rt.after_list.
- * Worlds other than 0x5e: none. */
+ * Worlds other than 0x5e and (NATIVE-CHARSEL-002) 0x5d: none. */
 void mu_objects_after_visibility(mu_objects *objects, const mu_terrain_frustum *frustum, int32_t scene_state);
 /* The after-character draw of rt.after_list[k]: the RenderObject setup (body light, pose) and the
- * world's slot 0x3c, whose RenderMesh calls land in meshes (at most capacity). Returns the model, or
- * NULL; *count receives the mesh calls. */
+ * world's slot 0x3c, whose RenderMesh calls (and, in world 0x5d, RenderBody calls: mesh_plus_one 0) land
+ * in meshes (at most capacity). Returns the model, or NULL; *count receives the mesh calls. */
 mu_object_model *mu_objects_prepare_after(mu_objects *objects, int32_t k, const mu_world *map, int32_t scene_state,
                                           mu_object_mesh *meshes, int32_t capacity, int32_t *count);
 /* Stand-in billboards (sprites of this frame and particles) of bitmap table entry `slot`

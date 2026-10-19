@@ -7,6 +7,7 @@
 #include "mu_objects.h"
 
 #include "../../reconstructed/objects/login_world.h"
+#include "../../reconstructed/objects/charsel_world.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -389,6 +390,13 @@ static uint8_t login_custom(void *context, int32_t index)
     return (uint8_t)mu_login_custom_render(image(c->o, index), index, &c->log);
 }
 
+/* NATIVE-CHARSEL-002: CGMCharacterScene_Ex's custom render (slot 0x38); the pedestal's RenderMesh call is kept */
+static uint8_t charsel_custom(void *context, int32_t index)
+{
+    custom_context *c = context;
+    return (uint8_t)mu_csw_custom_render(image(c->o, index), index, &c->log);
+}
+
 /* Pose and skin object i's model at its animation state with the body light of model_fields, with the
  * arguments RenderObject's setup 0x017ec896 passes to Animation and Transform (compared in the render family,
  * scripts/validate_object_render.py). log: mu_obj_render's call log; without its Animation/Transform events
@@ -463,13 +471,18 @@ static void visual_bone(void *context, int32_t bone, const float local[3], float
     }
 }
 
-static void login_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m)
+/* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
+ * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls. */
+static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time)
 {
     mu_objects_runtime *rt = &o->rt;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
-    mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
+    if (o->world == MU_CSW_WORLD)
+        mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
+    else
+        mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
     for (int32_t k = 0; k < log.count; ++k) {
         const mu_obj_event *e = &events[k];
         if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite) {   /* CreateSprite 0x01692eb7 (NATIVE-JOINT-001) */
@@ -494,8 +507,51 @@ static void login_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object
         } else if (e->call == MU_OBJ_CALL_PARTICLE) {
             spawn(rt, e);
             ++rt->particle_events;
+        } else if (e->call == MU_OBJ_CALL_EFFECT) {   /* CreateEffect 0x013c0eaa (NATIVE-CHARSEL-002) */
+            float position[3], angle[3], light[3];
+            for (int q = 0; q < 3; ++q) {
+                position[q] = fbits(e->args[1 + q]);
+                angle[q] = fbits(e->args[4 + q]);
+                light[q] = fbits(e->args[7 + q]);
+            }
+            if (rt->effect)
+                rt->effect(rt->hook_context, (int32_t)e->args[0], (int32_t)e->args[10], position, angle, light,
+                           e->args[11] ? e->object : -1);
+            ++rt->effect_events;
         }
     }
+}
+
+/* Draw options of a RenderMesh(mesh, flags, alpha, blend mesh, blend light, u, v, texture) event. */
+static void mesh_options(const mu_obj_event *ev, mu_object_model *m, const mu_world *map, mu_draw_options *options)
+{
+    mu_draw_default_options(options);
+    options->textures = &m->textures;
+    options->mesh_plus_one = (int32_t)ev->args[0] + 1;
+    options->flags = ev->args[1];
+    options->alpha = fbits(ev->args[2]);
+    options->select = (int32_t)ev->args[3];
+    options->color_scale = fbits(ev->args[4]);
+    options->u_offset = fbits(ev->args[5]);
+    options->v_offset = fbits(ev->args[6]);
+    options->texture = (int32_t)ev->args[7];
+    options->time = map ? map->time : 0.0f;
+}
+
+/* Draw options of a RenderBody(flags, alpha, blend mesh, blend light, u, v, hidden mesh, texture) event. */
+static void body_options(const mu_obj_event *body, mu_object_model *m, const mu_world *map, mu_draw_options *options)
+{
+    mu_draw_default_options(options);
+    options->textures = &m->textures;
+    options->flags = body->args[0];
+    options->alpha = fbits(body->args[1]);
+    options->select = (int32_t)body->args[2];
+    options->color_scale = fbits(body->args[3]);
+    options->u_offset = fbits(body->args[4]);
+    options->v_offset = fbits(body->args[5]);
+    options->skip_mesh = (int32_t)body->args[6];
+    options->texture = (int32_t)body->args[7];
+    options->time = map ? map->time : 0.0f;
 }
 
 mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_world *map, int32_t scene_state,
@@ -507,7 +563,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     uint8_t *img = image(o, i);
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
-    const int login = o->world == MU_LOGIN_WORLD;
+    const int login = o->world == MU_LOGIN_WORLD, charsel = o->world == MU_CSW_WORLD;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -520,8 +576,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     in.light.time = map ? map->time : 0.0f;
     mu_obj_event custom_events[4];
     custom_context cc = {o, {0, 4, 0, custom_events}};
-    if (login) {
-        in.custom_render = login_custom;
+    if (login || charsel) {
+        in.custom_render = login ? login_custom : charsel_custom;
         in.context = &cc;
     }
     mu_obj_event local[16];
@@ -529,15 +585,15 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     memset(rt->model_fields, 0, sizeof rt->model_fields);
     const int status = mu_obj_render(img, i, rt->model_fields, 0, &in, &log);
     int posed = 0;
-    if (login) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
+    if (login || charsel) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
         if (m && m->loaded && status != MU_OBJ_SKIPPED)
             posed = pose_object(o, img, m, &log);
-        login_visual(o, i, img, posed ? m : NULL);
+        handler_visual(o, i, img, posed ? m : NULL, in.light.time);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
-    const int hook = rt->visual && !login, has_model = m && m->loaded;
+    const int hook = rt->visual && !login && !charsel, has_model = m && m->loaded;
     if (status == MU_OBJ_SKIPPED) {
         ++rt->draw_skipped;
         if (hook)
@@ -551,14 +607,17 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     if (status == MU_OBJ_UNSUPPORTED)
         ++rt->draw_unsupported;
-    const mu_obj_event *body = NULL;
+    const mu_obj_event *body = NULL, *mesh = NULL;
     for (int32_t j = 0; j < log.count; ++j)
         if (local[j].call == MU_OBJ_CALL_BODY)
             body = &local[j];
     for (int32_t j = 0; !body && j < cc.log.count; ++j)
         if (custom_events[j].call == MU_OBJ_CALL_BODY)
             body = &custom_events[j];   /* the login world's custom render drew the body */
-    if (status == MU_OBJ_OK && !body) {
+    for (int32_t j = 0; !body && !mesh && j < cc.log.count; ++j)
+        if (custom_events[j].call == MU_OBJ_CALL_MESH)
+            mesh = &custom_events[j];   /* the character select's pedestal: one mesh (slot 0x38) */
+    if (status == MU_OBJ_OK && !body && !mesh) {
         if (hook)
             rt->visual(rt->hook_context, o, i, 1, NULL);
         return NULL;   /* a per-world custom render took the object */
@@ -570,15 +629,10 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     }
     mu_draw_default_options(options);
     options->textures = &m->textures;
-    if (body) {
-        options->flags = body->args[0];
-        options->alpha = fbits(body->args[1]);
-        options->select = (int32_t)body->args[2];
-        options->color_scale = fbits(body->args[3]);
-        options->u_offset = fbits(body->args[4]);
-        options->v_offset = fbits(body->args[5]);
-        options->skip_mesh = (int32_t)body->args[6];
-        options->texture = (int32_t)body->args[7];
+    if (mesh) {
+        mesh_options(mesh, m, map, options);
+    } else if (body) {
+        body_options(body, m, map, options);
     } else {   /* unsupported branch: the generic RenderBody arguments */
         options->alpha = mu_obj_f32(img, MU_OBJF_ALPHA);
         options->select = mu_obj_i32(img, MU_OBJF_BLEND_MESH);
@@ -640,7 +694,7 @@ void mu_objects_after_visibility(mu_objects *o, const mu_terrain_frustum *f, int
 {
     mu_objects_runtime *rt = &o->rt;
     rt->after_count = 0;
-    if (!rt->ready || o->world != MU_LOGIN_WORLD)
+    if (!rt->ready || (o->world != MU_LOGIN_WORLD && o->world != MU_CSW_WORLD))
         return;
     mu_obj_render_inputs in;
     memset(&in, 0, sizeof in);
@@ -696,7 +750,10 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         return NULL;
     mu_obj_event events[40];
     mu_obj_log log = {0, 40, 0, events};
-    mu_login_after_render(img, rt->model_fields, i, rt->now_ms, NULL, NULL, &log);
+    if (o->world == MU_CSW_WORLD)
+        mu_csw_after_render(img, i, &log);   /* NATIVE-CHARSEL-002: RenderBody or the pedestal's glow mesh */
+    else
+        mu_login_after_render(img, rt->model_fields, i, rt->now_ms, NULL, NULL, &log);
     float color[3];
     memcpy(color, rt->model_fields + MU_MDL_COLOR, 12);   /* the colour the slot restores last */
     float current[3];
@@ -706,6 +763,15 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
         if (ev->call == MU_OBJ_CALL_COLOR) {
             for (int q = 0; q < 3; ++q)
                 current[q] = fbits(ev->args[q]);
+            continue;
+        }
+        if (ev->call == MU_OBJ_CALL_BODY && *count < capacity) {   /* the whole body (character select) */
+            mu_object_mesh *whole = &meshes[(*count)++];
+            body_options(ev, m, map, &whole->options);
+            memset(&whole->fields, 0, sizeof whole->fields);
+            memcpy(whole->fields.color, current, sizeof current);
+            whole->options.fields = NULL;
+            ++rt->after_meshes;
             continue;
         }
         if (ev->call != MU_OBJ_CALL_MESH || *count >= capacity)
