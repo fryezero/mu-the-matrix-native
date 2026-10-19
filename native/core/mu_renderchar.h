@@ -19,7 +19,9 @@
  *
  * Viewer choices (not client facts):
  *  - the EnchantEffect colour table 0x06fbb754 (a script in the localisation
- *    archive) is not read; its colour is a parameter (glow_color);
+ *    archive) comes from the tables read from the client (NATIVE-LANG-001,
+ *    MU_LANG_DIR): the item's colour is 0x010ffd7a(type - 0xae6); without
+ *    them, or with glow_override, it is the parameter glow_color;
  *  - item types with type-specific client branches (mu_rc_item_special) and
  *    record kinds outside the reconstructed domain are drawn with one plain
  *    textured body pass and counted in stats->special;
@@ -39,6 +41,8 @@ typedef struct mu_renderchar_env {
     float time;              /* 0x06fce370 */
     int32_t quality;         /* graphics option (glow level cap 2q+5 for q <= 4) */
     float glow_color[3];     /* EnchantEffect colour (viewer parameter) */
+    const struct mu_lang *lang;   /* EnchantEffect table (mu_renderchar_default_env: mu_lang_shared()) */
+    int glow_override;       /* 1: glow_color for every item even with the table */
     uint32_t render_type;    /* 2: body parts and RenderLinkItem items */
 } mu_renderchar_env;
 

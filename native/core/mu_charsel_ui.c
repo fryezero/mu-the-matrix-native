@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mu_lang.h"
+
 static const uint32_t FONT_HANDLES[4] = {0x0f0f0001u, 0x0f0f0002u, 0x0f0f0003u, 0x0f0f0004u};
 
 /* OpenCharacterSceneData 0x0182a553: GL_NEAREST, GL_CLAMP */
@@ -17,17 +19,23 @@ static const struct { uint32_t index; const char *path; } TEXTURES[] = {
     {0x7532, "Interface\\FontInput.tga"},
 };
 
-/* Observed on the live screen (Data\Lang.mpr is not decoded). */
+/* Observed on the live screen; used when no GlobalText table is loaded. */
 static const char *const LIVE_TIP = "Long game time may be harmful to your health!";
 
+/* GlobalText: an explicit tip wins for the three tip lines (0x6ae, 0x6cb,
+ * 0x6cc), then the tables read from the client (NATIVE-LANG-001,
+ * MU_LANG_DIR), then the observed string. */
 static const char *global_text(void *user, int32_t index)
 {
     mu_charsel_ui *ui = user;
     const char *tip = (const char *)ui->ctx.platform.user;
-    switch (index) {
-    case 0x6ae: case 0x6cb: case 0x6cc: return tip;
-    default: return "";
-    }
+    int tip_line = index == 0x6ae || index == 0x6cb || index == 0x6cc;
+    if (tip_line && tip)
+        return tip;
+    const char *text = mu_lang_text(mu_lang_shared(), index);
+    if (text)
+        return text;
+    return tip_line ? LIVE_TIP : "";
 }
 
 static void sink_call(void *user, int op, const uint32_t *words, int count, const void *data, size_t bytes)
@@ -96,7 +104,7 @@ int mu_charsel_ui_init(mu_charsel_ui *ui, const char *root, int32_t width, int32
     ctx->fonts.fixed = FONT_HANDLES[3];
     ctx->global_text = global_text;
     ctx->global_text_user = ui;
-    ctx->platform.user = (void *)(tip ? tip : LIVE_TIP);
+    ctx->platform.user = (void *)tip;
     /* CUIMng::CreateCharacterScene: Create, SetPosition(0x16, height - h - 0xe),
      * UpdateDisplay, ShowWin */
     refresh(ui, s);

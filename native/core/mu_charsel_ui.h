@@ -8,9 +8,10 @@
  * finished 3D frame (the client draws its 2D layer over the 3D framebuffer).
  *
  * Not drawn: the GFx character list, the GFx create/menu interfaces, the
- * server-message window (CUIMng +0x63a8) and the cursor. GlobalText
- * (Data\Lang.mpr) is not decoded: the tip line uses the string observed on
- * the live screen. */
+ * server-message window (CUIMng +0x63a8) and the cursor. GlobalText (the
+ * tip line 0x6ae/0x6cb/0x6cc, the warning lines 0x1b4/0x1b5) comes from the
+ * tables read from the client (NATIVE-LANG-001, MU_LANG_DIR); without them
+ * the tip line uses the string observed on the live screen. */
 
 #include <stdint.h>
 
@@ -33,7 +34,7 @@ typedef struct mu_charsel_ui {
     int32_t textures, events[16][2], event_count, sounds;
 } mu_charsel_ui;
 
-/* Returns 0 on success. tip may be NULL (the live string). */
+/* Returns 0 on success. tip may be NULL (GlobalText, else the live string). */
 int mu_charsel_ui_init(mu_charsel_ui *ui, const char *game_root, int32_t width, int32_t height, const char *font,
                        const mu_charsel_session *s, const char *tip);
 void mu_charsel_ui_free(mu_charsel_ui *ui);

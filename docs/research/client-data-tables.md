@@ -108,6 +108,9 @@ The strings are interleaved with sound and NPC name tables. That pattern is cons
 
 ## Lang.mpr (envelope verified; contents blocked)
 
+NATIVE-LANG-001 reads the tables the client builds from it out of the running client instead
+([client-lang-tables.md](client-lang-tables.md)); the package itself stays encrypted.
+
 The decoded payload is a zip archive with 141 entries: `\Text(kor).txt`, `\Skill(kor).txt`, `\Gate.txt`, `\movereq(kor).txt`, `\npcName(kor).txt`, `\Dialog(kor).txt`, the `EffectInfo\*` and `MapObjectAnimationInfo\*` scripts and others. It is opened from memory through the bundled minizip, and `mu-data mpr` lists its directory. Every entry has general-purpose flag bit 0 set, which means traditional PKWARE encryption. The only password call site seen, `0x00ffabf1`, pushes the absolute value `0x10c7c8ef`. That address lies outside every PE section of the image, and its bytes are in no capture. The localized text, skill, gate/move and NPC-name tables therefore stay undecoded. Recovering the password would mean inspecting the protected region and was not attempted.
 
 ## Files not handled by located loaders

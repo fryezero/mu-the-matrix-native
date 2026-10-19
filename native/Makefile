@@ -51,7 +51,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
-            core/mu_particles.c core/mu_joints.c
+            core/mu_particles.c core/mu_joints.c core/mu_lang.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -99,7 +99,7 @@ endif
 
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/mu-effect $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
      $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) \
-     $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel $(BUILD)/mu-shell audio
+     $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel $(BUILD)/mu-shell $(BUILD)/mu-lang audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
@@ -190,6 +190,11 @@ DATA_HDR := core/mu_data.h $(RECON)/data/data_codec.h $(RECON)/data/data_tables.
 $(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_data.c $(DATA_SRC) -o $@
+
+# Lang.mpr tables read from the client (NATIVE-LANG-001): no other dependency.
+$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) tools/mu_lang_tool.c core/mu_lang.c -o $@
 
 # ---- windowed viewer ----
 SDL_CONFIG ?= sdl2-config

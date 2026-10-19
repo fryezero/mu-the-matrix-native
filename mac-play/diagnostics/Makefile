@@ -34,3 +34,9 @@ build/lightread: lightread.c debugger-entitlement.plist | build
 	clang -O2 -Wall $< -o $@
 	codesign -s - -f --entitlements debugger-entitlement.plist $@
 .PHONY: all objread memread lightread
+# langread (NATIVE-LANG-001 live read of the Lang.mpr tables main.exe built): same signing.
+langread: build/langread
+build/langread: langread.c debugger-entitlement.plist | build
+	clang -O2 -Wall $< -o $@
+	codesign -s - -f --entitlements debugger-entitlement.plist $@
+.PHONY: langread

@@ -418,3 +418,11 @@ NATIVE-GFX-003 (branch `claude/native-gfx3`) runs the HUD as the client runs it:
 
 `scripts/validate_gfx3.py` runs the client's LoadFrameFiles, InitMenuInfo, SkillInfo and window-creator routines in Unicorn: all equal the layer (80 window cases), and 5 planted mistakes are caught. The comparison corrected the menu's submenu groups and showed that id 14 opens the inventory. 12 tests (base movie on the stand-in library in CI; the Ruffle checks locally). [Finding](research/native-gfx3.md).
 
+NATIVE-LANG-001 (branch `claude/native-lang`) gets the game text and script tables of the encrypted `Data\Lang.mpr` without its password. The client's own code loads the package; `mac-play/diagnostics/langread` then copies the tables main.exe built (the script-table manager `0x06fbaa60` and its std::map trees) out of a client this project started. The copy is read-only and was made under the game lock at the server list; three runs of about 64 s, no login. `scripts/live_lang_to_plain.py` writes local plaintext; it is never committed. The tables were located only through main.exe's consumers (GlobalText `0x0095f027`, the skill lookup `0x00961620`, the startup table list `0x0115eceb`); the loader and the protection stay opaque. `native/core/mu_lang` uses them when `MU_LANG_DIR` is set:
+
+- the GFx labels, the client's skill table and the map names in mu-world and mu-client;
+- skill distance and GetSkillInformation in combat;
+- EnchantEffect colours in the world render;
+- character-select tips and login strings.
+
+Placeholders remain without the tables. `scripts/validate_lang.py` runs the client's consumers over the snapshot in Unicorn: 43,400 cases equal the native module, and 5 planted mistakes are caught. [Finding](research/client-lang-tables.md).

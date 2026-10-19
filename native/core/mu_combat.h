@@ -23,7 +23,8 @@
  * DEMO, not client behaviour (there is no server): who hits, the damage
  * values, types and the miss chance, the hit-point pools, the latency of
  * the damage and death packets, the monsters' counter-attacks and their
- * timing, the respawn after removal, the skill ranges, auto-repeating the
+ * timing, the respawn after removal, the skill ranges without the client's
+ * skill table (NATIVE-LANG-001 supplies it from MU_LANG_DIR), auto-repeating the
  * attack while the target lives, and the picking of a monster under the
  * cursor (a cylinder around the actor, not the client's selection routine).
  * NATIVE-COMBAT-002: the skills' visuals run the client's older effect
@@ -211,6 +212,7 @@ typedef struct mu_combat {
     mu_combat_stats stats;
     char log[32][96];
     int32_t log_count;
+    const struct mu_lang *lang;   /* NATIVE-LANG-001: skill table (names, distance, mana), or NULL */
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the

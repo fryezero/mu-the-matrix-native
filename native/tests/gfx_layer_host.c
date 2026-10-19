@@ -10,7 +10,8 @@
  *   | compose STR | invoke MOVIE PATH METHOD JSON ("-" path: the movie's) | items | channels
  * `print` writes one JSON line with the layer state; each input op prints
  * whether the interface took it.  MU_GFX_SIZE=WxH sets the window size in
- * points (default 1280x800). */
+ * points (default 1280x800).  MU_GFX_HOST_TEXT=1 installs a GlobalText
+ * provider that returns "T<n>" (NATIVE-LANG-001). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +32,16 @@ static void print_state(mu_gfx_layer *L)
            mu_gfx_layer_path(L, MU_GFX_INVENTORY), v[0], v[1], v[2], v[3], mu_gfx_layer_hero(L)->points,
            mu_gfx_layer_base_mode(L), mu_gfx_layer_path(L, MU_GFX_CHAT));
     fflush(stdout);
+}
+
+static const char *host_text(void *user, int32_t index)
+{
+    static char buf[16][24];
+    static int next;
+    (void)user;
+    char *b = buf[next++ & 15];
+    snprintf(b, sizeof buf[0], "T%d", index);
+    return b;
 }
 
 static int click(mu_gfx_layer *L, double x, double y, int button)
@@ -55,6 +66,8 @@ int main(int argc, char **argv)
     mu_gfx_layer_config cfg = {.movie_dir = argv[1], .lib_path = argv[2], .width = (int32_t)(pw * scale),
                                .height = (int32_t)(ph * scale), .shared = 1, .log = getenv("MU_GFX_LOG") ? stderr : NULL,
                                .scale = scale};
+    if (getenv("MU_GFX_HOST_TEXT"))
+        cfg.text = host_text;
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {
         printf("{\"error\": \"%s\"}\n", error);

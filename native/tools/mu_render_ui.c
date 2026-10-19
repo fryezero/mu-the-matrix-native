@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../core/mu_lang.h"
 #include "../core/mu_login.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
@@ -304,6 +305,22 @@ static int render_text(const ui_options *o)
     return result;
 }
 
+/* GlobalText[454..456] of the login overlay: the tables read from the
+ * client (NATIVE-LANG-001) when present, else the observed strings.  456 is
+ * a format with one %s; a table string without exactly one %s is not used. */
+static const char *login_text(int32_t index, const char *observed)
+{
+    const char *text = mu_lang_text(mu_lang_shared(), index);
+    if (!text)
+        return observed;
+    if (index == 456) {
+        const char *p = strstr(text, "%");
+        if (!p || p[1] != 's' || strchr(p + 2, '%'))
+            return observed;
+    }
+    return text;
+}
+
 /* The login scene's 2D layer (0x01857ed9, 0x01858108..0x018588ac) over a
  * black frame: the 3D login world, the UI-manager windows and the cursor are
  * not part of this slice.  GlobalText[454..456] (encrypted Data\Lang.mpr)
@@ -346,9 +363,9 @@ static int render_login(const ui_options *o)
     memset(&strings, 0, sizeof strings);
     /* Defaults: the strings the installed client showed in a live capture on
      * 2026-10-17 (read off the screen; the encrypted text file is not decoded). */
-    strings.text454 = o->text454 ? o->text454 : "Mu The Matrix, Private Server Since 2005 / ";
-    strings.text455 = o->text455 ? o->text455 : "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.";
-    strings.format456 = o->format456 ? o->format456 : "Ver %s";
+    strings.text454 = o->text454 ? o->text454 : login_text(454, "Mu The Matrix, Private Server Since 2005 / ");
+    strings.text455 = o->text455 ? o->text455 : login_text(455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
+    strings.format456 = o->format456 ? o->format456 : login_text(456, "Ver %s");
     for (int i = 0; i < 5; ++i)
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
     clear(&state);
@@ -362,7 +379,7 @@ static int render_login(const ui_options *o)
     int result = finish(o, &raster, "login", loaded, 3);
     fprintf(stderr, "login: font %s %s (%d px), strings %s\n", font.face,
             font.backend ? "CoreText" : "placeholder", font.height,
-            o->text454 || o->text455 || o->format456 ? "from options" : "observed live defaults");
+            o->text454 || o->text455 || o->format456 ? "from options" : mu_lang_text(mu_lang_shared(), 454) ? "GlobalText (MU_LANG_DIR)" : "observed live defaults");
     free(text.dib);
     mu_ui_font_close(&font);
     mu_ui_assets_free(&assets);
@@ -410,16 +427,22 @@ static void screen_call(void *user, int op, const uint32_t *words, int count, co
 
 typedef struct global_texts {
     const char *t565, *t566, *t567;
+    int forced;               /* set from options: they win over the tables */
 } global_texts;
 
+/* The tables read from the client (NATIVE-LANG-001, MU_LANG_DIR) when
+ * present; otherwise the strings observed on the live screen. */
 static const char *global_text(void *user, int32_t index)
 {
     const global_texts *t = user;
+    const char *text = mu_lang_text(mu_lang_shared(), index);
+    if (text && !t->forced)
+        return text;
     switch (index) {
     case 0x235: return t->t565;
     case 0x236: return t->t566;
     case 0x237: return t->t567;
-    default: return "";
+    default: return text ? text : "";
     }
 }
 
@@ -575,6 +598,7 @@ static int render_servers(const ui_options *o)
     texts.t565 = o->no_text ? "" : o->text565 ? o->text565 : "Mu The Matrix Private Server";
     texts.t566 = o->no_text ? "" : o->text566 ? o->text566 : "More than 20 years Online";
     texts.t567 = o->no_text ? "" : o->text567 ? o->text567 : "enjoy our community!";
+    texts.forced = o->no_text || o->text565 || o->text566 || o->text567;
     memset(&ctx, 0, sizeof ctx);
     ctx.state = &state;
     ctx.text = &text;
@@ -652,9 +676,9 @@ static int render_servers(const ui_options *o)
     ctx.input.lbutton_down = ctx.input.lbutton_up = 0;
 
     memset(&strings, 0, sizeof strings);
-    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : "Mu The Matrix, Private Server Since 2005 / ";
-    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.";
-    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : "Ver %s";
+    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : login_text(454, "Mu The Matrix, Private Server Since 2005 / ");
+    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : login_text(455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
+    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : login_text(456, "Ver %s");
     for (int i = 0; i < 5; ++i) {
         const char *version = o->version ? o->version : "10000";
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
@@ -697,9 +721,9 @@ static void login_overlay(const ui_options *o, mu_ui_state *state, mu_ui_ctx *ct
     mu_ui_login_text strings;
     float fade = o->fade - 0.02f;
     memset(&strings, 0, sizeof strings);
-    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : "Mu The Matrix, Private Server Since 2005 / ";
-    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.";
-    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : "Ver %s";
+    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : login_text(454, "Mu The Matrix, Private Server Since 2005 / ");
+    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : login_text(455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
+    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : login_text(456, "Ver %s");
     for (int i = 0; i < 5; ++i) {
         const char *version = o->version ? o->version : "10000";
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);

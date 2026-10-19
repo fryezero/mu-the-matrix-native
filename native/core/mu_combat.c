@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "../../reconstructed/movement/client_movement.h"
+#include "mu_lang.h"
 #include "mu_raster.h"
 #include "mu_scene.h"
 #include "mu_particles.h"
@@ -194,6 +195,7 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->hero_key = HERO_KEY;
     c->target = -1;
     c->intent_skill = -1;
+    c->lang = mu_lang_shared();   /* NATIVE-LANG-001: the client's skill table when MU_LANG_DIR has it */
     c->attack_target = -1;
     c->pending_target = -1;
     c->last_sound = -1;
@@ -958,6 +960,14 @@ void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
         return;
     c->target = actor;
     c->intent_skill = skill;
+    int32_t mana = 0, distance = 0, ag = 0;
+    const char *name = mu_lang_skill_info(c->lang, skill, 0, &mana, &distance, &ag);
+    if (name) {   /* GetSkillInformation 0x01696458 over the client's table */
+        char line[96], clean[48];
+        snprintf(line, sizeof line, "skill %d %s: mana %d, AG %d, distance %d", skill,
+                 mu_lang_ascii(clean, sizeof clean, name), mana, ag, distance);
+        log_line(c, line);
+    }
 }
 
 void mu_combat_stop(mu_combat *c)
@@ -966,10 +976,15 @@ void mu_combat_stop(mu_combat *c)
     c->intent_skill = -1;
 }
 
-/* Demo ranges of skills (the skill table's range field is in the encrypted
- * Lang.mpr tables, out of reach): melee skills 2 tiles, the rest 6. */
-static float skill_range(int32_t skill)
+/* Range of a skill in tiles: the skill table's distance (+0x34, the base of
+ * GetSkillDistance 0x01696630; the character's class and skill-tree bonuses
+ * are not applied) when the client's table is loaded (NATIVE-LANG-001), else
+ * the demo ranges: melee skills 2 tiles, the rest 6. */
+static float skill_range(const mu_combat *c, int32_t skill)
 {
+    const mu_lang_skill *s = mu_lang_skill_get(c->lang, skill);
+    if (s && s->distance > 0)
+        return (float)s->distance;
     if ((skill >= 19 && skill <= 23) || (skill >= 41 && skill <= 43))
         return 2.0f;
     return 6.0f;
@@ -1080,7 +1095,7 @@ static void hero_decide(mu_combat *c)
         return;
     const mu_world_actor *a = &c->actors->list[t];
     int32_t item = c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6;
-    float range = c->intent_skill ? skill_range(c->intent_skill)
+    float range = c->intent_skill ? skill_range(c, c->intent_skill)
                                   : mu_hero_attack_range(item, weapons[c->config.weapon].bow_kind != 0, 0, 0);
     if (!mu_in_range(h->tile[0], h->tile[1], a->tile[0], a->tile[1], range)) {
         /* walk toward the target (the client paths with PathFinding2 and the
@@ -1704,12 +1719,12 @@ void mu_combat_report_summary(const mu_combat *c, FILE *out, int quiet)
             " \"monster_attacks\": %u, \"hero_hits\": %u, \"picks\": %u, \"pick_hits\": %u,"
             " \"particles_created\": %u, \"joints_created\": %u, \"projectile_hits\": %u, \"area_requests\": %u,"
             " \"sprites\": %u, \"unsupported\": %u, \"hero_shocks\": %u, \"hero_deaths\": %u,"
-            " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d}\n",
+            " \"sounds\": %u, \"bitmaps_loaded\": %d, \"models_loaded\": %d, \"skill_table\": %d}\n",
             c->config.weapon, (double)c->config.attack_speed, s->attacks, s->skills, s->arrows, s->fx_created,
             s->hits, s->misses, s->shocks, s->kills, s->deaths, s->removed, s->respawns, s->points_created,
             s->monster_attacks, s->hero_hits, s->picks, s->pick_hits, s->particles_created, s->joints_created,
             s->projectile_hits, s->area_requests, s->sprites, s->unsupported, s->hero_shocks, s->hero_deaths,
-            c->sounds_played, loaded_bitmaps(c), loaded_models(c));
+            c->sounds_played, loaded_bitmaps(c), loaded_models(c), (int)mu_lang_skill_count(c->lang));
     if (!quiet)
         for (int32_t i = 0; i < c->log_count; ++i)
             fprintf(out, "{\"combat_log\": \"%s\"}\n", c->log[i]);

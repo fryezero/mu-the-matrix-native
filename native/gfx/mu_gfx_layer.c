@@ -403,6 +403,26 @@ static void json_quote(char *out, size_t cap, const char *s)
     out[o] = 0;
 }
 
+/* GlobalText[index] from the host (NATIVE-LANG-001) as a JSON literal, or
+ * the stand-in.  The client's strings are ANSI: bytes outside printable
+ * ASCII become '?' so the JSON stays valid UTF-8. */
+static const char *gtext(const mu_gfx_layer *L, int32_t index, const char *fallback)
+{
+    const char *s = L->cfg.text && index >= 0 ? L->cfg.text(L->cfg.text_user, index) : NULL;
+    return s ? s : fallback;
+}
+
+static void gt_quote(const mu_gfx_layer *L, char *out, size_t cap, int32_t index, const char *fallback)
+{
+    char clean[512];
+    const char *s = gtext(L, index, fallback);
+    size_t n = 0;
+    for (; s && *s && n + 1 < sizeof clean; s++)
+        clean[n++] = ((unsigned char)*s >= 0x20 && (unsigned char)*s < 0x7f) ? *s : '?';
+    clean[n] = 0;
+    json_quote(out, cap, clean);
+}
+
 static void commas(char *out, size_t cap, int64_t v)
 {
     char digits[32];
@@ -1198,9 +1218,10 @@ static void window_sizes(mu_gfx_layer *L)
  * GlobalText numbers equal): keyCode is a menu id (dispatched by
  * 0x00c714bd; ids 13/14/15 toggle PetInventoryFrame, InventoryFrame,
  * GremoryCase, static), key and label are
- * GlobalText strings (Data/Lang.mpr, encrypted: English stand-ins where
- * the entry's role is known, "GlobalText <n>" placeholders otherwise;
- * MU_GFX_GT_IDS=1 shows the numbers everywhere). */
+ * GlobalText strings: the host's text provider (NATIVE-LANG-001, the
+ * tables read from the running client) when it has them; otherwise English
+ * stand-ins where the entry's role is known and "GlobalText <n>"
+ * placeholders elsewhere.  MU_GFX_GT_IDS=1 shows the numbers everywhere. */
 typedef struct menu_entry { const char *group; int id; int key_gt; const char *key; int label_gt; const char *label; } menu_entry;
 static const menu_entry MENU[] = {
     {"IngameShop", 0, 0xd5c, "X", 0xd5d, "In-game shop"},
@@ -1224,24 +1245,29 @@ static const menu_entry MENU[] = {
     {"System/", 8, 0xecc, "", 0xd4f, NULL},
 };
 
-static size_t menu_item(char *out, size_t cap, const menu_entry *e, int gt_ids)
+static size_t menu_item(const mu_gfx_layer *L, char *out, size_t cap, const menu_entry *e, int gt_ids)
 {
-    char key[32], label[48];
-    if (gt_ids && e->key_gt >= 0)
-        snprintf(key, sizeof key, "GT%d", e->key_gt);
-    else
-        snprintf(key, sizeof key, "%s", e->key);
-    if (gt_ids || !e->label)   /* unknown text: a labelled placeholder */
-        snprintf(label, sizeof label, "GlobalText %d", e->label_gt);
-    else
-        snprintf(label, sizeof label, "%s", e->label);
-    return (size_t)snprintf(out, cap, "{\"keyCode\":%d,\"key\":\"%s\",\"label\":\"%s\"", e->id, key, label);
+    char key[96], label[160], tmp[48];
+    if (gt_ids && e->key_gt >= 0) {
+        snprintf(tmp, sizeof tmp, "GT%d", e->key_gt);
+        json_quote(key, sizeof key, tmp);
+    } else {
+        gt_quote(L, key, sizeof key, e->key_gt, e->key);
+    }
+    if (gt_ids) {
+        snprintf(tmp, sizeof tmp, "GlobalText %d", e->label_gt);
+        json_quote(label, sizeof label, tmp);
+    } else {
+        snprintf(tmp, sizeof tmp, "GlobalText %d", e->label_gt);   /* unknown text: a labelled placeholder */
+        gt_quote(L, label, sizeof label, e->label_gt, e->label ? e->label : tmp);
+    }
+    return (size_t)snprintf(out, cap, "{\"keyCode\":%d,\"key\":%s,\"label\":%s", e->id, key, label);
 }
 
 static void init_menu(mu_gfx_layer *L)
 {
     int gt = getenv("MU_GFX_GT_IDS") && atoi(getenv("MU_GFX_GT_IDS"));
-    char buf[4096];
+    char buf[8192];
     size_t n = 0;
     n += (size_t)snprintf(buf + n, sizeof buf - n, "[{");
     int ngroups = 0;
@@ -1250,14 +1276,14 @@ static void init_menu(mu_gfx_layer *L)
         if (strchr(e->group, '/'))
             continue;
         n += (size_t)snprintf(buf + n, sizeof buf - n, "%s\"%s\":", ngroups++ ? "," : "", e->group);
-        n += menu_item(buf + n, sizeof buf - n, e, gt);
+        n += menu_item(L, buf + n, sizeof buf - n, e, gt);
         char sub[32];
         snprintf(sub, sizeof sub, "%s/", e->group);
         int nsub = 0;
         for (size_t k = 0; k < sizeof MENU / sizeof MENU[0]; k++)
             if (!strcmp(MENU[k].group, sub)) {
                 n += (size_t)snprintf(buf + n, sizeof buf - n, "%s", nsub++ ? "}," : ",\"subMenu\":[");
-                n += menu_item(buf + n, sizeof buf - n, &MENU[k], gt);
+                n += menu_item(L, buf + n, sizeof buf - n, &MENU[k], gt);
             }
         n += (size_t)snprintf(buf + n, sizeof buf - n, "%s}", nsub ? "}]" : "");
     }
@@ -1313,15 +1339,27 @@ static void init_main(mu_gfx_layer *L)
     feed_item_hotkeys(L);
 }
 
+/* The chat's InitData labels (static reading of the chat handler near
+ * 0x00c611e3: each member is set from GlobalText[n]). */
+static const struct { const char *member; int32_t gt; const char *standin; } CHAT_TEXT[] = {
+    {"strNormal", 3406, "All"},           {"strParty", 944, "Party"},     {"strGuild", 946, "Guild"},
+    {"strGens", 3091, "Gens"},            {"strWhisper", 945, "Whisper"}, {"strSystem", 3407, "System"},
+    {"strBlock", 4651, "Block"},          {"typeFormatWHISPER", 3813, "W"}, {"typeFormatPARTY", 3812, "P"},
+    {"typeFormatGUILD", 3810, "G"},       {"typeFormatUNION", 1295, "U"}, {"typeFormatGENS", 3811, "Gens"},
+};
+
 static void init_chat(mu_gfx_layer *L)
 {
     movie *chat = &L->mv[MU_GFX_CHAT];
     L->chat_inited = 1;
-    invokef(L, MU_GFX_CHAT, chat->path, "InitData",
-            "[{\"MaxInputSize\":\"60\",\"MaxUsetNameSize\":\"10\",\"strNormal\":\"All\",\"strParty\":\"Party\","
-            "\"strGuild\":\"Guild\",\"strGens\":\"Gens\",\"strWhisper\":\"Whisper\",\"strSystem\":\"System\","
-            "\"strBlock\":\"Block\",\"typeFormatWHISPER\":\"W\",\"typeFormatPARTY\":\"P\","
-            "\"typeFormatGUILD\":\"G\",\"typeFormatUNION\":\"U\",\"typeFormatGENS\":\"Gens\"}]");
+    char buf[2048], q[160];
+    size_t n = (size_t)snprintf(buf, sizeof buf, "[{\"MaxInputSize\":\"60\",\"MaxUsetNameSize\":\"10\"");
+    for (size_t i = 0; i < sizeof CHAT_TEXT / sizeof CHAT_TEXT[0] && n < sizeof buf; i++) {
+        gt_quote(L, q, sizeof q, CHAT_TEXT[i].gt, CHAT_TEXT[i].standin);
+        n += (size_t)snprintf(buf + n, sizeof buf - n, ",\"%s\":%s", CHAT_TEXT[i].member, q);
+    }
+    snprintf(buf + n, sizeof buf - n, "}]");
+    invokef(L, MU_GFX_CHAT, chat->path, "InitData", "%s", buf);
     invokef(L, MU_GFX_CHAT, chat->path, "CloseEditText", "[]");
     chat->open = 1;
 }
@@ -1389,18 +1427,39 @@ static void init_windows(mu_gfx_layer *L)
 {
     movie *inv = &L->mv[MU_GFX_INVENTORY];
     if (inv->path[0]) {
-        invokef(L, MU_GFX_INVENTORY, inv->path, "InitText",
-                "[{\"Title\":\"Inventory\",\"Zen\":\"\",\"Ruud\":\"\",\"Artifact\":\"Artifact\","
-                "\"PrivateStore\":\"Personal S\",\"ExtensionBag\":\"Expanded\",\"Repair\":\"Repair\","
-                "\"Divide\":\"Divide\",\"Disassemble\":\"Disassemb\",\"Bundle\":\"Bundle\"}]");
+        /* InitText as the inventory handler 0x00b908e4 builds it (static: Title and the buttons from
+         * GlobalText; English stand-ins without the host's text). */
+        static const struct { const char *member; int32_t gt; const char *standin; } INV_TEXT[] = {
+            {"Title", 3453, "Inventory"},      {"Artifact", 6083, "Artifact"}, {"PrivateStore", 1102, "Personal S"},
+            {"ExtensionBag", 3451, "Expanded"}, {"Repair", 1559, "Repair"},     {"Divide", 5233, "Divide"},
+            {"Disassemble", 4753, "Disassemb"}, {"Bundle", 5823, "Bundle"}};
+        char buf[2048], q[160];
+        size_t n = (size_t)snprintf(buf, sizeof buf, "[{\"Zen\":\"\",\"Ruud\":\"\"");
+        for (size_t i = 0; i < sizeof INV_TEXT / sizeof INV_TEXT[0] && n < sizeof buf; i++) {
+            gt_quote(L, q, sizeof q, INV_TEXT[i].gt, INV_TEXT[i].standin);
+            n += (size_t)snprintf(buf + n, sizeof buf - n, ",\"%s\":%s", INV_TEXT[i].member, q);
+        }
+        snprintf(buf + n, sizeof buf - n, "}]");
+        invokef(L, MU_GFX_INVENTORY, inv->path, "InitText", "%s", buf);
         zen_text(L);
         slot_gap(L);
         slot_states(L);
     }
-    if (L->mv[MU_GFX_CHARACTER].path[0])
-        invokef(L, MU_GFX_CHARACTER, L->mv[MU_GFX_CHARACTER].path, "InitText",
-                "[{\"StatButton\":\"Stats\",\"PentagramButton\":\"Pentagram\",\"MasterSkillTree\":\"Master\","
-                "\"SkillTree4th\":\"4th Tree\",\"SkillTree5th\":\"5th Tree\",\"DetailInfo\":\"Details\"}]");
+    if (L->mv[MU_GFX_CHARACTER].path[0]) {
+        /* InitText as the character handler 0x00b3d161 builds it (static, GlobalText). */
+        static const struct { const char *member; int32_t gt; const char *standin; } CHAR_TEXT[] = {
+            {"StatButton", 4853, "Stats"},       {"PentagramButton", 4854, "Pentagram"},
+            {"MasterSkillTree", 6412, "Master"}, {"SkillTree4th", 6413, "4th Tree"},
+            {"SkillTree5th", 6414, "5th Tree"},  {"DetailInfo", 4856, "Details"}};
+        char buf[2048], q[160];
+        size_t n = (size_t)snprintf(buf, sizeof buf, "[{");
+        for (size_t i = 0; i < sizeof CHAR_TEXT / sizeof CHAR_TEXT[0] && n < sizeof buf; i++) {
+            gt_quote(L, q, sizeof q, CHAR_TEXT[i].gt, CHAR_TEXT[i].standin);
+            n += (size_t)snprintf(buf + n, sizeof buf - n, "%s\"%s\":%s", i ? "," : "", CHAR_TEXT[i].member, q);
+        }
+        snprintf(buf + n, sizeof buf - n, "}]");
+        invokef(L, MU_GFX_CHARACTER, L->mv[MU_GFX_CHARACTER].path, "InitText", "%s", buf);
+    }
     window_sizes(L);
     for (int m = MU_GFX_INVENTORY; m <= MU_GFX_CHARACTER; m++)
         if (L->mv[m].path[0] && m != MU_GFX_TOOLTIP)

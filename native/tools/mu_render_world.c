@@ -118,6 +118,7 @@ int mu_render_world_args(int *argc, char **argv)
                 fprintf(stderr, "--glow-color expects R,G,B\n");
                 return 1;
             }
+            W.env.glow_override = 1;   /* the parameter wins over the EnchantEffect table */
             W.active = 1;
         } else if (!strcmp(a, "--quality")) {
             W.env.quality = atoi(v);
