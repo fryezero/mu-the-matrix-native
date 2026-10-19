@@ -13,6 +13,17 @@ the scene's sprites, particles and shadows. Compare with `scripts/validate_chars
 `mu-charsel --objects-out` for the per-object comparison). Next: the stardr01 effect `0x5ac` (CreateEffect
 `0x013f41b4` and its child `0x5ad`), the scene-5 character pick, the GFx character list.
 
+## Overhead names, HP boxes, chat bubbles (NATIVE-NAMES-001)
+
+Read [`research/client-overhead-text.md`](research/client-overhead-text.md). `reconstructed/names` is hudPlayerName's game
+handler; `native/core/mu_names.*` runs it with a model of the movie, `mu_world_names.*` feeds it from mu-world (hero,
+monsters, demo HP, SetPlayerDie removal, hover, chat), `world/world_names_gfx.c` drives the real movie with `--gfx`,
+`core/mu_label.*` is the shared label helper for the stand-in (NATIVE-ITEMS-001's item labels can use it). Compare with
+`scripts/validate_names.py --cases 1000 --negative 100` (about one minute, needs Unicorn). Monster names/heights read
+`MU_LANG_DIR/npcnames.tsv` (NATIVE-LANG-001 files); renders stay local (`~/Documents/mu-mac-tools/native/renders/names/`).
+Next: `mu_lang` for the Npcname table once it is on main, player stores/castle marks/other players, a live capture of a
+monster box and a bubble.
+
 ## Joints, world-object effects, login particles (NATIVE-JOINT-001)
 
 Read [`research/client-joints.md`](research/client-joints.md) (section 5 is the per-world survey of particle, joint

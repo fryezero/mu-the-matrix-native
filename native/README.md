@@ -251,6 +251,31 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --tile 133,127 --items --headl
 `--item-script` items: `F:drop:CODE[:LEVEL[:X,Y]]`, `F:alt`, `F:space`, `F:hover:N`, `F:pick:N`; `--item-seed`,
 `--item-latency`, `--item-despawn`, `--no-items`. Headless runs add `items_frame` lines and an `items` summary.
 
+## Overhead names, HP bars, chat bubbles (NATIVE-NAMES-001)
+
+The client draws names, the monster name/HP box and chat bubbles with the GFx movie `hudPlayerName`; its game handler
+is reconstructed in `reconstructed/names` ([finding](../docs/research/client-overhead-text.md)). `core/mu_names.*`
+runs it for the session and `core/mu_world_names.*` feeds it in `mu-world`/`mu-walk`/mu-client:
+
+- addInfo for the hero (kind 1) and the placed actors whose SetMonsterInfo kind is 2 (NPCs, kind 4, get no plate, as
+  in the client), every frame the selection wrapper and the handler's update (positions, visibility, HP bars);
+- the demo combat's HP after every change (setHp), removeInfo when SetPlayerDie runs (dead counter 15), addInfo again
+  at the demo respawn;
+- chat bubbles: `--chat-script "F:text;F:text"` headless, the GFx chat input in a window (`#` lines stay 40 s).
+
+With `--gfx DIR` (base movie) the real movie draws them (`world/world_names_gfx.c`); otherwise `core/mu_label.*` (the
+shared overhead-label helper) draws a stand-in into the frame. Monster names and name heights come from
+`MU_LANG_DIR/npcnames.tsv` (NATIVE-LANG-001 output) when present, else the placement label and height 200. Options:
+`--no-names`, `--hero-name NAME` (demo), `--monster-info 0|1`. Frame reports add `names_frame` lines (key, type, x, y,
+clip visible, box visible, HP, HP bar, bubble), the summary a `names` line.
+
+```sh
+native/build/mu-walk --game-root "$MU_GAME_ROOT" --headless --backend soft --frames 200 --every 50 --out-dir DIR \
+    --placement native/world/lorencia-demo-placement.txt --tile 182,128 --class 2 --combat-weapon bow \
+    --combat-script "6:attack:hound" --chat-script "20:Hello Lorencia;120:#Shout to everyone"
+MU_GFX_SINGLE_BUFFER=1 native/build/mu-world ... --backend gl --gfx MOVIES   # the same through hudPlayerName
+```
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -421,6 +446,8 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002); monster hurt and death sounds (NATIVE-ITEMS-001) |
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002) |
+| `core/mu_names.*`, `core/mu_world_names.*`, `core/mu_label.*`, `world/world_names_gfx.*` | Overhead names, monster HP boxes and chat bubbles: hudPlayerName's game side over `reconstructed/names`, its feed from the session, the shared label helper for the stand-in, the calls to the real movie (NATIVE-NAMES-001) |
+| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
