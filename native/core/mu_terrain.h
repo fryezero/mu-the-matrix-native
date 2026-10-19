@@ -102,6 +102,14 @@ int mu_world_load_extra(mu_world *world, const char *root, int32_t id, const cha
 int mu_world_client_frustum(const mu_world *world, const float modelview_rows[12], const float camera_position[3],
                             const float hero[3], float camera_angle_x, int32_t screen_width, int32_t zoom_mode,
                             float view_far, float fov, mu_terrain_frustum *frustum);
+/* The same with CreateFrustrum2D's camera-object inputs of zoom mode 0 (NATIVE-CHARSEL-002): camera_scale =
+ * 0x0098ac7c (screen_width / 640 * Distance * Z_Distance * manager scale) and distance_2400 = 0x0098ac45(2400)
+ * (2400 * Distance * Z_Distance * manager scale), from the scene's camera record in scenes 3 and 5;
+ * mu_world_client_frustum passes 1 and 2400. */
+int mu_world_client_frustum_scaled(const mu_world *world, const float modelview_rows[12], const float camera_position[3],
+                                   const float hero[3], float camera_angle_x, int32_t screen_width, int32_t zoom_mode,
+                                   float view_far, float fov, float camera_scale, float distance_2400,
+                                   mu_terrain_frustum *frustum);
 
 /* Scene view for reconstructed/terrain (pointers into world). */
 void mu_world_scene(mu_world *world, mu_terrain_scene *scene);

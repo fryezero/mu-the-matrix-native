@@ -522,6 +522,16 @@ int mu_charsel_frustum(const mu_charsel_session *s, mu_terrain_frustum *frustum)
     for (int r = 0; r < 3; ++r)
         for (int c = 0; c < 4; ++c)
             rows[r * 4 + c] = v->modelview[r + 4 * c];
-    return mu_world_client_frustum(s->map, rows, v->position, s->info.position, v->angle[0], 640, 0, v->view_far,
-                                   v->fov, frustum);
+    /* CreateFrustrum2D zoom mode 0 takes the camera record (NATIVE-CHARSEL-002): s = 640 / 640 * Distance *
+     * Z_Distance * manager scale (0x0098ac7c), distance = 2400 * Distance * Z_Distance * scale (0x0098ac45);
+     * TestFrustrum2D does not pass everything in scene 5 (only 1..4), so the polygon culls the objects */
+    float scale = 640.0f / 640.0f;
+    scale = scale * s->info.distance;
+    scale = scale * s->info.z_distance;
+    scale = scale * 1.0f;
+    float distance = 2400.0f * s->info.distance;
+    distance = distance * s->info.z_distance;
+    distance = distance * 1.0f;
+    return mu_world_client_frustum_scaled(s->map, rows, v->position, s->info.position, v->angle[0], 640, 0,
+                                          v->view_far, v->fov, scale, distance, frustum);
 }

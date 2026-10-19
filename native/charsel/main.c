@@ -603,7 +603,8 @@ static void report_summary(const app *a, const char *renderer)
            " \"characters\": %d, \"marker1\": [%.2f, %.2f, %.2f], \"steps\": %u, \"frames\": %u,"
            " \"enter_requests\": %d, \"objects\": %d, \"objects_drawn\": %ld, \"lifecycle\": %d,"
            " \"objects_created\": %d, \"object_steps\": %u, \"particles_created\": %llu, \"sprites_created\": %llu,"
-           " \"effects_created\": %llu, \"effects_unsupported\": %llu, \"terrain_lights\": %ld}\n",
+           " \"effects_created\": %llu, \"effects_unsupported\": %llu, \"terrain_lights\": %ld, \"object_models\": %d,"
+           " \"object_models_missing\": %d, \"draw_list\": %d, \"after_character\": %d}\n",
            renderer, MU_CHARSEL_WORLD, s->map->report.folder, s->info.key, (double)s->info.angle[0],
            (double)s->info.angle[1], (double)s->info.angle[2], (double)s->info.position[0],
            (double)s->info.position[1], (double)s->info.position[2], (double)s->info.fov, s->list.count,
@@ -613,7 +614,9 @@ static void report_summary(const app *a, const char *renderer)
            (unsigned long long)s->particles.stats.created, (unsigned long long)s->particles.stats.sprites_created,
            (unsigned long long)s->particles.stats.effects_created,
            (unsigned long long)s->particles.stats.effects_unsupported,
-           s->has_objects ? s->objects->rt.light_events : 0L);
+           s->has_objects ? s->objects->rt.light_events : 0L, a->has_objects ? a->objects.models_loaded : 0,
+           a->has_objects ? a->objects.models_missing : 0, s->has_objects ? s->objects->rt.draw_count : 0,
+           s->has_objects ? s->objects->rt.after_count : 0);
     for (int32_t i = 0; i < s->list.count; ++i) {
         const mu_charsel_entry *e = &s->list.entries[i];
         const uint8_t *r = s->records + (size_t)e->slot * MU_CHARSEL_RECORD;
