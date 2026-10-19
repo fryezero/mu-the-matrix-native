@@ -58,6 +58,14 @@ not exist yet.
   cases, 9/9 planted mistakes) equal the actual instructions; the camera, far plane and object state match a live read
   of the server-select screen. `mu-client` and `mu-render ui login|servers --scene` draw World95 with its ship, sky and
   island behind the 2D layer; sprites and particles are stand-ins. [Evidence](research/client-login-scene.md).
+- Character-select scene at runtime (NATIVE-CHARSEL-002). World94's handler `CGMCharacterScene_Ex` (create, move,
+  visual, custom render and after-character slots; `reconstructed/objects/charsel_world.c`, 12,000 cases, 10/10
+  planted mistakes) and the particle kinds WATERFALL2/3, fantaB and the selection light 0x8022 (30,494 particle
+  cases) equal the actual instructions. `mu-charsel`, `mu-charsel-window` and `mu-client` run the objects through the
+  client's lifecycle with sprites, particles and part shadows; CreateFrustrum2D now takes the camera record's
+  distances. A live read of the character-select screen: 237/237 objects equal, the waterfalls' scroll advanced 103
+  exact steps, and the native session marks the same 221 visible and 38 after-character objects.
+  [Evidence](research/client-character-select.md) (section 9).
 - Model lighting (NATIVE-LIGHT-001). A live read showed the client's light-override byte `0x01cf1048` = 1 (light
   vector (1.3, 0, 2)) and RenderObject poses static objects with the body scale in the bones, so normals scale the
   light. The native scenes now do both, and light monsters/NPCs with frame light + 0.2. The native object light equals
