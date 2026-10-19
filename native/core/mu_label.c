@@ -57,6 +57,26 @@ void mu_label_extent(mu_label_fonts *f, int32_t size, const char *text, int32_t 
         *cy = font->height;
 }
 
+int mu_label_plain(mu_ui_font *font, const char *text, uint8_t *rgba, int32_t width, int32_t height)
+{
+    if (!font || width <= 0 || height <= 0)
+        return 1;
+    int32_t stride = ((width * 24 + 31) & ~31) >> 3;
+    uint8_t *dib = calloc((size_t)stride * (size_t)height, 1);
+    if (!dib)
+        return 1;
+    mu_ui_gdi gdi = mu_ui_font_gdi(font);
+    gdi.text_out(gdi.user, dib, stride, width, height, 0, 0, text, (int)strlen(text));
+    for (int32_t y = 0; y < height; ++y)
+        for (int32_t x = 0; x < width; ++x) {
+            uint8_t *o = rgba + ((size_t)y * (size_t)width + (size_t)x) * 4;
+            o[0] = o[1] = o[2] = 255;
+            o[3] = dib[y * stride + x * 3];
+        }
+    free(dib);
+    return 0;
+}
+
 /* ---- the HTML subset ---- */
 
 #define SPANS 64
@@ -208,16 +228,15 @@ int mu_label_html(mu_label_fonts *f, const char *html, uint32_t rgb0, int32_t si
         for (int l = 0; l < s->line; ++l)
             y0 += line_h[l];
         int32_t x0 = s->x + (align ? (width - 2 - line_w[s->line]) / 2 : 0);
-        int32_t stride = ((s->w * 24 + 31) & ~31) >> 3;
-        uint8_t *dib = calloc((size_t)stride * (size_t)s->h, 1);
-        if (!dib)
+        uint8_t *glyphs = malloc((size_t)s->w * (size_t)s->h * 4);
+        if (!glyphs || mu_label_plain(font, s->text, glyphs, s->w, s->h)) {
+            free(glyphs);
             continue;
-        mu_ui_gdi gdi = mu_ui_font_gdi(font);
-        gdi.text_out(gdi.user, dib, stride, s->w, s->h, 0, 0, s->text, (int)strlen(s->text));
+        }
         for (int pass = shadow ? 0 : 1; pass < 2; ++pass)
             for (int32_t y = 0; y < s->h; ++y)
                 for (int32_t x = 0; x < s->w; ++x) {
-                    uint8_t v = dib[y * stride + x * 3];
+                    uint8_t v = glyphs[((size_t)y * (size_t)s->w + (size_t)x) * 4 + 3];
                     if (!v)
                         continue;
                     int32_t X = x0 + x + (pass ? 0 : 1), Y = y0 + y + (pass ? 0 : 1);
@@ -234,7 +253,7 @@ int mu_label_html(mu_label_fonts *f, const char *html, uint32_t rgb0, int32_t si
                         o[3] = (uint8_t)(v * 3 / 4);
                     }
                 }
-        free(dib);
+        free(glyphs);
     }
     free(spans);
     return 0;

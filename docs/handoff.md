@@ -18,10 +18,10 @@ the scene's sprites, particles and shadows. Compare with `scripts/validate_chars
 Read [`research/client-overhead-text.md`](research/client-overhead-text.md). `reconstructed/names` is hudPlayerName's game
 handler; `native/core/mu_names.*` runs it with a model of the movie, `mu_world_names.*` feeds it from mu-world (hero,
 monsters, demo HP, SetPlayerDie removal, hover, chat), `world/world_names_gfx.c` drives the real movie with `--gfx`,
-`core/mu_label.*` is the shared label helper for the stand-in (NATIVE-ITEMS-001's item labels can use it). Compare with
-`scripts/validate_names.py --cases 1000 --negative 100` (about one minute, needs Unicorn). Monster names/heights read
-`MU_LANG_DIR/npcnames.tsv` (NATIVE-LANG-001 files); renders stay local (`~/Documents/mu-mac-tools/native/renders/names/`).
-Next: `mu_lang` for the Npcname table once it is on main, player stores/castle marks/other players, a live capture of a
+`core/mu_label.*` is the shared label helper (the stand-in; NATIVE-ITEMS-001's item labels use its glyph path). Compare with
+`scripts/validate_names.py --cases 1000 --negative 100` (about one minute, needs Unicorn). Monster names/heights come from
+`mu_lang` (Npcname, `MU_LANG_DIR`); renders stay local (`~/Documents/mu-mac-tools/native/renders/names/`).
+Next: player stores/castle marks/other players, a live capture of a
 monster box and a bubble.
 
 ## Joints, world-object effects, login particles (NATIVE-JOINT-001)

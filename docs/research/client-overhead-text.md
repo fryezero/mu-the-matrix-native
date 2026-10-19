@@ -204,13 +204,14 @@ route against the real movie (`MU_NAMES_GFX_MOVIES`).
   `mu-client --gfx` attaches the same sink to the embedded world (`mu_world_embed_set_gfx`).
 - Without the movie (headless software renders, CI), `mu_names_draw` composites a stand-in with the shared label
   helper `native/core/mu_label` (the movies' HTML subset through the GDI text boundary; one-pixel shadow, bar and box
-  colours are viewer choices), laid out from the sprite positions above.
+  colours are viewer choices), laid out from the sprite positions above. NATIVE-ITEMS-001's item labels share its glyph
+  path (`mu_label_plain`).
 - The chat input's local echo (GFX-002/003) now also reaches the bubble (`mu_gfx_layer_set_chat_hook`); headless runs
   use `--chat-script "F:text;F:text"`.
 - **Demo**: keys (hero 0x1234 as mu_combat, actors 0x100 + index), the hero's name (`--hero-name`, or the character
   select entry in mu-client) and level 400, monster levels 0 (never coloured), monster HP (mu_combat's demo points;
   100/100 without combat) sent after every change, the hero's chat echo, the option bytes (names shown, monster view
-  on; `--monster-info 0`). Monster names and heights come from the Npcname table (`npcnames.tsv` of NATIVE-LANG-001 in
+  on; `--monster-info 0`). Monster names and heights come from the Npcname table (`core/mu_lang` of NATIVE-LANG-001,
   `MU_LANG_DIR`); without it the placement label and height 200 are placeholders. The cursor pick is mu_combat's
   cylinder test, not the client's OBB selection.
 
@@ -230,6 +231,6 @@ the chosen character's plate, the town NPCs without plates, as in the live captu
   demo values.
 - The stand-in does not draw gens marks, elemental or resistance icons (the movie does with `--gfx`).
 - The right-hand monster list of the live capture is another movie (not identified here).
-- Next: wire NATIVE-LANG-001's `mu_lang` for the Npcname table once merged (the TSV reader reads its files), player
+- Next: player
   stores and other players when a server or replay exists, and a live capture of a monster box and a chat bubble for a
   pixel comparison.

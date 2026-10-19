@@ -34,6 +34,11 @@ typedef struct mu_label_image {
 int mu_label_fonts_open(mu_label_fonts *fonts, const char *face);
 void mu_label_fonts_close(mu_label_fonts *fonts);
 
+/* Plain text through the GDI boundary (TextOutA into a 24-bit DIB): white glyphs, alpha = coverage, width x
+ * height = the text extent.  Returns 0 on success.  The one glyph path of every overhead label (names, bubbles,
+ * NATIVE-ITEMS-001's item labels). */
+int mu_label_plain(mu_ui_font *font, const char *text, uint8_t *rgba, int32_t width, int32_t height);
+
 /* Text extent of plain text at a font size (nearest opened size). */
 void mu_label_extent(mu_label_fonts *fonts, int32_t size, const char *text, int32_t *cx, int32_t *cy);
 

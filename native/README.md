@@ -265,7 +265,7 @@ runs it for the session and `core/mu_world_names.*` feeds it in `mu-world`/`mu-w
 
 With `--gfx DIR` (base movie) the real movie draws them (`world/world_names_gfx.c`); otherwise `core/mu_label.*` (the
 shared overhead-label helper) draws a stand-in into the frame. Monster names and name heights come from
-`MU_LANG_DIR/npcnames.tsv` (NATIVE-LANG-001 output) when present, else the placement label and height 200. Options:
+the Npcname table (`core/mu_lang`, `MU_LANG_DIR`) when present, else the placement label and height 200. Options:
 `--no-names`, `--hero-name NAME` (demo), `--monster-info 0|1`. Frame reports add `names_frame` lines (key, type, x, y,
 clip visible, box visible, HP, HP bar, bubble), the summary a `names` line.
 

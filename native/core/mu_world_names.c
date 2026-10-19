@@ -1,53 +1,13 @@
 /* hudPlayerName's game side in the walk-around world (NATIVE-NAMES-001); see mu_world_names.h. */
 #include "mu_world_names.h"
 
+#include "mu_lang.h"
+
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-static void load_npc_table(mu_world_names *wn, const char *dir)
-{
-    if (!dir)
-        dir = getenv("MU_LANG_DIR");
-    if (!dir || !dir[0])
-        return;
-    char path[4096];
-    snprintf(path, sizeof path, "%s/npcnames.tsv", dir);
-    FILE *f = fopen(path, "rb");
-    if (!f)
-        return;
-    wn->npc = calloc(MU_WORLD_NAMES_NPC, sizeof *wn->npc);
-    char line[512];
-    while (wn->npc && fgets(line, sizeof line, f)) {
-        if (line[0] == '#')
-            continue;
-        char *fields[5] = {0};
-        int n = 0;
-        for (char *p = line; n < 5;) {
-            fields[n++] = p;
-            char *t = strchr(p, '\t');
-            if (!t)
-                break;
-            *t = 0;
-            p = t + 1;
-        }
-        if (n < 3)
-            continue;
-        int index = atoi(fields[0]);
-        if (index < 0 || index >= MU_WORLD_NAMES_NPC)
-            continue;
-        mu_world_names_npc *e = &wn->npc[index];
-        snprintf(e->name, sizeof e->name, "%s", fields[1]);
-        e->height = atoi(fields[2]);
-        e->mark = n > 3 ? atoi(fields[3]) : 0;
-        e->byte24 = n > 4 ? atoi(fields[4]) : 0;
-        e->present = 1;
-        wn->npc_count++;
-    }
-    fclose(f);
-}
 
 static int32_t actor_key(const mu_world_names *wn, int32_t i) { return wn->actor_key0 + i; }
 
@@ -97,7 +57,12 @@ int mu_world_names_init(mu_world_names *wn, const mu_world_names_config *cfg, mu
     wn->hover_enabled = 1;
     mu_names_set_monster_view(&wn->names, cfg && !cfg->monster_view ? 0 : 1);
     wn->has_fonts = mu_label_fonts_open(&wn->fonts, cfg ? cfg->font_face : NULL) == 0;
-    load_npc_table(wn, cfg ? cfg->lang_dir : NULL);
+    /* the Npcname(kor) table of NATIVE-LANG-001 (MU_LANG_DIR or the config's directory) */
+    if (cfg && cfg->lang_dir) {
+        wn->own_lang = mu_lang_load(cfg->lang_dir);
+        wn->lang = wn->own_lang;
+    } else
+        wn->lang = mu_lang_shared();
     int32_t hero_level = cfg && cfg->hero_level > 0 ? cfg->hero_level : 400;
     wn->names.env.hero_level = hero_level;
     /* the hero: the join packet's CreateHero, then addInfo (0x0124cc64) */
@@ -120,12 +85,13 @@ int mu_world_names_init(mu_world_names *wn, const mu_world_names_config *cfg, mu
         int32_t cls = a->server_class;
         c->monster_class = (int16_t)cls;
         c->kind = mu_hn_monster_kind(cls);
-        const mu_world_names_npc *npc = wn->npc && cls >= 0 && cls < MU_WORLD_NAMES_NPC && wn->npc[cls].present ?
-                                            &wn->npc[cls] : NULL;
-        if (npc) {
+        /* SetMonsterInfo 0x013b8ade: name 0x011427c7, name height +0x1c, mark +0x20 */
+        const mu_lang_npc *npc = wn->lang ? mu_lang_npc_get(wn->lang, cls) : NULL;
+        if (npc && npc->name) {
             snprintf(c->name, sizeof c->name, "%s", npc->name);
-            c->height = (uint16_t)npc->height;
-            c->mark = npc->mark;
+            c->height = (uint16_t)npc->x1c;
+            c->mark = npc->x20;
+            wn->npc_count++;
         } else {   /* placeholders: the placement label, title case; height 200 */
             snprintf(c->name, sizeof c->name, "%s", a->label[0] ? a->label : "Monster");
             for (char *p = c->name; *p; ++p)
@@ -157,7 +123,8 @@ void mu_world_names_free(mu_world_names *wn)
 {
     if (wn->has_fonts)
         mu_label_fonts_close(&wn->fonts);
-    free(wn->npc);
+    if (wn->own_lang)
+        mu_lang_free(wn->own_lang);
     memset(wn, 0, sizeof *wn);
 }
 

@@ -13,7 +13,7 @@
  * never coloured), monster HP (mu_combat's demo hit points, 100/100 without
  * combat) and the HP packet's timing (after every change), the chat echo of
  * the hero's own lines.  Names and name heights come from the Npcname(kor)
- * table (npcnames.tsv of NATIVE-LANG-001 in MU_LANG_DIR) when present;
+ * table (core/mu_lang, NATIVE-LANG-001: MU_LANG_DIR) when present;
  * otherwise the placement label and height 200 are placeholders.  Picking
  * the character under the cursor uses the demo cylinder test of mu_combat,
  * not the client's OBB selection. */
@@ -25,13 +25,7 @@
 #include "mu_walk.h"
 #include "mu_world_actors.h"
 
-#define MU_WORLD_NAMES_NPC 1200
-
-typedef struct mu_world_names_npc {
-    char name[48];
-    int32_t height, mark, byte24;
-    uint8_t present;
-} mu_world_names_npc;
+struct mu_lang;
 
 typedef struct mu_world_names {
     mu_names names;
@@ -43,8 +37,9 @@ typedef struct mu_world_names {
     int32_t hero_key, actor_key0;
     int32_t hp_seen[MU_WORLD_ACTORS_MAX];
     uint8_t dead_seen[MU_WORLD_ACTORS_MAX], shown[MU_WORLD_ACTORS_MAX];
-    mu_world_names_npc *npc;          /* indexed by monster class, NULL without the table */
-    int32_t npc_count;
+    const struct mu_lang *lang;       /* NATIVE-LANG-001 tables (Npcname), NULL without them */
+    struct mu_lang *own_lang;
+    int32_t npc_count;                /* actors named from the table */
     int hover_enabled, created;
     int hero_wing;                    /* the hero wears a wing (c + 0x21a4 != -1): the caller sets it */
     int32_t hovered;
@@ -53,7 +48,7 @@ typedef struct mu_world_names {
 typedef struct mu_world_names_config {
     const char *hero_name;            /* DEMO */
     int32_t hero_level;               /* DEMO */
-    const char *lang_dir;             /* npcnames.tsv; NULL: $MU_LANG_DIR */
+    const char *lang_dir;             /* NATIVE-LANG-001 tables; NULL: mu_lang_shared() ($MU_LANG_DIR) */
     const char *font_face;            /* stand-in font (NULL "Arial") */
     int monster_view;                 /* the option byte +0x44 (client default 1) */
 } mu_world_names_config;
