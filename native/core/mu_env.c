@@ -316,8 +316,17 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
     for (int k = 0; k < 3; ++k) {
         p.origin[k] = o->position[k];
         p.angles[k] = o->angle[k];
-        p.color[k] = o->light[k];   /* viewer choice: RenderObject's light is not reconstructed */
     }
+    /* RenderObject's body light 0x017ec3d8 with ObjectInit's +6 = +7 = 1 (NATIVE-FIDELITY-001, verified): lighting
+     * flag = object +5, colour = RequestTerrainLight 0x016cb08d (the frame light) + object light, transform light
+     * terms 0.4 / +0xe4 0.8 / +0xe8 0.2 */
+    float frame_light[3] = {0.0f, 0.0f, 0.0f};
+    if (e->map)
+        mu_obj_terrain_light(e->map->light, 6, 1, o->position[0], o->position[1], frame_light);
+    mu_env_body_light(o, frame_light, p.color, &p.lighting);
+    p.light_ambient = MU_ENV_LIGHT_AMBIENT;
+    p.light_scale = MU_ENV_LIGHT_SCALE;
+    p.light_minimum = MU_ENV_LIGHT_MINIMUM;
     p.body_scale = o->scale;
     /* RenderObject(o, a1, ...): Animation(..., !a1) and Transform(..., translate a1) (the setup 0x017ec896, compared
      * in the objects' render family): fish (a1 0) are posed with the scale in the bones, so their normals carry it

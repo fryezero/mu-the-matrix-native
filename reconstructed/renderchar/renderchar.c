@@ -691,3 +691,47 @@ int mu_rc_character_plan(const mu_rc_character *c, mu_rc_call *out, int32_t capa
     *count = p.count;
     return p.count > capacity ? MU_RC_FULL : MU_RC_OK;
 }
+
+/* ---- the character light: RenderCharacter 0x01367530..0x01367d85 ---- */
+
+int mu_rc_light_glow_class(int32_t index)
+{
+    static const int32_t list[] = {0x211, 0x212, 0x213, 0x214, 0x215,                      /* 0x0139bcdc */
+                                   0x216, 0x217, 0x218, 0x219, 0x21a, 0x21b, 0x349, 0x34a,  /* 0x0139bd24 */
+                                   0x34b, 0x34c, 0x371, 0x372, 0x373, 0x3c1, 0x3d5};
+    for (size_t i = 0; i < sizeof list / sizeof list[0]; ++i)
+        if (index == list[i])
+            return 1;
+    return 0;
+}
+
+int mu_rc_character_light(const mu_rc_light_in *in, float out[3])
+{
+    float base[3];
+    for (int k = 0; k < 3; ++k)
+        base[k] = in->scene_state == 5 ? 0.4f : in->terrain_light[k];        /* 0x0136753a */
+    for (int k = 0; k < 3; ++k)
+        out[k] = base[k] + in->object_light[k];                              /* 0x013675bc */
+    if (in->model_type == 0x7dc) {                                           /* 0x0136768a */
+        out[0] = out[1] = out[2] = 0.6f;
+    } else if (mu_rc_light_glow_class(in->class_index)) {                    /* 0x013676f7 */
+        return MU_RC_UNSUPPORTED;
+    }
+    if (in->is_hero) {                                                       /* 0x013679ce */
+        float L[3] = {1.0f, 1.0f, 1.0f};
+        static const float tint[4][3] = {{0.9f, 0.5f, 0.5f}, {0.5f, 0.9f, 0.5f}, {0.9f, 0.5f, 0.5f},
+                                         {0.9f, 0.5f, 0.5f}};
+        for (int b = 0; b < 4; ++b)
+            if (in->ability & (1u << b))
+                for (int k = 0; k < 3; ++k)
+                    L[k] = L[k] * tint[b][k];
+        if (in->scene_state == 5) {                                          /* 0x01367c18 */
+            for (int k = 0; k < 3; ++k)
+                out[k] = 0.5f + in->object_light[k];
+        } else {
+            for (int k = 0; k < 3; ++k)
+                out[k] = L[k];
+        }
+    }
+    return MU_RC_OK;
+}

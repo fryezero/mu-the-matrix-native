@@ -49,5 +49,7 @@ void mu_env_test_clear_events(void *session);
 void mu_env_test_store(void *session, uint8_t *boids, uint8_t *fishs, uint8_t *leaves);
 int32_t mu_env_test_offset(int32_t which);
 void mu_env_test_load(void *session, const uint8_t *boids, const uint8_t *fishs, const uint8_t *leaves);
+void mu_env_test_body_light(void *session, int32_t which, int32_t index, const float frame_light[3], float color[3],
+                            uint8_t *lighting);
 
 #endif

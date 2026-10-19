@@ -207,6 +207,20 @@ int32_t mu_env_rand(mu_env *env);
 /* ObjectInit 0x0129eb81 on the modelled fields. */
 void mu_env_object_init(mu_env *env, mu_env_object *o);
 
+/* ---- the body light of RenderObject (NATIVE-FIDELITY-001) ----
+ * RenderBoids/RenderFishs draw each body with RenderObject 0x016d4fe4(o, a1, 0, 0, -1, -1); its setup 0x017ec896
+ * calls the body light 0x017ec3d8 (NATIVE-OBJECTS-002, verified): model +0x50 = object +5, colour = (object +7 ?
+ * frame light : primary light) at the position, times 0.1 unless object +6, plus the object light +0xec.
+ * ObjectInit 0x0129eb81 sets +6 = +7 = 1 and +0xe4/+0xe8 = 0.8/0.2; no routine of this module writes +6/+7
+ * (the movers write +5 only). So an environment body has lighting flag = flag_05 (birds, bats, crows and the
+ * MoveFishs creatures 1; butterflies and the Atlans shoal 0) and colour = frame light + object light (0.5,
+ * butterflies and the shoal 1), with the transform light terms 0.4 / 0.8 / 0.2.
+ * frame_light: RequestTerrainLight 0x016cb08d at the object position. */
+#define MU_ENV_LIGHT_AMBIENT 0.4f      /* Transform's constant term (0x017edc95) */
+#define MU_ENV_LIGHT_SCALE 0.8f        /* object +0xe4 (ObjectInit) */
+#define MU_ENV_LIGHT_MINIMUM 0.2f      /* object +0xe8 (ObjectInit) */
+void mu_env_body_light(const mu_env_object *o, const float frame_light[3], float color[3], uint8_t *lighting);
+
 /* ---- tick (one 40 ms logic step, in the order of the in-world tick 0x0185613e) ---- */
 
 /* MoveLeaves 0x01537a43. Returns 1 (its AL). */
