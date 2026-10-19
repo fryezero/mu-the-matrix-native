@@ -76,7 +76,8 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/particles/particles.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
              $(RECON)/items/ground_items.c \
-             $(RECON)/names/overhead_names.c
+             $(RECON)/names/overhead_names.c \
+             $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -91,7 +92,8 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
-           $(RECON)/names/overhead_names.h
+           $(RECON)/names/overhead_names.h \
+           $(wildcard $(RECON)/npc/*.h)
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 

@@ -24,6 +24,7 @@ all:
 	$(MAKE) -C reconstructed/particles
 	$(MAKE) -C reconstructed/joints
 	$(MAKE) -C reconstructed/names
+	$(MAKE) -C reconstructed/npc
 	$(MAKE) -C native
 
 test: all
@@ -67,6 +68,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/items -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/joints -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/names -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/npc -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 mugl:
