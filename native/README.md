@@ -388,7 +388,22 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |
 | `client/`, `world/world_embed.*`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; mu-world and mu-charsel as modules (NATIVE-SHELL-001) |
+| `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001). See [the finding](../docs/research/client-lang-tables.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
+
+## Game text and script tables (NATIVE-LANG-001)
+
+`Data\Lang.mpr` stays encrypted. `mac-play/diagnostics/langread` reads the tables the client built from it out
+of a running client you started (read-only, under the game lock), and `scripts/live_lang_to_plain.py` writes them
+as local plaintext. Never commit that plaintext. With `MU_LANG_DIR` pointing at it, the following use the client's
+own text and tables:
+
+- mu-world, mu-client and mu-walk: GFx labels, skill names and icons, map names, combat skill distance;
+- `mu-render --world-render`: EnchantEffect colours (`--glow-color` overrides them);
+- mu-charsel and the shell: tips and login strings.
+
+Without it, everything keeps its placeholder. `build/mu-lang DIR summary|text N|skill N|map W|enchant CODE [MESH]|...`
+queries the tables. See [client-lang-tables.md](../docs/research/client-lang-tables.md).
 
 ## Data tables (NATIVE-DATA-001)
 

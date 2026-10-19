@@ -12,6 +12,21 @@ keeps their effects: the Tormenta tornado). Compare with `scripts/validate_joint
 (`~/Documents/mu-mac-tools/native/renders/joints/`, `render.sh`/`sheets.py`). `mu-world --joint-demo SUB` shows a
 lightning subtype anywhere. Next: MoveObject's kinds of the other worlds once their object lists are decoded, the
 character-select scene's object lifecycle and kinds, Inferno's burst, RenderObject's effect draw executed.
+## Lang.mpr tables (NATIVE-LANG-001)
+
+Read [`research/client-lang-tables.md`](research/client-lang-tables.md). `langread` (mac-play/diagnostics) reads the
+tables the client built from Lang.mpr out of a running client, under the game lock, at the server list. The
+plaintext goes through `scripts/live_lang_to_plain.py` to `~/Documents/mu-mac-tools/native/scratch/lang/` (local),
+and `MU_LANG_DIR` enables it in mu-world, mu-client, mu-walk, mu-charsel, mu-render and the shell.
+
+Compare with `scripts/validate_lang.py --snapshot LOCAL/lang3.bin --mutations` (Unicorn, about 15 s);
+`--write-maps` regenerates `native/core/mu_lang_maps.h`. A client update moves the addresses: repeat the read.
+
+Next:
+
+- read more tables through their consumers (SkillRequire, Slide, BuffEffect, the quest strings);
+- map the character window's SetName and skill-tooltip GlobalText numbers;
+- port GetSkillDistance's bonuses.
 
 ## Particles, sprites and blob shadows (NATIVE-PARTICLE-001)
 
