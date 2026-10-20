@@ -1,10 +1,79 @@
-# Mu The Matrix recovery
+# Mu The Matrix on macOS
 
-Understand the exact Mu The Matrix Windows client, reconstruct tested source modules, and eventually make the game playable natively on macOS.
+Two tracks are moving this exact Mu The Matrix client onto the Mac. **The original Windows game is playable on Apple Silicon through Wine**, with a Mac app, installer and performance patches. **The native macOS port is an offline work in progress**, with reconstructed rendering and gameplay components running without Wine.
 
-**Current phase: reverse engineering and source reconstruction. A playable source rebuild and native macOS client do not exist yet.** The original client works on the owner's Windows system and fails in CrossOver on the Mac used for this investigation.
+## Play on Mac with Wine
 
-This repository gives humans and agents a common starting point: original recovery code, reproducible checks, evidence summaries, and a work queue. [REA](https://github.com/morluto/rea) with Ghidra supports native analysis; format readers and reconstructed modules are implemented here.
+The Wine version supports the original launcher, server selection, login and live gameplay. `Mu The Matrix.app` installs the Windows compatibility layer, .NET and the game, then opens the launcher on subsequent launches. The default route uses free Wine; CrossOver remains an alternative.
+
+Start with the [player guide](mac-play/PLAYER-GUIDE.md). You need an Apple Silicon Mac, macOS 13 or later, Rosetta 2, about 12 GB of free space and your game account. Testing so far covers one Mac on macOS 27.0.1. Get the packaged app from the server team's distribution, or build it using the [Mac app instructions](mac-play/bundle/README.md). Runtime setup and the legacy CrossOver route are documented in [mac-play](mac-play/README.md).
+
+### Optimizations for the game's hard 25 FPS cap
+
+The client runs game logic at 25 Hz and caps rendering at 25 FPS, giving each frame a 40 ms budget. Our optimization work aims to hold that cap everywhere while preserving the client's behavior and appearance.
+
+Multiple rounds of profiling and patches now reach the cap in tested towns, hunting scenes and the default-view Tormenta boss fight. The work includes:
+
+- Native implementations of hot CPU routines, including model transforms and mesh submission, with comparisons against the client's results.
+- OpenGL batching, terrain sorting, deferred state changes and off-screen culling to reduce draw work.
+- Faster character shadows and terrain decals, plus mesh append batching for crowded fights.
+- Precise frame-pacing waits and thread-priority fixes to avoid missed 40 ms deadlines.
+- Faster JPEG decoding and CRC-32 calculations, checked against the original results, to reduce map-loading work.
+- A fast x87 translation path and a newer free Wine runtime, tested together with the Mac app.
+
+| Recorded scene or configuration | Result |
+|---|---|
+| Lorencia, standing, v7.6 | 25.00 FPS, about 12 ms of frame work |
+| Twisted Karutan, zoomed out, v7.4 at the recorded load | 24.99–25.00 FPS, about 36–37 ms of work |
+| Tormenta boss fight, default view, v7.5 | About 25 FPS, 33–35 ms of work, down from 45–50 ms |
+| Free Wine CX26 + fast x87, app installation rehearsal | 25.0 FPS, 35.3 ms of work in the reference scene |
+
+These are recorded results on the test Mac, not a guarantee for every camera, scene or Mac. The zoomed-out boss fight still measured roughly 20–23 FPS in the v7.6 sessions, and map transitions still cause loading stalls. The default downloadable free runtime documented in the player guide is the older CX24 build, which reached about 15 FPS in the busy reference scene. The tested faster CX26 runtime still needs distribution; the guide explains using a supplied runtime file. See the [performance report](docs/research/mac-performance.md) and [free-runtime report](docs/research/mac-free-runtime.md) for measurements, verification and remaining limits.
+
+## Native macOS port progress
+
+The native work rebuilds this client's behavior in editable source. It already has interactive world and character tools and an offline client shell. It is not yet a complete live-server game client.
+
+| Area | Progress |
+|---|---|
+| Worlds | Terrain, water and lava, world objects, camera, lighting and culling; recovered local object placements for selected worlds |
+| Characters and movement | Skeleton animation, pose building, CPU skinning, class and gear assembly, glow passes, click-to-move and long-distance path following |
+| World activity | Monsters and NPCs, reconstructed combat and skill components, particles, sprites, joints, shadows, ambient sound and footsteps; server-driven placements and behavior use labelled demos |
+| Login and character select | Reconstructed 3D scenes, object lifecycles, waterfalls and selection effects in the offline shell |
+| Interface | Original GFx movies through a patched Ruffle runtime, HUD, inventory item models, tooltips, chat, overhead names and HP boxes; recovered text tables |
+| Validation | Bounded comparisons against captured client instructions, installed-file corpus checks and selected live-state comparisons, documented per module |
+
+Build and run instructions are in [native/README.md](native/README.md). The [status](docs/status.md), [handoff](docs/handoff.md) and [roadmap](docs/roadmap.md) track recovered behavior and remaining work. Live networking and end-to-end gameplay acceptance remain open; a convincing scene does not establish a finished port.
+
+### Live client and native port comparisons
+
+All screenshots and GIFs below already existed. They are reused unchanged. "Live" means the original Windows client running through Wine on the Mac. "Native" means the offline macOS reconstruction. Characters, gear, interface data and animation phases differ between captures. These images show visual progress, not matched-frame equivalence.
+
+**Login and server selection.** Live above, native OpenGL below. The native scene reconstructs the ships, ocean, sky, camera and lighting; its server buttons use offline demo data. [Scene recovery](docs/research/client-login-scene.md), [lighting comparison](docs/research/client-model-light.md).
+
+![Original client above and native macOS login scene below](docs/media/login-live-vs-native.png)
+
+**Character selection.** Live above, native below. The native scene has the world's objects, animated waterfalls, particles and selection light. The plain demo character does not reproduce the live character's equipment or character-list panel. [Character-select recovery](docs/research/client-character-select.md).
+
+![Live equipped character above and native demo character in the reconstructed selection scene below](docs/media/character-select-live-vs-native.png)
+
+**Lorencia lighting.** Live at the top, native before the lighting correction in the middle, native after at the bottom. The native scene recovers the environment's geometry and lighting; the live players, shops and HUD are absent from this milestone capture. [Lighting evidence](docs/research/client-model-light.md).
+
+![Live Lorencia and the native environment before and after the lighting correction](docs/media/lorencia-live-before-after.png)
+
+**Native interface progress.** A later native capture shows the original HUD and inventory movies with item models over the world. Values and inventory contents are demo inputs. [GFx integration](docs/research/native-gfx3.md), [overhead names](docs/research/client-overhead-text.md).
+
+![Native macOS world with the original HUD and inventory movies and demo items](docs/media/native-inventory.png)
+
+### Existing native animation GIFs
+
+These earlier milestone recordings show movement in the reconstructed scenes. The login GIF predates the lighting correction shown above; the GIFs are not live-server recordings or FPS benchmarks.
+
+| Native login scene | Native character-select scene |
+|---|---|
+| ![Native login scene animation](docs/media/native-login.gif) | ![Native character-select waterfalls and effects animation](docs/media/native-character-select.gif) |
+
+[Media provenance and capture limitations](docs/media/README.md).
 
 ## Start here
 
@@ -18,9 +87,9 @@ This repository gives humans and agents a common starting point: original recove
 | Recover executable code | [Code recovery](docs/code-recovery.md), [Mac-only runtime](runtime-linux/README.md), [Windows helper](windows-capture/README.md) |
 | Work on assets | [Images](docs/asset-recovery.md), [models](docs/model-recovery.md), [primary sources](model-recovery/SOURCES.md) |
 
-## Verified progress
+## Recovery foundations
 
-These are structural and component-level results for one pinned installation. They do not establish equivalent gameplay or rendering.
+These earlier structural and component-level results underpin the native work above. Their bounded checks do not establish complete gameplay equivalence.
 
 | Component | Verified result | Remaining gap |
 |---|---|---|
@@ -50,7 +119,7 @@ python3 -m venv tools/python
 make test PYTHON=./tools/python/bin/python
 ```
 
-The default suite uses authored fixtures and public LEA test vectors. Twelve checks requiring the original installation/evidence are explicitly skipped. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
+The default suite uses authored fixtures and public LEA test vectors. Checks requiring the original installation or private evidence are explicitly skipped when those inputs are absent. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
 
 ```sh
 # Optional Windows helper cross-build with MinGW-w64
@@ -67,6 +136,8 @@ reconstructed/client-memory/  Restored client behavior with instruction comparis
 reconstructed/record-math/  Controlled cofactor/inverse reconstruction
 windows-capture/      Read-only Windows executable-region capture source
 reconstructed/model-codec/  Client-linked BMD decoder with exact alias behavior
+mac-play/             Playable Wine setup, Mac app, optimizations and player guide
+native/               Native rendering, interactive tools and offline client shell
 runtime-linux/        Mac-only x86/Wine procedure and scoped text capture
 scripts/              PE inventory, REA collection, loader recovery and emulation
 model-recovery/fixtures/  Public cryptographic vectors, no game data
@@ -78,16 +149,7 @@ docs/                 Findings, architecture, roadmap and agent handoff
 
 ## Direction
 
-```mermaid
-flowchart LR
-  A[Identify exact Windows build] --> B[Inspect and recover code]
-  B --> C[Reconstruct tested source modules]
-  C --> D[Verify client behavior on Windows]
-  D --> E[Separate platform dependencies]
-  E --> F[Native macOS client]
-```
-
-The immediate dependency is faithful runtime evidence. No Windows PC is available, so a [full x86 Linux/Wine experiment on the Mac](docs/research/mac-runtime.md) now restores readable client code. The Mac startup attempts hit `rosetta error: invalid gdt selector index 6`; that is a recorded environment failure, not evidence of a completed port. Selecting a macOS graphics framework or redesigning gameplay comes after code and behavior are understood. An older MU client is not a substitute for this exact-version target.
+The Wine track keeps the original client playable on macOS while the native track reconstructs and validates its behavior. Recovery uses restored client code, instruction comparisons and selected live-client observations. The native port must still pass the [gameplay acceptance gates](docs/roadmap.md) before it replaces the Wine version. An older MU client is not a substitute for this exact-version target.
 
 ## Target identity
 

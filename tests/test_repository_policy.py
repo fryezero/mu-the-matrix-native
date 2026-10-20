@@ -15,6 +15,15 @@ class PublicationBoundary(unittest.TestCase):
         for name in ('helper.orig','helper.new'):
             self.assertTrue(audit.violations('mac-play/hotpatch/'+name,b'bytes'))
 
+    def test_readme_media_exception_requires_exact_path_and_bytes(self):
+        root = Path(__file__).resolve().parents[1]
+        for name in audit.REVIEWED_MEDIA:
+            with self.subTest(name=name):
+                content = (root / name).read_bytes()
+                self.assertEqual(audit.violations(name, content), [])
+                self.assertTrue(audit.violations(name, content + b'changed'))
+                self.assertTrue(audit.violations('docs/media/unreviewed' + Path(name).suffix, content))
+
     def test_authored_source_is_allowed(self):
         self.assertEqual(audit.violations('windows-capture/capture-client.c',b'int main(void) { return 0; }'),[])
 

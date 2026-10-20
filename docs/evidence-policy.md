@@ -4,6 +4,16 @@ Commit original source, synthetic regression fixtures, public mathematical test 
 
 The repository is private initially, but its tracked tree should remain suitable for future review without shipping the game. Privacy is not a reason to mix raw process data into source control. Game files and recovered outputs retain their original ownership; the project license covers authored implementations and documentation.
 
+## README screenshots and GIFs
+
+At the owner's request, `docs/media/` includes six existing screenshots and animation GIFs
+for the main README's live-client and native-port comparisons. Each is copied unchanged,
+visually reviewed, and pinned by exact path and SHA-256 in the publication audit.
+This exception covers only those documentation captures, not game asset packs, model or
+texture exports, executable bytes or process dumps. All other binary and generated files
+remain subject to the existing audit. [Capture provenance](media/README.md) records the
+sources and limitations. Game imagery retains its original ownership.
+
 ## Record a finding
 
 Each substantive finding needs an input hash, a bounded question, its original address/file offset where applicable, the method/tool identity, the observation, any inference, tested coverage and remaining uncertainty. A summary may link relative paths to ignored evidence, but should state when a fresh clone cannot open that evidence.
