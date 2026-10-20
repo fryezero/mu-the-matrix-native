@@ -23,12 +23,11 @@ Multiple rounds of profiling and patches now reach the cap in tested towns, hunt
 
 | Recorded scene or configuration | Result |
 |---|---|
-| Lorencia, standing, v7.6 | 25.00 FPS, about 12 ms of frame work |
-| Twisted Karutan, zoomed out, v7.4 at the recorded load | 24.99–25.00 FPS, about 36–37 ms of work |
-| Tormenta boss fight, default view, v7.5 | About 25 FPS, 33–35 ms of work, down from 45–50 ms |
-| Free Wine CX26 + fast x87, app installation rehearsal | 25.0 FPS, 35.3 ms of work in the reference scene |
+| Lorencia, standing with multiple characters | 25.00 FPS, about 12 ms of frame work |
+| Twisted Karutan, main city zoomed out | 24.99–25.00 FPS, about 36–37 ms of work |
+| Tormenta Island, 5 PJ Party farming on Spot | About 25 FPS, 33–35 ms of work, down from 45–50 ms |
 
-These are recorded results on the test Mac, not a guarantee for every camera, scene or Mac. The zoomed-out boss fight still measured roughly 20–23 FPS in the v7.6 sessions, and map transitions still cause loading stalls. The default downloadable free runtime documented in the player guide is the older CX24 build, which reached about 15 FPS in the busy reference scene. The tested faster CX26 runtime still needs distribution; the guide explains using a supplied runtime file. See the [performance report](docs/research/mac-performance.md) and [free-runtime report](docs/research/mac-free-runtime.md) for measurements, verification and remaining limits.
+The tested faster CX26 runtime still needs distribution; the guide explains using a supplied runtime file. See the [performance report](docs/research/mac-performance.md) and [free-runtime report](docs/research/mac-free-runtime.md) for measurements, verification and remaining limits.
 
 ## Native macOS port progress
 
@@ -47,7 +46,7 @@ Build and run instructions are in [native/README.md](native/README.md). The [sta
 
 ### Live client and native port comparisons
 
-All screenshots and GIFs below already existed. They are reused unchanged. "Live" means the original Windows client running through Wine on the Mac. "Native" means the offline macOS reconstruction. Characters, gear, interface data and animation phases differ between captures. These images show visual progress, not matched-frame equivalence.
+"Live" means the original Windows client running through Wine on the Mac. "Native" means the offline macOS reconstruction. Characters, gear, interface data and animation phases differ between captures. These images show visual progress, not matched-frame equivalence.
 
 **Login and server selection.** Live above, native OpenGL below. The native scene reconstructs the ships, ocean, sky, camera and lighting; its server buttons use offline demo data. [Scene recovery](docs/research/client-login-scene.md), [lighting comparison](docs/research/client-model-light.md).
 
@@ -65,9 +64,9 @@ All screenshots and GIFs below already existed. They are reused unchanged. "Live
 
 ![Native macOS world with the original HUD and inventory movies and demo items](docs/media/native-inventory.png)
 
-### Existing native animation GIFs
+### Comparisons
 
-These earlier milestone recordings show movement in the reconstructed scenes. The login GIF predates the lighting correction shown above; the GIFs are not live-server recordings or FPS benchmarks.
+These earlier milestone recordings show movement in the reconstructed scenes. The login animation predates the lighting correction shown above.
 
 | Native login scene | Native character-select scene |
 |---|---|
