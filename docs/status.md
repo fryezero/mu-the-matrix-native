@@ -1,5 +1,13 @@
 # Current status
 
+## README refresh, 2026-10-20
+
+The main README now separates playable Wine support and its measured 25 FPS optimization
+work from the native offline reconstruction. It reuses six existing comparison captures
+in `docs/media/`, unchanged, with provenance and a hash-pinned audit exception. It records
+the zoomed-out boss-fight and runtime-distribution limits rather than promising 25 FPS
+in every situation. No game runtime or recovery behavior changed in this documentation task.
+
 Updated 2026-10-17. The target is the exact installed Mu The Matrix client.
 The later destination is native macOS gameplay. A playable source build does
 not exist yet.

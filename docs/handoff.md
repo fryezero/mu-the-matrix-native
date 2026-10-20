@@ -1,5 +1,13 @@
 # Continue from here
 
+## README refresh, 2026-10-20
+
+The main README now separates playable Wine support and its measured 25 FPS optimization
+work from the native offline reconstruction. It reuses six existing comparison captures
+in `docs/media/`, unchanged, with provenance and a hash-pinned audit exception. It records
+the zoomed-out boss-fight and runtime-distribution limits rather than promising 25 FPS
+in every situation. No game runtime or recovery behavior changed in this documentation task.
+
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
 ## Character-select scene at runtime (NATIVE-CHARSEL-002)
