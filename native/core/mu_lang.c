@@ -57,6 +57,8 @@ struct mu_lang {
     int has_charinfo;
     mu_lang_skillreq *skillreq;
     size_t nskillreq;
+    struct int_row *soulconv;
+    size_t nsoulconv;
 };
 
 typedef struct int_row {
@@ -751,6 +753,7 @@ mu_lang *mu_lang_load(const char *dir)
     any |= load_buffs(L, dir);
     any |= load_charinfo(L, dir);
     any |= load_skillreq(L, dir);
+    any |= load_rows(dir, "soulconv.tsv", 3, &L->soulconv, &L->nsoulconv, NULL) > 0;
     if (!any) {
         mu_lang_free(L);
         return NULL;
@@ -816,6 +819,7 @@ void mu_lang_free(mu_lang *L)
     free_charinfo(&L->charinfo_default);
     free(L->charinfo);
     free(L->skillreq);
+    free(L->soulconv);
     free(L);
 }
 
@@ -836,6 +840,7 @@ void mu_lang_get_counts(const mu_lang *L, mu_lang_counts *out)
     out->buffs = L->nbuffs;
     out->charinfo = L->ncharinfo;
     out->skillreq = L->nskillreq;
+    out->soulconv = L->nsoulconv;
 }
 
 /* ---- lookups --------------------------------------------------------- */
@@ -1210,6 +1215,24 @@ int mu_lang_buff_tooltip(const mu_lang *L, int32_t buff, const mu_lang_buff_valu
     return n;
 }
 
+int mu_lang_buff_addbuff(const mu_lang *L, int32_t buff, mu_lang_addbuff *out)
+{
+    static const int32_t HIDDEN[] = {0x53, 0x54, 0x55, 0x78, 0x19b, 0x19c, 0x19d, 0x19e, 0x19f, 0x1be};
+    if (!L || !L->has_buffs || buff <= 0 || buff >= 0x1cb)
+        return 0;
+    for (size_t i = 0; i < sizeof HIDDEN / sizeof HIDDEN[0]; i++)
+        if (buff == HIDDEN[i])
+            return 0;
+    const mu_lang_buff *b = mu_lang_buff_get(L, buff);
+    memset(out, 0, sizeof *out);
+    out->buff = buff;
+    out->is_debuff = b->type == 1;
+    out->is_cash = b->type == 2;
+    out->has_detail = !out->is_debuff;
+    out->detail = b->group == 0xf7 ? 1 : b->group == 0xf6 ? 2 : 0;
+    return 1;
+}
+
 const mu_lang_charinfo *mu_lang_charinfo_get(const mu_lang *L, int32_t id)
 {
     if (!L || !L->has_charinfo)
@@ -1426,4 +1449,9 @@ const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *L, int32_t group, i
         if (L->skillreq[i].item_group == group && L->skillreq[i].item_index == index)
             return &L->skillreq[i];
     return NULL;
+}
+
+int mu_lang_soul_conversion(const mu_lang *L, int32_t code)
+{
+    return L && find_row(L->soulconv, L->nsoulconv, code) != NULL;
 }

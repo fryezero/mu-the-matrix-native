@@ -142,6 +142,24 @@ ENCHANT = {14: [(-1, 0.0, 0.5, 1.0)], 0x1000: [(2, 1.0, 0.0, 0.0), (-1, 0.0, 1.0
            0x0c00: [(-1, 0.25, 0.75, 0.125)]}
 ENCHANT_DEFAULT = (1.0, 0.5, 0.0)
 
+# NATIVE-LANG-002 tables: BuffEffect (index, group, item group/index, name, type, x2c, x30, lines, value kind)
+BUFFS = {1: (1, 255, 255, b'Increase Attack Power', 0, 1, 1, [b'Attack power increases.'], 0),
+         11: (11, 255, 255, b'Potion of Soul', 0, 0, 1, [b'AG recovery +8', b'A line longer than fifteen bytes'], 0),
+         29: (60, 13, 43, b'Seal of Ascension', 2, 0, 1, [b'EXP gain increase 50%%'], 0),
+         35: (0xf6, 14, 46, b'[Boost] Food', 0, 0, 1, [], 0),
+         55: (55, 255, 255, b'Poison', 1, 1, 1, [b'HP drops.'], 0),
+         320: (299, 255, 255, b'Mastery', 0, 1, 1, [b'Ignores defense by %d when attacking.'], 1)}
+# CharacterInfoSetup rows: id -> (colour, label, group, class flags, type, sort, value colour, prefix, suffix, button)
+CHARINFO = {1: (20, b'Class', 1, [1]*16, 1, 0, 3, b'', b'', 0),
+            2: (20, b'Level', 1, [1]*16, 1, 1, 3, b'', b'', 0),
+            8: (20, b'Strength', 6, [1]*16, 2, 0, 3, b'', b'', 1),
+            9: (12, b'* (S) ATK Power', 7, [0, 1] + [0]*14, 2, 1, 12, b'', b'', 0),
+            10: (20, b'* ATK Power', 10, [1]*16, 2, 2, 3, b'', b'', 0),
+            13: (20, b'Agility', 6, [1]*16, 2, 1, 3, b'', b'', 1),
+            43: (20, b'* Critical DMG Rate', 9, [1]*16, 3, 0, 3, b'', b'%', 0),
+            80: (20, b'Elemental ATK', 11, [1]*16, 4, 0, 3, b'', b'', 0)}
+SOULCONV = (7628, 7630)
+
 
 def synthetic_snapshot():
     m = Memory()
@@ -163,6 +181,37 @@ def synthetic_snapshot():
         items[code] = struct.pack('<III', begin, begin + len(data), begin + len(data))
     m.map(plain.ENCHANT + 0x38, items)
     struct.pack_into('<3f', m.manager, plain.ENCHANT - plain.MANAGER + 0x50, *ENCHANT_DEFAULT)
+
+    def buff(index, group, item_group, item_index, name, type_, x2c, x30, lines, kind):
+        data = b''.join(m.string(line) for line in lines)
+        begin = m.alloc(data) if data else 0
+        return (struct.pack('<4i', index, group, item_group, item_index) + m.string(name) +
+                struct.pack('<3i', type_, x2c, x30) + struct.pack('<3I', begin, begin + len(data), begin + len(data)) +
+                struct.pack('<i', kind))
+    m.map(plain.BUFF + 0x38, {k: buff(k, *v) for k, v in BUFFS.items()})
+    m.manager[plain.BUFF - plain.MANAGER + 0x40:plain.BUFF - plain.MANAGER + 0x84] = buff(
+        0, 0, -1, -1, b'null', -1, -1, -1, [], 0)
+
+    def row(key, colour, label, group, classes, type_, sort, value_colour, prefix, suffix, button):
+        flags = struct.pack(f'<{len(classes)}i', *classes)
+        begin = m.alloc(flags)
+        r = bytearray(0xa4)
+        struct.pack_into('<2i', r, 0, key, colour)
+        r[8:0x20] = m.string(label)
+        struct.pack_into('<i3I', r, 0x20, group, begin, begin + len(flags), begin + len(flags))
+        struct.pack_into('<3i', r, 0x30, type_, sort, value_colour)
+        r[0x3c:0x54] = m.string(prefix)
+        r[0x54:0x6c] = m.string(suffix)
+        r[0x70:0x88] = m.string(b'')
+        r[0x88:0xa0] = m.string(b'')
+        struct.pack_into('<i', r, 0xa0, button)
+        return bytes(r)
+    m.map(plain.CHARINFO + 0x38, {k: row(k, *v) for k, v in CHARINFO.items()})
+    default = bytearray(row(0, 0, b'null', 0, [], 0, 0, 0, b'null', b'null', 0))
+    struct.pack_into('<3I', default, 0x24, 0, 0, 0)
+    m.manager[plain.CHARINFO - plain.MANAGER + 0x44:plain.CHARINFO - plain.MANAGER + 0x44 + 0xa4] = default
+    m.map(plain.SOULCONV + 0x44, {c: struct.pack('<3i', i + 1, c, 1) for i, c in enumerate(SOULCONV)})
+    m.map(plain.SKILLREQ + 0x54, {243: struct.pack('<7i', 0, 243, 15, 49, 242, 847, 10)})
     return m.snapshot()
 
 
@@ -208,11 +257,13 @@ class Build(unittest.TestCase):
 class ConverterAndLoader(Build):
     def test_files_and_counts(self):
         names = sorted(p.name for p in self.lang.iterdir())
-        self.assertEqual(names, ['dialog.tsv', 'enchant.tsv', 'gates.tsv', 'globaltext.txt', 'mapnames.tsv',
-                                 'moves.tsv', 'npcnames.tsv', 'skills.tsv'])
+        self.assertEqual(names, ['buffs.tsv', 'charinfo.tsv', 'dialog.tsv', 'enchant.tsv', 'gates.tsv', 'globaltext.txt',
+                                 'mapnames.tsv', 'moves.tsv', 'npcnames.tsv', 'skillreq.tsv', 'skills.tsv',
+                                 'soulconv.tsv'])
         self.assertEqual(lang_json(self.lang, 'summary'),
                          {'text': len(TEXTS), 'skills': len(SKILLS), 'gates': 2, 'moves': 1, 'npcs': 2, 'dialog': 1,
-                          'enchant_codes': len(ENCHANT), 'enchant_entries': 4, 'enchant_default': 1})
+                          'enchant_codes': len(ENCHANT), 'enchant_entries': 4, 'enchant_default': 1,
+                          'buffs': len(BUFFS), 'charinfo': len(CHARINFO), 'skillreq': 1, 'soulconv': len(SOULCONV)})
         for path in self.lang.iterdir():
             self.assertIn('never commit', path.read_text().split('\n')[1])
 

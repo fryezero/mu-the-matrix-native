@@ -38,6 +38,10 @@ NATIVE-LANG-002 families (the same snapshot):
 * buff_tooltip: the InfoPopup line builder 0x01298a54 for every buff and
   hero buff values {0, random} (value kind 2 with the option singleton's
   three states): the lines it pushes (the client's sprintf runs);
+* addbuff: the bufflist's addBuff handler 0x00c5f278 for buffs -2..0x1cf:
+  the object members it sets and the invoke;
+* soulconv: the MonsterSoulConversion lookup 0x01135146 (this 0x06fbbe1c)
+  for its codes and absent codes (ItemValue prices a listed code);
 * charinfo: the CharacterInfoSetup lookup 0x010e5203 (this 0x06fbad18) for
   every key and absent keys; charinfo_rows: the character window's row
   builder 0x00b3dedc for every class index: the SetName invokes (type, id,
@@ -88,7 +92,7 @@ BUFF_GET, BUFF_BY_ITEM, BUFF_TYPE, BUFF_VALUE_KIND, BUFF_ITEM_INDEX, BUFF_ITEM_G
     0x010de66f, 0x010de6d3, 0x010de759, 0x010de7a3, 0x010de772, 0x010de78a)
 BUFF_TOOLTIP, HERO_BUFF_VALUE, OPTION_SINGLETON, OPTION_HIDDEN, OPTION_VALUE = (
     0x01298a54, 0x01295d1c, 0x00c5cc97, 0x010702e1, 0x010702bd)
-ITEM_CACHE, SPRINTF, TO_UTF8 = 0x01298996, 0x0098d0a9, 0x00a99d93
+ITEM_CACHE, SPRINTF, TO_UTF8, ADDBUFF, SOUL_LOOKUP = 0x01298996, 0x0098d0a9, 0x00a99d93, 0x00c5f278, 0x01135146
 CHARINFO_GET, CHARINFO_ROWS, INVOKE, LINE_BUILDER, CLASS_INDEX = 0x010e5203, 0x00b3dedc, 0x00aae7e0, 0x00ab4dc0, 0x0095f5cc
 CRT_NEW, CRT_MALLOC, CRT_FREE, CRT_DELETE = 0x0191ba7b, 0x0191bab9, 0x0191bac2, 0x0191ba5f
 STRING_CSTR = 0x008e7940
@@ -249,6 +253,11 @@ class BuffValuesC(ctypes.Structure):
                 ('value2_float', ctypes.c_float)]
 
 
+class AddBuffC(ctypes.Structure):
+    _fields_ = [('buff', I32), ('is_debuff', ctypes.c_int), ('is_cash', ctypes.c_int), ('has_detail', ctypes.c_int),
+                ('detail', I32)]
+
+
 class Native:
     def __init__(self, work):
         cc = shutil.which('cc') or shutil.which('clang')
@@ -280,6 +289,8 @@ class Native:
         L.mu_lang_buff_tooltip.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(BuffValuesC),
                                            ctypes.c_void_p, ctypes.c_int]
         L.mu_lang_charinfo_rows.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_void_p, ctypes.c_int]
+        L.mu_lang_buff_addbuff.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_void_p]
+        L.mu_lang_soul_conversion.argtypes = [ctypes.c_void_p, ctypes.c_int32]
 
     def load(self, directory):
         handle = self.lib.mu_lang_load(str(directory).encode())
@@ -586,6 +597,58 @@ def run_buff_tooltip(m, nat, h, snap, rng, fam):
         m.stubs.pop(address, None)
 
 
+def run_addbuff(m, nat, h, fam):
+    """The bufflist's addBuff handler 0x00c5f278(buff): the GFx object calls are recorded (value ctor/dtor and
+    the object creator 0x00c8f5f4 modelled as no-ops; the member setters 0x00ae957f int / 0x00aecd73 bool and the
+    invoke 0x00c8fac2 recorded)."""
+    heap_stubs(m)
+    calls = []
+
+    def member(kind):
+        def handler(mm):
+            _, name, value = mm.args(3)
+            calls.append((kind, mm.cstr(name), struct.unpack('<i', struct.pack('<I', value))[0] if kind == 'int'
+                          else value & 0xff))
+            return 0
+        return handler
+
+    def invoke(mm):
+        name, _ = mm.args(2)
+        calls.append(('invoke', mm.cstr(name)))
+        return 0
+    stubs = {0x00aad26b: (lambda mm: 0, 0), 0x00aad299: (lambda mm: 0, 0), 0x00c8f5f4: (lambda mm: 0, 4),
+             0x00ae957f: (member('int'), 0xc), 0x00aecd73: (member('bool'), 0xc), 0x00c8fac2: (invoke, 8)}
+    for address, (handler, cleanup) in stubs.items():
+        m.stub(address, handler, cleanup)
+    for buff in range(-2, 0x1d0):
+        calls.clear()
+        m.prepare(force=True)
+        crt_state(m)
+        m.call(ADDBUFF, [buff & 0xffffffff], ecx=DUMMY)
+        out = AddBuffC()
+        native = []
+        if nat.lib.mu_lang_buff_addbuff(h, buff, ctypes.byref(out)):
+            native = [('int', b'BuffType', out.buff), ('bool', b'isDebuff', out.is_debuff),
+                      ('bool', b'isCashBuff', out.is_cash)]
+            if out.has_detail:
+                native.append(('int', b'BuffDetailType', out.detail))
+            native.append(('invoke', b'addBuff'))
+        fam.check(buff, list(calls), native)
+    for address in stubs:
+        m.stubs.pop(address, None)
+
+
+def run_soulconv(m, nat, h, snap, rng, fam):
+    """MonsterSoulConversion 0x01135146(code) (this 0x06fbbe1c): a record or NULL, for every key and 300 absent
+    codes; the native answers whether the code is listed."""
+    keys = [k for k, _ in snap.tree(plain.SOULCONV + 0x44)]
+    present = set(keys)
+    for code in keys + [c for c in rng.sample(range(0, 0x3000), 320) if c not in present][:300]:
+        m.prepare()
+        fam.check(code, int(m.call(SOUL_LOOKUP, [code], ecx=plain.SOULCONV) != 0),
+                  nat.lib.mu_lang_soul_conversion(h, code))
+
+
 def run_charinfo(m, nat, h, snap, rng, fam):
     nodes = snap.tree(plain.CHARINFO + 0x38)
     keys = {k for k, _ in nodes}
@@ -737,7 +800,7 @@ def main():
     parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(DEFAULT_DATA)))
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--families', default='map_table,text,skill_lookup,skill_info,gate,move,npc,enchant,map_names,'
-                                               'buff,buff_tooltip,charinfo,charinfo_rows')
+                                               'buff,buff_tooltip,addbuff,soulconv,charinfo,charinfo_rows')
     parser.add_argument('--write-maps', action='store_true', help='regenerate native/core/mu_lang_maps.h')
     parser.add_argument('--mutations', action='store_true', help='check that planted mistakes are caught')
     parser.add_argument('--output')
@@ -777,6 +840,8 @@ def main():
             'map_names': lambda f: run_map_names(m, nat, h, f, worlds),
             'buff_tooltip': lambda f: run_buff_tooltip(m, nat, h, snap, rng, f),
             'charinfo': lambda f: run_charinfo(m, nat, h, snap, rng, f),
+            'addbuff': lambda f: run_addbuff(m, nat, h, f),
+            'soulconv': lambda f: run_soulconv(m, nat, h, snap, rng, f),
             'charinfo_rows': lambda f: run_charinfo_rows(m, nat, h, f),
         }
         for name in families:

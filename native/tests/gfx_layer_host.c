@@ -10,6 +10,9 @@
  *   | compose STR | invoke MOVIE PATH METHOD JSON ("-" path: the movie's) | items | channels
  *   | npcdialog | npcshop | storage | npcact VERB ARG | slot MOVIE CELL | slotdraws MOVIE | npcprint
  *   (NATIVE-NPC-001: the NPC windows with demo contents)
+ *   | buffs | charrows   (NATIVE-LANG-002: three buffs, then the bufflist's tooltip through
+ *   `npcact bufftip N`; three CharacterInfoSetup-like rows for the character window;
+ *   MU_GFX_HOST_CHOICE=1 installs a dialogue-choice callback that takes the choice)
  * `print` writes one JSON line with the layer state; each input op prints
  * whether the interface took it.  MU_GFX_SIZE=WxH sets the window size in
  * points (default 1280x800).  MU_GFX_HOST_TEXT=1 installs a GlobalText
@@ -46,6 +49,20 @@ static const char *host_text(void *user, int32_t index)
     return b;
 }
 
+static int host_choice(void *user, int index)
+{
+    (void)user;
+    printf("host choice %d\n", index);
+    return 1;
+}
+
+static int host_buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
+{
+    (void)user;
+    snprintf(html, cap, "<b>buff %d</b>", (int)buff);
+    return 0;
+}
+
 static int click(mu_gfx_layer *L, double x, double y, int button)
 {
     mu_gfx_layer_mouse(L, 0, 0, x, y);
@@ -70,6 +87,9 @@ int main(int argc, char **argv)
                                .scale = scale};
     if (getenv("MU_GFX_HOST_TEXT"))
         cfg.text = host_text;
+    if (getenv("MU_GFX_HOST_CHOICE"))
+        cfg.dialog_choice = host_choice;
+    cfg.buff_tooltip = host_buff_tooltip;
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {
         printf("{\"error\": \"%s\"}\n", error);
@@ -178,6 +198,19 @@ int main(int argc, char **argv)
                    mu_gfx_layer_slot_items(L, MU_GFX_NPC_SHOP), mu_gfx_layer_slot_items(L, MU_GFX_STORAGE),
                    mu_gfx_layer_items_placed(L), mu_gfx_layer_is_open(L, MU_GFX_INVENTORY),
                    (long long)mu_gfx_layer_hero(L)->zen);
+        } else if (!strcmp(op, "buffs")) {
+            mu_gfx_buff b[3] = {{1, 0, 0, 1, 0}, {35, 0, 0, 1, 2}, {55, 1, 0, 0, 0}};
+            int n = 0;
+            for (int k = 0; k < 3; k++)
+                n += mu_gfx_layer_add_buff(L, &b[k]);
+            n += mu_gfx_layer_add_buff(L, &b[0]);   /* a buff already listed is not sent again */
+            printf("buffs %d %d\n", n, mu_gfx_layer_buff_count(L));
+        } else if (!strcmp(op, "charrows")) {
+            mu_gfx_char_row r[3] = {{1, 1, 0, 0, 20, 3, MU_GFX_ROW_CLASS, "Class"},
+                                    {2, 8, 0, 1, 20, 3, MU_GFX_ROW_STRENGTH, "Strength"},
+                                    {3, 43, 0, 0, 20, 3, MU_GFX_ROW_NONE, "* Critical <DMG>"}};
+            mu_gfx_layer_set_char_rows(L, r, 3);
+            printf("charrows 3\n");
         } else if (!strcmp(op, "channels")) {
             static const char *const NAMES[] = {"UIFrame", "ASData", "main", "chat", "alarmframe", "topmenu"};
             printf("{\"channels\": {");

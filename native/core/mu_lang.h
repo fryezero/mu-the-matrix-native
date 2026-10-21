@@ -63,7 +63,7 @@ const mu_lang *mu_lang_shared(void);
 
 typedef struct mu_lang_counts {
     size_t text, skills, gates, moves, npcs, dialog, enchant_codes, enchant_entries;
-    size_t buffs, charinfo, skillreq;   /* NATIVE-LANG-002 */
+    size_t buffs, charinfo, skillreq, soulconv;   /* NATIVE-LANG-002 */
     int enchant_default;              /* the default colour line was present */
 } mu_lang_counts;
 void mu_lang_get_counts(const mu_lang *lang, mu_lang_counts *out);
@@ -175,6 +175,17 @@ typedef struct mu_lang_buff_values {
 int mu_lang_buff_tooltip(const mu_lang *lang, int32_t buff, const mu_lang_buff_values *vals, char (*out)[256],
                          int max);
 
+/* The bufflist's addBuff (handler 0x00c5f278): 0 when the buff is not listed (buff <= 0 or >= 0x1cb, the hidden
+ * buffs of 0x00c5f53f: 0x53..0x55, 0x78, 0x19b..0x19f, 0x1be, or no table); else 1 with the object it sends:
+ * BuffType = buff, isDebuff = (type == 1), isCashBuff = (type == 2), and for non-debuffs BuffDetailType
+ * (group 0xf7 -> 1, 0xf6 -> 2, else 0). */
+typedef struct mu_lang_addbuff {
+    int32_t buff;
+    int is_debuff, is_cash, has_detail;
+    int32_t detail;
+} mu_lang_addbuff;
+int mu_lang_buff_addbuff(const mu_lang *lang, int32_t buff, mu_lang_addbuff *out);
+
 typedef struct mu_lang_charinfo {     /* CharacterInfoSetup record (0x06fbad18, map +0x38), 0xa4 bytes */
     int32_t id;                       /* +0x00 (the key; SetName's second argument) */
     int32_t color;                    /* +0x04 label colour (line builder 0x00ab4dc0) */
@@ -203,5 +214,8 @@ typedef struct mu_lang_skillreq {     /* SkillRequire record (0x06fbb248, map +0
 } mu_lang_skillreq;
 /* 0x00abf829(group, index): the record of a skill scroll, or NULL. */
 const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *lang, int32_t group, int32_t index);
+
+/* MonsterSoulConversion 0x01135146: 1 when the item code is in the map at +0x44 (soulconv.tsv), else 0. */
+int mu_lang_soul_conversion(const mu_lang *lang, int32_t code);
 
 #endif

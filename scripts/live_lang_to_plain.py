@@ -32,6 +32,7 @@ NATIVE-LANG-002 adds:
   buffs.tsv       BuffEffect 0x06fbb2a4         (lookup 0x010de66f, by item 0x010de6d3, tooltip 0x01298a54)
   charinfo.tsv    character window rows         (CharacterInfoSetup 0x06fbad18, lookup 0x010e5203, rows 0x00b3dedc)
   skillreq.tsv    skill scroll requirements     (SkillRequire 0x06fbb248, lookup 0x00abf829)
+  soulconv.tsv    MonsterSoulConversion codes   (0x06fbbe1c, map +0x44, lookup 0x01135146; ItemValue prices them)
 
 Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
@@ -50,7 +51,7 @@ MANAGER = 0x06fbaa60
 TEXT, SKILL, GATE, MOVEREQ = MANAGER + 0xe8, MANAGER + 0x6d8, MANAGER + 0x14c, MANAGER + 0xdec
 NPCNAME, DIALOG, ENCHANT = MANAGER + 0xc04, MANAGER + 0xc70, MANAGER + 0xcf4
 PENTAGRAM, INVENANIM, LEGENDARY, CASHSET = MANAGER + 0x3ec, MANAGER + 0x1dd0, MANAGER + 0x2148, MANAGER + 0x21a8
-BUFF, CHARINFO, SKILLREQ = MANAGER + 0x844, MANAGER + 0x2b8, MANAGER + 0x7e8
+BUFF, CHARINFO, SKILLREQ, SOULCONV = MANAGER + 0x844, MANAGER + 0x2b8, MANAGER + 0x7e8, MANAGER + 0x13bc
 MAP_AT = {TEXT: 0x38, SKILL: 0x108, GATE: 0x38, MOVEREQ: 0x38, NPCNAME: 0x38, DIALOG: 0x38, ENCHANT: 0x38}
 ENCHANT_DEFAULT = 0x50            # 0x010ffd7a / 0x010ffddb return this+0x50 when nothing matches
 
@@ -343,6 +344,13 @@ def read_skillreq(snap):
     return rows
 
 
+def read_soulconv(snap):
+    """MonsterSoulConversion: 0x01135146(code) finds the item code in the map at +0x44 and returns the record
+    (node +0x14) or NULL; ItemValue (through 0x00d371cb) prices a listed code at 10000.  Record +0 / +4 / +8."""
+    return [(key, snap.i32(record(node)), snap.i32(record(node) + 4), snap.i32(record(node) + 8))
+            for key, node in snap.tree(SOULCONV + 0x44)]
+
+
 def map_name_table(path=ROOT/'native/core/mu_lang_maps.h'):
     """world -> GlobalText index template from the generated header."""
     out = []
@@ -494,6 +502,16 @@ def convert(snap, out_dir, header=''):
             for row in rows:
                 f.write('\t'.join(str(v) for v in row) + '\n')
         counts['skillreq'] = len(rows)
+    except SnapshotError:
+        pass
+
+    try:
+        rows = read_soulconv(snap)
+        with open(out_dir/'soulconv.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#code\tx00\tx04\tx08  (MonsterSoulConversion map +0x44, lookup 0x01135146)\n')
+            for row in rows:
+                f.write('\t'.join(str(v) for v in row) + '\n')
+        counts['soulconv'] = len(rows)
     except SnapshotError:
         pass
 

@@ -77,7 +77,8 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
-             $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c
+             $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c \
+             $(RECON)/price/item_price.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -93,7 +94,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
-           $(wildcard $(RECON)/npc/*.h)
+           $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
