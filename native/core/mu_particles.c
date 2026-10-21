@@ -35,7 +35,11 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
 static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
-    {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"}};
+    {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"},
+    /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
+     * textures from Data\Effect\) */
+    {MU_SFX_MODEL_STAR_DRAGON, 0x5d, "Data/Effect/stardr01.bmd"},
+    {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -319,9 +323,49 @@ static int sfx_model(void *c, int32_t type, uint16_t action, int16_t *keys)
     return 1;   /* a missing native model: the client has it */
 }
 
+static mu_world_fx_model *fx_model_of(mu_world_particles *p, int32_t type)
+{
+    for (int k = 0; k < MU_WORLD_FX_MODELS; ++k)
+        if (p->models[k].type == type && p->models[k].loaded)
+            return &p->models[k];
+    return NULL;
+}
+
+/* Animation(bones, frame, prior, prior action, angle, head angle, 0, 0) on the effect's model: model-space bones
+ * turned by the effect's angle, the body scale and origin applied later (translate 0) */
+static int fx_pose(mu_world_fx_model *m, const mu_sfx_effect *e)
+{
+    mu_model_params params = m->model.params;
+    for (int k = 0; k < 3; ++k) {
+        params.origin[k] = e->position[k];
+        params.angles[k] = e->angle[k];
+        params.color[k] = e->light[k];
+    }
+    params.body_scale = e->scale;
+    params.lighting = e->flag5;
+    mu_model_apply_params(&m->model, &params);
+    const int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
+    float frame = e->frame;
+    if (keys > 0 && frame >= (float)keys)
+        frame = 0.0f;
+    mu_model_set_state(&m->model, 0, frame, frame, 0);
+    return mu_model_pose(&m->model) == MU_MODEL_OK;
+}
+
+/* TransformByObjectBone 0x012b678d(out, o, bone, 0): out = BodyScale * bone translation + o->Position */
+static void sfx_bone(void *c, const mu_sfx_effect *e, int32_t bone, float out[3])
+{
+    mu_world_particles *p = c;
+    mu_world_fx_model *m = fx_model_of(p, e->type);
+    const float zero[3] = {0.0f, 0.0f, 0.0f};
+    if (!m || !fx_pose(m, e) || !mu_world_particles_bone_position(&m->model, bone, zero, out))
+        memcpy(out, e->position, 3 * sizeof *out);
+}
+
 static void effect_env(mu_world_particles *p, mu_sfx_env *env)
 {
     memset(env, 0, sizeof *env);
+    env->bone = sfx_bone;
     env->context = p;
     env->rand = sfx_rand;
     env->height = sfx_height;
@@ -757,13 +801,41 @@ long mu_world_particles_draw_raster(mu_world_particles *p, mu_raster *raster, co
 
 /* ---- effect models (NATIVE-JOINT-001) ---- */
 
+/* RenderEffects 0x0151e980 for stardr02 (static reading): Animation, PlayAnimation(velocity) in the render pass,
+ * the Spark04 flash while 20 < LifeTime < 25, light and scale */
+static void glint_render(mu_world_particles *p, mu_sfx_effect *e)
+{
+    mu_world_fx_model *m = fx_model_of(p, e->type);
+    if (!m)
+        return;
+    const int32_t keys = m->bmd.action_count > 0 ? m->bmd.actions[0].keys : 1;
+    e->frame = e->frame + e->velocity;   /* the module's PlayAnimation (viewer choice: loops) */
+    if (keys > 1 && e->frame >= (float)keys)
+        e->frame = e->frame - (float)keys;
+    if (e->lifetime > 0x14 && e->lifetime < 0x19) {
+        const float light[3] = {0.8f, 0.8f, 1.0f};
+        mu_world_particles_sprite(p, 0x8155, e->position, 0.7f, light, -1, 0.0f, 0, 4);
+        e->light[0] = e->light[1] = e->light[2] = 0.6f;
+        if (e->subtype == 0)
+            e->scale = 0.8f;
+        else if (e->subtype == 1)
+            e->scale = 0.6f;
+    } else if (e->subtype == 0) {
+        e->scale = 0.5f;
+    } else if (e->subtype == 1) {
+        e->scale = 0.3f;
+    }
+}
+
 int32_t mu_world_particles_draw_models(mu_world_particles *p, mu_world_particles_model_fn draw, void *context)
 {
     int32_t drawn = 0;
     for (int i = 0; p->effects && i < MU_WORLD_FX_EFFECTS; ++i) {
-        const mu_sfx_effect *e = &p->effects[i];
+        mu_sfx_effect *e = &p->effects[i];
         if (!e->live)
             continue;
+        if (e->type == MU_SFX_MODEL_STAR_GLINT)
+            glint_render(p, e);
         int32_t slot = -1;
         for (int k = 0; k < MU_WORLD_FX_MODELS; ++k)
             if (p->models[k].type == e->type && p->models[k].loaded)

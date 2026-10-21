@@ -153,6 +153,7 @@ static int effect_supported(int32_t type, int32_t sub)
         return sub == 0;
     case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_TORNADO: return sub == 0;
+    case MU_SFX_MODEL_STAR_DRAGON: case MU_SFX_MODEL_STAR_GLINT: return sub == 0 || sub == 1;
     default: return 0;
     }
 }
@@ -348,6 +349,68 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->gravity = (float)(smod(env_rand(env), 16) + 8);
         break;
     }
+    case MU_SFX_MODEL_STAR_DRAGON: {
+        /* 0x013f41b4 (NATIVE-CHARSEL-003): the sky dragon of the character select, emitted by World94's objects
+         * 0x27/0x28 (CGMCharacterScene_Ex slot 0x34) */
+        e->angle[0] = 0.0f;
+        e->angle[1] = 310.0f;
+        e->angle[2] = 90.0f;
+        e->position[1] = ((float)smod(env_rand(env), 600) - 300.0f) + e->position[1];
+        e->blend_mesh = 0;
+        e->velocity = 1.0f;
+        if (subtype == 0) {
+            e->lifetime = 70;
+            e->direction[0] = -25.0f;
+            e->scale = 1.0f;
+        } else {
+            e->lifetime = 130;
+            e->direction[0] = -15.0f;
+            e->scale = f32bits(0x3f333333u);   /* 0.7 */
+        }
+        const float glint_light[3] = {0.5f, 0.5f, 0.5f};
+        float at[3] = {0.0f, 0.0f, 0.0f};
+        int16_t keys = 1;
+        if (env && env->model && !env->model(env->context, type, e->action, &keys))
+            return 1;   /* no model: CreateEffect returns 0 here (0x013f438c), the record stays */
+        {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_POSE;
+            c.type = type;
+            c.owner = -2;
+            env_call(env, &c, e);
+        }
+        {
+            mu_sfx_call c;
+            memset(&c, 0, sizeof c);
+            c.routine = MU_SFX_CALL_BONE;
+            c.type = type;
+            c.range = 1;
+            c.owner = -2;
+            env_call(env, &c, e);
+            if (env && env->bone)
+                env->bone(env->context, e, 1, at);
+            else
+                copy3(at, e->position);
+        }
+        /* CreateEffect(0x5ad, bone 1, angle, (0.5, 0.5, 0.5), subtype, this effect, -1, ...) */
+        call_effect(env, e, MU_SFX_MODEL_STAR_GLINT, at, e->angle, glint_light, subtype, -2);
+        break;
+    }
+    case MU_SFX_MODEL_STAR_GLINT:
+        /* 0x013f4457 */
+        e->blend_mesh = 0;
+        e->velocity = 1.0f;
+        if (subtype == 0) {
+            e->lifetime = 70;
+            e->direction[0] = -25.0f;
+            e->scale = 0.5f;
+        } else {
+            e->lifetime = 130;
+            e->direction[0] = -15.0f;
+            e->scale = F_0_3;
+        }
+        break;
     case MU_SFX_MODEL_TORNADO: {
         /* 0x013c3eab (NATIVE-JOINT-001): a field tornado a few tiles around the position, drifting */
         e->field_6 = 0;

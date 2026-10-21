@@ -48,7 +48,7 @@
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
 enum { MU_WORLD_PT_BITMAPS = 23, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 1, MU_WORLD_FX_QUADS = 8192 };
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 3, MU_WORLD_FX_QUADS = 8192 };
 
 typedef struct mu_world_fx_model {
     int32_t type;
@@ -133,7 +133,11 @@ int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subty
 /* The hero's position (the tornado tests its distance for PlayBuffer). */
 void mu_world_particles_set_hero(mu_world_particles *p, const float position[3]);
 /* Effect models (RenderEffects -> RenderObject, a static reading): places and poses every live model effect
- * and calls draw with RenderObject's RenderBody options; the callback must draw before returning. */
+ * and calls draw with RenderObject's RenderBody options; the callback must draw before returning.
+ * NATIVE-CHARSEL-003: the character select's star dragon stardr01 0x5ac is drawn plainly (RenderEffects
+ * 0x0151e966); its glint stardr02 0x5ad poses and plays its animation in the render pass, and while its
+ * LifeTime is 21..24 creates a Spark04 0x8155 sprite (scale 0.7, light (0.8, 0.8, 1)), takes light 0.6 and
+ * scale 0.8 / 0.6 (subtype 0 / 1), else scale 0.5 / 0.3 (0x0151e980, static reading). */
 typedef void (*mu_world_particles_model_fn)(void *context, const mu_model *model, const mu_textures *textures,
                                             int32_t slot, const mu_draw_options *options);
 int32_t mu_world_particles_draw_models(mu_world_particles *p, mu_world_particles_model_fn draw, void *context);
