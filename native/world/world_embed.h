@@ -36,6 +36,12 @@ typedef struct mu_world_embed_config {
     const char *items[MU_CHARACTER_ITEMS];
     int quiet;
     const char *hero_name;         /* NATIVE-NAMES-001: the hero's name plate (NULL: the demo name) */
+    /* NATIVE-APP-001: mu-world's optional session features (0: mu-world's defaults, combat, ground items
+     * (--items) and NPC talk off, names, environment and particles on). With combat the weapon kind follows
+     * the equipped weapon. */
+    int combat, ground_items, npc;
+    const char *npc_demo;          /* the NPC demo table (mu-world --npc-demo), may be NULL */
+    int no_names, no_env, no_particles;
 } mu_world_embed_config;
 
 mu_world_embed *mu_world_embed_open(const mu_world_embed_config *config, char *error, size_t error_size);

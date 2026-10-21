@@ -294,8 +294,10 @@ static void offline_label(mu_shell *s, const char *hint)
     mu_ui_ctx_set_font(&s->ctx, s->ctx.fonts.bold);
     mu_ui_text_set_back_color(&s->text, 0, 0, 0, 160);
     mu_ui_text_set_color(&s->text, 255, 210, 60, 255);
-    mu_ui_render_text(&s->state, &s->text, 320, 4, "OFFLINE DEMO - native client, no server connection", 0, 0, 8,
-                      NULL);
+    mu_ui_render_text(&s->state, &s->text, 320, 4,
+                      s->cfg.label && s->cfg.label[0] ? s->cfg.label
+                                                      : "OFFLINE DEMO - native client, no server connection",
+                      0, 0, 8, NULL);
     if (hint && hint[0]) {
         mu_ui_ctx_set_font(&s->ctx, s->ctx.fonts.normal);
         mu_ui_text_set_color(&s->text, 230, 230, 230, 255);
@@ -508,6 +510,13 @@ static int open_world(mu_shell *s)
     c.audio = s->cfg.audio && s->cfg.sound_table;
     c.audio_rate = s->cfg.audio_rate;
     c.placement = join.world == 0 ? s->cfg.placement : NULL;
+    c.combat = s->cfg.world_combat;   /* NATIVE-APP-001 */
+    c.ground_items = s->cfg.world_items;
+    c.npc = s->cfg.world_npc;
+    c.npc_demo = join.world == 0 ? s->cfg.npc_demo : NULL;
+    c.no_names = s->cfg.world_no_names;
+    c.no_env = s->cfg.world_no_env;
+    c.no_particles = s->cfg.world_no_particles;
     c.objects_dir = s->cfg.world_objects;
     c.quiet = s->cfg.quiet;
     c.hero_name = entry && entry->name[0] ? entry->name : NULL;

@@ -13,6 +13,42 @@
 
 int mu_world_cli_main(int argc, char **argv);
 
+/* NATIVE-APP-001: the combat weapon kind of the equipped weapons (file names under Data/Item), sword when the
+ * character carries none (mu-world's default). */
+static int32_t embed_weapon_kind(const mu_world_embed_config *c)
+{
+    static const struct { const char *stem; int32_t kind; } kinds[] = {
+        {"crossbow", MU_COMBAT_WEAPON_CROSSBOW}, {"bow", MU_COMBAT_WEAPON_BOW}, {"staff", MU_COMBAT_WEAPON_STAFF},
+        {"spear", MU_COMBAT_WEAPON_SPEAR}, {"sword", MU_COMBAT_WEAPON_SWORD}, {"axe", MU_COMBAT_WEAPON_SWORD},
+        {"mace", MU_COMBAT_WEAPON_SWORD},
+    };
+    for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
+        const char *path = c->items[MU_CHARACTER_WEAPON_ITEM(slot)];
+        if (!path || !path[0])
+            continue;
+        const char *base = strrchr(path, '/');
+        char name[64];
+        size_t n = 0;
+        for (const char *p = base ? base + 1 : path; *p && n + 1 < sizeof name; ++p)
+            name[n++] = (char)(*p >= 'A' && *p <= 'Z' ? *p + 32 : *p);
+        name[n] = 0;
+        for (size_t k = 0; k < sizeof kinds / sizeof kinds[0]; ++k)
+            if (!strncmp(name, kinds[k].stem, strlen(kinds[k].stem)))
+                return kinds[k].kind;
+    }
+    return MU_COMBAT_WEAPON_SWORD;
+}
+
+static int embed_has_weapon(const mu_world_embed_config *c)
+{
+    for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
+        const char *path = c->items[MU_CHARACTER_WEAPON_ITEM(slot)];
+        if (path && path[0])
+            return 1;
+    }
+    return 0;
+}
+
 struct mu_world_embed {
     app a;
 };
@@ -43,13 +79,31 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->hero_name = c->hero_name;
     a->backend = "soft";
     a->pause = 8;
+    a->env_seed = 1;          /* mu-world's defaults (main) */
+    a->particle_seed = 1;
+    a->joint_demo = -1;       /* no demo bolt (a viewer test option) */
+    mu_combat_default_config(&a->combat_config);
+    mu_world_items_default_config(&a->items_config);
+    a->combat_on = c->combat;   /* NATIVE-APP-001 */
+    a->items_on = c->ground_items;
+    a->npc_on = c->npc || c->npc_demo;
+    a->npc_demo_path = c->npc_demo;
+    a->no_names = c->no_names;
+    a->no_env = c->no_env;
+    a->no_particles = c->no_particles;
+    if (c->combat)
+        a->combat_config.weapon = embed_weapon_kind(c);
     if (load(a)) {
         snprintf(error, error_size, "world %d did not load (see the messages above)", c->world);
         unload(a);
         free(e);
         return NULL;
     }
-    /* the chosen character's equipment (mu-world itself shows the class parts only) */
+    /* the chosen character's equipment (mu-world itself shows the class parts only); with combat, its weapons
+     * replace the stand-in weapon load() equipped */
+    if (c->combat && embed_has_weapon(c))
+        for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot)
+            mu_character_set_item(&a->ch, MU_CHARACTER_WEAPON_ITEM(slot), NULL, 0, error, error_size);
     for (int i = 1; i < MU_CHARACTER_ITEMS; ++i) {
         if (!c->items[i] || !c->items[i][0])
             continue;

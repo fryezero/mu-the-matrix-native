@@ -14,6 +14,10 @@
  *             in the world scene (NATIVE-GFX-003, as mu-world --gfx; GL only)
  *             and the character select's list CharacterSelect.swf
  *             (NATIVE-CHARSEL-003; also in mu-shell) [--gfx-log FILE]
+ *   NATIVE-APP-001: --combat --items --npc [--npc-demo FILE] --no-names --no-env
+ *             --no-particles pass mu-world's features to the world scene;
+ *             --label TEXT replaces the offline label's first line and
+ *             --title TEXT the window title's prefix (the preview app)
  *
  * Headless actions (frame numbers count dispatcher passes): enter, esc, left,
  * right, tab, back, text:STRING, click:group:N, click:server:N, click:X,Y,
@@ -65,6 +69,8 @@ typedef struct front {
     const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
     const char *gfx_log;              /* NATIVE-CHARSEL-003 */
     int double_click;                 /* the scripted click is a double click */
+    const char *label, *title, *npc_demo;                      /* NATIVE-APP-001 */
+    int combat, items, npc, no_names, no_env, no_particles;
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
     float seconds;
     action actions[MAX_ACTIONS];
@@ -460,6 +466,19 @@ static int parse_script(front *f, const char *text)
     return 0;
 }
 
+/* NATIVE-APP-001: the offline label and mu-world's features for the world scene. */
+static void world_options(const front *f, mu_shell_config *c)
+{
+    c->label = f->label;
+    c->world_combat = f->combat;
+    c->world_items = f->items;
+    c->world_npc = f->npc;
+    c->npc_demo = f->npc_demo;
+    c->world_no_names = f->no_names;
+    c->world_no_env = f->no_env;
+    c->world_no_particles = f->no_particles;
+}
+
 /* ---- headless ---- */
 
 static void note_scene(front *f)
@@ -510,6 +529,7 @@ static int headless(front *f)
     c.audio = f->audio;
     c.sound_table = f->sound_table;
     c.placement = f->placement;
+    world_options(f, &c);
     c.world_objects = f->world_objects;
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
@@ -640,7 +660,7 @@ static int windowed(front *f)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    f->window = SDL_CreateWindow("Mu The Matrix (native, offline demo)", SDL_WINDOWPOS_CENTERED,
+    f->window = SDL_CreateWindow(f->title ? f->title : "Mu The Matrix (native, offline demo)", SDL_WINDOWPOS_CENTERED,
                                  SDL_WINDOWPOS_CENTERED, f->width, f->height,
                                  SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_GLContext context = f->window ? SDL_GL_CreateContext(f->window) : NULL;
@@ -666,6 +686,7 @@ static int windowed(front *f)
     c.audio = f->audio;
     c.sound_table = f->sound_table;
     c.placement = f->placement;
+    world_options(f, &c);
     c.world_objects = f->world_objects;
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
@@ -727,10 +748,11 @@ static int windowed(front *f)
         audio_pump(f, SDL_GetTicks());
         if (frames % 25 == 0) {
             static const char *names[8] = {"", "", "title", "login", "loading", "character select", "world", ""};
-            char title[160];
+            char title[400];
             int scene = mu_shell_scene(f->shell);
-            snprintf(title, sizeof title, "Mu The Matrix (native, OFFLINE DEMO)  scene %d %s  %.1f fps", scene,
-                     names[scene & 7], (double)frames * 1000.0 / (double)(SDL_GetTicks() - start + 1));
+            snprintf(title, sizeof title, "%s  scene %d %s  %.1f fps",
+                     f->title ? f->title : "Mu The Matrix (native, OFFLINE DEMO)", scene, names[scene & 7],
+                     (double)frames * 1000.0 / (double)(SDL_GetTicks() - start + 1));
             SDL_SetWindowTitle(f->window, title);
         }
         if (f->seconds > 0 && (SDL_GetTicks() - start) / 1000.0 >= f->seconds)
@@ -759,7 +781,9 @@ static int usage(void)
             "                 [--world-objects DIR] [--charsel-objects DIR] [--login-objects DIR] [--objects-dir DIR]\n"
             "                 [--headless --out-dir DIR --backend gl|soft --frames N --every K]\n"
             "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
-            "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n");
+            "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n"
+            "                 [--combat] [--items] [--npc] [--npc-demo FILE] [--no-names] [--no-env] [--no-particles]\n"
+            "                 [--label TEXT] [--title TEXT]\n");
     return 2;
 }
 
@@ -785,6 +809,12 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--quiet")) { f.quiet = 1; continue; }
         if (!strcmp(k, "--no-audio")) { f.audio = 0; continue; }
         if (!strcmp(k, "--auto")) { f.autoplay = 1; continue; }
+        if (!strcmp(k, "--combat")) { f.combat = 1; continue; }   /* NATIVE-APP-001 */
+        if (!strcmp(k, "--items")) { f.items = 1; continue; }
+        if (!strcmp(k, "--npc")) { f.npc = 1; continue; }
+        if (!strcmp(k, "--no-names")) { f.no_names = 1; continue; }
+        if (!strcmp(k, "--no-env")) { f.no_env = 1; continue; }
+        if (!strcmp(k, "--no-particles")) { f.no_particles = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -809,6 +839,9 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--gfx")) f.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) f.gfx_open = v;
         else if (!strcmp(k, "--gfx-log")) f.gfx_log = v;
+        else if (!strcmp(k, "--npc-demo")) { f.npc_demo = v; f.npc = 1; }
+        else if (!strcmp(k, "--label")) f.label = v;
+        else if (!strcmp(k, "--title")) f.title = v;
         else return usage();
     }
     if (!f.root || f.width < 64 || f.height < 64 || f.width > 8192 || f.height > 8192 || f.frames < 1)
