@@ -85,9 +85,13 @@ mac-hotpatch:
 mac-bundle:
 	$(MAKE) -C mac-play/bundle
 
-# Mu The Matrix.app for players: needs EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=... (see mac-play/bundle/README.md).
+# Mu The Matrix.app for players: needs EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=... EMBED_RUNTIME=...
+# (see mac-play/bundle/README.md); player-dmg packages it as "Mu The Matrix.dmg" (DMG=..., SIGN_IDENTITY=..., NOTARY_PROFILE=...).
 player-app:
 	$(MAKE) -C mac-play/bundle player-app
+
+player-dmg:
+	$(MAKE) -C mac-play/bundle player-dmg
 
 mac-diagnostics:
 	$(MAKE) -C mac-play/diagnostics
@@ -98,4 +102,4 @@ integration:
 windows:
 	$(MAKE) -C windows-capture
 
-.PHONY: all test integration windows mugl mac-bundle player-app mac-diagnostics mac-hotpatch native-viewer
+.PHONY: all test integration windows mugl mac-bundle player-app player-dmg mac-diagnostics mac-hotpatch native-viewer

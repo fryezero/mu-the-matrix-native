@@ -1,0 +1,15 @@
+Mu The Matrix.app bundles a Wine runtime (runtime/winecx-26.3.0-mu1.tar.xz). It is free software; it is unpacked
+into ~/Library/Application Support/MuTheMatrix/runtime when the game is installed. Corresponding sources:
+
+- Wine (GNU LGPL 2.1 or later, see COPYING.LIB next to this file): CodeWeavers CrossOver 26.3.0 sources,
+  https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  sha256 ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872; built unmodified for x86_64 with
+  mac-play/installer/packaging/build-wine.sh of https://github.com/fryezero/mu-the-matrix-recovery (the configure
+  options are in that script).
+- wine-gecko 2.47.4 (MPL 2.0): https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86.tar.xz
+- x86_64 libraries (freetype FTL/GPL 2.0, gnutls LGPL 2.1+, nettle and gmp LGPL 3.0+, libpng, zlib and others, each
+  under its own license) from Sikarugir's wrapper template
+  https://github.com/Sikarugir-App/Template/releases/download/v1.0/Template-1.0.24.tar.xz;
+  sources: https://github.com/Sikarugir-App/Sikarugir-foss-sources
+
+If one of these links stops working, ask the Mu The Matrix server team for a copy of the sources.

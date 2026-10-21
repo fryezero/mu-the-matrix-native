@@ -1,7 +1,9 @@
 // Mu The Matrix.app (MAC-BUNDLE-001): entry point, command-line modes and the AppKit UI.
 //
-// Double-click: start the launcher (free Wine runtime by default, or a CrossOver bottle) and quit. The settings window opens instead on
-// the first run (no settings file), when Option is held, when "Start right away" is off, or after an error.
+// Double-click: start the launcher (free Wine runtime by default, or a CrossOver bottle) and quit. Outside the Applications folder
+// (the disk image, Downloads) it first offers to copy itself there and open again. Before the game is installed it shows one
+// install window (Install, then the game starts by itself). The settings window opens when Option is held, from the menu,
+// when "Start right away" is off, or after an error.
 // Command line (no window): --dry-run, --check, --status, --install, --install-dry-run, --check-bundle, --rosetta-status,
 // --install-rosetta, --fps-counter, --print-settings, --settings-path, --version, --help.
 import AppKit
@@ -64,11 +66,16 @@ if let arg = cliArgs.first {
         }
         exit(status)
     case "--check-bundle":
-        // A player build (make player-app) bundles mugl, the mscoree proxy and the fast x87 translator.
+        // A player build (make player-app) bundles mugl, the mscoree proxy, the fast x87 translator and the runtime.
         let missing = Installer.missingEmbeds
-        if missing.isEmpty { print("bundle complete: mugl, mscoree proxy and fast x87 are bundled"); exit(0) }
+        if missing.isEmpty, let rt = Installer.bundledRuntime {
+            guard RuntimeFile.isTested(rt.path) else {
+                print("bundle damaged: \(rt.lastPathComponent) does not have the pinned SHA-256 \(RuntimeFile.testedSHA256)"); exit(1)
+            }
+            print("bundle complete: mugl, mscoree proxy, fast x87 and the Wine runtime (SHA-256 checked) are bundled"); exit(0)
+        }
         print("bundle incomplete: missing " + missing.joined(separator: ", "))
-        print("Build the app for players with: make player-app EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=...")
+        print("Build the app for players with: make player-app EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=... EMBED_RUNTIME=...")
         exit(1)
     case "--rosetta-status":
         let ok = Rosetta.isInstalled()
@@ -91,6 +98,19 @@ if let arg = cliArgs.first {
         }
         guard let state = LaunchScript.fpsCounter(want, settings: s) else { print("fps-counter unavailable (install the game first)"); exit(1) }
         print("fps-counter \(state ? "on" : "off")"); exit(0)
+    case "--location":
+        // Where the app runs from, and whether it would offer to move itself to Applications (tests, support).
+        let (orig, translocated) = AppMover.origin(of: Bundle.main.bundleURL)
+        print("app: \(orig.path)\(translocated ? " (translocated)" : "")")
+        print("in Applications: \(AppMover.targets.contains { AppMover.isInside(orig, $0) } ? "yes" : "no")")
+        print("read-only volume: \(AppMover.readOnlyVolume(of: orig)?.path ?? "no")")
+        exit(0)
+    case "--move-to-applications":
+        // The copy step of "Move to Applications" without the dialog and the relaunch (tests).
+        do {
+            let dest = try AppMover.copyToApplications(from: Bundle.main.bundleURL, name: Bundle.main.bundleURL.lastPathComponent)
+            print("copied to \(dest.path)"); exit(0)
+        } catch { print("move failed: \(error.localizedDescription)"); exit(1) }
     case "--settings-path": print(LauncherSettings.fileURL.path); exit(0)
     case "--version": print("Mu The Matrix.app \(appVersion)"); exit(0)
     case "--help", "-h":
@@ -101,18 +121,21 @@ if let arg = cliArgs.first {
           --check           preflight only
           --status          free runtime install state (exit 0 when ready)
           --install [--runtime-archive FILE] [GAME_DIR]
-                            install without a window (default: download the official game and the default
-                            Wine runtime; --runtime-archive: use a Wine runtime file you already have)
+                            install without a window (default: download the official game; the Wine runtime
+                            bundled in the app; --runtime-archive: use another Wine runtime file instead)
           --install-dry-run [--runtime-archive FILE] [GAME_DIR]  print the installer's plan; changes nothing
-          --check-bundle    exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
+          --check-bundle    exit 0 when mugl, the mscoree proxy, fast x87 and the pinned Wine runtime are bundled
           --rosetta-status  exit 0 when Rosetta 2 is installed
           --install-rosetta install Rosetta 2 (asks for administrator approval)
           --fps-counter [on|off]  show or hide the in-game FPS counter (also while the game runs)
+          --location        where the app runs from and whether it is in an Applications folder
+          --move-to-applications  copy the app into Applications (what "Move to Applications" does, without relaunch)
           --print-settings  show the effective settings and file locations
           --settings-path   print the settings plist path
           --version
         Environment: MU_SETTINGS_FILE, MU_LOG_DIR, MU_LAUNCH_SCRIPT, MU_SETUP_SCRIPT, MUKIT_FREE_HOME, CX_ROOT, MUKIT_BOTTLES_DIR,
-          MU_CANCEL_GRACE, MU_ROSETTA_CHECK, MU_ROSETTA_INSTALL.
+          MU_CANCEL_GRACE, MU_ROSETTA_CHECK, MU_ROSETTA_INSTALL, MU_APPLICATIONS_DIR (where "Move to Applications"
+          copies the app; testing), MU_SKIP_MOVE=1 (no move offer; development builds).
         """)
         exit(0)
     default:
@@ -378,44 +401,100 @@ final class SettingsWindowController: NSWindowController {
 }
 
 // ---------------------------------------------------------------- install window
-/// Player-facing names for the installer's steps ("== 7/14 game files" -> "Step 7 of 14: game files").
-let installStepNames: [String: String] = [
-    "free Wine runtime": "the free Windows layer (Wine)",
-    "winetricks": "helper tool (winetricks)",
-    "Wine prefix (32-bit)": "the game's Windows folder",
-    "registry (AeDebug off, overrides)": "Windows settings",
-    ".NET Framework 4.8": "Microsoft .NET Framework 4.8 (about 4 minutes)",
-    "Windows version": "Windows version",
-    "registry re-check after .NET": "Windows settings, second check",
-    "game files": "game files",
-    "launcher .NET config": "launcher settings",
-    "C:\\mutools": "window sizes and speed settings",
-    "LauncherOption.if": "window size",
-    "proxy DLLs": "speed-up and launcher fix files (mugl, mscoree)",
-    "launcher skin": "the server's launcher design",
-    "fast x87 and Desktop launcher": "fast 3D maths (fast x87)",
-    "verify": "final check",
+/// What the player sees for each installer step ("== 7/14 game files"): a plain title without technical names, and
+/// about how long the step takes (seconds), for the overall progress bar. The game download is measured in bytes.
+let installStepInfo: [String: (title: String, seconds: Double)] = [
+    "free Wine runtime": ("Getting ready", 30),
+    "winetricks": ("Getting ready", 5),
+    "Wine prefix (32-bit)": ("Getting ready", 25),
+    "registry (AeDebug off, overrides)": ("Getting ready", 10),
+    ".NET Framework 4.8": ("Installing components from Microsoft", 240),
+    "Windows version": ("Installing components from Microsoft", 10),
+    "registry re-check after .NET": ("Installing components from Microsoft", 5),
+    "game files": ("Installing the game", 150),
+    "launcher .NET config": ("Finishing", 3),
+    "C:\\mutools": ("Finishing", 3),
+    "LauncherOption.if": ("Finishing", 3),
+    "proxy DLLs": ("Finishing", 3),
+    "launcher skin": ("Finishing", 3),
+    "fast x87 and Desktop launcher": ("Finishing", 5),
+    "verify": ("Checking that everything works", 20),
 ]
 
-/// Runs the bundled installer with the free runtime: choose where the game comes from, then watch the steps.
+/// One overall fraction for the whole installation: finished steps count with their estimated time, the running step
+/// with its elapsed time (at most 90% of its estimate), the game download with the bytes received. Never goes back.
+final class InstallProgress {
+    static let downloadSeconds = 2000.0          // the 2.2 GB game download at about 1 MB/s
+    private let fromFolder: Bool
+    private let total: Double
+    private var done = 0.0
+    private var current: (name: String, seconds: Double, started: TimeInterval)?
+    private var downloadFraction = 0.0
+    private var installerStarted: TimeInterval?
+    private(set) var fraction = 0.0
+
+    init(fromFolder: Bool) {
+        self.fromFolder = fromFolder
+        total = installStepInfo.values.reduce(0) { $0 + $1.seconds } + (fromFolder ? 0 : Self.downloadSeconds)
+    }
+    private func budget(_ name: String) -> Double {
+        (installStepInfo[name]?.seconds ?? 5) + (name == "game files" && !fromFolder ? Self.downloadSeconds : 0)
+    }
+    func begin(_ name: String, now: TimeInterval) {
+        if let c = current { done += budget(c.name) }
+        current = (name, installStepInfo[name]?.seconds ?? 5, now)
+        downloadFraction = 0; installerStarted = nil
+    }
+    func download(_ f: Double) { downloadFraction = min(max(f, 0), 1) }
+    func installerRuns(now: TimeInterval) { if installerStarted == nil { installerStarted = now } }
+
+    @discardableResult
+    func update(now: TimeInterval) -> Double {
+        guard let c = current else { return fraction }
+        var inStep = min((now - c.started) / c.seconds, 0.9) * c.seconds
+        if c.name == "game files" && !fromFolder {
+            if let s = installerStarted { inStep = Self.downloadSeconds + min((now - s) / c.seconds, 0.9) * c.seconds }
+            else { inStep = downloadFraction * Self.downloadSeconds }
+        }
+        fraction = max(fraction, min((done + inStep) / total, 0.99))
+        return fraction
+    }
+}
+
+/// The first-run window (and Repair): one sentence and one Install button; then one progress view with plain step
+/// names, an overall bar, download speed and time left, and Cancel; on failure a plain message with Try Again and
+/// Show Details (the installer's output). After a successful install the game starts by itself (onPlay).
 final class InstallWindowController: NSWindowController, NSWindowDelegate {
+    enum Mode { case install, repair }
+    private enum Phase { case welcome, checking, installing, stopping, failed, done }
+    /// Called after every run (true = installed), e.g. to refresh the settings window.
     var onFinished: ((Bool) -> Void)?
-    private let downloadRadio = NSButton(radioButtonWithTitle: "Download the game from the official site (about 2.2 GB)", target: nil, action: nil)
-    private let folderRadio = NSButton(radioButtonWithTitle: "Use a Mu The Matrix folder I already have…", target: nil, action: nil)
-    private let folderLabel = label("", small: true)
-    private let runtimeCheck = NSButton(checkboxWithTitle: "Use a faster Windows layer file I already have…", target: nil, action: nil)
-    private let runtimeLabel = label("", small: true)
-    private var runtimeFile: String?
-    private let step = label("Ready. Takes about 10 minutes plus the game download (2.2 GB) and needs about 12 GB of free space.")
-    private let detail = label("", small: true)
+    /// Starts the game: right after a successful install, or from the Play button after a repair.
+    var onPlay: (() -> Void)?
+    let mode: Mode
+    private var phase = Phase.welcome
+
+    private let icon = NSImageView()
+    private let titleLabel = label("Mu The Matrix")
+    private let message = label("")
+    private let stepLabel = label("")
     private let bar = NSProgressIndicator()
+    private let detail = label("", small: true)
+    private let note = label("You can keep using your Mac while Mu The Matrix installs.", small: true)
+    private lazy var mainButton = NSButton(title: "Install", target: self, action: #selector(mainAction))
+    private lazy var cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancelPressed))
+    private lazy var detailsButton = NSButton(title: "Show Details", target: self, action: #selector(toggleDetails))
+    private lazy var logButton = NSButton(title: "Open Log Folder", target: self, action: #selector(openLogs))
+    private lazy var folderLink = NSButton(title: "", target: self, action: #selector(chooseFolder))
     private let logView = NSTextView()
-    private lazy var startButton = NSButton(title: "Install", target: self, action: #selector(startInstall))
-    private lazy var closeButton = NSButton(title: "Cancel", target: self, action: #selector(closeOrCancel))
+    private let logScroll = NSScrollView()
+    private var stack: NSStackView!
+
     private var folder: String?
     private var session: InstallSession?
-    private var steps = 0, total = 14
-    private var stepTitle = ""
+    private var progress = InstallProgress(fromFolder: false)
+    private var ticker: Timer?
+    private var stepName = ""
     private let meter = DownloadMeter()
     private var lastError: String?
     private var sawRosettaError = false, sawSummaryFail = false, sawDLLFail = false
@@ -425,151 +504,162 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
     private var afterCancel: (() -> Void)?
     var isInstalling: Bool { session != nil }
 
-    init() {
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 480), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        w.title = "Install Mu The Matrix"
-        w.minSize = NSSize(width: 560, height: 420)
+    init(mode: Mode) {
+        self.mode = mode
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 400), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+        w.title = "Mu The Matrix"
         super.init(window: w)
         w.delegate = self
         build()
+        showWelcome()
         w.center()
     }
     required init?(coder: NSCoder) { fatalError("not used") }
 
     private func build() {
         guard let content = window?.contentView else { return }
-        let icon = NSImageView(image: NSApp.applicationIconImage)
+        icon.image = NSApp.applicationIconImage
         icon.imageScaling = .scaleProportionallyUpOrDown
-        icon.widthAnchor.constraint(equalToConstant: 48).isActive = true
-        icon.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        let title = label("Install Mu The Matrix"); title.font = .boldSystemFont(ofSize: 15)
-        let intro = label("This sets up everything the game needs in ~/Library/Application Support/MuTheMatrix: a free Windows layer (Wine, no CrossOver), Microsoft .NET Framework 4.8 (downloaded from Microsoft) and the game. You can keep using your Mac while it runs; it stays awake until the installation has finished.", small: true)
-        intro.preferredMaxLayoutWidth = 520
-        let headText = NSStackView(views: [title, intro]); headText.orientation = .vertical; headText.alignment = .leading; headText.spacing = 4
-        let head = NSStackView(views: [icon, headText]); head.alignment = .top; head.spacing = 12
-        downloadRadio.target = self; downloadRadio.action = #selector(sourceChanged)
-        folderRadio.target = self; folderRadio.action = #selector(chooseFolder)
-        downloadRadio.state = .on
-        folderLabel.maximumNumberOfLines = 1
-        folderLabel.lineBreakMode = .byTruncatingMiddle
-        folderLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        runtimeCheck.target = self; runtimeCheck.action = #selector(runtimeChanged)
-        runtimeLabel.maximumNumberOfLines = 2
-        runtimeLabel.lineBreakMode = .byTruncatingMiddle
-        runtimeLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        showRuntimeChoice()
-        step.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
-        bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = Double(total); bar.style = .bar
+        icon.widthAnchor.constraint(equalToConstant: 112).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 112).isActive = true
+        titleLabel.font = .boldSystemFont(ofSize: 22)
+        titleLabel.alignment = .center
+        for l in [message, stepLabel, detail, note] { l.alignment = .center; l.preferredMaxLayoutWidth = 440 }
+        message.font = .systemFont(ofSize: 14)
+        stepLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = 1; bar.style = .bar
+        mainButton.controlSize = .large
+        mainButton.keyEquivalent = "\r"
+        mainButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
+        cancelButton.controlSize = .large
+        detailsButton.controlSize = .large
+        folderLink.isBordered = false
+        folderLink.attributedTitle = NSAttributedString(string: "Use a game folder I already have…", attributes: [
+            .foregroundColor: NSColor.linkColor, .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)])
         logView.isEditable = false
         logView.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
-        let scroll = NSScrollView(); scroll.documentView = logView; scroll.hasVerticalScroller = true
         logView.autoresizingMask = [.width]
-        scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 160).isActive = true
-        startButton.keyEquivalent = "\r"
-        let spacer = NSView(); spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        let logButton = NSButton(title: "Open Log Folder", target: self, action: #selector(openLogs))
-        let buttons = NSStackView(views: [logButton, spacer, closeButton, startButton])
-        let stack = NSStackView(views: [head, downloadRadio, folderRadio, folderLabel, runtimeCheck, runtimeLabel, step, bar, detail, scroll, buttons])
-        stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 10
-        stack.setCustomSpacing(16, after: head)
-        stack.edgeInsets = NSEdgeInsets(top: 18, left: 20, bottom: 18, right: 20)
+        logScroll.documentView = logView; logScroll.hasVerticalScroller = true; logScroll.borderType = .bezelBorder
+        logScroll.heightAnchor.constraint(equalToConstant: 180).isActive = true
+        let buttons = NSStackView(views: [detailsButton, cancelButton, mainButton])
+        buttons.spacing = 12
+        buttons.setHuggingPriority(.required, for: .horizontal)     // stay centred, as wide as its buttons
+        stack = NSStackView(views: [icon, titleLabel, message, stepLabel, bar, detail, note, buttons, folderLink, logScroll, logButton])
+        stack.orientation = .vertical; stack.alignment = .centerX; stack.spacing = 12
+        stack.setCustomSpacing(18, after: message); stack.setCustomSpacing(18, after: note)
+        stack.edgeInsets = NSEdgeInsets(top: 28, left: 32, bottom: 24, right: 32)
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor), stack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             stack.topAnchor.constraint(equalTo: content.topAnchor), stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
-            scroll.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
-            bar.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
-            step.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
-            detail.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
-            folderLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, constant: -40),
-            runtimeLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, constant: -40),
-            buttons.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40),
+            stack.widthAnchor.constraint(equalToConstant: 520),
+            bar.widthAnchor.constraint(equalToConstant: 440),
+            logScroll.widthAnchor.constraint(equalToConstant: 456),
         ])
     }
 
-    @objc private func sourceChanged() { folderRadio.state = .off; downloadRadio.state = .on; folder = nil; folderLabel.stringValue = "" }
+    /// Shows exactly the given views (the rest of the stack is hidden) and fits the window, keeping its top edge.
+    private func show(_ visible: [NSView]) {
+        for v in [icon, titleLabel, message, stepLabel, bar, detail, note, mainButton, cancelButton, detailsButton, folderLink, logScroll, logButton] {
+            v.isHidden = !visible.contains(v)
+        }
+        mainButton.superview?.isHidden = ![mainButton, cancelButton, detailsButton].contains { visible.contains($0) }
+        guard let w = window, let content = w.contentView else { return }
+        content.layoutSubtreeIfNeeded()
+        let size = stack.fittingSize
+        var frame = w.frameRect(forContentRect: NSRect(origin: .zero, size: size))
+        frame.origin = NSPoint(x: w.frame.minX, y: w.frame.maxY - frame.height)
+        w.setFrame(frame, display: true, animate: w.isVisible)
+    }
+
+    private var estimate: String { folder == nil ? "about 45 minutes" : "about 10 minutes" }
+
+    private func showWelcome() {
+        phase = .welcome
+        switch mode {
+        case .install:
+            titleLabel.stringValue = "Mu The Matrix"
+            message.stringValue = "Mu The Matrix needs to download the game (about 2.2 GB) and set itself up. This takes \(estimate)."
+            mainButton.title = "Install"
+            show([icon, titleLabel, message, mainButton, folderLink])
+        case .repair:
+            titleLabel.stringValue = "Repair Mu The Matrix"
+            message.stringValue = "Mu The Matrix checks its files and puts back anything that is missing or damaged. Your game and your settings stay. This takes a few minutes."
+            mainButton.title = "Repair"
+            show([icon, titleLabel, message, mainButton])
+        }
+    }
+
+    private func showInstalling() {
+        phase = .installing
+        titleLabel.stringValue = mode == .repair ? "Repairing Mu The Matrix" : "Installing Mu The Matrix"
+        cancelButton.title = "Cancel"; cancelButton.isEnabled = true
+        show([icon, titleLabel, stepLabel, bar, detail, note, cancelButton])
+    }
+
+    private func showFailed(_ title: String, _ text: String, button: String = "Try Again") {
+        phase = .failed
+        titleLabel.stringValue = title
+        message.stringValue = text
+        mainButton.title = button; mainButton.isEnabled = true
+        detailsButton.title = logScroll.isHidden ? "Show Details" : "Hide Details"
+        var views: [NSView] = [icon, titleLabel, message, detailsButton, mainButton]
+        if !logScroll.isHidden { views += [logScroll, logButton] }
+        show(views)
+    }
+
+    @objc private func mainAction() {
+        switch phase {
+        case .welcome, .failed: startInstall()
+        case .done: onPlay?()
+        default: break
+        }
+    }
+    @objc private func toggleDetails() {
+        let showing = logScroll.isHidden
+        detailsButton.title = showing ? "Hide Details" : "Show Details"
+        var views: [NSView] = [icon, titleLabel, message, detailsButton, mainButton]
+        if showing { views += [logScroll, logButton]; logView.scrollToEndOfDocument(nil) }
+        show(views)
+    }
+    @objc private func openLogs() { openLog() }
+
     @objc private func chooseFolder() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.allowsMultipleSelection = false
         panel.message = "Choose your Mu The Matrix folder (it contains MuTheMatrix.exe and main.exe). It is copied, not moved."
-        if panel.runModal() == .OK, let url = panel.url {
-            folder = url.path; folderLabel.stringValue = url.path
-            folderRadio.state = .on; downloadRadio.state = .off
-        } else if folder == nil { sourceChanged() }
-    }
-    @objc private func openLogs() { openLog() }
-
-    // ---- optional: a Wine runtime file the player already has (the faster CrossOver 26.3 build)
-
-    private func showRuntimeChoice() {
-        runtimeCheck.state = runtimeFile == nil ? .off : .on
-        runtimeLabel.stringValue = runtimeFile ?? "Optional. If your server team gave you \(RuntimeFile.testedName), choose it here: busy places run faster with it. Already installed? Click Install to apply it; the game and your settings stay."
-    }
-    @objc private func runtimeChanged() {
-        if runtimeCheck.state == .on { chooseRuntime() } else { runtimeFile = nil; showRuntimeChoice() }
-    }
-    /// Also used by the app menu's "Use Windows Layer File…".
-    @objc func chooseRuntime() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = false; panel.canChooseFiles = true; panel.allowsMultipleSelection = false
-        panel.message = "Choose the Windows layer file (\(RuntimeFile.testedName), or another .tar.xz from your server team). It is unpacked, not moved."
-        panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
-        if panel.runModal() == .OK, let url = panel.url {
-            if url.path.hasSuffix(".tar.xz") { runtimeFile = url.path } else {
-                let a = NSAlert(); a.messageText = "That is not a Windows layer file"
-                a.informativeText = "Choose a file whose name ends in .tar.xz, such as \(RuntimeFile.testedName)."
-                a.runModal()
-            }
-        }
-        showRuntimeChoice()
-    }
-
-    /// Before installing from a runtime file: a file that is not the tested build gets a warning (on the main queue).
-    private func confirmRuntimeFile(tested: Bool) -> Bool {
-        guard let f = runtimeFile, !tested else { return true }
-        AppLog.write("runtime file is not the tested build: \(f)")
-        let a = NSAlert()
-        a.alertStyle = .warning
-        a.messageText = "This Windows layer file is not the one Mu The Matrix was tested with"
-        a.informativeText = "\((f as NSString).lastPathComponent) does not match \(RuntimeFile.testedName). It may be damaged, a different version, or not from your server team. Only use it if you trust where it came from.\n\nIf it does not work, untick the option and click Repair… to go back to the standard Windows layer."
-        a.addButton(withTitle: "Cancel")
-        a.addButton(withTitle: "Use It Anyway")
-        return a.runModal() == .alertSecondButtonReturn
+        panel.prompt = "Use This Folder"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        folder = url.path
+        startInstall()
     }
 
     /// Test hook (MU_AUTOTEST_INSTALL=1): press Install programmatically, optionally with a game folder
-    /// (MU_AUTOTEST_GAME_DIR). Same code path as the button, without the questions; used for the recorded rehearsal.
+    /// (MU_AUTOTEST_GAME_DIR). Same code path as the button, without the questions.
     func autotest(gameDir: String?) {
-        if let g = gameDir { folder = g; folderLabel.stringValue = g; folderRadio.state = .on; downloadRadio.state = .off }
+        if let g = gameDir { folder = g }
         runInstaller()
     }
 
     private func append(_ text: String) {
         logView.textStorage?.append(NSAttributedString(string: text + "\n", attributes: [.font: logView.font as Any, .foregroundColor: NSColor.textColor]))
-        logView.scrollToEndOfDocument(nil)
+        if !logScroll.isHidden { logView.scrollToEndOfDocument(nil) }
     }
 
-    private func setBusy(_ busy: Bool) {
-        startButton.isEnabled = !busy; downloadRadio.isEnabled = !busy; folderRadio.isEnabled = !busy; runtimeCheck.isEnabled = !busy
-        closeButton.title = busy ? "Cancel" : "Close"
-        closeButton.isEnabled = true
-    }
+    // ---- before the installer runs: Rosetta 2, and an app built without the files players need
 
-    // ---- before the installer runs: Rosetta 2, and an app built without the speed-up files
-
-    @objc private func startInstall() {
-        setBusy(true)
-        step.stringValue = runtimeFile == nil ? "Checking your Mac…" : "Checking your Mac and the Windows layer file…"; detail.stringValue = ""
-        let file = runtimeFile
+    private func startInstall() {
+        phase = .checking
+        stepLabel.stringValue = "Getting ready"; detail.stringValue = ""; bar.doubleValue = 0
+        showInstalling()
+        cancelButton.isEnabled = false
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let rosetta = Rosetta.isInstalled()
-            let tested = file.map(RuntimeFile.isTested) ?? true
             DispatchQueue.main.async {
                 guard let self else { return }
                 if !rosetta { self.offerRosetta(); return }
-                guard self.confirmRuntimeFile(tested: tested) else { self.setBusy(false); self.step.stringValue = "Ready."; return }
-                guard self.confirmIncompleteApp() else { self.setBusy(false); self.step.stringValue = "Ready."; return }
+                guard self.confirmIncompleteApp() else { self.showWelcome(); return }
                 self.runInstaller()
             }
         }
@@ -580,40 +670,40 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
         AppLog.write("rosetta missing: offering to install it")
         let a = NSAlert()
         a.messageText = "Mu The Matrix needs Rosetta 2"
-        a.informativeText = "Rosetta 2 is a free tool from Apple that lets your Mac run programs made for Intel processors. The game's Windows layer needs it.\n\nMu The Matrix can install it for you now. macOS will ask for your Mac login to approve this. It takes a minute or two and needs the internet."
+        a.informativeText = "Rosetta 2 is a free tool from Apple that lets your Mac run programs made for Intel processors. Mu The Matrix needs it to run.\n\nMu The Matrix can install it for you now. macOS will ask for your Mac login to approve this. It takes a minute or two and needs the internet."
         a.addButton(withTitle: "Install Rosetta")
         a.addButton(withTitle: "Not Now")
-        guard a.runModal() == .alertFirstButtonReturn else { rosettaNotInstalled(declined: true); return }
-        setBusy(true); closeButton.isEnabled = false
-        step.stringValue = "Installing Rosetta 2 (Apple's translator for Intel programs)…"
-        bar.isIndeterminate = true; bar.startAnimation(nil)
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let r = Rosetta.install()
-            let nowOK = r.ok && Rosetta.isInstalled()
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.bar.stopAnimation(nil); self.bar.isIndeterminate = false
-                AppLog.write("rosetta install ok=\(r.ok) declined=\(r.declined) installed=\(nowOK)\n\(r.output)")
-                if !r.output.isEmpty { self.append(r.output) }
-                guard nowOK else { self.rosettaNotInstalled(declined: r.declined); return }
-                self.append("Rosetta 2 is installed.")
-                guard self.confirmIncompleteApp() else { self.setBusy(false); self.step.stringValue = "Ready."; return }
-                self.runInstaller()
+        guard let w = window else { return }
+        a.beginSheetModal(for: w) { [weak self] response in
+            guard let self else { return }
+            guard response == .alertFirstButtonReturn else { self.rosettaNotInstalled(declined: true); return }
+            self.stepLabel.stringValue = "Installing Rosetta 2 from Apple…"
+            self.bar.isIndeterminate = true; self.bar.startAnimation(nil)
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let r = Rosetta.install()
+                let nowOK = r.ok && Rosetta.isInstalled()
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.bar.stopAnimation(nil); self.bar.isIndeterminate = false
+                    AppLog.write("rosetta install ok=\(r.ok) declined=\(r.declined) installed=\(nowOK)\n\(r.output)")
+                    if !r.output.isEmpty { self.append(r.output) }
+                    guard nowOK else { self.rosettaNotInstalled(declined: r.declined); return }
+                    self.append("Rosetta 2 is installed.")
+                    guard self.confirmIncompleteApp() else { self.showWelcome(); return }
+                    self.runInstaller()
+                }
             }
         }
     }
 
     private func rosettaNotInstalled(declined: Bool) {
-        setBusy(false)
-        startButton.title = "Try Again"
-        step.stringValue = declined ? "Rosetta 2 is needed before the installation can start."
-                                    : "Rosetta 2 could not be installed."
-        detail.stringValue = "To install it yourself: open Terminal (in Applications > Utilities), paste the line shown in the box below and press Return. Type your Mac login when asked (nothing appears while you type), wait until it says the install finished, then click Try Again."
         append("To install Rosetta 2 in Terminal:\n    \(Rosetta.terminalCommand)")
+        showFailed(declined ? "Rosetta 2 is needed first" : "Rosetta 2 could not be installed",
+                   "Click Try Again to install it. Or install it yourself: open Terminal (in Applications > Utilities), paste the line shown under Show Details and press Return, type your Mac login when asked, then click Try Again.")
     }
 
-    /// An app built without the pinned DLLs (not with make player-app) installs a game that runs at about 4 fps and
-    /// whose final check fails. Say so before starting; returns false when the player prefers not to go on.
+    /// An app built without the files players need (not with make player-app) installs a slow game whose final
+    /// check fails. Say so before starting; returns false when the player prefers not to go on.
     private func confirmIncompleteApp() -> Bool {
         let missing = Installer.missingEmbeds
         guard !missing.isEmpty else { return true }
@@ -621,7 +711,7 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
         let a = NSAlert()
         a.alertStyle = .warning
         a.messageText = "This copy of Mu The Matrix is incomplete"
-        a.informativeText = "It was built without the files that make the game fast (missing: \(missing.joined(separator: ", "))). Without them the game runs very slowly (about 4 frames per second), and the installation ends with a failed final check.\n\nDownload Mu The Matrix.zip again from your server team's link, or tell them. You can still install now; installing the complete app later and clicking Repair… fixes it."
+        a.informativeText = "It was built without some of the files that make the game run well (missing: \(missing.joined(separator: ", "))). The game may run very slowly, and the installation may end with a failed check.\n\nDownload Mu The Matrix again from the official website, or tell the server team. You can still install now; installing the complete app later and choosing Repair fixes it."
         a.addButton(withTitle: "Cancel")
         a.addButton(withTitle: "Install Anyway")
         return a.runModal() == .alertSecondButtonReturn
@@ -630,128 +720,310 @@ final class InstallWindowController: NSWindowController, NSWindowDelegate {
     // ---- the installer
 
     private func runInstaller() {
-        setBusy(true)
-        startButton.title = "Install"
-        steps = 0; bar.doubleValue = 0; stepTitle = ""; lastError = nil
+        showInstalling()
+        stepName = ""; lastError = nil
         sawRosettaError = false; sawSummaryFail = false; sawDLLFail = false
-        step.stringValue = "Starting…"; detail.stringValue = ""
+        stepLabel.stringValue = "Getting ready"; detail.stringValue = ""
+        progress = InstallProgress(fromFolder: folder != nil)
+        bar.doubleValue = 0
         startedAt = Date()
-        window?.title = "Install Mu The Matrix"
-        AppLog.write("install start source=\(folder ?? "official installer") runtime=\(runtimeFile ?? "default")")
+        AppLog.write("install start (\(mode == .repair ? "repair" : "install")) source=\(folder ?? "official installer") runtime=\(Installer.bundledRuntime?.lastPathComponent ?? "default download")")
         // Keep the Mac from idle-sleeping while the installer runs (closing the lid still sleeps it).
         activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .idleSystemSleepDisabled], reason: "Installing Mu The Matrix")
-        session = Installer.start(gameDir: folder, runtimeArchive: runtimeFile, line: { [weak self] l in self?.handle(l) },
+        ticker = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.tick() }
+        session = Installer.start(gameDir: folder, line: { [weak self] l in self?.handle(l) },
                                   done: { [weak self] st, cancelled in self?.finished(st, cancelled: cancelled) })
     }
 
-    private func showProgress(fraction: Double?) {
-        let within = min(max(fraction ?? 0, 0), 1)
-        bar.doubleValue = Double(max(0, steps - 1)) + within
-        let pct = Int((bar.doubleValue / max(bar.maxValue, 1)) * 100)
-        NSApp.dockTile.badgeLabel = steps > 0 ? "\(pct)%" : nil
-        window?.title = steps > 0 ? "Install Mu The Matrix — \(pct)%" : "Install Mu The Matrix"
+    private func tick() {
+        guard phase == .installing else { return }
+        let f = progress.update(now: ProcessInfo.processInfo.systemUptime)
+        bar.doubleValue = f
+        let pct = Int(f * 100)
+        NSApp.dockTile.badgeLabel = "\(pct)%"
+        window?.title = "Mu The Matrix — \(pct)%"
+    }
+
+    /// The plain title of the running step; the game step depends on where the game comes from and on its phase.
+    private func setStep(_ name: String, phase gamePhase: String? = nil) {
+        if name == "game files" {
+            stepLabel.stringValue = folder != nil ? "Copying your game folder" : (gamePhase ?? "Downloading the game")
+        } else {
+            stepLabel.stringValue = installStepInfo[name]?.title ?? "Setting up Mu The Matrix"
+        }
+        detail.stringValue = name == ".NET Framework 4.8" ? "This part takes a few minutes." : ""
     }
 
     private func handle(_ l: String) {
         if meter.feed(l) {
             // "MU-PROGRESS BYTES TOTAL NAME" once a second while a download runs: sizes, speed and time left.
-            detail.stringValue = "Downloading \(meter.name): \(meter.summary)"
-            showProgress(fraction: meter.fraction)
+            detail.stringValue = meter.summary
+            if stepName == "game files" { progress.download(meter.fraction ?? 0) }
             return
         }
         AppLog.write("install: " + l)
-        // "== 7/14 game files" -> "Step 7 of 14: game files"; curl's "###   12.3%" bar lines only update the detail line.
+        append(l)
+        let now = ProcessInfo.processInfo.systemUptime
         if l.hasPrefix("== ") {
-            let body = l.dropFirst(3)
-            var name = String(body)
-            if let slash = body.firstIndex(of: "/"), let n = Int(body[body.startIndex..<slash].filter(\.isNumber)) {
-                let rest = body[body.index(after: slash)...]
-                if let sp = rest.firstIndex(of: " "), let t = Int(rest[rest.startIndex..<sp]) {
-                    total = t; bar.maxValue = Double(t)
-                    name = String(rest[rest.index(after: sp)...])
-                }
-                steps = n
-            }
-            stepTitle = "Step \(steps) of \(total): " + (installStepNames[name] ?? name)
-            step.stringValue = stepTitle
-            detail.stringValue = ""
-            showProgress(fraction: 0)
-            append(l)
+            // "== 7/14 game files" (also "== 6b/14 ..."): the step name follows the "N/M".
+            var name = String(l.dropFirst(3))
+            if let sp = name.firstIndex(of: " "), name[name.startIndex..<sp].contains("/") { name = String(name[name.index(after: sp)...]) }
+            stepName = name
+            progress.begin(name, now: now)
+            setStep(name)
+        } else if stepName == "game files" && l.contains("[do]   run the official installer") {
+            progress.installerRuns(now: now)
+            setStep(stepName, phase: "Installing the game")
+            detail.stringValue = "This part takes a few minutes."
         } else if l.range(of: #"^[\s#=O\-]*([0-9]+(\.[0-9])?%)?\s*$"#, options: .regularExpression) != nil {
-            if let pct = l.split(separator: " ").last, pct.hasSuffix("%") { detail.stringValue = "Downloading: \(pct)" }
+            // curl's own progress bar (downloads outside the app's progress lines): nothing to show.
         } else {
             if l.hasPrefix("Error: ") { lastError = String(l.dropFirst("Error: ".count)) }
             if l.contains("Rosetta 2 is not installed") { sawRosettaError = true }
             if l.hasPrefix("Summary: ") && !l.hasSuffix(" 0 FAIL") { sawSummaryFail = true }
             if l.hasPrefix("FAIL  mugl opengl32.dll") || l.hasPrefix("FAIL  mscoree proxy") { sawDLLFail = true }
-            append(l)
         }
+    }
+
+    /// A plain explanation of why the installation stopped.
+    private func failureText(status: Int32) -> (title: String, text: String) {
+        let e = lastError ?? ""
+        let again = "Click Try Again: the steps that already finished are kept."
+        if e.hasPrefix("Not enough free disk space") {
+            return ("Not enough free space", "\(e) Free up some space on your Mac, then click Try Again.")
+        }
+        if e.contains("download failed") || e.contains("internet") {
+            return ("A download did not finish", "Mu The Matrix could not download what it needs. Check your internet connection, then click Try Again. It continues where it stopped.")
+        }
+        if sawDLLFail && !Installer.missingEmbeds.isEmpty {
+            return ("This copy of Mu The Matrix is incomplete", "The game was installed, but this copy of the app lacks files the game needs to run well. Download Mu The Matrix again from the official website, open it and choose Repair.")
+        }
+        if sawSummaryFail && lastError == nil {
+            return ("The final check found a problem", "\(again) If it happens again, click Show Details and send the details to the Mu The Matrix team.")
+        }
+        return ("The installation could not finish", "Something went wrong while Mu The Matrix was setting itself up. \(again) If it happens again, click Show Details and send the details to the Mu The Matrix team.")
     }
 
     private func finished(_ status: Int32, cancelled: Bool) {
         session = nil
+        ticker?.invalidate(); ticker = nil
         if let a = activity { ProcessInfo.processInfo.endActivity(a); activity = nil }
         NSApp.dockTile.badgeLabel = nil
-        window?.title = "Install Mu The Matrix"
+        window?.title = "Mu The Matrix"
         let ok = status == 0 && !cancelled
         let minutes = Int(Date().timeIntervalSince(startedAt) / 60)
         AppLog.write("install finished status \(status)\(cancelled ? " (cancelled)" : "") after \(minutes) min")
-        setBusy(false)
-        detail.stringValue = ""
         if ok {
-            bar.doubleValue = bar.maxValue
-            step.stringValue = "Done. Mu The Matrix is installed. Close this window and press Play."
-            startButton.title = "Done"; startButton.isEnabled = false
-        } else if cancelled {
-            step.stringValue = "The installation was stopped."
-            detail.stringValue = "Click Try Again to continue where it stopped: finished steps and the part already downloaded are kept."
-            startButton.title = "Try Again"
-        } else if sawRosettaError {
-            startButton.title = "Try Again"
-            offerRosetta()
-        } else if sawDLLFail && !Installer.missingEmbeds.isEmpty {
-            step.stringValue = "The game was installed, but this copy of Mu The Matrix is incomplete."
-            detail.stringValue = "It lacks the files that make the game fast, so the final check failed and the game would run at about 4 frames per second. Get the complete Mu The Matrix.zip from your server team, replace the app, then click Repair… in the Mu The Matrix window."
-            startButton.title = "Try Again"
-        } else if sawSummaryFail && lastError == nil {
-            step.stringValue = "The installation finished, but the final check found a problem."
-            detail.stringValue = "The FAIL lines above say what. Click Try Again; if it fails again, send the logs to your server team (Open Log Folder)."
-            startButton.title = "Try Again"
-        } else {
-            step.stringValue = "The installation stopped: " + (lastError ?? "status \(status).")
-            detail.stringValue = "Fix the problem and click Try Again: finished steps are skipped and an interrupted download continues where it stopped."
-            startButton.title = "Try Again"
+            phase = .done
+            bar.doubleValue = 1
+            if mode == .install {
+                titleLabel.stringValue = "Mu The Matrix is ready"
+                stepLabel.stringValue = "Starting the game…"
+                show([icon, titleLabel, stepLabel, bar])
+                onFinished?(true)
+                // Let the player see "ready" for a moment, then the official launcher opens.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in self?.onPlay?() }
+            } else {
+                titleLabel.stringValue = "Mu The Matrix is repaired"
+                message.stringValue = "Everything is in place."
+                mainButton.title = "Play"
+                show([icon, titleLabel, message, mainButton])
+                onFinished?(true)
+            }
+            return
         }
-        onFinished?(ok)
+        if cancelled {
+            showFailed("The installation was stopped", "Click Continue to go on where it stopped: the steps that already finished and the part already downloaded are kept.", button: "Continue")
+        } else if sawRosettaError {
+            offerRosetta()
+        } else {
+            let f = failureText(status: status)
+            showFailed(f.title, f.text)
+        }
+        onFinished?(false)
         if cancelled, let next = afterCancel { afterCancel = nil; next() }
     }
 
-    /// Asks, then stops the installation (the installer, its downloads and its Wine processes). `then` runs once
+    /// Asks, then stops the installation (the installer, its downloads and everything it started). `then` runs once
     /// everything has stopped. Returns false when the player chose to continue.
     @discardableResult
     func confirmCancel(quitting: Bool = false, then: (() -> Void)? = nil) -> Bool {
         guard let s = session, s.isRunning else { then?(); return true }
         let a = NSAlert(); a.messageText = quitting ? "Stop the installation and quit?" : "Stop the installation?"
-        a.informativeText = "Everything it started is stopped. You can start it again later: finished steps and the part already downloaded are kept."
-        a.addButton(withTitle: "Stop"); a.addButton(withTitle: "Continue")
+        a.informativeText = "You can continue later: the steps that already finished and the part already downloaded are kept."
+        a.addButton(withTitle: "Stop"); a.addButton(withTitle: "Continue Installing")
         guard a.runModal() == .alertFirstButtonReturn else { return false }
         guard s.isRunning else { then?(); return true }
         afterCancel = then
-        step.stringValue = "Stopping the installation…"
+        phase = .stopping
+        stepLabel.stringValue = "Stopping…"
         detail.stringValue = "This takes a few seconds."
-        closeButton.isEnabled = false; startButton.isEnabled = false
+        cancelButton.isEnabled = false
         s.cancel()
         return true
     }
 
-    @objc private func closeOrCancel() {
-        if session != nil { confirmCancel(); return }
-        window?.orderOut(nil)
-    }
+    @objc private func cancelPressed() { if session != nil { confirmCancel() } }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         if session != nil { confirmCancel(); return false }
+        return phase != .checking && phase != .done
+    }
+}
+
+// ---------------------------------------------------------------- move to Applications
+/// An app opened from the disk image, from Downloads or from any folder outside /Applications and ~/Applications
+/// (a downloaded app then runs from a random read-only copy: App Translocation) offers to copy itself to the
+/// Applications folder and to open again from there, so the game is never installed from the disk image.
+/// MU_APPLICATIONS_DIR replaces the Applications folders (tests and rehearsals); MU_SKIP_MOVE=1 turns it off.
+enum AppMover {
+    private static var env: [String: String] { ProcessInfo.processInfo.environment }
+    /// True while copying and relaunching: no window is open then, and the app must not quit by itself.
+    static var busy = false
+
+    static var targets: [URL] {
+        if let d = env["MU_APPLICATIONS_DIR"], !d.isEmpty { return [URL(fileURLWithPath: d)] }
+        return [URL(fileURLWithPath: "/Applications"),
+                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")]
+    }
+
+    static func isInside(_ url: URL, _ dir: URL) -> Bool {
+        let d = dir.resolvingSymlinksInPath().path, p = url.resolvingSymlinksInPath().path
+        return p.hasPrefix(d.hasSuffix("/") ? d : d + "/")
+    }
+
+    /// The app's real location and whether macOS runs it from a translocated copy (Security's SecTranslocate
+    /// functions, looked up at run time; without them the path pattern decides).
+    static func origin(of url: URL) -> (url: URL, translocated: Bool) {
+        typealias IsTranslocated = @convention(c) (CFURL, UnsafeMutablePointer<DarwinBoolean>, UnsafeMutableRawPointer?) -> DarwinBoolean
+        typealias OriginalPath = @convention(c) (CFURL, UnsafeMutableRawPointer?) -> Unmanaged<CFURL>?
+        let byPath = url.path.contains("/AppTranslocation/")
+        guard let h = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_LAZY),
+              let f1 = dlsym(h, "SecTranslocateIsTranslocatedURL"), let f2 = dlsym(h, "SecTranslocateCreateOriginalPathForURL")
+        else { return (url, byPath) }
+        var translocated: DarwinBoolean = false
+        guard unsafeBitCast(f1, to: IsTranslocated.self)(url as CFURL, &translocated, nil).boolValue, translocated.boolValue,
+              let orig = unsafeBitCast(f2, to: OriginalPath.self)(url as CFURL, nil)?.takeRetainedValue()
+        else { return (url, byPath) }
+        return (orig as URL, true)
+    }
+
+    /// Read-only volume holding `url` (a mounted disk image), or nil.
+    static func readOnlyVolume(of url: URL) -> URL? {
+        guard let v = try? url.resourceValues(forKeys: [.volumeIsReadOnlyKey, .volumeURLKey]), v.volumeIsReadOnly == true else { return nil }
+        return v.volume
+    }
+
+    /// Shows the offer when the app is outside Applications. Returns true when the app is moving or quitting
+    /// (the caller must not continue).
+    static func offerIfNeeded() -> Bool {
+        guard env["MU_SKIP_MOVE"] != "1" else { return false }
+        let here = Bundle.main.bundleURL
+        let (orig, translocated) = origin(of: here)
+        guard !targets.contains(where: { isInside(orig, $0) }) else { return false }
+        let volume = readOnlyVolume(of: orig)
+        AppLog.write("app outside Applications: \(orig.path)\(translocated ? " (translocated)" : "")\(volume != nil ? " (read-only volume)" : "")")
+        let a = NSAlert()
+        a.messageText = "Move Mu The Matrix to your Applications folder?"
+        a.informativeText = "Mu The Matrix needs to be in your Applications folder. It copies itself there and opens again."
+            + (volume != nil ? " The Mu The Matrix disk is ejected afterwards." : "")
+        a.addButton(withTitle: "Move to Applications")
+        let canStay = !translocated && volume == nil
+        a.addButton(withTitle: canStay ? "Not Now" : "Quit")
+        NSApp.activate(ignoringOtherApps: true)
+        guard a.runModal() == .alertFirstButtonReturn else {
+            AppLog.write("move to Applications declined")
+            if canStay { return false }
+            NSApp.terminate(nil); return true
+        }
+        busy = true
+        do {
+            let dest = try copyToApplications(from: here, name: orig.lastPathComponent)
+            relaunch(dest, ejecting: volume)
+        } catch MoveError.alreadyRunning(let app) {
+            AppLog.write("move: \(app.bundleURL?.path ?? "?") is already running; switching to it")
+            app.activate(options: [])
+            NSApp.terminate(nil)
+        } catch {
+            AppLog.write("move failed: \(error.localizedDescription)")
+            let e = NSAlert()
+            e.alertStyle = .warning
+            e.messageText = "Mu The Matrix could not copy itself to Applications"
+            e.informativeText = "\(error.localizedDescription)\n\nDrag Mu The Matrix into your Applications folder yourself, then open it from there."
+            e.addButton(withTitle: "Quit")
+            e.runModal()
+            NSApp.terminate(nil)
+        }
         return true
+    }
+
+    enum MoveError: LocalizedError {
+        case alreadyRunning(NSRunningApplication), copyFailed(String)
+        var errorDescription: String? {
+            switch self {
+            case .alreadyRunning: return "Mu The Matrix is already open from Applications."
+            case .copyFailed(let s): return s
+            }
+        }
+    }
+
+    /// Copies the app (ditto keeps its signature) into the first Applications folder it may write to, replacing an
+    /// older copy there (moved to the Trash), and removes the download flag from the copy: the player already
+    /// approved this app, and a flagged copy would be translocated again on every start.
+    static func copyToApplications(from src: URL, name: String) throws -> URL {
+        let fm = FileManager.default
+        var dir: URL?
+        for t in targets {
+            if !fm.fileExists(atPath: t.path) { try? fm.createDirectory(at: t, withIntermediateDirectories: true) }
+            if fm.isWritableFile(atPath: t.path) { dir = t; break }
+        }
+        guard let dir else { throw MoveError.copyFailed("No Applications folder can be written to.") }
+        let dest = dir.appendingPathComponent(name)
+        if fm.fileExists(atPath: dest.path) {
+            if let running = NSWorkspace.shared.runningApplications.first(where: { $0.bundleURL?.standardizedFileURL == dest.standardizedFileURL }) {
+                throw MoveError.alreadyRunning(running)
+            }
+            do { try fm.trashItem(at: dest, resultingItemURL: nil) } catch { try fm.removeItem(at: dest) }
+            AppLog.write("move: replaced the older copy in \(dir.path)")
+        }
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        p.arguments = [src.path, dest.path]
+        let pipe = Pipe(); p.standardOutput = pipe; p.standardError = pipe
+        try p.run()
+        let out = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        p.waitUntilExit()
+        guard p.terminationStatus == 0 else { try? fm.removeItem(at: dest); throw MoveError.copyFailed("Copying failed: \(out)") }
+        removeQuarantine(dest)
+        AppLog.write("move: copied to \(dest.path)")
+        return dest
+    }
+
+    static func removeQuarantine(_ root: URL) {
+        var paths = [root.path]
+        if let e = FileManager.default.enumerator(atPath: root.path) { for case let r as String in e { paths.append(root.appendingPathComponent(r).path) } }
+        for p in paths { removexattr(p, "com.apple.quarantine", XATTR_NOFOLLOW) }
+    }
+
+    /// Opens the copy (passing the test variables on) and quits; a disk image is ejected once this copy has quit.
+    static func relaunch(_ dest: URL, ejecting volume: URL?) {
+        let cfg = NSWorkspace.OpenConfiguration()
+        cfg.createsNewApplicationInstance = true
+        cfg.environment = env.filter { $0.key.hasPrefix("MU_") || $0.key.hasPrefix("MUKIT_") }
+        NSWorkspace.shared.openApplication(at: dest, configuration: cfg) { _, error in
+            DispatchQueue.main.async {
+                if let error { AppLog.write("move: could not open \(dest.path): \(error.localizedDescription)") }
+                if let v = volume {
+                    let p = Process()
+                    p.executableURL = URL(fileURLWithPath: "/bin/sh")
+                    p.arguments = ["-c", "sleep 3; /usr/bin/hdiutil detach -quiet \"$0\" || /usr/bin/hdiutil detach -quiet \"$0\"", v.path]
+                    p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
+                    try? p.run()
+                    AppLog.write("move: ejecting \(v.path) after quitting")
+                }
+                NSApp.terminate(nil)
+            }
+        }
     }
 }
 
@@ -763,28 +1035,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         buildMenu()
+        if AppMover.offerIfNeeded() { return }
         let s = LauncherSettings.load()
         let option = NSEvent.modifierFlags.contains(.option)
-        AppLog.write("app \(appVersion) opened (settings file \(LauncherSettings.fileExists ? "present" : "missing"), option key \(option ? "held" : "not held"))")
+        AppLog.write("app \(appVersion) opened from \(Bundle.main.bundlePath) (settings file \(LauncherSettings.fileExists ? "present" : "missing"), option key \(option ? "held" : "not held"))")
         let freeReady: Bool = {
             guard s.runtime == "free" else { return true }
             let st = LaunchScript.freeStatus(); return st.runtime && st.prefix && st.game
         }()
         let env = ProcessInfo.processInfo.environment
         if env["MU_AUTOTEST_INSTALL"] == "1" {
-            showSettings(nil); showInstaller()
+            showInstaller()
             installWindow?.autotest(gameDir: env["MU_AUTOTEST_GAME_DIR"].flatMap { $0.isEmpty ? nil : $0 })
+        } else if option {
+            showSettings(nil)
         } else if !freeReady {
-            // First start with the free runtime: settings behind, the installer in front.
-            showSettings(nil); showInstaller()
-        } else if !LauncherSettings.fileExists || option || !s.startImmediately {
+            // First start: only the install window (one sentence, one Install button); it starts the game when done.
+            showInstaller()
+        } else if !s.startImmediately {
             showSettings(nil)
         } else {
             start(s)
         }
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { true }
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { !AppMover.busy }
 
     /// Quitting during an install stops the installer and everything it started first (after asking).
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -798,24 +1073,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem(); main.addItem(appItem)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About Mu The Matrix", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About Mu The Matrix", action: #selector(about(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings(_:)), keyEquivalent: ",")
-        appMenu.addItem(withTitle: "Use Windows Layer File…", action: #selector(useRuntimeFile(_:)), keyEquivalent: "")
         appMenu.addItem(withTitle: "Open Log", action: #selector(openLogAction(_:)), keyEquivalent: "l")
         appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide Mu The Matrix", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Quit Mu The Matrix", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
+        // Edit menu: copy from the details view, paste into the folder dialog.
+        let editItem = NSMenuItem(); main.addItem(editItem)
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editItem.submenu = edit
         NSApp.mainMenu = main
     }
 
     @objc func openLogAction(_ sender: Any?) { openLog() }
 
-    /// Opens the installer and asks for a Wine runtime file (install or repair with it).
-    @objc func useRuntimeFile(_ sender: Any?) {
-        showSettings(nil); showInstaller()
-        guard let w = installWindow, !w.isInstalling else { return }
-        w.chooseRuntime()
+    /// The standard About panel, with the license notice of the bundled Wine runtime.
+    @objc func about(_ sender: Any?) {
+        var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
+        if Installer.bundledRuntime != nil {
+            options[.credits] = NSAttributedString(string: "Includes Wine from CodeWeavers' CrossOver 26.3 sources (GNU LGPL 2.1 or later). Its license and where to get the sources: Contents/Resources/runtime in this app.",
+                                                   attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)])
+        }
+        NSApp.orderFrontStandardAboutPanel(options: options)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc func showSettings(_ sender: Any?) {
@@ -829,13 +1115,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// The install window: Install on a first start, Repair when the game is already installed.
     func showInstaller() {
-        if installWindow == nil {
-            let w = InstallWindowController()
-            w.onFinished = { [weak self] _ in self?.settingsWindow?.reloadAfterInstall() }
-            installWindow = w
+        if let w = installWindow, w.isInstalling || w.window?.isVisible == true {
+            w.showWindow(nil); NSApp.activate(ignoringOtherApps: true); return
         }
-        installWindow?.showWindow(nil)
+        let st = LaunchScript.freeStatus()
+        let w = InstallWindowController(mode: st.runtime && st.prefix && st.game ? .repair : .install)
+        w.onFinished = { [weak self] _ in self?.settingsWindow?.reloadAfterInstall() }
+        w.onPlay = { [weak self, weak w] in
+            w?.window?.orderOut(nil)
+            var s = LauncherSettings.load()
+            if s.runtime != "free" { s.runtime = "free" }    // the install was for the free runtime
+            self?.start(s)
+        }
+        installWindow = w
+        w.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -843,7 +1138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 90), styleMask: [.titled], backing: .buffered, defer: false)
         w.title = "Mu The Matrix"
         let spin = NSProgressIndicator(); spin.style = .spinning; spin.startAnimation(nil)
-        let text = label(bottle.isEmpty ? "Starting the launcher…" : "Starting the launcher in bottle \(bottle)…")
+        let text = label(bottle.isEmpty ? "Starting Mu The Matrix…" : "Starting the launcher in bottle \(bottle)…")
         let stack = NSStackView(views: [spin, text])
         stack.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         w.contentView = stack
@@ -873,22 +1168,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let free = LauncherSettings.load().runtime == "free"
+        let needsInstall = [30, 31].contains(err.code) || (err.code == 13 && free)
+        if needsInstall {
+            // Not installed (or the install was removed): the install window says what to do.
+            AppLog.write("start: not installed (\(err.code)); showing the install window")
+            showInstaller(); return
+        }
         let alert = NSAlert()
-        alert.alertStyle = err.code == 14 ? .informational : .warning
+        alert.alertStyle = .warning
         alert.messageText = errorTitle(err.code, free: free)
         alert.informativeText = err.message + "\n\nLog: \(AppLog.url.path)"
         alert.addButton(withTitle: "Settings…")
         alert.addButton(withTitle: "Open Log")
         alert.addButton(withTitle: "Quit")
-        let needsInstall = [30, 31].contains(err.code) || (err.code == 13 && free)
         if err.code == 10 { alert.addButton(withTitle: "Get CrossOver") }
-        if needsInstall { alert.addButton(withTitle: "Install…") }
         NSApp.activate(ignoringOtherApps: true)
-        let response = alert.runModal()
-        if needsInstall && response == NSApplication.ModalResponse(rawValue: NSApplication.ModalResponse.alertThirdButtonReturn.rawValue + 1) {
-            showSettings(nil); showInstaller(); return
-        }
-        switch response {
+        switch alert.runModal() {
         case .alertFirstButtonReturn:
             showSettings(nil)
             settingsWindow?.showStatus("Last start failed: \(errorTitle(err.code, free: free)). \(err.message)")
