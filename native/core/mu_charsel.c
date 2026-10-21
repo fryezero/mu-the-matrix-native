@@ -287,7 +287,9 @@ int mu_charsel_init(mu_charsel_session *s, const char *root, const mu_charsel_li
         r[MU_CHARSEL_OBJECT + 0x3b] = 1;
         r[0x10] = 1;
         r[0x17] = 0xff;
-        size_t name_len = strnlen(e->name, 15);
+        size_t name_len = 0;
+        while (name_len < 15 && e->name[name_len])
+            ++name_len;
         memcpy(r + 0x3658, e->name, name_len);
         r[0x3658 + name_len] = 0;
         r[0x3658 + 0x10] = (uint8_t)name_len;
