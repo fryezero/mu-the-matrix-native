@@ -397,6 +397,14 @@ enum Installer {
         return need.allSatisfy { fm.fileExists(atPath: fx.appendingPathComponent($0).path) } ? fx : nil
     }
 
+    /// The Wine runtime bundled at build time (make EMBED_RUNTIME=...): Resources/runtime/<RuntimeFile.testedName>.
+    /// Passed as --runtime-archive with its pinned SHA-256, so every install and repair uses it and nothing is
+    /// downloaded for it; the installer checks the hash before it unpacks the file.
+    static var bundledRuntime: URL? {
+        guard let u = Bundle.main.resourceURL?.appendingPathComponent("runtime/\(RuntimeFile.testedName)") else { return nil }
+        return FileManager.default.fileExists(atPath: u.path) ? u : nil
+    }
+
     /// The files a player build must contain (make player-app); empty for a complete app.
     static var missingEmbeds: [String] {
         var m: [String] = []
@@ -404,15 +412,18 @@ enum Installer {
         if d.mugl == nil { m.append("mugl (opengl32.dll, EMBED_MUGL)") }
         if d.mscoree == nil { m.append("mscoree proxy (mscoree.dll, EMBED_MSCOREE)") }
         if bundledFastX87 == nil { m.append("fast x87 translator (EMBED_FAST_X87)") }
+        if bundledRuntime == nil { m.append("Wine runtime (\(RuntimeFile.testedName), EMBED_RUNTIME)") }
         return m
     }
 
-    /// gameDir nil = download and run the official installer. runtimeArchive = a Wine runtime file the player
-    /// already has (--runtime-archive; the installer hashes and checks it); nil = the default download.
+    /// gameDir nil = download and run the official installer. runtimeArchive = another Wine runtime file
+    /// (--runtime-archive; the installer hashes and checks it); nil = the bundled runtime, or the default
+    /// download in a development build without one.
     static func arguments(gameDir: String?, runtimeArchive: String? = nil, dryRun: Bool = false) -> [String] {
         var a = ["--runtime", "free", "--no-desktop"]
         if let g = gameDir { a += ["--game-dir", g] } else { a += ["--game-installer", "official"] }
         if let r = runtimeArchive { a += ["--runtime-archive", r] }
+        else if let r = bundledRuntime { a += ["--runtime-archive", r.path, "--runtime-sha256", RuntimeFile.testedSHA256] }
         let d = bundledDLLs
         if let g = d.mugl { a += ["--mugl-dll", g.path]; if let m = d.mscoree { a += ["--mscoree-dll", m.path] } }
         if let fx = bundledFastX87 { a += ["--fast-x87-dir", fx.path] }
@@ -466,11 +477,16 @@ enum Installer {
     }
 }
 
-/// A Wine runtime archive the player already has: the faster CrossOver 26.3 build (packaging/build-wine.sh) until
-/// it has a public download. The installer checks its layout; the app compares its SHA-256 with the tested build.
+/// The Wine runtime the app is tested with: the CrossOver 26.3 build of packaging/build-wine.sh (LGPL-2.1+).
+/// make player-app bundles exactly this file (EMBED_RUNTIME, checked against testedSHA256; the Makefile reads both
+/// values from here) in Resources/runtime, next to its license (COPYING.LIB) and the sources note (SOURCES.txt).
 enum RuntimeFile {
     static let testedName = "winecx-26.3.0-mu1.tar.xz"
-    static let testedSHA256 = "c50cb614576764fa0c08595d6901402353c1954f20b3b7ad997286727f116599"
+    static let pinnedSHA256 = "c50cb614576764fa0c08595d6901402353c1954f20b3b7ad997286727f116599"
+    /// MU_RUNTIME_SHA256 replaces the pin for the synthetic test suite only (like the MUKIT_*_SHA256 pins).
+    static var testedSHA256: String {
+        ProcessInfo.processInfo.environment["MU_RUNTIME_SHA256"].flatMap { $0.isEmpty ? nil : $0 } ?? pinnedSHA256
+    }
 
     /// Hex SHA-256 of the file, read in 1 MB chunks; nil when it cannot be read.
     static func sha256(of path: String) -> String? {

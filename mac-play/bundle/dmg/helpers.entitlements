@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The fast x87 helpers in Resources/fast-x87 under the hardened runtime. x87-main-only-wrapper is Wine's loader
+     (WINELOADER): it must keep DYLD_INSERT_LIBRARIES (libtimewalker.dylib) for the processes it starts, and it loads
+     libraries signed by other teams or not at all (Wine's). runtime_loader and libRuntimeRosettax87 rewrite and
+     generate code at run time (Rosetta's x87 translation). -->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.cs.allow-dyld-environment-variables</key>
+	<true/>
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+</dict>
+</plist>

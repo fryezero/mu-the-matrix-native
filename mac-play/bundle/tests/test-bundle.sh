@@ -386,19 +386,134 @@ EOS
     if make -C "$BUNDLE_DIR" B="$PB" player-app >"$TMPD/player1.log" 2>&1; then bad 'player-app without embeds fails'; else ok 'player-app without embeds fails'; fi
     has 'player-app names EMBED_MUGL'   "$(cat "$TMPD/player1.log")" 'EMBED_MUGL=/path/to/opengl32.dll'
     has 'player-app names EMBED_FAST_X87' "$(cat "$TMPD/player1.log")" 'EMBED_FAST_X87=/path/to/fast-x87'
+    has 'player-app names EMBED_RUNTIME' "$(cat "$TMPD/player1.log")" 'EMBED_RUNTIME=/path/to/winecx-26.3.0-mu1.tar.xz'
     [ ! -e "$PB/Mu The Matrix.app" ] && ok 'player-app built nothing' || bad 'player-app built nothing'
-    EMB="$TMPD/embeds"; mkdir -p "$EMB/fx"
+    EMB="$TMPD/embeds"; mkdir -p "$EMB/fx" "$EMB/rt/wine/bin" "$EMB/rt-nolicense/wine/bin"
     printf 'MZ synthetic mugl' > "$EMB/opengl32.dll"; printf 'MZ synthetic mscoree' > "$EMB/mscoree.dll"
     for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87; do printf 'stub' > "$EMB/fx/$f"; done
-    if make -C "$BUNDLE_DIR" B="$PB" player-app EMBED_MUGL="$EMB/opengl32.dll" EMBED_MSCOREE="$EMB/mscoree.dll" EMBED_FAST_X87="$EMB" >"$TMPD/player2.log" 2>&1; then
+    # A synthetic runtime archive with the real layout (wine/bin/wine, COPYING.LIB at the top).
+    printf '#!/bin/sh\necho wine-synthetic\n' > "$EMB/rt/wine/bin/wine"; chmod 755 "$EMB/rt/wine/bin/wine"
+    printf 'GNU LESSER GENERAL PUBLIC LICENSE (synthetic)\n' > "$EMB/rt/COPYING.LIB"
+    cp "$EMB/rt/wine/bin/wine" "$EMB/rt-nolicense/wine/bin/wine"
+    tar -cJf "$EMB/runtime.tar.xz" -C "$EMB/rt" .; tar -cJf "$EMB/runtime-nolicense.tar.xz" -C "$EMB/rt-nolicense" .
+    RTSHA=$(shasum -a 256 "$EMB/runtime.tar.xz" | awk '{print $1}')
+    EMBEDS=(EMBED_MUGL="$EMB/opengl32.dll" EMBED_MSCOREE="$EMB/mscoree.dll" EMBED_FAST_X87="$EMB/fx")
+    if make -C "$BUNDLE_DIR" B="$PB" player-app EMBED_MUGL="$EMB/opengl32.dll" EMBED_MSCOREE="$EMB/mscoree.dll" EMBED_FAST_X87="$EMB" EMBED_RUNTIME="$EMB/runtime.tar.xz" RUNTIME_SHA256="$RTSHA" >"$TMPD/player2.log" 2>&1; then
         bad 'player-app refuses a fast x87 folder without the translator'; else ok 'player-app refuses a fast x87 folder without the translator'; fi
-    if make -C "$BUNDLE_DIR" B="$PB" player-app EMBED_MUGL="$EMB/opengl32.dll" EMBED_MSCOREE="$EMB/mscoree.dll" EMBED_FAST_X87="$EMB/fx" >"$TMPD/player3.log" 2>&1; then
-        ok 'player-app with all three embeds'; else bad "player-app with all three embeds: $(tail -5 "$TMPD/player3.log")"; fi
-    PBIN="$PB/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
-    has 'player app: bundle complete' "$("$PBIN" --check-bundle)" 'bundle complete'
-    ID=$(MUKIT_FREE_HOME="$TMPD/emptyhome" "$PBIN" --install-dry-run 2>&1)
+    if make -C "$BUNDLE_DIR" B="$PB" player-app "${EMBEDS[@]}" EMBED_RUNTIME="$EMB/runtime.tar.xz" >"$TMPD/player2b.log" 2>&1; then
+        bad 'player-app refuses a runtime that is not the pinned build'; else ok 'player-app refuses a runtime that is not the pinned build'; fi
+    has 'player-app names the runtime pin' "$(cat "$TMPD/player2b.log")" 'is not the tested runtime c50cb614576764fa0c08595d6901402353c1954f20b3b7ad997286727f116599'
+    NL=$(shasum -a 256 "$EMB/runtime-nolicense.tar.xz" | awk '{print $1}')
+    if make -C "$BUNDLE_DIR" B="$TMPD/pbuild-nl" player-app "${EMBEDS[@]}" EMBED_RUNTIME="$EMB/runtime-nolicense.tar.xz" RUNTIME_SHA256="$NL" >"$TMPD/player2c.log" 2>&1; then
+        bad 'player-app refuses a runtime without its license'; else ok 'player-app refuses a runtime without its license'; fi
+    has 'player-app says the license is missing' "$(cat "$TMPD/player2c.log")" 'has no ./COPYING.LIB'
+    if make -C "$BUNDLE_DIR" B="$PB" player-app "${EMBEDS[@]}" EMBED_RUNTIME="$EMB/runtime.tar.xz" RUNTIME_SHA256="$RTSHA" >"$TMPD/player3.log" 2>&1; then
+        ok 'player-app with all four embeds'; else bad "player-app with all four embeds: $(tail -5 "$TMPD/player3.log")"; fi
+    PAPP="$PB/Mu The Matrix.app"; PBIN="$PAPP/Contents/MacOS/MuTheMatrix"; PRT="$PAPP/Contents/Resources/runtime"
+    if cmp -s "$PRT/winecx-26.3.0-mu1.tar.xz" "$EMB/runtime.tar.xz"; then ok 'runtime bundled under its pinned name'; else bad 'runtime bundled under its pinned name'; fi
+    if cmp -s "$PRT/SOURCES.txt" "$BUNDLE_DIR/licenses/wine-runtime-SOURCES.txt"; then ok 'runtime sources note bundled'; else bad 'runtime sources note bundled'; fi
+    eq 'runtime license bundled from the archive' "$(cat "$PRT/COPYING.LIB" 2>/dev/null)" 'GNU LESSER GENERAL PUBLIC LICENSE (synthetic)'
+    has 'sources note names the CrossOver sources' "$(cat "$PRT/SOURCES.txt")" 'crossover-sources-26.3.0.tar.gz'
+    has 'player app: bundle complete' "$(MU_RUNTIME_SHA256="$RTSHA" "$PBIN" --check-bundle)" 'bundle complete'
+    CB=$("$PBIN" --check-bundle); rc=$?
+    eq 'player app: a runtime that is not the pin fails --check-bundle' "$rc" 1
+    has 'player app: says the runtime is damaged' "$CB" 'does not have the pinned SHA-256'
+    eq 'Makefile reads the runtime pin from Core.swift' "$(make -s -C "$BUNDLE_DIR" B="$TMPD/probe" -p -n 2>/dev/null | sed -n 's/^RUNTIME_NAME := //p')" 'winecx-26.3.0-mu1.tar.xz'
+    ID=$(MU_RUNTIME_SHA256="$RTSHA" MUKIT_FREE_HOME="$TMPD/emptyhome" "$PBIN" --install-dry-run 2>&1)
     has 'player app installs the bundled mugl' "$ID" 'is not a pinned mugl build'
     has 'player app installs the bundled fast x87' "$ID" 'install fast x87 file x87-main-only-wrapper'
+    has 'player app installs the bundled runtime' "$ID" "install the Wine runtime from $PRT/winecx-26.3.0-mu1.tar.xz"
+    hasnt 'player app downloads no runtime' "$ID" 'WS12WineCX24'
+    has 'player app: runtime id from the pinned hash' "$ID" "archive-${RTSHA:0:12}"
+    # A repair: the bundled runtime is already installed, so nothing is unpacked or downloaded again.
+    RH="$TMPD/repairhome"; RD="$RH/runtime/archive-${RTSHA:0:12}"
+    mkdir -p "$RD/wine/bin" "$RD/wine/lib/wine/x86_64-unix"; : > "$RD/wine/lib/wine/x86_64-unix/ntdll.so"; echo "id=archive-${RTSHA:0:12}" > "$RD/.mu-runtime"
+    printf '#!/bin/sh\necho wine-9.0\n' > "$RD/wine/bin/wine"; cp "$RD/wine/bin/wine" "$RD/wine/bin/wineserver"; chmod 755 "$RD/wine/bin/"*
+    printf 'archive-%s\n' "${RTSHA:0:12}" > "$RH/runtime/current"
+    ID=$(MU_RUNTIME_SHA256="$RTSHA" MUKIT_FREE_HOME="$RH" "$PBIN" --install-dry-run 2>&1)
+    has 'repair: the installed bundled runtime is kept' "$ID" "[ok]   Wine runtime archive-${RTSHA:0:12}"
+    hasnt 'repair: the runtime is not unpacked again' "$ID" 'install the Wine runtime from'
+    hasnt 'repair: no runtime download' "$ID" 'WS12WineCX24'
+
+    echo '# first run: one install window, no technical words, the game starts by itself'
+    MS="$BUNDLE_DIR/Sources/main.swift"
+    LAUNCH_FN=$(sed -n '/func applicationDidFinishLaunching/,/^    }/p' "$MS")
+    eq 'the move offer comes first' "$(printf '%s\n' "$LAUNCH_FN" | grep -n 'AppMover.offerIfNeeded\|LauncherSettings.load' | head -1 | grep -c AppMover)" 1
+    has 'not installed: the install window alone' "$(printf '%s\n' "$LAUNCH_FN" | grep -A2 '} else if !freeReady {')" 'showInstaller()'
+    hasnt 'not installed: no settings window behind it' "$(printf '%s\n' "$LAUNCH_FN" | grep -A3 '} else if !freeReady {')" 'showSettings'
+    has 'after the install the game starts' "$(sed -n '/private func finished(/,/^    }/p' "$MS")" 'self?.onPlay?()'
+    has 'onPlay starts the launcher' "$(sed -n '/func showInstaller()/,/^    }/p' "$MS")" 'self?.start(s)'
+    hasnt 'no Windows layer menu item' "$(cat "$MS")" 'Use Windows Layer File'
+    has 'welcome sentence' "$(cat "$MS")" 'Mu The Matrix needs to download the game (about 2.2 GB) and set itself up. This takes \(estimate).'
+    # Every player-facing text of the install window and the move offer, checked for jargon.
+    UI=$({ sed -n '/^\/\/ -* install window/,/^\/\/ -* app delegate/p' "$MS"; cat "$BUNDLE_DIR/Sources/FirstRun.swift"; } | grep -E 'stringValue = "|messageText = "|informativeText = "|showFailed\(|return \("|^    "[^"]*": \("|panel.message|title: "' | grep -v AppLog)
+    [ -n "$UI" ] && ok 'player-facing texts found' || bad 'player-facing texts found'
+    JARGON=$(printf '%s\n' "$UI" | sed -E 's/^    "[^"]*": //' | grep -n -i -E 'wine|dll|mugl|mscoree|runtime|x87|patch|prefix|windows layer|winetricks|\.net|registry|bottle|crossover' || true)
+    eq 'no technical words in the install window' "$JARGON" ''
+
+    echo '# move to Applications (command-line hooks of the same code)'
+    MV="$TMPD/mv"; mkdir -p "$MV/Downloads" "$MV/Applications"
+    ditto "$PAPP" "$MV/Downloads/Mu The Matrix.app"
+    # The download flag as it is after the player confirmed the app once ("Open Anyway": 0x40 user approved);
+    # a flag without approval makes macOS stop the program before it runs.
+    xattr -w com.apple.quarantine "00c3;00000000;Safari;" "$MV/Downloads/Mu The Matrix.app"
+    xattr -w com.apple.quarantine "00c3;00000000;Safari;" "$MV/Downloads/Mu The Matrix.app/Contents/Info.plist"
+    MVBIN="$MV/Downloads/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
+    L1=$(MU_APPLICATIONS_DIR="$MV/Applications" "$MVBIN" --location)
+    has 'outside Applications: detected' "$L1" 'in Applications: no'
+    R=$(MU_APPLICATIONS_DIR="$MV/Applications" MU_LOG_DIR="$TMPD/mvlogs" "$MVBIN" --move-to-applications); rc=$?
+    eq 'move: exit 0' "$rc" 0
+    has 'move: copied into the Applications folder' "$R" "copied to $MV/Applications/Mu The Matrix.app"
+    if codesign --verify --strict "$MV/Applications/Mu The Matrix.app" 2>/dev/null; then ok 'move: the copy keeps a valid signature'; else bad 'move: the copy keeps a valid signature'; fi
+    eq 'move: download flag removed from the copy' "$(xattr -lr "$MV/Applications/Mu The Matrix.app" | grep -c com.apple.quarantine)" 0
+    has 'move: the copy is in Applications' "$(MU_APPLICATIONS_DIR="$MV/Applications" "$MV/Applications/Mu The Matrix.app/Contents/MacOS/MuTheMatrix" --location)" 'in Applications: yes'
+    : > "$MV/Applications/Mu The Matrix.app/old-marker"
+    MU_APPLICATIONS_DIR="$MV/Applications" MU_LOG_DIR="$TMPD/mvlogs" "$MVBIN" --move-to-applications >/dev/null 2>&1
+    [ ! -e "$MV/Applications/Mu The Matrix.app/old-marker" ] && ok 'move: an older copy is replaced' || bad 'move: an older copy is replaced'
+    has 'move: logged' "$(cat "$TMPD/mvlogs/app.log")" 'move: replaced the older copy'
+
+    echo '# disk image (dmg/make-dmg.sh)'
+    MK="$BUNDLE_DIR/dmg/make-dmg.sh"
+    if bash -n "$MK"; then ok 'bash -n make-dmg.sh'; else bad 'bash -n make-dmg.sh'; fi
+    for e in "$BUNDLE_DIR"/dmg/*.entitlements; do plutil -lint "$e" >/dev/null && ok "entitlements lint: ${e##*/}" || bad "entitlements lint: ${e##*/}"; done
+    for k in allow-dyld-environment-variables disable-library-validation allow-jit allow-unsigned-executable-memory; do
+        has "helpers entitlement $k" "$(cat "$BUNDLE_DIR/dmg/helpers.entitlements")" "com.apple.security.cs.$k"
+    done
+    DP=$(bash "$MK" --app "$PAPP" --out "$TMPD/x.dmg" --dry-run)
+    has 'dmg dry run: plan' "$DP" "hdiutil convert -format ULFO -> $TMPD/x.dmg"
+    has 'dmg dry run: keeps the ad-hoc signature' "$DP" 'keep the app'"'"'s signature (adhoc)'
+    DP=$(bash "$MK" --app "$PAPP" --out "$TMPD/x.dmg" --dry-run --sign 'Developer ID Application: Example (TEAMID1234)' --notary-profile mu)
+    has 'dmg dry run: hardened runtime for the helpers' "$DP" 'codesign --options runtime --timestamp --entitlements helpers.entitlements'
+    has 'dmg dry run: notarization of the app' "$DP" "notarytool submit (zip of the app) --keychain-profile 'mu' --wait; stapler staple"
+    has 'dmg dry run: notarization of the disk image' "$DP" 'stapler staple; spctl --assess'
+    [ ! -e "$TMPD/x.dmg" ] && ok 'dmg dry run writes nothing' || bad 'dmg dry run writes nothing'
+    bash "$MK" --app "$PAPP" --out "$TMPD/x.dmg" --notary-profile mu >/dev/null 2>&1; eq 'notarization needs a signing identity' "$?" 1
+    bash "$MK" --app "$PAPP" --out "$TMPD/x.dmg" --sign - --notary-profile mu >/dev/null 2>&1; eq 'notarization refuses ad-hoc' "$?" 1
+    DMG="$TMPD/Mu The Matrix.dmg"
+    if bash "$MK" --app "$PAPP" --out "$DMG" --sign - >"$TMPD/dmg.log" 2>&1; then ok 'make-dmg builds a disk image'; else bad "make-dmg builds a disk image: $(tail -5 "$TMPD/dmg.log")"; fi
+    eq 'disk image format ULFO' "$(hdiutil imageinfo -plist "$DMG" 2>/dev/null | plutil -extract Format raw -o - - 2>/dev/null)" ULFO
+    MNT="$TMPD/mnt"; mkdir -p "$MNT"
+    if hdiutil attach -quiet -readonly -nobrowse -noautoopen -mountpoint "$MNT" "$DMG"; then
+        ok 'disk image mounts'
+        eq 'volume name' "$(diskutil info -plist "$MNT" 2>/dev/null | plutil -extract VolumeName raw -o - - 2>/dev/null)" 'Mu The Matrix'
+        [ -d "$MNT/Mu The Matrix.app" ] && ok 'disk image has the app' || bad 'disk image has the app'
+        eq 'Applications link' "$(readlink "$MNT/Applications")" /Applications
+        eq 'background has 1x and 2x images' "$(tiffutil -info "$MNT/.background/background.tiff" 2>/dev/null | grep -c 'Image Width')" 2
+        has 'background 660 points wide' "$(tiffutil -info "$MNT/.background/background.tiff" 2>/dev/null | grep -m1 'Image Width')" '660'
+        eq 'Finder layout file' "$(head -c 8 "$MNT/.DS_Store" | od -An -c | tr -d ' \n')" '\0\0\0001Bud1'
+        has 'layout places the app' "$(LC_ALL=C tr -d '\0' < "$MNT/.DS_Store")" 'Mu The Matrix.appIlocblob'
+        has 'layout places Applications' "$(LC_ALL=C tr -d '\0' < "$MNT/.DS_Store")" 'ApplicationsIlocblob'
+        has 'layout has the background picture' "$(LC_ALL=C tr -d '\0' < "$MNT/.DS_Store")" 'backgroundImageAlias'
+        [ -f "$MNT/.VolumeIcon.icns" ] && ok 'volume icon' || bad 'volume icon'
+        eq 'volume icon flag' "$(xattr -px com.apple.FinderInfo "$MNT" 2>/dev/null | tr -d ' \n' | cut -c17-20)" 0400
+        if codesign --verify --strict --deep "$MNT/Mu The Matrix.app" 2>/dev/null; then ok 'app in the disk image verifies'; else bad 'app in the disk image verifies'; fi
+        has 'signed app: hardened runtime' "$(codesign -dv "$MNT/Mu The Matrix.app" 2>&1)" 'runtime'
+        W="$MNT/Mu The Matrix.app/Contents/Resources/fast-x87/x87-main-only-wrapper"
+        has 'signed wrapper: hardened runtime' "$(codesign -dv "$W" 2>&1)" 'runtime'
+        has 'signed wrapper: keeps DYLD variables' "$(codesign -d --entitlements - "$W" 2>&1)" 'allow-dyld-environment-variables'
+        hdiutil detach -quiet "$MNT" || hdiutil detach -quiet -force "$MNT"
+    else bad 'disk image mounts'; fi
+    if hdiutil verify -quiet "$DMG"; then ok 'disk image checksum verifies'; else bad 'disk image checksum verifies'; fi
 fi
 
 echo

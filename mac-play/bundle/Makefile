@@ -3,9 +3,12 @@
 # Builds from source with the Command Line Tools (swiftc, iconutil, plutil, codesign); ad-hoc signed.
 #
 #   make                 build/Mu The Matrix.app (B=DIR for another build directory): a DEVELOPMENT build
-#   make player-app EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=...
-#                        the build to hand to players: refuses to build unless all three are given and valid,
-#                        then checks the result with the app's own --check-bundle
+#   make player-app EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=... EMBED_RUNTIME=...
+#                        the build to hand to players: refuses to build unless all four are given and valid (the
+#                        runtime must be the pinned build), then checks the result with the app's own --check-bundle
+#   make player-dmg EMBED_...=... [DMG=path] [SIGN_IDENTITY="Developer ID Application: ..."] [NOTARY_PROFILE=name]
+#                        player-app, then "Mu The Matrix.dmg" (dmg/make-dmg.sh): drag-to-Applications window,
+#                        ad-hoc signed by default; with SIGN_IDENTITY (and NOTARY_PROFILE) signed and notarized
 #   make test            static checks + dry-run tests (tests/test-bundle.sh)
 #   make install         copy the app to $(INSTALL_DIR) (default ~/Applications)
 #   make clean
@@ -17,6 +20,9 @@
 #   A private mugl build contains client-derived bytes: distributing it is the server owner's decision.)
 #   EMBED_FAST_X87=/dir  rosetta-timewalker translator from ../installer/packaging/package-fast-x87.sh (MIT); the
 #   authored main.exe-only wrapper (../x87-main-only-wrapper.c) is compiled into Resources/fast-x87 with it.
+#   EMBED_RUNTIME=/path/winecx-26.3.0-mu1.tar.xz  the Wine runtime (../installer/packaging/build-wine.sh, LGPL-2.1+;
+#   name and SHA-256 pinned in Sources/Core.swift, RuntimeFile). Bundled in Resources/runtime with its COPYING.LIB
+#   and licenses/wine-runtime-SOURCES.txt; the app installs it with --runtime-archive, so players download no runtime.
 SWIFTC ?= xcrun swiftc
 ARCH ?= $(shell uname -m)
 MIN_MACOS ?= 13.0
@@ -31,16 +37,23 @@ INSTALL_DIR ?= $(HOME)/Applications
 EMBED_MUGL ?=
 EMBED_MSCOREE ?=
 EMBED_FAST_X87 ?=
+EMBED_RUNTIME ?=
+# The runtime pin lives in Sources/Core.swift (RuntimeFile); RUNTIME_SHA256 may be overridden only by the tests.
+RUNTIME_NAME := $(shell sed -n 's/.*static let testedName = "\([^"]*\)".*/\1/p' Sources/Core.swift)
+RUNTIME_SHA256 ?= $(shell sed -n 's/.*static let pinnedSHA256 = "\([0-9a-f]*\)".*/\1/p' Sources/Core.swift)
+DMG ?= $(B)/Mu The Matrix.dmg
+SIGN_IDENTITY ?=
+NOTARY_PROFILE ?=
 
 B ?= build
 APP := $(B)/Mu The Matrix.app
 APPQ := "$(APP)"
-SOURCES := Sources/Core.swift Sources/main.swift
+SOURCES := Sources/Core.swift Sources/FirstRun.swift Sources/main.swift
 RESOURCES := mu-launch.sh ../installer/lib/mukit.sh ../fast-x87.sh
 INSTALLER_FILES := ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh \
 	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg
 STAMP := $(B)/.app-stamp
-VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)|$(EMBED_FAST_X87)
+VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(DEFAULT_RUNTIME)|$(DEFAULT_BOTTLE)|$(DEFAULT_FAST_X87)|$(DEFAULT_TIMEWALKER_DIR)|$(EMBED_MUGL)|$(EMBED_MSCOREE)|$(EMBED_FAST_X87)|$(EMBED_RUNTIME)
 
 all: $(STAMP)
 
@@ -71,7 +84,7 @@ $(B)/Info.plist: Info.plist.in Makefile
 	    -e 's|@DEFAULT_TIMEWALKER_DIR@|$(DEFAULT_TIMEWALKER_DIR)|' -e 's|@DEFAULT_RUNTIME@|$(DEFAULT_RUNTIME)|' $< > $@
 	plutil -lint $@
 
-$(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INSTALLER_FILES)
+$(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INSTALLER_FILES) licenses/wine-runtime-SOURCES.txt
 	rm -rf $(APPQ)
 	mkdir -p $(APPQ)/Contents/MacOS $(APPQ)/Contents/Resources
 	cp $(B)/Info.plist $(APPQ)/Contents/Info.plist
@@ -91,13 +104,18 @@ $(STAMP): $(B)/MuTheMatrix $(B)/Info.plist $(B)/AppIcon.icns $(RESOURCES) $(INST
 	  xcrun clang -arch arm64 -O2 -o $(APPQ)/Contents/Resources/fast-x87/x87-main-only-wrapper ../x87-main-only-wrapper.c && \
 	  echo "bundled fast x87 $(EMBED_FAST_X87)"; fi
 	@if [ -n "$(EMBED_MSCOREE)" ]; then mkdir -p $(APPQ)/Contents/Resources/dlls && cp "$(EMBED_MSCOREE)" $(APPQ)/Contents/Resources/dlls/mscoree.dll && echo "bundled mscoree $(EMBED_MSCOREE)"; fi
+	@if [ -n "$(EMBED_RUNTIME)" ]; then rt=$(APPQ)/Contents/Resources/runtime && mkdir -p "$$rt" && \
+	  cp "$(EMBED_RUNTIME)" "$$rt/$(RUNTIME_NAME)" && cp licenses/wine-runtime-SOURCES.txt "$$rt/SOURCES.txt" && \
+	  { tar -xqOf "$(EMBED_RUNTIME)" ./COPYING.LIB > "$$rt/COPYING.LIB" 2>/dev/null && [ -s "$$rt/COPYING.LIB" ] || \
+	    { echo "EMBED_RUNTIME=$(EMBED_RUNTIME) has no ./COPYING.LIB (its LGPL license); refusing to bundle it" >&2; rm -rf $(APPQ); exit 1; }; } && \
+	  echo "bundled runtime $(EMBED_RUNTIME)"; fi
 	codesign --force --sign - --timestamp=none $(APPQ)
 	codesign --verify --strict --verbose=1 $(APPQ)
 	@touch $@
 	@echo "built $(APP)"
-	@if [ -z "$(EMBED_MUGL)" ] || [ -z "$(EMBED_MSCOREE)" ] || [ -z "$(EMBED_FAST_X87)" ]; then \
-	  echo "NOTE: development build without all of EMBED_MUGL, EMBED_MSCOREE and EMBED_FAST_X87."; \
-	  echo "      Do not give it to players (the game would run at about 4 fps); build theirs with make player-app."; fi
+	@if [ -z "$(EMBED_MUGL)" ] || [ -z "$(EMBED_MSCOREE)" ] || [ -z "$(EMBED_FAST_X87)" ] || [ -z "$(EMBED_RUNTIME)" ]; then \
+	  echo "NOTE: development build without all of EMBED_MUGL, EMBED_MSCOREE, EMBED_FAST_X87 and EMBED_RUNTIME."; \
+	  echo "      Do not give it to players (the game would run slowly); build theirs with make player-app."; fi
 
 # The build for players. Without the pinned DLLs an app installs a game that runs at about 4 fps and whose final check
 # fails ("The installation stopped"), so this target refuses to build unless all three embeds are present.
@@ -110,14 +128,24 @@ player-app:
 	if [ -z "$(EMBED_FAST_X87)" ]; then missing="$$missing\n  EMBED_FAST_X87=/path/to/fast-x87      from ../installer/packaging/package-fast-x87.sh"; \
 	else for f in libtimewalker.dylib runtime_loader libRuntimeRosettax87; do \
 	  [ -f "$(EMBED_FAST_X87)/$$f" ] || missing="$$missing\n  EMBED_FAST_X87=$(EMBED_FAST_X87): no $$f"; done; fi; \
+	if [ -z "$(EMBED_RUNTIME)" ]; then missing="$$missing\n  EMBED_RUNTIME=/path/to/$(RUNTIME_NAME)   the Wine runtime (../installer/packaging/build-wine.sh)"; \
+	elif [ ! -f "$(EMBED_RUNTIME)" ]; then missing="$$missing\n  EMBED_RUNTIME=$(EMBED_RUNTIME): no such file"; \
+	else got=$$(shasum -a 256 "$(EMBED_RUNTIME)" | awk '{print $$1}'); [ "$$got" = "$(RUNTIME_SHA256)" ] || \
+	  missing="$$missing\n  EMBED_RUNTIME=$(EMBED_RUNTIME): SHA-256 $$got is not the tested runtime $(RUNTIME_SHA256)"; fi; \
 	if [ -n "$$missing" ]; then \
 	  printf '\n*** make player-app: refusing to build an app for players without the pinned files:%b\n\n' "$$missing" >&2; \
-	  printf '*** Without them the game runs at about 4 fps and the installation ends with a failed check.\n' >&2; \
+	  printf '*** Without them the game runs slowly (about 4 fps without mugl) or players download a slower runtime.\n' >&2; \
 	  printf '*** See README.md, "A build for players". (make without player-app builds a development app.)\n\n' >&2; \
 	  exit 1; fi
 	$(MAKE) all
-	"$(APP)/Contents/MacOS/MuTheMatrix" --check-bundle
+	MU_RUNTIME_SHA256=$(RUNTIME_SHA256) "$(APP)/Contents/MacOS/MuTheMatrix" --check-bundle
 	@echo "player app ready: $(APP)"
+
+# The download for players: player-app, then a compressed disk image with the app, an Applications link and a
+# "drag to Applications" window. SIGN_IDENTITY / NOTARY_PROFILE: see dmg/make-dmg.sh --help and README.md.
+player-dmg: player-app
+	bash dmg/make-dmg.sh --app "$(APP)" --out "$(DMG)" $(if $(SIGN_IDENTITY),--sign "$(SIGN_IDENTITY)") \
+	  $(if $(NOTARY_PROFILE),--notary-profile "$(NOTARY_PROFILE)")
 
 test:
 	bash tests/test-bundle.sh
@@ -131,4 +159,4 @@ install: all
 clean:
 	rm -rf $(B)
 
-.PHONY: all player-app test install clean
+.PHONY: all player-app player-dmg test install clean

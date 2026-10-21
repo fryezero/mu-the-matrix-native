@@ -12,7 +12,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / 'mac-play' / 'bundle'
-TEXT_SUFFIXES = {'.sh', '.md', '.swift', '.in', ''}
+TEXT_SUFFIXES = {'.sh', '.md', '.swift', '.in', '.entitlements', '.txt', ''}
 
 
 def bundle_files():
@@ -38,6 +38,16 @@ class BundlePublicationBoundary(unittest.TestCase):
             for pattern in forbidden:
                 with self.subTest(path=path.name, pattern=pattern):
                     self.assertIsNone(re.search(pattern, text), f'{path.name} matches {pattern}')
+
+    def test_dmg_tooling_is_text_and_entitlements_are_plists(self):
+        # MAC-DMG-001: the disk image is generated at build time (no committed background or .DS_Store).
+        tracked = subprocess.run(['git', 'ls-files', 'mac-play/bundle'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split('\n')
+        self.assertFalse([n for n in tracked if n.endswith(('.dmg', '.tiff', '.DS_Store', '.tar.xz'))])
+        for name in ('app.entitlements', 'helpers.entitlements'):
+            with self.subTest(name=name):
+                plist = plistlib.loads((BUNDLE / 'dmg' / name).read_bytes())
+                self.assertIsInstance(plist, dict)
+                self.assertTrue(all(k.startswith('com.apple.security.cs.') for k in plist))
 
     def test_build_output_is_ignored_and_untracked(self):
         self.assertIn('/mac-play/bundle/build/', (ROOT / '.gitignore').read_text())
