@@ -286,6 +286,11 @@ static const char *on_call(void *user, const char *name, const char *args)
     if (!strcmp(name, "UIInit")) {
         /* the window's initialisation 0x00b4915b (the base check 0x00aadbc3 holds once the movie is loaded) */
         mu_csg_init(&g->window, &g->env);
+        /* the client creates the movie with the login scene, whose creation (0x01851804..: 0x018519b5,
+         * 0x018519d3, static reading) closes the create panel and runs show(0): SetSelectVisible(false) hides
+         * the list and, with the movie's own 12 test rows still loaded, its scroll bar, which then stays hidden
+         * for the ten rows of the real list (as on the live screen) */
+        mu_csg_show(&g->window, &g->env, 0);
         list_step(g);
         g->stats.ready = 1;
         return NULL;
