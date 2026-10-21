@@ -30,6 +30,9 @@ typedef struct world_gfx world_gfx;
 world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
                           int shared, const char *open, char *error, size_t error_size);
 void world_gfx_close(world_gfx *g);
+/* NATIVE-PERF-001: the window changed size (drawable pixels): every movie's stage and the client's window
+ * placement (SetWindowSize, SetScale(83) below 700 points of height) follow. */
+void world_gfx_resize(world_gfx *g, int width, int height);
 /* 1 when the interface took the event. */
 int world_gfx_event(world_gfx *g, const SDL_Event *e, double scale);
 /* Advance by dt and, with draw, composite over the current GL framebuffer. */

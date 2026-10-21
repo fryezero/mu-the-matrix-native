@@ -29,6 +29,8 @@ void mu_charsel_embed_close(mu_charsel_embed *e);
 mu_charsel_session *mu_charsel_embed_session(mu_charsel_embed *e);
 void mu_charsel_embed_select_next(mu_charsel_embed *e, int step);
 long mu_charsel_embed_draw_soft(mu_charsel_embed *e, mu_raster *raster);
+/* NATIVE-PERF-001: the window changed size (drawable pixels): the view and the mouse scale follow. */
+void mu_charsel_embed_resize(mu_charsel_embed *e, int32_t width, int32_t height);
 #ifndef MU_CHARSEL_NO_GL
 int mu_charsel_embed_gl_setup(mu_charsel_embed *e);
 void mu_charsel_embed_gl_teardown(mu_charsel_embed *e);

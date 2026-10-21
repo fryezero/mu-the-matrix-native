@@ -61,6 +61,18 @@ void mu_charsel_embed_select_next(mu_charsel_embed *e, int step)
     select_next(&e->a, step);
 }
 
+void mu_charsel_embed_resize(mu_charsel_embed *e, int32_t width, int32_t height)
+{
+    app *a = &e->a;
+    a->width = width;
+    a->height = height;
+    mu_frame_world *f = &a->s->frame;
+    f->view.window_width = (uint32_t)width;
+    f->view.window_height = (uint32_t)height;
+    f->mouse.scale_x = (float)width / 640.0f;
+    f->mouse.scale_y = (float)height / 480.0f;
+}
+
 long mu_charsel_embed_draw_soft(mu_charsel_embed *e, mu_raster *raster)
 {
     return draw_soft(&e->a, raster);

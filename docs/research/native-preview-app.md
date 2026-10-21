@@ -82,5 +82,6 @@ the setup window says that "Don't Allow" only skips the local tables.
 
 The demo server stays a demo (no network layer). With `--gfx`, the app already shows NATIVE-CHARSEL-003's GFx
 character list (CharacterSelect is among the converted movies); the GFx account dialog and menus arrive with their
-milestones and the app picks them up the same way. The window is not
-resizable and there is no full-screen mode. A crash of the launcher itself leaves the client running.
+milestones and the app picks them up the same way. NATIVE-PERF-001 made the window resizable with a
+full-screen mode (green button, Ctrl-Cmd-F, the "Full screen" window size) and the client quits when the launcher is
+killed (`MU_EXIT_WITH_PARENT=1`); see [native-performance.md](native-performance.md).

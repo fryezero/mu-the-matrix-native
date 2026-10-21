@@ -44,6 +44,7 @@
 #include "../charsel/charsel_create_gfx.h"
 #include "../charsel/charsel_embed.h"
 #include "../core/mu_login.h"
+#include "../core/mu_ui_raster.h"
 #include "../world/world_embed.h"
 #include "offline-session.h"
 
@@ -63,6 +64,25 @@ typedef struct mu_shell_platform {
     void (*embed_closing)(void *user, int kind, void *embed);
     /* wait `ms` between the title's startup steps (window front ends), may be NULL */
     void (*pause)(void *user, uint32_t ms);
+    /* NATIVE-PERF-001: the 2D layer on the GPU (all NULL: the software raster over a frame read back).
+     * ui_target gives the sink that replaces a software raster of w x h (the shell's, the character
+     * select window's; `raster` holds what was loaded before) and returns 0, ui_target_free releases it;
+     * ui_begin/ui_end bracket each series of 2D calls; image draws a top-down RGBA picture with straight
+     * alpha over the whole frame (the GFx character list), `changed` when its pixels are new. With
+     * ui_target, mu_shell_overlay draws over the current framebuffer (its rgba is unused, may be NULL)
+     * and present() receives NULL: the title/loading frame is in the back buffer. */
+    int (*ui_target)(void *user, const mu_ui_raster *raster, int32_t w, int32_t h, mu_ui_sink *out);
+    void (*ui_target_free)(void *user, const mu_ui_sink *sink);
+    void (*ui_begin)(void *user);
+    void (*ui_end)(void *user);
+    void (*image)(void *user, const uint8_t *rgba, int32_t w, int32_t h, int changed);
+    /* the same picture as an IOSurfaceRef (BGRA, premultiplied; macOS) when `surface` is set: the list
+     * then renders into it (mugfx shared rendering) and nothing is read back */
+    void (*surface)(void *user, void *iosurface, int32_t w, int32_t h, uint32_t seed);
+    /* while the character select's create panel, menu or Caution box is open: the frame read back (top-down
+     * RGBA, width x height) and written back after the software compositing (NATIVE-CHARCREATE-001's parts) */
+    uint8_t *(*read_frame)(void *user);
+    void (*write_frame)(void *user, const uint8_t *rgba);
 } mu_shell_platform;
 
 typedef struct mu_shell_config {
@@ -117,6 +137,13 @@ mu_world_embed *mu_shell_world(mu_shell *s);
 mu_login_session *mu_shell_login(mu_shell *s);
 /* The 2D layer over the frame (top-down RGBA, width x height). */
 void mu_shell_overlay(mu_shell *s, uint8_t *rgba);
+/* NATIVE-PERF-001: the 2D layer goes to the GPU (platform.ui_target accepted). */
+int mu_shell_gpu_overlay(const mu_shell *s);
+/* NATIVE-PERF-001: the window changed size (drawable pixels).  The 2D layer takes the client's layout for
+ * the new size (screen rates, fonts chosen by window width, the server window and the character-select
+ * window placed again), the 3D views of the open scene follow; the front end resizes its GFx layer and
+ * framebuffers.  Called between frames (not from inside the title or loading scene). */
+void mu_shell_resize(mu_shell *s, int32_t width, int32_t height);
 /* After the frame is shown: the music block and audio update; returns the
  * client's frame-cap sleep in ms. */
 int32_t mu_shell_end_frame(mu_shell *s, uint32_t now);

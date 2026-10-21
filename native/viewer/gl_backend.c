@@ -1,5 +1,6 @@
 /* OpenGL fixed-function backend. See gl_backend.h. */
 #include "gl_backend.h"
+#include "gl_batch.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -81,14 +82,59 @@ static void color3(void *context, const float c[3]) { (void)context; glColor3fv(
 static void color4(void *context, float r, float g, float b, float a) { (void)context; glColor4f(r, g, b, a); }
 static void vertex(void *context, const float v[3]) { (void)context; glVertex3fv(v); }
 
+/* NATIVE-PERF-001: the same calls through the batch. */
+static void b_prepare(void *context, const mu_meshdraw_state *s, int32_t slot)
+{
+    mu_gl_backend *gl = context;
+    mu_gl_batch *b = gl->batch;
+    mu_gl_batch_enable(b, GL_BLEND, s->blend);
+    mu_gl_batch_blend_func(b, (uint32_t)s->src, (uint32_t)s->dst);
+    mu_gl_batch_enable(b, GL_DEPTH_TEST, s->depth_test);
+    mu_gl_batch_depth_mask(b, s->depth_mask);
+    mu_gl_batch_enable(b, GL_CULL_FACE, s->cull);
+    mu_gl_batch_front_face(b, gl->front_cw ? GL_CW : GL_CCW);
+    mu_gl_batch_enable(b, GL_ALPHA_TEST, s->alpha_test);
+    mu_gl_batch_enable(b, GL_FOG, s->fog);
+    GLuint name = (gl->textures && slot >= 0 && slot < gl->count) ? gl->textures[slot] : 0;
+    mu_gl_batch_enable(b, GL_TEXTURE_2D, s->texture && name != 0);
+    mu_gl_batch_bind_texture(b, name);
+    mu_gl_batch_polygon_mode(b, gl->wireframe ? GL_LINE : GL_FILL);
+}
+
+static void b_begin(void *context) { mu_gl_batch_begin(((mu_gl_backend *)context)->batch, GL_TRIANGLES); }
+static void b_end(void *context) { mu_gl_batch_end(((mu_gl_backend *)context)->batch); }
+static void b_texcoord(void *context, float s, float t)
+{
+    mu_gl_batch_texcoord(((mu_gl_backend *)context)->batch, s, t);
+}
+static void b_color3(void *context, const float c[3])
+{
+    mu_gl_batch_color4(((mu_gl_backend *)context)->batch, c[0], c[1], c[2], 1.0f);
+}
+static void b_color4(void *context, float r, float g, float b, float a)
+{
+    mu_gl_batch_color4(((mu_gl_backend *)context)->batch, r, g, b, a);
+}
+static void b_vertex(void *context, const float v[3]) { mu_gl_batch_vertex(((mu_gl_backend *)context)->batch, v); }
+
 void mu_gl_backend_bind(mu_gl_backend *gl, mu_render_backend *backend)
 {
     memset(backend, 0, sizeof *backend);
     backend->context = gl;
+    backend->sink.context = gl;
+    if (gl->batch) {
+        backend->prepare = b_prepare;
+        backend->begin = b_begin;
+        backend->end = b_end;
+        backend->sink.texcoord = b_texcoord;
+        backend->sink.color3 = b_color3;
+        backend->sink.color4 = b_color4;
+        backend->sink.vertex = b_vertex;
+        return;
+    }
     backend->prepare = prepare;
     backend->begin = begin;
     backend->end = end;
-    backend->sink.context = gl;
     backend->sink.texcoord = texcoord;
     backend->sink.color3 = color3;
     backend->sink.color4 = color4;

@@ -256,6 +256,8 @@ int main(void) {
         self.assertTrue(e['MU_GFX_LIB'].endswith('Contents/Frameworks/libmugfx.dylib'))
         self.assertEqual(e['MU_LANG_DIR'], str(nd / 'lang'))
         self.assertTrue(e['MU_NONET_REPORT'].startswith(str(base / 'logs')))
+        self.assertEqual(e['MU_EXIT_WITH_PARENT'], '1')   # NATIVE-PERF-001: no client left after a killed launcher
+        self.assertNotIn('--fullscreen', a)
         big = self.plan(env, '--screen', '3000x2000')['args']
         self.assertEqual((big[big.index('--width') + 1], big[big.index('--height') + 1]), ('1600', '1000'))
 
@@ -278,6 +280,11 @@ int main(void) {
         out = self.launch(env, '--print-settings').stdout
         self.assertIn('combat: off', out)
         self.assertIn('window size: 1024x640', out)
+        settings['windowSize'] = 'full'   # NATIVE-PERF-001: full screen, the fitted size for the window mode
+        (base / 'support/settings.json').write_text(json.dumps(settings))
+        a = self.plan(env, '--screen', '1512x945')['args']
+        self.assertIn('--fullscreen', a)
+        self.assertEqual((a[a.index('--width') + 1], a[a.index('--height') + 1]), ('1344', '840'))
 
     def test_plan_without_movies_falls_back_to_the_stand_ins(self):
         env, base = self.env('nomovies')

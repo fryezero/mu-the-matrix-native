@@ -70,6 +70,8 @@ struct mu_shell {
     mu_ui_font_set fonts;
     mu_ui_ctx ctx;
     mu_ui_sink inner;
+    mu_ui_sink target, charsel_target;   /* NATIVE-PERF-001: the 2D layer on the GPU (platform.ui_target) */
+    int gpu, charsel_gpu, ui_open;
     int32_t events[32][2], event_count;
     mu_ui_title *title;
     mu_ui_loading loading;
@@ -210,7 +212,25 @@ static void sink_call(void *user, int op, const uint32_t *words, int count, cons
         s->events[s->event_count][1] = (int32_t)words[1];
         s->event_count++;
     }
-    s->inner.call(s->inner.user, op, words, count, data, bytes);
+    if (s->gpu)
+        s->target.call(s->target.user, op, words, count, data, bytes);
+    else
+        s->inner.call(s->inner.user, op, words, count, data, bytes);
+}
+
+/* NATIVE-PERF-001: GL state for a series of 2D calls on the GPU path. */
+static void ui_open(mu_shell *s)
+{
+    if (s->gpu && !s->ui_open && s->platform.ui_begin)
+        s->platform.ui_begin(s->platform.user);
+    s->ui_open = 1;
+}
+
+static void ui_close(mu_shell *s)
+{
+    if (s->gpu && s->ui_open && s->platform.ui_end)
+        s->platform.ui_end(s->platform.user);
+    s->ui_open = 0;
 }
 
 static const char *global_text(void *user, int32_t index)
@@ -233,6 +253,8 @@ static int ui_init(mu_shell *s)
     if (mu_ui_raster_init(&s->raster, w, h))
         return 1;
     s->inner = mu_ui_raster_sink(&s->raster);
+    if (s->platform.ui_target && s->platform.ui_target(s->platform.user, &s->raster, w, h, &s->target) == 0)
+        s->gpu = 1;   /* NATIVE-PERF-001 */
     s->state.sink.user = s;
     s->state.sink.call = sink_call;
     s->state.lookup = mu_ui_assets_lookup;
@@ -279,6 +301,7 @@ static void ensure_font_texture(mu_shell *s)
 
 static void clear_2d(mu_shell *s)
 {
+    ui_open(s);
     uint32_t color[4] = {0, 0, 0, 0x3f800000u};
     uint32_t mask = 0x4100;
     s->state.sink.call(s->state.sink.user, MU_GL_CLEARCOLOR, color, 4, NULL, 0);
@@ -313,9 +336,16 @@ static void offline_label(mu_shell *s, const char *hint)
 
 static void present_2d(mu_shell *s, const char *hint)
 {
+    ui_open(s);
     mu_ui_begin_bitmap(&s->state);
     offline_label(s, hint);
     mu_ui_end_bitmap(&s->state);
+    if (s->gpu) {   /* NATIVE-PERF-001: the frame is in the back buffer */
+        ui_close(s);
+        if (s->platform.present)
+            s->platform.present(s->platform.user, NULL);
+        return;
+    }
     mu_ui_raster_read_top_down(&s->raster, s->frame);
     if (s->platform.present)
         s->platform.present(s->platform.user, s->frame);
@@ -385,6 +415,9 @@ static void close_charsel(mu_shell *s)
     mu_charsel_list_gfx_close(s->charsel_gfx);
     s->charsel_gfx = NULL;
     if (s->charsel_ui) {
+        if (s->charsel_gpu && s->platform.ui_target_free)
+            s->platform.ui_target_free(s->platform.user, &s->charsel_target);
+        s->charsel_gpu = 0;
         mu_charsel_ui_free(s->charsel_ui);
         free(s->charsel_ui);
         s->charsel_ui = NULL;
@@ -541,6 +574,12 @@ static int open_charsel(mu_shell *s)
         free(s->charsel_ui);
         s->charsel_ui = NULL;
     }
+    if (s->charsel_ui && s->gpu && s->platform.ui_target &&
+        s->platform.ui_target(s->platform.user, &s->charsel_ui->raster, s->cfg.width, s->cfg.height,
+                              &s->charsel_target) == 0) {
+        s->charsel_gpu = 1;   /* NATIVE-PERF-001 */
+        mu_charsel_ui_set_target(s->charsel_ui, &s->charsel_target);
+    }
     if (s->platform.embed_opened)
         s->platform.embed_opened(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
     if (s->cfg.gfx_dir) {   /* NATIVE-CHARSEL-003: the GFx list (the GFx manager loads the scene's movie) */
@@ -562,6 +601,7 @@ static int open_charsel(mu_shell *s)
         gc.hooks.menu = hook_menu;
         gc.created = s->session.created_today;
         gc.limit = s->session.create_limit;
+        gc.shared = s->gpu && s->platform.surface != NULL;   /* NATIVE-PERF-001 */
         s->charsel_gfx = mu_charsel_list_gfx_open(&gc, cs, error, sizeof error);
         if (!s->charsel_gfx && !s->cfg.quiet)
             fprintf(stderr, "character select GFx: %s (continuing without the list)\n", error);
@@ -1159,6 +1199,8 @@ void mu_shell_free(mu_shell *s)
     free(s->frame);
     mu_ui_font_set_close(&s->fonts);
     mu_ui_assets_free(&s->assets);
+    if (s->gpu && s->platform.ui_target_free)
+        s->platform.ui_target_free(s->platform.user, &s->target);
     mu_ui_raster_free(&s->raster);
     if (s->audio)
         mu_audio_host_free(s->audio);
@@ -1400,8 +1442,150 @@ static void login_panel(mu_shell *s)
     mu_ui_render_text(&s->state, &s->text, 215, 274, "Enter: log in   Tab: next field   Esc: servers", 0, 0, 1, NULL);
 }
 
+/* NATIVE-PERF-001: mu_shell_overlay on the GPU: the same calls in the same order over the framebuffer. */
+static void overlay_gpu(mu_shell *s)
+{
+    switch (s->g.scene) {
+    case MU_SCENE_LOGIN: {
+        ui_open(s);
+        mu_ui_begin_bitmap(&s->state);
+        mu_ui_login_text strings;
+        memset(&strings, 0, sizeof strings);
+        strings.text454 = mu_lang_text_or(mu_lang_shared(), 454, TEXT_454);
+        strings.text455 = mu_lang_text_or(mu_lang_shared(), 455, TEXT_455);
+        strings.format456 = "Ver %s";
+        for (int i = 0; i < 5; ++i)
+            strings.version_bytes[i] = (uint8_t)("10000"[i] + i + 1);
+        ensure_font_texture(s);
+        mu_ui_ctx_set_font(&s->ctx, s->ctx.fonts.normal);
+        mu_ui_login_overlay(&s->state, &s->text, &s->g.login_fade, 640, &strings);   /* 0x01858108.. */
+        if (s->server_shown)
+            s->server->win.cls->render(&s->ctx, &s->server->win);   /* CUIMng::Render */
+        if (s->panel)
+            login_panel(s);
+        offline_label(s, s->panel ? "login: any input is accepted" : "server select: click a server or press Enter");
+        mu_ui_end_bitmap(&s->state);
+        ui_close(s);
+        break;
+    }
+    case MU_SCENE_CHARACTER: {
+        ui_open(s);
+        if (s->charsel_ui && s->charsel_gpu)
+            mu_charsel_ui_render_target(s->charsel_ui);
+        const char *hint = "character select: Enter plays, Left/Right or 1-5 choose, Esc returns to the servers";
+        uint8_t *frame_rgba = NULL;
+        if (s->charsel_gfx && mu_charsel_list_gfx_needs_frame(s->charsel_gfx) && s->platform.read_frame &&
+            s->platform.write_frame && (frame_rgba = s->platform.read_frame(s->platform.user)) != NULL) {
+            /* the create panel's preview, the menu, a Caution box: composited in software over the frame */
+            mu_charsel_list_gfx_composite(s->charsel_gfx, frame_rgba, s->cfg.width, s->cfg.height);
+            s->platform.write_frame(s->platform.user, frame_rgba);
+            if (s->platform.ui_begin)
+                s->platform.ui_begin(s->platform.user);   /* the 2D state again after the frame write */
+        } else if (s->charsel_gfx) {
+            mu_charsel_list_gfx_hook(s->charsel_gfx);
+            int32_t sw = 0, sh = 0;
+            uint32_t seed = 0;
+            void *surface = s->platform.surface ? mu_charsel_list_gfx_surface(s->charsel_gfx, &sw, &sh, &seed) : NULL;
+            if (surface) {
+                s->platform.surface(s->platform.user, surface, sw, sh, seed);
+            } else {
+                int changed = 0;
+                const uint8_t *frame = mu_charsel_list_gfx_frame(s->charsel_gfx, s->cfg.width, s->cfg.height,
+                                                                 &changed);
+                if (frame && s->platform.image)
+                    s->platform.image(s->platform.user, frame, s->cfg.width, s->cfg.height, changed);
+            }
+        }
+        if (s->charsel_gfx) {
+            mu_charsel_list_gfx_stats st;
+            mu_charsel_list_gfx_stats_get(s->charsel_gfx, &st);
+            hint = st.status[0] ? st.status
+                                : "character select: click a character in the list, double-click or "
+                                  "Enter plays, Create / Delete (local store), Esc: the menu";
+        }
+        mu_ui_begin_bitmap(&s->state);
+        offline_label(s, hint);
+        mu_ui_end_bitmap(&s->state);
+        ui_close(s);
+        break;
+    }
+    case MU_SCENE_MAIN:
+        ui_open(s);
+        mu_ui_begin_bitmap(&s->state);
+        offline_label(s, "world: click to walk, wheel zooms, Esc returns to character select");
+        mu_ui_end_bitmap(&s->state);
+        ui_close(s);
+        break;
+    default:
+        break;
+    }
+}
+
+int mu_shell_gpu_overlay(const mu_shell *s) { return s->gpu; }
+
+void mu_shell_resize(mu_shell *s, int32_t w, int32_t h)
+{
+    if (w <= 0 || h <= 0 || (w == s->cfg.width && h == s->cfg.height))
+        return;
+    uint8_t *frame = malloc((size_t)w * (size_t)h * 4);
+    if (!frame || mu_ui_raster_resize(&s->raster, w, h)) {
+        free(frame);
+        return;
+    }
+    free(s->frame);
+    s->frame = frame;
+    s->cfg.width = w;
+    s->cfg.height = h;
+    /* the 2D state's window size and screen rates (0x01cf1624/8, 0x06fbcd94/8), as mu_ui_state_init sets
+     * them, without dropping its GL state caches */
+    s->state.window_width = (uint32_t)w;
+    s->state.window_height = (uint32_t)h;
+    s->state.screen_rate_x = (float)w / 640.0f;
+    s->state.screen_rate_y = (float)h / 480.0f;
+    s->ctx.input.screen_width = w;
+    s->ctx.input.screen_height = h;
+    /* the fonts the client picks by window width, and the text DIB of the new screen size */
+    mu_ui_font_set_close(&s->fonts);
+    mu_ui_font_set_open(&s->fonts, s->cfg.font, s->cfg.font, (uint32_t)w, FONT_HANDLES);
+    s->text.gdi = mu_ui_font_set_gdi(&s->fonts);
+    uint8_t *old_dib = s->text.dib;
+    mu_ui_text_init(&s->text, &s->state);
+    s->text.dib = calloc((size_t)mu_ui_text_dib_stride(s->text.dib_width) * (size_t)s->text.dib_height, 1);
+    free(old_dib);
+    if (s->server_created && s->server)   /* CUIMng's server window placed for the new size */
+        mu_ui_server_win_place(&s->ctx, s->server);
+    if (s->login)
+        mu_login_resize(s->login, (uint32_t)w, (uint32_t)h);
+    if (s->world)
+        mu_world_embed_resize(s->world, w, h);
+    if (s->charsel) {
+        mu_charsel_embed_resize(s->charsel, w, h);
+        if (s->charsel_gfx)
+            mu_charsel_list_gfx_resize(s->charsel_gfx, w, h);
+        if (s->charsel_ui) {   /* CUIMng::CreateCharacterScene again at the new size */
+            if (s->charsel_gpu && s->platform.ui_target_free)
+                s->platform.ui_target_free(s->platform.user, &s->charsel_target);
+            s->charsel_gpu = 0;
+            mu_charsel_ui_free(s->charsel_ui);
+            if (mu_charsel_ui_init(s->charsel_ui, s->cfg.root, w, h, s->cfg.font, mu_charsel_embed_session(s->charsel),
+                                   NULL)) {
+                free(s->charsel_ui);
+                s->charsel_ui = NULL;
+            } else if (s->gpu && s->platform.ui_target &&
+                       s->platform.ui_target(s->platform.user, &s->charsel_ui->raster, w, h, &s->charsel_target) == 0) {
+                s->charsel_gpu = 1;
+                mu_charsel_ui_set_target(s->charsel_ui, &s->charsel_target);
+            }
+        }
+    }
+}
+
 void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
 {
+    if (s->gpu) {
+        overlay_gpu(s);
+        return;
+    }
     switch (s->g.scene) {
     case MU_SCENE_LOGIN: {
         copy_in(s, rgba);
@@ -1462,6 +1646,8 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
 int32_t mu_shell_end_frame(mu_shell *s, uint32_t now)
 {
     int32_t sleep;
+    if (s->audio)   /* NATIVE-PERF-001: the host's stream update before the cap measures the pass */
+        mu_audio_host_tick(s->audio);
     if (s->g.scene == MU_SCENE_CHARACTER && s->charsel)
         sleep = mu_charsel_end_render(mu_charsel_embed_session(s->charsel));
     else if (s->g.scene == MU_SCENE_MAIN && s->world)
@@ -1471,8 +1657,6 @@ int32_t mu_shell_end_frame(mu_shell *s, uint32_t now)
         sleep = elapsed < 40 ? (int32_t)(40 - elapsed) : 0;   /* Sleep(40 - elapsed), 0x0185267a */
     }
     mu_scenemgr_frame_music(&s->host, &s->g);   /* 0x0185276c: login theme in scenes 3 and 5 */
-    if (s->audio)
-        mu_audio_host_tick(s->audio);
     return sleep;
 }
 

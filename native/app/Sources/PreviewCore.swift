@@ -107,7 +107,7 @@ struct PreviewSettings: Codable, Equatable {
     var nativeData: String? = nil     // nil: Paths.defaultNativeData
     var scratch: String? = nil        // nil: Paths.defaultScratch
     var python: String? = nil         // nil: the first python3 with Pillow
-    var windowSize = "fit"            // "fit" or "WxH" (points)
+    var windowSize = "fit"            // "fit", "WxH" (points) or "full" (full screen; the window is resizable)
     var gfx = true                    // GFx interface (Ruffle), when the library and movies exist
     var combat = true                 // combat demo (mu-world --combat)
     var items = true                  // dropped items and labels
@@ -401,7 +401,9 @@ struct LaunchPlan {
         let (w, h) = windowSize(s.windowSize, screen: screen)
         var args = ["--game-root", gameRoot, "--session", Paths.session, "--width", String(w), "--height", String(h),
                     "--label", label, "--title", title]
-        var env: [String: String] = ["MU_NONET_REPORT": AppLog.nonetReport]
+        if s.windowSize == "full" { args.append("--fullscreen") }   // NATIVE-PERF-001
+        // NATIVE-PERF-001: the client quits when this launcher is gone (killed), instead of running on alone
+        var env: [String: String] = ["MU_NONET_REPORT": AppLog.nonetReport, "MU_EXIT_WITH_PARENT": "1"]
         var notes: [String] = []
         if Paths.exists(Paths.nonet) { env["DYLD_INSERT_LIBRARIES"] = Paths.nonet } else { notes.append("network guard missing") }
 

@@ -41,12 +41,14 @@
 #include "../core/mu_charsel.h"
 #include "../core/mu_charsel_ui.h"
 #include "../core/mu_objects.h"
+#include "../core/mu_perf.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_scene.h"
 #include "../core/mu_terrain.h"
 #ifndef MU_CHARSEL_NO_GL
 #include "../viewer/gl_backend.h"
+#include "../viewer/gl_batch.h"
 #include "../viewer/gl_headless.h"
 #endif
 
@@ -68,11 +70,13 @@ typedef struct app {
     long objects_drawn;
 #ifndef MU_CHARSEL_NO_GL
     mu_gl_backend object_gl[MU_OBJECT_TYPES];
+    mu_gl_backend object_batched[MU_OBJECT_TYPES];   /* NATIVE-PERF-001: object_gl through the batch */
     GLuint tiles[MU_WORLD_BITMAPS], extras[MU_WORLD_EXTRA];
     mu_gl_backend items[MU_CHARSEL_MAX_ENTRIES][MU_CHARACTER_ITEMS];
     mu_gl_backend particle_gl;                     /* NATIVE-CHARSEL-002: the particle module's bitmaps */
     mu_gl_backend particle_model_gl[MU_WORLD_FX_MODELS];
     int gl_ready;
+    mu_gl_batch *batch;   /* NATIVE-PERF-001: terrain and objects (NULL: MU_NO_GL_BATCH=1) */
 #endif
 } app;
 
@@ -381,6 +385,44 @@ static void g_c3(void *c, const float rgb[3]) { (void)c; glColor3fv(rgb); }
 static void g_c4(void *c, float r, float g, float b, float al) { (void)c; glColor4f(r, g, b, al); }
 static void g_v(void *c, const float xyz[3]) { (void)c; glVertex3fv(xyz); }
 
+/* NATIVE-PERF-001: the same terrain stream through the batch. */
+static void gb_state(void *c, int32_t state, int32_t argument)
+{
+    mu_gl_batch *b = ((app *)c)->batch;
+    mu_meshdraw_state s;
+    mu_world_state(state, argument, &s);
+    mu_gl_batch_enable(b, GL_BLEND, s.blend);
+    if (s.blend)
+        mu_gl_batch_blend_func(b, (uint32_t)s.src, (uint32_t)s.dst);
+    mu_gl_batch_enable(b, GL_CULL_FACE, s.cull);
+    mu_gl_batch_depth_mask(b, s.depth_mask);
+    mu_gl_batch_enable(b, GL_ALPHA_TEST, s.alpha_test);
+}
+
+static void gb_bind(void *c, int32_t texture)
+{
+    app *a = c;
+    const mu_world *map = a->s->map;
+    const int32_t i = texture - MU_TERRAIN_TEXTURE_TILE;
+    GLuint name = i >= 0 && i < MU_WORLD_BITMAPS ? a->tiles[i] : 0;
+    for (int32_t k = 0; !name && k < MU_WORLD_EXTRA; ++k)
+        if (map->extra[k].width > 0 && map->extra_id[k] == texture)
+            name = a->extras[k];
+    mu_gl_batch_enable(a->batch, GL_TEXTURE_2D, name != 0);
+    if (name)
+        mu_gl_batch_bind_texture(a->batch, name);
+}
+
+static void gb_begin(void *c, int32_t mode)
+{
+    mu_gl_batch_begin(((app *)c)->batch, mode == MU_TERRAIN_GL_QUADS ? GL_QUADS : GL_TRIANGLE_FAN);
+}
+static void gb_end(void *c) { mu_gl_batch_end(((app *)c)->batch); }
+static void gb_tex(void *c, float s, float t) { mu_gl_batch_texcoord(((app *)c)->batch, s, t); }
+static void gb_c3(void *c, const float rgb[3]) { mu_gl_batch_color4(((app *)c)->batch, rgb[0], rgb[1], rgb[2], 1.0f); }
+static void gb_c4(void *c, float r, float g, float b, float al) { mu_gl_batch_color4(((app *)c)->batch, r, g, b, al); }
+static void gb_v(void *c, const float xyz[3]) { mu_gl_batch_vertex(((app *)c)->batch, xyz); }
+
 static GLuint upload(const mu_image *image, int linear, int clamp)
 {
     GLuint name = 0;
@@ -399,6 +441,7 @@ static GLuint upload(const mu_image *image, int linear, int clamp)
 static void gl_setup(app *a)
 {
     const mu_world *map = a->s->map;
+    a->batch = mu_perf_batching() ? mu_gl_batch_new() : NULL;
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i)
         a->tiles[i] = map->bitmaps[i].width > 0 ? upload(&map->bitmaps[i], map->bitmap_linear[i], 0) : 0;
     for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i)
@@ -415,6 +458,11 @@ static void gl_setup(app *a)
             mu_gl_upload(&a->object_gl[t], &a->objects.models[t]->textures, 0);
     }
     memset(&a->particle_gl, 0, sizeof a->particle_gl);
+    memset(a->object_batched, 0, sizeof a->object_batched);
+    for (int32_t t = 0; a->batch && t < MU_OBJECT_TYPES; ++t) {   /* the first objects pass only */
+        a->object_batched[t] = a->object_gl[t];
+        a->object_batched[t].batch = a->batch;
+    }
     memset(a->particle_model_gl, 0, sizeof a->particle_model_gl);
     if (a->s->has_particles)   /* NATIVE-CHARSEL-002 */
         mu_gl_upload(&a->particle_gl, &a->s->particles.bitmaps, 0);
@@ -442,6 +490,8 @@ static void gl_teardown(app *a)
     for (int i = 0; i < MU_WORLD_FX_MODELS; ++i)
         if (a->particle_model_gl[i].textures)
             mu_gl_release(&a->particle_model_gl[i]);
+    mu_gl_batch_free(a->batch);
+    a->batch = NULL;
     a->gl_ready = 0;
 }
 
@@ -487,7 +537,16 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     memset(&stats, 0, sizeof stats);
     mu_terrain_frustum frustum;
     mu_charsel_frustum(s, &frustum);
-    mu_terrain_render(&scene, &frustum, MU_CHARSEL_SCENE, 0, mu_terrain_alpha_layers(s->map->world), &sink, &stats);
+    if (a->batch) {   /* NATIVE-PERF-001: the terrain through the batch (the decals below stay immediate) */
+        mu_terrain_sink batched = {a, gb_state, gb_bind, gb_begin, gb_tex, gb_c3, gb_c4, gb_v, gb_end};
+        mu_gl_batch_session_begin(a->batch);
+        mu_terrain_render(&scene, &frustum, MU_CHARSEL_SCENE, 0, mu_terrain_alpha_layers(s->map->world), &batched,
+                          &stats);
+        mu_gl_batch_session_end(a->batch);
+    } else {
+        mu_terrain_render(&scene, &frustum, MU_CHARSEL_SCENE, 0, mu_terrain_alpha_layers(s->map->world), &sink,
+                          &stats);
+    }
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
     a->objects_drawn = 0;
@@ -495,6 +554,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     const uint64_t sprites = s->particles.stats.sprites_created;
     if (s->has_objects) {   /* RenderObjects 0x016d5020 with CGMCharacterScene_Ex (NATIVE-CHARSEL-002) */
         mu_objects *o = s->objects;
+        if (a->batch)
+            mu_gl_batch_session_begin(a->batch);
         mu_objects_visibility(o, &frustum, MU_CHARSEL_SCENE);
         for (int32_t k = 0; k < o->rt.draw_count; ++k) {
             mu_draw_options options;
@@ -502,11 +563,13 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             if (!m)
                 continue;
             mu_render_backend backend;
-            mu_gl_backend_bind(&a->object_gl[m->type], &backend);
+            mu_gl_backend_bind(a->batch ? &a->object_batched[m->type] : &a->object_gl[m->type], &backend);
             mu_draw_stats ds = {0, 0, 0, 0};
             if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
                 ++s->objects_drawn;
         }
+        if (a->batch)
+            mu_gl_batch_session_end(a->batch);
         a->objects_drawn = s->objects_drawn;
     } else if (a->has_objects) {   /* static placement (the lifecycle did not start) */
         mu_draw_options options;
@@ -828,7 +891,7 @@ static int windowed(app *a)
         ++frames;
         int32_t sleep = mu_charsel_end_render(s);
         if (sleep > 0)
-            SDL_Delay((uint32_t)sleep);
+            mu_sleep_ms((uint32_t)sleep);   /* NATIVE-PERF-001: the host Sleep without oversleep */
         if (frames % 25 == 0) {
             int32_t i = mu_charsel_entry_of(s, s->selected);
             char title[200];

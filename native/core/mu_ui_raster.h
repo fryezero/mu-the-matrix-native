@@ -63,6 +63,9 @@ typedef struct mu_ui_raster {
 size_t mu_ui_raster_sizeof(void);   /* for ctypes callers */
 int mu_ui_raster_init(mu_ui_raster *raster, int32_t width, int32_t height);
 void mu_ui_raster_free(mu_ui_raster *raster);
+/* NATIVE-PERF-001: a new framebuffer size (opaque black), textures and state kept, the viewport the
+ * whole framebuffer. Returns 0 on success. */
+int mu_ui_raster_resize(mu_ui_raster *raster, int32_t width, int32_t height);
 /* mu_ui_sink callback; user is the raster. */
 void mu_ui_raster_call(void *user, int op, const uint32_t *words, int count, const void *data, size_t bytes);
 mu_ui_sink mu_ui_raster_sink(mu_ui_raster *raster);

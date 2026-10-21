@@ -31,6 +31,7 @@ struct mu_charsel_list_gfx {
     double scale;
     uint8_t *pixels;
     int have_pixels;
+    int shared, have_surface;   /* NATIVE-PERF-001 */
     FILE *log;
     mu_charsel_list_gfx_stats stats;
     char gt[64];
@@ -277,7 +278,8 @@ mu_charsel_list_gfx *mu_charsel_list_gfx_open(const mu_charsel_list_gfx_config *
     }
     /* the movie's stage is the window in points */
     const int sw = (int)lround(g->width / g->scale), sh = (int)lround(g->height / g->scale);
-    g->movie = g->a.open(path, sw, sh, error, cap);
+    g->shared = c->shared && g->a.open_shared && g->a.render_shared && g->a.iosurface;
+    g->movie = g->shared ? g->a.open_shared(path, sw, sh, error, cap) : g->a.open(path, sw, sh, error, cap);
     if (!g->movie) {
         mu_charsel_list_gfx_close(g);
         return NULL;
@@ -379,6 +381,87 @@ void mu_charsel_list_gfx_composite(mu_charsel_list_gfx *g, uint8_t *rgba, int32_
             d[k] = (uint8_t)((s[k] * a + d[k] * (255u - a) + 127u) / 255u);
     }
     mu_charsel_create_draw_windows(g->create, rgba, width, height);   /* the menu, then the Caution box */
+}
+
+const uint8_t *mu_charsel_list_gfx_frame(mu_charsel_list_gfx *g, int32_t width, int32_t height, int *changed)
+{
+    *changed = 0;
+    if (!g || !g->movie || !g->pixels || width != g->width || height != g->height)
+        return NULL;
+    if (!g->have_pixels || g->a.needs_render(g->movie)) {
+        if (g->a.render(g->movie, g->pixels, (size_t)width * (size_t)height * 4) == 0) {
+            g->have_pixels = 1;
+            g->stats.renders++;
+            *changed = 1;
+        }
+    }
+    return g->have_pixels ? g->pixels : NULL;
+}
+
+static double variable(mu_charsel_list_gfx *g, const char *path, double fallback);
+
+int mu_charsel_list_gfx_needs_frame(const mu_charsel_list_gfx *g)
+{
+    if (!g || !g->create)
+        return 0;
+    mu_charsel_create_stats st;
+    mu_charsel_create_stats_get(g->create, &st);
+    return st.create_open || st.menu_open || st.caution_open;
+}
+
+void mu_charsel_list_gfx_hook(mu_charsel_list_gfx *g)
+{
+    if (g && !mu_charsel_list_gfx_needs_frame(g))   /* the panel is closed: the hook only, no frame access */
+        mu_charsel_create_draw_preview(g->create, NULL, g->width, g->height);
+}
+
+void mu_charsel_list_gfx_resize(mu_charsel_list_gfx *g, int32_t width, int32_t height)
+{
+    if (!g || !g->movie || width <= 0 || height <= 0 || (width == g->width && height == g->height))
+        return;
+    uint8_t *pixels = malloc((size_t)width * (size_t)height * 4);
+    if (!pixels)
+        return;
+    const double old_sw = round(g->width / g->scale), old_sh = round(g->height / g->scale);
+    const double lx = variable(g, LIST_PATH "._x", NAN), ly = variable(g, LIST_PATH "._y", NAN);
+    free(g->pixels);
+    g->pixels = pixels;
+    g->have_pixels = g->have_surface = 0;
+    g->width = width;
+    g->height = height;
+    const int sw = (int)lround(width / g->scale), sh = (int)lround(height / g->scale);
+    g->a.set_view(g->movie, sw, sh, 0, 0, sw, sh, g->scale);
+    /* The movie places the list once, from the stage size it starts with (window width - list width - 50,
+     * window height / 8): keep that placement for the new stage (right edge and height / 8), then the
+     * arrows follow it (SetCharSelArrow). */
+    if (g->a.set_variable && !isnan(lx) && !isnan(ly) && old_sw > 0 && old_sh > 0) {
+        char value[64];
+        snprintf(value, sizeof value, "%g", lx + ((double)sw - old_sw));
+        g->a.set_variable(g->movie, LIST_PATH "._x", value);
+        snprintf(value, sizeof value, "%g", ly * (double)sh / old_sh);
+        g->a.set_variable(g->movie, LIST_PATH "._y", value);
+        g->a.invoke(g->movie, WINDOW_PATH, "SetCharSelArrow", "[]");
+    }
+    g->a.advance(g->movie, 0.0);
+}
+
+void *mu_charsel_list_gfx_surface(mu_charsel_list_gfx *g, int32_t *width, int32_t *height, uint32_t *seed)
+{
+    if (!g || !g->movie || !g->shared)
+        return NULL;
+    if (!g->have_surface || g->a.needs_render(g->movie)) {
+        if (g->a.render_shared(g->movie, 1) == 0) {
+            g->have_surface = 1;
+            g->stats.renders++;
+        }
+    }
+    if (!g->have_surface)
+        return NULL;
+    int w = 0, h = 0;
+    void *surface = g->a.iosurface(g->movie, &w, &h, seed);
+    *width = w;
+    *height = h;
+    return surface;
 }
 
 void mu_charsel_list_gfx_stats_get(const mu_charsel_list_gfx *g, mu_charsel_list_gfx_stats *out)

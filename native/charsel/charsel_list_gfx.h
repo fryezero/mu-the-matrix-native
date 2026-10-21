@@ -50,6 +50,7 @@ typedef struct mu_charsel_list_gfx_config {
     const char *lang_dir;       /* filter.txt, filtername.txt (scripts/live_lang_filters.py), may be NULL */
     mu_charsel_create_hooks hooks;
     int32_t created, limit;     /* the daily creation counts of the character list (offline: the store's) */
+    int shared;                 /* NATIVE-PERF-001: render into an IOSurface (macOS) for a GL compositor */
 } mu_charsel_list_gfx_config;
 
 mu_charsel_list_gfx *mu_charsel_list_gfx_open(const mu_charsel_list_gfx_config *config, mu_charsel_session *session,
@@ -66,6 +67,22 @@ void mu_charsel_list_gfx_select_slot(mu_charsel_list_gfx *g, int32_t slot);
 void mu_charsel_list_gfx_advance(mu_charsel_list_gfx *g, double dt_ms);
 /* Render when changed and blend over rgba (top-down RGBA8, the open size). */
 void mu_charsel_list_gfx_composite(mu_charsel_list_gfx *g, uint8_t *rgba, int32_t width, int32_t height);
+/* NATIVE-PERF-001: the movie's frame (top-down RGBA, straight alpha, width x height) rendered when it
+ * changed, for a GPU compositor; *changed is set when the pixels differ from the previous call's. NULL when
+ * there is no frame (or the size differs from the list's). */
+const uint8_t *mu_charsel_list_gfx_frame(mu_charsel_list_gfx *g, int32_t width, int32_t height, int *changed);
+/* NATIVE-PERF-001, GPU compositors: the create panel's preview, the menu or a Caution box is open, so the scene
+ * needs mu_charsel_list_gfx_composite over the frame read back (the preview draws over the frame in software);
+ * otherwise mu_charsel_list_gfx_hook runs the window's per-frame render hook and the list goes through
+ * mu_charsel_list_gfx_frame / _surface. */
+int mu_charsel_list_gfx_needs_frame(const mu_charsel_list_gfx *g);
+void mu_charsel_list_gfx_hook(mu_charsel_list_gfx *g);
+/* NATIVE-PERF-001: the window changed size (pixels): the movie's stage and view follow it. */
+void mu_charsel_list_gfx_resize(mu_charsel_list_gfx *g, int32_t width, int32_t height);
+/* NATIVE-PERF-001, shared lists: renders when the movie changed (waiting for the GPU) and returns the
+ * IOSurfaceRef (BGRA, premultiplied alpha) with its size and a seed that changes when the surface is
+ * replaced; NULL when the list is not shared or has no frame. */
+void *mu_charsel_list_gfx_surface(mu_charsel_list_gfx *g, int32_t *width, int32_t *height, uint32_t *seed);
 
 typedef struct mu_charsel_list_gfx_stats {
     int ready;                  /* UIInit answered */

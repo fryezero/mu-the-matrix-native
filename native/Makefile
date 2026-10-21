@@ -52,7 +52,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
-            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c
+            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -221,7 +221,7 @@ endif
 # NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
 GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c
 GFX_CFLAGS := -I gfx -I $(RECON)/hud
-VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_headless.c viewer/terrain_view.c
+VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/terrain_view.c
 
 viewer: $(BUILD)/mu-viewer $(BUILD)/mu-frame-window $(BUILD)/mu-world $(BUILD)/mu-charsel-window $(BUILD)/mu-client
 frame-window: $(BUILD)/mu-frame-window
@@ -237,7 +237,7 @@ $(BUILD)/mu-viewer: $(VIEWER_SRC) viewer/gl_backend.h $(LIB)
 	$(CXX) $(BUILD)/viewer/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) $(GL_LIBS) -lm -o $@
 
 # Frame-loop skeleton window (SDL2 + OpenGL 2.1), NATIVE-FRAME-001.
-FRAME_WINDOW_SRC := frame/main.c viewer/gl_backend.c viewer/gl_headless.c
+FRAME_WINDOW_SRC := frame/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c
 
 $(BUILD)/mu-frame-window: $(FRAME_WINDOW_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB)
 	@mkdir -p $(BUILD)/frame-window
@@ -292,9 +292,9 @@ $(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
 	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
 
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.
-WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
+WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(GFX_SRC)
 
-$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/world
 	for f in $(WORLD_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
@@ -304,7 +304,7 @@ $(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_headless.h world/w
 	  $(GL_LIBS) $(AUDIO_LIBS) $(UI_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
-CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_headless.c
+CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c
 
 $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB)
 	@mkdir -p $(BUILD)/charsel
@@ -331,9 +331,9 @@ $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	done
 	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
-CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
+CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/ui_gl.c $(GFX_SRC)
 
-$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_headless.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h viewer/ui_gl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/client
 	for f in $(CLIENT_GL_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \

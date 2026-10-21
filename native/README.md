@@ -448,6 +448,41 @@ window. Logs go to `~/Library/Logs/MuTheMatrixNative/`; a crash shows the log. m
 mu-client's own new options are `--combat --items --npc --npc-demo FILE --no-names --no-env --no-particles`
 (the world scene) and `--label TEXT`, `--title TEXT`.
 
+## Frame time, resizable window, full screen (NATIVE-PERF-001)
+
+mu-client keeps the client's 25 fps (40 ms) frame cap with headroom in every profiled scene, also full screen
+([note with the before/after numbers](../docs/research/native-performance.md)). What changed is rendering and
+host code only; the reconstructed routines and their GL call streams are untouched:
+
+- the 2D layer (login overlay, server list, character-select window, the offline label, title and loading frames)
+  replays the reconstructed 2D calls on the GPU (`viewer/ui_gl.c`, mu_ui_raster's semantics) instead of reading the
+  3D frame back, compositing in software and uploading it again; the GFx character list renders into an IOSurface;
+- the terrain and mesh streams go through `viewer/gl_batch.c`: redundant state calls dropped, consecutive draws with
+  the same state merged into array draws, same primitives in the same order (pixel-identical; `MU_NO_GL_BATCH=1`
+  turns it off) in mu-world/mu-client, the login world and character select;
+- the frame cap's Sleep wakes on time (`mu_sleep_ms`: the time-constraint thread policy during the sleep only);
+  macOS overslept SDL_Delay by 1-2 ms (up to 10 ms in the background), which held the login at 23.9 fps;
+- the window title's fps is the rate of the last 25 frames (it used to average the whole run, loading included).
+
+The window is resizable (at least 640 x 480) and goes full screen with the green button, Ctrl-Cmd-F or
+`--fullscreen` (the preview app's "Full screen" window size): the 3D views, the 2D layer (the client's fonts and
+screen rates for the new size, the server and character-select windows placed again) and the GFx interface
+(SetWindowSize, SetScale(83) below 700 points of height and back to 100) follow. With `MU_EXIT_WITH_PARENT=1`
+(set by the preview app) mu-client quits when its launcher is gone.
+
+```sh
+native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt --gfx MOVIES \
+    --auto --hold 6 --seconds 30 --perf /tmp/world.tsv        # plays to the world, stays, logs phase times
+python3 native/tools/perf_report.py /tmp/world.tsv --scene 6 --skip-first 25   # fps, p50/p95/p99, phases
+MU_PERF_BASELINE=1 native/build/mu-client ...                 # the pre-NATIVE-PERF-001 paths, for comparisons
+native/build/mu-client ... --headless --backend gl --gpu-overlay --out-dir A   # the GPU 2D layer headless
+python3 native/tools/imgdiff.py --dirs A B --max-delta 2       # pixel comparison of two capture folders
+```
+
+`--perf FILE [--perf-sync]` also works in mu-world (phases: events, logic, terrain, objects, characters, items,
+env, particles, effects, labels, scene, gfx, overlay, present, swap, sleep; `--perf-sync` waits for the GPU at
+each phase end). Window scripts may use `resize:W,H`, `fullscreen` and `shot:NAME` (a capture into `--out-dir`).
+
 ## Model lighting as the client (NATIVE-LIGHT-001)
 
 The game scenes now light models with the client's inputs ([finding](../docs/research/client-model-light.md)):
@@ -566,6 +601,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |
 | `client/`, `world/world_embed.*`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; mu-world and mu-charsel as modules (NATIVE-SHELL-001) |
 | `app/` | Mu The Matrix Native Preview.app: Swift launcher, the `mu-nonet` network guard, dylib bundling, the bundle Makefile (NATIVE-APP-001) |
+| `core/mu_perf.*`, `viewer/ui_gl.*`, `viewer/gl_batch.*`, `tools/perf_report.py`, `tools/imgdiff.py` | Frame-time breakdown and the cap's precise sleep, the 2D layer on the GPU, draw batching, percentile report, pixel comparison (NATIVE-PERF-001) |
 | `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001); BuffEffect (addBuff, buff popup lines), CharacterInfoSetup (the row builder's order), SkillRequire, MonsterSoulConversion, MUQuestString (NATIVE-LANG-002). See [the finding](../docs/research/client-lang-tables.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 

@@ -93,6 +93,7 @@
 #include "../core/mu_items.h"
 #include "../core/mu_objects.h"
 #include "../core/mu_particles.h"
+#include "../core/mu_perf.h"
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_renderchar.h"
@@ -106,6 +107,7 @@
 #include "../core/mu_world_players.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
+#include "../viewer/gl_batch.h"
 #include "../viewer/gl_headless.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "world_gfx.h"
@@ -201,6 +203,7 @@ typedef struct app {
     world_gfx *gfx;
     world_names_gfx names_gfx;     /* NATIVE-NAMES-001: hudPlayerName through the layer */
     GLuint names_tex;
+    mu_gl_batch *batch;            /* NATIVE-PERF-001: terrain, objects and characters (NULL: MU_NO_GL_BATCH=1) */
 #endif
     /* NATIVE-COMBAT-001 */
     int combat_on;
@@ -230,6 +233,8 @@ typedef struct app {
     mu_npc *npc;
     mu_npc_script npc_script;
     int32_t npc_next, npc_click_stage, npc_click_x, npc_click_y;
+    const char *perf_path;   /* NATIVE-PERF-001: --perf FILE [--perf-sync] */
+    int perf_sync;
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -1108,8 +1113,47 @@ static void g_c3(void *c, const float rgb[3]) { (void)c; glColor3fv(rgb); }
 static void g_c4(void *c, float r, float g, float b, float al) { (void)c; glColor4f(r, g, b, al); }
 static void g_v(void *c, const float xyz[3]) { (void)c; glVertex3fv(xyz); }
 
+/* NATIVE-PERF-001: the terrain stream through the batch (same calls, merged draws). */
+static void gb_state(void *c, int32_t state, int32_t argument)
+{
+    app *a = c;
+    mu_meshdraw_state s;
+    mu_world_state(state, argument, &s);
+    mu_gl_batch_enable(a->batch, GL_BLEND, s.blend);
+    if (s.blend)
+        mu_gl_batch_blend_func(a->batch, (uint32_t)s.src, (uint32_t)s.dst);
+    mu_gl_batch_enable(a->batch, GL_CULL_FACE, s.cull);
+    mu_gl_batch_depth_mask(a->batch, s.depth_mask);
+    mu_gl_batch_enable(a->batch, GL_ALPHA_TEST, s.alpha_test);
+}
+
+static void gb_bind(void *c, int32_t texture)
+{
+    app *a = c;
+    const int32_t i = texture - MU_TERRAIN_TEXTURE_TILE;
+    GLuint name = i >= 0 && i < MU_WORLD_BITMAPS ? a->tiles[i] : 0;
+    if (name) {
+        mu_gl_batch_enable(a->batch, GL_TEXTURE_2D, 1);
+        mu_gl_batch_bind_texture(a->batch, name);
+    } else {
+        mu_gl_batch_enable(a->batch, GL_TEXTURE_2D, 0);
+    }
+}
+
+static void gb_begin(void *c, int32_t mode)
+{
+    app *a = c;
+    mu_gl_batch_begin(a->batch, mode == MU_TERRAIN_GL_QUADS ? GL_QUADS : GL_TRIANGLE_FAN);
+}
+static void gb_end(void *c) { mu_gl_batch_end(((app *)c)->batch); }
+static void gb_tex(void *c, float s, float t) { mu_gl_batch_texcoord(((app *)c)->batch, s, t); }
+static void gb_c3(void *c, const float rgb[3]) { mu_gl_batch_color4(((app *)c)->batch, rgb[0], rgb[1], rgb[2], 1.0f); }
+static void gb_c4(void *c, float r, float g, float b, float al) { mu_gl_batch_color4(((app *)c)->batch, r, g, b, al); }
+static void gb_v(void *c, const float xyz[3]) { mu_gl_batch_vertex(((app *)c)->batch, xyz); }
+
 static void gl_setup(app *a)
 {
+    a->batch = mu_perf_batching() ? mu_gl_batch_new() : NULL;
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i) {
         const mu_image *image = &a->map->bitmaps[i];
         a->tiles[i] = 0;
@@ -1133,14 +1177,18 @@ static void gl_setup(app *a)
         const mu_character_item *item = &a->ch.items[i];
         if (a->has_character && item->loaded)
             mu_gl_upload(&a->items[i], &item->textures, 0);
+        a->items[i].batch = a->batch;
     }
     for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t) {
         memset(&a->object_gl[t], 0, sizeof a->object_gl[t]);
         if (a->has_objects && a->objects.models[t] && a->objects.models[t]->loaded)
             mu_gl_upload(&a->object_gl[t], &a->objects.models[t]->textures, 0);
+        a->object_gl[t].batch = a->batch;
     }
-    for (int32_t i = 0; i < MU_WORLD_ACTORS_MAX; ++i)
+    for (int32_t i = 0; i < MU_WORLD_ACTORS_MAX; ++i) {
         memset(&a->actor_gl[i], 0, sizeof a->actor_gl[i]);
+        a->actor_gl[i].batch = a->batch;
+    }
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
         mu_gl_upload(&a->actor_gl[i], &a->actors.list[i].actor.textures, 0);
     memset(a->env_gl, 0, sizeof a->env_gl);
@@ -1199,6 +1247,8 @@ static void gl_teardown(app *a)
     for (int i = 0; i < MU_WORLD_ITEM_MODELS; ++i)
         if (a->item_gl[i].textures)
             mu_gl_release(&a->item_gl[i]);
+    mu_gl_batch_free(a->batch);
+    a->batch = NULL;
     a->gl_ready = 0;
 }
 
@@ -1532,7 +1582,13 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     glViewport(v->gl_viewport[0], v->gl_viewport[1], v->gl_viewport[2], v->gl_viewport[3]);
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CCW);
+    double perf = mu_perf_begin();   /* NATIVE-PERF-001: phase times (off unless --perf) */
     mu_terrain_sink sink = {a, g_state, g_bind, g_begin, g_tex, g_c3, g_c4, g_v, g_end};
+    if (a->batch) {   /* NATIVE-PERF-001: the same stream, merged draws */
+        mu_terrain_sink batched = {a, gb_state, gb_bind, gb_begin, gb_tex, gb_c3, gb_c4, gb_v, gb_end};
+        sink = batched;
+        mu_gl_batch_session_begin(a->batch);
+    }
     mu_terrain_scene scene;
     mu_world_scene(a->map, &scene);
     mu_terrain_tile_stats stats;
@@ -1543,12 +1599,18 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     else   /* RenderTerrain with the client's block and tile tests, in-game scene state 6 */
         mu_terrain_render(&scene, &a->frustum, 6, 0, mu_terrain_alpha_layers(a->map->world), &sink, &stats);
     a->tile_stats = stats;
+    if (a->batch)
+        mu_gl_batch_session_end(a->batch);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
+    mu_perf_end(MU_PERF_TERRAIN, perf);
+    perf = mu_perf_begin();
     mu_draw_options options;
     mu_draw_default_options(&options);
     a->objects_drawn = 0;
     if (a->has_objects) {   /* RenderObjects: client sector/object visibility, RenderObject per entry */
+        if (a->batch)
+            mu_gl_batch_session_begin(a->batch);
         mu_objects_visibility(&a->objects, &a->frustum, 6);
         for (int32_t k = 0; k < a->objects.rt.draw_count; ++k) {
             mu_draw_options object_options;
@@ -1561,9 +1623,15 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             if (!mu_scene_draw_model(&m->model, &object_options, &backend, &ds))
                 ++a->objects_drawn;
         }
+        if (a->batch)
+            mu_gl_batch_session_end(a->batch);
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
     }
+    mu_perf_end(MU_PERF_OBJECTS, perf);
+    perf = mu_perf_begin();
+    if (a->batch)
+        mu_gl_batch_session_begin(a->batch);
     if (a->has_character)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
             const mu_character_item *item = &a->ch.items[draw_order[n]];
@@ -1618,12 +1686,18 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         mu_scene_draw_model(&actor->actor.model, &options, &backend, &ds);
     }
     options.alpha = 1.0f;
+    if (a->batch)
+        mu_gl_batch_session_end(a->batch);
+    mu_perf_end(MU_PERF_CHARACTERS, perf);
+    perf = mu_perf_begin();
     if (a->ground) {   /* RenderItems after the characters (0x0185988d in the render scene) */
         mu_world_items_draw(a->ground, items_model_gl, a);
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
         glDisable(GL_ALPHA_TEST);
     }
+    mu_perf_end(MU_PERF_ITEMS, perf);
+    perf = mu_perf_begin();
     if (a->has_env) {
         mu_world_env_target target = {a, env_gl_backend};
         mu_world_env_draw(&a->env, v->modelview, a->legacy_box ? NULL : &a->frustum, &target);
@@ -1636,6 +1710,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_render_backend backend;
     mu_gl_backend_bind(&plain, &backend);
     marker(a, &backend);
+    mu_perf_end(MU_PERF_ENV, perf);
+    perf = mu_perf_begin();
     if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
         mu_world_particles_draw_models(&a->particles, particle_model_gl, a);
         mu_world_particles_target target = {a, particle_gl_backend};
@@ -1659,6 +1735,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }
+    mu_perf_end(MU_PERF_PARTICLES, perf);
+    perf = mu_perf_begin();
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
         effect_camera(a, eye, target);
@@ -1672,10 +1750,13 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     }
     if (a->combat)
         combat_draw_gl(a);
+    mu_perf_end(MU_PERF_EFFECTS, perf);
+    perf = mu_perf_begin();
     if (a->ground)
         items_labels_gl(a, width, height);
     if (a->names && !world_names_gfx_active(&a->names_gfx))
         names_gl(a, width, height);
+    mu_perf_end(MU_PERF_LABELS, perf);
     return stats.faces;
 }
 
@@ -2049,9 +2130,16 @@ static int headless(app *a)
 #endif
     a->walk.frame.clock.frame_tick = now;
     a->audio_start = now;
+    if (a->perf_path && mu_perf_open(a->perf_path, a->perf_sync))
+        fprintf(stderr, "cannot write %s\n", a->perf_path);
+#ifndef MU_WORLD_NO_GL
+    mu_perf_set_sync(glFinish);
+#endif
     for (int32_t frame = 0; frame < a->frames; ++frame) {
+        double perf = mu_perf_begin();
         script(a, frame);
         advance(a, now);
+        mu_perf_end(MU_PERF_LOGIC, perf);
 #ifndef MU_WORLD_NO_GL
         int gfx_draw = a->gfx && a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
         if (a->gfx)
@@ -2061,6 +2149,16 @@ static int headless(app *a)
 #endif
         int save = a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
         char hash[65] = "", path[4096] = "";
+        if (!save && gl && a->perf_path) {   /* NATIVE-PERF-001: every frame drawn when profiling */
+#ifndef MU_WORLD_NO_GL
+            draw_gl(a, a->width, a->height);
+            perf = mu_perf_begin();
+            if (a->gfx)
+                world_gfx_frame(a->gfx, 0.0, 1);
+            glFlush();
+            mu_perf_end(MU_PERF_GFX, perf);
+#endif
+        }
         if (save) {
             if (gl) {
 #ifndef MU_WORLD_NO_GL
@@ -2095,7 +2193,9 @@ static int headless(app *a)
             fprintf(stderr, "audio buffer allocation failed\n");
             return 1;
         }
+        mu_perf_frame(6);
     }
+    mu_perf_close();
     if (a->has_sound && a->wav_path) {
         if (mu_wav_write16(a->wav_path, a->wav, (uint32_t)a->wav_frames, 2, mu_world_sound_rate(&a->sound))) {
             fprintf(stderr, "cannot write %s\n", a->wav_path);
@@ -2220,7 +2320,12 @@ static int windowed(app *a)
     int32_t printed = 0;
     (void)script_width;
     (void)script_height;
+    if (a->perf_path && mu_perf_open(a->perf_path, a->perf_sync))
+        fprintf(stderr, "cannot write %s\n", a->perf_path);
+    mu_perf_set_sync(glFinish);
+    uint32_t fps_start = start, fps_frames = 0;
     while (running) {
+        double perf = mu_perf_begin();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (a->gfx && world_gfx_event(a->gfx, &e, scale))
@@ -2267,9 +2372,13 @@ static int windowed(app *a)
                 }
             }
         }
+        mu_perf_end(MU_PERF_EVENTS, perf);
+        perf = mu_perf_begin();
         script(a, (int32_t)frames);
         advance(a, SDL_GetTicks());
+        mu_perf_end(MU_PERF_LOGIC, perf);
         draw_gl(a, dw, dh);
+        perf = mu_perf_begin();
         if (a->gfx) {
             static uint32_t gfx_last;
             uint32_t t = SDL_GetTicks();
@@ -2277,20 +2386,29 @@ static int windowed(app *a)
             world_gfx_frame(a->gfx, gfx_last ? (double)(t - gfx_last) : 0.0, 1);
             gfx_last = t;
         }
+        mu_perf_end(MU_PERF_GFX, perf);
+        perf = mu_perf_begin();
         SDL_GL_SwapWindow(window);
+        mu_perf_end(MU_PERF_SWAP, perf);
         ++frames;
+        perf = mu_perf_now();
         int32_t sleep = mu_walk_end_render(&a->walk);
         if (sleep > 0)
-            SDL_Delay((uint32_t)sleep);
+            mu_sleep_ms((uint32_t)sleep);   /* NATIVE-PERF-001: the host Sleep without oversleep */
         sound_frame(a);   /* after the cap, as 0x0185280c in the frame driver */
         audio_pump(a, SDL_GetTicks());
+        if (mu_perf_enabled())
+            mu_perf_add(MU_PERF_SLEEP, mu_perf_now() - perf);
+        mu_perf_frame(6);
         if (frames % 25 == 0) {
             const mu_hero *h = &a->walk.hero;
             char title[160];
             snprintf(title, sizeof title, "mu-world  World%d  tile %d,%d  %s  FOV %.0f  %.1f fps",
                      a->map->report.folder, h->tile[0], h->tile[1], h->movement ? "walking" : "standing",
-                     (double)a->walk.frame.view.fov,
-                     (double)frames * 1000.0 / (double)(SDL_GetTicks() - start + 1));
+                     (double)a->walk.frame.view.fov,   /* NATIVE-PERF-001: the last 25 frames */
+                     (double)(frames - fps_frames) * 1000.0 / (double)(SDL_GetTicks() - fps_start + 1));
+            fps_start = SDL_GetTicks();
+            fps_frames = frames;
             SDL_SetWindowTitle(window, title);
         }
         for (; printed < a->walk.log_count; ++printed)
@@ -2303,6 +2421,7 @@ static int windowed(app *a)
         if (a->seconds > 0 && (SDL_GetTicks() - start) / 1000.0 >= a->seconds)
             running = 0;
     }
+    mu_perf_close();
     double elapsed = (SDL_GetTicks() - start) / 1000.0;
     printf("{\"frames\": %u, \"seconds\": %.2f, \"fps\": %.2f, \"logic_steps\": %u, \"walked\": %.1f,"
            " \"arrivals\": %u, \"audio_device\": %s, \"audio_seconds\": %.2f}\n", frames, elapsed,
@@ -2432,6 +2551,7 @@ int main(int argc, char **argv)
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { a.headless = 1; continue; }
         if (!strcmp(k, "--quiet")) { a.quiet = 1; continue; }
+        if (!strcmp(k, "--perf-sync")) { a.perf_sync = 1; continue; }   /* NATIVE-PERF-001 */
         if (!strcmp(k, "--no-audio")) { a.audio = 0; continue; }
         if (!strcmp(k, "--legacy-box")) { a.legacy_box = 1; continue; }
         if (!strcmp(k, "--combat")) { a.combat_on = 1; continue; }
@@ -2456,6 +2576,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--width")) a.width = atoi(v);
         else if (!strcmp(k, "--height")) a.height = atoi(v);
         else if (!strcmp(k, "--seconds")) a.seconds = strtof(v, NULL);
+        else if (!strcmp(k, "--perf")) a.perf_path = v;   /* NATIVE-PERF-001 */
         else if (!strcmp(k, "--frames")) a.frames = atoi(v);
         else if (!strcmp(k, "--every")) a.every = atoi(v);
         else if (!strcmp(k, "--pause")) a.pause = atoi(v);

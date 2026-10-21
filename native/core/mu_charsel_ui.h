@@ -29,6 +29,8 @@ typedef struct mu_charsel_ui {
     mu_ui_font_set fonts;
     mu_ui_ctx ctx;
     mu_ui_sink inner;
+    mu_ui_sink target;          /* NATIVE-PERF-001: the 2D calls on the GPU instead of the raster */
+    int has_target;
     mu_ui_charsel_input input;
     mu_ui_charsel_win win;
     int32_t textures, events[16][2], event_count, sounds;
@@ -45,5 +47,10 @@ void mu_charsel_ui_update(mu_charsel_ui *ui, const mu_charsel_session *s, int32_
                           uint8_t down, uint8_t up);
 /* Draws the window over rgba (top-down RGBA8, width x height of init). */
 void mu_charsel_ui_render(mu_charsel_ui *ui, uint8_t *rgba);
+/* NATIVE-PERF-001: route the window's 2D calls to `target` (a GL replay,
+ * native/viewer/ui_gl.h; NULL: back to the raster) and draw the window
+ * through it over the current framebuffer (no frame copy). */
+void mu_charsel_ui_set_target(mu_charsel_ui *ui, const mu_ui_sink *target);
+void mu_charsel_ui_render_target(mu_charsel_ui *ui);
 
 #endif

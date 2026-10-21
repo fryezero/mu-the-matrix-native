@@ -442,6 +442,12 @@ void world_gfx_close(world_gfx *g)
     free(g);
 }
 
+void world_gfx_resize(world_gfx *g, int width, int height)
+{
+    if (g)
+        mu_gfx_layer_resize(g->layer, width, height);
+}
+
 int world_gfx_event(world_gfx *g, const SDL_Event *e, double scale)
 {
     return g ? mu_gfx_sdl_event(g->layer, e, scale) : 0;
