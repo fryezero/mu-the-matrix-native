@@ -13,7 +13,11 @@
  * (main and Chat report onLoad with their paths, alarmframe and topmenu
  * too, then UIFrame onFileLoad) and is the bar and the chat at once;
  * mugfx_set_image logs the drawn rows of the image, mugfx_resolve looks in
- * the movie's directory, mugfx_ime logs.  Calls made from inside a callback are queued
+ * the movie's directory, mugfx_ime logs.  NATIVE-NPC-001: NpcDialogue reports
+ * UIInit and answers SetDialogueMentDivide(text, sep) with NPCDialogTextWidth
+ * (lines cut at 40 characters and at the separator); NpcShop and
+ * StorageInven are slot windows like InventoryFrame (8 x 15 cells, slot
+ * origin 24.75,70 from their window position).  Calls made from inside a callback are queued
  * and run afterwards, as mugfx does.  Every invoke is appended to the file
  * named by $MUGFX_STUB_LOG.  Synthetic: no client data. */
 #define _POSIX_C_SOURCE 200809L
@@ -77,6 +81,8 @@ static void callf(MuGfx *g, const char *name, const char *fmt, double a, double 
 }
 
 static int is(const MuGfx *g, const char *name) { return !strcmp(g->name, name); }
+/* NATIVE-NPC-001: the NPC slot windows (8 x 15 cells at 24.75,70 from the window). */
+static int is_slotwin(const MuGfx *g) { return is(g, "NpcShop") || is(g, "StorageInven"); }
 /* The base movie plays the bar and the chat (NATIVE-GFX-003). */
 static int is_bar(const MuGfx *g) { return is(g, "main") || is(g, "base"); }
 static int is_chat(const MuGfx *g) { return is(g, "chat") || is(g, "base"); }
@@ -88,6 +94,7 @@ static void bounds(const MuGfx *g, float r[4])
     else if (is(g, "main") || is(g, "base")) { r[0] = 179; r[1] = 658; r[2] = 921; r[3] = 145; }
     else if (is(g, "chat")) { r[0] = 0; r[1] = 562; r[2] = 610; r[3] = 130; }
     else if (is(g, "CharacterInfoFrame")) { r[0] = 0; r[1] = 0; r[2] = 350; r[3] = 640; }
+    else if (is_slotwin(g) || is(g, "NpcDialogue")) { r[0] = g->win_x; r[1] = g->win_y; r[2] = 320; r[3] = 620; }
     else { r[0] = 900; r[1] = 300; r[2] = 200; r[3] = 100; }
 }
 
@@ -99,10 +106,51 @@ static void stage_point(const MuGfx *g, double x, double y, double *sx, double *
 
 static int cell_at(const MuGfx *g, double sx, double sy)
 {
-    double cx = (sx - g->win_x - 24.75) / 26.0, cy = (sy - g->win_y - 370.0) / 26.0;
-    if (cx < 0 || cy < 0 || cx >= 8 || cy >= 8)
+    double oy = is_slotwin(g) ? 70.0 : 370.0, rows = is_slotwin(g) ? 15 : 8;
+    double cx = (sx - g->win_x - 24.75) / 26.0, cy = (sy - g->win_y - oy) / 26.0;
+    if (cx < 0 || cy < 0 || cx >= 8 || cy >= rows)
         return -1;
     return (int)cy * 8 + (int)cx;
+}
+
+/* NpcDialogue: SetDialogueMentDivide(text, sep) -> NPCDialogTextWidth(lines, wrapped). */
+static void dialogue_divide(MuGfx *g, const char *args)
+{
+    char text[2048] = "", sep = ';';
+    const char *p = strchr(args, '"');
+    size_t n = 0;
+    if (p) {
+        for (p++; *p && *p != '"' && n + 1 < sizeof text; p++) {
+            if (*p == '\\' && p[1])
+                p++;
+            text[n++] = *p;
+        }
+        text[n] = 0;
+        const char *q = *p ? strchr(p + 1, '"') : NULL;   /* the separator argument */
+        if (q && q[1] && q[1] != '"')
+            sep = q[1];
+    }
+    char w[3000];
+    size_t o = 0;
+    int lines = 1, col = 0;
+    for (size_t i = 0; text[i] && o + 4 < sizeof w; i++) {
+        if (text[i] == sep || col == 40) {
+            w[o++] = '\\';
+            w[o++] = 'n';
+            lines++;
+            col = 0;
+            if (text[i] == sep)
+                continue;
+        }
+        if (text[i] == '"' || text[i] == '\\')
+            w[o++] = '\\';
+        w[o++] = text[i];
+        col++;
+    }
+    w[o] = 0;
+    char out[3100];
+    snprintf(out, sizeof out, "[%d,\"%s\"]", lines, w);
+    call(g, "NPCDialogTextWidth", out);
 }
 
 static const char *run_invoke(MuGfx *g, const char *path, const char *method, const char *args)
@@ -164,6 +212,8 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
         } else if (!strcmp(method, "SetVisible")) {
             g->visible = strstr(args, "true") != NULL;
         }
+    } else if (is(g, "NpcDialogue") && !strcmp(method, "SetDialogueMentDivide")) {
+        dialogue_divide(g, args);
     } else if (!strcmp(method, "SetVisible")) {
         g->visible = strstr(args, "true") != NULL;
     }
@@ -238,6 +288,17 @@ void mugfx_start(MuGfx *g)
         call(g, "UIInit", "[\"g_mcInfoPopup\"]");
     } else if (is(g, "CharacterInfoFrame")) {
         call(g, "UIInit", "[\"g_CharacterInfoFrame\"]");
+    } else if (is(g, "NpcDialogue")) {
+        call(g, "UIInit", "[\"g_mcNpcDialogue\"]");
+        g->win_x = 20;
+        g->win_y = 100;
+        call(g, "requestWindowPos", "[20.0,100.0]");
+    } else if (is_slotwin(g)) {
+        call(g, "UIInit", is(g, "NpcShop") ? "[\"g_mcNpcShop\"]" : "[\"g_mcStorageInven\"]");
+        call(g, "requestSlotInfo", "[24.75,70.0,26.0,26.0,0.0]");
+        g->win_x = 45;
+        g->win_y = 21;
+        call(g, "requestWindowPos", "[45.0,21.0]");
     }
     drain();
 }
@@ -285,6 +346,10 @@ int mugfx_set_variable(MuGfx *g, const char *path, const char *value) { (void)g;
 
 const char *mugfx_get_variable(MuGfx *g, const char *path)
 {
+    if (strstr(path, "mcNPCShop") || strstr(path, "mcStorageInven")) {
+        if (strstr(path, "isSlot0._y")) return "70";
+        if (strstr(path, "isSlot8._y")) return "96";
+    }
     if (strstr(path, "isSlot0._x")) return "24.75";
     if (strstr(path, "isSlot1._x")) return "50.75";
     if (strstr(path, "isSlot0._y")) return "370";
@@ -299,7 +364,7 @@ int mugfx_hit_test(MuGfx *g, double x, double y)
     stage_point(g, x, y, &sx, &sy);
     float r[4];
     bounds(g, r);
-    if (is(g, "InventoryFrame") && !g->visible)
+    if ((is(g, "InventoryFrame") || is_slotwin(g) || is(g, "NpcDialogue")) && !g->visible)
         return 0;
     if (is(g, "chat") && !g->edit)
         return 0;   /* the chat view is hitTestDisable while not editing */
@@ -312,7 +377,7 @@ int mugfx_mouse(MuGfx *g, int kind, int button, double x, double y)
 {
     double sx, sy;
     stage_point(g, x, y, &sx, &sy);
-    if (!is(g, "InventoryFrame") || !g->visible) {
+    if (!(is(g, "InventoryFrame") || is_slotwin(g)) || !g->visible) {
         drain();
         return 0;
     }

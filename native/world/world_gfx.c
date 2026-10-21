@@ -8,6 +8,7 @@
 #include "../core/mu_hud.h"
 #include "../core/mu_hud_tip.h"
 #include "../core/mu_lang.h"
+#include "../core/mu_npc.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "../gfx/mu_gfx_sdl.h"
 #include "world_gfx_game.h"
@@ -20,6 +21,9 @@ struct world_gfx {
     wg_items *items;            /* item models over the windows and in the hotkey image (NATIVE-GFX-003) */
     double time_ms;
     int skills;
+    /* NATIVE-NPC-001: the demo vault contents */
+    mu_npc_item npc_storage[MU_NPC_ITEMS];
+    int npc_storage_count;
 };
 
 /* GlobalText for the layer's labels: the tables read from the client
@@ -69,6 +73,50 @@ static int tooltip(void *user, int32_t code, int32_t level, char *html, size_t c
     return 0;
 }
 
+/* NATIVE-NPC-001: a demo price from the item's Item.bmd value fields (+0x28c
+ * fixed zen, else value * value * 10 / 12 from +0x288, NATIVE-DATA-002's
+ * reading); the client's own price routine is not reconstructed.  Levels add
+ * 50 % each (demo). */
+static int64_t demo_price(void *user, int32_t code, int32_t level)
+{
+    world_gfx *g = user;
+    int64_t base = 100;
+    if (g->scratch && g->tables.have_items) {
+        mu_hud_inventory_init(g->scratch);
+        int k = mu_hud_inventory_add(g->scratch, &g->tables.items, g->root, code, level, 1, 1);
+        if (k >= 0 && g->scratch->items[k].has_record) {
+            const mu_item_attributes *r = &g->scratch->items[k].record.attributes;
+            base = r->zen ? (int64_t)r->zen : (int64_t)r->value * r->value * 10 / 12;
+            if (base < 10)
+                base = 10;
+        }
+    }
+    for (int32_t i = 0; i < level && i < 15; i++)
+        base += base / 2;
+    return base;
+}
+
+/* Name and size of an item code from Item.bmd (the inventory's source). */
+static void item_info(world_gfx *g, int32_t code, int32_t level, mu_gfx_slot_item *out)
+{
+    memset(out, 0, sizeof *out);
+    out->code = code;
+    out->level = level;
+    out->width = 1;
+    out->height = 2;
+    snprintf(out->name, sizeof out->name, "Item %d", (int)code);
+    if (g->scratch && g->tables.have_items) {
+        mu_hud_inventory_init(g->scratch);
+        int k = mu_hud_inventory_add(g->scratch, &g->tables.items, g->root, code, level, 1, 2);
+        if (k >= 0) {
+            out->width = g->scratch->items[k].grid.width;
+            out->height = g->scratch->items[k].grid.height;
+            snprintf(out->name, sizeof out->name, "%s", g->scratch->items[k].name);
+        }
+    }
+    out->price = demo_price(g, code, level);
+}
+
 /* Demo inventory (layer choice): a weapon, armour pieces, potions and a ring;
  * sizes and names from Item.bmd when the game root has it. */
 static void demo_items(world_gfx *g)
@@ -111,7 +159,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .items = g->items ? wg_items_draw : NULL, .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
                                .items_user = g->items,
                                .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER"),
-                               .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared()};
+                               .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared(),
+                               .price = demo_price};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -201,4 +250,103 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap)
 mu_gfx_layer *world_gfx_layer(world_gfx *g)
 {
     return g ? g->layer : NULL;
+}
+
+/* ---- NPC windows (NATIVE-NPC-001) ---- */
+
+static void npc_title(const mu_npc_open *o, const char *label, char *out, size_t cap)
+{
+    /* Npcname(kor): for npcdialogue the dialogue NPC the result names (0x00fdc96c(class) stores its name for
+     * SetTitle, static), otherwise the clicked NPC's class */
+    int32_t index = o->kind == MU_NPC_WINDOW_DIALOG && o->window.dialogue >= 0 ? o->window.dialogue : o->server_class;
+    const mu_lang_npc *npc = mu_lang_npc_get(mu_lang_shared(), index);
+    if (npc && npc->name && npc->name[0])
+        mu_lang_ascii(out, cap, npc->name);
+    else
+        snprintf(out, cap, "%s", label && label[0] ? label : "NPC");
+}
+
+void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
+{
+    if (!g || !o)
+        return;
+    char title[96];
+    npc_title(o, label, title, sizeof title);
+    const mu_npc_demo_row *row = o->demo;
+    if (o->kind == MU_NPC_WINDOW_DIALOG) {
+        static char text[4096], options[13][96];
+        mu_gfx_npc_dialog d;
+        memset(&d, 0, sizeof d);
+        d.title = title;
+        size_t n = 0;
+        text[0] = 0;
+        for (int i = 0; row && i < row->dialog_count && n < sizeof text; i++) {
+            const char *line = mu_lang_dialog(mu_lang_shared(), row->dialog[i]);
+            char clean[2048];
+            if (line)
+                mu_lang_ascii(clean, sizeof clean, line);
+            else
+                snprintf(clean, sizeof clean, "Dialog %d", (int)row->dialog[i]);
+            n += (size_t)snprintf(text + n, sizeof text - n, "%s%s", n ? ";" : "", clean);   /* the client's line separator */
+        }
+        if (!text[0])
+            snprintf(text, sizeof text, "(demo dialogue)");
+        d.text = text;
+        for (int i = 0; row && i < row->option_count && i < 13; i++) {
+            const char *line = mu_lang_dialog(mu_lang_shared(), row->options[i]);
+            if (line)
+                mu_lang_ascii(options[i], sizeof options[i], line);
+            else
+                snprintf(options[i], sizeof options[i], "Dialog %d", (int)row->options[i]);
+            d.options[d.noptions++] = options[i];
+        }
+        if (!d.noptions) {
+            snprintf(options[0], sizeof options[0], "Close");
+            d.options[d.noptions++] = options[0];
+        }
+        d.hide_contribute = o->window.dialogue == 0x248 || o->window.dialogue == 0x2fc || o->window.dialogue == 0x2fd ||
+                       o->window.dialogue == 0x3ab || o->window.dialogue == 0x3ac;
+        mu_gfx_layer_npc_dialog(g->layer, &d);
+    } else if (o->kind == MU_NPC_WINDOW_SHOP) {
+        static mu_gfx_slot_item items[MU_NPC_ITEMS];
+        int n = 0;
+        for (int i = 0; row && i < row->shop_count && n < MU_NPC_ITEMS; i++)
+            item_info(g, row->shop[i].code, row->shop[i].level, &items[n++]);
+        mu_gfx_layer_npc_shop(g->layer, title, o->repair, o->shop_tabs, items, n);
+    } else if (o->kind == MU_NPC_WINDOW_STORAGE) {
+        static mu_gfx_slot_item items[MU_NPC_ITEMS];
+        int n = 0;
+        for (int i = 0; i < g->npc_storage_count && n < MU_NPC_ITEMS; i++)
+            item_info(g, g->npc_storage[i].code, g->npc_storage[i].level, &items[n++]);
+        mu_gfx_layer_storage(g->layer, "Vault", items, n);
+    }
+}
+
+void world_gfx_npc_close_all(world_gfx *g)
+{
+    if (g)
+        mu_gfx_layer_npc_close(g->layer);
+}
+
+int world_gfx_npc_window(world_gfx *g)
+{
+    return g ? mu_gfx_layer_npc_window(g->layer) >= 0 : 0;
+}
+
+int world_gfx_npc_action(world_gfx *g, const char *verb, const char *arg)
+{
+    return g ? mu_gfx_layer_npc_action(g->layer, verb, arg ? atoi(arg) : 0) : 0;
+}
+
+const char *world_gfx_npc_last(world_gfx *g)
+{
+    return g ? mu_gfx_layer_npc_last(g->layer) : "";
+}
+
+void world_gfx_npc_storage(world_gfx *g, const mu_npc_item *items, int n)
+{
+    if (!g)
+        return;
+    g->npc_storage_count = n > MU_NPC_ITEMS ? MU_NPC_ITEMS : n;
+    memcpy(g->npc_storage, items, (size_t)g->npc_storage_count * sizeof *items);
 }

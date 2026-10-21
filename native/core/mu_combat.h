@@ -292,9 +292,11 @@ void mu_combat_draw_raster(mu_combat *combat, struct mu_raster *raster);
 
 /* Scripted combat for headless runs and tests:
  *   "FRAME:attack:ACTOR FRAME:skill:N:ACTOR FRAME:click:ACTOR FRAME:stop ..."
- * ACTOR is a label or an actor index; click sends a mouse click on the
- * actor's screen position (through the picking), the others call the entry
- * points directly. */
+ * Items are separated by ';', ',' or whitespace before the next "FRAME:"
+ * (labels may contain spaces).  ACTOR is a label or an actor index; click
+ * sends a mouse click on the actor's screen position (through the picking),
+ * the others call the entry points directly.  Returns non-zero on a
+ * malformed item. */
 #define MU_COMBAT_SCRIPT 32
 typedef struct mu_combat_script_item {
     int32_t frame;

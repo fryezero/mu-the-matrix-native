@@ -279,5 +279,5 @@ python scripts/validate_lang.py --snapshot lang.bin --mutations [--write-maps]  
 - The character window's SetName labels (Level, Class, Exp, ...) and the skill tooltip body keep English
   stand-ins; their GlobalText numbers are not mapped.
 - The inventory, character and chat label indices are static readings; menu indices are verified.
-- A multi-item `--combat-script` casts nothing in mu-world (pre-existing script handling); single items work.
+- A multi-item `--combat-script` cast nothing when its items were separated by spaces or commas; fixed by NATIVE-NPC-001.
 - A new client build moves the addresses; the read must then be repeated.

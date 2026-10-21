@@ -1652,12 +1652,42 @@ void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
 
 /* ---------------------------------------------------------------- script and reports */
 
+/* Item boundaries: ';' or ',' always end an item; whitespace ends one only
+ * when the next word starts a new item ("FRAME:"), so labels with spaces
+ * ("budge dragon") stay whole.  The header documents space-separated items;
+ * before the fix only ';' separated them, so "2:skill:4:a 60:skill:9:b" was
+ * one item whose actor "a 60:skill:9:b" resolved to nothing and the whole
+ * script cast nothing (reported by NATIVE-LANG-001). */
+static int script_item_start(const char *p)
+{
+    const char *q = p;
+    while (*q >= '0' && *q <= '9')
+        ++q;
+    return q > p && *q == ':';
+}
+
+static size_t script_token_length(const char *p)
+{
+    size_t n = 0;
+    while (p[n] && p[n] != ';' && p[n] != ',') {
+        if ((p[n] == ' ' || p[n] == '\t') && n > 0) {
+            size_t k = n;
+            while (p[k] == ' ' || p[k] == '\t')
+                ++k;
+            if (!p[k] || script_item_start(p + k))
+                break;
+        }
+        ++n;
+    }
+    return n;
+}
+
 int mu_combat_script_parse(mu_combat_script *script, const char *text)
 {
     memset(script, 0, sizeof *script);
     const char *p = text;
     while (*p) {
-        while (*p == ' ' || *p == ';')
+        while (*p == ' ' || *p == '\t' || *p == ';' || *p == ',')
             ++p;
         if (!*p)
             break;
@@ -1665,12 +1695,14 @@ int mu_combat_script_parse(mu_combat_script *script, const char *text)
             return 1;
         mu_combat_script_item *it = &script->items[script->count];
         char token[128];
-        size_t n = 0;
-        while (p[n] && p[n] != ';' && n + 1 < sizeof token)
-            ++n;
+        size_t n = script_token_length(p);
+        if (n + 1 > sizeof token)
+            return 1;
         memcpy(token, p, n);
         token[n] = 0;
         p += n;
+        while (n > 0 && (token[n - 1] == ' ' || token[n - 1] == '\t'))
+            token[--n] = 0;
         char *a = strchr(token, ':');
         if (!a)
             return 1;

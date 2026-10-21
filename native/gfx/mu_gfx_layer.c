@@ -224,6 +224,17 @@ typedef struct item {
     float rgb[3];
 } item;
 
+#define SLOT_ITEMS 120          /* NpcShop / StorageInven pages: 8 x 15 */
+typedef struct slot_window {
+    int movie;
+    const char *frame;          /* member holding isSlot0..119 */
+    mu_grid grid;
+    item items[SLOT_ITEMS];
+    int64_t prices[SLOT_ITEMS];
+    int nitems, hover, have_slot, gap_done;
+    float win_x, win_y, slot_x, slot_y, slot_w, slot_h, gap_x, gap_y, scale;
+} slot_window;
+
 #define ICON_W 512              /* image0 size (layer choice: the item render passes 512.0) */
 #define ICON_H 512
 #define MAX_SKILLS 1024
@@ -288,9 +299,24 @@ struct mu_gfx_layer {
     int in_callback;
     char map_name[64];
     int map_x, map_y, map_sent;
+    /* NATIVE-NPC-001 */
+    slot_window swin[2];        /* NpcShop, StorageInven */
+    struct {
+        char title[96], text[4096], pages[16][1024], options[13][96];
+        int npages, page, noptions, hide_contribute, wrapped;
+    } dlg;
+    char npc_last[160];
+    int64_t vault_zen;
 };
 
-static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat"};
+static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
+                                                 "NpcDialogue", "NpcShop", "StorageInven"};
+
+/* NATIVE-NPC-001 (section "NPC windows" below) */
+static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
+static int npc_inventory_r(mu_gfx_layer *L, int index);
+static void swin_init(mu_gfx_layer *L);
+static void swin_composite(mu_gfx_layer *L, int m, uint8_t *rgba, int32_t W, int32_t H);
 
 static double now_ms(void)
 {
@@ -383,6 +409,43 @@ static int json_field_string(const char *s, const char *key, char *out, size_t c
     }
     out[o] = 0;
     return 1;
+}
+
+/* json_string with the escapes decoded (\n, \t, \", \; \uXXXX below 0x80 as ASCII, else '?'). */
+static int json_string_decoded(const char *s, int index, char *out, size_t cap)
+{
+    int n = 0, depth = 0;
+    for (const char *p = s; *p; p++) {
+        if (*p == '{' || *p == '[') { depth++; continue; }
+        if (*p == '}' || *p == ']') { depth--; continue; }
+        if (*p != '"')
+            continue;
+        const char *q = p + 1;
+        size_t o = 0;
+        int take = depth == 1 && n++ == index;
+        while (*q && *q != '"') {
+            char c = *q;
+            if (c == '\\' && q[1]) {
+                q++;
+                c = *q == 'n' ? '\n' : *q == 't' ? '\t' : *q == 'r' ? '\r' : *q;
+                if (*q == 'u' && q[1] && q[2] && q[3] && q[4]) {
+                    char hex[5] = {q[1], q[2], q[3], q[4], 0};
+                    long u = strtol(hex, NULL, 16);
+                    c = u > 0 && u < 0x80 ? (char)u : '?';
+                    q += 4;
+                }
+            }
+            if (take && o + 1 < cap)
+                out[o++] = c;
+            q++;
+        }
+        if (take) {
+            out[o] = 0;
+            return 1;
+        }
+        p = q;
+    }
+    return 0;
 }
 
 /* JSON string literal of `s` (quotes included). */
@@ -815,7 +878,7 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     mv->open = open;
     if (open)
         raise_window(L, m);
-    if (!open && m == MU_GFX_INVENTORY)
+    if (!open && (m == MU_GFX_INVENTORY || m == MU_GFX_NPC_SHOP || m == MU_GFX_STORAGE))
         hide_tooltip(L);
     if (open && m == MU_GFX_CHARACTER)
         feed_character(L);
@@ -865,6 +928,8 @@ static void inventory_click(mu_gfx_layer *L, int index)
 
 static void inventory_click_r(mu_gfx_layer *L, int index)
 {
+    if (npc_inventory_r(L, index))   /* NATIVE-NPC-001: sell / put while NpcShop or StorageInven is open */
+        return;
     /* Right click on an item: the client uses or equips it (0x00b907b9's
      * handler; not reconstructed).  The layer logs it and, for the demo
      * potion code, drinks one (layer choice). */
@@ -1127,7 +1192,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
         }
         return NULL;
     default:
-        return NULL;
+        return npc_call(mv, name, args, v, n);
     }
 }
 
@@ -1150,6 +1215,10 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
         return 0;
     }
     snprintf(path, sizeof path, "%s/%s.swf", L->cfg.movie_dir, mv->file);
+    if (m >= MU_GFX_NPC_DIALOG && access(path, R_OK) != 0) {   /* NPC windows are optional */
+        mv->g = NULL;
+        return 0;
+    }
     mv->g = L->shared ? L->api.open_shared(path, L->px_w, L->px_h, err, sizeof err)
                       : L->api.open(path, L->px_w, L->px_h, err, sizeof err);
     if (!mv->g) {
@@ -1196,18 +1265,20 @@ static void slot_gap(mu_gfx_layer *L)
  * and InfoPopup 9 (Align_None: no SetAlign/SetWindowSize); SetWindowSize
  * gets the window size (0x01cf1624/8) and SetScale(83) applies below 700
  * pixels of height to both (handler +0x58 = scale / 100). */
-static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9};
+static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9, 9, 9, 9};   /* npcdialogue, NpcShop, StorageInven: 9 */
 
 static void window_sizes(mu_gfx_layer *L)
 {
-    for (int m = MU_GFX_INVENTORY; m <= MU_GFX_CHARACTER; m++) {
-        if (!L->mv[m].path[0])
+    for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++) {
+        if (m == MU_GFX_CHAT || !L->mv[m].g || !L->mv[m].path[0])
             continue;
         float scale = (m != MU_GFX_TOOLTIP && L->h < 700) ? 0.83f : 1.0f;
         if (m == MU_GFX_INVENTORY)
             L->inv_scale = scale;
         else if (m == MU_GFX_CHARACTER)
             L->char_scale = scale;
+        else if (m == MU_GFX_NPC_SHOP || m == MU_GFX_STORAGE)
+            L->swin[m == MU_GFX_STORAGE].scale = scale;
         if (scale != 1.0f)
             invokef(L, m, L->mv[m].path, "SetScale", "[%g]", scale * 100.0f);
         if (WINDOW_ALIGN[m] != 9) {
@@ -1465,8 +1536,8 @@ static void init_windows(mu_gfx_layer *L)
         invokef(L, MU_GFX_CHARACTER, L->mv[MU_GFX_CHARACTER].path, "InitText", "%s", buf);
     }
     window_sizes(L);
-    for (int m = MU_GFX_INVENTORY; m <= MU_GFX_CHARACTER; m++)
-        if (L->mv[m].path[0] && m != MU_GFX_TOOLTIP)
+    for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++)
+        if (L->mv[m].g && L->mv[m].path[0] && m != MU_GFX_TOOLTIP && m != MU_GFX_CHAT)
             invokef(L, m, L->mv[m].path, "SetVisible", "[false]");
     hide_tooltip(L);
     L->order[L->norder++] = MU_GFX_INVENTORY;
@@ -1593,6 +1664,7 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
 #endif
     mu_grid_construct(&L->grid);
     mu_grid_init(&L->grid, 1, 0, 0, 0, 8, 8, 0);   /* 0x00ab7277(1, 8, 8, 1): inventory page */
+    swin_init(L);
     L->inv_scale = L->char_scale = 1.0f;
     L->hotkeys[0].code = 14 * 512 + 3;              /* demo hotkey item: a healing potion (layer choice) */
     demo_skills(L);
@@ -1787,7 +1859,7 @@ int mu_gfx_layer_mouse(mu_gfx_layer *L, int kind, int button, double x, double y
             continue;
         if (kind == 1) {
             L->capture = stack[i];
-            if (stack[i] == MU_GFX_INVENTORY || stack[i] == MU_GFX_CHARACTER)
+            if (stack[i] != MU_GFX_MAIN && stack[i] != MU_GFX_CHAT && stack[i] != MU_GFX_TOOLTIP)
                 raise_window(L, stack[i]);
         }
         L->api.mouse(mv->g, kind, button, lx, ly);
@@ -2029,19 +2101,21 @@ void mu_gfx_layer_render(mu_gfx_layer *L)
 
 /* Items over the inventory, placed by the reconstructed slot pass: the
  * host's item models (cfg.items) or coloured stand-ins. */
+#define RECT_MAX (SLOT_ITEMS + 8)
 typedef struct rect_list {
-    float r[MAX_ITEMS + 1][4];
-    int item[MAX_ITEMS + 1];
-    mu_slot_call call[MAX_ITEMS + 1];
+    float r[RECT_MAX][4];
+    int item[RECT_MAX];
+    mu_slot_call call[RECT_MAX];
     int n;
     mu_gfx_layer *L;
+    const item *base;           /* the window's item array (inventory or slot window) */
 } rect_list;
 
 static void emit_rect(void *user, const mu_slot_call *call)
 {
     rect_list *R = user;
     mu_gfx_layer *L = R->L;
-    if (R->n >= MAX_ITEMS)
+    if (R->n >= RECT_MAX - 1)
         return;
     /* 640 x 480 units back to window pixels (0x0184a18f, top-left origin here). */
     float *r = R->r[R->n];
@@ -2050,13 +2124,14 @@ static void emit_rect(void *user, const mu_slot_call *call)
     r[2] = call->w / mu_gfx_rate_x(L->w);
     r[3] = call->h / mu_gfx_rate_y(L->h);
     R->call[R->n] = *call;
-    R->item[R->n++] = (int)((const item *)call->item - L->items);
+    R->item[R->n++] = (int)((const item *)call->item - R->base);
 }
 
 static void item_rects(mu_gfx_layer *L, rect_list *R)
 {
     R->n = 0;
     R->L = L;
+    R->base = L->items;
     if (!L->have_slot || !L->mv[MU_GFX_INVENTORY].open)
         return;
     mu_slot_page page = {&L->grid, L->slot_x, L->slot_y, L->slot_w, L->slot_h, L->gap_x, L->gap_y};
@@ -2218,6 +2293,7 @@ void mu_gfx_layer_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H
             for (int i = 0; i < R.n; i++)
                 fill_cpu(rgba, W, H, R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
+        swin_composite(L, order[k], rgba, W, H);
     }
     float hr[4];
     if (held_rect(L, hr))
@@ -2330,6 +2406,570 @@ static void draw_movie_gl(mu_gfx_layer *L, movie *mv, int m)
 }
 #endif
 
+/* ---- NPC windows (NATIVE-NPC-001) ---------------------------------------------------------------- */
+
+static slot_window *swin_for(mu_gfx_layer *L, int m)
+{
+    return m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : NULL;
+}
+
+static void npc_last(mu_gfx_layer *L, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(L->npc_last, sizeof L->npc_last, fmt, ap);
+    va_end(ap);
+    logf_(L, "game: %s", L->npc_last);
+}
+
+static void swin_slot_states(mu_gfx_layer *L, slot_window *sw)
+{
+    movie *mv = &L->mv[sw->movie];
+    if (!mv->path[0])
+        return;
+    char list[1024];
+    size_t n = 0;
+    for (int i = 0; i < sw->grid.cols * sw->grid.rows && n < sizeof list; i++)
+        n += (size_t)snprintf(list + n, sizeof list - n, "%s%d", i ? "," : "", sw->grid.cells[i] ? 2 : 1);
+    invokef(L, sw->movie, mv->path, "SetSlotStateAll", "[0,\"%s\"]", list);
+}
+
+static void swin_gap(mu_gfx_layer *L, slot_window *sw)
+{
+    movie *mv = &L->mv[sw->movie];
+    char p[192];
+    double v[4];
+    static const char *const SLOT[4] = {"isSlot0._x", "isSlot1._x", "isSlot0._y", "isSlot8._y"};
+    for (int k = 0; k < 4; k++) {
+        snprintf(p, sizeof p, "%s.%s.%s", mv->path, sw->frame, SLOT[k]);
+        const char *a = L->api.get_variable(mv->g, p);
+        v[k] = a ? atof(a) : 0;
+    }
+    sw->gap_x = v[1] > v[0] ? (float)(v[1] - v[0]) - sw->slot_w : 0;
+    sw->gap_y = v[3] > v[2] ? (float)(v[3] - v[2]) - sw->slot_h : 0;
+    sw->gap_done = 1;
+}
+
+static void swin_clear(slot_window *sw)
+{
+    int32_t type = sw->grid.type;
+    mu_grid_construct(&sw->grid);
+    mu_grid_init(&sw->grid, type, 0, 0, 0, 8, 15, 0);
+    sw->nitems = 0;
+    sw->hover = -1;
+}
+
+static int swin_add(slot_window *sw, const mu_gfx_slot_item *src)
+{
+    if (sw->nitems >= SLOT_ITEMS)
+        return -1;
+    item *it = &sw->items[sw->nitems];
+    memset(it, 0, sizeof *it);
+    it->grid.id = (uint32_t)(1000 + sw->nitems);
+    it->grid.code = src->code;
+    it->grid.width = (uint8_t)(src->width < 1 ? 1 : src->width);
+    it->grid.height = (uint8_t)(src->height < 1 ? 1 : src->height);
+    it->level = src->level;
+    snprintf(it->name, sizeof it->name, "%s", src->name[0] ? src->name : "Item");
+    int col, row;
+    if (!mu_grid_find_free(&sw->grid, it->grid.width, it->grid.height, &col, &row))
+        return -1;
+    mu_grid_place(&sw->grid, col, row, &it->grid);
+    static const float PALETTE[8][3] = {{.85f, .35f, .25f}, {.35f, .55f, .9f}, {.95f, .8f, .3f}, {.55f, .75f, .4f},
+                                        {.7f, .45f, .85f}, {.3f, .8f, .8f}, {.9f, .55f, .2f}, {.8f, .8f, .8f}};
+    memcpy(it->rgb, PALETTE[(src->code >> 9) & 7], sizeof it->rgb);
+    sw->prices[sw->nitems] = src->price;
+    return sw->nitems++;
+}
+
+static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell)
+{
+    movie *tip = &L->mv[MU_GFX_TOOLTIP];
+    mu_grid_item *gi = cell >= 0 && cell < sw->grid.cols * sw->grid.rows ? mu_grid_item_at(&sw->grid, cell) : NULL;
+    if (!tip->g || !gi || !sw->grid.cells[cell])
+        return;
+    item *it = (item *)gi;
+    static char html[8192], quoted[16384];
+    if (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html, sizeof html))
+        builtin_tooltip(it, html, sizeof html);
+    json_quote(quoted, sizeof quoted, html);
+    float sc = sw->scale;
+    float x = sw->win_x + (sw->slot_x + it->grid.col * (sw->slot_w + sw->gap_x)) * sc;
+    float y = sw->win_y + (sw->slot_y + it->grid.row * (sw->slot_h + sw->gap_y)) * sc;
+    tip->open = 1;
+    invokef(L, MU_GFX_TOOLTIP, tip->path, "SetInfoPopup", "[%d,%d,%d,%d,%s]", (int)x, (int)y,
+            (int)(it->grid.width * sw->slot_w * sc), (int)(it->grid.height * sw->slot_h * sc), quoted);
+}
+
+/* A click on a slot: NpcShop buys (DEMO: the item goes to the first free
+ * inventory place and its demo price leaves the zen), StorageInven moves
+ * the item to the inventory (DEMO).  The client sends a request and waits
+ * for the server's answer instead. */
+static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
+{
+    mu_grid_item *gi = index >= 0 && index < sw->grid.cols * sw->grid.rows ? mu_grid_item_at(&sw->grid, index) : NULL;
+    if (!gi || !sw->grid.cells[index])
+        return;
+    item *it = (item *)gi;
+    int k = (int)(it - sw->items);
+    if (sw->movie == MU_GFX_NPC_SHOP) {
+        if (L->hero.zen < sw->prices[k]) {
+            npc_last(L, "buy %s: not enough zen (demo)", it->name);
+            return;
+        }
+        if (mu_gfx_layer_add_item(L, it->grid.code, it->level, it->grid.width, it->grid.height, it->name) < 0) {
+            npc_last(L, "buy %s: no room in the inventory (demo)", it->name);
+            return;
+        }
+        L->hero.zen -= sw->prices[k];
+        zen_text(L);
+        npc_last(L, "bought %s for %lld zen (demo)", it->name, (long long)sw->prices[k]);
+    } else {
+        if (mu_gfx_layer_add_item(L, it->grid.code, it->level, it->grid.width, it->grid.height, it->name) < 0) {
+            npc_last(L, "take %s: no room in the inventory (demo)", it->name);
+            return;
+        }
+        mu_grid_remove(&sw->grid, gi);
+        hide_tooltip(L);
+        swin_slot_states(L, sw);
+        npc_last(L, "took %s from the vault (demo)", it->name);
+    }
+}
+
+/* A right click on an inventory item while NpcShop or StorageInven is open:
+ * sell it (DEMO: a third of its demo price) or put it into the vault
+ * (layer choice for the client's drag onto the window). */
+static int npc_inventory_r(mu_gfx_layer *L, int index)
+{
+    int shop = L->mv[MU_GFX_NPC_SHOP].open, vault = L->mv[MU_GFX_STORAGE].open;
+    if (!shop && !vault)
+        return 0;
+    mu_grid_item *gi = index >= 0 && index < L->grid.cols * L->grid.rows ? mu_grid_item_at(&L->grid, index) : NULL;
+    if (!gi || !L->grid.cells[index])
+        return 1;
+    item *it = (item *)gi;
+    if (shop) {
+        int64_t price = L->cfg.price ? L->cfg.price(L->cfg.tooltip_user, it->grid.code, it->level) / 3 : 0;
+        mu_grid_remove(&L->grid, gi);
+        L->hero.zen += price;
+        zen_text(L);
+        npc_last(L, "sold %s for %lld zen (demo)", it->name, (long long)price);
+    } else {
+        slot_window *sw = &L->swin[1];
+        mu_gfx_slot_item s;
+        memset(&s, 0, sizeof s);
+        s.code = it->grid.code;
+        s.level = it->level;
+        s.width = it->grid.width;
+        s.height = it->grid.height;
+        snprintf(s.name, sizeof s.name, "%s", it->name);
+        if (swin_add(sw, &s) < 0) {
+            npc_last(L, "put %s: the vault is full (demo)", it->name);
+            return 1;
+        }
+        mu_grid_remove(&L->grid, gi);
+        swin_slot_states(L, sw);
+        npc_last(L, "put %s into the vault (demo)", it->name);
+    }
+    hide_tooltip(L);
+    slot_states(L);
+    return 1;
+}
+
+/* npcdialogue pages: the movie wraps the text (SetDialogueMentDivide ->
+ * NPCDialogTextWidth(lines, wrapped)); the layer shows MU_DLG_LINES lines a
+ * page (layer choice) with SetDialogueMent(text, page) as the handler's
+ * "%s %d" invoke 0x00be8724 does, and the arrows when there are more. */
+#define MU_DLG_LINES 6
+static void dialog_page(mu_gfx_layer *L)
+{
+    movie *mv = &L->mv[MU_GFX_NPC_DIALOG];
+    char q[2200];
+    json_quote(q, sizeof q, L->dlg.pages[L->dlg.page]);
+    invokef(L, MU_GFX_NPC_DIALOG, mv->path, "SetDialogueMent", "[%s,%d]", q, L->dlg.page);
+    invokef(L, MU_GFX_NPC_DIALOG, mv->path, "VisibleArrowBtn", "[%s,%s]", L->dlg.page > 0 ? "true" : "false",
+            L->dlg.page + 1 < L->dlg.npages ? "true" : "false");
+}
+
+static void dialog_wrapped(mu_gfx_layer *L, const char *wrapped)
+{
+    L->dlg.npages = 0;
+    const char *p = wrapped;
+    while (*p && L->dlg.npages < 16) {
+        char *page = L->dlg.pages[L->dlg.npages++];
+        size_t n = 0;
+        for (int line = 0; line < MU_DLG_LINES && *p; line++) {
+            const char *nl = strchr(p, '\n');
+            size_t len = nl ? (size_t)(nl - p) : strlen(p);
+            if (n + len + 2 >= sizeof L->dlg.pages[0])
+                len = sizeof L->dlg.pages[0] - n - 2;
+            memcpy(page + n, p, len);
+            n += len;
+            p += len;
+            if (*p == '\n')
+                p++;
+            if (line + 1 < MU_DLG_LINES && *p)
+                page[n++] = '\n';
+        }
+        page[n] = 0;
+    }
+    if (!L->dlg.npages) {
+        L->dlg.npages = 1;
+        L->dlg.pages[0][0] = 0;
+    }
+    L->dlg.page = 0;
+    dialog_page(L);
+}
+
+static void dialog_send(mu_gfx_layer *L)
+{
+    movie *mv = &L->mv[MU_GFX_NPC_DIALOG];
+    char q[4400], list[1600];
+    json_quote(q, sizeof q, L->dlg.title);
+    invokef(L, MU_GFX_NPC_DIALOG, mv->path, "SetTitle", "[%s]", q);
+    /* 0x00be84ac: VisibleContribute(0) only for the dialogue NPCs 0x248, 0x2fc, 0x2fd, 0x3ab, 0x3ac */
+    if (L->dlg.hide_contribute)
+        invokef(L, MU_GFX_NPC_DIALOG, mv->path, "VisibleContribute", "[0]");
+    /* 0x00be89f7: SetDialogueMentDivide(text, ";"): the client's dialogue text separates lines with ';';
+     * the movie answers with NPCDialogTextWidth, which pages the text (dialog_wrapped). */
+    json_quote(q, sizeof q, L->dlg.text);
+    L->dlg.wrapped = 0;
+    invokef(L, MU_GFX_NPC_DIALOG, mv->path, "SetDialogueMentDivide", "[%s,\";\"]", q);
+    if (!L->dlg.wrapped) {   /* no callback (stand-in movie): the lines as they are */
+        char plain[4096];
+        snprintf(plain, sizeof plain, "%s", L->dlg.text);
+        for (char *p = plain; *p; p++)
+            if (*p == ';')
+                *p = '\n';
+        dialog_wrapped(L, plain);
+    }
+    size_t n = 0;
+    list[0] = 0;
+    for (int i = 0; i < L->dlg.noptions && n < sizeof list; i++)
+        n += (size_t)snprintf(list + n, sizeof list - n, "%d. %s;", i + 1, L->dlg.options[i]);
+    json_quote(q, sizeof q, list);
+    invokef(L, MU_GFX_NPC_DIALOG, mv->path, "SetSelectBtnContent", "[%s]", q);
+    invokef(L, MU_GFX_NPC_DIALOG, mv->path, "SetPosLeftCenter", "[]");
+}
+
+static void npc_open_window(mu_gfx_layer *L, int m)
+{
+    for (int k = MU_GFX_NPC_DIALOG; k <= MU_GFX_STORAGE; k++)
+        if (k != m)
+            mu_gfx_layer_show(L, k, 0);
+    mu_gfx_layer_show(L, m, 1);
+}
+
+int mu_gfx_layer_npc_dialog(mu_gfx_layer *L, const mu_gfx_npc_dialog *d)
+{
+    if (!L || !d || !L->mv[MU_GFX_NPC_DIALOG].g || !L->mv[MU_GFX_NPC_DIALOG].path[0])
+        return 0;
+    snprintf(L->dlg.title, sizeof L->dlg.title, "%s", d->title ? d->title : "");
+    snprintf(L->dlg.text, sizeof L->dlg.text, "%s", d->text ? d->text : "");
+    L->dlg.noptions = d->noptions > 13 ? 13 : d->noptions;
+    for (int i = 0; i < L->dlg.noptions; i++)
+        snprintf(L->dlg.options[i], sizeof L->dlg.options[0], "%s", d->options[i] ? d->options[i] : "");
+    L->dlg.hide_contribute = d->hide_contribute;
+    npc_open_window(L, MU_GFX_NPC_DIALOG);
+    dialog_send(L);
+    npc_last(L, "dialogue %s (%d page(s), %d option(s))", L->dlg.title, L->dlg.npages, L->dlg.noptions);
+    return 1;
+}
+
+static int swin_open(mu_gfx_layer *L, int m, const char *title, const mu_gfx_slot_item *items, int n)
+{
+    slot_window *sw = swin_for(L, m);
+    movie *mv = &L->mv[m];
+    if (!sw || !mv->g || !mv->path[0])
+        return 0;
+    swin_clear(sw);
+    for (int i = 0; i < n; i++)
+        swin_add(sw, &items[i]);
+    char q[256];
+    json_quote(q, sizeof q, title ? title : "");
+    invokef(L, m, mv->path, "InitTitle", "[%s]", q);
+    npc_open_window(L, m);
+    if (!sw->gap_done && sw->have_slot)
+        swin_gap(L, sw);
+    swin_slot_states(L, sw);
+    /* NpcShop's Open 0x00bf0354 and StorageInven's open the inventory with
+     * them (static reading of the shop's; the vault the same, inference). */
+    mu_gfx_layer_show(L, MU_GFX_INVENTORY, 1);
+    return 1;
+}
+
+int mu_gfx_layer_npc_shop(mu_gfx_layer *L, const char *title, int repair, int tabs, const mu_gfx_slot_item *items,
+                          int n)
+{
+    if (!L || !L->mv[MU_GFX_NPC_SHOP].g || !L->mv[MU_GFX_NPC_SHOP].path[0])
+        return 0;
+    movie *mv = &L->mv[MU_GFX_NPC_SHOP];
+    /* NpcShop: SetVisibleRepair by the repair flag the talk case set (0x00bf172e), the tab count of the
+     * answer (0x00bf17c2 -> SetAvailableTabs), labels (GlobalText stand-ins) */
+    invokef(L, MU_GFX_NPC_SHOP, mv->path, "SetVisibleRepair", "[%s]", repair ? "true" : "false");
+    invokef(L, MU_GFX_NPC_SHOP, mv->path, "SetAvailableTabs", "[%d]", tabs < 1 ? 1 : tabs > 5 ? 5 : tabs);
+    invokef(L, MU_GFX_NPC_SHOP, mv->path, "InitBtnTitle", "[\"Repair\",\"Repair all\",\"Rebuy\"]");
+    invokef(L, MU_GFX_NPC_SHOP, mv->path, "InitTax", "[\"\"]");
+    int ok = swin_open(L, MU_GFX_NPC_SHOP, title, items, n);
+    if (ok)
+        npc_last(L, "shop %s: %d item(s), repair %d", title ? title : "", L->swin[0].nitems, repair);
+    return ok;
+}
+
+int mu_gfx_layer_storage(mu_gfx_layer *L, const char *title, const mu_gfx_slot_item *items, int n)
+{
+    if (!L || !L->mv[MU_GFX_STORAGE].g || !L->mv[MU_GFX_STORAGE].path[0])
+        return 0;
+    movie *mv = &L->mv[MU_GFX_STORAGE];
+    invokef(L, MU_GFX_STORAGE, mv->path, "InitText", "[\"Zen\",\"Fee\"]");
+    invokef(L, MU_GFX_STORAGE, mv->path, "InitButton", "[\"Deposit\",\"Withdraw\",\"Lock\",\"Extend\"]");
+    char zen[32];
+    commas(zen, sizeof zen, L->vault_zen);
+    invokef(L, MU_GFX_STORAGE, mv->path, "SetKeepZen", "[\"%s\"]", zen);
+    invokef(L, MU_GFX_STORAGE, mv->path, "SetCharge", "[\"0\"]");
+    int ok = swin_open(L, MU_GFX_STORAGE, title, items, n);
+    if (ok)
+        npc_last(L, "vault: %d item(s)", L->swin[1].nitems);
+    return ok;
+}
+
+void mu_gfx_layer_npc_close(mu_gfx_layer *L)
+{
+    if (!L)
+        return;
+    for (int k = MU_GFX_NPC_DIALOG; k <= MU_GFX_STORAGE; k++)
+        mu_gfx_layer_show(L, k, 0);
+}
+
+int mu_gfx_layer_npc_window(const mu_gfx_layer *L)
+{
+    for (int k = MU_GFX_NPC_DIALOG; L && k <= MU_GFX_STORAGE; k++)
+        if (L->mv[k].g && L->mv[k].open)
+            return k;
+    return -1;
+}
+
+int mu_gfx_layer_npc_action(mu_gfx_layer *L, const char *verb, int arg)
+{
+    if (!L || !verb)
+        return 0;
+    if (!strcmp(verb, "close")) {
+        int open = mu_gfx_layer_npc_window(L) >= 0;
+        mu_gfx_layer_npc_close(L);
+        return open;
+    }
+    if (!strcmp(verb, "buy") && L->mv[MU_GFX_NPC_SHOP].open) {
+        swin_click(L, &L->swin[0], arg);
+        return 1;
+    }
+    if (!strcmp(verb, "take") && L->mv[MU_GFX_STORAGE].open) {
+        swin_click(L, &L->swin[1], arg);
+        return 1;
+    }
+    if (!strcmp(verb, "sell") || !strcmp(verb, "put"))
+        return npc_inventory_r(L, arg);
+    if (!strcmp(verb, "option") && L->mv[MU_GFX_NPC_DIALOG].open) {
+        npc_call(&L->mv[MU_GFX_NPC_DIALOG], "onClickSelectBtn", "[0,\"\"]", (double[]){arg, 0}, 2);
+        return 1;
+    }
+    if (!strcmp(verb, "next") && L->mv[MU_GFX_NPC_DIALOG].open) {
+        npc_call(&L->mv[MU_GFX_NPC_DIALOG], "onClickbtnNext", "[\"\"]", NULL, 0);
+        return 1;
+    }
+    return 0;
+}
+
+const char *mu_gfx_layer_npc_last(const mu_gfx_layer *L)
+{
+    return L ? L->npc_last : "";
+}
+
+int mu_gfx_layer_npc_page(const mu_gfx_layer *L, int *pages)
+{
+    if (pages)
+        *pages = L ? L->dlg.npages : 0;
+    return L ? L->dlg.page : 0;
+}
+
+int mu_gfx_layer_slot_center(const mu_gfx_layer *L, int m, int32_t cell, double *x, double *y)
+{
+    const slot_window *sw = m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : NULL;
+    if (!L || !sw || !sw->have_slot || cell < 0 || cell >= sw->grid.cols * sw->grid.rows)
+        return 0;
+    int col = cell % sw->grid.cols, row = cell / sw->grid.cols;
+    *x = (sw->win_x + (sw->slot_x + (float)col * (sw->slot_w + sw->gap_x) + sw->slot_w / 2) * sw->scale) * L->scale;
+    *y = (sw->win_y + (sw->slot_y + (float)row * (sw->slot_h + sw->gap_y) + sw->slot_h / 2) * sw->scale) * L->scale;
+    return 1;
+}
+
+int mu_gfx_layer_slot_items(const mu_gfx_layer *L, int m)
+{
+    if (!L)
+        return 0;
+    const slot_window *sw = m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : NULL;
+    if (!sw)
+        return 0;
+    return sw->grid.item_count;
+}
+
+/* Callbacks of the NPC movies. */
+static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n)
+{
+    mu_gfx_layer *L = mv->L;
+    slot_window *sw = swin_for(L, mv->id);
+    if (sw) {
+        if (!strcmp(name, "requestWindowPos") && n >= 2) {
+            sw->win_x = (float)v[0];
+            sw->win_y = (float)v[1];
+        } else if (!strcmp(name, "requestSlotInfo") && n >= 5 && v[4] == 0) {
+            sw->slot_x = (float)v[0];
+            sw->slot_y = (float)v[1];
+            sw->slot_w = (float)v[2];
+            sw->slot_h = (float)v[3];
+            sw->have_slot = 1;
+        } else if (!strcmp(name, "requestItemSlotClick") && n >= 1) {
+            swin_click(L, sw, (int)v[0]);
+        } else if (!strcmp(name, "requestItemSlotOver") && n >= 1) {
+            sw->hover = (int)v[0];
+            swin_show_tooltip(L, sw, sw->hover);
+        } else if (!strcmp(name, "requestItemSlotOut")) {
+            sw->hover = -1;
+            hide_tooltip(L);
+        } else if (!strncmp(name, "onClick", 7)) {
+            npc_last(L, "%s: %s (not played: a server request in the client)", mv->file, name + 7);
+        }
+        return NULL;
+    }
+    if (mv->id == MU_GFX_NPC_DIALOG) {
+        if (!strcmp(name, "NPCDialogTextWidth")) {
+            char wrapped[4096] = "";
+            json_string_decoded(args, 0, wrapped, sizeof wrapped);
+            L->dlg.wrapped = 1;
+            dialog_wrapped(L, wrapped);
+        } else if (!strcmp(name, "onClickSelectBtn") && n >= 1) {
+            int i = (int)v[0];
+            /* DEMO: the client sends the choice to the server (0x00be829f builds packet 0xf8); the layer
+             * closes the window after the last option and pages forward otherwise. */
+            npc_last(L, "dialogue option %d%s%s", i + 1, i < L->dlg.noptions ? ": " : "",
+                     i < L->dlg.noptions ? L->dlg.options[i] : "");
+            if (i + 1 >= L->dlg.noptions)
+                mu_gfx_layer_show(L, MU_GFX_NPC_DIALOG, 0);
+            else if (L->dlg.page + 1 < L->dlg.npages) {
+                L->dlg.page++;
+                dialog_page(L);
+            }
+        } else if (!strcmp(name, "onClickbtnNext") && L->dlg.page + 1 < L->dlg.npages) {
+            L->dlg.page++;
+            dialog_page(L);
+        } else if (!strcmp(name, "onClickbtnPrevious") && L->dlg.page > 0) {
+            L->dlg.page--;
+            dialog_page(L);
+        }
+    }
+    return NULL;
+}
+
+/* Item models over NpcShop / StorageInven: the reconstructed slot pass over
+ * the window's page (page type 8 / 9 as 0x00ab7277 sets them). */
+static void swin_rects(mu_gfx_layer *L, slot_window *sw, rect_list *R)
+{
+    R->n = 0;
+    R->L = L;
+    R->base = sw->items;
+    if (!sw->have_slot || !L->mv[sw->movie].open)
+        return;
+    mu_slot_page page = {&sw->grid, sw->slot_x, sw->slot_y, sw->slot_w, sw->slot_h, sw->gap_x, sw->gap_y};
+    mu_slot_frame frame = {1, MU_ALIGN_TOP_LEFT, sw->win_x, sw->win_y, 1.0f, sw->scale, &page, 1, 2};
+    mu_slot_pass(&frame, L->w, L->h, mu_gfx_rate_x(L->w), mu_gfx_rate_y(L->h), NULL, emit_rect, R);
+}
+
+static int swin_draws(slot_window *sw, const rect_list *R, mu_gfx_item_draw *draws, int max)
+{
+    int n = 0;
+    for (int i = 0; i < R->n && n < max; i++) {
+        const item *it = &sw->items[R->item[i]];
+        mu_gfx_item_draw *d = &draws[n++];
+        memset(d, 0, sizeof *d);
+        d->item = R->item[i];
+        d->code = it->grid.code;
+        d->level = it->level;
+        memcpy(d->rect, R->r[i], sizeof d->rect);
+        d->slot[0] = R->call[i].x;
+        d->slot[1] = R->call[i].y;
+        d->slot[2] = R->call[i].w;
+        d->slot[3] = R->call[i].h;
+        d->page_type = R->call[i].page_type;
+        d->page_flag = R->call[i].page_flag;
+        d->type8_seen = R->call[i].type8_seen;
+        d->frame_id = (int32_t)R->call[i].frame_id;
+        d->frame_scale = sw->scale;
+        d->alpha = 1.0f;
+        int cell = sw->hover;
+        d->select = cell >= 0 && cell < sw->grid.cols * sw->grid.rows && sw->grid.cells[cell] &&
+                    mu_grid_item_at(&sw->grid, cell) == &it->grid;
+    }
+    return n;
+}
+
+int mu_gfx_layer_slot_draws(mu_gfx_layer *L, int m, mu_gfx_item_draw *out, int max)
+{
+    slot_window *sw = L ? swin_for(L, m) : NULL;
+    if (!sw || !out)
+        return 0;
+    rect_list R;
+    swin_rects(L, sw, &R);
+    return swin_draws(sw, &R, out, max);
+}
+
+static void swin_composite(mu_gfx_layer *L, int m, uint8_t *rgba, int32_t W, int32_t H)
+{
+    slot_window *sw = swin_for(L, m);
+    if (!sw)
+        return;
+    rect_list R;
+    swin_rects(L, sw, &R);
+    for (int i = 0; i < R.n; i++)
+        fill_cpu(rgba, W, H, R.r[i], sw->items[R.item[i]].rgb, L->scale);
+}
+
+#ifndef MU_GFX_NO_GL
+static void swin_draw_gl(mu_gfx_layer *L, int m)
+{
+    slot_window *sw = swin_for(L, m);
+    if (!sw)
+        return;
+    rect_list R;
+    swin_rects(L, sw, &R);
+    if (L->cfg.items) {
+        static mu_gfx_item_draw draws[RECT_MAX];
+        int n = swin_draws(sw, &R, draws, RECT_MAX);
+        host_gl_begin(L);
+        L->cfg.items(L->cfg.items_user, draws, n, L->w, L->h);
+        host_gl_end(L);
+    } else {
+        for (int i = 0; i < R.n; i++)
+            fill_gl(R.r[i], sw->items[R.item[i]].rgb, L->scale);
+    }
+}
+#endif
+
+static void swin_init(mu_gfx_layer *L)
+{
+    static const struct { int movie, type; const char *frame; } W[2] = {{MU_GFX_NPC_SHOP, 8, "mcNPCShop"},
+                                                                      {MU_GFX_STORAGE, 9, "mcStorageInven"}};
+    for (int k = 0; k < 2; k++) {
+        slot_window *sw = &L->swin[k];
+        memset(sw, 0, sizeof *sw);
+        sw->movie = W[k].movie;
+        sw->frame = W[k].frame;
+        sw->scale = 1.0f;
+        sw->hover = -1;
+        mu_grid_construct(&sw->grid);
+        mu_grid_init(&sw->grid, W[k].type, 0, 0, 0, 8, 15, 0);   /* 0x00ab7277(type, 8, 15, ...) */
+    }
+    L->vault_zen = 1250000;   /* demo */
+}
+
 void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
 {
 #ifndef MU_GFX_NO_GL
@@ -2370,6 +3010,7 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
                 for (int i = 0; i < R.n; i++)
                     fill_gl(R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
+        swin_draw_gl(L, order[k]);
     }
     float hr[4];
     if (held_rect(L, hr)) {
@@ -2447,6 +3088,8 @@ int mu_gfx_layer_item_cell(const mu_gfx_layer *L, int i)
 }
 
 int mu_gfx_layer_item_count(const mu_gfx_layer *L) { return L ? L->nitems : 0; }
+
+int mu_gfx_layer_items_placed(const mu_gfx_layer *L) { return L ? L->grid.item_count : 0; }
 
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *L) { return L ? L->last_sent : ""; }
 

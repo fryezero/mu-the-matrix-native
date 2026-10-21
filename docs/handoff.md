@@ -21,6 +21,19 @@ the scene's sprites, particles and shadows. Compare with `scripts/validate_chars
 `mu-charsel --objects-out` for the per-object comparison). Next: the stardr01 effect `0x5ac` (CreateEffect
 `0x013f41b4` and its child `0x5ad`), the scene-5 character pick, the GFx character list.
 
+## Talking to NPCs (NATIVE-NPC-001)
+
+Read [`research/client-npc-interaction.md`](research/client-npc-interaction.md). `reconstructed/npc` (libnpc) holds the
+talk-result dispatch, the character pick and the box table; `native/core/mu_npc.*` runs the talk in mu-world/mu-walk
+(`--npc`, `--npc-demo native/world/lorencia-demo-npc.txt`, `--npc-script`); the GFx layer plays NpcDialogue, NpcShop and
+StorageInven (convert them next to the HUD set). Compare with `tools/python/bin/python scripts/validate_npc.py
+--mutations` (about 40 s; `--emit-box` regenerates the box table). Checks: `reconstructed/npc/test_npc.py`,
+`native/tests/test_native_npc.py`. Renders stay local (`~/Documents/mu-mac-tools/native/renders/npc/`). The
+multi-item `--combat-script` bug NATIVE-LANG-001 reported is fixed (items split at spaces/commas; unknown actors are
+reported). Next: read the NPC dialogue text table (NPCDialogue.bmd's text ids, another Lang.mpr table) and the shop
+list packet's item records with the live-read route; the talk case's special classes; the quest windows
+(NpcJobChangeQuest uses Dialog(kor)); the client's item price routine for the shop.
+
 ## Overhead names, HP boxes, chat bubbles (NATIVE-NAMES-001)
 
 Read [`research/client-overhead-text.md`](research/client-overhead-text.md). `reconstructed/names` is hudPlayerName's game
