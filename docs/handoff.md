@@ -1621,3 +1621,25 @@ hero (`mu_walk_place`), `mu_env.c`, `world/world_gfx_game.c` and `mu_items.c` (l
 * The hero pointer in character select (scene 5's 0.5 + object light).
 * RenderItem3D's 27 special codes, so the remaining special models reach the inventory.
 * A live label check with an ancient item when a safe spot with drops is available.
+## Other players (NATIVE-PLAYERS-001)
+
+Branch `claude/native-players`. Read [`research/client-remote-players.md`](research/client-remote-players.md) and
+[`../reconstructed/players/README.md`](../reconstructed/players/README.md).
+
+**What.** `reconstructed/players/remote_players.*` (the class byte, ChangeCharacterExt with the wing switch, item
+level and class skin, the ride state, the move packet 0x3d, MoveCharacters' remote step; static: the viewport
+record and creation, the character create defaults, destroy / DeleteCharacter, the store packets and setStore);
+`native/core/mu_world_players.*` (the demo server from `native/world/lorencia-demo-players.txt`, the client side in
+the session, the plates through `mu_names` with the new `mu_names_set_store` / `MU_HN_OP_STORE` and the GFx
+`setStore` invoke); mu-world `--players FILE`, `--no-players`, `--player-range N`; mu-client `--players FILE`.
+
+**Checks.** `scripts/validate_players.py --cases 1000 --negative 60` (Unicorn, `tools/python`, captures under
+`evidence/`): helpers 768 + 1,000, equipment 1,000, move 1,000, step 1,000 cases, 0 mismatches, 7/7 planted
+mistakes caught (report `evidence/native-players/report-01.json`). Portable: `reconstructed/players/test_remote_players.py`
+(10), `native/tests/test_native_players.py` (9 + 1 private). Renders stay local in
+`~/Documents/mu-mac-tools/native/renders/players/` (`gl1/`, `lorencia-players.mp4`, `lorencia-players-town.png`,
+`lorencia-players-store.png`, `soft1/`).
+
+**Next.** Trace the equipment change packet 0x45 end to end; draw the helper (pet / mount) models and the ride pose
+states; player hover (setTopMovie) and selection; a live capture of a crowded town to compare plates and chrome sets;
+replace the demo server with the network layer when it exists.

@@ -314,6 +314,19 @@ MU_GFX_SINGLE_BUFFER=1 native/build/mu-world --game-root "$MU_GAME_ROOT" --headl
     --gfx MOVIES --tile 138,123 --npc-script "5:click:smith 60:buy:0 80:sell:0 110:close" --frames 120 --out-dir DIR
 ```
 
+## Other players (NATIVE-PLAYERS-001)
+
+The characters a server would put around the hero, from a labelled **demo players file** ([finding](../docs/research/client-remote-players.md)):
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --placement native/world/lorencia-demo-placement.txt \
+    --players native/world/lorencia-demo-players.txt [--player-range 15] [--no-players]
+native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt --players native/world/lorencia-demo-players.txt
+MU_LANG_DIR=LOCAL/lang native/build/mu-world ... --players ...        # EnchantEffect colours for the item glow passes
+```
+
+The demo server (`core/mu_world_players`) encodes each line into the client's player viewport record (opcode 0x12), sends move packets (0x3d) along the player's route, die (0x17), store (0x3f) and destroy (0x14) packets, and keeps a viewport range around the hero. From there it is the client's own code: CreateCharacter and the character create defaults, ChangeCharacterExt (`reconstructed/players`, verified) → class or Item.bmd parts, weapons and wing drawn through RenderObjDraw's passes; MoveCharacters' remote step (verified) over the client path finder with MovePath, CharacterMoveSpeed, SetPlayerWalk/Stop and the Player animation step; the dead counter, SetPlayerDie and the fade; the plates (PK colours, guild line, party HP bar), removeInfo and `setStore` through hudPlayerName (`--gfx`: the real movie). Reports: `players_frame` lines and a `players` summary. Tests: `tests/test_native_players.py` (synthetic world; private Lorencia run), `reconstructed/players/test_remote_players.py`, `scripts/validate_players.py` (Unicorn).
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -526,6 +539,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002); the pick and the GFx character list `charsel/charsel_list_gfx.*` (NATIVE-CHARSEL-003) |
 | `core/mu_names.*`, `core/mu_world_names.*`, `core/mu_label.*`, `world/world_names_gfx.*` | Overhead names, monster HP boxes and chat bubbles: hudPlayerName's game side over `reconstructed/names`, its feed from the session, the shared label helper for the stand-in, the calls to the real movie (NATIVE-NAMES-001) |
+| `core/mu_world_players.*`, `world/lorencia-demo-players.txt` | Other players: the demo server's viewport / move / die / store / destroy packets and the client side over `reconstructed/players` (NATIVE-PLAYERS-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
