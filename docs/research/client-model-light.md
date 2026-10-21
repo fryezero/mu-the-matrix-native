@@ -193,10 +193,10 @@ Snapshots: `~/Documents/mu-mac-tools/native/scratch/light/live/dumps/`.
 
 ## Limits and next steps
 
-* The hero's `(1, 1, 1)` character light in the world was observed live, but its branch in RenderCharacter was not
-  traced. The native hero keeps (1, 1, 1).
-* The body light of ambient creatures (RenderObject's 0x017ec3d8 on the boid/fish objects) and their `+0xe4`/`+0xe8`
-  are not read. NATIVE-ENV-001's colour and the default light arguments remain.
-* HUD item models (RenderItem3D, NATIVE-GFX-003's `world_gfx_game.c`) were not checked.
+* The hero's `(1, 1, 1)`, the ambient creatures' body light and the HUD item models' lighting were closed by
+  NATIVE-FIDELITY-001 ([client-fidelity.md](client-fidelity.md)): RenderCharacter's light block gives the hero
+  (1, 1, 1) times state tints (verified), the creatures take RenderObject's body light with ObjectInit's flags
+  (verified), and the item models' flat (1, 1, 1) with terms 0.4/0.8/0.2 is RenderObjectScreen's and RenderPartObject's
+  (static, RenderObjectScreen verified).
 * The client's GL driver state (texture environment, sRGB) was not captured. It was not needed: the remaining
   login-scene differences are within 5% except the animated after-pass glow.

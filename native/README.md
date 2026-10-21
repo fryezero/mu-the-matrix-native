@@ -248,8 +248,27 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --tile 133,127 --items --headl
     --out-dir DIR --item-script "2:drop:0x1c0f:0:134,126;4:drop:1:0xcf:135,127;40:hover:0;70:pick:0;120:alt"
 ```
 
-`--item-script` items: `F:drop:CODE[:LEVEL[:X,Y]]`, `F:alt`, `F:space`, `F:hover:N`, `F:pick:N`; `--item-seed`,
+`--item-script` items: `F:drop:CODE[:LEVEL[:X,Y[:SETBITS]]]` (SETBITS: item +0x3b, the set-item prefix), `F:alt`, `F:space`, `F:hover:N`, `F:pick:N`; `--item-seed`,
 `--item-latency`, `--item-despawn`, `--no-items`. Headless runs add `items_frame` lines and an `items` summary.
+
+## Fidelity pass: lights, item models, item labels (NATIVE-FIDELITY-001)
+
+([finding](../docs/research/client-fidelity.md)) Gaps the merged milestones left, each compared with the client in
+Unicorn (`scripts/validate_fidelity.py`, `scripts/validate_renderchar.py --sections light`):
+
+- the hero's light is RenderCharacter's light block (`mu_rc_character_light`): (1, 1, 1) unless a state tint applies;
+- birds, bats, fish and butterflies take RenderObject's body light (`mu_env_body_light`): frame light + object light,
+  lighting flag = object +5, light terms 0.4/0.8/0.2;
+- GFx inventory/hotkey item models follow RenderObjectScreen (`mu_hud_object_screen`): armour parts are posed on a
+  Player mannequin at the client's per-group height (no more centring), InvenItemAnimation codes animate, the
+  model draws flat with light (1, 1, 1);
+- ground-item labels get the set-item prefix (`reconstructed/items/item_sets`, from `Data/Local/ItemSetType.bmd` /
+  `ItemSetOption.bmd` and Lang.mpr's legendary/cash tables), the PentagramOption tier and the client's suffix
+  spacing (`Short Sword +9+Skill+Option+Luck`); special item models (Box of Luck, `0x3890..0x38a7`) load through the
+  item-model loader's table (`mu_gi_special_model_file`).
+
+The Lang tables come from `scripts/live_lang_to_plain.py` (new: `pentagram.tsv`, `invenanim.tsv`, `legendary.tsv`,
+`cashsets.tsv`) in `MU_LANG_DIR`; without them the prefix uses the local set files only and nothing animates.
 
 ## Overhead names, HP bars, chat bubbles (NATIVE-NAMES-001)
 
