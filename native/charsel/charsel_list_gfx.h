@@ -16,10 +16,13 @@
  *     (SelectedHero and the shown character of the session), entry by double click (the session's
  *     enter request, as 0x0185a75a(0)), the reorder arrows;
  *   - an empty row, OnClickCreateCharacter and OnEnterCharacterName open or use the create-character
- *     panel in the client, which needs the server: OFFLINE DEMO, counted and reported, nothing created.
+ *     panel: with config.create, charsel_create_gfx.c plays it (NATIVE-CHARCREATE-001: the panel, the
+ *     preview, the Caution boxes, the delete flow and winSystemMenu; OFFLINE DEMO answers from the caller's
+ *     hooks); without, they are counted and reported, nothing created (NATIVE-CHARSEL-003).
  *
  * GlobalText comes from the caller (NATIVE-LANG-001 tables) or "GT<n>" stand-ins; class names follow the
- * client's class-name switch 0x0139cc2e (static reading) over the same GlobalText.  The movie and its
+ * client's class-name switch 0x0139cc2e (executed for every class byte, NATIVE-CHARCREATE-001) over the
+ * same GlobalText.  The movie and its
  * renders are client-derived and stay local. */
 
 #include <stddef.h>
