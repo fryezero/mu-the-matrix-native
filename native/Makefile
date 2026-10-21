@@ -341,7 +341,12 @@ $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_ba
 	$(CXX) $(BUILD)/client/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
+# ---- Mu The Matrix Native Preview.app (NATIVE-APP-001): mu-client as an ad-hoc signed macOS app ----
+# app/Makefile: launcher, network guard, bundled dylibs, optional libmugfx (MUGFX_LIB=...).
+preview-app: $(BUILD)/mu-client
+	$(MAKE) -C app
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all viewer frame-window world charsel client audio audio-live clean
+.PHONY: all viewer frame-window world charsel client audio audio-live clean preview-app

@@ -18,6 +18,18 @@ is the CharacterSelect movie's game side (compare with `scripts/validate_charsel
 `mu_charsel_pick` runs NATIVE-NPC-001's `mu_npc_pick` for scene 5; `skill_fx.c` and `mu_particles` carry the star dragon 0x5ac/0x5ad. Renders stay
 local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: the create-character panel (offline: local
 characters) and the GFx menu; class-name codes 9/10.
+## Native preview app (NATIVE-APP-001)
+
+Read [`research/native-preview-app.md`](research/native-preview-app.md). `native/app` builds
+`Mu The Matrix Native Preview.app` (`make -C native preview-app`; `make -C native/app install` copies it to
+`~/Applications` and runs its `--setup`). The launcher is `native/app/Sources/{PreviewCore,main}.swift`, the network
+guard `native/app/nonet/mu_nonet.c`, the dylib bundling `native/app/bundle-dylibs.sh`. libmugfx comes from this
+checkout's `native/gfx/build-mugfx.sh` (or `MUGFX_LIB=`); its Ruffle build needs Java (`JAVA_HOME`, e.g. the JDK under
+`MU_GFX_DEPS`). Checks: `native/tests/test_native_app.py` (private smoke with `MU_RECOVERY_INTEGRATION=1
+MU_GAME_ROOT=...`). Window screenshots stay local (`~/Documents/mu-mac-tools/native/renders/app/`). A launch from
+Finder that copies from `~/Documents` triggers macOS's Documents consent prompt; `make install` avoids it by preparing
+Native Data from the shell. New milestones that add mu-client options should add them to `LaunchPlan.make` and the
+settings window. Next: a resizable/full-screen window and an in-app "demo tour" (the `--auto` flow in the window).
 
 ## Character-select scene at runtime (NATIVE-CHARSEL-002)
 

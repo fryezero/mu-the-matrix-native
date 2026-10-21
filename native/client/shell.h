@@ -73,6 +73,11 @@ typedef struct mu_shell_config {
     int32_t audio_rate;
     const char *sound_table;       /* world sound (extracted locally), may be NULL */
     const char *placement;         /* world demo actors, may be NULL */
+    /* NATIVE-APP-001: the offline label's first line (NULL: the default) and mu-world's features in scene 6 */
+    const char *label;
+    int world_combat, world_items, world_npc;
+    const char *npc_demo;          /* the NPC demo table (Lorencia, like the placement), may be NULL */
+    int world_no_names, world_no_env, world_no_particles;
     const char *world_objects;     /* local decoded world objects, may be NULL */
     const char *charsel_objects;   /* local decoded EncTerrain94.plain, may be NULL */
     const char *login_objects;     /* local decoded EncTerrain95.plain (login world), may be NULL */
