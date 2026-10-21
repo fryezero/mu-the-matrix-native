@@ -694,6 +694,8 @@ def set_prefix_section(text, data, args):
     codes |= {cash_items[3 * i] * 512 + cash_items[3 * i + 1] for i in range(len(cash_items) // 3)}
     rng = random.Random(args.seed + 9)
     codes |= {rng.randrange(0x2c00) for _ in range(200)}
+    if args.set_limit and len(codes) > args.set_limit:
+        codes = set(rng.sample(sorted(codes), args.set_limit))
     tally, prefixed, kind79 = Tally(), 0, 0
     out = m.alloc(0x40, define=True)
     bit_choices = (0, 1, 2, 5, 6, 0x10, 0x20, 0x21, 0x33, 0x44, 0xff)
@@ -777,6 +779,7 @@ def main():
     parser.add_argument('--game-root', type=Path)
     parser.add_argument('--emit-special-models', type=Path)
     parser.add_argument('--snapshot', type=Path, help='langread snapshot (set_prefix, lang_tables)')
+    parser.add_argument('--set-limit', type=int, default=0, help='sample this many codes (0: all)')
     parser.add_argument('--set-bits', type=int, default=3, help='set-bit values tried per code')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()

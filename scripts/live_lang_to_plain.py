@@ -279,6 +279,8 @@ def read_cashsets(snap):
     second name +0x1c) and the item vector +0x50 (0x14-byte records: group +0, index +4, set +8)."""
     sets, items = [], []
     begin, end, _ = struct.unpack('<III', snap.read(CASHSET + 0x64, 12))
+    if not begin:
+        raise SnapshotError('no CashItemSetOption vectors')
     for r in range(begin, end, 0xcc):
         sets.append((snap.string(r + 4), snap.string(r + 0x1c)))
     begin, end, _ = struct.unpack('<III', snap.read(CASHSET + 0x50, 12))
