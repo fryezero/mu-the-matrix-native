@@ -489,10 +489,10 @@ Local renders (not committed), `~/Documents/mu-mac-tools/native/renders/charsel2
 Labels as above; **verified** = Unicorn comparison of the client's instructions, **static** = decoded instructions read,
 **observed** = run on this Mac under the patched Ruffle.
 
-### Picking in the 3D scene (static)
+### Picking in the 3D scene (verified through NATIVE-NPC-001; scene-5 use static)
 
 RenderCharacterScene's first call is SelectCharacter `0x016b47bf(1)` (section 4). It is the client's general picker
-(NATIVE-NPC-001, in progress in parallel, reconstructs it and compares it with the instructions):
+(NATIVE-NPC-001 reconstructs it, `reconstructed/npc` `mu_npc_pick`, and compares it with the instructions):
 
 * a first pass gives every live, visible, non-transparent character of the kind mask LightEnable (`+5`) and a light
   indexed by CHARACTER `+0x144` (the level: 0..4 only), or −0.4 when `+0x1f ≥ 6`; the render resets the lights of
@@ -517,8 +517,9 @@ keys (`MUComponent.handleInput` returns true for 37..40 without passing them on)
 navigation** of the list. The native 1..5 and Left/Right keys are native shortcuts (they go through the list's row
 click and an extra SelectIndex so the movie shows them).
 
-`mu_charsel_pick` (native) follows this reading: the records carry the box fields, the drawn character's box is
-written after its update, the pick runs before RenderCharacterScene's logic, and a WM_LBUTTONDBLCLK (the shell turns a
+`mu_charsel_pick` (native) runs `mu_npc_pick` over the session's records (its writes go back into them): the records
+carry CreateCharacter's box fields, the drawn character's box is written after its update (Transform, static), the pick
+runs before RenderCharacterScene's logic, and a WM_LBUTTONDBLCLK (the shell turns a
 second press within 500 ms and 4 pixels into one, as Windows does for a CS_DBLCLKS class) is the `+0x1f` stand-in.
 
 ### The GFx character list (verified)
@@ -620,10 +621,8 @@ objects, 1722×1048), `client-gl/` (mu-client headless GL, whole flow), `dragon/
 ## Open points
 
 * The effect `0x59a`; the particle kinds `0x802a` 1 and smoke01 0x45 (their emitter types 0x45 and 0x50 are not placed
-  in World94); RenderEffects' 0x5ad case is a static reading.
+  in World94); RenderEffects' 0x5ad case and RenderPartObject's box are static readings.
 * The objects' animation PlaySpeeds (no World94 handler sets any); `0x009a5029`'s checks.
-* The native pick follows the static reading (NATIVE-NPC-001 compares the routine itself); once that lands, `mu_charsel_pick`
-  should call its `mu_npc_pick`.
 * The create-character panel (`0x00b49bf4`, `0x00b4b684`, the class buttons' handlers) and the menu; codes 9 and 10 of
   the class-name switch.
 * RenderCharacter's scene-5 light branches, and which of them the hero pointer selects.

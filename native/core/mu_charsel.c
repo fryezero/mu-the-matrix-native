@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../../reconstructed/movement/client_movement.h"
+#include "../../reconstructed/npc/npc_pick.h"
 
 /* Marker 1 (object type 14 of EncTerrain94.obj) as CreateObject stored it in the running client: live
  * single-run read of the object list (NATIVE-OBJECTS-001, docs/research/client-objects.md section 6). The
@@ -544,93 +545,52 @@ void mu_charsel_frame_objects(mu_charsel_session *s)
     }
 }
 
-/* ---- SelectCharacter 0x016b47bf (NATIVE-CHARSEL-003) ---- */
-
-static float dot3(const float a[3], const float b[3]) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
-
-static void cross3(const float a[3], const float b[3], float o[3])
-{
-    o[0] = a[1] * b[2] - a[2] * b[1];
-    o[1] = a[2] * b[0] - a[0] * b[2];
-    o[2] = a[0] * b[1] - a[1] * b[0];
-}
-
-/* 0x01850d88: the segment and the box projected on an axis overlap */
-static int axis_overlap(const float axis[3], const float p1[3], const float p2[3], const float obb[12])
-{
-    float d1 = dot3(axis, p1), d2 = dot3(axis, p2);
-    float lo = dot3(axis, obb), hi = lo;
-    for (int k = 1; k < 4; ++k) {
-        float d = dot3(axis, obb + 3 * k);
-        if (d < 0.0f)
-            lo += d;
-        else
-            hi += d;
-    }
-    float smin = d1 < d2 ? d1 : d2, smax = d1 < d2 ? d2 : d1;
-    return !(smax < lo || smin > hi);
-}
-
-/* 0x018500bf: no separating axis among (p2 - p1) x X, x Y, x Z, X, Y, Z */
-static int segment_obb(const float p1[3], const float p2[3], const float obb[12])
-{
-    float d[3] = {p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]}, n[3];
-    for (int k = 1; k < 4; ++k) {
-        cross3(d, obb + 3 * k, n);
-        if (!axis_overlap(n, p1, p2, obb))
-            return 0;
-    }
-    for (int k = 1; k < 4; ++k)
-        if (!axis_overlap(obb + 3 * k, p1, p2, obb))
-            return 0;
-    return 1;
-}
+/* ---- SelectCharacter 0x016b47bf (NATIVE-CHARSEL-003) ----
+ * NATIVE-NPC-001's reconstruction mu_npc_pick (compared with the instructions in Unicorn) over the session's
+ * CharactersClient records: the records give the candidates, the routine's writes (o+5, the first pass's light,
+ * the boxes grown in place in world 0x5d) go back into them. */
 
 int32_t mu_charsel_pick(mu_charsel_session *s)
 {
+    static mu_pick_character c[MU_CHARSEL_CHARACTERS];
     const mu_client_view *v = &s->frame.view;
-    static const float LIGHT[5][3] = {{0.2f, 0.2f, 0.2f}, {-0.4f, -0.4f, -0.4f}, {0.2f, -0.6f, -0.6f},
-                                      {1.5f, 1.5f, 1.5f}, {0.3f, 0.2f, -0.5f}};
-    /* first pass: every live, visible character of kind 1 gets LightEnable and the level-indexed light (the
-     * render resets the lights of 0..9 right after) */
     for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
-        uint8_t *c = record(s, i), *o = c + MU_CHARSEL_OBJECT;
-        if ((o[0x3b] & 1) != o[0x3b] || !o[MU_OBJ_LIVE] || !o[MU_OBJ_VISIBLE] || !(getf(o, 0xdc) > 0.0f))
-            continue;
-        o[5] = 1;
-        uint16_t level = (uint16_t)(c[0x144] | c[0x145] << 8);
-        if (level < 5)
-            for (uint32_t k = 0; k < 3; ++k)
-                putf(o, MU_OBJ_LIGHT + 4 * k, LIGHT[level][k]);
-        if (c[0x1f] >= 6)
-            for (uint32_t k = 0; k < 3; ++k)
-                putf(o, MU_OBJ_LIGHT + 4 * k, -0.4f);
-    }
-    int32_t best = -1;
-    float best_d = 1e12f;
-    ++s->picks;
-    for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
-        uint8_t *c = record(s, i), *o = c + MU_CHARSEL_OBJECT;
-        if (!o[MU_OBJ_LIVE] || !o[MU_OBJ_VISIBLE] || !(getf(o, 0xdc) > 0.0f) || c[0x23] || !c[0x10])
-            continue;   /* scene 5: the hero is not skipped; no buff 0x1b on the select screen's records */
-        if ((o[0x3b] & 1) != o[0x3b])
-            continue;
-        float obb[12];
-        for (uint32_t k = 0; k < 12; ++k)
-            obb[k] = getf(o, 0x31c + 4 * k);
-        obb[11] = obb[11] + 100.0f;   /* world 0x5d: ZAxis.z += 100, written back */
-        putf(o, 0x31c + 44, obb[11]);
-        if (!segment_obb(v->mouse_position, v->mouse_target, obb))
-            continue;
-        float d[3];
+        uint8_t *r = record(s, i), *o = r + MU_CHARSEL_OBJECT;
+        mu_pick_character *p = &c[i];
+        memset(p, 0, sizeof *p);
+        p->live = o[MU_OBJ_LIVE];
+        p->visible = o[MU_OBJ_VISIBLE];
+        p->alpha = getf(o, 0xdc);
+        p->kind = o[0x3b];
+        memcpy(&p->type, o + MU_OBJ_TYPE, sizeof p->type);
+        p->highlight = (uint16_t)(r[0x144] | r[0x145] << 8);
+        p->c1f = r[0x1f];
+        p->dead = r[0x23];
+        p->c10 = r[0x10];
+        p->buff_1b = 0;           /* no buffs on the select screen's records */
+        p->is_hero = 0;           /* scene 5 does not skip the hero */
         for (uint32_t k = 0; k < 3; ++k)
-            d[k] = getf(o, MU_OBJ_POSITION + 4 * k) - v->position[k];
-        float dist = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
-        if (dist < best_d) {
-            best_d = dist;
-            best = i;
-        }
+            p->position[k] = getf(o, MU_OBJ_POSITION + 4 * k);
+        memcpy(&p->obb, o + 0x31c, sizeof p->obb);
     }
+    mu_pick_scene scene;
+    memset(&scene, 0, sizeof scene);
+    scene.scene = MU_CHARSEL_SCENE;
+    scene.world = MU_CHARSEL_WORLD;
+    memcpy(scene.ray_start, v->mouse_position, sizeof scene.ray_start);
+    memcpy(scene.ray_end, v->mouse_target, sizeof scene.ray_end);
+    memcpy(scene.camera, v->position, sizeof scene.camera);
+    const int32_t best = mu_npc_pick(c, MU_CHARSEL_CHARACTERS, 1, &scene);
+    for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
+        uint8_t *o = record(s, i) + MU_CHARSEL_OBJECT;
+        if (c[i].marked)
+            o[5] = 1;
+        if (c[i].light_set)
+            for (uint32_t k = 0; k < 3; ++k)
+                putf(o, MU_OBJ_LIGHT + 4 * k, c[i].light[k]);
+        memcpy(o + 0x31c, &c[i].obb, sizeof c[i].obb);
+    }
+    ++s->picks;
     if (best >= 0)
         ++s->pick_hits;
     return best;
