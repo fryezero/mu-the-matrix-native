@@ -112,4 +112,20 @@ size_t mu_lang_enchant_entries(const mu_lang *lang, int32_t code);
  * glyph atlas): printable ASCII is kept, other bytes become '?'.  Returns dst. */
 char *mu_lang_ascii(char *dst, size_t cap, const char *src);
 
+
+/* ---- NATIVE-FIDELITY-001 tables (pentagram.tsv, invenanim.tsv, legendary.tsv, cashsets.tsv) ---- */
+
+/* PentagramOption 0x011447ac: record +0x24 of the code, or the default record's; 0 without the table. */
+int mu_lang_pentagram_tier(const mu_lang *lang, int32_t code, int32_t *tier);
+/* InvenItemAnimation 0x0111d824: 1 with the record's action (+8) and speed (+0xc), 0 when absent. */
+int mu_lang_inven_anim(const mu_lang *lang, int32_t code, uint16_t *action, float *speed);
+/* LegendaryItemSetType 0x011288c7: the four codes at record +4 of the set type, or the default record's;
+ * 0 without the table. */
+int mu_lang_legendary(const mu_lang *lang, int32_t type, int32_t codes[4]);
+typedef struct mu_lang_cash_set { const char *name, *name2; } mu_lang_cash_set;
+typedef struct mu_lang_cash_item { int32_t group, index, set; } mu_lang_cash_item;
+/* CashItemSetOption's set and item vectors (read by 0x009debe4), in vector order. */
+size_t mu_lang_cash_sets(const mu_lang *lang, const mu_lang_cash_set **sets);
+size_t mu_lang_cash_items(const mu_lang *lang, const mu_lang_cash_item **items);
+
 #endif

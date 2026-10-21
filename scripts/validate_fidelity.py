@@ -527,6 +527,242 @@ def special_models_section(text, data, args):
                         control_loader_ran=result['ok'] and len(calls) > 30)
 
 
+# ---------------------------------------------------------------- set_prefix and lang_tables (snapshot machine)
+SET_MANAGER_PTR, SET_MANAGER_CTOR, SET_MANAGER_SIZE = 0x01d1dcc0, 0x009e00d8, 0x8dcfc
+SET_LOAD, SET_PREFIX = 0x009e02a8, 0x009e0551
+CRT_FOPEN, CRT_FREAD, CRT_FCLOSE = 0x01988f83, 0x01989230, 0x01988c95
+CRT_NEW, CRT_MALLOC, CRT_FREE, CRT_DELETE = 0x0191ba7b, 0x0191bab9, 0x0191bac2, 0x0191ba5f
+ITEM_TABLE, ITEM_FIND = 0x00cd4ea8, 0x00cd5d29
+PENTAGRAM_LOOKUP, INVENANIM_LOOKUP, LEGENDARY_LOOKUP = 0x011447ac, 0x0111d824, 0x011288c7
+
+
+def item_kinds(game_root):
+    """code -> kind B (+0x251) of the installed Item.bmd (native/build/mu-data dump)."""
+    out = subprocess.run([str(ROOT / 'native/build/mu-data'), 'dump', str(game_root / 'Data/Local/item.bmd')],
+                         check=True, capture_output=True, text=True).stdout
+    return {row['code']: row['attributes']['kind_b'] for row in json.loads(out)['items']}
+
+
+def find_file(game_root, client_path):
+    target = game_root
+    for part in client_path.replace('\\', '/').split('/'):
+        if not part or part == '.':
+            continue
+        names = {p.name.lower(): p for p in target.iterdir()} if target.is_dir() else {}
+        if part.lower() not in names:
+            return None
+        target = names[part.lower()]
+    return target
+
+
+def snapshot_machine(text, data, snap, game_root, kinds):
+    import client_ui_machine as cm
+    import validate_lang as vl
+    m = vl.LangMachine(text, data, snap)
+    m.prepare(force=True)
+    m.heap_checks(False)
+    # the CRT's memset/memcpy feature words: __favor 0x0bdcb284 (no ERMS) and the captured math feature word
+    m.put32(0x0bdcb284, 0)
+    m.write(0x01cf6618, default_evidence('x86-math-capture-09/cpu-features.bin').read_bytes()[:4])
+    m.write(0x01cf0448, bytes([0xfc, 0xcf, 0xab, 0]))   # the record key global (as scripts/validate_data_tables.py)
+    m.put32(0x01cf65c0, 0xc179bffe)                       # __security_cookie (any value; Linux capture's)
+    files, records = {}, {}
+
+    def arg(k):
+        return m.args(k + 1)[k]
+
+    def new(mm):
+        return mm.alloc(arg(0), define=True)
+    m.stub(CRT_NEW, new)
+    m.stub(CRT_MALLOC, new)
+    m.stub(CRT_FREE, lambda mm: 0)
+    m.stub(CRT_DELETE, lambda mm: 0)
+    m.stub(0x019a4d50, lambda mm: 0)                     # _free_base
+
+    def option_text(mm):
+        # 0x009df67e(out, option, value): the set option's description (sprintf over ItemSetOptionText); the
+        # prefix never reads it: an empty MSVC std::string (buffer 0, size 0, capacity 15)
+        out = arg(0)
+        mm.write(out, bytes(16) + struct.pack('<II', 0, 15))
+        return out
+    m.stub(0x009df67e, option_text, 0xc)
+
+    def fopen(mm):
+        path = mm.cstr(arg(0)).decode('latin1')
+        found = find_file(game_root, path)
+        if found is None:
+            return 0
+        handle = 0x100 + len(files)
+        files[handle] = [found.read_bytes(), 0, path]
+        return handle
+
+    def fread(mm):
+        buf, size, count, handle = mm.args(4)
+        f = files[handle]
+        n = min(size * count, len(f[0]) - f[1])
+        mm.write(buf, f[0][f[1]:f[1] + n])
+        f[1] += n
+        return n // size if size else 0
+    m.stub(CRT_FOPEN, fopen)
+    m.stub(CRT_FREAD, fread)
+    m.stub(CRT_FCLOSE, lambda mm: 0)
+    m.stub(ITEM_TABLE, lambda mm: 0x0bf00000)
+
+    def find(mm):
+        code = arg(0)
+        if code not in kinds:
+            return 0
+        if code not in records:
+            r = mm.alloc(0x2c4, define=True)
+            mm.write(r, bytes(0x2c4))
+            mm.write(r + 0x251, bytes([kinds[code] & 0xff]))
+            records[code] = r
+        return records[code]
+    m.stub(ITEM_FIND, find, 4)
+    return m, files
+
+
+def set_prefix_section(text, data, args):
+    import live_lang_to_plain as plain
+    if not args.snapshot or not args.game_root:
+        return {'skipped': 'needs --snapshot and --game-root', 'ok': True}
+    snap = plain.Snapshot.load(args.snapshot)
+    kinds = item_kinds(args.game_root)
+    m, files = snapshot_machine(text, data, snap, args.game_root, kinds)
+    obj = m.alloc(SET_MANAGER_SIZE, define=True)
+    m.call(SET_MANAGER_CTOR, [], ecx=obj)
+    m.put32(SET_MANAGER_PTR, obj)
+    loaded = m.call(SET_LOAD, [], ecx=obj) & 0xff
+    # the native side: the same installed files, the plaintext tables of the same snapshot
+    import tempfile
+    work = Path(tempfile.mkdtemp())
+    plain.convert(snap, work)
+    lib = build('reconstructed/items', f'libclient_items.{SUFFIX}')
+    decoded = {}
+    for name, size, count in (('itemsettype.bmd', 10, 0x2c00), ('itemsetoption.bmd', 0x1d4, 1000)):
+        raw = find_file(args.game_root, 'Data/Local/' + name).read_bytes()
+        key = bytes([0xfc, 0xcf, 0xab])
+        decoded[name] = bytes(b ^ key[i % size % 3] for i, b in enumerate(raw[:size * count]))
+    legendary, legendary_default = {}, [-1] * 4
+    for line in (work / 'legendary.tsv').read_text().splitlines():
+        if line and not line.startswith('#'):
+            f = line.split('\t')
+            if f[0] == 'default':
+                legendary_default = [int(x) for x in f[1:5]]
+            else:
+                legendary[int(f[0])] = [int(x) for x in f[1:5]]
+    cash_names, cash_items = [], []
+    for line in (work / 'cashsets.tsv').read_text().splitlines():
+        f = line.split('\t')
+        if f[0] == 'set':
+            cash_names.append((plain.unescape(f[2]), plain.unescape(f[3])))
+        elif f[0] == 'item':
+            cash_items.extend(int(x) for x in f[1:4])
+    HAS = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32)
+    LEG = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32))
+
+    class Inputs(ctypes.Structure):
+        _fields_ = [('set_type', ctypes.c_char_p), ('set_option', ctypes.c_char_p), ('context', ctypes.c_void_p),
+                    ('has_record', HAS), ('legendary', LEG), ('cash_set_count', ctypes.c_size_t),
+                    ('cash_names', ctypes.POINTER(ctypes.c_char_p)), ('cash_names2', ctypes.POINTER(ctypes.c_char_p)),
+                    ('cash_item_count', ctypes.c_size_t), ('cash_items', ctypes.POINTER(ctypes.c_int32))]
+
+    def has_record(ctx, code):
+        return int(code in kinds)
+
+    def legend(ctx, type_, out):
+        for k, v in enumerate(legendary.get(type_, legendary_default)):
+            out[k] = v
+        return 1
+    has_cb, leg_cb = HAS(has_record), LEG(legend)
+    names1 = (ctypes.c_char_p * max(1, len(cash_names)))(*[n[0] for n in cash_names])
+    names2 = (ctypes.c_char_p * max(1, len(cash_names)))(*[n[1] for n in cash_names])
+    items_c = (ctypes.c_int32 * max(1, len(cash_items)))(*cash_items)
+    inputs = Inputs(decoded['itemsettype.bmd'], decoded['itemsetoption.bmd'], None, has_cb, leg_cb, len(cash_names),
+                    names1, names2, len(cash_items) // 3, items_c)
+    lib.mu_gi_sets_build.restype = ctypes.c_void_p
+    lib.mu_gi_sets_build.argtypes = [ctypes.POINTER(Inputs)]
+    lib.mu_gi_set_prefix.restype = ctypes.c_char_p
+    lib.mu_gi_set_prefix.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_uint8, ctypes.c_uint8]
+    lib.mu_gi_sets_count.restype = ctypes.c_size_t
+    lib.mu_gi_sets_count.argtypes = [ctypes.c_void_p]
+    sets = lib.mu_gi_sets_build(ctypes.byref(inputs))
+    # queries: every code with a set word, the legendary and cash codes, random others; set bits of each kind
+    st = decoded['itemsettype.bmd']
+    codes = {c for c in range(0x2c00) if any(st[c * 10 + 2 * k] | st[c * 10 + 2 * k + 1] for k in range(4))}
+    codes |= {c for v in legendary.values() for c in v if c >= 0}
+    codes |= {cash_items[3 * i] * 512 + cash_items[3 * i + 1] for i in range(len(cash_items) // 3)}
+    rng = random.Random(args.seed + 9)
+    codes |= {rng.randrange(0x2c00) for _ in range(200)}
+    tally, prefixed, kind79 = Tally(), 0, 0
+    out = m.alloc(0x40, define=True)
+    bit_choices = (0, 1, 2, 5, 6, 0x10, 0x20, 0x21, 0x33, 0x44, 0xff)
+    for code in sorted(codes):
+        for bits in (rng.sample(bit_choices, args.set_bits) if args.set_bits < len(bit_choices) else bit_choices):
+            m.call(SET_PREFIX, [out, code, bits], ecx=obj)
+            client = m.std_string(out)
+            native = lib.mu_gi_set_prefix(sets, code, bits, kinds.get(code, 0) & 0xff)
+            tally.check((code, bits), client, native)
+            prefixed += bool(client)
+            kind79 += bool(client) and kinds.get(code) == 0x79
+    # negative controls: the kind B 0x79 rule left out; the legendary table left out (informational)
+    control = sum(lib.mu_gi_set_prefix(sets, c, b, 0) != lib.mu_gi_set_prefix(sets, c, b, kinds.get(c, 0) & 0xff)
+                  for c in sorted(codes) for b in (0, 1, 2))
+    inputs.legendary = LEG(lambda ctx, t, o: 0)
+    plain_sets = lib.mu_gi_sets_build(ctypes.byref(inputs))
+    legendary_diff = sum(lib.mu_gi_set_prefix(plain_sets, c, b, kinds.get(c, 0) & 0xff) !=
+                         lib.mu_gi_set_prefix(sets, c, b, kinds.get(c, 0) & 0xff)
+                         for c in sorted(codes) for b in (0, 1, 2, 0x10, 0x20))
+    return tally.report(loaded=loaded, files=[f[2] for f in files.values()], native_sets=lib.mu_gi_sets_count(sets),
+                        codes=len(codes), prefixed_answers=prefixed, kind_b_79_answers=kind79,
+                        control_without_kind_b_79_differs=control, legendary_table_changes_answers=legendary_diff)
+
+
+def lang_tables_section(text, data, args):
+    """PentagramOption 0x011447ac and InvenItemAnimation 0x0111d824 over the snapshot against mu_lang."""
+    import live_lang_to_plain as plain
+    import validate_lang as vl
+    if not args.snapshot:
+        return {'skipped': 'needs --snapshot', 'ok': True}
+    snap = plain.Snapshot.load(args.snapshot)
+    m = vl.LangMachine(text, data, snap)
+    import tempfile
+    work = Path(tempfile.mkdtemp())
+    plain.convert(snap, work)
+    nat = vl.Native(work)
+    L = nat.lib
+    L.mu_lang_pentagram_tier.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
+    L.mu_lang_inven_anim.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_uint16),
+                                     ctypes.POINTER(ctypes.c_float)]
+    L.mu_lang_legendary.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
+    h = nat.load(work)
+    tally = Tally()
+    pent = [k for k, _ in snap.tree(plain.PENTAGRAM + 0x3c)]
+    anim = [k for k, _ in snap.tree(plain.INVENANIM + 0x38)]
+    leg = [k for k, _ in snap.tree(plain.LEGENDARY + 0x38)]
+    rng = random.Random(args.seed + 13)
+    for code in pent + [rng.randrange(0x2c00) for _ in range(100)]:
+        m.prepare()
+        record = m.call(PENTAGRAM_LOOKUP, [code], ecx=plain.PENTAGRAM)
+        tier = ctypes.c_int32()
+        L.mu_lang_pentagram_tier(h, code, ctypes.byref(tier))
+        tally.check(('pentagram', code), struct.unpack('<i', m.read(record + 0x24, 4))[0], tier.value)
+    for code in anim + [rng.randrange(0x2c00) for _ in range(100)]:
+        m.prepare()
+        record = m.call(INVENANIM_LOOKUP, [code], ecx=plain.INVENANIM)
+        action, speed = ctypes.c_uint16(), ctypes.c_float()
+        ok = L.mu_lang_inven_anim(h, code, ctypes.byref(action), ctypes.byref(speed))
+        client = None if not record else (struct.unpack('<H', m.read(record + 8, 2))[0], m.u32(record + 0xc))
+        tally.check(('invenanim', code), client, (action.value, f2u(speed.value)) if ok else None)
+    for type_ in leg + [rng.randrange(1000) for _ in range(100)]:
+        m.prepare()
+        record = m.call(LEGENDARY_LOOKUP, [type_], ecx=plain.LEGENDARY)
+        codes = (ctypes.c_int32 * 4)()
+        L.mu_lang_legendary(h, type_, codes)
+        tally.check(('legendary', type_), list(struct.unpack('<4i', m.read(record + 4, 16))), list(codes))
+    return tally.report(pentagram_keys=len(pent), invenanim_keys=len(anim), legendary_keys=len(leg))
+
+
 # ---------------------------------------------------------------- main
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -540,6 +776,8 @@ def main():
     parser.add_argument('--cases', type=int, default=400)
     parser.add_argument('--game-root', type=Path)
     parser.add_argument('--emit-special-models', type=Path)
+    parser.add_argument('--snapshot', type=Path, help='langread snapshot (set_prefix, lang_tables)')
+    parser.add_argument('--set-bits', type=int, default=3, help='set-bit values tried per code')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     text = rmach.load_pinned(args.text, rmach.TEXT_BYTES, rmach.TEXT_SHA256, 'text')
@@ -554,6 +792,10 @@ def main():
         report['object_screen'] = globals()['object_screen_section'](text, data, args)
     if 'special_models' in sections and 'special_models_section' in globals():
         report['special_models'] = globals()['special_models_section'](text, data, args)
+    if 'set_prefix' in sections:
+        report['set_prefix'] = set_prefix_section(text, data, args)
+    if 'lang_tables' in sections:
+        report['lang_tables'] = lang_tables_section(text, data, args)
     if args.output:
         args.output.write_text(json.dumps(report, indent=1, default=str))
     summary = {k: {kk: vv for kk, vv in v.items() if kk != 'failures' or vv} for k, v in report.items()

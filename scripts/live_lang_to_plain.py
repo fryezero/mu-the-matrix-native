@@ -20,6 +20,13 @@ Files written to OUT_DIR:
   enchant.tsv     EnchantEffect colours         (0x06fbb754, lookups 0x010ffd7a / 0x010ffddb)
   mapnames.tsv    world -> map name             (map-name function 0x016baaa6, native/core/mu_lang_maps.h)
 
+NATIVE-FIDELITY-001 adds (written when the snapshot holds the table):
+
+  pentagram.tsv   code -> tier                  (PentagramOption 0x06fbae4c, lookup 0x011447ac, record +0x24)
+  invenanim.tsv   code -> action, speed         (InvenItemAnimation 0x06fbc830, lookup 0x0111d824, +8 / +0xc)
+  legendary.tsv   set type -> 2 x 2 codes       (LegendaryItemSetType 0x06fbcba8, lookup 0x011288c7, +4..+0x10)
+  cashsets.tsv    sets (name, second name) and their items (CashItemSetOption 0x06fbcc08, read by 0x009debe4)
+
 Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
 exactly (its strings are ANSI; a few are CP949).
@@ -36,6 +43,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MANAGER = 0x06fbaa60
 TEXT, SKILL, GATE, MOVEREQ = MANAGER + 0xe8, MANAGER + 0x6d8, MANAGER + 0x14c, MANAGER + 0xdec
 NPCNAME, DIALOG, ENCHANT = MANAGER + 0xc04, MANAGER + 0xc70, MANAGER + 0xcf4
+PENTAGRAM, INVENANIM, LEGENDARY, CASHSET = MANAGER + 0x3ec, MANAGER + 0x1dd0, MANAGER + 0x2148, MANAGER + 0x21a8
 MAP_AT = {TEXT: 0x38, SKILL: 0x108, GATE: 0x38, MOVEREQ: 0x38, NPCNAME: 0x38, DIALOG: 0x38, ENCHANT: 0x38}
 ENCHANT_DEFAULT = 0x50            # 0x010ffd7a / 0x010ffddb return this+0x50 when nothing matches
 
@@ -242,6 +250,43 @@ def read_enchant(snap):
     return rows, default
 
 
+def read_pentagram(snap):
+    """PentagramOption: the lookup 0x011447ac finds the code in the map at +0x3c and returns the record (node +0x14),
+    or the default record +0x4c; the name builder reads the tier at record +0x24."""
+    rows = [(key, snap.i32(record(node) + 0x24)) for key, node in snap.tree(PENTAGRAM + 0x3c)]
+    return rows, snap.i32(PENTAGRAM + 0x4c + 0x24)
+
+
+def read_invenanim(snap):
+    """InvenItemAnimation: 0x0111d824 finds the code in the map at +0x38 and returns the record (node +0x14) or
+    NULL; RenderObjectScreen reads the action word +8 and the speed +0xc. Record +0/+4 hold group and index."""
+    out = []
+    for key, node in snap.tree(INVENANIM + 0x38):
+        r = record(node)
+        out.append((key, snap.i32(r), snap.i32(r + 4), struct.unpack('<H', snap.read(r + 8, 2))[0], snap.u32(r + 0xc)))
+    return out
+
+
+def read_legendary(snap):
+    """LegendaryItemSetType: 0x011288c7 finds the set type in the map at +0x38 (record = node +0x14) or returns the
+    default record +0x48; 0x011289d6 compares the code with the four ints at record +4."""
+    rows = [(key, [snap.i32(record(node) + 4 + 4 * k) for k in range(4)]) for key, node in snap.tree(LEGENDARY + 0x38)]
+    return rows, [snap.i32(LEGENDARY + 0x48 + 4 + 4 * k) for k in range(4)]
+
+
+def read_cashsets(snap):
+    """CashItemSetOption, as 0x009debe4 reads it: the set vector +0x64 (0xcc-byte records: std::string name +4,
+    second name +0x1c) and the item vector +0x50 (0x14-byte records: group +0, index +4, set +8)."""
+    sets, items = [], []
+    begin, end, _ = struct.unpack('<III', snap.read(CASHSET + 0x64, 12))
+    for r in range(begin, end, 0xcc):
+        sets.append((snap.string(r + 4), snap.string(r + 0x1c)))
+    begin, end, _ = struct.unpack('<III', snap.read(CASHSET + 0x50, 12))
+    for r in range(begin, end, 0x14):
+        items.append((snap.i32(r), snap.i32(r + 4), snap.i32(r + 8)))
+    return sets, items
+
+
 def map_name_table(path=ROOT/'native/core/mu_lang_maps.h'):
     """world -> GlobalText index template from the generated header."""
     out = []
@@ -318,6 +363,48 @@ def convert(snap, out_dir, header=''):
                 f.write(f'{key}\tempty\t0\t0\t0\n')
     counts['enchant_codes'] = len(enchant)
     counts['enchant_entries'] = sum(len(e) for _, e in enchant)
+
+    try:
+        rows, default = read_pentagram(snap)
+        with open(out_dir/'pentagram.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#code\ttier  (PentagramOption record +0x24; "default" = the default record\'s)\n')
+            f.write(f'default\t{default}\n')
+            for key, tier in rows:
+                f.write(f'{key}\t{tier}\n')
+        counts['pentagram'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows = read_invenanim(snap)
+        with open(out_dir/'invenanim.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#code\tgroup\tindex\taction\tspeed  (InvenItemAnimation; speed as binary32 bits)\n')
+            for key, group, index, action, speed in rows:
+                f.write(f'{key}\t{group}\t{index}\t{action}\t{speed}\n')
+        counts['invenanim'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows, default = read_legendary(snap)
+        with open(out_dir/'legendary.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#type\tcode00\tcode01\tcode10\tcode11  (LegendaryItemSetType record +4..+0x10)\n')
+            f.write('default\t' + '\t'.join(str(c) for c in default) + '\n')
+            for key, codes in rows:
+                f.write(f'{key}\t' + '\t'.join(str(c) for c in codes) + '\n')
+        counts['legendary'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        sets, items = read_cashsets(snap)
+        with open(out_dir/'cashsets.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#set<TAB>i<TAB>name<TAB>second name | item<TAB>group<TAB>index<TAB>set  (CashItemSetOption)\n')
+            for i, (name, name2) in enumerate(sets):
+                f.write(f'set\t{i}\t{escape(name)}\t{escape(name2)}\n')
+            for group, index, set_ in items:
+                f.write(f'item\t{group}\t{index}\t{set_}\n')
+        counts['cashsets'] = len(sets)
+        counts['cashset_items'] = len(items)
+    except SnapshotError:
+        pass
 
     names = dict(text)
     maps = map_name_table()
