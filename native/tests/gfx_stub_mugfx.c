@@ -10,7 +10,7 @@
  * other windows report UIInit.  NATIVE-GFX-003: "base" plays the client's
  * base movie (static readings, docs/research/native-gfx3.md): it reports
  * base/UIFrame/ASData onLoad at start, loads the LoadFrameFiles list
- * (main and Chat report onLoad with their paths, alarmframe and topmenu
+ * (main and Chat report onLoad with their paths, alarmframe, topmenu and bufflist
  * too, then UIFrame onFileLoad) and is the bar and the chat at once;
  * mugfx_set_image logs the drawn rows of the image, mugfx_resolve looks in
  * the movie's directory, mugfx_ime logs.  NATIVE-NPC-001: NpcDialogue reports
@@ -204,6 +204,8 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
             call(g, "alarmframe", "[\"onLoad\",\"_level0.base.UI.mcBottom.AlarmFrame_3.instance104\"]");
         if (strstr(args, "\"topmenu\""))
             call(g, "topmenu", "[\"onLoad\",\"_level0.base.UI.mcBottom.topmenu_4.instance147\"]");
+        if (strstr(args, "\"bufflist\""))   /* NATIVE-LANG-002: the channel name and path the real movie reports */
+            call(g, "bufflist", "[\"onLoad\",\"_level0.base.UI.mcBottom.bufflist_5.BuffList\"]");
         call(g, "UIFrame", "[\"onFileLoad\",{}]");
     } else if (is(g, "base") && !strcmp(method, "testCall")) {
         /* test hook: the movie raises a callback, e.g. a menu button's onHotKey */

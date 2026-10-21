@@ -167,8 +167,9 @@ Portable tests:
 - Not reconstructed:
   - the requirement routine `0x00ccf659` (many code and kind special cases, a double-precision path at item level >= 220);
   - the ItemConvert bonus formulas (they call the FormulaData evaluator `0x0117b5eb`);
-  - the price routine `0x0169320b`.
+  - the price routine `0x0169320b` (reconstructed and verified by NATIVE-LANG-002: `reconstructed/price`, see
+    [client-lang-tables.md](client-lang-tables.md#3-item-prices-verified)).
 
-  These are the next candidates. They need the formula evaluator and price inputs modelled.
+  The first two are the next candidates. They need the formula evaluator modelled.
 - The harmony/socket contribution to maximum durability is not modelled.
 - Item object field names (+0x14 level/options, +0x38 durability/stack, +0x3b set bits, +0x92/+0x93 period, +0x98 excellent) come from the routines above and are not a full object layout.

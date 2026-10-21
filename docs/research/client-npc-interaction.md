@@ -157,9 +157,10 @@ it to its width and answers `NPCDialogTextWidth(lines, wrapped)`), `0x00be8724` 
 `SetSelectBtnContent("1. …;2. …;")`, then `SetPosLeftCenter`. The movie calls back `onClickSelectBtn(index, uid)`,
 `onClickbtnNext/Previous`, `onClickbtnSelNext/Previous` and `CloseWindow`. The choice goes to the server (packet `0xf8`
 in `0x00be829f`). The text comes from the dialogue manager `0x01ec9858`'s string map (`0x00fdc9c1`/`0x00fdca1b`),
-fed by `Data\Local\NPCDialogue.bmd` (88-byte records: state, NPC class, text id, answer/next pairs — layout read
-from the decoded file; its text ids are not GlobalText and not Dialog(kor), a Lang table NATIVE-LANG-001 did not
-read).
+fed by `Data\Local\NPCDialogue.bmd` (88-byte records: state, NPC class, text id, answer/next pairs). Its text ids
+are QuestWords.bmd's, not a Lang table (NATIVE-LANG-002 corrected this inference: the manager's loaders read
+NPCDialogue.bmd, QuestProgress.bmd and QuestWords.bmd; lookups and the choice rule verified, see
+[client-lang-tables.md](client-lang-tables.md#2-npc-dialogue-text-verified-not-a-lang-table)).
 
 **NpcShop / StorageInven** extend `Common.Base.MUSlotComponent`, as InventoryFrame does: `UIInit`,
 `requestWindowPos`, `requestSlotInfo` (per page), `requestItemSlotClick/ClickR/Over/Out`, `SetSlotStateAll`; NpcShop
@@ -191,13 +192,13 @@ The GFx layer (`native/gfx/mu_gfx_layer.c`) plays NpcDialogue, NpcShop and Stora
 - the shop and the vault as 8 × 15 slot windows over the reconstructed item grid (page types 8 and 9 in the slot pass),
   item models through the host's items callback (NATIVE-GFX-003's RenderItem3D path), tooltips through
   `core/mu_hud_tip`, the inventory opened beside them;
-- **demo actions:** a click on a shop item buys it (inventory first free place; price from Item.bmd's value fields
-  `+0x28c`/`+0x288`, +50 % per level — the client's price routine is not reconstructed); a right click on an
+- **demo actions:** a click on a shop item buys it (inventory first free place; price: the client's ItemValue
+  since NATIVE-LANG-002, before it a stand-in from Item.bmd's value fields); a right click on an
   inventory item sells it for a third while the shop is open, or stores it while the vault is open; a click on a vault
   item takes it. The client asks the server for each instead. The dialogue's options close it after the last one.
-- Titles: Npcname (MU_LANG_DIR) of the clicked NPC, or for npcdialogue of the dialogue NPC the result names. The
-  dialogue text is Dialog(kor) lines from the demo table, joined with `;` (labelled demo: the client's text table for
-  npcdialogue is not read).
+- Titles: Npcname (MU_LANG_DIR) of the clicked NPC, or for npcdialogue of the dialogue NPC the result names. Since
+  NATIVE-LANG-002 the dialogue is the client's (NPCDialogue.bmd + QuestWords.bmd from the game root: state 0 at open,
+  options change the state as `0x00be906d` does); without those files the demo table's Dialog(kor) lines stand in.
 
 Not played natively (named in the log and the `npc_open` report): every other window of the table (mix windows, event
 entrances, Ruud shop, …), the special-class branches of the talk case, the shop's repair and rebuy buttons, tabs, the
@@ -242,11 +243,12 @@ Movies: convert `NpcDialogue NpcShop StorageInven` with the NATIVE-GFX-002 optio
 
 ## Gaps
 
-- The NPC dialogue text table (NPCDialogue.bmd's text ids) and the shop list packet's item records are not read; the
-  demo supplies text and items.
+- The shop list packet's item records are not read; the demo supplies the items (NATIVE-LANG-002 supplies the
+  dialogue text and the client's prices).
 - The talk case's special classes, the event-world handler, the quest windows (NpcJobChangeQuest, NpcQuestProgress,
   NpcGateKeeper) and the mix windows are mapped, not played.
-- The client's price routine, repair, rebuy and the shop tabs are not reconstructed.
+- Repair, rebuy and the shop tabs are not played (the price and repair-cost routines are reconstructed by
+  NATIVE-LANG-002).
 - The OBB's bounds mode for characters (≠ 2) is a static reading of RenderPartObject's calls; NPC greetings by voice
   were not found in the talk path (the only sounds are 25 and 28).
 - The world-2 map bytes `0x0b735420` are not filled natively (the refusal never applies).

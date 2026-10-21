@@ -495,7 +495,8 @@ int mu_npc_script_parse(mu_npc_script *script, const char *text)
             *b++ = 0;
         snprintf(it->verb, sizeof it->verb, "%s", a);
         snprintf(it->arg, sizeof it->arg, "%s", b ? b : "");
-        static const char *const VERBS[] = {"click", "talk", "buy", "sell", "take", "put", "option", "next", "close"};
+        static const char *const VERBS[] = {"click", "talk", "buy", "sell", "take", "put", "option", "next", "close",
+                                            "tip", "tipinv", "bufftip"};
         int known = 0;
         for (size_t v = 0; v < sizeof VERBS / sizeof VERBS[0]; v++)
             known |= !strcmp(it->verb, VERBS[v]);

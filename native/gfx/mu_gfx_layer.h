@@ -140,7 +140,19 @@ typedef struct mu_gfx_layer_config {
     void *text_user;
     /* NATIVE-NPC-001: demo price of an item (user = tooltip_user); selling gives a third. NULL: 0 */
     int64_t (*price)(void *user, int32_t code, int32_t level);
+    /* NATIVE-LANG-002 (user = tooltip_user):
+     * dialog_choice: npcdialogue's onClickSelectBtn(index); returns 1 when the host handled it (it re-sends the
+     *   dialogue with mu_gfx_layer_npc_dialog or closes it), 0 for the layer's demo paging;
+     * buff_tooltip: the InfoPopup HTML of a buff (the bufflist's onTooltip); 0 on success. */
+    int (*dialog_choice)(void *user, int index);
+    int (*buff_tooltip)(void *user, int32_t buff, char *html, size_t cap);
+    /* price_ex: the client's ItemValue with its goldType (0 buy, 1 sell; reconstructed/price); preferred over
+     * price for the shop list and selling.  tooltip_ex: the tooltip with its context (MU_GFX_TIP_*): the item
+     * of NpcShop gets the buy line, an inventory item while NpcShop is open the sell line. */
+    int64_t (*price_ex)(void *user, int32_t code, int32_t level, int gold_type);
+    int (*tooltip_ex)(void *user, int32_t code, int32_t level, int context, char *html, size_t cap);
 } mu_gfx_layer_config;
+enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);
 void mu_gfx_layer_close(mu_gfx_layer *layer);
@@ -232,6 +244,30 @@ int mu_gfx_layer_item_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max)
 /* Last chat line sent by the player ("" when none). */
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *layer);
 
+/* ---- NATIVE-LANG-002: the bufflist and the character window rows ----
+ *
+ * mu_gfx_layer_add_buff sends the bufflist's addBuff object (BuffType, isDebuff, isCashBuff, BuffDetailType for
+ * non-debuffs; the host computes it as the client's handler 0x00c5f278 does, core/mu_lang); buffs added before
+ * the movie loaded are sent at its onLoad.  The movie's onTooltip(BuffType, x, y) asks cfg.buff_tooltip. */
+typedef struct mu_gfx_buff {
+    int32_t buff;
+    int is_debuff, is_cash, has_detail;
+    int32_t detail;
+} mu_gfx_buff;
+int mu_gfx_layer_add_buff(mu_gfx_layer *layer, const mu_gfx_buff *buff);
+int mu_gfx_layer_buff_count(const mu_gfx_layer *layer);
+
+/* The character window's rows (CharacterInfoSetup through the row builder 0x00b3dedc, in its order).  label and
+ * value are the HTML the client's line builder 0x00ab4dc0 makes of the label (colour) and of the value; the
+ * layer fills the value of the rows it knows (value_key) from the hero, "-" otherwise. */
+enum { MU_GFX_ROW_NONE = 0, MU_GFX_ROW_CLASS, MU_GFX_ROW_LEVEL, MU_GFX_ROW_POINTS, MU_GFX_ROW_STRENGTH,
+       MU_GFX_ROW_AGILITY, MU_GFX_ROW_VITALITY, MU_GFX_ROW_ENERGY, MU_GFX_ROW_COMMAND, MU_GFX_ROW_DAMAGE };
+typedef struct mu_gfx_char_row {
+    int32_t type, id, sort, button, color, value_color, value_key;
+    char label[128];            /* plain text (the layer builds the HTML) */
+} mu_gfx_char_row;
+void mu_gfx_layer_set_char_rows(mu_gfx_layer *layer, const mu_gfx_char_row *rows, int n);
+
 /* ---- NPC windows (NATIVE-NPC-001, docs/research/client-npc-interaction.md) ----
  *
  * The client opens them from its talk-result handler (ReceiveTalk
@@ -269,10 +305,13 @@ void mu_gfx_layer_npc_close(mu_gfx_layer *layer);
 /* The open NPC window (MU_GFX_NPC_DIALOG, MU_GFX_NPC_SHOP or MU_GFX_STORAGE) or -1. */
 int mu_gfx_layer_npc_window(const mu_gfx_layer *layer);
 /* Scripted demo actions: "buy" slot, "sell" inventory cell, "take" slot,
- * "put" inventory cell, "option" n, "next", "close".  Returns 1 when done. */
+ * "put" inventory cell, "option" n, "next", "close"; NATIVE-LANG-002: "tip" slot
+ * and "tipinv" inventory cell show the tooltip.  Returns 1 when done. */
 int mu_gfx_layer_npc_action(mu_gfx_layer *layer, const char *verb, int arg);
 /* Last demo action ("" none) and the dialogue state for reports. */
 const char *mu_gfx_layer_npc_last(const mu_gfx_layer *layer);
+/* Sets the last NPC action note (hosts: NATIVE-LANG-002's dialogue requests). */
+void mu_gfx_layer_npc_note(mu_gfx_layer *layer, const char *note);
 int mu_gfx_layer_npc_page(const mu_gfx_layer *layer, int *pages);
 /* Window-pixel centre of a slot of NpcShop/StorageInven (scripted input), and
  * the item count of those windows. */

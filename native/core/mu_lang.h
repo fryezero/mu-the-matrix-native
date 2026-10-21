@@ -63,6 +63,7 @@ const mu_lang *mu_lang_shared(void);
 
 typedef struct mu_lang_counts {
     size_t text, skills, gates, moves, npcs, dialog, enchant_codes, enchant_entries;
+    size_t buffs, charinfo, skillreq, soulconv, questtext;   /* NATIVE-LANG-002 */
     int enchant_default;              /* the default colour line was present */
 } mu_lang_counts;
 void mu_lang_get_counts(const mu_lang *lang, mu_lang_counts *out);
@@ -127,5 +128,97 @@ typedef struct mu_lang_cash_item { int32_t group, index, set; } mu_lang_cash_ite
 /* CashItemSetOption's set and item vectors (read by 0x009debe4), in vector order. */
 size_t mu_lang_cash_sets(const mu_lang *lang, const mu_lang_cash_set **sets);
 size_t mu_lang_cash_items(const mu_lang *lang, const mu_lang_cash_item **items);
+
+
+/* ---- NATIVE-LANG-002 tables (buffs.tsv, charinfo.tsv, skillreq.tsv) ---- */
+
+#define MU_LANG_BUFF_LINES 8
+typedef struct mu_lang_buff {         /* BuffEffect record (0x06fbb2a4, map +0x38) */
+    int32_t index;                    /* +0x00 (the key) */
+    int32_t group;                    /* +0x04: buffs of one group replace each other (0x009584dc); the bufflist's
+                                         BuffDetailType is 1 for group 0xf7, 2 for 0xf6 (0x00c5f36e) */
+    int32_t item_group, item_index;   /* +0x08, +0x0c: the item that gives the buff (0x010de6d3), 255 = none */
+    int32_t type;                     /* +0x28: 1 debuff, 2 cash buff (addBuff isDebuff / isCashBuff) */
+    int32_t x2c, x30;                 /* +0x2c (0x00c78d6b skips 0), +0x30 */
+    int32_t value_kind;               /* +0x40: 1/2 = the first description line formats the hero's buff value */
+    const char *name;                 /* +0x10 std::string */
+    const char *lines[MU_LANG_BUFF_LINES];   /* +0x34 std::vector<std::string>: the description */
+    int32_t nlines;
+} mu_lang_buff;
+
+/* 0x010de66f: the record of a buff, or the default record (index 0, name "null") for buff >= 0x1cb or an
+ * absent buff; NULL without the table. */
+const mu_lang_buff *mu_lang_buff_get(const mu_lang *lang, int32_t buff);
+/* 0x010de6d3: the first record (key order) whose item is code (group * 512 + index), else the default record. */
+const mu_lang_buff *mu_lang_buff_by_item(const mu_lang *lang, int32_t code);
+size_t mu_lang_buff_count(const mu_lang *lang);
+const mu_lang_buff *mu_lang_buff_at(const mu_lang *lang, size_t i);
+
+/* The hero-side inputs of the buff InfoPopup lines (0x01298a54). */
+typedef struct mu_lang_buff_values {
+    int32_t hero_value;               /* 0x01295d1c(buff) on the hero's buff list (0: none) */
+    int value2_hidden;                /* value_kind 2: the predicate 0x010702e1 (1: name only) */
+    int32_t value2_kind;              /* value_kind 2: 0x010702bd's +8 (0 int, 1 float, other: no value) */
+    int32_t value2_int;               /* its +0 */
+    float value2_float;               /* its +4 */
+} mu_lang_buff_values;
+
+/* The buff InfoPopup lines of 0x01298a54: the name, a "\n" line, then
+ *   value_kind 1 and hero_value != 0: one line, the description lines joined (0x01299f67) used as the printf
+ *     format of hero_value;
+ *   value_kind 2: nothing more when value2_hidden; else the joined format with value2_int (kind 0) or
+ *     (double)value2_float (kind 1), or an empty line for other kinds;
+ *   otherwise the description lines.
+ * The client's sprintf runs on the table's format; here only one conversion (%d %i %u %x %f %g with flags,
+ * width and precision; %% kept) is substituted and anything else is printed as it is.  vals may be NULL
+ * (no hero values).  Writes up to max lines; returns the count, 0 without the table. */
+int mu_lang_buff_tooltip(const mu_lang *lang, int32_t buff, const mu_lang_buff_values *vals, char (*out)[256],
+                         int max);
+
+/* The bufflist's addBuff (handler 0x00c5f278): 0 when the buff is not listed (buff <= 0 or >= 0x1cb, the hidden
+ * buffs of 0x00c5f53f: 0x53..0x55, 0x78, 0x19b..0x19f, 0x1be, or no table); else 1 with the object it sends:
+ * BuffType = buff, isDebuff = (type == 1), isCashBuff = (type == 2), and for non-debuffs BuffDetailType
+ * (group 0xf7 -> 1, 0xf6 -> 2, else 0). */
+typedef struct mu_lang_addbuff {
+    int32_t buff;
+    int is_debuff, is_cash, has_detail;
+    int32_t detail;
+} mu_lang_addbuff;
+int mu_lang_buff_addbuff(const mu_lang *lang, int32_t buff, mu_lang_addbuff *out);
+
+typedef struct mu_lang_charinfo {     /* CharacterInfoSetup record (0x06fbad18, map +0x38), 0xa4 bytes */
+    int32_t id;                       /* +0x00 (the key; SetName's second argument) */
+    int32_t color;                    /* +0x04 label colour (line builder 0x00ab4dc0) */
+    int32_t group;                    /* +0x20 */
+    int32_t type;                     /* +0x30 SetName type (1 base info, 2 stats, 3.. other tabs) */
+    int32_t sort;                     /* +0x34 SetName sort (types 2, 3, 5 are sorted by it, 0x00b46e30) */
+    int32_t value_color;              /* +0x38 value colour */
+    int32_t button;                   /* +0xa0 SetName's last argument ("+" button) */
+    uint8_t classes[16];              /* +0x24 vector<int>: shown for class index 0x0095f5cc(class) when nonzero */
+    int32_t nclasses;
+    const char *label, *prefix, *suffix;   /* +0x08, +0x3c, +0x54 std::string */
+} mu_lang_charinfo;
+
+/* 0x010e5203: the row or the default record (id 0, label "null"); NULL without the table. */
+const mu_lang_charinfo *mu_lang_charinfo_get(const mu_lang *lang, int32_t id);
+size_t mu_lang_charinfo_count(const mu_lang *lang);
+const mu_lang_charinfo *mu_lang_charinfo_at(const mu_lang *lang, size_t i);   /* key order */
+/* The character window's row order of 0x00b3dedc for a class index: rows whose class flag is set, types other
+ * than 2/3/5 first in key order (SetName at once), then the rows of types 2/3/5 collected in key order and
+ * ordered by sort with MSVC's std::sort (0x00b48089, comparator 0x00b46e30; not stable).  Writes up to max row
+ * pointers; returns the count. */
+int mu_lang_charinfo_rows(const mu_lang *lang, int32_t class_index, const mu_lang_charinfo **out, int max);
+
+typedef struct mu_lang_skillreq {     /* SkillRequire record (0x06fbb248, map +0x54) */
+    int32_t key, x00, skill, item_group, item_index, x10, x14, x18;
+} mu_lang_skillreq;
+/* 0x00abf829(group, index): the record of a skill scroll, or NULL. */
+const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *lang, int32_t group, int32_t index);
+
+/* MUQuestString(kor) (questtext.txt): the quest text of an index, or NULL. */
+const char *mu_lang_quest_text(const mu_lang *lang, int32_t index);
+
+/* MonsterSoulConversion 0x01135146: 1 when the item code is in the map at +0x44 (soulconv.tsv), else 0. */
+int mu_lang_soul_conversion(const mu_lang *lang, int32_t code);
 
 #endif

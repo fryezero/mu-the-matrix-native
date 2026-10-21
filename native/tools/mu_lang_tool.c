@@ -6,6 +6,10 @@
  *   mu-lang DIR map WORLD          map name (map-name function 0x016baaa6)
  *   mu-lang DIR enchant CODE [MESH] EnchantEffect colour (0x010ffd7a, or 0x010ffddb with MESH)
  *   mu-lang DIR npc N | gate N | move N | dialog N
+ *   mu-lang DIR buff N [VALUE]     BuffEffect record (0x010de66f) and its InfoPopup lines (0x01298a54)
+ *   mu-lang DIR charinfo CLASS     the character window rows of a class index (CharacterInfoSetup, 0x00b3dedc)
+ *   mu-lang DIR quest N            MUQuestString(kor) text
+ *   mu-lang DIR soul CODE          MonsterSoulConversion has the item code (0x01135146): 1 / 0
  *
  * DIR holds the plaintext scripts/live_lang_to_plain.py wrote (local only). */
 #include <stdio.h>
@@ -32,7 +36,7 @@ static void quoted(const char *s)
 static int usage(void)
 {
     fprintf(stderr, "usage: mu-lang DIR summary|text N|skill N [MASTER]|map WORLD|enchant CODE [MESH]|"
-                    "npc N|gate N|move N|dialog N\n");
+                    "npc N|gate N|move N|dialog N|buff N [VALUE]|charinfo CLASS|soul CODE|quest N\n");
     return 2;
 }
 
@@ -52,11 +56,57 @@ int main(int argc, char **argv)
         mu_lang_counts c;
         mu_lang_get_counts(L, &c);
         printf("{\"text\": %zu, \"skills\": %zu, \"gates\": %zu, \"moves\": %zu, \"npcs\": %zu, \"dialog\": %zu, "
-               "\"enchant_codes\": %zu, \"enchant_entries\": %zu, \"enchant_default\": %d}\n",
+               "\"enchant_codes\": %zu, \"enchant_entries\": %zu, \"enchant_default\": %d, \"buffs\": %zu, "
+               "\"charinfo\": %zu, \"skillreq\": %zu, \"soulconv\": %zu, \"questtext\": %zu}\n",
                c.text, c.skills, c.gates, c.moves, c.npcs, c.dialog, c.enchant_codes, c.enchant_entries,
-               c.enchant_default);
+               c.enchant_default, c.buffs, c.charinfo, c.skillreq, c.soulconv, c.questtext);
+    } else if (!strcmp(cmd, "buff") && argc > 3) {
+        const mu_lang_buff *b = mu_lang_buff_get(L, n);
+        if (!b) {
+            status = 1;
+        } else {
+            mu_lang_buff_values v;
+            memset(&v, 0, sizeof v);
+            v.value2_kind = -1;
+            v.hero_value = argc > 4 ? (int32_t)strtol(argv[4], NULL, 0) : 0;
+            char lines[16][256];
+            int k = mu_lang_buff_tooltip(L, n, &v, lines, 16);
+            printf("{\"index\": %d, \"group\": %d, \"item\": [%d, %d], \"type\": %d, \"value_kind\": %d, \"name\": ",
+                   b->index, b->group, b->item_group, b->item_index, b->type, b->value_kind);
+            quoted(b->name);
+            printf(", \"tooltip\": [");
+            for (int i = 0; i < k; i++) {
+                printf(i ? ", " : "");
+                quoted(lines[i]);
+            }
+            mu_lang_addbuff a;
+            if (mu_lang_buff_addbuff(L, n, &a))
+                printf("], \"addbuff\": {\"is_debuff\": %d, \"is_cash\": %d, \"has_detail\": %d, \"detail\": %d}}\n",
+                       a.is_debuff, a.is_cash, a.has_detail, a.detail);
+            else
+                printf("], \"addbuff\": null}\n");
+        }
+    } else if (!strcmp(cmd, "soul") && argc > 3) {
+        printf("%d\n", mu_lang_soul_conversion(L, n));
+    } else if (!strcmp(cmd, "charinfo") && argc > 3) {
+        const mu_lang_charinfo *rows[256];
+        int k = mu_lang_charinfo_rows(L, n, rows, 256);
+        printf("[");
+        for (int i = 0; i < k; i++) {
+            printf("%s{\"id\": %d, \"type\": %d, \"sort\": %d, \"button\": %d, \"label\": ", i ? ", " : "",
+                   rows[i]->id, rows[i]->type, rows[i]->sort, rows[i]->button);
+            quoted(rows[i]->label);
+            printf("}");
+        }
+        printf("]\n");
+        status = k == 0;
     } else if (!strcmp(cmd, "text") && argc > 3) {
         const char *s = mu_lang_text(L, n);
+        if (s)
+            printf("%s\n", s);
+        status = !s;
+    } else if (!strcmp(cmd, "quest") && argc > 3) {
+        const char *s = mu_lang_quest_text(L, n);
         if (s)
             printf("%s\n", s);
         status = !s;

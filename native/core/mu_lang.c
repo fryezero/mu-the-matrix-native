@@ -48,6 +48,19 @@ struct mu_lang {
     mu_lang_cash_set *cash_sets;
     mu_lang_cash_item *cash_items;
     size_t ncash_sets, ncash_items;
+    /* NATIVE-LANG-002 */
+    mu_lang_buff *buffs, buff_default;
+    size_t nbuffs;
+    int has_buffs;
+    mu_lang_charinfo *charinfo, charinfo_default;
+    size_t ncharinfo;
+    int has_charinfo;
+    mu_lang_skillreq *skillreq;
+    size_t nskillreq;
+    struct int_row *soulconv;
+    size_t nsoulconv;
+    text_entry *questtext;
+    size_t nquesttext;
 };
 
 typedef struct int_row {
@@ -534,6 +547,189 @@ static int load_cash(mu_lang *L, const char *dir)
     return L->ncash_sets > 0;
 }
 
+/* ---- NATIVE-LANG-002 loaders ---- */
+
+static void free_buff(mu_lang_buff *b)
+{
+    free((char *)b->name);
+    for (int i = 0; i < b->nlines; i++)
+        free((char *)b->lines[i]);
+}
+
+static int parse_buff(char **f, int n, mu_lang_buff *b)
+{
+    memset(b, 0, sizeof *b);
+    if (n < 9)
+        return -1;
+    int32_t *ints[8] = {&b->index, &b->group, &b->item_group, &b->item_index, &b->type, &b->x2c, &b->x30,
+                        &b->value_kind};
+    for (int i = 1; i < 8; i++)
+        if (to_int(f[i], ints[i]))
+            return -1;
+    if (strcmp(f[0], "default") && to_int(f[0], &b->index))
+        return -1;
+    b->name = unescape(f[8]);
+    for (int i = 9; i < n && b->nlines < MU_LANG_BUFF_LINES; i++)
+        b->lines[b->nlines++] = unescape(f[i]);
+    return b->name ? 0 : -1;
+}
+
+DEFINE_CMP(cmp_buff, mu_lang_buff)
+
+static int load_buffs(mu_lang *L, const char *dir)
+{
+    size_t len = 0, cap = 0;
+    char *buf = read_file(dir, "buffs.tsv", &len);
+    if (!buf)
+        return 0;
+    char *cursor = buf, *line;
+    while ((line = next_line(&cursor))) {
+        if (!*line || *line == '#')
+            continue;
+        char *f[9 + MU_LANG_BUFF_LINES];
+        int n = split(line, f, 9 + MU_LANG_BUFF_LINES);
+        mu_lang_buff b;
+        if (parse_buff(f, n, &b)) {
+            free_buff(&b);
+            continue;
+        }
+        if (!strcmp(f[0], "default")) {
+            free_buff(&L->buff_default);
+            L->buff_default = b;
+            L->has_buffs = 1;
+            continue;
+        }
+        mu_lang_buff *nb = grow(L->buffs, L->nbuffs, &cap, sizeof *nb);
+        if (!nb) {
+            free_buff(&b);
+            break;
+        }
+        L->buffs = nb;
+        L->buffs[L->nbuffs++] = b;
+    }
+    free(buf);
+    qsort(L->buffs, L->nbuffs, sizeof *L->buffs, cmp_buff);
+    if (L->nbuffs && !L->has_buffs) {   /* a file without the default line: the client's default record */
+        L->buff_default.item_group = L->buff_default.item_index = -1;
+        L->buff_default.type = L->buff_default.x2c = L->buff_default.x30 = -1;
+        L->buff_default.name = unescape("null");
+    }
+    L->has_buffs = L->has_buffs || L->nbuffs > 0;
+    return L->nbuffs > 0;
+}
+
+static int parse_charinfo(char **f, int n, mu_lang_charinfo *c)
+{
+    memset(c, 0, sizeof *c);
+    if (n < 9)
+        return -1;
+    int32_t *ints[7] = {&c->id, &c->color, &c->group, &c->type, &c->sort, &c->value_color, &c->button};
+    for (int i = 1; i < 7; i++)
+        if (to_int(f[i], ints[i]))
+            return -1;
+    if (strcmp(f[0], "default") && to_int(f[0], &c->id))
+        return -1;
+    if (strcmp(f[7], "-"))
+        for (const char *p = f[7]; *p && c->nclasses < 16; p++)
+            c->classes[c->nclasses++] = (uint8_t)(*p != '0');
+    c->label = unescape(f[8]);
+    c->prefix = unescape(n > 9 ? f[9] : "");
+    c->suffix = unescape(n > 10 ? f[10] : "");
+    return c->label && c->prefix && c->suffix ? 0 : -1;
+}
+
+static void free_charinfo(mu_lang_charinfo *c)
+{
+    free((char *)c->label);
+    free((char *)c->prefix);
+    free((char *)c->suffix);
+}
+
+static int cmp_charinfo(const void *a, const void *b)
+{
+    int32_t x = ((const mu_lang_charinfo *)a)->id, y = ((const mu_lang_charinfo *)b)->id;
+    return (x > y) - (x < y);
+}
+
+static int load_charinfo(mu_lang *L, const char *dir)
+{
+    size_t len = 0, cap = 0;
+    char *buf = read_file(dir, "charinfo.tsv", &len);
+    if (!buf)
+        return 0;
+    char *cursor = buf, *line;
+    while ((line = next_line(&cursor))) {
+        if (!*line || *line == '#')
+            continue;
+        char *f[12];
+        int n = split(line, f, 12);
+        mu_lang_charinfo c;
+        if (parse_charinfo(f, n, &c)) {
+            free_charinfo(&c);
+            continue;
+        }
+        if (!strcmp(f[0], "default")) {
+            free_charinfo(&L->charinfo_default);
+            L->charinfo_default = c;
+            L->has_charinfo = 1;
+            continue;
+        }
+        mu_lang_charinfo *nc = grow(L->charinfo, L->ncharinfo, &cap, sizeof *nc);
+        if (!nc) {
+            free_charinfo(&c);
+            break;
+        }
+        L->charinfo = nc;
+        L->charinfo[L->ncharinfo++] = c;
+    }
+    free(buf);
+    qsort(L->charinfo, L->ncharinfo, sizeof *L->charinfo, cmp_charinfo);
+    if (L->ncharinfo && !L->has_charinfo) {
+        L->charinfo_default.label = unescape("null");
+        L->charinfo_default.prefix = unescape("null");
+        L->charinfo_default.suffix = unescape("null");
+    }
+    L->has_charinfo = L->has_charinfo || L->ncharinfo > 0;
+    return L->ncharinfo > 0;
+}
+
+static int cmp_skillreq(const void *a, const void *b)
+{
+    int32_t x = ((const mu_lang_skillreq *)a)->key, y = ((const mu_lang_skillreq *)b)->key;
+    return (x > y) - (x < y);
+}
+
+static int load_skillreq(mu_lang *L, const char *dir)
+{
+    size_t len = 0, cap = 0;
+    char *buf = read_file(dir, "skillreq.tsv", &len);
+    if (!buf)
+        return 0;
+    char *cursor = buf, *line;
+    while ((line = next_line(&cursor))) {
+        if (!*line || *line == '#')
+            continue;
+        char *f[8];
+        if (split(line, f, 8) != 8)
+            continue;
+        mu_lang_skillreq r;
+        int32_t *v[8] = {&r.key, &r.x00, &r.skill, &r.item_group, &r.item_index, &r.x10, &r.x14, &r.x18};
+        int bad = 0;
+        for (int i = 0; i < 8; i++)
+            bad |= to_int(f[i], v[i]);
+        if (bad)
+            continue;
+        mu_lang_skillreq *nr = grow(L->skillreq, L->nskillreq, &cap, sizeof *nr);
+        if (!nr)
+            break;
+        L->skillreq = nr;
+        L->skillreq[L->nskillreq++] = r;
+    }
+    free(buf);
+    qsort(L->skillreq, L->nskillreq, sizeof *L->skillreq, cmp_skillreq);
+    return L->nskillreq > 0;
+}
+
 mu_lang *mu_lang_load(const char *dir)
 {
     if (!dir || !*dir)
@@ -556,6 +752,11 @@ mu_lang *mu_lang_load(const char *dir)
     L->has_legendary = load_rows(dir, "legendary.tsv", 4, &L->legendary, &L->nlegendary, L->legendary_default) >= 0;
     any |= L->has_legendary;
     any |= load_cash(L, dir);
+    any |= load_buffs(L, dir);
+    any |= load_charinfo(L, dir);
+    any |= load_skillreq(L, dir);
+    any |= load_rows(dir, "soulconv.tsv", 3, &L->soulconv, &L->nsoulconv, NULL) > 0;
+    any |= load_text(dir, "questtext.txt", &L->questtext, &L->nquesttext);
     if (!any) {
         mu_lang_free(L);
         return NULL;
@@ -612,6 +813,19 @@ void mu_lang_free(mu_lang *L)
     }
     free(L->cash_sets);
     free(L->cash_items);
+    for (size_t i = 0; i < L->nbuffs; ++i)
+        free_buff(&L->buffs[i]);
+    free_buff(&L->buff_default);
+    free(L->buffs);
+    for (size_t i = 0; i < L->ncharinfo; ++i)
+        free_charinfo(&L->charinfo[i]);
+    free_charinfo(&L->charinfo_default);
+    free(L->charinfo);
+    free(L->skillreq);
+    free(L->soulconv);
+    for (size_t i = 0; i < L->nquesttext; ++i)
+        free(L->questtext[i].text);
+    free(L->questtext);
     free(L);
 }
 
@@ -629,6 +843,11 @@ void mu_lang_get_counts(const mu_lang *L, mu_lang_counts *out)
     out->enchant_codes = L->ncodes;
     out->enchant_entries = L->nenchant;
     out->enchant_default = L->has_enchant_default;
+    out->buffs = L->nbuffs;
+    out->charinfo = L->ncharinfo;
+    out->skillreq = L->nskillreq;
+    out->soulconv = L->nsoulconv;
+    out->questtext = L->nquesttext;
 }
 
 /* ---- lookups --------------------------------------------------------- */
@@ -871,4 +1090,381 @@ size_t mu_lang_cash_items(const mu_lang *L, const mu_lang_cash_item **items)
 {
     *items = L ? L->cash_items : NULL;
     return L ? L->ncash_items : 0;
+}
+
+/* ---- NATIVE-LANG-002 lookups ---- */
+
+const mu_lang_buff *mu_lang_buff_get(const mu_lang *L, int32_t buff)
+{
+    if (!L || !L->has_buffs)
+        return NULL;
+    if (buff >= 0x1cb)                /* 0x010de678: cmp [ebp+8], 0x1cb; jl */
+        return &L->buff_default;
+    mu_lang_buff key;
+    key.index = buff;
+    const mu_lang_buff *b = bsearch(&key, L->buffs, L->nbuffs, sizeof *L->buffs, cmp_buff);
+    return b ? b : &L->buff_default;
+}
+
+const mu_lang_buff *mu_lang_buff_by_item(const mu_lang *L, int32_t code)
+{
+    if (!L || !L->has_buffs)
+        return NULL;
+    for (size_t i = 0; i < L->nbuffs; i++)   /* 0x010de6d3: the map in key order, (group << 9) + index */
+        if ((int32_t)((uint32_t)L->buffs[i].item_group << 9) + L->buffs[i].item_index == code)
+            return &L->buffs[i];
+    return &L->buff_default;
+}
+
+size_t mu_lang_buff_count(const mu_lang *L)
+{
+    return L ? L->nbuffs : 0;
+}
+
+const mu_lang_buff *mu_lang_buff_at(const mu_lang *L, size_t i)
+{
+    return L && i < L->nbuffs ? &L->buffs[i] : NULL;
+}
+
+/* printf of a table format with one numeric argument: the single conversion is substituted, everything else
+ * copied (the client hands the format to its sprintf 0x0098d0a9; the tables hold one %d or %.Nf at most). */
+static void format_one(char *out, size_t cap, const char *fmt, int is_float, int32_t iv, double fv)
+{
+    size_t n = 0;
+    int used = 0;
+    for (const char *p = fmt; *p && n + 1 < cap;) {
+        if (*p != '%') {
+            out[n++] = *p++;
+            continue;
+        }
+        if (p[1] == '%') {
+            out[n++] = '%';
+            p += 2;
+            continue;
+        }
+        const char *q = p + 1;
+        while (*q && strchr("-+ #0", *q))
+            q++;
+        while (*q >= '0' && *q <= '9')
+            q++;
+        if (*q == '.') {
+            q++;
+            while (*q >= '0' && *q <= '9')
+                q++;
+        }
+        if (used || !*q || !strchr("diuxXfFgGeE", *q) || q - p > 12) {
+            out[n++] = *p++;
+            continue;
+        }
+        char spec[16];
+        size_t sl = (size_t)(q - p) + 1;
+        memcpy(spec, p, sl);
+        spec[sl] = 0;
+        int floaty = strchr("fFgGeE", *q) != NULL;
+        char tmp[128];
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+        if (floaty)
+            snprintf(tmp, sizeof tmp, spec, is_float ? fv : (double)iv);
+        else
+            snprintf(tmp, sizeof tmp, spec, is_float ? (int)fv : (int)iv);
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+        for (const char *t = tmp; *t && n + 1 < cap; t++)
+            out[n++] = *t;
+        used = 1;
+        p = q + 1;
+    }
+    out[n] = 0;
+}
+
+int mu_lang_buff_tooltip(const mu_lang *L, int32_t buff, const mu_lang_buff_values *vals, char (*out)[256], int max)
+{
+    const mu_lang_buff *b = mu_lang_buff_get(L, buff);
+    if (!b || max < 2)
+        return 0;
+    mu_lang_buff_values none;
+    memset(&none, 0, sizeof none);
+    none.value2_kind = -1;
+    if (!vals)
+        vals = &none;
+    int n = 0;
+    snprintf(out[n++], 256, "%s", b->name ? b->name : "");
+    snprintf(out[n++], 256, "\n");                 /* 0x01298ac7: the string "\n" */
+    char joined[1024];                              /* 0x01299f67: the description lines appended */
+    size_t jl = 0;
+    joined[0] = 0;
+    for (int i = 0; i < b->nlines; i++)
+        jl += (size_t)snprintf(joined + jl, jl < sizeof joined ? sizeof joined - jl : 0, "%s", b->lines[i]);
+    if (vals->hero_value != 0 && b->value_kind == 1) {
+        if (n < max)
+            format_one(out[n++], 256, joined, 0, vals->hero_value, 0.0);
+        return n;
+    }
+    if (b->value_kind == 2) {
+        if (vals->value2_hidden)
+            return n;
+        if (n < max) {
+            if (vals->value2_kind == 0)
+                format_one(out[n++], 256, joined, 0, vals->value2_int, 0.0);
+            else if (vals->value2_kind == 1)
+                format_one(out[n++], 256, joined, 1, 0, (double)vals->value2_float);
+            else
+                out[n++][0] = 0;            /* the 0x100-byte buffer stays zeroed (0x01298af1) */
+        }
+        return n;
+    }
+    for (int i = 0; i < b->nlines && n < max; i++)
+        snprintf(out[n++], 256, "%s", b->lines[i]);
+    return n;
+}
+
+int mu_lang_buff_addbuff(const mu_lang *L, int32_t buff, mu_lang_addbuff *out)
+{
+    static const int32_t HIDDEN[] = {0x53, 0x54, 0x55, 0x78, 0x19b, 0x19c, 0x19d, 0x19e, 0x19f, 0x1be};
+    if (!L || !L->has_buffs || buff <= 0 || buff >= 0x1cb)
+        return 0;
+    for (size_t i = 0; i < sizeof HIDDEN / sizeof HIDDEN[0]; i++)
+        if (buff == HIDDEN[i])
+            return 0;
+    const mu_lang_buff *b = mu_lang_buff_get(L, buff);
+    memset(out, 0, sizeof *out);
+    out->buff = buff;
+    out->is_debuff = b->type == 1;
+    out->is_cash = b->type == 2;
+    out->has_detail = !out->is_debuff;
+    out->detail = b->group == 0xf7 ? 1 : b->group == 0xf6 ? 2 : 0;
+    return 1;
+}
+
+const mu_lang_charinfo *mu_lang_charinfo_get(const mu_lang *L, int32_t id)
+{
+    if (!L || !L->has_charinfo)
+        return NULL;
+    mu_lang_charinfo key;
+    key.id = id;
+    const mu_lang_charinfo *c = bsearch(&key, L->charinfo, L->ncharinfo, sizeof *L->charinfo, cmp_charinfo);
+    return c ? c : &L->charinfo_default;
+}
+
+size_t mu_lang_charinfo_count(const mu_lang *L)
+{
+    return L ? L->ncharinfo : 0;
+}
+
+const mu_lang_charinfo *mu_lang_charinfo_at(const mu_lang *L, size_t i)
+{
+    return L && i < L->ncharinfo ? &L->charinfo[i] : NULL;
+}
+
+/* MSVC's std::sort (introsort: median-of-three / ninther partition with the "fat" pivot range, insertion sort
+ * at 32 elements and below) with the row builder's comparator 0x00b46e30 (a->sort < b->sort).  Rows with equal
+ * sorts keep the order this algorithm gives them, which the character window shows. */
+typedef const mu_lang_charinfo *row_ptr;
+static int row_lt(row_ptr a, row_ptr b)
+{
+    return a->sort < b->sort;
+}
+
+static void row_swap(row_ptr *a, row_ptr *b)
+{
+    row_ptr t = *a;
+    *a = *b;
+    *b = t;
+}
+
+static void row_med3(row_ptr *first, row_ptr *mid, row_ptr *last)
+{
+    if (row_lt(*mid, *first))
+        row_swap(mid, first);
+    if (row_lt(*last, *mid)) {
+        row_swap(last, mid);
+        if (row_lt(*mid, *first))
+            row_swap(mid, first);
+    }
+}
+
+static void row_guess_median(row_ptr *first, row_ptr *mid, row_ptr *last)
+{
+    ptrdiff_t count = last - first;
+    if (40 < count) {
+        ptrdiff_t step = (count + 1) >> 3, two = step << 1;
+        row_med3(first, first + step, first + two);
+        row_med3(mid - step, mid, mid + step);
+        row_med3(last - two, last - step, last);
+        row_med3(first + step, mid, last - step);
+    } else {
+        row_med3(first, mid, last);
+    }
+}
+
+static void row_partition(row_ptr *first, row_ptr *last, row_ptr **out_first, row_ptr **out_last)
+{
+    row_ptr *mid = first + ((last - first) >> 1);
+    row_guess_median(first, mid, last - 1);
+    row_ptr *pfirst = mid, *plast = pfirst + 1;
+    while (first < pfirst && !row_lt(*(pfirst - 1), *pfirst) && !row_lt(*pfirst, *(pfirst - 1)))
+        --pfirst;
+    while (plast < last && !row_lt(*plast, *pfirst) && !row_lt(*pfirst, *plast))
+        ++plast;
+    row_ptr *gfirst = plast, *glast = pfirst;
+    for (;;) {
+        for (; gfirst < last; ++gfirst) {
+            if (row_lt(*pfirst, *gfirst))
+                ;
+            else if (row_lt(*gfirst, *pfirst))
+                break;
+            else if (plast != gfirst)
+                row_swap(plast++, gfirst);
+            else
+                ++plast;
+        }
+        for (; first < glast; --glast) {
+            if (row_lt(*(glast - 1), *pfirst))
+                ;
+            else if (row_lt(*pfirst, *(glast - 1)))
+                break;
+            else if (--pfirst != glast - 1)
+                row_swap(pfirst, glast - 1);
+        }
+        if (glast == first && gfirst == last) {
+            *out_first = pfirst;
+            *out_last = plast;
+            return;
+        }
+        if (glast == first) {
+            if (plast != gfirst)
+                row_swap(pfirst, plast);
+            ++plast;
+            row_swap(pfirst, gfirst);
+            ++pfirst;
+            ++gfirst;
+        } else if (gfirst == last) {
+            if (--glast != --pfirst)
+                row_swap(glast, pfirst);
+            row_swap(pfirst, --plast);
+        } else {
+            row_swap(gfirst++, --glast);
+        }
+    }
+}
+
+static void row_sift_down(row_ptr *first, ptrdiff_t hole, ptrdiff_t bottom, row_ptr val)
+{
+    ptrdiff_t top = hole, idx = hole, max_seq = (bottom - 1) >> 1;
+    while (idx < max_seq) {
+        idx = 2 * idx + 2;
+        if (row_lt(first[idx], first[idx - 1]))
+            --idx;
+        first[hole] = first[idx];
+        hole = idx;
+    }
+    if (idx == max_seq && bottom % 2 == 0) {
+        first[hole] = first[bottom - 1];
+        hole = bottom - 1;
+    }
+    for (idx = (hole - 1) >> 1; top < hole && row_lt(first[idx], val); idx = (hole - 1) >> 1) {
+        first[hole] = first[idx];
+        hole = idx;
+    }
+    first[hole] = val;
+}
+
+static void row_heap_sort(row_ptr *first, row_ptr *last)
+{
+    ptrdiff_t bottom = last - first;
+    for (ptrdiff_t hole = bottom >> 1; 0 < hole;) {
+        --hole;
+        row_sift_down(first, hole, bottom, first[hole]);
+    }
+    for (; 2 <= last - first; --last) {
+        row_ptr val = *(last - 1);
+        *(last - 1) = *first;
+        row_sift_down(first, 0, last - 1 - first, val);
+    }
+}
+
+static void row_insertion_sort(row_ptr *first, row_ptr *last)
+{
+    if (first == last)
+        return;
+    for (row_ptr *next = first; ++next != last;) {
+        row_ptr *next1 = next, val = *next;
+        if (row_lt(val, *first)) {
+            memmove(first + 1, first, (size_t)(next - first) * sizeof *first);
+            *first = val;
+        } else {
+            for (row_ptr *first1 = next1; row_lt(val, *--first1); next1 = first1)
+                *next1 = *first1;
+            *next1 = val;
+        }
+    }
+}
+
+static void row_sort(row_ptr *first, row_ptr *last, ptrdiff_t ideal)
+{
+    ptrdiff_t count;
+    while (32 < (count = last - first) && 0 < ideal) {
+        row_ptr *mfirst, *mlast;
+        row_partition(first, last, &mfirst, &mlast);
+        ideal = (ideal >> 1) + (ideal >> 2);
+        if (mfirst - first < last - mlast) {
+            row_sort(first, mfirst, ideal);
+            first = mlast;
+        } else {
+            row_sort(mlast, last, ideal);
+            last = mfirst;
+        }
+    }
+    if (32 < count)
+        row_heap_sort(first, last);
+    else if (2 <= count)
+        row_insertion_sort(first, last);
+}
+
+int mu_lang_charinfo_rows(const mu_lang *L, int32_t class_index, const mu_lang_charinfo **out, int max)
+{
+    if (!L || class_index < 0 || class_index >= 16)
+        return 0;
+    int n = 0, nsorted = 0;
+    row_ptr sorted[256];
+    for (size_t i = 0; i < L->ncharinfo; i++) {
+        const mu_lang_charinfo *c = &L->charinfo[i];
+        if (class_index >= c->nclasses || !c->classes[class_index])
+            continue;
+        if (c->type == 2 || c->type == 3 || c->type == 5) {
+            if (nsorted < 256)
+                sorted[nsorted++] = c;
+        } else if (n < max) {
+            out[n++] = c;
+        }
+    }
+    row_sort(sorted, sorted + nsorted, nsorted);
+    for (int i = 0; i < nsorted && n < max; i++)
+        out[n++] = sorted[i];
+    return n;
+}
+
+const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *L, int32_t group, int32_t index)
+{
+    if (!L)
+        return NULL;
+    for (size_t i = 0; i < L->nskillreq; i++)   /* 0x00abf829: the map in key order */
+        if (L->skillreq[i].item_group == group && L->skillreq[i].item_index == index)
+            return &L->skillreq[i];
+    return NULL;
+}
+
+int mu_lang_soul_conversion(const mu_lang *L, int32_t code)
+{
+    return L && find_row(L->soulconv, L->nsoulconv, code) != NULL;
+}
+
+const char *mu_lang_quest_text(const mu_lang *L, int32_t index)
+{
+    const text_entry *e = L ? find_text(L->questtext, L->nquesttext, index) : NULL;
+    return e ? e->text : NULL;
 }

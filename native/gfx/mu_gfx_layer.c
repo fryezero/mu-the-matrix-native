@@ -46,6 +46,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -307,6 +308,11 @@ struct mu_gfx_layer {
     } dlg;
     char npc_last[160];
     int64_t vault_zen;
+    /* NATIVE-LANG-002 */
+    mu_gfx_buff buffs[64];
+    int nbuffs, buffs_sent;
+    mu_gfx_char_row *char_rows;
+    int nchar_rows;
 };
 
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
@@ -317,6 +323,10 @@ static const char *npc_call(movie *mv, const char *name, const char *args, const
 static int npc_inventory_r(mu_gfx_layer *L, int index);
 static void swin_init(mu_gfx_layer *L);
 static void swin_composite(mu_gfx_layer *L, int m, uint8_t *rgba, int32_t W, int32_t H);
+/* NATIVE-LANG-002 */
+static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell);
+static int is_bufflist(const char *name);
+static void bufflist_event(mu_gfx_layer *L, const char *event, const char *args);
 
 static double now_ms(void)
 {
@@ -783,9 +793,42 @@ static void feed_character(mu_gfx_layer *L)
     json_quote(cls, sizeof cls, h->class_name);
     invokef(L, MU_GFX_CHARACTER, mv->path, "ClearItems", "[]");
     invokef(L, MU_GFX_CHARACTER, mv->path, "SetCharacterName", "[%s]", name);
+    char dmg[64];
+    snprintf(dmg, sizeof dmg, "%d ~ %d", h->strength / 6 + h->level, h->strength / 4 + h->level * 2);
+    if (L->nchar_rows > 0) {
+        /* NATIVE-LANG-002: the client's rows (CharacterInfoSetup, row builder 0x00b3dedc): SetName("%d %d %d %s
+         * %s %s %d", type, id, sort, line(label, colour), line(value, value colour), "", button), the lines
+         * through the reconstructed line builder 0x00ab4dc0.  The client sends "-" and fills the values later
+         * (SetCharacterInfo, not reconstructed); the layer puts the hero values it has into the known rows. */
+        for (int r = 0; r < L->nchar_rows; r++) {
+            const mu_gfx_char_row *row = &L->char_rows[r];
+            const char *value = "-";
+            switch (row->value_key) {
+            case MU_GFX_ROW_CLASS: value = h->class_name; break;
+            case MU_GFX_ROW_LEVEL: value = lv; break;
+            case MU_GFX_ROW_POINTS: value = pts; break;
+            case MU_GFX_ROW_STRENGTH: value = v[0]; break;
+            case MU_GFX_ROW_AGILITY: value = v[1]; break;
+            case MU_GFX_ROW_VITALITY: value = v[2]; break;
+            case MU_GFX_ROW_ENERGY: value = v[3]; break;
+            case MU_GFX_ROW_COMMAND: value = v[4]; break;
+            case MU_GFX_ROW_DAMAGE: value = dmg; break;
+            default: break;
+            }
+            char lhtml[512], vhtml[256], lraw[512], vraw[256], lq[1100], vq[600];
+            mu_tooltip_html_line(lraw, sizeof lraw, row->label, row->color, 0);
+            mu_tooltip_html_line(vraw, sizeof vraw, value, row->value_color, 0);
+            mu_latin1_to_utf8(lhtml, sizeof lhtml, lraw);
+            mu_latin1_to_utf8(vhtml, sizeof vhtml, vraw);
+            json_quote(lq, sizeof lq, lhtml);
+            json_quote(vq, sizeof vq, vhtml);
+            invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[%d,%d,%d,%s,%s,\"\",%d]", row->type, row->id,
+                    row->sort, lq, vq, row->button);
+        }
+    } else {
     /* Base info (TEXT_TYPE_CHARACTER_BASE_INFO = 1, sort orders 0..6) and stat
-     * rows (TEXT_TYPE_CHARACTER_STAT_INFO = 2, button type 1 = "+").  The
-     * client's labels come from its GlobalText; these are English stand-ins. */
+     * rows (TEXT_TYPE_CHARACTER_STAT_INFO = 2, button type 1 = "+").  Without
+     * the CharacterInfoSetup table these are English stand-ins. */
     invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[1,0,0,\"Level\",\"%s\",\"%s\",0]", lv,
             h->master_level ? "" : "");
     invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[1,1,1,\"Class\",%s,\"\",0]", cls);
@@ -795,9 +838,8 @@ static void feed_character(mu_gfx_layer *L)
     for (int i = 0; i < 5; i++)
         invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[2,%d,%d,\"%s\",\"%s\",\"\",1]", i + 1, i, LABELS[i],
                 v[i]);
-    char dmg[64];
-    snprintf(dmg, sizeof dmg, "%d ~ %d", h->strength / 6 + h->level, h->strength / 4 + h->level * 2);
     invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[3,10,0,\"Damage\",\"%s\",\"\",0]", dmg);
+    }
     invokef(L, MU_GFX_CHARACTER, mv->path, "UpdateScorllList", "[2]");
     invokef(L, MU_GFX_CHARACTER, mv->path, "SetPointText", "[%s]", h->points > 0 ? "true" : "false");
     L->hero_dirty_char = 0;
@@ -827,7 +869,10 @@ static void show_item_tooltip(mu_gfx_layer *L, int cell)
         return;
     item *it = (item *)gi;
     static char html[8192], quoted[16384];
-    if (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html, sizeof html))
+    int context = L->mv[MU_GFX_NPC_SHOP].open ? MU_GFX_TIP_SELL : MU_GFX_TIP_PLAIN;   /* NATIVE-LANG-002 */
+    if (L->cfg.tooltip_ex ? L->cfg.tooltip_ex(L->cfg.tooltip_user, it->grid.code, it->level, context, html, sizeof html)
+                          : (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html,
+                                                               sizeof html)))
         builtin_tooltip(it, html, sizeof html);
     json_quote(quoted, sizeof quoted, html);
     float sc = L->inv_scale;
@@ -1066,6 +1111,8 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                 snprintf(L->mv[MU_GFX_MAIN].path, sizeof L->mv[MU_GFX_MAIN].path, "%s", path);
             else if (!strcmp(name, "chat"))
                 snprintf(L->mv[MU_GFX_CHAT].path, sizeof L->mv[MU_GFX_CHAT].path, "%s", path);
+            else if (is_bufflist(name))
+                L->buffs_sent = 0;                          /* the buffs are sent again (pump) */
             return NULL;
         }
         if (!strcmp(name, "UIFrame") && !strcmp(s, "onFileLoad")) {
@@ -1074,6 +1121,10 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
         }
         if (!strcmp(name, "chat"))
             goto chat_channel;
+        if (is_bufflist(name)) {
+            bufflist_event(L, s, args);
+            return NULL;
+        }
         if (strcmp(name, "main"))
             return NULL;
     }
@@ -1381,6 +1432,93 @@ static void init_hud(mu_gfx_layer *L)
     L->map_sent = 0;
 }
 
+/* ---- NATIVE-LANG-002: the bufflist ---- */
+
+static int is_bufflist(const char *name)
+{
+    return !strcasecmp(name, "bufflist");
+}
+
+static const char *bufflist_path(const mu_gfx_layer *L)
+{
+    for (int i = 0; i < L->nchannels; i++)
+        if (is_bufflist(L->channels[i].name))
+            return L->channels[i].path;
+    return "";
+}
+
+/* The addBuff object of the client's handler 0x00c5f278 (members set by 0x00ae957f / 0x00aecd73, invoke
+ * 0x00c8fac2). */
+static void send_buff(mu_gfx_layer *L, const mu_gfx_buff *b)
+{
+    const char *path = bufflist_path(L);
+    char detail[48] = "";
+    if (b->has_detail)
+        snprintf(detail, sizeof detail, ",\"BuffDetailType\":%d", (int)b->detail);
+    invokef(L, MU_GFX_MAIN, path, "addBuff", "[{\"BuffType\":%d,\"isDebuff\":%s,\"isCashBuff\":%s%s}]", (int)b->buff,
+            b->is_debuff ? "true" : "false", b->is_cash ? "true" : "false", detail);
+}
+
+static void feed_buffs(mu_gfx_layer *L)
+{
+    if (!bufflist_path(L)[0] || L->buffs_sent >= L->nbuffs)
+        return;
+    for (; L->buffs_sent < L->nbuffs; L->buffs_sent++)
+        send_buff(L, &L->buffs[L->buffs_sent]);
+}
+
+int mu_gfx_layer_add_buff(mu_gfx_layer *L, const mu_gfx_buff *b)
+{
+    if (!L || !b || L->nbuffs >= (int)(sizeof L->buffs / sizeof L->buffs[0]))
+        return 0;
+    for (int i = 0; i < L->nbuffs; i++)
+        if (L->buffs[i].buff == b->buff)
+            return 0;
+    L->buffs[L->nbuffs++] = *b;
+    if (!L->in_callback)
+        feed_buffs(L);
+    return 1;
+}
+
+int mu_gfx_layer_buff_count(const mu_gfx_layer *L)
+{
+    return L ? L->nbuffs : 0;
+}
+
+/* onTooltip {BuffType, x, y}: the client's 0x00c5efb4 hands the buff and the position (times the GFx rates) to
+ * the InfoPopup builder 0x00b8d4de; the host builds the HTML (cfg.buff_tooltip). */
+static void bufflist_event(mu_gfx_layer *L, const char *event, const char *args)
+{
+    movie *tip = &L->mv[MU_GFX_TOOLTIP];
+    if (!strcmp(event, "onTooltip")) {
+        int buff = (int)json_field(args, "BuffType", 0);
+        static char html[8192], quoted[16384];
+        if (!tip->g || !L->cfg.buff_tooltip || L->cfg.buff_tooltip(L->cfg.tooltip_user, buff, html, sizeof html))
+            return;
+        json_quote(quoted, sizeof quoted, html);
+        tip->open = 1;
+        invokef(L, MU_GFX_TOOLTIP, tip->path, "SetInfoPopup", "[%d,%d,%d,%d,%s]", (int)json_field(args, "x", 0),
+                (int)json_field(args, "y", 0), 32, 32, quoted);
+        logf_(L, "game: buff tooltip %d", buff);
+    } else if (!strcmp(event, "offTooltip") || !strcmp(event, "offBundleTooltip")) {
+        hide_tooltip(L);
+    }
+}
+
+void mu_gfx_layer_set_char_rows(mu_gfx_layer *L, const mu_gfx_char_row *rows, int n)
+{
+    if (!L)
+        return;
+    free(L->char_rows);
+    L->char_rows = NULL;
+    L->nchar_rows = 0;
+    if (n > 0 && rows && (L->char_rows = malloc((size_t)n * sizeof *rows)) != NULL) {
+        memcpy(L->char_rows, rows, (size_t)n * sizeof *rows);
+        L->nchar_rows = n;
+    }
+    L->hero_dirty_char = 1;
+}
+
 static void feed_location(mu_gfx_layer *L)
 {
     const char *top = channel(L, "topmenu");
@@ -1496,6 +1634,8 @@ static void pump(mu_gfx_layer *L)
         update_icons(L);
     if (L->base_mode && L->ui_loaded && !L->map_sent && L->map_name[0])
         feed_location(L);
+    if (L->base_mode && L->ui_loaded)
+        feed_buffs(L);                                  /* NATIVE-LANG-002 */
 }
 
 static void init_windows(mu_gfx_layer *L)
@@ -1709,6 +1849,7 @@ void mu_gfx_layer_close(mu_gfx_layer *L)
         free(mv->rgba);
     }
     free(L->icon_rgba);
+    free(L->char_rows);
     if (L->api.dl)
         dlclose(L->api.dl);
     free(L);
@@ -2490,7 +2631,10 @@ static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell)
         return;
     item *it = (item *)gi;
     static char html[8192], quoted[16384];
-    if (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html, sizeof html))
+    int context = sw->movie == MU_GFX_NPC_SHOP ? MU_GFX_TIP_SHOP : MU_GFX_TIP_PLAIN;   /* NATIVE-LANG-002 */
+    if (L->cfg.tooltip_ex ? L->cfg.tooltip_ex(L->cfg.tooltip_user, it->grid.code, it->level, context, html, sizeof html)
+                          : (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html,
+                                                               sizeof html)))
         builtin_tooltip(it, html, sizeof html);
     json_quote(quoted, sizeof quoted, html);
     float sc = sw->scale;
@@ -2502,7 +2646,7 @@ static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell)
 }
 
 /* A click on a slot: NpcShop buys (DEMO: the item goes to the first free
- * inventory place and its demo price leaves the zen), StorageInven moves
+ * inventory place and its price leaves the zen), StorageInven moves
  * the item to the inventory (DEMO).  The client sends a request and waits
  * for the server's answer instead. */
 static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
@@ -2537,7 +2681,7 @@ static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
 }
 
 /* A right click on an inventory item while NpcShop or StorageInven is open:
- * sell it (DEMO: a third of its demo price) or put it into the vault
+ * sell it (DEMO sale at the client's sell price, NATIVE-LANG-002) or put it into the vault
  * (layer choice for the client's drag onto the window). */
 static int npc_inventory_r(mu_gfx_layer *L, int index)
 {
@@ -2549,7 +2693,10 @@ static int npc_inventory_r(mu_gfx_layer *L, int index)
         return 1;
     item *it = (item *)gi;
     if (shop) {
-        int64_t price = L->cfg.price ? L->cfg.price(L->cfg.tooltip_user, it->grid.code, it->level) / 3 : 0;
+        /* NATIVE-LANG-002: the client's sell price ItemValue(item, 1) when the host has it (the server decides
+         * the sale in the real game) */
+        int64_t price = L->cfg.price_ex ? L->cfg.price_ex(L->cfg.tooltip_user, it->grid.code, it->level, 1)
+                        : L->cfg.price ? L->cfg.price(L->cfg.tooltip_user, it->grid.code, it->level) / 3 : 0;
         mu_grid_remove(&L->grid, gi);
         L->hero.zen += price;
         zen_text(L);
@@ -2776,7 +2923,28 @@ int mu_gfx_layer_npc_action(mu_gfx_layer *L, const char *verb, int arg)
         npc_call(&L->mv[MU_GFX_NPC_DIALOG], "onClickbtnNext", "[\"\"]", NULL, 0);
         return 1;
     }
+    /* NATIVE-LANG-002 (scripted hovers): "tip" a NpcShop / StorageInven slot, "tipinv" an inventory cell */
+    if (!strcmp(verb, "tip") && (L->mv[MU_GFX_NPC_SHOP].open || L->mv[MU_GFX_STORAGE].open)) {
+        swin_show_tooltip(L, &L->swin[L->mv[MU_GFX_NPC_SHOP].open ? 0 : 1], arg);
+        return L->mv[MU_GFX_TOOLTIP].open;
+    }
+    if (!strcmp(verb, "tipinv")) {
+        show_item_tooltip(L, arg);
+        return L->mv[MU_GFX_TOOLTIP].open;
+    }
+    if (!strcmp(verb, "bufftip")) {   /* the bufflist's onTooltip for buff `arg` (scripted: a fixed position) */
+        char args[96];
+        snprintf(args, sizeof args, "[\"onTooltip\",{\"BuffType\":%d,\"x\":360,\"y\":60}]", arg);
+        bufflist_event(L, "onTooltip", args);
+        return L->mv[MU_GFX_TOOLTIP].open;
+    }
     return 0;
+}
+
+void mu_gfx_layer_npc_note(mu_gfx_layer *L, const char *note)
+{
+    if (L && note)
+        npc_last(L, "%s", note);
 }
 
 const char *mu_gfx_layer_npc_last(const mu_gfx_layer *L)
@@ -2846,6 +3014,9 @@ static const char *npc_call(movie *mv, const char *name, const char *args, const
             json_string_decoded(args, 0, wrapped, sizeof wrapped);
             L->dlg.wrapped = 1;
             dialog_wrapped(L, wrapped);
+        } else if (!strcmp(name, "onClickSelectBtn") && n >= 1 && L->cfg.dialog_choice &&
+                   L->cfg.dialog_choice(L->cfg.tooltip_user, (int)v[0])) {
+            /* NATIVE-LANG-002: the host ran the client's choice (0x00be906d) */
         } else if (!strcmp(name, "onClickSelectBtn") && n >= 1) {
             int i = (int)v[0];
             /* DEMO: the client sends the choice to the server (0x00be829f builds packet 0xf8); the layer

@@ -151,6 +151,7 @@ void mu_npc_report_summary(const mu_npc *npc, FILE *out, int quiet);
  *   F:click:ACTOR  mouse click on the actor's screen position (through the pick)
  *   F:talk:ACTOR   the click branch without picking
  *   F:buy:SLOT  F:sell:CELL  F:take:SLOT  F:put:CELL  F:option:N  F:next  F:close
+ *   F:tip:SLOT  F:tipinv:CELL  F:bufftip:BUFF   (NATIVE-LANG-002: show a tooltip)
  * (the window verbs act on the GFx layer when it is loaded). */
 #define MU_NPC_SCRIPT 32
 typedef struct mu_npc_script_item {
