@@ -224,6 +224,8 @@ void mu_gfx_layer_stats_get(const mu_gfx_layer *layer, mu_gfx_layer_stats *out);
 int mu_gfx_layer_held(const mu_gfx_layer *layer);
 int mu_gfx_layer_item_cell(const mu_gfx_layer *layer, int item);
 int mu_gfx_layer_item_count(const mu_gfx_layer *layer);
+/* Items on the inventory page now (sold or stored ones are gone; NATIVE-NPC-001). */
+int mu_gfx_layer_items_placed(const mu_gfx_layer *layer);
 /* The item draws the inventory's item pass would hand to the items
  * callback now (slot pass outputs); returns the count. */
 int mu_gfx_layer_item_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max);

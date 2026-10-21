@@ -3089,6 +3089,8 @@ int mu_gfx_layer_item_cell(const mu_gfx_layer *L, int i)
 
 int mu_gfx_layer_item_count(const mu_gfx_layer *L) { return L ? L->nitems : 0; }
 
+int mu_gfx_layer_items_placed(const mu_gfx_layer *L) { return L ? L->grid.item_count : 0; }
+
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *L) { return L ? L->last_sent : ""; }
 
 /* ---- NATIVE-NAMES-001: hudPlayerName ---------------------------------------------------------- */

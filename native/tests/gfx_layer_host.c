@@ -176,7 +176,7 @@ int main(int argc, char **argv)
                    "\"storage_items\": %d, \"inventory_items\": %d, \"inventory_open\": %d, \"zen\": %lld}\n",
                    mu_gfx_layer_npc_window(L), mu_gfx_layer_npc_last(L), page, pages,
                    mu_gfx_layer_slot_items(L, MU_GFX_NPC_SHOP), mu_gfx_layer_slot_items(L, MU_GFX_STORAGE),
-                   mu_gfx_layer_item_count(L), mu_gfx_layer_is_open(L, MU_GFX_INVENTORY),
+                   mu_gfx_layer_items_placed(L), mu_gfx_layer_is_open(L, MU_GFX_INVENTORY),
                    (long long)mu_gfx_layer_hero(L)->zen);
         } else if (!strcmp(op, "channels")) {
             static const char *const NAMES[] = {"UIFrame", "ASData", "main", "chat", "alarmframe", "topmenu"};
