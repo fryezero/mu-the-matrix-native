@@ -66,6 +66,12 @@ not exist yet.
   cases, 9/9 planted mistakes) equal the actual instructions; the camera, far plane and object state match a live read
   of the server-select screen. `mu-client` and `mu-render ui login|servers --scene` draw World95 with its ship, sky and
   island behind the 2D layer; sprites and particles are stand-ins. [Evidence](research/client-login-scene.md).
+- Character-select picking and GFx list (NATIVE-CHARSEL-003). The list movie's game side (`reconstructed/charsel/charsel_gfx.c`:
+  init, list, show, SelectIndex, row click, reorder arrows, callbacks; 2,100 Unicorn cases, 0 mismatches, 5/5 planted
+  mistakes) and the star dragon effects 0x5ac/0x5ad (CreateEffect/MoveEffect cases in `validate_skill_fx.py`) equal the
+  actual instructions. `mu-client --gfx` plays CharacterSelect.swf over the scene (select by click, enter by double
+  click or Enter, create = OFFLINE DEMO no-op), the 3D pick enters on a double click on the character, markers 0/2..4
+  are shown unused. [Evidence](research/client-character-select.md).
 - Character-select scene at runtime (NATIVE-CHARSEL-002). World94's handler `CGMCharacterScene_Ex` (create, move,
   visual, custom render and after-character slots; `reconstructed/objects/charsel_world.c`, 12,000 cases, 10/10
   planted mistakes) and the particle kinds WATERFALL2/3, fantaB and the selection light 0x8022 (30,494 particle

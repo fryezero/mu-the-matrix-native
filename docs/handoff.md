@@ -10,6 +10,16 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Character-select picking and GFx list (NATIVE-CHARSEL-003)
+
+Read section 10 of [`research/client-character-select.md`](research/client-character-select.md). `reconstructed/charsel/charsel_gfx.c`
+is the CharacterSelect movie's game side (compare with `scripts/validate_charsel_gfx.py --cases 300 --mutations`, about
+20 s, Unicorn); `native/charsel/charsel_list_gfx.c` plays the movie in mu-client/mu-shell (`--gfx DIR`, `--gfx-log`);
+`mu_charsel_pick` is the scene-5 pick; `skill_fx.c` and `mu_particles` carry the star dragon 0x5ac/0x5ad. Renders stay
+local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: switch
+`mu_charsel_pick` to NATIVE-NPC-001's verified `mu_npc_pick` when it lands; the create-character panel (offline: local
+characters) and the GFx menu; class-name codes 9/10.
+
 ## Character-select scene at runtime (NATIVE-CHARSEL-002)
 
 Read section 9 of [`research/client-character-select.md`](research/client-character-select.md).

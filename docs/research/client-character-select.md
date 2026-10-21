@@ -484,14 +484,149 @@ Local renders (not committed), `~/Documents/mu-mac-tools/native/renders/charsel2
   38 after-character, part shadows).
 
 
+## 10. Picking, the GFx list, the star dragon and the markers (NATIVE-CHARSEL-003)
+
+Labels as above; **verified** = Unicorn comparison of the client's instructions, **static** = decoded instructions read,
+**observed** = run on this Mac under the patched Ruffle.
+
+### Picking in the 3D scene (static)
+
+RenderCharacterScene's first call is SelectCharacter `0x016b47bf(1)` (section 4). It is the client's general picker
+(NATIVE-NPC-001, in progress in parallel, reconstructs it and compares it with the instructions):
+
+* a first pass gives every live, visible, non-transparent character of the kind mask LightEnable (`+5`) and a light
+  indexed by CHARACTER `+0x144` (the level: 0..4 only), or −0.4 when `+0x1f ≥ 6`; the render resets the lights of
+  0..9 right after, so this has no visible effect in scene 5;
+* the second pass tests the mouse segment (CreateScreenVector, `0x0bdc5984` → `0x0bdc5990`) against each candidate's
+  box at OBJECT `+0x31c` with the separating-axis test `0x018500bf` (six axes, `0x01850d88`) and keeps the one nearest to
+  CameraPosition (squared distance, strict less). Scene 5 is the one scene that does not skip the hero; **world 0x5d
+  grows each tested box by 100 in z, in place** (`0x016b4d2c`);
+* the box comes from RenderPartObject's Transform `0x017e68a6`: BoundingBoxMin + body origin, axes diag(Max − Min).
+  CreateCharacter gives the Player (model 0xa91) the box (−60, −60, 0)..(40, 40, 120) (`0x0137dfe3`, `0x0137e2d4`),
+  unscaled: the 1.7-scaled character is about 200 tall, the box 120 + 100.
+
+What the result does in scene 5: **only the double click.** When the pick hits and CInput `+0x1f` is set, the render
+enters the game with the *current* SelectedHero (`0x0185a75a(0)`, unless CCharSelMainWin `0x009a5029` refuses). A
+single click on the 3D character selects nothing, and there is no hover highlight in 3D: selection, hover and the
+arrows are the GFx list's (below). Only the shown character is drawn, so only its box is refreshed; the others keep the
+box of the last frame they were drawn in and grow by 100 per frame (an inference from the reading: after switching, a
+double click high above the pedestal can still hit a stale box).
+
+Keyboard: the scene tick handles Enter (sound 25, entry) and Esc only (section 6). The list movie swallows the arrow
+keys (`MUComponent.handleInput` returns true for 37..40 without passing them on), so the client has **no keyboard
+navigation** of the list. The native 1..5 and Left/Right keys are native shortcuts (they go through the list's row
+click and an extra SelectIndex so the movie shows them).
+
+`mu_charsel_pick` (native) follows this reading: the records carry the box fields, the drawn character's box is
+written after its update, the pick runs before RenderCharacterScene's logic, and a WM_LBUTTONDBLCLK (the shell turns a
+second press within 500 ms and 4 pixels into one, as Windows does for a CS_DBLCLKS class) is the `+0x1f` stand-in.
+
+### The GFx character list (verified)
+
+The list, its arrows and the create-character panel are the movie `CharacterSelect` (`Data\Interface\GFx\
+CharacterSelect.ozg`, AS2 class `CharacterSelect`, decompiled locally with JPEXS, nothing committed). Its game side is
+the window object at GFx manager `+0x22c` and a callback handler (vtable `0x01a8b520`, `+0x10` = the window).
+`reconstructed/charsel/charsel_gfx.c`:
+
+| Routine | What it does |
+|---|---|
+| `0x00b4915b` | On the movie's UIInit: `SetInputBoxLength(10)`, `InitText({StrOK GT 0xe4, StrCancel 0xe5, StrName 0x101c, ChangeName 0x2a4, BaseCharSlot 0x1464, LockCharSlot 0x1465, MoveCharText, ViewableSelectedWinNum 10})`, `InitStat` (GT 0xa6, 0xa7, 0xa9, 0xa8, 0x76c), `SetInputBoxLength(10)`, `InitClassInfo` (`0x00b4aef1`: 16 classes, button, class type, name, Str/Dex/Vit/Ene/Cha, explanation), `SetClassInfo(1)`, `SetnumViewableSelctedWin(10)` |
+| `0x00b4b927` | `SetSelectText` with ten rows from the row → slot map `+0xa8`: a live character gives `{type 0, index, textJob (class name 0x0139cc2e), textState (guild status +0x17: 0xff → GT 0x1e8, 0 → 0x532, 0x20 → 0x516, 0x40 → 0x515, 0x80 → 0x514), textName, textLevel}` (name and level through the HTML helper `0x00ab4dc0` in #FFCC19), an empty row `{type 1, textCreat GT 0x1464}`, or `{type 2, GT 0x1465}` past the account's slot count. A name colour is computed from CHARACTER `+0x14` and a "webzen" test and never used |
+| `0x00b4b848` | show(flag): with a live character, focus, SelectIndex(row `+0xa0`), then `SetSelectVisible(flag)`, `SetCharSelArrow` |
+| `0x00b4bed3` | `SelectIndex(n)`; SelectedHero and the shown character take **n** (the row, used as the slot); CCharSelMainWin UpdateDisplay; `SetCharSelArrow` |
+| `0x00b4bd6c` | A row clicked (double click: enter): Dark Lord cleanup `0x010b03cb` for the previous selection; a live row selects its slot, an empty one clears the selection and opens the create-character panel; UpdateDisplay; with enter the CCharSelMainWin check and `0x0185a75a(0)`; `SetCharSelArrow` |
+| `0x00b4bfc2` | The arrows (`onCharSelArrow`): **reorder** the characters (swap the row with its neighbour, rebuild the map from the characters' key `+0x3e`), SelectIndex, select, rebuild the list |
+| `0x00b4c1df` | The movie's callbacks: OnCharSelectedClick / DClick → `0x00b4bd6c`, onCharSelArrow, the create panel's SetSelectedClass, SetCreateBoardInfo, OnEnterCharacterName, OnClickCreateCancel, UpdateInput, OnClickCreateCharacter; ignored while the GFx movie is busy and the window's `+0x79` is set |
+
+`scripts/validate_charsel_gfx.py` runs these instructions in Unicorn with the GFx value API stubbed (objects, arrays,
+member setters, Invoke; GlobalText "GT<n>", class names "CLASS<n>") and compares the invoke and call lines, the window
+fields and the selection globals with the C (pinned by SHA-256 in `validate_charsel_gfx.pins.json`):
+
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| list `0x00b4b927` | 300 | 0 |
+| show `0x00b4b848` / `0x00b4b82c` | 300 | 0 |
+| select `0x00b4bd6c` | 300 | 0 |
+| index `0x00b4bed3` | 300 | 0 |
+| arrow `0x00b4bfc2` | 300 | 0 |
+| dispatch `0x00b4c1df` | 300 | 0 |
+| init `0x00b4915b` + `0x00b4aef1` | 300 | 0 |
+
+2,100 cases, 0 mismatches, 5/5 planted mistakes detected (guild text, swapped globals, arrow direction, double click,
+locked rows). The two HTML helpers `0x00ab4dc0` (22-colour table, `&lt;`, `<font color='%s'>%s</font><br>`, bold
+variant) and `0x0096fe90` (`#rrggbb` from an RGBA word) and the class-name switch `0x0139cc2e` (code = skin index,
+68 GlobalText numbers; codes 9 and 10 use another accessor) are **static** readings; the validator implements the HTML
+helpers independently.
+
+**When the client calls them** (static): the login scene's creation (`0x018519b5`, `0x018519d3`) closes the create
+panel and runs show(0); CreateCharacterScene ends with `0x00b4b82c` (fill and show) when a character exists, else
+`0x00b4b927`. show(0) at the login scene matters: the movie's own `onLoadUI` loads 12 test rows and shows its scroll
+bar; SetSelectVisible(false) hides it, and the real ten rows never show it again — which is what the live screen shows.
+
+**Native** (`native/charsel/charsel_list_gfx.c`, observed): mu-client and mu-shell `--gfx DIR` play CharacterSelect.swf
+as one full-window libmugfx player (own loader; the HUD layer `mu_gfx_layer.c` is untouched) composited over the frame.
+UIInit runs the window's initialisation, the login scene's show(0) and the list step; clicks go to the movie first
+(hit test), the callbacks run the reconstruction over the session's records (SelectedHero and the shown character are
+the session's), an entry from the list is the session's enter request. An empty row, OnClickCreateCharacter and
+OnEnterCharacterName are **OFFLINE DEMO** no-ops (counted, reported in the offline label; the client would open the
+create panel and send a packet). GlobalText comes from NATIVE-LANG-001's tables (`MU_LANG_DIR`), else "GT<n>".
+Compared by eye with the live capture of NATIVE-CHARSEL-002 at 1722×1048: same placement, row size, fonts, colours,
+selection and arrows, no scroll bar (`renders/charsel3/list-live-vs-native.png`).
+
+### The star dragon `0x5ac` / `0x5ad` (create verified, move verified, render static)
+
+Objects 0x27 and 0x28 of World94 create effect 0x5ac (`Data\Effect\stardr01.bmd`) subtype 0 / 1 (handler slot 0x34,
+`rand % 100` / `% 200` per drawn frame, section 9). CreateEffect's case `0x013f41b4`: angle (0, 310, 90), position y +=
+`rand % 600 − 300`, blend mesh 0, speed 1; subtype 0: LifeTime 70, direction x −25, scale 1; subtype 1: LifeTime 130,
+x −15, scale 0.7; then it poses its model (`0x012b5064`), reads bone 1 (`0x012b678d`: BodyScale · bone translation +
+position) and creates **0x5ad** (`stardr02.bmd`) there with light 0.5, the same subtype and itself as owner. 0x5ad
+(`0x013f4457`): blend mesh 0, speed 1, LifeTime 70/130, direction x −25/−15, scale 0.5/0.3. MoveEffect has no case for
+either (jump tables `0x0150d161`/`0x014ece4f` → the defaults): the animation, the rotated motion and the LifeTime.
+RenderEffects (static): 0x5ac is a plain RenderObject (`0x0151e966`); 0x5ad (`0x0151e980`) poses, plays its animation
+again in the render pass and, while 20 < LifeTime < 25, creates a Spark04 `0x8155` sprite (0.7, light (0.8, 0.8, 1)),
+takes light 0.6 and scale 0.8/0.6, else scale 0.5/0.3. On screen these are shooting stars crossing the sky towards
+the lower left (`renders/charsel3/dragon-strip.png`).
+
+`scripts/validate_skill_fx.py` now includes the four kinds (create and move families, 20 cases each at 400 cases;
+the full validator at 300 cases stays all-equal). Native: `mu_particles` loads both models for world 0x5d, answers the
+bone with the native pose and runs the glint's render pass.
+
+### Markers 0 and 2..4 (verified and static)
+
+CreateObject stores all five marker vectors (verified, section 3), but nothing reads them except
+SetCharacterPosition, whose index is the constant 1 (verified). The handler is reached through `__RTDynamicCast` only at
+two sites (`0x0122b7fe`, the character-created handler, and `0x018517ae`, CreateCharacterScene), both calling
+SetCharacterPosition; its other slots (0x2c..0x3c, verified) do not touch the vectors; marker objects themselves are
+hidden (`+0x68 = −2`). EncTerrain94 holds only marker 1 (type 14) and marker 2 (type 15, at (−136.21, 17173.0,
+−1044.95), outside the map). **Role: none in this client** — the five yaws (115, 90, 75, 60, 35) are the classic
+five-pedestal layout; this client shows one character on marker 1.
+
+### Live comparison
+
+No new live run was needed: the list was compared with the NATIVE-CHARSEL-002 capture. The game lock was not taken.
+
+### Tests
+
+* Portable: `reconstructed/charsel/test_charsel_gfx.py` (worked examples of every routine), `native/tests/test_native_shell.py`
+  `CharacterListTests` (the list through the stand-in libmugfx, which now plays CharacterSelect: UIInit, rows, row
+  clicks and double clicks; the auto flow enters with slot 1 from the list; an empty row is an offline create request; a
+  double click beside the character does not enter), `test_native_charsel.py` `test_star_dragon_emitters`.
+* Private: the Unicorn validators (`validate_charsel_gfx.py`, `validate_skill_fx.py`).
+
+Local renders (`~/Documents/mu-mac-tools/native/renders/charsel3/`): `shell-lang/` (mu-shell, GlobalText, World94
+objects, 1722×1048), `client-gl/` (mu-client headless GL, whole flow), `dragon/` and `dragon-strip.png`,
+`list-live-vs-native.png`.
+
 ## Open points
 
-* The effect stardr01 `0x5ac` (CreateEffect `0x013f41b4` poses the model and spawns `0x5ad` at a bone; MoveEffect and
-  the draw not traced) and `0x59a`; the particle kinds `0x802a` 1 and smoke01 0x45 (their emitter types 0x45 and 0x50
-  are not placed in World94).
-* Marker positions other than marker 1, and the objects' animation PlaySpeeds (no World94 handler sets any).
-* The character pick `0x016b47bf` in scene 5 (OBB tests) and `0x009a5029`'s checks.
+* The effect `0x59a`; the particle kinds `0x802a` 1 and smoke01 0x45 (their emitter types 0x45 and 0x50 are not placed
+  in World94); RenderEffects' 0x5ad case is a static reading.
+* The objects' animation PlaySpeeds (no World94 handler sets any); `0x009a5029`'s checks.
+* The native pick follows the static reading (NATIVE-NPC-001 compares the routine itself); once that lands, `mu_charsel_pick`
+  should call its `mu_npc_pick`.
+* The create-character panel (`0x00b49bf4`, `0x00b4b684`, the class buttons' handlers) and the menu; codes 9 and 10 of
+  the class-name switch.
 * RenderCharacter's scene-5 light branches, and which of them the hero pointer selects.
-* The GFx list, create, menu and message interfaces; the server-message window `+0x63a8`.
+* The GFx create, menu and message interfaces; the server-message window `+0x63a8`.
 * The list handler's equipment decoding (packet data, deliberately not traced).
 * GlobalText (`Data\Lang.mpr`) for the tip and warning strings.

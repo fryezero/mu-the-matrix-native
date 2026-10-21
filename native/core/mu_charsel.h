@@ -157,9 +157,9 @@ int32_t mu_charsel_end_render(mu_charsel_session *s);
 /* NATIVE-CHARSEL-003: SelectCharacter(1) 0x016b47bf as the render's first call runs it: the CharactersClient
  * records' boxes (OBJECT +0x31c; the drawn character's from RenderPartObject's Transform, the others keep
  * the box of the last frame they were drawn in) against the mouse segment (CreateScreenVector), nearest to
- * the camera; in world 0x5d each tested box grows by 100 in z.  Returns the index or -1.  The client
- * routine is compared with its instructions by NATIVE-NPC-001 (reconstructed/npc, mu_npc_pick); this
- * native port follows that reading and is not itself executed against the client. */
+ * the camera; in world 0x5d each tested box grows by 100 in z.  Returns the index or -1.  A static reading
+ * (NATIVE-NPC-001 compares the routine with its instructions in parallel; this port is not itself executed
+ * against the client). */
 int32_t mu_charsel_pick(mu_charsel_session *s);
 
 /* Terrain frustum of the render (CreateFrustrum(width/640, record position, 0)). */
