@@ -48,7 +48,7 @@ NOTARY_PROFILE ?=
 B ?= build
 APP := $(B)/Mu The Matrix.app
 APPQ := "$(APP)"
-SOURCES := Sources/Core.swift Sources/main.swift
+SOURCES := Sources/Core.swift Sources/FirstRun.swift Sources/main.swift
 RESOURCES := mu-launch.sh ../installer/lib/mukit.sh ../fast-x87.sh
 INSTALLER_FILES := ../installer/setup-mu-mac.sh ../installer/verify-mu-mac.sh ../installer/play-mu.sh \
 	../installer/lib/mukit.sh ../installer/registry/mu-mac.reg

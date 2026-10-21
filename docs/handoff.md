@@ -10,6 +10,17 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Player disk image and first run (MAC-DMG-001)
+
+Read [`research/mac-dmg-installer.md`](research/mac-dmg-installer.md) and `mac-play/bundle/README.md`. Player builds:
+`make player-dmg EMBED_MUGL=… EMBED_MSCOREE=… EMBED_FAST_X87=… EMBED_RUNTIME=…` (the runtime pin is `RuntimeFile` in
+`Sources/Core.swift`); `dmg/make-dmg.sh` (Finder layout from `dmg/dmg-tool.swift`, signing/notarization with
+`SIGN_IDENTITY`/`NOTARY_PROFILE`). The first-run window is `InstallWindowController` (`Sources/main.swift`), its step
+names and overall progress and "Move to Applications" are in `Sources/FirstRun.swift`. Rehearse without touching a real
+install with `open --env MUKIT_FREE_HOME=… --env MU_SETTINGS_FILE=… --env MU_LOG_DIR=… --env MU_APPLICATIONS_DIR=…`
+(the move passes these on). Keep player-facing strings free of technical words (the suite checks them). Next: the
+owner's Developer ID notarization run, hosting the DMG on the official site.
+
 ## Character creation, deletion and the menu (NATIVE-CHARCREATE-001)
 
 Read section 11 of [`research/client-character-select.md`](research/client-character-select.md). `reconstructed/charsel/charcreate.c`

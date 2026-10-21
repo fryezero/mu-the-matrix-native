@@ -1,9 +1,10 @@
 # Mu The Matrix.app
 
-`mac-play/bundle/` (MAC-BUNDLE-001, MAC-FREE-001) builds a double-clickable macOS app that installs and starts
-the original launcher, `MuTheMatrix.exe`. **By default it needs no CrossOver:** it bundles the
-[installer](../installer/README.md) and runs it with the free Wine runtime from an Install window, then starts
-the game from `~/Library/Application Support/MuTheMatrix/prefix`. A CrossOver bottle (made by the installer's
+`mac-play/bundle/` (MAC-BUNDLE-001, MAC-FREE-001, MAC-DMG-001) builds a double-clickable macOS app that installs and
+starts the original launcher, `MuTheMatrix.exe`, and the disk image players download (`Mu The Matrix.dmg`). **By
+default it needs no CrossOver:** it bundles the [installer](../installer/README.md) and the Wine runtime, runs the
+installer from a one-button install window, then starts the game from
+`~/Library/Application Support/MuTheMatrix/prefix`. A CrossOver bottle (made by the installer's
 `--runtime crossover` or by hand, with `C:\MuTheMatrix` and optionally `C:\mutools\mu-modes.txt`) stays
 selectable as the legacy runtime. The app ships no game files. Non-technical players: see
 [`../PLAYER-GUIDE.md`](../PLAYER-GUIDE.md).
@@ -42,23 +43,32 @@ CrossOver, and the timewalker set to Auto.
 
 ### A build for players (owner)
 
-The installer needs DLLs for good speed, and players cannot build them. The server owner bundles them at build time;
-they go to `Contents/Resources/dlls` and `Contents/Resources/fast-x87` and the Install window passes them to the
-installer (`--mugl-dll`, `--mscoree-dll`, `--fast-x87-dir`). Build the players' app with `player-app`:
+Players cannot build the DLLs or the Wine runtime, so the server owner bundles them at build time. They go to
+`Contents/Resources/dlls`, `Contents/Resources/fast-x87` and `Contents/Resources/runtime`, and the app passes them to
+the installer (`--mugl-dll`, `--mscoree-dll`, `--fast-x87-dir`, `--runtime-archive` with `--runtime-sha256`). Build the
+players' app with `player-app`, or straight to the disk image with `player-dmg`:
 
 ```sh
-make player-app EMBED_MUGL=/path/to/mugl-v77.dll EMBED_MSCOREE=/path/to/mscoree.dll \
-    EMBED_FAST_X87=/path/to/fast-x87     # from ../installer/packaging/package-fast-x87.sh
-# same as: make -C mac-play/bundle player-app EMBED_...
+make player-dmg EMBED_MUGL=/path/to/mugl-v77.dll EMBED_MSCOREE=/path/to/mscoree.dll \
+    EMBED_FAST_X87=/path/to/fast-x87 \
+    EMBED_RUNTIME=/path/to/winecx-26.3.0-mu1.tar.xz    # DMG="/path/Mu The Matrix.dmg" to choose the output
+# player-app: the same without the disk image; both also work as make -C mac-play/bundle ...
 ```
 
-`player-app` refuses to build unless all three are given: both DLLs must exist and start with `MZ`, and the fast
-x87 folder must hold `libtimewalker.dylib`, `runtime_loader` and `libRuntimeRosettax87`. After the build it runs
-the app's `--check-bundle`. A plain `make` (or `make mac-bundle`) is a development build and says so: without the
-DLLs, a player's Mac (no MinGW) installs a game that runs at about 4 fps and whose final check fails. If such an
-app is run anyway, the Install window warns before installing ("This copy of Mu The Matrix is incomplete", with
-**Cancel** / **Install Anyway**) and, after the failed check, says that the app is incomplete instead of showing a
-generic failure.
+`player-app` refuses to build unless all four are given: both DLLs must exist and start with `MZ`, the fast x87
+folder (from `../installer/packaging/package-fast-x87.sh`) must hold `libtimewalker.dylib`, `runtime_loader` and
+`libRuntimeRosettax87`, and the runtime must be exactly the tested build: its name and SHA-256 are pinned in
+`Sources/Core.swift` (`RuntimeFile`, `c50cb614…`; the Makefile reads them from there). The runtime archive's
+`COPYING.LIB` (LGPL 2.1) is copied next to it, with `licenses/wine-runtime-SOURCES.txt` as `SOURCES.txt` (where the
+corresponding sources are); the About panel points to them. After the build it runs the app's `--check-bundle`,
+which also checks the runtime's hash. A plain `make` (or `make mac-bundle`) is a development build and says so:
+without the DLLs a player's Mac installs a game that runs at about 4 fps and whose final check fails, and without
+the runtime the installer downloads the slower fallback runtime. If such an app is run anyway, the install window
+warns before installing ("This copy of Mu The Matrix is incomplete", **Cancel** / **Install Anyway**).
+
+With the bundled runtime, every install and **Repair** uses it: nothing is downloaded for it, and an installed
+runtime with the same hash (`runtime/archive-c50cb6145767`) is kept as it is. The app grows to about 135 MB (the
+disk image is about 130 MB).
 
 Use the v3 mscoree proxy (`mac-play/mumodes`, pinned in the installer README): besides the display-mode list it
 fixes the launcher's windows on macOS (MAC-APP-004: its news panel no longer floats over the game, and minimize
@@ -68,43 +78,83 @@ installer keeps the official skin disabled then), and verify reports the proxy a
 
 A private mugl build contains client-derived bytes: distributing it to players is the owner's decision, and it
 must never be committed. The mscoree proxy and the public mugl are authored sources (MIT); the timewalker files
-are MIT (their licenses are copied along). `x87-main-only-wrapper` is compiled from `../x87-main-only-wrapper.c`
-during the build. Without `EMBED_*` the app installs without DLLs (low fps) unless the installer finds MinGW
-(a development machine started from Terminal).
+are MIT (their licenses are copied along); the runtime is LGPL 2.1+ (see above). `x87-main-only-wrapper` is compiled
+from `../x87-main-only-wrapper.c` during the build. Never commit the DLLs, the runtime archive or a disk image.
 
-To hand the app to players, zip it so the bundle survives the download, and publish the zip:
+### The disk image (`make player-dmg`, `dmg/make-dmg.sh`)
+
+`dmg/make-dmg.sh --app APP --out DMG` uses only tools that come with macOS and the Command Line Tools: it stages
+the app (`ditto`) and a link to `/Applications`, draws the window background at build time (`dmg/dmg-tool.swift
+background`, 660 x 400 points, 1x and 2x combined with `tiffutil`; no artwork is committed), creates a read-write
+HFS+ image named "Mu The Matrix" (`hdiutil create`), mounts it without showing it, writes the Finder layout
+(`dmg-tool dsstore`: a `.DS_Store` with icon view, window size, the background picture as an alias record made by
+macOS itself, and the two icon positions), sets the app icon as the volume icon (`.VolumeIcon.icns` plus the
+"custom icon" Finder flag), then converts the image to a compressed, read-only one (`ULFO`, LZFSE; `--format UDZO`
+for zlib) and checks it with `hdiutil verify`. `--dry-run` prints the plan; `--no-layout` skips the window layout.
+
+Signing and notarization (optional, needs a paid Apple Developer account):
 
 ```sh
-ditto -c -k --keepParent "mac-play/bundle/build/Mu The Matrix.app" "Mu The Matrix.zip"
+xcrun notarytool store-credentials mu-notary --apple-id ... --team-id ...   # once; keeps the notary credentials in the Keychain
+make player-dmg EMBED_...=... SIGN_IDENTITY="Developer ID Application: NAME (TEAMID)" NOTARY_PROFILE=mu-notary
 ```
 
-The players' steps (including allowing the unsigned app once) are in `../PLAYER-GUIDE.md`.
+With `SIGN_IDENTITY` the script re-signs the staged app inside out with the hardened runtime and a secure timestamp:
+the Mach-O helpers in `Resources/fast-x87` with `dmg/helpers.entitlements` (`allow-dyld-environment-variables`: the
+x87 wrapper is Wine's loader and must keep `DYLD_INSERT_LIBRARIES` for the processes it starts;
+`disable-library-validation`: it loads libraries of other teams or unsigned ones; `allow-jit` and
+`allow-unsigned-executable-memory`: Rosetta's x87 translation writes code at run time), then the app with
+`dmg/app.entitlements` (no exceptions: the app only runs scripts and system tools; Wine and the helpers are separate
+processes with their own signatures). The disk image is signed too. With `NOTARY_PROFILE` it submits the app (as a
+zip) with `notarytool submit --wait`, staples the ticket to the app, builds the disk image, submits and staples that
+too, and checks it with `spctl --assess`. **Notarization is what removes the "Open Anyway" step**: without it
+(today, ad-hoc signed) players confirm the app once in System Settings > Privacy & Security. The Wine runtime inside
+the app is a `.tar.xz` whose programs are unpacked into Application Support and run without a download flag, so
+Gatekeeper does not check them; whether Apple's notary service inspects the archive's unsigned Wine binaries could
+not be tested without an account. `--sign -` signs ad hoc with the same hardened runtime and entitlements, to test
+them locally.
 
 ## Use
 
-Double-click **Mu The Matrix**. On the first run with the free runtime, the Install window opens in front of the
-settings window: choose "Download the game from the official site" or "Use a Mu The Matrix folder I already
-have…", press **Install** and watch the steps (about 10 minutes plus the 2.2 GB game download, 45 minutes in total in the recorded test; the log is in
-`~/Library/Logs/MuTheMatrix/app.log`). Then press **Play**.
-
-The Install window, in more detail (MAC-APP-002):
+**First start (MAC-DMG-001).** A player opens the disk image, drags **Mu The Matrix** to Applications and opens it.
+- **Move to Applications.** If the app runs from anywhere outside `/Applications` and `~/Applications` (the disk
+  image, Downloads; a downloaded app then runs from a random read-only copy, "App Translocation", which the app
+  recognises with Security's `SecTranslocate` functions), it first asks "Move Mu The Matrix to your Applications
+  folder?". **Move to Applications** copies it (`ditto`, keeping the signature) to `/Applications`, or to
+  `~/Applications` when `/Applications` is not writable, replaces an older copy (moved to the Trash), removes the
+  download flag from the copy (the player already approved the app; a flagged copy would be translocated again on
+  every start), opens the copy and quits; a disk image is ejected a few seconds later. From the disk image or a
+  translocated copy the other button is **Quit**: nothing is installed from there. From another writable folder it
+  is **Not Now**. `MU_APPLICATIONS_DIR` replaces the target folder (tests, rehearsals); `MU_SKIP_MOVE=1` turns the
+  offer off (development builds started from `build/`).
+- **One window.** If the game is not installed, the only window says "Mu The Matrix needs to download the game
+  (about 2.2 GB) and set itself up. This takes about 45 minutes." with one **Install** button and a small "Use a
+  game folder I already have…" link (copies that folder instead of downloading). No settings window opens behind it.
 - **Rosetta 2.** Before the installer starts, the app checks for Rosetta 2 (`arch -x86_64 /usr/bin/true`). If it is
   missing, it explains what Rosetta is and offers to install it: `softwareupdate --install-rosetta --agree-to-license`
   run through the standard macOS administrator prompt (`osascript … with administrator privileges`). If the player
-  declines or the install fails, the window shows the Terminal command instead. The installer's own Rosetta error
-  leads to the same offer.
-- **Progress.** Step lines read "Step 7 of 14: game files". The app runs the installer with `MUKIT_PROGRESS=lines`,
-  so downloads report `MU-PROGRESS BYTES TOTAL NAME` once a second; the window shows the size so far, the total, the
-  speed (average of the last 20 s) and the time left, and the bar moves within the step. The window title and the
-  Dock icon show the overall percentage. The Mac does not idle-sleep while the installer runs.
+  declines or the install fails, the window says so and offers Try Again; Show Details has the Terminal command.
+- **Progress.** One view: a plain step name ("Getting ready", "Installing components from Microsoft", "Downloading
+  the game", "Installing the game", "Finishing", "Checking that everything works"; `installStepInfo` in
+  `Sources/FirstRun.swift` maps the installer's `== N/M` steps), one overall bar (`InstallProgress`: finished steps
+  count with their estimated time, the running one by elapsed time, the game download by bytes), the download's
+  size, speed and time left (the installer runs with `MUKIT_PROGRESS=lines`, so downloads report
+  `MU-PROGRESS BYTES TOTAL NAME` once a second), and **Cancel**. The window title and the Dock icon show the
+  percentage. The Mac does not idle-sleep while the installer runs.
 - **Cancel.** The installer runs in its own process group (`posix_spawn` with `POSIX_SPAWN_SETPGROUP`). **Cancel >
   Stop**, closing the window or quitting the app sends SIGTERM to the whole group, waits up to 10 s
   (`MU_CANCEL_GRACE`), sends SIGKILL to what is left, then runs `setup-mu-mac.sh --runtime free --stop`: it stops
   this prefix's wineserver (`wineserver -k` with an explicit `WINEPREFIX`; Wine's server leaves the process group)
-  and removes the setup lock. Partial downloads are kept, so **Try Again** continues them; no restart is needed.
-- **Failures** show the installer's last `Error:` line instead of an exit status. Later double-clicks run a preflight check, start the launcher and quit the app. The
-launcher and game keep running. To get the settings window back, hold **⌥ Option** while opening
-the app. It also opens when "Start the game right away" is off, and from the error dialog.
+  and removes the setup lock. Partial downloads are kept, so **Continue** goes on where it stopped.
+- **Failures** show a plain message (not enough space, a download that did not finish, or a general one) with **Try
+  Again** and **Show Details** (the installer's output and **Open Log Folder**).
+- **Done.** "Mu The Matrix is ready", then the app starts the official launcher by itself and quits. Later starts
+  run a preflight check, start the launcher and quit the app; the launcher and game keep running.
+
+The settings window is not part of the first run. It opens from **Mu The Matrix > Settings…** (⌘,), when **⌥ Option**
+is held while opening the app, when "Start the game right away" is off, from an error dialog, and when the app is
+opened while the game runs (to change the FPS counter). Its **Repair…** button opens the same window in repair mode
+(**Repair**, then **Play**).
 
 | Setting | Effect |
 |---|---|
@@ -116,10 +166,9 @@ the app. It also opens when "Start the game right away" is off, and from the err
 | FPS counter | Shows or hides mugl's in-game FPS counter: writes `C:\mutools\mugl-fps.txt` of the selected prefix or bottle at once (`mu-launch.sh --fps-counter on\|off`), so it also works while the game runs. The checkbox mirrors the file. Disabled until the game is installed. Opening the app while the game runs shows this window, so the counter can be changed during play. |
 | Start right away | Off: the window opens on every start. |
 
-**Mu The Matrix > Use Windows Layer File…** (or the checkbox in the Install window) installs a Wine runtime archive the
-player already has, such as the CrossOver 26.3 build (`winecx-26.3.0-mu1.tar.xz`) before it has a public download. The
-installer runs with `--runtime-archive FILE`; on an installed game only the runtime step does work. A file whose SHA-256
-differs from `RuntimeFile.testedSHA256` gets a warning first. Later repairs without a file keep the installed archive runtime.
+Another Wine runtime archive can still be installed from the command line (`--install --runtime-archive FILE`); the
+"Use Windows Layer File…" menu item and checkbox of earlier versions are gone, because the player build bundles the
+runtime.
 
 The settings are stored as an XML plist at `~/Library/Application Support/MuTheMatrix/Launcher.plist`,
 with the keys `Runtime` (string `free` or `crossover`), `Bottle` (string), `FastX87` (bool), `TimewalkerDir` (string, empty = Auto), `Resolution`
@@ -178,9 +227,11 @@ APP="mac-play/bundle/build/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
 "$APP" --dry-run          # preflight plus every planned action (MU-PLAN lines); changes nothing
 "$APP" --status           # free runtime: runtime / prefix / game installed?
 "$APP" --install-dry-run  # the installer's plan (download the official game); changes nothing
-"$APP" --install [DIR]    # install without a window (what the Install window runs); Ctrl-C cancels like Cancel
-"$APP" --install --runtime-archive FILE [DIR]  # same, with a Wine runtime file you already have
-"$APP" --check-bundle     # exit 0 when mugl, the mscoree proxy and fast x87 are bundled (a player build)
+"$APP" --install [DIR]    # install without a window (what the install window runs); Ctrl-C cancels like Cancel
+"$APP" --install --runtime-archive FILE [DIR]  # same, with another Wine runtime file instead of the bundled one
+"$APP" --check-bundle     # exit 0 when mugl, the mscoree proxy, fast x87 and the pinned runtime are bundled
+"$APP" --location         # where the app runs from (translocated?) and whether it is in an Applications folder
+"$APP" --move-to-applications  # the copy step of "Move to Applications" (no dialog, no relaunch)
 "$APP" --fps-counter [on|off]  # show / hide the in-game FPS counter (no argument: print the state)
 "$APP" --rosetta-status   # exit 0 when Rosetta 2 is installed
 "$APP" --install-rosetta  # install Rosetta 2 through the administrator prompt
@@ -188,7 +239,8 @@ APP="mac-play/bundle/build/Mu The Matrix.app/Contents/MacOS/MuTheMatrix"
 ```
 
 The environment variables `MU_SETTINGS_FILE`, `MU_LOG_DIR`, `MUKIT_FREE_HOME`, `CX_ROOT`, `MUKIT_BOTTLES_DIR`,
-`MU_LAUNCH_SCRIPT` and `MU_SETUP_SCRIPT` override the file locations, which the tests use. `MU_CANCEL_GRACE` sets the
+`MU_LAUNCH_SCRIPT`, `MU_SETUP_SCRIPT` and `MU_APPLICATIONS_DIR` override the file locations, which the tests use
+(`MU_RUNTIME_SHA256` replaces the runtime pin for the synthetic tests only). `MU_CANCEL_GRACE` sets the
 seconds between SIGTERM and SIGKILL on a cancel (default 10); `MU_ROSETTA_CHECK` and `MU_ROSETTA_INSTALL` replace the
 Rosetta check and install commands (shell commands; the tests use stand-ins). `mu-launch.sh` also runs on its
 own from a checkout, with the settings in `MU_RUNTIME` (default free; `MU_BOTTLE` alone selects CrossOver), `MU_PREFIX`, `MU_BOTTLE`, `MU_FAST_X87`, `MU_TIMEWALKER_DIR` and
@@ -219,7 +271,19 @@ app and checks:
 - the app's `--print-settings`, `--dry-run` and `--check` with a settings plist, the app log, and the
   fallback for a corrupt plist;
 - `--check-bundle` on the development build (lists what is missing) and on a `make player-app` build with
-  synthetic embeds; `player-app` refusing to build without them or with an incomplete fast x87 folder;
+  synthetic embeds (a synthetic runtime archive with the real layout); `player-app` refusing to build without them,
+  with an incomplete fast x87 folder, with a runtime that is not the pinned build or without its `COPYING.LIB`; the
+  bundled runtime, license and sources note; `--install-dry-run` installing the bundled runtime (no runtime download)
+  and keeping an installed one on a repair;
+- the first run's wiring (move offer first, the install window alone when the game is missing, the game started after
+  the install, no "Use Windows Layer File") and every player-facing text of the install window and the move offer
+  checked for technical words;
+- `--location` and `--move-to-applications`: the copy keeps a valid signature, loses the download flag and replaces
+  an older copy;
+- `dmg/make-dmg.sh`: dry runs (plain, and Developer ID with notarization), argument checks, and a real disk image of
+  the synthetic player app signed with `--sign -`: format ULFO, volume name, app, Applications link, the 1x/2x
+  background, the `.DS_Store` records, the volume icon and its flag, hardened runtime on the app and the x87 wrapper
+  with its entitlements, `hdiutil verify`;
 - `--rosetta-status` and `--install-rosetta` with a stubbed check and install (installed, declined, already there);
 - Cancel with a fake long-running installer that starts children, one of which ignores SIGTERM: the installer leads
   its own process group, Ctrl-C stops all of them (at once, or by SIGKILL after the grace when the installer itself
@@ -232,8 +296,9 @@ or credentials.
 
 The test results and the live check are recorded in `docs/research/mac-crossover-32bit.md`
 (MAC-BUNDLE-001). Known limits:
-- The app is ad-hoc signed and not notarized: players must allow it once (see `../PLAYER-GUIDE.md`). A seamless
-  first start needs an Apple Developer ID and notarization (owner's decision).
+- The app is ad-hoc signed and not notarized: players must allow it once (see `../PLAYER-GUIDE.md`). A first start
+  without that step needs an Apple Developer ID and notarization (`SIGN_IDENTITY`/`NOTARY_PROFILE`, owner's decision;
+  the signed path is tested ad hoc with the hardened runtime, real notarization was not).
 - It is built for the host architecture only.
 - The 4-second watch cannot detect a launcher that fails later; check `wine-BOTTLE.log` in that case.
 - The resolution setting relies on the bottle's mscoree mode proxy, which makes the launcher's list

@@ -446,7 +446,7 @@ EOS
     hasnt 'no Windows layer menu item' "$(cat "$MS")" 'Use Windows Layer File'
     has 'welcome sentence' "$(cat "$MS")" 'Mu The Matrix needs to download the game (about 2.2 GB) and set itself up. This takes \(estimate).'
     # Every player-facing text of the install window and the move offer, checked for jargon.
-    UI=$(sed -n '/^let installStepInfo/,/^\/\/ -* app delegate/p' "$MS" | grep -E 'stringValue = "|messageText = "|informativeText = "|showFailed\(|return \("|^    "[^"]*": \("|panel.message|title: "' | grep -v AppLog)
+    UI=$({ sed -n '/^\/\/ -* install window/,/^\/\/ -* app delegate/p' "$MS"; cat "$BUNDLE_DIR/Sources/FirstRun.swift"; } | grep -E 'stringValue = "|messageText = "|informativeText = "|showFailed\(|return \("|^    "[^"]*": \("|panel.message|title: "' | grep -v AppLog)
     [ -n "$UI" ] && ok 'player-facing texts found' || bad 'player-facing texts found'
     JARGON=$(printf '%s\n' "$UI" | sed -E 's/^    "[^"]*": //' | grep -n -i -E 'wine|dll|mugl|mscoree|runtime|x87|patch|prefix|windows layer|winetricks|\.net|registry|bottle|crossover' || true)
     eq 'no technical words in the install window' "$JARGON" ''

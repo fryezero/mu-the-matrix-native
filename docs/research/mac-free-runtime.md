@@ -7,8 +7,10 @@ can run a 32-bit prefix in wow64 mode, the configuration that works in CrossOver
 
 **Chosen runtime.** CrossOver 26.3.0's Wine, built from CodeWeavers' published sources by
 `mac-play/installer/packaging/build-wine.sh`. It matches CrossOver 26.3 in fps, and with rosetta-timewalker's
-fast x87 it reaches the game's 25 fps cap in the Tormenta boss area. Nobody publishes a build of it yet, so the
-owner has to host the archive (132 MB). Until then the installer uses a public fallback: Sikarugir's build of
+fast x87 it reaches the game's 25 fps cap in the Tormenta boss area. Nobody publishes a build of it, so since
+MAC-DMG-001 the player app bundles the archive (132 MB; `make player-app EMBED_RUNTIME=…`, pinned SHA-256, see
+[`mac-dmg-installer.md`](mac-dmg-installer.md)): players download no runtime and nothing has to be hosted. Without it
+(a development build, or `setup-mu-mac.sh` on its own) the installer uses a public fallback: Sikarugir's build of
 CrossOver 24.0.7's Wine. It works end to end but is about 20% slower, and fast x87 does not work with it.
 
 Environment for every result below: macOS 27.0.1 (26A434), Apple M5, Rosetta 2, 1800x1169 main screen. The
@@ -203,9 +205,9 @@ the owner's decision.
 
 ## Limits and open points
 
-- The CX26 archive needs hosting (a public repository release or the game's own download server), with its URL
-  and SHA-256 set in `lib/mukit.sh`. Until then players get CX24 at about 15 fps in the busy reference scene and
-  25 fps in quiet ones.
+- The CX26 archive is bundled in the player app since MAC-DMG-001, so hosting it is no longer needed. Installs
+  without it (development builds, the setup script on its own without `MUKIT_RT_ARCHIVE_URL`) get CX24 at about
+  15 fps in the busy reference scene and 25 fps in quiet ones.
 - One Mac, one macOS version (27.0.1), one screen size. Apple has said that macOS 27 is the last release with
   full Rosetta 2; later releases keep only a subset aimed at older games. The whole approach, CrossOver
   included, depends on it.
