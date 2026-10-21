@@ -121,6 +121,10 @@ typedef struct mu_world_items {
     const mu_terrain_frustum *frustum;   /* the frame's CreateFrustrum (set by the caller; NULL: all visible) */
     mu_data_table item_table;
     int has_table;
+    /* NATIVE-FIDELITY-001: the set manager's sets (ItemSetType/ItemSetOption + Lang.mpr's legendary and cash
+     * tables), for the name builder's prefix 0x009e0551 */
+    mu_data_table set_type, set_option;
+    struct mu_gi_sets *sets;
     mu_gi_record *records;      /* per code 0..0x2c00, lazily filled */
     uint8_t *record_state;      /* 0 unknown, 1 present, 2 absent */
     char (*record_names)[65];
@@ -210,7 +214,7 @@ int mu_world_items_label_bitmap(mu_world_items *items, const mu_world_item_label
 void mu_world_items_label_blit(mu_world_items *items, const mu_world_item_label *label, uint8_t *frame, int32_t width,
                                int32_t height);
 
-/* Scripted items for headless runs: "F:drop:CODE[:LEVELBYTE[:X,Y]] F:alt F:space F:pick:N F:hover:N" (hover
+/* Scripted items for headless runs: "F:drop:CODE[:LEVELBYTE[:X,Y[:SETBITS]]] F:alt F:space F:pick:N F:hover:N" (hover
  * moves the mouse onto item N's label anchor, pick clicks it). */
 #define MU_WORLD_ITEM_SCRIPT 32
 typedef struct mu_world_item_script_entry {
@@ -219,6 +223,7 @@ typedef struct mu_world_item_script_entry {
     int32_t a, b;
     float x, y;
     int has_xy;
+    int32_t ancient;            /* drop: item +0x3b (set bits), the optional field after X,Y */
 } mu_world_item_script_entry;
 typedef struct mu_world_item_script {
     mu_world_item_script_entry items[MU_WORLD_ITEM_SCRIPT];

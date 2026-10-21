@@ -710,7 +710,7 @@ static void item_script(app *a, int32_t frame)
         if (!strcmp(e->verb, "drop")) {
             const float *h = w->hero.position;
             float x = e->has_xy ? e->x * 100.0f + 50.0f : h[0] + 150.0f, y = e->has_xy ? e->y * 100.0f + 50.0f : h[1];
-            mu_world_items_drop(a->ground, e->a, e->b < 0 ? 0 : e->b, 0, 0, e->a == MU_GI_CODE_ZEN ? 1234 : 0, x, y, 1);
+            mu_world_items_drop(a->ground, e->a, e->b < 0 ? 0 : e->b, 0, (uint8_t)e->ancient, e->a == MU_GI_CODE_ZEN ? 1234 : 0, x, y, 1);
         } else if (!strcmp(e->verb, "alt")) {
             mu_world_items_alt(a->ground);
         } else if (!strcmp(e->verb, "space")) {
@@ -2282,7 +2282,7 @@ static int usage(void)
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
-                    "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y]] F:alt F:space F:hover:N F:pick:N\"]\n"
+                    "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--npc] [--npc-demo FILE] [--npc-script \"F:click:ACTOR F:buy:SLOT F:close ...\"]   NPC talk (demo server)\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"

@@ -75,7 +75,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/environment/env_leaves.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
-             $(RECON)/items/ground_items.c \
+             $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c \
              $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
