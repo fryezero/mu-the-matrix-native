@@ -618,14 +618,170 @@ Local renders (`~/Documents/mu-mac-tools/native/renders/charsel3/`): `shell-lang
 objects, 1722×1048), `client-gl/` (mu-client headless GL, whole flow), `dragon/` and `dragon-strip.png`,
 `list-live-vs-native.png`.
 
+## 11. Creating and deleting characters, the system menu (NATIVE-CHARCREATE-001)
+
+Labels as above: **verified** = the client's instructions ran in Unicorn and matched the reconstruction, **static** = decoded
+instructions read, **observed** = run on this Mac (mu-shell, headless GL) with the converted client movies under the patched
+Ruffle. OFFLINE DEMO marks what the server decides and the native client answers locally.
+
+### The create panel is part of CharacterSelect (verified)
+
+The create panel is the movie's `mcCharacterCreate` (sixteen class buttons, the stats, the description, the name box, OK and
+Cancel). Its game side is the CharacterSelect window (GFx manager `+0x22c`), `reconstructed/charsel/charcreate.c`:
+
+| Routine | What it does |
+|---|---|
+| `0x00b49bf4`(flag) | `+0x78` = flag; open: focus; closed: `SetClassInfo(1)`; `SetCreateVisible(flag)`; the list's show(!flag) (`0x00b4b848`) |
+| `0x00b4b684` | the rename mode's class restriction: the body (SetClassDisable for all but the character's class, ExplainChangeName) sits behind an unconditional `jmp` — **dead code** in this client |
+| `0x00b4a442`(class) | preview `+0x12` = class; CreateCharacter(`0x0a39d780`, **model 0x135 + class**, 0, 0, 0.0); object `+0x3b`, `+0x03` = 0; the pose `0x00b4a4a1`; SetAction(object, 1) |
+| `0x00b4a4a1` | per class (jump table `0x00b4aeb1`): the window's camera offset `+0xb4`, the object's angle `+0x164` (class 6 keeps CreateCharacter's) and scale `+0xa0`; table below |
+| `0x00b4a349`(x, y, w, h) | the preview rectangle `+0x88..+0x94` = window origin + movie point × window scale (truncated); the origin getters `0x00aae509`/`0x00aae601` (alignment modes 0..8) run as client code |
+| `0x00b49eca`(name, class) | in this order: `+0x7c ≥ +0x80` (daily count) → GT 0x1832; size < 4 → GT 0x186; `0x00b4b29d` (the name tables) → GT 0x6b3; `0x00cdb9af` (characters) → GT 0x187 — each a message box id 0x64; rename mode (`+0x9c == 1`) → the rename request `0x009a4708`(old, new); else protocol state 0x34 and the create request `0x009a466c` with the name (10 bytes) and **(preview class << 4) + skin** (the movie's class argument is not read) |
+| `0x00b4b29d` | FilterName(kor) `0x06fbacd0` (`0x0110cb45`: any word found in the name) or Filter(kor) `0x06fbac88` (`0x0110c9f2`: the name without spaces `0x0110c960`, each word by `0x0185c95d`, which steps by `_mbclen`) |
+| `0x00cdb9af` | single-byte characters: only `0-9 A-Z a-z`; double-byte (CP949 lead bytes): lead 0x81..0xc8, trail A-Z/a-z/0x81..0xfe, not the symbol rows (lead 0xa1..0xaf with trail ≥ 0xa1), not lead 0xc6 trail 0x53..0xa0, not lead 0xc7/0xc8 trail ≤ 0xa0 |
+| `0x00b4b31a` | UpdateInput: at 10 bytes or more the text is cut to 10 (`resize(10)`) and sent back with SetCharacterName |
+| `0x00b49d0d`(created, limit) | `+0x7c`/`+0x80`; UpdateCreateCount(GT 0x1831 "Daily Character Creation Limit: %d left" with limit − created) |
+| `0x00b4b2d6`, `0x00b4bf25`, `0x00b4c806`, `0x00b49c82`, `0x00b49ca0` | reset (SetInputExplainVisible(1), SetCharacterName(""), SetClassInfo(1)); the list row (0..10, else 0); `+0x98`; the pending delete `+0x98`/`+0x79` |
+| `0x00b49cd7` → `0x00b4a14c` | the window's render hook: while the panel is open, the preview: the animation step `0x013960d2` (at its end SetAction(0)), light (1, 1, 1), CameraFOV 10, the camera walk `0x01854879`(object position, (5, −500, 46) − offset, angle (−90, 0, 0)), **BeginOpengl2 `0x0184b27e`(rect)** (viewport in window pixels, gluPerspective2(FOV, w/h, near, far × 1.4), the camera rotations), RenderObject(object, 1, 0, 0, −1, −1), the viewport back |
+
+The class table of InitClassInfo (NATIVE-CHARSEL-003) gives each button a ClassType; the movie calls `SetSelectedClass(ClassType)`.
+`OpenCharacterSceneData` (`0x0182a74d`, static) loads `Data\Logo\NewFace01..16.bmd` as models 0x135..0x144 (textures from `Logo\`)
+and sets the PlaySpeed of actions 0 and 1 to 0.3 (0.25 for model 0x13a action 0); the animation step's per-model factors for
+0x135..0x144 are NATIVE-ACTORS' verified ones. The busts carry the class's look; no items are shown.
+
+The pose table (`--emit-poses`, executed): camera offset / angle / scale
+
+| Class | Offset | Angle | Scale | Class | Offset | Angle | Scale |
+|---|---|---|---|---|---|---|---|
+| 0 DW | 0, 0, 0 | 0, 0, −40 | 4.9 | 8 RW | 10.8, 0, 2.8 | 8, 0, −2 | 8 |
+| 1 DK | 0, 0, 0 | 0, 0, −12 | 5 | 9 Slayer | 10.8, 0, −1 | 1, 0, −2 | 8 |
+| 2 Elf | 4.8, 0, 0 | 8, 0, 5 | 8 | 10 Gun Crusher | 10.8, 0, −1 | 1, 0, −2 | 5.2 |
+| 3 MG | 0, 0, 4.8 | 8, 0, −13 | 5 | 11 Light Wizard | 14.8, 0, 5 | 1, 0, −2 | 7.6 |
+| 4 DL | 0, 0, 0 | 8, 0, −18 | 5.1 | 12 Mage | 10.8, 0, 4 | 1, 0, −2 | 0.078 |
+| 5 Summoner | 4.8, 0, 0 | 2, 0, 2 | 8 | 13 Illusion Knight | 10.8, 0, 0 | 1, 0, −2 | 8.6 |
+| 6 RF | 2, 0, −7.5 | (kept) | 5.1 | 14 Alchemist | 14.8, 0, 0 | 1, 0, −2 | 7.6 |
+| 7 GL | 4.8, 0, −2 | 8, 0, −2 | 8 | 15 Crusader | 12.8, 0, −23 | 1, 0, −2 | 0.19 |
+
+Which classes are offered: all sixteen buttons are enabled (`CanNotBeCreated` false in InitClassInfo, NATIVE-CHARSEL-003);
+account requirements are the server's (its answer 0 / 2 / 5, below). The daily count comes with the server's character list
+(not traced).
+
+### The server's answers (verified)
+
+* **Created** `0x0122b648`: result 1 → the slot's character released (`0x0137c457`), CreateHero(slot, `0x0139ca62`(class code),
+  preview skin, 0, 0, 0) — x/y/angle are 0 for slots 0..4 and uninitialised locals otherwise —, level `+0x144`, class `+0x12`,
+  the name (10 bytes), SetCharacterPosition, protocol state 0x35, the panel reset and closed, UpdateDisplay, the list row = the
+  slot, **InitCharacterScene = 0** (CreateCharacterScene runs again on the next tick) and UpdateCreateCount(packet +0x2c, +0x2b).
+  Result 0 → the panel stays, GT 0x6b4 ("Incorrect name was entered or same character name exists."); 2 → closed, GT 0x18c; 5 →
+  GT 0x179b.
+* **`0x0139ca62`**: class byte = bit 3 → 0x10, bits 4..7 → 0..3, bit 2 → 0x20, bit 1 → 0x40, bit 0 → 0x80 (all 256 codes).
+* **Deleted** `0x012326c4`: result 1 → the `+0x98` character released, the selected one's effects cleared, SelectedHero −1,
+  GT 0x6b2 (message 0x77: OK reopens the panel when characters 0..4 are all gone), InitCharacterScene = 0, row 0; 0 → GT 0x676,
+  3 → GT 0x1b7, other → GT 0x191 ("The password you have entered is incorrect."); then `+0x98` = −1, `+0x79` = 0.
+
+### The delete flow and the message boxes (verified; the Caution window static)
+
+CCharSelMainWin's Delete (NATIVE-CHARSEL-001, verified there) asks with GT 0x6b0 "Would you like to delete %s character?" as
+message 0x65 and marks the slot (`0x00b49c82`). The window's message results `0x00b49967`: 0x65 OK → 0x66 (GT 0xea7 + "\n" +
+GT 0xea8, "You cannot restore a deleted character!"); 0x66 OK → 0x67, the password box (`0x00b3974a`, 20 characters, GT 0x6b1);
+0x67 OK → the delete request `0x00b4a0da` (state 0x38, the selected character's name and the password); any Cancel closes the
+box (`0x00b399db`); 0x64 (a create error) OK reopens the panel.
+
+The boxes are the **Caution** movie (GFx manager `+0x90`). Static reading of its queue (`0x00b38f50`) and display
+(`0x00b390a9`): SetUIType(type, title, text, text type), SetDisableOkBtn(0), InitCaution(OK GT 0xe4, Cancel GT 0xe5), and for
+the input types SetInputBoxLength and SetInputFocus; the wrappers set the type: `0x00b39648` 0 (two buttons), `0x00b3967c` 1
+(OK), `0x00b39714` 3 (input), `0x00b3974a` 4 (password). The movie's OnClickBtnOK / OnClickBtnCancel reach the owner's result
+handler through `0x00b39912`; its onClickCautionInputCancel (any release outside the password field) only moves the IME focus
+(`0x00b3aadd`), it is not a cancel.
+
+### Class names (verified)
+
+`0x0139cc2e`(class, flag) switches on the skin index (`(tier − 1) · 16 + class & 0xf`). Executed for all 256 class bytes and both
+flags: codes **9/25/41/57 → GlobalText 5526..5529** (Slayer, Royal Slayer, Master Slayer, Slaughterer) and **10/26/42/58 →
+5786..5789** (Gun Crusher, Gun Breaker, Master Gun Breaker, Heist Gun Crusher) through the `std::string` accessor `0x011753c3`;
+codes with no case (19, 20, 22, 23) give the default GT 2305; with flag 0, codes 11 and 12 give 0x1750/0x1751 instead of
+5914/5923. The native list now uses this table. The class models of 9 and 10 are the ordinary part files (`HelmClass10/11`
+…, `mu_character_part_file`) and NewFace10/11 for the preview.
+
+### The system menu (verified, the window loader static)
+
+Esc in the scene tick (verified, section 6) and the Menu button call `0x00c8c8b1`: open (`openWindow` on the KeyWindow) and
+`0x00c8ce3d(0)` (scene 5: CCharSelMainWin's Show(0) and the list's show(0)), or the reverse. The window is
+**winSystemMenu** (`window.winSystemMenu`, a KeyWindow of the base movie's window framework). Its events `0x00c8c6be`:
+onLoad → InitText {tfTitle GT 0xd7a, btnExit 0x17d, btnServerSelect 0x17e, btnCharSelect 0x17f, btnOption 0x181, btnClose
+0x3ea}, SceneChange(SceneFlag), closeWindow; onClose → closeWindow and the scene's windows back; onExit → (after `0x00c8cbe2`,
+which saves the macros) the list order to the server (`0x00b4c117`/`0x00b4c6ce`), the countdown box GT 0x17c with 5 and the
+logout request `0x009a5ab2(0)`; onServerSelectClick → `0x009a5ab2(2)`; onCharSelectClick → `(1)`; onOptionClick → the option
+window (`0x01d22c7c`) opens.
+
+### Verification
+
+`scripts/validate_charcreate.py --cases 300 --mutations` (Unicorn, the routines pinned by SHA-256 in
+`validate_charcreate.pins.json`; GlobalText "GT<n>", the CRT string routines, the formatter, the string stream, the packet
+objects and the code page modelled):
+
+| Family | Client entry | Cases | Mismatches |
+|---|---|---:|---:|
+| show / restrict / klass / board | `0x00b49bf4` / `0x00b4b684` / `0x00b4a442` / `0x00b4a349` | 4 × 300 | 0 |
+| name (105 create requests, 13 renames, 167 refusals; SBCS and CP949) | `0x00b49eca` | 300 | 0 |
+| input / count | `0x00b4b31a` / `0x00b49d0d` | 2 × 300 | 0 |
+| created / message / deleted | `0x0122b648` / `0x00b49967` / `0x012326c4` | 3 × 300 | 0 |
+| render (202 previews drawn) | `0x00b49cd7` | 300 | 0 |
+| menu (toggle, scene windows, all events) | `0x00c8c8b1` / `0x00c8ce3d` / `0x00c8c6be` | 300 | 0 |
+| classname / serverclass | `0x0139cc2e` / `0x0139ca62` | 512 / 256 | 0 |
+
+4,368 cases, 0 mismatches; 6 of 6 planted mistakes detected (the code page, the two name tables swapped, the camera offset,
+the server's class code, the window scale, the menu's scene). The comparison found two mistakes of mine: the rename request's
+argument order, and class 6's pose (it leaves the angle).
+
+### Native (observed)
+
+`native/charsel/charsel_create_gfx.c`, owned by the GFx list (mu-client/mu-shell `--gfx DIR`; convert `CharacterSelect`,
+`Caution` and `winSystemMenu` with `gfxconvert.py --bridge`):
+
+* the panel's callbacks run the reconstruction; the window's slot `+0x10` (`0x00b496d4`, static) asks the movie for
+  SetCreateBoardInfo after UIInit;
+* the preview: the class's NewFace model with the pose's angle and scale, the intro action 1 then action 0, drawn by the software
+  rasteriser into the panel's rectangle over the frame (GL blends against the framebuffer) under BeginOpengl2's matrices
+  (`reconstructed/camera`); in both the software and the GL front end;
+* the name tables: `scripts/live_lang_filters.py SNAPSHOT DIR` writes `filter.txt` (10 words) and `filtername.txt` (45 words)
+  from the Lang snapshot of NATIVE-LANG-001; the native client assumes a single-byte ANSI code page (the English setup), so only
+  ASCII letters and digits pass;
+* the Caution boxes and winSystemMenu are two more libmugfx players (the menu window attached as the window loader does,
+  `onFileLoad` once its first frame ran; the timeline's own instance hidden);
+* **OFFLINE DEMO** (`client/offline-session.*`): the create request is answered from the local character list — the first free
+  slot of 0..9, level 1, class byte = `0x0139ca62`(class << 4), result 0 for a name already used (case-insensitive), 2 with no
+  free slot, a daily count of 5 —, the delete request deletes without checking the password (which is never stored or
+  logged), the menu's Select Server returns to the server list at once and Exit quits after the countdown box. The list is
+  kept in a store file (`--store FILE`; the window defaults to
+  `~/Library/Application Support/MuTheMatrixNative/offline-characters.txt`, headless runs keep it in memory, `--no-store`);
+  after an answer the scene is created again (InitCharacterScene = 0) while the GFx windows stay;
+* the session takes all ten slots (`MU_CHARSEL_MAX_ENTRIES` 10), CCharSelMainWin's Connect enters, Create and Delete start the
+  flows; the scene tick reads the panel's `+0x78`/`+0x79` (Enter is ignored while the panel or a box is open);
+* scripted input: `click:create|delete|menu|connect`, `click:class:N`, `click:createname`, `click:createok|createcancel`,
+  `click:msgok|msgcancel|msginput`, `click:menu:exit|server|option|character|close`, with `text:` for typing.
+
+Local renders (`~/Documents/mu-mac-tools/native/renders/charcreate/`, not committed): `class-previews.png` (the sixteen busts in
+their panel), `try4/` (a Slayer created and listed), `try5/` (delete flow: confirmation, warning, password, success; the menu),
+`client-gl/` (mu-client headless GL at 1722×1048, an Illusion Knight created).
+
+### Tests
+
+* Portable: `reconstructed/charsel/test_charcreate.py` (name rules and filters in both code pages, the request, the pose, the
+  board and render, the created answer, the delete flow, class names, the menu), `native/tests/test_native_shell.py`
+  `CharacterCreateTests` (the stand-in libmugfx now plays the panel, Caution and winSystemMenu: create through the panel with a
+  synthetic NewFace10, name refusals with synthetic tables, the delete flow (the password reaches no file), cancel/Esc, the
+  menu's Select Server and Exit, the store across runs and an empty store).
+* Private (`MU_RECOVERY_INTEGRATION=1`): `validate_charcreate.py` through `test_charcreate.py`.
+
 ## Open points
 
 * The effect `0x59a`; the particle kinds `0x802a` 1 and smoke01 0x45 (their emitter types 0x45 and 0x50 are not placed
   in World94); RenderEffects' 0x5ad case and RenderPartObject's box are static readings.
 * The objects' animation PlaySpeeds (no World94 handler sets any); `0x009a5029`'s checks.
-* The create-character panel (`0x00b49bf4`, `0x00b4b684`, the class buttons' handlers) and the menu; codes 9 and 10 of
-  the class-name switch.
+* The Caution window's queue and display code and its button handler `0x00b39912` (static readings); the Option window; the
+  create panel against a live capture (bust placement); the server's character-list handler (the daily counts).
 * RenderCharacter's scene-5 light branches, and which of them the hero pointer selects.
-* The GFx create, menu and message interfaces; the server-message window `+0x63a8`.
+* The server-message window `+0x63a8`.
 * The list handler's equipment decoding (packet data, deliberately not traced).
 * GlobalText (`Data\Lang.mpr`) for the tip and warning strings.

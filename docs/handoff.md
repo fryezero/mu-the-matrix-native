@@ -10,6 +10,17 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Character creation, deletion and the menu (NATIVE-CHARCREATE-001)
+
+Read section 11 of [`research/client-character-select.md`](research/client-character-select.md). `reconstructed/charsel/charcreate.c`
+is the create panel, the delete flow and winSystemMenu's game side (compare with `scripts/validate_charcreate.py --cases 300
+--mutations`, about a minute, Unicorn; `--emit-poses` prints the NewFace pose table). `native/charsel/charsel_create_gfx.c` plays it
+in mu-client/mu-shell `--gfx` (CharacterSelect, Caution.swf, winSystemMenu.swf; convert them with `gfxconvert.py --bridge`), the
+name tables come from `scripts/live_lang_filters.py` (filter.txt, filtername.txt in `MU_LANG_DIR`). OFFLINE DEMO answers: a local
+store (`--store FILE`, the window defaults to `~/Library/Application Support/MuTheMatrixNative/offline-characters.txt`). Renders
+stay local (`~/Documents/mu-mac-tools/native/renders/charcreate/`). Next: a live capture of the panel (bust placement), the
+Caution window's own queue/display code in Unicorn, the Option window (winOption), the rename mode if a server uses it.
+
 ## Character-select picking and GFx list (NATIVE-CHARSEL-003)
 
 Read section 10 of [`research/client-character-select.md`](research/client-character-select.md). `reconstructed/charsel/charsel_gfx.c`

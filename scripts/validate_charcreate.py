@@ -829,6 +829,11 @@ def make_args(g, family, case):
     if family == 'board':
         return {'rect': [g.randrange(-100, 1500) for _ in range(4)]}
     if family == 'name':
+        if g.random() < 0.4:   # names that pass every check reach the create / rename requests
+            case['window']['created'], case['window']['limit'] = 0, 5
+            case['filter'], case['filter_name'] = [b'zzz'], [b'GM']
+            return {'name': g.choice([b'Nighty', b'Abcd', b'Z9z0x', b'Ten1Letter', b'\xb0\xa1\xb0\xa2Kim']),
+                    'class': g.randrange(16)}
         name = g.choice(NAMES)
         if g.random() < 0.2:
             name = bytes(g.choice(b'abcXYZ019 _\xb0\xa1\xc7\xa2') for _ in range(g.randrange(0, 14)))
