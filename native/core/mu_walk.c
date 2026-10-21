@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../reconstructed/renderchar/renderchar.h"
+
 /* ---- camera record ---- */
 
 static int same_text(const char *a, const char *b, size_t n)
@@ -489,6 +491,14 @@ int mu_walk_place(const mu_walk *w, mu_character *character)
         character->params.position[k] = w->hero.position[k];
         character->params.angles[k] = w->hero.angle[k];
     }
+    /* RenderCharacter's light block 0x01367530 (NATIVE-FIDELITY-001, verified): the hero's parts are drawn with
+     * (1, 1, 1) tinted by the bits of Hero +0x1a6 (0x01d1df1c, set by the state packet handler 0x012474bc), not
+     * with the terrain light. No server sends that state here: the bits are 0 and the light is (1, 1, 1), as the
+     * live read of NATIVE-LIGHT-001 showed. */
+    mu_rc_light_in hero_light = {6, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0xa91, 0, 1, 0};
+    float light[3];
+    if (mu_rc_character_light(&hero_light, light) == MU_RC_OK)
+        memcpy(character->params.light, light, sizeof light);
     return mu_character_update(character);
 }
 

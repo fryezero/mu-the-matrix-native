@@ -138,3 +138,11 @@ void mu_env_leaf_mask(uint8_t out[MU_ENV_LEAF_BYTES])
     for (size_t i = 0; i < sizeof leaf_fields / sizeof leaf_fields[0]; ++i)
         memset(out + leaf_fields[i].client, 1, leaf_fields[i].size);
 }
+
+/* RenderObject's body light 0x017ec3d8 under ObjectInit's +6 = +7 = 1 (see env.h). */
+void mu_env_body_light(const mu_env_object *o, const float frame_light[3], float color[3], uint8_t *lighting)
+{
+    *lighting = o->flag_05;                          /* model +0x50 = object +5 */
+    for (int k = 0; k < 3; ++k)
+        color[k] = frame_light[k] + o->light[k];     /* +6 set: no 0.1 factor */
+}

@@ -403,3 +403,12 @@ int32_t mu_env_test_offset(int32_t which)
     default: return -1;
     }
 }
+
+/* NATIVE-FIDELITY-001: the body light of boid (which 0) or fish (which 1) `index` (mu_env_body_light). */
+void mu_env_test_body_light(void *session, int32_t which, int32_t index, const float frame_light[3], float color[3],
+                            uint8_t *lighting)
+{
+    mu_env_test_session *s = session;
+    const mu_env_object *o = which ? &s->env.fishs[index] : &s->env.boids[index];
+    mu_env_body_light(o, frame_light, color, lighting);
+}

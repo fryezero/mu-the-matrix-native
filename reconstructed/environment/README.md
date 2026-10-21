@@ -21,3 +21,6 @@ scripts/validate_environment.py --text "$MU_CLIENT_TEXT" --data "$MU_IMAGE_DATA"
 ```
 
 Build with `-ffp-contract=off`: the float arithmetic follows the client's binary32 order.
+
+`mu_env_body_light` (NATIVE-FIDELITY-001) is RenderObject's body light `0x017ec3d8` on an environment object under
+ObjectInit's flags; `scripts/validate_fidelity.py --sections env_light` compares it with the client.

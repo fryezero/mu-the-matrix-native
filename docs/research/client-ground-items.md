@@ -251,5 +251,8 @@ voices, space pick-up).
 - **Static only.** The addItem HTML and anchor, the per-frame label loop, setItemView and the Alt toggle,
   SelectObjects, MoveHero's pick-up case and the request packets, the answer and delete handlers, the space-bar
   pick-up, ClearItems, the AS layout.
-- **Not reproduced.** The pentagram/errtel lookups of CreateItem; the set-item prefix `0x009e0551` and set tier table; the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for item models;
+- **Closed by NATIVE-FIDELITY-001** ([client-fidelity.md](client-fidelity.md)): the set-item prefix `0x009e0551`
+  (verified), the "set tier" (PentagramOption `0x011447ac`), the suffix spacing (GlobalText 176–178), the special
+  models' files (the loader `0x0183220e`, verified).
+- **Not reproduced.** The pentagram/errtel lookups of CreateItem; the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for item models;
   the inventory side of a pick-up (NATIVE-GFX-003's interface is not fed).

@@ -160,3 +160,36 @@ typedef struct mu_rc_call {
 } mu_rc_call;
 
 int mu_rc_character_plan(const mu_rc_character *c, mu_rc_call *out, int32_t capacity, int32_t *count);
+
+/* ---- the character light (NATIVE-FIDELITY-001) ----
+ * RenderCharacter 0x01363260 writes the light its body parts are drawn with
+ * (character +0x1b8, passed to every part's RenderPartObject) in the block
+ * 0x01367530..0x01367d85:
+ *   base = scene state 5 ? (0.4, 0.4, 0.4) : RequestTerrainLight 0x016cb08d at the
+ *          object position (the frame light, no 0.1 factor)
+ *   light = base + object light (+0xec)
+ *   object type (+0x5c) 0x7dc: light = (0.6, 0.6, 0.6)
+ *   else when 0x0139bcdc(character +0x146) holds (monster indices 0x211..0x21b, 0x349..0x34c,
+ *        0x371..0x373, 0x3c1, 0x3d5): a red fading glow with particles (MU_RC_UNSUPPORTED here)
+ *   the hero (character == [0x0a39d754]):
+ *     L = (1, 1, 1); for each bit of Hero +0x1a6 ([0x01d1df1c], set by the
+ *     state packet handler 0x012474bc): bit 0 L *= (0.9, 0.5, 0.5), bit 1 (0.5, 0.9, 0.5),
+ *     bit 2 (0.9, 0.5, 0.5), bit 3 (0.9, 0.5, 0.5) (in that order, binary32)
+ *     scene state 5: light = (0.5, 0.5, 0.5) + object light; otherwise light = L.
+ * Later branches of RenderCharacter (the class-1 world rule 0x0136a06b, the PK colour
+ * 0x0136ac25, the slot loop) rewrite the light for their cases; they are outside this
+ * function. */
+typedef struct mu_rc_light_in {
+    int32_t scene_state;        /* [0x01d1df70] */
+    float terrain_light[3];     /* RequestTerrainLight 0x016cb08d(x, y) (used when scene state != 5) */
+    float object_light[3];      /* object +0xec */
+    int32_t model_type;         /* object +0x5c */
+    int32_t class_index;        /* character +0x146 (word, sign-extended) */
+    int32_t is_hero;            /* character == [0x0a39d754] */
+    uint8_t ability;            /* Hero +0x1a6 */
+} mu_rc_light_in;
+
+/* 1 when 0x0139bcdc(index) holds (the glow branch of the block). */
+int mu_rc_light_glow_class(int32_t index);
+/* MU_RC_OK with out = character +0x1b8 after the block, or MU_RC_UNSUPPORTED (glow branch). */
+int mu_rc_character_light(const mu_rc_light_in *in, float out[3]);

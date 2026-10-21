@@ -1575,3 +1575,28 @@ NATIVE-ITEMS-001 (branch `claude/native-items`) reconstructs the client's items 
   models' files; use NATIVE-LANG-001's EnchantEffect colours for the item glow.
 * A short live check of label colours and drop sizes when a safe spot with drops is available.
 
+
+## Fidelity pass: lights, item models, item labels (NATIVE-FIDELITY-001)
+
+Branch `claude/native-fidelity`. Read [`research/client-fidelity.md`](research/client-fidelity.md).
+
+**What.** `mu_rc_character_light` (RenderCharacter's light block), `mu_env_body_light` (RenderObject's body light on
+the ambient creatures), `mu_hud_object_screen` (RenderObjectScreen: Player pose and per-group height for armour,
+InvenItemAnimation, the `0x26f2` remap), `reconstructed/items/item_sets` (the set manager and its prefix lookup),
+`special_models.h` (the item-model loader's AccessModel calls); `scripts/live_lang_to_plain.py` writes
+`pentagram.tsv`, `invenanim.tsv`, `legendary.tsv`, `cashsets.tsv`, loaded by `native/core/mu_lang`. Wired into the
+hero (`mu_walk_place`), `mu_env.c`, `world/world_gfx_game.c` and `mu_items.c` (labels go through the shared
+`core/mu_label` path). `--item-script` drops take an optional set-bits field.
+
+**Checks.** `scripts/validate_fidelity.py --sections env_light,object_screen,special_models,lang_tables,set_prefix
+--game-root "$MU_GAME_ROOT" --snapshot "$MU_LANG_SNAPSHOT"` and `scripts/validate_renderchar.py ... --sections light`
+(Unicorn, `tools/python`): 9,398 cases, 0 mismatches over six families (hero light 855, creatures 226, RenderObjectScreen 3,000, special models 45, Lang lookups 370, set prefix 4,902), every negative control detected. `native/tests/test_native_fidelity.py` (portable; private parts with
+`MU_RECOVERY_INTEGRATION=1`, `MU_GAME_ROOT`, `MU_LANG_SNAPSHOT`). Renders are local in
+`~/Documents/mu-mac-tools/native/renders/fidelity/`.
+
+**Next.**
+
+* The glow branch of the light block (`0x0139bcdc` classes) and RenderCharacter's later light rewrites (PK colour).
+* The hero pointer in character select (scene 5's 0.5 + object light).
+* RenderItem3D's 27 special codes, so the remaining special models reach the inventory.
+* A live label check with an ancient item when a safe spot with drops is available.

@@ -21,3 +21,14 @@ make -C reconstructed/items
 
 Engine services (terrain height and light, rand, sin, sqrt, Item.bmd records, GlobalText, sounds, the label window)
 are callbacks; nothing here reads game data.
+
+NATIVE-FIDELITY-001 adds `item_sets.{h,c}` (the set manager's build `0x009de132`/`0x009debe4` and the prefix lookup
+`0x009e0551`) and `special_models.h` with `mu_gi_special_model_file` (the item-model loader `0x0183220e`'s
+AccessModel calls). Regenerate the header and compare both with the client:
+
+```sh
+./tools/python/bin/python scripts/validate_fidelity.py --sections special_models --emit-special-models \
+    reconstructed/items/special_models.h
+./tools/python/bin/python scripts/validate_fidelity.py --sections set_prefix --game-root "$MU_GAME_ROOT" \
+    --snapshot "$MU_LANG_SNAPSHOT"
+```

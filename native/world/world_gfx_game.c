@@ -19,12 +19,15 @@
 #endif
 
 #include "../core/mu_bmd.h"
+#include "../core/mu_character.h"
+#include "../core/mu_lang.h"
 #include "../core/mu_hud.h"
 #include "../core/mu_model.h"
 #include "../core/mu_renderchar.h"
 #include "../core/mu_scene.h"
 #include "../core/mu_textures.h"
 #include "../viewer/gl_backend.h"
+#include "../../reconstructed/items/ground_items.h"
 
 /* Item render info scale factor (NATIVE-HUD-001's authored calibration of
  * itemtrsdata's 0.001..0.004 scales to the client's pixel-orthographic pass). */
@@ -33,7 +36,13 @@
 
 typedef struct item_model {
     int32_t code;
+    int32_t type;               /* the drawn model type (code + 0xae6, or RenderObjectScreen's remap) */
     int state;                  /* 0 unused, 1 loaded, -1 failed */
+    int armour;                 /* skinned against the Player mannequin's shared bones */
+    /* the item's animation state (item +0x108) for InvenItemAnimation codes: prior action +2, frame +4,
+     * prior frame +8 (RenderObjectScreen's tick advances it) */
+    uint16_t anim_prior_action;
+    float anim_frame, anim_prior_frame;
     mu_hud_item info;           /* record, model path, size */
     mu_bmd bmd;
     mu_model model;
@@ -49,6 +58,8 @@ struct wg_items {
     mu_hud_trs_table trs;
     int have_trs;
     item_model models[MAX_MODELS];
+    mu_character *mannequin;    /* the Player model RenderObjectScreen poses armour parts on */
+    int mannequin_failed;
     double time_ms;
     long drawn, missing, icons;
     GLuint fbo, color, depth;
@@ -89,6 +100,10 @@ void wg_items_close(wg_items *w)
         return;
     for (int i = 0; i < MAX_MODELS; i++)
         model_free(&w->models[i]);
+    if (w->mannequin) {
+        mu_character_free(w->mannequin);
+        free(w->mannequin);
+    }
     if (w->have_items)
         mu_data_free(&w->items);
     if (w->have_trs)
@@ -114,13 +129,36 @@ void wg_items_counts(const wg_items *w, long *drawn, long *missing, long *icons)
     *icons = w ? w->icons : 0;
 }
 
-/* The model of an item code, loaded once (Item.bmd record -> model file,
- * NATIVE-DATA-002's model getter; textures with the effect specials). */
-static item_model *model_for(wg_items *w, int32_t code)
+static int is_armour_type(int32_t type)
+{
+    return type >= 0x18e6 && type < 0x22e6;   /* RenderObjectScreen poses the Player model 0xa91 for these */
+}
+
+static mu_character *mannequin(wg_items *w)
+{
+    if (w->mannequin || w->mannequin_failed)
+        return w->mannequin;
+    char path[2048], error[256];
+    snprintf(path, sizeof path, "%s/Data/Player/Player.bmd", w->root);
+    mu_model_params p;
+    mu_model_default_params(&p);
+    w->mannequin = calloc(1, sizeof *w->mannequin);
+    if (!w->mannequin || mu_character_init(w->mannequin, path, &p, error, sizeof error)) {
+        free(w->mannequin);
+        w->mannequin = NULL;
+        w->mannequin_failed = 1;
+    }
+    return w->mannequin;
+}
+
+/* The model of an item code drawn as `type`, loaded once (Item.bmd record -> model file, NATIVE-DATA-002's
+ * model getter; models outside Item.bmd from the item-model loader 0x0183220e's table, NATIVE-FIDELITY-001;
+ * textures with the effect specials). */
+static item_model *model_for(wg_items *w, int32_t code, int32_t type)
 {
     item_model *free_slot = NULL;
     for (int i = 0; i < MAX_MODELS; i++) {
-        if (w->models[i].state && w->models[i].code == code)
+        if (w->models[i].state && w->models[i].code == code && w->models[i].type == type)
             return w->models[i].state == 1 ? &w->models[i] : NULL;
         if (!w->models[i].state && !free_slot)
             free_slot = &w->models[i];
@@ -130,6 +168,7 @@ static item_model *model_for(wg_items *w, int32_t code)
     item_model *m = free_slot;
     memset(m, 0, sizeof *m);
     m->code = code;
+    m->type = type;
     m->state = -1;
     mu_hud_inventory *scratch = malloc(sizeof *scratch);
     if (!scratch)
@@ -139,7 +178,14 @@ static item_model *model_for(wg_items *w, int32_t code)
     if (k >= 0)
         m->info = scratch->items[k];
     free(scratch);
-    char error[256];
+    char error[256], special[256];
+    if (type != code + 0xae6 && mu_gi_special_model_file(type, special, sizeof special)) {
+        snprintf(m->info.model_path, sizeof m->info.model_path, "%s/%s", w->root, special);
+        for (char *c = m->info.model_path; *c; ++c)
+            if (*c == '\\')
+                *c = '/';
+        k = 0;
+    }
     if (k < 0 || !m->info.model_path[0] || mu_bmd_load_file(m->info.model_path, &m->bmd, error, sizeof error) != MU_BMD_OK)
         return NULL;
     mu_model_params params;
@@ -147,6 +193,17 @@ static item_model *model_for(wg_items *w, int32_t code)
     if (mu_model_init(&m->model, &m->bmd, &params, error, sizeof error) != MU_MODEL_OK) {
         mu_bmd_free(&m->bmd);
         return NULL;
+    }
+    if (is_armour_type(type)) {   /* a body part: skinned against the Player skeleton's shared bones */
+        mu_character *man = mannequin(w);
+        if (!man) {
+            mu_model_free(&m->model);
+            mu_bmd_free(&m->bmd);
+            return NULL;
+        }
+        mu_model_relocate(&m->model, &m->bmd);
+        mu_model_share(&m->model, man->shared_bones, man->shared_root, man->shared_quaternions);
+        m->armour = 1;
     }
     char directory[1024];
     snprintf(directory, sizeof directory, "%s", m->info.model_path);
@@ -214,65 +271,107 @@ static int place_item(const wg_items *w, const item_model *m, const mu_gfx_item_
     return mu_item3d(&wout.item3d, out);
 }
 
-/* One model with RenderObjectScreen's object state and the world item
- * render passes (glow by level, excellent). */
-/* Vertical extent of the transformed model (GL y). */
-static int model_y_range(const item_model *m, float *lo, float *hi)
+/* RenderObjectScreen 0x016c2d82 (reconstructed/hud mu_hud_object_screen, verified): the pose model, its height
+ * and action, then RenderPartObject with the object's light (1, 1, 1), lighting flag cleared, light terms
+ * 0.4/0.8/0.2. */
+static void ros_inputs(wg_items *w, const item_model *m, const mu_gfx_item_draw *d, const mu_item3d_out *out,
+                       mu_hud_ros_in *in)
 {
-    int any = 0;
-    *lo = 1e30f;
-    *hi = -1e30f;
-    for (int32_t i = 0; i < m->bmd.mesh_count; ++i) {
-        const float *v = mu_model_vertices(&m->model, i);
-        for (int32_t j = 0; j < m->bmd.meshes[i].vertex_count; ++j) {
-            float y = v[3 * j + 1];
-            if (y < *lo) *lo = y;
-            if (y > *hi) *hi = y;
-            any = 1;
-        }
+    memset(in, 0, sizeof *in);
+    in->type = out->model;
+    in->level_word = out->level_word;
+    in->excellent = out->excellent;
+    in->set_bits = out->set_bits;
+    memcpy(in->position, out->position, sizeof in->position);
+    in->select = out->select;
+    in->held = (uint8_t)(d->held != 0);
+    in->a2c = out->a2c;
+    in->a30 = out->a30;
+    in->scale = out->scale;
+    in->has_state = 1;                       /* the slot wrapper passes item +0x108 */
+    in->state_prior_action = m->anim_prior_action;
+    in->state_frame = m->anim_frame;
+    in->state_prior_frame = m->anim_prior_frame;
+    in->tick = 1;                            /* the slot pass's wrapper argument a40 = 1 */
+    in->time = (float)w->time_ms;
+    if (m->info.has_record) {
+        in->has_record = 1;
+        in->kind_a = m->info.record.attributes.kind_a;
+        in->item_kind = m->info.record.attributes.type;
     }
-    return any;
+    /* InvenItemAnimation (Lang.mpr, MU_LANG_DIR): absent without the tables */
+    in->anim_present = mu_lang_inven_anim(mu_lang_shared(), d->code, &in->anim_action, &in->anim_speed);
+    in->pose_model_exists = 1;
+    in->object_alpha = 1.0f;                 /* ItemObjectAttribute's alpha (1 for these items) */
 }
 
 static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, const mu_item3d_out *out,
                        int32_t stage_h)
 {
-    mu_model_params params;
-    mu_model_default_params(&params);
-    /* Item model light as the world item render sets it (0x012bdb19 clears
-     * the item model's lighting flag; light terms 0.4/0.8/0.2 of the
-     * character parts): RenderPartObject itself is not reconstructed. */
-    params.lighting = 0;
-    params.light_ambient = 0.4f;
+    (void)stage_h;
+    mu_hud_ros_in in;
+    mu_hud_ros_out ros;
+    ros_inputs(w, m, d, out, &in);
+    mu_hud_object_screen(&in, &ros);
+    if (!ros.drawn)
+        return;
+    float angles[3] = {out->angle[0], out->angle[1], out->angle[2]};
+    if (ros.spin)
+        angles[1] = ros.spin_angle;          /* the hovered item spins */
+    mu_model_params params = m->model.params;
+    params.lighting = ros.lighting;          /* RenderPartObject copies object +5 (cleared) to model +0x50 */
+    params.light_ambient = 0.4f;             /* RenderPartObject's Transform constants (0x017e6840) */
     params.light_scale = 0.8f;
     params.light_minimum = 0.2f;
-    params.body_scale = out->scale * (d->held ? 1.4f : 1.0f);   /* picked-up item enlarged (static) */
-    memcpy(params.origin, out->position, sizeof params.origin);
-    memcpy(params.angles, out->angle, sizeof params.angles);
-    if (out->select && !d->held)
-        params.angles[1] = (float)(w->time_ms * 0.2);           /* hovered item spins (static) */
-    if (out->model >= 0x18e6 && out->model < 0x1ae6) {          /* armour parts: model height -160 */
-        params.height = -160.0f;
-        if (m->info.has_record && m->info.record.attributes.type == 4)
-            params.height -= 10.0f;
-    }
-    mu_model_apply_params(&m->model, &params);
-    mu_model_set_state(&m->model, 0, 0.0f, 0.0f, 0);
-    if (mu_model_update(&m->model) != MU_MODEL_OK) {
-        w->missing++;
-        return;
-    }
-    float lo, hi;
-    if (out->model >= 0x18e6 && out->model < 0x18e6 + 5 * 512 && model_y_range(m, &lo, &hi)) {
-        /* Armour parts (groups 7..11: helm, armour, pants, gloves, boots, all
-         * player-part models posed at skeleton height): the client places
-         * them through a model height that depends on a per-item action
-         * table (0x06fbc830, not reconstructed), so a stand-in centres the
-         * transformed model on its cells vertically (layer choice; the x
-         * placement is the reconstructed one). */
-        float centre = (float)stage_h - (d->rect[1] + d->rect[3] * 0.5f);
-        params.origin[1] += centre - 0.5f * (lo + hi);
+    params.body_scale = ros.scale;
+    memcpy(params.origin, ros.position, sizeof params.origin);
+    if (m->armour) {
+        /* the Player model posed at the pose height and action, translate 0 (Animation's last argument), then
+         * the part skinned with translate 1 at the object's position and scale (as RenderItems' armour) */
+        mu_character *man = w->mannequin;
+        if (!man) {
+            w->missing++;
+            return;
+        }
+        for (int q = 0; q < 3; ++q) {
+            man->params.position[q] = ros.position[q];
+            man->params.angles[q] = angles[q];
+        }
+        man->params.head[0] = man->params.head[1] = 0.0f;
+        man->params.scale = ros.scale;
+        mu_model_params pp = man->player.params;
+        pp.height = ros.height;
+        mu_model_apply_params(&man->player, &pp);
+        mu_character_set_state(man, ros.action, ros.anim_frame, ros.anim_prior_frame, ros.anim_prior_action);
+        if (mu_character_update(man) != MU_MODEL_OK) {
+            w->missing++;
+            return;
+        }
+        for (int q = 0; q < 3; ++q)
+            params.angles[q] = 0.0f;
+        params.head_angles[0] = params.head_angles[1] = 0.0f;
+        params.transform_translate = 1;
+        params.vertex_scale = 0.0f;
+        params.height = 0.0f;
         mu_model_apply_params(&m->model, &params);
+        if (mu_model_transform_all(&m->model) != MU_MODEL_OK) {
+            w->missing++;
+            return;
+        }
+    } else {
+        memcpy(params.angles, angles, sizeof params.angles);
+        params.height = ros.height;
+        mu_model_apply_params(&m->model, &params);
+        mu_model_set_state(&m->model, ros.action, ros.anim_frame, ros.anim_prior_frame, ros.anim_prior_action);
+        if (ros.ticked) {
+            /* the tick 0x012b4dd3 on the item's animation state at the record's speed */
+            uint8_t loop = 0;
+            mu_model_tick(&m->model, ros.tick_speed, &loop);
+            m->anim_frame = mu_model_frame(&m->model);
+            m->anim_prior_frame = mu_model_prior_frame(&m->model);
+            m->anim_prior_action = mu_model_prior_action(&m->model);
+            mu_model_set_state(&m->model, ros.action, ros.anim_frame, ros.anim_prior_frame, ros.anim_prior_action);
+        }
         if (mu_model_update(&m->model) != MU_MODEL_OK) {
             w->missing++;
             return;
@@ -280,7 +379,7 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     }
     mu_renderchar_glow glow;
     memset(&glow, 0, sizeof glow);
-    glow.type = out->model;
+    glow.type = ros.render_type;
     glow.level = d->level;
     glow.option1 = d->excellent;
     if (m->info.has_record) {
@@ -292,7 +391,6 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
     env.time = (float)w->time_ms;
-    const float light[3] = {1.0f, 1.0f, 1.0f};
     mu_draw_options draw;
     mu_draw_default_options(&draw);
     draw.textures = &m->textures;
@@ -303,7 +401,7 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     if (getenv("MU_GFX_PLAIN_ITEMS"))   /* debug: one plain textured body pass */
         mu_scene_draw_model(&m->model, &draw, &backend, &stats);
     else
-        mu_renderchar_draw_item(&m->model, &glow, &env, light, d->alpha > 0 ? d->alpha : 1.0f, &draw, &backend,
+        mu_renderchar_draw_item(&m->model, &glow, &env, ros.light, d->alpha > 0 ? d->alpha : 1.0f, &draw, &backend,
                                 &stats, &rstats);
     w->drawn++;
 }
@@ -339,11 +437,24 @@ void wg_items_draw(void *user, const mu_gfx_item_draw *items, int n, int32_t sta
         return;
     pass_begin(stage_w, stage_h);
     for (int i = 0; i < n; i++) {
-        item_model *m = model_for(w, items[i].code);
+        item_model *m = model_for(w, items[i].code, items[i].code + 0xae6);
         mu_item3d_out out;
         if (!m || place_item(w, m, &items[i], stage_w, stage_h, &out) != MU_ITEM3D_DRAW) {
             w->missing++;
             continue;
+        }
+        /* RenderObjectScreen may draw another model (0x26f2 by level: 0x3890/0x3891) */
+        mu_hud_ros_in in;
+        mu_hud_ros_out ros;
+        ros_inputs(w, m, &items[i], &out, &in);
+        mu_hud_object_screen(&in, &ros);
+        if (ros.render_type != m->type) {
+            item_model *other = model_for(w, items[i].code, ros.render_type);
+            if (!other) {
+                w->missing++;
+                continue;
+            }
+            m = other;
         }
         draw_model(w, m, &items[i], &out, stage_h);
     }

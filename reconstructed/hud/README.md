@@ -23,3 +23,8 @@ Build with `make` (`libmu_hud.dylib` or `libmu_hud.so`). Compare with the client
 ```
 
 `test_hud.py` holds the portable checks; private checks run with `MU_RECOVERY_INTEGRATION=1`.
+
+`mu_hud_object_screen` (`item_slots.h`, NATIVE-FIDELITY-001) is RenderObjectScreen `0x016c2d82`: the pose model
+(Player for armour parts, the `0x26f2` remap), the per-group model height, InvenItemAnimation's action and tick, the
+object state and RenderPartObject's arguments. `scripts/validate_fidelity.py --sections object_screen` compares it
+with the client.

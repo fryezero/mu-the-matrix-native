@@ -216,8 +216,8 @@ world, SetAction and the animation tick on the model (`mu_move_set_action`, `mu_
 the audio engine; the rain level feeds the audio block's `0x0a3a9acc`. TestFrustrum2D uses the session's 2D
 frustum.
 
-Viewer choices: rand() starts from 1 (`--env-seed`); the body is drawn with the default render flags and the
-object's light as colour; shadows, glow sprites and splash particles are counted, not drawn; billboards are drawn
+Viewer choices: rand() starts from 1 (`--env-seed`); the body is drawn with the default render flags (its colour and
+lighting flag are RenderObject's body light since NATIVE-FIDELITY-001, [client-fidelity.md](client-fidelity.md)); shadows, glow sprites and splash particles are counted, not drawn; billboards are drawn
 in the world pass; `--env-tga-leaves` loads the `.tga` the client unloads. The world's models count as loaded for
 the logic (the client's getter returns them; all target-world files are installed).
 

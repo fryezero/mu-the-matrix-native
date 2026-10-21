@@ -1,6 +1,7 @@
 /* Dropped items in the walk-around world (NATIVE-ITEMS-001). See mu_items.h. */
 #include "mu_items.h"
 #include "mu_label.h"
+#include "../../reconstructed/items/item_sets.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -153,9 +154,11 @@ static const char *name_text(void *context, int32_t id)
     (void)context;
     const char *standin = NULL;
     switch (id) {   /* English stand-ins of the plain-item suffixes when Lang.mpr's tables are absent */
-    case 0xb0: standin = " +Skill"; break;
-    case 0xb1: standin = " +Option"; break;
-    case 0xb2: standin = " +Luck"; break;
+    /* GlobalText 176..178 hold "+Skill", "+Option", "+Luck" with no leading space and the builder appends them
+     * with strcat (NATIVE-FIDELITY-001): "Short Sword +9+Skill+Option+Luck" */
+    case 0xb0: standin = "+Skill"; break;
+    case 0xb1: standin = "+Option"; break;
+    case 0xb2: standin = "+Luck"; break;
     case 0xb3: standin = "Skill"; break;
     default: {
         char *b = buf[next++ & 7];
@@ -169,16 +172,21 @@ static const char *name_text(void *context, int32_t id)
 
 static const char *name_prefix(void *context, const mu_gi_item_data *item)
 {
-    (void)context;
-    (void)item;
-    return "";   /* the set-item prefix 0x009e0551 (ItemSetType/ItemSetOption) is not wired */
+    /* 0x009953ef()->0x009e051c: the set manager's 0x009e0551(code, +0x3b) (reconstructed/items/item_sets.c,
+     * verified); "" without the set tables */
+    mu_world_items *it = context;
+    const mu_gi_record *r = record_of(it, item->code);
+    return mu_gi_set_prefix(it->sets, item->code, item->ancient, r ? r->kind_b : 0);
 }
 
 static int32_t name_set_tier(void *context, int32_t code)
 {
+    /* PentagramOption 0x011447ac on 0x06fbae4c, record +0x24 (Lang.mpr, NATIVE-LANG-001 tables) */
     (void)context;
-    (void)code;
-    return 0;
+    int32_t tier = 0;
+    if (!mu_lang_pentagram_tier(mu_lang_shared(), code, &tier))
+        tier = 0;
+    return tier;
 }
 
 static const char *name_table(void *context, int32_t key)
@@ -253,6 +261,60 @@ static void default_table(mu_world_items *it)
     }
 }
 
+static int sets_has_record(void *context, int32_t code)
+{
+    return record_of(context, code) != NULL;
+}
+
+static int sets_legendary(void *context, int32_t type, int32_t codes[4])
+{
+    (void)context;
+    return mu_lang_legendary(mu_lang_shared(), type, codes);
+}
+
+/* the set manager's start-up load 0x009e02a8: ItemSetType.bmd, ItemSetOption.bmd (Data/Local, decoded by
+ * mu_data), then 0x009de132/0x009debe4 with Lang.mpr's LegendaryItemSetType and CashItemSetOption when
+ * MU_LANG_DIR holds them */
+static void load_sets(mu_world_items *it)
+{
+    char path[2048];
+    snprintf(path, sizeof path, "%s/Data/Local/itemsettype.bmd", it->game_root);
+    int a = mu_data_load(path, NULL, &it->set_type) == 0 && it->set_type.result.status == 0;
+    snprintf(path, sizeof path, "%s/Data/Local/itemsetoption.bmd", it->game_root);
+    int b = mu_data_load(path, NULL, &it->set_option) == 0 && it->set_option.result.status == 0;
+    if (!a || !b || it->set_type.size < it->set_type.result.records_offset + MU_GI_SET_CODES * MU_GI_SET_TYPE_BYTES ||
+        it->set_option.size < it->set_option.result.records_offset + MU_GI_SET_OPTIONS * MU_GI_SET_OPTION_BYTES)
+        return;
+    const mu_lang *lang = mu_lang_shared();
+    const mu_lang_cash_set *cash = NULL;
+    const mu_lang_cash_item *items = NULL;
+    size_t nsets = mu_lang_cash_sets(lang, &cash), nitems = mu_lang_cash_items(lang, &items);
+    const char **n1 = calloc(nsets + 1, sizeof *n1), **n2 = calloc(nsets + 1, sizeof *n2);
+    int32_t *triples = calloc(3 * nitems + 1, sizeof *triples);
+    if (n1 && n2 && triples) {
+        for (size_t i = 0; i < nsets; ++i) {
+            n1[i] = cash[i].name;
+            n2[i] = cash[i].name2;
+        }
+        for (size_t i = 0; i < nitems; ++i) {
+            triples[3 * i] = items[i].group;
+            triples[3 * i + 1] = items[i].index;
+            triples[3 * i + 2] = items[i].set;
+        }
+        mu_gi_set_inputs in = {it->set_type.bytes + it->set_type.result.records_offset,
+                               it->set_option.bytes + it->set_option.result.records_offset, it, sets_has_record,
+                               lang ? sets_legendary : NULL, nsets, n1, n2, nitems, triples};
+        it->sets = mu_gi_sets_build(&in);
+        char text[96];
+        snprintf(text, sizeof text, "item sets: %zu (cash sets %zu, legendary table %s)", mu_gi_sets_count(it->sets),
+                 nsets, lang ? "yes" : "no");
+        log_line(it, text);
+    }
+    free(n1);
+    free(n2);
+    free(triples);
+}
+
 int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, const mu_world_items_config *config,
                         char *error, size_t error_size)
 {
@@ -284,6 +346,7 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
         snprintf(error, error_size, "Data/Local/item.bmd could not be loaded");
         return 1;
     }
+    load_sets(it);
     it->crt_seed = it->config.seed;
     it->demo_seed = it->config.seed ^ 0x5a5a1234u;
     for (int i = 0; i < 100; ++i)   /* WinMain 0x0120e96b: table[i] = rand() % 360 after srand(time(NULL)) */
@@ -314,6 +377,9 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
 
 void mu_world_items_close(mu_world_items *it)
 {
+    mu_gi_sets_free(it->sets);
+    mu_data_free(&it->set_type);
+    mu_data_free(&it->set_option);
     if (it->mannequin) {
         mu_character_free(it->mannequin);
         free(it->mannequin);
@@ -376,14 +442,18 @@ static mu_world_item_model *model_for(mu_world_items *it, int32_t type, int32_t 
     memset(m, 0, sizeof *m);
     m->type = type;
     mu_item item;
-    char path[2048], message[512], directory[2048];
-    if (mu_item_model(&it->item_table, type, &item) != 1) {
+    char path[2048], message[512], directory[2048], special[256];
+    if (mu_item_model(&it->item_table, type, &item) == 1) {
+        snprintf(path, sizeof path, "%s/%s%s", it->game_root, item.folder, item.file);
+    } else if (mu_gi_special_model_file(type, special, sizeof special)) {
+        /* models outside Item.bmd: the item-model loader 0x0183220e's AccessModel calls (NATIVE-FIDELITY-001) */
+        snprintf(path, sizeof path, "%s/%s", it->game_root, special);
+    } else {
         m->failed = 1;
-        snprintf(message, sizeof message, "model 0x%x: no Item.bmd record (special model not resolved)", type);
+        snprintf(message, sizeof message, "model 0x%x: no Item.bmd record and no loader entry", type);
         log_line(it, message);
         return NULL;
     }
-    snprintf(path, sizeof path, "%s/%s%s", it->game_root, item.folder, item.file);
     for (char *p = path; *p; ++p)
         if (*p == '\\')
             *p = '/';
@@ -1029,6 +1099,11 @@ int mu_world_items_script_parse(mu_world_item_script *s, const char *text)
                         e->y = strtof(p, &end);
                         p = end;
                         e->has_xy = 1;
+                        if (*p == ':') {
+                            ++p;
+                            e->ancient = (int32_t)strtol(p, &end, 0);
+                            p = end;
+                        }
                     }
                 }
             }

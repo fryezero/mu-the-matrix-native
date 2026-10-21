@@ -40,7 +40,20 @@ struct mu_lang {
     size_t ncodes;
     int has_enchant, has_enchant_default;
     float enchant_default[3];
+    /* NATIVE-FIDELITY-001 */
+    struct int_row *pentagram, *invenanim, *legendary;
+    size_t npentagram, ninvenanim, nlegendary;
+    int32_t pentagram_default, legendary_default[4];
+    int has_pentagram, has_legendary;
+    mu_lang_cash_set *cash_sets;
+    mu_lang_cash_item *cash_items;
+    size_t ncash_sets, ncash_items;
 };
+
+typedef struct int_row {
+    int32_t key;
+    int32_t v[4];
+} int_row;
 
 /* ---- reading --------------------------------------------------------- */
 
@@ -441,6 +454,86 @@ static int load_enchant(mu_lang *L, const char *dir)
     return L->has_enchant;
 }
 
+static int cmp_row(const void *a, const void *b)
+{
+    int32_t x = ((const int_row *)a)->key, y = ((const int_row *)b)->key;
+    return x < y ? -1 : x > y;
+}
+
+/* key<TAB>v0..v(n-1) rows; a "default" row fills *def. Returns the row count, -1 when the file is absent. */
+static long load_rows(const char *dir, const char *name, int nv, int_row **out, size_t *count, int32_t *def)
+{
+    size_t len = 0, cap = 0;
+    char *buf = read_file(dir, name, &len);
+    if (!buf)
+        return -1;
+    char *cursor = buf, *line;
+    while ((line = next_line(&cursor))) {
+        if (!*line || *line == '#')
+            continue;
+        char *f[6];
+        if (split(line, f, 6) != nv + 1)
+            continue;
+        int_row r;
+        memset(&r, 0, sizeof r);
+        int bad = 0;
+        for (int k = 0; k < nv; ++k)
+            bad |= to_int(f[1 + k], &r.v[k]);
+        if (bad)
+            continue;
+        if (!strcmp(f[0], "default")) {
+            if (def)
+                memcpy(def, r.v, sizeof(int32_t) * (size_t)nv);
+            continue;
+        }
+        if (to_int(f[0], &r.key))
+            continue;
+        int_row *nr = grow(*out, *count, &cap, sizeof *nr);
+        if (!nr)
+            break;
+        *out = nr;
+        (*out)[(*count)++] = r;
+    }
+    free(buf);
+    qsort(*out, *count, sizeof **out, cmp_row);
+    return (long)*count;
+}
+
+static int load_cash(mu_lang *L, const char *dir)
+{
+    size_t len = 0, scap = 0, icap = 0;
+    char *buf = read_file(dir, "cashsets.tsv", &len);
+    if (!buf)
+        return 0;
+    char *cursor = buf, *line;
+    while ((line = next_line(&cursor))) {
+        if (!*line || *line == '#')
+            continue;
+        char *f[5];
+        int n = split(line, f, 5);
+        if (n == 4 && !strcmp(f[0], "set")) {
+            mu_lang_cash_set *ns = grow(L->cash_sets, L->ncash_sets, &scap, sizeof *ns);
+            if (!ns)
+                break;
+            L->cash_sets = ns;
+            L->cash_sets[L->ncash_sets].name = unescape(f[2]);
+            L->cash_sets[L->ncash_sets].name2 = unescape(f[3]);
+            ++L->ncash_sets;
+        } else if (n == 4 && !strcmp(f[0], "item")) {
+            mu_lang_cash_item it;
+            if (to_int(f[1], &it.group) || to_int(f[2], &it.index) || to_int(f[3], &it.set))
+                continue;
+            mu_lang_cash_item *ni = grow(L->cash_items, L->ncash_items, &icap, sizeof *ni);
+            if (!ni)
+                break;
+            L->cash_items = ni;
+            L->cash_items[L->ncash_items++] = it;
+        }
+    }
+    free(buf);
+    return L->ncash_sets > 0;
+}
+
 mu_lang *mu_lang_load(const char *dir)
 {
     if (!dir || !*dir)
@@ -456,6 +549,13 @@ mu_lang *mu_lang_load(const char *dir)
     any |= load_moves(L, dir);
     any |= load_npcs(L, dir);
     any |= load_enchant(L, dir);
+    L->has_pentagram = load_rows(dir, "pentagram.tsv", 1, &L->pentagram, &L->npentagram, &L->pentagram_default) >= 0;
+    any |= L->has_pentagram;
+    any |= load_rows(dir, "invenanim.tsv", 4, &L->invenanim, &L->ninvenanim, NULL) > 0;
+    L->legendary_default[0] = L->legendary_default[1] = L->legendary_default[2] = L->legendary_default[3] = -1;
+    L->has_legendary = load_rows(dir, "legendary.tsv", 4, &L->legendary, &L->nlegendary, L->legendary_default) >= 0;
+    any |= L->has_legendary;
+    any |= load_cash(L, dir);
     if (!any) {
         mu_lang_free(L);
         return NULL;
@@ -503,6 +603,15 @@ void mu_lang_free(mu_lang *L)
     free(L->npcs);
     free(L->enchant);
     free(L->codes);
+    free(L->pentagram);
+    free(L->invenanim);
+    free(L->legendary);
+    for (size_t i = 0; i < L->ncash_sets; ++i) {
+        free((char *)L->cash_sets[i].name);
+        free((char *)L->cash_sets[i].name2);
+    }
+    free(L->cash_sets);
+    free(L->cash_items);
     free(L);
 }
 
@@ -711,4 +820,55 @@ char *mu_lang_ascii(char *dst, size_t cap, const char *src)
         dst[n++] = (*src >= 0x20 && *src < 0x7f) ? *src : '?';
     dst[n] = 0;
     return dst;
+}
+
+/* ---- NATIVE-FIDELITY-001 lookups ---- */
+
+static const int_row *find_row(const int_row *rows, size_t n, int32_t key)
+{
+    int_row k;
+    memset(&k, 0, sizeof k);
+    k.key = key;
+    return rows ? bsearch(&k, rows, n, sizeof *rows, cmp_row) : NULL;
+}
+
+int mu_lang_pentagram_tier(const mu_lang *L, int32_t code, int32_t *tier)
+{
+    if (!L || !L->has_pentagram)
+        return 0;
+    const int_row *r = find_row(L->pentagram, L->npentagram, code);
+    *tier = r ? r->v[0] : L->pentagram_default;
+    return 1;
+}
+
+int mu_lang_inven_anim(const mu_lang *L, int32_t code, uint16_t *action, float *speed)
+{
+    const int_row *r = L ? find_row(L->invenanim, L->ninvenanim, code) : NULL;
+    if (!r)
+        return 0;
+    *action = (uint16_t)r->v[2];
+    uint32_t bits = (uint32_t)r->v[3];
+    memcpy(speed, &bits, sizeof *speed);
+    return 1;
+}
+
+int mu_lang_legendary(const mu_lang *L, int32_t type, int32_t codes[4])
+{
+    if (!L || !L->has_legendary)
+        return 0;
+    const int_row *r = find_row(L->legendary, L->nlegendary, type);
+    memcpy(codes, r ? r->v : L->legendary_default, sizeof(int32_t) * 4);
+    return 1;
+}
+
+size_t mu_lang_cash_sets(const mu_lang *L, const mu_lang_cash_set **sets)
+{
+    *sets = L ? L->cash_sets : NULL;
+    return L ? L->ncash_sets : 0;
+}
+
+size_t mu_lang_cash_items(const mu_lang *L, const mu_lang_cash_item **items)
+{
+    *items = L ? L->cash_items : NULL;
+    return L ? L->ncash_items : 0;
 }

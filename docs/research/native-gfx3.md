@@ -232,9 +232,10 @@ Inferences and layer choices:
   cleared and the light terms are 0.4/0.8/0.2, as in the world item render (inference).
 * **Armour textures.** The armour-part item models (`Data/Item/HelmMale02.bmd`, …) have their textures in
   `Data/Player`. The loader falls back there when `Data/Item` lacks them (installed files).
-* **Armour height.** Armour parts (groups 7..11) are posed at skeleton height. The client places them through
-  a per-item action table (`0x06fbc830`, not reconstructed), so the stand-in centres the transformed model on
-  its cells vertically (layer choice). NATIVE-HUD-001's renders showed the same gap.
+* **Armour height.** Superseded by NATIVE-FIDELITY-001 ([client-fidelity.md](client-fidelity.md)): RenderObjectScreen
+  poses armour parts on the Player model at a height per part group (helm −160, armour −100, gloves −70, pants −50),
+  and `0x06fbc830` is Lang.mpr's InvenItemAnimation (five non-armour codes); the native layer does the same (verified).
+  The light terms are confirmed by RenderPartObject's constants (static).
 
 Without a game root, or in `mu-gfx-window`, the coloured boxes remain. Renders: `renders/gfx3/world/`
 (mu-world) and `renders/gfx3/client/` (mu-client).

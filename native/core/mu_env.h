@@ -28,9 +28,11 @@
  *     .jpg load replaces the .tga one, so worlds without leaf01.OZJ have no
  *     leaf bitmap and RenderLeaves skips every particle).
  *
+ * The body colour is RenderObject's body light 0x017ec3d8 (NATIVE-FIDELITY-001,
+ * verified, mu_env_body_light): lighting flag = object +5, colour = the frame
+ * light at the position + the object light, light terms 0.4/0.8/0.2.
  * Viewer choices (not client readings): RenderObject 0x016d4fe4's body
- * pass is drawn with the default render flags and the object's light as the
- * model colour; billboards are drawn in the world pass (the client draws them
+ * pass is drawn with the default render flags; billboards are drawn in the world pass (the client draws them
  * in its BeginSprite pass). With a particle module attached (`particles`,
  * NATIVE-PARTICLE-001) the blob shadows (RenderBodyShadow 0x012bc07a), the
  * butterfly and crow glow sprites (CreateSprite, crow eyes at bone 1 through

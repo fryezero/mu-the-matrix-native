@@ -950,3 +950,23 @@ void mu_gi_label_layout(float text_width, float text_height, mu_gi_label_box *b)
     b->bg_w = b->text_w + 6.0f;
     b->bg_h = b->text_h + 4.0f;
 }
+
+/* ---- special item models: AccessModel 0x018202b4's file name over the loader's calls ---- */
+#include "special_models.h"
+
+int mu_gi_special_model_file(int32_t model, char *out, size_t size)
+{
+    for (size_t i = 0; i < sizeof mu_gi_special_models / sizeof mu_gi_special_models[0]; ++i) {
+        if (mu_gi_special_models[i].model != model)
+            continue;
+        int32_t n = mu_gi_special_models[i].number;
+        if (n == -1)
+            snprintf(out, size, "%s%s.bmd", mu_gi_special_models[i].folder, mu_gi_special_models[i].name);
+        else if (n < 10)
+            snprintf(out, size, "%s%s0%d.bmd", mu_gi_special_models[i].folder, mu_gi_special_models[i].name, (int)n);
+        else
+            snprintf(out, size, "%s%s%d.bmd", mu_gi_special_models[i].folder, mu_gi_special_models[i].name, (int)n);
+        return 1;
+    }
+    return 0;
+}

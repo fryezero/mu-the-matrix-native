@@ -316,4 +316,11 @@ typedef struct mu_gi_label_box {
 } mu_gi_label_box;
 void mu_gi_label_layout(float text_width, float text_height, mu_gi_label_box *box);
 
+/* ---- special item models (NATIVE-FIDELITY-001) ----
+ * Models outside Item.bmd's code + 0xae6 range that CreateItem/RenderItems/RenderObjectScreen select (Box of Luck
+ * 0x3894..0x389a, 0x3890/0x3891 for 0x26f2, 0x38a5..0x38a7, ...) are loaded by the item-model loader 0x0183220e
+ * through AccessModel(model, folder, name, number) (special_models.h, executed). Writes the file (client form,
+ * backslashes) and returns 1, or 0 when the loader does not load `model`. */
+int mu_gi_special_model_file(int32_t model, char *out, size_t size);
+
 #endif

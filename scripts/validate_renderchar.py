@@ -622,6 +622,141 @@ def character_section(world_args, lib, args):
             'failures': failures, 'ok': matches == compared}
 
 
+# ---------------------------------------------------------------- character light (NATIVE-FIDELITY-001)
+HERO_ATTR = 0x2c000000     # Hero character attribute block [0x01d1df1c] (case layout)
+LIGHT_BLOCK_START, LIGHT_BLOCK_END = 0x01367530, 0x01367d85
+
+
+class CLightIn(ctypes.Structure):
+    _fields_ = [('scene_state', ctypes.c_int32), ('terrain_light', ctypes.c_float * 3),
+                ('object_light', ctypes.c_float * 3), ('model_type', ctypes.c_int32), ('class_index', ctypes.c_int32),
+                ('is_hero', ctypes.c_int32), ('ability', ctypes.c_uint8)]
+
+
+def light_client(world_args, case):
+    """RenderCharacter on one character; returns character +0x1b8 at the end of the light block
+    0x01367530..0x01367d85 (a code hook at 0x01367d85), or None when the run does not reach it."""
+    from unicorn import UC_HOOK_CODE
+    w = World(*world_args)
+    m = w.m
+    w.add_model(0xa91, PLAYER_MODEL, bones=60, meshes=0, actions=390, actions_at=ACTIONS)
+    w.add_model(0xa92, PLAYER_MODEL + 0x100, bones=60, meshes=0, actions=390, actions_at=ACTIONS)
+    for k in range(0x186):
+        m.write(ACTIONS + 16 * k, struct.pack('<BxxxI', 0, f2u(0.25)))
+    record = character_record(cls=1, action=1)
+    o = 0x3254
+    struct.pack_into('<3I', record, o + 0xec, *case['object_light'])
+    struct.pack_into('<h', record, 0x146, case['class_index'])
+    m.write(CHAR, record)
+    m.write(BONES, b''.join(struct.pack('<12f', 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0) for _ in range(200)))
+    m.ensure(0x01d1df70, 4)
+    m.w32(0x01d1df70, case['scene_state'])
+    m.map(HERO_ATTR, 0x1000)
+    m.write(HERO_ATTR + 0x1a6, bytes([case['ability']]))
+    m.ensure(0x01d1df1c, 4)
+    m.w32(0x01d1df1c, HERO_ATTR)
+    m.w32(0x0a39d754, CHAR if case['is_hero'] else HERO)
+    calls = []
+
+    def terrain_light(mm):
+        calls.append(('terrain_light', mm.arg(0), mm.arg(1)))
+        for k in range(3):
+            mm.w32(mm.arg(2) + 4 * k, case['terrain_light'][k])
+        return 0
+    m.stub(0x016cb08d, terrain_light, 0)
+    for address, cleanup in CHAR_SKIPS.items():
+        m.stub(address, (lambda a: (lambda mm: 0))(address), cleanup)
+    m.stub(0x00d33153, lambda mm: ACTIONS + 16 * mm.arg(0), 4)
+    m.stub(0x012b5064, lambda mm: 0, 0x20)
+    m.stub(0x012b4dd3, lambda mm: 0, 0x18)
+    m.stub(0x017e63f4, lambda mm: 0, 0)
+    m.stub(0x012bd910, lambda mm: 0, 0)
+    seen = []
+
+    def at_start(uc, address, size, user):
+        # the block reads the object type at 0x0136768a only; a Player body runs up to the block and the
+        # case type is written at its entry (types such as 0x7dc take other paths before it)
+        m.write(CHAR + o + 0x5c, struct.pack('<i', case['model_type']))
+    m.uc.hook_add(UC_HOOK_CODE, at_start, begin=LIGHT_BLOCK_START, end=LIGHT_BLOCK_START)
+
+    def at_end(uc, address, size, user):
+        if not seen:
+            seen.append(tuple(struct.unpack('<3I', m.read(CHAR + 0x1b8, 12))))
+    m.uc.hook_add(UC_HOOK_CODE, at_end, begin=LIGHT_BLOCK_END, end=LIGHT_BLOCK_END)
+    result = m.run(0x01363260, [CHAR, CHAR + o, 0])
+    return (seen[0] if seen else None), calls, result
+
+
+def light_c(lib, case):
+    c = CLightIn(scene_state=case['scene_state'], model_type=case['model_type'], class_index=case['class_index'],
+                 is_hero=case['is_hero'], ability=case['ability'])
+    for k in range(3):
+        c.terrain_light[k] = u2f(case['terrain_light'][k])
+        c.object_light[k] = u2f(case['object_light'][k])
+    out = (ctypes.c_float * 3)()
+    status = lib.mu_rc_character_light(ctypes.byref(c), out)
+    return status, tuple(f2u(v) for v in out)
+
+
+def random_light_case(rng):
+    def fb(lo, hi):
+        return f2u(rng.uniform(lo, hi))
+    glow = [0x211, 0x215, 0x216, 0x21b, 0x349, 0x34c, 0x371, 0x373, 0x3c1, 0x3d5]
+    return {'scene_state': rng.choice([6, 6, 6, 5, 5, 2, 4, rng.randrange(-1, 12)]),
+            'terrain_light': [fb(0, 1.5) for _ in range(3)],
+            'object_light': [rng.choice([f2u(0.2), f2u(0.0), fb(-0.5, 1.5)]) for _ in range(3)],
+            'model_type': rng.choice([0xa91] * 8 + [0x7dc]),
+            'class_index': rng.choice([0, 1, 2, 3, 7, rng.randrange(0x200), rng.randrange(0x1000)] + glow[:1]
+                                      if rng.random() < 0.9 else glow),
+            'is_hero': rng.choice([0, 1, 1]),
+            'ability': rng.choice([0, 0, 1, 2, 4, 8, rng.randrange(256)])}
+
+
+def light_section(world_args, lib, args):
+    lib.mu_rc_character_light.argtypes = [ctypes.POINTER(CLightIn), ctypes.POINTER(ctypes.c_float)]
+    lib.mu_rc_character_light.restype = ctypes.c_int
+    rng = random.Random(args.seed + 11)
+    cases = [random_light_case(rng) for _ in range(args.light_cases)]
+    # every scene/hero/ability-bit/type path at least once
+    for scene in (5, 6):
+        for hero in (0, 1):
+            for bit in range(5):
+                for model_type in (0xa91, 0x7dc):
+                    cases.append({'scene_state': scene, 'terrain_light': [f2u(0.3), f2u(0.6), f2u(0.9)],
+                                  'object_light': [f2u(0.2)] * 3, 'model_type': model_type, 'class_index': 1,
+                                  'is_hero': hero, 'ability': (1 << bit) if bit < 4 else 0xf})
+    matches, unsupported, failures, tally = 0, 0, [], {'hero': 0, 'scene5': 0, 'type_7dc': 0, 'ability_bits': 0,
+                                                         'glow_branch': 0, 'terrain_light_calls': 0}
+    for case in cases:
+        status, mine = light_c(lib, case)
+        client, calls, result = light_client(world_args, case)
+        tally['terrain_light_calls'] += sum(1 for c in calls if c[0] == 'terrain_light')
+        if status == 2:
+            unsupported += 1
+            tally['glow_branch'] += 1
+            continue
+        tally['hero'] += case['is_hero']
+        tally['scene5'] += case['scene_state'] == 5
+        tally['type_7dc'] += case['model_type'] == 0x7dc
+        tally['ability_bits'] += bool(case['is_hero'] and case['ability'] & 0xf)
+        if client is not None and client == mine:
+            matches += 1
+        elif len(failures) < 10:
+            failures.append({'case': case, 'client': client, 'c': mine, 'result': result})
+    # negative control: the hero without the ability tints
+    control = 0
+    for case in cases:
+        if case['is_hero'] and case['scene_state'] != 5 and case['ability'] & 0xf and \
+                lib.mu_rc_light_glow_class(case['class_index']) == 0:
+            status, mine = light_c(lib, dict(case, ability=0))
+            client, _, _ = light_client(world_args, case)
+            control += client != mine
+    compared = len(cases) - unsupported
+    return {'cases': len(cases), 'compared': compared, 'matches': matches, 'unsupported_glow': unsupported,
+            'coverage': tally, 'negative_control_detected': control, 'failures': failures,
+            'ok': matches == compared and control > 0}
+
+
 # ---------------------------------------------------------------- weapon link bones
 def extract_link_bones(world_args, types):
     """Weapon link bones (+0x19b1, +0x1dad) the character create 0x0137d8a1 sets per model
@@ -777,6 +912,7 @@ def main():
     parser.add_argument('--sections', default='items,back')
     parser.add_argument('--kind-types', type=int, default=2, help='types per item group in the kind sweep')
     parser.add_argument('--characters', type=int, default=300)
+    parser.add_argument('--light-cases', type=int, default=400)
     parser.add_argument('--emit-link-bones', type=Path)
     parser.add_argument('--back-types', choices=('sample', 'weapons'), default='sample')
     parser.add_argument('--emit-back', type=Path, help='write the extracted back-carry matrix table')
@@ -807,12 +943,14 @@ def main():
             emit_link_bones(args.emit_link_bones, table)
     if 'character' in sections:
         report['character'] = character_section(world_args, lib, args)
+    if 'light' in sections:
+        report['light'] = light_section(world_args, lib, args)
     if 'items' not in sections:
         report['seconds'] = round(clock.time() - started, 1)
         if args.output:
             args.output.write_text(json.dumps(report, indent=1, default=str))
-        print(json.dumps({k: v for k, v in report.items() if k in ('back', 'kinds', 'character', 'linkbones')}, default=str)[:4000])
-        return 0 if all(report[k]['ok'] for k in ('back', 'kinds', 'character', 'linkbones') if k in report) else 1
+        print(json.dumps({k: v for k, v in report.items() if k in ('back', 'kinds', 'character', 'linkbones', 'light')}, default=str)[:4000])
+        return 0 if all(report[k]['ok'] for k in ('back', 'kinds', 'character', 'linkbones', 'light') if k in report) else 1
     # --- classification
     special = set()
     if args.classify != 'none':
