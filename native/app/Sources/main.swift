@@ -85,6 +85,7 @@ func checkBundle() -> Int32 {
 
 let cliArgs = CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("-psn_") && !$0.hasPrefix("-NS") && !$0.hasPrefix("-Apple") }
 var guiSeconds: String? = nil
+var guiSettings = false
 if let first = cliArgs.first {
     let args = Array(cliArgs)
     switch first {
@@ -96,13 +97,15 @@ if let first = cliArgs.first {
         Mu The Matrix Native Preview \(appVersion): the native macOS client offline (no server connection).
           (no arguments)        open the app (hold Option for the settings window)
           --seconds S           open the app and close the client after S seconds
+          --settings            open the settings window (as Option at launch)
           --print-settings      settings, folders and what Native Data holds
           --print-plan          the mu-client command line and environment the app would use (JSON)
           --setup [--force]     the first-run data setup (converted movies, local text, objects, sound table)
           --smoke [--backend soft|gl] [--frames N] [--size WxH] [--out-dir DIR]
                                 headless run of the whole flow under the network guard; exit 0 when it reached the world
           --check-bundle        check the bundled files
-        Environment (tests): MU_NATIVE_SUPPORT_DIR, MU_NATIVE_LOG_DIR, MU_NATIVE_GAME_ROOT, MU_NATIVE_SCRATCH, MU_NATIVE_PYTHON
+        Environment: MU_NATIVE_SUPPORT_DIR, MU_NATIVE_LOG_DIR, MU_NATIVE_GAME_ROOT, MU_NATIVE_SCRATCH, MU_NATIVE_PYTHON,
+          MU_NATIVE_SESSION (tests); MU_NATIVE_EXTRA_ARGS (more mu-client options, separated by spaces)
         """)
         exit(0)
     case "--print-settings":
@@ -137,6 +140,8 @@ if let first = cliArgs.first {
         exit(checkBundle())
     case "--seconds":
         guiSeconds = option(args, "--seconds")
+    case "--settings":
+        guiSettings = true
     default:
         fail("unknown option \(first) (see --help)", 2)
     }
@@ -157,12 +162,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppLog.prune()
         for sig in [SIGTERM, SIGINT, SIGHUP] {
             signal(sig, SIG_IGN)
-            let src = DispatchSource.makeSignalSource(signal: sig, queue: .main)
-            src.setEventHandler { [weak self] in self?.run?.stop(); NSApp.terminate(nil) }
+            // Not on the main queue: a modal alert would hold the signal back.
+            let src = DispatchSource.makeSignalSource(signal: sig, queue: .global())
+            src.setEventHandler { [weak self] in
+                self?.run?.stop()
+                AppLog.write("signal \(sig): stopped")
+                exit(0)
+            }
             src.resume()
             signalSources.append(src)
         }
-        if NSEvent.modifierFlags.contains(.option) { showSettings(); return }
+        if guiSettings || NSEvent.modifierFlags.contains(.option) { showSettings(); return }
         proceed()
     }
 
@@ -230,7 +240,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         spinner.style = .spinning
         spinner.startAnimation(nil)
         let label = NSTextField(wrappingLabelWithString: "Preparing…")
-        label.frame = NSRect(x: 64, y: 30, width: 376, height: 70)
+        label.frame = NSRect(x: 64, y: 44, width: 376, height: 56)
+        let hint = NSTextField(wrappingLabelWithString: "macOS may ask to let the app read the local tables in the "
+                               + "Documents folder (\(settings.scratchDir)); Don't Allow skips them.")
+        hint.frame = NSRect(x: 20, y: 6, width: 420, height: 34)
+        hint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hint.textColor = .secondaryLabelColor
+        w.contentView?.addSubview(hint)
         w.contentView?.addSubview(spinner)
         w.contentView?.addSubview(label)
         w.center()

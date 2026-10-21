@@ -4,7 +4,8 @@
 # is ignored).
 #
 #   make -C native preview-app              build native/build/app/Mu The Matrix Native Preview.app
-#   make -C native/app install              ... and copy it to $(INSTALL_DIR) (default ~/Applications), replacing it
+#   make -C native/app install              ... copy it to $(INSTALL_DIR) (default ~/Applications), replacing it,
+#                                           and run its first-run data setup (--setup) for this account
 #   make -C native/app MUGFX_LIB=/path/libmugfx.dylib   bundle the Ruffle-based GFx library from another build
 #
 # MUGFX_LIB defaults to native/gfx/mugfx/target/release/libmugfx.dylib (native/gfx/build-mugfx.sh); without it
@@ -101,6 +102,9 @@ install: all
 	rm -rf "$(INSTALL_DIR)/$(NAME).app"
 	ditto $(APPQ) "$(INSTALL_DIR)/$(NAME).app"
 	@echo "installed $(INSTALL_DIR)/$(NAME).app"
+	# Prepare the owner's Native Data now (from this shell, which may read ~/Documents), so that the app's
+	# first run does not have to ask macOS for access to the Documents folder. Keeps what is already there.
+	"$(INSTALL_DIR)/$(NAME).app/Contents/MacOS/MuNativePreview" --setup
 
 clean:
 	rm -rf $(B)

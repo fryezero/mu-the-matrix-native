@@ -391,6 +391,31 @@ native/build/mu-render ui servers --root "$MU_GAME_ROOT" --scene --objects-dir L
 native/build/mu-render ui login --root "$MU_GAME_ROOT" --scene --objects-dir LOCAL --no-ui --steps 25 --out l.png
 ```
 
+## Preview app (NATIVE-APP-001)
+
+`Mu The Matrix Native Preview.app` runs `mu-client` with a double click, offline, with every feature on
+([note](../docs/research/native-preview-app.md)). Build and install (local only; the app stays out of git):
+
+```sh
+native/gfx/fetch-ruffle.sh && native/gfx/build-mugfx.sh   # optional: the GFx interface (else stand-ins)
+make -C native preview-app                                 # native/build/app/Mu The Matrix Native Preview.app
+make -C native/app install                                 # ~/Applications (replaced) + first-run data setup
+```
+
+`MUGFX_LIB=/path/libmugfx.dylib` bundles another libmugfx build. The launcher uses the free install
+`~/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix` (read-only) or asks for the game folder once.
+On the first run it fills *Native Data* (`~/Library/Application Support/MuTheMatrixNative/Native Data`): all GFx
+movies converted with `gfxconvert.py`, and copies of the local lang tables, decoded object files and sound table
+from `~/Documents/mu-mac-tools/native/scratch`. It then starts mu-client with combat, items, names, NPC talk,
+environment, particles, objects, game text, sound and GFx, a window fitting the screen and the
+"OFFLINE PREVIEW - no server connection" label. Hold Option while opening it (or pass `--settings`) for the settings
+window. Logs go to `~/Library/Logs/MuTheMatrixNative/`; a crash shows the log. mu-client runs under
+`libmu-nonet.dylib`, which refuses every non-local socket, connection and name lookup and reports them
+(`nonet-*.json`). Command line: `--print-settings`, `--print-plan`, `--setup [--force]`,
+`--smoke [--backend gl] [--out-dir DIR]` (headless flow to the world under the guard), `--check-bundle`.
+mu-client's own new options are `--combat --items --npc --npc-demo FILE --no-names --no-env --no-particles`
+(the world scene) and `--label TEXT`, `--title TEXT`.
+
 ## Model lighting as the client (NATIVE-LIGHT-001)
 
 The game scenes now light models with the client's inputs ([finding](../docs/research/client-model-light.md)):
@@ -507,6 +532,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |
 | `client/`, `world/world_embed.*`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; mu-world and mu-charsel as modules (NATIVE-SHELL-001) |
+| `app/` | Mu The Matrix Native Preview.app: Swift launcher, the `mu-nonet` network guard, dylib bundling, the bundle Makefile (NATIVE-APP-001) |
 | `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001). See [the finding](../docs/research/client-lang-tables.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 

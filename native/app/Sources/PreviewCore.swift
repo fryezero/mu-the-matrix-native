@@ -438,6 +438,9 @@ struct LaunchPlan {
                 env["MU_GFX_LIB"] = Paths.mugfx
             }
         }
+        if let extra = Paths.env["MU_NATIVE_EXTRA_ARGS"] {   // diagnostics: more mu-client options
+            args += extra.split(separator: " ").map(String.init)
+        }
         return LaunchPlan(executable: Paths.client, args: args, env: env, notes: notes)
     }
 
