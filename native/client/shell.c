@@ -517,6 +517,7 @@ static int open_world(mu_shell *s)
     c.no_names = s->cfg.world_no_names;
     c.no_env = s->cfg.world_no_env;
     c.no_particles = s->cfg.world_no_particles;
+    c.players = join.world == 0 ? s->cfg.players : NULL;   /* NATIVE-PLAYERS-001: Lorencia's demo players */
     c.objects_dir = s->cfg.world_objects;
     c.quiet = s->cfg.quiet;
     c.hero_name = entry && entry->name[0] ? entry->name : NULL;

@@ -95,6 +95,7 @@ Inventory restored functions and imports. Pick one bounded behavior with a usabl
 ## Later, intentionally unspecified
 
 Whole-client reconstruction, faithful renderer/input/audio modules, network/service integration, platform separation, native macOS graphics/windowing choices, packaging and end-to-end gameplay verification. These depend on code that has not yet been recovered.
+| NATIVE-PLAYERS-001 | Implemented (other players, demo server): `reconstructed/players` (class byte, ChangeCharacterExt with the wing switch / item level / class skin, the move packet 0x3d, MoveCharacters' remote step), `native/core/mu_world_players` in mu-world/mu-client (`--players`: viewport / move / die / store / destroy packets, parts with the render passes, path replay, fade, plates and setStore) | Private Unicorn run: 5 families, 4,768 cases, 0 mismatches, 7/7 planted mistakes detected; portable library examples and synthetic-world tests; private Lorencia run ([finding](research/client-remote-players.md)) | Viewport record, creation effects, destroy and store packets static; pose states, pets, helper models and mount pose not drawn; player hover/selection and the equipment change packet 0x45 open; demo server stands in for the real one |
 
 ## Coordinating agents
 

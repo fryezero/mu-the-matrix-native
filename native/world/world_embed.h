@@ -42,6 +42,8 @@ typedef struct mu_world_embed_config {
     int combat, ground_items, npc;
     const char *npc_demo;          /* the NPC demo table (mu-world --npc-demo), may be NULL */
     int no_names, no_env, no_particles;
+    const char *players;           /* NATIVE-PLAYERS-001: demo players file, may be NULL */
+    int no_players;
 } mu_world_embed_config;
 
 mu_world_embed *mu_world_embed_open(const mu_world_embed_config *config, char *error, size_t error_size);
