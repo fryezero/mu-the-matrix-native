@@ -21,6 +21,7 @@ typedef struct mu_charsel_embed_config {
     const char *objects_dir;   /* local decoded EncTerrain94.plain (objects and markers), may be NULL */
     int32_t width, height;
     int32_t slot;              /* initial selection, -1: the scene's default */
+    const mu_charsel_list *list;   /* NATIVE-CHARCREATE-001: the characters (overrides list_path), may be NULL */
 } mu_charsel_embed_config;
 
 mu_charsel_embed *mu_charsel_embed_open(const mu_charsel_embed_config *config, char *error, size_t error_size);

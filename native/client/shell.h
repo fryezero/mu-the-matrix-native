@@ -41,6 +41,7 @@
 #include <stdint.h>
 
 #include "../../reconstructed/scene/scene.h"
+#include "../charsel/charsel_create_gfx.h"
 #include "../charsel/charsel_embed.h"
 #include "../core/mu_login.h"
 #include "../world/world_embed.h"
@@ -89,6 +90,9 @@ typedef struct mu_shell_config {
     const char *gfx_lib;           /* libmugfx, NULL: the layer's search */
     double gfx_scale;              /* window pixels per point (Retina 2), 0 = 1 */
     const char *gfx_log;           /* the list's lines and callbacks, may be NULL */
+    /* NATIVE-CHARCREATE-001: the OFFLINE DEMO character store (characters created and deleted in character
+     * select; offline-session.h), NULL or "": changes stay in memory */
+    const char *store_path;
 } mu_shell_config;
 
 mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *platform, char *error,
@@ -145,5 +149,12 @@ int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y);
 /* Over every character-select visit: picks, pick hits, double clicks, GFx list callbacks, entries from the
  * list, create-character requests (offline no-ops). */
 void mu_shell_charsel_counts(const mu_shell *s, long out[6]);
+/* NATIVE-CHARCREATE-001: the create panel / delete flow / menu state of the current visit (zeros without the
+ * GFx list); the scene rebuilds after a created or deleted answer (counted). */
+void mu_shell_charsel_create_stats(const mu_shell *s, mu_charsel_create_stats *out, long *rebuilds);
+/* Window-pixel centre of a control for scripted input: CCharSelMainWin's buttons "create", "menu",
+ * "connect", "delete" and the GFx controls of charsel_create_gfx.h ("class:N", "createok", "msgok", ...);
+ * 0 when not shown. */
+int mu_shell_charsel_control(mu_shell *s, const char *name, int32_t *x, int32_t *y);
 
 #endif

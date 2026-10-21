@@ -46,7 +46,7 @@
 
 #define MU_CSG_ROWS 10
 #define MU_CSG_CLASSES 16
-#define MU_CSG_LINE 4096
+#define MU_CSG_LINE 16384   /* InitClassInfo with the real class texts is about 6 KB */
 
 /* The window fields these routines use. */
 typedef struct mu_csg_window {

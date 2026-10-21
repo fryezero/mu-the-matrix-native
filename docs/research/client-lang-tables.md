@@ -428,8 +428,8 @@ verified; **map** = in the snapshot, layout open; **none** = not in the snapshot
 | Text(kor) | `0x06fbab48` | `0x0095f027` | +0x38: 6,514 | read | yes: GlobalText (labels, map names, price lines) |
 | Gate | `0x06fbabac` | `0x0110cbaf` | +0x38: 625 | read | yes: move window, gates |
 | Credit | `0x06fbac20` | `0x010ea60c` | — | none | later: credits window (synthetic today) |
-| Filter(kor) | `0x06fbac88` | `0x0110c9f2` | — | none | later: chat word filter |
-| FilterName(kor) | `0x06fbacd0` | `0x0110cb45` | — | none | later: character-create name filter |
+| Filter(kor) | `0x06fbac88` | `0x0110c9f2` | +0x38 vector: 10 | read (`live_lang_filters.py`, NATIVE-CHARCREATE-001) | yes: the create panel's name check (also the chat word filter, later) |
+| FilterName(kor) | `0x06fbacd0` | `0x0110cb45` | +0x38 vector: 45 | read (`live_lang_filters.py`, NATIVE-CHARCREATE-001) | yes: character-create name filter |
 | CharacterInfoSetup | `0x06fbad18` | `0x010e5203` | +0x38: 143 | read | yes: character window rows (wired) |
 | Slide(kor) | `0x06fbae00` | `0x011569bc` | — | none | later: notice slides |
 | PentagramOption | `0x06fbae4c` | `0x011447ac` | +0x3c: 28, +0x44: 31 | read | yes: pentagram tier in item names (FIDELITY-001) |

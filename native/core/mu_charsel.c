@@ -382,13 +382,20 @@ static void step(mu_charsel_session *s)
     t->shown = s->shown;
     t->key_enter = (uint8_t)mu_key_is(&f->keys, f->sample.active, 0x0d, MU_KEY_PRESS);   /* 0x00ec53a7(0x0d) */
     t->key_escape = (uint8_t)mu_key_is(&f->keys, f->sample.active, 0x1b, MU_KEY_PRESS);
+    t->gfx_flag_78 = s->gfx_create_open;   /* NATIVE-CHARCREATE-001 */
+    t->gfx_flag_79 = s->gfx_flag_79;
     mu_charsel_log log;
     memset(&log, 0, sizeof log);
     mu_charsel_tick_step(t, &log);
     s->selected = t->selected;
-    for (int32_t i = 0; i < log.count; ++i)
+    for (int32_t i = 0; i < log.count; ++i) {
         if (log.events[i].call == 0x0185a75a)
             ++s->enter_requests;
+        else if (log.events[i].call == 0x00c8c8b1)
+            ++s->menu_requests;
+        else if (log.events[i].call == 0x00b49bf4)
+            ++s->panel_close_requests;
+    }
     /* MoveCharacters 0x0137a7ce: one animation step per character */
     for (int32_t i = 0; i < s->list.count; ++i) {
         if (!s->character_loaded[i])

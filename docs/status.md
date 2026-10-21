@@ -66,6 +66,13 @@ not exist yet.
   cases, 9/9 planted mistakes) equal the actual instructions; the camera, far plane and object state match a live read
   of the server-select screen. `mu-client` and `mu-render ui login|servers --scene` draw World95 with its ship, sky and
   island behind the 2D layer; sprites and particles are stand-ins. [Evidence](research/client-login-scene.md).
+- Character creation, deletion and the system menu (NATIVE-CHARCREATE-001). The CharacterSelect window's create
+  panel, the character-created and character-deleted answers, the message-box results, the preview render, the
+  class-name switch (codes 9 Slayer / 10 Gun Crusher included) and the winSystemMenu game side
+  (`reconstructed/charsel/charcreate.c`; `validate_charcreate.py`: 4,368 Unicorn cases, 0 mismatches, 6/6 planted
+  mistakes) equal the actual instructions. `mu-client --gfx` creates characters through the panel (the class's NewFace
+  bust under the client's preview camera, the Filter/FilterName tables), deletes them through the client's three
+  Caution boxes and opens the menu with Esc; OFFLINE DEMO: a local store answers. [Evidence](research/client-character-select.md).
 - Character-select picking and GFx list (NATIVE-CHARSEL-003). The list movie's game side (`reconstructed/charsel/charsel_gfx.c`:
   init, list, show, SelectIndex, row click, reorder arrows, callbacks; 2,100 Unicorn cases, 0 mismatches, 5/5 planted
   mistakes) and the star dragon effects 0x5ac/0x5ad (CreateEffect/MoveEffect cases in `validate_skill_fx.py`) equal the

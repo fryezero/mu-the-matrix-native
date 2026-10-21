@@ -367,6 +367,25 @@ MU_LANG_DIR=LOCAL_LANG native/build/mu-client --game-root "$MU_GAME_ROOT" --sess
     --gfx MOVIES --objects-dir LOCAL_PLAIN_DIR
 ```
 
+NATIVE-CHARCREATE-001 ([finding](../docs/research/client-character-select.md), section 11): with `--gfx`, character select
+creates and deletes characters as the client does — Create (or an empty row) opens CharacterSelect's create panel (the class's
+NewFace bust under the client's preview camera, the name rules and the Filter/FilterName tables of `MU_LANG_DIR`), Delete
+asks through the client's three Caution boxes (confirmation, warning, password), Esc or Menu opens winSystemMenu (Exit Game,
+Select Server, Option, Close); the game side is `reconstructed/charsel/charcreate.c` (compared by
+`scripts/validate_charcreate.py`). OFFLINE DEMO: a local store answers instead of the server (`--store FILE`; the window keeps
+it in `~/Library/Application Support/MuTheMatrixNative/offline-characters.txt`, headless runs in memory, `--no-store`; the
+password is never kept). Scripted: `click:create`, `click:class:N`, `text:NAME`, `click:createok`, `click:delete`,
+`click:msgok`, `click:menu:server` (see `client/main.c`).
+
+```sh
+native/gfx/gfxconvert.py --out MOVIES --bridge --transparent --var _root.isClient=true --fontconfig English \
+    --font-subset latin --movie CharacterSelect --movie Caution --movie winSystemMenu
+scripts/live_lang_filters.py LANG_SNAPSHOT LOCAL_LANG     # filter.txt, filtername.txt next to the other tables
+MU_LANG_DIR=LOCAL_LANG native/build/mu-shell --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt \
+    --gfx MOVIES --store /tmp/store.txt --out-dir OUT --every 20 --frames 140 \
+    --script "10:enter 14:enter 40:click:create 60:click:class:9 70:click:createname 72:text:Batgirl 90:click:createok"
+```
+
 ## The client's scene flow, offline (NATIVE-SHELL-001)
 
 `mu-client` (`make -C native client`, SDL2 + OpenGL) runs the client's own scene manager (`reconstructed/scene`,

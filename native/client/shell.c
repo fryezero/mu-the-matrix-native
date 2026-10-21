@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../../reconstructed/audio/client_audio.h"
 #include "../../reconstructed/camera/client_input.h"
@@ -83,6 +84,10 @@ struct mu_shell {
     mu_charsel_ui *charsel_ui;
     mu_charsel_list_gfx *charsel_gfx;   /* NATIVE-CHARSEL-003 */
     long picks, pick_hits, double_clicks, gfx_callbacks, gfx_enters, gfx_creates;   /* closed visits */
+    long charsel_rebuilds;          /* NATIVE-CHARCREATE-001: CreateCharacterScene again after a create / delete */
+    mu_charsel_create_stats create_total;   /* the counters of closed visits */
+    int32_t menu_seen, panel_close_seen;
+    uint8_t legacy_hidden;
     uint32_t gfx_clock, last_click;
     int32_t last_click_x, last_click_y;
     int32_t enter_seen;
@@ -363,6 +368,19 @@ static void close_charsel(mu_shell *s)
         s->gfx_callbacks += st.callbacks;
         s->gfx_enters += st.enters;
         s->gfx_creates += st.create_requests;
+        mu_charsel_create_stats cs;
+        mu_charsel_list_gfx_create_stats(s->charsel_gfx, &cs);
+        mu_charsel_create_stats *t = &s->create_total;
+        t->creates += cs.creates;
+        t->created += cs.created;
+        t->refused += cs.refused;
+        t->deletes += cs.deletes;
+        t->deleted += cs.deleted;
+        t->messages += cs.messages;
+        t->menu_events += cs.menu_events;
+        t->preview_frames += cs.preview_frames;
+        if (cs.last_message[0])
+            snprintf(t->last_message, sizeof t->last_message, "%s", cs.last_message);
     }
     mu_charsel_list_gfx_close(s->charsel_gfx);
     s->charsel_gfx = NULL;
@@ -442,6 +460,59 @@ static const char *charsel_text(void *user, int32_t index)
     return mu_lang_text(mu_lang_shared(), index);
 }
 
+/* ---- NATIVE-CHARCREATE-001: the OFFLINE DEMO answers to create, delete and the menu's requests ---- */
+
+static void store_save(mu_shell *s)
+{
+    if (mu_offline_session_save(&s->session) && !s->cfg.quiet)
+        fprintf(stderr, "cannot write the character store %s\n", s->session.store_path);
+}
+
+static void hook_create(void *user, const char *name, uint8_t class_code, mu_ccr_created *answer)
+{
+    mu_shell *s = user;
+    int32_t slot = -1;
+    uint8_t server_class = 0;
+    int result = mu_offline_session_create(&s->session, name, class_code, &slot, &server_class);
+    memset(answer, 0, sizeof *answer);
+    answer->result = (uint8_t)result;
+    if (result == 1) {
+        size_t n = strlen(name);
+        memcpy(answer->name, name, n < sizeof answer->name ? n : sizeof answer->name);
+        answer->slot = (uint8_t)slot;
+        answer->level = 1;
+        answer->class_code = server_class;
+        store_save(s);
+        log_transition(s, "OFFLINE DEMO: character created in the local store");
+    }
+    answer->created = (uint8_t)s->session.created_today;
+    answer->limit = (uint8_t)s->session.create_limit;
+}
+
+static uint8_t hook_remove(void *user, int32_t slot)
+{
+    mu_shell *s = user;
+    int result = mu_offline_session_delete(&s->session, slot);
+    if (result == 1)
+        store_save(s);
+    return (uint8_t)result;
+}
+
+static void hook_menu(void *user, int kind)
+{
+    mu_shell *s = user;
+    if (kind == 0) {   /* Exit Game, after the countdown box */
+        s->quit = 1;
+        log_transition(s, "menu: exit game");
+    } else if (kind == 2) {   /* Select Server: offline the server's logout answer comes at once */
+        s->g.scene = MU_SCENE_LOGIN;
+        s->g.init_login = 0;
+        s->g.init_character = 0;
+        s->g.protocol = 0;
+        log_transition(s, "menu: select server (offline answer)");
+    }
+}
+
 /* CreateCharacterScene (the scene-5 tick's first step) with the session's list. */
 static int open_charsel(mu_shell *s)
 {
@@ -449,6 +520,7 @@ static int open_charsel(mu_shell *s)
     memset(&c, 0, sizeof c);
     c.root = s->cfg.root;
     c.list_path = s->session.characters_path[0] ? s->session.characters_path : NULL;
+    c.list = &s->session.characters;   /* NATIVE-CHARCREATE-001: the session's characters (and the store's) */
     c.objects_dir = s->cfg.charsel_objects;
     c.width = s->cfg.width;
     c.height = s->cfg.height;
@@ -481,11 +553,60 @@ static int open_charsel(mu_shell *s)
         gc.scale = s->cfg.gfx_scale;
         gc.text = charsel_text;
         gc.log_path = s->cfg.gfx_log;
+        gc.create = 1;   /* NATIVE-CHARCREATE-001 */
+        gc.game_root = s->cfg.root;
+        gc.lang_dir = getenv("MU_LANG_DIR");
+        gc.hooks.user = s;
+        gc.hooks.create = hook_create;
+        gc.hooks.remove = hook_remove;
+        gc.hooks.menu = hook_menu;
+        gc.created = s->session.created_today;
+        gc.limit = s->session.create_limit;
         s->charsel_gfx = mu_charsel_list_gfx_open(&gc, cs, error, sizeof error);
         if (!s->charsel_gfx && !s->cfg.quiet)
             fprintf(stderr, "character select GFx: %s (continuing without the list)\n", error);
         s->gfx_clock = s->now;
     }
+    s->menu_seen = s->panel_close_seen = 0;
+    s->legacy_hidden = 0;
+    return 0;
+}
+
+/* NATIVE-CHARCREATE-001: the created / deleted answer cleared InitCharacterScene, so the next tick runs
+ * CreateCharacterScene again with the new list: the scene and CCharSelMainWin are rebuilt, the GFx windows
+ * (the GFx manager's) stay and get the list again. */
+static int rebuild_charsel(mu_shell *s)
+{
+    mu_charsel_list_gfx *gfx = s->charsel_gfx;
+    s->charsel_gfx = NULL;   /* kept across the rebuild */
+    const mu_charsel_session *old = s->charsel ? mu_charsel_embed_session(s->charsel) : NULL;
+    if (old) {
+        s->picks += old->picks;
+        s->pick_hits += old->pick_hits;
+        s->double_clicks += old->double_clicks;
+    }
+    if (s->charsel_ui) {
+        mu_charsel_ui_free(s->charsel_ui);
+        free(s->charsel_ui);
+        s->charsel_ui = NULL;
+    }
+    if (s->charsel) {
+        if (s->platform.embed_closing)
+            s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
+        mu_charsel_embed_close(s->charsel);
+        s->charsel = NULL;
+    }
+    const char *dir = s->cfg.gfx_dir;
+    s->cfg.gfx_dir = NULL;
+    int status = open_charsel(s);
+    s->cfg.gfx_dir = dir;
+    s->charsel_gfx = gfx;
+    ++s->charsel_rebuilds;
+    if (status)
+        return status;
+    mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+    cs->selected = cs->shown = -1;   /* CreateCharacterScene: SelectedHero = -1 */
+    mu_charsel_list_gfx_rebind(gfx, cs);
     return 0;
 }
 
@@ -813,6 +934,15 @@ static void charsel_frame(mu_shell *s, uint32_t now)
     mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
     for (int k = 0; k < s->key_count; ++k) {
         int vk = s->keys[k][0], down = s->keys[k][1];
+        /* NATIVE-CHARCREATE-001: the Caution box and the create panel's name box take the keys first; with the
+         * GFx list, Esc is the scene tick's (the menu, or the create panel closed) */
+        if (s->charsel_gfx && mu_charsel_list_gfx_key(s->charsel_gfx, vk, down))
+            continue;
+        if (vk == 0x1b && s->charsel_gfx) {
+            mu_charsel_key(cs, vk, down);
+            mu_charsel_message(cs, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
+            continue;
+        }
         if (vk == 0x1b) {
             if (down) {
                 /* offline shortcut: back to the server list (the client's GFx menu asks the server) */
@@ -846,9 +976,55 @@ static void charsel_frame(mu_shell *s, uint32_t now)
         mu_charsel_list_gfx_advance(s->charsel_gfx, (double)(now - s->gfx_clock));
         s->gfx_clock = now;
     }
+    if (s->charsel_gfx) {   /* NATIVE-CHARCREATE-001: the GFx window's flags the tick reads */
+        mu_charsel_create_stats st;
+        mu_charsel_list_gfx_create_stats(s->charsel_gfx, &st);
+        cs->gfx_create_open = st.create_open;
+        cs->gfx_flag_79 = st.caution_open;
+    }
     mu_charsel_update(cs, now);
-    if (s->charsel_ui)
+    if (s->charsel_gfx && cs->menu_requests != s->menu_seen) {   /* Esc: 0x00c8c8b1 */
+        s->menu_seen = cs->menu_requests;
+        mu_charsel_list_gfx_menu(s->charsel_gfx);
+    }
+    if (s->charsel_gfx && cs->panel_close_requests != s->panel_close_seen) {   /* Esc: 0x00b49bf4(0) */
+        s->panel_close_seen = cs->panel_close_requests;
+        mu_charsel_list_gfx_close_panel(s->charsel_gfx);
+    }
+    if (s->charsel_ui) {
+        s->charsel_ui->event_count = 0;
         mu_charsel_ui_update(s->charsel_ui, cs, s->mouse_x, s->mouse_y, s->button_down, s->button_up);
+        /* CCharSelMainWin's events: Connect enters (0x0185a75a(0)); with the GFx windows, Create, Menu, the
+         * refusals and the delete confirmation (NATIVE-CHARCREATE-001) */
+        for (int32_t i = 0; i < s->charsel_ui->event_count; ++i) {
+            int32_t code = s->charsel_ui->events[i][0], argument = s->charsel_ui->events[i][1];
+            if (code == MU_UI_EVENT_CHARSEL_CONNECT)
+                ++cs->enter_requests;
+            else if (s->charsel_gfx)
+                mu_charsel_list_gfx_event(s->charsel_gfx, code, argument);
+        }
+        s->charsel_ui->event_count = 0;
+    }
+    if (s->charsel_gfx) {
+        mu_charsel_create_stats st;
+        mu_charsel_list_gfx_create_stats(s->charsel_gfx, &st);
+        if (s->charsel_ui && st.legacy_hidden != s->legacy_hidden) {   /* the menu hides CCharSelMainWin */
+            s->legacy_hidden = st.legacy_hidden;
+            mu_ui_charsel_win_show(&s->charsel_ui->ctx, &s->charsel_ui->win.win, !st.legacy_hidden);
+        }
+        if (st.rebuild) {
+            mu_charsel_list_gfx_create_done(s->charsel_gfx);
+            if (rebuild_charsel(s)) {
+                s->g.scene = MU_SCENE_LOGIN;
+                s->g.init_login = 0;
+                log_transition(s, "character select did not load");
+                return;
+            }
+            cs = mu_charsel_embed_session(s->charsel);
+        }
+        if (s->quit)
+            return;
+    }
     if (cs->enter_requests != s->enter_seen) {
         s->enter_seen = cs->enter_requests;
         /* the scene tick called 0x0185a75a(0): the join request */
@@ -933,6 +1109,18 @@ mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *p
         }
     } else {
         mu_offline_session_default(&s->session);
+        snprintf(s->session.root, sizeof s->session.root, "%s", config->root ? config->root : "");
+    }
+    {   /* NATIVE-CHARCREATE-001: the OFFLINE DEMO character store */
+        char today[16];
+        time_t t = time(NULL);
+        struct tm tm;
+        localtime_r(&t, &tm);
+        strftime(today, sizeof today, "%Y-%m-%d", &tm);
+        if (mu_offline_session_use_store(&s->session, config->store_path, today, error, error_size)) {
+            free(s);
+            return NULL;
+        }
     }
     regions_init(s);
     if (ui_init(s)) {
@@ -1045,6 +1233,17 @@ void mu_shell_key(mu_shell *s, int vk, int down)
 
 void mu_shell_char(mu_shell *s, int ch)
 {
+    if (s->g.scene == MU_SCENE_CHARACTER && s->charsel_gfx && ch > 0 && ch < 0x100) {   /* NATIVE-CHARCREATE-001 */
+        char utf8[3] = {0};
+        if (ch < 0x80) {
+            utf8[0] = (char)ch;
+        } else {
+            utf8[0] = (char)(0xc0 | (ch >> 6));
+            utf8[1] = (char)(0x80 | (ch & 0x3f));
+        }
+        mu_charsel_list_gfx_text(s->charsel_gfx, utf8);
+        return;
+    }
     if (s->panel && ch >= 32 && ch < 127 && s->typed[s->field] < 10)
         ++s->typed[s->field];   /* counted for the masked display only; the character itself is dropped */
 }
@@ -1108,6 +1307,44 @@ void mu_shell_charsel_counts(const mu_shell *s, long out[6])
         v[5] += st.create_requests;
     }
     memcpy(out, v, sizeof v);
+}
+
+void mu_shell_charsel_create_stats(const mu_shell *s, mu_charsel_create_stats *out, long *rebuilds)
+{
+    mu_charsel_list_gfx_create_stats(s->charsel_gfx, out);
+    const mu_charsel_create_stats *t = &s->create_total;   /* closed visits too */
+    out->creates += t->creates;
+    out->created += t->created;
+    out->refused += t->refused;
+    out->deletes += t->deletes;
+    out->deleted += t->deleted;
+    out->messages += t->messages;
+    out->menu_events += t->menu_events;
+    out->preview_frames += t->preview_frames;
+    if (!out->last_message[0])
+        snprintf(out->last_message, sizeof out->last_message, "%s", t->last_message);
+    if (rebuilds)
+        *rebuilds = s->charsel_rebuilds;
+}
+
+int mu_shell_charsel_control(mu_shell *s, const char *name, int32_t *x, int32_t *y)
+{
+    static const char *const BUTTONS[4] = {"create", "menu", "connect", "delete"};   /* CCharSelMainWin +0x190 */
+    for (int i = 0; i < 4; ++i)
+        if (!strcmp(name, BUTTONS[i])) {
+            if (!s->charsel_ui)
+                return 0;
+            const mu_ui_button *b = &s->charsel_ui->win.buttons[i];
+            *x = mu_ui_sprite_x(&b->sprite) + mu_ui_sprite_width(&b->sprite) / 2;
+            *y = mu_ui_sprite_y(&b->sprite) + mu_ui_sprite_height(&b->sprite) / 2;
+            return 1;
+        }
+    double fx, fy;
+    if (!s->charsel_gfx || !mu_charsel_list_gfx_control(s->charsel_gfx, name, &fx, &fy))
+        return 0;
+    *x = (int32_t)fx;
+    *y = (int32_t)fy;
+    return 1;
 }
 
 int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y)
@@ -1201,7 +1438,7 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
             mu_ui_begin_bitmap(&s->state);
             offline_label(s, st.status[0] ? st.status
                                           : "character select: click a character in the list, double-click or "
-                                            "Enter plays, Esc returns to the servers");
+                                            "Enter plays, Create / Delete (local store), Esc: the menu");
             mu_ui_end_bitmap(&s->state);
             mu_ui_raster_read_top_down(&s->raster, rgba);
             break;

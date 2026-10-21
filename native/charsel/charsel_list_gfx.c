@@ -3,39 +3,21 @@
 #define _DARWIN_C_SOURCE 1
 #include "charsel_list_gfx.h"
 
-#include <dlfcn.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
 
+#include "../../reconstructed/charsel/charcreate.h"
 #include "../../reconstructed/charsel/charsel_gfx.h"
-#include "../../reconstructed/model-codec/character.h"
-#include "../gfx/mugfx/include/mugfx.h"
+#include "charsel_create_gfx.h"
+#include "charsel_mugfx.h"
 
 #define WINDOW_PATH "_level0.g_mcCharacterSelect"
 #define LIST_PATH WINDOW_PATH ".mcCharacterSelect.mcCharacterSelectList"
 
-typedef struct api {
-    void *dl;
-    int (*abi_version)(void);
-    MuGfx *(*open)(const char *, int, int, char *, size_t);
-    void (*close)(MuGfx *);
-    void (*set_callback)(MuGfx *, mugfx_callback, void *);
-    void (*start)(MuGfx *);
-    void (*advance)(MuGfx *, double);
-    int (*needs_render)(MuGfx *);
-    int (*render)(MuGfx *, uint8_t *, size_t);
-    const char *(*invoke)(MuGfx *, const char *, const char *, const char *);
-    const char *(*get_variable)(MuGfx *, const char *);
-    int (*mouse)(MuGfx *, int, int, double, double);
-    int (*hit_test)(MuGfx *, double, double);
-    int (*set_view)(MuGfx *, int, int, int, int, int, int, double);
-} api;
+typedef mu_charsel_mugfx api;
 
 struct mu_charsel_list_gfx {
     api a;
@@ -53,102 +35,15 @@ struct mu_charsel_list_gfx {
     mu_charsel_list_gfx_stats stats;
     char gt[64];
     char class_text[64];
+    mu_charsel_create *create;   /* NATIVE-CHARCREATE-001: the create panel, delete flow, messages, menu */
 };
 
-/* ---- libmugfx ---- */
-
-static int exe_dir(char *out, size_t cap)
-{
-    char path[4096];
-#ifdef __APPLE__
-    uint32_t size = sizeof path;
-    if (_NSGetExecutablePath(path, &size) != 0)
-        return 0;
-#else
-    ssize_t n = readlink("/proc/self/exe", path, sizeof path - 1);
-    if (n <= 0)
-        return 0;
-    path[n] = 0;
-#endif
-    char *slash = strrchr(path, '/');
-    if (!slash)
-        return 0;
-    *slash = 0;
-    snprintf(out, cap, "%s", path);
-    return 1;
-}
-
-static int api_load(api *a, const char *explicit_path, char *error, size_t cap)
-{
-#ifdef __APPLE__
-    const char *lib = "libmugfx.dylib";
-#else
-    const char *lib = "libmugfx.so";
-#endif
-    char candidates[4][4096], dir[4096];
-    int n = 0;
-    if (explicit_path)
-        snprintf(candidates[n++], sizeof candidates[0], "%s", explicit_path);
-    if (getenv("MU_GFX_LIB"))
-        snprintf(candidates[n++], sizeof candidates[0], "%s", getenv("MU_GFX_LIB"));
-    if (exe_dir(dir, sizeof dir))
-        snprintf(candidates[n++], sizeof candidates[0], "%s/../gfx/mugfx/target/release/%s", dir, lib);
-    snprintf(candidates[n++], sizeof candidates[0], "native/gfx/mugfx/target/release/%s", lib);
-    for (int i = 0; i < n && !a->dl; i++)
-        a->dl = dlopen(candidates[i], RTLD_NOW | RTLD_LOCAL);
-    if (!a->dl) {
-        snprintf(error, cap, "libmugfx not found (native/gfx/build-mugfx.sh or MU_GFX_LIB): %s", dlerror());
-        return -1;
-    }
-#define SYM(field, name)                                                                                     \
-    do {                                                                                                       \
-        *(void **)&a->field = dlsym(a->dl, name);                                                              \
-        if (!a->field) {                                                                                       \
-            snprintf(error, cap, "libmugfx lacks %s", name);                                                   \
-            return -1;                                                                                         \
-        }                                                                                                      \
-    } while (0)
-    SYM(abi_version, "mugfx_abi_version");
-    if (a->abi_version() != MUGFX_ABI_VERSION) {
-        snprintf(error, cap, "libmugfx ABI %d, expected %d", a->abi_version(), MUGFX_ABI_VERSION);
-        return -1;
-    }
-    SYM(open, "mugfx_open");
-    SYM(close, "mugfx_close");
-    SYM(set_callback, "mugfx_set_callback");
-    SYM(start, "mugfx_start");
-    SYM(advance, "mugfx_advance");
-    SYM(needs_render, "mugfx_needs_render");
-    SYM(render, "mugfx_render");
-    SYM(invoke, "mugfx_invoke");
-    SYM(get_variable, "mugfx_get_variable");
-    SYM(mouse, "mugfx_mouse");
-    SYM(hit_test, "mugfx_hit_test");
-    SYM(set_view, "mugfx_set_view");
-#undef SYM
-    return 0;
-}
-
-/* ---- class names: 0x0139cc2e(class, 1) (static reading) ----
- * code = (tier - 1) << 4 | (class & 0xf) (0x0139cab9 = the skin index 0x0139d6a2), then a switch on the code
- * to a GlobalText index; codes 9 and 10 take another text accessor (not read here). */
-static const int16_t CLASS_TEXT[][2] = {
-    {0, 20},    {16, 25},   {32, 1669}, {1, 21},    {17, 26},   {33, 1668}, {2, 22},    {18, 27},   {34, 1670},
-    {3, 23},    {35, 1671}, {4, 24},    {36, 1672}, {5, 1687},  {21, 1688}, {37, 1689}, {6, 3150},  {38, 3151},
-    {7, 4588},  {39, 4589}, {48, 5163}, {49, 5164}, {50, 5165}, {51, 5167}, {52, 5168}, {53, 5166}, {54, 5169},
-    {55, 5170}, {8, 5368},  {24, 5400}, {40, 5401}, {56, 5414}, {11, 5914}, {27, 5915}, {43, 5916}, {59, 5917},
-    {12, 5923}, {28, 5924}, {44, 5925}, {60, 5926}, {13, 6058}, {29, 6059}, {45, 6060}, {61, 6061}, {64, 6286},
-    {65, 6287}, {66, 6288}, {67, 6290}, {68, 6291}, {69, 6289}, {70, 6292}, {71, 6293}, {72, 6294}, {73, 6295},
-    {74, 6296}, {75, 6297}, {76, 6298}, {77, 6299}, {14, 6652}, {30, 6653}, {46, 6654}, {62, 6655}, {78, 6656},
-    {15, 6802}, {31, 6803}, {47, 6804}, {63, 6805}, {79, 6806}};
-
+/* ---- class names: 0x0139cc2e(class, 1) ----
+ * NATIVE-CHARCREATE-001 executed the switch in Unicorn for every class byte (codes 9/25/41/57 and
+ * 10/26/42/58 included, default GlobalText 2305); reconstructed/charsel/charcreate.c holds the table. */
 int32_t mu_charsel_class_name_text(uint8_t class_byte)
 {
-    const int code = mu_character_skin_index(class_byte);
-    for (size_t i = 0; i < sizeof CLASS_TEXT / sizeof CLASS_TEXT[0]; ++i)
-        if (CLASS_TEXT[i][0] == code)
-            return CLASS_TEXT[i][1];
-    return -1;
+    return mu_ccr_class_name_text(class_byte, 1);
 }
 
 /* ---- the window's environment ---- */
@@ -196,7 +91,16 @@ static void logline(mu_charsel_list_gfx *g, const char *kind, const char *a, con
 static void env_emit(void *c, const char *line)
 {
     mu_charsel_list_gfx *g = c;
-    logline(g, "line", line, NULL);
+    /* the delete request's password never reaches the log */
+    logline(g, "line", strncmp(line, "call 00b4c76a", 13) ? line : "call 00b4c76a (delete request)", NULL);
+    if (!strncmp(line, "call 00b49bf4 1", 15)) {
+        g->stats.create_requests++;
+        snprintf(g->stats.status, sizeof g->stats.status,
+                 g->create ? "OFFLINE DEMO: create panel (characters are kept in the local store)"
+                           : "OFFLINE DEMO: creating a character needs the server (nothing created)");
+    }
+    if (mu_charsel_create_line(g->create, line))
+        return;
     if (!strncmp(line, "invoke ", 7)) {
         char method[64];
         const char *rest = line + 7, *space = strchr(rest, ' ');
@@ -210,7 +114,7 @@ static void env_emit(void *c, const char *line)
     } else if (!strncmp(line, "call 0185a75a", 13)) {
         g->s->enter_requests++;   /* the loading scene's start (the shell answers it) */
         g->stats.enters++;
-    } else if (!strncmp(line, "call 00b49bf4 1", 15) || !strncmp(line, "call 00b49eca", 13)) {
+    } else if (!strncmp(line, "call 00b49eca", 13)) {
         g->stats.create_requests++;
         snprintf(g->stats.status, sizeof g->stats.status,
                  "OFFLINE DEMO: creating a character needs the server (nothing created)");
@@ -292,12 +196,32 @@ static const char *on_call(void *user, const char *name, const char *args)
          * for the ten rows of the real list (as on the live screen) */
         mu_csg_show(&g->window, &g->env, 0);
         list_step(g);
+        if (g->create) {
+            /* NATIVE-CHARCREATE-001: the window's slot +0x10 0x00b496d4 (the GFx manager calls it for every window,
+             * static): +0x9c = 0 and SetCreateBoardInfo, which the movie answers with the preview rectangle; the
+             * character list's handler sets the daily creation counts (UpdateCreateCount 0x00b49d0d) */
+            mu_charsel_create_line(g->create, "call 009a5920 0");
+            g->a.invoke(g->movie, WINDOW_PATH, "SetCreateBoardInfo", "[]");
+            mu_charsel_create_ready(g->create);
+        }
         g->stats.ready = 1;
         return NULL;
     }
     mu_csg_arg a[8];
     char strings[8][128];
     int n = parse_args(args, a, strings, 8);
+    if (g->create && n > 0 && a[0].type == 4) {   /* the callback's text, before the window's dispatch */
+        if (!strcmp(name, "OnEnterCharacterName"))
+            mu_charsel_create_stash(g->create, a[0].string, NULL);
+        else if (!strcmp(name, "UpdateInput"))
+            mu_charsel_create_stash(g->create, NULL, a[0].string);
+    }
+    if (g->create) {   /* window +0x79: a pending delete blocks the callbacks while the movie is busy */
+        mu_charsel_create_stats cs;
+        mu_charsel_create_stats_get(g->create, &cs);
+        g->env.window_flag_79 = cs.caution_open;
+        g->env.gfx_busy = cs.caution_open;   /* 0x00aae6f9: the Caution window is modal */
+    }
     mu_csg_callback(&g->window, &g->env, name, a, n);
     return NULL;
 }
@@ -347,7 +271,7 @@ mu_charsel_list_gfx *mu_charsel_list_gfx_open(const mu_charsel_list_gfx_config *
         mu_charsel_list_gfx_close(g);
         return NULL;
     }
-    if (api_load(&g->a, c->lib_path, error, cap)) {
+    if (mu_charsel_mugfx_load(&g->a, c->lib_path, error, cap)) {
         mu_charsel_list_gfx_close(g);
         return NULL;
     }
@@ -360,6 +284,22 @@ mu_charsel_list_gfx *mu_charsel_list_gfx_open(const mu_charsel_list_gfx_config *
     }
     g->a.set_view(g->movie, sw, sh, 0, 0, sw, sh, g->scale);
     g->pixels = malloc((size_t)g->width * (size_t)g->height * 4);
+    if (c->create) {   /* NATIVE-CHARCREATE-001 */
+        mu_charsel_create_config cc;
+        memset(&cc, 0, sizeof cc);
+        cc.movie_dir = c->movie_dir;
+        cc.game_root = c->game_root;
+        cc.width = g->width;
+        cc.height = g->height;
+        cc.scale = g->scale;
+        cc.text = c->text;
+        cc.text_user = c->text_user;
+        cc.lang_dir = c->lang_dir;
+        cc.hooks = c->hooks;
+        cc.created = c->created;
+        cc.limit = c->limit;
+        g->create = mu_charsel_create_open(&cc, &g->a, &g->window, &g->env, error, cap);
+    }
     g->a.set_callback(g->movie, on_call, g);
     g->a.start(g->movie);
     g->a.advance(g->movie, 0.0);
@@ -370,10 +310,10 @@ void mu_charsel_list_gfx_close(mu_charsel_list_gfx *g)
 {
     if (!g)
         return;
+    mu_charsel_create_close(g->create);
     if (g->movie)
         g->a.close(g->movie);
-    if (g->a.dl)
-        dlclose(g->a.dl);
+    mu_charsel_mugfx_unload(&g->a);
     if (g->log)
         fclose(g->log);
     free(g->pixels);
@@ -384,6 +324,8 @@ int mu_charsel_list_gfx_mouse(mu_charsel_list_gfx *g, int kind, int button, doub
 {
     if (!g || !g->movie)
         return 0;
+    if (mu_charsel_create_mouse(g->create, kind, button, x, y))   /* the Caution box (modal), then the menu */
+        return 1;
     int over = g->a.hit_test(g->movie, x, y);
     if (over || kind == 0 || kind == 2)
         g->a.mouse(g->movie, kind, button, x, y);   /* moves and releases always reach it (hover states) */
@@ -408,12 +350,16 @@ void mu_charsel_list_gfx_advance(mu_charsel_list_gfx *g, double dt_ms)
 {
     if (g && g->movie)
         g->a.advance(g->movie, dt_ms);
+    if (g)
+        mu_charsel_create_advance(g->create, dt_ms);
 }
 
 void mu_charsel_list_gfx_composite(mu_charsel_list_gfx *g, uint8_t *rgba, int32_t width, int32_t height)
 {
     if (!g || !g->movie || !g->pixels || width != g->width || height != g->height)
         return;
+    /* the window's render hook draws the creation preview before the movie (0x00b49cd7) */
+    mu_charsel_create_draw_preview(g->create, rgba, width, height);
     if (!g->have_pixels || g->a.needs_render(g->movie)) {
         if (g->a.render(g->movie, g->pixels, (size_t)width * (size_t)height * 4) == 0) {
             g->have_pixels = 1;
@@ -432,6 +378,7 @@ void mu_charsel_list_gfx_composite(mu_charsel_list_gfx *g, uint8_t *rgba, int32_
         for (int k = 0; k < 3; ++k)
             d[k] = (uint8_t)((s[k] * a + d[k] * (255u - a) + 127u) / 255u);
     }
+    mu_charsel_create_draw_windows(g->create, rgba, width, height);   /* the menu, then the Caution box */
 }
 
 void mu_charsel_list_gfx_stats_get(const mu_charsel_list_gfx *g, mu_charsel_list_gfx_stats *out)
@@ -467,4 +414,85 @@ int mu_charsel_list_gfx_row_center(const mu_charsel_list_gfx *gc, int32_t row, d
     *x = (lx + lw / 2.0) * g->scale;
     *y = (ly + rh * (row + 0.5)) * g->scale;
     return 1;
+}
+
+/* ---- NATIVE-CHARCREATE-001 ---- */
+
+void mu_charsel_list_gfx_event(mu_charsel_list_gfx *g, int32_t code, int32_t argument)
+{
+    if (g)
+        mu_charsel_create_event(g->create, code, argument);
+}
+
+void mu_charsel_list_gfx_menu(mu_charsel_list_gfx *g)
+{
+    if (g)
+        mu_charsel_create_menu_toggle(g->create);
+}
+
+void mu_charsel_list_gfx_close_panel(mu_charsel_list_gfx *g)
+{
+    if (g)
+        mu_charsel_create_close_panel(g->create);
+}
+
+int mu_charsel_list_gfx_key(mu_charsel_list_gfx *g, int vk, int down)
+{
+    if (!g || !g->movie)
+        return 0;
+    if (mu_charsel_create_key(g->create, vk, down))
+        return 1;
+    mu_charsel_create_stats cs;
+    mu_charsel_create_stats_get(g->create, &cs);
+    if (cs.create_open) {   /* the panel's name box has the focus (SetCreateVisible: tiCharacterName.SetFocus) */
+        g->a.key(g->movie, down ? 0 : 1, vk, vk == 0x0d ? '\r' : vk == 0x08 ? 8 : 0, 0);
+        return vk != 0x1b;   /* Esc still reaches the scene tick (it closes the panel) */
+    }
+    return 0;
+}
+
+int mu_charsel_list_gfx_text(mu_charsel_list_gfx *g, const char *utf8)
+{
+    if (!g || !g->movie)
+        return 0;
+    if (mu_charsel_create_text(g->create, utf8))
+        return 1;
+    mu_charsel_create_stats cs;
+    mu_charsel_create_stats_get(g->create, &cs);
+    if (cs.create_open) {
+        g->a.text(g->movie, utf8);
+        return 1;
+    }
+    return 0;
+}
+
+void mu_charsel_list_gfx_rebind(mu_charsel_list_gfx *g, mu_charsel_session *session)
+{
+    if (!g)
+        return;
+    g->s = session;
+    g->env.selected = &session->selected;
+    g->env.shown = &session->shown;
+    mu_charsel_create_rebind(g->create, &g->env);
+    /* CreateCharacterScene's GFx call again: the list from the new records */
+    list_step(g);
+}
+
+void mu_charsel_list_gfx_create_stats(const mu_charsel_list_gfx *g, mu_charsel_create_stats *out)
+{
+    mu_charsel_create_stats_get(g ? g->create : NULL, out);
+}
+
+void mu_charsel_list_gfx_create_done(mu_charsel_list_gfx *g)
+{
+    if (g)
+        mu_charsel_create_clear_rebuild(g->create);
+}
+
+int mu_charsel_list_gfx_control(const mu_charsel_list_gfx *gc, const char *name, double *x, double *y)
+{
+    mu_charsel_list_gfx *g = (mu_charsel_list_gfx *)gc;
+    if (!g || !g->movie)
+        return 0;
+    return mu_charsel_create_control(g->create, g->movie, WINDOW_PATH, name, x, y);
 }

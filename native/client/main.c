@@ -22,7 +22,15 @@
  * Headless actions (frame numbers count dispatcher passes): enter, esc, left,
  * right, tab, back, text:STRING, click:group:N, click:server:N, click:X,Y,
  * click:row:N and dblclick:row:N (the GFx character list), dblclick:X,Y,
- * wheel:+1/-1, quit. --auto plays the whole flow (server, login, select,
+ * wheel:+1/-1, quit. NATIVE-CHARCREATE-001 (with --gfx): click:create,
+ * click:menu, click:connect, click:delete (CCharSelMainWin's buttons),
+ * click:class:N, click:createname, click:createok, click:createcancel (the
+ * create panel), click:msgok, click:msgcancel, click:msginput (the Caution
+ * box), click:menu:exit|server|option|character|close (winSystemMenu).
+ *   --store FILE: the OFFLINE DEMO character store (characters created and
+ *             deleted in character select); the window defaults to
+ *             ~/Library/Application Support/MuTheMatrixNative/offline-characters.txt,
+ *             headless runs keep changes in memory; --no-store: never. --auto plays the whole flow (server, login, select,
  * world, back to select, world again). Captures: every K-th frame, the first
  * frame of each scene visit and every title/loading frame.
  *
@@ -68,6 +76,9 @@ typedef struct front {
     const char *world_objects, *charsel_objects, *login_objects;
     const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
     const char *gfx_log;              /* NATIVE-CHARSEL-003 */
+    const char *store;                /* NATIVE-CHARCREATE-001: the OFFLINE DEMO character store */
+    int no_store;
+    char store_default[4096];
     int double_click;                 /* the scripted click is a double click */
     const char *label, *title, *npc_demo;                      /* NATIVE-APP-001 */
     int combat, items, npc, no_names, no_env, no_particles;
@@ -377,6 +388,10 @@ static void do_action(front *f, const char *what)
             click(f, x, y);
             f->double_click = what[0] == 'd';
         }
+    } else if (!strncmp(what, "click:", 6) && mu_shell_charsel_control(s, what + 6, &x, &y)) {
+        click(f, x, y);   /* NATIVE-CHARCREATE-001: create, delete, menu, class:N, createok, msgok, menu:exit ... */
+        if (!f->quiet)
+            fprintf(stderr, "  %s at %d,%d\n", what + 6, x, y);
     } else if (sscanf(what, "dblclick:%d,%d", &x, &y) == 2) {
         click(f, x, y);
         f->double_click = 1;
@@ -539,6 +554,7 @@ static int headless(front *f)
     c.gfx_dir = f->gfx_dir;
     c.gfx_log = f->gfx_log;
     c.gfx_scale = 1.0;
+    c.store_path = f->no_store ? NULL : f->store;   /* headless: in memory unless --store */
     mu_shell_platform p = {f, on_present, on_ticks, on_opened, on_closing, on_pause};
     f->shell = mu_shell_new(&c, &p, error, sizeof error);
     if (!f->shell) {
@@ -595,8 +611,26 @@ static int headless(front *f)
         printf("%s\"%s\"", i ? ", " : "", lines[i]);
     long cc[6];
     mu_shell_charsel_counts(f->shell, cc);   /* NATIVE-CHARSEL-003 */
+    mu_charsel_create_stats cs;
+    long rebuilds = 0;
+    mu_shell_charsel_create_stats(f->shell, &cs, &rebuilds);   /* NATIVE-CHARCREATE-001 */
+    char last[200];
+    size_t n = 0;
+    for (const char *p = cs.last_message; *p && n + 3 < sizeof last; ++p) {
+        if (*p == '"' || *p == '\\')
+            last[n++] = '\\';
+        last[n++] = (char)((unsigned char)*p < 0x20 ? ' ' : *p);
+    }
+    last[n] = 0;
     printf("], \"charsel\": {\"picks\": %ld, \"pick_hits\": %ld, \"double_clicks\": %ld, \"gfx_callbacks\": %ld, "
-           "\"gfx_enters\": %ld, \"create_requests\": %ld}}\n", cc[0], cc[1], cc[2], cc[3], cc[4], cc[5]);
+           "\"gfx_enters\": %ld, \"create_requests\": %ld}, \"charcreate\": {\"create_open\": %d, \"menu_open\": %d, "
+           "\"caution_open\": %d, \"preview_class\": %d, \"board\": [%d, %d, %d, %d], \"creates\": %ld, "
+           "\"created\": %ld, \"refused\": %ld, \"deletes\": %ld, \"deleted\": %ld, \"messages\": %ld, "
+           "\"menu_events\": %ld, \"preview_frames\": %ld, \"rebuilds\": %ld, \"last_message\": \"%s\", "
+           "\"characters\": %d}}\n",
+           cc[0], cc[1], cc[2], cc[3], cc[4], cc[5], cs.create_open, cs.menu_open, cs.caution_open, cs.preview_class,
+           cs.board[0], cs.board[1], cs.board[2], cs.board[3], cs.creates, cs.created, cs.refused, cs.deletes,
+           cs.deleted, cs.messages, cs.menu_events, cs.preview_frames, rebuilds, last, session->characters.count);
     if (f->wav_path && f->wav_frames &&
         mu_wav_write16(f->wav_path, f->wav, (uint32_t)f->wav_frames, 2, mu_shell_audio_rate(f->shell))) {
         fprintf(stderr, "cannot write %s\n", f->wav_path);
@@ -697,6 +731,13 @@ static int windowed(front *f)
     c.gfx_dir = f->gfx_dir;
     c.gfx_log = f->gfx_log;
     c.gfx_scale = f->scale;
+    /* NATIVE-CHARCREATE-001: the window keeps the characters created offline (--store, --no-store) */
+    if (!f->no_store && !f->store && getenv("HOME")) {
+        snprintf(f->store_default, sizeof f->store_default,
+                 "%s/Library/Application Support/MuTheMatrixNative/offline-characters.txt", getenv("HOME"));
+        f->store = f->store_default;
+    }
+    c.store_path = f->no_store ? NULL : f->store;
     mu_shell_platform p = {f, on_present, on_ticks, on_opened, on_closing, on_pause};
     char error[256];
     f->shell = mu_shell_new(&c, &p, error, sizeof error);
@@ -785,7 +826,7 @@ static int usage(void)
             "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
             "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n"
             "                 [--combat] [--items] [--npc] [--npc-demo FILE] [--no-names] [--no-env] [--no-particles]\n"
-            "                 [--label TEXT] [--title TEXT]\n");
+            "                 [--label TEXT] [--title TEXT] [--store FILE | --no-store]\n");
     return 2;
 }
 
@@ -817,6 +858,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-names")) { f.no_names = 1; continue; }
         if (!strcmp(k, "--no-env")) { f.no_env = 1; continue; }
         if (!strcmp(k, "--no-particles")) { f.no_particles = 1; continue; }
+        if (!strcmp(k, "--no-store")) { f.no_store = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -845,6 +887,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--npc-demo")) { f.npc_demo = v; f.npc = 1; }
         else if (!strcmp(k, "--label")) f.label = v;
         else if (!strcmp(k, "--title")) f.title = v;
+        else if (!strcmp(k, "--store")) f.store = v;
         else return usage();
     }
     if (!f.root || f.width < 64 || f.height < 64 || f.width > 8192 || f.height > 8192 || f.frames < 1)

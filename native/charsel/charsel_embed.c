@@ -23,6 +23,7 @@ mu_charsel_embed *mu_charsel_embed_open(const mu_charsel_embed_config *c, char *
     app *a = &e->a;
     a->root = c->root;
     a->list_path = c->list_path;
+    a->list_given = c->list;
     a->objects_dir = c->objects_dir;
     a->width = c->width;
     a->height = c->height;
