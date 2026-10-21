@@ -28,6 +28,21 @@ Families:
   returns its index, which gives native/core/mu_lang_maps.h (--write-maps
   regenerates it; otherwise the committed header must match).
 
+NATIVE-LANG-002 families (the same snapshot):
+
+* buff: the BuffEffect lookup 0x010de66f (this 0x06fbb2a4) for every key,
+  absent keys and keys >= 0x1cb (the default record +0x40): every field
+  the client's consumers read; buff_item: 0x010de6d3 for every item code of
+  the table and absent codes; buff_getters: 0x010de759 (+0x28), 0x010de7a3
+  (+0x40), 0x010de772 / 0x010de78a (+0 / +4 by item);
+* buff_tooltip: the InfoPopup line builder 0x01298a54 for every buff and
+  hero buff values {0, random} (value kind 2 with the option singleton's
+  three states): the lines it pushes (the client's sprintf runs);
+* charinfo: the CharacterInfoSetup lookup 0x010e5203 (this 0x06fbad18) for
+  every key and absent keys; charinfo_rows: the character window's row
+  builder 0x00b3dedc for every class index: the SetName invokes (type, id,
+  sort, label, colours, button) in order.
+
 Modelled (not client code): the import slots (any import call stops the
 case); thread-safe local statics as already constructed (their TLS guards
 0 and the TLS epoch maximal); the map-name function's state: the current
@@ -69,6 +84,13 @@ GATE_LOOKUP, MOVE_LOOKUP = 0x0110cbaf, 0x0113c3f5
 NPC_NAME, NPC_1C, NPC_20, NPC_24 = 0x011427c7, 0x011427e0, 0x011427f9, 0x01142812
 ENCHANT_FIRST, ENCHANT_MESH = 0x010ffd7a, 0x010ffddb
 MAP_NAME = 0x016baaa6
+BUFF_GET, BUFF_BY_ITEM, BUFF_TYPE, BUFF_VALUE_KIND, BUFF_ITEM_INDEX, BUFF_ITEM_GROUP = (
+    0x010de66f, 0x010de6d3, 0x010de759, 0x010de7a3, 0x010de772, 0x010de78a)
+BUFF_TOOLTIP, HERO_BUFF_VALUE, OPTION_SINGLETON, OPTION_HIDDEN, OPTION_VALUE = (
+    0x01298a54, 0x01295d1c, 0x00c5cc97, 0x010702e1, 0x010702bd)
+ITEM_CACHE, SPRINTF, TO_UTF8 = 0x01298996, 0x0098d0a9, 0x00a99d93
+CHARINFO_GET, CHARINFO_ROWS, INVOKE, LINE_BUILDER, CLASS_INDEX = 0x010e5203, 0x00b3dedc, 0x00aae7e0, 0x00ab4dc0, 0x0095f5cc
+CRT_NEW, CRT_MALLOC, CRT_FREE, CRT_DELETE = 0x0191ba7b, 0x0191bab9, 0x0191bac2, 0x0191ba5f
 STRING_CSTR = 0x008e7940
 CURRENT_WORLD, HERO, FTOL_LEVEL = 0x01cf15fc, 0x0a39d754, 0x0bdcb280
 TLS_INDEX, TLS_BLOCK = 0x0bdcaf58, 0x7ff00800
@@ -203,6 +225,30 @@ class MoveC(ctypes.Structure):
 class NpcC(ctypes.Structure):
     _fields_ = [('index', I32), ('name', ctypes.c_char_p), ('x1c', I32), ('x20', I32), ('x24', ctypes.c_uint8)]
 
+class BuffC(ctypes.Structure):
+    _fields_ = [(n, I32) for n in ('index', 'group', 'item_group', 'item_index', 'type', 'x2c', 'x30', 'value_kind')] + \
+               [('name', ctypes.c_char_p), ('lines', ctypes.c_char_p*8), ('nlines', I32)]
+
+    def values(self):
+        return [self.index, self.group, self.item_group, self.item_index, self.name, self.type, self.x2c, self.x30,
+                self.value_kind, [self.lines[i] for i in range(self.nlines)]]
+
+
+class CharinfoC(ctypes.Structure):
+    _fields_ = [(n, I32) for n in ('id', 'color', 'group', 'type', 'sort', 'value_color', 'button')] + \
+               [('classes', ctypes.c_uint8*16), ('nclasses', I32), ('label', ctypes.c_char_p),
+                ('prefix', ctypes.c_char_p), ('suffix', ctypes.c_char_p)]
+
+    def values(self):
+        return [self.id, self.color, self.label, self.group, [self.classes[i] for i in range(self.nclasses)],
+                self.type, self.sort, self.value_color, self.prefix, self.suffix, self.button]
+
+
+class BuffValuesC(ctypes.Structure):
+    _fields_ = [('hero_value', I32), ('value2_hidden', ctypes.c_int), ('value2_kind', I32), ('value2_int', I32),
+                ('value2_float', ctypes.c_float)]
+
+
 class Native:
     def __init__(self, work):
         cc = shutil.which('cc') or shutil.which('clang')
@@ -228,6 +274,12 @@ class Native:
         L.mu_lang_enchant_mesh.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_float)]
         L.mu_lang_map_text_index.argtypes = [ctypes.c_int32]
         L.mu_lang_map_text_index.restype = ctypes.c_int32
+        for name in ('mu_lang_buff_get', 'mu_lang_buff_by_item', 'mu_lang_charinfo_get'):
+            getattr(L, name).restype = ctypes.c_void_p
+            getattr(L, name).argtypes = [ctypes.c_void_p, ctypes.c_int32]
+        L.mu_lang_buff_tooltip.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(BuffValuesC),
+                                           ctypes.c_void_p, ctypes.c_int]
+        L.mu_lang_charinfo_rows.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_void_p, ctypes.c_int]
 
     def load(self, directory):
         handle = self.lib.mu_lang_load(str(directory).encode())
@@ -258,6 +310,24 @@ class Native:
         name = self.lib.mu_lang_skill_info(h, skill, master, ctypes.byref(mana), ctypes.byref(dist), ctypes.byref(ag))
         return None if name is None else [name, mana.value, dist.value, ag.value]
 
+    def buff(self, h, index, by_item=False):
+        p = (self.lib.mu_lang_buff_by_item if by_item else self.lib.mu_lang_buff_get)(h, index)
+        return None if not p else BuffC.from_address(p).values()
+
+    def buff_tooltip(self, h, index, values):
+        out = ctypes.create_string_buffer(256*16)
+        n = self.lib.mu_lang_buff_tooltip(h, index, ctypes.byref(values), out, 16)
+        return [out.raw[256*i:256*(i+1)].split(b'\0')[0] for i in range(n)]
+
+    def charinfo(self, h, key):
+        p = self.lib.mu_lang_charinfo_get(h, key)
+        return None if not p else CharinfoC.from_address(p).values()
+
+    def charinfo_rows(self, h, class_index):
+        out = (ctypes.c_void_p*256)()
+        n = self.lib.mu_lang_charinfo_rows(h, class_index, out, 256)
+        return [CharinfoC.from_address(out[i]) for i in range(n)]
+
     def enchant(self, h, code, mesh=None):
         out = (ctypes.c_float*3)()
         if mesh is None:
@@ -269,6 +339,15 @@ class Native:
 
 # ---- families -----------------------------------------------------------
 
+def first_diff(client, native):
+    if isinstance(client, list) and isinstance(native, list):
+        for i, (a, b) in enumerate(zip(client, native)):
+            if a != b:
+                return [i, repr(a)[:160], repr(b)[:160]]
+        return ['length', len(client), len(native)]
+    return None
+
+
 class Family:
     def __init__(self, name):
         self.name, self.cases, self.mismatches, self.examples = name, 0, 0, []
@@ -278,7 +357,7 @@ class Family:
         if client != native:
             self.mismatches += 1
             if len(self.examples) < 5:
-                self.examples.append({'case': label, 'client': repr(client)[:120], 'native': repr(native)[:120]})
+                self.examples.append({"case": label, "client": repr(client)[:120], "native": repr(native)[:120], "first_diff": first_diff(client, native)})
 
     def summary(self):
         return {'cases': self.cases, 'mismatches': self.mismatches, 'examples': self.examples}
@@ -372,6 +451,212 @@ def run_enchant(m, nat, h, snap, rng, first, mesh):
             mesh.check((code, k), list(struct.unpack('<3I', m.read(address, 12))), nat.enchant(h, code, k))
 
 
+def heap_stubs(m):
+    def new(mm):
+        return mm.alloc(mm.args(1)[0] or 1, define=True)
+    m.stub(CRT_NEW, new)
+    m.stub(CRT_MALLOC, new)
+    for address in (CRT_FREE, CRT_DELETE, 0x019a4d50):
+        m.stub(address, lambda mm: 0)
+
+
+def crt_state(m):
+    """The CRT words the string and sprintf code reads (as scripts/validate_fidelity.py): __favor 0x0bdcb284 (no
+    ERMS), the CPU feature word 0x01cf6618, __security_cookie 0x01cf65c0 (any value) and the printf options
+    0x01d1db70 (zero, as at start)."""
+    m.put32(0x0bdcb284, 0)
+    m.put32(0x01cf6618, 0)
+    m.put32(0x01cf65c0, 0xc179bffe)
+    m.write(0x01d1db70, bytes(8))     # the CRT's printf options word (a zero-initialised static)
+
+
+def c_sprintf(m):
+    """Model of the client's sprintf 0x0098d0a9(buf, fmt, ...) (the UCRT's vsprintf needs locale state this
+    machine does not hold): C conversions d i u x X (one word) and f F g G e E (a double) through Python's %."""
+    words = m.args(16)
+    buf, fmt = words[0], m.cstr(words[1]).decode('latin1')
+    out, i, arg = [], 0, 2
+    spec = re.compile(r'%([-+ #0]*\d*(?:\.\d+)?)([diuxXfFgGeE%])')
+    while i < len(fmt):
+        mt = spec.match(fmt, i) if fmt[i] == '%' else None
+        if not mt:
+            out.append(fmt[i])
+            i += 1
+            continue
+        flags, conv = mt.groups()
+        if conv == '%':
+            out.append('%')
+        elif conv in 'diuxX':
+            v = words[arg]
+            arg += 1
+            v = v if conv in 'uxX' else struct.unpack('<i', struct.pack('<I', v))[0]
+            out.append(('%' + flags + ('d' if conv in 'iu' else conv)) % v)
+        else:
+            v = struct.unpack('<d', struct.pack('<II', words[arg], words[arg + 1]))[0]
+            arg += 2
+            out.append(('%' + flags + conv) % v)
+        i = mt.end()
+    data = ''.join(out).encode('latin1')
+    m.write(buf, data + b'\0')
+    return len(data)
+
+
+def client_buff(m, r):
+    i = lambda o: struct.unpack('<i', m.read(r + o, 4))[0]
+    begin, end, _ = struct.unpack('<III', m.read(r + 0x34, 12))
+    lines = [m.std_string(a) for a in range(begin, end, 0x18)]
+    return [i(0), i(4), i(8), i(0xc), m.std_string(r + 0x10), i(0x28), i(0x2c), i(0x30), i(0x40), lines]
+
+
+def run_buffs(m, nat, h, snap, rng, fam, items, getters):
+    nodes = snap.tree(plain.BUFF + 0x38)
+    keys = {k for k, _ in nodes}
+    absent = [k for k in rng.sample(range(-100, 0x1cb), 300) if k not in keys][:60] + [0x1cb, 0x1cc, 0x7fffffff]
+    for key in [k for k, _ in nodes] + absent:
+        m.prepare()
+        r = m.call(BUFF_GET, [key & 0xffffffff], ecx=plain.BUFF)
+        fam.check(key, client_buff(m, r), nat.buff(h, key))
+        m.prepare()
+        getters.check(('type', key), struct.unpack('<i', struct.pack('<I', m.call(BUFF_TYPE, [key & 0xffffffff],
+                                                                                     ecx=plain.BUFF)))[0],
+                      nat.buff(h, key)[5])
+        m.prepare()
+        getters.check(('value_kind', key), struct.unpack('<i', struct.pack('<I', m.call(BUFF_VALUE_KIND, [key & 0xffffffff],
+                                                                                           ecx=plain.BUFF)))[0],
+                      nat.buff(h, key)[8])
+    codes = sorted({(snap.i32(node + 0x14 + 8) << 9) + snap.i32(node + 0x14 + 0xc) for _, node in nodes})
+    present = set(codes)
+    codes += [c for c in rng.sample(range(0, 0x3000), 200) if c not in present][:50]
+    for code in codes:
+        m.prepare()
+        r = m.call(BUFF_BY_ITEM, [code & 0xffffffff], ecx=plain.BUFF)
+        native = nat.buff(h, code, by_item=True)
+        items.check(code, client_buff(m, r), native)
+        for getter, field in ((BUFF_ITEM_INDEX, 0), (BUFF_ITEM_GROUP, 1)):
+            m.prepare()
+            v = struct.unpack('<i', struct.pack('<I', m.call(getter, [code & 0xffffffff], ecx=plain.BUFF)))[0]
+            getters.check((getter, code), v, native[field])
+
+
+def run_buff_tooltip(m, nat, h, snap, rng, fam):
+    """0x01298a54(out vector<std::string>, buff) with the hero's buff value (0x01295d1c) and, for value kind 2,
+    the option singleton 0x00c5cc97 (0x010702e1 hidden, 0x010702bd {int, float, kind}) modelled."""
+    heap_stubs(m)
+    state = {}
+    m.stub(HERO_BUFF_VALUE, lambda mm: state['value'], 4)
+    m.stub(OPTION_SINGLETON, lambda mm: DUMMY, 0)
+    m.stub(OPTION_HIDDEN, lambda mm: state['hidden'], 0)
+
+    def option_value(mm):
+        out = mm.args(1)[0]
+        mm.write(out, struct.pack('<ifi', state['int'], state['float'], state['kind']))
+        return out
+    m.stub(OPTION_VALUE, option_value, 4)
+
+    def item_cache(mm):
+        # 0x01298996(out, buff): the buff's item-icon cache in this+4 (a map the lines never read): 12 zero bytes
+        out = mm.args(1)[0]
+        mm.write(out, bytes(12))
+        return out
+    m.stub(ITEM_CACHE, item_cache, 8)
+    m.stub(SPRINTF, c_sprintf, 0)
+    for key, node in snap.tree(plain.BUFF + 0x38):
+        kind = snap.i32(node + 0x14 + 0x40)
+        cases = [dict(value=0, hidden=0, kind=-1), dict(value=rng.randint(1, 500), hidden=0, kind=-1)]
+        if kind == 2:
+            # the option's kind as the format expects it (an int for %d, a double for %f: the server's data is
+            # consistent; a mismatched pair reads stack words in the client's varargs)
+            begin, end, _ = struct.unpack('<III', snap.read(node + 0x14 + 0x34, 12))
+            joined = b''.join(snap.string(a) for a in range(begin, end, 0x18))
+            floaty = re.search(rb'%[-+ #0]*\d*(?:\.\d+)?[fFgGeE]', joined) is not None
+            cases += [dict(value=0, hidden=1, kind=0), dict(value=0, hidden=0, kind=1 if floaty else 0),
+                      dict(value=0, hidden=0, kind=7)]
+        for case in cases:
+            state.update(case, int=rng.randint(1, 900), float=cm.f32(rng.uniform(0.5, 90.0)))
+            m.prepare(force=True)
+            crt_state(m)
+            m.put32(HERO, m.alloc(0x4000, define=True))
+            out = m.alloc(16, define=True)
+            m.call(BUFF_TOOLTIP, [out, key], ecx=DUMMY)
+            begin, end = m.u32(out), m.u32(out + 4)
+            client = [m.std_string(a) for a in range(begin, end, 0x18)]
+            values = BuffValuesC(case['value'], case['hidden'], case['kind'], state['int'], state['float'])
+            fam.check((key, tuple(sorted(case.items()))), client, nat.buff_tooltip(h, key, values))
+    for address in (HERO_BUFF_VALUE, OPTION_SINGLETON, OPTION_HIDDEN, OPTION_VALUE, ITEM_CACHE, SPRINTF):
+        m.stubs.pop(address, None)
+
+
+def run_charinfo(m, nat, h, snap, rng, fam):
+    nodes = snap.tree(plain.CHARINFO + 0x38)
+    keys = {k for k, _ in nodes}
+    absent = [k for k in rng.sample(range(-20, 400), 200) if k not in keys][:40]
+    for key in [k for k, _ in nodes] + absent:
+        m.prepare()
+        r = m.call(CHARINFO_GET, [key & 0xffffffff], ecx=plain.CHARINFO)
+        i = lambda o: struct.unpack('<i', m.read(r + o, 4))[0]
+        begin, end, _ = struct.unpack('<III', m.read(r + 0x24, 12))
+        classes = [1 if v else 0 for v in struct.unpack(f'<{(end - begin)//4}i', m.read(begin, end - begin))] \
+            if end > begin else []
+        client = [i(0), i(4), m.std_string(r + 8), i(0x20), classes, i(0x30), i(0x34), i(0x38),
+                  m.std_string(r + 0x3c), m.std_string(r + 0x54), i(0xa0)]
+        fam.check(key, client, nat.charinfo(h, key))
+
+
+def run_charinfo_rows(m, nat, h, fam):
+    """The row builder 0x00b3dedc: the invoke helper 0x00aae7e0(this, name, fmt, ...) records its arguments;
+    the line builder 0x00ab4dc0(out, text, colour, flag) returns the text with its colour as a marker."""
+    heap_stubs(m)
+    state = {}
+    m.stub(CLASS_INDEX, lambda mm: state['class'], 0)
+    calls = []
+
+    def line(mm):
+        out, text, colour, flag = mm.args(4)
+        payload = b'%s|%d|%d' % (mm.cstr(text), struct.unpack('<i', struct.pack('<I', colour))[0], flag)
+        buf = mm.alloc(len(payload) + 1, define=True)
+        mm.write(buf, payload + b'\0')
+        mm.write(out, struct.pack('<I', buf) + bytes(12) + struct.pack('<II', len(payload), max(len(payload), 16)))
+        return out
+
+    def invoke(mm):
+        words = mm.args(10)
+        name = mm.cstr(words[1])
+        if name == b'SetName':
+            t, i, srt, label, value, extra, button = words[3:10]
+            calls.append([struct.unpack('<i', struct.pack('<I', v))[0] for v in (t, i, srt)] +
+                         [mm.cstr(label), mm.cstr(value), mm.cstr(extra), button])
+        else:
+            calls.append([name])
+        return 0
+    def to_utf8(mm):
+        # 0x00a99d93(dst, src): the ANSI -> UTF-8 conversion through the Win32 code-page imports (modelled: the
+        # strings here are ASCII markers, so the bytes are copied)
+        dst, src = mm.args(2)
+        payload = mm.std_string(src)
+        buf = mm.alloc(len(payload) + 1, define=True)
+        mm.write(buf, payload + b'\0')
+        mm.write(dst, struct.pack('<I', buf) + bytes(12) + struct.pack('<II', len(payload), max(len(payload), 16)))
+        return dst
+    m.stub(LINE_BUILDER, line, 0)
+    m.stub(INVOKE, invoke, 0)
+    m.stub(TO_UTF8, to_utf8, 0)
+    for class_index in range(16):
+        state['class'] = class_index
+        calls.clear()
+        m.prepare(force=True)
+        crt_state(m)
+        hero = m.alloc(0x400, define=True)
+        m.put32(0x01d1df1c, hero)
+        m.call(CHARINFO_ROWS, [], ecx=DUMMY)
+        native = [[b'ClearItems']]
+        for c in nat.charinfo_rows(h, class_index):
+            native.append([c.type, c.id, c.sort, b'%s|%d|0' % (c.label, c.color), b'-|%d|0' % c.value_color, b'',
+                           c.button])
+        fam.check(class_index, calls, native)
+    for address in (CLASS_INDEX, LINE_BUILDER, INVOKE, TO_UTF8):
+        m.stubs.pop(address, None)
+
+
 def map_state(m, world):
     m.prepare()
     m.put32(CURRENT_WORLD, world)
@@ -451,7 +736,8 @@ def main():
     parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(DEFAULT_TEXT)))
     parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(DEFAULT_DATA)))
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--families', default='map_table,text,skill_lookup,skill_info,gate,move,npc,enchant,map_names')
+    parser.add_argument('--families', default='map_table,text,skill_lookup,skill_info,gate,move,npc,enchant,map_names,'
+                                               'buff,buff_tooltip,charinfo,charinfo_rows')
     parser.add_argument('--write-maps', action='store_true', help='regenerate native/core/mu_lang_maps.h')
     parser.add_argument('--mutations', action='store_true', help='check that planted mistakes are caught')
     parser.add_argument('--output')
@@ -489,12 +775,22 @@ def main():
             'move': lambda f: run_moves(m, nat, h, snap, f),
             'npc': lambda f: run_npcs(m, nat, h, snap, f),
             'map_names': lambda f: run_map_names(m, nat, h, f, worlds),
+            'buff_tooltip': lambda f: run_buff_tooltip(m, nat, h, snap, rng, f),
+            'charinfo': lambda f: run_charinfo(m, nat, h, snap, rng, f),
+            'charinfo_rows': lambda f: run_charinfo_rows(m, nat, h, f),
         }
         for name in families:
             if name in runs:
                 fam = Family(name)
                 runs[name](fam)
                 report['families'][name] = fam.summary()
+            elif name == 'buff':
+                fams = [Family('buff'), Family('buff_item'), Family('buff_getters')]
+                run_buffs(m, nat, h, snap, rng, *fams)
+                for f in fams:
+                    report['families'][f.name] = f.summary()
+                    print(f.name, json.dumps({k: v for k, v in f.summary().items() if k != 'examples'}))
+                continue
             elif name == 'enchant':
                 first, mesh = Family('enchant_first'), Family('enchant_mesh')
                 run_enchant(m, nat, h, snap, rng, first, mesh)
@@ -563,7 +859,36 @@ def mutations(m, nat, snap, plain_dir, work, rng):
     gt = nat.lib.mu_lang_map_text_index(world)
     mutated('map_name_text', lambda d: edit_line(d/'globaltext.txt', rf'^{gt}\t', f'{gt}\tX'),
             lambda h, f: run_map_names(m, nat, h, f, [world]))
+    # NATIVE-LANG-002
+    buffs = snap.tree(plain.BUFF + 0x38)
+    bkey = buffs[10][0]
+    mutated('buff_name', lambda d: edit_line(d/'buffs.tsv', rf'^({bkey}\t(?:[^\t]*\t){{7}})([^\t]*)', r'\1X\2'),
+            lambda h, f: run_buff_subset(m, nat, h, snap, [bkey], f))
+    multi = next(k for k, node in buffs if snap.u32(node + 0x14 + 0x38) - snap.u32(node + 0x14 + 0x34) >= 0x30)
+    mutated('buff_line_order', lambda d: edit_line(d/'buffs.tsv', rf'^({multi}\t(?:[^\t]*\t){{8}})([^\t]*)\t([^\t\n]*)',
+                                                   r'\1\3\t\2'),
+            lambda h, f: run_buff_tooltip_subset(m, nat, h, snap, [multi], f))
+    rows = snap.tree(plain.CHARINFO + 0x38)
+    rkey = next(k for k, node in rows if snap.i32(node + 0x14 + 0x30) == 2 and snap.i32(node + 0x14 + 0x34) > 3)
+    mutated('charinfo_sort', lambda d: edit_line(d/'charinfo.tsv', rf'^({rkey}\t(?:[^\t]*\t){{3}})(-?\d+)', r'\g<1>0'),
+            lambda h, f: run_charinfo_rows(m, nat, h, f))
     return caught
+
+
+def run_buff_subset(m, nat, h, snap, keys, fam):
+    for key in keys:
+        m.prepare()
+        fam.check(key, client_buff(m, m.call(BUFF_GET, [key], ecx=plain.BUFF)), nat.buff(h, key))
+
+
+def run_buff_tooltip_subset(m, nat, h, snap, keys, fam):
+    class Subset:
+        def tree(self, container):
+            return [(k, n) for k, n in snap.tree(container) if k in keys]
+
+        def __getattr__(self, name):
+            return getattr(snap, name)
+    run_buff_tooltip(m, nat, h, Subset(), random.Random(0), fam)
 
 
 def swap_first_two(path, code):

@@ -27,6 +27,12 @@ NATIVE-FIDELITY-001 adds (written when the snapshot holds the table):
   legendary.tsv   set type -> 2 x 2 codes       (LegendaryItemSetType 0x06fbcba8, lookup 0x011288c7, +4..+0x10)
   cashsets.tsv    sets (name, second name) and their items (CashItemSetOption 0x06fbcc08, read by 0x009debe4)
 
+NATIVE-LANG-002 adds:
+
+  buffs.tsv       BuffEffect 0x06fbb2a4         (lookup 0x010de66f, by item 0x010de6d3, tooltip 0x01298a54)
+  charinfo.tsv    character window rows         (CharacterInfoSetup 0x06fbad18, lookup 0x010e5203, rows 0x00b3dedc)
+  skillreq.tsv    skill scroll requirements     (SkillRequire 0x06fbb248, lookup 0x00abf829)
+
 Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
 exactly (its strings are ANSI; a few are CP949).
@@ -44,6 +50,7 @@ MANAGER = 0x06fbaa60
 TEXT, SKILL, GATE, MOVEREQ = MANAGER + 0xe8, MANAGER + 0x6d8, MANAGER + 0x14c, MANAGER + 0xdec
 NPCNAME, DIALOG, ENCHANT = MANAGER + 0xc04, MANAGER + 0xc70, MANAGER + 0xcf4
 PENTAGRAM, INVENANIM, LEGENDARY, CASHSET = MANAGER + 0x3ec, MANAGER + 0x1dd0, MANAGER + 0x2148, MANAGER + 0x21a8
+BUFF, CHARINFO, SKILLREQ = MANAGER + 0x844, MANAGER + 0x2b8, MANAGER + 0x7e8
 MAP_AT = {TEXT: 0x38, SKILL: 0x108, GATE: 0x38, MOVEREQ: 0x38, NPCNAME: 0x38, DIALOG: 0x38, ENCHANT: 0x38}
 ENCHANT_DEFAULT = 0x50            # 0x010ffd7a / 0x010ffddb return this+0x50 when nothing matches
 
@@ -289,6 +296,53 @@ def read_cashsets(snap):
     return sets, items
 
 
+def read_buffs(snap):
+    """BuffEffect, as the client reads it: 0x010de66f finds the buff in the map at +0x38 (record = node +0x14) or
+    returns the default record +0x40 (also for buff >= 0x1cb); 0x010de6d3 scans for (item group +8, index +0xc);
+    the bufflist's addBuff 0x00c5f296 reads +4 (BuffDetailType for groups 0xf7/0xf6) and +0x28 (1 debuff, 2 cash
+    buff); the tooltip lines 0x01298a54 read the name +0x10, the description vector<std::string> +0x34 and +0x40
+    (1 or 2: the first line is a format for the hero's buff value)."""
+    def one(key, r):
+        begin, end, _ = struct.unpack('<III', snap.read(r + 0x34, 12))
+        if end < begin or (end - begin) % 0x18:
+            raise SnapshotError(f'BuffEffect {key}: bad description vector')
+        lines = [snap.string(a) for a in range(begin, end, 0x18)]
+        return {'index': key, 'record_index': snap.i32(r), 'group': snap.i32(r + 4),
+                'item_group': snap.i32(r + 8), 'item_index': snap.i32(r + 0xc), 'name': snap.string(r + 0x10),
+                'type': snap.i32(r + 0x28), 'x2c': snap.i32(r + 0x2c), 'x30': snap.i32(r + 0x30),
+                'value_kind': snap.i32(r + 0x40), 'lines': lines}
+    rows = [one(key, record(node)) for key, node in snap.tree(BUFF + 0x38)]
+    return rows, one('default', BUFF + 0x40)
+
+
+def read_charinfo(snap):
+    """CharacterInfoSetup, as the row builder 0x00b3dedc reads it (map +0x38, record = node +0x14; lookup 0x010e5203
+    returns the default +0x44 on a miss): +0 id, +4 label colour, +8 label, +0x20 value group, +0x24 vector<int> of
+    16 class flags (index 0x0095f5cc(class)), +0x30 SetName type, +0x34 sort, +0x38 value colour, +0x3c/+0x54
+    prefix/suffix strings, +0xa0 button."""
+    def one(key, r):
+        begin, end, _ = struct.unpack('<III', snap.read(r + 0x24, 12))
+        if end < begin or (end - begin) % 4 or end - begin > 0x100:
+            raise SnapshotError(f'CharacterInfoSetup {key}: bad class vector')
+        classes = list(struct.unpack(f'<{(end - begin) // 4}i', snap.read(begin, end - begin))) if end > begin else []
+        return {'id': key, 'record_id': snap.i32(r), 'color': snap.i32(r + 4), 'label': snap.string(r + 8),
+                'group': snap.i32(r + 0x20), 'classes': classes, 'type': snap.i32(r + 0x30),
+                'sort': snap.i32(r + 0x34), 'value_color': snap.i32(r + 0x38), 'prefix': snap.string(r + 0x3c),
+                'suffix': snap.string(r + 0x54), 'button': snap.i32(r + 0xa0)}
+    rows = [one(key, record(node)) for key, node in snap.tree(CHARINFO + 0x38)]
+    return rows, one('default', CHARINFO + 0x44)
+
+
+def read_skillreq(snap):
+    """SkillRequire: the lookup 0x00abf829(group, index) walks the map at +0x54 (record = node +0x14) for the
+    record whose +8/+0xc equal the item; +4 is the skill (data: the scroll's skill), +0x10..+0x18 unnamed."""
+    rows = []
+    for key, node in snap.tree(SKILLREQ + 0x54):
+        r = record(node)
+        rows.append((key, *(snap.i32(r + o) for o in (0, 4, 8, 0xc, 0x10, 0x14, 0x18))))
+    return rows
+
+
 def map_name_table(path=ROOT/'native/core/mu_lang_maps.h'):
     """world -> GlobalText index template from the generated header."""
     out = []
@@ -405,6 +459,41 @@ def convert(snap, out_dir, header=''):
                 f.write(f'item\t{group}\t{index}\t{set_}\n')
         counts['cashsets'] = len(sets)
         counts['cashset_items'] = len(items)
+    except SnapshotError:
+        pass
+
+    try:
+        rows, default = read_buffs(snap)
+        with open(out_dir/'buffs.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#index\tgroup\titem_group\titem_index\ttype\tx2c\tx30\tvalue_kind\tname\tline...  '
+                    '(BuffEffect; type 1 debuff, 2 cash buff; the description lines follow the name; '
+                    '"default" = the default record +0x40)\n')
+            for b in [default] + rows:
+                f.write('\t'.join(str(b[c]) for c in ('index', 'group', 'item_group', 'item_index', 'type', 'x2c', 'x30',
+                                                     'value_kind')) + '\t' + escape(b['name']) +
+                        ''.join('\t' + escape(line) for line in b['lines']) + '\n')
+        counts['buffs'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows, default = read_charinfo(snap)
+        with open(out_dir/'charinfo.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#id\tcolor\tgroup\ttype\tsort\tvalue_color\tbutton\tclasses\tlabel\tprefix\tsuffix  '
+                    '(CharacterInfoSetup; classes: one digit per class index; "default" = the default record +0x44)\n')
+            for c in [default] + rows:
+                f.write('\t'.join(str(c[k]) for k in ('id', 'color', 'group', 'type', 'sort', 'value_color', 'button')) +
+                        '\t' + (''.join('1' if v else '0' for v in c['classes']) or '-') + '\t' +
+                        '\t'.join(escape(c[k]) for k in ('label', 'prefix', 'suffix')) + '\n')
+        counts['charinfo'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows = read_skillreq(snap)
+        with open(out_dir/'skillreq.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#key\tx00\tskill\titem_group\titem_index\tx10\tx14\tx18  (SkillRequire, lookup 0x00abf829)\n')
+            for row in rows:
+                f.write('\t'.join(str(v) for v in row) + '\n')
+        counts['skillreq'] = len(rows)
     except SnapshotError:
         pass
 
