@@ -103,6 +103,7 @@
 #include "../core/mu_world_actors.h"
 #include "../core/mu_world_audio.h"
 #include "../core/mu_world_names.h"
+#include "../core/mu_world_players.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_headless.h"
@@ -171,6 +172,15 @@ typedef struct app {
     const char *hero_name, *chat_script_text;
     int32_t chat_frame[16], chat_count;
     char chat_text[16][64];
+    /* NATIVE-PLAYERS-001: other players from a DEMO players file (--players FILE, --no-players, --player-range N) */
+    const char *players_file;
+    int no_players;
+    int32_t player_range;
+    mu_world_players *players;
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend player_gl[MU_WORLD_PLAYERS_MAX][MU_CHARACTER_ITEMS];
+    uint32_t player_gl_gen[MU_WORLD_PLAYERS_MAX];
+#endif
     uint32_t effects_visible;
     float *wav;
     size_t wav_frames, wav_capacity;
@@ -481,6 +491,17 @@ static int load(app *a)
         a->walk.pre_step_hook = combat_pre_step;
         a->walk.pre_step_context = a;
     }
+    if (a->players_file && !a->no_players) {   /* NATIVE-PLAYERS-001: the demo server's players */
+        a->players = calloc(1, sizeof *a->players);
+        if (!a->players || mu_world_players_load(a->players, a->root, &a->walk, a->map, a->players_file, 0, error,
+                                                 sizeof error)) {
+            fprintf(stderr, "players: %s\n", a->players ? error : "out of memory");
+            return 1;
+        }
+        if (a->player_range > 0)
+            a->players->view_range = a->player_range;
+        mu_world_players_attach(a->players, a->names, a->combat);
+    }
     return 0;
 }
 
@@ -512,6 +533,8 @@ static void on_step(void *context, mu_walk *w)
         mu_npc_step(a->npc);
     if (a->combat)
         mu_combat_step(a->combat);
+    if (a->players)   /* NATIVE-PLAYERS-001: the demo server's packets, MoveCharacters' remote step, the animation step */
+        mu_world_players_step(a->players);
     if (a->ground) {   /* NATIVE-ITEMS-001: the demo server's drops, MoveItems, the pick-up mode */
         mu_world_items_watch_combat(a->ground, a->combat);
         mu_world_items_step(a->ground);
@@ -622,6 +645,11 @@ static void unload(app *a)
     free(a->npc_demo);
     a->npc = NULL;
     a->npc_demo = NULL;
+    if (a->players) {
+        mu_world_players_free(a->players);
+        free(a->players);
+        a->players = NULL;
+    }
     free(a->wav);
 }
 
@@ -913,6 +941,37 @@ static void terrain_frame(app *a, uint32_t now)
         mu_objects_apply_lights(&a->objects, a->map);
 }
 
+/* NATIVE-PLAYERS-001: one part / weapon / wing of another player through RenderObjDraw's passes (the level
+ * glow, excellent and ancient passes of NATIVE-RENDERCHAR-001; class parts and special types take the plain
+ * pass) with the character light and the object alpha (the dead fade). */
+static void player_item_draw(app *a, int32_t i, int item, const mu_render_backend *backend, float alpha)
+{
+    const mu_world_player *q = &a->players->list[i];
+    const mu_character_item *it = &q->model.items[item];
+    mu_renderchar_glow glow;
+    int has_record;
+    mu_world_players_glow(a->players, i, item, &glow.type, &glow.level, &glow.option1, &glow.ext, &has_record,
+                          &glow.kind_a, &glow.kind_b, &glow.item_kind);
+    glow.has_record = has_record;
+    mu_renderchar_env env;
+    mu_renderchar_default_env(&env);   /* the EnchantEffect colours of the Lang tables (MU_LANG_DIR) when present */
+    env.time = a->map->time;
+    env.quality = 5;
+    if (a->ground)   /* the same glow colour as the ground items (--glow-color) when the table is absent */
+        memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
+    else {
+        env.glow_color[0] = 0.4f;   /* viewer parameter, as the NATIVE-RENDERCHAR-001 sheets */
+        env.glow_color[1] = 0.6f;
+        env.glow_color[2] = 1.0f;
+    }
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    options.textures = &it->textures;
+    mu_draw_stats ds = {0, 0, 0, 0};
+    mu_renderchar_stats rs = {0, 0};
+    mu_renderchar_draw_item(&it->model, &glow, &env, q->model.params.light, alpha, &options, backend, &ds, &rs);
+}
+
 /* ---- frame logic shared by the front ends ---- */
 
 static int32_t advance(app *a, uint32_t now)
@@ -940,6 +999,8 @@ static int32_t advance(app *a, uint32_t now)
         mu_combat_terrain_lights(a->combat, a->map);   /* effect lights after the frame light copy */
     if (a->has_actors)
         mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
+    if (a->players)
+        mu_world_players_frame(a->players);
     if (a->names) {   /* NATIVE-NAMES-001: 0x009a1618 in the tick, the hudPlayerName handler's update */
 #ifndef MU_WORLD_NO_GL
         if (a->gfx)
@@ -1109,6 +1170,10 @@ static void gl_teardown(app *a)
         mu_gl_release(&a->items[i]);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
         mu_gl_release(&a->actor_gl[i]);
+    for (int32_t i = 0; i < MU_WORLD_PLAYERS_MAX; ++i)
+        for (int n = 0; n < MU_CHARACTER_ITEMS; ++n)
+            if (a->player_gl[i][n].textures)
+                mu_gl_release(&a->player_gl[i][n]);
     for (int32_t i = 0; i <= MU_WORLD_ENV_MODELS; ++i)
         if (a->env_gl[i].textures)
             mu_gl_release(&a->env_gl[i]);
@@ -1512,6 +1577,32 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
+    for (int32_t i = 0; a->players && i < a->players->count; ++i) {   /* NATIVE-PLAYERS-001: RenderCharacter's parts */
+        float alpha = mu_world_players_alpha(a->players, i);
+        if (alpha <= 0.0f)
+            continue;
+        const mu_world_player *q = &a->players->list[i];
+        if (a->player_gl_gen[i] != q->creates) {   /* the parts were (re)loaded at a viewport: new textures */
+            for (int n = 0; n < MU_CHARACTER_ITEMS; ++n)
+                if (a->player_gl[i][n].textures)
+                    mu_gl_release(&a->player_gl[i][n]);
+            memset(a->player_gl[i], 0, sizeof a->player_gl[i]);
+            a->player_gl_gen[i] = q->creates;
+        }
+        for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            const mu_character_item *item = &q->model.items[draw_order[n]];
+            if (!item->loaded)
+                continue;
+            mu_gl_backend *gl = &a->player_gl[i][draw_order[n]];
+            if (!gl->textures)
+                mu_gl_upload(gl, &item->textures, 0);
+            mu_render_backend backend;
+            mu_gl_backend_bind(gl, &backend);
+            if (a->has_particles)
+                mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
+            player_item_draw(a, i, draw_order[n], &backend, alpha);
+        }
+    }
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         const mu_world_actor *actor = &a->actors.list[i];
         float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
@@ -1659,6 +1750,24 @@ static long draw_soft(app *a, mu_raster *raster)
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
+    for (int32_t i = 0; a->players && i < a->players->count; ++i) {   /* NATIVE-PLAYERS-001 */
+        float alpha = mu_world_players_alpha(a->players, i);
+        if (alpha <= 0.0f)
+            continue;
+        const mu_world_player *q = &a->players->list[i];
+        for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            const mu_character_item *item = &q->model.items[draw_order[n]];
+            if (!item->loaded)
+                continue;
+            raster->textures = item->textures.slots;
+            raster->texture_count = item->textures.count;
+            raster->texture_filter = item->textures.filter;
+            raster->texture_wrap = item->textures.wrap;
+            if (a->has_particles)
+                mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
+            player_item_draw(a, i, draw_order[n], &backend, alpha);
+        }
+    }
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         const mu_world_actor *actor = &a->actors.list[i];
         float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
@@ -1739,6 +1848,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
         mu_combat_report_frame(a->combat, stdout, frame);
     if (a->ground)
         mu_world_items_report_frame(a->ground, stdout, frame);
+    if (a->players)
+        mu_world_players_report_frame(a->players, stdout, frame);
     if (a->names) {   /* NATIVE-NAMES-001: what the movie shows (key, type, x, y, clip visible, info visible, hp,
                        * hp bar, bubble) */
         printf("{\"names_frame\": %d, \"plates\": [", frame);
@@ -1848,6 +1959,8 @@ static void report_summary(const app *a, const char *renderer)
         mu_combat_report_summary(a->combat, stdout, a->quiet);
     if (a->ground)
         mu_world_items_report_summary(a->ground, stdout);
+    if (a->players)
+        mu_world_players_report_summary(a->players, stdout, a->quiet);
     if (a->names) {   /* NATIVE-NAMES-001 */
         char line[512];
         mu_names_report(&a->names->names, line, sizeof line);
@@ -2288,7 +2401,8 @@ static int usage(void)
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
-                    "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n");
+                    "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n"
+                    "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n");
     return 2;
 }
 
@@ -2328,6 +2442,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--items")) { a.items_on = 1; continue; }
         if (!strcmp(k, "--no-items")) { a.no_items = 1; continue; }
         if (!strcmp(k, "--no-names")) { a.no_names = 1; continue; }
+        if (!strcmp(k, "--no-players")) { a.no_players = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -2357,6 +2472,8 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--wav")) a.wav_path = v;
         else if (!strcmp(k, "--audio-rate")) a.audio_rate = atoi(v);
         else if (!strcmp(k, "--placement")) a.placement = v;
+        else if (!strcmp(k, "--players")) a.players_file = v;
+        else if (!strcmp(k, "--player-range")) a.player_range = atoi(v);
         else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
         else if (!strcmp(k, "--combat-weapon")) {
             static const char *names[] = {"none", "sword", "twohand", "spear", "bow", "crossbow", "staff"};

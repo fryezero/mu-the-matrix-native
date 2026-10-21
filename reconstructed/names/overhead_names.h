@@ -156,6 +156,8 @@ enum {
     MU_HN_OP_TOP,                /* mc.setTopMovie() */
     MU_HN_OP_MESSAGE,            /* mc.setMessage({msg, time}) */
     MU_HN_OP_REMOVE,             /* movie.removeInfo({key, type}) */
+    MU_HN_OP_STORE,              /* mc.setStore({isOpen, store, id, title}) (0x00c84731 / 0x00c848fa, NATIVE-PLAYERS-001):
+                                  * number = isOpen, text = "title\x1fid html\x1fstore label" */
 };
 
 typedef struct mu_hn_op {

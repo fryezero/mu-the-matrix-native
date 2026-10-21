@@ -77,6 +77,8 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->objects_dir = c->objects_dir;
     a->quiet = c->quiet;
     a->hero_name = c->hero_name;
+    a->players_file = c->players;
+    a->no_players = c->no_players;
     a->backend = "soft";
     a->pause = 8;
     a->env_seed = 1;          /* mu-world's defaults (main) */

@@ -7,7 +7,7 @@
  * what the network layer would (server list, login, character list, join).
  *
  *   mu-client --game-root ROOT [--session FILE] [--width W --height H]
- *             [--sound-table TSV] [--placement FILE] [--no-audio] [--seconds S]
+ *             [--sound-table TSV] [--placement FILE] [--players FILE] [--no-audio] [--seconds S]
  *   mu-client --game-root ROOT --headless --out-dir DIR [--backend gl|soft]
  *             [--frames N] [--every K] [--auto | --script "F:ACTION ..."] [--wav OUT.wav]
  *   --gfx DIR [--gfx-open inventory,character]: the client's GFx interface
@@ -64,7 +64,7 @@ typedef struct action {
 } action;
 
 typedef struct front {
-    const char *root, *session, *out_dir, *backend, *sound_table, *placement, *wav_path, *font;
+    const char *root, *session, *out_dir, *backend, *sound_table, *placement, *players, *wav_path, *font;
     const char *world_objects, *charsel_objects, *login_objects;
     const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
     const char *gfx_log;              /* NATIVE-CHARSEL-003 */
@@ -530,6 +530,7 @@ static int headless(front *f)
     c.sound_table = f->sound_table;
     c.placement = f->placement;
     world_options(f, &c);
+    c.players = f->players;
     c.world_objects = f->world_objects;
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
@@ -687,6 +688,7 @@ static int windowed(front *f)
     c.sound_table = f->sound_table;
     c.placement = f->placement;
     world_options(f, &c);
+    c.players = f->players;
     c.world_objects = f->world_objects;
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
@@ -777,7 +779,7 @@ static int usage(void)
 {
     fprintf(stderr,
             "usage: mu-client --game-root ROOT [--session FILE] [--width W --height H] [--font FACE]\n"
-            "                 [--sound-table TSV] [--placement FILE] [--no-audio] [--seconds S]\n"
+            "                 [--sound-table TSV] [--placement FILE] [--players FILE] [--no-audio] [--seconds S]\n"
             "                 [--world-objects DIR] [--charsel-objects DIR] [--login-objects DIR] [--objects-dir DIR]\n"
             "                 [--headless --out-dir DIR --backend gl|soft --frames N --every K]\n"
             "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
@@ -825,6 +827,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--font")) f.font = v;
         else if (!strcmp(k, "--sound-table")) f.sound_table = v;
         else if (!strcmp(k, "--placement")) f.placement = v;
+        else if (!strcmp(k, "--players")) f.players = v;
         else if (!strcmp(k, "--world-objects")) f.world_objects = v;
         else if (!strcmp(k, "--charsel-objects")) f.charsel_objects = v;
         else if (!strcmp(k, "--login-objects")) f.login_objects = v;

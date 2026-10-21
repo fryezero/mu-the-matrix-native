@@ -116,6 +116,27 @@ static void op(void *user, int32_t type, const mu_hn_op *o)
         snprintf(arg, sizeof arg, "[{\"msg\":%s,\"time\":%d}]", q, (int)o->number);
         invoke(b, path, "setMessage", arg);
         break;
+    case MU_HN_OP_STORE: {   /* setStore 0x00c84731 / 0x00c848fa (NATIVE-PLAYERS-001) */
+        clip_path(b, type, o->key, "", path, sizeof path);
+        if (o->number == 0) {
+            invoke(b, path, "setStore", "[{\"isOpen\":false}]");
+            break;
+        }
+        char parts[3][200] = {{0}, {0}, {0}};
+        const char *s = o->text;
+        for (int k = 0; k < 3 && s; ++k) {
+            const char *e = strchr(s, 0x1f);
+            snprintf(parts[k], sizeof parts[k], "%.*s", e ? (int)(e - s) : (int)strlen(s), s);
+            s = e ? e + 1 : NULL;
+        }
+        char qt[420], qi[420], ql[220];
+        quote(qt, sizeof qt, parts[0]);
+        quote(qi, sizeof qi, parts[1]);
+        quote(ql, sizeof ql, parts[2]);
+        snprintf(arg, sizeof arg, "[{\"isOpen\":true,\"store\":%s,\"id\":%s,\"title\":%s}]", ql, qi, qt);
+        invoke(b, path, "setStore", arg);
+        break;
+    }
     default: {
         static const char *const methods[] = {
             [MU_HN_OP_NAME_SHOW] = "setPlayerNameShow", [MU_HN_OP_SET_HP] = "setHp", [MU_HN_OP_HP_SHOW] = "setHpShow",

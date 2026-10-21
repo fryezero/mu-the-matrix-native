@@ -40,7 +40,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
 import client_ui_machine as cm  # noqa: E402
-from unicorn.x86_const import UC_X86_REG_EFLAGS  # noqa: E402
+try:
+    from unicorn.x86_const import UC_X86_REG_EFLAGS
+except ImportError:  # pragma: no cover - the portable tests use the ctypes views only
+    UC_X86_REG_EFLAGS = None
 
 DEFAULT_TEXT = ROOT/'evidence/x86-text-capture-09/client-text.bin'
 DEFAULT_DATA = ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'

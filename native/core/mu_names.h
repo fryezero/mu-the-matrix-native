@@ -46,6 +46,8 @@ typedef struct mu_names_plate {
     char name[MU_HN_TEXT], guild[MU_HN_TEXT], server[MU_HN_TEXT];
     char message[MU_HN_TEXT];     /* HudChat text */
     uint32_t message_until;       /* setInterval(validateNow, time) */
+    uint8_t store_open;           /* PlayerStore: setStore({isOpen ...}) (NATIVE-PLAYERS-001) */
+    char store_title[64], store_label[32];
     uint32_t order;               /* setTopMovie / attach order (depth) */
 } mu_names_plate;
 
@@ -77,6 +79,7 @@ typedef struct mu_names {
     mu_names_stats stats;
     char log[16][96];
     int32_t log_count;
+    void *user;                   /* for the env callbacks' owner (env.context stays the mu_names) */
 } mu_names;
 
 void mu_names_init(mu_names *n);
@@ -103,6 +106,9 @@ void mu_names_set_monster_view(mu_names *n, int view);
  * bubble 0x0169d87f.  gm: the sender is a GM (0x00c61a71).  Returns the
  * chat type the chat window gets. */
 int32_t mu_names_chat(mu_names *n, const char *name, const char *text, int gm);
+/* setStore 0x00c84731 (open: the title and the "store" label, the id html from the PK colour and the name) or
+ * 0x00c848fa (close) on a player's clip (NATIVE-PLAYERS-001, static reading). */
+void mu_names_set_store(mu_names *n, int32_t key, int open, const char *title, const char *label);
 /* The handler's update (once per rendered frame), now = milliseconds. */
 void mu_names_update(mu_names *n, void (*project)(void *context, const float position[3], float *x, float *y),
                      void *context, uint32_t now);

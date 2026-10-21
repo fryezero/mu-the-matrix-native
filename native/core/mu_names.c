@@ -131,6 +131,17 @@ static void apply(mu_names *n, const mu_hn_op *o)
         n->stats.positions++;
         break;
     case MU_HN_OP_TOP: p->order = ++n->order; break;
+    case MU_HN_OP_STORE: {
+        p->store_open = (uint8_t)(o->number != 0);
+        const char *a = o->text, *b = strchr(a, 0x1f);
+        if (p->store_open && b) {
+            snprintf(p->store_title, sizeof p->store_title, "%.*s", (int)(b - a), a);
+            const char *c = strchr(b + 1, 0x1f);
+            snprintf(p->store_label, sizeof p->store_label, "%s", c ? c + 1 : "");
+        } else
+            p->store_title[0] = p->store_label[0] = 0;
+        break;
+    }
     case MU_HN_OP_MESSAGE:
         snprintf(p->message, sizeof p->message, "%s", o->text);
         p->message_until = n->now + (uint32_t)o->number;
@@ -227,6 +238,27 @@ void mu_names_set_hp(mu_names *n, int32_t key, uint32_t hp, uint32_t max)
     mu_hn_op op;
     if (mu_hn_set_hp(&n->window, key, hp, max, &op))
         emit(n, type_of(n, key), &op, 1);
+}
+
+void mu_names_set_store(mu_names *n, int32_t key, int open, const char *title, const char *label)
+{
+    mu_hn_character *c = mu_names_find(n, key);
+    mu_hn_entry *e = mu_hn_find(&n->window, key);
+    if (!c || !e || !e->has_mc)
+        return;
+    mu_hn_op op;
+    memset(&op, 0, sizeof op);
+    op.key = key;
+    op.kind = MU_HN_OP_STORE;
+    op.number = open ? 1 : 0;
+    if (open) {
+        char id[MU_HN_TEXT];
+        snprintf(id, sizeof id, "<font color='%s'>%s</font>", mu_hn_pk_color(c->pk), c->name);
+        snprintf(op.text, sizeof op.text, "%s\x1f%s\x1f%s", title ? title : "", id, label ? label : "");
+    }
+    e->flag_a0 = (uint8_t)(open ? 1 : 0);   /* the entry byte the store handlers write */
+    emit(n, type_of(n, key), &op, 1);
+    logf_(n, "setStore %d %s", (int)key, open ? "open" : "closed");
 }
 
 void mu_names_hover(mu_names *n, int32_t key)
@@ -372,6 +404,19 @@ void mu_names_draw(const mu_names *n, mu_label_fonts *fonts, uint8_t *frame, int
             if (p->name_show && img.rgba)
                 mu_label_blend(frame, width, height, &img, (int32_t)x - img.width / 2, ty, 1.0f);
             mu_label_image_free(&img);
+        }
+        if (p->store_open) {   /* PlayerStore: the store box above the name (stand-in layout, viewer choice) */
+            char store[160];
+            snprintf(store, sizeof store, "%s<br>%s", p->store_label[0] ? p->store_label : "Store", p->store_title);
+            mu_label_image box;
+            if (!mu_label_html(fonts, store, 0xffdc00, 12, 1, 1, &box) && box.rgba) {
+                int32_t w = box.width + 12, h = box.height + 6;
+                int32_t bx = (int32_t)x - w / 2, by = (int32_t)y - text_h - 16 - h;
+                mu_label_fill(frame, width, height, bx, by, w, h, BOX);
+                mu_label_frame(frame, width, height, bx, by, w, h, EDGE);
+                mu_label_blend(frame, width, height, &box, bx + 6, by + 3, 1.0f);
+                mu_label_image_free(&box);
+            }
         }
         if (p->message[0])   /* PlayerName.setMessage: _y = _info.getChatY() - 16 */
             bubble(fonts, frame, width, height, x, y - (float)text_h - 16.0f, p->message);
