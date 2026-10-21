@@ -59,6 +59,8 @@ TERRAIN_LIGHT, TERRAIN_HEIGHT, RAND = 0x016cacfc, 0x016cc9e2, 0x01989721
 SINE, COSINE, CRT_SQRT = 0x009681bd, 0x009fa223, 0x019856f0
 OBJECT_INIT, MANAGER_A, MANAGER_B = 0x0129eb81, 0x01094ff1, 0x01095279
 MODEL_CONTAINER, MODEL_GETTER, PLAY_ANIMATION, DELETE_EFFECT = 0x00966cc4, 0x00eaa8cf, 0x012b4dd3, 0x0142eea4
+MODEL_POSE, MODEL_BONE = 0x012b5064, 0x012b678d   # NATIVE-CHARSEL-003: the star dragon poses its model, reads bone 1
+BONE_OFFSET = (11.0, -7.0, 23.0)                  # the stub's bone 1 = the effect position + this
 POOL = 0x0a4ca430
 HERO_DATA_PTR = 0x01d1df18
 FRAME_LIGHT = 0x0b9f5430
@@ -326,10 +328,14 @@ MODEL_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctype
                             ctypes.POINTER(ctypes.c_int16))
 
 
+BONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Effect), ctypes.c_int32,
+                           ctypes.POINTER(ctypes.c_float))
+
+
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
                 ('call', CALL_FN), ('model', MODEL_FN), ('serial', ctypes.c_uint8),
-                ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32)]
+                ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32), ('bone', BONE_FN)]
 
 
 def load_library(path):
@@ -589,7 +595,19 @@ class Case:
             self.client_calls.append(('sound', mm.argument(0), owner_of(mm.argument(1)), mm.argument(2)))
             return 0
 
-        return {PLAY_BUFFER: sound, WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area,
+        def pose(mm):
+            a = [mm.argument(i) for i in range(8)]
+            self.client_calls.append(('pose', hex(a[0]), a[7], a[6]))
+            return 0, 0x20
+
+        def bone(mm):
+            out, o, index, relative = (mm.argument(i) for i in range(4))
+            self.client_calls.append(('bone', owner_of(o), index, relative))
+            p = mm.floats(o + 0x158, 3)
+            mm.uc.mem_write(out, struct.pack('<3f', *(f32(p[k] + BONE_OFFSET[k]) for k in range(3))))   # the caller's frame
+            return 0, 0x10
+
+        return {MODEL_POSE: pose, MODEL_BONE: bone, PLAY_BUFFER: sound, WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area,
                 FLOAT_SQRT: fsqrt, FLOAT_ATAN: fatan,
                 RAND: rand, TERRAIN_HEIGHT: height, SINE: sine, COSINE: cosine, CRT_SQRT: sqrt,
                 TERRAIN_LIGHT: terrain_light, CREATE_PARTICLE: particle, CREATE_JOINT: joint,
@@ -649,14 +667,22 @@ class Case:
                 return self.attributes[index] if self.attributes else 0
             elif c.routine == QUAKE:
                 self.c_quake = c.scale
+            elif c.routine == MODEL_POSE:
+                self.c_calls.append(('pose', hex(0x06fce398), 0, 0))
+            elif c.routine == MODEL_BONE:
+                self.c_calls.append(('bone', c.owner, c.range, 0))
             return 0
+
+        def bone(ctx, ep, index, out):
+            for k in range(3):
+                out[k] = f32(ep.contents.position[k] + BONE_OFFSET[k])
 
         def model(ctx, t, action, keys):
             keys[0] = self.keys
             return 1 if self.has_model else 0
-        self._keep = (RAND_FN(rand), HEIGHT_FN(height), OBJECT_FN(obj), CALL_FN(call), MODEL_FN(model))
+        self._keep = (RAND_FN(rand), HEIGHT_FN(height), OBJECT_FN(obj), CALL_FN(call), MODEL_FN(model), BONE_FN(bone))
         env = Env()
-        env.rand, env.height, env.object, env.call, env.model = self._keep
+        env.rand, env.height, env.object, env.call, env.model, env.bone = self._keep
         env.serial = serial
         env.report_checks = report_checks
         env.hero_object = hero_object
@@ -685,7 +711,8 @@ def compare_calls(client, mine, skip_tail=True):
 
 EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x41c, 0), (0x41d, 0), (0x457, 0),
                 (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1),
-                (0x40e, 0)]   # the Tormenta tornado (NATIVE-JOINT-001)
+                (0x40e, 0),   # the Tormenta tornado (NATIVE-JOINT-001)
+                (0x5ac, 0), (0x5ac, 1), (0x5ad, 0), (0x5ad, 1)]   # the character select's star dragon (NATIVE-CHARSEL-003)
 TERRAIN_WALL, PLAY_BUFFER = 0x0b795420, 0x00a6ac96
 ARROW_SKILLS = [0, 0, 0, 0x7e7, 0x2d7, 0x7fe, 0x18, 0x34]
 

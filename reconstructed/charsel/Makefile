@@ -5,8 +5,8 @@ LIB := libcharsel.$(SUFFIX)
 
 all: $(LIB)
 
-$(LIB): charsel.c charsel.h
-	$(CC) $(CFLAGS) -shared charsel.c -lm -o $@
+$(LIB): charsel.c charsel.h charsel_gfx.c charsel_gfx.h
+	$(CC) $(CFLAGS) -shared charsel.c charsel_gfx.c -lm -o $@
 
 clean:
 	rm -f libcharsel.dylib libcharsel.so

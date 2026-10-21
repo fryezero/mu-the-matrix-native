@@ -339,6 +339,21 @@ native/build/mu-charsel --game-root "$MU_GAME_ROOT" --objects-dir LOCAL_PLAIN_DI
     --frames 60 --every 59 --out-dir /tmp/charsel2
 ```
 
+NATIVE-CHARSEL-003 ([finding](../docs/research/client-character-select.md), section 10): `mu-client --gfx DIR` (and
+`mu-shell`) plays the character list movie `CharacterSelect.swf` (converted like the HUD movies) over the scene through
+the reconstructed window code (`reconstructed/charsel/charsel_gfx.c`, compared in Unicorn by
+`scripts/validate_charsel_gfx.py`): click a row to select, double-click (or Enter) to play, the arrows reorder; creating
+characters is an OFFLINE DEMO no-op. The 3D pick (`mu_charsel_pick`) makes a double click on the character enter, as
+the client. World94's shooting stars (stardr01/02, effects 0x5ac/0x5ad) fly through `mu_particles`. Headless actions
+`click:row:N`, `dblclick:row:N`, `dblclick:X,Y`; `--gfx-log FILE` writes the list's invokes and callbacks.
+
+```sh
+native/gfx/gfxconvert.py --out MOVIES --bridge --transparent --var _root.isClient=true --fontconfig English \
+    --font-subset latin --movie CharacterSelect
+MU_LANG_DIR=LOCAL_LANG native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt \
+    --gfx MOVIES --objects-dir LOCAL_PLAIN_DIR
+```
+
 ## The client's scene flow, offline (NATIVE-SHELL-001)
 
 `mu-client` (`make -C native client`, SDL2 + OpenGL) runs the client's own scene manager (`reconstructed/scene`,
@@ -484,7 +499,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002); monster hurt and death sounds (NATIVE-ITEMS-001) |
 | `core/mu_npc.*` | NPC talk in the walk-around session over `reconstructed/npc`: pick, talk walk, talk case, demo answer through the talk-result dispatch, window events (NATIVE-NPC-001) |
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
-| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002) |
+| `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002); the pick and the GFx character list `charsel/charsel_list_gfx.*` (NATIVE-CHARSEL-003) |
 | `core/mu_names.*`, `core/mu_world_names.*`, `core/mu_label.*`, `world/world_names_gfx.*` | Overhead names, monster HP boxes and chat bubbles: hudPlayerName's game side over `reconstructed/names`, its feed from the session, the shared label helper for the stand-in, the calls to the real movie (NATIVE-NAMES-001) |
 | `core/mu_objects.*` | Static map objects: client `.obj` decode and map check, records, type → model table (`reconstructed/objects`), model loading and placement (NATIVE-OBJECTS-001) |
 | `core/mu_objects_runtime.c` | Object lifecycle: CreateObject, MoveObjects/MoveObject, RenderObjects/RenderObject, object lights, stand-in particles (NATIVE-OBJECTS-002) |

@@ -65,7 +65,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/ui/ui_loading.c $(RECON)/scene/scene.c \
              $(RECON)/effects/effects.c $(RECON)/effects/effects_json.c $(RECON)/effects/effects_tree.c \
              $(RECON)/movement/client_movement.c \
-             $(RECON)/renderchar/renderchar.c $(RECON)/charsel/charsel.c \
+             $(RECON)/renderchar/renderchar.c $(RECON)/charsel/charsel.c $(RECON)/charsel/charsel_gfx.c \
              $(RECON)/data/data_codec.c $(RECON)/data/data_tables.c $(RECON)/data/item_attributes.c \
              $(RECON)/data/table_layouts.c \
              $(RECON)/hud/inv_grid.c $(RECON)/hud/item_slots.c $(RECON)/hud/item_pass.c \
@@ -86,7 +86,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/terrain/terrain.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
-           $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h \
+           $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
            $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
@@ -317,8 +317,10 @@ $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headles
 # sessions, which world/world_embed.c and charsel/charsel_embed.c compile from
 # world/main.c and charsel/main.c unchanged. build/mu-shell is the headless
 # software build (portable tests), build/mu-client the SDL2 + OpenGL window.
-CLIENT_SRC := client/main.c client/shell.c client/offline-session.c world/world_embed.c charsel/charsel_embed.c
-CLIENT_HDR := client/shell.h client/offline-session.h world/world_embed.h charsel/charsel_embed.h world/main.c charsel/main.c
+CLIENT_SRC := client/main.c client/shell.c client/offline-session.c world/world_embed.c charsel/charsel_embed.c \
+              charsel/charsel_list_gfx.c
+CLIENT_HDR := client/shell.h client/offline-session.h world/world_embed.h charsel/charsel_embed.h world/main.c charsel/main.c \
+              charsel/charsel_list_gfx.h
 
 $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/shell
@@ -326,7 +328,7 @@ $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
 	    -o $(BUILD)/shell/$$(basename $$f .c).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_headless.c $(GFX_SRC)
 

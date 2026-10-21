@@ -17,7 +17,12 @@
  * UIInit and answers SetDialogueMentDivide(text, sep) with NPCDialogTextWidth
  * (lines cut at 40 characters and at the separator); NpcShop and
  * StorageInven are slot windows like InventoryFrame (8 x 15 cells, slot
- * origin 24.75,70 from their window position).  Calls made from inside a callback are queued
+ * origin 24.75,70 from their window position).
+ * NATIVE-CHARSEL-003: "CharacterSelect" reports UIInit, keeps
+ * the rows of SetSelectText and the row of SelectIndex, places its list as SetSelectVisible does
+ * (x = width - 227 - 50, y = height / 8, rows 55 high) and turns a press on a row into
+ * OnCharSelectedClick, a second press on the same row without a move away into OnCharSelectedDClick too
+ * (CLIK's itemDoubleClick).  Calls made from inside a callback are queued
  * and run afterwards, as mugfx does.  Every invoke is appended to the file
  * named by $MUGFX_STUB_LOG.  Synthetic: no client data. */
 #define _POSIX_C_SOURCE 200809L
@@ -43,7 +48,29 @@ struct MuGfx {
     char text[256];
     char reply[512];
     uint64_t calls;
+    /* CharacterSelect (NATIVE-CHARSEL-003) */
+    int cs_rows, cs_selected, cs_last_row;
 };
+
+static int is(const MuGfx *g, const char *name);
+
+/* CharacterSelect's list rectangle in stage points */
+static void cs_list(const MuGfx *g, double r[4])
+{
+    r[0] = g->stage_w - 227.0 - 50.0;
+    r[1] = g->stage_h / 8.0;
+    r[2] = 227.0;
+    r[3] = 55.0 * 10;
+}
+
+static int cs_row(const MuGfx *g, double sx, double sy)
+{
+    double r[4];
+    cs_list(g, r);
+    if (sx < r[0] || sx >= r[0] + r[2] || sy < r[1] || sy >= r[1] + r[3])
+        return -1;
+    return (int)((sy - r[1]) / 55.0);
+}
 
 static int in_cb;
 static pending queue[64];
@@ -162,6 +189,12 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
         bounds(g, r);
         snprintf(g->reply, sizeof g->reply, "{\"xMax\":%.1f,\"xMin\":%.1f,\"yMax\":%.1f,\"yMin\":%.1f}", r[0] + r[2],
                  r[0], r[1] + r[3], r[1]);
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "SetSelectText")) {
+        g->cs_rows = 0;
+        for (const char *q = strstr(args, "\"type\""); q; q = strstr(q + 1, "\"type\""))
+            g->cs_rows++;
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "SelectIndex")) {
+        g->cs_selected = atoi(args + 1);
     } else if (is(g, "base") && !strcmp(method, "LoadFrameFiles")) {
         if (strstr(args, "\"main\""))
             call(g, "main", "[\"onLoad\",\"_level0.base.UI.mcBottomFrame.main_1.mc\"]");
@@ -299,6 +332,10 @@ void mugfx_start(MuGfx *g)
         g->win_x = 45;
         g->win_y = 21;
         call(g, "requestWindowPos", "[45.0,21.0]");
+    } else if (is(g, "CharacterSelect")) {
+        g->cs_last_row = -1;
+        call(g, "UIInit", "[\"g_mcCharacterSelect\"]");
+        call(g, "requestWindowPos", "[0.0,0.0]");
     }
     drain();
 }
@@ -346,6 +383,18 @@ int mugfx_set_variable(MuGfx *g, const char *path, const char *value) { (void)g;
 
 const char *mugfx_get_variable(MuGfx *g, const char *path)
 {
+    if (is(g, "CharacterSelect")) {
+        static char v[64];
+        double r[4];
+        cs_list(g, r);
+        if (strstr(path, "mcCharacterSelectList._x")) snprintf(v, sizeof v, "%.1f", r[0]);
+        else if (strstr(path, "mcCharacterSelectList._y")) snprintf(v, sizeof v, "%.1f", r[1]);
+        else if (strstr(path, "mcCharacterSelectList._width")) snprintf(v, sizeof v, "%.1f", r[2]);
+        else if (strstr(path, "mcCharacterSelectList.rowHeight")) snprintf(v, sizeof v, "55");
+        else if (strstr(path, "selectedIndex")) snprintf(v, sizeof v, "%d", g->cs_selected);
+        else snprintf(v, sizeof v, "null");
+        return v;
+    }
     if (strstr(path, "mcNPCShop") || strstr(path, "mcStorageInven")) {
         if (strstr(path, "isSlot0._y")) return "70";
         if (strstr(path, "isSlot8._y")) return "96";
@@ -364,6 +413,8 @@ int mugfx_hit_test(MuGfx *g, double x, double y)
     stage_point(g, x, y, &sx, &sy);
     float r[4];
     bounds(g, r);
+    if (is(g, "CharacterSelect"))
+        return cs_row(g, sx, sy) >= 0;
     if ((is(g, "InventoryFrame") || is_slotwin(g) || is(g, "NpcDialogue")) && !g->visible)
         return 0;
     if (is(g, "chat") && !g->edit)
@@ -377,6 +428,23 @@ int mugfx_mouse(MuGfx *g, int kind, int button, double x, double y)
 {
     double sx, sy;
     stage_point(g, x, y, &sx, &sy);
+    if (is(g, "CharacterSelect")) {
+        int row = cs_row(g, sx, sy);
+        if (kind == 0 && row != g->cs_last_row)
+            g->cs_last_row = -1;
+        if (kind == 1 && button == 0 && row >= 0 && row < g->cs_rows) {
+            g->cs_selected = row;
+            callf(g, "OnCharSelectedClick", "[%.1f]", row, 0);
+            if (row == g->cs_last_row) {
+                callf(g, "OnCharSelectedDClick", "[%.1f]", row, 0);
+                g->cs_last_row = -1;
+            } else {
+                g->cs_last_row = row;
+            }
+        }
+        drain();
+        return row >= 0;
+    }
     if (!(is(g, "InventoryFrame") || is_slotwin(g)) || !g->visible) {
         drain();
         return 0;

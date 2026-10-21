@@ -15,6 +15,7 @@
 #include "../core/mu_audio_host.h"
 #include "../core/mu_charsel_ui.h"
 #include "../core/mu_lang.h"
+#include "../charsel/charsel_list_gfx.h"
 #include "../core/mu_ui_assets.h"
 #include "../core/mu_ui_font.h"
 #include "../core/mu_ui_raster.h"
@@ -80,6 +81,10 @@ struct mu_shell {
     /* embeds */
     mu_charsel_embed *charsel;
     mu_charsel_ui *charsel_ui;
+    mu_charsel_list_gfx *charsel_gfx;   /* NATIVE-CHARSEL-003 */
+    long picks, pick_hits, double_clicks, gfx_callbacks, gfx_enters, gfx_creates;   /* closed visits */
+    uint32_t gfx_clock, last_click;
+    int32_t last_click_x, last_click_y;
     int32_t enter_seen;
     mu_world_embed *world;
     mu_login_session *login;        /* NATIVE-LOGIN-001: the 3D login world */
@@ -344,6 +349,21 @@ static void music(mu_shell *s, uint32_t routine, uint32_t name)
 
 static void close_charsel(mu_shell *s)
 {
+    if (s->charsel) {
+        const mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+        s->picks += cs->picks;
+        s->pick_hits += cs->pick_hits;
+        s->double_clicks += cs->double_clicks;
+    }
+    if (s->charsel_gfx) {
+        mu_charsel_list_gfx_stats st;
+        mu_charsel_list_gfx_stats_get(s->charsel_gfx, &st);
+        s->gfx_callbacks += st.callbacks;
+        s->gfx_enters += st.enters;
+        s->gfx_creates += st.create_requests;
+    }
+    mu_charsel_list_gfx_close(s->charsel_gfx);
+    s->charsel_gfx = NULL;
     if (s->charsel_ui) {
         mu_charsel_ui_free(s->charsel_ui);
         free(s->charsel_ui);
@@ -414,6 +434,12 @@ static void open_login(mu_shell *s)
         s->platform.embed_opened(s->platform.user, MU_SHELL_EMBED_LOGIN, s->login);
 }
 
+static const char *charsel_text(void *user, int32_t index)
+{
+    (void)user;
+    return mu_lang_text(mu_lang_shared(), index);
+}
+
 /* CreateCharacterScene (the scene-5 tick's first step) with the session's list. */
 static int open_charsel(mu_shell *s)
 {
@@ -443,6 +469,21 @@ static int open_charsel(mu_shell *s)
     }
     if (s->platform.embed_opened)
         s->platform.embed_opened(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
+    if (s->cfg.gfx_dir) {   /* NATIVE-CHARSEL-003: the GFx list (the GFx manager loads the scene's movie) */
+        mu_charsel_list_gfx_config gc;
+        memset(&gc, 0, sizeof gc);
+        gc.movie_dir = s->cfg.gfx_dir;
+        gc.lib_path = s->cfg.gfx_lib;
+        gc.width = s->cfg.width;
+        gc.height = s->cfg.height;
+        gc.scale = s->cfg.gfx_scale;
+        gc.text = charsel_text;
+        gc.log_path = s->cfg.gfx_log;
+        s->charsel_gfx = mu_charsel_list_gfx_open(&gc, cs, error, sizeof error);
+        if (!s->charsel_gfx && !s->cfg.quiet)
+            fprintf(stderr, "character select GFx: %s (continuing without the list)\n", error);
+        s->gfx_clock = s->now;
+    }
     return 0;
 }
 
@@ -776,16 +817,25 @@ static void charsel_frame(mu_shell *s, uint32_t now)
         }
         if (down && (vk == 0x25 || vk == 0x27)) {
             mu_charsel_embed_select_next(s->charsel, vk == 0x27 ? 1 : -1);   /* the GFx list's selection */
+            if (s->charsel_gfx)
+                mu_charsel_list_gfx_select_slot(s->charsel_gfx, cs->selected);
             continue;
         }
         if (down && vk >= 0x31 && vk < 0x31 + cs->list.count) {
-            mu_charsel_select(cs, cs->list.entries[vk - 0x31].slot);
+            if (s->charsel_gfx)   /* native shortcut through the list's row click */
+                mu_charsel_list_gfx_select_slot(s->charsel_gfx, cs->list.entries[vk - 0x31].slot);
+            else
+                mu_charsel_select(cs, cs->list.entries[vk - 0x31].slot);
             continue;
         }
         mu_charsel_key(cs, vk, down);
         mu_charsel_message(cs, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
     }
     mu_charsel_message(cs, MU_WM_MOUSEMOVE, 0, ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x);
+    if (s->charsel_gfx) {
+        mu_charsel_list_gfx_advance(s->charsel_gfx, (double)(now - s->gfx_clock));
+        s->gfx_clock = now;
+    }
     mu_charsel_update(cs, now);
     if (s->charsel_ui)
         mu_charsel_ui_update(s->charsel_ui, cs, s->mouse_x, s->mouse_y, s->button_down, s->button_up);
@@ -921,6 +971,8 @@ void mu_shell_mouse_move(mu_shell *s, int32_t x, int32_t y)
 {
     s->mouse_x = x;
     s->mouse_y = y;
+    if (s->g.scene == MU_SCENE_CHARACTER && s->charsel_gfx)
+        mu_charsel_list_gfx_mouse(s->charsel_gfx, 0, 0, x, y);
     if (s->g.scene == MU_SCENE_MAIN && s->world)
         mu_world_embed_message(s->world, MU_WM_MOUSEMOVE, s->button_held ? 1u : 0u,
                                ((uint32_t)(uint16_t)y << 16) | (uint16_t)x);
@@ -928,6 +980,27 @@ void mu_shell_mouse_move(mu_shell *s, int32_t x, int32_t y)
 
 void mu_shell_mouse_button(mu_shell *s, int button, int down)
 {
+    if (s->g.scene == MU_SCENE_CHARACTER && s->charsel) {
+        /* NATIVE-CHARSEL-003: the GFx list takes the clicks over it; elsewhere a second press within 500 ms
+         * and 4 pixels is WM_LBUTTONDBLCLK (the client's window class has CS_DBLCLKS), which the render's pick
+         * turns into an entry when it is over a character */
+        if (s->charsel_gfx && mu_charsel_list_gfx_mouse(s->charsel_gfx, down ? 1 : 2, button, s->mouse_x,
+                                                        s->mouse_y) && down)
+            return;
+        if (button == 0 && down) {
+            mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+            uint32_t lp = ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x;
+            int dbl = s->last_click && s->now - s->last_click < 500 && abs(s->mouse_x - s->last_click_x) <= 4 &&
+                      abs(s->mouse_y - s->last_click_y) <= 4;
+            mu_charsel_message(cs, dbl ? MU_WM_LBUTTONDBLCLK : MU_WM_LBUTTONDOWN, 1u, lp);
+            s->last_click = dbl ? 0 : (s->now ? s->now : 1);
+            s->last_click_x = s->mouse_x;
+            s->last_click_y = s->mouse_y;
+        } else if (button == 0) {
+            mu_charsel_message(mu_charsel_embed_session(s->charsel), MU_WM_LBUTTONUP, 0u,
+                               ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x);
+        }
+    }
     if (button == 0) {
         if (down) {
             s->button_down = 1;
@@ -1006,6 +1079,37 @@ mu_login_session *mu_shell_login(mu_shell *s)
     return s->login;
 }
 
+struct mu_charsel_list_gfx *mu_shell_charsel_gfx(mu_shell *s) { return s->charsel_gfx; }
+
+void mu_shell_charsel_counts(const mu_shell *s, long out[6])
+{
+    long v[6] = {s->picks, s->pick_hits, s->double_clicks, s->gfx_callbacks, s->gfx_enters, s->gfx_creates};
+    if (s->charsel) {
+        const mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+        v[0] += cs->picks;
+        v[1] += cs->pick_hits;
+        v[2] += cs->double_clicks;
+    }
+    if (s->charsel_gfx) {
+        mu_charsel_list_gfx_stats st;
+        mu_charsel_list_gfx_stats_get(s->charsel_gfx, &st);
+        v[3] += st.callbacks;
+        v[4] += st.enters;
+        v[5] += st.create_requests;
+    }
+    memcpy(out, v, sizeof v);
+}
+
+int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y)
+{
+    double fx, fy;
+    if (!s->charsel_gfx || !mu_charsel_list_gfx_row_center(s->charsel_gfx, row, &fx, &fy))
+        return 0;
+    *x = (int32_t)fx;
+    *y = (int32_t)fy;
+    return 1;
+}
+
 mu_charsel_embed *mu_shell_charsel(mu_shell *s)
 {
     return s->charsel;
@@ -1079,6 +1183,19 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
             mu_charsel_ui_render(s->charsel_ui, rgba);
         copy_in(s, rgba);
         mu_ui_begin_bitmap(&s->state);
+        if (s->charsel_gfx) {
+            mu_charsel_list_gfx_composite(s->charsel_gfx, rgba, s->cfg.width, s->cfg.height);
+            mu_charsel_list_gfx_stats st;
+            mu_charsel_list_gfx_stats_get(s->charsel_gfx, &st);
+            copy_in(s, rgba);
+            mu_ui_begin_bitmap(&s->state);
+            offline_label(s, st.status[0] ? st.status
+                                          : "character select: click a character in the list, double-click or "
+                                            "Enter plays, Esc returns to the servers");
+            mu_ui_end_bitmap(&s->state);
+            mu_ui_raster_read_top_down(&s->raster, rgba);
+            break;
+        }
         offline_label(s, "character select: Enter plays, Left/Right or 1-5 choose, Esc returns to the servers");
         mu_ui_end_bitmap(&s->state);
         mu_ui_raster_read_top_down(&s->raster, rgba);

@@ -588,12 +588,13 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
            " \"decals\": %d, \"particles\": %d, \"enter_requests\": %d, \"fov\": %.3f, \"angle\": [%.2f, %.2f, %.2f],"
            " \"eye\": [%.2f, %.2f, %.2f], \"far\": %.2f, \"objects_drawn\": %ld, \"after_meshes\": %ld,"
            " \"sprites\": %d, \"live_particles\": %u, \"billboards\": %ld, \"shadows\": %ld,"
-           " \"sha256\": \"%s\", \"png\": \"%s\"}\n",
+           " \"effect_models\": %u, \"pick\": %d, \"sha256\": \"%s\", \"png\": \"%s\"}\n",
            frame, now, s->steps, s->selected, s->shown, s->draw_entry, (double)pos[0], (double)pos[1], (double)pos[2],
            (double)scale, action, (double)anim, s->decal_count, s->particles_created, s->enter_requests, (double)v->fov,
            (double)v->angle[0], (double)v->angle[1], (double)v->angle[2], (double)v->position[0],
            (double)v->position[1], (double)v->position[2], (double)v->view_far, s->objects_drawn, s->after_meshes,
-           s->frame_sprites, s->particles.stats.live, s->billboards, s->shadows, hash ? hash : "", png ? png : "");
+           s->frame_sprites, s->particles.stats.live, s->billboards, s->shadows, s->particles.stats.drawn_effect_models,
+           s->pick, hash ? hash : "", png ? png : "");
 }
 
 static void report_summary(const app *a, const char *renderer)

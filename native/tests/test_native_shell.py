@@ -174,6 +174,71 @@ class ShellFlowTests(Build):
         self.assertIn('after a group', result.stderr)
 
 
+def stub_library(folder):
+    """The stand-in libmugfx (native/tests/gfx_stub_mugfx.c) and a movie directory with an empty
+    CharacterSelect.swf: CI has no Rust and no client movies (NATIVE-CHARSEL-003)."""
+    folder = Path(folder)
+    lib = folder / ('libmugfx_stub.dylib' if sys.platform == 'darwin' else 'libmugfx_stub.so')
+    if not lib.exists():
+        subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-O1', '-shared', '-fPIC', '-o', str(lib),
+                        str(HERE / 'gfx_stub_mugfx.c')], check=True)
+    movies = folder / 'movies'
+    movies.mkdir(exist_ok=True)
+    (movies / 'CharacterSelect.swf').write_bytes(b'')
+    return lib, movies
+
+
+class CharacterListTests(Build):
+    """NATIVE-CHARSEL-003: the GFx character list through the stand-in library."""
+
+    def run_list(self, name, *args):
+        lib, movies = stub_library(self.tmp.name)
+        log = Path(self.tmp.name) / f'{name}.log'
+        stub_log = Path(self.tmp.name) / f'{name}.stub'
+        for p in (log, stub_log):
+            if p.exists():
+                p.unlink()
+        env = {**os.environ, 'MU_GFX_LIB': str(lib), 'MUGFX_STUB_LOG': str(stub_log)}
+        r = subprocess.run([str(SHELL), '--game-root', str(self.root), '--no-audio', '--session', str(self.session),
+                            '--gfx', str(movies), '--gfx-log', str(log), *[str(a) for a in args]],
+                           capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+        summary = next(json.loads(x) for x in r.stdout.splitlines() if x.startswith('{') and '"summary"' in x)
+        return summary, log.read_text().splitlines(), stub_log.read_text().splitlines()
+
+    def test_auto_flow_selects_and_enters_through_the_list(self):
+        summary, lines, stub = self.run_list('auto', '--auto', '--frames', '300', '--width', '640', '--height', '480')
+        self.assertEqual(scenes(summary)[:4], [(2, 3), (3, 5), (5, 4), (4, 6)])
+        # --auto clicks row 1 and double-clicks it: slot 1 (class 0x22) enters
+        self.assertEqual((summary['hero_slot'], summary['hero_class']), (1, 0x22))
+        self.assertGreaterEqual(summary['charsel']['gfx_enters'], 1)
+        self.assertIn('callback UIInit ["g_mcCharacterSelect"]', lines)
+        self.assertTrue(any(x.startswith('callback OnCharSelectedClick [1.0]') for x in lines))
+        self.assertTrue(any(x.startswith('callback OnCharSelectedDClick [1.0]') for x in lines))
+        rows = next(json.loads(x.split(' ', 2)[2])[0] for x in stub if '.SetSelectText ' in x)
+        self.assertEqual([r['type'] for r in rows], [0, 0, 0] + [1] * 7)
+        self.assertEqual(rows[2]['textName'], "<font color='#FFCC19'>Charlie</font><br>")
+        # the window's initialisation answers UIInit before the list (0x00b4915b)
+        methods = [x.split(' ')[1].split('.')[-1] for x in stub if x.startswith('CharacterSelect ')]
+        self.assertLess(methods.index('InitText'), methods.index('SetSelectText'))
+        self.assertIn('InitClassInfo', methods)
+
+    def test_empty_row_is_an_offline_create_request(self):
+        summary, lines, _ = self.run_list('create', '--frames', '60', '--width', '640', '--height', '480',
+                                          '--script', '10:enter 14:enter 30:click:row:7')
+        self.assertEqual(summary['scene'], 5)
+        self.assertEqual(summary['charsel']['create_requests'], 1)
+        self.assertIn('line call 00b49bf4 1 ', lines)
+        self.assertEqual(summary['selected_hero'], -1)
+
+    def test_double_click_beside_the_character_does_not_enter(self):
+        summary, _, _ = self.run_list('miss', '--frames', '60', '--width', '640', '--height', '480',
+                                      '--script', '10:enter 14:enter 30:dblclick:5,5')
+        self.assertEqual(summary['scene'], 5)
+        self.assertGreaterEqual(summary['charsel']['double_clicks'], 1)
+        self.assertGreater(summary['charsel']['picks'], 10)
+
+
 class WindowToolTests(Build):
     def test_gl_headless(self):
         try:

@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../../reconstructed/movement/client_movement.h"
+#include "../../reconstructed/npc/npc_pick.h"
 
 /* Marker 1 (object type 14 of EncTerrain94.obj) as CreateObject stored it in the running client: live
  * single-run read of the object list (NATIVE-OBJECTS-001, docs/research/client-objects.md section 6). The
@@ -274,6 +275,26 @@ int mu_charsel_init(mu_charsel_session *s, const char *root, const mu_charsel_li
         mu_charsel_create_hero(e->slot, e->class_byte, 0, 0.0f, 0.0f, 0.0f, &scale, lookup, s, NULL);
         r[0x144] = (uint8_t)e->level;
         r[0x145] = (uint8_t)(e->level >> 8);
+        /* NATIVE-CHARSEL-003: what the pick and the GFx list read of CreateCharacter 0x0137d8a1 (static reading):
+         * the Player box (-60, -60, 0)..(40, 40, 120) (0x0137dfe3, 0x0137e2d4), alpha 1 (+0xdc), kind 1 (+0x3b),
+         * CHARACTER +0x10 = 1; the name as an inline std::string at +0x3658; guild status +0x17 = 0xff (none,
+         * the offline list has no guilds) */
+        static const float box_min[3] = {-60.0f, -60.0f, 0.0f}, box_max[3] = {40.0f, 40.0f, 120.0f};
+        for (uint32_t k = 0; k < 3; ++k) {
+            putf(r, MU_CHARSEL_OBJECT + 0x128 + 4 * k, box_min[k]);
+            putf(r, MU_CHARSEL_OBJECT + 0x134 + 4 * k, box_max[k]);
+        }
+        putf(r, MU_CHARSEL_OBJECT + 0xdc, 1.0f);
+        r[MU_CHARSEL_OBJECT + 0x3b] = 1;
+        r[0x10] = 1;
+        r[0x17] = 0xff;
+        size_t name_len = 0;
+        while (name_len < 15 && e->name[name_len])
+            ++name_len;
+        memcpy(r + 0x3658, e->name, name_len);
+        r[0x3658 + name_len] = 0;
+        r[0x3658 + 0x10] = (uint8_t)name_len;
+        r[0x3658 + 0x14] = 15;
         mu_charsel_set_character_position(&s->scene, e->slot, lookup, s);
         if (load_entry(s, root, i))
             return 1;
@@ -415,7 +436,12 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
     frame.mouse_x = f->mouse.x;
     frame.mouse_y = f->mouse.y;
     memcpy(frame.record_position, s->info.position, sizeof frame.record_position);
-    frame.pick = -1;                 /* 0x016b47bf: character picking not ported */
+    frame.pick = s->pick = mu_charsel_pick(s);   /* 0x016b47bf(1), NATIVE-CHARSEL-003 */
+    frame.input_byte_1f = f->mouse.left_double;  /* CInput +0x1f: the double click (WM_LBUTTONDBLCLK) */
+    if (f->mouse.left_double) {
+        ++s->double_clicks;
+        f->mouse.left_double = 0;
+    }
     frame.screen_width = 640;
     uint8_t fog = 1;
     memset(&s->log, 0, sizeof s->log);
@@ -482,6 +508,15 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
         for (int k = 0; k < 3; ++k)
             ch->params.light[k] = 0.4f + object_light;
         mu_character_update(ch);
+        /* RenderPartObject's Transform(bones, BoundingBoxMin, BoundingBoxMax, &OBB, ...) 0x017e68a6 (bounds mode
+         * not 2): StartPos = min + body origin (the position), axes diag(max - min); NATIVE-CHARSEL-003 */
+        uint8_t *w = record(s, s->shown) + MU_CHARSEL_OBJECT;
+        for (uint32_t k = 0; k < 3; ++k) {
+            float lo = getf(w, 0x128 + 4 * k), hi = getf(w, 0x134 + 4 * k);
+            putf(w, 0x31c + 4 * k, lo + getf(w, MU_OBJ_POSITION + 4 * k));
+            for (uint32_t a = 0; a < 3; ++a)
+                putf(w, 0x328 + 0xc * a + 4 * k, a == k ? hi - lo : 0.0f);
+        }
     }
     /* the render's frustum (CreateFrustrum) and the objects' clock (NATIVE-CHARSEL-002) */
     mu_charsel_frustum(s, &s->frustum);
@@ -508,6 +543,57 @@ void mu_charsel_frame_objects(mu_charsel_session *s)
         s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
         mu_world_particles_discard_sprites(&s->particles);   /* a frame without drawing: RenderSprites' kill */
     }
+}
+
+/* ---- SelectCharacter 0x016b47bf (NATIVE-CHARSEL-003) ----
+ * NATIVE-NPC-001's reconstruction mu_npc_pick (compared with the instructions in Unicorn) over the session's
+ * CharactersClient records: the records give the candidates, the routine's writes (o+5, the first pass's light,
+ * the boxes grown in place in world 0x5d) go back into them. */
+
+int32_t mu_charsel_pick(mu_charsel_session *s)
+{
+    static mu_pick_character c[MU_CHARSEL_CHARACTERS];
+    const mu_client_view *v = &s->frame.view;
+    for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
+        uint8_t *r = record(s, i), *o = r + MU_CHARSEL_OBJECT;
+        mu_pick_character *p = &c[i];
+        memset(p, 0, sizeof *p);
+        p->live = o[MU_OBJ_LIVE];
+        p->visible = o[MU_OBJ_VISIBLE];
+        p->alpha = getf(o, 0xdc);
+        p->kind = o[0x3b];
+        memcpy(&p->type, o + MU_OBJ_TYPE, sizeof p->type);
+        p->highlight = (uint16_t)(r[0x144] | r[0x145] << 8);
+        p->c1f = r[0x1f];
+        p->dead = r[0x23];
+        p->c10 = r[0x10];
+        p->buff_1b = 0;           /* no buffs on the select screen's records */
+        p->is_hero = 0;           /* scene 5 does not skip the hero */
+        for (uint32_t k = 0; k < 3; ++k)
+            p->position[k] = getf(o, MU_OBJ_POSITION + 4 * k);
+        memcpy(&p->obb, o + 0x31c, sizeof p->obb);
+    }
+    mu_pick_scene scene;
+    memset(&scene, 0, sizeof scene);
+    scene.scene = MU_CHARSEL_SCENE;
+    scene.world = MU_CHARSEL_WORLD;
+    memcpy(scene.ray_start, v->mouse_position, sizeof scene.ray_start);
+    memcpy(scene.ray_end, v->mouse_target, sizeof scene.ray_end);
+    memcpy(scene.camera, v->position, sizeof scene.camera);
+    const int32_t best = mu_npc_pick(c, MU_CHARSEL_CHARACTERS, 1, &scene);
+    for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
+        uint8_t *o = record(s, i) + MU_CHARSEL_OBJECT;
+        if (c[i].marked)
+            o[5] = 1;
+        if (c[i].light_set)
+            for (uint32_t k = 0; k < 3; ++k)
+                putf(o, MU_OBJ_LIGHT + 4 * k, c[i].light[k]);
+        memcpy(o + 0x31c, &c[i].obb, sizeof c[i].obb);
+    }
+    ++s->picks;
+    if (best >= 0)
+        ++s->pick_hits;
+    return best;
 }
 
 int32_t mu_charsel_end_render(mu_charsel_session *s)

@@ -78,6 +78,11 @@ typedef struct mu_shell_config {
     const char *login_objects;     /* local decoded EncTerrain95.plain (login world), may be NULL */
     uint32_t title_step_ms;        /* platform.pause between the title's progress frames */
     int quiet;
+    /* NATIVE-CHARSEL-003: the character select's GFx list (CharacterSelect.swf in gfx_dir), NULL: none */
+    const char *gfx_dir;
+    const char *gfx_lib;           /* libmugfx, NULL: the layer's search */
+    double gfx_scale;              /* window pixels per point (Retina 2), 0 = 1 */
+    const char *gfx_log;           /* the list's lines and callbacks, may be NULL */
 } mu_shell_config;
 
 mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *platform, char *error,
@@ -127,5 +132,12 @@ int mu_shell_login_panel(const mu_shell *s);
 /* Scene transition log (one line per transition) and counters for reports. */
 int32_t mu_shell_transitions(const mu_shell *s, const char *const **lines);
 const char *mu_shell_status(const mu_shell *s);
+/* NATIVE-CHARSEL-003: the character select's GFx list (NULL outside scene 5 or without --gfx). */
+struct mu_charsel_list_gfx *mu_shell_charsel_gfx(mu_shell *s);
+/* Window-pixel centre of the GFx list's row (scripted input); 0 when there is no list. */
+int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y);
+/* Over every character-select visit: picks, pick hits, double clicks, GFx list callbacks, entries from the
+ * list, create-character requests (offline no-ops). */
+void mu_shell_charsel_counts(const mu_shell *s, long out[6]);
 
 #endif
