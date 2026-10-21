@@ -42,5 +42,19 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap);
 /* NATIVE-NAMES-001: the GFx layer (world_names_gfx.c drives hudPlayerName through it). */
 struct mu_gfx_layer;
 struct mu_gfx_layer *world_gfx_layer(world_gfx *g);
+/* NATIVE-NPC-001: the window a talk answer opens (core/mu_npc), the talk
+ * result's close-all, whether an NPC window is still open (the player may
+ * close it), and the scripted window verbs (buy, sell, take, put, option,
+ * next, close).  The texts come from the client's tables with MU_LANG_DIR
+ * (Npcname for titles, Dialog(kor) for the demo dialogue text); the items,
+ * prices and dialogue choices are the demo table's. */
+struct mu_npc_open;
+void world_gfx_npc_open(world_gfx *g, const struct mu_npc_open *open, const char *label);
+void world_gfx_npc_close_all(world_gfx *g);
+int world_gfx_npc_window(world_gfx *g);
+int world_gfx_npc_action(world_gfx *g, const char *verb, const char *arg);
+const char *world_gfx_npc_last(world_gfx *g);
+struct mu_npc_item;
+void world_gfx_npc_storage(world_gfx *g, const struct mu_npc_item *items, int n);
 
 #endif

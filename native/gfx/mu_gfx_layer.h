@@ -53,7 +53,10 @@ extern "C" {
 
 typedef struct mu_gfx_layer mu_gfx_layer;
 
-enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_MOVIES };
+/* NATIVE-NPC-001 adds the NPC windows: npcdialogue (NpcDialogue.swf), NpcShop
+ * and StorageInven; they are optional (opened when the movie is converted). */
+enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
+       MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_MOVIES };
 
 /* Character values the windows show (demo values until a game feeds them). */
 typedef struct mu_gfx_hero {
@@ -135,6 +138,8 @@ typedef struct mu_gfx_layer_config {
     /* NATIVE-LANG-001 */
     mu_gfx_text_fn text;        /* GlobalText (menu, window and chat labels); NULL: stand-ins */
     void *text_user;
+    /* NATIVE-NPC-001: demo price of an item (user = tooltip_user); selling gives a third. NULL: 0 */
+    int64_t (*price)(void *user, int32_t code, int32_t level);
 } mu_gfx_layer_config;
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);
@@ -224,6 +229,55 @@ int mu_gfx_layer_item_count(const mu_gfx_layer *layer);
 int mu_gfx_layer_item_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max);
 /* Last chat line sent by the player ("" when none). */
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *layer);
+
+/* ---- NPC windows (NATIVE-NPC-001, docs/research/client-npc-interaction.md) ----
+ *
+ * The client opens them from its talk-result handler (ReceiveTalk
+ * 0x01280659); the invokes follow the window handlers' static readings:
+ * npcdialogue's open 0x00be842c (SetTitle with the NPC name,
+ * VisibleContribute(0), SetDialogueMentDivide(text, ";") -> the movie's
+ * NPCDialogTextWidth callback -> SetDialogueMent per page,
+ * SetSelectBtnContent "1. ...;2. ...;", SetPosLeftCenter); NpcShop and
+ * StorageInven are slot windows like the inventory (8 x 15 pages over the
+ * reconstructed item grid; NpcShop 0x00ab7277(8, 8, 15, 5), StorageInven
+ * (9, 8, 15, 1)); NpcShop's Open 0x00bf0354 also opens the inventory.
+ * Buying, selling and the vault moves are LOCAL DEMO actions (the server
+ * decides them in the real game). */
+typedef struct mu_gfx_slot_item {
+    int32_t code, level, width, height;
+    int64_t price;              /* demo price shown in the tooltip's caller / log */
+    char name[64];
+} mu_gfx_slot_item;
+
+typedef struct mu_gfx_npc_dialog {
+    const char *title;          /* the NPC's name (Npcname) */
+    const char *text;           /* the dialogue text, lines separated by ';' as in the client (pages are cut by the
+                                   movie's width callback) */
+    const char *options[13];    /* select buttons (the movie has 13) */
+    int noptions;
+    int hide_contribute;        /* VisibleContribute(0): the dialogue NPCs 0x248, 0x2fc, 0x2fd, 0x3ab, 0x3ac */
+} mu_gfx_npc_dialog;
+
+int mu_gfx_layer_npc_dialog(mu_gfx_layer *layer, const mu_gfx_npc_dialog *dialog);
+int mu_gfx_layer_npc_shop(mu_gfx_layer *layer, const char *title, int repair, int tabs, const mu_gfx_slot_item *items,
+                          int n);
+int mu_gfx_layer_storage(mu_gfx_layer *layer, const char *title, const mu_gfx_slot_item *items, int n);
+/* Closes the NPC windows (the talk result's close-all does this first). */
+void mu_gfx_layer_npc_close(mu_gfx_layer *layer);
+/* The open NPC window (MU_GFX_NPC_DIALOG, MU_GFX_NPC_SHOP or MU_GFX_STORAGE) or -1. */
+int mu_gfx_layer_npc_window(const mu_gfx_layer *layer);
+/* Scripted demo actions: "buy" slot, "sell" inventory cell, "take" slot,
+ * "put" inventory cell, "option" n, "next", "close".  Returns 1 when done. */
+int mu_gfx_layer_npc_action(mu_gfx_layer *layer, const char *verb, int arg);
+/* Last demo action ("" none) and the dialogue state for reports. */
+const char *mu_gfx_layer_npc_last(const mu_gfx_layer *layer);
+int mu_gfx_layer_npc_page(const mu_gfx_layer *layer, int *pages);
+/* Window-pixel centre of a slot of NpcShop/StorageInven (scripted input), and
+ * the item count of those windows. */
+int mu_gfx_layer_slot_center(const mu_gfx_layer *layer, int movie, int32_t cell, double *x, double *y);
+int mu_gfx_layer_slot_items(const mu_gfx_layer *layer, int movie);
+/* The item draws the slot window's item pass hands to the items callback now. */
+int mu_gfx_layer_slot_draws(mu_gfx_layer *layer, int movie, mu_gfx_item_draw *out, int max);
 
 #ifdef __cplusplus
 }

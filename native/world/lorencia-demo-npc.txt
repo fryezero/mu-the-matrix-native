@@ -1,0 +1,35 @@
+# DEMO NPC TALK TABLE for Lorencia (world 0) - NOT client data and NOT a server reading.
+#
+# There is no server in the native session. In the real game the server
+# answers the talk request with a result byte, sends the shop list and the
+# vault contents, and decides every purchase. This file stands in for those
+# answers (NATIVE-NPC-001). What the client does with the answer is
+# reconstructed (reconstructed/npc: ReceiveTalk 0x01280659 opens the window
+# of the result byte). The texts are the client's own tables when MU_LANG_DIR
+# is set: Npcname for titles, Dialog(kor) indices for the demo dialogue.
+#
+#   talk <server-class> <result-byte> [dialog <index> ...] [options <index> ...]
+#   shop <server-class> <item-code>[+level] ...    (item code = group * 512 + index)
+#   storage <item-code>[+level] ...
+#   actor ...                                      (extra placement line, see lorencia-demo-placement.txt)
+#
+# NPCs without a talk row answer 0xff (no window).
+
+# Hanzo the Blacksmith (251): NpcShop; the talk case sets the repair flag for class 251.
+talk 251 0x00
+shop 251 0 1 2 3 4 512 513 514 1024 1025 1536 1537 3584 3585 4096 4097 4608 4609 5120 5121 5632 5633
+
+# Pasi the Mage (254): NpcShop with staffs, scrolls and potions (no repair flag).
+talk 254 0x00
+shop 254 2560 2561 2562 7680 7681 7682 7683 7684 7171 7172 7173 7174 7175 7176
+
+# The vault keeper of the demo placement (240): StorageInven.
+talk 240 0x02
+storage 3+5 4097+3 7171 7171 6656 6657 6145
+
+# The Chaos Goblin of the pub (238): result 3 opens MixGoblinSel (a window the native client does not play).
+talk 238 0x03
+
+# Sir Lesnar (584) next to the town square: result 0x28 opens npcdialogue for the dialogue NPC 0x248 = 584.
+actor 584 136 125 6 label sir lesnar
+talk 584 0x28 dialog 102 147 158 options 250 114

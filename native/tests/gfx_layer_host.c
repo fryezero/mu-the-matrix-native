@@ -8,6 +8,8 @@
  *   key VK | text STR | click CELL | rclick CELL | hover CELL | at X Y (click)
  *   | closebtn | advance MS | composite | open MOVIE | print
  *   | compose STR | invoke MOVIE PATH METHOD JSON ("-" path: the movie's) | items | channels
+ *   | npcdialog | npcshop | storage | npcact VERB ARG | slot MOVIE CELL | slotdraws MOVIE | npcprint
+ *   (NATIVE-NPC-001: the NPC windows with demo contents)
  * `print` writes one JSON line with the layer state; each input op prints
  * whether the interface took it.  MU_GFX_SIZE=WxH sets the window size in
  * points (default 1280x800).  MU_GFX_HOST_TEXT=1 installs a GlobalText
@@ -137,6 +139,45 @@ int main(int argc, char **argv)
                        "\"rect\": [%.2f, %.2f, %.2f, %.2f], \"frame_scale\": %.2f, \"select\": %d}\n", d[k].item,
                        d[k].code, d[k].level, d[k].slot[0], d[k].slot[1], d[k].slot[2], d[k].slot[3], d[k].rect[0],
                        d[k].rect[1], d[k].rect[2], d[k].rect[3], d[k].frame_scale, d[k].select);
+        } else if (!strcmp(op, "npcdialog")) {
+            mu_gfx_npc_dialog d = {.title = "Demo NPC", .text = "First line of the talk;Second line", .noptions = 2,
+                                   .hide_contribute = 1};
+            d.options[0] = "Tell me more";
+            d.options[1] = "Goodbye";
+            printf("npcdialog %d\n", mu_gfx_layer_npc_dialog(L, &d));
+        } else if (!strcmp(op, "npcshop") || !strcmp(op, "storage")) {
+            mu_gfx_slot_item it[3] = {{0, 9, 1, 3, 1000, "Kris"}, {3584, 7, 2, 2, 5000, "Bronze Helm"},
+                                      {7171, 0, 1, 1, 30, "Healing Potion"}};
+            int ok = !strcmp(op, "npcshop") ? mu_gfx_layer_npc_shop(L, "Demo Shop", 1, 2, it, 3)
+                                            : mu_gfx_layer_storage(L, "Vault", it, 2);
+            printf("%s %d\n", op, ok);
+        } else if (!strcmp(op, "npcact") && i + 2 < argc) {
+            printf("npcact %s %s = %d\n", argv[i + 1], argv[i + 2], mu_gfx_layer_npc_action(L, argv[i + 1], atoi(argv[i + 2])));
+            i += 2;
+        } else if (!strcmp(op, "slot") && i + 2 < argc) {
+            int m = atoi(argv[i + 1]);
+            if (mu_gfx_layer_slot_center(L, m, atoi(argv[i + 2]), &x, &y))
+                printf("slot %d %s took %d\n", m, argv[i + 2], click(L, x, y, 0));
+            else
+                printf("slot %d %s: no geometry\n", m, argv[i + 2]);
+            i += 2;
+        } else if (!strcmp(op, "slotdraws")) {
+            mu_gfx_item_draw d[16];
+            int n = mu_gfx_layer_slot_draws(L, atoi(a), d, 16);
+            for (int k = 0; k < n; k++)
+                printf("{\"slot_draw\": %d, \"code\": %d, \"slot\": [%.2f, %.2f, %.2f, %.2f], \"page_type\": %d, "
+                       "\"type8\": %d, \"rect\": [%.2f, %.2f, %.2f, %.2f]}\n", d[k].item, d[k].code, d[k].slot[0],
+                       d[k].slot[1], d[k].slot[2], d[k].slot[3], d[k].page_type, d[k].type8_seen, d[k].rect[0],
+                       d[k].rect[1], d[k].rect[2], d[k].rect[3]);
+            i++;
+        } else if (!strcmp(op, "npcprint")) {
+            int pages = 0, page = mu_gfx_layer_npc_page(L, &pages);
+            printf("{\"npc_window\": %d, \"last\": \"%s\", \"page\": %d, \"pages\": %d, \"shop_items\": %d, "
+                   "\"storage_items\": %d, \"inventory_items\": %d, \"inventory_open\": %d, \"zen\": %lld}\n",
+                   mu_gfx_layer_npc_window(L), mu_gfx_layer_npc_last(L), page, pages,
+                   mu_gfx_layer_slot_items(L, MU_GFX_NPC_SHOP), mu_gfx_layer_slot_items(L, MU_GFX_STORAGE),
+                   mu_gfx_layer_item_count(L), mu_gfx_layer_is_open(L, MU_GFX_INVENTORY),
+                   (long long)mu_gfx_layer_hero(L)->zen);
         } else if (!strcmp(op, "channels")) {
             static const char *const NAMES[] = {"UIFrame", "ASData", "main", "chat", "alarmframe", "topmenu"};
             printf("{\"channels\": {");

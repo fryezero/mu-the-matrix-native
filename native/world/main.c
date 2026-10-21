@@ -56,6 +56,14 @@
  * a click walks there and picks up, the space bar takes the nearest, Alt toggles
  * the labels; --item-script drives it headless. Monsters play their hurt and
  * death sounds (the model's sound slots).
+ * NATIVE-NPC-001 (--npc, --npc-demo FILE, core/mu_npc): a click on an NPC
+ * runs the client's character pick, MoveHero's NPC branch (walk beside it
+ * with the path finder, MoveCharacters' character bit on the tiles) and the
+ * talk case at the end of the walk; the answer of the DEMO server (a local
+ * table) goes through the client's talk-result dispatch, which opens
+ * npcdialogue, NpcShop or StorageInven in the GFx layer (--gfx) and plays
+ * SND_Play 25/28. --npc-script drives it headless (click/talk on actors,
+ * buy/sell/take/put/option/next/close on the windows).
  *
  * Built twice: build/mu-world (SDL2 + OpenGL) and, with MU_WORLD_NO_GL,
  * build/mu-walk, the headless software-only tool of `make -C native` (no
@@ -80,6 +88,7 @@
 
 #include "../core/mu_character.h"
 #include "../core/mu_combat.h"
+#include "../core/mu_npc.h"
 #include "../core/mu_env.h"
 #include "../core/mu_items.h"
 #include "../core/mu_objects.h"
@@ -204,6 +213,13 @@ typedef struct app {
 #ifndef MU_WORLD_NO_GL
     mu_gl_backend item_gl[MU_WORLD_ITEM_MODELS];
 #endif
+    /* NATIVE-NPC-001 */
+    int npc_on;
+    const char *npc_demo_path, *npc_script_text;
+    mu_npc_demo *npc_demo;
+    mu_npc *npc;
+    mu_npc_script npc_script;
+    int32_t npc_next, npc_click_stage, npc_click_x, npc_click_y;
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -227,8 +243,45 @@ static void combat_pre_step(void *context, mu_walk *w)
     app *a = context;
     if (a->ground)   /* NATIVE-ITEMS-001: a click on the selected item starts the pick-up walk */
         mu_world_items_pre_step(a->ground);
+    if (a->npc)   /* NATIVE-NPC-001: the selection pass picks NPCs first (0x016b5157: mask 4, then 0x22, 1) */
+        mu_npc_pre_step(a->npc);
     if (a->combat)
         mu_combat_pre_step(a->combat);
+}
+
+/* NATIVE-NPC-001: the talk answer's window, its close-all and sounds. */
+static void npc_open(void *context, const mu_npc_open *o)
+{
+    app *a = context;
+    static const char *const KIND[] = {"none", "dialog", "shop", "storage", "other"};
+    if (!a->quiet)
+        printf("{\"npc_open\": \"%s\", \"actor\": %d, \"class\": %d, \"result\": %u, \"movie\": \"%s\","
+               " \"slot\": %u, \"dialogue\": %d, \"mix_type\": %d, \"repair\": %d, \"tabs\": %d,"
+               " \"close_all\": %d, \"step\": %d}\n", KIND[o->kind], o->actor, o->server_class, o->result,
+               o->window.movie, o->window.slot, o->window.dialogue, o->window.mix_type, o->repair, o->shop_tabs,
+               o->close_all, a->npc ? a->npc->step : 0);
+#ifndef MU_WORLD_NO_GL
+    if (a->gfx)
+        world_gfx_npc_open(a->gfx, o, a->has_actors ? a->actors.list[o->actor].label : "");
+#endif
+}
+
+static void npc_close_all(void *context)
+{
+#ifndef MU_WORLD_NO_GL
+    app *a = context;
+    if (a->gfx)
+        world_gfx_npc_close_all(a->gfx);
+#else
+    (void)context;
+#endif
+}
+
+static void npc_sound(void *context, int32_t id)
+{
+    app *a = context;
+    if (a->has_sound)
+        mu_audio_host_play(a->sound.host, id, 0);   /* SND_Play(id, 0, 0) */
 }
 
 static int load(app *a)
@@ -286,7 +339,42 @@ static int load(app *a)
         }
         a->has_sound = 1;
     }
-    if (a->placement) {
+    if (a->npc_on) {   /* NATIVE-NPC-001: the demo table first, its actor lines join the placement */
+        a->npc_demo = calloc(1, sizeof *a->npc_demo);
+        if (!a->npc_demo) {
+            fprintf(stderr, "npc: out of memory\n");
+            return 1;
+        }
+        if (a->npc_demo_path && mu_npc_demo_load(a->npc_demo, a->npc_demo_path, error, sizeof error)) {
+            fprintf(stderr, "npc demo: %s\n", error);
+            return 1;
+        }
+    }
+    if (a->npc_demo && a->npc_demo->placement_length) {
+        size_t cap = (1u << 20) + sizeof a->npc_demo->placement;
+        char *text = malloc(cap);
+        size_t n = 0;
+        if (text && a->placement) {
+            FILE *f = fopen(a->placement, "rb");
+            if (f) {
+                n = fread(text, 1, cap - sizeof a->npc_demo->placement - 2, f);
+                fclose(f);
+            }
+        }
+        if (!text) {
+            fprintf(stderr, "npc: out of memory\n");
+            return 1;
+        }
+        text[n++] = '\n';
+        memcpy(text + n, a->npc_demo->placement, a->npc_demo->placement_length + 1);
+        int bad = mu_world_actors_load_text(&a->actors, a->root, a->map, text, 0, error, sizeof error);
+        free(text);
+        if (bad) {
+            fprintf(stderr, "placement: %s\n", error);
+            return 1;
+        }
+        a->has_actors = 1;
+    } else if (a->placement) {
         if (mu_world_actors_load(&a->actors, a->root, a->map, a->placement, 0, error, sizeof error)) {
             fprintf(stderr, "placement: %s\n", error);
             return 1;
@@ -379,6 +467,20 @@ static int load(app *a)
         if (a->names)
             mu_world_names_init(a->names, &nc, &a->walk, a->has_actors ? &a->actors : NULL, a->combat);
     }
+    if (a->npc_on) {   /* NATIVE-NPC-001 */
+        a->npc = calloc(1, sizeof *a->npc);
+        if (!a->npc) {
+            fprintf(stderr, "npc: out of memory\n");
+            return 1;
+        }
+        mu_npc_init(a->npc, &a->walk, a->has_actors ? &a->actors : NULL, a->npc_demo);
+        a->npc->open = npc_open;
+        a->npc->close_all = npc_close_all;
+        a->npc->sound = npc_sound;
+        a->npc->context = a;
+        a->walk.pre_step_hook = combat_pre_step;
+        a->walk.pre_step_context = a;
+    }
     return 0;
 }
 
@@ -406,6 +508,8 @@ static void on_step(void *context, mu_walk *w)
     }
     if (a->has_actors)
         mu_world_actors_step(&a->actors);
+    if (a->npc)   /* MoveCharacters' character bit, the talk at the end of the walk, the demo answer */
+        mu_npc_step(a->npc);
     if (a->combat)
         mu_combat_step(a->combat);
     if (a->ground) {   /* NATIVE-ITEMS-001: the demo server's drops, MoveItems, the pick-up mode */
@@ -514,6 +618,10 @@ static void unload(app *a)
         free(a->names);
         a->names = NULL;
     }
+    free(a->npc);
+    free(a->npc_demo);
+    a->npc = NULL;
+    a->npc_demo = NULL;
     free(a->wav);
 }
 
@@ -631,6 +739,73 @@ static void item_script(app *a, int32_t frame)
     }
 }
 
+/* NATIVE-NPC-001: scripted clicks and talks on NPCs and the window verbs. */
+static void npc_script(app *a, int32_t frame)
+{
+    mu_walk *w = &a->walk;
+    if (!a->npc)
+        return;
+    if (a->npc_click_stage == 1) {
+        mu_walk_message(w, MU_WM_LBUTTONDOWN, 1, pack(a->npc_click_x, a->npc_click_y));
+        a->npc_click_stage = 2;
+        return;
+    }
+    if (a->npc_click_stage == 2) {
+        mu_walk_message(w, MU_WM_LBUTTONUP, 0, pack(a->npc_click_x, a->npc_click_y));
+        a->npc_click_stage = 0;
+        return;
+    }
+    while (a->npc_next < a->npc_script.count && a->npc_script.items[a->npc_next].frame <= frame) {
+        const mu_npc_script_item *it = &a->npc_script.items[a->npc_next++];
+        if (!strcmp(it->verb, "click") || !strcmp(it->verb, "talk")) {
+            int32_t actor = mu_npc_find_actor(a->npc, it->arg);
+            if (actor < 0) {
+                fprintf(stderr, "frame %d: npc script: no actor \"%s\"\n", frame, it->arg);
+                continue;
+            }
+            if (!strcmp(it->verb, "talk")) {
+                mu_npc_click(a->npc, actor);
+                continue;
+            }
+            const mu_world_actor *x = &a->actors.list[actor];
+            float point[3] = {x->position[0], x->position[1], x->position[2] + 90.0f * x->actor.spec.scale};
+            int32_t sx, sy;
+            mu_view_projection(&w->frame.view, point, &sx, &sy);   /* 640x480 units, 0x0184a244 */
+            if (sx < 0 || sy < 0 || sx > 639 || sy > 479) {
+                fprintf(stderr, "frame %d: actor %d is off screen (%d,%d), npc click skipped\n", frame, actor, sx, sy);
+                continue;
+            }
+            a->npc_click_x = (int)((int64_t)sx * a->width / 640);
+            a->npc_click_y = (int)((int64_t)sy * a->height / 480);
+            mu_walk_message(w, MU_WM_MOUSEMOVE, 0, pack(a->npc_click_x, a->npc_click_y));
+            a->npc_click_stage = 1;
+            if (!a->quiet)
+                fprintf(stderr, "frame %d: click on NPC %d at %d,%d\n", frame, actor, a->npc_click_x, a->npc_click_y);
+            return;
+        }
+        int done = 0;
+#ifndef MU_WORLD_NO_GL
+        if (a->gfx)
+            done = world_gfx_npc_action(a->gfx, it->verb, it->arg);
+#endif
+        if (!strcmp(it->verb, "close"))
+            mu_npc_window_closed(a->npc);
+        if (!a->quiet)
+            printf("{\"npc_action\": \"%s\", \"arg\": \"%s\", \"frame\": %d, \"done\": %d, \"last\": \"%s\"}\n",
+                   it->verb, it->arg, frame, done,
+#ifndef MU_WORLD_NO_GL
+                   a->gfx ? world_gfx_npc_last(a->gfx) : ""
+#else
+                   ""
+#endif
+            );
+    }
+#ifndef MU_WORLD_NO_GL
+    if (a->gfx && a->npc->window_open && !world_gfx_npc_window(a->gfx))
+        mu_npc_window_closed(a->npc);   /* the player closed the window */
+#endif
+}
+
 static void script(app *a, int32_t frame)
 {
     mu_walk *w = &a->walk;
@@ -639,6 +814,7 @@ static void script(app *a, int32_t frame)
     for (int32_t i = 0; a->names && i < a->chat_count; ++i)   /* NATIVE-NAMES-001: the hero's chat, echoed */
         if (a->chat_frame[i] == frame)
             mu_world_names_chat(a->names, a->names->names.env.hero ? a->names->names.env.hero->name : "", a->chat_text[i]);
+    npc_script(a, frame);
     for (int32_t i = 0; i < a->wheel_count; ++i)
         if (a->wheel_frame[i] == frame)
             mu_walk_message(w, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)(a->wheel_delta[i] * 120) << 16, 0);
@@ -1574,6 +1750,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
         }
         printf("], \"selected\": %d}\n", (int)a->names->names.window.selected);
     }
+    if (a->npc)
+        mu_npc_report_frame(a->npc, stdout, frame);
 }
 
 static void report_summary(const app *a, const char *renderer)
@@ -1682,6 +1860,8 @@ static void report_summary(const app *a, const char *renderer)
                        p->mc_visible, p->info_visible, (int)p->hp, p->message[0] != 0);
             }
     }
+    if (a->npc)
+        mu_npc_report_summary(a->npc, stdout, a->quiet);
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);
@@ -1736,6 +1916,8 @@ static int headless(app *a)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
         else
             names_gfx_attach(a, 1.0);
+        if (a->gfx && a->npc_demo)
+            world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
     }
 #endif
     mu_raster raster;
@@ -1909,6 +2091,8 @@ static int windowed(app *a)
         char error[512];
         a->gfx = world_gfx_open(a->gfx_dir, a->root, dw, dh, scale, 1, a->gfx_open, error, sizeof error);
         if (a->gfx) {
+            if (a->npc_demo)   /* NATIVE-NPC-001: the demo vault */
+                world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
             SDL_StartTextInput();
             names_gfx_attach(a, scale);
         }
@@ -2100,6 +2284,7 @@ static int usage(void)
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y]] F:alt F:space F:hover:N F:pick:N\"]\n"
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
+                    "                [--npc] [--npc-demo FILE] [--npc-script \"F:click:ACTOR F:buy:SLOT F:close ...\"]   NPC talk (demo server)\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
@@ -2136,6 +2321,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-audio")) { a.audio = 0; continue; }
         if (!strcmp(k, "--legacy-box")) { a.legacy_box = 1; continue; }
         if (!strcmp(k, "--combat")) { a.combat_on = 1; continue; }
+        if (!strcmp(k, "--npc")) { a.npc_on = 1; continue; }
         if (!strcmp(k, "--no-env")) { a.no_env = 1; continue; }
         if (!strcmp(k, "--env-tga-leaves")) { a.env_tga = 1; continue; }
         if (!strcmp(k, "--no-particles")) { a.no_particles = 1; continue; }
@@ -2200,6 +2386,12 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--item-seed")) a.items_config.seed = (uint32_t)strtoul(v, NULL, 0);
         else if (!strcmp(k, "--item-latency")) a.items_config.drop_latency = atoi(v);
         else if (!strcmp(k, "--item-despawn")) a.items_config.despawn_steps = atoi(v);
+        else if (!strcmp(k, "--npc-demo")) { a.npc_demo_path = v; a.npc_on = 1; }
+        else if (!strcmp(k, "--npc-script")) {
+            if (mu_npc_script_parse(&a.npc_script, v))
+                return usage();
+            a.npc_on = 1;
+        }
 #ifndef MU_WORLD_NO_GL
         else if (!strcmp(k, "--gfx")) a.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;

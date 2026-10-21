@@ -52,7 +52,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
-            core/mu_label.c core/mu_names.c core/mu_world_names.c
+            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
