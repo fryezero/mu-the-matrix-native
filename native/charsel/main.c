@@ -52,6 +52,7 @@
 
 typedef struct app {
     const char *root, *list_path, *out_dir, *backend, *font, *tip;
+    const mu_charsel_list *list_given;   /* NATIVE-CHARCREATE-001: overrides list_path (embed) */
     int32_t width, height, frames, every, headless, quiet, slot, cycle, enter_frame, no_ui;
     mu_charsel_ui *ui;
     float seconds;
@@ -100,7 +101,9 @@ static char *read_text(const char *path)
 static int load(app *a)
 {
     char error[512];
-    if (a->list_path) {
+    if (a->list_given) {   /* NATIVE-CHARCREATE-001: the caller's list (mu-client's offline session) */
+        a->list = *a->list_given;
+    } else if (a->list_path) {
         char *text = read_text(a->list_path);
         if (!text) {
             fprintf(stderr, "%s: cannot read\n", a->list_path);

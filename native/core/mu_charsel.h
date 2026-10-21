@@ -59,7 +59,7 @@
 #include "mu_terrain.h"
 #include "mu_walk.h"
 
-#define MU_CHARSEL_MAX_ENTRIES 5
+#define MU_CHARSEL_MAX_ENTRIES 10           /* NATIVE-CHARCREATE-001: all ten CharactersClient slots of the list (was 5) */
 #define MU_CHARSEL_PATH 1024
 
 typedef struct mu_charsel_entry {
@@ -125,6 +125,11 @@ typedef struct mu_charsel_session {
     /* NATIVE-CHARSEL-003 */
     int32_t pick;                  /* the last render's SelectCharacter(1) 0x016b47bf, -1 none */
     uint32_t picks, pick_hits, double_clicks;
+    /* NATIVE-CHARCREATE-001: the GFx window's state the scene tick reads (+0x78 the create panel, +0x79 a pending
+     * delete; set by the front end) and the tick's Esc results: 0x00c8c8b1 (the menu) / 0x00b49bf4(0) (the panel
+     * closed) calls seen */
+    uint8_t gfx_create_open, gfx_flag_79;
+    int32_t menu_requests, panel_close_requests;
 } mu_charsel_session;
 
 /* Loads World94, its camera record, Player.bmd and the list's models, creates

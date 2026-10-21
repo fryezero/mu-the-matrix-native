@@ -26,6 +26,7 @@
 #include <stdint.h>
 
 #include "../core/mu_charsel.h"
+#include "charsel_create_gfx.h"
 
 typedef struct mu_charsel_list_gfx mu_charsel_list_gfx;
 
@@ -39,6 +40,13 @@ typedef struct mu_charsel_list_gfx_config {
     mu_charsel_text_fn text;    /* GlobalText, may be NULL */
     void *text_user;
     const char *log_path;       /* every emitted line and callback, or NULL */
+    /* NATIVE-CHARCREATE-001: the create panel, the delete flow, the Caution boxes and the menu
+     * (charsel_create_gfx.h); 0 keeps NATIVE-CHARSEL-003's OFFLINE DEMO no-op */
+    int create;
+    const char *game_root;      /* Data/Logo/NewFaceNN.bmd for the creation preview */
+    const char *lang_dir;       /* filter.txt, filtername.txt (scripts/live_lang_filters.py), may be NULL */
+    mu_charsel_create_hooks hooks;
+    int32_t created, limit;     /* the daily creation counts of the character list (offline: the store's) */
 } mu_charsel_list_gfx_config;
 
 mu_charsel_list_gfx *mu_charsel_list_gfx_open(const mu_charsel_list_gfx_config *config, mu_charsel_session *session,
@@ -67,7 +75,23 @@ void mu_charsel_list_gfx_stats_get(const mu_charsel_list_gfx *g, mu_charsel_list
 /* Window-pixel centre of list row `row` (scripted input); 0 when unknown. */
 int mu_charsel_list_gfx_row_center(const mu_charsel_list_gfx *g, int32_t row, double *x, double *y);
 
-/* GlobalText index of the class name 0x0139cc2e(class, 1) (static reading), -1 unknown. */
+/* GlobalText index of the class name 0x0139cc2e(class, 1) (every class byte executed in Unicorn,
+ * NATIVE-CHARCREATE-001; 2305 for the codes the switch has no case for). */
 int32_t mu_charsel_class_name_text(uint8_t class_byte);
+
+/* NATIVE-CHARCREATE-001 (no effect without config.create): CCharSelMainWin's events (Create 0x20, Menu 0x21,
+ * message 0x23, delete confirmation 0x25); the menu toggled / the create panel closed (the scene tick's Esc);
+ * keys and typed text (1 when the Caution box or the create panel's name box takes them); a rebuilt session
+ * (InitCharacterScene cleared by the created / deleted answer); the module's state; control centres for
+ * scripted input (charsel_create_gfx.h names). */
+void mu_charsel_list_gfx_event(mu_charsel_list_gfx *g, int32_t code, int32_t argument);
+void mu_charsel_list_gfx_menu(mu_charsel_list_gfx *g);
+void mu_charsel_list_gfx_close_panel(mu_charsel_list_gfx *g);
+int mu_charsel_list_gfx_key(mu_charsel_list_gfx *g, int vk, int down);
+int mu_charsel_list_gfx_text(mu_charsel_list_gfx *g, const char *utf8);
+void mu_charsel_list_gfx_rebind(mu_charsel_list_gfx *g, mu_charsel_session *session);
+void mu_charsel_list_gfx_create_stats(const mu_charsel_list_gfx *g, mu_charsel_create_stats *out);
+void mu_charsel_list_gfx_create_done(mu_charsel_list_gfx *g);
+int mu_charsel_list_gfx_control(const mu_charsel_list_gfx *g, const char *name, double *x, double *y);
 
 #endif

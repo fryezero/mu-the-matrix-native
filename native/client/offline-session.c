@@ -2,9 +2,15 @@
 #define _POSIX_C_SOURCE 200809L
 #include "offline-session.h"
 
+#include "../../reconstructed/charsel/charcreate.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <ctype.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 static void copy_text(char *dst, size_t size, const char *src)
 {
@@ -211,6 +217,7 @@ int mu_offline_session_load(mu_offline_session *s, const char *path, const char 
         if (status)
             return 1;
     }
+    snprintf(s->root, sizeof s->root, "%s", root ? root : "");
     if (s->characters_path[0]) {
         char *characters = read_file(s->characters_path);
         if (!characters) {
@@ -262,4 +269,162 @@ const mu_charsel_entry *mu_offline_session_character(const mu_offline_session *s
         if (s->characters.entries[i].slot == slot)
             return &s->characters.entries[i];
     return NULL;
+}
+
+/* ---- NATIVE-CHARCREATE-001: the local store (OFFLINE DEMO) ---- */
+
+static int make_dirs(const char *path)
+{
+    char dir[MU_OFFLINE_PATH];
+    snprintf(dir, sizeof dir, "%s", path);
+    char *slash = strrchr(dir, '/');
+    if (!slash)
+        return 0;
+    *slash = 0;
+    for (char *p = dir + 1; *p; ++p)
+        if (*p == '/') {
+            *p = 0;
+            if (mkdir(dir, 0755) && errno != EEXIST)
+                return 1;
+            *p = '/';
+        }
+    return mkdir(dir, 0755) && errno != EEXIST;
+}
+
+int mu_offline_session_use_store(mu_offline_session *s, const char *path, const char *today, char *error,
+                                 size_t error_size)
+{
+    s->create_limit = MU_OFFLINE_CREATE_LIMIT;
+    s->created_today = 0;
+    snprintf(s->created_date, sizeof s->created_date, "%s", today ? today : "");
+    snprintf(s->store_path, sizeof s->store_path, "%s", path ? path : "");
+    if (!s->store_path[0])
+        return 0;
+    char *text = read_file(s->store_path);
+    if (!text)
+        return 0;   /* created by the first change */
+    /* "created DATE N" lines are the store's own; the rest is the character list */
+    size_t n = strlen(text);
+    char *list = calloc(n + 1, 1);
+    size_t used = 0;
+    int characters = 0;
+    for (char *line = text; *line;) {
+        char *end = strchr(line, '\n');
+        size_t len = end ? (size_t)(end - line) : strlen(line);
+        char date[32];
+        int count = 0;
+        if (sscanf(line, "created %31s %d", date, &count) == 2) {
+            if (today && !strcmp(date, today))
+                s->created_today = count;
+        } else {
+            memcpy(list + used, line, len);
+            used += len;
+            list[used++] = '\n';
+            const char *p = line;
+            while (p < line + len && isspace((unsigned char)*p))
+                ++p;
+            if (p < line + len && *p != '#')
+                ++characters;
+        }
+        line = end ? end + 1 : line + len;
+    }
+    free(text);
+    int status = 0;
+    if (characters) {
+        status = mu_charsel_list_parse(list, s->root, &s->characters, error, error_size);
+    } else {
+        memset(&s->characters, 0, sizeof s->characters);
+    }
+    free(list);
+    return status;
+}
+
+static int same_name(const char *a, const char *b)
+{
+    for (; *a && *b; ++a, ++b)
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b))
+            return 0;
+    return *a == *b;
+}
+
+int mu_offline_session_create(mu_offline_session *s, const char *name, uint8_t class_code, int32_t *slot,
+                              uint8_t *server_class)
+{
+    char clean[MU_CCR_NAME_MAX + 1];
+    snprintf(clean, sizeof clean, "%.*s", MU_CCR_NAME_MAX, name ? name : "");
+    if (!clean[0])
+        return 0;
+    for (int32_t i = 0; i < s->characters.count; ++i)
+        if (same_name(s->characters.entries[i].name, clean))
+            return 0;
+    int32_t free_slot = -1;
+    for (int32_t k = 0; k < MU_CHARSEL_LIST && free_slot < 0; ++k)
+        if (!mu_offline_session_character(s, k))
+            free_slot = k;
+    if (free_slot < 0 || s->characters.count >= MU_CHARSEL_MAX_ENTRIES)
+        return 2;
+    /* a new character: level 1, the base class of the request (the server sends class << 4, which 0x0139ca62
+     * turns back into the class byte), the class's own body parts (no items) */
+    mu_charsel_entry *e = &s->characters.entries[s->characters.count++];
+    memset(e, 0, sizeof *e);
+    e->slot = free_slot;
+    *server_class = (uint8_t)(class_code & 0xf0);
+    e->class_byte = mu_ccr_class_from_server(*server_class);
+    e->level = 1;
+    snprintf(e->name, sizeof e->name, "%s", clean);
+    ++s->created_today;
+    *slot = free_slot;
+    return 1;
+}
+
+int mu_offline_session_delete(mu_offline_session *s, int32_t slot)
+{
+    for (int32_t i = 0; i < s->characters.count; ++i)
+        if (s->characters.entries[i].slot == slot) {
+            memmove(&s->characters.entries[i], &s->characters.entries[i + 1],
+                    (size_t)(s->characters.count - i - 1) * sizeof s->characters.entries[0]);
+            --s->characters.count;
+            return 1;
+        }
+    return 2;
+}
+
+int mu_offline_session_save(const mu_offline_session *s)
+{
+    if (!s->store_path[0])
+        return 0;
+    if (make_dirs(s->store_path))
+        return 1;
+    char tmp[MU_OFFLINE_PATH + 8];
+    snprintf(tmp, sizeof tmp, "%s.tmp", s->store_path);
+    FILE *f = fopen(tmp, "w");
+    if (!f)
+        return 1;
+    static const char *const ITEMS[MU_CHARACTER_ITEMS] = {"head", "helm", "armor", "pants", "gloves", "boots",
+                                                          "weapon0", "weapon1", "wing"};
+    fprintf(f, "# OFFLINE DEMO character store of the native client (NATIVE-CHARCREATE-001): the characters\n"
+               "# created and deleted offline, `mu-charsel --list` format. Delete this file to return to the\n"
+               "# session's demo characters.\n");
+    if (s->created_date[0])
+        fprintf(f, "created %s %d\n", s->created_date, s->created_today);
+    char data[MU_OFFLINE_PATH + 8];
+    snprintf(data, sizeof data, "%s/Data/", s->root);
+    for (int32_t i = 0; i < s->characters.count; ++i) {
+        const mu_charsel_entry *e = &s->characters.entries[i];
+        fprintf(f, "%d 0x%02x %u %s", e->slot, e->class_byte, e->level, e->name);
+        for (int k = 1; k < MU_CHARACTER_ITEMS; ++k)
+            if (e->items[k][0]) {
+                const char *p = e->items[k];
+                if (!strncmp(p, data, strlen(data)))
+                    p += strlen(data);
+                fprintf(f, " %s=%s", ITEMS[k], p);
+            }
+        fputc('\n', f);
+    }
+    int bad = ferror(f);
+    if (fclose(f) || bad || rename(tmp, s->store_path)) {
+        remove(tmp);
+        return 1;
+    }
+    return 0;
 }
