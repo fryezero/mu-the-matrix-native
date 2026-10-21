@@ -206,9 +206,9 @@ int main(int argc, char **argv)
             n += mu_gfx_layer_add_buff(L, &b[0]);   /* a buff already listed is not sent again */
             printf("buffs %d %d\n", n, mu_gfx_layer_buff_count(L));
         } else if (!strcmp(op, "charrows")) {
-            mu_gfx_char_row r[3] = {{1, 1, 0, 0, 20, 3, MU_GFX_ROW_CLASS, "Class"},
-                                    {2, 8, 0, 1, 20, 3, MU_GFX_ROW_STRENGTH, "Strength"},
-                                    {3, 43, 0, 0, 20, 3, MU_GFX_ROW_NONE, "* Critical <DMG>"}};
+            mu_gfx_char_row r[3] = {{1, 1, 0, 0, 20, 3, MU_GFX_ROW_CLASS, "Row A"},
+                                    {2, 8, 0, 1, 20, 3, MU_GFX_ROW_STRENGTH, "Stat One"},
+                                    {3, 43, 0, 0, 20, 3, MU_GFX_ROW_NONE, "* Rate <X>"}};
             mu_gfx_layer_set_char_rows(L, r, 3);
             printf("charrows 3\n");
         } else if (!strcmp(op, "channels")) {

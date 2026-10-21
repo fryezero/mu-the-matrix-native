@@ -98,9 +98,9 @@ static int tooltip_ex(void *user, int32_t code, int32_t level, int context, char
         mu_price_format((uint32_t)price, num, sizeof num);
         const char *fmt = mu_lang_text(mu_lang_shared(), context == MU_GFX_TIP_SHOP ? 0x654 : 0x3f);
         if (context == MU_GFX_TIP_SHOP)
-            snprintf(line, sizeof line, "Purchasing price: %s(%s)", num, num);
+            snprintf(line, sizeof line, "Buy %s (%s)", num, num);          /* stand-in without GlobalText */
         else
-            snprintf(line, sizeof line, "Selling Price: %s", num);
+            snprintf(line, sizeof line, "Sell %s", num);
         if (fmt) {
             char clean[160];
             mu_lang_ascii(clean, sizeof clean, fmt);
@@ -364,8 +364,8 @@ static void char_rows(world_gfx *g, const char *open)
         r->color = rows[i]->color;
         r->value_color = rows[i]->value_color;
         mu_lang_ascii(r->label, sizeof r->label, rows[i]->label);
-        /* the hero values the layer has, by row id (labels Class, Level, Pts Remaining, Strength, Agility,
-         * Stamina, Energy, Command, * ATK Power; a static reading of the table's labels) */
+        /* the hero values the layer has, by row id (class, level, free points, the five stats, attack power: a
+         * static reading of the table's labels) */
         switch (rows[i]->id) {
         case 1: r->value_key = MU_GFX_ROW_CLASS; break;
         case 2: r->value_key = MU_GFX_ROW_LEVEL; break;

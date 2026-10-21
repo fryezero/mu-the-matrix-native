@@ -11,9 +11,8 @@ Portable (synthetic data only):
   - the GFx layer on the stand-in libmugfx (base mode): addBuff invokes on the bufflist channel once it loaded,
     a repeated buff not sent twice, the bufflist's onTooltip through the host's tooltip, SetName rows with the
     line builder's HTML and the hero values, and the dialogue's option going to the host's choice callback.
-Private (MU_RECOVERY_INTEGRATION=1): with MU_GAME_ROOT the dialogue of Sir Lesnar in mu-world (QuestWords text,
-the state change of an option, a server request) and the shop's prices; with the pinned captures and Unicorn
-scripts/validate_npc_dialogue.py.
+Private (MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT): the installed NPCDialogue.bmd parses; with the pinned captures
+and Unicorn scripts/validate_npc_dialogue.py.
 """
 import json
 import os
@@ -39,7 +38,7 @@ class Tables(tl.Build):
 
     def test_buff_records_and_default(self):
         b = self.buff(29)
-        self.assertEqual((b['name'], b['group'], b['item'], b['type']), ('Seal of Ascension', 60, [13, 43], 2))
+        self.assertEqual((b['name'], b['group'], b['item'], b['type']), ('Cash Buff', 60, [13, 43], 2))
         for absent in (2, 0x1cb, 0x7fffffff):
             d = self.buff(absent)
             self.assertEqual((d['index'], d['name'], d['item'], d['type']), (0, 'null', [-1, -1], -1), absent)
@@ -47,10 +46,10 @@ class Tables(tl.Build):
 
     def test_buff_tooltip_lines(self):
         self.assertEqual(self.buff(11)['tooltip'],
-                         ['Potion of Soul', '\n', 'AG recovery +8', 'A line longer than fifteen bytes'])
-        self.assertEqual(self.buff(320)['tooltip'], ['Mastery', '\n', 'Ignores defense by %d when attacking.'])
-        self.assertEqual(self.buff(320, 25)['tooltip'], ['Mastery', '\n', 'Ignores defense by 25 when attacking.'])
-        self.assertEqual(self.buff(1, 25)['tooltip'], ['Increase Attack Power', '\n', 'Attack power increases.'])
+                         ['Buff Eleven', '\n', 'Short +8', 'A line longer than fifteen bytes'])
+        self.assertEqual(self.buff(320)['tooltip'], ['Valued', '\n', 'Value %d here.'])
+        self.assertEqual(self.buff(320, 25)['tooltip'], ['Valued', '\n', 'Value 25 here.'])
+        self.assertEqual(self.buff(1, 25)['tooltip'], ['Buff One', '\n', 'Line one.'])
 
     def test_addbuff_object(self):
         self.assertEqual(self.buff(1)['addbuff'], {'is_debuff': 0, 'is_cash': 0, 'has_detail': 1, 'detail': 0})
@@ -67,7 +66,7 @@ class Tables(tl.Build):
         self.assertEqual(ids(0), [1, 2, 80, 8, 43, 13, 10])
         self.assertEqual(tl.lang(self.lang, 'charinfo', 16, check=False).returncode, 1)   # no rows
         row = tl.lang_json(self.lang, 'charinfo', 1)[3]
-        self.assertEqual((row['label'], row['type'], row['sort'], row['button']), ('Strength', 2, 0, 1))
+        self.assertEqual((row['label'], row['type'], row['sort'], row['button']), ('Stat One', 2, 0, 1))
 
     def test_soul_conversion(self):
         self.assertEqual([tl.lang(self.lang, 'soul', c).stdout.strip() for c in (7628, 7629, 7630)],
@@ -114,8 +113,8 @@ class Layer(unittest.TestCase):
         out, log = self.run_host('charrows', 'open', '3', 'advance', '50')
         rows = [json.loads(line.split(' ', 2)[2]) for line in log if '.SetName ' in line]
         self.assertEqual([r[:3] for r in rows], [[1, 1, 0], [2, 8, 0], [3, 43, 0]])
-        self.assertEqual(rows[0][3], "<font color='#%s'>Class</font><br>" % rows[0][3].split('#')[1][:6])
-        self.assertIn('&lt;DMG>', rows[2][3])                       # the line builder escapes '<'
+        self.assertEqual(rows[0][3], "<font color='#%s'>Row A</font><br>" % rows[0][3].split('#')[1][:6])
+        self.assertIn('&lt;X>', rows[2][3])                         # the line builder escapes '<'
         self.assertEqual(rows[2][4].split('>')[1].split('<')[0], '-')
         self.assertEqual([r[6] for r in rows], [0, 1, 0])
         self.assertNotIn('Damage', ' '.join(str(r) for r in rows))  # the stand-in rows are gone

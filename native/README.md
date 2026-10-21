@@ -572,7 +572,7 @@ optional): `buffs.tsv` (BuffEffect), `charinfo.tsv` (CharacterInfoSetup), `skill
 - the NPC dialogue of the client (NPCDialogue.bmd + QuestWords.bmd from the game root, `reconstructed/npc`'s
   `npc_dialogue.c`): the state's text and options, an option's next state, server requests logged;
 - the client's prices (`reconstructed/price`: ItemValue `0x0169320b`, ConvertRepairGold): the shop list, buying,
-  selling, the tooltip's "Purchasing price" / "Selling Price" lines;
+  selling, the tooltip's buy and sell price lines (GlobalText 0x654 / 0x3f);
 - the bufflist (`--gfx-open "buffs=1:2:8"`: demo buffs through the client's addBuff rule) and the buff popup;
 - the character window's rows from CharacterInfoSetup (`--gfx-open "class=N"`, default 1).
 

@@ -143,21 +143,21 @@ ENCHANT = {14: [(-1, 0.0, 0.5, 1.0)], 0x1000: [(2, 1.0, 0.0, 0.0), (-1, 0.0, 1.0
 ENCHANT_DEFAULT = (1.0, 0.5, 0.0)
 
 # NATIVE-LANG-002 tables: BuffEffect (index, group, item group/index, name, type, x2c, x30, lines, value kind)
-BUFFS = {1: (1, 255, 255, b'Increase Attack Power', 0, 1, 1, [b'Attack power increases.'], 0),
-         11: (11, 255, 255, b'Potion of Soul', 0, 0, 1, [b'AG recovery +8', b'A line longer than fifteen bytes'], 0),
-         29: (60, 13, 43, b'Seal of Ascension', 2, 0, 1, [b'EXP gain increase 50%%'], 0),
-         35: (0xf6, 14, 46, b'[Boost] Food', 0, 0, 1, [], 0),
-         55: (55, 255, 255, b'Poison', 1, 1, 1, [b'HP drops.'], 0),
-         320: (299, 255, 255, b'Mastery', 0, 1, 1, [b'Ignores defense by %d when attacking.'], 1)}
+BUFFS = {1: (1, 255, 255, b'Buff One', 0, 1, 1, [b'Line one.'], 0),
+         11: (11, 255, 255, b'Buff Eleven', 0, 0, 1, [b'Short +8', b'A line longer than fifteen bytes'], 0),
+         29: (60, 13, 43, b'Cash Buff', 2, 0, 1, [b'Gain 50%%'], 0),
+         35: (0xf6, 14, 46, b'Group F6', 0, 0, 1, [], 0),
+         55: (55, 255, 255, b'Debuff', 1, 1, 1, [b'Drops.'], 0),
+         320: (299, 255, 255, b'Valued', 0, 1, 1, [b'Value %d here.'], 1)}
 # CharacterInfoSetup rows: id -> (colour, label, group, class flags, type, sort, value colour, prefix, suffix, button)
-CHARINFO = {1: (20, b'Class', 1, [1]*16, 1, 0, 3, b'', b'', 0),
-            2: (20, b'Level', 1, [1]*16, 1, 1, 3, b'', b'', 0),
-            8: (20, b'Strength', 6, [1]*16, 2, 0, 3, b'', b'', 1),
-            9: (12, b'* (S) ATK Power', 7, [0, 1] + [0]*14, 2, 1, 12, b'', b'', 0),
-            10: (20, b'* ATK Power', 10, [1]*16, 2, 2, 3, b'', b'', 0),
-            13: (20, b'Agility', 6, [1]*16, 2, 1, 3, b'', b'', 1),
-            43: (20, b'* Critical DMG Rate', 9, [1]*16, 3, 0, 3, b'', b'%', 0),
-            80: (20, b'Elemental ATK', 11, [1]*16, 4, 0, 3, b'', b'', 0)}
+CHARINFO = {1: (20, b'Row A', 1, [1]*16, 1, 0, 3, b'', b'', 0),
+            2: (20, b'Row B', 1, [1]*16, 1, 1, 3, b'', b'', 0),
+            8: (20, b'Stat One', 6, [1]*16, 2, 0, 3, b'', b'', 1),
+            9: (12, b'* Class One Row', 7, [0, 1] + [0]*14, 2, 1, 12, b'', b'', 0),
+            10: (20, b'* Row C', 10, [1]*16, 2, 2, 3, b'', b'', 0),
+            13: (20, b'Stat Two', 6, [1]*16, 2, 1, 3, b'', b'', 1),
+            43: (20, b'* Rate Row', 9, [1]*16, 3, 0, 3, b'', b'%', 0),
+            80: (20, b'Tab Four Row', 11, [1]*16, 4, 0, 3, b'', b'', 0)}
 SOULCONV = (7628, 7630)
 
 

@@ -323,8 +323,8 @@ whose flag is set: types other than 2, 3, 5 at once in key order, the others col
 `std::sort` (`0x00b48089`, comparator `0x00b46e30`: sort less), each as
 `SetName("%d %d %d %s %s %s %d", type, id, sort, line(label, colour), line("-", value colour), "", button)` with the
 line builder `0x00ab4dc0`. The sort is MSVC's introsort (not stable above 32 rows): the native module ports it
-and equals the client's order for all 16 class indices. These rows are the character window's labels (Class,
-Level, Pts Remaining, Strength, * ATK Power, ...), which NATIVE-LANG-001 had looked for in GlobalText.
+and equals the client's order for all 16 class indices. These rows are the character window's labels (class,
+level, free points, the stats, attack power, ...), which NATIVE-LANG-001 had looked for in GlobalText.
 
 ## 2. NPC dialogue text (verified): not a Lang table
 
@@ -377,7 +377,7 @@ such a jump (`0x00f0be4c -> 0x10b402a0`): its condition (shop item) is a static 
   `mu_lang_skillreq_item`, `mu_lang_soul_conversion`, `mu_lang_quest_text`; `mu-lang buff|charinfo|soul|quest`.
 - The GFx layer: the bufflist channel (`mu_gfx_layer_add_buff`, addBuff after the movie's onLoad, onTooltip ->
   `cfg.buff_tooltip`), the character window's rows from CharacterInfoSetup (`mu_gfx_layer_set_char_rows`; the
-  layer fills the hero values it has into Class, Level, Pts Remaining, the five stats and * ATK Power, "-"
+  layer fills the hero values it has into the class, level, free-point, stat and attack-power rows, "-"
   elsewhere, as the client's first SetName), npcdialogue's choice to the host (`cfg.dialog_choice`), the client's
   prices (`cfg.price_ex`) and the tooltip context (`cfg.tooltip_ex`: buy line on NpcShop items, sell line on
   inventory items while it is open).
@@ -501,11 +501,11 @@ verified; **map** = in the snapshot, layout open; **none** = not in the snapshot
 
 `~/Documents/mu-mac-tools/native/renders/lang2/`:
 
-- `dialog/` (Sir Lesnar: state 0 "Are you here to join the Arca War?" with nine options, option 1 -> state 1 with
-  "Go back.", back to state 0, option 2 -> request 908; frames 60, 80, 120);
-- `shop/` (Hanzo the Blacksmith: the Kris's tooltip with "Purchasing price: 240(240)", buying it, the Blade +9's
-  "Selling Price: 91,700" and the sale);
-- `buffs/` (the bufflist with eight demo buffs, the Potion of Soul popup, the character window with
+- `dialog/` (Sir Lesnar: state 0 with nine options, option 1 -> state 1 with one option back, back to state 0,
+  option 2 -> request 908; frames 60, 80, 120);
+- `shop/` (Hanzo the Blacksmith: the Kris's tooltip with the buy line, 240 zen, buying it, the Blade +9's sell
+  line, 91,700 zen, and the sale);
+- `buffs/` (the bufflist with eight demo buffs, the popup of buff 11, the character window with
   CharacterInfoSetup's rows).
 
 ```sh
