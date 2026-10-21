@@ -80,6 +80,7 @@ the setup window says that "Don't Allow" only skips the local tables.
 
 ## Limits
 
-The demo server stays a demo (no network layer). The GFx account dialog, menus and the character list
-(NATIVE-CHARSEL-003) arrive with their milestones; the app passes `--gfx` and picks them up. The window is not
+The demo server stays a demo (no network layer). With `--gfx`, the app already shows NATIVE-CHARSEL-003's GFx
+character list (CharacterSelect is among the converted movies); the GFx account dialog and menus arrive with their
+milestones and the app picks them up the same way. The window is not
 resizable and there is no full-screen mode. A crash of the launcher itself leaves the client running.
