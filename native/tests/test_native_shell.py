@@ -184,7 +184,8 @@ def stub_library(folder):
                         str(HERE / 'gfx_stub_mugfx.c')], check=True)
     movies = folder / 'movies'
     movies.mkdir(exist_ok=True)
-    (movies / 'CharacterSelect.swf').write_bytes(b'')
+    for name in ('CharacterSelect', 'Caution', 'winSystemMenu'):   # NATIVE-CHARCREATE-001: the boxes, the menu
+        (movies / f'{name}.swf').write_bytes(b'')
     return lib, movies
 
 
@@ -237,6 +238,135 @@ class CharacterListTests(Build):
         self.assertEqual(summary['scene'], 5)
         self.assertGreaterEqual(summary['charsel']['double_clicks'], 1)
         self.assertGreater(summary['charsel']['picks'], 10)
+
+
+class CharacterCreateTests(Build):
+    """NATIVE-CHARCREATE-001: the create panel, the delete flow and the menu through the stand-in library (the
+    reconstructed window code over synthetic data); OFFLINE DEMO answers from a store in the temporary folder."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        logo = Path(cls.root) / 'Data' / 'Logo'   # a synthetic bust as the Slayer's NewFace10.bmd
+        logo.mkdir(parents=True, exist_ok=True)
+        model = nf.write_textured_model(logo, seed=4)
+        model.rename(logo / 'NewFace10.bmd')
+        lang = Path(cls.tmp.name) / 'lang'          # synthetic name tables (scripts/live_lang_filters.py format)
+        lang.mkdir(exist_ok=True)
+        (lang / 'filtername.txt').write_text('GM\nwebzen\n')
+        (lang / 'filter.txt').write_text('SELECT\n')
+        (lang / 'globaltext.txt').write_text('5526\tSlayer (table)\n5786\tGun Crusher (table)\n')
+
+    def flow(self, name, script, *args, store=None, lang=False):
+        lib, movies = stub_library(self.tmp.name)
+        folder = self.out(name)
+        log, stub_log = folder / 'gfx.log', folder / 'stub.log'
+        for p in (log, stub_log):
+            if p.exists():
+                p.unlink()
+        env = {**os.environ, 'MU_GFX_LIB': str(lib), 'MUGFX_STUB_LOG': str(stub_log)}
+        env.pop('MU_LANG_DIR', None)
+        if lang:
+            env['MU_LANG_DIR'] = str(Path(self.tmp.name) / 'lang')
+        store = store or folder / 'store.txt'
+        r = subprocess.run([str(SHELL), '--game-root', str(self.root), '--no-audio', '--session', str(self.session),
+                            '--gfx', str(movies), '--gfx-log', str(log), '--store', str(store), '--width', '640',
+                            '--height', '480', '--script', script, *[str(a) for a in args]],
+                           capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+        rows = [json.loads(x) for x in r.stdout.splitlines() if x.startswith('{')]
+        summary = next(x for x in rows if x.get('summary'))
+        frames = [x for x in rows if 'png' in x]
+        return summary, log.read_text().splitlines(), stub_log.read_text().splitlines(), store, frames, r.stderr
+
+    def lists(self, stub):
+        return [json.loads(x.split(' ', 2)[2])[0] for x in stub if '.SetSelectText ' in x]
+
+    def test_create_through_the_panel(self):
+        summary, lines, stub, store, frames, _ = self.flow(
+            'create', '10:enter 14:enter 30:click:create 40:click:class:9 50:text:Nova 60:click:createok',
+            '--frames', '90', '--out-dir', self.out('create-frames'), '--every', '45', lang=True)
+        cc = summary['charcreate']
+        self.assertEqual((cc['creates'], cc['created'], cc['rebuilds'], cc['characters']), (1, 1, 1, 4))
+        # SetSelectedClass(9): NewFace10 (model 0x135 + 9), drawn while the panel was open; closing it shows
+        # class 1 again (0x00b49bf4(0): SetClassInfo(1))
+        self.assertEqual(cc['preview_class'], 1)
+        self.assertGreater(cc['preview_frames'], 0)
+        drawn = [f for f in frames if f['frame'] == 45][0]['png']
+        self.assertTrue(Path(drawn).exists())
+        self.assertIn('line call 00b4a442 9 ', lines)
+        self.assertIn('line call 0137d8a1 p 318 0 0 00000000 ', lines)
+        self.assertIn('line call 009a466c "Nova" 144 ', lines)   # (9 << 4) + skin 0
+        # the store keeps the new character in the first free slot; the scene was created again with it
+        self.assertIn('3 0x09 1 Nova', store.read_text())
+        rows = self.lists(stub)[-1]
+        self.assertEqual([r['type'] for r in rows[:5]], [0, 0, 0, 0, 1])
+        self.assertEqual(rows[3]['textJob'], 'Slayer (table)')   # the class-name switch's code 9: GlobalText 5526
+        self.assertTrue(any('.UpdateCreateCount ["GT6193"]' in x for x in stub))
+        self.assertEqual(summary['scene'], 5)
+
+    def test_name_refusals(self):
+        script = '10:enter 14:enter 30:click:create 40:text:{} 50:click:createok'
+        cases = (('Ab', 'GT390', False), ('xGMx', 'GT1715', True), ('ADSELECT', 'GT1715', True),
+                 ('sym!bol', 'GT391', False))
+        for typed, text, lang in cases:
+            with self.subTest(typed=typed):
+                summary, lines, _, store, _, _ = self.flow(f'refuse-{len(text)}-{typed}', script.format(typed),
+                                                           '--frames', '70', lang=lang)
+                cc = summary['charcreate']
+                self.assertEqual((cc['creates'], cc['caution_open']), (0, 1))
+                self.assertEqual(cc['last_message'], text)
+                self.assertTrue(any(x.startswith(f'line call 00b3967c w 100 "{text}"') for x in lines))
+                self.assertFalse(store.exists())   # nothing changed: nothing written
+        # without the tables the filters do not apply (GM is a valid name then)
+        summary, _, _, _, _, _ = self.flow('nofilter', script.format('xGMx'), '--frames', '80')
+        self.assertEqual(summary['charcreate']['created'], 1)
+
+    def test_delete_flow_and_password(self):
+        script = ('10:enter 14:enter 30:click:row:1 40:click:delete 50:click:msgok 60:click:msgok 70:text:secret '
+                  '80:click:msgok 95:click:msgok')
+        summary, lines, stub, store, _, err = self.flow('delete', script, '--frames', '110')
+        cc = summary['charcreate']
+        self.assertEqual((cc['deletes'], cc['deleted'], cc['rebuilds'], cc['characters']), (1, 1, 1, 2))
+        self.assertEqual(cc['last_message'], 'GT1714')
+        self.assertTrue(any(x.startswith('line call 00b39648 w 102 "GT3751\\nGT3752"') for x in lines))
+        self.assertTrue(any(x.startswith('line call 00b3974a w 103 "GT1713" "" 20') for x in lines))
+        # the password reaches nothing: not the log, not the store
+        self.assertIn('line call 00b4c76a (delete request) ', lines)
+        self.assertFalse(any('secret' in x for x in lines))
+        self.assertNotIn('secret', store.read_text())
+        self.assertNotRegex(store.read_text(), r'(?m)^1 ')
+        self.assertEqual([r['type'] for r in self.lists(stub)[-1][:3]], [0, 1, 0])
+
+    def test_cancel_and_esc_close_the_panel(self):
+        summary, lines, _, _, _, _ = self.flow('cancel', '10:enter 14:enter 30:click:create 40:click:createcancel',
+                                              '--frames', '60')
+        self.assertEqual(summary['charcreate']['create_open'], 0)
+        self.assertIn('line call 00b4c806 -1 ', lines)
+        summary, _, _, _, _, _ = self.flow('esc', '10:enter 14:enter 30:click:create 40:esc', '--frames', '60')
+        self.assertEqual((summary['charcreate']['create_open'], summary['charcreate']['menu_open']), (0, 0))
+
+    def test_menu(self):
+        summary, lines, stub, _, _, _ = self.flow('menu', '10:enter 14:enter 30:esc 40:click:menu:server',
+                                                  '--frames', '60')
+        self.assertIn((5, 3), scenes(summary))           # Select Server: the offline logout answer
+        self.assertIn('line menu invoke SceneChange [5] ', lines)
+        self.assertTrue(any('winSystemMenu _level0.mcSystemMenu.openWindow' in x for x in stub))
+        summary, _, _, _, _, _ = self.flow('exit', '10:enter 14:enter 30:esc 40:click:menu:exit', '--frames', '400')
+        self.assertLess(summary['frames'], 400)            # Exit Game quits after the countdown box
+        self.assertEqual(summary['charcreate']['last_message'], 'GT380')
+
+    def test_store_survives_and_empty_list_opens_the_panel(self):
+        folder = self.out('store')
+        store = folder / 'store.txt'
+        store.write_text('created 2000-01-01 4\n5 0x0a 7 Gunner\n')   # another day: the count restarts
+        summary, _, stub, _, _, _ = self.flow('store', '10:enter 14:enter', '--frames', '40', store=store, lang=True)
+        rows = self.lists(stub)[-1]
+        self.assertEqual(rows[5]['textJob'], 'Gun Crusher (table)')   # code 10: GlobalText 5786
+        self.assertTrue(any('.UpdateCreateCount ["GT6193"]' in x for x in stub))
+        store.write_text('created 2000-01-01 0\n')
+        summary, _, _, _, _, _ = self.flow('store', '10:enter 14:enter', '--frames', '40', store=store)
+        self.assertEqual((summary['charcreate']['characters'], summary['charcreate']['create_open']), (0, 1))
 
 
 class WindowToolTests(Build):

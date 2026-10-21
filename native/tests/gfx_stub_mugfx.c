@@ -22,7 +22,14 @@
  * the rows of SetSelectText and the row of SelectIndex, places its list as SetSelectVisible does
  * (x = width - 227 - 50, y = height / 8, rows 55 high) and turns a press on a row into
  * OnCharSelectedClick, a second press on the same row without a move away into OnCharSelectedDClick too
- * (CLIK's itemDoubleClick).  Calls made from inside a callback are queued
+ * (CLIK's itemDoubleClick).  NATIVE-CHARCREATE-001: CharacterSelect's create panel (SetCreateVisible,
+ * SetClassInfo -> SetSelectedClass with the ClassType of InitClassInfo, SetCreateBoardInfo -> the render
+ * rectangle, the class buttons, the name box, OK -> OnEnterCharacterName, Cancel -> OnClickCreateCancel, Enter
+ * in the name box), "Caution" (SetVisible, SetUIType; its buttons -> OnClickBtnOK / OnClickBtnCancel, the
+ * input boxes keep typed text; a release outside the password box reports onClickCautionInputCancel as the
+ * real movie does) and "winSystemMenu" (attachMovie + onFileLoad -> onLoad / onOpenWindow, openWindow /
+ * closeWindow, its buttons -> onExit, onServerSelectClick, onCharSelectClick, onOptionClick, onClose);
+ * fixed synthetic geometry, the control paths answer _x/_y/_width/_height.  Calls made from inside a callback are queued
  * and run afterwards, as mugfx does.  Every invoke is appended to the file
  * named by $MUGFX_STUB_LOG.  Synthetic: no client data. */
 #define _POSIX_C_SOURCE 200809L
@@ -50,7 +57,51 @@ struct MuGfx {
     uint64_t calls;
     /* CharacterSelect (NATIVE-CHARSEL-003) */
     int cs_rows, cs_selected, cs_last_row;
+    /* NATIVE-CHARCREATE-001 */
+    int cs_create, cs_class, cs_classes[16], cs_nclasses;
+    int cu_type, menu_attached, menu_open;
 };
+
+/* NATIVE-CHARCREATE-001: synthetic geometry (stage points) */
+static void cc_panel(const MuGfx *g, double *x, double *y)
+{
+    *x = g->stage_w / 2.0 - 250.0;
+    *y = g->stage_h / 2.0 - 220.0;
+}
+
+typedef struct ctl { const char *name; double x, y, w, h; } ctl;
+static const ctl CC_CONTROLS[] = {
+    {"btnOK", 230, 400, 60, 20}, {"btnCancel", 300, 400, 60, 20}, {"tiCharacterName", 20, 400, 150, 20},
+    {"mcCharacterRender", 20, 40, 200, 200}};
+static const ctl CU_CONTROLS[] = {
+    {"btnCaution1", 20, 100, 60, 20}, {"btnCaution2", 100, 100, 60, 20},
+    {"btnCaution3", 60, 100, 60, 20}, {"btnInputOk", 20, 120, 60, 20},
+    {"btnInputCancel", 100, 120, 60, 20}, {"tiInput", 20, 60, 150, 20}};
+static const ctl MENU_CONTROLS[] = {
+    {"_btnExit", 50, 60, 120, 25}, {"_btnServerSelect", 50, 100, 120, 25}, {"_btnOption", 50, 140, 120, 25},
+    {"_btnCharSelect", 50, 180, 120, 25}, {"_btnClose", 80, 230, 60, 25}};
+
+static int in_ctl(const ctl *c, double ox, double oy, double sx, double sy)
+{
+    return sx >= ox + c->x && sx < ox + c->x + c->w && sy >= oy + c->y && sy < oy + c->y + c->h;
+}
+
+static const char *ctl_variable(const ctl *list, size_t n, const char *path, char *out, size_t cap)
+{
+    for (size_t i = 0; i < n; ++i) {
+        const char *at = strstr(path, list[i].name);
+        if (!at)
+            continue;
+        const char *field = at + strlen(list[i].name);
+        double v = !strcmp(field, "._x") ? list[i].x : !strcmp(field, "._y") ? list[i].y
+                 : !strcmp(field, "._width") ? list[i].w : !strcmp(field, "._height") ? list[i].h : -1;
+        if (v < 0)
+            continue;
+        snprintf(out, cap, "%.1f", v);
+        return out;
+    }
+    return NULL;
+}
 
 static int is(const MuGfx *g, const char *name);
 
@@ -195,6 +246,47 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
             g->cs_rows++;
     } else if (is(g, "CharacterSelect") && !strcmp(method, "SelectIndex")) {
         g->cs_selected = atoi(args + 1);
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "InitClassInfo")) {
+        g->cs_nclasses = 0;
+        for (const char *q = strstr(args, "\"ClassType\":"); q && g->cs_nclasses < 16;
+             q = strstr(q + 1, "\"ClassType\":"))
+            g->cs_classes[g->cs_nclasses++] = atoi(q + 12);
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "SetClassInfo")) {
+        int slot = atoi(args + 1);
+        g->cs_class = slot >= 0 && slot < g->cs_nclasses ? g->cs_classes[slot] : 0;
+        callf(g, "SetSelectedClass", "[%.1f]", g->cs_class, 0);
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "SetCreateVisible")) {
+        g->cs_create = atoi(args + 1) != 0;
+        g->edit = g->cs_create;   /* tiCharacterName.SetFocus */
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "SetCharacterName")) {
+        const char *q = strchr(args, '"');
+        g->text[0] = 0;
+        if (q)
+            sscanf(q + 1, "%255[^\"]", g->text);
+    } else if (is(g, "CharacterSelect") && !strcmp(method, "SetCreateBoardInfo")) {
+        double px, py;
+        cc_panel(g, &px, &py);
+        callf(g, "SetCreateBoardInfo", "[%.1f,%.1f,200.0,200.0]", px + 20, py + 40);
+    } else if (is(g, "Caution") && !strcmp(method, "SetUIType")) {
+        g->cu_type = atoi(args + 1);
+        g->edit = g->cu_type == 3 || g->cu_type == 4;
+        g->text[0] = 0;
+    } else if (is(g, "winSystemMenu") && !strcmp(method, "attachMovie")) {
+        g->menu_attached = 1;
+    } else if (is(g, "winSystemMenu") && !strcmp(method, "onFileLoad") && g->menu_attached) {
+        call(g, "winSystemMenu", "[\"onLoad\",\"_level0.mcSystemMenu\"]");
+        g->menu_open = 0;   /* KeyWindow.onLoadEvents -> closeWindow */
+        call(g, "winSystemMenu", "[\"onOpenWindow\",false]");
+    } else if (is(g, "winSystemMenu") && !strcmp(method, "openWindow")) {
+        if (!g->menu_open) {
+            g->menu_open = 1;
+            call(g, "winSystemMenu", "[\"onOpenWindow\",true]");
+        }
+    } else if (is(g, "winSystemMenu") && !strcmp(method, "closeWindow")) {
+        if (g->menu_open) {
+            g->menu_open = 0;
+            call(g, "winSystemMenu", "[\"onOpenWindow\",false]");
+        }
     } else if (is(g, "base") && !strcmp(method, "LoadFrameFiles")) {
         if (strstr(args, "\"main\""))
             call(g, "main", "[\"onLoad\",\"_level0.base.UI.mcBottomFrame.main_1.mc\"]");
@@ -385,6 +477,48 @@ int mugfx_set_variable(MuGfx *g, const char *path, const char *value) { (void)g;
 
 const char *mugfx_get_variable(MuGfx *g, const char *path)
 {
+    static char cv[64];
+    if (is(g, "CharacterSelect") && strstr(path, "mcCharacterCreate")) {
+        double px, py;
+        cc_panel(g, &px, &py);
+        int n;
+        const char *b = strstr(path, "btnClass");
+        if (b && sscanf(b, "btnClass%d", &n) == 1) {
+            const char *f = strchr(b, '.');
+            double v = !f ? -1 : !strcmp(f, "._x") ? 300 : !strcmp(f, "._y") ? 40 + 20.0 * n
+                     : !strcmp(f, "._width") ? 100 : !strcmp(f, "._height") ? 18 : -1;
+            if (v < 0)
+                return "null";
+            snprintf(cv, sizeof cv, "%.1f", v);
+            return cv;
+        }
+        if (!strcmp(strstr(path, "mcCharacterCreate"), "mcCharacterCreate._x")) { snprintf(cv, sizeof cv, "%.1f", px); return cv; }
+        if (!strcmp(strstr(path, "mcCharacterCreate"), "mcCharacterCreate._y")) { snprintf(cv, sizeof cv, "%.1f", py); return cv; }
+        const char *r = ctl_variable(CC_CONTROLS, sizeof CC_CONTROLS / sizeof CC_CONTROLS[0], path, cv, sizeof cv);
+        return r ? r : "null";
+    }
+    if ((is(g, "CharacterSelect") || is(g, "Caution")) && (!strcmp(path, "_level0.g_mcCharacterSelect._x") ||
+        !strcmp(path, "_level0.g_mcCharacterSelect._y") || !strcmp(path, "_level0.g_mcCaution._x") ||
+        !strcmp(path, "_level0.g_mcCaution._y")))
+        return "0.0";
+    if (is(g, "Caution")) {
+        if (!strcmp(path, "_level0.g_mcCaution.mcCaution._x") || !strcmp(path, "_level0.g_mcCaution.mcInput._x"))
+            return "500.0";
+        if (!strcmp(path, "_level0.g_mcCaution.mcCaution._y") || !strcmp(path, "_level0.g_mcCaution.mcInput._y"))
+            return "300.0";
+        if (!strcmp(path, "_level0.g_mcCaution.mcCaution.mcBottom._x") ||
+            !strcmp(path, "_level0.g_mcCaution.mcCaution.mcBottom._y"))
+            return "0.0";
+        const char *r = ctl_variable(CU_CONTROLS, sizeof CU_CONTROLS / sizeof CU_CONTROLS[0], path, cv, sizeof cv);
+        return r ? r : "null";
+    }
+    if (is(g, "winSystemMenu")) {
+        if (!strcmp(path, "_level0.mcSystemMenu._x")) return "500.0";
+        if (!strcmp(path, "_level0.mcSystemMenu._y")) return "200.0";
+        const char *r = ctl_variable(MENU_CONTROLS, sizeof MENU_CONTROLS / sizeof MENU_CONTROLS[0], path, cv,
+                                     sizeof cv);
+        return r ? r : "null";
+    }
     if (is(g, "CharacterSelect")) {
         static char v[64];
         double r[4];
@@ -415,8 +549,17 @@ int mugfx_hit_test(MuGfx *g, double x, double y)
     stage_point(g, x, y, &sx, &sy);
     float r[4];
     bounds(g, r);
-    if (is(g, "CharacterSelect"))
+    if (is(g, "CharacterSelect")) {
+        double px, py;
+        cc_panel(g, &px, &py);
+        if (g->cs_create && sx >= px && sx < px + 420 && sy >= py && sy < py + 440)
+            return 1;
         return cs_row(g, sx, sy) >= 0;
+    }
+    if (is(g, "Caution"))
+        return g->visible;   /* modal */
+    if (is(g, "winSystemMenu"))
+        return g->menu_open && sx >= 500 && sx < 800 && sy >= 200 && sy < 500;
     if ((is(g, "InventoryFrame") || is_slotwin(g) || is(g, "NpcDialogue")) && !g->visible)
         return 0;
     if (is(g, "chat") && !g->edit)
@@ -430,6 +573,62 @@ int mugfx_mouse(MuGfx *g, int kind, int button, double x, double y)
 {
     double sx, sy;
     stage_point(g, x, y, &sx, &sy);
+    if (is(g, "CharacterSelect") && g->cs_create && kind == 1 && button == 0) {
+        double px, py;
+        cc_panel(g, &px, &py);
+        for (int n = 0; n < g->cs_nclasses; ++n)
+            if (sx >= px + 300 && sx < px + 400 && sy >= py + 40 + 20.0 * n && sy < py + 58 + 20.0 * n) {
+                g->cs_class = g->cs_classes[n];   /* OnSelectedClass -> SetClassInfo(slot) */
+                callf(g, "SetSelectedClass", "[%.1f]", g->cs_class, 0);
+                drain();
+                return 1;
+            }
+        if (in_ctl(&CC_CONTROLS[0], px, py, sx, sy)) {
+            char a[400];
+            snprintf(a, sizeof a, "[\"%s\",%d.0]", g->text, g->cs_class);
+            call(g, "OnEnterCharacterName", a);
+            drain();
+            return 1;
+        }
+        if (in_ctl(&CC_CONTROLS[1], px, py, sx, sy)) {
+            call(g, "OnClickCreateCancel", "[\"\"]");
+            drain();
+            return 1;
+        }
+    }
+    if (is(g, "Caution") && g->visible) {
+        if (kind == 1 && button == 0) {
+            int input = g->cu_type == 3 || g->cu_type == 4;
+            const ctl *ok = input ? &CU_CONTROLS[3] : g->cu_type == 1 ? &CU_CONTROLS[2] : &CU_CONTROLS[0];
+            const ctl *cancel = input ? &CU_CONTROLS[4] : g->cu_type == 0 ? &CU_CONTROLS[1] : NULL;
+            if (in_ctl(ok, 500, 300, sx, sy)) {
+                char a[400];
+                if (input)
+                    snprintf(a, sizeof a, "[\"%s\"]", g->text);
+                call(g, "OnClickBtnOK", input ? a : "[]");
+            } else if (cancel && in_ctl(cancel, 500, 300, sx, sy)) {
+                call(g, "OnClickBtnCancel", "[]");
+            }
+        } else if (kind == 2 && g->cu_type == 4 && !in_ctl(&CU_CONTROLS[5], 500, 300, sx, sy)) {
+            call(g, "onClickCautionInputCancel", "[]");   /* the real movie's onMouseUp */
+        }
+        drain();
+        return 1;
+    }
+    if (is(g, "winSystemMenu") && g->menu_open) {
+        static const char *const EVENTS[5] = {"onExit", "onServerSelectClick", "onOptionClick", "onCharSelectClick",
+                                              "onClose"};
+        if (kind == 1 && button == 0)
+            for (int i = 0; i < 5; ++i)
+                if (in_ctl(&MENU_CONTROLS[i], 500, 200, sx, sy)) {
+                    char a[96];
+                    snprintf(a, sizeof a, "[\"%s\",{}]", EVENTS[i]);
+                    call(g, "winSystemMenu", a);
+                    break;
+                }
+        drain();
+        return 1;
+    }
     if (is(g, "CharacterSelect")) {
         int row = cs_row(g, sx, sy);
         if (kind == 0 && row != g->cs_last_row)
@@ -482,6 +681,12 @@ int mugfx_key(MuGfx *g, int kind, int vk, uint32_t cp, int mods)
         g->last_vk = vk;
     if (kind == 0 && vk == 8 && g->edit && g->text[0])
         g->text[strlen(g->text) - 1] = 0;
+    if (kind == 0 && vk == 13 && is(g, "CharacterSelect") && g->cs_create) {   /* tiCharacterName pushEnter */
+        char a[400];
+        snprintf(a, sizeof a, "[\"%s\",%d.0]", g->text, g->cs_class);
+        call(g, "OnEnterCharacterName", a);
+        drain();
+    }
     return 0;
 }
 
@@ -490,6 +695,8 @@ int mugfx_text(MuGfx *g, const char *utf8)
     (void)is_bar;
     if (!g->edit)
         return 0;
+    if (is(g, "CharacterSelect") && strlen(g->text) >= 10)
+        return 1;   /* SetInputBoxLength(10): maxChars */
     strncat(g->text, utf8, sizeof g->text - strlen(g->text) - 1);
     return 1;
 }

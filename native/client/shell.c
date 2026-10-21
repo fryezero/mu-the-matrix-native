@@ -1438,7 +1438,7 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
             mu_ui_begin_bitmap(&s->state);
             offline_label(s, st.status[0] ? st.status
                                           : "character select: click a character in the list, double-click or "
-                                            "Enter plays, Esc returns to the servers");
+                                            "Enter plays, Create / Delete (local store), Esc: the menu");
             mu_ui_end_bitmap(&s->state);
             mu_ui_raster_read_top_down(&s->raster, rgba);
             break;

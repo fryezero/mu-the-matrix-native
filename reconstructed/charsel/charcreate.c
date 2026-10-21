@@ -492,8 +492,9 @@ void mu_ccr_message_result(mu_csg_window *list, mu_ccr_window *w, const mu_ccr_e
         break;
     case 0x65:   /* "Would you like to delete %s character?" */
         if (button == 0) {
-            char t[2048];
-            snprintf(t, sizeof t, "%s\n%s", gt(e, 0xea7), gt(e, 0xea8));
+            char t[2048], first[1024];
+            snprintf(first, sizeof first, "%s", gt(e, 0xea7));   /* read before the next (the host may reuse it) */
+            snprintf(t, sizeof t, "%s\n%s", first, gt(e, 0xea8));
             msg2(e, 0x66, t);
         } else if (button == 1) {
             call0(e, 0x00b399db);   /* 0x00b49cba: the Caution window's close */
