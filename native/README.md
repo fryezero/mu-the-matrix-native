@@ -276,6 +276,25 @@ native/build/mu-walk --game-root "$MU_GAME_ROOT" --headless --backend soft --fra
 MU_GFX_SINGLE_BUFFER=1 native/build/mu-world ... --backend gl --gfx MOVIES   # the same through hudPlayerName
 ```
 
+## Talking to NPCs: dialogue, shop, vault (NATIVE-NPC-001)
+
+A click on an NPC runs the client's character pick, MoveHero's NPC branch (the hero walks beside it), the talk case at
+the end of the walk and, after a DEMO answer (there is no server), the client's talk-result dispatch, which names the
+window: `npcdialogue`, `NpcShop` (and the inventory) or `StorageInven` play in the GFx layer, the other windows are
+named in the report ([finding](../docs/research/client-npc-interaction.md); `reconstructed/npc`, `core/mu_npc.*`).
+Options: `--npc` (on), `--npc-demo FILE` (the demo table: talk result per server class, shop and vault items,
+Dialog(kor) lines for the dialogue, extra placement lines; `world/lorencia-demo-npc.txt`), `--npc-script
+"F:click:ACTOR F:talk:ACTOR F:buy:SLOT F:sell:CELL F:take:SLOT F:put:CELL F:option:N F:next F:close"`. Buying,
+selling and the vault moves are local demo actions. Reports: `npc_open` per answer, `npc_frame` lines, an `npc`
+summary. Convert `NpcDialogue NpcShop StorageInven` next to the HUD movies for the windows; titles and dialogue text
+come from `MU_LANG_DIR`.
+
+```sh
+MU_GFX_SINGLE_BUFFER=1 native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --no-audio \
+    --placement native/world/lorencia-demo-placement.txt --npc-demo native/world/lorencia-demo-npc.txt \
+    --gfx MOVIES --tile 138,123 --npc-script "5:click:smith 60:buy:0 80:sell:0 110:close" --frames 120 --out-dir DIR
+```
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`
@@ -444,6 +463,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_particles.*` | Particles, sprites and blob shadows over `reconstructed/particles`: effect bitmaps, step, sprite pass, shadows, the object/environment/skill hooks (NATIVE-PARTICLE-001); the world objects' joints and effects, the login scene's sprites and particles (NATIVE-JOINT-001) |
 | `core/mu_joints.*` | The joint pool over `reconstructed/joints`: slot search, MoveJoints, RenderJoints as quads, render-type state (NATIVE-JOINT-001) |
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002); monster hurt and death sounds (NATIVE-ITEMS-001) |
+| `core/mu_npc.*` | NPC talk in the walk-around session over `reconstructed/npc`: pick, talk walk, talk case, demo answer through the talk-result dispatch, window events (NATIVE-NPC-001) |
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002) |
 | `core/mu_names.*`, `core/mu_world_names.*`, `core/mu_label.*`, `world/world_names_gfx.*` | Overhead names, monster HP boxes and chat bubbles: hudPlayerName's game side over `reconstructed/names`, its feed from the session, the shared label helper for the stand-in, the calls to the real movie (NATIVE-NAMES-001) |
