@@ -87,6 +87,9 @@ int mu_charsel_mugfx_load(mu_charsel_mugfx *a, const char *explicit_path, char *
     SYM(text, "mugfx_text");
     SYM(text_focus, "mugfx_text_focus");
 #undef SYM
+    *(void **)&a->open_shared = dlsym(a->dl, "mugfx_open_shared");   /* NATIVE-PERF-001, optional */
+    *(void **)&a->render_shared = dlsym(a->dl, "mugfx_render_shared");
+    *(void **)&a->iosurface = dlsym(a->dl, "mugfx_iosurface");
     return 0;
 }
 

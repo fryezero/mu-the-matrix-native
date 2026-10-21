@@ -92,6 +92,23 @@ int mu_ui_raster_init(mu_ui_raster *r, int32_t width, int32_t height)
     return 0;
 }
 
+int mu_ui_raster_resize(mu_ui_raster *r, int32_t width, int32_t height)
+{
+    uint8_t *rgba = calloc((size_t)width * (size_t)height, 4);
+    if (!rgba)
+        return -1;
+    for (size_t i = 0; i < (size_t)width * (size_t)height; ++i)
+        rgba[i * 4 + 3] = 255;
+    free(r->rgba);
+    r->rgba = rgba;
+    r->width = width;
+    r->height = height;
+    r->viewport[0] = r->viewport[1] = 0;
+    r->viewport[2] = width;
+    r->viewport[3] = height;
+    return 0;
+}
+
 void mu_ui_raster_free(mu_ui_raster *r)
 {
     for (int i = 0; i < r->texture_count; ++i)

@@ -29,6 +29,18 @@ is the CharacterSelect movie's game side (compare with `scripts/validate_charsel
 `mu_charsel_pick` runs NATIVE-NPC-001's `mu_npc_pick` for scene 5; `skill_fx.c` and `mu_particles` carry the star dragon 0x5ac/0x5ad. Renders stay
 local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: the create-character panel (offline: local
 characters) and the GFx menu; class-name codes 9/10.
+## Native frame time and window (NATIVE-PERF-001)
+
+Read [`research/native-performance.md`](research/native-performance.md). Profile with `mu-client ... --auto --hold
+SCENE --seconds S --perf FILE` (window) or `--headless --frames N --perf FILE` and `native/tools/perf_report.py`;
+`MU_PERF_BASELINE=1` runs the pre-milestone paths for before/after on the same binary. The 2D layer's GPU replay is
+`native/viewer/ui_gl.c` (keep it in step with `core/mu_ui_raster.c`), batching `native/viewer/gl_batch.c` (a session
+must not interleave with direct GL calls; `MU_NO_GL_BATCH=1`), the cap's sleep `mu_sleep_ms` in `core/mu_perf.c`,
+resizing `mu_shell_resize` and `apply_resize` in `client/main.c`. Checks: `native/tests/test_native_perf.py`
+(`perf_gl_host.c`), `native/tools/imgdiff.py` for captures. Profiles, matrices and resize captures stay local
+(`~/Documents/mu-mac-tools/native/renders/perf/`). Next: a per-object pose cache, the GFx layer's per-frame cost,
+a run on a Retina display.
+
 ## Native preview app (NATIVE-APP-001)
 
 Read [`research/native-preview-app.md`](research/native-preview-app.md). `native/app` builds

@@ -29,6 +29,10 @@ typedef struct mu_charsel_mugfx {
     int (*key)(MuGfx *, int, int, uint32_t, int);
     int (*text)(MuGfx *, const char *);
     int (*text_focus)(MuGfx *);
+    /* NATIVE-PERF-001: optional (shared rendering into an IOSurface), NULL when absent */
+    MuGfx *(*open_shared)(const char *, int, int, char *, size_t);
+    int (*render_shared)(MuGfx *, int);
+    void *(*iosurface)(MuGfx *, int *, int *, uint32_t *);
 } mu_charsel_mugfx;
 
 /* explicit_path, then $MU_GFX_LIB, next to the executable, the repository build. Returns 0 or -1 with error. */

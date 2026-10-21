@@ -49,7 +49,10 @@ static void sink_call(void *user, int op, const uint32_t *words, int count, cons
         ui->event_count++;
     } else if (op == MU_UI_SOUND)
         ui->sounds++;
-    ui->inner.call(ui->inner.user, op, words, count, data, bytes);
+    if (ui->has_target)
+        ui->target.call(ui->target.user, op, words, count, data, bytes);
+    else
+        ui->inner.call(ui->inner.user, op, words, count, data, bytes);
 }
 
 static void refresh(mu_charsel_ui *ui, const mu_charsel_session *s)
@@ -149,4 +152,18 @@ void mu_charsel_ui_render(mu_charsel_ui *ui, uint8_t *rgba)
     ui->win.win.cls->render(&ui->ctx, &ui->win.win);   /* CUIMng::Render: the window list */
     mu_ui_end_bitmap(&ui->state);
     mu_ui_raster_read_top_down(r, rgba);
+}
+
+void mu_charsel_ui_set_target(mu_charsel_ui *ui, const mu_ui_sink *target)
+{
+    ui->has_target = target != NULL;
+    if (target)
+        ui->target = *target;
+}
+
+void mu_charsel_ui_render_target(mu_charsel_ui *ui)
+{
+    mu_ui_begin_bitmap(&ui->state);
+    ui->win.win.cls->render(&ui->ctx, &ui->win.win);   /* CUIMng::Render: the window list */
+    mu_ui_end_bitmap(&ui->state);
 }

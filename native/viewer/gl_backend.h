@@ -21,11 +21,17 @@
  * glDepthFunc(GL_LEQUAL) from the scene setup 0x0184adc7, fog off. Viewer
  * choices: `linear` forces GL_LINEAR for every texture, clear colour, camera,
  * front-face winding. */
+struct mu_gl_batch;
+
 typedef struct mu_gl_backend {
     uint32_t *textures;        /* GL names per mu_textures slot, 0 when missing */
     int32_t count;
     int front_cw;
     int wireframe;
+    /* NATIVE-PERF-001: when set (before mu_gl_backend_bind), the stream goes through this batch
+     * (viewer/gl_batch.h): redundant state dropped, equal-state draws merged; the caller opens and
+     * closes the batch session around the draws. */
+    struct mu_gl_batch *batch;
 } mu_gl_backend;
 
 /* Uploads every slot of `textures` (model slots, then the environment

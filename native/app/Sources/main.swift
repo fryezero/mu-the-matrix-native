@@ -325,7 +325,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var dataSummary = NSTextField(labelWithString: "")
     var sizePopup = NSPopUpButton()
     var boxes: [String: NSButton] = [:]
-    static let sizes = ["fit", "1024x640", "1280x800", "1440x900", "1600x1000", "1920x1200"]
+    static let sizes = ["fit", "full", "1024x640", "1280x800", "1440x900", "1600x1000", "1920x1200"]
     static let featureTitles: [(String, String)] = [
         ("gfx", "GFx interface (Ruffle; stand-ins without it)"), ("combat", "Combat demo"), ("items", "Dropped items and labels"),
         ("names", "Overhead names and HP bars"), ("npc", "NPC talk, shop and vault (demo)"), ("env", "Ambient creatures and weather"),
@@ -370,7 +370,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stack.addArrangedSubview(dataSummary)
 
         sizePopup = NSPopUpButton()
-        for s in Self.sizes { sizePopup.addItem(withTitle: s == "fit" ? "Fit the screen" : s.replacingOccurrences(of: "x", with: " × ")) }
+        for s in Self.sizes {
+            sizePopup.addItem(withTitle: s == "fit" ? "Fit the screen" : s == "full" ? "Full screen"
+                                                    : s.replacingOccurrences(of: "x", with: " × "))
+        }
         sizePopup.selectItem(at: Self.sizes.firstIndex(of: settings.windowSize) ?? 0)
         let sizeRow = NSStackView(views: [NSTextField(labelWithString: "Window size:"), sizePopup])
         stack.addArrangedSubview(sizeRow)

@@ -103,6 +103,8 @@ void mu_login_resize(mu_login_session *s, uint32_t width, uint32_t height)
     mu_frame_world *f = s->frame;
     f->view.window_width = width;
     f->view.window_height = height;
+    f->mouse.scale_x = (float)width / 640.0f;   /* NATIVE-PERF-001: as mu_frame_world_init */
+    f->mouse.scale_y = (float)height / 480.0f;
 }
 
 void mu_login_step(mu_login_session *s, uint32_t now)

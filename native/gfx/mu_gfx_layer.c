@@ -295,6 +295,7 @@ struct mu_gfx_layer {
     hotkey_item hotkeys[4];
     uint8_t *icon_rgba;
     float inv_scale, char_scale;   /* SetScale / 100 (handler +0x58) */
+    float applied_scale[MU_GFX_MOVIES];   /* NATIVE-PERF-001: the SetScale each window has (1 = the movie's 100) */
     char compose[256];
     int composing;
     int in_callback;
@@ -1330,8 +1331,11 @@ static void window_sizes(mu_gfx_layer *L)
             L->char_scale = scale;
         else if (m == MU_GFX_NPC_SHOP || m == MU_GFX_STORAGE)
             L->swin[m == MU_GFX_STORAGE].scale = scale;
-        if (scale != 1.0f)
+        /* the client calls SetScale(83) once, at creation, below 700 pixels; a resized window (native) also
+         * goes back to 100 */
+        if (scale != (L->applied_scale[m] > 0.0f ? L->applied_scale[m] : 1.0f))
             invokef(L, m, L->mv[m].path, "SetScale", "[%g]", scale * 100.0f);
+        L->applied_scale[m] = scale;
         if (WINDOW_ALIGN[m] != 9) {
             invokef(L, m, L->mv[m].path, "SetAlign", "[%d]", WINDOW_ALIGN[m]);
             invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h);
