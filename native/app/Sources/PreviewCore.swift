@@ -1,0 +1,502 @@
+// Mu The Matrix Native Preview.app (NATIVE-APP-001): settings, data discovery, the first-run data setup,
+// the mu-client launch plan, logs and the child process. No AppKit here (main.swift has the UI), no network.
+import Foundation
+
+// ---------------------------------------------------------------- paths
+
+enum Paths {
+    static let home = FileManager.default.homeDirectoryForCurrentUser.path
+    static let env = ProcessInfo.processInfo.environment
+
+    /// Settings and the default Native Data folder (MU_NATIVE_SUPPORT_DIR overrides it, for tests).
+    static var support: String {
+        env["MU_NATIVE_SUPPORT_DIR"] ?? home + "/Library/Application Support/MuTheMatrixNative"
+    }
+    static var settingsFile: String { support + "/settings.json" }
+    static var defaultNativeData: String { support + "/Native Data" }
+
+    /// ~/Library/Logs/MuTheMatrixNative (MU_NATIVE_LOG_DIR overrides it).
+    static var logs: String { env["MU_NATIVE_LOG_DIR"] ?? home + "/Library/Logs/MuTheMatrixNative" }
+
+    /// The owner's free install (read-only). MU_NATIVE_GAME_ROOT replaces this default (tests).
+    static var defaultGameRoot: String {
+        env["MU_NATIVE_GAME_ROOT"] ?? home + "/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
+    }
+    /// Local plaintexts made by the repository's live readers (never in the repository or the bundle).
+    static var defaultScratch: String {
+        env["MU_NATIVE_SCRATCH"] ?? home + "/Documents/mu-mac-tools/native/scratch"
+    }
+
+    static var bundle: String { Bundle.main.bundlePath }
+    static var contents: String { bundle + "/Contents" }
+    static var resources: String { contents + "/Resources" }
+    static var frameworks: String { contents + "/Frameworks" }
+    static var client: String { contents + "/MacOS/mu-client" }
+    static var nonet: String { frameworks + "/libmu-nonet.dylib" }
+    static var mugfx: String { frameworks + "/libmugfx.dylib" }
+    /// The offline demo session (MU_NATIVE_SESSION replaces it, for tests with synthetic data).
+    static var session: String { env["MU_NATIVE_SESSION"] ?? resources + "/session/demo-session.txt" }
+    static var placement: String { resources + "/world/lorencia-demo-placement.txt" }
+    static var npcDemo: String { resources + "/world/lorencia-demo-npc.txt" }
+    static var converter: String { resources + "/converter/native/gfx/gfxconvert.py" }
+
+    static func exists(_ p: String) -> Bool { FileManager.default.fileExists(atPath: p) }
+    static func isDir(_ p: String) -> Bool {
+        var d: ObjCBool = false
+        return FileManager.default.fileExists(atPath: p, isDirectory: &d) && d.boolValue
+    }
+    static func files(_ dir: String, _ match: (String) -> Bool) -> [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: dir)) ?? []).filter(match).sorted()
+    }
+}
+
+// ---------------------------------------------------------------- log
+
+enum AppLog {
+    static let stamp: String = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMdd-HHmmss"
+        return f.string(from: Date())
+    }()
+    static var launcherLog: String { Paths.logs + "/launcher.log" }
+    static var clientLog: String { Paths.logs + "/mu-client-\(stamp).log" }
+    static var nonetReport: String { Paths.logs + "/nonet-\(stamp).json" }
+
+    static func ensureDir() {
+        try? FileManager.default.createDirectory(atPath: Paths.logs, withIntermediateDirectories: true)
+    }
+
+    /// One line in launcher.log (kept below 1 MB: the old half is dropped).
+    static func write(_ line: String) {
+        ensureDir()
+        let f = ISO8601DateFormatter()
+        let text = "\(f.string(from: Date())) \(line)\n"
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: launcherLog),
+           let size = attrs[.size] as? Int, size > 1_000_000,
+           let old = try? String(contentsOfFile: launcherLog, encoding: .utf8) {
+            try? String(old.suffix(old.count / 2)).write(toFile: launcherLog, atomically: true, encoding: .utf8)
+        }
+        if let h = FileHandle(forWritingAtPath: launcherLog) {
+            h.seekToEndOfFile()
+            h.write(Data(text.utf8))
+            h.closeFile()
+        } else {
+            try? text.write(toFile: launcherLog, atomically: true, encoding: .utf8)
+        }
+    }
+
+    /// Keeps the newest `keep` client logs and guard reports.
+    static func prune(keep: Int = 20) {
+        for prefix in ["mu-client-", "nonet-"] {
+            let names = Paths.files(Paths.logs) { $0.hasPrefix(prefix) }
+            for name in names.dropLast(keep) { try? FileManager.default.removeItem(atPath: Paths.logs + "/" + name) }
+        }
+    }
+
+    static func tail(_ path: String, lines: Int = 12) -> String {
+        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return "" }
+        return text.split(separator: "\n", omittingEmptySubsequences: false).suffix(lines).joined(separator: "\n")
+    }
+}
+
+// ---------------------------------------------------------------- settings
+
+struct PreviewSettings: Codable, Equatable {
+    var gameRoot: String? = nil       // nil: the free install (Paths.defaultGameRoot)
+    var nativeData: String? = nil     // nil: Paths.defaultNativeData
+    var scratch: String? = nil        // nil: Paths.defaultScratch
+    var python: String? = nil         // nil: the first python3 with Pillow
+    var windowSize = "fit"            // "fit" or "WxH" (points)
+    var gfx = true                    // GFx interface (Ruffle), when the library and movies exist
+    var combat = true                 // combat demo (mu-world --combat)
+    var items = true                  // dropped items and labels
+    var names = true                  // overhead names, HP bars, chat bubbles
+    var npc = true                    // NPC talk, shop, vault (demo table)
+    var env = true                    // ambient creatures and weather
+    var particles = true              // particles, sprites, blob shadows
+    var objects = true                // local decoded object placements
+    var lang = true                   // local game text tables (MU_LANG_DIR)
+    var sound = true                  // audio (world sound needs the local sound table)
+
+    static let featureKeys = ["gfx", "combat", "items", "names", "npc", "env", "particles", "objects", "lang", "sound"]
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = PreviewSettings()
+        gameRoot = try c.decodeIfPresent(String.self, forKey: .gameRoot)
+        nativeData = try c.decodeIfPresent(String.self, forKey: .nativeData)
+        scratch = try c.decodeIfPresent(String.self, forKey: .scratch)
+        python = try c.decodeIfPresent(String.self, forKey: .python)
+        windowSize = try c.decodeIfPresent(String.self, forKey: .windowSize) ?? d.windowSize
+        gfx = try c.decodeIfPresent(Bool.self, forKey: .gfx) ?? d.gfx
+        combat = try c.decodeIfPresent(Bool.self, forKey: .combat) ?? d.combat
+        items = try c.decodeIfPresent(Bool.self, forKey: .items) ?? d.items
+        names = try c.decodeIfPresent(Bool.self, forKey: .names) ?? d.names
+        npc = try c.decodeIfPresent(Bool.self, forKey: .npc) ?? d.npc
+        env = try c.decodeIfPresent(Bool.self, forKey: .env) ?? d.env
+        particles = try c.decodeIfPresent(Bool.self, forKey: .particles) ?? d.particles
+        objects = try c.decodeIfPresent(Bool.self, forKey: .objects) ?? d.objects
+        lang = try c.decodeIfPresent(Bool.self, forKey: .lang) ?? d.lang
+        sound = try c.decodeIfPresent(Bool.self, forKey: .sound) ?? d.sound
+    }
+
+    static func load() -> PreviewSettings {
+        guard let data = FileManager.default.contents(atPath: Paths.settingsFile),
+              let s = try? JSONDecoder().decode(PreviewSettings.self, from: data) else { return PreviewSettings() }
+        return s
+    }
+
+    func save() {
+        try? FileManager.default.createDirectory(atPath: Paths.support, withIntermediateDirectories: true)
+        let e = JSONEncoder()
+        e.outputFormatting = [.prettyPrinted, .sortedKeys]
+        if let data = try? e.encode(self) { try? data.write(to: URL(fileURLWithPath: Paths.settingsFile), options: .atomic) }
+    }
+
+    var nativeDataDir: String { nativeData ?? Paths.defaultNativeData }
+    var scratchDir: String { scratch ?? Paths.defaultScratch }
+
+    func feature(_ key: String) -> Bool {
+        switch key {
+        case "gfx": return gfx
+        case "combat": return combat
+        case "items": return items
+        case "names": return names
+        case "npc": return npc
+        case "env": return env
+        case "particles": return particles
+        case "objects": return objects
+        case "lang": return lang
+        case "sound": return sound
+        default: return false
+        }
+    }
+
+    mutating func setFeature(_ key: String, _ on: Bool) {
+        switch key {
+        case "gfx": gfx = on
+        case "combat": combat = on
+        case "items": items = on
+        case "names": names = on
+        case "npc": npc = on
+        case "env": env = on
+        case "particles": particles = on
+        case "objects": objects = on
+        case "lang": lang = on
+        case "sound": sound = on
+        default: break
+        }
+    }
+}
+
+// ---------------------------------------------------------------- game data
+
+enum GameData {
+    /// A game folder: Data/Player/Player.bmd and a Data/World1 folder (what every scene loads first).
+    static func valid(_ root: String) -> Bool {
+        Paths.exists(root + "/Data/Player/Player.bmd") && Paths.isDir(root + "/Data/World1")
+    }
+
+    /// The remembered folder, else the free install; nil when neither is a game folder (the UI asks).
+    static func resolve(_ s: PreviewSettings) -> String? {
+        if let r = s.gameRoot, valid(r) { return r }
+        if valid(Paths.defaultGameRoot) { return Paths.defaultGameRoot }
+        return nil
+    }
+}
+
+// ---------------------------------------------------------------- Native Data (local, optional)
+
+/// What the Native Data folder holds: lang/ (game text tables), objects/ (decoded EncTerrain<n>.plain),
+/// gfx/ (converted GFx movies), sound/audio-tables.tsv; setup.json records the first-run setup.
+struct NativeData {
+    let dir: String
+    var lang: String { dir + "/lang" }
+    var objects: String { dir + "/objects" }
+    var gfx: String { dir + "/gfx" }
+    var soundTable: String { dir + "/sound/audio-tables.tsv" }
+    var setupRecord: String { dir + "/setup.json" }
+
+    var langFiles: [String] { Paths.files(lang) { $0.hasSuffix(".tsv") || $0.hasSuffix(".txt") } }
+    var objectFiles: [String] { Paths.files(objects) { $0.hasPrefix("EncTerrain") && $0.hasSuffix(".plain") } }
+    var movies: [String] { Paths.files(gfx) { $0.hasSuffix(".swf") } }
+    var hasMovies: Bool { Paths.exists(gfx + "/base.swf") && Paths.exists(gfx + "/main.swf") }
+    var hasSoundTable: Bool { Paths.exists(soundTable) }
+    var setupDone: Bool { Paths.exists(setupRecord) }
+
+    var summary: String {
+        "GFx movies \(movies.count), text tables \(langFiles.count), object files \(objectFiles.count), "
+            + "sound table \(hasSoundTable ? "yes" : "no")"
+    }
+}
+
+/// The first-run setup: everything that needs no running game. The converter reads the game folder
+/// (read-only) and writes only below Native Data; the plaintexts come from the scratch folder.
+enum DataSetup {
+    struct Step: Codable { var status: String; var files: Int; var source: String; var detail: String }
+
+    static let converterOptions = ["--bridge", "--transparent", "--var", "_root.isClient=true", "--fontconfig",
+                                   "English", "--font-subset", "latin"]
+
+    static func run(settings s: PreviewSettings, gameRoot: String?, force: Bool, progress: (String) -> Void) -> [String: Step] {
+        let nd = NativeData(dir: s.nativeDataDir)
+        let fm = FileManager.default
+        try? fm.createDirectory(atPath: nd.dir, withIntermediateDirectories: true)
+        var result: [String: Step] = [:]
+        let scratch = s.scratchDir
+
+        // 1. GFx movies: gfxconvert over the installed .ozg files, else copies of already converted movies.
+        progress("Converting the game's interface movies (GFx → SWF)…")
+        if !force && nd.hasMovies {
+            result["gfx"] = Step(status: "kept", files: nd.movies.count, source: nd.gfx, detail: "already converted")
+        } else {
+            result["gfx"] = convertMovies(nd: nd, gameRoot: gameRoot, python: s.python, scratch: scratch)
+        }
+
+        // 2..4. Plaintexts and tables from the local readers (copies; the sources stay untouched).
+        progress("Copying local game text tables…")
+        result["lang"] = copyStep(from: scratch + "/lang", to: nd.lang, force: force) {
+            ($0.hasSuffix(".tsv") || $0.hasSuffix(".txt"))
+        }
+        progress("Copying local object placements…")
+        result["objects"] = copyStep(from: scratch + "/objects/live/plain", to: nd.objects, force: force) {
+            $0.hasPrefix("EncTerrain") && ($0.hasSuffix(".plain") || $0.hasSuffix(".hidden") || $0.hasSuffix(".velocity"))
+        }
+        progress("Copying the local sound table…")
+        result["sound"] = copyStep(from: scratch + "/audio/tables", to: nd.dir + "/sound", force: force) {
+            $0 == "audio-tables.tsv"
+        }
+
+        var record: [String: Any] = ["version": 1, "date": ISO8601DateFormatter().string(from: Date()),
+                                     "game_root": gameRoot ?? "", "scratch": scratch]
+        for (k, v) in result {
+            record[k] = ["status": v.status, "files": v.files, "source": v.source, "detail": v.detail]
+        }
+        if let data = try? JSONSerialization.data(withJSONObject: record, options: [.prettyPrinted, .sortedKeys]) {
+            try? data.write(to: URL(fileURLWithPath: nd.setupRecord), options: .atomic)
+        }
+        for (k, v) in result.sorted(by: { $0.key < $1.key }) {
+            AppLog.write("setup \(k): \(v.status) files=\(v.files) source=\(v.source) \(v.detail)")
+        }
+        return result
+    }
+
+    static func copyStep(from src: String, to dst: String, force: Bool, match: (String) -> Bool) -> Step {
+        let fm = FileManager.default
+        let have = Paths.files(dst, match)
+        if !force && !have.isEmpty { return Step(status: "kept", files: have.count, source: dst, detail: "already present") }
+        let names = Paths.files(src) { name in
+            var d: ObjCBool = false
+            return match(name) && fm.fileExists(atPath: src + "/" + name, isDirectory: &d) && !d.boolValue
+        }
+        if names.isEmpty { return Step(status: "missing", files: 0, source: src, detail: "no local files (optional)") }
+        try? fm.createDirectory(atPath: dst, withIntermediateDirectories: true)
+        var copied = 0
+        for name in names {
+            let target = dst + "/" + name
+            try? fm.removeItem(atPath: target)
+            if (try? fm.copyItem(atPath: src + "/" + name, toPath: target)) != nil { copied += 1 }
+        }
+        return Step(status: copied == names.count ? "copied" : "partial", files: copied, source: src, detail: "")
+    }
+
+    /// python3 with Pillow (the converter's image library): the setting, then Homebrew, then the system one.
+    /// /usr/bin/python3 is only tried when the Command Line Tools are installed (otherwise it asks to install them).
+    static func findPython(_ preferred: String?) -> String? {
+        var candidates: [String] = []
+        if let p = preferred { candidates.append(p) }
+        if let p = Paths.env["MU_NATIVE_PYTHON"] { candidates.append(p) }
+        candidates += ["/opt/homebrew/bin/python3", "/usr/local/bin/python3"]
+        if run("/usr/bin/xcode-select", ["-p"]).status == 0 { candidates.append("/usr/bin/python3") }
+        for p in candidates where FileManager.default.isExecutableFile(atPath: p) {
+            if run(p, ["-B", "-E", "-c", "import PIL, zlib"]).status == 0 { return p }
+        }
+        return nil
+    }
+
+    static func convertMovies(nd: NativeData, gameRoot: String?, python: String?, scratch: String) -> Step {
+        let fm = FileManager.default
+        var why = ""
+        if let root = gameRoot, Paths.isDir(root + "/Data/Interface/GFx"), Paths.exists(Paths.converter) {
+            if let py = findPython(python) {
+                let tmp = nd.dir + "/gfx.converting"
+                try? fm.removeItem(atPath: tmp)
+                let r = run(py, ["-B", "-E", Paths.converter, "--root", root, "--out", tmp]
+                            + converterOptions + ["--report", nd.dir + "/gfx-convert.json"])
+                AppLog.write("gfxconvert (\(py)) status \(r.status)\n" + String(r.output.suffix(4000)))
+                let made = Paths.files(tmp) { $0.hasSuffix(".swf") }
+                if Paths.exists(tmp + "/base.swf") && Paths.exists(tmp + "/main.swf") {
+                    try? fm.removeItem(atPath: nd.gfx)
+                    try? fm.moveItem(atPath: tmp, toPath: nd.gfx)
+                    return Step(status: r.status == 0 ? "converted" : "converted with errors", files: made.count,
+                                source: root + "/Data/Interface/GFx", detail: "gfxconvert.py with \(py)")
+                }
+                try? fm.removeItem(atPath: tmp)
+                why = "gfxconvert failed (status \(r.status), see launcher.log)"
+            } else {
+                why = "no python3 with Pillow"
+            }
+        } else {
+            why = gameRoot == nil ? "no game folder" : "no Data/Interface/GFx in the game folder"
+        }
+        // Fallback: movies converted earlier by the repository's tools (NATIVE-GFX-003 / NATIVE-NPC-001).
+        for src in [scratch + "/npc/movies", scratch + "/gfx3/movies"]
+        where Paths.exists(src + "/base.swf") && Paths.exists(src + "/main.swf") {
+            let step = copyStep(from: src, to: nd.gfx, force: true) { $0.hasSuffix(".swf") }
+            return Step(status: step.status, files: step.files, source: src, detail: "copied (\(why))")
+        }
+        return Step(status: "missing", files: 0, source: gameRoot ?? "", detail: why + "; the interface uses its stand-ins")
+    }
+
+    /// Runs a tool and returns its exit status and combined output.
+    @discardableResult
+    static func run(_ tool: String, _ args: [String], env extra: [String: String] = [:]) -> (status: Int32, output: String) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: tool)
+        p.arguments = args
+        var e = ProcessInfo.processInfo.environment
+        e["PYTHONDONTWRITEBYTECODE"] = "1"
+        for (k, v) in extra { e[k] = v }
+        p.environment = e
+        let pipe = Pipe()
+        p.standardOutput = pipe
+        p.standardError = pipe
+        p.standardInput = FileHandle.nullDevice
+        do { try p.run() } catch { return (127, "\(error)") }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return (p.terminationStatus, String(decoding: data, as: UTF8.self))
+    }
+}
+
+// ---------------------------------------------------------------- launch plan
+
+struct LaunchPlan {
+    var executable: String
+    var args: [String]
+    var env: [String: String]
+    var notes: [String]
+
+    static let label = "OFFLINE PREVIEW - no server connection"
+    static let title = "Mu The Matrix Native Preview \u{2014} OFFLINE PREVIEW (no server connection)"
+
+    /// Window size in points: the setting "WxH", or 16:10 fitting the screen's visible area (`screen`).
+    static func windowSize(_ setting: String, screen: (Double, Double)?) -> (Int, Int) {
+        let parts = setting.lowercased().split(separator: "x").compactMap { Int($0) }
+        if parts.count == 2, parts[0] >= 640, parts[1] >= 400, parts[0] <= 8192, parts[1] <= 8192 { return (parts[0], parts[1]) }
+        guard let (sw, sh) = screen, sw > 0, sh > 0 else { return (1280, 800) }
+        var w = min(1600.0, (sw * 0.9).rounded(.down))
+        var h = (w * 10 / 16).rounded(.down)
+        let maxH = (sh - 28) * 0.92   // the window's title bar
+        if h > maxH { h = maxH.rounded(.down); w = (h * 16 / 10).rounded(.down) }
+        let wi = max(800, Int(w) / 8 * 8), hi = max(500, Int(h) / 8 * 8)
+        return (wi, hi)
+    }
+
+    static func make(settings s: PreviewSettings, gameRoot: String, screen: (Double, Double)?) -> LaunchPlan {
+        let nd = NativeData(dir: s.nativeDataDir)
+        let (w, h) = windowSize(s.windowSize, screen: screen)
+        var args = ["--game-root", gameRoot, "--session", Paths.session, "--width", String(w), "--height", String(h),
+                    "--label", label, "--title", title]
+        var env: [String: String] = ["MU_NONET_REPORT": AppLog.nonetReport]
+        var notes: [String] = []
+        if Paths.exists(Paths.nonet) { env["DYLD_INSERT_LIBRARIES"] = Paths.nonet } else { notes.append("network guard missing") }
+
+        args += ["--placement", Paths.placement]
+        if s.npc { args += ["--npc", "--npc-demo", Paths.npcDemo] }
+        if s.combat { args.append("--combat") }
+        if s.items { args.append("--items") }
+        if !s.names { args.append("--no-names") }
+        if !s.env { args.append("--no-env") }
+        if !s.particles { args.append("--no-particles") }
+
+        // Objects per scene: the login world (95), character select (94) and the walk-around worlds; a scene
+        // whose file is missing gets no option (character select refuses a folder without its file).
+        if s.objects {
+            let files = nd.objectFiles
+            if files.contains("EncTerrain95.plain") { args += ["--login-objects", nd.objects] }
+            if files.contains("EncTerrain94.plain") { args += ["--charsel-objects", nd.objects] }
+            if files.contains(where: { $0 != "EncTerrain94.plain" && $0 != "EncTerrain95.plain" }) {
+                args += ["--world-objects", nd.objects]
+            }
+            if files.isEmpty { notes.append("objects: no local EncTerrain*.plain (terrain only)") }
+        }
+        if s.lang && !nd.langFiles.isEmpty { env["MU_LANG_DIR"] = nd.lang }
+        else if s.lang { notes.append("lang: no local text tables (placeholders)") }
+        if !s.sound { args.append("--no-audio") }
+        else if nd.hasSoundTable { args += ["--sound-table", nd.soundTable] }
+        else { notes.append("sound: no local sound table (music only)") }
+
+        if s.gfx {
+            if !Paths.exists(Paths.mugfx) { notes.append("gfx: this build has no libmugfx (stand-ins)") }
+            else if !nd.hasMovies { notes.append("gfx: no converted movies in Native Data (stand-ins)") }
+            else {
+                args += ["--gfx", nd.gfx]
+                env["MU_GFX_LIB"] = Paths.mugfx
+            }
+        }
+        return LaunchPlan(executable: Paths.client, args: args, env: env, notes: notes)
+    }
+
+    var json: String {
+        let obj: [String: Any] = ["executable": executable, "args": args, "env": env, "notes": notes]
+        let data = (try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys])) ?? Data()
+        return String(decoding: data, as: UTF8.self)
+    }
+}
+
+// ---------------------------------------------------------------- the client process
+
+final class ClientRun {
+    let process = Process()
+    let logPath: String
+    let plan: LaunchPlan
+
+    init(plan: LaunchPlan, logPath: String = AppLog.clientLog) {
+        self.plan = plan
+        self.logPath = logPath
+    }
+
+    /// Starts mu-client with stdout and stderr in its log; `done` runs on the main queue with
+    /// (exit status, terminated by a signal).
+    func start(extraArgs: [String] = [], done: @escaping (Int32, Bool) -> Void) throws {
+        AppLog.ensureDir()
+        FileManager.default.createFile(atPath: logPath, contents: nil)
+        let log = FileHandle(forWritingAtPath: logPath)
+        let header = "mu-client \(plan.args + extraArgs)\nenv \(plan.env)\nnotes \(plan.notes)\n\n"
+        log?.write(Data(header.utf8))
+        process.executableURL = URL(fileURLWithPath: plan.executable)
+        process.arguments = plan.args + extraArgs
+        var e = ProcessInfo.processInfo.environment
+        for k in ["MU_GFX_LIB", "MU_LANG_DIR", "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH"] { e.removeValue(forKey: k) }
+        for (k, v) in plan.env { e[k] = v }
+        process.environment = e
+        process.currentDirectoryURL = URL(fileURLWithPath: Paths.logs)   // mu-client's O screenshot lands here
+        process.standardInput = FileHandle.nullDevice
+        if let log { process.standardOutput = log; process.standardError = log }
+        process.terminationHandler = { p in
+            let signalled = p.terminationReason == .uncaughtSignal
+            DispatchQueue.main.async { done(p.terminationStatus, signalled) }
+        }
+        try process.run()
+        AppLog.write("started mu-client pid \(process.processIdentifier) log \(logPath)")
+    }
+
+    func stop() {
+        if process.isRunning { process.terminate() }
+    }
+}
+
+/// The guard's report: nil when the guard never loaded.
+func readNonetReport(_ path: String) -> [String: Any]? {
+    guard let data = FileManager.default.contents(atPath: path),
+          let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+    return obj
+}
+
+func nonetViolations(_ report: [String: Any]) -> Int {
+    ["inet_denied", "other_denied", "connects_denied", "lookups_denied"].reduce(0) { $0 + ((report[$1] as? Int) ?? 0) }
+}
