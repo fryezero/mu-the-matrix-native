@@ -572,7 +572,10 @@ static int headless(front *f)
            session->logins, session->server_group, session->server_slot, mu_shell_status(f->shell));
     for (int32_t i = 0; i < transitions; ++i)
         printf("%s\"%s\"", i ? ", " : "", lines[i]);
-    printf("]}\n");
+    long cc[6];
+    mu_shell_charsel_counts(f->shell, cc);   /* NATIVE-CHARSEL-003 */
+    printf("], \"charsel\": {\"picks\": %ld, \"pick_hits\": %ld, \"double_clicks\": %ld, \"gfx_callbacks\": %ld, "
+           "\"gfx_enters\": %ld, \"create_requests\": %ld}}\n", cc[0], cc[1], cc[2], cc[3], cc[4], cc[5]);
     if (f->wav_path && f->wav_frames &&
         mu_wav_write16(f->wav_path, f->wav, (uint32_t)f->wav_frames, 2, mu_shell_audio_rate(f->shell))) {
         fprintf(stderr, "cannot write %s\n", f->wav_path);

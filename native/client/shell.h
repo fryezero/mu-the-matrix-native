@@ -136,5 +136,8 @@ const char *mu_shell_status(const mu_shell *s);
 struct mu_charsel_list_gfx *mu_shell_charsel_gfx(mu_shell *s);
 /* Window-pixel centre of the GFx list's row (scripted input); 0 when there is no list. */
 int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y);
+/* Over every character-select visit: picks, pick hits, double clicks, GFx list callbacks, entries from the
+ * list, create-character requests (offline no-ops). */
+void mu_shell_charsel_counts(const mu_shell *s, long out[6]);
 
 #endif

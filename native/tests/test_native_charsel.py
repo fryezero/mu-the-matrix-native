@@ -226,6 +226,24 @@ class LifecycleTests(Build):
         self.assertGreater(summary['terrain_lights'], 0)       # the lamp's AddTerrainLight
         self.assertGreater(last['live_particles'], 0)
 
+    def test_star_dragon_emitters(self):
+        """NATIVE-CHARSEL-003: objects 0x27/0x28 create the star dragon 0x5ac (rand % 100 / % 200 per drawn
+        frame), which creates its glint 0x5ad at bone 1 (here the effect position: the synthetic tree has no
+        stardr01.bmd); both are supported effect kinds now."""
+        sys.path.insert(0, str(HERE))
+        from test_native_objects import obj_plain, write_models
+        write_models(self.root, 94, ['Object40.bmd', 'Object41.bmd'])
+        plain = Path(self.root) / 'plain-dragon'
+        plain.mkdir(exist_ok=True)
+        records = [OBJECT_RECORDS[0], (0x27, MARKER[0] - 300.0, MARKER[1], 400.0, 0.0, 1.0),
+                   (0x28, MARKER[0] - 300.0, MARKER[1] + 200.0, 400.0, 0.0, 1.0)]
+        (plain / 'EncTerrain94.plain').write_bytes(obj_plain(94, records))
+        _, summary, _, _ = run(self.root, '--objects-dir', plain, '--frames', '600', '--every', '1000', '--out-dir', self.out('dragon'),
+                               '--width', '64', '--height', '64')
+        self.assertGreaterEqual(summary['effects_created'], 2)
+        self.assertEqual(summary['effects_created'] % 2, 0)       # every dragon brings its glint
+        self.assertEqual(summary['effects_unsupported'], 0)
+
     def test_lifecycle_frames_are_deterministic(self):
         plain = write_objects(self.root)
         args = ('--objects-dir', plain, '--frames', '15', '--every', '7', '--width', '200', '--height', '120')

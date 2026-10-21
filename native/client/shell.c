@@ -82,6 +82,7 @@ struct mu_shell {
     mu_charsel_embed *charsel;
     mu_charsel_ui *charsel_ui;
     mu_charsel_list_gfx *charsel_gfx;   /* NATIVE-CHARSEL-003 */
+    long picks, pick_hits, double_clicks, gfx_callbacks, gfx_enters, gfx_creates;   /* closed visits */
     uint32_t gfx_clock, last_click;
     int32_t last_click_x, last_click_y;
     int32_t enter_seen;
@@ -348,6 +349,19 @@ static void music(mu_shell *s, uint32_t routine, uint32_t name)
 
 static void close_charsel(mu_shell *s)
 {
+    if (s->charsel) {
+        const mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+        s->picks += cs->picks;
+        s->pick_hits += cs->pick_hits;
+        s->double_clicks += cs->double_clicks;
+    }
+    if (s->charsel_gfx) {
+        mu_charsel_list_gfx_stats st;
+        mu_charsel_list_gfx_stats_get(s->charsel_gfx, &st);
+        s->gfx_callbacks += st.callbacks;
+        s->gfx_enters += st.enters;
+        s->gfx_creates += st.create_requests;
+    }
     mu_charsel_list_gfx_close(s->charsel_gfx);
     s->charsel_gfx = NULL;
     if (s->charsel_ui) {
@@ -1066,6 +1080,25 @@ mu_login_session *mu_shell_login(mu_shell *s)
 }
 
 struct mu_charsel_list_gfx *mu_shell_charsel_gfx(mu_shell *s) { return s->charsel_gfx; }
+
+void mu_shell_charsel_counts(const mu_shell *s, long out[6])
+{
+    long v[6] = {s->picks, s->pick_hits, s->double_clicks, s->gfx_callbacks, s->gfx_enters, s->gfx_creates};
+    if (s->charsel) {
+        const mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+        v[0] += cs->picks;
+        v[1] += cs->pick_hits;
+        v[2] += cs->double_clicks;
+    }
+    if (s->charsel_gfx) {
+        mu_charsel_list_gfx_stats st;
+        mu_charsel_list_gfx_stats_get(s->charsel_gfx, &st);
+        v[3] += st.callbacks;
+        v[4] += st.enters;
+        v[5] += st.create_requests;
+    }
+    memcpy(out, v, sizeof v);
+}
 
 int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y)
 {
