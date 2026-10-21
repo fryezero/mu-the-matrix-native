@@ -72,6 +72,11 @@ the GFx layer 11 % (Ruffle's frame advance and render), the scene logic 5.5 %.
   The shell's audio stream update moved before the cap measures the pass, and the frame starts before the event
   pump, so `Sleep(40 - elapsed)` covers the whole pass as in the client's idle loop.
 - The title shows the rate of the last 25 frames.
+- NATIVE-CHARCREATE-001 (merged meanwhile) composites the create panel's model preview, the system menu and the
+  Caution boxes in software over the frame; while one of them is open the GPU path reads the frame back for that
+  composite and writes it over the framebuffer (otherwise only the window's render hook runs). Checked against the
+  software path with the panel, a class choice, cancel and the menu: within the tolerance (2 px above 2). The other
+  players of NATIVE-PLAYERS-001 draw outside the batch (their parts upload textures as they appear).
 
 Not changed: the reconstructed routines, their arithmetic and their GL streams; what each scene draws; the GFx
 layer's own rendering (Ruffle). Object posing stays per frame (a pose cache keyed on the posing inputs would save

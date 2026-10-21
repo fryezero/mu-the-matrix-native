@@ -1645,6 +1645,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             mu_draw_stats ds = {0, 0, 0, 0};
             mu_scene_draw_model(&item->model, &options, &backend, &ds);
         }
+    if (a->batch && a->players)   /* NATIVE-PERF-001: the players' parts draw directly (uploads, own backends) */
+        mu_gl_batch_session_end(a->batch);
     for (int32_t i = 0; a->players && i < a->players->count; ++i) {   /* NATIVE-PLAYERS-001: RenderCharacter's parts */
         float alpha = mu_world_players_alpha(a->players, i);
         if (alpha <= 0.0f)
@@ -1671,6 +1673,8 @@ static long draw_gl(app *a, int32_t width, int32_t height)
             player_item_draw(a, i, draw_order[n], &backend, alpha);
         }
     }
+    if (a->batch && a->players)
+        mu_gl_batch_session_begin(a->batch);
     for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         const mu_world_actor *actor = &a->actors.list[i];
         float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
