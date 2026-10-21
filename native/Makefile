@@ -77,7 +77,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
-             $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c
+             $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
