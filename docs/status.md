@@ -243,7 +243,8 @@ Dock restore). [Finding](research/mac-launcher-skin.md).
 One download for players (MAC-DMG-001): `make player-dmg` builds `Mu The Matrix.dmg` (about 130 MB) with the app,
 an Applications link and a generated drag-to-Applications window. The app bundles the pinned CX26 runtime (no runtime
 download, no hosting, 25 fps), offers to move itself to Applications, installs from one window with plain progress and
-opens the official launcher when done. [Finding](research/mac-dmg-installer.md).
+opens the official launcher when done. The full install from the disk image has not been rehearsed yet.
+[Finding](research/mac-dmg-installer.md).
 Launcher "Hash Protection" code 0xA4 dialog (MAC-APP-005, paused by the owner): rare (2 in about 135 test starts),
 not caused by a file left half-written by a forced kill (snapshots show none; it also follows clean closes). The
 leading, unconfirmed hypothesis is a macOS-specific short read in Wine's `NtReadFile` retry path. No fix yet.

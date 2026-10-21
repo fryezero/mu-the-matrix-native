@@ -4,7 +4,9 @@
 click **Install** and play: the official launcher opens by itself when the installation has finished. Nothing in
 the default path names Wine, a runtime, DLLs or patches. The app bundles the fast Wine runtime (CrossOver 26.3 build,
 LGPL), so players download nothing but the game and Microsoft's .NET, and reach 25 fps without anything being
-hosted. A fresh install from the real disk image was rehearsed end to end (see below).
+hosted. **The end-to-end install from the disk image has not been rehearsed yet** (the owner asked not to install
+the game during this milestone); the disk image, the move to Applications and the first-run window were checked live
+(see Verification).
 
 ## What changed
 
@@ -82,7 +84,19 @@ process group; the Rosetta 2 offer; the headless `--install` and the other comma
 - UI states were exercised with a stand-in installer (`MU_SETUP_SCRIPT`) and clicked through with System Events:
   welcome, progress, download progress, a failed download (Show Details), Cancel > Stop > Continue, success → start.
 
-REHEARSAL
+- Live checks with the real disk image (2026-10-21, macOS 27, Apple M5; scratch `MUKIT_FREE_HOME`, settings file and
+  log folder through `open --env`, so the owner's install and settings were untouched):
+  - Opened like a download (`com.apple.quarantine` `0083;…;Safari;…` on the image, mounted with `open`): Finder showed
+    the laid-out window (background, arrow, both icons in place, volume icon). Opening the app from it showed macOS's
+    **"Mu The Matrix.app" Not Opened** (only **Done** on a read-only volume).
+  - With the user-approved bit set on the image's flag (`00c3`, standing in for **Open Anyway**), the app ran
+    translocated from the disk image and offered **Move to Applications**; the copy (9 s for 130 MB) went to the test
+    folder without the download flag, reopened from there, and the disk image was ejected.
+  - The first-run window appeared alone (screenshot). In this run Install was also pressed before the owner's stop
+    request arrived: the bundled runtime unpacked in 6 s (`archive-c50cb6145767`, no runtime download), and the steps
+    up to "Installing components from Microsoft" ran with the plain progress view. The install was then stopped with
+    Cancel > Stop (all processes ended, lock removed) and the scratch folder deleted. Not done: the game download and
+    install, the automatic launcher start, the in-game fps check, and replacing the owner's `~/Applications` copy.
 
 ## Limits
 
@@ -90,6 +104,9 @@ REHEARSAL
   (`--sign -`) with the hardened runtime and the entitlements. Whether Apple's notary service objects to the
   unsigned Wine programs inside the bundled `.tar.xz` is unknown until the owner submits it; if it does, the
   fallback is to sign the runtime's Mach-O files before archiving (they are unpacked with their signatures).
+- **Not yet rehearsed end to end:** a fresh install from the disk image through the game download to the automatic
+  launcher start and in-world fps. The same installer path reached the world at 25 fps with this runtime in
+  MAC-FREE-001; the new window code around it was exercised with a stand-in installer only.
 - Without notarization, players still confirm the app once in System Settings > Privacy & Security (Open Anyway).
   In the rehearsal that approval was simulated by the user-approved bit of the download flag; the real Open Anyway
   click needs the owner's password and was not performed by an agent.

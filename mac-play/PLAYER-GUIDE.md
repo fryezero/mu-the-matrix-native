@@ -296,12 +296,18 @@ On 2026-10-18, on a Mac with an M5 chip and macOS 27.0.1:
   was left, the lock was gone and the next run continued the download. Cancel during a Wine step, the Rosetta
   install and the "incomplete app" messages were tested with stand-ins only.
 
+- On 2026-10-21 (MAC-DMG-001), the disk image was checked as a download: its window, the **Not Opened** message,
+  **Move to Applications** (copy, reopen, eject) and the first install window. A complete installation from the disk
+  image (game download to the launcher opening by itself) **has not been rehearsed yet**.
+
 ---
 
 ## Notes for the server team (remove this section before publishing)
 
 These points decide what players actually get. Check them before you share the link.
 
+0. **Rehearse once before publishing.** The full installation from the disk image (download, install, the launcher
+   opening by itself, play) has not been run end to end yet.
 1. **Publish the disk image.** Players download one file, `Mu The Matrix.dmg` (about 130 MB). Put it on the
    official website (for example next to the Windows installer on `dl.muthematrix.com`) and link it from the
    download page. Step 2 needs that link.

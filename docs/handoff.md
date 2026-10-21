@@ -18,8 +18,8 @@ Read [`research/mac-dmg-installer.md`](research/mac-dmg-installer.md) and `mac-p
 `SIGN_IDENTITY`/`NOTARY_PROFILE`). The first-run window is `InstallWindowController` (`Sources/main.swift`), its step
 names and overall progress and "Move to Applications" are in `Sources/FirstRun.swift`. Rehearse without touching a real
 install with `open --env MUKIT_FREE_HOME=… --env MU_SETTINGS_FILE=… --env MU_LOG_DIR=… --env MU_APPLICATIONS_DIR=…`
-(the move passes these on). Keep player-facing strings free of technical words (the suite checks them). Next: the
-owner's Developer ID notarization run, hosting the DMG on the official site.
+(the move passes these on). Keep player-facing strings free of technical words (the suite checks them). Next: a full
+install rehearsal from the DMG (not done yet, owner request), the owner's Developer ID notarization run, hosting the DMG.
 
 ## Character creation, deletion and the menu (NATIVE-CHARCREATE-001)
 
