@@ -63,7 +63,7 @@ const mu_lang *mu_lang_shared(void);
 
 typedef struct mu_lang_counts {
     size_t text, skills, gates, moves, npcs, dialog, enchant_codes, enchant_entries;
-    size_t buffs, charinfo, skillreq, soulconv;   /* NATIVE-LANG-002 */
+    size_t buffs, charinfo, skillreq, soulconv, questtext;   /* NATIVE-LANG-002 */
     int enchant_default;              /* the default colour line was present */
 } mu_lang_counts;
 void mu_lang_get_counts(const mu_lang *lang, mu_lang_counts *out);
@@ -214,6 +214,9 @@ typedef struct mu_lang_skillreq {     /* SkillRequire record (0x06fbb248, map +0
 } mu_lang_skillreq;
 /* 0x00abf829(group, index): the record of a skill scroll, or NULL. */
 const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *lang, int32_t group, int32_t index);
+
+/* MUQuestString(kor) (questtext.txt): the quest text of an index, or NULL. */
+const char *mu_lang_quest_text(const mu_lang *lang, int32_t index);
 
 /* MonsterSoulConversion 0x01135146: 1 when the item code is in the map at +0x44 (soulconv.tsv), else 0. */
 int mu_lang_soul_conversion(const mu_lang *lang, int32_t code);

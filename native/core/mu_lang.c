@@ -59,6 +59,8 @@ struct mu_lang {
     size_t nskillreq;
     struct int_row *soulconv;
     size_t nsoulconv;
+    text_entry *questtext;
+    size_t nquesttext;
 };
 
 typedef struct int_row {
@@ -754,6 +756,7 @@ mu_lang *mu_lang_load(const char *dir)
     any |= load_charinfo(L, dir);
     any |= load_skillreq(L, dir);
     any |= load_rows(dir, "soulconv.tsv", 3, &L->soulconv, &L->nsoulconv, NULL) > 0;
+    any |= load_text(dir, "questtext.txt", &L->questtext, &L->nquesttext);
     if (!any) {
         mu_lang_free(L);
         return NULL;
@@ -820,6 +823,9 @@ void mu_lang_free(mu_lang *L)
     free(L->charinfo);
     free(L->skillreq);
     free(L->soulconv);
+    for (size_t i = 0; i < L->nquesttext; ++i)
+        free(L->questtext[i].text);
+    free(L->questtext);
     free(L);
 }
 
@@ -841,6 +847,7 @@ void mu_lang_get_counts(const mu_lang *L, mu_lang_counts *out)
     out->charinfo = L->ncharinfo;
     out->skillreq = L->nskillreq;
     out->soulconv = L->nsoulconv;
+    out->questtext = L->nquesttext;
 }
 
 /* ---- lookups --------------------------------------------------------- */
@@ -1454,4 +1461,10 @@ const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *L, int32_t group, i
 int mu_lang_soul_conversion(const mu_lang *L, int32_t code)
 {
     return L && find_row(L->soulconv, L->nsoulconv, code) != NULL;
+}
+
+const char *mu_lang_quest_text(const mu_lang *L, int32_t index)
+{
+    const text_entry *e = L ? find_text(L->questtext, L->nquesttext, index) : NULL;
+    return e ? e->text : NULL;
 }

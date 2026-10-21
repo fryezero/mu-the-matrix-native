@@ -92,6 +92,18 @@ Next:
 - map the character window's SetName and skill-tooltip GlobalText numbers;
 - port GetSkillDistance's bonuses.
 
+## More Lang tables, NPC dialogue text, item prices (NATIVE-LANG-002)
+
+Read sections "NATIVE-LANG-002" of [`research/client-lang-tables.md`](research/client-lang-tables.md) (with the survey of
+all 74 tables). The snapshot `lang3.bin` was enough (no new live read). New plaintext files next to the old ones
+(`buffs.tsv`, `charinfo.tsv`, `skillreq.tsv`, `soulconv.tsv`, `questtext.txt`; the old names and formats are unchanged).
+The NPC dialogue comes from NPCDialogue.bmd + QuestWords.bmd (`reconstructed/npc/npc_dialogue.c`), prices from
+`reconstructed/price` (ItemValue, ConvertRepairGold). Compare with `scripts/validate_lang.py --snapshot lang3.bin
+--mutations` (about 40 s), `scripts/validate_npc_dialogue.py --mutations` (about 8 s) and `scripts/validate_item_price.py
+--mutations` (about 5 min). Renders stay local (`~/Documents/mu-mac-tools/native/renders/lang2/`). Next: the skill tooltip
+body (SkillTooltipText.bmd through `0x00c1ef6b`), the character window's values (SetCharacterInfo), the shop list packet,
+ItemTRSData from Lang.mpr against the local itemtrsdata.bmd, the quest windows over MUQuestString/QuestProgress.
+
 ## Particles, sprites and blob shadows (NATIVE-PARTICLE-001)
 
 Read [`research/client-particles.md`](research/client-particles.md). `reconstructed/particles` (libclient_particles)

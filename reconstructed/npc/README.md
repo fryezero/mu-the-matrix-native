@@ -13,12 +13,14 @@ The client side of talking to an NPC, restated in C from the pinned restored tex
 | `npc_pick.c` `mu_npc_pick` | the character pick `0x016b47bf(kind)` | verified |
 | `character_box_table.h`, `mu_character_box` | box section of the character create `0x0137d8a1` | executed table (Unicorn) |
 | `mu_character_obb` | the transform's box `0x012b5bde` (CLIENT-SKIN-001), bounds mode != 2 | static use of a verified routine |
+| `npc_dialogue.c` (NATIVE-LANG-002) | the dialogue manager `0x01ec9858`: NPCDialogue.bmd / QuestWords.bmd parse as the loaders `0x00fdcbb4` / `0x00fdcdc8` insert, lookups `0x00fdc9c1`, `0x00fdca1b`, `0x00fdca92`, `0x00fdcb1f`; the window's choice `0x00be906d` | verified (`scripts/validate_npc_dialogue.py`, the client's own loaders on the installed files); which requests close the window: static |
 
 ```sh
 make -C reconstructed/npc                                    # libnpc
 python -m unittest discover -s reconstructed/npc -p 'test_*.py'
 tools/python/bin/python scripts/validate_npc.py --mutations  # Unicorn; needs the captures (evidence/ or MU_CLIENT_TEXT/MU_IMAGE_DATA)
 tools/python/bin/python scripts/validate_npc.py --emit-box   # regenerates character_box_table.h
+tools/python/bin/python scripts/validate_npc_dialogue.py --game-root "$MU_GAME_ROOT" --mutations   # about 8 s
 ```
 
 No client bytes: the table holds the boxes' constants only.

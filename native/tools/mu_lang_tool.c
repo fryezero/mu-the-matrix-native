@@ -8,6 +8,7 @@
  *   mu-lang DIR npc N | gate N | move N | dialog N
  *   mu-lang DIR buff N [VALUE]     BuffEffect record (0x010de66f) and its InfoPopup lines (0x01298a54)
  *   mu-lang DIR charinfo CLASS     the character window rows of a class index (CharacterInfoSetup, 0x00b3dedc)
+ *   mu-lang DIR quest N            MUQuestString(kor) text
  *   mu-lang DIR soul CODE          MonsterSoulConversion has the item code (0x01135146): 1 / 0
  *
  * DIR holds the plaintext scripts/live_lang_to_plain.py wrote (local only). */
@@ -35,7 +36,7 @@ static void quoted(const char *s)
 static int usage(void)
 {
     fprintf(stderr, "usage: mu-lang DIR summary|text N|skill N [MASTER]|map WORLD|enchant CODE [MESH]|"
-                    "npc N|gate N|move N|dialog N|buff N [VALUE]|charinfo CLASS|soul CODE\n");
+                    "npc N|gate N|move N|dialog N|buff N [VALUE]|charinfo CLASS|soul CODE|quest N\n");
     return 2;
 }
 
@@ -56,9 +57,9 @@ int main(int argc, char **argv)
         mu_lang_get_counts(L, &c);
         printf("{\"text\": %zu, \"skills\": %zu, \"gates\": %zu, \"moves\": %zu, \"npcs\": %zu, \"dialog\": %zu, "
                "\"enchant_codes\": %zu, \"enchant_entries\": %zu, \"enchant_default\": %d, \"buffs\": %zu, "
-               "\"charinfo\": %zu, \"skillreq\": %zu, \"soulconv\": %zu}\n",
+               "\"charinfo\": %zu, \"skillreq\": %zu, \"soulconv\": %zu, \"questtext\": %zu}\n",
                c.text, c.skills, c.gates, c.moves, c.npcs, c.dialog, c.enchant_codes, c.enchant_entries,
-               c.enchant_default, c.buffs, c.charinfo, c.skillreq, c.soulconv);
+               c.enchant_default, c.buffs, c.charinfo, c.skillreq, c.soulconv, c.questtext);
     } else if (!strcmp(cmd, "buff") && argc > 3) {
         const mu_lang_buff *b = mu_lang_buff_get(L, n);
         if (!b) {
@@ -101,6 +102,11 @@ int main(int argc, char **argv)
         status = k == 0;
     } else if (!strcmp(cmd, "text") && argc > 3) {
         const char *s = mu_lang_text(L, n);
+        if (s)
+            printf("%s\n", s);
+        status = !s;
+    } else if (!strcmp(cmd, "quest") && argc > 3) {
+        const char *s = mu_lang_quest_text(L, n);
         if (s)
             printf("%s\n", s);
         status = !s;

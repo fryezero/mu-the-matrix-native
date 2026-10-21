@@ -548,6 +548,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `client/`, `world/world_embed.*`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; mu-world and mu-charsel as modules (NATIVE-SHELL-001) |
 | `app/` | Mu The Matrix Native Preview.app: Swift launcher, the `mu-nonet` network guard, dylib bundling, the bundle Makefile (NATIVE-APP-001) |
 | `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001). See [the finding](../docs/research/client-lang-tables.md) |
+| `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001); BuffEffect (addBuff, buff popup lines), CharacterInfoSetup (the row builder's order), SkillRequire, MonsterSoulConversion, MUQuestString (NATIVE-LANG-002). See [the finding](../docs/research/client-lang-tables.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 
 ## Game text and script tables (NATIVE-LANG-001)
@@ -563,6 +564,21 @@ own text and tables:
 
 Without it, everything keeps its placeholder. `build/mu-lang DIR summary|text N|skill N|map W|enchant CODE [MESH]|...`
 queries the tables. See [client-lang-tables.md](../docs/research/client-lang-tables.md).
+
+NATIVE-LANG-002 adds, in the same directory (the earlier file names and formats are unchanged; each new file is
+optional): `buffs.tsv` (BuffEffect), `charinfo.tsv` (CharacterInfoSetup), `skillreq.tsv`, `soulconv.tsv`
+(MonsterSoulConversion) and `questtext.txt` (MUQuestString). With them and a game root, mu-world and mu-client show:
+
+- the NPC dialogue of the client (NPCDialogue.bmd + QuestWords.bmd from the game root, `reconstructed/npc`'s
+  `npc_dialogue.c`): the state's text and options, an option's next state, server requests logged;
+- the client's prices (`reconstructed/price`: ItemValue `0x0169320b`, ConvertRepairGold): the shop list, buying,
+  selling, the tooltip's "Purchasing price" / "Selling Price" lines;
+- the bufflist (`--gfx-open "buffs=1:2:8"`: demo buffs through the client's addBuff rule) and the buff popup;
+- the character window's rows from CharacterInfoSetup (`--gfx-open "class=N"`, default 1).
+
+`mu-world --npc-script` also takes `tip:SLOT`, `tipinv:CELL` and `bufftip:BUFF` (headless tooltips);
+`mu-lang DIR buff N [VALUE]|charinfo CLASS|soul CODE|quest N`. Compare with `scripts/validate_lang.py`,
+`scripts/validate_npc_dialogue.py` and `scripts/validate_item_price.py`.
 
 ## Data tables (NATIVE-DATA-001)
 

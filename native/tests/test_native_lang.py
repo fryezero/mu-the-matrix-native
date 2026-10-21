@@ -263,7 +263,8 @@ class ConverterAndLoader(Build):
         self.assertEqual(lang_json(self.lang, 'summary'),
                          {'text': len(TEXTS), 'skills': len(SKILLS), 'gates': 2, 'moves': 1, 'npcs': 2, 'dialog': 1,
                           'enchant_codes': len(ENCHANT), 'enchant_entries': 4, 'enchant_default': 1,
-                          'buffs': len(BUFFS), 'charinfo': len(CHARINFO), 'skillreq': 1, 'soulconv': len(SOULCONV)})
+                          'buffs': len(BUFFS), 'charinfo': len(CHARINFO), 'skillreq': 1, 'soulconv': len(SOULCONV),
+                          'questtext': 0})
         for path in self.lang.iterdir():
             self.assertIn('never commit', path.read_text().split('\n')[1])
 
