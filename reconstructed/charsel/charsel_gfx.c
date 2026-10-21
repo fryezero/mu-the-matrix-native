@@ -423,8 +423,10 @@ int mu_csg_init(mu_csg_window *w, const mu_csg_env *env)
         }
         /* MoveCharText: GT 0x4d9 "\n" GT 0x4da "\n" GT 0x4db through 0x0096fe90 with the colour
          * 0x00b4c6aa(0xff, 0xc8, 0xb4, 0xff) */
-        char joined[MU_CSG_LINE], html[MU_CSG_LINE];
-        snprintf(joined, sizeof joined, "%s\n%s\n%s", gt(env, 0x4d9), gt(env, 0x4da), gt(env, 0x4db));
+        char joined[MU_CSG_LINE], html[MU_CSG_LINE], part[3][1024];
+        for (int k = 0; k < 3; ++k)   /* each GlobalText read before the next (the host may reuse its buffer) */
+            snprintf(part[k], sizeof part[k], "%s", gt(env, 0x4d9 + k));
+        snprintf(joined, sizeof joined, "%s\n%s\n%s", part[0], part[1], part[2]);
         put(&l, ",\"MoveCharText\":");
         put_json_string(&l, mu_csg_html_rgba(html, sizeof html, joined, 0xffb4c8ffu, 0));
         put(&l, ",\"ViewableSelectedWinNum\":10}]");

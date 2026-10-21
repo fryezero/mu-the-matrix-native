@@ -122,6 +122,9 @@ typedef struct mu_charsel_session {
     mu_terrain_frustum frustum;    /* the last render's frustum (the frame light box of the next step) */
     int32_t frame_sprites;         /* CreateSprite calls of the last RenderObjects pass */
     long objects_drawn, after_meshes, billboards, shadows;
+    /* NATIVE-CHARSEL-003 */
+    int32_t pick;                  /* the last render's SelectCharacter(1) 0x016b47bf, -1 none */
+    uint32_t picks, pick_hits, double_clicks;
 } mu_charsel_session;
 
 /* Loads World94, its camera record, Player.bmd and the list's models, creates
@@ -150,6 +153,14 @@ int32_t mu_charsel_update(mu_charsel_session *s, uint32_t now);
  * frame light. */
 void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now);
 int32_t mu_charsel_end_render(mu_charsel_session *s);
+
+/* NATIVE-CHARSEL-003: SelectCharacter(1) 0x016b47bf as the render's first call runs it: the CharactersClient
+ * records' boxes (OBJECT +0x31c; the drawn character's from RenderPartObject's Transform, the others keep
+ * the box of the last frame they were drawn in) against the mouse segment (CreateScreenVector), nearest to
+ * the camera; in world 0x5d each tested box grows by 100 in z.  Returns the index or -1.  The client
+ * routine is compared with its instructions by NATIVE-NPC-001 (reconstructed/npc, mu_npc_pick); this
+ * native port follows that reading and is not itself executed against the client. */
+int32_t mu_charsel_pick(mu_charsel_session *s);
 
 /* Terrain frustum of the render (CreateFrustrum(width/640, record position, 0)). */
 int mu_charsel_frustum(const mu_charsel_session *s, mu_terrain_frustum *frustum);

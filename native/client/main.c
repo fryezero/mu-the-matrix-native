@@ -12,9 +12,12 @@
  *             [--frames N] [--every K] [--auto | --script "F:ACTION ..."] [--wav OUT.wav]
  *   --gfx DIR [--gfx-open inventory,character]: the client's GFx interface
  *             in the world scene (NATIVE-GFX-003, as mu-world --gfx; GL only)
+ *             and the character select's list CharacterSelect.swf
+ *             (NATIVE-CHARSEL-003; also in mu-shell) [--gfx-log FILE]
  *
  * Headless actions (frame numbers count dispatcher passes): enter, esc, left,
  * right, tab, back, text:STRING, click:group:N, click:server:N, click:X,Y,
+ * click:row:N and dblclick:row:N (the GFx character list), dblclick:X,Y,
  * wheel:+1/-1, quit. --auto plays the whole flow (server, login, select,
  * world, back to select, world again). Captures: every K-th frame, the first
  * frame of each scene visit and every title/loading frame.
@@ -60,6 +63,8 @@ typedef struct front {
     const char *root, *session, *out_dir, *backend, *sound_table, *placement, *wav_path, *font;
     const char *world_objects, *charsel_objects, *login_objects;
     const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
+    const char *gfx_log;              /* NATIVE-CHARSEL-003 */
+    int double_click;                 /* the scripted click is a double click */
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
     float seconds;
     action actions[MAX_ACTIONS];
@@ -334,6 +339,7 @@ static void click(front *f, int32_t x, int32_t y)
     f->click_y = y;
     mu_shell_mouse_move(f->shell, x, y);
     f->click_stage = 1;
+    f->double_click = 0;
 }
 
 static void do_action(front *f, const char *what)
@@ -360,6 +366,14 @@ static void do_action(front *f, const char *what)
     } else if (sscanf(what, "click:server:%d", &n) == 1) {
         if (mu_shell_server_button(s, n, &x, &y))
             click(f, x, y);
+    } else if (sscanf(what, "click:row:%d", &n) == 1 || sscanf(what, "dblclick:row:%d", &n) == 1) {
+        if (mu_shell_charsel_row(s, n, &x, &y)) {
+            click(f, x, y);
+            f->double_click = what[0] == 'd';
+        }
+    } else if (sscanf(what, "dblclick:%d,%d", &x, &y) == 2) {
+        click(f, x, y);
+        f->double_click = 1;
     } else if (sscanf(what, "click:%d,%d", &x, &y) == 2) {
         click(f, x, y);
     } else if (sscanf(what, "wheel:%d", &n) == 1) {
@@ -387,6 +401,11 @@ static void click_step(front *f)
         f->click_stage = 2;
     } else if (f->click_stage == 2) {
         mu_shell_mouse_button(f->shell, 0, 0);
+        if (f->double_click) {   /* the second press of a double click in the same pass */
+            mu_shell_mouse_button(f->shell, 0, 1);
+            mu_shell_mouse_button(f->shell, 0, 0);
+            f->double_click = 0;
+        }
         f->click_stage = 3;
     } else if (f->click_stage == 3) {
         mu_shell_mouse_move(f->shell, -1000, -1000);
@@ -406,6 +425,11 @@ static void autoplay(front *f)
         else if (k == 24) what = "tab";
         else if (k == 25) what = "text:secret";
         else if (k == 28) what = "enter";
+    } else if (scene == MU_SCENE_CHARACTER && mu_shell_charsel_gfx(f->shell)) {
+        /* NATIVE-CHARSEL-003: through the GFx list: click the second row, then double-click it to play */
+        if (v == 1 && k == 12) what = "click:row:1";
+        else if (v == 1 && k == 24) what = "dblclick:row:1";
+        else if (v >= 2 && k == 10) what = "enter";
     } else if (scene == MU_SCENE_CHARACTER) {
         if (v == 1 && k == 12) what = "right";
         else if (k == (v == 1 ? 24 : 10)) what = "enter";
@@ -491,6 +515,9 @@ static int headless(front *f)
     c.login_objects = f->login_objects;
     c.title_step_ms = 0;
     c.quiet = f->quiet;
+    c.gfx_dir = f->gfx_dir;
+    c.gfx_log = f->gfx_log;
+    c.gfx_scale = 1.0;
     mu_shell_platform p = {f, on_present, on_ticks, on_opened, on_closing, on_pause};
     f->shell = mu_shell_new(&c, &p, error, sizeof error);
     if (!f->shell) {
@@ -641,6 +668,9 @@ static int windowed(front *f)
     c.login_objects = f->login_objects;
     c.title_step_ms = 150;
     c.quiet = f->quiet;
+    c.gfx_dir = f->gfx_dir;
+    c.gfx_log = f->gfx_log;
+    c.gfx_scale = f->scale;
     mu_shell_platform p = {f, on_present, on_ticks, on_opened, on_closing, on_pause};
     char error[256];
     f->shell = mu_shell_new(&c, &p, error, sizeof error);
@@ -726,7 +756,7 @@ static int usage(void)
             "                 [--world-objects DIR] [--charsel-objects DIR] [--login-objects DIR] [--objects-dir DIR]\n"
             "                 [--headless --out-dir DIR --backend gl|soft --frames N --every K]\n"
             "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
-            "                 [--gfx DIR [--gfx-open inventory,character]]\n");
+            "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n");
     return 2;
 }
 
@@ -775,6 +805,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--script")) { if (parse_script(&f, v)) return usage(); }
         else if (!strcmp(k, "--gfx")) f.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) f.gfx_open = v;
+        else if (!strcmp(k, "--gfx-log")) f.gfx_log = v;
         else return usage();
     }
     if (!f.root || f.width < 64 || f.height < 64 || f.width > 8192 || f.height > 8192 || f.frames < 1)

@@ -274,6 +274,24 @@ int mu_charsel_init(mu_charsel_session *s, const char *root, const mu_charsel_li
         mu_charsel_create_hero(e->slot, e->class_byte, 0, 0.0f, 0.0f, 0.0f, &scale, lookup, s, NULL);
         r[0x144] = (uint8_t)e->level;
         r[0x145] = (uint8_t)(e->level >> 8);
+        /* NATIVE-CHARSEL-003: what the pick and the GFx list read of CreateCharacter 0x0137d8a1 (static reading):
+         * the Player box (-60, -60, 0)..(40, 40, 120) (0x0137dfe3, 0x0137e2d4), alpha 1 (+0xdc), kind 1 (+0x3b),
+         * CHARACTER +0x10 = 1; the name as an inline std::string at +0x3658; guild status +0x17 = 0xff (none,
+         * the offline list has no guilds) */
+        static const float box_min[3] = {-60.0f, -60.0f, 0.0f}, box_max[3] = {40.0f, 40.0f, 120.0f};
+        for (uint32_t k = 0; k < 3; ++k) {
+            putf(r, MU_CHARSEL_OBJECT + 0x128 + 4 * k, box_min[k]);
+            putf(r, MU_CHARSEL_OBJECT + 0x134 + 4 * k, box_max[k]);
+        }
+        putf(r, MU_CHARSEL_OBJECT + 0xdc, 1.0f);
+        r[MU_CHARSEL_OBJECT + 0x3b] = 1;
+        r[0x10] = 1;
+        r[0x17] = 0xff;
+        size_t name_len = strnlen(e->name, 15);
+        memcpy(r + 0x3658, e->name, name_len);
+        r[0x3658 + name_len] = 0;
+        r[0x3658 + 0x10] = (uint8_t)name_len;
+        r[0x3658 + 0x14] = 15;
         mu_charsel_set_character_position(&s->scene, e->slot, lookup, s);
         if (load_entry(s, root, i))
             return 1;
@@ -415,7 +433,12 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
     frame.mouse_x = f->mouse.x;
     frame.mouse_y = f->mouse.y;
     memcpy(frame.record_position, s->info.position, sizeof frame.record_position);
-    frame.pick = -1;                 /* 0x016b47bf: character picking not ported */
+    frame.pick = s->pick = mu_charsel_pick(s);   /* 0x016b47bf(1), NATIVE-CHARSEL-003 */
+    frame.input_byte_1f = f->mouse.left_double;  /* CInput +0x1f: the double click (WM_LBUTTONDBLCLK) */
+    if (f->mouse.left_double) {
+        ++s->double_clicks;
+        f->mouse.left_double = 0;
+    }
     frame.screen_width = 640;
     uint8_t fog = 1;
     memset(&s->log, 0, sizeof s->log);
@@ -482,6 +505,15 @@ void mu_charsel_begin_render(mu_charsel_session *s, uint32_t now)
         for (int k = 0; k < 3; ++k)
             ch->params.light[k] = 0.4f + object_light;
         mu_character_update(ch);
+        /* RenderPartObject's Transform(bones, BoundingBoxMin, BoundingBoxMax, &OBB, ...) 0x017e68a6 (bounds mode
+         * not 2): StartPos = min + body origin (the position), axes diag(max - min); NATIVE-CHARSEL-003 */
+        uint8_t *w = record(s, s->shown) + MU_CHARSEL_OBJECT;
+        for (uint32_t k = 0; k < 3; ++k) {
+            float lo = getf(w, 0x128 + 4 * k), hi = getf(w, 0x134 + 4 * k);
+            putf(w, 0x31c + 4 * k, lo + getf(w, MU_OBJ_POSITION + 4 * k));
+            for (uint32_t a = 0; a < 3; ++a)
+                putf(w, 0x328 + 0xc * a + 4 * k, a == k ? hi - lo : 0.0f);
+        }
     }
     /* the render's frustum (CreateFrustrum) and the objects' clock (NATIVE-CHARSEL-002) */
     mu_charsel_frustum(s, &s->frustum);
@@ -508,6 +540,98 @@ void mu_charsel_frame_objects(mu_charsel_session *s)
         s->frame_sprites = (int32_t)(s->particles.stats.sprites_created - sprites);
         mu_world_particles_discard_sprites(&s->particles);   /* a frame without drawing: RenderSprites' kill */
     }
+}
+
+/* ---- SelectCharacter 0x016b47bf (NATIVE-CHARSEL-003) ---- */
+
+static float dot3(const float a[3], const float b[3]) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+static void cross3(const float a[3], const float b[3], float o[3])
+{
+    o[0] = a[1] * b[2] - a[2] * b[1];
+    o[1] = a[2] * b[0] - a[0] * b[2];
+    o[2] = a[0] * b[1] - a[1] * b[0];
+}
+
+/* 0x01850d88: the segment and the box projected on an axis overlap */
+static int axis_overlap(const float axis[3], const float p1[3], const float p2[3], const float obb[12])
+{
+    float d1 = dot3(axis, p1), d2 = dot3(axis, p2);
+    float lo = dot3(axis, obb), hi = lo;
+    for (int k = 1; k < 4; ++k) {
+        float d = dot3(axis, obb + 3 * k);
+        if (d < 0.0f)
+            lo += d;
+        else
+            hi += d;
+    }
+    float smin = d1 < d2 ? d1 : d2, smax = d1 < d2 ? d2 : d1;
+    return !(smax < lo || smin > hi);
+}
+
+/* 0x018500bf: no separating axis among (p2 - p1) x X, x Y, x Z, X, Y, Z */
+static int segment_obb(const float p1[3], const float p2[3], const float obb[12])
+{
+    float d[3] = {p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]}, n[3];
+    for (int k = 1; k < 4; ++k) {
+        cross3(d, obb + 3 * k, n);
+        if (!axis_overlap(n, p1, p2, obb))
+            return 0;
+    }
+    for (int k = 1; k < 4; ++k)
+        if (!axis_overlap(obb + 3 * k, p1, p2, obb))
+            return 0;
+    return 1;
+}
+
+int32_t mu_charsel_pick(mu_charsel_session *s)
+{
+    const mu_client_view *v = &s->frame.view;
+    static const float LIGHT[5][3] = {{0.2f, 0.2f, 0.2f}, {-0.4f, -0.4f, -0.4f}, {0.2f, -0.6f, -0.6f},
+                                      {1.5f, 1.5f, 1.5f}, {0.3f, 0.2f, -0.5f}};
+    /* first pass: every live, visible character of kind 1 gets LightEnable and the level-indexed light (the
+     * render resets the lights of 0..9 right after) */
+    for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
+        uint8_t *c = record(s, i), *o = c + MU_CHARSEL_OBJECT;
+        if ((o[0x3b] & 1) != o[0x3b] || !o[MU_OBJ_LIVE] || !o[MU_OBJ_VISIBLE] || !(getf(o, 0xdc) > 0.0f))
+            continue;
+        o[5] = 1;
+        uint16_t level = (uint16_t)(c[0x144] | c[0x145] << 8);
+        if (level < 5)
+            for (uint32_t k = 0; k < 3; ++k)
+                putf(o, MU_OBJ_LIGHT + 4 * k, LIGHT[level][k]);
+        if (c[0x1f] >= 6)
+            for (uint32_t k = 0; k < 3; ++k)
+                putf(o, MU_OBJ_LIGHT + 4 * k, -0.4f);
+    }
+    int32_t best = -1;
+    float best_d = 1e12f;
+    ++s->picks;
+    for (int32_t i = 0; i < MU_CHARSEL_CHARACTERS; ++i) {
+        uint8_t *c = record(s, i), *o = c + MU_CHARSEL_OBJECT;
+        if (!o[MU_OBJ_LIVE] || !o[MU_OBJ_VISIBLE] || !(getf(o, 0xdc) > 0.0f) || c[0x23] || !c[0x10])
+            continue;   /* scene 5: the hero is not skipped; no buff 0x1b on the select screen's records */
+        if ((o[0x3b] & 1) != o[0x3b])
+            continue;
+        float obb[12];
+        for (uint32_t k = 0; k < 12; ++k)
+            obb[k] = getf(o, 0x31c + 4 * k);
+        obb[11] = obb[11] + 100.0f;   /* world 0x5d: ZAxis.z += 100, written back */
+        putf(o, 0x31c + 44, obb[11]);
+        if (!segment_obb(v->mouse_position, v->mouse_target, obb))
+            continue;
+        float d[3];
+        for (uint32_t k = 0; k < 3; ++k)
+            d[k] = getf(o, MU_OBJ_POSITION + 4 * k) - v->position[k];
+        float dist = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        if (dist < best_d) {
+            best_d = dist;
+            best = i;
+        }
+    }
+    if (best >= 0)
+        ++s->pick_hits;
+    return best;
 }
 
 int32_t mu_charsel_end_render(mu_charsel_session *s)
