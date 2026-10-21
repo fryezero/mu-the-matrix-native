@@ -1,12 +1,10 @@
 name: Recovery tools
 
-# Actions minutes are limited on this private repository, and macOS runners are
-# billed at ten times the Linux rate. Pull requests run Linux only, once per push
-# (no duplicate push run), and a newer push cancels the older run. The macOS job
-# runs only when started by hand; contributors run scripts/local-macos-ci.sh
-# on a Mac before merging instead.
+# The project targets macOS only, so nothing runs automatically: the gate before
+# merging is scripts/local-macos-ci.sh on a Mac. This workflow runs only when
+# started by hand (Linux by default; the macOS job, billed at ten times the Linux
+# rate, with the `macos` input).
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       macos:
