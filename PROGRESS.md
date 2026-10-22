@@ -97,3 +97,5 @@ the NATIVE-POLISH-001 world travel work from PR #144. No hosted workflow dispatc
 
 Rebased onto `ac82b33` including PRs #144/#145. The first local CI run passed tests and native/live-reader
 builds, then failed its audit because this note used absolute home paths. Those paths now use `~/`.
+The complete rerun log is `~/Documents/mu-mac-tools/native/scratch/social/local-macos-ci-final.log`;
+the final task report records its exit status. No completion PR or Preview install belongs to this WIP.
