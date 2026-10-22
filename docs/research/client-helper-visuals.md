@@ -56,7 +56,7 @@ Labels:
   subtype, which their model load (vtable +0x38) sets from the descriptor's state, the item level of the equipment
   packet (verified for states 0, 7 and 15; the ride-state transformations get −1).
 - **Class visuals** (vtable +0x1c, after the after-pass in the render loop `0x0106bc2b`; the classic four share the
-  empty `0x0103d8be`). Reconstructed for the Shining Tail (verified): about 25 glints and flares on its bones
+  empty `0x0103d8be`). Reconstructed for the Shining Tail and Ghost Horse (verified): about 25 glints and flares on its bones
   (pin_star, bostar3_R, Shiny03, flare01), the eye joints `0x7fd6` 0x43 / 0x44 once, mist and sparks of its tails
   (particles `0x7f5a` 0x7f, `0x831d` 6, `0x83b3` 6, `0x7f26` 0x2a, `0x8086` 0x13, effect `0x6f6`, from the random
   helpers `0x011ff622` / `0x00d01fc6` / `0x00d0221e`), and the paws' rune circles: object +0xa4 rises by 0.05 per
@@ -80,12 +80,13 @@ Labels:
 |---|---|---|
 | registry pairs (the 24 mount models → functor) | 1,171 pairs read | all 24 match |
 | functors (24 models × 300: type, subtype, action, frame, world, time, model colour) | 7,200, 66,129 calls | 0 mismatches |
-| Shining Tail visuals (fade, joint flag, rand count) | 300, 19,630 calls | 0 mismatches |
-| Shining Tail claw steps | 300, 844 calls | 0 mismatches |
+| Shining Tail visuals (fade, joint flag, rand count) | 300, 20,390 calls | 0 mismatches |
+| Shining Tail claw steps | 300, 820 calls | 0 mismatches |
+| Ghost Horse visuals / claw steps | 300 / 300, 23,442 / 1,136 calls | 0 mismatches |
 | negative controls (time + 40 / v + 0.25 on the functors; time + 100 on the visuals) | 40 / 40 / 30 | 40 / 40 / 30 detected |
 
 `scripts/validate_particles.py --cases 3000 --heavy-cases 300` (NATIVE-PARTICLE-001's validator with the new kinds;
-report `evidence/native-helpers2/particles-01.json`): create, move and render 3,000 / 3,000 each over 31 kinds,
+report `evidence/native-helpers2/particles-01.json`): create, move and render 3,000 / 3,000 each,
 every other family unchanged; three new negative controls (the angel's sparkle living like subtype 0, smoke02
 seated without half its height, drop01 drawn with the whole sheet) disagree.
 
@@ -98,6 +99,43 @@ Static only: the draw `0x017edf43`'s path to the registry (the buff path `0x017f
 Portable: `reconstructed/helpers/test_helpers.py` (functor and wave examples), `native/tests/test_native_helpers.py`
 (Fenrir's passes, flares and effects in mu-walk).
 
+## Completed particle, joint and effect paths
+
+The same pinned text/data above is the reference. `evidence/native-helpers2/particles-final.json` compares
+3,800 cases per create/move/render family over all 36 supported particle kinds, with zero mismatches. Added here:
+Steam_01 `0x831d/6`, Smoke_line `0x83b3/6`, firehik_mono01 `0x8086/0x13` and `/0x18`, Spark03
+`0x7f26/0x2a`, smoke01 `0x7f5a/0x7f`, and Ghost Horse breath `0x7f5a/0x75`. CreateParticle
+`0x015ae7b0`, MoveParticles' record body `0x01616f7c..0x0168ee7d` and RenderParticles
+`0x015912e9..0x015ae351` execute with strict declared memory, recorded calls and rand counts. The breath's
+AngleToVector `0x00d015d5` executes too. New planted mistakes (wrong initial lifetime, missing glint alpha,
+lost fire colour, missing breath direction) disagree in 420 / 270 / 69 / 69 cases.
+
+`joints-final.json`: 1,800 cases per create/move/render family over 18 kinds, zero mismatches. The Dark Horse
+ring `0x7f78/0` (`0x015496cb`, `0x01578049`) copies the mount's light, which ObjectInit leaves zero; the
+native ring is therefore dark, matching those instructions. Subtype 1 stops the orbit and tail updates.
+The eye trails `0x7fd6/0x43..0x44` (`0x0153d070`, `0x0153d168`; moves `0x0155a798`, `0x0155a85a`)
+copy SetEye's two positions and the supplied colour, refresh their lifetime while the owner is live, and draw
+JointLaser01. Swapped eyes and a missing lifetime refresh fail in 200 / 128 cases; the ring sine mistake fails
+in 65. Full joint GL calls are compared, including vertices and texture coordinates.
+
+`skill-final.json`: 1,500 cases each for effect create/move/decal selection, zero mismatches. The flying step
+`0x8012/1`, Fenrir body lightning `0x4ac/0`, paw marks `0x4ad/1..5`, claws `0x6f3/0..2`, tail emitter
+`0x6f6/0` and paw rune `0x8438/0` are reconstructed. Claws/runes/paw marks use the actual RenderEffects
+blocks `0x01527c4e`, `0x0152d6a6`, `0x0151a5c7`; shock rings use `0x01514ded`. Render wrappers and the
+terrain renderer are recording stubs: this family verifies decal arguments, not the terrain's emitted vertices
+(the ordinary terrain renderer has its own validator). The tail emitter emits particles/sprites and has no model
+pass. Missing claw shrink, rune growth, wrong tail particle and missing decal alpha fail in 84 / 30 / 46 / 483
+cases; shock and lightning mistakes fail in 47 / 21. Reports retain routine ranges and complete hashes.
+
+The alternate shock-ring path through `0x00deec1f` is selected in worlds `0x18..0x1d` and `0x24`.
+Static inspection of `0x009f90cd..0x009f90dd` shows signed integer heights from a separate grid plus 400,
+with 50-unit cells. The native loader lacks that grid, so native drawing explicitly skips this variant. An earlier
+zero-height approximation was removed after review; its selector arguments alone did not validate geometry.
+
+Ghost Horse's class visual `0x01048192` adds 33 bone flares, standing paw decals, sparks, level-dependent eyes
+and breath; its step `0x010497b9` adds four named claw effects at frames 0..1. The normal flareBlue loader
+`0x01822871` specifies GL_CLAMP; using repeat made a large tiled blue patch and was corrected.
+
 ## Native
 
 - The mount's body pass poses; the after-pass runs the functor's call list through the scene draw (mesh passes with
@@ -105,7 +143,12 @@ Portable: `reconstructed/helpers/test_helpers.py` (functor and wave examples), `
   `mu_textures`, appended after the specials), the second shadow over a mesh range (`mu_world_particles_shadow_range`),
   sprites, particles and effects to the particle module; then the class visuals, whose terrain decals go through
   `mu_terrain_decal` into the model's backend (fans as triangles, GL_CLAMP bitmaps).
-- The class steps run in the move loop between the base move and the action map.
+- The class steps run in the move loop between the base move and the action map. The current mount is posed
+  before every class step and named bone lookup; models are shared by mounts, so a previous owner's pose is unsafe.
+- Rider offsets retain model-space bones; flying steps use scale plus object origin. Fenrir lightning carries the
+  actual mount owner and resolves its bones. Bone indices are checked against the loaded skeleton's count.
+  `native/tests/helper_fx_host.c` covers nonzero origins, two owners sharing a model, real flash ownership, the
+  zero-light ring, eye colour/lifetime through native dispatch, and invalid Fenrir bone references (seven-bone synthetic skeleton, requests 53 and -1).
 - `--helper ghost-horse | ice-dragon | pierce-lion | shining-tail | ur | leviathan | tauros | divine-horse` with
   `--helper-state LEVEL`; the Preview app's helper picker lists them with the pets and the raven.
 
@@ -118,14 +161,17 @@ Under the game lock, Nighty (MTM-1, Lorencia 138,135) rode its Shining Tail +10 
 inventory with a right click and summoned with Ctrl+Z in this client); memread showed the ride word `0x1853`, the
 manager's map with one mount (vtable `0x1ab6e3c`, descriptor (1, `0x1853`, 10)) and its OBJECT (type `0x6f4`,
 subtype 10, scale 1.2, +0xa4 1.0). Other players' pandas stood nearby. The native render at the same tile matches the
-mount's shape, glow passes, the purple eye streak and the paws' rune circles; the live tails' blue sparkles (particle
-kinds not ported) are missing. The panda pet matches in size, glow and placement. Captures and renders stay local
+mount's shape, glow passes, the purple eye streak and the paws' rune circles; the live tails' blue sparkles were missing in that intermediate build. The completed native paths above now draw them. The panda pet matches in size, glow and placement. Captures and renders stay local
 (`~/Documents/mu-mac-tools/native/renders/helpers2/live/`, `t-shiningtail3/`, `t-panda/`).
+
+Fresh native GL renders: `~/Documents/mu-mac-tools/native/renders/helpers2/final-shining-tail/`,
+`final-ghost-horse/`, `final-shining-tail-every-frame/`, `finish-fenrir-blue/` (local only). The final two mount
+runs load all 44 effect bitmaps and report zero unsupported particles, effects and joints. They are native renders;
+the historical live comparison above used the original game. No new original-game session was needed for finishing.
 
 ## Limits
 
-- The class visuals and moves of the other later mounts (Ghost Horse, Ice Dragon, Pierce Lion, Ur, Leviathan,
-  Tauros, Divine Horse, the transformations) are not reconstructed; their functors are.
-- Particle kinds the Shining Tail and the pets create (`0x831d`, `0x83b3`, `0x8086`, `0x7f5a` 0x7f, `0x7f26` 0x2a ...)
-  and its effects `0x6f3`, `0x6f6`, `0x8438` are counted, not drawn; the eye joint `0x7fd6` 0x43/0x44 likewise.
+- Ice Dragon, Pierce Lion, Ur, Leviathan, Tauros, Divine Horse and rare/transformed class visuals/moves remain
+  unreconstructed; their registry functors are covered. Muun pets remain surveyed only (optional scope).
+- Alternate-grid shock rings are selected but not drawn, as explained above.
 - The buff path of the draw (`0x017f746f`) is not drawn.
