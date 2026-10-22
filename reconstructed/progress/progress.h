@@ -250,6 +250,71 @@ int mu_prg_speed_row(const mu_prg_env *env, int32_t cls, int32_t max, uint16_t c
  * it: 400 live) */
 int32_t mu_prg_speed_max(int32_t cls);
 
+/* ---- the options window winOption (verified) ----------------------------------------------------------- */
+
+/* The window's fields (+0x20..+0x35).  The client reads them from ./option.ini at the join, [DEFAULT]
+ * (GetPrivateProfileIntA: IsAutoAttack 1, IsWhisperSound 0, IsSlideHelp 1, IsPlayerInfo 1, IsMonsterInfo 1,
+ * IsMusicPlay 1, Volum 5, IsMute 0, IsUpdateData 0, IsSwitchMode 0, SwitchModeTime 10), and [OPTION] Effect
+ * (4, clamped to 0..4); the server's saved option byte (opcode 0xA0 sub 0x03 +0x18/+0x19) sets the toggles
+ * again; only [OPTION] Effect is ever written back. */
+typedef struct mu_prg_options {
+    uint8_t auto_attack;     /* +0x20 */
+    uint8_t whisper_sound;   /* +0x21 */
+    uint8_t slide_help;      /* +0x22 */
+    uint8_t player_info;     /* +0x23 */
+    uint8_t monster_info;    /* +0x24 */
+    uint8_t music_play;      /* +0x25 */
+    uint8_t switch_mode;     /* +0x26 */
+    int32_t switch_time;     /* +0x28 (minutes) */
+    int32_t effect;          /* +0x2c (0..4; the movie shows effect + 1) */
+    int32_t volume;          /* +0x30 (0..9) */
+    uint8_t mute;            /* +0x34 */
+    uint8_t update;          /* +0x35 (IsUpdateData; the setters set it: setDatas at the next frame) */
+} mu_prg_options;
+
+typedef struct mu_prg_options_env {
+    void *user;
+    void (*emit)(void *user, const char *line);
+    const char *(*global_text)(void *user, int32_t index);
+    /* ./option.ini: GetPrivateProfileIntA / WritePrivateProfileStringA (boundaries) */
+    int32_t (*ini_int)(void *user, const char *section, const char *key, int32_t fallback);
+    void (*ini_write)(void *user, const char *section, const char *key, const char *value);
+    /* the sound groups (0 Music, 1 Environment, 2 Effect; NATIVE-AUDIO-001's FMOD boundary) */
+    float (*group_volume)(void *user, int32_t group);
+    int (*group_muted)(void *user, int32_t group);
+    void (*set_group_volume)(void *user, int32_t group, float volume);
+    void (*set_group_mute)(void *user, int32_t group, int mute);
+    /* the window is shown (0x00a05d02) */
+    int (*visible)(void *user);
+    /* the main frame (getter 0x0095c5da) and hudPlayerName (0x009a19ae) exist */
+    int (*window)(void *user, uint32_t getter);
+    /* the auto-switch state of GFx manager 0x00ac16d0: flag +0x98, minutes +0x9c (float) */
+    int (*switch_state)(void *user, float *minutes);
+    /* onChange: the movie's object members (0x00c61e6b bool, 0x00ae935b int) */
+    int (*member_bool)(void *user, const char *name);
+    int32_t (*member_int)(void *user, const char *name);
+} mu_prg_options_env;
+
+/* The join's load 0x00c76115 ([DEFAULT]) and 0x00c76314 ([OPTION] Effect). */
+void mu_prg_options_load(const mu_prg_options_env *env, mu_prg_options *o);
+void mu_prg_options_load_effect(const mu_prg_options_env *env, mu_prg_options *o);
+/* InitText 0x00c765cc (the labels, GlobalText 0x927 Title .. 0x1531 SwitchModeMinutesTitle). */
+void mu_prg_options_init_text(const mu_prg_options_env *env);
+/* setDatas 0x00c767d9: the volume read back from the Effect group ((int)(volume * 9 + 0.5); 0 means
+ * muted), music on = the Music group not muted; then, when shown, the movie's object. */
+void mu_prg_options_set_datas(const mu_prg_options_env *env, mu_prg_options *o);
+/* Apply 0x00c7635f: [OPTION] Effect written, useHelpText(slide help), hudPlayerName's monster info, the
+ * Effect group's volume (0 when muted, else volume / 9), the Music group's mute, the auto switch. */
+void mu_prg_options_apply(const mu_prg_options_env *env, const mu_prg_options *o);
+/* The window's callback 0x00c75bb2 (onLoad, onUnload, close, onChange; scene = the scene number passed to
+ * MainSceneVisiableSetup). */
+void mu_prg_options_event(const mu_prg_options_env *env, mu_prg_options *o, const char *name, int32_t scene);
+/* The per-frame 0x00c75fa9: a pending update shows the values again when the window is shown. */
+void mu_prg_options_tick(const mu_prg_options_env *env, mu_prg_options *o);
+/* The setters 0x00c76022 .. 0x00c760fa (the saved-hotkeys answer uses them): index 0..6 the toggles
+ * +0x20..+0x26, 7 the switch time, 8 the effect; each marks the update. */
+void mu_prg_options_set(mu_prg_options *o, int32_t index, int32_t value);
+
 /* ---- the experience bar (verified) ------------------------------------------------------------------- */
 
 /* The bar's last values, window +0x88 (compared by 0x00c54a49; the routine never writes them back) */
