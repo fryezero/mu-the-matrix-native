@@ -7,7 +7,7 @@ the bone-track loop seeds the bone arrays, the pose builder 0x012b5064 runs with
 (the object's action, frame, prior frame, prior action and angle, keep-root 0, translate = the native report's
 pose_translate) and the transform 0x012b5bde reads its bone matrices with the report's transform translate,
 vertex scale 0 and light arguments. The client state the transform reads comes from a read of our own running
-client (`mac-play/diagnostics/lightread`, a 'MULITLV1' snapshot): the light-override byte 0x01cf1048, the world
+client (`live-readers/lightread`, a 'MULITLV1' snapshot): the light-override byte 0x01cf1048, the world
 0x01cf15fc and the model's shadow angle +0x98 for the object's type (the lighting byte +0x50 is the object's +5,
 which RenderObject writes before the transform). The per-normal light the client writes must equal the native
 report's values bit for bit.

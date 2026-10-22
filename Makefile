@@ -32,20 +32,6 @@ all:
 	$(MAKE) -C native
 
 test: all
-	for script in mac-play/automation/*.sh; do bash -n "$$script" || exit; done
-	bash -n mac-play/setup-crossover-32bit.sh
-	bash -n mac-play/cxwine
-	bash -n mac-play/cxwineserver
-	bash -n mac-play/start-launcher.sh
-	bash -n mac-play/gl-batching.sh
-	bash -n mac-play/diagnostics/run-eipprof.sh
-	bash -n mac-play/fast-x87.sh
-	bash -n mac-play/install-fast-x87.sh
-	bash -n mac-play/diagnostics/bottle.sh
-	bash -n mac-play/diagnostics/run-fpbench.sh
-	bash -n mac-play/diagnostics/run-glbench.sh
-	bash mac-play/installer/tests/test-mukit.sh
-	bash mac-play/bundle/tests/test-bundle.sh
 	$(PYTHON) -m unittest discover -s reconstructed/boot -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s asset-recovery -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s model-recovery -p 'test_*.py' -v
@@ -79,28 +65,12 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/skill -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
-mugl:
-	$(MAKE) -C mac-play/mugl
-
 native-viewer:
 	$(MAKE) -C native viewer
 
-mac-hotpatch:
-	$(MAKE) -C mac-play/hotpatch
-
-mac-bundle:
-	$(MAKE) -C mac-play/bundle
-
-# Mu The Matrix.app for players: needs EMBED_MUGL=... EMBED_MSCOREE=... EMBED_FAST_X87=... EMBED_RUNTIME=...
-# (see mac-play/bundle/README.md); player-dmg packages it as "Mu The Matrix.dmg" (DMG=..., SIGN_IDENTITY=..., NOTARY_PROFILE=...).
-player-app:
-	$(MAKE) -C mac-play/bundle player-app
-
-player-dmg:
-	$(MAKE) -C mac-play/bundle player-dmg
-
-mac-diagnostics:
-	$(MAKE) -C mac-play/diagnostics
+# Read-only live-state readers for the running client (macOS host tools, ad-hoc signed).
+live-readers:
+	$(MAKE) -C live-readers
 
 integration:
 	MU_RECOVERY_INTEGRATION=1 $(MAKE) test
@@ -108,4 +78,4 @@ integration:
 windows:
 	$(MAKE) -C windows-capture
 
-.PHONY: all test integration windows mugl mac-bundle player-app player-dmg mac-diagnostics mac-hotpatch native-viewer
+.PHONY: all test integration windows native-viewer live-readers

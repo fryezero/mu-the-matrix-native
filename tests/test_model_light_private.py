@@ -3,7 +3,7 @@ docs/research/client-model-light.md).
 
 scripts/validate_model_light.py runs the client's bone-track loop, pose builder 0x012b5064 and transform
 0x012b5bde in Unicorn for every object the native runtime draws, with RenderObject's arguments from the native
-report and the client state read from our own running client (mac-play/diagnostics/lightread), and requires the
+report and the client state read from our own running client (live-readers/lightread), and requires the
 per-normal light to equal the native values bit for bit; the pre-NATIVE-LIGHT-001 inputs must differ.
 Needs MU_RECOVERY_INTEGRATION=1, MU_GAME_ROOT, the pinned captures, Unicorn, a local decoded object plaintext
 (MU_LIGHT_OBJECTS: EncTerrain<n>.plain) and the snapshot of the same world (MU_LIGHT_SNAPSHOT, with MU_LIGHT_WORLD

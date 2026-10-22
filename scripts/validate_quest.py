@@ -3,7 +3,7 @@
 
 The pinned restored text (0x00401000) and second image section run in
 Unicorn (scripts/client_ui_machine.py through validate_lang.LangMachine).
-The langread snapshot (mac-play/diagnostics/langread with
+The langread snapshot (live-readers/langread with
 node:0x137c=0x118 and the quest system maps, see docs/research/client-quests.md)
 is mapped at its original addresses: the Lang tables (MUQuest, MUQuestString,
 GlobalText, Npcname, ItemLevelTooltip) and the client's own quest system

@@ -15,8 +15,8 @@ make test PYTHON=./tools/python/bin/python
 ```
 
 The project targets macOS only. Pull requests run no hosted CI: before merging, run
-`scripts/local-macos-ci.sh` on a Mac (`make test`, the windowed viewer, the Mach profiling tools and the
-publication audit). The hosted workflow still exists for manual runs only (Linux by default, macOS with the
+`scripts/local-macos-ci.sh` on a Mac (`make test`, the windowed viewer, the read-only live-state readers and
+the publication audit). The hosted workflow still exists for manual runs only (Linux by default, macOS with the
 `macos` input). Unit tests
 use authored geometry/image/decoder fixtures and public LEA vectors. Fourteen
 private-input checks explicitly skip by default. A source-only checkout should
@@ -115,6 +115,13 @@ Supply the pinned first-section capture and follow [the map finding](research/cl
 origins and unresolved references, and refuses unpinned input. Its synthetic tests
 run in the portable suite with Capstone; no game data or Unicorn is needed.
 
+## Running the original client on the Mac
+
+Playing the original Windows client on the Mac (the Mac app, the free Wine runtime, mugl, fast x87) is the
+separate repository [mu-the-matrix-mac](https://github.com/fryezero/mu-the-matrix-mac). The native work here only
+needs an installed client folder as `MU_GAME_ROOT`; live comparisons read a client running in Wine with
+[`live-readers/`](../live-readers/README.md).
+
 ## Windows helper
 
 With MinGW-w64 installed:
@@ -130,7 +137,7 @@ covers the helper's own memory read and hash implementation.
 ## Before publishing
 
 ```sh
-git add README.md AGENTS.md CONTRIBUTING.md LICENSE LICENSE-analysis THIRD_PARTY_NOTICES.md Makefile .gitignore .gitattributes docs scripts tests asset-recovery model-recovery reconstructed windows-capture tools .github companion-findings.md
+git add README.md AGENTS.md CONTRIBUTING.md LICENSE LICENSE-analysis THIRD_PARTY_NOTICES.md Makefile .gitignore .gitattributes docs scripts tests asset-recovery model-recovery reconstructed native live-readers runtime-linux windows-capture tools .github companion-findings.md
 git diff --cached --stat
 python3 scripts/audit_repository.py
 ```

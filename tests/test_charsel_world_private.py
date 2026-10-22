@@ -4,7 +4,7 @@ docs/research/client-character-select.md section 9).
 scripts/validate_charsel_world.py runs CGMCharacterScene_Ex's slots, MoveObject/CreateObject for world 0x5d and
 RenderObjects_AfterCharacter in Unicorn against reconstructed/objects/charsel_world.c (MU_RECOVERY_INTEGRATION=1,
 the pinned restored text and run10 image data, Unicorn).
-With MU_CHARSEL_DUMP_DIR (charsel-a.bin and charsel-d.bin from mac-play/diagnostics/objread at the character-select
+With MU_CHARSEL_DUMP_DIR (charsel-a.bin and charsel-d.bin from live-readers/objread at the character-select
 screen; decoded game data, local only): creation equals mu_obj_create for every object apart from the values the
 handler drives, and those advance as reconstructed (the scroll by 0.02 / 0.03 per logic step for the objects
 MoveObjects moved, +0xa for the custom render's types).

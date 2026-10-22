@@ -37,7 +37,7 @@ packed in the file, so no file offset holds it. Two captures of the running clie
 
 * **Live read with a manifest** (`evidence/path-table-live-01/capture.json`, 2026-10-18). Under the game lock
   (held 15:41:23–15:43:15), `mu-to-server.sh` started the play bottle's client (MuMatrix32, the pinned
-  `main.exe`) to the server-select screen. There was no account login. `mac-play/diagnostics/memread.c` is a
+  `main.exe`) to the server-select screen. There was no account login. `live-readers/memread.c` is a
   read-only `task_for_pid` + `mach_vm_read_overwrite` tool. It copied `0x01cf1640+64`, the page `0x01cf1000`
   and the first 32 KiB of the section, twice, 3 s apart. The client was then closed with taskkill (WM_CLOSE).
   Both table copies hash to the digest above. No protection code was read or touched.

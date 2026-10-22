@@ -51,8 +51,8 @@ The network protocol is out of scope and the preview promises no connection. Thr
 
 ## Bundle
 
-`make -C native preview-app` (`native/app/Makefile`, modelled on `mac-play/bundle`): swiftc launcher, the guard,
-mu-client, the icon drawn by `mac-play/bundle/icon/make-icon.swift`, the demo session and the Lorencia demo
+`make -C native preview-app` (`native/app/Makefile`, modelled on the Wine-track app bundle in mu-the-matrix-mac): swiftc launcher, the guard,
+mu-client, the icon drawn by `native/app/icon/make-icon.swift`, the demo session and the Lorencia demo
 tables, the converter with `model-recovery/libmodulus.dylib`. `bundle-dylibs.sh` copies Homebrew's Crypto++,
 libjpeg and sdl2-compat into `Contents/Frameworks` with `@rpath` load commands, plus SDL3, which sdl2-compat loads
 at run time from `@loader_path/libSDL3.dylib`; afterwards no Mach-O names a library outside `/System`, `/usr/lib`

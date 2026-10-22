@@ -33,14 +33,10 @@ __pycache__/
 .env
 .env.*
 
-/mac-play/mugl/build/
+# README images: reviewed and hash-pinned in scripts/audit_repository.py
+!/docs/images/*.png
+!/docs/images/*.jpg
 
-/mac-play/diagnostics/build/
-
-/mac-play/hotpatch/build/
-/mac-play/machprof/build/
-/mac-play/installer/build/
-/mac-play/bundle/build/
+/live-readers/build/
 
 /native/build/
-/mac-play/installer/packaging/build/

@@ -17,72 +17,12 @@ The fixed byte constants used for model formats are published format constants, 
 
 The v14 wrapper links externally installed Crypto++. Crypto++ individual source files are public domain and its compilation uses Boost Software License 1.0. Preserve its applicable upstream notices if distributing the library. No Crypto++ source or binary is vendored here. The source-pinned [license and oracle details](docs/research/bmd-v14.md#license-requirements) include the separate notice for specific 32-bit ARM assembly files. The oracle-generated synthetic vectors acknowledge VD, Copyright (c) 2021 VD, under the upstream MIT license.
 
-## Optional fast x87 runtime
+## Wine track
 
-`mac-play/install-fast-x87.sh` fetches and builds external
-[aprilmaccydee/rosetta-timewalker](https://github.com/aprilmaccydee/rosetta-timewalker)
-at `ab1a6a032e488c0d6eade54ce70a02d653277810` in the user's cache. No upstream
-source or binary is vendored here. Its top-level license is MIT, copyright
-2026 aprilmaccydee. Its bundled modified
-[Lifeisawful/rosettax87_jit](https://github.com/Lifeisawful/rosettax87_jit)
-snapshot derives from `a44f1eff28591a90f4a8c7297134294811da06b5`, MIT,
-copyright 2025 Lifeisawful. The embedded openlibm/fdlibm/FreeBSD msun routines
-retain their per-file notices, including the David Schultz two-clause BSD
-notice reproduced in upstream `THIRD_PARTY_NOTICES.md`. Keep the fetched
-`LICENSE`, `THIRD_PARTY_NOTICES.md`, and embedded source notices with any
-redistribution. CrossOver and Apple Rosetta remain separately supplied software.
-
-The `fpbench.c` and `glbench.c` diagnostics were authored for this investigation
-and copied from the local mu-mac-tools project, with GL error checks added here.
-They contain no game code or assets.
-
-## Immediate-mode batching and profiling
-
-`mac-play/mugl/`, `diagnostics/eipprof.c`, `diagnostics/glcheck.c` and
-`diagnostics/pe_nearest_export.py` are authored for this investigation and covered
-by the repository MIT license. `mugl/exports.txt` is an API-name manifest extracted
-from the separately installed CrossOver 26.3 i386 OpenGL DLL. No Wine/CrossOver
-implementation or binary is included. The generated proxy loads the user's
-installed Wine builtin OpenGL implementation at runtime.
-
-## Claude v7.0 performance tools
-
-`mac-play/hotpatch`, `mac-play/mumodes`, `mac-play/machprof` and
-`mac-play/automation` publish authored code from the owner's local mu-mac-tools
-work under this repository's MIT license. Source identities and packaging
-adaptations are recorded with the performance finding. The mscoree declarations,
-DEF and jump stubs contain forwarding API names/ordinals only. No Microsoft, Wine,
-CrossOver or game implementation is included. Original game instruction bytes,
-including the xform entry prologue, are generated only into ignored local build
-directories from owner-supplied private inputs. Generated DLLs containing original
-bytes are outside the publication boundary and must not be redistributed here.
-
-## Claude v7.1 mesh-draw tools
-
-`mac-play/hotpatch/meshdraw.c`, the v7.1 `mugl.c` and `mac-play/diagnostics/glstride.c`
-are authored code from the owner's local mu-mac-tools work, published under this
-repository's MIT license with the same boundary as the v7.0 tools. The three
-original patch-site byte sequences used by `meshdraw.c` are generated only into the
-ignored build directory from owner-supplied private input; `targets.json` records
-their addresses, lengths and SHA-256 only. No Microsoft, Wine, CrossOver or game
-implementation is included.
-
-## Claude v7.2 precise waits
-
-The v7.2 `mac-play/hotpatch/mugl.c` is authored code from the owner's local mu-mac-tools
-work, published under this repository's MIT license with the same boundary as v7.0
-and v7.1. It adds no original game bytes and no Microsoft, Wine, CrossOver or game
-implementation; it calls the documented Win32 waitable-timer API.
-
-## Mac setup kit
-
-`mac-play/installer/` is authored shell code from the owner's local mu-mac-tools work, published
-under this repository's MIT license. It contains no Microsoft, CrossOver, Wine, winetricks or game
-code or binaries. It invokes CrossOver, winetricks (which downloads Microsoft's .NET Framework
-installer under Microsoft's terms) and MinGW-w64 from the user's machine, and records SHA-256 values
-of Microsoft's installer, a CrossOver builtin and user-supplied proxy DLLs only. Prebuilt mugl DLLs
-contain client-derived bytes and are not part of the repository.
-
+The Mac app, the Wine runtime packaging, the mugl OpenGL proxy, the CPU hotpatches, the mscoree proxy, the fast
+x87 integration and their diagnostics moved to [mu-the-matrix-mac](https://github.com/fryezero/mu-the-matrix-mac)
+on 2026-10-21, together with their notices. The read-only `live-readers/` tools that stayed here are authored code
+under this repository's MIT license and link only system frameworks.
 
 ## Native model viewer
 

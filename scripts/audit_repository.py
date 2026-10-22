@@ -10,21 +10,44 @@ PRIVATE_DIRS = {'input','evidence','runtime','vendor','publish','dist','node_mod
 GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
 
 
-# Owner-requested README screenshots and GIFs. Only these exact reviewed bytes
-# are documentation media; all other binary/generated inputs remain rejected.
+# Owner-requested README screenshots and renders (reviewed 2026-10-21: window-only,
+# no account names, passwords or private paths). Only these exact bytes are
+# documentation media; all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
-    'docs/media/login-live-vs-native.png':
-        'ac965b789b734d5168b4b6b601afb3155899c6004b1d9c1dee279f6c119a2865',
-    'docs/media/character-select-live-vs-native.png':
-        '00c14a89064c9bfbf7ffb553b2d7b32d4a938304fb1ec9498dabab6b3103a0bc',
-    'docs/media/lorencia-live-before-after.png':
-        'dd2e01a1002711a71c2fc522e97c5b3f122987292be29c95aa9f4deed7c5071e',
-    'docs/media/native-inventory.png':
-        'c042bc9f805760d13c501208e11fcbc28b7d9d3f83a171ad1f8f86d664fa3262',
-    'docs/media/native-login.gif':
-        '16d98398477a6f7e1193b6095056ffc3c68eb01ef359dca99d325f412150c4a2',
-    'docs/media/native-character-select.gif':
-        'e9700a171e2441af775d0369f40293ec196b7a8f6f6ab07fb1d25d0474721de2',
+    'docs/images/01-hero-lorencia-players-hud.jpg':
+        'd589cd1764c8c9091f58566b4328700747e67de4aba69865708847525bbe380e',
+    'docs/images/02-login-server-select.jpg':
+        '776da4029a6a28b9035aac4c4e94f68252f93d964bcfb3aa3764b4518a89e52d',
+    'docs/images/03-character-select.jpg':
+        'baa322ab81fe62e3cf9c88cab013cb1ae4a1eacfeab302352bf8e02c4e6adb62',
+    'docs/images/04a-character-creation.png':
+        'fa926cbb24648bb01dca67407e7fdf956a72dd657dd355617738903f0bfade5f',
+    'docs/images/04b-character-creation-all-classes.jpg':
+        '2bd8ab20a3e1e61176b9cc158489002980613c53a7d63334e3c86cad5b90964a',
+    'docs/images/05-world-atlans-devias-noria-lorencia.jpg':
+        '841301b782b624ec660d3cff057f874b7575846070faa56b5529b87b3a626bfe',
+    'docs/images/06-effects-skills-particles.jpg':
+        '37676aefe584725848b1f83dbcdf8302ac68725f2403ddddc49e621e5415a281',
+    'docs/images/07-gfx-character-window-buffs.png':
+        '30dbbd94ab0177632cc587fb95e586e932e68ca46eb86544977c2c6588cb46f6',
+    'docs/images/08-inventory-item-tooltip.png':
+        'c2327e22b2baa9b99b5909b3e956f71a49cc5256d0f45743b8ca52bde28495ec',
+    'docs/images/09-npc-dialogue-and-shop.jpg':
+        'bd64fa6dd222b632553718032632a2e87a6c04d324b4a385d7af0f076a4bf306',
+    'docs/images/10-combat-damage-numbers.jpg':
+        '1b052daafbaf9187f7fc5f71ee8b65d925603ec25d34f20b0d2ae61a7031e074',
+    'docs/images/12-pets-and-mounts.jpg':
+        '4b81b6b5655b46652b203b706b94aa902cb6d2dc50d9acc876fa2df20c2acdc8',
+    'docs/images/13-quests-my-quests.png':
+        '8a01e27970b23388c99ec4b0ff0bb8a83292c33299033449e3b06cc2dadb921d',
+    'docs/images/14-skill-imprint-window.png':
+        'dce99e7f9123e6c27352d22e72f6336946e423d206c371c5751898789b5bbc8c',
+    'docs/images/15-lorencia-lighting-live-before-after.jpg':
+        'b45eab14a3a9e7ce8c527e8dacef46a25319fdca2d6f8a6e87ea848a4fb9a0ab',
+    'docs/images/16-login-live-wine-vs-native.jpg':
+        '97da9a148c44aa6213bc981d185c8ff6371c89dcee6967693f179910e75292b8',
+    'docs/images/17-model-viewer-models.jpg':
+        'fd2f3742172a9f1879b7970f7b2222acbc1953d77381a4cd539634d9e4997d3c',
 }
 
 

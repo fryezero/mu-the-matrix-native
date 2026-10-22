@@ -1,162 +1,291 @@
-# Mu The Matrix on macOS
+<h1 align="center">Mu The Matrix Native</h1>
 
-Two tracks are moving this exact Mu The Matrix client onto the Mac. **The original Windows game is playable on Apple Silicon through Wine**, with a Mac app, installer and performance patches. **The native macOS port is an offline work in progress**, with reconstructed rendering and gameplay components running without Wine.
+<p align="center">
+  <b>A real arm64 macOS client for Mu The Matrix, rebuilt from evidence.</b><br>
+  No Wine, no Rosetta: the client's own behavior, reconstructed in C and checked against its original instructions.
+</p>
 
-## Play on Mac with Wine
+<p align="center">
+  <img src="docs/images/01-hero-lorencia-players-hud.jpg" alt="The native macOS client in Lorencia: the hero on a Dark Horse among other players with wings, pets and mounts, with the original HUD" width="900">
+</p>
 
-The Wine version supports the original launcher, server selection, login and live gameplay. `Mu The Matrix.app` installs the Windows compatibility layer, .NET and the game, then opens the launcher on subsequent launches. The default route uses free Wine; CrossOver remains an alternative.
+<p align="center">
+  <a href="#what-works-today">What works</a> ·
+  <a href="#how-it-is-built-evidence-first">Method</a> ·
+  <a href="#progress">Progress</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#build-and-run">Build and run</a> ·
+  <a href="#scope-and-legal">Scope and legal</a> ·
+  <a href="https://github.com/fryezero/mu-the-matrix-mac">Play on Mac today</a>
+</p>
 
-Start with the [player guide](mac-play/PLAYER-GUIDE.md). You need an Apple Silicon Mac, macOS 13 or later, Rosetta 2, about 12 GB of free space and your game account. Testing so far covers one Mac on macOS 27.0.1. Get the packaged app from the server team's distribution, or build it using the [Mac app instructions](mac-play/bundle/README.md). Runtime setup and the legacy CrossOver route are documented in [mac-play](mac-play/README.md).
+> [!NOTE]
+> **Want to play now?** The native client is an **offline preview**: it does not connect to a server yet. To play
+> Mu The Matrix on a Mac today, use [**mu-the-matrix-mac**](https://github.com/fryezero/mu-the-matrix-mac), the
+> one-download app that runs the original Windows client at 25 FPS.
 
-### Optimizations for the game's hard 25 FPS cap
+---
 
-The client runs game logic at 25 Hz and caps rendering at 25 FPS, giving each frame a 40 ms budget. Our optimization work aims to hold that cap everywhere while preserving the client's behavior and appearance.
+## The goal
 
-Multiple rounds of profiling and patches now reach the cap in tested towns, hunting scenes and the default-view Tormenta boss fight. The work includes:
+Mu The Matrix is a MU Online private server whose Windows client (`main.exe`, version 1.20.87.0) runs on Macs
+only through Wine. This project rebuilds that exact client as a **native Apple-silicon program**: the same
+worlds, characters, interface, rules and timing, compiled for arm64 and drawn with OpenGL on macOS. It is not a
+different MU version, a generic engine or a remake: every routine is matched against the client it replaces.
 
-- Native implementations of hot CPU routines, including model transforms and mesh submission, with comparisons against the client's results.
-- OpenGL batching, terrain sorting, deferred state changes and off-screen culling to reduce draw work.
-- Faster character shadows and terrain decals, plus mesh append batching for crowded fights.
-- Precise frame-pacing waits and thread-priority fixes to avoid missed 40 ms deadlines.
-- Faster JPEG decoding and CRC-32 calculations, checked against the original results, to reduce map-loading work.
-- A fast x87 translation path and a newer free Wine runtime, tested together with the Mac app.
+Today the native client plays offline. It goes from the login scene and server list through character select and
+creation into the world, where you walk, fight, talk to NPCs, shop, follow quests and use skills, with the
+original interface movies. The network layer that would connect it to the live servers is the main missing
+piece ([what is out of scope](#scope-and-legal)).
 
-| Recorded scene or configuration | Result |
+## How it is built: evidence first
+
+Each piece of the client is reconstructed as **authored C** and then **verified against the client's own machine
+code**:
+
+1. **Find the routine.** Static analysis of the unpacked client (REA, Ghidra, Capstone) locates the code, its data
+   and its callers. Addresses, digests and observations go into a research note.
+2. **Write it in C.** A readable reimplementation goes into `reconstructed/<module>/`, with the original addresses in
+   its comments.
+3. **Run both and compare.** A validator in `scripts/validate_*.py` executes the client's **original x86
+   instructions** in the [Unicorn](https://www.unicorn-engine.org) CPU emulator, feeds both the same inputs
+   (synthetic cases, every installed data file, deliberate mutations) and requires identical outputs, down to GL
+   call streams, written tables and floating-point results.
+4. **Check against the running game.** Where the client's state matters, read-only tools in
+   [`live-readers/`](live-readers/README.md) snapshot the running original client (in Wine, on the same Mac) for
+   comparison.
+5. **Only then** wire it into the native client in `native/`.
+
+Some of the recorded comparisons:
+
+| Area | Verified result |
 |---|---|
-| Lorencia, standing with multiple characters | 25.00 FPS, about 12 ms of frame work |
-| Twisted Karutan, main city zoomed out | 24.99–25.00 FPS, about 36–37 ms of work |
-| Tormenta Island, 5 PJ Party farming on Spot | About 25 FPS, 33–35 ms of work, down from 45–50 ms |
+| BMD model decoder | 4,048 synthetic cases and all 180 installed v12 payloads match the client's decoder |
+| Bone tracks, pose builder, skinning | 11,962 installed models; 47,833 pose-builder and 3.8 million vertex-transform comparisons |
+| Mesh draw | Every GL call, cache and colour equal in 207 synthetic, 500 mutated and 2,713 installed-model cases (6.9 million GL records) |
+| Path finding | 7,945 + 3,100 comparisons on synthetic grids and all 82 installed attribute maps, 0 mismatches; 16 planted mistakes caught |
+| Item attributes | 604,981 comparisons over all 4,881 items and 300 synthetic records, 0 mismatches |
+| Effects | 1,870 cases, 109,774 frames and 595,838 particle records against the client's effect code |
 
-The tested faster CX26 runtime still needs distribution; the guide explains using a supplied runtime file. See the [performance report](docs/research/mac-performance.md) and [free-runtime report](docs/research/mac-free-runtime.md) for measurements, verification and remaining limits.
+Every claim is labelled as verified, statically read or demo. The details live in
+[66 research notes](docs/research/), [status](docs/status.md) and [roadmap](docs/roadmap.md).
 
-## Native macOS port progress
+## What works today
 
-The native work rebuilds this client's behavior in editable source. It already has interactive world and character tools and an offline client shell. It is not yet a complete live-server game client.
+All screenshots below are the **native macOS client** (offline; demo accounts, characters and servers), except
+where marked as the original client.
 
-| Area | Progress |
+### Title, login and server select
+
+The client's login world (ships, sea, sky, island beam) with the server list and login overlay drawn by the
+reconstructed 2D layer, in the **Native Preview** app.
+
+<p align="center"><img src="docs/images/02-login-server-select.jpg" alt="Native login scene with server select" width="820"></p>
+
+<details>
+<summary>Compare with the original client</summary>
+<p align="center"><img src="docs/images/16-login-live-wine-vs-native.jpg" alt="Left: the original Windows client under Wine; right: the native reconstruction of the login scene" width="900"><br>
+<sub>Left: the original client in Wine. Right: native. A milestone snapshot, not a pixel-matched test.</sub></p>
+</details>
+
+### Character select and creation
+
+The character-select world with its waterfalls and selection light, the GFx character list, and the creation panel
+with all 16 classes, name rules and the menu.
+
+<p align="center"><img src="docs/images/03-character-select.jpg" alt="Native character select with the GFx character list" width="820"></p>
+
+| | |
 |---|---|
-| Worlds | Terrain, water and lava, world objects, camera, lighting and culling; recovered local object placements for selected worlds |
-| Characters and movement | Skeleton animation, pose building, CPU skinning, class and gear assembly, glow passes, click-to-move and long-distance path following |
-| World activity | Monsters and NPCs, reconstructed combat and skill components, particles, sprites, joints, shadows, ambient sound and footsteps; server-driven placements and behavior use labelled demos |
-| Login and character select | Reconstructed 3D scenes, object lifecycles, waterfalls and selection effects in the offline shell |
-| Interface | Original GFx movies through a patched Ruffle runtime, HUD, inventory item models, tooltips, chat, overhead names and HP boxes; recovered text tables |
-| Validation | Bounded comparisons against captured client instructions, installed-file corpus checks and selected live-state comparisons, documented per module |
+| ![Character creation panel](docs/images/04a-character-creation.png) | ![All 16 class previews](docs/images/04b-character-creation-all-classes.jpg) |
+| Character creation: class list, stats and description | All 16 classes |
 
-Build and run instructions are in [native/README.md](native/README.md). The [status](docs/status.md), [handoff](docs/handoff.md) and [roadmap](docs/roadmap.md) track recovered behavior and remaining work. Live networking and end-to-end gameplay acceptance remain open; a convincing scene does not establish a finished port.
+### The world: terrain, lighting, objects, water, weather
 
-### Live client and native port comparisons
+Terrain with the client's lighting, water and lava, world objects through the client's object lifecycle, ambient
+creatures (fish, birds, leaves), weather, blob shadows and frustum culling.
 
-"Live" means the original Windows client running through Wine on the Mac. "Native" means the offline macOS reconstruction. Characters, gear, interface data and animation phases differ between captures. These images show visual progress, not matched-frame equivalence.
+<p align="center"><img src="docs/images/05-world-atlans-devias-noria-lorencia.jpg" alt="Atlans, Devias, Noria and Lorencia rendered natively" width="900"></p>
 
-**Login and server selection.** Live above, native OpenGL below. The native scene reconstructs the ships, ocean, sky, camera and lighting; its server buttons use offline demo data. [Scene recovery](docs/research/client-login-scene.md), [lighting comparison](docs/research/client-model-light.md).
+<details>
+<summary>How the lighting was matched to the original</summary>
+<p align="center"><img src="docs/images/15-lorencia-lighting-live-before-after.jpg" alt="Lorencia: the original client, the native scene before the lighting correction, and after" width="560"><br>
+<sub>Top: the original client. Middle: native before the lighting correction. Bottom: native after
+(<a href="docs/research/client-model-light.md">evidence</a>).</sub></p>
+</details>
 
-![Original client above and native macOS login scene below](docs/media/login-live-vs-native.png)
+### Effects and particles
 
-**Character selection.** Live above, native below. The native scene has the world's objects, animated waterfalls, particles and selection light. The plain demo character does not reproduce the live character's equipment or character-list panel. [Character-select recovery](docs/research/client-character-select.md).
+Skill effects, joints (lightning), particles, sprites and the client's JSON effect system.
 
-![Live equipped character above and native demo character in the reconstructed selection scene below](docs/media/character-select-live-vs-native.png)
+<p align="center"><img src="docs/images/06-effects-skills-particles.jpg" alt="Area skills with damage text and Lorencia's fires and waterspout" width="900"></p>
 
-**Lorencia lighting.** Live at the top, native before the lighting correction in the middle, native after at the bottom. The native scene recovers the environment's geometry and lighting; the live players, shops and HUD are absent from this milestone capture. [Lighting evidence](docs/research/client-model-light.md).
+### The interface: original GFx movies through Ruffle
 
-![Live Lorencia and the native environment before and after the lighting correction](docs/media/lorencia-live-before-after.png)
+The client's interface is Scaleform GFx (Flash). The native client converts the installed movies and runs them in a
+[patched Ruffle](native/gfx/ruffle-patches) with the client's ActionScript extensions: the HUD, character window,
+buffs, inventory, tooltips, shops, quest and skill windows.
 
-**Native interface progress.** A later native capture shows the original HUD and inventory movies with item models over the world. Values and inventory contents are demo inputs. [GFx integration](docs/research/native-gfx3.md), [overhead names](docs/research/client-overhead-text.md).
-
-![Native macOS world with the original HUD and inventory movies and demo items](docs/media/native-inventory.png)
-
-### Comparisons
-
-These earlier milestone recordings show movement in the reconstructed scenes. The login animation predates the lighting correction shown above.
-
-| Native login scene | Native character-select scene |
+| | |
 |---|---|
-| ![Native login scene animation](docs/media/native-login.gif) | ![Native character-select waterfalls and effects animation](docs/media/native-character-select.gif) |
+| ![Character window, buff list and popup](docs/images/07-gfx-character-window-buffs.png) | ![Inventory with item models and tooltip](docs/images/08-inventory-item-tooltip.png) |
+| Character window and buffs | Inventory, item models, tooltip and price |
 
-[Media provenance and capture limitations](docs/media/README.md).
+### NPCs, shops and quests
 
-## Start here
+Talking to NPCs (dialogue text from the client's tables), shops and the vault, and the client's quest system with
+requirements and rewards, answered by a local demo server.
 
-| You want to… | Read |
+<p align="center"><img src="docs/images/09-npc-dialogue-and-shop.jpg" alt="NPC dialogue and the blacksmith's shop" width="900"></p>
+
+| | |
 |---|---|
-| Continue with an agent | [AGENTS.md](AGENTS.md), then [handoff](docs/handoff.md) |
-| See what actually works | [Current status](docs/status.md) |
-| Build and run checks | [Setup](docs/setup.md) |
-| Choose a contribution | [Roadmap](docs/roadmap.md) and [contributing](CONTRIBUTING.md) |
-| Understand the code boundaries | [Architecture](docs/architecture.md) |
-| Recover executable code | [Code recovery](docs/code-recovery.md), [Mac-only runtime](runtime-linux/README.md), [Windows helper](windows-capture/README.md) |
-| Work on assets | [Images](docs/asset-recovery.md), [models](docs/model-recovery.md), [primary sources](model-recovery/SOURCES.md) |
+| ![My Quests window](docs/images/13-quests-my-quests.png) | ![Skill Imprint window and skill bar](docs/images/14-skill-imprint-window.png) |
+| Quests | Skills: the skill bar, tooltips and the Skill Imprint window |
 
-## Recovery foundations
+### Combat, other players, pets and mounts
 
-These earlier structural and component-level results underpin the native work above. Their bounded checks do not establish complete gameplay equivalence.
+Attacks and skills with the client's damage text, hit and death handling, monster HP boxes and voices, dropped
+items with labels and pick-up; other players with their equipment, wings and guild names; pets and mounts.
 
-| Component | Verified result | Remaining gap |
-|---|---|---|
-| Startup decompressor | Portable C builds; four original blocks match independent decoding byte for byte | Recovered 41,984,000-byte region is still protector material |
-| Native inspection | REA/Ghidra decompile a restored client arithmetic routine from a verified prefix | Full function map, calling conventions and behavior still need recovery |
-| Client memory operation | Authored 64-byte copy/clear match captured x86 in 393 / 768 cases | Original type/callers unknown; clear feature state supplied explicitly |
-| Record arithmetic | Cofactor/inverse source matches captured x86 in 1,680 / 1,050 controlled cases | Types/callers and native FP state unknown; unsupported domains remain |
-| Client model decoder | Authored v12 C decoder matches captured x86 in 4,048 synthetic cases and all 180 installed v12 payloads | Complete loader, original types and hierarchy semantics remain open |
-| Code navigation | First 64 KiB mapped with explicit candidate origins and REA comparison | Heuristics are incomplete; symbols/types and outside references unresolved |
-| Mac-only runtime | QEMU x86 Linux/Wine restores a repeatable 23,572,480-byte client-code mapping | No demonstrated login/gameplay; compatibility-environment limits remain |
-| Images | 19,703 / 19,707 wrapper candidates decode; selected PNG exports match pixels | Three terrain images rejected; one candidate is actually mesh text |
-| BMD models | 12,663 / 12,754 files parse; versions 10, 12, 14 and 15 supported | 17 rejected; 74 other/table files unsupported |
-| Effect descriptions | 370 JSON files parse; all 92 distinct texture references resolve locally | Original engine interpretation of their fields remains open |
-| Windows capture helper | Builds as a Windows x64 console program; hash and own-memory smoke tests pass under Wine | Actual game capture on Windows has not been validated |
+<p align="center"><img src="docs/images/10-combat-damage-numbers.jpg" alt="Combat: skill hit, damage numbers and a monster HP bar" width="820"></p>
 
-The latest original-file scan and all binary evidence stay local. [The evidence index](docs/evidence-index.json) preserves artifact identities, coverage, and relative locations without bundling game material.
+<p align="center"><img src="docs/images/12-pets-and-mounts.jpg" alt="Imp, Uniria, Dark Horse, Dinorant and Fenrir" width="900"></p>
 
-## Build the recovery modules
+### Performance
 
-Python 3.9+, Clang/Clang++ and Crypto++ are required. The portable build targets macOS and Linux. Pillow supports image-reader tests; Capstone checks bounded control-flow maps; Crypto++ supplies the eight v14 block ciphers.
+The native client keeps the client's own **25 FPS** (40 ms) frame cap with headroom in every profiled scene,
+including full screen: Lorencia needs about 14 ms of work per frame at the preview window size, and with the cap
+removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 2160). See [native performance](docs/research/native-performance.md).
 
-```sh
-# macOS; on Debian/Ubuntu install libcrypto++-dev instead
-brew install cryptopp
-python3 -m venv tools/python
-./tools/python/bin/python -m pip install -r tools/requirements-portable.txt
-make test PYTHON=./tools/python/bin/python
+### Models
+
+`mu-viewer` loads, animates and lights any of the client's BMD models (versions 10, 12, 14 and 15; 12,663 of
+12,754 installed files parse).
+
+<p align="center"><img src="docs/images/17-model-viewer-models.jpg" alt="Models from the client's BMD files in mu-viewer" width="900"></p>
+
+## Progress
+
+| Milestone | State |
+|---|---|
+| Client identity, unpacking boundary, code capture (QEMU x86 Linux/Wine guest) | Done |
+| Formats: images, BMD models v10/12/14/15 (encrypted envelopes), terrain, effects JSON, data tables, `Lang.mpr` tables | Done |
+| Model pipeline: decoder, bone tracks, pose builder, skinning, mesh draw | Done, verified in Unicorn |
+| World: terrain, lighting, water/lava, objects, culling, environment, weather | Done for the tested worlds |
+| Characters: assembly, gear, glow, world render rules, monsters and NPCs | Done |
+| Movement: click-to-move, path finding, long-distance auto move, walk/run rules | Done, verified |
+| Scenes: title, login world, server select, character select and creation, loading | Done (offline) |
+| Interface: 2D layer, legacy windows, GFx movies via Ruffle, HUD, inventory, tooltips, names, chat bubbles | Done |
+| Gameplay systems: combat and skill effects, items, NPC talk/shops/vault, quests, skills, other players, pets and mounts | Client side done; server answers are a local demo |
+| Audio: music, ambient, footsteps, effects | Done |
+| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done |
+| Network: protocol framing | Partly (packet build/parse tools) |
+| Live login and encrypted session, end-to-end gameplay against the real servers | Not started (out of scope for now) |
+
+The full per-milestone record is in [docs/status.md](docs/status.md) and [docs/roadmap.md](docs/roadmap.md).
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Evidence["Evidence (local only, never committed)"]
+        Client["Installed client<br/>main.exe + Data/ (MU_GAME_ROOT)"]
+        Live["Running original client<br/>(Wine, read-only snapshots)"]
+    end
+    subgraph Verify["Verification"]
+        Validators["scripts/validate_*.py<br/>client x86 code in Unicorn vs authored C"]
+        Readers["live-readers/<br/>objread, memread, lightread, langread"]
+    end
+    subgraph Source["Reconstruction"]
+        Formats["model-recovery/, asset-recovery/<br/>BMD, images, LEA, tables"]
+        Recon["reconstructed/*<br/>30 modules of authored C<br/>(models, terrain, objects, ui, combat, npc, quest, skill, …)"]
+    end
+    subgraph Native["Native macOS client (arm64)"]
+        Core["native/core<br/>platform-neutral game modules"]
+        Apps["mu-world, mu-charsel, mu-client<br/>(SDL2 + OpenGL)"]
+        GFx["native/gfx<br/>GFx → SWF + patched Ruffle (libmugfx)"]
+        Preview["Mu The Matrix Native Preview.app"]
+    end
+    Client --> Validators
+    Live --> Readers --> Validators
+    Validators -->|"must match"| Recon
+    Formats --> Core
+    Recon --> Core --> Apps --> Preview
+    GFx --> Apps
+    Client -->|"read at run time"| Apps
 ```
 
-The default suite uses authored fixtures and public LEA test vectors. Checks requiring the original installation or private evidence are explicitly skipped when those inputs are absent. To run those checks, follow [private integration setup](docs/setup.md#private-integration-checks).
+## Build and run
+
+You need an Apple-silicon Mac with the Xcode Command Line Tools, Homebrew and Python 3. **You must supply your own
+installed Mu The Matrix client** (`MU_GAME_ROOT`, the folder with `main.exe` and `Data/`): this repository contains
+no game files. The [Mac app](https://github.com/fryezero/mu-the-matrix-mac) installs one at
+`~/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix`.
 
 ```sh
-# Optional Windows helper cross-build with MinGW-w64
-make windows
+brew install cryptopp sdl2 jpeg-turbo
+git clone https://github.com/fryezero/mu-the-matrix-native.git && cd mu-the-matrix-native
+python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements-portable.txt
+make test PYTHON=tools/.venv/bin/python          # builds everything, runs ~385 tests (private checks skip)
+make -C native client                            # native/build/mu-client (and mu-world, mu-charsel)
+
+export MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
+native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt   # the offline client
+native/build/mu-world  --game-root "$MU_GAME_ROOT"                                            # straight into a world
+native/build/mu-viewer "$MU_GAME_ROOT/Data/Monster/Monster01.bmd"                             # one model
 ```
 
-## Project map
+For the GFx interface, fetch and build Ruffle first (`native/gfx/fetch-ruffle.sh && native/gfx/build-mugfx.sh`).
+The double-clickable **Native Preview app** bundles all of it with a first-run data setup and a network guard:
+
+```sh
+make -C native preview-app        # native/build/app/Mu The Matrix Native Preview.app
+make -C native/app install        # copy to ~/Applications
+```
+
+Every tool and option is documented in [native/README.md](native/README.md). Private integration checks against
+your installation run with `MU_RECOVERY_INTEGRATION=1 make test` ([setup](docs/setup.md)). The merge gate is
+`bash scripts/local-macos-ci.sh` on a Mac; there is no hosted CI.
+
+## Repository layout
 
 ```text
-asset-recovery/        Image wrappers and editable text-mesh readers
-model-recovery/        BMD geometry, bones, animation and encrypted envelopes
-reconstructed/boot/   Tested C startup decompressor
-reconstructed/client-memory/  Restored client behavior with instruction comparison
-reconstructed/record-math/  Controlled cofactor/inverse reconstruction
-windows-capture/      Read-only Windows executable-region capture source
-reconstructed/model-codec/  Client-linked BMD decoder with exact alias behavior
-mac-play/             Playable Wine setup, Mac app, optimizations and player guide
-native/               Native rendering, interactive tools and offline client shell
-runtime-linux/        Mac-only x86/Wine procedure and scoped text capture
-scripts/              PE inventory, REA collection, loader recovery and emulation
-model-recovery/fixtures/  Public cryptographic vectors, no game data
-docs/                 Findings, architecture, roadmap and agent handoff
-.github/              CI and contribution templates
+native/            The native client: core modules, mu-world/mu-charsel/mu-client, viewer, GFx (Ruffle), preview app, tests
+reconstructed/     Authored C reconstructions of client routines, one module per subsystem, with tests
+scripts/           Unicorn validators (validate_*.py), static analysis, loader recovery, publication audit, local CI
+live-readers/      Read-only snapshot tools for the running original client (macOS host tools)
+model-recovery/    BMD geometry, bones, animation and encrypted envelopes (v10/12/14/15)
+asset-recovery/    Image wrappers and text-mesh readers
+runtime-linux/     QEMU x86 Linux/Wine guest procedure for code capture (historical, unmaintained)
+windows-capture/   Read-only Windows capture helper (not yet validated on Windows)
+docs/              Status, roadmap, handoff, architecture, 66 research notes, images
+tests/             Repository-level tests (publication boundary, static maps, private checks)
 ```
 
-`input/`, `evidence/`, `runtime/`, `vendor/` and recovered asset outputs are local-only and ignored. Supply your own matching installation; no game executable, asset pack, process dump or recovered game payload is distributed here.
+## Scope and legal
 
-## Direction
+- **No game data here.** The repository contains authored source, synthetic test fixtures and written findings.
+  It never contains the client executable, DLLs, game assets, decoded models or textures, text tables, process
+  dumps or memory snapshots; `scripts/audit_repository.py` enforces this on every change. The README images are
+  screenshots and renders made for documentation, reviewed and hash-pinned. You need your own installed client
+  to build anything that shows the game.
+- **Out of scope.** The client's protection and licensing modules (the packer, IGC.dll, RGS.dll, "Hash
+  Protection") are treated as opaque and are not analysed. The network encryption and login packets are not
+  worked on; the native client runs offline against local demo answers and blocks outside connections.
+- **Ownership.** Mu The Matrix, its client, assets and servers belong to their owners; this project is done with
+  the server owner's authorization. The MIT license ([LICENSE](LICENSE)) covers this project's own code and
+  documentation only, not the game, its assets or anything derived from them. Third-party components (SDL2,
+  libjpeg-turbo, Crypto++, Ruffle, Unicorn, Capstone) keep their own licenses:
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The Wine track keeps the original client playable on macOS while the native track reconstructs and validates its behavior. Recovery uses restored client code, instruction comparisons and selected live-client observations. The native port must still pass the [gameplay acceptance gates](docs/roadmap.md) before it replaces the Wine version. An older MU client is not a substitute for this exact-version target.
+## Related
+
+- [**mu-the-matrix-mac**](https://github.com/fryezero/mu-the-matrix-mac): play the original client on a Mac today
+  (free app, Wine runtime, 25 FPS). It was part of this repository until October 2026; its history moved with it.
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md), [docs/handoff.md](docs/handoff.md).
 
 ## Target identity
 
-- Format: PE32, x86 Windows GUI, 32,229,376 bytes.
-- Embedded version label: `1.20.87.0`, not independently verified release provenance.
-- `main.exe` SHA-256: `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
-- Entry VA: `0x0e646058`; image base: `0x00400000`.
-
-## License
-
-Original code and documentation in this repository are MIT licensed; see [LICENSE](LICENSE). The license covers this project's implementations, not the supplied game, its assets, decompiled output, or external tools. Source references and their distinct licenses are listed in [third-party notices](THIRD_PARTY_NOTICES.md).
+- `main.exe`: PE32 x86 Windows GUI, 32,229,376 bytes, embedded version `1.20.87.0`.
+- SHA-256 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`; entry VA `0x0e646058`; image base `0x00400000`.

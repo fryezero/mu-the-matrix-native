@@ -35,7 +35,7 @@ The reader copies plain memory that main.exe's code reads; it never writes, susp
   the record (node `+0x14`), or the default record at `this+0x38` on a miss.
 - **Table manager.** `0x0115eceb` is the startup routine that loads every Lang table. It passes `this+offset` and
   a wide script name to the table loader `0x010d68e1`. With GlobalText = `this+0xe8`, `this = 0x06fbaa60`. The
-  76 table objects and their names are catalogued in `mac-play/diagnostics/langread.c`. The ones used here:
+  76 table objects and their names are catalogued in `live-readers/langread.c`. The ones used here:
 
   | Table | Object | Map |
   |---|---|---|
@@ -65,7 +65,7 @@ character), and `langread` read the tables there; they are loaded before the ser
 closed with taskkill (WM_CLOSE), and the launcher with its own X button (muinput click). Only clients this project
 started were read.
 
-`mac-play/diagnostics/langread.c` (macOS host tool, ad-hoc signed with the debugger entitlement) copies, through
+`live-readers/langread.c` (macOS host tool, ad-hoc signed with the debugger entitlement) copies, through
 `mach_vm_read_overwrite`:
 
 - the manager range `0x06fbaa60..0x06fbcd80`;
@@ -260,8 +260,8 @@ Renders are in `~/Documents/mu-mac-tools/native/renders/lang/`:
 ## Reproduce
 
 ```sh
-make -C mac-play/diagnostics langread            # macOS host tool
-mac-play/diagnostics/build/langread <main.exe pid> lang.bin   # client you started, under the lock, at the server list
+make -C live-readers langread            # macOS host tool
+live-readers/build/langread <main.exe pid> lang.bin   # client you started, under the lock, at the server list
 scripts/live_lang_to_plain.py lang.bin --out LOCAL/lang       # decoded game text: keep local
 MU_LANG_DIR=LOCAL/lang native/build/mu-lang LOCAL/lang summary
 MU_LANG_DIR=LOCAL/lang native/build/mu-world --game-root "$MU_GAME_ROOT" --gfx MOVIES ...

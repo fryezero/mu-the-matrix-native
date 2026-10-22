@@ -3,7 +3,7 @@
 
 The pinned restored text (0x00401000) and second image section run in
 Unicorn (scripts/client_ui_machine.py).  The langread snapshot
-(mac-play/diagnostics/langread) is mapped at its original addresses: the
+(live-readers/langread) is mapped at its original addresses: the
 script-table manager 0x06fbaa60 in the uninitialised data, the map nodes
 and buffers in their heap pages.  A read of a byte the snapshot did not copy
 stops the case.  Each consumer's result is compared with the native module

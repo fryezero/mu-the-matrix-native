@@ -52,7 +52,7 @@ The owner authorized live reads under `GAME-LOCK.md`. The lock was held 16:07:36
 `mu-autologin.sh` (MuMatrix32, MTM-1, Nighty, who stood in Lorencia at 144,140), two snapshots and two screenshots; the
 client was closed with `taskkill` (WM_CLOSE) and the launcher closed on its own. No character moved.
 
-The new read-only tool `mac-play/diagnostics/lightread` (`make -C mac-play/diagnostics lightread`) copies the globals,
+The new read-only tool `live-readers/lightread` (`make -C live-readers lightread`) copies the globals,
 the model container `[0x01d1dbec]` (its `std::map<int, BMD *>` at `+4`, walked in order: 4,854 models), the live
 CharactersClient entries (`[[0x01d1dbbc] + 8] + i × 0x3670`) and both terrain light grids. Findings (live):
 

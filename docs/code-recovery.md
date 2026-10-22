@@ -113,8 +113,8 @@ gets beyond this observed stop in a 32-bit bottle; the launcher needs .NET 4.8,
 builtin WIC/GDI+, WPF software rendering and its default skin. Native WIC breaks
 image encoding, and the copied custom `Template.design` had to be disabled (no
 longer with the mscoree proxy v3, see
-[`research/mac-launcher-skin.md`](research/mac-launcher-skin.md)). Read
-[`research/mac-crossover-32bit.md`](research/mac-crossover-32bit.md) for the
+[`research/mac-launcher-skin.md`](https://github.com/fryezero/mu-the-matrix-mac/blob/main/docs/research/mac-launcher-skin.md)). Read
+[`research/mac-crossover-32bit.md`](https://github.com/fryezero/mu-the-matrix-mac/blob/main/docs/research/mac-crossover-32bit.md) for the
 authored isolated setup, real test results, static selector-0x33 candidates and
 the unresolved fault-path inference. This does not demonstrate gameplay.
 
