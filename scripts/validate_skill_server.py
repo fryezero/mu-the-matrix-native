@@ -808,6 +808,38 @@ def run_canuse(m, nat, table, records, keys, reqs, rng, fam, cases):
         native = nat.lib.mu_skill_can_use(ctypes.byref(ue), ctypes.byref(hero), skill)
         fam.check((n, skill, by[skill].weapon if skill in by else None), client, native)
 
+    # This branch was misread in the first static notes: 0x01092042 accepts an absent 0x1bb buff.
+    # Exercise every combination at the actual caller with the weapon/stat/ring gates satisfied.
+    if 0x82a in by:
+        for world_has in (False, True):
+            for flag in (0, 1):
+                for has_buff in (False, True):
+                    case = UseCase(rng, records, reqs)
+                    case.world, case.siege, case.event_flag, case.transform = 0, 0, 0, 0xffff
+                    case.kinds = {(0, 0x73)}
+                    case.items = [(-1, 0, 0)] * 15
+                    case.buffs = {0x1bb} if has_buff else set()
+                    case.confusion_world, case.confusion_flag = world_has, flag
+                    m.prepare(force=True)
+                    vs.common_stubs(m)
+                    hcase = vs.Case(rng, keys)
+                    hcase.class_index = 5
+                    hero = vs.HeroC()
+                    hero.class_index = 5
+                    for name in ('strength', 'agility', 'vitality', 'energy', 'command'):
+                        setattr(hero, name, 65535)
+                    h, a = vs.write_hero(m, hcase, hero)
+                    m.stub(vs.CLASS_INDEX, lambda mm: 5, 0)
+                    use_stubs(m, case, h, a)
+                    obj = m.alloc(0x20, define=True)
+                    m.write(obj, struct.pack('<II', h, h + 0x3254))
+                    client = m.call(CAN_USE, [0x82a], ecx=obj) & 0xff
+                    keep = []
+                    ue = use_env(case, table, keep)
+                    ue.skills[0].class_index = 5
+                    native = nat.lib.mu_skill_can_use(ctypes.byref(ue), ctypes.byref(hero), 0x82a)
+                    fam.check(('confusion', world_has, flag, has_buff), client, native)
+
 
 def run_world(m, nat, table, records, keys, reqs, rng, fam, cases):
     for n in range(cases):
@@ -860,7 +892,7 @@ def run_marker(m, nat, rng, fam, cases):
 
 
 FAMILIES = ['list', 'keys', 'stamp', 'canuse', 'world', 'marker']
-MUTANTS = {12: 'list', 13: 'stamp', 14: 'list', 15: 'list', 19: 'canuse'}
+MUTANTS = {12: 'list', 13: 'stamp', 14: 'list', 15: 'list', 19: 'canuse', 20: 'canuse'}
 
 
 def run_all(m, nat, snap, args, families, report, rng, quiet=False):
@@ -870,6 +902,10 @@ def run_all(m, nat, snap, args, families, report, rng, quiet=False):
     reqs = {row[0]: row for row in plain.read_skillreq(snap)}     # key, +0, +4 skill, +8, +0xc, +0x10, +0x14, +0x18
     reqs = {k: (v[0], v[2], v[3], v[4], v[5], v[6], v[7]) for k, v in reqs.items()}
     for name in families:
+        # prepare() restores memory, not hooks. The packet families replace CAN_USE with a case answer;
+        # without clearing client stubs, a later canuse family compares C with that old answer instead of
+        # executing 0x010918c7. Each family must establish its own modelled boundaries.
+        m.stubs = {address: entry for address, entry in m.stubs.items() if entry[0] == 'import'}
         fam = vs.Family(name)
         if name == 'list':
             run_list(m, nat, table, records, keys, rng, fam, args.cases)

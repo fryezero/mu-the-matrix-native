@@ -1083,6 +1083,8 @@ def run_all(m, nat, snap, args, families, report, rng, quiet=False):
     texts = snapshot_text(snap)
     installed = installed_tables(args.game_root) if 'build' in families else None
     for name in families:
+        # A family must execute its target routines, even after another family or mutant installed stubs.
+        m.stubs = {address: entry for address, entry in m.stubs.items() if entry[0] == 'import'}
         fam = vs.Family(name)
         if name == 'class':
             run_class(m, nat, rng, fam, keys)

@@ -247,7 +247,11 @@ int mu_skill_can_use(const mu_skill_use_env *env, const mu_skill_hero *hero, int
             return 0;
         if (env->confusion_flag != 0)
             return 0;
+#if MU_SKILL_MUTATION == 20
         if (!buff(env, 1, 0x1bb))
+#else
+        if (buff(env, 1, 0x1bb))       /* 0x01092042: JZ continues; the present buff blocks the skill */
+#endif
             return 0;
     }
     if (!mu_skill_require_ok(env, hero, skill))
