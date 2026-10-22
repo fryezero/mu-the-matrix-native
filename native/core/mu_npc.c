@@ -560,7 +560,8 @@ int mu_npc_script_parse(mu_npc_script *script, const char *text)
         snprintf(it->verb, sizeof it->verb, "%s", a);
         snprintf(it->arg, sizeof it->arg, "%s", b ? b : "");
         static const char *const VERBS[] = {"click", "talk", "buy", "sell", "take", "put", "option", "next", "close",
-                                            "tip", "tipinv", "bufftip",
+                                            "tip", "tipinv", "bufftip", "goblin", "mixopen", "mixput", "mixtake",
+                                            "mix", "mixresult", "mixadd", "jewel",
                                             /* NATIVE-QUEST-001 (world_gfx's quest verbs) */
                                             "qnext", "qno", "qok", "qclose", "qwin", "qtab", "qsel", "qgo", "qgiveup",
                                             "qkill", "qset", "qtrack", "qclass", "qcnext", "qcok", "qgset", "qcheck"};

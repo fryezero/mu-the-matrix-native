@@ -16,6 +16,27 @@ class MixRules(unittest.TestCase):
     def setUpClass(cls):
         subprocess.run(['make', '-C', str(ROOT/'reconstructed/mix')], check=True, capture_output=True)
         cls.lib = native(ROOT/f'reconstructed/mix/libmix.{SUFFIX}')
+        cls.lib.mu_mix_select.argtypes=[C.c_void_p,C.c_int32,C.c_void_p,C.c_int32,C.c_int]
+        cls.lib.mu_mix_group_add.argtypes=[C.c_void_p,C.c_int,C.c_void_p,C.c_uint32,C.c_uint8]
+        cls.lib.mu_mix_first_values.argtypes=[C.POINTER(Values),C.c_void_p,C.c_int,C.c_void_p]
+
+    def test_equal_rank_keeps_first_row_and_incomplete_candidates_are_distinct(self):
+        a=recipe([condition(1),condition(2)]);b=bytearray(a);put(b,0,1)
+        s=bytes(source(1))
+        self.assertEqual(self.lib.mu_mix_select(C.create_string_buffer(s),1,bytes(a+b),2,0),0)
+        self.assertEqual(self.lib.mu_mix_ready(C.create_string_buffer(s),1,bytes(a)),0)
+
+    def test_group_uses_raw_value_for_subkind_5c_duplicate(self):
+        s=source(1,3);put(s,0xc,0x5c);put(s,0x30,300);s[0x3d]=1
+        buf=C.create_string_buffer(bytes(s),3200)
+        self.assertEqual(self.lib.mu_mix_group_add(buf,1,bytes(s),100,3),1)
+        self.assertEqual(struct.unpack_from('<I',buf.raw,0x30)[0],400)
+        self.assertEqual(struct.unpack_from('<I',buf.raw,0x20)[0],6)
+
+    def test_formula_first_fields_are_last_matching_level_and_option(self):
+        a=source(1);b=source(1);put(a,0x10,2);put(b,0x10,7);put(b,0x38,16)
+        v=Values();self.lib.mu_mix_first_values(C.byref(v),bytes(a+b),2,bytes(recipe([condition(1)])))
+        self.assertEqual((v.first_value,v.first_level),(7,16))
 
     def test_jewel_level_boundaries_and_mix_window_gate(self):
         t = Target(1, 5, 0, 1, 0, 0, 100, 0)

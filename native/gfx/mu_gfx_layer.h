@@ -46,6 +46,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "../core/mu_mix.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,7 +61,7 @@ typedef struct mu_gfx_layer mu_gfx_layer;
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
        MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
-       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MOVIES };
+       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_MOVIES };
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
  * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
 /* NATIVE-QUEST-002 adds QuestSummary (the quest summary HUD), QuestProgressInfo (the quest notice movie) and
@@ -172,6 +173,11 @@ typedef struct mu_gfx_layer_config {
     int (*window_key)(void *user, int vk);
     /* NATIVE-SKILL-002: game-drawn overlays immediately after their window movie, in stage points. */
     void (*window_draw)(void *user, int movie, int32_t stage_w, int32_t stage_h);
+    /* NATIVE-MIX-001. user = tooltip_user. Quote and eligibility run the
+     * reconstructed rules; the layer's delayed answer is an offline demo. */
+    int (*mix_quote)(void *user, int group, const mu_mix_item *items, int n, mu_mix_quote *out);
+    int (*jewel_check)(void *user, int jewel, const mu_mix_item *target, int mix_visible);
+    void (*jewel_request)(void *user, int source_cell, int target_cell);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
@@ -287,6 +293,12 @@ int mu_gfx_layer_item_count(const mu_gfx_layer *layer);
 int mu_gfx_layer_items_placed(const mu_gfx_layer *layer);
 /* Items currently in the inventory, matching code and level (class-upgrade conditions). */
 int mu_gfx_layer_count_item(const mu_gfx_layer *layer, int32_t code, int32_t level);
+/* Mix demo script: goblin, mixopen GROUP, mixput CELL, mixtake CELL,
+ * mix, mixresult (0 reject, 1 success, 2 failure), jewel SOURCE:TARGET.
+ * Pending requests lock affected inventories until the 160ms demo reply. */
+int mu_gfx_layer_mix_action(mu_gfx_layer *layer, const char *verb, int a, int b);
+int mu_gfx_layer_mix_pending(const mu_gfx_layer *layer);
+int mu_gfx_layer_item_snapshot(const mu_gfx_layer *layer, int index, mu_mix_item *out);
 /* The item draws the inventory's item pass would hand to the items
  * callback now (slot pass outputs); returns the count. */
 int mu_gfx_layer_item_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max);

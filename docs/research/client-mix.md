@@ -2,12 +2,12 @@
 
 ## Current boundary
 
-This is a verified rule-library slice, not a completed native mix feature.
-`reconstructed/mix` has authored C for scalar mix-item summaries, ingredient
-conditions, quantities, rate expressions, A/B/C zen-cost modes,
-Bless/Soul/Life eligibility and the unencrypted jewel request body.
-Native inventory/GFx integration, recipe ranking, demo replies, personal
-store and repair flows are still open. No live client was used.
+The native client now plays MixGoblinSel and MixInventoryFrame, identifies
+bounded Mix.bmd recipes, shows rate and zen, and applies delayed offline
+mix and Bless/Soul/Life answers to inventory snapshots. `mu-world` and
+`mu-client` share this GFx path. The demo server's result is authored: it
+never predicts the real server's random outcome. Personal store and repair
+are the next slice. No live client or real items were used.
 
 ## Inputs and method
 
@@ -112,30 +112,112 @@ Use the repo's pinned Python requirements. Report, private disassembly and
 AS exports are local under `~/Documents/mu-mac-tools/native/scratch/mix/`.
 The full local macOS gate exited 0 on the resolved tree rebased onto
 `bb27f8a`; its log is `scratch/mix/local-macos-ci.log` under mu-mac-tools/native.
-The requested `~/Documents/mu-mac-tools/native/renders/mix/` exists but
-has no native mix renders yet.
+Round 1 had no native renders; round 2 renders are listed below.
 
-## Next work and static readings
+## Native integration and round 2
 
-- Port candidate filtering/ranking `0x00d0b2c6`, tie score `0x00d0b5d7`,
-  grouping `0x00d08e38` and aggregation `0x00d09366`/`0x00d096f0`. Selecting
-  the first ready row would be an unverified replacement for that manager.
-- Wire MixGoblinSel and MixInventoryFrame through GFx. NPC result 3 opens
-  MixGoblinSel. MixInventoryFrame is 8 by 4, page type 4 at manager `+0xa8`,
-  type 5 at `+0xb8`. Its AS calls `onClickbtnMix` and exposes InitText,
-  SetText, SetMixType, SetVisibleMixButton and shared slot callbacks.
-  These are static readings, not native UI verification.
-- Trace mix/jewel answers and apply demo-server snapshots only after an
-  answer. Item glow already exists through RenderItem3D/RenderObjDraw in
-  `world_gfx_game.c`; no renderer change made here.
-- Personal-store movies exist: PersonalShop, PersonalShopProductList,
-  PersonalShopRegister, PersonalShopPurchase. Registration gate
-  `0x00c00b38` calls `0x016be0dc` with item-specific refusals. These remain
-  static readings; registration/open/close/replies are unimplemented.
-- Repair cost and ban already exist in reconstructed/price and
-  reconstructed/data. NpcShop repair-button requests/results remain unwired.
-- Harmony vectors and the harmony table are needed for cost mode D.
+`reconstructed/mix/mix_manager.c` adds the following instruction comparisons:
 
-The inventory click path's earlier call outside the restored image remains
-opaque. No protection module, encryption/login packet, real item or zen
-mutation was investigated or performed.
+| Client routine | Authored entry point | Scope |
+|---|---|---|
+| `0x00d07e3f` | `mu_mix_value` | Mix-specific jewel values, ItemValue fallback supplied by the host |
+| `0x00d0b2c6`, `0x00d0c374` | `mu_mix_select` | Single-row shortcut, candidate intersection, required-condition count and J/L filters |
+| `0x00d0b5d7` | `mu_mix_score` | Ordered quantity consumption, weights, flags, optional leftovers; equal scores retain the earlier row |
+| `0x00d0a318`, `0x00d08e38` | `mu_mix_same`, `mu_mix_group_add` | Scalar equality and grouping, class filter -1, no harmony vectors |
+| `0x00d096f0`, `0x00d09811` | `mu_mix_values_make` | Value totals and bonus |
+| `0x00d0960d` | `mu_mix_first_values` | Last source matching condition 0 supplies summary +0x10 and +0x38 to formula fields |
+| `0x00d09366` | `mu_mix_additions_make` | Rate-affecting optional quantities; Item.bmd +0x254 supplied at the lookup boundary |
+
+`scripts/validate_mix_manager.py` executes these instructions against the
+same pinned captures. STL allocation, copying and iteration are modelled;
+selection, candidate filtering and tie scoring execute. Empty harmony
+vector lifecycle is modelled. Grouping supplies a mix-value boundary,
+checked separately by executing the actual valuation helper with a
+modelled ItemValue fallback. Item.bmd lookups for optional values are
+modelled. The native quote adapter composes these helpers; its whole
+file-loading/GFx/demo transaction is covered by portable tests and native
+renders, not a claim of a complete original-client quote execution.
+
+Round 2 private run: **16,021 comparisons, zero mismatches**. Eight
+synthetic families have 2,000 cases each: selection, score plus mutated
+quantities, scalar totals, equality, first fields, optional additions,
+grouping and mix valuation. Another 21 selection cases traverse every
+nonempty installed group, including all 3,009 candidate rows. This is one
+synthetic inventory per group, not exhaustive recipe-ranking coverage.
+All six new planted mistakes are caught: last-wins ties, first-wins formula
+fields, omitted extra kinds 9/10, wrong score weight, wrong duplicate value,
+and using shop prices instead of mix values. Together with the repeated
+round-1 run: **68,554 comparisons, zero mismatches, 17/17 mutants caught**.
+Fifteen portable reconstructed tests and sixteen native mix tests pass.
+
+Review exposed three native transaction bugs: a pending jewel could be
+returned by a world click, repeated put/take cycles exhausted the backing
+array, and Escape left the mix movie open. Pending requests now own their
+jewel, vacant slots are reused, and paired windows close only after the
+items can return. The second review also required checked jewel restoration and preserving the
+grid vector order when reusing slots; both have regression coverage. Later
+checks cover scripted sell/vault mutations while pending, option preservation
+through the vault, and reclaiming consumed inventory entries. Review
+also exposed the shop-price/mix-value confusion; the valuation helper and
+a value-dependent native quote regression correct it.
+
+`native/core/mu_mix.*` loads local Item.bmd/Mix.bmd without exports and
+builds scratch summaries. The bounded snapshot adapter refuses nonzero
+additional options, L recipes requiring an authoritative class mask,
+harmony, unsupported formulas and cost D. Unsupported quotes never enable
+the Mix button. Numeric overflow/non-finite expressions are rejected by
+the native adapter. The regular Goblin button follows the movie's
+MixSystem 1 path; its separate Chaos-weapon system is visibly unavailable.
+Other NPC talk results opening manager +0xa8 use the same mix movie.
+The invokes and menu lifecycle are static readings of the handler and
+local AS2, verified in native renders, not guest-executed window handlers.
+
+The movie uses the reconstructed 8 by 4 grid, page type 4, shared slot
+callbacks and the existing item pass. Right click moves an ingredient;
+left drag can place a held ingredient; clicking a mix item returns it.
+Pending requests lock both inventories. A 160ms offline reply applies
+success, failure or rejection once. Success returns an authored snapshot
+of the first ingredient at its next level; failure consumes ingredients;
+rejection preserves both items and zen. These are explicitly demo-server
+policies, not reconstructed server recipes. The mix request is a semantic
+offline request, not a recovered wire packet or a live connection.
+
+Bless/Soul/Life eligibility runs the reconstructed predicate. Their C1 31
+body is logged locally, with source slot +12. The pending jewel leaves
+the cursor until the answer. Demo success increments level or option;
+Soul failure resets level, Life failure resets the option, rejection
+restores the jewel. The existing renderer receives the new level for glow;
+tooltip titles use that level and an authored additional-option line uses
+the answer's option. Full option-stat conversion and server reply packets
+remain outside this snapshot adapter.
+
+Reproduction with converted movies and libmugfx:
+
+```sh
+mu-world --game-root "$MU_GAME_ROOT" --gfx "$MOVIES" --npc \
+  --headless --backend gl --frames 62 --every 2 --out-dir "$LOCAL_RENDERS" \
+  --npc-script '0:goblin 5:mixopen:0 6:mixadd:7171 7:mixadd:7171 8:mixput:7 9:mixput:23 10:mixput:24 20:mix 32:mixtake:0 33:close 35:mixadd:7182 36:jewel:23:1 44:tipinv:1 50:mixadd:7184 51:jewel:23:1 59:tipinv:1'
+```
+
+These numeric items/cells are a local demo example, not embedded inventory
+data. `mixadd:CODE:LEVEL` grants an offline item, `mixresult:0|1|2` chooses
+rejection/success/failure before a request, and `mixput`/`mixtake` use cells.
+`--gfx-open mix` opens the regular machine directly. Missing tables disable
+quotes; absent movies keep the optional feature unavailable.
+
+Native world renders, standalone movie checks, reports and gate logs stay
+under `~/Documents/mu-mac-tools/native/{renders,scratch}/mix/`. The native
+demo shows a recognized recipe, 50 percent rate and 100,000 zen, a pending
+request, result, then Soul/Life tooltips. No game data, movies, plaintext,
+screenshots or renders are committed.
+
+## Follow-up
+
+PersonalShop, PersonalShopProductList, PersonalShopRegister and
+PersonalShopPurchase exist. Registration gate `0x00c00b38` calls
+`0x016be0dc`; NPC repair has ConvertRepairGold and the Item.bmd ban.
+Their UI requests/results are the next PR. Harmony vectors, cost D,
+authoritative class/option feeds, the separate Chaos-weapon system and
+real-server packet handling remain bounded gaps. The inventory extension
+outside the restored image remains opaque. Protection and encryption/login
+packets were not investigated.

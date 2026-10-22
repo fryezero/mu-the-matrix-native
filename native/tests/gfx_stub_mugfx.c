@@ -165,7 +165,7 @@ static void callf(MuGfx *g, const char *name, const char *fmt, double a, double 
 
 static int is(const MuGfx *g, const char *name) { return !strcmp(g->name, name); }
 /* NATIVE-NPC-001: the NPC slot windows (8 x 15 cells at 24.75,70 from the window). */
-static int is_slotwin(const MuGfx *g) { return is(g, "NpcShop") || is(g, "StorageInven"); }
+static int is_slotwin(const MuGfx *g) { return is(g, "NpcShop") || is(g, "StorageInven") || is(g,"MixInventoryFrame"); }
 /* The base movie plays the bar and the chat (NATIVE-GFX-003). */
 static int is_bar(const MuGfx *g) { return is(g, "main") || is(g, "base"); }
 static int is_chat(const MuGfx *g) { return is(g, "chat") || is(g, "base"); }
@@ -438,11 +438,13 @@ void mugfx_start(MuGfx *g)
         g->win_y = 100;
         call(g, "requestWindowPos", "[20.0,100.0]");
     } else if (is_slotwin(g)) {
-        call(g, "UIInit", is(g, "NpcShop") ? "[\"g_mcNpcShop\"]" : "[\"g_mcStorageInven\"]");
+        call(g, "UIInit", is(g, "NpcShop") ? "[\"g_mcNpcShop\"]" : is(g,"MixInventoryFrame") ? "[\"g_mcMixInventory\"]" : "[\"g_mcStorageInven\"]");
         call(g, "requestSlotInfo", "[24.75,70.0,26.0,26.0,0.0]");
         g->win_x = 45;
         g->win_y = 21;
         call(g, "requestWindowPos", "[45.0,21.0]");
+    } else if (is(g,"MixGoblinSel")) {
+        call(g,"UIInit","[\"g_mcMixGoblinSel\"]");
     } else if (is(g, "SkillInfoPopup")) {
         call(g, "UIInit", "[\"g_mcSkillInfoPopup\"]");
     } else if (is(g, "MasterSkillTree") || is(g, "SkillTree4th") || is(g, "SkillTree5th") || is(g, "MoveCommand")) {
@@ -578,7 +580,7 @@ const char *mugfx_get_variable(MuGfx *g, const char *path)
         else snprintf(v, sizeof v, "null");
         return v;
     }
-    if (strstr(path, "mcNPCShop") || strstr(path, "mcStorageInven")) {
+    if (strstr(path, "mcNPCShop") || strstr(path, "mcStorageInven") || strstr(path,"mcMixInventory")) {
         if (strstr(path, "isSlot0._y")) return "70";
         if (strstr(path, "isSlot8._y")) return "96";
     }

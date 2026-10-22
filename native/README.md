@@ -729,6 +729,13 @@ optional): `buffs.tsv` (BuffEffect), `charinfo.tsv` (CharacterInfoSetup), `skill
 
 ## Data tables (NATIVE-DATA-001)
 
+NATIVE-MIX-001 plays MixGoblinSel and MixInventoryFrame through the shared GFx layer in mu-world/mu-client.
+`--gfx-open mix` opens the regular machine; right click moves ingredients and dragging a jewel onto an item
+requests an upgrade. These are offline demo answers. `mu-world --npc-script` accepts
+`mixopen:GROUP`, `mixput:CELL`, `mixtake:CELL`, `mix`, `mixresult:0|1|2`, `mixadd:CODE:LEVEL` and
+`jewel:SOURCE:TARGET`, each prefixed by `FRAME:` like the NPC verbs. See
+[client-mix.md](../docs/research/client-mix.md) for evidence and bounded recipe/option support.
+
 `make -C native build/mu-data` builds the table tool. It needs no Crypto++ or image libraries. Commands: `list [GAME_ROOT]`, `dump FILE`, `item-models FILE --json`, `model ITEM_BMD INDEX`, `decode FILE --out PATH` and `mpr Lang.mpr`. Output is local only; never commit decoded tables or text. See [the finding](../docs/research/client-data-tables.md). NATIVE-DATA-002 adds named fields to `dump`, plus `item ITEM_BMD CODE` (attributes, client max durability, bans) and `layouts` ([finding](../docs/research/client-item-attributes.md)).
 
 ## Tests

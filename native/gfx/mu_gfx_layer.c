@@ -222,6 +222,7 @@ typedef struct movie {
 typedef struct item {
     mu_grid_item grid;
     int32_t level;
+    int32_t option, excellent, durability, period;
     char name[64];
     float rgb[3];
 } item;
@@ -304,7 +305,7 @@ struct mu_gfx_layer {
     char map_name[64];
     int map_x, map_y, map_sent;
     /* NATIVE-NPC-001 */
-    slot_window swin[2];        /* NpcShop, StorageInven */
+    slot_window swin[3];        /* NpcShop, StorageInven */
     struct {
         char title[96], text[4096], pages[16][1024], options[13][96];
         int npages, page, noptions, hide_contribute, wrapped;
@@ -327,6 +328,8 @@ struct mu_gfx_layer {
     mu_gfx_social_hooks socialh;
     mu_gfx_item_draw trade_items[64];
     int trade_nitems;
+    struct { int group, pending, outcome, source, target; double due;
+        int origin[SLOT_ITEMS]; mu_mix_quote quote; } mix;
     mu_gfx_map_hooks maph;   /* NATIVE-MAP-001 */
 };
 
@@ -334,11 +337,16 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
                                                  "MasterSkillTree", "SkillTree4th", "SkillTree5th",
-                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow"};
+                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow", "MixGoblinSel", "MixInventoryFrame"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
 static int npc_inventory_r(mu_gfx_layer *L, int index);
+static void mix_refresh(mu_gfx_layer *L);
+static void mix_step(mu_gfx_layer *L);
+static int mix_jewel(mu_gfx_layer *L, int target);
+static int mix_return(mu_gfx_layer *L);
+static int mix_free_slot(mu_gfx_layer *L);
 static void swin_init(mu_gfx_layer *L);
 static void swin_composite(mu_gfx_layer *L, int m, uint8_t *rgba, int32_t W, int32_t H);
 /* NATIVE-LANG-002 */
@@ -905,6 +913,10 @@ static void show_item_tooltip(mu_gfx_layer *L, int cell)
                           : (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html,
                                                                sizeof html)))
         builtin_tooltip(it, html, sizeof html);
+    if (it->option) {
+        size_t used = strlen(html);
+        snprintf(html + used, sizeof html - used, "<br>Additional option +%d", it->option * 4);
+    }
     json_quote(quoted, sizeof quoted, html);
     float sc = L->inv_scale;
     float x = L->win_x + (L->slot_x + it->grid.col * (L->slot_w + L->gap_x)) * sc;
@@ -951,6 +963,13 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     }
     if (open && m == MU_GFX_QUEST_NOTICE && L->api.set_variable)
         L->api.set_variable(mv->g, "_level0._visible", "true");   /* the notice animation hides its root at frame 65 */
+    if (!open && (m == MU_GFX_MIX || m == MU_GFX_INVENTORY) &&
+        (L->mix.pending || (L->mv[MU_GFX_MIX].open && !mix_return(L))))
+        return;
+    if (!open && m == MU_GFX_INVENTORY) {
+        mu_gfx_layer_show(L,MU_GFX_MIX,0);
+        mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,0);
+    }
     if (mv->open == open)
         return;
     mv->open = open;
@@ -964,6 +983,8 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
         invokef(L, m, mv->path, open ? "openWindow" : "closeWindow", "[]");
     else
         invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
+    if (!open && m==MU_GFX_MIX)
+        mu_gfx_layer_show(L,MU_GFX_INVENTORY,0);
     mv->next_bounds_ms = 0;
     if (m == MU_GFX_SKILL_STAMP)
         skill_window_shown(L, m, open);
@@ -986,6 +1007,7 @@ int mu_gfx_layer_is_open(const mu_gfx_layer *L, int m)
 
 static void inventory_click(mu_gfx_layer *L, int index)
 {
+    if (L->mix.pending) return;
     if (L->socialh.inventory && L->socialh.inventory(L->socialh.user, index))
         return;
     int cols = L->grid.cols;
@@ -994,12 +1016,14 @@ static void inventory_click(mu_gfx_layer *L, int index)
     if (L->held < 0) {
         mu_grid_item *gi = mu_grid_item_at(&L->grid, index);
         if (gi && L->grid.cells[index]) {
+            if (L->trade_reserved[(item *)gi-L->items]) return;
             L->held = (int)((item *)gi - L->items);
             mu_grid_remove(&L->grid, gi);
             hide_tooltip(L);
             logf_(L, "game: pick item %u (%dx%d) from cell %d", gi->id, gi->width, gi->height, index);
         }
     } else {
+        if (mix_jewel(L, index)) return;
         item *it = &L->items[L->held];
         int col = index % cols, row = index / cols;
         if (mu_grid_fits(&L->grid, col, row, it->grid.width, it->grid.height)) {
@@ -1015,6 +1039,8 @@ static void inventory_click(mu_gfx_layer *L, int index)
 
 static void inventory_click_r(mu_gfx_layer *L, int index)
 {
+    if (L->mix.pending) return;
+    if (L->mv[MU_GFX_MIX].open) { mu_gfx_layer_mix_action(L, "mixput", index, 0); return; }
     if (L->socialh.inventory && L->socialh.inventory(L->socialh.user, index))
         return;
     if (npc_inventory_r(L, index))   /* NATIVE-NPC-001: sell / put while NpcShop or StorageInven is open */
@@ -1035,17 +1061,28 @@ static void inventory_click_r(mu_gfx_layer *L, int index)
 int mu_gfx_layer_add_item(mu_gfx_layer *L, int32_t code, int32_t level, int32_t width, int32_t height,
                           const char *name)
 {
-    if (!L) return -1;
-    int idx = L->nitems;
-    for (int i=0;i<L->nitems;i++) if (L->items[i].grid.code == -1) {idx=i;break;}
-    if (idx >= MAX_ITEMS) return -1;
-    item *it = &L->items[idx];
+    if (!L || L->mix.pending)
+        return -1;
+    int index;
+    for(index=0;index<L->nitems;index++) {
+        int owned=L->held==index || L->trade_reserved[index];
+        for(int k=0;k<L->grid.item_count;k++)owned|=L->grid.items[k]==&L->items[index].grid;
+        slot_window *sw=&L->swin[2];
+        for(int k=0;k<sw->grid.item_count;k++) {
+            int slot=(int)((item *)sw->grid.items[k]-sw->items);
+            owned|=L->mix.origin[slot]==index;
+        }
+        if(!owned)break;
+    }
+    if(index>=MAX_ITEMS)return -1;
+    item *it = &L->items[index];
     memset(it, 0, sizeof *it);
-    it->grid.id = (uint32_t)(idx + 1);
+    it->grid.id = (uint32_t)(index + 1);
     it->grid.code = code;
     it->grid.width = (uint8_t)(width < 1 ? 1 : width);
     it->grid.height = (uint8_t)(height < 1 ? 1 : height);
     it->level = level;
+    it->durability = 1;
     snprintf(it->name, sizeof it->name, "%s", name && name[0] ? name : "Item");
     int col, row;
     if (!mu_grid_find_free(&L->grid, it->grid.width, it->grid.height, &col, &row)) {
@@ -1057,9 +1094,9 @@ int mu_gfx_layer_add_item(mu_gfx_layer *L, int32_t code, int32_t level, int32_t 
     static const float PALETTE[8][3] = {{.85f, .35f, .25f}, {.35f, .55f, .9f}, {.95f, .8f, .3f}, {.55f, .75f, .4f},
                                         {.7f, .45f, .85f}, {.3f, .8f, .8f}, {.9f, .55f, .2f}, {.8f, .8f, .8f}};
     memcpy(it->rgb, PALETTE[(code >> 9) & 7], sizeof it->rgb);
-    if (idx == L->nitems) L->nitems++;
+    if(index==L->nitems)L->nitems++;
     slot_states(L);
-    return idx;
+    return index;
 }
 
 /* ---- chat ----------------------------------------------------------------------------------- */
@@ -1456,7 +1493,8 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_QUEST_PROGRESS] = 9, [MU_GFX_MY_QUEST] = 9, [MU_GFX_SKILL_POPUP] = 9, [MU_GFX_SKILL_STAMP] = 9,
     [MU_GFX_MOVE_COMMAND] = 10, [MU_GFX_MASTER_TREE] = 0, [MU_GFX_TREE4] = 0, [MU_GFX_TREE5] = 3,
     [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9,
-    [MU_GFX_PARTY] = 9, [MU_GFX_TRADE] = 9, [MU_GFX_FRIENDS] = 9, [MU_GFX_MESSENGER] = 9
+    [MU_GFX_PARTY] = 9, [MU_GFX_TRADE] = 9, [MU_GFX_FRIENDS] = 9, [MU_GFX_MESSENGER] = 9,
+    [MU_GFX_MIX_SELECT] = 9, [MU_GFX_MIX] = 9
 };
 
 static void window_sizes(mu_gfx_layer *L)
@@ -1472,8 +1510,8 @@ static void window_sizes(mu_gfx_layer *L)
             L->inv_scale = scale;
         else if (m == MU_GFX_CHARACTER)
             L->char_scale = scale;
-        else if (m == MU_GFX_NPC_SHOP || m == MU_GFX_STORAGE)
-            L->swin[m == MU_GFX_STORAGE].scale = scale;
+        else if (m == MU_GFX_NPC_SHOP || m == MU_GFX_STORAGE || m == MU_GFX_MIX)
+            L->swin[m == MU_GFX_MIX ? 2 : m == MU_GFX_STORAGE].scale = scale;
         /* the client calls SetScale(83) once, at creation, below 700 pixels; a resized window (native) also
          * goes back to 100 */
         if (scale != (L->applied_scale[m] > 0.0f ? L->applied_scale[m] : 1.0f))
@@ -2288,6 +2326,10 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
             mu_gfx_layer_show(L, MU_GFX_TREE5, 0);
             mu_gfx_layer_skill_popup(L, 0, 0, NULL, NULL);
             used = 1;
+        } else if (vk == 27 && (L->mv[MU_GFX_MIX].open || L->mv[MU_GFX_MIX_SELECT].open)) {
+            mu_gfx_layer_show(L,MU_GFX_MIX,0);
+            mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,0);
+            used=1;
         } else if (vk == 27 && (L->mv[MU_GFX_INVENTORY].open || L->mv[MU_GFX_CHARACTER].open ||
                                 L->mv[MU_GFX_SKILL_STAMP].open)) {
             mu_gfx_layer_show(L, MU_GFX_INVENTORY, 0);
@@ -2375,6 +2417,7 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
         if (L->hero_dirty_char && L->mv[MU_GFX_CHARACTER].open)
             feed_character(L);
         skill_feed(L);
+        mix_step(L);
     }
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         if (L->mv[m].g && !L->mv[m].alias && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
@@ -2517,6 +2560,7 @@ static void item_draw_from(const mu_gfx_layer *L, int idx, const float rect[4], 
     d->item = idx;
     d->code = it->grid.code;
     d->level = it->level;
+    d->excellent = it->excellent;
     memcpy(d->rect, rect, sizeof d->rect);
     d->slot[0] = rect[0] * mu_gfx_rate_x(L->w);
     d->slot[1] = rect[1] * mu_gfx_rate_y(L->h);
@@ -2771,7 +2815,7 @@ static void draw_movie_gl(mu_gfx_layer *L, movie *mv, int m)
 
 static slot_window *swin_for(mu_gfx_layer *L, int m)
 {
-    return m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : NULL;
+    return m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : m == MU_GFX_MIX ? &L->swin[2] : NULL;
 }
 
 static void npc_last(mu_gfx_layer *L, const char *fmt, ...)
@@ -2815,18 +2859,23 @@ static void swin_clear(slot_window *sw)
 {
     int32_t type = sw->grid.type;
     mu_grid_construct(&sw->grid);
-    mu_grid_init(&sw->grid, type, 0, 0, 0, 8, 15, 0);
+    mu_grid_init(&sw->grid, type, 0, 0, 0, 8, sw->movie == MU_GFX_MIX ? 4 : 15, 0);
     sw->nitems = 0;
     sw->hover = -1;
 }
 
 static int swin_add(slot_window *sw, const mu_gfx_slot_item *src)
 {
-    if (sw->nitems >= SLOT_ITEMS)
-        return -1;
-    item *it = &sw->items[sw->nitems];
+    int index;
+    for(index=0;index<sw->nitems;index++) {
+        int owned=0;
+        for(int k=0;k<sw->grid.item_count;k++)owned|=sw->grid.items[k]==&sw->items[index].grid;
+        if(!owned)break;
+    }
+    if(index>=SLOT_ITEMS)return -1;
+    item *it = &sw->items[index];
     memset(it, 0, sizeof *it);
-    it->grid.id = (uint32_t)(1000 + sw->nitems);
+    it->grid.id = (uint32_t)(1000 + index);
     it->grid.code = src->code;
     it->grid.width = (uint8_t)(src->width < 1 ? 1 : src->width);
     it->grid.height = (uint8_t)(src->height < 1 ? 1 : src->height);
@@ -2839,8 +2888,9 @@ static int swin_add(slot_window *sw, const mu_gfx_slot_item *src)
     static const float PALETTE[8][3] = {{.85f, .35f, .25f}, {.35f, .55f, .9f}, {.95f, .8f, .3f}, {.55f, .75f, .4f},
                                         {.7f, .45f, .85f}, {.3f, .8f, .8f}, {.9f, .55f, .2f}, {.8f, .8f, .8f}};
     memcpy(it->rgb, PALETTE[(src->code >> 9) & 7], sizeof it->rgb);
-    sw->prices[sw->nitems] = src->price;
-    return sw->nitems++;
+    sw->prices[index] = src->price;
+    if(index==sw->nitems)sw->nitems++;
+    return index;
 }
 
 static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell)
@@ -2871,6 +2921,7 @@ static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell)
  * for the server's answer instead. */
 static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
 {
+    if (L->mix.pending) return;
     mu_grid_item *gi = index >= 0 && index < sw->grid.cols * sw->grid.rows ? mu_grid_item_at(&sw->grid, index) : NULL;
     if (!gi || !sw->grid.cells[index])
         return;
@@ -2889,10 +2940,13 @@ static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
         zen_text(L);
         npc_last(L, "bought %s for %lld zen (demo)", it->name, (long long)sw->prices[k]);
     } else {
-        if (mu_gfx_layer_add_item(L, it->grid.code, it->level, it->grid.width, it->grid.height, it->name) < 0) {
+        int added=mu_gfx_layer_add_item(L,it->grid.code,it->level,it->grid.width,it->grid.height,it->name);
+        if (added < 0) {
             npc_last(L, "take %s: no room in the inventory (demo)", it->name);
             return;
         }
+        L->items[added].option=it->option;L->items[added].excellent=it->excellent;
+        L->items[added].durability=it->durability;L->items[added].period=it->period;
         mu_grid_remove(&sw->grid, gi);
         hide_tooltip(L);
         swin_slot_states(L, sw);
@@ -2905,6 +2959,7 @@ static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
  * (layer choice for the client's drag onto the window). */
 static int npc_inventory_r(mu_gfx_layer *L, int index)
 {
+    if (L->mix.pending) return 1;
     int shop = L->mv[MU_GFX_NPC_SHOP].open, vault = L->mv[MU_GFX_STORAGE].open;
     if (!shop && !vault)
         return 0;
@@ -2934,10 +2989,13 @@ static int npc_inventory_r(mu_gfx_layer *L, int index)
         s.width = it->grid.width;
         s.height = it->grid.height;
         snprintf(s.name, sizeof s.name, "%s", it->name);
-        if (swin_add(sw, &s) < 0) {
+        int added=swin_add(sw,&s);
+        if (added < 0) {
             npc_last(L, "put %s: the vault is full (demo)", it->name);
             return 1;
         }
+        sw->items[added].option=it->option;sw->items[added].excellent=it->excellent;
+        sw->items[added].durability=it->durability;sw->items[added].period=it->period;
         mu_grid_remove(&L->grid, gi);
         swin_slot_states(L, sw);
         npc_last(L, "put %s into the vault (demo)", it->name);
@@ -3110,10 +3168,14 @@ void mu_gfx_layer_npc_close(mu_gfx_layer *L)
         return;
     for (int k = MU_GFX_NPC_DIALOG; k <= MU_GFX_STORAGE; k++)
         mu_gfx_layer_show(L, k, 0);
+    mu_gfx_layer_show(L, MU_GFX_MIX_SELECT, 0);
+    mu_gfx_layer_show(L, MU_GFX_MIX, 0);
 }
 
 int mu_gfx_layer_npc_window(const mu_gfx_layer *L)
 {
+    if (L && L->mv[MU_GFX_MIX].open) return MU_GFX_MIX;
+    if (L && L->mv[MU_GFX_MIX_SELECT].open) return MU_GFX_MIX_SELECT;
     for (int k = MU_GFX_NPC_DIALOG; L && k <= MU_GFX_STORAGE; k++)
         if (L->mv[k].g && L->mv[k].open)
             return k;
@@ -3185,7 +3247,7 @@ int mu_gfx_layer_npc_page(const mu_gfx_layer *L, int *pages)
 
 int mu_gfx_layer_slot_center(const mu_gfx_layer *L, int m, int32_t cell, double *x, double *y)
 {
-    const slot_window *sw = m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : NULL;
+    const slot_window *sw = m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : m == MU_GFX_MIX ? &L->swin[2] : NULL;
     if (!L || !sw || !sw->have_slot || cell < 0 || cell >= sw->grid.cols * sw->grid.rows)
         return 0;
     int col = cell % sw->grid.cols, row = cell / sw->grid.cols;
@@ -3198,7 +3260,7 @@ int mu_gfx_layer_slot_items(const mu_gfx_layer *L, int m)
 {
     if (!L)
         return 0;
-    const slot_window *sw = m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : NULL;
+    const slot_window *sw = m == MU_GFX_NPC_SHOP ? &L->swin[0] : m == MU_GFX_STORAGE ? &L->swin[1] : m == MU_GFX_MIX ? &L->swin[2] : NULL;
     if (!sw)
         return 0;
     return sw->grid.item_count;
@@ -3220,17 +3282,30 @@ static const char *npc_call(movie *mv, const char *name, const char *args, const
             sw->slot_h = (float)v[3];
             sw->have_slot = 1;
         } else if (!strcmp(name, "requestItemSlotClick") && n >= 1) {
-            swin_click(L, sw, (int)v[0]);
+            if (mv->id == MU_GFX_MIX)
+                mu_gfx_layer_mix_action(L, L->held>=0 ? "mixdrop" : "mixtake", (int)v[0], 0);
+            else swin_click(L, sw, (int)v[0]);
         } else if (!strcmp(name, "requestItemSlotOver") && n >= 1) {
             sw->hover = (int)v[0];
             swin_show_tooltip(L, sw, sw->hover);
         } else if (!strcmp(name, "requestItemSlotOut")) {
             sw->hover = -1;
             hide_tooltip(L);
+        } else if (mv->id == MU_GFX_MIX && !strcmp(name, "requestItemSlotClickR") && n>=1) {
+            mu_gfx_layer_mix_action(L, "mixtake", (int)v[0], 0);
+        } else if (mv->id == MU_GFX_MIX && !strcmp(name, "onClickbtnMix")) {
+            mu_gfx_layer_mix_action(L, "mix", 0, 0);
         } else if (!strncmp(name, "onClick", 7)) {
             npc_last(L, "%s: %s (not played: a server request in the client)", mv->file, name + 7);
         }
         return NULL;
+    }
+    if (mv->id == MU_GFX_MIX_SELECT && !strcmp(name, "onClickGoblinMenu") && n>=2) {
+        if ((int)v[0]==1) mu_gfx_layer_mix_action(L, "mixopen", 0, 0);
+        else {
+            npc_last(L,"This Chaos Goblin system is not supported by the preview");
+            mu_gfx_layer_chat(L,3,"",L->npc_last);
+        }
     }
     if (mv->id == MU_GFX_NPC_DIALOG) {
         if (!strcmp(name, "NPCDialogTextWidth")) {
@@ -3290,6 +3365,7 @@ static int swin_draws(slot_window *sw, const rect_list *R, mu_gfx_item_draw *dra
         d->item = R->item[i];
         d->code = it->grid.code;
         d->level = it->level;
+        d->excellent = it->excellent;
         memcpy(d->rect, R->r[i], sizeof d->rect);
         d->slot[0] = R->call[i].x;
         d->slot[1] = R->call[i].y;
@@ -3352,9 +3428,12 @@ static void swin_draw_gl(mu_gfx_layer *L, int m)
 
 static void swin_init(mu_gfx_layer *L)
 {
-    static const struct { int movie, type; const char *frame; } W[2] = {{MU_GFX_NPC_SHOP, 8, "mcNPCShop"},
-                                                                      {MU_GFX_STORAGE, 9, "mcStorageInven"}};
-    for (int k = 0; k < 2; k++) {
+    static const struct { int movie, type; const char *frame; } W[3] = {{MU_GFX_NPC_SHOP, 8, "mcNPCShop"},
+                                                                      {MU_GFX_STORAGE, 9, "mcStorageInven"},
+                                                                      {MU_GFX_MIX, 4, "mcMixInventory"}};
+    L->mix.outcome = 1;
+    for (int k = 0; k < SLOT_ITEMS; k++) L->mix.origin[k] = -1;
+    for (int k = 0; k < 3; k++) {
         slot_window *sw = &L->swin[k];
         memset(sw, 0, sizeof *sw);
         sw->movie = W[k].movie;
@@ -3362,9 +3441,226 @@ static void swin_init(mu_gfx_layer *L)
         sw->scale = 1.0f;
         sw->hover = -1;
         mu_grid_construct(&sw->grid);
-        mu_grid_init(&sw->grid, W[k].type, 0, 0, 0, 8, 15, 0);   /* 0x00ab7277(type, 8, 15, ...) */
+        mu_grid_init(&sw->grid, W[k].type, 0, 0, 0, 8, k == 2 ? 4 : 15, 0);   /* 0x00ab7277(type, 8, 15, ...) */
     }
     L->vault_zen = 1250000;   /* demo */
+}
+
+/* ---- NATIVE-MIX-001: movie boundary and delayed offline demo answers ---- */
+static mu_mix_item mix_snapshot(const item *it)
+{
+    return (mu_mix_item){it->grid.code, it->level, it->option, it->excellent, it->durability, it->period};
+}
+
+int mu_gfx_layer_item_snapshot(const mu_gfx_layer *L, int i, mu_mix_item *out)
+{
+    if (!L || !out || i < 0 || i >= L->nitems) return 0;
+    *out = mix_snapshot(&L->items[i]);
+    return 1;
+}
+
+int mu_gfx_layer_mix_pending(const mu_gfx_layer *L) { return L ? L->mix.pending : 0; }
+
+static void mix_refresh(mu_gfx_layer *L)
+{
+    slot_window *sw = &L->swin[2];
+    mu_mix_item items[32]; int n = 0;
+    for (int k=0;k<sw->grid.item_count && n<32;k++)
+        items[n++] = mix_snapshot((const item *)sw->grid.items[k]);
+    memset(&L->mix.quote,0,sizeof L->mix.quote); L->mix.quote.recipe=-1;
+    snprintf(L->mix.quote.title,sizeof L->mix.quote.title,"Chaos Machine");
+    snprintf(L->mix.quote.detail,sizeof L->mix.quote.detail,"Mix table unavailable.");
+    if (L->cfg.mix_quote)
+        L->cfg.mix_quote(L->cfg.tooltip_user,L->mix.group,items,n,&L->mix.quote);
+    char title[256],detail[600];
+    json_quote(title,sizeof title,L->mix.quote.title);json_quote(detail,sizeof detail,L->mix.quote.detail);
+    movie *mv=&L->mv[MU_GFX_MIX];
+    invokef(L,MU_GFX_MIX,mv->path,"InitText","[%s,\"Mix\",\"\"]",title);
+    invokef(L,MU_GFX_MIX,mv->path,"SetText","[%s,\"Offline demo\"]",detail);
+    invokef(L,MU_GFX_MIX,mv->path,"SetVisibleMixButton","[%s]",
+            L->mix.quote.ready && L->mix.quote.supported && !L->mix.pending ? "true":"false");
+    swin_slot_states(L,sw); slot_states(L);
+}
+
+static int mix_return(mu_gfx_layer *L)
+{
+    slot_window *sw=&L->swin[2];
+    if (L->mix.pending) return 0;
+    if (L->held>=0 && sw->grid.item_count) {
+        npc_last(L,"Place the held item before closing the mix window");return 0;
+    }
+    /* Reserve every destination before moving any item. A full inventory
+     * leaves the window open with every item intact. */
+    mu_grid scratch=L->grid; mu_grid_item copies[32]; int dest[32][2],ids[32],n=0;
+    for(int k=0;k<sw->nitems;k++) {
+        item *it=&sw->items[k]; int cell=it->grid.row*8+it->grid.col;
+        if(mu_grid_item_at(&sw->grid,cell)!=&it->grid)continue;
+        if(n>=32 || !mu_grid_find_free(&scratch,it->grid.width,it->grid.height,&dest[n][0],&dest[n][1])) {
+            npc_last(L,"Close: inventory has no room for the mix items (demo)"); return 0;
+        }
+        copies[n]=it->grid;mu_grid_place(&scratch,dest[n][0],dest[n][1],&copies[n]);ids[n++]=k;
+    }
+    for(int j=0;j<n;j++) {
+        int k=ids[j],origin=L->mix.origin[k];
+        if(origin<0 || origin>=L->nitems)return 0;
+        item *dst=&L->items[origin];*dst=sw->items[k];
+        mu_grid_place(&L->grid,dest[j][0],dest[j][1],&dst->grid);
+    }
+    swin_clear(sw);slot_states(L);hide_tooltip(L);return 1;
+}
+
+static int mix_jewel(mu_gfx_layer *L,int cell)
+{
+    if(L->held<0 || L->mix.pending || cell<0 || cell>=64)return 0;
+    item *jewel=&L->items[L->held];
+    if(jewel->grid.code!=0x1c0d && jewel->grid.code!=0x1c0e && jewel->grid.code!=0x1c10)return 0;
+    mu_grid_item *gi=mu_grid_item_at(&L->grid,cell);
+    if(!gi)return 0;
+    mu_mix_item target=mix_snapshot((item *)gi);
+    if (L->trade_reserved[(item *)gi-L->items]) return 1;
+    if(!L->cfg.jewel_check || !L->cfg.jewel_check(L->cfg.tooltip_user,jewel->grid.code,&target,L->mv[MU_GFX_MIX].open)) {
+        npc_last(L,"Jewel cannot be used on this item");return 1;
+    }
+    L->mix.source=L->held;L->mix.target=(int)((item *)gi-L->items);
+    L->held=-1; /* the pending request owns this source, never the cursor */
+    L->mix.pending=2;L->mix.due=L->time_ms+160;
+    if(L->cfg.jewel_request)L->cfg.jewel_request(L->cfg.tooltip_user,jewel->grid.row*8+jewel->grid.col,cell);
+    npc_last(L,"Jewel request sent; waiting for offline demo answer");
+    hide_tooltip(L);return 1;
+}
+
+static void mix_step(mu_gfx_layer *L)
+{
+    if(!L->mix.pending || L->time_ms<L->mix.due)return;
+    int pending=L->mix.pending;L->mix.pending=0;
+    if(pending==2) {
+        item *source=&L->items[L->mix.source],*target=&L->items[L->mix.target];
+        if(L->mix.outcome==0) {
+            int col,row;
+            if(mu_grid_find_free(&L->grid,source->grid.width,source->grid.height,&col,&row))
+                mu_grid_place(&L->grid,col,row,&source->grid);
+            else L->held=L->mix.source;
+            npc_last(L,"Jewel rejected by offline demo server; items unchanged");
+        } else {
+            if(L->mix.outcome==1) {
+                if(source->grid.code==0x1c10)target->option++;
+                else target->level++;
+            } else if(source->grid.code==0x1c0e)target->level=0;
+            else if(source->grid.code==0x1c10)target->option=0;
+            npc_last(L,"Jewel %s (offline demo answer)",L->mix.outcome==1?"succeeded":"failed");
+        }
+        slot_states(L);hide_tooltip(L);return;
+    }
+    slot_window *sw=&L->swin[2];
+    if(L->mix.outcome==0) {
+        mix_refresh(L);npc_last(L,"Mix rejected by offline demo server; items and zen unchanged");
+        invokef(L,MU_GFX_MIX,L->mv[MU_GFX_MIX].path,"SetText","[\"Mix rejected by offline demo server.\",\"Items and zen unchanged.\"]");
+        return;
+    }
+    L->hero.zen-=(int64_t)L->mix.quote.cost;zen_text(L);
+    int first=sw->grid.item_count?(int)((item *)sw->grid.items[0]-sw->items):-1;
+    for(int k=0;k<sw->nitems;k++) {
+        item *it=&sw->items[k];int cell=it->grid.row*8+it->grid.col;
+        if(mu_grid_item_at(&sw->grid,cell)==&it->grid) {
+            mu_grid_remove(&sw->grid,&it->grid);
+        }
+    }
+    if(L->mix.outcome==1 && first>=0) {
+        item result=sw->items[first];int origin=L->mix.origin[first];
+        result.level=result.level<15?result.level+1:15;
+        swin_clear(sw);sw->items[0]=result;sw->nitems=1;L->mix.origin[0]=origin;
+        mu_grid_place(&sw->grid,0,0,&sw->items[0].grid);
+    } else swin_clear(sw);
+    mix_refresh(L);npc_last(L,"Mix %s (offline demo answer)",L->mix.outcome==1?"succeeded":"failed");
+    invokef(L,MU_GFX_MIX,L->mv[MU_GFX_MIX].path,"SetText","[\"Mix %s (offline demo answer).\",\"%s\"]",
+            L->mix.outcome==1?"succeeded":"failed",L->mix.outcome==1?"Take your result from the mix window.":"The demo server consumed the ingredients.");
+}
+
+static int mix_free_slot(mu_gfx_layer *L)
+{
+    slot_window *sw=&L->swin[2];
+    for(int k=0;k<sw->nitems;k++) {
+        mu_grid_item *it=&sw->items[k].grid;
+        if(mu_grid_item_at(&sw->grid,it->row*8+it->col)!=it)return k;
+    }
+    return sw->nitems<32?sw->nitems++:-1;
+}
+
+int mu_gfx_layer_mix_action(mu_gfx_layer *L,const char *verb,int a,int b)
+{
+    if(!L || !verb)return 0;
+    if(!strcmp(verb,"mixresult")) {
+        if(L->mix.pending || a<0 || a>2)return 0;
+        L->mix.outcome=a;return 1;
+    }
+    if(L->mix.pending)return 0;
+    if(!strcmp(verb,"goblin")) {
+        if(!L->mv[MU_GFX_MIX_SELECT].g)return 0;
+        mu_gfx_layer_npc_close(L);
+        movie *mv=&L->mv[MU_GFX_MIX_SELECT];
+        invokef(L,MU_GFX_MIX_SELECT,mv->path,"initFixedTextObj",
+                "[{\"Title\":\"Chaos Goblin\",\"btnCloseLabel\":\"Close\",\"mixExplain\":\"Offline demo\",\"ChanceInfo\":\"Mix\"}]");
+        invokef(L,MU_GFX_MIX_SELECT,mv->path,"initButtonInfo",
+                "[[{\"Label\":\"Regular combination\",\"MixSystem\":1,\"MixType\":-1},{\"Label\":\"Chaos weapon (unavailable)\",\"MixSystem\":0,\"MixType\":0}]]");
+        invokef(L,MU_GFX_MIX_SELECT,mv->path,"setBtnYPos","[2]");
+        mu_gfx_layer_show(L,MU_GFX_MIX_SELECT,1);npc_last(L,"Chaos Goblin (offline demo)");return 1;
+    }
+    if(!strcmp(verb,"mixopen")) {
+        if(L->mv[MU_GFX_TRADE].open)return 0;
+        if(!L->mv[MU_GFX_MIX].g || a<0 || a>=22 || !mix_return(L))return 0;
+        mu_gfx_layer_npc_close(L);L->mix.group=a;
+        mu_gfx_layer_show(L,MU_GFX_MIX,1);mu_gfx_layer_show(L,MU_GFX_INVENTORY,1);
+        invokef(L,MU_GFX_MIX,L->mv[MU_GFX_MIX].path,"SetMixType","[0]");
+        mix_refresh(L);return 1;
+    }
+    if(!strcmp(verb,"jewel")) {
+        if(a<0 || a>=64 || b<0 || b>=64 || L->held>=0 || !mu_grid_item_at(&L->grid,a))return 0;
+        inventory_click(L,a);int done=mix_jewel(L,b);
+        if(!L->mix.pending && L->held>=0)inventory_click(L,a);
+        return done;
+    }
+    if(!L->mv[MU_GFX_MIX].open)return 0;
+    slot_window *sw=&L->swin[2];
+    if(!strcmp(verb,"mixdrop")) {
+        if(L->held<0 || a<0 || a>=32)return 0;
+        item *it=&L->items[L->held];
+        if(!mu_grid_fits(&sw->grid,a%8,a/8,it->grid.width,it->grid.height))return 0;
+        int k=mix_free_slot(L);if(k<0)return 0;
+        sw->items[k]=*it;L->mix.origin[k]=L->held;
+        mu_grid_place(&sw->grid,a%8,a/8,&sw->items[k].grid);L->held=-1;
+        hide_tooltip(L);mix_refresh(L);return 1;
+    }
+    if(!strcmp(verb,"mixput")) {
+        if(a<0 || a>=64 || L->held>=0)return 0;
+        mu_grid_item *gi=mu_grid_item_at(&L->grid,a);int col,row;
+        if(!gi || !mu_grid_find_free(&sw->grid,gi->width,gi->height,&col,&row))return 0;
+        int origin=(int)((item *)gi-L->items);
+        if(L->trade_reserved[origin])return 0;
+        int k=mix_free_slot(L);if(k<0)return 0;
+        sw->items[k]=L->items[origin];L->mix.origin[k]=origin;
+        mu_grid_remove(&L->grid,gi);mu_grid_place(&sw->grid,col,row,&sw->items[k].grid);
+        hide_tooltip(L);mix_refresh(L);return 1;
+    }
+    if(!strcmp(verb,"mixtake")) {
+        if(a<0 || a>=32 || L->held>=0)return 0;
+        mu_grid_item *gi=mu_grid_item_at(&sw->grid,a);int col,row;
+        if(!gi || !mu_grid_find_free(&L->grid,gi->width,gi->height,&col,&row))return 0;
+        int k=(int)((item *)gi-sw->items),origin=L->mix.origin[k];
+        L->items[origin]=sw->items[k];mu_grid_remove(&sw->grid,gi);
+        mu_grid_place(&L->grid,col,row,&L->items[origin].grid);hide_tooltip(L);mix_refresh(L);return 1;
+    }
+    if(!strcmp(verb,"mix")) {
+        mix_refresh(L);
+        if(L->held>=0 || !L->mix.quote.ready || !L->mix.quote.supported || L->hero.zen<L->mix.quote.cost) {
+            npc_last(L,"Mix refused: ingredients, rule support, held item or zen");return 0;
+        }
+        L->mix.pending=1;L->mix.due=L->time_ms+160;
+        invokef(L,MU_GFX_MIX,L->mv[MU_GFX_MIX].path,"SetVisibleMixButton","[false]");
+        invokef(L,MU_GFX_MIX,L->mv[MU_GFX_MIX].path,"SetText","[\"Waiting for offline demo answer...\",\"\"]");
+        npc_last(L,"Mix request recipe %d group %d; waiting for offline demo answer",L->mix.quote.recipe,L->mix.group);
+        return 1;
+    }
+    return 0;
 }
 
 void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
@@ -3954,7 +4250,7 @@ void mu_gfx_layer_stage_size(const mu_gfx_layer *L, int32_t *w, int32_t *h)
 
 int mu_gfx_layer_inventory_reserve(mu_gfx_layer *L, int cell, mu_gfx_slot_item *out)
 {
-    if (!L || !out || L->held >= 0 || cell < 0 || cell >= L->grid.cols * L->grid.rows) return 0;
+    if (!L || !out || L->mix.pending || L->mv[MU_GFX_MIX].open || L->held >= 0 || cell < 0 || cell >= L->grid.cols * L->grid.rows) return 0;
     mu_grid_item *gi = mu_grid_item_at(&L->grid, cell);
     if (!gi || !L->grid.cells[cell]) return 0;
     int idx = (int)((item *)gi - L->items);
@@ -3991,7 +4287,7 @@ int mu_gfx_layer_inventory_can_receive(const mu_gfx_layer *L, int count)
 
 int mu_gfx_layer_inventory_exchange(mu_gfx_layer *L, const int tokens[32], const mu_gfx_slot_item *incoming, int n)
 {
-    if (!L || !tokens || n < 0 || n > 32 || (n && !incoming)) return 0;
+    if (!L || !tokens || L->mix.pending || n < 0 || n > 32 || (n && !incoming)) return 0;
     item saved[MAX_ITEMS];
     uint8_t reserved[MAX_ITEMS];
     mu_grid grid = L->grid; /* pointers refer to L->items, whose addresses do not change */
