@@ -12,6 +12,7 @@
 #include "mu_renderchar.h"
 #include "mu_walk.h"
 #include "mu_world_players.h"
+#include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
 #include "../../reconstructed/objects/object_render.h"
@@ -138,9 +139,9 @@ static void h_owner_action(void *c, int32_t owner, int32_t action)
     mu_world_helpers *w = c;
     w->stats.rider_actions++;
     if (owner == 0 && w->walk) {
-        const mu_character *hero = w->hero_character;
-        float speed = hero ? mu_character_action_speed(hero, (uint16_t)action) : 0.25f;
-        mu_walk_set_action(w->walk, action, speed);
+        /* the Player loader's play speed of the action (NATIVE-ACTOR-001's table; 0.25 where it sets none) */
+        float speed = mu_player_action_speed(action);
+        mu_walk_set_action(w->walk, action, speed > 0.0f ? speed : 0.25f);
     } else if (owner > 0 && w->players) {
         mu_world_players_set_action(w->players, owner - 1, action);
     }
@@ -797,8 +798,9 @@ void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t
     }
     for (int32_t i = 0; i < w->mounts.count; ++i) {
         const mu_hp_mount *m = &w->mounts.list[i];
-        fprintf(out, ", \"mount%d\": [%d, %d, %d, %d, %.2f, %.2f, %.2f]", i, m->cls, m->owner, m->action,
-                w->owners[m->owner].action, (double)m->offset[0], (double)m->offset[1], (double)m->offset[2]);
+        fprintf(out, ", \"mount%d\": [%d, %d, %d, %d, %.2f, %.2f, %.2f, %.1f]", i, m->cls, m->owner, m->action,
+                w->owners[m->owner].action, (double)m->offset[0], (double)m->offset[1], (double)m->offset[2],
+                (double)m->object.angle[2]);
     }
     fprintf(out, "}\n");
 }

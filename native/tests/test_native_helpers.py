@@ -16,6 +16,7 @@ Data/Skill/Rider01.bmd with a "Bip01 Spine" bone, fenrir_gold.bmd):
 The comparison with the client's routines is scripts/validate_helpers.py.
 """
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -29,6 +30,8 @@ import native_fixtures as nf  # noqa: E402
 from test_native_combat import write_combat_world  # noqa: E402
 
 WALK = NATIVE/'build/mu-walk'
+PLAYERS = NATIVE/'world/lorencia-demo-players.txt'
+PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and os.environ.get('MU_GAME_ROOT')
 
 
 def write_helper_models(root):
@@ -136,6 +139,21 @@ class PlayerHelpers(Build):
         self.assertEqual(last['mount0'][:2], [1, 2])         # owner 2: Kyra on a Uniria
         rider_actions = {f['mount0'][3] for f in out['helpers'][5:]}
         self.assertTrue(rider_actions <= {0x26, 0x47, 0x67}, rider_actions)
+
+
+@unittest.skipUnless(PRIVATE, 'needs MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT')
+class PrivateTests(unittest.TestCase):
+    def test_lorencia_helpers(self):
+        subprocess.run(['make', '-C', str(NATIVE)], check=True, capture_output=True)
+        out = run(os.environ['MU_GAME_ROOT'], '--frames', '120', '--players', PLAYERS, '--player-range', '15',
+                  '--helper', 'fenrir-blue', size=(320, 240), tile='128,124')
+        logs = '\n'.join(out['logs'])
+        for line in ('model 0x4aa: Data/Skill/fenrir_blue.bmd', 'model 0x417: Data/Skill/Rider01.bmd',
+                     'model 0x24e6: Data/Item/helper01.bmd'):
+            self.assertIn(line, logs)
+        self.assertGreaterEqual(out['summary']['mounts_set'], 2)    # the hero's Fenrir and Kyra's Uniria
+        self.assertEqual(out['summary']['bugs_created'], 1)         # Aeris' angel
+        self.assertTrue(any(f['drawn_mounts'] for f in out['helpers']))
 
 
 if __name__ == '__main__':
