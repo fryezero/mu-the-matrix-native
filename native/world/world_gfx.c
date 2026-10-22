@@ -848,6 +848,18 @@ void world_gfx_quest_bind(world_gfx *g, mu_walk *walk, mu_map_session *maps)
     }
 }
 
+void world_gfx_quest_travel_complete(world_gfx *g, int success)
+{
+    if (g && g->have_quest) {
+        if (!success && g->quest.travel_answer) {
+            g->path_mode = 0;
+            if (g->walk)
+                mu_auto_path_reset(&g->walk->auto_path);
+        }
+        mu_quest_session_travel_complete(&g->quest, success);
+    }
+}
+
 void world_gfx_quest_step(world_gfx *g)
 {
     if (g && g->have_quest) {

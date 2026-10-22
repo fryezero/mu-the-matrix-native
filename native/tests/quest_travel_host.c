@@ -35,7 +35,8 @@ static void resume_path(void *user, uint8_t subcode)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) return 2;
+    if (argc != 3 && argc != 4) return 2;
+    const int fail = argc == 4;
     app *a = calloc(1, sizeof *a);
     if (!a) return 2;
     a->root = argv[1];
@@ -58,13 +59,17 @@ int main(int argc, char **argv)
     mu_guide_go(&q.client);
     const int armed = q.stats.requests == 1 && q.travels == 1 && a->walk.auto_path.flag == 1;
     advance(a, 0);
-    const int restored = a->world == 3 && a->walk.hero.tile[0] == 10 && a->walk.auto_path.flag == 1 &&
-                         a->walk.auto_path.mode == 1 && a->walk.auto_path.target_x == 42 &&
-                         a->walk.auto_path.target_y == 43;
+    const int restored = fail ? a->world == 0 && a->walk.hero.tile[0] == 80 && a->walk.auto_path.flag == 0 :
+                               a->world == 3 && a->walk.hero.tile[0] == 10 && a->walk.auto_path.flag == 1 &&
+                               a->walk.auto_path.mode == 1 && a->walk.auto_path.target_x == 42 &&
+                               a->walk.auto_path.target_y == 43;
+    mu_quest_session_travel_complete(&q, !a->travel_failures);
     for (int k = 0; k < 4; ++k) mu_quest_session_step(&q);
-    const int resumed = c.answers == 1 && a->walk.auto_path.flag == 2 && a->walk.hero.movement;
+    const int resumed = fail ? c.answers == 0 && !a->walk.hero.movement :
+                              c.answers == 1 && a->walk.auto_path.flag == 2 && a->walk.hero.movement;
     for (uint32_t now = 40; now <= 30000; now += 40) advance(a, now);
-    const int arrived = a->walk.hero.tile[0] == 42 && a->walk.hero.tile[1] == 43 && !a->walk.hero.movement;
+    const int arrived = fail ? a->walk.hero.tile[0] == 80 && a->walk.hero.tile[1] == 80 :
+                              a->walk.hero.tile[0] == 42 && a->walk.hero.tile[1] == 43 && !a->walk.hero.movement;
     printf("{\"armed\":%d,\"restored\":%d,\"resumed\":%d,\"arrived\":%d}\n", armed, restored, resumed, arrived);
     mu_quest_session_close(&q);
     unload(a);

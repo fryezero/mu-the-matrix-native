@@ -148,13 +148,21 @@ void mu_quest_session_classic_talk(mu_quest_session *s)
 static void travel(mu_quest_session *s, int32_t world, int32_t x, int32_t y, const char *what, uint8_t answer)
 {
     ++s->travels;
+    s->travel_answer = answer;
     int done = s->travel ? s->travel(s->user, world, x, y) : 0;
-    if (done) {
-        uint8_t b[4] = {0xc1, 4, 0xf6, answer};
-        queue(s, b, sizeof b);
-    }
+    if (!done)
+        s->travel_answer = 0;
     note(s, "demo server: %s: move the hero to world %d (%d, %d)%s", what, world, x, y,
          done ? "" : " - cross-map travel hook (NATIVE-MAP-001), not played");
+}
+
+void mu_quest_session_travel_complete(mu_quest_session *s, int success)
+{
+    if (success && s->travel_answer) {
+        uint8_t b[4] = {0xc1, 4, 0xf6, s->travel_answer};
+        queue(s, b, sizeof b);
+    }
+    s->travel_answer = 0;
 }
 
 static void guide_request(mu_quest_session *s, const uint8_t *p, size_t n)

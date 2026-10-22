@@ -549,3 +549,4 @@ are permanently unreachable. The later trees remain unavailable; no point/card a
 
 Local report: `~/Documents/mu-mac-tools/native/renders/polish/later-skill-inputs.json`. The existing server
 and Master suites were rerun: 4,508 + 7,876 cases, zero mismatches, all nine compiled mutants caught.
+The base skill suite also passes: 12,763 cases, zero mismatches, 11/11 mutants caught.

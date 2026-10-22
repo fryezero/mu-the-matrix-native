@@ -39,6 +39,9 @@ node lookup lacks a nested allocation; 282 fifth-table lookups pass, but the ori
 on undefined `0x01d22c04`. Read [client-skills.md](research/client-skills.md#11-later-tree-input-probes-native-polish-001)
 for exact boundaries and next capture needs. These are partial input findings, not completed later trees.
 Alternate-grid shock rings and Muun were not extended. No original client was launched or existing Preview killed.
+Failed destination loads cancel the pending resume and armed path; a missing-map regression verifies no
+movement in the old world. The initial newer-snapshot map failures were independently reproduced on the
+pre-polish `62be84d` archive: the same 298/5,001. Original-input map validation remains green.
 
 ## Map follow-ups (NATIVE-POLISH-001)
 

@@ -345,6 +345,9 @@ SendMove's low byte equals 1; 7B clears it for any nonzero low byte. `quest_move
 The native callback uses the existing path finder and segment sender. World reload retains an armed path;
 the demo queues 56 after guide travel and 7B after quest travel. Native tests cover dispatch and an actual
 guide request, destination-map reload at (10,10), delayed answer, and walking to the separate goal (42,43).
+The demo holds its resume answer until `mu_quest_session_travel_complete` confirms the load. A failed load
+cancels the armed path and pending answer instead of walking those coordinates in the original world;
+the native test also omits the destination map and verifies rollback leaves the hero at (80,80).
 
 NPC 257's extracted creation call attaches one flare `0x7f78`, subtype 42, scale 15. Creation blocks
 `0x0154a28e` (41) and `0x0154a3b7` (42), move blocks `0x015788c9` and `0x01578a6e`, and the existing

@@ -1284,6 +1284,9 @@ static int travel(app *a, const mu_teleport *t)
         w->hero.position[0] = ((float)t->x + 0.5f) * 100.0f;
         w->hero.position[1] = ((float)t->y + 0.5f) * 100.0f;
         w->hero.angle[2] = angle;
+#ifndef MU_WORLD_NO_GL
+        world_gfx_quest_travel_complete(a->gfx, 1);
+#endif
         a->travels++;
         return 0;
     }
@@ -1326,7 +1329,7 @@ static int travel(app *a, const mu_teleport *t)
     }
     a->walk.frame.clock = clock;
     a->walk.steps = steps;
-    if (armed_path.flag == 1)
+    if (!failed && armed_path.flag == 1)
         a->walk.auto_path = armed_path;
     apply_equipment(a, error, sizeof error);
     a->wav = wav;
@@ -1336,6 +1339,7 @@ static int travel(app *a, const mu_teleport *t)
     if (had_gl)
         gl_setup(a);
     if (a->gfx) {
+        world_gfx_quest_travel_complete(a->gfx, !failed);
         names_gfx_attach(a, a->gfx_scale > 0 ? a->gfx_scale : 1.0);
         if (a->npc_demo)
             world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);

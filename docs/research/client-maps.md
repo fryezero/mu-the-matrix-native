@@ -177,3 +177,6 @@ zero mismatches, all 10 mutants caught**. An initial run using skill2's newer la
 298 mismatches, concentrated in absent-key default move records and the consumers sorting those records.
 That input is not interchangeable with the original snapshot. Its failed log remains local as
 `scratch/polish/map-validator.log`; the passing original-input run is `map-validator-lang4.log`.
+An isolated archive of pre-polish `62be84d` reproduced exactly **298/5,001** with that same lang5 input:
+build 70, sort 31, availability 79, rows 48 and click 70. The failures therefore predate this follow-up;
+the newer snapshot remains unsupported by those families. Local report: `map-baseline-lang5.json`.
