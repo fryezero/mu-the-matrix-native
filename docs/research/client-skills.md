@@ -307,3 +307,94 @@ authored position (8, 0); the client's window placement on open is not reconstru
   and neither are the master-skill tree and the 4th/5th trees (MasterSkillTree, SkillTree4th/5th windows).
 - The window's open position; the stamp marker icon (`0x0109750c`, bitmap `0x7e26`); the opaque builder header.
 - The client's measuring font (GlobalText[0], at the 640-unit height) is CoreText's version of that face.
+
+## 8. The server's skill packets and the managers they feed (NATIVE-SKILL-002)
+
+This build numbers its packets itself. The receive dispatcher `0x01287ead` sends opcode **0xA0** to the
+sub-dispatch at `0x0128805c` (sub = packet[3] for a C1 head, packet[4] for C2). Its sub **0x20** is the skill list
+(`0x0126176e`) and sub **0x03** the saved hotkeys (`0x0126f225`). Only game logic is restated here; the C3/C4
+decryption and the login packets stay out. `reconstructed/skill/skill_list.c` holds the C, and
+`scripts/validate_skill_server.py` runs the client's routines in Unicorn.
+
+**The skill list `0x0126176e`** (verified). packet[5] is 0xFF (one skill removed), 0xFE (one skill added) or the
+count of a full list. The entries are 4 bytes from offset 7, with the skill as a u16 at entry +1.
+
+- **0xFF**: the first learned entry holding the skill becomes 0. The stamp manager forgets it (`0x010960a8`) and
+  the hotkeys drop it (`0x00a07ebb`). When it was the last entry, the count shrinks to the last non-zero entry
+  before it.
+- **0xFE**: when the skill is not among the first 150 entries, it takes the first zero one. Then come the stamp
+  manager's add (`0x01095f5c`), the hotkeys' add (`0x00a07c8a`, the listener `0x00c5ea96` and GfxMgr →
+  `0x0095f986` → `0x00ba7366`), the count (when the entry is the count) and GfxMgr +0x1f8 → `0x00c26ad8`.
+  CurrentSkill moves to the new entry when it pointed at the skill's brand (`0x00a002d4`): a master upgrade takes
+  over the selection.
+- **Full list**: the list (0x3a1 u16 entries) is cleared and gets the skills whose use type (+0x58) is not 3. Master
+  passives stay out, but every skill reaches the stamp manager's add and the hotkeys' learned map (`0x00a07a11`,
+  the listener `0x00c5e991`).
+- **Then**, for all three: the stamp manager's imprint refresh (`0x010961b0`). CurrentSkill is reset when it is
+  past the count, when the count is 1, or when its entry is 0, and it then skips empty entries and the skills
+  0x43..0x48 (a byte that wraps). Last, the hotkeys select it (`0x00a079d2`).
+
+**The saved hotkeys `0x0126f225`** (verified for its skill part). Ten big-endian u16 skills come from offset 4
+(0xFFFF none). Skill 0x12a records its key in stamp +0xa8. Every other skill puts its stamp entry into the window
+slot of its key (`0x01096cba`: key 0 is slot 9, key k slot k − 1). Then come Save (`0x01096d2a`) and the
+CurrentSkill rule `0x01096f37`. That rule keeps CurrentSkill when a bar slot shows it. Otherwise it takes the
+learned index of the first window slot. When there is none, it keeps CurrentSkill if the skill is usable
+(`0x010918c7` && `0x01096e55`), else it takes the first special entry of brand 0x4b. The handler's other fields
+(item hotkeys, options) are not read here. It ends with the bar's rebuild `0x00a08330`.
+
+**The Skill Imprint (stamp) manager**, the static at `[0x01d1dbcc]` (getter `0x0095f861`):
+
+| Offset | Content |
+|---|---|
+| +4 / +8 | the class byte it was built for (attributes +0x187), the hero's element |
+| +0xc / +0x18 | `std::vector<entry*>`: the Basic Skill and Special Skill tabs; entry = {+0 base, +4 learned (0: not learned), +8 imprint} |
+| +0x24 / +0x4c | entry*[10]: the window's slots and the bar's slots |
+| +0x80 | the learned skills of the saved bar; +0xa8 the key of skill 0x12a (−1) |
+
+- **Reset `0x01095c77`**: both slot arrays are cleared. For a new class byte (`0x01095ee9`), the basic tab is
+  dropped and refilled (`0x01095d30`). That fill takes the class's skills of brand 0 with use type 0/4/8/14, in key
+  order, without 0, 0x42 and 0x12a. Class indices 10..15 use `0x0109630b` instead: types 0/4, then 8/14. For the
+  same class byte, the learned skills and imprints are cleared (`0x0109664d`, `0x0109658a`). The special tab is
+  always rebuilt from the class's skills of brand 0x4b (`0x01096710`). "The class's" means the record's class map
+  +0x6c holds the class index with a value above 0 (`0x01098644`).
+- **Add `0x01095f5c`**: base = the master manager's base skill (`0x00bb1c32`, the end of the brand chain). The
+  first basic entry of that base takes the skill, unless the skill already lies behind the entry's learned skill
+  in the chain (`0x00bb1c10`). With no basic entry, the first special entry of the base takes it.
+- **Remove `0x010960a8`**: the first entry of the base that holds exactly that skill gets 0.
+- **Refresh `0x010961b0`**: imprint = the learned skill's element (+0x50) equals the hero's non-zero element, or
+  is 6 (all elements).
+- The bar slots, Save (`0x01096d2a`: the bar takes the window's slots, +0x80 their learned skills), Cancel
+  (`0x01096dd0`), a slot's skill (`0x01096a19`/`0x01096a60`: learned, else base), find by skill (`0x01096aa7`:
+  base or learned, basic tab first).
+
+**The hotkey manager `0x01d1df5c`**: +0 the selected skill, +4 `std::map<int, std::string>` of the learned skills
+(keyed by the record's index), +0xc `std::map<slot, skill>`.
+
+- `0x00a08330` rebuilds the slot map from the stamp manager's bar slots (each slot's entry's learned skill).
+- `0x00a081eb` selects a skill. It does nothing for 0 or the selected one. A skill not in the learned map, or one
+  of use type 3, selects 0. Otherwise it notifies GfxMgr → `0x00995257` → `0x00b40380`.
+- `0x00a07ebb`, the remove, calls select(0) for the selected skill. That does nothing, so the selection stays.
+
+**The Skill Imprint window** (static, the routines behind it verified above): its learned page is the stamp
+manager's tab (`0x00c22588` → `0x010968c6`). The page count is the tab's entries / 15 (`0x00c21b0b`). The tab
+buttons set the handler's +0x8c. Save (`0x00c20db4`) runs `0x01096d2a`, `0x01096f37` and `0x00a08330`; Cancel
+runs `0x01096dd0`. The stamp manager's reset runs in the window's `0x00c2008b`.
+
+**Validation** (`scripts/validate_skill_server.py --snapshot lang3.bin --cases 500 --mutations`):
+
+| Family | Client routines | Cases | Mismatches |
+|---|---|---:|---:|
+| list | `0x0126176e` with the stamp manager, the hotkey manager and `0x00bb1c32`/`0x00bb1c10` running for real | 500 | 0 |
+| keys | `0x0126f225` to `0x0126f2fa` (keys, Save, `0x01096f37`), then `0x00a08330` | 500 | 0 |
+| stamp | `0x01095c77` over synthetic Skill(Kor) maps with class maps, then `0x010961b0` | 500 | 0 |
+
+Four planted mistakes (`-DMU_SKILL_MUTATION=12..15`) were all detected. Modelled: the GfxMgr windows the routines
+notify, the hotkey listener `[0x01d22c60]`, the usability answer and the debug-log switch `0x0095fbdc`.
+
+**Native client.** `core/mu_skill` keeps a stamp manager and a hotkey manager. The bar is the hotkey manager's
+slot map. `mu_skill_book_receive` takes the packets. `core/mu_skill_demo.c` is the **offline demo server**: at
+login it sends the class's skill list and saved bar; a script can send `learn:SKILL` / `forget:SKILL` (0xFE/0xFF);
+`MU_SKILL_DEMO=FILE` replaces its table (`list CLASS SKILL...`, `keys CLASS K1..K9 K0`). The stamp manager's tabs
+need the records' class maps. `live-readers/langread ... nested:0x6d8` copies them, and
+`scripts/live_lang_to_plain.py` writes `skills_class.tsv`. Without that file, the demo's list stands in as the
+class map. The window shows the tabs, edits the window slots and saves them to the bar.
