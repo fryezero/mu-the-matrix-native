@@ -52,6 +52,23 @@ static const char *host_text(void *user, int32_t index)
     return b;
 }
 
+static int host_mix_quote(void *user,int group,const mu_mix_item *items,int n,mu_mix_quote *q)
+{
+    (void)user;(void)group;(void)items;
+    memset(q,0,sizeof *q);q->recipe=n?7:-1;q->ready=q->supported=n==1;
+    q->cost=100;q->rate=65;
+    if(getenv("MU_GFX_HOST_MIX_ORDER") && n) {
+        q->rate=(uint32_t)items[n-1].level;q->cost=q->rate*10;q->ready=q->supported=1;
+    }
+    snprintf(q->title,sizeof q->title,"Synthetic recipe");
+    snprintf(q->detail,sizeof q->detail,"Success rate: 65%%<br>Zen: 100");return 1;
+}
+static int host_jewel_check(void *user,int jewel,const mu_mix_item *it,int visible)
+{
+    (void)user;
+    return !visible && (jewel==0x1c10 ? it->option<4 : it->level<9);
+}
+
 static int host_choice(void *user, int index)
 {
     (void)user;
@@ -139,6 +156,7 @@ int main(int argc, char **argv)
     mu_gfx_layer_config cfg = {.movie_dir = argv[1], .lib_path = argv[2], .width = (int32_t)(pw * scale),
                                .height = (int32_t)(ph * scale), .shared = 1, .log = getenv("MU_GFX_LOG") ? stderr : NULL,
                                .scale = scale};
+    cfg.mix_quote=host_mix_quote;cfg.jewel_check=host_jewel_check;
     if (getenv("MU_GFX_HOST_TEXT"))
         cfg.text = host_text;
     if (getenv("MU_GFX_HOST_CHOICE"))
@@ -197,6 +215,25 @@ int main(int argc, char **argv)
                 drawn += px[p * 4 + 3] != 0;
             printf("composite drawn %ld\n", drawn);
             free(px);
+        } else if (!strcmp(op, "mixact") && i+3<argc) {
+            printf("mixact %s %d\n",a,mu_gfx_layer_mix_action(L,a,atoi(argv[i+2]),atoi(argv[i+3])));i+=3;
+        } else if (!strcmp(op, "additem") && i+4<argc) {
+            printf("added %d\n",mu_gfx_layer_add_item(L,atoi(a),atoi(argv[i+2]),atoi(argv[i+3]),atoi(argv[i+4]),"Demo item"));i+=4;
+        } else if (!strcmp(op, "mixstate")) {
+            printf("{\"pending\":%d,\"mix_items\":%d,\"mix_open\":%d,\"placed\":%d,\"zen\":%lld,\"levels\":[",
+                   mu_gfx_layer_mix_pending(L),mu_gfx_layer_slot_items(L,MU_GFX_MIX),mu_gfx_layer_is_open(L,MU_GFX_MIX),
+                   mu_gfx_layer_items_placed(L),(long long)mu_gfx_layer_hero(L)->zen);
+            for(int k=0;k<mu_gfx_layer_item_count(L);k++) {
+                mu_mix_item snap;mu_gfx_layer_item_snapshot(L,k,&snap);
+                printf("%s[%d,%d]",k?",":"",snap.level,snap.option);
+            }
+            printf("]}\n");
+        } else if (!strcmp(op, "save") && i+1<argc) {
+            uint8_t *rgba=calloc((size_t)pw*(size_t)ph,4);
+            mu_gfx_layer_composite(L,rgba,pw,ph);
+            FILE *f=fopen(a,"wb");
+            if(f){fprintf(f,"P6\n%d %d\n255\n",pw,ph);for(int k=0;k<pw*ph;k++)fwrite(rgba+k*4,1,3,f);fclose(f);}
+            free(rgba);i++;
         } else if (!strcmp(op, "open")) {
             mu_gfx_layer_toggle(L, atoi(a));
             i++;

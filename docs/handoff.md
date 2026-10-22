@@ -14,6 +14,17 @@ refresh after map clearing. Three native regressions plus five reconstructed tes
 `~/Documents/mu-mac-tools/native/renders/social/checked-{trade,messenger,map,travel}/`.
 Next: original outbound requests/dialogs, tradeability/options, messenger receives, mail/room transport.
 
+## Item mixing and jewels, NATIVE-MIX-001
+
+Read [client-mix.md](research/client-mix.md). `reconstructed/mix` now includes selection, score, scalar grouping,
+aggregation and mix valuation. `native/core/mu_mix` feeds MixGoblinSel/MixInventoryFrame in the shared GFx layer;
+`--npc-script` has mixopen/mixput/mixtake/mix/mixresult/mixadd/jewel. Replies are delayed offline snapshots,
+not server-outcome predictions. Unicorn: 68,554 comparisons, zero mismatches, 17/17 mutants. Fifteen portable
+and sixteen native mix regressions; native renders and reports under `~/Documents/mu-mac-tools/native/{renders,scratch}/mix/`.
+Review fixes cover reserved jewels, slot reuse, paired-window close and mix-specific valuation. Next: personal
+store and NPC repair UI requests/results. Harmony/cost D, class/option feeds, separate Chaos-weapon system and
+wire replies remain open. No original client launched or owner Preview process touched.
+
 ## Repository split (REPO-SPLIT-001)
 
 The Wine track now lives in [fryezero/mu-the-matrix-mac](https://github.com/fryezero/mu-the-matrix-mac) (local

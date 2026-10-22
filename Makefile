@@ -64,6 +64,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/names -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/npc -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/price -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/mix -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/helpers -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/raven -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/pets -p 'test_*.py' -v

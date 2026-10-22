@@ -44,6 +44,8 @@ not exist yet.
   regressions. Original party actions and messenger handlers remain required; transport, mail and full item
   options are also open. [Evidence](research/client-social.md).
 
+- NATIVE-MIX-001, bounded native mix/jewels. Recipe candidate ranking, scalar grouping and valuation feed MixGoblinSel/MixInventoryFrame in mu-world/mu-client; rate/zen, pending requests, delayed offline results and Bless/Soul/Life snapshots update inventory, tooltip and existing glow. Unicorn: 68,554 comparisons, zero mismatches, 17/17 planted mistakes; portable/native regressions and local renders. Store/repair are next; harmony/cost D, class/option feeds and separate Chaos-weapon system remain open. [Evidence](research/client-mix.md).
+
 - Guide quests, class-upgrade quests, tracker and Go Now, NATIVE-QUEST-002. MyQuestInfo tabs 0/1,
   winQuestSummary, QuestProgressInfo and NpcJobChangeQuest run through the native GFx layer. Go Now walks or
   travels through `mu_map`; NPC 257 wears its extracted +13 set 24 and wings. 7,004 Unicorn cases match with

@@ -22,6 +22,8 @@
 #include "world_gfx_skill.h"
 #include "world_gfx_tree.h"
 #include "../core/mu_skill.h"
+#include "../core/mu_mix.h"
+#include "../../reconstructed/mix/item_actions.h"
 
 struct world_gfx {
     mu_gfx_layer *layer;
@@ -55,7 +57,28 @@ struct world_gfx {
     wg_skill *skill;
     wg_tree *tree;
     double scale;
+    mu_mix_book *mix;
 };
+
+static int mix_quote(void *user,int group,const mu_mix_item *items,int n,mu_mix_quote *out)
+{
+    world_gfx *g=user;
+    return mu_mix_book_quote(g->mix,group,items,n,out);
+}
+static int jewel_check(void *user,int jewel,const mu_mix_item *target,int visible)
+{
+    world_gfx *g=user;
+    return mu_mix_book_jewel(g->mix,jewel,target,visible);
+}
+static void jewel_request(void *user,int source,int target)
+{
+    world_gfx *g=user;uint8_t packet[6];
+    mu_jewel_request(packet,(uint8_t)(source+12),(uint8_t)target,0);
+    char note[128];
+    snprintf(note,sizeof note,"Jewel request %02x %02x %02x %02x %02x %02x (offline demo)",
+              packet[0],packet[1],packet[2],packet[3],packet[4],packet[5]);
+    mu_gfx_layer_npc_note(g->layer,note);
+}
 
 static void quest_dialog_visible(world_gfx *g, int visible);
 
@@ -1009,6 +1032,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         return NULL;
     }
     g->root = game_root;
+    g->mix = mu_mix_book_open(game_root);
     g->scale = scale > 0 ? scale : 1.0;
     const char *face = mu_lang_text(mu_lang_shared(), 0);
     mu_ui_font_open(&g->quest_font, face && *face ? face : "Tahoma", 12, 400);
@@ -1024,7 +1048,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .price = item_price, .price_ex = item_price_ex, .tooltip_ex = tooltip_ex,
                                .dialog_choice = dialogue_choice, .buff_tooltip = buff_tooltip,
                                .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key,
-                               .window_draw = window_draw};
+                               .window_draw = window_draw, .mix_quote = mix_quote,
+                               .jewel_check = jewel_check, .jewel_request = jewel_request};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -1087,6 +1112,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     if (open) {
         if (strstr(open, "inventory"))
             mu_gfx_layer_show(g->layer, MU_GFX_INVENTORY, 1);
+        if (strstr(open, "mix"))
+            mu_gfx_layer_mix_action(g->layer, "mixopen", 0, 0);
         if (strstr(open, "character"))
             mu_gfx_layer_show(g->layer, MU_GFX_CHARACTER, 1);
         if (strstr(open, "skills"))
@@ -1125,6 +1152,7 @@ void world_gfx_close(world_gfx *g)
     if (!g)
         return;
     mu_quest_session_close(&g->quest);
+    mu_mix_book_close(g->mix);
     mu_gfx_layer_close(g->layer);
     wg_tree_close(g->tree);
     wg_skill_close(g->skill);
@@ -1296,6 +1324,10 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
         for (int i = 0; i < g->npc_storage_count && n < MU_NPC_ITEMS; i++)
             item_info(g, g->npc_storage[i].code, g->npc_storage[i].level, &items[n++]);
         mu_gfx_layer_storage(g->layer, "Vault", items, n);
+    } else if (o->window.slot == 0xb0) {
+        mu_gfx_layer_mix_action(g->layer, "goblin", 0, 0);
+    } else if (o->window.slot == 0xa8) {
+        mu_gfx_layer_mix_action(g->layer, "mixopen", o->window.mix_type >= 0 ? o->window.mix_type : 0, 0);
     }
 }
 
@@ -1324,6 +1356,15 @@ int world_gfx_npc_action(world_gfx *g, const char *verb, const char *arg)
 {
     if (!g)
         return 0;
+    if (!strncmp(verb,"mix",3) || !strcmp(verb,"goblin") || !strcmp(verb,"jewel")) {
+        int a=arg?atoi(arg):0,b=0;
+        const char *colon=arg?strchr(arg,':'):NULL;if(colon)b=atoi(colon+1);
+        if (!strcmp(verb,"mixadd")) {
+            mu_gfx_slot_item it;item_info(g,a,b,&it);
+            return mu_gfx_layer_add_item(g->layer,it.code,it.level,it.width,it.height,it.name)>=0;
+        }
+        return mu_gfx_layer_mix_action(g->layer,verb,a,b);
+    }
     int q = quest_action(g, verb, arg);
     if (q >= 0)
         return q;
