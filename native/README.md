@@ -324,6 +324,23 @@ shows the pages, accept, conditions and rewards, MyQuestInfo (T) the active ques
 server). Script verbs: `qnext qno qok qclose qwin qtab:N qsel:QUEST qgo qgiveup qkill:CLASS qset:QUEST:COUNT`; the
 report ends with a `quest` line. Convert `NpcQuestProgress MyQuestInfo` next to the NPC movies.
 
+## Skills: the bar, tooltips, Skill Imprint window (NATIVE-SKILL-001)
+
+With `--gfx` (and `MU_LANG_DIR` for the client's Skill(Kor) table, the game root for SkillTooltipText.bmd) the bar
+shows the hero's skills with the client's feed (`SetSkillSlot`: icons, grey when the stat requirements fail,
+delays), the bar's digits select a skill, hovering shows the client's skill tooltip in SkillInfoPopup, and U (or a
+click on the selected slot) opens the Skill Imprint window (`SkillStampFrame`): learned skills by page, drag one onto
+the five bar slots, Save or Cancel ([finding](../docs/research/client-skills.md); `reconstructed/skill`,
+`core/mu_skill.*`, `world/world_gfx_skill.c`). With `--combat` a right click on a monster casts the selected skill
+through the client's checks (requirements, delay, mana/AG) and the combat path draws it. The learned list is a DEMO
+(the server's skill list). Convert `SkillInfoPopup SkillStampFrame` next to the HUD movies.
+
+```sh
+native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --gfx MOVIES --combat \
+    --placement native/world/lorencia-demo-placement.txt --tile 178,127 --frames 120 --every 20 --out-dir DIR \
+    --skill-script "5:select:1 10:cast:8 30:open 40:over:5 50:drag:6:2 60:save 80:tip:3"
+```
+
 ## Other players (NATIVE-PLAYERS-001)
 
 The characters a server would put around the hero, from a labelled **demo players file** ([finding](../docs/research/client-remote-players.md)):
@@ -631,6 +648,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `app/` | Mu The Matrix Native Preview.app: Swift launcher, the `mu-nonet` network guard, dylib bundling, the bundle Makefile (NATIVE-APP-001) |
 | `core/mu_perf.*`, `viewer/ui_gl.*`, `viewer/gl_batch.*`, `tools/perf_report.py`, `tools/imgdiff.py` | Frame-time breakdown and the cap's precise sleep, the 2D layer on the GPU, draw batching, percentile report, pixel comparison (NATIVE-PERF-001) |
 | `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001); BuffEffect (addBuff, buff popup lines), CharacterInfoSetup (the row builder's order), SkillRequire, MonsterSoulConversion, MUQuestString (NATIVE-LANG-002). See [the finding](../docs/research/client-lang-tables.md) |
+| `core/mu_skill.*`, `world/world_gfx_skill.*` | The hero's skills over `reconstructed/skill`: the Skill(Kor) table and SkillTooltipText.bmd, the bar feed, selection, casts through the client's checks, tooltips, the Skill Imprint window and its icons (NATIVE-SKILL-001). See [the finding](../docs/research/client-skills.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 
 ## Game text and script tables (NATIVE-LANG-001)

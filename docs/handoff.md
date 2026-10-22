@@ -10,6 +10,18 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Skills: bar, tooltip, Skill Imprint window (NATIVE-SKILL-001)
+
+Read [`research/client-skills.md`](research/client-skills.md). `reconstructed/skill` holds the Skill(Kor) row parser,
+the bar feed, delays, the stat/mana checks, the icon draw and the tooltip builder; compare with
+`tools/python/bin/python scripts/validate_skill.py --snapshot "$SNAP" --mutations` (Unicorn, about 6 min; `SNAP` =
+the langread `lang3.bin`). `core/mu_skill` is the native game side (needs `skills_ext.tsv`: rerun
+`scripts/live_lang_to_plain.py` on the snapshot), the GFx layer's skill host plays SkillInfoPopup/SkillStampFrame,
+`world/world_gfx_skill.c` draws the window icons. Renders and live captures stay local
+(`~/Documents/mu-mac-tools/native/renders/skill/`). Next: the stamp manager's entries and imprints (server data),
+the usability check's weapon/buff/world branches, a live read of the skill records' class maps (+0x6c) for the
+class lists, MasterSkillTree / SkillTree4th/5th, the window's open position.
+
 ## Player disk image and first run (MAC-DMG-001)
 
 Read [`research/mac-dmg-installer.md`](research/mac-dmg-installer.md) and `mac-play/bundle/README.md`. Player builds:
