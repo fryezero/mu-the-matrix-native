@@ -233,7 +233,7 @@ int mu_prg_recv_kill_exp(const mu_prg_env *e, const uint8_t *p, int encrypted, u
         /* the client passes the 32-bit experience to a %lld format: the high half is the stack word
          * above the arguments (0 in the validator's cleared stack) */
         char text[512];
-        format_i64(text, sizeof text, gtext(e, third ? 0x6d6 : 0x1e6), (int64_t)exp);
+        format_i64(text, sizeof text, gtext(e, third != (MU_PROGRESS_MUTATION == 9) ? 0x6d6 : 0x1e6), (int64_t)exp);
         chat(e, "01219a39", text);
     }
     if (window(e, 0x0095c50b))
@@ -258,7 +258,7 @@ void mu_prg_recv_master_levelup(const mu_prg_env *e, const uint8_t *p)
         mu_prg_emitf(e, "call 00c8d968 %x", (uint32_t)mu_prg_effective_level(a));
     mu_prg_set32(a, MU_PRG_A_MPOINTS, (uint32_t)(int32_t)rd16s(p, 6));
     mu_prg_set32(a, MU_PRG_A_M34, (uint32_t)(int32_t)rd16s(p, 8));
-    mu_prg_set32(a, MU_PRG_A_M3C, (uint32_t)(int32_t)rd16s(p, 0xa));
+    mu_prg_set32(a, MU_PRG_A_M3C, (uint32_t)(int32_t)rd16s(p, MU_PROGRESS_MUTATION == 12 ? 0x8 : 0xa));
     char text[512];
     uint64_t rest = mu_prg_u64(a, MU_PRG_A_MNEXT_EXP) - mu_prg_u64(a, MU_PRG_A_MEXP);
     format_i64(text, sizeof text, gtext(e, 0x6d6), (int64_t)rest);
@@ -297,7 +297,7 @@ void mu_prg_recv_master_exp(const mu_prg_env *e, const uint8_t *p)
         mu_prg_emitf(e, "call 00c349cb");
     }
     mu_prg_set64(a, MU_PRG_A_MEXP, be64(p + 6));
-    mu_prg_set64(a, MU_PRG_A_MNEXT_EXP, be64(p + 0xe));
+    mu_prg_set64(a, MU_PRG_A_MNEXT_EXP, be64(p + (MU_PROGRESS_MUTATION == 11 ? 0xd : 0xe)));
     mu_prg_set32(a, MU_PRG_A_M34, (uint32_t)(int32_t)rd16s(p, 0x16));
     if ((e->hero_class >> 6 & 1) == 1) {
         mu_prg_emitf(e, "call 00c239c2");
@@ -318,7 +318,7 @@ int mu_prg_recv_stats(const mu_prg_env *e, mu_prg_stat_window *w, const uint8_t 
                                    MU_PRG_A_COMMAND};
     static const size_t ADD[5] = {MU_PRG_A_ADD_STR, MU_PRG_A_ADD_DEX, MU_PRG_A_ADD_VIT, MU_PRG_A_ADD_ENE,
                                   MU_PRG_A_ADD_CMD};
-    static const int ROW[5] = {8, 0xd, 0x18, 0x1d, 0x2a};
+    static const int ROW[5] = {8, 0xd, 0x18, 0x1d, MU_PROGRESS_MUTATION == 10 ? 0x29 : 0x2a};
     uint8_t *a = e->attr;
     for (int i = 0; i < 5; i++) {
         uint16_t base = rd16le(p, 4 + 4 * i), add = rd16le(p, 6 + 4 * i);

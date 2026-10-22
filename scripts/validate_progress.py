@@ -1262,7 +1262,9 @@ def main():
 
 MUTATIONS = [('dw_pvp_rate_4.5', 'calc'), ('bar_master_stage_4', 'bar'), ('bar_rate_tenth', 'bar'),
              ('table_times_9', 'table'), ('levelup_ag_floor_0', 'levelup'), ('point_energy_is_4', 'point'),
-             ('button_command_is_energy', 'button'), ('speed_effect_quarter', 'speed')]
+             ('button_command_is_energy', 'button'), ('speed_effect_quarter', 'speed'),
+             ('exp_master_text_swapped', 'exp'), ('stats_command_row_41', 'stats'),
+             ('master_next_offset_d', 'master_exp'), ('master_3c_from_8', 'master')]
 
 if __name__ == '__main__':
     main()
