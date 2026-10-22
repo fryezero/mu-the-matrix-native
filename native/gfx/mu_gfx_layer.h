@@ -59,7 +59,9 @@ typedef struct mu_gfx_layer mu_gfx_layer;
  * puts skills on the bar), optional as well. */
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
-       MU_GFX_SKILL_STAMP, MU_GFX_MOVIES };
+       MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MOVIES };
+/* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
+ * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
 /* NATIVE-QUEST-001 adds NpcQuestProgress (MU_GFX_QUEST_PROGRESS) and MyQuestInfo (MU_GFX_MY_QUEST), optional
  * like the NPC windows.  The layer does not drive them itself: the host runs the client's window code
  * (reconstructed/quest) and passes its invokes through mu_gfx_layer_invoke / mu_gfx_layer_show; the movies'
@@ -211,6 +213,16 @@ void mu_gfx_layer_chat(mu_gfx_layer *layer, int type, const char *name, const ch
 /* Run a JSON-argument GFx invoke on a movie (tests, scripted runs). */
 const char *mu_gfx_layer_invoke(mu_gfx_layer *layer, int movie, const char *path, const char *method,
                                 const char *args_json);
+/* NATIVE-MAP-001: the map host (world/world_gfx_map.c).  channel: a base-movie channel event the layer does not
+ * play itself (channel name, the JSON arguments); window: a MoveCommand callback (UIInit and CloseWindow
+ * included); key: a window hotkey before the layer's own (1 = used).  NULL detaches. */
+typedef struct mu_gfx_map_hooks {
+    void *user;
+    void (*channel)(void *user, const char *channel, const char *args_json);
+    void (*window)(void *user, int movie, const char *name, const char *args_json);
+    int (*key)(void *user, int vk);
+} mu_gfx_map_hooks;
+void mu_gfx_layer_set_map_hooks(mu_gfx_layer *layer, const mu_gfx_map_hooks *hooks);
 /* NATIVE-NAMES-001: set an AS2 property (path "a.b._x", JSON value) on a movie;
  * returns non-zero when the player accepted it. */
 int mu_gfx_layer_set_variable(mu_gfx_layer *layer, int movie, const char *path, const char *value_json);

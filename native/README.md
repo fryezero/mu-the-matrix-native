@@ -324,6 +324,15 @@ shows the pages, accept, conditions and rewards, MyQuestInfo (T) the active ques
 server). Script verbs: `qnext qno qok qclose qwin qtab:N qsel:QUEST qgo qgiveup qkill:CLASS qset:QUEST:COUNT`; the
 report ends with a `quest` line. Convert `NpcQuestProgress MyQuestInfo` next to the NPC movies.
 
+## Maps and travel (NATIVE-MAP-001)
+
+Tab shows the client's map overlay (the hudMap movie with the world image and the demo server's portal markers) and M
+the Move window ("Warps Window": the client's list rules, sort orders, favourites); a row click, a move request or a
+gate tile changes the world through the existing loader, as the client does without a loading picture. Headless:
+`--travel-script "F:move:KEY F:to:WORLD:X:Y F:rows F:click:ROW F:tab F:mwin F:mclick:ROW"`, `--no-map`. The GFx
+movie directory needs `NaviMap/` (written by `gfx/gfxconvert.py`). Quests travel with `mu_map_travel_to` /
+`mu_map_travel_move` (`core/mu_map.h`). See [the finding](../docs/research/client-maps.md).
+
 ## Skills: the bar, tooltips, Skill Imprint window (NATIVE-SKILL-001)
 
 With `--gfx` (and `MU_LANG_DIR` for the client's Skill(Kor) table, the game root for SkillTooltipText.bmd) the bar
@@ -649,6 +658,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_perf.*`, `viewer/ui_gl.*`, `viewer/gl_batch.*`, `tools/perf_report.py`, `tools/imgdiff.py` | Frame-time breakdown and the cap's precise sleep, the 2D layer on the GPU, draw batching, percentile report, pixel comparison (NATIVE-PERF-001) |
 | `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001); BuffEffect (addBuff, buff popup lines), CharacterInfoSetup (the row builder's order), SkillRequire, MonsterSoulConversion, MUQuestString (NATIVE-LANG-002). See [the finding](../docs/research/client-lang-tables.md) |
 | `core/mu_skill.*`, `world/world_gfx_skill.*` | The hero's skills over `reconstructed/skill`: the Skill(Kor) table and SkillTooltipText.bmd, the bar feed, selection, casts through the client's checks, tooltips, the Skill Imprint window and its icons (NATIVE-SKILL-001). See [the finding](../docs/research/client-skills.md) |
+| `core/mu_map.*`, `world/world_gfx_map.*` | Maps and travel over `reconstructed/map`: the move manager, gates, the demo server's teleports and markers, the travel API, hudMap and MoveCommand over the GFx layer (NATIVE-MAP-001). See [the finding](../docs/research/client-maps.md) |
 | `tests/` | Synthetic fixtures, golden reference harnesses (models and characters), unittest suites (client-verified mesh-draw digests) |
 
 ## Game text and script tables (NATIVE-LANG-001)

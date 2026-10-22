@@ -22,6 +22,20 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Maps and travel (NATIVE-MAP-001)
+
+Read [`research/client-maps.md`](research/client-maps.md). `reconstructed/map` (overlay, Move window, gates; compare
+with `tools/python/bin/python scripts/validate_map.py --snapshot "$SNAP" --cases 500 --mutations`, `SNAP` = the
+langread `lang4.bin`, about 3 min); `core/mu_map` (session + demo server). **Travel API for quests** (NATIVE-QUEST-002's
+"Go Now"): `mu_map_travel_to(session, world, x, y)` or `mu_map_travel_move(session, key)` on the app's `mapsess`; the
+world changes on the next frame (`mu_map_take_teleport` in `advance()`). mu-world/mu-walk/mu-client:
+`--travel-script`, `--no-map`; with `--gfx` Tab shows hudMap and M the Move window (the movie dir needs
+`NaviMap/` from `gfxconvert.py`). Renders/captures stay local in `~/Documents/mu-mac-tools/native/renders/map/`
+(`live/`, `gfx/`, `gfx-travel/`, `walk/`).
+
+**Next.** NPC markers from the placement (the server's 0xE7 records), party icons, the Move window's client position,
+the event world map (0x73), mu-client's scene world after a travel, a live 0xE7 capture to compare marker names.
+
 ## Skills: bar, tooltip, Skill Imprint window (NATIVE-SKILL-001)
 
 Read [`research/client-skills.md`](research/client-skills.md). `reconstructed/skill` holds the Skill(Kor) row parser,

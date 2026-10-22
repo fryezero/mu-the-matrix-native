@@ -1,0 +1,127 @@
+# Maps and travel: the map overlay, the Move window, gates, teleports (NATIVE-MAP-001)
+
+Pinned inputs: restored text capture09 (`2bd5f2e9…3724`) at `0x00401000`, second image section run10
+(`c985e2e6…a0672f`) at `0x01a7c000`, and the NATIVE-LANG-001 langread snapshot (`lang4.bin`, local) for the
+GlobalText, Gate and movereq(kor) tables.
+
+Labels:
+
+- **Verified**: the client's instructions ran in Unicorn (`scripts/validate_map.py`) and equalled the C in
+  `reconstructed/map`.
+- **Static**: a reading of the instructions that was not run.
+- **Live**: observed in the running client (our own session, game lock, 2026-10-22).
+- **Demo**: a choice of the native offline server, not client or server data.
+
+## Where the "minimap loader" is
+
+NATIVE-DATA-001/002 found no loader for `Data/Local/minimap.bmd`. There is none to find in this build. The map overlay
+is the GFx movie **hudMap** (a child of the base movie, `mcBottomHud`), toggled with **Tab** by the movie itself
+(`HUD.hudMap.onKeyDown`, key 9 → `EventCall("showMap", b)`). Its data comes from three places:
+
+| Data | Source | Evidence |
+|---|---|---|
+| World image | `./Data/Interface/GFx/Navimap/navimap%02d.ozp` with world + 1 (`LoadWorldMap 0x00c6b116`); the movie loads `NaviMap/<name>`; the files are 512 × 512 PNG behind a 4-byte copy of the PNG signature | static (the formatter needs the CRT locale machinery); 82 installed files, Navimap01 = Lorencia |
+| NPC / portal markers | the **server**: opcode `0xE7` sub 3 (`0x0126d85c` → `0x00c6b550`) and sub 4 (`0x0123134b` → `0x00c6b5c5`, no name) | verified |
+| Monster / user dots | opcode `0xE7` sub 5 (`0x01233c9b` → AddDetectedUnit `0x00c6b6c2`) | verified |
+| Party icons | the party list (`0x00c6b2cc`: members on the hero's world, the hero skipped) | static |
+
+`minimap.bmd` is a leftover, like `skill.bmd` (NATIVE-DATA-002).
+
+## The overlay's game side (window object; methods in the vtable slots at `0x01a8651c` and `0x01a86538`)
+
+- **OnCall `0x00c6aba6`** (verified). `showMap(b)`: when b is set, the blocked areas `0x00c6bc46` (world `0x72`
+  three rectangles, world `0x73` always, world `0x4f` two rectangles; all but `0x73` print GlobalText `0x1076`) and a
+  missing image (`+0x4e == 0` → the same notice) refuse it; else `+0x4c = b`, `setShowMap(b)` and the request **C1 E7
+  01** (shown) / **C1 E7 02** (hidden). `baseMovie{hero, map}` keeps the movie values at `+0x20` / `+0x30`. `onLoad`
+  calls InitData `0x00c6b89f`: `MaxPartyCount` 5 and ten key-help texts (GlobalText `0x106b..0x1075`, `0x106f`
+  skipped).
+- **Per frame `0x00c6af22`** (verified). While shown: the hero marker's `_rotation = 225 − angle.z` (sent when it
+  changed, cached at `+0x48`); the map's `_x = −(x/100 · 2)`, `_y = −((256 − y/100) · 2)` from the hero position
+  (cached at `+0x40`/`+0x44`; the comparisons are `ucomiss` with the NaN case sending).
+- **Tile → map pixels**: `0x00c6ba5c` x·2, `0x00c6ba7d` (256 − y)·2 (verified through addUnit and the update).
+- **Records** `0x00c6b550`: `[4]` key, `[5]` type (0 portal, 1 NPC; state 6 = Cursed Temple stone), `[6]` state,
+  `[7]` 0 add / 1 remove / other ignored, `[8]`, `[9]` tile, `[10..]` name (verified).
+- **Teleports** clear the overlay (`ClearWorldMap 0x00c6b292`, which also hides it), LoadWorld `0x0182876e` loads the
+  next image.
+
+Live (Lorencia 140,135): the overlay is the semi-transparent map centred on the hero with NPC and portal labels
+("Dungeon Entrance") and the key help bottom right; the native GFx route draws the same movie
+(`renders/map/live/02-tab-map.png` vs `renders/map/gfx/frame-0060.png`, local).
+
+## The Move window (MoveCommand, "Warps Window")
+
+The move manager is a lazily built singleton `[0x01d22d44]` (getter `0x00b2d5b2`, 0x40-byte object, ctor
+`0x00d3b4cb`). Its vector at `+4` holds 0x18-byte entries built from the movereq(kor) table's key list:
+`+0` key, `+4` record `+0x44`, `+8` list position, `+0xc` record `+0x48`, `+0x10` key, `+0x14` enabled, `+0x15` strife,
+`+0x16` clicked. The key list is emptied after the build.
+
+| Routine | What | Status |
+|---|---|---|
+| ctor `0x00d3b4cb` | one entry per key, in key-list order | verified |
+| sort `0x00d3b325(order)` | MSVC `std::sort` (`_Sort 0x00d3c25a`) by `+8` / `+4` / `+0xc`; the keys tie, so the C ports the algorithm (median of nine, fat partition, insertion sort ≤ 32, heap fallback) | verified |
+| strife flags `0x00bdbf82` | clears, then sets the listed keys by record id; three lists (`{0x2a}`, `{0x1c,0x1d,0x21,0x2a,0x2d}`, `{0x2a}`), chosen through a jump into a runtime-patched region | static; live MTM-1: only key 42 (Vulcanus) |
+| availability `0x00bdc0c7` | level `0x00a00367` ≥ record `+0x38` and zen ≥ `+0x34` (× 50 when hero `+0x1f` > 4); then the name rules: GlobalText `0x37` (Icarus) needs wings, a flying helper or the flight state; prefix `0x25` (Atlans) always; `0x29d` (Kalima) the window's `+0x7c`; `0xa7e` refused when `0x01072a7f`; `0x3a`+k (k < 8) the two event checks; strife needs hero `+0x1e` | verified |
+| rows `0x00bdd08d` | SetMoveMapList rows: orderIdx, strStrife (GlobalText `0xbab`), strMap, strLv, strZen (`_itoa`), btnChecked (favourites `+0x8c`, `0x00bdcaf3`), bDisabled, mapIdx; ClearFavorMap; AddMoveMapDataByMapIndex per favourite | verified |
+| click `0x00bdc813` | refused unless enabled; `+0x16 = 1`; world 30/34/79 or key 24/44/48 stops the MU Helper (C1 BF 51 01 when it ran); closes three windows; the request **C1 0B 8E 02 key32 map16 FF** (`0x00b3b866`; the key is the server's 8E 01 value through the opaque `0x00cda52b`) | verified |
+| InitFixtedText | GlobalText `0x3a5, 0xbac, 0x3a6, 0x3a7, 0x3a8, 0x1426, 0x1442, 0xd66, 0x3ea, 0x14dd, 0x14de, 0x14df` | static |
+
+Live: the manager held 69 entries in record-id order (entry `+8` equals the record's id: key 1 Arena id 0, key 90
+BattleGrounds id 1, …), which is the default list order on screen; every map was enabled for Nighty except Aquila's
+Temple (needs 1,650, Nighty 400 + 1,200 master), so the level getter is the total level.
+
+## Gates
+
+There is a client-side entrance test, MoveHero's `0x016a4608` (verified for the gate, refusals and request): skipped
+while LoadingWorld ≠ 0 or the hero is busy, and in worlds `0x2d..0x32`, `0x62..0x63`; then every Gate record in key
+order with flag 1 on the current world whose rectangle holds the hero tile: below the entrance's minimum level →
+LoadingWorld 50 and GlobalText 350 with `%d`; a target in world 10 / `0x84` (Icarus) without wings
+(slot 7 kind 6), Uniria/Dinorant/Fenrir, a flying item or hero `+0x3230` → GlobalText 263; a target `0x24e` in
+world `0x7a` opens a quest window (static); else, unless the request flag/3 s rule throttles it, the request
+**C1 00 1C 00 gate16 00 00** (XORed bytes 3..7, sent with the C3 flag), LoadingWorld 9999999, and for world 30/31 the
+MU Helper stop and `Data\Macro.txt`. The server teleports.
+
+## The teleport answer (C3 1C, `0x0128136d`, static)
+
+`[4]` number (0: same map), `[6]` world, `[8]` `[9]` tile, `[10]` direction. Position ((x + 0.5) · 100), angle
+(dir − 1) · 45, height from the terrain (+90 in worlds 8/10/`0x84`, else +30, Dinorant aside). A different world:
+ClearWorldMap, the current world, LoadWorld `0x0182876e` **synchronously inside the packet handler**, the chat notice
+`"%s%s"` (map name, GlobalText 484 " - Welcome"), LoadingWorld = 30 (the render skips while ≥ 30; MoveHero counts it
+down first). Live: a Lorencia → Noria warp shows no loading picture (frames 0.4 s apart), and both warps landed inside
+the target gate's rectangle (Noria 172,114 in gate 27; Lorencia 137,127 in gate 17).
+
+## Native
+
+- `reconstructed/map` (`map.h`, `map_hud.c`, `map_move.c`, `map_gate.c`); `make -C reconstructed/map`, portable
+  `reconstructed/map/test_map.py`.
+- `native/core/mu_map.*`: the session (the move manager in record-id order, strife key 42, gates, LoadingWorld,
+  favourites) and the **demo server**: a move or gate request lands on a random tile of the target gate's rectangle
+  (the zen cost taken), the overlay's units are the world's entrance gates named "<map> Entrance" (demo text).
+- **Travel API** (for NATIVE-QUEST-002's "Go Now" and scripts): `mu_map_travel_to(session, world, x, y)`,
+  `mu_map_travel_move(session, key)`, and `mu_map_take_teleport` which mu-world polls every frame.
+- `native/world/main.c` (mu-world, mu-walk, mu-client through `world_embed.c`): the gate test each logic step; a
+  teleport to another world unloads and reloads with the existing loader (`load()`), keeps the clock, applies the
+  character's equipment again, keeps the start world's demo files there only, and prints the notice.
+  `--travel-script "F:move:KEY F:to:WORLD:X:Y F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW"`, `--no-map`.
+- `native/world/world_gfx_map.c`: hudMap's game side over the GFx layer (InitData, LoadWorldMap, addUnit,
+  showMap → setShowMap, the per-frame `_rotation` / `_x` / `_y`), MoveCommand (InitFixtedText, SetMoveMapList, sort,
+  favourites, row click, View Map → onShowMap); M toggles the window (layer choice). `mu_gfx_layer` gained the
+  MoveCommand movie and `mu_gfx_layer_set_map_hooks`; `gfxconvert.py` writes `NaviMap/navimapNN.ozp` as plain PNG.
+
+## Verification
+
+`scripts/validate_map.py --snapshot lang4.bin --cases 500 --mutations` (`tools/python`, captures under `evidence/`):
+families hud_update, units, detected, show (+ InitData), move_build, move_sort (also synthetic vectors up to 300
+entries with ties), availability, rows, click, gates (the snapshot's 625 gates): 5,001 cases (500 per family, 501 with InitData), 0 mismatches; 10 planted mistakes
+(one per family) all detected. Portable: `reconstructed/map/test_map.py` (10), `native/tests/test_native_map.py`
+(6 synthetic two-world travel cases + 1 private Lorencia → Noria → Lorencia). GFx route (local, real movies under
+Ruffle): the Tab overlay, the Move window list (same rows as the live window), a row click travelling to Noria with
+the new image and units (`renders/map/gfx/`, `renders/map/gfx-travel/`).
+
+## Gaps
+
+- The `navimap%02d` formatter, the teleport handler, InitFixtedText and the strife list choice are static readings.
+- The demo overlay shows portals only (the real server also sends NPCs); party icons and the detector list are not
+  fed; the Cursed Temple stones and the event world map (world `0x73`) are not played.
+- The Move window opens where its movie asks (centred); the client places it on the left.
+- mu-client's scene state keeps the join world after a travel (music and charsel return use it).
+- The move key transform `0x00cda52b` and the network layer stay outside (the demo ignores the key).

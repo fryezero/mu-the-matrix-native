@@ -53,7 +53,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
-            core/mu_world_helpers.c core/mu_quest.c core/mu_skill.c
+            core/mu_world_helpers.c core/mu_quest.c core/mu_skill.c core/mu_map.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -82,7 +82,8 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c \
              $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
              $(RECON)/quest/quest_ui.c $(RECON)/quest/quest_packets.c $(RECON)/quest/quest_api.c \
-             $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c
+             $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c \
+             $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -100,7 +101,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
            $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(wildcard $(RECON)/quest/*.h) \
-           $(wildcard $(RECON)/skill/*.h)
+           $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -237,7 +238,8 @@ GL_CFLAGS :=
 DL_LIBS := -ldl
 endif
 # NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
-GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c world/world_gfx_skill.c
+GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c world/world_gfx_skill.c \
+           world/world_gfx_map.c
 GFX_CFLAGS := -I gfx -I $(RECON)/hud
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/terrain_view.c
 

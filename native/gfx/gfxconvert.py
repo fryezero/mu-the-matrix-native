@@ -22,6 +22,9 @@ What GFx adds and what this converter does with it:
   The packed glyph data itself is not decoded.  Without such a font the
   fontconfig `$NormalFont` font is used under that name.
 * External sounds/gradients: reported, not converted.
+* NATIVE-MAP-001: the world images of hudMap (`NaviMap/Navimap<NN>.OZP`, a PNG
+  behind a 4-byte copy of the PNG signature) are written as plain PNG files
+  under `<out>/NaviMap/` with the name the movie asks for (`navimap<NN>.ozp`).
 
 The conversion is a local preprocessing step; its outputs contain client data
 and must stay out of the repository.
@@ -480,6 +483,23 @@ def _parse_var(text: str):
         return key, value
 
 
+def convert_navimaps(gfx_dir: Path, out: Path) -> int:
+    """NaviMap/*.OZP -> out/NaviMap/<lower-case name>: the PNG after the 4-byte prefix (NATIVE-MAP-001)."""
+    src = gfx_dir/'NaviMap'
+    if not src.is_dir():
+        return 0
+    n = 0
+    (out/'NaviMap').mkdir(parents=True, exist_ok=True)
+    for f in sorted(src.iterdir()):
+        if f.suffix.lower() != '.ozp':
+            continue
+        data = f.read_bytes()
+        png = data[4:] if data[4:12] == b'\x89PNG\r\n\x1a\n' else data
+        (out/'NaviMap'/f.name.lower()).write_bytes(png)
+        n += 1
+    return n
+
+
 def main(argv=None):
     import argparse
     import json
@@ -519,6 +539,8 @@ def main(argv=None):
         print(f'{stem}: {len(swf)} bytes, {rep.images} images, {rep.sub_images} sub-images, '
               f'{rep.atlases} atlases, fonts {rep.fonts_inlined}, missing {rep.missing_files}, '
               f'unconverted {rep.unconverted}')
+    if not args.movie:
+        results['NaviMap'] = {'images': convert_navimaps(gfx_dir, args.out)}
     if args.report:
         args.report.write_text(json.dumps(results, indent=1, ensure_ascii=False))
     return 1 if any('error' in r for r in results.values()) else 0
