@@ -7,6 +7,19 @@
 #include "../core/mu_world_helpers.h"
 #include "../core/mu_particles.h"
 
+static int eye_count(const mu_world_particles *p, int32_t owner, const float light[3])
+{
+    int count = 0;
+    for (int i = 0; i < MU_JT_JOINTS; ++i) {
+        const mu_jt_joint *j = &p->joints[i];
+        if (!j->live || j->type != 0x7fd6) continue;
+        if (j->target != owner) return -1;
+        for (int k = 0; k < 3; ++k) if (j->light[k] != light[k]) return -1;
+        count++;
+    }
+    return count;
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2) return 2;
@@ -91,10 +104,43 @@ int main(int argc, char **argv)
         mu_world_particles_step(p, 40.0f);
         eye &= j->live && j->lifetime == 10 && j->position[0] == world[0] + 100.0f;
     }
-    printf("{\"spaces\": %d, \"offset\": %d, \"flash\": %d, \"ring\": %d, \"owners\": %d, \"bounds\": %d, \"eye\": %d}\n",
-           spaces, offset, flash, ring, owners, bounds, eye);
+    mu_hp_mount template = *m;
+    mu_world_helpers_reset_mount(w, template.key, 0);
+    mu_world_helpers_reset_mount(w, other->key, 0);
+    memset(p->joints, 0, MU_JT_JOINTS * sizeof *p->joints);
+    memset(p->effects, 0, MU_WORLD_FX_EFFECTS * sizeof *p->effects);
+    w->owners[0].live = 1;
+    template.owner = template.object.owner = 0;
+    template.riding = 1;
+    template.cls = MU_HP_MOUNT_GHOST_HORSE;
+    template.object.subtype = 10;
+    w->mounts.list[0] = template;
+    w->mounts.count = 1;
+    mu_world_helpers_draw(w, NULL, NULL, NULL);
+    int32_t first_id = mu_world_helpers_effect_id(w, &w->mounts.list[0].object);
+    const float ghost_light[3] = {0.5f, 0.1f, 1.0f};
+    int lifecycle = eye_count(p, first_id, ghost_light) == 2;
+    /* Viewport removal, a particle tick, and re-entry with the same key. */
+    mu_world_helpers_reset_mount(w, template.key, 0);
+    mu_world_particles_step(p, 80.0f);
+    w->mounts.list[0] = template;
+    w->mounts.count = 1;
+    mu_world_helpers_draw(w, NULL, NULL, NULL);
+    int32_t second_id = mu_world_helpers_effect_id(w, &w->mounts.list[0].object);
+    lifecycle &= first_id != second_id && eye_count(p, second_id, ghost_light) == 2;
+    /* Immediate replacement before a particle tick must not adopt the former trails/colour. */
+    mu_world_helpers_reset_mount(w, template.key, 0);
+    template.cls = MU_HP_MOUNT_SHINING_TAIL;
+    w->mounts.list[0] = template;
+    w->mounts.count = 1;
+    mu_world_helpers_draw(w, NULL, NULL, NULL);
+    int32_t third_id = mu_world_helpers_effect_id(w, &w->mounts.list[0].object);
+    mu_world_particles_step(p, 120.0f);
+    lifecycle &= third_id != second_id && eye_count(p, third_id, eye_light) == 2;
+    printf("{\"spaces\": %d, \"offset\": %d, \"flash\": %d, \"ring\": %d, \"owners\": %d, \"bounds\": %d, \"eye\": %d, \"lifecycle\": %d}\n",
+           spaces, offset, flash, ring, owners, bounds, eye, lifecycle);
     mu_world_helpers_close(w);
     mu_world_particles_close(p);
     free(w); free(p); free(map);
-    return spaces && offset && flash && ring && owners && bounds && eye ? 0 : 1;
+    return spaces && offset && flash && ring && owners && bounds && eye && lifecycle ? 0 : 1;
 }

@@ -204,7 +204,8 @@ typedef struct mu_sfx_env {
  * subtype 0 (NATIVE-JOINT-001: the hero's object through hero_object, the
  * PlayBuffer call through MU_SFX_CALL_SOUND). */
 /* RenderEffects' helper decals and the shock ring in RenderTerrainEffects. flat is the alternate
- * 0x00deec1f path in worlds 0x18..0x1d / 0x24, at z=0 on a 50-unit grid. */
+ * 0x00deec1f path in worlds 0x18..0x1d / 0x24: a separate signed height grid plus 400, 50-unit cells.
+ * Only its call selection is reconstructed here; native rendering awaits that grid's loader. */
 typedef struct mu_sfx_decal {
     int32_t texture;
     float size, light[3], rotation;

@@ -1388,7 +1388,7 @@ hero's helper from the inventory; a live capture of a rider and an angel for a s
 Integrated verified FX work without retaining the unverified WIP snapshot. Native now draws the 24 functors,
 Shining Tail sparkles/mist/claws/runes/tail emitter, Ghost Horse aura/claws/breath and both eye trails, Dark Horse
 ring and Fenrir lightning/paw marks. Flying bones include object origin; flashes have their real mount owner.
-Shared models are reposed per owner; bone bounds use the loaded skeleton size. Pets and Dark Raven are included
+Shared models are reposed per owner; bone bounds use the loaded skeleton size. Mount instance IDs and visual state reset on teardown, including viewport re-entry and immediate replacement. Pets and Dark Raven are included
 (`client-pets.md`, `client-dark-spirit.md`); the Preview picker exposes them.
 
 Checks: `validate_mount_visuals.py --cases 300` (7,200 functors + 1,200 class cases); particles create/move/render

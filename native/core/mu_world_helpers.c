@@ -182,11 +182,6 @@ static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
     return m;
 }
 
-mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index)
-{
-    return model_of(w, index);
-}
-
 static int32_t slot_of(const mu_world_helpers *w, const mu_wh_model *m)
 {
     return (int32_t)(m - w->models);
@@ -329,12 +324,29 @@ static mu_hp_class_state *class_state_of(mu_world_helpers *w, int32_t key)
     for (int32_t i = 0; i < w->class_state_count; ++i)
         if (w->class_keys[i] == key)
             return &w->class_states[i];
-    if (w->class_state_count >= MU_HP_MOUNTS)
+    int32_t i = 0;
+    while (i < w->class_state_count && w->class_keys[i] >= 0) ++i;
+    if (i >= MU_HP_MOUNTS || w->next_effect_id >= INT32_MAX - MU_WH_EFFECT_BASE)
         return NULL;
-    int32_t i = w->class_state_count++;
+    if (i == w->class_state_count) w->class_state_count++;
     w->class_keys[i] = key;
+    w->class_effect_ids[i] = MU_WH_EFFECT_BASE + ++w->next_effect_id;
     memset(&w->class_states[i], 0, sizeof w->class_states[i]);   /* the model load writes +0xa4 = 0 */
+    memset(w->class_eyes[i], 0, sizeof w->class_eyes[i]);
     return &w->class_states[i];
+}
+
+void mu_world_helpers_reset_mount(mu_world_helpers *w, int32_t key, int32_t owner)
+{
+    mu_hp_mount_reset(&w->h, &w->mounts, key, owner);
+    for (int32_t i = 0; i < w->class_state_count; ++i)
+        if (w->class_keys[i] == key) {
+            w->class_keys[i] = -1;
+            w->class_effect_ids[i] = -1;
+            memset(&w->class_states[i], 0, sizeof w->class_states[i]);
+            memset(w->class_eyes[i], 0, sizeof w->class_eyes[i]);
+            break;
+        }
 }
 
 typedef struct class_host_ctx {
@@ -621,7 +633,7 @@ static void delete_owner_helpers(mu_world_helpers *w, int32_t owner)
     mu_wh_owner *s = &w->who[owner];
     mu_hp_delete_bug(&w->h, owner);   /* DeleteCharacter 0x0137c457 releases the helpers (static reading) */
     if (mu_hp_mount_find(&w->mounts, s->key)) {
-        mu_hp_mount_reset(&w->h, &w->mounts, s->key, owner);
+        mu_world_helpers_reset_mount(w, s->key, owner);
         w->stats.mounts_reset++;
     }
     s->helper_slot = -1;
@@ -713,7 +725,7 @@ static void apply_player(mu_world_helpers *w, int32_t i)
             break;
         case MU_RP_CALL_MOUNT_RESET:
             if (mu_hp_mount_find(&w->mounts, s->key)) {
-                mu_hp_mount_reset(&w->h, &w->mounts, s->key, owner);
+                mu_world_helpers_reset_mount(w, s->key, owner);
                 w->stats.mounts_reset++;
             }
             break;
@@ -854,17 +866,23 @@ static mu_wh_model *pose_helper(mu_world_helpers *w, const mu_hp_object *o)
     return pose_object(&d, o, 1);
 }
 
-int32_t mu_world_helpers_effect_id(const mu_world_helpers *w, const mu_hp_object *object)
+int32_t mu_world_helpers_effect_id(mu_world_helpers *w, const mu_hp_object *object)
 {
     for (int32_t i = 0; i < w->mounts.count; ++i)
-        if (&w->mounts.list[i].object == object)
-            return MU_WH_EFFECT_BASE + w->mounts.list[i].key;
+        if (&w->mounts.list[i].object == object) {
+            mu_hp_class_state *state = class_state_of(w, w->mounts.list[i].key);
+            return state ? w->class_effect_ids[state - w->class_states] : -1;
+        }
     return -1;
 }
 
 static mu_hp_mount *effect_mount(mu_world_helpers *w, int32_t id)
 {
-    return w && id >= MU_WH_EFFECT_BASE ? mu_hp_mount_find(&w->mounts, id - MU_WH_EFFECT_BASE) : NULL;
+    if (w && id >= MU_WH_EFFECT_BASE)
+        for (int32_t i = 0; i < w->class_state_count; ++i)
+            if (w->class_effect_ids[i] == id)
+                return mu_hp_mount_find(&w->mounts, w->class_keys[i]);
+    return NULL;
 }
 
 int mu_world_helpers_effect_object(mu_world_helpers *w, int32_t id, mu_jt_object *out)

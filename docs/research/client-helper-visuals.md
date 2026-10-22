@@ -148,7 +148,8 @@ and breath; its step `0x010497b9` adds four named claw effects at frames 0..1. T
 - Rider offsets retain model-space bones; flying steps use scale plus object origin. Fenrir lightning carries the
   actual mount owner and resolves its bones. Bone indices are checked against the loaded skeleton's count.
   `native/tests/helper_fx_host.c` covers nonzero origins, two owners sharing a model, real flash ownership, the
-  zero-light ring, eye colour/lifetime through native dispatch, and invalid Fenrir bone references (seven-bone synthetic skeleton, requests 53 and -1).
+  zero-light ring, eye colour/lifetime through native dispatch, and invalid Fenrir bone references (seven-bone synthetic skeleton, requests 53 and -1). It also draws, removes, ticks and recreates a mount, then immediately replaces Ghost Horse
+  with Shining Tail: fresh instance IDs invalidate former owners and recreate exactly two trails with the right colour.
 - `--helper ghost-horse | ice-dragon | pierce-lion | shining-tail | ur | leviathan | tauros | divine-horse` with
   `--helper-state LEVEL`; the Preview app's helper picker lists them with the pets and the raven.
 

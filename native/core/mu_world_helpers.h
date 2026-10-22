@@ -44,7 +44,7 @@ struct mu_world_raven;
 struct mu_world_pets;
 
 enum { MU_WH_EFFECT_BASE = 0x10000000 };
-int32_t mu_world_helpers_effect_id(const struct mu_world_helpers *w, const mu_hp_object *object);
+int32_t mu_world_helpers_effect_id(struct mu_world_helpers *w, const mu_hp_object *object);
 
 enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 16 };
 
@@ -104,6 +104,7 @@ typedef struct mu_world_helpers {
     int32_t class_keys[MU_HP_MOUNTS];
     mu_hp_class_state class_states[MU_HP_MOUNTS];
     float class_eyes[MU_HP_MOUNTS][2][3]; /* SetEye's +0x188 / +0x194, updated by the class visual */
+    int32_t class_effect_ids[MU_HP_MOUNTS], next_effect_id;
     int32_t class_state_count;
 } mu_world_helpers;
 
@@ -155,11 +156,11 @@ int mu_world_helpers_draw_object(mu_world_helpers *w, const struct mu_world_help
  * the item code, -1 for "none", -2 when unknown. */
 int32_t mu_world_helpers_parse(const char *text, int32_t *state);
 
-/* NATIVE-HELPERS-002: a helper model by index (loaded on first use; NULL when the table is full) and its slot. */
-mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index);
+/* NATIVE-HELPERS-002: the slot of a helper model. */
 int32_t mu_world_helpers_model_slot(const mu_world_helpers *w, const mu_wh_model *m);
 
-/* Native owner adapter for the effect and joint pools. IDs hold the mount's stable character key. */
+/* Native owner adapter: each mount instance gets a fresh ID, invalidated on teardown. */
+void mu_world_helpers_reset_mount(mu_world_helpers *w, int32_t key, int32_t owner);
 int mu_world_helpers_effect_object(mu_world_helpers *w, int32_t id, struct mu_jt_object *out);
 int mu_world_helpers_effect_bone(mu_world_helpers *w, int32_t id, int32_t bone, const float in[3], float out[3]);
 
