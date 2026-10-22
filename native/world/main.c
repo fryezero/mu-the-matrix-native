@@ -2240,11 +2240,11 @@ static void report_summary(const app *a, const char *renderer)
         /* NATIVE-JOINT-001: the world objects' joint and effect pools */
         printf("{\"joints\": true, \"created\": %llu, \"unsupported\": %llu, \"full\": %llu, \"live\": %u,"
                " \"max_live\": %u, \"quads\": %u, \"effects_created\": %llu, \"effects_unsupported\": %llu,"
-               " \"effects_live\": %u, \"effect_models\": %u, \"sounds\": %llu}\n",
+               " \"effects_live\": %u, \"effect_models\": %u, \"sounds\": %llu, \"decal_fans\": %llu}\n",
                (unsigned long long)p->joints_created, (unsigned long long)p->joints_unsupported,
                (unsigned long long)p->joints_full, p->live_joints, p->max_joints, p->drawn_joint_quads,
                (unsigned long long)p->effects_created, (unsigned long long)p->effects_unsupported, p->live_effects,
-               p->drawn_effect_models, (unsigned long long)p->sounds);
+               p->drawn_effect_models, (unsigned long long)p->sounds, (unsigned long long)p->decals_total);
     }
     if (a->has_objects)
         printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"

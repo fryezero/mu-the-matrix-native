@@ -902,6 +902,7 @@ static long draw_effect_decals(mu_world_particles *p, const mu_world_particles_t
                              0.6f, e->light, 0.0f, 1.0f, 5.0f, 1, 0, &sink);
     }
     p->stats.drawn_decals = (uint32_t)d.fans;
+    p->stats.decals_total += (uint64_t)d.fans;
     return d.fans;
 }
 

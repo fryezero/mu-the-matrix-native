@@ -75,6 +75,7 @@ typedef struct mu_world_particles_stats {
     uint32_t live_joints, max_joints, live_effects;
     uint32_t drawn_joint_quads, drawn_effect_models;
     uint32_t drawn_decals;                 /* NATIVE-HELPERS-002: decal fans of the effects (shock ring, paw marks) */
+    uint64_t decals_total;
 } mu_world_particles_stats;
 
 typedef struct mu_world_particles {
