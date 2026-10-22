@@ -923,13 +923,13 @@ static void npc_script(app *a, int32_t frame)
 #endif
 }
 
+#ifndef MU_WORLD_NO_GL
 /* NATIVE-SKILL-001: the selected skill's cast at a monster through the client's checks (core/mu_skill: stats,
  * the class special cases, IsSkillReady, the mana/AG check, StartSkillDelay -> onUseSkillDelay), then the combat
  * path draws it (mu_combat_cast, NATIVE-COMBAT-001/002).  Returns MU_SKILL_CAST_*. */
 static int skill_cast_at(app *a, int32_t actor, int32_t *skill)
 {
     *skill = 0;
-#ifndef MU_WORLD_NO_GL
     if (!a->gfx)
         return MU_SKILL_CAST_NONE;
     int r = world_gfx_skill_cast(a->gfx, skill);
@@ -941,11 +941,6 @@ static int skill_cast_at(app *a, int32_t actor, int32_t *skill)
         a->skill_refused++;
     }
     return r;
-#else
-    (void)a;
-    (void)actor;
-    return MU_SKILL_CAST_NONE;
-#endif
 }
 
 static int parse_skill_script(app *a, const char *text)
@@ -978,6 +973,7 @@ static int parse_skill_script(app *a, const char *text)
     }
     return 0;
 }
+#endif
 
 static void skill_script(app *a, int32_t frame)
 {
