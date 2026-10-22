@@ -4,6 +4,13 @@ This is the first native macOS rendering milestone. It is an arm64 viewer that d
 
 ## Build
 
+NATIVE-SOCIAL-001 adds offline party, trade, friends/messenger and whispers through the GFx layer in
+mu-world and mu-client. With `--players` and converted movies, use P for party, F for friends, Y/N for requests,
+and chat `/party NAME`, `/trade NAME`, `/accept`, `/leave`, `/kick NAME`, `/friend NAME`, `/w NAME TEXT`.
+Click inventory items to offer them during a trade, and own trade cells to return them. `/zen N`, `/ok`,
+`/cancel` and `--social-script` support demo runs. See [client-social.md](../docs/research/client-social.md)
+for commands, instruction coverage and limits. Convert `winParty Trade FriendMenu FriendWindow` too.
+
 ```sh
 brew install cryptopp sdl2 jpeg-turbo      # Debian/Ubuntu: libcrypto++-dev libsdl2-dev libjpeg-dev
 make -C native                             # core + headless tool build/mu-render (macOS and Linux)

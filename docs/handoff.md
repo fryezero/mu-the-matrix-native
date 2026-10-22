@@ -1,5 +1,19 @@
 # Continue from here
 
+## Social systems (NATIVE-SOCIAL-001)
+
+Round 1 publishes from `claude/native-social`; continue original handlers on `claude/native-social2` from merged main.
+
+Read [client-social.md](research/client-social.md). `reconstructed/social` + `scripts/validate_social.py` cover
+party request/fields/state/resources/markers, trade receives/locks/results, friend rows and whispers. Private
+run: 7,000 comparisons, 0 mismatches, 10/10 mutations. `core/mu_social` is the offline server/session;
+`world/world_gfx_social` drives winParty, Trade, FriendMenu/FriendWindow and chat in mu-world/mu-client.
+P/F/Y/N and slash commands are in the finding. Inventory offers reserve native inventory items and restore
+on cancel; one-item partner offers remain a demo. Membership survives travel and stationary Tab markers
+refresh after map clearing. Three native regressions plus five reconstructed tests. Local GL evidence:
+`~/Documents/mu-mac-tools/native/renders/social/checked-{trade,messenger,map,travel}/`.
+Next: original outbound requests/dialogs, tradeability/options, messenger receives, mail/room transport.
+
 ## Repository split (REPO-SPLIT-001)
 
 The Wine track now lives in [fryezero/mu-the-matrix-mac](https://github.com/fryezero/mu-the-matrix-mac) (local
@@ -77,7 +91,7 @@ world changes on the next frame (`mu_map_take_teleport` in `advance()`). mu-worl
 `NaviMap/` from `gfxconvert.py`). Renders/captures stay local in `~/Documents/mu-mac-tools/native/renders/map/`
 (`live/`, `gfx/`, `gfx-travel/`, `walk/`).
 
-**Next.** NPC markers from the placement (the server's 0xE7 records), party icons, the Move window's client position,
+**Next.** NPC markers from the placement (the server's 0xE7 records), the Move window's client position,
 the event world map (0x73), mu-client's scene world after a travel, a live 0xE7 capture to compare marker names.
 
 ## Skill state, usability and Master tree (NATIVE-SKILL-002)

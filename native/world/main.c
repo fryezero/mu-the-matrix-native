@@ -1,3 +1,7 @@
+#include "../core/mu_social.h"
+#ifndef MU_WORLD_NO_GL
+#include "world_gfx_social.h"
+#endif
 /* mu-world: the first native "walk around the world" build (NATIVE-WORLD-001),
  * made alive by NATIVE-WORLD-002 (docs/research/native-world-alive.md).
  *
@@ -180,6 +184,12 @@ typedef struct app {
     int32_t chat_frame[16], chat_count;
     char chat_text[16][64];
     /* NATIVE-PLAYERS-001: other players from a DEMO players file (--players FILE, --no-players, --player-range N) */
+    mu_social_session *social;
+    const char *social_script;
+#ifndef MU_WORLD_NO_GL
+    world_gfx_social *gfxsocial;
+    world_gfx *gfxsocial_owner;
+#endif
     const char *players_file;
     int no_players;
     int32_t player_range;
@@ -582,6 +592,15 @@ static int load(app *a)
             a->players->view_range = a->player_range;
         mu_world_players_attach(a->players, a->names, a->combat);
     }
+    if (!a->social) {
+        a->social = calloc(1, sizeof *a->social);
+        if (!a->social) return 1;
+        mu_social_init(a->social, a->hero_name, a->players);
+    } else {
+        a->social->players = a->players;
+        a->social->revision++;
+    }
+    if (a->players) a->players->social = a->social;
     if (!a->no_helpers && (a->helper_arg || a->players)) {   /* NATIVE-HELPERS-001 */
         int32_t state = 0, item = -1;
         if (a->helper_arg) {
@@ -665,6 +684,7 @@ static void on_step(void *context, mu_walk *w)
         mu_combat_step(a->combat);
     if (a->players)   /* NATIVE-PLAYERS-001: the demo server's packets, MoveCharacters' remote step, the animation step */
         mu_world_players_step(a->players);
+    if (a->social) mu_social_step(a->social, a->world, h->tile[0], h->tile[1]);
     if (a->helpers)   /* NATIVE-HELPERS-001: MoveBugs, the mount manager's move loop (after MoveCharacters) */
         mu_world_helpers_step(a->helpers);
     if (a->ground) {   /* NATIVE-ITEMS-001: the demo server's drops, MoveItems, the pick-up mode */
@@ -752,6 +772,10 @@ static int wav_append(app *a, uint32_t frames)
 
 static void unload(app *a)
 {
+#ifndef MU_WORLD_NO_GL
+    if (a->gfxsocial) { world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL; }
+#endif
+    if (a->social) a->social->players = NULL;
     mu_walk_free(&a->walk);
     if (a->has_character)
         mu_character_free(&a->ch);
@@ -1074,8 +1098,27 @@ static void skill_script(app *a, int32_t frame)
 
 static void map_script(app *a, int32_t frame);
 
+static void social_script(app *a, int32_t frame)
+{
+    if (!a->social || !a->social_script) return;
+    char *copy = strdup(a->social_script), *save = NULL;
+    if (!copy) return;
+    for (char *tok = strtok_r(copy, ";", &save); tok; tok = strtok_r(NULL, ";", &save)) {
+        char *v = strchr(tok, ':'); if (!v) continue; *v++ = 0;
+        if (atoi(tok) != frame) continue;
+        char *arg = strchr(v, ':'); if (arg) *arg++ = 0; else arg = "";
+        int ok;
+#ifndef MU_WORLD_NO_GL
+        if (a->gfxsocial) ok = world_gfx_social_action(a->gfxsocial, v, arg); else
+#endif
+        ok = mu_social_action(a->social, v, arg);
+        fprintf(stderr, "social: %s %s: %s\n", v, arg, ok ? a->social->last : "refused");
+    }
+    free(copy);
+}
 static void script(app *a, int32_t frame)
 {
+    social_script(a, frame);
     mu_walk *w = &a->walk;
     map_script(a, frame);
     skill_script(a, frame);
@@ -1468,6 +1511,7 @@ static int32_t advance(app *a, uint32_t now)
 #ifndef MU_WORLD_NO_GL
     if (a->gfxmap && a->gfx == a->gfxmap_owner)   /* NATIVE-MAP-001: hudMap's per-frame method 0x00c6af22 */
         world_gfx_map_frame(a->gfxmap, w->hero.position, w->hero.angle[2]);
+    if (a->gfxsocial && a->gfx == a->gfxsocial_owner) world_gfx_social_frame(a->gfxsocial);
 #endif
     if (a->names) {   /* NATIVE-NAMES-001: 0x009a1618 in the tick, the hudPlayerName handler's update */
 #ifndef MU_WORLD_NO_GL
@@ -2630,6 +2674,10 @@ static void report_summary(const app *a, const char *renderer)
     }
     if (a->npc)
         mu_npc_report_summary(a->npc, stdout, a->quiet);
+    if (a->social)
+        printf("{\"social\":true,\"party\":%d,\"friends\":%d,\"pending\":%d,\"trade_open\":%d,\"trade_result\":%d,\"completed\":%d,\"received_items\":%d,\"zen\":%lld}\n",
+               a->social->party.count, a->social->friends.count, a->social->pending, a->social->trade.open,
+               a->social->trade.result, a->social->completed, a->social->received_items, (long long)a->social->zen);
     if (a->mapsess)   /* NATIVE-MAP-001 */
         printf("{\"map\": true, \"world\": %d, \"tile\": [%d, %d], \"travels\": %u, \"travel_failures\": %u,"
                " \"zen\": %lld, \"moves\": %d, \"gates\": %d, \"loading_world\": %d, \"map_shown\": %d,"
@@ -2656,6 +2704,10 @@ static void names_chat_hook(void *user, const char *text)
 static void names_gfx_attach(app *a, double scale)
 {
     a->gfx_scale = scale;
+    if (a->gfxsocial && a->gfxsocial_owner != a->gfx) { world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL; }
+    if (!a->gfxsocial && a->gfx && a->social) {
+        a->gfxsocial = world_gfx_social_open(world_gfx_layer(a->gfx), a->social); a->gfxsocial_owner = a->gfx;
+    }
     world_gfx_quest_bind(a->gfx, &a->walk, a->mapsess);
     if (a->gfxmap && a->gfxmap_owner != a->gfx) {   /* NATIVE-MAP-001: the map host follows the front end's layer */
         world_gfx_map_close(a->gfxmap);
@@ -2802,6 +2854,7 @@ static int headless(app *a)
         world_gfx_report(a->gfx, line, sizeof line);
         printf("{%s}\n", line);
         world_gfx_quest_report(a->gfx, stdout);
+        world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL;
         world_gfx_close(a->gfx);
         a->gfx = NULL;
     }
@@ -3040,6 +3093,7 @@ static int windowed(app *a)
     if (a->audio_device)
         SDL_CloseAudioDevice(a->audio_device);
     world_gfx_quest_report(a->gfx, stdout);
+    world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL;
     world_gfx_close(a->gfx);
     a->gfx = NULL;
     gl_teardown(a);
@@ -3132,6 +3186,7 @@ static int usage(void)
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
                     "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n"
                     "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n"
+                    "                [--social-script \"F:party:NAME;F:accept;F:trade:NAME;F:offer:CELL;F:zen:N;F:ok\"]   offline social demo\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
                     "                [--helper-state N] [--no-helpers]\n"
                     "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
@@ -3209,6 +3264,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--wav")) a.wav_path = v;
         else if (!strcmp(k, "--audio-rate")) a.audio_rate = atoi(v);
         else if (!strcmp(k, "--placement")) a.placement = v;
+        else if (!strcmp(k, "--social-script")) a.social_script = v;
         else if (!strcmp(k, "--players")) a.players_file = v;
         else if (!strcmp(k, "--helper")) a.helper_arg = v;   /* NATIVE-HELPERS-001 (DEMO) */
         else if (!strcmp(k, "--helper-state")) a.helper_state = atoi(v);
@@ -3268,6 +3324,8 @@ int main(int argc, char **argv)
         return usage();
     if (load(&a)) {
         unload(&a);
+        free(a.social);
+        a.social = NULL;
         return 1;
     }
 #ifndef MU_WORLD_NO_GL
@@ -3276,5 +3334,7 @@ int main(int argc, char **argv)
     int status = headless(&a);
 #endif
     unload(&a);
+    free(a.social);
+    a.social = NULL;
     return status;
 }

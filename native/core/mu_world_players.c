@@ -1,3 +1,4 @@
+#include "mu_social.h"
 /* Other players in the walk-around world (NATIVE-PLAYERS-001); see mu_world_players.h. */
 #define _POSIX_C_SOURCE 200809L
 #include "mu_world_players.h"
@@ -427,6 +428,8 @@ static int party_lookup(void *context, const char *name, int32_t *hp)
     const mu_world_players *p = n->user;
     if (!p)
         return 0;
+    if (p->social)
+        return mu_social_party_hp(&p->social->party, name, hp);
     for (int32_t i = 0; i < p->count; ++i)
         if (p->list[i].spec.party && !strcmp(p->list[i].spec.name, name)) {
             *hp = p->list[i].c.dead ? 0 : 100;   /* DEMO: the party window's HP percentage */

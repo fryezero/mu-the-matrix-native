@@ -463,6 +463,11 @@ void mugfx_start(MuGfx *g)
         g->win_x = 8;
         g->win_y = 0;
         call(g, "requestWindowPos", "[8.0,0.0]");
+    } else if (is(g, "Trade") || is(g, "FriendMenu") || is(g, "FriendWindow")) {
+        /* NATIVE-SOCIAL-001: old GFx social windows report UIInit in onLoadUI. */
+        char args[96];
+        snprintf(args, sizeof args, "[\"%s\"]", g->name);
+        call(g, "UIInit", args);
     } else if (is(g, "NpcQuestProgress") || is(g, "MyQuestInfo") || is(g, "NpcJobChangeQuest") ||
                is(g, "QuestProgressInfo")) {
         char args[96];
