@@ -10,6 +10,8 @@ rasterizer) with --progress:
     (0xA0 sub 0x11, 0x55 sub 0x57) raise the stat and spend the point; rows other than the five stat
     rows and a hero without points send nothing;
   * the class formula (reconstructed/progress, verified in Unicorn) gives the derived values.
+Options window and system menu: native/tests/options_host.c (stub GFx layer and audio, the real game side) over
+native/world/world_gfx_options.c.  Respawn: the answer 0xA0 sub 0x30 and the DEMO town (mu_map_respawn).
 """
 import json
 from pathlib import Path

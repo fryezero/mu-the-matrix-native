@@ -37,6 +37,12 @@ not exist yet.
   (`reconstructed/progress`). Unicorn: 11 families, 8,003 cases, zero mismatches, 12/12 planted mistakes caught.
   mu-world/mu-client `--progress` plays them over a labelled demo server, with the level-up flares, ground effect
   and sound. [Evidence](research/client-progression.md).
+- Options window, system menu and respawn, NATIVE-PROGRESS-001 (second part). The winOption game side (loaders,
+  setDatas, apply, events, setters) and the respawn answer `0xA0 sub 0x30` (attribute part) run in C; Unicorn: 13
+  families, 10,503 cases, zero mismatches, 16/16 planted mistakes. With `--gfx`, O opens the options window (volumes
+  to the native audio module, settings in `~/Library/Application Support/MuTheMatrixNative/option.ini`, the client's
+  format) and Esc the system menu (Exit Game after the 5 s countdown, Switch Character and Select Server in
+  mu-client); a demo death respawns in the town of the world (DEMO gates) through `mu_map`.
 
 - Move snapshot compatibility, NATIVE-MAP-002. The validator now supplies the captured absent-key default
   instead of assuming zero sort fields. The 69 real move records agree across lang4 and both lang5 copies;
