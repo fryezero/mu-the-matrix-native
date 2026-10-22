@@ -292,9 +292,15 @@ static const char *dialogue_word(mu_quest_client *c, int32_t id)
 }
 
 /* 0x011ff794(dst, 1, 0x80, text, 500, 0, 0x3b, 0, 0): the text wrapped to 500 pixels with the dialogue font,
- * returning the line count.  MODELLED (font metrics): one line, the text cut to 0x7f bytes. */
+ * returning the line count.  NATIVE-QUEST-002: the client's wrap (quest_wrap.c) with the host's font measure;
+ * without one the NATIVE-QUEST-001 model (one line, the text cut to 0x7f bytes). */
+static mu_quest_client *wrap_client;
 static int32_t wrap_line(char *dst, const char *text)
 {
+    if (wrap_client && wrap_client->host.measure) {
+        memset(dst, 0, 0x80);
+        return mu_quest_wrap(wrap_client, dst, 1, 0x80, text, 500, 0, ";", 0, 0, wrap_client->wrap_scale);
+    }
     snprintf(dst, 0x80, "%s", text);
     return 1;
 }
@@ -344,6 +350,7 @@ static void dialog_ment(mu_quest_client *c, const char *wrapped, int32_t ment_pa
 
 void mu_quest_dialog_quests(mu_quest_client *c, const int32_t *quests, int32_t n)
 {
+    wrap_client = c;
     mu_quest_dialog_list *d = &c->dialog;
     d->list_mode = 1;
     const char *text = dialogue_word(c, n < 1 ? 0x5de : 0x5dd);
@@ -848,6 +855,8 @@ int mu_quest_client_init(mu_quest_client *c, const mu_quest_data *data, const mu
         return -1;
     c->guide->current = -1;
     c->guide->selected = -1;
+    c->wrap_scale = 1.0f;
+    c->target_class = -1;
     snprintf(c->guide->title, sizeof c->guide->title, "%s", mu_quest_text(c, 0x1479));
     return 0;
 }

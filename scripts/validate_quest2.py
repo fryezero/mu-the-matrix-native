@@ -1052,6 +1052,7 @@ class ClassicWorld:
         m.put32(njcq + 0x80, 0xffffffff)
         m.put32(w.mgr + 0x108, njcq)
         w.names[njcq] = b'NpcJobChangeQuest'
+        w.names[vq.MSGBOX] = b'MsgBoxes'
         t1 = self.tab1 = m.alloc(0xd8, define=True)
         m.call(TAB1_CTOR, [], ecx=t1)
         for key, node in vq.tree(m, w.mqi + 0x80):
@@ -1100,6 +1101,7 @@ def classic_native_setup(nat, quest_bmd):
                             ('mu_classic_receive_state', [ctypes.c_char_p, ctypes.c_size_t], None),
                             ('mu_classic_receive_kills', [ctypes.c_char_p, ctypes.c_size_t], None),
                             ('mu_classic_receive_kill_list', [ctypes.c_char_p, ctypes.c_size_t], None),
+                            ('mu_classic_receive_result', [ctypes.c_char_p, ctypes.c_size_t], None),
                             ('mu_classic_onload', [], None), ('mu_classic_window_state', [], None),
                             ('mu_classic_open', [], None), ('mu_classic_close', [], None),
                             ('mu_classic_choice', [ctypes.c_int32], None), ('mu_classic_complete', [], None),
@@ -1192,7 +1194,7 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
                 L.mu_quest_client_field(c, b'target_class', 1, CENV.target)
                 L.mu_classic_set_first(c, CENV.first)
                 L.mu_quest_client_field(c, b'wrap_scale_x1000', 1, 1000)
-                op = rng.choice(['c0', 'c0', 'a1', 'a1', 'a4', 'f61c', 'answer', 'show', 'showtop', 'text', 'state',
+                op = rng.choice(['c0', 'c0', 'a1', 'a1', 'r86', 'r86', 'a4', 'f61c', 'answer', 'show', 'showtop', 'text', 'state',
                                  'kills', 'onload', 'wstate', 'open', 'close', 'choice', 'choice', 'complete', 'tab1'])
                 label = f'classic seq {seq} step {step} {op}'
                 extra = None
@@ -1213,6 +1215,12 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
                     m.write(buf, pkt)
                     m.call(0x0127a1db, [buf])
                     L.mu_classic_receive_state(c, pkt, len(pkt))
+                elif op == 'r86':
+                    pkt = b'\xc1\x06\x86' + bytes([rng.randint(0, 12), rng.choice([0, 0, 0, 2, 1]), rng.randint(0, 255)])
+                    buf = m.alloc(64, define=True)
+                    m.write(buf, pkt)
+                    m.call(0x0127a0e0, [buf])
+                    L.mu_classic_receive_result(c, pkt, len(pkt))
                 elif op == 'a4':
                     pairs = b''.join(struct.pack('<ii', rng.choice(monsters + [-1]), rng.randint(0, 30)) for _ in range(5))
                     pkt = b'\xc1\x30\xa4\0\0\0\0\0' + pairs
@@ -1300,6 +1308,40 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
             fam.examples.append({'label': f'classic seq {seq}', 'error': str(error)})
 
 
+def run_dialog_wrap(m, nat, world, steps, records, rng, fam, sequences, length):
+    """npcdialogue's quest list 0x00be9c75 with the client's wrap (0x011ff794 into one 0x80-byte line at 500 px)
+    instead of validate_quest.py's one-line model, a modelled GetTextExtentPointA on both sides."""
+    ops = GuideOps(m, nat, world, steps)
+    qops = vq.Ops(m, nat, world, records)
+    keys = [r[0] for r in records]
+    saved = m.stubs.pop(WRAP, None)
+    try:
+        for seq in range(sequences):
+            start_quests(m, nat, world, ops, qops, records, rng)
+            ENV.widths = {b: rng.randint(3, 12) for b in range(256)}
+            scale = rng.choice([1.0, 1.5, 2.6875])
+            m.write(0x06fbcd94, f32(scale))
+            nat.lib.mu_quest_client_field(nat.client, b'wrap_scale_x1000', 1, int(scale * 1000))
+            world.ptd = m.alloc(0x400, define=True)
+            m.handlers['GetTextExtentPointA'] = lambda mm, words: (mm.write(words[3], struct.pack(
+                '<ii', sum(ENV.widths.get(b, 7) for b in mm.read(words[1], words[2])), 12)), 1)[1]
+            for step in range(length):
+                if rng.random() < 0.7 or nat.field('dialog.list_mode') == 0:
+                    qs = rng.sample(keys, rng.randint(0, 9))
+                    world.flags[world.dlg] = True
+                    nat.field('dialog.visible', 1)
+                    qops.dialog_quests(qs)
+                    label = f'dialog seq {seq} step {step} list {len(qs)}'
+                else:
+                    k = rng.randint(1, max(1, nat.field('dialog.options')))
+                    qops.dialog_choice(k)
+                    label = f'dialog seq {seq} step {step} choice {k}'
+                compare(fam, label, m, nat, world)
+    finally:
+        if saved:
+            m.stubs[WRAP] = saved
+
+
 def ids_index(m, world, nlist):
     cur = i32(m.u32(world.guide + 0xc4))
     for k in range(nlist):
@@ -1325,7 +1367,7 @@ def main():
     parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
     parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--families', default='guide-data,guide,summary,move,wrap,classic-data,classic')
+    parser.add_argument('--families', default='guide-data,guide,summary,move,wrap,dialog-wrap,classic-data,classic')
     parser.add_argument('--wrap-cases', type=int, default=2000)
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT', ''))
     parser.add_argument('--sequences', type=int, default=40)
@@ -1364,6 +1406,8 @@ def main():
             'summary': lambda f: run_summary(m, nat, world, steps, records, rng, f, args.sequences, args.length),
             'move': lambda f: run_move(m, nat, world, steps, records, rng, f, args.sequences, args.length),
             'wrap': lambda f: run_wrap(m, nat, rng, f, args.wrap_cases),
+            'dialog-wrap': lambda f: run_dialog_wrap(m, nat, world, steps, records, rng, f, args.sequences,
+                                                     args.length),
             'classic-data': lambda f: run_classic_data(m, nat, snap, cw, quest_bmd, f),
             'classic': lambda f: run_classic(m, nat, world, cw, rng, f, args.sequences, args.length),
         }

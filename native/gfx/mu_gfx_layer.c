@@ -329,7 +329,8 @@ struct mu_gfx_layer {
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
-                                                 "MasterSkillTree", "SkillTree4th", "SkillTree5th"};
+                                                 "MasterSkillTree", "SkillTree4th", "SkillTree5th",
+                                                 "QuestSummary", "QuestProgressInfo", "NpcJobChangeQuest"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -1100,6 +1101,14 @@ static const char *on_call(void *user, const char *name, const char *args)
     return r;
 }
 
+/* NATIVE-QUEST-001/002: the movies the host drives with the client's quest code */
+static int is_quest_movie(int id)
+{
+    return (id >= MU_GFX_MASTER_TREE && id <= MU_GFX_TREE5) ||
+           id == MU_GFX_QUEST_PROGRESS || id == MU_GFX_MY_QUEST || id == MU_GFX_QUEST_SUMMARY ||
+           id == MU_GFX_QUEST_NOTICE || id == MU_GFX_JOB_QUEST;
+}
+
 static const char *on_call_(movie *mv, const char *name, const char *args)
 {
     mu_gfx_layer *L = mv->L;
@@ -1117,7 +1126,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
         snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
         if (mv->id == MU_GFX_MOVE_COMMAND && L->maph.window)
             L->maph.window(L->maph.user, mv->id, name, args);   /* NATIVE-MAP-001 */
-        if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST || mv->id >= MU_GFX_MASTER_TREE) && L->cfg.quest_call)
+        if (is_quest_movie(mv->id) && L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
@@ -1129,7 +1138,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             mu_gfx_layer_show(L, mv->id, 0);
         return NULL;
     }
-    if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST || mv->id >= MU_GFX_MASTER_TREE) && strcmp(name, "TweenTimeSet")) {
+    if (is_quest_movie(mv->id) && strcmp(name, "TweenTimeSet")) {
         /* NATIVE-QUEST-001: the host runs the client's handler (reconstructed/quest) */
         if (L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);

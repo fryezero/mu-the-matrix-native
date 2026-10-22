@@ -82,6 +82,8 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c $(RECON)/helpers/mount_render.c $(RECON)/helpers/mount_class.c $(RECON)/raven/raven.c $(RECON)/pets/pets.c \
              $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
              $(RECON)/quest/quest_ui.c $(RECON)/quest/quest_packets.c $(RECON)/quest/quest_api.c \
+             $(RECON)/quest/quest_guide.c $(RECON)/quest/quest_summary.c $(RECON)/quest/quest_move.c \
+             $(RECON)/quest/quest_wrap.c $(RECON)/quest/quest_classic.c \
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
              $(RECON)/skill/master_tree.c $(RECON)/skill/skill_canuse.c \
              $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c

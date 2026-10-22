@@ -507,6 +507,7 @@ void mu_classic_receive_states(mu_quest_client *c, const uint8_t *p, size_t size
 void mu_classic_receive_state(mu_quest_client *c, const uint8_t *p, size_t size);      /* C1 A1 0x0127a1db */
 void mu_classic_receive_kills(mu_quest_client *c, const uint8_t *p, size_t size);      /* C1 A4 0x01278f6c */
 void mu_classic_receive_kill_list(mu_quest_client *c, const uint8_t *p, size_t size);  /* C1 F6 1C 0x0124cbb0 */
+void mu_classic_receive_result(mu_quest_client *c, const uint8_t *p, size_t size);     /* C1 86 0x0127a0e0 */
 void mu_classic_onload(mu_quest_client *c);                          /* NpcJobChangeQuest 0x00beb8b6 */
 void mu_classic_window_state(mu_quest_client *c);                    /* 0x00bebd9f */
 void mu_classic_open(mu_quest_client *c);                            /* 0x00bec39b */
@@ -517,6 +518,8 @@ int mu_classic_callback(mu_quest_client *c, const char *name, double number);   
 int mu_classic_key(mu_quest_client *c, int key);                     /* 0x00beb9c4 */
 const char *mu_classic_state_text(mu_quest_client *c);
 void mu_classic_set_first(mu_quest_client *c, int first);
+int32_t mu_classic_current(mu_quest_client *c);
+int32_t mu_classic_monsters(mu_quest_client *c, int32_t *out, int32_t max);
 
 /* ---- the client's text wrap (quest_wrap.c) ---------------------------------------------------------- */
 

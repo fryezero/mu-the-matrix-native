@@ -59,9 +59,12 @@ typedef struct mu_gfx_layer mu_gfx_layer;
  * puts skills on the bar), optional as well. */
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
-       MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5, MU_GFX_MOVIES };
+       MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
+       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_MOVIES };
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
  * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
+/* NATIVE-QUEST-002 adds QuestSummary (the quest summary HUD), QuestProgressInfo (the quest notice movie) and
+ * NpcJobChangeQuest (the class-upgrade quest window), optional and host-driven like the quest windows. */
 /* NATIVE-QUEST-001 adds NpcQuestProgress (MU_GFX_QUEST_PROGRESS) and MyQuestInfo (MU_GFX_MY_QUEST), optional
  * like the NPC windows.  The layer does not drive them itself: the host runs the client's window code
  * (reconstructed/quest) and passes its invokes through mu_gfx_layer_invoke / mu_gfx_layer_show; the movies'

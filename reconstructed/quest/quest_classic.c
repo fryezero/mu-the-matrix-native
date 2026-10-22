@@ -1016,3 +1016,45 @@ void mu_classic_set_first(mu_quest_client *c, int first)   /* [0x01d1de8c] (test
     if (m)
         m->first = (uint8_t)first;
 }
+
+int32_t mu_classic_current(mu_quest_client *c)   /* +0x30d86 */
+{
+    mu_classic *m = cq(c);
+    return m ? m->current : 0;
+}
+
+/* The current quest's monster conditions (for a host's kill counting): up to max monsters, returns the count. */
+int32_t mu_classic_monsters(mu_quest_client *c, int32_t *out, int32_t max)
+{
+    mu_classic *m = cq(c);
+    const uint8_t *rec = m ? record(c, m->current) : NULL;
+    int32_t n = 0;
+    for (int k = 0; rec && k < s16(rec, 0) && n < max; k++)
+        if (allowed(m, rec, k) && rec[ACT(k) + 1] == 2)
+            out[n++] = u16(rec, ACT(k) + 2);
+    return n;
+}
+
+/* C1 86 (0x0127a0e0): a quest's state set by the server (+3 quest, +4 result, +5 the packed state byte): result 0
+ * sets it (0x009f4b61), resets the kills when it became complete, refreshes and opens NpcJobChangeQuest; result 2
+ * is a message box (GlobalText 0x15bd). */
+void mu_classic_receive_result(mu_quest_client *c, const uint8_t *p, size_t size)
+{
+    mu_classic *m = cq(c);
+    if (!m || size < 6)
+        return;
+    if (p[4] == 0) {
+        uint8_t q = p[3];
+        m->current = q;
+        m->top = q <= m->top ? m->top : q;
+        m->states[m->current >> 2] = p[5];
+        hero_byte_29(c);
+        if (mu_classic_state(c, q) == 2)
+            for (int i = 0; i < 5; i++)
+                m->monsters[i] = m->kills[i] = -1;
+        mu_quest_logf(&c->log, "classic refresh");
+        mu_classic_open(c);
+    } else if (p[4] == 2) {
+        mu_quest_msgbox(c, "MsgBoxes", 0, mu_quest_text(c, 0x15bd), "", 0, 0, 0);
+    }
+}

@@ -213,11 +213,16 @@ static void auto_take_segment(mu_walk *w)
 
 int mu_walk_auto_move_to(mu_walk *w, int32_t tile_x, int32_t tile_y)
 {
+    return mu_walk_auto_move_ex(w, 2, tile_x, tile_y, 2, 0);
+}
+
+int mu_walk_auto_move_ex(mu_walk *w, int32_t flag, int32_t tile_x, int32_t tile_y, int32_t mode, int32_t error_check)
+{
     mu_hero *h = &w->hero;
     mu_auto_path_effects e;
     memcpy(&w->auto_path.path, &h->path, sizeof w->auto_path.path);
-    int started = mu_auto_path_start(&w->auto_path, &w->finder, 2, h->tile[0], h->tile[1], tile_x & 0xff,
-                                     tile_y & 0xff, 2, 0, &e);
+    int started = mu_auto_path_start(&w->auto_path, &w->finder, flag, h->tile[0], h->tile[1], tile_x & 0xff,
+                                     tile_y & 0xff, mode, error_check, &e);
     if (e.arrived)
         mu_auto_path_arrive(&w->auto_path);
     if (started) {
