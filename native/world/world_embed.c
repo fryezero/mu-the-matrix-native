@@ -97,6 +97,7 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     if (load(a)) {
         snprintf(error, error_size, "world %d did not load (see the messages above)", c->world);
         unload(a);
+        free(a->social);
         free(e);
         return NULL;
     }
@@ -108,6 +109,7 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->equip_set = 1;
     if (apply_equipment(a, error, error_size)) {
         unload(a);
+        free(a->social);
         free(e);
         return NULL;
     }
@@ -120,6 +122,7 @@ void mu_world_embed_close(mu_world_embed *e)
     if (!e)
         return;
     unload(&e->a);
+    free(e->a.social);
     free(e);
 }
 
@@ -216,6 +219,10 @@ int32_t mu_world_embed_folder(const mu_world_embed *e)
 #ifndef MU_WORLD_NO_GL
 void mu_world_embed_set_gfx(mu_world_embed *e, struct world_gfx *gfx, double scale)
 {
+    if (!gfx && e->a.gfxsocial) {
+        world_gfx_social_close(e->a.gfxsocial);
+        e->a.gfxsocial = NULL;
+    }
     e->a.gfx = gfx;
     if (gfx) {
         names_gfx_attach(&e->a, scale);

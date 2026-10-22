@@ -60,7 +60,7 @@ typedef struct mu_gfx_layer mu_gfx_layer;
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
        MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
-       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_MOVIES };
+       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MOVIES };
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
  * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
 /* NATIVE-QUEST-002 adds QuestSummary (the quest summary HUD), QuestProgressInfo (the quest notice movie) and
@@ -174,6 +174,18 @@ typedef struct mu_gfx_layer_config {
     void (*window_draw)(void *user, int movie, int32_t stage_w, int32_t stage_h);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
+
+/* Social windows and chat. Returning 1 consumes an outgoing chat line. */
+typedef struct mu_gfx_social_hooks {
+    void *user;
+    void (*window)(void *, int, const char *, const char *);
+    int (*key)(void *, int);
+    int (*chat)(void *, const char *, const char *);
+    int (*inventory)(void *, int);
+} mu_gfx_social_hooks;
+void mu_gfx_layer_set_social_hooks(mu_gfx_layer *, const mu_gfx_social_hooks *);
+void mu_gfx_layer_stage_size(const mu_gfx_layer *, int32_t *, int32_t *);
+void mu_gfx_layer_trade_items(mu_gfx_layer *, const mu_gfx_item_draw *, int);
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);
 void mu_gfx_layer_close(mu_gfx_layer *layer);
@@ -323,6 +335,14 @@ typedef struct mu_gfx_slot_item {
     int64_t price;              /* demo price shown in the tooltip's caller / log */
     char name[64];
 } mu_gfx_slot_item;
+
+/* Offline trade escrow reserves the original inventory cells until the result.
+ * A positive token identifies the item; finish(commit=0) restores it in place. */
+int mu_gfx_layer_inventory_reserve(mu_gfx_layer *, int cell, mu_gfx_slot_item *out);
+int mu_gfx_layer_inventory_can_receive(const mu_gfx_layer *, int count);
+void mu_gfx_layer_inventory_finish(mu_gfx_layer *, int token, int commit);
+/* Atomic OFFLINE exchange. On failure every item, grid cell and reservation is restored. */
+int mu_gfx_layer_inventory_exchange(mu_gfx_layer *, const int tokens[32], const mu_gfx_slot_item *incoming, int n);
 
 typedef struct mu_gfx_npc_dialog {
     const char *title;          /* the NPC's name (Npcname) */

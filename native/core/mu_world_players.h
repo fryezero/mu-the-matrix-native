@@ -115,8 +115,10 @@ typedef struct mu_world_player {
 
 struct mu_world_names;
 struct mu_combat;
+struct mu_social_session;
 
 typedef struct mu_world_players {
+    struct mu_social_session *social; /* NATIVE-SOCIAL-001 authoritative offline membership */
     mu_world_player list[MU_WORLD_PLAYERS_MAX];
     int32_t count;
     char root[1024];

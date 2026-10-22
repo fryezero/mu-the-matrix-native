@@ -1,0 +1,70 @@
+#include "../core/mu_social.h"
+#include "../core/mu_world_players.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+int main(void)
+{
+    mu_world_players *p = calloc(1, sizeof *p);
+    assert(p);
+    p->count = 2;
+    snprintf(p->list[0].spec.name, sizeof p->list[0].spec.name, "Aeris");
+    snprintf(p->list[1].spec.name, sizeof p->list[1].spec.name, "Kyra");
+    p->list[0].in_view = 1;
+    p->list[0].c.tile[0] = 132;
+    p->list[0].c.tile[1] = 121;
+    mu_social_session s;
+    mu_social_init(&s, "Hero", p);
+    assert(mu_social_action(&s, "party", "Aeris"));
+    assert(s.party.count == 0);
+    assert(mu_social_action(&s, "decline", ""));
+    assert(s.party.count == 0);
+    assert(mu_social_action(&s, "incoming-party", "Aeris"));
+    assert(mu_social_action(&s, "accept", ""));
+    assert(s.party.count == 2);
+    assert(!mu_social_action(&s, "kick", "Aeris"));
+    assert(mu_social_action(&s, "leave", ""));
+    assert(s.party.count == 0);
+    assert(mu_social_action(&s, "party", "Aeris"));
+    assert(mu_social_action(&s, "accept", ""));
+    assert(mu_social_action(&s, "party", "Kyra"));
+    assert(mu_social_action(&s, "accept", ""));
+    mu_social_step(&s, 0, 120, 120);
+    mu_party_marker m[5];
+    assert(mu_social_party_markers(&s.party, "Hero", 1, 0, m) == 2);
+    assert(m[0].x == 264 && m[0].y == 270);
+    assert(mu_social_action(&s, "health", "Aeris,38,61"));
+    mu_social_step(&s, 0, 120, 120);
+    assert(s.party.members[1].hp_percent == 38 && s.party.members[1].mp_percent == 61);
+    assert(mu_social_action(&s, "kick", "Kyra"));
+    assert(s.party.count == 2);
+    assert(mu_social_action(&s, "trade", "Aeris"));
+    assert(mu_social_action(&s, "accept", ""));
+    assert(mu_social_action(&s, "offer", "0"));
+    assert(!s.inventory[0]);
+    assert(!mu_social_action(&s, "ok", ""));
+    assert(mu_social_action(&s, "cancel", ""));
+    assert(s.inventory[0]);
+    assert(!s.trade.open);
+    assert(mu_social_action(&s, "trade", "Aeris"));
+    assert(mu_social_action(&s, "accept", ""));
+    assert(mu_social_action(&s, "offer", "0"));
+    assert(mu_social_action(&s, "zen", "1000"));
+    assert(mu_social_action(&s, "partner-item", ""));
+    for (int i = 0; i < 26; i++)
+        mu_social_step(&s, 0, 120, 120);
+    assert(mu_social_action(&s, "ok", ""));
+    assert(mu_social_action(&s, "partner-ok", ""));
+    for (int i = 0; i < 4; i++)
+        mu_social_step(&s, 0, 120, 120);
+    assert(!s.trade.open && s.completed == 1 && s.received_items == 1 && s.zen == 9999000);
+    assert(!mu_social_action(&s, "ok", ""));
+    assert(mu_social_action(&s, "unfriend", "Kyra"));
+    assert(s.friends.count == 1);
+    assert(mu_social_action(&s, "friend", "Kyra"));
+    assert(s.friends.count == 2);
+    free(p);
+    puts("{\"social_session\":true,\"passed\":true}");
+    return 0;
+}

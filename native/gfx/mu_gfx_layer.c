@@ -263,6 +263,7 @@ struct mu_gfx_layer {
     mu_grid grid;
     item items[MAX_ITEMS];
     int nitems, held, hover;
+    uint8_t trade_reserved[MAX_ITEMS];
     float win_x, win_y, slot_x, slot_y, slot_w, slot_h, gap_x, gap_y;
     int have_slot;
     /* chat */
@@ -323,6 +324,9 @@ struct mu_gfx_layer {
         int have_slot[20], drag_from, page, select_page, inited, saved;
         char last[160];
     } stamp;
+    mu_gfx_social_hooks socialh;
+    mu_gfx_item_draw trade_items[64];
+    int trade_nitems;
     mu_gfx_map_hooks maph;   /* NATIVE-MAP-001 */
 };
 
@@ -330,7 +334,7 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
                                                  "MasterSkillTree", "SkillTree4th", "SkillTree5th",
-                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest"};
+                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -597,8 +601,11 @@ static void slot_states(mu_gfx_layer *L)
      * 0x00c94193.  Occupied cells: state 2, free: 1 (layer choice). */
     char list[512];
     size_t n = 0;
-    for (int i = 0; i < L->grid.cols * L->grid.rows; i++)
-        n += (size_t)snprintf(list + n, sizeof list - n, "%s%d", i ? "," : "", L->grid.cells[i] ? 2 : 1);
+    for (int i = 0; i < L->grid.cols * L->grid.rows; i++) {
+        uint32_t id = L->grid.cells[i];
+        int occupied = id && !(id <= MAX_ITEMS && L->trade_reserved[id - 1]);
+        n += (size_t)snprintf(list + n, sizeof list - n, "%s%d", i ? "," : "", occupied ? 2 : 1);
+    }
     invokef(L, MU_GFX_INVENTORY, mv->path, "SetSlotStateAll", "[0,\"%s\"]", list);
 }
 
@@ -953,7 +960,10 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
         hide_tooltip(L);
     if (open && m == MU_GFX_CHARACTER)
         feed_character(L);
-    invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
+    if (m == MU_GFX_PARTY)
+        invokef(L, m, mv->path, open ? "openWindow" : "closeWindow", "[]");
+    else
+        invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
     mv->next_bounds_ms = 0;
     if (m == MU_GFX_SKILL_STAMP)
         skill_window_shown(L, m, open);
@@ -976,6 +986,8 @@ int mu_gfx_layer_is_open(const mu_gfx_layer *L, int m)
 
 static void inventory_click(mu_gfx_layer *L, int index)
 {
+    if (L->socialh.inventory && L->socialh.inventory(L->socialh.user, index))
+        return;
     int cols = L->grid.cols;
     if (index < 0 || index >= cols * L->grid.rows)
         return;
@@ -1003,6 +1015,8 @@ static void inventory_click(mu_gfx_layer *L, int index)
 
 static void inventory_click_r(mu_gfx_layer *L, int index)
 {
+    if (L->socialh.inventory && L->socialh.inventory(L->socialh.user, index))
+        return;
     if (npc_inventory_r(L, index))   /* NATIVE-NPC-001: sell / put while NpcShop or StorageInven is open */
         return;
     /* Right click on an item: the client uses or equips it (0x00b907b9's
@@ -1021,27 +1035,31 @@ static void inventory_click_r(mu_gfx_layer *L, int index)
 int mu_gfx_layer_add_item(mu_gfx_layer *L, int32_t code, int32_t level, int32_t width, int32_t height,
                           const char *name)
 {
-    if (!L || L->nitems >= MAX_ITEMS)
-        return -1;
-    item *it = &L->items[L->nitems];
+    if (!L) return -1;
+    int idx = L->nitems;
+    for (int i=0;i<L->nitems;i++) if (L->items[i].grid.code == -1) {idx=i;break;}
+    if (idx >= MAX_ITEMS) return -1;
+    item *it = &L->items[idx];
     memset(it, 0, sizeof *it);
-    it->grid.id = (uint32_t)(L->nitems + 1);
+    it->grid.id = (uint32_t)(idx + 1);
     it->grid.code = code;
     it->grid.width = (uint8_t)(width < 1 ? 1 : width);
     it->grid.height = (uint8_t)(height < 1 ? 1 : height);
     it->level = level;
     snprintf(it->name, sizeof it->name, "%s", name && name[0] ? name : "Item");
     int col, row;
-    if (!mu_grid_find_free(&L->grid, it->grid.width, it->grid.height, &col, &row))
+    if (!mu_grid_find_free(&L->grid, it->grid.width, it->grid.height, &col, &row)) {
+        it->grid.code = -1;
         return -1;
+    }
     mu_grid_place(&L->grid, col, row, &it->grid);
     /* Stand-in colour per item group (layer choice: no RenderItem3D models). */
     static const float PALETTE[8][3] = {{.85f, .35f, .25f}, {.35f, .55f, .9f}, {.95f, .8f, .3f}, {.55f, .75f, .4f},
                                         {.7f, .45f, .85f}, {.3f, .8f, .8f}, {.9f, .55f, .2f}, {.8f, .8f, .8f}};
     memcpy(it->rgb, PALETTE[(code >> 9) & 7], sizeof it->rgb);
-    L->nitems++;
+    if (idx == L->nitems) L->nitems++;
     slot_states(L);
-    return L->nitems - 1;
+    return idx;
 }
 
 /* ---- chat ----------------------------------------------------------------------------------- */
@@ -1124,6 +1142,19 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
     }
     char s[256] = "";
     mv->view_dirty = 1;
+    if (mv->id >= MU_GFX_PARTY) {
+        char command[96] = "";
+        if (mv->id == MU_GFX_PARTY && !strcmp(name, "PartyFrame")) {
+            json_string(args, 0, command, sizeof command);
+            if (!strcmp(command, "onLoad")) json_string(args, 1, mv->path, sizeof mv->path);
+        } else {
+            snprintf(command, sizeof command, "%s", name);
+            if (!strcmp(name, "UIInit") && json_string(args, 0, s, sizeof s))
+                snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
+        }
+        if (L->socialh.window) L->socialh.window(L->socialh.user, mv->id, command, args);
+        return NULL;
+    }
     if (mv->id == MU_GFX_QUEST_SUMMARY && !strcmp(name, "QuestSummary")) {
         /* This window belongs to the second GFx layer. Its channel carries (command, object), and its
          * loader reports a complete targetPath rather than the old layer's UIInit name. */
@@ -1322,7 +1353,10 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                 char text[256] = "";
                 json_field_string(args, "text", text, sizeof text);
                 snprintf(L->last_sent, sizeof L->last_sent, "%s", text);
-                /* Local echo (layer choice): the server would send it back. */
+                char whisper[64] = "";
+                json_field_string(args, "wisper", whisper, sizeof whisper);
+                if (L->socialh.chat && L->socialh.chat(L->socialh.user, whisper, text))
+                    return NULL;
                 mu_gfx_layer_chat(L, 1, L->hero.name, text);
                 if (L->chat_hook)
                     L->chat_hook(L->chat_hook_user, text);
@@ -1421,7 +1455,8 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_CHAT] = 9, [MU_GFX_NPC_DIALOG] = 9, [MU_GFX_NPC_SHOP] = 9, [MU_GFX_STORAGE] = 9,
     [MU_GFX_QUEST_PROGRESS] = 9, [MU_GFX_MY_QUEST] = 9, [MU_GFX_SKILL_POPUP] = 9, [MU_GFX_SKILL_STAMP] = 9,
     [MU_GFX_MOVE_COMMAND] = 10, [MU_GFX_MASTER_TREE] = 0, [MU_GFX_TREE4] = 0, [MU_GFX_TREE5] = 3,
-    [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9
+    [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9,
+    [MU_GFX_PARTY] = 9, [MU_GFX_TRADE] = 9, [MU_GFX_FRIENDS] = 9, [MU_GFX_MESSENGER] = 9
 };
 
 static void window_sizes(mu_gfx_layer *L)
@@ -1952,6 +1987,13 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
             return NULL;
         }
     init_movies(L);
+    if (L->mv[MU_GFX_PARTY].g) {
+        movie *party = &L->mv[MU_GFX_PARTY];
+        L->api.set_variable(party->g, "_global.gSystem", "{\"isClient\":true}");
+        L->api.set_variable(party->g, "_global.gStandard", "{\"ResizeStageHeight\":700}");
+        snprintf(party->path, sizeof party->path, "_level0.instance1");
+        invokef(L, MU_GFX_PARTY, party->path, "onFileLoad", "[]");
+    }
     if (L->mv[MU_GFX_QUEST_SUMMARY].g) {
         /* MovieLoader normally supplies these globals and calls onFileLoad on the placed "win" clip.
          * Each optional window has its own player here, so perform that loader lifecycle explicitly. */
@@ -2175,6 +2217,8 @@ int mu_gfx_layer_cursor(const mu_gfx_layer *L)
 
 int mu_gfx_layer_text_active(const mu_gfx_layer *L)
 {
+    if (L && L->mv[MU_GFX_MESSENGER].open && L->mv[MU_GFX_MESSENGER].g &&
+        L->api.text_focus(L->mv[MU_GFX_MESSENGER].g)) return 1;
     return L && L->chat_edit;
 }
 
@@ -2182,6 +2226,11 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
 {
     if (!L)
         return 0;
+    if (L->mv[MU_GFX_MESSENGER].open && L->mv[MU_GFX_MESSENGER].g &&
+        L->api.text_focus(L->mv[MU_GFX_MESSENGER].g)) {
+        L->api.key(L->mv[MU_GFX_MESSENGER].g, down ? 0 : 1, vk, codepoint, mods);
+        return 1;
+    }
     movie *chat = &L->mv[MU_GFX_CHAT], *main = &L->mv[MU_GFX_MAIN];
     if (L->chat_edit && chat->g) {
         L->main_down_vk = 0;
@@ -2213,6 +2262,8 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
      * ids of InitMenuInfo are not key codes, so Frame.Main.onKeyUp does not
      * produce them); the scan is not reconstructed, the layer maps I/V, C
      * and Esc (layer choice). */
+    if (down && !mods && L->socialh.key && L->socialh.key(L->socialh.user, vk))
+        return 1;
     if (down && !mods && L->maph.key && L->maph.key(L->maph.user, vk))
         return 1;                            /* NATIVE-MAP-001: M (Move window) */
     if (down && !mods && L->cfg.window_key && L->cfg.window_key(L->cfg.tooltip_user, vk))
@@ -2257,6 +2308,11 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
 
 int mu_gfx_layer_text(mu_gfx_layer *L, const char *utf8)
 {
+    if (L && L->mv[MU_GFX_MESSENGER].open && L->mv[MU_GFX_MESSENGER].g &&
+        L->api.text_focus(L->mv[MU_GFX_MESSENGER].g)) {
+        L->api.text(L->mv[MU_GFX_MESSENGER].g, utf8);
+        return 1;
+    }
     if (!L || !L->chat_edit || !L->mv[MU_GFX_CHAT].g)
         return 0;
     if (L->composing) {   /* the IME committed: the composing text is replaced */
@@ -2414,6 +2470,10 @@ static void emit_rect(void *user, const mu_slot_call *call)
 {
     rect_list *R = user;
     mu_gfx_layer *L = R->L;
+    if (R->base == L->items) {
+        int i = (int)((const item *)call->item - L->items);
+        if (i >= 0 && i < MAX_ITEMS && L->trade_reserved[i]) return;
+    }
     if (R->n >= RECT_MAX - 1)
         return;
     /* 640 x 480 units back to window pixels (0x0184a18f, top-left origin here). */
@@ -3344,6 +3404,11 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
                     fill_gl(R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
         swin_draw_gl(L, order[k]);
+        if (order[k] == MU_GFX_TRADE && L->trade_nitems && L->cfg.items) {
+            host_gl_begin(L);
+            L->cfg.items(L->cfg.items_user, L->trade_items, L->trade_nitems, L->w, L->h);
+            host_gl_end(L);
+        }
         if (order[k] == MU_GFX_SKILL_STAMP)
             skill_draw_gl(L);
         if (L->cfg.window_draw) {
@@ -3439,7 +3504,7 @@ int mu_gfx_layer_count_item(const mu_gfx_layer *L, int32_t code, int32_t level)
 {
     int count = 0;
     for (int i = 0; L && i < L->nitems; i++)
-        if (mu_grid_find_id(&L->grid, L->items[i].grid.id) && i != L->held &&
+        if (mu_grid_find_id(&L->grid, L->items[i].grid.id) && i != L->held && !L->trade_reserved[i] &&
             L->items[i].grid.code == code && L->items[i].level == level)
             count++;
     return count;
@@ -3860,4 +3925,86 @@ int mu_gfx_layer_skill_action(mu_gfx_layer *L, const char *verb, int a, int b)
 const char *mu_gfx_layer_skill_last(const mu_gfx_layer *L)
 {
     return L ? L->stamp.last : "";
+}
+
+void mu_gfx_layer_set_social_hooks(mu_gfx_layer *L, const mu_gfx_social_hooks *hooks)
+{
+    if (!L) return;
+    if (hooks) L->socialh = *hooks; else memset(&L->socialh, 0, sizeof L->socialh);
+}
+void mu_gfx_layer_trade_items(mu_gfx_layer *L, const mu_gfx_item_draw *items, int n)
+{
+    if (!L) return;
+    if (n < 0) n = 0;
+    if (n > 64) n = 64;
+    if (n && items) memcpy(L->trade_items, items, (size_t)n * sizeof *items);
+    L->trade_nitems = n;
+}
+
+void mu_gfx_layer_stage_size(const mu_gfx_layer *L, int32_t *w, int32_t *h)
+{
+    if (!L) return;
+    if (w) *w = L->w;
+    if (h) *h = L->h;
+}
+
+int mu_gfx_layer_inventory_reserve(mu_gfx_layer *L, int cell, mu_gfx_slot_item *out)
+{
+    if (!L || !out || L->held >= 0 || cell < 0 || cell >= L->grid.cols * L->grid.rows) return 0;
+    mu_grid_item *gi = mu_grid_item_at(&L->grid, cell);
+    if (!gi || !L->grid.cells[cell]) return 0;
+    int idx = (int)((item *)gi - L->items);
+    if (idx < 0 || idx >= L->nitems || L->trade_reserved[idx]) return 0;
+    item *it = &L->items[idx];
+    memset(out, 0, sizeof *out);
+    out->code = gi->code; out->level = it->level; out->width = gi->width; out->height = gi->height;
+    snprintf(out->name, sizeof out->name, "%s", it->name);
+    L->trade_reserved[idx] = 1;
+    slot_states(L); hide_tooltip(L);
+    return idx + 1;
+}
+
+void mu_gfx_layer_inventory_finish(mu_gfx_layer *L, int token, int commit)
+{
+    if (!L || token <= 0 || token > L->nitems || !L->trade_reserved[token - 1]) return;
+    item *it = &L->items[token - 1];
+    if (commit) {mu_grid_remove(&L->grid, &it->grid);it->grid.code=-1;}
+    L->trade_reserved[token - 1] = 0;
+    slot_states(L);
+}
+
+int mu_gfx_layer_inventory_can_receive(const mu_gfx_layer *L, int count)
+{
+    if (!L || count < 0) return 0;
+    int free_cells=0, items=0;
+    for(int i=0;i<L->grid.cols*L->grid.rows;i++) {
+        uint32_t id=L->grid.cells[i];
+        if(!id || (id<=MAX_ITEMS && L->trade_reserved[id-1]))free_cells++;
+    }
+    for(int i=0;i<L->nitems;i++)if(L->items[i].grid.code!=-1&&!L->trade_reserved[i])items++;
+    return free_cells>=count && items+count<=MAX_ITEMS;
+}
+
+int mu_gfx_layer_inventory_exchange(mu_gfx_layer *L, const int tokens[32], const mu_gfx_slot_item *incoming, int n)
+{
+    if (!L || !tokens || n < 0 || n > 32 || (n && !incoming)) return 0;
+    item saved[MAX_ITEMS];
+    uint8_t reserved[MAX_ITEMS];
+    mu_grid grid = L->grid; /* pointers refer to L->items, whose addresses do not change */
+    int count = L->nitems;
+    memcpy(saved, L->items, sizeof saved);
+    memcpy(reserved, L->trade_reserved, sizeof reserved);
+    for (int i = 0; i < 32; i++)
+        if (tokens[i]) mu_gfx_layer_inventory_finish(L, tokens[i], 1);
+    for (int i = 0; i < n; i++)
+        if (mu_gfx_layer_add_item(L, incoming[i].code, incoming[i].level, incoming[i].width,
+                                 incoming[i].height, incoming[i].name) < 0) {
+            memcpy(L->items, saved, sizeof saved);
+            memcpy(L->trade_reserved, reserved, sizeof reserved);
+            L->grid = grid;
+            L->nitems = count;
+            slot_states(L);
+            return 0;
+        }
+    return 1;
 }
