@@ -4,6 +4,9 @@ NATIVE-SOCIAL-001 adds parties, trade, friends and whispers to `mu-world` and `m
 `reconstructed/social` holds game-side receives, `native/core/mu_social` holds offline server policy and
 `native/world/world_gfx_social` drives the movies. The `--players` characters are demo partners.
 
+This branch is WIP. Original party request/accept/leave/kick actions and messenger receives still need
+instruction-led reconstruction. The demo policy and local room do not satisfy those parts of the task.
+
 ## Evidence and boundaries
 
 Target `main.exe` SHA-256: `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
@@ -68,9 +71,10 @@ GFx setters, warning display and sound are modelled. Result always closes. Resul
 
 Static `Trade.swf` APIs provide two 8 x 4 grids, names, zen and lock controls. Item models use movie slot
 coordinates plus window position/scale. Inventory clicks reserve existing items in the first fitting offer
-rectangle. Any covered offer cell can return the item. Cancel restores its original inventory cells; success
-removes offers and adds the incoming demo item. Reopening cannot erase/duplicate it. Capacity is checked
-before success. The partner offers one 1 x 1 potion through `partner-item`. Full incoming dimensions/options,
+rectangle. Any covered offer cell can return the item. Cancel restores its original inventory cells. At result
+time an atomic inventory exchange removes offers and inserts incoming items before zen/results change.
+Insertion failure restores the inventory and refuses the trade, including purchases made after locking.
+Reopening cannot erase/duplicate an item. The partner offers one 1 x 1 potion through `partner-item`. Full incoming dimensions/options,
 original tradeability checks and outbound serialization remain open. The reconstruction keeps incoming item
 data as 15 opaque bytes; the demo renderer extracts code/level only. Without GFx the headless session uses
 a separate two-item synthetic offer fixture, not the visible inventory.
@@ -114,6 +118,10 @@ Five reconstructed tests cover malformed input and state. Three native regressio
 actual inventory reservation/cancel/commit, multi-cell offers, local messenger/whisper callbacks, stationary
 marker refresh, host detach/rebind and two-world party persistence. Recording GFx tests are synthetic;
 the real movies were checked separately in offline GL renders.
+Regression probes also cover capacity changing between lock and result, and escaped quotes, backslashes,
+newlines and Unicode in messenger callbacks. The draw decoder now preserves byte 3/5 item-code bits;
+extended-code visual output has not been captured. Remaining review gaps are original party
+actions and messenger handlers, not transport encryption.
 
 Launch with the usual game root, `--players native/world/lorencia-demo-players.txt --gfx MOVIES`. P toggles
 party, F opens friends, Y/N answers a request. Chat accepts `/party NAME`, `/trade NAME`, `/accept`, `/decline`,
