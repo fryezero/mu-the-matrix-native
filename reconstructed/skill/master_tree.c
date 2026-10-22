@@ -622,3 +622,108 @@ int32_t mu_master_skill_damage(const mu_master_tree *t, const mu_skill_env *env,
     }
     return dmg + bonus;
 }
+
+/* ---- the tooltip and the icons ---------------------------------------------------------------------------- */
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+static void fmt3(char *buf, size_t cap, const char *fmt, int a, int b, int c) { snprintf(buf, cap, fmt, a, b, c); }
+#pragma clang diagnostic pop
+
+int mu_master_tooltip(mu_master_tree *t, const mu_skill_tip_env *tenv, const mu_master_env *env,
+                      const mu_skill_hero *hero, int slot, mu_skill_tip *out, uint8_t header[MU_SKILL_TIP_LINES])
+{
+    memset(out, 0, sizeof *out);
+    if (header)
+        memset(header, 0, MU_SKILL_TIP_LINES);
+    const mu_master_node *pn = mu_master_node_at(t, slot);
+    if (!pn)
+        return 0;
+    mu_master_node n = *pn;
+    const mu_skill_record *r = mu_skill_record_of(env->skills, n.skill);
+    if (r->index == 0)
+        return 0;
+    const mu_master_tip *tip = mu_master_tip_of(t, n.skill);
+    if (!tip)
+        return 0;
+    const mu_master_entry *e = mu_master_find(t, n.skill);
+    uint8_t level = e ? e->level : 0;
+    float value = e ? e->value : 0.0f, next = e ? e->next : 0.0f;
+    char buf[0x200];
+    int line = 0;
+    mu_skill_tip_set(out, 0, NULL, 3, -1);
+    mu_skill_format(buf, sizeof buf, "%s", 's', 0, 0.0, r->name);
+    mu_skill_tip_set(out, 0, buf, -1, 1);
+    line = 1;
+    fmt3(buf, sizeof buf, tip->rank_line, r->x74, level, n.max_level);
+    mu_skill_tip_set(out, line, buf, -1, -1);
+    line++;
+    int as_int = strstr(tip->desc, "%d") != NULL;          /* 0x00a7d68e */
+    if (n.formula != 0) {
+        float v = level == 0 ? (tenv->formula ? tenv->formula(tenv->user, 3, n.formula, n.cost) : 0.0f) : value;
+        mu_skill_format(buf, sizeof buf, tip->desc, as_int ? 'i' : 'f', (int32_t)v, (double)v, NULL);
+    } else {
+        mu_skill_format(buf, sizeof buf, tip->desc, 0, 0, 0.0, NULL);
+    }
+    line = mu_skill_tip_put(tenv, out, buf, line, 0);
+    if (level > 0 && level < n.max_level) {
+        mu_skill_format(buf, sizeof buf, gtext(env, 0xd00), 0, 0, 0.0, NULL);
+        line = mu_skill_tip_put(tenv, out, buf, line, 4);
+        if (header && line >= 0 && line < MU_SKILL_TIP_LINES)
+            header[line] = 1;
+        mu_skill_format(buf, sizeof buf, tip->desc, as_int ? 'i' : 'f', (int32_t)next, (double)next, NULL);
+        line = mu_skill_tip_put(tenv, out, buf, line, 0);
+    }
+    if (level < n.max_level) {
+        mu_skill_format(buf, sizeof buf, gtext(env, 0xd01), 0, 0, 0.0, NULL);
+        line = mu_skill_tip_put(tenv, out, buf, line, 1);
+        if (header && line >= 0 && line < MU_SKILL_TIP_LINES)
+            header[line] = 1;
+        mu_skill_format(buf, sizeof buf, tip->cost_line, 'i', n.cost, 0.0, NULL);
+        line = mu_skill_tip_put(tenv, out, buf, line, (int32_t)n.cost > env->points ? 2 : 0);
+    }
+    int color = mu_master_brand_ok(env->skills, hero, n.skill, level) ? 0 : 2;
+    mu_skill_format(buf, sizeof buf, tip->brand_line, 0, 0, 0.0, NULL);
+    line = mu_skill_tip_put(tenv, out, buf, line, color);
+    if (level < n.max_level && r->x74 != 1) {
+        color = mu_master_rank_ok(t, n.group, (uint8_t)r->x74, level) ? 0 : 2;
+        mu_skill_format(buf, sizeof buf, tip->rank_req, 0, 0, 0.0, NULL);
+        line = mu_skill_tip_put(tenv, out, buf, line, color);
+        if (n.prereq1 != 0) {
+            const mu_master_entry *p = mu_master_find(t, n.prereq1);
+            mu_skill_format(buf, sizeof buf, tip->pre1, 0, 0, 0.0, NULL);
+            line = mu_skill_tip_put(tenv, out, buf, line, p && p->level >= 10 ? 0 : 2);
+        }
+        if (n.prereq2 != 0) {
+            const mu_master_entry *p = mu_master_find(t, n.prereq2);
+            mu_skill_format(buf, sizeof buf, tip->pre2, 0, 0, 0.0, NULL);
+            line = mu_skill_tip_put(tenv, out, buf, line, p && p->level >= 10 ? 0 : 2);
+        }
+    }
+    out->count = line;
+    return line;
+}
+
+void mu_master_icons(mu_master_tree *t, const mu_master_env *env, const mu_skill_hero *hero, float x0, float y0,
+                     float scale, float ratio_x, float ratio_y, mu_master_draw_fn draw, void *user)
+{
+    for (int i = 0; i < t->nnodes; i++) {
+        mu_master_node n = t->nodes[i];
+        const mu_skill_record *r = mu_skill_record_of(env->skills, n.skill);
+        uint8_t level = mu_master_level(t, n.skill);
+        uint32_t color = 0xffffffffu;                         /* 0x00b4c6aa(255, 255, 255, 255) */
+        if (!mu_master_prereq_ok(t, n.prereq1, n.prereq2) || !mu_master_rank_ok(t, n.group, (uint8_t)r->x74, level) ||
+            !mu_master_brand_ok(env->skills, hero, n.skill, level) ||
+            (env->special_item && !env->special_item(env->user, n.skill)))
+            color = 0xff787878u;
+        const mu_master_pos *p = &t->pos[n.slot];
+        if (!p->has)
+            continue;
+        float x = (x0 + scale * p->x) * ratio_x, y = (y0 + scale * p->y) * ratio_y;
+        int32_t icon = r->icon;
+        int32_t cell = icon % 450;
+        float u = (float)(cell % 25) * 0.0390625f, v = (float)(cell / 25) * 0.0546875f;
+        if (draw)
+            draw(user, 0x7e18 + icon / 450, x, y, t->icon_w, t->icon_h, u, v, 0.0390625f, 0.0546875f, color);
+    }
+}

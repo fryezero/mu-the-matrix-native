@@ -894,12 +894,188 @@ def double_stub(m, value):
     return handler
 
 
-FAMILIES = ['class', 'build', 'access', 'click', 'answer', 'text', 'position', 'damage']
+TIP_BUILD, HEADER_FLAGS = 0x00bb1183, 0x0b477ef4
+
+
+def run_tooltip(m, nat, rng, fam, keys, table, records, texts, cases):
+    by = {r.index: r for r in records}
+    master = [k for k in keys if 300 <= k <= 929]
+    nat.lib.mu_master_tooltip.argtypes = [ctypes.POINTER(TreeC), ctypes.POINTER(vs.TipEnvC), ctypes.POINTER(MEnvC),
+                                          ctypes.POINTER(vs.HeroC), ctypes.c_int, ctypes.POINTER(vs.TipC),
+                                          ctypes.POINTER(U8*80)]
+    descs = [b'Increases the damage by %d.', b'Increase rate by %.1f%%#for the party', b'Raises defense %d#and more',
+             b'Value: %f', b'%d%% chance']
+    for n in range(cases):
+        nodes = random_nodes(rng, master, rng.randint(1, 10))
+        uniq = {}
+        for nd in nodes:
+            uniq.setdefault(nd['slot'], nd)
+        nodes = list(uniq.values())
+        for nd in nodes:
+            nd['group'] = rng.choice([0, 1, 2])
+        target = rng.choice(nodes)
+        learned = random_learned(rng, master, [x for x in (target['skill'], target['p1'], target['p2']) if x])
+        if target['skill'] in learned and rng.random() < 0.3:
+            lv = list(learned[target['skill']])
+            lv[0] = target['max'] & 0xff
+            learned[target['skill']] = tuple(lv)
+        tree = Tree(rng, keys, nodes=nodes, learned=learned)
+        tree.state = bytes(rng.choice([0, 9, 10, 11]) for _ in range(0x24))
+        tip = {'skill': target['skill'], 'mask': -1, 'rank': b'Rank %d, Skill Level: %d/%d',
+               'desc': rng.choice(descs) if target['formula'] or rng.random() < 0.5 else b'No value here',
+               'cost': b'Required Points: %d', 'brand': b'Needs the base skill', 'rankreq': b'Needs rank Lv. 10',
+               'pre1': b'Needs the first skill', 'pre2': b'Needs the second skill'}
+        if target['formula'] == 0:
+            tip['desc'] = b'Static#description text'
+        tips = [tip] if rng.random() < 0.95 else []
+        case = Case(rng, texts)
+        hero = vs.HeroC()
+        hero.count = rng.randint(0, 20)
+        for i in range(hero.count):
+            hero.skills[i] = rng.choice(keys)
+        brand = by[target['skill']].brand if target['skill'] in by else 0
+        if brand and rng.random() < 0.5:
+            hero.skills[rng.randint(0, 0x95)] = brand
+        formulas = {}
+
+        def formula(group, a, b):
+            key = (group, a, b)
+            if key not in formulas:
+                formulas[key] = rng.choice([0.0, 2.5, float(rng.randint(0, 300)), rng.uniform(0, 99)])
+            return formulas[key]
+        slot = target['slot'] if rng.random() < 0.95 else 0
+        m.prepare(force=True)
+        vs.tip_machine_setup(m)
+        h = tree.client(m)
+        rec = Recorder(m, h, case)
+        m.stubs.pop(TIP_BUILD, None)                  # (the answer family's recorder replaces it)
+        vs.wrap_stubs(m, 1.0)
+        m.stub(vs.TIP_HEADER, lambda mm: 0, 0)
+        _, a = vs.write_hero(m, argparse.Namespace(), hero)
+        for i in range(0x96):
+            m.write(a + 0x1e6 + 2*i, struct.pack('<H', hero.skills[i]))
+        hd, cnt = map_build(m, [(t['skill'], tip_bytes(t)) for t in tips], 0x33c)
+        m.write(h + 0xc8, struct.pack('<II', hd, cnt))
+        m.stub(0x00966c42, lambda mm: DUMMY, 0)
+        m.stub(0x0117b5eb, double_stub(m, lambda mm: formula(*[s32(v) for v in mm.args(4)[1:4]])), 0)
+        done = []
+        m.stub(0x00b8d94b, lambda mm: done.append(s32(mm.args(1)[0])) or 0, 4)
+        m.uc.mem_write(vs.TEXT_LIST, b'\xab'*(80*0xff))
+        m.uc.mem_write(vs.TEXT_COLOR, struct.pack('<i', vs.SENTINEL)*80)
+        m.uc.mem_write(vs.TEXT_BOLD, struct.pack('<i', vs.SENTINEL)*80)
+        m.write(HEADER_FLAGS, bytes(4*80))
+        m.call(TIP_BUILD, [slot], ecx=h)
+        if done:
+            count = done[0]
+            client = {'count': count,
+                      'lines': [m.read(vs.TEXT_LIST + 0xff*i, 0xff).split(b'\0')[0] for i in range(count)],
+                      'colors': list(struct.unpack('<80i', m.read(vs.TEXT_COLOR, 320)))[:count],
+                      'bolds': list(struct.unpack('<80i', m.read(vs.TEXT_BOLD, 320)))[:count],
+                      'headers': [i for i, v in enumerate(struct.unpack('<80i', m.read(HEADER_FLAGS, 320))) if v]}
+        else:
+            client = None
+        client = (client, list(m.read(h + 0x78, 0x24)))
+        t = tree.native(nat)
+        ctips = (TipC*max(1, len(tips)))(*[tip_c(x) for x in tips])
+        for i in range(len(tips)):
+            t.tips[i] = ctypes.addressof(ctips[i])
+        t.ntips = len(tips)
+        log = []
+        env = menv(case, rec, log, nat.table_c)
+        tenv = vs.TipEnvC(ctypes.pointer(rec._env), None, vs.TEXT_FN(lambda u, i: case.text_ptr(i)),
+                          vs.TIP_FN(lambda u, k: None), vs.INFO_FN(lambda *a: None), vs.HAS_FN(lambda u, s: 0),
+                          vs.HAS_FN(lambda u, s: 0), vs.FLOAT1_FN(lambda u, s: 0.0),
+                          vs.FORMULA_FN(lambda u, g, a, b: formula(g, a, b)),
+                          vs.MEASURE_FN(lambda u, txt, k: vs.measure_bytes(ctypes.string_at(txt, k))), 1.0)
+        out = vs.TipC()
+        heads = (U8*80)()
+        count = nat.lib.mu_master_tooltip(ctypes.byref(t), ctypes.byref(tenv), ctypes.byref(env), ctypes.byref(hero),
+                                          slot, ctypes.byref(out), ctypes.byref(heads))
+        if count:
+            native = {'count': count, 'lines': [bytes(out.lines[i]).split(b'\0')[0][:0xfe] for i in range(count)],
+                      'colors': [out.color[i] if out.set[i] & 1 else vs.SENTINEL for i in range(count)],
+                      'bolds': [out.bold[i] if out.set[i] & 2 else vs.SENTINEL for i in range(count)],
+                      'headers': [i for i in range(80) if heads[i]]}
+        else:
+            native = None
+        native = (native, list(t.state))
+        fam.check((n, slot), client, native)
+
+
+ICON_DRAW = 0x00bb0e2d
+
+
+def run_icons(m, nat, rng, fam, keys, table, records, cases):
+    master = [k for k in keys if 300 <= k <= 929]
+    for n in range(cases):
+        nodes = random_nodes(rng, master, rng.randint(0, 15))
+        uniq = {}
+        for nd in nodes:
+            uniq.setdefault(nd['slot'], nd)
+        nodes = list(uniq.values())
+        for nd in nodes:
+            nd['group'] = rng.choice([0, 1, 2])
+        learned = random_learned(rng, master, [nd['p1'] for nd in nodes if nd['p1']])
+        tree = Tree(rng, keys, nodes=nodes, learned=learned)
+        tree.state = bytes(rng.choice([0, 9, 10, 11]) for _ in range(0x24))
+        tree.pos = {nd['slot']: (f32(rng.uniform(0, 900)), f32(rng.uniform(0, 600))) for nd in nodes if rng.random() < 0.8}
+        case = Case(rng, lambda i: b'')
+        case.special = {nd['skill']: rng.random() < 0.8 for nd in nodes}
+        hero = vs.HeroC()
+        hero.count = rng.randint(0, 10)
+        for i in range(hero.count):
+            hero.skills[i] = rng.choice(keys)
+        x0, y0 = f32(rng.uniform(0, 300)), f32(rng.uniform(0, 200))
+        scale, rx, ry = f32(rng.choice([1.0, 0.9])), f32(rng.uniform(0.3, 2)), f32(rng.uniform(0.3, 2))
+        iw, ih = f32(26*scale*rx), f32(37*scale*ry)
+        m.prepare(force=True)
+        h = tree.client(m)
+        m.write(h + 0xb0, struct.pack('<ff', iw, ih))
+        Recorder(m, h, case)
+        _, a = vs.write_hero(m, argparse.Namespace(), hero)
+        for i in range(0x96):
+            m.write(a + 0x1e6 + 2*i, struct.pack('<H', hero.skills[i]))
+        m.stub(0x00aae509, vs.float_stub(m, lambda: x0, 0), 0)
+        m.stub(0x00aae601, vs.float_stub(m, lambda: y0, 0), 0)
+        m.stub(0x00abedc3, vs.float_stub(m, lambda: scale, 0), 0)
+        m.stub(0x00966d99, vs.float_stub(m, lambda: rx, 0), 0)
+        m.stub(0x00966d87, vs.float_stub(m, lambda: ry, 0), 0)
+        draws = []
+        m.stub(0x0184e01a, lambda mm: draws.append((s32(mm.args(10)[0]),) + tuple(round(cm.bits_f(w), 5) for w in mm.args(10)[1:9])
+                                                   + (mm.args(10)[9],)) or 0, 0)
+        m.call(ICON_DRAW, [], ecx=h)
+        client = (draws, list(m.read(h + 0x78, 0x24)))
+        t = tree.native(nat)
+        t.icon_w, t.icon_h = iw, ih
+        log = []
+        env = menv(case, Recorder.__new__(Recorder), log, nat.table_c) if False else None
+        rec2 = Recorder.__new__(Recorder)
+        rec2.case = case
+        cb = rec2.callbacks(case, log)
+        menv_env = vss.master_env(nat.table_c)
+        env = MEnvC(None, ctypes.pointer(menv_env), *cb)
+        ndraws = []
+        DRAW_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, I32, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+                                   ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+                                   ctypes.c_uint32)
+        fn = DRAW_FN(lambda u, b, x, y, w, hh, uu, vv, uw, vh, c: ndraws.append(
+            (b,) + tuple(round(f32(q), 5) for q in (x, y, w, hh, uu, vv, uw, vh)) + (c,)))
+        nat.lib.mu_master_icons.argtypes = [ctypes.POINTER(TreeC), ctypes.POINTER(MEnvC), ctypes.POINTER(vs.HeroC),
+                                            ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+                                            DRAW_FN, ctypes.c_void_p]
+        nat.lib.mu_master_icons(ctypes.byref(t), ctypes.byref(env), ctypes.byref(hero), x0, y0, scale, rx, ry, fn, None)
+        fam.check(n, client, (ndraws, list(t.state)))
+
+
+FAMILIES = ['class', 'build', 'access', 'click', 'answer', 'text', 'position', 'damage', 'tooltip', 'icons']
 MUTANTS = {16: 'click', 17: 'answer', 18: 'damage'}
 
 
 def run_all(m, nat, snap, args, families, report, rng, quiet=False):
     records = vs.snapshot_records(snap)
+    names = {row['index']: row['name'] for row in plain.read_skills(snap)}
+    for r in records:
+        r.name = bytes(names.get(r.index, b''))[:127]
     keys = [r.index for r in records]
     table = nat.table(records)
     nat.table_c = table
@@ -923,6 +1099,10 @@ def run_all(m, nat, snap, args, families, report, rng, quiet=False):
             run_position(m, nat, rng, fam, keys, args.cases)
         elif name == 'damage':
             run_damage(m, nat, rng, fam, keys, table, records, args.cases)
+        elif name == 'tooltip':
+            run_tooltip(m, nat, rng, fam, keys, table, records, texts, args.cases)
+        elif name == 'icons':
+            run_icons(m, nat, rng, fam, keys, table, records, args.cases)
         else:
             raise SystemExit(f'unknown family {name}')
         report['families'][fam.name] = fam.summary()

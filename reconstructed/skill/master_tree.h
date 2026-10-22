@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "skill_list.h"
+#include "skill_tooltip.h"
 #include "skill_use.h"
 
 #ifdef __cplusplus
@@ -164,6 +165,26 @@ void mu_master_hero_upgrade(const mu_skill_env *env, mu_skill_hero *hero, int32_
 typedef double (*mu_master_formula_fn)(void *user, int32_t group, int32_t a, int32_t b);
 int32_t mu_master_skill_damage(const mu_master_tree *t, const mu_skill_env *env, int32_t skill,
                                mu_master_formula_fn formula, void *user);
+
+/* 0x00bb1183(slot): the slot's tooltip into the classic text list (TextList 0x10c76988, colours 0x10c7b938, bold
+ * 0x10c7ba78, the header flags 0x0b477ef4): the skill's name (colour 3, bold), the rank line, the description with
+ * the level-0 formula value (0x0117b5eb(mgr, 3, id, cost) through tenv->formula) or the learned value, the next
+ * level's value (GlobalText 0xd00 header), the cost (0xd01 header; red when above the points), the brand line (red
+ * when 0x00bb1b76 fails), and below the max level and rank 1 the rank and prerequisite lines (red when unmet; the
+ * rank rule's side effect runs).  Returns the line count GfxMgr's InfoPopup gets (0x00b8d94b), 0 when the slot, the
+ * skill or the tooltip record is missing. */
+int mu_master_tooltip(mu_master_tree *t, const mu_skill_tip_env *tenv, const mu_master_env *env,
+                      const mu_skill_hero *hero, int slot, mu_skill_tip *out, uint8_t header[MU_SKILL_TIP_LINES]);
+
+/* 0x00bb0e2d (the window's per-frame overlay): every node's icon at its reported position, (X0 + scale * x) *
+ * ratio_x, (Y0 + scale * y) * ratio_y, size icon_w x icon_h, bitmap 0x7e18 + Magic_Icon / 450, cell (icon % 450) % 25
+ * x 0.0390625, (icon % 450) / 25 x 0.0546875; white (0xffffffff) when 0x00bb1a19, 0x00bb1b06 (whose side effect
+ * runs), 0x00bb1b76 and the special-item answer pass, else grey (0xff787878).  Nodes without a position are
+ * skipped. */
+typedef void (*mu_master_draw_fn)(void *user, int32_t bitmap, float x, float y, float w, float h, float u, float v,
+                                  float uw, float vh, uint32_t color);
+void mu_master_icons(mu_master_tree *t, const mu_master_env *env, const mu_skill_hero *hero, float x0, float y0,
+                     float scale, float ratio_x, float ratio_y, mu_master_draw_fn draw, void *user);
 
 #ifdef __cplusplus
 }
