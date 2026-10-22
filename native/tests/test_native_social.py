@@ -118,6 +118,8 @@ class SocialSession(unittest.TestCase):
                 "InfoPopup",
                 "CharacterInfoFrame",
                 "Trade",
+                "NpcShop",
+                "StorageInven",
                 "FriendMenu",
                 "FriendWindow",
                 "winParty",

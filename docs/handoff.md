@@ -2,7 +2,7 @@
 
 ## Social systems (NATIVE-SOCIAL-001)
 
-WIP branch `claude/native-social`; no PR or merge until the required original handlers are reconstructed.
+Round 1 publishes from `claude/native-social`; continue original handlers on `claude/native-social2` from merged main.
 
 Read [client-social.md](research/client-social.md). `reconstructed/social` + `scripts/validate_social.py` cover
 party request/fields/state/resources/markers, trade receives/locks/results, friend rows and whispers. Private

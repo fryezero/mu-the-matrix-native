@@ -4,8 +4,9 @@ NATIVE-SOCIAL-001 adds parties, trade, friends and whispers to `mu-world` and `m
 `reconstructed/social` holds game-side receives, `native/core/mu_social` holds offline server policy and
 `native/world/world_gfx_social` drives the movies. The `--players` characters are demo partners.
 
-This branch is WIP. Original party request/accept/leave/kick actions and messenger receives still need
-instruction-led reconstruction. The demo policy and local room do not satisfy those parts of the task.
+Round 1 publishes the verified receives and offline interface. Original party request/accept/leave/kick
+actions, messenger handlers, mail and full trade item options are the separate round 2 milestone.
+The demo policy and local room do not establish original client behavior for those handlers.
 
 ## Evidence and boundaries
 
@@ -118,7 +119,8 @@ Five reconstructed tests cover malformed input and state. Three native regressio
 actual inventory reservation/cancel/commit, multi-cell offers, local messenger/whisper callbacks, stationary
 marker refresh, host detach/rebind and two-world party persistence. Recording GFx tests are synthetic;
 the real movies were checked separately in offline GL renders.
-Regression probes also cover capacity changing between lock and result, and escaped quotes, backslashes,
+Regression probes also reject shop/vault removal of trade-reserved items through scripted actions,
+cover cancel and atomic commit after those attempts, capacity changing between lock and result, and escaped quotes, backslashes,
 newlines and Unicode in messenger callbacks. The draw decoder now preserves byte 3/5 item-code bits;
 extended-code visual output has not been captured. Remaining review gaps are original party
 actions and messenger handlers, not transport encryption.

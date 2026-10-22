@@ -31,6 +31,35 @@ int main(int argc, char **argv)
     p->count = 1;
     p->list[0].in_view = 1;
     snprintf(p->list[0].spec.name, sizeof p->list[0].spec.name, "Shopkeep");
+    /* Scripted shop/vault paths must obey escrow for both cancellation and commit. */
+    for (int commit = 0; commit < 2; commit++) {
+        int probe = mu_gfx_layer_add_item(l, 7002, 5, 2, 2, "Escrow probe");
+        assert(probe >= 0);
+        int cell = mu_gfx_layer_item_cell(l, probe);
+        mu_gfx_slot_item probe_item;
+        int reserved = mu_gfx_layer_inventory_reserve(l, cell, &probe_item);
+        assert(reserved);
+        assert(mu_gfx_layer_npc_shop(l, "Shop", 0, 1, NULL, 0));
+        assert(mu_gfx_layer_npc_action(l, "sell", cell));
+        assert(strstr(mu_gfx_layer_npc_last(l), "reserved"));
+        mu_gfx_layer_npc_close(l);
+        assert(mu_gfx_layer_storage(l, "Vault", NULL, 0));
+        assert(mu_gfx_layer_npc_action(l, "put", cell + 1));
+        assert(strstr(mu_gfx_layer_npc_last(l), "reserved"));
+        assert(mu_gfx_layer_slot_items(l, MU_GFX_STORAGE) == 0);
+        mu_gfx_layer_npc_close(l);
+        if (commit) {
+            int tokens[32] = {reserved};
+            assert(mu_gfx_layer_inventory_exchange(l, tokens, NULL, 0));
+            assert(mu_gfx_layer_count_item(l, 7002, 5) == 0);
+        } else {
+            mu_gfx_layer_inventory_finish(l, reserved, 0);
+            assert(mu_gfx_layer_count_item(l, 7002, 5) == 1);
+            reserved = mu_gfx_layer_inventory_reserve(l, cell, &probe_item);
+            assert(reserved);
+            mu_gfx_layer_inventory_finish(l, reserved, 1);
+        }
+    }
     mu_social_session s;
     mu_social_init(&s, "Hero", p);
     world_gfx_social *g = world_gfx_social_open(l, &s);

@@ -38,7 +38,7 @@ not exist yet.
   Bounded teleport instructions match 875 checks, registration matches one, and all 3 planted mistakes fail.
   The full navimap formatter remains blocked on uncaptured C++ locale state. [Evidence](research/client-maps.md#native-polish-001-map-follow-ups).
 
-- Social systems WIP, NATIVE-SOCIAL-001. Offline party requests/membership, HP/MP HUD and real Tab markers;
+- Social systems, NATIVE-SOCIAL-001 round 1. Offline party requests/membership, HP/MP HUD and real Tab markers;
   inventory-backed trade grids/zen/locks/results; friends, local messenger and whispers through GFx.
   7,000 bounded Unicorn comparisons, zero mismatches, 10/10 planted mistakes; synthetic session/GFx/travel
   regressions. Original party actions and messenger handlers remain required; transport, mail and full item

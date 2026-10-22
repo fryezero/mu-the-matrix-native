@@ -2912,6 +2912,10 @@ static int npc_inventory_r(mu_gfx_layer *L, int index)
     if (!gi || !L->grid.cells[index])
         return 1;
     item *it = (item *)gi;
+    if (L->trade_reserved[it - L->items]) {
+        npc_last(L, "item reserved for trade (demo)");
+        return 1;
+    }
     if (shop) {
         /* NATIVE-LANG-002: the client's sell price ItemValue(item, 1) when the host has it (the server decides
          * the sale in the real game) */
