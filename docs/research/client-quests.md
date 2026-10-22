@@ -277,7 +277,8 @@ the same player-NPC path. Other player-model classes retain their previous unsup
 Demo rows are `guide STEP[:COUNT[:STATE]]`, `classic QUEST:STATE` and `classicnpc SERVER_CLASS`. In addition to
 the existing quest verbs, scripts support `qtrack`, `qclass`, `qcnext:N`, `qcok`, `qgset:STEP:COUNT:STATE` and
 `qcheck`. `qgiveup` routes to the guide handler on tab 0. Class quest counters only count while accepted and
-clear on completion. Portable fixtures cover malformed A1/86 IDs 200..255 and exact-size wrap output buffers.
+clear on completion. Kill-only A4 replies refresh visible conditions without reopening a closed NPC window.
+Portable fixtures cover that close-then-kill path, malformed A1/86 IDs 200..255 and exact-size wrap output buffers.
 
 ### Verification and limits
 

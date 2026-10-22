@@ -100,7 +100,7 @@ class Session(unittest.TestCase):
         L.mu_quest_session_load_classic.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
         L.mu_quest_session_set_travel.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
         L.mu_classic_state_of.argtypes = [ctypes.c_void_p, ctypes.c_int32]
-        for name in ('mu_guide_go', 'mu_classic_complete', 'mu_quest_session_classic_talk'):
+        for name in ('mu_guide_go', 'mu_classic_complete', 'mu_classic_close', 'mu_quest_session_classic_talk'):
             getattr(L, name).argtypes = [ctypes.c_void_p]
         L.mu_guide_request.argtypes = [ctypes.c_void_p, ctypes.c_int32]
         L.mu_classic_choice.argtypes = [ctypes.c_void_p, ctypes.c_int32]
@@ -237,9 +237,20 @@ class Session(unittest.TestCase):
         L.mu_classic_choice(self.c, 0)
         self.steps()
         self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
-        for _ in range(2):
-            L.mu_quest_session_kill(self.s, 3, 0)
-            self.steps()
+        self.take()
+        L.mu_quest_session_kill(self.s, 3, 0)
+        self.steps()
+        ev = self.take()
+        self.assertTrue(any('SetQuestMob' in e for e in ev))
+        self.assertNotIn('show NpcJobChangeQuest', ev)
+        L.mu_classic_close(self.c)
+        self.take()
+        L.mu_quest_session_kill(self.s, 3, 0)
+        self.steps()
+        self.assertFalse(any('NpcJobChangeQuest' in e for e in self.take()))
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
+        L.mu_quest_session_classic_talk(self.s)
+        self.steps()
         L.mu_classic_complete(self.c)
         self.steps()
         self.assertEqual(L.mu_classic_state_of(self.c, 0), 2)

@@ -319,7 +319,6 @@ void mu_quest_session_kill(mu_quest_session *s, int32_t monster_class, int32_t w
             put32(b + 12 + i * 8, s->classic_kills[i][1]);
         }
         queue(s, b, sizeof b);
-        classic_set(s, mu_classic_current(&s->client), 1);   /* demo refresh of the open quest window */
     }
     for (int32_t cat = MU_QUEST_CATEGORY_FIRST; cat <= MU_QUEST_CATEGORY_LAST; cat++) {
         const int32_t *a;
@@ -522,6 +521,13 @@ void mu_quest_session_step(mu_quest_session *s)
         s->nqueue--;
         ++s->stats.answers;
         mu_quest_receive(&s->client, p.bytes, p.size);   /* the client's F6 handlers (verified) */
+        if (p.size >= 48 && p.bytes[2] == 0xa4) {
+            /* Demo UI refresh after the kill-only reply. A1 is a state/talk reply and opens the NPC window. */
+            if (mu_classic_visible(&s->client))
+                mu_classic_window_state(&s->client);
+            if (s->client.info.visible && s->client.info.tab == 1)
+                mu_classic_tab_refresh(&s->client);
+        }
         if (p.size >= 8 && p.bytes[2] == 0xf6 && p.bytes[3] == 0x50 && s->client.guide) {
             /* The client chooses the next class-eligible step after a reward or give-up. Keep the demo
              * server's progress on that step, rather than the completed step carried by the answer. */

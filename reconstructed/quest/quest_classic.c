@@ -768,6 +768,11 @@ void mu_classic_close(mu_quest_client *c)             /* 0x00bec3f0 */
     cq(c)->visible = 0;
 }
 
+int mu_classic_visible(const mu_quest_client *c)
+{
+    return c && c->classic && c->classic->visible;
+}
+
 /* 0x009f4eeb: the accept request when the requests allow it, else the refusal dialogue */
 static int accept(mu_quest_client *c)
 {

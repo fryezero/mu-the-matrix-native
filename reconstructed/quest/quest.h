@@ -513,6 +513,7 @@ void mu_classic_onload(mu_quest_client *c);                          /* NpcJobCh
 void mu_classic_window_state(mu_quest_client *c);                    /* 0x00bebd9f */
 void mu_classic_open(mu_quest_client *c);                            /* 0x00bec39b */
 void mu_classic_close(mu_quest_client *c);                           /* 0x00bec3f0 */
+int mu_classic_visible(const mu_quest_client *c);
 void mu_classic_choice(mu_quest_client *c, int32_t choice);          /* 0x00bec46a */
 void mu_classic_complete(mu_quest_client *c);                        /* 0x00becb32 */
 int mu_classic_callback(mu_quest_client *c, const char *name, double number);   /* 0x00becc09 */
