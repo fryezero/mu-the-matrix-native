@@ -121,12 +121,12 @@ FadeAlpha, CreateAngle, TurnAngle2, AngleMatrix, VectorRotate, TransformPosition
 sin / cos / sqrt / log (identified by execution: `0x009681bd`, `0x009fa223`, `0x00961a07`, `0x00ad320c` = ln) run as
 client code.
 
-Private run (`--cases 1000 --negative 60 --mutations`, about seven minutes), report
+Private run (`--cases 1000 --negative 60 --mutations`, about five minutes), report
 `evidence/native-pets/report-02.json`:
 
 | Section | Cases | Result |
 |---|---|---|
-| petdata loader (installed file, 39 valid / 21 corrupted synthetic files, missing) | 61 | 0 mismatches |
+| petdata loader (installed file, 39 valid / 21 corrupted synthetic files, missing) | 62 | 0 mismatches (installed: 8 records) |
 | sessions (Create, then 10..60 updates / renders with moving owners, zen on the ground, advancing clocks; all pets, both move types, the five collector states, fresh / reused / live OBJECTs) | 1,000 sessions, 28,280 steps, 45,962 host calls | 0 mismatches, 28/28 branch probes |
 | negative controls (range, scene, zen type) | 3 | 3 detected |
 | planted mistakes (`-DMU_PET_MUTATION=1..6`) | 6 | 6 detected |
