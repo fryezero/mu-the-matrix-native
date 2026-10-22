@@ -78,7 +78,7 @@ void mu_world_players_encode_equipment(const mu_world_player_spec *s, uint8_t e[
     }
     e[2] = (uint8_t)(((part[0] & 0xf) << 4) | (part[1] & 0xf));
     e[3] = (uint8_t)(((part[2] & 0xf) << 4) | (part[3] & 0xf));
-    e[4] = (uint8_t)(((part[4] & 0xf) << 4) | 3);   /* no group-12 pet */
+    e[4] = (uint8_t)(((part[4] & 0xf) << 4) | (s->pet & 3));   /* e[4] & 3: the group-13 pet (3 none) */
     e[8] = (uint8_t)(((part[0] >> 4 & 1) << 7) | ((part[1] >> 4 & 1) << 6) | ((part[2] >> 4 & 1) << 5) |
                      ((part[3] >> 4 & 1) << 4) | ((part[4] >> 4 & 1) << 3));
     e[0xc] |= (uint8_t)(part[0] >> 5 & 0xf);
@@ -99,7 +99,9 @@ void mu_world_players_encode_equipment(const mu_world_player_spec *s, uint8_t e[
     int32_t w = s->item_type[MU_RP_SLOT_WING] < 0 ? 0 : wing_index(s->item_type[MU_RP_SLOT_WING]);
     e[4] |= (uint8_t)(((w >> 6) & 3) << 2);   /* index bits 6..7 (the decode shifts e[4] & 0xc by 4) */
     e[8] |= (uint8_t)((w >> 3) & 7);
-    e[0xf] = (uint8_t)((w & 7) << 2);
+    e[0xf] = (uint8_t)(((w & 7) << 2) | (s->ride_state & 3));   /* the ride state 0x0129dc91 (NATIVE-HELPERS-001) */
+    if (s->ride_state == 4)
+        e[0x10] |= 1;
     e[0x11] = (uint8_t)(s->item_level[MU_RP_SLOT_WING] & 0xf);
 }
 
@@ -162,6 +164,7 @@ static int parse_player(mu_world_player_spec *s, char *line, int number, char *e
         s->item_type[k] = -1;
     s->guild = -1;
     s->ride = 0xffff;
+    s->pet = 3;
     s->idle_steps = 40;
     s->die_step = -1;
     s->store_step = -1;
@@ -209,6 +212,10 @@ static int parse_player(mu_world_player_spec *s, char *line, int number, char *e
             s->party = 1;
         else if (!strcmp(tok, "ride"))
             s->ride = (uint16_t)strtol(v, NULL, 0);
+        else if (!strcmp(tok, "ride_state"))
+            s->ride_state = (uint8_t)atoi(v);
+        else if (!strcmp(tok, "pet"))
+            s->pet = (uint8_t)(!strcmp(v, "angel") ? 0 : !strcmp(v, "imp") ? 1 : (atoi(v) & 3));
         else if (!strcmp(tok, "dir"))
             s->direction = (uint8_t)(atoi(v) & 0xf);
         else if (!strcmp(tok, "idle"))
@@ -363,7 +370,7 @@ static void place_model(mu_world_players *p, mu_world_player *q)
             light[k] += PLAYER_OBJECT_LIGHT;
     }
     for (int k = 0; k < 3; ++k) {
-        m->params.position[k] = q->c.position[k];
+        m->params.position[k] = q->c.position[k] + q->place_offset[k];   /* the rider lift 0x0103da5c */
         m->params.angles[k] = q->c.angle[k];
         m->params.light[k] = light[k];
     }
@@ -612,6 +619,15 @@ static void run_input(mu_world_players *p, mu_world_player *q, mu_run_input *in)
     in->gloves_level = (int8_t)q->c.slots[MU_RP_SLOT_GLOVES].level;
     in->boots_level = (int8_t)q->c.slots[MU_RP_SLOT_BOOTS].level;
     in->mounted_item = 0;
+    in->safe_zone_keeps_run = q->riding;   /* 0x0106bdb7 (NATIVE-HELPERS-001) */
+}
+
+void mu_world_players_set_action(mu_world_players *p, int32_t i, int32_t action)
+{
+    if (i < 0 || i >= p->count)
+        return;
+    mu_world_player *q = &p->list[i];
+    set_action(q, action, mu_character_action_speed(&q->model, (uint16_t)action));
 }
 
 static void cb_set_walk(void *context, mu_rp_character *c)
@@ -623,6 +639,9 @@ static void cb_set_walk(void *context, mu_rp_character *c)
     q->run = mu_player_run_counter(&in, q->run);
     float speed;
     int32_t action;
+    /* riding (0x0106bdb7): the rider action 0x0106c382(c, run < 20 ? 1 : 2) (NATIVE-HELPERS-001) */
+    if (q->riding && s->p->ride_hook && s->p->ride_hook(s->p->ride_context, (int32_t)(q - s->p->list), q->run < 0x14 ? 1 : 2))
+        return;
     if (q->weapon_kind == MU_WEAPON_NONE)
         action = mu_player_walk_action(c->class_byte, q->run, &speed);
     else {   /* static table of the armed walk actions (NATIVE-ACTOR-001); the run threshold as unarmed */
@@ -637,7 +656,11 @@ static void cb_set_stop(void *context, mu_rp_character *c)
 {
     step_context *s = context;
     mu_world_player *q = s->q;
-    q->run = mu_player_stop_run_counter(0, q->run);
+    q->run = mu_player_stop_run_counter(q->keeps_run, q->run);
+    if (q->riding && s->p->ride_hook && s->p->ride_hook(s->p->ride_context, (int32_t)(q - s->p->list), 0)) {
+        ++q->arrivals;   /* the rider action 0x0106c382(c, 0) (NATIVE-HELPERS-001) */
+        return;
+    }
     int32_t action;
     float speed;
     if (q->weapon_kind == MU_WEAPON_NONE) {
@@ -718,6 +741,8 @@ static void viewport_create(mu_world_players *p, mu_world_player *q, int created
     make_env(p, &s, &env);
     p->calls.count = 0;
     mu_rp_viewport_apply(&v, &q->c, &env, &p->calls);
+    q->equip_calls = p->calls;   /* NATIVE-HELPERS-001: ChangeCharacterExt's helper calls for the helpers module */
+    ++q->equip_events;
     q->c.position[2] = z;
     memcpy(q->equipment, v.equipment, sizeof q->equipment);
     q->run = 0;

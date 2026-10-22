@@ -71,7 +71,8 @@ func smoke(_ args: [String]) -> Int32 {
 /// --check-bundle: the files the app needs (the GFx library is optional).
 func checkBundle() -> Int32 {
     let required = [Paths.client, Paths.nonet, Paths.session, Paths.resources + "/session/demo-servers.txt",
-                    Paths.resources + "/session/demo-characters.txt", Paths.placement, Paths.npcDemo, Paths.converter,
+                    Paths.resources + "/session/demo-characters.txt", Paths.placement, Paths.npcDemo, Paths.players,
+                    Paths.converter,
                     Paths.resources + "/converter/native/gfx/gfxswf.py",
                     Paths.resources + "/converter/model-recovery/libmodulus.dylib", Paths.resources + "/AppIcon.icns"]
     let missing = required.filter { !Paths.exists($0) }
@@ -117,6 +118,7 @@ if let first = cliArgs.first {
         print("scratch: \(s.scratchDir)")
         print("window size: \(s.windowSize)")
         for k in PreviewSettings.featureKeys { print("\(k): \(s.feature(k) ? "on" : "off")") }
+        print("helper: \(s.helper)")
         print("logs: \(Paths.logs)")
         exit(0)
     case "--print-plan":
@@ -324,6 +326,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var dataLabel = NSTextField(labelWithString: "")
     var dataSummary = NSTextField(labelWithString: "")
     var sizePopup = NSPopUpButton()
+    var helperPopup = NSPopUpButton()
     var boxes: [String: NSButton] = [:]
     static let sizes = ["fit", "full", "1024x640", "1280x800", "1440x900", "1600x1000", "1920x1200"]
     static let featureTitles: [(String, String)] = [
@@ -331,7 +334,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ("names", "Overhead names and HP bars"), ("npc", "NPC talk, shop and vault (demo)"), ("env", "Ambient creatures and weather"),
         ("particles", "Particles, sprites and shadows"), ("objects", "World objects (local decoded placements)"),
         ("lang", "Game text (local tables)"), ("sound", "Sound"),
+        ("players", "Other players with pets and mounts (demo)"),
     ]
+    static let helperTitles = ["None", "Guardian Angel", "Imp", "Horn of Uniria", "Horn of Dinorant", "Dark Horse",
+                               "Horn of Fenrir (red)", "Horn of Fenrir (black)", "Horn of Fenrir (blue)",
+                               "Horn of Fenrir (gold)"]
 
     func refreshLabels() {
         gameLabel.stringValue = GameData.resolve(settings) ?? "not found — choose the game folder"
@@ -377,6 +384,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sizePopup.selectItem(at: Self.sizes.firstIndex(of: settings.windowSize) ?? 0)
         let sizeRow = NSStackView(views: [NSTextField(labelWithString: "Window size:"), sizePopup])
         stack.addArrangedSubview(sizeRow)
+        helperPopup = NSPopUpButton()
+        for t in Self.helperTitles { helperPopup.addItem(withTitle: t) }
+        helperPopup.selectItem(at: PreviewSettings.helpers.firstIndex(of: settings.helper) ?? 0)
+        stack.addArrangedSubview(NSStackView(views: [NSTextField(labelWithString: "Your helper (demo):"), helperPopup]))
 
         let featureLabel = NSTextField(labelWithString: "Features:")
         featureLabel.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
@@ -410,6 +421,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func collect() {
         settings.windowSize = Self.sizes[max(0, sizePopup.indexOfSelectedItem)]
+        settings.helper = PreviewSettings.helpers[max(0, min(helperPopup.indexOfSelectedItem, PreviewSettings.helpers.count - 1))]
         for (k, b) in boxes { settings.setFeature(k, b.state == .on) }
     }
 

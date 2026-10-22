@@ -105,6 +105,7 @@
 #include "../core/mu_world_audio.h"
 #include "../core/mu_world_names.h"
 #include "../core/mu_world_players.h"
+#include "../core/mu_world_helpers.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_batch.h"
@@ -183,6 +184,15 @@ typedef struct app {
     mu_gl_backend player_gl[MU_WORLD_PLAYERS_MAX][MU_CHARACTER_ITEMS];
     uint32_t player_gl_gen[MU_WORLD_PLAYERS_MAX];
 #endif
+    /* NATIVE-HELPERS-001: pets and mounts; --helper ITEM [--helper-state N] gives the hero one (DEMO), the players'
+     * come from their viewport records; --no-helpers */
+    const char *helper_arg;
+    int32_t helper_state;
+    int no_helpers;
+    mu_world_helpers *helpers;
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend helper_gl[MU_WH_MODELS];
+#endif
     uint32_t effects_visible;
     float *wav;
     size_t wav_frames, wav_capacity;
@@ -243,6 +253,20 @@ static const uint8_t sky[4] = {0, 0, 0, 255};
 /* ---- loading ---- */
 
 static void on_step(void *context, mu_walk *w);
+
+/* NATIVE-HELPERS-001: SetPlayerStop / SetPlayerWalk ask the rider action 0x0106c382 while the owner rides. */
+static int hero_ride(void *context, mu_walk *walk, int32_t how)
+{
+    app *a = context;
+    (void)walk;
+    return a->helpers ? mu_world_helpers_ride(a->helpers, 0, how) : 0;
+}
+
+static int player_ride(void *context, int32_t player, int32_t how)
+{
+    app *a = context;
+    return a->helpers ? mu_world_helpers_ride(a->helpers, 1 + player, how) : 0;
+}
 static void env_sound(void *context, int32_t id);
 
 /* NATIVE-COMBAT-001: MoveHero's attack case runs before its walk and click code. */
@@ -507,6 +531,34 @@ static int load(app *a)
             a->players->view_range = a->player_range;
         mu_world_players_attach(a->players, a->names, a->combat);
     }
+    if (!a->no_helpers && (a->helper_arg || a->players)) {   /* NATIVE-HELPERS-001 */
+        int32_t state = 0, item = -1;
+        if (a->helper_arg) {
+            item = mu_world_helpers_parse(a->helper_arg, &state);
+            if (item == -2) {
+                fprintf(stderr, "helpers: unknown helper '%s'\n", a->helper_arg);
+                return 1;
+            }
+            if (a->helper_state >= 0)
+                state = a->helper_state;
+        }
+        a->helpers = calloc(1, sizeof *a->helpers);
+        if (!a->helpers || mu_world_helpers_open(a->helpers, a->root, a->map, &a->walk, a->players, item, state,
+                                                 0x5eed1e1u, 0, error, sizeof error)) {
+            fprintf(stderr, "%s\n", a->helpers ? error : "helpers: out of memory");
+            return 1;
+        }
+        if (a->has_particles)
+            mu_world_helpers_attach_particles(a->helpers, &a->particles);
+        if (a->has_character)
+            mu_world_helpers_attach_hero(a->helpers, &a->ch);
+        a->walk.ride_hook = hero_ride;
+        a->walk.ride_context = a;
+        if (a->players) {
+            a->players->ride_hook = player_ride;
+            a->players->ride_context = a;
+        }
+    }
     return 0;
 }
 
@@ -540,6 +592,8 @@ static void on_step(void *context, mu_walk *w)
         mu_combat_step(a->combat);
     if (a->players)   /* NATIVE-PLAYERS-001: the demo server's packets, MoveCharacters' remote step, the animation step */
         mu_world_players_step(a->players);
+    if (a->helpers)   /* NATIVE-HELPERS-001: MoveBugs, the mount manager's move loop (after MoveCharacters) */
+        mu_world_helpers_step(a->helpers);
     if (a->ground) {   /* NATIVE-ITEMS-001: the demo server's drops, MoveItems, the pick-up mode */
         mu_world_items_watch_combat(a->ground, a->combat);
         mu_world_items_step(a->ground);
@@ -650,6 +704,11 @@ static void unload(app *a)
     free(a->npc_demo);
     a->npc = NULL;
     a->npc_demo = NULL;
+    if (a->helpers) {   /* NATIVE-HELPERS-001 */
+        mu_world_helpers_close(a->helpers);
+        free(a->helpers);
+        a->helpers = NULL;
+    }
     if (a->players) {
         mu_world_players_free(a->players);
         free(a->players);
@@ -1225,6 +1284,10 @@ static void gl_teardown(app *a)
     for (int32_t i = 0; i <= MU_WORLD_ENV_MODELS; ++i)
         if (a->env_gl[i].textures)
             mu_gl_release(&a->env_gl[i]);
+    for (int32_t i = 0; i < MU_WH_MODELS; ++i)
+        if (a->helper_gl[i].textures)
+            mu_gl_release(&a->helper_gl[i]);
+    memset(a->helper_gl, 0, sizeof a->helper_gl);
     for (int32_t t = 0; t < MU_OBJECT_TYPES; ++t)
         if (a->object_gl[t].textures)
             mu_gl_release(&a->object_gl[t]);
@@ -1503,6 +1566,28 @@ static int env_gl_backend(void *context, const mu_world_env *e, int32_t slot, mu
     return 0;
 }
 
+/* NATIVE-HELPERS-001: the helper models load on demand; their textures upload on first use. */
+static int helper_gl_backend(void *context, const mu_world_helpers *w, int32_t slot, mu_render_backend *out)
+{
+    app *a = context;
+    if (slot < 0 || slot >= MU_WH_MODELS || !w->models[slot].loaded)
+        return 1;
+    if (!a->helper_gl[slot].textures)
+        mu_gl_upload(&a->helper_gl[slot], &w->models[slot].textures, 0);
+    mu_gl_backend_bind(&a->helper_gl[slot], out);
+    return 0;
+}
+
+/* The mounts' RenderBodyShadow with the colour 0x0103d281 sends (EnableAlphaTest blend). */
+static void helper_gl_shadow(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4])
+{
+    app *a = context;
+    mu_render_backend backend;
+    if (!a->has_particles || helper_gl_backend(a, w, slot, &backend))
+        return;
+    mu_world_particles_shadow(&a->particles, &w->models[slot].model, &w->models[slot].bmd, rgba, &backend);
+}
+
 static int particle_gl_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
 {
     app *a = context;
@@ -1672,6 +1757,18 @@ static long draw_gl(app *a, int32_t width, int32_t height)
                 mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
             player_item_draw(a, i, draw_order[n], &backend, alpha);
         }
+    }
+    if (a->helpers) {   /* NATIVE-HELPERS-001: RenderBugs, the mount render loop, the Imps (own backends, direct) */
+        if (a->batch && !a->players)
+            mu_gl_batch_session_end(a->batch);
+        mu_world_helpers_target target = {a, helper_gl_backend, helper_gl_shadow};
+        mu_world_helpers_draw(a->helpers, a->legacy_box ? NULL : &a->frustum, a->has_character ? &a->ch : NULL,
+                              &target);
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_ALPHA_TEST);
+        if (a->batch && !a->players)
+            mu_gl_batch_session_begin(a->batch);
     }
     if (a->batch && a->players)
         mu_gl_batch_session_begin(a->batch);
@@ -1879,6 +1976,9 @@ static long draw_soft(app *a, mu_raster *raster)
     raster->texture_wrap = NULL;
     if (a->has_env)
         mu_world_env_draw_raster(&a->env, raster, v->modelview, a->legacy_box ? NULL : &a->frustum);
+    if (a->helpers)   /* NATIVE-HELPERS-001 */
+        mu_world_helpers_draw_raster(a->helpers, raster, a->legacy_box ? NULL : &a->frustum,
+                                     a->has_character ? &a->ch : NULL);
     if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
         mu_world_particles_draw_models_raster(&a->particles, raster);
         mu_world_particles_draw_raster(&a->particles, raster, v->modelview);
@@ -1935,6 +2035,8 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
         mu_world_items_report_frame(a->ground, stdout, frame);
     if (a->players)
         mu_world_players_report_frame(a->players, stdout, frame);
+    if (a->helpers)
+        mu_world_helpers_report_frame(a->helpers, stdout, frame);
     if (a->names) {   /* NATIVE-NAMES-001: what the movie shows (key, type, x, y, clip visible, info visible, hp,
                        * hp bar, bubble) */
         printf("{\"names_frame\": %d, \"plates\": [", frame);
@@ -2046,6 +2148,8 @@ static void report_summary(const app *a, const char *renderer)
         mu_world_items_report_summary(a->ground, stdout);
     if (a->players)
         mu_world_players_report_summary(a->players, stdout, a->quiet);
+    if (a->helpers)
+        mu_world_helpers_report_summary(a->helpers, stdout, a->quiet);
     if (a->names) {   /* NATIVE-NAMES-001 */
         char line[512];
         mu_names_report(&a->names->names, line, sizeof line);
@@ -2525,7 +2629,9 @@ static int usage(void)
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
                     "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n"
-                    "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n");
+                    "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n"
+                    "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
+                    "                [--helper-state N] [--no-helpers]\n");
     return 2;
 }
 
@@ -2542,6 +2648,7 @@ int main(int argc, char **argv)
     a.env_seed = 1;           /* rand() state at world entry: the CRT default (viewer choice) */
     a.particle_seed = 1;
     a.joint_demo = -1;
+    a.helper_state = -1;      /* NATIVE-HELPERS-001: the helper name's ride state */
     a.tile[0] = 133;          /* Lorencia town square */
     a.tile[1] = 127;
     a.angle = 0.0f;
@@ -2567,6 +2674,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-items")) { a.no_items = 1; continue; }
         if (!strcmp(k, "--no-names")) { a.no_names = 1; continue; }
         if (!strcmp(k, "--no-players")) { a.no_players = 1; continue; }
+        if (!strcmp(k, "--no-helpers")) { a.no_helpers = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -2598,6 +2706,8 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--audio-rate")) a.audio_rate = atoi(v);
         else if (!strcmp(k, "--placement")) a.placement = v;
         else if (!strcmp(k, "--players")) a.players_file = v;
+        else if (!strcmp(k, "--helper")) a.helper_arg = v;   /* NATIVE-HELPERS-001 (DEMO) */
+        else if (!strcmp(k, "--helper-state")) a.helper_state = atoi(v);
         else if (!strcmp(k, "--player-range")) a.player_range = atoi(v);
         else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
         else if (!strcmp(k, "--combat-weapon")) {

@@ -100,6 +100,8 @@ typedef struct mu_shell_config {
     const char *npc_demo;          /* the NPC demo table (Lorencia, like the placement), may be NULL */
     int world_no_names, world_no_env, world_no_particles;
     const char *players;           /* NATIVE-PLAYERS-001: world demo players, may be NULL */
+    const char *helper;            /* NATIVE-HELPERS-001: the hero's helper (mu-world --helper, DEMO), may be NULL */
+    int32_t helper_state;          /* its ride state (-1: the name's) */
     const char *world_objects;     /* local decoded world objects, may be NULL */
     const char *charsel_objects;   /* local decoded EncTerrain94.plain, may be NULL */
     const char *login_objects;     /* local decoded EncTerrain95.plain (login world), may be NULL */

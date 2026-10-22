@@ -38,6 +38,7 @@ enum Paths {
     static var session: String { env["MU_NATIVE_SESSION"] ?? resources + "/session/demo-session.txt" }
     static var placement: String { resources + "/world/lorencia-demo-placement.txt" }
     static var npcDemo: String { resources + "/world/lorencia-demo-npc.txt" }
+    static var players: String { resources + "/world/lorencia-demo-players.txt" }   // NATIVE-HELPERS-001
     static var converter: String { resources + "/converter/native/gfx/gfxconvert.py" }
 
     static func exists(_ p: String) -> Bool { FileManager.default.fileExists(atPath: p) }
@@ -118,8 +119,13 @@ struct PreviewSettings: Codable, Equatable {
     var objects = true                // local decoded object placements
     var lang = true                   // local game text tables (MU_LANG_DIR)
     var sound = true                  // audio (world sound needs the local sound table)
+    var players = true                // NATIVE-HELPERS-001: demo players in Lorencia, with their pets and mounts
+    var helper = "none"               // NATIVE-HELPERS-001: the hero's helper (mu-client --helper, demo)
 
-    static let featureKeys = ["gfx", "combat", "items", "names", "npc", "env", "particles", "objects", "lang", "sound"]
+    static let featureKeys = ["gfx", "combat", "items", "names", "npc", "env", "particles", "objects", "lang", "sound",
+                              "players"]
+    static let helpers = ["none", "angel", "imp", "uniria", "dinorant", "darkhorse", "fenrir", "fenrir-black",
+                          "fenrir-blue", "fenrir-gold"]
 
     init() {}
 
@@ -141,6 +147,9 @@ struct PreviewSettings: Codable, Equatable {
         objects = try c.decodeIfPresent(Bool.self, forKey: .objects) ?? d.objects
         lang = try c.decodeIfPresent(Bool.self, forKey: .lang) ?? d.lang
         sound = try c.decodeIfPresent(Bool.self, forKey: .sound) ?? d.sound
+        players = try c.decodeIfPresent(Bool.self, forKey: .players) ?? d.players
+        helper = try c.decodeIfPresent(String.self, forKey: .helper) ?? d.helper
+        if !Self.helpers.contains(helper) { helper = d.helper }
     }
 
     static func load() -> PreviewSettings {
@@ -171,6 +180,7 @@ struct PreviewSettings: Codable, Equatable {
         case "objects": return objects
         case "lang": return lang
         case "sound": return sound
+        case "players": return players
         default: return false
         }
     }
@@ -187,6 +197,7 @@ struct PreviewSettings: Codable, Equatable {
         case "objects": objects = on
         case "lang": lang = on
         case "sound": sound = on
+        case "players": players = on
         default: break
         }
     }
@@ -414,6 +425,8 @@ struct LaunchPlan {
         if !s.names { args.append("--no-names") }
         if !s.env { args.append("--no-env") }
         if !s.particles { args.append("--no-particles") }
+        if s.players { args += ["--players", Paths.players] }        // NATIVE-HELPERS-001
+        if s.helper != "none" { args += ["--helper", s.helper] }
 
         // Objects per scene: the login world (95), character select (94) and the walk-around worlds; a scene
         // whose file is missing gets no option (character select refuses a folder without its file).

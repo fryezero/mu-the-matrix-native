@@ -79,6 +79,9 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->hero_name = c->hero_name;
     a->players_file = c->players;
     a->no_players = c->no_players;
+    a->helper_arg = c->helper;   /* NATIVE-HELPERS-001 */
+    a->helper_state = c->helper ? c->helper_state : -1;
+    a->no_helpers = c->no_helpers;
     a->backend = "soft";
     a->pause = 8;
     a->env_seed = 1;          /* mu-world's defaults (main) */

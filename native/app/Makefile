@@ -70,7 +70,8 @@ $(B)/Info.plist: Info.plist.in Makefile
 
 $(STAMP): $(CLIENT) $(MODULUS) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/AppIcon.icns $(B)/Info.plist bundle-dylibs.sh \
           ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt \
-          ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../gfx/gfxconvert.py ../gfx/gfxswf.py $(MUGFX_LIB)
+          ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
+          ../gfx/gfxconvert.py ../gfx/gfxswf.py $(MUGFX_LIB)
 	rm -rf $(APPQ)
 	mkdir -p $(APPQ)/Contents/MacOS $(APPQ)/Contents/Frameworks $(APPQ)/Contents/Resources/session \
 	  $(APPQ)/Contents/Resources/world $(APPQ)/Contents/Resources/converter/native/gfx \
@@ -83,7 +84,8 @@ $(STAMP): $(CLIENT) $(MODULUS) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/
 	  else echo "NOTE: no libmugfx (native/gfx/build-mugfx.sh or MUGFX_LIB=...): the app uses the GFx stand-ins"; fi
 	cp $(B)/AppIcon.icns $(APPQ)/Contents/Resources/
 	cp ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt $(APPQ)/Contents/Resources/session/
-	cp ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt $(APPQ)/Contents/Resources/world/
+	cp ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
+	  $(APPQ)/Contents/Resources/world/
 	cp ../gfx/gfxconvert.py ../gfx/gfxswf.py $(APPQ)/Contents/Resources/converter/native/gfx/
 	cp $(MODULUS) $(APPQ)/Contents/Resources/converter/model-recovery/
 	./bundle-dylibs.sh $(APPQ) "$(SDL3_LIB)"

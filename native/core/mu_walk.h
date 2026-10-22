@@ -116,6 +116,15 @@ typedef struct mu_walk {
     mu_auto_path auto_path;
     uint32_t auto_moves, auto_segments, auto_searches;
     float speed, top_speed;   /* CharacterMoveSpeed of the last position step, and the highest so far */
+    /* NATIVE-HELPERS-001: the ride word c + 0x322e (CharacterMoveSpeed's helper type, 0xffff none), the mount
+     * manager's predicates for the hero (riding 0x0106bdb7, keeps_run 0x0106bd76), the rider action 0x0106c382
+     * SetPlayerStop / SetPlayerWalk ask while riding (returns 1 when it set the action) and the rider lift
+     * 0x0103da5c that mu_walk_place adds to the model position. */
+    uint16_t helper_type;
+    uint8_t riding, keeps_run;
+    int (*ride_hook)(void *context, struct mu_walk *walk, int32_t how);
+    void *ride_context;
+    float place_offset[3];
 } mu_walk;
 
 /* Starts a session on a loaded world (mu_walk is large: allocate it

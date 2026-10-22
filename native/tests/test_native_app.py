@@ -136,6 +136,7 @@ class PreviewApp(unittest.TestCase):
                     'Frameworks/libmugfx.dylib', 'Resources/AppIcon.icns', 'Resources/session/demo-session.txt',
                     'Resources/session/demo-servers.txt', 'Resources/session/demo-characters.txt',
                     'Resources/world/lorencia-demo-placement.txt', 'Resources/world/lorencia-demo-npc.txt',
+                    'Resources/world/lorencia-demo-players.txt',
                     'Resources/converter/native/gfx/gfxconvert.py', 'Resources/converter/native/gfx/gfxswf.py',
                     'Resources/converter/model-recovery/libmodulus.dylib'):
             self.assertTrue((c / rel).is_file(), rel)
@@ -251,6 +252,8 @@ int main(void) {
         self.assertNotIn('--login-objects', a)
         self.assertEqual(a[a.index('--sound-table') + 1], str(nd / 'sound/audio-tables.tsv'))
         self.assertTrue(a[a.index('--npc-demo') + 1].endswith('Resources/world/lorencia-demo-npc.txt'))
+        self.assertTrue(a[a.index('--players') + 1].endswith('Resources/world/lorencia-demo-players.txt'))
+        self.assertNotIn('--helper', a)                                           # NATIVE-HELPERS-001: none by default
         e = p['env']
         self.assertTrue(e['DYLD_INSERT_LIBRARIES'].endswith('Contents/Frameworks/libmu-nonet.dylib'))
         self.assertTrue(e['MU_GFX_LIB'].endswith('Contents/Frameworks/libmugfx.dylib'))
@@ -265,14 +268,16 @@ int main(void) {
         env, base = self.env('toggles')
         self.launch(env, '--setup')
         settings = {'windowSize': '1024x640', 'gfx': False, 'combat': False, 'items': False, 'names': False,
-                    'npc': False, 'env': False, 'particles': False, 'objects': False, 'lang': False, 'sound': False}
+                    'npc': False, 'env': False, 'particles': False, 'objects': False, 'lang': False, 'sound': False,
+                    'players': False, 'helper': 'fenrir-gold'}
         (base / 'support/settings.json').write_text(json.dumps(settings))
         p = self.plan(env)
         a = p['args']
         for flag in ('--no-names', '--no-env', '--no-particles', '--no-audio'):
             self.assertIn(flag, a)
-        for flag in ('--combat', '--items', '--npc', '--gfx', '--world-objects', '--sound-table'):
+        for flag in ('--combat', '--items', '--npc', '--gfx', '--world-objects', '--sound-table', '--players'):
             self.assertNotIn(flag, a)
+        self.assertEqual(a[a.index('--helper') + 1], 'fenrir-gold')
         self.assertNotIn('MU_LANG_DIR', p['env'])
         self.assertNotIn('MU_GFX_LIB', p['env'])
         self.assertEqual((a[a.index('--width') + 1], a[a.index('--height') + 1]), ('1024', '640'))
