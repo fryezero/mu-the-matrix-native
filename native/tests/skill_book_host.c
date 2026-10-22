@@ -14,6 +14,9 @@
 #include "../core/mu_lang.h"
 #include "../core/mu_skill.h"
 
+static int weapon_kind;
+static int kind(void *u, int slot, int value) { (void)u; return slot == 0 && value == weapon_kind; }
+
 int main(int argc, char **argv)
 {
     if (argc < 3) {
@@ -53,6 +56,25 @@ int main(int argc, char **argv)
                 printf("{\"feed\": %s}\n", json);
             else
                 printf("{\"feed\": null}\n");
+        } else if (!strcmp(op, "use") && i + 2 < argc) {
+            weapon_kind = atoi(argv[i + 2]);
+            mu_skill_use_env env = {.world = a, .transform = 0xffff, .item_kind = kind};
+            for (int j = 0; j < 15; j++)
+                env.items[j].code = -1;
+            mu_skill_book_set_use_state(b, &env);
+            i += 2;
+        } else if (!strcmp(op, "master")) {
+            mu_master_tree *tree = mu_skill_book_master(b);
+            printf("{\"tree_nodes\": %d, \"tree_tips\": %d, \"master_points\": %d, \"master_learned\": %d, "
+                   "\"level\": %d, \"damage\": %d}\n", tree->nnodes, tree->ntips,
+                   mu_skill_book_master_env(b)->points, tree->nlearned, mu_master_level(tree, a),
+                   mu_master_skill_damage(tree, mu_skill_book_env(b), a, NULL, NULL));
+            i++;
+        } else if (!strcmp(op, "masterlearn")) {
+            uint8_t p[8];
+            mu_master_request(p, sizeof p, a);
+            printf("{\"master_answer\": %d}\n", mu_skill_book_demo_master_request(b, p, sizeof p));
+            i++;
         } else if (!strcmp(op, "select")) {
             printf("{\"select\": %d, \"selected\": %d}\n", mu_skill_book_select_slot(b, a), (int)mu_skill_book_selected(b));
             i++;

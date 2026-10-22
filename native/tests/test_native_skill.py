@@ -91,14 +91,31 @@ def tip_record(skill, name, text1, text2=b'', cond2=-1):
     return bytes(rec)
 
 
-def write_root(root):
+def write_root(root, extra=()):
     local = root/'Data/Local'
     local.mkdir(parents=True, exist_ok=True)
     records = [tip_record(9, b'Evil Spirit', b'Spirits strike#all around.', b'Learn it.', 2),
-               tip_record(344, b'Blood Storm', b'A storm.'), tip_record(9, b'Duplicate', b'not used')]
+               tip_record(344, b'Blood Storm', b'A storm.'), tip_record(9, b'Duplicate', b'not used'), *extra]
     payload = b''.join(bytes(b ^ KEY3[i % 3] for i, b in enumerate(r)) for r in records)
     (local/'skilltooltiptext.bmd').write_bytes(struct.pack('<I', len(records)) + payload +
                                               struct.pack('<I', checksum(payload, 0xe2f1)))
+
+
+def write_master(root):
+    local = root/'Data/Local'
+    local.mkdir(parents=True, exist_ok=True)
+    nodes = bytearray(24 * 2048)
+    struct.pack_into('<BBHBBBBiiii', nodes, 0, 1, 0, 1, 0, 1, 20, 4, 0, 0, 330, 0)
+    tips = bytearray(808 * 2048)
+    struct.pack_into('<ih', tips, 0, 330, 1)
+    for offset, value in ((6, b'Rank %d, Skill Level: %d/%d'), (0x46, b'Synthetic master skill'),
+                          (0x146, b'Required Points: %d')):
+        tips[offset:offset + len(value)] = value
+    for name, raw in (('masterskilltreedata.bmd', nodes), ('masterskilltooltip.bmd', tips)):
+        stride = 24 if 'data' in name else 808
+        payload = b''.join(bytes(b ^ KEY3[i % 3] for i, b in enumerate(raw[start:start + stride]))
+                           for start in range(0, len(raw), stride))
+        (local/name).write_bytes(payload + struct.pack('<I', checksum(payload, 0x2bc1)))
 
 
 def book(lang, root, *ops):
@@ -198,6 +215,40 @@ class Book(unittest.TestCase):
         self.assertEqual(out[10], {'packet': 1})                                   # a C2 head: 0xFF of skill 19
         self.assertEqual(out[11]['learned'][0], 0)
 
+    def test_master_answer_updates_damage_and_saved_bar(self):
+        root = self.dir/'master-root'
+        write_root(root, [tip_record(330, b'Twisting Upgrade', b'An upgraded skill.')])
+        write_master(root)
+        out = book(self.dir/'lang', root, 'demofile', self.dir/'demo.txt', 'demo', 129, 'master', 330,
+                   'masterlearn', 330, 'master', 330, 'print', 'tip', 330)
+        self.assertEqual(out[3], {'tree_nodes': 1, 'tree_tips': 1, 'master_points': 100, 'master_learned': 0,
+                                  'level': 0, 'damage': 0})
+        self.assertEqual(out[4], {'master_answer': 1})
+        self.assertEqual((out[5]['level'], out[5]['master_points'], out[5]['damage']), (1, 99, 25))
+        self.assertEqual(out[6]['learned'][2], 330)              # A0 14 replaces brand 41 in the hero list
+        self.assertEqual(out[6]['bar'][1], 330)                  # the saved slot follows the upgrade
+        self.assertIn('Damage 25', out[7]['body'])               # skill-bar tooltip uses the master damage
+        # The login A0 10 restores a learned master value into the same tree, without spending points.
+        demo = self.dir/'master-demo.txt'
+        demo.write_text('list 1 330\nkeys 1 330\n')
+        restored = book(self.dir/'lang', root, 'demofile', demo, 'demo', 129, 'master', 330)[-1]
+        self.assertEqual((restored['level'], restored['master_points'], restored['damage']), (1, 100, 25))
+
+    def test_weapon_rule_reaches_the_bar(self):
+        lang = self.dir/'weapon-lang'
+        write_lang(lang)
+        ext = (lang/'skills_ext.tsv').read_text().splitlines()
+        for i, line in enumerate(ext):
+            if line.startswith('19\t'):
+                fields = line.split('\t')
+                fields[17] = '3'                              # sword/axe requirement in 0x010918c7
+                ext[i] = '\t'.join(fields)
+        (lang/'skills_ext.tsv').write_text('\n'.join(ext) + '\n')
+        out = book(lang, self.dir/'root', 'demofile', self.dir/'demo.txt', 'demo', 1,
+                   'stats', 100, 100, 100, 300, 0, 1000, 100, 'use', 0, 0, 'feed', 'use', 0, 1, 'feed')
+        self.assertFalse(out[-2]['feed']['arrSlots'][0]['isUse'])
+        self.assertTrue(out[-1]['feed']['arrSlots'][0]['isUse'])
+
 
 @unittest.skipUnless(CC, 'no C compiler')
 class Layer(unittest.TestCase):
@@ -209,7 +260,7 @@ class Layer(unittest.TestCase):
         movies = cls.dir/'movies'
         movies.mkdir()
         for name in ('base', 'main', 'InventoryFrame', 'InfoPopup', 'CharacterInfoFrame', 'Chat', 'chat',
-                     'SkillInfoPopup', 'SkillStampFrame'):
+                     'SkillInfoPopup', 'SkillStampFrame', 'MasterSkillTree', 'SkillTree4th', 'SkillTree5th'):
             (movies/f'{name}.swf').write_bytes(b'stub')
 
     @classmethod
@@ -264,6 +315,20 @@ class Layer(unittest.TestCase):
         st = [s for s in states(out) if 'stamp_open' in s]
         self.assertEqual([s['stamp_open'] for s in st], [1, 0, 0])
         self.assertIn('host stamp_open 0', out)                                    # Cancel: the host restores
+        self.assertTrue(any('g_mcSkillStampFrame.SetWindowSize [1280,800]' in l for l in log))
+
+    def test_tree_hotkey_and_character_buttons(self):
+        out, log = self.host('key', 65, 'treeprint', 'key', 27, 'treeprint',
+                             'invoke', 3, '-', 'testCall', '["onClickbtnMasterSkillTree",0]', 'treeprint',
+                             'invoke', 3, '-', 'testCall', '["OnClick4thSkillTree",0]', 'treeprint',
+                             'invoke', 3, '-', 'testCall', '["OnClick5thSkillTree",0]', 'treeprint')
+        trees = [s for s in states(out) if 'master_open' in s]
+        self.assertEqual([s['master_open'] for s in trees], [1, 0, 1, 1, 1])
+        self.assertEqual((trees[-1]['fourth_open'], trees[-1]['fifth_open']), (1, 1))
+        self.assertIn('tree callback 13 UIInit', out)
+        self.assertIn('tree callback 13 WindowShown', out)
+        self.assertTrue(any('g_MasterSkillTree.SetAlign [0]' in l for l in log))
+        self.assertTrue(any('g_SkillTree5th.SetAlign [3]' in l for l in log))
 
 
 @unittest.skipUnless(PRIVATE and os.environ.get('MU_LANG_DIR') and BOOK.exists(), 'private data absent')

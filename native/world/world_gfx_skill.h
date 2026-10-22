@@ -23,6 +23,11 @@ void wg_skill_close(wg_skill *s);
 /* Becomes the layer's skill host (mu_gfx_layer_set_skill_host). */
 void wg_skill_attach(wg_skill *s, struct mu_gfx_layer *layer);
 struct mu_skill_book *wg_skill_book(wg_skill *s);
+void wg_skill_set_world(wg_skill *s, int32_t world);
+void wg_skill_set_buffs(wg_skill *s, const int32_t *ids, int count);
+/* The common RenderBitmap path for tree icons and the Imprint overlays; GL context must be current. */
+void wg_skill_draw(wg_skill *s, int32_t bitmap, float x, float y, float w, float h, float u, float v, float uw,
+                    float vh, uint32_t color);
 /* A cast of the selected skill through the client's checks; on success the layer gets onUseSkillDelay and
  * the demo hero spends the mana/AG.  Returns MU_SKILL_CAST_*; *skill = the skill (0 none). */
 int wg_skill_cast(wg_skill *s, int32_t *skill);

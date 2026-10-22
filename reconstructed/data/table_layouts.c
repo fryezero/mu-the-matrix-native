@@ -141,13 +141,16 @@ static const mu_record_field MONSTER_SKILL[] = {
 /* MasterSkillTreeData.bmd, 24 bytes, copied to 0x01d22d70 + i * 0x18; 0x00bb0250 stops at the first
  * zero slot and keeps the records whose class mask has the player's class bit. MasterSkillTooltip.bmd, 808 bytes. */
 static const mu_record_field MASTER_SKILL_TREE[] = {
-    S(0x00, U8, CONSUMER, "slot"), S(0x01, U8, DATA, "field_1"), S(0x02, U16, CONSUMER, "class_mask"), S(0x04, U8, DATA, "field_4"), S(0x05, U8, DATA, "field_5"),
-    S(0x06, U8, DATA, "max_level"), S(0x07, U8, DATA, "field_7"), S(0x08, U32, DATA, "field_8"),
-    S(0x0c, U32, DATA, "field_c"), S(0x10, U32, DATA, "skill"), S(0x14, U32, DATA, "field_14"),
+    S(0x00, U8, CONSUMER, "slot"), S(0x01, U8, DATA, "field_1"), S(0x02, U16, CONSUMER, "class_mask"),
+    S(0x04, U8, CONSUMER, "group"), S(0x05, U8, CONSUMER, "point_cost"), S(0x06, U8, CONSUMER, "max_level"),
+    S(0x07, U8, CONSUMER, "arrow"), S(0x08, U32, CONSUMER, "prerequisite_1"),
+    S(0x0c, U32, CONSUMER, "prerequisite_2"), S(0x10, U32, CONSUMER, "skill"), S(0x14, U32, CONSUMER, "formula"),
 };
 static const mu_record_field MASTER_SKILL_TOOLTIP[] = {
-    S(0x000, I32, DATA, "skill"), S(0x004, I16, DATA, "field_4"), T(0x006, 64, DATA, "rank_text"),
-    T(0x046, 256, DATA, "description"), T(0x146, 256, DATA, "text_3"),
+    S(0x000, I32, CONSUMER, "skill"), S(0x004, I16, CONSUMER, "class_mask"), T(0x006, 64, CONSUMER, "rank_text"),
+    T(0x046, 256, CONSUMER, "description"), T(0x146, 32, CONSUMER, "cost_text"),
+    T(0x166, 64, CONSUMER, "brand_text"), T(0x1a6, 128, CONSUMER, "rank_requirement"),
+    T(0x226, 128, CONSUMER, "prerequisite_1_text"), T(0x2a6, 128, CONSUMER, "prerequisite_2_text"),
 };
 
 /* SkillTooltipText.bmd, 808 bytes: constructor 0x0118501e, tooltip renderer 0x0117da56 / 0x0117eab5.

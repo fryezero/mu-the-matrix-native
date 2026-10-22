@@ -27,7 +27,89 @@ struct mu_skill_book {
     mu_ui_font font;                  /* the wrap's GetTextExtentPointA (layer choice: GlobalText[0], height 12) */
     int font_open;
     float screen_rate;                /* [0x06fbcd94] */
+    mu_skill_use_env use;
+    mu_master_tree master;
+    mu_master_env menv;
+    mu_master_node *nodes;
+    mu_master_tip *master_tips;
+    int nnodes, nmaster_tips;
+    mu_master_formula_fn formula;
+    void *formula_user;
+    int (*buff)(void *user, int list, int32_t id);
+    void *buff_user;
 };
+
+static const char *tip_text(void *u, int32_t index);
+static float master_value(void *u, int32_t skill, int32_t flag)
+{
+    mu_skill_book *b = u;
+    return mu_master_chain(&b->master, &b->env, skill, flag);
+}
+static int master_delay(void *u, int32_t skill) { (void)u; return mu_master_is_master(skill); }
+static int32_t master_base(void *u, int32_t skill)
+{
+    mu_skill_book *b = u;
+    return mu_skill_master_base(&b->env, skill);
+}
+static int hero_buff(void *u, int list, int32_t id)
+{
+    const mu_skill_book *b = u;
+    return b->buff ? b->buff(b->buff_user, list, id) : 0;
+}
+int mu_skill_book_requirement(mu_skill_book *b, int32_t base, int32_t *skill, int32_t *master, int32_t *level)
+{
+    const mu_lang_skillreq *r = b ? mu_lang_skillreq_get(b->lang, base) : NULL;
+    if (!r || !r->skill)
+        return 0;
+    *skill = r->x10;
+    *master = r->x14;
+    *level = r->x18;
+    return 1;
+}
+static int default_requirement(void *u, int32_t base, int32_t *skill, int32_t *master, int32_t *level)
+{
+    return mu_skill_book_requirement(u, base, skill, master, level);
+}
+static int default_level(void *u, int32_t skill)
+{
+    mu_skill_book *b = u;
+    return mu_master_level(&b->master, skill);
+}
+
+/* The existing fixed-table codec checks the checksum before either table reaches the tree. */
+static void load_master(mu_skill_book *b, const char *root)
+{
+    if (!root)
+        return;
+    const char *names[] = {"masterskilltreedata.bmd", "masterskilltooltip.bmd"};
+    for (int kind = 0; kind < 2; kind++) {
+        char path[4096];
+        snprintf(path, sizeof path, "%s/Data/Local/%s", root, names[kind]);
+        mu_data_table data = {0};
+        if (mu_data_load(path, mu_data_find(names[kind]), &data) == 0 && data.result.status == MU_DATA_OK) {
+            size_t stride = kind ? 808 : 24;
+            int count = (int)(data.size / stride);
+            if (count > 2048)
+                count = 2048;
+            if (kind) {
+                b->master_tips = calloc((size_t)count, sizeof *b->master_tips);
+                if (b->master_tips) {
+                    b->nmaster_tips = count;
+                    for (int i = 0; i < count; i++)
+                        mu_master_tip_decode(data.bytes + (size_t)i * stride, &b->master_tips[i]);
+                }
+            } else {
+                b->nodes = calloc((size_t)count, sizeof *b->nodes);
+                if (b->nodes) {
+                    b->nnodes = count;
+                    for (int i = 0; i < count; i++)
+                        mu_master_node_decode(data.bytes + (size_t)i * stride, &b->nodes[i]);
+                }
+            }
+        }
+        mu_data_free(&data);
+    }
+}
 
 /* ---- loading ---------------------------------------------------------------------------------------- */
 
@@ -202,7 +284,17 @@ mu_skill_book *mu_skill_book_open(const mu_lang *lang, const char *lang_dir, con
     load_ext(b, lang_dir);
     load_classes(b, lang_dir);
     load_tips(b, game_root);
+    load_master(b, game_root);
     b->env.table = &b->table;
+    b->env.user = b;
+    b->env.master_has_delay = master_delay;
+    b->env.base_skill = master_base;
+    b->env.master_value = master_value;
+    b->env.buff = hero_buff;
+    b->menv.skills = &b->env;
+    b->menv.user = b;
+    b->menv.text = tip_text;
+    mu_skill_book_set_use_state(b, NULL);
     b->screen_rate = 1.0f;
     b->env.class_index = 1;
     b->hero.class_index = 1;
@@ -218,6 +310,8 @@ void mu_skill_book_close(mu_skill_book *b)
         return;
     mu_skill_table_free(&b->table);
     free(b->tips);
+    free(b->nodes);
+    free(b->master_tips);
     if (b->font_open)
         mu_ui_font_close(&b->font);
     free(b);
@@ -244,6 +338,66 @@ void mu_skill_book_set_stats(mu_skill_book *b, const mu_skill_stats *s)
     b->hero.command = s->command;
     b->hero.mana = s->mana;
     b->hero.ag = s->ag;
+}
+
+void mu_skill_book_set_use_state(mu_skill_book *b, const mu_skill_use_env *state)
+{
+    if (!b)
+        return;
+    if (state)
+        b->use = *state;
+    else {
+        memset(&b->use, 0, sizeof b->use);
+        b->use.transform = 0xffff;
+        b->use.user = b;
+        b->use.skill_require = default_requirement;
+        b->use.master_level = default_level;
+        for (int i = 0; i < 15; i++)
+            b->use.items[i].code = -1;
+    }
+    b->buff = state && state->skills ? state->skills->buff : NULL;
+    b->buff_user = state && state->skills ? state->skills->user : NULL;
+    b->use.skills = &b->env;
+}
+
+void mu_skill_book_set_elemental(mu_skill_book *b, int32_t elemental)
+{
+    if (b) {
+        b->hero.elemental = elemental;
+        mu_skill_stamp_refresh(&b->env, &b->stamp, elemental);
+    }
+}
+
+const mu_skill_env *mu_skill_book_env(const mu_skill_book *b) { return b ? &b->env : NULL; }
+mu_master_tree *mu_skill_book_master(mu_skill_book *b) { return b ? &b->master : NULL; }
+mu_master_env *mu_skill_book_master_env(mu_skill_book *b) { return b ? &b->menv : NULL; }
+
+void mu_skill_book_set_formula(mu_skill_book *b, mu_master_formula_fn formula, void *user)
+{
+    if (b) {
+        b->formula = formula;
+        b->formula_user = user;
+    }
+}
+
+double mu_skill_book_formula(mu_skill_book *b, int group, int id, int argument)
+{
+    return b && b->formula ? b->formula(b->formula_user, group, id, argument) : 0.0;
+}
+
+void mu_skill_book_master_build(mu_skill_book *b)
+{
+    if (!b)
+        return;
+    mu_master_build(&b->master, &b->menv, b->nodes, b->nnodes, b->master_tips, b->nmaster_tips);
+    mu_master_set_text(&b->master, &b->menv, 0x7f);
+    if (b->menv.invoke)
+        for (int i = 0; i < b->master.nnodes; i++) {
+            const mu_master_node *n = &b->master.nodes[i];
+            char args[64];
+            snprintf(args, sizeof args, "%d %d", n->slot, mu_master_level(&b->master, n->skill));
+            b->menv.invoke(b->menv.user, "SetRank", args);
+        }
 }
 
 /* ---- the server's skill packets ----------------------------------------------------------------------- */
@@ -276,6 +430,12 @@ void mu_skill_book_enter(mu_skill_book *b, int32_t class_byte)
     memset(&b->keys, 0, sizeof b->keys);
     memset(&b->bar, 0, sizeof b->bar);
     b->bar.dirty = 1;
+    mu_master_init(&b->master);
+    int stage = class_byte & 0x80 ? 5 : class_byte & 0x40 ? 4 : class_byte & 0x20 ? 3 : 0;
+    if (stage)
+        mu_master_class(&b->master, ((stage - 1) << 4) | (class_byte & 0xf));
+    b->menv.points = 100;                 /* OFFLINE DEMO master points, independent of stat points */
+    mu_skill_book_master_build(b);
     /* Layer choice: the client builds the stamp manager in the window's 0x00c2008b (0x01095c77); the native
      * session builds it when the hero enters the world, before the server's packets arrive. */
     mu_skill_stamp_init(&b->stamp);
@@ -305,6 +465,10 @@ int mu_skill_book_receive(mu_skill_book *b, const uint8_t *p, size_t n)
         r = mu_skill_list_receive(&w, p, n, NULL);         /* 0x0126176e */
     else if (p[head + 1] == 0x03)
         r = mu_skill_keys_receive(&w, p, n, NULL);         /* 0x0126f225 (its skill part) */
+    else if (p[head + 1] == 0x10)
+        r = mu_master_receive_list(&b->master, &b->menv, p, n);
+    else if (p[head + 1] == 0x14)
+        r = mu_master_receive_learn(&b->master, &b->menv, &w, p, n, 0, &b->menv.points);
     sync_keys(b);
     return r;
 }
@@ -318,7 +482,7 @@ const mu_skill_hotkeys *mu_skill_book_hotkeys(const mu_skill_book *b) { return b
 
 int mu_skill_book_usable(const mu_skill_book *b, int32_t skill)
 {
-    return b && skill && mu_skill_stats_ok(&b->env, &b->hero, skill) && mu_skill_special_ok(&b->env, skill);
+    return b && skill && mu_skill_can_use(&b->use, &b->hero, skill) && mu_skill_special_ok(&b->env, skill);
 }
 
 static int usable_cb(void *user, int32_t skill)
@@ -448,6 +612,47 @@ static int32_t tip_measure(void *u, const char *text, int32_t n)
     return n * 6;
 }
 
+static float tip_formula(void *u, int32_t group, int32_t id, int32_t argument)
+{
+    return (float)mu_skill_book_formula(u, group, id, argument);
+}
+static int tip_master_has(void *u, int32_t skill)
+{
+    mu_skill_book *b = u;
+    return mu_master_find(&b->master, skill) != NULL;
+}
+static int tip_master_kind(void *u, int32_t skill)
+{
+    mu_skill_book *b = u;
+    return mu_master_flag(&b->master, skill);
+}
+static float tip_master_value(void *u, int32_t skill)
+{
+    mu_skill_book *b = u;
+    return mu_master_value(&b->master, skill);
+}
+
+int mu_skill_book_master_tooltip(mu_skill_book *b, int slot, char *title, size_t title_cap, char *body,
+                                 size_t body_cap)
+{
+    if (!b)
+        return 0;
+    mu_skill_tip_env env = {.skills = &b->env, .user = b, .text = tip_text, .measure = tip_measure,
+                            .formula = tip_formula, .text_scale = b->screen_rate};
+    mu_skill_tip *tip = calloc(1, sizeof *tip);
+    char *t = malloc(4096), *h = malloc(65536);
+    int ok = tip && t && h && mu_master_tooltip(&b->master, &env, &b->menv, &b->hero, slot, tip, NULL);
+    if (ok) {
+        mu_skill_tooltip_html(tip, t, 4096, h, 65536);
+        mu_latin1_to_utf8(title, title_cap, t);
+        mu_latin1_to_utf8(body, body_cap, h);
+    }
+    free(tip);
+    free(t);
+    free(h);
+    return ok;
+}
+
 void mu_skill_book_set_screen(mu_skill_book *b, int32_t width)
 {
     if (b && width > 0)
@@ -466,6 +671,10 @@ int mu_skill_book_tooltip_lines(mu_skill_book *b, int32_t skill, mu_skill_tip *o
     env.tip = tip_find;
     env.info = tip_info;
     env.measure = tip_measure;
+    env.master_is = tip_master_has;
+    env.master_kind = tip_master_kind;
+    env.master_float = tip_master_value;
+    env.formula = tip_formula;
     env.text_scale = b->screen_rate;
     mu_skill_tip_input in;
     memset(&in, 0, sizeof in);
@@ -480,8 +689,7 @@ int mu_skill_book_tooltip_lines(mu_skill_book *b, int32_t skill, mu_skill_tip *o
     in.vitality = b->hero.vitality;
     in.energy = b->hero.energy;
     in.command = b->hero.command;
-    const mu_skill_record *r = mu_skill_table_get(&b->table, skill);
-    in.skill_damage = r ? r->damage : 0;      /* DEMO: the character machine's skill damage 0x00a01692 */
+    in.skill_damage = mu_master_skill_damage(&b->master, &b->env, skill, b->formula, b->formula_user);
     return mu_skill_tooltip_build(&env, &in, out);
 }
 
@@ -510,8 +718,9 @@ int mu_skill_book_icon(const mu_skill_book *b, int32_t skill, mu_skill_icon *out
 {
     if (!b || !skill)
         return 0;
-    int learned = mu_skill_learned_index(&b->hero, skill) >= 0;
-    return mu_skill_icon_of(&b->env, skill, learned ? skill : 0, mu_skill_book_usable(b, skill), 20.0f, 28.0f, out);
+    const mu_skill_stamp_entry *e = mu_skill_stamp_find(&b->stamp, skill);
+    int32_t learned = e ? e->learned : mu_skill_learned_index(&b->hero, skill) >= 0 ? skill : 0;
+    return mu_skill_icon_of(&b->env, e ? e->base : skill, learned, mu_skill_book_usable(b, skill), 20.0f, 28.0f, out);
 }
 
 const char *mu_skill_icon_file(int32_t bitmap)
@@ -525,6 +734,8 @@ const char *mu_skill_icon_file(int32_t bitmap)
     case 0x7e1b: return "Interface/new_Master_Non_Icon01.jpg";
     case 0x7e1c: return "Interface/4th_Skill_Icon.jpg";
     case 0x7e1d: return "Interface/4th_Skill_Non_Icon.jpg";
+    case 0x7e26: return "Interface/SkillStamp.tga";
+    case 0x8313: return "Interface/DamageTypeIcon.tga";
     default: return NULL;
     }
 }

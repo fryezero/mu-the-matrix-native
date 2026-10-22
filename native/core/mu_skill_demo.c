@@ -122,6 +122,7 @@ int mu_skill_book_demo_login(mu_skill_book *b, int32_t class_byte)
         if (n)
             mu_skill_book_receive(b, p, n);
     }
+    mu_skill_book_demo_master_login(b);
     return mu_skill_book_hero(b)->count;
 }
 
@@ -135,4 +136,74 @@ int mu_skill_book_demo_learn(mu_skill_book *b, int32_t skill, int forget)
     uint8_t p[16];
     size_t n = mu_skill_list_packet(p, sizeof p, forget ? 0xff : 0xfe, &skill, 1);
     return n ? mu_skill_book_receive(b, p, n) : 0;
+}
+
+static void put32(uint8_t *p, uint32_t v)
+{
+    for (int i = 0; i < 4; i++)
+        p[i] = (uint8_t)(v >> (8 * i));
+}
+
+static void putf(uint8_t *p, float value)
+{
+    uint32_t bits;
+    memcpy(&bits, &value, 4);
+    put32(p, bits);
+}
+
+int mu_skill_book_demo_master_login(mu_skill_book *b)
+{
+    mu_master_tree *tree = mu_skill_book_master(b);
+    if (!tree)
+        return 0;
+    uint8_t packet[12 + 16 * MU_MASTER_NODES] = {0xc2, 0, 0, 0xa0, 0x10};
+    int count = 0;
+    /* Explicit demo values for the already learned master skills. These are server answers, not formulas. */
+    for (int i = 0; i < tree->nnodes; i++) {
+        const mu_master_node *node = &tree->nodes[i];
+        const mu_skill_hero *hero = mu_skill_book_hero(b);
+        if (mu_skill_learned_index(hero, node->skill) < 0)
+            continue;
+        uint8_t *entry = packet + 12 + 16 * count++;
+        entry[0] = node->slot;
+        entry[1] = 1;
+        putf(entry + 4, 25.0f);
+        putf(entry + 8, 30.0f);
+        entry[12] = 1;
+    }
+    size_t size = 12 + 16 * (size_t)count;
+    packet[1] = (uint8_t)(size >> 8);
+    packet[2] = (uint8_t)size;
+    put32(packet + 8, (uint32_t)count);
+    return mu_skill_book_receive(b, packet, size);
+}
+
+int mu_skill_book_demo_master_request(mu_skill_book *b, const uint8_t *p, size_t size)
+{
+    if (!b || size != 8 || p[0] != 0xc1 || p[1] != 8 || p[2] != 1 || p[3] != 0x16)
+        return 0;
+    uint32_t skill = (uint32_t)p[4] | (uint32_t)p[5] << 8 | (uint32_t)p[6] << 16 | (uint32_t)p[7] << 24;
+    mu_master_tree *tree = mu_skill_book_master(b);
+    mu_master_env *env = mu_skill_book_master_env(b);
+    const mu_master_node *node = NULL;
+    for (int i = 0; i < tree->nnodes; i++)
+        if ((uint32_t)tree->nodes[i].skill == skill)
+            node = &tree->nodes[i];
+    if (!node)
+        return 0;
+    uint8_t level = mu_master_level(tree, (int32_t)skill);
+    uint8_t answer[0x1d] = {0xc1, 0x1d, 0xa0, 0x14};
+    int points = env->points;
+    answer[4] = points < node->cost || level >= node->max_level ? 7 : 1;
+    if (answer[4] == 1)
+        points -= node->cost;
+    answer[6] = (uint8_t)points;
+    answer[7] = (uint8_t)(points >> 8);
+    answer[8] = node->slot;
+    put32(answer + 12, skill);
+    answer[16] = (uint8_t)(level + 1);
+    putf(answer + 20, 25.0f + level * 5.0f);
+    putf(answer + 24, 30.0f + level * 5.0f);
+    answer[28] = 1;
+    return mu_skill_book_receive(b, answer, sizeof answer);
 }

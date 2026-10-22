@@ -17,6 +17,7 @@
 #include "../gfx/mu_gfx_sdl.h"
 #include "world_gfx_game.h"
 #include "world_gfx_skill.h"
+#include "world_gfx_tree.h"
 #include "../core/mu_skill.h"
 
 struct world_gfx {
@@ -44,6 +45,7 @@ struct world_gfx {
     int quest_event_count;
     /* NATIVE-SKILL-001: the skill host (bar feed, tooltip, Skill Imprint window) */
     wg_skill *skill;
+    wg_tree *tree;
     double scale;
 };
 
@@ -381,6 +383,7 @@ static void char_rows(world_gfx *g, const char *open)
 {
     const char *p = open ? strstr(open, "class=") : NULL;
     int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 1;
+    cls &= 0xf;                   /* class= accepts the hero's stage bits as well as a base class index */
     const mu_lang_charinfo *rows[256];
     int n = mu_lang_charinfo_rows(mu_lang_shared(), cls, rows, 256);
     if (n <= 0)
@@ -592,6 +595,10 @@ static void json_string_at(const char *args, int k, char *out, size_t cap)
 static void quest_call(void *user, int movie, const char *name, const char *args)
 {
     world_gfx *g = user;
+    if (movie >= MU_GFX_MASTER_TREE) {
+        wg_tree_call(g->tree, movie, name, args);
+        return;
+    }
     if (!g->have_quest)
         return;
     mu_quest_client *c = &g->quest.client;
@@ -619,6 +626,12 @@ static void quest_call(void *user, int movie, const char *name, const char *args
             mu_quest_info_callback(c, name, v, 2, text);
         }
     }
+}
+
+static void window_draw(void *user, int movie, int32_t w, int32_t h)
+{
+    world_gfx *g = user;
+    wg_tree_draw(g->tree, movie, w, h);
 }
 
 static void quest_wrapped(void *user, const char *text)
@@ -784,7 +797,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared(),
                                .price = item_price, .price_ex = item_price_ex, .tooltip_ex = tooltip_ex,
                                .dialog_choice = dialogue_choice, .buff_tooltip = buff_tooltip,
-                               .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key};
+                               .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key,
+                               .window_draw = window_draw};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -806,12 +820,42 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     }
     {   /* NATIVE-SKILL-001: the demo hero's class ("class=N" in --gfx-open, default 1) */
         const char *p = open ? strstr(open, "class=") : NULL;
-        int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 1;
+        int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 0x81;
         if (!getenv("MU_GFX_NO_SKILLS")) {
             g->skill = wg_skill_open(game_root, mu_lang_shared(), getenv("MU_LANG_DIR"), cls);
             wg_skill_attach(g->skill, g->layer);
             g->scale = scale > 0 ? scale : 1.0;
             wg_skill_set_screen(g->skill, (int32_t)(width / g->scale));
+            g->tree = wg_tree_open(g->skill, g->layer, mu_lang_shared());
+            const mu_master_tree *tree = mu_skill_book_master(wg_skill_book(g->skill));
+            const char *class_name = tree && tree->mask ? mu_lang_text(mu_lang_shared(), tree->gt_title) : NULL;
+            if (class_name) {
+                mu_gfx_hero hero = *mu_gfx_layer_hero(g->layer);
+                mu_lang_ascii(hero.class_name, sizeof hero.class_name, class_name);
+                mu_gfx_layer_set_hero(g->layer, &hero);
+            }
+            for (int movie = MU_GFX_MASTER_TREE; movie <= MU_GFX_TREE5; movie++)
+                wg_tree_call(g->tree, movie, "UIInit", "[]");
+            const char *element = open ? strstr(open, "element=") : NULL;
+            if (element)
+                mu_skill_book_set_elemental(wg_skill_book(g->skill), (int32_t)strtol(element + 8, NULL, 0));
+            const char *buff = open ? strstr(open, "buffs=") : NULL;
+            int32_t ids[64];
+            int count = 0;
+            if (buff) {
+                const char *at = buff + 6;
+                while (*at && count < 64) {
+                    char *end;
+                    long id = strtol(at, &end, 0);
+                    if (end == at)
+                        break;
+                    ids[count++] = (int32_t)id;
+                    if (*end != ':')
+                        break;
+                    at = end + 1;
+                }
+            }
+            wg_skill_set_buffs(g->skill, ids, count);
         }
     }
     if (open) {
@@ -821,6 +865,12 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
             mu_gfx_layer_show(g->layer, MU_GFX_CHARACTER, 1);
         if (strstr(open, "skills"))
             mu_gfx_layer_show(g->layer, MU_GFX_SKILL_STAMP, 1);
+        if (strstr(open, "master"))
+            mu_gfx_layer_show(g->layer, MU_GFX_MASTER_TREE, 1);
+        if (strstr(open, "tree4"))
+            mu_gfx_layer_show(g->layer, MU_GFX_TREE4, 1);
+        if (strstr(open, "tree5"))
+            mu_gfx_layer_show(g->layer, MU_GFX_TREE5, 1);
     }
     return g;
 }
@@ -837,6 +887,8 @@ struct mu_skill_book *world_gfx_skills(world_gfx *g)
 
 int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
 {
+    if (g && wg_tree_action(g->tree, verb, a))
+        return 1;
     if (g && (!strcmp(verb, "learn") || !strcmp(verb, "forget")))
         return wg_skill_server(g->skill, verb, a);          /* NATIVE-SKILL-002: the demo server's packets */
     return g ? mu_gfx_layer_skill_action(g->layer, verb, a, b) : 0;
@@ -848,6 +900,7 @@ void world_gfx_close(world_gfx *g)
         return;
     mu_quest_session_close(&g->quest);
     mu_gfx_layer_close(g->layer);
+    wg_tree_close(g->tree);
     wg_skill_close(g->skill);
     wg_items_close(g->items);
     mu_hud_tip_tables_free(&g->tables);
@@ -886,6 +939,7 @@ void world_gfx_set_location(world_gfx *g, int world, float x, float y)
     if (!g)
         return;
     g->world = world;
+    wg_skill_set_world(g->skill, world);
     /* The top menu's map name: the map-name function 0x016baaa6 over the
      * GlobalText read from the client (NATIVE-LANG-001); without the tables
      * the data folder's name stands in.  Cells are 100 world units. */

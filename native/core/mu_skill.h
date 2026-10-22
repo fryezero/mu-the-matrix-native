@@ -17,9 +17,9 @@
  * server's packets through the client's handlers (reconstructed/skill/skill_list.c: opcode 0xA0 sub 0x20 the
  * skill list / one skill added / removed, sub 0x03 the saved hotkeys); the bar shows the stamp manager's slots.
  * OFFLINE DEMO (core/mu_skill_demo.c, the server in the real game): those packets from a demo table, the
- * hero's mana/AG spending and regeneration, the save of the Skill Imprint slots.  The bar's isUse is the
- * reconstructed part of the usability check 0x010918c7: the stat requirements and the class special cases
- * (the weapon, buff, world and item branches are not reconstructed and count as met). */
+ * hero's mana/AG spending and regeneration, and the save of the Skill Imprint slots. The bar's isUse runs
+ * 0x010918c7 and the class cases. World/equipment/buff answers remain explicit host inputs. The Master tree
+ * uses the decoded BMD tables, A0 10/A0 14 answers, and 0x00a01692 supplies tooltip damage. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -28,6 +28,8 @@
 #include "../../reconstructed/skill/skill_table.h"
 #include "../../reconstructed/skill/skill_tooltip.h"
 #include "../../reconstructed/skill/skill_use.h"
+#include "../../reconstructed/skill/skill_canuse.h"
+#include "../../reconstructed/skill/master_tree.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +52,25 @@ typedef struct mu_skill_stats {
     int32_t mana, ag;
 } mu_skill_stats;
 void mu_skill_book_set_stats(mu_skill_book *book, const mu_skill_stats *stats);
+/* World/equipment/buff answers for 0x010918c7. The book supplies its Skill(Kor) environment. NULL resets to an
+ * untransformed, unequipped hero in world 0; callbacks remain explicit host boundaries. */
+void mu_skill_book_set_use_state(mu_skill_book *book, const mu_skill_use_env *state);
+void mu_skill_book_set_elemental(mu_skill_book *book, int32_t elemental);
+const mu_skill_env *mu_skill_book_env(const mu_skill_book *book);
+mu_master_tree *mu_skill_book_master(mu_skill_book *book);
+mu_master_env *mu_skill_book_master_env(mu_skill_book *book);
+int mu_skill_book_requirement(mu_skill_book *book, int32_t base, int32_t *skill, int32_t *master,
+                               int32_t *level);
+/* Build the class tree and emit its current ranks/text after the movie's Init. Tables remain book-owned. */
+void mu_skill_book_master_build(mu_skill_book *book);
+int mu_skill_book_master_tooltip(mu_skill_book *book, int slot, char *title, size_t title_cap, char *body,
+                                 size_t body_cap);
+/* FormulaData is a host boundary, as in the Unicorn comparison. Absent callback answers 0. */
+void mu_skill_book_set_formula(mu_skill_book *book, mu_master_formula_fn formula, void *user);
+double mu_skill_book_formula(mu_skill_book *book, int group, int id, int argument);
+/* OFFLINE DEMO: A0 10 at login, A0 14 in answer to a decoded C1 08 01 16 request. No network I/O. */
+int mu_skill_book_demo_master_login(mu_skill_book *book);
+int mu_skill_book_demo_master_request(mu_skill_book *book, const uint8_t *packet, size_t size);
 
 /* The hero enters the world with class byte (attributes +0x187; class index = byte & 0xf): empty learned list and
  * hotkeys, the stamp manager built for the class (0x01095c77; a layer choice: the client does it in the window's
@@ -73,7 +94,7 @@ int mu_skill_book_demo_learn(mu_skill_book *book, int32_t skill, int forget);
 const mu_skill_hero *mu_skill_book_hero(const mu_skill_book *book);
 const mu_skill_hotkeys *mu_skill_book_hotkeys(const mu_skill_book *book);
 
-/* The bar's usability of a skill (isUse): stats (0x0109228f) and the class special cases (0x01096e55). */
+/* The bar's usability (isUse): 0x010918c7 and the class special cases 0x01096e55. */
 int mu_skill_book_usable(const mu_skill_book *book, int32_t skill);
 /* 0x00c58797: the SetSkillSlot argument when the bar changed (1), else 0. */
 int mu_skill_book_feed(mu_skill_book *book, char *json, size_t cap);

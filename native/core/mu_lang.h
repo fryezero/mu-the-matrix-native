@@ -214,6 +214,8 @@ typedef struct mu_lang_skillreq {     /* SkillRequire record (0x06fbb248, map +0
 } mu_lang_skillreq;
 /* 0x00abf829(group, index): the record of a skill scroll, or NULL. */
 const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *lang, int32_t group, int32_t index);
+/* SkillRequire lookup by base skill (0x01094669), for the cast's prerequisite check. */
+const mu_lang_skillreq *mu_lang_skillreq_get(const mu_lang *lang, int32_t skill);
 
 /* MUQuestString(kor) (questtext.txt): the quest text of an index, or NULL. */
 const char *mu_lang_quest_text(const mu_lang *lang, int32_t index);

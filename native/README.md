@@ -333,7 +333,7 @@ gate tile changes the world through the existing loader, as the client does with
 movie directory needs `NaviMap/` (written by `gfx/gfxconvert.py`). Quests travel with `mu_map_travel_to` /
 `mu_map_travel_move` (`core/mu_map.h`). See [the finding](../docs/research/client-maps.md).
 
-## Skills: the bar, tooltips, Skill Imprint window (NATIVE-SKILL-001)
+## Skills: the bar, Imprint and Master tree (NATIVE-SKILL-001/002)
 
 With `--gfx` (and `MU_LANG_DIR` for the client's Skill(Kor) table, the game root for SkillTooltipText.bmd) the bar
 shows the hero's skills with the client's feed (`SetSkillSlot`: icons, grey when the stat requirements fail,
@@ -342,13 +342,26 @@ click on the selected slot) opens the Skill Imprint window (`SkillStampFrame`): 
 the five bar slots, Save or Cancel ([finding](../docs/research/client-skills.md); `reconstructed/skill`,
 `core/mu_skill.*`, `world/world_gfx_skill.c`). With `--combat` a right click on a monster casts the selected skill
 through the client's checks (requirements, delay, mana/AG) and the combat path draws it. The learned list is a DEMO
-(the server's skill list). Convert `SkillInfoPopup SkillStampFrame` next to the HUD movies.
+(the server's skill list). Convert `SkillInfoPopup SkillStampFrame MasterSkillTree SkillTree4th SkillTree5th`
+next to the HUD movies. A opens MasterSkillTree, also available from the character window's 3rd button. Hover
+shows its tooltip; click the same node twice to confirm a demo point spend, Esc or close cancels. The local
+server sends A0 10/A0 14 answers through the client's handlers. The 4th/5th buttons open empty original movies:
+their live Lang tables and card/node managers remain undecoded. FormulaData remains a host boundary; absent
+formulas return 0, and learned demo values are synthetic. Usability now includes the reconstructed weapon,
+buff, world, ring and prerequisite checks; native equipment and buffs are explicit demo inputs. Imprint uses
+the client's screen-relative position and marker/damage-type sheets. `MU_SKILL_DEMO=FILE` replaces the login
+lists/bar, with `list CLASS SKILL...` and `keys CLASS K1...K9 K0` lines. `skills_class.tsv` comes from langread
+`nested:0x6d8` via `live_lang_to_plain.py`.
 
 ```sh
 native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --gfx MOVIES --combat \
     --placement native/world/lorencia-demo-placement.txt --tile 178,127 --frames 120 --every 20 --out-dir DIR \
     --skill-script "5:select:1 10:cast:8 30:open 40:over:5 50:drag:6:2 60:save 80:tip:3"
 ```
+
+For the Master tree, use `--gfx-open master` and
+`--skill-script "12:treeover:1 23:treeclick:1 30:treeclick:1"`. `tree`, `tree4` and `tree5` toggle their windows.
+The demo class defaults to byte `0x81`; `--gfx-open class=0x21` selects a different class/stage.
 
 ## Other players (NATIVE-PLAYERS-001)
 

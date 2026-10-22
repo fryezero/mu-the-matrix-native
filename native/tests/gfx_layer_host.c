@@ -68,6 +68,11 @@ static int host_buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
 
 /* NATIVE-SKILL-001: a recording skill host */
 static int skill_fed;
+static void tree_call(void *user, int movie, const char *name, const char *args)
+{
+    (void)user;
+    printf("tree callback %d %s %s\n", movie, name, args);
+}
 static int skill_feed(void *user, char *json, size_t cap)
 {
     (void)user;
@@ -133,6 +138,7 @@ int main(int argc, char **argv)
     if (getenv("MU_GFX_HOST_CHOICE"))
         cfg.dialog_choice = host_choice;
     cfg.buff_tooltip = host_buff_tooltip;
+    cfg.quest_call = tree_call;
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {
         printf("{\"error\": \"%s\"}\n", error);
@@ -275,6 +281,10 @@ int main(int argc, char **argv)
                 printf("{\"skill_icon\": %d, \"skill\": %d, \"rect\": [%.2f, %.2f, %.2f, %.2f], \"delay\": %.2f}\n",
                        ic[k].slot, ic[k].skill, ic[k].rect[0], ic[k].rect[1], ic[k].rect[2], ic[k].rect[3],
                        ic[k].delay);
+        } else if (!strcmp(op, "treeprint")) {
+            printf("{\"master_open\": %d, \"fourth_open\": %d, \"fifth_open\": %d}\n",
+                   mu_gfx_layer_is_open(L, MU_GFX_MASTER_TREE), mu_gfx_layer_is_open(L, MU_GFX_TREE4),
+                   mu_gfx_layer_is_open(L, MU_GFX_TREE5));
         } else if (!strcmp(op, "skillprint")) {
             printf("{\"stamp_open\": %d, \"popup_open\": %d, \"skill_last\": \"%s\"}\n",
                    mu_gfx_layer_is_open(L, MU_GFX_SKILL_STAMP), mu_gfx_layer_is_open(L, MU_GFX_SKILL_POPUP),

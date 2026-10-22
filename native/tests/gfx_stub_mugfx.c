@@ -313,7 +313,7 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
         call(g, "DragEndSlotIndex_Mouse", a);
     } else if (is(g, "SkillStampFrame") && !strcmp(method, "SetSkillSlotSize")) {
         call(g, "requestSkillSlotSize", "[26.0,37.0]");
-    } else if ((is(g, "base") || is(g, "SkillStampFrame")) && !strcmp(method, "testCall")) {
+    } else if (!strcmp(method, "testCall")) {
         /* test hook: the movie raises a callback, e.g. a menu button's onHotKey */
         char name[64] = "", rest[400] = "";
         if (sscanf(args, "[\"%63[^\"]\",%399[^\n]", name, rest) == 2) {
@@ -442,6 +442,10 @@ void mugfx_start(MuGfx *g)
         call(g, "requestWindowPos", "[45.0,21.0]");
     } else if (is(g, "SkillInfoPopup")) {
         call(g, "UIInit", "[\"g_mcSkillInfoPopup\"]");
+    } else if (is(g, "MasterSkillTree") || is(g, "SkillTree4th") || is(g, "SkillTree5th")) {
+        char a[96];
+        snprintf(a, sizeof a, "[\"g_%s\"]", g->name);
+        call(g, "UIInit", a);
     } else if (is(g, "SkillStampFrame")) {
         /* NATIVE-SKILL-001: onLoadUI's reports (synthetic geometry: 5 bar slots below 3 rows of 5) */
         call(g, "UIInit", "[\"g_mcSkillStampFrame\"]");
@@ -452,6 +456,7 @@ void mugfx_start(MuGfx *g)
             call(g, "requestSkillSlotInfo", a);
         }
         call(g, "requestSkillSlotSize", "[26.0,37.0]");
+        call(g, "requestStampRelativePosition", "[16.0,-2.0]");
         g->win_x = 8;
         g->win_y = 0;
         call(g, "requestWindowPos", "[8.0,0.0]");
