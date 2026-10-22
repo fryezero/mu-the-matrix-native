@@ -321,7 +321,6 @@ $(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_
 	done
 	$(CXX) $(BUILD)/world/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
-	  $(GL_LIBS) $(AUDIO_LIBS) $(UI_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
 CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c
