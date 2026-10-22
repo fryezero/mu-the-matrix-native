@@ -364,6 +364,22 @@ int mu_map_travel_move(mu_map_session *s, int32_t key)
     return demo_move(s, key);
 }
 
+int mu_map_respawn(mu_map_session *s, int32_t world, int32_t *out_world, int32_t *tile_x, int32_t *tile_y)
+{
+    int32_t gate = world == 2 ? 22 : world == 3 ? 27 : world == 51 ? 267 : 17;   /* DEMO */
+    if (!land_on_gate(s, gate, (uint16_t)gate))
+        return 0;
+    if (out_world)
+        *out_world = s->teleport.world;
+    if (tile_x)
+        *tile_x = s->teleport.x;
+    if (tile_y)
+        *tile_y = s->teleport.y;
+    snprintf(s->last, sizeof s->last, "respawn world %d tile %d,%d (gate %d)", (int)s->teleport.world,
+             (int)s->teleport.x, (int)s->teleport.y, (int)gate);
+    return 1;
+}
+
 int mu_map_take_teleport(mu_map_session *s, mu_teleport *out)
 {
     if (!s->pending)

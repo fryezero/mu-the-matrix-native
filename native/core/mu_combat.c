@@ -922,10 +922,12 @@ static void hero_dead_step(mu_combat *c)
         if (--c->hero_respawn == 0) {
             /* demo: the server's respawn puts the hero back on its first tile */
             mu_walk *w = c->walk;
-            w->hero.tile[0] = c->hero_home[0];
-            w->hero.tile[1] = c->hero_home[1];
-            w->hero.position[0] = (float)c->hero_home[0] * 100.0f + 50.0f;
-            w->hero.position[1] = (float)c->hero_home[1] * 100.0f + 50.0f;
+            if (!(c->hero_respawned && c->hero_respawned(c->kill_context))) {
+                w->hero.tile[0] = c->hero_home[0];
+                w->hero.tile[1] = c->hero_home[1];
+                w->hero.position[0] = (float)c->hero_home[0] * 100.0f + 50.0f;
+                w->hero.position[1] = (float)c->hero_home[1] * 100.0f + 50.0f;
+            }
             int32_t stop = mu_player_stop_action(w->hero.class_byte);
             mu_walk_set_action(w, stop, mu_player_stop_speed(stop));
             c->hero_dead = 0;

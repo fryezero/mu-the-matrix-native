@@ -206,6 +206,19 @@ void mu_prg_recv_master_levelup(const mu_prg_env *env, const uint8_t *packet);
  * the experience bar.  76 NOP bytes at 0x01286256 (static). */
 void mu_prg_recv_master_exp(const mu_prg_env *env, const uint8_t *packet);
 
+/* Respawn, 0xA0 sub 0x30 (0x0127bd9e), the attribute part (to 0x0127c048, verified): +0xa HP, +0xc MP,
+ * +0xe SD, +0x10 AG (u16) into +0x68/+0x6c/+0x78/+0x80; master exp cleared, then +0x12..+0x19 (big
+ * endian) the total experience: a third-class hero's master experience, otherwise the experience within
+ * the level (total - table(level), 0x00a00e79); +0x1c the money (CharacterMachine +0x2d70).  The rest
+ * (static): the hero recreated at +4 x, +5 y with the angle (+8 - 1) * 45 (0x0137d8a1), and when +6 (the
+ * map, u16) differs from World (0x01cf15fc) the world changes (0x0182876e, the map's music and windows). */
+typedef struct mu_prg_respawn {
+    int32_t x, y, map;
+    float angle;
+    uint32_t money;
+} mu_prg_respawn;
+void mu_prg_recv_respawn(const mu_prg_env *env, const uint8_t *packet, mu_prg_respawn *out);
+
 /* The character window's stat values, opcode 0x55 sub 0x57 (0x0122a5f6 -> 0x00b3ee5e): packet +4
  * strength, +6 added strength, +8/+0xa agility, +0xc/+0xe vitality, +0x10/+0x12 energy, +0x14/+0x16
  * command, +0x18 a float (row 0x39).  The window keeps its own copy (+0x119.., the totals +0xa8..)

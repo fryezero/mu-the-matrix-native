@@ -183,5 +183,57 @@ class OptionsWindow(unittest.TestCase):
         self.assertNotIn('show 29 1', tail)
 
 
+@unittest.skipUnless(WALK.exists(), 'mu-walk not built (make -C native)')
+class Respawn(unittest.TestCase):
+    """The respawn answer (0xA0 sub 0x30, mu_prg_recv_respawn) and the DEMO town (mu_map_respawn: gate 17 for
+    a world without its own town): a death in world 1 lands in world 0's town rectangle."""
+
+    @classmethod
+    def setUpClass(cls):
+        from test_native_map import GATES, MOVES, TEXT, second_world
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.root = Path(cls.tmp.name) / 'game'
+        write_open_world(cls.root)
+        second_world(cls.root)
+        cls.lang = Path(cls.tmp.name) / 'lang'
+        cls.lang.mkdir()
+        (cls.lang / 'gates.tsv').write_text(GATES + '17\t0\t0\t100\t100\t102\t101\t0\t1\t0\t-1\n')
+        (cls.lang / 'moves.tsv').write_text(MOVES)
+        (cls.lang / 'globaltext.txt').write_text(TEXT)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def run_walk(self, *args):
+        import os
+        env = dict(os.environ, MU_LANG_DIR=str(self.lang))
+        r = subprocess.run([str(WALK), '--game-root', str(self.root), '--headless', '--backend', 'soft', '--no-audio',
+                            *[str(a) for a in args]], capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return [json.loads(l) for l in r.stdout.splitlines() if l.startswith('{')], r
+
+    def test_respawn_in_town_of_another_world(self):
+        rows, r = self.run_walk('--world', '1', '--tile', '42,41', '--frames', '12', '--progress',
+                                '--progress-level', '30', '--travel-script', '3:respawn')
+        respawn = next(x['respawn'] for x in rows if 'respawn' in x)
+        self.assertEqual(respawn['world'], 0)
+        self.assertTrue(100 <= respawn['tile'][0] <= 102 and 100 <= respawn['tile'][1] <= 101, respawn)
+        summary = next(x for x in rows if x.get('summary'))
+        self.assertEqual(summary['world'], 0, r.stderr)
+        line = next(x['progress_line'] for x in rows if str(x.get('progress_line', '')).startswith('respawn'))
+        self.assertEqual(line, 'respawn 0 %d %d 0' % tuple(respawn['tile']))
+        progress = next(x['progress'] for x in rows if 'progress' in x)
+        self.assertEqual(progress['level'], 30)   # no death penalty (DEMO): the experience is kept
+
+    def test_respawn_in_the_same_world(self):
+        rows, r = self.run_walk('--tile', '80,80', '--frames', '8', '--progress', '--travel-script', '3:respawn')
+        respawn = next(x['respawn'] for x in rows if 'respawn' in x)
+        self.assertEqual((respawn['world'], respawn['town']), (0, 1))
+        self.assertTrue(100 <= respawn['tile'][0] <= 102 and 100 <= respawn['tile'][1] <= 101, respawn)
+        m = [x for x in rows if x.get('map')][0]
+        self.assertEqual(m['tile'], respawn['tile'], r.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

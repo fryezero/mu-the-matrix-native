@@ -343,3 +343,26 @@ int mu_prg_recv_stats(const mu_prg_env *e, mu_prg_stat_window *w, const uint8_t 
     w->dirty = 1;
     return 1;
 }
+
+void mu_prg_recv_respawn(const mu_prg_env *e, const uint8_t *p, mu_prg_respawn *out)
+{
+    uint8_t *a = e->attr;
+    static const size_t OFF[4] = {MU_PRG_A_LIFE, MU_PRG_A_MANA, MU_PRG_A_SHIELD, MU_PRG_A_AG};
+    for (int i = 0; i < 4; i++) {   /* movzx: never below 0, the client's clamp does nothing */
+        uint16_t v = (uint16_t)(p[0xa + 2 * i] | p[0xb + 2 * i] << 8);   /* i < 4 */
+        mu_prg_set32(a, OFF[i], v);
+    }
+    mu_prg_set64(a, MU_PRG_A_MEXP, 0);
+    uint64_t total = be64(p + 0x12);
+    if ((e->hero_class >> 5 & 1) == 1 && MU_PROGRESS_MUTATION != 16)
+        mu_prg_set64(a, MU_PRG_A_MEXP, total);
+    else
+        mu_prg_set64(a, MU_PRG_A_EXP, total - (uint64_t)mu_prg_exp_table(mu_prg_i32(a, MU_PRG_A_LEVEL)));
+    if (out) {
+        out->money = (uint32_t)p[0x1c] | (uint32_t)p[0x1d] << 8 | (uint32_t)p[0x1e] << 16 | (uint32_t)p[0x1f] << 24;
+        out->x = p[4];
+        out->y = p[5];
+        out->map = (int32_t)(p[6] | p[7] << 8);
+        out->angle = ((float)p[8] - 1.0f) * 45.0f;
+    }
+}

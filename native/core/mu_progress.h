@@ -88,7 +88,8 @@ typedef struct mu_progress {
     mu_progress_packet pending[MU_PROGRESS_PENDING];
     int32_t npending;
     /* statistics */
-    int32_t kills, level_ups, master_level_ups, requests, accepted;
+    int32_t kills, level_ups, master_level_ups, requests, accepted, respawns;
+    mu_prg_respawn respawn;               /* the last respawn answer's position, map, angle, money */
     char last[256];                       /* last event, for logs and tests */
     /* host hooks */
     void (*line)(void *context, const char *line);
@@ -112,6 +113,11 @@ int32_t mu_progress_button(mu_progress *p, double row);
 
 /* One 40 ms logic step: due DEMO answers go through the reconstructed handlers. */
 void mu_progress_step(mu_progress *p);
+
+/* The DEMO server's respawn answer (opcode 0xA0 sub 0x30) after the hero's death, through the client's
+ * handler (mu_prg_recv_respawn): HP/MP/SD/AG at their maxima, the total experience unchanged (DEMO: no
+ * death penalty; the live server takes a share), the money, the town tile the host chose (mu_map_respawn). */
+void mu_progress_respawn(mu_progress *p, int32_t map, int32_t tile_x, int32_t tile_y, int32_t dir, uint32_t money);
 
 /* Values for the HUD and the character window */
 typedef struct mu_progress_view {

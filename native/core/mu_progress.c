@@ -411,6 +411,45 @@ void mu_progress_step(mu_progress *p)
     p->npending = kept;
 }
 
+void mu_progress_respawn(mu_progress *p, int32_t map, int32_t tile_x, int32_t tile_y, int32_t dir, uint32_t money)
+{
+    mu_progress_view v;
+    mu_progress_get_view(p, &v);
+    uint8_t b[0x20];
+    memset(b, 0, sizeof b);
+    b[0] = 0xc1;
+    b[1] = (uint8_t)sizeof b;
+    b[2] = 0xa0;
+    b[3] = 0x30;
+    b[4] = (uint8_t)tile_x;
+    b[5] = (uint8_t)tile_y;
+    put16(b, 6, map);
+    b[8] = (uint8_t)dir;
+    const int32_t vals[4] = {v.life_max, v.mana_max, v.shield_max, v.ag_max};
+    for (int i = 0; i < 4; i++)
+        put16(b, 0xa + 2 * i, vals[i] < 0 ? 0 : vals[i] > 0xffff ? 0xffff : vals[i]);
+    uint64_t total = (p->hero[0x12] >> 5 & 1)
+                         ? mu_prg_u64(p->attr, MU_PRG_A_MEXP)
+                         : (uint64_t)mu_prg_exp_table(mu_prg_i32(p->attr, MU_PRG_A_LEVEL)) +
+                               mu_prg_u64(p->attr, MU_PRG_A_EXP);
+    for (int i = 0; i < 8; i++)
+        b[0x12 + i] = (uint8_t)(total >> (56 - 8 * i));
+    for (int i = 0; i < 4; i++)
+        b[0x1c + i] = (uint8_t)(money >> (8 * i));
+    mu_prg_env e = make_env(p);
+    mu_prg_recv_respawn(&e, b, &p->respawn);
+    p->respawns++;
+    p->hero_dirty = 1;   /* the orbs (the handler does not refresh the experience bar) */
+    snprintf(p->last, sizeof p->last, "respawn: map %d tile %d,%d", (int)p->respawn.map, (int)p->respawn.x,
+             (int)p->respawn.y);
+    if (p->line) {
+        char line[96];
+        snprintf(line, sizeof line, "respawn %d %d %d %.0f", (int)p->respawn.map, (int)p->respawn.x,
+                 (int)p->respawn.y, (double)p->respawn.angle);
+        p->line(p->context, line);
+    }
+}
+
 void mu_progress_get_view(const mu_progress *p, mu_progress_view *v)
 {
     const uint8_t *a = p->attr;

@@ -113,6 +113,11 @@ int mu_map_gate_step(mu_map_session *s, uint32_t now_ms, mu_gate_result *out);
 int mu_map_travel_to(mu_map_session *s, int32_t world, int32_t tile_x, int32_t tile_y);
 /* A move request for a movereq key without the window (the server's checks: level, zen). */
 int mu_map_travel_move(mu_map_session *s, int32_t key);
+/* NATIVE-PROGRESS-001: the DEMO server's respawn town for a death in `world` (gate 22 Devias for 2, 27 Noria
+ * for 3, 267 Elbeland for 51, else 17 Lorencia: the town gates of the classic servers' respawn rule) and a
+ * tile in its rectangle; the teleport is pending like a warp's.  Returns 1 with the target, 0 without
+ * the gate table. */
+int mu_map_respawn(mu_map_session *s, int32_t world, int32_t *out_world, int32_t *tile_x, int32_t *tile_y);
 /* The pending teleport (the C3 1C answer as the client parses it); 1 when there was one. */
 int mu_map_take_teleport(mu_map_session *s, mu_teleport *out);
 /* The demo server's teleport bytes for a target (tests). */

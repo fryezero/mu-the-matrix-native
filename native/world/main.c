@@ -273,7 +273,7 @@ typedef struct app {
     uint32_t skill_casts, skill_refused;
     /* NATIVE-MAP-001: maps and travel (core/mu_map with the demo server): the Tab map overlay and the Move
      * window over the GFx layer, the gate entrance test, world changes; --no-map, --travel-script
-     * "F:move:KEY F:to:WORLD:X:Y F:rows F:click:ROW F:sort:N F:tab F:mwin" */
+     * "F:move:KEY F:to:WORLD:X:Y F:respawn F:rows F:click:ROW F:sort:N F:tab F:mwin" */
     int no_map;
     mu_map_session *mapsess;
     struct map_travel_item { int32_t frame; char verb[8]; int32_t a, b, c; } travel_items[32];
@@ -342,6 +342,22 @@ static void combat_pre_step(void *context, mu_walk *w)
 
 /* NATIVE-QUEST-001: a monster died: the quest demo server counts it (core/mu_quest).  NATIVE-PROGRESS-001:
  * the progression demo server gives its experience. */
+/* NATIVE-PROGRESS-001: the hero's respawn (the server's 0xA0 sub 0x30 answer when the demo delay ends):
+ * the DEMO town (mu_map_respawn: the teleport the host takes next step changes the world when needed)
+ * and the client's handler over the progress session. */
+static int combat_respawned(void *context)
+{
+    app *a = context;
+    int32_t world = a->world, x = a->walk.hero.tile[0], y = a->walk.hero.tile[1];
+    int placed = a->mapsess && mu_map_respawn(a->mapsess, a->world, &world, &x, &y);
+    if (a->progress)
+        mu_progress_respawn(a->progress, world, x, y, 1, a->mapsess ? (uint32_t)a->mapsess->zen : 0u);
+    if (!a->quiet)
+        printf("{\"respawn\": {\"world\": %d, \"tile\": [%d, %d], \"town\": %d}}\n", (int)world, (int)x, (int)y,
+               placed);
+    return placed;
+}
+
 static void combat_kill(void *context, int32_t actor, int32_t server_class)
 {
     app *a = context;
@@ -604,6 +620,7 @@ static int load(app *a)
         }
         a->combat->kill = combat_kill;   /* NATIVE-QUEST-001: the quest demo's kill progress */
         a->combat->kill_context = a;
+        a->combat->hero_respawned = combat_respawned;   /* NATIVE-PROGRESS-001 */
     }
     if (a->progress_on && !a->progress) {   /* NATIVE-PROGRESS-001 */
         if (a->progress_config.class_byte == 0xff)
@@ -1557,6 +1574,8 @@ static void map_script(app *a, int32_t frame)
             r = mu_map_travel_move(s, it->a);
         else if (!strcmp(it->verb, "to"))
             r = mu_map_travel_to(s, it->a, it->b, it->c);
+        else if (!strcmp(it->verb, "respawn"))   /* NATIVE-PROGRESS-001: the respawn answer without a death */
+            r = combat_respawned(a);
         else if (!strcmp(it->verb, "rows") || !strcmp(it->verb, "click") || !strcmp(it->verb, "sort")) {
             static mu_move_row rows[MU_MAP_MOVES_MAX];
             if (!strcmp(it->verb, "sort"))
@@ -3437,7 +3456,7 @@ static int usage(void)
                     "                [--social-script \"F:party:NAME;F:accept;F:trade:NAME;F:offer:CELL;F:zen:N;F:ok\"]   offline social demo\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
                     "                [--helper-state N] [--no-helpers]\n"
-                    "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
+                    "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:respawn F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
     return 2;
 }
 

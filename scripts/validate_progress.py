@@ -1488,7 +1488,71 @@ def family_options(client, native, rng, n, report):
     return count, fails
 
 
+class Respawn(ctypes.Structure):
+    _fields_ = [('x', c_int32), ('y', c_int32), ('map', c_int32), ('angle', ctypes.c_float),
+                ('money', ctypes.c_uint32)]
+
+
+RESPAWN_STOP = 0x0127c048   # after the money store (the hero's re-creation and the world change: static)
+
+
+def family_respawn(client, native, rng, n, report):
+    """0xA0 sub 0x30 (0x0127bd9e) to 0x0127c048: the attribute record and CharacterMachine +0x2d70."""
+    m = client.m
+    client.allow_routines(0x0127bd9e, 0x00a00117, 0x00a00066, 0x00a00074, 0x00a00e79, 0x0139d8ea, 0x0139cb15)
+    install_crt(client)
+    m.allow((0x0191c5a0, 0x0191c5e0))
+    from unicorn.x86_const import UC_X86_REG_EIP
+
+    def stop(mm):
+        mm.uc.reg_write(UC_X86_REG_EIP, cm.RETURN_SENTINEL)
+        return cm.REDIRECT
+    native.L.mu_prg_recv_respawn.argtypes = [POINTER(Env), POINTER(c_uint8 * 0x100), POINTER(Respawn)]
+    native.L.mu_prg_exp_table.argtypes = [ctypes.c_int64]
+    native.L.mu_prg_exp_table.restype = ctypes.c_int64
+    fails = count = 0
+    for _ in range(n):
+        count += 1
+        case = recv_case(rng)
+        attr = bytearray(case['attr'])
+        struct.pack_into('<i', attr, 0, rng.choice([1, 2, 255, 256, 257, 399, 400, rng.randint(0, 400),
+                                                    rng.randint(-3, 1000)]))
+        case['attr'] = bytes(attr)
+        p = bytearray(random_packet(rng, 0x20))
+        if rng.random() < 0.5:   # a total within reach of the level's table value
+            total = native.L.mu_prg_exp_table(struct.unpack_from('<i', attr, 0)[0]) + rng.randint(-5, 10 ** 6)
+            p[0x12:0x1a] = struct.pack('>Q', total & (2 ** 64 - 1))
+        case['packet'] = bytes(p)
+        m.reset()
+        client.case = case
+        client.setup_hero(case['attr'])
+        m.write(CHAR, case['hero'])
+        m.write(CHAR + 0x12, bytes([case['hero_class']]))
+        m.write(cm.STACK_BASE + cm.STACK_SIZE - 0x20000, bytes(0x20000))
+        money0 = rng.randint(0, 2 ** 32 - 1)
+        m.put32(HERO + 0x2d70, money0)
+        m.stub(RESPAWN_STOP, stop, 0)
+        pkt = m.alloc(0x100, define=True)
+        m.write(pkt, case['packet'])
+        m.call(0x0127bd9e, [pkt])
+        want = {'attr': m.read(ATTR, ATTR_SIZE).hex(), 'money': m.u32(HERO + 0x2d70)}
+        abuf = (c_uint8 * ATTR_SIZE).from_buffer_copy(case['attr'])
+        env = native.env(abuf, case)
+        env.hero_class = case['hero_class']
+        out = Respawn()
+        native.L.mu_prg_recv_respawn(ctypes.byref(env), _packet_arg(case), ctypes.byref(out))
+        got = {'attr': bytes(abuf).hex(), 'money': out.money}
+        if want != got:
+            fails += 1
+            if fails <= 4:
+                d = diff_report(want, got)
+                d['hero_class'] = case['hero_class']
+                report.setdefault('examples', []).append(d)
+    return count, fails
+
+
 FAMILIES['options'] = family_options
+FAMILIES['respawn'] = family_respawn
 FAMILIES['levelup'] = recv_family(0x01250b05, 0x18, setup_none, native_levelup)
 FAMILIES['point'] = recv_family(0x01223f04, 0x0c, setup_point, native_point)
 FAMILIES['exp'] = recv_family(0x01234c08, 0x0a, setup_kill, native_kill, compare_char=True, ret_byte=True)
@@ -1552,7 +1616,7 @@ MUTATIONS = [('dw_pvp_rate_4.5', 'calc'), ('bar_master_stage_4', 'bar'), ('bar_r
              ('exp_master_text_swapped', 'exp'), ('stats_command_row_41', 'stats'),
              ('master_next_offset_d', 'master_exp'), ('master_3c_from_8', 'master'),
              ('options_volume_default_9', 'options'), ('options_readback_no_half', 'options'),
-             ('options_effect_not_minus_1', 'options')]
+             ('options_effect_not_minus_1', 'options'), ('respawn_master_as_level', 'respawn')]
 
 if __name__ == '__main__':
     main()
