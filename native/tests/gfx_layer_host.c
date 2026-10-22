@@ -16,7 +16,10 @@
  * `print` writes one JSON line with the layer state; each input op prints
  * whether the interface took it.  MU_GFX_SIZE=WxH sets the window size in
  * points (default 1280x800).  MU_GFX_HOST_TEXT=1 installs a GlobalText
- * provider that returns "T<n>" (NATIVE-LANG-001). */
+ * provider that returns "T<n>" (NATIVE-LANG-001).
+ * NATIVE-SKILL-001: skillhost (a recording skill host: the feed answers once with a SetSkillSlot argument,
+ * tooltips are "Title <skill>" / "Body <skill>", window slot n shows skill 100 + n, a drop from slot 7 is
+ * "not learned") | skillact VERB A B | skilldelay SKILL MS | skillicons | skillprint. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,6 +65,46 @@ static int host_buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
     snprintf(html, cap, "<b>buff %d</b>", (int)buff);
     return 0;
 }
+
+/* NATIVE-SKILL-001: a recording skill host */
+static int skill_fed;
+static int skill_feed(void *user, char *json, size_t cap)
+{
+    (void)user;
+    if (skill_fed++)
+        return 0;
+    snprintf(json, cap, "{\"Elemental\":0,\"SelectSlot\":2,\"SelectUseSkill\":true,\"SelectSkill\":22,"
+                        "\"SelectSkill_damageType\":0,\"arrSlots\":[{\"slot\":0,\"skill\":19,\"isUse\":true,"
+                        "\"damageType\":0}]}");
+    return 1;
+}
+static void skill_select(void *user, int slot, int skill) { (void)user; printf("host select %d %d\n", slot, skill); }
+static int skill_tooltip(void *user, int32_t skill, char *title, size_t tcap, char *body, size_t bcap)
+{
+    (void)user;
+    snprintf(title, tcap, "Title %d", (int)skill);
+    snprintf(body, bcap, "Body %d", (int)skill);
+    return skill != 0;
+}
+static void skill_stamp_open(void *user, int open) { (void)user; printf("host stamp_open %d\n", open); }
+static int32_t skill_stamp_skill(void *user, int slot) { (void)user; return 100 + slot; }
+static int skill_page = 1;
+static int skill_stamp_page(void *user, int which, int delta)
+{
+    (void)user;
+    printf("host page %d %d\n", which, delta);
+    if (which == 0 && skill_page + delta >= 1 && skill_page + delta <= 3)
+        skill_page += delta;
+    return which == 0 ? skill_page : delta > 0;
+}
+static int skill_stamp_drop(void *user, int from, int to)
+{
+    (void)user;
+    printf("host drop %d %d\n", from, to);
+    return from == 7 ? -1 : 1;
+}
+static void skill_stamp_save(void *user) { (void)user; printf("host save\n"); }
+static float skill_delay_left(void *user, int32_t skill) { (void)user; return skill == 105 ? 0.5f : 0.0f; }
 
 static int click(mu_gfx_layer *L, double x, double y, int button)
 {
@@ -211,6 +254,31 @@ int main(int argc, char **argv)
                                     {3, 43, 0, 0, 20, 3, MU_GFX_ROW_NONE, "* Rate <X>"}};
             mu_gfx_layer_set_char_rows(L, r, 3);
             printf("charrows 3\n");
+        } else if (!strcmp(op, "skillhost")) {
+            mu_gfx_skill_host h = {.feed = skill_feed, .select = skill_select, .tooltip = skill_tooltip,
+                                   .stamp_open = skill_stamp_open, .stamp_skill = skill_stamp_skill,
+                                   .stamp_page = skill_stamp_page, .stamp_drop = skill_stamp_drop,
+                                   .stamp_save = skill_stamp_save, .delay_left = skill_delay_left};
+            mu_gfx_layer_set_skill_host(L, &h);
+            printf("skillhost\n");
+        } else if (!strcmp(op, "skillact") && i + 3 < argc) {
+            printf("skillact %s = %d\n", argv[i + 1],
+                   mu_gfx_layer_skill_action(L, argv[i + 1], atoi(argv[i + 2]), atoi(argv[i + 3])));
+            i += 3;
+        } else if (!strcmp(op, "skilldelay") && i + 2 < argc) {
+            mu_gfx_layer_skill_delay(L, atoi(argv[i + 1]), atoi(argv[i + 2]));
+            i += 2;
+        } else if (!strcmp(op, "skillicons")) {
+            mu_gfx_skill_icon ic[20];
+            int n = mu_gfx_layer_skill_icons(L, ic, 20);
+            for (int k = 0; k < n; k++)
+                printf("{\"skill_icon\": %d, \"skill\": %d, \"rect\": [%.2f, %.2f, %.2f, %.2f], \"delay\": %.2f}\n",
+                       ic[k].slot, ic[k].skill, ic[k].rect[0], ic[k].rect[1], ic[k].rect[2], ic[k].rect[3],
+                       ic[k].delay);
+        } else if (!strcmp(op, "skillprint")) {
+            printf("{\"stamp_open\": %d, \"popup_open\": %d, \"skill_last\": \"%s\"}\n",
+                   mu_gfx_layer_is_open(L, MU_GFX_SKILL_STAMP), mu_gfx_layer_is_open(L, MU_GFX_SKILL_POPUP),
+                   mu_gfx_layer_skill_last(L));
         } else if (!strcmp(op, "channels")) {
             static const char *const NAMES[] = {"UIFrame", "ASData", "main", "chat", "alarmframe", "topmenu"};
             printf("{\"channels\": {");

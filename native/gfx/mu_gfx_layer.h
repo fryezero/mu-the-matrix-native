@@ -55,8 +55,11 @@ typedef struct mu_gfx_layer mu_gfx_layer;
 
 /* NATIVE-NPC-001 adds the NPC windows: npcdialogue (NpcDialogue.swf), NpcShop
  * and StorageInven; they are optional (opened when the movie is converted). */
+/* NATIVE-SKILL-001 adds SkillInfoPopup (the skill tooltip) and SkillStampFrame (the Skill Imprint window that
+ * puts skills on the bar), optional as well. */
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
-       MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_MOVIES };
+       MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
+       MU_GFX_SKILL_STAMP, MU_GFX_MOVIES };
 /* NATIVE-QUEST-001 adds NpcQuestProgress (MU_GFX_QUEST_PROGRESS) and MyQuestInfo (MU_GFX_MY_QUEST), optional
  * like the NPC windows.  The layer does not drive them itself: the host runs the client's window code
  * (reconstructed/quest) and passes its invokes through mu_gfx_layer_invoke / mu_gfx_layer_show; the movies'
@@ -330,6 +333,51 @@ int mu_gfx_layer_slot_center(const mu_gfx_layer *layer, int movie, int32_t cell,
 int mu_gfx_layer_slot_items(const mu_gfx_layer *layer, int movie);
 /* The item draws the slot window's item pass hands to the items callback now. */
 int mu_gfx_layer_slot_draws(mu_gfx_layer *layer, int movie, mu_gfx_item_draw *out, int max);
+
+/* ---- skills (NATIVE-SKILL-001, docs/research/client-skills.md) ----
+ *
+ * With a skill host the layer plays the game side of the bar and the skill windows as the client does
+ * (static readings of the handlers; the routines behind the host are reconstructed/skill):
+ *   - every 40 ms step the host's bar feed (0x00c58797) may give a SetSkillSlot argument for
+ *     main.mcSkillHotKey; onSelectSkill goes to the host (CurrentSkill, 0x00c70f4b), which the next feed
+ *     shows (the client never calls setSelectSkill); mu_gfx_layer_skill_delay sends onUseSkillDelay;
+ *   - onSkillTooltip / offSkillTooltip (0x00c7070d / 0x00c708dc): SkillInfoPopup's
+ *     SetInfoPopupSkillStamp(x + w/2, y, 0, 0, title, body, 0) with the host's tooltip, then shown;
+ *   - onOpenSkillWindow (the bar's selected slot, 0x00c70f1b) and the U key (the key scan 0x00efcea8)
+ *     toggle SkillStampFrame (handler 0x00c1f99c): InitText/InitButton/InitStampExplain at creation
+ *     (0x00c1fb1b), UpdateSkillPage/SetStampDamage/SetSkillSlotSize at open (0x00c2008b); its slots
+ *     report requestSkillSlotInfo (20 rectangles: 0..4 bar slots, 5..19 the learned page), a drag
+ *     reports requestSkillSlotDragStart/End, the game asks CheckOverSlot and the movie answers
+ *     DragEndSlotIndex_Mouse(target) (0x00c2226c applies it through the host); Save/Cancel/close.
+ * The host draws the skill icons over SkillStampFrame (the game draws them in the client, 0x01097130). */
+typedef struct mu_gfx_skill_icon {
+    int32_t slot;                     /* SkillStampFrame slot 0..19 */
+    int32_t skill;                    /* 0: empty */
+    float rect[4];                    /* stage points, top-left origin */
+    float delay;                      /* remaining / total of the skill's delay (0 none) */
+} mu_gfx_skill_icon;
+typedef struct mu_gfx_skill_host {
+    void *user;
+    int (*feed)(void *user, char *json, size_t cap);
+    void (*select)(void *user, int slot, int skill);
+    int (*tooltip)(void *user, int32_t skill, char *title, size_t title_cap, char *body, size_t body_cap);
+    void (*stamp_open)(void *user, int open);        /* 1 opened; 0 closed without saving (the host restores) */
+    int32_t (*stamp_skill)(void *user, int slot);    /* the skill window slot `slot` shows now */
+    int (*stamp_page)(void *user, int which, int delta);  /* which 0: learned page, 1: select page; returns it */
+    int (*stamp_drop)(void *user, int from, int to); /* 1 the bar changed, -1 "not learned", 0 nothing */
+    void (*stamp_save)(void *user);
+    float (*delay_left)(void *user, int32_t skill);
+    void (*icons)(void *user, const mu_gfx_skill_icon *icons, int n, int32_t stage_w, int32_t stage_h);
+} mu_gfx_skill_host;
+void mu_gfx_layer_set_skill_host(mu_gfx_layer *layer, const mu_gfx_skill_host *host);
+/* onUseSkillDelay({skill, delaytime}) on the bar (StartSkillDelay 0x01696aca sends it). */
+void mu_gfx_layer_skill_delay(mu_gfx_layer *layer, int32_t skill, int32_t delay_ms);
+/* Scripted window actions: "open", "close", "drag" from to, "over" slot, "out", "save", "cancel", "page"
+ * delta, "select" delta, "tip" bar slot (the bar's onSkillTooltip).  Returns 1 when done. */
+int mu_gfx_layer_skill_action(mu_gfx_layer *layer, const char *verb, int a, int b);
+const char *mu_gfx_layer_skill_last(const mu_gfx_layer *layer);
+/* The window icons the host would draw now (tests); returns the count. */
+int mu_gfx_layer_skill_icons(const mu_gfx_layer *layer, mu_gfx_skill_icon *out, int max);
 
 #ifdef __cplusplus
 }

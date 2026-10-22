@@ -97,6 +97,7 @@
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_renderchar.h"
+#include "../core/mu_skill.h"
 #include "../core/mu_scene.h"
 #include "../core/mu_terrain.h"
 #include "../core/mu_walk.h"
@@ -245,6 +246,11 @@ typedef struct app {
     int32_t npc_next, npc_click_stage, npc_click_x, npc_click_y;
     const char *perf_path;   /* NATIVE-PERF-001: --perf FILE [--perf-sync] */
     int perf_sync;
+    /* NATIVE-SKILL-001: --skill-script "F:verb[:a[:b]] ..." (select, cast, open, close, drag, over, out, save,
+     * cancel, page, tip); with --gfx a right click on a monster casts the bar's selected skill */
+    struct { int32_t frame; char verb[12]; int a, b; } skill_items[48];
+    int32_t skill_count, skill_next;
+    uint32_t skill_casts, skill_refused;
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -917,9 +923,106 @@ static void npc_script(app *a, int32_t frame)
 #endif
 }
 
+/* NATIVE-SKILL-001: the selected skill's cast at a monster through the client's checks (core/mu_skill: stats,
+ * the class special cases, IsSkillReady, the mana/AG check, StartSkillDelay -> onUseSkillDelay), then the combat
+ * path draws it (mu_combat_cast, NATIVE-COMBAT-001/002).  Returns MU_SKILL_CAST_*. */
+static int skill_cast_at(app *a, int32_t actor, int32_t *skill)
+{
+    *skill = 0;
+#ifndef MU_WORLD_NO_GL
+    if (!a->gfx)
+        return MU_SKILL_CAST_NONE;
+    int r = world_gfx_skill_cast(a->gfx, skill);
+    if (r == MU_SKILL_CAST_OK) {
+        a->skill_casts++;
+        if (a->combat && actor >= 0)
+            mu_combat_cast(a->combat, *skill, actor);
+    } else {
+        a->skill_refused++;
+    }
+    return r;
+#else
+    (void)a;
+    (void)actor;
+    return MU_SKILL_CAST_NONE;
+#endif
+}
+
+static int parse_skill_script(app *a, const char *text)
+{
+    a->skill_count = 0;
+    const char *p = text;
+    while (*p) {
+        while (*p == ' ' || *p == ',' || *p == ';')
+            p++;
+        if (!*p)
+            break;
+        if (a->skill_count >= (int32_t)(sizeof a->skill_items / sizeof a->skill_items[0]))
+            return 1;
+        int frame, used = 0;
+        char verb[12] = "";
+        if (sscanf(p, "%d:%11[a-z]%n", &frame, verb, &used) != 2)
+            return 1;
+        p += used;
+        int args[2] = {0, 0};
+        for (int k = 0; k < 2 && *p == ':'; k++) {
+            char *end;
+            args[k] = (int)strtol(p + 1, &end, 0);
+            p = end;
+        }
+        a->skill_items[a->skill_count].frame = frame;
+        snprintf(a->skill_items[a->skill_count].verb, sizeof a->skill_items[0].verb, "%s", verb);
+        a->skill_items[a->skill_count].a = args[0];
+        a->skill_items[a->skill_count].b = args[1];
+        a->skill_count++;
+    }
+    return 0;
+}
+
+static void skill_script(app *a, int32_t frame)
+{
+    while (a->skill_next < a->skill_count && a->skill_items[a->skill_next].frame <= frame) {
+        const char *verb = a->skill_items[a->skill_next].verb;
+        int x = a->skill_items[a->skill_next].a, y = a->skill_items[a->skill_next].b;
+        a->skill_next++;
+        int result = 0;
+        int32_t skill = 0;
+        const char *last = "";
+#ifndef MU_WORLD_NO_GL
+        if (!a->gfx)
+            continue;
+        if (!strcmp(verb, "select")) {          /* the bar's own key: 1..9, 0 -> onSelectSkill */
+            int vk = x == 9 ? '0' : '1' + x;
+            mu_gfx_layer_key(world_gfx_layer(a->gfx), 1, vk, (uint32_t)vk, 0);
+            mu_gfx_layer_key(world_gfx_layer(a->gfx), 0, vk, (uint32_t)vk, 0);
+            result = 1;
+        } else if (!strcmp(verb, "cast")) {
+            result = skill_cast_at(a, x, &skill);
+        } else {
+            result = world_gfx_skill_action(a->gfx, verb, x, y);
+        }
+        last = mu_gfx_layer_skill_last(world_gfx_layer(a->gfx));
+        const mu_skill_book *book = world_gfx_skills(a->gfx);
+        if (!a->quiet)
+            printf("{\"skill_action\": \"%s\", \"a\": %d, \"b\": %d, \"frame\": %d, \"result\": %d%s%s%s, "
+                   "\"skill\": %d, \"selected\": %d, \"last\": \"%s\"}\n", verb, x, y, frame, result,
+                   !strcmp(verb, "cast") ? ", \"cast\": \"" : "", !strcmp(verb, "cast") ? mu_skill_cast_name(result) : "",
+                   !strcmp(verb, "cast") ? "\"" : "", (int)skill, (int)mu_skill_book_selected(book), last);
+#else
+        (void)x;
+        (void)y;
+        (void)verb;
+        (void)result;
+        (void)skill;
+        (void)last;
+#endif
+    }
+}
+
 static void script(app *a, int32_t frame)
 {
     mu_walk *w = &a->walk;
+    skill_script(a, frame);
     combat_script(a, frame);
     item_script(a, frame);
     for (int32_t i = 0; a->names && i < a->chat_count; ++i)   /* NATIVE-NAMES-001: the hero's chat, echoed */
@@ -2334,7 +2437,7 @@ static int headless(app *a)
 #ifndef MU_WORLD_NO_GL
     report_summary(a, gl ? mu_gl_renderer() : "software");
     if (a->gfx) {
-        char line[512];
+        char line[2048];
         world_gfx_report(a->gfx, line, sizeof line);
         printf("{%s}\n", line);
         world_gfx_quest_report(a->gfx, stdout);
@@ -2466,6 +2569,14 @@ static int windowed(app *a)
             } else if (e.type == SDL_MOUSEMOTION) {
                 mu_walk_message(&a->walk, MU_WM_MOUSEMOVE, 0,
                                 pack((int)(e.motion.x * scale), (int)(e.motion.y * scale)));
+            } else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT && a->gfx && a->combat &&
+                       mu_combat_pick(a->combat) >= 0) {
+                /* NATIVE-SKILL-001: the right button casts the bar's selected skill at the monster under the
+                 * mouse (the classic binding; the use controller 0x0107e99a runs the checks) */
+                int32_t actor = mu_combat_pick(a->combat), skill = 0;
+                int r = skill_cast_at(a, actor, &skill);
+                if (!a->quiet)
+                    fprintf(stderr, "skill %d at actor %d: %s\n", (int)skill, (int)actor, mu_skill_cast_name(r));
             } else if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
                 int down = e.type == SDL_MOUSEBUTTONDOWN;
                 uint32_t message = e.button.button == SDL_BUTTON_LEFT ? (down ? 0x201u : 0x202u)
@@ -2560,6 +2671,11 @@ static int windowed(app *a)
            a->audio_device ? "true" : "false",
            a->has_sound ? (double)a->audio_frames / (double)mu_world_sound_rate(&a->sound) : 0.0);
     report_summary(a, mu_gl_renderer());
+    if (a->gfx) {   /* NATIVE-SKILL-001: the interface summary (skill book, casts) */
+        char line[2048];
+        world_gfx_report(a->gfx, line, sizeof line);
+        printf("{%s}\n", line);
+    }
     if (a->audio_device)
         SDL_CloseAudioDevice(a->audio_device);
     world_gfx_quest_report(a->gfx, stdout);
@@ -2649,6 +2765,7 @@ static int usage(void)
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--npc] [--npc-demo FILE] [--npc-script \"F:click:ACTOR F:buy:SLOT F:close ...\"]   NPC talk (demo server)\n"
+                    "                [--skill-script \"F:select:SLOT F:cast:ACTOR F:open F:drag:FROM:TO F:over:SLOT F:save F:tip:SLOT\"]   skills (--gfx)\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
@@ -2771,6 +2888,7 @@ int main(int argc, char **argv)
 #ifndef MU_WORLD_NO_GL
         else if (!strcmp(k, "--gfx")) a.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;
+        else if (!strcmp(k, "--skill-script")) { if (parse_skill_script(&a, v)) return usage(); }
 #endif
         else if (!strcmp(k, "--particle-seed")) a.particle_seed = (uint32_t)strtoul(v, NULL, 0);
         else if (!strcmp(k, "--joint-demo")) a.joint_demo = (int32_t)strtol(v, NULL, 0);

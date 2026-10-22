@@ -16,6 +16,8 @@
 #include "../gfx/mu_gfx_layer.h"
 #include "../gfx/mu_gfx_sdl.h"
 #include "world_gfx_game.h"
+#include "world_gfx_skill.h"
+#include "../core/mu_skill.h"
 
 struct world_gfx {
     mu_gfx_layer *layer;
@@ -40,6 +42,9 @@ struct world_gfx {
     int32_t dlg_npc;
     char quest_events[8][256];
     int quest_event_count;
+    /* NATIVE-SKILL-001: the skill host (bar feed, tooltip, Skill Imprint window) */
+    wg_skill *skill;
+    double scale;
 };
 
 static void quest_dialog_visible(world_gfx *g, int visible);
@@ -799,13 +804,40 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
             mu_gfx_layer_set_skills(g->layer, skills, g->skills);
         free(skills);
     }
+    {   /* NATIVE-SKILL-001: the demo hero's class ("class=N" in --gfx-open, default 1) */
+        const char *p = open ? strstr(open, "class=") : NULL;
+        int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 1;
+        if (!getenv("MU_GFX_NO_SKILLS")) {
+            g->skill = wg_skill_open(game_root, mu_lang_shared(), getenv("MU_LANG_DIR"), cls);
+            wg_skill_attach(g->skill, g->layer);
+            g->scale = scale > 0 ? scale : 1.0;
+            wg_skill_set_screen(g->skill, (int32_t)(width / g->scale));
+        }
+    }
     if (open) {
         if (strstr(open, "inventory"))
             mu_gfx_layer_show(g->layer, MU_GFX_INVENTORY, 1);
         if (strstr(open, "character"))
             mu_gfx_layer_show(g->layer, MU_GFX_CHARACTER, 1);
+        if (strstr(open, "skills"))
+            mu_gfx_layer_show(g->layer, MU_GFX_SKILL_STAMP, 1);
     }
     return g;
+}
+
+int world_gfx_skill_cast(world_gfx *g, int32_t *skill)
+{
+    return g ? wg_skill_cast(g->skill, skill) : MU_SKILL_CAST_NONE;
+}
+
+struct mu_skill_book *world_gfx_skills(world_gfx *g)
+{
+    return g ? wg_skill_book(g->skill) : NULL;
+}
+
+int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
+{
+    return g ? mu_gfx_layer_skill_action(g->layer, verb, a, b) : 0;
 }
 
 void world_gfx_close(world_gfx *g)
@@ -814,6 +846,7 @@ void world_gfx_close(world_gfx *g)
         return;
     mu_quest_session_close(&g->quest);
     mu_gfx_layer_close(g->layer);
+    wg_skill_close(g->skill);
     wg_items_close(g->items);
     mu_hud_tip_tables_free(&g->tables);
     mu_dlg_free(&g->dlg);
@@ -823,8 +856,10 @@ void world_gfx_close(world_gfx *g)
 
 void world_gfx_resize(world_gfx *g, int width, int height)
 {
-    if (g)
-        mu_gfx_layer_resize(g->layer, width, height);
+    if (!g)
+        return;
+    mu_gfx_layer_resize(g->layer, width, height);
+    wg_skill_set_screen(g->skill, (int32_t)(width / (g->scale > 0 ? g->scale : 1.0)));
 }
 
 int world_gfx_event(world_gfx *g, const SDL_Event *e, double scale)
@@ -838,6 +873,7 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
         return;
     g->time_ms += dt_ms;
     wg_items_set_time(g->items, g->time_ms);
+    wg_skill_tick(g->skill, dt_ms);
     mu_gfx_layer_advance(g->layer, dt_ms);
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);
@@ -867,14 +903,22 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap)
     long renders = 0;
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         renders += st.renders[m];
-    long drawn = 0, missing = 0, icons = 0;
+    long drawn = 0, missing = 0, icons = 0, casts = 0, refused = 0, skill_icons = 0, skill_tips = 0;
     wg_items_counts(g ? g->items : NULL, &drawn, &missing, &icons);
+    wg_skill_counts(g ? g->skill : NULL, &casts, &refused, &skill_icons, &skill_tips);
+    const mu_skill_book *book = g ? wg_skill_book(g->skill) : NULL;
     snprintf(out, cap, "\"gfx\": {\"shared\": %d, \"renders\": %ld, \"callbacks\": %ld, \"invokes\": %ld, "
                        "\"inventory_open\": %d, \"tooltips\": %d, \"base_mode\": %d, \"skills\": %d, "
-                       "\"item_models\": %ld, \"item_models_missing\": %ld, \"icon_models\": %ld}",
+                       "\"item_models\": %ld, \"item_models_missing\": %ld, \"icon_models\": %ld, "
+                       "\"skill_book\": {\"records\": %zu, \"tooltip_texts\": %zu, \"learned\": %d, \"selected\": %d, "
+                       "\"casts\": %ld, \"refused\": %ld, \"window_icons\": %ld, \"tooltips\": %ld, \"window_open\": %d, "
+                       "\"last\": \"%s\"}}",
              st.shared, renders, st.callbacks, st.invokes, mu_gfx_layer_is_open(g ? g->layer : NULL, MU_GFX_INVENTORY),
              g && g->tables.have_tooltip, mu_gfx_layer_base_mode(g ? g->layer : NULL), g ? g->skills : 0, drawn,
-             missing, icons);
+             missing, icons, mu_skill_book_count(book), mu_skill_book_tooltips(book),
+             book ? mu_skill_book_hero(book)->count : 0, (int)mu_skill_book_selected(book), casts, refused, skill_icons,
+             skill_tips, mu_gfx_layer_is_open(g ? g->layer : NULL, MU_GFX_SKILL_STAMP),
+             mu_gfx_layer_skill_last(g ? g->layer : NULL));
 }
 
 /* NATIVE-NAMES-001: the layer, for the hudPlayerName game side (world_names_gfx.c). */
