@@ -215,9 +215,9 @@ class Layer(unittest.TestCase):
     def test_window(self):
         out, log = self.host('skillhost', 'advance', '100', 'key', '85', 'skillprint', 'skillicons',
                              'skillact', 'over', '5', '0', 'skillact', 'drag', '7', '1',
-                             'invoke', '9', '-', 'testDropTarget', '[3]',
-                             'invoke', '9', '-', 'testCall', '["requestSkillSlotDragStart",6.0]',
-                             'invoke', '9', '-', 'testCall', '["requestSkillSlotDragEnd",6.0]', 'advance', '40',
+                             'invoke', '11', '-', 'testDropTarget', '[3]',
+                             'invoke', '11', '-', 'testCall', '["requestSkillSlotDragStart",6.0]',
+                             'invoke', '11', '-', 'testCall', '["requestSkillSlotDragEnd",6.0]', 'advance', '40',
                              'skillact', 'page', '1', '0', 'skillact', 'save', '0', '0', 'skillprint',
                              'key', '85', 'skillact', 'cancel', '0', '0', 'skillprint')
         self.assertIn('host stamp_open 1', out)
