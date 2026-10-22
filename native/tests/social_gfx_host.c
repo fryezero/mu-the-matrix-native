@@ -7,15 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void tick(world_gfx_social *g, mu_social_session *s, int n)
-{
+static void tick(world_gfx_social *g, mu_social_session *s, int n) {
     for (int i = 0; i < n; i++) {
         mu_social_step(s, 0, 120, 120);
         world_gfx_social_frame(g);
     }
 }
-static void act(world_gfx_social *g, const char *v, const char *a)
-{
+static void act(world_gfx_social *g, const char *v, const char *a) {
     assert(world_gfx_social_action(g, v, a));
 }
 static int metadata(void *user, int32_t code, mu_gfx_slot_item *out) {
@@ -24,6 +22,36 @@ static int metadata(void *user, int32_t code, mu_gfx_slot_item *out) {
     out->height = code == 42 ? 3 : 1;
     out->trade_ban = code == 43;
     return 1;
+}
+static int allow_jewel(void *user, int jewel, const mu_mix_item *target, int visible) {
+    (void)user;
+    (void)visible;
+    return jewel == 0x1c10 && target->code == 42;
+}
+static void mutated_wire(mu_gfx_layer *l) {
+    uint8_t bytes[15] = {42, 0x0d, 77, 0x20, 5, 0x08, 0x95, 1, 52, 103, 254, 255, 6, 7, 8};
+    mu_gfx_slot_item src;
+    assert(mu_gfx_layer_social_item(l, bytes, &src));
+    int idx = mu_gfx_layer_add_slot_item(l, &src);
+    assert(idx >= 0);
+    int cell = mu_gfx_layer_item_cell(l, idx);
+    int jewel = mu_gfx_layer_add_item(l, 0x1c10, 0, 1, 1, "Synthetic jewel");
+    assert(jewel >= 0);
+    assert(mu_gfx_layer_mix_action(l, "mixresult", 1, 0));
+    assert(mu_gfx_layer_mix_action(l, "jewel", mu_gfx_layer_item_cell(l, jewel), cell));
+    mu_gfx_layer_advance(l, 160);
+    bytes[1]++; /* only the option rank changes */
+    mu_gfx_slot_item out;
+    int token = mu_gfx_layer_inventory_reserve(l, cell, &out);
+    assert(token && !memcmp(bytes, out.data, 15));
+    mu_gfx_layer_inventory_finish(l, token, 0);
+    assert(mu_gfx_layer_storage(l, "Vault", NULL, 0));
+    assert(mu_gfx_layer_npc_action(l, "put", cell));
+    assert(mu_gfx_layer_npc_action(l, "take", 0));
+    mu_gfx_layer_npc_close(l);
+    token = mu_gfx_layer_inventory_reserve(l, cell, &out);
+    assert(token && !memcmp(bytes, out.data, 15));
+    mu_gfx_layer_inventory_finish(l, token, 1);
 }
 static void full_item_trade(mu_gfx_layer *l, mu_world_players *p) {
     const uint8_t bytes[15] = {42, 0xcf, 77, 0x7f, 5, 0x08, 0x95, 1, 52, 103, 0xfe, 0xff, 6, 7, 8};
@@ -90,8 +118,7 @@ static void full_item_trade(mu_gfx_layer *l, mu_world_players *p) {
     world_gfx_social_close(g);
     mu_social_messages_destroy(&s.messages);
 }
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     assert(argc == 3);
     char error[512];
     mu_gfx_layer_config c = {.movie_dir = argv[1],
@@ -99,7 +126,8 @@ int main(int argc, char **argv)
                              .width = 1280,
                              .height = 800,
                              .shared = 1,
-                             .social_item_info = metadata};
+                             .social_item_info = metadata,
+                             .jewel_check = allow_jewel};
     mu_gfx_layer *l = mu_gfx_layer_open(&c, error, sizeof error);
     assert(l);
     mu_world_players *p = calloc(1, sizeof *p);
@@ -107,6 +135,7 @@ int main(int argc, char **argv)
     p->count = 1;
     p->list[0].in_view = 1;
     snprintf(p->list[0].spec.name, sizeof p->list[0].spec.name, "Shopkeep");
+    mutated_wire(l);
     full_item_trade(l, p);
     /* Scripted shop/vault paths must obey escrow for both cancellation and commit. */
     for (int commit = 0; commit < 2; commit++) {

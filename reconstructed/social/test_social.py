@@ -22,6 +22,34 @@ class Social(unittest.TestCase):
         )
         cls.l = native(ROOT / "reconstructed/social/libsocial.dylib")
 
+    def test_original_formula_precedence_roundtrip_and_missing_states(self):
+        lib = self.l
+        lib.mu_social_formula_evaluate.argtypes = [
+            C.c_char_p,
+            C.c_void_p,
+            C.c_size_t,
+            C.POINTER(C.c_double),
+        ]
+        for expression, want in (
+            (b"8/2^2", 16.0),
+            (b"2^3^2", 64.0),
+            (b"1/3*3", 0.9999999999),
+        ):
+            value = C.c_double()
+            self.assertEqual(
+                lib.mu_social_formula_evaluate(expression, None, 0, C.byref(value)), 1
+            )
+            self.assertEqual(value.value, want)
+        value = C.c_double(99)
+        self.assertEqual(
+            lib.mu_social_formula_evaluate(None, None, 0, C.byref(value)), 2
+        )
+        self.assertEqual(value.value, 0.0)
+        for expression in (b"", b"()", b"not an expression", b"1+"):
+            self.assertEqual(
+                lib.mu_social_formula_evaluate(expression, None, 0, C.byref(value)), 0
+            )
+
     def test_party_transactional_bounds_and_resource_precision(self):
         p = Party()
         r = bytearray(44)

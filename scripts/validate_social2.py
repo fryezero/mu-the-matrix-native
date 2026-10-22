@@ -22,6 +22,8 @@ import validate_social2_lifecycle as lifecycle
 import validate_social2_finalizer_guest as finalizer
 import validate_social2_items as items
 import validate_social2_formula as formulas
+import validate_social2_display as displays
+import validate_social2_receive as receives
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -184,6 +186,14 @@ def main():
             a.game_root,
         )
     )
+    result["families"].update(
+        displays.run(
+            library(ROOT / "reconstructed/social/libsocial.dylib"), text, data, a.cases
+        )
+    )
+    receive_report, receive_skips = receives.run(a.text, a.data)
+    result["families"].update(receive_report)
+    result["receive_unrepresentable_cases"] = receive_skips
     if a.mutations:
         result["mutations"] = {}
         controls = {
@@ -203,6 +213,13 @@ def main():
             "DELETE": "mail_delete_request",
             "FINAL_RANK": "finalizer_rank",
             "FINAL_CONSUME": "finalizer_consumed_bit",
+            "SOCKET_MASK": "item_categories_socket",
+            "RANK_ZERO": "item_categories_rank",
+            "EXTRA_WORD": "item_categories_extra",
+            "TRADE_FLAG": "trade_ban",
+            "FORMULA_ROUND": "formula_evaluation",
+            "DISPLAY_LABEL": "excellent_display",
+            "SOCKET_NARROW": "socket_display",
         }
         with tempfile.TemporaryDirectory() as tmp:
             for control, family in controls.items():
@@ -216,6 +233,8 @@ def main():
                         "-DMU_SOCIAL2_MUTATION_" + control + "=1",
                         str(ROOT / "reconstructed/social/item_options.c"),
                         str(ROOT / "reconstructed/social/social_packets.c"),
+                        str(ROOT / "reconstructed/social/item_formula.c"),
+                        str(ROOT / "reconstructed/social/item_display.c"),
                         "-o",
                         str(dst),
                     ],
@@ -241,9 +260,30 @@ def main():
                         else finalizer.case(code=0x1824, L=1, E=0x30)
                     )
                     report = {"mismatches": int(oracle.run(c) != compare_case(lib, c))}
+                elif control in (
+                    "SOCKET_MASK",
+                    "RANK_ZERO",
+                    "EXTRA_WORD",
+                    "TRADE_FLAG",
+                ):
+                    report = items.run(lib, a.text, a.data, 500)[
+                        "trade_ban" if control == "TRADE_FLAG" else "item_categories"
+                    ]
+                elif control == "FORMULA_ROUND":
+                    report = formulas.run(lib, text, data, 40, a.game_root)[family]
+                elif control in ("DISPLAY_LABEL", "SOCKET_NARROW"):
+                    report = displays.run(lib, text, data, 40)[family]
                 else:
                     report = packets.run(m, lib, 32)[family]
                 result["mutations"][family] = report["mismatches"] > 0
+            for control in ("MODE", "READ", "PENDING", "BIND", "CLOSE", "CACHE"):
+                path = Path(tmp) / ("receive_" + control + ".dylib")
+                reports, _ = receives.run(
+                    a.text, a.data, receives.compile_library(path, "RECEIVE_" + control)
+                )
+                result["mutations"]["receive_" + control.lower()] = any(
+                    r["mismatches"] for r in reports.values()
+                )
     result["cases"] = sum(x["cases"] for x in result["families"].values())
     result["mismatches"] = sum(x["mismatches"] for x in result["families"].values())
     if a.output:

@@ -8,6 +8,9 @@ typedef struct mu_social_item_wire {
     uint8_t level_word, durability, excellent, ancient, flags, harmony;
     uint8_t sockets[5], extra[3];
 } mu_social_item_wire;
+static inline int32_t mu_social_item_code(const uint8_t b[15]) {
+    return b[0] | ((b[3] & 0x80) << 1) | ((b[5] & 0xf0) << 5) | ((b[5] & 1) << 13);
+}
 void mu_social_item_unpack(const uint8_t bytes[15], mu_social_item_wire *out);
 /* Native inverse for offline inventory escrow; preserves all 15 wire bytes. */
 void mu_social_item_pack(const mu_social_item_wire *item, uint8_t bytes[15]);
@@ -51,6 +54,7 @@ typedef struct mu_social_item_final_env {
     int (*excellent_row)(void *, int family, int category, int id, int slot);
     int32_t level_word, ancient, enabled, class_byte, character_stat, state_level;
     int32_t special_tag, special_row, special_enabled, special_bonus[3], special_lows[3];
+    int32_t state_known; /* external item-state inputs are present, including a real zero */
 } mu_social_item_final_env;
 typedef struct mu_social_item_finalized {
     int32_t count;

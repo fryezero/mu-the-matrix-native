@@ -10,7 +10,8 @@
 
 typedef struct option_row {
     int kind;
-    int32_t v[28];
+    int32_t v[40];
+    int fields;
     char *text;
 } option_row;
 struct mu_social_item_tables {
@@ -21,6 +22,7 @@ struct mu_social_item_tables {
     size_t count;
 };
 enum { GUARD_NAME = 1, GUARD_VALUE, GUARD_BONUS_NAME, GUARD_BONUS, ADVANCED, ARTIFACT_NAME, ARTIFACT };
+enum { EARRING_PAIR = 9 };
 static uint32_t u32(const uint8_t *p) {
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
@@ -81,6 +83,14 @@ static char *unescape(const char *s) {
     out[k] = 0;
     return out;
 }
+static const struct {
+    const char *name;
+    int fields;
+} schemas[] = {
+    {"guardian_name", 1},     {"guardian_value", 6}, {"guardian_bonus_name", 1}, {"guardian_bonus", 9},
+    {"advanced", 7},          {"artifact_name", 2},  {"artifact", 27},           {"earring_primary", 3},
+    {"earring_pair", 8},      {"earring_value", 5},  {"earring_name", 2},        {"pentagram", 9},
+    {"pentagram_option", 16}, {"jewel", 28},         {"ertel_set", 14},          {"ertel_text", 2}};
 static void load_lang(mu_social_item_tables *t, const char *dir) {
     if (!dir)
         return;
@@ -89,12 +99,6 @@ static void load_lang(mu_social_item_tables *t, const char *dir) {
     FILE *f = fopen(path, "rb");
     if (!f)
         return;
-    static const struct {
-        const char *name;
-        int fields;
-    } schema[] = {{"guardian_name", 1},  {"guardian_value", 6}, {"guardian_bonus_name", 1},
-                  {"guardian_bonus", 9}, {"advanced", 7},       {"artifact_name", 2},
-                  {"artifact", 27}};
     char line[8192];
     while (fgets(line, sizeof line, f)) {
         size_t n = strlen(line);
@@ -113,16 +117,17 @@ static void load_lang(mu_social_item_tables *t, const char *dir) {
             continue;
         *p++ = 0;
         int kind = 0, fields = 0;
-        for (int i = 0; i < 7; i++)
-            if (!strcmp(line, schema[i].name)) {
-                kind = i + 1;
-                fields = schema[i].fields;
+        for (size_t i = 0; i < sizeof schemas / sizeof *schemas; i++)
+            if (!strcmp(line, schemas[i].name)) {
+                kind = (int)i + 1;
+                fields = schemas[i].fields;
                 break;
             }
         if (!kind)
             continue;
         option_row row = {0};
         row.kind = kind;
+        row.fields = fields;
         int good = 1;
         for (int i = 0; i < fields; i++) {
             char *tab = strchr(p, '\t');
@@ -241,6 +246,9 @@ void mu_social_item_tables_free(mu_social_item_tables *t) {
     mu_data_free(&t->set_type);
     mu_data_free(&t->set_option);
     free(t);
+}
+int mu_social_excellent_available(const mu_social_item_tables *t, int family) {
+    return t && family >= 1 && family <= 2 && okay(t->excellent + family - 1);
 }
 int mu_social_excellent_get(const mu_social_item_tables *t, int family, int category, int id,
                             mu_social_excellent_row *out) {
@@ -380,4 +388,54 @@ const char *mu_social_ancient_prefix(const mu_social_item_tables *t, int code, u
 }
 size_t mu_social_item_table_rows(const mu_social_item_tables *t) {
     return t ? t->count : 0;
+}
+
+int mu_social_option_find(const mu_social_item_tables *t, const char *kind, const int32_t *keys, size_t nkeys,
+                          int32_t values[40], const char **text) {
+    if (!t || !kind)
+        return 0;
+    int k = 0;
+    for (size_t i = 0; i < sizeof schemas / sizeof *schemas; i++)
+        if (!strcmp(kind, schemas[i].name)) {
+            k = (int)i + 1;
+            break;
+        }
+    if (!k)
+        return 0;
+    for (size_t i = 0; i < t->count; i++) {
+        const option_row *r = t->rows + i;
+        if (r->kind != k || nkeys > (size_t)r->fields)
+            continue;
+        size_t j = 0;
+        for (; j < nkeys && r->v[j] == keys[j]; j++) {
+        }
+        if (j != nkeys)
+            continue;
+        if (values)
+            memcpy(values, r->v, sizeof r->v);
+        if (text)
+            *text = r->text;
+        return r->fields;
+    }
+    return 0;
+}
+int mu_social_formula_value(const mu_social_item_tables *t, int family, int id,
+                            const mu_social_formula_arg *args, size_t n, double *value) {
+    if (!t || !okay(&t->formula))
+        return 0;
+    int status = mu_social_formula_evaluate(mu_social_formula_get(t, family, id), args, n, value);
+    return status == MU_SOCIAL_FORMULA_OK || status == MU_SOCIAL_FORMULA_MISSING;
+}
+
+int mu_social_earring_pair_get(const mu_social_item_tables *t, int primary, int32_t out[40]) {
+    if (!t)
+        return 0;
+    for (size_t i = 0; i < t->count; i++) {
+        const option_row *r = t->rows + i;
+        if (r->kind == EARRING_PAIR && (r->v[0] == primary || r->v[1] == primary)) {
+            memcpy(out, r->v, sizeof r->v);
+            return 1;
+        }
+    }
+    return 0;
 }

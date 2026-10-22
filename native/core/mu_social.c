@@ -165,6 +165,10 @@ int mu_social_receive(mu_social_session *s, const uint8_t *b, size_t n) {
     if (b[0] == 0xc1 && b[2] == 0x40) {
         if (n < 5)
             return 0;
+        /* Offline pending UI owns one inviter/key pair atomically. A second
+         * request must not replace half of that outstanding invitation. */
+        if (s->pending || s->trade.open)
+            return 0;
         mu_social_party_request(b, n, 0, &s->request_key);
         int index = s->request_key - 0x200;
         if (s->players && index >= 0 && index < s->players->count)

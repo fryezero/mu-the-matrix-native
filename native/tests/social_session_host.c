@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-int main(void)
-{
+int main(void) {
     mu_world_players *p = calloc(1, sizeof *p);
     assert(p);
     p->count = 2;
@@ -76,6 +75,17 @@ int main(void)
     uint8_t clear[5] = {0xc1, 5, 0x43, 0, 0};
     assert(mu_social_receive(&s, clear, sizeof clear) && s.party.count == 0 && s.request_key == 0x1234 &&
            s.party_notice == 0x1f6);
+    s.auto_enabled = 0;
+    uint8_t invite_a[5] = {0xc1, 5, 0x40, 2, 0}, invite_b[5] = {0xc1, 5, 0x40, 2, 1};
+    assert(mu_social_receive(&s, invite_a, 5) && s.request_key == 0x200 && s.pending == 1);
+    assert(!mu_social_receive(&s, invite_b, 5) && s.request_key == 0x200);
+    assert(mu_social_action(&s, "accept", "") && s.request.data[4] == 2 && s.request.data[5] == 0);
+    int aeris = 0, kyra = 0;
+    for (int i = 0; i < s.party.count; i++) {
+        aeris += !strcmp(s.party.members[i].name, "Aeris");
+        kyra += !strcmp(s.party.members[i].name, "Kyra");
+    }
+    assert(aeris == 1 && kyra == 0);
     mu_social_messages_destroy(&s.messages);
     free(p);
     puts("{\"social_session\":true,\"passed\":true}");

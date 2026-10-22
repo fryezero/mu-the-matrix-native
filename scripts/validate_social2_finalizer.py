@@ -80,7 +80,7 @@ class Environment(C.Structure):
                 "special_enabled",
             )
         ]
-        + [("special_bonus", I * 3), ("special_lows", I * 3)]
+        + [("special_bonus", I * 3), ("special_lows", I * 3), ("state_known", I)]
     )
 
 
@@ -123,6 +123,7 @@ def compare_case(lib, c):
         return ident in present
 
     env = Environment()
+    env.state_known = 1
     env.formula = formula
     env.excellent_row = row
     for field, key in [
@@ -174,6 +175,7 @@ def compare_value(
         return 1
 
     env = Environment()
+    env.state_known = 1
     env.formula = formula
     lib.mu_social_item_excellent_value.argtypes = [
         I,

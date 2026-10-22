@@ -110,7 +110,7 @@ typedef struct mu_gfx_item_draw {
     float frame_scale;          /* window SetScale / 100 (handler +0x58) */
     float alpha;
     int select, held;
-    int has_options, level_word, set_bits;
+    int has_options, level_word, set_bits, element;
 } mu_gfx_item_draw;
 
 /* Draw item models over the current GL framebuffer.  The layer calls it
@@ -202,7 +202,7 @@ typedef struct mu_gfx_layer_config {
     /* NATIVE-SOCIAL-001 round 2: record metadata and full item-instance tooltip.
      * User is tooltip_user. Missing records return 0, known records return 1. */
     int (*social_item_info)(void *user, int32_t code, struct mu_gfx_slot_item *out);
-    int (*tooltip_packet)(void *user, const uint8_t bytes[15], char *html, size_t cap);
+    int (*tooltip_packet)(void *user, const uint8_t bytes[15], int context, char *html, size_t cap);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
@@ -378,8 +378,8 @@ typedef struct mu_gfx_slot_item {
     int32_t code, level, width, height;
     int64_t price;              /* demo price shown in the tooltip's caller / log */
     char name[64];
-    uint8_t has_data, data[15]; /* original wire instance, retained by escrow/exchange */
-    int32_t trade_ban;
+    uint8_t has_data, data[15];                      /* original wire instance, retained by escrow/exchange */
+    int32_t trade_ban, excellent, set_bits, element; /* resolved excellent state, separate from wire mask */
 } mu_gfx_slot_item;
 
 /* Full item instances, including options, across inventory and trade. */

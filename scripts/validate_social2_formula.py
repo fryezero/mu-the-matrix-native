@@ -104,7 +104,7 @@ def run(lib, text, data, cases, game_root=None):
             )
 
     for row in rows:
-        if row["group"] not in (1, 2, 8, 11) or not row["expr"]:
+        if row["group"] not in (1, 2, 8, 9, 11, 16) or not row["expr"]:
             continue
         for base in (1, 7, 15, 127, 400, 1200):
             values = [

@@ -243,7 +243,7 @@ static int place_item(const wg_items *w, const item_model *m, const mu_gfx_item_
     win.level_word = d->has_options ? d->level_word : d->level << 3;
     win.set_bits = (uint8_t)d->set_bits;
     win.excellent = (uint8_t)d->excellent;
-    win.element = -1;
+    win.element = d->has_options ? d->element : -1;
     win.x = d->slot[0];
     win.y = d->slot[1];
     win.w = d->slot[2];

@@ -55,7 +55,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
             core/mu_progress.c \
-            core/mu_social_messages.c core/mu_social_item_tables.c
+            core/mu_social_messages.c core/mu_social_item_tables.c core/mu_social_item_view.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -92,7 +92,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
-             $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/social_packets.c
+             $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/social_packets.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o

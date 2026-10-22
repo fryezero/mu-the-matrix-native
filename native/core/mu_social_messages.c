@@ -45,6 +45,47 @@ static mu_local_cache *cache(mu_social_messages *m, uint32_t id, int create) {
     free_slot->id = id;
     return free_slot;
 }
+static mu_local_pending *pending(mu_social_messages *m, uint32_t id) {
+    for (int i = 0; i < MU_LOCAL_MAIL; i++)
+        if (m->pending_reads[i].used && m->pending_reads[i].id == id)
+            return m->pending_reads + i;
+    return NULL;
+}
+int mu_social_messages_pending_track(mu_social_messages *m, uint32_t id) {
+#ifdef MU_SOCIAL2_MUTATION_RECEIVE_PENDING
+    return 1;
+#endif
+    if (pending(m, id))
+        return 1;
+    for (int i = 0; i < MU_LOCAL_MAIL; i++)
+        if (!m->pending_reads[i].used) {
+            m->pending_reads[i] = (mu_local_pending){id, 0, 1};
+            return 0;
+        }
+    return -1;
+}
+void mu_social_messages_pending_close(mu_social_messages *m, uint32_t id) {
+    mu_local_pending *p = pending(m, id);
+    if (p)
+        memset(p, 0, sizeof *p);
+}
+void mu_social_messages_pending_bind(mu_social_messages *m, uint32_t id, uint32_t ui) {
+#ifdef MU_SOCIAL2_MUTATION_RECEIVE_BIND
+    ui = 0;
+#endif
+    mu_local_pending *p = pending(m, id);
+    if (p)
+        p->ui = ui;
+}
+uint32_t mu_social_messages_pending_get(mu_social_messages *m, uint32_t id) {
+    mu_local_pending *p = pending(m, id);
+    return p ? p->ui : 0;
+}
+static void pending_peer_remove(mu_social_messages *m, const char *name) {
+    for (int i = 0; i < MU_LOCAL_ROOMS; i++)
+        if (!strcmp(m->pending_peers[i], name))
+            m->pending_peers[i][0] = 0;
+}
 mu_local_room *mu_social_messages_room(mu_social_messages *m, uint32_t ui) {
     for (int i = 0; i < MU_LOCAL_ROOMS; i++)
         if (m->rooms[i].ui == ui && ui)
@@ -126,6 +167,7 @@ void mu_social_messages_init(mu_social_messages *m, const char *hero) {
     name10(m->hero, hero);
     m->next_ui = 1;
     m->capacity = MU_LOCAL_MAIL;
+    m->parent_visible = 1;
 }
 int mu_social_messages_receive_room(mu_social_messages *m, uint32_t ui, int op, const uint8_t *b, size_t n) {
     mu_local_room *r = mu_social_messages_room(m, ui);
@@ -168,7 +210,7 @@ int mu_social_messages_receive_room(mu_social_messages *m, uint32_t ui, int op, 
         size_t count = n - 5;
         if (count > 99)
             count = 99;
-        snprintf(m->last, sizeof m->last, "%.*s", (int)count, (const char *)b + 5);
+        snprintf(m->room_notice, sizeof m->room_notice, "%.*s", (int)count, (const char *)b + 5);
     } else
         return 0;
     m->received++;
@@ -182,17 +224,24 @@ int mu_social_messages_receive(mu_social_messages *m, int key, const uint8_t *b,
         mu_social_room_answer a;
         if (!mu_social_room_open_answer(b, n, &a))
             return 0;
+        if (a.result == 0 || a.result == 2 || (a.result == 1 && a.mode == 0))
+            pending_peer_remove(m, a.peer);
         if (a.result != 1) {
             if (a.result == 0)
                 m->notice = 0x42d;
             else if (a.result == 2)
                 m->notice = 0x42e;
         } else if (a.mode <= 2) {
+#ifdef MU_SOCIAL2_MUTATION_RECEIVE_MODE
+            if (a.mode == 1)
+                return 0;
+#endif
             mu_local_room *r = NULL;
             if (a.mode == 1)
                 for (int i = 0; i < MU_LOCAL_ROOMS; i++)
                     if (m->rooms[i].ui && !strcmp(m->rooms[i].peer, a.peer))
                         r = m->rooms + i;
+            int reconnect = r != NULL;
             if (r) {
                 mu_social_room_control(&m->request, 1);
                 emit(m);
@@ -215,8 +264,10 @@ int mu_social_messages_receive(mu_social_messages *m, int key, const uint8_t *b,
             r->ticket = a.ticket;
             snprintf(r->address, sizeof r->address, "%s", a.address);
             name10(r->peer, a.peer);
-            r->shown = 1;
-            m->active_ui = r->ui;
+            if (!reconnect) {
+                r->shown = m->parent_visible;
+                m->active_ui = r->ui;
+            }
             mu_social_room_connect(&m->request, a.room, a.ticket);
             emit(m);
         }
@@ -235,20 +286,33 @@ int mu_social_messages_receive(mu_social_messages *m, int key, const uint8_t *b,
         if (!mu_social_mail_body(b, n, &body))
             return 0;
         mu_local_cache *c = cache(m, body.id, 1);
-        if (!c)
+        if (!c) {
+            mu_social_messages_pending_close(m, body.id);
+            mu_local_letter *h = letter(m, body.id);
+            if (h)
+                h->pending = 0;
+            m->notice = MU_SOCIAL_NOTICE_CACHE_CAPACITY;
+            m->revision++;
             return 0;
+        }
         snprintf(c->text, sizeof c->text, "%s", body.text);
         mu_local_letter *h = letter(m, body.id);
         if (h) {
-            h->header.read = 1;
-            h->pending = 0;
-            mu_local_window *w = mu_social_messages_window(m, h->read_ui);
+            mu_local_window *w = window_new(m, 2);
             if (!w) {
-                w = window_new(m, 2);
-                if (!w)
-                    return 0;
-                h->read_ui = w->ui;
+                mu_social_messages_pending_close(m, body.id);
+                h->pending = 0;
+                m->notice = MU_SOCIAL_NOTICE_WINDOW_CAPACITY;
+                m->revision++;
+                return 0;
             }
+            h->header.read = 1;
+#ifdef MU_SOCIAL2_MUTATION_RECEIVE_READ
+            h->header.read = 0;
+#endif
+            h->pending = 0;
+            h->read_ui = w->ui;
+            mu_social_messages_pending_bind(m, body.id, w->ui);
             w->letter = body.id;
             w->shown = 1;
             name10(w->recipient, h->header.sender);
@@ -260,10 +324,13 @@ int mu_social_messages_receive(mu_social_messages *m, int key, const uint8_t *b,
         if (n < 8)
             return 0;
         m->notice = mu_social_mail_send_notice(b[3]);
+        m->notice_fee = b[3] == 1 && !m->fee_exempt ? 1000 : 0;
         if (b[3] == 1) {
+#ifndef MU_SOCIAL2_MUTATION_RECEIVE_CLOSE
             mu_local_window *w = mu_social_messages_window(m, get32(b + 4));
             if (w)
                 memset(w, 0, sizeof *w);
+#endif
         }
     } else if (key == 0xa2) {
         if (n < 6)
@@ -284,8 +351,12 @@ int mu_social_messages_receive(mu_social_messages *m, int key, const uint8_t *b,
                     break;
                 }
             mu_local_cache *c = cache(m, id, 0);
+#ifndef MU_SOCIAL2_MUTATION_RECEIVE_CACHE
             if (c)
                 memset(c, 0, sizeof *c);
+#else
+            (void)c;
+#endif
         }
     } else if (key == 0xf7) {
         if (n < 8)
@@ -319,6 +390,7 @@ uint32_t mu_social_messages_open(mu_social_messages *m, const char *peer) {
         }
     if (free_room < 0 || !mu_social_room_request(&m->request, peer))
         return 0;
+    name10(m->pending_peers[free_room], peer);
     emit(m);
     uint8_t answer[36] = {0};
     memcpy(answer + 3, "offline", 7);
@@ -412,6 +484,7 @@ int mu_social_messages_close(mu_social_messages *m, uint32_t ui) {
     mu_local_window *w = mu_social_messages_window(m, ui);
     if (w) {
         if (w->kind == 2) {
+            mu_social_messages_pending_close(m, w->letter);
             mu_local_letter *h = letter(m, w->letter);
             if (h) {
                 h->read_ui = 0;
@@ -486,37 +559,55 @@ int mu_social_messages_write(mu_social_messages *m, uint32_t ui, const char *nam
     put32(answer + 4, ui);
     return mu_social_messages_receive(m, 0x41, answer, sizeof answer);
 }
-int mu_social_messages_read(mu_social_messages *m, uint32_t id) {
-    mu_local_letter *h = letter(m, id);
-    if (!h)
-        return 0;
-    if (h->read_ui) {
-        mu_local_window *w = mu_social_messages_window(m, h->read_ui);
-        if (w) {
-            w->shown = 1;
-            m->active_ui = w->ui;
+int mu_social_messages_read_request(mu_social_messages *m, uint32_t id) {
+    if (id > UINT16_MAX)
+        return -1;
+    int tracked = mu_social_messages_pending_track(m, id);
+    if (tracked < 0)
+        return -1;
+    if (tracked) {
+        uint32_t ui = mu_social_messages_pending_get(m, id);
+        if (ui) {
+            mu_local_window *w = mu_social_messages_window(m, ui);
+            if (w)
+                w->shown = 1;
+            m->active_ui = ui;
             m->revision++;
-            return 1;
         }
+        return 0;
     }
-    if (h->pending)
-        return 1;
     mu_local_cache *c = cache(m, id, 0);
     if (!c) {
         mu_social_mail_read_request(&m->request, (uint16_t)id);
         emit(m);
-        h->pending = 1;
+        mu_local_letter *h = letter(m, id);
+        if (h)
+            h->pending = 1;
+        return 1;
     }
-    const char *text = c ? c->text : h->server_body;
-    size_t n = strlen(text);
-    if (n > 1000)
-        return 0;
+    size_t n = strlen(c->text);
     uint8_t b[1030] = {0};
     put16(b + 4, id);
     put16(b + 6, (uint32_t)n);
-    memcpy(b + 30, text, n);
+    memcpy(b + 30, c->text, n);
+    return mu_social_messages_receive(m, 0xec, b, 30 + n) ? 0 : -1;
+}
+int mu_social_messages_read(mu_social_messages *m, uint32_t id) {
+    mu_local_letter *h = letter(m, id);
+    if (!h)
+        return 0;
+    int result = mu_social_messages_read_request(m, id);
+    if (result <= 0)
+        return result == 0;
+    /* OFFLINE server response follows the original asynchronous request. */
+    size_t n = strlen(h->server_body);
+    uint8_t b[1030] = {0};
+    put16(b + 4, id);
+    put16(b + 6, (uint32_t)n);
+    memcpy(b + 30, h->server_body, n);
     return mu_social_messages_receive(m, 0xec, b, 30 + n);
 }
+
 uint32_t mu_social_messages_reply(mu_social_messages *m, uint32_t ui) {
     mu_local_window *w = mu_social_messages_window(m, ui);
     if (!w || w->kind != 2)
@@ -571,6 +662,8 @@ int mu_social_messages_delete_confirm(mu_social_messages *m, int yes) {
         uint8_t answer[6] = {0xc1, 6, 0, 1};
         put16(answer + 4, m->delete_ids[i]);
         mu_social_messages_receive(m, 0xa2, answer, sizeof answer);
+        /* Offline UI close callback, separate from the receive method. */
+        mu_social_messages_pending_close(m, m->delete_ids[i]);
     }
     m->revision++;
     return count > 0;

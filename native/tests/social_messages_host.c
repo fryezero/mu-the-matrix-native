@@ -158,6 +158,21 @@ int main(void) {
     assert(mu_social_messages_write(m, draft, "Hero", "Keep draft", "Not delivered"));
     assert(mu_social_messages_window(m, draft) && m->notice == 0x425);
     mu_social_messages_destroy(m);
+    mu_social_messages_init(m, "Hero");
+    assert(mu_social_messages_seed(m, "Aeris", "Capacity", "Retry this body"));
+    uint32_t occupied[MU_LOCAL_WINDOWS];
+    for (int i = 0; i < MU_LOCAL_WINDOWS; i++) {
+        occupied[i] = mu_social_messages_compose(m, "Hero");
+        assert(occupied[i]);
+    }
+    assert(!mu_social_messages_read(m, 1) && !m->letters[0].header.read);
+    for (int i = 0; i < MU_LOCAL_MAIL; i++)
+        assert(!m->pending_reads[i].used);
+    requests = m->requests;
+    mu_social_messages_close(m, occupied[0]);
+    assert(mu_social_messages_read(m, 1) && m->requests == requests && m->letters[0].header.read);
+    assert(!strcmp(mu_social_messages_window(m, m->letters[0].read_ui)->body, "Retry this body"));
+    mu_social_messages_destroy(m);
     free(m);
     puts("social messages passed");
 }

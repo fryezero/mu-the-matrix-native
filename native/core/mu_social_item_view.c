@@ -1,0 +1,651 @@
+/* Trade item-instance display, assembled from the original option consumers.
+ * The surrounding line layout is native policy. No option or language rows are embedded. */
+#include "mu_social_item_view.h"
+#include "mu_lang.h"
+#include "../../reconstructed/hud/tooltip_html.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+typedef struct arg {
+    int kind, integer;
+    double real;
+    const char *text;
+} arg;
+static arg ai(int v) {
+    return (arg){.integer = v};
+}
+static arg ar(double v) {
+    return (arg){.kind = 1, .real = v};
+}
+static arg as(const char *v) {
+    return (arg){.kind = 2, .text = v ? v : ""};
+}
+static int trunc32(double v) {
+    return !isfinite(v) || v < INT32_MIN || v >= 2147483648.0 ? INT32_MIN : (int32_t)v;
+}
+/* Validate each single conversion before calling host printf. Source strings
+ * never become an unchecked variadic format, and text arguments remain data. */
+static int format(char out[256], const char *pattern, const arg *args, size_t n) {
+    size_t used = 0, a = 0;
+    out[0] = 0;
+    if (!pattern)
+        return 0;
+    for (size_t i = 0; pattern[i]; i++) {
+        if (pattern[i] != '%') {
+            if (used >= 255)
+                return 0;
+            out[used++] = pattern[i];
+            continue;
+        }
+        if (pattern[i + 1] == '%') {
+            if (used >= 255)
+                return 0;
+            out[used++] = '%';
+            i++;
+            continue;
+        }
+        size_t start = i;
+        i++;
+        while (pattern[i] && strchr("-+ #0", pattern[i]))
+            i++;
+        unsigned width = 0, precision = 0;
+        while (pattern[i] >= '0' && pattern[i] <= '9') {
+            width = width * 10 + (unsigned)(pattern[i++] - '0');
+            if (width > 64)
+                return 0;
+        }
+        if (pattern[i] == '.') {
+            i++;
+            while (pattern[i] >= '0' && pattern[i] <= '9') {
+                precision = precision * 10 + (unsigned)(pattern[i++] - '0');
+                if (precision > 9)
+                    return 0;
+            }
+        }
+        char c = pattern[i], spec[32], value[512];
+        if (!c || !strchr("diufs", c) || i - start + 1 >= sizeof spec || a >= n)
+            return 0;
+        memcpy(spec, pattern + start, i - start + 1);
+        spec[i - start + 1] = 0;
+        int len;
+        if (c == 's' && args[a].kind == 2)
+            len = snprintf(value, sizeof value, spec, args[a].text);
+        else if (c == 'f' && args[a].kind == 1)
+            len = snprintf(value, sizeof value, spec, args[a].real);
+        else if ((c == 'd' || c == 'i') && args[a].kind == 0)
+            len = snprintf(value, sizeof value, spec, args[a].integer);
+        else if (c == 'u' && args[a].kind == 0)
+            len = snprintf(value, sizeof value, spec, (unsigned)args[a].integer);
+        else
+            return 0;
+        a++;
+        if (len < 0 || (size_t)len >= sizeof value || (size_t)len > 255 - used)
+            return 0;
+        memcpy(out + used, value, (size_t)len);
+        used += (size_t)len;
+    }
+    out[used] = 0;
+    return 1;
+}
+static const char *gt(int id, const char *fallback) {
+    return mu_lang_text_or(mu_lang_shared(), id, fallback);
+}
+static void line(mu_social_item_view *v, int color, const char *text) {
+    if (!text || !*text)
+        return;
+    if (v->count >= MU_SOCIAL_OPTION_LINES) {
+        v->unresolved++;
+        return;
+    }
+    snprintf(v->text[v->count], sizeof v->text[0], "%s", text);
+    v->color[v->count++] = color;
+}
+static void missing(mu_social_item_view *v, const char *family) {
+    char text[256];
+    snprintf(text, sizeof text, "%s: details unavailable", family);
+    line(v, 10, text);
+    v->unresolved++;
+}
+static void formatted(mu_social_item_view *v, int color, const char *pattern, const arg *args, size_t n,
+                      const char *family) {
+    char text[256];
+    if (format(text, pattern, args, n))
+        line(v, color, text);
+    else
+        missing(v, family);
+}
+static void number_line(mu_social_item_view *v, int color, const char *name, int value, int percent) {
+    char text[256];
+    snprintf(text, sizeof text, "%.210s %d%s", name ? name : "", value, percent ? "%" : "");
+    line(v, color, text);
+}
+static int eval(const mu_social_item_tables *t, int family, int index, int a, int b, int count,
+                double *value) {
+    mu_social_formula_arg args[2] = {{MU_SOCIAL_FORMULA_INTEGER, a, 0}, {MU_SOCIAL_FORMULA_INTEGER, b, 0}};
+    return mu_social_formula_value(t, family, index, args, (size_t)count, value) && isfinite(*value);
+}
+typedef struct view_context {
+    const mu_social_item_tables *tables;
+    mu_social_item_view *view;
+    int unavailable;
+} view_context;
+static int final_formula(void *user, int family, int index, int a, int b, double *value) {
+    view_context *ctx = user;
+    return eval(ctx->tables, family, index, a, b, 2, value);
+}
+static int excellent_row(void *user, int family, int category, int id, int slot) {
+    view_context *ctx = user;
+    if (slot >= 0 && slot < 9)
+        ctx->view->requested_excellent[slot] = id;
+    if (family < 1 || family > 2)
+        return 0;
+    if (!mu_social_excellent_available(ctx->tables, family)) {
+        ctx->unavailable = 1;
+        return 0;
+    }
+    mu_social_excellent_row row;
+    return mu_social_excellent_get(ctx->tables, family, category, id, &row);
+}
+
+static int find(const mu_social_item_tables *t, const char *kind, int a, int b, int c, size_t n,
+                int32_t out[40], const char **text) {
+    int32_t keys[3] = {a, b, c};
+    return mu_social_option_find(t, kind, keys, n, out, text);
+}
+static void display_line(mu_social_item_view *v, int color, const char *pattern,
+                         const mu_social_display_value *d, const char *family) {
+    if (d->suppressed)
+        return;
+    arg args[2];
+    size_t n = 0;
+    if (d->kind == 3 || d->kind == 4)
+        args[n++] = as(gt(d->label, ""));
+    if (d->kind == 1 || d->kind == 3)
+        args[n++] = ai(d->integer);
+    if (d->kind == 2 || d->kind == 4)
+        args[n++] = ar(d->real);
+    formatted(v, color, pattern, args, n, family);
+}
+static void sockets(const mu_social_item_tables *t, const mu_social_item_hero *h, mu_social_item_view *v) {
+    mu_social_item_decoded *d = &v->decoded;
+    if (!d->socket_count)
+        return;
+    line(v, 6, gt(0xa5a, "Socket options"));
+    if (d->seed_index[0] == 46) {
+        arg a = ai(v->wire.code / 512 == 4 ? 5 : 3);
+        formatted(v, 1, gt(0x1336, "Socket attack option %d"), &a, 1, "Socket");
+        return;
+    }
+    for (int i = 0; i < d->socket_count && i < 5; i++) {
+        char prefix[64];
+        snprintf(prefix, sizeof prefix, "Socket %d", i + 1);
+        if (d->seed_index[i] == 255) {
+            char text[256];
+            snprintf(text, sizeof text, "%s: %s", prefix, gt(0xa5c, "Empty socket"));
+            line(v, 10, text);
+            continue;
+        }
+        mu_social_socket_row row;
+        int lev = d->seed_level[i];
+        if (!mu_social_socket_get(t, 0, d->seed_index[i], &row) || lev < 0 || lev > 20) {
+            missing(v, prefix);
+            continue;
+        }
+        int raw = lev ? row.values[lev - 1] : row.value_type;
+        mu_social_display_value value;
+        if (!mu_social_socket_display((int8_t)row.value_type, (float)raw, h->hp_known, h->max_hp, h->mp_known,
+                                      h->max_mp, &value)) {
+            missing(v, prefix);
+            continue;
+        }
+        char val[64], text[256];
+        if (value.kind == 2)
+            snprintf(val, sizeof val, "%3.1f", value.real);
+        else
+            snprintf(val, sizeof val, "%d%s", value.integer, row.value_type == 2 ? "%" : "");
+        snprintf(text, sizeof text, "%s: %.80s %.100s %s", prefix, gt(0xa4f + row.element, ""), row.name,
+                 val);
+        line(v, 1, text);
+    }
+    if (d->socket_bonus < 50) {
+        mu_social_socket_row row;
+        mu_social_display_value value;
+        line(v, 6, gt(0xa60, "Socket bonus"));
+        if (mu_social_socket_get(t, 1, d->socket_bonus, &row) &&
+            mu_social_socket_display((int8_t)row.value_type, (float)row.values[0], h->hp_known, h->max_hp,
+                                     h->mp_known, h->max_mp, &value)) {
+            char text[256];
+            if (value.kind == 2)
+                snprintf(text, sizeof text, "%s %3.1f", row.name, value.real);
+            else
+                snprintf(text, sizeof text, "%s %d%s", row.name, value.integer,
+                         row.value_type == 2 ? "%" : "");
+            line(v, 1, text);
+        } else
+            missing(v, "Socket bonus");
+    }
+}
+static void guardian(const mu_social_item_tables *t, mu_social_item_view *v) {
+    mu_social_item_decoded *d = &v->decoded;
+    double value;
+    for (int i = 0; i < 4; i++) {
+        if (d->guardian_keys[i] == 255)
+            continue;
+        mu_social_guardian_option row;
+        if (!mu_social_guardian_get(t, d->guardian_base, d->guardian_keys[i], &row)) {
+            missing(v, "Guardian option");
+            continue;
+        }
+        if (row.id == 1000 || row.id == 1001) {
+            line(v, 1, gt(0x15a6, "Guardian special option"));
+            if (row.id == 1001)
+                line(v, 1, gt(0x1654, "Guardian special bonus"));
+            continue;
+        }
+        if (!eval(t, 8, row.value, d->level, 0, 1, &value)) {
+            missing(v, "Guardian option");
+            continue;
+        }
+        if (row.id == 0 || row.id == 1 || row.id == 4) {
+            arg a = ai(trunc32(value));
+            formatted(v, 1, row.text, &a, 1, "Guardian option");
+        } else if (row.id == 2 || row.id == 3) {
+            arg a[2] = {ai(row.auxiliary), ar((double)(float)value)};
+            formatted(v, 1, row.text, a, 2, "Guardian option");
+        }
+    }
+    if (d->guardian_keys[4] != 255) {
+        mu_social_guardian_option rows[2];
+        line(v, 6, "Guardian bonus options");
+        if (!mu_social_guardian_bonus_get(t, d->guardian_base, d->guardian_keys[4], rows)) {
+            missing(v, "Guardian bonus");
+            return;
+        }
+        for (int i = 0; i < 2; i++) {
+            if (rows[i].id == -1) {
+                line(v, 10, gt(0x15a7, "No bonus option"));
+                continue;
+            }
+            if (!eval(t, 8, rows[i].value, d->level, 0, 1, &value)) {
+                missing(v, "Guardian bonus");
+                continue;
+            }
+            arg a = ai(trunc32(value));
+            formatted(v, 1, rows[i].text, &a, 1, "Guardian bonus");
+        }
+    }
+}
+static void artifacts(const mu_social_item_tables *t, mu_social_item_view *v) {
+    for (int i = 0; i < v->decoded.artifact_count; i++) {
+        const int *request = v->decoded.artifact[i];
+        mu_social_artifact_row row;
+        if (!mu_social_artifact_get(t, request[0], &row)) {
+            missing(v, "Artifact option");
+            continue;
+        }
+        double value = request[1];
+        if (request[2] > 0 && !eval(t, 11, row.tail[1], request[1], request[2], 2, &value)) {
+            missing(v, "Artifact option");
+            continue;
+        }
+        int format_type;
+        const char *name = mu_social_artifact_text(t, row.text_id, &format_type);
+        if (!name) {
+            missing(v, "Artifact option");
+            continue;
+        }
+        char text[256];
+        if (format_type == 0)
+            snprintf(text, sizeof text, "%s", name);
+        else
+            snprintf(text, sizeof text, "%.210s %d%s", name, trunc32(value), format_type == 2 ? "%" : "");
+        int rank = 0;
+        for (int j = 0; j < 10; j++)
+            if (row.pairs[j][0] == request[1]) {
+                rank = j + 1;
+                break;
+            }
+        if (rank) {
+            arg a[2] = {ai(rank), as(text)};
+            formatted(v, 1, gt(0x19f8, "Rank %d %s"), a, 2, "Artifact rank");
+        } else
+            line(v, 1, text);
+    }
+}
+static const char *element(int n) {
+    return n >= 1 && n <= 5 ? gt(0xe98 + n, "") : "";
+}
+static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *base, const mu_item *item,
+                      mu_social_item_view *v) {
+    (void)base;
+    const mu_social_item_decoded *d = &v->decoded;
+    int32_t row[40];
+    const char *text;
+    if (d->element > 5)
+        missing(v, "Element");
+    else if (d->element) {
+        char label[256];
+        snprintf(label, sizeof label, "Element: %s", element(d->element));
+        line(v, 6, label);
+    }
+    if (v->context.kind_a == 25) {
+        int displayed = 0;
+        if (d->socket_count && item->attributes.pentagram_grade)
+            for (int i = 3; i >= 0; i--) {
+                const int *r = d->rank[i];
+                if (r[3] == -1 || r[3] == 255)
+                    continue;
+                if (r[3] == 254) {
+                    char label[64];
+                    snprintf(label, sizeof label, "Elemental option slot %d", ++displayed);
+                    line(v, 10, label);
+                    continue;
+                }
+                if (r[0] < 1 || r[0] > 5)
+                    continue;
+                displayed++;
+                if (r[2] == 0 || r[2] == 1) {
+                    double value;
+                    if (!eval(t, 1, 7 + r[2], item->attributes.require_level, r[1], 2, &value)) {
+                        missing(v, "Elemental rank");
+                        continue;
+                    }
+                    char label[256];
+                    snprintf(label, sizeof label, "%.100s elemental %s +%d (%d level)", element(r[0]),
+                             r[2] ? "defense" : "attack", trunc32(value), r[1]);
+                    line(v, 1, label);
+                }
+            }
+        if (find(t, "pentagram", v->wire.code, 0, 0, 1, row, &text)) {
+            int ids[7];
+            for (int i = 0; i < 7; i++)
+                ids[i] = row[2 + i];
+            for (int i = 0; i < 7; i++)
+                if (ids[i]) {
+                    if (!find(t, "pentagram_option", ids[i], 0, 0, 1, row, &text)) {
+                        missing(v, "Pentagram option");
+                        continue;
+                    }
+                    if (ids[i] == 28) {
+                        int e1 = d->element + 1;
+                        if (e1 > 5)
+                            e1 -= 5;
+                        int e2 = e1 + 1;
+                        if (e2 > 5)
+                            e2 -= 5;
+                        if (e1 < 1 || e1 > 5 || e2 < 1 || e2 > 5) {
+                            missing(v, "Pentagram element");
+                            continue;
+                        }
+                        static const int labels[5] = {0x12d5, 0x12d7, 0x12d4, 0x12d6, 0x12d8};
+                        arg a[2] = {as(gt(labels[e1 > 0 && e1 <= 5 ? e1 - 1 : 0], "")),
+                                    as(gt(labels[e2 > 0 && e2 <= 5 ? e2 - 1 : 0], ""))};
+                        formatted(v, 10, text, a, 2, "Pentagram option");
+                    } else
+                        formatted(v, 10, text, NULL, 0, "Pentagram option");
+                    for (int j = 0; j < 5; j++) {
+                        unsigned slot = (uint8_t)row[1 + 3 * j], rank = (uint8_t)row[2 + 3 * j],
+                                 level = (uint8_t)row[3 + 3 * j];
+                        if (slot == 255)
+                            continue;
+                        char req[256];
+                        if (slot < 5)
+                            snprintf(req, sizeof req, "Requires %.100s rank %u level %u (equipment needed)",
+                                     gt(0xf7c + (int)slot, "Errtel"), rank, level);
+                        else if (slot == 5)
+                            snprintf(req, sizeof req, "Requires pentagram level %u%s", level,
+                                     d->level >= (int)level ? "" : " (not met)");
+                        else
+                            continue;
+                        line(v, 10, req);
+                    }
+                }
+        } else if (d->socket_count)
+            missing(v, "Pentagram options");
+        if (item->attributes.pentagram_grade && d->ancient) {
+            if (find(t, "ertel_set", d->ancient, 0, 0, 1, row, &text))
+                line(v, 10, text);
+            else
+                missing(v, "Elemental set");
+            line(v, 10, "Set activation requires current equipment");
+        }
+        for (int i = 0; i < 5; i++)
+            if (d->socket_raw[i] != 255) {
+                char label[192];
+                snprintf(label, sizeof label, "%s: embedded options need current equipment",
+                         gt(0xf7c + i, "Errtel"));
+                line(v, 10, label);
+                v->unresolved++;
+            }
+    } else if (v->context.kind_a == 26 || v->context.kind_b == 0x2c) {
+        if (d->socket_count < 1 || d->socket_count > 5)
+            return;
+        arg count = ai(d->socket_count);
+        formatted(v, 6, gt(0xe57, "%d Rank Errtel"), &count, 1, "Errtel rank");
+        int shown = 0;
+        for (int i = 0; i < 5; i++) {
+            int raw = d->socket_raw[i];
+            if (raw == 255)
+                continue;
+            int level = raw >> 4, opt = raw & 15;
+            arg a[2] = {ai(++shown), ai(level)};
+            formatted(v, 6, gt(0xe58, "%d Rank Option +%d"), a, 2, "Errtel rank");
+            if (level > 10 || !find(t, "jewel", v->wire.code, i + 1, opt, 3, row, &text)) {
+                missing(v, "Errtel option");
+                continue;
+            }
+            arg value = ai(row[6 + level]);
+            formatted(v, 1, text, &value, 1, "Errtel option");
+        }
+    }
+}
+static void earring(const mu_social_item_tables *t, mu_social_item_view *v) {
+    const mu_social_item_finalized *f = &v->finalized;
+    int32_t row[40];
+    const char *name;
+    for (int bonus = 0; bonus < 2; bonus++) {
+        int count = bonus ? f->bonus_count : f->special_count;
+        if (bonus && count)
+            line(v, 6, gt(0x14c9, "Earring set options"));
+        for (int i = 0; i < count; i++) {
+            const int *o = bonus ? f->bonus[i] : f->special[i];
+            int id = (uint8_t)o[0], rank = (uint8_t)o[1], tag = (uint8_t)o[2];
+            if (!find(t, "earring_name", id, 0, 0, 1, row, &name)) {
+                missing(v, "Earring option");
+                continue;
+            }
+            int format_type = row[1];
+            const char *text = name;
+            if (!find(t, "earring_value", tag, rank, 0, 2, row, NULL)) {
+                missing(v, "Earring value");
+                continue;
+            }
+            double value = row[3];
+            if (id >= 28 && id <= 31 && !eval(t, 9, row[3], v->decoded.level, 0, 1, &value)) {
+                missing(v, "Earring value");
+                continue;
+            }
+            number_line(v, bonus ? 10 : 1, text, trunc32(value), format_type == 2);
+        }
+        if (bonus && count)
+            line(v, 10, "Paired bonus requires equipped matching earrings");
+    }
+}
+int mu_social_item_view_build(const mu_social_item_tables *t, const mu_hud_tip_tables *base,
+                              const uint8_t bytes[15], const mu_social_item_hero *h, mu_social_item_view *v) {
+    memset(v, 0, sizeof *v);
+    mu_social_item_unpack(bytes, &v->wire);
+    mu_item item;
+    if (!base || !base->have_items || mu_item_find(&base->items, (uint32_t)v->wire.code, &item))
+        return 0;
+    const mu_item_attributes *a = &item.attributes;
+    mu_social_item_context *c = &v->context;
+    c->kind_a = a->kind_a;
+    c->kind_b = a->kind_b;
+    c->grade = a->type;
+    c->skill = a->skill;
+    c->base_level = a->level;
+    c->normalized_slot = mu_social_normalized_slot(a->slot);
+    c->slot_flags[0] = a->can_drop;
+    c->slot_flags[1] = a->can_trade;
+    c->slot_flags[2] = a->can_personal_store;
+    c->slot_flags[3] = a->can_warehouse;
+    c->can_trade = a->can_trade;
+    c->capability = 1;
+    mu_social_item_convert(&v->wire, c, &v->decoded);
+    view_context ctx = {.tables = t, .view = v};
+    for (int i = 0; i < 9; i++)
+        v->requested_excellent[i] = 255;
+    mu_social_item_final_env env = {.context = &ctx,
+                                    .formula = final_formula,
+                                    .excellent_row = excellent_row,
+                                    .level_word = v->wire.level_word,
+                                    .ancient = v->decoded.ancient,
+                                    .enabled = 1,
+                                    .class_byte = h->class_byte};
+    int32_t row[40];
+    const char *text;
+    if (c->kind_a == 19 && find(t, "earring_primary", item.index, 0, 0, 1, row, NULL)) {
+        int primary = row[1];
+        env.special_tag = (uint8_t)row[2];
+        env.special_row = 1;
+        int found = mu_social_earring_pair_get(t, primary, row);
+        if (found && row[0]) {
+            env.special_enabled = 1;
+            for (int i = 0; i < 3; i++) {
+                env.special_bonus[i] = row[2 + i];
+                env.special_lows[i] = (uint8_t)row[5 + i];
+            }
+        }
+    }
+    for (int i = 0; i < 9; i++)
+        v->finalized.slots[i] = 255;
+    for (int i = 0; i < 3; i++)
+        v->finalized.slots[6 + i] = v->decoded.extra_excellent[i];
+    if (c->kind_a == 19)
+        for (int i = 0; i < 5; i++)
+            v->finalized.slots[i] = v->decoded.special_raw[i];
+    mu_social_item_finalize(&v->wire, c, &env, &v->finalized);
+    v->excellent_known = !ctx.unavailable;
+    c->excellent_resolved = ctx.unavailable ? -1 : v->finalized.excellent;
+
+    mu_social_item_convert(&v->wire, c, &v->decoded);
+    mu_hud_item hi = {.code = v->wire.code,
+                      .level = v->decoded.level,
+                      .excellent = (uint8_t)v->finalized.excellent,
+                      .durability = v->wire.durability,
+                      .has_record = 1,
+                      .record = item};
+    snprintf(hi.name, sizeof hi.name, "%s", item.name);
+    int hero[4] = {h->strength, h->agility, h->energy, h->level};
+    mu_hud_tip tip;
+    uint8_t max =
+        mu_item_max_durability_at(&item, v->decoded.level, v->finalized.excellent, v->decoded.ancient);
+    mu_hud_tip_build_durability(base, &hi, hero, max, &tip);
+    const char *prefix = mu_social_ancient_prefix(t, v->wire.code, (uint8_t)v->decoded.ancient, a->kind_b);
+    for (int i = 0; i < tip.count; i++) {
+        if (!i && prefix && *prefix) {
+            char title[256];
+            snprintf(title, sizeof title, "%.90s %.150s", prefix, tip.text[i]);
+            line(v, tip.color[i], title);
+        } else
+            line(v, tip.color[i], tip.text[i]);
+    }
+    if (ctx.unavailable)
+        missing(v, "Excellent options");
+    if (v->decoded.ancient & 0x33)
+        line(v, 10, "Ancient set options require equipped matching pieces");
+    if (v->decoded.period)
+        line(v, 10, v->decoded.expired ? "Period item: expired" : "Period item");
+    if (v->finalized.skill) {
+        const mu_lang_skill *skill = mu_lang_skill_get(mu_lang_shared(), v->finalized.skill);
+        char label[256];
+        snprintf(label, sizeof label, "Skill: %s", skill ? skill->name : "available");
+        line(v, 1, label);
+    }
+    for (int i = 0; i < v->finalized.count; i++) {
+        mu_social_item_option option = v->finalized.options[i];
+        mu_social_display_value display;
+        if (mu_social_ordinary_display(v->wire.code, c->kind_a, (unsigned)option.id, (uint16_t)option.value,
+                                       !!(v->decoded.ancient & 0x33), &display)) {
+            text = mu_lang_text(mu_lang_shared(), display.text);
+            if (text)
+                display_line(v, 1, text, &display, "Additional option");
+            else
+                missing(v, "Additional option");
+        } else
+            missing(v, "Additional option");
+    }
+    if (v->finalized.unresolved)
+        missing(v, "Character-dependent option");
+    int excellent_header = 0;
+    if (c->kind_a != 19)
+        for (int i = 0; i < 9; i++) {
+            int id = v->finalized.slots[i];
+            if (id == 255)
+                continue;
+            mu_social_excellent_row row_ex;
+            if (!excellent_header++)
+                line(v, 6, "Excellent options (preview)");
+            if (!mu_social_excellent_get(t, v->finalized.family, v->finalized.category, id, &row_ex)) {
+                missing(v, "Excellent option");
+                continue;
+            }
+            double value;
+            mu_social_display_value display;
+            if (!mu_social_item_excellent_value(v->finalized.category, id, row_ex.value_type, row_ex.value,
+                                                v->wire.level_word, c->base_level, h->level, &env, &value) ||
+                !mu_social_excellent_display(v->wire.code, c->kind_a, c->kind_b, v->finalized.category,
+                                             row_ex.format, id, value, h->known, h->level, c->base_level,
+                                             &display)) {
+                missing(v, "Excellent option");
+                continue;
+            }
+            display_line(v, 1, row_ex.text, &display, "Excellent option");
+        }
+    if (mu_social_harmony_visible(&v->wire, c)) {
+        int group = v->wire.code < 0        ? 3
+                    : v->wire.code < 0xa00  ? 0
+                    : v->wire.code < 0xc00  ? 1
+                    : v->wire.code < 0x1800 ? 2
+                                            : 3;
+        if (c->kind_b == 0x4e || c->kind_b == 0x54)
+            group = 1;
+        mu_social_harmony_row hr;
+        int id = v->decoded.harmony_kind, lev = v->decoded.harmony_level;
+        if (group > 2 || id > (group ? 248 : 250) || lev < 0 || lev >= 14 ||
+            !mu_social_harmony_get(t, group, id, &hr))
+            missing(v, "Harmony option");
+        else
+            number_line(v, v->decoded.level >= lev ? 1 : 10, hr.name, hr.values[lev], group == 2 && id == 7);
+    }
+    if (v->decoded.advanced_slot >= 0) {
+        mu_social_advanced_row row_a;
+        if (mu_social_advanced_get(t, v->decoded.saved_group, v->decoded.advanced_option, &row_a))
+            number_line(v, 1, row_a.name, v->decoded.advanced_level, row_a.format == 2);
+        else
+            missing(v, "Advanced harmony option");
+    }
+    if (c->grade == 2)
+        sockets(t, h, v);
+    else if (c->kind_a == 20)
+        guardian(t, v);
+    else if (c->kind_a == 28)
+        artifacts(t, v);
+    else if (c->kind_a == 25 || c->kind_a == 26 || c->kind_b == 0x2c)
+        elemental(t, base, &item, v);
+    if (c->kind_a == 19)
+        earring(t, v);
+    return 1;
+}
+size_t mu_social_item_view_html(const mu_social_item_view *v, char *out, size_t cap) {
+    mu_tooltip_line lines[MU_SOCIAL_OPTION_LINES];
+    for (int i = 0; i < v->count; i++)
+        lines[i] = (mu_tooltip_line){v->text[i], v->color[i], 0, 0};
+    char ansi[32768];
+    int bad;
+    mu_tooltip_html(ansi, sizeof ansi, lines, v->count, &bad);
+    return mu_latin1_to_utf8(out, cap, ansi);
+}

@@ -20,6 +20,7 @@
 #include "../../reconstructed/npc/npc_dialogue.h"
 #include "../../reconstructed/price/item_price.h"
 #include "../../reconstructed/social/item_options.h"
+#include "../core/mu_social_item_view.h"
 #include "../core/mu_skill.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "../gfx/mu_gfx_sdl.h"
@@ -63,6 +64,8 @@ struct world_gfx {
     wg_tree *tree;
     double scale;
     mu_mix_book *mix;
+    mu_social_item_tables *social_options;
+    mu_social_item_view *social_view;
     /* NATIVE-PROGRESS-001: the hero's progression (core/mu_progress), when the host binds it; the options
      * window and the system menu */
     struct mu_progress *progress;
@@ -135,6 +138,40 @@ static int lang_skills(const mu_lang *lang, mu_gfx_skill *out, int max)
 
 static int64_t client_price(world_gfx *g, int32_t code, int32_t level, int gold_type);
 
+static int contextual_price_line(world_gfx *g, int32_t code, int32_t level, int context, int can_sell,
+                                 char line[256]) {
+    if ((context != MU_GFX_TIP_SHOP && context != MU_GFX_TIP_SELL) ||
+        (context == MU_GFX_TIP_SELL && !can_sell))
+        return 0;
+    char num[32];
+    int64_t price = client_price(g, code, level, context == MU_GFX_TIP_SHOP ? MU_PRICE_BUY : MU_PRICE_SELL);
+    mu_price_format((uint32_t)price, num, sizeof num);
+    const char *fmt = mu_lang_text(mu_lang_shared(), context == MU_GFX_TIP_SHOP ? 0x654 : 0x3f);
+    if (context == MU_GFX_TIP_SHOP)
+        snprintf(line, 256, "Buy %s (%s)", num, num); /* stand-in without GlobalText */
+    else
+        snprintf(line, 256, "Sell %s", num);
+    if (fmt) {
+        char clean[160];
+        mu_lang_ascii(clean, sizeof clean, fmt);
+        int conversions = 0; /* the table's format with the two (buy) or one (sell) %s */
+        for (const char *p = clean; *p; p++)
+            if (*p == '%')
+                conversions += p[1] == 's' ? 1 : 100, p += p[1] != 0;
+        if (conversions == (context == MU_GFX_TIP_SHOP ? 2 : 1)) {
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+            snprintf(line, 256, clean, num, num);
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+        }
+    }
+    return 1;
+}
+
 /* The InfoPopup HTML of an item through the tooltip pipeline (core/mu_hud_tip); context (NATIVE-LANG-002):
  * MU_GFX_TIP_SHOP adds the buy line, MU_GFX_TIP_SELL the sell line, as the tooltip builder does at 0x00f0bee3 /
  * 0x00f0bfe2 (static; the condition that picks the buy line sits behind a jump out of the restored image):
@@ -174,37 +211,10 @@ static int tooltip_build(void *user,int32_t code,int32_t level,const mu_mix_item
         mu_hud_tip_build_durability(&g->tables,&g->scratch->items[k],hero,maximum,&tip);
     } else mu_hud_tip_build(&g->tables, &g->scratch->items[k], hero, &tip);
     const mu_hud_item *hi = &g->scratch->items[k];
-    if ((context == MU_GFX_TIP_SHOP || context == MU_GFX_TIP_SELL) && tip.count + 2 <= MU_HUD_TIP_LINES &&
-        (context == MU_GFX_TIP_SHOP || !hi->has_record || hi->record.attributes.can_sell)) {
-        char num[32], line[256];
-        int64_t price = client_price(g, code, level, context == MU_GFX_TIP_SHOP ? MU_PRICE_BUY : MU_PRICE_SELL);
-        mu_price_format((uint32_t)price, num, sizeof num);
-        const char *fmt = mu_lang_text(mu_lang_shared(), context == MU_GFX_TIP_SHOP ? 0x654 : 0x3f);
-        if (context == MU_GFX_TIP_SHOP)
-            snprintf(line, sizeof line, "Buy %s (%s)", num, num);          /* stand-in without GlobalText */
-        else
-            snprintf(line, sizeof line, "Sell %s", num);
-        if (fmt) {
-            char clean[160];
-            mu_lang_ascii(clean, sizeof clean, fmt);
-            int conversions = 0;   /* the table's format with the two (buy) or one (sell) %s */
-            for (const char *p = clean; *p; p++)
-                if (*p == '%')
-                    conversions += p[1] == 's' ? 1 : 100, p += p[1] != 0;
-            if (conversions == (context == MU_GFX_TIP_SHOP ? 2 : 1)) {
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#endif
-                snprintf(line, sizeof line, clean, num, num);
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
-            }
-        }
-        snprintf(tip.text[tip.count], sizeof tip.text[0], "%s", line);
+    if (tip.count < MU_HUD_TIP_LINES &&
+        contextual_price_line(g, code, level, context, !hi->has_record || hi->record.attributes.can_sell,
+                              tip.text[tip.count]))
         tip.color[tip.count++] = 0;
-    }
     mu_hud_tip_html(&tip, html, cap);
     return 0;
 }
@@ -286,8 +296,13 @@ static void item_info(world_gfx *g, int32_t code, int32_t level, mu_gfx_slot_ite
  * dimensions and the record's trade permission. Missing data uses demo bounds. */
 static int social_item_info(void *user, int32_t code, mu_gfx_slot_item *out) {
     world_gfx *g = user;
-    if (!g->tables.have_items)
+    if (!g->tables.have_items) {
+        mu_social_item_wire wire;
+        mu_social_item_unpack(out->data, &wire);
+        mu_social_item_context context = {.can_trade = 1, .capability = 1};
+        out->trade_ban = mu_social_item_trade_banned(&wire, &context);
         return 1;
+    }
     mu_item it;
     if (mu_item_find(&g->tables.items, (uint32_t)code, &it) != 0)
         return 0;
@@ -305,8 +320,58 @@ static int social_item_info(void *user, int32_t code, mu_gfx_slot_item *out) {
     mu_social_item_wire wire;
     mu_social_item_unpack(out->data, &wire);
     out->trade_ban = mu_social_item_trade_banned(&wire, &context);
+    if (g->social_view) {
+        mu_social_item_hero hero = {0};
+        if (mu_social_item_view_build(g->social_options, &g->tables, out->data, &hero, g->social_view)) {
+            out->excellent = g->social_view->finalized.excellent;
+            out->set_bits = g->social_view->decoded.ancient;
+            int a = g->social_view->context.kind_a;
+            if (a == 8 || a == 25 || a == 26)
+                out->element = g->social_view->decoded.element;
+        }
+    }
     snprintf(out->name, sizeof out->name, "%s", it.name);
     return out->width > 0 && out->height > 0;
+}
+
+static int tooltip_packet(void *user, const uint8_t bytes[15], int context, char *html, size_t cap) {
+    world_gfx *g = user;
+    const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
+    if (!g->social_view || !h)
+        return 1;
+    mu_social_item_hero hero = {.known = 1,
+                                .level = h->level + h->master_level,
+                                .class_byte = g->walk ? g->walk->hero.class_byte : 0,
+                                .hp_known = 1,
+                                .max_hp = h->max_hp,
+                                .mp_known = 1,
+                                .max_mp = h->max_mp,
+                                .strength = h->strength,
+                                .agility = h->agility,
+                                .energy = h->energy};
+    if (g->progress) {
+        const uint8_t *a = g->progress->attr;
+        uint32_t level = (uint32_t)mu_prg_i32(a, MU_PRG_A_LEVEL);
+        if (a[MU_PRG_A_CLASS] & 0x20)
+            level += (uint32_t)mu_prg_i32(a, MU_PRG_A_MLEVEL);
+        hero.level = (int32_t)level;
+    }
+    if (!mu_social_item_view_build(g->social_options, &g->tables, bytes, &hero, g->social_view))
+        return 1;
+    mu_social_item_view_html(g->social_view, html, cap);
+    mu_item record;
+    char price[256];
+    int sell = mu_item_find(&g->tables.items, (uint32_t)g->social_view->wire.code, &record) == 0 &&
+               record.attributes.can_sell;
+    if (cap && contextual_price_line(g, g->social_view->wire.code, g->social_view->decoded.level, context,
+                                     sell, price)) {
+        char ansi[1024], utf8[2048];
+        mu_tooltip_html_line(ansi, sizeof ansi, price, 0, 0);
+        mu_latin1_to_utf8(utf8, sizeof utf8, ansi);
+        size_t used = strlen(html);
+        snprintf(html + used, cap - used, "%s", utf8);
+    }
+    return 0;
 }
 
 /* Demo inventory (layer choice): a weapon, armour pieces, potions and a ring;
@@ -1210,6 +1275,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     mu_ui_font_open(&g->quest_font, face && *face ? face : "Tahoma", 12, 400);
     g->scratch = malloc(sizeof *g->scratch);
     mu_hud_tip_tables_load(game_root, &g->tables);
+    g->social_options = mu_social_item_tables_load(game_root, getenv("MU_LANG_DIR"), &g->tables.items);
+    g->social_view = calloc(1, sizeof *g->social_view);
     g->items = game_root && !getenv("MU_GFX_NO_ITEM_MODELS") ? wg_items_open(game_root) : NULL;
     mu_gfx_layer_config cfg = {.movie_dir = movie_dir,
                                .width = width,
@@ -1223,14 +1290,28 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
                                .items_user = g->items,
                                .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER"),
-                               .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared(),
-                               .price = item_price, .price_ex = item_price_ex, .tooltip_ex = tooltip_ex,
-                               .dialog_choice = dialogue_choice, .buff_tooltip = buff_tooltip,
-                               .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key,
-                               .window_draw = window_draw, .mix_quote = mix_quote,
-                               .jewel_check = jewel_check, .jewel_request = jewel_request,
-                               .tooltip_snapshot=tooltip_snapshot, .store_check = store_check, .repair_quote = repair_quote, .repair_request = repair_request,
-                               .stat_button = stat_button, .progress_call = progress_call, .social_item_info = social_item_info};
+                               .text = mu_lang_shared() ? lang_text : NULL,
+                               .text_user = (void *)mu_lang_shared(),
+                               .price = item_price,
+                               .price_ex = item_price_ex,
+                               .tooltip_ex = tooltip_ex,
+                               .dialog_choice = dialogue_choice,
+                               .buff_tooltip = buff_tooltip,
+                               .quest_call = quest_call,
+                               .dialog_wrapped = quest_wrapped,
+                               .window_key = quest_key,
+                               .window_draw = window_draw,
+                               .mix_quote = mix_quote,
+                               .jewel_check = jewel_check,
+                               .jewel_request = jewel_request,
+                               .tooltip_snapshot = tooltip_snapshot,
+                               .store_check = store_check,
+                               .repair_quote = repair_quote,
+                               .repair_request = repair_request,
+                               .stat_button = stat_button,
+                               .progress_call = progress_call,
+                               .social_item_info = social_item_info,
+                               .tooltip_packet = tooltip_packet};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -1345,6 +1426,8 @@ void world_gfx_close(world_gfx *g)
     wg_skill_close(g->skill);
     mu_ui_font_close(&g->quest_font);
     wg_items_close(g->items);
+    mu_social_item_tables_free(g->social_options);
+    free(g->social_view);
     mu_hud_tip_tables_free(&g->tables);
     mu_dlg_free(&g->dlg);
     free(g->scratch);

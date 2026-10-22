@@ -18,7 +18,7 @@ struct world_gfx_social {
     char room_name[11];
     int message_revision, mailbox_revision;
     uint32_t room_ui[MU_LOCAL_ROOMS], delivered[MU_LOCAL_ROOMS], roster_hash[MU_LOCAL_ROOMS];
-    uint32_t mail_ui[MU_LOCAL_WINDOWS], connection[MU_LOCAL_ROOMS];
+    uint32_t mail_ui[MU_LOCAL_WINDOWS], mail_letter[MU_LOCAL_WINDOWS], connection[MU_LOCAL_ROOMS];
 };
 /* JSON strings preserve UTF-8; control bytes are escaped. No game data in source. */
 static void quote(char *o, size_t cap, const char *s)
@@ -131,22 +131,12 @@ static int offer(world_gfx_social *g, int cell)
     int token = mu_gfx_layer_inventory_reserve(g->l, cell, &item);
     if (!token)
         return 0;
-    if (!item.has_data) {
-        mu_social_item_wire wire;
-        memset(&wire, 0, sizeof wire);
-        wire.code = item.code;
-        wire.level_word = (uint8_t)(item.level << 3);
-        wire.durability = 100; /* original demo inventory has no server instance */
-        memset(wire.sockets, 0xff, sizeof wire.sockets);
-        memset(wire.extra, 0xff, sizeof wire.extra);
-        mu_social_item_pack(&wire, item.data);
-        item.has_data = 1;
-    }
     mu_gfx_slot_item meta;
     if (!mu_gfx_layer_social_item(g->l, item.data, &meta) || meta.trade_ban) {
         mu_gfx_layer_inventory_finish(g->l, token, 0);
         return 0;
     }
+    item.excellent = meta.excellent;
     int slot = -1;
     for (int y = 0; y + item.height <= 4 && slot < 0; y++)
         for (int x = 0; x + item.width <= 8 && slot < 0; x++) {
@@ -191,6 +181,23 @@ static void messenger(world_gfx_social *g, const char *name)
     if (mu_social_messages_open(&g->s->messages, name))
         messages_frame(g);
 }
+static int trade_over(world_gfx_social *g, int cell) {
+    int side = cell >= 32 ? 0 : 1;
+    mu_gfx_slot_item it;
+    int slot = covered_item(g, side, cell % 32, &it);
+    if (cell >= 0 && cell < 64 && slot >= 0) {
+        float ox, oy;
+        mu_gfx_layer_window_position(g->l, MU_GFX_TRADE, &ox, &oy);
+        float sc = mu_gfx_layer_window_scale(g->l, MU_GFX_TRADE);
+        int k = 1 - side;
+        float rect[4] = {ox + (g->x[k] + (float)(slot % 8) * (g->w[k] + 1)) * sc,
+                         oy + (g->y[k] + (float)(slot / 8) * (g->h[k] + 1)) * sc,
+                         (float)it.width * g->w[k] * sc, (float)it.height * g->h[k] * sc};
+        mu_gfx_layer_social_tooltip(g->l, &it, rect);
+        return 1;
+    }
+    return 0;
+}
 int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *arg)
 {
     if (!g)
@@ -202,6 +209,13 @@ int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *a
         return 1;
     }
     mu_social_messages *messages = &g->s->messages;
+    if (!strcmp(verb, "mailbox")) {
+        g->friends = 1;
+        g->revision = -1;
+        mu_gfx_layer_show(g->l, MU_GFX_FRIENDS, 1);
+        call(g, MU_GFX_FRIENDS, "OpenMailBox", "[]");
+        return 1;
+    }
     if (!strcmp(verb, "mail")) {
         mu_social_messages_compose(messages, arg);
         messages_frame(g);
@@ -233,6 +247,28 @@ int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *a
         int ok = mu_social_messages_delete_confirm(messages, strcmp(arg, "no") != 0);
         messages_frame(g);
         return ok;
+    }
+    if (!strcmp(verb, "trade-tip"))
+        return trade_over(g, atoi(arg));
+    if (!strcmp(verb, "mail-draft")) {
+        mu_local_window *w = mu_social_messages_window(messages, messages->active_ui);
+        const char *split = strchr(arg, '|');
+        if (!w || w->kind != 1 || !split || (size_t)(split - arg) > 32 || strlen(split + 1) > 1000)
+            return 0;
+        size_t n = (size_t)(split - arg);
+        memcpy(w->title, arg, n);
+        w->title[n] = 0;
+        snprintf(w->body, sizeof w->body, "%s", split + 1);
+        char title[256], body[4096], params[4500];
+        quote(title, sizeof title, w->title);
+        quote(body, sizeof body, w->body);
+        snprintf(params, sizeof params, "[%u,%s]", w->ui, title);
+        call(g, MU_GFX_MESSENGER, "ChangeTitleBySize", params);
+        snprintf(params, sizeof params, "[%u,%s]", w->ui, body);
+        call(g, MU_GFX_MESSENGER, "SetLetterText", params);
+        messages->revision++;
+        messages_frame(g);
+        return 1;
     }
     if (!strcmp(verb, "offer"))
         return offer(g, atoi(arg));
@@ -481,9 +517,10 @@ static uint32_t id_arg(const char *json, int index) {
     return end != p && v <= UINT32_MAX ? (uint32_t)v : 0;
 }
 static void message_ui_init(world_gfx_social *g) {
-    call(g, MU_GFX_MESSENGER, "InitText",
-         "[[\"Write\",\"Read\",\"Reply\",\"Delete\",\"Messenger\",\"Invite\",\"Delete\",\"Previous\","
-         "\"Next\",\"Close\",\"Send\",\"Recipient\",\"Title\",\"Offline demo\",\"Close invite\",\"Send\"]]");
+    call(
+        g, MU_GFX_MESSENGER, "InitText",
+        "[[\"Write\",\"Read\",\"Reply\",\"Delete\",\"Messenger\",\"Invite\",\"Delete\",\"Previous\","
+        "\"Next\",\"Close\",\"Send\",\"Recipient\",\"Title\",\"Offline demo\",\"Close invite\",\"Sender\"]]");
     char q[64], b[96];
     quote(q, sizeof q, g->s->hero);
     snprintf(b, sizeof b, "[%s]", q);
@@ -497,6 +534,12 @@ static void messages_frame(world_gfx_social *g) {
     if (m->notice) {
         const char *fallback = "Messenger request could not be completed.";
         switch (m->notice) {
+        case MU_SOCIAL_NOTICE_CACHE_CAPACITY:
+            fallback = "Mail could not be opened. Delete an old letter and try again.";
+            break;
+        case MU_SOCIAL_NOTICE_WINDOW_CAPACITY:
+            fallback = "Too many open windows. Close one and try again.";
+            break;
         case 0x3ee:
             fallback = "Enter a recipient.";
             break;
@@ -520,6 +563,14 @@ static void messages_frame(world_gfx_social *g) {
         }
         mu_gfx_layer_social_notice(g->l, m->notice, fallback);
         m->notice = 0;
+    }
+    if (m->room_notice[0]) {
+        notice(g, m->room_notice);
+        m->room_notice[0] = 0;
+    }
+    if (m->notice_fee) {
+        mu_gfx_layer_social_notice(g->l, 0x130f, "Mail fee: 1,000 Zen (offline demo).");
+        m->notice_fee = 0;
     }
     message_ui_init(g);
     char b[32768], q[8192], name[128], title[256];
@@ -616,14 +667,19 @@ static void messages_frame(world_gfx_social *g) {
         mu_local_window *w = m->windows + i;
         if (g->mail_ui[i] && g->mail_ui[i] != w->ui) {
             snprintf(b, sizeof b, "[%u]", g->mail_ui[i]);
+            uint32_t old_ui = g->mail_ui[i];
             g->mail_ui[i] = 0;
             call(g, MU_GFX_MESSENGER, "CloseWindow", b);
+            if (g->mail_letter[i] && mu_social_messages_pending_get(m, g->mail_letter[i]) == old_ui)
+                mu_social_messages_pending_close(m, g->mail_letter[i]);
+            g->mail_letter[i] = 0;
         }
         if (!w->ui)
             continue;
         shown |= w->shown;
         if (g->mail_ui[i] != w->ui) {
             g->mail_ui[i] = w->ui;
+            g->mail_letter[i] = w->kind == 2 ? w->letter : 0;
             quote(name, sizeof name, w->recipient);
             quote(title, sizeof title, w->title);
             if (w->kind == 1) {
@@ -777,18 +833,22 @@ static int messages_callback(world_gfx_social *g, const char *name, const char *
         if (w && w->kind == 1 && string_arg(args, 1, a, sizeof a)) {
             int limit = !strcmp(name, "UpdateLetterText") ? 255 : !strcmp(name, "UpdateLetterID") ? 10 : 32;
             if (strlen(a) > (size_t)limit) {
+                /* Native text is UTF-8. Keep complete code points at the
+                 * original byte capacity boundary. ANSI conversion is separate. */
+                while (limit > 0 && ((unsigned char)a[limit] & 0xc0) == 0x80)
+                    limit--;
                 a[limit] = 0;
                 quote(b, sizeof b, a);
                 snprintf(c, sizeof c, "[%u,%s]", ui, b);
                 call(g, MU_GFX_MESSENGER,
-                     limit == 255  ? "SetLetterText"
-                     : limit == 10 ? "ChangeIDBySize"
-                                   : "ChangeTitleBySize",
+                     !strcmp(name, "UpdateLetterText") ? "SetLetterText"
+                     : !strcmp(name, "UpdateLetterID") ? "ChangeIDBySize"
+                                                       : "ChangeTitleBySize",
                      c);
             }
-            if (limit == 255)
+            if (!strcmp(name, "UpdateLetterText"))
                 snprintf(w->body, sizeof w->body, "%s", a);
-            else if (limit == 10)
+            else if (!strcmp(name, "UpdateLetterID"))
                 snprintf(w->recipient, sizeof w->recipient, "%.10s", a);
             else
                 snprintf(w->title, sizeof w->title, "%.32s", a);
@@ -845,19 +905,7 @@ static void window(void *user, int id, const char *name, const char *args)
                 world_gfx_social_action(g, "remove", b);
             }
         } else if (!strcmp(name, "requestItemSlotOver")) {
-            int cell = atoi(args + 1), side = cell >= 32 ? 0 : 1;
-            mu_gfx_slot_item it;
-            int slot = covered_item(g, side, cell % 32, &it);
-            if (cell >= 0 && cell < 64 && slot >= 0) {
-                float ox, oy;
-                mu_gfx_layer_window_position(g->l, MU_GFX_TRADE, &ox, &oy);
-                float sc = mu_gfx_layer_window_scale(g->l, MU_GFX_TRADE);
-                int k = 1 - side;
-                float rect[4] = {ox + (g->x[k] + (float)(slot % 8) * (g->w[k] + 1)) * sc,
-                                 oy + (g->y[k] + (float)(slot / 8) * (g->h[k] + 1)) * sc,
-                                 (float)it.width * g->w[k] * sc, (float)it.height * g->h[k] * sc};
-                mu_gfx_layer_social_tooltip(g->l, &it, rect);
-            }
+            trade_over(g, atoi(args + 1));
         } else if (!strcmp(name, "requestItemSlotOut")) {
             mu_gfx_layer_invoke(g->l, MU_GFX_TOOLTIP, NULL, "SetInfoPopupClose", "[]");
         } else if (!strcmp(name, "onClickbtnTrade")) {
@@ -1114,8 +1162,9 @@ void world_gfx_social_frame(world_gfx_social *g)
                     d->level = it.level;
                     d->has_options = 1;
                     d->level_word = wire.level_word;
-                    d->excellent = wire.excellent & 0x3f;
-                    d->set_bits = wire.ancient;
+                    d->excellent = it.excellent;
+                    d->set_bits = it.set_bits;
+                    d->element = it.element;
                     d->rect[0] = ox + (g->x[k] + (float)(i % 8) * (g->w[k] + 1)) * sc;
                     d->rect[1] = oy + (g->y[k] + (float)(i / 8) * (g->h[k] + 1)) * sc;
                     d->rect[2] = g->w[k] * sc * (float)it.width;

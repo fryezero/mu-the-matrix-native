@@ -4,7 +4,7 @@
 #include <string.h>
 void mu_social_item_unpack(const uint8_t b[15], mu_social_item_wire *out) {
     memset(out, 0, sizeof *out);
-    out->code = b[0] | ((b[3] & 0x80) << 1) | ((b[5] & 0xf0) << 5) | ((b[5] & 1) << 13);
+    out->code = mu_social_item_code(b);
 #ifdef MU_SOCIAL2_MUTATION_ITEM
     out->code ^= 0x100;
 #endif
@@ -248,7 +248,7 @@ int mu_social_item_trade_banned(const mu_social_item_wire *w, const mu_social_it
         return 1;
     if (w->code == 0x1c15 && level == 3)
         return 0;
-#ifdef MU_SOCIAL2_MUTATION_TRADE_PERIOD
+#ifdef MU_SOCIAL2_MUTATION_TRADE_FLAG
     return 0;
 #else
     return !c->can_trade;
@@ -566,9 +566,11 @@ void mu_social_item_finalize(const mu_social_item_wire *w, const mu_social_item_
                 final_append(f, id, value);
         }
     }
-    if (w->code == 0x1a04)
+    if ((w->code == 0x1a04 || w->code == 0x28f7) && !e->state_known)
+        f->unresolved |= 4;
+    if (w->code == 0x1a04 && e->state_known)
         final_append(f, 15, e->character_stat / 20 + 2 * e->state_level + 5);
-    if (w->code == 0x28f7)
+    if (w->code == 0x28f7 && e->state_known)
         for (int i = 0; i < 2; i++) {
             double value;
             if (evaluate(e, f, 16, 5 + i, e->state_level, e->state_level, &value))
