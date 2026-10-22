@@ -35,6 +35,15 @@ NATIVE-LANG-002 adds:
   soulconv.tsv    MonsterSoulConversion codes   (0x06fbbe1c, map +0x44, lookup 0x01135146; ItemValue prices them)
   questtext.txt   index<TAB>text                (MUQuestString(kor) 0x06fbbd9c, map +0x38 handed out by 0x00fe821e)
 
+NATIVE-QUEST-001 adds (written when the snapshot holds the table):
+
+  quests.tsv        MUQuest 0x06fbbddc, map +0x38: index, name, +0x1c, +0x20, the accept block (30 ints at
+                    +0x24) and the goal block (26 ints at +0x9c) of the 0x104-byte records (a snapshot taken
+                    with `langread ... node:0x137c=0x118`; older snapshots copied 0x40 bytes and give none);
+  queststrings.tsv  MUQuestString: index, type (+0x1c), quest (+0x20), text (the dialogue builder 0x00fe764a);
+  itemleveltip.tsv  ItemLevelTooltip 0x06fbb9b0, map +0x38: key, group (+0x18), index (+0x1a), level (+0x1c),
+                    name (+0) (the reward text 0x00fe1e92 names level items by it).
+
 Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
 exactly (its strings are ANSI; a few are CP949).
@@ -54,6 +63,8 @@ NPCNAME, DIALOG, ENCHANT = MANAGER + 0xc04, MANAGER + 0xc70, MANAGER + 0xcf4
 PENTAGRAM, INVENANIM, LEGENDARY, CASHSET = MANAGER + 0x3ec, MANAGER + 0x1dd0, MANAGER + 0x2148, MANAGER + 0x21a8
 BUFF, CHARINFO, SKILLREQ, SOULCONV = MANAGER + 0x844, MANAGER + 0x2b8, MANAGER + 0x7e8, MANAGER + 0x13bc
 QUESTTEXT = MANAGER + 0x133c
+MUQUEST, LEVELTIP = MANAGER + 0x137c, MANAGER + 0xf50
+MUQUEST_RECORD = 0x104
 MAP_AT = {TEXT: 0x38, SKILL: 0x108, GATE: 0x38, MOVEREQ: 0x38, NPCNAME: 0x38, DIALOG: 0x38, ENCHANT: 0x38}
 ENCHANT_DEFAULT = 0x50            # 0x010ffd7a / 0x010ffddb return this+0x50 when nothing matches
 
@@ -359,6 +370,35 @@ def read_questtext(snap):
     return [(key, snap.string(record(node) + 4)) for key, node in snap.tree(QUESTTEXT + 0x38)]
 
 
+def read_quests(snap):
+    """MUQuest(kor) (0x06fbbddc, map +0x38; record builder 0x0113eb75, lookup 0x0113e6de): 0x104-byte records:
+    +0 index, +4 name, +0x1c, +0x20, +0x24 accept block (30 ints), +0x9c goal block (26 ints).  Raises
+    SnapshotError when the snapshot copied less of a node (langread without node:0x137c=0x118)."""
+    rows = []
+    for key, node in snap.tree(MUQUEST + 0x38):
+        r = record(node)
+        values = struct.unpack('<65i', snap.read(r, MUQUEST_RECORD))
+        rows.append((key, snap.string(r + 4), values[7], values[8], values[9:39], values[39:65]))
+    return rows
+
+
+def read_queststrings(snap):
+    """MUQuestString(kor): record +0 index, +4 text, +0x1c type, +0x20 quest (0x00fe764a)."""
+    return [(key, snap.i32(record(node) + 0x1c), snap.i32(record(node) + 0x20), snap.string(record(node) + 4))
+            for key, node in snap.tree(QUESTTEXT + 0x38)]
+
+
+def read_leveltips(snap):
+    """ItemLevelTooltip (0x06fbb9b0, map +0x38, consumer 0x0111e98b): record +0 name, u16 +0x18 group, +0x1a
+    index, +0x1c level (the reward text 0x00fe1e92 reads them through the pair: +0x1c / +0x1e / +0x20)."""
+    rows = []
+    for key, node in snap.tree(LEVELTIP + 0x38):
+        r = record(node)
+        group, index, level = struct.unpack('<HHH', snap.read(r + 0x18, 6))
+        rows.append((key, group, index, level, snap.string(r)))
+    return rows
+
+
 def map_name_table(path=ROOT/'native/core/mu_lang_maps.h'):
     """world -> GlobalText index template from the generated header."""
     out = []
@@ -530,6 +570,36 @@ def convert(snap, out_dir, header=''):
             for key, raw in rows:
                 f.write(f'{key}\t{escape(raw)}\n')
         counts['questtext'] = len(rows)
+    except SnapshotError:
+        pass
+
+    try:
+        rows = read_quests(snap)
+        with open(out_dir/'quests.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#index\tname\tx1c\tx20\taccept[30]\tgoal[26]  (MUQuest 0x06fbbddc, records 0x104 bytes)\n')
+            for key, name, x1c, x20, accept, goal in rows:
+                f.write(f'{key}\t{escape(name)}\t{x1c}\t{x20}\t' + ' '.join(map(str, accept)) + '\t' +
+                        ' '.join(map(str, goal)) + '\n')
+        counts['quests'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows = read_queststrings(snap)
+        with open(out_dir/'queststrings.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#index\ttype\tquest\ttext  (MUQuestString 0x06fbbd9c; type 1 title, 2 page, 3 progress, '
+                    '4 complete, 5 summary)\n')
+            for key, kind, quest, raw in rows:
+                f.write(f'{key}\t{kind}\t{quest}\t{escape(raw)}\n')
+        counts['queststrings'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows = read_leveltips(snap)
+        with open(out_dir/'itemleveltip.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#key\tgroup\tindex\tlevel\tname  (ItemLevelTooltip 0x06fbb9b0)\n')
+            for key, group, index, level, raw in rows:
+                f.write(f'{key}\t{group}\t{index}\t{level}\t{escape(raw)}\n')
+        counts['itemleveltip'] = len(rows)
     except SnapshotError:
         pass
 

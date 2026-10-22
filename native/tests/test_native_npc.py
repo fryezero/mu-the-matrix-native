@@ -157,7 +157,7 @@ class Session(unittest.TestCase):
             if line and line[0] == 'talk':
                 talks.append((int(line[1]), int(line[2], 0)))
             if line:
-                self.assertIn(line[0], ('talk', 'shop', 'storage', 'actor'))
+                self.assertIn(line[0], ('talk', 'shop', 'storage', 'actor', 'dialog', 'quest'))   # NATIVE-QUEST-001
         self.assertEqual({r for _, r in talks}, named)
         self.assertIn((584, 0x28), talks)                                  # the dialogue NPC 0x248 itself
 

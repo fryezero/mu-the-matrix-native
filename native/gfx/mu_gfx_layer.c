@@ -317,7 +317,8 @@ struct mu_gfx_layer {
 };
 
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
-                                                 "NpcDialogue", "NpcShop", "StorageInven"};
+                                                 "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
+                                                 "MyQuestInfo"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -1085,6 +1086,16 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
     mv->view_dirty = 1;
     if (!strcmp(name, "UIInit") && json_string(args, 0, s, sizeof s)) {
         snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
+        if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST) && L->cfg.quest_call)
+            L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
+        return NULL;
+    }
+    if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST) && strcmp(name, "TweenTimeSet")) {
+        /* NATIVE-QUEST-001: the host runs the client's handler (reconstructed/quest) */
+        if (L->cfg.quest_call)
+            L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);
+        else if (!strcmp(name, "CloseWindow"))
+            mu_gfx_layer_show(L, mv->id, 0);
         return NULL;
     }
     if (!strcmp(name, "CloseWindow")) {
@@ -1317,7 +1328,7 @@ static void slot_gap(mu_gfx_layer *L)
  * and InfoPopup 9 (Align_None: no SetAlign/SetWindowSize); SetWindowSize
  * gets the window size (0x01cf1624/8) and SetScale(83) applies below 700
  * pixels of height to both (handler +0x58 = scale / 100). */
-static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9, 9, 9, 9};   /* npcdialogue, NpcShop, StorageInven: 9 */
+static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9, 9, 9, 9, 9, 9};   /* the NPC and quest windows: 9 */
 
 static void window_sizes(mu_gfx_layer *L)
 {
@@ -2080,6 +2091,8 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
      * ids of InitMenuInfo are not key codes, so Frame.Main.onKeyUp does not
      * produce them); the scan is not reconstructed, the layer maps I/V, C
      * and Esc (layer choice). */
+    if (down && !mods && L->cfg.window_key && L->cfg.window_key(L->cfg.tooltip_user, vk))
+        return 1;                            /* NATIVE-QUEST-001: the host's window hotkeys (T, the quest window keys) */
     if (down && !mods) {
         if (vk == 'I' || vk == 'V') {
             mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
@@ -3017,6 +3030,8 @@ static const char *npc_call(movie *mv, const char *name, const char *args, const
             char wrapped[4096] = "";
             json_string_decoded(args, 0, wrapped, sizeof wrapped);
             L->dlg.wrapped = 1;
+            if (L->cfg.dialog_wrapped)
+                L->cfg.dialog_wrapped(L->cfg.tooltip_user, wrapped);
             dialog_wrapped(L, wrapped);
         } else if (!strcmp(name, "onClickSelectBtn") && n >= 1 && L->cfg.dialog_choice &&
                    L->cfg.dialog_choice(L->cfg.tooltip_user, (int)v[0])) {

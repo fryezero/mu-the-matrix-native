@@ -15,7 +15,15 @@
    - buffers the copied bytes point to, by shape: an MSVC std::string (pointer at +0, size +0x10, capacity +0x14,
      capacity >= 16) gives its characters; a std::vector (begin <= end <= capacity end) gives its elements, and
      element buffers are scanned the same way once more.
-   Output: "MULANGV1", u32 block count, then blocks of (u32 address, u32 size, bytes). */
+   Output: "MULANGV1", u32 block count, then blocks of (u32 address, u32 size, bytes).
+
+   Options after the output path (NATIVE-QUEST-001):
+   - node:OFF=BYTES   copy BYTES per node for the table at manager offset OFF instead of the table span + 0x14
+                      (MUQuest's 0x104-byte records: node:0x137c=0x118);
+   - map:PTR+OFF=BYTES[,obj=N]   walk the std::map whose container is at [PTR] + OFF (PTR: a pointer variable of
+                      the image, e.g. the quest system singleton 0x01ec2e60), BYTES per node; with obj=N the node
+                      value at +0x14 is a pointer to an N-byte object, which is copied, chased for strings and
+                      vectors, and scanned for std::map containers that are walked too (0x50 bytes per node). */
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <stdint.h>
@@ -110,8 +118,26 @@ static void chase(const uint8_t *b, uint32_t n, int depth)
     }
 }
 
+static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_t obj_bytes);
+
+/* std::map containers (head pointer, size; the head's _Isnil byte set) inside a copied object: walked. */
+static void scan_maps(const uint8_t *b, uint32_t n)
+{
+    for (uint32_t o = 0; o + 8 <= n; o += 4) {
+        uint32_t head = u32(b, o), count = u32(b, o + 4);
+        uint8_t hn[0x10];
+        if (head < 0x10000 || count > 100000 || rd(head, hn, sizeof hn) || hn[0xd] != 1)
+            continue;
+        if (u32(hn, 0) == 0 || u32(hn, 4) == 0 || u32(hn, 8) == 0)
+            continue;
+        uint32_t len = 0x10;
+        free(copy_block(head, &len, 1));
+        walk(head, count, 0x50, 0);
+    }
+}
+
 /* Walk one std::map: _Left +0, _Parent +4, _Right +8, _Isnil +0xd, value from +0x10. */
-static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes)
+static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_t obj_bytes)
 {
     uint32_t root, copied = 0;
     if (rd(head + 4, &root, 4))
@@ -131,6 +157,15 @@ static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes)
             ++copied;
             if (len > 0x10)
                 chase(b + 0x10, len - 0x10, 1);
+            if (obj_bytes && len >= 0x18) {
+                uint32_t obj = u32(b, 0x14), olen = obj_bytes;
+                uint8_t *ob = obj >= 0x10000 ? copy_block(obj, &olen, 1) : NULL;
+                if (ob) {
+                    chase(ob, olen, 1);
+                    scan_maps(ob, olen);
+                    free(ob);
+                }
+            }
             free(b);
         }
         if (right != head && sp < 4096) stack[sp++] = right;
@@ -142,7 +177,7 @@ static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes)
 
 int main(int c, char **v)
 {
-    if (c < 3) { fprintf(stderr, "usage: langread pid out.bin\n"); return 2; }
+    if (c < 3) { fprintf(stderr, "usage: langread pid out.bin [node:OFF=BYTES] [map:PTR+OFF=BYTES[,obj=N]]\n"); return 2; }
     if (task_for_pid(mach_task_self(), atoi(v[1]), &task)) { fprintf(stderr, "task_for_pid failed\n"); return 1; }
     static uint8_t mgr[MANAGER_END - MANAGER];
     if (rd(MANAGER, mgr, sizeof mgr)) { fprintf(stderr, "manager unreadable\n"); return 1; }
@@ -159,6 +194,11 @@ int main(int c, char **v)
     for (size_t t = 0; t + 1 < sizeof TABLES / sizeof TABLES[0]; ++t) {
         uint32_t span = TABLES[t + 1] - TABLES[t];
         uint32_t node_bytes = (0x14 + span + 3) & ~3u;
+        for (int a = 3; a < c; ++a) {
+            unsigned off = 0, bytes = 0;
+            if (sscanf(v[a], "node:%i=%i", &off, &bytes) == 2 && off == TABLES[t])
+                node_bytes = (bytes + 3) & ~3u;
+        }
         if (node_bytes > NODE_MAX)
             node_bytes = NODE_MAX;
         for (uint32_t o = TABLES[t]; o + 8 <= TABLES[t + 1]; o += 4) {
@@ -170,11 +210,36 @@ int main(int c, char **v)
                 continue;
             uint32_t len = 0x10;
             free(copy_block(head, &len, 1));
-            uint32_t got = walk(head, count, node_bytes);
+            uint32_t got = walk(head, count, node_bytes, 0);
             printf("map %08x (table +0x%x, +0x%x) count %u copied %u\n", MANAGER + o, TABLES[t], o - TABLES[t],
                    count, got);
             ++maps; nodes += got;
         }
+    }
+    for (int a = 3; a < c; ++a) {
+        unsigned ptr = 0, off = 0, bytes = 0, obj = 0;
+        int k = sscanf(v[a], "map:%i+%i=%i,obj=%i", &ptr, &off, &bytes, &obj);
+        if (k < 3)
+            continue;
+        uint32_t base = 0, len = 4;
+        free(copy_block(ptr, &len, 1));
+        if (rd(ptr, &base, 4) || base < 0x10000)
+            continue;
+        uint8_t cont[8], hn[0x10];
+        if (rd(base + off, cont, 8))
+            continue;
+        uint32_t head = u32(cont, 0), count = u32(cont, 4);
+        if (head < 0x10000 || count > 1000000 || rd(head, hn, sizeof hn) || hn[0xd] != 1)
+            continue;
+        len = off + 8;
+        free(copy_block(base, &len, 1));
+        len = 0x10;
+        free(copy_block(head, &len, 1));
+        if (bytes > NODE_MAX)
+            bytes = NODE_MAX;
+        uint32_t got = walk(head, count, (bytes + 3) & ~3u, k == 4 ? obj : 0);
+        printf("map [%08x]+0x%x count %u copied %u\n", ptr, off, count, got);
+        ++maps; nodes += got;
     }
     fseek(out, count_pos, SEEK_SET);
     fwrite(&blocks, 4, 1, out);

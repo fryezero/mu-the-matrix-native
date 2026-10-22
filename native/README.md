@@ -314,6 +314,16 @@ MU_GFX_SINGLE_BUFFER=1 native/build/mu-world --game-root "$MU_GAME_ROOT" --headl
     --gfx MOVIES --tile 138,123 --npc-script "5:click:smith 60:buy:0 80:sell:0 110:close" --frames 120 --out-dir DIR
 ```
 
+## Quests (NATIVE-QUEST-001)
+
+With `--gfx` and the quest tables in `MU_LANG_DIR` (`quests.tsv`, `queststrings.tsv`, `itemleveltip.tsv` from a
+langread snapshot with the quest options), quests run through the client's own quest code (`reconstructed/quest`,
+`core/mu_quest.*`; [finding](../docs/research/client-quests.md)): a quest NPC's dialogue (demo rows `dialog CLASS
+DIALOGUE-NPC`, the F9 01 packet) offers its quest list (option 901; demo `quest NPC QUEST ...` lines), NpcQuestProgress
+shows the pages, accept, conditions and rewards, MyQuestInfo (T) the active quests by tab; monster kills count (demo
+server). Script verbs: `qnext qno qok qclose qwin qtab:N qsel:QUEST qgo qgiveup qkill:CLASS qset:QUEST:COUNT`; the
+report ends with a `quest` line. Convert `NpcQuestProgress MyQuestInfo` next to the NPC movies.
+
 ## Other players (NATIVE-PLAYERS-001)
 
 The characters a server would put around the hero, from a labelled **demo players file** ([finding](../docs/research/client-remote-players.md)):
@@ -606,6 +616,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_joints.*` | The joint pool over `reconstructed/joints`: slot search, MoveJoints, RenderJoints as quads, render-type state (NATIVE-JOINT-001) |
 | `core/mu_combat.*` | Combat in the walk-around session: hero attack, skills, effects, damage text, hit/death reactions over `reconstructed/combat`; demo server (NATIVE-COMBAT-001); effect/particle/joint pools, area skills, hero hit/death, combat sounds (NATIVE-COMBAT-002); monster hurt and death sounds (NATIVE-ITEMS-001) |
 | `core/mu_npc.*` | NPC talk in the walk-around session over `reconstructed/npc`: pick, talk walk, talk case, demo answer through the talk-result dispatch, window events (NATIVE-NPC-001) |
+| `core/mu_quest.*` | Quests over `reconstructed/quest`: the session, the client's effects to the GFx layer, the demo quest server (NATIVE-QUEST-001) |
 | `core/mu_items.*` | Dropped items over `reconstructed/items`: pool, CreateItem, MoveItems and sparkle, RenderItems with the item passes, SelectItem, labels, pick-up, demo drops (NATIVE-ITEMS-001) |
 | `core/mu_charsel*`, `charsel/` | Character-select session, its 2D layer and the front ends `mu-charsel` / `mu-charsel-window` (NATIVE-CHARSEL-001); the object lifecycle and particles of the scene (NATIVE-CHARSEL-002); the pick and the GFx character list `charsel/charsel_list_gfx.*` (NATIVE-CHARSEL-003) |
 | `core/mu_names.*`, `core/mu_world_names.*`, `core/mu_label.*`, `world/world_names_gfx.*` | Overhead names, monster HP boxes and chat bubbles: hudPlayerName's game side over `reconstructed/names`, its feed from the session, the shared label helper for the stand-in, the calls to the real movie (NATIVE-NAMES-001) |

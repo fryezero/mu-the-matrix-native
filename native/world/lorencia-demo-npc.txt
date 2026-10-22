@@ -33,3 +33,13 @@ talk 238 0x03
 # Sir Lesnar (584) next to the town square: result 0x28 opens npcdialogue for the dialogue NPC 0x248 = 584.
 actor 584 136 125 6 label sir lesnar
 talk 584 0x28 dialog 102 147 158 options 250 114
+
+# NATIVE-QUEST-001: a quest NPC near the town square. The demo server answers its talk with the NPC dialogue
+# packet F9 01 for dialogue NPC 257 (the Shadow Phantom Soldier; its own class 257 is not in the extracted class
+# table, so the Guardsman model 224 stands in): npcdialogue shows NPC 257's NPCDialogue.bmd state 0, whose option
+# 901 asks for the NPC's quest list (C1 F6 71). The demo server lists these quests (MUQuest indices; 7 "Hunt
+# Lorencia Budge Dragon": 3 budge dragons, 10 "Hunt Lorencia Hound", 440 "Spider Hunt!"). What the client does
+# with every answer is reconstructed (reconstructed/quest).
+actor 224 135 128 2 label soldier
+dialog 224 257
+quest 257 7 10 440

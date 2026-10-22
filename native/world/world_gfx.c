@@ -9,6 +9,7 @@
 #include "../core/mu_hud_tip.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_npc.h"
+#include "../core/mu_quest.h"
 #include "../../reconstructed/hud/tooltip_html.h"
 #include "../../reconstructed/npc/npc_dialogue.h"
 #include "../../reconstructed/price/item_price.h"
@@ -33,7 +34,15 @@ struct world_gfx {
     int32_t world;                  /* the session's world (ItemValue reads the current world) */
     int32_t dlg_state;
     char dlg_title[96];
+    /* NATIVE-QUEST-001: the quest session (reconstructed/quest with the demo server) */
+    mu_quest_session quest;
+    int have_quest;
+    int32_t dlg_npc;
+    char quest_events[8][256];
+    int quest_event_count;
 };
+
+static void quest_dialog_visible(world_gfx *g, int visible);
 
 /* GlobalText for the layer's labels: the tables read from the client
  * (NATIVE-LANG-001, MU_LANG_DIR). */
@@ -270,6 +279,7 @@ static int dialogue_show(world_gfx *g, int32_t state)
     d.hide_contribute = g->hide_contribute;
     g->dlg_state = state;
     g->dlg_open = 1;
+    quest_dialog_visible(g, 1);
     return mu_gfx_layer_npc_dialog(g->layer, &d);
 }
 
@@ -280,9 +290,26 @@ static int dialogue_choice(void *user, int index)
     world_gfx *g = user;
     if (!g->have_dlg || !g->dlg_open)
         return 0;
+    if (g->have_quest && g->quest.client.dialog.list_mode) {
+        /* NATIVE-QUEST-001: npcdialogue's quest-list mode (0x00be906d's first branch; the choice is 1-based) */
+        int leave = 0;
+        mu_quest_dialog_choice(&g->quest.client, index + 1, &leave);
+        if (leave)
+            dialogue_show(g, 0);
+        else if (!g->quest.client.dialog.visible)
+            g->dlg_open = 0;
+        return 1;
+    }
     mu_dlg_choice c = mu_dlg_select(&g->dlg, g->dlg_state, index);
     if (c.kind == MU_DLG_SHOW) {
         dialogue_show(g, c.value);
+        return 1;
+    }
+    if (c.value == 901 && g->have_quest) {
+        /* case 0: C1 F6 71 with the dialogue NPC (0x00bea599(0x00fdc9a3())): the NPC's quest list; the demo
+         * server answers F6 71 (core/mu_quest), whose handler fills the quest list into this window */
+        mu_quest_session_npc_list(&g->quest, g->dlg_npc);
+        mu_gfx_layer_npc_note(g->layer, "dialogue request 901: the NPC's quest list (demo server)");
         return 1;
     }
     if (mu_dlg_action_closes(c.value)) {
@@ -382,6 +409,356 @@ static void char_rows(world_gfx *g, const char *open)
     mu_gfx_layer_set_char_rows(g->layer, out, n);
 }
 
+/* ---- NATIVE-QUEST-001 ---- */
+
+static const char *quest_text(void *user, int32_t index)
+{
+    (void)user;
+    return mu_lang_text(mu_lang_shared(), index);
+}
+
+static const char *quest_npc(void *user, int32_t npc)
+{
+    (void)user;
+    return mu_lang_npc_name(mu_lang_shared(), npc);
+}
+
+static const char *quest_map(void *user, int32_t world)
+{
+    (void)user;
+    return mu_lang_map_name(mu_lang_shared(), world);
+}
+
+static const char *quest_item(void *user, int32_t code)
+{
+    world_gfx *g = user;
+    static char name[96];
+    name[0] = 0;
+    if (g->scratch && g->tables.have_items) {
+        mu_hud_inventory_init(g->scratch);
+        int k = mu_hud_inventory_add(g->scratch, &g->tables.items, g->root, code, 0, 1, 2);
+        if (k >= 0)
+            snprintf(name, sizeof name, "%s", g->scratch->items[k].name);
+    }
+    return name;
+}
+
+/* The dialogue manager's QuestWords text (0x00fdc9c1): the quest list's 0x5dd / 0x5de and the leave 0x3ef. */
+static const char *quest_word(void *user, int32_t id)
+{
+    world_gfx *g = user;
+    return g->have_dlg ? mu_dlg_text(&g->dlg, id) : NULL;
+}
+
+static const char *quest_utf8(void *user, const char *src, char *dst, size_t cap)
+{
+    (void)user;
+    mu_latin1_to_utf8(dst, cap, src);      /* 0x00a99d93 under a Latin-1 code page */
+    return dst;
+}
+
+static int quest_movie(const char *w, size_t n)
+{
+    if (n == 16 && !strncmp(w, "NpcQuestProgress", n))
+        return MU_GFX_QUEST_PROGRESS;
+    if (n == 11 && !strncmp(w, "MyQuestInfo", n))
+        return MU_GFX_MY_QUEST;
+    if (n == 11 && !strncmp(w, "npcdialogue", n))
+        return MU_GFX_NPC_DIALOG;
+    return -1;
+}
+
+/* The client's effects as libquest reports them, executed on the movies in order (an invoke's callbacks reach
+ * the client code before it goes on, as in the client). */
+static void quest_event(void *user, const char *line)
+{
+    world_gfx *g = user;
+    if (g->quest_event_count < 8)
+        snprintf(g->quest_events[g->quest_event_count++], sizeof g->quest_events[0], "%s", line);
+    else {
+        memmove(g->quest_events[0], g->quest_events[1], 7 * sizeof g->quest_events[0]);
+        snprintf(g->quest_events[7], sizeof g->quest_events[0], "%s", line);
+    }
+    const char *sp = strchr(line, ' ');
+    if (!sp)
+        return;
+    const char *w = sp + 1, *we = strchr(w, ' ');
+    size_t wn = we ? (size_t)(we - w) : strlen(w);
+    int m = quest_movie(w, wn);
+    if (!strncmp(line, "invoke ", 7) || !strncmp(line, "value ", 6)) {
+        if (m < 0 || !we)
+            return;
+        const char *meth = we + 1, *me = strchr(meth, ' ');
+        if (!me)
+            return;
+        char method[64];
+        snprintf(method, sizeof method, "%.*s", (int)(me - meth), meth);
+        mu_gfx_layer_invoke(g->layer, m, NULL, method, me + 1);
+    } else if (!strncmp(line, "show ", 5) && m >= 0) {
+        mu_gfx_layer_show(g->layer, m, 1);
+    } else if (!strncmp(line, "hide ", 5) && m >= 0) {
+        mu_gfx_layer_show(g->layer, m, 0);
+        if (m == MU_GFX_NPC_DIALOG)
+            g->dlg_open = 0;
+    } else if (!strncmp(line, "demo ", 5)) {
+        mu_gfx_layer_chat(g->layer, 3, "", line + 5);
+    } else if (!strncmp(line, "notice ", 7) || !strncmp(line, "msgbox ", 7)) {
+        /* a system message to the chat (0x0095f4ec); the native client has no message box window: its text
+         * goes to the chat too */
+        const char *q = strchr(line, '"');
+        char raw[1024] = "", utf8[2048];
+        size_t n = 0;
+        for (const char *p = q ? q + 1 : ""; *p && *p != '"' && n + 1 < sizeof raw; p++)
+            raw[n++] = *p == '\\' && p[1] ? *++p : *p;
+        raw[n] = 0;
+        mu_latin1_to_utf8(utf8, sizeof utf8, raw);
+        mu_gfx_layer_chat(g->layer, 3, "", utf8);
+    }
+}
+
+static void quest_dialog_visible(world_gfx *g, int visible)
+{
+    if (g->have_quest)
+        g->quest.client.dialog.visible = visible;
+}
+
+static double json_number_at(const char *args, int k)
+{
+    double v[8];
+    int n = 0;
+    for (const char *p = args; p && *p && n < 8;) {
+        if (*p == '"') {
+            for (p++; *p && *p != '"'; p++)
+                if (*p == '\\' && p[1])
+                    p++;
+            if (*p)
+                p++;
+            v[n++] = 0;                   /* strings count as arguments */
+            continue;
+        }
+        if ((*p >= '0' && *p <= '9') || *p == '-') {
+            char *end = NULL;
+            v[n++] = strtod(p, &end);
+            p = end;
+            continue;
+        }
+        p++;
+    }
+    return k < n ? v[k] : 0;
+}
+
+static void json_string_at(const char *args, int k, char *out, size_t cap)
+{
+    int idx = 0;
+    out[0] = 0;
+    for (const char *p = args; p && *p;) {
+        if (*p == '"') {
+            size_t n = 0;
+            for (p++; *p && *p != '"'; p++) {
+                char c = *p;
+                if (c == '\\' && p[1]) {
+                    c = *++p;
+                    c = c == 'n' ? '\n' : c == 't' ? '\t' : c;
+                }
+                if (idx == k && n + 1 < cap)
+                    out[n++] = c;
+            }
+            if (idx == k) {
+                out[n] = 0;
+                return;
+            }
+            idx++;
+            if (*p)
+                p++;
+            continue;
+        }
+        if ((*p >= '0' && *p <= '9') || *p == '-') {
+            char *end = NULL;
+            strtod(p, &end);
+            p = end;
+            idx++;
+            continue;
+        }
+        p++;
+    }
+}
+
+/* The movies' callbacks to the client's handlers (0x00beec8c NpcQuestProgress, 0x00be4b89 MyQuestInfo). */
+static void quest_call(void *user, int movie, const char *name, const char *args)
+{
+    world_gfx *g = user;
+    if (!g->have_quest)
+        return;
+    mu_quest_client *c = &g->quest.client;
+    char text[8192];
+    json_string_at(args, 1, text, sizeof text);
+    if (!strcmp(name, "UIInit")) {   /* the movie loaded: the handler's OnLoad (vtable +8) */
+        if (movie == MU_GFX_QUEST_PROGRESS)
+            mu_quest_progress_onload(c);
+        else
+            mu_quest_info_onload(c);
+        return;
+    }
+    if (movie == MU_GFX_QUEST_PROGRESS) {
+        if (!strcmp(name, "CloseWindow"))
+            mu_quest_progress_close(c);
+        else
+            mu_quest_progress_callback(c, name, json_number_at(args, 0), text);
+    } else if (movie == MU_GFX_MY_QUEST) {
+        double v[2] = {json_number_at(args, 0), json_number_at(args, 1)};
+        if (!strcmp(name, "onClickbtnQuestGiveUp")) {
+            /* the client asks with a message box (id 0x2d); the native client has none: taken as OK */
+            mu_quest_info_callback(c, name, v, 2, NULL);
+            mu_quest_info_giveup_ok(c);
+        } else {
+            mu_quest_info_callback(c, name, v, 2, text);
+        }
+    }
+}
+
+static void quest_wrapped(void *user, const char *text)
+{
+    world_gfx *g = user;
+    if (g->have_quest)
+        mu_quest_dialog_set_text(&g->quest.client, text, 0);
+}
+
+static int quest_key(void *user, int vk)
+{
+    world_gfx *g = user;
+    if (!g->have_quest)
+        return 0;
+    mu_quest_client *c = &g->quest.client;
+    if (vk == 'T') {          /* the quest window (layer choice: the client's key scan is not reconstructed) */
+        mu_quest_session_toggle_info(&g->quest);
+        return 1;
+    }
+    if (c->progress.visible && vk >= '1' && vk <= '9') {   /* 0x00bede37: 1..9 choose */
+        mu_quest_progress_select(c, vk - '1');
+        return 1;
+    }
+    if (vk == 27 && c->progress.visible) {
+        mu_quest_progress_close(c);
+        return 1;
+    }
+    if (vk == 27 && c->info.visible) {
+        mu_quest_info_close(c);
+        return 1;
+    }
+    return 0;
+}
+
+int world_gfx_quest_setup(world_gfx *g, const char *demo_text)
+{
+    if (!g || !g->layer)
+        return 0;
+    if (g->have_quest) {
+        mu_quest_session_offers(&g->quest, demo_text);
+        return 1;
+    }
+    mu_quest_host host = {.user = g, .text = quest_text, .npc_name = quest_npc, .map_name = quest_map,
+                          .item_name = quest_item, .to_utf8 = quest_utf8};
+    char error[256];
+    if (mu_quest_session_open(&g->quest, NULL, demo_text, &host, error, sizeof error)) {
+        if (getenv("MU_QUEST_VERBOSE"))
+            fprintf(stderr, "quests: %s\n", error);
+        return 0;
+    }
+    g->quest.event = quest_event;
+    g->quest.user = g;
+    g->have_quest = 1;
+    const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
+    mu_quest_set_hero(&g->quest.client, h ? h->name : "");
+    mu_quest_set_dialogue_words(&g->quest.client, quest_word);
+    /* movies that loaded before the session: their handlers' OnLoad now */
+    if (mu_gfx_layer_path(g->layer, MU_GFX_QUEST_PROGRESS)[0])
+        mu_quest_progress_onload(&g->quest.client);
+    if (mu_gfx_layer_path(g->layer, MU_GFX_MY_QUEST)[0])
+        mu_quest_info_onload(&g->quest.client);
+    return 1;
+}
+
+void world_gfx_quest_step(world_gfx *g)
+{
+    if (g && g->have_quest)
+        mu_quest_session_step(&g->quest);
+}
+
+void world_gfx_quest_kill(world_gfx *g, int monster_class)
+{
+    if (g && g->have_quest)
+        mu_quest_session_kill(&g->quest, monster_class, g->world);
+}
+
+void world_gfx_quest_report(world_gfx *g, FILE *out)
+{
+    if (g && g->have_quest)
+        mu_quest_session_report(&g->quest, out);
+}
+
+/* Scripted quest verbs (mu-world --npc-script): qnext / qno (NpcQuestProgress choice 0 / 1), qok (its
+ * confirm), qclose, qwin (T), qtab:N, qsel:QUEST, qgo (MyQuestInfo's move/complete button), qgiveup,
+ * qkill:CLASS (a demo kill), qset:QUEST:COUNT (demo progress). */
+static int quest_action(world_gfx *g, const char *verb, const char *arg)
+{
+    if (!g->have_quest || verb[0] != 'q')
+        return -1;
+    mu_quest_client *c = &g->quest.client;
+    if (!strcmp(verb, "qnext"))
+        return mu_quest_progress_select(c, 0);
+    if (!strcmp(verb, "qno"))
+        return mu_quest_progress_select(c, 1);
+    if (!strcmp(verb, "qok")) {
+        mu_quest_progress_confirm(c);
+        return 1;
+    }
+    if (!strcmp(verb, "qclose")) {
+        if (c->progress.visible)
+            mu_quest_progress_close(c);
+        return 1;
+    }
+    if (!strcmp(verb, "qwin")) {
+        mu_quest_session_toggle_info(&g->quest);
+        return 1;
+    }
+    if (!strcmp(verb, "qtab")) {
+        /* a click on a tab: the movie's SelectTab (SetUIType, then its OnSelectTab callback) */
+        char a[32];
+        snprintf(a, sizeof a, "[%d]", arg ? atoi(arg) : 2);
+        mu_gfx_layer_invoke(g->layer, MU_GFX_MY_QUEST, NULL, "SelectTab", a);
+        return 1;
+    }
+    if (!strcmp(verb, "qsel")) {
+        /* a click on a quest of the list: the movie's SelectQuest(tab, row) (its OnSelectQuest callback) */
+        int32_t quest = arg ? atoi(arg) : 0, row = 0;
+        const int32_t *list;
+        size_t n = mu_quest_active(&c->qs, c->info.tab, &list);
+        for (size_t i = 0; i < n; i++)
+            if (list[i] == quest)
+                row = (int32_t)i;
+        char a[48];
+        snprintf(a, sizeof a, "[%d,%d]", c->info.tab, row);
+        mu_gfx_layer_invoke(g->layer, MU_GFX_MY_QUEST, NULL, "SelectQuest", a);
+        return 1;
+    }
+    if (!strcmp(verb, "qgo"))
+        return mu_quest_info_callback(c, "onClickbtnLeaveQuestImmediately", NULL, 0, NULL);
+    if (!strcmp(verb, "qgiveup")) {
+        mu_quest_info_giveup_ok(c);
+        return 1;
+    }
+    if (!strcmp(verb, "qkill")) {
+        mu_quest_session_kill(&g->quest, arg ? atoi(arg) : 0, g->world);
+        return 1;
+    }
+    if (!strcmp(verb, "qset")) {
+        const char *colon = arg ? strchr(arg, ':') : NULL;
+        mu_quest_session_progress(&g->quest, arg ? atoi(arg) : 0, colon ? atoi(colon + 1) : 0);
+        return 1;
+    }
+    return -1;
+}
+
 world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
                           int shared, const char *open, char *error, size_t error_size)
 {
@@ -401,7 +778,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER"),
                                .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared(),
                                .price = item_price, .price_ex = item_price_ex, .tooltip_ex = tooltip_ex,
-                               .dialog_choice = dialogue_choice, .buff_tooltip = buff_tooltip};
+                               .dialog_choice = dialogue_choice, .buff_tooltip = buff_tooltip,
+                               .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -434,6 +812,7 @@ void world_gfx_close(world_gfx *g)
 {
     if (!g)
         return;
+    mu_quest_session_close(&g->quest);
     mu_gfx_layer_close(g->layer);
     wg_items_close(g->items);
     mu_hud_tip_tables_free(&g->tables);
@@ -526,11 +905,20 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
     npc_title(o, label, title, sizeof title);
     const mu_npc_demo_row *row = o->demo;
     if (o->kind == MU_NPC_WINDOW_DIALOG && g->have_dlg && o->window.dialogue > 0) {
-        /* NATIVE-LANG-002: the client's dialogue: 0x00fdc96c(dialogue NPC), then the open shows state 0 */
+        /* NATIVE-LANG-002: the client's dialogue: 0x00fdc96c(dialogue NPC), then the open shows state 0
+         * (NATIVE-QUEST-001: also the NPC dialogue packet F9 01, handler 0x0126d5da, for any dialogue NPC; it
+         * does nothing while npcdialogue is open) */
+        if (o->dialog_packet && g->dlg_open && mu_gfx_layer_npc_window(g->layer) == MU_GFX_NPC_DIALOG)
+            return;
         mu_dlg_set_npc(&g->dlg, o->window.dialogue);
+        g->dlg_npc = o->window.dialogue;
+        if (g->have_quest)
+            g->quest.client.dialog.list_mode = 0;      /* 0x00be842c: +0x1d04 = 0 */
         snprintf(g->dlg_title, sizeof g->dlg_title, "%s", title);
         g->hide_contribute = o->window.dialogue == 0x248 || o->window.dialogue == 0x2fc ||
                              o->window.dialogue == 0x2fd || o->window.dialogue == 0x3ab || o->window.dialogue == 0x3ac;
+        if (o->dialog_packet)
+            g->hide_contribute = 1;   /* 0x00be88b8: VisibleContribute(0) unless a Gens steward of the hero's Gens */
         dialogue_show(g, 0);
     } else if (o->kind == MU_NPC_WINDOW_DIALOG) {
         static char text[4096], options[13][96];
@@ -583,8 +971,16 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
 
 void world_gfx_npc_close_all(world_gfx *g)
 {
-    if (g)
-        mu_gfx_layer_npc_close(g->layer);
+    if (!g)
+        return;
+    mu_gfx_layer_npc_close(g->layer);
+    g->dlg_open = 0;
+    quest_dialog_visible(g, 0);
+    /* NATIVE-QUEST-001: ReceiveTalk's close-all closes every GFx window, the quest windows by their handlers */
+    if (g->have_quest && g->quest.client.progress.visible)
+        mu_quest_progress_close(&g->quest.client);
+    if (g->have_quest && g->quest.client.info.visible)
+        mu_quest_info_close(&g->quest.client);
 }
 
 int world_gfx_npc_window(world_gfx *g)
@@ -594,7 +990,12 @@ int world_gfx_npc_window(world_gfx *g)
 
 int world_gfx_npc_action(world_gfx *g, const char *verb, const char *arg)
 {
-    return g ? mu_gfx_layer_npc_action(g->layer, verb, arg ? atoi(arg) : 0) : 0;
+    if (!g)
+        return 0;
+    int q = quest_action(g, verb, arg);
+    if (q >= 0)
+        return q;
+    return mu_gfx_layer_npc_action(g->layer, verb, arg ? atoi(arg) : 0);
 }
 
 const char *world_gfx_npc_last(world_gfx *g)

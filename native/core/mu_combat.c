@@ -873,6 +873,8 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
         char text[96];
         snprintf(text, sizeof text, "step %d: %s dies", c->step, a->label[0] ? a->label : "monster");
         log_line(c, text);
+        if (c->kill)
+            c->kill(c->kill_context, i, a->server_class);
         if (c->target == i) {
             c->target = -1;
             c->intent_skill = -1;

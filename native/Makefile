@@ -53,7 +53,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
-            core/mu_world_helpers.c
+            core/mu_world_helpers.c core/mu_quest.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -79,7 +79,9 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
              $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c \
-             $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c
+             $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c \
+             $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
+             $(RECON)/quest/quest_ui.c $(RECON)/quest/quest_packets.c $(RECON)/quest/quest_api.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -96,7 +98,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/items/*.h) \
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
-           $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h
+           $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(wildcard $(RECON)/quest/*.h)
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -108,7 +110,7 @@ UI_LIBS :=
 endif
 
 all: $(BUILD)/mu-render $(BUILD)/mu-terrain $(BUILD)/mu-frame $(BUILD)/mu-effect $(BUILD)/libmumeshdraw.$(SHLIB_EXT) \
-     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) \
+     $(BUILD)/mu-proto $(BUILD)/libmuprotocol.$(SHLIB_EXT) $(BUILD)/libmuui.$(SHLIB_EXT) $(BUILD)/libmuquest.$(SHLIB_EXT) \
      $(BUILD)/mu-data $(BUILD)/mu-walk $(BUILD)/mu-path $(BUILD)/mu-charsel $(BUILD)/mu-shell $(BUILD)/mu-lang audio
 
 $(BUILD)/core/%.o: core/%.c $(HEADERS)
@@ -187,6 +189,12 @@ $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/
 $(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_proto.c core/mu_protocol.c -o $@
+
+# NATIVE-QUEST-001: the quest session (core/mu_quest over reconstructed/quest) for the tests (ctypes).
+QUEST_LIB_SRC := core/mu_quest.c $(wildcard $(RECON)/quest/quest_*.c)
+$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) core/mu_quest.h $(wildcard $(RECON)/quest/*.h)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) -fPIC -shared $(QUEST_LIB_SRC) -o $@
 
 $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
