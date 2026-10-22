@@ -91,6 +91,7 @@ typedef struct mu_t4_node {
     float value, next;                    /* +0x10, +0x14 */
     uint8_t avail;                        /* +0x18 */
     uint8_t open;                         /* +0x19 */
+    int32_t rect[4];                      /* +0x1c: the movie's slot rectangle x, y, x + w, y + h (0x00c2b3ec) */
     const mu_t4_record *rec;              /* +0x34 */
     int16_t parents[MU_T4_LINKS];         /* +0x38: positions in the group's node array, list order */
     int nparents;
@@ -192,6 +193,10 @@ void mu_t4_skill8_refresh(mu_t4_window *w, const mu_t4_env *env);               
 /* 0x00c2a37a-style query: the enhancement value of `enh` under the use-type-8 skill `skill`; 0 when absent. */
 int mu_t4_enhancement(const mu_t4_window *w, int32_t skill, int32_t enh, int32_t *value);
 void mu_t4_change_tab(mu_t4_window *w, const mu_t4_env *env, int32_t tab);          /* 0x00c25b6c */
+/* onClickprevBtn / onClicknextBtn (0x00c2c77e): the current tab's page (0x00c25baa) -1 / +1 through 0x00c23dc2. */
+void mu_t4_step_page(mu_t4_window *w, const mu_t4_env *env, int step);
+/* RequestSlotUIInfo(index, x, y, w, h) 0x00c2b3ec: every group's node of that index keeps the truncated rectangle. */
+void mu_t4_slot_rect(mu_t4_window *w, int32_t index, float x, float y, float width, float height);
 /* 0x00c25bda OnMouseClickSlot(index): 1 when the confirm box (id 0x73) opened. */
 int mu_t4_click(mu_t4_window *w, const mu_t4_env *env, int32_t index);
 void mu_t4_message(const mu_t4_env *env, int kind);                  /* 0x00c2a0f1 */

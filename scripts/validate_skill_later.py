@@ -155,7 +155,7 @@ class Gfx:
 
     def _invoke_v(self, mm):
         name, val = mm.args(2)
-        self.log.append(('invoke', mm.cstr(name).decode(), self.resolve(self.value(val))))
+        self.log.append(('invoke', mm.cstr(name).decode(), [self.resolve(self.value(val))]))
         return 1
 
     def _invoke_f(self, mm):
@@ -242,7 +242,7 @@ def side_keys(snap):
 SKILL_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_int),
                             ctypes.POINTER(ctypes.c_int))
 HAS_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32)
-TEXT_FN = ctypes.CFUNCTYPE(ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int32)
+TEXT_FN = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32)
 INVOKE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p)
 BOX_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p)
 CONFIRM_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_char_p)
@@ -291,6 +291,8 @@ class Native:
         L.mu_t4_receive.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
         L.mu_t4_dump.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
         L.mu_t4_dump.restype = ctypes.c_size_t
+        L.mu_t4_table_class_of.argtypes = [ctypes.c_void_p, ctypes.c_int32]
+        L.mu_t4_table_class_of.restype = ctypes.c_void_p
         self.table = ctypes.create_string_buffer(64)
         self.window = ctypes.create_string_buffer(1024)
 
@@ -331,8 +333,8 @@ class Case:
 
         def text(u, i):
             if i not in bufs:
-                bufs[i] = texts(i)
-            return bufs[i]
+                bufs[i] = ctypes.create_string_buffer(texts(i))
+            return ctypes.addressof(bufs[i])
 
         def invoke(u, name, args):
             a = args.decode('latin1')
@@ -532,7 +534,8 @@ class Family:
 
     def check(self, key, client, native):
         self.cases += 1
-        if isinstance(client, tuple) and client and isinstance(client[0], list):
+        if isinstance(client, tuple) and client and isinstance(client[0], list) and \
+                all(isinstance(e, tuple) for e in client[0]):
             tags = sorted({e[1] if e[0] == 'invoke' else e[0] for e in client[0]})
             for t in tags:
                 self.coverage[t] = self.coverage.get(t, 0) + 1
@@ -550,7 +553,7 @@ class Family:
                 'examples': self.examples}
 
 
-def run_build(cl, nat, rng, fam, classes, case_of, texts, cases):
+def run_build(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
     for n in range(cases):
         cls = classes[n % len(classes)]   # an absent class reads the static default object (not in the snapshot)
         case = case_of(rng)
@@ -740,6 +743,176 @@ def run_page(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
         fam.check(('page', cls, pkt.hex(), ops), client, (log, nat.dump()))
 
 
+def map_build_signed(m, items, node_size):
+    """validate_skill_tree.map_build with std::map<int>'s signed order (negative keys first)."""
+    head = vs.empty_map(m, node_size)
+    items = sorted(items, key=lambda kv: s32(kv[0] & 0xffffffff))
+
+    def build(lo, hi, parent):
+        if lo >= hi:
+            return head
+        mid = (lo + hi) // 2
+        node = m.alloc(node_size, define=True)
+        left = build(lo, mid, node)
+        right = build(mid + 1, hi, node)
+        key, value = items[mid]
+        m.write(node, struct.pack('<III', left, parent, right) + b'\x01\x00\0\0' + struct.pack('<I', key & 0xffffffff) +
+                value + bytes(node_size - 0x14 - len(value)))
+        return node
+    root = build(0, len(items), head)
+    if items:
+        lm = root
+        while m.u32(lm) != head:
+            lm = m.u32(lm)
+        rm = root
+        while m.u32(rm + 8) != head:
+            rm = m.u32(rm + 8)
+        m.write(head, struct.pack('<III', lm, root, rm))
+    return head, len(items)
+
+
+def map_read_signed(m, container):
+    return sorted(((s32(k), n) for k, n in vst.map_read(m, container)), key=lambda kn: kn[0])
+
+
+def run_table(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    """Every record through 0x010b4406 (a pointer into the snapshot's maps or the default 0x06fba950) against
+    mu_t4_table_get; absent class / group / index keys too."""
+    m = cl.m
+    m.prepare(force=True)
+    vs.common_stubs(m)
+    keys = [(c, cols[1], cols[0]) for c, cols, _ in rows]
+    keys += [(rng.choice(classes), rng.randint(-1, 8), rng.randint(-5, 90)) for _ in range(cases)]
+    for cls, group, index in keys:
+        a = m.call(GET_RECORD, [cls, group, index], ecx=TREE4)
+        client = None if a == 0x06fba950 else list(struct.unpack('<27i', m.read(a, 27*4))) + [m.read(a + 0x6c, 1)[0]]
+        r = nat.lib.mu_t4_table_get(nat.table, cls, group, index)
+        native = None
+        if r:
+            raw = bytes(ctypes.string_at(ctypes.cast(r, ctypes.c_void_p), 28*4))
+            native = list(struct.unpack('<27i', raw[:27*4])) + [raw[27*4]]
+        fam.check(('table', cls, group, index), client, native)
+
+
+def run_row(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    """The row parser 0x010b4506 into a fresh table object (vtable 0x01aba1d4, the classes the loader opened)
+    against mu_t4_table_row; a failed cast takes the catch path (result 0, continue at 0x010b4957).  Rows with at
+    least [+0x38] but fewer than 27 columns make the client read past the vector: not generated (the C refuses
+    them)."""
+    m = cl.m
+    state = {}
+
+    def throw(mm):
+        ebp = state['ebp']
+        mm.write(ebp - 0x15, b'\0')
+        mm.uc.reg_write(cm.UC_X86_REG_EBP, ebp)
+        mm.uc.reg_write(cm.UC_X86_REG_ESP, mm.u32(ebp - 0x10))
+        mm.uc.reg_write(cm.UC_X86_REG_EIP, 0x010b4957)
+        return cm.REDIRECT
+    L = nat.lib
+    for n in range(cases):
+        m.prepare(force=True)
+        vs.common_stubs(m)
+        m.stub(vs.THROW_INT, throw, 0)
+        m.stub(vs.THROW_BOOL, throw, 0)
+        min_cols = rng.choice([22, 22, 27, 0, rng.randint(0, 27)])
+        cls_set = sorted(set(rng.sample(range(-1, 20), rng.randint(0, 6))))
+        table = m.alloc(0x48, define=True)
+        m.write(table, cl.snap.read(TREE4, 0x38))
+        m.put32(table + 0x38, min_cols)
+        objs = []
+        for c in cls_set:
+            hd, k = map_build_signed(m, [], 0x14 + 0x70)
+            objs.append((c, struct.pack('<iiII', c, 0, hd, k) + b'\x01\0\0\0'))
+        hd, k = map_build_signed(m, objs, 0x30)
+        m.write(table + 0x3c, struct.pack('<II', hd, k))
+        L.mu_t4_table_free(nat.table)
+        L.mu_t4_table_init(nat.table, min_cols)
+        for c in cls_set:
+            L.mu_t4_table_class(nat.table, c)
+        results = []
+        for _ in range(rng.randint(1, 8)):
+            if rows and rng.random() < 0.6:
+                cols = [str(v).encode() for v in rng.choice(rows)[1]]
+            else:
+                cols = [str(rng.choice([-1, 0, 1, rng.randint(-5, 70), rng.randint(0, 2000)])).encode()
+                        for _ in range(27)]
+            cut = rng.random()
+            if cut < 0.15:
+                cols = cols[:rng.randint(0, min(min_cols, 27))] if min_cols else cols
+            elif cut < 0.25:
+                cols += [b'7'] * rng.randint(1, 4)
+            if rng.random() < 0.08 and cols:
+                cols[rng.randrange(min(len(cols), 27))] = rng.choice([b'x', b'', b'1.5', b'99999999999', b'-'])
+            cls = rng.choice(cls_set + [rng.randint(-1, 20)]) if cls_set else rng.randint(-1, 20)
+            vec = vs.string_vector(m, cols)
+            state['ebp'] = cm.STACK_BASE + cm.STACK_SIZE - 0x1000 - 4*(1 + 3) - 4
+            try:
+                r = m.call(ROW_PARSE, [n, cls, vec], ecx=table) & 0xff
+            except cm.CaseError as error:
+                r = ('error', str(error))
+            vals = [int(c) if _is_int(c) else None for c in cols]
+            if len(cols) >= min_cols and len(cols) >= 27 and any(v is None for v in vals[:27]):
+                nr = 0 if L.mu_t4_table_class_of(nat.table, cls) else 0   # the catch path drops the row
+                if not L.mu_t4_table_class_of(nat.table, cls):
+                    nr = 0
+            else:
+                arr = (ctypes.c_int32 * max(1, len(cols)))(*[v or 0 for v in vals])
+                nr = L.mu_t4_table_row(nat.table, cls, arr, len(cols))
+            results.append((r, nr))
+        client_maps = []
+        for c, node in map_read_signed(m, table + 0x3c):
+            groups = []
+            for gk, gn in map_read_signed(m, node + 0x14 + 8):
+                recs = [list(struct.unpack('<27i', m.read(rn + 0x14, 27*4))) for _, rn in map_read_signed(m, gn + 0x14 + 8)]
+                groups.append([s32(gk), s32(m.u32(gn + 0x18)), recs])
+            client_maps.append([s32(c), groups])
+        native_maps = [[c, nat_groups(nat, c)] for c in cls_set]
+        fam.check(('row', n), ([r for r, _ in results], client_maps), ([nr for _, nr in results], native_maps))
+
+
+def _is_int(text):
+    try:
+        v = int(text.decode())
+    except (ValueError, UnicodeDecodeError):
+        return False
+    return -2**31 <= v < 2**31 and text.strip() == text and not text.startswith(b'0x')
+
+
+def nat_groups(nat, cls):
+    """The C table's groups of a class: [key, rows, [records]] (file order of the 27 fields as stored)."""
+    class TG(ctypes.Structure):
+        _fields_ = [('key', ctypes.c_int32), ('rows', ctypes.c_int32), ('rec', ctypes.c_void_p), ('nrec', ctypes.c_int),
+                    ('cap', ctypes.c_int)]
+
+    class TC(ctypes.Structure):
+        _fields_ = [('cls', ctypes.c_int32), ('groups', ctypes.POINTER(TG)), ('ngroups', ctypes.c_int),
+                    ('cap', ctypes.c_int)]
+    addr = nat.lib.mu_t4_table_class_of(nat.table, cls)
+    c = ctypes.cast(addr, ctypes.POINTER(TC)) if addr else None
+    out = []
+    if not c:
+        return out
+    for i in range(c[0].ngroups):
+        g = c[0].groups[i]
+        recs = []
+        for k in range(g.nrec):
+            raw = ctypes.string_at(g.rec + k * 28*4, 27*4)
+            recs.append(list(struct.unpack('<27i', raw)))
+        out.append([g.key, g.rows, recs])
+    return out
+
+
+MUTANTS = {21: 'build', 22: 'build', 23: 'list', 24: 'click', 25: 'page', 26: 'answer', 27: 'page'}
+FAMILIES = ('table', 'row', 'build', 'list', 'page', 'click', 'answer')
+
+
+def run_family(name, cl, nat, rng, classes, rows, case_of, texts, cases):
+    fam = Family(name)
+    globals()['run_' + name](cl, nat, rng, fam, classes, rows, case_of, texts, cases)
+    return fam.report()
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
@@ -747,7 +920,8 @@ def main():
     p.add_argument('--snapshot', required=True)
     p.add_argument('--cases', type=int, default=200)
     p.add_argument('--seed', type=int, default=3)
-    p.add_argument('--families', default='build')
+    p.add_argument('--families', default=','.join(FAMILIES))
+    p.add_argument('--mutations', action='store_true', help='also run the planted mistakes 21..27')
     p.add_argument('--lib')
     p.add_argument('--strict', action='store_true', help='report reads outside the snapshot (slow)')
     p.add_argument('--output')
@@ -774,18 +948,30 @@ def main():
         return Case(rng, info, keys)
     rng = random.Random(a.seed)
     report = {}
-    for name in a.families.split(','):
-        fam = Family(name)
-        if name == 'build':
-            run_build(cl, nat, rng, fam, classes, case_of, texts, a.cases)
-        elif name in ('list', 'click', 'answer', 'page'):
-            globals()['run_' + name](cl, nat, rng, fam, classes, rows, case_of, texts, a.cases)
-        report[name] = fam.report()
+    names = a.families.split(',')
+    for name in names:
+        report[name] = run_family(name, cl, nat, rng, classes, rows, case_of, texts, a.cases)
+        nat.load_table(classes, rows, min_columns)          # the row family leaves synthetic classes
+    if a.mutations:
+        ext = 'dylib' if sys.platform == 'darwin' else 'so'
+        caught = {}
+        for number, family in MUTANTS.items():
+            if family not in names:
+                continue
+            subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/skill'), f'mutant{number}.{ext}'], check=True)
+            mut = Native(None, ROOT/f'reconstructed/skill/mutant{number}.{ext}')
+            mut.load_table(classes, rows, min_columns)
+            r = run_family(family, cl, mut, random.Random(a.seed + number), classes, rows, case_of, texts,
+                           min(a.cases, 120))
+            del mut
+            caught[f'mutant{number}:{family}'] = r['mismatches'] > 0
+        report['mutations'] = caught
     out = json.dumps(report, indent=2)
     if a.output:
         Path(a.output).write_text(out + '\n')
     print(out)
-    return int(any(f['mismatches'] for f in report.values()))
+    bad = any(f['mismatches'] for k, f in report.items() if k != 'mutations')
+    return int(bad or not all(report.get('mutations', {}).values()))
 
 
 if __name__ == '__main__':

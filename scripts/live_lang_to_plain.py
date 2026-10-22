@@ -257,6 +257,28 @@ def read_skill_maps(snap):
     return rows
 
 
+TREE4 = MANAGER + 0xe8c         # 4ThTreeData (NATIVE-SKILL-003): class map +0x3c, minimum columns +0x38
+
+
+def read_tree4(snap):
+    """4ThTreeData's records as file rows: (class, 27 columns in the file's order, hidden byte).  The class object
+    (map node +0x14) holds +8 map<group, group object>; a group object holds +8 map<index, record>; a record is 27
+    int32 (the five link pairs stored as two arrays, written back alternating) and the byte +0x6c.  Needs a
+    langread snapshot taken with graph:0x06fbb8ec (NATIVE-SKILL-003)."""
+    rows = []
+    for cls, cn in snap.tree(TREE4 + 0x3c):
+        for _, gn in snap.tree(cn + 0x14 + 8):
+            for _, rn in snap.tree(gn + 0x14 + 8):
+                f = list(struct.unpack('<27i', snap.read(rn + 0x14, 27*4)))
+                cols = f[:8]
+                for i in range(5):
+                    cols += [f[8 + i], f[13 + i]]
+                rows.append((struct.unpack('<i', struct.pack('<I', cls))[0], cols + f[18:27],
+                             snap.read(rn + 0x14 + 0x6c, 1)[0]))
+    return rows, snap.i32(TREE4 + 0x38), [struct.unpack('<i', struct.pack('<I', c))[0]
+                                           for c, _ in snap.tree(TREE4 + 0x3c)]
+
+
 def read_gates(snap):
     rows = []
     for key, node in snap.tree(GATE + MAP_AT[GATE]):
@@ -650,6 +672,19 @@ def convert(snap, out_dir, header=''):
             for row in rows:
                 f.write('\t'.join(str(v) for v in row) + '\n')
         counts['skillreq'] = len(rows)
+    except SnapshotError:
+        pass
+
+    try:
+        rows, min_columns, classes = read_tree4(snap)
+        with open(out_dir/'tree4.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + f'#4ThTreeData (row parser 0x010b4506): min_columns {min_columns}; "class N" rows open a '
+                    'class; record rows: class, 27 columns in file order, hidden\n')
+            for c in classes:
+                f.write(f'class\t{c}\n')
+            for cls, cols, hidden in rows:
+                f.write(f'{cls}\t' + '\t'.join(str(v) for v in cols) + f'\t{hidden}\n')
+        counts['tree4'] = len(rows)
     except SnapshotError:
         pass
 

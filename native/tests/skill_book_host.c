@@ -6,6 +6,8 @@
  *   demo CLASS | stats STR AGI VIT ENE CMD MANA AG | feed | select SLOT | cast SKILL | tick MS | tip SKILL
  *   | icon SKILL | stamp | slot N | drop FROM TO | cancel | print
  *   | demofile PATH | learn SKILL | forget SKILL | save | tab N | packet HEX (a server packet)
+ *   | tree4 CLASS POINTS (NATIVE-SKILL-003: core/mu_skill_tree4 over LANG_DIR/tree4.tsv, the demo login)
+ *   | t4click INDEX (click, confirm, the demo answer) | t4tab TAB | t4state
  * Each op prints one JSON line.  Synthetic data in the tests; no client bytes. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +15,18 @@
 
 #include "../core/mu_lang.h"
 #include "../core/mu_skill.h"
+#include "../core/mu_skill_tree4.h"
+
+static int t4_invokes, t4_boxes;
+static char t4_last[4096];
+static void t4_invoke(void *u, const char *name, const char *json)
+{
+    (void)u;
+    ++t4_invokes;
+    snprintf(t4_last, sizeof t4_last, "%s %s", name, json);
+}
+static void t4_box(void *u, const char *text) { (void)u; (void)text; ++t4_boxes; }
+static void t4_confirm(void *u, int id, const char *text) { (void)u; (void)id; (void)text; ++t4_boxes; }
 
 static int weapon_kind;
 static int kind(void *u, int slot, int value) { (void)u; return slot == 0 && value == weapon_kind; }
@@ -29,6 +43,7 @@ int main(int argc, char **argv)
         printf("{\"error\": \"open\"}\n");
         return 1;
     }
+    mu_skill_tree4 *t4 = NULL;
     mu_skill_stamp stamp;
     mu_skill_book_stamp_open(b, &stamp);
     printf("{\"records\": %zu, \"tooltips\": %zu}\n", mu_skill_book_count(b), mu_skill_book_tooltips(b));
@@ -143,6 +158,33 @@ int main(int argc, char **argv)
             }
             printf("{\"packet\": %d}\n", mu_skill_book_receive(b, pk, n));
             i++;
+        } else if (!strcmp(op, "tree4") && i + 2 < argc) {
+            if (!t4) {
+                t4 = mu_skill_tree4_open(argv[1], b);
+                mu_skill_tree4_host host = {NULL, NULL, t4_invoke, t4_box, t4_confirm};
+                mu_skill_tree4_set_host(t4, &host);
+            }
+            mu_skill_tree4_enter(t4, a);
+            int r = mu_skill_tree4_demo_login(t4, atoi(argv[i + 2]));
+            printf("{\"tree4\": %d, \"records\": %zu, \"invokes\": %d}\n", r, mu_skill_tree4_records(t4), t4_invokes);
+            i += 2;
+        } else if (!strcmp(op, "t4click") && t4) {
+            mu_t4_window *w = mu_skill_tree4_window(t4);
+            int boxes = t4_boxes, opened = mu_t4_click(w, mu_skill_tree4_env(t4), a), answered = 0;
+            uint8_t group, req[16];
+            uint16_t skill, idx;
+            if (opened && mu_t4_confirm(w, 0, &group, &skill, &idx))
+                answered = mu_skill_tree4_demo_request(t4, req, mu_t4_request(req, sizeof req, group, skill, idx));
+            printf("{\"t4click\": %d, \"answered\": %d, \"boxes\": %d}\n", opened, answered, t4_boxes - boxes);
+            i++;
+        } else if (!strcmp(op, "t4tab") && t4) {
+            mu_t4_change_tab(mu_skill_tree4_window(t4), mu_skill_tree4_env(t4), a);
+            printf("{\"t4tab\": %d}\n", a);
+            i++;
+        } else if (!strcmp(op, "t4state") && t4) {
+            static char json[1 << 16];
+            mu_t4_dump(mu_skill_tree4_window(t4), json, sizeof json);
+            printf("{\"t4state\": %s}\n", json);
         } else if (!strcmp(op, "print")) {
             const mu_skill_hero *h = mu_skill_book_hero(b);
             const mu_skill_hotkeys *k = mu_skill_book_hotkeys(b);
@@ -170,6 +212,7 @@ int main(int argc, char **argv)
             return 2;
         }
     }
+    mu_skill_tree4_close(t4);
     mu_skill_book_close(b);
     mu_lang_free(lang);
     return 0;

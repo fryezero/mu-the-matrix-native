@@ -1,7 +1,9 @@
-/* NATIVE-SKILL-002. The client's tree routines, native GFx boundary and an explicit offline demo server. */
+/* NATIVE-SKILL-002. The client's tree routines, native GFx boundary and an explicit offline demo server.
+ * NATIVE-SKILL-003: the SkillTree4th window over reconstructed/skill/tree4.c (core/mu_skill_tree4). */
 #include "world_gfx_tree.h"
 #include "world_gfx_skill.h"
 #include "../core/mu_skill.h"
+#include "../core/mu_skill_tree4.h"
 #include "../core/mu_lang.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "../../reconstructed/hud/tooltip_html.h"
@@ -17,6 +19,10 @@ struct wg_tree {
     mu_gfx_layer *layer;
     const mu_lang *lang;
     int pending_slot, hover_slot;
+    mu_skill_tree4 *t4;                 /* NATIVE-SKILL-003 */
+    int t4_pending, t4_ready;           /* the click awaiting its second click (index + 1), the demo login sent */
+    int t4_resend;                      /* resend the page at the next draw (layer choice: the movie's slot clips
+                                           exist one frame after GenerateSkillTree) */
 };
 
 static void quote(char *dst, size_t cap, const char *src)
@@ -140,6 +146,90 @@ static void click(wg_tree *t, int slot)
     }
 }
 
+/* ---- SkillTree4th (NATIVE-SKILL-003) ---------------------------------------------------------------------- */
+
+/* tree4.c hands JSON arguments; strings are client (Latin-1) bytes as \u00xx escapes, which the JSON reader
+ * of the movie layer turns into the right code points. */
+static void t4_invoke(void *user, const char *name, const char *json)
+{
+    wg_tree *t = user;
+    mu_gfx_layer_invoke(t->layer, MU_GFX_TREE4, NULL, name, json && *json ? json : "[]");
+}
+
+static void t4_confirm(void *user, int id, const char *s)
+{
+    (void)id;
+    message(user, 0, s);
+    mu_gfx_layer_chat(((wg_tree *)user)->layer, 3, "", "OFFLINE DEMO: click the same skill again to confirm.");
+}
+
+static void t4_message(void *user, const char *s) { message(user, 0, s); }
+
+static void t4_login(wg_tree *t)
+{
+    if (!t->t4 || t->t4_ready)
+        return;
+    const mu_skill_hero *hero = mu_skill_book_hero(t->book);
+    mu_skill_tree4_enter(t->t4, hero ? hero->class_index : 0);
+    const mu_gfx_hero *gh = mu_gfx_layer_hero(t->layer);
+    /* OFFLINE DEMO points (the server's); the live hero showed "Skill Point: 0" */
+    mu_skill_tree4_demo_login(t->t4, gh && gh->level >= 400 ? 30 : 10);
+    t->t4_ready = 1;
+}
+
+static void t4_click(wg_tree *t, int index)
+{
+    mu_t4_window *w = mu_skill_tree4_window(t->t4);
+    mu_t4_env env = *mu_skill_tree4_env(t->t4);
+    int confirming = t->t4_pending == index + 1;
+    t->t4_pending = 0;
+    if (confirming)
+        env.confirm = NULL;
+    if (!mu_t4_click(w, &env, index))
+        return;
+    if (!confirming) {
+        t->t4_pending = index + 1;
+        return;
+    }
+    uint8_t group, req[16];
+    uint16_t skill, idx;
+    if (mu_t4_confirm(w, 0, &group, &skill, &idx)) {
+        size_t n = mu_t4_request(req, sizeof req, group, skill, idx);
+        if (mu_skill_tree4_demo_request(t->t4, req, n))
+            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: fourth tree answer received.");
+    }
+}
+
+static void t4_call(wg_tree *t, const char *name, const char *args)
+{
+    mu_t4_window *w = mu_skill_tree4_window(t->t4);
+    const mu_t4_env *env = mu_skill_tree4_env(t->t4);
+    double v[5] = {0};
+    int n = sscanf(args ? args : "", " [ %lf , %lf , %lf , %lf , %lf", &v[0], &v[1], &v[2], &v[3], &v[4]);
+    if (!strcmp(name, "UIInit")) {
+        /* 0x00c2458a: GenerateSkillTree {NumRows 10, NumLines 7} (doubles 0x01a7e460 / 0x01a99f00) */
+        mu_gfx_layer_invoke(t->layer, MU_GFX_TREE4, NULL, "GenerateSkillTree", "[{\"NumRows\":10,\"NumLines\":7}]");
+    } else if (!strcmp(name, "WindowShown")) {
+        if (!mu_skill_tree4_records(t->t4)) {
+            mu_gfx_layer_chat(t->layer, 3, "", "No 4ThTreeData: MU_LANG_DIR/tree4.tsv (live_lang_to_plain.py) is absent.");
+            return;
+        }
+        if (!t->t4_ready)
+            t4_login(t);
+        t->t4_resend = 1;
+    } else if (!strcmp(name, "WindowHidden")) {
+        t->t4_pending = 0;
+    } else if (!strcmp(name, "RequestSlotUIInfo") && n == 5) {
+        mu_t4_slot_rect(w, (int32_t)v[0], (float)v[1], (float)v[2], (float)v[3], (float)v[4]);
+    } else if (!strcmp(name, "OnChangeTab") && n >= 1) {
+        mu_t4_change_tab(w, env, (int32_t)v[0]);
+    } else if (!strcmp(name, "onClickprevBtn") || !strcmp(name, "onClicknextBtn")) {
+        mu_t4_step_page(w, env, name[7] == 'p' ? -1 : 1);
+    } else if (!strcmp(name, "OnMouseClickSlot") && n >= 2) {
+        t4_click(t, (int)v[1]);
+    }
+}
+
 wg_tree *wg_tree_open(wg_skill *skill, mu_gfx_layer *layer, const mu_lang *lang)
 {
     if (!skill || !layer)
@@ -157,10 +247,18 @@ wg_tree *wg_tree_open(wg_skill *skill, mu_gfx_layer *layer, const mu_lang *lang)
     env->invoke = invoke;
     env->msgbox = message;
     env->confirm = confirm;
+    t->t4 = mu_skill_tree4_open(getenv("MU_LANG_DIR"), t->book);
+    mu_skill_tree4_host host = {t, text, t4_invoke, t4_message, t4_confirm};
+    mu_skill_tree4_set_host(t->t4, &host);
     return t;
 }
 
-void wg_tree_close(wg_tree *t) { free(t); }
+void wg_tree_close(wg_tree *t)
+{
+    if (t)
+        mu_skill_tree4_close(t->t4);
+    free(t);
+}
 
 void wg_tree_call(wg_tree *t, int movie, const char *name, const char *args)
 {
@@ -168,6 +266,10 @@ void wg_tree_call(wg_tree *t, int movie, const char *name, const char *args)
         return;
     if (!strcmp(name, "CloseWindow")) {
         mu_gfx_layer_show(t->layer, movie, 0);
+        return;
+    }
+    if (movie == MU_GFX_TREE4 && t->t4) {
+        t4_call(t, name, args);
         return;
     }
     if (movie != MU_GFX_MASTER_TREE) {
@@ -219,6 +321,15 @@ static void draw(void *user, int32_t bitmap, float x, float y, float w, float h,
 
 void wg_tree_draw(wg_tree *t, int movie, int32_t w, int32_t h)
 {
+    if (t && movie == MU_GFX_TREE4 && t->t4 && t->t4_resend) {
+        mu_t4_window *w4 = mu_skill_tree4_window(t->t4);
+        const mu_t4_tab *tab = NULL;
+        for (int i = 0; i < w4->ntabs; ++i)
+            if (w4->tabs[i].key == w4->cur_tab)
+                tab = &w4->tabs[i];
+        mu_t4_show_page(w4, mu_skill_tree4_env(t->t4), tab ? tab->page : 0);
+        t->t4_resend = 0;
+    }
     if (!t || movie != MU_GFX_MASTER_TREE)
         return;
     mu_master_tree *tree = mu_skill_book_master(t->book);
@@ -251,6 +362,12 @@ int wg_tree_action(wg_tree *t, const char *verb, int slot)
         tooltip(t, slot);
     else if (!strcmp(verb, "treeclick"))
         click(t, slot);
+    else if (!strcmp(verb, "tree4click") && t->t4)          /* NATIVE-SKILL-003: OnMouseClickSlot(group, index) */
+        t4_click(t, slot);
+    else if (!strcmp(verb, "tree4tab") && t->t4)
+        mu_t4_change_tab(mu_skill_tree4_window(t->t4), mu_skill_tree4_env(t->t4), slot);
+    else if (!strcmp(verb, "tree4page") && t->t4)
+        mu_t4_step_page(mu_skill_tree4_window(t->t4), mu_skill_tree4_env(t->t4), slot ? 1 : -1);
     else
         return 0;
     return 1;

@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Planted mistakes for scripts/validate_skill_later.py --mutations (21..27; 0 = none). */
+#ifndef MU_SKILL_MUTATION
+#define MU_SKILL_MUTATION 0
+#endif
+
 /* ---- the table (0x010b499f / 0x010b4506 / 0x01098d4a / 0x0109a86e) -------------------------------------------- */
 
 void mu_t4_table_init(mu_t4_table *t, int32_t min_columns)
@@ -127,7 +132,11 @@ int mu_t4_table_row(mu_t4_table *t, int32_t cls, const int32_t *values, int colu
     memmove(g->rec + pos + 1, g->rec + pos, sizeof *g->rec * (size_t)(g->nrec - pos));
     g->rec[pos] = r;
     ++g->nrec;
+#if MU_SKILL_MUTATION == 21
+    int32_t rows = r.f[MU_T4_INDEX] / 10;
+#else
     int32_t rows = r.f[MU_T4_INDEX] / 10 + 1;               /* C division, as idiv */
+#endif
     if (rows > g->rows)
         g->rows = rows;
     return 1;
@@ -323,7 +332,11 @@ int mu_t4_group_init(mu_t4_group *g, const mu_t4_tgroup *tg, const mu_t4_env *en
     /* the second pass keeps the client's order of side effects: roots and availability per record */
     for (int i = 0; i < g->nnodes; ++i) {
         mu_t4_node *n = &g->nodes[i];
+#if MU_SKILL_MUTATION == 22
+        if (n->index % 10 == 0) {
+#else
         if (n->index % 10 == 0 && n->rec->f[MU_T4_TYPE] != 3) {
+#endif
             g->roots[g->nroots++] = (int16_t)i;               /* map keyed by index: already sorted */
             if (mu_t4_req_ok(g, env, n->index))
                 n->avail = 1;
@@ -361,7 +374,11 @@ void mu_t4_set_level(mu_t4_group *g, const mu_t4_env *env, int32_t index, int32_
         }
     }
     /* 0x0109fd1a: at the opening level the children that can be learned become available */
+#if MU_SKILL_MUTATION == 23
+    if (n->level > n->rec->f[MU_T4_OPEN]) {
+#else
     if (n->level >= n->rec->f[MU_T4_OPEN]) {
+#endif
         for (int i = 0; i < n->nchildren; ++i) {
             mu_t4_node *c = &g->nodes[n->children[i]];
             if (mu_t4_can_learn(g, env, c->index))
@@ -511,6 +528,17 @@ static void invokef(const mu_t4_env *env, const char *name, const char *fmt, ...
         env->invoke(env->user, name, buf);
 }
 
+/* Invoke 0x00aaf3ef(name, value): one GFx value; the host's argument list is [value]. */
+static void invoke_value(const mu_t4_env *env, const char *name, const char *value)
+{
+    if (!env->invoke)
+        return;
+    jbuf b = {0};
+    jput(&b, "[%s]", value);
+    env->invoke(env->user, name, b.s);
+    free(b.s);
+}
+
 /* ---- the window ----------------------------------------------------------------------------------------------- */
 
 void mu_t4_window_init(mu_t4_window *w, const mu_t4_table *table)
@@ -645,8 +673,7 @@ void mu_t4_set_tab_info(const mu_t4_window *w, const mu_t4_env *env)
         jput(&b, "]}");
     }
     jput(&b, "]");
-    if (env->invoke)
-        env->invoke(env->user, "SetTabInfo", b.s);
+    invoke_value(env, "SetTabInfo", b.s);
     free(b.s);
 }
 
@@ -715,17 +742,15 @@ void mu_t4_slots(const mu_t4_window *w, const mu_t4_env *env, int32_t group)
             if (!link_shown(c, n->rec))
                 continue;
             jput(&b, "%s{\"From\":%d,\"To\":%d,\"LinkState\":%d}", nlinks ? "," : "", n->index, c->index,
-                 n->rec->f[MU_T4_TYPE] == 2 ? 4 : 2);
+                 n->rec->f[MU_T4_TYPE] == 2 ? (MU_SKILL_MUTATION == 27 ? 3 : 4) : 2);
             ++nlinks;
         }
     }
     for (int k = nlinks; k < g->nnodes * 5; ++k)
         jput(&b, "%snull", k ? "," : "");
     jput(&b, "]}");
-    if (env->invoke) {
-        env->invoke(env->user, "SetSkillSlots", b.s);
-        env->invoke(env->user, "SetSkillSlotLinkInfo", b.s);
-    }
+    invoke_value(env, "SetSkillSlots", b.s);
+    invoke_value(env, "SetSkillSlotLinkInfo", b.s);
     free(b.s);
     (void)slots_json;
 }
@@ -774,8 +799,7 @@ void mu_t4_entry_links(const mu_t4_window *w, const mu_t4_env *env, int32_t inde
     jput(&b, "{\"GroupIndex\":%d,\"LinkInfo\":[", group);
     group_links_json(g, &g->nodes[pos], index, &b, &count);
     jput(&b, "]}");
-    if (env->invoke)
-        env->invoke(env->user, "SetSkillSlotLinkInfo", b.s);
+    invoke_value(env, "SetSkillSlotLinkInfo", b.s);
     free(b.s);
 }
 
@@ -836,10 +860,8 @@ void mu_t4_refresh_group(const mu_t4_window *w, const mu_t4_env *env, int32_t gr
     for (int k = nlinks; k < g->nnodes * 5; ++k)
         jput(&b, "%snull", k ? "," : "");
     jput(&b, "]}");
-    if (env->invoke) {
-        env->invoke(env->user, "SetSkillSlots", b.s);
-        env->invoke(env->user, "SetSkillSlotLinkInfo", b.s);
-    }
+    invoke_value(env, "SetSkillSlots", b.s);
+    invoke_value(env, "SetSkillSlotLinkInfo", b.s);
     free(b.s);
     /* each node again through the entry routines (their side effects run), then its point */
     for (int i = 0; i < w->groups[gp].nnodes; ++i) {
@@ -864,8 +886,13 @@ void mu_t4_refresh_all(mu_t4_window *w, const mu_t4_env *env)
 void mu_t4_show_page(mu_t4_window *w, const mu_t4_env *env, int32_t page)
 {
     mu_t4_tab *t = tab_of(w, w->cur_tab);
+#if MU_SKILL_MUTATION == 25
+    if (!t || page < 0 || page > t->count)
+        return;
+#else
     if (!t || page < 0 || page >= t->count)
         return;
+#endif
     t->page = page;
     int32_t gid = t->groups[page];
     int gp = group_pos(w, gid);
@@ -884,6 +911,26 @@ void mu_t4_change_tab(mu_t4_window *w, const mu_t4_env *env, int32_t tab)
         return;
     w->cur_tab = tab;
     mu_t4_show_page(w, env, t->page);
+}
+
+void mu_t4_step_page(mu_t4_window *w, const mu_t4_env *env, int step)
+{
+    const mu_t4_tab *t = tab_of(w, w->cur_tab);
+    mu_t4_show_page(w, env, (t ? t->page : 0) + step);
+}
+
+void mu_t4_slot_rect(mu_t4_window *w, int32_t index, float x, float y, float width, float height)
+{
+    for (int gi = 0; gi < w->ngroups; ++gi) {
+        int pos = mu_t4_group_find(&w->groups[gi], index);
+        if (pos < 0)
+            continue;
+        mu_t4_node *n = &w->groups[gi].nodes[pos];
+        n->rect[0] = (int32_t)x;
+        n->rect[1] = (int32_t)y;
+        n->rect[2] = (int32_t)(x + width);
+        n->rect[3] = (int32_t)(y + height);
+    }
 }
 
 int mu_t4_branch_learned(const mu_t4_window *w, int32_t group, int32_t index)
@@ -1028,8 +1075,7 @@ int mu_t4_click(mu_t4_window *w, const mu_t4_env *env, int32_t index)
         jput(&b, "]");
         w->branch_visible = 1;
         invokef(env, "VisibleSetBranchSkill", "[true]");
-        if (env->invoke)
-            env->invoke(env->user, "SetBranchSkillInfo", b.s);
+        invoke_value(env, "SetBranchSkillInfo", b.s);
         free(b.s);
         return 0;
     }
@@ -1037,7 +1083,11 @@ int mu_t4_click(mu_t4_window *w, const mu_t4_env *env, int32_t index)
         mu_t4_message(env, 2);
         return 0;
     }
+#if MU_SKILL_MUTATION == 24
+    if (w->points <= r->f[MU_T4_COST]) {
+#else
     if (w->points < r->f[MU_T4_COST]) {
+#endif
         mu_t4_message(env, 3);
         return 0;
     }
@@ -1127,7 +1177,7 @@ int mu_t4_receive(mu_t4_window *w, const mu_t4_env *env, const uint8_t *p, size_
         } else if (p[4] == 4) {
             mu_t4_message(env, 1);
         } else if (p[4] == 7) {
-            mu_t4_message(env, 3);
+            mu_t4_message(env, MU_SKILL_MUTATION == 26 ? 1 : 3);
         }
         return 1;
     case 3:                                                     /* 0x0127f679 */
