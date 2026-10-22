@@ -24,12 +24,14 @@ CONFIRM_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_char
 EVENT_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32)
 SIDE_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32)
 POPUP_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p)
+NAME_FN = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32)
 
 
 class EnvC(ctypes.Structure):
     _fields_ = [('user', ctypes.c_void_p), ('skill_info', SKILL_FN), ('hero_has', HAS_FN), ('master_level', HAS_FN),
                 ('text', TEXT_FN), ('invoke', INVOKE_FN), ('msgbox', BOX_FN), ('confirm', CONFIRM_FN),
-                ('event', EVENT_FN), ('side_category', SIDE_FN), ('popup_shows_tree', POPUP_FN)]
+                ('event', EVENT_FN), ('side_category', SIDE_FN), ('popup_shows_tree', POPUP_FN),
+                ('skill_name', NAME_FN)]
 
 
 def row(index, group, type_=0, sibling=None, skill=None, children=(), shown=None, cost=1, max_level=20, opens=10,
@@ -69,7 +71,7 @@ class Tree4(unittest.TestCase):
 
     def setUp(self):
         self.table = ctypes.create_string_buffer(64)
-        self.window = ctypes.create_string_buffer(1024)
+        self.window = ctypes.create_string_buffer(8192)
         self.log, self.has, self.master, self.use = [], set(), {}, {}
 
     def load(self, rows, classes=(0,), min_columns=22):
@@ -98,7 +100,8 @@ class Tree4(unittest.TestCase):
                       HAS_FN(lambda u, s: self.master.get(s, 0)), TEXT_FN(lambda u, i: ctypes.addressof(texts.get(i, texts[-1]))),
                       INVOKE_FN(invoke), BOX_FN(lambda u, t: self.log.append(('msgbox', t.decode()))),
                       CONFIRM_FN(lambda u, i, t: self.log.append(('confirm', i, t.decode()))),
-                      EVENT_FN(lambda u, w, a: None), SIDE_FN(lambda u, i, g: -1), POPUP_FN(lambda u: 0)]
+                      EVENT_FN(lambda u, w, a: None), SIDE_FN(lambda u, i, g: -1), POPUP_FN(lambda u: 0),
+                      NAME_FN(lambda u, k: ctypes.addressof(texts[-1]))]
         return EnvC(None, *self._keep)
 
     def state(self):

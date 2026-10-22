@@ -49,6 +49,16 @@ int mu_skill_tree4_receive(mu_skill_tree4 *t, const uint8_t *packet, size_t size
 /* OFFLINE DEMO: the login list (7E 02, every node of the class at level 0) with `points`; a decoded request. */
 int mu_skill_tree4_demo_login(mu_skill_tree4 *t, int32_t points);
 int mu_skill_tree4_demo_request(mu_skill_tree4 *t, const uint8_t *packet, size_t size);
+/* OFFLINE DEMO: the side options' 7E 06 list (eight entries at level 0) and a C1 07 7E 05 request (one demo point
+ * per side level). */
+int mu_skill_tree4_demo_side(mu_skill_tree4 *t);
+int mu_skill_tree4_demo_side_request(mu_skill_tree4 *t, const uint8_t *packet, size_t size);
+/* The slot's (side 0) or side option's (side 1) tooltip as SkillInfoPopup gets it (UTF-8 title and body HTML)
+ * and its anchor in movie units; 0 when there is none. */
+int mu_skill_tree4_tooltip(mu_skill_tree4 *t, int side, int32_t index, char *title, size_t title_cap, char *body,
+                           size_t body_cap, int32_t pos[2]);
+/* The window's icons (0x00c2bb34) at the window's origin and scale. */
+void mu_skill_tree4_icons(mu_skill_tree4 *t, float x0, float y0, float scale, mu_t4_draw_fn draw, void *user);
 
 #ifdef __cplusplus
 }

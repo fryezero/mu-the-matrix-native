@@ -653,6 +653,15 @@ int mu_skill_book_master_tooltip(mu_skill_book *b, int slot, char *title, size_t
     return ok;
 }
 
+void mu_skill_book_tip_env(mu_skill_book *b, mu_skill_tip_env *out)
+{
+    memset(out, 0, sizeof *out);
+    if (!b)
+        return;
+    *out = (mu_skill_tip_env){.skills = &b->env, .user = b, .text = tip_text, .measure = tip_measure,
+                              .formula = tip_formula, .text_scale = b->screen_rate};
+}
+
 void mu_skill_book_set_screen(mu_skill_book *b, int32_t width)
 {
     if (b && width > 0)

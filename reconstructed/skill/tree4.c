@@ -548,11 +548,15 @@ void mu_t4_window_init(mu_t4_window *w, const mu_t4_table *table)
     w->cls = -1;
     w->pend_group = w->pend_index = -1;
     w->cur_group = -1;
+    w->side_pending[0] = w->side_pending[1] = w->side_pending[2] = -1;
 }
+
+void mu_t4_window_set_side(mu_t4_window *w, const struct mu_t4_side_table *side) { w->side = side; }
 
 static void window_reset(mu_t4_window *w)   /* 0x00c23e5f */
 {
     w->cur_group = -1;
+    w->side_ready = 0;                      /* +0xb0 deleted */
     for (int i = 0; i < w->ngroups; ++i)
         mu_t4_group_free(&w->groups[i]);
     free(w->groups);
@@ -837,7 +841,8 @@ void mu_t4_refresh_group(const mu_t4_window *w, const mu_t4_env *env, int32_t gr
             bg = 4;
         else if (r->f[MU_T4_TYPE] == 2)
             bg = 3;
-        else if (env->side_category && env->side_category(env->user, r->f[MU_T4_INDEX], group) == 1)
+        else if ((w->side ? mu_t4_side_category(w->side, r->f[MU_T4_INDEX], group)
+                          : env->side_category ? env->side_category(env->user, r->f[MU_T4_INDEX], group) : -1) == 1)
             bg = 2;
         else
             bg = 1;
@@ -1171,7 +1176,7 @@ int mu_t4_receive(mu_t4_window *w, const mu_t4_env *env, const uint8_t *p, size_
             mu_t4_entry(w, env, rd16(p + 9), p[7], p[8], rdf(p + 0xb), rdf(p + 0xf));
             mu_t4_entry_links(w, env, rd16(p + 9), p[7]);
             mu_t4_skill8_refresh(w, env);
-            /* 0x00c2aa33 refreshes the side-option panel only once 7E 06 created it (+0xb0) */
+            mu_t4_side_refresh(w, env);                         /* 0x00c2aa33 (once 7E 06 created +0xb0) */
             if (mu_t4_branch_learned(w, p[7], rd16(p + 9)))
                 mu_t4_refresh_all(w, env);
         } else if (p[4] == 4) {
@@ -1184,6 +1189,34 @@ int mu_t4_receive(mu_t4_window *w, const mu_t4_env *env, const uint8_t *p, size_
         if (size < 6)
             return 0;
         mu_t4_set_points(w, env, rd16(p + 4));
+        return 1;
+    case 6: {                                                   /* 0x012225fe: the side options */
+        if (size < 9)
+            return 0;
+        mu_t4_side_create(w, env);
+        uint32_t count = rd32(p + 5);
+        for (uint32_t i = 0; i < count && 9 + 11 * (size_t)i + 11 <= size; ++i) {
+            const uint8_t *e = p + 9 + 11 * i;
+            mu_t4_side_set(w, e[0], e[1], e[2], rdf(e + 3), rdf(e + 7));
+        }
+        mu_t4_side_refresh(w, env);
+        return 1;
+    }
+    case 5:                                                     /* 0x012226ca: a side option learned */
+        if (size < 5)
+            return 0;
+        if (p[4] == 1 && size >= 0x12) {
+            mu_t4_side_set(w, p[5], p[9], p[8], rdf(p + 0xa), rdf(p + 0xe));
+            mu_t4_set_points(w, env, rd16(p + 6));
+            mu_t4_side_refresh(w, env);
+            /* the side popup's tooltip again when it shows this tree (0x00c29a29) and the stats (0x00a00fb7) */
+            if (env->event)
+                env->event(env->user, "stats", 0);
+        } else if (p[4] == 4) {
+            mu_t4_message(env, 1);
+        } else if (p[4] == 7) {
+            mu_t4_message(env, 3);
+        }
         return 1;
     default:
         return 0;
@@ -1232,7 +1265,21 @@ size_t mu_t4_dump(const mu_t4_window *w, char *out, size_t cap)
     jput(&b, "],\"branch\":[");
     for (int i = 0; i < w->nbranch; ++i)
         jput(&b, "%s%d", i ? "," : "", w->branch[i]);
-    jput(&b, "],\"branch_visible\":%d}", w->branch_visible);
+    jput(&b, "],\"branch_visible\":%d,\"side\":", w->branch_visible);
+    if (!w->side_ready) {
+        jput(&b, "null}");
+    } else {
+        jput(&b, "{\"entries\":[");
+        for (int i = 0; i < MU_T4_SIDE; ++i) {
+            const mu_t4_side_entry *e = &w->side_entry[i];
+            jput(&b, "%s[%d,%d,%d,%.17g,%.17g,%d,%d,%d]", i ? "," : "", e->category, e->slot, e->level, (double)e->value,
+                 (double)e->next, e->locked, e->state, e->stage);
+        }
+        jput(&b, "],\"points\":[");
+        for (int i = 0; i < w->nside_points; ++i)
+            jput(&b, "%s[%d,%d]", i ? "," : "", w->side_points[i][0], w->side_points[i][1]);
+        jput(&b, "]}}");
+    }
     size_t n = b.n;
     if (out && cap) {
         size_t k = n < cap - 1 ? n : cap - 1;

@@ -87,7 +87,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/quest/quest_guide.c $(RECON)/quest/quest_summary.c $(RECON)/quest/quest_move.c \
              $(RECON)/quest/quest_wrap.c $(RECON)/quest/quest_classic.c \
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
-             $(RECON)/skill/master_tree.c $(RECON)/skill/skill_canuse.c $(RECON)/skill/tree4.c \
+             $(RECON)/skill/master_tree.c $(RECON)/skill/skill_canuse.c $(RECON)/skill/tree4.c $(RECON)/skill/tree4_ui.c $(RECON)/skill/tree4_side.c \
              $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c $(RECON)/social/social.c \
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \

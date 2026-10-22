@@ -249,12 +249,14 @@ CONFIRM_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_char
 EVENT_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32)
 SIDE_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32)
 POPUP_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p)
+NAME_FN = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32)
 
 
 class EnvC(ctypes.Structure):
     _fields_ = [('user', ctypes.c_void_p), ('skill_info', SKILL_FN), ('hero_has', HAS_FN), ('master_level', HAS_FN),
                 ('text', TEXT_FN), ('invoke', INVOKE_FN), ('msgbox', BOX_FN), ('confirm', CONFIRM_FN),
-                ('event', EVENT_FN), ('side_category', SIDE_FN), ('popup_shows_tree', POPUP_FN)]
+                ('event', EVENT_FN), ('side_category', SIDE_FN), ('popup_shows_tree', POPUP_FN),
+                ('skill_name', NAME_FN)]
 
 
 class Native:
@@ -263,6 +265,7 @@ class Native:
                                                     'libclientskill.so'))
         if lib is None:
             subprocess.run(['make', '-s', '-C', str(ROOT/'reconstructed/skill')], check=True)
+        self.path = path
         self.lib = L = ctypes.CDLL(str(path))
         L.mu_t4_table_init.argtypes = [ctypes.c_void_p, ctypes.c_int32]
         L.mu_t4_table_free.argtypes = [ctypes.c_void_p]
@@ -294,7 +297,7 @@ class Native:
         L.mu_t4_table_class_of.argtypes = [ctypes.c_void_p, ctypes.c_int32]
         L.mu_t4_table_class_of.restype = ctypes.c_void_p
         self.table = ctypes.create_string_buffer(64)
-        self.window = ctypes.create_string_buffer(1024)
+        self.window = ctypes.create_string_buffer(8192)
 
     def load_table(self, classes, rows, min_columns):
         L = self.lib
@@ -345,7 +348,8 @@ class Case:
                BOX_FN(lambda u, t: log.append(('msgbox', t.decode('latin1')))),
                CONFIRM_FN(lambda u, i, t: log.append(('confirm', i, t.decode('latin1')))),
                EVENT_FN(lambda u, w, a: log.append(('event', w.decode(), a))),
-               SIDE_FN(lambda u, i, g: self.side.get((i, g), -1)), POPUP_FN(lambda u: 0)]
+               SIDE_FN(lambda u, i, g: self.side.get((i, g), -1)), POPUP_FN(lambda u: 0),
+               NAME_FN(lambda u, k: ctypes.addressof(_name_buf(k)))]
         env = EnvC(None, *cbs)
         env._keep = cbs
         return env
@@ -377,6 +381,7 @@ class Client:
         for off in (0xb8, 0xc0, 0xc8, 0xd0):
             hd, n = vst.map_build(m, [], 0x24)
             m.write(master + off, struct.pack('<II', hd, n))
+        self.gfxmgr = gfxmgr
         m.put32(gfxmgr + 0x1f4, master)
         m.put32(gfxmgr + 0x1f8, h)
         m.stub(GFX_MGR, lambda mm: gfxmgr, 0)
@@ -392,6 +397,7 @@ class Client:
         m.stub(0x00ab02fd, lambda mm: 0, 4)
         attrs = m.alloc(0x100, define=True)
         m.put32(vs.ATTR, attrs)
+        m.put32(vs.ATTR8, attrs)
         m.stub(0x00a00287, lambda mm: int(case.has.get(s32(mm.args(1)[0]), False)), 4)
         m.stub(0x00bb1d9d, lambda mm: case.master.get(s32(mm.args(1)[0]), 0) & 0xff, 4)
         m.stub(0x009e819e, lambda mm: vl.DUMMY + 0x80, 0)
@@ -441,6 +447,40 @@ class Client:
         m.stub(0x009443a1, put_char, 0)
         m.stub(0x00948afe, getline, 0)
         m.stub(0x0096996a, lambda mm: int(pos.get(mm.uc.reg_read(cm.UC_X86_REG_ECX) - 0x40, 0) >= 0), 0)
+
+        # boost::format inside the RGBA HTML line 0x0096fe90 (modelled, as validate_quest.py)
+        import validate_quest as vq
+        formats = {}
+
+        def fmt_ctor(mm):
+            formats[mm.uc.reg_read(cm.UC_X86_REG_ECX)] = (mm.cstr(mm.args(1)[0]), [])
+            return mm.uc.reg_read(cm.UC_X86_REG_ECX)
+
+        def fmt_uint(mm):
+            formats[mm.uc.reg_read(cm.UC_X86_REG_ECX)][1].append(('i', mm.u32(mm.args(1)[0])))
+            return mm.uc.reg_read(cm.UC_X86_REG_ECX)
+
+        def fmt_string(mm):
+            formats[mm.uc.reg_read(cm.UC_X86_REG_ECX)][1].append(('s', vq.std_string(mm, mm.args(1)[0])))
+            return mm.uc.reg_read(cm.UC_X86_REG_ECX)
+
+        def fmt_str(mm):
+            fmt, args = formats[mm.uc.reg_read(cm.UC_X86_REG_ECX)]
+            out = mm.args(1)[0]
+            vst._write_std_string(mm, out, vq.typed_format(fmt, args))
+            return out
+        m.stub(0x0096e8c7, fmt_ctor, 4)
+        m.stub(0x0096c6ea, fmt_uint, 4)
+        m.stub(0x0096c702, fmt_string, 4)
+        m.stub(0x0097258c, fmt_str, 4)
+        m.stub(0x0096f4ae, lambda mm: formats.pop(mm.uc.reg_read(cm.UC_X86_REG_ECX), None) and 0, 0)
+        texts = self.texts
+
+        def gt_str(mm):                                  # GlobalText as a std::string (modelled, as the Master validator)
+            obj = mm.alloc(0x18, define=True)
+            vst._write_std_string(mm, obj, texts(s32(mm.args(1)[0])))
+            return obj
+        m.stub(0x011753c3, gt_str, 4)
 
         def utf8(mm):
             out, src = mm.args(2)
@@ -493,6 +533,19 @@ class Client:
         out['skill8'] = [[s32(k), s32(m.u32(m.u32(n + 0x14)))] for k, n in vst.map_read(m, h + 0xa0)]
         out['branch'] = self.branch()
         out['branch_visible'] = m.read(h + 0xec, 1)[0]
+        side = m.u32(h + 0xb0)
+        if side:
+            first, last = struct.unpack('<II', m.read(side + 4, 8))
+            entries = []
+            for i in range((last - first) // 4):
+                e = m.u32(first + 4*i)
+                c, sl, lv = m.read(e, 3)
+                v, nx = struct.unpack('<ff', m.read(e + 4, 8))
+                entries.append([c, sl, lv, v, nx, m.read(e + 0xc, 1)[0], s32(m.u32(e + 0x10)), s32(m.u32(e + 0x14))])
+            points = [[s32(k), s32(m.u32(n + 0x14))] for k, n in vst.map_read(m, side + 0x10)]
+            out['side'] = {'entries': entries, 'points': points}
+        else:
+            out['side'] = None
         return out
 
     def branch(self):
@@ -544,6 +597,8 @@ class Family:
             self.mismatches += 1
             if len(self.examples) < 3:
                 diff = first_diff(a, b)
+                if os.environ.get('T4_FULL'):
+                    diff += ' || client=' + repr(client)[:2500] + ' || native=' + repr(native)[:2500]
                 if isinstance(client, tuple) and client and client[0] == 'error':
                     diff = 'client: ' + str(client[1])
                 self.examples.append({'case': repr(key)[:300], 'diff': diff})
@@ -903,8 +958,428 @@ def nat_groups(nat, cls):
     return out
 
 
+# ---- tooltip, texts, icons (tree4_ui.c) ----------------------------------------------------------------------
+
+TOOLTIP, SET_TEXT, SET_LEVEL, ICONS = 0x00c29007, 0x00c23175, 0x00c239c2, 0x00c2bb34
+
+
+class TipC4(ctypes.Structure):
+    _fields_ = [('id', ctypes.c_int32), ('desc', ctypes.c_char * 256), ('next', ctypes.c_char * 256),
+                ('kind', ctypes.c_int32), ('show_next', ctypes.c_uint8), ('fixed', ctypes.c_uint8)]
+
+
+def snapshot_tips(snap):
+    out = []
+    for k, n in snap.tree(TIPS4 + 0x3c):
+        r = n + 0x14
+        out.append((s32(k), bytes(snap.string(r + 4))[:255], bytes(snap.string(r + 0x1c))[:255], s32(snap.u32(r + 0x34)),
+                    snap.read(r + 0x38, 1)[0], snap.read(r + 0x39, 1)[0]))
+    return out
+
+
+class SkillWorld:
+    """Skill(Kor) in the C library (validate_skill's table) for the tooltip's names and the icons."""
+
+    def __init__(self, nat, snap):
+        self.sn = vs.SkillNative(None, nat.path)
+        records = vs.snapshot_records(snap)
+        names = {row['index']: row['name'] for row in plain.read_skills(snap)}
+        for r in records:
+            r.name = bytes(names.get(r.index, b''))[:127]
+        self.records = records
+        self.table = self.sn.table(records)
+        self.env = vs.EnvC()
+        self.env.table = ctypes.pointer(self.table)
+        tips = snapshot_tips(snap)
+        self.tips = (TipC4 * max(1, len(tips)))(*[TipC4(*t) for t in tips])
+        self.ntips = len(tips)
+
+
+def run_tooltip(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    world = getattr(nat, 'world', None) or SkillWorld(nat, cl.snap)
+    nat.world = world
+    L = nat.lib
+    L.mu_t4_tooltip.argtypes = [ctypes.c_void_p, ctypes.POINTER(vs.TipEnvC), ctypes.c_void_p, ctypes.POINTER(TipC4),
+                                ctypes.c_int, ctypes.c_int32, ctypes.POINTER(vs.TipC), ctypes.POINTER(ctypes.c_uint8 * 80),
+                                ctypes.POINTER(ctypes.c_int32 * 2)]
+    for n in range(cases):
+        cls, case, env, log, pkt = prepared(cl, nat, rng, rows, classes, case_of, texts)
+        m = cl.m
+        points = rng.choice([0, 1, 5, rng.randint(0, 100)])
+        m.put32(cl.h + 0x7c, points)
+        ctypes.c_int32.from_buffer(nat.window, ctypes.sizeof(ctypes.c_void_p) + 4).value = points
+        index = pick_index(rng, cl)
+        formulas = {}
+
+        def formula(group, a, b):
+            key = (group, a, b)
+            if key not in formulas:
+                formulas[key] = rng.choice([0.0, 2.5, float(rng.randint(0, 300)), rng.uniform(0, 99)])
+            return formulas[key]
+        vs.tip_machine_setup(m)
+        vs.wrap_stubs(m, 1.0)
+        m.stub(vs.TIP_HEADER, lambda mm: 0, 0)
+        m.stub(0x00966c42, lambda mm: vl.DUMMY, 0)
+        m.stub(0x0117b5eb, vst.double_stub(m, lambda mm: formula(*[s32(v) for v in mm.args(4)[1:4]])), 0)
+        done, pos = [], []
+        m.stub(0x00b8c631, lambda mm: pos.append([s32(v) for v in mm.args(6)[1:3]]) or 0, 0x18)
+        m.stub(0x00b8d41d, lambda mm: 0, 8)
+        m.stub(0x00b8d94b, lambda mm: done.append(s32(mm.args(1)[0])) or 0, 4)
+        m.uc.mem_write(vs.TEXT_LIST, b'\xab' * (80 * 0xff))
+        m.uc.mem_write(vs.TEXT_COLOR, struct.pack('<i', vs.SENTINEL) * 80)
+        m.uc.mem_write(vs.TEXT_BOLD, struct.pack('<i', vs.SENTINEL) * 80)
+        m.write(vst.HEADER_FLAGS, bytes(4 * 80))
+        m.put32(0x0bdcb280, 0)
+        try:
+            cl.call(TOOLTIP, [index])
+            if done:
+                count = done[0]
+                untouched = lambda b: b'' if b == b'\xab' * len(b) else b   # noqa: E731  (a line the builder skips)
+                client = {'count': count,
+                          'lines': [untouched(m.read(vs.TEXT_LIST + 0xff*i, 0xff).split(b'\0')[0]) for i in range(count)],
+                          'colors': list(struct.unpack('<80i', m.read(vs.TEXT_COLOR, 320)))[:count],
+                          'bolds': list(struct.unpack('<80i', m.read(vs.TEXT_BOLD, 320)))[:count],
+                          'headers': [i for i, v in enumerate(struct.unpack('<80i', m.read(vst.HEADER_FLAGS, 320))) if v],
+                          'pos': pos[0] if pos else None}
+            else:
+                client = None
+        except cm.CaseError as error:
+            client = ('error', str(error))
+        tenv = vs.TipEnvC(ctypes.pointer(world.env), None, vs.TEXT_FN(lambda u, i: ctypes.addressof(_text_buf(i, texts))),
+                          vs.TIP_FN(lambda u, k: None), vs.INFO_FN(lambda *a: None), vs.HAS_FN(lambda u, s: 0),
+                          vs.HAS_FN(lambda u, s: 0), vs.FLOAT1_FN(lambda u, s: 0.0),
+                          vs.FORMULA_FN(lambda u, g, a, b: formula(g, a, b)),
+                          vs.MEASURE_FN(lambda u, txt, k: vs.measure_bytes(ctypes.string_at(txt, k))), 1.0)
+        out = vs.TipC()
+        heads = (ctypes.c_uint8 * 80)()
+        npos = (ctypes.c_int32 * 2)()
+        count = L.mu_t4_tooltip(nat.window, ctypes.byref(tenv), ctypes.byref(env), world.tips, world.ntips, index,
+                                ctypes.byref(out), ctypes.byref(heads), ctypes.byref(npos))
+        if count:
+            native = {'count': count, 'lines': [bytes(out.lines[i]).split(b'\0')[0][:0xfe] for i in range(count)],
+                      'colors': [out.color[i] if out.set[i] & 1 else vs.SENTINEL for i in range(count)],
+                      'bolds': [out.bold[i] if out.set[i] & 2 else vs.SENTINEL for i in range(count)],
+                      'headers': [i for i in range(80) if heads[i]], 'pos': list(npos)}
+        else:
+            native = None
+        fam.check(('tooltip', cls, pkt.hex(), points, index), client, native)
+
+
+_TEXT_BUFS = {}
+_NAMES = {}
+_NAME_BUFS = {}
+
+
+def _name_buf(skill):
+    if skill not in _NAME_BUFS:
+        _NAME_BUFS[skill] = ctypes.create_string_buffer(bytes(_NAMES.get(skill, b'')))
+    return _NAME_BUFS[skill]
+
+
+def _text_buf(i, texts):
+    if i not in _TEXT_BUFS:
+        _TEXT_BUFS[i] = ctypes.create_string_buffer(texts(i))
+    return _TEXT_BUFS[i]
+
+
+def run_text(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    L = nat.lib
+    L.mu_t4_set_text.argtypes = [ctypes.c_void_p]
+    L.mu_t4_show_level.argtypes = [ctypes.c_void_p, ctypes.c_int32]
+    for n in range(cases):
+        cls = rng.choice(classes)
+        case = case_of(rng)
+        level = rng.choice([0, 1, 400, 1600, rng.randint(0, 5000), -1])
+        cl.new_case(case, cls)
+        m = cl.m
+        m.stub(0x00a00367, lambda mm: level & 0xffffffff, 0)
+        try:
+            cl.call(SET_TEXT if n % 2 == 0 else SET_LEVEL)
+            client = cl.log[:]
+        except cm.CaseError as error:
+            client = ('error', str(error))
+        log = []
+        env = case.env(nat, log, texts)
+        if n % 2 == 0:
+            L.mu_t4_set_text(ctypes.byref(env))
+        else:
+            L.mu_t4_show_level(ctypes.byref(env), level)
+        fam.check(('text', n % 2, level), client, log)
+
+
+def side_rows(snap):
+    recs, pairs = [], []
+    for k, n in snap.tree(SIDE4 + 0x3c):
+        b, e = snap.u32(n + 0x14), snap.u32(n + 0x18)
+        for at in range(b, e, 0x58):
+            recs.append(struct.unpack('<22i', snap.read(at, 0x58)))
+    for k, n in snap.tree(SIDE4 + 0x44):
+        b, e = snap.u32(n + 0x14), snap.u32(n + 0x18)
+        for at in range(b, e, 8):
+            pairs.append((s32(k),) + struct.unpack('<ii', snap.read(at, 8)))
+    return recs, pairs
+
+
+def native_side(nat, snap):
+    if getattr(nat, 'side', None) is None:
+        L = nat.lib
+        L.mu_t4_side_table_init.argtypes = [ctypes.c_void_p]
+        L.mu_t4_side_table_record.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int32 * 22)]
+        L.mu_t4_side_table_pair.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+        nat.side = ctypes.create_string_buffer(64)
+        L.mu_t4_side_table_init(nat.side)
+        recs, pairs = side_rows(snap)
+        for r in recs:
+            L.mu_t4_side_table_record(nat.side, ctypes.byref((ctypes.c_int32 * 22)(*r)))
+        for p in pairs:
+            L.mu_t4_side_table_pair(nat.side, *p)
+    return nat.side
+
+
+def side_packet(rng, entries=None):
+    n = rng.choice([0, 1, 3, 8, 8, 9]) if entries is None else entries
+    body = b''
+    for _ in range(n):
+        # index a * 4 + b: the client's bound admits 8 (one past the vector: undefined), not generated
+        a, b = rng.choice([(0, rng.randint(0, 3)), (1, rng.randint(0, 3))])
+        body += struct.pack('<BBBff', a, b, rng.choice([0, 1, 5, 10, 20, rng.randint(0, 60)]),
+                            rng.uniform(0, 50), rng.uniform(0, 50))
+    pkt = bytearray([0xc1, 0, 0x7e, 6, 0]) + struct.pack('<I', n) + body
+    pkt[1] = len(pkt) & 0xff
+    return bytes(pkt)
+
+
+def side_answer(rng):
+    kind = rng.choice([1, 1, 1, 4, 7])
+    a, b = rng.choice([(0, rng.randint(0, 3)), (1, rng.randint(0, 3))])
+    pkt = bytearray([0xc1, 0x12, 0x7e, 5, kind, a]) + struct.pack('<HBBff', rng.randint(0, 300),
+                                                               rng.choice([0, 1, 10, rng.randint(0, 50)]), b,
+                                                               rng.uniform(0, 50), rng.uniform(0, 50))
+    return bytes(pkt)
+
+
+def prepared_side(cl, nat, rng, rows, classes, case_of, texts):
+    """prepared() then a 7E 06 side list on both sides, more levels than 7E 02 gives (the points need them)."""
+    cls, case, env, log, pkt = prepared(cl, nat, rng, rows, classes, case_of, texts)
+    L = nat.lib
+    L.mu_t4_window_set_side.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    L.mu_t4_window_set_side(nat.window, native_side(nat, cl.snap))
+    m = cl.m
+    m.stub(0x00a00fb7, lambda mm: cl.log.append(('event', 'stats', 0)) or 0, 0)
+    m.stub(0x00c26ed3, lambda mm: 0, 0x14)
+    sp = side_packet(rng)
+    client_packet(cl, 0x012225fe, sp)
+    L.mu_t4_receive(nat.window, ctypes.byref(env), sp, len(sp))
+    return cls, case, env, log, pkt + b'|' + sp
+
+
+def run_side(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    L = nat.lib
+    for n in range(cases):
+        try:
+            cls, case, env, log, pkt = prepared_side(cl, nat, rng, rows, classes, case_of, texts)
+        except cm.CaseError as error:
+            fam.check(('side', n), ('error', str(error)), None)
+            continue
+        answers = [side_answer(rng) for _ in range(rng.randint(0, 2))]
+        try:
+            for ans in answers:
+                client_packet(cl, 0x012226ca, ans)
+            client = (cl.log[:], cl.dump())
+        except cm.CaseError as error:
+            client = ('error', str(error))
+        for ans in answers:
+            L.mu_t4_receive(nat.window, ctypes.byref(env), ans, len(ans))
+        fam.check(('side', pkt.hex(), [a.hex() for a in answers]), client, (log, nat.dump()))
+
+
+def run_sideclick(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    """OnBtnClickSideOption 0x00c2a5ad and the confirm answer 0x79 (request 0x00b3baf7 recorded)."""
+    L = nat.lib
+    L.mu_t4_side_click.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32]
+    L.mu_t4_side_confirm.argtypes = [ctypes.c_void_p, ctypes.c_int] + [ctypes.POINTER(ctypes.c_uint8)] * 3
+    for n in range(cases):
+        try:
+            cls, case, env, log, pkt = prepared_side(cl, nat, rng, rows, classes, case_of, texts)
+        except cm.CaseError as error:
+            fam.check(('sideclick', n), ('error', str(error)), None)
+            continue
+        m = cl.m
+        points = rng.choice([0, 1, 5, 20, rng.randint(0, 200)])
+        m.put32(cl.h + 0x7c, points)
+        ctypes.c_int32.from_buffer(nat.window, ctypes.sizeof(ctypes.c_void_p) + 4).value = points
+        index = rng.choice([0, 1, 2, 3, 4, 5, 6, 7, rng.randint(-1, 9)])
+        m.stub(0x00b3baf7, lambda mm: cl.log.append(('request',) + tuple(v & 0xff for v in mm.args(3))) or 0, 0)
+        m.stub(0x00c26ed3, lambda mm: cl.log.append(('event', 'statpanel', 0)) or 0, 0x14)
+        cl.log.clear()
+        log.clear()
+        answer = rng.choice([0, 0, 1])
+        try:
+            cl.call(0x00c2a5ad, [index])
+            if any(e[0] == 'confirm' for e in cl.log):
+                cl.call(BOX_ANSWER, [0x79, answer], ecx=vl.DUMMY + 0x40)
+            client = (cl.log[:], cl.dump())
+        except cm.CaseError as error:
+            client = ('error', str(error))
+        opened = L.mu_t4_side_click(nat.window, ctypes.byref(env), index)
+        if opened:
+            a, b, c = ctypes.c_uint8(), ctypes.c_uint8(), ctypes.c_uint8()
+            if L.mu_t4_side_confirm(nat.window, answer, ctypes.byref(a), ctypes.byref(b), ctypes.byref(c)):
+                log.append(('request', a.value, b.value, c.value))
+        native = [('event', 'statpanel', 0) if e[:2] == ('event', 'statpanel') else e for e in log]
+        fam.check(('sideclick', cls, pkt.hex(), points, index), client, (native, nat.dump()))
+
+
+def run_sidetip(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    world = getattr(nat, 'world', None) or SkillWorld(nat, cl.snap)
+    nat.world = world
+    L = nat.lib
+    L.mu_t4_side_tooltip.argtypes = [ctypes.c_void_p, ctypes.POINTER(vs.TipEnvC), ctypes.c_void_p,
+                                     ctypes.POINTER(TipC4), ctypes.c_int, ctypes.c_int32, ctypes.POINTER(vs.TipC),
+                                     ctypes.POINTER(ctypes.c_uint8 * 80), ctypes.POINTER(ctypes.c_int32 * 2)]
+    L.mu_t4_side_rect.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_float, ctypes.c_float]
+    for n in range(cases):
+        try:
+            cls, case, env, log, pkt = prepared_side(cl, nat, rng, rows, classes, case_of, texts)
+        except cm.CaseError as error:
+            fam.check(('sidetip', n), ('error', str(error)), None)
+            continue
+        m = cl.m
+        index = rng.choice([0, 1, 2, 3, 4, 5, 6, 7])
+        x, y = f32(rng.uniform(0, 900)), f32(rng.uniform(0, 600))
+        fb = lambda v: struct.unpack('<I', struct.pack('<f', v))[0]   # noqa: E731
+        formulas = {}
+
+        def formula(group, a, b):
+            key = (group, a, b)
+            if key not in formulas:
+                formulas[key] = rng.choice([0.0, 2.5, float(rng.randint(0, 300)), rng.uniform(0, 99)])
+            return formulas[key]
+        vs.tip_machine_setup(m)
+        vs.wrap_stubs(m, 1.0)
+        m.stub(vs.TIP_HEADER, lambda mm: 0, 0)
+        m.stub(0x00966c42, lambda mm: vl.DUMMY, 0)
+        m.stub(0x0117b5eb, vst.double_stub(m, lambda mm: formula(*[s32(v) for v in mm.args(4)[1:4]])), 0)
+        done, pos = [], []
+        m.stub(0x00b8c631, lambda mm: pos.append([s32(v) for v in mm.args(6)[1:3]]) or 0, 0x18)
+        m.stub(0x00b8d41d, lambda mm: 0, 8)
+        m.stub(0x00b8d94b, lambda mm: done.append(s32(mm.args(1)[0])) or 0, 4)
+        m.uc.mem_write(vs.TEXT_LIST, b'\0' * (80 * 0xff))
+        m.uc.mem_write(vs.TEXT_COLOR, struct.pack('<i', vs.SENTINEL) * 80)
+        m.uc.mem_write(vs.TEXT_BOLD, struct.pack('<i', vs.SENTINEL) * 80)
+        m.write(vst.HEADER_FLAGS, bytes(4 * 80))
+        m.put32(0x0bdcb280, 0)
+        cl.log.clear()
+        log.clear()
+        try:
+            cl.call(0x00c2b4b3, [index, fb(x), fb(y)])
+            cl.call(0x00c29a29, [index])
+            if done:
+                count = done[0]
+                untouched = lambda b: b'' if b == b'\xab' * len(b) else b   # noqa: E731  (a line the builder skips)
+                client = {'count': count,
+                          'lines': [untouched(m.read(vs.TEXT_LIST + 0xff*i, 0xff).split(b'\0')[0]) for i in range(count)],
+                          'colors': list(struct.unpack('<80i', m.read(vs.TEXT_COLOR, 320)))[:count],
+                          'bolds': list(struct.unpack('<80i', m.read(vs.TEXT_BOLD, 320)))[:count],
+                          'headers': [i for i, v in enumerate(struct.unpack('<80i', m.read(vst.HEADER_FLAGS, 320))) if v],
+                          'pos': pos[0] if pos else None, 'log': cl.log[:]}
+            else:
+                client = {'log': cl.log[:]}
+        except cm.CaseError as error:
+            client = ('error', str(error))
+        L.mu_t4_side_rect(nat.window, index, x, y)
+        tenv = vs.TipEnvC(ctypes.pointer(world.env), None, vs.TEXT_FN(lambda u, i: ctypes.addressof(_text_buf(i, texts))),
+                          vs.TIP_FN(lambda u, k: None), vs.INFO_FN(lambda *a: None), vs.HAS_FN(lambda u, s: 0),
+                          vs.HAS_FN(lambda u, s: 0), vs.FLOAT1_FN(lambda u, s: 0.0),
+                          vs.FORMULA_FN(lambda u, g, a, b: formula(g, a, b)),
+                          vs.MEASURE_FN(lambda u, txt, k: vs.measure_bytes(ctypes.string_at(txt, k))), 1.0)
+        out = vs.TipC()
+        heads = (ctypes.c_uint8 * 80)()
+        npos = (ctypes.c_int32 * 2)()
+        count = L.mu_t4_side_tooltip(nat.window, ctypes.byref(tenv), ctypes.byref(env), world.tips, world.ntips, index,
+                                     ctypes.byref(out), ctypes.byref(heads), ctypes.byref(npos))
+        if count:
+            native = {'count': count, 'lines': [bytes(out.lines[i]).split(b'\0')[0][:0xfe] for i in range(count)],
+                      'colors': [out.color[i] if out.set[i] & 1 else vs.SENTINEL for i in range(count)],
+                      'bolds': [out.bold[i] if out.set[i] & 2 else vs.SENTINEL for i in range(count)],
+                      'headers': [i for i in range(80) if heads[i]], 'pos': list(npos), 'log': log[:]}
+        else:
+            native = {'log': log[:]}
+        fam.check(('sidetip', cls, pkt.hex(), index), client, native)
+
+
+DRAW_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+                           ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_uint32)
+
+
+def f32(v):
+    return struct.unpack('<f', struct.pack('<f', v))[0]
+
+
+def run_icons(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
+    """0x00c2bb34 (the per-frame icon pass) after random slot rectangles (0x00c2b3ec), side positions/size
+    (0x00c2b4b3 / 0x00c2b580) and window origin/scale/ratios; RenderBitmap 0x0184e01a recorded."""
+    world = getattr(nat, 'world', None) or SkillWorld(nat, cl.snap)
+    nat.world = world
+    L = nat.lib
+    L.mu_t4_slot_rect.argtypes = [ctypes.c_void_p, ctypes.c_int32] + [ctypes.c_float] * 4
+    L.mu_t4_side_rect.argtypes = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_float, ctypes.c_float]
+    L.mu_t4_side_size.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float]
+    L.mu_t4_icons.argtypes = [ctypes.c_void_p, ctypes.c_void_p] + [ctypes.c_float] * 5 + [DRAW_FN, ctypes.c_void_p]
+    for n in range(cases):
+        try:
+            cls, case, env, log, pkt = prepared_side(cl, nat, rng, rows, classes, case_of, texts)
+        except cm.CaseError as error:
+            fam.check(('icons', n), ('error', str(error)), None)
+            continue
+        m = cl.m
+        st = cl.dump()
+        indices = sorted({nd[0] for g in st['groups'] for nd in g['nodes']})
+        rects = {i: [f32(rng.uniform(0, 600)), f32(rng.uniform(0, 500)), f32(rng.choice([36.0, rng.uniform(1, 60)])),
+                     f32(rng.choice([36.0, rng.uniform(1, 60)]))] for i in indices if rng.random() < 0.9}
+        side = {i: [f32(rng.uniform(0, 800)), f32(rng.uniform(0, 600))] for i in range(8) if rng.random() < 0.9}
+        size = [f32(rng.choice([34.0, rng.uniform(5, 50)])), f32(rng.choice([34.0, rng.uniform(5, 50)]))]
+        x0, y0 = f32(rng.uniform(0, 300)), f32(rng.uniform(0, 200))
+        scale, rx, ry = f32(rng.choice([1.0, 0.9, rng.uniform(0.5, 1.5)])), f32(rng.uniform(0.3, 2)), f32(rng.uniform(0.3, 2))
+        fb = lambda v: struct.unpack('<I', struct.pack('<f', v))[0]   # noqa: E731
+        draws = []
+        try:
+            for i, r in rects.items():
+                cl.call(0x00c2b3ec, [i] + [fb(v) for v in r])
+            for i, p in side.items():
+                cl.call(0x00c2b4b3, [i, fb(p[0]), fb(p[1])])
+            cl.call(0x00c2b580, [fb(size[0]), fb(size[1])])
+            m.write(cl.h + 0x58, struct.pack('<f', scale))
+            gm = m.u32(m.u32(0) if False else 0) if False else None
+            m.stub(0x00aae509, vst.double_stub(m, lambda mm: x0), 0)
+            m.stub(0x00aae601, vst.double_stub(m, lambda mm: y0), 0)
+            gfx = cl.gfxmgr
+            m.write(gfx + 0x2cc, struct.pack('<ff', rx, ry))
+
+            def render(mm):
+                w = mm.args(10)
+                fl = [struct.unpack('<f', struct.pack('<I', v))[0] for v in w[1:9]]
+                draws.append([s32(w[0])] + fl + [w[9]])
+                return 0
+            m.stub(0x0184e01a, render, 0)
+            cl.call(ICONS)
+            client = draws
+        except cm.CaseError as error:
+            client = ('error', str(error))
+        for i, r in rects.items():
+            L.mu_t4_slot_rect(nat.window, i, *r)
+        for i, p in side.items():
+            L.mu_t4_side_rect(nat.window, i, *p)
+        L.mu_t4_side_size(nat.window, *size)
+        native = []
+        cb = DRAW_FN(lambda u, b, *a: native.append([b] + list(a[:8]) + [a[8]]))
+        L.mu_t4_icons(nat.window, ctypes.byref(world.env), x0, y0, scale, rx, ry, cb, None)
+        fam.check(('icons', cls, pkt.hex()), client, native)
+
+
 MUTANTS = {21: 'build', 22: 'build', 23: 'list', 24: 'click', 25: 'page', 26: 'answer', 27: 'page'}
-FAMILIES = ('table', 'row', 'build', 'list', 'page', 'click', 'answer')
+FAMILIES = ('table', 'row', 'build', 'list', 'page', 'click', 'answer', 'tooltip', 'text', 'side', 'sideclick',
+            'sidetip', 'icons')
 
 
 def run_family(name, cl, nat, rng, classes, rows, case_of, texts, cases):
@@ -941,6 +1416,7 @@ def main():
     classes, rows, min_columns = table_rows(snap)
     nat.load_table(classes, rows, min_columns)
     info = skill_info_of(snap)
+    _NAMES.update({row['index']: row['name'] for row in plain.read_skills(snap)})
     keys = sorted({r[1][4] for r in rows} | {r[1][21] for r in rows} | {r[1][23] for r in rows} |
                   {r[1][25] for r in rows})
 

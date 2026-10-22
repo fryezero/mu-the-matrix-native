@@ -33,6 +33,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "skill_tooltip.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -136,7 +138,30 @@ typedef struct mu_t4_env {
     int (*side_category)(void *u, int32_t index, int32_t group);
     /* the info popup (GfxMgr window 0x009e819e) is open and belongs to this tree (0x00aae6f9, 0x00bfe788) */
     int (*popup_shows_tree)(void *u);
+    /* Skill(Kor)'s name of a skill (record +8; the side texts) */
+    const char *(*skill_name)(void *u, int32_t skill);
 } mu_t4_env;
+
+/* 4thTreeSideOption (object 0x06fbbaec): +0x3c map<class, vector<record of 22 int32>> (f[0] class, f[1] category,
+ * f[2] slot, f[3] skill, f[4]/f[7]/f[10] the category's points that open stages 1..3, f[5]/f[8]/f[11] their
+ * costs, f[6]/f[9]/f[12] their levels, ...), +0x44 map<category, vector<(index, group)>>: the slots that count
+ * for a category (0x00c2a4bc) and draw SlotBG 2 (0x010b6f79). */
+typedef struct mu_t4_side_record { int32_t f[22]; } mu_t4_side_record;
+typedef struct mu_t4_side_pair { int32_t category, index, group; } mu_t4_side_pair;
+typedef struct mu_t4_side_table {
+    mu_t4_side_record *records;           /* file order */
+    int nrecords;
+    mu_t4_side_pair *pairs;
+    int npairs;
+} mu_t4_side_table;
+
+#define MU_T4_SIDE 8
+typedef struct mu_t4_side_entry {        /* 0x18 bytes, ctor 0x00c2fd4c */
+    uint8_t category, slot, level;        /* +0, +1, +2 */
+    float value, next;                    /* +4, +8 */
+    uint8_t locked;                       /* +0xc */
+    int32_t state, stage;                 /* +0x10, +0x14 (1 by the ctor) */
+} mu_t4_side_entry;
 
 typedef struct mu_t4_window {
     const mu_t4_table *table;
@@ -154,9 +179,21 @@ typedef struct mu_t4_window {
     uint8_t branch_visible;               /* +0xec */
     int32_t branch[MU_T4_LINKS];          /* +0xf0 */
     int nbranch;
+    /* the side options (+0xb0: entries +4, points per category +0x10) */
+    const mu_t4_side_table *side;
+    uint8_t side_ready;
+    mu_t4_side_entry side_entry[MU_T4_SIDE];
+    int32_t side_points[64][2];
+    int nside_points;
+    int32_t side_pending[3];              /* +0xe0/+0xe4/+0xe8: the clicked entry's category, slot and level */
+    float side_pos[MU_T4_SIDE][2];        /* +0xb4 map<index, {x, y}> (RequestSideOptionUIPos) */
+    float side_size[2];                   /* +0xbc / +0xc0 (RequestSideOptionUISize) */
+    float branch_pos[MU_T4_LINKS][2];     /* +0xc4 map<index, {x, y}> (RequestSelectBranchUIPos) */
+    uint8_t hidden;                       /* +0xcc: the window draws nothing */
 } mu_t4_window;
 
 void mu_t4_window_init(mu_t4_window *w, const mu_t4_table *table);
+void mu_t4_window_set_side(mu_t4_window *w, const struct mu_t4_side_table *side);
 void mu_t4_window_free(mu_t4_window *w);
 
 /* Group state (0x0109ee60 init with 0x0109fc40 links; the checks 0x0109f27c, 0x0109f339, 0x0109f400,
@@ -212,6 +249,68 @@ size_t mu_t4_request(uint8_t *out, size_t cap, uint8_t group, uint16_t skill, ui
  * 0x01 0x0125051f: result +4: 1 learned (points u16 +5, group u8 +7, level u8 +8, index u16 +9, f32 +0xb, +0xf),
  * 4 and 7 messages. */
 int mu_t4_receive(mu_t4_window *w, const mu_t4_env *env, const uint8_t *packet, size_t size);
+
+/* ---- tooltip and icons (tree4_ui.c) ---------------------------------------------------------------------------
+ * 4ThTreeSkillTooltip (object 0x06fbb930, map +0x3c keyed by skill, default record +0x44): {+0 skill, +4 text,
+ * +0x1c the next level's text, +0x34 value kind (-1 the text alone, 0 an int, 1 a double), +0x38 show the next
+ * level, +0x39 no value}. */
+typedef struct mu_t4_tip {
+    int32_t id;
+    char desc[256], next[256];
+    int32_t kind;
+    uint8_t show_next, fixed;
+} mu_t4_tip;
+const mu_t4_tip *mu_t4_tip_of(const mu_t4_tip *tips, int ntips, int32_t skill);   /* 0x010ba100 (sorted) */
+int mu_t4_parent_open(const mu_t4_group *g, int32_t index);                        /* 0x0109f1b9 */
+/* 0x00c29007(index) (0x00c2986a for a branch): the classic text list as the master tooltip fills it (TextList
+ * 0x10c76988, colours, bold, the header flags 0x0b477ef4) and the popup's anchor (the slot rectangle's x, y; size
+ * 0x1a x 0x25); returns the line count the InfoPopup gets (0x00b8d94b), 0 without a node.  tenv: Skill(Kor), the
+ * wrap and FormulaData (0x0117b5eb(mgr 3, f[7], f[18]) for level 0). */
+int mu_t4_tooltip(const mu_t4_window *w, const mu_skill_tip_env *tenv, const mu_t4_env *env, const mu_t4_tip *tips,
+                  int ntips, int32_t index, mu_skill_tip *out, uint8_t header[MU_SKILL_TIP_LINES], int32_t pos[2]);
+/* 0x00c2bb34 (the window's per-frame icons; nothing with +0xcc set or without a current group): with the branch
+ * popup (+0xec) its choices at +0xc4; else the current group's open nodes at (x0 + rect.x * scale) * ratio, size
+ * rect * scale * ratio, white when available, else 0xff3c3c3c (skill -1: icon 0x1c1), then the side options at
+ * +0xb4 with the side size.  Bitmap 0x7e1c (4th_Skill_Icon), cell icon % 25 / 25 of 0.0390625 x 0.0546875. */
+typedef void (*mu_t4_draw_fn)(void *user, int32_t bitmap, float x, float y, float w, float h, float u, float v,
+                              float uw, float vh, uint32_t color);
+void mu_t4_icons(const mu_t4_window *w, const mu_skill_env *skills, float x0, float y0, float scale, float ratio_x,
+                 float ratio_y, mu_t4_draw_fn draw, void *user);
+/* SelectBranchSkill 0x00c2b5f4 and RequestSelectBranchUIPos 0x00c2b79d (the branch popup). */
+int mu_t4_select_branch(mu_t4_window *w, const mu_t4_env *env, int32_t group, int32_t index);
+void mu_t4_branch_rect(mu_t4_window *w, int32_t index, float x, float y);
+
+/* 0x00c23175 SetText: one object of GlobalText strings (tabs, side and stat labels, buttons), PointResult
+ * sprintf(GT 0x19f0, 0) and ExplainSelectDebuff through the HTML line builder 0x00ab4dc0(text 0x149f, 1, 0). */
+void mu_t4_set_text(const mu_t4_env *env);
+/* 0x00c239c2 SetLevel: sprintf(GT 0x144c, level + master level) (0x00a00367). */
+void mu_t4_show_level(const mu_t4_env *env, int32_t level_sum);
+
+/* Side options (tree4_side.c). */
+void mu_t4_side_table_init(mu_t4_side_table *t);
+void mu_t4_side_table_free(mu_t4_side_table *t);
+void mu_t4_side_table_record(mu_t4_side_table *t, const int32_t f[22]);
+void mu_t4_side_table_pair(mu_t4_side_table *t, int32_t category, int32_t index, int32_t group);
+int mu_t4_side_category(const mu_t4_side_table *t, int32_t index, int32_t group);   /* 0x010b6f79, -1 none */
+void mu_t4_side_index(const mu_t4_window *w, const mu_t4_env *env);                 /* 0x00c2436e */
+void mu_t4_side_create(mu_t4_window *w, const mu_t4_env *env);                      /* 0x00c242b6 */
+void mu_t4_side_set(mu_t4_window *w, int category, int slot, int level, float value, float next); /* 0x00c2a9cd */
+void mu_t4_side_refresh(mu_t4_window *w, const mu_t4_env *env);                     /* 0x00c2aa33 */
+/* OnBtnOverSideOption 0x00c29a29(index): SelectSideOptionCategory, then the side skill's tooltip as the slot's. */
+int mu_t4_side_tooltip(mu_t4_window *w, const mu_skill_tip_env *tenv, const mu_t4_env *env, const mu_t4_tip *tips,
+                       int ntips, int32_t index, mu_skill_tip *out, uint8_t header[MU_SKILL_TIP_LINES],
+                       int32_t pos[2]);
+void mu_t4_side_rect(mu_t4_window *w, int32_t index, float x, float y);            /* 0x00c2b4b3 */
+void mu_t4_side_size(mu_t4_window *w, float width, float height);                  /* 0x00c2b580 */
+/* OnBtnClickSideOption 0x00c2a5ad(index): messages 2 (locked), 1 (closed), 3 (points < the stage's cost); the
+ * stat skills 0x472/0x477/0x4d9/0x4da open the stat panel (0x00c26ed3, not reconstructed: an event); else the
+ * pending entry and the confirm box 0x79 (GT 0x6eb, "
+", GT 0x143f with the stage's cost). 1: the box opened. */
+int mu_t4_side_click(mu_t4_window *w, const mu_t4_env *env, int32_t index);
+/* The box's answer (0x00b3771c case 0x79, result 0): category, slot, level + 1 for 0x00b3baf7; cleared (0x00c2b5b6). */
+int mu_t4_side_confirm(mu_t4_window *w, int result, uint8_t *category, uint8_t *slot, uint8_t *level);
+/* C1 07 7E 05 <u8 category> <u8 slot> <u8 level> (0x00b3baf7) before the send XOR. */
+size_t mu_t4_side_request(uint8_t *out, size_t cap, uint8_t category, uint8_t slot, uint8_t level);
 
 /* The runtime state as JSON (the validator's comparison and debugging); returns the full length. */
 size_t mu_t4_dump(const mu_t4_window *w, char *out, size_t cap);
