@@ -168,6 +168,9 @@ def export(snapshot_path, artifact_path, directory):
     result += elemental_rows(Snapshot(source), Snapshot(artifact_source))
     counts = {}
     lines = ["# mu-social-options-v1: kind, typed numeric columns, escaped ANSI text"]
+    # Explicit availability includes loaded-empty tables, unlike row presence.
+    families = "guardian_name guardian_value guardian_bonus_name guardian_bonus advanced artifact_name artifact earring_primary earring_pair earring_value earring_name pentagram pentagram_option jewel ertel_set ertel_text".split()
+    lines += ["# available " + kind for kind in families]
     for kind, values, text in result:
         counts[kind] = counts.get(kind, 0) + 1
         lines.append("\t".join([kind] + [str(v) for v in values] + [escape(text)]))

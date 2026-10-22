@@ -106,16 +106,115 @@ round trip after each operation. Missing formula keys mean numeric zero; empty o
 malformed input is a separate native error. Host printf/strtod/pow/decimal formatting
 remain explicit CRT compatibility boundaries.
 
-## Checkpoint verification and remaining work
+## Option presentation and native integration
 
-The packet/lifecycle-builder/finalizer checkpoint completed **18,795 C-to-client
-comparisons, zero mismatches, 16/16 production-C planted mistakes detected**.
-A separate installed-formula check completed **1,011 comparisons, zero mismatches**.
-The broader category, receive-state and display comparison suites are being joined
-before publication; these research counts do not establish unimplemented UI behavior.
+The trade hover uses the complete instance, with the same option presenter available
+in inventory, shop and vault tooltips. Contextual prices remain after packet-option
+assembly. Item models use the resolved excellent flag, semantic ancient bits and
+element instead of interpreting packed socket/rank bytes as rendering flags.
+Mutable native durability, level and additional-option fields overlay their known
+wire bits on export; all other instance bytes survive reservation, cancellation,
+exchange and vault round trips. Reserved items cannot leave through NPC script
+sell/put actions, including a covered cell of a multi-cell item.
 
-At this checkpoint, item option presentation and the additional receive-transition
-comparisons are still in progress. Original active `0x00cd1534` excellent eligibility
-is an opaque runtime-patched boundary. External item-state maps, later base-stat
-finalizers, full advanced durability, CRT corner cases and original GFx rendering
-must not be claimed equivalent merely because option fields are preserved.
+Ordinary/additional, excellent, socket and ordinary-harmony consumers are compared
+at `0x016bc789`, `0x00cd0dfe`, `0x010a9fdf` and `0x00cd241f`. The socket comparison
+checks both the calculated float and the actual narrowed formatter argument.
+Normalized slots EC/ED/EE map to 12/13/14. Maximum HP/MP inputs come from native
+character state when known. Unknown inputs produce an unavailable-details line.
+
+Guardian construction `0x00f097e1..0x00f0999e` uses `(selector, base level)` keys,
+including selector FF and repeated selectors. Names use the selector, rather than
+the copied row ID. Presentation `0x00f0d812..0x00f0dc23` calls formula family 8 with
+upgrade level. IDs 2/3 supply an unscaled auxiliary integer and a binary32-rounded
+result promoted to double. Bonus fields are formula indices too. Special texts,
+bonus ordering, footer and low-durability notice follow the observed branches;
+blank-line layout is native policy.
+
+Artifact construction `0x009627be..0x00962888` uses the first exact ordered pair
+match, signed threshold/percentage arithmetic and formula family 11 with four
+arguments `(raw, level, raw, level)`. Zero divisors return an explicit native error
+instead of entering the original fault. Formatting `0x00962e2f..0x00962f9b` selects
+by text ID, includes the literal plus sign and wraps nonzero ranks even for unknown
+format modes. Missing text and present-empty text remain distinct. The original
+outer printf copy of preformatted text is modeled as a safe native literal copy.
+
+Earring formatter `0x010ee390..0x010ee6a9` narrows option/selector/tag to bytes and
+uses positional values, not stored row IDs. IDs 28..31 call family 9 for each
+supplied item and truncate each result before wrapped integer addition. The
+self-only trade preview does not invent an equipped partner. The intermediate
+format-2 suffix contains two percent characters, as observed in the original.
+
+Standalone Errtel display `0x00fc7317..0x00fc74ec` matches code, physical rank and
+option, then indexes one of eleven display values. Holes do not renumber physical
+keys. `0x00fc9714..0x00fc99d6` inspects all five bytes independently of its count,
+with separate ordinal headings and missing-option fallbacks. Mastery dispatch is
+an explicit unavailable boundary. Pentagram rank `0x00fcaa9a..0x00fcabd9` uses
+ItemTooltipText 4AE/4AF and formula family 1 with the record's required level and
+rank level. Equipment-dependent embedded Errtels and set activation are labeled.
+
+Advanced harmony `0x00cbc777..0x00cbc8fc` uses signed group/option keys and literal
+names with ` +value` or ` +value%`. Unsupported formats stay empty. Threshold
+`0x00cbc6f2..0x00cbc741` returns the first stored signed threshold that contains
+the value, retaining missing-row presence separately. It does not sort thresholds.
+
+Option BMDs load read-only from the installed game. Recreate the private typed
+Lang export locally, never commit it:
+
+```sh
+python scripts/live_social_options_to_plain.py /LOCAL/lang4.bin \
+  --artifact-snapshot /LOCAL/lang1.bin --out-dir /LOCAL/lang
+```
+
+Set `MU_LANG_DIR` to that directory. The new `social-options.tsv` must also be in
+the Preview app's local Native Data/lang directory. Existing Lang copies are not
+replaced by the installer merely because a new export file exists.
+
+## Verification
+
+`scripts/validate_social2.py --cases 500 --mutations --game-root /LOCAL/GAME`
+completed **29,700 compiled-C comparison cases, zero mismatches, 36/36 planted
+production-C mistakes detected**. Counts sum the reported comparison families;
+one guest invocation can check more than one family. The total comprises 9,000
+packet/request comparisons, 9,795 finalizer/excellent-value comparisons, 3,000
+category/prefix/trade-permission comparisons, 1,763 formula comparisons, 2,000
+ordinary/excellent/socket/harmony display comparisons, 3,554 further option
+constructor/selection/presenter comparisons and 588 receive-state comparisons.
+
+The receive-state comparisons execute original room-open modes, mail send/delete
+answers, read/cache/body transitions and pending-map operations against the native
+session model. The final presenter join compiles the actual typed-row loader and
+compares Guardian, Artifact, earring, Errtel, pentagram and advanced-harmony
+selection/presence, formula operands and formatter arguments. Research-only oracle
+counts are not included. Missing typed tables have availability separate from
+loaded-empty tables and absent keys; populated Guardian, earring and Errtel
+instances visibly report unavailable details. Backward-compatible valid rows and
+explicit exporter availability headers supply that distinction.
+
+Portable regressions cover original logical packet builders, receive transitions,
+party invitation identity, room reconnect/load/delivery, serial reuse, hidden
+message queues, draft restoration, active-window selection, read-state checkbox
+preservation, mailbox/window capacity, raw item escrow/vault round trips, packet
+price context and unavailable excellent tables. Offline GL renders use the actual
+FriendWindow and Trade movies; no original game session or real item transaction
+was needed. Renders remain under
+`~/Documents/mu-mac-tools/native/renders/social/round2-{mail,compose,messenger,trade-options}-final/`.
+
+## Remaining boundaries
+
+Transport transformations, original ANSI-code-page behavior, native Windows and
+live original GFx behavior are not established. Manager/container/string/UI and
+specified CRT calls are external models, not reconstructed client bodies. The
+receive corpus excludes two peer-map sentinel states and eight invalid cached
+packets that cannot be represented by this bounded native model; these are not
+counted as comparisons. The model's native capacity and allocation recovery are
+separate from original unbounded-container assumptions.
+
+Active `0x00cd1534` excellent eligibility is runtime-patched and opaque. The tooltip
+labels its table-resolved excellent candidates as a preview, preserves every raw
+requested ID, and reports unavailable tables instead of silently erasing options.
+External item-state maps, equipped ancient/earring activation, embedded Errtel
+handles and uncaptured mastery/prerequisite patch bodies remain unavailable.
+Later full base-stat finalizers, exact original tooltip layout/colors and every
+CRT/locale corner case are not claimed equivalent. These boundaries do not remove
+or rewrite the original fifteen-byte trade instance.

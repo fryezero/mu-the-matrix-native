@@ -92,7 +92,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
-             $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/social_packets.c
+             $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/item_present.c $(RECON)/social/social_packets.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o

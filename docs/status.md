@@ -59,11 +59,11 @@ not exist yet.
   Bounded teleport instructions match 875 checks, registration matches one, and all 3 planted mistakes fail.
   The full navimap formatter remains blocked on uncaptured C++ locale state. [Evidence](research/client-maps.md#native-polish-001-map-follow-ups).
 
-- Social systems, NATIVE-SOCIAL-001 round 1. Offline party requests/membership, HP/MP HUD and real Tab markers;
-  inventory-backed trade grids/zen/locks/results; friends, local messenger and whispers through GFx.
-  7,000 bounded Unicorn comparisons, zero mismatches, 10/10 planted mistakes; synthetic session/GFx/travel
-  regressions. Original party actions and messenger handlers remain required; transport, mail and full item
-  options are also open. [Evidence](research/client-social.md).
+- Social systems, NATIVE-SOCIAL-001 rounds 1/2. Party HUD/Tab markers and original action send/receives;
+  inventory-backed full-instance trade/options; friends, multi-room messenger, whispers and mail through GFx.
+  Round 1: 7,000 Unicorn comparisons, 10/10 mutants. Round 2: 29,700 compiled-C comparisons, zero mismatches,
+  36/36 mutants; session/GFx/travel/item regressions and local GL renders. Transport, opaque eligibility and
+  equipped/runtime option activation remain bounded. [Evidence](research/client-social-original.md).
 
 - NATIVE-MIX-001, bounded native mix/jewels. Recipe candidate ranking, scalar grouping and valuation feed MixGoblinSel/MixInventoryFrame in mu-world/mu-client; rate/zen, pending requests, delayed offline results and Bless/Soul/Life snapshots update inventory, tooltip and existing glow. Unicorn: 68,554 comparisons, zero mismatches, 17/17 planted mistakes; portable/native regressions and local renders. Personal-store registration/purchase and repair now have delayed demo answers; total Unicorn checks 98,506, zero mismatches, 23/23 mutants. Jewel settlement, catalog routing, harmony/cost D, class/option feeds and separate Chaos-weapon system remain open. [Evidence](research/client-mix.md).
 

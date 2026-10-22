@@ -35,6 +35,8 @@ typedef struct mu_hud_tip_tables {
 /* Loads Data/Local/item.bmd, itemtooltip.bmd and itemtooltiptext.bmd (each
  * optional; root NULL leaves all absent). */
 void mu_hud_tip_tables_load(const char *root, mu_hud_tip_tables *t);
+/* Borrow a bounded, NUL-terminated ItemTooltipText template by its original u16 ID. */
+const char *mu_hud_tip_text(const mu_hud_tip_tables *, uint16_t);
 void mu_hud_tip_tables_free(mu_hud_tip_tables *t);
 /* hero = strength, agility, energy, level (the formatter's hero inputs). */
 void mu_hud_tip_build(const mu_hud_tip_tables *t, const mu_hud_item *it, const int hero[4], mu_hud_tip *tp);

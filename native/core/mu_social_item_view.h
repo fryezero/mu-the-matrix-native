@@ -11,6 +11,7 @@ typedef struct mu_social_item_view {
     mu_social_item_context context;
     mu_social_item_decoded decoded;
     mu_social_item_finalized finalized;
+    int advanced_grade;
     int count, unresolved, excellent_known, requested_excellent[9];
     char text[MU_SOCIAL_OPTION_LINES][256];
     int color[MU_SOCIAL_OPTION_LINES];

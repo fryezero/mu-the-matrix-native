@@ -45,6 +45,7 @@ class SocialItemTables(unittest.TestCase):
             lang.mkdir()
             values = "\t".join(str(i) for i in range(1, 26))
             (lang / "social-options.tsv").write_text(
+                "# available guardian_bonus_name\n# available guardian_bonus\n# available earring_name\n"
                 "guardian_name\t7\tOption %d\\\\literal\\n\n"
                 "guardian_value\t7\t3\t7\t19\t22\t34\t\n"
                 "guardian_bonus_name\t2\tBonus %d\n"
@@ -122,6 +123,19 @@ class SocialItemView(unittest.TestCase):
             local.mkdir(parents=True)
             lang = d / "lang"
             lang.mkdir()
+            (lang / "missing").mkdir()
+            (lang / "empty").mkdir()
+            (lang / "empty/social-options.tsv").write_text(
+                "".join(
+                    "# available " + name + "\n"
+                    for name in (
+                        "guardian_value",
+                        "guardian_name",
+                        "guardian_bonus",
+                        "guardian_bonus_name",
+                    )
+                )
+            )
             records = []
             for code in range(100, 108):
                 r = bytearray(
@@ -139,6 +153,19 @@ class SocialItemView(unittest.TestCase):
                 struct.pack_into("<H", r, 0x286, 50)
                 records.append(bytes(r))
             (local / "item.bmd").write_bytes(item_file(records))
+            ranktext = (
+                struct.pack("<H", 0x4AE)
+                + b"%s elemental attack +%d (%d level)".ljust(256, b"\0")
+                + struct.pack("<h", -1)
+            )
+            encoded = bytes(
+                b ^ (0xFC, 0xCF, 0xAB)[i % 3] ^ 0xF1 for i, b in enumerate(ranktext)
+            )
+            (local / "itemtooltiptext.bmd").write_bytes(
+                struct.pack("<I", 1)
+                + encoded
+                + struct.pack("<I", checksum(encoded, 0xE2F1))
+            )
             row = bytearray(120)
             row[0] = 1
             row[1] = 0
@@ -227,6 +254,7 @@ class SocialItemView(unittest.TestCase):
                 "reconstructed/social/item_options.c",
                 "reconstructed/social/item_formula.c",
                 "reconstructed/social/item_display.c",
+                "reconstructed/social/item_present.c",
                 "reconstructed/hud/tooltip_format.c",
                 "reconstructed/hud/tooltip_html.c",
                 "reconstructed/data/data_tables.c",

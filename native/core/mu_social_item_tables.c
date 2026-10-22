@@ -20,6 +20,7 @@ struct mu_social_item_tables {
     mu_gi_sets *sets;
     option_row *rows;
     size_t count;
+    uint32_t available;
 };
 enum { GUARD_NAME = 1, GUARD_VALUE, GUARD_BONUS_NAME, GUARD_BONUS, ADVANCED, ARTIFACT_NAME, ARTIFACT };
 enum { EARRING_PAIR = 9 };
@@ -91,6 +92,16 @@ static const struct {
     {"advanced", 7},          {"artifact_name", 2},  {"artifact", 27},           {"earring_primary", 3},
     {"earring_pair", 8},      {"earring_value", 5},  {"earring_name", 2},        {"pentagram", 9},
     {"pentagram_option", 16}, {"jewel", 28},         {"ertel_set", 14},          {"ertel_text", 2}};
+static int kind_for(const char *name) {
+    for (size_t i = 0; i < sizeof schemas / sizeof *schemas; i++)
+        if (!strcmp(name, schemas[i].name))
+            return (int)i + 1;
+    return 0;
+}
+int mu_social_item_table_available(const mu_social_item_tables *t, const char *family) {
+    int kind = family ? kind_for(family) : 0;
+    return t && kind && !!(t->available & (1u << (unsigned)kind));
+}
 static void load_lang(mu_social_item_tables *t, const char *dir) {
     if (!dir)
         return;
@@ -102,8 +113,17 @@ static void load_lang(mu_social_item_tables *t, const char *dir) {
     char line[8192];
     while (fgets(line, sizeof line, f)) {
         size_t n = strlen(line);
-        if (!n || line[0] == '#')
+        if (!n)
             continue;
+        if (line[0] == '#') {
+            char name[64], tail;
+            if (sscanf(line, "# available %63s %c", name, &tail) == 1) {
+                int kind = kind_for(name);
+                if (kind)
+                    t->available |= 1u << (unsigned)kind;
+            }
+            continue;
+        }
         if (line[n - 1] != '\n' && !feof(f)) {
             int c;
             while ((c = fgetc(f)) != EOF && c != '\n') {
@@ -158,6 +178,7 @@ static void load_lang(mu_social_item_tables *t, const char *dir) {
         }
         t->rows = rows;
         t->rows[t->count++] = row;
+        t->available |= 1u << (unsigned)kind;
     }
     fclose(f);
 }
@@ -438,4 +459,26 @@ int mu_social_earring_pair_get(const mu_social_item_tables *t, int primary, int3
         }
     }
     return 0;
+}
+
+int mu_social_guardian_lookup_row(void *user, int kind, int key, int base, int32_t out[6]) {
+    const mu_social_item_tables *t = user;
+    int32_t row[40];
+    const char *text;
+    const char *table = kind == 0   ? "guardian_value"
+                        : kind == 1 ? "guardian_name"
+                        : kind == 2 ? "guardian_bonus"
+                                    : "guardian_bonus_name";
+    int32_t keys[2] = {key, base};
+    if (!mu_social_option_find(t, table, keys, (kind == 0 || kind == 2) ? 2u : 1u, row, &text))
+        return 0;
+    if (kind == 0) {
+        out[0] = row[2];
+        out[1] = row[3];
+        out[2] = row[5];
+    }
+    if (kind == 2)
+        for (int i = 0; i < 6; i++)
+            out[i] = row[3 + i];
+    return 1;
 }

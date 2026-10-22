@@ -45,11 +45,11 @@ int main(int argc, char **argv) {
         if (code == 103) {
             w.sockets[0] = 8;
             w.sockets[1] = 3;
-            expect = "Artifact power 4%";
+            expect = "Artifact power +4%";
         }
         if (code == 104) {
             w.sockets[0] = 224;
-            expect = "Mastery power 10";
+            expect = "Mastery power +10";
         }
         if (code == 105) {
             w.sockets[0] = 0x21;
@@ -59,13 +59,13 @@ int main(int argc, char **argv) {
             w.ancient = 0x21;
             w.sockets[0] = 1;
             w.harmony = 1;
-            expect = "elemental attack +51";
+            expect = "Fire elemental attack +51";
         }
         if (code == 107) {
             w.level_word = 9 << 3;
             w.extra[0] = 0x21;
             w.harmony = 0;
-            expect = "Advanced strength 2%";
+            expect = "Advanced strength +2%";
         }
         uint8_t bytes[15];
         mu_social_item_pack(&w, bytes);
@@ -102,6 +102,44 @@ int main(int argc, char **argv) {
     assert(!v->excellent_known && v->requested_excellent[0] == 0 && v->unresolved > 0 &&
            contains(v, "Excellent options"));
     assert(v->context.excellent_resolved == -1 && v->finalized.slots[0] == 255);
+    mu_social_item_tables_free(missing_tables);
+    missing_tables = mu_social_item_tables_load(NULL, NULL, &base.items);
+    assert(!mu_social_item_table_available(missing_tables, "guardian_value"));
+    raw.code = 102;
+    raw.excellent = 0;
+    raw.level_word = 8;
+    raw.sockets[0] = 7;
+    mu_social_item_pack(&raw, bytes);
+    assert(mu_social_item_view_build(missing_tables, &base, bytes, &hero, v));
+    assert(v->unresolved > 0 && contains(v, "Guardian options: details unavailable"));
+    raw.code = 104;
+    raw.sockets[0] = 224;
+    mu_social_item_pack(&raw, bytes);
+    assert(mu_social_item_view_build(missing_tables, &base, bytes, &hero, v));
+    assert(v->unresolved > 0 && contains(v, "Earring options: details unavailable"));
+    raw.code = 105;
+    raw.sockets[0] = 0x21;
+    mu_social_item_pack(&raw, bytes);
+    assert(mu_social_item_view_build(missing_tables, &base, bytes, &hero, v));
+    assert(v->unresolved > 0 && contains(v, "Errtel options: details unavailable"));
+    mu_social_item_tables_free(missing_tables);
+    char directory[4096];
+    snprintf(directory, sizeof directory, "%s/missing", argv[2]);
+    missing_tables = mu_social_item_tables_load(NULL, directory, &base.items);
+    raw.code = 102;
+    memset(raw.sockets, 255, 5);
+    raw.sockets[3] = 7;
+    mu_social_item_pack(&raw, bytes);
+    assert(mu_social_item_view_build(missing_tables, &base, bytes, &hero, v));
+    assert(v->decoded.guardian_keys[3] == 7 && v->unresolved > 0 &&
+           contains(v, "Guardian options: details unavailable"));
+    mu_social_item_tables_free(missing_tables);
+    assert(mu_social_item_view_build(t, &base, bytes, &hero, v) && contains(v, "Guardian 2"));
+    snprintf(directory, sizeof directory, "%s/empty", argv[2]);
+    missing_tables = mu_social_item_tables_load(NULL, directory, &base.items);
+    assert(mu_social_item_table_available(missing_tables, "guardian_value"));
+    assert(mu_social_item_view_build(missing_tables, &base, bytes, &hero, v));
+    assert(v->unresolved == 0 && !contains(v, "Guardian 2") && !contains(v, "details unavailable"));
     mu_social_item_tables_free(missing_tables);
     free(v);
     mu_social_item_tables_free(t);

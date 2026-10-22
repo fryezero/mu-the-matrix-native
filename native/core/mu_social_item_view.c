@@ -2,6 +2,7 @@
  * The surrounding line layout is native policy. No option or language rows are embedded. */
 #include "mu_social_item_view.h"
 #include "mu_lang.h"
+#include "../../reconstructed/social/item_present.h"
 #include "../../reconstructed/hud/tooltip_html.h"
 #include <math.h>
 #include <stdio.h>
@@ -21,9 +22,6 @@ static arg ar(double v) {
 }
 static arg as(const char *v) {
     return (arg){.kind = 2, .text = v ? v : ""};
-}
-static int trunc32(double v) {
-    return !isfinite(v) || v < INT32_MIN || v >= 2147483648.0 ? INT32_MIN : (int32_t)v;
 }
 /* Validate each single conversion before calling host printf. Source strings
  * never become an unchecked variadic format, and text arguments remain data. */
@@ -125,6 +123,31 @@ static int eval(const mu_social_item_tables *t, int family, int index, int a, in
                 double *value) {
     mu_social_formula_arg args[2] = {{MU_SOCIAL_FORMULA_INTEGER, a, 0}, {MU_SOCIAL_FORMULA_INTEGER, b, 0}};
     return mu_social_formula_value(t, family, index, args, (size_t)count, value) && isfinite(*value);
+}
+static int present_formula(void *user, int family, int index, const int32_t *values, size_t count,
+                           double *out) {
+    if (count > 4)
+        return 0;
+    mu_social_formula_arg args[4];
+    for (size_t i = 0; i < count; i++)
+        args[i] = (mu_social_formula_arg){MU_SOCIAL_FORMULA_INTEGER, values[i], 0};
+    return mu_social_formula_value(user, family, index, args, count, out);
+}
+static void present_line(mu_social_item_view *v, int color, const char *pattern,
+                         const mu_social_present_args *p, const char *family) {
+    if (p->mode == 2) {
+        for (int i = 0; i < p->count; i++)
+            line(v, color, gt(p->global_text[i], ""));
+        return;
+    }
+    if (p->mode != 1)
+        return;
+    arg a[3];
+    for (int i = 0; i < p->count; i++)
+        a[i] = p->kind[i] == 1   ? ar(p->real[i])
+               : p->kind[i] == 3 ? as(gt(p->integer[i], ""))
+                                 : ai(p->integer[i]);
+    formatted(v, color, pattern, a, (size_t)p->count, family);
 }
 typedef struct view_context {
     const mu_social_item_tables *tables;
@@ -228,56 +251,46 @@ static void sockets(const mu_social_item_tables *t, const mu_social_item_hero *h
     }
 }
 static void guardian(const mu_social_item_tables *t, mu_social_item_view *v) {
-    mu_social_item_decoded *d = &v->decoded;
-    double value;
-    for (int i = 0; i < 4; i++) {
-        if (d->guardian_keys[i] == 255)
-            continue;
-        mu_social_guardian_option row;
-        if (!mu_social_guardian_get(t, d->guardian_base, d->guardian_keys[i], &row)) {
-            missing(v, "Guardian option");
-            continue;
-        }
-        if (row.id == 1000 || row.id == 1001) {
-            line(v, 1, gt(0x15a6, "Guardian special option"));
-            if (row.id == 1001)
-                line(v, 1, gt(0x1654, "Guardian special bonus"));
-            continue;
-        }
-        if (!eval(t, 8, row.value, d->level, 0, 1, &value)) {
-            missing(v, "Guardian option");
-            continue;
-        }
-        if (row.id == 0 || row.id == 1 || row.id == 4) {
-            arg a = ai(trunc32(value));
-            formatted(v, 1, row.text, &a, 1, "Guardian option");
-        } else if (row.id == 2 || row.id == 3) {
-            arg a[2] = {ai(row.auxiliary), ar((double)(float)value)};
-            formatted(v, 1, row.text, a, 2, "Guardian option");
-        }
-    }
-    if (d->guardian_keys[4] != 255) {
-        mu_social_guardian_option rows[2];
-        line(v, 6, "Guardian bonus options");
-        if (!mu_social_guardian_bonus_get(t, d->guardian_base, d->guardian_keys[4], rows)) {
-            missing(v, "Guardian bonus");
-            return;
-        }
-        for (int i = 0; i < 2; i++) {
-            if (rows[i].id == -1) {
-                line(v, 10, gt(0x15a7, "No bonus option"));
+    if (!mu_social_item_table_available(t, "guardian_value") ||
+        !mu_social_item_table_available(t, "guardian_name"))
+        missing(v, "Guardian options");
+    if (!mu_social_item_table_available(t, "guardian_bonus") ||
+        !mu_social_item_table_available(t, "guardian_bonus_name"))
+        missing(v, "Guardian bonus options");
+    const mu_social_item_decoded *d = &v->decoded;
+    mu_social_guardian_entry ordinary[4], bonus[2];
+    int n, nb;
+    uint8_t selectors[5];
+    for (int i = 0; i < 5; i++)
+        selectors[i] = (uint8_t)d->guardian_keys[i];
+    mu_social_guardian_construct(d->guardian_base, selectors, 1, mu_social_guardian_lookup_row, (void *)t,
+                                 ordinary, &n, bonus, &nb);
+    mu_social_present_env env = {(void *)t, present_formula};
+    for (int b = 0; b < 2; b++) {
+        if (b && nb)
+            line(v, 3, gt(0x1573, "Guardian bonus options"));
+        for (int i = 0; i < (b ? nb : n); i++) {
+            mu_social_guardian_entry *entry = b ? &bonus[i] : &ordinary[i];
+            mu_social_present_args args;
+            int ret = mu_social_guardian_present(b, entry->id, entry->index, entry->auxiliary,
+                                                 v->wire.level_word, &env, &args);
+            if (ret < 0) {
+                missing(v, "Guardian option");
                 continue;
             }
-            if (!eval(t, 8, rows[i].value, d->level, 0, 1, &value)) {
-                missing(v, "Guardian bonus");
-                continue;
-            }
-            arg a = ai(trunc32(value));
-            formatted(v, 1, rows[i].text, &a, 1, "Guardian bonus");
+            int32_t row[40];
+            const char *text = NULL;
+            find(t, b ? "guardian_bonus_name" : "guardian_name", entry->name_key, 0, 0, 1, row, &text);
+            if (ret)
+                present_line(v, b ? 12 : 1, text ? text : "", &args, "Guardian option");
         }
     }
+    line(v, 1, gt(0xc34, "Guardian options"));
+    if (v->wire.durability <= 50)
+        line(v, 2, gt(0x15a4, "Guardian durability is low"));
 }
 static void artifacts(const mu_social_item_tables *t, mu_social_item_view *v) {
+    mu_social_present_env env = {(void *)t, present_formula};
     for (int i = 0; i < v->decoded.artifact_count; i++) {
         const int *request = v->decoded.artifact[i];
         mu_social_artifact_row row;
@@ -285,33 +298,35 @@ static void artifacts(const mu_social_item_tables *t, mu_social_item_view *v) {
             missing(v, "Artifact option");
             continue;
         }
-        double value = request[1];
-        if (request[2] > 0 && !eval(t, 11, row.tail[1], request[1], request[2], 2, &value)) {
+        mu_social_artifact_option option = {.selector = row.selector,
+                                            .text_id = row.text_id,
+                                            .formula_index = row.tail[1],
+                                            .threshold = row.tail[3],
+                                            .divisor = row.tail[4]};
+        memcpy(option.pairs, row.pairs, sizeof option.pairs);
+        mu_social_artifact_entry entry;
+        if (mu_social_artifact_construct(&option, request[0], request[1], request[2], &env, &entry) < 1) {
             missing(v, "Artifact option");
             continue;
         }
-        int format_type;
-        const char *name = mu_social_artifact_text(t, row.text_id, &format_type);
-        if (!name) {
+        int mode = 0;
+        const char *name = mu_social_artifact_text(t, entry.text_id, &mode);
+        mu_social_present_args args;
+        if (!mu_social_artifact_present(&entry, name != NULL, mode, &args)) {
             missing(v, "Artifact option");
             continue;
         }
-        char text[256];
-        if (format_type == 0)
+        char text[256] = "";
+        if (args.count == 1)
             snprintf(text, sizeof text, "%s", name);
-        else
-            snprintf(text, sizeof text, "%.210s %d%s", name, trunc32(value), format_type == 2 ? "%" : "");
-        int rank = 0;
-        for (int j = 0; j < 10; j++)
-            if (row.pairs[j][0] == request[1]) {
-                rank = j + 1;
-                break;
-            }
-        if (rank) {
-            arg a[2] = {ai(rank), as(text)};
-            formatted(v, 1, gt(0x19f8, "Rank %d %s"), a, 2, "Artifact rank");
+        else if (args.count == 2)
+            mu_social_present_literal(text, sizeof text, name, args.integer[1], 0, mode == 2);
+        int color = entry.threshold_flag ? 15 : 1;
+        if (args.global_text[0]) {
+            arg a[2] = {ai(args.global_text[1]), as(text)};
+            formatted(v, color, gt(args.global_text[0], "Rank %d %s"), a, 2, "Artifact rank");
         } else
-            line(v, 1, text);
+            line(v, color, text);
     }
 }
 static const char *element(int n) {
@@ -319,7 +334,7 @@ static const char *element(int n) {
 }
 static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *base, const mu_item *item,
                       mu_social_item_view *v) {
-    (void)base;
+
     const mu_social_item_decoded *d = &v->decoded;
     int32_t row[40];
     const char *text;
@@ -347,15 +362,18 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
                     continue;
                 displayed++;
                 if (r[2] == 0 || r[2] == 1) {
-                    double value;
-                    if (!eval(t, 1, 7 + r[2], item->attributes.require_level, r[1], 2, &value)) {
+                    mu_social_present_env env = {(void *)t, present_formula};
+                    mu_social_present_args args;
+                    if (mu_social_pentagram_present(item->attributes.require_level, r, &env, &args) < 1) {
                         missing(v, "Elemental rank");
                         continue;
                     }
-                    char label[256];
-                    snprintf(label, sizeof label, "%.100s elemental %s +%d (%d level)", element(r[0]),
-                             r[2] ? "defense" : "attack", trunc32(value), r[1]);
-                    line(v, 1, label);
+                    const char *pattern = mu_hud_tip_text(base, (uint16_t)args.global_text[0]);
+                    if (!pattern) {
+                        missing(v, "Elemental rank text");
+                        continue;
+                    }
+                    present_line(v, 1, pattern, &args, "Elemental rank");
                 }
             }
         if (find(t, "pentagram", v->wire.code, 0, 0, 1, row, &text)) {
@@ -420,28 +438,47 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
                 v->unresolved++;
             }
     } else if (v->context.kind_a == 26 || v->context.kind_b == 0x2c) {
+        if (!mu_social_item_table_available(t, "jewel"))
+            missing(v, "Errtel options");
         if (d->socket_count < 1 || d->socket_count > 5)
             return;
+        if (item->attributes.pentagram_grade) {
+            missing(v, "Mastery Errtel options");
+            return;
+        }
         arg count = ai(d->socket_count);
         formatted(v, 6, gt(0xe57, "%d Rank Errtel"), &count, 1, "Errtel rank");
-        int shown = 0;
-        for (int i = 0; i < 5; i++) {
-            int raw = d->socket_raw[i];
-            if (raw == 255)
-                continue;
-            int level = raw >> 4, opt = raw & 15;
-            arg a[2] = {ai(++shown), ai(level)};
+        uint8_t slots[5];
+        for (int i = 0; i < 5; i++)
+            slots[i] = (uint8_t)d->socket_raw[i];
+        mu_social_errtel_line plan[5];
+        int count_lines =
+            mu_social_errtel_plan(d->socket_count, slots, item->attributes.pentagram_grade, plan);
+        for (int i = 0; i < count_lines; i++) {
+            int level = plan[i].level, opt = plan[i].option;
+            arg a[2] = {ai(plan[i].ordinal), ai(level)};
             formatted(v, 6, gt(0xe58, "%d Rank Option +%d"), a, 2, "Errtel rank");
-            if (level > 10 || !find(t, "jewel", v->wire.code, i + 1, opt, 3, row, &text)) {
-                missing(v, "Errtel option");
+            if (level > 10 || !find(t, "jewel", v->wire.code, plan[i].physical, opt, 3, row, &text)) {
+                arg fallback = ai(opt);
+                formatted(
+                    v, 1,
+                    gt(opt == 15 ? 0x1298 : 0xe5a, opt == 15 ? "Undesignated option" : "Unknown option %d"),
+                    &fallback, 1, "Errtel option");
                 continue;
             }
-            arg value = ai(row[6 + level]);
-            formatted(v, 1, text, &value, 1, "Errtel option");
+            mu_social_present_args args;
+            mu_social_errtel_present(row + 6, level, &args);
+            present_line(v, 1, text, &args, "Errtel option");
         }
     }
 }
 static void earring(const mu_social_item_tables *t, mu_social_item_view *v) {
+    if (!mu_social_item_table_available(t, "earring_primary") ||
+        !mu_social_item_table_available(t, "earring_name") ||
+        !mu_social_item_table_available(t, "earring_value"))
+        missing(v, "Earring options");
+    if (!mu_social_item_table_available(t, "earring_pair"))
+        missing(v, "Earring pair options");
     const mu_social_item_finalized *f = &v->finalized;
     int32_t row[40];
     const char *name;
@@ -458,16 +495,23 @@ static void earring(const mu_social_item_tables *t, mu_social_item_view *v) {
             }
             int format_type = row[1];
             const char *text = name;
-            if (!find(t, "earring_value", tag, rank, 0, 2, row, NULL)) {
+            int32_t tagrow[40];
+            if (!find(t, "earring_value", tag, 0, 0, 1, tagrow, NULL)) {
                 missing(v, "Earring value");
                 continue;
             }
-            double value = row[3];
-            if (id >= 28 && id <= 31 && !eval(t, 9, row[3], v->decoded.level, 0, 1, &value)) {
+            int selected = find(t, "earring_value", tag, rank, 0, 2, row, NULL) != 0;
+            mu_social_present_env env = {(void *)t, present_formula};
+            mu_social_present_args args;
+            if (mu_social_earring_present(id, format_type, selected ? row[3] : 0, selected, v->decoded.level,
+                                          0, 0, &env, &args) < 1) {
                 missing(v, "Earring value");
                 continue;
             }
-            number_line(v, bonus ? 10 : 1, text, trunc32(value), format_type == 2);
+            char rendered[256];
+            mu_social_present_literal(rendered, sizeof rendered, text, args.integer[1], args.count == 1,
+                                      format_type == 2 ? 2 : 0);
+            line(v, bonus ? 10 : 1, rendered);
         }
         if (bonus && count)
             line(v, 10, "Paired bonus requires equipped matching earrings");
@@ -623,9 +667,16 @@ int mu_social_item_view_build(const mu_social_item_tables *t, const mu_hud_tip_t
     }
     if (v->decoded.advanced_slot >= 0) {
         mu_social_advanced_row row_a;
-        if (mu_social_advanced_get(t, v->decoded.saved_group, v->decoded.advanced_option, &row_a))
-            number_line(v, 1, row_a.name, v->decoded.advanced_level, row_a.format == 2);
-        else
+        if (mu_social_advanced_get(t, v->decoded.saved_group, v->decoded.advanced_option, &row_a)) {
+            v->advanced_grade = mu_social_advanced_threshold(row_a.values, v->decoded.advanced_level);
+            mu_social_present_args args;
+            if (mu_social_advanced_present(row_a.format, v->decoded.advanced_level, &args)) {
+                char rendered[256];
+                mu_social_present_literal(rendered, sizeof rendered, row_a.name, args.integer[1], 0,
+                                          args.global_text[0]);
+                line(v, 1, rendered);
+            }
+        } else
             missing(v, "Advanced harmony option");
     }
     if (c->grade == 2)

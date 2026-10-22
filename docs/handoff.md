@@ -1,18 +1,19 @@
 # Continue from here
 
-## Social systems (NATIVE-SOCIAL-001)
+## Social systems, original handlers and item options (NATIVE-SOCIAL-001)
 
-Round 1 publishes from `claude/native-social`; continue original handlers on `claude/native-social2` from merged main.
-
-Read [client-social.md](research/client-social.md). `reconstructed/social` + `scripts/validate_social.py` cover
-party request/fields/state/resources/markers, trade receives/locks/results, friend rows and whispers. Private
-run: 7,000 comparisons, 0 mismatches, 10/10 mutations. `core/mu_social` is the offline server/session;
-`world/world_gfx_social` drives winParty, Trade, FriendMenu/FriendWindow and chat in mu-world/mu-client.
-P/F/Y/N and slash commands are in the finding. Inventory offers reserve native inventory items and restore
-on cancel; one-item partner offers remain a demo. Membership survives travel and stationary Tab markers
-refresh after map clearing. Three native regressions plus five reconstructed tests. Local GL evidence:
-`~/Documents/mu-mac-tools/native/renders/social/checked-{trade,messenger,map,travel}/`.
-Next: original outbound requests/dialogs, tradeability/options, messenger receives, mail/room transport.
+Round 1 merged in PR #147, `4420bb2`. Round 2 is on `claude/native-social2`.
+Read [client-social-original.md](research/client-social-original.md), with the earlier
+[HUD/trade/friend milestone](research/client-social.md). Party send/receive, shared UI/room/letter identities,
+mail cache/pending/windows/drafts and complete 15-byte trade instances now drive the real GFx movies.
+`mu_social_item_tables/view` resolve installed option tables; `item_options/formula/display/present` hold
+bounded reconstructed consumers. Missing tables produce unavailable-details notices. Escrow, vault and
+mutable instance fields retain wire data. Round 2: 29,700 C-to-original comparisons, zero mismatches,
+36/36 C mutants. Round 1 retains its separate 7,000 comparisons and 10/10 mutants.
+Local renders: `~/Documents/mu-mac-tools/native/renders/social/round2-{mail,compose,messenger,trade-options}-final/`.
+The local `social-options.tsv` export belongs in Preview Native Data/lang; its recipe and exact original
+ranges are in the finding. Remaining boundaries are transport/code pages, opaque excellent eligibility,
+equipped/embedded state and uncaptured mastery patches, later stat finalizers and exact original CRT/UI.
 
 ## Item mixing and jewels, NATIVE-MIX-001
 

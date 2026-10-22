@@ -17,7 +17,7 @@ typedef struct mu_social_harmony_row {
     int32_t id, min_level, values[14], zen[14];
     char name[61];
 } mu_social_harmony_row;
-/* Ordinary value is a family-8 formula index; bonus value is a literal operand. */
+/* Ordinary and bonus value fields are family-8 formula indices. */
 typedef struct mu_social_guardian_option {
     int32_t id, value, auxiliary;
     const char *text;
@@ -33,11 +33,14 @@ typedef struct mu_social_advanced_row {
 mu_social_item_tables *mu_social_item_tables_load(const char *game_root, const char *lang_dir,
                                                   const mu_data_table *items);
 void mu_social_item_tables_free(mu_social_item_tables *);
+/* Valid rows imply availability; an authored header also represents loaded-empty families. */
+int mu_social_item_table_available(const mu_social_item_tables *, const char *family);
 int mu_social_excellent_available(const mu_social_item_tables *, int family);
 int mu_social_excellent_get(const mu_social_item_tables *, int family, int category, int id,
                             mu_social_excellent_row *);
 int mu_social_socket_get(const mu_social_item_tables *, int group, int index, mu_social_socket_row *);
 int mu_social_harmony_get(const mu_social_item_tables *, int group, int id, mu_social_harmony_row *);
+int mu_social_guardian_lookup_row(void *, int kind, int selector, int base, int32_t values[6]);
 int mu_social_guardian_get(const mu_social_item_tables *, int base, int selector,
                            mu_social_guardian_option *);
 int mu_social_guardian_bonus_get(const mu_social_item_tables *, int base, int selector,

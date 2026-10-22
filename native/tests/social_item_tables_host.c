@@ -8,6 +8,9 @@ int main(int argc, char **argv) {
     mu_social_item_tables *t = mu_social_item_tables_load(argv[1], argv[2], NULL);
     assert(t);
     assert(mu_social_item_table_rows(t) == 7);
+    assert(mu_social_item_table_available(t, "guardian_value"));
+    assert(mu_social_item_table_available(t, "earring_name")); /* loaded-empty */
+    assert(!mu_social_item_table_available(t, "jewel"));
     mu_social_guardian_option g;
     assert(mu_social_guardian_get(t, 3, 7, &g) && g.id == 7 && g.value == 19 && g.auxiliary == 34);
     assert(!strcmp(g.text, "Option %d\\literal\n"));

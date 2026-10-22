@@ -24,6 +24,7 @@ import validate_social2_items as items
 import validate_social2_formula as formulas
 import validate_social2_display as displays
 import validate_social2_receive as receives
+import validate_social2_present as presenters
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -191,6 +192,11 @@ def main():
             library(ROOT / "reconstructed/social/libsocial.dylib"), text, data, a.cases
         )
     )
+    result["families"].update(
+        presenters.run(
+            library(ROOT / "reconstructed/social/libsocial.dylib"), text, data, a.cases
+        )
+    )
     receive_report, receive_skips = receives.run(a.text, a.data)
     result["families"].update(receive_report)
     result["receive_unrepresentable_cases"] = receive_skips
@@ -220,6 +226,13 @@ def main():
             "FORMULA_ROUND": "formula_evaluation",
             "DISPLAY_LABEL": "excellent_display",
             "SOCKET_NARROW": "socket_display",
+            "GUARD_SELECTOR": "guardian_constructor",
+            "GUARD_FLOAT": "guardian_presenter",
+            "ARTIFACT_ARGS": "artifact_constructor",
+            "ARTIFACT_WRAP": "artifact_presenter",
+            "EARRING_TRUNC": "earring_presenter",
+            "ERRTEL_POSITION": "errtel_plan",
+            "ADVANCED_THRESHOLD": "advanced_threshold",
         }
         with tempfile.TemporaryDirectory() as tmp:
             for control, family in controls.items():
@@ -235,6 +248,7 @@ def main():
                         str(ROOT / "reconstructed/social/social_packets.c"),
                         str(ROOT / "reconstructed/social/item_formula.c"),
                         str(ROOT / "reconstructed/social/item_display.c"),
+                        str(ROOT / "reconstructed/social/item_present.c"),
                         "-o",
                         str(dst),
                     ],
@@ -271,6 +285,16 @@ def main():
                     ]
                 elif control == "FORMULA_ROUND":
                     report = formulas.run(lib, text, data, 40, a.game_root)[family]
+                elif control in (
+                    "GUARD_SELECTOR",
+                    "GUARD_FLOAT",
+                    "ARTIFACT_ARGS",
+                    "ARTIFACT_WRAP",
+                    "EARRING_TRUNC",
+                    "ERRTEL_POSITION",
+                    "ADVANCED_THRESHOLD",
+                ):
+                    report = presenters.run(lib, text, data, 40)[family]
                 elif control in ("DISPLAY_LABEL", "SOCKET_NARROW"):
                     report = displays.run(lib, text, data, 40)[family]
                 else:
