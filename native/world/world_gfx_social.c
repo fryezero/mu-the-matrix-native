@@ -1,5 +1,6 @@
 #include "world_gfx_social.h"
 #include "../../reconstructed/hud/item_slots.h"
+#include "../../reconstructed/social/item_options.h"
 #include "../gfx/mu_gfx_layer.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +8,7 @@
 struct world_gfx_social {
     mu_gfx_layer *l;
     mu_social_session *s;
-    int revision, party, friends, trade;
+    int revision, party, friends, trade, friends_initialized;
     float x[2], y[2], w[2], h[2];
     int prompt;
     char map_path[160];
@@ -15,6 +16,9 @@ struct world_gfx_social {
     mu_gfx_slot_item escrow[32];
     int messenger;
     char room_name[11];
+    int message_revision, mailbox_revision;
+    uint32_t room_ui[MU_LOCAL_ROOMS], delivered[MU_LOCAL_ROOMS], roster_hash[MU_LOCAL_ROOMS];
+    uint32_t mail_ui[MU_LOCAL_WINDOWS], connection[MU_LOCAL_ROOMS];
 };
 /* JSON strings preserve UTF-8; control bytes are escaped. No game data in source. */
 static void quote(char *o, size_t cap, const char *s)
@@ -39,9 +43,41 @@ static void call(world_gfx_social *g, int id, const char *fn, const char *args)
     mu_gfx_layer_invoke(g->l, id, NULL, fn, args);
 }
 static void notice(world_gfx_social *g, const char *s) { mu_gfx_layer_chat(g->l, 3, "", s); }
-static int item_code(const uint8_t b[15])
-{
-    return b[0] | ((b[3] & 0x80) << 1) | ((b[5] & 0xf0) << 5) | ((b[5] & 1) << 13);
+/* Record dimensions belong to the item metadata host, not the social server. */
+static int trade_item(world_gfx_social *g, int side, int slot, mu_gfx_slot_item *out) {
+    if (slot < 0 || slot >= 32 || !g->s->trade.items[side][slot].present)
+        return 0;
+    if (side == 0 && g->tokens[slot]) {
+        *out = g->escrow[slot];
+        return 1;
+    }
+    return mu_gfx_layer_social_item(g->l, g->s->trade.items[side][slot].bytes, out);
+}
+static int partner_grid(world_gfx_social *g) {
+    uint8_t cells[32] = {0};
+    for (int i = 0; i < 32; i++)
+        if (g->s->trade.items[1][i].present) {
+            mu_gfx_slot_item it;
+            if (!trade_item(g, 1, i, &it) || i % 8 + it.width > 8 || i / 8 + it.height > 4)
+                return 0;
+            for (int y = 0; y < it.height; y++)
+                for (int x = 0; x < it.width; x++) {
+                    int c = i + y * 8 + x;
+                    if (cells[c])
+                        return 0;
+                    cells[c] = 1;
+                }
+        }
+    return 1;
+}
+static int covered_item(world_gfx_social *g, int side, int cell, mu_gfx_slot_item *out) {
+    if (cell < 0 || cell >= 32)
+        return -1;
+    for (int i = 0; i < 32; i++)
+        if (trade_item(g, side, i, out) && cell % 8 >= i % 8 && cell % 8 < i % 8 + out->width &&
+            cell / 8 >= i / 8 && cell / 8 < i / 8 + out->height)
+            return i;
+    return -1;
 }
 static void whisper(world_gfx_social *g, const char *name, const char *text, int incoming)
 {
@@ -74,15 +110,13 @@ static int commit_trade(void *user)
     world_gfx_social *g = user;
     mu_gfx_slot_item incoming[32];
     int n = 0;
+    if (!partner_grid(g))
+        return 0;
     for (int i = 0; i < 32; i++)
         if (g->s->trade.items[1][i].present) {
-            const uint8_t *b = g->s->trade.items[1][i].bytes;
-            mu_gfx_slot_item *d = &incoming[n++];
-            memset(d, 0, sizeof *d);
-            d->code = item_code(b);
-            d->level = (b[1] >> 3) & 15;
-            d->width = d->height = 1;
-            snprintf(d->name, sizeof d->name, "Trade item (demo)");
+            if (!trade_item(g, 1, i, &incoming[n]))
+                return 0;
+            n++;
         }
     if (!mu_gfx_layer_inventory_exchange(g->l, g->tokens, incoming, n))
         return 0;
@@ -97,6 +131,22 @@ static int offer(world_gfx_social *g, int cell)
     int token = mu_gfx_layer_inventory_reserve(g->l, cell, &item);
     if (!token)
         return 0;
+    if (!item.has_data) {
+        mu_social_item_wire wire;
+        memset(&wire, 0, sizeof wire);
+        wire.code = item.code;
+        wire.level_word = (uint8_t)(item.level << 3);
+        wire.durability = 100; /* original demo inventory has no server instance */
+        memset(wire.sockets, 0xff, sizeof wire.sockets);
+        memset(wire.extra, 0xff, sizeof wire.extra);
+        mu_social_item_pack(&wire, item.data);
+        item.has_data = 1;
+    }
+    mu_gfx_slot_item meta;
+    if (!mu_gfx_layer_social_item(g->l, item.data, &meta) || meta.trade_ban) {
+        mu_gfx_layer_inventory_finish(g->l, token, 0);
+        return 0;
+    }
     int slot = -1;
     for (int y = 0; y + item.height <= 4 && slot < 0; y++)
         for (int x = 0; x + item.width <= 8 && slot < 0; x++) {
@@ -120,10 +170,7 @@ static int offer(world_gfx_social *g, int cell)
     mu_trade_item *t = &g->s->trade.items[0][slot];
     memset(t, 0, sizeof *t);
     t->present = 1;
-    t->bytes[0] = (uint8_t)item.code;
-    t->bytes[1] = (uint8_t)(item.level << 3);
-    t->bytes[3] = (uint8_t)((item.code >> 1) & 0x80);
-    t->bytes[5] = (uint8_t)(((item.code >> 5) & 0xf0) | ((item.code >> 13) & 1));
+    memcpy(t->bytes, item.data, sizeof t->bytes);
     mu_social_trade_lock(&g->s->trade, 2);
     g->s->result_due = 0;
     g->s->revision++;
@@ -138,24 +185,11 @@ static int inventory(void *user, int cell)
         notice(g, "Item cannot be offered here, or the offer is locked.");
     return 1;
 }
+static void messages_frame(world_gfx_social *g);
 static void messenger(world_gfx_social *g, const char *name)
 {
-    char q[128], b[512];
-    quote(q, sizeof q, name);
-    snprintf(g->room_name, sizeof g->room_name, "%.10s", name);
-    call(
-        g, MU_GFX_MESSENGER, "InitText",
-        "[[\"Write\",\"Read\",\"Reply\",\"Delete\",\"Messenger\",\"Invite\",\"Delete\",\"Previous\",\"Next\","
-        "\"Close\",\"Send\",\"Recipient\",\"Title\",\"Offline demo\",\"Close invite\",\"Send\"]]");
-    char hero[64];
-    quote(hero, sizeof hero, g->s->hero);
-    snprintf(b, sizeof b, "[%s]", hero);
-    call(g, MU_GFX_MESSENGER, "SetHeroName", b);
-    call(g, MU_GFX_MESSENGER, "ClearWindow", "[]");
-    snprintf(b, sizeof b, "[1,560,140,%s,0,\"\",0]", q);
-    call(g, MU_GFX_MESSENGER, "AddChatRoom1", b);
-    mu_gfx_layer_show(g->l, MU_GFX_MESSENGER, 1);
-    g->messenger = 1;
+    if (mu_social_messages_open(&g->s->messages, name))
+        messages_frame(g);
 }
 int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *arg)
 {
@@ -166,6 +200,39 @@ int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *a
     if (!strcmp(verb, "messenger")) {
         messenger(g, arg[0] ? arg : g->s->target);
         return 1;
+    }
+    mu_social_messages *messages = &g->s->messages;
+    if (!strcmp(verb, "mail")) {
+        mu_social_messages_compose(messages, arg);
+        messages_frame(g);
+        return 1;
+    }
+    if (!strcmp(verb, "read-mail")) {
+        int ok = mu_social_messages_read(messages, (uint32_t)strtoul(arg, NULL, 10));
+        messages_frame(g);
+        return ok;
+    }
+    if (!strcmp(verb, "room-send")) {
+        int ok = mu_social_messages_send(messages, messages->active_ui, arg);
+        messages_frame(g);
+        return ok;
+    }
+    if (!strcmp(verb, "room-invite")) {
+        int ok = mu_social_messages_invite(messages, messages->active_ui, arg);
+        messages_frame(g);
+        return ok;
+    }
+    if (!strcmp(verb, "room-minimize") || !strcmp(verb, "room-close")) {
+        uint32_t ui = arg[0] ? (uint32_t)strtoul(arg, NULL, 10) : messages->active_ui;
+        int ok = !strcmp(verb, "room-close") ? mu_social_messages_close(messages, ui)
+                                             : mu_social_messages_minimize(messages, ui);
+        messages_frame(g);
+        return ok;
+    }
+    if (!strcmp(verb, "delete-confirm")) {
+        int ok = mu_social_messages_delete_confirm(messages, strcmp(arg, "no") != 0);
+        messages_frame(g);
+        return ok;
     }
     if (!strcmp(verb, "offer"))
         return offer(g, atoi(arg));
@@ -214,7 +281,14 @@ int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *a
         return 1;
     }
     int was_open = g->s->trade.open;
+    mu_trade saved = g->s->trade;
+    int saved_due = g->s->result_due;
     int ok = mu_social_action(g->s, verb, arg);
+    if (ok && !strcmp(verb, "partner-item") && !partner_grid(g)) {
+        g->s->trade = saved;
+        g->s->result_due = saved_due;
+        ok = 0;
+    }
     if (g->s->result_due) {
         int count = 0;
         for (int i = 0; i < 32; i++)
@@ -358,18 +432,392 @@ static int first_string(const char *json, char *out, size_t cap)
     out[n] = 0;
     return *p == '"';
 }
+static const char *argument(const char *json, int index) {
+    const char *p = strchr(json, '[');
+    if (!p)
+        return NULL;
+    p++;
+    for (int i = 0;; i++) {
+        while (*p == ' ' || *p == '\n' || *p == '\t')
+            p++;
+        if (!*p || *p == ']')
+            return NULL;
+        if (i == index)
+            return p;
+        int depth = 0, string = 0;
+        for (; *p; p++) {
+            if (string) {
+                if (*p == '\\' && p[1])
+                    p++;
+                else if (*p == '"')
+                    string = 0;
+            } else if (*p == '"')
+                string = 1;
+            else if (*p == '[' || *p == '{')
+                depth++;
+            else if (*p == ']' || *p == '}') {
+                if (!depth)
+                    return NULL;
+                depth--;
+            } else if (*p == ',' && !depth) {
+                p++;
+                break;
+            }
+        }
+    }
+}
+static int string_arg(const char *json, int index, char *out, size_t cap) {
+    const char *p = argument(json, index);
+    return p && *p == '"' && first_string(p, out, cap);
+}
+static uint32_t id_arg(const char *json, int index) {
+    const char *p = argument(json, index);
+    if (!p)
+        return 0;
+    if (*p == '"')
+        p++;
+    char *end;
+    unsigned long v = strtoul(p, &end, 10);
+    return end != p && v <= UINT32_MAX ? (uint32_t)v : 0;
+}
+static void message_ui_init(world_gfx_social *g) {
+    call(g, MU_GFX_MESSENGER, "InitText",
+         "[[\"Write\",\"Read\",\"Reply\",\"Delete\",\"Messenger\",\"Invite\",\"Delete\",\"Previous\","
+         "\"Next\",\"Close\",\"Send\",\"Recipient\",\"Title\",\"Offline demo\",\"Close invite\",\"Send\"]]");
+    char q[64], b[96];
+    quote(q, sizeof q, g->s->hero);
+    snprintf(b, sizeof b, "[%s]", q);
+    call(g, MU_GFX_MESSENGER, "SetHeroName", b);
+}
+static void messages_frame(world_gfx_social *g) {
+    mu_social_messages *m = &g->s->messages;
+    if (g->message_revision == m->revision)
+        return;
+    g->message_revision = m->revision;
+    if (m->notice) {
+        const char *fallback = "Messenger request could not be completed.";
+        switch (m->notice) {
+        case 0x3ee:
+            fallback = "Enter a recipient.";
+            break;
+        case 0x3ef:
+            fallback = "Enter a letter title.";
+            break;
+        case 0x3f0:
+            fallback = "Enter a message.";
+            break;
+        case 0x416:
+            fallback = "Letter sent (offline demo).";
+            break;
+        case 0x425:
+            fallback = "The recipient's mailbox is full. Your draft is still open.";
+            break;
+        case 0x432:
+            fallback = "This chat room cannot accept more participants.";
+            break;
+        default:
+            break;
+        }
+        mu_gfx_layer_social_notice(g->l, m->notice, fallback);
+        m->notice = 0;
+    }
+    message_ui_init(g);
+    char b[32768], q[8192], name[128], title[256];
+    int shown = 0;
+    for (int i = 0; i < MU_LOCAL_ROOMS; i++) {
+        mu_local_room *r = m->rooms + i;
+        if (g->room_ui[i] && g->room_ui[i] != r->ui) {
+            snprintf(b, sizeof b, "[%u]", g->room_ui[i]);
+            g->room_ui[i] = 0;
+            call(g, MU_GFX_MESSENGER, "CloseWindow", b);
+        }
+        if (!r->ui)
+            continue;
+        shown |= r->shown;
+        if (g->room_ui[i] != r->ui && r->shown) {
+            g->room_ui[i] = r->ui;
+            g->delivered[i] = 0;
+            g->roster_hash[i] = 0;
+            r->loaded = 0;
+            quote(name, sizeof name, r->peer);
+            snprintf(b, sizeof b, "[%u,560,140,%s,%u,\"offline\",%u]", r->ui, name, r->number, r->ticket);
+            call(g, MU_GFX_MESSENGER, "AddChatRoom1", b);
+        }
+        if (!g->room_ui[i])
+            continue;
+        char visible_path[256];
+        snprintf(visible_path, sizeof visible_path, "%s.%u._visible",
+                 mu_gfx_layer_path(g->l, MU_GFX_MESSENGER), r->ui);
+        mu_gfx_layer_set_variable(g->l, MU_GFX_MESSENGER, visible_path, r->shown ? "true" : "false");
+        if (g->connection[i] != r->connection) {
+            quote(name, sizeof name, r->address);
+            snprintf(b, sizeof b, "[%u,%u,%s,%u]", r->ui, r->number, name, r->ticket);
+            call(g, MU_GFX_MESSENGER, "ChangeChatRoomInfo", b);
+            g->connection[i] = r->connection;
+            g->roster_hash[i] = 0;
+        }
+        if (!r->loaded || !r->shown)
+            continue;
+        uint32_t hash = 2166136261u;
+        for (int j = 0; j < r->count; j++)
+            for (size_t k = 0; k < sizeof r->users[j]; k++)
+                hash = (hash ^ ((const uint8_t *)(r->users + j))[k]) * 16777619u;
+        if (g->roster_hash[i] != hash) {
+            /* Compatibility repair: the movie's RemoveTalker uses slice, which
+             * retains removed rows. Rebuild its provider with mutating splice. */
+            char path[256];
+            snprintf(path, sizeof path, "%s.%u.slTalkers.dataProvider",
+                     mu_gfx_layer_path(g->l, MU_GFX_MESSENGER), r->ui);
+            mu_gfx_layer_invoke(g->l, MU_GFX_MESSENGER, path, "splice", "[0,255]");
+            for (int j = 0; j < r->count; j++) {
+                quote(name, sizeof name, r->users[j].name);
+                snprintf(b, sizeof b, "[%u,%s,%u,%u]", r->ui, name, r->users[j].serial, r->users[j].server);
+                call(g, MU_GFX_MESSENGER, "AddFriendAtChatRoom", b);
+            }
+            g->roster_hash[i] = hash;
+        }
+        snprintf(title, sizeof title, "%s (offline demo)", r->peer);
+        quote(q, sizeof q, title);
+        snprintf(b, sizeof b, "[%u,%s]", r->ui, q);
+        call(g, MU_GFX_MESSENGER, "SetChatRoomTitle", b);
+        for (int j = 0; j < r->history_count; j++)
+            if (r->history[j].sequence > g->delivered[i]) {
+                quote(q, sizeof q, r->history[j].message.text);
+                snprintf(b, sizeof b, "[%u,%u,%s]", r->ui, r->history[j].message.serial, q);
+                const mu_local_message *entry = r->history + j;
+                int matches = 0;
+                for (int u = 0; u < r->count; u++)
+                    if (r->users[u].serial == entry->message.serial &&
+                        !strcmp(r->users[u].name, entry->sender))
+                        matches = 1;
+                if (matches)
+                    call(g, MU_GFX_MESSENGER, "AddChatText", b);
+                else {
+                    /* A replayed serial may now belong to someone else. The movie
+                     * resolves AddText against today's roster, so project the
+                     * arrival-time identity directly into its text provider. */
+                    char label[160], path[256];
+                    snprintf(label, sizeof label, "%s%s%s", entry->sender, entry->sender[0] ? ": " : "",
+                             entry->message.text);
+                    quote(q, sizeof q, label);
+                    snprintf(b, sizeof b, "[{\"label\":%s}]", q);
+                    snprintf(path, sizeof path, "%s.%u.slTexts.dataProvider",
+                             mu_gfx_layer_path(g->l, MU_GFX_MESSENGER), r->ui);
+                    mu_gfx_layer_invoke(g->l, MU_GFX_MESSENGER, path, "push", b);
+                    snprintf(path, sizeof path, "%s.%u.slTexts", mu_gfx_layer_path(g->l, MU_GFX_MESSENGER),
+                             r->ui);
+                    mu_gfx_layer_invoke(g->l, MU_GFX_MESSENGER, path, "invalidateData", "[]");
+                }
+                g->delivered[i] = entry->sequence;
+            }
+        mu_social_messages_delivered(r, g->delivered[i]);
+    }
+    for (int i = 0; i < MU_LOCAL_WINDOWS; i++) {
+        mu_local_window *w = m->windows + i;
+        if (g->mail_ui[i] && g->mail_ui[i] != w->ui) {
+            snprintf(b, sizeof b, "[%u]", g->mail_ui[i]);
+            g->mail_ui[i] = 0;
+            call(g, MU_GFX_MESSENGER, "CloseWindow", b);
+        }
+        if (!w->ui)
+            continue;
+        shown |= w->shown;
+        if (g->mail_ui[i] != w->ui) {
+            g->mail_ui[i] = w->ui;
+            quote(name, sizeof name, w->recipient);
+            quote(title, sizeof title, w->title);
+            if (w->kind == 1) {
+                snprintf(b, sizeof b, "[%u,560,140,\"Write letter (offline)\",%s,%s]", w->ui, name, title);
+                call(g, MU_GFX_MESSENGER, w->reply ? "AddReplyLetter" : "AddWriteLetter", b);
+                quote(q, sizeof q, w->body);
+                snprintf(b, sizeof b, "[%u,%s]", w->ui, q);
+                call(g, MU_GFX_MESSENGER, "SetLetterText", b);
+            } else {
+                quote(q, sizeof q, w->body);
+                snprintf(b, sizeof b, "[%u,560,140,%u,%s,%s,%s,0,0]", w->ui, w->letter, title, name, q);
+                call(g, MU_GFX_MESSENGER, "AddLetterText", b);
+            }
+        }
+        char visible_path[256];
+        snprintf(visible_path, sizeof visible_path, "%s.%u._visible",
+                 mu_gfx_layer_path(g->l, MU_GFX_MESSENGER), w->ui);
+        mu_gfx_layer_set_variable(g->l, MU_GFX_MESSENGER, visible_path, w->shown ? "true" : "false");
+    }
+    if (g->mailbox_revision != m->mailbox_revision) {
+        g->mailbox_revision = m->mailbox_revision;
+        call(g, MU_GFX_FRIENDS, "ClearMailBox", "[]");
+        size_t n = (size_t)snprintf(b, sizeof b, "[[");
+        for (int i = 0; i < m->letter_count; i++) {
+            const mu_social_letter *h = &m->letters[i].header;
+            quote(name, sizeof name, h->sender);
+            quote(title, sizeof title, h->title);
+            quote(q, sizeof q, h->date);
+            n += (size_t)snprintf(
+                b + n, sizeof b - n,
+                "%s{\"CharacterID\":%s,\"Date\":%s,\"Text\":%s,\"IsRead\":%d,\"LetterID\":%u}", i ? "," : "",
+                name, q, title, h->read, h->id);
+        }
+        snprintf(b + n, sizeof b - n, "]]");
+        call(g, MU_GFX_FRIENDS, "AddLetterList", b);
+    }
+    for (int i = 0; i < m->letter_count; i++) {
+        snprintf(b, sizeof b, "[%u,%d]", m->letters[i].header.id, m->letters[i].header.read);
+        call(g, MU_GFX_FRIENDS, "SetMailReaded", b);
+    }
+    call(g, MU_GFX_FRIENDS, "ClearWindowList", "[]");
+    for (int i = 0; i < MU_LOCAL_ROOMS; i++)
+        if (m->rooms[i].ui) {
+            quote(name, sizeof name, m->rooms[i].peer);
+            snprintf(b, sizeof b, "[%u,%s]", m->rooms[i].ui, name);
+            call(g, MU_GFX_FRIENDS, "AddWindowList", b);
+        }
+    for (int i = 0; i < MU_LOCAL_WINDOWS; i++)
+        if (m->windows[i].ui) {
+            quote(title, sizeof title, m->windows[i].title[0] ? m->windows[i].title : "Write letter");
+            snprintf(b, sizeof b, "[%u,%s]", m->windows[i].ui, title);
+            call(g, MU_GFX_FRIENDS, "AddWindowList", b);
+        }
+    mu_local_room *active_room = mu_social_messages_room(m, m->active_ui);
+    mu_local_window *active_window = mu_social_messages_window(m, m->active_ui);
+    if ((active_room && active_room->shown) || (active_window && active_window->shown)) {
+        snprintf(b, sizeof b, "[%u]", m->active_ui);
+        call(g, MU_GFX_MESSENGER, "SelectWindow", b);
+    }
+    g->messenger = shown;
+    mu_gfx_layer_show(g->l, MU_GFX_MESSENGER, shown);
+}
+static int messages_callback(world_gfx_social *g, const char *name, const char *args) {
+    mu_social_messages *m = &g->s->messages;
+    uint32_t ui = id_arg(args, 0);
+    mu_local_room *r = mu_social_messages_room(m, ui);
+    char a[1001] = "", b[1001] = "", c[1001] = "";
+    if (!strcmp(name, "LoadComplete") || !strcmp(name, "LoadCompleteChat") ||
+        !strcmp(name, "RequestChatUser")) {
+        if (r) {
+            r->loaded = 1;
+            g->roster_hash[r - m->rooms] = 0;
+            m->revision++;
+        }
+    } else if (!strcmp(name, "AddChatText")) {
+        if (!string_arg(args, 0, a, sizeof a))
+            return 1;
+        mu_social_messages_send(m, id_arg(args, 1), a);
+    } else if (!strcmp(name, "InviteUserList")) {
+        snprintf(b, sizeof b, "[%u]", ui);
+        call(g, MU_GFX_MESSENGER, "ClearInviteFriend", b);
+        for (int i = 0; r && i < g->s->friends.count; i++) {
+            quote(a, sizeof a, g->s->friends.list[i].name);
+            snprintf(b, sizeof b, "[%u,%s,%d,%d]", ui, a, i, g->s->friends.list[i].server);
+            call(g, MU_GFX_MESSENGER, "AddInviteFriend", b);
+        }
+    } else if (!strcmp(name, "RequestInviteUser")) {
+        if (string_arg(args, 1, a, sizeof a))
+            mu_social_messages_invite(m, ui, a);
+    } else if (!strcmp(name, "MinimizeWindow"))
+        mu_social_messages_minimize(m, ui);
+    else if (!strcmp(name, "CloseFriendWindow") || !strcmp(name, "DeleteWindow") ||
+             !strcmp(name, "CloseWindow"))
+        mu_social_messages_close(m, ui);
+    else if (!strcmp(name, "WindowToggle")) {
+        mu_local_window *w = mu_social_messages_window(m, ui);
+        if (r)
+            r->shown = 1;
+        if (w)
+            w->shown = 1;
+        m->active_ui = ui;
+        m->revision++;
+    } else if (!strcmp(name, "AllHideWindow")) {
+        for (int i = 0; i < MU_LOCAL_ROOMS; i++)
+            m->rooms[i].shown = 0;
+        for (int i = 0; i < MU_LOCAL_WINDOWS; i++)
+            m->windows[i].shown = 0;
+        m->revision++;
+    } else if (!strcmp(name, "SendWriteLetter")) {
+        string_arg(args, 0, a, sizeof a);
+        mu_social_messages_compose(m, a);
+    } else if (!strcmp(name, "ReadLetter"))
+        mu_social_messages_read(m, ui);
+    else if (!strcmp(name, "WriteLetter")) {
+        if (string_arg(args, 1, a, sizeof a) && string_arg(args, 2, b, sizeof b) &&
+            string_arg(args, 3, c, sizeof c))
+            mu_social_messages_write(m, ui, a, b, c);
+    } else if (!strcmp(name, "SendReplyLetterByID"))
+        mu_social_messages_reply(m, ui);
+    else if (!strcmp(name, "SendReplyLetterByInfo")) {
+        if (string_arg(args, 0, a, sizeof a) && string_arg(args, 1, b, sizeof b)) {
+            uint32_t id = mu_social_messages_compose(m, a);
+            mu_local_window *w = mu_social_messages_window(m, id);
+            if (w) {
+                snprintf(w->title, sizeof w->title, "RE: %.28s", b);
+                w->reply = 1;
+            }
+        }
+    } else if (!strcmp(name, "NextLetter") || !strcmp(name, "PrevLetter"))
+        mu_social_messages_neighbor(m, ui, name[0] == 'N' ? 1 : -1);
+    else if (!strcmp(name, "CloseReadLetter")) {
+        for (int i = 0; i < m->letter_count; i++)
+            if (m->letters[i].header.id == ui)
+                m->letters[i].pending = 0;
+    } else if (!strcmp(name, "DeleteLetterByUIID") || !strcmp(name, "DeleteLetterByLetterID")) {
+        mu_local_window *w = mu_social_messages_window(m, ui);
+        uint32_t id = !strcmp(name, "DeleteLetterByUIID") ? (w ? w->letter : 0) : ui;
+        if (mu_social_messages_delete_prompt(m, &id, 1))
+            notice(g, "Delete selected letter? Y confirm, N cancel (offline demo)");
+    } else if (!strcmp(name, "CheckedMailList")) {
+        const char *list = argument(args, 1);
+        uint32_t ids[MU_LOCAL_MAIL];
+        int count = 0;
+        for (int i = 0; list && i < MU_LOCAL_MAIL && argument(list, i); i++)
+            ids[count++] = id_arg(list, i);
+        if (mu_social_messages_delete_prompt(m, ids, count))
+            notice(g, "Delete selected letters? Y confirm, N cancel (offline demo)");
+    } else if (!strcmp(name, "UpdateLetterText") || !strcmp(name, "UpdateLetterID") ||
+               !strcmp(name, "UpdateLetterTitle")) {
+        mu_local_window *w = mu_social_messages_window(m, ui);
+        if (w && w->kind == 1 && string_arg(args, 1, a, sizeof a)) {
+            int limit = !strcmp(name, "UpdateLetterText") ? 255 : !strcmp(name, "UpdateLetterID") ? 10 : 32;
+            if (strlen(a) > (size_t)limit) {
+                a[limit] = 0;
+                quote(b, sizeof b, a);
+                snprintf(c, sizeof c, "[%u,%s]", ui, b);
+                call(g, MU_GFX_MESSENGER,
+                     limit == 255  ? "SetLetterText"
+                     : limit == 10 ? "ChangeIDBySize"
+                                   : "ChangeTitleBySize",
+                     c);
+            }
+            if (limit == 255)
+                snprintf(w->body, sizeof w->body, "%s", a);
+            else if (limit == 10)
+                snprintf(w->recipient, sizeof w->recipient, "%.10s", a);
+            else
+                snprintf(w->title, sizeof w->title, "%.32s", a);
+        }
+    } else
+        return 0;
+    messages_frame(g);
+    return 1;
+}
 static void window(void *user, int id, const char *name, const char *args)
 {
     world_gfx_social *g = user;
     char v[64] = "";
+    if ((id == MU_GFX_MESSENGER || (id == MU_GFX_FRIENDS && strcmp(name, "CloseWindow"))) &&
+        messages_callback(g, name, args))
+        return;
     field(args, "name", v, sizeof v);
     if (!strcmp(name, "UIInit") || !strcmp(name, "onLoad")) {
         g->revision = -1;
+        if (id == MU_GFX_FRIENDS) {
+            g->friends_initialized = 0;
+            g->mailbox_revision = -1;
+            g->s->messages.revision++;
+        }
         return;
     }
     if (id == MU_GFX_PARTY) {
         if (!strcmp(name, "onLeave"))
-            world_gfx_social_action(g, !strcmp(v, g->s->hero) ? "leave" : "kick", v);
+            world_gfx_social_action(g, "confirm-leave", v);
         else if (!strcmp(name, "onMemberClickR")) {
             char q[128];
             quote(q, sizeof q, v);
@@ -396,6 +844,22 @@ static void window(void *user, int id, const char *name, const char *args)
                 snprintf(b, sizeof b, "%d", i - 32);
                 world_gfx_social_action(g, "remove", b);
             }
+        } else if (!strcmp(name, "requestItemSlotOver")) {
+            int cell = atoi(args + 1), side = cell >= 32 ? 0 : 1;
+            mu_gfx_slot_item it;
+            int slot = covered_item(g, side, cell % 32, &it);
+            if (cell >= 0 && cell < 64 && slot >= 0) {
+                float ox, oy;
+                mu_gfx_layer_window_position(g->l, MU_GFX_TRADE, &ox, &oy);
+                float sc = mu_gfx_layer_window_scale(g->l, MU_GFX_TRADE);
+                int k = 1 - side;
+                float rect[4] = {ox + (g->x[k] + (float)(slot % 8) * (g->w[k] + 1)) * sc,
+                                 oy + (g->y[k] + (float)(slot / 8) * (g->h[k] + 1)) * sc,
+                                 (float)it.width * g->w[k] * sc, (float)it.height * g->h[k] * sc};
+                mu_gfx_layer_social_tooltip(g->l, &it, rect);
+            }
+        } else if (!strcmp(name, "requestItemSlotOut")) {
+            mu_gfx_layer_invoke(g->l, MU_GFX_TOOLTIP, NULL, "SetInfoPopupClose", "[]");
         } else if (!strcmp(name, "onClickbtnTrade")) {
             world_gfx_social_action(g, "ok", "");
             if (!g->s->trade.ok[1])
@@ -403,7 +867,11 @@ static void window(void *user, int id, const char *name, const char *args)
         } else if (!strcmp(name, "onClickbtnInputZen"))
             notice(g, "Enter /zen AMOUNT in chat to set your trade offer.");
     } else if (id == MU_GFX_FRIENDS) {
-        if (!strcmp(name, "CloseWindow")) {
+        if (!strcmp(name, "PartyInvitation")) {
+            const char *flag = argument(args, 0);
+            if (flag && !strncmp(flag, "true", 4) && string_arg(args, 1, v, sizeof v))
+                world_gfx_social_action(g, "party", v);
+        } else if (!strcmp(name, "CloseWindow")) {
             g->friends = 0;
             mu_gfx_layer_show(g->l, id, 0);
         } else if (!strcmp(name, "onClickAddFriend"))
@@ -427,33 +895,6 @@ static void window(void *user, int id, const char *name, const char *args)
                 messenger(g, v);
             }
         }
-    } else if (id == MU_GFX_MESSENGER) {
-        char b[2304], q[2048];
-        if (!strcmp(name, "LoadComplete")) {
-            quote(q, sizeof q, g->s->hero);
-            snprintf(b, sizeof b, "[1,%s,0,\"Offline demo\"]", q);
-            call(g, id, "AddFriendAtChatRoom", b);
-            quote(q, sizeof q, g->room_name);
-            snprintf(b, sizeof b, "[1,%s,1,\"Offline demo\"]", q);
-            call(g, id, "AddFriendAtChatRoom", b);
-            char title[128];
-            snprintf(title, sizeof title, "%s (offline demo)", g->room_name);
-            quote(q, sizeof q, title);
-            snprintf(b, sizeof b, "[1,%s]", q);
-            call(g, id, "SetChatTitle", b);
-            call(g, id, "AddChatText", "[1,1,\"Offline demo room. Messages remain on this Mac.\"]");
-        } else if (!strcmp(name, "AddChatText")) {
-            char msg[256] = "";
-            if (!first_string(args, msg, sizeof msg))
-                return;
-            quote(q, sizeof q, msg);
-            snprintf(b, sizeof b, "[1,0,%s]", q);
-            call(g, id, "AddChatText", b);
-        } else if (!strcmp(name, "CloseWindow") || !strcmp(name, "CloseFriendWindow")) {
-            call(g, id, "ClearWindow", "[]");
-            mu_gfx_layer_show(g->l, id, 0);
-            g->messenger = 0;
-        }
     }
 }
 static int key(void *user, int vk)
@@ -463,6 +904,11 @@ static int key(void *user, int vk)
         return world_gfx_social_action(g, "friends", "");
     if (vk == 'P')
         return world_gfx_social_action(g, "party-window", "");
+    if (g->s->messages.delete_count && (vk == 'Y' || vk == 'N')) {
+        int ok = mu_social_messages_delete_confirm(&g->s->messages, vk == 'Y');
+        messages_frame(g);
+        return ok;
+    }
     if (g->s->pending && (vk == 'Y' || vk == 'N'))
         return world_gfx_social_action(g, vk == 'Y' ? "accept" : "decline", "");
     if (vk == 27 && g->s->trade.open)
@@ -481,6 +927,7 @@ world_gfx_social *world_gfx_social_open(struct mu_gfx_layer *l, mu_social_sessio
     s->trade_commit = commit_trade;
     s->trade_user = g;
     g->revision = -1;
+    g->message_revision = g->mailbox_revision = -1;
     g->party = 1;
     mu_gfx_social_hooks h = {g, window, key, chat, inventory};
     mu_gfx_layer_set_social_hooks(l, &h);
@@ -515,13 +962,22 @@ void world_gfx_social_frame(world_gfx_social *g)
     if (!g)
         return;
     mu_social_session *s = g->s;
+    if (s->party_notice) {
+        mu_gfx_layer_social_notice(g->l, s->party_notice, "Party request result (offline demo).");
+        s->party_notice = 0;
+    }
+    messages_frame(g);
     if (g->prompt != s->pending) {
         g->prompt = s->pending;
         if (s->pending) {
             char t[192];
-            snprintf(t, sizeof t, "%s %s request: %s. Y accept, N decline (offline demo)",
-                     s->incoming ? "Incoming" : "Outgoing", s->pending == 1 ? "party" : "trade",
-                     s->pending_name);
+            if (s->pending == 3)
+                snprintf(t, sizeof t, "Remove %s from party? Y confirm, N cancel (offline demo)",
+                         s->pending_name);
+            else
+                snprintf(t, sizeof t, "%s %s request: %s. Y accept, N decline (offline demo)",
+                         s->incoming ? "Incoming" : "Outgoing", s->pending == 1 ? "party" : "trade",
+                         s->pending_name);
             notice(g, t);
         }
     }
@@ -562,13 +1018,16 @@ void world_gfx_social_frame(world_gfx_social *g)
             mu_gfx_layer_show(g->l, MU_GFX_PARTY, s->party.count > 0);
         }
         if (g->friends) {
-            call(g, MU_GFX_FRIENDS, "InitText",
-                 "[[\"Friends\",\"Add friend\",\"Delete friend\",\"Whisper\",\"Write "
-                 "letter\",\"Friends\",\"Windows\",\"Mail\",\"Name\",\"Server\",\"Block\",\"Hide\",\"Write "
-                 "letter\",\"Read\",\"Reply\",\"Delete "
-                 "letter\",\"Name\",\"Date\",\"Title\",\"Windows\",\"Recipient\",\"Title\",\"Party "
-                 "invitation\"]]");
-            call(g, MU_GFX_FRIENDS, "OpenFriendList", "[]");
+            if (!g->friends_initialized) {
+                g->friends_initialized = 1;
+                call(g, MU_GFX_FRIENDS, "InitText",
+                     "[[\"Friends\",\"Add friend\",\"Delete friend\",\"Whisper\",\"Write "
+                     "letter\",\"Friends\",\"Windows\",\"Mail\",\"Name\",\"Server\",\"Block\",\"Hide\","
+                     "\"Write "
+                     "letter\",\"Read\",\"Reply\",\"Delete "
+                     "letter\",\"Name\",\"Date\",\"Title\",\"Windows\",\"Recipient\",\"Title\",\"Party "
+                     "invitation\"]]");
+            }
             n = (size_t)snprintf(b, sizeof b, "[[");
             for (int i = 0; i < s->friends.count; i++) {
                 quote(q, sizeof q, s->friends.list[i].name);
@@ -602,12 +1061,8 @@ void world_gfx_social_frame(world_gfx_social *g)
             for (int side = 0; side < 2; side++) {
                 n = (size_t)snprintf(b, sizeof b, "[%d,\"", side);
                 for (int i = 0; i < 32; i++) {
-                    int occupied = t->items[1 - side][i].present;
-                    if (side == 1)
-                        for (int j = 0; j < 32; j++)
-                            if (g->tokens[j] && i % 8 >= j % 8 && i % 8 < j % 8 + g->escrow[j].width &&
-                                i / 8 >= j / 8 && i / 8 < j / 8 + g->escrow[j].height)
-                                occupied = 1;
+                    mu_gfx_slot_item info;
+                    int occupied = covered_item(g, 1 - side, i, &info) >= 0;
                     n += (size_t)snprintf(b + n, sizeof b - n, "%s%d", i ? "," : "", occupied ? 1 : 0);
                 }
                 snprintf(b + n, sizeof b - n, "\"]");
@@ -648,12 +1103,23 @@ void world_gfx_social_frame(world_gfx_social *g)
                     mu_gfx_item_draw *d = &items[count++];
                     memset(d, 0, sizeof *d);
                     d->item = i;
-                    d->code = item_code(s->trade.items[side][i].bytes);
-                    d->level = (s->trade.items[side][i].bytes[1] >> 3) & 15;
+                    mu_gfx_slot_item it;
+                    if (!trade_item(g, side, i, &it)) {
+                        count--;
+                        continue;
+                    }
+                    mu_social_item_wire wire;
+                    mu_social_item_unpack(s->trade.items[side][i].bytes, &wire);
+                    d->code = it.code;
+                    d->level = it.level;
+                    d->has_options = 1;
+                    d->level_word = wire.level_word;
+                    d->excellent = wire.excellent & 0x3f;
+                    d->set_bits = wire.ancient;
                     d->rect[0] = ox + (g->x[k] + (float)(i % 8) * (g->w[k] + 1)) * sc;
                     d->rect[1] = oy + (g->y[k] + (float)(i / 8) * (g->h[k] + 1)) * sc;
-                    d->rect[2] = g->w[k] * sc * (float)(side == 0 && g->tokens[i] ? g->escrow[i].width : 1);
-                    d->rect[3] = g->h[k] * sc * (float)(side == 0 && g->tokens[i] ? g->escrow[i].height : 1);
+                    d->rect[2] = g->w[k] * sc * (float)it.width;
+                    d->rect[3] = g->h[k] * sc * (float)it.height;
                     d->slot[0] = d->rect[0] * mu_gfx_rate_x(stage_w);
                     d->slot[1] = d->rect[1] * mu_gfx_rate_y(stage_h);
                     d->slot[2] = d->rect[2] * mu_gfx_rate_x(stage_w);

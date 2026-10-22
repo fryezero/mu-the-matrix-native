@@ -62,8 +62,21 @@ int main(void)
     assert(!mu_social_action(&s, "ok", ""));
     assert(mu_social_action(&s, "unfriend", "Kyra"));
     assert(s.friends.count == 1);
+    s.auto_enabled = s.auto_friends = 1;
+    assert(mu_social_action(&s, "incoming-party", "Kyra"));
+    assert(s.pending == 1); /* removed friends must require explicit approval */
+    assert(mu_social_action(&s, "decline", ""));
     assert(mu_social_action(&s, "friend", "Kyra"));
     assert(s.friends.count == 2);
+    uint8_t answer[4] = {0xc1, 4, 0x41, 13};
+    int members = s.party.count;
+    s.request_key = 0x1234;
+    assert(mu_social_receive(&s, answer, sizeof answer) && s.party_notice == 0x1263 &&
+           s.party.count == members);
+    uint8_t clear[5] = {0xc1, 5, 0x43, 0, 0};
+    assert(mu_social_receive(&s, clear, sizeof clear) && s.party.count == 0 && s.request_key == 0x1234 &&
+           s.party_notice == 0x1f6);
+    mu_social_messages_destroy(&s.messages);
     free(p);
     puts("{\"social_session\":true,\"passed\":true}");
     return 0;

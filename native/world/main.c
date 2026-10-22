@@ -3604,6 +3604,7 @@ int main(int argc, char **argv)
         return usage();
     if (load(&a)) {
         unload(&a);
+        mu_social_messages_destroy(a.social ? &a.social->messages : NULL);
         free(a.social);
         a.social = NULL;
         return 1;
@@ -3614,6 +3615,7 @@ int main(int argc, char **argv)
     int status = headless(&a);
 #endif
     unload(&a);
+    mu_social_messages_destroy(a.social ? &a.social->messages : NULL);
     free(a.social);
     a.social = NULL;
     return status;

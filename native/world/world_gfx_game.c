@@ -240,7 +240,8 @@ static int place_item(const wg_items *w, const item_model *m, const mu_gfx_item_
     mu_slot_wrapper_in win;
     memset(&win, 0, sizeof win);
     win.code = d->code;
-    win.level_word = d->level << 3;
+    win.level_word = d->has_options ? d->level_word : d->level << 3;
+    win.set_bits = (uint8_t)d->set_bits;
     win.excellent = (uint8_t)d->excellent;
     win.element = -1;
     win.x = d->slot[0];

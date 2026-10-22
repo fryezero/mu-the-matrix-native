@@ -19,12 +19,13 @@
 #include "../../reconstructed/hud/tooltip_html.h"
 #include "../../reconstructed/npc/npc_dialogue.h"
 #include "../../reconstructed/price/item_price.h"
+#include "../../reconstructed/social/item_options.h"
+#include "../core/mu_skill.h"
 #include "../gfx/mu_gfx_layer.h"
 #include "../gfx/mu_gfx_sdl.h"
 #include "world_gfx_game.h"
 #include "world_gfx_skill.h"
 #include "world_gfx_tree.h"
-#include "../core/mu_skill.h"
 #include "../core/mu_mix.h"
 #include "../../reconstructed/mix/item_actions.h"
 #include "../../reconstructed/mix/item_services.h"
@@ -279,6 +280,33 @@ static void item_info(world_gfx *g, int32_t code, int32_t level, mu_gfx_slot_ite
         }
     }
     out->price = client_price(g, code, level, MU_PRICE_BUY);
+}
+
+/* Trade uses the same original Item.bmd record as ad357e, including cell
+ * dimensions and the record's trade permission. Missing data uses demo bounds. */
+static int social_item_info(void *user, int32_t code, mu_gfx_slot_item *out) {
+    world_gfx *g = user;
+    if (!g->tables.have_items)
+        return 1;
+    mu_item it;
+    if (mu_item_find(&g->tables.items, (uint32_t)code, &it) != 0)
+        return 0;
+    out->width = it.attributes.width;
+    out->height = it.attributes.height;
+    mu_social_item_context context = {0};
+    context.kind_a = it.attributes.kind_a;
+    context.kind_b = it.attributes.kind_b;
+    context.grade = it.attributes.type;
+    context.can_trade = it.attributes.can_trade;
+    /* 16b823e returns true for a stable Item.bmd record (its later A8/A19/A1a
+     * predicates cannot all hold). Special character permissions are absent
+     * from this offline hero, so their trade predicate remains restrictive. */
+    context.capability = 1;
+    mu_social_item_wire wire;
+    mu_social_item_unpack(out->data, &wire);
+    out->trade_ban = mu_social_item_trade_banned(&wire, &context);
+    snprintf(out->name, sizeof out->name, "%s", it.name);
+    return out->width > 0 && out->height > 0;
 }
 
 /* Demo inventory (layer choice): a weapon, armour pieces, potions and a ring;
@@ -1183,9 +1211,16 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     g->scratch = malloc(sizeof *g->scratch);
     mu_hud_tip_tables_load(game_root, &g->tables);
     g->items = game_root && !getenv("MU_GFX_NO_ITEM_MODELS") ? wg_items_open(game_root) : NULL;
-    mu_gfx_layer_config cfg = {.movie_dir = movie_dir, .width = width, .height = height, .shared = shared, .demo = 1,
-                               .tooltip = tooltip, .tooltip_user = g, .scale = scale,
-                               .items = g->items ? wg_items_draw : NULL, .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
+    mu_gfx_layer_config cfg = {.movie_dir = movie_dir,
+                               .width = width,
+                               .height = height,
+                               .shared = shared,
+                               .demo = 1,
+                               .tooltip = tooltip,
+                               .tooltip_user = g,
+                               .scale = scale,
+                               .items = g->items ? wg_items_draw : NULL,
+                               .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
                                .items_user = g->items,
                                .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER"),
                                .text = mu_lang_shared() ? lang_text : NULL, .text_user = (void *)mu_lang_shared(),
@@ -1195,7 +1230,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .window_draw = window_draw, .mix_quote = mix_quote,
                                .jewel_check = jewel_check, .jewel_request = jewel_request,
                                .tooltip_snapshot=tooltip_snapshot, .store_check = store_check, .repair_quote = repair_quote, .repair_request = repair_request,
-                               .stat_button = stat_button, .progress_call = progress_call};
+                               .stat_button = stat_button, .progress_call = progress_call, .social_item_info = social_item_info};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);

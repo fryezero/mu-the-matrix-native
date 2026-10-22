@@ -2,6 +2,8 @@
 #ifndef MU_SOCIAL_SESSION_H
 #define MU_SOCIAL_SESSION_H
 #include "../../reconstructed/social/social.h"
+#include "../../reconstructed/social/social_packets.h"
+#include "mu_social_messages.h"
 struct mu_world_players;
 typedef struct mu_social_session {
     mu_party party;
@@ -15,8 +17,14 @@ typedef struct mu_social_session {
     int64_t zen;
     int (*trade_commit)(void *user); /* OFFLINE host inventory transaction, before balances/results change. */
     void *trade_user;
+    mu_social_packet request;
+    int32_t requests, party_notice;
+    mu_social_messages messages;
+    int32_t auto_enabled, auto_friends, auto_guild, guild_id;
 } mu_social_session;
 void mu_social_init(mu_social_session *s, const char *hero, struct mu_world_players *players);
+/* Normalized party packets: request 40, result 41, list 42, clear 43, bars 44. */
+int mu_social_receive(mu_social_session *, const uint8_t *, size_t);
 void mu_social_step(mu_social_session *s, int32_t world, int32_t x, int32_t y);
 /* target/party/trade, incoming-party/incoming-trade, accept/decline, leave/kick,
  * offer/remove/zen/ok/partner-ok/cancel, friend/unfriend, all OFFLINE DEMO requests. */

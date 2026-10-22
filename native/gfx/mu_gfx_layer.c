@@ -225,6 +225,7 @@ typedef struct item {
     int32_t option, excellent, durability, period;
     char name[64];
     float rgb[3];
+    uint8_t has_data, data[15];
 } item;
 
 #define SLOT_ITEMS 120          /* NpcShop / StorageInven pages: 8 x 15 */
@@ -539,6 +540,17 @@ static const char *gtext(const mu_gfx_layer *L, int32_t index, const char *fallb
     return s ? s : fallback;
 }
 
+void mu_gfx_layer_social_notice(mu_gfx_layer *L, int32_t text_id, const char *fallback) {
+    const char *s = gtext(L, text_id, fallback);
+    if (strchr(s, '%'))
+        s = fallback; /* This notice has no formatter arguments. */
+    char clean[512];
+    size_t n = 0;
+    for (; *s && n + 1 < sizeof clean; s++)
+        clean[n++] = (unsigned char)*s >= 32 && (unsigned char)*s < 127 ? *s : '?';
+    clean[n] = 0;
+    mu_gfx_layer_chat(L, 3, "", clean);
+}
 static void gt_quote(const mu_gfx_layer *L, char *out, size_t cap, int32_t index, const char *fallback)
 {
     char clean[512];
@@ -977,7 +989,9 @@ static void show_item_tooltip(mu_gfx_layer *L, int cell)
                           : (!L->cfg.tooltip || L->cfg.tooltip(L->cfg.tooltip_user, it->grid.code, it->level, html,
                                                                sizeof html)))
         builtin_tooltip(it, html, sizeof html);
-    if (it->option) {
+    int full_packet = it->has_data && L->cfg.tooltip_packet &&
+        !L->cfg.tooltip_packet(L->cfg.tooltip_user,it->data,html,sizeof html);
+    if (!full_packet && it->option) {
         size_t used = strlen(html);
         snprintf(html + used, sizeof html - used, "<br>Additional option +%d", it->option * 4);
     }
@@ -1173,6 +1187,54 @@ int mu_gfx_layer_add_item(mu_gfx_layer *L, int32_t code, int32_t level, int32_t 
     if(index==L->nitems)L->nitems++;
     slot_states(L);
     return index;
+}
+
+int mu_gfx_layer_add_slot_item(mu_gfx_layer *L, const mu_gfx_slot_item *src) {
+    if (!src)
+        return -1;
+    int k = mu_gfx_layer_add_item(L, src->code, src->level, src->width, src->height, src->name);
+    if (k >= 0) {
+        L->items[k].has_data = src->has_data;
+        memcpy(L->items[k].data, src->data, sizeof src->data);
+    }
+    return k;
+}
+
+int mu_gfx_layer_social_item(mu_gfx_layer *L, const uint8_t b[15], mu_gfx_slot_item *out) {
+    if (!L || !b || !out)
+        return 0;
+    int code = b[0] | ((b[3] & 0x80) << 1) | ((b[5] & 0xf0) << 5) | ((b[5] & 1) << 13);
+    memset(out, 0, sizeof *out);
+    out->code = code;
+    out->width = out->height = 1;
+    snprintf(out->name, sizeof out->name, "Item %d", code);
+    out->level = (b[1] >> 3) & 15;
+    out->has_data = 1;
+    memcpy(out->data, b, sizeof out->data);
+    if (L->cfg.social_item_info && !L->cfg.social_item_info(L->cfg.tooltip_user, code, out))
+        return 0;
+    return out->width > 0 && out->height > 0;
+}
+
+void mu_gfx_layer_social_tooltip(mu_gfx_layer *L, const mu_gfx_slot_item *src, const float rect[4]) {
+    if (!L || !src || !rect || !L->mv[MU_GFX_TOOLTIP].g)
+        return;
+    char html[8192], quoted[16384];
+    if (!src->has_data || !L->cfg.tooltip_packet ||
+        L->cfg.tooltip_packet(L->cfg.tooltip_user, src->data, html, sizeof html)) {
+        item it;
+        memset(&it, 0, sizeof it);
+        it.grid.code = src->code;
+        it.grid.width = (uint8_t)src->width;
+        it.grid.height = (uint8_t)src->height;
+        it.level = src->level;
+        snprintf(it.name, sizeof it.name, "%s", src->name);
+        builtin_tooltip(&it, html, sizeof html);
+    }
+    json_quote(quoted, sizeof quoted, html);
+    L->mv[MU_GFX_TOOLTIP].open = 1;
+    invokef(L, MU_GFX_TOOLTIP, L->mv[MU_GFX_TOOLTIP].path, "SetInfoPopup", "[%d,%d,%d,%d,%s]", (int)rect[0],
+            (int)rect[1], (int)rect[2], (int)rect[3], quoted);
 }
 
 /* ---- chat ----------------------------------------------------------------------------------- */
@@ -2708,7 +2770,10 @@ static void item_draw_from(const mu_gfx_layer *L, int idx, const float rect[4], 
     d->item = idx;
     d->code = it->grid.code;
     d->level = it->level;
-    d->excellent = it->excellent;
+    d->has_options = it->has_data;
+    d->level_word = it->has_data ? it->data[1] : it->level << 3;
+    d->excellent = it->has_data ? it->data[3] & 0x3f : it->excellent;
+    d->set_bits = it->has_data ? it->data[4] : 0;
     memcpy(d->rect, rect, sizeof d->rect);
     d->slot[0] = rect[0] * mu_gfx_rate_x(L->w);
     d->slot[1] = rect[1] * mu_gfx_rate_y(L->h);
@@ -3031,6 +3096,8 @@ static int swin_add(slot_window *sw, const mu_gfx_slot_item *src)
     it->grid.width = (uint8_t)(src->width < 1 ? 1 : src->width);
     it->grid.height = (uint8_t)(src->height < 1 ? 1 : src->height);
     it->level = src->level;
+    it->has_data = src->has_data;
+    memcpy(it->data, src->data, sizeof it->data);
     snprintf(it->name, sizeof it->name, "%s", src->name[0] ? src->name : "Item");
     int col, row;
     if (!mu_grid_find_free(&sw->grid, it->grid.width, it->grid.height, &col, &row))
@@ -3070,6 +3137,16 @@ static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell)
  * inventory place and its price leaves the zen), StorageInven moves
  * the item to the inventory (DEMO).  The client sends a request and waits
  * for the server's answer instead. */
+static void item_slot(const item *it, mu_gfx_slot_item *out) {
+    memset(out, 0, sizeof *out);
+    out->code = it->grid.code;
+    out->level = it->level;
+    out->width = it->grid.width;
+    out->height = it->grid.height;
+    out->has_data = it->has_data;
+    memcpy(out->data, it->data, sizeof out->data);
+    snprintf(out->name, sizeof out->name, "%s", it->name);
+}
 static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
 {
     if (inventory_busy(L)) return;
@@ -3078,12 +3155,14 @@ static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
         return;
     item *it = (item *)gi;
     int k = (int)(it - sw->items);
+    mu_gfx_slot_item transfer;
+    item_slot(it, &transfer);
     if (sw->movie == MU_GFX_NPC_SHOP) {
         if (L->hero.zen < sw->prices[k]) {
             npc_last(L, "buy %s: not enough zen (demo)", it->name);
             return;
         }
-        if (mu_gfx_layer_add_item(L, it->grid.code, it->level, it->grid.width, it->grid.height, it->name) < 0) {
+        if (mu_gfx_layer_add_slot_item(L, &transfer) < 0) {
             npc_last(L, "buy %s: no room in the inventory (demo)", it->name);
             return;
         }
@@ -3091,7 +3170,7 @@ static void swin_click(mu_gfx_layer *L, slot_window *sw, int index)
         zen_text(L);
         npc_last(L, "bought %s for %lld zen (demo)", it->name, (long long)sw->prices[k]);
     } else {
-        int added=mu_gfx_layer_add_item(L,it->grid.code,it->level,it->grid.width,it->grid.height,it->name);
+        int added=mu_gfx_layer_add_slot_item(L,&transfer);
         if (added < 0) {
             npc_last(L, "take %s: no room in the inventory (demo)", it->name);
             return;
@@ -3134,12 +3213,7 @@ static int npc_inventory_r(mu_gfx_layer *L, int index)
     } else {
         slot_window *sw = &L->swin[1];
         mu_gfx_slot_item s;
-        memset(&s, 0, sizeof s);
-        s.code = it->grid.code;
-        s.level = it->level;
-        s.width = it->grid.width;
-        s.height = it->grid.height;
-        snprintf(s.name, sizeof s.name, "%s", it->name);
+        item_slot(it,&s);
         int added=swin_add(sw,&s);
         if (added < 0) {
             npc_last(L, "put %s: the vault is full (demo)", it->name);
@@ -3525,7 +3599,10 @@ static int swin_draws(slot_window *sw, const rect_list *R, mu_gfx_item_draw *dra
         d->item = R->item[i];
         d->code = it->grid.code;
         d->level = it->level;
-        d->excellent = it->excellent;
+        d->has_options = it->has_data;
+        d->level_word = it->has_data ? it->data[1] : it->level << 3;
+        d->excellent = it->has_data ? it->data[3] & 0x3f : it->excellent;
+        d->set_bits = it->has_data ? it->data[4] : 0;
         memcpy(d->rect, R->r[i], sizeof d->rect);
         d->slot[0] = R->call[i].x;
         d->slot[1] = R->call[i].y;
@@ -4431,6 +4508,8 @@ int mu_gfx_layer_inventory_reserve(mu_gfx_layer *L, int cell, mu_gfx_slot_item *
     memset(out, 0, sizeof *out);
     out->code = gi->code; out->level = it->level; out->width = gi->width; out->height = gi->height;
     snprintf(out->name, sizeof out->name, "%s", it->name);
+    out->has_data = it->has_data;
+    memcpy(out->data, it->data, sizeof out->data);
     L->trade_reserved[idx] = 1;
     slot_states(L); hide_tooltip(L);
     return idx + 1;
@@ -4469,8 +4548,7 @@ int mu_gfx_layer_inventory_exchange(mu_gfx_layer *L, const int tokens[32], const
     for (int i = 0; i < 32; i++)
         if (tokens[i]) mu_gfx_layer_inventory_finish(L, tokens[i], 1);
     for (int i = 0; i < n; i++)
-        if (mu_gfx_layer_add_item(L, incoming[i].code, incoming[i].level, incoming[i].width,
-                                 incoming[i].height, incoming[i].name) < 0) {
+        if (mu_gfx_layer_add_slot_item(L, &incoming[i]) < 0) {
             memcpy(L->items, saved, sizeof saved);
             memcpy(L->trade_reserved, reserved, sizeof reserved);
             L->grid = grid;
