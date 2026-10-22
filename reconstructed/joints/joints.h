@@ -119,6 +119,7 @@ typedef struct mu_jt_object {
     int16_t weapon;            /* +0x56 (skill_fx's Twisting Slash) */
     float position[3];         /* +0x158 */
     float light[3];            /* +0xec */
+    uint16_t action;           /* +0x2a (NATIVE-HELPERS-002: the 0x7f78 ring reads its target's action) */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at
@@ -149,7 +150,8 @@ typedef struct mu_jt_env {
 /* 1 when CreateJoint, MoveJoint and RenderJoints are reconstructed for the
  * kind: 0x7fd8 subtype 1 (Heal), 0x7fd3 subtype 0 (Evil Spirit), 0x7fd5
  * subtype 0 (spark streaks), 0x7f7d subtypes 0x10..0x1a (Tormenta Island's
- * lightning). */
+ * lightning); NATIVE-HELPERS-002: 0x7f78 subtype 0 (the Dark Horse's ring of
+ * flares around its target). */
 int mu_jt_kind_supported(int32_t type, int32_t subtype);
 
 /* CreateJoint's record part 0x0153b0a6.. on a record that keeps its previous

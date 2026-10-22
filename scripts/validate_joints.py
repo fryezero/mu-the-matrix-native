@@ -64,7 +64,8 @@ BODIES = {
     'move_humming': (0x012af2f1, 0x012af52d), 'normalise': (0x00cfd15f, 0x00cfd203),
     'near_zero': (0x00a72592, 0x00a725c5), 'radians': (0x00cee2cb, 0x00cee2ea), 'sign': (0x0185ca80, 0x0185caa4),
 }
-KINDS = [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0)]
+KINDS = [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0),
+                                                     (0x7f78, 0)]   # NATIVE-HELPERS-002: the Dark Horse's ring
 
 
 # --------------------------------------------------------------------------
@@ -190,6 +191,7 @@ def random_object(rng):
     o.live = rng.choice([0, 1, 1, 1, 2])
     o.visible = rng.choice([0, 1, 1, 1])
     o.weapon = rng.choice([0, 9, 0x600])
+    o.action = rng.choice([0, 0x31, 0x32, 0x6e, 0x6f, 0x88, 0x89, 0x8d, 0x8e, rng.randrange(0, 0x200)])
     for k in range(3):
         o.position[k] = vc.rfloat(rng, 0.05, 30000.0) if k < 2 else vc.rfloat(rng, 0.05, 500.0)
         o.light[k] = f32(rng.choice([0.59, 1.0, 0.0, rng.uniform(0.0, 2.0)]))
@@ -207,7 +209,8 @@ def object_region(objects):
         struct.pack_into('<h', data, base+0x56, o.weapon)
         struct.pack_into('<3f', data, base+0x158, *o.position)
         struct.pack_into('<3f', data, base+0xec, *o.light)
-        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0xec, 12)):
+        struct.pack_into('<H', data, base+0x2a, o.action)
+        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0xec, 12), (0x2a, 2)):
             mask[base+a:base+a+n] = b'\1'*n
     return am.Region('objects', OBJECTS, bytes(data), bytes(mask), False)
 
@@ -305,8 +308,9 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         kind = KINDS[n % len(KINDS)]
         pos, tpos, angle, scale = random_create_args(rng, kind)
         objects = [random_object(rng) for _ in range(2)]
-        target = rng.choice([0, 1]) if kind[0] == 0x7f7d else rng.choice([-1, 0, 1])
-        key, skill, byte10, word13, arg14 = (rng.randrange(0, 0x10000), rng.choice([0x7f5, 9, 0x123]),
+        target = rng.choice([0, 1]) if kind[0] in (0x7f7d, 0x7f78) else rng.choice([-1, 0, 1])
+        key, skill, byte10, word13, arg14 = (rng.choice([rng.randrange(0, 0x10000), 2, 0xffff, 0, 3]),
+                                              rng.choice([0x7f5, 9, 0x123]),
                                               rng.randrange(0, 256), rng.randrange(0, 0x10000),
                                               rng.randrange(-2**31, 2**31))
         serial = rng.randrange(0, 256)
@@ -385,6 +389,13 @@ def random_joint(rng, kind):
         j.lifetime = rng.choice([20, 19, 10, 1, 0, rng.randrange(-1, 21)])
         j.velocity = f32(rng.choice([0.0, 0.0, 0.0, 5.0]))
         j.phase = rng.randrange(0, 25)
+    elif kind[0] == 0x7f78:   # NATIVE-HELPERS-002
+        j.scale = f32(rng.choice([40.0, 10.0, 39.0, 41.0, vc.rfloat(rng, 0.2, 80.0)]))
+        j.max_tails = rng.choice([20, 20, rng.randrange(3, 51)])
+        j.lifetime = rng.choice([50, 49, 11, 10, 9, 1, 0, rng.randrange(-1, 101)])
+        j.velocity = f32(rng.choice([40.0, 40.0, vc.rfloat(rng, 0.2, 80.0)]))
+        j.key = rng.choice([2, 2, 0xffff, 1, 3, 0])
+        j.target = rng.choice([-1, 0, 1, 1])
     elif kind[0] == 0x7fd5:
         j.scale = f32(2.0)
         j.max_tails = 2
@@ -454,6 +465,15 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         report.add('joint_move', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                          'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('joint_move', f'{kind[0]:#x}/{kind[1]:#x}')
+        if vc.ok(r) and kind == (0x7f78, 0):
+            # negative control (NATIVE-HELPERS-002): the ring's x from the sine instead of the cosine
+            out = r['regions']['joint']
+            k = struct.unpack('<h', struct.pack('<H', before.key))[0]
+            a_ = f32(f32(f32(before.lifetime) + before.jitter[1]) / f32(k)) if k not in (-1, 0) else None
+            if a_ is not None and math.isfinite(a_):
+                x = struct.unpack('<f', out[0x18:0x1c])[0]
+                negatives['move_ring_sine_x'] += not same(x, f32(f32(f32(math.sin(a_)) * before.velocity) +
+                                                                 before.target_position[0]))
         if vc.ok(r) and kind[0] == 0x7f7d and before.max_tails >= 3:
             out = r['regions']['joint']
             # negative control: the ring and bolt widths restored without the closing tail shift (num_tails one less)
@@ -594,7 +614,7 @@ def main():
               for name, (a, b) in BODIES.items()}
     report = vc.Report()
     negatives = {k: 0 for k in ['create_phase_full_count', 'move_no_closing_shift', 'move_flash_white',
-                                'render_factor_swapped']}
+                                'render_factor_swapped', 'move_ring_sine_x']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

@@ -148,7 +148,8 @@ class Info(ctypes.Structure):
 
 class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
     _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('weapon', ctypes.c_int16),
-                ('position', ctypes.c_float*3), ('light', ctypes.c_float*3)]
+                ('position', ctypes.c_float*3), ('light', ctypes.c_float*3),
+                ('action', ctypes.c_uint16)]   # NATIVE-HELPERS-002
 
 
 class Call(ctypes.Structure):
