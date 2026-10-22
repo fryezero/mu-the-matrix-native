@@ -113,6 +113,7 @@
 #include "../core/mu_world_helpers.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_map.h"
+#include "../core/mu_progress.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_batch.h"
@@ -287,6 +288,14 @@ typedef struct app {
     world_gfx *gfxmap_owner;
     double gfx_scale;
 #endif
+    /* NATIVE-PROGRESS-001: experience, levels and stat points (core/mu_progress with the demo server);
+     * --progress, --progress-class N, --progress-level N, --progress-rate N, --progress-script "F:kill:CLASS
+     * F:button:ROW F:add:STAT" */
+    int progress_on;
+    mu_progress_config progress_config;
+    mu_progress *progress;
+    mu_progress_script progress_script;
+    int32_t progress_next;
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -330,16 +339,69 @@ static void combat_pre_step(void *context, mu_walk *w)
         mu_combat_pre_step(a->combat);
 }
 
-#ifndef MU_WORLD_NO_GL
-/* NATIVE-QUEST-001: a monster died: the quest demo server counts it (core/mu_quest). */
+/* NATIVE-QUEST-001: a monster died: the quest demo server counts it (core/mu_quest).  NATIVE-PROGRESS-001:
+ * the progression demo server gives its experience. */
 static void combat_kill(void *context, int32_t actor, int32_t server_class)
 {
-    (void)actor;
     app *a = context;
+    if (a->progress)
+        mu_progress_kill(a->progress, server_class, actor);
+#ifndef MU_WORLD_NO_GL
     if (a->gfx)
         world_gfx_quest_kill(a->gfx, server_class);
-}
+#else
+    (void)server_class;
 #endif
+}
+
+/* NATIVE-PROGRESS-001: GlobalText from the client's tables (MU_LANG_DIR), NULL for the stand-ins */
+static const char *progress_text(void *context, int32_t index)
+{
+    (void)context;
+    return mu_lang_text(mu_lang_shared(), index);
+}
+
+/* NATIVE-PROGRESS-001: the lines of the reconstructed progression handlers (reconstructed/progress): the
+ * level-up's joints and ground effect at the hero, its sound, the chat lines. */
+static void progress_line(void *context, const char *line)
+{
+    app *a = context;
+    unsigned type = 0, sub = 0, scale_bits = 0, sound = 0;
+    if (sscanf(line, "call 0153b02c %x o+158 o+158 o+164 %x o %x", &type, &sub, &scale_bits) == 3) {
+        float scale;
+        memcpy(&scale, &scale_bits, sizeof scale);
+        if (a->combat)
+            mu_combat_hero_joint(a->combat, (int32_t)type, (int32_t)sub, scale, 2);
+    } else if (sscanf(line, "call 013c0eaa %x o+158 o+164 o+ec %x", &type, &sub) == 2) {
+        if (a->combat)
+            mu_combat_hero_effect(a->combat, (int32_t)type, (int32_t)sub);
+    } else if (sscanf(line, "call 00a6ac96 %x", &sound) == 1) {
+        if (a->has_sound)
+            mu_audio_host_play(a->sound.host, (int32_t)sound, 0);   /* PlayBuffer(SOUND, 0, 0) */
+    }
+#ifndef MU_WORLD_NO_GL
+    else if (!strncmp(line, "call 01219a39 \"", 15) || !strncmp(line, "call 0095f547 \"", 15)) {
+        char text[256];
+        size_t n = 0;
+        for (const char *p = line + 15; *p && *p != '"' && n + 1 < sizeof text; p++)
+            text[n++] = *p == '\\' && p[1] ? *++p : *p;
+        text[n] = 0;
+        if (a->gfx)
+            mu_gfx_layer_chat(world_gfx_layer(a->gfx), 3, "", text);
+    }
+#endif
+    if (!a->quiet && strncmp(line, "call 0153b02c", 13)) {
+        char esc[600];
+        size_t n = 0;
+        for (const char *p = line; *p && n + 3 < sizeof esc; p++) {
+            if (*p == '"' || *p == '\\')
+                esc[n++] = '\\';
+            esc[n++] = *p;
+        }
+        esc[n] = 0;
+        printf("{\"progress_line\": \"%s\"}\n", esc);
+    }
+}
 
 /* NATIVE-NPC-001: the talk answer's window, its close-all and sounds. */
 static void npc_open(void *context, const mu_npc_open *o)
@@ -539,10 +601,19 @@ static int load(app *a)
             a->combat->play_sound = combat_sound;
             a->combat->sound_context = a;
         }
-#ifndef MU_WORLD_NO_GL
         a->combat->kill = combat_kill;   /* NATIVE-QUEST-001: the quest demo's kill progress */
         a->combat->kill_context = a;
-#endif
+    }
+    if (a->progress_on && !a->progress) {   /* NATIVE-PROGRESS-001 */
+        if (a->progress_config.class_byte == 0xff)
+            a->progress_config.class_byte = a->class_byte;
+        a->progress = calloc(1, sizeof *a->progress);
+        if (a->progress) {
+            a->progress->line = progress_line;
+            a->progress->context = a;
+            a->progress->global_text = progress_text;
+            mu_progress_init(a->progress, &a->progress_config);
+        }
     }
     if ((a->combat_on || a->items_on) && !a->no_items) {   /* NATIVE-ITEMS-001 */
         a->ground = calloc(1, sizeof *a->ground);
@@ -686,6 +757,8 @@ static void on_step(void *context, mu_walk *w)
 #endif
     if (a->combat)
         mu_combat_step(a->combat);
+    if (a->progress)   /* NATIVE-PROGRESS-001: the demo server's answers through the client's handlers */
+        mu_progress_step(a->progress);
     if (a->players)   /* NATIVE-PLAYERS-001: the demo server's packets, MoveCharacters' remote step, the animation step */
         mu_world_players_step(a->players);
     if (a->social) mu_social_step(a->social, a->world, h->tile[0], h->tile[1]);
@@ -800,6 +873,8 @@ static void unload(app *a)
         free(a->combat);
         a->combat = NULL;
     }
+    free(a->progress);   /* NATIVE-PROGRESS-001 */
+    a->progress = NULL;
     if (a->ground) {
         mu_world_items_close(a->ground);
         free(a->ground);
@@ -1120,10 +1195,30 @@ static void social_script(app *a, int32_t frame)
     }
     free(copy);
 }
+/* NATIVE-PROGRESS-001: --progress-script "F:kill:CLASS F:button:ROW F:add:STAT" */
+static void progress_script(app *a, int32_t frame)
+{
+    static const double ROWS[5] = {8.0, 13.0, 24.0, 29.0, 42.0};
+    while (a->progress && a->progress_next < a->progress_script.count &&
+           a->progress_script.items[a->progress_next].frame <= frame) {
+        const mu_progress_script_item *it = &a->progress_script.items[a->progress_next++];
+        if (!strcmp(it->verb, "kill"))
+            mu_progress_kill(a->progress, it->a, 0x1000 + a->progress_next);
+        else if (!strcmp(it->verb, "button"))
+            mu_progress_button(a->progress, (double)it->a);
+        else if (!strcmp(it->verb, "add") && it->a >= 0 && it->a < 5)
+            mu_progress_button(a->progress, ROWS[it->a]);
+        if (!a->quiet)
+            printf("{\"progress_script\": \"%s\", \"frame\": %d, \"arg\": %d, \"last\": \"%s\"}\n", it->verb, frame,
+                   it->a, a->progress->last);
+    }
+}
+
 static void script(app *a, int32_t frame)
 {
     social_script(a, frame);
     mu_walk *w = &a->walk;
+    progress_script(a, frame);
     map_script(a, frame);
     skill_script(a, frame);
     combat_script(a, frame);
@@ -2722,6 +2817,18 @@ static void report_summary(const app *a, const char *renderer)
     }
     if (a->combat)
         mu_combat_report_summary(a->combat, stdout, a->quiet);
+    if (a->progress) {   /* NATIVE-PROGRESS-001 */
+        mu_progress_view v;
+        mu_progress_get_view(a->progress, &v);
+        printf("{\"progress\": {\"class\": %d, \"level\": %d, \"master_level\": %d, \"points\": %d, \"exp\": %lld, "
+               "\"next_exp\": %lld, \"stats\": [%d, %d, %d, %d, %d], \"life_max\": %d, \"mana_max\": %d, "
+               "\"damage\": [%d, %d], \"attack_rate\": %d, \"defense\": %d, \"defense_rate\": %d, \"kills\": %d, "
+               "\"level_ups\": %d, \"requests\": %d, \"accepted\": %d, \"exp_bar\": %s}}\n",
+               v.class_index, v.level, v.master_level, v.points, (long long)v.exp, (long long)v.next_exp,
+               v.stats[0], v.stats[1], v.stats[2], v.stats[3], v.stats[4], v.life_max, v.mana_max, v.dmg_min,
+               v.dmg_max, v.atk_rate, v.defense, v.def_rate, a->progress->kills, a->progress->level_ups,
+               a->progress->requests, a->progress->accepted, a->progress->exp_json[0] ? a->progress->exp_json : "null");
+    }
     if (a->ground)
         mu_world_items_report_summary(a->ground, stdout);
     if (a->players)
@@ -2777,6 +2884,7 @@ static void names_gfx_attach(app *a, double scale)
         a->gfxsocial = world_gfx_social_open(world_gfx_layer(a->gfx), a->social); a->gfxsocial_owner = a->gfx;
     }
     world_gfx_quest_bind(a->gfx, &a->walk, a->mapsess);
+    world_gfx_progress(a->gfx, a->progress);   /* NATIVE-PROGRESS-001 */
     if (a->gfxmap && a->gfxmap_owner != a->gfx) {   /* NATIVE-MAP-001: the map host follows the front end's layer */
         world_gfx_map_close(a->gfxmap);
         a->gfxmap = NULL;
@@ -3246,6 +3354,8 @@ static int usage(void)
                     "                [--fidelity-dump PREFIX]   PREFIX-obj.bin / PREFIX-light.bin at the end (fidelity tour)\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
+                    "                [--progress] [--progress-class N] [--progress-level N] [--progress-points N] [--progress-rate N]\n"
+                    "                [--progress-script \"F:kill:CLASS F:button:ROW F:add:STAT\"]   experience, levels, stat points (demo server)\n"
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--npc] [--npc-demo FILE] [--npc-script \"F:click:ACTOR F:buy:SLOT F:close ...\"]   NPC talk (demo server)\n"
@@ -3285,6 +3395,8 @@ int main(int argc, char **argv)
     a.audio_rate = 44100;
     mu_combat_default_config(&a.combat_config);
     mu_world_items_default_config(&a.items_config);
+    mu_progress_default_config(&a.progress_config);
+    a.progress_config.class_byte = 0xff;   /* unset: the hero's class */
     for (int i = 1; i < argc; ++i) {
         const char *k = argv[i], *v = i + 1 < argc ? argv[i + 1] : NULL;
         if (!strcmp(k, "--headless")) { a.headless = 1; continue; }
@@ -3303,6 +3415,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-players")) { a.no_players = 1; continue; }
         if (!strcmp(k, "--no-helpers")) { a.no_helpers = 1; continue; }
         if (!strcmp(k, "--no-map")) { a.no_map = 1; continue; }
+        if (!strcmp(k, "--progress")) { a.progress_on = 1; continue; }   /* NATIVE-PROGRESS-001 */
         if (!v)
             return usage();
         ++i;
@@ -3354,6 +3467,15 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--attack-speed")) { a.combat_config.attack_speed = strtof(v, NULL); a.combat_on = 1; }
         else if (!strcmp(k, "--combat-seed")) { a.combat_config.seed = (uint32_t)strtoul(v, NULL, 0); a.combat_on = 1; }
         else if (!strcmp(k, "--hero-hp")) { a.combat_config.hero_hp = atoi(v); a.combat_on = 1; }
+        else if (!strcmp(k, "--progress-class")) { a.progress_config.class_byte = (uint8_t)strtol(v, NULL, 0); a.progress_on = 1; }
+        else if (!strcmp(k, "--progress-level")) { a.progress_config.level = atoi(v); a.progress_on = 1; }
+        else if (!strcmp(k, "--progress-points")) { a.progress_config.points = atoi(v); a.progress_on = 1; }
+        else if (!strcmp(k, "--progress-rate")) { a.progress_config.exp_rate = atoi(v); a.progress_on = 1; }
+        else if (!strcmp(k, "--progress-script")) {
+            if (mu_progress_script_parse(&a.progress_script, v) < 0)
+                return usage();
+            a.progress_on = 1;
+        }
         else if (!strcmp(k, "--combat-script")) {
             if (mu_combat_script_parse(&a.combat_script, v))
                 return usage();

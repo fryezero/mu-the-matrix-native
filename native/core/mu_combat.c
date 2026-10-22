@@ -1569,6 +1569,26 @@ int32_t mu_combat_live_joints(const mu_combat *c)
     return n;
 }
 
+/* NATIVE-PROGRESS-001: the level-up handler's calls at the hero's object (0x01250b05, verified as lines by
+ * scripts/validate_progress.py): CreateJoint(type, o+0x158, o+0x158, o+0x164, subtype, o, scale, key) and
+ * CreateEffect(type, o+0x158, o+0x164, light, subtype, o). */
+void mu_combat_hero_joint(mu_combat *c, int32_t type, int32_t subtype, float scale, uint16_t key)
+{
+    float pos[3], angle[3], light[3];
+    hero_frame(c, pos, angle, light);
+    create_joint(c, type, pos, pos, angle, subtype, MU_COMBAT_HERO_OBJECT, scale, key, 0);
+}
+
+void mu_combat_hero_effect(mu_combat *c, int32_t type, int32_t subtype)
+{
+    float pos[3], angle[3], light[3];
+    hero_frame(c, pos, angle, light);
+    mu_sfx_info info;
+    memset(&info, 0, sizeof info);
+    info.key = 0xffff;   /* the call's PKKey -1 */
+    create_effect(c, type, subtype, pos, angle, light, MU_COMBAT_HERO_OBJECT, &info);
+}
+
 /* ---------------------------------------------------------------- software drawing */
 
 static void raster_model(void *context, const mu_model *model, const mu_textures *textures, int32_t slot,

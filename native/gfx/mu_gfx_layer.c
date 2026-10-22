@@ -262,6 +262,8 @@ struct mu_gfx_layer {
     int shared;
     mu_gfx_hero hero, shown;    /* current values, values last sent to main */
     int hero_dirty_char;
+    char exp_json[256];         /* NATIVE-PROGRESS-001: the client's setExpData object ("" stand-in) */
+    int exp_json_dirty;
     /* inventory */
     mu_grid grid;
     item items[MAX_ITEMS];
@@ -653,7 +655,12 @@ static void feed_main(mu_gfx_layer *L)
                 "[{\"isToxic\":false,\"hp\":%d,\"maxHp\":%d,\"mp\":%d,\"maxMp\":%d,\"Shield\":%d,\"ShieldMax\":%d,"
                 "\"SkillMana\":%d,\"SkillManaMax\":%d}]",
                 h->hp, h->max_hp, h->mp, h->max_mp, h->sd, h->max_sd, h->ag, h->max_ag);
-    if (h->exp != s->exp || h->exp_max != s->exp_max || h->level != s->level) {
+    if (L->exp_json[0] && L->exp_json_dirty) {   /* NATIVE-PROGRESS-001: the client's own object */
+        char path[128];
+        snprintf(path, sizeof path, "%s.mcExpBar", mv->path);
+        invokef(L, MU_GFX_MAIN, path, "setExpData", "[%s]", L->exp_json);
+        L->exp_json_dirty = 0;
+    } else if (!L->exp_json[0] && (h->exp != s->exp || h->exp_max != s->exp_max || h->level != s->level)) {
         char cur[32], max[32];
         commas(cur, sizeof cur, h->exp);
         commas(max, sizeof max, h->exp_max);
@@ -824,6 +831,29 @@ static void feed_skills(mu_gfx_layer *L)
             "\"SelectSkill_damageType\":0,\"arrSlots\":[%s]}]", L->selected_skill, L->selected_skill + 1, slots);
 }
 
+/* NATIVE-PROGRESS-001: the values of the class formula's rows ("-" until the host sets them) */
+static const char *derived_row(const mu_gfx_hero *h, int key, char *buf, size_t cap)
+{
+    if (!h->has_derived && key != MU_GFX_ROW_HP && key != MU_GFX_ROW_MANA && key != MU_GFX_ROW_SD &&
+        key != MU_GFX_ROW_AG)
+        return "-";
+    switch (key) {
+    case MU_GFX_ROW_ATK_RATE: snprintf(buf, cap, "%d", h->atk_rate); break;
+    case MU_GFX_ROW_PVP_RATE: snprintf(buf, cap, "%d", h->pvp_rate); break;
+    case MU_GFX_ROW_DEFENSE: snprintf(buf, cap, "%d", h->defense); break;
+    case MU_GFX_ROW_DEF_RATE: snprintf(buf, cap, "%d", h->def_rate); break;
+    case MU_GFX_ROW_PVP_DEFRATE: snprintf(buf, cap, "%d", h->pvp_defrate); break;
+    case MU_GFX_ROW_MAGIC: snprintf(buf, cap, "%d ~ %d", h->magic_min, h->magic_max); break;
+    case MU_GFX_ROW_CURSE: snprintf(buf, cap, "%d ~ %d", h->curse_min, h->curse_max); break;
+    case MU_GFX_ROW_HP: snprintf(buf, cap, "%d / %d", h->hp, h->max_hp); break;
+    case MU_GFX_ROW_MANA: snprintf(buf, cap, "%d / %d", h->mp, h->max_mp); break;
+    case MU_GFX_ROW_SD: snprintf(buf, cap, "%d / %d", h->sd, h->max_sd); break;
+    case MU_GFX_ROW_AG: snprintf(buf, cap, "%d / %d", h->ag, h->max_ag); break;
+    default: return "-";
+    }
+    return buf;
+}
+
 static void feed_character(mu_gfx_layer *L)
 {
     movie *mv = &L->mv[MU_GFX_CHARACTER];
@@ -845,8 +875,11 @@ static void feed_character(mu_gfx_layer *L)
     json_quote(cls, sizeof cls, h->class_name);
     invokef(L, MU_GFX_CHARACTER, mv->path, "ClearItems", "[]");
     invokef(L, MU_GFX_CHARACTER, mv->path, "SetCharacterName", "[%s]", name);
-    char dmg[64];
-    snprintf(dmg, sizeof dmg, "%d ~ %d", h->strength / 6 + h->level, h->strength / 4 + h->level * 2);
+    char dmg[64], extra[64];
+    if (h->has_derived)   /* NATIVE-PROGRESS-001: the class formula (reconstructed/progress) */
+        snprintf(dmg, sizeof dmg, "%d ~ %d", h->dmg_min, h->dmg_max);
+    else
+        snprintf(dmg, sizeof dmg, "%d ~ %d", h->strength / 6 + h->level, h->strength / 4 + h->level * 2);
     if (L->nchar_rows > 0) {
         /* NATIVE-LANG-002: the client's rows (CharacterInfoSetup, row builder 0x00b3dedc): SetName("%d %d %d %s
          * %s %s %d", type, id, sort, line(label, colour), line(value, value colour), "", button), the lines
@@ -865,7 +898,7 @@ static void feed_character(mu_gfx_layer *L)
             case MU_GFX_ROW_ENERGY: value = v[3]; break;
             case MU_GFX_ROW_COMMAND: value = v[4]; break;
             case MU_GFX_ROW_DAMAGE: value = dmg; break;
-            default: break;
+            default: value = derived_row(h, row->value_key, extra, sizeof extra); break;
             }
             char lhtml[512], vhtml[256], lraw[512], vraw[256], lq[1100], vq[600];
             mu_tooltip_html_line(lraw, sizeof lraw, row->label, row->color, 0);
@@ -1398,7 +1431,10 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             mu_gfx_layer_toggle(L, MU_GFX_TREE4);
         else if (!strcmp(name, "OnClick5thSkillTree"))
             mu_gfx_layer_toggle(L, MU_GFX_TREE5);
-        else if (!strcmp(name, "onClickButton") && n >= 1 && L->hero.points > 0) {
+        else if (!strcmp(name, "onClickButton") && n >= 1 && L->cfg.stat_button &&
+                 L->cfg.stat_button(L->cfg.tooltip_user, v[0])) {
+            /* NATIVE-PROGRESS-001: the client's rule and request (the host's demo server answers) */
+        } else if (!strcmp(name, "onClickButton") && n >= 1 && L->hero.points > 0) {
             int index = (int)v[0];
             int32_t *stat = index == 1 ? &L->hero.strength : index == 2 ? &L->hero.agility
                           : index == 3 ? &L->hero.vitality : index == 4 ? &L->hero.energy
@@ -2126,8 +2162,19 @@ void mu_gfx_layer_resize(mu_gfx_layer *L, int32_t w, int32_t h)
 
 void mu_gfx_layer_set_hero(mu_gfx_layer *L, const mu_gfx_hero *h)
 {
-    if (L && h)
+    if (L && h) {
+        if (h->has_derived && memcmp(&L->hero, h, sizeof *h))   /* NATIVE-PROGRESS-001: the rows follow */
+            L->hero_dirty_char = 1;
         L->hero = *h;
+    }
+}
+
+void mu_gfx_layer_exp_data(mu_gfx_layer *L, const char *json)
+{
+    if (!L)
+        return;
+    snprintf(L->exp_json, sizeof L->exp_json, "%s", json ? json : "");
+    L->exp_json_dirty = 1;
 }
 
 const mu_gfx_hero *mu_gfx_layer_hero(const mu_gfx_layer *L)

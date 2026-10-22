@@ -53,7 +53,8 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
-            core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c
+            core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
+            core/mu_progress.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -87,7 +88,9 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
              $(RECON)/skill/master_tree.c $(RECON)/skill/skill_canuse.c \
              $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c $(RECON)/social/social.c \
-             $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c
+             $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
+             $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
+             $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -105,7 +108,8 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
            $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(RECON)/raven/raven.h $(RECON)/pets/pets.h $(wildcard $(RECON)/quest/*.h) \
-           $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h $(RECON)/social/social.h $(wildcard $(RECON)/mix/*.h)
+           $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h $(RECON)/social/social.h $(wildcard $(RECON)/mix/*.h) \
+           $(wildcard $(RECON)/progress/*.h)
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 

@@ -47,6 +47,10 @@ void world_gfx_report(world_gfx *g, char *out, size_t cap);
 /* NATIVE-NAMES-001: the GFx layer (world_names_gfx.c drives hudPlayerName through it). */
 struct mu_gfx_layer;
 struct mu_gfx_layer *world_gfx_layer(world_gfx *g);
+/* NATIVE-PROGRESS-001: bind the hero's progression (core/mu_progress): HUD values, the experience bar, the
+ * character window's rows and "+" buttons; NULL unbinds. */
+struct mu_progress;
+void world_gfx_progress(world_gfx *g, struct mu_progress *p);
 /* NATIVE-NPC-001: the window a talk answer opens (core/mu_npc), the talk
  * result's close-all, whether an NPC window is still open (the player may
  * close it), and the scripted window verbs (buy, sell, take, put, option,
