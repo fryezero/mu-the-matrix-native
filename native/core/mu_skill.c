@@ -17,7 +17,11 @@ struct mu_skill_book {
     size_t ntips;
     mu_skill_env env;
     mu_skill_hero hero;
-    mu_skill_hotkeys hotkeys;
+    mu_skill_hotkeys hotkeys;         /* the bar's view of the hotkey manager (mu_skill_keys_hotkeys) */
+    mu_skill_keys keys;               /* the hotkey manager 0x01d1df5c */
+    mu_skill_stamp_mgr stamp;         /* the Skill Imprint manager [0x01d1dbcc] */
+    int has_classes;                  /* skills_class.tsv gave the records' class maps (+0x6c) */
+    int32_t class_byte;               /* attributes +0x187 */
     mu_skill_bar bar;
     int32_t delays[MU_SKILL_LEARNED]; /* the delay each running timer started with (the window overlay) */
     mu_ui_font font;                  /* the wrap's GetTextExtentPointA (layer choice: GlobalText[0], height 12) */
@@ -105,6 +109,43 @@ static void load_ext(mu_skill_book *b, const char *dir)
     fclose(f);
 }
 
+/* skills_class.tsv (scripts/live_lang_to_plain.py over a langread snapshot taken with nested:0x6d8): index, the
+ * class map +0x6c (class index 0..15) and the ranks +0x64 (keys 0x80, 0x40, 0x20). */
+static void load_classes(mu_skill_book *b, const char *dir)
+{
+    if (!dir)
+        return;
+    char path[4096];
+    snprintf(path, sizeof path, "%s/skills_class.tsv", dir);
+    FILE *f = fopen(path, "r");
+    if (!f)
+        return;
+    char line[1024];
+    while (fgets(line, sizeof line, f)) {
+        if (line[0] == '#' || line[0] == '\n')
+            continue;
+        long v[20];
+        int n = 0;
+        char *p = line, *end;
+        while (n < 20) {
+            v[n] = strtol(p, &end, 10);
+            if (end == p)
+                break;
+            n++;
+            p = end;
+        }
+        mu_skill_record *r = n == 20 ? (mu_skill_record *)mu_skill_table_get(&b->table, (int32_t)v[0]) : NULL;
+        if (!r)
+            continue;
+        for (int i = 0; i < 16; i++)
+            r->classes[i] = (int32_t)v[1 + i];
+        for (int i = 0; i < 3; i++)
+            r->rank[i] = (int32_t)v[17 + i];
+        b->has_classes = 1;
+    }
+    fclose(f);
+}
+
 static int tip_cmp(const void *a, const void *b)
 {
     const mu_skill_tip_text *x = a, *y = b;
@@ -159,11 +200,13 @@ mu_skill_book *mu_skill_book_open(const mu_lang *lang, const char *lang_dir, con
         mu_skill_table_add(&b->table, &r);
     }
     load_ext(b, lang_dir);
+    load_classes(b, lang_dir);
     load_tips(b, game_root);
     b->env.table = &b->table;
     b->screen_rate = 1.0f;
     b->env.class_index = 1;
     b->hero.class_index = 1;
+    mu_skill_stamp_init(&b->stamp);
     const char *face = lang ? mu_lang_text(lang, 0) : NULL;
     b->font_open = mu_ui_font_open(&b->font, face && face[0] ? face : "Arial", 12, 400) == 0;
     return b;
@@ -203,55 +246,70 @@ void mu_skill_book_set_stats(mu_skill_book *b, const mu_skill_stats *s)
     b->hero.ag = s->ag;
 }
 
-/* ---- the learned list (DEMO) ------------------------------------------------------------------------ */
+/* ---- the server's skill packets ----------------------------------------------------------------------- */
 
-int mu_skill_book_learn(mu_skill_book *b, int32_t skill)
+static void sync_keys(mu_skill_book *b)
 {
-    if (!b || b->hero.count >= MU_SKILL_LEARNED || !mu_skill_table_get(&b->table, skill))
-        return 0;
-    for (int i = 0; i < b->hero.count; i++)
-        if (b->hero.skills[i] == skill)
-            return 0;
-    b->hero.skills[b->hero.count] = (uint16_t)skill;
-    b->hero.timers[b->hero.count] = 0;
-    b->hero.count++;
-    return 1;
+    mu_skill_keys_hotkeys(&b->keys, &b->hotkeys);
 }
 
-/* DEMO lists (skill indices of the classic classes; the server sends the real list). */
-static const int32_t DEMO_DW[] = {17, 4, 11, 3, 6, 2, 7, 1, 5, 8, 9, 10, 12, 14, 13, 16, 38, 39, 0};
-static const int32_t DEMO_DK[] = {19, 20, 21, 22, 23, 41, 42, 43, 44, 18, 47, 48, 49, 344, 0};
-/* the demo hero's bar (Blade Knight): melee skills, Blood Storm (a master skill with a 5 s delay), and wizard
- * skills the combat demo draws, one of them above the hero's energy (Inferno: disabled on the bar) */
-static const int32_t DEMO_DK_BAR[MU_SKILL_SLOTS] = {19, 41, 22, 344, 42, 43, 9, 14, 10, 18};
-static const int32_t DEMO_ELF[] = {24, 26, 27, 28, 30, 31, 32, 51, 52, 33, 34, 35, 36, 0};
-static const int32_t DEMO_ANY[] = {17, 4, 9, 10, 14, 22, 41, 24, 26, 3, 6, 2, 0};
+static int usable_cb(void *user, int32_t skill);
 
-int mu_skill_book_demo(mu_skill_book *b, int32_t class_index)
+static mu_skill_world world_of(mu_skill_book *b)
+{
+    mu_skill_world w = {&b->env, &b->hero, &b->stamp, &b->keys, usable_cb, b};
+    return w;
+}
+
+void mu_skill_book_enter(mu_skill_book *b, int32_t class_byte)
 {
     if (!b)
-        return 0;
+        return;
+    b->class_byte = class_byte;
+    b->env.class_index = class_byte & 0xf;
+    b->hero.class_index = b->env.class_index;
     b->hero.count = 0;
-    memset(&b->hotkeys, 0, sizeof b->hotkeys);
+    b->hero.current = 0;
+    memset(b->hero.skills, 0, sizeof b->hero.skills);
+    memset(b->hero.timers, 0, sizeof b->hero.timers);
+    memset(b->delays, 0, sizeof b->delays);
+    memset(&b->keys, 0, sizeof b->keys);
     memset(&b->bar, 0, sizeof b->bar);
     b->bar.dirty = 1;
-    const int32_t *list = class_index == 0 ? DEMO_DW : class_index == 1 ? DEMO_DK : class_index == 2 ? DEMO_ELF
-                                                                                                  : DEMO_ANY;
-    for (const int32_t *p = list; *p; p++)
-        mu_skill_book_learn(b, *p);
-    if (class_index == 1)       /* the demo hero's bar also gets the wizard skills the combat demo draws */
-        for (const int32_t *p = DEMO_ANY; *p; p++)
-            mu_skill_book_learn(b, *p);
-    int slot = 0;
-    if (class_index == 1)
-        for (; slot < MU_SKILL_SLOTS; slot++)
-            b->hotkeys.slots[slot] = mu_skill_learned_index(&b->hero, DEMO_DK_BAR[slot]) >= 0 ? DEMO_DK_BAR[slot] : 0;
-    for (int i = 0; i < b->hero.count && slot < MU_SKILL_SLOTS; i++)
-        b->hotkeys.slots[slot++] = b->hero.skills[i];
-    b->hero.current = 0;
-    b->hotkeys.selected = b->hero.count ? b->hero.skills[0] : 0;
-    return b->hero.count;
+    /* Layer choice: the client builds the stamp manager in the window's 0x00c2008b (0x01095c77); the native
+     * session builds it when the hero enters the world, before the server's packets arrive. */
+    mu_skill_stamp_init(&b->stamp);
+    mu_skill_stamp_reset(&b->env, &b->stamp, class_byte);
+    sync_keys(b);
 }
+
+int mu_skill_book_has_classes(const mu_skill_book *b) { return b && b->has_classes; }
+
+void mu_skill_book_allow(mu_skill_book *b, int32_t skill, int32_t class_index)
+{
+    mu_skill_record *r = b ? (mu_skill_record *)mu_skill_table_get(&b->table, skill) : NULL;
+    if (r && class_index >= 0 && class_index < 16)
+        r->classes[class_index] = 1;
+}
+
+int mu_skill_book_receive(mu_skill_book *b, const uint8_t *p, size_t n)
+{
+    if (!b || n < 4)
+        return 0;
+    size_t head = p[0] == 0xc1 || p[0] == 0xc3 ? 2 : 3;     /* C1/C3: one size byte, C2/C4: two */
+    if (n < head + 2 || p[head] != 0xa0)
+        return 0;
+    mu_skill_world w = world_of(b);
+    int r = 0;
+    if (p[head + 1] == 0x20)
+        r = mu_skill_list_receive(&w, p, n, NULL);         /* 0x0126176e */
+    else if (p[head + 1] == 0x03)
+        r = mu_skill_keys_receive(&w, p, n, NULL);         /* 0x0126f225 (its skill part) */
+    sync_keys(b);
+    return r;
+}
+
+const mu_skill_stamp_mgr *mu_skill_book_stamp_mgr(const mu_skill_book *b) { return b ? &b->stamp : NULL; }
 
 const mu_skill_hero *mu_skill_book_hero(const mu_skill_book *b) { return b ? &b->hero : NULL; }
 const mu_skill_hotkeys *mu_skill_book_hotkeys(const mu_skill_book *b) { return b ? &b->hotkeys : NULL; }
@@ -279,7 +337,14 @@ int mu_skill_book_select_slot(mu_skill_book *b, int slot)
 {
     if (!b || slot < 0 || slot >= MU_SKILL_SLOTS)
         return 0;
-    return mu_skill_select(&b->env, &b->hero, &b->hotkeys, b->hotkeys.slots[slot]);
+    /* 0x00c70f4b: the slot's stamp entry (its learned skill) in the learned list, the mounted rule, CurrentSkill;
+     * then the hotkeys select it (0x00a079d2) */
+    mu_skill_hotkeys tmp = b->hotkeys;
+    int r = mu_skill_select(&b->env, &b->hero, &tmp, b->hotkeys.slots[slot]);
+    if (r)
+        mu_skill_keys_follow(&b->env, &b->keys, &b->hero, NULL);
+    sync_keys(b);
+    return r;
 }
 
 int32_t mu_skill_book_selected(const mu_skill_book *b) { return b ? b->hotkeys.selected : 0; }
@@ -404,8 +469,11 @@ int mu_skill_book_tooltip_lines(mu_skill_book *b, int32_t skill, mu_skill_tip *o
     env.text_scale = b->screen_rate;
     mu_skill_tip_input in;
     memset(&in, 0, sizeof in);
-    in.base = skill;
-    in.learned = mu_skill_learned_index(&b->hero, skill) >= 0 ? skill : 0;
+    /* main's onSkillTooltip 0x00c7070d takes the stamp manager's entry of the skill (0x01096aa7) */
+    const mu_skill_stamp_entry *e = mu_skill_stamp_find(&b->stamp, skill);
+    in.base = e ? e->base : skill;
+    in.learned = e ? e->learned : mu_skill_learned_index(&b->hero, skill) >= 0 ? skill : 0;
+    in.stamped = e ? e->imprint : 0;
     in.weapon_index = -1;
     in.strength = b->hero.strength;
     in.agility = b->hero.agility;
@@ -463,30 +531,71 @@ const char *mu_skill_icon_file(int32_t bitmap)
 
 /* ---- the Skill Imprint window ----------------------------------------------------------------------- */
 
-static int learned_pages(const mu_skill_book *b)
+static const mu_skill_stamp_tab *stamp_tab(const mu_skill_book *b, const mu_skill_stamp *s)
 {
-    int n = b->hero.count;
-    return n / 15 + (n % 15 != 0);       /* 0x00c21b0b */
+    return s->tab ? &b->stamp.special : &b->stamp.basic;
+}
+
+static int tab_pages(const mu_skill_book *b, const mu_skill_stamp *s)
+{
+    int n = stamp_tab(b, s)->count;            /* 0x00c21b0b: the tab's entries (0x010970d8 / 0x01097104) */
+    return n / 15 + (n % 15 != 0);
 }
 
 void mu_skill_book_stamp_open(mu_skill_book *b, mu_skill_stamp *s)
 {
     memset(s, 0, sizeof *s);
-    s->page = 1;
-    s->pages = b ? learned_pages(b) : 0;
+    s->page = 1;                               /* 0x00c2008b: both pages 1 */
     s->drag_from = s->drag_to = -1;
-    if (b)
-        memcpy(s->saved, b->hotkeys.slots, sizeof s->saved);
+    if (!b)
+        return;
+    s->pages = tab_pages(b, s);
+    memcpy(s->saved, b->hotkeys.slots, sizeof s->saved);
+    mu_skill_stamp_refresh(&b->env, &b->stamp, b->hero.elemental);    /* the refresh 0x00c20ee4 */
+}
+
+int mu_skill_book_stamp_tab(mu_skill_book *b, mu_skill_stamp *s, int tab)
+{
+    if (!b || !s)
+        return 0;
+    s->tab = tab ? 1 : 0;
+    s->page = 1;
+    s->pages = tab_pages(b, s);
+    return s->pages;
+}
+
+static mu_skill_stamp_entry *window_entry(const mu_skill_book *b, const mu_skill_stamp *s, int slot)
+{
+    if (slot < 0 || slot >= 20)
+        return NULL;
+    if (slot < 5)
+        return b->stamp.edit[s->select_page * 5 + slot];
+    int i = (s->page - 1) * 15 + slot - 5;    /* 0x00c22588 */
+    const mu_skill_stamp_tab *t = stamp_tab(b, s);
+    return i >= 0 && i < t->count ? t->items[i] : NULL;      /* 0x010968c6 */
 }
 
 int32_t mu_skill_book_stamp_skill(const mu_skill_book *b, const mu_skill_stamp *s, int slot)
 {
-    if (!b || slot < 0 || slot >= 20)
+    if (!b)
         return 0;
-    if (slot < 5)
-        return b->hotkeys.slots[s->select_page * 5 + slot];
-    int i = (s->page - 1) * 15 + slot - 5;    /* 0x00c22588 */
-    return i >= 0 && i < b->hero.count ? b->hero.skills[i] : 0;
+    const mu_skill_stamp_entry *e = window_entry(b, s, slot);
+    return e ? (e->learned ? e->learned : e->base) : 0;      /* 0x01096a60 */
+}
+
+int mu_skill_book_stamp_entry(const mu_skill_book *b, const mu_skill_stamp *s, int slot, int32_t *base,
+                              int32_t *learned, int *imprint)
+{
+    const mu_skill_stamp_entry *e = b ? window_entry(b, s, slot) : NULL;
+    if (!e)
+        return 0;
+    if (base)
+        *base = e->base;
+    if (learned)
+        *learned = e->learned;
+    if (imprint)
+        *imprint = e->imprint;
+    return 1;
 }
 
 int mu_skill_book_stamp_drop(mu_skill_book *b, mu_skill_stamp *s, int from, int to)
@@ -498,29 +607,42 @@ int mu_skill_book_stamp_drop(mu_skill_book *b, mu_skill_stamp *s, int from, int 
     if (to >= 5)
         return 0;
     int dst = to + s->select_page * 5;
-    if (from < 5) {                           /* swap two bar slots (0x01096e15) */
+    if (from < 5) {                           /* two bar slots swap (0x01096e15) */
         int src = from + s->select_page * 5;
-        int32_t t = b->hotkeys.slots[src];
-        b->hotkeys.slots[src] = b->hotkeys.slots[dst];
-        b->hotkeys.slots[dst] = t;
+        mu_skill_stamp_entry *t = b->stamp.edit[src];
+        b->stamp.edit[src] = b->stamp.edit[dst];
+        b->stamp.edit[dst] = t;
         return 1;
     }
-    int32_t skill = mu_skill_book_stamp_skill(b, s, from);
-    if (!skill)
+    mu_skill_stamp_entry *e = window_entry(b, s, from);
+    if (!e)
         return 0;
-    if (mu_skill_learned_index(&b->hero, skill) < 0)
-        return -1;
-    for (int i = 0; i < MU_SKILL_SLOTS; i++)  /* 0x01096c42: the skill leaves its old slot */
-        if (b->hotkeys.slots[i] == skill)
-            b->hotkeys.slots[i] = 0;
-    b->hotkeys.slots[dst] = skill;            /* 0x01096d10 */
-    if (b->hotkeys.selected && mu_skill_learned_index(&b->hero, b->hotkeys.selected) < 0)
-        b->hotkeys.selected = 0;
+    if (e->learned == 0)
+        return -1;                            /* GlobalText 0x12bb */
+    for (int i = 0; i < MU_SKILL_SLOTS; i++)  /* 0x01096c42: the entry leaves its old slot */
+        if (b->stamp.edit[i] == e) {
+            b->stamp.edit[i] = NULL;
+            break;
+        }
+    b->stamp.edit[dst] = e;                   /* 0x01096d10 */
     return 1;
+}
+
+void mu_skill_book_stamp_save(mu_skill_book *b)
+{
+    if (!b)
+        return;
+    /* 0x00c20db4 Save: 0x01096d2a (the client also sends the slots to the server), 0x01096f37, the bar 0x00a08330 */
+    mu_skill_world w = world_of(b);
+    mu_skill_stamp_save(&b->stamp);
+    mu_skill_stamp_after_save(&w, NULL);
+    mu_skill_keys_rebuild(&b->keys, &b->stamp);
+    sync_keys(b);
 }
 
 void mu_skill_book_stamp_cancel(mu_skill_book *b, const mu_skill_stamp *s)
 {
-    if (b && s)
-        memcpy(b->hotkeys.slots, s->saved, sizeof s->saved);   /* 0x01096dd0 */
+    (void)s;
+    if (b)
+        mu_skill_stamp_cancel(&b->stamp);     /* 0x01096dd0 */
 }

@@ -40,7 +40,11 @@ wg_skill *wg_skill_open(const char *game_root, const mu_lang *lang, const char *
         return NULL;
     }
     snprintf(s->root, sizeof s->root, "%s", game_root ? game_root : "");
-    mu_skill_book_demo(s->book, class_byte & 0xf);
+    /* OFFLINE DEMO: the server's login packets (skill list, saved bar) from core/mu_skill_demo.c; MU_SKILL_DEMO
+     * names a demo file ("list CLASS SKILL..." / "keys CLASS K1..K9 K0") */
+    if (getenv("MU_SKILL_DEMO"))
+        mu_skill_demo_load(getenv("MU_SKILL_DEMO"));
+    mu_skill_book_demo_login(s->book, class_byte);
     mu_skill_book_stamp_open(s->book, &s->stamp);
     return s;
 }
@@ -137,8 +141,15 @@ static int host_stamp_drop(void *user, int from, int to)
 static void host_stamp_save(void *user)
 {
     wg_skill *s = user;
-    /* DEMO: the client sends the slots to the server (0x01096d2a); the bar keeps them */
-    memcpy(s->stamp.saved, mu_skill_book_hotkeys(s->book)->slots, sizeof s->stamp.saved);
+    /* 0x00c20db4: the stamp manager's Save, the CurrentSkill rule, the bar (the client also sends the slots to the
+     * server; the demo keeps them) */
+    mu_skill_book_stamp_save(s->book);
+}
+
+static int host_stamp_tab(void *user, int tab)
+{
+    wg_skill *s = user;
+    return mu_skill_book_stamp_tab(s->book, &s->stamp, tab);
 }
 
 static float host_delay_left(void *user, int32_t skill)
@@ -251,7 +262,8 @@ void wg_skill_attach(wg_skill *s, mu_gfx_layer *layer)
     mu_gfx_skill_host host = {.user = s, .feed = host_feed, .select = host_select, .tooltip = host_tooltip,
                               .stamp_open = host_stamp_open, .stamp_skill = host_stamp_skill,
                               .stamp_page = host_stamp_page, .stamp_drop = host_stamp_drop,
-                              .stamp_save = host_stamp_save, .delay_left = host_delay_left, .icons = host_icons};
+                              .stamp_save = host_stamp_save, .delay_left = host_delay_left, .icons = host_icons,
+                              .stamp_tab = host_stamp_tab};
     mu_gfx_layer_set_skill_host(layer, &host);
 }
 
@@ -283,6 +295,16 @@ int wg_skill_cast(wg_skill *s, int32_t *skill)
         mu_gfx_layer_set_hero(s->layer, &h);
     }
     return r;
+}
+
+int wg_skill_server(wg_skill *s, const char *verb, int32_t skill)
+{
+    if (!s || !verb)
+        return 0;
+    int forget = !strcmp(verb, "forget");
+    if (!forget && strcmp(verb, "learn"))
+        return 0;
+    return mu_skill_book_demo_learn(s->book, skill, forget);    /* DEMO: the server's 0xFE / 0xFF packet */
 }
 
 void wg_skill_set_screen(wg_skill *s, int32_t width)

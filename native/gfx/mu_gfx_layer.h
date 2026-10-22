@@ -380,6 +380,7 @@ typedef struct mu_gfx_skill_host {
     void (*stamp_save)(void *user);
     float (*delay_left)(void *user, int32_t skill);
     void (*icons)(void *user, const mu_gfx_skill_icon *icons, int n, int32_t stage_w, int32_t stage_h);
+    int (*stamp_tab)(void *user, int tab);           /* 0 Basic / 1 Special Skill tab: page 1, returns the pages */
 } mu_gfx_skill_host;
 void mu_gfx_layer_set_skill_host(mu_gfx_layer *layer, const mu_gfx_skill_host *host);
 /* onUseSkillDelay({skill, delaytime}) on the bar (StartSkillDelay 0x01696aca sends it). */

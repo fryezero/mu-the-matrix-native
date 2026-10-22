@@ -837,6 +837,8 @@ struct mu_skill_book *world_gfx_skills(world_gfx *g)
 
 int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
 {
+    if (g && (!strcmp(verb, "learn") || !strcmp(verb, "forget")))
+        return wg_skill_server(g->skill, verb, a);          /* NATIVE-SKILL-002: the demo server's packets */
     return g ? mu_gfx_layer_skill_action(g->layer, verb, a, b) : 0;
 }
 

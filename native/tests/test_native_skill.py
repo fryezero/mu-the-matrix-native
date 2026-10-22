@@ -1,4 +1,4 @@
-"""Skills in the native client's interface (NATIVE-SKILL-001) checks.
+"""Skills in the native client's interface (NATIVE-SKILL-001, NATIVE-SKILL-002) checks.
 
 Portable (synthetic data only):
   * the skill book (core/mu_skill through native/build/skill-book-host) over a synthetic Lang plaintext
@@ -6,7 +6,10 @@ Portable (synthetic data only):
     with FC CF AB, checksum key 0xe2f1): the demo learned list and bar, the bar feed (SetSkillSlot JSON, sent
     again only after a change), onSelectSkill's CurrentSkill, casts through the client's checks (ok, delay,
     requirements, mana with the potion flag) with StartSkillDelay's events and the tick, the tooltip's HTML,
-    the icon bitmaps and the Skill Imprint window's slots, drag and cancel;
+    the icon bitmaps and the Skill Imprint window's slots, drag and cancel; NATIVE-SKILL-002: the learned list,
+    the stamp manager and the bar come from the demo server's packets (opcode 0xA0 sub 0x20 list / 0xFE / 0xFF,
+    sub 0x03 the saved bar) through the client's handlers, Save commits the window's slots, a master upgrade
+    (brand) takes its base skill's entry and CurrentSkill;
   * the GFx layer on the stand-in libmugfx: the skill host's bar feed (SetSkillSlot), onSelectSkill to the
     host, onSkillTooltip -> SkillInfoPopup.SetInfoPopupSkillStamp at x + w/2, onUseSkillDelay, the U key
     toggling SkillStampFrame with its creation and open invokes, the window's slot rectangles for the host's
@@ -54,7 +57,10 @@ SKILLS = [
     (344, 'Blood Storm', 0, 25, 87, 29, 3, 5000, 0, 0, 0, 0, 0, 6, 4, 44, 0),
     (9, 'Evil Spirit', 50, 45, 90, 0, 6, 0, 0, 0, 220, 0, 0, 6, 0, 9, 0),
     (14, 'Inferno', 88, 100, 200, 0, 4, 0, 0, 0, 724, 0, 0, 6, 0, 14, 0),
+    (330, 'Twisting Upgrade', 0, 0, 12, 10, 2, 0, 0, 0, 0, 0, 0, 6, 4, 330, 0),
 ]
+BRAND = {330: 41}     # record +0x5c: 330 improves on Twisting Slash
+DEMO = 'list 1 19 22 41 344 9 14\nkeys 1 19 41 22 344 -1 -1 9 14 -1 -1\n'   # the demo server's login data
 
 
 def write_lang(directory):
@@ -67,7 +73,7 @@ def write_lang(directory):
     for s in SKILLS:
         idx, name, level, damage, mana, ag, dist, delay, st, dx, en, cm, vt, mastery, use, icon, typ = s
         rows.append('\t'.join(str(v) for v in (idx, name, level, damage, mana, ag, dist, delay, st, dx, en, cm, vt,
-                                               mastery, use, 0, 0, icon, typ, 0)))
+                                               mastery, use, BRAND.get(idx, 0), 0, icon, typ, 0)))
     (directory/'skills.tsv').write_text('# synthetic\n' + '\n'.join(rows) + '\n')
     ext = ['\t'.join(str(v) for v in (s[0],) + (0,) * 17 + (110, 0, 0)) for s in SKILLS]
     (directory/'skills_ext.tsv').write_text('# synthetic\n' + '\n'.join(ext) + '\n')
@@ -111,21 +117,24 @@ class Book(unittest.TestCase):
         cls.dir = Path(cls.tmp.name)
         write_lang(cls.dir/'lang')
         write_root(cls.dir/'root')
+        (cls.dir/'demo.txt').write_text(DEMO)
 
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
     def run_book(self, *ops):
-        return book(self.dir/'lang', self.dir/'root', *ops)
+        out = book(self.dir/'lang', self.dir/'root', 'demofile', self.dir/'demo.txt', *ops)
+        return out[:1] + out[2:]                                              # without the demofile line
 
     def test_demo_bar_feed_and_select(self):
         out = self.run_book('demo', '1', 'print', 'stats', '100', '100', '100', '300', '0', '1000', '100',
                             'feed', 'feed', 'select', '3', 'feed')
-        self.assertEqual(out[0], {'records': 6, 'tooltips': 2})               # the duplicate skill 9 is dropped
+        self.assertEqual(out[0], {'records': 7, 'tooltips': 2})               # the duplicate skill 9 is dropped
         bar = out[2]
-        self.assertEqual(bar['learned'], [19, 22, 41, 344, 9, 14])           # the demo lists present in the table
-        self.assertEqual(bar['bar'], [19, 41, 22, 344, 0, 0, 9, 14, 0, 0])
+        self.assertEqual(bar['learned'], [19, 22, 41, 344, 9, 14])           # the server's list, in its order
+        self.assertEqual(bar['bar'], [19, 41, 22, 344, 0, 0, 9, 14, 0, 0])   # its saved keys (key 0: slot 10)
+        self.assertEqual(bar['basic'], [[9, 9, 1], [14, 14, 1], [19, 19, 1], [22, 22, 1], [41, 41, 1], [344, 344, 1]])
         feed = out[3]['feed']
         self.assertEqual((feed['SelectSlot'], feed['SelectSkill'], feed['SelectUseSkill']), (0, 19, True))
         self.assertEqual([s['isUse'] for s in feed['arrSlots']][6:8], [True, False])    # Inferno: energy 724 > 300
@@ -163,13 +172,31 @@ class Book(unittest.TestCase):
         self.assertEqual((out[4]['bitmap'], out[4]['file']), (0x7e18, 'Interface/new_Master_Icon.jpg'))
         self.assertEqual((out[5]['bitmap'], out[5]['file']), (0x7c40, 'Interface/newui_skill00.jpg'))
         self.assertEqual(out[6], {'stamp_pages': 1})
-        self.assertEqual((out[7]['skill'], out[8]['skill']), (19, 19))       # learned slot 5 / bar slot 0
+        self.assertEqual((out[7]['skill'], out[8]['skill']), (9, 19))        # the tab's first entry / slot 0
         self.assertEqual(out[9], {'drop': 1})
-        self.assertEqual(out[10]['bar'], [19, 41, 0, 344, 22, 0, 9, 14, 0, 0])  # learned 22 onto bar slot 4,
-                                                                              # leaving its old slot
+        self.assertEqual(out[10]['window'], [19, 41, 22, 344, 14, 0, 9, 0, 0, 0])  # Inferno onto slot 4,
+                                                                                    # leaving its old slot
+        self.assertEqual(out[10]['bar'], [19, 41, 22, 344, 0, 0, 9, 14, 0, 0])     # the bar waits for Save
         self.assertEqual(out[11], {'drop': 1})
-        self.assertEqual(out[12]['bar'][:5], [19, 22, 0, 344, 41])            # bar slots 1 <-> 4 swapped
-        self.assertEqual(out[13]['bar'], [19, 41, 22, 344, 0, 0, 9, 14, 0, 0])   # Cancel restores the bar
+        self.assertEqual(out[12]['window'][:5], [19, 14, 22, 344, 41])             # slots 1 <-> 4 swapped
+        self.assertEqual(out[13]['window'], [19, 41, 22, 344, 0, 0, 9, 14, 0, 0])  # Cancel takes the bar back
+
+    def test_save_and_server_packets(self):
+        out = self.run_book('demo', '1', 'stamp', 'drop', '6', '4', 'save', 'print', 'select', '1', 'learn', '330',
+                            'print', 'forget', '22', 'print', 'packet', 'c2000ba020ff0000130000', 'print')
+        self.assertEqual(out[4]['bar'], [19, 41, 22, 344, 14, 0, 9, 0, 0, 0])      # Save: the bar takes the slots
+        self.assertEqual(out[5], {'select': 1, 'selected': 41})
+        learned = out[7]
+        self.assertEqual(learned['learned'], [19, 22, 41, 344, 9, 14, 330])       # 0xFE: appended
+        self.assertIn([41, 330, 1], learned['basic'])                              # the upgrade takes 41's entry
+        self.assertEqual(learned['bar'][1], 330)                                   # and its bar slot
+        self.assertEqual((learned['selected'], learned['current']), (330, 6))     # CurrentSkill follows (0x00a002d4)
+        forgot = out[9]
+        self.assertEqual(forgot['learned'], [19, 0, 41, 344, 9, 14, 330])          # 0xFF: the entry becomes 0
+        self.assertIn([22, 0, 0], forgot['basic'])                                # no skill: no imprint
+        self.assertEqual(forgot['bar'][2], 0)
+        self.assertEqual(out[10], {'packet': 1})                                   # a C2 head: 0xFF of skill 19
+        self.assertEqual(out[11]['learned'][0], 0)
 
 
 @unittest.skipUnless(CC, 'no C compiler')
@@ -242,7 +269,7 @@ class Layer(unittest.TestCase):
 @unittest.skipUnless(PRIVATE and os.environ.get('MU_LANG_DIR') and BOOK.exists(), 'private data absent')
 class Installed(unittest.TestCase):
     def test_book_over_the_installed_tables(self):
-        out = book(os.environ['MU_LANG_DIR'], os.environ['MU_GAME_ROOT'], 'demo', '1', 'tip', '9', 'icon', '9',
+        out = book(os.environ['MU_LANG_DIR'], os.environ['MU_GAME_ROOT'], 'demo', '0', 'tip', '9', 'icon', '9',
                    'stats', '1250', '800', '650', '300', '0', '9000', '9000', 'icon', '9', 'cast', '9')
         self.assertGreater(out[0]['records'], 500)
         self.assertGreater(out[0]['tooltips'], 500)
@@ -260,9 +287,10 @@ class Installed(unittest.TestCase):
             subprocess.run([python, '-c', 'import unicorn, capstone'], check=True, capture_output=True)
         except subprocess.CalledProcessError:
             self.skipTest('unicorn/capstone not installed')
-        r = subprocess.run([python, str(ROOT/'scripts/validate_skill.py'), '--cases', '60', '--mutations'],
-                           capture_output=True, text=True, timeout=3600)
-        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+        for script in ('validate_skill.py', 'validate_skill_server.py'):     # NATIVE-SKILL-001 / -002
+            r = subprocess.run([python, str(ROOT/'scripts'/script), '--cases', '60', '--mutations'],
+                               capture_output=True, text=True, timeout=3600)
+            self.assertEqual(r.returncode, 0, script + r.stdout[-2000:] + r.stderr[-2000:])
 
 
 if __name__ == '__main__':

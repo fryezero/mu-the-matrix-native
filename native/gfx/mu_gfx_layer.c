@@ -3657,9 +3657,12 @@ static const char *skill_call(movie *mv, const char *name, const char *args, con
         if (L->skill.stamp_page)                    /* 0x010976db(-1 / +1) */
             L->stamp.select_page = L->skill.stamp_page(L->skill.user, 1, name[17] == 'P' ? -1 : 1);
     } else if (!strcmp(name, "onClickBaseSKill") || !strcmp(name, "onClickSpecialSkill")) {
-        /* the special-skill tab (castle siege, Dark Raven commands) has no skills offline */
+        /* the tab flag (handler +0x8c): page 1 of the stamp manager's basic or special tab */
+        if (L->skill.stamp_tab)
+            L->skill.stamp_tab(L->skill.user, name[7] == 'S');
         L->stamp.page = 1;
         invokef(L, MU_GFX_SKILL_STAMP, mv->path, "UpdateSkillPage", "[1]");
+        L->mv[MU_GFX_SKILL_STAMP].view_dirty = 1;
     } else if (!strcmp(name, "requestSkillSlotOver") && n >= 1) {
         float r[4];
         int slot = (int)v[0];
@@ -3719,6 +3722,8 @@ int mu_gfx_layer_skill_action(mu_gfx_layer *L, const char *verb, int a, int b)
         skill_call(st, a < 0 ? "onClickprevBtn" : "onClicknextBtn", "", v, 0);
     } else if (!strcmp(verb, "select")) {
         skill_call(st, a < 0 ? "onClickSelectSlotPrev" : "onClickSelectSlotNext", "", v, 0);
+    } else if (!strcmp(verb, "tab")) {
+        skill_call(st, a ? "onClickSpecialSkill" : "onClickBaseSKill", "", v, 0);
     } else {
         return 0;
     }

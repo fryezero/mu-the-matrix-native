@@ -53,7 +53,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
-            core/mu_world_helpers.c core/mu_quest.c core/mu_skill.c core/mu_map.c
+            core/mu_world_helpers.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -82,7 +82,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c \
              $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
              $(RECON)/quest/quest_ui.c $(RECON)/quest/quest_packets.c $(RECON)/quest/quest_api.c \
-             $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c \
+             $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
              $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))

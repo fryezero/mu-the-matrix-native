@@ -23,7 +23,10 @@
    - map:PTR+OFF=BYTES[,obj=N]   walk the std::map whose container is at [PTR] + OFF (PTR: a pointer variable of
                       the image, e.g. the quest system singleton 0x01ec2e60), BYTES per node; with obj=N the node
                       value at +0x14 is a pointer to an N-byte object, which is copied, chased for strings and
-                      vectors, and scanned for std::map containers that are walked too (0x50 bytes per node). */
+                      vectors, and scanned for std::map containers that are walked too (0x50 bytes per node);
+   - nested:OFF       the table at manager offset OFF has std::map containers inside its records (Skill(Kor)'s
+                      +0x64 ranks and +0x6c class map, NATIVE-SKILL-002: nested:0x6d8): every copied node value is
+                      scanned for them and they are walked (0x18 bytes per node: std::map<int, int>). */
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <stdint.h>
@@ -121,7 +124,7 @@ static void chase(const uint8_t *b, uint32_t n, int depth)
 static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_t obj_bytes);
 
 /* std::map containers (head pointer, size; the head's _Isnil byte set) inside a copied object: walked. */
-static void scan_maps(const uint8_t *b, uint32_t n)
+static void scan_maps_n(const uint8_t *b, uint32_t n, uint32_t node_bytes)
 {
     for (uint32_t o = 0; o + 8 <= n; o += 4) {
         uint32_t head = u32(b, o), count = u32(b, o + 4);
@@ -132,9 +135,13 @@ static void scan_maps(const uint8_t *b, uint32_t n)
             continue;
         uint32_t len = 0x10;
         free(copy_block(head, &len, 1));
-        walk(head, count, 0x50, 0);
+        walk(head, count, node_bytes, 0);
     }
 }
+
+static void scan_maps(const uint8_t *b, uint32_t n) { scan_maps_n(b, n, 0x50); }
+
+static int nested_walk;   /* the table being walked has maps in its records (nested:OFF) */
 
 /* Walk one std::map: _Left +0, _Parent +4, _Right +8, _Isnil +0xd, value from +0x10. */
 static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_t obj_bytes)
@@ -157,6 +164,11 @@ static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_
             ++copied;
             if (len > 0x10)
                 chase(b + 0x10, len - 0x10, 1);
+            if (nested_walk && len > 0x14) {
+                nested_walk = 0;                   /* one level: the inner maps' nodes are not scanned again */
+                scan_maps_n(b + 0x14, len - 0x14, 0x18);
+                nested_walk = 1;
+            }
             if (obj_bytes && len >= 0x18) {
                 uint32_t obj = u32(b, 0x14), olen = obj_bytes;
                 uint8_t *ob = obj >= 0x10000 ? copy_block(obj, &olen, 1) : NULL;
@@ -177,7 +189,7 @@ static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_
 
 int main(int c, char **v)
 {
-    if (c < 3) { fprintf(stderr, "usage: langread pid out.bin [node:OFF=BYTES] [map:PTR+OFF=BYTES[,obj=N]]\n"); return 2; }
+    if (c < 3) { fprintf(stderr, "usage: langread pid out.bin [node:OFF=BYTES] [map:PTR+OFF=BYTES[,obj=N]] [nested:OFF]\n"); return 2; }
     if (task_for_pid(mach_task_self(), atoi(v[1]), &task)) { fprintf(stderr, "task_for_pid failed\n"); return 1; }
     static uint8_t mgr[MANAGER_END - MANAGER];
     if (rd(MANAGER, mgr, sizeof mgr)) { fprintf(stderr, "manager unreadable\n"); return 1; }
@@ -201,6 +213,12 @@ int main(int c, char **v)
         }
         if (node_bytes > NODE_MAX)
             node_bytes = NODE_MAX;
+        int nested = 0;
+        for (int a = 3; a < c; ++a) {
+            unsigned off = 0;
+            if (sscanf(v[a], "nested:%i", &off) == 1 && off == TABLES[t])
+                nested = 1;
+        }
         for (uint32_t o = TABLES[t]; o + 8 <= TABLES[t + 1]; o += 4) {
             uint32_t head = u32(mgr, o), count = u32(mgr, o + 4);
             uint8_t hn[0x10];
@@ -210,7 +228,9 @@ int main(int c, char **v)
                 continue;
             uint32_t len = 0x10;
             free(copy_block(head, &len, 1));
+            nested_walk = nested;
             uint32_t got = walk(head, count, node_bytes, 0);
+            nested_walk = 0;
             printf("map %08x (table +0x%x, +0x%x) count %u copied %u\n", MANAGER + o, TABLES[t], o - TABLES[t],
                    count, got);
             ++maps; nodes += got;

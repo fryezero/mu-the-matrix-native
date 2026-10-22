@@ -6,7 +6,8 @@
  * over that window: RenderBitmap of the client's skill sheets (Data/Interface newui_skill00 /
  * newui_non_skill00 / new_Master_Icon / 4th_Skill_Icon, bitmap and cell as 0x01097130 picks them) and the
  * delay overlay of 0x00f18574 (colour 1, .5, .5, alpha .5, the remaining part from the bottom).
- * OFFLINE DEMO: the learned list (core/mu_skill's demo lists) and the save. */
+ * OFFLINE DEMO: the server's skill packets (core/mu_skill_demo.c: the login's skill list and saved bar, a
+ * skill learned or forgotten; the client's handlers take them, NATIVE-SKILL-002) and the save. */
 #ifndef MU_WORLD_GFX_SKILL_H
 #define MU_WORLD_GFX_SKILL_H
 
@@ -26,6 +27,8 @@ struct mu_skill_book *wg_skill_book(wg_skill *s);
  * the demo hero spends the mana/AG.  Returns MU_SKILL_CAST_*; *skill = the skill (0 none). */
 int wg_skill_cast(wg_skill *s, int32_t *skill);
 void wg_skill_tick(wg_skill *s, double dt_ms);
+/* DEMO server: verb "learn" / "forget" sends the 0xFE / 0xFF skill packet for `skill`; 1 when handled. */
+int wg_skill_server(wg_skill *s, const char *verb, int32_t skill);
 /* The interface's width in points (the tooltip wrap's screen rate). */
 void wg_skill_set_screen(wg_skill *s, int32_t width);
 /* Counters for the run report. */
