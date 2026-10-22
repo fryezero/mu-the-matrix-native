@@ -61,7 +61,10 @@ typedef struct mu_gfx_layer mu_gfx_layer;
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
        MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
-       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_STORE_LIST, MU_GFX_STORE_REGISTER, MU_GFX_STORE_PURCHASE, MU_GFX_MOVIES };
+       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_STORE_LIST, MU_GFX_STORE_REGISTER, MU_GFX_STORE_PURCHASE,
+       MU_GFX_OPTION, MU_GFX_SYSTEM_MENU, MU_GFX_MOVIES };
+/* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
+ * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
  * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
 /* NATIVE-QUEST-002 adds QuestSummary (the quest summary HUD), QuestProgressInfo (the quest notice movie) and
@@ -191,6 +194,8 @@ typedef struct mu_gfx_layer_config {
     /* NATIVE-PROGRESS-001: CharacterInfoFrame's onClickButton(row) (user = tooltip_user); returns 1 when the host
      * handled it (the client's request and the server's answers), 0 for the layer's stand-in */
     int (*stat_button)(void *user, double row);
+    /* winOption / winSystemMenu: (movie, channel name or "key", JSON arguments) */
+    void (*progress_call)(void *user, int movie, const char *name, const char *args_json);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 

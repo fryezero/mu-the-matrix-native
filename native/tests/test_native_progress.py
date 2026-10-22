@@ -98,5 +98,90 @@ class SyntheticProgress(unittest.TestCase):
         self.assertEqual((s['requests'], s['stats'][0]), (0, 18))
 
 
+ROOT = NATIVE.parent
+CC = next((c for c in ('cc', 'clang', 'gcc') if subprocess.run(['which', c], capture_output=True).returncode == 0), None)
+ON_CHANGE = ('["onChange",{"effectLimit":3.0,"isAutoAttack":false,"isMonsterInfo":false,"isMusicPlay":false,'
+             '"isMute":false,"isPlayerInfo":true,"isSlideHelp":true,"isSwitchMode":false,"isWhisperSound":false,'
+             '"switchModeTime":10.0,"volum":7.0}]')
+
+
+@unittest.skipUnless(CC, 'no C compiler')
+class OptionsWindow(unittest.TestCase):
+    """winOption / winSystemMenu over native/world/world_gfx_options.c (stub layer and audio, real game side):
+    the settings file in the client's option.ini format, the audio groups, the menu's requests."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dir = Path(cls.tmp.name)
+        cls.exe = cls.dir / 'options-host'
+        subprocess.run([CC, '-std=c11', '-O1', '-Wall', '-Wextra', '-DMU_GFX_NO_GL', '-o', str(cls.exe),
+                        str(HERE / 'options_host.c'), str(NATIVE / 'world/world_gfx_options.c'),
+                        str(ROOT / 'reconstructed/progress/progress_options.c'),
+                        str(ROOT / 'reconstructed/charsel/charcreate.c'),
+                        str(ROOT / 'reconstructed/charsel/charsel_gfx.c')], check=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def host(self, settings, *ops):
+        r = subprocess.run([str(self.exe), str(settings), *ops], capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        lines = r.stdout.splitlines()
+        return lines, [json.loads(l) for l in lines if l.startswith('{')]
+
+    def test_defaults_open_and_change(self):
+        settings = self.dir / 'a'
+        lines, rows = self.host(settings, 'audio', 'load', 'step', '40', 'key', '0', 'step', '40', 'print',
+                                'call', '0', ON_CHANGE, 'print')
+        # the join's values through the setters: setDatas at the first visible frame, the volume read back
+        # from the Effect group ((int)(1.0 * 9 + 0.5) = 9)
+        data = next(l for l in lines if ' setDatas ' in l)
+        self.assertIn('"isAutoAttack":true', data)
+        self.assertIn('"volum":9', data)
+        self.assertIn('"effectLimit":5', data)
+        self.assertEqual(rows[0]['volume'], 9)
+        # onChange: apply 0x00c7635f (Effect group volume / 9, Music mute, monster info) and the file
+        self.assertIn('audio volume 2 0.7778', lines)
+        self.assertIn('audio mute 0 1', lines)
+        self.assertIn('monster_info 0', lines)
+        self.assertEqual((rows[1]['volume'], rows[1]['effect'], rows[1]['music_play']), (7, 2, 0))
+        ini = (settings / 'option.ini').read_text()
+        self.assertIn('[OPTION]\nEffect=2\n', ini)
+        for key in ('Volum=7', 'IsMusicPlay=0', 'IsMonsterInfo=0', 'IsAutoAttack=0', 'IsSlideHelp=1'):
+            self.assertIn(key, ini)
+        # the next session: the loader reads the file back and the stored volume reaches the audio module
+        lines, rows = self.host(settings, 'audio', 'step', '40', 'print')
+        self.assertIn('audio volume 2 0.7778', lines)
+        self.assertEqual((rows[0]['volume'], rows[0]['monster_info'], rows[0]['effect']), (7, 0, 2))
+
+    def test_effect_clamp_and_missing_file(self):
+        settings = self.dir / 'b'
+        settings.mkdir()
+        (settings / 'option.ini').write_text('[OPTION]\nEffect=9\n')
+        _, rows = self.host(settings, 'print')
+        self.assertEqual(rows[0]['effect'], 4)   # 0x00c76314 clamps 0..4
+        _, rows = self.host(self.dir / 'none', 'print')
+        self.assertEqual((rows[0]['volume'], rows[0]['auto_attack'], rows[0]['effect']), (5, 1, 4))
+        self.assertFalse((self.dir / 'none' / 'option.ini').exists())
+
+    def test_menu_requests(self):
+        settings = self.dir / 'c'
+        lines, rows = self.host(settings, 'load', 'key', '1', 'call', '1', '["onCharSelectClick",{}]', 'print',
+                                'key', '1', 'call', '1', '["onServerSelectClick",{}]', 'print',
+                                'key', '1', 'call', '1', '["onExit",{}]', 'step', '4900', 'print', 'step', '200',
+                                'print')
+        self.assertIn('invoke 29 _level0.instance1 SceneChange [6]', lines)
+        self.assertEqual([r['request'] for r in rows], [1, 2, -1, 0])   # exit after the 5 s countdown
+        self.assertIn('chat You will exit game in 5 seconds.', lines)
+
+    def test_esc_closes_the_options_window_first(self):
+        lines, _ = self.host(self.dir / 'd', 'load', 'key', '0', 'key', '1')
+        tail = lines[lines.index('show 28 1'):]
+        self.assertIn('show 28 0', tail)
+        self.assertNotIn('show 29 1', tail)
+
+
 if __name__ == '__main__':
     unittest.main()

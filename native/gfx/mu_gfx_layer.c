@@ -342,7 +342,8 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
                                                  "MasterSkillTree", "SkillTree4th", "SkillTree5th",
-                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow", "MixGoblinSel", "MixInventoryFrame", "PersonalShopProductList", "PersonalShopRegister", "PersonalShopPurchase"};
+                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow", "MixGoblinSel", "MixInventoryFrame", "PersonalShopProductList", "PersonalShopRegister", "PersonalShopPurchase",
+                                                 "winOption", "winSystemMenu"};
 
 static int service_reserved(const mu_gfx_layer *L,int index);
 static int service_inventory(mu_gfx_layer *L,int cell);
@@ -1254,7 +1255,12 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
     }
     char s[256] = "";
     mv->view_dirty = 1;
-    if (mv->id>=MU_GFX_STORE_LIST && strcmp(name,"UIInit") && strcmp(name,"CloseWindow")) {
+    if (mv->id == MU_GFX_OPTION || mv->id == MU_GFX_SYSTEM_MENU) {   /* NATIVE-PROGRESS-001 */
+        if (L->cfg.progress_call)
+            L->cfg.progress_call(L->cfg.tooltip_user, mv->id, name, args);
+        return NULL;
+    }
+    if (mv->id>=MU_GFX_STORE_LIST && mv->id<=MU_GFX_STORE_PURCHASE && strcmp(name,"UIInit") && strcmp(name,"CloseWindow")) {
         service_call(mv,name,args,v,n);return NULL;
     }
     if (mv->id >= MU_GFX_PARTY && mv->id <= MU_GFX_MESSENGER) {
@@ -1577,7 +1583,8 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_MOVE_COMMAND] = 10, [MU_GFX_MASTER_TREE] = 0, [MU_GFX_TREE4] = 0, [MU_GFX_TREE5] = 3,
     [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9,
     [MU_GFX_PARTY] = 9, [MU_GFX_TRADE] = 9, [MU_GFX_FRIENDS] = 9, [MU_GFX_MESSENGER] = 9,
-    [MU_GFX_MIX_SELECT] = 9, [MU_GFX_MIX] = 9
+    [MU_GFX_MIX_SELECT] = 9, [MU_GFX_MIX] = 9,
+    [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9
 };
 
 static void window_sizes(mu_gfx_layer *L)
@@ -2115,6 +2122,15 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
         snprintf(party->path, sizeof party->path, "_level0.instance1");
         invokef(L, MU_GFX_PARTY, party->path, "onFileLoad", "[]");
     }
+    for (int k = MU_GFX_OPTION; k <= MU_GFX_SYSTEM_MENU; k++) {   /* NATIVE-PROGRESS-001: the KeyWindows' loader */
+        movie *w = &L->mv[k];
+        if (!w->g)
+            continue;
+        L->api.set_variable(w->g, "_global.gSystem", "{\"isClient\":true}");
+        L->api.set_variable(w->g, "_global.gStandard", "{\"ResizeStageHeight\":700}");
+        snprintf(w->path, sizeof w->path, "_level0.instance1");
+        invokef(L, k, w->path, "onFileLoad", "[]");
+    }
     if (L->mv[MU_GFX_QUEST_SUMMARY].g) {
         /* MovieLoader normally supplies these globals and calls onFileLoad on the placed "win" clip.
          * Each optional window has its own player here, so perform that loader lifecycle explicitly. */
@@ -2451,6 +2467,12 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
             mu_gfx_layer_show(L, MU_GFX_INVENTORY, 0);
             mu_gfx_layer_show(L, MU_GFX_CHARACTER, 0);
             mu_gfx_layer_show(L, MU_GFX_SKILL_STAMP, 0);
+            used = 1;
+        } else if (vk == 'O' && L->mv[MU_GFX_OPTION].g && L->cfg.progress_call) {   /* NATIVE-PROGRESS-001 */
+            L->cfg.progress_call(L->cfg.tooltip_user, MU_GFX_OPTION, "key", "[79]");
+            used = 1;
+        } else if (vk == 27 && L->mv[MU_GFX_SYSTEM_MENU].g && L->cfg.progress_call) {
+            L->cfg.progress_call(L->cfg.tooltip_user, MU_GFX_SYSTEM_MENU, "key", "[27]");
             used = 1;
         }
     }

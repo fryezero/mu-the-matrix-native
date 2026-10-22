@@ -156,6 +156,8 @@ uint32_t mu_shell_audio_rate(const mu_shell *s);
 void mu_shell_mix(mu_shell *s, float *out, uint32_t frames);
 
 int mu_shell_scene(const mu_shell *s);
+/* NATIVE-PROGRESS-001: the in-world system menu's choice (0 exit game, 1 switch character, 2 select server). */
+void mu_shell_world_menu(mu_shell *s, int kind);
 int mu_shell_quit(const mu_shell *s);
 void mu_shell_request_quit(mu_shell *s);
 const mu_scenemgr_globals *mu_shell_globals(const mu_shell *s);

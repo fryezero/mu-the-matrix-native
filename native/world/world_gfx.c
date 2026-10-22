@@ -12,6 +12,7 @@
 #include "../core/mu_quest.h"
 #include "../core/mu_map.h"
 #include "../core/mu_progress.h"
+#include "world_gfx_options.h"
 #include "../../reconstructed/charsel/charcreate.h"
 #include "../core/mu_walk.h"
 #include "../core/mu_ui_font.h"
@@ -61,8 +62,10 @@ struct world_gfx {
     wg_tree *tree;
     double scale;
     mu_mix_book *mix;
-    /* NATIVE-PROGRESS-001: the hero's progression (core/mu_progress), when the host binds it */
+    /* NATIVE-PROGRESS-001: the hero's progression (core/mu_progress), when the host binds it; the options
+     * window and the system menu */
     struct mu_progress *progress;
+    wg_options *options;
 };
 
 static int mix_quote(void *user,int group,const mu_mix_item *items,int n,mu_mix_quote *out)
@@ -1075,6 +1078,18 @@ static int quest_action(world_gfx *g, const char *verb, const char *arg)
     return -1;
 }
 
+/* NATIVE-PROGRESS-001: winOption / winSystemMenu */
+static void progress_call(void *user, int movie, const char *name, const char *args)
+{
+    world_gfx *g = user;
+    wg_options_call(g->options, movie, name, args);
+}
+
+wg_options *world_gfx_options(world_gfx *g)
+{
+    return g ? g->options : NULL;
+}
+
 /* NATIVE-PROGRESS-001: CharacterInfoFrame's "+" buttons go through the client's rule and request */
 static int stat_button(void *user, double row)
 {
@@ -1180,7 +1195,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .window_draw = window_draw, .mix_quote = mix_quote,
                                .jewel_check = jewel_check, .jewel_request = jewel_request,
                                .tooltip_snapshot=tooltip_snapshot, .store_check = store_check, .repair_quote = repair_quote, .repair_request = repair_request,
-                               .stat_button = stat_button};
+                               .stat_button = stat_button, .progress_call = progress_call};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -1189,6 +1204,10 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         return NULL;
     }
     demo_items(g);
+    g->options = wg_options_open(g->layer, NULL, NULL);   /* NATIVE-PROGRESS-001 */
+    /* the movies loaded (and called onLoad) inside mu_gfx_layer_open, before the host existed: replay it */
+    wg_options_call(g->options, MU_GFX_OPTION, "channel", "[\"onLoad\",\"_level0.instance1\"]");
+    wg_options_call(g->options, MU_GFX_SYSTEM_MENU, "channel", "[\"onLoad\",\"_level0.instance1\"]");
     g->have_dlg = load_dialogue(g, game_root);
     demo_buffs(g, open);
     char_rows(g, open);
@@ -1280,6 +1299,8 @@ int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
 
 void world_gfx_close(world_gfx *g)
 {
+    if (g)
+        wg_options_close(g->options);   /* NATIVE-PROGRESS-001 */
     if (!g)
         return;
     mu_quest_session_close(&g->quest);
@@ -1316,6 +1337,7 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     wg_items_set_time(g->items, g->time_ms);
     wg_skill_tick(g->skill, dt_ms);
     progress_sync(g);   /* NATIVE-PROGRESS-001 */
+    wg_options_step(g->options, dt_ms);
     mu_gfx_layer_advance(g->layer, dt_ms);
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);

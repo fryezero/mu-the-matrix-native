@@ -1538,7 +1538,8 @@ static void overlay_gpu(mu_shell *s)
     case MU_SCENE_MAIN:
         ui_open(s);
         mu_ui_begin_bitmap(&s->state);
-        offline_label(s, "world: click to walk, wheel zooms, Esc returns to character select");
+        offline_label(s, s->cfg.gfx_dir ? "world: click to walk, wheel zooms, Esc opens the system menu, O the options"
+                                         : "world: click to walk, wheel zooms, Esc returns to character select");
         mu_ui_end_bitmap(&s->state);
         ui_close(s);
         break;
@@ -1660,7 +1661,8 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
     case MU_SCENE_MAIN:
         copy_in(s, rgba);
         mu_ui_begin_bitmap(&s->state);
-        offline_label(s, "world: click to walk, wheel zooms, Esc returns to character select");
+        offline_label(s, s->cfg.gfx_dir ? "world: click to walk, wheel zooms, Esc opens the system menu, O the options"
+                                         : "world: click to walk, wheel zooms, Esc returns to character select");
         mu_ui_end_bitmap(&s->state);
         mu_ui_raster_read_top_down(&s->raster, rgba);
         break;
@@ -1708,6 +1710,28 @@ void mu_shell_mix(mu_shell *s, float *out, uint32_t frames)
                 out[2 * done + i] += world[i];
             done += n;
         }
+    }
+}
+
+void mu_shell_world_menu(mu_shell *s, int kind)
+{
+    if (s->g.scene != MU_SCENE_MAIN || !s->world)
+        return;
+    if (kind == 0) {   /* Exit Game, after the countdown */
+        s->quit = 1;
+        log_transition(s, "menu: exit game");
+    } else if (kind == 1) {   /* Switch Character: offline the server's answer (0x0125294e subcode 1) comes at once */
+        close_world(s);
+        mu_scenemgr_return_to_character(&s->g);
+        s->g.protocol = mu_offline_session_character_list(&s->session);
+        log_transition(s, "menu: switch character");
+    } else if (kind == 2) {   /* Select Server: the logout answer, then the server list */
+        close_world(s);
+        s->g.scene = MU_SCENE_LOGIN;
+        s->g.init_login = 0;
+        s->g.init_character = 0;
+        s->g.protocol = 0;
+        log_transition(s, "menu: select server (offline answer)");
     }
 }
 

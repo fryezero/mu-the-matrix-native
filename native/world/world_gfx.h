@@ -51,6 +51,9 @@ struct mu_gfx_layer *world_gfx_layer(world_gfx *g);
  * character window's rows and "+" buttons; NULL unbinds. */
 struct mu_progress;
 void world_gfx_progress(world_gfx *g, struct mu_progress *p);
+/* NATIVE-PROGRESS-001: the options window and system menu host (world/world_gfx_options.h) */
+struct wg_options;
+struct wg_options *world_gfx_options(world_gfx *g);
 /* NATIVE-NPC-001: the window a talk answer opens (core/mu_npc), the talk
  * result's close-all, whether an NPC window is still open (the player may
  * close it), and the scripted window verbs (buy, sell, take, put, option,
