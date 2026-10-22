@@ -75,6 +75,13 @@ SKILL_COLUMNS = (
     ('req_44', 0x44, 'i'), ('req_48', 0x48, 'i'), ('req_4c', 0x4c, 'i'), ('mastery', 0x50, 'i'),
     ('use_type', 0x58, 'i'), ('brand', 0x5c, 'i'), ('master_bonus', 0x7c, 'b'), ('icon', 0x8c, 'i'),
     ('type', 0x90, 'i'), ('skip', 0x00, 'b'))
+# NATIVE-SKILL-001: the rest of the record the row parser 0x01170ca5 writes (skills_ext.tsv; the inner maps at
+# +0x64/+0x6c and the pair vector +0xb8 are not in the snapshot)
+SKILL_EXT_COLUMNS = (
+    ('x54', 0x54, 'i'), ('x60', 0x60, 'i'), ('x74', 0x74, 'i'), ('x78', 0x78, 'i'), ('master_factor', 0x7c, 'i'),
+    ('x80', 0x80, 'i'), ('x84', 0x84, 'i'), ('x88', 0x88, 'i'), ('x94', 0x94, 'b'), ('x98', 0x98, 'i'),
+    ('x9c', 0x9c, 'i'), ('xa0', 0xa0, 'i'), ('xa4', 0xa4, 'i'), ('xa8', 0xa8, 'i'), ('xac', 0xac, 'i'),
+    ('xb0', 0xb0, 'i'), ('weapon', 0xb4, 'i'), ('imprint', 0xc4, 'i'), ('xc8', 0xc8, 'b'), ('damage_type', 0xcc, 'i'))
 GATE_COLUMNS = (('flag', 0x08), ('world', 0x0c), ('x1', 0x10), ('y1', 0x14), ('x2', 0x18), ('y2', 0x1c),
                 ('target', 0x20), ('dir', 0x24), ('min_level', 0x28), ('max_level', 0x2c))
 MOVE_COLUMNS = (('id', 0x00), ('zen', 0x34), ('min_level', 0x38), ('max_level', 0x3c), ('gate', 0x40),
@@ -216,7 +223,7 @@ def read_skills(snap):
     for key, node in snap.tree(SKILL + MAP_AT[SKILL]):
         r = record(node)
         row = {'index': key, 'record_index': snap.i32(r + 4), 'name': snap.string(r + 8)}
-        for name, offset, kind in SKILL_COLUMNS:
+        for name, offset, kind in SKILL_COLUMNS + SKILL_EXT_COLUMNS:
             row[name] = snap.i32(r + offset) if kind == 'i' else snap.read(r + offset, 1)[0]
         rows.append(row)
     return rows
@@ -431,6 +438,11 @@ def convert(snap, out_dir, header=''):
         for row in skills:
             f.write('\t'.join(escape(row[c]) if c == 'name' else str(row[c]) for c in cols) + '\n')
     counts['skills'] = len(skills)
+    cols = ['index'] + [c[0] for c in SKILL_EXT_COLUMNS]
+    with open(out_dir/'skills_ext.tsv', 'w', encoding='ascii', newline='\n') as f:
+        f.write(note + '# NATIVE-SKILL-001: the record fields skills.tsv lacks\n#' + '\t'.join(cols) + '\n')
+        for row in skills:
+            f.write('\t'.join(str(row[c]) for c in cols) + '\n')
 
     gates = read_gates(snap)
     cols = ['index'] + [c[0] for c in GATE_COLUMNS]

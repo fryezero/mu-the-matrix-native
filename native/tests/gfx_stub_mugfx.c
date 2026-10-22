@@ -29,7 +29,10 @@
  * input boxes keep typed text; a release outside the password box reports onClickCautionInputCancel as the
  * real movie does) and "winSystemMenu" (attachMovie + onFileLoad -> onLoad / onOpenWindow, openWindow /
  * closeWindow, its buttons -> onExit, onServerSelectClick, onCharSelectClick, onOptionClick, onClose);
- * fixed synthetic geometry, the control paths answer _x/_y/_width/_height.  Calls made from inside a callback are queued
+ * fixed synthetic geometry, the control paths answer _x/_y/_width/_height.  NATIVE-SKILL-001: SkillInfoPopup
+ * reports UIInit; SkillStampFrame reports UIInit, 20 requestSkillSlotInfo, requestSkillSlotSize and
+ * requestWindowPos, answers CheckOverSlot with DragEndSlotIndex_Mouse(the target set by testDropTarget) and
+ * raises testCall callbacks like base.  Calls made from inside a callback are queued
  * and run afterwards, as mugfx does.  Every invoke is appended to the file
  * named by $MUGFX_STUB_LOG.  Synthetic: no client data. */
 #define _POSIX_C_SOURCE 200809L
@@ -60,6 +63,8 @@ struct MuGfx {
     /* NATIVE-CHARCREATE-001 */
     int cs_create, cs_class, cs_classes[16], cs_nclasses;
     int cu_type, menu_attached, menu_open;
+    /* NATIVE-SKILL-001: SkillStampFrame's drop target (testDropTarget) */
+    int drop_target;
 };
 
 /* NATIVE-CHARCREATE-001: synthetic geometry (stage points) */
@@ -299,7 +304,16 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
         if (strstr(args, "\"bufflist\""))   /* NATIVE-LANG-002: the channel name and path the real movie reports */
             call(g, "bufflist", "[\"onLoad\",\"_level0.base.UI.mcBottom.bufflist_5.BuffList\"]");
         call(g, "UIFrame", "[\"onFileLoad\",{}]");
-    } else if (is(g, "base") && !strcmp(method, "testCall")) {
+    } else if (is(g, "SkillStampFrame") && !strcmp(method, "testDropTarget")) {
+        g->drop_target = atoi(args + 1);
+    } else if (is(g, "SkillStampFrame") && !strcmp(method, "CheckOverSlot")) {
+        /* the slot under the mouse (CheckOverSlot's hitTest loop) */
+        char a[32];
+        snprintf(a, sizeof a, "[%d.0]", g->drop_target);
+        call(g, "DragEndSlotIndex_Mouse", a);
+    } else if (is(g, "SkillStampFrame") && !strcmp(method, "SetSkillSlotSize")) {
+        call(g, "requestSkillSlotSize", "[26.0,37.0]");
+    } else if ((is(g, "base") || is(g, "SkillStampFrame")) && !strcmp(method, "testCall")) {
         /* test hook: the movie raises a callback, e.g. a menu button's onHotKey */
         char name[64] = "", rest[400] = "";
         if (sscanf(args, "[\"%63[^\"]\",%399[^\n]", name, rest) == 2) {
@@ -426,6 +440,21 @@ void mugfx_start(MuGfx *g)
         g->win_x = 45;
         g->win_y = 21;
         call(g, "requestWindowPos", "[45.0,21.0]");
+    } else if (is(g, "SkillInfoPopup")) {
+        call(g, "UIInit", "[\"g_mcSkillInfoPopup\"]");
+    } else if (is(g, "SkillStampFrame")) {
+        /* NATIVE-SKILL-001: onLoadUI's reports (synthetic geometry: 5 bar slots below 3 rows of 5) */
+        call(g, "UIInit", "[\"g_mcSkillStampFrame\"]");
+        for (int i = 0; i < 20; i++) {
+            char a[64];
+            double x = 43.0 + 53.0 * (i % 5), y = i < 5 ? 376.0 : 158.0 + 53.0 * ((i - 5) / 5);
+            snprintf(a, sizeof a, "[%.1f,%.1f,0.0,%d.0]", x, y, i);
+            call(g, "requestSkillSlotInfo", a);
+        }
+        call(g, "requestSkillSlotSize", "[26.0,37.0]");
+        g->win_x = 8;
+        g->win_y = 0;
+        call(g, "requestWindowPos", "[8.0,0.0]");
     } else if (is(g, "CharacterSelect")) {
         g->cs_last_row = -1;
         call(g, "UIInit", "[\"g_mcCharacterSelect\"]");

@@ -314,11 +314,19 @@ struct mu_gfx_layer {
     int nbuffs, buffs_sent;
     mu_gfx_char_row *char_rows;
     int nchar_rows;
+    /* NATIVE-SKILL-001 */
+    mu_gfx_skill_host skill;
+    int have_skill_host;
+    struct {
+        float win_x, win_y, slot_w, slot_h, slots[20][2];
+        int have_slot[20], drag_from, page, select_page, inited, saved;
+        char last[160];
+    } stamp;
 };
 
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
-                                                 "MyQuestInfo"};
+                                                 "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -329,6 +337,16 @@ static void swin_composite(mu_gfx_layer *L, int m, uint8_t *rgba, int32_t W, int
 static void swin_show_tooltip(mu_gfx_layer *L, slot_window *sw, int cell);
 static int is_bufflist(const char *name);
 static void bufflist_event(mu_gfx_layer *L, const char *event, const char *args);
+/* NATIVE-SKILL-001 (section "skills" below) */
+static const char *skill_call(movie *mv, const char *name, const char *args, const double *v, int n);
+static void skill_main_event(mu_gfx_layer *L, movie *mv, const char *event, const char *args);
+static void skill_feed(mu_gfx_layer *L);
+static void skill_window_shown(mu_gfx_layer *L, int m, int open);
+static void skill_init_window(mu_gfx_layer *L);
+#ifndef MU_GFX_NO_GL
+static void skill_draw_gl(mu_gfx_layer *L);
+#endif
+static void skill_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H);
 
 static double now_ms(void)
 {
@@ -931,6 +949,8 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
         feed_character(L);
     invokef(L, m, mv->path, "SetVisible", "[%s]", open ? "true" : "false");
     mv->next_bounds_ms = 0;
+    if (m == MU_GFX_SKILL_STAMP)
+        skill_window_shown(L, m, open);
 }
 
 void mu_gfx_layer_toggle(mu_gfx_layer *L, int m)
@@ -1159,6 +1179,9 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                     mu_gfx_layer_toggle(L, MU_GFX_CHARACTER);
                 else if (id == 14)
                     mu_gfx_layer_toggle(L, MU_GFX_INVENTORY);
+            } else if (L->have_skill_host && (!strcmp(s, "onSelectSkill") || !strcmp(s, "onSkillTooltip") ||
+                                              !strcmp(s, "offSkillTooltip") || !strcmp(s, "onOpenSkillWindow"))) {
+                skill_main_event(L, mv, s, args);       /* NATIVE-SKILL-001 */
             } else if (!strcmp(s, "onSelectSkill")) {
                 L->key_used = 1;
                 int slot = (int)json_field(args, "slot", 0), skill = (int)json_field(args, "skill", 0);
@@ -1255,6 +1278,8 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
         }
         return NULL;
     default:
+        if (mv->id == MU_GFX_SKILL_POPUP || mv->id == MU_GFX_SKILL_STAMP)
+            return skill_call(mv, name, args, v, n);
         return npc_call(mv, name, args, v, n);
     }
 }
@@ -1328,14 +1353,15 @@ static void slot_gap(mu_gfx_layer *L)
  * and InfoPopup 9 (Align_None: no SetAlign/SetWindowSize); SetWindowSize
  * gets the window size (0x01cf1624/8) and SetScale(83) applies below 700
  * pixels of height to both (handler +0x58 = scale / 100). */
-static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9, 9, 9, 9, 9, 9};   /* the NPC and quest windows: 9 */
+static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};   /* the NPC, quest and skill windows: 9 */
 
 static void window_sizes(mu_gfx_layer *L)
 {
     for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++) {
         if (m == MU_GFX_CHAT || !L->mv[m].g || !L->mv[m].path[0])
             continue;
-        float scale = (m != MU_GFX_TOOLTIP && L->h < 700) ? 0.83f : 1.0f;
+        /* no SetScale for the info popups (InfoPopup, SkillInfoPopup) */
+        float scale = (m != MU_GFX_TOOLTIP && m != MU_GFX_SKILL_POPUP && L->h < 700) ? 0.83f : 1.0f;
         if (m == MU_GFX_INVENTORY)
             L->inv_scale = scale;
         else if (m == MU_GFX_CHARACTER)
@@ -1690,6 +1716,7 @@ static void init_windows(mu_gfx_layer *L)
         snprintf(buf + n, sizeof buf - n, "}]");
         invokef(L, MU_GFX_CHARACTER, L->mv[MU_GFX_CHARACTER].path, "InitText", "%s", buf);
     }
+    skill_init_window(L);
     window_sizes(L);
     for (int m = MU_GFX_INVENTORY; m < MU_GFX_MOVIES; m++)
         if (L->mv[m].g && L->mv[m].path[0] && m != MU_GFX_TOOLTIP && m != MU_GFX_CHAT)
@@ -2100,13 +2127,20 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
         } else if (vk == 'C') {
             mu_gfx_layer_toggle(L, MU_GFX_CHARACTER);
             used = 1;
-        } else if (vk == 27 && (L->mv[MU_GFX_INVENTORY].open || L->mv[MU_GFX_CHARACTER].open)) {
+        } else if (vk == 'U' && L->mv[MU_GFX_SKILL_STAMP].g && L->mv[MU_GFX_SKILL_STAMP].path[0]) {
+            /* NATIVE-SKILL-001: the client's key scan toggles SkillStampFrame on U (0x00efcea8) */
+            mu_gfx_layer_toggle(L, MU_GFX_SKILL_STAMP);
+            used = 1;
+        } else if (vk == 27 && (L->mv[MU_GFX_INVENTORY].open || L->mv[MU_GFX_CHARACTER].open ||
+                                L->mv[MU_GFX_SKILL_STAMP].open)) {
             mu_gfx_layer_show(L, MU_GFX_INVENTORY, 0);
             mu_gfx_layer_show(L, MU_GFX_CHARACTER, 0);
+            mu_gfx_layer_show(L, MU_GFX_SKILL_STAMP, 0);
             used = 1;
         }
     }
-    static const int UI_KEYS[] = {'I', 'V', 'C', 'X', 'K', 'T', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    static const int UI_KEYS[] = {'I', 'V', 'C', 'X', 'K', 'T', 'F', 'U', '0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                  '9'};
     for (size_t i = 0; i < sizeof UI_KEYS / sizeof UI_KEYS[0]; i++)
         if (vk == UI_KEYS[i])
             used = 1;
@@ -2178,6 +2212,7 @@ void mu_gfx_layer_advance(mu_gfx_layer *L, double dt)
         feed_main(L);
         if (L->hero_dirty_char && L->mv[MU_GFX_CHARACTER].open)
             feed_character(L);
+        skill_feed(L);
     }
     for (int m = 0; m < MU_GFX_MOVIES; m++)
         if (L->mv[m].g && !L->mv[m].alias && (visible(L, m) || m == MU_GFX_CHAT || m == MU_GFX_TOOLTIP))
@@ -2452,6 +2487,8 @@ void mu_gfx_layer_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H
                 fill_cpu(rgba, W, H, R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
         swin_composite(L, order[k], rgba, W, H);
+        if (order[k] == MU_GFX_SKILL_STAMP)
+            skill_composite(L, rgba, W, H);
     }
     float hr[4];
     if (held_rect(L, hr))
@@ -3201,6 +3238,8 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
                     fill_gl(R.r[i], L->items[R.item[i]].rgb, L->scale);
         }
         swin_draw_gl(L, order[k]);
+        if (order[k] == MU_GFX_SKILL_STAMP)
+            skill_draw_gl(L);
     }
     float hr[4];
     if (held_rect(L, hr)) {
@@ -3306,4 +3345,362 @@ const char *mu_gfx_layer_get_variable(mu_gfx_layer *L, int m, const char *path)
     if (!L || m < 0 || m >= MU_GFX_MOVIES || !L->mv[m].g || !path || !path[0] || !L->api.get_variable)
         return NULL;
     return L->api.get_variable(L->mv[m].g, path);
+}
+
+/* ---- skills (NATIVE-SKILL-001) ---------------------------------------------------------------------- */
+
+static void skill_last(mu_gfx_layer *L, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(L->stamp.last, sizeof L->stamp.last, fmt, ap);
+    va_end(ap);
+    logf_(L, "game: %s", L->stamp.last);
+}
+
+/* GlobalText as a JSON literal keeping '\n' (the explain texts are "%s\n %s", 0x00c1fef9). */
+static void gt_quote_nl(const mu_gfx_layer *L, char *out, size_t cap, const char *text)
+{
+    char clean[1024];
+    size_t n = 0;
+    for (const char *s = text; s && *s && n + 1 < sizeof clean; s++)
+        clean[n++] = *s == '\n' || ((unsigned char)*s >= 0x20 && (unsigned char)*s < 0x7f) ? *s : '?';
+    clean[n] = 0;
+    (void)L;
+    json_quote(out, cap, clean);
+}
+
+void mu_gfx_layer_set_skill_host(mu_gfx_layer *L, const mu_gfx_skill_host *host)
+{
+    if (!L)
+        return;
+    memset(&L->skill, 0, sizeof L->skill);
+    L->have_skill_host = host != NULL;
+    if (host)
+        L->skill = *host;
+    skill_feed(L);
+}
+
+static void skill_bar_path(const mu_gfx_layer *L, char *out, size_t cap)
+{
+    snprintf(out, cap, "%s.mcSkillHotKey", L->mv[MU_GFX_MAIN].path);
+}
+
+/* The bar feed 0x00c58797 (every logic step): SetSkillSlot when the host reports a change. */
+static void skill_feed(mu_gfx_layer *L)
+{
+    if (!L->have_skill_host || !L->skill.feed || !L->mv[MU_GFX_MAIN].path[0] || !L->main_inited)
+        return;
+    static char json[8192];
+    if (!L->skill.feed(L->skill.user, json, sizeof json))
+        return;
+    char path[160];
+    skill_bar_path(L, path, sizeof path);
+    invokef(L, MU_GFX_MAIN, path, "SetSkillSlot", "[%s]", json);
+}
+
+void mu_gfx_layer_skill_delay(mu_gfx_layer *L, int32_t skill, int32_t delay_ms)
+{
+    if (!L || !L->mv[MU_GFX_MAIN].path[0])
+        return;
+    char path[160];
+    skill_bar_path(L, path, sizeof path);
+    invokef(L, MU_GFX_MAIN, path, "onUseSkillDelay", "[{\"skill\":%d,\"delaytime\":%d}]", skill, delay_ms);
+}
+
+static void skill_popup_close(mu_gfx_layer *L)
+{
+    mu_gfx_layer_show(L, MU_GFX_SKILL_POPUP, 0);
+    hide_tooltip(L);
+}
+
+/* SkillInfoPopup's Show (0x00c1ef6b -> 0x00c1f204 -> builder 0x0117da56 -> 0x00c1f2b0): the popup gets
+ * SetInfoPopupSkillStamp(x, y, 0, 0, title, body, 0) at the hovered slot's centre and top (the rate
+ * divisions cancel out in stage points), then opens. */
+static void skill_popup(mu_gfx_layer *L, int32_t skill, int x, int y)
+{
+    static char title[4096], body[32768], qt[8192], qb[65536];
+    if (!L->skill.tooltip || !skill || !L->skill.tooltip(L->skill.user, skill, title, sizeof title, body, sizeof body)) {
+        skill_popup_close(L);
+        return;
+    }
+    json_quote(qt, sizeof qt, title);
+    json_quote(qb, sizeof qb, body);
+    movie *pop = &L->mv[MU_GFX_SKILL_POPUP];
+    if (pop->g && pop->path[0]) {
+        invokef(L, MU_GFX_SKILL_POPUP, pop->path, "SetInfoPopupSkillStamp", "[%d,%d,0,0,%s,%s,0]", x, y, qt, qb);
+        mu_gfx_layer_show(L, MU_GFX_SKILL_POPUP, 1);
+        raise_window(L, MU_GFX_SKILL_POPUP);
+    } else {
+        /* SkillInfoPopup not converted: InfoPopup with title + body (layer choice) */
+        movie *tip = &L->mv[MU_GFX_TOOLTIP];
+        static char both[40000], qboth[80000];
+        snprintf(both, sizeof both, "%s%s", title, body);
+        json_quote(qboth, sizeof qboth, both);
+        tip->open = 1;
+        invokef(L, MU_GFX_TOOLTIP, tip->path, "SetInfoPopup", "[%d,%d,0,0,%s]", x, y, qboth);
+    }
+    skill_last(L, "tooltip skill %d at %d,%d", skill, x, y);
+}
+
+static void skill_main_event(mu_gfx_layer *L, movie *mv, const char *event, const char *args)
+{
+    (void)mv;
+    int slot = (int)json_field(args, "slot", 0), skill = (int)json_field(args, "skill", 0);
+    if (!strcmp(event, "onSelectSkill")) {
+        L->key_used = 1;
+        if (L->skill.select)
+            L->skill.select(L->skill.user, slot, skill);
+        skill_last(L, "select slot %d skill %d", slot, skill);
+    } else if (!strcmp(event, "onSkillTooltip")) {
+        int x = (int)json_field(args, "x", 0), y = (int)json_field(args, "y", 0), w = (int)json_field(args, "w", 0);
+        skill_popup(L, skill, x + w / 2, y);       /* 0x00c7089d: x + w / 2 (cdq; sub; sar) */
+    } else if (!strcmp(event, "offSkillTooltip")) {
+        skill_popup_close(L);
+    } else if (!strcmp(event, "onOpenSkillWindow")) {
+        mu_gfx_layer_toggle(L, MU_GFX_SKILL_STAMP);
+    }
+}
+
+/* SkillStampFrame's creation (0x00c1fb1b): its labels. */
+static void skill_init_window(mu_gfx_layer *L)
+{
+    movie *st = &L->mv[MU_GFX_SKILL_STAMP];
+    L->stamp.drag_from = -1;
+    L->stamp.page = 1;
+    if (!st->g || !st->path[0] || L->stamp.inited)
+        return;
+    L->stamp.inited = 1;
+    char q[5][256];
+    static const int32_t TEXT[5] = {0x1299, 0x129c, 0x129d, 0x129e, 0x129f};
+    static const char *const TEXT_IN[5] = {"Skill Imprint", "Select Skill (Basic Skill)", "Select Skill (Special Skill)",
+                                           "Register a skill by dragging.", "Elemental Imprint"};
+    for (int i = 0; i < 5; i++)
+        gt_quote(L, q[i], sizeof q[i], TEXT[i], TEXT_IN[i]);
+    invokef(L, MU_GFX_SKILL_STAMP, st->path, "InitText", "[%s,%s,%s,%s,%s]", q[0], q[1], q[2], q[3], q[4]);
+    static const int32_t BUTTON[4] = {0x129a, 0x129b, 0xdaf, 0xe5};
+    static const char *const BUTTON_IN[4] = {"Basic Skill", "Special Skill", "Save", "Cancel"};
+    for (int i = 0; i < 4; i++)
+        gt_quote(L, q[i], sizeof q[i], BUTTON[i], BUTTON_IN[i]);
+    invokef(L, MU_GFX_SKILL_STAMP, st->path, "InitButton", "[%s,%s,%s,%s]", q[0], q[1], q[2], q[3]);
+    char a[600], b[600];
+    snprintf(a, sizeof a, "%s\n %s", gtext(L, 0x12a0, "Elemental Imprint gets activated after equipping Pentagram."),
+             gtext(L, 0x12a1, "Skill Damage increase depends on the Pentagram."));
+    snprintf(b, sizeof b, "%s\n %s", gtext(L, 0x12ae, "Special Skills are not affected by the Elemental Imprints."),
+             gtext(L, 0x12af, "Castle Siege and Dark Raven command skills only."));
+    gt_quote_nl(L, q[0], sizeof q[0], a);
+    gt_quote_nl(L, q[1], sizeof q[1], b);
+    invokef(L, MU_GFX_SKILL_STAMP, st->path, "InitStampExplain", "[%s,%s]", q[0], q[1]);
+}
+
+/* Open (0x00c2008b) and close (0x00c2012d: unsaved changes ask for a confirmation in the client; the layer
+ * restores the bar, layer choice). */
+static void skill_window_shown(mu_gfx_layer *L, int m, int open)
+{
+    movie *st = &L->mv[m];
+    if (open) {
+        skill_init_window(L);
+        L->stamp.page = 1;
+        L->stamp.select_page = 0;
+        L->stamp.drag_from = -1;
+        L->stamp.saved = 0;
+        if (L->skill.stamp_open)
+            L->skill.stamp_open(L->skill.user, 1);
+        invokef(L, m, st->path, "UpdateSkillPage", "[%d]", L->stamp.page);
+        /* 0x00c21bd5 without a pentagram: element 0, "Elemental Imprint is not active.", "To activate ..." */
+        char q1[256], q2[256];
+        gt_quote(L, q1, sizeof q1, 0x12ac, "Elemental Imprint is not active.");
+        gt_quote(L, q2, sizeof q2, 0x12ad, "To activate equip a Pentagram.");
+        invokef(L, m, st->path, "SetStampDamage", "[0,%s,%s]", q1, q2);
+        invokef(L, m, st->path, "SetSkillSlotSize", "[]");
+        skill_last(L, "Skill Imprint window opened");
+    } else {
+        skill_popup_close(L);
+        if (!L->stamp.saved && L->skill.stamp_open)
+            L->skill.stamp_open(L->skill.user, 0);
+        skill_last(L, "Skill Imprint window closed%s", L->stamp.saved ? " (saved)" : "");
+    }
+}
+
+static int skill_slot_rect(const mu_gfx_layer *L, int slot, float r[4])
+{
+    if (slot < 0 || slot >= 20 || !L->stamp.have_slot[slot])
+        return 0;
+    float sc = L->applied_scale[MU_GFX_SKILL_STAMP] > 0.0f ? L->applied_scale[MU_GFX_SKILL_STAMP] : 1.0f;
+    float w = L->stamp.slot_w > 0 ? L->stamp.slot_w : 32.0f, h = L->stamp.slot_h > 0 ? L->stamp.slot_h : 32.0f;
+    r[0] = L->stamp.win_x + L->stamp.slots[slot][0] * sc;
+    r[1] = L->stamp.win_y + L->stamp.slots[slot][1] * sc;
+    r[2] = w * sc;
+    r[3] = h * sc;
+    return 1;
+}
+
+int mu_gfx_layer_skill_icons(const mu_gfx_layer *L, mu_gfx_skill_icon *out, int max)
+{
+    if (!L || !L->mv[MU_GFX_SKILL_STAMP].open || !L->skill.stamp_skill)
+        return 0;
+    int n = 0;
+    for (int slot = 0; slot < 20 && n < max; slot++) {
+        mu_gfx_skill_icon *ic = &out[n];
+        if (!skill_slot_rect(L, slot, ic->rect))
+            continue;
+        ic->slot = slot;
+        ic->skill = L->skill.stamp_skill(L->skill.user, slot);
+        ic->delay = ic->skill && L->skill.delay_left ? L->skill.delay_left(L->skill.user, ic->skill) : 0.0f;
+        if (ic->skill)
+            n++;
+    }
+    return n;
+}
+
+#ifndef MU_GFX_NO_GL
+static void skill_draw_gl(mu_gfx_layer *L)
+{
+    mu_gfx_skill_icon icons[20];
+    int n = mu_gfx_layer_skill_icons(L, icons, 20);
+    if (!n)
+        return;
+    if (L->skill.icons) {
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        L->skill.icons(L->skill.user, icons, n, L->w, L->h);
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        glPopAttrib();
+        glBindTexture(GL_TEXTURE_2D, 0);
+    } else {
+        static const float rgb[3] = {.35f, .55f, .9f};
+        for (int i = 0; i < n; i++)
+            fill_gl(icons[i].rect, rgb, L->scale);
+    }
+}
+#endif
+
+static void skill_composite(mu_gfx_layer *L, uint8_t *rgba, int32_t W, int32_t H)
+{
+    mu_gfx_skill_icon icons[20];
+    int n = mu_gfx_layer_skill_icons(L, icons, 20);
+    for (int i = 0; i < n; i++)
+        fill_cpu(rgba, W, H, icons[i].rect, ICON_PALETTE[icons[i].skill % 8], L->scale);
+}
+
+static void skill_drop(mu_gfx_layer *L, int to)
+{
+    int from = L->stamp.drag_from;
+    L->stamp.drag_from = -1;
+    if (from < 0 || !L->skill.stamp_drop)
+        return;
+    int r = L->skill.stamp_drop(L->skill.user, from, to);
+    if (r < 0) {
+        mu_gfx_layer_chat(L, 3, "", gtext(L, 0x12bb, "You cannot register a skill that you did not learn."));
+        skill_last(L, "drag %d -> %d: not learned", from, to);
+    } else {
+        skill_last(L, "drag %d -> %d%s", from, to, r ? ": the bar changed" : "");
+    }
+    L->mv[MU_GFX_SKILL_STAMP].view_dirty = 1;
+}
+
+static const char *skill_call(movie *mv, const char *name, const char *args, const double *v, int n)
+{
+    mu_gfx_layer *L = mv->L;
+    (void)args;
+    if (mv->id == MU_GFX_SKILL_POPUP)
+        return NULL;
+    if (!strcmp(name, "requestWindowPos") && n >= 2) {
+        L->stamp.win_x = (float)v[0];
+        L->stamp.win_y = (float)v[1];
+    } else if (!strcmp(name, "requestSkillSlotInfo") && n >= 4 && v[3] >= 0 && v[3] < 20) {
+        int i = (int)v[3];
+        L->stamp.slots[i][0] = (float)v[0];
+        L->stamp.slots[i][1] = (float)v[1];
+        L->stamp.have_slot[i] = 1;
+    } else if (!strcmp(name, "requestSkillSlotSize") && n >= 2) {
+        L->stamp.slot_w = (float)v[0];
+        L->stamp.slot_h = (float)v[1];
+    } else if ((!strcmp(name, "onClickprevBtn") || !strcmp(name, "onClicknextBtn")) && L->skill.stamp_page) {
+        int page = L->skill.stamp_page(L->skill.user, 0, name[7] == 'p' ? -1 : 1);   /* 0x00c21aa2 */
+        if (page != L->stamp.page) {
+            L->stamp.page = page;
+            invokef(L, MU_GFX_SKILL_STAMP, mv->path, "UpdateSkillPage", "[%d]", page);
+        }
+    } else if (!strcmp(name, "onClickSelectSlotPrev") || !strcmp(name, "onClickSelectSlotNext")) {
+        if (L->skill.stamp_page)                    /* 0x010976db(-1 / +1) */
+            L->stamp.select_page = L->skill.stamp_page(L->skill.user, 1, name[17] == 'P' ? -1 : 1);
+    } else if (!strcmp(name, "onClickBaseSKill") || !strcmp(name, "onClickSpecialSkill")) {
+        /* the special-skill tab (castle siege, Dark Raven commands) has no skills offline */
+        L->stamp.page = 1;
+        invokef(L, MU_GFX_SKILL_STAMP, mv->path, "UpdateSkillPage", "[1]");
+    } else if (!strcmp(name, "requestSkillSlotOver") && n >= 1) {
+        float r[4];
+        int slot = (int)v[0];
+        int32_t skill = L->skill.stamp_skill ? L->skill.stamp_skill(L->skill.user, slot) : 0;
+        if (skill && skill_slot_rect(L, slot, r))
+            skill_popup(L, skill, (int)(r[0] + r[2] / 2), (int)r[1]);
+    } else if (!strcmp(name, "requestSkillSlotOut")) {
+        skill_popup_close(L);
+    } else if (!strcmp(name, "requestSkillSlotDragStart") && n >= 1) {
+        L->stamp.drag_from = (int)v[0];
+        skill_popup_close(L);
+    } else if (!strcmp(name, "requestSkillSlotDragEnd")) {
+        invokef(L, MU_GFX_SKILL_STAMP, mv->path, "CheckOverSlot", "[]");   /* 0x00c221f0 */
+    } else if ((!strcmp(name, "DragEndSlotIndex_Mouse") || !strcmp(name, "DragEndSlotIndex")) && n >= 1) {
+        skill_drop(L, (int)v[0]);
+    } else if (!strcmp(name, "onClickbtnSaveOption")) {
+        if (L->skill.stamp_save)
+            L->skill.stamp_save(L->skill.user);
+        L->stamp.saved = 1;
+        mu_gfx_layer_chat(L, 3, "", gtext(L, 0x12c1, "Skill Imprint saved."));
+        mu_gfx_layer_show(L, MU_GFX_SKILL_STAMP, 0);
+    } else if (!strcmp(name, "onClickbtnCancel") || !strcmp(name, "onClickbtnClose")) {
+        mu_gfx_layer_show(L, MU_GFX_SKILL_STAMP, 0);
+    }
+    return NULL;
+}
+
+int mu_gfx_layer_skill_action(mu_gfx_layer *L, const char *verb, int a, int b)
+{
+    if (!L || !verb)
+        return 0;
+    movie *st = &L->mv[MU_GFX_SKILL_STAMP];
+    double v[4] = {a, b, 0, 0};
+    if (!strcmp(verb, "open") || !strcmp(verb, "close")) {
+        mu_gfx_layer_show(L, MU_GFX_SKILL_STAMP, verb[0] == 'o');
+        return st->g != NULL;
+    }
+    if (!strcmp(verb, "tip")) {                     /* the bar's slot a: its skill's tooltip */
+        int32_t skill = L->skill.stamp_skill ? L->skill.stamp_skill(L->skill.user, 100 + a) : 0;
+        skill_popup(L, skill, (int)L->w / 2, (int)L->h - 120);
+        return skill != 0;
+    }
+    if (!st->g || !st->open)
+        return 0;
+    if (!strcmp(verb, "drag")) {
+        L->stamp.drag_from = a;
+        skill_drop(L, b);
+    } else if (!strcmp(verb, "over")) {
+        skill_call(st, "requestSkillSlotOver", "", v, 1);
+    } else if (!strcmp(verb, "out")) {
+        skill_call(st, "requestSkillSlotOut", "", v, 0);
+    } else if (!strcmp(verb, "save")) {
+        skill_call(st, "onClickbtnSaveOption", "", v, 0);
+    } else if (!strcmp(verb, "cancel")) {
+        skill_call(st, "onClickbtnCancel", "", v, 0);
+    } else if (!strcmp(verb, "page")) {
+        skill_call(st, a < 0 ? "onClickprevBtn" : "onClicknextBtn", "", v, 0);
+    } else if (!strcmp(verb, "select")) {
+        skill_call(st, a < 0 ? "onClickSelectSlotPrev" : "onClickSelectSlotNext", "", v, 0);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
+const char *mu_gfx_layer_skill_last(const mu_gfx_layer *L)
+{
+    return L ? L->stamp.last : "";
 }

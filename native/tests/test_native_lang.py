@@ -259,7 +259,7 @@ class ConverterAndLoader(Build):
         names = sorted(p.name for p in self.lang.iterdir())
         self.assertEqual(names, ['buffs.tsv', 'charinfo.tsv', 'dialog.tsv', 'enchant.tsv', 'gates.tsv', 'globaltext.txt',
                                  'mapnames.tsv', 'moves.tsv', 'npcnames.tsv', 'skillreq.tsv', 'skills.tsv',
-                                 'soulconv.tsv'])
+                                 'skills_ext.tsv', 'soulconv.tsv'])   # skills_ext.tsv: NATIVE-SKILL-001
         self.assertEqual(lang_json(self.lang, 'summary'),
                          {'text': len(TEXTS), 'skills': len(SKILLS), 'gates': 2, 'moves': 1, 'npcs': 2, 'dialog': 1,
                           'enchant_codes': len(ENCHANT), 'enchant_entries': 4, 'enchant_default': 1,

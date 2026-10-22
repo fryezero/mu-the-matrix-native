@@ -20,6 +20,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include <SDL.h>
 
@@ -68,5 +69,11 @@ int world_gfx_quest_setup(world_gfx *g, const char *demo_text);
 void world_gfx_quest_step(world_gfx *g);
 void world_gfx_quest_kill(world_gfx *g, int monster_class);
 void world_gfx_quest_report(world_gfx *g, FILE *out);
+/* NATIVE-SKILL-001: the selected skill's cast through the client's checks (MU_SKILL_CAST_*, core/mu_skill.h;
+ * *skill = the skill), the skill book, and the scripted Skill Imprint window verbs of
+ * mu_gfx_layer_skill_action ("open", "drag" from to, "over" slot, "save", "tip" bar slot, ...). */
+int world_gfx_skill_cast(world_gfx *g, int32_t *skill);
+struct mu_skill_book *world_gfx_skills(world_gfx *g);
+int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b);
 
 #endif
