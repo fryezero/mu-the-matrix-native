@@ -277,6 +277,20 @@ Unicorn (`scripts/validate_fidelity.py`, `scripts/validate_renderchar.py --secti
 The Lang tables come from `scripts/live_lang_to_plain.py` (new: `pentagram.tsv`, `invenanim.tsv`, `legendary.tsv`,
 `cashsets.tsv`) in `MU_LANG_DIR`; without them the prefix uses the local set files only and nothing animates.
 
+## World fidelity tour (NATIVE-FIDELITY-002)
+
+([finding](../docs/research/client-world-fidelity.md)) `mu-world`/`mu-walk --fidelity-dump PREFIX` writes the native
+OBJECT images and terrain light grids at the end of a run in the layouts of `live-readers/objread` and `lightread`.
+`scripts/fidelity_tour.py` compares a set of live captures (window shot, objread, lightread per map) with the native
+world at the same tile:
+
+```sh
+scripts/fidelity_tour.py manifest CAPTURES --png-dir SHOTS --objects-dir PLAIN --out-dir OUT --out tour.json
+scripts/fidelity_tour.py run tour.json      # OUT/<map>/side.png, diff.png, score.json; OUT/scoreboard.{json,md}
+```
+
+The render scene draws no terrain in Icarus (and worlds 0x84, -1): `mu_terrain_scene_passes`.
+
 ## Overhead names, HP bars, chat bubbles (NATIVE-NAMES-001)
 
 The client draws names, the monster name/HP box and chat bubbles with the GFx movie `hudPlayerName`; its game handler

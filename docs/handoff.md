@@ -47,6 +47,14 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## World fidelity tour (NATIVE-FIDELITY-002)
+
+`scripts/fidelity_tour.py run MANIFEST` renders every map of a live capture set with `mu-world --fidelity-dump` and
+writes side-by-side/diff images and a scoreboard (camera, image stats, object field differences, light grids).
+The 2026-10-22 captures (13 maps) and their decoded placements are local under `~/Documents/mu-mac-tools/native/`
+(`scratch/fidelity2/live/`, `renders/fidelity2/`). Next: the gaps ranked in
+[client-world-fidelity.md](research/client-world-fidelity.md#4-gaps-ranked-by-visibility).
+
 ## Move snapshot compatibility (NATIVE-MAP-002)
 
 The 298 failures come from skill2's lang5, not the distinct quest2/lang5 named in the brief. All three
