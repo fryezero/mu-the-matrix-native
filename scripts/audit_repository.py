@@ -10,7 +10,7 @@ PRIVATE_DIRS = {'input','evidence','runtime','vendor','publish','dist','node_mod
 GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
 
 
-# Owner-requested README screenshots and renders (reviewed 2026-10-21: window-only,
+# Owner-requested README screenshots and renders (reviewed 2026-10-21 and 2026-10-22: window-only,
 # no account names, passwords or private paths). Only these exact bytes are
 # documentation media; all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
@@ -48,6 +48,22 @@ REVIEWED_MEDIA = {
         '97da9a148c44aa6213bc981d185c8ff6371c89dcee6967693f179910e75292b8',
     'docs/images/17-model-viewer-models.jpg':
         'fd2f3742172a9f1879b7970f7b2222acbc1953d77381a4cd539634d9e4997d3c',
+    'docs/images/18-world-fidelity-live-before-after.jpg':
+        '16a49ba3228884d4d0d8f9ead32f4e518cc186a3249289d32413f9752efa14cc',
+    'docs/images/19-maps-tab-overlay-move-window.jpg':
+        'c6ee4c9d87b1330cfebc751dd64c3f34a496b85e2f0997b3d180365d9a5a2c80',
+    'docs/images/20-skills-master-tree.jpg':
+        '9e40314a7cf9a185138e55a8fb10ceaaea26cf459216834708e13252df8d0eb1',
+    'docs/images/21-quests-guide-tracker.jpg':
+        '1dd861789a4b2692fdca8a6be1da4fac886258e29d3e1a72bdbc2f3b3bccea9d',
+    'docs/images/22-mounts-pets-effects.jpg':
+        'd86aefa13b21112f04879073cd55bb3582b5eba042db99c457a48a5ad230caa8',
+    'docs/images/23-chaos-goblin-mix-personal-store.jpg':
+        'ae4cad0d54c97e3af15b9b5514a7fac91ae4e570822c5dbf61d1378e170b6ec3',
+    'docs/images/24-social-party-trade-mail-whisper.jpg':
+        '556cc31af55fc527713aec258651ddeed12f4aef0d619f61606a99ea2c244be3',
+    'docs/images/25-progression-character-options-menu.jpg':
+        'ce1ddc4822f24d33c6678160a83ff089d3905170d9ac99b71c42d16aa19b0435',
 }
 
 
