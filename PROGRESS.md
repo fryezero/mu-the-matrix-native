@@ -23,6 +23,11 @@
   scripts/validate_actors.py class_case). Not yet wired into mu-world (needs a player-model NPC path, e.g. the
   players demo with those slots).
 
+## Full combined run (all families in one process, --sequences 30 --length 30)
+guide-data 383/0, guide 834/1, summary 894/0, move 900/0, wrap 2000/0, dialog-wrap 900/0, classic-data 400/0,
+classic 353/24 (sequences crash at eip 0: state left by the earlier families, e.g. the wsprintf import slot or a
+stub popped/restored; run alone the classic family gave 1346/0). Fix: make each family set up its own stubs.
+
 ## Left / next steps
 1. Look at the guide mismatch in /tmp/full1.json (re-run: `. ~/Documents/mu-mac-tools/native/scratch/quest2/env.sh;
    $P scripts/validate_quest2.py --snapshot $SNAP`), re-run classic with the r86 op; add --mutations (planted
