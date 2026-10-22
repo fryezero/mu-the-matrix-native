@@ -1,5 +1,6 @@
 /* Walk-around session. See mu_walk.h. */
 #include "mu_walk.h"
+#include "../../reconstructed/quest/quest.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -209,6 +210,33 @@ static void auto_take_segment(mu_walk *w)
     w->hero.movement = 1;
     ++w->auto_segments;
     ++w->moves;
+}
+
+static int resume_find(void *user, int32_t x, int32_t y, int32_t tx, int32_t ty)
+{
+    mu_walk *w = user;
+    ++w->auto_searches;
+    return mu_path_long(&w->finder, x, y, tx, ty, 0, &w->auto_path, 0.0f, 4);
+}
+
+static int resume_next(void *user)
+{
+    return mu_auto_path_next(&((mu_walk *)user)->auto_path);
+}
+
+static int resume_send(void *user)
+{
+    auto_take_segment(user);
+    return 1;
+}
+
+void mu_walk_auto_resume(mu_walk *w, uint8_t subcode)
+{
+    mu_quest_resume_state s = {w->auto_path.flag, w->hero.tile[0], w->hero.tile[1],
+                              w->auto_path.target_x, w->auto_path.target_y, 0};
+    mu_quest_resume_host h = {w, resume_find, resume_next, resume_send};
+    mu_quest_resume_path(&s, &h, subcode);
+    w->auto_path.flag = s.flag;
 }
 
 int mu_walk_auto_move_to(mu_walk *w, int32_t tile_x, int32_t tile_y)

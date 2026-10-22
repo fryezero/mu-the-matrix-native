@@ -12,6 +12,29 @@
 
 void mu_quest_arrived_helper(mu_quest_client *c);   /* quest_guide.c */
 
+/* 0x0128a52d and 0x012534ae. Neither answer reads a result or destination from the packet. */
+void mu_quest_resume_path(mu_quest_resume_state *s, const mu_quest_resume_host *h, uint8_t subcode)
+{
+    if (s->flag != (MU_QUEST_MUTATION == 12 ? 2 : 1))
+        return;
+    s->flag = 0;
+    if (!h || !h->find || !(h->find(h->user, s->x, s->y, s->target_x, s->target_y) & 0xff))
+        return;
+    if (!h->next || !(h->next(h->user) & 0xff))
+        return;
+    s->flag = MU_QUEST_MUTATION == 13 ? 1 : 2;
+    if (h->send) {
+        int moved = h->send(h->user) & 0xff;
+        if (subcode == 0x56 ? moved == 1 : moved != 0)
+            s->move_type = 0;
+    }
+}
+
+void mu_quest_set_move_answer(mu_quest_client *c, void (*answer)(void *user, uint8_t subcode))
+{
+    c->move_answer = answer;
+}
+
 static void send_words(mu_quest_client *c, uint8_t sub, int32_t a, int32_t b)
 {
     uint8_t body[6] = {0xf6, sub, (uint8_t)a, (uint8_t)(a >> 8), (uint8_t)b, (uint8_t)(b >> 8)};

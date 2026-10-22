@@ -236,6 +236,11 @@ int mu_quest_receive(mu_quest_client *c, const uint8_t *p, size_t n)
     case 0x1c: mu_classic_receive_kill_list(c, p, n); return 1;
     case 0x50: mu_guide_receive_state(c, p, n); return 1;
     case 0x51: mu_guide_receive_result(c, p, n); return 1;
+    case 0x56:
+    case 0x7b:
+        if (c->move_answer)
+            c->move_answer(c->host.user, p[3]);
+        return 1;
     case 0x6f: on_start(c, p, n); return 1;
     case 0x70: on_list(c, p, n); return 1;
     case 0x71: on_npc_list(c, p, n); return 1;

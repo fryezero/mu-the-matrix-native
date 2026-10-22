@@ -223,6 +223,32 @@ class QuestTest(unittest.TestCase):
         out = (ctypes.c_int32 * 4)()
         return list(out) if self.L.mu_quest_fields(self.c, index, out) else None
 
+    def test_move_answer_dispatch_and_success_rules(self):
+        sys.path.insert(0, str(HERE.parents[1] / 'scripts'))
+        from validate_quest_polish import State, Host as ResumeHost, FIND, RESULT
+        L = self.L
+        L.mu_quest_resume_path.argtypes = [ctypes.POINTER(State), ctypes.POINTER(ResumeHost), ctypes.c_uint8]
+        calls = []
+        h = ResumeHost(None, FIND(lambda u, x, y, tx, ty: calls.append((x, y, tx, ty)) or 1),
+                       RESULT(lambda u: calls.append('next') or 1), RESULT(lambda u: calls.append('send') or 2))
+        for sub, move in ((0x56, 17), (0x7b, 0)):
+            s = State(1, 10, 20, -1, 255, 17)
+            calls.clear()
+            L.mu_quest_resume_path(ctypes.byref(s), ctypes.byref(h), sub)
+            self.assertEqual((s.flag, s.move), (2, move))
+            self.assertEqual(calls, [(10, 20, -1, 255), 'next', 'send'])
+        calls.clear()
+        s.flag = 0
+        L.mu_quest_resume_path(ctypes.byref(s), ctypes.byref(h), 0x7b)
+        self.assertEqual(calls, [])
+        answer_fn = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint8)
+        answer = answer_fn(lambda u, sub: calls.append(sub))
+        L.mu_quest_set_move_answer.argtypes = [ctypes.c_void_p, answer_fn]
+        L.mu_quest_set_move_answer(self.c, answer)
+        for sub in (0x56, 0x7b):
+            self.assertEqual(L.mu_quest_receive(self.c, bytes([0xc1, 4, 0xf6, sub]), 4), 1)
+        self.assertEqual(calls, [0x56, 0x7b])
+
     def test_category(self):
         def model(i):
             if 1 <= i <= 199:

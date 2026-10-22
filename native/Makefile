@@ -191,6 +191,10 @@ $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o
 	$(CXX) $(BUILD)/helper_fx_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+$(BUILD)/quest-travel-host: tests/quest_travel_host.c world/main.c $(LIB) $(BUILD)/libmuaudio.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $(BUILD)/quest_travel_host.o
+	$(CXX) $(BUILD)/quest_travel_host.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
 # NATIVE-SKILL-001: the skill book (core/mu_skill) test host.
 $(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tests/skill_book_host.c -o $(BUILD)/skill_book_host.o

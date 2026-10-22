@@ -22,6 +22,27 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Quest follow-ups and later skill inputs (NATIVE-POLISH-001)
+
+F6 56/7B dispatch to the existing walk path through `mu_quest_resume_path`; world reload retains an armed
+destination/mode. The synthetic quest-travel host executes guide request → reload at an entrance short of the
+goal → delayed answer → remaining movement. NPC 257 creates one flare 42, emits flare 41, and contributes
+terrain light after the frame-light copy. Owner death removes the persistent joint and its light.
+`validate_quest_polish.py --cases 2000 --mutations`: 2,000 answer cases + one actual tab constructor, zero
+mismatches, 2/2 mutants caught. `validate_joints.py --cases 1800`: 5,400 cases across all kinds, 90 per new
+subtype per family, all equal; all nine negative controls distinguish a wrong result. Reports and native
+renders stay in `~/Documents/mu-mac-tools/native/renders/polish/` (`quest-npc/`, `npc257/`).
+
+The pinned MyQuestInfo constructor inserts only keys 0–4: no event-map tab was added. Run
+`probe_later_skills.py --snapshot scratch/skill2/live/lang5.bin` with the pinned text/data: every fourth-tree
+node lookup lacks a nested allocation; 282 fifth-table lookups pass, but the original manager getter stops
+on undefined `0x01d22c04`. Read [client-skills.md](research/client-skills.md#11-later-tree-input-probes-native-polish-001)
+for exact boundaries and next capture needs. These are partial input findings, not completed later trees.
+Alternate-grid shock rings and Muun were not extended. No original client was launched or existing Preview killed.
+Failed destination loads cancel the pending resume and armed path; a missing-map regression verifies no
+movement in the old world. The initial newer-snapshot map failures were independently reproduced on the
+pre-polish `62be84d` archive: the same 298/5,001. Original-input map validation remains green.
+
 ## Map follow-ups (NATIVE-POLISH-001)
 
 `shell.c` mirrors the current walk world into scene globals and remembers each character's demo join location.

@@ -70,6 +70,7 @@ struct mu_walk;
 struct mu_map_session;
 /* The world owns both sessions and consumes the map session's pending teleport. */
 void world_gfx_quest_bind(world_gfx *g, struct mu_walk *walk, struct mu_map_session *maps);
+void world_gfx_quest_travel_complete(world_gfx *g, int success);
 void world_gfx_quest_step(world_gfx *g);
 void world_gfx_quest_kill(world_gfx *g, int monster_class);
 void world_gfx_quest_report(world_gfx *g, FILE *out);

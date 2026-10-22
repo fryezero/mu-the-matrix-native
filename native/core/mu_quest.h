@@ -91,9 +91,10 @@ typedef struct mu_quest_session {
     uint8_t classic_states[50];                     /* the demo's class-upgrade states (2 bits each) */
     int32_t classic_count;                          /* quests the C0 packet carries (0: no classic line) */
     int32_t classic_kills[5][2];                    /* monster, kills of the current quest */
-    /* the cross-map hook: the server would move the hero to (world, x, y); returns 1 when the host travelled */
+    /* The cross-map hook accepts a queued move. The host reports its result with travel_complete. */
     int (*travel)(void *user, int32_t world, int32_t x, int32_t y);
     uint32_t travels;
+    uint8_t travel_answer;                /* resume only after the queued destination has loaded */
 } mu_quest_session;
 
 /* Loads the tables from `lang_dir` (NULL: $MU_LANG_DIR) and the offers from the demo text (may be NULL).
@@ -122,6 +123,7 @@ size_t mu_quest_session_size(void);
 mu_quest_client *mu_quest_session_client(mu_quest_session *s);
 void mu_quest_session_set_event(mu_quest_session *s, void (*event)(void *user, const char *line), void *user);
 void mu_quest_session_set_travel(mu_quest_session *s, int (*travel)(void *user, int32_t world, int32_t x, int32_t y));
+void mu_quest_session_travel_complete(mu_quest_session *s, int success);
 /* NATIVE-QUEST-002: Data/Local/quest.bmd from the game root (the class-upgrade quests); returns the record count or
  * -1.  The demo's login packets (F6 50, C1 C0) are queued by mu_quest_session_open from the demo text. */
 long mu_quest_session_load_classic(mu_quest_session *s, const char *game_root);

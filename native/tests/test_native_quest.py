@@ -20,6 +20,7 @@ MU_QUEST_MOVIES the Lorencia quest demo in mu-world (accept, kills, complete).
 import ctypes
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -99,6 +100,7 @@ class Session(unittest.TestCase):
         L.mu_quest_session_demo_state.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
         L.mu_quest_session_load_classic.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
         L.mu_quest_session_set_travel.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        L.mu_quest_session_travel_complete.argtypes = [ctypes.c_void_p, ctypes.c_int]
         L.mu_classic_state_of.argtypes = [ctypes.c_void_p, ctypes.c_int32]
         for name in ('mu_guide_go', 'mu_classic_complete', 'mu_classic_close', 'mu_quest_session_classic_talk'):
             getattr(L, name).argtypes = [ctypes.c_void_p]
@@ -199,8 +201,15 @@ class Session(unittest.TestCase):
         travel_fn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32)(
             lambda u, w, x, y: trips.append((w, x, y)) or 1)
         L.mu_quest_session_set_travel(self.s, ctypes.cast(travel_fn, ctypes.c_void_p))
+        resumes = []
+        resume_fn = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint8)(lambda u, sub: resumes.append(sub))
+        L.mu_quest_set_move_answer.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        L.mu_quest_set_move_answer(self.c, ctypes.cast(resume_fn, ctypes.c_void_p))
         L.mu_guide_go(self.c)
         self.assertEqual(trips, [(3, 42, 43)])
+        L.mu_quest_session_travel_complete(self.s, 1)
+        self.steps()
+        self.assertEqual(resumes, [0x56])
         for name, value in ((b'world', 3), (b'hero.x', 42), (b'hero.y', 43)):
             L.mu_quest_client_field(self.c, name, 1, value)
         L.mu_guide_go(self.c)
@@ -215,6 +224,27 @@ class Session(unittest.TestCase):
             self.steps()
         self.assertEqual(L.mu_quest_client_field(self.c, b'guide.complete', 0, 0), 1)
         self.assertEqual(L.mu_quest_client_field(self.c, b'guide.count', 0, 0), 2)
+
+    def test_armed_path_survives_reload_and_delayed_answer(self):
+        from test_native_world import write_open_world
+        from test_native_map import write_lang
+        folder = Path(self.tmp.name)
+        root = folder / 'travel-game'
+        write_open_world(root)
+        write_lang(folder)
+        subprocess.run(['make', '-s', '-C', str(NATIVE), 'build/quest-travel-host'], check=True, capture_output=True)
+        def check(*args):
+            result = subprocess.run([str(NATIVE/'build/quest-travel-host'), str(root), str(folder), *args],
+                                    env=dict(os.environ, MU_LANG_DIR=str(folder)), capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            row = next(json.loads(line) for line in result.stdout.splitlines() if line.startswith('{"armed"'))
+            self.assertEqual(row, dict(armed=1, restored=1, resumed=1, arrived=1))
+        check('missing-map')  # failed reload cancels both the armed path and pending resume answer
+        dst = root / 'Data/World4'
+        dst.mkdir()
+        for path in (root / 'Data/World1').iterdir():
+            shutil.copy(path, dst / path.name.replace('EncTerrain1', 'EncTerrain4'))
+        check()
 
     def test_classic_npc_accept_kills_complete(self):
         L = self.L
