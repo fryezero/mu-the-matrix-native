@@ -42,7 +42,7 @@ static void party_packet(mu_social_session *s)
     size_t len = 5 + (size_t)n * 44;
     b[1] = (uint8_t)(len >> 8);
     b[2] = (uint8_t)len;
-    mu_social_party_receive(&s->party, b, len);
+    mu_social_receive(s, b, len);
     for (int i = 0; i < n; i++) {
         int k = player(s, s->party.members[i].name);
         s->party.members[i].in_view =
@@ -70,6 +70,11 @@ void mu_social_init(mu_social_session *s, const char *hero, struct mu_world_play
     s->zen = 10000000;
     s->inventory[0] = s->inventory[1] = 1;
     s->trade.result = -1;
+    s->guild_id = -1;
+    mu_social_messages_init(&s->messages, s->hero);
+    mu_social_messages_seed(
+        &s->messages, "Shopkeep", "Local mail demo",
+        "This mailbox is an offline demo. Read, reply, compose and delete stay on this Mac.");
     for (int i = 0; i < 9; i++)
         s->vitals[i][0] = s->vitals[i][1] = 100;
     uint8_t b[7 + MU_WORLD_PLAYERS_MAX * 11] = {0};
@@ -154,6 +159,68 @@ static void edit(mu_social_session *s)
     s->result_due = 0;
     s->revision++;
 }
+int mu_social_receive(mu_social_session *s, const uint8_t *b, size_t n) {
+    if (!s || !b || n < 4)
+        return 0;
+    if (b[0] == 0xc1 && b[2] == 0x40) {
+        if (n < 5)
+            return 0;
+        /* Offline pending UI owns one inviter/key pair atomically. A second
+         * request must not replace half of that outstanding invitation. */
+        if (s->pending || s->trade.open)
+            return 0;
+        mu_social_party_request(b, n, 0, &s->request_key);
+        int index = s->request_key - 0x200;
+        if (s->players && index >= 0 && index < s->players->count)
+            return mu_social_action(s, "incoming-party", s->players->list[index].spec.name);
+        return 1; /* The original retains an unresolved request key without a popup. */
+    }
+    if (b[0] == 0xc1 && b[2] == 0x41) {
+        s->party_notice = mu_social_party_notice(b[3]);
+        s->revision++;
+        return 1;
+    }
+    if (b[0] == 0xc1 && b[2] == 0x43) {
+        if (n < 5)
+            return 0;
+        s->party_notice = b[4] == 0 ? 0x1f6 : 0;
+    }
+    if (!mu_social_party_receive(&s->party, b, n))
+        return 0;
+    s->revision++;
+    return 1;
+}
+static void sent(mu_social_session *s) {
+    s->requests++;
+}
+static int remove_party_member(mu_social_session *s, const char *who) {
+    int k = -1;
+    for (int i = 0; i < s->party.count; i++)
+        if (!strcmp(s->party.members[i].name, who))
+            k = i;
+    int notice;
+    if (mu_social_party_leave_prompt(s->world, k >= 0, !strcmp(who, s->hero), &notice) != 1) {
+        s->party_notice = notice;
+        return 0;
+    }
+    /* Movie visibility is client-side. The demo server independently enforces
+     * leader/self authorization after the original request has been built. */
+    if (!mu_social_party_remove(&s->request, (uint8_t)s->party.members[k].number, who, 1, !*who))
+        return 0;
+    sent(s);
+    const char *requested = (const char *)s->request.data + 4;
+    if (strcmp(requested, s->hero) && strcmp(s->party.members[0].name, s->hero))
+        return 0;
+    if (!strcmp(requested, s->hero)) {
+        uint8_t b[5] = {0xc1, 5, 0x43, 0, 1};
+        mu_social_receive(s, b, sizeof b);
+    } else {
+        memmove(s->party.members + k, s->party.members + k + 1,
+                (size_t)(--s->party.count - k) * sizeof s->party.members[0]);
+        party_packet(s);
+    }
+    return 1;
+}
 int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
 {
     if (!arg)
@@ -167,8 +234,21 @@ int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
                !strcmp(verb, "incoming-trade")) {
         if (s->pending || s->trade.open || player(s, name) < 0)
             return 0;
-        if (strstr(verb, "party") && s->party.count && strcmp(s->party.members[0].name, s->hero))
-            return 0;
+        if (!strcmp(verb, "party")) {
+            int world_blocked = (s->world >= 18 && s->world <= 23) || s->world == 53 || s->world == 97;
+            int other_blocked = s->world >= 103 && s->world <= 106;
+            if (!mu_social_party_permission(1, world_blocked, other_blocked, s->party.count != 0,
+                                            !s->party.count || !strcmp(s->party.members[0].name, s->hero), 0,
+                                            0, &s->party_notice))
+                return 0;
+            if (!mu_social_party_invite(&s->request, (uint16_t)(0x200 + player(s, name)), 1, 1))
+                return 0;
+            sent(s);
+            int recipient = ((s->request.data[3] << 8) | s->request.data[4]) - 0x200;
+            if (!s->players || recipient < 0 || recipient >= s->players->count)
+                return 0;
+            name = s->players->list[recipient].spec.name; /* offline server consumes serialized key */
+        }
         if (strstr(verb, "party"))
             for (int i = 0; i < s->party.count; i++)
                 if (!strcmp(s->party.members[i].name, name))
@@ -181,10 +261,38 @@ int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
             mu_social_party_request(request, sizeof request, 0, &s->request_key);
         }
         str10(s->pending_name, name);
+        int is_friend = 0;
+        for (int i = 0; i < s->friends.count; i++)
+            is_friend |= !strcmp(s->friends.list[i].name, name);
+        if (s->incoming && s->pending == 1 &&
+            mu_social_party_autoaccept(s->auto_enabled, s->auto_friends, s->auto_guild, is_friend, 1,
+                                       s->guild_id, -1))
+            return mu_social_action(s, "accept", "");
+    } else if (!strcmp(verb, "confirm-leave")) {
+        int found = 0, notice;
+        for (int i = 0; i < s->party.count; i++)
+            found |= !strcmp(s->party.members[i].name, name);
+        if (s->pending || mu_social_party_leave_prompt(s->world, found, !strcmp(name, s->hero), &notice) != 1)
+            return 0;
+        s->party_notice = notice;
+        s->pending = 3;
+        str10(s->pending_name, name);
     } else if (!strcmp(verb, "accept")) {
         if (!s->pending)
             return 0;
-        if (s->pending == 1) {
+        if (s->pending == 3) {
+            if (!mu_social_party_remove_confirm(0x37, 0))
+                return 0;
+            if (!remove_party_member(s, s->pending_name))
+                return 0;
+        } else if (s->pending == 1) {
+            if (s->incoming) {
+                int reply;
+                if (!mu_social_party_popup(13, 0, &reply))
+                    return 0;
+                mu_social_party_answer(&s->request, (uint16_t)s->request_key, (uint8_t)reply);
+                sent(s);
+            }
             for (int i = 0; i < s->party.count; i++)
                 if (!strcmp(s->party.members[i].name, s->pending_name))
                     return 0;
@@ -211,26 +319,26 @@ int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
     } else if (!strcmp(verb, "decline")) {
         if (!s->pending)
             return 0;
+        if (s->pending == 1 && s->incoming) {
+            int reply;
+            if (!mu_social_party_popup(13, 1, &reply))
+                return 0;
+            mu_social_party_answer(&s->request, (uint16_t)s->request_key, (uint8_t)reply);
+            sent(s);
+        }
         s->pending = 0;
         s->declined++;
     } else if (!strcmp(verb, "leave") || !strcmp(verb, "kick")) {
         const char *who = verb[0] == 'l' ? s->hero : name;
-        if (!s->party.count || (strcmp(who, s->hero) && strcmp(s->party.members[0].name, s->hero)))
+        if (!s->party.count || !remove_party_member(s, who))
             return 0;
-        int k = -1;
-        for (int i = 0; i < s->party.count; i++)
-            if (!strcmp(s->party.members[i].name, who))
-                k = i;
-        if (k < 0)
+    } else if (!strcmp(verb, "party-result")) {
+        char *end;
+        long result = strtol(arg, &end, 10);
+        if (end == arg || *end || result < 0 || result > 255)
             return 0;
-        if (!strcmp(who, s->hero)) {
-            uint8_t b[5] = {0xc1, 5, 0x43, 0, 0};
-            mu_social_party_receive(&s->party, b, 5);
-        } else {
-            memmove(s->party.members + k, s->party.members + k + 1,
-                    (size_t)(--s->party.count - k) * sizeof s->party.members[0]);
-            party_packet(s);
-        }
+        uint8_t packet[4] = {0xc1, 4, 0x41, (uint8_t)result};
+        return mu_social_receive(s, packet, sizeof packet);
     } else if (!strcmp(verb, "health")) {
         char who[11];
         int hp, mp;
@@ -243,7 +351,7 @@ int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
         s->vitals[k][1] = mp;
         uint8_t b[17] = {0xc1, 17, 0x44, 1, (uint8_t)hp, (uint8_t)mp};
         memcpy(b + 6, who, strlen(who));
-        mu_social_party_receive(&s->party, b, sizeof b);
+        mu_social_receive(s, b, sizeof b);
     } else if (!strcmp(verb, "friend")) {
         if (!name[0])
             return 0;
@@ -287,6 +395,20 @@ int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
             return 0;
         uint8_t b[19] = {0xc1, 19, 0x39, 0, 1, 0x18};
         b[9] = 0xe0;
+        if (arg[0]) {
+            char *end;
+            long slot = strtol(arg, &end, 10);
+            if (end == arg || *end != ',' || slot < 0 || slot >= 32 || strlen(end + 1) != 30)
+                return 0;
+            b[3] = (uint8_t)slot;
+            for (int i = 0; i < 15; i++) {
+                char hex[3] = {end[1 + i * 2], end[2 + i * 2], 0}, *tail;
+                long byte = strtol(hex, &tail, 16);
+                if (*tail || hex[0] == '-' || hex[0] == '+' || hex[0] == ' ')
+                    return 0;
+                b[4 + i] = (uint8_t)byte;
+            }
+        }
         mu_social_trade_receive(&s->trade, b, 19);
         edit(s);
     } else if (!strcmp(verb, "partner-zen")) {

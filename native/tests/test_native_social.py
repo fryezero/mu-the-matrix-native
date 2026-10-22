@@ -85,12 +85,15 @@ class SocialSession(unittest.TestCase):
                     "tests/social_gfx_host.c",
                     "world/world_gfx_social.c",
                     "core/mu_social.c",
+                    "core/mu_social_messages.c",
                     "gfx/mu_gfx_layer.c",
                 )
             ]
-            sources += [N.parent / "reconstructed/social/social.c"] + [
-                hud / p for p in ("inv_grid.c", "item_slots.c", "tooltip_html.c")
-            ]
+            sources += [
+                N.parent / "reconstructed/social/social.c",
+                N.parent / "reconstructed/social/item_options.c",
+                N.parent / "reconstructed/social/social_packets.c",
+            ] + [hud / p for p in ("inv_grid.c", "item_slots.c", "tooltip_html.c")]
             subprocess.run(
                 [
                     "clang",
@@ -142,7 +145,24 @@ class SocialSession(unittest.TestCase):
             self.assertIn("Trade completed (offline demo)", calls)
             self.assertIn('AddChatRoom1 [1,560,140,"Shopkeep"', calls)
             self.assertIn('AddChatText [1,0,"Hello friend"]', calls)
-            self.assertIn('AddChatText [1,0,"He said \\"hello\\" \\\\ end\\u000aé😀"]', calls)
+            self.assertIn('ChangeChatRoomInfo [1,201,"offline",0]', calls)
+            self.assertIn('slTexts.dataProvider.push [{"label":"Again"}]', calls)
+            self.assertIn(
+                'slTexts.dataProvider.push [{"label":"Hero: Hello friend"}]', calls
+            )
+            self.assertIn('SetLetterText [3,"Draft survives travel"]', calls)
+            self.assertIn(
+                "The recipient's mailbox is full. Your draft is still open.", calls
+            )
+            self.assertIn("SetMailReaded [1,1]", calls)
+            # Chat arrivals/reconnects must not reset mailbox checkboxes.
+            segment = calls.split('AddChatText [1,0,"Hello friend"]', 1)[1].split(
+                'slTexts.dataProvider.push [{"label":"Again"}]', 1
+            )[0]
+            self.assertNotIn("ClearMailBox", segment)
+            self.assertIn(
+                'AddChatText [1,0,"He said \\"hello\\" \\\\ end\\u000aé😀"]', calls
+            )
             self.assertIn('"type":2,"name":"Hero","msg":"Secret message"', calls)
 
     def test_requests_membership_map_offer_cancel_and_complete(self):
@@ -157,14 +177,17 @@ class SocialSession(unittest.TestCase):
                     "-Werror",
                     str(N / "tests/social_session_host.c"),
                     str(N / "core/mu_social.c"),
+                    str(N / "core/mu_social_messages.c"),
                     str(N.parent / "reconstructed/social/social.c"),
+                    str(N.parent / "reconstructed/social/social_packets.c"),
                     "-o",
                     str(exe),
                 ],
                 check=True,
                 capture_output=True,
             )
-            p = subprocess.run([str(exe)], check=True, capture_output=True, text=True)
+            p = subprocess.run([str(exe)], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
             self.assertTrue(json.loads(p.stdout)["passed"])
 
 

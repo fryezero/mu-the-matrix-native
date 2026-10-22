@@ -53,6 +53,7 @@ extern "C" {
 #endif
 
 typedef struct mu_gfx_layer mu_gfx_layer;
+void mu_gfx_layer_social_notice(mu_gfx_layer *, int32_t text_id, const char *fallback);
 
 /* NATIVE-NPC-001 adds the NPC windows: npcdialogue (NpcDialogue.swf), NpcShop
  * and StorageInven; they are optional (opened when the movie is converted). */
@@ -109,6 +110,7 @@ typedef struct mu_gfx_item_draw {
     float frame_scale;          /* window SetScale / 100 (handler +0x58) */
     float alpha;
     int select, held;
+    int has_options, level_word, set_bits, element;
 } mu_gfx_item_draw;
 
 /* Draw item models over the current GL framebuffer.  The layer calls it
@@ -138,6 +140,7 @@ typedef struct mu_gfx_skill {
  * when unknown, then the layer keeps its stand-in. */
 typedef const char *(*mu_gfx_text_fn)(void *user, int32_t index);
 
+struct mu_gfx_slot_item;
 typedef struct mu_gfx_layer_config {
     const char *movie_dir;      /* main.swf, InventoryFrame.swf, ... */
     const char *lib_path;       /* libmugfx; NULL: $MU_GFX_LIB, then next to the executable / repository build */
@@ -196,6 +199,10 @@ typedef struct mu_gfx_layer_config {
     int (*stat_button)(void *user, double row);
     /* winOption / winSystemMenu: (movie, channel name or "key", JSON arguments) */
     void (*progress_call)(void *user, int movie, const char *name, const char *args_json);
+    /* NATIVE-SOCIAL-001 round 2: record metadata and full item-instance tooltip.
+     * User is tooltip_user. Missing records return 0, known records return 1. */
+    int (*social_item_info)(void *user, int32_t code, struct mu_gfx_slot_item *out);
+    int (*tooltip_packet)(void *user, const uint8_t bytes[15], int context, char *html, size_t cap);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
@@ -371,8 +378,14 @@ typedef struct mu_gfx_slot_item {
     int32_t code, level, width, height;
     int64_t price;              /* demo price shown in the tooltip's caller / log */
     char name[64];
+    uint8_t has_data, data[15];                      /* original wire instance, retained by escrow/exchange */
+    int32_t trade_ban, excellent, set_bits, element; /* resolved excellent state, separate from wire mask */
 } mu_gfx_slot_item;
 
+/* Full item instances, including options, across inventory and trade. */
+int mu_gfx_layer_add_slot_item(mu_gfx_layer *, const mu_gfx_slot_item *);
+int mu_gfx_layer_social_item(mu_gfx_layer *, const uint8_t bytes[15], mu_gfx_slot_item *out);
+void mu_gfx_layer_social_tooltip(mu_gfx_layer *, const mu_gfx_slot_item *, const float rect[4]);
 /* Offline trade escrow reserves the original inventory cells until the result.
  * A positive token identifies the item; finish(commit=0) restores it in place. */
 int mu_gfx_layer_inventory_reserve(mu_gfx_layer *, int cell, mu_gfx_slot_item *out);

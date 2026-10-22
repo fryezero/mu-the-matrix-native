@@ -1,6 +1,7 @@
 # Social systems in the native client
 
 NATIVE-SOCIAL-001 adds parties, trade, friends and whispers to `mu-world` and `mu-client` through GFx.
+Round 2 adds [original party, messenger/mail handlers and full instance option previews](client-social-original.md).
 `reconstructed/social` holds game-side receives, `native/core/mu_social` holds offline server policy and
 `native/world/world_gfx_social` drives the movies. The `--players` characters are demo partners.
 
@@ -122,8 +123,8 @@ the real movies were checked separately in offline GL renders.
 Regression probes also reject shop/vault removal of trade-reserved items through scripted actions,
 cover cancel and atomic commit after those attempts, capacity changing between lock and result, and escaped quotes, backslashes,
 newlines and Unicode in messenger callbacks. The draw decoder now preserves byte 3/5 item-code bits;
-extended-code visual output has not been captured. Remaining review gaps are original party
-actions and messenger handlers, not transport encryption.
+extended-code visual output has not been captured. Original party actions, messenger/mail and
+full wire-option previews are covered in the round-2 finding, with runtime-dependent limits stated there.
 
 Launch with the usual game root, `--players native/world/lorencia-demo-players.txt --gfx MOVIES`. P toggles
 party, F opens friends, Y/N answers a request. Chat accepts `/party NAME`, `/trade NAME`, `/accept`, `/decline`,

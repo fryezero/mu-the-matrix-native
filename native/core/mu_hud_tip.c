@@ -62,6 +62,10 @@ static const uint8_t *tooltip_text(const mu_hud_tip_tables *t, int32_t id)
     }
     return NULL;
 }
+const char *mu_hud_tip_text(const mu_hud_tip_tables *t, uint16_t id) {
+    const uint8_t *r = t ? tooltip_text(t, id) : NULL;
+    return r && memchr(r + 2, 0, 256) ? (const char *)(r + 2) : NULL;
+}
 
 static void add_line(mu_hud_tip *tp, const char *text, int32_t color)
 {
