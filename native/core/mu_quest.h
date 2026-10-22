@@ -91,5 +91,9 @@ void mu_quest_session_progress(mu_quest_session *s, int32_t quest, int32_t count
 /* The quest window (T): open or close MyQuestInfo as its vtable +0x40 / +0x44 do. */
 void mu_quest_session_toggle_info(mu_quest_session *s);
 void mu_quest_session_report(const mu_quest_session *s, FILE *out);
+/* Tests (ctypes): the session's size, its client, and the host's event callback. */
+size_t mu_quest_session_size(void);
+mu_quest_client *mu_quest_session_client(mu_quest_session *s);
+void mu_quest_session_set_event(mu_quest_session *s, void (*event)(void *user, const char *line), void *user);
 
 #endif

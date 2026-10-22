@@ -326,3 +326,19 @@ void mu_quest_session_report(const mu_quest_session *s, FILE *out)
         fprintf(out, "%s\"%s\"", i ? ", " : "", s->log[i]);
     fprintf(out, "]}}\n");
 }
+
+size_t mu_quest_session_size(void)
+{
+    return sizeof(mu_quest_session);
+}
+
+mu_quest_client *mu_quest_session_client(mu_quest_session *s)
+{
+    return &s->client;
+}
+
+void mu_quest_session_set_event(mu_quest_session *s, void (*event)(void *user, const char *line), void *user)
+{
+    s->event = event;
+    s->user = user;
+}

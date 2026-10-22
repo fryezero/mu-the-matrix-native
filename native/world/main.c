@@ -307,9 +307,9 @@ static void npc_open(void *context, const mu_npc_open *o)
     if (!a->quiet)
         printf("{\"npc_open\": \"%s\", \"actor\": %d, \"class\": %d, \"result\": %u, \"movie\": \"%s\","
                " \"slot\": %u, \"dialogue\": %d, \"mix_type\": %d, \"repair\": %d, \"tabs\": %d,"
-               " \"close_all\": %d, \"step\": %d}\n", KIND[o->kind], o->actor, o->server_class, o->result,
-               o->window.movie, o->window.slot, o->window.dialogue, o->window.mix_type, o->repair, o->shop_tabs,
-               o->close_all, a->npc ? a->npc->step : 0);
+               " \"close_all\": %d, \"step\": %d, \"dialog_packet\": %d}\n", KIND[o->kind], o->actor,
+               o->server_class, o->result, o->window.movie ? o->window.movie : "", o->window.slot, o->window.dialogue,
+               o->window.mix_type, o->repair, o->shop_tabs, o->close_all, a->npc ? a->npc->step : 0, o->dialog_packet);
 #ifndef MU_WORLD_NO_GL
     if (a->gfx)
         world_gfx_npc_open(a->gfx, o, a->has_actors ? a->actors.list[o->actor].label : "");
