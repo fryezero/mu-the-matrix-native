@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include "../../reconstructed/helpers/helpers.h"
+#include "../../reconstructed/helpers/mount_class.h"
 #include "mu_bmd.h"
 #include "mu_model.h"
 #include "mu_raster.h"
@@ -67,7 +68,7 @@ typedef struct mu_wh_stats {
     uint32_t particles, sprites, effects, joints, set_actions, rider_actions;
     uint32_t live_bugs, live_mounts;                 /* now */
     uint32_t drawn_bugs, drawn_mounts, drawn_imps, shadows;   /* last draw */
-    uint32_t passes;                                 /* NATIVE-HELPERS-002: model passes of the last draw */
+    uint32_t passes, decals;                         /* NATIVE-HELPERS-002: model passes, terrain decals (last draw) */
 } mu_wh_stats;
 
 typedef struct mu_world_helpers {
@@ -90,6 +91,10 @@ typedef struct mu_world_helpers {
     char log[32][96];
     int32_t log_count;
     float world_time;                       /* NATIVE-HELPERS-002: WorldTime 0x06fce370 (40 ms per step) */
+    /* NATIVE-HELPERS-002: the later classes' visual state per mount key */
+    int32_t class_keys[MU_HP_MOUNTS];
+    mu_hp_class_state class_states[MU_HP_MOUNTS];
+    int32_t class_state_count;
 } mu_world_helpers;
 
 /* Opens the module for a world (no_assets: logic only). hero_item: the hero's helper item code (DEMO, -1 none:

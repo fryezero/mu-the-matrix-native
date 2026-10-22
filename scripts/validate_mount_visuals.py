@@ -391,6 +391,249 @@ def registry_pairs(text):
     return pairs
 
 
+# --------------------------------------------------------------------------
+# The class visuals (vtable +0x1c) and steps (mount_class.c).
+
+ST_VISUALS, ST_MOVE_STEPS = 0x01057fb0, 0x0105a0bb
+OBJECT_BONE, NAMED_BONE, CREATE_JOINT, EYES, DECAL = 0x012b678d, 0x012b6a2b, 0x0153b02c, 0x0137a948, 0x016cdd5f
+BLEND_ON, BLEND_OFF = 0x0184aa2b, 0x0184a7f3
+STRING_CTOR, STRING_DTOR = 0x0094997e, 0x008e83a0
+MOUNT = 0x29300000
+CLASS_KINDS = {20: 'obone', 21: 'joint', 22: 'decal', 23: 'blend', 24: 'eyes', 25: 'nbone'}
+STEP_NAMES = ['leg_nailfront', 'leg_nailfront001', 'leg_rear', 'leg_rear001']
+
+
+class ClassState(ctypes.Structure):
+    _fields_ = [('a4', ctypes.c_float), ('flag_48', ctypes.c_uint8)]
+
+
+class ClassInputs(ctypes.Structure):
+    _fields_ = [('world_time', ctypes.c_float), ('action', ctypes.c_uint16), ('frame', ctypes.c_float),
+                ('alpha', ctypes.c_float), ('position', ctypes.c_float*3), ('angle', ctypes.c_float*3)]
+
+
+OBONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float))
+NBONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_float))
+
+
+class ClassHost(ctypes.Structure):
+    _fields_ = [('context', ctypes.c_void_p), ('object_bone', OBONE_FN), ('named_bone', NBONE_FN)]
+
+
+def object_bone_answer(bone):
+    return [f32(1000.0 + bone*7.5), f32(2000.0 - bone*3.25), f32(150.0 + bone*0.5)]
+
+
+def named_bone_answer(name):
+    k = STEP_NAMES.index(name) if name in STEP_NAMES else 9
+    return [f32(500.0 + k*11.0), f32(600.0 - k*5.0), f32(40.0 + k)]
+
+
+def read_msvc_string(mm, address):
+    raw = bytes(mm.uc.mem_read(address, 0x20))
+    for off in (0, 4):
+        size = struct.unpack('<I', raw[off+16:off+20])[0]
+        cap = struct.unpack('<I', raw[off+20:off+24])[0]
+        if size < 64 and cap >= size:
+            if cap < 16:
+                return raw[off:off+size].decode('latin1')
+            ptr = struct.unpack('<I', raw[off:off+4])[0]
+            return bytes(mm.uc.mem_read(ptr, size)).decode('latin1')
+    return raw.hex()
+
+
+def class_case(rng):
+    case = random_case(rng, 0x6f4)
+    case['a4'] = f32(rng.choice([0.0, 1.0, 0.05, 0.95, 1.02, -0.01, rng.uniform(-0.1, 1.1)]))
+    case['flag48'] = rng.choice([0, 0, 1])
+    case['action'] = rng.choice([0, 1, 2, 3, 2, 3, 4, rng.randrange(0, 12)])
+    case['frame'] = f32(rng.choice([4.0, 4.5, 5.0, 5.0001, 9.0, 9.9, 10.0, 3.999, rng.uniform(0, 12)]))
+    case['time'] = f32(rng.choice([0.0, 1000.0, 1050.0, 59999.0, rng.uniform(0, 4.0e6), float(rng.randrange(0, 600)*100)]))
+    return case
+
+
+def run_class_case(m, lib, case, routine, plant=None):
+    log, rand_calls = [], [0]
+    obj = bytearray(object_bytes(case))
+    struct.pack_into('<f', obj, 0xa4, case['a4'])
+    mount = bytearray(am.poison(0x58, 0x21))
+    struct.pack_into('<II', mount, 0x1c, OBJECT, MODEL)
+    mount[0x48] = case['flag48']
+    regions = [am.defined_region('model', MODEL, am.poison(0x200, 0x3c)),
+               am.defined_region('object', OBJECT, bytes(obj)),
+               am.defined_region('mount', MOUNT, bytes(mount)),
+               am.defined_region('time', TIME, struct.pack('<f', case['time']), writable=False),
+               am.defined_region('world', WORLD, struct.pack('<i', case['world']), writable=False)]
+
+    def obone(mm):
+        out, o, bone = mm.argument(0), mm.argument(1), sx(mm.argument(2))
+        log.append(('obone', bone))
+        mm.local_write(out, struct.pack('<3f', *object_bone_answer(bone)))
+        return 0, 0x10
+
+    def nbone(mm):
+        out, o, name = mm.argument(0), mm.argument(1), read_msvc_string(mm, mm.argument(2))
+        log.append(('nbone', STEP_NAMES.index(name) if name in STEP_NAMES else name))
+        mm.local_write(out, struct.pack('<3f', *named_bone_answer(name)))
+        return 0, 0x10
+
+    def sprite(mm):
+        a = [mm.argument(i) for i in range(8)]
+        log.append(('sprite', a[0], tuple(mm.read_floats(a[1], 3)), from_bits(a[2]), tuple(mm.read_floats(a[3], 3))))
+        return 0
+
+    def particle(mm):
+        a = [mm.argument(i) for i in range(8)]
+        log.append(('particle', a[0], tuple(mm.read_floats(a[1], 3)), tuple(mm.read_floats(a[2], 3)),
+                    tuple(mm.read_floats(a[3], 3)), sx(a[4]), from_bits(a[5])))
+        return 0
+
+    def effect(mm):
+        a = [mm.argument(i) for i in range(11)]
+        log.append(('effect', a[0], tuple(mm.read_floats(a[1], 3)), tuple(mm.read_floats(a[2], 3)),
+                    tuple(mm.read_floats(a[3], 3)), sx(a[4]), from_bits(a[10])))
+        return 0
+
+    def joint(mm):
+        a = [mm.argument(i) for i in range(14)]
+        log.append(('joint', a[0], tuple(mm.read_floats(a[1], 3)), tuple(mm.read_floats(a[3], 3)), sx(a[4]),
+                    from_bits(a[6]), tuple(mm.read_floats(a[11], 3))))
+        return 0
+
+    def eyes(mm):
+        log.append(('eyes',))
+        return 0
+
+    def decal(mm):
+        a = [mm.argument(i) for i in range(11)]
+        log.append(('decal', a[0], from_bits(a[1]), from_bits(a[2]), from_bits(a[3]), from_bits(a[4]),
+                    tuple(mm.read_floats(a[5], 3)), from_bits(a[6]), from_bits(a[7]), from_bits(a[8]), a[9], a[10]))
+        return 0
+
+    def blend(address):
+        def stub(mm):
+            log.append(('blend', address))
+            return 0
+        return stub
+
+    def rand(mm):
+        v = case['rand'][rand_calls[0] % len(case['rand'])]
+        rand_calls[0] += 1
+        return v
+
+    def sine(mm):
+        x = mm.float_argument(0)
+        return mm.return_float(f32(math.sin(x)) if math.isfinite(x) else float('nan'))
+
+    def cosine(mm):
+        x = mm.float_argument(0)
+        return mm.return_float(f32(math.cos(x)) if math.isfinite(x) else float('nan'))
+    def string_ctor(mm):
+        # MSVC std::string(const char *) 0x0094997e: the pointer form at the literal (no heap in the machine)
+        this, text = mm.ecx(), mm.argument(0)
+        name = mm.cstring(text, 64)
+        mm.local_write(this, struct.pack('<I', text) + b'\0'*12 + struct.pack('<II', len(name), max(len(name), 16)))
+        return this, 4
+
+    def string_dtor(mm):
+        return 0
+    stubs = {STRING_CTOR: string_ctor, STRING_DTOR: string_dtor, OBJECT_BONE: obone, NAMED_BONE: nbone, SPRITE: sprite, PARTICLE: particle, EFFECT: effect,
+             CREATE_JOINT: joint, EYES: eyes, DECAL: decal, BLEND_ON: blend(BLEND_ON), BLEND_OFF: blend(BLEND_OFF),
+             RAND: rand, SINE: sine, COSINE: cosine}
+    res = m.execute(routine, [], regions, stubs, ecx=MOUNT)
+    if not res['ok']:
+        return {'ok': False, 'machine': {k: v for k, v in res.items() if k != 'regions'}}
+    a4_client = struct.unpack('<f', res['regions']['object'][0xa4:0xa8])[0]
+    flag_client = res['regions']['mount'][0x48]
+    # the library
+    h = vh.Helpers()
+    h.rand_state = 0
+    st = ClassState(case['a4'], case['flag48'])
+    i = ClassInputs()
+    i.world_time = case['time'] if plant != 'time' else f32(case['time'] + 100.0)
+    i.action = case['action']
+    i.frame = case['frame']
+    i.alpha = case['alpha']
+    for k in range(3):
+        i.position[k] = case['position'][k]
+        i.angle[k] = case['angle'][k]
+
+    def c_obone(ctx, bone, out):
+        for k, x in enumerate(object_bone_answer(bone)):
+            out[k] = x
+
+    def c_nbone(ctx, name, out):
+        for k, x in enumerate(named_bone_answer(name.decode())):
+            out[k] = x
+    host = ClassHost(None, OBONE_FN(c_obone), NBONE_FN(c_nbone))
+    calls = (AfterCall*1024)()
+    n = ctypes.c_int32(0)
+    if routine == ST_VISUALS:
+        lib.mu_hp_mount_class_visuals(ctypes.byref(h), 10, ctypes.byref(st), ctypes.byref(i), ctypes.byref(host),
+                                      calls, 1024, ctypes.byref(n))
+    else:
+        lib.mu_hp_mount_class_step(ctypes.byref(h), 10, ctypes.byref(i), ctypes.byref(host), calls, 1024,
+                                   ctypes.byref(n))
+    mine = []
+    for k in range(n.value):
+        c = calls[k]
+        kind = CLASS_KINDS.get(c.kind) or C_KINDS[c.kind]
+        if kind == 'obone':
+            mine.append(('obone', c.mesh))
+        elif kind == 'nbone':
+            mine.append(('nbone', c.mesh))
+        elif kind == 'sprite':
+            mine.append(('sprite', c.type, tuple(c.position), c.scale, tuple(c.light)))
+        elif kind == 'particle':
+            mine.append(('particle', c.type, tuple(c.position), tuple(c.angle), tuple(c.light), c.subtype, c.scale))
+        elif kind == 'effect':
+            sub = c.subtype
+            mine.append(('effect', c.type, tuple(c.position), tuple(c.angle), tuple(c.light), sub, c.scale))
+        elif kind == 'joint':
+            mine.append(('joint', c.type, tuple(c.position), tuple(c.angle), c.subtype, c.scale, tuple(c.light)))
+        elif kind == 'eyes':
+            mine.append(('eyes',))
+        elif kind == 'decal':
+            mine.append(('decal', c.type, c.position[0], c.position[1], c.scale, c.scale, tuple(c.light), c.angle[0],
+                         c.alpha, 5.0, 1, 0))
+        elif kind == 'blend':
+            mine.append(('blend', c.flags))
+    if len(mine) != len(log) or not all(same_call(a, b) for a, b in zip(log, mine)):
+        first = next((k for k, (a, b) in enumerate(zip(log, mine)) if not same_call(a, b)), min(len(mine), len(log)))
+        return {'ok': False, 'why': 'calls', 'at': first, 'client': log[first:first+2], 'native': mine[first:first+2],
+                'lengths': (len(log), len(mine))}
+    if rand_calls[0] != h.rand_calls:
+        return {'ok': False, 'why': 'rand calls', 'client': rand_calls[0], 'native': h.rand_calls}
+    if routine == ST_VISUALS and (not same_value(a4_client, st.a4) or flag_client != st.flag_48):
+        return {'ok': False, 'why': 'state', 'client': (a4_client, flag_client), 'native': (st.a4, st.flag_48)}
+    return {'ok': True, 'calls': len(log)}
+
+
+def section_class(m, lib, rng, cases):
+    out = {}
+    for name, routine in (('shining_tail_visuals', ST_VISUALS), ('shining_tail_steps', ST_MOVE_STEPS)):
+        ok, calls, first = 0, 0, None
+        for n in range(cases):
+            case = class_case(rng)
+            case['rand'] = seeded_rand(0, 64)
+            if routine == ST_MOVE_STEPS:
+                case['action'] = rng.choice([2, 3])   # the class move 0x01057e4d calls it for mount actions 2, 3
+            r = run_class_case(m, lib, case, routine)
+            if r['ok']:
+                ok += 1
+                calls += r['calls']
+            elif first is None:
+                first = dict(r, case={k: v for k, v in case.items() if k != 'rand'})
+        out[name] = {'cases': cases, 'equal': ok, 'calls': calls, 'first_failure': first}
+    hit = 0
+    for n in range(30):
+        case = class_case(rng)
+        case['rand'] = seeded_rand(0, 64)
+        hit += not run_class_case(m, lib, case, ST_VISUALS, 'time')['ok']
+    out['negative_time'] = hit
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--text', default=vh.DEFAULT_TEXT)
@@ -446,8 +689,18 @@ def main(argv=None):
             hit += not run_case(m, lib, case, plant)['ok']
         negatives[plant] = hit
     report['negative_controls'] = negatives
+    lib.mu_hp_mount_class_visuals.argtypes = [ctypes.POINTER(vh.Helpers), ctypes.c_int32, ctypes.POINTER(ClassState),
+                                              ctypes.POINTER(ClassInputs), ctypes.POINTER(ClassHost),
+                                              ctypes.POINTER(AfterCall), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
+    lib.mu_hp_mount_class_step.argtypes = [ctypes.POINTER(vh.Helpers), ctypes.c_int32, ctypes.POINTER(ClassInputs),
+                                           ctypes.POINTER(ClassHost), ctypes.POINTER(AfterCall), ctypes.c_int32,
+                                           ctypes.POINTER(ctypes.c_int32)]
+    report['class'] = section_class(m, lib, rng, max(1, args.cases))
     report['seconds'] = round(time.time() - start, 1)
-    report['all_equal'] = registry_ok and totals['equal'] == totals['cases'] and all(negatives.values())
+    cls = report['class']
+    report['all_equal'] = (registry_ok and totals['equal'] == totals['cases'] and all(negatives.values()) and
+                           all(v['equal'] == v['cases'] for k, v in cls.items() if isinstance(v, dict)) and
+                           cls['negative_time'] > 0)
     print(json.dumps({k: v for k, v in report.items() if k not in ('bodies',)}, indent=1, default=str)[:6000])
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=1, default=str))

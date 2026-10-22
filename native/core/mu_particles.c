@@ -15,7 +15,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 25
+#define MU_WORLD_PT_EFFECTS 29
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
@@ -25,6 +25,8 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     /* NATIVE-HELPERS-002: the helpers' smoke02 and drop01, the Dark Horse ring's Flare and the flying step's
      * ShockWave (LoadBitmap 0x0182166f, 0x0183930b, 0x0182253b, 0x0182150f) */
     MU_PT_BITMAP_SMOKE2, MU_PT_BITMAP_DROP, MU_JT_BITMAP_FLARE, MU_SFX_BITMAP_SHOCKWAVE,
+    /* NATIVE-HELPERS-002: the Shining Tail's glints (pin_star, pin_star02, bostar3_R, Shiny03) */
+    0x8108, 0x8109, 0x8179, 0x7f68,
     MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
@@ -34,7 +36,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/lightning2.OZJ", "Data/Effect/Shiny01.OZJ", "Data/Effect/WATERFALL2.OZJ",
     "Data/Effect/WATERFALL3.OZJ", "Data/Effect/fantaB.OZJ", "Data/Effect/Spark04.OZJ",
     "Data/Effect/magic_ground1_3.OZJ", "Data/Effect/Impack03.OZJ",
-    "Data/Effect/smoke02.ozt", "Data/Object8/drop01.OZJ", "Data/Effect/Flare.OZJ", "Data/Effect/Shockwave.OZJ"};
+    "Data/Effect/smoke02.ozt", "Data/Object8/drop01.OZJ", "Data/Effect/Flare.OZJ", "Data/Effect/Shockwave.OZJ",
+    "Data/Effect/pin_star.OZJ", "Data/Effect/pin_star02.OZJ", "Data/Effect/bostar3_R.OZJ", "Data/Effect/Shiny03.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */

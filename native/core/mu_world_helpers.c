@@ -18,6 +18,7 @@
 #include "../../reconstructed/objects/object_render.h"
 #include "../../reconstructed/particles/particles.h"
 #include "../../reconstructed/helpers/mount_render.h"
+#include "../../reconstructed/helpers/mount_class.h"
 
 /* The Imp's attachment per owner (lazy). */
 typedef struct imp_slot {
@@ -78,7 +79,9 @@ static const struct { int32_t index; const char *directory, *name; } pass_bitmap
     {0x8530, "Data/Effect", "Divinehorse_01_render.jpg"}, {0x8531, "Data/Effect", "ef_line01.jpg"},
     {0x84e8, "Data/Skill", "Giant_darkW_Neon_render.jpg"}, {0x84e9, "Data/Skill", "Giant_Elf_Neon_r.jpg"},
     {0x84ea, "Data/Skill", "Giant_GrowLancer_Neon_render.jpg"},
-    {0x84eb, "Data/Skill", "Giant_GrowLancer_Jewel_render.jpg"}};
+    {0x84eb, "Data/Skill", "Giant_GrowLancer_Jewel_render.jpg"},
+    /* the Shining Tail's rune circles and glows (its class visuals' terrain decals) */
+    {0x8438, "Data/Effect", "lightmarks_mzin.jpg"}, {0x7ef7, "Data/Effect", "flare01.jpg"}};
 
 /* The bitmaps a mount model's functor names (mount_render.c). */
 static int32_t model_pass_bitmaps(int32_t model, int32_t out[8])
@@ -86,7 +89,8 @@ static int32_t model_pass_bitmaps(int32_t model, int32_t out[8])
     static const struct { int32_t model; int32_t list[8]; } uses[] = {
         {0x671, {0x82e3, 0x82e4}}, {0x69a, {0x82e4}}, {0x69b, {0x831a}},
         {0x6cb, {0x83ea, 0x83ec, 0x82e4}}, {0x6cc, {0x83eb, 0x83ed, 0x82e4}},
-        {0x6f4, {0x8430, 0x8431, 0x8432, 0x8433, 0x82e3}}, {0x6f5, {0x8434, 0x8435, 0x8436, 0x8437, 0x82e3}},
+        {0x6f4, {0x8430, 0x8431, 0x8432, 0x8433, 0x82e3, 0x8438, 0x7ef7}},
+        {0x6f5, {0x8434, 0x8435, 0x8436, 0x8437, 0x82e3}},
         {0x736, {0x848a, 0x848b, 0x8239}}, {0x737, {0x848c, 0x848d}}, {0x74a, {0x853d}},
         {0x77c, {0x853e, 0x8541, 0x8531, 0x8540, 0x82e3}}, {0x77d, {0x8544, 0x853f, 0x8543, 0x8531, 0x8542, 0x82e3}},
         {0x753, {0x8530, 0x8531}}, {0x73f, {0x84e8}}, {0x740, {0x84e9}}, {0x741, {0x84ea, 0x84eb}}};
@@ -118,8 +122,12 @@ static void load_pass_bitmaps(mu_world_helpers *w, mu_wh_model *m)
                 names[k] = pass_bitmaps[j].name;
                 ++k;
             }
-    if (k > 0)
-        mu_textures_add_extras(&m->textures, index, dirs, names, k, 0x2601 /* GL_LINEAR */, 0x2901 /* GL_REPEAT */);
+    /* the glow overlays scroll and repeat (GL_REPEAT); the decal bitmaps lie once on the terrain (GL_CLAMP) */
+    for (int32_t i = 0; i < k; ++i) {
+        const int clamp = index[i] == 0x8438 || index[i] == 0x7ef7;
+        mu_textures_add_extras(&m->textures, &index[i], &dirs[i], &names[i], 1, 0x2601 /* GL_LINEAR */,
+                               clamp ? 0x2900u /* GL_CLAMP */ : 0x2901u /* GL_REPEAT */);
+    }
 }
 
 static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
@@ -278,6 +286,105 @@ static void h_kill(void *c, mu_hp_object *o)
     mu_world_helpers *w = c;
     (void)o;
     w->stats.bugs_deleted++;
+}
+
+/* ---------------------------------------------------------------- the later classes (NATIVE-HELPERS-002) */
+
+static mu_hp_class_state *class_state_of(mu_world_helpers *w, int32_t key)
+{
+    for (int32_t i = 0; i < w->class_state_count; ++i)
+        if (w->class_keys[i] == key)
+            return &w->class_states[i];
+    if (w->class_state_count >= MU_HP_MOUNTS)
+        return NULL;
+    int32_t i = w->class_state_count++;
+    w->class_keys[i] = key;
+    memset(&w->class_states[i], 0, sizeof w->class_states[i]);   /* the model load writes +0xa4 = 0 */
+    return &w->class_states[i];
+}
+
+typedef struct class_host_ctx {
+    mu_world_helpers *w;
+    mu_wh_model *m;
+} class_host_ctx;
+
+static void c_named_bone(void *c, const char *name, float out[3])
+{
+    class_host_ctx *x = c;
+    const float zero[3] = {0.0f, 0.0f, 0.0f};
+    out[0] = out[1] = out[2] = 0.0f;
+    if (x->m && x->m->loaded)
+        mu_world_particles_named_bone_position(&x->m->model, &x->m->bmd, name, zero, out);
+}
+
+static void c_object_bone(void *c, int32_t bone, float out[3])
+{
+    class_host_ctx *x = c;
+    const float zero[3] = {0.0f, 0.0f, 0.0f};
+    out[0] = out[1] = out[2] = 0.0f;
+    if (x->m && x->m->loaded)
+        mu_world_particles_bone_position(&x->m->model, bone, zero, out);
+}
+
+/* The calls the class code makes into the other pools. */
+static void class_calls(mu_world_helpers *w, const mu_hp_after_call *calls, int32_t n, mu_wh_model *m)
+{
+    (void)m;
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_hp_after_call *a = &calls[i];
+        switch (a->kind) {
+        case MU_HP_AC_SPRITE:
+            w->stats.sprites++;
+            if (w->particles)
+                mu_world_particles_sprite(w->particles, a->type, a->position, a->scale, a->light, -1, 0.0f, 0, 4);
+            break;
+        case MU_HP_AC_PARTICLE:
+            w->stats.particles++;
+            if (w->particles)
+                mu_world_particles_create(w->particles, a->type, a->position, a->angle, a->light, a->subtype, a->scale);
+            break;
+        case MU_HP_AC_EFFECT:
+            w->stats.effects++;
+            if (w->particles)
+                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light, -1,
+                                          a->scale, NULL);
+            break;
+        case MU_HP_AC_JOINT:
+            w->stats.joints++;
+            if (w->particles)
+                mu_world_particles_joint(w->particles, a->type, a->position, a->position, a->angle, a->subtype, -1,
+                                         a->scale, 0xffff, 0, 0, 0xffff, 0);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+/* The mount move loop 0x0106bbb2 with the class's own step (vtable +0xc after the base move, before the
+ * action map): mu_hp_mounts_move plus the reconstructed class steps. */
+static void move_mounts(mu_world_helpers *w)
+{
+    for (int32_t i = 0; i < w->mounts.count; ++i) {
+        mu_hp_mount *m = &w->mounts.list[i];
+        if (!mu_hp_mount_move(&w->h, m, &w->inputs))
+            continue;
+        mu_hp_class_inputs in;
+        memset(&in, 0, sizeof in);
+        in.world_time = w->world_time;
+        in.action = (uint16_t)m->action;   /* the mount's action +0x30 */
+        in.frame = m->object.frame;
+        in.alpha = m->object.alpha;
+        memcpy(in.position, m->object.position, sizeof in.position);
+        memcpy(in.angle, m->object.angle, sizeof in.angle);
+        class_host_ctx x = {w, model_of(w, m->object.type)};
+        mu_hp_class_host host = {&x, c_object_bone, c_named_bone};
+        mu_hp_after_call calls[16];
+        int32_t n = 0;
+        if (mu_hp_mount_class_step(&w->h, m->cls, &in, &host, calls, 16, &n))
+            class_calls(w, calls, n < 16 ? n : 16, x.m);
+        mu_hp_mount_follow_action(&w->h, m);
+    }
 }
 
 /* ---------------------------------------------------------------- open / close */
@@ -549,7 +656,7 @@ void mu_world_helpers_step(mu_world_helpers *w)
     for (int32_t i = 0; w->players && i < w->players->count && i + 1 < MU_WH_OWNERS; ++i)
         apply_player(w, i);
     mu_hp_move_bugs(&w->h, &w->inputs);
-    mu_hp_mounts_move(&w->h, &w->mounts, &w->inputs);
+    move_mounts(w);   /* mu_hp_mounts_move with the class steps (NATIVE-HELPERS-002) */
     /* the riders: the manager's predicates and the lift the next placement adds */
     for (int32_t owner = 0; owner < MU_WH_OWNERS; ++owner) {
         mu_hp_mount *m = mount_of_owner(w, owner);
@@ -718,6 +825,157 @@ static void after_bone(void *c, int32_t bone, const float in[3], float out[3])
         mu_world_particles_bone_position(&d->posed->model, bone, in, out);
 }
 
+/* NATIVE-HELPERS-002: RenderTerrainAlphaBitmap 0x016cdd5f of a class visual through the model's render backend: the
+ * terrain decal's fans become triangles; the bitmap is one of the model's extra slots. */
+typedef struct decal_adapter {
+    const mu_render_backend *backend;
+    const mu_textures *textures;
+    mu_meshdraw_state state;
+    int32_t texture;
+    float v[64][3], t[64][2], c[64][4];
+    int32_t n;
+    float color[4], uv[2];
+} decal_adapter;
+
+static void da_state(void *c, int32_t state, int32_t argument)
+{
+    decal_adapter *a = c;
+    mu_world_state(state, argument, &a->state);
+}
+
+static void da_bind(void *c, int32_t texture)
+{
+    decal_adapter *a = c;
+    a->texture = -1;
+    const mu_textures *t = a->textures;
+    for (int32_t j = 0; t && j < t->extra_count; ++j)
+        if (t->extra_index[j] == texture)
+            a->texture = t->model_count + MU_TEXTURE_SPECIAL_COUNT + j;
+}
+
+static void da_begin(void *c, int32_t mode)
+{
+    decal_adapter *a = c;
+    (void)mode;   /* GL_TRIANGLE_FAN */
+    a->n = 0;
+}
+
+static void da_tex(void *c, float s, float t)
+{
+    decal_adapter *a = c;
+    a->uv[0] = s;
+    a->uv[1] = t;
+}
+
+static void da_c3(void *c, const float rgb[3])
+{
+    decal_adapter *a = c;
+    a->color[0] = rgb[0], a->color[1] = rgb[1], a->color[2] = rgb[2], a->color[3] = 1.0f;
+}
+
+static void da_c4(void *c, float r, float g, float b, float al)
+{
+    decal_adapter *a = c;
+    a->color[0] = r, a->color[1] = g, a->color[2] = b, a->color[3] = al;
+}
+
+static void da_v(void *c, const float xyz[3])
+{
+    decal_adapter *a = c;
+    if (a->n >= 64)
+        return;
+    memcpy(a->v[a->n], xyz, sizeof a->v[0]);
+    memcpy(a->t[a->n], a->uv, sizeof a->t[0]);
+    memcpy(a->c[a->n], a->color, sizeof a->c[0]);
+    a->n++;
+}
+
+static void da_end(void *c)
+{
+    decal_adapter *a = c;
+    const mu_render_backend *b = a->backend;
+    if (a->n < 3 || a->texture < 0)
+        return;
+    if (b->prepare)
+        b->prepare(b->context, &a->state, a->texture);
+    if (b->begin)
+        b->begin(b->context);
+    for (int32_t i = 1; i + 1 < a->n; ++i) {
+        const int32_t k[3] = {0, i, i + 1};
+        for (int32_t j = 0; j < 3; ++j) {
+            b->sink.texcoord(b->sink.context, a->t[k[j]][0], a->t[k[j]][1]);
+            b->sink.color4(b->sink.context, a->c[k[j]][0], a->c[k[j]][1], a->c[k[j]][2], a->c[k[j]][3]);
+            b->sink.vertex(b->sink.context, a->v[k[j]]);
+        }
+    }
+    if (b->end)
+        b->end(b->context);
+}
+
+static void draw_decals(draw_context *d, mu_wh_model *m, const mu_hp_after_call *calls, int32_t n)
+{
+    mu_world_helpers *w = d->w;
+    if (!d->target || !w->map)
+        return;
+    mu_render_backend backend;
+    if (d->target->backend(d->target->context, w, slot_of(w, m), &backend))
+        return;
+    decal_adapter a;
+    memset(&a, 0, sizeof a);
+    a.backend = &backend;
+    a.textures = &m->textures;
+    a.texture = -1;
+    mu_meshdraw_state_defaults(&a.state);
+    mu_terrain_sink sink = {&a, da_state, da_bind, da_begin, da_tex, da_c3, da_c4, da_v, da_end};
+    mu_terrain_scene scene;
+    mu_world_scene((mu_world *)w->map, &scene);   /* read only */
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_hp_after_call *c = &calls[i];
+        if (c->kind == MU_HP_AC_BLEND) {
+            da_state(&a, c->flags == 0x0184aa2b ? MU_TERRAIN_STATE_ADDITIVE : MU_TERRAIN_STATE_OPAQUE, 1);
+            continue;
+        }
+        if (c->kind != MU_HP_AC_DECAL)
+            continue;
+        mu_terrain_decal(&scene, c->type, c->position[0], c->position[1], c->scale, c->scale, c->light, c->angle[0],
+                         c->alpha, 5.0f, 1, 0, &sink);
+        w->stats.decals++;
+    }
+}
+
+/* The class visuals (vtable +0x1c) of a drawn mount (NATIVE-HELPERS-002: the Shining Tail). */
+static void class_visuals(draw_context *d, mu_wh_model *m, const mu_hp_object *o)
+{
+    mu_world_helpers *w = d->w;
+    mu_hp_mount *mount = NULL;
+    for (int32_t i = 0; i < w->mounts.count; ++i)
+        if (&w->mounts.list[i].object == o)
+            mount = &w->mounts.list[i];
+    if (!mount)
+        return;
+    mu_hp_class_state *st = class_state_of(w, mount->key);
+    if (!st)
+        return;
+    mu_hp_class_inputs in;
+    memset(&in, 0, sizeof in);
+    in.world_time = w->world_time;
+    in.action = o->action;
+    in.frame = o->frame;
+    in.alpha = o->alpha;
+    memcpy(in.position, o->position, sizeof in.position);
+    memcpy(in.angle, o->angle, sizeof in.angle);
+    class_host_ctx x = {w, m};
+    mu_hp_class_host host = {&x, c_object_bone, c_named_bone};
+    mu_hp_after_call calls[160];
+    int32_t n = 0;
+    if (!mu_hp_mount_class_visuals(&w->h, mount->cls, st, &in, &host, calls, 160, &n))
+        return;
+    if (n > 160)
+        n = 160;
+    class_calls(w, calls, n, m);
+    draw_decals(d, m, calls, n);
+}
+
 /* The after-pass (vtable +0x18 0x0103d830 -> RenderObject's draw 0x017edf43): the registry functor of the mount
  * model (mount_render.c, NATIVE-HELPERS-002) or the default body RenderBody(2, ...). */
 static void r_after(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
@@ -789,6 +1047,7 @@ static void r_after(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int3
             break;   /* the pose push/pop, the bone lookups (done through the host), EnableAlphaTest */
         }
     }
+    class_visuals(d, m, o);   /* vtable +0x1c after the after-pass (0x0106bc2b) */
 }
 
 static void r_sprite(void *c, int32_t bitmap, const float p[3], float scale, const float l[3], const mu_hp_object *o)
@@ -919,7 +1178,7 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
     r.alpha_test = r_alpha;
     r.color4 = r_color4;
     r.shadow = r_shadow;
-    w->stats.drawn_bugs = w->stats.drawn_mounts = w->stats.drawn_imps = w->stats.shadows = w->stats.passes = 0;
+    w->stats.drawn_bugs = w->stats.drawn_mounts = w->stats.drawn_imps = w->stats.shadows = w->stats.passes = w->stats.decals = 0;
     /* the render scene's order: RenderBugs 0x00c9e4e3, the mount render loop 0x0106bc2b */
     mu_hp_render_bugs(&w->h, &w->inputs, &r);
     mu_hp_mounts_render(&w->h, &w->mounts, &w->inputs, &r);

@@ -79,7 +79,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
              $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c \
-             $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c $(RECON)/helpers/mount_render.c \
+             $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c $(RECON)/helpers/mount_render.c $(RECON)/helpers/mount_class.c \
              $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
              $(RECON)/quest/quest_ui.c $(RECON)/quest/quest_packets.c $(RECON)/quest/quest_api.c \
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
@@ -101,7 +101,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/items/*.h) \
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
-           $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(wildcard $(RECON)/quest/*.h) \
+           $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(wildcard $(RECON)/quest/*.h) \
            $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
