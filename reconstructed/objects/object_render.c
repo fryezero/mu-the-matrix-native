@@ -973,6 +973,28 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     return MU_OBJ_UNSUPPORTED;
 }
 
+int mu_obj_move_pre_sky(int32_t world, const float hero[3], mu_obj_rand_fn rnd, void *c, mu_obj_log *log)
+{
+    if (world != 10 && world != 0x84)
+        return 0;
+    event(log, MU_OBJ_CALL_SKY, -1);
+    if (world == 0x84 || rem_i32(rnd(c), 10) != 0)
+        return 1;
+    float p[3];
+    p[0] = (float)(rem_i32(rnd(c), 5000) - 2500) + hero[0];
+    p[1] = (float)(rem_i32(rnd(c), 5000) - 2500) + hero[1];
+    p[2] = hero[2] - 1000.0f;
+    const float zero[3] = {0.0f, 0.0f, 0.0f}, one[3] = {1.0f, 1.0f, 1.0f};
+    mu_obj_event *e = event(log, MU_OBJ_CALL_CREATE_EFFECT, -1);
+    arg(e, 0x7ef7);
+    arg_v(e, p);
+    arg_v(e, zero);
+    arg_v(e, one);
+    arg(e, 0);   /* subtype */
+    arg(e, 0);   /* no owner */
+    return 1;
+}
+
 int mu_obj_visual(uint8_t *o, int32_t world, float time)
 {
     if (world != 0 || mu_obj_i32(o, MU_OBJF_TYPE) != 0x69)

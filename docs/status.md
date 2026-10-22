@@ -28,7 +28,8 @@ not exist yet.
   equal, primary terrain light equal in every world, differences ranked. Icarus now draws no terrain, as the render
   scene (500 Unicorn cases, 0 mismatches, 2 planted mistakes caught). Per-world CreateObject/MoveObject cases
   (Dungeon torches, Kanturu/Karutan braziers, Atlans crystals, Noria/Devias blend meshes, hook worlds): 3,000 + 3,000
-  Unicorn cases equal, 9 more planted mistakes caught; Dungeon 6.9 → 2.0, Kanturu 9.9 → 3.7 mean |Δ|.
+  Unicorn cases equal, 9 more planted mistakes caught; Dungeon 6.9 → 2.0, Kanturu 9.9 → 3.7 mean |Δ|. Icarus's rising cloud puffs (pre-pass spawner, effect
+  `0x7ef7`, flare particles; read live from the effect pool): 2,000 + 600 + 1,500 Unicorn cases.
   [Evidence](research/client-world-fidelity.md).
 - Experience, levels and stat points, NATIVE-PROGRESS-001. The class formulas of all 16 stat machine classes, the
   experience table, the HUD's experience bar, the level-up, kill-experience, master and stat-point answers, the

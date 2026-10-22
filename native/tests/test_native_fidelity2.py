@@ -158,6 +158,48 @@ class WorldObjectCaseTests(unittest.TestCase):
         self.assertEqual([e[2] for e in events if e[0] == 0x00a6ac96], [0x26c])
 
 
+class IcarusSkyTests(unittest.TestCase):
+    """Icarus's rising cloud puffs: the pre-pass spawner, the 0x7ef7 effect and its flare particles."""
+
+    def test_pre_pass_spawns_a_puff_one_step_in_ten(self):
+        import validate_object_render as vor
+        subprocess.run(['make', '-s', '-C', str(ROOT / 'reconstructed/objects')], check=True)
+        lib = vor.Library(ROOT / f'reconstructed/objects/libobjects.{SUFFIX}')
+        values = [20, 2600, 100]          # 20 % 10 == 0: a puff at hero + (100, -2400, -1000)
+        rand_fn = vor.RAND_FN(lambda c: values.pop(0))
+        log = vor.new_log()
+        hero = (ctypes.c_float * 3)(1550.0, 1350.0, 285.0)
+        self.assertEqual(lib.dll.mu_obj_move_pre_sky(10, hero, rand_fn, None, ctypes.byref(log)), 1)
+        events = vor.log_events(log)
+        self.assertEqual(events[0][0], 0x018016b0)
+        effect = events[1]
+        self.assertEqual(effect[2], 0x7ef7)
+        pos = struct.unpack('<3f', struct.pack('<3I', *effect[3:6]))
+        self.assertEqual(pos, (1650.0, -1050.0, -715.0))
+        quiet = vor.RAND_FN(lambda c: 7)   # 7 % 10: no puff
+        log = vor.new_log()
+        lib.dll.mu_obj_move_pre_sky(10, hero, quiet, None, ctypes.byref(log))
+        self.assertEqual(len(vor.log_events(log)), 1)
+        self.assertEqual(lib.dll.mu_obj_move_pre_sky(0, hero, quiet, None, ctypes.byref(vor.new_log())), 0)
+
+    def test_puff_effect_rises_and_moves_twice_on_odd_lifetime(self):
+        import validate_skill_fx as sfx
+        subprocess.run(['make', '-s', '-C', str(ROOT / 'reconstructed/combat')], check=True)
+        lib = sfx.load_library(ROOT / f'reconstructed/combat/libcombat.{SUFFIX}')
+        values = [3]
+        env = sfx.Env()
+        env.rand = sfx.RAND_FN(lambda c: values.pop(0) if values else 0)
+        e = sfx.Effect()
+        F3 = ctypes.c_float * 3
+        self.assertEqual(lib.mu_sfx_effect_create(ctypes.byref(e), 0x7ef7, 0, F3(100, 200, -700), F3(0, 0, 0),
+                                                  F3(1, 1, 1), -1, 0.0, None, ctypes.byref(env)), 1)
+        self.assertEqual((e.lifetime, e.scale), (400, 3.0))
+        self.assertAlmostEqual(e.light[0], 0.3, places=6)
+        self.assertAlmostEqual(e.direction[2], math.sin(1.2217305898666382) * 6.0, places=4)
+        lib.mu_sfx_effect_move(ctypes.byref(e), ctypes.byref(env))
+        self.assertEqual(e.lifetime, 398)    # 400 -> 399 is odd: the client moves it once more
+
+
 @unittest.skipIf(tour is None, 'Pillow is not installed')
 class TourTests(unittest.TestCase):
     @classmethod

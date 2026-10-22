@@ -230,6 +230,13 @@ typedef struct mu_obj_move_inputs {
  * object is transparent or has no model, MU_OBJ_UNSUPPORTED for a world whose case
  * is not reconstructed (the tick is logged before that). */
 int mu_obj_move(uint8_t *object, int32_t index, const mu_obj_move_inputs *inputs, mu_obj_log *log);
+/* NATIVE-FIDELITY-002: MoveObjects' pre-pass 0x01802168 for the sky worlds 10 (Icarus) and 0x84
+ * (0x018021c3..0x01802322): both call 0x018016b0 (logged as MU_OBJ_CALL_SKY; its cloud model and lightning are not
+ * reconstructed); in world 10, one step in ten, a rising cloud puff CreateEffect 0x7ef7 subtype 0 at the hero
+ * + (rand % 5000 - 2500, rand % 5000 - 2500, -1000), angle 0, light 1 (logged as MU_OBJ_CALL_EFFECT: type, position,
+ * angle, light, subtype, 0). Returns 0 for other worlds (their pre-pass branches are not reconstructed). */
+#define MU_OBJ_CALL_SKY 0x018016b0u
+int mu_obj_move_pre_sky(int32_t world, const float hero[3], mu_obj_rand_fn rand_fn, void *context, mu_obj_log *log);
 /* The part of 0x017ff238 before the per-world switch at 0x017ff8ad (MU_OBJ_OK when the world
  * case would follow). */
 int mu_obj_move_generic(uint8_t *object, int32_t index, const mu_obj_move_inputs *inputs, mu_obj_log *log);

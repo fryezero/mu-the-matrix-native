@@ -16,6 +16,7 @@ static float f32bits(uint32_t bits)
     return value;
 }
 
+#define F_0_01 f32bits(0x3c23d70au)  /* 0x01a7df00 */
 #define F_0_1 f32bits(0x3dcccccdu)   /* 0x01a7df04 */
 #define F_0_2 f32bits(0x3e4ccccdu)   /* 0x01a7df08 */
 #define F_0_3 f32bits(0x3e99999au)   /* 0x01a7e6e0 */
@@ -217,6 +218,8 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_BITMAP_SHOCKWAVE: return sub == 1;
     case MU_SFX_MODEL_FENRIR_LIGHTNING: return sub == 0;
     case MU_SFX_FENRIR_STEP: return sub >= 1 && sub <= 5;
+    case MU_SFX_MODEL_CLOUD: return sub == 0;
+    case MU_SFX_BITMAP_FLARE: return sub == 0;
     default: return 0;
     }
 }
@@ -334,6 +337,27 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->lifetime = e->field_70 = 60;
         e->scale = e->scale_arg = scale;
         e->alpha = 1.0f;
+        break;
+    case MU_SFX_BITMAP_FLARE: {                   /* 0x013c7082, subtype 0: Icarus's rising cloud puff */
+        e->light[0] = e->light[1] = e->light[2] = F_0_3;
+        const float pitch = f32bits(0x3f9c61abu);    /* 1.2217306 (70 degrees, 0x01acd818) */
+        const float yaw = 30.0f * f32bits(0x40490fdbu) / 180.0f;
+        const float speed = (float)(smod(env_rand(env), 5) + 9) * 0.5f;
+        const float horizontal = (float)cos((double)pitch) * speed;
+        e->direction[0] = horizontal * (float)sin((double)yaw);
+        e->direction[1] = (float)cos((double)pitch) * speed * (float)cos((double)yaw);
+        e->direction[2] = (float)sin((double)pitch) * speed;
+        e->scale = 3.0f;
+        e->lifetime = 400;
+        break;
+    }
+    case MU_SFX_MODEL_CLOUD:                      /* 0x013d7a72: Icarus's cloud layer */
+        e->lifetime = 2;
+        e->blend_mesh = 0;
+        e->scale = 14.0f;
+        e->position[1] = e->position[1] + 200.0f;
+        e->position[2] = e->position[2] - 190.0f;
+        e->flag5 = 0;
         break;
     case 0x6f6:                                   /* 0x0141818d: tail light emitter */
         e->lifetime = e->field_70 = 12;
@@ -754,6 +778,18 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
     case MU_SFX_MODEL_LASER:
         /* 0x0144f626, subtype 0: nothing */
         break;
+    case MU_SFX_MODEL_CLOUD:
+        break;
+    case MU_SFX_BITMAP_FLARE:
+        /* 0x0144ce38, subtype 0: the puff rises and slows, leaving a flare particle */
+        e->position[0] = e->position[0] + e->direction[0];
+        e->position[1] = e->position[1] + e->direction[1];
+        e->position[2] = e->position[2] + e->direction[2];
+        e->direction[2] = e->direction[2] - F_0_01;
+        call_particle(env, e, MU_SFX_BITMAP_FLARE, e->position, e->angle, e->light, 1, e->scale, MU_SFX_NO_OWNER);
+        if (-2.0f > e->direction[2])
+            e->lifetime = 0;
+        break;
     case MU_SFX_TWISTING_SLASH:
         /* 0x0144f7ae: one swirl piece per step, subtype 4 - LifeTime, owned by the caster */
         {
@@ -1022,8 +1058,11 @@ lifetime:
         if (e->lifetime <= 0) {
             call_plain(env, e, MU_SFX_CALL_DELETE);
             e->live = 0;
+        } else if (type == 0x7ef7 && sub == 0 && (e->lifetime & 1)) {
+            /* 0x0150cc17: the cloud puff moves once more on an odd LifeTime (NATIVE-FIDELITY-002) */
+            return mu_sfx_effect_move(e, env);
         }
-        /* subtype 3 (MODEL_FIRE) / 0 (0x7ef7) with an odd LifeTime moves twice (not reconstructed) */
+        /* subtype 3 (MODEL_FIRE) with an odd LifeTime moves twice (not reconstructed) */
         return 1;
     }
     if (e->lifetime <= 0) {

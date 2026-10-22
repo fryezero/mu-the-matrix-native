@@ -159,6 +159,32 @@ The native sidecar of hidden types (`EncTerrain<n>.hidden`) is kept outside Lore
 worlds: most of those −2 values are written when an object is drawn (emitters), which the move cases now reproduce
 only for the ported worlds.
 
+### 3.4 Icarus's rising cloud puffs (verified; live)
+
+A third live session (2026-10-22, lock 13:38–13:41, Nighty in Icarus then back to Lorencia) read the effect pool
+`0x0a4ca430` six times 0.4 s apart: every live effect was `0x7ef7` (flare) subtype 0 (20–25 of them, scale 3,
+light 0.3, LifeTime up to 400, drifting up), none of the cloud model `0x1a1`. Their source is MoveObjects' pre-pass
+`0x01802168`: in world 10, after `0x018016b0`, one step in ten a CreateEffect `0x7ef7` subtype 0 at the hero +
+(rand % 5000 − 2500, rand % 5000 − 2500, −1000) (`0x018021c3..0x01802302`). Reconstructed and verified:
+
+| Piece | Client | C | Unicorn |
+|---|---|---|---|
+| pre-pass, sky worlds | `0x01802168` (world 10, 0x84; `0x018016b0` recorded) | `mu_obj_move_pre_sky` | 2,000 / 2,000; planted mistake (z −900) caught in 35 / 600 |
+| puff effect create | CreateEffect `0x013c7082`: light 0.3, direction from 70° / 30° and (rand % 5 + 9) · 0.5, scale 3, LifeTime 400 | `mu_sfx_effect_create` | in 600 / 600 |
+| puff effect move | MoveEffect `0x0144ce38`: position += direction, rise slows by 0.01, a flare particle subtype 1 per move, dies when the rise passes −2; LifeTime path `0x0150cb88` moves it again on an odd LifeTime | `mu_sfx_effect_move` | in 600 / 600; new negative control (one move only) 18 differ |
+| flare particle subtype 1 | CreateParticle `0x015eee83` (LifeTime 50), MoveParticles `0x016635ad` (light × 0.9, scale × 0.95), RenderParticles | `reconstructed/particles` | create/move/render in 1,500 cases each |
+
+MoveEffect's frame is 0x16eb4 bytes, so the effect validator now runs with a deeper emulated stack. The particle run
+has one 1-ulp difference (1 / 1,500 move cases) in an unrelated kind, smoke `0x7f5a` subtype 0x75, whose motion goes
+through the host-libm substitution of the client's sin/cos (AngleToVector); it is reported, not hidden.
+
+`mu-world` feeds the pre-pass into its world effect pool (the module of NATIVE-JOINT-001). After 400 steps in Icarus the
+tour's mean |Δ| is 54.7 (61.8 with the terrain skip only). Still missing there (static reading): `0x018016b0`, which
+one step in fifty adds a terrain light, the cloud model effect `0x1a1` (CreateEffect `0x013d7a72`: scale 14, LifeTime 2,
+reconstructed and verified, not yet created natively) and lightning joints `0x7f7d` subtype 10; the `cloudLight`
+sprites and `0x7f7c` joints of the world-10 object routine `0x0180249e`; and the soft grey cloud layer of the live view,
+whose source was not identified.
+
 ### Before and after
 
 | Map | Mean \|Δ\| before → after | Off > 24 | Frame light Δ near hero | Object field differences (map-wide) |
@@ -171,22 +197,22 @@ only for the ported worlds.
 | Elbeland | 18.0 | | | 856 → 19 |
 | Devias (4 / town) | 3.6 / 3.5 | | | 203 / 212 → 0 / 6 |
 | Lost Tower | 0.34 → 0.31 | | | 42 → 25 |
-| Icarus | 67.7 → 61.8 | | | |
+| Icarus | 67.7 → 61.8 (terrain) → 54.7 (puffs, after 400 steps) | 0.857 → 0.760 | | |
 
 Remaining field differences are values the client changes while it draws or animates (pulsing lights, alpha and speed
 of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags of types the visual pass sets).
 
 ## 4. Gaps (ranked by visibility)
 
-1. **Icarus clouds** (static reading). The cloud layer is not terrain: in Icarus MoveBoids spawns the boids of
-   `0x00ca2154` (model `0x7c4`, NATIVE-ENV-001 left them unported), and RenderBoids `0x00c9fd8d` creates clouds
-   particles (`Effect\clouds.jpg`, bitmap `0x7f89`) for them; the world-10 object routine `0x0180249e` gives the
-   smoke-box types 0..5 a `cloudLight` sprite (`0x7f8a`) and two joints `0x7f7c` subtype 6 (the blue swirls) once in
-   ten steps. None of these branches is reconstructed yet.
-2. **Tarkan and Raklion haze**: the client's terrain is up to ~1.35× brighter, more toward the camera, although the
-   primary and frame light grids are identical to the native ones and the textures are the same. Both folders hold a
-   `Fog.OZJ` that no string in the captured code names. The source (a screen or world overlay, a per-world GL state)
-   was not found.
+1. **Icarus's soft cloud layer** (section 3.4): the rising puffs are ported; the grey cloud layer, `0x018016b0`
+   (cloud model, lightning), the `cloudLight` sprites and the blue swirls (`0x0180249e`'s joints `0x7f7c` subtype 6)
+   are not. The Icarus dragons (boids `0x7c4`, `0x00ca2154`) remain unported (NATIVE-ENV-001).
+2. **Tarkan and Raklion haze**: the client's terrain is up to ~1.35× brighter, the darker light-map areas most, so
+   the contrast is compressed; the pattern stays with the ground when the hero moves (second session, two positions
+   per map). The primary and frame light grids equal the native ones, the light-offset grid `0x0bc35430` is all zero,
+   FogEnable is off and the fog globals are the BeginOpengl defaults (live reads), and the textures are the same. Both
+   folders hold a `Fog.OZJ` that no string in the captured code names. The source (a GL state, a second pass, an
+   overlay) was not found; a GL call trace of the Wine-track `mugl` layer in these two worlds is the next step.
 3. The brazier and torch flames themselves in Kanturu and Karutan (their lights are ported; the flames come from
    RenderObjectVisual `0x017f9758`'s world cases, not ported), and the visual-pass flags (`+0xa` drawn after the
    characters in Noria, Elbeland, Raklion, Karutan).

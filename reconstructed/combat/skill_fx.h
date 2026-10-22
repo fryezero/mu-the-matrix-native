@@ -49,6 +49,7 @@ enum {
     MU_SFX_TWISTING_SLASH = 0x453,    /* no model: spawns one swirl piece per step */
     MU_SFX_TWISTING_SWIRL = 0x454,    /* draws the caster's weapon (RenderEffects 0x015332ac) */
     MU_SFX_MODEL_TORNADO = 0x40e,     /* Object142\hs_fieldtornado.bmd (Tormenta Island, NATIVE-JOINT-001) */
+    MU_SFX_MODEL_CLOUD = 0x1a1,       /* Data\\Object11\\cloud.bmd: Icarus's cloud layer around the hero (NATIVE-FIDELITY-002) */
     MU_SFX_MODEL_STAR_DRAGON = 0x5ac, /* Effect\stardr01.bmd: the character-select sky dragon (NATIVE-CHARSEL-003) */
     MU_SFX_MODEL_STAR_GLINT = 0x5ad,  /* Effect\stardr02.bmd: the glint the dragon spawns at its bone 1 */
     /* NATIVE-HELPERS-002: Fenrir's effects (its registry functor) */
@@ -56,6 +57,7 @@ enum {
     MU_SFX_FENRIR_STEP = 0x4ad,       /* no model: the paws' lightning marks (decals 0x7ff4..0x7ff8) */
     MU_SFX_BITMAP_LIGHTING_A = 0x7ff4,/* Effect\eff_lightinga01..05.jpg (0x7ff4 + frame % 5) */
     MU_SFX_BITMAP_THUNDER = 0x7f2b,   /* Effect\Thunder01.jpg (Energy Ball) */
+    MU_SFX_BITMAP_FLARE = 0x7ef7,     /* Effect\\flare01.jpg: Icarus's cloud puffs (sub 0, NATIVE-FIDELITY-002) */
     MU_SFX_BITMAP_SPARK3 = 0x7f26,    /* Effect\Spark03.jpg */
     MU_SFX_BITMAP_FIRE = 0x7f3c,      /* Effect\Fire01.jpg */
     MU_SFX_BITMAP_MAGIC_GROUND2 = 0x7f84, /* Effect\Magic_Ground2.jpg (Heal) */

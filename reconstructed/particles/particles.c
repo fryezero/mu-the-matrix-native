@@ -37,6 +37,8 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 0;
     case MU_PT_BITMAP_THUNDER:
         return subtype == 0;
+    case MU_PT_BITMAP_FLARE:
+        return subtype == 1;                   /* NATIVE-FIDELITY-002: Icarus's cloud puffs */
     case MU_PT_BITMAP_SPARK3:
         return subtype == 0 || subtype == 1 || subtype == 0xf || subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
     case 0x831d: case 0x83b3: return subtype == 6;
@@ -236,6 +238,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         mu_vector_rotate(v, m, p->velocity);
         break;
     }
+    case MU_PT_BITMAP_FLARE:
+        /* 0x015eee83, subtype 1 */
+        p->lifetime = 50;
+        break;
     case MU_PT_BITMAP_THUNDER:
         /* 0x015bda75 */
         p->scale = (float)(mu_pt_rand(h) % 8 + 6) * scale * 0.1f;
@@ -525,6 +531,12 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->position[k] = p->position[k] + p->velocity[k];
             break;
         }
+        case MU_PT_BITMAP_FLARE:
+            /* 0x016635ad, subtype 1: dims and shrinks */
+            for (int k = 0; k < 3; ++k)
+                p->light[k] = 0.9f * p->light[k];
+            p->scale = p->scale * 0.95f;
+            break;
         case MU_PT_BITMAP_THUNDER:
             /* 0x0162bedc */
             p->rotation = p->rotation + p->gravity;

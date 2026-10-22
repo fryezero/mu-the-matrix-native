@@ -193,6 +193,7 @@ class Library:
         d.mu_obj_render_pass.argtypes = [ctypes.POINTER(World), ctypes.POINTER(RenderInputs),
                                          ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(Log)]
         d.mu_obj_visual.argtypes = [P, ctypes.c_int32, ctypes.c_float]
+        d.mu_obj_move_pre_sky.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_float), RAND_FN, P, ctypes.POINTER(Log)]
         d.mu_obj_render.argtypes = [P, ctypes.c_int32, P, ctypes.c_uint8, ctypes.POINTER(DrawInputs),
                                     ctypes.POINTER(Log)]
 
@@ -1126,9 +1127,55 @@ def family_render(machine, lib, g, cases):
 
 # ---------------------------------------------------------------- driver
 
+# ---------------------------------------------------------------- 4b. MoveObjects' pre-pass, sky worlds (NATIVE-FIDELITY-002)
+
+MOVE_PRE_ENTRY = 0x01802168
+SKY_EFFECT_TAIL = (0, 0, 0xffffffff, 0, 0, 0, 0, 0xffffffff, 0, 0)   # CreateEffect's arguments after the light
+
+
+def family_move_pre(machine, lib, g, cases):
+    t = Tally('move_pre')
+    for n in range(cases):
+        world = g.choice([10, 10, 10, 0x84])
+        hero = (f32(g.uniform(0, 25600)), f32(g.uniform(0, 25600)), f32(g.uniform(-500, 800)))
+        seed = g.getrandbits(32)
+        rnd, calls = MsvcRand(seed), []
+
+        def sky(m):
+            calls.append((0x018016b0, -1))
+            return 0
+
+        def effect(m):
+            a = [m.argument(i) for i in range(14)]
+            entry = (CREATE_EFFECT, -1, a[0]) + read_vec(m, a[1]) + read_vec(m, a[2]) + read_vec(m, a[3]) + (0, 0)
+            calls.append(entry if tuple(a[4:]) == SKY_EFFECT_TAIL else ('effect tail', a))
+            return 0
+        stubs = {0x01989721: lambda m: rnd(), 0x018016b0: sky, CREATE_EFFECT: effect}
+        regions = global_regions(world, 6, [
+            am.defined_region('out', OUT, bytes(4)),
+            am.defined_region('move-count', MOVE_COUNT, struct.pack('<i', g.choice([0, 0, 3])), writable=False),
+            am.defined_region('hero-pointer', HERO_PTR, struct.pack('<I', HERO), writable=False),
+            am.defined_region('hero', HERO + 0x33ac, pack_f(*hero), writable=False)])
+        result = run(machine, MOVE_PRE_ENTRY, [OUT], regions, stubs)
+        stop = stopped_reason(result)
+        if stop:
+            t.add(False, {'case': n, 'world': world}, stop)
+            continue
+        crand = MsvcRand(seed)
+        rand_fn = RAND_FN(lambda ctx: crand())
+        log = new_log()
+        handled = lib.dll.mu_obj_move_pre_sky(world, (ctypes.c_float * 3)(*hero), rand_fn, None, ctypes.byref(log))
+        mine = log_events(log)
+        ok = handled == 1 and calls == mine and rnd.seed == crand.seed
+        t.count(f'world {world:#x}')
+        t.count('cloud puffs', sum(1 for c in calls if c[0] == CREATE_EFFECT))
+        t.add(ok, {'case': n, 'world': world, 'client': calls[:3], 'c': mine[:3]})
+    return t
+
+
 FAMILIES = {'light': family_light, 'body_light': family_body_light, 'create': family_create,
             'move_pass': family_move_pass, 'handler_moves': family_handler_moves, 'move': family_move, 'visual': family_visual, 'render_pass': family_render_pass,
-            'render': family_render}
+            'render': family_render, 'move_pre': family_move_pre}
 
 MUTATIONS = [
     ('terrain light without the fy term', 'object_render.c', 'a = a * fy;', 'a = a * fx;', 'light'),
@@ -1163,6 +1210,8 @@ MUTATIONS = [
     ('Aida light +0.5', 'object_render.c', 't == 0x1e ? k + 0.6f', 't == 0x1e ? k + 0.5f', 'move'),
     ('Karutan 0x71 stays visible', 'object_render.c', 'add_light(log, index, o, light, 3);\n            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);\n            break;\n        }\n        case 0x72',
      'add_light(log, index, o, light, 3);\n            break;\n        }\n        case 0x72', 'move'),
+    ('Icarus puffs 900 below the hero', 'object_render.c', 'p[2] = hero[2] - 1000.0f;', 'p[2] = hero[2] - 900.0f;',
+     'move_pre'),
     ('hidden -2 drawn', 'object_render.c', 'mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) == -2)\n        return MU_OBJ_SKIPPED;',
      'mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) == -3)\n        return MU_OBJ_SKIPPED;', 'render'),
 ]
