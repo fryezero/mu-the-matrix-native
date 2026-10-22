@@ -56,7 +56,8 @@ enum {
     MU_SFX_BITMAP_FIRE = 0x7f3c,      /* Effect\Fire01.jpg */
     MU_SFX_BITMAP_MAGIC_GROUND2 = 0x7f84, /* Effect\Magic_Ground2.jpg (Heal) */
     MU_SFX_BITMAP_JOINT_SPIRIT = 0x7fd3,  /* Effect\JointSpirit01.jpg (Evil Spirit) */
-    MU_SFX_BITMAP_JOINT_ENERGY = 0x7fd8   /* Effect\JointEnergy01.jpg (Heal) */
+    MU_SFX_BITMAP_JOINT_ENERGY = 0x7fd8,  /* Effect\JointEnergy01.jpg (Heal) */
+    MU_SFX_BITMAP_SHOCKWAVE = 0x8012      /* Effect\ShockWave.jpg: the mounts' flying step (NATIVE-HELPERS-002) */
 };
 
 /* Client routines reported through the call hook. */

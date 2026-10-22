@@ -43,7 +43,8 @@ enum {
     MU_JT_BITMAP_SPARK = 0x7fd5,       /* the spark streaks (Twisting Slash, Noria) */
     MU_JT_BITMAP_LASER = 0x7fd6,       /* Effect\JointLaser01.jpg */
     MU_JT_BITMAP_ENERGY = 0x7fd8,      /* Effect\JointEnergy01.jpg (Heal) */
-    MU_JT_BITMAP_SHINY2 = 0x7f67       /* Effect\Shiny02.jpg (the bolts' CreateSprite) */
+    MU_JT_BITMAP_SHINY2 = 0x7f67,      /* Effect\Shiny02.jpg (the bolts' CreateSprite) */
+    MU_JT_BITMAP_FLARE = 0x7f78        /* Effect\Flare.jpg (the Dark Horse's ring, NATIVE-HELPERS-002) */
 };
 
 /* Client routines the joint code calls, reported through the environment. */

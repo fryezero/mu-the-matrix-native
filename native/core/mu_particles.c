@@ -15,13 +15,16 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 21
+#define MU_WORLD_PT_EFFECTS 25
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
     MU_JT_BITMAP_ENERGY, MU_PT_BITMAP_CLOUDS, MU_PT_BITMAP_WATERFALL1,  MU_PT_BITMAP_LIGHTNING2,
     MU_PT_BITMAP_SHINY1, MU_PT_BITMAP_WATERFALL2, MU_PT_BITMAP_WATERFALL3, MU_PT_BITMAP_FANTA_B,
     MU_PT_BITMAP_SPARK04, MU_PT_BITMAP_MAGIC_GROUND13, MU_PT_BITMAP_IMPACK03,
+    /* NATIVE-HELPERS-002: the helpers' smoke02 and drop01, the Dark Horse ring's Flare and the flying step's
+     * ShockWave (LoadBitmap 0x0182166f, 0x0183930b, 0x0182253b, 0x0182150f) */
+    MU_PT_BITMAP_SMOKE2, MU_PT_BITMAP_DROP, MU_JT_BITMAP_FLARE, MU_SFX_BITMAP_SHOCKWAVE,
     MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
@@ -30,7 +33,8 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/JointEnergy01.OZJ", "Data/Effect/clouds.OZJ", "Data/Effect/WATERFALL1.OZJ",
     "Data/Effect/lightning2.OZJ", "Data/Effect/Shiny01.OZJ", "Data/Effect/WATERFALL2.OZJ",
     "Data/Effect/WATERFALL3.OZJ", "Data/Effect/fantaB.OZJ", "Data/Effect/Spark04.OZJ",
-    "Data/Effect/magic_ground1_3.OZJ", "Data/Effect/Impack03.OZJ"};
+    "Data/Effect/magic_ground1_3.OZJ", "Data/Effect/Impack03.OZJ",
+    "Data/Effect/smoke02.ozt", "Data/Object8/drop01.OZJ", "Data/Effect/Flare.OZJ", "Data/Effect/Shockwave.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -77,6 +81,14 @@ static void h_owner(void *c, int32_t owner, float out[3])
         memcpy(out, img + MU_OBJF_POSITION, 12);
 }
 
+/* The bitmap record's height +0x208 (NATIVE-HELPERS-002: smoke02 sits on the terrain by half of it). */
+static float h_bitmap_height(void *c, int32_t bitmap)
+{
+    const mu_world_particles *p = c;
+    const int32_t s = slot_of(bitmap);
+    return s >= 0 && p->bitmap_present[s] ? (float)p->bitmaps.images[s].height : 0.0f;
+}
+
 static void host(mu_world_particles *p, mu_pt_host *h)
 {
     memset(h, 0, sizeof *h);
@@ -89,6 +101,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->frame_time = 0.1f;   /* [0x01cf103c] */
     h->drop_divisor = 1;
     h->scene_state = p->scene_state;   /* SceneFlag (NATIVE-CHARSEL-002: WATERFALL2 in scene 5) */
+    h->bitmap_height = h_bitmap_height;
 }
 
 /* ---- assets ---- */
@@ -582,6 +595,15 @@ static void apply_state(mu_meshdraw_state *s, int32_t wrapper, int32_t argument)
         s->blend = 0;
         s->depth_mask = 1;
         s->alpha_test = 0;
+        s->texture = 1;
+        break;
+    case MU_PT_STATE_BLEND:        /* 0x0184abd5 (NATIVE-HELPERS-002: smoke02) */
+        s->blend = 1;
+        s->src = MU_GL_SRC_ALPHA;
+        s->dst = MU_GL_ONE_MINUS_SRC_ALPHA;
+        s->depth_mask = 0;
+        s->alpha_test = 0;
+        s->cull = 0;
         s->texture = 1;
         break;
     case MU_PT_STATE_UNTEXTURED:   /* 0x0184a783(0) */

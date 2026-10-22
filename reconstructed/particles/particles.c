@@ -28,14 +28,17 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_SMOKE:
         return subtype == 0 || subtype == 2 || subtype == 3;
     case MU_PT_BITMAP_SPARK2:
-        return subtype == 0;
+        return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
+    case MU_PT_BITMAP_SMOKE2:
+    case MU_PT_BITMAP_DROP:
+        return subtype == 0;                   /* NATIVE-HELPERS-002 (the mounts' dust) */
     case MU_PT_BITMAP_RAIN_SPLASH:
     case MU_PT_BITMAP_RAIN_RING:
         return subtype == 0;
     case MU_PT_BITMAP_THUNDER:
         return subtype == 0;
     case MU_PT_BITMAP_SPARK3:
-        return subtype == 0 || subtype == 1;
+        return subtype == 0 || subtype == 1 || subtype == 0xf;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
     case MU_PT_BITMAP_CLOUDS:
         return subtype == 0x14;
     case MU_PT_BITMAP_WATERFALL1:
@@ -195,6 +198,12 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         /* 0x015dc098, subtype 0 */
         float m[12], v[3];
         p->scale = (float)(mu_pt_rand(h) % 4 + 4) * 0.1f;
+        if (subtype == 1) {
+            /* NATIVE-HELPERS-002: subtype 1 skips every listed subtype's block (0x015dc0e3..0x015dd30f) and
+             * takes the shared LifeTime 0x015dd424 */
+            p->lifetime = mu_pt_rand(h) % 8 + 8;
+            break;
+        }
         p->lifetime = mu_pt_rand(h) % 16 + 24;
         p->angle[2] = (float)(mu_pt_rand(h) % 360);
         mu_angle_matrix(p->angle, m);
@@ -213,7 +222,15 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         break;
     case MU_PT_BITMAP_SPARK3:
         /* 0x015dd48c; subtype 1: 0x015dd4c7 */
-        if (subtype == 1) {
+        if (subtype == 0xf) {
+            /* NATIVE-HELPERS-002, 0x015de866: one in three lives 35 steps and falls; the others keep the common
+             * LifeTime 2 (and the record's former alpha +0x44) */
+            if (mu_pt_rand(h) % 3 == 0) {
+                p->alpha = 1.0f;
+                p->lifetime = 0x23;
+                p->velocity[2] = -((float)(mu_pt_rand(h) % 5) + 5.0f) * 0.5f;
+            }
+        } else if (subtype == 1) {
             float m[12];
             static const float burst[3] = {0.0f, -50.0f, 0.0f};
             p->angle[0] = (float)(mu_pt_rand(h) % 360);
@@ -222,6 +239,25 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             mu_angle_matrix(p->angle, m);
             mu_vector_rotate(burst, m, p->velocity);
         }
+        break;
+    case MU_PT_BITMAP_SMOKE2: {
+        /* NATIVE-HELPERS-002, 0x015ccbd4 (shared with 0x7f5e), subtype 0: a puff pushed along the angle */
+        float m[12];
+        static const float push[3] = {0.0f, 3.0f, 0.0f};
+        p->lifetime = 0x20;
+        p->position[0] = (float)(mu_pt_rand(h) % 16 - 8) + p->position[0];
+        p->position[1] = (float)(mu_pt_rand(h) % 16 - 8) + p->position[1];
+        p->scale = (float)(mu_pt_rand(h) % 32 + 32) * 0.01f * scale;
+        mu_angle_matrix(angle, m);                  /* 0x015ccd50: the argument's angle */
+        mu_vector_rotate(push, m, p->velocity);
+        p->angle[0] = (float)(mu_pt_rand(h) % 360);
+        break;
+    }
+    case MU_PT_BITMAP_DROP:
+        /* NATIVE-HELPERS-002, 0x015b7799 (Atlans' drop01), subtype 0 */
+        p->lifetime = mu_pt_rand(h) % 10 + 0x1e;
+        p->scale = (float)(mu_pt_rand(h) % 6 + 4) * 0.03f;
+        p->light[0] = p->light[1] = p->light[2] = 1.0f;
         break;
     case MU_PT_BITMAP_SHINY1:
         /* 0x015e5c73: subtypes 0 and 1 */
@@ -405,10 +441,42 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->rotation = p->rotation + p->gravity;
             break;
         case MU_PT_BITMAP_SPARK3:
+            if (p->subtype == 0xf) {
+                /* NATIVE-HELPERS-002, 0x01651f36: dims, and dies when its alpha runs out */
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] = p->light[k] / 1.05f;
+                p->alpha = p->alpha - 0.001f;
+                if (!(0.0f < p->alpha))
+                    p->live = 0;
+                break;
+            }
             /* 0x01650bde: 0x01650c17 / 0x01650c74 */
             p->scale = p->scale - (p->subtype == 1 ? 2.0f : 0.5f);
             if (0.2f > p->scale)
                 p->live = 0;
+            break;
+        case MU_PT_BITMAP_SMOKE2: {
+            /* NATIVE-HELPERS-002, 0x01658099, subtype 0: fades over 32 steps, grows, drifts and slows, and sits
+             * on the terrain by half its height */
+            float l = (float)p->lifetime / 32.0f;
+            p->light[0] = p->light[1] = p->light[2] = l;
+            p->scale = p->scale + 0.08f;
+            for (int k = 0; k < 3; ++k)
+                p->position[k] = p->position[k] + p->velocity[k];
+            for (int k = 0; k < 3; ++k)
+                p->velocity[k] = 0.9f * p->velocity[k];
+            float ground = h && h->terrain_height ? h->terrain_height(h->context, p->position[0], p->position[1])
+                                                  : 0.0f;
+            float bh = h && h->bitmap_height ? h->bitmap_height(h->context, p->type) : 0.0f;
+            p->position[2] = ground + bh * p->scale * 0.5f;
+            break;
+        }
+        case MU_PT_BITMAP_DROP:
+            /* NATIVE-HELPERS-002, 0x0162267d, subtype 0: the next sheet cell and a jitter, rising */
+            p->frame = p->frame + 1;
+            p->position[0] = (float)(mu_pt_rand(h) % 20 - 10) * 2.5f * p->scale + p->position[0];
+            p->position[1] = (float)(mu_pt_rand(h) % 20 - 10) * 2.5f * p->scale + p->position[1];
+            p->position[2] = (float)(mu_pt_rand(h) % 20 + 10) * 2.5f * p->scale + p->position[2];
             break;
         case MU_PT_BITMAP_SHINY1:
             /* 0x016599cd: the size follows a sine of the lifetime; subtype 1 smaller and spinning */
@@ -549,6 +617,19 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
         if (p->subtype == 2)
             state(out, MU_PT_STATE_SUBTRACT, 0);     /* 0x01596e05 */
         break;
+    case MU_PT_BITMAP_SMOKE2:
+        state(out, MU_PT_STATE_BLEND, 0);            /* NATIVE-HELPERS-002, 0x01596f41 */
+        break;
+    case MU_PT_BITMAP_DROP: {
+        /* NATIVE-HELPERS-002, 0x01592374: cell frame % 9 of a 3x3 sheet (0.24 wide, 0.005 inset), upright */
+        int32_t cell = p->frame % 9;
+        s->rotation = 0.0f;
+        s->u = (float)(cell % 3) * 0.25f + 0.005f;
+        s->v = (float)(cell / 3) * 0.25f + 0.005f;
+        s->uw = 0.24f;
+        s->vh = 0.24f;
+        break;
+    }
     case MU_PT_BITMAP_CLOUDS:
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
         for (int k = 0; k < 3; ++k)
