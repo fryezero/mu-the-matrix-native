@@ -125,3 +125,9 @@ void mu_quest_client_log_clear(mu_quest_client *c)
 {
     mu_quest_log_clear(&c->log);
 }
+
+void mu_quest_set_sink(mu_quest_client *c, void (*sink)(void *user, const char *line), void *user)
+{
+    c->log.sink = sink;
+    c->log.sink_user = user;
+}

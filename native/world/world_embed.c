@@ -224,9 +224,10 @@ int32_t mu_world_embed_folder(const mu_world_embed *e)
 void mu_world_embed_set_gfx(mu_world_embed *e, struct world_gfx *gfx, double scale)
 {
     e->a.gfx = gfx;
-    if (gfx)
+    if (gfx) {
         names_gfx_attach(&e->a, scale);
-    else if (e->a.names)
+        world_gfx_quest_setup(gfx, e->a.npc_demo ? e->a.npc_demo->quests : NULL);   /* NATIVE-QUEST-001 */
+    } else if (e->a.names)
         mu_names_set_sink(&e->a.names->names, NULL);
 }
 #endif

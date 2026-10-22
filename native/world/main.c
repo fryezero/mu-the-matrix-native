@@ -288,6 +288,17 @@ static void combat_pre_step(void *context, mu_walk *w)
         mu_combat_pre_step(a->combat);
 }
 
+#ifndef MU_WORLD_NO_GL
+/* NATIVE-QUEST-001: a monster died: the quest demo server counts it (core/mu_quest). */
+static void combat_kill(void *context, int32_t actor, int32_t server_class)
+{
+    (void)actor;
+    app *a = context;
+    if (a->gfx)
+        world_gfx_quest_kill(a->gfx, server_class);
+}
+#endif
+
 /* NATIVE-NPC-001: the talk answer's window, its close-all and sounds. */
 static void npc_open(void *context, const mu_npc_open *o)
 {
@@ -478,6 +489,10 @@ static int load(app *a)
             a->combat->play_sound = combat_sound;
             a->combat->sound_context = a;
         }
+#ifndef MU_WORLD_NO_GL
+        a->combat->kill = combat_kill;   /* NATIVE-QUEST-001: the quest demo's kill progress */
+        a->combat->kill_context = a;
+#endif
     }
     if ((a->combat_on || a->items_on) && !a->no_items) {   /* NATIVE-ITEMS-001 */
         a->ground = calloc(1, sizeof *a->ground);
@@ -588,6 +603,10 @@ static void on_step(void *context, mu_walk *w)
         mu_world_actors_step(&a->actors);
     if (a->npc)   /* MoveCharacters' character bit, the talk at the end of the walk, the demo answer */
         mu_npc_step(a->npc);
+#ifndef MU_WORLD_NO_GL
+    if (a->gfx)   /* NATIVE-QUEST-001: the quest demo server's answers */
+        world_gfx_quest_step(a->gfx);
+#endif
     if (a->combat)
         mu_combat_step(a->combat);
     if (a->players)   /* NATIVE-PLAYERS-001: the demo server's packets, MoveCharacters' remote step, the animation step */
@@ -2220,6 +2239,8 @@ static int headless(app *a)
             names_gfx_attach(a, 1.0);
         if (a->gfx && a->npc_demo)
             world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
+        if (a->gfx)   /* NATIVE-QUEST-001 */
+            world_gfx_quest_setup(a->gfx, a->npc_demo ? a->npc_demo->quests : NULL);
     }
 #endif
     mu_raster raster;
@@ -2316,6 +2337,7 @@ static int headless(app *a)
         char line[512];
         world_gfx_report(a->gfx, line, sizeof line);
         printf("{%s}\n", line);
+        world_gfx_quest_report(a->gfx, stdout);
         world_gfx_close(a->gfx);
         a->gfx = NULL;
     }
@@ -2414,6 +2436,7 @@ static int windowed(app *a)
         if (a->gfx) {
             if (a->npc_demo)   /* NATIVE-NPC-001: the demo vault */
                 world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
+            world_gfx_quest_setup(a->gfx, a->npc_demo ? a->npc_demo->quests : NULL);   /* NATIVE-QUEST-001 */
             SDL_StartTextInput();
             names_gfx_attach(a, scale);
         }
@@ -2539,6 +2562,7 @@ static int windowed(app *a)
     report_summary(a, mu_gl_renderer());
     if (a->audio_device)
         SDL_CloseAudioDevice(a->audio_device);
+    world_gfx_quest_report(a->gfx, stdout);
     world_gfx_close(a->gfx);
     a->gfx = NULL;
     gl_teardown(a);

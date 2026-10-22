@@ -725,9 +725,22 @@ void mu_quest_info_select_tab(mu_quest_client *c, int32_t tab)
         mu_quest_logf(&c->log, "tab %d init (not played)", tab);
 }
 
-int mu_quest_info_callback(mu_quest_client *c, const char *name, const double *v, int n)
+void mu_quest_tab_text_width(mu_quest_client *c, mu_quest_tab *t, int32_t lines, const char *text)
+{
+    (void)t;
+    (void)lines;               /* the tab keeps the line count (+0x88) and the text (+0x8c) */
+    char u[8192];
+    invoke_text(c, MQI, "SetMyQuest", mu_quest_utf8(c, text ? text : "", u, sizeof u));
+}
+
+int mu_quest_info_callback(mu_quest_client *c, const char *name, const double *v, int n, const char *text)
 {
     mu_quest_tab *t = mu_quest_info_tab(c, c->info.tab);
+    if (!strcmp(name, "QuestTextWidth")) {
+        if (t)
+            mu_quest_tab_text_width(c, t, n >= 1 ? (int32_t)v[0] : 0, text);
+        return 1;
+    }
     if (!strcmp(name, "LeaveComplete") || !strcmp(name, "CloseWindow")) {
         mu_quest_info_close(c);
         return 1;

@@ -197,6 +197,9 @@ typedef struct mu_combat {
     int32_t hero_home[2];      /* demo: the respawn tile */
     mu_combat_sound_fn play_sound;   /* optional (mu-world sets it when sound is on) */
     void *sound_context;
+    /* NATIVE-QUEST-001: a monster died (actor index, server class): the quest demo's progress */
+    void (*kill)(void *context, int32_t actor, int32_t server_class);
+    void *kill_context;
     uint32_t sounds_played;
     int32_t last_sound;
     int32_t pending_target;    /* demo: the projectile attack whose damage waits for its hit check */

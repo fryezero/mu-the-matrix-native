@@ -19,6 +19,7 @@
 #define MU_WORLD_GFX_H
 
 #include <stddef.h>
+#include <stdio.h>
 
 #include <SDL.h>
 
@@ -59,5 +60,13 @@ int world_gfx_npc_action(world_gfx *g, const char *verb, const char *arg);
 const char *world_gfx_npc_last(world_gfx *g);
 struct mu_npc_item;
 void world_gfx_npc_storage(world_gfx *g, const struct mu_npc_item *items, int n);
+/* NATIVE-QUEST-001: quests (core/mu_quest over reconstructed/quest) when MU_LANG_DIR holds the quest tables:
+ * setup with the demo file's quest lines (NULL: none), the logic step, a monster kill (demo progress), the
+ * report line, and the quest verbs of world_gfx_npc_action (qnext qno qok qclose qwin qtab qsel qgo qgiveup
+ * qkill qset).  T opens the quest window; 1..9 / Esc act on NpcQuestProgress. */
+int world_gfx_quest_setup(world_gfx *g, const char *demo_text);
+void world_gfx_quest_step(world_gfx *g);
+void world_gfx_quest_kill(world_gfx *g, int monster_class);
+void world_gfx_quest_report(world_gfx *g, FILE *out);
 
 #endif

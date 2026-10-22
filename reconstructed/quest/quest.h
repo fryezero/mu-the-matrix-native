@@ -163,6 +163,10 @@ typedef struct mu_quest_log {
     char *text;
     size_t len, cap;
     int32_t lines;
+    /* hosts: every line as it is logged (the client's effects happen in order, so a movie callback an invoke
+     * triggers reaches the client code before it goes on, as in the client) */
+    void (*sink)(void *user, const char *line);
+    void *sink_user;
 } mu_quest_log;
 void mu_quest_log_clear(mu_quest_log *log);
 void mu_quest_log_free(mu_quest_log *log);
@@ -298,8 +302,9 @@ void mu_quest_tab_list(mu_quest_client *c, mu_quest_tab *t);        /* 0x00d4f48
 void mu_quest_tab_action(mu_quest_client *c, mu_quest_tab *t, int32_t quest);   /* 0x00d50067 */
 mu_quest_tab *mu_quest_info_tab(mu_quest_client *c, int32_t tab);   /* 0x00be46dd (NULL outside 2..4) */
 void mu_quest_info_giveup_ok(mu_quest_client *c);                   /* 0x00be436d(0x2d, 0) */
-/* The movie's callbacks (0x00be4b89).  Returns 1 when handled. */
-int mu_quest_info_callback(mu_quest_client *c, const char *name, const double *numbers, int n);
+/* The movie's callbacks (0x00be4b89; QuestTextWidth reaches the tab's 0x00d4f43e).  Returns 1 when handled. */
+int mu_quest_info_callback(mu_quest_client *c, const char *name, const double *numbers, int n, const char *text);
+void mu_quest_tab_text_width(mu_quest_client *c, mu_quest_tab *t, int32_t lines, const char *text);   /* 0x00d4f43e */
 
 /* ---- hosts and tests ----------------------------------------------------------------------------- */
 
@@ -320,6 +325,7 @@ const char *mu_quest_maps_text(const mu_quest_client *c);
 void mu_quest_set_hero(mu_quest_client *c, const char *name);
 void mu_quest_set_dialogue_words(mu_quest_client *c, const char *(*word)(void *user, int32_t id));
 void mu_quest_dialog_set_text(mu_quest_client *c, const char *wrapped, int32_t page);
+void mu_quest_set_sink(mu_quest_client *c, void (*sink)(void *user, const char *line), void *user);
 
 #ifdef __cplusplus
 }

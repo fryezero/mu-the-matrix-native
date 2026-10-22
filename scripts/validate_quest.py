@@ -1116,6 +1116,7 @@ class Ops:
         for name, args in (('mu_quest_tab_init', []), ('mu_quest_tab_select', [ctypes.c_int32]),
                            ('mu_quest_tab_action', [ctypes.c_int32])):
             getattr(L, name).argtypes = [ctypes.c_void_p, ctypes.c_void_p] + args
+        L.mu_quest_tab_text_width.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32, ctypes.c_char_p]
         L.mu_quest_info_tab.argtypes = [ctypes.c_void_p, ctypes.c_int32]
         L.mu_quest_info_tab.restype = ctypes.c_void_p
         self.quest_ptrs = {}
@@ -1220,6 +1221,16 @@ class Ops:
         elif what == 'giveup':
             m.call(MQI_GIVEUP_BOX, [0x2d, 0], ecx=w.mqi)
             L.mu_quest_info_giveup_ok(c)
+        elif what == 'width':
+            # the tab's QuestTextWidth (0x00d4f43e(lines, std::string)): the wrapped text back to the movie
+            tab = w.tabs[self.nat.field('info.tab')]
+            s = m.alloc(0x20, define=True)
+            text = b'wrapped <%d> text\nsecond line' % arg
+            write_std_string(m, s, text)
+            m.call(0x00d4f43e, [arg, s], ecx=tab)
+            t = L.mu_quest_info_tab(c, self.nat.field('info.tab'))
+            if t:
+                L.mu_quest_tab_text_width(c, t, arg, text)
 
 
 def install_more_stubs(m, world):
@@ -1412,7 +1423,7 @@ def windows_sequence(m, nat, world, ops, records, rng, fam, seq, length):
                     label = ('dlgchoice', choice)
             else:
                 what = rng.choice(['open', 'close', 'onload', 'tabs', 'checked', 'tab', 'tab', 'quest', 'quest',
-                                   'quest', 'action', 'action', 'giveup'])
+                                   'quest', 'action', 'action', 'giveup', 'width'])
                 arg = 0
                 tab = nat.field('info.tab')
                 if what == 'tab':
@@ -1422,8 +1433,10 @@ def windows_sequence(m, nat, world, ops, records, rng, fam, seq, length):
                         continue
                     active = native_active(nat, tab)
                     arg = rng.choice(active) if active and rng.random() < 0.9 else rng.choice(keys)
-                elif what in ('action', 'giveup') and tab < 2:
+                elif what in ('action', 'giveup', 'width') and tab < 2:
                     continue
+                if what == 'width':
+                    arg = rng.randint(1, 9)
                 fam.last = ('mqi', what, arg)
                 ops.mqi(what, arg)
                 label = ('mqi', what, arg)

@@ -56,7 +56,11 @@ typedef struct mu_gfx_layer mu_gfx_layer;
 /* NATIVE-NPC-001 adds the NPC windows: npcdialogue (NpcDialogue.swf), NpcShop
  * and StorageInven; they are optional (opened when the movie is converted). */
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
-       MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_MOVIES };
+       MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_MOVIES };
+/* NATIVE-QUEST-001 adds NpcQuestProgress (MU_GFX_QUEST_PROGRESS) and MyQuestInfo (MU_GFX_MY_QUEST), optional
+ * like the NPC windows.  The layer does not drive them itself: the host runs the client's window code
+ * (reconstructed/quest) and passes its invokes through mu_gfx_layer_invoke / mu_gfx_layer_show; the movies'
+ * callbacks go to cfg.quest_call. */
 
 /* Character values the windows show (demo values until a game feeds them). */
 typedef struct mu_gfx_hero {
@@ -151,6 +155,13 @@ typedef struct mu_gfx_layer_config {
      * of NpcShop gets the buy line, an inventory item while NpcShop is open the sell line. */
     int64_t (*price_ex)(void *user, int32_t code, int32_t level, int gold_type);
     int (*tooltip_ex)(void *user, int32_t code, int32_t level, int context, char *html, size_t cap);
+    /* NATIVE-QUEST-001 (user = tooltip_user):
+     * quest_call: a callback of NpcQuestProgress / MyQuestInfo (name, JSON arguments; CloseWindow included);
+     * dialog_wrapped: npcdialogue's NPCDialogTextWidth text (the client keeps it at +0x1d68);
+     * window_key: a key the bar did not take (window hotkeys); returns 1 when the host used it. */
+    void (*quest_call)(void *user, int movie, const char *name, const char *args_json);
+    void (*dialog_wrapped)(void *user, const char *text);
+    int (*window_key)(void *user, int vk);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 

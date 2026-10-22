@@ -264,7 +264,9 @@ void mu_quest_log_free(mu_quest_log *log)
     if (!log)
         return;
     free(log->text);
-    memset(log, 0, sizeof *log);
+    log->text = NULL;
+    log->len = log->cap = 0;
+    log->lines = 0;
 }
 
 void mu_quest_logf(mu_quest_log *log, const char *fmt, ...)
@@ -296,10 +298,16 @@ void mu_quest_logf(mu_quest_log *log, const char *fmt, ...)
     }
     vsnprintf(log->text + log->len, (size_t)need + 1, fmt, ap);
     va_end(ap);
+    const char *line = log->text + log->len;
     log->len += (size_t)need;
     log->text[log->len++] = '\n';
     log->text[log->len] = 0;
     log->lines++;
+    if (log->sink) {
+        char copy[16384];
+        snprintf(copy, sizeof copy, "%.*s", need, line);
+        log->sink(log->sink_user, copy);
+    }
 }
 
 /* ---- activation (with the client's side effects) ----------------------------------------------- */

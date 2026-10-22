@@ -29,6 +29,10 @@
  *     shop <server-class> <item-code>[+level] ...
  *     storage <item-code>[+level] ...
  *     actor ...   (a placement line, appended to the session's --placement)
+ *     dialog <server-class> <dialogue-npc> [contribution]   (NATIVE-QUEST-001: the answer is the NPC dialogue
+ *                 packet F9 01 instead of a talk result: its handler 0x0126d5da sets the dialogue NPC 0x00fdc96c,
+ *                 the contribution 0x00be88b8 and opens npcdialogue 0x00be842c when it is not open)
+ *     quest ...   (NATIVE-QUEST-001: kept in `quests` for core/mu_quest)
  *
  * Item codes are the client's (group * 512 + index). */
 #ifndef MU_NPC_H
@@ -58,6 +62,7 @@ typedef struct mu_npc_demo_row {
     int32_t options[MU_NPC_DIALOG], option_count;    /* Dialog(kor) indices: the select buttons */
     mu_npc_item shop[MU_NPC_ITEMS];
     int32_t shop_count;
+    int32_t dialog_npc, contribution;     /* NATIVE-QUEST-001: F9 01 answer (0: none) */
 } mu_npc_demo_row;
 
 typedef struct mu_npc_demo {
@@ -67,6 +72,8 @@ typedef struct mu_npc_demo {
     int32_t storage_count;
     char placement[4096];       /* "actor ..." lines for the placement */
     size_t placement_length;
+    char quests[4096];          /* NATIVE-QUEST-001: the "quest ..." lines */
+    size_t quests_length;
 } mu_npc_demo;
 
 /* Parses the demo table; returns 0, or 1 with a message. */
@@ -92,6 +99,8 @@ typedef struct mu_npc_open {
     int32_t shop_tabs;          /* packet[0xb] (0x00bf17c2) */
     const mu_npc_demo_row *demo;
     int close_all;              /* the handler closed every window first */
+    int dialog_packet;          /* NATIVE-QUEST-001: the answer was F9 01 (window.dialogue = the dialogue NPC) */
+    int32_t contribution;
 } mu_npc_open;
 
 typedef struct mu_npc_stats {
@@ -152,8 +161,10 @@ void mu_npc_report_summary(const mu_npc *npc, FILE *out, int quiet);
  *   F:talk:ACTOR   the click branch without picking
  *   F:buy:SLOT  F:sell:CELL  F:take:SLOT  F:put:CELL  F:option:N  F:next  F:close
  *   F:tip:SLOT  F:tipinv:CELL  F:bufftip:BUFF   (NATIVE-LANG-002: show a tooltip)
+ *   F:qnext F:qno F:qok F:qclose F:qwin F:qtab:N F:qsel:QUEST F:qgo F:qgiveup F:qkill:CLASS F:qset:QUEST:COUNT
+ *                  (NATIVE-QUEST-001: the quest windows and the demo progress, see world_gfx.h)
  * (the window verbs act on the GFx layer when it is loaded). */
-#define MU_NPC_SCRIPT 32
+#define MU_NPC_SCRIPT 48
 typedef struct mu_npc_script_item {
     int32_t frame;
     char verb[8];
