@@ -968,9 +968,9 @@ long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const 
 void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t frame)
 {
     fprintf(out, "{\"helpers_frame\": %d, \"bugs\": %u, \"mounts\": %u, \"drawn_bugs\": %u, \"drawn_mounts\": %u,"
-                 " \"drawn_imps\": %u, \"riding\": %d",
+                 " \"drawn_imps\": %u, \"riding\": %d, \"passes\": %u",
             frame, w->stats.live_bugs, w->stats.live_mounts, w->stats.drawn_bugs, w->stats.drawn_mounts,
-            w->stats.drawn_imps, w->walk ? w->walk->riding : 0);
+            w->stats.drawn_imps, w->walk ? w->walk->riding : 0, w->stats.passes);
     for (int32_t i = 0; i < MU_HP_BUGS; ++i) {
         const mu_hp_object *o = &w->h.bugs[i];
         if (o->live)

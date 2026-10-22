@@ -116,6 +116,11 @@ class HeroHelpers(Build):
         out = run(self.root, '--frames', '10', '--helper', 'fenrir-gold')
         self.assertTrue(any('model 0x4ab' in line for line in out['logs']))
         self.assertEqual(out['helpers'][-1]['mount0'][0], 4)
+        # NATIVE-HELPERS-002: its registry functor draws the passes (mesh 0 twice, mesh 1), the six flares and
+        # the two body lightning effects every frame
+        self.assertGreaterEqual(out['helpers'][-1]['passes'], 3)
+        self.assertGreaterEqual(out['summary']['sprites'], 6 * 9)
+        self.assertGreaterEqual(out['summary']['effects'], 2 * 9)
 
     def test_no_helpers_and_unknown_name(self):
         out = run(self.root, '--frames', '5', '--helper', 'angel', '--no-helpers')
