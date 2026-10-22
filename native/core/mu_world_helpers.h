@@ -38,6 +38,7 @@ struct mu_walk;
 struct mu_world_players;
 struct mu_world_particles;
 struct mu_character;
+struct mu_world_raven;
 
 enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 12 };
 
@@ -88,6 +89,7 @@ typedef struct mu_world_helpers {
     int32_t model_count;
     float shadow_rgba[4];
     mu_wh_stats stats;
+    struct mu_world_raven *raven;           /* NATIVE-HELPERS-002: the Dark Raven (mu_world_raven) */
     char log[32][96];
     int32_t log_count;
     float world_time;                       /* NATIVE-HELPERS-002: WorldTime 0x06fce370 (40 ms per step) */
@@ -137,6 +139,10 @@ long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const 
  * fenrir-black/-blue/-gold (sets *state), the later ride item names, or a number (item code, or G:I). Returns
  * the item code, -1 for "none", -2 when unknown. */
 int32_t mu_world_helpers_parse(const char *text, int32_t *state);
+
+/* NATIVE-HELPERS-002: a helper model by index (loaded on first use; NULL when the table is full) and its slot. */
+mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index);
+int32_t mu_world_helpers_model_slot(const mu_world_helpers *w, const mu_wh_model *m);
 
 void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t frame);
 void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int quiet);

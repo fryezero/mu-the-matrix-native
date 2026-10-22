@@ -53,7 +53,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
-            core/mu_world_helpers.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c
+            core/mu_world_helpers.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_world_raven.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
@@ -79,7 +79,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
              $(RECON)/npc/npc_talk.c $(RECON)/npc/npc_pick.c $(RECON)/npc/npc_dialogue.c \
-             $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c $(RECON)/helpers/mount_render.c $(RECON)/helpers/mount_class.c \
+             $(RECON)/price/item_price.c $(RECON)/helpers/helpers.c $(RECON)/helpers/mount_render.c $(RECON)/helpers/mount_class.c $(RECON)/raven/raven.c \
              $(RECON)/quest/quest_data.c $(RECON)/quest/quest_system.c $(RECON)/quest/quest_text.c \
              $(RECON)/quest/quest_ui.c $(RECON)/quest/quest_packets.c $(RECON)/quest/quest_api.c \
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
@@ -101,7 +101,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/items/*.h) \
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
-           $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(wildcard $(RECON)/quest/*.h) \
+           $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(RECON)/raven/raven.h $(wildcard $(RECON)/quest/*.h) \
            $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)

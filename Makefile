@@ -27,6 +27,7 @@ all:
 	$(MAKE) -C reconstructed/npc
 	$(MAKE) -C reconstructed/price
 	$(MAKE) -C reconstructed/helpers
+	$(MAKE) -C reconstructed/raven
 	$(MAKE) -C reconstructed/quest
 	$(MAKE) -C reconstructed/skill
 	$(MAKE) -C reconstructed/map
@@ -62,6 +63,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/npc -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/price -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/helpers -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/raven -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/quest -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/skill -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/map -p 'test_*.py' -v

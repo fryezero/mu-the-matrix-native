@@ -74,6 +74,7 @@ typedef struct mu_world_player_spec {
     uint16_t ride;                 /* helper item type (0xffff none) */
     uint8_t pet;                   /* NATIVE-HELPERS-001: e[4] & 3 (0 Guardian Angel, 1 Imp, 2 Uniria, 3 none) */
     uint8_t ride_state;            /* NATIVE-HELPERS-001: e[0xf] & 3, 4 = e[0x10] bit 0 (Fenrir's colour) */
+    uint8_t raven;                 /* NATIVE-HELPERS-002: the pet byte 0x00c92bea (1 / 2 / 3 Dark Raven; 0 none) */
     int32_t start[2];
     uint8_t direction;
     int32_t route[MU_WORLD_PLAYER_ROUTE][2], route_count;

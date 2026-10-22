@@ -214,6 +214,8 @@ static int parse_player(mu_world_player_spec *s, char *line, int number, char *e
             s->ride = (uint16_t)strtol(v, NULL, 0);
         else if (!strcmp(tok, "ride_state"))
             s->ride_state = (uint8_t)atoi(v);
+        else if (!strcmp(tok, "raven"))   /* NATIVE-HELPERS-002 */
+            s->raven = (uint8_t)atoi(v);
         else if (!strcmp(tok, "pet"))
             s->pet = (uint8_t)(!strcmp(v, "angel") ? 0 : !strcmp(v, "imp") ? 1 : (atoi(v) & 3));
         else if (!strcmp(tok, "dir"))

@@ -12,6 +12,7 @@
 #include "mu_renderchar.h"
 #include "mu_walk.h"
 #include "mu_world_players.h"
+#include "mu_world_raven.h"
 #include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
@@ -45,6 +46,10 @@ static int model_file(int32_t index, char *out, size_t size)
         return snprintf(out, size, "Data/Item/helper01.bmd") > 0;
     if (index == MU_HP_MODEL_IMP)
         return snprintf(out, size, "Data/Item/helper02.bmd") > 0;
+    if (index == MU_RV_MODEL_RAVEN)   /* NATIVE-HELPERS-002: AccessModel(0x411, "Data\Skill\", "DarkSpirit") */
+        return snprintf(out, size, "Data/Skill/DarkSpirit.bmd") > 0;
+    if (index == MU_RV_MODEL_SOUL)    /* AccessModel(0x748, "Data\Item\", "Dark_Soul") */
+        return snprintf(out, size, "Data/Item/Dark_Soul.bmd") > 0;
     static const struct { int32_t index; const char *name; } fenrir[] = {
         {0x4a8, "fenrir_black"}, {0x4a9, "fenrir_red"}, {0x4aa, "fenrir_blue"}, {0x4ab, "fenrir_gold"}};
     for (size_t i = 0; i < sizeof fenrir / sizeof fenrir[0]; ++i)
@@ -167,6 +172,16 @@ static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
 static int32_t slot_of(const mu_world_helpers *w, const mu_wh_model *m)
 {
     return (int32_t)(m - w->models);
+}
+
+mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index)
+{
+    return model_of(w, index);
+}
+
+int32_t mu_world_helpers_model_slot(const mu_world_helpers *w, const mu_wh_model *m)
+{
+    return slot_of(w, m);
 }
 
 /* ---------------------------------------------------------------- host of the reconstructed routines */
@@ -398,7 +413,9 @@ int32_t mu_world_helpers_parse(const char *text, int32_t *state)
         {"fenrir", MU_HP_ITEM_FENRIR, 0}, {"fenrir-red", MU_HP_ITEM_FENRIR, 0}, {"fenrir-black", MU_HP_ITEM_FENRIR, 1},
         {"fenrir-blue", MU_HP_ITEM_FENRIR, 2}, {"fenrir-gold", MU_HP_ITEM_FENRIR, 4},
         {"ghost-horse", 0x19d7, 0}, {"ice-dragon", 0x19e3, 0}, {"pierce-lion", 0x184b, 0}, {"shining-tail", 0x1853, 0},
-        {"ur", 0x185d, 0}, {"leviathan", 0x1833, 0}, {"tauros", 0x1835, 0}, {"divine-horse", 0x28f7, 0}};
+        {"ur", 0x185d, 0}, {"leviathan", 0x1833, 0}, {"tauros", 0x1835, 0}, {"divine-horse", 0x28f7, 0},
+        {"dark-raven", MU_RV_ITEM_DARK_RAVEN, 1}, {"darkraven", MU_RV_ITEM_DARK_RAVEN, 1},
+        {"dark-raven-20", MU_RV_ITEM_DARK_RAVEN, 2}, {"dark-raven-40", MU_RV_ITEM_DARK_RAVEN, 3}};
     if (state)
         *state = 0;
     for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i)
@@ -457,7 +474,12 @@ int mu_world_helpers_open(mu_world_helpers *w, const char *game_root, const mu_w
     w->who[0].ride_state = (uint8_t)(hero_state < 0 ? 0 : hero_state);
     w->inputs.world = map->world;
     w->inputs.scene = 6;
-    if (hero_item >= 0) {
+    if (hero_item == MU_RV_ITEM_DARK_RAVEN || players) {   /* NATIVE-HELPERS-002: the Dark Raven */
+        w->raven = calloc(1, sizeof *w->raven);
+        if (w->raven)
+            mu_world_raven_init(w->raven, w, seed ^ 0x5a17u);
+    }
+    if (hero_item >= 0 && hero_item != MU_RV_ITEM_DARK_RAVEN) {
         int32_t route = mu_hp_helper_route(hero_item, 0);
         if (route == MU_HP_HELPER_NONE || route == MU_HP_HELPER_PET) {
             snprintf(error, error_size, "helpers: item %#x is not a helper this module draws (%s)", hero_item,
@@ -470,6 +492,8 @@ int mu_world_helpers_open(mu_world_helpers *w, const char *game_root, const mu_w
 
 void mu_world_helpers_close(mu_world_helpers *w)
 {
+    free(w->raven);
+    w->raven = NULL;
     for (int32_t i = 0; i < w->model_count; ++i)
         if (w->models[i].loaded) {
             mu_model_free(&w->models[i].model);
@@ -685,6 +709,8 @@ void mu_world_helpers_step(mu_world_helpers *w)
     w->stats.live_mounts = (uint32_t)w->mounts.count;
     w->stats.steps++;
     w->world_time = w->world_time + 40.0f;   /* NATIVE-HELPERS-002: the functors' glow pulse */
+    if (w->raven)   /* NATIVE-HELPERS-002: MovePet per character (MoveCharacter's 0x00c930df) */
+        mu_world_raven_step(w->raven);
 }
 
 int mu_world_helpers_ride(mu_world_helpers *w, int32_t owner, int32_t how)
@@ -1182,6 +1208,8 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
     /* the render scene's order: RenderBugs 0x00c9e4e3, the mount render loop 0x0106bc2b */
     mu_hp_render_bugs(&w->h, &w->inputs, &r);
     mu_hp_mounts_render(&w->h, &w->mounts, &w->inputs, &r);
+    if (w->raven)   /* NATIVE-HELPERS-002: RenderPet per character (RenderCharacter's 0x00c9314f) */
+        d.drawn += mu_world_raven_draw(w->raven, frustum, target);
     /* the Imps are part of their owners' RenderCharacter */
     if (hero)
         draw_imp(&d, 0, hero);
@@ -1230,6 +1258,8 @@ void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t
                  " \"drawn_imps\": %u, \"riding\": %d, \"passes\": %u",
             frame, w->stats.live_bugs, w->stats.live_mounts, w->stats.drawn_bugs, w->stats.drawn_mounts,
             w->stats.drawn_imps, w->walk ? w->walk->riding : 0, w->stats.passes);
+    if (w->raven && w->raven->stats.live)
+        fprintf(out, ", \"ravens\": %u, \"raven_drawn\": %u", w->raven->stats.live, w->raven->stats.drawn);
     for (int32_t i = 0; i < MU_HP_BUGS; ++i) {
         const mu_hp_object *o = &w->h.bugs[i];
         if (o->live)
@@ -1243,6 +1273,8 @@ void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t
                 (double)m->object.angle[2]);
     }
     fprintf(out, "}\n");
+    if (w->raven)
+        mu_world_raven_report_frame(w->raven, out);
 }
 
 void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int quiet)
@@ -1254,6 +1286,8 @@ void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int q
             w->stats.steps, w->stats.bugs_created, w->stats.bugs_deleted, w->stats.mounts_set, w->stats.mounts_reset,
             w->stats.particles, w->stats.sprites, w->stats.effects, w->stats.joints, w->stats.set_actions,
             w->stats.rider_actions, w->stats.live_bugs, w->stats.live_mounts, w->model_count);
+    if (w->raven)
+        mu_world_raven_report_summary(w->raven, out);
     if (!quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             fprintf(out, "helpers: %s\n", w->log[i]);

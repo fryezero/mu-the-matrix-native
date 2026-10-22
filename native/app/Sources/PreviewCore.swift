@@ -125,7 +125,8 @@ struct PreviewSettings: Codable, Equatable {
     static let featureKeys = ["gfx", "combat", "items", "names", "npc", "env", "particles", "objects", "lang", "sound",
                               "players"]
     static let helpers = ["none", "angel", "imp", "uniria", "dinorant", "darkhorse", "fenrir", "fenrir-black",
-                          "fenrir-blue", "fenrir-gold"]
+                          "fenrir-blue", "fenrir-gold",
+                          "dark-raven", "dark-raven-20", "dark-raven-40"]   // NATIVE-HELPERS-002
 
     init() {}
 
