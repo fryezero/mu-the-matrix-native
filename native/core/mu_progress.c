@@ -11,6 +11,11 @@ static void env_emit(void *user, const char *line);
 
 static const char *env_text(void *user, int32_t index)
 {
+    if (index == 0x10be) {   /* the speed row's format (the client's GlobalText 4286) */
+        mu_progress *q = user;
+        const char *t = q->global_text ? q->global_text(q->context, index) : NULL;
+        return t && *t ? t : "%d / %d";
+    }
     mu_progress *p = user;
     const char *t = p->global_text ? p->global_text(p->context, index) : NULL;
     if (t && *t)
@@ -67,6 +72,14 @@ static void env_emit(void *user, const char *line)
     } else if (!strcmp(line, "call 00c51256")) {
         mu_prg_env e = make_env(p);
         mu_prg_exp_bar(&e, &p->bar, 0x546);   /* 0x016963bf: 1350 on a normal server */
+    } else if (!strcmp(line, "call 00b40380")) {
+        mu_prg_env e = make_env(p);   /* the character window's speed row (the window is always open here) */
+        mu_prg_speed_row(&e, p->attr[MU_PRG_A_CLASS] & 15, p->speed_row, 1);
+    } else if (!strncmp(line, "call 00b3e33f 15 \"", 18)) {
+        size_t n = 0;
+        for (const char *s = line + 18; *s && *s != '"' && n + 1 < sizeof p->speed_text; s++)
+            p->speed_text[n++] = *s;
+        p->speed_text[n] = 0;
     }
     if (!strncmp(line, "call 00b45", 10) || !strncmp(line, "call 00b3e", 10))
         p->hero_dirty = 1;
@@ -134,6 +147,23 @@ static void put16(uint8_t *b, int off, int32_t v)
     b[off + 1] = (uint8_t)(v >> 8);
 }
 
+/* DEMO: attack and magic speed divisors of agility per class index */
+static const uint8_t SPEED_DIV[16][2] = {{20, 10}, {15, 20}, {50, 50}, {15, 20}, {10, 10}, {20, 20}, {9, 9}, {15, 15},
+                                         {20, 10}, {15, 20}, {15, 15}, {20, 10}, {20, 10}, {15, 20}, {20, 10}, {15, 20}};
+
+static void server_speed_packet(mu_progress *p)
+{
+    int32_t cls = p->attr[MU_PRG_A_CLASS] & 15;
+    int32_t agi = p->server_stats[1] + mu_prg_u16(p->attr, MU_PRG_A_ADD_DEX);
+    uint8_t b[0x0c] = {0xc1, 0x0c, 0x55, 0x94};
+    int32_t atk = agi / SPEED_DIV[cls][0], mag = agi / SPEED_DIV[cls][1];
+    b[4] = (uint8_t)atk;
+    b[5] = (uint8_t)(atk >> 8);
+    b[8] = (uint8_t)mag;
+    b[9] = (uint8_t)(mag >> 8);
+    queue(p, MU_PRGK_SPEED, b, (int32_t)sizeof b);
+}
+
 static void server_stats_packet(mu_progress *p)
 {
     uint8_t b[0x1c] = {0xc1, 0x1c, 0x55, 0x57};
@@ -176,6 +206,7 @@ void mu_progress_init(mu_progress *p, const mu_progress_config *config)
     p->line = line;
     p->context = context;
     p->global_text = text;
+    p->now_ms = 100000;   /* GetTickCount of a running session (the request throttle compares with 0 at first) */
     if (config)
         p->config = *config;
     else
@@ -216,6 +247,7 @@ void mu_progress_init(mu_progress *p, const mu_progress_config *config)
     mu_progress_recalc(p);
     mu_prg_env e = make_env(p);
     mu_prg_exp_bar(&e, &p->bar, 0x546);
+    server_speed_packet(p);
     snprintf(p->last, sizeof p->last, "join: class %d level %d", cls, mu_prg_i32(a, MU_PRG_A_LEVEL));
 }
 
@@ -317,6 +349,8 @@ int32_t mu_progress_button(mu_progress *p, double row)
         put16(b, 0xa, mx[3]);
         queue(p, MU_PRGK_POINT, b, (int32_t)sizeof b);
         server_stats_packet(p);
+        if (stat == 1)
+            server_speed_packet(p);
     } else {
         queue(p, MU_PRGK_POINT, b, (int32_t)sizeof b);
     }
@@ -362,6 +396,9 @@ void mu_progress_step(mu_progress *p)
             break;
         case MU_PRGK_MASTER_EXP:
             mu_prg_recv_master_exp(&e, q.data);
+            break;
+        case MU_PRGK_SPEED:
+            mu_prg_recv_speed(&e, q.data);
             break;
         default:
             break;
@@ -412,6 +449,9 @@ void mu_progress_get_view(const mu_progress *p, mu_progress_view *v)
     v->magic_max = mu_prg_u16(a, MU_PRG_A_MAGIC_MAX);
     v->curse_min = mu_prg_u16(a, MU_PRG_A_CURSE_MIN);
     v->curse_max = mu_prg_u16(a, MU_PRG_A_CURSE_MAX);
+    v->atk_speed = mu_prg_u16(a, MU_PRG_A_ATK_SPEED);
+    v->magic_speed = mu_prg_u16(a, MU_PRG_A_MAGIC_SPEED);
+    snprintf(v->speed_text, sizeof v->speed_text, "%s", p->speed_text);
 }
 
 int mu_progress_script_parse(mu_progress_script *s, const char *text)

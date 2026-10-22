@@ -88,7 +88,10 @@ class Env(Structure):
                 ('item_is', IS_FN), ('window', CFUNCTYPE(c_int, c_void_p, ctypes.c_uint32)),
                 ('hero', POINTER(c_uint8)),
                 ('character', CFUNCTYPE(c_void_p, c_void_p, c_int32, POINTER(c_int32))),
-                ('world_hides_damage', CFUNCTYPE(c_int, c_void_p))]
+                ('world_hides_damage', CFUNCTYPE(c_int, c_void_p)),
+                ('tree', CFUNCTYPE(c_int, c_void_p)), ('tree_map', CFUNCTYPE(c_int32, c_void_p, c_int32, c_int32)),
+                ('tree_node', CFUNCTYPE(c_int, c_void_p, c_int32, c_int32, POINTER(c_int32))),
+                ('has_effect', CFUNCTYPE(c_int, c_void_p, c_int32))]
 
 
 class Native:
@@ -143,6 +146,16 @@ class Native:
             return ctypes.addressof(self.obj_buf)
         e.character = Env._fields_[12][1](character)
         e.world_hides_damage = Env._fields_[13][1](lambda u: int(case.get('hides', 0)))
+        e.tree = Env._fields_[14][1](lambda u: int(case.get('tree', 0)))
+        e.tree_map = Env._fields_[15][1](lambda u, c, v: case.get('tree_map', -1))
+
+        def tree_node(u, ident, key, out):
+            if ident != case.get('tree_id_expect', ident) or not case.get('node', 0):
+                return 0
+            out[0] = case.get('bonus', 0)
+            return 1
+        e.tree_node = Env._fields_[16][1](tree_node)
+        e.has_effect = Env._fields_[17][1](lambda u, x: int(case.get('effects', {}).get(x, 0)))
         self._keep = [e]
         return e
 
@@ -1059,6 +1072,137 @@ def family_stats(client, native, rng, n, report):
 
 
 FAMILIES['stats'] = family_stats
+
+
+SPEED_ROW, SPEED_PACKET, SPEED_WINDOW, TREE, NODE = 0x00b40380, 0x0122a13d, FAKE_BASE + 0x75000, FAKE_BASE + 0x76000, \
+    FAKE_BASE + 0x77000
+
+
+def family_speed(client, native, rng, n, report):
+    """The speed row 0x00b40380 (with the class machine of 0x00a0088d) and the speed packet 0x0122a13d."""
+    m = client.m
+    install_crt(client)
+    install_recv(client)
+    client.allow_routines(SPEED_ROW, SPEED_PACKET, 0x00a0088d, 0x00a0315b, 0x00b48a68, 0x00b48a7a, 0x0095fb49,
+                          0x0095fb5b, 0x0095f5cc, 0x009942bf, 0x00993796, 0x009937fe, 0x0099426e, 0x009a9036, 0x009d8d49)
+    ctors = (0x0099b13f, 0x00999df2, 0x0099e3de, 0x009a8fc3, 0x0099a86f, 0x009f8266, 0x009d8ce0, 0x0099ed36,
+             0x009dac06, 0x009ead97, 0x009a064f, 0x009fff7f, 0x009a77ea, 0x009a623f, 0x00986fb8, 0x00998a2d)
+    client.allow_routines(*ctors)
+
+    def new(mm):
+        size, = mm.args(1)
+        return mm.alloc(size, define=True)
+    m.stub(0x0191ba7b, new, 0)
+    m.stub(0x00aae6f9, lambda mm: int(client.case.get('visible', 1)), 0)
+    m.stub(0x00c354b7, lambda mm: client.case.get('tree_map', -1) & 0xffffffff, 8)
+
+    def node(mm):
+        ident, = mm.args(1)
+        client.case['tree_id_seen'] = ident
+        return NODE if client.case.get('node') else 0
+    m.stub(0x00c2a236, node, 4)
+    m.stub(0x00b48a9e, lambda mm: client.case.get('bonus', 0) & 0xffffffff, 4)
+
+    def effect(mm):
+        x, = mm.args(1)
+        return int(client.case.get('effects', {}).get(x, 0))
+    m.stub(0x01295ade, effect, 4)
+
+    def gt(mm):
+        idx, = mm.args(1)
+        text = b'%d / %d' if idx == 0x10be and client.case.get('gt_real') else b'GT%d' % idx
+        buf = mm.alloc(len(text) + 1, define=True)
+        mm.write(buf, text + b'\0')
+        return buf
+    m.stub(0x0095f027, gt, 4)
+
+    def row_text(mm):
+        out, row, text, _ = mm.args(4)
+        client.lines.append('call 00b3e33f %x %s' % (row, json.dumps(mm.cstr(text).decode('latin1'))))
+        return out
+    m.stub(0x00b3e33f, row_text, 0x10)
+
+    def item1(mm):
+        row, a = mm.args(2)
+        client.lines.append('call 00b3e2a4 %x' % row)
+        return 0
+    m.stub(0x00b3e2a4, item1, 8)
+    m.stub(0x008e6d00, lambda mm: 0, 0)
+    m.stub(0x008e83a0, lambda mm: 0, 0)
+
+    def invoke(mm):
+        win, name, fmt_, value = mm.args(4)
+        client.lines.append('invoke %s [%d]' % (mm.cstr(name).decode(), value))
+        return 0
+    m.stub(0x00aae7e0, invoke, 0)
+    m.stub(0x00b40380, lambda mm: client.lines.append('call 00b40380') or 0, 0) if False else None
+    native.L.mu_prg_speed_row.argtypes = [POINTER(Env), c_int32, POINTER(ctypes.c_uint16 * 2), c_int]
+    native.L.mu_prg_recv_speed.argtypes = [POINTER(Env), POINTER(c_uint8 * 0x100)]
+    fails = count = 0
+    for k in range(n):
+        count += 1
+        cls = k % 16
+        attr = bytearray(random_attr(rng, cls))
+        attr[0x1a6] = rng.choice([0, 1, 8, 9, 2, rng.randint(0, 255)])
+        hero = bytearray(0x400)
+        hero[0x12] = rng.choice([cls, rng.randint(0, 255)])
+        hero[0x32] = rng.randint(0, 3)
+        case = {'items': [], 'buffs': {}, 'hero_class': hero[0x12], 'hero': bytes(hero),
+                'visible': rng.random() < 0.9, 'tree': rng.random() < 0.5, 'tree_map': rng.choice([-1, -1, 7, 300]),
+                'node': rng.random() < 0.6, 'bonus': rng.choice([0, 5, 40, rng.randint(0, 600)]),
+                'effects': {0xb0: rng.random() < 0.3}, 'gt_real': rng.random() < 0.7}
+        value = struct.unpack_from('<H', attr, 0x1e6 + 2 * hero[0x32])[0]
+        case['tree_id_expect'] = case['tree_map'] if case['tree_map'] != -1 else value
+        cache = [rng.choice([0, 100, rng.randint(0, 0xffff)]), rng.choice([0, 0x11c, rng.randint(0, 0xffff)])]
+        packet = case_packet = bytes(rng.randint(0, 255) for _ in range(12))
+        use_packet = rng.random() < 0.3
+        m.reset()
+        client.case = case
+        client.lines = []
+        client.setup_hero(bytes(attr))
+        m.write(CHAR, bytes(hero))
+        install_recv_state(client)
+        m.put32(GFXMGR + 0x1f8, TREE if case['tree'] else 0)
+        m.call(0x00a0088d, [cls], ecx=HERO)
+        m.write(SPEED_WINDOW, bytes(0x200))
+        m.write(SPEED_WINDOW + 0xbc, struct.pack('<HH', *cache))
+        if use_packet:
+            pkt = m.alloc(0x100, define=True)
+            m.write(pkt, packet)
+            m.put32(GFXMGR + 0x21c, SPEED_WINDOW)
+            m.call(SPEED_PACKET, [pkt])
+        else:
+            m.call(SPEED_ROW, [], ecx=SPEED_WINDOW)
+        want = (list(client.lines), m.read(ATTR, ATTR_SIZE).hex(), list(struct.unpack('<HH', m.read(SPEED_WINDOW + 0xbc, 4))))
+        abuf = (c_uint8 * ATTR_SIZE).from_buffer_copy(bytes(attr))
+        native.gt = (lambda i: b'%d / %d' if i == 0x10be and case['gt_real'] else b'GT%d' % i)
+        env = native.env(abuf, case)
+        env.hero_class = hero[0x12]
+        c_cache = (ctypes.c_uint16 * 2)(*cache)
+        if use_packet:
+            native.L.mu_prg_recv_speed(ctypes.byref(env), (c_uint8 * 0x100).from_buffer_copy(packet + bytes(0x100 - 12)))
+            lines = []
+            for line in native.lines:
+                if line == 'call 00b40380':
+                    native.lines = []
+                    native.L.mu_prg_speed_row(ctypes.byref(env), cls, c_cache, int(case['visible']))
+                    lines += native.lines
+                else:
+                    lines.append(line)
+            got_lines = lines
+        else:
+            native.L.mu_prg_speed_row(ctypes.byref(env), cls, c_cache, int(case['visible']))
+            got_lines = list(native.lines)
+        got = (got_lines, bytes(abuf).hex(), list(c_cache))
+        if want != got:
+            fails += 1
+            if fails <= 5:
+                report.setdefault('examples', []).append({'cls': cls, 'client': [want[0], want[2]],
+                                                          'c': [got[0], got[2]], 'attr_equal': want[1] == got[1]})
+    return count, fails
+
+
+FAMILIES['speed'] = family_speed
 FAMILIES['levelup'] = recv_family(0x01250b05, 0x18, setup_none, native_levelup)
 FAMILIES['point'] = recv_family(0x01223f04, 0x0c, setup_point, native_point)
 FAMILIES['exp'] = recv_family(0x01234c08, 0x0a, setup_kill, native_kill, compare_char=True, ret_byte=True)
@@ -1118,7 +1262,7 @@ def main():
 
 MUTATIONS = [('dw_pvp_rate_4.5', 'calc'), ('bar_master_stage_4', 'bar'), ('bar_rate_tenth', 'bar'),
              ('table_times_9', 'table'), ('levelup_ag_floor_0', 'levelup'), ('point_energy_is_4', 'point'),
-             ('button_command_is_energy', 'button')]
+             ('button_command_is_energy', 'button'), ('speed_effect_quarter', 'speed')]
 
 if __name__ == '__main__':
     main()

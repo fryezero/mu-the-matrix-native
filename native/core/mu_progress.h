@@ -24,7 +24,9 @@
  *   - a third-class hero (class byte bit 5) at level 400 gains master experience and master levels the
  *     same way (next = the table's difference at level + master level);
  *   - a stat point request is accepted while points remain: +1 to the stat, the answer and the stat
- *     values follow.
+ *     values follow;
+ *   - the attack and magic speeds (opcode 0x55 sub 0x94) from agility over per-class divisors in the style
+ *     of the classic server (at join and after every agility change).
  *
  * The host receives every line of the reconstructed handlers (progress.h's list) through `line` and
  * plays the effects, sounds and chat lines; the experience bar's setExpData JSON is kept in
@@ -62,7 +64,8 @@ typedef struct mu_progress_packet {
     int32_t size;
 } mu_progress_packet;
 
-enum { MU_PRGK_KILL = 1, MU_PRGK_LEVELUP, MU_PRGK_POINT, MU_PRGK_STATS, MU_PRGK_MASTER_UP, MU_PRGK_MASTER_EXP };
+enum { MU_PRGK_KILL = 1, MU_PRGK_LEVELUP, MU_PRGK_POINT, MU_PRGK_STATS, MU_PRGK_MASTER_UP, MU_PRGK_MASTER_EXP,
+       MU_PRGK_SPEED };
 
 typedef struct mu_progress {
     mu_progress_config config;
@@ -72,6 +75,8 @@ typedef struct mu_progress {
     uint8_t monster[0x400];               /* the killed monster's record (+0x23, +0x38) */
     mu_prg_bar_cache bar;                 /* window +0x88 (the client never writes it) */
     mu_prg_stat_window stat_window;
+    uint16_t speed_row[2];                /* the speed row's last values (window +0xbc, +0xbe) */
+    char speed_text[32];                  /* its text (GlobalText 0x10be) */
     uint32_t last_request;                /* 0x01d22d4c */
     uint32_t now_ms;
     int32_t step;
@@ -118,6 +123,8 @@ typedef struct mu_progress_view {
     int32_t dmg_min, dmg_max, dmg_min_left, dmg_max_left;
     int32_t atk_rate, pvp_rate, defense, def_rate, pvp_defrate;
     int32_t magic_min, magic_max, curse_min, curse_max;
+    int32_t atk_speed, magic_speed;
+    char speed_text[32];
 } mu_progress_view;
 void mu_progress_get_view(const mu_progress *p, mu_progress_view *view);
 

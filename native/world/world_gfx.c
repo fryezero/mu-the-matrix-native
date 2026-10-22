@@ -493,6 +493,7 @@ static void char_rows_class(world_gfx *g, int32_t cls)
         case 27: r->value_key = MU_GFX_ROW_SD; break;
         case 34: r->value_key = MU_GFX_ROW_MANA; break;
         case 35: r->value_key = MU_GFX_ROW_AG; break;
+        case 21: r->value_key = MU_GFX_ROW_ATK_SPEED; break;
         default: r->value_key = MU_GFX_ROW_NONE; break;
         }
     }
@@ -1132,6 +1133,7 @@ static void progress_sync(world_gfx *g)
     h.magic_max = v.magic_max;
     h.curse_min = v.curse_min;
     h.curse_max = v.curse_max;
+    snprintf(h.speed_text, sizeof h.speed_text, "%s", v.speed_text);
     mu_gfx_layer_set_hero(g->layer, &h);
 }
 

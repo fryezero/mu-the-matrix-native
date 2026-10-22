@@ -2823,11 +2823,12 @@ static void report_summary(const app *a, const char *renderer)
         printf("{\"progress\": {\"class\": %d, \"level\": %d, \"master_level\": %d, \"points\": %d, \"exp\": %lld, "
                "\"next_exp\": %lld, \"stats\": [%d, %d, %d, %d, %d], \"life_max\": %d, \"mana_max\": %d, "
                "\"damage\": [%d, %d], \"attack_rate\": %d, \"defense\": %d, \"defense_rate\": %d, \"kills\": %d, "
-               "\"level_ups\": %d, \"requests\": %d, \"accepted\": %d, \"exp_bar\": %s}}\n",
+               "\"level_ups\": %d, \"requests\": %d, \"accepted\": %d, \"speed\": \"%s\", \"exp_bar\": %s}}\n",
                v.class_index, v.level, v.master_level, v.points, (long long)v.exp, (long long)v.next_exp,
                v.stats[0], v.stats[1], v.stats[2], v.stats[3], v.stats[4], v.life_max, v.mana_max, v.dmg_min,
                v.dmg_max, v.atk_rate, v.defense, v.def_rate, a->progress->kills, a->progress->level_ups,
-               a->progress->requests, a->progress->accepted, a->progress->exp_json[0] ? a->progress->exp_json : "null");
+               a->progress->requests, a->progress->accepted, v.speed_text,
+               a->progress->exp_json[0] ? a->progress->exp_json : "null");
     }
     if (a->ground)
         mu_world_items_report_summary(a->ground, stdout);

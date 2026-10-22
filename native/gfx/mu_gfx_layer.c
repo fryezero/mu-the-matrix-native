@@ -849,6 +849,11 @@ static const char *derived_row(const mu_gfx_hero *h, int key, char *buf, size_t 
     case MU_GFX_ROW_MANA: snprintf(buf, cap, "%d / %d", h->mp, h->max_mp); break;
     case MU_GFX_ROW_SD: snprintf(buf, cap, "%d / %d", h->sd, h->max_sd); break;
     case MU_GFX_ROW_AG: snprintf(buf, cap, "%d / %d", h->ag, h->max_ag); break;
+    case MU_GFX_ROW_ATK_SPEED:
+        if (!h->speed_text[0])
+            return "-";
+        snprintf(buf, cap, "%s", h->speed_text);
+        break;
     default: return "-";
     }
     return buf;

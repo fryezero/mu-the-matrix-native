@@ -145,6 +145,13 @@ typedef struct mu_prg_env {
     uint8_t *(*character)(void *user, int32_t key, int32_t *index);
     /* 0x009dacb8(world 0x01cf15fc): the world hides damage numbers (boundary) */
     int (*world_hides_damage)(void *user);
+    /* the attack speed row's master-tree bonus (boundaries): GFx manager +0x1f8 exists; 0x00c354b7(class,
+     * value) on 0x06fbc8bc (-1: none); 0x00c2a236(id) the node (0: none) and its value 0x00b48a9e(0x3f0) */
+    int (*tree)(void *user);
+    int32_t (*tree_map)(void *user, int32_t class_index, int32_t value);
+    int (*tree_node)(void *user, int32_t id, int32_t key, int32_t *value);
+    /* the hero's effect test 0x01295ade(Hero +0x35ac, effect) (boundary) */
+    int (*has_effect)(void *user, int32_t effect);
 } mu_prg_env;
 
 /* The level used by the formulas, 0x00a00367: level + master level, where the master level counts
@@ -221,6 +228,23 @@ int32_t mu_prg_stat_button(const uint8_t *attr, double row);
  * difference), then C1 [size] 01 | 00 STAT (the bytes the packet builder is given; the builder
  * obfuscates the last two) and the click sound 0x19.  Returns the packet length (5) or 0. */
 int mu_prg_stat_request(const mu_prg_env *env, uint32_t *last, uint32_t now, int32_t stat, uint8_t packet[5]);
+
+/* The attack and magic speed, opcode 0x55 sub 0x94 (0x0122a13d): packet +4 attack speed (+0x1b6), +8
+ * magic speed (+0x1c2), then the window's speed row (call 00b40380). */
+#define MU_PRG_A_ATK_SPEED   0x1b6
+#define MU_PRG_A_MAGIC_SPEED 0x1c2
+#define MU_PRG_A_FLAGS_1A6   0x1a6
+void mu_prg_recv_speed(const mu_prg_env *env, const uint8_t *packet);
+
+/* The character window's speed row ("* ATK Speed", row 0x15), 0x00b40380 (window visible): the magic
+ * speed for the class indices 0, 5 and 8, else the attack speed; the master-tree bonus; +20 when the
+ * attribute byte +0x1a6 has bit 0 or bit 3; halved under effect 0xb0; at most the class's maximum
+ * (0x009942bf); unchanged (window +0xbc/+0xbe) does nothing, else GlobalText 0x10be ("%d / %d") with
+ * the speed and the maximum (call 00b3e33f 15 "TEXT", call 00b3e2a4 15) and
+ * UpdateScorllList(2).  cls = the stat machine's class (machine +0x1d4).  Returns 1 when it updated. */
+int mu_prg_speed_row(const mu_prg_env *env, int32_t cls, uint16_t cache[2], int visible);
+/* 0x009942bf: the class's maximum speed */
+int32_t mu_prg_speed_max(int32_t cls);
 
 /* ---- the experience bar (verified) ------------------------------------------------------------------- */
 

@@ -33,6 +33,7 @@ all:
 	$(MAKE) -C reconstructed/skill
 	$(MAKE) -C reconstructed/map
 	$(MAKE) -C reconstructed/social
+	$(MAKE) -C reconstructed/progress
 	$(MAKE) -C native
 
 test: all
@@ -72,6 +73,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/skill -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/map -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/social -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/progress -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 native-viewer:

@@ -83,6 +83,7 @@ typedef struct mu_gfx_hero {
     int has_derived;
     int32_t dmg_min, dmg_max, atk_rate, pvp_rate, defense, def_rate, pvp_defrate;
     int32_t magic_min, magic_max, curse_min, curse_max;
+    char speed_text[32];        /* the speed row's text (0x00b40380) */
 } mu_gfx_hero;
 
 /* The InfoPopup HTML for an item (the client's tooltip pipeline, see
@@ -339,7 +340,8 @@ enum { MU_GFX_ROW_NONE = 0, MU_GFX_ROW_CLASS, MU_GFX_ROW_LEVEL, MU_GFX_ROW_POINT
        MU_GFX_ROW_AGILITY, MU_GFX_ROW_VITALITY, MU_GFX_ROW_ENERGY, MU_GFX_ROW_COMMAND, MU_GFX_ROW_DAMAGE,
        /* NATIVE-PROGRESS-001 */
        MU_GFX_ROW_ATK_RATE, MU_GFX_ROW_PVP_RATE, MU_GFX_ROW_DEFENSE, MU_GFX_ROW_DEF_RATE, MU_GFX_ROW_PVP_DEFRATE,
-       MU_GFX_ROW_MAGIC, MU_GFX_ROW_CURSE, MU_GFX_ROW_HP, MU_GFX_ROW_MANA, MU_GFX_ROW_SD, MU_GFX_ROW_AG };
+       MU_GFX_ROW_MAGIC, MU_GFX_ROW_CURSE, MU_GFX_ROW_HP, MU_GFX_ROW_MANA, MU_GFX_ROW_SD, MU_GFX_ROW_AG,
+       MU_GFX_ROW_ATK_SPEED };
 typedef struct mu_gfx_char_row {
     int32_t type, id, sort, button, color, value_color, value_key;
     char label[128];            /* plain text (the layer builds the HTML) */
