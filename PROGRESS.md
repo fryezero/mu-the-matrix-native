@@ -30,8 +30,12 @@ has been changed. The root Makefile discovers the new portable tests.
 
 Private validation: 52,533 comparisons, zero mismatches, 11/11 planted
 mistakes caught, all 3,009 installed Mix.bmd rows over synthetic summaries.
-Twelve portable worked examples pass. Full local macOS gate status will be
-recorded below after its final run.
+Twelve portable worked examples pass. `bash scripts/local-macos-ci.sh`
+exited 0 after resolving the rebase onto `bb27f8a`. Both shared-doc entries
+were retained. The tested tree `8149c7ed9d51e2ade48fce2f2ceb9883598d5fa0`
+matches the completed rebase commit `39edaba`; only this verification note
+and the finding's gate note changed afterward. Implementation is `357066a`.
+The gate log is local at `scratch/mix/local-macos-ci.log` under mu-mac-tools/native.
 
 Private report and disassembly:
 `~/Documents/mu-mac-tools/native/scratch/mix/validation.json`,

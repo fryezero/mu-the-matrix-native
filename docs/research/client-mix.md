@@ -110,6 +110,8 @@ python3 scripts/validate_mix.py --text "$MU_CLIENT_TEXT" --data "$MU_IMAGE_DATA"
 
 Use the repo's pinned Python requirements. Report, private disassembly and
 AS exports are local under `~/Documents/mu-mac-tools/native/scratch/mix/`.
+The full local macOS gate exited 0 on the resolved tree rebased onto
+`bb27f8a`; its log is `scratch/mix/local-macos-ci.log` under mu-mac-tools/native.
 The requested `~/Documents/mu-mac-tools/native/renders/mix/` exists but
 has no native mix renders yet.
 
