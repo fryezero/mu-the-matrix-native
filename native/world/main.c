@@ -1302,9 +1302,9 @@ static int travel(app *a, const mu_teleport *t)
             world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
     }
 #endif
-    if (a->mapsess && !failed) {   /* GlobalText[484] + the map name, the client's chat notice */
+    if (a->mapsess && a->mapsess->lang && !failed) {   /* sprintf("%s%s", map name, GlobalText[484]): the chat notice */
         const char *moved = mu_map_text(a->mapsess, MU_TELEPORT_TEXT_MOVED), *name = mu_map_world_name(a->mapsess, world);
-        snprintf(a->mapsess->notice, sizeof a->mapsess->notice, "%s%s", moved, name);
+        snprintf(a->mapsess->notice, sizeof a->mapsess->notice, "%s%s", name, moved);   /* "Noria - Welcome" */
 #ifndef MU_WORLD_NO_GL
         if (a->gfx && a->mapsess->notice[0])
             mu_gfx_layer_chat(world_gfx_layer(a->gfx), 3, "", a->mapsess->notice);

@@ -284,7 +284,7 @@ void mu_teleport_position(const mu_teleport *t, float out[2]);
 float mu_teleport_angle(const mu_teleport *t);
 /* The world changes when the number is not 0 and the world differs (static). */
 int mu_teleport_changes_world(const mu_teleport *t, int32_t current_world);
-#define MU_TELEPORT_TEXT_MOVED 484        /* "%s%s": GlobalText[484] + map name */
+#define MU_TELEPORT_TEXT_MOVED 484        /* "%s%s": map name + GlobalText[484] (" - Welcome") */
 #define MU_TELEPORT_LOADING_WORLD 30      /* LoadingWorld after a world change: the render skips while >= 30 */
 
 #ifdef __cplusplus
