@@ -85,7 +85,7 @@ MANAGER_GET, ITEM_TABLE, ITEM_KIND = 0x009c104e, 0x00cd4ea8, 0x00cd6017
 INV_GET, INV_ITEMS, INV_FLAG = 0x00ac3bf7, 0x0095f965, 0x00b96c35
 STRING_CTOR, STRING_DTOR, NEW, OBJ_CTOR = 0x0094997e, 0x008e83a0, 0x0191ba7b, 0x0129e792
 MAP_INSERT_A, MAP_INSERT_B = 0x0103eb7f, 0x01040039
-RIDER_RESET, BONES_ALLOC, POSE = 0x013a763e, 0x0129f06f, 0x00d55ad1
+RIDER_RESET, BONES_ALLOC, POSE = 0x013a763e, 0x0129f06f, 0x012b5064
 GL_COLOR4 = 0x1a7c754
 
 CREATE_BUG, MOVE_BUGS, RENDER_BUGS, DELETE_BUG = 0x00c9d8df, 0x00c9e24a, 0x00c9e4e3, 0x00c9ea70
@@ -109,7 +109,7 @@ BODIES = {  # start, exclusive end
     'move_bug': (0x00c9d95a, 0x00c9e24a), 'move_bugs': (0x00c9e24a, 0x00c9e28a),
     'render_bug': (0x00c9e28a, 0x00c9e4e3), 'render_bugs': (0x00c9e4e3, 0x00c9e523),
     'delete_bug': (0x00c9ea70, 0x00c9ead7), 'bug_types': (0x00ca211e, 0x00ca2154),
-    'mount_kind': (0x0106cc24, 0x0106cc74), 'factory': (0x0106cde5, 0x0106d3d8),
+    'mount_kind': (0x0106cc24, 0x0106cc74), 'factory': (0x0106cde5, 0x0106d6ca),
     'move_base': (0x0103d45a, 0x0103d6cc), 'speed_lookup': (0x0103dbf4, 0x0103dc68),
     'lifts': (0x0103dc68, 0x0103dd3b), 'lift': (0x0103da5c, 0x0103dbf4),
     'follow': (0x0103d931, 0x0103d9eb), 'category': (0x0106c4b6, 0x0106c5e9),
@@ -234,8 +234,8 @@ class Helpers(ctypes.Structure):
 class MountInfo(ctypes.Structure):
     _fields_ = [('cls', ctypes.c_int32), ('vtable', ctypes.c_uint32), ('item', ctypes.c_int32),
                 ('model', ctypes.c_int32), ('file', ctypes.c_char_p), ('bone', ctypes.c_char_p),
-                ('lift', ctypes.c_float), ('has_lift', ctypes.c_uint8), ('ported', ctypes.c_uint8),
-                ('speed', ctypes.c_float * 16), ('speed_set', ctypes.c_uint16)]
+                ('lift', ctypes.c_float), ('has_lift', ctypes.c_uint8), ('scale_offset', ctypes.c_uint8),
+                ('ported', ctypes.c_uint8), ('scale', ctypes.c_float), ('speed', ctypes.c_float * 16)]
 
 
 class Mount(ctypes.Structure):
@@ -413,6 +413,23 @@ class Machine(am.ActorMachine):
     def return_float(self, value):
         self.uc.mem_write(SCRATCH_FLOAT, struct.pack('<f', value))
         return ('jump', FLD_RET, None)
+
+    def data_word(self, address):
+        return bytes(self.uc.mem_read(address, 4))
+
+    def st0_float(self):
+        return f32(self.uc.reg_read(self.x86.UC_X86_REG_FP0)) if False else self._st0()
+
+    def _st0(self):
+        top = (self.uc.reg_read(self.x86.UC_X86_REG_FPSW) >> 11) & 7
+        raw = self.uc.reg_read(self.x86.UC_X86_REG_FP0 + top)
+        mant, exp = raw
+        sign = (exp >> 15) & 1
+        e = exp & 0x7fff
+        if e == 0 and mant == 0:
+            return -0.0 if sign else 0.0
+        value = math.ldexp(mant, e - 16383 - 63)
+        return f32(-value if sign else value)
 
     def ecx(self):
         return self.uc.reg_read(self.x86.UC_X86_REG_ECX)
@@ -895,6 +912,404 @@ def run_bug_case(m, lib, case, plant=None):
                 diff = [hex(j) for j in range(OBJ) if OBJECT_MASK[j] and raw[j] != mine[j]][:12]
                 return {'ok': False, 'step': step, 'why': f'bug {i} bytes', 'offsets': diff}
     return {'ok': True, 'stats': stats}
+
+
+# --------------------------------------------------------------------------
+# Mounts: the C++ object in client memory.
+
+MEMSET = 0x0194cd00
+VTABLES = {}   # class -> vtable (from the library's table)
+MOUNT_ITEMS = [0x1a02, 0x1a03, 0x1a04, 0x1a25, 0x19d7, 0x19e3, 0x19e4, 0x184b, 0x184c, 0x1853, 0x1854, 0x185d,
+               0x185e, 0x1833, 0x1834, 0x1835, 0x1836, 0x28f7]
+CLASS_ITEMS = {1: 0x1a02, 2: 0x1a03, 3: 0x1a04, 4: 0x1a25, 5: 0x19d7, 6: 0x19e3, 7: 0x19e4, 8: 0x184b, 9: 0x184c,
+               10: 0x1853, 11: 0x1854, 12: 0x185d, 13: 0x185e, 14: 0x1833, 15: 0x1834, 16: 0x1835, 17: 0x1836,
+               18: 0x28f7}
+STRING_TABLE = 0x25000080      # our std::string stand-in objects point at their literal
+FENRIR_STRING = 0x01ec9a8c
+
+
+class MountClient(Client):
+    """Client memory with the mount C++ object at MOUNT_BASE and its OBJECT at MOUNT_BASE + 0x100."""
+
+    def __init__(self, m, case):
+        super().__init__(m, case)
+        self.mount = am.undefined_region('mount', MOUNT_BASE, 0x600)
+        self.fenrir_string = am.undefined_region('fenrir-string', FENRIR_STRING, 0x18)
+        self.strings = am.undefined_region('strings', ARGS + 0x200, 0x100)
+        self.strings.define(ARGS + 0x200, b'sit_pos_0\0')
+        self.fenrir_string.define(FENRIR_STRING, struct.pack('<I', ARGS + 0x200))
+        self.event = am.undefined_region('event', 0x24a00000, 0x100)
+        self.event.define(0x24a00000 + 0x78 + 4, struct.pack('<i', case.get('event_state', 0)))
+        self.manager = am.undefined_region('manager', MANAGER, 0x40)
+        case['mount_object'] = MOUNT_BASE + 0x100
+
+    def new(self, size):
+        addr = (self.heap_next + 15) & ~15
+        self.heap_next = addr + size
+        if self.heap_next > HEAP_BASE + HEAP_SIZE:
+            raise RuntimeError('heap exhausted')
+        return addr
+
+    def mount_regions(self, s):
+        return [*self.globals(s), *self.chars, self.models, self.args, self.heap, self.mount, self.fenrir_string,
+                self.strings, self.event, self.manager]
+
+    def mount_stubs(self, s):
+        stubs = self.common_stubs(s)
+        case, log = self.case, self.log
+
+        def new(m):
+            return self.new(m.argument(0))
+
+        def memset(m):
+            dst, value, count = m.argument(0), m.argument(1), m.argument(2)
+            m.write(dst, bytes([value & 0xff])*count)
+            return dst
+
+        def string_ctor(m):
+            this, literal = m.ecx(), m.argument(0)
+            m.local_write(this, struct.pack('<I', literal))
+            return this, 4
+
+        def string_dtor(m):
+            return 0
+
+        def bone_find(m):
+            name = m.cstring(m.read32(m.argument(0)))
+            self.last_bone = name
+            return 0x24f00000, 8
+
+        def bone_transform(m):
+            matrix, vec, out = m.argument(0), m.argument(1), m.argument(2)
+            v = m.read_floats(vec, 3)
+            name = self.last_bone if matrix == 0x24f00000 else '?'
+            log.append(('bone', name, v))
+            m.local_write(out, struct.pack('<3f', *bone_answer(name, v, case['bone_salt'])))
+            return 0, 0x10
+
+        def bone_vector(m):
+            out, name_ptr, vec = m.argument(0), m.argument(2), m.argument(3)
+            name = m.cstring(m.read32(name_ptr))
+            v = m.read_floats(vec, 3)
+            log.append(('bone_vector', name, v))
+            m.local_write(out, struct.pack('<3f', *bone_answer(name + '/v', v, case['bone_salt'])))
+            return out, 0x10
+
+        def bones_alloc(m):
+            log.append(('bones', m.argument(0)))
+            return 0, 4
+
+        def item_table(m):
+            return 0x24b00000
+
+        def item_kind(m):
+            item, kind = m.argument(0), m.argument(1)
+            return (1 if case.get('item_kind', {}).get(item) == kind else 0), 8
+
+        def effect(m):
+            pos, ang, light = (m.read_floats(m.argument(i), 3) for i in (1, 2, 3))
+            owner = m.argument(5)
+            log.append(('effect', m.argument(0), pos, ang, light, m.argument(4), -1 if owner == 0 else owner))
+            return 0
+
+        def joint(m):
+            pos, ang = m.read_floats(m.argument(1), 3), m.read_floats(m.argument(3), 3)
+            log.append(('joint', m.argument(0), pos, ang, self.object_label(m.argument(5)), m.float_argument(6)))
+            return 0
+
+        def event_get(m):
+            return 0x24a00000
+
+        def manager_get(m):
+            return MANAGER
+
+        def inv_get(m):
+            return 0x24c00000
+
+        def inv_items(m):
+            return 0x24c00100
+
+        def inv_flag(m):
+            return case.get('dark_horse_flag', 0), 4
+
+        def weapon_kind(m):
+            k = owner_index(m.ecx() + CHAR_OBJ)
+            return case['owners'][k]['weapon_kind'][m.argument(0)] if m.argument(0) in (0, 1) else 0, 4
+
+        def weapon_54(m):
+            k = owner_index(m.argument(0) + CHAR_OBJ)
+            return case['owners'][k]['weapon_54'] if m.argument(1) == 0 else 0
+
+        def pose(m):
+            log.append(('pose', m.argument(1), m.argument(2), m.argument(3)))
+            return 0, 0x20
+
+        def rider_reset(m):
+            log.append(('rider_reset', owner_index(m.argument(0) + CHAR_OBJ)))
+            return 0
+
+        def manager_find(m):   # 0x0106b93a(c): the mount of the character (the case's mount or NULL)
+            return (MOUNT_BASE if case.get('has_mount') else 0), 4
+
+        def draw_body(m):
+            log.append(('draw_body', self.object_label(m.argument(0)), (m.argument(1), m.argument(2), m.argument(3))))
+            return case.get('body_drawn', 1)
+
+        def draw_after(m):
+            log.append(('draw_after', self.object_label(m.argument(0)), tuple(m.argument(i) for i in range(1, 6))))
+            return 0
+
+        def alpha_test(m):
+            log.append(('alpha_test', m.argument(0)))
+            return 0
+
+        def color4(m):
+            log.append(('color4', *(m.float_argument(i) for i in range(4))))
+            return 0, 16
+
+        def shadow(m):
+            model = m.ecx()
+            idx = struct.unpack('<i', bytes(m.uc.mem_read(model + 0xf0, 4)))[0]
+            log.append(('shadow', idx, m.argument(4)))
+            return 0, 0x14
+
+        stubs.update({NEW: new, MEMSET: memset, STRING_CTOR: string_ctor, STRING_DTOR: string_dtor,
+                      BONE_FIND: bone_find, BONE_TRANSFORM: bone_transform, BONE_VECTOR: bone_vector,
+                      BONES_ALLOC: bones_alloc, ITEM_TABLE: item_table, ITEM_KIND: item_kind, EFFECT: effect,
+                      JOINT: joint, 0x009a6ef3: event_get, MANAGER_GET: manager_get, INV_GET: inv_get,
+                      INV_ITEMS: inv_items, INV_FLAG: inv_flag, WEAPON_KIND: weapon_kind, WEAPON_54: weapon_54,
+                      RIDER_RESET: rider_reset, POSE: pose, 0x0106b93a: manager_find, DRAW_BODY: draw_body,
+                      DRAW_AFTER: draw_after, ALPHA_TEST: alpha_test, self.m.gl_color4: color4, SHADOW: shadow})
+        return stubs
+
+
+def model_answer(case, index):
+    """The model getter's BMD for a model index (a model record with +0x22 bone count and +0xf0 our tag)."""
+    return MODEL_BASE + (index % 16)*0x100
+
+
+def prepare_models(client, case):
+    for slot in range(16):
+        base = MODEL_BASE + slot*0x100
+        client.models.define(base + 0x22, struct.pack('<h', 20 + slot))
+        client.models.define(base + 0xf0, struct.pack('<i', -1))
+
+
+def run_factory(m, client, s, kind, item, state):
+    """0x0106cc74 + 0x0106cde5 in client memory; returns (object address, vtable) or (0, 0)."""
+    stubs = client.mount_stubs(s)
+    regions = client.mount_regions(s)
+    desc = ARGS + 0x40
+    client.args.define(desc, struct.pack('<3i', -1, -1, -1))
+    res = m.execute(DESCRIPTOR, [desc, item, state], regions, stubs)
+    if not res['ok']:
+        return None, res
+    client.args.data[:] = res['regions']['args']
+    res = m.execute(FACTORY, [desc], regions, stubs, ecx=MANAGER, cleanup=4)
+    if not res['ok']:
+        return None, res
+    for r in regions:
+        if r.name in res['regions']:
+            r.data[:] = res['regions'][r.name]
+    obj = res['eax']
+    if obj == 0:
+        return (0, 0), res
+    vt = struct.unpack('<I', bytes(client.heap.data[obj - HEAP_BASE:obj - HEAP_BASE + 4]))[0]
+    return (obj, vt), res
+
+
+def section_mount_class(m, lib, args, report):
+    """Every factory key; for each class the model load, the play speeds and the rider offset."""
+    rng = random.Random(args.seed ^ 0xc1a5)
+    info = {c: lib.mu_hp_mount_class_info(c) for c in range(1, 22)}
+    vt_class = {info[c].contents.vtable: c for c in info if info[c]}
+    out = {'factory_cases': 0, 'factory_mismatches': 0, 'classes': {}, 'mismatches': 0}
+    first = None
+    # factory keys: every mount item with states 0..4, the no-item states, random items
+    keys = [(item, st) for item in MOUNT_ITEMS for st in range(5)] + [(-1, st) for st in range(-1, 6)] + \
+        [(0xffff, st) for st in range(0, 5)]
+    keys += [(rng.randrange(0x3000), rng.randrange(6)) for _ in range(args.cases)]
+    emitted = {}
+    for item, st in keys:
+        case = {'seed': 1, 'owners': [random_owner(rng, 0)], 'bone_salt': 7, 'height_base': 0.0, 'frustum_salt': 0,
+                'item_kind': {item: 0x4f} if rng.random() < 0.5 else {}}
+        client = MountClient(m, case)
+        s = {'world': 0, 'scene': 2}
+        stubs = client.mount_stubs(s)
+        regions = client.mount_regions(s)
+        res = m.execute(KIND, [item, st], regions, stubs)
+        if not res['ok']:
+            first = first or {'key': (item, st), 'machine': {k: v for k, v in res.items() if k != 'regions'}}
+            out['factory_mismatches'] += 1
+            continue
+        kind_c = struct.unpack('<i', struct.pack('<I', res['eax']))[0]
+        kind_n = lib.mu_hp_mount_kind(item, st, 1 if case['item_kind'] else 0)
+        got, res2 = run_factory(m, client, s, kind_c, item, st)
+        out['factory_cases'] += 1
+        if got is None:
+            first = first or {'key': (item, st), 'machine': {k: v for k, v in res2.items() if k != 'regions'}}
+            out['factory_mismatches'] += 1
+            continue
+        cls_c = vt_class.get(got[1], 0 if got[1] == 0 else -got[1])
+        cls_n = lib.mu_hp_mount_class(kind_n, item, st)
+        if kind_c != kind_n or cls_c != cls_n:
+            out['factory_mismatches'] += 1
+            first = first or {'key': (item, st), 'kind': (kind_c, kind_n), 'class': (cls_c, cls_n)}
+    # per class
+    for c in range(1, 22):
+        states = [0, 1, 2, 3, 4] if c == 4 else [0]
+        for st in states:
+            case = {'seed': 1, 'owners': [random_owner(rng, 0)], 'bone_salt': rng.getrandbits(16), 'height_base': 0.0,
+                    'frustum_salt': 0, 'item_kind': {}}
+            client = MountClient(m, case)
+            prepare_models(client, case)
+            s = {'world': 0, 'scene': 2}
+            i = info[c].contents
+            if c >= 19:
+                kind, item, state = 2, c - 18, -1
+                fk = (-1, c - 18)
+            else:
+                kind, item, state = 0, CLASS_ITEMS[c], st
+                fk = (item, st)
+            got, res = run_factory(m, client, s, kind, *fk)
+            entry = {'vtable': hex(got[1]) if got else None}
+            ok = got is not None and got[0] != 0
+            if ok:
+                obj = got[0]
+                vt = got[1]
+                # move the object into the mount region? keep it on the heap; set +0x1c = OBJECT
+                o = MOUNT_BASE + 0x100
+                client.mount.define(o, bytes(OBJ))
+                client.mount.define(o + 0x318, struct.pack('<I', 0))
+                client.heap.define(obj + 0x1c, struct.pack('<I', o))
+                client.heap.define(obj + 4, struct.pack('<3i', kind, item if kind != 2 else c - 18, state))
+                regions, stubs = client.mount_regions(s), client.mount_stubs(s)
+                slot = lambda k: struct.unpack('<I', m.data_word(vt + 4*k))[0]  # noqa: E731
+                client.log.clear()
+                r14 = m.execute(slot(14), [], regions, stubs, ecx=obj)
+                if not r14['ok']:
+                    entry['error'] = {k: v for k, v in r14.items() if k != 'regions'}
+                    ok = False
+                else:
+                    for r in regions:
+                        if r.name in r14['regions']:
+                            r.data[:] = r14['regions'][r.name]
+                    heap = client.heap.data
+                    model = struct.unpack('<i', bytes(heap[obj + 0x10 - HEAP_BASE:obj + 0x14 - HEAP_BASE]))[0]
+                    raw = bytes(client.mount.data[0x100:0x100 + OBJ])
+                    entry['model'] = hex(model)
+                    entry['scale'] = struct.unpack('<f', raw[0xa0:0xa4])[0]
+                    entry['obj_type'] = hex(struct.unpack('<i', raw[0x5c:0x60])[0])
+                    entry['log14'] = client.log[:]
+                    # speeds
+                    client.log.clear()
+                    r2 = m.execute(slot(2), [], regions, stubs, ecx=obj)
+                    for r in regions:
+                        if r.name in r2['regions']:
+                            r.data[:] = r2['regions'][r.name]
+                    speeds = []
+                    for a in range(16):
+                        rs = m.execute(SPEED_LOOKUP, [a], regions, stubs, ecx=obj, cleanup=4)
+                        if not all(v for k, v in rs['checks'].items() if k != 'x87_top'):
+                            entry['speed_error'] = {k: v for k, v in rs.items() if k != 'regions'}
+                            ok = False
+                            break
+                        speeds.append(m.st0_float())
+                    entry['speeds'] = speeds
+                    # offset
+                    client.log.clear()
+                    client.heap.define(obj + 0x20, struct.pack('<I', model_answer(case, model)))
+                    client.heap.define(obj + 0x24, struct.pack('<3f', 1.0, 2.0, 3.0))
+                    r4 = m.execute(slot(4), [], regions, stubs, ecx=obj)
+                    if r4['ok']:
+                        for r in regions:
+                            if r.name in r4['regions']:
+                                r.data[:] = r4['regions'][r.name]
+                        entry['offset'] = struct.unpack('<3f', bytes(client.heap.data[obj + 0x24 - HEAP_BASE:
+                                                                                      obj + 0x30 - HEAP_BASE]))
+                        entry['bones'] = [e[1] for e in client.log if e[0] == 'bone']
+                    else:
+                        entry['offset_error'] = {k: v for k, v in r4.items() if k != 'regions'}
+                        ok = False
+            # compare with the library
+            if ok:
+                mismatch = []
+                if lib.mu_hp_mount_model(c, st) != int(entry['model'], 16):
+                    mismatch.append('model')
+                for a in range(16):
+                    if bits(lib.mu_hp_mount_speed(c, a)) != bits(entry['speeds'][a]):
+                        mismatch.append(f'speed {a}')
+                        break
+                mi = info[c].contents
+                if entry.get('bones') and (mi.bone or b'').decode() != entry['bones'][0]:
+                    mismatch.append('bone')
+                if bits(f32(mi.scale)) != bits(f32(entry['scale'])):
+                    mismatch.append('scale')
+                if entry.get('bones'):
+                    base = bone_answer(entry['bones'][0], (0.0, 0.0, 0.0), case['bone_salt'])
+                    exp = list(base)
+                    if mi.scale_offset:
+                        exp = [f32(f32(entry['scale']) * x) for x in exp]
+                    if mi.has_lift:
+                        exp[2] = f32(exp[2] + mi.lift)
+                    if any(bits(f32(a)) != bits(b) for a, b in zip(exp, entry['offset'])):
+                        mismatch.append('offset')
+                if mismatch:
+                    entry['mismatch'] = mismatch
+                    out['mismatches'] += 1
+                    first = first or {'class': c, 'state': st, 'mismatch': mismatch}
+            else:
+                out['mismatches'] += 1
+                first = first or {'class': c, 'state': st, 'entry': entry}
+            entry['salt'] = case['bone_salt']
+            out['classes'][f'{c}/{st}'] = {k: v for k, v in entry.items() if k != 'log14'}
+            emitted[(c, st)] = entry
+    report['mount_class'] = dict(out, first_failure=first)
+    if args.emit_classes:
+        emit_classes(info, emitted)
+    return first is None
+
+
+def emit_classes(info, emitted):
+    names = {5: ('GHOST_HORSE', 'ghost_horse', 0x19d7), 6: ('ICE_DRAGON', 'icedragon', 0x19e3),
+             7: ('ICE_DRAGON_RARE', 'icedragon_rare', 0x19e4), 8: ('PIERCE_LION', 'fiercelion', 0x184b),
+             9: ('PIERCE_LION_RARE', 'fiercelionR', 0x184c), 10: ('SHINING_TAIL', 'shiningtails', 0x1853),
+             11: ('SHINING_TAIL_RARE', 'rare_shiningtails', 0x1854), 12: ('UR', 'Ur', 0x185d),
+             13: ('UR_RARE', 'UrUp', 0x185e), 14: ('LEVIATHAN', 'Leviathan', 0x1833),
+             15: ('LEVIATHAN_RARE', 'Leviathan_rare', 0x1834), 16: ('TAUROS', 'taurus', 0x1835),
+             17: ('TAUROS_RARE', 'taurus_rare', 0x1836), 18: ('DIVINE_HORSE', 'Divine_Horse', 0x28f7),
+             19: ('GIANT_1', 'Giant_DarkWizard_01', -1), 20: ('GIANT_2', 'Giant_Elf_01', -1),
+             21: ('GIANT_3', 'Giant_GrowLancer_01', -1)}
+    print('/* Generated by scripts/validate_helpers.py --sections mount_class --emit-classes: extracted by executing')
+    print(' * each class\'s vtable +0x38 (model, scale), +8 with 0x0103dbf4 (speeds) and +0x10 (bone, lift).')
+    print(' * The class moves (+0xc) of these classes are not reconstructed (ported 0). Included by helpers.c. */')
+
+    def fl(x):
+        x = f32(x)
+        t = repr(x)
+        for digits in range(0, 10):
+            cand = f'{x:.{digits}f}'
+            if f32(float(cand)) == x:
+                t = cand
+                break
+        if 'e' not in t and '.' not in t:
+            t += '.0'
+        return t + 'f'
+    for c in range(5, 22):
+        e = emitted.get((c, 0))
+        if not e or 'speeds' not in e:
+            print(f'    /* class {c}: extraction failed */')
+            continue
+        name, file, item = names[c]
+        bone = e['bones'][0] if e.get('bones') else ''
+        base = bone_answer(bone, (0.0, 0.0, 0.0), e['salt'])
+        scale_offset = bits(f32(e['offset'][0])) != bits(base[0])
+        z = f32(f32(e['scale']) * base[2]) if scale_offset else base[2]
+        lift = f32(e['offset'][2] - z) if bits(f32(e['offset'][2])) != bits(z) else 0.0
+        sp = ', '.join(fl(x) for x in e['speeds'])
+        print(f'    {{MU_HP_MOUNT_{name}, {e["vtable"]}, {item if item < 0 else hex(item)}, {e["model"]}, "{file}", '
+              f'"{bone}", {fl(lift)}, {1 if lift else 0}, {1 if scale_offset else 0}, 0, {fl(e["scale"])},')
+        print(f'     {{{sp}}}}},')
 
 
 # --------------------------------------------------------------------------

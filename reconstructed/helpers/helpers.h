@@ -253,12 +253,13 @@ typedef struct mu_hp_mount_info {
     int32_t item;              /* the ride item (factory key), -1 for the ride-state classes */
     int32_t model;             /* AccessModel index (Fenrir: by state, see mu_hp_mount_model) */
     const char *file;          /* Data\Skill\<file>.bmd */
-    const char *bone;          /* rider bone name */
-    float lift;                /* added to offset z (0 with has_lift 0) */
+    const char *bone;          /* rider bone name (vtable +0x10) */
+    float lift;                /* added to offset z when has_lift */
     uint8_t has_lift;
+    uint8_t scale_offset;      /* the offset is multiplied by the object scale (the ride-state classes) */
     uint8_t ported;            /* 1: the class move (+0xc) is reconstructed; else only the base move runs */
-    float speed[MU_HP_SPEEDS]; /* play speeds by mount action; 0.4 for keys the class does not set */
-    uint16_t speed_set;        /* bit k: key k is in the map */
+    float scale;               /* object scale (+0xa0) the model load writes */
+    float speed[MU_HP_SPEEDS]; /* play speeds by mount action (0x0103dbf4: 0.4 for keys the class does not set) */
 } mu_hp_mount_info;
 
 const mu_hp_mount_info *mu_hp_mount_class_info(int32_t cls);

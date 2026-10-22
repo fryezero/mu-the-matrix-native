@@ -319,19 +319,18 @@ void mu_hp_render_bugs(mu_helpers *h, const mu_hp_inputs *in, const mu_hp_render
 #define S8(v) {v, v, v, v, v, v, v, v, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}
 
 static const mu_hp_mount_info classes[MU_HP_MOUNT_CLASSES] = {
-    {MU_HP_MOUNT_NONE, 0, -1, -1, NULL, NULL, 0.0f, 0, 0, S8(0.4f), 0},
+    {MU_HP_MOUNT_NONE, 0, -1, -1, NULL, NULL, 0.0f, 0, 0, 0, 1.0f, S8(0.4f)},
     /* vtable +8 0x01064b33: actions 0..7 0.34; +0x10 0x01064ba6 */
-    {MU_HP_MOUNT_UNIRIA, 0x01ab6bd8, 0x1a02, 0x417, "Rider01", "Bip01 Spine", 20.0f, 1, 1, S8(0.34f), 0x00ff},
+    {MU_HP_MOUNT_UNIRIA, 0x01ab6bd8, 0x1a02, 0x417, "Rider01", "Bip01 Spine", 20.0f, 1, 0, 1, 1.0f, S8(0.34f)},
     /* 0x01040061: 0..11 0.34; 0x0104011f */
-    {MU_HP_MOUNT_DINORANT, 0x01ab6c1c, 0x1a03, 0x473, "Rider02", "Bip01 Spine1", 50.0f, 1, 1,
-     {0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.4f, 0.4f, 0.4f, 0.4f},
-     0x0fff},
+    {MU_HP_MOUNT_DINORANT, 0x01ab6c1c, 0x1a03, 0x473, "Rider02", "Bip01 Spine1", 50.0f, 1, 0, 1, 1.0f,
+     {0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.4f, 0.4f, 0.4f, 0.4f}},
     /* 0x0103f17e: 0..7 0.34, then 0, 1, 4, 7 0.3 and 8, 9, 10 1.0; 0x0103f324 */
-    {MU_HP_MOUNT_DARK_HORSE, 0x01ab6c60, 0x1a04, 0x410, "DarkHorse", "Bip01 Spine1", 30.0f, 1, 1,
-     {0.3f, 0.3f, 0.34f, 0.34f, 0.3f, 0.34f, 0.34f, 0.3f, 1.0f, 1.0f, 1.0f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}, 0x07ff},
+    {MU_HP_MOUNT_DARK_HORSE, 0x01ab6c60, 0x1a04, 0x410, "DarkHorse", "Bip01 Spine1", 30.0f, 1, 0, 1, 1.0f,
+     {0.3f, 0.3f, 0.34f, 0.34f, 0.3f, 0.34f, 0.34f, 0.3f, 1.0f, 1.0f, 1.0f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}},
     /* 0x01043869: the base 0..7 0.4 (0x0103d420), 2 1.0, 3 0.6; 0x010438fa */
-    {MU_HP_MOUNT_FENRIR, 0x01ab6ca4, 0x1a25, 0x4a9, "fenrir_red", "sit_pos_0", 0.0f, 0, 1,
-     {0.4f, 0.4f, 1.0f, 0.6f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}, 0x00ff},
+    {MU_HP_MOUNT_FENRIR, 0x01ab6ca4, 0x1a25, 0x4a9, "fenrir_red", "sit_pos_0", 0.0f, 0, 0, 1, 1.0f,
+     {0.4f, 0.4f, 1.0f, 0.6f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}},
 #include "mount_classes.h"
 };
 
@@ -391,7 +390,7 @@ int32_t mu_hp_mount_model(int32_t cls, int32_t state)
 float mu_hp_mount_speed(int32_t cls, int32_t action)
 {
     const mu_hp_mount_info *i = mu_hp_mount_class_info(cls);
-    if (!i || action < 0 || action >= MU_HP_SPEEDS || !((i->speed_set >> action) & 1u))
+    if (!i || action < 0 || action >= MU_HP_SPEEDS)
         return 0.4f;
     return i->speed[action];
 }
@@ -443,7 +442,7 @@ int mu_hp_mount_init(mu_helpers *h, mu_hp_mount *mount, const mu_hp_inputs *in, 
     o->position[1] = w->position[1];
     o->position[2] = w->position[2];
     /* vtable +0x38: the model */
-    o->scale = 1.0f;
+    o->scale = mu_hp_mount_class_info(mount->cls)->scale;
     mount->model = mu_hp_mount_model(mount->cls, mount->state);
     mount->has_model = (uint8_t)has_model(h, mount->model);
     if (!mount->has_model)
@@ -515,6 +514,11 @@ void mu_hp_mount_offset(mu_helpers *h, mu_hp_mount *mount)
     static const float zero[3] = {0.0f, 0.0f, 0.0f};
     if (h->host.bone_position)
         h->host.bone_position(h->host.context, &mount->object, mount->model, i->bone, zero, mount->offset);
+    if (i->scale_offset) {   /* e.g. 0x01049b79, 0x01057e86: times the object scale, then the lift */
+        mount->offset[0] = mount->object.scale * mount->offset[0];
+        mount->offset[1] = mount->object.scale * mount->offset[1];
+        mount->offset[2] = mount->object.scale * mount->offset[2];
+    }
     if (i->has_lift)
         mount->offset[2] = mount->offset[2] + i->lift;
 }
