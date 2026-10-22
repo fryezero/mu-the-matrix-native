@@ -228,6 +228,17 @@ int mu_terrain_draw(const mu_terrain_scene *scene, int32_t x_min, int32_t y_min,
  * of 0x009dacb8 (0x12..0x17, 0x35, 0x61) and for 30, else 1. */
 int mu_terrain_alpha_layers(int32_t world_index);
 
+/* NATIVE-FIDELITY-002: the terrain and first object passes of the main render scene 0x0185916b
+ * (0x018597c2..0x0185985e). Returns the calls in order, packed two bits each from bit 0 (end: 0):
+ * MU_SCENE_CALL_TERRAIN = RenderTerrain(0) 0x016cd468, MU_SCENE_CALL_OBJECTS = RenderObjects 0x016d5020.
+ *   - [0x01ec9188] != 0 (0x00deeaff): neither, here;
+ *   - world 0x27: RenderTerrain(0) unless the Kanturu state 0x009a645f answers 1 (kanturu_hides), no objects here;
+ *   - worlds 10 (Icarus), 0x84 and -1: no terrain;
+ *   - otherwise RenderObjects first in worlds 0x3f and 0x52..0x5a (0x00e94004 / 0x00e3068f), then the terrain;
+ * then, in every case but those two world groups, RenderObjects. */
+enum { MU_SCENE_CALL_TERRAIN = 1, MU_SCENE_CALL_OBJECTS = 2 };
+uint32_t mu_terrain_scene_passes(int32_t world_index, int top_flag, int kanturu_hides);
+
 /* 0x016ceed5: grass column offsets (rand() % 4) / 4.0f for 65536 entries,
  * drawn from the supplied generator state (the client uses its CRT rand(),
  * whose seed at map load is unknown). The MSVC rand() recurrence is used:

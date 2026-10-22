@@ -694,6 +694,28 @@ static int walk(const mu_terrain_scene *scene, int32_t pass, int32_t x_min, int3
     return worst;
 }
 
+uint32_t mu_terrain_scene_passes(int32_t w, int top_flag, int kanturu_hides)
+{
+    uint32_t calls = 0;
+    int n = 0;
+#define CALL(k) (calls |= (uint32_t)(k) << (2 * n++))
+    const int objects_first = w == 0x3f || (w >= 0x52 && w <= 0x5a);   /* 0x00e94004 || 0x00e3068f */
+    if (!top_flag) {
+        if (w == 0x27) {
+            if (!kanturu_hides)
+                CALL(MU_SCENE_CALL_TERRAIN);
+        } else if (w != 0xa && w != 0x84 && w != -1) {
+            if (objects_first)
+                CALL(MU_SCENE_CALL_OBJECTS);
+            CALL(MU_SCENE_CALL_TERRAIN);
+        }
+    }
+    if (!objects_first)
+        CALL(MU_SCENE_CALL_OBJECTS);
+#undef CALL
+    return calls;
+}
+
 int mu_terrain_alpha_layers(int32_t w) { return !((w >= 0x12 && w <= 0x17) || w == 0x35 || w == 0x61 || w == 0x1e); }
 
 int mu_terrain_draw(const mu_terrain_scene *scene, int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max,
