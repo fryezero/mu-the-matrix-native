@@ -7,6 +7,7 @@
 #include "mu_particles.h"
 #include "mu_objects.h"
 #include "mu_env.h"
+#include "mu_world_helpers.h"
 #include "mu_meshdraw.h"
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
@@ -15,7 +16,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 34
+#define MU_WORLD_PT_EFFECTS 42
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
@@ -30,6 +31,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     /* Fenrir's paw marks eff_lightinga01..05 (LoadBitmap 0x01822cdb..) */
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2, MU_SFX_BITMAP_LIGHTING_A + 3,
     MU_SFX_BITMAP_LIGHTING_A + 4,
+    0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd, 0x7fe0, 0x8098, MU_JT_BITMAP_LASER,
     MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
@@ -42,7 +44,10 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/smoke02.ozt", "Data/Object8/drop01.OZJ", "Data/Effect/Flare.OZJ", "Data/Effect/Shockwave.OZJ",
     "Data/Effect/pin_star.OZJ", "Data/Effect/pin_star02.OZJ", "Data/Effect/bostar3_R.OZJ", "Data/Effect/Shiny03.OZJ",
     "Data/Effect/eff_lightinga01.OZJ", "Data/Effect/eff_lightinga02.OZJ", "Data/Effect/eff_lightinga03.OZJ",
-    "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ"};
+    "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ",
+    "Data/Effect/Steam_01.OZJ", "Data/Effect/Smoke_line.OZJ", "Data/Effect/firehik_mono01.OZJ",
+    "Data/Effect/lightmarks_mzin.OZJ", "Data/Effect/flareBlue.OZJ", "Data/Effect/flareRed.OZJ",
+    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -82,13 +87,14 @@ static float h_terrain(void *c, float x, float y)
     return mu_request_terrain_height(p->map->height, p->map->attributes, p->map->water_height, 6, x, y);
 }
 
-/* The owner OBJECT's +0x158 (an index into the attached objects). */
+static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index);
+
+/* The owner OBJECT's +0x158 (world objects or helper OBJECTs). */
 static void h_owner(void *c, int32_t owner, float out[3])
 {
-    const mu_world_particles *p = c;
-    const uint8_t *img = p->objects ? mu_objects_object_image(p->objects, owner) : NULL;
-    if (img)
-        memcpy(out, img + MU_OBJF_POSITION, 12);
+    const mu_jt_object *o = fx_object(c, owner);
+    if (o)
+        memcpy(out, o->position, 12);
 }
 
 /* The bitmap record's height +0x208 (NATIVE-HELPERS-002: smoke02 sits on the terrain by half of it). */
@@ -240,7 +246,7 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
 {
     mu_pt_host h;
     host(p, &h);
-    if (owner >= 0 && (!p->objects || !mu_objects_object_image(p->objects, owner)))
+    if (owner >= 0 && !fx_object(p, owner))
         owner = MU_PT_NO_OWNER;
     const int kept = mu_pt_create(&p->list, &h, type, position, angle, light, subtype, scale, owner, 0);
     p->stats.created = p->list.created;
@@ -299,6 +305,8 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
         *o = hero_view(p);
         return o;
     }
+    if (index >= MU_WH_EFFECT_BASE && index < FX_HERO_OBJECT)
+        return mu_world_helpers_effect_object(p->helpers, index, o) ? o : NULL;
     if (!p->objects || !mu_objects_object_image(p->objects, index))
         return NULL;
     *o = view_of(p, index);
@@ -391,10 +399,17 @@ static uint32_t sfx_time(void *c)
     return p->world_time > 0.0f ? (uint32_t)p->world_time : 0u;
 }
 
+static void sfx_owner_bone(void *c, int32_t owner, int32_t bone, const float in[3], float out[3])
+{
+    mu_world_particles *p = c;
+    mu_world_helpers_effect_bone(p->helpers, owner, bone, in, out);
+}
+
 static void effect_env(mu_world_particles *p, mu_sfx_env *env)
 {
     memset(env, 0, sizeof *env);
     env->bone = sfx_bone;
+    env->owner_bone = sfx_owner_bone;
     env->context = p;
     env->rand = sfx_rand;
     env->height = sfx_height;
@@ -418,7 +433,7 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
         return 0;
     case MU_JT_CALL_JOINT:
         mu_world_particles_joint(p, call->type, call->position, call->target, call->angle, call->subtype,
-                                 call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0);
+                                 call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0, call->light);
         return 0;
     case MU_JT_CALL_EFFECT:
         mu_world_particles_effect(p, call->type, call->subtype, call->position, call->angle, call->light,
@@ -452,12 +467,13 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
 int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
                                  const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
                                  float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
-                                 int32_t arg14)
+                                 int32_t arg14, const float *creation_light)
 {
     if (!p->joints)
         return -1;
     mu_jt_env env;
     joint_env(p, &env);
+    if (creation_light) memcpy(env.creation_light, creation_light, sizeof env.creation_light);
     const int32_t i = mu_joints_create(p->joints, MU_JT_JOINTS, type, position, target_position, angle, subtype,
                                        target, scale, key, skill, byte10, word13, arg14, &env);
     if (i >= 0)
@@ -896,13 +912,14 @@ static long draw_effect_decals(mu_world_particles *p, const mu_world_particles_t
         const mu_sfx_effect *e = &p->effects[i];
         if (!e->live)
             continue;
-        if (e->type == MU_SFX_BITMAP_SHOCKWAVE && !(((w >= 0x18 && w <= 0x1d) || w == 0x24) && e->subtype != 6) &&
-            e->subtype != 0x18)
-            mu_terrain_decal(&scene, MU_SFX_BITMAP_SHOCKWAVE, e->position[0], e->position[1], e->scale, e->scale,
-                             e->light, -e->angle[2], 1.0f, 5.0f, 1, 0, &sink);
-        else if (e->type == MU_SFX_FENRIR_STEP && e->subtype != 5)
-            mu_terrain_decal(&scene, MU_SFX_BITMAP_LIGHTING_A + e->field_64 % 5, e->position[0], e->position[1], 0.6f,
-                             0.6f, e->light, 0.0f, 1.0f, 5.0f, 1, 0, &sink);
+        mu_sfx_decal a;
+        if (mu_sfx_effect_decal(e, w, &a)) {
+            /* 0x00deec1f uses a separate signed-integer height grid (50-unit cells, +400),
+             * which this world loader does not recover. Do not substitute ordinary terrain or z=0. */
+            if (a.flat) continue;
+            mu_terrain_decal(&scene, a.texture, e->position[0], e->position[1], a.size, a.size,
+                             a.light, a.rotation, 1.0f, 5.0f, 1, 0, &sink);
+        }
     }
     p->stats.drawn_decals = (uint32_t)d.fans;
     p->stats.decals_total += (uint64_t)d.fans;
@@ -1197,7 +1214,7 @@ static int32_t shadow_meshes(mu_world_particles *p, const mu_model *model, const
 int mu_world_particles_bone_position(const mu_model *model, int32_t bone, const float in[3], float out[3])
 {
     const float *bones = model ? mu_model_bone_matrices(model) : NULL;
-    if (!bones || bone < 0 || bone >= MU_MODEL_MAX_BONES)
+    if (!bones || !model->bmd || bone < 0 || bone >= model->bmd->bone_count || bone >= MU_MODEL_MAX_BONES)
         return 0;
     /* TransformPosition 0x012b6ef1: bones posed with Animation's translate (static objects, NATIVE-LIGHT-001)
      * already hold the body scale and origin; model-space bones take them here */
@@ -1273,7 +1290,7 @@ static void v_joint(void *c, int32_t bitmap, const float position[3], const floa
                     int32_t owner, float scale)
 {
     mu_world_particles_joint(((visual_context *)c)->p, bitmap, position, position, angle, subtype, owner, scale,
-                             0xffff, 0, 0, 0xffff, 0);
+                             0xffff, 0, 0, 0xffff, 0, NULL);
 }
 
 /* CreateEffect 0x013c0eaa(type, position, angle, light, subtype, the object, -1, 0, (u16)scale, 0, 0.0, -1,

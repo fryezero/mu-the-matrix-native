@@ -196,7 +196,7 @@ OWNER_ACTION_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, ctypes.c_int32)
 PARTICLE_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, P, P, ctypes.c_int32, ctypes.c_float)
 EFFECT_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, P, P, ctypes.c_int32, ctypes.c_int32)
 JOINT_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, P, P, ctypes.c_float)
-BONE_FN = ctypes.CFUNCTYPE(ctypes.c_int, P, P, ctypes.c_int32, ctypes.c_char_p, P, P)
+BONE_FN = ctypes.CFUNCTYPE(ctypes.c_int, P, P, ctypes.c_int32, ctypes.c_char_p, P, P, ctypes.c_int)
 BONE_VECTOR_FN = ctypes.CFUNCTYPE(None, P, P, ctypes.c_int32, ctypes.c_char_p, P, P)
 FLAG_FN = ctypes.CFUNCTYPE(ctypes.c_int, P)
 KILL_FN = ctypes.CFUNCTYPE(None, P, P)
@@ -687,7 +687,7 @@ class Native:
         def joint(ctx, typ, p, a, o, scale):
             log.append(('joint', typ, v3(p), v3(a), self.object_label(o), f32(scale)))
 
-        def bone(ctx, o, model, name, v, out):
+        def bone(ctx, o, model, name, v, out, world_space):
             nm = name.decode()
             log.append(('bone', nm, v3(v)))
             res = bone_answer(nm, v3(v), case['bone_salt'])

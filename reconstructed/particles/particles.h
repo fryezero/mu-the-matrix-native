@@ -107,6 +107,9 @@ typedef struct mu_pt_particle {
     float start_angle[3];    /* +0x94 */
     float time;              /* +0xac */
     int32_t arg8;            /* +0xb0 CreateParticle's last argument */
+    int32_t initial_lifetime; /* +0x4c, the Shining Tail's fades */
+    float initial_scale;     /* +0x1c */
+    float field_80, field_84; /* +0x80 / +0x84, colour saved beside +0x7c */
 } mu_pt_particle;
 
 /* The client state the routines read. */

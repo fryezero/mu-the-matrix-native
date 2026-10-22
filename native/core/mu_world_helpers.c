@@ -87,13 +87,14 @@ static const struct { int32_t index; const char *directory, *name; } pass_bitmap
     {0x84ea, "Data/Skill", "Giant_GrowLancer_Neon_render.jpg"},
     {0x84eb, "Data/Skill", "Giant_GrowLancer_Jewel_render.jpg"},
     /* the Shining Tail's rune circles and glows (its class visuals' terrain decals) */
+    {0x7fdd, "Data/Effect", "flareBlue.jpg"},
     {0x8438, "Data/Effect", "lightmarks_mzin.jpg"}, {0x7ef7, "Data/Effect", "flare01.jpg"}};
 
 /* The bitmaps a mount model's functor names (mount_render.c). */
 static int32_t model_pass_bitmaps(int32_t model, int32_t out[8])
 {
     static const struct { int32_t model; int32_t list[8]; } uses[] = {
-        {0x671, {0x82e3, 0x82e4}}, {0x69a, {0x82e4}}, {0x69b, {0x831a}},
+        {0x671, {0x82e3, 0x82e4, 0x7fdd}}, {0x69a, {0x82e4}}, {0x69b, {0x831a}},
         {0x6cb, {0x83ea, 0x83ec, 0x82e4}}, {0x6cc, {0x83eb, 0x83ed, 0x82e4}},
         {0x6f4, {0x8430, 0x8431, 0x8432, 0x8433, 0x82e3, 0x8438, 0x7ef7}},
         {0x6f5, {0x8434, 0x8435, 0x8436, 0x8437, 0x82e3}},
@@ -130,7 +131,7 @@ static void load_pass_bitmaps(mu_world_helpers *w, mu_wh_model *m)
             }
     /* the glow overlays scroll and repeat (GL_REPEAT); the decal bitmaps lie once on the terrain (GL_CLAMP) */
     for (int32_t i = 0; i < k; ++i) {
-        const int clamp = index[i] == 0x8438 || index[i] == 0x7ef7;
+        const int clamp = index[i] == 0x8438 || index[i] == 0x7ef7 || index[i] == 0x7fdd; /* loader 0x01822871 */
         mu_textures_add_extras(&m->textures, &index[i], &dirs[i], &names[i], 1, 0x2601 /* GL_LINEAR */,
                                clamp ? 0x2900u /* GL_CLAMP */ : 0x2901u /* GL_REPEAT */);
     }
@@ -200,6 +201,8 @@ int32_t mu_world_helpers_model_slot(const mu_world_helpers *w, const mu_wh_model
 {
     return slot_of(w, m);
 }
+
+static mu_wh_model *pose_helper(mu_world_helpers *w, const mu_hp_object *o);
 
 /* ---------------------------------------------------------------- host of the reconstructed routines */
 
@@ -275,19 +278,18 @@ static void h_effect(void *c, int32_t type, const float p[3], const float a[3], 
 static void h_joint(void *c, int32_t type, const float p[3], const float a[3], const mu_hp_object *o, float scale)
 {
     mu_world_helpers *w = c;
-    (void)o;
     w->stats.joints++;
     if (w->particles)   /* CreateJoint 0x0153b02c(type, p, p, angle, 0, object, 40, 2, 0, 0, -1, 0, -1, 0) */
-        mu_world_particles_joint(w->particles, type, p, p, a, 0, -1, scale, 2, 0, 0, 0xffff, 0);
+        mu_world_particles_joint(w->particles, type, p, p, a, 0, mu_world_helpers_effect_id(w, o), scale, 2, 0, 0, 0xffff, 0, NULL);
 }
 
 /* The bone matrix lookup 0x0129f18a(object, name, 1) and TransformPosition 0x012b6ef1(.., 0): the bone of the
- * model's last pose (the mount's draw), without the body scale and origin. */
-static int h_bone(void *c, const mu_hp_object *o, int32_t index, const char *name, const float v[3], float out[3])
+ * model's last pose. Rider offsets use the relative pose; effect positions apply the object scale and origin. */
+static int h_bone(void *c, const mu_hp_object *o, int32_t index, const char *name, const float v[3], float out[3], int world_space)
 {
     mu_world_helpers *w = c;
-    (void)o;
-    mu_wh_model *m = model_of(w, index);
+    mu_wh_model *m = pose_helper(w, o);
+    (void)index;
     if (!m || !m->loaded || m->bmd.bone_count <= 0)
         return 0;
     const char *names[MU_MODEL_MAX_BONES];
@@ -298,7 +300,7 @@ static int h_bone(void *c, const mu_hp_object *o, int32_t index, const char *nam
     const float *bones = mu_model_bone_matrices(&m->model);
     if (bone < 0 || !bones)
         return 0;
-    mu_pt_transform_position(bones + 12 * bone, v, out, 0, 1.0f, NULL);
+    mu_pt_transform_position(bones + 12 * bone, v, out, world_space, o->scale, o->position);
     return 1;
 }
 
@@ -307,8 +309,8 @@ static void h_bone_vector(void *c, const mu_hp_object *o, int32_t index, const c
                           float out[3])
 {
     mu_world_helpers *w = c;
-    (void)o;
-    mu_wh_model *m = model_of(w, index);
+    (void)index;
+    mu_wh_model *m = pose_helper(w, o);
     if (m && m->loaded)
         mu_world_particles_named_bone_position(&m->model, &m->bmd, name, v, out);
 }
@@ -358,10 +360,16 @@ static void c_object_bone(void *c, int32_t bone, float out[3])
         mu_world_particles_bone_position(&x->m->model, bone, zero, out);
 }
 
-/* The calls the class code makes into the other pools. */
-static void class_calls(mu_world_helpers *w, const mu_hp_after_call *calls, int32_t n, mu_wh_model *m)
+static void c_object_bone_offset(void *c, int32_t bone, const float offset[3], float out[3])
 {
-    (void)m;
+    class_host_ctx *x = c;
+    if (x->m && x->m->loaded)
+        mu_world_particles_bone_position(&x->m->model, bone, offset, out);
+}
+
+/* The calls the class code makes into the other pools. */
+static void class_calls(mu_world_helpers *w, const mu_hp_after_call *calls, int32_t n, const mu_hp_object *o)
+{
     for (int32_t i = 0; i < n; ++i) {
         const mu_hp_after_call *a = &calls[i];
         switch (a->kind) {
@@ -373,20 +381,38 @@ static void class_calls(mu_world_helpers *w, const mu_hp_after_call *calls, int3
         case MU_HP_AC_PARTICLE:
             w->stats.particles++;
             if (w->particles)
-                mu_world_particles_create(w->particles, a->type, a->position, a->angle, a->light, a->subtype, a->scale);
+                mu_world_particles_create_owned(w->particles, a->type, a->position, a->angle, a->light, a->subtype,
+                                                a->scale, a->flags & MU_HP_AC_OWNED ? mu_world_helpers_effect_id(w, o) : -1);
             break;
         case MU_HP_AC_EFFECT:
             w->stats.effects++;
             if (w->particles)
-                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light, -1,
-                                          a->scale, NULL);
+                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light,
+                                          a->flags & MU_HP_AC_OWNED ? mu_world_helpers_effect_id(w, o) : -1, a->scale, NULL);
             break;
         case MU_HP_AC_JOINT:
             w->stats.joints++;
             if (w->particles)
-                mu_world_particles_joint(w->particles, a->type, a->position, a->position, a->angle, a->subtype, -1,
-                                         a->scale, 0xffff, 0, 0, 0xffff, 0);
+                mu_world_particles_joint(w->particles, a->type, a->position, a->position, a->angle, a->subtype, mu_world_helpers_effect_id(w, o),
+                                         a->scale, 0xffff, 0, 0, 0xffff, 0, a->light);
             break;
+        case MU_HP_AC_EYES: {
+            for (int32_t j = 0; j < w->mounts.count; ++j) {
+                mu_hp_mount *mount = &w->mounts.list[j];
+                if (&mount->object != o) continue;
+                mu_hp_class_state *state = class_state_of(w, mount->key);
+                mu_wh_model *model = pose_helper(w, o);
+                if (!state || !model) break;
+                const int32_t first = mount->cls == MU_HP_MOUNT_GHOST_HORSE ? 0x1e : 0x27;
+                const int32_t second = mount->cls == MU_HP_MOUNT_GHOST_HORSE ? 0x23 : 0x26;
+                const float zero[3] = {0, 0, 0};
+                const ptrdiff_t slot = state - w->class_states;
+                mu_world_particles_bone_position(&model->model, second, zero, w->class_eyes[slot][0]);
+                mu_world_particles_bone_position(&model->model, first, zero, w->class_eyes[slot][1]);
+                break;
+            }
+            break;
+        }
         default:
             break;
         }
@@ -404,17 +430,18 @@ static void move_mounts(mu_world_helpers *w)
         mu_hp_class_inputs in;
         memset(&in, 0, sizeof in);
         in.world_time = w->world_time;
+        in.subtype = m->object.subtype;
         in.action = (uint16_t)m->action;   /* the mount's action +0x30 */
         in.frame = m->object.frame;
         in.alpha = m->object.alpha;
         memcpy(in.position, m->object.position, sizeof in.position);
         memcpy(in.angle, m->object.angle, sizeof in.angle);
-        class_host_ctx x = {w, model_of(w, m->object.type)};
-        mu_hp_class_host host = {&x, c_object_bone, c_named_bone};
+        class_host_ctx x = {w, pose_helper(w, &m->object)};
+        mu_hp_class_host host = {&x, c_object_bone, c_named_bone, c_object_bone_offset};
         mu_hp_after_call calls[16];
         int32_t n = 0;
         if (mu_hp_mount_class_step(&w->h, m->cls, &in, &host, calls, 16, &n))
-            class_calls(w, calls, n < 16 ? n : 16, x.m);
+            class_calls(w, calls, n < 16 ? n : 16, &m->object);
         mu_hp_mount_follow_action(&w->h, m);
     }
 }
@@ -518,6 +545,8 @@ int mu_world_helpers_open(mu_world_helpers *w, const char *game_root, const mu_w
 
 void mu_world_helpers_close(mu_world_helpers *w)
 {
+    if (w->particles && w->particles->helpers == w)
+        w->particles->helpers = NULL;
     free(w->raven);
     w->raven = NULL;
     mu_world_pets_free(w->pets);
@@ -535,7 +564,11 @@ void mu_world_helpers_close(mu_world_helpers *w)
 
 void mu_world_helpers_attach_particles(mu_world_helpers *w, struct mu_world_particles *particles)
 {
+    if (w->particles && w->particles->helpers == w)
+        w->particles->helpers = NULL;
     w->particles = particles;
+    if (particles)
+        particles->helpers = w;
 }
 
 void mu_world_helpers_attach_hero(mu_world_helpers *w, struct mu_character *hero)
@@ -813,6 +846,60 @@ static mu_wh_model *pose_object(draw_context *d, const mu_hp_object *o, int32_t 
     return m;
 }
 
+static mu_wh_model *pose_helper(mu_world_helpers *w, const mu_hp_object *o)
+{
+    draw_context d;
+    memset(&d, 0, sizeof d);
+    d.w = w;
+    return pose_object(&d, o, 1);
+}
+
+int32_t mu_world_helpers_effect_id(const mu_world_helpers *w, const mu_hp_object *object)
+{
+    for (int32_t i = 0; i < w->mounts.count; ++i)
+        if (&w->mounts.list[i].object == object)
+            return MU_WH_EFFECT_BASE + w->mounts.list[i].key;
+    return -1;
+}
+
+static mu_hp_mount *effect_mount(mu_world_helpers *w, int32_t id)
+{
+    return w && id >= MU_WH_EFFECT_BASE ? mu_hp_mount_find(&w->mounts, id - MU_WH_EFFECT_BASE) : NULL;
+}
+
+int mu_world_helpers_effect_object(mu_world_helpers *w, int32_t id, mu_jt_object *out)
+{
+    mu_hp_mount *m = effect_mount(w, id);
+    if (!m)
+        return 0;
+    memset(out, 0, sizeof *out);
+    out->live = m->object.live;
+    out->visible = m->object.visible;
+    out->action = m->object.action;
+    out->type = m->object.type;
+    memcpy(out->position, m->object.position, sizeof out->position);
+    memcpy(out->light, m->object.light, sizeof out->light);
+    for (int32_t i = 0; i < w->class_state_count; ++i)
+        if (w->class_keys[i] == m->key) {
+            memcpy(out->eye_188, w->class_eyes[i][0], sizeof out->eye_188);
+            memcpy(out->eye_194, w->class_eyes[i][1], sizeof out->eye_194);
+            break;
+        }
+    return 1;
+}
+
+int mu_world_helpers_effect_bone(mu_world_helpers *w, int32_t id, int32_t bone, const float in[3], float out[3])
+{
+    mu_hp_mount *mount = effect_mount(w, id);
+    if (!mount)
+        return 0;
+    draw_context d;
+    memset(&d, 0, sizeof d);
+    d.w = w;
+    mu_wh_model *m = pose_object(&d, &mount->object, 1);
+    return m && mu_world_particles_bone_position(&m->model, bone, in, out);
+}
+
 /* One RenderBodyDefault 0x00966def / RenderMeshDefault 0x00966e4a call on a posed model (mesh < 0: the body),
  * with the model colour +0x54 of the call. */
 static int draw_pass(draw_context *d, mu_wh_model *m, int32_t mesh, uint32_t flags, float alpha, int32_t blend_mesh,
@@ -1034,20 +1121,21 @@ static void class_visuals(draw_context *d, mu_wh_model *m, const mu_hp_object *o
     mu_hp_class_inputs in;
     memset(&in, 0, sizeof in);
     in.world_time = w->world_time;
+    in.subtype = o->subtype;
     in.action = o->action;
     in.frame = o->frame;
     in.alpha = o->alpha;
     memcpy(in.position, o->position, sizeof in.position);
     memcpy(in.angle, o->angle, sizeof in.angle);
     class_host_ctx x = {w, m};
-    mu_hp_class_host host = {&x, c_object_bone, c_named_bone};
+    mu_hp_class_host host = {&x, c_object_bone, c_named_bone, c_object_bone_offset};
     mu_hp_after_call calls[160];
     int32_t n = 0;
     if (!mu_hp_mount_class_visuals(&w->h, mount->cls, st, &in, &host, calls, 160, &n))
         return;
     if (n > 160)
         n = 160;
-    class_calls(w, calls, n, m);
+    class_calls(w, calls, n, o);
     draw_decals(d, m, calls, n);
 }
 
@@ -1115,8 +1203,8 @@ static void r_after(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int3
         case MU_HP_AC_EFFECT:
             w->stats.effects++;
             if (w->particles)
-                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light, -1, 1.0f,
-                                          NULL);
+                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light,
+                                          mu_world_helpers_effect_id(w, o), 1.0f, NULL);
             break;
         default:
             break;   /* the pose push/pop, the bone lookups (done through the host), EnableAlphaTest */

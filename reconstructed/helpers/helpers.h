@@ -165,7 +165,7 @@ typedef struct mu_hp_host {
     /* the bone matrix lookup 0x0129f18a(object, name, 1) and TransformPosition 0x012b6ef1(model, matrix,
      * vector, out, 0); returns 0 when the bone is missing (the client then leaves out unchanged) */
     int (*bone_position)(void *context, const mu_hp_object *object, int32_t model, const char *bone,
-                         const float vector[3], float out[3]);
+                         const float vector[3], float out[3], int world_space);
     /* the Dark Horse dust position 0x012b6a2b(model, out, object, name, vector) */
     void (*bone_vector)(void *context, const mu_hp_object *object, int32_t model, const char *bone,
                         const float vector[3], float out[3]);

@@ -134,7 +134,7 @@ static void sprite(vctx *c, int32_t type, const float p[3], float scale, const f
     memcpy(a->light, light, sizeof a->light);
 }
 
-static void particle(vctx *c, int32_t type, const float p[3], const float light[3], int32_t subtype, float scale)
+static mu_hp_after_call *particle(vctx *c, int32_t type, const float p[3], const float light[3], int32_t subtype, float scale)
 {
     mu_hp_after_call *a = push(c, MU_HP_AC_PARTICLE);
     a->type = type;
@@ -143,10 +143,11 @@ static void particle(vctx *c, int32_t type, const float p[3], const float light[
     memcpy(a->position, p, sizeof a->position);
     memcpy(a->angle, c->in->angle, sizeof a->angle);
     memcpy(a->light, light, sizeof a->light);
+    return a;
 }
 
 /* CreateEffect wrapper 0x013c0eaa(type, p, angle, light, 0, NULL, -1, 0, 0, 0, scale, -1, 0, 0) */
-static void effect(vctx *c, int32_t type, const float p[3], const float light[3], float scale)
+static mu_hp_after_call *effect(vctx *c, int32_t type, const float p[3], const float light[3], float scale)
 {
     mu_hp_after_call *a = push(c, MU_HP_AC_EFFECT);
     a->type = type;
@@ -154,6 +155,7 @@ static void effect(vctx *c, int32_t type, const float p[3], const float light[3]
     memcpy(a->position, p, sizeof a->position);
     memcpy(a->angle, c->in->angle, sizeof a->angle);
     memcpy(a->light, light, sizeof a->light);
+    return a;
 }
 
 /* RenderTerrainAlphaBitmap 0x016cdd5f(texture, x, y, size, size, light, angle x, alpha, 5, 1, 0) */
@@ -174,6 +176,71 @@ static void set3(float v[3], float x, float y, float z)
     v[0] = x;
     v[1] = y;
     v[2] = z;
+}
+
+/* Ghost Horse 0x01048192: the aura, paw marks, sparks and the level-dependent eyes and breath. */
+static void ghost_horse(vctx *c)
+{
+    static const int32_t bones[] = {0x3a,0x36,0x35,0x2d,0x2c,0x2b,0x59,0x58,0x57,0x56,0x4e,0x4d,0x4c,0x4b,
+                                    0x1f,0x40,0x41,0x42,0x5a,0x21,0x12,0x10,0x17,0x1d,0x1c,0x3f,0x11,0x22,
+                                    0x67,0x62,0x63,0x60,0x61};
+    static const float sizes[] = {2.5f,1.3f,2.3f,2.5f,1.3f,2.3f,3.5f,2.5f,1.0f,2.3f,3.5f,2.5f,1.0f,2.3f,
+                                  3.2f,2.75f,2.75f,2.3f,2.75f,1.8f,1.9f,1.0f,2.4f,1.7f,1.6f,1.5f,1.4f,1.3f,
+                                  1.8f,1.6f,1.4f,1.2f,1.0f};
+    float p[3], light[3];
+    set3(light, 0.0f, 0.2f, 0.6f);
+    for (int32_t i = 0; i < 33; ++i) {
+        if (i == 19) set3(light, 0.05f, 0.05f, 0.7f);
+        object_bone(c, bones[i], p);
+        sprite(c, 0x7ef7, p, sizes[i], light);
+    }
+    if (c->in->action != 2 && c->in->action != 3) {
+        const float v = mu_hp_wave(-4.0f, 0.0f, c->in->world_time) * 0.2f + 0.2f;
+        set3(light, v, v, v);
+        push(c, MU_HP_AC_BLEND)->flags = 0x0184aa2b;
+        static const int32_t feet[] = {0x34,0x2a,0x55,0x4a};
+        for (int32_t i = 0; i < 4; ++i) {
+            object_bone(c, feet[i], p);
+            decal(c, 0x7fdd, p, 2.0f, light);
+        }
+        push(c, MU_HP_AC_BLEND)->flags = 0x0184a7f3;
+    }
+    set3(light, 0.18f, 0.6f, 0.9f);
+    static const int32_t sparks[] = {0x35,0x2b,0x56,0x4b};
+    for (int32_t i = 0; i < 4; ++i)
+        if (mu_hp_rand(c->h) % 3 == 0) {
+            object_bone(c, sparks[i], p);
+            particle(c, 0x8086, p, light, 0x13, 1.15f);
+        }
+    if (c->in->subtype <= 0) return;
+    const float v = mu_hp_wave(-4.0f, 0.0f, c->in->world_time) * 0.4f + 0.6f;
+    set3(light, v, v, v);
+    for (int32_t i = 0; i < 2; ++i) {
+        object_bone(c, i ? 0x23 : 0x1e, p);
+        sprite(c, 0x7fdd, p, v * 0.1f + 0.2f, light);
+    }
+    push(c, MU_HP_AC_EYES);
+    if (!c->s->flag_48) {
+        c->s->flag_48 = 1;
+        for (int32_t i = 0; i < 2; ++i) {
+            mu_hp_after_call *a = push(c, MU_HP_AC_JOINT);
+            a->type = 0x7fd6; a->subtype = 0x43 + i; a->scale = 30.0f;
+            memcpy(a->position, c->in->position, sizeof a->position);
+            memcpy(a->angle, c->in->angle, sizeof a->angle);
+            set3(a->light, 0.5f, 0.1f, 1.0f);
+        }
+    }
+    if (1.0f <= c->in->frame && c->in->frame <= 4.0f && mu_hp_rand(c->h) % 2 == 0) {
+        const float offset[3] = {10.0f,-6.0f,0.0f};
+        mu_hp_after_call *a = push(c, MU_HP_AC_OBJECT_BONE);
+        a->mesh = 0x20;
+        memcpy(a->position, offset, sizeof a->position);
+        memset(p, 0, sizeof p);
+        if (c->host && c->host->object_bone_offset)
+            c->host->object_bone_offset(c->host->context, 0x20, offset, p);
+        set3(light, 0.2f, 0.4f, 0.5f);
+        particle(c, 0x7f5a, p, light, 0x75, 1.0f)->flags = MU_HP_AC_OWNED;
+    }
 }
 
 /* Shining Tail 0x01057fb0 (vtable +0x1c of 0x01ab6e3c) */
@@ -330,6 +397,7 @@ int mu_hp_mount_class_visuals(mu_helpers *h, int32_t cls, mu_hp_class_state *sta
     c.capacity = capacity;
     int r = 1;
     switch (cls) {
+    case MU_HP_MOUNT_GHOST_HORSE: ghost_horse(&c); break;
     case MU_HP_MOUNT_SHINING_TAIL:
         shining_tail(&c);
         break;
@@ -353,6 +421,20 @@ int mu_hp_mount_class_step(mu_helpers *h, int32_t cls, const mu_hp_class_inputs 
     c.out = out;
     c.capacity = capacity;
     int r = 0;
+    if (cls == MU_HP_MOUNT_GHOST_HORSE && (in->action == 2 || in->action == 3)) {
+        if (0.0f <= in->frame && in->frame <= 1.0f) {   /* 0x010497b9 */
+            static const char *const names[] = {"a04","b04","c05","d05"};
+            const float light[3] = {0.6f,0.6f,0.6f};
+            for (int32_t i = 0; i < 4; ++i) {
+                float p[3] = {0.0f,0.0f,0.0f};
+                mu_hp_after_call *a = push(&c, MU_HP_AC_NAMED_BONE);
+                a->mesh = 4 + i;
+                if (host && host->named_bone) host->named_bone(host->context, names[i], p);
+                effect(&c, 0x6f3, p, light, 1.2f)->flags = MU_HP_AC_OWNED;
+            }
+        }
+        r = 1;
+    }
     if (cls == MU_HP_MOUNT_SHINING_TAIL && (in->action == 2 || in->action == 3)) {
         /* 0x0105a0bb from the class move 0x01057e4d: the claws' steps (effect 0x6f3) at two frames */
         static const char *const names[4] = {"leg_nailfront", "leg_nailfront001", "leg_rear", "leg_rear001"};
@@ -368,6 +450,7 @@ int mu_hp_mount_class_step(mu_helpers *h, int32_t cls, const mu_hp_class_inputs 
                     host->named_bone(host->context, names[2 * pair + i], p);
                 a = push(&c, MU_HP_AC_EFFECT);
                 a->type = 0x6f3;
+                a->flags = MU_HP_AC_OWNED;
                 a->subtype = 2;
                 a->scale = 1.0f;
                 memcpy(a->position, p, sizeof a->position);

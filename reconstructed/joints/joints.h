@@ -121,6 +121,7 @@ typedef struct mu_jt_object {
     float light[3];            /* +0xec */
     uint16_t action;           /* +0x2a (NATIVE-HELPERS-002: the 0x7f78 ring reads its target's action) */
     int32_t type;              /* +0x5c (NATIVE-HELPERS-002: Fenrir's lightning 0x4ac looks up its owner's model) */
+    float eye_188[3], eye_194[3]; /* +0x188 / +0x194, SetEye (0x0137a948) */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at
@@ -146,6 +147,7 @@ typedef struct mu_jt_env {
     void (*call)(void *context, const mu_jt_call *call);         /* NULL: calls are not reported */
     uint8_t serial;            /* [[0x01d1df18] + 0x2dec], the hero's skill serial (Evil Spirit) */
     float world_time;          /* WorldTime [0x06fce370], ms */
+    float creation_light[3];   /* CreateJoint argument 12, the eye trails' supplied colour */
 } mu_jt_env;
 
 /* 1 when CreateJoint, MoveJoint and RenderJoints are reconstructed for the

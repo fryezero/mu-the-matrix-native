@@ -26,7 +26,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
-        return subtype == 0 || subtype == 2 || subtype == 3;
+        return subtype == 0 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f;
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
     case MU_PT_BITMAP_SMOKE2:
@@ -38,7 +38,9 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_THUNDER:
         return subtype == 0;
     case MU_PT_BITMAP_SPARK3:
-        return subtype == 0 || subtype == 1 || subtype == 0xf;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
+        return subtype == 0 || subtype == 1 || subtype == 0xf || subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
+    case 0x831d: case 0x83b3: return subtype == 6;
+    case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
         return subtype == 0x14;
     case MU_PT_BITMAP_WATERFALL1:
@@ -56,6 +58,16 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     default:
         return 0;
     }
+}
+
+/* 0x011ff622: the client's quantised random range, with each SSE intermediate rounded to float. */
+static float rand_range(const mu_pt_host *h, float lo, float hi, int32_t steps)
+{
+    const int32_t a = mu_pt_cvttss2si((float)steps * lo), b = mu_pt_cvttss2si((float)steps * hi);
+    float r = (float)(mu_pt_rand(h) % (b - a + 1) + a) / (float)steps;
+    if (lo > r) r = lo;
+    else if (r > hi) r = hi;
+    return r;
 }
 
 /* ---------------------------------------------------------------- wrapper */
@@ -166,7 +178,17 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         break;
     case MU_PT_BITMAP_SMOKE:
         /* 0x015c4c55, subtype table 0x016163a0 */
-        if (subtype == 0) {                         /* 0x015c4c7b */
+        if (subtype == 0x7f) {                      /* 0x015cbdb4 */
+            p->lifetime = p->initial_lifetime = 100;
+            p->scale = rand_range(h, 50.0f, 100.0f, 1) * 0.01f * scale;
+            p->alpha = 1.0f;
+            p->rotation = rand_range(h, 0.0f, 360.0f, 1);
+        } else if (subtype == 0x75) {                     /* Ghost Horse breath, 0x015cb3da */
+            p->lifetime = 16;
+            p->scale = (float)(mu_pt_rand(h) % 32 + 48) * scale * 0.01f;
+            p->angle[0] = (float)(mu_pt_rand(h) % 360);
+            p->rotation = (float)(mu_pt_cvttss2si(h ? h->world_time : 0.0f) % 360);
+        } else if (subtype == 0) {                         /* 0x015c4c7b */
             p->lifetime = 16;
             p->scale = (float)(mu_pt_rand(h) % 32 + 48) * 0.01f;   /* (type 0x844 would take rand % 3 + 28) */
             p->angle[0] = (float)(mu_pt_rand(h) % 360);
@@ -221,6 +243,17 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->gravity = 20.0f;
         break;
     case MU_PT_BITMAP_SPARK3:
+        if (subtype == 0x2a) {                      /* 0x015e14bf */
+            p->lifetime = p->initial_lifetime = 30;
+            p->scale = rand_range(h, 0.5f, 1.0f, 100) * scale;
+            p->initial_scale = p->scale;
+            p->alpha = 1.0f;
+            p->rotation = rand_range(h, 0.0f, 360.0f, 1);
+            p->position[0] += rand_range(h, -10.0f, 10.0f, 1);
+            p->position[1] += rand_range(h, -10.0f, 10.0f, 1);
+            p->position[2] += rand_range(h, -10.0f, 10.0f, 1);
+            break;
+        }
         /* 0x015dd48c; subtype 1: 0x015dd4c7 */
         if (subtype == 0xf) {
             /* NATIVE-HELPERS-002, 0x015de866: one in three lives 35 steps and falls; the others keep the common
@@ -263,6 +296,46 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         /* 0x015e5c73: subtypes 0 and 1 */
         p->lifetime = 18;
         p->angle[0] = 45.0f;
+        break;
+    case 0x831d:                                   /* 0x0160702e */
+        p->lifetime = p->initial_lifetime = 30;
+        p->scale = rand_range(h, 0.5f, 1.0f, 100) * scale;
+        p->alpha = 1.0f;
+        p->rotation = rand_range(h, 0.0f, 360.0f, 1);
+        p->velocity[1] = rand_range(h, 0.0f, 100.0f, 1);
+        {
+            float len = (float)sqrt((double)(p->velocity[1] * p->velocity[1]));
+            p->velocity[1] = 1e-6f > len ? 0.0f : p->velocity[1] / len;
+        }
+        for (int k = 0; k < 3; ++k)
+            p->velocity[k] = rand_range(h, 2.5f, 5.0f, 10) * p->velocity[k];
+        break;
+    case 0x83b3:                                   /* 0x015d0491 */
+        p->lifetime = p->initial_lifetime = 40;
+        p->alpha = 1.0f;
+        p->rotation = rand_range(h, 0.0f, 360.0f, 1);
+        break;
+    case 0x8086:
+        if (subtype == 0x18) {                     /* 0x015d61fa */
+            p->lifetime = p->initial_lifetime = 30;
+            p->scale = rand_range(h, 0.5f, 1.0f, 100) * scale;
+            p->initial_scale = p->scale;
+            p->alpha = 1.0f;
+            p->rotation = rand_range(h, 0.0f, 360.0f, 1);
+            p->position[0] += rand_range(h, -5.0f, 5.0f, 1);
+            p->position[1] += rand_range(h, -5.0f, 5.0f, 1);
+            p->position[2] += rand_range(h, 0.0f, 5.0f, 1);
+            p->velocity[2] = rand_range(h, 1.0f, 5.0f, 10);
+            break;
+        }
+        /* 0x015d5863 */
+        p->lifetime = mu_pt_rand(h) % 5 + 27;
+        p->scale = (float)(mu_pt_rand(h) % 72 + 52) * scale * 0.01f;
+        p->rotation = (float)(mu_pt_rand(h) % 180);
+        p->gravity = (float)(mu_pt_rand(h) % 14 + 44) * 0.05f;
+        p->alpha = 0.0f;
+        p->field_7c = light[0]; p->field_80 = light[1]; p->field_84 = light[2];
+        p->light[0] = p->light[1] = p->light[2] = 0.0f;
         break;
     case MU_PT_BITMAP_CLOUDS:
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
@@ -378,7 +451,23 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             break;
         case MU_PT_BITMAP_SMOKE:
             /* 0x016333e0, subtype table 0x0168f2fc */
-            if (p->subtype == 0) {                           /* 0x01633411 */
+            if (p->subtype == 0x7f) {                        /* 0x0163e8e0 */
+                if (p->lifetime < p->initial_lifetime / 2)
+                    p->alpha -= 1.0f / (float)(p->initial_lifetime / 2);
+                p->scale += 0.03f;
+            } else if (p->subtype == 0x75) {                     /* 0x0163dddb -> AngleToVector 0x00d015d5 */
+                float matrix[12], direction[3];
+                const float forward[3] = {0.0f, -1.0f, 0.0f};
+                mu_angle_matrix(p->angle, matrix);
+                mu_vector_rotate(forward, matrix, direction);
+                float length = (float)sqrt((double)(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]));
+                if (length != 0.0f) {
+                    const float inverse = 1.0f / length;
+                    for (int k = 0; k < 3; ++k) direction[k] *= inverse;
+                }
+                for (int k = 0; k < 3; ++k) p->position[k] += direction[k];
+                p->scale += 0.01f;
+            } else if (p->subtype == 0) {                           /* 0x01633411 */
                 float l = (float)p->lifetime / 8.0f;
                 p->light[0] = p->light[1] = p->light[2] = l;
                 p->gravity = p->gravity + 0.2f;
@@ -441,6 +530,14 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->rotation = p->rotation + p->gravity;
             break;
         case MU_PT_BITMAP_SPARK3:
+            if (p->subtype == 0x2a) {                        /* 0x01655100 */
+                p->scale -= p->initial_scale / (float)p->initial_lifetime;
+                p->alpha -= 1.0f / (float)p->initial_lifetime;
+                p->velocity[0] += rand_range(h, -0.6f, 0.6f, 10);
+                p->velocity[1] += rand_range(h, 0.3f, 0.8f, 10);
+                p->velocity[2] += rand_range(h, -0.2f, 0.8f, 10);
+                break;
+            }
             if (p->subtype == 0xf) {
                 /* NATIVE-HELPERS-002, 0x01651f36: dims, and dies when its alpha runs out */
                 for (int k = 0; k < 3; ++k)
@@ -485,6 +582,38 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->scale = p->scale * 0.75f;
                 p->rotation = p->rotation - 12.0f;
             }
+            break;
+        case 0x831d: case 0x83b3:                   /* 0x01680db5 / 0x016434ed */
+            if (p->lifetime < p->initial_lifetime / 2)
+                p->alpha -= 1.0f / (float)(p->initial_lifetime / 2);
+            p->scale += 0.02f;
+            break;
+        case 0x8086:
+            if (p->subtype == 0x18) {              /* 0x016496de */
+                p->position[0] += rand_range(h, -1.0f, 1.0f, 10);
+                p->position[1] += rand_range(h, -1.0f, 1.0f, 10);
+                p->position[2] += rand_range(h, 0.0f, 1.0f, 10);
+                p->alpha = (float)p->lifetime / (float)p->initial_lifetime;
+                p->scale -= p->initial_scale / (float)p->initial_lifetime;
+                break;
+            }
+            /* 0x01648a22 */
+            if (p->lifetime >= 15) {
+                if (1.0f > p->alpha)
+                    p->alpha += (float)(mu_pt_rand(h) % 2 + 2) * 0.1f;
+                else p->alpha = 1.0f;
+            } else {
+                p->alpha -= 0.2f;
+            }
+            if (0.1f > p->alpha) p->live = 0;
+            p->light[0] = p->field_7c * p->alpha;
+            p->light[1] = p->field_80 * p->alpha;
+            p->light[2] = p->field_84 * p->alpha;
+            if (p->scale > 0.0f)
+                p->scale -= (float)(mu_pt_rand(h) % 3 + 2) * 0.01f;
+            else
+                p->live = 0;
+            p->position[2] += p->gravity;
             break;
         case MU_PT_BITMAP_CLOUDS:
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
@@ -614,6 +743,8 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
         s->uw = 0.25f;
         break;
     case MU_PT_BITMAP_SMOKE:
+        if (p->subtype == 0x7f)
+            for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         if (p->subtype == 2)
             state(out, MU_PT_STATE_SUBTRACT, 0);     /* 0x01596e05 */
         break;
@@ -630,6 +761,17 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
         s->vh = 0.24f;
         break;
     }
+    case 0x8086:
+        if (p->subtype == 0x18)
+            for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
+        break;
+    case 0x831d: case 0x83b3:
+        for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
+        break;
+    case MU_PT_BITMAP_SPARK3:
+        if (p->subtype == 0x2a)
+            for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
+        break;
     case MU_PT_BITMAP_CLOUDS:
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
         for (int k = 0; k < 3; ++k)

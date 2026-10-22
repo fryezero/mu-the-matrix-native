@@ -79,6 +79,12 @@ class Build(unittest.TestCase):
 
 
 class HeroHelpers(Build):
+    def test_effects_use_world_bones_and_the_real_mount(self):
+        subprocess.run(['make', '-C', str(NATIVE), 'build/helper-fx-host'], check=True, capture_output=True)
+        out = subprocess.run([str(NATIVE/'build/helper-fx-host'), str(self.root)], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        self.assertEqual(json.loads(out.stdout), dict(spaces=1, offset=1, flash=1, ring=1, owners=1, bounds=1, eye=1))
+
     def test_angel_follows_the_hero(self):
         out = run(self.root, '--frames', '60', '--helper', 'angel')
         self.assertEqual(out['summary']['bugs_created'], 1)

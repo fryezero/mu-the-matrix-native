@@ -47,7 +47,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 36, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 44, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 4, MU_WORLD_FX_QUADS = 8192 };
 
 typedef struct mu_world_fx_model {
@@ -93,6 +93,7 @@ typedef struct mu_world_particles {
     float world_time;
     mu_world_particles_stats stats;
     /* NATIVE-JOINT-001: the world objects' joints and effects */
+    struct mu_world_helpers *helpers;      /* helper OBJECTs for mount-owned effects and joints */
     struct mu_objects *objects;            /* owners and targets (object images), NULL none */
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */
@@ -126,7 +127,7 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
 int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
                                  const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
                                  float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
-                                 int32_t arg14);
+                                 int32_t arg14, const float *creation_light);
 /* CreateEffect 0x013c0f19(type, subtype, position, angle, light, owner object, scale, info) on the module's
  * effect pool. Returns 1 when created. */
 int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subtype, const float position[3],

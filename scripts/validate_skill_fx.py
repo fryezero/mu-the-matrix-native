@@ -66,6 +66,8 @@ HERO_DATA_PTR = 0x01d1df18
 FRAME_LIGHT = 0x0b9f5430
 BODIES = {
     'create_effect': (0x013c0f19, 0x0142b5d8), 'move_effect': (0x0142fd09, 0x0150cc95),
+    'helper_claw_draw': (0x01527c4e, 0x01528118), 'helper_rune_draw': (0x0152d6a6, 0x0152d7ca),
+    'fenrir_step_draw': (0x0151a5c7, 0x0151a712), 'shock_ring_draw': (0x01514ded, 0x01514f08),
     'effect_advance': (0x0150df8e, 0x0150e1b9), 'check_magic': (0x013be199, 0x013bec7c),
     'heal_joints': (0x0142d83b, 0x0142da3e), 'angle_matrix': (0x00cff32a, 0x00cff4a0),
     'vector_rotate': (0x00d000ad, 0x00d001a0), 'create_particle': (0x015ae7b0, 0x015c3dec),
@@ -152,7 +154,8 @@ class Info(ctypes.Structure):
 class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
     _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('weapon', ctypes.c_int16),
                 ('position', ctypes.c_float*3), ('light', ctypes.c_float*3),
-                ('action', ctypes.c_uint16), ('type', ctypes.c_int32)]   # NATIVE-HELPERS-002
+                ('action', ctypes.c_uint16), ('type', ctypes.c_int32),
+                ('eye_188', ctypes.c_float*3), ('eye_194', ctypes.c_float*3)]   # NATIVE-HELPERS-002
 
 
 class Call(ctypes.Structure):
@@ -765,7 +768,7 @@ EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0
                 (0x40e, 0),   # the Tormenta tornado (NATIVE-JOINT-001)
                 (0x5ac, 0), (0x5ac, 1), (0x5ad, 0), (0x5ad, 1),   # the character select's star dragon (NATIVE-CHARSEL-003)
                 # NATIVE-HELPERS-002: the flying step, Fenrir's lightning and paw marks
-                (0x8012, 1), (0x4ac, 0), (0x4ad, 1), (0x4ad, 2), (0x4ad, 3), (0x4ad, 4)]
+                (0x8012, 1), (0x4ac, 0), (0x4ad, 1), (0x4ad, 2), (0x4ad, 3), (0x4ad, 4), (0x4ad, 5), (0x6f3, 0), (0x6f3, 1), (0x6f3, 2), (0x6f6, 0), (0x8438, 0)]
 OWNED_KINDS = {0x4ac, 0x4ad}   # the client reads their owner unconditionally
 TERRAIN_WALL, PLAY_BUFFER = 0x0b795420, 0x00a6ac96
 ARROW_SKILLS = [0, 0, 0, 0x7e7, 0x2d7, 0x7fe, 0x18, 0x34]
@@ -880,11 +883,13 @@ def random_effect(rng, kind):
     e.lifetime = rng.choice([30, 29, 6, 5, 4, 1, 0, -1, 60, 20, 2, rng.randrange(-5, 70)])
     e.blend_mesh = rng.choice([-1, 1])
     e.scale = vc.rfloat(rng, 0.1, 2.0)
+    e.scale_arg = vc.rfloat(rng, 0.1, 2.0)
+    e.field_70 = rng.choice([20, 60, 12, 1, 0, -2])
     e.blend_light = vc.rfloat(rng, 0.2, 1.0)
     e.velocity = vc.rfloat(rng, 0.1, 1.0)
     e.frame = vc.rfloat(rng, 0.1, 10.0)
     e.prior_frame = vc.rfloat(rng, 0.1, 10.0)
-    e.alpha = 1.0
+    e.alpha = f32(rng.choice([0.0, 0.1, 0.7, 1.0, 1.2])) if kind[0] in (0x6f3, 0x6f6, 0x8438) else 1.0
     e.gravity = f32(rng.choice([17.0, 8.0, 0.0, -3.0, vc.rfloat(rng, 0.2, 30.0)]))
     e.key = rng.randrange(0, 0x10000)
     e.blend_u = vc.rfloat(rng, 0.2, 1.0)
@@ -915,7 +920,7 @@ def random_effect(rng, kind):
 MOVE_DEFINED = {'live', 'flag5', 'action', 'prior_action', 'client_hit', 'skill', 'type', 'subtype', 'lifetime',
                 'blend_mesh', 'scale', 'blend_light', 'velocity', 'frame', 'prior_frame', 'alpha', 'light',
                 'direction', 'position', 'angle', 'start', 'owner', 'gravity', 'key', 'blend_u', 'serial',
-                'heading', 'field_64', 'time_mark'}
+                'heading', 'field_64', 'time_mark', 'field_70', 'scale_arg'}
 
 
 def family_effect_move(m, lib, rng, cases, report, negatives):
@@ -968,6 +973,13 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
                 wrong_live = 0 if before.lifetime - 1 <= 0 else 1
                 negatives['move_decrement_first'] += (out[0] != 0) != bool(wrong_live)
             # negative control (NATIVE-HELPERS-002): Fenrir's lightning fading by 0.2 instead of 0.3
+            if kind[0] == 0x6f3 and before.field_70 > 0 and has_model:
+                negatives['claw_no_shrink'] += not same(e.scale, before.scale)
+            if kind[0] == 0x8438 and before.field_70 > 0:
+                negatives['rune_no_growth'] += not same(e.scale, before.scale)
+            if kind[0] == 0x6f6:
+                negatives['tail_wrong_particle'] += any(c[0] == 'particle' and c[1] == 0x8086 and c[5] != 0x13
+                                                        for c in case.client_calls)
             if kind == (0x4ac, 0) and before.live and before.field_64 in (0, 1):
                 a = struct.unpack('<f', out[0xdc:0xe0])[0]
                 step = f32(0.2) if before.field_64 == 0 else f32(-0.2)
@@ -1624,7 +1636,59 @@ def family_player_voice(m, lib, rng, cases, report, negatives):
             negatives['player_shock_action_5'] += client[0] != ('set_action', 5)
 
 
-FAMILIES = [('effect_create', family_effect_create), ('effect_move', family_effect_move),
+class EffectDecal(ctypes.Structure):
+    _fields_ = [('texture', ctypes.c_int32), ('size', ctypes.c_float), ('light', ctypes.c_float*3),
+                ('rotation', ctypes.c_float), ('flat', ctypes.c_int32)]
+
+
+def family_effect_decal(m, lib, rng, cases, report, negatives):
+    lib.mu_sfx_effect_decal.argtypes = [ctypes.POINTER(Effect), ctypes.c_int32, ctypes.POINTER(EffectDecal)]
+    kinds = [(0x6f3, 0), (0x6f3, 1), (0x6f3, 2), (0x8438, 0)] + [(0x4ad, s) for s in range(1, 6)] + [(0x8012, 1)]
+    for n in range(cases):
+        kind = kinds[n % len(kinds)]
+        e = random_effect(rng, kind)
+        world = rng.choice([0, 10, 0x84, 0x18, 0x1d, 0x24, 0x1e])
+        raw, mask = effect_to_bytes(e, MOVE_DEFINED)
+        regions = [am.Region('record', POOL, raw, mask),
+                   am.defined_region('world', WORLD, struct.pack('<i', world), writable=False)]
+        calls = []
+        def decal(mm):
+            a = [mm.argument(i) for i in range(11)]
+            calls.append(('decal', a[0], from_bits(a[1]), from_bits(a[2]), from_bits(a[3]), from_bits(a[4]),
+                          mm.floats(a[5], 3), from_bits(a[6]), from_bits(a[7]), from_bits(a[8]), a[9], a[10]))
+            return 0
+        def flat(mm):
+            a = [mm.argument(i) for i in range(9)]
+            calls.append(('flat', a[0], from_bits(a[1]), from_bits(a[2]), from_bits(a[3]), from_bits(a[4]),
+                          mm.floats(a[5], 3), from_bits(a[6]), from_bits(a[7]), from_bits(a[8]), 0, 0))
+            return 0
+        stubs = {0x016cdd5f: decal, 0x00deec1f: flat, 0x0184aa2b: lambda mm: 0,
+                 0x0184a7f3: lambda mm: 0, 0x0184a763: lambda mm: 0, 0x0184a743: lambda mm: 0,
+                 0x0095eda9: lambda mm: 0, 0x015324fc: jump_stub(0x01532501),
+                 0x01515993: jump_stub(0x0151818b)}
+        if kind[0] == 0x8012:
+            start, size, cleanup = 0x01514ded, 0x370, 0
+            slots = {-size: 0x3456789a, -0x10: POOL}
+        else:
+            start = {0x6f3: 0x01527c4e, 0x8438: 0x0152d6a6, 0x4ad: 0x0151a5c7}[kind[0]]
+            size, cleanup = 0x1c04, 4
+            slots = {-size: 0x456789ab, -size+4: 0x3456789a, -0x10: POOL}
+        r = m.execute(start, [0] if cleanup else [], regions, stubs, frame=(size, slots), cleanup=cleanup)
+        out = EffectDecal()
+        supported = lib.mu_sfx_effect_decal(ctypes.byref(e), world, ctypes.byref(out))
+        mine = [('flat' if out.flat else 'decal', out.texture, e.position[0], e.position[1], out.size, out.size,
+                 list(out.light), out.rotation, 1.0, 0.0 if out.flat else 5.0, 0 if out.flat else 1, 0)]
+        equal = supported == 1 and vc.ok(r) and len(calls) == 1 and vc._same_call(calls[0], mine[0])
+        report.add('effect_decal', equal, {'case': n, 'kind': kind, 'world': world, 'client': calls, 'c': mine,
+                                         'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
+        report.cover('effect_decal', f'{kind[0]:#x}/{kind[1]} ' + ('flat' if out.flat else 'terrain'))
+        if equal and kind[0] in (0x6f3, 0x8438):
+            negatives['decal_no_alpha'] += any(not same(a, b) for a, b in zip(e.light, out.light))
+        if equal and kind[0] == 0x8012 and out.flat:
+            negatives['decal_flat_as_terrain'] += 1
+
+
+FAMILIES = [('effect_create', family_effect_create), ('effect_decal', family_effect_decal), ('effect_move', family_effect_move),
             ('check_magic', family_check_magic), ('particle_create', family_particle_create),
             ('particle_move', family_particle_move), ('particle_render', family_particle_render),
             ('joint_create', family_joint_create), ('joint_move', family_joint_move),
@@ -1653,7 +1717,7 @@ def main():
                                 'move_unrotated', 'check_magic_3d', 'particle_fire_scaled', 'particle_rise_no_10',
                                 'particle_fire_full_width', 'joint_first_tail_new_width', 'joint_forward_plus_y',
                                 'joint_uv_drawn_tails', 'player_shock_action_5',
-                                'create_shockwave_over_20', 'move_lightning_fade_02']}
+                                'create_shockwave_over_20', 'move_lightning_fade_02', 'decal_no_alpha', 'decal_flat_as_terrain', 'claw_no_shrink', 'rune_no_growth', 'tail_wrong_particle']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

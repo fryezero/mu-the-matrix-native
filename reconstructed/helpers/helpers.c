@@ -537,7 +537,7 @@ void mu_hp_mount_offset(mu_helpers *h, mu_hp_mount *mount)
         return;
     static const float zero[3] = {0.0f, 0.0f, 0.0f};
     if (h->host.bone_position)
-        h->host.bone_position(h->host.context, &mount->object, mount->model, i->bone, zero, mount->offset);
+        h->host.bone_position(h->host.context, &mount->object, mount->model, i->bone, zero, mount->offset, 0);
     if (i->scale_offset) {   /* e.g. 0x01049b79, 0x01057e86: times the object scale, then the lift */
         mount->offset[0] = mount->object.scale * mount->offset[0];
         mount->offset[1] = mount->object.scale * mount->offset[1];
@@ -629,7 +629,7 @@ static int bone(mu_helpers *h, mu_hp_mount *mount, const char *name, const float
 {
     if (!h->host.bone_position)
         return 0;
-    return h->host.bone_position(h->host.context, &mount->object, mount->model, name, v, out);
+    return h->host.bone_position(h->host.context, &mount->object, mount->model, name, v, out, 1);
 }
 
 /* Fenrir 0x01043a1c */

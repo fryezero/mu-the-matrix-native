@@ -126,7 +126,8 @@ KINDS = [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a
                                                             # NATIVE-CHARSEL-002: the character-select scene
                                                             (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5),
                                                             # NATIVE-HELPERS-002: the helpers' kinds
-                                                            (0x7f25, 1), (0x7f5b, 0), (0x7fcd, 0), (0x7f26, 0xf)]
+                                                            (0x7f25, 1), (0x7f5b, 0), (0x7fcd, 0), (0x7f26, 0xf), (0x831d, 6), (0x83b3, 6),
+                                                            (0x8086, 0x13), (0x8086, 0x18), (0x7f26, 0x2a), (0x7f5a, 0x7f), (0x7f5a, 0x75)]
 BITMAP_RECORD_GET = 0x00ebbec8   # the bitmap record by index (this = 0x0bdc5f00), smoke02's height (NATIVE-HELPERS-002)
 STATE_BLEND = 0x0184abd5         # (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), smoke02's render (NATIVE-HELPERS-002)
 
@@ -151,7 +152,8 @@ class Particle(ctypes.Structure):
                 ('light', F3), ('alpha', ctypes.c_float), ('lifetime', ctypes.c_int32), ('owner', ctypes.c_int32),
                 ('owner_position', F3), ('rotation', ctypes.c_float), ('frame', ctypes.c_int32),
                 ('moving', ctypes.c_uint8), ('gravity', ctypes.c_float), ('velocity', F3), ('field_7c', ctypes.c_float),
-                ('start', F3), ('start_angle', F3), ('time', ctypes.c_float), ('arg8', ctypes.c_int32)]
+                ('start', F3), ('start_angle', F3), ('time', ctypes.c_float), ('arg8', ctypes.c_int32), ('initial_lifetime', ctypes.c_int32),
+                ('initial_scale', ctypes.c_float), ('field_80', ctypes.c_float), ('field_84', ctypes.c_float)]
 
 
 class Host(ctypes.Structure):
@@ -312,7 +314,7 @@ def compare_masked(mine, theirs, defined, mask, floats_at=()):
     return None
 
 
-PARTICLE_FLOATS = {0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x54, 0x58, 0x5c, 0x60, 0x6c,
+PARTICLE_FLOATS = {0x1c, 0x80, 0x84, 0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x54, 0x58, 0x5c, 0x60, 0x6c,
                    0x70, 0x74, 0x78, 0x7c, 0x88, 0x8c, 0x90, 0x94, 0x98, 0x9c, 0xac}
 SPRITE_FLOATS = {0x90, 0x94, 0xa0, 0xd0, 0xec, 0xf0, 0xf4, 0x110, 0x114, 0x118, 0x158, 0x15c, 0x160, 0x16c}
 
@@ -411,7 +413,10 @@ class Case:
         def cosine(mm):
             x = mm.float_argument(0)
             return mm.x87_return(f32(math.cos(x)) if math.isfinite(x) else float('nan'))
-        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine}
+        def sqrt(mm):
+            x = mm.float_argument(0)
+            return mm.x87_return(f32(math.sqrt(x)) if x >= 0 else float('nan'))
+        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine, 0x00961a07: sqrt}
 
     def owner_regions(self):
         out = []
@@ -540,6 +545,8 @@ def family_create(m, lib, rng, cases, report, negatives):
         report.add('create', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                      'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('create', f'{kind[0]:#x}/{kind[1]}' + (' owner' if owner >= 0 else ''))
+        if vc.ok(r) and kind in ((0x831d, 6), (0x83b3, 6), (0x7f26, 0x2a), (0x7f5a, 0x7f)):
+            negatives['tail_initial_life_20'] += struct.unpack_from('<i', r['regions']['particle'], 0x4c)[0] != 20
         if vc.ok(r) and kind == (0x801b, 2):
             # negative control (NATIVE-CHARSEL-002): WATERFALL2's light without the scene-5 rule
             l = struct.unpack('<f', r['regions']['particle'][0x38:0x3c])[0]
@@ -605,6 +612,9 @@ def random_particle(rng, kind):
     p.arg8 = rng.randrange(-10, 10)
     p.alpha = f32(rng.choice([0.1, 1.0, 0.95, 0.12, 0.09, rf(rng, -0.5, 1.5)]))
     p.field_7c = rf(rng, 0.0, 0.1)
+    p.field_80, p.field_84 = rf(rng, 0.0, 1.0), rf(rng, 0.0, 1.0)
+    p.initial_lifetime = rng.choice([30, 40, 100, 1, 2, 0, -1, -3])
+    p.initial_scale = rf(rng, 0.1, 2.0)
     if kind == (0x7f89, 0x14):
         p.lifetime = rng.choice([300, 151, 150, 149, 2, 1, 0, -1, rng.randrange(-3, 301)])
     if kind in ((0x801b, 2), (0x8022, 5)):   # NATIVE-CHARSEL-002: the fades at LifeTime 10
@@ -675,6 +685,10 @@ def family_move(m, lib, rng, cases, report, negatives):
             # negative control (NATIVE-CHARSEL-002): the selection light without its rise
             z = struct.unpack('<f', r['regions']['particle'][0x28:0x2c])[0]
             negatives['move_chasellight_no_rise'] += not same(z, f32(p.position[2] - p.gravity))
+        if vc.ok(r) and kind == (0x7f5a, 0x75) and before.lifetime > 0 and before.live:
+            negatives['breath_no_direction'] += any(not same(p.position[k], before.position[k]) for k in range(3))
+        if vc.ok(r) and kind == (0x8086, 0x13) and before.lifetime > 0 and before.live:
+            negatives['tail_fire_no_saved_colour'] += not same(p.light[0], before.light[0])
         if vc.ok(r) and kind == (0x7f5b, 0):
             # negative control (NATIVE-HELPERS-002): smoke02 seated without half its height
             z = struct.unpack('<f', r['regions']['particle'][0x28:0x2c])[0]
@@ -791,6 +805,8 @@ def family_render(m, lib, rng, cases, report, negatives):
         report.add('render', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mode': mode, 'mismatch': mismatch,
                                      'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('render', f'{kind[0]:#x}/{kind[1]}' + ('' if drawn == 1 else ' skipped'))
+        if vc.ok(r) and drawn == 1 and kind in ((0x831d, 6), (0x83b3, 6), (0x7f26, 0x2a), (0x7f5a, 0x7f)):
+            negatives['tail_glint_no_alpha'] += not same(p.light[0], f32(p.light[0] * p.alpha))
         if vc.ok(r) and drawn == 1 and kind == (0x7fcd, 0):
             # negative control (NATIVE-HELPERS-002): drop01 drawn with the whole sheet
             u = [c for c in calls if c[0] == 'sprite'][0][9]
@@ -1571,7 +1587,8 @@ NEGATIVES = ['create_fire1_large', 'wrapper_no_exempt', 'move_smoke_light_16', '
              'render_fire_full_width', 'sprite_v_unflipped', 'sprite_sheet_rounded', 'sprite_render_no_alpha',
              'shadow_origin_height', 'bone_no_scale', 'bone_lookup_loose', 'visual_second_drop', 'visual_uninitialised_input_seen',
              'create_waterfall2_no_scene', 'move_chasellight_no_rise',
-             'create_spark2_1_as_0', 'move_smoke2_no_half_height', 'render_drop_whole_sheet']   # NATIVE-HELPERS-002
+             'create_spark2_1_as_0', 'move_smoke2_no_half_height', 'render_drop_whole_sheet',
+             'tail_initial_life_20', 'tail_glint_no_alpha', 'tail_fire_no_saved_colour', 'breath_no_direction']   # NATIVE-HELPERS-002
 
 
 def default_evidence(relative):

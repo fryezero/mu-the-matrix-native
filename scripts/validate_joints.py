@@ -65,7 +65,7 @@ BODIES = {
     'near_zero': (0x00a72592, 0x00a725c5), 'radians': (0x00cee2cb, 0x00cee2ea), 'sign': (0x0185ca80, 0x0185caa4),
 }
 KINDS = [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0),
-                                                     (0x7f78, 0)]   # NATIVE-HELPERS-002: the Dark Horse's ring
+                                                     (0x7f78, 0), (0x7f78, 1), (0x7fd6, 0x43), (0x7fd6, 0x44)]   # NATIVE-HELPERS-002: the Dark Horse's ring
 
 
 # --------------------------------------------------------------------------
@@ -91,7 +91,7 @@ CALL_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Call))
 
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
-                ('call', CALL_FN), ('serial', ctypes.c_uint8), ('world_time', ctypes.c_float)]
+                ('call', CALL_FN), ('serial', ctypes.c_uint8), ('world_time', ctypes.c_float), ('creation_light', ctypes.c_float*3)]
 
 
 STATE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32)
@@ -194,6 +194,8 @@ def random_object(rng):
     o.action = rng.choice([0, 0x31, 0x32, 0x6e, 0x6f, 0x88, 0x89, 0x8d, 0x8e, rng.randrange(0, 0x200)])
     for k in range(3):
         o.position[k] = vc.rfloat(rng, 0.05, 30000.0) if k < 2 else vc.rfloat(rng, 0.05, 500.0)
+        o.eye_188[k] = vc.rfloat(rng, 0.05, 30000.0)
+        o.eye_194[k] = vc.rfloat(rng, 0.05, 30000.0)
         o.light[k] = f32(rng.choice([0.59, 1.0, 0.0, rng.uniform(0.0, 2.0)]))
     return o
 
@@ -210,7 +212,9 @@ def object_region(objects):
         struct.pack_into('<3f', data, base+0x158, *o.position)
         struct.pack_into('<3f', data, base+0xec, *o.light)
         struct.pack_into('<H', data, base+0x2a, o.action)
-        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0xec, 12), (0x2a, 2)):
+        struct.pack_into('<3f', data, base+0x188, *o.eye_188)
+        struct.pack_into('<3f', data, base+0x194, *o.eye_194)
+        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0xec, 12), (0x2a, 2), (0x188, 12), (0x194, 12)):
             mask[base+a:base+a+n] = b'\1'*n
     return am.Region('objects', OBJECTS, bytes(data), bytes(mask), False)
 
@@ -267,6 +271,7 @@ class Case(sf.Case):
         env.rand, env.height, env.object, env.call = self._jkeep
         env.serial = serial
         env.world_time = self.world_time
+        env.creation_light[:] = self.jobjects[0].light
         return env
 
 
@@ -308,7 +313,7 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         kind = KINDS[n % len(KINDS)]
         pos, tpos, angle, scale = random_create_args(rng, kind)
         objects = [random_object(rng) for _ in range(2)]
-        target = rng.choice([0, 1]) if kind[0] in (0x7f7d, 0x7f78) else rng.choice([-1, 0, 1])
+        target = rng.choice([0, 1]) if kind[0] in (0x7f7d, 0x7f78, 0x7fd6) else rng.choice([-1, 0, 1])
         key, skill, byte10, word13, arg14 = (rng.choice([rng.randrange(0, 0x10000), 2, 0xffff, 0, 3]),
                                               rng.choice([0x7f5, 9, 0x123]),
                                               rng.randrange(0, 256), rng.randrange(0, 0x10000),
@@ -334,7 +339,7 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         del stubs[sf.CREATE_JOINT]
         stubs[sf.JOINT_MANAGER_A] = lambda mm: (0, 12)
         r = m.execute(CREATE_JOINT_CORE, [kind[0], sf.INPUTS, sf.INPUTS+12, sf.INPUTS+24, kind[1],
-                                          object_address(target), bits(scale), key, skill, byte10, 0xffffffff, 0,
+                                          object_address(target), bits(scale), key, skill, byte10, 0xffffffff, OBJECTS+0xec if kind[0] == 0x7fd6 else 0,
                                           word13, arg14], regions, stubs)
         j = Joint()
         joint_from_bytes(previous, j)
@@ -353,6 +358,9 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         equal = supported and vc.ok(r) and mismatch is None
         report.add('joint_create', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                            'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
+        if vc.ok(r) and kind[0] == 0x7fd6:
+            wrong_eye = objects[target].eye_188 if kind[1] == 0x43 else objects[target].eye_194
+            negatives['create_eye_swapped'] += any(not same(j.position[k], wrong_eye[k]) for k in range(3))
         report.cover('joint_create', f'{kind[0]:#x}/{kind[1]:#x}' + (' early' if kind[0] == 0x7f7d and not scale > 0
                                                                         else ''))
         if vc.ok(r) and kind[0] == 0x7f7d and kind[1] in (0x16, 0x17) and scale > 0:
@@ -465,6 +473,8 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         report.add('joint_move', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                          'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('joint_move', f'{kind[0]:#x}/{kind[1]:#x}')
+        if vc.ok(r) and kind[0] == 0x7fd6 and before.target >= 0 and objects[before.target].live:
+            negatives['move_eye_no_refresh'] += j.lifetime != before.lifetime - 1
         if vc.ok(r) and kind == (0x7f78, 0):
             # negative control (NATIVE-HELPERS-002): the ring's x from the sine instead of the cosine
             out = r['regions']['joint']
@@ -614,7 +624,7 @@ def main():
               for name, (a, b) in BODIES.items()}
     report = vc.Report()
     negatives = {k: 0 for k in ['create_phase_full_count', 'move_no_closing_shift', 'move_flash_white',
-                                'render_factor_swapped', 'move_ring_sine_x']}
+                                'render_factor_swapped', 'move_ring_sine_x', 'create_eye_swapped', 'move_eye_no_refresh']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

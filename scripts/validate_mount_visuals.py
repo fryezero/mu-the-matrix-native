@@ -400,7 +400,7 @@ BLEND_ON, BLEND_OFF = 0x0184aa2b, 0x0184a7f3
 STRING_CTOR, STRING_DTOR = 0x0094997e, 0x008e83a0
 MOUNT = 0x29300000
 CLASS_KINDS = {20: 'obone', 21: 'joint', 22: 'decal', 23: 'blend', 24: 'eyes', 25: 'nbone'}
-STEP_NAMES = ['leg_nailfront', 'leg_nailfront001', 'leg_rear', 'leg_rear001']
+STEP_NAMES = ['leg_nailfront', 'leg_nailfront001', 'leg_rear', 'leg_rear001', 'a04', 'b04', 'c05', 'd05']
 
 
 class ClassState(ctypes.Structure):
@@ -409,15 +409,17 @@ class ClassState(ctypes.Structure):
 
 class ClassInputs(ctypes.Structure):
     _fields_ = [('world_time', ctypes.c_float), ('action', ctypes.c_uint16), ('frame', ctypes.c_float),
-                ('alpha', ctypes.c_float), ('position', ctypes.c_float*3), ('angle', ctypes.c_float*3)]
+                ('alpha', ctypes.c_float), ('position', ctypes.c_float*3), ('angle', ctypes.c_float*3),
+                ('subtype', ctypes.c_int32)]
 
 
 OBONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float))
 NBONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_float))
+OBONE_OFFSET_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float))
 
 
 class ClassHost(ctypes.Structure):
-    _fields_ = [('context', ctypes.c_void_p), ('object_bone', OBONE_FN), ('named_bone', NBONE_FN)]
+    _fields_ = [('context', ctypes.c_void_p), ('object_bone', OBONE_FN), ('named_bone', NBONE_FN), ('object_bone_offset', OBONE_OFFSET_FN)]
 
 
 def object_bone_answer(bone):
@@ -467,8 +469,11 @@ def run_class_case(m, lib, case, routine, plant=None):
 
     def obone(mm):
         out, o, bone = mm.argument(0), mm.argument(1), sx(mm.argument(2))
-        log.append(('obone', bone))
-        mm.local_write(out, struct.pack('<3f', *object_bone_answer(bone)))
+        off = mm.argument(3)
+        vec = tuple(mm.read_floats(off, 3)) if off else (0.0, 0.0, 0.0)
+        log.append(('obonev', bone, vec) if off else ('obone', bone))
+        answer = [f32(a + b) for a, b in zip(object_bone_answer(bone), vec)]
+        mm.local_write(out, struct.pack('<3f', *answer))
         return 0, 0x10
 
     def nbone(mm):
@@ -485,13 +490,13 @@ def run_class_case(m, lib, case, routine, plant=None):
     def particle(mm):
         a = [mm.argument(i) for i in range(8)]
         log.append(('particle', a[0], tuple(mm.read_floats(a[1], 3)), tuple(mm.read_floats(a[2], 3)),
-                    tuple(mm.read_floats(a[3], 3)), sx(a[4]), from_bits(a[5])))
+                    tuple(mm.read_floats(a[3], 3)), sx(a[4]), from_bits(a[5]), a[6] == OBJECT))
         return 0
 
     def effect(mm):
         a = [mm.argument(i) for i in range(11)]
         log.append(('effect', a[0], tuple(mm.read_floats(a[1], 3)), tuple(mm.read_floats(a[2], 3)),
-                    tuple(mm.read_floats(a[3], 3)), sx(a[4]), from_bits(a[10])))
+                    tuple(mm.read_floats(a[3], 3)), sx(a[4]), from_bits(a[10]), a[5] == OBJECT))
         return 0
 
     def joint(mm):
@@ -547,10 +552,11 @@ def run_class_case(m, lib, case, routine, plant=None):
     flag_client = res['regions']['mount'][0x48]
     # the library
     h = vh.Helpers()
-    h.rand_state = 0
+    h.rand_state = case.get('seed', 0)
     st = ClassState(case['a4'], case['flag48'])
     i = ClassInputs()
     i.world_time = case['time'] if plant != 'time' else f32(case['time'] + 100.0)
+    i.subtype = case['subtype']
     i.action = case['action']
     i.frame = case['frame']
     i.alpha = case['alpha']
@@ -565,30 +571,35 @@ def run_class_case(m, lib, case, routine, plant=None):
     def c_nbone(ctx, name, out):
         for k, x in enumerate(named_bone_answer(name.decode())):
             out[k] = x
-    host = ClassHost(None, OBONE_FN(c_obone), NBONE_FN(c_nbone))
+    def c_obone_offset(ctx, bone, offset, out):
+        for k, x in enumerate(object_bone_answer(bone)):
+            out[k] = f32(x + offset[k])
+    host = ClassHost(None, OBONE_FN(c_obone), NBONE_FN(c_nbone), OBONE_OFFSET_FN(c_obone_offset))
     calls = (AfterCall*1024)()
     n = ctypes.c_int32(0)
-    if routine == ST_VISUALS:
-        lib.mu_hp_mount_class_visuals(ctypes.byref(h), 10, ctypes.byref(st), ctypes.byref(i), ctypes.byref(host),
+    cls = 5 if routine in (0x01048192, 0x010497b9) else 10
+    visuals = routine in (ST_VISUALS, 0x01048192)
+    if visuals:
+        lib.mu_hp_mount_class_visuals(ctypes.byref(h), cls, ctypes.byref(st), ctypes.byref(i), ctypes.byref(host),
                                       calls, 1024, ctypes.byref(n))
     else:
-        lib.mu_hp_mount_class_step(ctypes.byref(h), 10, ctypes.byref(i), ctypes.byref(host), calls, 1024,
+        lib.mu_hp_mount_class_step(ctypes.byref(h), cls, ctypes.byref(i), ctypes.byref(host), calls, 1024,
                                    ctypes.byref(n))
     mine = []
     for k in range(n.value):
         c = calls[k]
         kind = CLASS_KINDS.get(c.kind) or C_KINDS[c.kind]
         if kind == 'obone':
-            mine.append(('obone', c.mesh))
+            mine.append(('obonev', c.mesh, tuple(c.position)) if any(c.position) else ('obone', c.mesh))
         elif kind == 'nbone':
             mine.append(('nbone', c.mesh))
         elif kind == 'sprite':
             mine.append(('sprite', c.type, tuple(c.position), c.scale, tuple(c.light)))
         elif kind == 'particle':
-            mine.append(('particle', c.type, tuple(c.position), tuple(c.angle), tuple(c.light), c.subtype, c.scale))
+            mine.append(('particle', c.type, tuple(c.position), tuple(c.angle), tuple(c.light), c.subtype, c.scale, bool(c.flags & 1)))
         elif kind == 'effect':
             sub = c.subtype
-            mine.append(('effect', c.type, tuple(c.position), tuple(c.angle), tuple(c.light), sub, c.scale))
+            mine.append(('effect', c.type, tuple(c.position), tuple(c.angle), tuple(c.light), sub, c.scale, bool(c.flags & 1)))
         elif kind == 'joint':
             mine.append(('joint', c.type, tuple(c.position), tuple(c.angle), c.subtype, c.scale, tuple(c.light)))
         elif kind == 'eyes':
@@ -604,19 +615,23 @@ def run_class_case(m, lib, case, routine, plant=None):
                 'lengths': (len(log), len(mine))}
     if rand_calls[0] != h.rand_calls:
         return {'ok': False, 'why': 'rand calls', 'client': rand_calls[0], 'native': h.rand_calls}
-    if routine == ST_VISUALS and (not same_value(a4_client, st.a4) or flag_client != st.flag_48):
+    if visuals and (not same_value(a4_client, st.a4) or flag_client != st.flag_48):
         return {'ok': False, 'why': 'state', 'client': (a4_client, flag_client), 'native': (st.a4, st.flag_48)}
     return {'ok': True, 'calls': len(log)}
 
 
 def section_class(m, lib, rng, cases):
     out = {}
-    for name, routine in (('shining_tail_visuals', ST_VISUALS), ('shining_tail_steps', ST_MOVE_STEPS)):
+    for name, routine in (('shining_tail_visuals', ST_VISUALS), ('shining_tail_steps', ST_MOVE_STEPS),
+                          ('ghost_horse_visuals', 0x01048192), ('ghost_horse_steps', 0x010497b9)):
         ok, calls, first = 0, 0, None
         for n in range(cases):
             case = class_case(rng)
-            case['rand'] = seeded_rand(0, 64)
-            if routine == ST_MOVE_STEPS:
+            case['seed'] = rng.randrange(0, 1 << 32)
+            case['rand'] = seeded_rand(case['seed'], 128)
+            if routine == 0x010497b9:
+                case['frame'] = f32(rng.choice([0.0, 1.0, 0.5, 1.00001, -0.01, 4.0]))
+            if routine in (ST_MOVE_STEPS, 0x010497b9):
                 case['action'] = rng.choice([2, 3])   # the class move 0x01057e4d calls it for mount actions 2, 3
             r = run_class_case(m, lib, case, routine)
             if r['ok']:
@@ -664,6 +679,7 @@ def main(argv=None):
     # the shared routines (ranges up to the first ret followed by padding or a prologue)
     for name, f in (('wave', 0x0185bdc4), ('rand_range', 0x011ff622), ('rand_direction', 0x00d01fc6),
                     ('rand_flat', 0x00d0221e), ('shining_tail_visuals', ST_VISUALS), ('shining_tail_steps', ST_MOVE_STEPS),
+                    ('ghost_horse_visuals', 0x01048192), ('ghost_horse_steps', 0x010497b9),
                     ('shining_tail_move', 0x01057e4d), ('mount_render_loop', 0x0106bc2b)):
         end = f + 0x80
         for off in range(f - am.TEXT_BASE, f - am.TEXT_BASE + 0x4000):

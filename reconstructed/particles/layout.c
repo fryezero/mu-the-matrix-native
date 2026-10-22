@@ -22,7 +22,8 @@ static void get32(const uint8_t *b, uint32_t off, void *v)
     X(0x6c, gravity) X(0x70, velocity[0]) X(0x74, velocity[1]) X(0x78, velocity[2]) X(0x7c, field_7c) \
     X(0x88, start[0])                                                                                 \
     X(0x8c, start[1]) X(0x90, start[2]) X(0x94, start_angle[0]) X(0x98, start_angle[1])               \
-    X(0x9c, start_angle[2]) X(0xac, time) X(0xb0, arg8)
+    X(0x9c, start_angle[2]) X(0xac, time) X(0xb0, arg8) \
+    X(0x4c, initial_lifetime) X(0x1c, initial_scale) X(0x80, field_80) X(0x84, field_84)
 
 /* owner (+0x50) is a pointer in the client: the caller maps it. */
 void mu_pt_particle_store(const mu_pt_particle *p, uint8_t out[MU_PT_RECORD_BYTES])

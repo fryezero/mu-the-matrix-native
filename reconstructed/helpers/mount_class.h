@@ -19,6 +19,9 @@
 extern "C" {
 #endif
 
+/* On particle/effect calls, flags bit 0 means the mount OBJECT is the owner. */
+enum { MU_HP_AC_OWNED = 1 };
+
 /* call kinds beyond mount_render.h's */
 enum {
     MU_HP_AC_OBJECT_BONE = 20, /* TransformByObjectBone 0x012b678d(model, out, object, bone = mesh, 0) */
@@ -43,12 +46,14 @@ typedef struct mu_hp_class_inputs {
     float alpha;              /* object +0xdc */
     float position[3];        /* object +0x158 */
     float angle[3];           /* object +0x164 */
+    int32_t subtype;           /* object +0x60: equipment level */
 } mu_hp_class_inputs;
 
 typedef struct mu_hp_class_host {
     void *context;
     void (*object_bone)(void *context, int32_t bone, float out[3]);
     void (*named_bone)(void *context, const char *name, float out[3]);
+    void (*object_bone_offset)(void *context, int32_t bone, const float offset[3], float out[3]);
 } mu_hp_class_host;
 
 float mu_hp_rand_range(mu_helpers *h, float lo, float hi, uint32_t steps);

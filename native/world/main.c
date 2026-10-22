@@ -675,7 +675,7 @@ static void on_step(void *context, mu_walk *w)
          * above the hero every 20 steps, through the world objects' joint pool */
         const float at[3] = {h->position[0], h->position[1], h->position[2] + 150.0f}, angle[3] = {0.0f, 0.0f, 0.0f};
         mu_world_particles_joint(&a->particles, MU_JT_TYPE_THUNDER_BOLT, at, at, angle, a->joint_demo, -1, 1.0f, 0xffff,
-                                 0, 0, 0xffff, 0);
+                                 0, 0, 0xffff, 0, NULL);
     }
     if (a->has_particles) {   /* MoveEffects, MoveJoints, MoveParticles after the other movers of the in-world tick */
         mu_world_particles_set_hero(&a->particles, h->position);

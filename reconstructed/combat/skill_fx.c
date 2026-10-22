@@ -212,9 +212,11 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_MODEL_TORNADO: return sub == 0;
     case MU_SFX_MODEL_STAR_DRAGON: case MU_SFX_MODEL_STAR_GLINT: return sub == 0 || sub == 1;
     /* NATIVE-HELPERS-002: the mounts' flying step, Fenrir's lightning and paw marks */
+    case 0x6f3: return sub >= 0 && sub <= 2;
+    case 0x6f6: case 0x8438: return sub == 0;
     case MU_SFX_BITMAP_SHOCKWAVE: return sub == 1;
     case MU_SFX_MODEL_FENRIR_LIGHTNING: return sub == 0;
-    case MU_SFX_FENRIR_STEP: return sub >= 1 && sub <= 4;
+    case MU_SFX_FENRIR_STEP: return sub >= 1 && sub <= 5;
     default: return 0;
     }
 }
@@ -328,6 +330,21 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->serial = env ? env->serial : 0;     /* 0x013cd66f */
         break;
     }
+    case 0x6f3:                                   /* 0x01408b9d: claw */
+        e->lifetime = e->field_70 = 60;
+        e->scale = e->scale_arg = scale;
+        e->alpha = 1.0f;
+        break;
+    case 0x6f6:                                   /* 0x0141818d: tail light emitter */
+        e->lifetime = e->field_70 = 12;
+        e->scale = scale;
+        break;
+    case 0x8438:                                  /* 0x014181cf: paw rune */
+        e->lifetime = e->field_70 = 20;
+        e->scale_arg = scale;
+        e->scale = 0.0f;
+        e->alpha = 1.0f;
+        break;
     case MU_SFX_BITMAP_SHOCKWAVE:
         /* NATIVE-HELPERS-002, 0x013dbe3b, subtype 1: the flying step's shock ring */
         e->lifetime = 20;
@@ -350,6 +367,10 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         break;
     }
     case MU_SFX_FENRIR_STEP:
+        if (subtype == 5) {   /* 0x013e20ea */
+            e->field_70 = e->lifetime = 20;
+            break;
+        }
         /* NATIVE-HELPERS-002, 0x013e210c (subtypes other than 5): a lightning mark at a paw */
         e->lifetime = 200;
         e->field_64 = 0;
@@ -841,6 +862,31 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
             e->gravity = e->gravity + 0.5f;
         }
         break;
+    case 0x6f3:                                   /* 0x014b6090 */
+        e->scale -= e->scale_arg / (float)e->field_70;
+        e->alpha -= e->scale_arg / (float)e->field_70;
+        break;
+    case 0x6f6: {                                 /* 0x014d01c9 */
+        call_particle(env, e, 0x8086, e->position, e->angle, e->light, 0x18, e->scale, MU_SFX_NO_OWNER);
+        const float k = (float)smod(env_rand(env), 20) / 25.0f + f32bits(0x3e19999au);
+        mu_sfx_call c;
+        memset(&c, 0, sizeof c);
+        c.routine = 0x01692eb7;
+        c.type = 0x7ef7;
+        c.scale = e->scale * 2.5f;
+        c.owner = -2;
+        c.light[0] = k * F_0_3;
+        c.light[1] = k * f32bits(0x3ee66666u);
+        c.light[2] = k * 1.0f;
+        copy3(c.position, e->position);
+        env_call(env, &c, e);
+        break;
+    }
+    case 0x8438:                                  /* 0x014d050c */
+        if (e->lifetime < e->field_70 / 2)
+            e->alpha -= 1.0f / (float)(e->field_70 / 2);
+        e->scale = e->scale_arg / (float)e->field_70 + e->scale;
+        break;
     case MU_SFX_BITMAP_SHOCKWAVE:
         /* NATIVE-HELPERS-002, 0x014756bd, subtype 1: grows and jitters; 0x01476ab6: lights up and fades */
         e->scale = (float)smod(env_rand(env), 5) / 10.0f + e->scale;
@@ -880,6 +926,11 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
          * every 200 ms of real time */
         if (e->live != 1)   /* IsLive 0x0095f977 on the effect itself */
             break;
+        if (sub == 5) {   /* 0x0147cbc6 */
+            e->field_64 = trunc_i32(5.0f - (float)e->lifetime / ((float)e->field_70 * F_0_2));
+            e->alpha -= 1.0f / (float)e->field_70;
+            break;
+        }
         e->angle[0] = e->angle[0] + F_0_1;
         static const uint8_t fade[5][3] = {{0, 0, 0}, {0, 1, 1}, {1, 1, 0}, {1, 0, 1}, {0, 0, 1}};
         for (int k = 0; k < 3; ++k)
@@ -978,6 +1029,31 @@ lifetime:
         e->live = 0;
     }
     e->lifetime = e->lifetime - 1;
+    return 1;
+}
+
+int mu_sfx_effect_decal(const mu_sfx_effect *e, int32_t world, mu_sfx_decal *out)
+{
+    memset(out, 0, sizeof *out);
+    out->texture = e->type;
+    out->size = e->scale;
+    copy3(out->light, e->light);
+    if (e->type == 0x6f3 && e->subtype >= 0 && e->subtype <= 2) { /* 0x01527c4e */
+        static const int32_t textures[] = {0x7fdd, 0x7fe0, 0x8098};
+        out->texture = textures[e->subtype];
+        for (int k = 0; k < 3; ++k) out->light[k] = e->alpha * e->light[k];
+    } else if (e->type == 0x8438 && e->subtype == 0) { /* 0x0152d6a6 */
+        out->rotation = e->angle[2];
+        for (int k = 0; k < 3; ++k) out->light[k] = e->light[k] * e->alpha;
+    } else if (e->type == MU_SFX_FENRIR_STEP && e->subtype >= 1 && e->subtype <= 5) { /* 0x0151a5c7 */
+        out->texture = MU_SFX_BITMAP_LIGHTING_A + (e->subtype == 5 ? e->field_64 : e->field_64 % 5);
+        out->size = 0.6f;
+    } else if (e->type == MU_SFX_BITMAP_SHOCKWAVE && e->subtype == 1) { /* 0x01514ded / 0x015158df */
+        out->rotation = -e->angle[2];
+        out->flat = (world >= 0x18 && world <= 0x1d) || world == 0x24;
+    } else {
+        return 0;
+    }
     return 1;
 }
 

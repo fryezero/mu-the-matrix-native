@@ -203,6 +203,15 @@ typedef struct mu_sfx_env {
  * 0x41a subtypes 0 and 1 (impact and area debris); the Tormenta tornado 0x40e
  * subtype 0 (NATIVE-JOINT-001: the hero's object through hero_object, the
  * PlayBuffer call through MU_SFX_CALL_SOUND). */
+/* RenderEffects' helper decals and the shock ring in RenderTerrainEffects. flat is the alternate
+ * 0x00deec1f path in worlds 0x18..0x1d / 0x24, at z=0 on a 50-unit grid. */
+typedef struct mu_sfx_decal {
+    int32_t texture;
+    float size, light[3], rotation;
+    int32_t flat;
+} mu_sfx_decal;
+int mu_sfx_effect_decal(const mu_sfx_effect *effect, int32_t world, mu_sfx_decal *out);
+
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
                          const float angle[3], const float light[3], int32_t owner, float scale,
                          const mu_sfx_info *info, const mu_sfx_env *env);
