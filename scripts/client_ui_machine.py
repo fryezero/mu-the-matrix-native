@@ -127,7 +127,7 @@ class Machine:
         self.defined = set()
         self.heap_next = HEAP_BASE
         self.handlers = {}        # import name -> handler(machine, words) -> eax
-        uc.hook_add(UC_HOOK_BLOCK, self._block, begin=TEXT_BASE, end=TEXT_BASE + len(text))
+        self.block_hook = uc.hook_add(UC_HOOK_BLOCK, self._block, begin=TEXT_BASE, end=TEXT_BASE + len(text))
         uc.hook_add(UC_HOOK_MEM_READ, self._read, begin=BSS_BASE, end=BSS_END - 1)
         uc.hook_add(UC_HOOK_MEM_WRITE, self._write, begin=BSS_BASE, end=BSS_END - 1)
         self._heap_hooks = []

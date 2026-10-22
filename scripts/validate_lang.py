@@ -113,7 +113,9 @@ def sha256_file(path):
 class LangMachine(cm.Machine):
     """The client machine with the snapshot mapped and coverage-checked."""
 
-    def __init__(self, text, data, snap):
+    def __init__(self, text, data, snap, check_reads=True):
+        """check_reads=False skips the per-page read hooks that report reads outside the snapshot's blocks (one
+        Python hook per page run: slow on sparse heap snapshots; such reads then see zeros)."""
         super().__init__(text, data)
         self.snap = snap
         self.allow((cm.TEXT_BASE, cm.TEXT_BASE + len(text)))
@@ -153,7 +155,7 @@ class LangMachine(cm.Machine):
                 merged.append([a, b])
         self.covered_starts = [a for a, _ in merged]
         self.covered = merged
-        for a, b in runs:
+        for a, b in runs if check_reads else ():
             self.uc.hook_add(cm.UC_HOOK_MEM_READ, self._snap_read, begin=a, end=b - 1)
         self.snapshot_reads = self.tail_reads = 0
 

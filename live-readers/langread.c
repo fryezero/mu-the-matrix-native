@@ -33,7 +33,17 @@
                       re-reading buffers an earlier pass copied without following them (GuideQuest's chapters ->
                       steps -> the steps' strings and vectors: deep:0x06fbb3d0=0x44,3);
    - ptr:PTR+OFF=BYTES   copy BYTES at [PTR] + OFF (an object behind a pointer variable, e.g. the classic quest
-                      manager [0x01d1e71c]: ptr:0x01d1e71c+0=0x30dd0). */
+                      manager [0x01d1e71c]: ptr:0x01d1e71c+0=0x30dd0).
+
+   Option (NATIVE-SKILL-003):
+   - graph:ADDR=BYTES,DEPTH[,OBJ]   (ADDR may be a pointer path P0/P1/..: [[P0]+P1].., e.g. the SkillTree4th
+                      handler [[0x01d22c0c]+0x1f8] is 0x01d22c0c/0x1f8/0) copy [ADDR, ADDR+BYTES) and follow, breadth first and DEPTH levels deep, what
+                      it points to: std::map containers (every node, 0x100 bytes each, then the node's value), vectors
+                      (the whole buffer), strings, and any other pointer (OBJ bytes there, default 0x200; OBJ 0 follows only maps, vectors and strings). Used for
+                      the nested maps of 4ThTreeData (graph:0x06fbb8ec=0x44,8) and the lazily built fifth-tree
+                      manager behind the static pointer 0x01d22c04. A pointer is only followed into heap memory
+                      (currently read+write; module images are mapped read+execute under this Wine) or into main.exe's
+                      uninitialised data 0x01ced000..0x0c000000; each root has a 96 MiB budget. */
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <stdint.h>
@@ -223,16 +233,174 @@ static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_
     return copied;
 }
 
+/* graph: (NATIVE-SKILL-003) breadth-first pointer closure from one root, bounded by depth and a byte budget. */
+#define GRAPH_QUEUE (1u << 20)
+#define GRAPH_BUDGET (96u << 20)
+#define GRAPH_NODE 0x100u
+static uint32_t gq_addr[GRAPH_QUEUE], gq_len[GRAPH_QUEUE];
+static uint8_t gq_depth[GRAPH_QUEUE], gq_kind[GRAPH_QUEUE];   /* kind 0 object, 1 map node (value from +0x10) */
+static uint32_t gq_head, gq_tail, graph_bytes;
+static uint32_t *gseen;
+
+static int gmark(uint32_t a)
+{
+    uint32_t mask = (1u << SEEN_BITS) - 1, h = (a * 2654435761u) & mask;
+    while (gseen[h]) {
+        if (gseen[h] == a)
+            return 0;
+        h = (h + 1) & mask;
+    }
+    gseen[h] = a;
+    return 1;
+}
+
+/* One VM region: [lo, hi) and its current protection; 0 when nothing is mapped at or after a. */
+static int region_at(uint32_t a, uint32_t *lo, uint32_t *hi, int *prot)
+{
+    mach_vm_address_t addr = a;
+    mach_vm_size_t size = 0;
+    vm_region_basic_info_data_64_t info;
+    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+    mach_port_t object = MACH_PORT_NULL;
+    if (mach_vm_region(task, &addr, &size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &count, &object))
+        return 0;
+    *lo = (uint32_t)addr; *hi = (uint32_t)(addr + size); *prot = info.protection;
+    return 1;
+}
+
+/* Follow only into heap memory: a region whose current protection is readable and writable, or main.exe's
+   uninitialised data. Under Wine on this Mac every region of the 32-bit space is backed by the Wine reserve file,
+   but loaded module images (code and data sections, IGC.dll and RGS.dll included) are mapped read+execute while
+   heap allocations are read+write(+execute): no module image is followed. */
+static int followable(uint32_t a)
+{
+    if (a < 0x10000 || (a & 3))
+        return 0;
+    if (a >= 0x01ced000u && a < 0x0c000000u)
+        return 1;
+    if (a >= 0x00400000u && a < 0x0c000000u)
+        return 0;
+    static uint32_t cache_lo, cache_hi;
+    static int cache_ok;
+    if (a >= cache_lo && a < cache_hi)
+        return cache_ok;
+    uint32_t lo, hi;
+    int prot;
+    if (!region_at(a, &lo, &hi, &prot) || lo > a)
+        return 0;
+    cache_lo = lo; cache_hi = hi;
+    cache_ok = (prot & (VM_PROT_READ | VM_PROT_WRITE)) == (VM_PROT_READ | VM_PROT_WRITE);
+    return cache_ok;
+}
+
+static void gpush(uint32_t a, uint32_t len, int depth, int kind)
+{
+    if (depth < 0 || gq_tail - gq_head >= GRAPH_QUEUE || !followable(a))
+        return;
+    if (!gmark(a))
+        return;
+    uint32_t i = gq_tail++ % GRAPH_QUEUE;
+    gq_addr[i] = a; gq_len[i] = len; gq_depth[i] = (uint8_t)depth; gq_kind[i] = (uint8_t)kind;
+}
+
+static void graph_scan(const uint8_t *b, uint32_t n, int depth, uint32_t obj_bytes)
+{
+    for (uint32_t o = 0; o + 4 <= n; o += 4) {
+        uint32_t p = u32(b, o);
+        if (p < 0x10000)
+            continue;
+        if (o + 8 <= n) {   /* std::map container: head (_Isnil 1), size */
+            uint32_t count = u32(b, o + 4);
+            uint8_t hn[0x10];
+            if (count <= 100000 && !rd(p, hn, sizeof hn) && hn[0xd] == 1 && u32(hn, 0) && u32(hn, 4) && u32(hn, 8)) {
+                uint32_t len = 0x10;
+                if (gmark(p))
+                    free(copy_block(p, &len, 1));
+                /* every node of the tree, in order: walk from the head */
+                uint32_t stack[512], sp = 0, root = u32(hn, 4), visits = 0;
+                if (root != p)
+                    stack[sp++] = root;
+                while (sp && visits++ <= count) {
+                    uint32_t node = stack[--sp];
+                    uint8_t h2[0x10];
+                    if (rd(node, h2, sizeof h2) || h2[0xd])
+                        continue;
+                    gpush(node, GRAPH_NODE, depth - 1, 1);
+                    if (u32(h2, 8) != p && sp < 512) stack[sp++] = u32(h2, 8);
+                    if (u32(h2, 0) != p && sp < 512) stack[sp++] = u32(h2, 0);
+                }
+                o += 4;
+                continue;
+            }
+        }
+        if (o + 0x18 <= n) {   /* std::string with a heap buffer */
+            uint32_t size = u32(b, o + 0x10), cap = u32(b, o + 0x14);
+            if (cap >= 0x10 && cap < CHASE_MAX && size <= cap && followable(p)) {
+                uint32_t len = size + 1;
+                free(copy_block(p, &len, 1));
+                o += 0x14;
+                continue;
+            }
+        }
+        if (o + 12 <= n) {   /* std::vector: begin <= end <= capacity end */
+            uint32_t e = u32(b, o + 4), c = u32(b, o + 8);
+            if ((p & 3) == 0 && p <= e && e <= c && c > p && c - p <= CHASE_MAX && ((e - p) & 3) == 0) {
+                gpush(p, c - p, depth - 1, 0);
+                o += 8;
+                continue;
+            }
+        }
+        if (obj_bytes)
+            gpush(p, obj_bytes, depth - 1, 0);
+    }
+}
+
+static void graph(uint32_t root, uint32_t bytes, int depth, uint32_t obj_bytes)
+{
+    gq_head = gq_tail = graph_bytes = 0;
+    uint8_t *b = malloc(bytes);
+    if (!b || rd(root, b, bytes)) { free(b); return; }
+    uint32_t len = bytes, objects = 0;
+    free(copy_block(root, &len, 1));
+    gmark(root);
+    graph_scan(b, bytes, depth, obj_bytes);
+    free(b);
+    while (gq_head < gq_tail && graph_bytes < GRAPH_BUDGET) {
+        uint32_t i = gq_head++ % GRAPH_QUEUE, a = gq_addr[i], n = gq_len[i];
+        int d = gq_depth[i], kind = gq_kind[i];
+        uint8_t *v = malloc(n);
+        if (!v)
+            break;
+        while (n >= 4 && rd(a, v, n))
+            n /= 2;
+        if (n >= 4) {
+            uint32_t got = n;
+            free(copy_block(a, &got, 1));
+            graph_bytes += n; ++objects;
+            if (kind == 1) {   /* map node: links +0/+4/+8 are walked by the container; scan the value */
+                if (n > 0x10)
+                    graph_scan(v + 0x10, n - 0x10, d, obj_bytes);
+            } else {
+                graph_scan(v, n, d, obj_bytes);
+            }
+        }
+        free(v);
+    }
+    printf("graph %08x+0x%x depth %d objects %u bytes %u queued-left %u\n", root, bytes, depth, objects, graph_bytes,
+           gq_tail - gq_head);
+}
+
 int main(int c, char **v)
 {
     if (c < 3) { fprintf(stderr, "usage: langread pid out.bin [node:OFF=BYTES] [map:PTR+OFF=BYTES[,obj=N]] [nested:OFF] "
-                             "[deep:ADDR=BYTES,DEPTH] [ptr:PTR+OFF=BYTES]\n"); return 2; }
+                             "[deep:ADDR=BYTES,DEPTH] [ptr:PTR+OFF=BYTES] [graph:ADDR=BYTES,DEPTH[,OBJ]]\n"); return 2; }
     if (task_for_pid(mach_task_self(), atoi(v[1]), &task)) { fprintf(stderr, "task_for_pid failed\n"); return 1; }
     static uint8_t mgr[MANAGER_END - MANAGER];
     if (rd(MANAGER, mgr, sizeof mgr)) { fprintf(stderr, "manager unreadable\n"); return 1; }
     seen = calloc(1u << SEEN_BITS, sizeof *seen);
+    gseen = calloc(1u << SEEN_BITS, sizeof *gseen);
     out = fopen(v[2], "wb");
-    if (!out || !seen) return 1;
+    if (!out || !seen || !gseen) return 1;
     fwrite("MULANGV1", 1, 8, out);
     long count_pos = ftell(out);
     fwrite(&blocks, 4, 1, out);
@@ -317,6 +485,29 @@ int main(int c, char **v)
                 free(copy_block(base + off, &len, 1));
                 printf("ptr [%08x]+0x%x -> %08x, 0x%x bytes\n", ptr, off, base + off, len);
             }
+        }
+    }
+    for (int a = 3; a < c; ++a) {
+        unsigned addr = 0, bytes = 0, depth = 0, obj = 0x200;
+        if (strncmp(v[a], "graph:", 6))
+            continue;
+        /* ADDR is P0[/P1/.../Pn]: a = P0, then a = [a] + Pi for each later Pi (a pointer path) */
+        char *s = v[a] + 6, *e = NULL;
+        addr = (unsigned)strtoul(s, &e, 0);
+        int bad = 0;
+        while (e && *e == '/') {
+            uint32_t at = addr, next = 0;
+            unsigned off = (unsigned)strtoul(e + 1, &e, 0);
+            uint32_t len = 4;
+            free(copy_block(at, &len, 1));
+            if (rd(at, &next, 4) || next < 0x10000) { bad = 1; break; }
+            addr = next + off;
+        }
+        if (bad || !e || *e != '=') { fprintf(stderr, "graph %s: unresolved\n", v[a]); continue; }
+        if (sscanf(e, "=%i,%i,%i", &bytes, &depth, &obj) >= 2 && bytes && bytes <= CHASE_MAX &&
+            depth < 64 && obj <= CHASE_MAX) {
+            memset(gseen, 0, sizeof *gseen << SEEN_BITS);
+            graph(addr, bytes, (int)depth, obj & ~3u);
         }
     }
     fseek(out, count_pos, SEEK_SET);
