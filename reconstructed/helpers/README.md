@@ -20,6 +20,9 @@ Finding: [docs/research/client-helpers.md](../../docs/research/client-helpers.md
 | render: body, shadow, after-pass | `0x0103d6d5`, `0x0103d281`, `0x0103d830` | `mu_hp_mount_render` | verified |
 | mount init / set / reset | `0x0103cf7a`, `0x0106b85d`, `0x0106ba49` | `mu_hp_mount_init`, `mu_hp_mount_set`, `mu_hp_mount_reset` | static (the factory and class parts verified) |
 | the Imp on the shoulder | BackCarry `0x0139db9a`, block `0x0139ef04..0x0139f2d9` | `mu_hp_imp_link_plan` | static |
+| the mounts' registry functors (NATIVE-HELPERS-002) | `0x00a2eaa2` .. `0x00a5aee8` (24 models), wave `0x0185bdc4` | `mount_render.c`: `mu_hp_mount_after`, `mu_hp_wave` | verified (`scripts/validate_mount_visuals.py`) |
+| the later classes' object subtype | vtable +0x38 (`0x0104971f` .. `0x0106438d`, `0x0104a141`) | `mu_hp_mount_object_subtype` | verified |
+| the Shining Tail's visuals and claw steps | `0x01057fb0`, `0x0105a0bb`; random helpers `0x011ff622`, `0x00d01fc6`, `0x00d0221e` | `mount_class.c` | verified |
 
 The routines take the client state they read as plain inputs (`mu_hp_inputs`, the owners' `mu_hp_owner`) and call the
 host (`mu_hp_host`, `mu_hp_render_host`) for the engine services; rand() is the MSVC LCG kept in `mu_helpers`.

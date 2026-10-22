@@ -661,6 +661,17 @@ def main(argv=None):
                 end = am.TEXT_BASE + off + 1
                 break
         bodies[hex(t)] = {'functor': hex(f), 'sha256_16': hashlib.sha256(text[f-am.TEXT_BASE:end-am.TEXT_BASE]).hexdigest()[:16]}
+    # the shared routines (ranges up to the first ret followed by padding or a prologue)
+    for name, f in (('wave', 0x0185bdc4), ('rand_range', 0x011ff622), ('rand_direction', 0x00d01fc6),
+                    ('rand_flat', 0x00d0221e), ('shining_tail_visuals', ST_VISUALS), ('shining_tail_steps', ST_MOVE_STEPS),
+                    ('shining_tail_move', 0x01057e4d), ('mount_render_loop', 0x0106bc2b)):
+        end = f + 0x80
+        for off in range(f - am.TEXT_BASE, f - am.TEXT_BASE + 0x4000):
+            if text[off] in (0xc3, 0xc2) and text[off + (1 if text[off] == 0xc3 else 3)] in (0xcc, 0x55):
+                end = am.TEXT_BASE + off + (1 if text[off] == 0xc3 else 3)
+                break
+        bodies[name] = {'start': hex(f), 'end': hex(end),
+                        'sha256_16': hashlib.sha256(text[f-am.TEXT_BASE:end-am.TEXT_BASE]).hexdigest()[:16]}
     report['bodies'] = bodies
     rng = random.Random(args.seed)
     totals = {'cases': 0, 'equal': 0, 'calls': 0, 'by_model': {}, 'first_failures': []}
