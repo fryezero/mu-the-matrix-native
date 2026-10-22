@@ -107,6 +107,8 @@
 #include "../core/mu_world_names.h"
 #include "../core/mu_world_players.h"
 #include "../core/mu_world_helpers.h"
+#include "../core/mu_lang.h"
+#include "../core/mu_map.h"
 #ifndef MU_WORLD_NO_GL
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_batch.h"
@@ -114,6 +116,7 @@
 #include "../gfx/mu_gfx_layer.h"
 #include "world_gfx.h"
 #include "world_names_gfx.h"
+#include "world_gfx_map.h"
 #endif
 
 #define MAX_WAYPOINTS 64
@@ -251,6 +254,24 @@ typedef struct app {
     struct { int32_t frame; char verb[12]; int a, b; } skill_items[48];
     int32_t skill_count, skill_next;
     uint32_t skill_casts, skill_refused;
+    /* NATIVE-MAP-001: maps and travel (core/mu_map with the demo server): the Tab map overlay and the Move
+     * window over the GFx layer, the gate entrance test, world changes; --no-map, --travel-script
+     * "F:move:KEY F:to:WORLD:X:Y F:rows F:click:ROW F:sort:N F:tab F:mwin" */
+    int no_map;
+    mu_map_session *mapsess;
+    struct map_travel_item { int32_t frame; char verb[8]; int32_t a, b, c; } travel_items[32];
+    int32_t travel_count, travel_next;
+    uint32_t travels, travel_failures;
+    int32_t start_world;
+    const char *start_placement, *start_npc_demo, *start_players;
+    int start_set;
+    const char *equip[MU_CHARACTER_ITEMS];   /* the embedding front end's equipment, applied again after a travel */
+    int equip_combat, equip_set;
+#ifndef MU_WORLD_NO_GL
+    world_gfx_map *gfxmap;
+    world_gfx *gfxmap_owner;
+    double gfx_scale;
+#endif
 } app;
 
 static const int draw_order[MU_CHARACTER_ITEMS] = {5, 4, 3, 2, 1, 0, 6, 7, 8};
@@ -580,6 +601,15 @@ static int load(app *a)
             a->players->ride_context = a;
         }
     }
+    if (!a->no_map) {   /* NATIVE-MAP-001: the session outlives world changes */
+        if (!a->mapsess) {
+            a->mapsess = calloc(1, sizeof *a->mapsess);
+            if (a->mapsess)
+                mu_map_session_init(a->mapsess, mu_lang_shared(), a->world, a->tile[0], a->tile[1]);
+        }
+        if (a->mapsess)
+            mu_map_set_position(a->mapsess, a->world, a->walk.hero.tile[0], a->walk.hero.tile[1]);
+    }
     return 0;
 }
 
@@ -650,6 +680,15 @@ static void on_step(void *context, mu_walk *w)
     if (a->has_particles) {   /* MoveEffects, MoveJoints, MoveParticles after the other movers of the in-world tick */
         mu_world_particles_set_hero(&a->particles, h->position);
         mu_world_particles_step(&a->particles, a->map->time);
+    }
+    if (a->mapsess) {   /* NATIVE-MAP-001: LoadingWorld's count-down and the gate entrance test (MoveHero) */
+        mu_map_set_position(a->mapsess, a->world, h->tile[0], h->tile[1]);
+        mu_map_step(a->mapsess);
+        mu_gate_result gr;
+        int sent = mu_map_gate_step(a->mapsess, w->frame.clock.frame_tick, &gr);
+        if (!a->quiet && (sent || gr.refused))
+            fprintf(stderr, "gate %d -> %d: %s%s\n", gr.gate, gr.target, sent ? a->mapsess->last : "refused: ",
+                    sent ? "" : a->mapsess->notice);
     }
 }
 
@@ -1015,9 +1054,12 @@ static void skill_script(app *a, int32_t frame)
     }
 }
 
+static void map_script(app *a, int32_t frame);
+
 static void script(app *a, int32_t frame)
 {
     mu_walk *w = &a->walk;
+    map_script(a, frame);
     skill_script(a, frame);
     combat_script(a, frame);
     item_script(a, frame);
@@ -1156,12 +1198,207 @@ static void player_item_draw(app *a, int32_t i, int item, const mu_render_backen
 
 /* ---- frame logic shared by the front ends ---- */
 
+/* ---- NATIVE-MAP-001: travel ---- */
+
+#ifndef MU_WORLD_NO_GL
+static void gl_setup(app *a);
+static void gl_teardown(app *a);
+static void names_gfx_attach(app *a, double scale);
+#endif
+
+/* The front end's equipment (world_embed.c: the chosen character's items), after load() equipped the class
+ * parts: with combat its weapons replace the stand-in weapon. */
+static int apply_equipment(app *a, char *error, size_t error_size)
+{
+    if (!a->equip_set)
+        return 0;
+    int has_weapon = 0;
+    for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot)
+        has_weapon |= a->equip[MU_CHARACTER_WEAPON_ITEM(slot)] && a->equip[MU_CHARACTER_WEAPON_ITEM(slot)][0];
+    if (a->equip_combat && has_weapon)
+        for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot)
+            mu_character_set_item(&a->ch, MU_CHARACTER_WEAPON_ITEM(slot), NULL, 0, error, error_size);
+    for (int i = 1; i < MU_CHARACTER_ITEMS; ++i)
+        if (a->equip[i] && a->equip[i][0] && mu_character_set_item(&a->ch, i, a->equip[i], 0, error, error_size))
+            return 1;
+    mu_walk_place(&a->walk, &a->ch);
+    return 0;
+}
+
+/* The teleport answer (C3 1C, ReceiveTeleport 0x0128136d): a world change unloads the world and loads the
+ * target with the existing loader (load()), the hero at the packet's tile and direction.  The client loads
+ * synchronously inside the packet handler and shows no loading picture (live capture, 0.4 s frames); it sets
+ * LoadingWorld = 30, which MoveHero counts down before the render.  The demo files (placement, NPC table,
+ * players) belong to the start world and are left out elsewhere. */
+static int travel(app *a, const mu_teleport *t)
+{
+    char error[512];
+    float angle = mu_teleport_angle(t);
+    int32_t world = (int32_t)t->world;
+    if (!a->start_set) {
+        a->start_set = 1;
+        a->start_world = a->world;
+        a->start_placement = a->placement;
+        a->start_npc_demo = a->npc_demo_path;
+        a->start_players = a->players_file;
+    }
+    if (!mu_teleport_changes_world(t, a->world)) {   /* same map: the hero is set on the tile (no reload) */
+        mu_walk *w = &a->walk;
+        mu_walk_stop(w);
+        w->hero.tile[0] = t->x;
+        w->hero.tile[1] = t->y;
+        w->hero.position[0] = ((float)t->x + 0.5f) * 100.0f;
+        w->hero.position[1] = ((float)t->y + 0.5f) * 100.0f;
+        w->hero.angle[2] = angle;
+        a->travels++;
+        return 0;
+    }
+#ifndef MU_WORLD_NO_GL
+    int had_gl = a->gl_ready;
+    if (had_gl)
+        gl_teardown(a);
+#endif
+    float *wav = a->wav;   /* the run's WAV output survives */
+    size_t wav_frames = a->wav_frames, wav_capacity = a->wav_capacity;
+    a->wav = NULL;
+    int32_t old_world = a->world, old_tile[2] = {a->walk.hero.tile[0], a->walk.hero.tile[1]};
+    mu_frame_clock clock = a->walk.frame.clock;   /* the session's time goes on (no catch-up steps) */
+    uint32_t steps = a->walk.steps;
+    unload(a);
+    int home = world == a->start_world;
+    a->placement = home ? a->start_placement : NULL;
+    a->npc_demo_path = home ? a->start_npc_demo : NULL;
+    a->players_file = home ? a->start_players : NULL;
+    a->world = world;
+    a->tile[0] = t->x;
+    a->tile[1] = t->y;
+    a->angle = angle;
+    int failed = load(a);
+    if (failed) {   /* the target did not load: back where the hero was */
+        fprintf(stderr, "travel: world %d did not load, staying in world %d\n", world, old_world);
+        unload(a);
+        a->world = old_world;
+        a->tile[0] = old_tile[0];
+        a->tile[1] = old_tile[1];
+        a->placement = old_world == a->start_world ? a->start_placement : NULL;
+        a->npc_demo_path = old_world == a->start_world ? a->start_npc_demo : NULL;
+        a->players_file = old_world == a->start_world ? a->start_players : NULL;
+        if (load(a))
+            return 1;
+        a->travel_failures++;
+    }
+    a->walk.frame.clock = clock;
+    a->walk.steps = steps;
+    apply_equipment(a, error, sizeof error);
+    a->wav = wav;
+    a->wav_frames = wav_frames;
+    a->wav_capacity = wav_capacity;
+#ifndef MU_WORLD_NO_GL
+    if (had_gl)
+        gl_setup(a);
+    if (a->gfx) {
+        names_gfx_attach(a, a->gfx_scale > 0 ? a->gfx_scale : 1.0);
+        if (a->npc_demo)
+            world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);
+    }
+#endif
+    if (a->mapsess && !failed) {   /* GlobalText[484] + the map name, the client's chat notice */
+        const char *moved = mu_map_text(a->mapsess, MU_TELEPORT_TEXT_MOVED), *name = mu_map_world_name(a->mapsess, world);
+        snprintf(a->mapsess->notice, sizeof a->mapsess->notice, "%s%s", moved, name);
+#ifndef MU_WORLD_NO_GL
+        if (a->gfx && a->mapsess->notice[0])
+            mu_gfx_layer_chat(world_gfx_layer(a->gfx), 3, "", a->mapsess->notice);
+#endif
+    }
+    a->travels++;
+    if (!a->quiet)
+        fprintf(stderr, "travel: world %d -> %d, tile %d,%d, angle %.0f\n", old_world, a->world, a->walk.hero.tile[0],
+                a->walk.hero.tile[1], (double)angle);
+    return failed;
+}
+
+static void map_script(app *a, int32_t frame)
+{
+    while (a->mapsess && a->travel_next < a->travel_count && a->travel_items[a->travel_next].frame <= frame) {
+        const struct map_travel_item *it = &a->travel_items[a->travel_next++];
+        mu_map_session *s = a->mapsess;
+        int r = 0;
+        if (!strcmp(it->verb, "move"))
+            r = mu_map_travel_move(s, it->a);
+        else if (!strcmp(it->verb, "to"))
+            r = mu_map_travel_to(s, it->a, it->b, it->c);
+        else if (!strcmp(it->verb, "rows") || !strcmp(it->verb, "click") || !strcmp(it->verb, "sort")) {
+            static mu_move_row rows[MU_MAP_MOVES_MAX];
+            if (!strcmp(it->verb, "sort"))
+                mu_map_move_sort(s, it->a);
+            int n = mu_map_move_rows(s, rows, MU_MAP_MOVES_MAX);
+            if (!strcmp(it->verb, "click")) {
+                mu_move_click_result cr;
+                r = mu_map_move_click(s, it->a, &cr);
+            } else if (!a->quiet) {
+                for (int i = 0; i < n; i++)
+                    printf("{\"move_row\": %d, \"map\": \"%s\", \"level\": \"%s\", \"zen\": \"%s\", \"strife\": %d,"
+                           " \"disabled\": %d, \"key\": %d}\n", rows[i].order_idx, rows[i].map, rows[i].level,
+                           rows[i].zen, rows[i].strife[0] != 0, rows[i].disabled, rows[i].map_idx);
+            }
+        }
+#ifndef MU_WORLD_NO_GL
+        else if (a->gfxmap && (!strcmp(it->verb, "tab") || !strcmp(it->verb, "mwin") || !strcmp(it->verb, "mclick"))) {
+            r = world_gfx_map_action(a->gfxmap, !strcmp(it->verb, "tab") ? "tab" : !strcmp(it->verb, "mwin") ? "move"
+                                                                                                             : "click",
+                                     it->a);
+        }
+#endif
+        if (!a->quiet)
+            fprintf(stderr, "frame %d: map %s %d: %s\n", frame, it->verb, it->a, s->last);
+        (void)r;
+    }
+}
+
+static int parse_travel_script(app *a, const char *text)
+{
+    const char *p = text;
+    while (*p && a->travel_count < (int32_t)(sizeof a->travel_items / sizeof a->travel_items[0])) {
+        while (*p == ' ')
+            ++p;
+        if (!*p)
+            break;
+        struct map_travel_item *it = &a->travel_items[a->travel_count];
+        memset(it, 0, sizeof *it);
+        char verb[16] = "";
+        int n = 0;
+        if (sscanf(p, "%d:%7[a-z]%n", &it->frame, verb, &n) < 2)
+            return 1;
+        snprintf(it->verb, sizeof it->verb, "%s", verb);
+        p += n;
+        int32_t *args[3] = {&it->a, &it->b, &it->c};
+        for (int k = 0; k < 3 && *p == ':'; ++k) {
+            char *end;
+            *args[k] = (int32_t)strtol(p + 1, &end, 0);
+            p = end;
+        }
+        a->travel_count++;
+        while (*p && *p != ' ')
+            ++p;
+    }
+    return 0;
+}
+
 static int32_t advance(app *a, uint32_t now)
 {
     mu_walk *w = &a->walk;
     float before[2] = {w->hero.position[0], w->hero.position[1]};
     uint32_t steps_before = w->steps;
     int was_moving = w->hero.movement;
+    mu_teleport tp;
+    if (a->mapsess && mu_map_take_teleport(a->mapsess, &tp)) {   /* NATIVE-MAP-001: the teleport answer */
+        travel(a, &tp);
+        w = &a->walk;
+        before[0] = w->hero.position[0];
+        before[1] = w->hero.position[1];
+        steps_before = w->steps;
+        was_moving = 0;
+    }
     int32_t steps = mu_walk_update(w, now, a->has_character ? &a->ch : NULL);
     if (was_moving || w->hero.movement) {
         double dx = (double)(w->hero.position[0] - before[0]), dy = (double)(w->hero.position[1] - before[1]);
@@ -1183,6 +1420,10 @@ static int32_t advance(app *a, uint32_t now)
         mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
     if (a->players)
         mu_world_players_frame(a->players);
+#ifndef MU_WORLD_NO_GL
+    if (a->gfxmap && a->gfx == a->gfxmap_owner)   /* NATIVE-MAP-001: hudMap's per-frame method 0x00c6af22 */
+        world_gfx_map_frame(a->gfxmap, w->hero.position, w->hero.angle[2]);
+#endif
     if (a->names) {   /* NATIVE-NAMES-001: 0x009a1618 in the tick, the hudPlayerName handler's update */
 #ifndef MU_WORLD_NO_GL
         if (a->gfx)
@@ -2282,6 +2523,13 @@ static void report_summary(const app *a, const char *renderer)
     }
     if (a->npc)
         mu_npc_report_summary(a->npc, stdout, a->quiet);
+    if (a->mapsess)   /* NATIVE-MAP-001 */
+        printf("{\"map\": true, \"world\": %d, \"tile\": [%d, %d], \"travels\": %u, \"travel_failures\": %u,"
+               " \"zen\": %lld, \"moves\": %d, \"gates\": %d, \"loading_world\": %d, \"map_shown\": %d,"
+               " \"map_available\": %d, \"units\": %d, \"move_open\": %d}\n", a->world, a->walk.hero.tile[0],
+               a->walk.hero.tile[1], a->travels, a->travel_failures, (long long)a->mapsess->zen, a->mapsess->nentries,
+               a->mapsess->ngates, a->mapsess->loading_world, a->mapsess->hud.shown, a->mapsess->hud.available,
+               a->mapsess->nunits, a->mapsess->move_open);
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);
@@ -2300,6 +2548,15 @@ static void names_chat_hook(void *user, const char *text)
 
 static void names_gfx_attach(app *a, double scale)
 {
+    a->gfx_scale = scale;
+    if (a->gfxmap && a->gfxmap_owner != a->gfx) {   /* NATIVE-MAP-001: the map host follows the front end's layer */
+        world_gfx_map_close(a->gfxmap);
+        a->gfxmap = NULL;
+    }
+    if (!a->gfxmap && a->gfx && a->mapsess) {
+        a->gfxmap = world_gfx_map_open(world_gfx_layer(a->gfx), a->mapsess, a->root);
+        a->gfxmap_owner = a->gfx;
+    }
     if (!a->names || !a->gfx)
         return;
     world_names_gfx_attach(&a->names_gfx, a->gfx, &a->names->names, scale);
@@ -2768,7 +3025,8 @@ static int usage(void)
                     "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n"
                     "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
-                    "                [--helper-state N] [--no-helpers]\n");
+                    "                [--helper-state N] [--no-helpers]\n"
+                    "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
     return 2;
 }
 
@@ -2812,6 +3070,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-names")) { a.no_names = 1; continue; }
         if (!strcmp(k, "--no-players")) { a.no_players = 1; continue; }
         if (!strcmp(k, "--no-helpers")) { a.no_helpers = 1; continue; }
+        if (!strcmp(k, "--no-map")) { a.no_map = 1; continue; }
         if (!v)
             return usage();
         ++i;
@@ -2886,6 +3145,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--gfx-open")) a.gfx_open = v;
         else if (!strcmp(k, "--skill-script")) { if (parse_skill_script(&a, v)) return usage(); }
 #endif
+        else if (!strcmp(k, "--travel-script")) { if (parse_travel_script(&a, v)) return usage(); }
         else if (!strcmp(k, "--particle-seed")) a.particle_seed = (uint32_t)strtoul(v, NULL, 0);
         else if (!strcmp(k, "--joint-demo")) a.joint_demo = (int32_t)strtol(v, NULL, 0);
         else if (!strcmp(k, "--hero-name")) a.hero_name = v;

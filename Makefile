@@ -29,6 +29,7 @@ all:
 	$(MAKE) -C reconstructed/helpers
 	$(MAKE) -C reconstructed/quest
 	$(MAKE) -C reconstructed/skill
+	$(MAKE) -C reconstructed/map
 	$(MAKE) -C native
 
 test: all
@@ -63,6 +64,7 @@ test: all
 	$(PYTHON) -m unittest discover -s reconstructed/helpers -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/quest -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s reconstructed/skill -p 'test_*.py' -v
+	$(PYTHON) -m unittest discover -s reconstructed/map -p 'test_*.py' -v
 	$(PYTHON) -m unittest discover -s native/tests -p 'test_*.py' -v
 
 native-viewer:

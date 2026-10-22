@@ -322,11 +322,12 @@ struct mu_gfx_layer {
         int have_slot[20], drag_from, page, select_page, inited, saved;
         char last[160];
     } stamp;
+    mu_gfx_map_hooks maph;   /* NATIVE-MAP-001 */
 };
 
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
-                                                 "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame"};
+                                                 "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -1106,8 +1107,18 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
     mv->view_dirty = 1;
     if (!strcmp(name, "UIInit") && json_string(args, 0, s, sizeof s)) {
         snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
+        if (mv->id == MU_GFX_MOVE_COMMAND && L->maph.window)
+            L->maph.window(L->maph.user, mv->id, name, args);   /* NATIVE-MAP-001 */
         if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST) && L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
+        return NULL;
+    }
+    if (mv->id == MU_GFX_MOVE_COMMAND && strcmp(name, "TweenTimeSet")) {
+        /* NATIVE-MAP-001: the Move window's handler runs in the host (reconstructed/map) */
+        if (L->maph.window)
+            L->maph.window(L->maph.user, mv->id, name, args);
+        else if (!strcmp(name, "CloseWindow"))
+            mu_gfx_layer_show(L, mv->id, 0);
         return NULL;
     }
     if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST) && strcmp(name, "TweenTimeSet")) {
@@ -1157,8 +1168,11 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             bufflist_event(L, s, args);
             return NULL;
         }
-        if (strcmp(name, "main"))
+        if (strcmp(name, "main")) {
+            if (L->maph.channel)   /* NATIVE-MAP-001: hudMap's events (showMap, baseMovie) */
+                L->maph.channel(L->maph.user, name, args);
             return NULL;
+        }
     }
     switch (mv->id) {
     case MU_GFX_MAIN:
@@ -2118,6 +2132,8 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
      * ids of InitMenuInfo are not key codes, so Frame.Main.onKeyUp does not
      * produce them); the scan is not reconstructed, the layer maps I/V, C
      * and Esc (layer choice). */
+    if (down && !mods && L->maph.key && L->maph.key(L->maph.user, vk))
+        return 1;                            /* NATIVE-MAP-001: M (Move window) */
     if (down && !mods && L->cfg.window_key && L->cfg.window_key(L->cfg.tooltip_user, vk))
         return 1;                            /* NATIVE-QUEST-001: the host's window hotkeys (T, the quest window keys) */
     if (down && !mods) {
@@ -3323,6 +3339,15 @@ int mu_gfx_layer_items_placed(const mu_gfx_layer *L) { return L ? L->grid.item_c
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *L) { return L ? L->last_sent : ""; }
 
 /* ---- NATIVE-NAMES-001: hudPlayerName ---------------------------------------------------------- */
+
+void mu_gfx_layer_set_map_hooks(mu_gfx_layer *L, const mu_gfx_map_hooks *hooks)
+{
+    if (!L)
+        return;
+    memset(&L->maph, 0, sizeof L->maph);
+    if (hooks)
+        L->maph = *hooks;
+}
 
 int mu_gfx_layer_set_variable(mu_gfx_layer *L, int m, const char *path, const char *value_json)
 {

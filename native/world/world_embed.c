@@ -39,16 +39,6 @@ static int32_t embed_weapon_kind(const mu_world_embed_config *c)
     return MU_COMBAT_WEAPON_SWORD;
 }
 
-static int embed_has_weapon(const mu_world_embed_config *c)
-{
-    for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot) {
-        const char *path = c->items[MU_CHARACTER_WEAPON_ITEM(slot)];
-        if (path && path[0])
-            return 1;
-    }
-    return 0;
-}
-
 struct mu_world_embed {
     app a;
 };
@@ -105,18 +95,15 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
         return NULL;
     }
     /* the chosen character's equipment (mu-world itself shows the class parts only); with combat, its weapons
-     * replace the stand-in weapon load() equipped */
-    if (c->combat && embed_has_weapon(c))
-        for (int slot = 0; slot < MU_CHARACTER_WEAPON_SLOTS; ++slot)
-            mu_character_set_item(&a->ch, MU_CHARACTER_WEAPON_ITEM(slot), NULL, 0, error, error_size);
-    for (int i = 1; i < MU_CHARACTER_ITEMS; ++i) {
-        if (!c->items[i] || !c->items[i][0])
-            continue;
-        if (mu_character_set_item(&a->ch, i, c->items[i], 0, error, error_size)) {
-            unload(a);
-            free(e);
-            return NULL;
-        }
+     * replace the stand-in weapon load() equipped.  NATIVE-MAP-001: kept, a world change applies it again. */
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+        a->equip[i] = c->items[i];
+    a->equip_combat = c->combat;
+    a->equip_set = 1;
+    if (apply_equipment(a, error, error_size)) {
+        unload(a);
+        free(e);
+        return NULL;
     }
     mu_walk_place(&a->walk, &a->ch);
     return e;
