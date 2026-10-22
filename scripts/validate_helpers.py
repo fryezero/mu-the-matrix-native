@@ -217,7 +217,7 @@ DRAW_BODY_FN = ctypes.CFUNCTYPE(ctypes.c_int, P, P, ctypes.c_int32, ctypes.c_int
 SPRITE_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, ctypes.c_float, P, P)
 ALPHA_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32)
 COLOR4_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float)
-SHADOW_FN = ctypes.CFUNCTYPE(None, P, P, ctypes.c_int32, ctypes.c_int32)
+SHADOW_FN = ctypes.CFUNCTYPE(None, P, P, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32)
 
 
 class RenderHost(ctypes.Structure):
@@ -235,7 +235,8 @@ class MountInfo(ctypes.Structure):
     _fields_ = [('cls', ctypes.c_int32), ('vtable', ctypes.c_uint32), ('item', ctypes.c_int32),
                 ('model', ctypes.c_int32), ('file', ctypes.c_char_p), ('bone', ctypes.c_char_p),
                 ('lift', ctypes.c_float), ('has_lift', ctypes.c_uint8), ('scale_offset', ctypes.c_uint8),
-                ('ported', ctypes.c_uint8), ('scale', ctypes.c_float), ('speed', ctypes.c_float * 16)]
+                ('ported', ctypes.c_uint8), ('scale', ctypes.c_float), ('shadow_mode', ctypes.c_uint8),
+                ('speed', ctypes.c_float * 16)]
 
 
 class Mount(ctypes.Structure):
@@ -749,8 +750,10 @@ class Native:
         def color4(ctx, r, g, b, a):
             log.append(('color4', f32(r), f32(g), f32(b), f32(a)))
 
-        def shadow(ctx, o, model, arg):
-            log.append(('shadow', model, arg))
+        def shadow(ctx, o, model, arg, routine):
+            hidden = (0xffffffff, 0xffffffff, 0, 3) if routine == 2 else (0xffffffff,)*4
+            log.append(('shadow2' if routine == 1 else 'shadow', MODEL_BASE + (model % 16)*0x100,
+                        (*hidden, arg & 0xffffffff)))
 
         self.render_callbacks = [FRUSTUM_FN(frustum), DRAW_OBJECT_FN(draw_object), DRAW_BODY_FN(draw_body),
                                  DRAW_OBJECT_FN(draw_after), SPRITE_FN(sprite), ALPHA_FN(alpha), COLOR4_FN(color4),
@@ -921,6 +924,9 @@ MEMSET = 0x0194cd00
 VTABLES = {}   # class -> vtable (from the library's table)
 MOUNT_ITEMS = [0x1a02, 0x1a03, 0x1a04, 0x1a25, 0x19d7, 0x19e3, 0x19e4, 0x184b, 0x184c, 0x1853, 0x1854, 0x185d,
                0x185e, 0x1833, 0x1834, 0x1835, 0x1836, 0x28f7]
+OFFSET_SCALE = 1.5
+SHADOW_MODES = {0x0103e1ea: 0, 0x01060321: 1, 0x0106442e: 1, 0x01050d51: 2, 0x01055045: 2, 0x0104ad6b: 3,
+                0x0104b983: 3, 0x0104c62b: 3}  # vtable +0x3c
 CLASS_ITEMS = {1: 0x1a02, 2: 0x1a03, 3: 0x1a04, 4: 0x1a25, 5: 0x19d7, 6: 0x19e3, 7: 0x19e4, 8: 0x184b, 9: 0x184c,
                10: 0x1853, 11: 0x1854, 12: 0x185d, 13: 0x185e, 14: 0x1833, 15: 0x1834, 16: 0x1835, 17: 0x1836,
                18: 0x28f7}
@@ -1049,7 +1055,7 @@ class MountClient(Client):
             return 0
 
         def manager_find(m):   # 0x0106b93a(c): the mount of the character (the case's mount or NULL)
-            return (MOUNT_BASE if case.get('has_mount') else 0), 4
+            return (getattr(self, 'mount_addr', 0) if case.get('has_mount') else 0), 4
 
         def draw_body(m):
             log.append(('draw_body', self.object_label(m.argument(0)), (m.argument(1), m.argument(2), m.argument(3))))
@@ -1068,9 +1074,11 @@ class MountClient(Client):
             return 0, 16
 
         def shadow(m):
-            model = m.ecx()
-            idx = struct.unpack('<i', bytes(m.uc.mem_read(model + 0xf0, 4)))[0]
-            log.append(('shadow', idx, m.argument(4)))
+            log.append(('shadow', m.ecx(), tuple(m.argument(i) for i in range(5))))
+            return 0, 0x14
+
+        def shadow2(m):
+            log.append(('shadow2', m.ecx(), tuple(m.argument(i) for i in range(5))))
             return 0, 0x14
 
         stubs.update({NEW: new, MEMSET: memset, STRING_CTOR: string_ctor, STRING_DTOR: string_dtor,
@@ -1079,7 +1087,8 @@ class MountClient(Client):
                       JOINT: joint, 0x009a6ef3: event_get, MANAGER_GET: manager_get, INV_GET: inv_get,
                       INV_ITEMS: inv_items, INV_FLAG: inv_flag, WEAPON_KIND: weapon_kind, WEAPON_54: weapon_54,
                       RIDER_RESET: rider_reset, POSE: pose, 0x0106b93a: manager_find, DRAW_BODY: draw_body,
-                      DRAW_AFTER: draw_after, ALPHA_TEST: alpha_test, self.m.gl_color4: color4, SHADOW: shadow})
+                      DRAW_AFTER: draw_after, ALPHA_TEST: alpha_test, self.m.gl_color4: color4, SHADOW: shadow,
+                      0x012bc5ab: shadow2})
         return stubs
 
 
@@ -1173,6 +1182,8 @@ def section_mount_class(m, lib, args, report):
                 fk = (item, st)
             got, res = run_factory(m, client, s, kind, *fk)
             entry = {'vtable': hex(got[1]) if got else None}
+            if got and got[1]:
+                entry['shadow_slot'] = struct.unpack('<I', m.data_word(got[1] + 0x3c))[0]
             ok = got is not None and got[0] != 0
             if ok:
                 obj = got[0]
@@ -1220,6 +1231,7 @@ def section_mount_class(m, lib, args, report):
                     client.log.clear()
                     client.heap.define(obj + 0x20, struct.pack('<I', model_answer(case, model)))
                     client.heap.define(obj + 0x24, struct.pack('<3f', 1.0, 2.0, 3.0))
+                    client.mount.define(o + 0xa0, struct.pack('<f', OFFSET_SCALE))   # makes the scale step visible
                     r4 = m.execute(slot(4), [], regions, stubs, ecx=obj)
                     if r4['ok']:
                         for r in regions:
@@ -1249,7 +1261,7 @@ def section_mount_class(m, lib, args, report):
                     base = bone_answer(entry['bones'][0], (0.0, 0.0, 0.0), case['bone_salt'])
                     exp = list(base)
                     if mi.scale_offset:
-                        exp = [f32(f32(entry['scale']) * x) for x in exp]
+                        exp = [f32(f32(OFFSET_SCALE) * x) for x in exp]
                     if mi.has_lift:
                         exp[2] = f32(exp[2] + mi.lift)
                     if any(bits(f32(a)) != bits(b) for a, b in zip(exp, entry['offset'])):
@@ -1304,12 +1316,351 @@ def emit_classes(info, emitted):
         bone = e['bones'][0] if e.get('bones') else ''
         base = bone_answer(bone, (0.0, 0.0, 0.0), e['salt'])
         scale_offset = bits(f32(e['offset'][0])) != bits(base[0])
-        z = f32(f32(e['scale']) * base[2]) if scale_offset else base[2]
+        z = f32(f32(OFFSET_SCALE) * base[2]) if scale_offset else base[2]
         lift = f32(e['offset'][2] - z) if bits(f32(e['offset'][2])) != bits(z) else 0.0
         sp = ', '.join(fl(x) for x in e['speeds'])
         print(f'    {{MU_HP_MOUNT_{name}, {e["vtable"]}, {item if item < 0 else hex(item)}, {e["model"]}, "{file}", '
-              f'"{bone}", {fl(lift)}, {1 if lift else 0}, {1 if scale_offset else 0}, 0, {fl(e["scale"])},')
+              f'"{bone}", {fl(lift)}, {1 if lift else 0}, {1 if scale_offset else 0}, 0, {fl(e["scale"])}, '
+              f'{SHADOW_MODES[e["shadow_slot"]]},')
         print(f'     {{{sp}}}}},')
+
+
+# --------------------------------------------------------------------------
+# Mounts: move, rider, render.
+
+MOUNT_OBJ = MOUNT_BASE + 0x100
+OFFSET_SCALE = 1.5
+
+
+def build_mount(m, client, s, cls, state):
+    """Factory + descriptor + OBJECT pointer + speeds (vtable +8) in client memory. Returns (address, vtable)."""
+    if cls >= 19:
+        kind, item, st = 2, cls - 18, -1
+        got, res = run_factory(m, client, s, 2, -1, cls - 18)
+    else:
+        kind, item, st = 0, CLASS_ITEMS[cls], state
+        got, res = run_factory(m, client, s, 0, item, state)
+    if not got or not got[0]:
+        raise RuntimeError(f'factory failed for class {cls}: {res.get("stopped")}')
+    obj, vt = got
+    client.heap.define(obj + 4, struct.pack('<3i', kind, item, st))
+    client.heap.define(obj + 0x14, struct.pack('<II', char_addr(0), owner_obj_addr(0)))
+    client.heap.define(obj + 0x1c, struct.pack('<I', MOUNT_OBJ))
+    client.mount_addr = obj
+    client.mount.define(MOUNT_OBJ, bytes(OBJ))
+    client.mount.define(MOUNT_OBJ + 0x318, struct.pack('<I', 0))
+    regions, stubs = client.mount_regions(s), client.mount_stubs(s)
+    slot2 = struct.unpack('<I', m.data_word(vt + 8))[0]
+    r = m.execute(slot2, [], regions, stubs, ecx=obj)
+    if not r['ok']:
+        raise RuntimeError(f'speeds failed for class {cls}: {r.get("stopped")}')
+    for reg in regions:
+        if reg.name in r['regions']:
+            reg.data[:] = r['regions'][reg.name]
+    return obj, vt
+
+
+def random_mount_state(rng, cls, model):
+    o = Obj()
+    o.live = rng.choice([1, 1, 1, 0])
+    o.lighting, o.visible, o.alpha_enable, o.flag_0d, o.flag_0e = 1, rng.randrange(2), 0, 1, 0
+    o.flag_41 = rng.randrange(2)
+    o.action, o.prior_action = rng.randrange(12), rng.randrange(12)
+    o.type = model
+    o.subtype, o.field_68, o.lifetime, o.blend_mesh = 0, -1, 30, -1
+    o.scale = f32(rng.choice([1.0, 0.85, 1.2]))
+    o.blend_light, o.velocity = 1.0, 0.5
+    o.frame = f32(rng.choice([rng.uniform(0, 8), 1.1, 1.05, 4.9, 5.0, 1.25, 1.35, 1.55, 1.7, 1.0, 1.2, 1.8]))
+    o.prior_frame = f32(rng.uniform(0, 8))
+    o.alpha_target, o.alpha, o.alpha_speed = 1.0, f32(rng.choice([1.0, 0.05, 0.5, 0.0])), 0.0
+    for i in range(3):
+        o.light[i] = f32(rng.uniform(0, 2))
+        o.direction[i] = 0.0
+        o.position[i] = f32(rng.uniform(1000, 9000))
+        o.angle[i] = f32(rng.uniform(0, 360)) if i == 2 else 0.0
+        o.head_angle[i] = 0.0
+    o.owner = 0
+    o.custom_shadow = rng.choice([0, 0, 1])
+    o.shadow_alpha = f32(rng.uniform(0, 1))
+    return o
+
+
+def store_mount(client, obj, mt):
+    """The library's Mount -> client memory (the C++ object at obj, its OBJECT at MOUNT_OBJ)."""
+    h = client.heap
+    h.define(obj + 0x10, struct.pack('<i', mt.model))
+    h.define(obj + 0x14, struct.pack('<I', char_addr(mt.owner)))
+    h.define(obj + 0x18, struct.pack('<I', owner_obj_addr(mt.owner)))
+    h.define(obj + 0x20, struct.pack('<I', MODEL_BASE + (mt.model % 16)*0x100 if mt.has_model else 0))
+    h.define(obj + 0x24, struct.pack('<3f', *mt.offset))
+    h.define(obj + 0x30, struct.pack('<i', mt.action))
+    h.define(obj + 0x34, bytes([mt.riding]))
+    h.define(obj + 0x38, struct.pack('<i', mt.counter))
+    h.define(obj + 0x3c, bytes([mt.shadow]))
+    h.define(obj + 0x48, bytes([mt.flag_48]))
+    h.define(obj + 0x4c, struct.pack('<i', mt.shadow_arg))
+    h.define(obj + 0x50, bytes([mt.fly]))
+    raw = object_to_bytes(mt.object, bytes(client.mount.data[0x100:0x100 + OBJ]))
+    client.mount.define(MOUNT_OBJ, raw)
+    client.mount.define(MOUNT_OBJ + 0x318, struct.pack('<I', 0))
+
+
+def compare_mount(client, obj, mt):
+    h = bytes(client.heap.data)
+    b = lambda a, n: h[obj + a - HEAP_BASE:obj + a - HEAP_BASE + n]  # noqa: E731
+    diffs = []
+    got = {'offset': struct.unpack('<3f', b(0x24, 12)), 'action': struct.unpack('<i', b(0x30, 4))[0],
+           'riding': b(0x34, 1)[0], 'counter': struct.unpack('<i', b(0x38, 4))[0], 'fly': b(0x50, 1)[0]}
+    mine = {'offset': tuple(f32(x) for x in mt.offset), 'action': mt.action, 'riding': mt.riding,
+            'counter': mt.counter, 'fly': mt.fly}
+    for k in got:
+        if not same(tuple(got[k]) if isinstance(got[k], tuple) else got[k],
+                    tuple(mine[k]) if isinstance(mine[k], tuple) else mine[k]):
+            diffs.append((k, got[k], mine[k]))
+    raw = bytes(client.mount.data[0x100:0x100 + OBJ])
+    if masked(raw) != masked(object_to_bytes(mt.object)):
+        diffs.append(('object', [hex(j) for j in range(OBJ) if OBJECT_MASK[j] and raw[j] !=
+                                 object_to_bytes(mt.object)[j]][:10]))
+    return diffs
+
+
+def mount_case(rng, cls):
+    owner = random_owner(rng, 0)
+    owner['action'] = rng.choice([0, 1, 0x26, 0x30, 0x47, 0x4e, 0x55, 0x67, 0x70, 0x90, 0x120, 0x135, 0x13b, 0x143,
+                                  0x150, 0x190, rng.randrange(0x200)])
+    return {'seed': rng.getrandbits(32), 'owners': [owner], 'bone_salt': rng.getrandbits(16),
+            'height_base': 0.0, 'frustum_salt': rng.getrandbits(32), 'item_kind': {},
+            'world': rng.choice([0, 0, 2, 2, 8, 10, 0x84, 0x27, 7, 0x18, 0x24, 0x80]),
+            'scene': 2, 'event_state': rng.choice([0, 3, 4, 6]), 'crt_mode': rng.choice([0, 1]),
+            'dark_horse_flag': 0, 'cls': cls, 'state': rng.choice([0, 1, 2, 4]) if cls == 4 else 0,
+            'has_mount': 1, 'body_drawn': rng.choice([1, 1, 1, 0])}
+
+
+def make_native_mount(lib, native, case, rng):
+    cls = case['cls']
+    mt = Mount()
+    mt.live, mt.key, mt.cls = 1, 0, cls
+    mt.kind, mt.item, mt.state = (2, cls - 18, -1) if cls >= 19 else (0, CLASS_ITEMS[cls], case['state'])
+    mt.model = lib.mu_hp_mount_model(cls, case['state'])
+    mt.owner = 0
+    mt.object = random_mount_state(rng, cls, mt.model)
+    mt.has_model = 1
+    for i in range(3):
+        mt.offset[i] = f32(rng.uniform(-50, 50))
+    mt.action = rng.randrange(8)
+    mt.riding, mt.counter = rng.randrange(2), rng.choice([0, 1, 5, 99, 100, 101])
+    mt.shadow, mt.flag_48, mt.shadow_arg, mt.fly = rng.choice([1, 1, 0]), 0, rng.choice([0, 5]), rng.randrange(2)
+    native.mount = mt
+    return mt
+
+
+def run_mount_case(m, lib, case, rng, mode, plant=None):
+    client, native = MountClient(m, case), Native(lib, case, plant)
+    prepare_models(client, case)
+    s = {'world': case['world'], 'scene': case['scene']}
+    obj, vt = build_mount(m, client, s, case['cls'], case['state'])
+    mt = make_native_mount(lib, native, case, rng)
+    if plant == 'speed':
+        mt.object.action = (mt.object.action + 1) % 12
+    store_mount(client, obj, mt)
+    if plant == 'speed':
+        mt.object.action = (mt.object.action - 1) % 12
+    owners = case['owners']
+    inputs = Inputs(s['world'] if plant != 'world' else (2 if s['world'] != 2 else 0), s['scene'],
+                    case['event_state'], 0)
+    rhost = native.render_host()
+    stats = {'steps': 0, 'events': 0}
+    slot = lambda k: struct.unpack('<I', m.data_word(vt + 4*k))[0]  # noqa: E731
+    for step in range(case['steps']):
+        client.set_owners(owners)
+        native.set_owners(owners)
+        client.log.clear()
+        native.log.clear()
+        regions, stubs = client.mount_regions(s), client.mount_stubs(s)
+        info = lib.mu_hp_mount_class_info(case['cls']).contents
+        if mode == 'move':
+            res = m.execute(slot(3) if info.ported else MOVE_BASE, [], regions, stubs, ecx=obj)
+            if not res['ok']:
+                return {'ok': False, 'step': step, 'machine': {k: v for k, v in res.items() if k != 'regions'}}
+            for r in regions:
+                if r.name in res['regions']:
+                    r.data[:] = res['regions'][r.name]
+            moved = res['eax'] & 0xff
+            if info.ported:
+                mine = lib.mu_hp_mount_move(ctypes.byref(native.h), ctypes.byref(mt), ctypes.byref(inputs))
+            else:
+                mine = lib.mu_hp_mount_move_base(ctypes.byref(native.h), ctypes.byref(mt), ctypes.byref(inputs))
+            if bool(moved) != bool(mine):
+                return {'ok': False, 'step': step, 'why': 'return', 'client': moved, 'native': mine}
+            if moved:
+                res = m.execute(slot(9), [], regions, stubs, ecx=obj)
+                if not res['ok']:
+                    return {'ok': False, 'step': step, 'machine': {k: v for k, v in res.items() if k != 'regions'}}
+                for r in regions:
+                    if r.name in res['regions']:
+                        r.data[:] = res['regions'][r.name]
+                lib.mu_hp_mount_follow_action(ctypes.byref(native.h), ctypes.byref(mt))
+        elif mode == 'render':
+            res = m.execute(RENDER_BODY, [], regions, stubs, ecx=obj)
+            if not res['ok']:
+                return {'ok': False, 'step': step, 'machine': {k: v for k, v in res.items() if k != 'regions'}}
+            for r in regions:
+                if r.name in res['regions']:
+                    r.data[:] = res['regions'][r.name]
+            if res['eax'] & 0xff:
+                for start in (RENDER_SHADOW, RENDER_AFTER):
+                    res = m.execute(start, [], regions, stubs, ecx=obj)
+                    if not res['ok']:
+                        return {'ok': False, 'step': step, 'start': hex(start),
+                                'machine': {k: v for k, v in res.items() if k != 'regions'}}
+                    for r in regions:
+                        if r.name in res['regions']:
+                            r.data[:] = res['regions'][r.name]
+            lib.mu_hp_mount_render(ctypes.byref(native.h), ctypes.byref(mt), ctypes.byref(inputs), ctypes.byref(rhost))
+        elif mode == 'lift':
+            lift = rng.randrange(2)
+            res = m.execute(LIFT, [lift], regions, stubs, ecx=obj, cleanup=4)
+            if not res['ok']:
+                return {'ok': False, 'step': step, 'machine': {k: v for k, v in res.items() if k != 'regions'}}
+            for r in regions:
+                if r.name in res['regions']:
+                    r.data[:] = res['regions'][r.name]
+            lib.mu_hp_mount_place_owner(ctypes.byref(native.h), ctypes.byref(mt), lift)
+        stats['steps'] += 1
+        stats['events'] += len(client.log)
+        clog = [e for e in client.log if e[0] != 'pose']
+        if not same_log(clog, native.log):
+            return {'ok': False, 'step': step, 'why': 'log', 'client': clog[:20], 'native': native.log[:20]}
+        if (client.rand_state, client.rand_calls) != (native.h.rand_state, native.h.rand_calls):
+            return {'ok': False, 'step': step, 'why': 'rand'}
+        d = compare_mount(client, obj, mt)
+        if d:
+            return {'ok': False, 'step': step, 'why': 'fields', 'diffs': d}
+        co, no = client.read_owner(0), native.read_owner(0)
+        if not same(tuple(co['position']), tuple(no['position'])) or co['ring'] != no['ring']:
+            return {'ok': False, 'step': step, 'why': 'owner', 'client': co, 'native': no}
+        # next step: the owner moves and acts
+        jitter_owners(owners, rng.getrandbits(32))
+        owners[0]['action'] = rng.choice([0, 0x26, 0x47, 0x67, 0x90, 0x13b, 0x143, rng.randrange(0x200)])
+        owners[0]['fade'] = rng.choice([0, 0, 0, 1, 2])
+        owners[0]['hidden'] = rng.choice([0]*6 + [1])
+        owners[0]['ring'] = rng.choice([0, 0, 1])
+        case['body_drawn'] = rng.choice([1, 1, 1, 0])
+        if mt.cls >= 19 or not info.ported:
+            pass
+    return {'ok': True, 'stats': stats}
+
+
+MOVE_PROBES = {
+    0x01064cc2: 'uniria dust', 0x01040302: 'dinorant dust', 0x010401e6: 'dinorant fly actions',
+    0x01043a8f: 'fenrir flying step', 0x01043d90: 'fenrir ground', 0x0103f5e0: 'dark horse run',
+    0x0103f457: 'dark horse dust', 0x0103fc59: 'dark horse ring', 0x0103d5bf: 'fade clamp',
+}
+
+
+def section_mount_move(m, lib, args, report):
+    rng = random.Random(args.seed ^ 0x3017)
+    m.add_probes(MOVE_PROBES)
+    totals = {'cases': 0, 'mismatches': 0, 'steps': 0, 'events': 0, 'by_class': {}}
+    first = None
+    classes = [1, 2, 3, 4]*4 + list(range(5, 19))
+    for i in range(args.cases):
+        cls = classes[i % len(classes)]
+        case = mount_case(rng, cls)
+        case['steps'] = rng.randrange(4, 16)
+        r = run_mount_case(m, lib, case, rng, 'move')
+        totals['cases'] += 1
+        totals['by_class'][cls] = totals['by_class'].get(cls, 0) + 1
+        if r['ok']:
+            totals['steps'] += r['stats']['steps']
+            totals['events'] += r['stats']['events']
+        else:
+            totals['mismatches'] += 1
+            if first is None:
+                first = dict(r, cls=cls, world=case['world'])
+    probes = {label: m.probes[a] for a, label in MOVE_PROBES.items()}
+    report['mount_move'] = dict(totals, first_failure=first, probes=probes)
+    if args.negative:
+        det = {}
+        for plant in ('buff', 'world', 'speed'):
+            hit = False
+            rng2 = random.Random(args.seed ^ len(plant))
+            for i in range(args.negative):
+                case = mount_case(rng2, [1, 2, 3, 4][i % 4])
+                case['steps'] = 8
+                if plant == 'buff':
+                    case['owners'][0]['buff_12'] = 0
+                if not run_mount_case(m, lib, case, rng2, 'move', plant)['ok']:
+                    hit = True
+                    break
+            det[plant] = hit
+        report['mount_move']['negative'] = det
+    return first is None and all(probes.values())
+
+
+def section_mount_render(m, lib, args, report):
+    rng = random.Random(args.seed ^ 0x4e4d)
+    totals = {'cases': 0, 'mismatches': 0, 'steps': 0, 'events': 0, 'lift_cases': 0}
+    first = None
+    for i in range(args.cases):
+        cls = [1, 2, 3, 4, 5, 8, 16, 14, 18][i % 9]
+        case = mount_case(rng, cls)
+        case['steps'] = rng.randrange(3, 10)
+        mode = 'render' if i % 3 else 'lift'
+        r = run_mount_case(m, lib, case, rng, mode)
+        totals['cases'] += 1
+        totals['lift_cases'] += mode == 'lift'
+        if r['ok']:
+            totals['steps'] += r['stats']['steps']
+            totals['events'] += r['stats']['events']
+        else:
+            totals['mismatches'] += 1
+            first = first or dict(r, cls=cls, mode=mode, world=case['world'])
+    report['mount_render'] = dict(totals, first_failure=first)
+    return first is None
+
+
+def section_rider(m, lib, args, report):
+    """0x0106c382(c, how) with and without a mount, and the action category 0x0106c4b6."""
+    rng = random.Random(args.seed ^ 0x51de)
+    totals = {'cases': 0, 'mismatches': 0, 'category': 0}
+    first = None
+    for i in range(args.cases*4):
+        case = mount_case(rng, rng.choice([1, 2, 3, 4]))
+        case['has_mount'] = rng.randrange(2)
+        o = case['owners'][0]
+        o['weapon'] = [rng.choice([-1, 0xae6 + rng.randrange(0x1400)]), rng.choice([-1, 0xae6 + rng.randrange(0x1400)])]
+        o['class_byte'] = rng.choice([rng.randrange(256), 9, 0x19, 0x29])
+        how = rng.choice([0, 1, 2, 6, 3, 5, -1])
+        client, native = MountClient(m, case), Native(lib, case)
+        prepare_models(client, case)
+        s = {'world': case['world'], 'scene': case['scene']}
+        if case['has_mount']:
+            obj, vt = build_mount(m, client, s, case['cls'], case['state'])
+        client.set_owners(case['owners'])
+        native.set_owners(case['owners'])
+        regions, stubs = client.mount_regions(s), client.mount_stubs(s)
+        res = m.execute(RIDER, [char_addr(0), how & 0xffffffff], regions, stubs)
+        totals['cases'] += 1
+        if not res['ok']:
+            totals['mismatches'] += 1
+            first = first or {'machine': {k: v for k, v in res.items() if k != 'regions'}}
+            continue
+        lib.mu_hp_rider_action(ctypes.byref(native.h), 0, how)
+        if not same_log(client.log, native.log):
+            totals['mismatches'] += 1
+            first = first or {'how': how, 'client': client.log, 'native': native.log, 'owner': o}
+    # the category over every action word
+    stubs = {}
+    for a in range(0, 0x200):
+        cdata = am.defined_region('obj', 0x25000000, struct.pack('<H', a)*0x20)
+        res = m.execute(CATEGORY, [0x25000000 - 0x2a + 0x2a], [cdata], stubs)
+        if res['ok'] and res['eax'] != lib.mu_hp_action_category(a):
+            totals['mismatches'] += 1
+            first = first or {'category': a, 'client': res['eax'], 'native': lib.mu_hp_action_category(a)}
+        totals['category'] += 1
+    report['rider'] = dict(totals, first_failure=first)
+    return first is None
 
 
 # --------------------------------------------------------------------------
@@ -1351,6 +1702,33 @@ def section_bugs(m, lib, args, report):
     return totals['mismatches'] == 0 and first is None
 
 
+MUTATIONS = {1: ('mount_class', 'Fenrir model of state 1'), 2: ('bugs', 'angel spawn height'),
+             3: ('rider', 'armed walk action'), 4: ('rider', 'action category boundary'),
+             5: ('mount_move', 'base move fade step'), 6: ('mount_render', 'render counter wrap')}
+
+
+def run_mutations(m, args):
+    import shutil
+    import tempfile
+    caught = {}
+    src = ROOT/'reconstructed/helpers'
+    for n, (section, label) in MUTATIONS.items():
+        tmp = Path(tempfile.mkdtemp(prefix='mu-hp-mut-'))
+        out = tmp/f'libclient_helpers.{SUFFIX}'
+        cmd = ['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', f'-DMU_HP_MUTATION={n}',
+               '-shared', str(src/'helpers.c'), str(ROOT/'reconstructed/movement/client_movement.c'),
+               str(ROOT/'reconstructed/record-math/record_math.c'), '-lm', '-o', str(out)]
+        subprocess.run(cmd, check=True, capture_output=True)
+        lib = load_library(out)
+        sub = argparse.Namespace(**vars(args))
+        sub.cases, sub.bug_cases, sub.negative, sub.emit_classes = min(args.cases, 120), min(args.bug_cases, 120), 0, False
+        rep = {}
+        good = globals()['section_' + section](m, lib, sub, rep)
+        caught[f'{n} {label}'] = not good
+        shutil.rmtree(tmp, ignore_errors=True)
+    return caught
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--text', default=str(DEFAULT_TEXT))
@@ -1361,6 +1739,7 @@ def main(argv=None):
     ap.add_argument('--negative', type=int, default=0)
     ap.add_argument('--sections', default='bugs,mount_class,mount_move,rider,mount_render')
     ap.add_argument('--report', default=None)
+    ap.add_argument('--mutations', action='store_true', help='rebuild with each planted mistake; all must be caught')
     ap.add_argument('--emit-classes', action='store_true', help='print mount_classes.h extracted by execution')
     args = ap.parse_args(argv)
     text, data = load_inputs(args)
@@ -1378,6 +1757,11 @@ def main(argv=None):
         good = fn(m, lib, args, report)
         ok = ok and good
         print(f'{name}: {"ok" if good else "MISMATCH"} ({time.time() - s0:.1f} s)', flush=True)
+    if args.mutations:
+        caught = run_mutations(m, args)
+        report['mutations'] = caught
+        ok = ok and all(caught.values())
+        print('mutations:', caught, flush=True)
     report['seconds'] = round(time.time() - t0, 1)
     text_out = json.dumps(report, indent=1, default=str)
     if args.report:

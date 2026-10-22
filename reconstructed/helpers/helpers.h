@@ -222,10 +222,11 @@ typedef struct mu_hp_render_host {
     /* CreateSprite 0x01692eb7(bitmap, position, scale, light, owner, rotation, 0, 4, ...) */
     void (*sprite)(void *context, int32_t bitmap, const float position[3], float scale, const float light[3],
                    const mu_hp_object *owner);
-    /* EnableAlphaTest 0x0184a990(arg), glColor4f, RenderBodyShadow 0x012bc07a(model, -1, -1, -1, -1, a) */
+    /* EnableAlphaTest 0x0184a990(arg), glColor4f, RenderBodyShadow 0x012bc07a(model, -1, -1, -1, -1, a)
+     * (routine 1: the other body shadow 0x012bc5ab of the Leviathans; 2: 0x012bc07a(model, -1, -1, 0, 3, a)) */
     void (*alpha_test)(void *context, int32_t arg);
     void (*color4)(void *context, float r, float g, float b, float a);
-    void (*shadow)(void *context, const mu_hp_object *object, int32_t model, int32_t arg);
+    void (*shadow)(void *context, const mu_hp_object *object, int32_t model, int32_t arg, int32_t routine);
 } mu_hp_render_host;
 
 /* RenderBugs 0x00c9e4e3 (RenderBug(o, 0) for each slot). */
@@ -259,6 +260,9 @@ typedef struct mu_hp_mount_info {
     uint8_t scale_offset;      /* the offset is multiplied by the object scale (the ride-state classes) */
     uint8_t ported;            /* 1: the class move (+0xc) is reconstructed; else only the base move runs */
     float scale;               /* object scale (+0xa0) the model load writes */
+    uint8_t shadow_mode;       /* vtable +0x3c: 0 RenderBodyShadow 0x012bc07a(-1, -1, -1, -1, +0x4c), 1 the same with 0
+                                * (Tauros), 2 the other shadow 0x012bc5ab(-1, -1, -1, -1, 0) (Leviathan),
+                                * 3 0x012bc07a(-1, -1, 0, 3, +0x4c) (the ride-state classes) */
     float speed[MU_HP_SPEEDS]; /* play speeds by mount action (0x0103dbf4: 0.4 for keys the class does not set) */
 } mu_hp_mount_info;
 

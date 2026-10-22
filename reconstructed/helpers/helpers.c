@@ -5,6 +5,10 @@
 #include <string.h>
 
 #include "../movement/client_movement.h"
+
+#ifndef MU_HP_MUTATION
+#define MU_HP_MUTATION 0   /* negative controls (scripts/validate_helpers.py --mutations): 1..6 plant one mistake */
+#endif
 #include "../record-math/record_math.h"
 
 /* ---------------------------------------------------------------- common */
@@ -147,7 +151,7 @@ static int create_bug_sub(mu_helpers *h, const mu_hp_inputs *in, int32_t type, c
         base = w->position[1];
         o->position[1] = (float)(rmod(mu_hp_rand(h), 512) - 0x100) + base;
         base = w->position[2];
-        o->position[2] = (float)(rmod(mu_hp_rand(h), 128) + 0x80) + base;
+        o->position[2] = (float)(rmod(mu_hp_rand(h), 128) + (MU_HP_MUTATION == 2 ? 0x81 : 0x80)) + base;
     } else if (o->type == MU_HP_MODEL_IMP) {
         float base = w->position[0];
         o->position[0] = (float)(rmod(mu_hp_rand(h), 128) - 0x40) + base;
@@ -319,17 +323,17 @@ void mu_hp_render_bugs(mu_helpers *h, const mu_hp_inputs *in, const mu_hp_render
 #define S8(v) {v, v, v, v, v, v, v, v, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}
 
 static const mu_hp_mount_info classes[MU_HP_MOUNT_CLASSES] = {
-    {MU_HP_MOUNT_NONE, 0, -1, -1, NULL, NULL, 0.0f, 0, 0, 0, 1.0f, S8(0.4f)},
+    {MU_HP_MOUNT_NONE, 0, -1, -1, NULL, NULL, 0.0f, 0, 0, 0, 1.0f, 0, S8(0.4f)},
     /* vtable +8 0x01064b33: actions 0..7 0.34; +0x10 0x01064ba6 */
-    {MU_HP_MOUNT_UNIRIA, 0x01ab6bd8, 0x1a02, 0x417, "Rider01", "Bip01 Spine", 20.0f, 1, 0, 1, 1.0f, S8(0.34f)},
+    {MU_HP_MOUNT_UNIRIA, 0x01ab6bd8, 0x1a02, 0x417, "Rider01", "Bip01 Spine", 20.0f, 1, 0, 1, 1.0f, 0, S8(0.34f)},
     /* 0x01040061: 0..11 0.34; 0x0104011f */
-    {MU_HP_MOUNT_DINORANT, 0x01ab6c1c, 0x1a03, 0x473, "Rider02", "Bip01 Spine1", 50.0f, 1, 0, 1, 1.0f,
+    {MU_HP_MOUNT_DINORANT, 0x01ab6c1c, 0x1a03, 0x473, "Rider02", "Bip01 Spine1", 50.0f, 1, 0, 1, 1.0f, 0,
      {0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.34f, 0.4f, 0.4f, 0.4f, 0.4f}},
     /* 0x0103f17e: 0..7 0.34, then 0, 1, 4, 7 0.3 and 8, 9, 10 1.0; 0x0103f324 */
-    {MU_HP_MOUNT_DARK_HORSE, 0x01ab6c60, 0x1a04, 0x410, "DarkHorse", "Bip01 Spine1", 30.0f, 1, 0, 1, 1.0f,
+    {MU_HP_MOUNT_DARK_HORSE, 0x01ab6c60, 0x1a04, 0x410, "DarkHorse", "Bip01 Spine1", 30.0f, 1, 0, 1, 1.0f, 0,
      {0.3f, 0.3f, 0.34f, 0.34f, 0.3f, 0.34f, 0.34f, 0.3f, 1.0f, 1.0f, 1.0f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}},
     /* 0x01043869: the base 0..7 0.4 (0x0103d420), 2 1.0, 3 0.6; 0x010438fa */
-    {MU_HP_MOUNT_FENRIR, 0x01ab6ca4, 0x1a25, 0x4a9, "fenrir_red", "sit_pos_0", 0.0f, 0, 0, 1, 1.0f,
+    {MU_HP_MOUNT_FENRIR, 0x01ab6ca4, 0x1a25, 0x4a9, "fenrir_red", "sit_pos_0", 0.0f, 0, 0, 1, 1.0f, 0,
      {0.4f, 0.4f, 1.0f, 0.6f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.4f}},
 #include "mount_classes.h"
 };
@@ -377,7 +381,7 @@ int32_t mu_hp_mount_model(int32_t cls, int32_t state)
     if (cls == MU_HP_MOUNT_FENRIR) {   /* 0x0104394e on the descriptor's +8 */
         switch (state) {
         case 0: return 0x4a9;
-        case 1: return 0x4a8;
+        case 1: return MU_HP_MUTATION == 1 ? 0x4aa : 0x4a8;
         case 2: return 0x4aa;
         case 4: return 0x4ab;
         default: return 0x4a9;
@@ -535,7 +539,7 @@ int mu_hp_mount_move_base(mu_helpers *h, mu_hp_mount *mount, const mu_hp_inputs 
     o->angle[1] = w->angle[1];
     o->angle[2] = w->angle[2];
     if (w->fade == 1 || w->fade == 2) {
-        o->alpha = o->alpha - 0.1f;
+        o->alpha = o->alpha - (MU_HP_MUTATION == 5 ? 0.11f : 0.1f);
         if (0.0f > o->alpha)
             o->alpha = 0.0f;
     } else {
@@ -762,7 +766,7 @@ int32_t mu_hp_action_category(uint16_t action)
         return 0;
     if (action >= 0x32 && action < 0x4f)
         return 1;
-    if (action >= 0x4f && action < 0x6f)
+    if (action >= 0x4f && action < (MU_HP_MUTATION == 4 ? 0x70 : 0x6f))
         return 2;
     if (action >= 0x6f && action < 0x89)
         return 3;
@@ -777,8 +781,31 @@ int32_t mu_hp_action_category(uint16_t action)
     return 0;
 }
 
+static void set_action_base(mu_helpers *h, mu_hp_mount *mount, int32_t action)
+{
+    if (mount->action == action)   /* 0x0103d9eb */
+        return;
+    mount->action = action;
+    if (h->host.set_action)
+        h->host.set_action(h->host.context, &mount->object, action);
+}
+
 void mu_hp_mount_set_action(mu_helpers *h, mu_hp_mount *mount, int32_t action)
 {
+    if (mount->cls == MU_HP_MOUNT_DIVINE_HORSE) {   /* 0x010406cf: the idle variant 1 */
+        float f = mount->object.frame;
+        if (action != 0) {
+            set_action_base(h, mount, action);
+        } else if (mount->action != 0 || f <= 7.0f) {
+            if (mount->action != 1 || 9.0f <= f)
+                set_action_base(h, mount, 0);
+            else
+                set_action_base(h, mount, 1);
+        } else if (rmod(mu_hp_rand(h), 16) == 0) {
+            set_action_base(h, mount, 1);
+        }
+        return;
+    }
     if (mount->action == action)
         return;
     if (mount->cls == MU_HP_MOUNT_DINORANT && mount->fly) {   /* 0x010401c6 */
@@ -877,7 +904,7 @@ int32_t mu_hp_rider_action(mu_helpers *h, int32_t owner, int32_t how)
         int32_t base;
         switch (how) {
         case 0: base = 0x27; break;
-        case 1: base = 0x48; break;
+        case 1: base = MU_HP_MUTATION == 3 ? 0x49 : 0x48; break;
         case 2: base = 0x68; break;
         case 6: base = 0x13c; break;
         default: base = 0; break;
@@ -930,7 +957,7 @@ void mu_hp_mount_render(mu_helpers *h, mu_hp_mount *mount, const mu_hp_inputs *i
             } else {
                 ++mount->counter;
                 if (mount->counter > 100)
-                    mount->counter = 0x19;
+                    mount->counter = MU_HP_MUTATION == 6 ? 0x18 : 0x19;
                 if (mount->counter == 1)
                     mu_hp_rider_action(h, mount->owner, 0);
             }
@@ -949,8 +976,11 @@ void mu_hp_mount_render(mu_helpers *h, mu_hp_mount *mount, const mu_hp_inputs *i
             a = mu_hp_world_16a88ae(in->world) ? 0.2f : 0.7f;
         if (r->color4)
             r->color4(r->context, 0.0f, 0.0f, 0.0f, a * o->alpha);
+        const mu_hp_mount_info *info = mu_hp_mount_class_info(mount->cls);
+        int32_t mode = info ? info->shadow_mode : 0;
         if (r->shadow)
-            r->shadow(r->context, o, mount->model, mount->shadow_arg);
+            r->shadow(r->context, o, mount->model, (mode == 0 || mode == 3) ? mount->shadow_arg : 0,
+                      mode == 2 ? 1 : (mode == 3 ? 2 : 0));
     }
     /* vtable +0x18: 0x0103d830 */
     int32_t blend = w->buff_12 ? 10 : 0;
