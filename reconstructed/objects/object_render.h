@@ -109,6 +109,9 @@ typedef struct mu_obj_log {
 #define MU_OBJ_CALL_PARTICLE 0x0168fafdu        /* CreateParticle (bitmap, position, angle, light, sub, scale, 0, 0) */
 #define MU_OBJ_CALL_SOUND 0x00a6ac96u           /* PlayBuffer (id, 0, 0) */
 #define MU_OBJ_CALL_REGISTER 0x016d9f51u        /* operable-object table (object, 1) */
+#define MU_OBJ_CALL_CREATE_EFFECT 0x013c0eaau   /* CreateEffect (type, position, angle, light, 1, 0, -1, ...) */
+#define MU_OBJ_CALL_MODEL_STREAM 0x017ffef3u    /* MoveObject writes the model's StreamMesh byte +0x94 (value) */
+#define MU_OBJ_CALL_LOSTTOWER_VISUAL 0x017f6ca7u   /* Lost Tower types 0x26/0x27 (object); not reconstructed */
 #define MU_OBJ_CALL_ANIMATION 0x012b5064u       /* BMD::Animation (bones, frame, prior frame, prior action, angle, head angle, 0, !translate) */
 #define MU_OBJ_CALL_TRANSFORM 0x00966ea5u       /* BMD::Transform (bones, box min, box max, OBB, translate, 0, 0.4, e4, e8) */
 #define MU_OBJ_CALL_TINT 0x017f9375u            /* buff tint of the model (buff list +0x358) */

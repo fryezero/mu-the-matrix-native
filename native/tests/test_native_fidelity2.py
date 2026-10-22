@@ -9,6 +9,7 @@ Private: the instruction comparison is scripts/validate_world_fidelity.py (tests
 """
 import ctypes
 import json
+import math
 from pathlib import Path
 import struct
 import subprocess
@@ -89,6 +90,72 @@ def globals_file(path, eye, angle=(-48.5, 0.0, -45.0), fov=39.0, far=3257.8):
                              (0x01cf1634, struct.pack('<f', fov)), (0x01cf1630, struct.pack('<f', far))):
         body += struct.pack('<II', address, len(payload)) + payload
     Path(path).write_bytes(bytes(body))
+
+
+class WorldObjectCaseTests(unittest.TestCase):
+    """Worked examples of the per-world CreateObject / MoveObject cases (reconstructed/objects)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import validate_object_render as vor
+        subprocess.run(['make', '-s', '-C', str(ROOT / 'reconstructed/objects')], check=True)
+        cls.vor = vor
+        cls.lib = vor.Library(ROOT / f'reconstructed/objects/libobjects.{SUFFIX}')
+
+    def create(self, world, type_):
+        v = self.vor
+        r = v.Record()
+        r.type, r.scale = type_, 1.0
+        r.position[0], r.position[1], r.position[2] = 12850.0, 12850.0, 100.0
+        o = ctypes.create_string_buffer(0x3d8)
+        log = v.new_log(16)
+        status = self.lib.dll.mu_obj_create(ctypes.byref(r), world, o, ctypes.byref(ctypes.c_int32()), 0,
+                                            ctypes.byref(log))
+        return status, o.raw, v.log_events(log)
+
+    def move(self, world, type_, rand_values=(5, 1, 3, 7, 2, 4, 6, 8)):
+        v = self.vor
+        o = bytearray(0x3d8)
+        struct.pack_into('<i', o, 0x5c, type_)
+        struct.pack_into('<4f', o, 0xd8, 1.0, 1.0, 0.1, 0.8)
+        struct.pack_into('<f', o, 0xa8, 1.0)
+        struct.pack_into('<f', o, 0xbc, 0.16)
+        struct.pack_into('<3f', o, 0x158, 12850.0, 12850.0, 100.0)
+        values = list(rand_values)
+        rand_fn = v.RAND_FN(lambda c: values.pop(0) if values else 0)
+        speed_fn = v.SPEED_FN(lambda c, t, a: 0.25)
+        inputs = v.MoveInputs(world, 6, 0, 1234.0, (ctypes.c_float * 3)(0, 0, 0), 1, 1, speed_fn, rand_fn, None)
+        cobj = ctypes.create_string_buffer(bytes(o), 0x3d8)
+        log = v.new_log()
+        status = self.lib.dll.mu_obj_move(cobj, 0, ctypes.byref(inputs), ctypes.byref(log))
+        return status, cobj.raw, v.log_events(log)
+
+    def test_creation_cases(self):
+        status, o, _ = self.create(3, 1)                       # Noria: BlendMesh 1
+        self.assertEqual((status, struct.unpack_from('<i', o, 0x74)[0]), (0, 1))
+        status, o, _ = self.create(0x25, 0x55)                 # Kanturu hook: range -400
+        self.assertEqual(struct.unpack_from('<f', o, 0xc0)[0], -400.0)
+        status, o, _ = self.create(0x33, 0x2d)                 # Elbeland hook: range -300
+        self.assertEqual(struct.unpack_from('<f', o, 0xc0)[0], -300.0)
+        status, o, _ = self.create(8, 0x59)                    # Tarkan: drawn after the characters, speed 0.05
+        self.assertEqual((o[0xa], round(struct.unpack_from('<f', o, 0xbc)[0], 6)), (1, 0.05))
+        status, o, events = self.create(2, 0x1a8)              # Devias: three CreateEffect calls
+        self.assertEqual([e[2] for e in events if e[0] == 0x013c0eaa], [0x1a8, 0x1a9, 0x1aa])
+        self.assertEqual(self.create(4, 1)[0], 2)               # Lost Tower: no creation case (unsupported)
+
+    def test_move_cases(self):
+        status, o, events = self.move(1, 0x29)                 # Dungeon torch: fire light, range 4
+        self.assertEqual(status, 0)
+        lights = [e for e in events if e[0] == 0x016cacfc]
+        self.assertEqual((len(lights), lights[0][-1]), (1, 4))
+        status, o, events = self.move(0x50, 0x71)              # Karutan brazier: light range 3, hidden
+        self.assertEqual(([e[-1] for e in events if e[0] == 0x016cacfc], struct.unpack_from('<i', o, 0x68)[0]),
+                         ([3], -2))
+        status, o, events = self.move(7, 0x20)                 # Atlans crystal: BlendMesh 1, pulsing light
+        self.assertEqual(struct.unpack_from('<i', o, 0x74)[0], 1)
+        self.assertAlmostEqual(struct.unpack_from('<f', o, 0xa8)[0], math.sin(1234.0 * 0.004) * 0.5 + 0.5, places=5)
+        status, o, events = self.move(0x25, 0x10)              # Kanturu: every object plays the ambient sound
+        self.assertEqual([e[2] for e in events if e[0] == 0x00a6ac96], [0x26c])
 
 
 @unittest.skipIf(tour is None, 'Pillow is not installed')

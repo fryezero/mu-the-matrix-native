@@ -401,8 +401,24 @@ TORMENTA_SPECIAL = list(range(0, 10)) + [0x0c, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x2
                                          0xc0, 0xc7, 0xc8, 0xc9]
 
 
+# NATIVE-FIDELITY-002: CreateObject's own cases of worlds 1, 2, 3, 7, 8, 0x37 and the default chain's Kanturu (0x25)
+# and Elbeland (0x33) hooks, executed as client code.
+WORLD_SPECIAL = {
+    1: [0x3b, 0x3c],
+    2: [0x13, 0x14, 0x16, 0x19, 0x28, 0x2d, 0x36, 0x37, 0x38, 0x41, 0x49, 0x4e, 0x56, 0x58, 0x5b, 0x5c, 0x5d, 0x64,
+        0x7a, 0x7b, 0x1a8],
+    3: [1, 8, 9, 0x11, 0x12, 0x13, 0x25, 0x26, 0x1a8],
+    7: [0x27],
+    8: [0x4e, 0x59, 0x5d, 0x61, 0x68],
+    0x37: [0x56, 0x5a],
+    0x25: [0x20, 0x38, 0x44, 0x4b, 0x55, 0x5f, 0x7c],
+    0x33: [0xf, 0x19, 0x1b, 0x2d, 0x2e, 0x2f, 0x30, 0x35, 0x62, 0x67, 0x6b, 0x73, 0x7a, 0x82, 0x8f, 0xa5],
+}
+CREATE_EFFECT = 0x013c0eaa
+
+
 def random_record(g, world):
-    special = LORENCIA_SPECIAL if world == 0 else TORMENTA_SPECIAL
+    special = LORENCIA_SPECIAL if world == 0 else TORMENTA_SPECIAL if world == 0x8d else WORLD_SPECIAL[world]
     r = Record()
     r.type = g.choice(special + [g.randrange(0, 300), g.randrange(-5, 400)])
     if g.random() < 0.06:
@@ -426,7 +442,7 @@ CREATE_LOG_SKIP = (0x350, 0x358)   # sector links (checked separately)
 def family_create(machine, lib, g, cases):
     t = Tally('create')
     for n in range(cases):
-        world = g.choice([0, 0x8d])
+        world = g.choice([0, 0x8d] + list(WORLD_SPECIAL))
         rec = random_record(g, world)
         poison = poison_object(g)
         sector_table = bytearray(256 * 16)
@@ -447,8 +463,28 @@ def family_create(machine, lib, g, cases):
                 return (value, cleanup)
             return stub
 
+        def create_effect(m):
+            # CreateEffect(type, &position, o + 0x164, o + 0xec, 1, 0, -1, 0, 0, 0, 0.0f, -1, 0, 0): pointers into
+            # the object as offsets, the position as bits, as the C logs them
+            a = [m.argument(i) for i in range(14)]
+            position = struct.unpack('<3I', bytes(m.uc.mem_read(a[1], 12)))
+            calls.append(('effect', a[0]) + position + tuple((v - OBJECTS) & 0xffffffff for v in a[2:4]) +
+                         tuple(a[4:]))
+            return 0
+
         stubs = {0x0191ba7b: malloc, 0x0129e792: ctor, 0x0129eb81: record_call('init'),
-                 0x01295f18: record_call('buff-list'), 0x016d9f51: record_call('register')}
+                 0x01295f18: record_call('buff-list'), 0x016d9f51: record_call('register'),
+                 CREATE_EFFECT: create_effect}
+        if world in (0x25, 0x33):
+            # the default chain runs as client code, hooks included; only the runtime singletons are stubbed
+            stubs[0x0095c652] = lambda m: FAKE                                   # custom-map table: answers 0
+            stubs[0x00d53c8f] = lambda m: FAKE
+            stubs[0x00d53d53] = record_call('d53d53', 4)
+            stubs[0x00d53d7d] = record_call('d53d7d', 4)
+            stubs[0x00db747f] = lambda m: FAKE
+            stubs[VSTUB_A] = record_call('vslot-2c', 4)
+            stubs[0x00ea594b] = lambda m: FAKE + 0x100
+            stubs[0x00ea2ad6] = record_call('world-manager-create', 4)
         if world == 0x8d:
             # world-group hooks of the default chain (not executed) and the world manager dispatch
             for address in (0x009dafa8, 0x00def3ac, 0x00d8e18f, 0x00dfbc3f, 0x00d6200e, 0x00dabeb4, 0x00e74a58,
@@ -511,12 +547,17 @@ def family_create(machine, lib, g, cases):
             link_ok = (head, tail, nxt) == ((prior or OBJECTS), OBJECTS, 0) and prev == (prior if prior else prev)
             registered = [cl for cl in calls if cl[0] == 'register']
             c_registered = [e for e in log_events(log) if e[0] == 0x016d9f51]
+            effects = [cl[1:] for cl in calls if cl[0] == 'effect']
+            c_effects = [tuple(e[2:]) for e in log_events(log) if e[0] == CREATE_EFFECT]
             ok = result['eax'] == OBJECTS and status == 0 and not diff and link_ok and csector.value == sector and \
-                len(registered) == len(c_registered)
+                len(registered) == len(c_registered) and effects == c_effects
+            if effects:
+                t.count('CreateEffect calls', len(effects))
+                detail.update({'effects': effects[:2], 'c_effects': c_effects[:2]})
             detail.update({'diff': diff[:12], 'link_ok': link_ok})
             t.count(f'world {world:#x}')
-            t.count('type default' if rec.type not in (LORENCIA_SPECIAL if world == 0 else TORMENTA_SPECIAL)
-                    else 'type case')
+            special = LORENCIA_SPECIAL if world == 0 else TORMENTA_SPECIAL if world == 0x8d else WORLD_SPECIAL[world]
+            t.count('type default' if rec.type not in special else 'type case')
         t.add(ok, detail)
     return t
 
@@ -676,6 +717,8 @@ def move_object(g, world, mode):
     o = bytearray(poison_object(g))
     if world == 0 and mode == 'full':
         typ = g.choice(TYPES_W0 + [g.randrange(0, 160)])
+    elif world in MOVE_WORLD_TYPES and mode == 'full':
+        typ = g.choice(MOVE_WORLD_TYPES[world] + [g.randrange(0, 0x60), g.randrange(0, 0x1b0)])
     elif world == 0x8d and mode == 'full':
         typ = g.choice([6, 0xb7, 0xc8, 6, 0xb7, 0xc8, g.randrange(0, 0xd0)])
     else:
@@ -694,11 +737,30 @@ def move_object(g, world, mode):
     return o
 
 
+# NATIVE-FIDELITY-002: MoveObject's own cases of worlds 1, 3, 4 and 7
+MOVE_WORLD_TYPES = {
+    1: [0x16, 0x17, 0x18, 0x27, 0x28, 0x29, 0x2a, 0x33, 0x34, 0x3d],
+    3: [0x12, 0x1a8],
+    4: [3, 4, 0x12, 0x13, 0x14, 0x17, 0x18, 0x19, 0x26, 0x27],
+    7: [0x16, 0x17, 0x20, 0x22, 0x26, 0x28],
+    # the default chain's hooks (Aida 0x00d6202f, Kanturu 0x00e74ae0) and the Karutan handler's slot 0x30
+    0x21: [0x19, 0x1c, 0x1e, 0x29, 0x38, 0x39, 0x3a, 0x3b, 0x3e, 0x3f, 0x40, 0x43, 0x46, 0x47],
+    0x36: [0x1e, 0x47, 0x40],
+    0x25: [0x2c, 0x2e, 0x3b, 0x3c, 0x3d, 0x3e, 0x46, 0x4c, 0x4d, 0x51, 0x52, 0x53, 0x5a, 0x5c, 0x60, 0x61, 0x62,
+           0x66, 0x6b, 0x6c],
+    0x28: [0x3c, 0x46, 0x61, 0x66],
+    0x50: [0x71, 0x72, 0x73, 0x74, 0x76, 0x87],
+    0x51: [0x71, 0x87],
+}
+HOOK_MOVE_WORLDS = (0x21, 0x36, 0x25, 0x28, 0x50, 0x51)
+KARUTAN_MOVE = 0x00e13a9e
+
+
 def family_move(machine, lib, g, cases):
     t = Tally('move')
     for n in range(cases):
         mode = ['generic', 'full', 'full'][n % 3]
-        world = g.choice(GENERIC_WORLDS) if mode == 'generic' else g.choice([0, 0, 0x8d])
+        world = g.choice(GENERIC_WORLDS) if mode == 'generic' else g.choice([0, 0, 0x8d] + list(MOVE_WORLD_TYPES) * 2)
         o = move_object(g, world, mode)
         typ = struct.unpack_from('<i', o, 0x5c)[0]
         scene = g.choice([6, 6, 6, 5, 3])
@@ -739,8 +801,26 @@ def family_move(machine, lib, g, cases):
 
         def model_lookup(m):
             return (MODEL if has_model else 0, 4)
+        def create_effect(m):
+            a = [m.argument(i) for i in range(14)]
+            calls.append((CREATE_EFFECT, 0, a[0]) + read_vec(m, a[1]) +
+                         tuple((v - OBJECTS) & 0xffffffff for v in a[2:4]) + tuple(a[4:]))
+            return 0
+
+        def lost_tower_visual(m):
+            calls.append((0x017f6ca7, 0) if m.argument(0) == OBJECTS else ('lost tower visual', m.argument(0)))
+            return 0
         stubs = {0x012b4dd3: tick, 0x016cacfc: add_light, 0x0168fafd: particle, 0x00a6ac96: sound,
-                 0x01989721: lambda m: rnd(), 0x00966cc4: lambda m: FAKE, 0x00eaa8cf: model_lookup}
+                 0x01989721: lambda m: rnd(), 0x00966cc4: lambda m: FAKE, 0x00eaa8cf: model_lookup,
+                 CREATE_EFFECT: create_effect, 0x017f6ca7: lost_tower_visual}
+        if world in HOOK_MOVE_WORLDS and mode == 'full':
+            # the default chain runs as client code; runtime singletons answer "not handled"
+            stubs[0x00d53c8f] = lambda m: FAKE
+            stubs[0x00d53da7] = lambda m: (0, 4)
+            stubs[0x00db747f] = lambda m: FAKE
+            stubs[VSTUB_B] = lambda m: (0, 4)
+            stubs[0x00ea594b] = lambda m: FAKE + 0x100
+            stubs[0x00ea2c2b] = lambda m: calls.append(('manager-move',)) or (0, 4)
         if world == 0x8d:
             for address in (0x00def6fb, 0x00d8e38c, 0x00dfbc92, 0x00d6202f, 0x00dabed5, 0x00e74ae0, 0x00e7dd29,
                             0x00e845d0, 0x00e30b86, 0x00e5f629):
@@ -784,7 +864,19 @@ def family_move(machine, lib, g, cases):
             if stop:
                 t.add(False, {'case': n, 'world': world, 'type': typ, 'step': 'tormenta hook'}, stop)
                 continue
+        if world in (0x50, 0x51) and mode == 'full' and ('manager-move',) in calls:
+            calls.remove(('manager-move',))
+            r2 = run(machine, KARUTAN_MOVE, [OBJECTS], global_regions(world, scene, [
+                am.defined_region('object', OBJECTS, guest_obj)]),
+                {0x00a6ac96: sound, 0x016cacfc: add_light, 0x01989721: lambda m: rnd()}, ecx=FAKE + 0x100, cleanup=4)
+            stop = stopped_reason(r2)
+            if stop:
+                t.add(False, {'case': n, 'world': world, 'type': typ, 'step': 'karutan slot'}, stop)
+                continue
+            guest_obj = r2['regions']['object']
         calls = [c for c in calls if c[0] != 'chain']
+        if result['regions']['model'][0x94] == 1 and model[0x94] != 1:   # StreamMesh byte written
+            calls.append((0x017ffef3, 0, 1))
         cobj = ctypes.create_string_buffer(bytes(o), OBJ_SIZE)
         crand = MsvcRand(seed)
         rand_fn = RAND_FN(lambda ctx: crand())
@@ -794,6 +886,8 @@ def family_move(machine, lib, g, cases):
         log = new_log()
         status = lib.dll.mu_obj_move(cobj, 0, ctypes.byref(inputs), ctypes.byref(log))
         c_calls = log_events(log)
+        stream = [c for c in c_calls if c[0] == 0x017ffef3]   # the C logs the model write in call order; the
+        c_calls = [c for c in c_calls if c[0] != 0x017ffef3] + stream   # guest's is checked after the run
         if mode == 'generic':
             cobj = ctypes.create_string_buffer(bytes(o), OBJ_SIZE)
             log = new_log()
@@ -805,6 +899,11 @@ def family_move(machine, lib, g, cases):
         t.count(f'{mode} world {world:#x}')
         t.count('ticked' if any(c[0] == 0x012b4dd3 for c in calls) else 'no tick')
         t.count('fire/light/sound events', sum(1 for c in calls if c[0] in (0x016cacfc, 0x0168fafd, 0x00a6ac96)))
+        if world in MOVE_WORLD_TYPES and mode == 'full':
+            label = 'hooks' if world in HOOK_MOVE_WORLDS else '1/3/4/7'
+            t.count(f'world-case events ({label})', sum(1 for c in calls if c[0] in (
+                0x016cacfc, 0x0168fafd, CREATE_EFFECT, 0x017f6ca7, 0x017ffef3)))
+            t.count(f'world-case lights ({label})', sum(1 for c in calls if c[0] == 0x016cacfc))
         diff = [hex(i) for i in range(OBJ_SIZE) if guest_obj[i] != cobj.raw[i]]
         t.add(same_obj and calls == c_calls, {'case': n, 'mode': mode, 'world': world, 'type': typ, 'diff': diff[:8],
                                                'calls': calls[:4], 'c': c_calls[:4]})
@@ -1047,6 +1146,23 @@ MUTATIONS = [
      'move'),
     ('sector range -180 for Tormenta', 'object_render.c', 'world == 0x8c || world == 0x8d)', 'world == 0x8c)',
      'render_pass'),
+    ('Noria type 1 BlendMesh 3', 'object_render.c', 'case 1: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 1); break;',
+     'case 1: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 3); break;', 'create'),
+    ('Kanturu 0x55 range -100', 'object_render.c', 'if (t == 0x55 || t == 0x38)', 'if (t == 0x38)', 'create'),
+    ('Devias effect height 350', 'object_render.c', 'create_effect(log, index, o, 0x1a9, 4.0f, 360.0f, 1);',
+     'create_effect(log, index, o, 0x1a9, 4.0f, 350.0f, 1);', 'create'),
+    ('Dungeon torch fire at 200', 'object_render.c', 'case 0x29: mu_obj_create_fire(0, o, index, 0.0f, -30.0f, 240.0f',
+     'case 0x29: mu_obj_create_fire(0, o, index, 0.0f, -30.0f, 200.0f', 'move'),
+    ('Atlans crystal wave rate 0.002', 'object_render.c',
+     'mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, wave_light(in->time, 0.004f, 0.5f));',
+     'mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, wave_light(in->time, 0.002f, 0.5f));', 'move'),
+    ('Lost Tower 0x19 drawn', 'object_render.c', 'case 0x19: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;',
+     'case 0x19: break;', 'move'),
+    ('Kanturu brazier light range 4', 'object_render.c', 'add_light(log, index, o, light, 3);\n            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);\n            break;\n        }\n        case 0x46:',
+     'add_light(log, index, o, light, 4);\n            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);\n            break;\n        }\n        case 0x46:', 'move'),
+    ('Aida light +0.5', 'object_render.c', 't == 0x1e ? k + 0.6f', 't == 0x1e ? k + 0.5f', 'move'),
+    ('Karutan 0x71 stays visible', 'object_render.c', 'add_light(log, index, o, light, 3);\n            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);\n            break;\n        }\n        case 0x72',
+     'add_light(log, index, o, light, 3);\n            break;\n        }\n        case 0x72', 'move'),
     ('hidden -2 drawn', 'object_render.c', 'mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) == -2)\n        return MU_OBJ_SKIPPED;',
      'mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) == -3)\n        return MU_OBJ_SKIPPED;', 'render'),
 ]

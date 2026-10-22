@@ -117,7 +117,8 @@ class ObjectRenderTests(unittest.TestCase):
         self.assertEqual(self.field(self.create(0, 0x50)[2], 0xc0), -50.0)         # Bridge01
         self.assertEqual(self.field(self.create(0, 9, hidden=1)[2], 0x68, '<i'), -2)
         self.assertEqual(self.create(0, 9, x=-1700.0)[0], 1)                       # outside the map (sector -1)
-        self.assertEqual(self.create(3, 9)[0], 2)                                  # world case not reconstructed
+        self.assertEqual(self.create(4, 9)[0], 2)                                  # world case not reconstructed
+        self.assertEqual(self.field(self.create(3, 9)[2], 0x74, '<i'), 3)          # Noria (NATIVE-FIDELITY-002)
 
     def test_create_tormenta_handler(self):
         self.assertEqual(self.field(self.create(0x8d, 0x27)[2], 0xc0), -300.0)
