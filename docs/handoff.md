@@ -53,8 +53,11 @@ Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs 
 `scripts/fidelity_tour.py run MANIFEST` renders every map of a live capture set with `mu-world --fidelity-dump` and
 writes side-by-side/diff images and a scoreboard (camera, image stats, object field differences, light grids).
 The 2026-10-22 captures (13 maps) and their decoded placements are local under `~/Documents/mu-mac-tools/native/`
-(`scratch/fidelity2/live/`, `renders/fidelity2/`). Next: the gaps ranked in
-[client-world-fidelity.md](research/client-world-fidelity.md#4-gaps-ranked-by-visibility).
+(`scratch/fidelity2/live/`, `renders/fidelity2/`). Fixes landed: Icarus terrain skip (#149), per-world object
+creation/move cases (#151), Icarus rising cloud puffs (#153). Live reads used: objread/lightread per map, memread of the
+effect pool and terrain globals, a `mugl` GL trace and a `mugl` on/off A/B (settings restored). Next: the gaps ranked
+in [client-world-fidelity.md](research/client-world-fidelity.md#4-gaps-ranked-by-visibility); report the Tarkan shading
+difference that depends on `mugl` to the Wine track.
 ## Experience, levels and stat points (NATIVE-PROGRESS-001)
 
 Read [`research/client-progression.md`](research/client-progression.md). `reconstructed/progress` holds the class
