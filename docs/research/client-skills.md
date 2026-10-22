@@ -515,3 +515,37 @@ answers remain modelled boundaries. NOP-filled gaps in A0 22/A0 60 and the opaqu
 
 Reports remain local in `~/Documents/mu-mac-tools/native/scratch/skill2/`, renders in
 `~/Documents/mu-mac-tools/native/renders/skill2/`: `master2-final/`, `master-small/`, `imprint-position/`.
+
+## 11. Later tree input probes (NATIVE-POLISH-001)
+
+`scripts/probe_later_skills.py` runs the original getters on `scratch/skill2/live/lang5.bin`, using the pinned
+text/data above. It writes metadata only. The fourth tree is blocked on missing nested allocations:
+`4ThTreeData` (`0x06fbb8ec`, map +0x3c) has 16 class entries, but all 16 calls to
+`0x010b4406(class,0,0)` stop on absent memory. The first failure is a four-byte read at `0x14d7d4ac`,
+instruction `0x0109982a`; other classes reach unmapped inner nodes through `0x0109ab5d`. Neither substituting
+empty maps nor the default record would validate real groups/slots. The 221 tooltip lookups and 16
+side-option lookups return, but that only verifies their top-level lookup, not every nested field/text.
+Next capture needs the class group object and each nested tree allocation used by `0x01098e18`, together
+with complete tooltip/side-option records. A fresh scoped live read must wait for the existing owner's client.
+
+The fifth tree has more captured data than the prior top-level survey established. `ParticleSkill`
+(`0x06fbc8bc`) map +0x38 holds 16 vectors with 24 records total; map +0x40 holds 21 vectors with 234
+records. Both records are 0x24 bytes (`0x00b0f77a` divides the vector length by 0x24). Original getter
+`0x010bce97` selects the first record whose words at +8 and +0xc form `word8 * 512 + wordC`;
+`0x010bcf3a` selects by word +0x10, and `0x010bd07a` selects map +0x40 by word +0x18. Every captured
+record was looked up: 282 checks, zero disagreements with those layouts; a wrong 0x20 stride differs in
+229 checks. This probes pointers/selection, not full card semantics or manager behavior.
+
+End-to-end fifth-tree manager execution is blocked by absent runtime state in this table-only snapshot:
+the actual singleton getter `0x00abeb00` stops on undefined `0x01d22c04` at `0x00abeb71`. It does not contain
+the learned card/slot inventory, its pointed item records, or GFx manager objects needed by the 41-slot
+builder/callbacks. Maps +0x48/+0x5c/+0x64/+0x6c/+0x74 still need complete consumer-derived schemas;
+the first two vector payloads being present is not a complete ParticleSkill decoder. The packet managers
+`0x010a407d`, `0x010a4234`, `0x010a382a`, `0x010a42d6` and inventory/upgrade popups remain unreconstructed.
+The first takes an opaque keyed packet transform before item insertion; this work did not enter that path.
+Next work needs scoped manager/item snapshots and decoded gameplay inputs, then bounded consumer comparisons
+before wiring the existing empty windows. This is an input limitation of this run, not proof those routines
+are permanently unreachable. The later trees remain unavailable; no point/card actions were enabled.
+
+Local report: `~/Documents/mu-mac-tools/native/renders/polish/later-skill-inputs.json`. The existing server
+and Master suites were rerun: 4,508 + 7,876 cases, zero mismatches, all nine compiled mutants caught.

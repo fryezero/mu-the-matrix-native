@@ -176,3 +176,9 @@ the historical live comparison above used the original game. No new original-gam
   unreconstructed; their registry functors are covered. Muun pets remain surveyed only (optional scope).
 - Alternate-grid shock rings are selected but not drawn, as explained above.
 - The buff path of the draw (`0x017f746f`) is not drawn.
+
+NATIVE-POLISH-001 adds NPC 257's flare 41/42 to the shared joint pool, including retained terrain-light
+calls after the render-frame light reset. The expanded joint suite remains green (5,400 cases, all nine
+negative controls detected); the full helper regression also passes with all six mutants caught. Native
+ownership tests now include NPC liveness, light replay and deletion. See [client-quests.md](client-quests.md#9-quest-follow-ups-native-polish-001).
+Alternate-grid rings and Muun were not extended in this follow-up.

@@ -23,6 +23,11 @@ not exist yet.
 
 ## Working components
 
+- Quest follow-ups, NATIVE-POLISH-001. F6 56/7B resume armed paths across world reload; NPC 257 has its orbit,
+  glints and terrain light. Unicorn: 2,000 answer cases + one tab constructor, 5,400 joint cases, zero differences;
+  planted mistakes caught. The constructor registers tabs 0–4, with no event-map tab. Later skill input probes
+  record the missing fourth-tree nodes and fifth-tree manager state. [Evidence](research/client-quests.md#9-quest-follow-ups-native-polish-001).
+
 - Map follow-ups, NATIVE-POLISH-001. Scene globals and per-character demo join locations follow travel;
   MoveCommand uses the client's left alignment 10; E7 NPC markers follow the loaded world and survive Tab refresh.
   Bounded teleport instructions match 875 checks, registration matches one, and all 3 planted mistakes fail.

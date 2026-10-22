@@ -329,3 +329,48 @@ Sebina through an NPC talk, shows tab 1 and aborts a guide chapter through F6 53
 Remaining gaps are the event-map tab, F6 56/7B auto-move answer details, real server rules and reward item
 insertion. NPC 257's cosmetic joint is recorded but not attached in the native scene. No quest marks over
 NPCs were found. The 70/71 hash layer and network encryption remain outside this milestone.
+
+## 9. Quest follow-ups (NATIVE-POLISH-001)
+
+The actual MyQuestInfo constructor `0x00be3710..0x00be39e4` inserts map keys 0, 1, 2, 3 and 4. The
+`EventMap` InitText label does not establish a sixth tab in this pinned build. `validate_quest_polish.py`
+executes the constructor and its map insertion; base/derived tab constructors, allocation and shared-pointer
+assignment are modelled. The existing five-tab window is retained.
+
+F6 56's inline block `0x0128a52d..0x0128a66b` and 7B's handler `0x012534ae..0x01253577` read no payload.
+They require hero PATH_t flag 1, clear it, pass the current tile and signed target coordinates to
+`0x012b104c` (error 0, distance 0, wall level 4), then call GetPath `0x0129cc44` and SendMove
+`0x016b5cd0` on low-byte success. GetPath success sets flag 2. Subcode 56 clears movement type only when
+SendMove's low byte equals 1; 7B clears it for any nonzero low byte. `quest_move.c` preserves that difference.
+The native callback uses the existing path finder and segment sender. World reload retains an armed path;
+the demo queues 56 after guide travel and 7B after quest travel. Native tests cover dispatch and an actual
+guide request, destination-map reload at (10,10), delayed answer, and walking to the separate goal (42,43).
+
+NPC 257's extracted creation call attaches one flare `0x7f78`, subtype 42, scale 15. Creation blocks
+`0x0154a28e` (41) and `0x0154a3b7` (42), move blocks `0x015788c9` and `0x01578a6e`, and the existing
+render path now run through `reconstructed/joints`. Subtype 42 keeps its initial rotated start, turns 15°
+per step, refreshes lifetime to 100 for a live owner and conditionally emits subtype-41 glints. It does not
+follow the owner's moving position. A dead owner calls DeleteJoint(type, owner, 42). Glints rise/fade in
+their final 20 steps, including the shared flare fade below lifetime 10. Native actor IDs resolve liveness;
+terrain-light calls are retained per logic step and replayed after each frame's primary-light reset.
+The synthetic host verifies live/dead owner behavior, light contribution and reapplication without a logic tick.
+
+| Check | Cases | Result |
+|---|---:|---|
+| F6 answer control flow, call order/arguments and final flag/type | 2,000 | 0 mismatches; both compiled mutants caught |
+| Actual MyQuestInfo tab map | 1 | keys 0–4 |
+| Joint create/move/render, all supported kinds | 1,800 each | all 5,400 equal; nine negative controls detected |
+| New joint subtypes 41/42 | 90 each per family | included above |
+| Existing quest 001/002 suites | 16,145 / 7,004 | 0 mismatches; 6/6 and 5/5 mutants caught |
+
+Inputs are the pinned restored text (`2bd5f2e9…93724`) and image data (`c985e2e6…0672f`), with the original
+quest regression using `scratch/lang/live/lang4.bin` and the guide/constructor runs using
+`scratch/quest2/live/lang5.bin`. Reports: `renders/polish/quest-polish.json`, `npc-joints.json`,
+`quest1-regression.json`, `quest2-regression.json` under `~/Documents/mu-mac-tools/native/`.
+Native renders: `renders/polish/quest-npc/` (five-tab window) and `npc257/` (unobscured actor/effect).
+These are native captures; no original-game session was started.
+
+The resume comparison stubs long-path search, GetPath and SendMove with independent return values. Joint
+comparisons execute bounded create/move/render blocks with recording engine services, not the entire game
+loop. The native path/owner/light tests cover their integration separately. Real server quest rules and
+reward-item insertion remain open. No protection or network-encryption work is included.
