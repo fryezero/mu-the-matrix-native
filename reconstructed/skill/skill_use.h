@@ -38,6 +38,7 @@ extern "C" {
 #endif
 
 #define MU_SKILL_LEARNED 255          /* attributes +0x1e4 is a byte */
+#define MU_SKILL_LIST 0x3a1           /* the id and timer arrays (the full list clears 0x742 bytes) */
 #define MU_SKILL_TICK_MAX 0x3a1       /* the tick walks at most 929 entries */
 #define MU_SKILL_SLOTS 10
 
@@ -69,8 +70,8 @@ typedef struct mu_skill_hero {
     uint8_t current;                  /* hero + 0x32 CurrentSkill */
     uint8_t mounted, mount_kind;      /* hero + 0x38, + 0x39 */
     int count;                        /* attributes + 0x1e4 */
-    uint16_t skills[MU_SKILL_LEARNED];/* attributes + 0x1e6 */
-    int32_t timers[MU_SKILL_LEARNED]; /* attributes + 0xccc */
+    uint16_t skills[MU_SKILL_LIST];   /* attributes + 0x1e6 */
+    int32_t timers[MU_SKILL_LIST];    /* attributes + 0xccc */
 } mu_skill_hero;
 
 /* The record of a skill: the table's, or the zero record for absent keys (the default record at
