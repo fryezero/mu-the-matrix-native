@@ -95,6 +95,10 @@ class ServerNative(vs.SkillNative):
         L.mu_skill_stamp_refresh.argtypes = [ctypes.POINTER(vs.EnvC), ctypes.POINTER(StampC), I32]
         L.mu_skill_list_receive.argtypes = [ctypes.POINTER(WorldC), ctypes.c_char_p, ctypes.c_size_t,
                                             ctypes.POINTER(EventsC)]
+        L.mu_skill_can_use.argtypes = [ctypes.POINTER(UseEnvC), ctypes.POINTER(vs.HeroC), I32]
+        L.mu_skill_world_ok.argtypes = [ctypes.POINTER(UseEnvC), I32]
+        L.mu_skill_stamp_marker.argtypes = [I32, ctypes.POINTER(EntryC)] + [ctypes.c_float]*6 + [ctypes.POINTER(QuadC)]
+        L.mu_skill_damage_type_icon.argtypes = [I32, I32] + [ctypes.c_float]*6 + [ctypes.POINTER(QuadC)]
         L.mu_skill_keys_receive.argtypes = [ctypes.POINTER(WorldC), ctypes.c_char_p, ctypes.c_size_t,
                                             ctypes.POINTER(EventsC)]
 
@@ -603,14 +607,268 @@ def run_stamp(m, nat, rng, fam, cases):
         fam.check((n, st.class_byte, st.stamp_class), client, native)
 
 
-FAMILIES = ['list', 'keys', 'stamp']
-MUTANTS = {12: 'list', 13: 'stamp', 14: 'list', 15: 'list'}
+# ---- the usability check (skill_canuse) --------------------------------------------------------------------
+
+CAN_USE, WORLD_OK, MARKER, DAMAGE_TYPE = 0x010918c7, 0x00a9b235, 0x0109750c, 0x01097601
+WORLD, SIEGE, CONFUSION, EVENT_FLAG = 0x01cf15fc, 0x01ec8ee7, 0x0a39d761, 0x01d1e028 + 4
+
+
+class ItemC(ctypes.Structure):
+    _fields_ = [('code', I32), ('level_bits', I32), ('byte1a', U8)]
+
+
+KIND_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+INT1_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, I32)
+INT0_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p)
+REQ_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, I32, ctypes.POINTER(I32), ctypes.POINTER(I32),
+                          ctypes.POINTER(I32))
+
+
+class UseEnvC(ctypes.Structure):
+    _fields_ = [('skills', ctypes.POINTER(vs.EnvC)), ('user', ctypes.c_void_p), ('item_kind', KIND_FN),
+                ('special_item', INT1_FN), ('arrows', INT1_FN), ('party', INT0_FN), ('map_open', INT0_FN),
+                ('it_relic', INT0_FN), ('event_map', INT1_FN), ('confusion_world', INT1_FN), ('skill_require', REQ_FN),
+                ('master_level', INT1_FN), ('world', I32), ('siege', U8), ('confusion_flag', U8), ('event_flag', I32),
+                ('transform', U16), ('part_model', I32*2), ('items', ItemC*15)]
+
+
+class QuadC(ctypes.Structure):
+    _fields_ = [('bitmap', I32), ('x', ctypes.c_float), ('y', ctypes.c_float), ('w', ctypes.c_float),
+                ('h', ctypes.c_float), ('u', ctypes.c_float), ('v', ctypes.c_float), ('uw', ctypes.c_float),
+                ('vh', ctypes.c_float)]
+
+
+SPECIAL_BASES = [0x3e, 0x7ef, 0x4d, 0xe9, 0x7de, 0x7df, 0x82a, 0x33b, 0x127, 0x31a, 0x3f, 0xd4, 0x26c, 0x1e, 0x22,
+                 0x1b0, 0x282, 0x31, 0x4c]
+WORLDS = [0, 2, 0xa, 0x84, 0x1e, 0x12, 0x17, 0x35, 0x61, 0x2d, 0x32, 0x62, 0x63, 0x52, 0x5a, 0x73, 0xb, 0x34, 0x40]
+
+
+class UseCase:
+    def __init__(self, rng, records, reqs):
+        self.world = rng.choice(WORLDS)
+        self.siege = rng.choice([0, 1, 1, 2])
+        self.confusion_flag = rng.choice([0, 0, 1])
+        self.event_flag = rng.choice([0, 0, 0, 1])
+        self.transform = rng.choice([0xffff, 0xffff, 3])
+        self.parts = [rng.choice([0x28f8, 0x28f9, 0x28fa, 0x2900, 0x28f7, 5]), rng.choice([0x28f7, 0x28f8, 0])]
+        self.kinds = {(slot, k) for slot in (0, 1) for k in rng.sample([1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd,
+                                                                       0xe, 0xf, 0x4b, 0x4e, 0x51, 0x54, 0x5a, 0x73,
+                                                                       0x7b], rng.randint(0, 3))}
+        ring = lambda: rng.choice([-1, -1, -1, -1, rng.randint(0, 0x2c00), 0x1a0a, 0x1a44])
+        self.items = [(ring() if i in (10, 11) else rng.choice([-1, rng.randint(0, 0x2c00)]), rng.choice([0x10, 0x18, rng.randint(0, 0xff)]),
+                       rng.randint(0, 2)) for i in range(15)]
+        self.buffs = set(rng.sample([0x13, 0xcf, 0x1ae, 0x199, 6, 0x8f, 0x52, 0x8a, 0x8b, 0x1bb], rng.randint(0, 4)))
+        self.world = rng.choice(WORLDS + [0, 0, 0, 2, 2])
+        self.special = rng.random() < 0.8
+        self.arrows = rng.random() < 0.7
+        self.party = (rng.random() < 0.5, rng.random() < 0.5)
+        self.map = (rng.random() < 0.6, rng.random() < 0.5)
+        self.relic = rng.random() < 0.5
+        self.event_map = rng.choice([0, 0, 1, 2])
+        self.confusion_world = rng.random() < 0.5
+        self.master_level = rng.randint(0, 20)
+        self.tree_learned = rng.random() < 0.6
+        self.reqs = reqs
+
+
+def use_env(case, table, keepalive):
+    env = vs.EnvC()
+    env.table = ctypes.pointer(table)
+    env.buff = vs.BUFF_FN(lambda u, l, b: int(b in case.buffs))
+    env.tree_learned = vs.HAS_FN(lambda u, s: int(case.tree_learned))
+    ue = UseEnvC()
+    ue.skills = ctypes.pointer(env)
+
+    def req(u, base, p1, p2, p3):
+        r = case.reqs.get(base)
+        if not r or r[1] == 0:
+            return 0
+        p1[0], p2[0], p3[0] = r[4], r[5], r[6]
+        return 1
+    cbs = (KIND_FN(lambda u, slot, k: int((slot, k) in case.kinds)), INT1_FN(lambda u, s: int(case.special)),
+           INT1_FN(lambda u, a: int(case.arrows)), INT0_FN(lambda u: int(case.party[0] or case.party[1])),
+           INT0_FN(lambda u: int(not (case.map[0] and not case.map[1]))), INT0_FN(lambda u: int(case.relic)),
+           INT1_FN(lambda u, w: case.event_map), INT1_FN(lambda u, w: int(case.confusion_world)), REQ_FN(req),
+           INT1_FN(lambda u, s: case.master_level))
+    (ue.item_kind, ue.special_item, ue.arrows, ue.party, ue.map_open, ue.it_relic, ue.event_map, ue.confusion_world,
+     ue.skill_require, ue.master_level) = cbs
+    ue.world, ue.siege, ue.confusion_flag, ue.event_flag = case.world, case.siege, case.confusion_flag, case.event_flag
+    ue.transform = case.transform
+    ue.part_model[0], ue.part_model[1] = case.parts
+    for i, (code, lv, b) in enumerate(case.items):
+        ue.items[i] = ItemC(code, lv, b)
+    keepalive.extend([env, cbs])
+    return ue
+
+
+def use_stubs(m, case, h, a):
+    """The client side of a UseCase: globals, hero fields, items, and the boundary stubs."""
+    arg = lambda mm, i: mm.args(i + 1)[i]
+    a8 = a - 8
+    m.put32(WORLD, case.world)
+    m.put32(0x01cf115c, 0xffffffff)                    # the pending-action state ArrowCheck gets
+    m.write(SIEGE, bytes([case.siege]))
+    m.write(CONFUSION, bytes([case.confusion_flag]))
+    m.put32(EVENT_FLAG - 4, 0)
+    m.put32(EVENT_FLAG, case.event_flag)
+    m.write(h + 0x322e, struct.pack('<H', case.transform))
+    m.put32(h + 0x31f4 + 4, case.parts[0])
+    m.put32(h + 0x31f4 + 0x1c + 4, case.parts[1])
+    for i, (code, lv, b) in enumerate(case.items):
+        it = a8 + 0x1b58 + i*0x12c
+        m.put32(it + 0x10, code)
+        m.put32(it + 0x14, lv)
+        m.write(it + 0x1a, bytes([b]))
+    slot_of = lambda item: (item - (a8 + 0x1b58)) // 0x12c
+    m.stub(0x00987982, lambda mm: int((slot_of(mm.uc.reg_read(cm.UC_X86_REG_ECX)), s32(arg(mm, 0))) in case.kinds), 4)
+    m.stub(0x01295ade, lambda mm: int(s32(arg(mm, 0)) in case.buffs), 4)
+    m.stub(0x0109260c, lambda mm: int(case.special), 4)
+    m.stub(0x0169da9c, lambda mm: int(case.arrows), 0)
+    m.stub(0x0129deaa, lambda mm: 7, 0)
+
+    def sp(mm):
+        out = arg(mm, 0)
+        mm.write(out, struct.pack('<II', DUMMY + 0x300, 0))
+        return out
+    calls = {'party': 0}
+
+    def party(i):
+        def handler(mm):
+            return int(case.party[i])
+        return handler
+    m.stub(0x0095c595, sp, 8)
+    m.stub(0x0095f16e, lambda mm: DUMMY + 0x300, 0)
+    m.stub(0x00c7974e, party(0), 4)
+    m.stub(0x00c79662, party(1), 4)
+    m.stub(0x0095ebbb, lambda mm: 0, 0)
+    m.stub(0x009fd699, lambda mm: (mm.write(arg(mm, 0), bytes(8)), arg(mm, 0))[1], 4)
+    m.stub(0x009fe103, lambda mm: int(case.map[0]), 0)
+    m.stub(0x009fe126, lambda mm: DUMMY + 0x380, 0)
+    m.stub(0x01094029, lambda mm: int(case.map[1]), 0)
+    m.stub(0x009fdf2d, lambda mm: 0, 0)
+    m.stub(0x00db747f, lambda mm: DUMMY, 0)
+    m.stub(0x009fa30a, lambda mm: DUMMY, 0)
+    m.stub(0x009fbb31, lambda mm: int(case.relic), 4)
+    m.stub(0x0095c652, lambda mm: DUMMY + 0x3c0, 0)
+    m.stub(0x00d7b35d, lambda mm: case.event_map, 4)
+    m.stub(0x00a9a686, lambda mm: DUMMY, 0)
+    m.stub(0x010e6e74, lambda mm: int(case.confusion_world), 4)
+    m.stub(0x00bb1d9d, lambda mm: case.master_level & 0xff, 4)
+    m.stub(0x0095fb49, lambda mm: DUMMY, 0)
+    m.stub(0x00c2a37a, lambda mm: int(case.tree_learned), 4)
+    m.stub(vs.GFX_MGR, lambda mm: DUMMY, 0)
+    m.stub(0x0095f998, lambda mm: DUMMY, 0)
+    m.stubs.pop(0x00bb1c32, None)                       # the base skill walk runs for real
+
+
+def run_canuse(m, nat, table, records, keys, reqs, rng, fam, cases):
+    by = {r.index: r for r in records}
+    weapons = {}
+    for r in records:
+        weapons.setdefault(r.weapon, []).append(r.index)
+    interesting = [k for k in SPECIAL_BASES if k in by] + [r.index for r in records if r.use_type in (2, 7, 8, 9)
+                                                             or r.xb0 in (1, 2) or r.brand == 0x4b] + list(reqs)
+    for n in range(cases):
+        r = rng.random()
+        if r < 0.4:
+            skill = rng.choice(interesting)
+        elif r < 0.8:
+            w = rng.choice(list(weapons))
+            skill = rng.choice(weapons[w])
+        else:
+            skill = rng.choice(keys)
+        case = UseCase(rng, records, reqs)
+        if skill in by:            # bias the weapon kinds toward the skill's rule
+            w = by[skill].weapon
+            pool = {2: [1, 2, 3, 7, 0x51], 3: [1, 2], 4: [7], 6: [0xc, 0xd, 0xe], 7: [3], 8: [0xf], 9: [0x4e],
+                    10: [0xd], 11: [0xe], 12: [0x51], 13: [0x54], 14: [0x5a], 17: [0x73], 18: [0x7b], 1: [8, 9],
+                    5: [8, 9]}.get(w, [])
+            if pool and rng.random() < 0.6:
+                case.kinds.add((rng.choice([0, 1]), rng.choice(pool)))
+        m.prepare(force=True)
+        vs.common_stubs(m)
+        hcase = vs.Case(rng, keys)
+        hero = vs.random_hero(rng, keys, hcase)
+        hcase.class_index = rng.randint(0, 7)
+        hero.class_index = hcase.class_index
+        if rng.random() < 0.75:
+            for name in ('strength', 'agility', 'vitality', 'energy', 'command'):
+                setattr(hero, name, 65535)
+        if reqs and rng.random() < 0.4 and hero.count:
+            hero.skills[0] = rng.choice([v[4] for v in reqs.values()])
+        h, a = vs.write_hero(m, hcase, hero)
+        m.stub(vs.CLASS_INDEX, lambda mm: hcase.class_index, 0)
+        use_stubs(m, case, h, a)
+        t = m.alloc(0x20, define=True)
+        m.write(t, struct.pack('<II', h, h + 0x3254))
+        client = m.call(CAN_USE, [skill], ecx=t) & 0xff
+        keep = []
+        ue = use_env(case, table, keep)
+        ue.skills[0].class_index = hcase.class_index
+        native = nat.lib.mu_skill_can_use(ctypes.byref(ue), ctypes.byref(hero), skill)
+        fam.check((n, skill, by[skill].weapon if skill in by else None), client, native)
+
+
+def run_world(m, nat, table, records, keys, reqs, rng, fam, cases):
+    for n in range(cases):
+        case = UseCase(rng, records, reqs)
+        base = rng.choice(SPECIAL_BASES + [rng.randint(0, 0x300)])
+        m.prepare(force=True)
+        vs.common_stubs(m)
+        hcase = vs.Case(rng, keys)
+        h, a = vs.write_hero(m, hcase, vs.HeroC())
+        use_stubs(m, case, h, a)
+        m.stubs.pop(WORLD_OK, None)
+        client = m.call(WORLD_OK, [base], ecx=DUMMY) & 0xff
+        keep = []
+        ue = use_env(case, table, keep)
+        fam.check((n, case.world, base), client, nat.lib.mu_skill_world_ok(ctypes.byref(ue), base))
+
+
+def run_marker(m, nat, rng, fam, cases):
+    for n in range(cases):
+        elem = rng.randint(0, 7)
+        entry = (rng.choice([0, 300, 41]), rng.choice([0, 0, 41, 330]), rng.choice([0, 1]))
+        dtype, learned = rng.choice([0, 0, 1, 2, 3, -1]), rng.choice([0, 41])
+        x, y, w, h = (vs.cm.f32(rng.uniform(0, 600)) for _ in range(4))
+        cw, ch = rng.choice([(17.0, 17.0), (21.0, 23.0), (20.0, 28.0)])
+        m.prepare(force=True)
+        vs.common_stubs(m)
+        draws = []
+        m.stub(0x0184a990, lambda mm: 0, 0)
+        m.stub(0x0184a7f3, lambda mm: 0, 0)
+        m.stub(0x0184dcb1, lambda mm: draws.append((s32(mm.args(1)[0]),) + tuple(round(cm.bits_f(v), 6)
+                                                                                for v in mm.args(9)[1:9])) or 0, 0)
+        mgr = m.alloc(0x100, define=True)
+        m.put32(mgr + 8, elem)
+        e = m.alloc(0x10, define=True)
+        m.write(e, struct.pack('<ii', entry[0], entry[1]) + bytes([entry[2]]) + bytes(7))
+        fl = [cm.fbits(v) for v in (x, y, cw, ch, w, h)]
+        m.call(MARKER, [e] + fl, ecx=mgr)
+        tp, ln = m.alloc(8, define=True), m.alloc(8, define=True)
+        m.put32(tp, dtype)
+        m.put32(ln, learned)
+        m.call(DAMAGE_TYPE, [tp, ln] + fl, ecx=mgr)
+        native = []
+        q = QuadC()
+        ent = EntryC(entry[0], entry[1], entry[2])
+        if nat.lib.mu_skill_stamp_marker(elem, ctypes.byref(ent), x, y, cw, ch, w, h, ctypes.byref(q)):
+            native.append((q.bitmap,) + tuple(round(cm.f32(v), 6) for v in (q.x, q.y, q.w, q.h, q.u, q.v, q.uw, q.vh)))
+        if nat.lib.mu_skill_damage_type_icon(dtype, learned, x, y, cw, ch, w, h, ctypes.byref(q)):
+            native.append((q.bitmap,) + tuple(round(cm.f32(v), 6) for v in (q.x, q.y, q.w, q.h, q.u, q.v, q.uw, q.vh)))
+        fam.check(n, draws, native)
+
+
+FAMILIES = ['list', 'keys', 'stamp', 'canuse', 'world', 'marker']
+MUTANTS = {12: 'list', 13: 'stamp', 14: 'list', 15: 'list', 19: 'canuse'}
 
 
 def run_all(m, nat, snap, args, families, report, rng, quiet=False):
     records = vs.snapshot_records(snap)
     keys = [r.index for r in records]
     table = nat.table(records)
+    reqs = {row[0]: row for row in plain.read_skillreq(snap)}     # key, +0, +4 skill, +8, +0xc, +0x10, +0x14, +0x18
+    reqs = {k: (v[0], v[2], v[3], v[4], v[5], v[6], v[7]) for k, v in reqs.items()}
     for name in families:
         fam = vs.Family(name)
         if name == 'list':
@@ -619,6 +877,12 @@ def run_all(m, nat, snap, args, families, report, rng, quiet=False):
             run_keys(m, nat, table, records, keys, rng, fam, args.cases)
         elif name == 'stamp':
             run_stamp(m, nat, rng, fam, args.cases)
+        elif name == 'canuse':
+            run_canuse(m, nat, table, records, keys, reqs, rng, fam, args.cases*4)
+        elif name == 'world':
+            run_world(m, nat, table, records, keys, reqs, rng, fam, args.cases)
+        elif name == 'marker':
+            run_marker(m, nat, rng, fam, args.cases)
         else:
             raise SystemExit(f'unknown family {name}')
         report['families'][fam.name] = fam.summary()

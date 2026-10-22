@@ -600,3 +600,23 @@ size_t mu_skill_keys_packet(uint8_t *out, size_t cap, const int32_t keys[MU_SKIL
     }
     return size;
 }
+
+int mu_skill_stamp_marker(int32_t elemental, const mu_skill_stamp_entry *e, float x, float y, float cw, float ch,
+                          float w, float h, mu_skill_quad *out)
+{
+    if (!e || !e->imprint || e->learned == 0)
+        return 0;
+    mu_skill_quad q = {0x7e26, x, y, w, h, cw / 128.0f * (float)(elemental - 1), 0.0f, cw / 128.0f, ch / 32.0f};
+    *out = q;
+    return 1;
+}
+
+int mu_skill_damage_type_icon(int32_t type, int32_t learned, float x, float y, float cw, float ch, float w, float h,
+                              mu_skill_quad *out)
+{
+    if (type <= 0 || learned == 0)
+        return 0;
+    mu_skill_quad q = {0x8313, x, y, w, h, cw / 64.0f * (float)(type - 1), 0.0f, cw / 64.0f, ch / 32.0f};
+    *out = q;
+    return 1;
+}

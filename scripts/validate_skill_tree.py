@@ -964,6 +964,7 @@ def run_tooltip(m, nat, rng, fam, keys, table, records, texts, cases):
         m.uc.mem_write(vs.TEXT_COLOR, struct.pack('<i', vs.SENTINEL)*80)
         m.uc.mem_write(vs.TEXT_BOLD, struct.pack('<i', vs.SENTINEL)*80)
         m.write(HEADER_FLAGS, bytes(4*80))
+        m.put32(0x0bdcb280, 0)     # __isa_available: the CRT's scalar strstr (its SSE4.2 path misses under Unicorn)
         m.call(TIP_BUILD, [slot], ecx=h)
         if done:
             count = done[0]

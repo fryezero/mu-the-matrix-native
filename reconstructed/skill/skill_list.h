@@ -156,6 +156,20 @@ int mu_skill_keys_receive(mu_skill_world *w, const uint8_t *packet, size_t size,
 /* 0x01096f37 alone. */
 void mu_skill_stamp_after_save(mu_skill_world *w, mu_skill_events *ev);
 
+/* 0x0109750c (the Skill Imprint window and MacroMain): the imprint marker over an icon — only for an entry with its
+ * imprint flag and a learned skill: bitmap 0x7e26 (Interface/SkillStamp.tga, 128 x 32), u = cw / 128 * (element - 1),
+ * v 0, uw = cw / 128, vh = ch / 32 at (x, y) size (w, h).  0x01097601: the damage-type icon (record +0xcc > 0 and a
+ * learned skill): bitmap 0x8313 (Interface/DamageTypeIcon.tga, 64 x 32), u = cw / 64 * (type - 1), uw = cw / 64,
+ * vh = ch / 32.  Return 0 when nothing is drawn. */
+typedef struct mu_skill_quad {
+    int32_t bitmap;
+    float x, y, w, h, u, v, uw, vh;
+} mu_skill_quad;
+int mu_skill_stamp_marker(int32_t elemental, const mu_skill_stamp_entry *e, float x, float y, float cw, float ch,
+                          float w, float h, mu_skill_quad *out);
+int mu_skill_damage_type_icon(int32_t type, int32_t learned, float x, float y, float cw, float ch, float w, float h,
+                              mu_skill_quad *out);
+
 /* Requests a demo server answers with (the packets above), built the way a server sends them (C1 head). */
 size_t mu_skill_list_packet(uint8_t *out, size_t cap, int kind, const int32_t *skills, int n);   /* kind: 0 list, 0xFE, 0xFF */
 size_t mu_skill_keys_packet(uint8_t *out, size_t cap, const int32_t keys[MU_SKILL_SLOTS]);       /* -1: none */
