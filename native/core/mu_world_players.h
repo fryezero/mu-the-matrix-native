@@ -73,6 +73,8 @@ typedef struct mu_world_player_spec {
     uint8_t item_level[MU_RP_SLOTS], excellent[MU_RP_SLOTS], ancient[MU_RP_SLOTS];
     uint16_t ride;                 /* helper item type (0xffff none) */
     uint8_t pet;                   /* NATIVE-HELPERS-001: e[4] & 3 (0 Guardian Angel, 1 Imp, 2 Uniria, 3 none) */
+    uint8_t pet_ext;               /* NATIVE-HELPERS-002: e[0xf] & 0xe0, the pet process's pets (0x20 Demon, 0x40 Spirit of
+                                    * Guardian, 0x60 Skeleton, 0x80 Rudolph, 0xa0 Panda; 0 none) */
     uint8_t ride_state;            /* NATIVE-HELPERS-001: e[0xf] & 3, 4 = e[0x10] bit 0 (Fenrir's colour) */
     uint8_t raven;                 /* NATIVE-HELPERS-002: the pet byte 0x00c92bea (1 / 2 / 3 Dark Raven; 0 none) */
     int32_t start[2];

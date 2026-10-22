@@ -39,8 +39,9 @@ struct mu_world_players;
 struct mu_world_particles;
 struct mu_character;
 struct mu_world_raven;
+struct mu_world_pets;
 
-enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 12 };
+enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 16 };
 
 typedef struct mu_wh_model {
     int32_t index;             /* AccessModel index (object +0x5c) */
@@ -85,6 +86,7 @@ typedef struct mu_world_helpers {
     struct mu_world_players *players;
     struct mu_world_particles *particles;   /* optional: particles, sprites, effects, joints */
     struct mu_character *hero_character;    /* optional: the hero's model (rider action speeds, the hero's Imp) */
+    struct mu_world_pets *pets;             /* NATIVE-HELPERS-002: the pet process (mu_world_pets), NULL when unused */
     mu_wh_model models[MU_WH_MODELS];
     int32_t model_count;
     float shadow_rgba[4];
@@ -135,8 +137,15 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
 long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const mu_terrain_frustum *frustum,
                                   struct mu_character *hero);
 
+/* The model slot of a model index (loaded on first use; the pets' models share the table) and RenderObject's pose
+ * and body for an object of the table (a1: Transform's translate). Return NULL / 0 when there is nothing. */
+mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index);
+int mu_world_helpers_draw_object(mu_world_helpers *w, const struct mu_world_helpers_target *target,
+                                 const mu_hp_object *o, int32_t a1);
+
 /* Parses a helper name or item code for --helper: angel, imp, uniria, dinorant, darkhorse, fenrir,
- * fenrir-black/-blue/-gold (sets *state), the later ride item names, or a number (item code, or G:I). Returns
+ * fenrir-black/-blue/-gold (sets *state), the later ride item names, the pets (demon, spirit, rudolph, panda,
+ * unicorn, skeleton: NATIVE-HELPERS-002), or a number (item code, or G:I). Returns
  * the item code, -1 for "none", -2 when unknown. */
 int32_t mu_world_helpers_parse(const char *text, int32_t *state);
 

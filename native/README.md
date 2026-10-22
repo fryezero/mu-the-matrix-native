@@ -392,6 +392,14 @@ for the hero (the client fills it from the inventory); `--no-helpers` turns the 
 lines and a `helpers` summary. Tests: `tests/test_native_helpers.py`, `reconstructed/helpers/test_helpers.py`,
 `scripts/validate_helpers.py` (Unicorn).
 
+**The pet process (NATIVE-HELPERS-002).** `--helper demon|spirit|rudolph|panda|unicorn|skeleton` (DEMO) and the players
+file's `pet=demon|spirit|skeleton|rudolph|panda` run `reconstructed/pets` (verified in Unicorn,
+[finding](../docs/research/client-pets.md)) inside the helpers module (`core/mu_world_pets`): the installed
+`Data/Local/petdata.bmd` (built-in records when absent), CreatePet with ChangeCharacterExt's calls, the fly-after-owner
+and collector moves, RenderObject and the pets' sprites / particles / effects through the particle module (kinds it
+does not port are counted). The ground items are not offered to the collectors (DEMO). Reports: `pets_frame` lines and
+a `pets` summary. Tests: `tests/test_native_pets.py`, `reconstructed/pets/test_pets.py`, `scripts/validate_pets.py`.
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`

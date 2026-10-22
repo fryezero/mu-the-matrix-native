@@ -13,6 +13,7 @@
 #include "mu_walk.h"
 #include "mu_world_players.h"
 #include "mu_world_raven.h"
+#include "mu_world_pets.h"
 #include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
@@ -60,7 +61,7 @@ static int model_file(int32_t index, char *out, size_t size)
         if (i && i->model == index && i->file)
             return snprintf(out, size, "Data/Skill/%s.bmd", i->file) > 0;
     }
-    return 0;
+    return mu_world_pets_model_file(index, out, size);   /* NATIVE-HELPERS-002 */
 }
 
 /* NATIVE-HELPERS-002: the client bitmaps the mounts' registry functors draw their glow passes with (LoadBitmap
@@ -161,12 +162,28 @@ static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
     char directory[2048];
     mu_path_directory(m->path, directory, sizeof directory);
     mu_textures_load(&m->textures, &m->bmd, directory);
+    if (m->textures.missing > 0) {   /* the later items keep their textures in Data/Item/Texture (NATIVE-HELPERS-002) */
+        char sub[2100];
+        mu_textures retry;
+        snprintf(sub, sizeof sub, "%s/texture", directory);
+        if (mu_textures_load(&retry, &m->bmd, sub) == 0 && retry.missing < m->textures.missing) {
+            mu_textures_free(&m->textures);
+            m->textures = retry;
+        } else {
+            mu_textures_free(&retry);
+        }
+    }
     load_pass_bitmaps(w, m);   /* NATIVE-HELPERS-002 */
     m->loaded = 1;
     char text[96];
-    snprintf(text, sizeof text, "model %#x: %s", index, relative);
+    snprintf(text, sizeof text, "model %#x: %s (%d textures missing)", index, relative, m->textures.missing);
     log_line(w, text);
     return m;
+}
+
+mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index)
+{
+    return model_of(w, index);
 }
 
 static int32_t slot_of(const mu_world_helpers *w, const mu_wh_model *m)
@@ -424,6 +441,9 @@ int32_t mu_world_helpers_parse(const char *text, int32_t *state)
                 *state = names[i].state;
             return names[i].item;
         }
+    int32_t pet = mu_world_pets_parse(text);   /* NATIVE-HELPERS-002 */
+    if (pet != -2)
+        return pet;
     int g, ix;
     if (sscanf(text, "%d:%d", &g, &ix) == 2 && g >= 0 && g < 16 && ix >= 0 && ix < 512)
         return g * 512 + ix;
@@ -481,11 +501,17 @@ int mu_world_helpers_open(mu_world_helpers *w, const char *game_root, const mu_w
     }
     if (hero_item >= 0 && hero_item != MU_RV_ITEM_DARK_RAVEN) {
         int32_t route = mu_hp_helper_route(hero_item, 0);
-        if (route == MU_HP_HELPER_NONE || route == MU_HP_HELPER_PET) {
-            snprintf(error, error_size, "helpers: item %#x is not a helper this module draws (%s)", hero_item,
-                     route == MU_HP_HELPER_PET ? "a data-driven pet, not reconstructed" : "unknown");
+        if (route == MU_HP_HELPER_NONE && !mu_world_pets_is_pet(hero_item)) {
+            snprintf(error, error_size, "helpers: item %#x is not a helper this module draws (unknown)", hero_item);
             return 1;
         }
+    }
+    int hero_pet = hero_item >= 0 && (mu_hp_helper_route(hero_item, 0) == MU_HP_HELPER_PET ||
+                                      mu_world_pets_is_pet(hero_item));
+    if (hero_pet || players) {   /* NATIVE-HELPERS-002: the pet process */
+        w->pets = mu_world_pets_new(w->root, hero_pet ? hero_item : -1, seed ^ 0x9e7, no_assets);
+        if (hero_pet)
+            w->who[0].helper_item = -1;
     }
     return 0;
 }
@@ -494,6 +520,7 @@ void mu_world_helpers_close(mu_world_helpers *w)
 {
     free(w->raven);
     w->raven = NULL;
+    mu_world_pets_free(w->pets);
     for (int32_t i = 0; i < w->model_count; ++i)
         if (w->models[i].loaded) {
             mu_model_free(&w->models[i].model);
@@ -566,6 +593,8 @@ static void delete_owner_helpers(mu_world_helpers *w, int32_t owner)
     }
     s->helper_slot = -1;
     s->ride = 0xffff;
+    if (w->pets)
+        mu_world_pets_owner_gone(w->pets, owner);
 }
 
 static void create_angel(mu_world_helpers *w, int32_t owner)
@@ -659,7 +688,15 @@ static void apply_player(mu_world_helpers *w, int32_t i)
             if (c->a >= 0)
                 set_mount(w, owner, c->a, c->b);
             break;
-        default:   /* the data-driven pet process 0x00b990b0 (HELPER_MODEL / HELPER_EFFECT_OFF): not reconstructed */
+        case MU_RP_CALL_HELPER_EFFECT_OFF:   /* DeletePet 0x00eb1015(c, the former slot type) (NATIVE-HELPERS-002) */
+            if (w->pets)
+                mu_world_pets_delete(w->pets, owner, c->a);
+            break;
+        case MU_RP_CALL_HELPER_MODEL:   /* CreatePet 0x00eb0e78(0x1a00 + w, the slot type, position, c, 0, 0) */
+            if (w->pets)
+                mu_world_pets_create(w->pets, w, owner, c->a, c->b);
+            break;
+        default:
             break;
         }
     }
@@ -681,6 +718,8 @@ void mu_world_helpers_step(mu_world_helpers *w)
         apply_player(w, i);
     mu_hp_move_bugs(&w->h, &w->inputs);
     move_mounts(w);   /* mu_hp_mounts_move with the class steps (NATIVE-HELPERS-002) */
+    if (w->pets)   /* UpdatePets 0x00eb0d64 (NATIVE-HELPERS-002) */
+        mu_world_pets_step(w->pets, w);
     /* the riders: the manager's predicates and the lift the next placement adds */
     for (int32_t owner = 0; owner < MU_WH_OWNERS; ++owner) {
         mu_hp_mount *m = mount_of_owner(w, owner);
@@ -822,6 +861,16 @@ static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
     if (!m)
         return 0;
     return draw_pass(d, m, -1, 2, o->alpha, o->blend_mesh, o->blend_light, 0.0f, 0.0f, -1, -1, NULL);
+}
+
+int mu_world_helpers_draw_object(mu_world_helpers *w, const mu_world_helpers_target *target, const mu_hp_object *o,
+                                 int32_t a1)
+{
+    draw_context d;
+    memset(&d, 0, sizeof d);
+    d.w = w;
+    d.target = target;
+    return pose_and_draw(&d, o, a1);
 }
 
 static void r_object(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
@@ -1210,6 +1259,8 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
     mu_hp_mounts_render(&w->h, &w->mounts, &w->inputs, &r);
     if (w->raven)   /* NATIVE-HELPERS-002: RenderPet per character (RenderCharacter's 0x00c9314f) */
         d.drawn += mu_world_raven_draw(w->raven, frustum, target);
+    if (w->pets)   /* RenderPets 0x00eb0dee (NATIVE-HELPERS-002) */
+        d.drawn += mu_world_pets_draw(w->pets, w, frustum, target);
     /* the Imps are part of their owners' RenderCharacter */
     if (hero)
         draw_imp(&d, 0, hero);
@@ -1275,6 +1326,8 @@ void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t
     fprintf(out, "}\n");
     if (w->raven)
         mu_world_raven_report_frame(w->raven, out);
+    if (w->pets)
+        mu_world_pets_report_frame(w->pets, out, frame);
 }
 
 void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int quiet)
@@ -1288,6 +1341,8 @@ void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int q
             w->stats.rider_actions, w->stats.live_bugs, w->stats.live_mounts, w->model_count);
     if (w->raven)
         mu_world_raven_report_summary(w->raven, out);
+    if (w->pets)
+        mu_world_pets_report_summary(w->pets, out);
     if (!quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             fprintf(out, "helpers: %s\n", w->log[i]);
