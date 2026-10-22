@@ -126,6 +126,8 @@ struct PreviewSettings: Codable, Equatable {
                               "players"]
     static let helpers = ["none", "angel", "imp", "uniria", "dinorant", "darkhorse", "fenrir", "fenrir-black",
                           "fenrir-blue", "fenrir-gold",
+                          "ghost-horse", "ice-dragon", "pierce-lion", "shining-tail", "ur", "leviathan", "tauros",
+                          "divine-horse",
                           "dark-raven", "dark-raven-20", "dark-raven-40",
                           "demon", "spirit", "rudolph", "panda", "unicorn", "skeleton"]   // NATIVE-HELPERS-002 pets
 
