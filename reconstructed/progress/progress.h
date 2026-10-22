@@ -206,6 +206,19 @@ void mu_prg_recv_master_levelup(const mu_prg_env *env, const uint8_t *packet);
  * the experience bar.  76 NOP bytes at 0x01286256 (static). */
 void mu_prg_recv_master_exp(const mu_prg_env *env, const uint8_t *packet);
 
+/* Respawn, 0xA0 sub 0x30 (0x0127bd9e), the attribute part (to 0x0127c048, verified): +0xa HP, +0xc MP,
+ * +0xe SD, +0x10 AG (u16) into +0x68/+0x6c/+0x78/+0x80; master exp cleared, then +0x12..+0x19 (big
+ * endian) the total experience: a third-class hero's master experience, otherwise the experience within
+ * the level (total - table(level), 0x00a00e79); +0x1c the money (CharacterMachine +0x2d70).  The rest
+ * (static): the hero recreated at +4 x, +5 y with the angle (+8 - 1) * 45 (0x0137d8a1), and when +6 (the
+ * map, u16) differs from World (0x01cf15fc) the world changes (0x0182876e, the map's music and windows). */
+typedef struct mu_prg_respawn {
+    int32_t x, y, map;
+    float angle;
+    uint32_t money;
+} mu_prg_respawn;
+void mu_prg_recv_respawn(const mu_prg_env *env, const uint8_t *packet, mu_prg_respawn *out);
+
 /* The character window's stat values, opcode 0x55 sub 0x57 (0x0122a5f6 -> 0x00b3ee5e): packet +4
  * strength, +6 added strength, +8/+0xa agility, +0xc/+0xe vitality, +0x10/+0x12 energy, +0x14/+0x16
  * command, +0x18 a float (row 0x39).  The window keeps its own copy (+0x119.., the totals +0xa8..)
@@ -249,6 +262,71 @@ int mu_prg_speed_row(const mu_prg_env *env, int32_t cls, int32_t max, uint16_t c
 /* 0x009942bf: the class's maximum speed, stored by the class constructor at machine +0x1d8 (the server replaces
  * it: 400 live) */
 int32_t mu_prg_speed_max(int32_t cls);
+
+/* ---- the options window winOption (verified) ----------------------------------------------------------- */
+
+/* The window's fields (+0x20..+0x35).  The client reads them from ./option.ini at the join, [DEFAULT]
+ * (GetPrivateProfileIntA: IsAutoAttack 1, IsWhisperSound 0, IsSlideHelp 1, IsPlayerInfo 1, IsMonsterInfo 1,
+ * IsMusicPlay 1, Volum 5, IsMute 0, IsUpdateData 0, IsSwitchMode 0, SwitchModeTime 10), and [OPTION] Effect
+ * (4, clamped to 0..4); the server's saved option byte (opcode 0xA0 sub 0x03 +0x18/+0x19) sets the toggles
+ * again; only [OPTION] Effect is ever written back. */
+typedef struct mu_prg_options {
+    uint8_t auto_attack;     /* +0x20 */
+    uint8_t whisper_sound;   /* +0x21 */
+    uint8_t slide_help;      /* +0x22 */
+    uint8_t player_info;     /* +0x23 */
+    uint8_t monster_info;    /* +0x24 */
+    uint8_t music_play;      /* +0x25 */
+    uint8_t switch_mode;     /* +0x26 */
+    int32_t switch_time;     /* +0x28 (minutes) */
+    int32_t effect;          /* +0x2c (0..4; the movie shows effect + 1) */
+    int32_t volume;          /* +0x30 (0..9) */
+    uint8_t mute;            /* +0x34 */
+    uint8_t update;          /* +0x35 (IsUpdateData; the setters set it: setDatas at the next frame) */
+} mu_prg_options;
+
+typedef struct mu_prg_options_env {
+    void *user;
+    void (*emit)(void *user, const char *line);
+    const char *(*global_text)(void *user, int32_t index);
+    /* ./option.ini: GetPrivateProfileIntA / WritePrivateProfileStringA (boundaries) */
+    int32_t (*ini_int)(void *user, const char *section, const char *key, int32_t fallback);
+    void (*ini_write)(void *user, const char *section, const char *key, const char *value);
+    /* the sound groups (0 Music, 1 Environment, 2 Effect; NATIVE-AUDIO-001's FMOD boundary) */
+    float (*group_volume)(void *user, int32_t group);
+    int (*group_muted)(void *user, int32_t group);
+    void (*set_group_volume)(void *user, int32_t group, float volume);
+    void (*set_group_mute)(void *user, int32_t group, int mute);
+    /* the window is shown (0x00a05d02) */
+    int (*visible)(void *user);
+    /* the main frame (getter 0x0095c5da) and hudPlayerName (0x009a19ae) exist */
+    int (*window)(void *user, uint32_t getter);
+    /* the auto-switch state of GFx manager 0x00ac16d0: flag +0x98, minutes +0x9c (float) */
+    int (*switch_state)(void *user, float *minutes);
+    /* onChange: the movie's object members (0x00c61e6b bool, 0x00ae935b int) */
+    int (*member_bool)(void *user, const char *name);
+    int32_t (*member_int)(void *user, const char *name);
+} mu_prg_options_env;
+
+/* The join's load 0x00c76115 ([DEFAULT]) and 0x00c76314 ([OPTION] Effect). */
+void mu_prg_options_load(const mu_prg_options_env *env, mu_prg_options *o);
+void mu_prg_options_load_effect(const mu_prg_options_env *env, mu_prg_options *o);
+/* InitText 0x00c765cc (the labels, GlobalText 0x927 Title .. 0x1531 SwitchModeMinutesTitle). */
+void mu_prg_options_init_text(const mu_prg_options_env *env);
+/* setDatas 0x00c767d9: the volume read back from the Effect group ((int)(volume * 9 + 0.5); 0 means
+ * muted), music on = the Music group not muted; then, when shown, the movie's object. */
+void mu_prg_options_set_datas(const mu_prg_options_env *env, mu_prg_options *o);
+/* Apply 0x00c7635f: [OPTION] Effect written, useHelpText(slide help), hudPlayerName's monster info, the
+ * Effect group's volume (0 when muted, else volume / 9), the Music group's mute, the auto switch. */
+void mu_prg_options_apply(const mu_prg_options_env *env, const mu_prg_options *o);
+/* The window's callback 0x00c75bb2 (onLoad, onUnload, close, onChange; scene = the scene number passed to
+ * MainSceneVisiableSetup). */
+void mu_prg_options_event(const mu_prg_options_env *env, mu_prg_options *o, const char *name, int32_t scene);
+/* The per-frame 0x00c75fa9: a pending update shows the values again when the window is shown. */
+void mu_prg_options_tick(const mu_prg_options_env *env, mu_prg_options *o);
+/* The setters 0x00c76022 .. 0x00c760fa (the saved-hotkeys answer uses them): index 0..6 the toggles
+ * +0x20..+0x26, 7 the switch time, 8 the effect; each marks the update. */
+void mu_prg_options_set(mu_prg_options *o, int32_t index, int32_t value);
 
 /* ---- the experience bar (verified) ------------------------------------------------------------------- */
 

@@ -256,7 +256,7 @@ DL_LIBS := -ldl
 endif
 # NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
 GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c world/world_gfx_skill.c world/world_gfx_tree.c \
-           world/world_gfx_map.c world/world_gfx_social.c
+           world/world_gfx_map.c world/world_gfx_options.c world/world_gfx_social.c
 GFX_CFLAGS := -I gfx -I $(RECON)/hud
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/terrain_view.c
 

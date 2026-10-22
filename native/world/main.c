@@ -122,6 +122,7 @@
 #include "world_gfx.h"
 #include "world_names_gfx.h"
 #include "world_gfx_map.h"
+#include "world_gfx_options.h"
 #endif
 
 #define MAX_WAYPOINTS 64
@@ -272,7 +273,7 @@ typedef struct app {
     uint32_t skill_casts, skill_refused;
     /* NATIVE-MAP-001: maps and travel (core/mu_map with the demo server): the Tab map overlay and the Move
      * window over the GFx layer, the gate entrance test, world changes; --no-map, --travel-script
-     * "F:move:KEY F:to:WORLD:X:Y F:rows F:click:ROW F:sort:N F:tab F:mwin" */
+     * "F:move:KEY F:to:WORLD:X:Y F:respawn F:rows F:click:ROW F:sort:N F:tab F:mwin" */
     int no_map;
     mu_map_session *mapsess;
     struct map_travel_item { int32_t frame; char verb[8]; int32_t a, b, c; } travel_items[32];
@@ -341,6 +342,22 @@ static void combat_pre_step(void *context, mu_walk *w)
 
 /* NATIVE-QUEST-001: a monster died: the quest demo server counts it (core/mu_quest).  NATIVE-PROGRESS-001:
  * the progression demo server gives its experience. */
+/* NATIVE-PROGRESS-001: the hero's respawn (the server's 0xA0 sub 0x30 answer when the demo delay ends):
+ * the DEMO town (mu_map_respawn: the teleport the host takes next step changes the world when needed)
+ * and the client's handler over the progress session. */
+static int combat_respawned(void *context)
+{
+    app *a = context;
+    int32_t world = a->world, x = a->walk.hero.tile[0], y = a->walk.hero.tile[1];
+    int placed = a->mapsess && mu_map_respawn(a->mapsess, a->world, &world, &x, &y);
+    if (a->progress)
+        mu_progress_respawn(a->progress, world, x, y, 1, a->mapsess ? (uint32_t)a->mapsess->zen : 0u);
+    if (!a->quiet)
+        printf("{\"respawn\": {\"world\": %d, \"tile\": [%d, %d], \"town\": %d}}\n", (int)world, (int)x, (int)y,
+               placed);
+    return placed;
+}
+
 static void combat_kill(void *context, int32_t actor, int32_t server_class)
 {
     app *a = context;
@@ -603,6 +620,7 @@ static int load(app *a)
         }
         a->combat->kill = combat_kill;   /* NATIVE-QUEST-001: the quest demo's kill progress */
         a->combat->kill_context = a;
+        a->combat->hero_respawned = combat_respawned;   /* NATIVE-PROGRESS-001 */
     }
     if (a->progress_on && !a->progress) {   /* NATIVE-PROGRESS-001 */
         if (a->progress_config.class_byte == 0xff)
@@ -1208,6 +1226,38 @@ static void progress_script(app *a, int32_t frame)
             mu_progress_button(a->progress, (double)it->a);
         else if (!strcmp(it->verb, "add") && it->a >= 0 && it->a < 5)
             mu_progress_button(a->progress, ROWS[it->a]);
+#ifndef MU_WORLD_NO_GL
+        else if (a->gfx && !strcmp(it->verb, "key")) {   /* a key of the layer (79 'O', 27 Esc) */
+            mu_gfx_layer_key(world_gfx_layer(a->gfx), 1, it->a, (uint32_t)it->a, 0);
+            mu_gfx_layer_key(world_gfx_layer(a->gfx), 0, it->a, (uint32_t)it->a, 0);
+        } else if (a->gfx && !strcmp(it->verb, "click")) {   /* a left click at X * 10000 + Y (window pixels) */
+            double x = it->a / 10000, y = it->a % 10000;
+            mu_gfx_layer *l = world_gfx_layer(a->gfx);
+            mu_gfx_layer_mouse(l, 0, 0, x, y);
+            mu_gfx_layer_mouse(l, 1, 0, x, y);
+            mu_gfx_layer_mouse(l, 2, 0, x, y);
+        } else if (a->gfx && !strcmp(it->verb, "menu")) {   /* the system menu's buttons */
+            static const char *EV[4] = {"onExit", "onCharSelectClick", "onServerSelectClick", "onClose"};
+            char args[64];
+            snprintf(args, sizeof args, "[\"%s\",null]", EV[it->a & 3]);
+            wg_options_call(world_gfx_options(a->gfx), MU_GFX_SYSTEM_MENU, "channel", args);
+        } else if (a->gfx && (!strcmp(it->verb, "volume") || !strcmp(it->verb, "monster"))) {
+            /* the window's onChange with one value changed (the movie's _data object) */
+            const mu_prg_options *o = wg_options_values(world_gfx_options(a->gfx));
+            int vol = !strcmp(it->verb, "volume") ? it->a : o->volume;
+            int mon = !strcmp(it->verb, "monster") ? it->a : o->monster_info;
+            char args[512];
+            snprintf(args, sizeof args,
+                     "[\"onChange\",{\"isAutoAttack\":%s,\"isWhisperSound\":%s,\"isSlideHelp\":%s,"
+                     "\"isPlayerInfo\":%s,\"isMonsterInfo\":%s,\"isMusicPlay\":%s,\"isSwitchMode\":%s,"
+                     "\"switchModeTime\":%d,\"effectLimit\":%d,\"isMute\":%s,\"volum\":%d}]",
+                     o->auto_attack ? "true" : "false", o->whisper_sound ? "true" : "false",
+                     o->slide_help ? "true" : "false", o->player_info ? "true" : "false", mon ? "true" : "false",
+                     o->music_play ? "true" : "false", o->switch_mode ? "true" : "false", (int)o->switch_time,
+                     (int)o->effect + 1, o->mute ? "true" : "false", vol);
+            wg_options_call(world_gfx_options(a->gfx), MU_GFX_OPTION, "channel", args);
+        }
+#endif
         if (!a->quiet)
             printf("{\"progress_script\": \"%s\", \"frame\": %d, \"arg\": %d, \"last\": \"%s\"}\n", it->verb, frame,
                    it->a, a->progress->last);
@@ -1524,6 +1574,8 @@ static void map_script(app *a, int32_t frame)
             r = mu_map_travel_move(s, it->a);
         else if (!strcmp(it->verb, "to"))
             r = mu_map_travel_to(s, it->a, it->b, it->c);
+        else if (!strcmp(it->verb, "respawn"))   /* NATIVE-PROGRESS-001: the respawn answer without a death */
+            r = combat_respawned(a);
         else if (!strcmp(it->verb, "rows") || !strcmp(it->verb, "click") || !strcmp(it->verb, "sort")) {
             static mu_move_row rows[MU_MAP_MOVES_MAX];
             if (!strcmp(it->verb, "sort"))
@@ -2877,6 +2929,27 @@ static void names_chat_hook(void *user, const char *text)
         mu_world_names_chat(a->names, a->names->names.env.hero->name, text);
 }
 
+/* NATIVE-PROGRESS-001: the options window's boundaries in mu-world */
+static struct mu_audio_client *options_audio(void *user)
+{
+    app *a = user;
+    return a->has_sound && a->sound.host ? mu_audio_host_client(a->sound.host) : NULL;
+}
+
+static void options_monster_info(void *user, int view)
+{
+    app *a = user;
+    if (a->names)
+        mu_names_set_monster_view(&a->names->names, view);   /* hudPlayerName +0x44 (0x00c83c86) */
+}
+
+static void options_chat(void *user, const char *text)
+{
+    app *a = user;
+    if (a->gfx)
+        mu_gfx_layer_chat(world_gfx_layer(a->gfx), 3, "", text);
+}
+
 static void names_gfx_attach(app *a, double scale)
 {
     a->gfx_scale = scale;
@@ -2886,6 +2959,10 @@ static void names_gfx_attach(app *a, double scale)
     }
     world_gfx_quest_bind(a->gfx, &a->walk, a->mapsess);
     world_gfx_progress(a->gfx, a->progress);   /* NATIVE-PROGRESS-001 */
+    {   /* NATIVE-PROGRESS-001: the options window's sound groups, hudPlayerName's monster info, the chat */
+        wg_options_hooks oh = {a, options_audio, options_monster_info, options_chat};
+        wg_options_set_hooks(world_gfx_options(a->gfx), &oh);
+    }
     if (a->gfxmap && a->gfxmap_owner != a->gfx) {   /* NATIVE-MAP-001: the map host follows the front end's layer */
         world_gfx_map_close(a->gfxmap);
         a->gfxmap = NULL;
@@ -2968,6 +3045,11 @@ static int headless(app *a)
             world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
         if (a->gfx && !gfx_draw)
             world_gfx_frame(a->gfx, (double)(now - gfx_clock), 0);
+        if (a->gfx) {   /* NATIVE-PROGRESS-001: the system menu's request */
+            int menu = wg_options_take_request(world_gfx_options(a->gfx));
+            if (menu >= 0 && !a->quiet)
+                printf("{\"menu_request\": %d, \"frame\": %d}\n", menu, frame);
+        }
 #endif
         int save = a->out_dir && a->every > 0 && (frame % a->every == 0 || frame == a->frames - 1);
         char hash[65] = "", path[4096] = "";
@@ -3218,6 +3300,11 @@ static int windowed(app *a)
             world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
             world_gfx_frame(a->gfx, gfx_last ? (double)(t - gfx_last) : 0.0, 1);
             gfx_last = t;
+            int menu = wg_options_take_request(world_gfx_options(a->gfx));   /* NATIVE-PROGRESS-001 */
+            if (menu == 0)
+                running = 0;   /* Exit Game, after the countdown */
+            else if (menu > 0 && !a->quiet)
+                printf("{\"menu\": \"%s\"}\n", menu == 1 ? "switch character (mu-client)" : "select server (mu-client)");
         }
         mu_perf_end(MU_PERF_GFX, perf);
         perf = mu_perf_begin();
@@ -3369,7 +3456,7 @@ static int usage(void)
                     "                [--social-script \"F:party:NAME;F:accept;F:trade:NAME;F:offer:CELL;F:zen:N;F:ok\"]   offline social demo\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
                     "                [--helper-state N] [--no-helpers]\n"
-                    "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
+                    "                [--no-map] [--travel-script \"F:move:KEY F:to:WORLD:X:Y F:respawn F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW\"]\n");
     return 2;
 }
 

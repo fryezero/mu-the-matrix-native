@@ -1209,6 +1209,350 @@ def family_speed(client, native, rng, n, report):
 
 
 FAMILIES['speed'] = family_speed
+
+
+# ---- the options window ---------------------------------------------------------------------------------------
+
+OPT_LOAD, OPT_EFFECT, OPT_DATAS, OPT_APPLY, OPT_EVENT, OPT_TICK, OPT_TEXT = (0x00c76115, 0x00c76314, 0x00c767d9,
+                                                                         0x00c7635f, 0x00c75bb2, 0x00c75fa9, 0x00c765cc)
+OPT_SETTERS = (0x00c76022, 0x00c7603d, 0x00c76058, 0x00c76073, 0x00c7608e, 0x00c760a9, 0x00c760c4, 0x00c760df,
+               0x00c760fa)
+OPTWIN, SOUNDMGR, SWITCHOBJ = FAKE_BASE + 0x78000, FAKE_BASE + 0x79000, FAKE_BASE + 0x7a000
+GROUP_HANDLES = (0x51000, 0x52000, 0x53000)
+INI_KEYS = (('DEFAULT', 'IsAutoAttack'), ('DEFAULT', 'IsWhisperSound'), ('DEFAULT', 'IsSlideHelp'),
+            ('DEFAULT', 'IsPlayerInfo'), ('DEFAULT', 'IsMonsterInfo'), ('DEFAULT', 'IsMusicPlay'), ('DEFAULT', 'Volum'),
+            ('DEFAULT', 'IsMute'), ('DEFAULT', 'IsUpdateData'), ('DEFAULT', 'IsSwitchMode'),
+            ('DEFAULT', 'SwitchModeTime'), ('OPTION', 'Effect'))
+MEMBERS_BOOL = ('isAutoAttack', 'isWhisperSound', 'isSlideHelp', 'isPlayerInfo', 'isMonsterInfo', 'isMusicPlay',
+                'isSwitchMode', 'isMute')
+MEMBERS_INT = ('switchModeTime', 'effectLimit', 'volum')
+
+
+class Options(Structure):
+    _fields_ = [('auto_attack', c_uint8), ('whisper_sound', c_uint8), ('slide_help', c_uint8), ('player_info', c_uint8),
+                ('monster_info', c_uint8), ('music_play', c_uint8), ('switch_mode', c_uint8), ('switch_time', c_int32),
+                ('effect', c_int32), ('volume', c_int32), ('mute', c_uint8), ('update', c_uint8)]
+
+
+OPT_FIELDS = ((0x20, 'B', 'auto_attack'), (0x21, 'B', 'whisper_sound'), (0x22, 'B', 'slide_help'),
+              (0x23, 'B', 'player_info'), (0x24, 'B', 'monster_info'), (0x25, 'B', 'music_play'),
+              (0x26, 'B', 'switch_mode'), (0x28, 'i', 'switch_time'), (0x2c, 'i', 'effect'), (0x30, 'i', 'volume'),
+              (0x34, 'B', 'mute'), (0x35, 'B', 'update'))
+
+
+class OptEnv(Structure):
+    _fields_ = [('user', c_void_p), ('emit', EMIT_FN), ('global_text', TEXT_FN),
+                ('ini_int', CFUNCTYPE(c_int32, c_void_p, c_char_p, c_char_p, c_int32)),
+                ('ini_write', CFUNCTYPE(None, c_void_p, c_char_p, c_char_p, c_char_p)),
+                ('group_volume', CFUNCTYPE(ctypes.c_float, c_void_p, c_int32)),
+                ('group_muted', CFUNCTYPE(c_int, c_void_p, c_int32)),
+                ('set_group_volume', CFUNCTYPE(None, c_void_p, c_int32, ctypes.c_float)),
+                ('set_group_mute', CFUNCTYPE(None, c_void_p, c_int32, c_int)),
+                ('visible', CFUNCTYPE(c_int, c_void_p)), ('window', CFUNCTYPE(c_int, c_void_p, ctypes.c_uint32)),
+                ('switch_state', CFUNCTYPE(c_int, c_void_p, POINTER(ctypes.c_float))),
+                ('member_bool', CFUNCTYPE(c_int, c_void_p, c_char_p)), ('member_int', CFUNCTYPE(c_int32, c_void_p, c_char_p))]
+
+
+def f32bits(v):
+    return struct.unpack('<I', struct.pack('<f', v))[0]
+
+
+def family_options(client, native, rng, n, report):
+    """winOption's game side: load, effect, setDatas, apply, events, tick, setters (client code), with the INI,
+    FMOD-group, GFx and window boundaries recorded."""
+    m = client.m
+    from unicorn.x86_const import UC_X86_REG_ECX
+    gfx = Gfx(client)
+    gfx.install(m)
+    install_crt(client)
+    install_recv(client)
+    client.allow_routines(OPT_LOAD, OPT_EFFECT, OPT_DATAS, OPT_APPLY, OPT_EVENT, OPT_TICK, OPT_TEXT, *OPT_SETTERS,
+                          0x00c75fe2, 0x00c762f8, 0x00c76e23, 0x00c76e11, 0x010ab2e3, 0x010ab359, 0x010ab1be,
+                          0x010ab220, 0x009b0bc1)
+    ini_get, ini_put = m._new_stub(), m._new_stub()
+    lines = client.lines
+
+    def ini_int(mm):
+        sec, key, default, fname = mm.args(4)
+        k = (mm.cstr(sec).decode(), mm.cstr(key).decode())
+        return client.case['ini'].get(k, default) & 0xffffffff
+    m.stub(ini_get, ini_int, 16)
+
+    def ini_write(mm):
+        sec, key, value, fname = mm.args(4)
+        client.lines.append('ini %s %s %s' % (mm.cstr(sec).decode(), mm.cstr(key).decode(), mm.cstr(value).decode()))
+        return 1
+    m.stub(ini_put, ini_write, 16)
+    m.stub(0x00a6bb36, lambda mm: SOUNDMGR, 0)
+
+    def group_of(handle):
+        return GROUP_HANDLES.index(handle)
+
+    def get_volume(mm):
+        h, out = mm.args(2)
+        mm.write(out, struct.pack('<f', client.case['volumes'][group_of(h)]))
+        return 0
+    m.stub(0x018eb331, get_volume, 8)
+
+    def get_mute(mm):
+        h, out = mm.args(2)
+        mm.write(out, bytes([client.case['mutes'][group_of(h)]]))
+        return 0
+    m.stub(0x018eb349, get_mute, 8)
+
+    def set_volume(mm):
+        h, v = mm.args(2)
+        client.lines.append('sound volume %d %08x' % (group_of(h), v))
+        return 0
+    m.stub(0x018eb32b, set_volume, 8)
+
+    def set_mute(mm):
+        h, v = mm.args(2)
+        client.lines.append('sound mute %d %d' % (group_of(h), v & 0xff))
+        return 0
+    m.stub(0x018eb343, set_mute, 8)
+    m.stub(0x010aba19, lambda mm: 0, 0)
+    m.stub(0x00a05d02, lambda mm: int(client.case['visible']), 0)
+    m.stub(0x00acd949, lambda mm: int(client.case['visible']), 0)
+    m.stub(0x00c76e36, lambda mm: client.lines.append('invoke useHelpText [%s]' % ('true' if mm.args(1)[0] & 0xff else 'false')) or 0, 4)
+    m.stub(0x00c83c86, lambda mm: client.lines.append('call 00c83c86 %x' % (mm.args(1)[0] & 0xff)) or 0, 4)
+    m.stub(0x00ac16d0, lambda mm: SWITCHOBJ, 0)
+    m.stub(0x00c435b4, lambda mm: client.lines.append('call 00c435b4 %x' % mm.args(1)[0]) or 0, 4)
+    m.stub(0x00c435f1, lambda mm: client.lines.append('call 00c435f1') or 0, 0)
+    m.stub(0x00b6b21e, lambda mm: client.lines.append('call 00b6b21e') or 0, 0)
+    m.stub(0x00c76b02, lambda mm: client.lines.append('call 00c76b02 %x' % mm.args(1)[0]) or 0, 4)
+    m.stub(0x00be7079, lambda mm: client.lines.append('call 00be7079') or 0, 0)
+    m.stub(0x00c5cd60, lambda mm: client.lines.append('invoke %s [%d]' % (mm.cstr(mm.args(2)[0]).decode(), mm.args(2)[1])) or 0, 8)
+    m.stub(0x0095fbdc, lambda mm: 0, 0)
+    m.stub(0x009a1a51, lambda mm: int(mm.u32(mm.uc.reg_read(UC_X86_REG_ECX)) != 0), 0)
+    m.stub(0x009a1a74, lambda mm: mm.u32(mm.uc.reg_read(UC_X86_REG_ECX)), 0)
+    m.stub(0x009a1a3c, lambda mm: 0, 0)
+
+    def option_window(mm):   # the GFx manager's winOption reference (0x0098bb60 -> 0x0095f160)
+        out, = mm.args(1)
+        mm.write(out, struct.pack('<II', OPTWIN, 0))
+        return out
+    m.stub(0x0098bb60, option_window, 4)
+    m.stub(0x0095f160, lambda mm: mm.u32(mm.uc.reg_read(UC_X86_REG_ECX)), 0)
+    m.stub(0x0098c49e, lambda mm: 0, 0)
+
+    def gt(mm):
+        idx, = mm.args(1)
+        text = b'GT%d' % idx
+        buf = mm.alloc(len(text) + 1, define=True)
+        mm.write(buf, text + b'\0')
+        return buf
+    m.stub(0x0095f027, gt, 4)
+
+    def streq(mm):
+        a, b2 = mm.args(2)
+        return int(mm.cstr(a) == mm.cstr(b2))
+    m.stub(0x0096c6da, streq, 0)
+
+    def mbool(mm):
+        args, name = mm.args(2)
+        return int(client.case['members'].get(mm.cstr(name).decode(), 0))
+    m.stub(0x00c61e6b, mbool, 8)
+
+    def mint(mm):
+        args, name = mm.args(2)
+        return client.case['members'].get(mm.cstr(name).decode(), 0) & 0xffffffff
+    m.stub(0x00ae935b, mint, 8)
+
+    def fmt_build(mm):   # boost::format("%d") % value -> out (0x009d59cc .. 0x009d6d27)
+        fmt, tmp, value_ptr, out = mm.args(4)
+        text = b'%d' % struct.unpack('<i', mm.read(value_ptr, 4))[0]
+        mm.write(out, text + bytes(16 - len(text)) + struct.pack('<II', len(text), 15))
+        return mm.uc.reg_read(UC_X86_REG_ECX)
+    m.stub(0x009d59cc, fmt_build, 16)
+    m.stub(0x009d40f5, lambda mm: mm.uc.reg_read(UC_X86_REG_ECX), 0)
+    m.stub(0x009d6d27, lambda mm: mm.uc.reg_read(UC_X86_REG_ECX), 0)
+    m.stub(0x009d5f0d, lambda mm: 0, 0)
+    m.stub(0x008e83a0, lambda mm: 0, 0)
+    m.stub(0x008e7940, lambda mm: mm.uc.reg_read(UC_X86_REG_ECX), 0)
+
+    L = native.L
+    for name in ('mu_prg_options_load', 'mu_prg_options_load_effect', 'mu_prg_options_set_datas',
+                 'mu_prg_options_apply', 'mu_prg_options_tick'):
+        getattr(L, name).argtypes = [POINTER(OptEnv), POINTER(Options)]
+    L.mu_prg_options_init_text.argtypes = [POINTER(OptEnv)]
+    L.mu_prg_options_event.argtypes = [POINTER(OptEnv), POINTER(Options), c_char_p, c_int32]
+    L.mu_prg_options_set.argtypes = [POINTER(Options), c_int32, c_int32]
+    ops = ['load', 'effect', 'datas', 'apply', 'onLoad', 'onUnload', 'close', 'onChange', 'tick', 'set', 'text']
+    fails = count = 0
+    for k in range(n):
+        count += 1
+        op = ops[k % len(ops)]
+        win = bytearray(rng.randint(0, 255) for _ in range(0x40))
+        for off, kind, _ in OPT_FIELDS:
+            if kind == 'B':
+                win[off] = rng.choice([0, 1, 1, rng.randint(0, 255)])
+        struct.pack_into('<iii', win, 0x28, rng.choice([10, 0, 5, rng.randint(-5, 120)]), rng.randint(-2, 6),
+                         rng.randint(0, 10))
+        ini = {}
+        for key in INI_KEYS:
+            if rng.random() < 0.6:
+                ini[key] = rng.choice([0, 1, 2, -1, 5, 9, 10, 99, rng.randint(-1000, 1000)])
+        case = {'ini': ini, 'volumes': [rng.choice([0.0, 0.4, 1.0, rng.random(), 0.05, 0.94, 1 / 9])
+                                        for _ in range(3)],
+                'mutes': [rng.choice([0, 1]) for _ in range(3)], 'visible': rng.random() < 0.6,
+                'windows': {0x0095c5da: rng.random() < 0.7, 0x009a19ae: rng.random() < 0.7},
+                'switch': (rng.choice([0, 1]), rng.choice([10.0, 0.0, 5.0, float(rng.randint(0, 100))])),
+                'members': {**{x: rng.choice([0, 1]) for x in MEMBERS_BOOL},
+                            **{x: rng.choice([0, 1, 5, 9, 10, rng.randint(-3, 100)]) for x in MEMBERS_INT}},
+                'scene': rng.choice([6, 5, 3]), 'set': (rng.randint(0, 8), rng.randint(0, 20)),
+                'items': [], 'buffs': {}}
+        m.reset()
+        client.case = case
+        client.lines = []
+        m.put32(0x01a7c250, ini_get)
+        m.put32(0x01a7c580, ini_put)
+        m.write(OPTWIN, bytes(win) + bytes(0x100))
+        m.write(SOUNDMGR, bytes(0x40))
+        for g, h in enumerate(GROUP_HANDLES):
+            m.put32(SOUNDMGR + 0xc + 4 * g, h)
+        m.write(SWITCHOBJ, bytes(0x100))
+        m.write(SWITCHOBJ + 0x98, bytes([case['switch'][0]]))
+        m.write(SWITCHOBJ + 0x9c, struct.pack('<f', case['switch'][1]))
+        m.put32(0x01d1df70, case['scene'])
+        name_buf = m.alloc(32, define=True)
+        if op == 'load':
+            m.call(OPT_LOAD, [], ecx=OPTWIN)
+        elif op == 'effect':
+            m.call(OPT_EFFECT, [], ecx=OPTWIN)
+        elif op == 'datas':
+            m.call(OPT_DATAS, [], ecx=OPTWIN)
+        elif op == 'apply':
+            m.call(OPT_APPLY, [], ecx=OPTWIN)
+        elif op == 'tick':
+            m.call(OPT_TICK, [0], ecx=OPTWIN)
+        elif op == 'text':
+            m.call(OPT_TEXT, [], ecx=OPTWIN)
+        elif op == 'set':
+            idx, val = case['set']
+            m.call(OPT_SETTERS[idx], [val], ecx=OPTWIN)
+        else:
+            m.write(name_buf, op.encode() + b'\0')
+            m.call(OPT_EVENT, [name_buf, 0x12345678], ecx=OPTWIN)
+        wwin = m.read(OPTWIN, 0x40)
+        want = (list(client.lines), [struct.unpack_from('<' + kind, wwin, off)[0] for off, kind, _ in OPT_FIELDS])
+        # the C side
+        o = Options()
+        for off, kind, field in OPT_FIELDS:
+            setattr(o, field, struct.unpack_from('<' + kind, win, off)[0])
+        out = []
+        e = OptEnv()
+        e.emit = EMIT_FN(lambda u, line: out.append(line.decode('latin1')))
+        texts = {}
+
+        def text(u, i):
+            texts[i] = ctypes.create_string_buffer(b'GT%d' % i)
+            return ctypes.addressof(texts[i])
+        e.global_text = TEXT_FN(text)
+        e.ini_int = OptEnv._fields_[3][1](lambda u, sec, key, d: case['ini'].get((sec.decode(), key.decode()), d))
+        e.ini_write = OptEnv._fields_[4][1](lambda u, sec, key, v: out.append('ini %s %s %s' % (sec.decode(), key.decode(), v.decode())))
+        e.group_volume = OptEnv._fields_[5][1](lambda u, g: case['volumes'][g])
+        e.group_muted = OptEnv._fields_[6][1](lambda u, g: case['mutes'][g])
+        e.set_group_volume = OptEnv._fields_[7][1](lambda u, g, v: out.append('sound volume %d %08x' % (g, f32bits(v))))
+        e.set_group_mute = OptEnv._fields_[8][1](lambda u, g, x: out.append('sound mute %d %d' % (g, x)))
+        e.visible = OptEnv._fields_[9][1](lambda u: int(case['visible']))
+        e.window = OptEnv._fields_[10][1](lambda u, g: int(case['windows'].get(g, 0)))
+
+        def switch_state(u, minutes):
+            minutes[0] = case['switch'][1]
+            return case['switch'][0]
+        e.switch_state = OptEnv._fields_[11][1](switch_state)
+        e.member_bool = OptEnv._fields_[12][1](lambda u, name: int(case['members'].get(name.decode(), 0)))
+        e.member_int = OptEnv._fields_[13][1](lambda u, name: case['members'].get(name.decode(), 0))
+        if op == 'load':
+            L.mu_prg_options_load(ctypes.byref(e), ctypes.byref(o))
+        elif op == 'effect':
+            L.mu_prg_options_load_effect(ctypes.byref(e), ctypes.byref(o))
+        elif op == 'datas':
+            L.mu_prg_options_set_datas(ctypes.byref(e), ctypes.byref(o))
+        elif op == 'apply':
+            L.mu_prg_options_apply(ctypes.byref(e), ctypes.byref(o))
+        elif op == 'tick':
+            L.mu_prg_options_tick(ctypes.byref(e), ctypes.byref(o))
+        elif op == 'text':
+            L.mu_prg_options_init_text(ctypes.byref(e))
+        elif op == 'set':
+            L.mu_prg_options_set(ctypes.byref(o), *case['set'])
+        else:
+            L.mu_prg_options_event(ctypes.byref(e), ctypes.byref(o), op.encode(), case['scene'])
+        got = (out, [getattr(o, field) for _, _, field in OPT_FIELDS])
+        if want != got:
+            fails += 1
+            if fails <= 5:
+                report.setdefault('examples', []).append({'op': op, 'client': want, 'c': got})
+    return count, fails
+
+
+class Respawn(ctypes.Structure):
+    _fields_ = [('x', c_int32), ('y', c_int32), ('map', c_int32), ('angle', ctypes.c_float),
+                ('money', ctypes.c_uint32)]
+
+
+RESPAWN_STOP = 0x0127c048   # after the money store (the hero's re-creation and the world change: static)
+
+
+def family_respawn(client, native, rng, n, report):
+    """0xA0 sub 0x30 (0x0127bd9e) to 0x0127c048: the attribute record and CharacterMachine +0x2d70."""
+    m = client.m
+    client.allow_routines(0x0127bd9e, 0x00a00117, 0x00a00066, 0x00a00074, 0x00a00e79, 0x0139d8ea, 0x0139cb15)
+    install_crt(client)
+    m.allow((0x0191c5a0, 0x0191c5e0))
+    from unicorn.x86_const import UC_X86_REG_EIP
+
+    def stop(mm):
+        mm.uc.reg_write(UC_X86_REG_EIP, cm.RETURN_SENTINEL)
+        return cm.REDIRECT
+    native.L.mu_prg_recv_respawn.argtypes = [POINTER(Env), POINTER(c_uint8 * 0x100), POINTER(Respawn)]
+    native.L.mu_prg_exp_table.argtypes = [ctypes.c_int64]
+    native.L.mu_prg_exp_table.restype = ctypes.c_int64
+    fails = count = 0
+    for _ in range(n):
+        count += 1
+        case = recv_case(rng)
+        attr = bytearray(case['attr'])
+        struct.pack_into('<i', attr, 0, rng.choice([1, 2, 255, 256, 257, 399, 400, rng.randint(0, 400),
+                                                    rng.randint(-3, 1000)]))
+        case['attr'] = bytes(attr)
+        p = bytearray(random_packet(rng, 0x20))
+        if rng.random() < 0.5:   # a total within reach of the level's table value
+            total = native.L.mu_prg_exp_table(struct.unpack_from('<i', attr, 0)[0]) + rng.randint(-5, 10 ** 6)
+            p[0x12:0x1a] = struct.pack('>Q', total & (2 ** 64 - 1))
+        case['packet'] = bytes(p)
+        m.reset()
+        client.case = case
+        client.setup_hero(case['attr'])
+        m.write(CHAR, case['hero'])
+        m.write(CHAR + 0x12, bytes([case['hero_class']]))
+        m.write(cm.STACK_BASE + cm.STACK_SIZE - 0x20000, bytes(0x20000))
+        money0 = rng.randint(0, 2 ** 32 - 1)
+        m.put32(HERO + 0x2d70, money0)
+        m.stub(RESPAWN_STOP, stop, 0)
+        pkt = m.alloc(0x100, define=True)
+        m.write(pkt, case['packet'])
+        m.call(0x0127bd9e, [pkt])
+        want = {'attr': m.read(ATTR, ATTR_SIZE).hex(), 'money': m.u32(HERO + 0x2d70)}
+        abuf = (c_uint8 * ATTR_SIZE).from_buffer_copy(case['attr'])
+        env = native.env(abuf, case)
+        env.hero_class = case['hero_class']
+        out = Respawn()
+        native.L.mu_prg_recv_respawn(ctypes.byref(env), _packet_arg(case), ctypes.byref(out))
+        got = {'attr': bytes(abuf).hex(), 'money': out.money}
+        if want != got:
+            fails += 1
+            if fails <= 4:
+                d = diff_report(want, got)
+                d['hero_class'] = case['hero_class']
+                report.setdefault('examples', []).append(d)
+    return count, fails
+
+
+FAMILIES['options'] = family_options
+FAMILIES['respawn'] = family_respawn
 FAMILIES['levelup'] = recv_family(0x01250b05, 0x18, setup_none, native_levelup)
 FAMILIES['point'] = recv_family(0x01223f04, 0x0c, setup_point, native_point)
 FAMILIES['exp'] = recv_family(0x01234c08, 0x0a, setup_kill, native_kill, compare_char=True, ret_byte=True)
@@ -1270,7 +1614,9 @@ MUTATIONS = [('dw_pvp_rate_4.5', 'calc'), ('bar_master_stage_4', 'bar'), ('bar_r
              ('table_times_9', 'table'), ('levelup_ag_floor_0', 'levelup'), ('point_energy_is_4', 'point'),
              ('button_command_is_energy', 'button'), ('speed_effect_quarter', 'speed'),
              ('exp_master_text_swapped', 'exp'), ('stats_command_row_41', 'stats'),
-             ('master_next_offset_d', 'master_exp'), ('master_3c_from_8', 'master')]
+             ('master_next_offset_d', 'master_exp'), ('master_3c_from_8', 'master'),
+             ('options_volume_default_9', 'options'), ('options_readback_no_half', 'options'),
+             ('options_effect_not_minus_1', 'options'), ('respawn_master_as_level', 'respawn')]
 
 if __name__ == '__main__':
     main()

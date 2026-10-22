@@ -162,8 +162,11 @@ Unicorn; about 50 s):
 | exp | `0x01234c08` (hero and monster records compared) | 500 | 0 |
 | master | `0x01285b68` | 500 | 0 |
 | master_exp | `0x01285efa` | 500 | 0 |
+| options | winOption: `0x00c76115`, `0x00c76314`, `0x00c767d9`, `0x00c7635f`, `0x00c75bb2`, `0x00c75fa9`, setters `0x00c76022..0x00c760fa`, `0x00c765cc` | 600 | 0 |
+| respawn | `0x0127bd9e` to `0x0127c048` (attribute record, money) | 600 | 0 |
 
-8,003 cases, 0 mismatches; 12/12 planted mistakes (one or more per family) are caught. The comparison covers the
+8,003 cases, 0 mismatches; 12/12 planted mistakes (one or more per family) are caught. With the options and respawn
+families (`--cases 600`): 13 families, 10,503 cases, 0 mismatches, 16/16 planted mistakes caught. The comparison covers the
 attribute record (every byte), the stat machine, the window fields, the hero/monster records and every line
 (effects, sounds, chat, window calls, GFx invokes). Portable tests: `reconstructed/progress/test_progress.py`
 (independent statements of the rules) and `native/tests/test_native_progress.py` (mu-walk on the synthetic world).
@@ -213,7 +216,89 @@ demo maxima were set to the live values for this character). Side by side: `rend
 (local). The master experience next of Nighty is not the client's table: `0x00a00e79(1601) − 0x00a00e79(1600)` is 0
 (the 32-bit product overflows to a negative value), so it comes from the server.
 
-## 8. Gaps
+## 8. The options window and the system menu
+
+**Options window (winOption), verified** (`reconstructed/progress/progress_options.c`, family `options`). The game
+side of the window:
+
+- the join's loaders `0x00c76115` (`./option.ini` `[DEFAULT]`: IsAutoAttack 1, IsWhisperSound 0, IsSlideHelp 1,
+  IsPlayerInfo 1, IsMonsterInfo 1, IsMusicPlay 1, Volum 5, IsMute 0, IsUpdateData 0, IsSwitchMode 0, SwitchModeTime
+  10, read with GetPrivateProfileIntA) and `0x00c76314` (`[OPTION] Effect`, default 4, clamped to 0..4);
+- `InitText` `0x00c765cc` (GlobalText ids per label) and `setDatas` `0x00c767d9`: the volume is read back from the
+  sound module's Effect group, `(int)(volume · 9 + 0.5)` (0 means muted), BGM from the Music group's mute; the
+  object goes to the movie only while the window is shown;
+- `onChange` → apply `0x00c7635f`: `[OPTION] Effect` is written (the only key the client writes); useHelpText on
+  the main frame (slide help); hudPlayerName's monster info `0x00c83c86`; the Effect group's volume = volume / 9 (0
+  when muted); the Music group's mute = !BGM; the auto switch (`0x00c435b4`/`0x00c435f1`);
+- the setters `0x00c76022..0x00c760fa` (what the server's saved options, opcode `0xA0 sub 0x03` `0x0126f225`, call
+  at the join; option byte +0x18 bit 0 auto attack, 1 whisper, 2 slide help, 3 player info, 4 monster info, 5
+  switch mode; +0x19 the switch time) mark the update; the per-frame `0x00c75fa9` shows it (setDatas) at the next
+  visible frame;
+- the toggle `0x00c75fe2` (O): shown → hide, else show (`0x00be7079`).
+
+The client keeps the toggles on the server and only `[OPTION] Effect` in `option.ini`; the save request
+`0x0182ff32` is static.
+
+**System menu (winSystemMenu)**: the NATIVE-CHARCREATE-001 code (`mu_csm_*`) with the world's scene (6: the
+movie's SceneChange hides the Option button in the world, as live). Live (MTM-1): Exit Game / Select Server /
+Switch Character / Close; Esc opens it, and when the options window is open Esc closes that first; O opens the
+options window, as does the bottom-right popup (M Move, O Option, P Private Stores, ESC System).
+
+**Native** (`native/world/world_gfx_options.{c,h}`, mu-world and mu-client with `--gfx`):
+
+| Client | Native |
+|---|---|
+| `./option.ini` `[DEFAULT]` (read at the join), `[OPTION] Effect` (written by apply) | `~/Library/Application Support/MuTheMatrixNative/option.ini` (`MU_NATIVE_SETTINGS_DIR` overrides the folder), same sections and keys |
+| the toggles saved on the server (`0xA0 sub 0x03`) | offline: written to `[DEFAULT]` on every onChange, read back at the next join through the client's own loader |
+| sound module Effect group (`0x010ab1be`/`0x010ab2e3`), Music group mute | `mu_audio_set/get_group_volume`, `mu_audio_set/get_group_mute` of the native audio module (`reconstructed/audio`); the stored volume is applied at the first frame with audio |
+| hudPlayerName monster info `0x00c83c86` | `mu_names_set_monster_view` |
+| useHelpText on the main frame | the same invoke on `MU_GFX_MAIN` |
+| Exit Game: the 5-second message `0x00b39b2f` (GlobalText 0x17c) and `0x009a5ab2(0)` | the chat line "You will exit game in 5 seconds.", then mu-world/mu-client quit |
+| Switch Character `0x009a5ab2(1)` (the server's answer `0x0125294e` subcode 1) | mu-client: close the world, the character list (offline answer at once) |
+| Select Server `0x009a5ab2(2)` | mu-client: back to the login scene |
+
+The movies' onLoad runs inside the layer's open, before the host exists, so world_gfx replays it once the host is
+attached. Without the GFx layer, Esc in mu-client keeps its old shortcut (back to character select). The
+screenshot key of mu-client moved from O to Print Screen/F13 when the GFx layer is on (O opens the options window).
+
+Headless checks: mu-world `--progress-script` verbs `key:VK`, `click:X*10000+Y`, `menu:N` (0 exit, 1 switch, 2
+server, 3 close), `volume:N`, `monster:N`; `native/tests/options_host.c` (stub layer and audio over the real game
+side) in `test_native_progress.py` (defaults, onChange → audio groups and file, the next session's read-back, the
+Effect clamp, the menu's three requests and the countdown, Esc closing the options window first). Renders (local):
+`renders/progress/options/` (the window at frame 20, the menu at frame 60); mu-client headless: Esc → menu → click
+Switch Character → character select ("6 -> 5: menu: switch character").
+
+**Live vs native** (`renders/progress/compare/side-by-side-option.png`, local): the same title, labels, check boxes
+(Automatic Attack, Slide Help, Name display, Monster display, BGM checked; Whispering and Switch on not), "10 min",
+the effect row with 13 selected and "5" under it. The volume differs: live shows 9 (the owner's Effect group
+volume), the headless native run has no audio module and shows the `[DEFAULT] Volum` default 5; with the audio
+module attached the read-back gives 9 for full volume, as live.
+
+## 9. Death and respawn
+
+**Respawn answer, `0xA0 sub 0x30` (`0x0127bd9e`)** — the attribute part is verified (family `respawn`, the run
+stops at `0x0127c048`): +0xa HP, +0xc MP, +0xe SD, +0x10 AG (u16, `movzx`, so the client's `< 0` clamps do nothing)
+into +0x68/+0x6c/+0x78/+0x80; the master experience is cleared (`0x00a00117(0)`), then the big-endian total at
++0x12..+0x19 becomes the master experience of a third-class hero (`0x0139d8ea`: class byte bit 5) or the experience
+within the level for the others (total − `0x00a00e79(level)`, `0x00a00074`); +0x1c the money (CharacterMachine
++0x2d70). **Static**: the hero is re-created at +4 x, +5 y with the angle (+8 − 1) · 45 (`0x0137d8a1`, `0xa91`); when
++6 (the map, u16) differs from World `0x01cf15fc` the client changes the world (`0x0182876e`, the map's music and
+windows).
+
+The client has no respawn countdown text (no GlobalText entry; the dead counter and SetPlayerDie are the
+NATIVE-COMBAT-001 code); the delay is the server's. No live death was provoked (no deaths or item loss on the
+owner's characters).
+
+**Native**: the combat demo's hero death (`--hero-hp N`) waits `hero_respawn_steps` (100 steps, 4 s, DEMO), then
+calls the host (`mu_combat.hero_respawned`): `mu_map_respawn` picks the DEMO town (gate 17 Lorencia; 22 Devias for
+world 2, 27 Noria for 3, 267 Elbeland for 51: the town gates of the classic servers' rule) and a tile of its
+rectangle, the teleport is taken at the next step like a warp (world change included), and `mu_progress_respawn`
+builds the answer (maxima, the total experience unchanged: DEMO, no death penalty; the money of the map session)
+and runs `mu_prg_recv_respawn`. Render (local): `renders/progress/respawn/` (a Dark Knight killed by a Bull Fighter
+at 182,127, back at 134,135 in Lorencia). Tests: `test_native_progress.Respawn` (a death in world 1 lands in world
+0's town, same-world respawn).
+
+## 10. Gaps
 
 - The equipment, set, socket, buff, formula-table and master-tree contributions of CalculateAll, the hand damage of
   slot 0x18 and the character window's own value builder `0x00b40661` (the native rows map the attribute values by
@@ -223,3 +308,8 @@ demo maxima were set to the live values for this character). Side by side: `rend
 - The real server's rules (experience per monster, points per level, maxima, speeds) are demo values.
 - The join packet (`0xA0 sub 0x07` → `0x0124cc64`) and the second experience packet (`0x9C`, `0x0123504e`) are mapped
   but not reconstructed.
+- The options save request `0x0182ff32` (the toggles to the server) is static and not sent offline; the switch
+  mode (`0x00c435b4`/`0x00c435f1`) is kept but has no native effect; the Effect limitation value has no native
+  consumer yet (the effect pools do not read it).
+- The respawn handler after `0x0127c048` (hero re-creation, world change, windows) is static; the real server's
+  death penalty and respawn rules are not known (DEMO town gates, no penalty).

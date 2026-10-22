@@ -200,6 +200,9 @@ typedef struct mu_combat {
     /* NATIVE-QUEST-001: a monster died (actor index, server class): the quest demo's progress */
     void (*kill)(void *context, int32_t actor, int32_t server_class);
     void *kill_context;
+    /* NATIVE-PROGRESS-001: the server's respawn answer (0xA0 sub 0x30) when the demo delay ends; returns 1
+     * when the host placed the hero (the respawn town), 0 for the demo's first tile */
+    int (*hero_respawned)(void *context);
     uint32_t sounds_played;
     int32_t last_sound;
     int32_t pending_target;    /* demo: the projectile attack whose damage waits for its hit check */

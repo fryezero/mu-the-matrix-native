@@ -69,6 +69,8 @@
 #include "../viewer/gl_headless.h"
 #include "../viewer/ui_gl.h"
 #include "../world/world_gfx.h"
+#include "../world/world_gfx_options.h"
+#include "../gfx/mu_gfx_layer.h"
 #endif
 
 #include "../core/mu_frame.h"
@@ -518,6 +520,9 @@ static void compose(front *f)
                                        walk->hero.position[1]);
                 world_gfx_frame(f->gfx, (double)(now - f->gfx_clock), 1);
                 f->gfx_clock = now;
+                int menu = wg_options_take_request(world_gfx_options(f->gfx));   /* NATIVE-PROGRESS-001 */
+                if (menu >= 0)
+                    mu_shell_world_menu(f->shell, menu);
                 mu_perf_end(MU_PERF_GFX, perf);
             }
         }
@@ -573,6 +578,13 @@ static void do_action(front *f, const char *what)
         !strcmp(what, "tab") || !strcmp(what, "back")) {
         int vk = !strcmp(what, "enter") ? 0x0d : !strcmp(what, "esc") ? 0x1b : !strcmp(what, "left") ? 0x25
                : !strcmp(what, "right") ? 0x27 : !strcmp(what, "tab") ? 0x09 : 0x08;
+#ifndef MU_CLIENT_NO_GL
+        if (f->gfx && mu_shell_scene(s) == MU_SCENE_MAIN &&   /* NATIVE-PROGRESS-001: Esc opens the system menu */
+            mu_gfx_layer_key(world_gfx_layer(f->gfx), 1, vk, (uint32_t)vk, 0)) {
+            mu_gfx_layer_key(world_gfx_layer(f->gfx), 0, vk, (uint32_t)vk, 0);
+            return;
+        }
+#endif
         mu_shell_key(s, vk, 1);
         if (f->release_count < 16) {   /* held for three frames, like a key press the scan can see */
             f->release_frame[f->release_count] = f->frame + 3;
@@ -600,6 +612,17 @@ static void do_action(front *f, const char *what)
         click(f, x, y);
         f->double_click = 1;
     } else if (sscanf(what, "click:%d,%d", &x, &y) == 2) {
+#ifndef MU_CLIENT_NO_GL
+        if (f->gfx && mu_shell_scene(s) == MU_SCENE_MAIN) {   /* NATIVE-PROGRESS-001: the GFx windows first */
+            mu_gfx_layer *l = world_gfx_layer(f->gfx);
+            mu_gfx_layer_mouse(l, 0, 0, x, y);
+            if (mu_gfx_layer_mouse(l, 1, 0, x, y)) {
+                mu_gfx_layer_mouse(l, 2, 0, x, y);
+                return;
+            }
+            mu_gfx_layer_mouse(l, 2, 0, x, y);
+        }
+#endif
         click(f, x, y);
     } else if (sscanf(what, "wheel:%d", &n) == 1) {
         mu_shell_wheel(s, n);
@@ -1099,6 +1122,12 @@ static int windowed(front *f)
                 (e.key.keysym.mod & KMOD_GUI) && (e.key.keysym.mod & KMOD_CTRL)) {
                 if (!e.key.repeat)
                     toggle_fullscreen(f);   /* the macOS full-screen shortcut, not a game key */
+                continue;
+            }
+            if (e.type == SDL_KEYDOWN && !e.key.repeat && (e.key.keysym.scancode == SDL_SCANCODE_PRINTSCREEN ||
+                                                          e.key.keysym.scancode == SDL_SCANCODE_F13) &&
+                mu_shell_scene(f->shell) != MU_SCENE_LOGIN) {   /* the screenshot (O opens the options window) */
+                snprintf(f->shot, sizeof f->shot, "mu-client-screenshot.png");
                 continue;
             }
             if (f->gfx && mu_shell_scene(f->shell) == MU_SCENE_MAIN && world_gfx_event(f->gfx, &e, f->scale))

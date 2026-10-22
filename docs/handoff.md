@@ -71,6 +71,15 @@ Renders stay local (`~/Documents/mu-mac-tools/native/renders/progress/`). Next: 
 (slot 4/8) and the master tree, the window's value builder `0x00b40661`, the third-class joints `0x7f78`
 0x2d/0x2e, the join packet `0x0124cc64`.
 
+Options, menu and respawn (second PR): `reconstructed/progress/progress_options.c` (winOption, family `options`) and
+`mu_prg_recv_respawn` (family `respawn`); the host is `native/world/world_gfx_options.{c,h}` (settings file
+`~/Library/Application Support/MuTheMatrixNative/option.ini`, `MU_NATIVE_SETTINGS_DIR` for tests; the mapping table is
+in the research note §8). mu-world's `--progress-script` takes `key:VK`, `click:X*10000+Y`, `menu:N`, `volume:N`,
+`monster:N` for headless window checks and `--travel-script F:respawn` for the respawn answer; mu-client takes
+`esc` and `click:X,Y` to the GFx layer first in the world. The combat demo's death calls `combat_respawned` (main.c):
+`mu_map_respawn` (DEMO town gates) + `mu_progress_respawn`. Next: the options save request `0x0182ff32`, a consumer
+for the Effect limitation, the respawn tail after `0x0127c048`.
+
 ## Move snapshot compatibility (NATIVE-MAP-002)
 
 The 298 failures come from skill2's lang5, not the distinct quest2/lang5 named in the brief. All three
