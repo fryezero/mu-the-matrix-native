@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
@@ -99,6 +100,36 @@ class Build(unittest.TestCase):
 
 
 class ShellFlowTests(Build):
+    def test_travel_is_retained_after_character_select(self):
+        from test_native_map import second_world, write_lang
+        second_world(self.root)
+        lang = self.out('travel-lang')
+        write_lang(lang)
+        session = write_session(self.out('travel-session'), joins='join 0 0 121,60\n')
+        with patch.dict(os.environ, MU_LANG_DIR=str(lang)):
+            _, summary, result = run(self.root, '--session', session, '--frames', '100',
+                                     '--script', '10:enter 14:enter 30:enter 55:esc 70:enter')
+        self.assertIn('travel: world 0 -> 1', result.stderr)
+        self.assertEqual(scenes(summary)[-3:], [(6, 5), (5, 4), (4, 6)])
+        self.assertEqual(summary['world'], 1, result.stderr)
+
+    def test_home_placement_survives_join_in_another_world(self):
+        from test_native_map import second_world, write_lang
+        second_world(self.root)
+        lang = self.out('home-lang')
+        write_lang(lang)
+        (lang / 'gates.tsv').write_text('1\t1\t1\t120\t60\t122\t61\t2\t1\t0\t-1\n'
+                                       '2\t2\t0\t128\t128\t130\t130\t0\t1\t0\t-1\n')
+        session = write_session(self.out('home-session'), joins='join 0 1 121,60\n')
+        # Intentionally absent: it must be ignored on world 1 and attempted when returning to world 0.
+        missing = self.out('home-session') / 'absent-placement.txt'
+        with patch.dict(os.environ, MU_LANG_DIR=str(lang)):
+            _, summary, result = run(self.root, '--session', session, '--placement', missing, '--frames', '70',
+                                     '--script', '10:enter 14:enter 30:enter')
+        self.assertIn('placement:', result.stderr)
+        self.assertIn('world 0 did not load, staying in world 1', result.stderr)
+        self.assertEqual(summary['world'], 1)
+
     def test_full_flow_follows_the_client_scene_states(self):
         frames, summary, _ = run(self.root, '--session', self.session, '--auto', '--frames', '300',
                                  '--out-dir', self.out('flow'), '--width', '320', '--height', '240')
@@ -337,6 +368,17 @@ class CharacterCreateTests(Build):
         self.assertNotIn('secret', store.read_text())
         self.assertNotRegex(store.read_text(), r'(?m)^1 ')
         self.assertEqual([r['type'] for r in self.lists(stub)[-1][:3]], [0, 1, 0])
+
+    def test_recreated_slot_does_not_inherit_the_deleted_location(self):
+        session = write_session(self.out('recreate-session'), joins='join 1 1 40,40\n')
+        script = ('10:enter 14:enter 30:click:row:1 40:click:delete 50:click:msgok 60:click:msgok '
+                  '70:text:x 80:click:msgok 95:click:msgok 110:click:create 120:text:Fresh '
+                  '130:click:createok 145:click:row:1 155:enter')
+        with patch.object(self, 'session', session):
+            summary, _, _, _, _, _ = self.flow('recreate', script, '--frames', '185')
+        self.assertEqual(summary['charcreate']['deleted'], 1)
+        self.assertEqual(summary['charcreate']['created'], 1)
+        self.assertEqual((summary['hero_slot'], summary['world'], summary['scene']), (1, 0, 6))
 
     def test_cancel_and_esc_close_the_panel(self):
         summary, lines, _, _, _, _ = self.flow('cancel', '10:enter 14:enter 30:click:create 40:click:createcancel',

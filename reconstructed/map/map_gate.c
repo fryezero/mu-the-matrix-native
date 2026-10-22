@@ -83,16 +83,16 @@ int mu_teleport_parse(const uint8_t *p, size_t length, mu_teleport *out)
 
 void mu_teleport_position(const mu_teleport *t, float out[2])
 {
-    out[0] = ((float)t->x + 0.5f) * 100.0f;
+    out[0] = ((float)t->x + (MU_MAP_MUTATION == 11 ? 0.0f : 0.5f)) * 100.0f;
     out[1] = ((float)t->y + 0.5f) * 100.0f;
 }
 
 float mu_teleport_angle(const mu_teleport *t)
 {
-    return ((float)t->dir - 1.0f) * 45.0f;
+    return ((float)t->dir - (MU_MAP_MUTATION == 12 ? 0.0f : 1.0f)) * 45.0f;
 }
 
 int mu_teleport_changes_world(const mu_teleport *t, int32_t current_world)
 {
-    return t->number != 0 && (int32_t)t->world != current_world;
+    return (MU_MAP_MUTATION == 13 || t->number != 0) && (int32_t)t->world != current_world;
 }

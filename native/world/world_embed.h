@@ -30,6 +30,7 @@ typedef struct mu_world_embed_config {
     int audio;                     /* open the sound session (needs sound_table to resolve) */
     int32_t audio_rate;
     const char *placement;         /* demo actor placement, may be NULL */
+    int32_t demo_world;            /* world owning placement/npc_demo/players, independent of the join world */
     const char *objects_dir;       /* local decoded objects, may be NULL */
     /* equipment: item files for MU_CHARACTER_ITEMS slots (index 1..5 body parts
      * replacing the class parts, 6/7 weapons, 8 wing); empty strings skipped */

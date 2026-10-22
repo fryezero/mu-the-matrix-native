@@ -64,6 +64,8 @@ typedef struct mu_map_session {
     mu_map_unit units[MU_MAP_UNITS_MAX];
     int nunits;
     int units_dirty;               /* the host re-sends the units (ClearWorldMap + addUnit) */
+    mu_map_unit npcs[MU_MAP_UNITS_MAX]; /* demo server's NPC records for the loaded world */
+    int nnpcs;
     /* demo server */
     uint32_t rng;
     int pending;
@@ -86,6 +88,8 @@ const char *mu_map_world_name(const mu_map_session *s, int32_t world);
 int mu_map_session_load_map(mu_map_session *s, const char *game_root, char *name, size_t cap);
 /* The units the demo server sends for the current world (portals; NPCs through mu_map_add_npc). */
 void mu_map_demo_units(mu_map_session *s);
+/* Clear the old world's demo NPC feed before adding the loaded world's actors. */
+void mu_map_clear_npcs(mu_map_session *s);
 void mu_map_add_npc(mu_map_session *s, int32_t key, const char *name, int32_t tile_x, int32_t tile_y);
 /* Tab / showMap: the client's rule; returns the result (notice, setShowMap, E7 request). */
 void mu_map_toggle(mu_map_session *s, int show, mu_map_show_result *out);

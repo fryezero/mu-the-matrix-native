@@ -125,3 +125,55 @@ the new image and units (`renders/map/gfx/`, `renders/map/gfx-travel/`).
 - The Move window opens where its movie asks (centred); the client places it on the left.
 - mu-client's scene state keeps the join world after a travel (music and charsel return use it).
 - The move key transform `0x00cda52b` and the network layer stay outside (the demo ignores the key).
+
+## NATIVE-POLISH-001 map follow-ups
+
+The pinned target and captures are unchanged. The restored text SHA-256 is
+`2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`; the second section is
+`c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+
+The scene host now mirrors the loaded walk world's index and folder every frame, and retains the current
+tile and direction per demo character when returning to character select. A synthetic two-world gate test
+travels, returns to select and re-enters the destination. The home demo files retain their world association
+across embed lifetimes; deleting a character clears its remembered join before that slot can be reused.
+This is offline server persistence in memory.
+
+The MoveCommand registration at `0x00ac66f8..0x00ac6722` pushes alignment **10**, not 9. The actual argument
+slice runs in `validate_map_polish.py`; string-handle construction and registry insertion are modelled.
+The native layer sends SetAlign 10 and SetWindowSize. `validate_gfx3.py --cases 20 --mutations` now compares
+MoveCommand as well as the other two windows, 60 window cases, with all five existing mutants detected.
+
+The demo server builds E7 sub-3 NPC records from the loaded world's NPC actors, using the client NPC-name
+table with the demo label as fallback. `mu_map_unit_packet` remains the instruction-verified decoder. The
+feed retains NPCs across showMap requests, clears them on world reload, and restores the home world's
+actors when returning. Synthetic integration checks cover four NPCs plus one portal, an empty destination,
+and return. A private GFx run shows 11 NPC markers plus five portals after Lorencia → Noria → Lorencia.
+These are demo spawn positions. Party markers are a separate agent's scope.
+
+`validate_map_polish.py --cases 500 --mutations` runs the actual teleport prefix
+`0x0128136d..0x012818ac`, explicitly skips the height block `0x0128152c..0x012816f2`, and stops at the
+zero-number branch `0x0128174b`, same-world branch `0x01281ca2`, or immediately after LoadWorld. It compares
+tile, XY, angle, world/folder stores, and ClearWorldMap before LoadWorld. The LoadingWorld store at
+`0x01281d28..0x01281d43` runs separately. The 500 packets yield **875 checks, zero mismatches**, and all
+three planted mistakes fail, covering half-tile position, direction bias and number-zero world guard.
+GFx, smart-pointer getters, cleanup helpers and LoadWorld are modelled. Height, later cleanup and effects
+are not claimed verified. Number zero retains the current world; every numbered reply sets LoadingWorld
+to 30, including replies whose world is unchanged. The demo receiver now follows both rules.
+
+The unmodified `LoadWorldMap 0x00c6b116` reaches the real formatting wrapper `0x009d59cc` and stops on an
+undefined read of C++ locale global `0x0bdcad64` at `0x018ed70a`. The existing snapshot does not include that
+locale object or its facets. The complete formatter remains **static**. No guessed locale or replacement
+formatter is counted as instruction verification. Reproduce with `validate_map.run_navimap` using the
+pinned captures, LangMachine, install_common and the lang5 snapshot. It is intentionally outside the
+default green validator families until its runtime inputs are available.
+
+Local reports `map-polish.json`, `map-window.json`, `map-regression.json` and frames under `maps/` are in
+`~/Documents/mu-mac-tools/native/renders/polish/`. Portable tests include re-entry and NPC map lifecycle.
+The visually checked captures use the installed GFx library and `MU_GFX_SINGLE_BUFFER=1`, under
+`maps-single/` and `maps-verified/`. The older skill2 library's buffered run did not display the overlays.
+
+The existing map suite was rerun against its original `scratch/lang/live/lang4.bin`: **5,001 cases,
+zero mismatches, all 10 mutants caught**. An initial run using skill2's newer lang5 snapshot produced
+298 mismatches, concentrated in absent-key default move records and the consumers sorting those records.
+That input is not interchangeable with the original snapshot. Its failed log remains local as
+`scratch/polish/map-validator.log`; the passing original-input run is `map-validator-lang4.log`.

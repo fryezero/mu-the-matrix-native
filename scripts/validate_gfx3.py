@@ -181,7 +181,7 @@ def layer_log(work, size=(1280, 800), gt_ids=False):
         movies.mkdir(exist_ok=True)
         for name in ('base', 'ImageData', 'Tooltip', 'Popups', 'main', 'ItemDurability', 'Chat', 'AlarmFrame',
                      'topmenu', 'bufflist', 'hudPlayerName', 'hudMap', 'hudNotice', 'InventoryFrame', 'InfoPopup',
-                     'CharacterInfoFrame'):
+                     'CharacterInfoFrame', 'MoveCommand'):
             (movies/f'{name}.swf').write_bytes(b'')
     log = work/'stub.log'
     if log.exists():
@@ -349,7 +349,7 @@ def validate_window(text, data, work, rng, report, cases):
     checked = 0
     for width, height in sizes[:max(cases, 6)]:
         log = layer_log(work, (width, height))
-        for movie, align in (('InventoryFrame', 11), ('CharacterInfoFrame', 9)):
+        for movie, align in (('InventoryFrame', 11), ('CharacterInfoFrame', 9), ('MoveCommand', 10)):
             client = window_case(text, data, width, height, align)
             layer = []
             for line in log:

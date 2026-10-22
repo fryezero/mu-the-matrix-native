@@ -63,11 +63,17 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->sound_table = c->sound_table;
     a->audio = c->audio;
     a->audio_rate = c->audio_rate > 0 ? c->audio_rate : 44100;
-    a->placement = c->placement;
+    a->start_set = 1;
+    a->start_world = c->demo_world;
+    a->start_placement = c->placement;
+    a->start_npc_demo = c->npc_demo;
+    a->start_players = c->players;
+    int home = c->world == c->demo_world;
+    a->placement = home ? c->placement : NULL;
     a->objects_dir = c->objects_dir;
     a->quiet = c->quiet;
     a->hero_name = c->hero_name;
-    a->players_file = c->players;
+    a->players_file = home ? c->players : NULL;
     a->no_players = c->no_players;
     a->helper_arg = c->helper;   /* NATIVE-HELPERS-001 */
     a->helper_state = c->helper ? c->helper_state : -1;
@@ -82,7 +88,7 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->combat_on = c->combat;   /* NATIVE-APP-001 */
     a->items_on = c->ground_items;
     a->npc_on = c->npc || c->npc_demo;
-    a->npc_demo_path = c->npc_demo;
+    a->npc_demo_path = home ? c->npc_demo : NULL;
     a->no_names = c->no_names;
     a->no_env = c->no_env;
     a->no_particles = c->no_particles;

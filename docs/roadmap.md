@@ -102,4 +102,6 @@ Whole-client reconstruction, faithful renderer/input/audio modules, network/serv
 
 ## Coordinating agents
 
+| NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |
+
 Use issue IDs matching these task IDs, claim a scope before editing, and name the owned directories and output paths. Independent tasks can run on separate branches/worktrees. Dependent tasks should consume a reviewed interface or evidence result. A PR closes a task only when its completion evidence is present; partial research belongs in a handoff with open questions.

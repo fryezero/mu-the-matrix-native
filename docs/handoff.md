@@ -22,6 +22,17 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Map follow-ups (NATIVE-POLISH-001)
+
+`shell.c` mirrors the current walk world into scene globals and remembers each character's demo join location.
+MoveCommand uses alignment 10 from the executed registry slice `0x00ac66f8..0x00ac6722`. The loaded actors supply
+NPC E7 records through `mu_map_add_npc`; the demo retains them across Tab requests and clears them on map reload.
+`validate_map_polish.py --cases 500 --mutations` compares 875 bounded teleport checks and one registry call,
+zero mismatches, 3/3 mutants caught. `validate_gfx3.py --cases 20 --mutations` includes 60 window cases.
+Reports and renders: `~/Documents/mu-mac-tools/native/renders/polish/`. Read the new section of
+[client-maps.md](research/client-maps.md#native-polish-001-map-follow-ups) for exact execution boundaries and the
+navimap locale blocker. Party markers remain owned by NATIVE-SOCIAL-001.
+
 ## Maps and travel (NATIVE-MAP-001)
 
 Read [`research/client-maps.md`](research/client-maps.md). `reconstructed/map` (overlay, Move window, gates; compare
