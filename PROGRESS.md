@@ -1,12 +1,12 @@
 # NATIVE-SOCIAL-001 WIP handoff
 
-Branch: `claude/native-social`, worktree `/Users/frye/Documents/mu-worktrees/native-social`.
+Branch: `claude/native-social`, worktree `~/Documents/mu-worktrees/native-social`.
 Issue: https://github.com/fryezero/mu-the-matrix-native/issues/143.
 Do not open a PR or merge this WIP as a finished milestone. The original task authorizes publishing only after
 the implementation is complete, rebased, reviewed and local macOS CI passes. The owner explicitly authorizes
 the fallback used here: commit WIP, write this note, push the branch without a PR when budget runs out.
 
-Read `/Users/frye/Documents/mu-mac-tools/native/BRIEF-wave4.md`, its common brief and repo AGENTS/CONTRIBUTING.
+Read `~/Documents/mu-mac-tools/native/BRIEF-wave4.md`, its common brief and repo AGENTS/CONTRIBUTING.
 Do not touch protection/encryption/login, `mtmOriginal`, owner client processes or parallel agents' modules.
 The Preview launcher/client PIDs 2818/2826 were already running and were left untouched. No live game was used.
 No Preview rebuild/install has been performed for this WIP. Do not claim one.
@@ -63,22 +63,22 @@ Review round IDs use `native-social-{standards,spec}-r1/r2`; each new review mus
 ## Local tools and evidence
 
 - Client data root, read-only:
-  `/Users/frye/Library/Application Support/CrossOver/Bottles/MuMatrixKit/drive_c/MuTheMatrix`.
+  `~/Library/Application Support/CrossOver/Bottles/MuMatrixKit/drive_c/MuTheMatrix`.
 - Captures: main checkout `evidence/x86-text-capture-09/client-text.bin` and
   `evidence/image-data-run10/data-capture-10/client-image-data.bin`; hashes are pinned in validator/note.
-- Scratch: `/Users/frye/Documents/mu-mac-tools/native/scratch/social/`. `inspect_social.py` offers bounded
+- Scratch: `~/Documents/mu-mac-tools/native/scratch/social/`. `inspect_social.py` offers bounded
   disassembly and string xrefs. `party*.txt`, `leave.txt`, `trade*.txt`, `f_*.txt` preserve exploratory reads.
   These are private and must not be committed. `as/` has the four movies' ActionScript.
 - Python with Unicorn, Capstone, black and clang-format:
-  `/Users/frye/Documents/mu-mac-tools/native/scratch/social/venv/bin/python`.
+  `~/Documents/mu-mac-tools/native/scratch/social/venv/bin/python`.
   Shared `tools/.venv` is Python 3.9 without Unicorn; use it for portable tests/local CI.
 - Validator result: `scratch/social/validate-final.json` and `.log`, 7,000/0/10. It has not changed since that
   run; later fixes are in the native integration only.
 - Movies: `scratch/social/movies`, all locally converted, none committed. Use `MU_GFX_SINGLE_BUFFER=1` for
   sparse headless captures. Libmugfx borrowed read-only from
-  `/Users/frye/Documents/mu-worktrees/native-gfx3/native/gfx/mugfx/target/release/libmugfx.dylib`.
-- Lang directory: `/Users/frye/Documents/mu-mac-tools/native/scratch/lang`.
-- Renders: `/Users/frye/Documents/mu-mac-tools/native/renders/social/checked-trade/frame-0030.png` shows
+  `~/Documents/mu-worktrees/native-gfx3/native/gfx/mugfx/target/release/libmugfx.dylib`.
+- Lang directory: `~/Documents/mu-mac-tools/native/scratch/lang`.
+- Renders: `~/Documents/mu-mac-tools/native/renders/social/checked-trade/frame-0030.png` shows
   both offers/zen, `checked-map/frame-0030.png` shows stationary Shopkeep marker after Tab,
   `checked-messenger/frame-0030.png` shows friends/room/whisper, `checked-travel/` shows the two warps.
   Renders predate the final atomic-capacity and escaped-text fixes; those have synthetic regression evidence.
@@ -87,10 +87,13 @@ Useful commands:
 
 ```sh
 tools/.venv/bin/python -m unittest discover -s native/tests -p test_native_social.py -v
-/Users/frye/Documents/mu-mac-tools/native/scratch/social/venv/bin/python scripts/validate_social.py --cases 500 --mutations --output /LOCAL/result.json
+~/Documents/mu-mac-tools/native/scratch/social/venv/bin/python scripts/validate_social.py --cases 500 --mutations --output /LOCAL/result.json
 make -C native -j4 client world
 bash scripts/local-macos-ci.sh
 ```
 
 Local CI/rebase/push results are recorded below by the finishing run. Preserve both sides of shared docs and
 the NATIVE-POLISH-001 world travel work from PR #144. No hosted workflow dispatches.
+
+Rebased onto `ac82b33` including PRs #144/#145. The first local CI run passed tests and native/live-reader
+builds, then failed its audit because this note used absolute home paths. Those paths now use `~/`.
