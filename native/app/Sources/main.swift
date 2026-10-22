@@ -338,7 +338,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ]
     static let helperTitles = ["None", "Guardian Angel", "Imp", "Horn of Uniria", "Horn of Dinorant", "Dark Horse",
                                "Horn of Fenrir (red)", "Horn of Fenrir (black)", "Horn of Fenrir (blue)",
-                               "Horn of Fenrir (gold)"]
+                               "Horn of Fenrir (gold)",
+                               "Ghost Horse", "Ice Dragon", "Pierce Lion", "Shining Tail", "Ur", "Leviathan", "Tauros",
+                               "Divine Horse",
+                               "Dark Raven", "Dark Raven (level 20)", "Dark Raven (level 40)",
+                               "Demon", "Spirit of Guardian", "Pet Rudolph", "Pet Panda", "Pet Unicorn",
+                               "Pet Skeleton"]
 
     func refreshLabels() {
         gameLabel.stringValue = GameData.resolve(settings) ?? "not found — choose the game folder"

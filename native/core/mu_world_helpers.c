@@ -12,11 +12,15 @@
 #include "mu_renderchar.h"
 #include "mu_walk.h"
 #include "mu_world_players.h"
+#include "mu_world_raven.h"
+#include "mu_world_pets.h"
 #include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/environment/env.h"
 #include "../../reconstructed/movement/client_movement.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "../../reconstructed/particles/particles.h"
+#include "../../reconstructed/helpers/mount_render.h"
+#include "../../reconstructed/helpers/mount_class.h"
 
 /* The Imp's attachment per owner (lazy). */
 typedef struct imp_slot {
@@ -43,6 +47,10 @@ static int model_file(int32_t index, char *out, size_t size)
         return snprintf(out, size, "Data/Item/helper01.bmd") > 0;
     if (index == MU_HP_MODEL_IMP)
         return snprintf(out, size, "Data/Item/helper02.bmd") > 0;
+    if (index == MU_RV_MODEL_RAVEN)   /* NATIVE-HELPERS-002: AccessModel(0x411, "Data\Skill\", "DarkSpirit") */
+        return snprintf(out, size, "Data/Skill/DarkSpirit.bmd") > 0;
+    if (index == MU_RV_MODEL_SOUL)    /* AccessModel(0x748, "Data\Item\", "Dark_Soul") */
+        return snprintf(out, size, "Data/Item/Dark_Soul.bmd") > 0;
     static const struct { int32_t index; const char *name; } fenrir[] = {
         {0x4a8, "fenrir_black"}, {0x4a9, "fenrir_red"}, {0x4aa, "fenrir_blue"}, {0x4ab, "fenrir_gold"}};
     for (size_t i = 0; i < sizeof fenrir / sizeof fenrir[0]; ++i)
@@ -53,7 +61,80 @@ static int model_file(int32_t index, char *out, size_t size)
         if (i && i->model == index && i->file)
             return snprintf(out, size, "Data/Skill/%s.bmd", i->file) > 0;
     }
+    return mu_world_pets_model_file(index, out, size);   /* NATIVE-HELPERS-002 */
+}
+
+/* NATIVE-HELPERS-002: the client bitmaps the mounts' registry functors draw their glow passes with (LoadBitmap
+ * indices and files, static readings of the loaders 0x01824500.., 0x0182e695.., 0x01838105.., 0x0182f49c..). */
+static const struct { int32_t index; const char *directory, *name; } pass_bitmaps[] = {
+    {0x82e3, "Data/Effect", "black_gold_crom02_mono.jpg"}, {0x82e4, "Data/Effect", "black_gold_crom04_mono.jpg"},
+    {0x831a, "Data/Effect", "black_gold_crom02.jpg"},
+    {0x83ea, "Data/Skill", "hs_fiercelion01B_render.jpg"}, {0x83eb, "Data/Skill", "hs_fiercelion01R_render.jpg"},
+    {0x83ec, "Data/Skill", "hs_fiercelion02B_render.jpg"}, {0x83ed, "Data/Skill", "hs_fiercelion02R_render.jpg"},
+    {0x8430, "Data/Skill", "shiningtails_render.jpg"}, {0x8431, "Data/Skill", "shiningtails_2_render.jpg"},
+    {0x8432, "Data/Skill", "shiningtails_3_render.jpg"}, {0x8433, "Data/Skill", "shiningtails_4_render.jpg"},
+    {0x8434, "Data/Skill", "rare_shiningtails_1_render.jpg"}, {0x8435, "Data/Skill", "rare_shiningtails_2_render.jpg"},
+    {0x8436, "Data/Skill", "rare_shiningtails_3_render.jpg"}, {0x8437, "Data/Skill", "rare_shiningtails_4_render.jpg"},
+    {0x848a, "Data/Item/texture", "ursh_overlay.jpg"}, {0x848b, "Data/Item/texture", "goms5cha_02_R.jpg"},
+    {0x848c, "Data/Item/texture", "ursh_gold_overlay.jpg"}, {0x848d, "Data/Item/texture", "goms5cha_02s_Red.jpg"},
+    {0x8239, "Data/Item/Texture", "black_gold_crom05.jpg"},
+    {0x853d, "Data/Skill", "Leviathan_001_rare_R.jpg"}, {0x853e, "Data/Skill", "hs_TaurosG05.jpg"},
+    {0x853f, "Data/Skill", "hs_TaurosGR05.jpg"}, {0x8540, "Data/Skill", "hs_TaurosG01_r.jpg"},
+    {0x8541, "Data/Skill", "hs_TaurosG02_r.jpg"}, {0x8542, "Data/Skill", "hs_TaurosGR01_r.jpg"},
+    {0x8543, "Data/Skill", "hs_TaurosGR02_r.jpg"}, {0x8544, "Data/Skill", "hs_TaurosGR04_r.jpg"},
+    {0x8530, "Data/Effect", "Divinehorse_01_render.jpg"}, {0x8531, "Data/Effect", "ef_line01.jpg"},
+    {0x84e8, "Data/Skill", "Giant_darkW_Neon_render.jpg"}, {0x84e9, "Data/Skill", "Giant_Elf_Neon_r.jpg"},
+    {0x84ea, "Data/Skill", "Giant_GrowLancer_Neon_render.jpg"},
+    {0x84eb, "Data/Skill", "Giant_GrowLancer_Jewel_render.jpg"},
+    /* the Shining Tail's rune circles and glows (its class visuals' terrain decals) */
+    {0x7fdd, "Data/Effect", "flareBlue.jpg"},
+    {0x8438, "Data/Effect", "lightmarks_mzin.jpg"}, {0x7ef7, "Data/Effect", "flare01.jpg"}};
+
+/* The bitmaps a mount model's functor names (mount_render.c). */
+static int32_t model_pass_bitmaps(int32_t model, int32_t out[8])
+{
+    static const struct { int32_t model; int32_t list[8]; } uses[] = {
+        {0x671, {0x82e3, 0x82e4, 0x7fdd}}, {0x69a, {0x82e4}}, {0x69b, {0x831a}},
+        {0x6cb, {0x83ea, 0x83ec, 0x82e4}}, {0x6cc, {0x83eb, 0x83ed, 0x82e4}},
+        {0x6f4, {0x8430, 0x8431, 0x8432, 0x8433, 0x82e3, 0x8438, 0x7ef7}},
+        {0x6f5, {0x8434, 0x8435, 0x8436, 0x8437, 0x82e3}},
+        {0x736, {0x848a, 0x848b, 0x8239}}, {0x737, {0x848c, 0x848d}}, {0x74a, {0x853d}},
+        {0x77c, {0x853e, 0x8541, 0x8531, 0x8540, 0x82e3}}, {0x77d, {0x8544, 0x853f, 0x8543, 0x8531, 0x8542, 0x82e3}},
+        {0x753, {0x8530, 0x8531}}, {0x73f, {0x84e8}}, {0x740, {0x84e9}}, {0x741, {0x84ea, 0x84eb}}};
+    for (size_t i = 0; i < sizeof uses / sizeof uses[0]; ++i)
+        if (uses[i].model == model) {
+            int32_t n = 0;
+            while (n < 8 && uses[i].list[n])
+                out[n] = uses[i].list[n], ++n;
+            return n;
+        }
     return 0;
+}
+
+static void load_pass_bitmaps(mu_world_helpers *w, mu_wh_model *m)
+{
+    int32_t want[8];
+    int32_t n = model_pass_bitmaps(m->index, want);
+    int32_t index[8];
+    const char *dirs[8], *names[8];
+    char paths[8][1024];
+    int32_t k = 0;
+    for (int32_t i = 0; i < n; ++i)
+        for (size_t j = 0; j < sizeof pass_bitmaps / sizeof pass_bitmaps[0]; ++j)
+            if (pass_bitmaps[j].index == want[i]) {
+                if (!mu_objects_resolve(w->root, pass_bitmaps[j].directory, paths[k], sizeof paths[k]))
+                    snprintf(paths[k], sizeof paths[k], "%s/%s", w->root, pass_bitmaps[j].directory);
+                index[k] = want[i];
+                dirs[k] = paths[k];
+                names[k] = pass_bitmaps[j].name;
+                ++k;
+            }
+    /* the glow overlays scroll and repeat (GL_REPEAT); the decal bitmaps lie once on the terrain (GL_CLAMP) */
+    for (int32_t i = 0; i < k; ++i) {
+        const int clamp = index[i] == 0x8438 || index[i] == 0x7ef7 || index[i] == 0x7fdd; /* loader 0x01822871 */
+        mu_textures_add_extras(&m->textures, &index[i], &dirs[i], &names[i], 1, 0x2601 /* GL_LINEAR */,
+                               clamp ? 0x2900u /* GL_CLAMP */ : 0x2901u /* GL_REPEAT */);
+    }
 }
 
 static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
@@ -82,9 +163,21 @@ static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
     char directory[2048];
     mu_path_directory(m->path, directory, sizeof directory);
     mu_textures_load(&m->textures, &m->bmd, directory);
+    if (m->textures.missing > 0) {   /* the later items keep their textures in Data/Item/Texture (NATIVE-HELPERS-002) */
+        char sub[2100];
+        mu_textures retry;
+        snprintf(sub, sizeof sub, "%s/texture", directory);
+        if (mu_textures_load(&retry, &m->bmd, sub) == 0 && retry.missing < m->textures.missing) {
+            mu_textures_free(&m->textures);
+            m->textures = retry;
+        } else {
+            mu_textures_free(&retry);
+        }
+    }
+    load_pass_bitmaps(w, m);   /* NATIVE-HELPERS-002 */
     m->loaded = 1;
     char text[96];
-    snprintf(text, sizeof text, "model %#x: %s", index, relative);
+    snprintf(text, sizeof text, "model %#x: %s (%d textures missing)", index, relative, m->textures.missing);
     log_line(w, text);
     return m;
 }
@@ -93,6 +186,18 @@ static int32_t slot_of(const mu_world_helpers *w, const mu_wh_model *m)
 {
     return (int32_t)(m - w->models);
 }
+
+mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index)
+{
+    return model_of(w, index);
+}
+
+int32_t mu_world_helpers_model_slot(const mu_world_helpers *w, const mu_wh_model *m)
+{
+    return slot_of(w, m);
+}
+
+static mu_wh_model *pose_helper(mu_world_helpers *w, const mu_hp_object *o);
 
 /* ---------------------------------------------------------------- host of the reconstructed routines */
 
@@ -168,19 +273,18 @@ static void h_effect(void *c, int32_t type, const float p[3], const float a[3], 
 static void h_joint(void *c, int32_t type, const float p[3], const float a[3], const mu_hp_object *o, float scale)
 {
     mu_world_helpers *w = c;
-    (void)o;
     w->stats.joints++;
     if (w->particles)   /* CreateJoint 0x0153b02c(type, p, p, angle, 0, object, 40, 2, 0, 0, -1, 0, -1, 0) */
-        mu_world_particles_joint(w->particles, type, p, p, a, 0, -1, scale, 2, 0, 0, 0xffff, 0);
+        mu_world_particles_joint(w->particles, type, p, p, a, 0, mu_world_helpers_effect_id(w, o), scale, 2, 0, 0, 0xffff, 0, NULL);
 }
 
 /* The bone matrix lookup 0x0129f18a(object, name, 1) and TransformPosition 0x012b6ef1(.., 0): the bone of the
- * model's last pose (the mount's draw), without the body scale and origin. */
-static int h_bone(void *c, const mu_hp_object *o, int32_t index, const char *name, const float v[3], float out[3])
+ * model's last pose. Rider offsets use the relative pose; effect positions apply the object scale and origin. */
+static int h_bone(void *c, const mu_hp_object *o, int32_t index, const char *name, const float v[3], float out[3], int world_space)
 {
     mu_world_helpers *w = c;
-    (void)o;
-    mu_wh_model *m = model_of(w, index);
+    mu_wh_model *m = pose_helper(w, o);
+    (void)index;
     if (!m || !m->loaded || m->bmd.bone_count <= 0)
         return 0;
     const char *names[MU_MODEL_MAX_BONES];
@@ -191,7 +295,7 @@ static int h_bone(void *c, const mu_hp_object *o, int32_t index, const char *nam
     const float *bones = mu_model_bone_matrices(&m->model);
     if (bone < 0 || !bones)
         return 0;
-    mu_pt_transform_position(bones + 12 * bone, v, out, 0, 1.0f, NULL);
+    mu_pt_transform_position(bones + 12 * bone, v, out, world_space, o->scale, o->position);
     return 1;
 }
 
@@ -200,8 +304,8 @@ static void h_bone_vector(void *c, const mu_hp_object *o, int32_t index, const c
                           float out[3])
 {
     mu_world_helpers *w = c;
-    (void)o;
-    mu_wh_model *m = model_of(w, index);
+    (void)index;
+    mu_wh_model *m = pose_helper(w, o);
     if (m && m->loaded)
         mu_world_particles_named_bone_position(&m->model, &m->bmd, name, v, out);
 }
@@ -211,6 +315,147 @@ static void h_kill(void *c, mu_hp_object *o)
     mu_world_helpers *w = c;
     (void)o;
     w->stats.bugs_deleted++;
+}
+
+/* ---------------------------------------------------------------- the later classes (NATIVE-HELPERS-002) */
+
+static mu_hp_class_state *class_state_of(mu_world_helpers *w, int32_t key)
+{
+    for (int32_t i = 0; i < w->class_state_count; ++i)
+        if (w->class_keys[i] == key)
+            return &w->class_states[i];
+    int32_t i = 0;
+    while (i < w->class_state_count && w->class_keys[i] >= 0) ++i;
+    if (i >= MU_HP_MOUNTS || w->next_effect_id >= INT32_MAX - MU_WH_EFFECT_BASE)
+        return NULL;
+    if (i == w->class_state_count) w->class_state_count++;
+    w->class_keys[i] = key;
+    w->class_effect_ids[i] = MU_WH_EFFECT_BASE + ++w->next_effect_id;
+    memset(&w->class_states[i], 0, sizeof w->class_states[i]);   /* the model load writes +0xa4 = 0 */
+    memset(w->class_eyes[i], 0, sizeof w->class_eyes[i]);
+    return &w->class_states[i];
+}
+
+void mu_world_helpers_reset_mount(mu_world_helpers *w, int32_t key, int32_t owner)
+{
+    mu_hp_mount_reset(&w->h, &w->mounts, key, owner);
+    for (int32_t i = 0; i < w->class_state_count; ++i)
+        if (w->class_keys[i] == key) {
+            w->class_keys[i] = -1;
+            w->class_effect_ids[i] = -1;
+            memset(&w->class_states[i], 0, sizeof w->class_states[i]);
+            memset(w->class_eyes[i], 0, sizeof w->class_eyes[i]);
+            break;
+        }
+}
+
+typedef struct class_host_ctx {
+    mu_world_helpers *w;
+    mu_wh_model *m;
+} class_host_ctx;
+
+static void c_named_bone(void *c, const char *name, float out[3])
+{
+    class_host_ctx *x = c;
+    const float zero[3] = {0.0f, 0.0f, 0.0f};
+    out[0] = out[1] = out[2] = 0.0f;
+    if (x->m && x->m->loaded)
+        mu_world_particles_named_bone_position(&x->m->model, &x->m->bmd, name, zero, out);
+}
+
+static void c_object_bone(void *c, int32_t bone, float out[3])
+{
+    class_host_ctx *x = c;
+    const float zero[3] = {0.0f, 0.0f, 0.0f};
+    out[0] = out[1] = out[2] = 0.0f;
+    if (x->m && x->m->loaded)
+        mu_world_particles_bone_position(&x->m->model, bone, zero, out);
+}
+
+static void c_object_bone_offset(void *c, int32_t bone, const float offset[3], float out[3])
+{
+    class_host_ctx *x = c;
+    if (x->m && x->m->loaded)
+        mu_world_particles_bone_position(&x->m->model, bone, offset, out);
+}
+
+/* The calls the class code makes into the other pools. */
+static void class_calls(mu_world_helpers *w, const mu_hp_after_call *calls, int32_t n, const mu_hp_object *o)
+{
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_hp_after_call *a = &calls[i];
+        switch (a->kind) {
+        case MU_HP_AC_SPRITE:
+            w->stats.sprites++;
+            if (w->particles)
+                mu_world_particles_sprite(w->particles, a->type, a->position, a->scale, a->light, -1, 0.0f, 0, 4);
+            break;
+        case MU_HP_AC_PARTICLE:
+            w->stats.particles++;
+            if (w->particles)
+                mu_world_particles_create_owned(w->particles, a->type, a->position, a->angle, a->light, a->subtype,
+                                                a->scale, a->flags & MU_HP_AC_OWNED ? mu_world_helpers_effect_id(w, o) : -1);
+            break;
+        case MU_HP_AC_EFFECT:
+            w->stats.effects++;
+            if (w->particles)
+                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light,
+                                          a->flags & MU_HP_AC_OWNED ? mu_world_helpers_effect_id(w, o) : -1, a->scale, NULL);
+            break;
+        case MU_HP_AC_JOINT:
+            w->stats.joints++;
+            if (w->particles)
+                mu_world_particles_joint(w->particles, a->type, a->position, a->position, a->angle, a->subtype, mu_world_helpers_effect_id(w, o),
+                                         a->scale, 0xffff, 0, 0, 0xffff, 0, a->light);
+            break;
+        case MU_HP_AC_EYES: {
+            for (int32_t j = 0; j < w->mounts.count; ++j) {
+                mu_hp_mount *mount = &w->mounts.list[j];
+                if (&mount->object != o) continue;
+                mu_hp_class_state *state = class_state_of(w, mount->key);
+                mu_wh_model *model = pose_helper(w, o);
+                if (!state || !model) break;
+                const int32_t first = mount->cls == MU_HP_MOUNT_GHOST_HORSE ? 0x1e : 0x27;
+                const int32_t second = mount->cls == MU_HP_MOUNT_GHOST_HORSE ? 0x23 : 0x26;
+                const float zero[3] = {0, 0, 0};
+                const ptrdiff_t slot = state - w->class_states;
+                mu_world_particles_bone_position(&model->model, second, zero, w->class_eyes[slot][0]);
+                mu_world_particles_bone_position(&model->model, first, zero, w->class_eyes[slot][1]);
+                break;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
+/* The mount move loop 0x0106bbb2 with the class's own step (vtable +0xc after the base move, before the
+ * action map): mu_hp_mounts_move plus the reconstructed class steps. */
+static void move_mounts(mu_world_helpers *w)
+{
+    for (int32_t i = 0; i < w->mounts.count; ++i) {
+        mu_hp_mount *m = &w->mounts.list[i];
+        if (!mu_hp_mount_move(&w->h, m, &w->inputs))
+            continue;
+        mu_hp_class_inputs in;
+        memset(&in, 0, sizeof in);
+        in.world_time = w->world_time;
+        in.subtype = m->object.subtype;
+        in.action = (uint16_t)m->action;   /* the mount's action +0x30 */
+        in.frame = m->object.frame;
+        in.alpha = m->object.alpha;
+        memcpy(in.position, m->object.position, sizeof in.position);
+        memcpy(in.angle, m->object.angle, sizeof in.angle);
+        class_host_ctx x = {w, pose_helper(w, &m->object)};
+        mu_hp_class_host host = {&x, c_object_bone, c_named_bone, c_object_bone_offset};
+        mu_hp_after_call calls[16];
+        int32_t n = 0;
+        if (mu_hp_mount_class_step(&w->h, m->cls, &in, &host, calls, 16, &n))
+            class_calls(w, calls, n < 16 ? n : 16, &m->object);
+        mu_hp_mount_follow_action(&w->h, m);
+    }
 }
 
 /* ---------------------------------------------------------------- open / close */
@@ -224,7 +469,9 @@ int32_t mu_world_helpers_parse(const char *text, int32_t *state)
         {"fenrir", MU_HP_ITEM_FENRIR, 0}, {"fenrir-red", MU_HP_ITEM_FENRIR, 0}, {"fenrir-black", MU_HP_ITEM_FENRIR, 1},
         {"fenrir-blue", MU_HP_ITEM_FENRIR, 2}, {"fenrir-gold", MU_HP_ITEM_FENRIR, 4},
         {"ghost-horse", 0x19d7, 0}, {"ice-dragon", 0x19e3, 0}, {"pierce-lion", 0x184b, 0}, {"shining-tail", 0x1853, 0},
-        {"ur", 0x185d, 0}, {"leviathan", 0x1833, 0}, {"tauros", 0x1835, 0}, {"divine-horse", 0x28f7, 0}};
+        {"ur", 0x185d, 0}, {"leviathan", 0x1833, 0}, {"tauros", 0x1835, 0}, {"divine-horse", 0x28f7, 0},
+        {"dark-raven", MU_RV_ITEM_DARK_RAVEN, 1}, {"darkraven", MU_RV_ITEM_DARK_RAVEN, 1},
+        {"dark-raven-20", MU_RV_ITEM_DARK_RAVEN, 2}, {"dark-raven-40", MU_RV_ITEM_DARK_RAVEN, 3}};
     if (state)
         *state = 0;
     for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i)
@@ -233,6 +480,9 @@ int32_t mu_world_helpers_parse(const char *text, int32_t *state)
                 *state = names[i].state;
             return names[i].item;
         }
+    int32_t pet = mu_world_pets_parse(text);   /* NATIVE-HELPERS-002 */
+    if (pet != -2)
+        return pet;
     int g, ix;
     if (sscanf(text, "%d:%d", &g, &ix) == 2 && g >= 0 && g < 16 && ix >= 0 && ix < 512)
         return g * 512 + ix;
@@ -283,19 +533,35 @@ int mu_world_helpers_open(mu_world_helpers *w, const char *game_root, const mu_w
     w->who[0].ride_state = (uint8_t)(hero_state < 0 ? 0 : hero_state);
     w->inputs.world = map->world;
     w->inputs.scene = 6;
-    if (hero_item >= 0) {
+    if (hero_item == MU_RV_ITEM_DARK_RAVEN || players) {   /* NATIVE-HELPERS-002: the Dark Raven */
+        w->raven = calloc(1, sizeof *w->raven);
+        if (w->raven)
+            mu_world_raven_init(w->raven, w, seed ^ 0x5a17u);
+    }
+    if (hero_item >= 0 && hero_item != MU_RV_ITEM_DARK_RAVEN) {
         int32_t route = mu_hp_helper_route(hero_item, 0);
-        if (route == MU_HP_HELPER_NONE || route == MU_HP_HELPER_PET) {
-            snprintf(error, error_size, "helpers: item %#x is not a helper this module draws (%s)", hero_item,
-                     route == MU_HP_HELPER_PET ? "a data-driven pet, not reconstructed" : "unknown");
+        if (route == MU_HP_HELPER_NONE && !mu_world_pets_is_pet(hero_item)) {
+            snprintf(error, error_size, "helpers: item %#x is not a helper this module draws (unknown)", hero_item);
             return 1;
         }
+    }
+    int hero_pet = hero_item >= 0 && (mu_hp_helper_route(hero_item, 0) == MU_HP_HELPER_PET ||
+                                      mu_world_pets_is_pet(hero_item));
+    if (hero_pet || players) {   /* NATIVE-HELPERS-002: the pet process */
+        w->pets = mu_world_pets_new(w->root, hero_pet ? hero_item : -1, seed ^ 0x9e7, no_assets);
+        if (hero_pet)
+            w->who[0].helper_item = -1;
     }
     return 0;
 }
 
 void mu_world_helpers_close(mu_world_helpers *w)
 {
+    if (w->particles && w->particles->helpers == w)
+        w->particles->helpers = NULL;
+    free(w->raven);
+    w->raven = NULL;
+    mu_world_pets_free(w->pets);
     for (int32_t i = 0; i < w->model_count; ++i)
         if (w->models[i].loaded) {
             mu_model_free(&w->models[i].model);
@@ -310,7 +576,11 @@ void mu_world_helpers_close(mu_world_helpers *w)
 
 void mu_world_helpers_attach_particles(mu_world_helpers *w, struct mu_world_particles *particles)
 {
+    if (w->particles && w->particles->helpers == w)
+        w->particles->helpers = NULL;
     w->particles = particles;
+    if (particles)
+        particles->helpers = w;
 }
 
 void mu_world_helpers_attach_hero(mu_world_helpers *w, struct mu_character *hero)
@@ -363,11 +633,13 @@ static void delete_owner_helpers(mu_world_helpers *w, int32_t owner)
     mu_wh_owner *s = &w->who[owner];
     mu_hp_delete_bug(&w->h, owner);   /* DeleteCharacter 0x0137c457 releases the helpers (static reading) */
     if (mu_hp_mount_find(&w->mounts, s->key)) {
-        mu_hp_mount_reset(&w->h, &w->mounts, s->key, owner);
+        mu_world_helpers_reset_mount(w, s->key, owner);
         w->stats.mounts_reset++;
     }
     s->helper_slot = -1;
     s->ride = 0xffff;
+    if (w->pets)
+        mu_world_pets_owner_gone(w->pets, owner);
 }
 
 static void create_angel(mu_world_helpers *w, int32_t owner)
@@ -453,7 +725,7 @@ static void apply_player(mu_world_helpers *w, int32_t i)
             break;
         case MU_RP_CALL_MOUNT_RESET:
             if (mu_hp_mount_find(&w->mounts, s->key)) {
-                mu_hp_mount_reset(&w->h, &w->mounts, s->key, owner);
+                mu_world_helpers_reset_mount(w, s->key, owner);
                 w->stats.mounts_reset++;
             }
             break;
@@ -461,7 +733,15 @@ static void apply_player(mu_world_helpers *w, int32_t i)
             if (c->a >= 0)
                 set_mount(w, owner, c->a, c->b);
             break;
-        default:   /* the data-driven pet process 0x00b990b0 (HELPER_MODEL / HELPER_EFFECT_OFF): not reconstructed */
+        case MU_RP_CALL_HELPER_EFFECT_OFF:   /* DeletePet 0x00eb1015(c, the former slot type) (NATIVE-HELPERS-002) */
+            if (w->pets)
+                mu_world_pets_delete(w->pets, owner, c->a);
+            break;
+        case MU_RP_CALL_HELPER_MODEL:   /* CreatePet 0x00eb0e78(0x1a00 + w, the slot type, position, c, 0, 0) */
+            if (w->pets)
+                mu_world_pets_create(w->pets, w, owner, c->a, c->b);
+            break;
+        default:
             break;
         }
     }
@@ -482,7 +762,9 @@ void mu_world_helpers_step(mu_world_helpers *w)
     for (int32_t i = 0; w->players && i < w->players->count && i + 1 < MU_WH_OWNERS; ++i)
         apply_player(w, i);
     mu_hp_move_bugs(&w->h, &w->inputs);
-    mu_hp_mounts_move(&w->h, &w->mounts, &w->inputs);
+    move_mounts(w);   /* mu_hp_mounts_move with the class steps (NATIVE-HELPERS-002) */
+    if (w->pets)   /* UpdatePets 0x00eb0d64 (NATIVE-HELPERS-002) */
+        mu_world_pets_step(w->pets, w);
     /* the riders: the manager's predicates and the lift the next placement adds */
     for (int32_t owner = 0; owner < MU_WH_OWNERS; ++owner) {
         mu_hp_mount *m = mount_of_owner(w, owner);
@@ -510,6 +792,9 @@ void mu_world_helpers_step(mu_world_helpers *w)
         w->stats.live_bugs += w->h.bugs[i].live;
     w->stats.live_mounts = (uint32_t)w->mounts.count;
     w->stats.steps++;
+    w->world_time = w->world_time + 40.0f;   /* NATIVE-HELPERS-002: the functors' glow pulse */
+    if (w->raven)   /* NATIVE-HELPERS-002: MovePet per character (MoveCharacter's 0x00c930df) */
+        mu_world_raven_step(w->raven);
 }
 
 int mu_world_helpers_ride(mu_world_helpers *w, int32_t owner, int32_t how)
@@ -527,6 +812,7 @@ typedef struct draw_context {
     const mu_terrain_frustum *frustum;
     long drawn;
     float color[4];
+    mu_wh_model *posed;   /* the mount the body pass posed (its after-pass draws it) */
 } draw_context;
 
 static int r_frustum(void *c, float x, float y, float range)
@@ -537,14 +823,15 @@ static int r_frustum(void *c, float x, float y, float range)
     return mu_terrain_test_frustum_2d(d->frustum->x2d, d->frustum->y2d, 6, x, y, range);
 }
 
-/* RenderObject's setup 0x017ec896 and body for a helper object: the body light 0x017ec3d8 (lighting = +5, colour =
- * the frame light + the object light with ObjectInit's +6 = +7 = 1), scale +0xa0, Animation(!a1) / Transform(a1). */
-static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
+/* RenderObject's setup 0x017ec896 for a helper object: the body light 0x017ec3d8 (lighting = +5, colour = the
+ * frame light + the object light with ObjectInit's +6 = +7 = 1), scale +0xa0, Animation(!a1) / Transform(a1).
+ * Returns the model, NULL when nothing is drawn. */
+static mu_wh_model *pose_object(draw_context *d, const mu_hp_object *o, int32_t a1)
 {
     mu_world_helpers *w = d->w;
     mu_wh_model *m = model_of(w, o->type);
     if (!m || !m->loaded || o->alpha <= 0.01f)
-        return 0;
+        return NULL;
     mu_model_params p = m->model.params;
     for (int k = 0; k < 3; ++k) {
         p.origin[k] = o->position[k];
@@ -567,24 +854,128 @@ static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
     mu_model_apply_params(&m->model, &p);
     mu_model_set_state(&m->model, o->action, o->frame, o->prior_frame, o->prior_action);
     if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
+        return NULL;
+    return m;
+}
+
+static mu_wh_model *pose_helper(mu_world_helpers *w, const mu_hp_object *o)
+{
+    draw_context d;
+    memset(&d, 0, sizeof d);
+    d.w = w;
+    return pose_object(&d, o, 1);
+}
+
+int32_t mu_world_helpers_effect_id(mu_world_helpers *w, const mu_hp_object *object)
+{
+    for (int32_t i = 0; i < w->mounts.count; ++i)
+        if (&w->mounts.list[i].object == object) {
+            mu_hp_class_state *state = class_state_of(w, w->mounts.list[i].key);
+            return state ? w->class_effect_ids[state - w->class_states] : -1;
+        }
+    return -1;
+}
+
+static mu_hp_mount *effect_mount(mu_world_helpers *w, int32_t id)
+{
+    if (w && id >= MU_WH_EFFECT_BASE)
+        for (int32_t i = 0; i < w->class_state_count; ++i)
+            if (w->class_effect_ids[i] == id)
+                return mu_hp_mount_find(&w->mounts, w->class_keys[i]);
+    return NULL;
+}
+
+int mu_world_helpers_effect_object(mu_world_helpers *w, int32_t id, mu_jt_object *out)
+{
+    mu_hp_mount *m = effect_mount(w, id);
+    if (!m)
         return 0;
+    memset(out, 0, sizeof *out);
+    out->live = m->object.live;
+    out->visible = m->object.visible;
+    out->action = m->object.action;
+    out->type = m->object.type;
+    memcpy(out->position, m->object.position, sizeof out->position);
+    memcpy(out->light, m->object.light, sizeof out->light);
+    for (int32_t i = 0; i < w->class_state_count; ++i)
+        if (w->class_keys[i] == m->key) {
+            memcpy(out->eye_188, w->class_eyes[i][0], sizeof out->eye_188);
+            memcpy(out->eye_194, w->class_eyes[i][1], sizeof out->eye_194);
+            break;
+        }
+    return 1;
+}
+
+int mu_world_helpers_effect_bone(mu_world_helpers *w, int32_t id, int32_t bone, const float in[3], float out[3])
+{
+    mu_hp_mount *mount = effect_mount(w, id);
+    if (!mount)
+        return 0;
+    draw_context d;
+    memset(&d, 0, sizeof d);
+    d.w = w;
+    mu_wh_model *m = pose_object(&d, &mount->object, 1);
+    return m && mu_world_particles_bone_position(&m->model, bone, in, out);
+}
+
+/* One RenderBodyDefault 0x00966def / RenderMeshDefault 0x00966e4a call on a posed model (mesh < 0: the body),
+ * with the model colour +0x54 of the call. */
+static int draw_pass(draw_context *d, mu_wh_model *m, int32_t mesh, uint32_t flags, float alpha, int32_t blend_mesh,
+                     float blend_light, float u, float v, int32_t hidden, int32_t texture, const float color[3])
+{
     if (!d->target)
         return 1;
     mu_render_backend backend;
-    if (d->target->backend(d->target->context, w, slot_of(w, m), &backend))
+    if (d->target->backend(d->target->context, d->w, slot_of(d->w, m), &backend))
         return 0;
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = &m->textures;
-    options.alpha = o->alpha < 1.0f ? o->alpha : 1.0f;
-    /* RenderBody(flags, alpha, BlendMesh +0x74, BlendMeshLight +0xa8, +0xac, +0xb0, -1, -1) (NATIVE-RENDERCHAR-001) */
-    options.select = o->blend_mesh;
-    options.color_scale = o->blend_light;
+    options.flags = flags;
+    options.alpha = alpha < 1.0f ? alpha : 1.0f;
+    /* RenderBody(flags, alpha, BlendMesh +0x74, BlendMeshLight +0xa8, +0xac, +0xb0, hidden, texture)
+     * (NATIVE-RENDERCHAR-001) */
+    options.select = blend_mesh;
+    options.color_scale = blend_light;
+    options.u_offset = u;
+    options.v_offset = v;
+    options.skip_mesh = hidden;
+    options.texture = texture;
+    options.mesh_plus_one = mesh >= 0 ? mesh + 1 : 0;
+    mu_draw_model_fields fields;
+    memset(&fields, 0, sizeof fields);
+    if (color) {
+        memcpy(fields.color, color, sizeof fields.color);
+        options.fields = &fields;
+    }
     mu_draw_stats ds = {0, 0, 0, 0};
+    if (mesh >= (int32_t)m->bmd.mesh_count)
+        return 1;   /* the functors name meshes some models do not have (the Dark Horse's 0xd..0xf) */
     if (mu_scene_draw_model(&m->model, &options, &backend, &ds))
         return 0;
     d->drawn++;
+    d->w->stats.passes++;
     return 1;
+}
+
+/* RenderObject 0x016d4fe4 for a bug (the angel): the setup, then the draw (its registry functor 0x00a6a730
+ * answers 0: the default body). */
+static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
+{
+    mu_wh_model *m = pose_object(d, o, a1);
+    if (!m)
+        return 0;
+    return draw_pass(d, m, -1, 2, o->alpha, o->blend_mesh, o->blend_light, 0.0f, 0.0f, -1, -1, NULL);
+}
+
+int mu_world_helpers_draw_object(mu_world_helpers *w, const mu_world_helpers_target *target, const mu_hp_object *o,
+                                 int32_t a1)
+{
+    draw_context d;
+    memset(&d, 0, sizeof d);
+    d.w = w;
+    d.target = target;
+    return pose_and_draw(&d, o, a1);
 }
 
 static void r_object(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
@@ -595,19 +986,249 @@ static void r_object(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int
         d->w->stats.drawn_bugs++;
 }
 
+/* The mount's body (vtable +0x14 0x0103d6d5): RenderObject's setup 0x017ec896 only; the draw is the after-pass. */
 static int r_body(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3)
 {
     draw_context *d = c;
     (void)a2, (void)a3;
-    int drawn = pose_and_draw(d, o, a1);
-    if (drawn)
+    d->posed = pose_object(d, o, a1);
+    if (d->posed)
         d->w->stats.drawn_mounts++;
-    return drawn;
+    return d->posed != NULL;
 }
 
+static void after_bone(void *c, int32_t bone, const float in[3], float out[3])
+{
+    draw_context *d = c;
+    out[0] = out[1] = out[2] = 0.0f;
+    if (d->posed)   /* TransformPosition(.., BoneTransform + 0x30 * bone, .., 0): the bone in the world (viewer choice) */
+        mu_world_particles_bone_position(&d->posed->model, bone, in, out);
+}
+
+/* NATIVE-HELPERS-002: RenderTerrainAlphaBitmap 0x016cdd5f of a class visual through the model's render backend: the
+ * terrain decal's fans become triangles; the bitmap is one of the model's extra slots. */
+typedef struct decal_adapter {
+    const mu_render_backend *backend;
+    const mu_textures *textures;
+    mu_meshdraw_state state;
+    int32_t texture;
+    float v[64][3], t[64][2], c[64][4];
+    int32_t n;
+    float color[4], uv[2];
+} decal_adapter;
+
+static void da_state(void *c, int32_t state, int32_t argument)
+{
+    decal_adapter *a = c;
+    mu_world_state(state, argument, &a->state);
+}
+
+static void da_bind(void *c, int32_t texture)
+{
+    decal_adapter *a = c;
+    a->texture = -1;
+    const mu_textures *t = a->textures;
+    for (int32_t j = 0; t && j < t->extra_count; ++j)
+        if (t->extra_index[j] == texture)
+            a->texture = t->model_count + MU_TEXTURE_SPECIAL_COUNT + j;
+}
+
+static void da_begin(void *c, int32_t mode)
+{
+    decal_adapter *a = c;
+    (void)mode;   /* GL_TRIANGLE_FAN */
+    a->n = 0;
+}
+
+static void da_tex(void *c, float s, float t)
+{
+    decal_adapter *a = c;
+    a->uv[0] = s;
+    a->uv[1] = t;
+}
+
+static void da_c3(void *c, const float rgb[3])
+{
+    decal_adapter *a = c;
+    a->color[0] = rgb[0], a->color[1] = rgb[1], a->color[2] = rgb[2], a->color[3] = 1.0f;
+}
+
+static void da_c4(void *c, float r, float g, float b, float al)
+{
+    decal_adapter *a = c;
+    a->color[0] = r, a->color[1] = g, a->color[2] = b, a->color[3] = al;
+}
+
+static void da_v(void *c, const float xyz[3])
+{
+    decal_adapter *a = c;
+    if (a->n >= 64)
+        return;
+    memcpy(a->v[a->n], xyz, sizeof a->v[0]);
+    memcpy(a->t[a->n], a->uv, sizeof a->t[0]);
+    memcpy(a->c[a->n], a->color, sizeof a->c[0]);
+    a->n++;
+}
+
+static void da_end(void *c)
+{
+    decal_adapter *a = c;
+    const mu_render_backend *b = a->backend;
+    if (a->n < 3 || a->texture < 0)
+        return;
+    if (b->prepare)
+        b->prepare(b->context, &a->state, a->texture);
+    if (b->begin)
+        b->begin(b->context);
+    for (int32_t i = 1; i + 1 < a->n; ++i) {
+        const int32_t k[3] = {0, i, i + 1};
+        for (int32_t j = 0; j < 3; ++j) {
+            b->sink.texcoord(b->sink.context, a->t[k[j]][0], a->t[k[j]][1]);
+            b->sink.color4(b->sink.context, a->c[k[j]][0], a->c[k[j]][1], a->c[k[j]][2], a->c[k[j]][3]);
+            b->sink.vertex(b->sink.context, a->v[k[j]]);
+        }
+    }
+    if (b->end)
+        b->end(b->context);
+}
+
+static void draw_decals(draw_context *d, mu_wh_model *m, const mu_hp_after_call *calls, int32_t n)
+{
+    mu_world_helpers *w = d->w;
+    if (!d->target || !w->map)
+        return;
+    mu_render_backend backend;
+    if (d->target->backend(d->target->context, w, slot_of(w, m), &backend))
+        return;
+    decal_adapter a;
+    memset(&a, 0, sizeof a);
+    a.backend = &backend;
+    a.textures = &m->textures;
+    a.texture = -1;
+    mu_meshdraw_state_defaults(&a.state);
+    mu_terrain_sink sink = {&a, da_state, da_bind, da_begin, da_tex, da_c3, da_c4, da_v, da_end};
+    mu_terrain_scene scene;
+    mu_world_scene((mu_world *)w->map, &scene);   /* read only */
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_hp_after_call *c = &calls[i];
+        if (c->kind == MU_HP_AC_BLEND) {
+            da_state(&a, c->flags == 0x0184aa2b ? MU_TERRAIN_STATE_ADDITIVE : MU_TERRAIN_STATE_OPAQUE, 1);
+            continue;
+        }
+        if (c->kind != MU_HP_AC_DECAL)
+            continue;
+        mu_terrain_decal(&scene, c->type, c->position[0], c->position[1], c->scale, c->scale, c->light, c->angle[0],
+                         c->alpha, 5.0f, 1, 0, &sink);
+        w->stats.decals++;
+    }
+}
+
+/* The class visuals (vtable +0x1c) of a drawn mount (NATIVE-HELPERS-002: the Shining Tail). */
+static void class_visuals(draw_context *d, mu_wh_model *m, const mu_hp_object *o)
+{
+    mu_world_helpers *w = d->w;
+    mu_hp_mount *mount = NULL;
+    for (int32_t i = 0; i < w->mounts.count; ++i)
+        if (&w->mounts.list[i].object == o)
+            mount = &w->mounts.list[i];
+    if (!mount)
+        return;
+    mu_hp_class_state *st = class_state_of(w, mount->key);
+    if (!st)
+        return;
+    mu_hp_class_inputs in;
+    memset(&in, 0, sizeof in);
+    in.world_time = w->world_time;
+    in.subtype = o->subtype;
+    in.action = o->action;
+    in.frame = o->frame;
+    in.alpha = o->alpha;
+    memcpy(in.position, o->position, sizeof in.position);
+    memcpy(in.angle, o->angle, sizeof in.angle);
+    class_host_ctx x = {w, m};
+    mu_hp_class_host host = {&x, c_object_bone, c_named_bone, c_object_bone_offset};
+    mu_hp_after_call calls[160];
+    int32_t n = 0;
+    if (!mu_hp_mount_class_visuals(&w->h, mount->cls, st, &in, &host, calls, 160, &n))
+        return;
+    if (n > 160)
+        n = 160;
+    class_calls(w, calls, n, o);
+    draw_decals(d, m, calls, n);
+}
+
+/* The after-pass (vtable +0x18 0x0103d830 -> RenderObject's draw 0x017edf43): the registry functor of the mount
+ * model (mount_render.c, NATIVE-HELPERS-002) or the default body RenderBody(2, ...). */
 static void r_after(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
 {
-    (void)c, (void)o, (void)a1, (void)a2, (void)a3, (void)a4, (void)a5;   /* 0x017edf43: visuals not ported */
+    draw_context *d = c;
+    mu_world_helpers *w = d->w;
+    (void)a1, (void)a3, (void)a4, (void)a5;
+    mu_wh_model *m = d->posed;
+    if (!m || o->field_68 == -2)
+        return;
+    const float *body_light = m->model.params.color;   /* model +0x54: the setup's body light */
+    mu_hp_after_inputs in;
+    memset(&in, 0, sizeof in);
+    in.world = w->inputs.world;
+    in.world_time = w->world_time;
+    in.world_9b0418 = (uint8_t)((in.world >= 0x18 && in.world <= 0x1d) || in.world == 0x24);
+    in.event_block = (uint8_t)(in.world == 0x27 && !(w->inputs.event_state >= 3 && w->inputs.event_state <= 5));
+    memcpy(in.color, body_light, sizeof in.color);
+    in.model_94 = 0xff;
+    in.object_a4 = 0.0f;   /* the later classes' model load writes 0; their visuals (+0x1c) fade it (not ported) */
+    mu_hp_after_host host = {d, after_bone};
+    mu_hp_after_call calls[96];
+    int32_t n = 0;
+    int r = a2 == 10 ? -1 : mu_hp_mount_after(&w->h, o, &in, &host, calls, 96, &n);   /* buff: 0x017f746f, static */
+    if (n > 96)
+        n = 96;
+    if (r <= 0) {
+        draw_pass(d, m, -1, 2, o->alpha, o->blend_mesh, o->blend_light, in.object_u, in.object_v, o->field_68, -1,
+                  NULL);
+        return;
+    }
+    float shadow_rgba[4] = {0.0f, 0.0f, 0.0f, 0.7f};
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_hp_after_call *a = &calls[i];
+        switch (a->kind) {
+        case MU_HP_AC_BODY:
+            draw_pass(d, m, -1, a->flags, a->alpha, a->blend_mesh, a->blend_light, a->u, a->v, a->hidden, a->texture,
+                      a->color);
+            break;
+        case MU_HP_AC_MESH:
+            draw_pass(d, m, a->mesh, a->flags, a->alpha, a->blend_mesh, a->blend_light, a->u, a->v, -1, a->texture,
+                      a->color);
+            break;
+        case MU_HP_AC_COLOR4:
+            shadow_rgba[3] = a->scale;
+            break;
+        case MU_HP_AC_SHADOW:
+            if (d->target && d->target->shadow_range)
+                d->target->shadow_range(d->target->context, w, slot_of(w, m), shadow_rgba, a->mesh, a->texture);
+            w->stats.shadows++;
+            break;
+        case MU_HP_AC_SPRITE:
+            w->stats.sprites++;
+            if (w->particles)
+                mu_world_particles_sprite(w->particles, a->type, a->position, a->scale, a->light, -1, 0.0f, 0, 4);
+            break;
+        case MU_HP_AC_PARTICLE:
+            w->stats.particles++;
+            if (w->particles)
+                mu_world_particles_create(w->particles, a->type, a->position, a->angle, a->light, a->subtype, a->scale);
+            break;
+        case MU_HP_AC_EFFECT:
+            w->stats.effects++;
+            if (w->particles)
+                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light,
+                                          mu_world_helpers_effect_id(w, o), 1.0f, NULL);
+            break;
+        default:
+            break;   /* the pose push/pop, the bone lookups (done through the host), EnableAlphaTest */
+        }
+    }
+    class_visuals(d, m, o);   /* vtable +0x1c after the after-pass (0x0106bc2b) */
 }
 
 static void r_sprite(void *c, int32_t bitmap, const float p[3], float scale, const float l[3], const mu_hp_object *o)
@@ -738,10 +1359,14 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
     r.alpha_test = r_alpha;
     r.color4 = r_color4;
     r.shadow = r_shadow;
-    w->stats.drawn_bugs = w->stats.drawn_mounts = w->stats.drawn_imps = w->stats.shadows = 0;
+    w->stats.drawn_bugs = w->stats.drawn_mounts = w->stats.drawn_imps = w->stats.shadows = w->stats.passes = w->stats.decals = 0;
     /* the render scene's order: RenderBugs 0x00c9e4e3, the mount render loop 0x0106bc2b */
     mu_hp_render_bugs(&w->h, &w->inputs, &r);
     mu_hp_mounts_render(&w->h, &w->mounts, &w->inputs, &r);
+    if (w->raven)   /* NATIVE-HELPERS-002: RenderPet per character (RenderCharacter's 0x00c9314f) */
+        d.drawn += mu_world_raven_draw(w->raven, frustum, target);
+    if (w->pets)   /* RenderPets 0x00eb0dee (NATIVE-HELPERS-002) */
+        d.drawn += mu_world_pets_draw(w->pets, w, frustum, target);
     /* the Imps are part of their owners' RenderCharacter */
     if (hero)
         draw_imp(&d, 0, hero);
@@ -773,7 +1398,7 @@ long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const 
 {
     raster_target t = {raster, {0}};
     mu_raster_backend(raster, &t.backend);
-    mu_world_helpers_target target = {&t, raster_backend, NULL};
+    mu_world_helpers_target target = {&t, raster_backend, NULL, NULL};
     long n = mu_world_helpers_draw(w, frustum, hero, &target);
     raster->textures = NULL;
     raster->texture_count = 0;
@@ -787,9 +1412,11 @@ long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const 
 void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t frame)
 {
     fprintf(out, "{\"helpers_frame\": %d, \"bugs\": %u, \"mounts\": %u, \"drawn_bugs\": %u, \"drawn_mounts\": %u,"
-                 " \"drawn_imps\": %u, \"riding\": %d",
+                 " \"drawn_imps\": %u, \"riding\": %d, \"passes\": %u",
             frame, w->stats.live_bugs, w->stats.live_mounts, w->stats.drawn_bugs, w->stats.drawn_mounts,
-            w->stats.drawn_imps, w->walk ? w->walk->riding : 0);
+            w->stats.drawn_imps, w->walk ? w->walk->riding : 0, w->stats.passes);
+    if (w->raven && w->raven->stats.live)
+        fprintf(out, ", \"ravens\": %u, \"raven_drawn\": %u", w->raven->stats.live, w->raven->stats.drawn);
     for (int32_t i = 0; i < MU_HP_BUGS; ++i) {
         const mu_hp_object *o = &w->h.bugs[i];
         if (o->live)
@@ -803,6 +1430,10 @@ void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t
                 (double)m->object.angle[2]);
     }
     fprintf(out, "}\n");
+    if (w->raven)
+        mu_world_raven_report_frame(w->raven, out);
+    if (w->pets)
+        mu_world_pets_report_frame(w->pets, out, frame);
 }
 
 void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int quiet)
@@ -814,6 +1445,10 @@ void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int q
             w->stats.steps, w->stats.bugs_created, w->stats.bugs_deleted, w->stats.mounts_set, w->stats.mounts_reset,
             w->stats.particles, w->stats.sprites, w->stats.effects, w->stats.joints, w->stats.set_actions,
             w->stats.rider_actions, w->stats.live_bugs, w->stats.live_mounts, w->model_count);
+    if (w->raven)
+        mu_world_raven_report_summary(w->raven, out);
+    if (w->pets)
+        mu_world_pets_report_summary(w->pets, out);
     if (!quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             fprintf(out, "helpers: %s\n", w->log[i]);

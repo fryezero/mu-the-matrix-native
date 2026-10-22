@@ -1382,3 +1382,23 @@ local in `~/Documents/mu-mac-tools/native/renders/helpers/` (`showcase/`, `t-*`,
 Skeleton) and the Dark Raven; the equipment change is opcode 0x25 (`0x01228b60`, not 0x45, which is the transformed-player
 viewport `0x0122f1b6`): run it through mu_world_players; the later mounts' class moves and after-pass visuals; the
 hero's helper from the inventory; a live capture of a rider and an angel for a side-by-side.
+
+## Helper visuals, pets and mounts (NATIVE-HELPERS-002)
+
+Integrated verified FX work without retaining the unverified WIP snapshot. Native now draws the 24 functors,
+Shining Tail sparkles/mist/claws/runes/tail emitter, Ghost Horse aura/claws/breath and both eye trails, Dark Horse
+ring and Fenrir lightning/paw marks. Flying bones include object origin; flashes have their real mount owner.
+Shared models are reposed per owner; bone bounds use the loaded skeleton size. Mount instance IDs and visual state reset on teardown, including viewport re-entry and immediate replacement. Pets and Dark Raven are included
+(`client-pets.md`, `client-dark-spirit.md`); the Preview picker exposes them.
+
+Checks: `validate_mount_visuals.py --cases 300` (7,200 functors + 1,200 class cases); particles create/move/render
+3,800 each; joints create/move/render 1,800 each; skill_fx create/move/decal 1,500 each; full helpers 1,000-session
+run with 6/6 mutations. All equal; planted mistakes caught. Reports: ignored `evidence/native-helpers2/*-final.json`,
+`mount-visuals-finish.json`; synthetic owner/pose/bounds regression in `native/tests/helper_fx_host.c`. Research:
+[client-helper-visuals.md](research/client-helper-visuals.md). Renders local under
+`~/Documents/mu-mac-tools/native/renders/helpers2/` (`final-shining-tail/`, `final-ghost-horse/`,
+`final-shining-tail-every-frame/`, `finish-fenrir-blue/`); prior live capture left Nighty dismounted safely and closed.
+
+Next: recover the alternate signed-integer terrain grid before drawing shock rings in worlds 0x18..0x1d/0x24
+(the client adds 400 to those heights; native skips them); port other later/rare/transformed classes' own effects
+(functors already covered), optionally Muun, and feed the helper from inventory. No protection or network-login work.

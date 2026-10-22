@@ -124,7 +124,12 @@ KINDS = [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a
                                                             (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
                                                             (0x7f66, 0), (0x7f66, 1),      # Noria's Shiny01
                                                             # NATIVE-CHARSEL-002: the character-select scene
-                                                            (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5)]
+                                                            (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5),
+                                                            # NATIVE-HELPERS-002: the helpers' kinds
+                                                            (0x7f25, 1), (0x7f5b, 0), (0x7fcd, 0), (0x7f26, 0xf), (0x831d, 6), (0x83b3, 6),
+                                                            (0x8086, 0x13), (0x8086, 0x18), (0x7f26, 0x2a), (0x7f5a, 0x7f), (0x7f5a, 0x75)]
+BITMAP_RECORD_GET = 0x00ebbec8   # the bitmap record by index (this = 0x0bdc5f00), smoke02's height (NATIVE-HELPERS-002)
+STATE_BLEND = 0x0184abd5         # (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), smoke02's render (NATIVE-HELPERS-002)
 
 
 def object_address(index):
@@ -138,6 +143,7 @@ F3 = ctypes.c_float*3
 RAND_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)
 HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_float, ctypes.c_float)
 OWNER_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float))
+BITMAP_HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_int32)
 
 
 class Particle(ctypes.Structure):
@@ -146,13 +152,15 @@ class Particle(ctypes.Structure):
                 ('light', F3), ('alpha', ctypes.c_float), ('lifetime', ctypes.c_int32), ('owner', ctypes.c_int32),
                 ('owner_position', F3), ('rotation', ctypes.c_float), ('frame', ctypes.c_int32),
                 ('moving', ctypes.c_uint8), ('gravity', ctypes.c_float), ('velocity', F3), ('field_7c', ctypes.c_float),
-                ('start', F3), ('start_angle', F3), ('time', ctypes.c_float), ('arg8', ctypes.c_int32)]
+                ('start', F3), ('start_angle', F3), ('time', ctypes.c_float), ('arg8', ctypes.c_int32), ('initial_lifetime', ctypes.c_int32),
+                ('initial_scale', ctypes.c_float), ('field_80', ctypes.c_float), ('field_84', ctypes.c_float)]
 
 
 class Host(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('terrain_height', HEIGHT_FN),
                 ('owner_position', OWNER_FN), ('world', ctypes.c_int32), ('world_time', ctypes.c_float),
-                ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32)]
+                ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32),
+                ('bitmap_height', BITMAP_HEIGHT_FN)]
 
 
 class Bitmap(ctypes.Structure):
@@ -306,7 +314,7 @@ def compare_masked(mine, theirs, defined, mask, floats_at=()):
     return None
 
 
-PARTICLE_FLOATS = {0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x54, 0x58, 0x5c, 0x60, 0x6c,
+PARTICLE_FLOATS = {0x1c, 0x80, 0x84, 0x18, 0x20, 0x24, 0x28, 0x2c, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x54, 0x58, 0x5c, 0x60, 0x6c,
                    0x70, 0x74, 0x78, 0x7c, 0x88, 0x8c, 0x90, 0x94, 0x98, 0x9c, 0xac}
 SPRITE_FLOATS = {0x90, 0x94, 0xa0, 0xd0, 0xec, 0xf0, 0xf4, 0x110, 0x114, 0x118, 0x158, 0x15c, 0x160, 0x16c}
 
@@ -382,6 +390,7 @@ class Case:
         self.rand_values = list(rand_values if rand_values is not None else
                                 [rng.randrange(0, 32768) for _ in range(64)])
         self.height = f32(height)
+        self.bitmap_h = f32(rng.choice([64.0, 32.0, 128.0, 256.0]))
         self.owners = list(owners)
         self.client_rand = self.c_rand = 0
         self.client_calls, self.c_calls = [], []
@@ -404,7 +413,10 @@ class Case:
         def cosine(mm):
             x = mm.float_argument(0)
             return mm.x87_return(f32(math.cos(x)) if math.isfinite(x) else float('nan'))
-        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine}
+        def sqrt(mm):
+            x = mm.float_argument(0)
+            return mm.x87_return(f32(math.sqrt(x)) if x >= 0 else float('nan'))
+        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine, 0x00961a07: sqrt}
 
     def owner_regions(self):
         out = []
@@ -430,9 +442,24 @@ class Case:
             pos = self.owners[index]
             for k in range(3):
                 out[k] = pos[k]
-        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner))
+        def bitmap_height(ctx, index):
+            self.c_calls.append(('bitmap', index))
+            return self.bitmap_h
+        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height))
         self._keep.append(fns)
-        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene)
+        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3])
+
+    def bitmap_region(self):
+        # NATIVE-HELPERS-002: the record the getter 0x00ebbec8 returns (only the height +0x208 defined)
+        region = am.Region('bitmap', BITMAP_RECORD, am.poison(0x220, 0x45), bytes(0x220), writable=False)
+        region.define(BITMAP_RECORD+0x208, struct.pack('<f', self.bitmap_h))
+        return region
+
+    def bitmap_stub(self):
+        def get(mm):
+            self.client_calls.append(('bitmap', mm.argument(0)))
+            return BITMAP_RECORD, 4
+        return get
 
 
 class Report:
@@ -518,10 +545,16 @@ def family_create(m, lib, rng, cases, report, negatives):
         report.add('create', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                      'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('create', f'{kind[0]:#x}/{kind[1]}' + (' owner' if owner >= 0 else ''))
+        if vc.ok(r) and kind in ((0x831d, 6), (0x83b3, 6), (0x7f26, 0x2a), (0x7f5a, 0x7f)):
+            negatives['tail_initial_life_20'] += struct.unpack_from('<i', r['regions']['particle'], 0x4c)[0] != 20
         if vc.ok(r) and kind == (0x801b, 2):
             # negative control (NATIVE-CHARSEL-002): WATERFALL2's light without the scene-5 rule
             l = struct.unpack('<f', r['regions']['particle'][0x38:0x3c])[0]
             negatives['create_waterfall2_no_scene'] += not same(l, f32(0.4))
+        if vc.ok(r) and kind == (0x7f25, 1):
+            # negative control (NATIVE-HELPERS-002): the angel's sparkle living like Spark02 subtype 0
+            life = struct.unpack('<i', r['regions']['particle'][0x48:0x4c])[0]
+            negatives['create_spark2_1_as_0'] += life != case.rand_values[1] % 16 + 24
         if vc.ok(r) and kind == (0x7f3c, 1):
             # negative control: Fire01 subtype 1 sized like subtype 0
             sc = struct.unpack('<f', r['regions']['particle'][0x18:0x1c])[0]
@@ -579,6 +612,9 @@ def random_particle(rng, kind):
     p.arg8 = rng.randrange(-10, 10)
     p.alpha = f32(rng.choice([0.1, 1.0, 0.95, 0.12, 0.09, rf(rng, -0.5, 1.5)]))
     p.field_7c = rf(rng, 0.0, 0.1)
+    p.field_80, p.field_84 = rf(rng, 0.0, 1.0), rf(rng, 0.0, 1.0)
+    p.initial_lifetime = rng.choice([30, 40, 100, 1, 2, 0, -1, -3])
+    p.initial_scale = rf(rng, 0.1, 2.0)
     if kind == (0x7f89, 0x14):
         p.lifetime = rng.choice([300, 151, 150, 149, 2, 1, 0, -1, rng.randrange(-3, 301)])
     if kind in ((0x801b, 2), (0x8022, 5)):   # NATIVE-CHARSEL-002: the fades at LifeTime 10
@@ -621,7 +657,7 @@ def family_move(m, lib, rng, cases, report, negatives):
         dt = f32(rng.choice([0.1, 0.1, rf(rng, 0.0, 2.0)]))
         case = Case(rng, height=rng.uniform(-50, 400), owners=[[rf(rng, 0, 25600), rf(rng, 0, 25600), 150.0]])
         record = particle_region(lib, p)
-        regions = [record] + globals_region(world, 0.0, dt) + case.owner_regions()
+        regions = [record, case.bitmap_region()] + globals_region(world, 0.0, dt) + case.owner_regions()
         host = case.host(world, 0.0, dt)
         before = Particle.from_buffer_copy(p)
         if p.lifetime <= 0 or not p.live:
@@ -629,7 +665,7 @@ def family_move(m, lib, rng, cases, report, negatives):
             report.add('move', moved == 0, {'case': n, 'removed_at_head': True})
             report.cover('move', 'erased at the head')
             continue
-        stubs = shared_stubs(case, m, {0x0168ee7d: jump_stub(0x0168eea4)})
+        stubs = shared_stubs(case, m, {0x0168ee7d: jump_stub(0x0168eea4), BITMAP_RECORD_GET: case.bitmap_stub()})
         r = m.execute(0x01616f7c, [], regions, stubs, ecx=POOL, frame=mid_frame(MOVE_FRAME, {-0x38: 7}))
         moved = lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
         mismatch = None
@@ -649,6 +685,14 @@ def family_move(m, lib, rng, cases, report, negatives):
             # negative control (NATIVE-CHARSEL-002): the selection light without its rise
             z = struct.unpack('<f', r['regions']['particle'][0x28:0x2c])[0]
             negatives['move_chasellight_no_rise'] += not same(z, f32(p.position[2] - p.gravity))
+        if vc.ok(r) and kind == (0x7f5a, 0x75) and before.lifetime > 0 and before.live:
+            negatives['breath_no_direction'] += any(not same(p.position[k], before.position[k]) for k in range(3))
+        if vc.ok(r) and kind == (0x8086, 0x13) and before.lifetime > 0 and before.live:
+            negatives['tail_fire_no_saved_colour'] += not same(p.light[0], before.light[0])
+        if vc.ok(r) and kind == (0x7f5b, 0):
+            # negative control (NATIVE-HELPERS-002): smoke02 seated without half its height
+            z = struct.unpack('<f', r['regions']['particle'][0x28:0x2c])[0]
+            negatives['move_smoke2_no_half_height'] += not same(z, case.height)
         if vc.ok(r) and kind == (0x7f5a, 0):
             # negative control: smoke light over 16 steps instead of 8
             l = struct.unpack('<f', r['regions']['particle'][0x38:0x3c])[0]
@@ -736,7 +780,7 @@ def family_render(m, lib, rng, cases, report, negatives):
                                          BITMAP_GET: bitmap_get, RENDER_SPRITE: sprite,
                                          STATE_ADD: wrapper(STATE_ADD, 0), STATE_ALPHA: wrapper(STATE_ALPHA, 1),
                                          STATE_SUB: wrapper(STATE_SUB, 0), STATE_6B7: wrapper(STATE_6B7, 0),
-                                         STATE_6DA: wrapper(STATE_6DA, 0)})
+                                         STATE_6DA: wrapper(STATE_6DA, 0), STATE_BLEND: wrapper(STATE_BLEND, 0)})
         r = m.execute(0x015912e9, [0x5500 | mode], [record, bmr], stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME),
                       cleanup=4)
         rc = RenderCall()
@@ -761,6 +805,12 @@ def family_render(m, lib, rng, cases, report, negatives):
         report.add('render', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mode': mode, 'mismatch': mismatch,
                                      'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
         report.cover('render', f'{kind[0]:#x}/{kind[1]}' + ('' if drawn == 1 else ' skipped'))
+        if vc.ok(r) and drawn == 1 and kind in ((0x831d, 6), (0x83b3, 6), (0x7f26, 0x2a), (0x7f5a, 0x7f)):
+            negatives['tail_glint_no_alpha'] += not same(p.light[0], f32(p.light[0] * p.alpha))
+        if vc.ok(r) and drawn == 1 and kind == (0x7fcd, 0):
+            # negative control (NATIVE-HELPERS-002): drop01 drawn with the whole sheet
+            u = [c for c in calls if c[0] == 'sprite'][0][9]
+            negatives['render_drop_whole_sheet'] += not same(u, f32(1.0))
         if vc.ok(r) and drawn == 1 and kind[0] == 0x7f3c:
             # negative control: the full texture width for the four-cell strip
             w = [c for c in calls if c[0] == 'sprite'][0][3]
@@ -1536,7 +1586,9 @@ HEAVY = {'sprite_create', 'sprite_render'}
 NEGATIVES = ['create_fire1_large', 'wrapper_no_exempt', 'move_smoke_light_16', 'wind_unclamped',
              'render_fire_full_width', 'sprite_v_unflipped', 'sprite_sheet_rounded', 'sprite_render_no_alpha',
              'shadow_origin_height', 'bone_no_scale', 'bone_lookup_loose', 'visual_second_drop', 'visual_uninitialised_input_seen',
-             'create_waterfall2_no_scene', 'move_chasellight_no_rise']
+             'create_waterfall2_no_scene', 'move_chasellight_no_rise',
+             'create_spark2_1_as_0', 'move_smoke2_no_half_height', 'render_drop_whole_sheet',
+             'tail_initial_life_20', 'tail_glint_no_alpha', 'tail_fire_no_saved_colour', 'breath_no_direction']   # NATIVE-HELPERS-002
 
 
 def default_evidence(relative):

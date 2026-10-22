@@ -675,7 +675,7 @@ static void on_step(void *context, mu_walk *w)
          * above the hero every 20 steps, through the world objects' joint pool */
         const float at[3] = {h->position[0], h->position[1], h->position[2] + 150.0f}, angle[3] = {0.0f, 0.0f, 0.0f};
         mu_world_particles_joint(&a->particles, MU_JT_TYPE_THUNDER_BOLT, at, at, angle, a->joint_demo, -1, 1.0f, 0xffff,
-                                 0, 0, 0xffff, 0);
+                                 0, 0, 0xffff, 0, NULL);
     }
     if (a->has_particles) {   /* MoveEffects, MoveJoints, MoveParticles after the other movers of the in-world tick */
         mu_world_particles_set_hero(&a->particles, h->position);
@@ -1947,6 +1947,18 @@ static void helper_gl_shadow(void *context, const mu_world_helpers *w, int32_t s
     mu_world_particles_shadow(&a->particles, &w->models[slot].model, &w->models[slot].bmd, rgba, &backend);
 }
 
+/* NATIVE-HELPERS-002: a functor's second RenderBodyShadow over meshes first..end. */
+static void helper_gl_shadow_range(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4],
+                                   int32_t first, int32_t end)
+{
+    app *a = context;
+    mu_render_backend backend;
+    if (!a->has_particles || helper_gl_backend(a, w, slot, &backend))
+        return;
+    mu_world_particles_shadow_range(&a->particles, &w->models[slot].model, &w->models[slot].bmd, rgba, first, end,
+                                    &backend);
+}
+
 static int particle_gl_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
 {
     app *a = context;
@@ -2120,7 +2132,7 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     if (a->helpers) {   /* NATIVE-HELPERS-001: RenderBugs, the mount render loop, the Imps (own backends, direct) */
         if (a->batch && !a->players)
             mu_gl_batch_session_end(a->batch);
-        mu_world_helpers_target target = {a, helper_gl_backend, helper_gl_shadow};
+        mu_world_helpers_target target = {a, helper_gl_backend, helper_gl_shadow, helper_gl_shadow_range};
         mu_world_helpers_draw(a->helpers, a->legacy_box ? NULL : &a->frustum, a->has_character ? &a->ch : NULL,
                               &target);
         glDisable(GL_BLEND);
@@ -2469,11 +2481,11 @@ static void report_summary(const app *a, const char *renderer)
         /* NATIVE-JOINT-001: the world objects' joint and effect pools */
         printf("{\"joints\": true, \"created\": %llu, \"unsupported\": %llu, \"full\": %llu, \"live\": %u,"
                " \"max_live\": %u, \"quads\": %u, \"effects_created\": %llu, \"effects_unsupported\": %llu,"
-               " \"effects_live\": %u, \"effect_models\": %u, \"sounds\": %llu}\n",
+               " \"effects_live\": %u, \"effect_models\": %u, \"sounds\": %llu, \"decal_fans\": %llu}\n",
                (unsigned long long)p->joints_created, (unsigned long long)p->joints_unsupported,
                (unsigned long long)p->joints_full, p->live_joints, p->max_joints, p->drawn_joint_quads,
                (unsigned long long)p->effects_created, (unsigned long long)p->effects_unsupported, p->live_effects,
-               p->drawn_effect_models, (unsigned long long)p->sounds);
+               p->drawn_effect_models, (unsigned long long)p->sounds, (unsigned long long)p->decals_total);
     }
     if (a->has_objects)
         printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"

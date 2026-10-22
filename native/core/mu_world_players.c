@@ -100,6 +100,7 @@ void mu_world_players_encode_equipment(const mu_world_player_spec *s, uint8_t e[
     e[4] |= (uint8_t)(((w >> 6) & 3) << 2);   /* index bits 6..7 (the decode shifts e[4] & 0xc by 4) */
     e[8] |= (uint8_t)((w >> 3) & 7);
     e[0xf] = (uint8_t)(((w & 7) << 2) | (s->ride_state & 3));   /* the ride state 0x0129dc91 (NATIVE-HELPERS-001) */
+    e[0xf] |= (uint8_t)(s->pet_ext & 0xe0);   /* the pet process's pet (NATIVE-HELPERS-002) */
     if (s->ride_state == 4)
         e[0x10] |= 1;
     e[0x11] = (uint8_t)(s->item_level[MU_RP_SLOT_WING] & 0xf);
@@ -214,8 +215,18 @@ static int parse_player(mu_world_player_spec *s, char *line, int number, char *e
             s->ride = (uint16_t)strtol(v, NULL, 0);
         else if (!strcmp(tok, "ride_state"))
             s->ride_state = (uint8_t)atoi(v);
-        else if (!strcmp(tok, "pet"))
+        else if (!strcmp(tok, "raven"))   /* NATIVE-HELPERS-002 */
+            s->raven = (uint8_t)atoi(v);
+        else if (!strcmp(tok, "pet")) {
+            static const struct { const char *name; uint8_t ext; } ext[] = {
+                {"demon", 0x20}, {"spirit", 0x40}, {"skeleton", 0x60}, {"rudolph", 0x80}, {"panda", 0xa0}};
             s->pet = (uint8_t)(!strcmp(v, "angel") ? 0 : !strcmp(v, "imp") ? 1 : (atoi(v) & 3));
+            for (size_t k = 0; k < sizeof ext / sizeof ext[0]; ++k)
+                if (!strcmp(v, ext[k].name)) {   /* NATIVE-HELPERS-002: e[4] & 3 != 3 and the code in e[0xf] */
+                    s->pet = 0;
+                    s->pet_ext = ext[k].ext;
+                }
+        }
         else if (!strcmp(tok, "dir"))
             s->direction = (uint8_t)(atoi(v) & 0xf);
         else if (!strcmp(tok, "idle"))

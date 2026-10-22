@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include "../../reconstructed/helpers/helpers.h"
+#include "../../reconstructed/helpers/mount_class.h"
 #include "mu_bmd.h"
 #include "mu_model.h"
 #include "mu_raster.h"
@@ -33,12 +34,19 @@
 #include "mu_terrain.h"
 #include "mu_textures.h"
 
+struct mu_world_helpers;
+struct mu_jt_object;
 struct mu_walk;
 struct mu_world_players;
 struct mu_world_particles;
 struct mu_character;
+struct mu_world_raven;
+struct mu_world_pets;
 
-enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 12 };
+enum { MU_WH_EFFECT_BASE = 0x10000000 };
+int32_t mu_world_helpers_effect_id(struct mu_world_helpers *w, const mu_hp_object *object);
+
+enum { MU_WH_OWNERS = 9, MU_WH_MODELS = 16 };
 
 typedef struct mu_wh_model {
     int32_t index;             /* AccessModel index (object +0x5c) */
@@ -67,6 +75,7 @@ typedef struct mu_wh_stats {
     uint32_t particles, sprites, effects, joints, set_actions, rider_actions;
     uint32_t live_bugs, live_mounts;                 /* now */
     uint32_t drawn_bugs, drawn_mounts, drawn_imps, shadows;   /* last draw */
+    uint32_t passes, decals;                         /* NATIVE-HELPERS-002: model passes, terrain decals (last draw) */
 } mu_wh_stats;
 
 typedef struct mu_world_helpers {
@@ -82,12 +91,21 @@ typedef struct mu_world_helpers {
     struct mu_world_players *players;
     struct mu_world_particles *particles;   /* optional: particles, sprites, effects, joints */
     struct mu_character *hero_character;    /* optional: the hero's model (rider action speeds, the hero's Imp) */
+    struct mu_world_pets *pets;             /* NATIVE-HELPERS-002: the pet process (mu_world_pets), NULL when unused */
     mu_wh_model models[MU_WH_MODELS];
     int32_t model_count;
     float shadow_rgba[4];
     mu_wh_stats stats;
+    struct mu_world_raven *raven;           /* NATIVE-HELPERS-002: the Dark Raven (mu_world_raven) */
     char log[32][96];
     int32_t log_count;
+    float world_time;                       /* NATIVE-HELPERS-002: WorldTime 0x06fce370 (40 ms per step) */
+    /* NATIVE-HELPERS-002: the later classes' visual state per mount key */
+    int32_t class_keys[MU_HP_MOUNTS];
+    mu_hp_class_state class_states[MU_HP_MOUNTS];
+    float class_eyes[MU_HP_MOUNTS][2][3]; /* SetEye's +0x188 / +0x194, updated by the class visual */
+    int32_t class_effect_ids[MU_HP_MOUNTS], next_effect_id;
+    int32_t class_state_count;
 } mu_world_helpers;
 
 /* Opens the module for a world (no_assets: logic only). hero_item: the hero's helper item code (DEMO, -1 none:
@@ -114,6 +132,9 @@ typedef struct mu_world_helpers_target {
     int (*backend)(void *context, const mu_world_helpers *w, int32_t slot, mu_render_backend *out);
     /* RenderBodyShadow of a mount (optional): the posed model, the glColor4f colour */
     void (*shadow)(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4]);
+    /* NATIVE-HELPERS-002 (optional): RenderBodyShadow over the meshes first..end (a functor's second shadow) */
+    void (*shadow_range)(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4], int32_t first,
+                         int32_t end);
 } mu_world_helpers_target;
 
 /* RenderBugs, the mount render loop and the Imps on their owners. hero: the hero's character model (the Imp's
@@ -123,10 +144,25 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
 long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const mu_terrain_frustum *frustum,
                                   struct mu_character *hero);
 
+/* The model slot of a model index (loaded on first use; the pets' models share the table) and RenderObject's pose
+ * and body for an object of the table (a1: Transform's translate). Return NULL / 0 when there is nothing. */
+mu_wh_model *mu_world_helpers_model(mu_world_helpers *w, int32_t index);
+int mu_world_helpers_draw_object(mu_world_helpers *w, const struct mu_world_helpers_target *target,
+                                 const mu_hp_object *o, int32_t a1);
+
 /* Parses a helper name or item code for --helper: angel, imp, uniria, dinorant, darkhorse, fenrir,
- * fenrir-black/-blue/-gold (sets *state), the later ride item names, or a number (item code, or G:I). Returns
+ * fenrir-black/-blue/-gold (sets *state), the later ride item names, the pets (demon, spirit, rudolph, panda,
+ * unicorn, skeleton: NATIVE-HELPERS-002), or a number (item code, or G:I). Returns
  * the item code, -1 for "none", -2 when unknown. */
 int32_t mu_world_helpers_parse(const char *text, int32_t *state);
+
+/* NATIVE-HELPERS-002: the slot of a helper model. */
+int32_t mu_world_helpers_model_slot(const mu_world_helpers *w, const mu_wh_model *m);
+
+/* Native owner adapter: each mount instance gets a fresh ID, invalidated on teardown. */
+void mu_world_helpers_reset_mount(mu_world_helpers *w, int32_t key, int32_t owner);
+int mu_world_helpers_effect_object(mu_world_helpers *w, int32_t id, struct mu_jt_object *out);
+int mu_world_helpers_effect_bone(mu_world_helpers *w, int32_t id, int32_t bone, const float in[3], float out[3]);
 
 void mu_world_helpers_report_frame(const mu_world_helpers *w, FILE *out, int32_t frame);
 void mu_world_helpers_report_summary(const mu_world_helpers *w, FILE *out, int quiet);

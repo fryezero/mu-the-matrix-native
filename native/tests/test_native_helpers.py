@@ -79,6 +79,12 @@ class Build(unittest.TestCase):
 
 
 class HeroHelpers(Build):
+    def test_effects_use_world_bones_and_the_real_mount(self):
+        subprocess.run(['make', '-C', str(NATIVE), 'build/helper-fx-host'], check=True, capture_output=True)
+        out = subprocess.run([str(NATIVE/'build/helper-fx-host'), str(self.root)], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        self.assertEqual(json.loads(out.stdout), dict(spaces=1, offset=1, flash=1, ring=1, owners=1, bounds=1, eye=1, lifecycle=1))
+
     def test_angel_follows_the_hero(self):
         out = run(self.root, '--frames', '60', '--helper', 'angel')
         self.assertEqual(out['summary']['bugs_created'], 1)
@@ -116,6 +122,11 @@ class HeroHelpers(Build):
         out = run(self.root, '--frames', '10', '--helper', 'fenrir-gold')
         self.assertTrue(any('model 0x4ab' in line for line in out['logs']))
         self.assertEqual(out['helpers'][-1]['mount0'][0], 4)
+        # NATIVE-HELPERS-002: its registry functor draws the passes (mesh 0 twice, mesh 1), the six flares and
+        # the two body lightning effects every frame
+        self.assertGreaterEqual(out['helpers'][-1]['passes'], 3)
+        self.assertGreaterEqual(out['summary']['sprites'], 6 * 9)
+        self.assertGreaterEqual(out['summary']['effects'], 2 * 9)
 
     def test_no_helpers_and_unknown_name(self):
         out = run(self.root, '--frames', '5', '--helper', 'angel', '--no-helpers')

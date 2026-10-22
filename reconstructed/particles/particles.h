@@ -57,7 +57,10 @@ enum {
     MU_PT_BITMAP_CHASELLIGHT = 0x8022,  /* Logo\chasellight.jpg (the selection light, RenderCharacterScene) */
     MU_PT_BITMAP_IMPACK03 = 0x7b78,     /* Effect\Impack03.jpg (drawn by 0x8022 subtype 5) */
     MU_PT_BITMAP_SPARK04 = 0x8155,      /* Effect\Spark04.jpg (sprites of object type 0x1f) */
-    MU_PT_BITMAP_MAGIC_GROUND13 = 0x8145 /* Effect\magic_ground1_3.jpg (sprites of object type 0x49) */
+    MU_PT_BITMAP_MAGIC_GROUND13 = 0x8145, /* Effect\magic_ground1_3.jpg (sprites of object type 0x49) */
+    /* NATIVE-HELPERS-002: the helpers' kinds */
+    MU_PT_BITMAP_SMOKE2 = 0x7f5b,       /* Effect\smoke02.tga (the mounts' dust outside world 2) */
+    MU_PT_BITMAP_DROP = 0x7fcd          /* Object8\drop01.jpg (Atlans; the Dark Horse's dust there), a 3x3 sheet */
 };
 
 /* GL state wrappers the render routines call, by client address. */
@@ -71,7 +74,8 @@ enum {
     MU_PT_STATE_6DA = 0x0184a6da,
     MU_PT_STATE_UNTEXTURED = 0x0184a783, /* DisableAlphaBlend-like (arg 0): depth mask on, alpha test off, texture off */
     MU_PT_STATE_DEPTH_OFF = 0x0184a763, /* cached glDepthMask(0) */
-    MU_PT_STATE_DEPTH_ON = 0x0184a743   /* cached glDepthMask(1) */
+    MU_PT_STATE_DEPTH_ON = 0x0184a743,  /* cached glDepthMask(1) */
+    MU_PT_STATE_BLEND = 0x0184abd5      /* (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), depth mask off, alpha test off (smoke02) */
 };
 
 #define MU_PT_RECORD_BYTES 0xb4
@@ -103,6 +107,9 @@ typedef struct mu_pt_particle {
     float start_angle[3];    /* +0x94 */
     float time;              /* +0xac */
     int32_t arg8;            /* +0xb0 CreateParticle's last argument */
+    int32_t initial_lifetime; /* +0x4c, the Shining Tail's fades */
+    float initial_scale;     /* +0x1c */
+    float field_80, field_84; /* +0x80 / +0x84, colour saved beside +0x7c */
 } mu_pt_particle;
 
 /* The client state the routines read. */
@@ -116,6 +123,9 @@ typedef struct mu_pt_host {
     float frame_time;        /* [0x01cf103c], 0.1 in game */
     int32_t drop_divisor;    /* [0x0a39d768], the wrapper's drop rate in world 0x8b */
     int32_t scene_state;     /* SceneFlag [0x01d1df70] (0x009b0bc1): WATERFALL2 tests scene 5 (NATIVE-CHARSEL-002) */
+    /* NATIVE-HELPERS-002: the bitmap record's height +0x208 through the getter 0x00ebbec8(bitmaps 0x0bdc5f00,
+     * index) (smoke02 sits on the terrain by half its size; NULL: 0) */
+    float (*bitmap_height)(void *context, int32_t bitmap);
 } mu_pt_host;
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed
@@ -125,7 +135,10 @@ typedef struct mu_pt_host {
  *   and 1; NATIVE-JOINT-001: clouds 0x7f89 0x14 and WATERFALL1 0x801a 2 (the
  *   login scene's mist and spray), Shiny01 0x7f66 0 and 1 (Noria);
  *   NATIVE-CHARSEL-002: WATERFALL2 0x801b 2, WATERFALL3 0x801c 0xe, fantaB
- *   0x8017 0 and chasellight 0x8022 5 (the character-select scene). */
+ *   0x8017 0 and chasellight 0x8022 5 (the character-select scene);
+ *   NATIVE-HELPERS-002: Spark02 0x7f25 1 (the angel's sparkles), smoke02
+ *   0x7f5b 0 (the mounts' dust), drop01 0x7fcd 0 (the Dark Horse's dust in
+ *   Atlans) and Spark03 0x7f26 0xf (Fenrir's sparks). */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

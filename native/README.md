@@ -392,6 +392,23 @@ for the hero (the client fills it from the inventory); `--no-helpers` turns the 
 lines and a `helpers` summary. Tests: `tests/test_native_helpers.py`, `reconstructed/helpers/test_helpers.py`,
 `scripts/validate_helpers.py` (Unicorn).
 
+**The pet process (NATIVE-HELPERS-002).** `--helper demon|spirit|rudolph|panda|unicorn|skeleton` (DEMO) and the players
+file's `pet=demon|spirit|skeleton|rudolph|panda` run `reconstructed/pets` (verified in Unicorn,
+[finding](../docs/research/client-pets.md)) inside the helpers module (`core/mu_world_pets`): the installed
+`Data/Local/petdata.bmd` (built-in records when absent), CreatePet with ChangeCharacterExt's calls, the fly-after-owner
+and collector moves, RenderObject and the pets' sprites / particles / effects through the particle module (kinds it
+does not port are counted). The ground items are not offered to the collectors (DEMO). Reports: `pets_frame` lines and
+a `pets` summary. Tests: `tests/test_native_pets.py`, `reconstructed/pets/test_pets.py`, `scripts/validate_pets.py`.
+
+**The mounts' looks and the Dark Raven (NATIVE-HELPERS-002).** The mount's after-pass runs its registry functor
+(`reconstructed/helpers/mount_render.c`: glow and chrome passes with texture overrides, Fenrir's flares and effects, the
+second shadows) and the Shining Tail's class visuals and claw steps (`mount_class.c`: glints, rune-circle decals under
+the paws); the helpers' particle kinds (the angel's sparkles, smoke02 dust, drop01, Fenrir's sparks) are in the particle
+module ([finding](../docs/research/client-helper-visuals.md); `scripts/validate_mount_visuals.py`). `--helper
+ghost-horse|ice-dragon|pierce-lion|shining-tail|ur|leviathan|tauros|divine-horse` with `--helper-state LEVEL`, and
+`--helper dark-raven|dark-raven-20|dark-raven-40` / the players file's `raven=1|2|3` (`core/mu_world_raven`,
+[finding](../docs/research/client-dark-spirit.md); `scripts/validate_raven.py`).
+
 ## Character select (NATIVE-CHARSEL-001)
 
 `mu-charsel` and `mu-render charsel` (headless software, with the CCharSelMainWin 2D layer) and `mu-charsel-window`

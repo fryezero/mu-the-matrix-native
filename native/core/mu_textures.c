@@ -211,6 +211,55 @@ int mu_textures_load(mu_textures *t, const mu_bmd *model, const char *directory)
     return mu_textures_load_with_effects(t, model, directory, NULL);
 }
 
+int mu_textures_add_extras(mu_textures *t, const int32_t *index, const char *const *directories,
+                           const char *const *names, int32_t count, uint32_t filter, uint32_t wrap)
+{
+    if (count <= 0)
+        return 0;
+    const int32_t total = t->count + count;
+    mu_image *images = realloc(t->images, (size_t)total * sizeof *images);
+    if (images)
+        t->images = images;
+    const mu_image **slots = realloc(t->slots, (size_t)total * sizeof *slots);
+    if (slots)
+        t->slots = slots;
+    int8_t *components = realloc(t->components, (size_t)total * sizeof *components);
+    if (components)
+        t->components = components;
+    uint32_t *filters = realloc(t->filter, (size_t)total * sizeof *filters);
+    if (filters)
+        t->filter = filters;
+    uint32_t *wraps = realloc(t->wrap, (size_t)total * sizeof *wraps);
+    if (wraps)
+        t->wrap = wraps;
+    int32_t *extra = realloc(t->extra_index, (size_t)(t->extra_count + count) * sizeof *extra);
+    if (extra)
+        t->extra_index = extra;
+    if (!images || !slots || !components || !filters || !wraps || !extra)
+        return 1;
+    for (int32_t i = 0; i < t->count; ++i)   /* the images moved */
+        if (t->slots[i])
+            t->slots[i] = &t->images[i];
+    for (int32_t j = 0; j < count; ++j) {
+        const int32_t s = t->count + j;
+        memset(&t->images[s], 0, sizeof t->images[s]);
+        t->slots[s] = NULL;
+        t->components[s] = 0;
+        t->filter[s] = filter;
+        t->wrap[s] = wrap;
+        t->extra_index[t->extra_count + j] = index[j];
+        char path[4096], error[256];
+        const char kind = kind_of(names[j] ? names[j] : "");
+        if (names[j] && directories[j] && (kind == 'j' || kind == 't') &&
+            mu_image_resolve(directories[j], names[j], path, sizeof path) &&
+            mu_texture_upload_file(path, kind, &t->images[s], &t->components[s], error, sizeof error) == MU_IMAGE_OK)
+            t->slots[s] = &t->images[s];
+    }
+    t->count = total;
+    t->extra_count += count;
+    return 0;
+}
+
 void mu_textures_free(mu_textures *t)
 {
     for (int32_t i = 0; i < t->count; ++i)
@@ -220,5 +269,6 @@ void mu_textures_free(mu_textures *t)
     free(t->components);
     free(t->filter);
     free(t->wrap);
+    free(t->extra_index);
     memset(t, 0, sizeof *t);
 }

@@ -128,6 +128,8 @@ static void call_joint(const mu_sfx_env *env, mu_sfx_effect *e, int32_t bitmap, 
     env_call(env, &c, e);
 }
 
+static void kill_effect(const mu_sfx_env *env, mu_sfx_effect *e);
+
 static void call_plain(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine)
 {
     mu_sfx_call c;
@@ -135,6 +137,61 @@ static void call_plain(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine)
     c.routine = routine;
     c.type = e->type;
     c.subtype = e->subtype;
+    c.owner = -2;
+    env_call(env, &c, e);
+}
+
+/* SetLive 0x0129f4a5(o, 0): live 0, then the record's cleanup 0x009b0451 (NATIVE-HELPERS-002). */
+static void kill_effect(const mu_sfx_env *env, mu_sfx_effect *e)
+{
+    e->live = 0;
+    call_plain(env, e, MU_SFX_CALL_KILL);
+}
+
+static uint32_t env_time(const mu_sfx_env *env)
+{
+    return env && env->time_ms ? env->time_ms(env->context) : 0u;
+}
+
+/* Fenrir's lightning 0x013e0fcd: a flash on a random bone of its owner's model (or a drift above it). */
+static void fenrir_lightning_flash(mu_sfx_effect *e, const mu_sfx_env *env)
+{
+    static const float zero[3] = {0.0f, 0.0f, 0.0f};
+    int32_t bone = -1;
+    const int32_t r = smod(env_rand(env), 30);
+    if (r >= 1 && r <= 2) {
+        bone = 10;
+    } else if (r == 3) {
+        e->scale = e->scale - F_0_2;
+        bone = 14;
+    } else if (r >= 4 && r <= 5) {
+        bone = 2;
+    } else if (r >= 6 && r <= 7) {
+        e->scale = e->scale - F_0_2;
+        bone = smod(env_rand(env), 2) == 0 ? 0x32 : 0x33;
+    } else if (r == 8) {
+        e->scale = e->scale - F_0_2;
+        bone = 0x35;
+    } else if (r >= 9 && r <= 10) {
+        kill_effect(env, e);
+        e->alpha = 0.0f;
+    } else {
+        e->scale = e->scale + F_0_1;
+        e->position[0] = (float)(smod(env_rand(env), 240) - 120) + e->position[0];
+        e->position[1] = (float)(smod(env_rand(env), 10) - 5) + e->position[1];
+        e->position[2] = e->position[2] + 110.0f;
+    }
+    if (bone >= 0 && env && env->owner_bone)   /* TransformPosition(owner model, bone, (0, 0, 0), position, 0) */
+        env->owner_bone(env->context, e->owner, bone, zero, e->position);
+    /* 0x013e12d0: CreateSprite(flare01, position, 2, light - 0.3, the effect, 0, 0, 4) */
+    mu_sfx_call c;
+    memset(&c, 0, sizeof c);
+    c.routine = 0x01692eb7;
+    c.type = 0x7ef7;
+    copy3(c.position, e->position);
+    c.scale = 2.0f;
+    for (int k = 0; k < 3; ++k)
+        c.light[k] = e->light[k] - F_0_3;
     c.owner = -2;
     env_call(env, &c, e);
 }
@@ -154,6 +211,12 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_MODEL_STONE1: case MU_SFX_MODEL_STONE2: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_TORNADO: return sub == 0;
     case MU_SFX_MODEL_STAR_DRAGON: case MU_SFX_MODEL_STAR_GLINT: return sub == 0 || sub == 1;
+    /* NATIVE-HELPERS-002: the mounts' flying step, Fenrir's lightning and paw marks */
+    case 0x6f3: return sub >= 0 && sub <= 2;
+    case 0x6f6: case 0x8438: return sub == 0;
+    case MU_SFX_BITMAP_SHOCKWAVE: return sub == 1;
+    case MU_SFX_MODEL_FENRIR_LIGHTNING: return sub == 0;
+    case MU_SFX_FENRIR_STEP: return sub >= 1 && sub <= 5;
     default: return 0;
     }
 }
@@ -267,6 +330,56 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->serial = env ? env->serial : 0;     /* 0x013cd66f */
         break;
     }
+    case 0x6f3:                                   /* 0x01408b9d: claw */
+        e->lifetime = e->field_70 = 60;
+        e->scale = e->scale_arg = scale;
+        e->alpha = 1.0f;
+        break;
+    case 0x6f6:                                   /* 0x0141818d: tail light emitter */
+        e->lifetime = e->field_70 = 12;
+        e->scale = scale;
+        break;
+    case 0x8438:                                  /* 0x014181cf: paw rune */
+        e->lifetime = e->field_70 = 20;
+        e->scale_arg = scale;
+        e->scale = 0.0f;
+        e->alpha = 1.0f;
+        break;
+    case MU_SFX_BITMAP_SHOCKWAVE:
+        /* NATIVE-HELPERS-002, 0x013dbe3b, subtype 1: the flying step's shock ring */
+        e->lifetime = 20;
+        e->scale = ((float)smod(env_rand(env), 10) + 10.0f) / 10.0f;
+        break;
+    case MU_SFX_MODEL_FENRIR_LIGHTNING: {
+        /* NATIVE-HELPERS-002, 0x013e0e16, subtype 0: a lightning model at a random turn, flashing on its owner */
+        e->lifetime = 100;
+        e->scale = (float)smod(env_rand(env), 100) * f32bits(0x3b03126fu) + F_0_3;   /* 0.002 */
+        e->field_64 = 0;
+        e->alpha = f32bits(0x3f333333u);   /* 0.7 */
+        e->angle[0] = (float)smod(env_rand(env), 360);
+        e->angle[1] = (float)smod(env_rand(env), 360);
+        e->angle[2] = (float)smod(env_rand(env), 360);
+        copy3(e->light, light);
+        const mu_sfx_object *o = env_object(env, owner);
+        int16_t keys = 1;
+        if (o && env->model && env->model(env->context, o->type, 0, &keys))   /* the owner's model 0x00eaa8cf */
+            fenrir_lightning_flash(e, env);
+        break;
+    }
+    case MU_SFX_FENRIR_STEP:
+        if (subtype == 5) {   /* 0x013e20ea */
+            e->field_70 = e->lifetime = 20;
+            break;
+        }
+        /* NATIVE-HELPERS-002, 0x013e210c (subtypes other than 5): a lightning mark at a paw */
+        e->lifetime = 200;
+        e->field_64 = 0;
+        copy3(e->position, position);
+        copy3(e->light, light);
+        e->alpha = 1.0f;
+        e->time_mark = env_time(env);
+        e->position[2] = 0.0f;
+        break;
     case MU_SFX_MODEL_FIRE: {
         /* 0x013d2f05; subtype 1 takes the default branch 0x013d4086 */
         e->blend_mesh = 1;
@@ -749,6 +862,91 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
             e->gravity = e->gravity + 0.5f;
         }
         break;
+    case 0x6f3:                                   /* 0x014b6090 */
+        e->scale -= e->scale_arg / (float)e->field_70;
+        e->alpha -= e->scale_arg / (float)e->field_70;
+        break;
+    case 0x6f6: {                                 /* 0x014d01c9 */
+        call_particle(env, e, 0x8086, e->position, e->angle, e->light, 0x18, e->scale, MU_SFX_NO_OWNER);
+        const float k = (float)smod(env_rand(env), 20) / 25.0f + f32bits(0x3e19999au);
+        mu_sfx_call c;
+        memset(&c, 0, sizeof c);
+        c.routine = 0x01692eb7;
+        c.type = 0x7ef7;
+        c.scale = e->scale * 2.5f;
+        c.owner = -2;
+        c.light[0] = k * F_0_3;
+        c.light[1] = k * f32bits(0x3ee66666u);
+        c.light[2] = k * 1.0f;
+        copy3(c.position, e->position);
+        env_call(env, &c, e);
+        break;
+    }
+    case 0x8438:                                  /* 0x014d050c */
+        if (e->lifetime < e->field_70 / 2)
+            e->alpha -= 1.0f / (float)(e->field_70 / 2);
+        e->scale = e->scale_arg / (float)e->field_70 + e->scale;
+        break;
+    case MU_SFX_BITMAP_SHOCKWAVE:
+        /* NATIVE-HELPERS-002, 0x014756bd, subtype 1: grows and jitters; 0x01476ab6: lights up and fades */
+        e->scale = (float)smod(env_rand(env), 5) / 10.0f + e->scale;
+        e->position[0] = ((float)smod(env_rand(env), 8) - 4.0f) + e->position[0];
+        e->position[1] = ((float)smod(env_rand(env), 8) - 4.0f) + e->position[1];
+        if (0.0f > e->scale)
+            e->scale = 0.0f;
+        if (sub >= 0 && sub <= 3) {
+            float l = e->lifetime > 20 ? (float)(40 - e->lifetime) / 20.0f : (float)e->lifetime / 20.0f;
+            e->light[0] = e->light[1] = e->light[2] = l;
+        }
+        break;
+    case MU_SFX_MODEL_FENRIR_LIGHTNING:
+        /* NATIVE-HELPERS-002, 0x0147c1b4, subtype 0: fades in by 0.3, then out, and turns */
+        if (e->live) {
+            if (e->field_64 == 0) {
+                e->alpha = e->alpha + F_0_3;
+                if (e->alpha >= 1.0f) {
+                    e->field_64 = 1;
+                    e->alpha = 1.0f;
+                }
+                if (0.0f > e->alpha)
+                    e->alpha = 1.0f;
+            } else if (e->field_64 == 1) {
+                e->alpha = e->alpha - F_0_3;
+                if (!(0.0f < e->alpha)) {
+                    e->alpha = 0.0f;
+                    kill_effect(env, e);
+                }
+            }
+            for (int k = 0; k < 3; ++k)
+                e->angle[k] = e->angle[k] + f32bits(0x3e19999au);   /* 0.15 */
+        }
+        break;
+    case MU_SFX_FENRIR_STEP: {
+        /* NATIVE-HELPERS-002, 0x0147cbac (subtypes other than 5): fades in its state's colour, steps its sheet
+         * every 200 ms of real time */
+        if (e->live != 1)   /* IsLive 0x0095f977 on the effect itself */
+            break;
+        if (sub == 5) {   /* 0x0147cbc6 */
+            e->field_64 = trunc_i32(5.0f - (float)e->lifetime / ((float)e->field_70 * F_0_2));
+            e->alpha -= 1.0f / (float)e->field_70;
+            break;
+        }
+        e->angle[0] = e->angle[0] + F_0_1;
+        static const uint8_t fade[5][3] = {{0, 0, 0}, {0, 1, 1}, {1, 1, 0}, {1, 0, 1}, {0, 0, 1}};
+        for (int k = 0; k < 3; ++k)
+            if (fade[sub][k])
+                e->light[k] = e->light[k] - f32bits(0x3d4ccccdu);   /* 0.05 */
+        e->alpha = e->alpha - f32bits(0x3d4ccccdu);
+        if (!(0.0f < e->alpha))
+            kill_effect(env, e);
+        if ((uint32_t)(env_time(env) - e->time_mark) > 200u) {
+            e->field_64 = e->field_64 + 1;
+            if (e->field_64 > 4)
+                kill_effect(env, e);
+            e->time_mark = env_time(env);
+        }
+        break;
+    }
     case MU_SFX_MODEL_TORNADO: {
         /* 0x01435ef3 (NATIVE-JOINT-001): a new heading one step in 500, a drift of 2 along it, shorter
          * on tiles with attribute bit 8, the blend light fading with the lifetime, its own animation */
@@ -831,6 +1029,31 @@ lifetime:
         e->live = 0;
     }
     e->lifetime = e->lifetime - 1;
+    return 1;
+}
+
+int mu_sfx_effect_decal(const mu_sfx_effect *e, int32_t world, mu_sfx_decal *out)
+{
+    memset(out, 0, sizeof *out);
+    out->texture = e->type;
+    out->size = e->scale;
+    copy3(out->light, e->light);
+    if (e->type == 0x6f3 && e->subtype >= 0 && e->subtype <= 2) { /* 0x01527c4e */
+        static const int32_t textures[] = {0x7fdd, 0x7fe0, 0x8098};
+        out->texture = textures[e->subtype];
+        for (int k = 0; k < 3; ++k) out->light[k] = e->alpha * e->light[k];
+    } else if (e->type == 0x8438 && e->subtype == 0) { /* 0x0152d6a6 */
+        out->rotation = e->angle[2];
+        for (int k = 0; k < 3; ++k) out->light[k] = e->light[k] * e->alpha;
+    } else if (e->type == MU_SFX_FENRIR_STEP && e->subtype >= 1 && e->subtype <= 5) { /* 0x0151a5c7 */
+        out->texture = MU_SFX_BITMAP_LIGHTING_A + (e->subtype == 5 ? e->field_64 : e->field_64 % 5);
+        out->size = 0.6f;
+    } else if (e->type == MU_SFX_BITMAP_SHOCKWAVE && e->subtype == 1) { /* 0x01514ded / 0x015158df */
+        out->rotation = -e->angle[2];
+        out->flat = (world >= 0x18 && world <= 0x1d) || world == 0x24;
+    } else {
+        return 0;
+    }
     return 1;
 }
 

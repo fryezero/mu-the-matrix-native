@@ -43,7 +43,8 @@ enum {
     MU_JT_BITMAP_SPARK = 0x7fd5,       /* the spark streaks (Twisting Slash, Noria) */
     MU_JT_BITMAP_LASER = 0x7fd6,       /* Effect\JointLaser01.jpg */
     MU_JT_BITMAP_ENERGY = 0x7fd8,      /* Effect\JointEnergy01.jpg (Heal) */
-    MU_JT_BITMAP_SHINY2 = 0x7f67       /* Effect\Shiny02.jpg (the bolts' CreateSprite) */
+    MU_JT_BITMAP_SHINY2 = 0x7f67,      /* Effect\Shiny02.jpg (the bolts' CreateSprite) */
+    MU_JT_BITMAP_FLARE = 0x7f78        /* Effect\Flare.jpg (the Dark Horse's ring, NATIVE-HELPERS-002) */
 };
 
 /* Client routines the joint code calls, reported through the environment. */
@@ -118,6 +119,9 @@ typedef struct mu_jt_object {
     int16_t weapon;            /* +0x56 (skill_fx's Twisting Slash) */
     float position[3];         /* +0x158 */
     float light[3];            /* +0xec */
+    uint16_t action;           /* +0x2a (NATIVE-HELPERS-002: the 0x7f78 ring reads its target's action) */
+    int32_t type;              /* +0x5c (NATIVE-HELPERS-002: Fenrir's lightning 0x4ac looks up its owner's model) */
+    float eye_188[3], eye_194[3]; /* +0x188 / +0x194, SetEye (0x0137a948) */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at
@@ -143,12 +147,14 @@ typedef struct mu_jt_env {
     void (*call)(void *context, const mu_jt_call *call);         /* NULL: calls are not reported */
     uint8_t serial;            /* [[0x01d1df18] + 0x2dec], the hero's skill serial (Evil Spirit) */
     float world_time;          /* WorldTime [0x06fce370], ms */
+    float creation_light[3];   /* CreateJoint argument 12, the eye trails' supplied colour */
 } mu_jt_env;
 
 /* 1 when CreateJoint, MoveJoint and RenderJoints are reconstructed for the
  * kind: 0x7fd8 subtype 1 (Heal), 0x7fd3 subtype 0 (Evil Spirit), 0x7fd5
  * subtype 0 (spark streaks), 0x7f7d subtypes 0x10..0x1a (Tormenta Island's
- * lightning). */
+ * lightning); NATIVE-HELPERS-002: 0x7f78 subtype 0 (the Dark Horse's ring of
+ * flares around its target). */
 int mu_jt_kind_supported(int32_t type, int32_t subtype);
 
 /* CreateJoint's record part 0x0153b0a6.. on a record that keeps its previous

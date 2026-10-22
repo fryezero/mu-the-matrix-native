@@ -161,3 +161,63 @@ class Bugs(Library):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MountVisuals(unittest.TestCase):
+    """NATIVE-HELPERS-002: the registry functors (scripts/validate_mount_visuals.py compares them in Unicorn)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import validate_mount_visuals as mv
+        cls.mv = mv
+        cls.lib = mv.load_library(str(v.LIB))
+
+    def run_functor(self, typ, **kw):
+        case = {'type': typ, 'subtype': 0, 'action': 0, 'frame': 0.0, 'alpha': 1.0, 'blend_mesh': -1,
+                'blend_light': 1.0, 'a4': 0.0, 'u': 0.0, 'v': 0.0, 'o68': -1, 'position': [100.0, 200.0, 0.0],
+                'angle': [0.0, 0.0, 0.0], 'world': 0, 'time': 0.0, 'w9b0418': False, 'event': False,
+                'color': [0.5, 0.5, 0.5], 'm94': 0xff, 'rand': []}
+        case.update(kw)
+        return self.mv.native_log(self.lib, case)
+
+    def test_wave(self):
+        # 0x0185bdc4(-4, 0) at time 0: x = 0 -> (1 - cos 0) / 2 = 0; half a period later the top
+        self.assertEqual(self.lib.mu_hp_wave(-4.0, 0.0, 0.0), 0.0)
+        self.assertAlmostEqual(self.lib.mu_hp_wave(1.0, 0.0, 3141.0), 1.0, places=5)
+
+    def test_uniria_draws_the_default_body(self):
+        r, calls, rands = self.run_functor(0x417)
+        self.assertEqual((r, calls), (0, []))
+
+    def test_dark_horse_gold_neck_and_second_shadow(self):
+        r, calls, _ = self.run_functor(0x410)
+        self.assertEqual(r, 1)
+        self.assertEqual(calls[0][0], 'body')
+        meshes = [c for c in calls if c[0] == 'mesh']
+        self.assertEqual([c[1] for c in meshes], [0xc, 0xd, 0xe, 0xf])
+        self.assertEqual(meshes[0][2], 0x44)
+        self.assertEqual(tuple(round(x, 3) for x in meshes[0][9]), (1.0, 0.8, 0.3))
+        self.assertEqual(calls[-1], ('shadow', (-1, -1, 8, 9, 0)))
+        # no second shadow in the flying worlds
+        r, calls, _ = self.run_functor(0x410, world=10)
+        self.assertNotIn('shadow', [c[0] for c in calls])
+
+    def test_fenrir_flares_effects_and_sparks(self):
+        r, calls, rands = self.run_functor(0x4ab, action=4)
+        kinds = [c[0] for c in calls]
+        self.assertEqual(kinds.count('sprite'), 6)
+        self.assertEqual(kinds.count('effect'), 2)
+        self.assertEqual([c for c in calls if c[0] == 'particle'][0][1:2], (0x7f26,))
+        self.assertEqual(rands, 2)
+        light = [c for c in calls if c[0] == 'effect'][0][4]
+        self.assertEqual(tuple(round(x, 3) for x in light), (0.8, 0.8, 0.1))
+
+    def test_ghost_horse_glow_by_level(self):
+        low = self.run_functor(0x671, subtype=0)[1]
+        high = self.run_functor(0x671, subtype=2)[1]
+        self.assertLess(len(low), len(high))   # levels 1+ add the 5/7 passes, 2+ the 6 pass
+
+    def test_object_subtype_from_state(self):
+        self.assertEqual(self.lib.mu_hp_mount_object_subtype(10, 7, 0), 7)      # Shining Tail
+        self.assertEqual(self.lib.mu_hp_mount_object_subtype(3, 7, 0), 0)       # Dark Horse keeps it
+        self.assertEqual(self.lib.mu_hp_mount_object_subtype(19, 7, 0), -1)     # the transformations

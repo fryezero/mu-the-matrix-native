@@ -47,8 +47,8 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 23, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 3, MU_WORLD_FX_QUADS = 8192 };
+enum { MU_WORLD_PT_BITMAPS = 44, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 4, MU_WORLD_FX_QUADS = 8192 };
 
 typedef struct mu_world_fx_model {
     int32_t type;
@@ -74,6 +74,8 @@ typedef struct mu_world_particles_stats {
     uint64_t effects_created, effects_unsupported, effects_full, sounds;
     uint32_t live_joints, max_joints, live_effects;
     uint32_t drawn_joint_quads, drawn_effect_models;
+    uint32_t drawn_decals;                 /* NATIVE-HELPERS-002: decal fans of the effects (shock ring, paw marks) */
+    uint64_t decals_total;
 } mu_world_particles_stats;
 
 typedef struct mu_world_particles {
@@ -91,6 +93,7 @@ typedef struct mu_world_particles {
     float world_time;
     mu_world_particles_stats stats;
     /* NATIVE-JOINT-001: the world objects' joints and effects */
+    struct mu_world_helpers *helpers;      /* helper OBJECTs for mount-owned effects and joints */
     struct mu_objects *objects;            /* owners and targets (object images), NULL none */
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */
@@ -124,7 +127,7 @@ int mu_world_particles_create_owned(mu_world_particles *p, int32_t type, const f
 int32_t mu_world_particles_joint(mu_world_particles *p, int32_t type, const float position[3],
                                  const float target_position[3], const float angle[3], int32_t subtype, int32_t target,
                                  float scale, uint16_t key, uint16_t skill, uint8_t byte10, uint16_t word13,
-                                 int32_t arg14);
+                                 int32_t arg14, const float *creation_light);
 /* CreateEffect 0x013c0f19(type, subtype, position, angle, light, owner object, scale, info) on the module's
  * effect pool. Returns 1 when created. */
 int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subtype, const float position[3],
@@ -178,6 +181,11 @@ long mu_world_particles_draw_raster(mu_world_particles *p, mu_raster *raster, co
  * as EnableAlphaTest leaves it. Returns the vertices sent. */
 int32_t mu_world_particles_shadow(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
                                   const mu_render_backend *backend);
+/* NATIVE-HELPERS-002: the same over the meshes first..end (RenderBodyShadow(model, -1, -1, first, end, 0): the
+ * Dark Horse's and the Divine Horse's second shadow). */
+int32_t mu_world_particles_shadow_range(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd,
+                                        const float rgba[4], int32_t first, int32_t end,
+                                        const mu_render_backend *backend);
 
 /* The character part shadow of the item render 0x0176ce74 (its shadow block,
  * a static reading): RenderBodyShadow of a posed, transformed part model,

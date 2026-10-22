@@ -87,6 +87,7 @@ STRING_CTOR, STRING_DTOR, NEW, OBJ_CTOR = 0x0094997e, 0x008e83a0, 0x0191ba7b, 0x
 MAP_INSERT_A, MAP_INSERT_B = 0x0103eb7f, 0x01040039
 RIDER_RESET, BONES_ALLOC, POSE = 0x013a763e, 0x0129f06f, 0x012b5064
 GL_COLOR4 = 0x1a7c754
+SUBTYPE_SENTINEL = 0x5a5a5a   # object +0x60 before the model load (NATIVE-HELPERS-002)
 
 CREATE_BUG, MOVE_BUGS, RENDER_BUGS, DELETE_BUG = 0x00c9d8df, 0x00c9e24a, 0x00c9e4e3, 0x00c9ea70
 KIND, FACTORY, DESCRIPTOR = 0x0106cc24, 0x0106cde5, 0x0106cc74
@@ -195,7 +196,7 @@ OWNER_ACTION_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, ctypes.c_int32)
 PARTICLE_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, P, P, ctypes.c_int32, ctypes.c_float)
 EFFECT_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, P, P, ctypes.c_int32, ctypes.c_int32)
 JOINT_FN = ctypes.CFUNCTYPE(None, P, ctypes.c_int32, P, P, P, ctypes.c_float)
-BONE_FN = ctypes.CFUNCTYPE(ctypes.c_int, P, P, ctypes.c_int32, ctypes.c_char_p, P, P)
+BONE_FN = ctypes.CFUNCTYPE(ctypes.c_int, P, P, ctypes.c_int32, ctypes.c_char_p, P, P, ctypes.c_int)
 BONE_VECTOR_FN = ctypes.CFUNCTYPE(None, P, P, ctypes.c_int32, ctypes.c_char_p, P, P)
 FLAG_FN = ctypes.CFUNCTYPE(ctypes.c_int, P)
 KILL_FN = ctypes.CFUNCTYPE(None, P, P)
@@ -270,6 +271,8 @@ def load_library(path=LIB, extra_cflags=None):
     lib.mu_hp_mount_class.restype = ctypes.c_int32
     lib.mu_hp_mount_model.argtypes = [ctypes.c_int32, ctypes.c_int32]
     lib.mu_hp_mount_model.restype = ctypes.c_int32
+    lib.mu_hp_mount_object_subtype.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]   # NATIVE-HELPERS-002
+    lib.mu_hp_mount_object_subtype.restype = ctypes.c_int32
     lib.mu_hp_mount_speed.argtypes = [ctypes.c_int32, ctypes.c_int32]
     lib.mu_hp_mount_speed.restype = ctypes.c_float
     PM = ctypes.POINTER(Mount)
@@ -684,7 +687,7 @@ class Native:
         def joint(ctx, typ, p, a, o, scale):
             log.append(('joint', typ, v3(p), v3(a), self.object_label(o), f32(scale)))
 
-        def bone(ctx, o, model, name, v, out):
+        def bone(ctx, o, model, name, v, out, world_space):
             nm = name.decode()
             log.append(('bone', nm, v3(v)))
             res = bone_answer(nm, v3(v), case['bone_salt'])
@@ -1166,7 +1169,7 @@ def section_mount_class(m, lib, args, report):
             first = first or {'key': (item, st), 'kind': (kind_c, kind_n), 'class': (cls_c, cls_n)}
     # per class
     for c in range(1, 22):
-        states = [0, 1, 2, 3, 4] if c == 4 else [0]
+        states = [0, 1, 2, 3, 4] if c == 4 else ([0, 7, 15] if 5 <= c <= 18 else [0])   # 7, 15: NATIVE-HELPERS-002
         for st in states:
             case = {'seed': 1, 'owners': [random_owner(rng, 0)], 'bone_salt': rng.getrandbits(16), 'height_base': 0.0,
                     'frustum_salt': 0, 'item_kind': {}}
@@ -1194,6 +1197,7 @@ def section_mount_class(m, lib, args, report):
                 client.mount.define(o + 0x318, struct.pack('<I', 0))
                 client.heap.define(obj + 0x1c, struct.pack('<I', o))
                 client.heap.define(obj + 4, struct.pack('<3i', kind, item if kind != 2 else c - 18, state))
+                client.mount.define(o + 0x60, struct.pack('<i', SUBTYPE_SENTINEL))   # NATIVE-HELPERS-002
                 regions, stubs = client.mount_regions(s), client.mount_stubs(s)
                 slot = lambda k: struct.unpack('<I', m.data_word(vt + 4*k))[0]  # noqa: E731
                 client.log.clear()
@@ -1211,6 +1215,7 @@ def section_mount_class(m, lib, args, report):
                     entry['model'] = hex(model)
                     entry['scale'] = struct.unpack('<f', raw[0xa0:0xa4])[0]
                     entry['obj_type'] = hex(struct.unpack('<i', raw[0x5c:0x60])[0])
+                    entry['subtype'] = struct.unpack('<i', raw[0x60:0x64])[0]
                     entry['log14'] = client.log[:]
                     # speeds
                     client.log.clear()
@@ -1257,6 +1262,8 @@ def section_mount_class(m, lib, args, report):
                     mismatch.append('bone')
                 if bits(f32(mi.scale)) != bits(f32(entry['scale'])):
                     mismatch.append('scale')
+                if lib.mu_hp_mount_object_subtype(c, st, SUBTYPE_SENTINEL) != entry['subtype']:
+                    mismatch.append('subtype')   # NATIVE-HELPERS-002
                 if entry.get('bones'):
                     base = bone_answer(entry['bones'][0], (0.0, 0.0, 0.0), case['bone_salt'])
                     exp = list(base)
