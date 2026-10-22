@@ -165,6 +165,10 @@ typedef struct app {
     mu_objects objects;
     int has_objects;
     long objects_drawn;
+    /* NATIVE-FIDELITY-002: --fidelity-dump PREFIX writes PREFIX-obj.bin (objread's MUOBJLV1 layout, the native
+     * OBJECT images) and PREFIX-light.bin (lightread's MULITLV1 layout, LITE section only) at the end of a run,
+     * for scripts/fidelity_tour.py */
+    const char *fidelity_dump;
     mu_terrain_frustum frustum;
     mu_terrain_tile_stats tile_stats;
     /* NATIVE-ENV-001 */
@@ -1183,6 +1187,18 @@ static void script(app *a, int32_t frame)
 
 static void terrain_box(const app *a, int32_t box[4]);
 
+/* NATIVE-FIDELITY-002: RenderTerrain(0) of the main render scene 0x0185916b (verified slice
+ * 0x018597c2..0x0185985e, reconstructed/terrain mu_terrain_scene_passes; the top-view flag [0x01ec9188] and the
+ * Kanturu event state are 0 here). */
+static int scene_draws_terrain(const app *a)
+{
+    uint32_t calls = mu_terrain_scene_passes(a->map->world, 0, 0);
+    for (; calls; calls >>= 2)
+        if ((calls & 3) == MU_SCENE_CALL_TERRAIN)
+            return 1;
+    return 0;
+}
+
 /* RenderTerrain's view: CreateFrustrum 0x016cba24 from the GL modelview the
  * camera left (aspect = window width / 640, far [0x01cf1630] = the far plane
  * MoveMainCamera set, fov [0x01cf1634]) and CreateFrustrum2D 0x016d20d9 around
@@ -2151,7 +2167,9 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     mu_world_scene(a->map, &scene);
     mu_terrain_tile_stats stats;
     memset(&stats, 0, sizeof stats);
-    if (a->legacy_box)
+    if (!scene_draws_terrain(a))
+        ;   /* NATIVE-FIDELITY-002: the render scene draws no terrain in Icarus (and worlds 0x84, -1) */
+    else if (a->legacy_box)
         mu_terrain_draw(&scene, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
                         mu_terrain_alpha_layers(a->map->world), &sink, &stats);
     else   /* RenderTerrain with the client's block and tile tests, in-game scene state 6 */
@@ -2391,7 +2409,10 @@ static long draw_soft(app *a, mu_raster *raster)
         mu_world_env_clear(&a->env, clear);
     mu_raster_clear(raster, clear);
     mu_world_draw_stats stats;
-    if (a->legacy_box)
+    memset(&stats, 0, sizeof stats);
+    if (!scene_draws_terrain(a))
+        ;   /* NATIVE-FIDELITY-002: no terrain in Icarus (render scene 0x0185916b) */
+    else if (a->legacy_box)
         mu_world_draw_raster(a->map, raster, a->frustum.x_min, a->frustum.y_min, a->frustum.x_max, a->frustum.y_max,
                              &stats);
     else
@@ -2559,8 +2580,55 @@ static void report_frame(const app *a, int32_t frame, uint32_t now, const char *
         mu_npc_report_frame(a->npc, stdout, frame);
 }
 
+/* NATIVE-FIDELITY-002: the same layouts as live-readers/objread.c and lightread.c, so the tour compares the native
+ * world with a live snapshot field by field. "address" is the object index; the sector is CreateObject's rule. */
+static void write_fidelity_dump(const app *a)
+{
+    char path[4096];
+    snprintf(path, sizeof path, "%s-obj.bin", a->fidelity_dump);
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        fprintf(stderr, "%s: cannot write\n", path);
+        return;
+    }
+    int32_t world = a->world, count = a->has_objects ? a->objects.count : 0;
+    uint32_t n = a->has_objects && a->objects.rt.ready && a->objects.rt.images ? (uint32_t)count : 0;
+    fwrite("MUOBJLV1", 1, 8, f);
+    fwrite(&world, 4, 1, f);
+    fwrite(&world, 4, 1, f);
+    fwrite(&count, 4, 1, f);
+    fwrite(&n, 4, 1, f);
+    for (uint32_t i = 0; i < n; ++i) {
+        const uint8_t *o = a->objects.rt.images + (size_t)i * MU_OBJ_SIZE;
+        float x, y;
+        memcpy(&x, o + 0x158, 4);
+        memcpy(&y, o + 0x15c, 4);
+        uint32_t sector = (uint32_t)((int32_t)(x / 1600.0f) * 16 + (int32_t)(y / 1600.0f));
+        fwrite(&i, 4, 1, f);
+        fwrite(&sector, 4, 1, f);
+        fwrite(o, 1, MU_OBJ_SIZE, f);
+    }
+    fclose(f);
+    snprintf(path, sizeof path, "%s-light.bin", a->fidelity_dump);
+    f = fopen(path, "wb");
+    if (!f) {
+        fprintf(stderr, "%s: cannot write\n", path);
+        return;
+    }
+    uint32_t grid = (uint32_t)(3 * MU_TERRAIN_CELLS * sizeof(float)), size = 2 * grid;
+    fwrite("MULITLV1", 1, 8, f);
+    fwrite("LITE", 1, 4, f);
+    fwrite(&size, 4, 1, f);
+    fwrite(a->map->primary, 1, grid, f);
+    fwrite(a->map->light, 1, grid, f);
+    fclose(f);
+    printf("{\"fidelity_dump\": \"%s\", \"objects\": %u}\n", a->fidelity_dump, n);
+}
+
 static void report_summary(const app *a, const char *renderer)
 {
+    if (a->fidelity_dump)
+        write_fidelity_dump(a);
     const mu_walk *w = &a->walk;
     printf("{\"summary\": true, \"renderer\": \"%s\", \"world\": %d, \"folder\": %d, \"camera_key\": %d,"
            " \"world_fov\": %.3f, \"distance\": %.4f, \"z_distance\": %.4f, \"near\": %.2f, \"steps\": %u,"
@@ -3175,6 +3243,7 @@ static int usage(void)
                     "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
+                    "                [--fidelity-dump PREFIX]   PREFIX-obj.bin / PREFIX-light.bin at the end (fidelity tour)\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
@@ -3270,6 +3339,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--helper-state")) a.helper_state = atoi(v);
         else if (!strcmp(k, "--player-range")) a.player_range = atoi(v);
         else if (!strcmp(k, "--objects-dir")) a.objects_dir = v;
+        else if (!strcmp(k, "--fidelity-dump")) a.fidelity_dump = v;
         else if (!strcmp(k, "--combat-weapon")) {
             static const char *names[] = {"none", "sword", "twohand", "spear", "bow", "crossbow", "staff"};
             int found = -1;
