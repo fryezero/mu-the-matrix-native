@@ -13,6 +13,15 @@ on cancel; one-item partner offers remain a demo. Membership survives travel and
 refresh after map clearing. Three native regressions plus five reconstructed tests. Local GL evidence:
 `~/Documents/mu-mac-tools/native/renders/social/checked-{trade,messenger,map,travel}/`.
 Next: original outbound requests/dialogs, tradeability/options, messenger receives, mail/room transport.
+## Item mixing and jewels, NATIVE-MIX-001, partial
+
+Read [client-mix.md](research/client-mix.md). Branch `claude/native-mix` adds `reconstructed/mix` and
+`scripts/validate_mix.py`: scalar summaries, condition/readiness/repeat rules, expression/rate/A/B/C costs,
+Bless/Soul/Life eligibility and request bodies. Private Unicorn: 52,533 cases, zero mismatches, 11/11 planted
+mistakes; 12 portable examples. No native/GFx integration yet. Next: recipe ranking `0x00d0b2c6`, grouping and
+aggregation, then MixGoblinSel/MixInventoryFrame, demo replies, personal store and repair. Local evidence is
+under `~/Documents/mu-mac-tools/native/scratch/mix/`; `renders/mix/` has no native captures. No live game used,
+no Preview client touched. This is WIP, not a completed mix milestone.
 
 ## Repository split (REPO-SPLIT-001)
 

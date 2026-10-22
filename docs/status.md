@@ -43,6 +43,7 @@ not exist yet.
   7,000 bounded Unicorn comparisons, zero mismatches, 10/10 planted mistakes; synthetic session/GFx/travel
   regressions. Original party actions and messenger handlers remain required; transport, mail and full item
   options are also open. [Evidence](research/client-social.md).
+- NATIVE-MIX-001, partial rule library. `reconstructed/mix` ports jewel eligibility/request bodies and bounded mix source, condition, quantity, expression and A/B/C cost rules. Private Unicorn: 52,533 cases, zero mismatches, 11/11 planted mistakes, including all 3,009 installed recipe rows over synthetic summaries. Native/GFx integration, recipe ranking, results, personal store and repair remain open. [Evidence](research/client-mix.md).
 
 - Guide quests, class-upgrade quests, tracker and Go Now, NATIVE-QUEST-002. MyQuestInfo tabs 0/1,
   winQuestSummary, QuestProgressInfo and NpcJobChangeQuest run through the native GFx layer. Go Now walks or
