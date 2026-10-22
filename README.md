@@ -35,8 +35,9 @@ different MU version, a generic engine or a remake: every routine is matched aga
 
 Today the native client plays offline. It goes from the login scene and server list through character select and
 creation into the world, where you walk, fight, talk to NPCs, shop, follow quests and use skills, with the
-original interface movies. The network layer that would connect it to the live servers is the main missing
-piece ([what is out of scope](#scope-and-legal)).
+original interface movies. You can open the map and travel between worlds, ride mounts, mix items at the Chaos
+Goblin, trade with and mail other (demo) players, gain experience and spend stat points. The network layer that
+would connect it to the live servers is the main missing piece ([what is still missing](#what-is-still-missing)).
 
 ## How it is built: evidence first
 
@@ -66,9 +67,11 @@ Some of the recorded comparisons:
 | Path finding | 7,945 + 3,100 comparisons on synthetic grids and all 82 installed attribute maps, 0 mismatches; 16 planted mistakes caught |
 | Item attributes | 604,981 comparisons over all 4,881 items and 300 synthetic records, 0 mismatches |
 | Effects | 1,870 cases, 109,774 frames and 595,838 particle records against the client's effect code |
+| Item mixing, personal store, repair | 98,506 comparisons, 0 mismatches; 23 planted mistakes caught |
+| Party, trade, messenger, mail | 36,700 comparisons over two rounds, 0 mismatches |
 
 Every claim is labelled as verified, statically read or demo. The details live in
-[66 research notes](docs/research/), [status](docs/status.md) and [roadmap](docs/roadmap.md).
+[75 research notes](docs/research/), [status](docs/status.md) and [roadmap](docs/roadmap.md).
 
 ## What works today
 
@@ -114,6 +117,27 @@ creatures (fish, birds, leaves), weather, blob shadows and frustum culling.
 (<a href="docs/research/client-model-light.md">evidence</a>).</sub></p>
 </details>
 
+#### Checked against the original, map by map
+
+A fidelity tour puts the original client and the native one side by side in 13 worlds, at the same tile and camera,
+and scores the difference. The camera and the main terrain light already matched everywhere; the tour found what
+did not, and the fixes went back through the same Unicorn checks: Icarus no longer draws a ground it should not
+have, Dungeon's torches and Kanturu's braziers light the scene, and Atlans's crystals pulse. The mean pixel
+difference dropped from 6.9 to 2.0 in Dungeon and from 9.9 to 3.7 in Kanturu.
+
+<p align="center"><img src="docs/images/18-world-fidelity-live-before-after.jpg" alt="Icarus, Dungeon and Kanturu: the original client, the native client before the fixes, and after" width="900"><br>
+<sub>Left: the original client (live, in Wine). Middle and right: native before and after the fixes. The live hero
+wears its own gear; the native one is the demo character. Icarus's cloud layer is still missing
+(<a href="docs/research/client-world-fidelity.md">evidence and remaining gaps</a>).</sub></p>
+
+### Maps and travel
+
+Tab opens the client's map overlay (its own `hudMap` movie) with the NPC and gate markers; M opens the Move window
+with its level and cost list. Choosing a destination, or walking into a gate, loads the next world, as in the
+original. The demo server answers the warp.
+
+<p align="center"><img src="docs/images/19-maps-tab-overlay-move-window.jpg" alt="Left: the Tab map overlay with NPC markers in Lorencia. Right: the Move window" width="900"></p>
+
 ### Effects and particles
 
 Skill effects, joints (lightning), particles, sprites and the client's JSON effect system.
@@ -138,10 +162,27 @@ requirements and rewards, answered by a local demo server.
 
 <p align="center"><img src="docs/images/09-npc-dialogue-and-shop.jpg" alt="NPC dialogue and the blacksmith's shop" width="900"></p>
 
+The guide quests, class-upgrade quests and the quest tracker work as well: an NPC tells the story, My Quests lists
+the steps with their requirements and rewards, and **Go Now** walks or travels to the next target, across worlds if
+needed. The Shadow Phantom Soldier (NPC 257) stands in Lorencia in its +13 armour and wings, with its orbiting glow.
+
+<p align="center"><img src="docs/images/21-quests-guide-tracker.jpg" alt="Left: a guide quest's dialogue and My Quests with Go Now. Right: a completed quest, the tracker and NPC 257" width="900"></p>
+
+### Skills and the Master tree
+
+The skill bar greys out what the character cannot use, tooltips show damage with the Master bonuses, and A opens
+the Master skill tree with its icons, tooltips and learn requests. The Skill Imprint window sits where the client
+puts it.
+
 | | |
 |---|---|
-| ![My Quests window](docs/images/13-quests-my-quests.png) | ![Skill Imprint window and skill bar](docs/images/14-skill-imprint-window.png) |
-| Quests | Skills: the skill bar, tooltips and the Skill Imprint window |
+| ![Master skill tree with a tooltip](docs/images/20-skills-master-tree.jpg) | ![Skill Imprint window and skill bar](docs/images/14-skill-imprint-window.png) |
+| The Master skill tree | The skill bar, tooltips and the Skill Imprint window |
+
+<details>
+<summary>The first quest window</summary>
+<p align="center"><img src="docs/images/13-quests-my-quests.png" alt="My Quests window" width="820"></p>
+</details>
 
 ### Combat, other players, pets and mounts
 
@@ -151,6 +192,36 @@ items with labels and pick-up; other players with their equipment, wings and gui
 <p align="center"><img src="docs/images/10-combat-damage-numbers.jpg" alt="Combat: skill hit, damage numbers and a monster HP bar" width="820"></p>
 
 <p align="center"><img src="docs/images/12-pets-and-mounts.jpg" alt="Imp, Uniria, Dark Horse, Dinorant and Fenrir" width="900"></p>
+
+The later mounts followed: 24 mount models with their moves and class effects (Shining Tail's sparkles, mist and
+tail, Ghost Horse's aura and breath, Fenrir's lightning), the data-driven pets such as the Panda, Demon, Spirit of
+Guardian and Rudolph, and the Dark Raven.
+
+<p align="center"><img src="docs/images/22-mounts-pets-effects.jpg" alt="Twelve of the later mounts with a rider; below: Shining Tail, Ghost Horse, Fenrir and the Panda pet" width="900"></p>
+
+### Item mixing, personal store and repair
+
+The Chaos Goblin's mix window ranks the recipes, shows the success rate and cost, and takes jewels (Bless, Soul,
+Life). The personal store registers and buys items, and NPCs repair. The outcome comes from the demo server, which
+does not predict the real server's results.
+
+<p align="center"><img src="docs/images/23-chaos-goblin-mix-personal-store.jpg" alt="Left: the Chaos Machine mix window with inventory. Right: registering an item in the personal store" width="900"></p>
+
+### Party, trade, friends and mail
+
+The party list and its markers, trade with full item details (excellent options from the client's tables), friends,
+the messenger with whispers, and mail with read, reply, compose and delete. All of it runs on the client's own
+handlers, with demo players standing in for real ones.
+
+<p align="center"><img src="docs/images/24-social-party-trade-mail-whisper.jpg" alt="Trade with an item tooltip and the party list; the friends list with mail; a whisper conversation" width="900"></p>
+
+### Experience, levels and options
+
+Kills give experience; the bar fills, the level-up flares, and the character window's "+" buttons spend stat
+points with the client's class formulas. O opens the Options window (saved in the client's format), Esc the system
+menu (exit, select server, switch character), and a character that dies respawns in town.
+
+<p align="center"><img src="docs/images/25-progression-character-options-menu.jpg" alt="Character window with stat buttons; the Options window in the original and in the native client; the system menu" width="900"></p>
 
 ### Performance
 
@@ -178,12 +249,36 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Scenes: title, login world, server select, character select and creation, loading | Done (offline) |
 | Interface: 2D layer, legacy windows, GFx movies via Ruffle, HUD, inventory, tooltips, names, chat bubbles | Done |
 | Gameplay systems: combat and skill effects, items, NPC talk/shops/vault, quests, skills, other players, pets and mounts | Client side done; server answers are a local demo |
+| Maps and travel: Tab map with NPC markers, Move window, gates, world changes | Done offline; 5,001 Unicorn cases, 0 mismatches |
+| Skills 2: skill state, usability, Master tree, Imprint position | Done offline; 12,384 cases, 0 mismatches |
+| Pets and mounts 2: 24 mounts, class effects, pets, Dark Raven | Done; 8,400 mount and over 21,000 effect cases, 0 mismatches |
+| Quests 2: guide and class-upgrade quests, tracker, Go Now, NPC 257 | Done offline; 7,004 + 7,400 cases, 0 mismatches |
+| Item mixing, jewels, personal store, repair | Client side done; 98,506 comparisons, 0 mismatches |
+| Social: party, trade, friends, messenger, whispers, mail | Client side done; 36,700 comparisons, 0 mismatches |
+| Progression: experience, levels, stat points, Options window, system menu, respawn | Done offline; 18,506 cases, 0 mismatches |
+| World fidelity: live vs native tour of 13 maps, fixes in Icarus, Dungeon, Kanturu, Atlans, Karutan | Ongoing; 10,600 cases of the fixes, 0 mismatches |
+| Skills 3: 4th and 5th skill trees | In progress |
 | Audio: music, ambient, footsteps, effects | Done |
 | Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done |
 | Network: protocol framing | Partly (packet build/parse tools) |
 | Live login and encrypted session, end-to-end gameplay against the real servers | Not started (out of scope for now) |
 
-The full per-milestone record is in [docs/status.md](docs/status.md) and [docs/roadmap.md](docs/roadmap.md).
+Every case count is a comparison of the authored C against the client's own instructions in Unicorn, with planted
+mistakes to prove the check can fail. The full per-milestone record is in [docs/status.md](docs/status.md) and
+[docs/roadmap.md](docs/roadmap.md).
+
+### What is still missing
+
+- **Online play.** The client runs offline only. A local demo server answers warps, mixes, trades, quest rewards,
+  level-ups and mail; its answers are labelled demo values, not the real server's rules. The login, the encrypted
+  session and the live protocol are out of scope for now.
+- **Skills.** The 4th and 5th skill trees are being worked on; their windows open but stay empty. Formula data and
+  the server's equipment, buff and event feeds are not wired yet.
+- **World details.** Icarus's cloud layer and dragons, the brazier and torch flames themselves, Tarkan and Raklion's
+  haze, and some world-specific object movement (Devias doors, Raklion snow) still differ from the original.
+- **Items and social.** Jewel settlement, harmony options and the separate Chaos weapon system are open; trade and
+  mail keep the data the server would send but nothing travels over a network.
+- **Helpers.** Muun pets, the rarer transformed classes' effects and choosing the helper from the inventory.
 
 ## Architecture
 
@@ -199,7 +294,7 @@ flowchart TB
     end
     subgraph Source["Reconstruction"]
         Formats["model-recovery/, asset-recovery/<br/>BMD, images, LEA, tables"]
-        Recon["reconstructed/*<br/>30 modules of authored C<br/>(models, terrain, objects, ui, combat, npc, quest, skill, …)"]
+        Recon["reconstructed/*<br/>36 modules of authored C<br/>(models, terrain, objects, ui, combat, npc, quest, skill, …)"]
     end
     subgraph Native["Native macOS client (arm64)"]
         Core["native/core<br/>platform-neutral game modules"]
@@ -259,7 +354,7 @@ model-recovery/    BMD geometry, bones, animation and encrypted envelopes (v10/1
 asset-recovery/    Image wrappers and text-mesh readers
 runtime-linux/     QEMU x86 Linux/Wine guest procedure for code capture (historical, unmaintained)
 windows-capture/   Read-only Windows capture helper (not yet validated on Windows)
-docs/              Status, roadmap, handoff, architecture, 66 research notes, images
+docs/              Status, roadmap, handoff, architecture, 75 research notes, images
 tests/             Repository-level tests (publication boundary, static maps, private checks)
 ```
 

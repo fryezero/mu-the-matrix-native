@@ -1,5 +1,12 @@
 # Continue from here
 
+## README refresh (DOCS-README-002)
+
+README images 18–25 come from local renders; their full-size sources and a map to each README image are in
+`~/Documents/mu-mac-tools/native/renders/readme-sources/` (README.txt there). New README images must be reviewed
+(no account names, other players' chat or private paths) and pinned in `scripts/audit_repository.py`. When
+NATIVE-SKILL-003 merges, update the "Skills 3" row and the skills section.
+
 ## Social systems, original handlers and item options (NATIVE-SOCIAL-001)
 
 Round 1 merged in PR #147, `4420bb2`. Round 2 is on `claude/native-social2`.

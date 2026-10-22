@@ -1,5 +1,11 @@
 # Current status
 
+## README refresh, 2026-10-22
+
+The README now covers the milestones merged since the split (maps and travel, skills 2, pets and mounts 2, quests 2,
+item mixing, social, progression, the world fidelity tour) with eight new images (`docs/images/18-…` to `25-…`,
+hash-pinned), the updated progress table and a "what is still missing" list. NATIVE-SKILL-003 is listed as in progress.
+
 ## Repository split, 2026-10-21
 
 This repository (renamed from `mu-the-matrix-recovery` to `mu-the-matrix-native`) is now the native track only.
