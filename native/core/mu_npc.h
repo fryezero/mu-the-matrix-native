@@ -63,6 +63,7 @@ typedef struct mu_npc_demo_row {
     mu_npc_item shop[MU_NPC_ITEMS];
     int32_t shop_count;
     int32_t dialog_npc, contribution;     /* NATIVE-QUEST-001: F9 01 answer (0: none) */
+    int classic;                         /* NATIVE-QUEST-002: the quest session answers the talk with C1 A1 */
 } mu_npc_demo_row;
 
 typedef struct mu_npc_demo {
@@ -87,7 +88,8 @@ typedef enum mu_npc_window_kind {
     MU_NPC_WINDOW_DIALOG,       /* npcdialogue */
     MU_NPC_WINDOW_SHOP,         /* NpcShop (+ the inventory, as the shop's Open 0x00bf0354 opens it) */
     MU_NPC_WINDOW_STORAGE,      /* StorageInven */
-    MU_NPC_WINDOW_OTHER         /* a window the native client does not play (named by `movie`) */
+    MU_NPC_WINDOW_OTHER,        /* a window the native client does not play (named by `movie`) */
+    MU_NPC_WINDOW_CLASSIC       /* NpcJobChangeQuest, through core/mu_quest */
 } mu_npc_window_kind;
 
 typedef struct mu_npc_open {

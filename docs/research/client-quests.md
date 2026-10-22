@@ -1,4 +1,6 @@
-# Quests: the quest system, its packets and windows (NATIVE-QUEST-001)
+# Quests: the quest system, guide, class upgrades and tracker
+
+Sections 1-7 record NATIVE-QUEST-001. Section 8 supersedes its guide, class-upgrade, tracker, move and wrap gaps.
 
 This note maps the client's quest system (the "MU quest" of MUQuest/MUQuestString: tutorial, rewarding and
 repeatable quests given by NPCs), the quest packets' state updates, the windows that show it (NpcQuestProgress,
@@ -209,7 +211,7 @@ native/build/mu-world --game-root "$MU_GAME_ROOT" --headless --backend gl --no-a
 
 Movies: convert `NpcQuestProgress MyQuestInfo` with the NATIVE-GFX-002 options next to the NPC set.
 
-## Gaps
+## NATIVE-QUEST-001 gaps at handoff
 
 - Not played: the guide quest tab (GuideQuest is not in the snapshot), the class-upgrade (classic Quest.bmd) quests
   and NpcJobChangeQuest, the quest summary HUD (QuestSummary/winQuestSummary), QuestProgressInfo, the move-to-target
@@ -219,3 +221,111 @@ Movies: convert `NpcQuestProgress MyQuestInfo` with the NATIVE-GFX-002 options n
 - The demo server's rules (which quests an NPC offers, progress, rewards) are choices; reward items and the zen/exp
   update packets are not sent.
 - No quest marks over NPCs were found in this build.
+
+
+## 8. Guide, class upgrades, tracker and Go Now, NATIVE-QUEST-002
+
+Implemented 2026-10-22 in `quest_guide.c`, `quest_classic.c`, `quest_summary.c`, `quest_move.c` and `quest_wrap.c`.
+The pinned text and image captures above remain the instruction oracle. `lang5.bin` is a local live snapshot
+from 2026-10-22. No original-client gameplay was performed during this implementation finish.
+
+### Data and executed routines
+
+GuideQuest at `0x06fbb3d0` has a vector at +0x38 of chapter vectors. Its 0xf4-byte steps contain strings at
++0x0c/+0x60/+0xd0, class flags at +0x78 and reward item triples at +0xe8. The snapshot holds 186 steps in four
+chapters. GuideQuestString at `0x06fbb414` has chapter titles in vector +0x44 and names in map +0x50, 196 records.
+`langread` now supports `deep:` and `ptr:` captures. The converter writes `guidequest.tsv`, `guidestrings.tsv`
+and `dialoganswers.tsv` locally. Quest.bmd has 200 XOR-decoded 1,000-byte class-quest records, read by the
+client's loader `0x009f4866`. Dialog(kor)'s answer action and next-dialogue fields drive class quest choices.
+
+| Component | Client instructions compared with authored C |
+|---|---|
+| Guide tab 0 | Constructor `0x00d4c27a`; init/list/chapter/check/state/text/conditions/buttons `0x00d49610..0x00d4ad11`; give-up `0x00d4b942`, box `0x00be436d`, Go Now `0x00d4bed6` |
+| Guide packets | F6 50/51 through `0x00be45c7`; outgoing F6 51..57, including chapter abort 53 and cross-map target 54 |
+| Tracker | QuestSummary routines `0x00c89f80..0x00c8ae30`, guide and MU quest entries, visibility, title, click and close lock; QuestProgressInfo onload and animation request |
+| Quest Go Now | `0x00d4ffea`, `0x00d5029b`, `0x00d5060e`; walk/arrival/helper choices and cross-map F6 7A |
+| Class upgrades | Manager `0x009f4244..0x009f52fe`; C1 C0/A1/A4/86 and F6 1C; NpcJobChangeQuest `0x00beb8b6..0x00becb32`; tab 1 `0x00d4dd38`, conditions `0x00d4e45c` |
+| Text wrapping | `0x011ff794` and line cutter `0x01193941`; delimiters, measured width, scale, bullet, indentation, truncation; npcdialogue uses the same wrap |
+
+The F6 1C refresh effect reaches the visible class tab without sending another F6 1C. The client's
+`0x00be4901` dispatches tab vtable +0x30, `0x00d4e44a` forwards to the verified `0x00d4e45c` condition refresh.
+The validator records the dispatcher effect and compares that condition routine independently.
+
+### Native integration
+
+Both mu-world and mu-client use `world_gfx` to play MyQuestInfo tabs 0/1, `winQuestSummary`, QuestProgressInfo
+and NpcJobChangeQuest. The tracker movie uses `_level0.win` and the second UI callback channel `QuestSummary`.
+Its loader globals and `onFileLoad` are supplied as the original MovieLoader does. The reward movie calls
+`gotoAndPlay(0)`, which Ruffle leaves stopped at frame 1 with alpha 0. A local movie probe confirmed that
+`gotoAndPlay(1)` advances the authored animation; the GFx adapter supplies that compatibility call and restores
+the root's visibility for each reward. No movie bytes are changed.
+
+The host measures text through the interface font, counts inventory items by code and level, and passes
+same-map movement to `mu_walk_auto_move_ex`. Cross-map guide and quest requests call
+`mu_map_travel_to(session, world, x, y)` from NATIVE-MAP-001. The host consumes `mu_map_take_teleport`, rebinds
+walk/map sessions, and uses the live walk world for the arrival callback so one Go Now produces one transfer.
+The map window continues to use `mu_map_travel_move`. Demo guide rewards update local zen/exp; server quest
+rules and answers remain local choices. The native demo has no confirmation movie, so chapter-abort box
+0x2e uses an explicit accept fallback; the insufficient-level warning 0x2f only displays its message.
+
+The Lorencia demo now places the actual NPC 257. The CreateMonster extraction records a Player model 0xa91,
+class byte 0x12, scale 1.0, armour set 24 at +13 and wing item 12:3. `validate_actors.py` now records CreateJoint
+and the wing slot. The extracted call is one joint type 0x7f78, subtype 42; the earlier x5 handoff estimate was
+incorrect. The native renderer uses the existing player parts and item glow renderer. Class mentor 229 uses
+the same player-NPC path. Other player-model classes retain their previous unsupported status.
+
+Demo rows are `guide STEP[:COUNT[:STATE]]`, `classic QUEST:STATE` and `classicnpc SERVER_CLASS`. In addition to
+the existing quest verbs, scripts support `qtrack`, `qclass`, `qcnext:N`, `qcok`, `qgset:STEP:COUNT:STATE` and
+`qcheck`. `qgiveup` routes to the guide handler on tab 0. Class quest counters only count while accepted and
+clear on completion. Kill-only A4 replies refresh visible conditions without reopening a closed NPC window.
+Portable fixtures cover that close-then-kill path, malformed A1/86 IDs 200..255 and exact-size wrap output buffers.
+
+### Verification and limits
+
+`validate_quest2.py --snapshot lang5.bin --sequences 30 --length 30 --wrap-cases 2000 --mutations` runs every
+family in a fresh machine with its own stubs and RNG. Sharing one machine had leaked wrap's CRT thread and
+import setup into the classic family. The isolated families reproduce the same result together or alone.
+The C1 86 message box's callback owner is null, not its MsgBoxes receiver.
+
+The single guide mismatch was an invalid caller state: checked chapter abort after the guide list was empty.
+At `0x00d4ba15..0x00d4ba2a` the client reads vector[-1]. Two such operations are excluded; the native code
+returns safely. Four random tracker sequences retained a pointer into a chapter vector after it was rebuilt;
+the client later reads destroyed strings. Those sequences end at the dangling pointer, and the exclusion
+counts are in the report. The native tracker retains safe values. The classic client can also step below
+quest zero when random class/state combinations have no allowed record. Those sequences stop and are counted
+in coverage. These undefined-memory states are not claimed equal.
+
+The heap, CRT/iostream formatting, GFx value/window calls, item and map names, helper availability, path/send
+results, GDI per-byte metrics and message boxes are modelled. Native CoreText shaping, Ruffle composition,
+map loading and demo server rules are integration checks, separate from instruction comparisons. The wrap
+return may report max_lines + 1 like the client; native indentation stays inside the supplied buffer.
+
+The local reports and render runs are under `~/Documents/mu-mac-tools/native/renders/quest2/`. The
+NATIVE-QUEST-001 regression report there has 12,914 cases, zero mismatches and 6/6 planted mistakes caught.
+The final NATIVE-QUEST-002 run compares 7,004 cases with zero mismatches and catches 5/5 planted mistakes.
+
+| Family | Cases |
+|---|---:|
+| guide-data | 383 |
+| guide | 832 |
+| summary | 847 |
+| move | 900 |
+| wrap | 2,000 |
+| dialog-wrap | 900 |
+| classic-data | 400 |
+| classic | 742 |
+
+The classic count includes 35 direct tab-refresh calls. Coverage also records eight sequences stopped when the
+client's current quest wrapped below zero. Mutation checks use wrong guide count offsets, tracker visibility,
+move coordinates, wrap scale and packed class-state masks. Portable checks cover the public packet dispatcher,
+class mentor's normal logging, untaken/completed kill accounting, exact-size wrap output, malformed state IDs,
+the second-layer tracker callbacks and inventory membership while an item is held.
+
+Local render folders `guide/`, `travel/`, `walk/` and `notice/` contain frames and `run.jsonl`. The guide run opens
+Sebina through an NPC talk, shows tab 1 and aborts a guide chapter through F6 53. The travel run reaches Noria
+168,86 with one transfer, counts three hunt kills and grants two guide rewards. The walk run reaches Lorencia
+149,126 without a transfer. The notice run plays the completion banner twice.
+
+Remaining gaps are the event-map tab, F6 56/7B auto-move answer details, real server rules and reward item
+insertion. NPC 257's cosmetic joint is recorded but not attached in the native scene. No quest marks over
+NPCs were found. The 70/71 hash layer and network encryption remain outside this milestone.

@@ -172,7 +172,8 @@ typedef struct mu_monster_class {
     uint16_t model;             /* model index passed to CreateCharacter 0x0137f6c2 */
     uint16_t opened;            /* OpenMonsterModel type or OpenNpc index */
     uint32_t scale_bits;        /* object +0xa0; 0 = not written (character create leaves 0.9) */
-    struct { uint16_t type; uint8_t level; } slots[8];  /* character +0x1c4 + k*0x3fc */
+    struct { uint16_t type; uint8_t level; } slots[9];  /* character +0x1c4 + k*0x3fc; slot 8 = wing */
+    uint8_t class_byte;         /* character +0x12, when the class creation writes it */
 } mu_monster_class;
 
 typedef struct mu_monster_class_speed {

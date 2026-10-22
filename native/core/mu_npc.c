@@ -57,7 +57,9 @@ int mu_npc_demo_parse(mu_npc_demo *demo, const char *text, char *error, size_t e
             demo->placement[demo->placement_length] = 0;
             continue;
         }
-        if (!strncmp(line, "quest", 5) && (line[5] == ' ' || line[5] == '\t')) {
+        if ((!strncmp(line, "quest", 5) && (line[5] == ' ' || line[5] == '\t')) ||
+            (!strncmp(line, "guide", 5) && (line[5] == ' ' || line[5] == '\t')) ||
+            (!strncmp(line, "classic", 7) && (line[7] == ' ' || line[7] == '\t'))) {
             size_t len = strlen(line);
             if (demo->quests_length + len + 2 > sizeof demo->quests) {
                 snprintf(error, error_size, "line %d: too many quest lines", line_no);
@@ -72,10 +74,11 @@ int mu_npc_demo_parse(mu_npc_demo *demo, const char *text, char *error, size_t e
         char *save = NULL, *word = strtok_r(line, " \t\r", &save);
         if (!word)
             continue;
-        if (!strcmp(word, "dialog")) {
+        if (!strcmp(word, "dialog") || !strcmp(word, "classicnpc")) {
+            int classic = !strcmp(word, "classicnpc");
             char *cls = strtok_r(NULL, " \t\r", &save), *npc = strtok_r(NULL, " \t\r", &save);
             char *contribution = strtok_r(NULL, " \t\r", &save);
-            if (!cls || !npc) {
+            if (!cls || (!classic && !npc)) {
                 snprintf(error, error_size, "line %d: dialog needs a server class and a dialogue NPC", line_no);
                 return 1;
             }
@@ -91,7 +94,8 @@ int mu_npc_demo_parse(mu_npc_demo *demo, const char *text, char *error, size_t e
                 row->server_class = server_class;
                 row->result = -1;
             }
-            row->dialog_npc = (int32_t)strtol(npc, NULL, 0);
+            row->classic = classic;
+            row->dialog_npc = npc && !classic ? (int32_t)strtol(npc, NULL, 0) : 0;
             row->contribution = contribution ? (int32_t)strtol(contribution, NULL, 0) : 0;
             continue;
         }
@@ -375,7 +379,7 @@ static void answer(mu_npc *n)
         return;
     const mu_world_actor *a = &n->actors->list[i];
     const mu_npc_demo_row *row = mu_npc_demo_find(n->demo, a->server_class);
-    if (row && row->dialog_npc > 0) {
+    if (row && (row->dialog_npc > 0 || row->classic)) {
         /* NATIVE-QUEST-001: the NPC dialogue packet F9 01 (npc, contribution); its handler 0x0126d5da opens
          * npcdialogue for that dialogue NPC (no ReceiveTalk: no close-all, no sounds) */
         ++n->stats.answers;
@@ -385,15 +389,15 @@ static void answer(mu_npc *n)
         open.server_class = a->server_class;
         open.npc_index = a->actor.spec.npc_index;
         open.model = a->actor.spec.model_index;
-        open.kind = MU_NPC_WINDOW_DIALOG;
+        open.kind = row->classic ? MU_NPC_WINDOW_CLASSIC : MU_NPC_WINDOW_DIALOG;
         open.window.dialogue = row->dialog_npc;
-        open.window.movie = "npcdialogue";
-        open.dialog_packet = 1;
+        open.window.movie = row->classic ? "NpcJobChangeQuest" : "npcdialogue";
+        open.dialog_packet = !row->classic;
         open.contribution = row->contribution;
         open.demo = row;
         char text[112];
-        snprintf(text, sizeof text, "step %d: answer F9 01 from %s: npcdialogue of NPC %d", n->step, a->label,
-                 row->dialog_npc);
+        snprintf(text, sizeof text, "step %d: answer %s from %s: NPC %d", n->step,
+                 row->classic ? "C1 A1 (quest demo)" : "F9 01", a->label, row->dialog_npc);
         log_line(n, text);
         ++n->stats.windows;
         if (n->open)
@@ -559,7 +563,7 @@ int mu_npc_script_parse(mu_npc_script *script, const char *text)
                                             "tip", "tipinv", "bufftip",
                                             /* NATIVE-QUEST-001 (world_gfx's quest verbs) */
                                             "qnext", "qno", "qok", "qclose", "qwin", "qtab", "qsel", "qgo", "qgiveup",
-                                            "qkill", "qset"};
+                                            "qkill", "qset", "qtrack", "qclass", "qcnext", "qcok", "qgset", "qcheck"};
         int known = 0;
         for (size_t v = 0; v < sizeof VERBS / sizeof VERBS[0]; v++)
             known |= !strcmp(it->verb, VERBS[v]);

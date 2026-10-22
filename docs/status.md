@@ -23,6 +23,11 @@ not exist yet.
 
 ## Working components
 
+- Guide quests, class-upgrade quests, tracker and Go Now, NATIVE-QUEST-002. MyQuestInfo tabs 0/1,
+  winQuestSummary, QuestProgressInfo and NpcJobChangeQuest run through the native GFx layer. Go Now walks or
+  travels through `mu_map`; NPC 257 wears its extracted +13 set 24 and wings. 7,004 Unicorn cases match with
+  zero mismatches, all 5 planted mistakes caught; portable fixtures cover malformed inputs and host integration. [Evidence](research/client-quests.md#8-guide-class-upgrades-tracker-and-go-now-native-quest-002).
+
 - The startup decompressor is reconstructed in C. Four original compressed
   blocks match independent decoding, but the result is still protector code.
 - The isolated QEMU x86 Linux/Wine guest restores a repeatable 23,572,480-byte

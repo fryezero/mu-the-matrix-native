@@ -31,6 +31,8 @@ NATIVE = HERE.parent
 ROOT = NATIVE.parent
 sys.path.insert(0, str(HERE))
 from test_native_npc import write_npc_world, run  # noqa: E402
+sys.path.insert(0, str(ROOT/'reconstructed/quest'))
+from test_quest import guide_fixture, GUIDE_STRINGS, classic_fixture  # noqa: E402
 
 LIB = NATIVE/('build/libmuquest.dylib' if sys.platform == 'darwin' else 'build/libmuquest.so')
 PRIVATE = os.environ.get('MU_RECOVERY_INTEGRATION') == '1'
@@ -43,7 +45,12 @@ KIND_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes
 class Host(ctypes.Structure):
     _fields_ = [('user', ctypes.c_void_p), ('data', ctypes.c_void_p), ('text', TEXT_FN), ('npc_name', TEXT_FN),
                 ('map_name', TEXT_FN), ('item_name', TEXT_FN), ('item_kind', KIND_FN), ('item_byte', KIND_FN),
-                ('to_utf8', ctypes.c_void_p)]
+                ('to_utf8', ctypes.c_void_p),
+                ('item_record_name', ctypes.c_void_p), ('measure', ctypes.c_void_p), ('path_reset', ctypes.c_void_p),
+                ('path_start', ctypes.c_void_p), ('send_move', ctypes.c_void_p), ('helper_running', ctypes.c_void_p),
+                ('helper_available', ctypes.c_void_p), ('classic_item', ctypes.c_void_p),
+                ('classic_kills', ctypes.c_void_p), ('item_level_name', ctypes.c_void_p),
+                ('money_text', ctypes.c_void_p)]
 
 
 def ints(values, n):
@@ -89,12 +96,24 @@ class Session(unittest.TestCase):
         L.mu_quest_client_field.restype = ctypes.c_int32
         L.mu_quest_info_callback.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_double),
                                              ctypes.c_int, ctypes.c_char_p]
+        L.mu_quest_session_demo_state.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        L.mu_quest_session_load_classic.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        L.mu_quest_session_set_travel.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        L.mu_classic_state_of.argtypes = [ctypes.c_void_p, ctypes.c_int32]
+        for name in ('mu_guide_go', 'mu_classic_complete', 'mu_classic_close', 'mu_quest_session_classic_talk'):
+            getattr(L, name).argtypes = [ctypes.c_void_p]
+        L.mu_guide_request.argtypes = [ctypes.c_void_p, ctypes.c_int32]
+        L.mu_classic_choice.argtypes = [ctypes.c_void_p, ctypes.c_int32]
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         d = Path(self.tmp.name)
         (d/'quests.tsv').write_text(QUESTS)
         (d/'queststrings.tsv').write_text(STRINGS)
+        (d/'guidequest.tsv').write_text(guide_fixture())
+        (d/'guidestrings.tsv').write_text(GUIDE_STRINGS)
+        (d/'dialog.tsv').write_text('1\tTake the hunt\n2\tKeep hunting\n3\tDone\n4\tReady\n')
+        (d/'dialoganswers.tsv').write_text('1\t0\t0\t1\tAccept\n')
         self.events = []
         self.keep = {}
         self.event_fn = EVENT_FN(lambda u, line: self.events.append(line.decode('latin1')))
@@ -169,6 +188,76 @@ class Session(unittest.TestCase):
         f = (ctypes.c_int32 * 4)()
         self.assertEqual(L.mu_quest_client_field(self.c, b'progress.visible', 0, 0), 0)
 
+    def test_guide_travel_reward_and_next_hunt(self):
+        L = self.L
+        L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
+        L.mu_quest_client_field(self.c, b'hero.level', 1, 10)
+        L.mu_quest_session_demo_state(self.s, b'guide 11\n')
+        self.steps()
+        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.current', 0, 0), 11)
+        trips = []
+        travel_fn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32)(
+            lambda u, w, x, y: trips.append((w, x, y)) or 1)
+        L.mu_quest_session_set_travel(self.s, ctypes.cast(travel_fn, ctypes.c_void_p))
+        L.mu_guide_go(self.c)
+        self.assertEqual(trips, [(3, 42, 43)])
+        for name, value in ((b'world', 3), (b'hero.x', 42), (b'hero.y', 43)):
+            L.mu_quest_client_field(self.c, name, 1, value)
+        L.mu_guide_go(self.c)
+        self.steps()
+        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.complete', 0, 0), 1)
+        L.mu_guide_go(self.c)  # reward, then the client's next eligible step
+        self.steps()
+        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.current', 0, 0), 14)
+        self.assertIn('show QuestProgressInfo', self.take())
+        for _ in range(2):
+            L.mu_quest_session_kill(self.s, 3, 0)
+            self.steps()
+        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.complete', 0, 0), 1)
+        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.count', 0, 0), 2)
+
+    def test_classic_npc_accept_kills_complete(self):
+        L = self.L
+        d = Path(self.tmp.name)
+        local = d/'Data/Local'
+        local.mkdir(parents=True)
+        (local/'quest.bmd').write_bytes(classic_fixture())
+        self.assertEqual(L.mu_quest_session_load_classic(self.s, str(d).encode()), 200)
+        L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
+        L.mu_quest_session_demo_state(self.s, b'classic 0:3\n')
+        self.steps()
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 3)
+        L.mu_quest_session_classic_talk(self.s)
+        self.steps()
+        self.assertIn('show NpcJobChangeQuest', self.take())
+        self.take()
+        L.mu_quest_session_kill(self.s, 0, 0)
+        self.steps()
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 3)
+        L.mu_classic_choice(self.c, 0)
+        self.steps()
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
+        self.take()
+        L.mu_quest_session_kill(self.s, 3, 0)
+        self.steps()
+        ev = self.take()
+        self.assertTrue(any('SetQuestMob' in e for e in ev))
+        self.assertNotIn('show NpcJobChangeQuest', ev)
+        L.mu_classic_close(self.c)
+        self.take()
+        L.mu_quest_session_kill(self.s, 3, 0)
+        self.steps()
+        self.assertFalse(any('NpcJobChangeQuest' in e for e in self.take()))
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
+        L.mu_quest_session_classic_talk(self.s)
+        self.steps()
+        L.mu_classic_complete(self.c)
+        self.steps()
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 2)
+        L.mu_quest_session_kill(self.s, 3, 0)
+        self.steps()
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 2)
+
     def test_talk_goal_and_give_up(self):
         L = self.L
         L.mu_quest_session_npc_list(self.s, 257)
@@ -217,6 +306,12 @@ class Packet(unittest.TestCase):
         self.assertEqual(o[1]['dialog_packet'], 0)
         self.assertEqual(out['summary']['sounds'], 2)           # only the vault's ReceiveTalk plays 25 and 28
         self.assertTrue(any('F9 01' in l for l in out['logs']))
+
+    def test_classic_talk_logging(self):
+        demo = Path(self.tmp.name)/'classic.txt'
+        demo.write_text('classicnpc 251\nguide 11\nclassic 0:3\n')
+        out = run(self.root, self.placement, demo, '--frames', '60', '--npc-script', '2:talk:smith')
+        self.assertEqual(out['opens'][0]['npc_open'], 'classic')
 
     def test_bad_rows(self):
         bad = Path(self.tmp.name)/'bad.txt'

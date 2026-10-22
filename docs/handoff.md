@@ -116,6 +116,18 @@ the scene's sprites, particles and shadows. Compare with `scripts/validate_chars
 `mu-charsel --objects-out` for the per-object comparison). Next: the stardr01 effect `0x5ac` (CreateEffect
 `0x013f41b4` and its child `0x5ad`), the scene-5 character pick, the GFx character list.
 
+## Guide, class upgrades and tracker, NATIVE-QUEST-002
+
+`reconstructed/quest/quest_{guide,classic,summary,move,wrap}.c` and `scripts/validate_quest2.py` implement and
+compare 7,004 cases with zero mismatches and 5/5 planted mistakes caught. Each family owns its emulator stubs. MyQuestInfo tabs 0/1, winQuestSummary,
+QuestProgressInfo and NpcJobChangeQuest are wired in `world_gfx` for mu-world and mu-client. The map travel API
+handles cross-map Go Now. NPC 257 uses the extracted Player +13 set 24 and 12:3 wing at scale 1.0; class mentor
+229 exercises the class window. Local tables add guidequest/guidestrings/dialoganswers TSVs. Demo rows/verbs and
+remaining limits are in [client-quests.md](research/client-quests.md#8-guide-class-upgrades-tracker-and-go-now-native-quest-002).
+Reports/renders: `~/Documents/mu-mac-tools/native/renders/quest2/`. The Preview app must carry the three added
+local tables. Chapter abort uses the offline demo's accept fallback. Next: event-map tab, auto-move answers,
+real server rewards and NPC 257's recorded cosmetic joint.
+
 ## Quests (NATIVE-QUEST-001)
 
 Read [`research/client-quests.md`](research/client-quests.md). `reconstructed/quest` (libquest) is the client side: the

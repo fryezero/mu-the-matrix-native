@@ -283,15 +283,39 @@ class LayerWithStub(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def run_host(self, *ops, scale=1):
+    def run_host(self, *ops, scale=1, quests=False):
         log = self.dir/'stub.log'
         if log.exists():
             log.unlink()
         env = {**os.environ, 'MUGFX_STUB_LOG': str(log), 'MU_GFX_SCALE': str(scale)}
+        if quests:
+            env['MU_GFX_HOST_QUEST'] = '1'
         r = subprocess.run([str(self.host), str(self.dir/'movies'), str(self.lib)] + [str(o) for o in ops],
                            capture_output=True, text=True, timeout=60, env=env)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return r.stdout, log.read_text() if log.exists() else ''
+
+    def test_quest_window_channels_and_inventory_conditions(self):
+        files = [self.dir/'movies'/f'{name}.swf' for name in ('winQuestSummary', 'QuestProgressInfo',
+                                                            'NpcJobChangeQuest')]
+        for path in files:
+            path.touch()
+        try:
+            out, log = self.run_host('invoke', 16, '-', 'testCall',
+                                     '["QuestSummary","OnClickQuest",{"category":2,"index":7}]',
+                                     'invoke', 18, '-', 'testCall', '["onClickSelectBtn",1]',
+                                     'invoke', 17, '-', 'PlayAnimation', '[]',
+                                     'qcount', 'key', 73, 'click', 0, 'qcount', 'click', 24, 'qcount', quests=True)
+            self.assertIn('quest callback 16 onLoad [0,0]', out)
+            self.assertIn('quest callback 16 OnClickQuest [2,7]', out)
+            self.assertIn('quest callback 18 onClickSelectBtn [1]', out)
+            self.assertIn('winQuestSummary _level0.win.onFileLoad []', log)
+            self.assertIn('.gotoAndPlay [1]', log)
+            self.assertEqual([line for line in out.splitlines() if line.startswith('quest inventory')],
+                             ['quest inventory 1', 'quest inventory 0', 'quest inventory 1'])
+        finally:
+            for path in files:
+                path.unlink()
 
     def test_windows_inventory_tooltips_chat_and_routing(self):
         out, log = self.run_host('print', 'key', 73, 'composite', 'print', 'hover', 1, 'click', 1, 'print', 'click', 41,

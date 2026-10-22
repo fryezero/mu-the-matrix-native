@@ -10,6 +10,7 @@
 
 #include "../../reconstructed/actors/effect_class_table.h"
 #include "../../reconstructed/objects/object_render.h"
+#include "mu_data.h"
 
 #define MONSTER_IDLE 0     /* docs/research/client-actors.md section 2 (inference) */
 #define MONSTER_WALK 2
@@ -82,6 +83,76 @@ static void place_model(const mu_world_actors *s, mu_world_actor *a)
     mu_model_apply_params(&a->actor.model, &p);
 }
 
+static int load_player_npc(mu_world_actor *a, const char *root, const mu_monster_class *row,
+                            const mu_model_params *params, int no_textures, char *error, size_t cap)
+{
+    a->player = calloc(1, sizeof *a->player);
+    if (!a->player) {
+        snprintf(error, cap, "out of memory");
+        return 1;
+    }
+    char path[4096];
+    snprintf(path, sizeof path, "%s/Data/Player/Player.bmd", root);
+    if (mu_character_init(a->player, path, params, error, cap))
+        return 1;
+    mu_character_apply_player_speeds(a->player);
+    mu_actor_spec *spec = &a->actor.spec;
+    spec->by = MU_ACTOR_BY_CLASS;
+    spec->id = spec->server_class = row->server_class;
+    spec->monster_type = -1;
+    spec->npc_index = spec->model_index = row->model;
+    spec->scale = 0.9f;
+    if (row->scale_bits)
+        memcpy(&spec->scale, &row->scale_bits, 4);
+    a->player->params.scale = a->player->params.wing_scale = spec->scale;
+    a->player->params.world_items = 1;
+    int32_t action = mu_player_unarmed_stop_action(row->class_byte, params->world, NULL, NULL);
+    mu_character_set_state(a->player, (uint16_t)action, 0.0f, 0.0f, (uint16_t)action);
+    mu_data_table table = {0};
+    snprintf(path, sizeof path, "%s/Data/Local/Item.bmd", root);
+    if (mu_data_load(path, NULL, &table) || table.result.status) {
+        mu_data_free(&table);
+        snprintf(path, sizeof path, "%s/Data/Local/item.bmd", root);
+        if (mu_data_load(path, NULL, &table) || table.result.status) {
+            mu_data_free(&table);
+            snprintf(error, cap, "Player-model NPC needs Item.bmd");
+            return 1;
+        }
+    }
+    for (int k = 1; k < MU_CHARACTER_ITEMS; k++) {
+        int32_t type = row->slots[k].type;
+        if (type < 0xae6 || type == 0xffff)
+            continue;
+        mu_item item;
+        if (mu_item_model(&table, type, &item) != 1) {
+            snprintf(error, cap, "NPC %d: no item model for %#x", row->server_class, type);
+            mu_data_free(&table);
+            return 1;
+        }
+        snprintf(path, sizeof path, "%s/%s%s", root, item.folder, item.file);
+        for (char *p = path; *p; p++)
+            if (*p == '\\')
+                *p = '/';
+        if (mu_character_set_item(a->player, k, path, no_textures, error, cap)) {
+            mu_data_free(&table);
+            return 1;
+        }
+        mu_character_item *part = &a->player->items[k];
+        if (!no_textures && k <= 5 && part->textures.missing) {
+            char player[4096], directory[4096];
+            snprintf(player, sizeof player, "%s/Data/Player", root);
+            mu_path_directory(path, directory, sizeof directory);
+            mu_textures_free(&part->textures);
+            mu_textures_load_with_effects(&part->textures, &part->bmd, player, directory);
+        }
+        a->player_glow[k] = (mu_renderchar_glow){.type = type, .level = row->slots[k].level, .has_record = 1,
+                                                .kind_a = item.attributes.kind_a, .kind_b = item.attributes.kind_b,
+                                                .item_kind = item.attributes.type};
+    }
+    mu_data_free(&table);
+    return 0;
+}
+
 static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, int32_t server_class, int32_t x,
                       int32_t y, int32_t direction, int32_t wander, const char *label, int no_textures, char *error,
                       size_t error_size)
@@ -92,7 +163,11 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     mu_actor_spec spec;
     char message[512];
     const mu_effect_class *fx = effect_class(server_class);
-    if (fx) {
+    const mu_monster_class *row = server_class >= 0 ? mu_monster_class_find((uint32_t)server_class) : NULL;
+    int player = row && row->kind == MU_CLASS_PLAYER_MODEL && (server_class == 257 || server_class == 229);
+    if (player) {
+        memset(&spec, 0, sizeof spec);
+    } else if (fx) {
         if (mu_actor_resolve(root, MU_ACTOR_BY_NPC, fx->npc_index, &spec, message, sizeof message))
             goto fail;
         spec.scale = fx->scale;
@@ -103,7 +178,8 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     mu_model_params params;
     mu_model_scene_params(&params);   /* light override 1 (NATIVE-LIGHT-001) */
     params.world = s->map->world;
-    if (mu_actor_load(&a->actor, &spec, &params, no_textures, message, sizeof message))
+    if (player ? load_player_npc(a, root, row, &params, no_textures, message, sizeof message)
+               : mu_actor_load(&a->actor, &spec, &params, no_textures, message, sizeof message))
         goto fail;
     a->tile[0] = a->home[0] = x;
     a->tile[1] = a->home[1] = y;
@@ -113,8 +189,10 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     a->position[2] = ground(s->map, a->position[0], a->position[1]);
     a->angle[2] = (float)(direction & 7) * 45.0f;   /* demo: server direction byte times 45 degrees */
     a->idle_steps = 20 + (int32_t)(demo_rand(s) % 60u);
-    mu_actor_set_action(&a->actor, MONSTER_IDLE);
-    place_model(s, a);
+    if (!a->player) {
+        mu_actor_set_action(&a->actor, MONSTER_IDLE);
+        place_model(s, a);
+    }
     if (fx && s->has_effects) {
         for (uint32_t i = 0; i < fx->count && a->effect_count < MU_WORLD_ACTOR_EFFECTS; ++i) {
             const mu_effect_class_attach *e = &mu_effect_class_attaches[fx->first + i];
@@ -130,6 +208,12 @@ static int load_actor(mu_world_actors *s, mu_world_actor *a, const char *root, i
     }
     return 0;
 fail:
+    if (a->player) {
+        mu_character_free(a->player);
+        free(a->player);
+        a->player = NULL;
+    }
+    mu_actor_free(&a->actor);
     snprintf(error, error_size, "class %d at %d,%d: %s", server_class, x, y, message);
     return 1;
 }
@@ -250,8 +334,13 @@ int mu_world_actors_load(mu_world_actors *s, const char *root, const mu_world *m
 void mu_world_actors_free(mu_world_actors *s)
 {
     if (s->list)
-        for (int32_t i = 0; i < s->count; ++i)
+        for (int32_t i = 0; i < s->count; ++i) {
             mu_actor_free(&s->list[i].actor);
+            if (s->list[i].player) {
+                mu_character_free(s->list[i].player);
+                free(s->list[i].player);
+            }
+        }
     free(s->list);
     if (s->has_effects)
         mu_effect_scene_free(&s->effects);
@@ -284,6 +373,11 @@ static int demo_path(const mu_world *map, const mu_world_actor *a, int32_t tx, i
 
 static void actor_step(mu_world_actors *s, mu_world_actor *a)
 {
+    if (a->player) {
+        uint16_t action = mu_model_action(&a->player->player);
+        mu_character_tick(a->player, mu_character_action_speed(a->player, action), &a->step_result);
+        return;
+    }
     if (is_monster(a) && a->wander > 0) {
         if (!a->moving && --a->idle_steps <= 0) {
             int32_t span = 2 * a->wander + 1;
@@ -343,6 +437,17 @@ void mu_world_actors_frame(mu_world_actors *s, float effect_dt)
 {
     for (int32_t i = 0; i < s->count; ++i) {
         mu_world_actor *a = &s->list[i];
+        if (a->player) {
+            mu_character *p = a->player;
+            memcpy(p->params.position, a->position, sizeof a->position);
+            memcpy(p->params.angles, a->angle, sizeof a->angle);
+            mu_obj_terrain_light(s->map->light, 6, 1, a->position[0], a->position[1], p->params.light);
+            for (int k = 0; k < 3; k++)
+                p->params.light[k] += ACTOR_OBJECT_LIGHT;
+            p->params.lighting = 1;
+            mu_character_update(p);
+            continue;
+        }
         place_model(s, a);
         mu_actor_update(&a->actor);
         for (int32_t k = 0; k < a->effect_count; ++k) {

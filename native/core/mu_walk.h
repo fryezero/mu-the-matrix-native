@@ -170,6 +170,10 @@ void mu_walk_stop(mu_walk *walk);
  * normal click path started) calls it; the client also gates it on option byte 0x0bdc5981 and a
  * helper-state check (static reading, not modelled). */
 int mu_walk_auto_move_to(mu_walk *walk, int32_t tile_x, int32_t tile_y);
+/* NATIVE-QUEST-002: the same start with the caller's flag (1 arms only, 2 walks), mode and error check: the quest
+ * windows' "Go Now" (0x00d5029b: flag 2, mode 3, error check 1; the guide's 0x00d4bed6: mode 1). */
+int mu_walk_auto_move_ex(mu_walk *walk, int32_t flag, int32_t tile_x, int32_t tile_y, int32_t mode,
+                         int32_t error_check);
 
 /* One animation step: applies the hero's action to the Player model the way
  * SetAction does (prior action and frame from the model, frame 0) when it

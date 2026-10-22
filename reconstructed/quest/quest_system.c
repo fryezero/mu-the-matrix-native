@@ -357,7 +357,9 @@ mu_quest *mu_quest_activate(mu_quest_client *c, int32_t index)
         if (!pair_find(qs->items, qs->nitems, code, &at))
             pair_set(&qs->items, &qs->nitems, &qs->cap_items, code, q->record->accept[1]);
     }
-    if (c->summary)
+    if (c->summary && c->hud)
+        mu_summary_add(c, q->index);
+    else if (c->summary)
         mu_quest_logf(&c->log, "summary add %d", q->index);
     return q;
 }
@@ -377,7 +379,9 @@ void mu_quest_deactivate(mu_quest_client *c, int32_t index)
         if (pair_find(qs->items, qs->nitems, code, &at) && qs->items[at].value == q->record->accept[1])
             pair_erase(qs->items, &qs->nitems, code);
     }
-    if (c->summary)
+    if (c->summary && c->hud)
+        mu_summary_remove(c, index);
+    else if (c->summary)
         mu_quest_logf(&c->log, "summary remove %d", index);
 }
 
@@ -387,7 +391,9 @@ void mu_quest_reset_active(mu_quest_client *c)
     for (int k = 0; k < 3; k++)
         c->qs.nactive[k] = 0;
     c->qs.nitems = 0;
-    if (c->summary)
+    if (c->summary && c->hud)
+        mu_summary_clear(c);
+    else if (c->summary)
         mu_quest_logf(&c->log, "summary clear");
 }
 

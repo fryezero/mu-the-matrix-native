@@ -205,6 +205,7 @@ typedef struct app {
 #ifndef MU_WORLD_NO_GL
     mu_gl_backend object_gl[MU_OBJECT_TYPES];
     mu_gl_backend actor_gl[MU_WORLD_ACTORS_MAX];
+    mu_gl_backend actor_part_gl[MU_WORLD_ACTORS_MAX][MU_CHARACTER_ITEMS];
     mu_gl_backend env_gl[MU_WORLD_ENV_MODELS + 1];   /* models, then the weather bitmaps */
     mu_gl_backend particle_gl;                       /* NATIVE-PARTICLE-001: the effect bitmaps */
     mu_gl_backend particle_model_gl[MU_WORLD_FX_MODELS]; /* NATIVE-JOINT-001: the world objects' effect models */
@@ -330,11 +331,12 @@ static void combat_kill(void *context, int32_t actor, int32_t server_class)
 static void npc_open(void *context, const mu_npc_open *o)
 {
     app *a = context;
-    static const char *const KIND[] = {"none", "dialog", "shop", "storage", "other"};
+    static const char *const KIND[] = {"none", "dialog", "shop", "storage", "other", "classic"};
+    const char *kind = (unsigned)o->kind < sizeof KIND / sizeof KIND[0] ? KIND[o->kind] : "unknown";
     if (!a->quiet)
         printf("{\"npc_open\": \"%s\", \"actor\": %d, \"class\": %d, \"result\": %u, \"movie\": \"%s\","
                " \"slot\": %u, \"dialogue\": %d, \"mix_type\": %d, \"repair\": %d, \"tabs\": %d,"
-               " \"close_all\": %d, \"step\": %d, \"dialog_packet\": %d}\n", KIND[o->kind], o->actor,
+               " \"close_all\": %d, \"step\": %d, \"dialog_packet\": %d}\n", kind, o->actor,
                o->server_class, o->result, o->window.movie ? o->window.movie : "", o->window.slot, o->window.dialogue,
                o->window.mix_type, o->repair, o->shop_tabs, o->close_all, a->npc ? a->npc->step : 0, o->dialog_packet);
 #ifndef MU_WORLD_NO_GL
@@ -1196,6 +1198,22 @@ static void player_item_draw(app *a, int32_t i, int item, const mu_render_backen
     mu_renderchar_draw_item(&it->model, &glow, &env, q->model.params.light, alpha, &options, backend, &ds, &rs);
 }
 
+static void npc_item_draw(app *a, const mu_world_actor *npc, int item, const mu_render_backend *backend)
+{
+    const mu_character_item *part = &npc->player->items[item];
+    mu_renderchar_env env;
+    mu_renderchar_default_env(&env);
+    env.time = a->map->time;
+    env.quality = 5;
+    mu_draw_options options;
+    mu_draw_default_options(&options);
+    options.textures = &part->textures;
+    mu_draw_stats ds = {0};
+    mu_renderchar_stats rs = {0};
+    mu_renderchar_draw_item(&part->model, &npc->player_glow[item], &env, npc->player->params.light, 1.0f,
+                             &options, backend, &ds, &rs);
+}
+
 /* ---- frame logic shared by the front ends ---- */
 
 /* ---- NATIVE-MAP-001: travel ---- */
@@ -1607,8 +1625,17 @@ static void gl_setup(app *a)
         memset(&a->actor_gl[i], 0, sizeof a->actor_gl[i]);
         a->actor_gl[i].batch = a->batch;
     }
-    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
-        mu_gl_upload(&a->actor_gl[i], &a->actors.list[i].actor.textures, 0);
+    memset(a->actor_part_gl, 0, sizeof a->actor_part_gl);
+    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
+        const mu_world_actor *npc = &a->actors.list[i];
+        if (npc->player) {
+            for (int k = 0; k < MU_CHARACTER_ITEMS; k++)
+                if (npc->player->items[k].loaded)
+                    mu_gl_upload(&a->actor_part_gl[i][k], &npc->player->items[k].textures, 0);
+        } else {
+            mu_gl_upload(&a->actor_gl[i], &npc->actor.textures, 0);
+        }
+    }
     memset(a->env_gl, 0, sizeof a->env_gl);
     for (int32_t i = 0; a->has_env && i < a->env.model_count; ++i)
         if (a->env.models[i].loaded)
@@ -1634,8 +1661,12 @@ static void gl_teardown(app *a)
         }
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
         mu_gl_release(&a->items[i]);
-    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i)
+    for (int32_t i = 0; a->has_actors && i < a->actors.count; ++i) {
         mu_gl_release(&a->actor_gl[i]);
+        for (int k = 0; k < MU_CHARACTER_ITEMS; k++)
+            if (a->actor_part_gl[i][k].textures)
+                mu_gl_release(&a->actor_part_gl[i][k]);
+    }
     for (int32_t i = 0; i < MU_WORLD_PLAYERS_MAX; ++i)
         for (int n = 0; n < MU_CHARACTER_ITEMS; ++n)
             if (a->player_gl[i][n].textures)
@@ -2148,6 +2179,24 @@ static long draw_gl(app *a, int32_t width, int32_t height)
         float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
         if (alpha <= 0.0f)
             continue;   /* removed by the dead fade */
+        if (actor->player) {
+            if (a->batch)
+                mu_gl_batch_session_end(a->batch);
+            for (int n = 0; n < MU_CHARACTER_ITEMS; n++) {
+                int k = draw_order[n];
+                const mu_character_item *part = &actor->player->items[k];
+                if (!part->loaded)
+                    continue;
+                mu_render_backend part_backend;
+                mu_gl_backend_bind(&a->actor_part_gl[i][k], &part_backend);
+                if (a->has_particles)
+                    mu_world_particles_character_shadow(&a->particles, &part->model, &part->bmd, &part_backend);
+                npc_item_draw(a, actor, k, &part_backend);
+            }
+            if (a->batch)
+                mu_gl_batch_session_begin(a->batch);
+            continue;
+        }
         mu_render_backend backend;
         mu_gl_backend_bind(&a->actor_gl[i], &backend);
         if (a->has_particles)
@@ -2326,6 +2375,22 @@ static long draw_soft(app *a, mu_raster *raster)
         float alpha = a->combat ? mu_combat_actor_alpha(a->combat, i) : 1.0f;   /* o + 0xdc */
         if (alpha <= 0.0f)
             continue;
+        if (actor->player) {
+            for (int n = 0; n < MU_CHARACTER_ITEMS; n++) {
+                int k = draw_order[n];
+                const mu_character_item *part = &actor->player->items[k];
+                if (!part->loaded)
+                    continue;
+                raster->textures = part->textures.slots;
+                raster->texture_count = part->textures.count;
+                raster->texture_filter = part->textures.filter;
+                raster->texture_wrap = part->textures.wrap;
+                if (a->has_particles)
+                    mu_world_particles_character_shadow(&a->particles, &part->model, &part->bmd, &backend);
+                npc_item_draw(a, actor, k, &backend);
+            }
+            continue;
+        }
         if (a->has_particles)
             mu_world_particles_character_shadow(&a->particles, &actor->actor.model, &actor->actor.bmd, &backend);
         options.alpha = alpha;
@@ -2506,9 +2571,12 @@ static void report_summary(const app *a, const char *renderer)
             const mu_world_actor *x = &s->list[i];
             printf("{\"actor\": %d, \"class\": %d, \"label\": \"%s\", \"model\": %d, \"tile\": [%d, %d],"
                    " \"action\": %u, \"frame\": %.3f, \"speed\": %.4f, \"moves\": %u, \"arrivals\": %u,"
+                   " \"player_model\": %d, \"scale\": %.3f,"
                    " \"effects\": %d, \"light\": [%.6g, %.6g, %.6g], \"light_override\": %d}\n", i, x->server_class,
-                   x->label, x->actor.spec.model_index, x->tile[0], x->tile[1], mu_actor_action(&x->actor),
-                   (double)mu_actor_frame(&x->actor), (double)x->actor.last_speed, x->moves, x->arrivals,
+                   x->label, x->actor.spec.model_index, x->tile[0], x->tile[1],
+                   x->player ? mu_model_action(&x->player->player) : mu_actor_action(&x->actor),
+                   (double)(x->player ? mu_model_frame(&x->player->player) : mu_actor_frame(&x->actor)),
+                   (double)x->actor.last_speed, x->moves, x->arrivals, x->player != NULL, (double)x->actor.spec.scale,
                    x->effect_count, (double)x->actor.model.params.color[0], (double)x->actor.model.params.color[1],
                    (double)x->actor.model.params.color[2], x->actor.model.params.light_override);
         }
@@ -2561,6 +2629,7 @@ static void names_chat_hook(void *user, const char *text)
 static void names_gfx_attach(app *a, double scale)
 {
     a->gfx_scale = scale;
+    world_gfx_quest_bind(a->gfx, &a->walk, a->mapsess);
     if (a->gfxmap && a->gfxmap_owner != a->gfx) {   /* NATIVE-MAP-001: the map host follows the front end's layer */
         world_gfx_map_close(a->gfxmap);
         a->gfxmap = NULL;

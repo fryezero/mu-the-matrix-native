@@ -329,7 +329,8 @@ struct mu_gfx_layer {
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
-                                                 "MasterSkillTree", "SkillTree4th", "SkillTree5th"};
+                                                 "MasterSkillTree", "SkillTree4th", "SkillTree5th",
+                                                 "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -941,6 +942,8 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
             hide_tooltip(L);
         return;
     }
+    if (open && m == MU_GFX_QUEST_NOTICE && L->api.set_variable)
+        L->api.set_variable(mv->g, "_level0._visible", "true");   /* the notice animation hides its root at frame 65 */
     if (mv->open == open)
         return;
     mv->open = open;
@@ -954,7 +957,7 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     mv->next_bounds_ms = 0;
     if (m == MU_GFX_SKILL_STAMP)
         skill_window_shown(L, m, open);
-    if (m >= MU_GFX_MASTER_TREE && L->cfg.quest_call)
+    if (m >= MU_GFX_MASTER_TREE && m <= MU_GFX_TREE5 && L->cfg.quest_call)
         L->cfg.quest_call(L->cfg.tooltip_user, m, open ? "WindowShown" : "WindowHidden", "[]");
 }
 
@@ -1100,6 +1103,14 @@ static const char *on_call(void *user, const char *name, const char *args)
     return r;
 }
 
+/* NATIVE-QUEST-001/002: the movies the host drives with the client's quest code */
+static int is_quest_movie(int id)
+{
+    return (id >= MU_GFX_MASTER_TREE && id <= MU_GFX_TREE5) ||
+           id == MU_GFX_QUEST_PROGRESS || id == MU_GFX_MY_QUEST || id == MU_GFX_QUEST_SUMMARY ||
+           id == MU_GFX_QUEST_NOTICE || id == MU_GFX_JOB_QUEST;
+}
+
 static const char *on_call_(movie *mv, const char *name, const char *args)
 {
     mu_gfx_layer *L = mv->L;
@@ -1113,11 +1124,29 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
     }
     char s[256] = "";
     mv->view_dirty = 1;
+    if (mv->id == MU_GFX_QUEST_SUMMARY && !strcmp(name, "QuestSummary")) {
+        /* This window belongs to the second GFx layer. Its channel carries (command, object), and its
+         * loader reports a complete targetPath rather than the old layer's UIInit name. */
+        char command[64] = "", arguments[96];
+        json_string(args, 0, command, sizeof command);
+        if (!strcmp(command, "onLoad"))
+            json_string(args, 1, mv->path, sizeof mv->path);
+        if (!strcmp(command, "onOpenWindow")) {
+            mv->open = strstr(args, "true") != NULL;
+            if (mv->open)
+                raise_window(L, mv->id);
+        }
+        snprintf(arguments, sizeof arguments, "[%.0f,%.0f]", json_field(args, "category", 0),
+                 json_field(args, "index", 0));
+        if (L->cfg.quest_call)
+            L->cfg.quest_call(L->cfg.tooltip_user, mv->id, command, arguments);
+        return NULL;
+    }
     if (!strcmp(name, "UIInit") && json_string(args, 0, s, sizeof s)) {
         snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
         if (mv->id == MU_GFX_MOVE_COMMAND && L->maph.window)
             L->maph.window(L->maph.user, mv->id, name, args);   /* NATIVE-MAP-001 */
-        if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST || mv->id >= MU_GFX_MASTER_TREE) && L->cfg.quest_call)
+        if (is_quest_movie(mv->id) && L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
@@ -1129,7 +1158,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             mu_gfx_layer_show(L, mv->id, 0);
         return NULL;
     }
-    if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST || mv->id >= MU_GFX_MASTER_TREE) && strcmp(name, "TweenTimeSet")) {
+    if (is_quest_movie(mv->id) && strcmp(name, "TweenTimeSet")) {
         /* NATIVE-QUEST-001: the host runs the client's handler (reconstructed/quest) */
         if (L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);
@@ -1391,7 +1420,8 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_MAIN] = 9, [MU_GFX_INVENTORY] = 11, [MU_GFX_TOOLTIP] = 9, [MU_GFX_CHARACTER] = 9,
     [MU_GFX_CHAT] = 9, [MU_GFX_NPC_DIALOG] = 9, [MU_GFX_NPC_SHOP] = 9, [MU_GFX_STORAGE] = 9,
     [MU_GFX_QUEST_PROGRESS] = 9, [MU_GFX_MY_QUEST] = 9, [MU_GFX_SKILL_POPUP] = 9, [MU_GFX_SKILL_STAMP] = 9,
-    [MU_GFX_MOVE_COMMAND] = 9, [MU_GFX_MASTER_TREE] = 0, [MU_GFX_TREE4] = 0, [MU_GFX_TREE5] = 3
+    [MU_GFX_MOVE_COMMAND] = 9, [MU_GFX_MASTER_TREE] = 0, [MU_GFX_TREE4] = 0, [MU_GFX_TREE5] = 3,
+    [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9
 };
 
 static void window_sizes(mu_gfx_layer *L)
@@ -1922,6 +1952,15 @@ mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_
             return NULL;
         }
     init_movies(L);
+    if (L->mv[MU_GFX_QUEST_SUMMARY].g) {
+        /* MovieLoader normally supplies these globals and calls onFileLoad on the placed "win" clip.
+         * Each optional window has its own player here, so perform that loader lifecycle explicitly. */
+        movie *summary = &L->mv[MU_GFX_QUEST_SUMMARY];
+        L->api.set_variable(summary->g, "_global.gSystem", "{\"isClient\":true}");
+        L->api.set_variable(summary->g, "_global.gStandard", "{\"ResizeStageHeight\":700}");
+        snprintf(summary->path, sizeof summary->path, "_level0.win");
+        invokef(L, MU_GFX_QUEST_SUMMARY, summary->path, "onFileLoad", "[]");
+    }
     if (!L->mv[MU_GFX_MAIN].path[0] || !L->mv[MU_GFX_INVENTORY].path[0]) {
         snprintf(error, cap, "movies did not report their paths (main '%s', inventory '%s'): convert them with "
                              "gfxconvert.py --bridge --var _root.isClient=true", L->mv[MU_GFX_MAIN].path,
@@ -3339,6 +3378,10 @@ const char *mu_gfx_layer_invoke(mu_gfx_layer *L, int m, const char *path, const 
         return NULL;
     const char *r = invokef(L, m, path ? path : L->mv[m].path, method, "%s", args ? args : "[]");
     snprintf(L->reply, sizeof L->reply, "%s", r ? r : "");
+    /* This asset's PlayAnimation calls gotoAndPlay(0). Ruffle ignores frame 0,
+     * leaving QuestNotice at alpha 0. Start the same authored timeline at its first Flash frame. */
+    if (m == MU_GFX_QUEST_NOTICE && !strcmp(method, "PlayAnimation"))
+        invokef(L, m, path ? path : L->mv[m].path, "gotoAndPlay", "[1]");
     return L->reply;
 }
 
@@ -3391,6 +3434,16 @@ int mu_gfx_layer_item_cell(const mu_gfx_layer *L, int i)
 int mu_gfx_layer_item_count(const mu_gfx_layer *L) { return L ? L->nitems : 0; }
 
 int mu_gfx_layer_items_placed(const mu_gfx_layer *L) { return L ? L->grid.item_count : 0; }
+
+int mu_gfx_layer_count_item(const mu_gfx_layer *L, int32_t code, int32_t level)
+{
+    int count = 0;
+    for (int i = 0; L && i < L->nitems; i++)
+        if (mu_grid_find_id(&L->grid, L->items[i].grid.id) && i != L->held &&
+            L->items[i].grid.code == code && L->items[i].level == level)
+            count++;
+    return count;
+}
 
 const char *mu_gfx_layer_last_sent(const mu_gfx_layer *L) { return L ? L->last_sent : ""; }
 

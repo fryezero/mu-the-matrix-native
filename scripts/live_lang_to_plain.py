@@ -44,6 +44,15 @@ NATIVE-QUEST-001 adds (written when the snapshot holds the table):
   itemleveltip.tsv  ItemLevelTooltip 0x06fbb9b0, map +0x38: key, group (+0x18), index (+0x1a), level (+0x1c),
                     name (+0) (the reward text 0x00fe1e92 names level items by it).
 
+NATIVE-QUEST-002 adds (a snapshot with `deep:0x06fbb3d0=0x44,3 deep:0x06fbb414=0x58,3`):
+
+  guidequest.tsv    GuideQuest 0x06fbb3d0, vector +0x38 of chapters, each a vector of 0xf4-byte steps (loader
+                    0x011196ad): chapter (0-based), the 61 words, name (+0xc), info name (+0x60), goal name
+                    (+0xd0), the class flags (vector +0x78), the reward words (vector +0xe8, 3 per item);
+  dialoganswers.tsv Dialog(kor)'s answers (record +0x1c, 0x20 bytes): key, position, next dialogue, action, text;
+  guidestrings.tsv  GuideQuestString 0x06fbb414 (loader 0x0111b737): kind 1 = the chapter names (vector +0x44),
+                    kind 2 = the step names (map +0x50): kind, position or key, index, type, key, text.
+
 Text fields escape TAB, LF, CR and backslash as \\t \\n \\r \\\\ and bytes
 outside printable ASCII as \\xHH, so the files hold the client's bytes
 exactly (its strings are ANSI; a few are CP949).
@@ -65,6 +74,8 @@ BUFF, CHARINFO, SKILLREQ, SOULCONV = MANAGER + 0x844, MANAGER + 0x2b8, MANAGER +
 QUESTTEXT = MANAGER + 0x133c
 MUQUEST, LEVELTIP = MANAGER + 0x137c, MANAGER + 0xf50
 MUQUEST_RECORD = 0x104
+GUIDEQUEST, GUIDESTRING = MANAGER + 0x970, MANAGER + 0x9b4
+GUIDE_STEP = 0xf4
 MAP_AT = {TEXT: 0x38, SKILL: 0x108, GATE: 0x38, MOVEREQ: 0x38, NPCNAME: 0x38, DIALOG: 0x38, ENCHANT: 0x38}
 ENCHANT_DEFAULT = 0x50            # 0x010ffd7a / 0x010ffddb return this+0x50 when nothing matches
 
@@ -279,6 +290,17 @@ def read_dialog(snap):
     return [(key, snap.string(record(node) + 4)) for key, node in snap.tree(DIALOG + MAP_AT[DIALOG])]
 
 
+def read_dialog_answers(snap):
+    """Dialog(kor) answers (NATIVE-QUEST-002): the node's vector at record +0x1c of 0x20-byte answers {+0 next
+    dialogue, +4 action, +8 text} (the classic quest window's choices, 0x010eb258 / 0x010eb2d1 / 0x010eb3a8)."""
+    rows = []
+    for key, node in snap.tree(DIALOG + MAP_AT[DIALOG]):
+        begin, end = snap.u32(record(node) + 0x1c), snap.u32(record(node) + 0x20)
+        for k, a in enumerate(range(begin, end, 0x20)):
+            rows.append((key, k, snap.i32(a), snap.i32(a + 4), snap.string(a + 8)))
+    return rows
+
+
 def read_enchant(snap):
     """code -> [(mesh, r_bits, g_bits, b_bits)], and the default colour bits."""
     rows = []
@@ -420,6 +442,43 @@ def read_leveltips(snap):
         r = record(node)
         group, index, level = struct.unpack('<HHH', snap.read(r + 0x18, 6))
         rows.append((key, group, index, level, snap.string(r)))
+    return rows
+
+
+def _vector(snap, address, size):
+    begin, end = snap.u32(address), snap.u32(address + 4)
+    if end < begin or (end - begin) % size:
+        raise SnapshotError(f'bad vector at {address:#x}')
+    return [begin + k * size for k in range((end - begin) // size)]
+
+
+def read_guide(snap):
+    """GuideQuest (0x06fbb3d0): the chapters (vector +0x38 of 12-byte vectors) of 0xf4-byte steps; per step the
+    words, the strings +0xc / +0x60 / +0xd0 and the vectors +0x78 (int) / +0xe8 (12-byte reward items)."""
+    rows = []
+    for chapter, ch in enumerate(_vector(snap, GUIDEQUEST + 0x38, 12)):
+        for step in _vector(snap, ch, GUIDE_STEP):
+            words = list(struct.unpack('<61i', snap.read(step, GUIDE_STEP)))
+            for off in (0xc, 0x60, 0xd0):
+                words[off // 4:off // 4 + 6] = [0] * 6
+            for off in (0x78, 0xe8):
+                words[off // 4:off // 4 + 3] = [0] * 3
+            classes = [snap.i32(a) for a in _vector(snap, step + 0x78, 4)]
+            rewards = [v for a in _vector(snap, step + 0xe8, 12) for v in struct.unpack('<3i', snap.read(a, 12))]
+            rows.append((chapter, words, snap.string(step + 0xc), snap.string(step + 0x60), snap.string(step + 0xd0),
+                         classes, rewards))
+    return rows
+
+
+def read_guide_strings(snap):
+    """GuideQuestString (0x06fbb414): records {index, type, key, text +0xc}; the vector +0x44 (type 1, chapter
+    names) and the map +0x50 (type 2, key -> the record at node +0x14)."""
+    rows = []
+    for pos, r in enumerate(_vector(snap, GUIDESTRING + 0x44, 0x24)):
+        rows.append((1, pos, snap.i32(r), snap.i32(r + 4), snap.i32(r + 8), snap.string(r + 0xc)))
+    for key, node in snap.tree(GUIDESTRING + 0x50):
+        r = node + 0x14
+        rows.append((2, key, snap.i32(r), snap.i32(r + 4), snap.i32(r + 8), snap.string(r + 0xc)))
     return rows
 
 
@@ -641,6 +700,38 @@ def convert(snap, out_dir, header=''):
             for key, group, index, level, raw in rows:
                 f.write(f'{key}\t{group}\t{index}\t{level}\t{escape(raw)}\n')
         counts['itemleveltip'] = len(rows)
+    except SnapshotError:
+        pass
+
+    try:
+        rows = read_guide(snap)
+        with open(out_dir/'guidequest.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#chapter\twords[61]\tname\tinfo name\tgoal name\tclasses\trewards  (GuideQuest '
+                    '0x06fbb3d0, steps 0xf4 bytes)\n')
+            for chapter, words, name, info, goal, classes, rewards in rows:
+                f.write(f'{chapter}\t' + ' '.join(map(str, words)) + f'\t{escape(name)}\t{escape(info)}\t'
+                        f'{escape(goal)}\t' + ' '.join(map(str, classes)) + '\t' + ' '.join(map(str, rewards)) + '\n')
+        counts['guidequest'] = len(rows)
+    except SnapshotError:
+        pass
+    try:
+        rows = read_guide_strings(snap)
+        with open(out_dir/'guidestrings.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#kind\tposition/key\tindex\ttype\tkey\ttext  (GuideQuestString 0x06fbb414; kind 1 '
+                    'the chapter names +0x44, 2 the step names +0x50)\n')
+            for row in rows:
+                f.write('\t'.join(map(str, row[:5])) + f'\t{escape(row[5])}\n')
+        counts['guidestrings'] = len(rows)
+    except SnapshotError:
+        pass
+
+    try:
+        rows = read_dialog_answers(snap)
+        with open(out_dir/'dialoganswers.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#key\tposition\tnext\taction\ttext  (Dialog(kor) 0x06fbb6d0 answers)\n')
+            for key, k, nxt, action, raw in rows:
+                f.write(f'{key}\t{k}\t{nxt}\t{action}\t{escape(raw)}\n')
+        counts['dialoganswers'] = len(rows)
     except SnapshotError:
         pass
 

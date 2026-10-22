@@ -1,6 +1,9 @@
 /* MUQuest / MUQuestString / ItemLevelTooltip plaintext (NATIVE-QUEST-001); see quest.h. */
 #include "quest.h"
 
+void mu_guide_data_free(mu_quest_data *d);   /* quest_guide.c */
+void mu_dialog_free(mu_quest_data *d);       /* quest_classic.c */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -326,6 +329,20 @@ long mu_quest_load_dir(mu_quest_data *d, const char *dir)
         mu_quest_parse_level_tips(d, t);
         free(t);
     }
+    if ((t = read_file(dir, "guidequest.tsv"))) {
+        mu_guide_parse_steps(d, t);
+        free(t);
+    }
+    if ((t = read_file(dir, "guidestrings.tsv"))) {
+        mu_guide_parse_strings(d, t);
+        free(t);
+    }
+    if ((t = read_file(dir, "dialog.tsv"))) {
+        char *a = read_file(dir, "dialoganswers.tsv");
+        mu_dialog_parse(d, t, a);
+        free(a);
+        free(t);
+    }
     return n < 0 ? 0 : n;
 }
 
@@ -336,6 +353,10 @@ void mu_quest_data_free(mu_quest_data *d)
     free_records(d);
     free_strings(d);
     free_tips(d);
+    mu_guide_data_free(d);
+    mu_dialog_free(d);
+    free(d->classic);
+    d->classic = NULL;
 }
 
 const mu_quest_record *mu_quest_record_get(const mu_quest_data *d, int32_t index)
