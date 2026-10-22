@@ -47,8 +47,8 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 27, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 3, MU_WORLD_FX_QUADS = 8192 };
+enum { MU_WORLD_PT_BITMAPS = 32, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 4, MU_WORLD_FX_QUADS = 8192 };
 
 typedef struct mu_world_fx_model {
     int32_t type;
@@ -74,6 +74,7 @@ typedef struct mu_world_particles_stats {
     uint64_t effects_created, effects_unsupported, effects_full, sounds;
     uint32_t live_joints, max_joints, live_effects;
     uint32_t drawn_joint_quads, drawn_effect_models;
+    uint32_t drawn_decals;                 /* NATIVE-HELPERS-002: decal fans of the effects (shock ring, paw marks) */
 } mu_world_particles_stats;
 
 typedef struct mu_world_particles {

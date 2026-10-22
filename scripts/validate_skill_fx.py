@@ -85,7 +85,10 @@ f32, bits, from_bits, same = vc.f32, vc.bits, vc.from_bits, vc.same
 GL_IMPORTS = {  # IAT slot: (name, stdcall argument count); the slots hold Wine opengl32 addresses
     0x1a7c750: ('glBegin', 1), 0x1a7c760: ('glEnd', 0), 0x1a7c76c: ('glColor3f', 3), 0x1a7c770: ('glColor3fv', 1),
     0x1a7c774: ('glTexCoord2f', 2), 0x1a7c778: ('glVertex3fv', 1), 0x1a7c754: ('glColor4f', 4),
+    0x1a7c9a4: ('timeGetTime', 0),   # NATIVE-HELPERS-002: Fenrir's paw marks
 }
+TIME_GET_TIME_SLOT = 0x1a7c9a4
+TRANSFORM_POSITION, KILL_CLEANUP = 0x012b6ef1, 0x009b0451   # NATIVE-HELPERS-002
 
 
 class FxMachine(vc.Combat):
@@ -137,7 +140,7 @@ class Effect(ctypes.Structure):
                 ('position', ctypes.c_float*3), ('angle', ctypes.c_float*3), ('start', ctypes.c_float*3),
                 ('owner', ctypes.c_int32), ('field_364', ctypes.c_uint16), ('field_58', ctypes.c_int32),
                 ('field_2e4', ctypes.c_int32), ('field_6', ctypes.c_uint8), ('field_70', ctypes.c_int32),
-                ('heading', ctypes.c_float)]
+                ('heading', ctypes.c_float), ('field_64', ctypes.c_int32), ('time_mark', ctypes.c_uint32)]
 
 
 class Info(ctypes.Structure):
@@ -149,7 +152,7 @@ class Info(ctypes.Structure):
 class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
     _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('weapon', ctypes.c_int16),
                 ('position', ctypes.c_float*3), ('light', ctypes.c_float*3),
-                ('action', ctypes.c_uint16)]   # NATIVE-HELPERS-002
+                ('action', ctypes.c_uint16), ('type', ctypes.c_int32)]   # NATIVE-HELPERS-002
 
 
 class Call(ctypes.Structure):
@@ -331,12 +334,16 @@ MODEL_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctype
 
 BONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Effect), ctypes.c_int32,
                            ctypes.POINTER(ctypes.c_float))
+TIME_FN = ctypes.CFUNCTYPE(ctypes.c_uint32, ctypes.c_void_p)
+OWNER_BONE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_float),
+                                 ctypes.POINTER(ctypes.c_float))
 
 
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
                 ('call', CALL_FN), ('model', MODEL_FN), ('serial', ctypes.c_uint8),
-                ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32), ('bone', BONE_FN)]
+                ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32), ('bone', BONE_FN),
+                ('time_ms', TIME_FN), ('owner_bone', OWNER_BONE_FN)]   # NATIVE-HELPERS-002
 
 
 def load_library(path):
@@ -393,6 +400,7 @@ EFFECT_FIELDS = [
     ('light', 0xec, 'f', 3), ('direction', 0xf8, 'f', 3), ('position', 0x158, 'f', 3), ('angle', 0x164, 'f', 3),
     ('start', 0x1d0, 'f', 3), ('field_364', 0x364, 'H', 1), ('field_58', 0x58, 'i', 1), ('field_2e4', 0x2e4, 'i', 1),
     ('field_6', 0x06, 'B', 1), ('field_70', 0x70, 'i', 1), ('heading', 0x170, 'f', 1),
+    ('field_64', 0x64, 'i', 1), ('time_mark', 0x9c, 'I', 1),   # NATIVE-HELPERS-002
 ]
 # visible (+0x0b) is an input of the hit checks only; owner (+0x34c) is a pointer handled separately.
 
@@ -456,6 +464,7 @@ def random_object(rng):
     o.live = rng.choice([0, 1, 1, 1, 2])
     o.visible = rng.choice([0, 1, 1, 1])
     o.weapon = rng.choice([0, 9, 0x600, 0x603, 0x7ff, 0x800, 0x1000])
+    o.type = rng.choice([0x4a8, 0x4a9, 0x4aa, 0x4ab, 0xa91])
     for k in range(3):
         o.position[k] = vc.rfloat(rng, 0.05, 30000.0) if k < 2 else vc.rfloat(rng, 0.05, 500.0)
     return o
@@ -471,7 +480,8 @@ def object_region(objects, writable=False):
         data[base+0x0b] = o.visible
         struct.pack_into('<h', data, base+0x56, o.weapon)
         struct.pack_into('<3f', data, base+0x158, *o.position)
-        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12)):
+        struct.pack_into('<i', data, base+0x5c, o.type)
+        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0x5c, 4)):
             mask[base+a:base+a+n] = b'\1'*n
     return am.Region('objects', OBJECTS, bytes(data), bytes(mask), writable)
 
@@ -490,6 +500,9 @@ class Case:
         self.c_serial_steps = 0
         self.c_quake = None
         self.attributes = None   # TerrainWall words (the tornado's attribute test)
+        self.times = ([rng.choice([1000, 1199, 1200, 1201, 5000, rng.randrange(0, 1 << 32)]) for _ in range(6)]
+                      if rng is not None else [1000])
+        self.client_time = self.c_time = 0
 
     # ---- client side
     def stubs(self, m):
@@ -608,7 +621,25 @@ class Case:
             mm.uc.mem_write(out, struct.pack('<3f', *(f32(p[k] + BONE_OFFSET[k]) for k in range(3))))   # the caller's frame
             return 0, 0x10
 
-        return {MODEL_POSE: pose, MODEL_BONE: bone, PLAY_BUFFER: sound, WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area,
+        def time_get_time(mm):   # NATIVE-HELPERS-002
+            v = self.times[self.client_time % len(self.times)]
+            self.client_time += 1
+            return v
+
+        def transform_position(mm):
+            matrix, vin, vout = mm.argument(0), mm.argument(1), mm.argument(2)
+            index = (matrix - 0x06fce398) // 0x30
+            vec = mm.floats(vin, 3)
+            self.client_calls.append(('owner_bone', index, vec, mm.argument(3)))
+            mm.write(vout, struct.pack('<3f', *owner_bone_answer(index, vec)))
+            return 0, 0x10
+
+        def kill(mm):
+            self.client_calls.append(('kill',))
+            return 0
+        extra = {m.gl_target[TIME_GET_TIME_SLOT]: time_get_time, TRANSFORM_POSITION: transform_position,
+                 KILL_CLEANUP: kill}
+        return {**extra, MODEL_POSE: pose, MODEL_BONE: bone, PLAY_BUFFER: sound, WORLD_PREDICATE: world_predicate, CREATE_SPRITE: sprite, AREA_ATTACK: area,
                 FLOAT_SQRT: fsqrt, FLOAT_ATAN: fatan,
                 RAND: rand, TERRAIN_HEIGHT: height, SINE: sine, COSINE: cosine, CRT_SQRT: sqrt,
                 TERRAIN_LIGHT: terrain_light, CREATE_PARTICLE: particle, CREATE_JOINT: joint,
@@ -672,6 +703,8 @@ class Case:
                 self.c_calls.append(('pose', hex(0x06fce398), 0, 0))
             elif c.routine == MODEL_BONE:
                 self.c_calls.append(('bone', c.owner, c.range, 0))
+            elif c.routine == KILL_CLEANUP:
+                self.c_calls.append(('kill',))
             return 0
 
         def bone(ctx, ep, index, out):
@@ -681,13 +714,30 @@ class Case:
         def model(ctx, t, action, keys):
             keys[0] = self.keys
             return 1 if self.has_model else 0
-        self._keep = (RAND_FN(rand), HEIGHT_FN(height), OBJECT_FN(obj), CALL_FN(call), MODEL_FN(model), BONE_FN(bone))
+        def time_ms(ctx):
+            v = self.times[self.c_time % len(self.times)]
+            self.c_time += 1
+            return v
+
+        def owner_bone(ctx, owner, index, vin, vout):
+            vec = [vin[0], vin[1], vin[2]]
+            self.c_calls.append(('owner_bone', index, vec, 0))
+            out = owner_bone_answer(index, vec)
+            for k in range(3):
+                vout[k] = out[k]
+        self._keep = (RAND_FN(rand), HEIGHT_FN(height), OBJECT_FN(obj), CALL_FN(call), MODEL_FN(model), BONE_FN(bone),
+                      TIME_FN(time_ms), OWNER_BONE_FN(owner_bone))
         env = Env()
-        env.rand, env.height, env.object, env.call, env.model, env.bone = self._keep
+        env.rand, env.height, env.object, env.call, env.model, env.bone, env.time_ms, env.owner_bone = self._keep
         env.serial = serial
         env.report_checks = report_checks
         env.hero_object = hero_object
         return env
+
+
+def owner_bone_answer(index, vec):
+    """The synthetic TransformPosition of both sides (NATIVE-HELPERS-002)."""
+    return [f32(f32(vec[k]) + f32(index*10.0 + 100.0*k + 3.0)) for k in range(3)]
 
 
 def compare_calls(client, mine, skip_tail=True):
@@ -713,7 +763,10 @@ def compare_calls(client, mine, skip_tail=True):
 EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x41c, 0), (0x41d, 0), (0x457, 0),
                 (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1),
                 (0x40e, 0),   # the Tormenta tornado (NATIVE-JOINT-001)
-                (0x5ac, 0), (0x5ac, 1), (0x5ad, 0), (0x5ad, 1)]   # the character select's star dragon (NATIVE-CHARSEL-003)
+                (0x5ac, 0), (0x5ac, 1), (0x5ad, 0), (0x5ad, 1),   # the character select's star dragon (NATIVE-CHARSEL-003)
+                # NATIVE-HELPERS-002: the flying step, Fenrir's lightning and paw marks
+                (0x8012, 1), (0x4ac, 0), (0x4ad, 1), (0x4ad, 2), (0x4ad, 3), (0x4ad, 4)]
+OWNED_KINDS = {0x4ac, 0x4ad}   # the client reads their owner unconditionally
 TERRAIN_WALL, PLAY_BUFFER = 0x0b795420, 0x00a6ac96
 ARROW_SKILLS = [0, 0, 0, 0x7e7, 0x2d7, 0x7fe, 0x18, 0x34]
 
@@ -745,7 +798,7 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
     for n in range(cases):
         kind = EFFECT_KINDS[n % len(EFFECT_KINDS)]
         objects = [random_object(rng) for _ in range(2)]
-        owner = rng.choice([-1, 0, 1])
+        owner = rng.choice([-1, 0, 1]) if kind[0] not in OWNED_KINDS else rng.choice([0, 1])
         pos = [vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 30000.0), vc.rfloat(rng, 0.05, 600.0)]
         angle = [vc.rfloat(rng, 0.1, 360.0) if k == 2 or rng.random() < 0.3 else 0.0 for k in range(3)]
         light = [vc.rfloat(rng, 0.1, 1.5) for _ in range(3)]
@@ -804,6 +857,10 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
             if kind[0] == 0x43b:
                 d = struct.unpack('<f', raw[0xfc:0x100])[0]
                 negatives['create_arrow_speed_60'] += not same(d, -60.0)
+            # negative control (NATIVE-HELPERS-002): the shock ring sized over 20
+            if kind[0] == 0x8012:
+                sc = struct.unpack('<f', raw[0xa0:0xa4])[0]
+                negatives['create_shockwave_over_20'] += not same(sc, f32(f32(case.rand_values[0] % 10 + 10.0) / 20.0))
             # negative control: Energy Ball without the +100 lift
             if kind[0] == 0x7f2b:
                 z = struct.unpack('<f', raw[0x160:0x164])[0]
@@ -839,6 +896,16 @@ def random_effect(rng, kind):
         e.angle[k] = vc.rfloat(rng, 0.1, 360.0) if k == 2 or rng.random() < 0.3 else 0.0
         e.start[k] = vc.rfloat(rng, 0.1, 30000.0)
     e.owner = rng.choice([-1, 0, 1]) if kind[0] != 0x454 else rng.choice([0, 1])   # the swirl always has its caster
+    if kind[0] in OWNED_KINDS:
+        e.owner = rng.choice([0, 1])
+    e.field_64 = rng.choice([0, 0, 1, 2, 4, 5, rng.randrange(-2, 8)])   # NATIVE-HELPERS-002
+    e.time_mark = rng.choice([1000, 999, 800, 0, rng.randrange(0, 1 << 32)])
+    if kind[0] == 0x8012:
+        e.lifetime = rng.choice([20, 19, 21, 1, 0, rng.randrange(-2, 41)])
+        e.scale = f32(rng.choice([0.0, -0.1, 1.5, vc.rfloat(rng, 0.1, 3.0)]))
+    if kind[0] in OWNED_KINDS:
+        e.alpha = f32(rng.choice([0.7, 1.0, 0.05, 0.3, 0.0, -0.2, vc.rfloat(rng, 0.0, 1.2)]))
+        e.live = rng.choice([1, 1, 2])
     e.heading = f32(rng.choice([0.0, 1.57, 3.13, rng.uniform(0.0, 3.14), vc.rfloat(rng, 0.1, 10.0)]))
     if kind[0] == 0x40e:
         e.lifetime = rng.choice([150, 149, 75, 2, 1, 0, rng.randrange(-2, 151)])
@@ -848,7 +915,7 @@ def random_effect(rng, kind):
 MOVE_DEFINED = {'live', 'flag5', 'action', 'prior_action', 'client_hit', 'skill', 'type', 'subtype', 'lifetime',
                 'blend_mesh', 'scale', 'blend_light', 'velocity', 'frame', 'prior_frame', 'alpha', 'light',
                 'direction', 'position', 'angle', 'start', 'owner', 'gravity', 'key', 'blend_u', 'serial',
-                'heading'}
+                'heading', 'field_64', 'time_mark'}
 
 
 def family_effect_move(m, lib, rng, cases, report, negatives):
@@ -900,6 +967,11 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
             if kind[0] != 0x413 and has_model:
                 wrong_live = 0 if before.lifetime - 1 <= 0 else 1
                 negatives['move_decrement_first'] += (out[0] != 0) != bool(wrong_live)
+            # negative control (NATIVE-HELPERS-002): Fenrir's lightning fading by 0.2 instead of 0.3
+            if kind == (0x4ac, 0) and before.live and before.field_64 in (0, 1):
+                a = struct.unpack('<f', out[0xdc:0xe0])[0]
+                step = f32(0.2) if before.field_64 == 0 else f32(-0.2)
+                negatives['move_lightning_fade_02'] += not same(a, f32(before.alpha + step))
             # negative control: straight motion without the angle rotation
             if has_model or kind[0] >= 0x7a4:
                 px = struct.unpack('<f', out[0x158:0x15c])[0]
@@ -1580,7 +1652,8 @@ def main():
     negatives = {k: 0 for k in ['create_arrow_speed_60', 'create_energy_no_lift', 'move_decrement_first',
                                 'move_unrotated', 'check_magic_3d', 'particle_fire_scaled', 'particle_rise_no_10',
                                 'particle_fire_full_width', 'joint_first_tail_new_width', 'joint_forward_plus_y',
-                                'joint_uv_drawn_tails', 'player_shock_action_5']}
+                                'joint_uv_drawn_tails', 'player_shock_action_5',
+                                'create_shockwave_over_20', 'move_lightning_fade_02']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

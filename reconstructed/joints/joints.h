@@ -120,6 +120,7 @@ typedef struct mu_jt_object {
     float position[3];         /* +0x158 */
     float light[3];            /* +0xec */
     uint16_t action;           /* +0x2a (NATIVE-HELPERS-002: the 0x7f78 ring reads its target's action) */
+    int32_t type;              /* +0x5c (NATIVE-HELPERS-002: Fenrir's lightning 0x4ac looks up its owner's model) */
 } mu_jt_object;
 
 /* One call into another subsystem, in client order; vectors are the values at
