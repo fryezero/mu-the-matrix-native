@@ -137,22 +137,20 @@ mu_world_pets *mu_world_pets_new(const char *game_root, int32_t hero_item, uint3
         pp->loaded = mu_pet_data_load(f ? raw : NULL, n, pp->p.table);
     }
     if (pp->loaded != 0) {
-        /* no installed file (portable builds, synthetic tests): one record per known pet with the installed
-         * file's move types (DEMO) */
-        static const struct { int32_t item; uint8_t move; float range, scale; int32_t blend; } fallback[] = {
-            {0x40, 0, 50.0f, 0.2f, -1}, {0x41, 0, 50.0f, 0.4f, 0}, {0x43, 1, 10.0f, 0.8f, -1},
-            {0x50, 1, 10.0f, 0.8f, -1}, {0x6a, 1, 12.0f, 0.6f, -1}, {0x7b, 1, 10.0f, 0.5f, -1}};
+        /* no installed file (portable builds, synthetic tests): DEMO records, not the installed file's values:
+         * the two flying pets of the visuals routine fly (move type 0), the others collect (1) */
+        static const int32_t items[] = {0x40, 0x41, 0x43, 0x50, 0x6a, 0x7b};
         memset(pp->p.table, 0, sizeof pp->p.table);
-        for (int32_t i = 0; i < (int32_t)(sizeof fallback / sizeof fallback[0]); ++i) {
+        for (int32_t i = 0; i < (int32_t)(sizeof items / sizeof items[0]); ++i) {
             mu_pet_info *r = &pp->p.table[i];
             r->seq = i;
-            r->item = fallback[i].item;
+            r->item = items[i];
             r->slot = 8;
-            r->move = fallback[i].move;
-            r->range = fallback[i].range;
-            r->follow = (uint8_t)(fallback[i].move == 0);
-            r->scale = fallback[i].scale;
-            r->blend_mesh = fallback[i].blend;
+            r->move = (uint8_t)(items[i] == 0x40 || items[i] == 0x41 ? 0 : 1);
+            r->range = r->move ? 10.0f : 50.0f;
+            r->follow = (uint8_t)(r->move == 0);
+            r->scale = 0.5f;
+            r->blend_mesh = -1;
             for (int k = 0; k < 5; ++k)
                 r->speed[k] = 0.5f;
         }
