@@ -26,7 +26,14 @@
                       vectors, and scanned for std::map containers that are walked too (0x50 bytes per node);
    - nested:OFF       the table at manager offset OFF has std::map containers inside its records (Skill(Kor)'s
                       +0x64 ranks and +0x6c class map, NATIVE-SKILL-002: nested:0x6d8): every copied node value is
-                      scanned for them and they are walked (0x18 bytes per node: std::map<int, int>). */
+                      scanned for them and they are walked (0x18 bytes per node: std::map<int, int>).
+
+   Options (NATIVE-QUEST-002):
+   - deep:ADDR=BYTES,DEPTH   copy [ADDR, ADDR+BYTES) again and follow its strings and vectors DEPTH levels deep,
+                      re-reading buffers an earlier pass copied without following them (GuideQuest's chapters ->
+                      steps -> the steps' strings and vectors: deep:0x06fbb3d0=0x44,3);
+   - ptr:PTR+OFF=BYTES   copy BYTES at [PTR] + OFF (an object behind a pointer variable, e.g. the classic quest
+                      manager [0x01d1e71c]: ptr:0x01d1e71c+0=0x30dd0). */
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <stdint.h>
@@ -121,6 +128,35 @@ static void chase(const uint8_t *b, uint32_t n, int depth)
     }
 }
 
+/* Like chase, but every buffer is read for the recursion even when an earlier pass copied it. */
+static void chase_deep(const uint8_t *b, uint32_t n, int depth)
+{
+    for (uint32_t o = 0; o + 12 <= n; o += 4) {
+        uint32_t p = u32(b, o);
+        if (p < 0x10000)
+            continue;
+        if (o + 0x18 <= n) {
+            uint32_t size = u32(b, o + 0x10), cap = u32(b, o + 0x14);
+            if (cap >= 0x10 && cap < CHASE_MAX && size <= cap) {
+                uint32_t len = size + 1;
+                free(copy_block(p, &len, 0));
+                continue;
+            }
+        }
+        uint32_t e = u32(b, o + 4), c = u32(b, o + 8);
+        if ((p & 3) == 0 && p <= e && e <= c && c > p && c - p <= CHASE_MAX && ((e - p) & 3) == 0) {
+            uint32_t len = c - p;
+            free(copy_block(p, &len, 0));
+            if (depth > 0) {
+                uint8_t *v = malloc(len);
+                if (v && !rd(p, v, len))
+                    chase_deep(v, len, depth - 1);
+                free(v);
+            }
+        }
+    }
+}
+
 static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_t obj_bytes);
 
 /* std::map containers (head pointer, size; the head's _Isnil byte set) inside a copied object: walked. */
@@ -189,7 +225,8 @@ static uint32_t walk(uint32_t head, uint32_t count, uint32_t node_bytes, uint32_
 
 int main(int c, char **v)
 {
-    if (c < 3) { fprintf(stderr, "usage: langread pid out.bin [node:OFF=BYTES] [map:PTR+OFF=BYTES[,obj=N]] [nested:OFF]\n"); return 2; }
+    if (c < 3) { fprintf(stderr, "usage: langread pid out.bin [node:OFF=BYTES] [map:PTR+OFF=BYTES[,obj=N]] [nested:OFF] "
+                             "[deep:ADDR=BYTES,DEPTH] [ptr:PTR+OFF=BYTES]\n"); return 2; }
     if (task_for_pid(mach_task_self(), atoi(v[1]), &task)) { fprintf(stderr, "task_for_pid failed\n"); return 1; }
     static uint8_t mgr[MANAGER_END - MANAGER];
     if (rd(MANAGER, mgr, sizeof mgr)) { fprintf(stderr, "manager unreadable\n"); return 1; }
@@ -260,6 +297,27 @@ int main(int c, char **v)
         uint32_t got = walk(head, count, (bytes + 3) & ~3u, k == 4 ? obj : 0);
         printf("map [%08x]+0x%x count %u copied %u\n", ptr, off, count, got);
         ++maps; nodes += got;
+    }
+    for (int a = 3; a < c; ++a) {
+        unsigned addr = 0, bytes = 0, depth = 0, ptr = 0, off = 0;
+        if (sscanf(v[a], "deep:%i=%i,%i", &addr, &bytes, &depth) == 3 && bytes && bytes <= CHASE_MAX) {
+            uint8_t *b = malloc(bytes);
+            if (b && !rd(addr, b, bytes)) {
+                uint32_t len = bytes;
+                free(copy_block(addr, &len, 1));
+                chase_deep(b, bytes, (int)depth);
+                printf("deep %08x+0x%x depth %u\n", addr, bytes, depth);
+            }
+            free(b);
+        } else if (sscanf(v[a], "ptr:%i+%i=%i", &ptr, &off, &bytes) == 3 && bytes) {
+            uint32_t base = 0, len = 4;
+            free(copy_block(ptr, &len, 1));
+            if (!rd(ptr, &base, 4) && base >= 0x10000) {
+                len = bytes;
+                free(copy_block(base + off, &len, 1));
+                printf("ptr [%08x]+0x%x -> %08x, 0x%x bytes\n", ptr, off, base + off, len);
+            }
+        }
     }
     fseek(out, count_pos, SEEK_SET);
     fwrite(&blocks, 4, 1, out);

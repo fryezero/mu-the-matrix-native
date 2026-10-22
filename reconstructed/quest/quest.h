@@ -76,7 +76,60 @@ typedef struct mu_quest_data {
     size_t nstrings;
     mu_quest_level_tip *level_tips;       /* sorted by key */
     size_t nlevel_tips;
+    /* NATIVE-QUEST-002: GuideQuest (0x06fbb3d0, vector +0x38 of chapters) and GuideQuestString (0x06fbb414:
+     * vector +0x44 of chapter names, map +0x50 key -> step name) */
+    struct mu_guide_chapter *guide_chapters;
+    size_t nguide_chapters;
+    struct mu_guide_string *guide_titles;   /* +0x44, in vector order */
+    size_t nguide_titles;
+    struct mu_guide_string *guide_names;    /* +0x50, sorted by key */
+    size_t nguide_names;
+    /* the classic quests (Data\Local\Quest.bmd, 200 records of 1000 bytes, decoded by 0x00976855) */
+    uint8_t *classic;                       /* 200000 bytes, NULL when absent */
 } mu_quest_data;
+
+/* ---- the guide quest (NATIVE-QUEST-002) -------------------------------------------------------- *
+ * GuideQuest record = one step (0xf4 bytes; script loader 0x011196ad: a "header" line (index, name), then a type-0
+ * line (the step info at +0x24) and a type-1 line (the goal at +0x84)):
+ *   +0 byte done, +4 index, +8 state (the tab: 0 later, 1 current, 3 done), +0xc name (std::string);
+ *   +0x24 info: +0x24 index, +0x28 0, +0x2c chapter (1-based), +0x30 listed (1), +0x34 colour kind (0x00c8b9f9),
+ *         +0x38..+0x54, +0x40 the required level, +0x58, +0x5c, +0x60 name, +0x78 vector<int> class flags (16);
+ *   +0x84 goal: +0x84 index, +0x88 1, +0x8c goal type (1/2 "%s x %d/%d", 3..5 "%s"), +0x98 count, +0xa8 world,
+ *         +0xac/+0xb0 the move target, +0xb4 exp, +0xb8 zen, +0xbc..+0xcc, +0xd0 name,
+ *         +0xe8 vector of reward items {group, index, count}. */
+#define MU_GUIDE_STEP_WORDS 61
+
+typedef struct mu_guide_step {
+    int32_t w[MU_GUIDE_STEP_WORDS];       /* the record's words by offset / 4 (string and vector words unused) */
+    const char *name;                     /* +0xc */
+    const char *info_name;                /* +0x60 */
+    const int32_t *classes;               /* +0x78 */
+    int32_t nclasses;
+    const char *goal_name;                /* +0xd0 */
+    const int32_t *rewards;               /* +0xe8: nrewards x {group, index, count} */
+    int32_t nrewards;
+} mu_guide_step;
+
+typedef struct mu_guide_chapter {
+    mu_guide_step *steps;
+    size_t nsteps;
+} mu_guide_chapter;
+
+typedef struct mu_guide_string {          /* GuideQuestString record (0x24 bytes): +0 index, +4 type, +8 key, +0xc text */
+    int32_t index, type, key;
+    char *text;
+} mu_guide_string;
+
+/* Plaintext (scripts/live_lang_to_plain.py, MU_LANG_DIR):
+ *   guidequest.tsv    chapter TAB 61 words (space separated) TAB name TAB info name TAB goal name TAB class flags TAB
+ *                     reward words (space separated)
+ *   guidestrings.tsv  kind (1 the +0x44 vector, 2 the +0x50 map) TAB position or key TAB index TAB type TAB key TAB text
+ * Each parse replaces that table; returns the record count or -1.  mu_quest_load_dir reads them too. */
+long mu_guide_parse_steps(mu_quest_data *d, const char *text);
+long mu_guide_parse_strings(mu_quest_data *d, const char *text);
+/* Data\Local\Quest.bmd (200000 bytes as installed): decoded with the client's XOR (0x00976855) record by record
+ * (0x009f4866).  Returns 200 on success, -1 otherwise. */
+long mu_classic_load(mu_quest_data *d, const uint8_t *file, size_t size);
 
 /* Plaintext of scripts/live_lang_to_plain.py (MU_LANG_DIR):
  *   quests.tsv        index TAB name TAB f1c TAB f20 TAB 30 ints (space separated) TAB 26 ints
@@ -183,6 +236,22 @@ typedef struct mu_quest_host {
     int (*item_byte)(void *user, int32_t code, int32_t value);  /* 0x00cd6017(code, value) */
     /* ANSI -> UTF-8 0x00a99d93 where the client converts; NULL: unchanged.  Returns dst. */
     const char *(*to_utf8)(void *user, const char *src, char *dst, size_t cap);
+    /* NATIVE-QUEST-002 */
+    const char *(*item_record_name)(void *user, int32_t code);  /* 0x00cd5d29(code) + 0x210 (NULL: no record) */
+    /* GetTextExtentPointA's cx of text[0..n) on the interface font: the wrap 0x01193941 */
+    int32_t (*measure)(void *user, const char *text, int32_t n);
+    /* the hero's path (PATH_t at hero + 0x3194): reset 0x0129c4d2, start 0x0129c6be (returns 0/1), SendMove
+     * 0x016b5cd0 (returns 0/1) */
+    void (*path_reset)(void *user);
+    int (*path_start)(void *user, int32_t flag, int32_t sx, int32_t sy, int32_t tx, int32_t ty, int32_t mode,
+                      int32_t error_check);
+    int (*send_move)(void *user);
+    /* MU Helper (singleton 0x0095f659): running +8 (0x0095fc71), available 0x00952940 */
+    int (*helper_running)(void *user);
+    int (*helper_available)(void *user);
+    /* the classic quest manager's inventory / kill queries (0x009f52ab item count >= need, 0x009f52fe kills) */
+    int (*classic_item)(void *user, int32_t code, int32_t count, int32_t level);
+    int32_t (*classic_kills)(void *user, int32_t monster);
 } mu_quest_host;
 
 /* ---- texts ----------------------------------------------------------------------------------- */
@@ -258,6 +327,24 @@ typedef struct mu_quest_client {
     int summary;                          /* the quest summary HUD exists (0x01d22c60 holds it) */
     const char *(*dialogue_word)(void *user, int32_t id);   /* QuestWords 0x00fdc9c1 (0x5dd, 0x5de, 0x3ef) */
     mu_quest_log log;
+    /* NATIVE-QUEST-002 */
+    struct mu_guide_tab *guide;           /* MyQuestInfo tab 0 (heap: the tab's step list) */
+    struct mu_quest_summary *hud;         /* QuestSummary's handler state (when c->summary) */
+    struct mu_classic *classic;           /* the classic quest manager [0x01d1e71c] + tab 1 + NpcJobChangeQuest */
+    int32_t hero_level;                   /* [[0x01d1df1c]] (0x00a00066) */
+    int32_t hero_level_total;             /* 0x00a00367: level + master level */
+    uint8_t hero_class;                   /* hero + 0x12 */
+    uint8_t hero_safe;                    /* hero + 4 (0x0095fb27) */
+    uint8_t hero_walk;                    /* hero + 0x39 (SendMove's success clears it) */
+    uint8_t holding_item;                 /* 0x00c08654 (the cursor holds an item): the move buttons refuse */
+    float time;                           /* [0x06fce370] (the guide give-up throttle) */
+    float throttle_until;                 /* [0x01ec8e98] */
+    int throttle_init;                    /* its guard [0x01ec8e9c] */
+    int32_t throttle_quest;               /* [0x01cf0e38] */
+    int helper_notice;                    /* the helper notice HUD (0x0095c550 / 0x0095f09a) exists */
+    int32_t screen_width;                 /* [0x01cf1624] (QuestProgressInfo's scale mode above 1024) */
+    int play_move;                        /* the tab action runs the move 0x00d5029b (0: logged "not played") */
+    int play_tabs;                        /* MyQuestInfo's tabs 0 and 1 are played (0: logged "not played") */
 } mu_quest_client;
 
 int mu_quest_client_init(mu_quest_client *c, const mu_quest_data *data, const mu_quest_host *host);
@@ -306,6 +393,93 @@ void mu_quest_info_giveup_ok(mu_quest_client *c);                   /* 0x00be436
 int mu_quest_info_callback(mu_quest_client *c, const char *name, const double *numbers, int n, const char *text);
 void mu_quest_tab_text_width(mu_quest_client *c, mu_quest_tab *t, int32_t lines, const char *text);   /* 0x00d4f43e */
 
+/* ---- MyQuestInfo tab 0: the guide quest (NATIVE-QUEST-002, quest_guide.c) ------------------------- */
+
+typedef struct mu_guide_tab {             /* the guide tab (0xd8 bytes, ctor 0x00d4c27a, vtable 0x01aa4ca0) */
+    int32_t selected;                     /* +0x84 */
+    char title[256];                      /* +0xa4 GlobalText 0x1479 */
+    uint8_t check;                        /* +0xc0 the chapter check box ("Abort" the chapter) */
+    uint8_t complete;                     /* +0xc1 the current step is complete (packet state 2) */
+    int32_t current;                      /* +0xc4 the current step index (-1) */
+    int32_t count;                        /* +0xc8 the current step's progress */
+    mu_guide_step *list;                  /* +0xcc the current chapter's listed steps (copies) */
+    size_t nlist, cap;
+} mu_guide_tab;
+
+void mu_guide_init(mu_quest_client *c);                              /* vtable +4  0x00d49610 */
+void mu_guide_close(mu_quest_client *c);                             /* vtable +8  0x00d49909 */
+void mu_guide_clear(mu_quest_client *c);                             /* vtable +0xc 0x00d4993f */
+void mu_guide_show(mu_quest_client *c, int32_t index);               /* vtable +0x10 0x00d49bc3 */
+void mu_guide_rebuild(mu_quest_client *c);                           /* vtable +0x14 0x00d499a9 */
+void mu_guide_chapter_change(mu_quest_client *c, int32_t step);      /* 0x00d49e17 */
+void mu_guide_set_check(mu_quest_client *c, int check);              /* 0x00d49f49 */
+void mu_guide_set_state(mu_quest_client *c, int32_t index, int32_t state);   /* 0x00d49fc0 */
+int mu_guide_summary_update(mu_quest_client *c);                     /* 0x00d4a18c */
+int mu_guide_level_ok(const mu_quest_client *c, int32_t step);       /* 0x00d4a286 */
+int32_t mu_guide_find(const mu_quest_client *c, int32_t step);       /* 0x00d4a2eb (-1) */
+int32_t mu_guide_step_at(const mu_quest_client *c, int32_t index);   /* 0x00d4a33a (-1) */
+int32_t mu_guide_chapter_of(const mu_quest_client *c, int32_t step); /* 0x00d4aa9a (1-based, -1) */
+int32_t mu_guide_next(const mu_quest_client *c, int32_t step);       /* 0x00d4ab3e (-1 none, -2 the guide's end) */
+void mu_guide_goal_text(const mu_quest_client *c, int32_t step, char *out, size_t cap);   /* 0x00d4a4fa */
+void mu_guide_level_text(const mu_quest_client *c, int32_t step, char *out, size_t cap);  /* 0x00d4a371 */
+void mu_guide_buttons(mu_quest_client *c);                           /* 0x00d4a7f1 */
+void mu_guide_conditions(mu_quest_client *c, int32_t index);         /* 0x00d4ad11 (the list entry) */
+/* F6 0x50 (0x00d4b222: u16 step +4, progress +6, state +7) and F6 0x51 (0x00d4b690: result +6). */
+void mu_guide_receive_state(mu_quest_client *c, const uint8_t *packet, size_t size);
+void mu_guide_receive_result(mu_quest_client *c, const uint8_t *packet, size_t size);
+void mu_guide_giveup(mu_quest_client *c);                            /* onClickbtnGuideQuestGiveUp 0x00d4b942 */
+void mu_guide_box(mu_quest_client *c, int32_t box, int32_t result);  /* 0x00be436d(0x2e/0x2f) -> 0x00d4b7a2 */
+void mu_guide_go(mu_quest_client *c);                                /* "Go Now" / "Get Reward" 0x00d4bed6 */
+/* The requests: 0x00d4b8ac F6 51 (reward), 0x00d4bc78 F6 53 (the selected step), 0x00d4bd28 F6 54 (the server
+ * moves the hero: the cross-map hook), 0x00d4bdbe F6 55 (arrived), 0x00d4be54 F6 57. */
+void mu_guide_request(mu_quest_client *c, int32_t sub);
+
+/* ---- the quest summary HUD (QuestSummary, quest_summary.c) --------------------------------------- */
+
+typedef struct mu_quest_summary {         /* QuestSummary's handler (winQuestSummary) */
+    uint8_t guide_shown;                  /* +0x20 */
+    int32_t guide_index;                  /* +0x24: the guide list entry it shows (-1 none) */
+    mu_guide_step guide_copy;             /* the entry as it was set (the client keeps a pointer) */
+    int32_t quests[64];                   /* +0x28 map index -> quest: the indices, sorted */
+    int32_t nquests;
+    int visible;
+    int32_t other;                        /* 0x00abeb82()->0x00c8bb43(): the other list's entries (not played) */
+    uint8_t blocked;                      /* 0x0095f7df()->0x00b4d664(): the HUD is suppressed */
+    uint8_t other_window;                 /* the window at manager + 0x290 is open: clicks are ignored */
+} mu_quest_summary;
+
+/* Creates the HUD's handler state (QuestSummary exists: c->summary = 1); the quest system's add/remove/clear then
+ * update it (0x00c89ff9 / 0x00c8a072 / 0x00c8a0ce). */
+int mu_quest_enable_hud(mu_quest_client *c);
+void mu_summary_guide_refresh(mu_quest_client *c);                   /* 0x00c89f80 */
+void mu_summary_guide_set(mu_quest_client *c, int32_t index);        /* 0x00c89fc3 / 0x00c89fe0 (-1) */
+void mu_summary_update(mu_quest_client *c);                          /* 0x00c8a0eb */
+void mu_summary_onload(mu_quest_client *c);                          /* 0x00c89d17 */
+void mu_summary_show(mu_quest_client *c);                            /* 0x00be7079 openWindow */
+void mu_summary_click(mu_quest_client *c, int32_t kind, int32_t quest);   /* 0x00c8ae30 */
+/* The movie's callbacks (0x00c89dfb): OnClickQuest(category, index), onLoad, onButtonClose; 1 when handled. */
+int mu_summary_callback(mu_quest_client *c, const char *name, int32_t category, int32_t index);
+void mu_quest_progress_info(mu_quest_client *c);                     /* QuestProgressInfo 0x00c0a0cb */
+void mu_quest_progress_info_onload(mu_quest_client *c);              /* 0x00c09fe3 */
+
+/* ---- "Go Now" of the quest tabs (quest_move.c) ------------------------------------------------------ */
+
+void mu_quest_tab_go(mu_quest_client *c, mu_quest_tab *t);           /* 0x00d4ffea */
+void mu_quest_move(mu_quest_client *c, int32_t quest);               /* 0x00d5029b */
+
+/* ---- the class-upgrade quests (quest_classic.c) ------------------------------------------------------ */
+
+void mu_classic_free(mu_quest_client *c);
+void mu_classic_tab_init(mu_quest_client *c);                        /* tab 1 vtable +4 0x00d4dd38 */
+
+/* ---- the client's text wrap (quest_wrap.c) ---------------------------------------------------------- */
+
+/* 0x011ff794(lines, max_lines, stride, text, width, bullet, delimiters, indent, indent_from) with 0x01193941:
+ * the text cut at the delimiters (strtok), each piece (" %s" when bullet) by width * scale (the measure host);
+ * indent > 0 prefixes lines from indent_from on with indent spaces.  Returns the line count. */
+int mu_quest_wrap(const mu_quest_client *c, char *lines, int max_lines, int stride, const char *text, int32_t width,
+                  int bullet, const char *delimiters, int indent, int indent_from, float scale);
+
 /* ---- hosts and tests ----------------------------------------------------------------------------- */
 
 size_t mu_quest_client_size(void);
@@ -326,6 +500,12 @@ void mu_quest_set_hero(mu_quest_client *c, const char *name);
 void mu_quest_set_dialogue_words(mu_quest_client *c, const char *(*word)(void *user, int32_t id));
 void mu_quest_dialog_set_text(mu_quest_client *c, const char *wrapped, int32_t page);
 void mu_quest_set_sink(mu_quest_client *c, void (*sink)(void *user, const char *line), void *user);
+/* NATIVE-QUEST-002: the game time [0x06fce370] and the give-up throttle's static [0x01ec8e98]; the guide tab
+ * ("current= selected= check= complete= count= list=STEP:STATE:DONE,...") and the HUD ("shown= quests=I,...") as
+ * text for the validator. */
+void mu_quest_set_time(mu_quest_client *c, float time, float until);
+const char *mu_guide_state_text(const mu_quest_client *c);
+const char *mu_summary_state_text(const mu_quest_client *c);
 
 #ifdef __cplusplus
 }

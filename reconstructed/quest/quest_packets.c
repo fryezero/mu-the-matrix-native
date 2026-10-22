@@ -46,7 +46,7 @@ static void info_refresh_tab(mu_quest_client *c, int32_t quest)
         if (t)
             mu_quest_tab_init(c, t);
         else
-            mu_quest_logf(&c->log, "tab %d init (not played)", c->info.tab);
+            mu_quest_tab_other(c, c->info.tab, 1);
     }
 }
 
@@ -91,7 +91,7 @@ static void on_list(mu_quest_client *c, const uint8_t *p, size_t n)
         if (t)
             mu_quest_tab_init(c, t);
         else
-            mu_quest_logf(&c->log, "tab %d init (not played)", c->info.tab);
+            mu_quest_tab_other(c, c->info.tab, 1);
         mu_quest_info_checked(c);
     }
 }
@@ -204,7 +204,9 @@ static void on_progress(mu_quest_client *c, const uint8_t *p, size_t n)
     mu_quest_tab *t = mu_quest_info_tab(c, q->category);
     if (t && t->selected == q->index)
         mu_quest_tab_select(c, t, q->index);
-    if (c->summary)
+    if (c->summary && c->hud)
+        mu_summary_update(c);
+    else if (c->summary)
         mu_quest_logf(&c->log, "summary update");
 }
 

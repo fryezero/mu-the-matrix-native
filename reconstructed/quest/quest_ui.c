@@ -2,6 +2,7 @@
  * MyQuestInfo's quest tabs; see quest.h.  Every routine reports the client's effects into c->log. */
 #include "quest_internal.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -678,9 +679,11 @@ void mu_quest_tab_action(mu_quest_client *c, mu_quest_tab *t, int32_t quest)
             send_f6(c, 0x74, w, 3, 1);
         }
     } else {
-        /* 0x00d5029b: the move to the quest's target (hero position, world, path or the move request):
-         * static only, not reconstructed */
-        mu_quest_logf(&c->log, "move %d (not played)", q->index);
+        /* 0x00d5029b: the move to the quest's target (NATIVE-QUEST-002, quest_move.c; hosts set play_move) */
+        if (c->play_move)
+            mu_quest_move(c, q->index);
+        else
+            mu_quest_logf(&c->log, "move %d (not played)", q->index);
     }
 }
 
@@ -697,7 +700,7 @@ void mu_quest_info_open(mu_quest_client *c)
     if (t)
         mu_quest_tab_init(c, t);
     else
-        mu_quest_logf(&c->log, "tab %d init (not played)", w->tab);
+        mu_quest_tab_other(c, w->tab, 1);
     mu_quest_info_checked(c);
     show(c, MQI);
     w->visible = 1;
@@ -708,7 +711,7 @@ void mu_quest_info_close(mu_quest_client *c)
     mu_quest_info_window *w = &c->info;
     /* the current tab's vtable +8: nothing for the quest tabs (0x00d4f2d5 returns 1) */
     if (!mu_quest_info_tab(c, w->tab))
-        mu_quest_logf(&c->log, "tab %d close (not played)", w->tab);
+        mu_quest_tab_other(c, w->tab, 0);
     uint8_t b[1] = {0x54};
     send_packet(c, b, 1, 0);
     hide(c, MQI);
@@ -722,7 +725,7 @@ void mu_quest_info_select_tab(mu_quest_client *c, int32_t tab)
     if (t)
         mu_quest_tab_init(c, t);
     else
-        mu_quest_logf(&c->log, "tab %d init (not played)", tab);
+        mu_quest_tab_other(c, tab, 1);
 }
 
 void mu_quest_tab_text_width(mu_quest_client *c, mu_quest_tab *t, int32_t lines, const char *text)
@@ -798,6 +801,13 @@ int mu_quest_client_init(mu_quest_client *c, const mu_quest_data *data, const mu
         c->info.tabs[k].category = k + 2;
         snprintf(c->info.tabs[k].title, sizeof c->info.tabs[k].title, "%s", mu_quest_text(c, TITLE[k]));
     }
+    /* NATIVE-QUEST-002: tab 0 (ctor 0x00d4c27a; +0x84 is left uninitialised there, the init resets it) */
+    c->guide = calloc(1, sizeof *c->guide);
+    if (!c->guide)
+        return -1;
+    c->guide->current = -1;
+    c->guide->selected = -1;
+    snprintf(c->guide->title, sizeof c->guide->title, "%s", mu_quest_text(c, 0x1479));
     return 0;
 }
 
@@ -808,4 +818,144 @@ void mu_quest_client_free(mu_quest_client *c)
     pages_clear(&c->progress);
     mu_quest_system_free(&c->qs);
     mu_quest_log_free(&c->log);
+    if (c->guide)
+        free(c->guide->list);
+    free(c->guide);
+    free(c->hud);
+    mu_classic_free(c);
+    c->guide = NULL;
+    c->hud = NULL;
+}
+
+int mu_quest_enable_hud(mu_quest_client *c)
+{
+    if (!c)
+        return -1;
+    if (!c->hud) {
+        c->hud = calloc(1, sizeof *c->hud);
+        if (!c->hud)
+            return -1;
+        c->hud->guide_index = -1;
+    }
+    c->summary = 1;
+    return 0;
+}
+
+
+/* ---- NATIVE-QUEST-002: shared effect helpers --------------------------------------------------- */
+
+/* MyQuestInfo's tabs 0 (guide) and 1 (class upgrade): their init (vtable +4) / close (vtable +8) when the host
+ * plays them (play_tabs), else the NATIVE-QUEST-001 log line. */
+void mu_quest_tab_other(mu_quest_client *c, int32_t tab, int init)
+{
+    if (c->play_tabs && tab == 0) {
+        if (init)
+            mu_guide_init(c);
+        else
+            mu_guide_close(c);
+        return;
+    }
+    if (c->play_tabs && tab == 1) {
+        if (init)
+            mu_classic_tab_init(c);
+        return;
+    }
+    mu_quest_logf(&c->log, "tab %d %s (not played)", tab, init ? "init" : "close");
+}
+
+void mu_quest_invoke(mu_quest_client *c, const char *window, const char *method, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char args[16384];
+    size_t len = 0;
+    args[len++] = '[';
+    int k = 0;
+    for (const char *p = fmt ? fmt : ""; *p;) {
+        while (*p == ' ')
+            p++;
+        if (!*p)
+            break;
+        const char *tok = p;
+        while (*p && *p != ' ')
+            p++;
+        size_t tl = (size_t)(p - tok);
+        char piece[8192];
+        if (tl == 2 && !strncmp(tok, "%s", 2)) {
+            const char *s = va_arg(ap, const char *);
+            mu_quest_json(piece, sizeof piece, s ? s : "");
+        } else if (tl == 2 && !strncmp(tok, "%d", 2)) {
+            snprintf(piece, sizeof piece, "%d", (int)va_arg(ap, int32_t));
+        } else if (tl == 2 && !strncmp(tok, "%b", 2)) {
+            snprintf(piece, sizeof piece, "%s", (va_arg(ap, int) & 0xff) ? "true" : "false");
+        } else {
+            snprintf(piece, sizeof piece, "?%.*s", (int)tl, tok);
+        }
+        len += (size_t)snprintf(args + len, sizeof args - len, "%s%s", k++ ? "," : "", piece);
+        if (len >= sizeof args)
+            len = sizeof args - 1;
+    }
+    va_end(ap);
+    snprintf(args + len, sizeof args - len, "]");
+    mu_quest_logf(&c->log, "invoke %s %s %s", window, method, args);
+}
+
+void mu_quest_show(mu_quest_client *c, const char *window)
+{
+    show(c, window);
+}
+
+void mu_quest_hide(mu_quest_client *c, const char *window)
+{
+    hide(c, window);
+}
+
+void mu_quest_send(mu_quest_client *c, const uint8_t *body, int n, int a, int b)
+{
+    char hex[512];
+    size_t len = 0;
+    len += (size_t)snprintf(hex + len, sizeof hex - len, "c1 %02x", (n + 2) & 0xff);
+    for (int i = 0; i < n && len + 4 < sizeof hex; i++)
+        len += (size_t)snprintf(hex + len, sizeof hex - len, " %02x", body[i]);
+    mu_quest_logf(&c->log, "send %s | %d %d", hex, a, b);
+}
+
+void mu_quest_notice(mu_quest_client *c, const char *text)
+{
+    char q[4096];
+    mu_quest_json(q, sizeof q, text);
+    mu_quest_logf(&c->log, "notice %s", q);
+}
+
+void mu_quest_msgbox(mu_quest_client *c, const char *owner, int32_t id, const char *text, const char *title,
+                     int32_t a, int32_t b, int32_t d)
+{
+    char q[4096], t[1024];
+    mu_quest_json(q, sizeof q, text);
+    mu_quest_json(t, sizeof t, title);
+    mu_quest_logf(&c->log, "msgbox %s %d %s %s %d %d %d", owner, id, q, t, a, b, d);
+}
+
+void mu_quest_msgbox2(mu_quest_client *c, const char *owner, int32_t id, const char *text, const char *button,
+                      int32_t a, int32_t b, int32_t d, int32_t e)
+{
+    char q[4096], t[1024];
+    mu_quest_json(q, sizeof q, text);
+    mu_quest_json(t, sizeof t, button);
+    mu_quest_logf(&c->log, "msgbox2 %s %d %s %s %d %d %d %d", owner, id, q, t, a, b, d, e);
+}
+
+uint32_t mu_quest_rgba(int r, int g, int b, int a)
+{
+    return (uint32_t)(r & 0xff) | (uint32_t)(g & 0xff) << 8 | (uint32_t)(b & 0xff) << 16 | (uint32_t)(a & 0xff) << 24;
+}
+
+uint32_t mu_quest_list_color(int32_t state, int32_t kind)
+{
+    switch (kind) {
+    case 1: return state == 1 ? mu_quest_rgba(0xdc, 0xa0, 0xf5, 0xfa) : mu_quest_rgba(0x78, 100, 0x82, 0xfa);
+    case 2: return state == 1 ? mu_quest_rgba(0xff, 0xf5, 0x8c, 0xfa) : mu_quest_rgba(0x8c, 0x8c, 0x50, 0xfa);
+    case 3: return state == 1 ? mu_quest_rgba(0x96, 0xdc, 0x96, 0xfa) : mu_quest_rgba(0x5a, 0x8c, 0x5a, 0xfa);
+    default: return mu_quest_rgba(0x78, 100, 0x82, 0xfa);
+    }
 }

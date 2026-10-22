@@ -37,6 +37,32 @@ int32_t mu_quest_client_field(mu_quest_client *c, const char *name, int set, int
         {"font", (int32_t *)&c->font, NULL, NULL},
         {"font_default", (int32_t *)&c->font_default, NULL, NULL},
         {"world", &c->world, NULL, NULL},
+        /* NATIVE-QUEST-002 */
+        {"hero.level", &c->hero_level, NULL, NULL},
+        {"hero.level_total", &c->hero_level_total, NULL, NULL},
+        {"hero.class", NULL, &c->hero_class, NULL},
+        {"hero.safe", NULL, &c->hero_safe, NULL},
+        {"hero.walk", NULL, &c->hero_walk, NULL},
+        {"hero.x", &c->hero_x, NULL, NULL},
+        {"hero.y", &c->hero_y, NULL, NULL},
+        {"holding", NULL, &c->holding_item, NULL},
+        {"throttle.quest", &c->throttle_quest, NULL, NULL},
+        {"throttle.init", NULL, NULL, &c->throttle_init},
+        {"helper_notice", NULL, NULL, &c->helper_notice},
+        {"screen_width", &c->screen_width, NULL, NULL},
+        {"play_move", NULL, NULL, &c->play_move},
+        {"play_tabs", NULL, NULL, &c->play_tabs},
+        {"guide.current", c->guide ? &c->guide->current : NULL, NULL, NULL},
+        {"guide.selected", c->guide ? &c->guide->selected : NULL, NULL, NULL},
+        {"guide.count", c->guide ? &c->guide->count : NULL, NULL, NULL},
+        {"guide.check", NULL, c->guide ? &c->guide->check : NULL, NULL},
+        {"guide.complete", NULL, c->guide ? &c->guide->complete : NULL, NULL},
+        {"hud.guide_shown", NULL, c->hud ? &c->hud->guide_shown : NULL, NULL},
+        {"hud.guide_index", c->hud ? &c->hud->guide_index : NULL, NULL, NULL},
+        {"hud.other", c->hud ? &c->hud->other : NULL, NULL, NULL},
+        {"hud.blocked", NULL, c->hud ? &c->hud->blocked : NULL, NULL},
+        {"hud.other_window", NULL, c->hud ? &c->hud->other_window : NULL, NULL},
+        {"hud.visible", NULL, NULL, c->hud ? &c->hud->visible : NULL},
     };
     for (size_t k = 0; k < sizeof F / sizeof F[0]; k++) {
         if (strcmp(F[k].name, name))
@@ -51,6 +77,8 @@ int32_t mu_quest_client_field(mu_quest_client *c, const char *name, int set, int
                 *F[k].b = (uint8_t)value;
             return *F[k].b;
         }
+        if (!F[k].i)
+            return INT32_MIN;
         if (set)
             *F[k].i = (int)value;
         return *F[k].i;
@@ -130,4 +158,37 @@ void mu_quest_set_sink(mu_quest_client *c, void (*sink)(void *user, const char *
 {
     c->log.sink = sink;
     c->log.sink_user = user;
+}
+
+/* NATIVE-QUEST-002 test accessors. */
+void mu_quest_set_time(mu_quest_client *c, float time, float until)
+{
+    c->time = time;
+    c->throttle_until = until;
+}
+
+const char *mu_guide_state_text(const mu_quest_client *c)
+{
+    static char out[16384];
+    const mu_guide_tab *t = c->guide;
+    if (!t)
+        return "";
+    size_t n = (size_t)snprintf(out, sizeof out, "current=%d selected=%d check=%d complete=%d count=%d list=",
+                                t->current, t->selected, t->check, t->complete, t->count);
+    for (size_t i = 0; i < t->nlist && n + 40 < sizeof out; i++)
+        n += (size_t)snprintf(out + n, sizeof out - n, "%d:%d:%d,", t->list[i].w[1], t->list[i].w[2],
+                              t->list[i].w[0] & 0xff);
+    return out;
+}
+
+const char *mu_summary_state_text(const mu_quest_client *c)
+{
+    static char out[4096];
+    const mu_quest_summary *h = c->hud;
+    if (!h)
+        return "";
+    size_t n = (size_t)snprintf(out, sizeof out, "shown=%d quests=", h->guide_shown);
+    for (int32_t i = 0; i < h->nquests && n + 16 < sizeof out; i++)
+        n += (size_t)snprintf(out + n, sizeof out - n, "%d,", h->quests[i]);
+    return out;
 }

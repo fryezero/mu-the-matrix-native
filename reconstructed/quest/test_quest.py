@@ -28,12 +28,21 @@ KIND_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes
 class Host(ctypes.Structure):
     _fields_ = [('user', ctypes.c_void_p), ('data', ctypes.c_void_p), ('text', TEXT_FN), ('npc_name', TEXT_FN),
                 ('map_name', TEXT_FN), ('item_name', TEXT_FN), ('item_kind', KIND_FN), ('item_byte', KIND_FN),
-                ('to_utf8', ctypes.c_void_p)]
+                ('to_utf8', ctypes.c_void_p),
+                # NATIVE-QUEST-002 (NULL)
+                ('item_record_name', ctypes.c_void_p), ('measure', ctypes.c_void_p), ('path_reset', ctypes.c_void_p),
+                ('path_start', ctypes.c_void_p), ('send_move', ctypes.c_void_p), ('helper_running', ctypes.c_void_p),
+                ('helper_available', ctypes.c_void_p), ('classic_item', ctypes.c_void_p),
+                ('classic_kills', ctypes.c_void_p)]
 
 
 class Data(ctypes.Structure):
     _fields_ = [('records', ctypes.c_void_p), ('nrecords', ctypes.c_size_t), ('strings', ctypes.c_void_p),
-                ('nstrings', ctypes.c_size_t), ('level_tips', ctypes.c_void_p), ('nlevel_tips', ctypes.c_size_t)]
+                ('nstrings', ctypes.c_size_t), ('level_tips', ctypes.c_void_p), ('nlevel_tips', ctypes.c_size_t),
+                # NATIVE-QUEST-002: the guide tables and the classic quests
+                ('guide_chapters', ctypes.c_void_p), ('nguide_chapters', ctypes.c_size_t),
+                ('guide_titles', ctypes.c_void_p), ('nguide_titles', ctypes.c_size_t),
+                ('guide_names', ctypes.c_void_p), ('nguide_names', ctypes.c_size_t), ('classic', ctypes.c_void_p)]
 
 
 class Line(ctypes.Structure):

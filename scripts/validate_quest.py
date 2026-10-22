@@ -373,12 +373,21 @@ UTF8_FN = ctypes.CFUNCTYPE(ctypes.c_char_p, ctypes.c_void_p, ctypes.c_char_p, ct
 class Host(ctypes.Structure):
     _fields_ = [('user', ctypes.c_void_p), ('data', ctypes.c_void_p), ('text', TEXT_FN), ('npc_name', TEXT_FN),
                 ('map_name', TEXT_FN), ('item_name', TEXT_FN), ('item_kind', KIND_FN), ('item_byte', KIND_FN),
-                ('to_utf8', ctypes.c_void_p)]
+                ('to_utf8', ctypes.c_void_p),
+                # NATIVE-QUEST-002 (NULL here; scripts/validate_quest2.py sets them)
+                ('item_record_name', ctypes.c_void_p), ('measure', ctypes.c_void_p), ('path_reset', ctypes.c_void_p),
+                ('path_start', ctypes.c_void_p), ('send_move', ctypes.c_void_p), ('helper_running', ctypes.c_void_p),
+                ('helper_available', ctypes.c_void_p), ('classic_item', ctypes.c_void_p),
+                ('classic_kills', ctypes.c_void_p)]
 
 
 class QuestData(ctypes.Structure):
     _fields_ = [('records', ctypes.c_void_p), ('nrecords', ctypes.c_size_t), ('strings', ctypes.c_void_p),
-                ('nstrings', ctypes.c_size_t), ('level_tips', ctypes.c_void_p), ('nlevel_tips', ctypes.c_size_t)]
+                ('nstrings', ctypes.c_size_t), ('level_tips', ctypes.c_void_p), ('nlevel_tips', ctypes.c_size_t),
+                # NATIVE-QUEST-002: the guide tables and the classic quests (the whole mu_quest_data)
+                ('guide_chapters', ctypes.c_void_p), ('nguide_chapters', ctypes.c_size_t),
+                ('guide_titles', ctypes.c_void_p), ('nguide_titles', ctypes.c_size_t),
+                ('guide_names', ctypes.c_void_p), ('nguide_names', ctypes.c_size_t), ('classic', ctypes.c_void_p)]
 
 
 class Dialogue(ctypes.Structure):
