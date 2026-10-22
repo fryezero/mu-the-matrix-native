@@ -54,7 +54,8 @@ enum {
     MU_JT_CALL_JOINT = 0x0153b02c,          /* CreateJoint */
     MU_JT_CALL_EFFECT = 0x013c0eaa,         /* CreateEffect(type, pos, angle, light, sub, owner, ...) */
     MU_JT_CALL_SPRITE = 0x01692eb7,         /* CreateSprite(bitmap, pos, scale, light, owner, rotation, blend, axes) */
-    MU_JT_CALL_AREA_ATTACK = 0x013bc25e     /* the hero's area attack request (skill, range, pos, serial, ...) */
+    MU_JT_CALL_AREA_ATTACK = 0x013bc25e,    /* the hero's area attack request (skill, range, pos, serial, ...) */
+    MU_JT_CALL_DELETE = 0x01553a54         /* DeleteJoint(type, target, subtype) */
 };
 
 /* GL state wrappers of RenderJoints' render types. */

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "mu_particles.h"
+#include "mu_world_actors.h"
 #include "mu_objects.h"
 #include "mu_env.h"
 #include "mu_world_helpers.h"
@@ -307,6 +308,17 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
     }
     if (index >= MU_WH_EFFECT_BASE && index < FX_HERO_OBJECT)
         return mu_world_helpers_effect_object(p->helpers, index, o) ? o : NULL;
+    if (index >= MU_WORLD_ACTOR_FX_BASE && index < MU_WH_EFFECT_BASE) {
+        int32_t i = index - MU_WORLD_ACTOR_FX_BASE;
+        if (!p->actors || i >= p->actors->count)
+            return NULL;
+        const mu_world_actor *a = &p->actors->list[i];
+        memset(o, 0, sizeof *o);
+        o->live = (uint8_t)(a->player != NULL || a->actor.loaded);
+        memcpy(o->position, a->position, sizeof o->position);
+        o->type = a->actor.spec.model_index;
+        return o;
+    }
     if (!p->objects || !mu_objects_object_image(p->objects, index))
         return NULL;
     *o = view_of(p, index);
@@ -423,6 +435,15 @@ static void effect_env(mu_world_particles *p, mu_sfx_env *env)
 static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect *e)
 {
     switch (call->routine) {
+    case MU_JT_CALL_TERRAIN_LIGHT:
+        if (p->light_count < MU_WORLD_FX_LIGHTS) {
+            mu_world_fx_light *l = &p->lights[p->light_count++];
+            l->x = call->position[0];
+            l->y = call->position[1];
+            memcpy(l->rgb, call->light, sizeof l->rgb);
+            l->range = call->range;
+        }
+        return 0;
     case MU_JT_CALL_SPRITE:
         mu_world_particles_sprite(p, call->type, call->position, call->scale, call->light, call->owner, call->angle[0],
                                   call->subtype, call->range);
@@ -434,6 +455,12 @@ static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect 
     case MU_JT_CALL_JOINT:
         mu_world_particles_joint(p, call->type, call->position, call->target, call->angle, call->subtype,
                                  call->owner, call->scale, 0xffff, 0, 0, 0xffff, 0, call->light);
+        return 0;
+    case MU_JT_CALL_DELETE:
+        for (int i = 0; p->joints && i < MU_JT_JOINTS; i++)
+            if (p->joints[i].type == call->type && p->joints[i].target == call->owner &&
+                p->joints[i].subtype == call->subtype)
+                p->joints[i].live = 0;
         return 0;
     case MU_JT_CALL_EFFECT:
         mu_world_particles_effect(p, call->type, call->subtype, call->position, call->angle, call->light,
@@ -538,6 +565,7 @@ int32_t mu_world_particles_live_effects(const mu_world_particles *p)
 void mu_world_particles_step(mu_world_particles *p, float world_time)
 {
     p->world_time = world_time;
+    p->light_count = 0;
     if (p->effects) {   /* MoveEffects 0x0150ddb1 */
         mu_sfx_env env;
         effect_env(p, &env);
@@ -561,6 +589,14 @@ void mu_world_particles_step(mu_world_particles *p, float world_time)
     p->stats.live = (uint32_t)p->list.count;
     if (p->stats.live > p->stats.max_live)
         p->stats.max_live = p->stats.live;
+}
+
+void mu_world_particles_apply_lights(const mu_world_particles *p, mu_world *map)
+{
+    for (int32_t i = 0; map && i < p->light_count; ++i) {
+        const mu_world_fx_light *l = &p->lights[i];
+        mu_world_add_light(map, l->x, l->y, l->rgb, l->range);
+    }
 }
 
 /* ---- the GL stream through a render backend ---- */

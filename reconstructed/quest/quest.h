@@ -368,7 +368,23 @@ typedef struct mu_quest_client {
     uint8_t hero_flag29;                  /* hero + 0x29: classic quest 3 complete */
     int32_t target_class;                 /* the selected character's class (+0x146), -1 none ([0x01cf1150]) */
     float wrap_scale;                     /* [0x06fbcd94] the screen rate (the wraps' width factor) */
+    void (*move_answer)(void *user, uint8_t subcode); /* host's current PATH_t for F6 56/7B */
 } mu_quest_client;
+
+/* F6 56/7B share this resume rule. PathFinding2-long, GetPath and SendMove are host services. */
+typedef struct mu_quest_resume_state {
+    int32_t flag, x, y;
+    int16_t target_x, target_y;
+    uint8_t move_type;
+} mu_quest_resume_state;
+typedef struct mu_quest_resume_host {
+    void *user;
+    int (*find)(void *user, int32_t x, int32_t y, int32_t tx, int32_t ty);
+    int (*next)(void *user);
+    int (*send)(void *user);
+} mu_quest_resume_host;
+void mu_quest_resume_path(mu_quest_resume_state *state, const mu_quest_resume_host *host, uint8_t subcode);
+void mu_quest_set_move_answer(mu_quest_client *c, void (*answer)(void *user, uint8_t subcode));
 
 int mu_quest_client_init(mu_quest_client *c, const mu_quest_data *data, const mu_quest_host *host);
 void mu_quest_client_free(mu_quest_client *c);

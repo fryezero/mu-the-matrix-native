@@ -6,6 +6,7 @@
 
 #include "../core/mu_world_helpers.h"
 #include "../core/mu_particles.h"
+#include "../core/mu_world_actors.h"
 
 static int eye_count(const mu_world_particles *p, int32_t owner, const float light[3])
 {
@@ -137,10 +138,39 @@ int main(int argc, char **argv)
     int32_t third_id = mu_world_helpers_effect_id(w, &w->mounts.list[0].object);
     mu_world_particles_step(p, 120.0f);
     lifecycle &= third_id != second_id && eye_count(p, third_id, eye_light) == 2;
-    printf("{\"spaces\": %d, \"offset\": %d, \"flash\": %d, \"ring\": %d, \"owners\": %d, \"bounds\": %d, \"eye\": %d, \"lifecycle\": %d}\n",
-           spaces, offset, flash, ring, owners, bounds, eye, lifecycle);
+    /* NPC 257's persistent orbit uses the actor's liveness and deletes its own joints on removal. */
+    memset(p->joints, 0, MU_JT_JOINTS * sizeof *p->joints);
+    memset(p->effects, 0, MU_WORLD_FX_EFFECTS * sizeof *p->effects);
+    mu_world_actor actor = {0};
+    mu_world_actors actors = {.list = &actor, .count = 1};
+    actor.actor.loaded = 1;
+    p->actors = &actors;
+    const int32_t npc_owner = MU_WORLD_ACTOR_FX_BASE;
+    const int32_t npc_index = mu_world_particles_joint(p, 0x7f78, world, world, zero, 42, npc_owner,
+                                                       15.0f, 0xffff, 0, 0, 0xffff, 0, NULL);
+    int npc = npc_index >= 0;
+    if (npc) {
+        mu_world_particles_step(p, 160.0f);
+        npc &= p->joints[npc_index].live && p->joints[npc_index].lifetime == 99;
+        memset(map->light, 0, sizeof map->light);
+        mu_world_particles_apply_lights(p, map);
+        const int cell = ((int)world[1] / 100 * 256 + (int)world[0] / 100) * 3;
+        float lit = map->light[cell];
+        npc &= p->light_count == 1 && lit > 0.0f;
+        /* A render without a logic tick must reapply the same source after the light copy. */
+        memset(map->light, 0, sizeof map->light);
+        mu_world_particles_apply_lights(p, map);
+        npc &= map->light[cell] == lit;
+        actor.actor.loaded = 0;
+        mu_world_particles_step(p, 200.0f);
+        memset(map->light, 0, sizeof map->light);
+        mu_world_particles_apply_lights(p, map);
+        npc &= !p->joints[npc_index].live && p->light_count == 0 && map->light[cell] == 0.0f;
+    }
+    printf("{\"spaces\": %d, \"offset\": %d, \"flash\": %d, \"ring\": %d, \"owners\": %d, \"bounds\": %d, \"eye\": %d, \"lifecycle\": %d, \"npc\": %d}\n",
+           spaces, offset, flash, ring, owners, bounds, eye, lifecycle, npc);
     mu_world_helpers_close(w);
     mu_world_particles_close(p);
     free(w); free(p); free(map);
-    return spaces && offset && flash && ring && owners && bounds && eye && lifecycle ? 0 : 1;
+    return spaces && offset && flash && ring && owners && bounds && eye && lifecycle && npc ? 0 : 1;
 }

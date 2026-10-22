@@ -489,6 +489,13 @@ static int load(app *a)
         }
         a->has_particles = 1;
         mu_world_particles_attach(&a->particles, a->has_objects ? &a->objects : NULL, a->has_env ? &a->env : NULL);
+        a->particles.actors = &a->actors;
+        for (int32_t i = 0; i < a->actors.count; i++) {
+            const mu_world_actor *npc = &a->actors.list[i];
+            if (npc->server_class == 257)
+                mu_world_particles_joint(&a->particles, MU_JT_BITMAP_FLARE, npc->position, npc->position, npc->angle,
+                                         42, MU_WORLD_ACTOR_FX_BASE + i, 15.0f, 0xffff, 0, 0, 0xffff, 0, NULL);
+        }
     }
     a->walk.step_hook = on_step;
     a->walk.step_context = a;
@@ -1290,6 +1297,7 @@ static int travel(app *a, const mu_teleport *t)
     a->wav = NULL;
     int32_t old_world = a->world, old_tile[2] = {a->walk.hero.tile[0], a->walk.hero.tile[1]};
     float old_angle = a->walk.hero.angle[2];
+    mu_auto_path armed_path = a->walk.auto_path;   /* ReceiveTeleport keeps the hero's armed quest PATH_t. */
     mu_frame_clock clock = a->walk.frame.clock;   /* the session's time goes on (no catch-up steps) */
     uint32_t steps = a->walk.steps;
     unload(a);
@@ -1318,6 +1326,8 @@ static int travel(app *a, const mu_teleport *t)
     }
     a->walk.frame.clock = clock;
     a->walk.steps = steps;
+    if (armed_path.flag == 1)
+        a->walk.auto_path = armed_path;
     apply_equipment(a, error, sizeof error);
     a->wav = wav;
     a->wav_frames = wav_frames;
@@ -1445,6 +1455,8 @@ static int32_t advance(app *a, uint32_t now)
     terrain_frame(a, now);
     if (a->combat)
         mu_combat_terrain_lights(a->combat, a->map);   /* effect lights after the frame light copy */
+    if (a->has_particles)
+        mu_world_particles_apply_lights(&a->particles, a->map);
     if (a->has_actors)
         mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
     if (a->players)

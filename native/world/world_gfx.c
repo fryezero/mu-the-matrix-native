@@ -507,6 +507,13 @@ static int quest_send_move(void *user)
     return ((world_gfx *)user)->path_started;
 }
 
+static void quest_move_answer(void *user, uint8_t subcode)
+{
+    world_gfx *g = user;
+    if (g->walk)
+        mu_walk_auto_resume(g->walk, subcode);
+}
+
 static int quest_travel(void *user, int32_t world, int32_t x, int32_t y)
 {
     world_gfx *g = user;
@@ -810,6 +817,7 @@ int world_gfx_quest_setup(world_gfx *g, const char *demo_text)
     g->quest.event = quest_event;
     g->quest.user = g;
     g->quest.travel = quest_travel;
+    mu_quest_set_move_answer(&g->quest.client, quest_move_answer);
     g->have_quest = 1;
     mu_quest_session_load_classic(&g->quest, g->root);
     const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);

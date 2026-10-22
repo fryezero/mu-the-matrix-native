@@ -65,7 +65,8 @@ BODIES = {
     'near_zero': (0x00a72592, 0x00a725c5), 'radians': (0x00cee2cb, 0x00cee2ea), 'sign': (0x0185ca80, 0x0185caa4),
 }
 KINDS = [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0),
-                                                     (0x7f78, 0), (0x7f78, 1), (0x7fd6, 0x43), (0x7fd6, 0x44)]   # NATIVE-HELPERS-002: the Dark Horse's ring
+                                                     (0x7f78, 0), (0x7f78, 1), (0x7fd6, 0x43), (0x7fd6, 0x44),
+                                                     (0x7f78, 41), (0x7f78, 42)]
 
 
 # --------------------------------------------------------------------------
@@ -237,6 +238,10 @@ class Case(sf.Case):
                                       sf.owner_of(a[4]), from_bits(a[5]), a[6], a[7]))
             return 0
         s[sf.CREATE_SPRITE] = sprite
+        def delete_joint(mm):
+            self.client_calls.append(('delete_joint', mm.argument(0), sf.owner_of(mm.argument(1)), mm.argument(2)))
+            return 0
+        s[0x01553a54] = delete_joint
         return s
 
     def jenv(self, serial=0):
@@ -266,6 +271,11 @@ class Case(sf.Case):
                                      c.angle[0], c.subtype, c.range))
             elif c.routine == sf.AREA_ATTACK:
                 self.c_calls.append(('area', c.type, c.scale, list(c.position), c.subtype))
+            elif c.routine == sf.CREATE_JOINT:
+                self.c_calls.append(('joint', c.type, list(c.position), list(c.target), list(c.angle), c.subtype,
+                                     c.owner, c.scale, [0xffffffff, 0, 0, 0xffffffff, 0, 0xffffffff, 0]))
+            elif c.routine == 0x01553a54:
+                self.c_calls.append(('delete_joint', c.type, c.owner, c.subtype))
         self._jkeep = (RAND_FN(rand), HEIGHT_FN(height), OBJECT_FN(obj), CALL_FN(call))
         env = Env()
         env.rand, env.height, env.object, env.call = self._jkeep
@@ -361,6 +371,8 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         if vc.ok(r) and kind[0] == 0x7fd6:
             wrong_eye = objects[target].eye_188 if kind[1] == 0x43 else objects[target].eye_194
             negatives['create_eye_swapped'] += any(not same(j.position[k], wrong_eye[k]) for k in range(3))
+        if vc.ok(r) and kind == (0x7f78, 41):
+            negatives['create_glint_lifetime_30'] += j.lifetime != 30
         report.cover('joint_create', f'{kind[0]:#x}/{kind[1]:#x}' + (' early' if kind[0] == 0x7f7d and not scale > 0
                                                                         else ''))
         if vc.ok(r) and kind[0] == 0x7f7d and kind[1] in (0x16, 0x17) and scale > 0:
@@ -475,6 +487,8 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
         report.cover('joint_move', f'{kind[0]:#x}/{kind[1]:#x}')
         if vc.ok(r) and kind[0] == 0x7fd6 and before.target >= 0 and objects[before.target].live:
             negatives['move_eye_no_refresh'] += j.lifetime != before.lifetime - 1
+        if vc.ok(r) and kind == (0x7f78, 42):
+            negatives['move_orbit_angle_unchanged'] += not same(j.angle[2], before.angle[2])
         if vc.ok(r) and kind == (0x7f78, 0):
             # negative control (NATIVE-HELPERS-002): the ring's x from the sine instead of the cosine
             out = r['regions']['joint']
@@ -624,7 +638,8 @@ def main():
               for name, (a, b) in BODIES.items()}
     report = vc.Report()
     negatives = {k: 0 for k in ['create_phase_full_count', 'move_no_closing_shift', 'move_flash_white',
-                                'render_factor_swapped', 'move_ring_sine_x', 'create_eye_swapped', 'move_eye_no_refresh']}
+                                'render_factor_swapped', 'move_ring_sine_x', 'create_eye_swapped', 'move_eye_no_refresh',
+                                'create_glint_lifetime_30', 'move_orbit_angle_unchanged']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

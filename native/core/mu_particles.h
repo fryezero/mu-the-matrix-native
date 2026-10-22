@@ -48,7 +48,13 @@
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
 enum { MU_WORLD_PT_BITMAPS = 44, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 4, MU_WORLD_FX_QUADS = 8192 };
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 4, MU_WORLD_FX_QUADS = 8192,
+       MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
+
+typedef struct mu_world_fx_light {
+    float x, y, rgb[3];
+    int32_t range;
+} mu_world_fx_light;
 
 typedef struct mu_world_fx_model {
     int32_t type;
@@ -94,6 +100,7 @@ typedef struct mu_world_particles {
     mu_world_particles_stats stats;
     /* NATIVE-JOINT-001: the world objects' joints and effects */
     struct mu_world_helpers *helpers;      /* helper OBJECTs for mount-owned effects and joints */
+    const struct mu_world_actors *actors;  /* NPC-owned joints; actor ids use MU_WORLD_ACTOR_FX_BASE */
     struct mu_objects *objects;            /* owners and targets (object images), NULL none */
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */
@@ -102,7 +109,11 @@ typedef struct mu_world_particles {
     int has_hero;
     mu_joint_quad *joint_quads;            /* MU_WORLD_FX_QUADS, the last RenderJoints */
     int32_t scene_state;                   /* SceneFlag [0x01d1df70] for the kinds that test it (6 by default) */
+    mu_world_fx_light lights[MU_WORLD_FX_LIGHTS];  /* AddTerrainLight calls of the last logic step */
+    int32_t light_count;
 } mu_world_particles;
+
+enum { MU_WORLD_ACTOR_FX_BASE = 0x08000000 };
 
 /* Loads the effect bitmaps (Data/Effect, the world's rain02/rain03) unless
  * no_assets, seeds rand(). Returns 0, or 1 with a message. */
@@ -135,6 +146,8 @@ int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subty
                               const mu_sfx_info *info);
 /* The hero's position (the tornado tests its distance for PlayBuffer). */
 void mu_world_particles_set_hero(mu_world_particles *p, const float position[3]);
+/* Replay after each rendered frame's primary-light copy, like the combat and object light feeds. */
+void mu_world_particles_apply_lights(const mu_world_particles *p, mu_world *map);
 /* Effect models (RenderEffects -> RenderObject, a static reading): places and poses every live model effect
  * and calls draw with RenderObject's RenderBody options; the callback must draw before returning.
  * NATIVE-CHARSEL-003: the character select's star dragon stardr01 0x5ac is drawn plainly (RenderEffects

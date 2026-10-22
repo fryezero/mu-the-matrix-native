@@ -118,7 +118,7 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
     case MU_JT_BITMAP_SPARK:
         return subtype == 0;
     case MU_JT_BITMAP_FLARE:
-        return subtype == 0 || subtype == 1;   /* NATIVE-HELPERS-002 */
+        return subtype == 0 || subtype == 1 || subtype == 41 || subtype == 42;
     case MU_JT_BITMAP_LASER:
         return subtype == 0x43 || subtype == 0x44;
     case MU_JT_TYPE_THUNDER_BOLT:
@@ -322,6 +322,33 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         j->lifetime = 100;
         j->max_tails = 20;
         j->scale = 10.0f;
+        if (subtype == 41) {   /* 0x0154a28e: rising glints emitted by NPC 257's persistent joint */
+            j->scale = scale;
+            j->lifetime = 40;
+            j->max_tails = 50;
+            float r = (float)imod(jrand(env), 300) / 1000.0f;
+            float g = (float)imod(jrand(env), 300) / 1000.0f;
+            j->light[0] = 1.0f - r;
+            j->light[1] = 1.0f - g;
+            j->light[2] = 1.0f;
+            j->jitter[2] = (float)(imod(jrand(env), 5) + 5);
+            copy3(j->target_position, target_position);
+            break;
+        }
+        if (subtype == 42) {   /* 0x0154a3b7 */
+            float matrix[12], offset[3];
+            j->jitter[1] = -15.0f;
+            mu_angle_matrix(j->angle, matrix);
+            mu_vector_rotate(j->jitter, matrix, offset);
+            for (int k = 0; k < 3; k++)
+                j->position[k] = j->position[k] + offset[k];
+            copy3(j->start, j->position);
+            j->jitter[1] = -50.0f;
+            j->tail_update = j->moving = 0;
+            j->scale = scale;
+            copy3(j->target_position, target_position);
+            break;
+        }
         if (subtype != 0) {
             j->tail_update = j->moving = 0;
             copy3(j->target_position, target_position);
@@ -729,6 +756,64 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         /* 0x0156977b: subtype 0 has no case (the head's forward motion only) */
         break;
     case MU_JT_BITMAP_FLARE: {
+        if (j->subtype == 41) {   /* 0x015788c9 */
+            if (j->lifetime <= 20) {
+                j->jitter[2] = j->jitter[2] + 1.0f;
+                j->position[0] = j->target_position[0];
+                j->position[1] = j->target_position[1];
+                j->position[2] = j->position[2] + j->jitter[2];
+                for (int k = 0; k < 3; k++)
+                    j->light[k] = j->light[k] / 1.1f;
+            }
+            mu_jt_call c = {0};
+            c.routine = MU_JT_CALL_TERRAIN_LIGHT;
+            copy3(c.position, j->position);
+            copy3(c.light, j->light);
+            c.range = 1;
+            jcall(env, &c);
+            if (j->lifetime < 10)
+                for (int k = 0; k < 3; k++)
+                    j->light[k] = j->light[k] / 1.3f;
+            break;
+        }
+        if (j->subtype == 42) {   /* 0x01578a6e */
+            j->angle[2] = j->angle[2] + 15.0f;
+            if (!t)
+                break;
+            mu_jt_call c = {0};
+            if (!t->live) {
+                c.routine = MU_JT_CALL_DELETE;
+                c.type = j->type;
+                c.owner = j->target;
+                c.subtype = 42;
+                jcall(env, &c);
+                break;
+            }
+            j->lifetime = 100;
+            float matrix[12], offset[3];
+            mu_angle_matrix(j->angle, matrix);
+            mu_vector_rotate(j->jitter, matrix, offset);
+            for (int k = 0; k < 3; k++)
+                j->position[k] = j->start[k] + offset[k];
+            int r = imod(jrand(env), 100);
+            if (imod(trunc_i32(j->angle[2]), 45) == 0 && r <= 50) {
+                c.routine = MU_JT_CALL_JOINT;
+                c.type = MU_JT_BITMAP_FLARE;
+                c.subtype = 41;
+                c.owner = -1;
+                c.scale = j->scale;
+                copy3(c.position, j->position);
+                copy3(c.target, j->position);
+                jcall(env, &c);
+            }
+            memset(&c, 0, sizeof c);
+            c.routine = MU_JT_CALL_TERRAIN_LIGHT;
+            copy3(c.position, j->target_position);
+            copy3(c.light, j->light);
+            c.range = 2;
+            jcall(env, &c);
+            break;
+        }
         /* NATIVE-HELPERS-002, 0x01578049, subtype 0: the head on a circle around the target position */
         float a;
         if (j->subtype == 0) {

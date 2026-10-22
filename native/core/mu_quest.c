@@ -145,10 +145,14 @@ void mu_quest_session_classic_talk(mu_quest_session *s)
     note(s, "demo server: class-upgrade NPC, quest %d", q);
 }
 
-static void travel(mu_quest_session *s, int32_t world, int32_t x, int32_t y, const char *what)
+static void travel(mu_quest_session *s, int32_t world, int32_t x, int32_t y, const char *what, uint8_t answer)
 {
     ++s->travels;
     int done = s->travel ? s->travel(s->user, world, x, y) : 0;
+    if (done) {
+        uint8_t b[4] = {0xc1, 4, 0xf6, answer};
+        queue(s, b, sizeof b);
+    }
     note(s, "demo server: %s: move the hero to world %d (%d, %d)%s", what, world, x, y,
          done ? "" : " - cross-map travel hook (NATIVE-MAP-001), not played");
 }
@@ -176,7 +180,7 @@ static void guide_request(mu_quest_session *s, const uint8_t *p, size_t n)
         break;
     case 0x54:
         if (g)
-            travel(s, g->w[0xa8 / 4], g->w[0xac / 4], g->w[0xb0 / 4], "guide Go Now");
+            travel(s, g->w[0xa8 / 4], g->w[0xac / 4], g->w[0xb0 / 4], "guide Go Now", 0x56);
         break;
     case 0x55:
         if (g && g->w[0x8c / 4] == 5) {
@@ -237,7 +241,7 @@ void mu_quest_session_request(mu_quest_session *s, const uint8_t *p, size_t n)
         int32_t quest = get16(p + 6);
         const mu_quest *q = mu_quest_get(&s->client.qs, quest);
         if (q && q->record && p[3] == 0x7a)
-            travel(s, q->record->goal[8], q->record->goal[9], q->record->goal[10], "quest Go Now");
+            travel(s, q->record->goal[8], q->record->goal[9], q->record->goal[10], "quest Go Now", 0x7b);
         else if (q && q->record && q->record->goal[1] == 5)
             answer_progress(s, quest, 0, 2);
         return;
