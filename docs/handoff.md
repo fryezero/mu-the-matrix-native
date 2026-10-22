@@ -76,6 +76,18 @@ the scene's sprites, particles and shadows. Compare with `scripts/validate_chars
 `mu-charsel --objects-out` for the per-object comparison). Next: the stardr01 effect `0x5ac` (CreateEffect
 `0x013f41b4` and its child `0x5ad`), the scene-5 character pick, the GFx character list.
 
+## Quests (NATIVE-QUEST-001)
+
+Read [`research/client-quests.md`](research/client-quests.md). `reconstructed/quest` (libquest) is the client side: the
+quest system, the F6 handlers, the texts and NpcQuestProgress/npcdialogue-list/MyQuestInfo; every client effect is a log
+line delivered to a sink as it happens. Compare with `tools/python/bin/python scripts/validate_quest.py --snapshot
+LOCAL/lang4.bin --mutations` (about 2 min; the snapshot needs `langread ... node:0x137c=0x118 map:0x1ec2e60+...`, see the
+finding). `native/core/mu_quest` runs it with a demo server; `world_gfx` drives the movies (convert `NpcQuestProgress
+MyQuestInfo`), T opens MyQuestInfo, demo rows `dialog`/`quest` in `world/lorencia-demo-npc.txt`. Checks:
+`reconstructed/quest/test_quest.py`, `native/tests/test_native_quest.py`. Renders local
+(`~/Documents/mu-mac-tools/native/renders/quest/`). Next: the guide quest tab (read GuideQuest), the quest summary HUD,
+the move-to-target button, class-upgrade quests (Quest.bmd, NpcJobChangeQuest).
+
 ## Talking to NPCs (NATIVE-NPC-001)
 
 Read [`research/client-npc-interaction.md`](research/client-npc-interaction.md). `reconstructed/npc` (libnpc) holds the
