@@ -204,7 +204,7 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_MODEL_ARROW: return sub == 0 || sub == 2;
     case MU_SFX_MODEL_FIRE: return sub == 1;
     case MU_SFX_BITMAP_THUNDER: return sub == 0;
-    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 1;
+    case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
     case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
         return sub == 0;
@@ -699,8 +699,10 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         check(env, e, MU_SFX_CALL_CHECK_MAGIC);
         break;
     case MU_SFX_BITMAP_MAGIC_GROUND2:
-        /* 0x0143fbda, subtypes >= 1 except 4, 6..13, 19 */
-        heal_joints(e, env);
+        /* 0x0143fbda, subtypes >= 1 except 4, 6..13, 19; subtype 0 (the level-up ground, NATIVE-PROGRESS-001)
+         * has no case */
+        if (sub >= 1)
+            heal_joints(e, env);
         break;
     case MU_SFX_MODEL_CIRCLE:
         /* 0x01457a30 */
