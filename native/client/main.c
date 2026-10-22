@@ -87,6 +87,8 @@ typedef struct action {
 
 typedef struct front {
     const char *root, *session, *out_dir, *backend, *sound_table, *placement, *players, *wav_path, *font;
+    const char *helper;               /* NATIVE-HELPERS-001: --helper ITEM [--helper-state N] (DEMO) */
+    int32_t helper_state;
     const char *world_objects, *charsel_objects, *login_objects;
     const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
     const char *gfx_log;              /* NATIVE-CHARSEL-003 */
@@ -703,6 +705,8 @@ static void world_options(const front *f, mu_shell_config *c)
     c->world_no_names = f->no_names;
     c->world_no_env = f->no_env;
     c->world_no_particles = f->no_particles;
+    c->helper = f->helper;
+    c->helper_state = f->helper_state;
 }
 
 /* ---- headless ---- */
@@ -1207,7 +1211,8 @@ static int usage(void)
 {
     fprintf(stderr,
             "usage: mu-client --game-root ROOT [--session FILE] [--width W --height H] [--font FACE]\n"
-            "                 [--sound-table TSV] [--placement FILE] [--players FILE] [--no-audio] [--seconds S]\n"
+            "                 [--sound-table TSV] [--placement FILE] [--players FILE] [--helper ITEM] [--helper-state N]\n"
+            "                 [--no-audio] [--seconds S]\n"
             "                 [--world-objects DIR] [--charsel-objects DIR] [--login-objects DIR] [--objects-dir DIR]\n"
             "                 [--headless --out-dir DIR --backend gl|soft --frames N --every K]\n"
             "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
@@ -1228,6 +1233,7 @@ int main(int argc, char **argv)
     f.every = 0;
     f.audio = 1;
     f.font = "Tahoma";
+    f.helper_state = -1;   /* NATIVE-HELPERS-001: the helper name's ride state */
 #ifdef MU_CLIENT_NO_GL
     f.headless = 1;
     f.backend = "soft";
@@ -1262,6 +1268,8 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--sound-table")) f.sound_table = v;
         else if (!strcmp(k, "--placement")) f.placement = v;
         else if (!strcmp(k, "--players")) f.players = v;
+        else if (!strcmp(k, "--helper")) f.helper = v;
+        else if (!strcmp(k, "--helper-state")) f.helper_state = atoi(v);
         else if (!strcmp(k, "--world-objects")) f.world_objects = v;
         else if (!strcmp(k, "--charsel-objects")) f.charsel_objects = v;
         else if (!strcmp(k, "--login-objects")) f.login_objects = v;

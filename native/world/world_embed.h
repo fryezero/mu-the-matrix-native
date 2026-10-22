@@ -44,6 +44,9 @@ typedef struct mu_world_embed_config {
     int no_names, no_env, no_particles;
     const char *players;           /* NATIVE-PLAYERS-001: demo players file, may be NULL */
     int no_players;
+    const char *helper;            /* NATIVE-HELPERS-001: the hero's helper (mu-world --helper, DEMO), may be NULL */
+    int32_t helper_state;          /* its ride state, -1: the name's */
+    int no_helpers;
 } mu_world_embed_config;
 
 mu_world_embed *mu_world_embed_open(const mu_world_embed_config *config, char *error, size_t error_size);

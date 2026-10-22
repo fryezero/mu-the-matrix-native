@@ -4,12 +4,14 @@
 #   player NAME class=BYTE at=X,Y [dir=D] [pk=N] [level=N] [guild=N] [party]
 #          [helm=G:I[:L[:E[:A]]] armor=.. pants=.. gloves=.. boots=.. weapon0=.. weapon1=.. wing=..]
 #          [route=X,Y;X,Y;...] [idle=STEPS] [die=STEP] [respawn=STEPS] [store=STEP] [title=TEXT]
+#          [pet=angel|imp] [ride=ITEM_CODE] [ride_state=N]   (NATIVE-HELPERS-001: e[4] & 3, the ride word +0x30, the
+#          ride state; 0x1a02 Uniria, 0x1a03 Dinorant, 0x1a04 Dark Horse, 0x1a25 Fenrir with 0/1/2/4 red/black/blue/gold)
 # Item groups: 0 swords, 1 axes, 2 maces, 3 spears, 4 bows, 5 staffs, 6 shields, 7 helms, 8 armours,
 # 9 pants, 10 gloves, 11 boots, 12 wings; class bytes as the character select reports them.
-player Aeris     class=0x00 at=131,120 dir=3 pk=3 level=180 guild=0 party helm=7:10:7 armor=8:10:7 pants=9:10:7 gloves=10:10:7 boots=11:10:7 weapon0=0:12:7 weapon1=6:6:5 route=138,118;126,126;131,120 idle=50
-player Kyra      class=0x02 at=120,133 dir=1 pk=3 level=240 wing=12:3:5 helm=7:3:5 armor=8:3:5 pants=9:3:5 gloves=10:3:5 boots=11:3:5 weapon0=4:9:5 route=116,139;128,133;120,133 idle=60
-player Redhand   class=0x01 at=140,128 dir=5 pk=5 level=300 guild=1 helm=7:9:11 armor=8:9:11 pants=9:9:11 gloves=10:9:11 boots=11:9:11 weapon0=0:10:11:1 route=146,124;140,134;140,128 idle=40
-player Mordred   class=0x01 at=126,114 dir=7 pk=6 level=345 guild=1 armor=8:6:3 pants=9:6:3 gloves=10:6:3 boots=11:6:3 helm=7:6:3 weapon0=1:8:3 route=118,110;132,110;126,114 idle=45
-player Sunwing   class=0x10 at=135,136 dir=0 pk=0 level=400 guild=0 wing=12:1:0 weapon0=5:5:7 route=135,142;141,136;135,136 idle=70
+player Aeris     class=0x00 at=131,120 dir=3 pk=3 level=180 guild=0 party pet=angel helm=7:10:7 armor=8:10:7 pants=9:10:7 gloves=10:10:7 boots=11:10:7 weapon0=0:12:7 weapon1=6:6:5 route=138,118;126,126;131,120 idle=50
+player Kyra      class=0x02 at=120,133 dir=1 pk=3 level=240 ride=0x1a02 wing=12:3:5 helm=7:3:5 armor=8:3:5 pants=9:3:5 gloves=10:3:5 boots=11:3:5 weapon0=4:9:5 route=116,139;128,133;120,133 idle=60
+player Redhand   class=0x01 at=140,128 dir=5 pk=5 level=300 guild=1 ride=0x1a25 ride_state=4 helm=7:9:11 armor=8:9:11 pants=9:9:11 gloves=10:9:11 boots=11:9:11 weapon0=0:10:11:1 route=146,124;140,134;140,128 idle=40
+player Mordred   class=0x01 at=126,114 dir=7 pk=6 level=345 guild=1 ride=0x1a03 armor=8:6:3 pants=9:6:3 gloves=10:6:3 boots=11:6:3 helm=7:6:3 weapon0=1:8:3 route=118,110;132,110;126,114 idle=45
+player Sunwing   class=0x10 at=135,136 dir=0 pk=0 level=400 guild=0 pet=imp wing=12:1:0 weapon0=5:5:7 route=135,142;141,136;135,136 idle=70
 player Shopkeep  class=0x04 at=122,122 dir=2 pk=3 level=400 guild=2 armor=8:4:0 pants=9:4:0 boots=11:4:0 gloves=10:4:0 helm=7:4:0 store=120 title=+13_sets_and_jewels
 player Nomad     class=0x00 at=116,118 dir=4 pk=2 level=60 armor=8:0:3 pants=9:0:3 boots=11:0:3 weapon0=0:1:3 route=110,118;116,126;116,118 idle=30 die=600 respawn=500

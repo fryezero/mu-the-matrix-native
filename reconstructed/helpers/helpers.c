@@ -13,6 +13,14 @@
 
 /* ---------------------------------------------------------------- common */
 
+void mu_hp_object_init(mu_hp_object *o)
+{
+    memset(o, 0, sizeof *o);   /* ObjectInit 0x0129eb81 on the modelled fields */
+    o->owner = -1;
+    o->alpha_speed = 0.1f;
+    o->shadow_alpha = 1.0f;
+}
+
 void mu_hp_init(mu_helpers *h, uint32_t rand_seed, mu_hp_owner *owners, int32_t owner_count, const mu_hp_host *host)
 {
     memset(h, 0, sizeof *h);
@@ -21,8 +29,8 @@ void mu_hp_init(mu_helpers *h, uint32_t rand_seed, mu_hp_owner *owners, int32_t 
     h->owner_count = owner_count;
     if (host)
         h->host = *host;
-    for (int32_t i = 0; i < MU_HP_BUGS; ++i)
-        h->bugs[i].owner = -1;
+    for (int32_t i = 0; i < MU_HP_BUGS; ++i)   /* the array's OBJECT constructors at startup */
+        mu_hp_object_init(&h->bugs[i]);
 }
 
 int32_t mu_hp_rand(mu_helpers *h)
@@ -425,8 +433,7 @@ int mu_hp_mount_init(mu_helpers *h, mu_hp_mount *mount, const mu_hp_inputs *in, 
         return 0;
     mount->owner = owner;
     mu_hp_object *o = &mount->object;
-    memset(o, 0, sizeof *o);   /* operator new + the OBJECT constructor 0x0129e792 (ObjectInit's fields kept 0) */
-    o->owner = -1;
+    mu_hp_object_init(o);   /* operator new + the OBJECT constructor 0x0129e792 (ObjectInit) */
     o->live = 1;
     o->lighting = 1;
     o->flag_0d = 1;

@@ -12,7 +12,7 @@
  *     # comment
  *     player NAME class=0xCC at=X,Y [dir=D] [pk=N] [level=N] [guild=N] [party]
  *            [helm=G:I[:L[:E[:A]]]] [armor=..] [pants=..] [gloves=..] [boots=..] [weapon0=..] [weapon1=..] [wing=..]
- *            [ride=CODE] [route=X,Y;X,Y;...] [idle=STEPS] [die=STEP] [respawn=STEPS] [store=STEP] [title=TEXT]
+ *            [ride=CODE] [ride_state=N] [pet=angel|imp|N] [route=X,Y;X,Y;...] [idle=STEPS] [die=STEP] [respawn=STEPS] [store=STEP] [title=TEXT]
  *
  * (G:I is the item group and index: helm=7:10 is Helm 11, the +L level,
  * E excellent, A ancient flags; class is the class byte as the character
@@ -72,6 +72,8 @@ typedef struct mu_world_player_spec {
     int32_t item_type[MU_RP_SLOTS];   /* client item types (0xae6 + 512 * group + index), -1 none */
     uint8_t item_level[MU_RP_SLOTS], excellent[MU_RP_SLOTS], ancient[MU_RP_SLOTS];
     uint16_t ride;                 /* helper item type (0xffff none) */
+    uint8_t pet;                   /* NATIVE-HELPERS-001: e[4] & 3 (0 Guardian Angel, 1 Imp, 2 Uniria, 3 none) */
+    uint8_t ride_state;            /* NATIVE-HELPERS-001: e[0xf] & 3, 4 = e[0x10] bit 0 (Fenrir's colour) */
     int32_t start[2];
     uint8_t direction;
     int32_t route[MU_WORLD_PLAYER_ROUTE][2], route_count;
@@ -99,6 +101,13 @@ typedef struct mu_world_player {
     uint8_t store_open;
     uint32_t moves, arrivals, creates, destroys, deaths, position_steps;
     uint8_t equipment[MU_RP_EQUIP_BYTES];   /* the last viewport record's equipment bytes */
+    /* NATIVE-HELPERS-001: ChangeCharacterExt's engine calls of the last viewport record (the angel effect, DeleteBug,
+     * the mount manager's reset / set) and their count; the mount manager's predicates for the player (riding
+     * 0x0106bdb7, keeps_run 0x0106bd76) and the rider lift 0x0103da5c added at placement. */
+    mu_rp_calls equip_calls;
+    uint32_t equip_events;
+    uint8_t riding, keeps_run;
+    float place_offset[3];
 } mu_world_player;
 
 struct mu_world_names;
@@ -124,6 +133,10 @@ typedef struct mu_world_players {
         addinfo, removeinfo;
     char log[64][112];
     int32_t log_count;
+    /* NATIVE-HELPERS-001: the rider action 0x0106c382 SetPlayerStop / SetPlayerWalk ask while a player rides
+     * (returns 1 when it set the action through mu_world_players_set_action). */
+    int (*ride_hook)(void *context, int32_t player, int32_t how);
+    void *ride_context;
 } mu_world_players;
 
 /* Loads the players file (textures unless no_textures). Lines that fail to parse or players whose Player.bmd
@@ -141,6 +154,8 @@ void mu_world_players_attach(mu_world_players *p, struct mu_world_names *names, 
 void mu_world_players_step(mu_world_players *p);
 /* Every rendered frame: places and poses the created players' models. */
 void mu_world_players_frame(mu_world_players *p);
+/* NATIVE-HELPERS-001: SetAction with the Player model's play speed (the rider actions). */
+void mu_world_players_set_action(mu_world_players *p, int32_t i, int32_t action);
 /* Object alpha of a player (0 when not drawn). */
 float mu_world_players_alpha(const mu_world_players *p, int32_t i);
 /* The glow inputs of a part (NATIVE-RENDERCHAR-001's RenderObjDraw passes): type, level, option, ext, the

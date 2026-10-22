@@ -263,13 +263,23 @@ static void hero_auto(mu_walk *w)
     }
 }
 
+/* SetPlayerStop 0x0138fe69: the run counter (kept while the mount manager's 0x0106bd76 holds), then the rider
+ * action 0x0106c382(c, 0) while riding (0x0106bdb7, NATIVE-HELPERS-001), else the stand action. */
+static void player_stop(mu_walk *w)
+{
+    mu_hero *h = &w->hero;
+    h->run = mu_player_stop_run_counter(w->keeps_run, h->run);
+    if (w->riding && w->ride_hook && w->ride_hook(w->ride_context, w, 0))
+        return;
+    int32_t action = mu_player_stop_action(h->class_byte);
+    set_action(w, action, mu_player_stop_speed(action));
+}
+
 void mu_walk_stop(mu_walk *w)
 {
     mu_hero *h = &w->hero;
     h->movement = 0;
-    h->run = 0;
-    int32_t action = mu_player_stop_action(h->class_byte);
-    set_action(w, action, mu_player_stop_speed(action));
+    player_stop(w);
 }
 
 void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_t window_width,
@@ -277,6 +287,7 @@ void mu_walk_init(mu_walk *w, mu_world *map, const mu_camera_info *info, uint32_
                   int32_t action_count, float near_plane)
 {
     memset(w, 0, sizeof *w);
+    w->helper_type = 0xffff;
     mu_frame_world *f = &w->frame;
     mu_frame_world_init(f, window_width, window_height, tile_x, tile_y);
     memcpy(f->heights, map->height, sizeof f->heights);
@@ -350,10 +361,15 @@ static void hero_walk(mu_walk *w)
     h->gear.class_byte = h->class_byte;
     h->gear.safe_zone = h->safe_zone;
     h->gear.world = w->world;
+    h->gear.safe_zone_keeps_run = w->riding;   /* 0x0106bdb7 (NATIVE-HELPERS-001) */
     h->run = mu_player_run_counter(&h->gear, h->run);
     float speed;
-    int32_t action = mu_player_walk_action(h->class_byte, h->run, &speed);
-    set_action(w, action, speed);
+    int32_t action;
+    /* 0x01390da9: riding (0x0106bdb7) -> the rider action 0x0106c382(c, run < 20 ? 1 : 2) */
+    if (!(w->riding && w->ride_hook && w->ride_hook(w->ride_context, w, h->run < 0x14 ? 1 : 2))) {
+        action = mu_player_walk_action(h->class_byte, h->run, &speed);
+        set_action(w, action, speed);
+    }
     /* 0x016a9c0a: auto move flag 2 and the logical tile on the waypoint: the next segment (0x0129cc44) */
     if (w->auto_path.flag == 2 && h->tile[0] == w->auto_path.waypoint_x && h->tile[1] == w->auto_path.waypoint_y) {
         memcpy(&w->auto_path.path, &h->path, sizeof w->auto_path.path);
@@ -364,9 +380,7 @@ static void hero_walk(mu_walk *w)
         /* 0x016a8904(c, 1): stop position packet, Movement = 0; then
          * SetPlayerStop 0x0138fe69: run counter 0, stand action */
         h->movement = 0;
-        h->run = 0;
-        action = mu_player_stop_action(h->class_byte);
-        set_action(w, action, mu_player_stop_speed(action));
+        player_stop(w);
         ++w->arrivals;
         char text[80];
         snprintf(text, sizeof text, "arrived: tile %d,%d", h->tile[0], h->tile[1]);
@@ -379,7 +393,7 @@ static void hero_walk(mu_walk *w)
     memset(&fields, 0, sizeof fields);
     fields.object_type = 0xa91;  /* Player */
     fields.object_kind = 1;
-    fields.helper_type = 0xffff; /* no pet or mount item */
+    fields.helper_type = w->helper_type; /* c + 0x322e: the mount's ride word (NATIVE-HELPERS-001), 0xffff none */
     fields.safe_zone = h->safe_zone;
     fields.subtype = h->gear.subtype;
     fields.mounted_item = h->gear.mounted_item;
@@ -396,7 +410,7 @@ static void hero_walk(mu_walk *w)
     if (p.speed > w->top_speed)
         w->top_speed = p.speed;
     p.world = world;
-    p.helper_type = 0xffff;
+    p.helper_type = w->helper_type;
     p.safe_zone = h->safe_zone;
     p.object_type = 0xa91;
     p.height = w->map->height;
@@ -488,7 +502,7 @@ int mu_walk_animate(mu_walk *w, mu_character *character)
 int mu_walk_place(const mu_walk *w, mu_character *character)
 {
     for (int k = 0; k < 3; ++k) {
-        character->params.position[k] = w->hero.position[k];
+        character->params.position[k] = w->hero.position[k] + w->place_offset[k];   /* the rider lift 0x0103da5c */
         character->params.angles[k] = w->hero.angle[k];
     }
     /* RenderCharacter's light block 0x01367530 (NATIVE-FIDELITY-001, verified): the hero's parts are drawn with

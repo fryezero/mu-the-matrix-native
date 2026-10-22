@@ -190,6 +190,8 @@ typedef struct mu_helpers {
 
 void mu_hp_init(mu_helpers *h, uint32_t rand_seed, mu_hp_owner *owners, int32_t owner_count,
                 const mu_hp_host *host);
+/* ObjectInit 0x0129eb81 on the modelled fields (all 0 but +0xe0 0.1, +0x3cc 1, the owner NULL). */
+void mu_hp_object_init(mu_hp_object *o);
 /* rand() 0x01989721: MSVC LCG. */
 int32_t mu_hp_rand(mu_helpers *h);
 /* FadeAlpha 0x012af883 (the same routine as reconstructed/environment's). */
