@@ -119,6 +119,12 @@ static int click(mu_gfx_layer *L, double x, double y, int button)
     return took;
 }
 
+static void host_quest(void *user, int movie, const char *name, const char *args)
+{
+    (void)user;
+    printf("quest callback %d %s %s\n", movie, name, args);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 3) {
@@ -138,7 +144,7 @@ int main(int argc, char **argv)
     if (getenv("MU_GFX_HOST_CHOICE"))
         cfg.dialog_choice = host_choice;
     cfg.buff_tooltip = host_buff_tooltip;
-    cfg.quest_call = tree_call;
+    cfg.quest_call = getenv("MU_GFX_HOST_QUEST") ? host_quest : tree_call;
     mu_gfx_layer *L = mu_gfx_layer_open(&cfg, error, sizeof error);
     if (!L) {
         printf("{\"error\": \"%s\"}\n", error);
@@ -152,6 +158,8 @@ int main(int argc, char **argv)
         double x, y;
         if (!strcmp(op, "print")) {
             print_state(L);
+        } else if (!strcmp(op, "qcount")) {
+            printf("quest inventory %d\n", mu_gfx_layer_count_item(L, 0, 9));
         } else if (!strcmp(op, "key")) {
             int vk = atoi(a);
             int d = mu_gfx_layer_key(L, 1, vk, 0, 0), u = mu_gfx_layer_key(L, 0, vk, 0, 0);

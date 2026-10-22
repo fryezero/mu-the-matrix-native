@@ -624,7 +624,7 @@ void mu_guide_receive_state(mu_quest_client *c, const uint8_t *p, size_t size)
     if (!t || size < 8)
         return;
     int32_t step = p[4] | p[5] << 8;
-    uint8_t count = p[6], state = p[7];
+    uint8_t count = p[MU_QUEST_MUTATION == 7 ? 7 : 6], state = p[7];
     if (t->current == -1) {
         t->complete = 0;
         mu_guide_chapter_change(c, step);

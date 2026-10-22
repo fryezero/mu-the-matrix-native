@@ -66,6 +66,10 @@ void world_gfx_npc_storage(world_gfx *g, const struct mu_npc_item *items, int n)
  * report line, and the quest verbs of world_gfx_npc_action (qnext qno qok qclose qwin qtab qsel qgo qgiveup
  * qkill qset).  T opens the quest window; 1..9 / Esc act on NpcQuestProgress. */
 int world_gfx_quest_setup(world_gfx *g, const char *demo_text);
+struct mu_walk;
+struct mu_map_session;
+/* The world owns both sessions and consumes the map session's pending teleport. */
+void world_gfx_quest_bind(world_gfx *g, struct mu_walk *walk, struct mu_map_session *maps);
 void world_gfx_quest_step(world_gfx *g);
 void world_gfx_quest_kill(world_gfx *g, int monster_class);
 void world_gfx_quest_report(world_gfx *g, FILE *out);

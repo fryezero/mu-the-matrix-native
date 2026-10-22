@@ -175,6 +175,11 @@ void mu_quest_set_time(mu_quest_client *c, float time, float until)
     c->throttle_until = until;
 }
 
+float mu_quest_throttle_time(const mu_quest_client *c)
+{
+    return c->throttle_until;
+}
+
 const char *mu_guide_state_text(const mu_quest_client *c)
 {
     static char out[16384];

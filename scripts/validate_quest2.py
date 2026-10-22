@@ -35,6 +35,7 @@ SendMove 0x016b5cd0); MU Helper (0x0095f659 +8, 0x00952940); the helper notice H
 """
 import argparse
 import ctypes
+import gc
 import json
 import os
 from pathlib import Path
@@ -134,6 +135,8 @@ class Native2(vq.Native):
                                     ctypes.c_int32, ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
                                     ctypes.c_float]
         L.mu_quest_wrap.restype = ctypes.c_int
+        L.mu_quest_throttle_time.argtypes = [ctypes.c_void_p]
+        L.mu_quest_throttle_time.restype = ctypes.c_float
         self.cb = []
 
         def keep(f):
@@ -675,11 +678,16 @@ def guide_case(m, nat, world, ops, rng, fam, seq, length, summary):
         elif op == 'giveup':
             ENV.throttle_quest = rng.choice([-1, i32(m.u32(world.guide + 0xc4))])
             ops.set_env()
+            if nlist == 0 and m.read(world.guide + 0xc0, 1)[0]:
+                # 0x00d4ba15..0x00d4ba2a unconditionally reads vector[size - 1]. This random caller
+                # combination is invalid in the client, just like box/go on an empty list. It happened at
+                # seed 1, seq 13 step 26: a heap word before the list made an arbitrary abort box appear.
+                cover([b'excluded guide giveup vector[-1]'])
+                continue
             ops.call(G_GIVEUP)
             L.mu_guide_giveup(c)
             extra = ((i32(m.u32(THROTTLE_QUEST)), struct.unpack('<f', m.read(THROTTLE, 4))[0]),
-                     (nat.field('throttle.quest'), ctypes.c_float.from_address(
-                         ctypes.addressof(c) + 0).value * 0 + struct.unpack('<f', m.read(THROTTLE, 4))[0]))
+                     (nat.field('throttle.quest'), L.mu_quest_throttle_time(c)))
         elif op == 'box':
             if nlist == 0:
                 continue      # the client reads the entry before an empty list
@@ -811,6 +819,16 @@ def run_summary(m, nat, world, steps, records, rng, fam, sequences, length):
                     q = rng.choice(ops.ids)
                     ops.packet(b'\xc1\x08\xf6\x50' + struct.pack('<HBB', q, rng.randint(0, 5),
                                                                   rng.choice([0, 1, 2, 3])), 0x50)
+                pointer = m.u32(S + 0x24)
+                begin, end = m.u32(world.guide + 0xcc), m.u32(world.guide + 0xd0)
+                if pointer and not (begin <= pointer < end and (pointer - begin) % STEP == 0):
+                    # Random direct guide-set calls can leave the summary holding an entry in a destroyed
+                    # vector allocation after a chapter rebuild. Seed 1, seq 21: pointer 0x3002919c while the
+                    # live list is 0x300e0d00..0x300e4a00. Its freed strings are allocator-dependent, not logic.
+                    cover([b'excluded summary dangling guide pointer'])
+                    world.log.clear()
+                    nat.clear_log()
+                    break
                 compare(fam, label, m, nat, world,
                         (summary_state(m, world), L.mu_summary_state_text(c).decode()))
         except cm.CaseError as error:
@@ -1005,7 +1023,11 @@ def install_classic_stubs(m, world, quest_bmd):
         return len(out)
     world.wsprintf_fn = m._new_stub()
     m.stub(world.wsprintf_fn, wsprintf, 0)
-    # the wrap's font measure (tab 1's state line), as in the wrap family
+    install_wrap_stubs(m, world)
+
+
+def install_wrap_stubs(m, world):
+    """The CRT thread context belongs to this family's world, never a previous wrap case."""
     world.ptd = None
     m.stub(0x01994240, lambda mm: 1, 0)
     m.stub(0x011a07b2, lambda mm: vq.DUMMY, 0)
@@ -1105,7 +1127,7 @@ def classic_native_setup(nat, quest_bmd):
                             ('mu_classic_onload', [], None), ('mu_classic_window_state', [], None),
                             ('mu_classic_open', [], None), ('mu_classic_close', [], None),
                             ('mu_classic_choice', [ctypes.c_int32], None), ('mu_classic_complete', [], None),
-                            ('mu_classic_tab_init', [], None), ('mu_classic_state_text', [], ctypes.c_char_p)):
+                            ('mu_classic_tab_init', [], None), ('mu_classic_tab_refresh', [], None), ('mu_classic_state_text', [], ctypes.c_char_p)):
         fn = getattr(L, name)
         fn.argtypes = [ctypes.c_void_p] + args
         fn.restype = res
@@ -1195,7 +1217,7 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
                 L.mu_classic_set_first(c, CENV.first)
                 L.mu_quest_client_field(c, b'wrap_scale_x1000', 1, 1000)
                 op = rng.choice(['c0', 'c0', 'a1', 'a1', 'r86', 'r86', 'a4', 'f61c', 'answer', 'show', 'showtop', 'text', 'state',
-                                 'kills', 'onload', 'wstate', 'open', 'close', 'choice', 'choice', 'complete', 'tab1'])
+                                 'kills', 'onload', 'wstate', 'open', 'close', 'choice', 'choice', 'complete', 'tab1', 'tab1refresh'])
                 label = f'classic seq {seq} step {step} {op}'
                 extra = None
                 o = cw.obj
@@ -1207,27 +1229,27 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
                     buf = m.alloc(64 + len(pkt), define=True)
                     m.write(buf, pkt)
                     m.call(0x01278f3a, [buf])
-                    L.mu_classic_receive_states(c, pkt, len(pkt))
+                    L.mu_quest_receive(c, pkt, len(pkt))
                     extra = (m.read(world.hero + 0x29, 1)[0], nat.field('hero.flag29'))
                 elif op == 'a1':
                     pkt = b'\xc1\x05\xa1' + bytes([rng.randint(0, 12), rng.randint(0, 255)])
                     buf = m.alloc(64, define=True)
                     m.write(buf, pkt)
                     m.call(0x0127a1db, [buf])
-                    L.mu_classic_receive_state(c, pkt, len(pkt))
+                    L.mu_quest_receive(c, pkt, len(pkt))
                 elif op == 'r86':
                     pkt = b'\xc1\x06\x86' + bytes([rng.randint(0, 12), rng.choice([0, 0, 0, 2, 1]), rng.randint(0, 255)])
                     buf = m.alloc(64, define=True)
                     m.write(buf, pkt)
                     m.call(0x0127a0e0, [buf])
-                    L.mu_classic_receive_result(c, pkt, len(pkt))
+                    L.mu_quest_receive(c, pkt, len(pkt))
                 elif op == 'a4':
                     pairs = b''.join(struct.pack('<ii', rng.choice(monsters + [-1]), rng.randint(0, 30)) for _ in range(5))
                     pkt = b'\xc1\x30\xa4\0\0\0\0\0' + pairs
                     buf = m.alloc(96, define=True)
                     m.write(buf, pkt)
                     m.call(0x01278f6c, [buf])
-                    L.mu_classic_receive_kills(c, pkt, len(pkt))
+                    L.mu_quest_receive(c, pkt, len(pkt))
                 elif op == 'f61c':
                     k = rng.randint(0, 5)
                     cur = m.read(o + 0x30d86, 1)[0]
@@ -1236,7 +1258,7 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
                     buf = m.alloc(96, define=True)
                     m.write(buf, pkt)
                     m.call(0x0124cbb0, [buf])
-                    L.mu_classic_receive_kill_list(c, pkt, len(pkt))
+                    L.mu_quest_receive(c, pkt, len(pkt))
                 elif op == 'answer':
                     a = rng.choice([0xff, 0xff, 1, 2, 3, 0])
                     r1 = m.call(0x009f4244, [a], ecx=o) & 0xff
@@ -1283,6 +1305,9 @@ def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
                 elif op == 'tab1':
                     m.call(0x00d4dd38, [], ecx=cw.tab1)
                     L.mu_classic_tab_init(c)
+                elif op == 'tab1refresh':
+                    m.call(0x00d4e45c, [], ecx=cw.tab1)
+                    L.mu_classic_tab_refresh(c)
                 if m.read(o + 0x30d86, 1)[0] >= 200:
                     # the client stepped the current quest below 0 (0x009f436e) and read past its records
                     # (zero slack here): not comparable, the sequence ends
@@ -1361,6 +1386,56 @@ def run_guide(m, nat, world, steps, rng, fam, sequences, length):
             fam.examples.append({'label': f'seq {seq}', 'error': str(error)})
 
 
+def run_family(name, text, data, snap, plain_dir, quest_bmd, args, lib_path=None):
+    """A fresh machine, host and RNG per family, including mutation runs.
+
+    reset() restores memory but retains function stubs. Sharing a machine let run_wrap's captured CRT thread
+    pointer and its removal of the wrap model escape into dialog-wrap and classic. Family results must not
+    depend on which families ran before them (or how many random numbers those families consumed).
+    """
+    global ENV, CENV
+    vq.WORLD = None
+    gc.collect()
+    ENV, CENV = Env(), ClassicEnv()
+    rng = random.Random(args.seed)
+    m = vq.QuestMachine(text, data, snap)
+    vq.install_stubs(m)
+    nat = Native2(snap, plain_dir, lib_path)
+    world = World2(m, snap)
+    world.summary_other = world.summary_blocked = 0
+    vq.install_window_stubs(m, world)
+    vq.install_more_stubs(m, world)
+    install_guide_stubs(m, world)
+    if name in ('classic-data', 'classic'):
+        install_classic_stubs(m, world, quest_bmd)
+        classic_native_setup(nat, quest_bmd)
+    elif name == 'dialog-wrap':
+        install_wrap_stubs(m, world)
+    nat.reset()
+    steps, records = plain.read_guide(snap), plain.read_quests(snap)
+    cw = ClassicWorld(m, world)
+    runs = {
+        'guide-data': lambda f: run_guide_data(m, nat, snap, f),
+        'guide': lambda f: run_guide(m, nat, world, steps, rng, f, args.sequences, args.length),
+        'summary': lambda f: run_summary(m, nat, world, steps, records, rng, f, args.sequences, args.length),
+        'move': lambda f: run_move(m, nat, world, steps, records, rng, f, args.sequences, args.length),
+        'wrap': lambda f: run_wrap(m, nat, rng, f, args.wrap_cases),
+        'dialog-wrap': lambda f: run_dialog_wrap(m, nat, world, steps, records, rng, f, args.sequences, args.length),
+        'classic-data': lambda f: run_classic_data(m, nat, snap, cw, quest_bmd, f),
+        'classic': lambda f: run_classic(m, nat, world, cw, rng, f, args.sequences, args.length),
+    }
+    fam = vq.Family(name)
+    try:
+        runs[name](fam)
+    except cm.CaseError as error:
+        fam.examples.append({'error': str(error)})
+        fam.mismatches += 1
+    finally:
+        nat.lib.mu_quest_client_free(nat.client)
+        nat.lib.mu_quest_data_free(ctypes.byref(nat.data))
+    return fam
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshot', required=True, help='langread snapshot with the guide tables (local)')
@@ -1373,53 +1448,40 @@ def main():
     parser.add_argument('--sequences', type=int, default=40)
     parser.add_argument('--length', type=int, default=30)
     parser.add_argument('--output')
+    parser.add_argument('--mutations', action='store_true', help='check planted mistakes in each new logic module')
     args = parser.parse_args()
     for path, digest in ((args.text, vl.TEXT_SHA256), (args.data, vl.DATA_SHA256)):
         if vl.sha256_file(path) != digest:
             raise SystemExit(f'{path}: unexpected SHA-256')
     text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
     snap = plain.Snapshot.load(args.snapshot)
-    rng = random.Random(args.seed)
     report = {'text_sha256': vl.TEXT_SHA256, 'data_sha256': vl.DATA_SHA256, 'seed': args.seed, 'families': {}}
-    m = vq.QuestMachine(text, data, snap)
-    vq.install_stubs(m)
-    steps = plain.read_guide(snap)
-    records = plain.read_quests(snap)
     t0 = time.time()
     with tempfile.TemporaryDirectory() as tmp:
         plain_dir = Path(tmp)/'plain'
         plain.convert(snap, plain_dir)
-        nat = Native2(snap, plain_dir)
-        world = World2(m, snap)
-        world.summary_other = world.summary_blocked = 0
-        vq.install_window_stubs(m, world)
-        vq.install_more_stubs(m, world)
-        install_guide_stubs(m, world)
         quest_bmd = (Path(args.game_root)/'Data/Local/quest.bmd').read_bytes()
-        install_classic_stubs(m, world, quest_bmd)
-        classic_native_setup(nat, quest_bmd)
-        nat.reset()
-        cw = ClassicWorld(m, world)
-        runs = {
-            'guide-data': lambda f: run_guide_data(m, nat, snap, f),
-            'guide': lambda f: run_guide(m, nat, world, steps, rng, f, args.sequences, args.length),
-            'summary': lambda f: run_summary(m, nat, world, steps, records, rng, f, args.sequences, args.length),
-            'move': lambda f: run_move(m, nat, world, steps, records, rng, f, args.sequences, args.length),
-            'wrap': lambda f: run_wrap(m, nat, rng, f, args.wrap_cases),
-            'dialog-wrap': lambda f: run_dialog_wrap(m, nat, world, steps, records, rng, f, args.sequences,
-                                                     args.length),
-            'classic-data': lambda f: run_classic_data(m, nat, snap, cw, quest_bmd, f),
-            'classic': lambda f: run_classic(m, nat, world, cw, rng, f, args.sequences, args.length),
-        }
         for name in args.families.split(','):
-            fam = vq.Family(name)
-            try:
-                runs[name](fam)
-            except cm.CaseError as error:
-                fam.examples.append({'error': str(error)})
-                fam.mismatches += 1
+            fam = run_family(name, text, data, snap, plain_dir, quest_bmd, args)
             report['families'][name] = fam.summary()
             print(f'{name}: {fam.cases} cases, {fam.mismatches} mismatches ({time.time() - t0:.1f} s)', flush=True)
+            if fam.mismatches:
+                print(json.dumps(fam.examples, default=repr)[:8000], flush=True)
+            if args.output:
+                Path(args.output).write_text(json.dumps(report, indent=2, default=repr) + '\n')
+        if args.mutations:
+            report['mutations'] = {}
+            import copy
+            quick = copy.copy(args)
+            quick.sequences, quick.length, quick.wrap_cases = 6, 20, 100
+            for k, family in {7: 'guide', 8: 'summary', 9: 'move', 10: 'wrap', 11: 'classic'}.items():
+                lib = vq.build_variant(k, tmp)
+                fam = run_family(family, text, data, snap, plain_dir, quest_bmd, quick, lib)
+                # A crash in the emulator is a broken oracle, never evidence that a planted C error was caught.
+                caught = fam.mismatches > 0 and not any('error' in e for e in fam.examples)
+                report['mutations'][f'{k}:{family}'] = caught
+                print(f'mutation {k} ({family}): {"caught" if caught else "MISSED"} '
+                      f'({fam.mismatches} of {fam.cases})', flush=True)
     report['coverage'] = dict(sorted(COVERAGE.items()))
     report['seconds'] = round(time.time() - t0, 1)
     text_out = json.dumps(report, indent=2, default=repr)
@@ -1428,6 +1490,8 @@ def main():
     bad = {k: v for k, v in report['families'].items() if v['mismatches']}
     if bad:
         print(json.dumps(bad, indent=2, default=repr)[:8000])
+        return 1
+    if args.mutations and not all(report['mutations'].values()):
         return 1
     return 0
 

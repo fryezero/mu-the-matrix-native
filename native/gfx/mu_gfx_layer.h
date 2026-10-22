@@ -273,6 +273,8 @@ int mu_gfx_layer_item_cell(const mu_gfx_layer *layer, int item);
 int mu_gfx_layer_item_count(const mu_gfx_layer *layer);
 /* Items on the inventory page now (sold or stored ones are gone; NATIVE-NPC-001). */
 int mu_gfx_layer_items_placed(const mu_gfx_layer *layer);
+/* Items currently in the inventory, matching code and level (class-upgrade conditions). */
+int mu_gfx_layer_count_item(const mu_gfx_layer *layer, int32_t code, int32_t level);
 /* The item draws the inventory's item pass would hand to the items
  * callback now (slot pass outputs); returns the count. */
 int mu_gfx_layer_item_draws(mu_gfx_layer *layer, mu_gfx_item_draw *out, int max);

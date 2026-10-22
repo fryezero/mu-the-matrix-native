@@ -38,6 +38,13 @@ static void put16(uint8_t *p, int32_t v)
     p[1] = (uint8_t)((v >> 8) & 0xff);
 }
 
+static void put32(uint8_t *p, int32_t v)
+{
+    uint32_t word = (uint32_t)v;
+    for (int i = 0; i < 4; i++)
+        p[i] = (uint8_t)(word >> (i * 8));
+}
+
 static int32_t get16(const uint8_t *p)
 {
     return (int32_t)(p[0] | p[1] << 8);
@@ -128,6 +135,16 @@ static void classic_set(mu_quest_session *s, int32_t q, int state)
     queue(s, a1, sizeof a1);
 }
 
+void mu_quest_session_classic_talk(mu_quest_session *s)
+{
+    int32_t q = mu_classic_current(&s->client);
+    if (q < 0 || q >= 200 || !s->data.classic)
+        return;
+    uint8_t b[5] = {0xc1, 5, 0xa1, (uint8_t)q, s->classic_states[q / 4]};
+    queue(s, b, sizeof b);
+    note(s, "demo server: class-upgrade NPC, quest %d", q);
+}
+
 static void travel(mu_quest_session *s, int32_t world, int32_t x, int32_t y, const char *what)
 {
     ++s->travels;
@@ -181,10 +198,18 @@ void mu_quest_session_request(mu_quest_session *s, const uint8_t *p, size_t n)
         /* a class-upgrade quest: taken (3 -> 1) or completed (1 -> 2) */
         int32_t q = p[3], st = classic_state_of(s, q);
         if (st == 3 || st == 0) {
+            int32_t monsters[5];
+            int32_t count = mu_classic_monsters(&s->client, monsters, 5);
+            for (int i = 0; i < 5; i++) {
+                s->classic_kills[i][0] = i < count ? monsters[i] : -1;
+                s->classic_kills[i][1] = i < count ? 0 : -1;
+            }
             classic_set(s, q, 1);
             note(s, "demo server: class-upgrade quest %d taken", q);
         } else if (st == 1) {
             classic_set(s, q, 2);
+            for (int i = 0; i < 5; i++)
+                s->classic_kills[i][0] = s->classic_kills[i][1] = -1;
             note(s, "demo server: class-upgrade quest %d completed", q);
         }
         return;
@@ -280,9 +305,22 @@ void mu_quest_session_kill(mu_quest_session *s, int32_t monster_class, int32_t w
         guide_send(s, s->guide_step, count, count >= need ? 2 : 1);
         note(s, "demo server: guide step %d progress %d/%d", s->guide_step, count, need);
     }
+    int classic_changed = 0;
     for (int i = 0; i < 5; i++)
-        if (s->classic_kills[i][0] == monster_class)
+        if (classic_state_of(s, mu_classic_current(&s->client)) == 1 &&
+            s->classic_kills[i][0] >= 0 && s->classic_kills[i][0] == monster_class) {
             s->classic_kills[i][1]++;
+            classic_changed = 1;
+        }
+    if (classic_changed) {
+        uint8_t b[48] = {0xc1, 48, 0xa4};
+        for (int i = 0; i < 5; i++) {
+            put32(b + 8 + i * 8, s->classic_kills[i][0]);
+            put32(b + 12 + i * 8, s->classic_kills[i][1]);
+        }
+        queue(s, b, sizeof b);
+        classic_set(s, mu_classic_current(&s->client), 1);   /* demo refresh of the open quest window */
+    }
     for (int32_t cat = MU_QUEST_CATEGORY_FIRST; cat <= MU_QUEST_CATEGORY_LAST; cat++) {
         const int32_t *a;
         size_t n = mu_quest_active(&s->client.qs, cat, &a);
@@ -432,6 +470,8 @@ int mu_quest_session_open(mu_quest_session *s, const char *lang_dir, const char 
                           char *error, size_t error_size)
 {
     memset(s, 0, sizeof *s);
+    for (int i = 0; i < 5; i++)
+        s->classic_kills[i][0] = s->classic_kills[i][1] = -1;
     s->latency = 4;
     const char *dir = lang_dir ? lang_dir : getenv("MU_LANG_DIR");
     if (!dir || mu_quest_load_dir(&s->data, dir) <= 0) {
@@ -482,6 +522,13 @@ void mu_quest_session_step(mu_quest_session *s)
         s->nqueue--;
         ++s->stats.answers;
         mu_quest_receive(&s->client, p.bytes, p.size);   /* the client's F6 handlers (verified) */
+        if (p.size >= 8 && p.bytes[2] == 0xf6 && p.bytes[3] == 0x50 && s->client.guide) {
+            /* The client chooses the next class-eligible step after a reward or give-up. Keep the demo
+             * server's progress on that step, rather than the completed step carried by the answer. */
+            s->guide_step = s->client.guide->current;
+            s->guide_count = s->client.guide->count;
+            s->guide_state = p.bytes[7] >= 3 ? 1 : p.bytes[7];
+        }
     }
 }
 
@@ -516,7 +563,8 @@ void mu_quest_session_report(const mu_quest_session *s, FILE *out)
             first = 0;
         }
     }
-    fprintf(out, "], \"last\": \"%s\", \"log\": [", s->last);
+    fprintf(out, "], \"guide\": {\"step\": %d, \"count\": %d, \"state\": %d}, \"travels\": %u, "
+                 "\"last\": \"%s\", \"log\": [", s->guide_step, s->guide_count, s->guide_state, s->travels, s->last);
     for (int32_t i = 0; i < s->log_count; i++)
         fprintf(out, "%s\"%s\"", i ? ", " : "", s->log[i]);
     fprintf(out, "]}}\n");
@@ -536,4 +584,9 @@ void mu_quest_session_set_event(mu_quest_session *s, void (*event)(void *user, c
 {
     s->event = event;
     s->user = user;
+}
+
+void mu_quest_session_set_travel(mu_quest_session *s, int (*travel_hook)(void *user, int32_t world, int32_t x, int32_t y))
+{
+    s->travel = travel_hook;
 }

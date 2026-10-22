@@ -313,6 +313,9 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
         call(g, "DragEndSlotIndex_Mouse", a);
     } else if (is(g, "SkillStampFrame") && !strcmp(method, "SetSkillSlotSize")) {
         call(g, "requestSkillSlotSize", "[26.0,37.0]");
+    } else if (is(g, "winQuestSummary") && !strcmp(method, "onFileLoad")) {
+        call(g, "QuestSummary", "[\"onLoad\",\"_level0.win\"]");
+        call(g, "QuestSummary", "[\"onOpenWindow\",false]");
     } else if (!strcmp(method, "testCall")) {
         /* test hook: the movie raises a callback, e.g. a menu button's onHotKey */
         char name[64] = "", rest[400] = "";
@@ -460,6 +463,11 @@ void mugfx_start(MuGfx *g)
         g->win_x = 8;
         g->win_y = 0;
         call(g, "requestWindowPos", "[8.0,0.0]");
+    } else if (is(g, "NpcQuestProgress") || is(g, "MyQuestInfo") || is(g, "NpcJobChangeQuest") ||
+               is(g, "QuestProgressInfo")) {
+        char args[96];
+        snprintf(args, sizeof args, "[\"%s\"]", g->name);
+        call(g, "UIInit", args);
     } else if (is(g, "CharacterSelect")) {
         g->cs_last_row = -1;
         call(g, "UIInit", "[\"g_mcCharacterSelect\"]");

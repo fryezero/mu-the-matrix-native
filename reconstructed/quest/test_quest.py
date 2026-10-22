@@ -109,6 +109,35 @@ STRINGS = (
 TIPS = '0\t14\t23\t0\tApple of Wisdom\n1\t12\t145\t1\tFairy Wing\n'
 
 
+def guide_fixture():
+    """Authored guide steps: a move followed by a two-monster hunt."""
+    rows = []
+    for index, kind, monster, need, world, x, y in ((11, 5, -1, 0, 3, 42, 43), (14, 2, 3, 2, 0, 60, 61)):
+        words = [0] * 61
+        for off, val in {4: index, 0x30: 1, 0x40: 1, 0x8c: kind, 0x90: monster, 0x98: need,
+                         0xa8: world, 0xac: x, 0xb0: y, 0xb4: 10, 0xb8: 20}.items():
+            words[off // 4] = val
+        rows.append(f'0\t{ints(words, 61)}\tStep {index}\tInfo\tGoal\t{ints([1] * 16, 16)}\t-1 -1 -1\n')
+    return ''.join(rows)
+
+
+GUIDE_STRINGS = '1\t0\t0\t1\t0\tChapter one\n2\t11\t1\t2\t11\tMove somewhere\n2\t14\t2\t2\t14\tHunt monsters\n'
+
+
+def classic_fixture():
+    """200 synthetic records encoded as the loader expects, with one two-monster quest."""
+    records = bytearray(200000)
+    struct.pack_into('<hhH', records, 0, 1, 0, 229)
+    records[6:12] = b'Mentor'
+    records[0x29] = 2
+    struct.pack_into('<H', records, 0x2a, 3)
+    struct.pack_into('<i', records, 0x30, 2)
+    records[0x35:0x45] = bytes([1] * 16)
+    struct.pack_into('<hhhh', records, 0x46, 1, 2, 3, 4)
+    key = (0xfc, 0xcf, 0xab)
+    return bytes(b ^ key[(i % 1000) % 3] for i, b in enumerate(records))
+
+
 def build():
     subprocess.run(['make', '-C', str(HERE), '-s'], check=True)
     L = ctypes.CDLL(str(LIB))
@@ -205,6 +234,76 @@ class QuestTest(unittest.TestCase):
             return 3 if i < 1000 else -1
         for i in list(range(-5, 1005)) + [random.Random(1).randint(-10**6, 10**6) for _ in range(100)]:
             self.assertEqual(self.L.mu_quest_category(i), model(i), i)
+
+    def test_guide_packets_tracker_and_empty_abort_guard(self):
+        L = self.L
+        for name in ('mu_guide_parse_steps', 'mu_guide_parse_strings'):
+            getattr(L, name).argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        self.assertEqual(L.mu_guide_parse_steps(ctypes.byref(self.data), guide_fixture().encode()), 2)
+        self.assertEqual(L.mu_guide_parse_strings(ctypes.byref(self.data), GUIDE_STRINGS.encode()), 3)
+        for name in ('mu_quest_enable_hud', 'mu_guide_clear', 'mu_guide_giveup'):
+            getattr(L, name).argtypes = [ctypes.c_void_p]
+        L.mu_quest_enable_hud(self.c)
+        L.mu_quest_client_field(self.c, b'hud.guide_shown', 1, 1)
+        L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
+        L.mu_quest_client_field(self.c, b'hero.level', 1, 10)
+        L.mu_quest_receive(self.c, b'\xc1\x08\xf6\x50\x0b\0\0\x01', 8)
+        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.current', 0, 0), 11)
+        self.assertTrue(any('SetQuestList' in line for line in self.log()))
+        L.mu_guide_clear(self.c)
+        L.mu_quest_client_field(self.c, b'guide.check', 1, 1)
+        self.log()
+        L.mu_guide_giveup(self.c)
+        self.assertEqual(self.log(), [])   # client vector[-1] read is intentionally guarded
+
+    def test_wrap_uses_measure_and_scale(self):
+        L = self.L
+        measure = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32)(
+            lambda u, text, n: n * 10)
+        self.host.measure = ctypes.cast(measure, ctypes.c_void_p).value
+        L.mu_quest_client_free(self.c)
+        L.mu_quest_client_init(self.c, ctypes.byref(self.data), ctypes.byref(self.host))
+        L.mu_quest_wrap.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p,
+                                    ctypes.c_int32, ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
+                                    ctypes.c_float]
+        out = ctypes.create_string_buffer(128)
+        count = L.mu_quest_wrap(self.c, out, 8, 16, b'abcdef#gh', 40, 0, b'#', 0, 0, 1.0)
+        self.assertEqual((count, out.raw[:16].split(b'\0')[0], out.raw[16:32].split(b'\0')[0]), (3, b'abc', b'def'))
+        self.assertEqual(L.mu_quest_wrap(self.c, out, 8, 16, b'abcdef', 40, 0, b'#', 0, 0, 2.0), 1)
+        # The reference reports two lines when a one-line buffer truncates. Indent must still stay in it.
+        exact = ctypes.create_string_buffer(16)
+        self.assertEqual(L.mu_quest_wrap(self.c, exact, 1, 16, b'abcdefghijk', 40, 0, b'#', 3, 0, 1.0), 2)
+        guarded = ctypes.create_string_buffer(b'\0' * 16 + b'Z' * 32, 48)
+        L.mu_quest_wrap(self.c, guarded, 1, 16, b'abcdefghijk', 40, 0, b'#', 3, 0, 1.0)
+        self.assertEqual(guarded.raw[16:], b'Z' * 32)
+
+    def test_classic_loader_states_and_result_owner(self):
+        L = self.L
+        L.mu_classic_load.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+        L.mu_classic_state_of.argtypes = [ctypes.c_void_p, ctypes.c_int32]
+        L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
+        payload = classic_fixture()
+        self.assertEqual(L.mu_classic_load(ctypes.byref(self.data), payload, len(payload)), 200)
+        L.mu_quest_receive(self.c, b'\xc1\x05\xc0\x01\x03', 5)
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 3)
+        L.mu_quest_receive(self.c, b'\xc1\x06\x86\0\0\x01', 6)
+        self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
+        self.log()
+        L.mu_classic_state_text.argtypes = [ctypes.c_void_p]
+        L.mu_classic_state_text.restype = ctypes.c_char_p
+        before = L.mu_classic_state_text(self.c)
+        for quest in (200, 255):
+            for payload in (b'\xc1\x05\xa1' + bytes([quest, 255]),
+                            b'\xc1\x06\x86' + bytes([quest, 0, 255])):
+                L.mu_quest_receive(self.c, payload, len(payload))
+                self.assertEqual(L.mu_classic_state_text(self.c), before)
+                self.assertEqual(self.log(), [])
+        # Refresh only updates conditions; it must not request F6 1C again.
+        L.mu_classic_tab_refresh.argtypes = [ctypes.c_void_p]
+        L.mu_classic_tab_refresh(self.c)
+        self.assertTrue(any('SetJobChangeMob' in line for line in self.log()))
+        L.mu_quest_receive(self.c, b'\xc1\x06\x86\0\x02\0', 6)
+        self.assertTrue(any(line.startswith('msgbox ?0 0 ') for line in self.log()))
 
     def test_parse_and_dialogue(self):
         self.assertIsNotNone(self.fields(5))

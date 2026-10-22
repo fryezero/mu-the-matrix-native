@@ -494,6 +494,7 @@ void mu_quest_move(mu_quest_client *c, int32_t quest);               /* 0x00d502
 
 void mu_classic_free(mu_quest_client *c);
 void mu_classic_tab_init(mu_quest_client *c);                        /* tab 1 vtable +4 0x00d4dd38 */
+void mu_classic_tab_refresh(mu_quest_client *c);                     /* tab +0x30, 0x00d4e45c: conditions only */
 long mu_dialog_parse(mu_quest_data *d, const char *texts, const char *answers);   /* dialog.tsv + dialoganswers.tsv */
 int mu_classic_state_of(mu_quest_client *c, int32_t quest);          /* 0x009f4bf3 */
 int mu_classic_state(mu_quest_client *c, int32_t quest);             /* 0x009f4d91 (-1: the current one) */
@@ -553,6 +554,7 @@ void mu_quest_set_sink(mu_quest_client *c, void (*sink)(void *user, const char *
  * ("current= selected= check= complete= count= list=STEP:STATE:DONE,...") and the HUD ("shown= quests=I,...") as
  * text for the validator. */
 void mu_quest_set_time(mu_quest_client *c, float time, float until);
+float mu_quest_throttle_time(const mu_quest_client *c);
 const char *mu_guide_state_text(const mu_quest_client *c);
 const char *mu_summary_state_text(const mu_quest_client *c);
 

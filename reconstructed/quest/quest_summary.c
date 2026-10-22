@@ -69,7 +69,7 @@ static void summary_hide(mu_quest_client *c)
 static void summary_visibility(mu_quest_client *c)
 {
     mu_quest_summary *h = c->hud;
-    int any = h->guide_index >= 0 || h->nquests > 0 || h->other > 0;
+    int any = MU_QUEST_MUTATION == 8 ? 0 : h->guide_index >= 0 || h->nquests > 0 || h->other > 0;
     if (any && !h->blocked)
         mu_summary_show(c);
     else

@@ -35,11 +35,16 @@ actor 584 136 125 6 label sir lesnar
 talk 584 0x28 dialog 102 147 158 options 250 114
 
 # NATIVE-QUEST-001: a quest NPC near the town square. The demo server answers its talk with the NPC dialogue
-# packet F9 01 for dialogue NPC 257 (the Shadow Phantom Soldier; its own class 257 is not in the extracted class
-# table, so the Guardsman model 224 stands in): npcdialogue shows NPC 257's NPCDialogue.bmd state 0, whose option
+# packet F9 01 for dialogue NPC 257 (the Shadow Phantom Soldier): npcdialogue shows NPC 257's NPCDialogue.bmd state 0, whose option
 # 901 asks for the NPC's quest list (C1 F6 71). The demo server lists these quests (MUQuest indices; 7 "Hunt
 # Lorencia Budge Dragon": 3 budge dragons, 10 "Hunt Lorencia Hound", 440 "Spider Hunt!"). What the client does
 # with every answer is reconstructed (reconstructed/quest).
-actor 224 135 128 2 label soldier
-dialog 224 257
+actor 257 135 128 2 label soldier
+dialog 257 257
 quest 257 7 10 440
+
+# NATIVE-QUEST-002: local login state for the guide and class-upgrade quests. The real server chooses these.
+guide 11
+classic 0:3
+actor 229 133 126 2 label class mentor
+classicnpc 229

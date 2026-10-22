@@ -194,7 +194,8 @@ class ActorTests(unittest.TestCase):
 
         class Row(ctypes.Structure):
             _fields_ = [('server_class', ctypes.c_uint16), ('kind', ctypes.c_uint8), ('model', ctypes.c_uint16),
-                        ('opened', ctypes.c_uint16), ('scale_bits', ctypes.c_uint32), ('slots', Slot*8)]
+                        ('opened', ctypes.c_uint16), ('scale_bits', ctypes.c_uint32), ('slots', Slot*9),
+                        ('class_byte', ctypes.c_uint8)]
         lib.mu_monster_class_find.restype = ctypes.POINTER(Row)
         lib.mu_monster_class_find.argtypes = [ctypes.c_uint32]
         row = lib.mu_monster_class_find(0).contents

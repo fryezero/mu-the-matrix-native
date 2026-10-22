@@ -44,6 +44,8 @@
 
 #include "../../reconstructed/movement/client_movement.h"
 #include "mu_actor.h"
+#include "mu_character.h"
+#include "mu_renderchar.h"
 #include "mu_effect_scene.h"
 #include "mu_terrain.h"
 
@@ -52,6 +54,9 @@
 
 typedef struct mu_world_actor {
     mu_actor actor;
+    /* Player-model NPCs use CreateMonster's extracted equipment, without becoming remote players. */
+    mu_character *player;
+    mu_renderchar_glow player_glow[MU_CHARACTER_ITEMS];
     int32_t server_class;
     char label[48];
     float position[3];        /* object +0x158 */

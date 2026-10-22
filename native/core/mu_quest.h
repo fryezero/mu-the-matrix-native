@@ -109,6 +109,8 @@ void mu_quest_session_step(mu_quest_session *s);
 void mu_quest_session_request(mu_quest_session *s, const uint8_t *packet, size_t size);
 /* The dialogue's server request 901 (0x00be906d case 0: C1 F6 71 with the dialogue NPC). */
 void mu_quest_session_npc_list(mu_quest_session *s, int32_t npc);
+/* The demo NPC talk answer C1 A1 with the current class-upgrade quest and its packed state byte. */
+void mu_quest_session_classic_talk(mu_quest_session *s);
 /* Demo progress. */
 void mu_quest_session_kill(mu_quest_session *s, int32_t monster_class, int32_t world);
 void mu_quest_session_progress(mu_quest_session *s, int32_t quest, int32_t count);
@@ -119,6 +121,7 @@ void mu_quest_session_report(const mu_quest_session *s, FILE *out);
 size_t mu_quest_session_size(void);
 mu_quest_client *mu_quest_session_client(mu_quest_session *s);
 void mu_quest_session_set_event(mu_quest_session *s, void (*event)(void *user, const char *line), void *user);
+void mu_quest_session_set_travel(mu_quest_session *s, int (*travel)(void *user, int32_t world, int32_t x, int32_t y));
 /* NATIVE-QUEST-002: Data/Local/quest.bmd from the game root (the class-upgrade quests); returns the record count or
  * -1.  The demo's login packets (F6 50, C1 C0) are queued by mu_quest_session_open from the demo text. */
 long mu_quest_session_load_classic(mu_quest_session *s, const char *game_root);

@@ -224,7 +224,18 @@ int mu_quest_receive(mu_quest_client *c, const uint8_t *p, size_t n)
 {
     if (!c || !p || n < 4)
         return 0;
+    switch (p[2]) {
+    case 0xc0: mu_classic_receive_states(c, p, n); return 1;
+    case 0xa1: mu_classic_receive_state(c, p, n); return 1;
+    case 0xa4: mu_classic_receive_kills(c, p, n); return 1;
+    case 0x86: mu_classic_receive_result(c, p, n); return 1;
+    case 0xf6: break;
+    default: return 0;
+    }
     switch (p[3]) {
+    case 0x1c: mu_classic_receive_kill_list(c, p, n); return 1;
+    case 0x50: mu_guide_receive_state(c, p, n); return 1;
+    case 0x51: mu_guide_receive_result(c, p, n); return 1;
     case 0x6f: on_start(c, p, n); return 1;
     case 0x70: on_list(c, p, n); return 1;
     case 0x71: on_npc_list(c, p, n); return 1;

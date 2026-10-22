@@ -68,7 +68,8 @@ long mu_classic_load(mu_quest_data *d, const uint8_t *file, size_t size)
     for (size_t r = 0; r < 200; r++) {
         uint8_t *rec = d->classic + r * REC;
         size_t off = r * REC, n = off < size ? (size - off < REC ? size - off : REC) : 0;
-        memcpy(rec, file + off, n);
+        if (n)
+            memcpy(rec, file + off, n);
         for (int i = 0; i < REC; i++)
             rec[i] ^= key[i % 3];
     }
@@ -237,7 +238,7 @@ int mu_classic_state_of(mu_quest_client *c, int32_t quest)            /* 0x009f4
     int32_t at = quest / 4;
     if (!m || at < 0 || at >= 50)
         return 0;
-    return (m->states[at] >> ((r * 2) & 0x1f)) & 3;
+    return (m->states[at] >> ((r * 2) & 0x1f)) & (MU_QUEST_MUTATION == 11 ? 1 : 3);
 }
 
 int mu_classic_state(mu_quest_client *c, int32_t quest)               /* 0x009f4d91 */
@@ -491,6 +492,8 @@ void mu_classic_receive_state(mu_quest_client *c, const uint8_t *p, size_t size)
     if (!m || size < 5)
         return;
     uint8_t q = p[3];
+    if (q >= 200)
+        return;                         /* malformed packet: the manager has 200 packed states */
     m->current = q;
     m->top = q <= m->top ? m->top : q;
     m->states[m->current >> 2] = p[4];
@@ -531,9 +534,11 @@ void mu_classic_receive_kill_list(mu_quest_client *c, const uint8_t *p, size_t s
 
 /* ---- MyQuestInfo tab 1 (0x00d4dd38) --------------------------------------------------------------- */
 
-static void tab_conditions(mu_quest_client *c)       /* 0x00d4e45c */
+void mu_classic_tab_refresh(mu_quest_client *c)       /* 0x00d4e45c, tab vtable +0x30: no F6 1C request */
 {
     mu_classic *m = cq(c);
+    if (!m)
+        return;
     if (mu_classic_state_of(c, m->current) != 1)
         return;
     const uint8_t *rec = record(c, m->current);
@@ -605,7 +610,7 @@ void mu_classic_tab_init(mu_quest_client *c)
         n += (size_t)snprintf(s + n, sizeof s - n, "%s\n", m->tab_text);
     utf8(c, s, us, sizeof us);
     mu_quest_invoke(c, MQI, "SetJobChange", "%s %s %s", un, ut, us);
-    tab_conditions(c);
+    mu_classic_tab_refresh(c);
 }
 
 /* ---- NpcJobChangeQuest ---------------------------------------------------------------------------- */
@@ -1041,7 +1046,7 @@ int32_t mu_classic_monsters(mu_quest_client *c, int32_t *out, int32_t max)
 void mu_classic_receive_result(mu_quest_client *c, const uint8_t *p, size_t size)
 {
     mu_classic *m = cq(c);
-    if (!m || size < 6)
+    if (!m || size < 6 || p[3] >= 200)
         return;
     if (p[4] == 0) {
         uint8_t q = p[3];
@@ -1055,6 +1060,7 @@ void mu_classic_receive_result(mu_quest_client *c, const uint8_t *p, size_t size
         mu_quest_logf(&c->log, "classic refresh");
         mu_classic_open(c);
     } else if (p[4] == 2) {
-        mu_quest_msgbox(c, "MsgBoxes", 0, mu_quest_text(c, 0x15bd), "", 0, 0, 0);
+        /* The MsgBoxes receiver is ECX; the first argument (the callback owner) is null. */
+        mu_quest_msgbox(c, "?0", 0, mu_quest_text(c, 0x15bd), "", 0, 0, 0);
     }
 }

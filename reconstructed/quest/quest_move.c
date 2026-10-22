@@ -31,7 +31,7 @@ void mu_quest_move(mu_quest_client *c, int32_t quest)
     }
     if (c->info.visible)
         mu_quest_info_close(c);
-    int32_t hx = c->hero_x, hy = c->hero_y, tx = g[9], ty = g[10];
+    int32_t hx = c->hero_x, hy = c->hero_y, tx = g[MU_QUEST_MUTATION == 9 ? 8 : 9], ty = g[10];
     if (g[8] == c->world) {
         if (hx == tx && hy == ty) {
             if (c->host.path_reset)

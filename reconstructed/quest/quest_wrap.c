@@ -24,7 +24,8 @@ static int cut_lines(const mu_quest_client *c, const char *text, char *dst, int3
     if (!text)
         return 0;
     const char *p = text;
-    int32_t total = (int32_t)strlen(text) + 1, cut = 0, wpx = (int32_t)((float)width * scale);
+    int32_t total = (int32_t)strlen(text) + 1, cut = 0;
+    int32_t wpx = (int32_t)((float)width * (MU_QUEST_MUTATION == 10 ? 1.0f : scale));
     int line, done = 0;
     for (line = 0; line < max_lines; line++) {
         int32_t n = 0, w = 0, k = 0;
@@ -83,7 +84,7 @@ int mu_quest_wrap(const mu_quest_client *c, char *lines, int max_lines, int stri
         for (int i = 0; i < indent && strlen(pad) + 1 < sizeof pad; i++)
             strcat(pad, " ");
         memcpy(keep, pad, sizeof keep);
-        for (int i = indent_from; i < count; i++) {
+        for (int i = indent_from < 0 ? 0 : indent_from; i < count && i < max_lines; i++) {
             char *line = lines + (size_t)i * (size_t)stride;
             size_t room = sizeof pad - strlen(pad) - 1;
             strncat(pad, line, room);
