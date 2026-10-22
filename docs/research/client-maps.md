@@ -111,7 +111,7 @@ the target gate's rectangle (Noria 172,114 in gate 27; Lorencia 137,127 in gate 
 
 `scripts/validate_map.py --snapshot lang4.bin --cases 500 --mutations` (`tools/python`, captures under `evidence/`):
 families hud_update, units, detected, show (+ InitData), move_build, move_sort (also synthetic vectors up to 300
-entries with ties), availability, rows, click, gates (the snapshot's 625 gates), 0 mismatches; 10 planted mistakes
+entries with ties), availability, rows, click, gates (the snapshot's 625 gates): 5,001 cases (500 per family, 501 with InitData), 0 mismatches; 10 planted mistakes
 (one per family) all detected. Portable: `reconstructed/map/test_map.py` (10), `native/tests/test_native_map.py`
 (6 synthetic two-world travel cases + 1 private Lorencia → Noria → Lorencia). GFx route (local, real movies under
 Ruffle): the Tab overlay, the Move window list (same rows as the live window), a row click travelling to Noria with
