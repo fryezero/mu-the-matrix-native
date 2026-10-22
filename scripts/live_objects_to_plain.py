@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn a live object-list snapshot into an EncTerrain plaintext (NATIVE-OBJECTS-001, live read).
 
-Input: the file written by the macOS read-only snapshot tool (mac-play/diagnostics/objread.c):
+Input: the file written by the macOS read-only snapshot tool (live-readers/objread.c):
 
     "MUOBJLV1", i32 world [0x01cf15fc], i32 world [0x01cf1600], i32 count [0x0bdb5888], u32 n,
     n x (u32 address, u32 sector, 0x3d8 object bytes)

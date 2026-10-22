@@ -25,7 +25,15 @@ Preserve original files. Put acquired bytes, memory captures, derived payloads a
 
 For each reverse-engineering conclusion, record target SHA-256, source address/file offset, method, observation versus inference, coverage and unresolved behavior. Preserve failed hypotheses with their failure cause. Keep generated pseudocode, readable byte patterns, structurally parsed records and runtime-equivalent behavior distinct.
 
-The original client works on Windows and does not start in the owner's CrossOver setup. Repeating unchanged Mac startup attempts is not the next recovery strategy. No Windows PC is currently available. The active alternative is full x86 system emulation with Linux Wine, described in `runtime-linux/README.md` and `docs/research/restored-client-text.md`. It has restored a repeatable client-code region and a bounded REA decompilation; next map and validate restored functions. The Windows helper remains prepared; actual native Windows validation is still open. Distinguish compatibility-environment captures from native Windows evidence.
+This repository is the native track. Running the original client on macOS through Wine (the Mac app, the
+player disk image, the Wine runtime, mugl, the CPU hotpatches, fast x87, the launcher fixes) lives in the separate
+repository [fryezero/mu-the-matrix-mac](https://github.com/fryezero/mu-the-matrix-mac) (local checkout
+`~/Documents/mu-the-matrix-mac`); put Wine-track work there. The original client is playable on the Mac through
+that track, which is also how live client state is observed for comparisons (`live-readers/`, under the shared
+game lock). For code capture, full x86 system emulation with Linux Wine (`runtime-linux/README.md`,
+`docs/research/restored-client-text.md`) restored a repeatable client-code region. The Windows helper remains
+prepared; actual native Windows validation is still open. Distinguish compatibility-environment captures from
+native Windows evidence.
 
 Run `make test` with the configured Python. Private integration is opt-in; missing original inputs must produce an explicit skip in portable tests or an error in requested integration checks. Keep synthetic regression fixtures independent of proprietary data. Every behavior claim needs a relevant test or a precise unverified limitation.
 

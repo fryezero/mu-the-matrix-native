@@ -2,17 +2,17 @@
 
 Commit original source, synthetic regression fixtures, public mathematical test vectors, reviewed findings, target digests and source references. Keep binaries, game data, recovered geometry, decompiler payloads, memory captures, raw REA ledgers and machine-specific logs in ignored local directories.
 
-The repository is private initially, but its tracked tree should remain suitable for future review without shipping the game. Privacy is not a reason to mix raw process data into source control. Game files and recovered outputs retain their original ownership; the project license covers authored implementations and documentation.
+The repository is public; its tracked tree must stay suitable for review without shipping the game. Privacy is not a reason to mix raw process data into source control. Game files and recovered outputs retain their original ownership; the project license covers authored implementations and documentation.
 
-## README screenshots and GIFs
+## README screenshots
 
-At the owner's request, `docs/media/` includes six existing screenshots and animation GIFs
-for the main README's live-client and native-port comparisons. Each is copied unchanged,
-visually reviewed, and pinned by exact path and SHA-256 in the publication audit.
-This exception covers only those documentation captures, not game asset packs, model or
-texture exports, executable bytes or process dumps. All other binary and generated files
-remain subject to the existing audit. [Capture provenance](media/README.md) records the
-sources and limitations. Game imagery retains its original ownership.
+At the owner's request, `docs/images/` holds the README's screenshots and renders (since 2026-10-21; the earlier
+`docs/media/` set is in the history). They are window-only captures and offline native renders, resized for the
+web, visually reviewed (no account names, passwords, emails or private paths) and pinned by exact path and SHA-256
+in the publication audit. This exception covers only those documentation images, not game asset packs, model or
+texture exports, executable bytes or process dumps. All other binary and generated files remain subject to the
+existing audit. Replacing an image means reviewing it again and updating its pin. The game imagery retains its
+owners' rights and is not covered by this repository's MIT license.
 
 ## Record a finding
 

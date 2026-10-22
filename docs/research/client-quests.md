@@ -21,7 +21,7 @@ Labels:
 ## 1. Data (runtime)
 
 The quest definitions are two Lang.mpr tables (NATIVE-LANG-002's survey: MUQuest "map", MUQuestString "read").
-Their records come from a live read: `mac-play/diagnostics/langread` gained two options, `node:OFF=BYTES` (MUQuest's
+Their records come from a live read: `live-readers/langread` gained two options, `node:OFF=BYTES` (MUQuest's
 nodes carry 0x104-byte records; the old read copied the table's span, 0x40 bytes) and `map:PTR+OFF=BYTES[,obj=N]`
 (a std::map behind a pointer variable, with the node values' objects). The read (2026-10-21, lock 19:17:58–19:20:10,
 one client at the server list for about 90 s, closed with taskkill; plaintext local):

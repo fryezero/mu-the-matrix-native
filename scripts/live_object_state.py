@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare reconstructed CreateObject (reconstructed/objects mu_obj_create) with objects read from a running client.
 
-NATIVE-OBJECTS-002. Input: snapshots written by mac-play/diagnostics/objread (see
+NATIVE-OBJECTS-002. Input: snapshots written by live-readers/objread (see
 scripts/live_objects_to_plain.py for the format). Each object's loader record is rebuilt from the fields
 CreateObject copies (type, start position, angle, scale, flags, light, the two values), mu_obj_create runs
 on a copy of the live bytes, and the fields CreateObject writes are compared with the live object.

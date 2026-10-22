@@ -7,7 +7,7 @@
 /* Game text and script tables of Data\Lang.mpr (NATIVE-LANG-001).
  *
  * The package itself stays encrypted (its password sits behind the
- * protection boundary).  mac-play/diagnostics/langread reads the tables
+ * protection boundary).  live-readers/langread reads the tables
  * main.exe built from it out of the running client, read-only, and
  * scripts/live_lang_to_plain.py writes them as local plaintext files.  This
  * module loads those files when present; every consumer keeps its

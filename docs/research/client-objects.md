@@ -238,7 +238,7 @@ Tests:
 
 `IGC.dll`, `RGS.dll`, the packer and anti-cheat code were not analysed, patched or hooked.
 
-**Method.** `mac-play/diagnostics/objread.c` is a macOS host tool. It is ad-hoc signed with the debugger
+**Method.** `live-readers/objread.c` is a macOS host tool. It is ad-hoc signed with the debugger
 entitlement and uses `task_for_pid` and `mach_vm_read_overwrite`. It never writes and never suspends. It reads the
 world index `[0x01cf15fc]`, the `.obj` count global `[0x0bdb5888]` and the 256 sector lists at `0x0bdb61f0`. In each
 list the head is at `+4` and objects are linked through `+0x354`, as CreateObject builds them (section 1). For each
@@ -301,8 +301,8 @@ value. `mu-charsel --objects-dir DIR` takes the markers of a local `EncTerrain94
 - `mu-terrain`/`mu-viewer --terrain --objects FILE`.
 
 ```sh
-make -C mac-play/diagnostics objread                       # macOS host tool
-mac-play/diagnostics/build/objread <main.exe pid> snap.bin # client you started, under the lock
+make -C live-readers objread                       # macOS host tool
+live-readers/build/objread <main.exe pid> snap.bin # client you started, under the lock
 scripts/live_objects_to_plain.py snap.bin --installed "$MU_GAME_ROOT/Data/World1/EncTerrain1.obj" \
     --out LOCAL/EncTerrain1.plain                           # decoded game data: keep local
 native/build/mu-world --game-root "$MU_GAME_ROOT" --world 0 --tile 145,134 --objects-dir LOCAL

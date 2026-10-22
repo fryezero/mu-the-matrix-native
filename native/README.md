@@ -539,7 +539,7 @@ native/build/mu-terrain render "$MU_GAME_ROOT" --world 94 --objects LOCAL/EncTer
     --light-report 1 --width 64 --height 48          # one JSON line per drawn object, per-normal lights
 ```
 
-`mac-play/diagnostics/lightread PID OUT` (our own client, under the game lock) snapshots the client's lighting state;
+`live-readers/lightread PID OUT` (our own client, under the game lock) snapshots the client's lighting state;
 `scripts/validate_model_light.py` compares the native lights with the client's pose builder and transform under it.
 
 ## Terrain mode (NATIVE-TERRAIN-001)
@@ -562,7 +562,7 @@ drawn: the installed `EncTerrain*.obj` files do not decode with the client's loa
 check after the client's decode, see [the finding](../docs/research/client-objects.md)), its records and the type →
 model table. `mu-terrain render … --objects installed|gallery|PLAIN_FILE` and `mu-viewer --terrain … --objects …`
 (B toggles) draw objects, and `mu-world --objects-dir DIR` draws them in the walk-around session from local
-decoded `EncTerrain<n>.plain` files (made by `mac-play/diagnostics/objread` and `scripts/live_objects_to_plain.py`
+decoded `EncTerrain<n>.plain` files (made by `live-readers/objread` and `scripts/live_objects_to_plain.py`
 from a client you started, under the game lock; never committed); `gallery` is a labelled demo layout of every model the world loads
 (`--object-tile X,Y --object-columns N --object-spacing U`). `core/mu_objects.h` is the API for other sessions.
 
@@ -653,7 +653,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 
 ## Game text and script tables (NATIVE-LANG-001)
 
-`Data\Lang.mpr` stays encrypted. `mac-play/diagnostics/langread` reads the tables the client built from it out
+`Data\Lang.mpr` stays encrypted. `live-readers/langread` reads the tables the client built from it out
 of a running client you started (read-only, under the game lock), and `scripts/live_lang_to_plain.py` writes them
 as local plaintext. Never commit that plaintext. With `MU_LANG_DIR` pointing at it, the following use the client's
 own text and tables:

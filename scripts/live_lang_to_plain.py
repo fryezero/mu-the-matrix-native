@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn a langread snapshot into local plaintext tables (NATIVE-LANG-001).
 
-mac-play/diagnostics/langread copies, read-only, the tables main.exe built
+live-readers/langread copies, read-only, the tables main.exe built
 from Data\\Lang.mpr: the script-table manager 0x06fbaa60, the nodes of every
 std::map inside it and the buffers those nodes point to.  This script walks
 the same trees offline and writes the tables the native port reads

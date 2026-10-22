@@ -4,7 +4,7 @@
    RenderObjects_AfterCharacter in Unicorn against reconstructed/objects/login_world.c
    (MU_RECOVERY_INTEGRATION=1, the pinned restored text and run10 image data, Unicorn).
 2. The live login-screen snapshots (MU_LOGIN_DUMP_DIR with login-a.bin/.globals and login-b.bin/.globals from
-   mac-play/diagnostics/objread; decoded game data, local only): creation equals mu_obj_create for every
+   live-readers/objread; decoded game data, local only): creation equals mu_obj_create for every
    object (scripts/live_object_state.py), the camera globals equal the World95 camera record path, and the
    per-step values the handler drives (scroll, PlaySpeed, pulse range, the +0xa flag) advance as reconstructed.
 Portable checks: reconstructed/objects/test_login_world.py, reconstructed/scene/test_scene.py.
