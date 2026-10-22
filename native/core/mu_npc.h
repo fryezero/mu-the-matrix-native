@@ -169,7 +169,7 @@ void mu_npc_report_summary(const mu_npc *npc, FILE *out, int quiet);
 #define MU_NPC_SCRIPT 48
 typedef struct mu_npc_script_item {
     int32_t frame;
-    char verb[8];
+    char verb[24];
     char arg[48];
 } mu_npc_script_item;
 typedef struct mu_npc_script {

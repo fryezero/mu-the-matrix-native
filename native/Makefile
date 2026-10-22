@@ -87,7 +87,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/skill/skill_table.c $(RECON)/skill/skill_use.c $(RECON)/skill/skill_tooltip.c $(RECON)/skill/skill_list.c \
              $(RECON)/skill/master_tree.c $(RECON)/skill/skill_canuse.c \
              $(RECON)/map/map_hud.c $(RECON)/map/map_move.c $(RECON)/map/map_gate.c $(RECON)/social/social.c \
-             $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c
+             $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c
 CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
@@ -327,7 +327,7 @@ $(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.
 WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(GFX_SRC)
 
-$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/world
 	for f in $(WORLD_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
@@ -352,7 +352,7 @@ $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headles
 # software build (portable tests), build/mu-client the SDL2 + OpenGL window.
 CLIENT_SRC := client/main.c client/shell.c client/offline-session.c world/world_embed.c charsel/charsel_embed.c \
               charsel/charsel_list_gfx.c charsel/charsel_mugfx.c charsel/charsel_create_gfx.c
-CLIENT_HDR := client/shell.h client/offline-session.h world/world_embed.h charsel/charsel_embed.h world/main.c charsel/main.c \
+CLIENT_HDR := gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h client/shell.h client/offline-session.h world/world_embed.h charsel/charsel_embed.h world/main.c charsel/main.c \
               charsel/charsel_list_gfx.h charsel/charsel_mugfx.h charsel/charsel_create_gfx.h
 
 $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a

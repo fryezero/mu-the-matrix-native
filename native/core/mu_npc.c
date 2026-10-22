@@ -557,11 +557,16 @@ int mu_npc_script_parse(mu_npc_script *script, const char *text)
         char *b = strchr(a, ':');
         if (b)
             *b++ = 0;
+        if(strlen(a)>=sizeof it->verb)return 1;
         snprintf(it->verb, sizeof it->verb, "%s", a);
         snprintf(it->arg, sizeof it->arg, "%s", b ? b : "");
         static const char *const VERBS[] = {"click", "talk", "buy", "sell", "take", "put", "option", "next", "close",
                                             "tip", "tipinv", "bufftip", "goblin", "mixopen", "mixput", "mixtake",
                                             "mix", "mixresult", "mixadd", "jewel",
+                                            "store", "storebrowse", "storereg", "storeput", "storebundle", "storeprice",
+                                            "storeconfirm", "storecancel", "storeremove", "storeunlist", "storeopen", "storeclose",
+                                            "storepurchase", "storebuy", "storesale", "repairmode", "selfrepair", "repair",
+                                            "repairall", "damage", "serviceresult",
                                             /* NATIVE-QUEST-001 (world_gfx's quest verbs) */
                                             "qnext", "qno", "qok", "qclose", "qwin", "qtab", "qsel", "qgo", "qgiveup",
                                             "qkill", "qset", "qtrack", "qclass", "qcnext", "qcok", "qgset", "qcheck"};

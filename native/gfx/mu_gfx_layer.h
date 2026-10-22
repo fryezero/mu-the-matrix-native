@@ -61,7 +61,7 @@ typedef struct mu_gfx_layer mu_gfx_layer;
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
        MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
-       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_MOVIES };
+       MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_STORE_LIST, MU_GFX_STORE_REGISTER, MU_GFX_STORE_PURCHASE, MU_GFX_MOVIES };
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
  * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
 /* NATIVE-QUEST-002 adds QuestSummary (the quest summary HUD), QuestProgressInfo (the quest notice movie) and
@@ -178,6 +178,10 @@ typedef struct mu_gfx_layer_config {
     int (*mix_quote)(void *user, int group, const mu_mix_item *items, int n, mu_mix_quote *out);
     int (*jewel_check)(void *user, int jewel, const mu_mix_item *target, int mix_visible);
     void (*jewel_request)(void *user, int source_cell, int target_cell);
+    int (*tooltip_snapshot)(void *user, const mu_mix_item *item, int context, char *html, size_t cap);
+    int (*store_check)(void *user, const mu_mix_item *item);
+    int (*repair_quote)(void *user, const mu_mix_item *item, int npc, int32_t *cost, int32_t *maximum);
+    void (*repair_request)(void *user, int cell, int npc);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
@@ -435,6 +439,11 @@ int mu_gfx_layer_skill_action(mu_gfx_layer *layer, const char *verb, int a, int 
 const char *mu_gfx_layer_skill_last(const mu_gfx_layer *layer);
 /* The window icons the host would draw now (tests); returns the count. */
 int mu_gfx_layer_skill_icons(const mu_gfx_layer *layer, mu_gfx_skill_icon *out, int max);
+
+/* Offline personal-store/repair verbs. a/b are cell, row or price inputs;
+ * named actions are documented in native/README.md. */
+int mu_gfx_layer_service_action(mu_gfx_layer *layer, const char *verb, int a, int b);
+void mu_gfx_layer_service_state(const mu_gfx_layer *layer, int *pending, int *opened, int *products, int *draft);
 
 #ifdef __cplusplus
 }

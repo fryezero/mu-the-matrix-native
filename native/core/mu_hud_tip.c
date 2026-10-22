@@ -77,8 +77,13 @@ static void add_line(mu_hud_tip *tp, const char *text, int32_t color)
  * set/socket/excellent/harmony blocks and the full name-colour rules. */
 void mu_hud_tip_build(const mu_hud_tip_tables *t, const mu_hud_item *it, const int hero[4], mu_hud_tip *tp)
 {
+    mu_hud_tip_build_durability(t,it,hero,it->durability,tp);
+}
+void mu_hud_tip_build_durability(const mu_hud_tip_tables *t,const mu_hud_item *it,const int hero[4],
+                                uint8_t maximum,mu_hud_tip *tp)
+{
     memset(tp, 0, sizeof *tp);
-    mu_ttf_item item = {it->durability, it->durability, 0, 0, 0, 0};
+    mu_ttf_item item = {it->durability, maximum, 0, 0, 0, 0};
     mu_ttf_inputs in;
     memset(&in, 0, sizeof in);
     in.hero_strength = (uint16_t)hero[0];

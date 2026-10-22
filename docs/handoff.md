@@ -21,8 +21,9 @@ aggregation and mix valuation. `native/core/mu_mix` feeds MixGoblinSel/MixInvent
 `--npc-script` has mixopen/mixput/mixtake/mix/mixresult/mixadd/jewel. Replies are delayed offline snapshots,
 not server-outcome predictions. Unicorn: 68,554 comparisons, zero mismatches, 17/17 mutants. Fifteen portable
 and sixteen native mix regressions; native renders and reports under `~/Documents/mu-mac-tools/native/{renders,scratch}/mix/`.
-Review fixes cover reserved jewels, slot reuse, paired-window close and mix-specific valuation. Next: personal
-store and NPC repair UI requests/results. Harmony/cost D, class/option feeds, separate Chaos-weapon system and
+Follow-up adds PersonalShopProductList/Register/Purchase and NPC/self repair with reserved identities and delayed
+demo replies; task total 98,506 Unicorn comparisons, zero mismatches, 23/23 mutants. Social callback dispatch
+and long script names have regressions. Next: jewel settlement, catalog routing and equipped repair. Harmony/cost D, class/option feeds, separate Chaos-weapon system and
 wire replies remain open. No original client launched or owner Preview process touched.
 
 ## Repository split (REPO-SPLIT-001)

@@ -42,4 +42,8 @@ void mu_hud_tip_build(const mu_hud_tip_tables *t, const mu_hud_item *it, const i
  * Latin-1 code page).  Returns the full length (writes at most cap-1). */
 size_t mu_hud_tip_html(const mu_hud_tip *tp, char *utf8, size_t cap);
 
+/* A current inventory snapshot can differ from the constructor's full
+ * durability. maximum is the reconstructed maximum-durability result. */
+void mu_hud_tip_build_durability(const mu_hud_tip_tables *tables,const mu_hud_item *item,
+                                const int hero[4],uint8_t maximum,mu_hud_tip *tip);
 #endif
