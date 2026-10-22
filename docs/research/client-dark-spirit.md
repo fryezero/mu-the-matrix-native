@@ -105,14 +105,14 @@ flag, the parent matrix and the ordered host-call log. Client code includes the 
 TurnAngle2, AngleMatrix, VectorRotate, MoveHumming, the composition `0x00cff83e`, sqrt and fabs; stubs are listed in
 the script's header.
 
-Private run (`--cases 1000 --draw-cases 3000 --negative 60 --mutations`), report
+Private run (`--cases 1000 --draw-cases 3000 --negative 60 --mutations`, about three minutes), report
 `evidence/native-raven/report-01.json`:
 
 | Section | Cases | Result |
 |---|---|---|
-| sessions (pet byte, create, move, render; 1..3 owners, owner changes, safe-zone switches, long chases) | RESULT_SESSIONS | 0 mismatches, 35/35 branch probes |
-| draw (functors `0x00a2eea5` / `0x00a55f03`) | RESULT_DRAW | 0 mismatches |
-| negative control (world `0x37` planted) | 60 sessions | RESULT_NEGATIVE disagree |
+| sessions (pet byte, create, move, render; 1..3 owners, owner changes, safe-zone switches, long chases) | 1,000 sessions, 39,093 steps (28,961 moves, 6,095 renders, 4,037 pet bytes), 112,628 host calls | 0 mismatches, 35/35 branch probes |
+| draw (functors `0x00a2eea5` / `0x00a55f03`) | 3,000 (2,009 raven, 991 soul), 26,843 calls | 0 mismatches |
+| negative control (world `0x37` planted) | 60 sessions | 21 disagree |
 | planted mistakes (`-DMU_RV_MUTATION=1..4`) | 4 | 4 detected |
 
 Portable: `reconstructed/raven/test_raven.py` (6 worked examples) and `native/tests/test_native_raven.py` (mu-walk on
