@@ -92,6 +92,11 @@ mu_world_embed *mu_world_embed_open(const mu_world_embed_config *c, char *error,
     a->no_names = c->no_names;
     a->no_env = c->no_env;
     a->no_particles = c->no_particles;
+    mu_progress_default_config(&a->progress_config);   /* NATIVE-PROGRESS-001 */
+    a->progress_config.class_byte = 0xff;
+    a->progress_on = c->progress;
+    if (c->level > 0)
+        a->progress_config.level = c->level;
     if (c->combat)
         a->combat_config.weapon = embed_weapon_kind(c);
     if (load(a)) {

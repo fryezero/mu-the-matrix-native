@@ -97,6 +97,7 @@ typedef struct mu_shell_config {
     /* NATIVE-APP-001: the offline label's first line (NULL: the default) and mu-world's features in scene 6 */
     const char *label;
     int world_combat, world_items, world_npc;
+    int world_progress;            /* NATIVE-PROGRESS-001: --progress */
     const char *npc_demo;          /* the NPC demo table (Lorencia, like the placement), may be NULL */
     int world_no_names, world_no_env, world_no_particles;
     const char *players;           /* NATIVE-PLAYERS-001: world demo players, may be NULL */

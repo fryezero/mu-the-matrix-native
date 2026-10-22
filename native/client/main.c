@@ -98,6 +98,7 @@ typedef struct front {
     int double_click;                 /* the scripted click is a double click */
     const char *label, *title, *npc_demo;                      /* NATIVE-APP-001 */
     int combat, items, npc, no_names, no_env, no_particles;
+    int progress;   /* NATIVE-PROGRESS-001 */
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
     int32_t hold_scene;               /* NATIVE-PERF-001: --hold SCENE stops the autoplay there (0: never) */
     const char *perf_path;            /* NATIVE-PERF-001: --perf FILE, --perf-sync */
@@ -699,6 +700,7 @@ static void world_options(const front *f, mu_shell_config *c)
 {
     c->label = f->label;
     c->world_combat = f->combat;
+    c->world_progress = f->progress;
     c->world_items = f->items;
     c->world_npc = f->npc;
     c->npc_demo = f->npc_demo;
@@ -1218,6 +1220,7 @@ static int usage(void)
             "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
             "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n"
             "                 [--combat] [--items] [--npc] [--npc-demo FILE] [--no-names] [--no-env] [--no-particles]\n"
+            "                 [--progress]   experience, levels and stat points (demo server)\n"
             "                 [--label TEXT] [--title TEXT] [--store FILE | --no-store]\n"
             "                 [--fullscreen] [--perf FILE [--perf-sync]] [--hold SCENE] [--cpu-overlay | --gpu-overlay]\n");
     return 2;
@@ -1247,6 +1250,7 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--no-audio")) { f.audio = 0; continue; }
         if (!strcmp(k, "--auto")) { f.autoplay = 1; continue; }
         if (!strcmp(k, "--combat")) { f.combat = 1; continue; }   /* NATIVE-APP-001 */
+        if (!strcmp(k, "--progress")) { f.progress = 1; continue; }   /* NATIVE-PROGRESS-001 */
         if (!strcmp(k, "--items")) { f.items = 1; continue; }
         if (!strcmp(k, "--npc")) { f.npc = 1; continue; }
         if (!strcmp(k, "--no-names")) { f.no_names = 1; continue; }
