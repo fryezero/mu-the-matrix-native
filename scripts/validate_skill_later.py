@@ -1377,7 +1377,7 @@ def run_icons(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
         fam.check(('icons', cls, pkt.hex()), client, native)
 
 
-MUTANTS = {21: 'build', 22: 'build', 23: 'list', 24: 'click', 25: 'page', 26: 'answer', 27: 'page'}
+MUTANTS = {21: 'build', 22: 'build', 23: 'list', 24: 'click', 25: 'page', 26: 'answer', 27: 'page', 28: 'tooltip', 29: 'side', 30: 'icons'}
 FAMILIES = ('table', 'row', 'build', 'list', 'page', 'click', 'answer', 'tooltip', 'text', 'side', 'sideclick',
             'sidetip', 'icons')
 

@@ -371,7 +371,8 @@ their live Lang tables and card/node managers remain undecoded. NATIVE-SKILL-003
 `MU_LANG_DIR` (`live_lang_to_plain.py` over a langread `graph:0x06fbb8ec` snapshot) the 4th button shows the
 class's SkillTree4th slots, links, tabs and pages from the client's routines (`reconstructed/skill/tree4.c`); a
 click and a second click on the same node learn a point from the OFFLINE DEMO server (`--skill-script
-"15:tree4click:0 20:tree4click:0 30:tree4tab:2"`). Icons, tooltips, texts and side options are still open. FormulaData remains a host boundary; absent
+"15:tree4click:0 20:tree4click:0 25:tree4over:0 30:tree4tab:2"`; `t4sideover:N`, `t4side:N` for the side panel).
+Icons, tooltips, texts and the side panel come from `tree4_tips.tsv`/`tree4_side.tsv` too; the 5th tree stays empty. FormulaData remains a host boundary; absent
 formulas return 0, and learned demo values are synthetic. Usability now includes the reconstructed weapon,
 buff, world, ring and prerequisite checks; native equipment and buffs are explicit demo inputs. Imprint uses
 the client's screen-relative position and marker/damage-type sheets. `MU_SKILL_DEMO=FILE` replaces the login

@@ -671,6 +671,37 @@ The other routines:
 - **Movie callbacks.** OnChangeTab `0x00c25b6c`, prev/next (current page ∓ 1), RequestSlotUIInfo(index, x, y, w,
   h) `0x00c2b3ec` (each group's node keeps the truncated rectangle).
 
+**Window texts, tooltip, icons and side options (`tree4_ui.c`, `tree4_side.c`, verified):**
+
+- **Texts.**
+  - SetText `0x00c23175`: one object of GlobalText strings. PointResult is sprintf(GT 0x19f0, 0) and
+    ExplainSelectDebuff goes through the HTML line `0x00ab4dc0`.
+  - SetLevel `0x00c239c2`: GT 0x144c with level + master level.
+- **Tooltip `0x00c29007`.** It fills the classic text list like the Master tooltip:
+  - The lines are: name; GT 0x1428 level/maximum; the 4ThTreeSkillTooltip text with the level-0 FormulaData value
+    (f[7], f[18]) or the learned value; the next-level block; requirements (GT 0xd01); cost (red when short);
+    the first parent's opening level (GT 0x142a); the required skill (0x143b/0x1429); and the prerequisites
+    (0x144a/0x1429).
+  - The tooltip record is {skill, text, next text, kind −1/0/1, show next, no value}.
+  - A branch node shows GT 0x1492/0x1493 (`0x00c2986a`), whose count includes one unwritten line.
+- **Icons `0x00c2bb34`.** These are game-drawn 4th_Skill_Icon cells (bitmap 0x7e1c):
+  - for the open nodes of the current group, at the movie's slot rectangles, white when available, else grey;
+  - for the branch popup's choices (+0xc4);
+  - for the side options, whose icon comes from f[19..21] by stage.
+- **Side options** (4thTreeSideOption: per class eight 22-int records; categories of (index, group) slots).
+  - SetSideOptionIndex `0x00c2436e`.
+  - 7E 06 `0x012225fe`: the state `0x00c242b6` (eight 0x18-byte entries) and entries `0x00c2a9cd`. The client
+    accepts index 8, one past the vector, which is not generated.
+  - Per-category points `0x00c2a4bc`.
+  - CreateSideOption `0x00c2aa33`: stage and lock from the category's points and the entry level, tooltipText
+    through `0x00ab4dc0`/`0x0096fe90`, skillPoint, lockState, bgState.
+  - The click `0x00c2a5ad` (messages, the confirm box 0x79, request C1 07 7E 05 <category> <slot> <level+1>) and
+    the 7E 05 answer `0x012226ca`.
+  - The side tooltip `0x00c29a29`.
+  - The stat skills 0x472/0x477/0x4d9/0x4da open a stat panel (`0x00c26ed3`, with ChangeStat/UpgradeSideStat);
+    that panel is not reconstructed.
+- **Branch popup.** SelectBranchSkill `0x00c2b5f4` (the pending pair, confirm 0x73) and its positions.
+
 `reconstructed/skill/tree4.c` restates all of this. Invokes are JSON argument lists (a GFx value invoke is
 `[value]`, a formatted one `[a, b]`).
 
@@ -688,9 +719,15 @@ read back. Results:
 | list | 7E 02 `0x0127f539` with random entries (levels, propagation, links, page, refresh, `0x00c2a1b7`) | 500 | 0 |
 | page | `0x00c25b6c`/`0x00c23dc2` on random states | 500 | 0 |
 | click | `0x00c25bda` and the confirm answer (messages, confirm box, branch popup, request fields) | 500 | 0 |
-| answer | 7E 01 `0x0125051f` (results 1/4/7) and 7E 03 `0x0127f679` | 500 | 0 |
+| answer | 7E 01 `0x0125051f` (results 1/4/7) and 7E 03 `0x0127f679` | N_ANSWER | 0 |
+| tooltip | `0x00c29007`/`0x00c2986a` (text list, colours, bold, headers, anchor) | N_TOOLTIP | 0 |
+| text | SetText `0x00c23175`, SetLevel `0x00c239c2` | N_TEXT | 0 |
+| side | 7E 06/7E 05 with CreateSideOption and the side state | N_SIDE | 0 |
+| sideclick | `0x00c2a5ad` and the confirm answer 0x79 (request fields) | N_SIDECLICK | 0 |
+| sidetip | `0x00c29a29` | N_SIDETIP | 0 |
+| icons | `0x00c2bb34` (RenderBitmap calls) | N_ICONS | 0 |
 
-That is TOTAL_CASES cases and 0 mismatches. Seven planted mistakes (`-DMU_SKILL_MUTATION=21..27`) were all
+That is TOTAL_CASES cases and 0 mismatches. Ten planted mistakes (`-DMU_SKILL_MUTATION=21..30`) were all
 detected. Coverage per family (invokes, boxes, requests) is in the local report
 `scratch/skill3/reports/later-500.json`.
 
@@ -726,11 +763,18 @@ Master requirements, the demo also sends the hero's A0 10 list again with those 
 Renders in `~/Documents/mu-mac-tools/native/renders/skill3/` show the original frame, the slot grid and links of
 the hero's class, the Debuff tab, and a learned point (Skill Point 30 → 29, slot 0 at 1).
 
+The native window also shows the texts, the tooltips (slot and side), the icons, the side panel (a demo 7E 06 at
+login; a side click and a second click spend a demo point) and the branch popup. `live_lang_to_plain.py`
+writes `tree4_tips.tsv` and `tree4_side.tsv` next to `tree4.tsv`.
+
 Not yet done:
 
-- **Static texts.** SetText (`0x00c23175`: tab, side and stat labels), SetLevel/SetClassName/SetExp.
-- **Window pieces.** The game-drawn 4th_Skill_Icon cells (`0x00c2bb34`), the tooltip `0x00c29007` with the
-  4ThTreeSkillTooltip records, and the side options (7E 05/06/07, `0x00c242b6`, `0x00c2aa33`, CreateSideOption,
-  the stat buttons).
-- **Opaque paths.** 7E 07 subs 1/2 jump into the packed region (`0x10b3aa90`/`0x10b3ab50`).
-- **The fifth tree.** Its windows and packet managers.
+- **Small pieces.** SetClassName/SetExp and the side stat panel (`0x00c26ed3`, ChangeStat/UpgradeSideStat).
+- **Opaque paths.** 7E 07 sub 0 (`0x00c2b911`) is not reconstructed. Subs 1 and 2 jump into the packed region
+  (`0x10b3aa90`/`0x10b3ab50`).
+- **The fifth tree** was not started; the owner asked to stop after this milestone. The captures for it are
+  local: `s3_tree5.bin` has the windows' handlers at depth 3, and the manager `0x01d22c04` is a vector of six
+  12-byte entries. Its slots are fed by SetSlot/SetSlotState (`0x00c33d8d`, `0x00c3455d`); the cards are items
+  (SkillTree5thInventory +0x29c, item insert through vtable +0x58); and opcode 0x32 subs 0/5/7/0x21 reach
+  `0x010a42d6`/`0x010a407d`/`0x010a4234`/`0x010a382a`. Sub 5 passes the item through the opaque keyed transform
+  `0x00b1055c`.

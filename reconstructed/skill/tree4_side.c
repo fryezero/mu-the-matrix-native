@@ -7,6 +7,10 @@
 
 #include "../hud/tooltip_html.h"
 
+#ifndef MU_SKILL_MUTATION
+#define MU_SKILL_MUTATION 0
+#endif
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 static void fmt_s(char *b, size_t n, const char *f, const char *s) { snprintf(b, n, f, s); }
@@ -264,7 +268,7 @@ void mu_t4_side_refresh(mu_t4_window *w, const mu_t4_env *env)                  
             lock = 2;
             e->state = 1;
             e->locked = 1;
-        } else if (pts < r->f[7]) {
+        } else if (pts < r->f[7] + (MU_SKILL_MUTATION == 29)) {
             if (e->level >= r->f[6])
                 lock = 2, e->locked = 1;
             else

@@ -125,7 +125,7 @@ int mu_t4_tooltip(const mu_t4_window *w, const mu_skill_tip_env *tenv, const mu_
         if (header && line >= 0 && line < MU_SKILL_TIP_LINES)
             header[line] = 1;
         mu_skill_format(buf, sizeof buf, gt(env, 0x1433), 'i', r->f[MU_T4_COST], 0.0, NULL);
-        line = mu_skill_tip_put(tenv, out, buf, line, w->points < r->f[MU_T4_COST] ? 2 : 0);
+        line = mu_skill_tip_put(tenv, out, buf, line, w->points < r->f[MU_T4_COST] + (MU_SKILL_MUTATION == 28) ? 2 : 0);
         /* the first parent only: a branch asks level 10, another parent its opening level */
         for (int i = 0; i < n->nparents; ++i) {
             const mu_t4_node *p = &g->nodes[n->parents[i]];
@@ -197,7 +197,7 @@ void mu_t4_icons(const mu_t4_window *w, const mu_skill_env *skills, float x0, fl
         float x = (x0 + (float)n->rect[0] * scale) * ratio_x, y = (y0 + (float)n->rect[1] * scale) * ratio_y;
         float wd = (float)(n->rect[2] - n->rect[0]) * scale * ratio_x;
         float ht = (float)(n->rect[3] - n->rect[1]) * scale * ratio_y;
-        uint32_t color = n->avail ? 0xffffffffu : 0xff3c3c3cu;     /* 0x00b4c6aa(r, g, b, a) */
+        uint32_t color = n->avail ? 0xffffffffu : MU_SKILL_MUTATION == 30 ? 0xff787878u : 0xff3c3c3cu; /* 0x00b4c6aa */
         draw(user, 0x7e1c, x, y, wd, ht, (float)(icon % 25) * cw, (float)(icon / 25) * ch, cw, ch, color);
     }
     if (!w->side_ready || !w->side)
