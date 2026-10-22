@@ -322,7 +322,7 @@ no game files. The [Mac app](https://github.com/fryezero/mu-the-matrix-mac) inst
 brew install cryptopp sdl2 jpeg-turbo
 git clone https://github.com/fryezero/mu-the-matrix-native.git && cd mu-the-matrix-native
 python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements-portable.txt
-make test PYTHON=tools/.venv/bin/python          # builds everything, runs ~385 tests (private checks skip)
+make test PYTHON=tools/.venv/bin/python          # builds everything, runs ~480 tests (private checks skip)
 make -C native client                            # native/build/mu-client (and mu-world, mu-charsel)
 
 export MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
