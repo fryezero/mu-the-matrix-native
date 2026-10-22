@@ -621,16 +621,24 @@ class Tables:
     def __init__(self, snap):
         self.snap = snap
         self.moves = plain.read_moves(snap)
-        self.recs, self.keep = {}, []
-        for r in self.moves:
+        self.keep = []
+
+        def move_record(r):
             name, server = ctypes.create_string_buffer(r['name']), ctypes.create_string_buffer(r['server_name'])
             self.keep += [name, server]
-            self.recs[r['index']] = MoveRecord(r['index'], r['id'], ctypes.addressof(name), ctypes.addressof(server),
-                                               r['zen'], r['min_level'], r['max_level'], r['gate'], r['x44'], r['x48'],
-                                               r['x4c'])
+            return MoveRecord(r['index'], r['id'], ctypes.addressof(name), ctypes.addressof(server),
+                              r['zen'], r['min_level'], r['max_level'], r['gate'], r['x44'], r['x48'], r['x4c'])
+
+        self.recs = {r['index']: move_record(r) for r in self.moves}
+        # 0x0113c431 returns this + 0x4c on a miss. Its fields are runtime inputs,
+        # not necessarily zero: the lang5 skill2 capture has nonzero +0x44/+0x48.
+        default = MOVEREQ + 0x4c
+        self.default = move_record({'index': 0, 'name': snap.string(default + 4),
+                                    'server_name': snap.string(default + 0x1c),
+                                    **{name: snap.i32(default + off) for name, off in plain.MOVE_COLUMNS}})
         self.keys = sorted(self.recs)
         self.by_id = sorted(self.keys, key=lambda k: self.recs[k].id)
-        self.lookup = LOOKUP_FN(lambda user, key: ctypes.addressof(self.recs[key]) if key in self.recs else None)
+        self.lookup = LOOKUP_FN(lambda user, key: ctypes.addressof(self.recs.get(key, self.default)))
         self.texts = {}
 
         def text(user, index):
@@ -1073,7 +1081,8 @@ def main():
     m = vl.LangMachine(text, data, snap)
     install_common(m)
     nat = Native()
-    report = {'text_sha256': vl.TEXT_SHA256, 'data_sha256': vl.DATA_SHA256, 'seed': args.seed, 'families': {}}
+    report = {'text_sha256': vl.TEXT_SHA256, 'data_sha256': vl.DATA_SHA256,
+              'snapshot_sha256': vl.sha256_file(args.snapshot), 'seed': args.seed, 'families': {}}
     for name in args.families.split(','):
         fam = vl.Family(name)
         FAMILIES[name](m, nat, rng, fam, args.cases, snap)

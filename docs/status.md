@@ -23,6 +23,11 @@ not exist yet.
 
 ## Working components
 
+- Move snapshot compatibility, NATIVE-MAP-002. The validator now supplies the captured absent-key default
+  instead of assuming zero sort fields. The 69 real move records agree across lang4 and both lang5 copies;
+  each passes 5,001 instruction cases with zero mismatches and all 10 mutants detected. The 621 native rows
+  agree across their three sort orders. [Evidence](research/client-maps.md#move-default-records-native-map-002).
+
 - Quest follow-ups, NATIVE-POLISH-001. F6 56/7B resume armed paths across world reload; NPC 257 has its orbit,
   glints and terrain light. Unicorn: 2,000 answer cases + one tab constructor, 5,400 joint cases, zero differences;
   planted mistakes caught. The constructor registers tabs 0–4, with no event-map tab. Later skill input probes

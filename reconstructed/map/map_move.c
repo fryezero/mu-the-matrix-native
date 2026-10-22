@@ -12,7 +12,7 @@
 
 static const mu_move_record *rec_of(mu_move_lookup_fn lookup, void *user, int32_t key)
 {
-    static const mu_move_record none = {0, 0, "", "", 0, 0, 0, 0, 0, 0, 0};   /* the table's default (+0x4c) */
+    static const mu_move_record none = {0, 0, "", "", 0, 0, 0, 0, 0, 0, 0};   /* fallback when no runtime default is supplied */
     const mu_move_record *r = lookup ? lookup(user, key) : NULL;
     return r ? r : &none;
 }
