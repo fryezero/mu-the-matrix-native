@@ -57,8 +57,9 @@ class SyntheticProgress(unittest.TestCase):
         self.assertEqual(s['damage'], [18 // 8, 18 // 4])
         self.assertEqual(s['attack_rate'], 5 + 18 * 3 // 2 + 18 // 4)
         self.assertEqual(s['exp_bar'], {'ClassLevel': 1, 'curExp': '0', 'maxExp': '100', 'page': 0, 'rate': 0})
-        # the speed row (0x00b40380): the magic speed for class 0 (DEMO: agility / 10), the class maximum 0x11c
-        self.assertEqual(s['speed'], '%d / %d' % (18 // 10, 0x11c))
+        # the speed row (0x00b40380): the magic speed for class 0 (DEMO: 20 + agility / 10) and the server's
+        # maximum 400 (live)
+        self.assertEqual(s['speed'], '%d / %d' % (20 + 18 // 10, 400))
 
     def test_kill_experience_and_bar(self):
         s, lines, _ = walk(self.root, '--frames', '12', '--progress', '--progress-class', '1', '--progress-level', '30',

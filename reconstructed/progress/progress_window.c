@@ -38,7 +38,7 @@ int32_t mu_prg_speed_max(int32_t cls)
     return cls >= 0 && cls < 16 ? MAX[cls] : 0xc8;
 }
 
-int mu_prg_speed_row(const mu_prg_env *e, int32_t cls, uint16_t cache[2], int visible)
+int mu_prg_speed_row(const mu_prg_env *e, int32_t cls, int32_t max, uint16_t cache[2], int visible)
 {
     const uint8_t *a = e->attr;
     if (!visible)
@@ -58,7 +58,6 @@ int mu_prg_speed_row(const mu_prg_env *e, int32_t cls, uint16_t cache[2], int vi
         speed = (uint16_t)(speed + 0x14);
     if (e->has_effect && e->has_effect(e->user, 0xb0))
         speed = (uint16_t)(int32_t)((float)speed * (MU_PROGRESS_MUTATION == 8 ? 0.25f : 0.5f));
-    int32_t max = mu_prg_speed_max(cls);
     if ((int32_t)speed > max)
         speed = (uint16_t)max;
     if (cache[0] == speed && (int32_t)cache[1] == max)

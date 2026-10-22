@@ -84,6 +84,7 @@ typedef struct mu_gfx_hero {
     int32_t dmg_min, dmg_max, atk_rate, pvp_rate, defense, def_rate, pvp_defrate;
     int32_t magic_min, magic_max, curse_min, curse_max;
     char speed_text[32];        /* the speed row's text (0x00b40380) */
+    int32_t added[5];           /* the stats' added values (the rows' third column) */
 } mu_gfx_hero;
 
 /* The InfoPopup HTML for an item (the client's tooltip pipeline, see

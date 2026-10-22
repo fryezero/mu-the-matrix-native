@@ -30,6 +30,12 @@ not exist yet.
   (Dungeon torches, Kanturu/Karutan braziers, Atlans crystals, Noria/Devias blend meshes, hook worlds): 3,000 + 3,000
   Unicorn cases equal, 9 more planted mistakes caught; Dungeon 6.9 → 2.0, Kanturu 9.9 → 3.7 mean |Δ|.
   [Evidence](research/client-world-fidelity.md).
+- Experience, levels and stat points, NATIVE-PROGRESS-001. The class formulas of all 16 stat machine classes, the
+  experience table, the HUD's experience bar, the level-up, kill-experience, master and stat-point answers, the
+  character window's "+" buttons with their request, the stat values and the speed row run in C
+  (`reconstructed/progress`). Unicorn: 11 families, 8,003 cases, zero mismatches, 12/12 planted mistakes caught.
+  mu-world/mu-client `--progress` plays them over a labelled demo server, with the level-up flares, ground effect
+  and sound. [Evidence](research/client-progression.md).
 
 - Move snapshot compatibility, NATIVE-MAP-002. The validator now supplies the captured absent-key default
   instead of assuming zero sort fields. The 69 real move records agree across lang4 and both lang5 copies;

@@ -74,7 +74,7 @@ static void env_emit(void *user, const char *line)
         mu_prg_exp_bar(&e, &p->bar, 0x546);   /* 0x016963bf: 1350 on a normal server */
     } else if (!strcmp(line, "call 00b40380")) {
         mu_prg_env e = make_env(p);   /* the character window's speed row (the window is always open here) */
-        mu_prg_speed_row(&e, p->attr[MU_PRG_A_CLASS] & 15, p->speed_row, 1);
+        mu_prg_speed_row(&e, p->attr[MU_PRG_A_CLASS] & 15, 400, p->speed_row, 1);   /* the server's maximum (live) */
     } else if (!strncmp(line, "call 00b3e33f 15 \"", 18)) {
         size_t n = 0;
         for (const char *s = line + 18; *s && *s != '"' && n + 1 < sizeof p->speed_text; s++)
@@ -95,12 +95,13 @@ static const int16_t START[16][5] = {
     {13, 18, 14, 40, 0}, {28, 30, 15, 10, 0}, {20, 18, 20, 30, 0}, {15, 20, 15, 40, 0},
     {15, 20, 15, 40, 0}, {25, 28, 15, 10, 0}, {15, 25, 15, 30, 0}, {28, 22, 20, 12, 0}};
 
-/* base HP, HP per level x10, HP per vitality x10, base MP, MP per level x10, MP per energy x10 (DEMO) */
+/* base HP, HP per level x10, HP per vitality x10, base MP, MP per level x10, MP per energy x10 (DEMO: the
+ * classic tables with the bases times 10, as this server gives a level-1 Dark Knight 1100 HP and 200 MP, live) */
 static const int16_t MAXIMA[16][6] = {
-    {60, 10, 20, 60, 20, 20}, {110, 20, 30, 20, 5, 10}, {80, 10, 20, 30, 15, 15}, {110, 10, 20, 60, 10, 20},
-    {90, 15, 20, 40, 10, 15}, {70, 10, 20, 40, 15, 15}, {100, 13, 20, 40, 10, 15}, {110, 20, 30, 20, 5, 10},
-    {60, 10, 20, 60, 20, 20}, {110, 20, 30, 20, 5, 10}, {80, 10, 20, 40, 15, 15}, {60, 10, 20, 60, 20, 20},
-    {60, 10, 20, 60, 20, 20}, {110, 20, 30, 20, 5, 10}, {70, 10, 20, 50, 15, 20}, {110, 20, 30, 20, 5, 10}};
+    {600, 10, 20, 600, 20, 20}, {1100, 20, 30, 200, 5, 10}, {800, 10, 20, 300, 15, 15}, {1100, 10, 20, 600, 10, 20},
+    {900, 15, 20, 400, 10, 15}, {700, 10, 20, 400, 15, 15}, {1000, 13, 20, 400, 10, 15}, {1100, 20, 30, 200, 5, 10},
+    {600, 10, 20, 600, 20, 20}, {1100, 20, 30, 200, 5, 10}, {800, 10, 20, 400, 15, 15}, {600, 10, 20, 600, 20, 20},
+    {600, 10, 20, 600, 20, 20}, {1100, 20, 30, 200, 5, 10}, {700, 10, 20, 500, 15, 20}, {1100, 20, 30, 200, 5, 10}};
 
 void mu_progress_demo_maxima(int32_t cls, int32_t level, const int32_t s[5], int32_t out[4])
 {
@@ -109,7 +110,7 @@ void mu_progress_demo_maxima(int32_t cls, int32_t level, const int32_t s[5], int
     int32_t lv = level > 1 ? level - 1 : 0;
     out[0] = m[0] + lv * m[1] / 10 + (s[2] - st[2]) * m[2] / 10;
     out[1] = m[3] + lv * m[4] / 10 + (s[3] - st[3]) * m[5] / 10;
-    out[2] = (s[0] + s[1] + s[2] + s[3] + s[4]) * 12 / 10 + level * 10;
+    out[2] = (s[0] + s[1] + s[2] + s[3] + s[4]) * 6 / 10 + level * 3;   /* 52 for the level-1 Dark Knight (live) */
     out[3] = s[0] * 15 / 100 + s[1] * 2 / 10 + s[2] * 3 / 10 + s[3];
     for (int i = 0; i < 4; i++)
         if (out[i] < 1)
@@ -148,6 +149,7 @@ static void put16(uint8_t *b, int off, int32_t v)
 }
 
 /* DEMO: attack and magic speed divisors of agility per class index */
+/* (live: a level-1 Dark Knight with agility 20 has attack and magic speed 21: 20 + agility / 15) */
 static const uint8_t SPEED_DIV[16][2] = {{20, 10}, {15, 20}, {50, 50}, {15, 20}, {10, 10}, {20, 20}, {9, 9}, {15, 15},
                                          {20, 10}, {15, 20}, {15, 15}, {20, 10}, {20, 10}, {15, 20}, {20, 10}, {15, 20}};
 
@@ -156,7 +158,7 @@ static void server_speed_packet(mu_progress *p)
     int32_t cls = p->attr[MU_PRG_A_CLASS] & 15;
     int32_t agi = p->server_stats[1] + mu_prg_u16(p->attr, MU_PRG_A_ADD_DEX);
     uint8_t b[0x0c] = {0xc1, 0x0c, 0x55, 0x94};
-    int32_t atk = agi / SPEED_DIV[cls][0], mag = agi / SPEED_DIV[cls][1];
+    int32_t atk = 20 + agi / SPEED_DIV[cls][0], mag = 20 + agi / SPEED_DIV[cls][1];
     b[4] = (uint8_t)atk;
     b[5] = (uint8_t)(atk >> 8);
     b[8] = (uint8_t)mag;
@@ -229,12 +231,13 @@ void mu_progress_init(mu_progress *p, const mu_progress_config *config)
     mu_prg_set16(a, MU_PRG_A_POINTS, (uint32_t)p->config.points);
     int32_t mx[4];
     mu_progress_demo_maxima(cls, mu_prg_i32(a, MU_PRG_A_LEVEL), p->server_stats, mx);
-    mu_prg_set32(a, MU_PRG_A_LIFE_MAX, (uint32_t)mx[0]);
-    mu_prg_set32(a, MU_PRG_A_LIFE, (uint32_t)mx[0]);
-    mu_prg_set32(a, MU_PRG_A_MANA_MAX, (uint32_t)mx[1]);
-    mu_prg_set32(a, MU_PRG_A_MANA, (uint32_t)mx[1]);
-    mu_prg_set32(a, MU_PRG_A_SHIELD_MAX, (uint32_t)mx[2]);
-    mu_prg_set32(a, MU_PRG_A_AG_MAX, (uint32_t)mx[3]);
+    static const size_t MAXF[4] = {MU_PRG_A_LIFE_MAX, MU_PRG_A_MANA_MAX, MU_PRG_A_SHIELD_MAX, MU_PRG_A_AG_MAX};
+    static const size_t CURF[4] = {MU_PRG_A_LIFE, MU_PRG_A_MANA, MU_PRG_A_SHIELD, MU_PRG_A_AG};
+    for (int i = 0; i < 4; i++) {
+        mu_prg_set32(a, MAXF[i], (uint32_t)mx[i]);
+        mu_prg_set32(a, CURF[i], (uint32_t)mx[i]);
+        mu_prg_set32(a, MU_PRG_A_MLIFE_MAX + 4 * (size_t)i, (uint32_t)mx[i]);   /* third class: the HUD reads these */
+    }
     mu_prg_level_exp(a);
     mu_prg_set64(a, MU_PRG_A_EXP, (uint64_t)(p->config.exp > 0 ? p->config.exp : 0));
     int64_t ml = p->config.master_level, base = mu_prg_i32(a, MU_PRG_A_LEVEL);
@@ -430,12 +433,14 @@ void mu_progress_get_view(const mu_progress *p, mu_progress_view *v)
         v->stats[i] = mu_prg_u16(a, BASE[i]);
         v->added[i] = mu_prg_u16(a, ADD[i]);
     }
+    /* setHPMP 0x00c71772 (static): a third-class hero's maxima are +0x40..+0x4c */
+    int third = (p->hero[0x12] >> 5 & 1) == 1;
     v->life = mu_prg_i32(a, MU_PRG_A_LIFE);
-    v->life_max = mu_prg_i32(a, MU_PRG_A_LIFE_MAX);
     v->mana = mu_prg_i32(a, MU_PRG_A_MANA);
-    v->mana_max = mu_prg_i32(a, MU_PRG_A_MANA_MAX);
-    v->shield_max = mu_prg_i32(a, MU_PRG_A_SHIELD_MAX);
-    v->ag_max = mu_prg_i32(a, MU_PRG_A_AG_MAX);
+    v->life_max = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX : MU_PRG_A_LIFE_MAX);
+    v->mana_max = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX + 4 : MU_PRG_A_MANA_MAX);
+    v->shield_max = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX + 8 : MU_PRG_A_SHIELD_MAX);
+    v->ag_max = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX + 12 : MU_PRG_A_AG_MAX);
     v->dmg_min = mu_prg_u16(a, MU_PRG_A_DMG_MIN_R);
     v->dmg_max = mu_prg_u16(a, MU_PRG_A_DMG_MAX_R);
     v->dmg_min_left = mu_prg_u16(a, MU_PRG_A_DMG_MIN_L);

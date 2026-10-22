@@ -1134,6 +1134,8 @@ static void progress_sync(world_gfx *g)
     h.curse_min = v.curse_min;
     h.curse_max = v.curse_max;
     snprintf(h.speed_text, sizeof h.speed_text, "%s", v.speed_text);
+    for (int i = 0; i < 5; i++)
+        h.added[i] = v.added[i];
     mu_gfx_layer_set_hero(g->layer, &h);
 }
 

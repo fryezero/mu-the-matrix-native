@@ -1136,7 +1136,7 @@ def family_speed(client, native, rng, n, report):
         return 0
     m.stub(0x00aae7e0, invoke, 0)
     m.stub(0x00b40380, lambda mm: client.lines.append('call 00b40380') or 0, 0) if False else None
-    native.L.mu_prg_speed_row.argtypes = [POINTER(Env), c_int32, POINTER(ctypes.c_uint16 * 2), c_int]
+    native.L.mu_prg_speed_row.argtypes = [POINTER(Env), c_int32, c_int32, POINTER(ctypes.c_uint16 * 2), c_int]
     native.L.mu_prg_recv_speed.argtypes = [POINTER(Env), POINTER(c_uint8 * 0x100)]
     fails = count = 0
     for k in range(n):
@@ -1164,6 +1164,12 @@ def family_speed(client, native, rng, n, report):
         install_recv_state(client)
         m.put32(GFXMGR + 0x1f8, TREE if case['tree'] else 0)
         m.call(0x00a0088d, [cls], ecx=HERO)
+        machine = m.u32(HERO + 0x2d98)
+        if struct.unpack('<i', m.read(machine + 0x1d8, 4))[0] != native.L.mu_prg_speed_max(cls):
+            fails += 1   # the constructor's maximum (0x009942bf) differs from the C table
+        if rng.random() < 0.3:   # the server replaces the constructor's maximum (400 live)
+            m.write(machine + 0x1d8, struct.pack('<i', rng.choice([400, 0, 150, rng.randint(0, 2000)])))
+        speed_max = struct.unpack('<i', m.read(machine + 0x1d8, 4))[0]
         m.write(SPEED_WINDOW, bytes(0x200))
         m.write(SPEED_WINDOW + 0xbc, struct.pack('<HH', *cache))
         if use_packet:
@@ -1185,13 +1191,13 @@ def family_speed(client, native, rng, n, report):
             for line in native.lines:
                 if line == 'call 00b40380':
                     native.lines = []
-                    native.L.mu_prg_speed_row(ctypes.byref(env), cls, c_cache, int(case['visible']))
+                    native.L.mu_prg_speed_row(ctypes.byref(env), cls, speed_max, c_cache, int(case['visible']))
                     lines += native.lines
                 else:
                     lines.append(line)
             got_lines = lines
         else:
-            native.L.mu_prg_speed_row(ctypes.byref(env), cls, c_cache, int(case['visible']))
+            native.L.mu_prg_speed_row(ctypes.byref(env), cls, speed_max, c_cache, int(case['visible']))
             got_lines = list(native.lines)
         got = (got_lines, bytes(abuf).hex(), list(c_cache))
         if want != got:

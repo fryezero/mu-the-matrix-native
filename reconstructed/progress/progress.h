@@ -53,11 +53,14 @@ extern "C" {
 #define MU_PRG_A_MPOINTS      0x030   /* int (0xA0 0x22 packet +6) */
 #define MU_PRG_A_M34          0x034   /* int (0xA0 0x22 +8, 0x60 +0x16, 0x14) */
 #define MU_PRG_A_M3C          0x03c   /* int (0xA0 0x22 +0xa) */
-#define MU_PRG_A_LIFE         0x068   /* int */
+#define MU_PRG_A_MLIFE_MAX    0x040   /* int x 4: HP, MP, SD, AG maxima of a third-class hero (setHPMP 0x00c71772) */
+#define MU_PRG_A_LIFE         0x068   /* int (setHPMP "hp", live: the orb's current value) */
 #define MU_PRG_A_MANA         0x06c   /* int */
-#define MU_PRG_A_LIFE_MAX     0x070   /* int */
+#define MU_PRG_A_LIFE_MAX     0x070   /* int ("maxHp" unless the hero is third class) */
 #define MU_PRG_A_MANA_MAX     0x074   /* int */
+#define MU_PRG_A_SHIELD       0x078   /* int */
 #define MU_PRG_A_SHIELD_MAX   0x07c   /* int */
+#define MU_PRG_A_AG           0x080   /* int (SkillMana) */
 #define MU_PRG_A_AG_MAX       0x084   /* int (SkillManaMax) */
 #define MU_PRG_A_CLASS        0x187   /* u8, class byte (low nibble class index, bit 5 third class) */
 #define MU_PRG_A_STRENGTH     0x18a   /* u16 */
@@ -239,11 +242,12 @@ void mu_prg_recv_speed(const mu_prg_env *env, const uint8_t *packet);
 /* The character window's speed row ("* ATK Speed", row 0x15), 0x00b40380 (window visible): the magic
  * speed for the class indices 0, 5 and 8, else the attack speed; the master-tree bonus; +20 when the
  * attribute byte +0x1a6 has bit 0 or bit 3; halved under effect 0xb0; at most the class's maximum
- * (0x009942bf); unchanged (window +0xbc/+0xbe) does nothing, else GlobalText 0x10be ("%d / %d") with
+ * (machine +0x1d8, the max argument); unchanged (window +0xbc/+0xbe) does nothing, else GlobalText 0x10be ("%d / %d") with
  * the speed and the maximum (call 00b3e33f 15 "TEXT", call 00b3e2a4 15) and
  * UpdateScorllList(2).  cls = the stat machine's class (machine +0x1d4).  Returns 1 when it updated. */
-int mu_prg_speed_row(const mu_prg_env *env, int32_t cls, uint16_t cache[2], int visible);
-/* 0x009942bf: the class's maximum speed */
+int mu_prg_speed_row(const mu_prg_env *env, int32_t cls, int32_t max, uint16_t cache[2], int visible);
+/* 0x009942bf: the class's maximum speed, stored by the class constructor at machine +0x1d8 (the server replaces
+ * it: 400 live) */
 int32_t mu_prg_speed_max(int32_t cls);
 
 /* ---- the experience bar (verified) ------------------------------------------------------------------- */

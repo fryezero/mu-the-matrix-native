@@ -865,15 +865,21 @@ static void feed_character(mu_gfx_layer *L)
     const mu_gfx_hero *h = &L->hero;
     if (!mv->path[0])
         return;
-    char lv[32], exp[32], expmax[48], v[5][32], pts[32];
-    snprintf(lv, sizeof lv, "%d", h->level);
+    char lv[32], exp[32], expmax[48], v[5][32], pts[32], add[5][32];
+    /* NATIVE-PROGRESS-001: the window's level row shows level + master level (live: Nighty 400 + 1200 = 1600) */
+    snprintf(lv, sizeof lv, "%d", h->has_derived ? h->level + h->master_level : h->level);
     commas(exp, sizeof exp, h->exp);
     char tmp[32];
     commas(tmp, sizeof tmp, h->exp_max);
     snprintf(expmax, sizeof expmax, "/ %s", tmp);
     const int32_t stats[5] = {h->strength, h->agility, h->vitality, h->energy, h->command};
-    for (int i = 0; i < 5; i++)
-        commas(v[i], sizeof v[i], stats[i]);
+    for (int i = 0; i < 5; i++) {
+        commas(v[i], sizeof v[i], h->has_derived ? stats[i] - h->added[i] : stats[i]);
+        if (h->added[i] > 0)
+            snprintf(add[i], sizeof add[i], "(+%d)", h->added[i]);
+        else
+            snprintf(add[i], sizeof add[i], "-");
+    }
     snprintf(pts, sizeof pts, "%d", h->points);
     char name[64], cls[64];
     json_quote(name, sizeof name, h->name);
@@ -905,15 +911,19 @@ static void feed_character(mu_gfx_layer *L)
             case MU_GFX_ROW_DAMAGE: value = dmg; break;
             default: value = derived_row(h, row->value_key, extra, sizeof extra); break;
             }
-            char lhtml[512], vhtml[256], lraw[512], vraw[256], lq[1100], vq[600];
+            const char *third = "";   /* NATIVE-PROGRESS-001: the stat rows' added value ("(+N)", "-" for none, live) */
+            if (h->has_derived && row->value_key >= MU_GFX_ROW_STRENGTH && row->value_key <= MU_GFX_ROW_COMMAND)
+                third = add[row->value_key - MU_GFX_ROW_STRENGTH];
+            char lhtml[512], vhtml[256], lraw[512], vraw[256], lq[1100], vq[600], tq[96];
             mu_tooltip_html_line(lraw, sizeof lraw, row->label, row->color, 0);
             mu_tooltip_html_line(vraw, sizeof vraw, value, row->value_color, 0);
             mu_latin1_to_utf8(lhtml, sizeof lhtml, lraw);
             mu_latin1_to_utf8(vhtml, sizeof vhtml, vraw);
             json_quote(lq, sizeof lq, lhtml);
             json_quote(vq, sizeof vq, vhtml);
-            invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[%d,%d,%d,%s,%s,\"\",%d]", row->type, row->id,
-                    row->sort, lq, vq, row->button);
+            json_quote(tq, sizeof tq, third);
+            invokef(L, MU_GFX_CHARACTER, mv->path, "SetName", "[%d,%d,%d,%s,%s,%s,%d]", row->type, row->id,
+                    row->sort, lq, vq, tq, row->button);
         }
     } else {
     /* Base info (TEXT_TYPE_CHARACTER_BASE_INFO = 1, sort orders 0..6) and stat
