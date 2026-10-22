@@ -36,6 +36,19 @@ world changes on the next frame (`mu_map_take_teleport` in `advance()`). mu-worl
 **Next.** NPC markers from the placement (the server's 0xE7 records), party icons, the Move window's client position,
 the event world map (0x73), mu-client's scene world after a travel, a live 0xE7 capture to compare marker names.
 
+## Skill state, usability and Master tree (NATIVE-SKILL-002)
+
+Read sections 8..10 of [`research/client-skills.md`](research/client-skills.md). `skill_list.c`, `skill_canuse.c`
+and `master_tree.c` run under `validate_skill_server.py` / `validate_skill_tree.py --snapshot "$SNAP" --cases 500
+--mutations`: 4,508 + 7,876 cases, 0 mismatches, 9/9 mutants caught. Use the main checkout's `tools/python/bin/python`
+for Unicorn; the portable venv lacks it. Pinned captures are in that checkout's ignored evidence directory;
+`SNAP=~/Documents/mu-mac-tools/native/scratch/skill2/live/lang5.bin`. Scalar CRT `strstr` is selected, and families
+clear their client stubs. Native `core/mu_skill` owns tree state; `world_gfx_tree.c` plays A / character buttons,
+icons, tooltips and click-twice demo confirmation. `skills_class.tsv` supplies class maps; Imprint boots on the
+authored 1024x768 stage then receives SetWindowSize. Reports/renders: local `scratch/skill2/`, `renders/skill2/`.
+Next: nested live reads and validated parsers/managers for the 4th/5th Lang tables; FormulaData and authoritative
+equipment/buff/event/pentagram feeds. The optional 4th/5th movies stay empty and explain the missing data.
+
 ## Skills: bar, tooltip, Skill Imprint window (NATIVE-SKILL-001)
 
 Read [`research/client-skills.md`](research/client-skills.md). `reconstructed/skill` holds the Skill(Kor) row parser,

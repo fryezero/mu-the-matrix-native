@@ -1,4 +1,4 @@
-# Skills in the interface (NATIVE-SKILL-001)
+# Skills in the interface (NATIVE-SKILL-001/002)
 
 This note covers how the client loads its skill table, how the bottom bar shows and selects skills, how a skill
 tooltip is built, and how the Skill Imprint window (`SkillStampFrame`) puts skills on the bar. It also covers the
@@ -113,11 +113,8 @@ slot). The game side is the main frame's handler.
   0x80c need buff 0x12d. For class index 1, base skill 0x5df needs 0x145.
 - **Stat check `0x0109228f`** (verified). Every requirement must be met. For class index 1, when a skill asks for
   both strength and energy, either one is enough. The stats are u16 values at attributes +0x18a..+0x192.
-- **Usability `0x010918c7`** (static). It runs the stat check and then the use-type 2 buff rule (`0x016a500c`). It
-  then checks the transformation rule (+0xb0 against `0x01092571`). Next comes the required weapon kind (+0xb4 1..0x12,
-  equipped items' kind byte +0x251 through `0x00987982`), with skill-specific buff, world and item cases after that.
-  Only the stat check and the class cases are reconstructed and verified. The weapon, buff, world and item branches
-  are not, and the native bar counts them as met.
+- **Usability `0x010918c7`** is now reconstructed and verified, including its weapon, buff, world and item
+  branches. Section 9 records the checks and the native host's input boundaries.
 
 The cast path is the use controller `0x0107e99a` (static). It runs `0x0109274a`, `0x01091022`, `0x010918c7`,
 target selection, the mana check below, IsSkillReady (`0x0107ef3a`) and then the attack request.
@@ -294,18 +291,18 @@ Renders and live captures stay local in `~/Documents/mu-mac-tools/native/renders
 
 The structure matches the native window and tooltip. The tooltip confirms the wrap's screen rate and the imprinted
 forms "(+224Imprint)" and "Imprint All Elements". The real window opens further from the corner than the movie's
-authored position (8, 0); the client's window placement on open is not reconstructed.
+authored position (8, 0). Section 9 explains and reproduces that placement.
 
-## 7. Gaps
+## 7. Remaining gaps after NATIVE-SKILL-002
 
-- The generic Lang table loader, its tokeniser and the package password stay out of scope. The inner maps (+0x64
-  ranks, +0x6c class requirements) and the pair vector are not in the snapshot, so class learnability is demo data.
-- The usability check's weapon, buff, world and item branches; the use controller's other checks; the server's
-  skill list, cast answers, mana/AG and the imprint (stamp) system: the stamp manager's entries, elemental imprints
-  and the special-skill tab. The demo hero has no stamps.
-- The character machine's skill damage (`0x00a01692`) is not reconstructed (the demo shows the record's damage),
-  and neither are the master-skill tree and the 4th/5th trees (MasterSkillTree, SkillTree4th/5th windows).
-- The window's open position; the stamp marker icon (`0x0109750c`, bitmap `0x7e26`); the opaque builder header.
+- The generic Lang loader and tokeniser remain opaque. The new `lang5.bin` read includes the skills' inner maps
+  at +0x64/+0x6c; the pair vector is still absent.
+- FormulaData execution is a modelled boundary. Native callers can provide `mu_skill_book_set_formula`; without
+  one, level-zero formula values are 0. Demo learned values and next values are explicit server stand-ins.
+- The 4th/5th tables and their dependent managers are not decoded or reconstructed. Their original windows are
+  registered but have no invented nodes or item cards. Section 10 records the missing inputs.
+- The full cast controller, authoritative equipment/buff/event/party feeds, cast answers, damage option bonuses,
+  pentagram damage packets and the opaque tooltip header remain open. The preview uses labelled demo state.
 - The client's measuring font (GlobalText[0], at the 640-unit height) is CoreText's version of that face.
 
 ## 8. The server's skill packets and the managers they feed (NATIVE-SKILL-002)
@@ -398,3 +395,123 @@ login it sends the class's skill list and saved bar; a script can send `learn:SK
 need the records' class maps. `live-readers/langread ... nested:0x6d8` copies them, and
 `scripts/live_lang_to_plain.py` writes `skills_class.tsv`. Without that file, the demo's list stands in as the
 class map. The window shows the tabs, edits the window slots and saves them to the bar.
+
+## 9. Usability, damage, Imprint markers and window position
+
+`skill_canuse.c` restates `0x010918c7`, its world predicate `0x00a9b235` and SkillRequire `0x01092213`.
+The checks run in instruction order: use-type 2/siege, stats, transformation, weapon kind, rings, world,
+skill-specific buffs/items, prerequisites, party, class-tree learning and the map-window rule. The 18 weapon
+cases read the equipped item's kind byte through `0x00987982`; kinds 15/16 instead check the rendered weapon
+model. Rings 13/10 at levels other than 2 and 13/68 block use. SkillRequire takes the base skill's record from
+the map at `0x06fbb248+0x54`: +0x10 required skill, +0x14 master skill, +0x18 master level. The required skill
+can appear directly or behind a learned skill's brand chain. These are verified outputs with the outside
+managers answering explicit case values.
+
+One static reading in the R2 scratch notes was wrong. For skill `0x82a`, instruction `0x01092042` jumps onward
+when buff `0x1bb` is absent. A present buff blocks use. The initial broad run found one disagreement among
+2,000 usability cases. Correcting the branch and adding all eight combinations of confusion-world membership,
+the global flag and buff presence removes it. Mutant 20 reverses that branch and is detected.
+
+`mu_skill_book_usable` now calls this routine and `0x01096e55`, so its result reaches the bar's `isUse`, window
+icons and cast gate. The world host supplies the current world and demo buffs. Its equipped right-hand sword
+is an explicit demo input, not a recovered equipment feed. `skillreq.tsv` supplies prerequisites, and the
+Master manager supplies learned levels. Unprovided event/party/special-item/4th-tree answers retain the
+documented defaults in `skill_canuse.h`; passing the native preview is not evidence for those live feeds.
+
+Skill damage `0x00a01692` is in `master_tree.c` and is verified against the actual instructions. It walks the
+brand chain, takes the base record's damage, or its master value/formula for use type 4, and adds each upgrade's
+truncated master value only when its flag is 1. `mu_skill_book_tooltip_lines` now uses it. The same Master
+manager supplies delay and tooltip value lookups. FormulaData remains an explicit modelled boundary.
+
+The window's marker `0x0109750c` draws only learned, imprinted entries, using bitmap `0x7e26`,
+`Interface/SkillStamp.tga`, a 128×32 sheet. UV is `(cw/128*(element-1), 0, cw/128, ch/32)`. The damage-type
+icon `0x01097601` requires positive damage type and a learned skill and uses bitmap `0x8313`,
+`Interface/DamageTypeIcon.tga`, 64×32. Its UV is `(21/64*(type-1), 0, 21/64, 23/32)`. Both routines are
+verified. The native overlay uses the movie's `requestStampRelativePosition`, observed as `(16,-2)`, and draws
+the 17×17 marker at that scaled offset. The damage icon sits at `(-6,5)` from the skill origin. Placement is a
+static reading of `0x00c202d7`; the texture/visibility routines ran in Unicorn. The bar draws its own stamp and
+damage-type clips from `SetSkillSlot`, as before.
+
+The Imprint window is alignment 9, not a fixed corner window. The creator `0x00ac9edc` skips initial alignment,
+but `0x00acb333` → `0x00ac09b2` → `0x00aae4ae` subsequently sends `SetWindowSize` to every window. Its
+MUComponent prototype first captures the movie's authored 1024×768 stage. For an authored origin `(8,0)` and
+size 327×639, the movie preserves its centre's screen fraction:
+
+```
+s = H < 700 ? 0.83 : 1
+x = max(0, (8 + 327*s/2) * W/1024 - 327*s/2)
+y = max(0, (639*s/2) * H/768 - 639*s/2)
+```
+
+These are static game-side and ActionScript readings, checked by running the original converted movie. Native
+startup now advances that movie on its authored stage before setting the native viewport and sending the size.
+At 1280×800 it reports `(50.85,13.30)`, the twip-rounded expected position. Opening preserves it, and dragging
+still updates `requestWindowPos`. The earlier live 1722×1048 capture also agrees within its transparent art
+margins. No new live game session was needed for this continuation.
+
+## 10. MasterSkillTree, server answers and the later trees
+
+The Master manager is the MasterSkillTree handler, constructor `0x00baf1ef`, GfxMgr +0x1f4. Its maps are
++0xb8 learned `{level,value,next,flag}`, +0xc0 movie-slot nodes, +0xc8 tooltips and +0xd0 movie positions.
+The class switch `0x00baf92c` maps stage/base codes `0x20..0x4f` to a class mask and GlobalText IDs. The
+native demo uses class byte `0x81`, whose tree code is `0x41`. The installed MasterSkillTreeData and
+MasterSkillTooltip decode through the existing checked fixed-table codec, key `0x2bc1`, 2,048 records each.
+No decoded records are committed.
+
+The node record is 24 bytes: slot +0, class mask +2, group +4, point cost +5, maximum level +6, arrow +7,
+prerequisites +8/+0xc, skill +0x10 and formula +0x14. The 808-byte tooltip has skill +0, mask +4, rank text
+at +6 of length 64, description +0x46/256, cost +0x146/32, brand +0x166/64 and three requirement texts
++0x1a6/+0x226/+0x2a6 of 128 bytes each. `table_layouts.c` now names these consumer-verified fields and fixes
+the former 256-byte cost-text span.
+
+Build `0x00bb0250`/`0x00bb02fe` filters by mask and stops on zero or the first duplicate key. `0x00bb04ac`
+sends arrows and the slot list. The movie reports `RequestPositionInfo(slot,x,y)` as floating JSON numbers.
+`0x00bb03bc` stores them; `0x00bb0e2d` draws the icon sheets, greying unmet prerequisite/rank/brand/weapon
+conditions. A click `0x00bb22e1` checks points, maximum level, prerequisites of level ≥10, the preceding rank,
+the learned brand and the special-item answer. Confirmation ID `0x47` produces the decoded gameplay request
+`C1 08 01 16 <u32 skill>`. These routines, the icon calls, tooltip `0x00bb1183` and damage routine ran in Unicorn.
+
+The A0 10 handler `0x012863c5` clears learned/rank state and applies 16-byte entries from +0xc, count at +8.
+It adds each entry's level to group spending. A0 14 `0x01285995` replaces the learned entry, updates the hero's
+skill, stamp and hotkey managers, sets points to the server-supplied remainder and adds the node's cost to
+group spending. The native receiver uses those exact handlers. The local demo server sends an A0 10 list at
+login and A0 14 answers to requests. It starts with 100 Master points and synthetic learned values 25,30,…;
+these are labelled demo answers, not recovered server formulas. The native confirmation is a second click on
+the same node; Esc, close or clicking another node cancels the pending choice.
+
+`world_gfx_tree.c` forwards the original movie callbacks, invokes and tooltip text through SkillInfoPopup,
+and draws icons in the per-window GL pass. A toggles MasterSkillTree; CharacterInfoFrame's actual callbacks
+are `onClickbtnMasterSkillTree`, `OnClick4thSkillTree`, `OnClick5thSkillTree`. Alignments are 0,0,3, and the
+Master window uses 90% scale below 700 points. Renders checked at 1280×800 and 1024×640 show the original
+frame, icons, rank text, tooltip and an accepted learn answer. Portable tests use synthetic tables to check
+A0 10/A0 14, point updates, damage in the tooltip, the saved bar, weapon greying and those actual buttons.
+
+The 4th/5th movies are registered and accept close/position callbacks, but gameplay remains unavailable. The
+4th tree reads Lang.mpr's 4ThTreeData at `0x06fbb8ec`, 4ThTreeSkillTooltip at `0x06fbb930` and
+4thTreeSideOption at `0x06fbbaec`. The 5th is an item/card system over ParticleSkill at `0x06fbc8bc`, its
+manager and separate inventory/upgrade windows. They are not the Master BMD tables. The available lang5
+snapshot exposes top-level maps of 16, 221 and 16 entries for the first, second and ParticleSkill respectively,
+but no decoded group/node/card schema or validated nested-table exporter. No supported offline codec exports
+these tables from Lang.mpr. Copying top-level map values into invented nodes would not reconstruct the client.
+Next work needs scoped nested live reads, complete record parsers and Unicorn comparisons of the 7E/32 answers
+and their managers. The empty movies explain the missing data in chat; they do not accept point/card actions.
+
+Validation uses the same pinned inputs as section 1:
+
+- restored text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`;
+- second image SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`;
+- local `scratch/skill2/live/lang5.bin`, including `nested:0x6d8` skill maps.
+
+| Validator, `--cases 500 --mutations` | Family counts | Total | Mismatches | Planted mistakes caught |
+|---|---|---:|---:|---:|
+| `validate_skill_server.py` | list 500, keys 500, stamp 500, usability 2,008, world 500, marker/damage icon 500 | 4,508 | 0 | 6/6, mutants 12..15,19,20 |
+| `validate_skill_tree.py` | class 256, build 120, accessors 4,000, click/answer/text/position/damage/tooltip/icons 500 each | 7,876 | 0 | 3/3, mutants 16..18 |
+
+The tooltip family explicitly writes `__isa_available` at `0x0bdcb280` to 0. Unicorn mis-runs the CRT's
+SSE4.2 `strstr`, so the client's scalar implementation is selected. The validators now clear client stubs
+between families and mutation rounds: the earlier combined server run accidentally retained a packet family's
+usability stub. Heap allocation, formatting, font measurement, FormulaData, GFx calls and outside-manager
+answers remain modelled boundaries. NOP-filled gaps in A0 22/A0 60 and the opaque tooltip header are not claimed.
+
+Reports remain local in `~/Documents/mu-mac-tools/native/scratch/skill2/`, renders in
+`~/Documents/mu-mac-tools/native/renders/skill2/`: `master2-final/`, `master-small/`, `imprint-position/`.
