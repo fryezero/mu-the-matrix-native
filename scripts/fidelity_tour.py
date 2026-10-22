@@ -220,10 +220,16 @@ def compare_objects(live, native, hero=None, radius=2000.0, tolerance=1e-4, exam
         return (x - hero[0]) ** 2 + (y - hero[1]) ** 2 <= radius * radius
 
     fields, fields_near = {}, {}
+    undrawn = 0
     for lo, no in pairs:
         for name, offset, fmt in FIELDS:
             a, b = field_value(lo, offset, fmt), field_value(no, offset, fmt)
             if _close(a, b, fmt, tolerance):
+                continue
+            if name == 'hidden_mesh' and a == -1 and b == -2 and lo[0x0b] == 0:
+                # the client sets -2 on some types when it draws them (emitter markers); an object it has not
+                # drawn yet still holds -1 while the native sidecar already hides the type
+                undrawn += 1
                 continue
             t = struct.unpack_from('<i', lo, 0x5c)[0]
             for table, ok in ((fields, True), (fields_near, near(lo))):
@@ -252,6 +258,7 @@ def compare_objects(live, native, hero=None, radius=2000.0, tolerance=1e-4, exam
         'extra': len(extra), 'extra_types': types(extra),
         'fields': tidy(fields), 'fields_near': tidy(fields_near),
         'near_matched': sum(1 for lo, _ in pairs if near(lo)),
+        'hidden_undrawn': undrawn,
     }
 
 

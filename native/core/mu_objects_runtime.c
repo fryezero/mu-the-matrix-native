@@ -57,6 +57,12 @@ static void load_bitmap(const char *root, const char *name, mu_image *out)
 
 void mu_objects_runtime_free(mu_objects *o) { runtime_free(&o->rt); }
 
+/* Worlds whose HiddenMesh writes are all reconstructed (creation, move and visual cases): no sidecar there. */
+static int runtime_hides_modelled(int32_t world)
+{
+    return world == 0 || world == 0x8d || world == MU_LOGIN_WORLD || world == MU_CSW_WORLD;
+}
+
 int mu_objects_start(mu_objects *o, const char *game_root)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -91,8 +97,8 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         rt->next[i] = -1;
         mu_obj_set_f32(img, MU_OBJF_ALPHA_RATE, 0.1f);   /* constructor 0x0129e792 (live value) */
         int32_t sector = -1;
-        mu_obj_event created[4];
-        mu_obj_log create_log = {0, 4, 0, created};
+        mu_obj_event created[8];
+        mu_obj_log create_log = {0, 8, 0, created};
         const int status = mu_obj_create(&o->records[i], o->world, img, &sector, i, &create_log);
         for (int32_t k = 0; k < create_log.count; ++k)   /* a handler's PlaySpeed write (login world type 5) */
             if (created[k].call == MU_OBJ_CALL_PLAY_SPEED && created[k].args[1] == 0 &&
@@ -104,11 +110,15 @@ int mu_objects_start(mu_objects *o, const char *game_root)
             ++rt->outside;
             continue;
         }
-        if (status == MU_OBJ_UNSUPPORTED) {
+        if (status == MU_OBJ_UNSUPPORTED)
             ++rt->create_unsupported;
+        if (status == MU_OBJ_UNSUPPORTED || !runtime_hides_modelled(o->world)) {
+            /* live sidecar: types the running client marked HiddenMesh -2. Outside Lorencia, Tormenta and the two
+             * scene worlds most of them are set at draw time (emitter markers, NATIVE-FIDELITY-002), which is not
+             * ported; CreateObject's own -2 cases are already applied. */
             const int32_t t = o->records[i].type;
             if (t >= 0 && t < MU_OBJECT_TYPES && o->hidden_type[t])
-                mu_obj_set_i32(img, MU_OBJF_HIDDEN_MESH, -2);   /* live sidecar */
+                mu_obj_set_i32(img, MU_OBJF_HIDDEN_MESH, -2);
         }
         const int32_t t = o->records[i].type;
         if (t >= 0 && t < MU_OBJECT_TYPES && rt->velocity_set[t])

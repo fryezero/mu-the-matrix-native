@@ -26,7 +26,10 @@ not exist yet.
 - World fidelity tour, NATIVE-FIDELITY-002. Fourteen live captures of thirteen maps (shot, objread, lightread)
   against `mu-world` at the same tile and camera (`scripts/fidelity_tour.py`, `mu-world --fidelity-dump`): camera
   equal, primary terrain light equal in every world, differences ranked. Icarus now draws no terrain, as the render
-  scene (500 Unicorn cases, 0 mismatches, 2 planted mistakes caught). [Evidence](research/client-world-fidelity.md).
+  scene (500 Unicorn cases, 0 mismatches, 2 planted mistakes caught). Per-world CreateObject/MoveObject cases
+  (Dungeon torches, Kanturu/Karutan braziers, Atlans crystals, Noria/Devias blend meshes, hook worlds): 3,000 + 3,000
+  Unicorn cases equal, 9 more planted mistakes caught; Dungeon 6.9 → 2.0, Kanturu 9.9 → 3.7 mean |Δ|.
+  [Evidence](research/client-world-fidelity.md).
 
 - Move snapshot compatibility, NATIVE-MAP-002. The validator now supplies the captured absent-key default
   instead of assuming zero sort fields. The 69 real move records agree across lang4 and both lang5 copies;

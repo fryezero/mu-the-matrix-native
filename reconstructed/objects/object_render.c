@@ -192,6 +192,148 @@ static void tormenta_create(uint8_t *o)
     }
 }
 
+/* NATIVE-FIDELITY-002: CreateEffect 0x013c0eaa(type, &position, o + 0x164, o + 0xec, sub, 0, -1, 0, 0, 0, 0.0f, -1, 0, 0)
+ * as CreateObject's world cases call it (sub 1 in Devias, 0 in Noria); logged as type, position, then the object
+ * offsets of the angle and light pointers and the ten constants. */
+static void create_effect(mu_obj_log *log, int32_t index, const uint8_t *o, int32_t type, float dy, float dz,
+                          uint32_t sub)
+{
+    mu_obj_event *e = event(log, MU_OBJ_CALL_CREATE_EFFECT, index);
+    float p[3];
+    get_v(o, MU_OBJF_POSITION, p);
+    arg(e, (uint32_t)type);
+    arg_f(e, p[0]);
+    arg_f(e, p[1] + dy);
+    arg_f(e, p[2] + dz);
+    const uint32_t rest[12] = {MU_OBJF_ANGLE, MU_OBJF_LIGHT, sub, 0, 0xffffffffu, 0, 0, 0, 0, 0xffffffffu, 0, 0};
+    for (int k = 0; k < 12; ++k)
+        arg(e, rest[k]);
+}
+
+/* CreateEffect with the object's position pointer itself (MoveObject's cases): (type, o + 0x158, o + 0x164, o + 0xec,
+ * 0, 0, -1, 0, 0, 0, 0.0f, -1, 0, 0). */
+static void create_effect_here(mu_obj_log *log, int32_t index, const uint8_t *o, int32_t type)
+{
+    mu_obj_event *e = event(log, MU_OBJ_CALL_CREATE_EFFECT, index);
+    float p[3];
+    get_v(o, MU_OBJF_POSITION, p);
+    arg(e, (uint32_t)type);
+    arg_v(e, p);
+    static const uint32_t rest[12] = {MU_OBJF_ANGLE, MU_OBJF_LIGHT, 0, 0, 0xffffffffu, 0, 0, 0, 0, 0xffffffffu, 0, 0};
+    for (int k = 0; k < 12; ++k)
+        arg(e, rest[k]);
+}
+
+static void register_object(mu_obj_log *log, int32_t index) { arg(event(log, MU_OBJ_CALL_REGISTER, index), 1); }
+
+static void hide_box_160(uint8_t *o)
+{
+    set_v(o, MU_OBJF_BOX_MAX, 40.0f, 40.0f, 160.0f);
+    mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+}
+
+/* CreateObject's own cases of worlds 1, 2, 3, 7, 8 and 0x37 (0x016d8e3a..0x016d99bf) and the default chain's hooks
+ * of Kanturu (0x00e74a58, world 0x25) and Elbeland (0x00e30a02, world 0x33). Returns 0 when the world has none of
+ * these. */
+static int world_create(uint8_t *o, int32_t world, int32_t index, mu_obj_log *log)
+{
+    const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
+    switch (world) {
+    case 1:   /* Dungeon */
+        if (t == 0x3b)
+            register_object(log, index);
+        else if (t == 0x3c) {
+            register_object(log, index);
+            hide_box_160(o);
+        }
+        return 1;
+    case 2:   /* Devias */
+        switch (t) {
+        case 0x16: case 0x19: case 0x28: case 0x2d: case 0x37: case 0x49: register_object(log, index); break;
+        case 0x13: case 0x5c: case 0x5d: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 0); break;
+        case 0x36: case 0x38: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 1); break;
+        case 0x4e: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 3); break;
+        case 0x5b: register_object(log, index); hide_box_160(o); break;
+        case 0x64: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
+        case 0x7a: case 0x7b: mu_obj_set_f32(o, MU_OBJF_RANGE, -600.0f); break;
+        case 0x14: case 0x41: case 0x56: case 0x58: {   /* angle z wrapped to (-360, 360), head angle and +0x17c */
+            mu_obj_set_f32(o, MU_OBJF_ANGLE + 8, (float)rem_i32(trunc_i32(mu_obj_f32(o, MU_OBJF_ANGLE + 8)), 360));
+            memcpy(o + MU_OBJF_HEAD_ANGLE, o + MU_OBJF_ANGLE, 12);
+            memcpy(o + 0x17c, o + MU_OBJF_POSITION, 12);
+            break;
+        }
+        case 0x1a8:
+            create_effect(log, index, o, 0x1a8, 0.0f, 360.0f, 1);
+            create_effect(log, index, o, 0x1a9, 4.0f, 360.0f, 1);
+            create_effect(log, index, o, 0x1aa, 20.0f, 360.0f, 1);
+            break;
+        default: break;
+        }
+        return 1;
+    case 3:   /* Noria */
+        switch (t) {
+        case 1: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 1); break;
+        case 8: register_object(log, index); break;
+        case 9: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 3); break;
+        case 0x11: case 0x13: case 0x25: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 0); break;
+        case 0x12: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 2); break;
+        case 0x26: register_object(log, index); mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
+        case 0x1a8:
+            create_effect(log, index, o, 0x1a8, 0.0f, 350.0f, 0);
+            create_effect(log, index, o, 0x1a9, 4.0f, 350.0f, 0);
+            create_effect(log, index, o, 0x1a8, 8.0f, 350.0f, 0);
+            create_effect(log, index, o, 0x1a9, 12.0f, 350.0f, 0);
+            create_effect(log, index, o, 0x1aa, 20.0f, 350.0f, 0);
+            break;
+        default: break;
+        }
+        return 1;
+    case 7:   /* Atlans */
+        if (t == 0x27) {
+            register_object(log, index);
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+        }
+        return 1;
+    case 8:   /* Tarkan */
+        switch (t) {
+        case 0x4e: register_object(log, index); break;
+        case 0x59: o[MU_OBJF_AFTER_CHARACTER] = 1; mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.05f); break;
+        case 0x5d: o[MU_OBJF_AFTER_CHARACTER] = 1; break;
+        case 0x61: case 0x68: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
+        default: break;
+        }
+        return 1;
+    case 0x37:
+        if (t == 0x56 || t == 0x5a) {
+            set_v(o, MU_OBJF_POSITION, 8600.0f, 25000.0f, 5000.0f);
+            mu_obj_set_f32(o, MU_OBJF_SCALE, t == 0x5a ? 110.0f : 60.0f);
+            set_v(o, MU_OBJF_ANGLE, 0.0f, 0.0f, 0.0f);
+        }
+        return 1;
+    case 0x25:   /* Kanturu: 0x00e74a58 */
+        if (t == 0x55 || t == 0x38)
+            mu_obj_set_f32(o, MU_OBJF_RANGE, -400.0f);
+        if (t == 0x20 || t == 0x44 || t == 0x4b || t == 0x5f || t == 0x7c)
+            mu_obj_set_f32(o, MU_OBJF_RANGE, -100.0f);
+        return 1;
+    case 0x33:   /* Elbeland: 0x00e30a02 (its worlds 0x49/0x4a branch asks a runtime singleton; not here) */
+        if (t == 0x67)
+            register_object(log, index);
+        else if (t == 0x8f || t == 0xa5)
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+        switch (t) {
+        case 0xf: case 0x19: case 0x1b: case 0x2d: case 0x2e: case 0x2f: case 0x30: case 0x35: case 0x62: case 0x6b:
+        case 0x73: case 0x7a: case 0x82:
+            mu_obj_set_f32(o, MU_OBJF_RANGE, -300.0f);
+            break;
+        default: break;
+        }
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t *sector_out, int32_t index,
                   mu_obj_log *log)
 {
@@ -290,6 +432,8 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         tormenta_create(o);
         return MU_OBJ_OK;
     }
+    if (world_create(o, world, index, log))   /* NATIVE-FIDELITY-002 */
+        return MU_OBJ_OK;
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x2c */
         mu_login_create(o, index, log);
         return MU_OBJ_OK;
@@ -480,6 +624,246 @@ static void lorencia_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *i
     }
 }
 
+/* NATIVE-FIDELITY-002: (float)(t % 1000) * 0.001 and its variants on the clock 0x06fce370 (cvttss2si, idiv). */
+static float clock_mod_1000(float time, int negate_first)
+{
+    const int32_t t = trunc_i32(time);
+    return (float)rem_i32(negate_first ? (int32_t)(0u - (uint32_t)t) : t, 1000) * 0.001f;
+}
+
+static float wave_light(float time, float rate, float amplitude)   /* 0x009681bd sin, fstp dword */
+{
+    const float s = (float)sin((double)(time * rate));
+    return s * amplitude + 0.5f;
+}
+
+static void particle_here(mu_obj_log *log, int32_t index, const uint8_t *o, uint32_t bitmap, const float position[3],
+                          const float light[3], uint32_t sub, float scale)
+{
+    float angle[3];
+    get_v(o, MU_OBJF_ANGLE, angle);
+    mu_obj_event *e = event(log, MU_OBJ_CALL_PARTICLE, index);
+    arg(e, bitmap);
+    arg_v(e, position);
+    arg_v(e, angle);
+    arg_v(e, light);
+    arg(e, sub);
+    arg_f(e, scale);
+}
+
+static float sine_f(float time, float rate) { return (float)sin((double)(time * rate)); }   /* 0x009681bd */
+
+static void sound_event(mu_obj_log *log, int32_t index, uint32_t id)
+{
+    mu_obj_event *e = event(log, MU_OBJ_CALL_SOUND, index);
+    arg(e, id);
+    arg(e, 0);
+    arg(e, 0);
+}
+
+/* (rand() % 4 + 3) * 0.1 */
+static float flicker(mu_obj_rand_fn rnd, void *c) { return (float)(rem_i32(rnd(c), 4) + 3) * 0.1f; }
+
+/* The default chain's move hooks: Kanturu 0x00e74ae0 (worlds 0x25 and 0x28) and Aida 0x00d6202f (0x21, 0x36), and
+ * the Karutan handler's slot 0x30 0x00e13a9e (0x50, 0x51, through the world manager). */
+static int hook_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
+{
+    mu_obj_rand_fn rnd = in->rand_fn;
+    void *c = in->context;
+    const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE), w = in->world;
+    if (w == 0x21 || w == 0x36) {   /* Aida */
+        switch (t) {
+        case 0x19: case 0x1c: mu_obj_set_f32(o, MU_OBJF_BLEND_V, mu_obj_f32(o, MU_OBJF_BLEND_V) - 0.015f); break;
+        case 0x1e: case 0x47: {
+            const float k = (float)rem_i32(rnd(c), 5) * 0.01f;
+            const float light[3] = {t == 0x1e ? k + 0.4f : k + 0.9f, t == 0x1e ? k + 0.6f : k + 0.2f,
+                                    t == 0x1e ? k + 0.4f : k + 0.2f};
+            add_light(log, index, o, light, 2);
+            break;
+        }
+        case 0x29: mu_obj_set_f32(o, MU_OBJF_ALPHA, 0.5f); break;
+        case 0x38: case 0x39: case 0x3a: case 0x3b: case 0x3e: case 0x3f: case 0x43: case 0x46:
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            break;
+        case 0x40: mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.05f); break;
+        default: break;
+        }
+        sound_event(log, index, 0x248);
+        return 1;
+    }
+    if (w == 0x25 || w == 0x28) {   /* Kanturu */
+        switch (t) {
+        case 0x3b: case 0x3e: case 0x51: case 0x52: case 0x53: case 0x6b: case 0x6c:
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            break;
+        case 0x2c: mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.02f); break;
+        case 0x2e:
+            mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.01f);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, sine_f(in->time, 0.0015f) * 0.8f + 1.0f);
+            sound_event(log, index, 0x26a);
+            break;
+        case 0x3c: case 0x3d: {
+            const float l = flicker(rnd, c);
+            const float light[3] = {t == 0x3c ? l * 0.9f : l, t == 0x3c ? l * 0.2f : l * 0.6f,
+                                    t == 0x3c ? l * 0.1f : l * 0.2f};
+            add_light(log, index, o, light, 3);
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            break;
+        }
+        case 0x46: {
+            mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.04f);
+            const float l = sine_f(in->time, 0.002f) * 0.45f + 0.55f;
+            const float light[3] = {l * 1.4f, l * 0.7f, l * 0.4f};
+            add_light(log, index, o, light, 4);
+            break;
+        }
+        case 0x4c: case 0x60: mu_obj_set_f32(o, MU_OBJF_ALPHA, 0.5f); break;
+        case 0x4d: {
+            const int32_t tt = trunc_i32(in->time);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_V, (float)rem_i32((int32_t)(0u - (uint32_t)tt), 10000) * 0.0002f);
+            sound_event(log, index, 0x268);
+            break;
+        }
+        case 0x5a: mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.04f); break;
+        case 0x5c: sound_event(log, index, 0x269); break;
+        case 0x61: {
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            float timer = mu_obj_f32(o, MU_OBJF_TIMER) + 0.1f;
+            mu_obj_set_f32(o, MU_OBJF_TIMER, timer);
+            if (timer > 10.0f)
+                mu_obj_set_f32(o, MU_OBJF_TIMER, 0.0f);
+            if (mu_obj_f32(o, MU_OBJF_TIMER) > 5.0f) {
+                float p[3], light[3];
+                get_v(o, MU_OBJF_POSITION, p);
+                get_v(o, MU_OBJF_LIGHT, light);
+                particle_here(log, index, o, 0x7fcd, p, light, 5, 1.0f);
+            }
+            break;
+        }
+        case 0x62: sound_event(log, index, 0x26b); break;
+        case 0x66: mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, sine_f(in->time, 0.001f) + 1.0f); break;
+        default: break;
+        }
+        sound_event(log, index, 0x26c);
+        return 1;
+    }
+    if (w == 0x50 || w == 0x51) {   /* Karutan handler slot 0x30 */
+        switch (t) {
+        case 0x71: {
+            const float l = flicker(rnd, c);
+            const float light[3] = {l, l * 0.6f, l * 0.2f};
+            add_light(log, index, o, light, 3);
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            break;
+        }
+        case 0x72: case 0x73: case 0x74: case 0x76: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
+        case 0x87:
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            sound_event(log, index, 0x5a5);
+            break;
+        default: break;
+        }
+        return 1;
+    }
+    return 0;
+}
+
+/* MoveObject's own cases of worlds 1, 3, 4 and 7 (0x017ffe04..0x01800bf3). Returns 0 for other worlds. */
+static int world_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
+{
+    mu_obj_rand_fn rnd = in->rand_fn;
+    void *c = in->context;
+    const int32_t t = mu_obj_i32(o, MU_OBJF_TYPE);
+    switch (in->world) {
+    case 1:   /* Dungeon */
+        switch (t) {
+        case 0x34:
+            if (rem_i32(rnd(c), 3) == 0)
+                create_effect_here(log, index, o, 0x1a5);
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            break;
+        case 0x16: case 0x17: case 0x18:
+            arg(event(log, MU_OBJ_CALL_MODEL_STREAM, index), 1);   /* model +0x94 = 1 */
+            mu_obj_set_f32(o, MU_OBJF_BLEND_V, -(float)rem_i32(trunc_i32(in->time), 1000) * 0.001f);
+            break;
+        case 0x27: case 0x28: case 0x33: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
+        case 0x29: mu_obj_create_fire(0, o, index, 0.0f, -30.0f, 240.0f, rnd, c, log); break;
+        case 0x2a: mu_obj_create_fire(0, o, index, 0.0f, 0.0f, 190.0f, rnd, c, log); break;
+        case 0x3d:
+            mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 4);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_U, clock_mod_1000(in->time, 1));
+            break;
+        default: break;
+        }
+        return 1;
+    case 3:   /* Noria */
+        if (t == 0x12)
+            mu_obj_set_f32(o, MU_OBJF_BLEND_V, clock_mod_1000(in->time, 0));
+        else if (t == 0x1a8) {
+            float p[3];
+            get_v(o, MU_OBJF_POSITION, p);
+            p[1] = p[1] - 50.0f;
+            p[2] = p[2] + 350.0f;
+            const float light[3] = {0.5f, 0.5f, 0.5f};
+            particle_here(log, index, o, 0x7f26, p, light, 9, 1.4f);
+        }
+        return 1;
+    case 4:   /* Lost Tower */
+        switch (t) {
+        case 3: case 4: mu_obj_set_f32(o, MU_OBJF_BLEND_U, clock_mod_1000(in->time, 1)); break;
+        case 0x12: case 0x17: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 1); break;
+        case 0x13: case 0x14:
+            mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 4);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_U, clock_mod_1000(in->time, 1));
+            break;
+        case 0x18:
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            if (rem_i32(rnd(c), 64) == 0)
+                create_effect_here(log, index, o, 0x7f42);
+            break;
+        case 0x19: mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2); break;
+        case 0x26: case 0x27: event(log, MU_OBJ_CALL_LOSTTOWER_VISUAL, index); break;
+        default: break;
+        }
+        return 1;
+    case 7:   /* Atlans */
+        switch (t) {
+        case 0x16: {
+            mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+            float timer = mu_obj_f32(o, MU_OBJF_TIMER) + 0.1f;
+            mu_obj_set_f32(o, MU_OBJF_TIMER, timer);
+            if (timer > 10.0f)
+                mu_obj_set_f32(o, MU_OBJF_TIMER, 0.0f);
+            if (mu_obj_f32(o, MU_OBJF_TIMER) > 5.0f) {
+                float p[3], light[3];
+                get_v(o, MU_OBJF_POSITION, p);
+                get_v(o, MU_OBJF_LIGHT, light);
+                particle_here(log, index, o, 0x7fcd, p, light, 0, 1.0f);
+            }
+            break;
+        }
+        case 0x17:
+            mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 0);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, wave_light(in->time, 0.002f, 0.3f));
+            break;
+        case 0x20: case 0x22:
+            mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 1);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, wave_light(in->time, 0.004f, 0.5f));
+            break;
+        case 0x26: mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 0); break;
+        case 0x28:
+            mu_obj_set_i32(o, MU_OBJF_BLEND_MESH, 0);
+            mu_obj_set_f32(o, MU_OBJF_BLEND_LIGHT, wave_light(in->time, 0.004f, 0.3f));
+            mu_obj_set_f32(o, MU_OBJF_VELOCITY, 0.05f);
+            break;
+        default: break;
+        }
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 /* Tormenta handler slot 0x30 (0x00e4c95e): sounds when the hero is near. sqrt 0x00961a07
  * takes the widened sum and rounds the root to binary32 (as in AddTerrainLight). */
 static void tormenta_move(const uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_log *log)
@@ -576,6 +960,8 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
         tormenta_move(o, index, in, log);
         return MU_OBJ_OK;
     }
+    if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */
+        return MU_OBJ_OK;
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x30 */
         mu_login_move(o, in->now_ms, NULL, NULL);
         return MU_OBJ_OK;

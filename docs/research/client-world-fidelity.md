@@ -117,6 +117,65 @@ first only in 0x3f) are detected in 6 and 28 of 300 cases.
 Icarus after the fix: mean |Δ| 67.7 → 61.8. The structures, their positions and the sky now match; the clouds that
 fill the client's screen are still missing (gap 1).
 
+### 3.2 Per-world object creation (verified)
+
+CreateObject `0x016d8538` has its own cases for worlds 1, 2, 3, 7, 8 and 0x37 (`0x016d8e3a..0x016d99bf`); other
+worlds go through a chain of world-group hooks and then the world manager's handler (slot 0x2c). The world handler
+classes and their worlds were mapped from the handler factory `0x00ea488e` (48 classes, world → constructor →
+vtable; e.g. Raklion 0x39/0x3a vtable `0x01aad9d0`, Karutan 0x50/0x51 `0x01aa9a4c`). Of the toured worlds only
+Kanturu (hook `0x00e74a58`, world 0x25) and Elbeland (hook `0x00e30a02`, 0x33) set fields at creation; the Raklion and
+Karutan slots only create effects for code-made types.
+
+`reconstructed/objects` `mu_obj_create` now restates them: BlendMesh of Noria (types 1, 9, 0x11..0x13, 0x25) and
+Devias (0x13, 0x36, 0x38, 0x4e, 0x5c, 0x5d), HiddenMesh −2 and operable registration (Dungeon 0x3c, Devias 0x5b,
+0x64, Noria 0x26, Atlans 0x27, Tarkan 0x61, 0x68, Elbeland 0x8f, 0xa5), Devias's door angles, the drawn-after flag
+and speed of Tarkan 0x59/0x5d, ranges (Devias 0x7a/0x7b −600, Kanturu −400/−100, Elbeland −300), world 0x37's two
+fixed objects, and the CreateEffect calls of type 0x1a8 in Devias and Noria (logged; their effect objects are the
+three Devias objects the tour finds missing). `validate_object_render.py --only create`: **3,000 / 3,000** equal over
+worlds 0, 1, 2, 3, 7, 8, 0x25, 0x33, 0x37, 0x8d (the Kanturu and Elbeland chains run as client code, the runtime
+singletons are stubbed), 157 CreateEffect calls compared; three new planted mistakes detected.
+
+### 3.3 Per-world object moves: torches, braziers, crystals (verified)
+
+MoveObject `0x017ff238` switches on the world (`0x017ff8ad`, jump table `0x01801668`) and falls back to the same
+hook chain. Restated now (`mu_obj_move`):
+
+| World | Cases |
+|---|---|
+| 1 Dungeon | wall torches 0x29/0x2a: CreateFire (0, −30, 240) / (0, 0, 190), i.e. flames and their terrain light; 0x3d BlendMesh 4 with a u scroll; 0x16..0x18 StreamMesh and v scroll; hidden markers; 0x34 an effect one step in three |
+| 3 Noria | 0x12 v scroll; 0x1a8 particle `0x7f26` |
+| 4 Lost Tower | BlendMesh of 0x12/0x17 and 0x13/0x14 (with u scroll); 0x18 effect `0x7f42` one step in 64; hidden markers; 0x26/0x27 call `0x017f6ca7` (logged, not reconstructed) |
+| 7 Atlans | bubble emitter 0x16 (timer, particle `0x7fcd`, HiddenMesh −2); crystals 0x17/0x20/0x22/0x28 BlendMesh with a sine-pulsed BlendMeshLight |
+| 0x21/0x36 Aida (hook `0x00d6202f`) | two light sources (range 2), v scrolls, hidden markers, ambient sound |
+| 0x25/0x28 Kanturu (hook `0x00e74ae0`) | brazier and torch lights 0x3c/0x3d/0x46 (ranges 3/4), pulsing lights, bubbles, scrolls, hidden markers, ambient sounds |
+| 0x50/0x51 Karutan (handler slot `0x00e13a9e`) | brazier light 0x71 (range 3), hidden markers, a sound |
+
+`validate_object_render.py --only move`: **3,000 / 3,000** equal (worlds 0, 1, 3, 4, 7, 0x21, 0x25, 0x28, 0x36, 0x50,
+0x51, 0x8d complete, 19 worlds up to the switch; the client's `sin` wrapper runs as client code; the Karutan slot runs
+on the object the chain leaves); six new planted mistakes detected (3–15 of 600 cases each). The full validator
+(nine families, 2,000 cases each) passes with all 15 planted mistakes detected.
+
+The native sidecar of hidden types (`EncTerrain<n>.hidden`) is kept outside Lorencia, Tormenta and the two scene
+worlds: most of those −2 values are written when an object is drawn (emitters), which the move cases now reproduce
+only for the ported worlds.
+
+### Before and after
+
+| Map | Mean \|Δ\| before → after | Off > 24 | Frame light Δ near hero | Object field differences (map-wide) |
+|---|---|---|---|---|
+| Dungeon | 6.9 → **2.0** | 0.136 → 0.008 | 0.084 → 0.044 | 0 |
+| Kanturu | 9.9 → **3.7** | 0.129 → 0.028 | 0.057 → 0.011 | 841 → 3 |
+| Atlans | 7.7 → **5.6** | 0.089 → 0.056 | 0.014 | 861 → 57 (pulsing light values) |
+| Karutan | 4.9 → 4.5 | 0.043 → 0.037 | 0.022 → 0.013 | 72 → 6 |
+| Noria | 19.4 → 19.2 | | | 2,749 → 23 |
+| Elbeland | 18.0 | | | 856 → 19 |
+| Devias (4 / town) | 3.6 / 3.5 | | | 203 / 212 → 0 / 6 |
+| Lost Tower | 0.34 → 0.31 | | | 42 → 25 |
+| Icarus | 67.7 → 61.8 | | | |
+
+Remaining field differences are values the client changes while it draws or animates (pulsing lights, alpha and speed
+of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags of types the visual pass sets).
+
 ## 4. Gaps (ranked by visibility)
 
 1. **Icarus clouds** (static reading). The cloud layer is not terrain: in Icarus MoveBoids spawns the boids of
@@ -128,6 +187,8 @@ fill the client's screen are still missing (gap 1).
    primary and frame light grids are identical to the native ones and the textures are the same. Both folders hold a
    `Fog.OZJ` that no string in the captured code names. The source (a screen or world overlay, a per-world GL state)
    was not found.
-3. Per-world object creation and move cases (BlendMesh, HiddenMesh, range, after-character draw, fires and their
-   terrain lights) for worlds other than Lorencia and Tormenta Island.
-4. Objects that world code creates (Devias 422–424, Raklion), the Kanturu/Karutan/Dungeon fires, Raklion's snow.
+3. The brazier and torch flames themselves in Kanturu and Karutan (their lights are ported; the flames come from
+   RenderObjectVisual `0x017f9758`'s world cases, not ported), and the visual-pass flags (`+0xa` drawn after the
+   characters in Noria, Elbeland, Raklion, Karutan).
+4. Move cases of Devias (doors, flicker), Tarkan, Elbeland (`0x00e30b86`) and Raklion (handler slot `0x00e94619`);
+   objects that world code creates (Devias 422–424, Raklion); Raklion's snow.
