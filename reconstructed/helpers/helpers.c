@@ -384,6 +384,16 @@ int32_t mu_hp_mount_class(int32_t kind, int32_t item, int32_t state)
     return MU_HP_MOUNT_NONE;
 }
 
+int32_t mu_hp_mount_object_subtype(int32_t cls, int32_t state, int32_t prior)
+{
+    /* vtable +0x38 of Ghost Horse 0x0104971f .. Tauros (rare) 0x0106438d: object +0x60 = the descriptor's third
+     * word (0x01043f58), the state; the ride-state transformations (0x0104a141) the same word, which their
+     * descriptor (kind 2: 0x0106cc74 -> (2, state, -1)) holds as -1 */
+    if (cls >= MU_HP_MOUNT_GIANT_1 && cls <= MU_HP_MOUNT_GIANT_3)
+        return -1;
+    return cls >= MU_HP_MOUNT_GHOST_HORSE && cls <= MU_HP_MOUNT_TAUROS_RARE ? state : prior;
+}
+
 int32_t mu_hp_mount_model(int32_t cls, int32_t state)
 {
     if (cls == MU_HP_MOUNT_FENRIR) {   /* 0x0104394e on the descriptor's +8 */
@@ -459,6 +469,9 @@ int mu_hp_mount_init(mu_helpers *h, mu_hp_mount *mount, const mu_hp_inputs *in, 
     if (!mount->has_model)
         return 0;
     o->type = mount->model;
+    /* NATIVE-HELPERS-002: the later classes' model load also writes the object's subtype from the descriptor's
+     * state (0x01043f58; the item level the 0x25 packet passes): their functors pick the glow by it */
+    o->subtype = mu_hp_mount_object_subtype(mount->cls, mount->state, o->subtype);
     if (mount->cls == MU_HP_MOUNT_DINORANT)
         mount->fly = 0;
     /* the pose builder on the object's bones (host: the first render poses the model) */

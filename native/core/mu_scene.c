@@ -48,8 +48,9 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
     in->meshes = calloc((size_t)slots, sizeof *in->meshes);
     in->texture_index = calloc((size_t)slots, sizeof *in->texture_index);
     in->texture_type = calloc((size_t)slots, sizeof *in->texture_type);
-    in->bitmaps = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT), sizeof *in->bitmaps);
-    in->bitmap_index = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT), sizeof *in->bitmap_index);
+    const int32_t extras = o->textures ? o->textures->extra_count : 0;   /* NATIVE-HELPERS-002 */
+    in->bitmaps = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT + extras), sizeof *in->bitmaps);
+    in->bitmap_index = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT + extras), sizeof *in->bitmap_index);
     in->subs = calloc((size_t)slots, sizeof *in->subs);
     if (!in->meshes || !in->texture_index || !in->texture_type || !in->bitmaps || !in->bitmap_index || !in->subs) {
         mu_scene_inputs_free(in);
@@ -100,6 +101,18 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
         bm->width = image ? (float)image->width : 0.0f;
         bm->height = image ? (float)image->height : 0.0f;
         bm->pixels = NULL;  /* none of these indices keeps its pixels in the client */
+        bm->pixel_bytes = 0;
+    }
+    for (int32_t j = 0; j < extras; ++j, ++n) {   /* NATIVE-HELPERS-002: the model passes' extra bitmaps */
+        mu_bitmap *bm = &in->bitmaps[n];
+        in->bitmap_index[n] = t->extra_index[j];
+        const int32_t s = t->model_count + MU_TEXTURE_SPECIAL_COUNT + j;
+        const mu_image *image = s < t->count ? t->slots[s] : NULL;
+        bm->components = image && t->components[s] ? t->components[s] : 3;
+        bm->name = image ? (uint32_t)s + 1 : 0;
+        bm->width = image ? (float)image->width : 0.0f;
+        bm->height = image ? (float)image->height : 0.0f;
+        bm->pixels = NULL;
         bm->pixel_bytes = 0;
     }
     in->bitmap_count = n;

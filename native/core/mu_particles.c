@@ -992,8 +992,26 @@ int32_t mu_world_particles_character_shadow(mu_world_particles *p, const mu_mode
                        w == 0x8f ? 5 : 0, backend);   /* 0x00e136f3: z offset 5 in world 0x8f */
 }
 
+static int32_t shadow_meshes(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
+                             int32_t state, int32_t z_offset, int32_t first, int32_t end,
+                             const mu_render_backend *backend);
+
 static int32_t shadow_with(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
                            int32_t state, int32_t z_offset, const mu_render_backend *backend)
+{
+    return shadow_meshes(p, model, bmd, rgba, state, z_offset, -1, -1, backend);
+}
+
+int32_t mu_world_particles_shadow_range(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd,
+                                        const float rgba[4], int32_t first, int32_t end,
+                                        const mu_render_backend *backend)
+{
+    return shadow_meshes(p, model, bmd, rgba, MU_PT_STATE_ALPHA, 0, first, end, backend);
+}
+
+static int32_t shadow_meshes(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
+                             int32_t state, int32_t z_offset, int32_t first, int32_t end,
+                             const mu_render_backend *backend)
 {
     if (!model || !bmd || !backend)
         return 0;
@@ -1019,7 +1037,7 @@ static int32_t shadow_with(mu_world_particles *p, const mu_model *model, const m
     mu_pt_host h;
     host(p, &h);
     const float *origin = mu_model_origin(model);
-    const int32_t n = mu_pt_render_body_shadow(meshes, count, origin, -1, -1, -1, -1, z_offset, &h, &gl);
+    const int32_t n = mu_pt_render_body_shadow(meshes, count, origin, -1, -1, first, end, z_offset, &h, &gl);
     p->stats.pending_shadows++;
     p->stats.pending_shadow_vertices += (uint32_t)n;
     p->stats.shadows_total++;

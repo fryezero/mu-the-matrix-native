@@ -178,6 +178,11 @@ long mu_world_particles_draw_raster(mu_world_particles *p, mu_raster *raster, co
  * as EnableAlphaTest leaves it. Returns the vertices sent. */
 int32_t mu_world_particles_shadow(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd, const float rgba[4],
                                   const mu_render_backend *backend);
+/* NATIVE-HELPERS-002: the same over the meshes first..end (RenderBodyShadow(model, -1, -1, first, end, 0): the
+ * Dark Horse's and the Divine Horse's second shadow). */
+int32_t mu_world_particles_shadow_range(mu_world_particles *p, const mu_model *model, const mu_bmd *bmd,
+                                        const float rgba[4], int32_t first, int32_t end,
+                                        const mu_render_backend *backend);
 
 /* The character part shadow of the item render 0x0176ce74 (its shadow block,
  * a static reading): RenderBodyShadow of a posed, transformed part model,

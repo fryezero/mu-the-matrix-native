@@ -1947,6 +1947,18 @@ static void helper_gl_shadow(void *context, const mu_world_helpers *w, int32_t s
     mu_world_particles_shadow(&a->particles, &w->models[slot].model, &w->models[slot].bmd, rgba, &backend);
 }
 
+/* NATIVE-HELPERS-002: a functor's second RenderBodyShadow over meshes first..end. */
+static void helper_gl_shadow_range(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4],
+                                   int32_t first, int32_t end)
+{
+    app *a = context;
+    mu_render_backend backend;
+    if (!a->has_particles || helper_gl_backend(a, w, slot, &backend))
+        return;
+    mu_world_particles_shadow_range(&a->particles, &w->models[slot].model, &w->models[slot].bmd, rgba, first, end,
+                                    &backend);
+}
+
 static int particle_gl_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
 {
     app *a = context;
@@ -2120,7 +2132,7 @@ static long draw_gl(app *a, int32_t width, int32_t height)
     if (a->helpers) {   /* NATIVE-HELPERS-001: RenderBugs, the mount render loop, the Imps (own backends, direct) */
         if (a->batch && !a->players)
             mu_gl_batch_session_end(a->batch);
-        mu_world_helpers_target target = {a, helper_gl_backend, helper_gl_shadow};
+        mu_world_helpers_target target = {a, helper_gl_backend, helper_gl_shadow, helper_gl_shadow_range};
         mu_world_helpers_draw(a->helpers, a->legacy_box ? NULL : &a->frustum, a->has_character ? &a->ch : NULL,
                               &target);
         glDisable(GL_BLEND);

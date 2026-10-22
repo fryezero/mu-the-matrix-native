@@ -275,6 +275,9 @@ int32_t mu_hp_mount_kind(int32_t item, int32_t state, int item_kind_4f);
 int32_t mu_hp_mount_class(int32_t kind, int32_t item, int32_t state);
 /* vtable +0x38: the model index (Fenrir 0x4a9 red, 0x4a8 black, 0x4aa blue, 0x4ab gold by state). */
 int32_t mu_hp_mount_model(int32_t cls, int32_t state);
+/* NATIVE-HELPERS-002: the object subtype (+0x60) after the class's model load (vtable +0x38): the descriptor's
+ * state for Ghost Horse .. Tauros (rare), else prior (verified with the model load). */
+int32_t mu_hp_mount_object_subtype(int32_t cls, int32_t state, int32_t prior);
 /* 0x0103dbf4: the play speed of a mount action (0.4 when the class map has no entry). */
 float mu_hp_mount_speed(int32_t cls, int32_t action);
 

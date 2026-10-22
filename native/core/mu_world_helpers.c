@@ -17,6 +17,7 @@
 #include "../../reconstructed/movement/client_movement.h"
 #include "../../reconstructed/objects/object_render.h"
 #include "../../reconstructed/particles/particles.h"
+#include "../../reconstructed/helpers/mount_render.h"
 
 /* The Imp's attachment per owner (lazy). */
 typedef struct imp_slot {
@@ -56,6 +57,71 @@ static int model_file(int32_t index, char *out, size_t size)
     return 0;
 }
 
+/* NATIVE-HELPERS-002: the client bitmaps the mounts' registry functors draw their glow passes with (LoadBitmap
+ * indices and files, static readings of the loaders 0x01824500.., 0x0182e695.., 0x01838105.., 0x0182f49c..). */
+static const struct { int32_t index; const char *directory, *name; } pass_bitmaps[] = {
+    {0x82e3, "Data/Effect", "black_gold_crom02_mono.jpg"}, {0x82e4, "Data/Effect", "black_gold_crom04_mono.jpg"},
+    {0x831a, "Data/Effect", "black_gold_crom02.jpg"},
+    {0x83ea, "Data/Skill", "hs_fiercelion01B_render.jpg"}, {0x83eb, "Data/Skill", "hs_fiercelion01R_render.jpg"},
+    {0x83ec, "Data/Skill", "hs_fiercelion02B_render.jpg"}, {0x83ed, "Data/Skill", "hs_fiercelion02R_render.jpg"},
+    {0x8430, "Data/Skill", "shiningtails_render.jpg"}, {0x8431, "Data/Skill", "shiningtails_2_render.jpg"},
+    {0x8432, "Data/Skill", "shiningtails_3_render.jpg"}, {0x8433, "Data/Skill", "shiningtails_4_render.jpg"},
+    {0x8434, "Data/Skill", "rare_shiningtails_1_render.jpg"}, {0x8435, "Data/Skill", "rare_shiningtails_2_render.jpg"},
+    {0x8436, "Data/Skill", "rare_shiningtails_3_render.jpg"}, {0x8437, "Data/Skill", "rare_shiningtails_4_render.jpg"},
+    {0x848a, "Data/Item/texture", "ursh_overlay.jpg"}, {0x848b, "Data/Item/texture", "goms5cha_02_R.jpg"},
+    {0x848c, "Data/Item/texture", "ursh_gold_overlay.jpg"}, {0x848d, "Data/Item/texture", "goms5cha_02s_Red.jpg"},
+    {0x8239, "Data/Item/Texture", "black_gold_crom05.jpg"},
+    {0x853d, "Data/Skill", "Leviathan_001_rare_R.jpg"}, {0x853e, "Data/Skill", "hs_TaurosG05.jpg"},
+    {0x853f, "Data/Skill", "hs_TaurosGR05.jpg"}, {0x8540, "Data/Skill", "hs_TaurosG01_r.jpg"},
+    {0x8541, "Data/Skill", "hs_TaurosG02_r.jpg"}, {0x8542, "Data/Skill", "hs_TaurosGR01_r.jpg"},
+    {0x8543, "Data/Skill", "hs_TaurosGR02_r.jpg"}, {0x8544, "Data/Skill", "hs_TaurosGR04_r.jpg"},
+    {0x8530, "Data/Effect", "Divinehorse_01_render.jpg"}, {0x8531, "Data/Effect", "ef_line01.jpg"},
+    {0x84e8, "Data/Skill", "Giant_darkW_Neon_render.jpg"}, {0x84e9, "Data/Skill", "Giant_Elf_Neon_r.jpg"},
+    {0x84ea, "Data/Skill", "Giant_GrowLancer_Neon_render.jpg"},
+    {0x84eb, "Data/Skill", "Giant_GrowLancer_Jewel_render.jpg"}};
+
+/* The bitmaps a mount model's functor names (mount_render.c). */
+static int32_t model_pass_bitmaps(int32_t model, int32_t out[8])
+{
+    static const struct { int32_t model; int32_t list[8]; } uses[] = {
+        {0x671, {0x82e3, 0x82e4}}, {0x69a, {0x82e4}}, {0x69b, {0x831a}},
+        {0x6cb, {0x83ea, 0x83ec, 0x82e4}}, {0x6cc, {0x83eb, 0x83ed, 0x82e4}},
+        {0x6f4, {0x8430, 0x8431, 0x8432, 0x8433, 0x82e3}}, {0x6f5, {0x8434, 0x8435, 0x8436, 0x8437, 0x82e3}},
+        {0x736, {0x848a, 0x848b, 0x8239}}, {0x737, {0x848c, 0x848d}}, {0x74a, {0x853d}},
+        {0x77c, {0x853e, 0x8541, 0x8531, 0x8540, 0x82e3}}, {0x77d, {0x8544, 0x853f, 0x8543, 0x8531, 0x8542, 0x82e3}},
+        {0x753, {0x8530, 0x8531}}, {0x73f, {0x84e8}}, {0x740, {0x84e9}}, {0x741, {0x84ea, 0x84eb}}};
+    for (size_t i = 0; i < sizeof uses / sizeof uses[0]; ++i)
+        if (uses[i].model == model) {
+            int32_t n = 0;
+            while (n < 8 && uses[i].list[n])
+                out[n] = uses[i].list[n], ++n;
+            return n;
+        }
+    return 0;
+}
+
+static void load_pass_bitmaps(mu_world_helpers *w, mu_wh_model *m)
+{
+    int32_t want[8];
+    int32_t n = model_pass_bitmaps(m->index, want);
+    int32_t index[8];
+    const char *dirs[8], *names[8];
+    char paths[8][1024];
+    int32_t k = 0;
+    for (int32_t i = 0; i < n; ++i)
+        for (size_t j = 0; j < sizeof pass_bitmaps / sizeof pass_bitmaps[0]; ++j)
+            if (pass_bitmaps[j].index == want[i]) {
+                if (!mu_objects_resolve(w->root, pass_bitmaps[j].directory, paths[k], sizeof paths[k]))
+                    snprintf(paths[k], sizeof paths[k], "%s/%s", w->root, pass_bitmaps[j].directory);
+                index[k] = want[i];
+                dirs[k] = paths[k];
+                names[k] = pass_bitmaps[j].name;
+                ++k;
+            }
+    if (k > 0)
+        mu_textures_add_extras(&m->textures, index, dirs, names, k, 0x2601 /* GL_LINEAR */, 0x2901 /* GL_REPEAT */);
+}
+
 static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
 {
     for (int32_t i = 0; i < w->model_count; ++i)
@@ -82,6 +148,7 @@ static mu_wh_model *model_of(mu_world_helpers *w, int32_t index)
     char directory[2048];
     mu_path_directory(m->path, directory, sizeof directory);
     mu_textures_load(&m->textures, &m->bmd, directory);
+    load_pass_bitmaps(w, m);   /* NATIVE-HELPERS-002 */
     m->loaded = 1;
     char text[96];
     snprintf(text, sizeof text, "model %#x: %s", index, relative);
@@ -510,6 +577,7 @@ void mu_world_helpers_step(mu_world_helpers *w)
         w->stats.live_bugs += w->h.bugs[i].live;
     w->stats.live_mounts = (uint32_t)w->mounts.count;
     w->stats.steps++;
+    w->world_time = w->world_time + 40.0f;   /* NATIVE-HELPERS-002: the functors' glow pulse */
 }
 
 int mu_world_helpers_ride(mu_world_helpers *w, int32_t owner, int32_t how)
@@ -527,6 +595,7 @@ typedef struct draw_context {
     const mu_terrain_frustum *frustum;
     long drawn;
     float color[4];
+    mu_wh_model *posed;   /* the mount the body pass posed (its after-pass draws it) */
 } draw_context;
 
 static int r_frustum(void *c, float x, float y, float range)
@@ -537,14 +606,15 @@ static int r_frustum(void *c, float x, float y, float range)
     return mu_terrain_test_frustum_2d(d->frustum->x2d, d->frustum->y2d, 6, x, y, range);
 }
 
-/* RenderObject's setup 0x017ec896 and body for a helper object: the body light 0x017ec3d8 (lighting = +5, colour =
- * the frame light + the object light with ObjectInit's +6 = +7 = 1), scale +0xa0, Animation(!a1) / Transform(a1). */
-static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
+/* RenderObject's setup 0x017ec896 for a helper object: the body light 0x017ec3d8 (lighting = +5, colour = the
+ * frame light + the object light with ObjectInit's +6 = +7 = 1), scale +0xa0, Animation(!a1) / Transform(a1).
+ * Returns the model, NULL when nothing is drawn. */
+static mu_wh_model *pose_object(draw_context *d, const mu_hp_object *o, int32_t a1)
 {
     mu_world_helpers *w = d->w;
     mu_wh_model *m = model_of(w, o->type);
     if (!m || !m->loaded || o->alpha <= 0.01f)
-        return 0;
+        return NULL;
     mu_model_params p = m->model.params;
     for (int k = 0; k < 3; ++k) {
         p.origin[k] = o->position[k];
@@ -567,24 +637,58 @@ static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
     mu_model_apply_params(&m->model, &p);
     mu_model_set_state(&m->model, o->action, o->frame, o->prior_frame, o->prior_action);
     if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
-        return 0;
+        return NULL;
+    return m;
+}
+
+/* One RenderBodyDefault 0x00966def / RenderMeshDefault 0x00966e4a call on a posed model (mesh < 0: the body),
+ * with the model colour +0x54 of the call. */
+static int draw_pass(draw_context *d, mu_wh_model *m, int32_t mesh, uint32_t flags, float alpha, int32_t blend_mesh,
+                     float blend_light, float u, float v, int32_t hidden, int32_t texture, const float color[3])
+{
     if (!d->target)
         return 1;
     mu_render_backend backend;
-    if (d->target->backend(d->target->context, w, slot_of(w, m), &backend))
+    if (d->target->backend(d->target->context, d->w, slot_of(d->w, m), &backend))
         return 0;
     mu_draw_options options;
     mu_draw_default_options(&options);
     options.textures = &m->textures;
-    options.alpha = o->alpha < 1.0f ? o->alpha : 1.0f;
-    /* RenderBody(flags, alpha, BlendMesh +0x74, BlendMeshLight +0xa8, +0xac, +0xb0, -1, -1) (NATIVE-RENDERCHAR-001) */
-    options.select = o->blend_mesh;
-    options.color_scale = o->blend_light;
+    options.flags = flags;
+    options.alpha = alpha < 1.0f ? alpha : 1.0f;
+    /* RenderBody(flags, alpha, BlendMesh +0x74, BlendMeshLight +0xa8, +0xac, +0xb0, hidden, texture)
+     * (NATIVE-RENDERCHAR-001) */
+    options.select = blend_mesh;
+    options.color_scale = blend_light;
+    options.u_offset = u;
+    options.v_offset = v;
+    options.skip_mesh = hidden;
+    options.texture = texture;
+    options.mesh_plus_one = mesh >= 0 ? mesh + 1 : 0;
+    mu_draw_model_fields fields;
+    memset(&fields, 0, sizeof fields);
+    if (color) {
+        memcpy(fields.color, color, sizeof fields.color);
+        options.fields = &fields;
+    }
     mu_draw_stats ds = {0, 0, 0, 0};
+    if (mesh >= (int32_t)m->bmd.mesh_count)
+        return 1;   /* the functors name meshes some models do not have (the Dark Horse's 0xd..0xf) */
     if (mu_scene_draw_model(&m->model, &options, &backend, &ds))
         return 0;
     d->drawn++;
+    d->w->stats.passes++;
     return 1;
+}
+
+/* RenderObject 0x016d4fe4 for a bug (the angel): the setup, then the draw (its registry functor 0x00a6a730
+ * answers 0: the default body). */
+static int pose_and_draw(draw_context *d, const mu_hp_object *o, int32_t a1)
+{
+    mu_wh_model *m = pose_object(d, o, a1);
+    if (!m)
+        return 0;
+    return draw_pass(d, m, -1, 2, o->alpha, o->blend_mesh, o->blend_light, 0.0f, 0.0f, -1, -1, NULL);
 }
 
 static void r_object(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
@@ -595,19 +699,96 @@ static void r_object(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int
         d->w->stats.drawn_bugs++;
 }
 
+/* The mount's body (vtable +0x14 0x0103d6d5): RenderObject's setup 0x017ec896 only; the draw is the after-pass. */
 static int r_body(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3)
 {
     draw_context *d = c;
     (void)a2, (void)a3;
-    int drawn = pose_and_draw(d, o, a1);
-    if (drawn)
+    d->posed = pose_object(d, o, a1);
+    if (d->posed)
         d->w->stats.drawn_mounts++;
-    return drawn;
+    return d->posed != NULL;
 }
 
+static void after_bone(void *c, int32_t bone, const float in[3], float out[3])
+{
+    draw_context *d = c;
+    out[0] = out[1] = out[2] = 0.0f;
+    if (d->posed)   /* TransformPosition(.., BoneTransform + 0x30 * bone, .., 0): the bone in the world (viewer choice) */
+        mu_world_particles_bone_position(&d->posed->model, bone, in, out);
+}
+
+/* The after-pass (vtable +0x18 0x0103d830 -> RenderObject's draw 0x017edf43): the registry functor of the mount
+ * model (mount_render.c, NATIVE-HELPERS-002) or the default body RenderBody(2, ...). */
 static void r_after(void *c, const mu_hp_object *o, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
 {
-    (void)c, (void)o, (void)a1, (void)a2, (void)a3, (void)a4, (void)a5;   /* 0x017edf43: visuals not ported */
+    draw_context *d = c;
+    mu_world_helpers *w = d->w;
+    (void)a1, (void)a3, (void)a4, (void)a5;
+    mu_wh_model *m = d->posed;
+    if (!m || o->field_68 == -2)
+        return;
+    const float *body_light = m->model.params.color;   /* model +0x54: the setup's body light */
+    mu_hp_after_inputs in;
+    memset(&in, 0, sizeof in);
+    in.world = w->inputs.world;
+    in.world_time = w->world_time;
+    in.world_9b0418 = (uint8_t)((in.world >= 0x18 && in.world <= 0x1d) || in.world == 0x24);
+    in.event_block = (uint8_t)(in.world == 0x27 && !(w->inputs.event_state >= 3 && w->inputs.event_state <= 5));
+    memcpy(in.color, body_light, sizeof in.color);
+    in.model_94 = 0xff;
+    in.object_a4 = 0.0f;   /* the later classes' model load writes 0; their visuals (+0x1c) fade it (not ported) */
+    mu_hp_after_host host = {d, after_bone};
+    mu_hp_after_call calls[96];
+    int32_t n = 0;
+    int r = a2 == 10 ? -1 : mu_hp_mount_after(&w->h, o, &in, &host, calls, 96, &n);   /* buff: 0x017f746f, static */
+    if (n > 96)
+        n = 96;
+    if (r <= 0) {
+        draw_pass(d, m, -1, 2, o->alpha, o->blend_mesh, o->blend_light, in.object_u, in.object_v, o->field_68, -1,
+                  NULL);
+        return;
+    }
+    float shadow_rgba[4] = {0.0f, 0.0f, 0.0f, 0.7f};
+    for (int32_t i = 0; i < n; ++i) {
+        const mu_hp_after_call *a = &calls[i];
+        switch (a->kind) {
+        case MU_HP_AC_BODY:
+            draw_pass(d, m, -1, a->flags, a->alpha, a->blend_mesh, a->blend_light, a->u, a->v, a->hidden, a->texture,
+                      a->color);
+            break;
+        case MU_HP_AC_MESH:
+            draw_pass(d, m, a->mesh, a->flags, a->alpha, a->blend_mesh, a->blend_light, a->u, a->v, -1, a->texture,
+                      a->color);
+            break;
+        case MU_HP_AC_COLOR4:
+            shadow_rgba[3] = a->scale;
+            break;
+        case MU_HP_AC_SHADOW:
+            if (d->target && d->target->shadow_range)
+                d->target->shadow_range(d->target->context, w, slot_of(w, m), shadow_rgba, a->mesh, a->texture);
+            w->stats.shadows++;
+            break;
+        case MU_HP_AC_SPRITE:
+            w->stats.sprites++;
+            if (w->particles)
+                mu_world_particles_sprite(w->particles, a->type, a->position, a->scale, a->light, -1, 0.0f, 0, 4);
+            break;
+        case MU_HP_AC_PARTICLE:
+            w->stats.particles++;
+            if (w->particles)
+                mu_world_particles_create(w->particles, a->type, a->position, a->angle, a->light, a->subtype, a->scale);
+            break;
+        case MU_HP_AC_EFFECT:
+            w->stats.effects++;
+            if (w->particles)
+                mu_world_particles_effect(w->particles, a->type, a->subtype, a->position, a->angle, a->light, -1, 1.0f,
+                                          NULL);
+            break;
+        default:
+            break;   /* the pose push/pop, the bone lookups (done through the host), EnableAlphaTest */
+        }
+    }
 }
 
 static void r_sprite(void *c, int32_t bitmap, const float p[3], float scale, const float l[3], const mu_hp_object *o)
@@ -738,7 +919,7 @@ long mu_world_helpers_draw(mu_world_helpers *w, const mu_terrain_frustum *frustu
     r.alpha_test = r_alpha;
     r.color4 = r_color4;
     r.shadow = r_shadow;
-    w->stats.drawn_bugs = w->stats.drawn_mounts = w->stats.drawn_imps = w->stats.shadows = 0;
+    w->stats.drawn_bugs = w->stats.drawn_mounts = w->stats.drawn_imps = w->stats.shadows = w->stats.passes = 0;
     /* the render scene's order: RenderBugs 0x00c9e4e3, the mount render loop 0x0106bc2b */
     mu_hp_render_bugs(&w->h, &w->inputs, &r);
     mu_hp_mounts_render(&w->h, &w->mounts, &w->inputs, &r);
@@ -773,7 +954,7 @@ long mu_world_helpers_draw_raster(mu_world_helpers *w, mu_raster *raster, const 
 {
     raster_target t = {raster, {0}};
     mu_raster_backend(raster, &t.backend);
-    mu_world_helpers_target target = {&t, raster_backend, NULL};
+    mu_world_helpers_target target = {&t, raster_backend, NULL, NULL};
     long n = mu_world_helpers_draw(w, frustum, hero, &target);
     raster->textures = NULL;
     raster->texture_count = 0;

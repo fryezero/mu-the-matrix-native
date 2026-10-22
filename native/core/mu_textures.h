@@ -42,6 +42,9 @@ typedef struct mu_textures {
     uint32_t *filter;          /* GL_NEAREST / GL_LINEAR, MIN and MAG */
     uint32_t *wrap;            /* GL_REPEAT / GL_CLAMP */
     int32_t missing;           /* missing model textures */
+    /* NATIVE-HELPERS-002: extra client bitmaps a model's passes name by index (after the specials; 0 = none) */
+    int32_t extra_count;
+    int32_t *extra_index;
 } mu_textures;
 
 /* Client bitmap index and file of each environment bitmap. */
@@ -58,6 +61,11 @@ int mu_textures_load(mu_textures *textures, const mu_bmd *model, const char *dir
 int mu_textures_load_with_effects(mu_textures *textures, const mu_bmd *model, const char *directory,
                                   const char *effect_directory);
 void mu_textures_free(mu_textures *textures);
+/* NATIVE-HELPERS-002: appends client bitmaps after the specials: index[j] loaded from names[j] (the client's
+ * name, .jpg / .tga, resolved to the OZJ / OZT file) in directories[j]; a missing file leaves its slot empty.
+ * Returns 0, or 1 when out of memory. */
+int mu_textures_add_extras(mu_textures *textures, const int32_t *index, const char *const *directories,
+                           const char *const *names, int32_t count, uint32_t filter, uint32_t wrap);
 
 /* Client upload of one wrapped file: kind 't' (TGA rule) or 'j' (JPEG rule).
  * Fills a power-of-two RGBA image (rows in upload order) and the component

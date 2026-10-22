@@ -67,6 +67,7 @@ typedef struct mu_wh_stats {
     uint32_t particles, sprites, effects, joints, set_actions, rider_actions;
     uint32_t live_bugs, live_mounts;                 /* now */
     uint32_t drawn_bugs, drawn_mounts, drawn_imps, shadows;   /* last draw */
+    uint32_t passes;                                 /* NATIVE-HELPERS-002: model passes of the last draw */
 } mu_wh_stats;
 
 typedef struct mu_world_helpers {
@@ -88,6 +89,7 @@ typedef struct mu_world_helpers {
     mu_wh_stats stats;
     char log[32][96];
     int32_t log_count;
+    float world_time;                       /* NATIVE-HELPERS-002: WorldTime 0x06fce370 (40 ms per step) */
 } mu_world_helpers;
 
 /* Opens the module for a world (no_assets: logic only). hero_item: the hero's helper item code (DEMO, -1 none:
@@ -114,6 +116,9 @@ typedef struct mu_world_helpers_target {
     int (*backend)(void *context, const mu_world_helpers *w, int32_t slot, mu_render_backend *out);
     /* RenderBodyShadow of a mount (optional): the posed model, the glColor4f colour */
     void (*shadow)(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4]);
+    /* NATIVE-HELPERS-002 (optional): RenderBodyShadow over the meshes first..end (a functor's second shadow) */
+    void (*shadow_range)(void *context, const mu_world_helpers *w, int32_t slot, const float rgba[4], int32_t first,
+                         int32_t end);
 } mu_world_helpers_target;
 
 /* RenderBugs, the mount render loop and the Imps on their owners. hero: the hero's character model (the Imp's
