@@ -52,6 +52,9 @@ int32_t mu_quest_client_field(mu_quest_client *c, const char *name, int set, int
         {"screen_width", &c->screen_width, NULL, NULL},
         {"play_move", NULL, NULL, &c->play_move},
         {"play_tabs", NULL, NULL, &c->play_tabs},
+        {"money", (int32_t *)&c->money, NULL, NULL},
+        {"target_class", &c->target_class, NULL, NULL},
+        {"hero.flag29", NULL, &c->hero_flag29, NULL},
         {"guide.current", c->guide ? &c->guide->current : NULL, NULL, NULL},
         {"guide.selected", c->guide ? &c->guide->selected : NULL, NULL, NULL},
         {"guide.count", c->guide ? &c->guide->count : NULL, NULL, NULL},
@@ -64,6 +67,11 @@ int32_t mu_quest_client_field(mu_quest_client *c, const char *name, int set, int
         {"hud.other_window", NULL, c->hud ? &c->hud->other_window : NULL, NULL},
         {"hud.visible", NULL, NULL, c->hud ? &c->hud->visible : NULL},
     };
+    if (!strcmp(name, "wrap_scale_x1000")) {
+        if (set)
+            c->wrap_scale = (float)value / 1000.0f;
+        return (int32_t)(c->wrap_scale * 1000.0f);
+    }
     for (size_t k = 0; k < sizeof F / sizeof F[0]; k++) {
         if (strcmp(F[k].name, name))
             continue;

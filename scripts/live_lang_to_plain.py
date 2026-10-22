@@ -49,6 +49,7 @@ NATIVE-QUEST-002 adds (a snapshot with `deep:0x06fbb3d0=0x44,3 deep:0x06fbb414=0
   guidequest.tsv    GuideQuest 0x06fbb3d0, vector +0x38 of chapters, each a vector of 0xf4-byte steps (loader
                     0x011196ad): chapter (0-based), the 61 words, name (+0xc), info name (+0x60), goal name
                     (+0xd0), the class flags (vector +0x78), the reward words (vector +0xe8, 3 per item);
+  dialoganswers.tsv Dialog(kor)'s answers (record +0x1c, 0x20 bytes): key, position, next dialogue, action, text;
   guidestrings.tsv  GuideQuestString 0x06fbb414 (loader 0x0111b737): kind 1 = the chapter names (vector +0x44),
                     kind 2 = the step names (map +0x50): kind, position or key, index, type, key, text.
 
@@ -287,6 +288,17 @@ def read_npcs(snap):
 
 def read_dialog(snap):
     return [(key, snap.string(record(node) + 4)) for key, node in snap.tree(DIALOG + MAP_AT[DIALOG])]
+
+
+def read_dialog_answers(snap):
+    """Dialog(kor) answers (NATIVE-QUEST-002): the node's vector at record +0x1c of 0x20-byte answers {+0 next
+    dialogue, +4 action, +8 text} (the classic quest window's choices, 0x010eb258 / 0x010eb2d1 / 0x010eb3a8)."""
+    rows = []
+    for key, node in snap.tree(DIALOG + MAP_AT[DIALOG]):
+        begin, end = snap.u32(record(node) + 0x1c), snap.u32(record(node) + 0x20)
+        for k, a in enumerate(range(begin, end, 0x20)):
+            rows.append((key, k, snap.i32(a), snap.i32(a + 4), snap.string(a + 8)))
+    return rows
 
 
 def read_enchant(snap):
@@ -710,6 +722,16 @@ def convert(snap, out_dir, header=''):
             for row in rows:
                 f.write('\t'.join(map(str, row[:5])) + f'\t{escape(row[5])}\n')
         counts['guidestrings'] = len(rows)
+    except SnapshotError:
+        pass
+
+    try:
+        rows = read_dialog_answers(snap)
+        with open(out_dir/'dialoganswers.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '#key\tposition\tnext\taction\ttext  (Dialog(kor) 0x06fbb6d0 answers)\n')
+            for key, k, nxt, action, raw in rows:
+                f.write(f'{key}\t{k}\t{nxt}\t{action}\t{escape(raw)}\n')
+        counts['dialoganswers'] = len(rows)
     except SnapshotError:
         pass
 

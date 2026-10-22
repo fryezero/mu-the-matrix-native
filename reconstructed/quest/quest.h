@@ -86,7 +86,22 @@ typedef struct mu_quest_data {
     size_t nguide_names;
     /* the classic quests (Data\Local\Quest.bmd, 200 records of 1000 bytes, decoded by 0x00976855) */
     uint8_t *classic;                       /* 200000 bytes, NULL when absent */
+    /* Dialog(kor) (0x06fbb6d0, map +0x38): the classic quests' dialogues (dialog.tsv, dialoganswers.tsv) */
+    struct mu_dialog *dialogs;              /* sorted by key */
+    size_t ndialogs;
 } mu_quest_data;
+
+typedef struct mu_dialog_answer {         /* 0x20 bytes: +0 next dialogue, +4 action, +8 text */
+    int32_t next, action;
+    char *text;
+} mu_dialog_answer;
+
+typedef struct mu_dialog {                /* the node value: +8 text, +0x20 vector of answers */
+    int32_t key;
+    char *text;
+    mu_dialog_answer *answers;
+    int32_t nanswers;
+} mu_dialog;
 
 /* ---- the guide quest (NATIVE-QUEST-002) -------------------------------------------------------- *
  * GuideQuest record = one step (0xf4 bytes; script loader 0x011196ad: a "header" line (index, name), then a type-0
@@ -252,6 +267,10 @@ typedef struct mu_quest_host {
     /* the classic quest manager's inventory / kill queries (0x009f52ab item count >= need, 0x009f52fe kills) */
     int (*classic_item)(void *user, int32_t code, int32_t count, int32_t level);
     int32_t (*classic_kills)(void *user, int32_t monster);
+    /* 0x016b9c4e(code, level, out): an item's name by code and level */
+    void (*item_level_name)(void *user, int32_t code, int32_t level, char *out, size_t cap);
+    /* 0x016b8b26(zen): the money text (thousands separators) */
+    void (*money_text)(void *user, double zen, char *out, size_t cap);
 } mu_quest_host;
 
 /* ---- texts ----------------------------------------------------------------------------------- */
@@ -345,6 +364,10 @@ typedef struct mu_quest_client {
     int32_t screen_width;                 /* [0x01cf1624] (QuestProgressInfo's scale mode above 1024) */
     int play_move;                        /* the tab action runs the move 0x00d5029b (0: logged "not played") */
     int play_tabs;                        /* MyQuestInfo's tabs 0 and 1 are played (0: logged "not played") */
+    uint32_t money;                       /* [0x01d1df18] + 0x2d70: the hero's zen */
+    uint8_t hero_flag29;                  /* hero + 0x29: classic quest 3 complete */
+    int32_t target_class;                 /* the selected character's class (+0x146), -1 none ([0x01cf1150]) */
+    float wrap_scale;                     /* [0x06fbcd94] the screen rate (the wraps' width factor) */
 } mu_quest_client;
 
 int mu_quest_client_init(mu_quest_client *c, const mu_quest_data *data, const mu_quest_host *host);
@@ -471,6 +494,29 @@ void mu_quest_move(mu_quest_client *c, int32_t quest);               /* 0x00d502
 
 void mu_classic_free(mu_quest_client *c);
 void mu_classic_tab_init(mu_quest_client *c);                        /* tab 1 vtable +4 0x00d4dd38 */
+long mu_dialog_parse(mu_quest_data *d, const char *texts, const char *answers);   /* dialog.tsv + dialoganswers.tsv */
+int mu_classic_state_of(mu_quest_client *c, int32_t quest);          /* 0x009f4bf3 */
+int mu_classic_state(mu_quest_client *c, int32_t quest);             /* 0x009f4d91 (-1: the current one) */
+int32_t mu_classic_lacking(mu_quest_client *c, int32_t code, int32_t count, int32_t level);   /* 0x009f52ab */
+int32_t mu_classic_kills(mu_quest_client *c, int32_t monster);       /* 0x009f52fe */
+int32_t mu_classic_answer(mu_quest_client *c, int32_t answer);       /* 0x009f4244 (0xff: the quest's own state) */
+void mu_classic_text(mu_quest_client *c, int32_t dialog);            /* 0x009f4fc8 */
+void mu_classic_show(mu_quest_client *c, int32_t quest);             /* 0x009f4cb2 */
+void mu_classic_show_top(mu_quest_client *c, int32_t quest);         /* 0x009f4c3f */
+void mu_classic_receive_states(mu_quest_client *c, const uint8_t *p, size_t size);     /* C1 C0 0x01278f3a */
+void mu_classic_receive_state(mu_quest_client *c, const uint8_t *p, size_t size);      /* C1 A1 0x0127a1db */
+void mu_classic_receive_kills(mu_quest_client *c, const uint8_t *p, size_t size);      /* C1 A4 0x01278f6c */
+void mu_classic_receive_kill_list(mu_quest_client *c, const uint8_t *p, size_t size);  /* C1 F6 1C 0x0124cbb0 */
+void mu_classic_onload(mu_quest_client *c);                          /* NpcJobChangeQuest 0x00beb8b6 */
+void mu_classic_window_state(mu_quest_client *c);                    /* 0x00bebd9f */
+void mu_classic_open(mu_quest_client *c);                            /* 0x00bec39b */
+void mu_classic_close(mu_quest_client *c);                           /* 0x00bec3f0 */
+void mu_classic_choice(mu_quest_client *c, int32_t choice);          /* 0x00bec46a */
+void mu_classic_complete(mu_quest_client *c);                        /* 0x00becb32 */
+int mu_classic_callback(mu_quest_client *c, const char *name, double number);   /* 0x00becc09 */
+int mu_classic_key(mu_quest_client *c, int key);                     /* 0x00beb9c4 */
+const char *mu_classic_state_text(mu_quest_client *c);
+void mu_classic_set_first(mu_quest_client *c, int first);
 
 /* ---- the client's text wrap (quest_wrap.c) ---------------------------------------------------------- */
 

@@ -695,7 +695,10 @@ void mu_quest_info_open(mu_quest_client *c)
         w->tab = 0;
     }
     mu_quest_logf(&c->log, "invoke %s SetUIType [%d]", MQI, w->tab);
-    mu_quest_logf(&c->log, "classicquest -1");
+    if (c->classic)
+        mu_classic_show_top(c, -1);   /* 0x009f4c3f(-1) */
+    else
+        mu_quest_logf(&c->log, "classicquest -1");
     mu_quest_tab *t = mu_quest_info_tab(c, w->tab);
     if (t)
         mu_quest_tab_init(c, t);
@@ -758,8 +761,46 @@ int mu_quest_info_callback(mu_quest_client *c, const char *name, const double *v
         return 1;
     }
     if (!strcmp(name, "onClickbtnLeaveQuestImmediately")) {
+        /* NATIVE-QUEST-002: refused while the cursor holds an item (0x00c08654, GlobalText 0x11a5) */
+        if (c->holding_item) {
+            mu_quest_notice(c, mu_quest_text(c, 0x11a5));
+            return 1;
+        }
         if (t)
             mu_quest_tab_action(c, t, t->selected);
+        return 1;
+    }
+    /* NATIVE-QUEST-002: the guide tab's callbacks (static reading of 0x00be4b89) */
+    if (c->guide && (!strcmp(name, "onClickbtnGuideQuestGiveUp") || !strcmp(name, "onClickbtnLeaveGuideQuestImmediately"))) {
+        if (c->holding_item) {
+            mu_quest_notice(c, mu_quest_text(c, 0x11a5));
+            return 1;
+        }
+        c->info.tab = 0;
+        if (name[10] == 'G') {
+            mu_guide_giveup(c);
+        } else {
+            mu_guide_go(c);
+            mu_guide_show(c, c->guide->selected);
+            mu_quest_invoke(c, MQI, "SetGuideQuestListFocus", "%d", c->guide->selected);
+        }
+        return 1;
+    }
+    if (c->guide && !strcmp(name, "OnSelectChapterCheck")) {
+        mu_guide_set_check(c, !c->guide->check);
+        return 1;
+    }
+    if (c->guide && !strcmp(name, "ScrollingGuideQuestChange") && n >= 1) {
+        if (c->info.tab == 0)
+            mu_guide_show(c, (int32_t)v[0]);
+        else if (t)
+            mu_quest_tab_show(c, t, (int32_t)v[0]);
+        return 1;
+    }
+    if (c->guide && !strcmp(name, "ScrollingGuideQuestClick")) {
+        mu_summary_show(c);
+        if (c->hud)
+            c->hud->guide_shown = 1;
         return 1;
     }
     if (!strcmp(name, "onClickbtnQuestGiveUp")) {

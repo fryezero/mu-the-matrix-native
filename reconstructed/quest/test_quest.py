@@ -33,7 +33,8 @@ class Host(ctypes.Structure):
                 ('item_record_name', ctypes.c_void_p), ('measure', ctypes.c_void_p), ('path_reset', ctypes.c_void_p),
                 ('path_start', ctypes.c_void_p), ('send_move', ctypes.c_void_p), ('helper_running', ctypes.c_void_p),
                 ('helper_available', ctypes.c_void_p), ('classic_item', ctypes.c_void_p),
-                ('classic_kills', ctypes.c_void_p)]
+                ('classic_kills', ctypes.c_void_p), ('item_level_name', ctypes.c_void_p),
+                ('money_text', ctypes.c_void_p)]
 
 
 class Data(ctypes.Structure):
@@ -42,7 +43,8 @@ class Data(ctypes.Structure):
                 # NATIVE-QUEST-002: the guide tables and the classic quests
                 ('guide_chapters', ctypes.c_void_p), ('nguide_chapters', ctypes.c_size_t),
                 ('guide_titles', ctypes.c_void_p), ('nguide_titles', ctypes.c_size_t),
-                ('guide_names', ctypes.c_void_p), ('nguide_names', ctypes.c_size_t), ('classic', ctypes.c_void_p)]
+                ('guide_names', ctypes.c_void_p), ('nguide_names', ctypes.c_size_t), ('classic', ctypes.c_void_p),
+                ('dialogs', ctypes.c_void_p), ('ndialogs', ctypes.c_size_t)]
 
 
 class Line(ctypes.Structure):

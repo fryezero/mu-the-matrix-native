@@ -550,8 +550,19 @@ def first_diff(a, b):
     return [a, b]
 
 
+COVERAGE = {}
+
+
+def cover(lines):
+    for line in lines:
+        parts = line.split(b' ')
+        key = b' '.join(parts[:3] if parts[0] in (b'invoke', b'value', b'call') else parts[:2]).decode('latin1')
+        COVERAGE[key] = COVERAGE.get(key, 0) + 1
+
+
 def compare(fam, label, m, nat, world, extra=None):
     client_log = [line for line in world.log]
+    cover(client_log)
     native_log = [line.encode('latin1') for line in nat.log()]
     world.log.clear()
     nat.clear_log()
@@ -903,6 +914,392 @@ def run_wrap(m, nat, rng, fam, cases):
                   client, native)
 
 
+# ---- the class-upgrade quests ------------------------------------------------------------------------------
+
+CSQ_PTR, CSQ_SIZE = 0x01d1e71c, 0x30dd0
+CSQ_CTOR, CSQ_LOAD = 0x009f47b2, 0x009f4866
+NJCQ_VT, TAB1_CTOR = 0x01a95570, 0x00d4e90b
+KEY3 = 0x01cf0448
+DIALOG_ID, LINES_N, LINES, ANS_N, ANS = 0x01cf17b0, 0x0bdc5b94, 0x0bdc5b98, 0x0bdc5ce4, 0x0bdc5ce8
+FIRST_FLAG, MONEY_PTR, TARGET_KEY = 0x01d1de8c, 0x01d1df18, 0x01cf1150
+INVENTORY = 0x0bf70000
+WSPRINTF_SLOT = 0x01a7c844
+NAMES = [b'Scroll', b'Feather', b'Jewel of <Soul>', b'Broken Sword', b'Tear \xb0\xa1']
+
+
+def item_level_name(code, level):
+    return NAMES[(code + level) % len(NAMES)] + b' %d+%d' % (code, level)
+
+
+def money_text(zen):
+    return ('{:,}'.format(int(zen))).encode()
+
+
+class ClassicEnv:
+    def __init__(self):
+        self.items = {}       # (code, level) -> count in the inventory
+        self.money = 0
+        self.target = -1      # the selected character's class, -1 none
+        self.first = 0
+
+
+CENV = ClassicEnv()
+
+
+def install_classic_stubs(m, world, quest_bmd):
+    W = lambda: vq.WORLD  # noqa: E731
+    files = {}
+
+    def fopen(mm):
+        path, mode = mm.args(2)
+        files[1] = [quest_bmd, 0]
+        return 1
+    m.stub(0x01988f83, fopen, 0)
+
+    def fread(mm):
+        buf, size, count, f = mm.args(4)
+        data, pos = files[f]
+        chunk = data[pos:pos + size * count]
+        files[f][1] = pos + len(chunk)
+        mm.write(buf, chunk)
+        return len(chunk) // size if size else 0
+    m.stub(0x01989230, fread, 0)
+    m.stub(0x01988c95, lambda mm: 0, 0)
+
+    def inventory_count(mm):
+        code, level = mm.args(2)
+        return CENV.items.get((i32(code), level & 0xff), 0)
+    world.inv_fn = m._new_stub()
+    m.stub(world.inv_fn, inventory_count, 8)
+
+    def name(mm):
+        code, level, out = mm.args(3)
+        mm.write(out, item_level_name(i32(code), i32(level)) + b'\0')
+        return out
+    m.stub(0x016b9c4e, name, 0)
+
+    def money(mm):
+        lo, hi, out = mm.args(3)
+        mm.write(out, money_text(struct.unpack('<d', struct.pack('<II', lo, hi))[0]) + b'\0')
+        return 0
+    m.stub(0x016b8b26, money, 0)
+    m.stub(0x0095f6db, lambda mm: mm.args(1)[0], 0)
+
+    def target(mm):
+        if CENV.target < 0:
+            return 0
+        ch = mm.alloc(0x200, define=True)
+        mm.write(ch + 0x146, struct.pack('<h', CENV.target))
+        return ch
+    m.stub(0x009a13f4, target, 4)
+    m.stub(0x00f2b53d, lambda mm: W().log.append(b'classic refresh') and 0 or 0, 0)
+    m.stub(0x00ac9c74, lambda mm: 0, 0)
+    m.stub(0x00be4901, lambda mm: W().log.append(b'MyQuestInfo refresh') and 0 or 0, 0)
+    m.stub(0x00bed7d8, lambda mm: W().log.append(b'classic item piece request (not played)') and 0 or 0, 0)
+
+    def wsprintf(mm):
+        words = mm.args(16)
+        buf, fmt = words[0], mm.cstr(words[1])
+        out = vq.c_format(mm, fmt, words[2:])
+        mm.write(buf, out + b'\0')
+        return len(out)
+    world.wsprintf_fn = m._new_stub()
+    m.stub(world.wsprintf_fn, wsprintf, 0)
+    # the wrap's font measure (tab 1's state line), as in the wrap family
+    world.ptd = None
+    m.stub(0x01994240, lambda mm: 1, 0)
+    m.stub(0x011a07b2, lambda mm: vq.DUMMY, 0)
+    m.stub(0x011a08fd, lambda mm: 0x1234, 0)
+    m.stub(0x019a4ba6, lambda mm: world.ptd, 0)
+
+
+class ClassicWorld:
+    def __init__(self, m, world):
+        self.m, self.w = m, world
+
+    def reset(self):
+        m, w = self.m, self.w
+        w.reset(summary=False)
+        m.put32(WSPRINTF_SLOT, w.wsprintf_fn)
+        w.ptd = m.alloc(0x400, define=True)
+        m.write(0x06fbcd94, f32(1.0))
+        m.handlers['GetTextExtentPointA'] = lambda mm, words: (mm.write(words[3], struct.pack(
+            '<ii', sum(ENV.widths.get(b, 7) for b in mm.read(words[1], words[2])), 12)), 1)[1]
+        m.write(KEY3, b'\xfc\xcf\xab\0')
+        obj = self.obj = m.alloc(CSQ_SIZE + 60 * 1000, define=True)   # slack: see run_classic
+        m.put32(CSQ_PTR, obj)
+        m.call(CSQ_CTOR, [], ecx=obj)
+        path = m.cstring(b'Data\\Local\\Quest.bmd')
+        m.call(CSQ_LOAD, [path], ecx=obj)
+        m.put32(DIALOG_ID, 0)
+        m.put32(LINES_N, 0)
+        m.write(LINES, bytes(7 * 0x26))
+        m.put32(ANS_N, 0)
+        m.write(ANS, bytes(10 * 0x26))
+        m.write(FIRST_FLAG, b'\0')
+        m.write(0x0b477fcc, bytes(4))
+        money = m.alloc(0x3000, define=True)
+        m.put32(MONEY_PTR, money)
+        self.money = money
+        m.put32(TARGET_KEY, 0xffffffff)
+        inv = m.alloc(0x100, define=True)
+        vt = m.alloc(0x100, define=True)
+        m.put32(inv, vt)
+        m.put32(vt + 0xb4, w.inv_fn)
+        m.put32(w.mgr + 0xa0, inv)
+        njcq = self.njcq = m.alloc(0xa0, define=True)
+        m.put32(njcq, NJCQ_VT)
+        m.put32(njcq + 0x80, 0xffffffff)
+        m.put32(w.mgr + 0x108, njcq)
+        w.names[njcq] = b'NpcJobChangeQuest'
+        t1 = self.tab1 = m.alloc(0xd8, define=True)
+        m.call(TAB1_CTOR, [], ecx=t1)
+        for key, node in vq.tree(m, w.mqi + 0x80):
+            if key == 1:
+                m.put32(node + 0x14, t1)
+        w.tabs[1] = t1
+
+    def env(self):
+        m, w = self.m, self.w
+        w.env()
+        m.put32(self.money + 0x2d70, CENV.money)
+        m.put32(TARGET_KEY, 0 if CENV.target >= 0 else 0xffffffff)
+        m.write(FIRST_FLAG, bytes([CENV.first]))
+
+    def state(self):
+        m, o = self.m, self.obj
+        out = 'cls=%d cur=%d top=%d text=%d state=%d zen=%d f89=%d pend=%d dlg=%d lines=%d answers=%d mode=%d wq=%d ' \
+              'ws=%d items=%d kills=' % (
+                  m.read(o + 0x10, 1)[0], m.read(o + 0x30d86, 1)[0], m.read(o + 0x30d87, 1)[0],
+                  struct.unpack('<h', m.read(o + 0x30d8a, 2))[0], m.read(o + 0x30d8c, 1)[0], i32(m.u32(o + 0x30d90)),
+                  m.read(o + 0x30d89, 1)[0], m.read(o + 0x30d95, 1)[0], i32(m.u32(DIALOG_ID)), i32(m.u32(LINES_N)),
+                  i32(m.u32(ANS_N)), i32(m.u32(self.njcq + 0x80)), m.read(self.njcq + 0x78, 1)[0],
+                  m.read(self.njcq + 0x79, 1)[0], i32(m.u32(self.njcq + 0x7c)))
+        for i in range(5):
+            out += '%d:%d,' % (i32(m.u32(o + 0x30d98 + 4 * i)), i32(m.u32(o + 0x30dac + 4 * i)))
+        out += ' states=' + m.read(o + 0x30d54, 50).hex()
+        for i in range(min(max(i32(m.u32(LINES_N)), 0), 7)):
+            out += ' L%d=%s' % (i, m.cstr(LINES + i * 0x26).decode('latin1'))
+        for i in range(min(max(i32(m.u32(ANS_N)), 0), 10)):
+            out += ' A%d=%s' % (i, m.cstr(ANS + i * 0x26).decode('latin1'))
+        return out
+
+
+def classic_native_setup(nat, quest_bmd):
+    L = nat.lib
+    L.mu_classic_load.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+    L.mu_classic_set_first.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    L.mu_classic_load(ctypes.byref(nat.data), quest_bmd, len(quest_bmd))
+    for name, args, res in (('mu_classic_state_of', [ctypes.c_int32], ctypes.c_int),
+                            ('mu_classic_state', [ctypes.c_int32], ctypes.c_int),
+                            ('mu_classic_kills', [ctypes.c_int32], ctypes.c_int32),
+                            ('mu_classic_answer', [ctypes.c_int32], ctypes.c_int32),
+                            ('mu_classic_text', [ctypes.c_int32], None), ('mu_classic_show', [ctypes.c_int32], None),
+                            ('mu_classic_show_top', [ctypes.c_int32], None),
+                            ('mu_classic_receive_states', [ctypes.c_char_p, ctypes.c_size_t], None),
+                            ('mu_classic_receive_state', [ctypes.c_char_p, ctypes.c_size_t], None),
+                            ('mu_classic_receive_kills', [ctypes.c_char_p, ctypes.c_size_t], None),
+                            ('mu_classic_receive_kill_list', [ctypes.c_char_p, ctypes.c_size_t], None),
+                            ('mu_classic_onload', [], None), ('mu_classic_window_state', [], None),
+                            ('mu_classic_open', [], None), ('mu_classic_close', [], None),
+                            ('mu_classic_choice', [ctypes.c_int32], None), ('mu_classic_complete', [], None),
+                            ('mu_classic_tab_init', [], None), ('mu_classic_state_text', [], ctypes.c_char_p)):
+        fn = getattr(L, name)
+        fn.argtypes = [ctypes.c_void_p] + args
+        fn.restype = res
+    ITEM_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32)
+    LNAME_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_void_p,
+                                ctypes.c_size_t)
+    MONEY_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_void_p, ctypes.c_size_t)
+
+    def lname(u, code, level, out, cap):
+        b = item_level_name(code, level)[:cap - 1] + b'\0'
+        ctypes.memmove(out, b, len(b))
+
+    def mtext(u, zen, out, cap):
+        b = money_text(zen)[:cap - 1] + b'\0'
+        ctypes.memmove(out, b, len(b))
+    fns = [ITEM_FN(lambda u, code, count, level: CENV.items.get((code, level & 0xff), 0)), LNAME_FN(lname),
+           MONEY_FN(mtext)]
+    nat.cb.extend(fns)
+    nat.host.classic_item = ctypes.cast(fns[0], ctypes.c_void_p).value
+    nat.host.item_level_name = ctypes.cast(fns[1], ctypes.c_void_p).value
+    nat.host.money_text = ctypes.cast(fns[2], ctypes.c_void_p).value
+
+
+def run_classic_data(m, nat, snap, cw, quest_bmd, fam):
+    """The client's loader 0x009f4866 on the installed Quest.bmd, and the running client's records (snapshot),
+    against libquest's decode."""
+    cw.reset()
+    client = m.read(cw.obj + 0x14, 200 * 1000)
+    native = ctypes.string_at(ctypes.cast(nat.data.classic, ctypes.c_void_p), 200 * 1000)
+    for r in range(200):
+        fam.check(f'loader record {r}', client[r * 1000:(r + 1) * 1000], native[r * 1000:(r + 1) * 1000])
+    try:
+        live = snap.read(snap.u32(CSQ_PTR) + 0x14, 200 * 1000)
+        for r in range(200):
+            fam.check(f'live record {r}', live[r * 1000:(r + 1) * 1000], native[r * 1000:(r + 1) * 1000])
+    except Exception as error:   # older snapshots without ptr:0x01d1e71c
+        fam.examples.append({'note': f'no live classic records: {error}'})
+
+
+def run_classic(m, nat, world, cw, rng, fam, sequences, length):
+    L, c = nat.lib, nat.client
+    saved = {a: m.stubs.pop(a) for a in (0x00a99ebe, 0x009f4c3f) if a in m.stubs}   # the real manager here
+    try:
+        classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c)
+    finally:
+        m.stubs.update(saved)
+
+
+def classic_sequences(m, nat, world, cw, rng, fam, sequences, length, L, c):
+    rec = m.read(cw.obj + 0x14, 0) if False else None
+    for seq in range(sequences):
+        try:
+            cw.reset()
+            nat.reset()
+            L.mu_classic_state(c, 0)          # creates the native manager (the client's exists)
+            CENV.items, CENV.money, CENV.target, CENV.first = {}, 0, -1, 0
+            records = m.read(cw.obj + 0x14, 200 * 1000)
+            codes = []
+            for r in range(200):
+                b = records[r * 1000:(r + 1) * 1000]
+                for k in range(16):
+                    a = 0x28 + k * 0x28
+                    if b[a + 1] == 1:
+                        codes.append((struct.unpack_from('<H', b, a + 2)[0] * 0x200 + b[a + 4], b[a + 5],
+                                      struct.unpack_from('<i', b, a + 8)[0]))
+            monsters = sorted({struct.unpack_from('<H', records, r * 1000 + 0x28 + k * 0x28 + 2)[0]
+                               for r in range(200) for k in range(16) if records[r * 1000 + 0x28 + k * 0x28 + 1] == 2})
+            for step in range(length):
+                world_ops = GuideOps(m, nat, world, [])
+                world_ops.random_env(rng)
+                # classes 0..7: a class without any allowed condition makes the client step the current quest below
+                # 0 (0x009f436e) and read past the 200 records
+                ENV.cls = rng.choice([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x10, 0x11, 0x21, 0x22])
+                ENV.level = rng.choice([1, 50, 150, 200, 220, 280, 380, 400])
+                ENV.total = ENV.level
+                CENV.money = rng.choice([0, 100000, 3000000, 10**9])
+                CENV.target = rng.choice([-1, -1, 0xe5, 0xeb, 0x10])
+                CENV.first = rng.choice([0, 1])
+                if rng.random() < 0.3:
+                    for code, level, count in rng.sample(codes, min(len(codes), 4)):
+                        CENV.items[(code, level)] = rng.choice([0, count, count + 1, max(0, count - 1)])
+                cw.env()
+                nat.env()
+                nat.field('play_tabs', 1)
+                L.mu_quest_client_field(c, b'money', 1, CENV.money)
+                L.mu_quest_client_field(c, b'target_class', 1, CENV.target)
+                L.mu_classic_set_first(c, CENV.first)
+                L.mu_quest_client_field(c, b'wrap_scale_x1000', 1, 1000)
+                op = rng.choice(['c0', 'c0', 'a1', 'a1', 'a4', 'f61c', 'answer', 'show', 'showtop', 'text', 'state',
+                                 'kills', 'onload', 'wstate', 'open', 'close', 'choice', 'choice', 'complete', 'tab1'])
+                label = f'classic seq {seq} step {step} {op}'
+                extra = None
+                o = cw.obj
+                if op == 'c0':
+                    n = rng.randint(0, 40)
+                    states = bytes(rng.choice([0x00, 0xaa, 0xff, 0x55, 0x1b, 0xe4, rng.randint(0, 255)])
+                                   for _ in range(n // 4 + 1))
+                    pkt = b'\xc1' + bytes([4 + len(states)]) + b'\xc0' + bytes([n]) + states
+                    buf = m.alloc(64 + len(pkt), define=True)
+                    m.write(buf, pkt)
+                    m.call(0x01278f3a, [buf])
+                    L.mu_classic_receive_states(c, pkt, len(pkt))
+                    extra = (m.read(world.hero + 0x29, 1)[0], nat.field('hero.flag29'))
+                elif op == 'a1':
+                    pkt = b'\xc1\x05\xa1' + bytes([rng.randint(0, 12), rng.randint(0, 255)])
+                    buf = m.alloc(64, define=True)
+                    m.write(buf, pkt)
+                    m.call(0x0127a1db, [buf])
+                    L.mu_classic_receive_state(c, pkt, len(pkt))
+                elif op == 'a4':
+                    pairs = b''.join(struct.pack('<ii', rng.choice(monsters + [-1]), rng.randint(0, 30)) for _ in range(5))
+                    pkt = b'\xc1\x30\xa4\0\0\0\0\0' + pairs
+                    buf = m.alloc(96, define=True)
+                    m.write(buf, pkt)
+                    m.call(0x01278f6c, [buf])
+                    L.mu_classic_receive_kills(c, pkt, len(pkt))
+                elif op == 'f61c':
+                    k = rng.randint(0, 5)
+                    cur = m.read(o + 0x30d86, 1)[0]
+                    body = b''.join(struct.pack('<HBB', rng.choice(monsters), rng.randint(0, 30), 0) for _ in range(k))
+                    pkt = b'\xc1' + bytes([6 + len(body)]) + b'\xf6\x1c' + bytes([rng.choice([cur, cur, 7]), k]) + body
+                    buf = m.alloc(96, define=True)
+                    m.write(buf, pkt)
+                    m.call(0x0124cbb0, [buf])
+                    L.mu_classic_receive_kill_list(c, pkt, len(pkt))
+                elif op == 'answer':
+                    a = rng.choice([0xff, 0xff, 1, 2, 3, 0])
+                    r1 = m.call(0x009f4244, [a], ecx=o) & 0xff
+                    r2 = L.mu_classic_answer(c, a) & 0xff
+                    extra = (r1, r2)
+                elif op == 'show':
+                    q = rng.choice([-1, -1, rng.randint(0, 12)])
+                    m.call(0x009f4cb2, [q & 0xffffffff], ecx=o)
+                    L.mu_classic_show(c, q)
+                elif op == 'showtop':
+                    q = rng.choice([-1, rng.randint(0, 12)])
+                    m.call(0x009f4c3f, [q & 0xffffffff], ecx=o)
+                    L.mu_classic_show_top(c, q)
+                elif op == 'text':
+                    d = rng.randint(0, 260)
+                    m.call(0x009f4fc8, [d], ecx=o)
+                    L.mu_classic_text(c, d)
+                elif op == 'state':
+                    q = rng.randint(0, 40)
+                    extra = ((m.call(0x009f4bf3, [q], ecx=o) & 0xff, m.call(0x009f4d91, [q], ecx=o) & 0xff),
+                             (L.mu_classic_state_of(c, q), L.mu_classic_state(c, q)))
+                elif op == 'kills':
+                    mon = rng.choice(monsters + [0, 5])
+                    extra = (i32(m.call(0x009f52fe, [mon], ecx=o)), L.mu_classic_kills(c, mon))
+                elif op == 'onload':
+                    m.call(0x00beb8b6, [], ecx=cw.njcq)
+                    L.mu_classic_onload(c)
+                elif op == 'wstate':
+                    m.call(0x00bebd9f, [], ecx=cw.njcq)
+                    L.mu_classic_window_state(c)
+                elif op == 'open':
+                    m.call(0x00bec39b, [], ecx=cw.njcq)
+                    L.mu_classic_open(c)
+                elif op == 'close':
+                    m.call(0x00bec3f0, [], ecx=cw.njcq)
+                    L.mu_classic_close(c)
+                elif op == 'choice':
+                    k = rng.choice([0, 0, 1, 2])
+                    m.call(0x00bec46a, [k], ecx=cw.njcq)
+                    L.mu_classic_choice(c, k)
+                elif op == 'complete':
+                    m.call(0x00becb32, [], ecx=cw.njcq)
+                    L.mu_classic_complete(c)
+                elif op == 'tab1':
+                    m.call(0x00d4dd38, [], ecx=cw.tab1)
+                    L.mu_classic_tab_init(c)
+                if m.read(o + 0x30d86, 1)[0] >= 200:
+                    # the client stepped the current quest below 0 (0x009f436e) and read past its records
+                    # (zero slack here): not comparable, the sequence ends
+                    COVERAGE['classic wrapped past quest 0'] = COVERAGE.get('classic wrapped past quest 0', 0) + 1
+                    world.log.clear()
+                    nat.clear_log()
+                    break
+                cl = [line for line in world.log]
+                cover(cl)
+                COVERAGE['classic op ' + op] = COVERAGE.get('classic op ' + op, 0) + 1
+                nl = [line.encode('latin1') for line in nat.log()]
+                world.log.clear()
+                nat.clear_log()
+                client = (cl, cw.state(), extra[0] if extra else None)
+                native = (nl, L.mu_classic_state_text(c).decode('latin1'), extra[1] if extra else None)
+                before = fam.mismatches
+                fam.check(label, client, native)
+                if fam.mismatches > before and len(fam.examples) <= 8:
+                    fam.examples[-1] = {'case': label, 'diff': first_diff(client, native)}
+        except cm.CaseError as error:
+            fam.cases += 1
+            fam.mismatches += 1
+            fam.examples.append({'label': f'classic seq {seq}', 'error': str(error)})
+
+
 def ids_index(m, world, nlist):
     cur = i32(m.u32(world.guide + 0xc4))
     for k in range(nlist):
@@ -928,8 +1325,9 @@ def main():
     parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
     parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--families', default='guide-data,guide,summary,move,wrap')
+    parser.add_argument('--families', default='guide-data,guide,summary,move,wrap,classic-data,classic')
     parser.add_argument('--wrap-cases', type=int, default=2000)
+    parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT', ''))
     parser.add_argument('--sequences', type=int, default=40)
     parser.add_argument('--length', type=int, default=30)
     parser.add_argument('--output')
@@ -955,12 +1353,19 @@ def main():
         vq.install_window_stubs(m, world)
         vq.install_more_stubs(m, world)
         install_guide_stubs(m, world)
+        quest_bmd = (Path(args.game_root)/'Data/Local/quest.bmd').read_bytes()
+        install_classic_stubs(m, world, quest_bmd)
+        classic_native_setup(nat, quest_bmd)
+        nat.reset()
+        cw = ClassicWorld(m, world)
         runs = {
             'guide-data': lambda f: run_guide_data(m, nat, snap, f),
             'guide': lambda f: run_guide(m, nat, world, steps, rng, f, args.sequences, args.length),
             'summary': lambda f: run_summary(m, nat, world, steps, records, rng, f, args.sequences, args.length),
             'move': lambda f: run_move(m, nat, world, steps, records, rng, f, args.sequences, args.length),
             'wrap': lambda f: run_wrap(m, nat, rng, f, args.wrap_cases),
+            'classic-data': lambda f: run_classic_data(m, nat, snap, cw, quest_bmd, f),
+            'classic': lambda f: run_classic(m, nat, world, cw, rng, f, args.sequences, args.length),
         }
         for name in args.families.split(','):
             fam = vq.Family(name)
@@ -971,6 +1376,7 @@ def main():
                 fam.mismatches += 1
             report['families'][name] = fam.summary()
             print(f'{name}: {fam.cases} cases, {fam.mismatches} mismatches ({time.time() - t0:.1f} s)', flush=True)
+    report['coverage'] = dict(sorted(COVERAGE.items()))
     report['seconds'] = round(time.time() - t0, 1)
     text_out = json.dumps(report, indent=2, default=repr)
     if args.output:
