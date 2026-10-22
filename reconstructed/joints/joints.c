@@ -117,6 +117,8 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 0;
     case MU_JT_BITMAP_SPARK:
         return subtype == 0;
+    case MU_JT_BITMAP_FLARE:
+        return subtype == 0;   /* NATIVE-HELPERS-002 */
     case MU_JT_TYPE_THUNDER_BOLT:
         return subtype >= 0x10 && subtype <= 0x1a;
     default:
@@ -303,6 +305,28 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         if (!create_thunder_bolt(j, target, scale, env))
             return 1;
         break;
+    case MU_JT_BITMAP_FLARE: {
+        if (subtype != 0)
+            break;
+        /* NATIVE-HELPERS-002, 0x015496cb, subtype 0: a flare circling its target, the lap set by the key */
+        j->lifetime = 100;
+        j->max_tails = 20;
+        j->scale = 10.0f;
+        j->scale = scale;
+        j->jitter[2] = (float)imod(jrand(env), 150) / 100.0f;
+        j->jitter[1] = (float)(imod(jrand(env), 500) - 250);
+        j->velocity = 40.0f;
+        if (j->scale > 10.0f) {
+            j->lifetime = 50;
+            j->jitter[2] = (float)(imod(jrand(env), 250) + 200) / 100.0f;
+        }
+        const mu_jt_object *t = jobject(env, j->target);   /* the client reads the target's light (never NULL) */
+        j->light[0] = t ? t->light[0] : 0.0f;
+        j->light[1] = t ? t->light[1] : 0.0f;
+        j->light[2] = t ? t->light[2] : 0.0f;
+        copy3(j->target_position, target_position);       /* 0x0154bfad */
+        break;
+    }
     default:
         break;
     }
@@ -678,6 +702,31 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
     case MU_JT_BITMAP_SPARK:
         /* 0x0156977b: subtype 0 has no case (the head's forward motion only) */
         break;
+    case MU_JT_BITMAP_FLARE: {
+        /* NATIVE-HELPERS-002, 0x01578049, subtype 0: the head on a circle around the target position */
+        float a;
+        if ((int16_t)j->key != -1)
+            a = ((float)j->lifetime + j->jitter[1]) / (float)(int16_t)j->key;
+        else
+            a = ((float)j->lifetime + j->jitter[1]) * F_0_1;
+        j->position[0] = fcos(a) * j->velocity + j->target_position[0];
+        j->position[1] = j->target_position[1] - fsin(a) * j->velocity;
+        j->position[2] = j->position[2] + j->jitter[2];
+        /* 0x0157c288: fading over the last ten steps */
+        if (j->lifetime < 10)
+            for (int k = 0; k < 3; ++k)
+                j->light[k] = j->light[k] / 1.3f;
+        /* 0x0157c344: a thin ring stops (and stops shifting its tails) when its target attacks */
+        if (40.0f > j->scale && t) {
+            const uint16_t act = t->action;
+            if ((act >= 0x32 && act < 0x6f) || (act >= 0x89 && act <= 0x8d)) {
+                j->subtype = 1;
+                j->tail_update = 0;
+                j->lifetime = j->lifetime > 10 ? 10 : j->lifetime;
+            }
+        }
+        break;
+    }
     case MU_JT_TYPE_THUNDER_BOLT:
         /* 0x0156fb0f */
         switch (j->subtype) {

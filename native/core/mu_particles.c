@@ -15,7 +15,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 29
+#define MU_WORLD_PT_EFFECTS 34
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
@@ -27,6 +27,9 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_SMOKE2, MU_PT_BITMAP_DROP, MU_JT_BITMAP_FLARE, MU_SFX_BITMAP_SHOCKWAVE,
     /* NATIVE-HELPERS-002: the Shining Tail's glints (pin_star, pin_star02, bostar3_R, Shiny03) */
     0x8108, 0x8109, 0x8179, 0x7f68,
+    /* Fenrir's paw marks eff_lightinga01..05 (LoadBitmap 0x01822cdb..) */
+    MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2, MU_SFX_BITMAP_LIGHTING_A + 3,
+    MU_SFX_BITMAP_LIGHTING_A + 4,
     MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
@@ -37,7 +40,9 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/WATERFALL3.OZJ", "Data/Effect/fantaB.OZJ", "Data/Effect/Spark04.OZJ",
     "Data/Effect/magic_ground1_3.OZJ", "Data/Effect/Impack03.OZJ",
     "Data/Effect/smoke02.ozt", "Data/Object8/drop01.OZJ", "Data/Effect/Flare.OZJ", "Data/Effect/Shockwave.OZJ",
-    "Data/Effect/pin_star.OZJ", "Data/Effect/pin_star02.OZJ", "Data/Effect/bostar3_R.OZJ", "Data/Effect/Shiny03.OZJ"};
+    "Data/Effect/pin_star.OZJ", "Data/Effect/pin_star02.OZJ", "Data/Effect/bostar3_R.OZJ", "Data/Effect/Shiny03.OZJ",
+    "Data/Effect/eff_lightinga01.OZJ", "Data/Effect/eff_lightinga02.OZJ", "Data/Effect/eff_lightinga03.OZJ",
+    "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -46,7 +51,9 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
      * textures from Data\Effect\) */
     {MU_SFX_MODEL_STAR_DRAGON, 0x5d, "Data/Effect/stardr01.bmd"},
-    {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"}};
+    {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"},
+    /* NATIVE-HELPERS-002: Fenrir's body lightning (AccessModel 0x01834a74, every world: world -1) */
+    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -174,7 +181,7 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
     for (int i = 0; i < MU_WORLD_FX_MODELS; ++i) {
         mu_world_fx_model *m = &p->models[i];
         m->type = fx_model_files[i].type;
-        if (no_assets || fx_model_files[i].world != world)
+        if (no_assets || (fx_model_files[i].world != world && fx_model_files[i].world != -1))
             continue;
         char path[4096], message[512], directory[2048];
         if (!mu_objects_resolve(root, fx_model_files[i].file, path, sizeof path) ||
@@ -378,6 +385,12 @@ static void sfx_bone(void *c, const mu_sfx_effect *e, int32_t bone, float out[3]
         memcpy(out, e->position, 3 * sizeof *out);
 }
 
+static uint32_t sfx_time(void *c)
+{
+    const mu_world_particles *p = c;
+    return p->world_time > 0.0f ? (uint32_t)p->world_time : 0u;
+}
+
 static void effect_env(mu_world_particles *p, mu_sfx_env *env)
 {
     memset(env, 0, sizeof *env);
@@ -389,6 +402,7 @@ static void effect_env(mu_world_particles *p, mu_sfx_env *env)
     env->call = sfx_call;
     env->model = sfx_model;
     env->hero_object = FX_HERO_OBJECT;
+    env->time_ms = sfx_time;   /* NATIVE-HELPERS-002: timeGetTime as the world time (viewer choice) */
 }
 
 static int fx_call(mu_world_particles *p, const mu_jt_call *call, mu_sfx_effect *e)
@@ -765,8 +779,139 @@ static long draw_joints(mu_world_particles *p, const mu_world_particles_target *
     return drawn;
 }
 
+/* ---- NATIVE-HELPERS-002: effects drawn as terrain decals (RenderTerrainAlphaBitmap 0x016cdd5f) ---- */
+
+typedef struct decal_draw {
+    mu_world_particles *p;
+    const mu_world_particles_target *t;
+    int32_t slot, mode, n;
+    float color[4], uv[2];
+    float fan[64][5];
+    long fans;
+} decal_draw;
+
+static void ds_state(void *c, int32_t state, int32_t argument)
+{
+    (void)c, (void)state, (void)argument;   /* the caller chose the blend (EnableAlphaBlend) */
+}
+
+static void ds_bind(void *c, int32_t texture)
+{
+    decal_draw *d = c;
+    const int32_t s = slot_of(texture);
+    d->slot = s >= 0 && d->p->bitmap_present[s] ? s : -1;
+}
+
+static void ds_begin(void *c, int32_t mode)
+{
+    decal_draw *d = c;
+    d->mode = mode;
+    d->n = 0;
+}
+
+static void ds_tex(void *c, float u, float v)
+{
+    decal_draw *d = c;
+    d->uv[0] = u;
+    d->uv[1] = v;
+}
+
+static void ds_color3(void *c, const float rgb[3])
+{
+    decal_draw *d = c;
+    d->color[0] = rgb[0], d->color[1] = rgb[1], d->color[2] = rgb[2], d->color[3] = 1.0f;
+}
+
+static void ds_color4(void *c, float r, float g, float b, float a)
+{
+    decal_draw *d = c;
+    d->color[0] = r, d->color[1] = g, d->color[2] = b, d->color[3] = a;
+}
+
+static void ds_vertex(void *c, const float xyz[3])
+{
+    decal_draw *d = c;
+    if (d->n < 64) {
+        float *v = d->fan[d->n++];
+        v[0] = xyz[0], v[1] = xyz[1], v[2] = xyz[2], v[3] = d->uv[0], v[4] = d->uv[1];
+    }
+}
+
+static void ds_end(void *c)
+{
+    decal_draw *d = c;
+    if (d->slot < 0 || d->n < 3)
+        return;
+    mu_render_backend b;
+    if (d->t->backend(d->t->context, d->p, &b))
+        return;
+    mu_meshdraw_state s;
+    mu_meshdraw_state_defaults(&s);
+    apply_state(&s, MU_PT_STATE_ADD, 0);   /* EnableAlphaBlend 0x0184aa2b before the decal */
+    s.depth_test = 1;
+    b.prepare(b.context, &s, d->slot);
+    b.begin(b.context);
+    for (int32_t i = 1; i + 1 < d->n; ++i) {   /* the GL_TRIANGLE_FAN as triangles */
+        const int32_t k[3] = {0, i, i + 1};
+        for (int j = 0; j < 3; ++j) {
+            const float *v = d->fan[k[j]];
+            b.sink.texcoord(b.sink.context, v[3], v[4]);
+            b.sink.color4(b.sink.context, d->color[0], d->color[1], d->color[2], d->color[3]);
+            b.sink.vertex(b.sink.context, v);
+        }
+    }
+    b.end(b.context);
+    d->fans++;
+}
+
+static int decal_texture_size(void *c, int32_t texture, float *width, float *height)
+{
+    const mu_world_particles *p = c;
+    const int32_t s = slot_of(texture);
+    if (s < 0 || !p->bitmap_present[s])
+        return 0;
+    *width = (float)p->bitmaps.images[s].width;
+    *height = (float)p->bitmaps.images[s].height;
+    return 1;
+}
+
+/* The flying step's shock ring 0x8012 (RenderTerrainEffects 0x0150f00e, default branch 0x015158df: outside the
+ * worlds 0x18..0x1d / 0x24) and Fenrir's paw marks 0x4ad (RenderEffects 0x0151a680: 0x7ff4 + frame % 5, 0.6 wide). */
+static long draw_effect_decals(mu_world_particles *p, const mu_world_particles_target *t)
+{
+    if (!p->map || !p->effects || !t)
+        return 0;
+    mu_terrain_scene scene;
+    mu_world_scene((mu_world *)p->map, &scene);
+    scene.texture_size = decal_texture_size;
+    scene.texture_context = p;
+    decal_draw d;
+    memset(&d, 0, sizeof d);
+    d.p = p;
+    d.t = t;
+    d.slot = -1;
+    const mu_terrain_sink sink = {&d, ds_state, ds_bind, ds_begin, ds_tex, ds_color3, ds_color4, ds_vertex, ds_end};
+    const int32_t w = p->world;
+    for (int32_t i = 0; i < MU_WORLD_FX_EFFECTS; ++i) {
+        const mu_sfx_effect *e = &p->effects[i];
+        if (!e->live)
+            continue;
+        if (e->type == MU_SFX_BITMAP_SHOCKWAVE && !(((w >= 0x18 && w <= 0x1d) || w == 0x24) && e->subtype != 6) &&
+            e->subtype != 0x18)
+            mu_terrain_decal(&scene, MU_SFX_BITMAP_SHOCKWAVE, e->position[0], e->position[1], e->scale, e->scale,
+                             e->light, -e->angle[2], 1.0f, 5.0f, 1, 0, &sink);
+        else if (e->type == MU_SFX_FENRIR_STEP && e->subtype != 5)
+            mu_terrain_decal(&scene, MU_SFX_BITMAP_LIGHTING_A + e->field_64 % 5, e->position[0], e->position[1], 0.6f,
+                             0.6f, e->light, 0.0f, 1.0f, 5.0f, 1, 0, &sink);
+    }
+    p->stats.drawn_decals = (uint32_t)d.fans;
+    p->stats.decals_total += (uint64_t)d.fans;
+    return d.fans;
+}
+
 long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], const mu_world_particles_target *t)
 {
+    draw_effect_decals(p, t);   /* NATIVE-HELPERS-002 */
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < 4; ++j)
             p->camera[4 * i + j] = modelview[4 * j + i];   /* 0x0184a569: CameraMatrix[i][j] = gl[4j + i] */

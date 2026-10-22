@@ -51,6 +51,10 @@ enum {
     MU_SFX_MODEL_TORNADO = 0x40e,     /* Object142\hs_fieldtornado.bmd (Tormenta Island, NATIVE-JOINT-001) */
     MU_SFX_MODEL_STAR_DRAGON = 0x5ac, /* Effect\stardr01.bmd: the character-select sky dragon (NATIVE-CHARSEL-003) */
     MU_SFX_MODEL_STAR_GLINT = 0x5ad,  /* Effect\stardr02.bmd: the glint the dragon spawns at its bone 1 */
+    /* NATIVE-HELPERS-002: Fenrir's effects (its registry functor) */
+    MU_SFX_MODEL_FENRIR_LIGHTNING = 0x4ac, /* Effect\lightning_type01.bmd: flashes on its owner's bones */
+    MU_SFX_FENRIR_STEP = 0x4ad,       /* no model: the paws' lightning marks (decals 0x7ff4..0x7ff8) */
+    MU_SFX_BITMAP_LIGHTING_A = 0x7ff4,/* Effect\eff_lightinga01..05.jpg (0x7ff4 + frame % 5) */
     MU_SFX_BITMAP_THUNDER = 0x7f2b,   /* Effect\Thunder01.jpg (Energy Ball) */
     MU_SFX_BITMAP_SPARK3 = 0x7f26,    /* Effect\Spark03.jpg */
     MU_SFX_BITMAP_FIRE = 0x7f3c,      /* Effect\Fire01.jpg */
@@ -77,7 +81,8 @@ enum {
     MU_SFX_CALL_ATTRIBUTE = 0x016d34db,       /* TerrainWall[TERRAIN_INDEX(subtype, range)]: returns the attribute word */
     MU_SFX_CALL_POSE = 0x012b5064,            /* model Animation(bones 0x06fce398, frame, prior frame, prior action, angle,
                                                  head angle, 0, 0): poses the effect's model (type) */
-    MU_SFX_CALL_BONE = 0x012b678d             /* model TransformByObjectBone(out, o, bone (range), 0): env->bone answers */
+    MU_SFX_CALL_BONE = 0x012b678d,            /* model TransformByObjectBone(out, o, bone (range), 0): env->bone answers */
+    MU_SFX_CALL_KILL = 0x009b0451             /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
 };
 
 #define MU_SFX_EFFECTS 200
@@ -129,6 +134,9 @@ typedef struct mu_sfx_effect {
     uint8_t field_6;         /* +0x06 */
     int32_t field_70;        /* +0x70 the lifetime at creation (the tornado) */
     float heading;           /* +0x170 the tornado's heading (radians) */
+    /* NATIVE-HELPERS-002 */
+    int32_t field_64;        /* +0x64 Fenrir's lightning: fade stage; the paws' marks: the sheet frame */
+    uint32_t time_mark;      /* +0x9c the paws' marks: timeGetTime() of the last frame step */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */
@@ -177,6 +185,10 @@ typedef struct mu_sfx_env {
     /* NATIVE-CHARSEL-003: the world position of the effect model's bone (after MU_SFX_CALL_POSE); NULL: the
      * effect's position. */
     void (*bone)(void *context, const mu_sfx_effect *effect, int32_t bone, float out[3]);
+    /* NATIVE-HELPERS-002: timeGetTime() (ms; NULL: 0) and TransformPosition(owner model, BoneTransform + 0x30 *
+     * bone, in, out, 0) on the owner's posed model (NULL: out is left alone) */
+    uint32_t (*time_ms)(void *context);
+    void (*owner_bone)(void *context, int32_t owner, int32_t bone, const float in[3], float out[3]);
 } mu_sfx_env;
 
 /* CreateEffect 0x013c0f19 for the supported types and subtypes, from a
