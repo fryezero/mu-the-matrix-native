@@ -763,7 +763,7 @@ def compare_calls(client, mine, skip_tail=True):
 # --------------------------------------------------------------------------
 # Families.
 
-EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x7f84, 0), (0x41c, 0), (0x41d, 0), (0x457, 0),
+EFFECT_KINDS = [(0x7ef7, 0), (0x1a1, 0), (0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x7f84, 0), (0x41c, 0), (0x41d, 0), (0x457, 0),
                 (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1),
                 (0x40e, 0),   # the Tormenta tornado (NATIVE-JOINT-001)
                 (0x5ac, 0), (0x5ac, 1), (0x5ad, 0), (0x5ad, 1),   # the character select's star dragon (NATIVE-CHARSEL-003)
@@ -940,7 +940,8 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
             model.define(MODEL+0x1000+16*a+8, struct.pack('<h', keys))
         quake = am.Region('quake', QUAKE, am.poison(4, 0x21), bytes(4))
         regions = [record, object_region(objects), model, quake,
-                   am.defined_region('world', WORLD, struct.pack('<i', 0), writable=False)]
+                   am.defined_region('world', WORLD, struct.pack('<i', 10 if kind[0] == 0x1a1 and n % 2 else 0),
+                                     writable=False)]   # the Icarus cloud also in its own world
         if kind[0] == 0x40e:
             case.attributes = [rng.choice([0, 0, 8, 4, 0xc, 0x100, 0x108]) for _ in range(0x10000)]
             regions.append(am.defined_region('terrain-wall', TERRAIN_WALL, struct.pack('<65536H', *case.attributes),
@@ -984,6 +985,10 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
                 a = struct.unpack('<f', out[0xdc:0xe0])[0]
                 step = f32(0.2) if before.field_64 == 0 else f32(-0.2)
                 negatives['move_lightning_fade_02'] += not same(a, f32(before.alpha + step))
+            # negative control (NATIVE-FIDELITY-002): the Icarus puff moving once even on an odd LifeTime
+            if kind == (0x7ef7, 0) and before.live:
+                pz = struct.unpack('<f', out[0x160:0x164])[0]
+                negatives['puff_single_move'] += not same(pz, f32(before.position[2] + before.direction[2]))
             # negative control: straight motion without the angle rotation
             if has_model or kind[0] >= 0x7a4:
                 px = struct.unpack('<f', out[0x158:0x15c])[0]
@@ -1708,6 +1713,9 @@ def main():
     text = am.load_pinned(args.text, am.TEXT_BYTES, am.TEXT_SHA256, 'restored text')
     data = am.load_pinned(args.data, am.DATA_BYTES, am.DATA_SHA256, 'second section')
     lib = load_library(args.library)
+    # NATIVE-FIDELITY-002: MoveEffect's frame is 0x16eb4 bytes and the Icarus cloud puff (0x7ef7, subtype 0) moves
+    # itself once more on an odd LifeTime: a deeper stack than the shared default
+    am.STACK_BYTES, am.ENTRY_ESP = 0x80000, am.STACK + 0x7c000
     m = FxMachine(text, data)
     bodies = {name: {'start': hex(a), 'end': hex(b),
                      'sha256': hashlib.sha256(text[a-am.TEXT_BASE:b-am.TEXT_BASE]).hexdigest()}
@@ -1717,7 +1725,7 @@ def main():
                                 'move_unrotated', 'check_magic_3d', 'particle_fire_scaled', 'particle_rise_no_10',
                                 'particle_fire_full_width', 'joint_first_tail_new_width', 'joint_forward_plus_y',
                                 'joint_uv_drawn_tails', 'player_shock_action_5',
-                                'create_shockwave_over_20', 'move_lightning_fade_02', 'decal_no_alpha', 'decal_flat_as_terrain', 'claw_no_shrink', 'rune_no_growth', 'tail_wrong_particle']}
+                                'create_shockwave_over_20', 'move_lightning_fade_02', 'decal_no_alpha', 'decal_flat_as_terrain', 'claw_no_shrink', 'rune_no_growth', 'tail_wrong_particle', 'puff_single_move']}
     timing = {}
     for name, family in FAMILIES:
         if args.only and name not in args.only:

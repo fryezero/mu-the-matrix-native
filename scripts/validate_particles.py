@@ -119,7 +119,7 @@ TRIANGLES = 0x29200000
 BONE_OBJECT = 0x29300000
 MATRIX = 0x29400000
 
-KINDS = [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
+KINDS = [(0x7ef7, 1)] + [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
                                                             (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1),
                                                             (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
                                                             (0x7f66, 0), (0x7f66, 1),      # Noria's Shiny01

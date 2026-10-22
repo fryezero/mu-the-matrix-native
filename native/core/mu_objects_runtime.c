@@ -280,6 +280,25 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
     particles_step(rt);
     rt->light_count = 0;
     step_context c = {o, in};
+    {   /* NATIVE-FIDELITY-002: MoveObjects' pre-pass in the sky worlds (Icarus's rising cloud puffs) */
+        mu_obj_event sky[4];
+        mu_obj_log log = {0, 4, 0, sky};
+        if (mu_obj_move_pre_sky(o->world, in->hero, step_rand, &c, &log))
+            for (int32_t k = 0; k < log.count; ++k) {
+                const mu_obj_event *e = &sky[k];
+                if (e->call != MU_OBJ_CALL_CREATE_EFFECT)
+                    continue;
+                float position[3], angle[3], light[3];
+                for (int q = 0; q < 3; ++q) {
+                    position[q] = fbits(e->args[1 + q]);
+                    angle[q] = fbits(e->args[4 + q]);
+                    light[q] = fbits(e->args[7 + q]);
+                }
+                if (rt->effect)
+                    rt->effect(rt->hook_context, (int32_t)e->args[0], (int32_t)e->args[10], position, angle, light, -1);
+                ++rt->effect_events;
+            }
+    }
     mu_obj_log pass = {0, rt->event_capacity, 0, rt->events};
     mu_obj_move_pass(&rt->world, o->world, step_handler, &c, &pass);
     mu_obj_move_inputs mi;
