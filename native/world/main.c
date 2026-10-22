@@ -995,7 +995,7 @@ static int parse_skill_script(app *a, const char *text)
             return 1;
         int frame, used = 0;
         char verb[12] = "";
-        if (sscanf(p, "%d:%11[a-z]%n", &frame, verb, &used) != 2)
+        if (sscanf(p, "%d:%11[a-z0-9]%n", &frame, verb, &used) != 2)
             return 1;
         p += used;
         int args[2] = {0, 0};

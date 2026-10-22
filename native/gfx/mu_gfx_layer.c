@@ -216,6 +216,7 @@ typedef struct movie {
 #endif
     double next_bounds_ms;
     int alias;                  /* plays inside another movie's player (base mode chat): not rendered/advanced */
+    float win_x, win_y;          /* requestWindowPos, handler +0x70/+0x74 */
 } movie;
 
 typedef struct item {
@@ -318,7 +319,7 @@ struct mu_gfx_layer {
     mu_gfx_skill_host skill;
     int have_skill_host;
     struct {
-        float win_x, win_y, slot_w, slot_h, slots[20][2];
+        float win_x, win_y, slot_w, slot_h, slots[20][2], stamp_offset[2];
         int have_slot[20], drag_from, page, select_page, inited, saved;
         char last[160];
     } stamp;
@@ -327,7 +328,8 @@ struct mu_gfx_layer {
 
 static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat",
                                                  "NpcDialogue", "NpcShop", "StorageInven", "NpcQuestProgress",
-                                                 "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand"};
+                                                 "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
+                                                 "MasterSkillTree", "SkillTree4th", "SkillTree5th"};
 
 /* NATIVE-NPC-001 (section "NPC windows" below) */
 static const char *npc_call(movie *mv, const char *name, const char *args, const double *v, int n);
@@ -952,6 +954,8 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     mv->next_bounds_ms = 0;
     if (m == MU_GFX_SKILL_STAMP)
         skill_window_shown(L, m, open);
+    if (m >= MU_GFX_MASTER_TREE && L->cfg.quest_call)
+        L->cfg.quest_call(L->cfg.tooltip_user, m, open ? "WindowShown" : "WindowHidden", "[]");
 }
 
 void mu_gfx_layer_toggle(mu_gfx_layer *L, int m)
@@ -1103,13 +1107,17 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
         logf_(L, "%s -> %s %.300s", mv->file, name, args);
     double v[8];
     int n = json_numbers(args, v, 8);
+    if (!strcmp(name, "requestWindowPos") && n >= 2) {
+        mv->win_x = (float)v[0];
+        mv->win_y = (float)v[1];
+    }
     char s[256] = "";
     mv->view_dirty = 1;
     if (!strcmp(name, "UIInit") && json_string(args, 0, s, sizeof s)) {
         snprintf(mv->path, sizeof mv->path, "_level0.%s", s);
         if (mv->id == MU_GFX_MOVE_COMMAND && L->maph.window)
             L->maph.window(L->maph.user, mv->id, name, args);   /* NATIVE-MAP-001 */
-        if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST) && L->cfg.quest_call)
+        if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST || mv->id >= MU_GFX_MASTER_TREE) && L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);   /* NATIVE-QUEST-001: the handler's OnLoad */
         return NULL;
     }
@@ -1121,7 +1129,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
             mu_gfx_layer_show(L, mv->id, 0);
         return NULL;
     }
-    if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST) && strcmp(name, "TweenTimeSet")) {
+    if ((mv->id == MU_GFX_QUEST_PROGRESS || mv->id == MU_GFX_MY_QUEST || mv->id >= MU_GFX_MASTER_TREE) && strcmp(name, "TweenTimeSet")) {
         /* NATIVE-QUEST-001: the host runs the client's handler (reconstructed/quest) */
         if (L->cfg.quest_call)
             L->cfg.quest_call(L->cfg.tooltip_user, mv->id, name, args);
@@ -1255,7 +1263,13 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
         }
         return NULL;
     case MU_GFX_CHARACTER:
-        if (!strcmp(name, "onClickButton") && n >= 1 && L->hero.points > 0) {
+        if (!strcmp(name, "onClickbtnMasterSkillTree"))
+            mu_gfx_layer_toggle(L, MU_GFX_MASTER_TREE);
+        else if (!strcmp(name, "OnClick4thSkillTree"))
+            mu_gfx_layer_toggle(L, MU_GFX_TREE4);
+        else if (!strcmp(name, "OnClick5thSkillTree"))
+            mu_gfx_layer_toggle(L, MU_GFX_TREE5);
+        else if (!strcmp(name, "onClickButton") && n >= 1 && L->hero.points > 0) {
             int index = (int)v[0];
             int32_t *stat = index == 1 ? &L->hero.strength : index == 2 ? &L->hero.agility
                           : index == 3 ? &L->hero.vitality : index == 4 ? &L->hero.energy
@@ -1330,8 +1344,14 @@ static int open_movie(mu_gfx_layer *L, int m, char *error, size_t cap)
     L->api.set_callback(mv->g, on_call, mv);
     if (L->shared && L->cfg.double_buffer)
         L->api.set_double_buffer(mv->g, 1);
-    L->api.set_view(mv->g, L->w, L->h, 0, 0, 0, 0, L->scale);
+    /* 0x00aad716 advances SkillStampFrame before the first SetViewport. Its MUComponent prototype thus
+     * captures the authored 1024x768 stage, not the native window. SetWindowSize can then preserve its
+     * centre's screen fraction, as in 0x00acb333. */
+    int authored_stamp = m == MU_GFX_SKILL_STAMP;
+    L->api.set_view(mv->g, authored_stamp ? 1024 : L->w, authored_stamp ? 768 : L->h, 0, 0, 0, 0, L->scale);
     L->api.start(mv->g);
+    if (authored_stamp)
+        L->api.set_view(mv->g, L->w, L->h, 0, 0, 0, 0, L->scale);
     mv->view[0] = mv->view[1] = 0;
     mv->view[2] = L->w;
     mv->view[3] = L->h;
@@ -1367,7 +1387,12 @@ static void slot_gap(mu_gfx_layer *L)
  * and InfoPopup 9 (Align_None: no SetAlign/SetWindowSize); SetWindowSize
  * gets the window size (0x01cf1624/8) and SetScale(83) applies below 700
  * pixels of height to both (handler +0x58 = scale / 100). */
-static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {9, 11, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};   /* the NPC, quest and skill windows: 9 */
+static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
+    [MU_GFX_MAIN] = 9, [MU_GFX_INVENTORY] = 11, [MU_GFX_TOOLTIP] = 9, [MU_GFX_CHARACTER] = 9,
+    [MU_GFX_CHAT] = 9, [MU_GFX_NPC_DIALOG] = 9, [MU_GFX_NPC_SHOP] = 9, [MU_GFX_STORAGE] = 9,
+    [MU_GFX_QUEST_PROGRESS] = 9, [MU_GFX_MY_QUEST] = 9, [MU_GFX_SKILL_POPUP] = 9, [MU_GFX_SKILL_STAMP] = 9,
+    [MU_GFX_MOVE_COMMAND] = 9, [MU_GFX_MASTER_TREE] = 0, [MU_GFX_TREE4] = 0, [MU_GFX_TREE5] = 3
+};
 
 static void window_sizes(mu_gfx_layer *L)
 {
@@ -1376,6 +1401,8 @@ static void window_sizes(mu_gfx_layer *L)
             continue;
         /* no SetScale for the info popups (InfoPopup, SkillInfoPopup) */
         float scale = (m != MU_GFX_TOOLTIP && m != MU_GFX_SKILL_POPUP && L->h < 700) ? 0.83f : 1.0f;
+        if (m == MU_GFX_MASTER_TREE && L->h < 700)
+            scale = 0.9f;
         if (m == MU_GFX_INVENTORY)
             L->inv_scale = scale;
         else if (m == MU_GFX_CHARACTER)
@@ -1389,6 +1416,9 @@ static void window_sizes(mu_gfx_layer *L)
         L->applied_scale[m] = scale;
         if (WINDOW_ALIGN[m] != 9) {
             invokef(L, m, L->mv[m].path, "SetAlign", "[%d]", WINDOW_ALIGN[m]);
+        }
+        /* 0x00acb333 -> 0x00aae4ae sizes every handler, including the align-9 stamp window. */
+        if (WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP) {
             invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h);
         }
     }
@@ -1799,6 +1829,18 @@ void mu_gfx_layer_set_skills(mu_gfx_layer *L, const mu_gfx_skill *skills, int n)
 }
 
 int mu_gfx_layer_base_mode(const mu_gfx_layer *L) { return L && L->base_mode; }
+float mu_gfx_layer_window_scale(const mu_gfx_layer *L, int movie_id)
+{
+    return L && movie_id >= 0 && movie_id < MU_GFX_MOVIES && L->applied_scale[movie_id] > 0
+               ? L->applied_scale[movie_id] : 1.0f;
+}
+void mu_gfx_layer_window_position(const mu_gfx_layer *L, int movie_id, float *x, float *y)
+{
+    if (x)
+        *x = L && movie_id >= 0 && movie_id < MU_GFX_MOVIES ? L->mv[movie_id].win_x : 0;
+    if (y)
+        *y = L && movie_id >= 0 && movie_id < MU_GFX_MOVIES ? L->mv[movie_id].win_y : 0;
+}
 
 const char *mu_gfx_layer_channel_path(const mu_gfx_layer *L, const char *name)
 {
@@ -2146,6 +2188,15 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
         } else if (vk == 'U' && L->mv[MU_GFX_SKILL_STAMP].g && L->mv[MU_GFX_SKILL_STAMP].path[0]) {
             /* NATIVE-SKILL-001: the client's key scan toggles SkillStampFrame on U (0x00efcea8) */
             mu_gfx_layer_toggle(L, MU_GFX_SKILL_STAMP);
+            used = 1;
+        } else if (vk == 'A' && L->mv[MU_GFX_MASTER_TREE].g) {
+            mu_gfx_layer_toggle(L, MU_GFX_MASTER_TREE);
+            used = 1;
+        } else if (vk == 27 && (L->mv[MU_GFX_MASTER_TREE].open || L->mv[MU_GFX_TREE4].open || L->mv[MU_GFX_TREE5].open)) {
+            mu_gfx_layer_show(L, MU_GFX_MASTER_TREE, 0);
+            mu_gfx_layer_show(L, MU_GFX_TREE4, 0);
+            mu_gfx_layer_show(L, MU_GFX_TREE5, 0);
+            mu_gfx_layer_skill_popup(L, 0, 0, NULL, NULL);
             used = 1;
         } else if (vk == 27 && (L->mv[MU_GFX_INVENTORY].open || L->mv[MU_GFX_CHARACTER].open ||
                                 L->mv[MU_GFX_SKILL_STAMP].open)) {
@@ -3256,6 +3307,11 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
         swin_draw_gl(L, order[k]);
         if (order[k] == MU_GFX_SKILL_STAMP)
             skill_draw_gl(L);
+        if (L->cfg.window_draw) {
+            host_gl_begin(L);
+            L->cfg.window_draw(L->cfg.tooltip_user, order[k], L->w, L->h);
+            host_gl_end(L);
+        }
     }
     float hr[4];
     if (held_rect(L, hr)) {
@@ -3444,11 +3500,24 @@ static void skill_popup_close(mu_gfx_layer *L)
  * divisions cancel out in stage points), then opens. */
 static void skill_popup(mu_gfx_layer *L, int32_t skill, int x, int y)
 {
-    static char title[4096], body[32768], qt[8192], qb[65536];
+    static char title[4096], body[32768];
     if (!L->skill.tooltip || !skill || !L->skill.tooltip(L->skill.user, skill, title, sizeof title, body, sizeof body)) {
         skill_popup_close(L);
         return;
     }
+    mu_gfx_layer_skill_popup(L, x, y, title, body);
+    skill_last(L, "tooltip skill %d at %d,%d", skill, x, y);
+}
+
+void mu_gfx_layer_skill_popup(mu_gfx_layer *L, int x, int y, const char *title, const char *body)
+{
+    if (!L)
+        return;
+    if (!title) {
+        skill_popup_close(L);
+        return;
+    }
+    static char qt[8192], qb[65536];
     json_quote(qt, sizeof qt, title);
     json_quote(qb, sizeof qb, body);
     movie *pop = &L->mv[MU_GFX_SKILL_POPUP];
@@ -3465,7 +3534,6 @@ static void skill_popup(mu_gfx_layer *L, int32_t skill, int x, int y)
         tip->open = 1;
         invokef(L, MU_GFX_TOOLTIP, tip->path, "SetInfoPopup", "[%d,%d,0,0,%s]", x, y, qboth);
     }
-    skill_last(L, "tooltip skill %d at %d,%d", skill, x, y);
 }
 
 static void skill_main_event(mu_gfx_layer *L, movie *mv, const char *event, const char *args)
@@ -3572,6 +3640,9 @@ int mu_gfx_layer_skill_icons(const mu_gfx_layer *L, mu_gfx_skill_icon *out, int 
         ic->slot = slot;
         ic->skill = L->skill.stamp_skill(L->skill.user, slot);
         ic->delay = ic->skill && L->skill.delay_left ? L->skill.delay_left(L->skill.user, ic->skill) : 0.0f;
+        ic->frame_scale = mu_gfx_layer_window_scale(L, MU_GFX_SKILL_STAMP);
+        ic->stamp_offset[0] = L->stamp.stamp_offset[0];
+        ic->stamp_offset[1] = L->stamp.stamp_offset[1];
         if (ic->skill)
             n++;
     }
@@ -3647,6 +3718,9 @@ static const char *skill_call(movie *mv, const char *name, const char *args, con
     } else if (!strcmp(name, "requestSkillSlotSize") && n >= 2) {
         L->stamp.slot_w = (float)v[0];
         L->stamp.slot_h = (float)v[1];
+    } else if (!strcmp(name, "requestStampRelativePosition") && n >= 2) {
+        L->stamp.stamp_offset[0] = (float)v[0];
+        L->stamp.stamp_offset[1] = (float)v[1];
     } else if ((!strcmp(name, "onClickprevBtn") || !strcmp(name, "onClicknextBtn")) && L->skill.stamp_page) {
         int page = L->skill.stamp_page(L->skill.user, 0, name[7] == 'p' ? -1 : 1);   /* 0x00c21aa2 */
         if (page != L->stamp.page) {
@@ -3657,9 +3731,12 @@ static const char *skill_call(movie *mv, const char *name, const char *args, con
         if (L->skill.stamp_page)                    /* 0x010976db(-1 / +1) */
             L->stamp.select_page = L->skill.stamp_page(L->skill.user, 1, name[17] == 'P' ? -1 : 1);
     } else if (!strcmp(name, "onClickBaseSKill") || !strcmp(name, "onClickSpecialSkill")) {
-        /* the special-skill tab (castle siege, Dark Raven commands) has no skills offline */
+        /* the tab flag (handler +0x8c): page 1 of the stamp manager's basic or special tab */
+        if (L->skill.stamp_tab)
+            L->skill.stamp_tab(L->skill.user, name[7] == 'S');
         L->stamp.page = 1;
         invokef(L, MU_GFX_SKILL_STAMP, mv->path, "UpdateSkillPage", "[1]");
+        L->mv[MU_GFX_SKILL_STAMP].view_dirty = 1;
     } else if (!strcmp(name, "requestSkillSlotOver") && n >= 1) {
         float r[4];
         int slot = (int)v[0];
@@ -3719,6 +3796,8 @@ int mu_gfx_layer_skill_action(mu_gfx_layer *L, const char *verb, int a, int b)
         skill_call(st, a < 0 ? "onClickprevBtn" : "onClicknextBtn", "", v, 0);
     } else if (!strcmp(verb, "select")) {
         skill_call(st, a < 0 ? "onClickSelectSlotPrev" : "onClickSelectSlotNext", "", v, 0);
+    } else if (!strcmp(verb, "tab")) {
+        skill_call(st, a ? "onClickSpecialSkill" : "onClickBaseSKill", "", v, 0);
     } else {
         return 0;
     }

@@ -219,6 +219,23 @@ int mu_skill_wrap(const mu_skill_tip_env *env, const char *text, int32_t width, 
 }
 
 /* 0x011ffb3a(text, mode, line, color, bold, flag 1): the wrapped lines from `line` on; returns the next line. */
+static int put_wrapped(const mu_skill_tip_env *env, mu_skill_tip *tip, const char *text, int line, int32_t color);
+
+int mu_skill_tip_put(const mu_skill_tip_env *env, mu_skill_tip *tip, const char *text, int line, int32_t color)
+{
+    return put_wrapped(env, tip, text, line, color);
+}
+
+void mu_skill_tip_set(mu_skill_tip *tip, int line, const char *text, int32_t color, int32_t bold)
+{
+    if (text)
+        set_line(tip, line, text);
+    if (color >= 0)
+        set_color(tip, line, color);
+    if (bold >= 0)
+        set_bold(tip, line, bold);
+}
+
 static int put_wrapped(const mu_skill_tip_env *env, mu_skill_tip *tip, const char *text, int line, int32_t color)
 {
     if (!text)

@@ -13,17 +13,23 @@
  *   - the bar feed 0x00c58797 (SetSkillSlot), onSelectSkill, StartSkillDelay / IsSkillReady / the tick,
  *     the stat check 0x0109228f, the class special cases 0x01096e55 and the mana / AG check 0x01091692.
  *
- * OFFLINE DEMO (the server's data in the real game): the learned list (the skill list packet), the
- * hero's mana/AG spending and regeneration, the save of the Skill Imprint slots.  The bar's isUse is the
- * reconstructed part of the usability check 0x010918c7: the stat requirements and the class special cases
- * (the weapon, buff, world and item branches are not reconstructed and count as met). */
+ * NATIVE-SKILL-002: the learned list, the Skill Imprint (stamp) manager and the hotkey manager come from the
+ * server's packets through the client's handlers (reconstructed/skill/skill_list.c: opcode 0xA0 sub 0x20 the
+ * skill list / one skill added / removed, sub 0x03 the saved hotkeys); the bar shows the stamp manager's slots.
+ * OFFLINE DEMO (core/mu_skill_demo.c, the server in the real game): those packets from a demo table, the
+ * hero's mana/AG spending and regeneration, and the save of the Skill Imprint slots. The bar's isUse runs
+ * 0x010918c7 and the class cases. World/equipment/buff answers remain explicit host inputs. The Master tree
+ * uses the decoded BMD tables, A0 10/A0 14 answers, and 0x00a01692 supplies tooltip damage. */
 
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../../reconstructed/skill/skill_list.h"
 #include "../../reconstructed/skill/skill_table.h"
 #include "../../reconstructed/skill/skill_tooltip.h"
 #include "../../reconstructed/skill/skill_use.h"
+#include "../../reconstructed/skill/skill_canuse.h"
+#include "../../reconstructed/skill/master_tree.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,15 +52,49 @@ typedef struct mu_skill_stats {
     int32_t mana, ag;
 } mu_skill_stats;
 void mu_skill_book_set_stats(mu_skill_book *book, const mu_skill_stats *stats);
+/* World/equipment/buff answers for 0x010918c7. The book supplies its Skill(Kor) environment. NULL resets to an
+ * untransformed, unequipped hero in world 0; callbacks remain explicit host boundaries. */
+void mu_skill_book_set_use_state(mu_skill_book *book, const mu_skill_use_env *state);
+void mu_skill_book_set_elemental(mu_skill_book *book, int32_t elemental);
+const mu_skill_env *mu_skill_book_env(const mu_skill_book *book);
+mu_master_tree *mu_skill_book_master(mu_skill_book *book);
+mu_master_env *mu_skill_book_master_env(mu_skill_book *book);
+int mu_skill_book_requirement(mu_skill_book *book, int32_t base, int32_t *skill, int32_t *master,
+                               int32_t *level);
+/* Build the class tree and emit its current ranks/text after the movie's Init. Tables remain book-owned. */
+void mu_skill_book_master_build(mu_skill_book *book);
+int mu_skill_book_master_tooltip(mu_skill_book *book, int slot, char *title, size_t title_cap, char *body,
+                                 size_t body_cap);
+/* FormulaData is a host boundary, as in the Unicorn comparison. Absent callback answers 0. */
+void mu_skill_book_set_formula(mu_skill_book *book, mu_master_formula_fn formula, void *user);
+double mu_skill_book_formula(mu_skill_book *book, int group, int id, int argument);
+/* OFFLINE DEMO: A0 10 at login, A0 14 in answer to a decoded C1 08 01 16 request. No network I/O. */
+int mu_skill_book_demo_master_login(mu_skill_book *book);
+int mu_skill_book_demo_master_request(mu_skill_book *book, const uint8_t *packet, size_t size);
 
-/* DEMO: the learned list of a class index (a fixed demo list filtered by the table) and the first ten on
- * the bar; returns the learned count. */
+/* The hero enters the world with class byte (attributes +0x187; class index = byte & 0xf): empty learned list and
+ * hotkeys, the stamp manager built for the class (0x01095c77; a layer choice: the client does it in the window's
+ * 0x00c2008b). */
+void mu_skill_book_enter(mu_skill_book *book, int32_t class_byte);
+/* A server packet (C1/C2 head): opcode 0xA0 sub 0x20 (0x0126176e) or sub 0x03 (0x0126f225); 1 when handled. */
+int mu_skill_book_receive(mu_skill_book *book, const uint8_t *packet, size_t size);
+const mu_skill_stamp_mgr *mu_skill_book_stamp_mgr(const mu_skill_book *book);
+/* 1 when skills_class.tsv gave the records' class maps (+0x6c); else the demo's lists stand in for them. */
+int mu_skill_book_has_classes(const mu_skill_book *book);
+/* DEMO class map: let class index `class_index` have `skill` (record +0x6c). */
+void mu_skill_book_allow(mu_skill_book *book, int32_t skill, int32_t class_index);
+
+/* OFFLINE DEMO server (core/mu_skill_demo.c): the login packets (the class's skill list, then its saved bar) for a
+ * class byte; mu_skill_book_demo is the same for a class index.  Returns the learned count. */
+int mu_skill_demo_load(const char *path);     /* "list CLASS SKILL..." / "keys CLASS K1..K9 K0" lines; -1 no file */
+int mu_skill_book_demo_login(mu_skill_book *book, int32_t class_byte);
 int mu_skill_book_demo(mu_skill_book *book, int32_t class_index);
-int mu_skill_book_learn(mu_skill_book *book, int32_t skill);
+/* DEMO: the server's 0xFE (learned) or 0xFF (forget != 0) packet for one skill. */
+int mu_skill_book_demo_learn(mu_skill_book *book, int32_t skill, int forget);
 const mu_skill_hero *mu_skill_book_hero(const mu_skill_book *book);
 const mu_skill_hotkeys *mu_skill_book_hotkeys(const mu_skill_book *book);
 
-/* The bar's usability of a skill (isUse): stats (0x0109228f) and the class special cases (0x01096e55). */
+/* The bar's usability (isUse): 0x010918c7 and the class special cases 0x01096e55. */
 int mu_skill_book_usable(const mu_skill_book *book, int32_t skill);
 /* 0x00c58797: the SetSkillSlot argument when the bar changed (1), else 0. */
 int mu_skill_book_feed(mu_skill_book *book, char *json, size_t cap);
@@ -88,20 +128,27 @@ int mu_skill_book_tooltip_lines(mu_skill_book *book, int32_t skill, mu_skill_tip
 int mu_skill_book_icon(const mu_skill_book *book, int32_t skill, mu_skill_icon *out);
 const char *mu_skill_icon_file(int32_t bitmap);
 
-/* ---- the Skill Imprint window (SkillStampFrame, handler 0x00c1f99c) ----
- * slots 0..4: the five bar slots of the shown select page (page 0: bar slots 0..4, 1: 5..9);
- * slots 5..19: the learned list's page (15 per page, learned index = (page - 1) * 15 + slot - 5);
- * a drag from a learned slot to a bar slot assigns the skill (0x00c2226c; a skill already on the bar
- * leaves its old slot), from a bar slot to another swaps them; Save keeps the bar, Cancel restores it. */
+/* ---- the Skill Imprint window (SkillStampFrame, handler 0x00c1f99c) over the stamp manager ----
+ * slots 0..4: the window's slots (stamp +0x24) of the shown select page (page 0: bar slots 0..4, 1: 5..9);
+ * slots 5..19: the tab's entries (15 per page, entry = (page - 1) * 15 + slot - 5, 0x00c22588 / 0x010968c6);
+ * a drag from an entry to a slot assigns it (0x00c2226c; an entry already in a slot leaves it, 0x01096c42; an
+ * entry without a learned skill: GlobalText 0x12bb), from a slot to another swaps them (0x01096e15); Save
+ * (0x00c20db4) commits the window's slots to the bar, Cancel (0x01096dd0) takes the bar's back. */
 typedef struct mu_skill_stamp {
-    int page, pages;                  /* learned list page (1-based) and count */
+    int tab;                          /* 0 Basic Skill (stamp +0xc), 1 Special Skill (+0x18); handler +0x8c */
+    int page, pages;                  /* the tab's page (1-based) and count (15 entries per page) */
     int select_page;                  /* 0: bar slots 1..5, 1: 6..10 */
     int drag_from, drag_to;           /* +0x1fc / +0x200 */
     int32_t saved[MU_SKILL_SLOTS];    /* the bar when the window opened (Cancel) */
 } mu_skill_stamp;
 void mu_skill_book_stamp_open(mu_skill_book *book, mu_skill_stamp *stamp);
-/* The skill a window slot shows: learned (0 none) and the base the icon falls back on. */
+/* The skill a window slot shows (0x01096a60: the entry's learned skill, else its base; 0 none) and its entry. */
 int32_t mu_skill_book_stamp_skill(const mu_skill_book *book, const mu_skill_stamp *stamp, int slot);
+int mu_skill_book_stamp_entry(const mu_skill_book *book, const mu_skill_stamp *stamp, int slot, int32_t *base,
+                              int32_t *learned, int *imprint);
+/* The tab buttons (onClickBaseSKill / onClickSpecialSkill): page 1 of tab 0 or 1; returns the page count. */
+int mu_skill_book_stamp_tab(mu_skill_book *book, mu_skill_stamp *stamp, int tab);
+void mu_skill_book_stamp_save(mu_skill_book *book);
 /* Apply a drag (0x00c2226c mode 0); returns 1 when the bar changed, -1 for "not learned" (GlobalText
  * 0x12bb), 0 otherwise. */
 int mu_skill_book_stamp_drop(mu_skill_book *book, mu_skill_stamp *stamp, int from, int to);

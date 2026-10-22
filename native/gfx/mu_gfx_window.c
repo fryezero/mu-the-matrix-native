@@ -343,7 +343,11 @@ int main(int argc, char **argv)
                  (ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec + ru1.ru_stime.tv_usec - ru0.ru_stime.tv_usec) / 1000.0;
     mu_gfx_layer_stats st;
     mu_gfx_layer_stats_get(L, &st);
-    static const char *const NAMES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat"};
+    static const char *const NAMES[MU_GFX_MOVIES] = {
+        "main", "InventoryFrame", "InfoPopup", "CharacterInfoFrame", "chat", "NpcDialogue", "NpcShop",
+        "StorageInven", "NpcQuestProgress", "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
+        "MasterSkillTree", "SkillTree4th", "SkillTree5th"
+    };
     printf("{\"frames\": %ld, \"wall_ms\": %.1f, \"cpu_per_frame_ms\": %.3f, \"frame_ms\": %.3f, \"open_ms\": %.1f, "
            "\"shared\": %d, \"gpu_wait_ms\": %.3f, \"logic_steps\": %ld, \"callbacks\": %ld, \"invokes\": %ld, \"view_changes\": %ld, \"movies\": {",
            frame, wall, cpu / (double)frame, frame_total / (double)frame, open_ms, st.shared,

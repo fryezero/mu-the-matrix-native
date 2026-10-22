@@ -229,6 +229,23 @@ def read_skills(snap):
     return rows
 
 
+def read_skill_maps(snap):
+    """NATIVE-SKILL-002: the Skill(Kor) records' inner maps (+0x64 ranks keyed 0x80/0x40/0x20, +0x6c the class
+    map keyed by class index 0..15) when the snapshot has them (langread nested:0x6d8); [] otherwise."""
+    rows = []
+    for key, node in snap.tree(SKILL + MAP_AT[SKILL]):
+        r = record(node)
+        try:
+            classes = {k: snap.i32(n + 0x14) for k, n in snap.tree(r + 0x6c)}
+            ranks = {k: snap.i32(n + 0x14) for k, n in snap.tree(r + 0x64)}
+        except (SnapshotError, KeyError, ValueError):
+            return []
+        rows.append({'index': key, 'classes': [classes.get(i, 0) for i in range(16)],
+                     'ranks': [ranks.get(k, 0) for k in (0x80, 0x40, 0x20)],
+                     'has': [int(i in classes) for i in range(16)]})
+    return rows
+
+
 def read_gates(snap):
     rows = []
     for key, node in snap.tree(GATE + MAP_AT[GATE]):
@@ -443,6 +460,18 @@ def convert(snap, out_dir, header=''):
         f.write(note + '# NATIVE-SKILL-001: the record fields skills.tsv lacks\n#' + '\t'.join(cols) + '\n')
         for row in skills:
             f.write('\t'.join(str(row[c]) for c in cols) + '\n')
+    try:
+        maps = read_skill_maps(snap)
+    except Exception:  # snapshots without the inner maps (langread before nested:0x6d8)
+        maps = []
+    if maps:
+        with open(out_dir/'skills_class.tsv', 'w', encoding='ascii', newline='\n') as f:
+            f.write(note + '# NATIVE-SKILL-002: Skill(Kor) +0x6c class map (class index 0..15) and +0x64 ranks '
+                    '(0x80, 0x40, 0x20)\n#index\t' + '\t'.join(f'class{i}' for i in range(16)) +
+                    '\trank80\trank40\trank20\n')
+            for row in maps:
+                f.write('\t'.join(str(v) for v in [row['index']] + row['classes'] + row['ranks']) + '\n')
+        counts['skills_class'] = len(maps)
 
     gates = read_gates(snap)
     cols = ['index'] + [c[0] for c in GATE_COLUMNS]

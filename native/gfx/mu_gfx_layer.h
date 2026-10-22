@@ -59,7 +59,7 @@ typedef struct mu_gfx_layer mu_gfx_layer;
  * puts skills on the bar), optional as well. */
 enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_CHAT, MU_GFX_NPC_DIALOG,
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
-       MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MOVIES };
+       MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5, MU_GFX_MOVIES };
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
  * (hudMap's showMap / baseMovie) go to the host's map hooks (mu_gfx_layer_set_map_hooks). */
 /* NATIVE-QUEST-001 adds NpcQuestProgress (MU_GFX_QUEST_PROGRESS) and MyQuestInfo (MU_GFX_MY_QUEST), optional
@@ -167,6 +167,8 @@ typedef struct mu_gfx_layer_config {
     void (*quest_call)(void *user, int movie, const char *name, const char *args_json);
     void (*dialog_wrapped)(void *user, const char *text);
     int (*window_key)(void *user, int vk);
+    /* NATIVE-SKILL-002: game-drawn overlays immediately after their window movie, in stage points. */
+    void (*window_draw)(void *user, int movie, int32_t stage_w, int32_t stage_h);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
@@ -179,6 +181,10 @@ void mu_gfx_layer_set_hero(mu_gfx_layer *layer, const mu_gfx_hero *hero);
 void mu_gfx_layer_set_skills(mu_gfx_layer *layer, const mu_gfx_skill *skills, int n);
 /* 1 when the HUD runs as the client's base movie (base.swf), 0 standalone. */
 int mu_gfx_layer_base_mode(const mu_gfx_layer *layer);
+float mu_gfx_layer_window_scale(const mu_gfx_layer *layer, int movie);
+void mu_gfx_layer_window_position(const mu_gfx_layer *layer, int movie, float *x, float *y);
+/* The skill popup with a host-built tooltip (also used by the Master tree). NULL title closes it. */
+void mu_gfx_layer_skill_popup(mu_gfx_layer *layer, int x, int y, const char *title, const char *body);
 /* Instance path of a HUD channel ("UIFrame", "ASData", "main", "chat", ...)
  * as the movies reported it, "" when unknown. */
 const char *mu_gfx_layer_channel_path(const mu_gfx_layer *layer, const char *channel);
@@ -367,6 +373,7 @@ typedef struct mu_gfx_skill_icon {
     int32_t skill;                    /* 0: empty */
     float rect[4];                    /* stage points, top-left origin */
     float delay;                      /* remaining / total of the skill's delay (0 none) */
+    float frame_scale, stamp_offset[2]; /* handler scale; requestStampRelativePosition */
 } mu_gfx_skill_icon;
 typedef struct mu_gfx_skill_host {
     void *user;
@@ -380,6 +387,7 @@ typedef struct mu_gfx_skill_host {
     void (*stamp_save)(void *user);
     float (*delay_left)(void *user, int32_t skill);
     void (*icons)(void *user, const mu_gfx_skill_icon *icons, int n, int32_t stage_w, int32_t stage_h);
+    int (*stamp_tab)(void *user, int tab);           /* 0 Basic / 1 Special Skill tab: page 1, returns the pages */
 } mu_gfx_skill_host;
 void mu_gfx_layer_set_skill_host(mu_gfx_layer *layer, const mu_gfx_skill_host *host);
 /* onUseSkillDelay({skill, delaytime}) on the bar (StartSkillDelay 0x01696aca sends it). */

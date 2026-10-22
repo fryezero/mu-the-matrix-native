@@ -1448,6 +1448,12 @@ int mu_lang_charinfo_rows(const mu_lang *L, int32_t class_index, const mu_lang_c
     return n;
 }
 
+const mu_lang_skillreq *mu_lang_skillreq_get(const mu_lang *L, int32_t skill)
+{
+    mu_lang_skillreq key = {.key = skill};
+    return L && L->nskillreq ? bsearch(&key, L->skillreq, L->nskillreq, sizeof key, cmp_skillreq) : NULL;
+}
+
 const mu_lang_skillreq *mu_lang_skillreq_item(const mu_lang *L, int32_t group, int32_t index)
 {
     if (!L)

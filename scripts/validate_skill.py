@@ -418,7 +418,7 @@ class HeroC(ctypes.Structure):
     _fields_ = [('class_index', I32), ('strength', U16), ('agility', U16), ('vitality', U16), ('energy', U16),
                 ('command', U16), ('mana', I32), ('ag', I32), ('mana_bonus', U8), ('elemental', I32),
                 ('current', U8), ('mounted', U8), ('mount_kind', U8), ('count', ctypes.c_int),
-                ('skills', U16*255), ('timers', I32*255)]
+                ('skills', U16*0x3a1), ('timers', I32*0x3a1)]
 
 
 class HotkeysC(ctypes.Structure):

@@ -1,10 +1,11 @@
-/* Test host for native/core/mu_skill.c (NATIVE-SKILL-001).
+/* Test host for native/core/mu_skill.c (NATIVE-SKILL-001, NATIVE-SKILL-002).
  *
  *   skill-book-host LANG_DIR GAME_ROOT|- [OP ...]
  *
  * Loads the Lang plaintext (core/mu_lang) and SkillTooltipText.bmd under GAME_ROOT/Data/Local, then runs:
  *   demo CLASS | stats STR AGI VIT ENE CMD MANA AG | feed | select SLOT | cast SKILL | tick MS | tip SKILL
  *   | icon SKILL | stamp | slot N | drop FROM TO | cancel | print
+ *   | demofile PATH | learn SKILL | forget SKILL | save | tab N | packet HEX (a server packet)
  * Each op prints one JSON line.  Synthetic data in the tests; no client bytes. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,9 @@
 
 #include "../core/mu_lang.h"
 #include "../core/mu_skill.h"
+
+static int weapon_kind;
+static int kind(void *u, int slot, int value) { (void)u; return slot == 0 && value == weapon_kind; }
 
 int main(int argc, char **argv)
 {
@@ -52,6 +56,25 @@ int main(int argc, char **argv)
                 printf("{\"feed\": %s}\n", json);
             else
                 printf("{\"feed\": null}\n");
+        } else if (!strcmp(op, "use") && i + 2 < argc) {
+            weapon_kind = atoi(argv[i + 2]);
+            mu_skill_use_env env = {.world = a, .transform = 0xffff, .item_kind = kind};
+            for (int j = 0; j < 15; j++)
+                env.items[j].code = -1;
+            mu_skill_book_set_use_state(b, &env);
+            i += 2;
+        } else if (!strcmp(op, "master")) {
+            mu_master_tree *tree = mu_skill_book_master(b);
+            printf("{\"tree_nodes\": %d, \"tree_tips\": %d, \"master_points\": %d, \"master_learned\": %d, "
+                   "\"level\": %d, \"damage\": %d}\n", tree->nnodes, tree->ntips,
+                   mu_skill_book_master_env(b)->points, tree->nlearned, mu_master_level(tree, a),
+                   mu_master_skill_damage(tree, mu_skill_book_env(b), a, NULL, NULL));
+            i++;
+        } else if (!strcmp(op, "masterlearn")) {
+            uint8_t p[8];
+            mu_master_request(p, sizeof p, a);
+            printf("{\"master_answer\": %d}\n", mu_skill_book_demo_master_request(b, p, sizeof p));
+            i++;
         } else if (!strcmp(op, "select")) {
             printf("{\"select\": %d, \"selected\": %d}\n", mu_skill_book_select_slot(b, a), (int)mu_skill_book_selected(b));
             i++;
@@ -99,6 +122,27 @@ int main(int argc, char **argv)
             i += 2;
         } else if (!strcmp(op, "cancel")) {
             mu_skill_book_stamp_cancel(b, &stamp);
+        } else if (!strcmp(op, "demofile") && i + 1 < argc) {
+            printf("{\"demofile\": %d}\n", mu_skill_demo_load(argv[i + 1]));
+            i++;
+        } else if (!strcmp(op, "learn") || !strcmp(op, "forget")) {
+            printf("{\"%s\": %d}\n", op, mu_skill_book_demo_learn(b, a, op[0] == 'f'));
+            i++;
+        } else if (!strcmp(op, "save")) {
+            mu_skill_book_stamp_save(b);
+        } else if (!strcmp(op, "tab")) {
+            printf("{\"tab_pages\": %d}\n", mu_skill_book_stamp_tab(b, &stamp, a));
+            i++;
+        } else if (!strcmp(op, "packet") && i + 1 < argc) {
+            uint8_t pk[512];
+            size_t n = 0;
+            for (const char *p = argv[i + 1]; p[0] && p[1] && n < sizeof pk; p += 2) {
+                unsigned v;
+                sscanf(p, "%2x", &v);
+                pk[n++] = (uint8_t)v;
+            }
+            printf("{\"packet\": %d}\n", mu_skill_book_receive(b, pk, n));
+            i++;
         } else if (!strcmp(op, "print")) {
             const mu_skill_hero *h = mu_skill_book_hero(b);
             const mu_skill_hotkeys *k = mu_skill_book_hotkeys(b);
@@ -108,6 +152,17 @@ int main(int argc, char **argv)
             printf("], \"bar\": [");
             for (int j = 0; j < MU_SKILL_SLOTS; j++)
                 printf("%s%d", j ? ", " : "", k->slots[j]);
+            printf("], \"window\": [");
+            for (int j = 0; j < MU_SKILL_SLOTS; j++) {
+                mu_skill_stamp view = stamp;
+                view.select_page = j / 5;
+                printf("%s%d", j ? ", " : "", (int)mu_skill_book_stamp_skill(b, &view, j % 5));
+            }
+            const mu_skill_stamp_mgr *sm = mu_skill_book_stamp_mgr(b);
+            printf("], \"basic\": [");
+            for (int j = 0; j < sm->basic.count; j++)
+                printf("%s[%d, %d, %d]", j ? ", " : "", sm->basic.items[j]->base, sm->basic.items[j]->learned,
+                       sm->basic.items[j]->imprint);
             printf("], \"selected\": %d, \"current\": %d, \"class_index\": %d}\n", k->selected, h->current,
                    h->class_index);
         } else {

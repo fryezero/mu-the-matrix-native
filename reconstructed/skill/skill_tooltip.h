@@ -102,6 +102,12 @@ int mu_skill_wrap(const mu_skill_tip_env *env, const char *text, int32_t width, 
 /* 0x00c1f2b0 before the UTF-8 conversion: title and body HTML. */
 void mu_skill_tooltip_html(const mu_skill_tip *tip, char *title, size_t title_cap, char *body, size_t body_cap);
 
+/* 0x011ffb3a(text, 0, line, color, 0, 1): wrap `text` (width 150) into the lines from `line` on, each with that
+ * colour and bold 0; returns the next line.  mu_skill_tip_set: a line's text (NULL keeps it), colour and bold
+ * (-1 keeps them). */
+int mu_skill_tip_put(const mu_skill_tip_env *env, mu_skill_tip *tip, const char *text, int line, int32_t color);
+void mu_skill_tip_set(mu_skill_tip *tip, int line, const char *text, int32_t color, int32_t bold);
+
 /* The client's sprintf for one argument of a table format: kind 'i' (int), 'f' (double), 's' (string),
  * or 0 (no argument).  Returns the length written (out always terminated when cap > 0). */
 size_t mu_skill_format(char *out, size_t cap, const char *fmt, int kind, int32_t ivalue, double fvalue,

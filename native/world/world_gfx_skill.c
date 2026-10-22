@@ -18,7 +18,7 @@
 #include "../core/mu_skill.h"
 #include "../gfx/mu_gfx_layer.h"
 
-#define SHEETS 8
+#define SHEETS 12
 
 struct wg_skill {
     mu_skill_book *book;
@@ -27,7 +27,62 @@ struct wg_skill {
     char root[4096];
     struct { int32_t bitmap; GLuint tex; int tried, ok; } sheets[SHEETS];
     long casts, refused, icons_drawn, tooltips;
+    int32_t world;
+    int32_t buffs[64];
+    int nbuffs;
 };
+
+/* OFFLINE DEMO equipment: a right-hand sword (kind 1). No native equipment packet feed exists yet. */
+static int demo_item_kind(void *user, int slot, int kind)
+{
+    (void)user;
+    return slot == 0 && kind == 1;
+}
+
+static int demo_buff(void *user, int list, int32_t id)
+{
+    const wg_skill *s = user;
+    (void)list;                    /* DEMO: the displayed buffs apply to the hero in each predicate */
+    for (int i = 0; i < s->nbuffs; i++)
+        if (s->buffs[i] == id)
+            return 1;
+    return 0;
+}
+static int skill_requirement(void *user, int32_t base, int32_t *skill, int32_t *master, int32_t *level)
+{
+    wg_skill *s = user;
+    return mu_skill_book_requirement(s->book, base, skill, master, level);
+}
+static int skill_master_level(void *user, int32_t skill)
+{
+    wg_skill *s = user;
+    return mu_master_level(mu_skill_book_master(s->book), skill);
+}
+
+void wg_skill_set_world(wg_skill *s, int32_t world)
+{
+    if (!s)
+        return;
+    s->world = world;
+    mu_skill_use_env state = {.user = s, .world = world, .transform = 0xffff, .item_kind = demo_item_kind,
+                              .skill_require = skill_requirement, .master_level = skill_master_level};
+    for (int i = 0; i < 15; i++)
+        state.items[i].code = -1;
+    state.items[0].code = 0;       /* demo sword group 0/index 0 */
+    mu_skill_env skills = {.user = s, .buff = demo_buff};
+    state.skills = &skills;
+    mu_skill_book_set_use_state(s->book, &state);
+}
+
+void wg_skill_set_buffs(wg_skill *s, const int32_t *ids, int count)
+{
+    if (!s)
+        return;
+    s->nbuffs = count < 0 ? 0 : count > 64 ? 64 : count;
+    if (s->nbuffs && ids)
+        memcpy(s->buffs, ids, (size_t)s->nbuffs * sizeof *ids);
+    wg_skill_set_world(s, s->world);
+}
 
 wg_skill *wg_skill_open(const char *game_root, const mu_lang *lang, const char *lang_dir, int32_t class_byte)
 {
@@ -40,7 +95,12 @@ wg_skill *wg_skill_open(const char *game_root, const mu_lang *lang, const char *
         return NULL;
     }
     snprintf(s->root, sizeof s->root, "%s", game_root ? game_root : "");
-    mu_skill_book_demo(s->book, class_byte & 0xf);
+    wg_skill_set_world(s, 0);
+    /* OFFLINE DEMO: the server's login packets (skill list, saved bar) from core/mu_skill_demo.c; MU_SKILL_DEMO
+     * names a demo file ("list CLASS SKILL..." / "keys CLASS K1..K9 K0") */
+    if (getenv("MU_SKILL_DEMO"))
+        mu_skill_demo_load(getenv("MU_SKILL_DEMO"));
+    mu_skill_book_demo_login(s->book, class_byte);
     mu_skill_book_stamp_open(s->book, &s->stamp);
     return s;
 }
@@ -137,8 +197,15 @@ static int host_stamp_drop(void *user, int from, int to)
 static void host_stamp_save(void *user)
 {
     wg_skill *s = user;
-    /* DEMO: the client sends the slots to the server (0x01096d2a); the bar keeps them */
-    memcpy(s->stamp.saved, mu_skill_book_hotkeys(s->book)->slots, sizeof s->stamp.saved);
+    /* 0x00c20db4: the stamp manager's Save, the CurrentSkill rule, the bar (the client also sends the slots to the
+     * server; the demo keeps them) */
+    mu_skill_book_stamp_save(s->book);
+}
+
+static int host_stamp_tab(void *user, int tab)
+{
+    wg_skill *s = user;
+    return mu_skill_book_stamp_tab(s->book, &s->stamp, tab);
 }
 
 static float host_delay_left(void *user, int32_t skill)
@@ -185,6 +252,29 @@ static GLuint sheet_texture(wg_skill *s, int32_t bitmap)
     return tex;
 }
 
+void wg_skill_draw(wg_skill *s, int32_t bitmap, float x, float y, float w, float h, float u, float v, float uw,
+                    float vh, uint32_t color)
+{
+    GLuint tex = sheet_texture(s, bitmap);
+    if (!tex)
+        return;
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glColor4ub((GLubyte)color, (GLubyte)(color >> 8), (GLubyte)(color >> 16), (GLubyte)(color >> 24));
+    glBegin(GL_QUADS);
+    glTexCoord2f(u, v); glVertex2f(x, y);
+    glTexCoord2f(u + uw, v); glVertex2f(x + w, y);
+    glTexCoord2f(u + uw, v + vh); glVertex2f(x + w, y + h);
+    glTexCoord2f(u, v + vh); glVertex2f(x, y + h);
+    glEnd();
+    s->icons_drawn++;
+}
+
+static void draw_quad(wg_skill *s, const mu_skill_quad *q)
+{
+    wg_skill_draw(s, q->bitmap, q->x, q->y, q->w, q->h, q->u, q->v, q->uw, q->vh, 0xffffffff);
+}
+
 /* RenderBitmap of each window icon (0x01097130's bitmap and cell; the texture rectangle u, v, uw, vh of
  * the 512-texel sheet), then the delay overlay of 0x00f18574. */
 static void host_icons(void *user, const mu_gfx_skill_icon *icons, int n, int32_t stage_w, int32_t stage_h)
@@ -226,6 +316,21 @@ static void host_icons(void *user, const mu_gfx_skill_icon *icons, int n, int32_
         glVertex2f(r[0], r[1] + r[3]);
         glEnd();
         s->icons_drawn++;
+        int32_t base = 0, learned = 0;
+        int imprint = 0;
+        if (mu_skill_book_stamp_entry(s->book, &s->stamp, icons[i].slot, &base, &learned, &imprint)) {
+            float sc = icons[i].frame_scale;
+            float ox = icons[i].stamp_offset[0], oy = icons[i].stamp_offset[1];
+            mu_skill_stamp_entry entry = {base, learned, (uint8_t)imprint};
+            mu_skill_quad q;
+            if (mu_skill_stamp_marker(mu_skill_book_hero(s->book)->elemental, &entry, r[0] + ox * sc,
+                                      r[1] + oy * sc, 17, 17, 17 * sc, 17 * sc, &q))
+                draw_quad(s, &q);
+            const mu_skill_record *rec = mu_skill_book_record(s->book, learned);
+            if (rec && mu_skill_damage_type_icon(rec->damage_type, learned, r[0] + (10 - ox) * sc,
+                                                 r[1] + (oy + 7) * sc, 21, 23, 17 * sc, 17 * sc, &q))
+                draw_quad(s, &q);
+        }
         if (icons[i].delay > 0.0f) {
             float h = r[3] * icons[i].delay;
             glDisable(GL_TEXTURE_2D);
@@ -251,7 +356,8 @@ void wg_skill_attach(wg_skill *s, mu_gfx_layer *layer)
     mu_gfx_skill_host host = {.user = s, .feed = host_feed, .select = host_select, .tooltip = host_tooltip,
                               .stamp_open = host_stamp_open, .stamp_skill = host_stamp_skill,
                               .stamp_page = host_stamp_page, .stamp_drop = host_stamp_drop,
-                              .stamp_save = host_stamp_save, .delay_left = host_delay_left, .icons = host_icons};
+                              .stamp_save = host_stamp_save, .delay_left = host_delay_left, .icons = host_icons,
+                              .stamp_tab = host_stamp_tab};
     mu_gfx_layer_set_skill_host(layer, &host);
 }
 
@@ -283,6 +389,16 @@ int wg_skill_cast(wg_skill *s, int32_t *skill)
         mu_gfx_layer_set_hero(s->layer, &h);
     }
     return r;
+}
+
+int wg_skill_server(wg_skill *s, const char *verb, int32_t skill)
+{
+    if (!s || !verb)
+        return 0;
+    int forget = !strcmp(verb, "forget");
+    if (!forget && strcmp(verb, "learn"))
+        return 0;
+    return mu_skill_book_demo_learn(s->book, skill, forget);    /* DEMO: the server's 0xFE / 0xFF packet */
 }
 
 void wg_skill_set_screen(wg_skill *s, int32_t width)
