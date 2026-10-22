@@ -445,7 +445,7 @@ void mugfx_start(MuGfx *g)
         call(g, "requestWindowPos", "[45.0,21.0]");
     } else if (is(g, "SkillInfoPopup")) {
         call(g, "UIInit", "[\"g_mcSkillInfoPopup\"]");
-    } else if (is(g, "MasterSkillTree") || is(g, "SkillTree4th") || is(g, "SkillTree5th")) {
+    } else if (is(g, "MasterSkillTree") || is(g, "SkillTree4th") || is(g, "SkillTree5th") || is(g, "MoveCommand")) {
         char a[96];
         snprintf(a, sizeof a, "[\"g_%s\"]", g->name);
         call(g, "UIInit", a);

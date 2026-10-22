@@ -609,8 +609,17 @@ static int load(app *a)
             if (a->mapsess)
                 mu_map_session_init(a->mapsess, mu_lang_shared(), a->world, a->tile[0], a->tile[1]);
         }
-        if (a->mapsess)
+        if (a->mapsess) {
             mu_map_set_position(a->mapsess, a->world, a->walk.hero.tile[0], a->walk.hero.tile[1]);
+            mu_map_clear_npcs(a->mapsess);
+            for (int32_t i = 0; i < a->actors.count; i++) {
+                const mu_world_actor *npc = &a->actors.list[i];
+                if (npc->actor.spec.npc_index < 0)
+                    continue;
+                const char *name = a->mapsess->lang ? mu_lang_npc_name(a->mapsess->lang, npc->server_class) : NULL;
+                mu_map_add_npc(a->mapsess, i, name && name[0] ? name : npc->label, npc->tile[0], npc->tile[1]);
+            }
+        }
     }
     return 0;
 }
@@ -1280,6 +1289,7 @@ static int travel(app *a, const mu_teleport *t)
     size_t wav_frames = a->wav_frames, wav_capacity = a->wav_capacity;
     a->wav = NULL;
     int32_t old_world = a->world, old_tile[2] = {a->walk.hero.tile[0], a->walk.hero.tile[1]};
+    float old_angle = a->walk.hero.angle[2];
     mu_frame_clock clock = a->walk.frame.clock;   /* the session's time goes on (no catch-up steps) */
     uint32_t steps = a->walk.steps;
     unload(a);
@@ -1298,6 +1308,7 @@ static int travel(app *a, const mu_teleport *t)
         a->world = old_world;
         a->tile[0] = old_tile[0];
         a->tile[1] = old_tile[1];
+        a->angle = old_angle;
         a->placement = old_world == a->start_world ? a->start_placement : NULL;
         a->npc_demo_path = old_world == a->start_world ? a->start_npc_demo : NULL;
         a->players_file = old_world == a->start_world ? a->start_players : NULL;
@@ -2606,10 +2617,10 @@ static void report_summary(const app *a, const char *renderer)
     if (a->mapsess)   /* NATIVE-MAP-001 */
         printf("{\"map\": true, \"world\": %d, \"tile\": [%d, %d], \"travels\": %u, \"travel_failures\": %u,"
                " \"zen\": %lld, \"moves\": %d, \"gates\": %d, \"loading_world\": %d, \"map_shown\": %d,"
-               " \"map_available\": %d, \"units\": %d, \"move_open\": %d}\n", a->world, a->walk.hero.tile[0],
+               " \"map_available\": %d, \"units\": %d, \"npc_units\": %d, \"move_open\": %d}\n", a->world, a->walk.hero.tile[0],
                a->walk.hero.tile[1], a->travels, a->travel_failures, (long long)a->mapsess->zen, a->mapsess->nentries,
                a->mapsess->ngates, a->mapsess->loading_world, a->mapsess->hud.shown, a->mapsess->hud.available,
-               a->mapsess->nunits, a->mapsess->move_open);
+               a->mapsess->nunits, a->mapsess->nnpcs, a->mapsess->move_open);
     if (!a->quiet)
         for (int32_t i = 0; i < w->log_count; ++i)
             printf("{\"log\": \"%s\"}\n", w->log[i]);

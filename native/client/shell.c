@@ -430,9 +430,29 @@ static void close_charsel(mu_shell *s)
     }
 }
 
+static void remember_world(mu_shell *s)
+{
+    if (!s->world)
+        return;
+    const mu_walk *w = mu_world_embed_walk(s->world);
+    s->g.world = w->world;
+    s->g.world_folder = mu_world_embed_folder(s->world);
+    /* The offline server keeps each character's last location across scene changes. */
+    int32_t i = 0;
+    while (i < s->session.join_count && s->session.joins[i].slot != s->hero_slot)
+        ++i;
+    if (i < MU_OFFLINE_JOINS) {
+        if (i == s->session.join_count)
+            ++s->session.join_count;
+        s->session.joins[i] = (mu_offline_join){s->hero_slot, w->world, {w->hero.tile[0], w->hero.tile[1]},
+                                              w->hero.angle[2]};
+    }
+}
+
 static void close_world(mu_shell *s)
 {
     if (s->world) {
+        remember_world(s);
         if (s->platform.embed_closing)
             s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_WORLD, s->world);
         mu_world_embed_close(s->world);
@@ -670,15 +690,16 @@ static int open_world(mu_shell *s)
     c.sound_table = s->cfg.sound_table;
     c.audio = s->cfg.audio && s->cfg.sound_table;
     c.audio_rate = s->cfg.audio_rate;
-    c.placement = join.world == 0 ? s->cfg.placement : NULL;
+    c.placement = s->cfg.placement;
+    c.demo_world = 0;
     c.combat = s->cfg.world_combat;   /* NATIVE-APP-001 */
     c.ground_items = s->cfg.world_items;
     c.npc = s->cfg.world_npc;
-    c.npc_demo = join.world == 0 ? s->cfg.npc_demo : NULL;
+    c.npc_demo = s->cfg.npc_demo;
     c.no_names = s->cfg.world_no_names;
     c.no_env = s->cfg.world_no_env;
     c.no_particles = s->cfg.world_no_particles;
-    c.players = join.world == 0 ? s->cfg.players : NULL;   /* NATIVE-PLAYERS-001: Lorencia's demo players */
+    c.players = s->cfg.players;   /* NATIVE-PLAYERS-001: Lorencia's demo players */
     c.helper = s->cfg.helper;   /* NATIVE-HELPERS-001 */
     c.helper_state = s->cfg.helper_state;
     c.objects_dir = s->cfg.world_objects;
@@ -1106,6 +1127,7 @@ static void world_frame(mu_shell *s, uint32_t now)
         mu_world_embed_message(s->world, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
     }
     mu_world_embed_advance(s->world, now);
+    remember_world(s);
 }
 
 static void frame_driver(mu_shell *s)

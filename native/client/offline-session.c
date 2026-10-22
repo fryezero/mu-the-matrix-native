@@ -384,6 +384,14 @@ int mu_offline_session_delete(mu_offline_session *s, int32_t slot)
             memmove(&s->characters.entries[i], &s->characters.entries[i + 1],
                     (size_t)(s->characters.count - i - 1) * sizeof s->characters.entries[0]);
             --s->characters.count;
+            for (int32_t j = 0; j < s->join_count; ) {
+                if (s->joins[j].slot != slot) {
+                    ++j;
+                    continue;
+                }
+                memmove(&s->joins[j], &s->joins[j + 1], (size_t)(s->join_count - j - 1) * sizeof s->joins[0]);
+                --s->join_count;
+            }
             return 1;
         }
     return 2;

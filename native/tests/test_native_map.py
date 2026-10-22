@@ -117,6 +117,15 @@ class SyntheticTravel(unittest.TestCase):
         self.assertEqual(m['travels'], 0)
         self.assertIn('refused', result.stderr)
 
+    def test_failed_travel_restores_position_and_facing(self):
+        summary, m, rows, result = walk(self.root, self.lang, '--tile', '80,80', '--angle', '180',
+                                        '--frames', '10', '--every', '1', '--travel-script', '3:to:7:40:40')
+        self.assertEqual((summary['world'], m['tile'], m['travel_failures']), (0, [80, 80], 1))
+        frames = [r for r in rows if 'angle' in r]
+        self.assertTrue(frames)
+        self.assertTrue(all(r['angle'] == 180 for r in frames), frames)
+        self.assertIn('staying in world 0', result.stderr)
+
     def test_rows(self):
         _, _, rows, _ = walk(self.root, self.lang, '--tile', '80,80', '--frames', '4', '--travel-script', '1:rows')
         moves = [r for r in rows if 'move_row' in r]
@@ -128,6 +137,23 @@ class SyntheticTravel(unittest.TestCase):
     def test_no_map(self):
         _, m, _, _ = walk(self.root, self.lang, '--tile', '121,60', '--frames', '4', '--no-map')
         self.assertIsNone(m)
+
+    def test_npc_markers_follow_the_loaded_world(self):
+        from test_native_npc import write_npc_world, PLACE
+        root = Path(self.tmp.name) / 'npc-game'
+        write_npc_world(root)
+        second_world(root)
+        placement = Path(self.tmp.name) / 'npc-placement.txt'
+        placement.write_text(PLACE)
+        _, m, _, _ = walk(root, self.lang, '--placement', placement, '--tile', '80,80', '--frames', '3')
+        self.assertEqual(m['npc_units'], 4)
+        self.assertEqual(m['units'], 5)  # four NPCs and one portal
+        _, m, _, _ = walk(root, self.lang, '--placement', placement, '--tile', '80,80', '--frames', '10',
+                          '--travel-script', '3:move:2')
+        self.assertEqual((m['world'], m['npc_units'], m['units']), (1, 0, 0))
+        _, m, _, _ = walk(root, self.lang, '--placement', placement, '--tile', '80,80', '--frames', '16',
+                          '--travel-script', '3:move:2 9:move:1')
+        self.assertEqual((m['world'], m['npc_units'], m['units']), (0, 4, 5))
 
 
 @unittest.skipUnless(PRIVATE and WALK.exists(), 'private data (MU_RECOVERY_INTEGRATION, MU_GAME_ROOT, MU_LANG_DIR)')

@@ -314,6 +314,8 @@ void world_gfx_map_frame(world_gfx_map *m, const float hero_pos[2], float hero_a
             hud_units(m);
         }
     }
+    if (m->s->hud.shown && m->s->units_dirty)
+        hud_units(m);
     mu_map_hud_frame f;
     mu_map_hud_update(&m->s->hud, 1, 1, hero_pos, hero_angle_z, &f);
     char p[256], v[64];

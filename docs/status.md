@@ -23,6 +23,11 @@ not exist yet.
 
 ## Working components
 
+- Map follow-ups, NATIVE-POLISH-001. Scene globals and per-character demo join locations follow travel;
+  MoveCommand uses the client's left alignment 10; E7 NPC markers follow the loaded world and survive Tab refresh.
+  Bounded teleport instructions match 875 checks, registration matches one, and all 3 planted mistakes fail.
+  The full navimap formatter remains blocked on uncaptured C++ locale state. [Evidence](research/client-maps.md#native-polish-001-map-follow-ups).
+
 - Guide quests, class-upgrade quests, tracker and Go Now, NATIVE-QUEST-002. MyQuestInfo tabs 0/1,
   winQuestSummary, QuestProgressInfo and NpcJobChangeQuest run through the native GFx layer. Go Now walks or
   travels through `mu_map`; NPC 257 wears its extracted +13 set 24 and wings. 7,004 Unicorn cases match with
