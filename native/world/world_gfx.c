@@ -24,6 +24,7 @@
 #include "../core/mu_skill.h"
 #include "../core/mu_mix.h"
 #include "../../reconstructed/mix/item_actions.h"
+#include "../../reconstructed/mix/item_services.h"
 
 struct world_gfx {
     mu_gfx_layer *layer;
@@ -80,6 +81,19 @@ static void jewel_request(void *user,int source,int target)
     mu_gfx_layer_npc_note(g->layer,note);
 }
 
+static int store_check(void *user,const mu_mix_item *it) {
+    return mu_mix_book_store(((world_gfx *)user)->mix,it);
+}
+static int repair_quote(void *user,const mu_mix_item *it,int npc,int32_t *cost,int32_t *maximum) {
+    return mu_mix_book_repair(((world_gfx *)user)->mix,it,npc,cost,maximum);
+}
+static void repair_request(void *user,int cell,int npc) {
+    world_gfx *g=user;uint8_t p[5];char note[128];
+    mu_repair_request(p,cell<0?255:(uint8_t)(cell+12),(uint8_t)!npc);
+    snprintf(note,sizeof note,"Repair request %02x %02x %02x %02x %02x (offline demo)",p[0],p[1],p[2],p[3],p[4]);
+    mu_gfx_layer_npc_note(g->layer,note);
+}
+
 static void quest_dialog_visible(world_gfx *g, int visible);
 
 /* GlobalText for the layer's labels: the tables read from the client
@@ -124,7 +138,14 @@ static int tooltip(void *user, int32_t code, int32_t level, char *html, size_t c
     return tooltip_ex(user, code, level, MU_GFX_TIP_PLAIN, html, cap);
 }
 
-static int tooltip_ex(void *user, int32_t code, int32_t level, int context, char *html, size_t cap)
+static int tooltip_build(void *user,int32_t code,int32_t level,const mu_mix_item *snapshot,int context,char *html,size_t cap);
+static int tooltip_snapshot(void *user,const mu_mix_item *snapshot,int context,char *html,size_t cap) {
+    return tooltip_build(user,snapshot->code,snapshot->level,snapshot,context,html,cap);
+}
+static int tooltip_ex(void *user,int32_t code,int32_t level,int context,char *html,size_t cap) {
+    return tooltip_build(user,code,level,NULL,context,html,cap);
+}
+static int tooltip_build(void *user,int32_t code,int32_t level,const mu_mix_item *snapshot,int context,char *html,size_t cap)
 {
     world_gfx *g = user;
     if (!g->tables.have_tooltip || !g->scratch)
@@ -133,10 +154,17 @@ static int tooltip_ex(void *user, int32_t code, int32_t level, int context, char
     int k = mu_hud_inventory_add(g->scratch, g->tables.have_items ? &g->tables.items : NULL, g->root, code, level, 1, 1);
     if (k < 0)
         return 1;
+    if(snapshot) {
+        g->scratch->items[k].durability=(uint8_t)snapshot->durability;
+        g->scratch->items[k].excellent=(uint8_t)snapshot->excellent;
+    }
     const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
     const int hero[4] = {h->strength, h->agility, h->energy, h->level + h->master_level};
     mu_hud_tip tip;
-    mu_hud_tip_build(&g->tables, &g->scratch->items[k], hero, &tip);
+    if(snapshot) {
+        uint8_t maximum=mu_item_max_durability_at(&g->scratch->items[k].record,level,(uint8_t)snapshot->excellent,0);
+        mu_hud_tip_build_durability(&g->tables,&g->scratch->items[k],hero,maximum,&tip);
+    } else mu_hud_tip_build(&g->tables, &g->scratch->items[k], hero, &tip);
     const mu_hud_item *hi = &g->scratch->items[k];
     if ((context == MU_GFX_TIP_SHOP || context == MU_GFX_TIP_SELL) && tip.count + 2 <= MU_HUD_TIP_LINES &&
         (context == MU_GFX_TIP_SHOP || !hi->has_record || hi->record.attributes.can_sell)) {
@@ -1049,7 +1077,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .dialog_choice = dialogue_choice, .buff_tooltip = buff_tooltip,
                                .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key,
                                .window_draw = window_draw, .mix_quote = mix_quote,
-                               .jewel_check = jewel_check, .jewel_request = jewel_request};
+                               .jewel_check = jewel_check, .jewel_request = jewel_request,
+                               .tooltip_snapshot=tooltip_snapshot, .store_check = store_check, .repair_quote = repair_quote, .repair_request = repair_request};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -1364,6 +1393,10 @@ int world_gfx_npc_action(world_gfx *g, const char *verb, const char *arg)
             return mu_gfx_layer_add_item(g->layer,it.code,it.level,it.width,it.height,it.name)>=0;
         }
         return mu_gfx_layer_mix_action(g->layer,verb,a,b);
+    }
+    if(!strncmp(verb,"store",5) || !strncmp(verb,"repair",6) || !strcmp(verb,"selfrepair") || !strcmp(verb,"damage") || !strcmp(verb,"serviceresult")) {
+        int a=arg?atoi(arg):0,b=0;const char *colon=arg?strchr(arg,':'):NULL;if(colon)b=atoi(colon+1);
+        return mu_gfx_layer_service_action(g->layer,verb,a,b);
     }
     int q = quest_action(g, verb, arg);
     if (q >= 0)

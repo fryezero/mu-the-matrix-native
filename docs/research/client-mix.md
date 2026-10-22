@@ -6,8 +6,8 @@ The native client now plays MixGoblinSel and MixInventoryFrame, identifies
 bounded Mix.bmd recipes, shows rate and zen, and applies delayed offline
 mix and Bless/Soul/Life answers to inventory snapshots. `mu-world` and
 `mu-client` share this GFx path. The demo server's result is authored: it
-never predicts the real server's random outcome. Personal store and repair
-are the next slice. No live client or real items were used.
+never predicts the real server's random outcome. Bounded personal-store
+and repair windows now use the same offline transaction path. No live client or real items were used.
 
 ## Inputs and method
 
@@ -216,8 +216,94 @@ screenshots or renders are committed.
 PersonalShop, PersonalShopProductList, PersonalShopRegister and
 PersonalShopPurchase exist. Registration gate `0x00c00b38` calls
 `0x016be0dc`; NPC repair has ConvertRepairGold and the Item.bmd ban.
-Their UI requests/results are the next PR. Harmony vectors, cost D,
+The following section covers their bounded offline integration. Harmony vectors, cost D,
 authoritative class/option feeds, the separate Chaos-weapon system and
 real-server packet handling remain bounded gaps. The inventory extension
 outside the restored image remains opaque. Protection and encryption/login
 packets were not investigated.
+
+## Personal store and repair follow-up
+
+The installed client has PersonalShopProductList, PersonalShopRegister and
+PersonalShopPurchase. Their AS2 exports were read locally, including the row
+keys `bItemRegistered`, `ProductID`, `ItemName`, `ProductType`, `ItemCount`,
+`PriceZen`, `PriceBless`, `PriceSoul`; `OnClickProduct`, `OnClickOpenShop`,
+`OnClickCloseShop`, the three-number registration `OnClickOk`, and
+`SetSlotUIInfo` for the five product model rectangles. The native layer uses
+these actual methods/callbacks. The inventory's `onClickbtnPrivateStore`
+opens registration. Registering a product reserves its existing inventory
+identities; it does not copy/remove them. Cancel releases only the draft;
+editing an existing row offers Remove listing. The demo has eight rows,
+with single items or bundles of up to five, and displays all three currencies.
+The purchase view has one explicit sample trader/potion at 1,000 zen.
+Open, close, purchase and zen-only sale events wait 160 ms for a demo answer.
+Rejection changes neither inventory nor money. Jewel-denominated settlement
+is refused because no server currency feed is present. The catalog search
+movie, persistent shops and real-player purchase routing remain open.
+
+`reconstructed/mix/item_services.c` ports the personal-store ban
+`0x016be0dc..0x016be1d8` and registration gate `0x00c00b38..0x00c00d01`.
+These differ from the warehouse ban. Registration checks bound state `+0x70`
+for kinds A=5/B=0x4f/B=0x2e, B=0x2f durability 254, depleted B=0x2b,
+period exactly 1, the three special code/level bans, the 0x1c15/+3 exception,
+and record flag `+0x2aa`. The nested kind-A checks in `0x016b823e` require a
+stable record to equal 8, 25 and 26 simultaneously; its reached result is 1.
+The validator executes that helper rather than replacing it with a stub.
+The native demo snapshot supplies missing bound state as zero. This does
+not establish eligibility for real bound inventory objects.
+
+The repair quote composes the existing verified maximum-durability and
+repair-ban helpers in `reconstructed/data` with ItemValue mode 2 and
+ConvertRepairGold in `reconstructed/price`. NpcShop's `onClickbtnRepair`
+toggles inventory `SetRepairMode`; its `onClickbtnRepairAll` repairs eligible
+unreserved inventory items. Inventory self-repair is available too. Quotes
+include durability and zen in the tooltip, and delayed accepted answers
+restore durability and charge once. Failed answers preserve both. The demo
+snapshot lacks expired/special-option/harmony/socket/ancient/helper-discount
+feeds. Repair declines period or nonzero additional-option snapshots;
+missing ancient/harmony/socket/discount state is empty/zero. Equipped item
+repair and authoritative server prices remain open. The existing price
+module's three displaced excellent compares remain inferred, as documented
+in [client-lang-tables.md](client-lang-tables.md).
+
+The shop repair-mode transition `0x00bf1765..0x00bf17c1` and complete
+repair-all callback `0x00bf1916` execute in the new validator. Packet-builder
+and transport are modelled; the clear builder payload is `C1 05 B1 FF 00`.
+The single-slot request path `0x00ab83e4`, including `0x00ad47a3` and
+`0x00ad95c8`, executes for every inventory cell in NPC and self mode. The
+grid lookup/window flags are modelled; cell coordinates, page offset 12,
+packet branch and NPC=0/self=1 mode bytes execute.
+No real repair reply layout is claimed; native durability replies are demo
+snapshots. Encryption, login and protection code remain untouched.
+
+`scripts/validate_item_services.py --cases 10000 --mutations` produced
+**29,952 comparisons, zero mismatches, 6/6 planted mistakes caught**:
+10,000 ban, 10,000 registration, 9,811 stable-helper, 12 toggle/flag and one
+repair-all packet comparison, plus 128 single-item packet comparisons.
+Mutants change period equality, the table flag, bound equality, the special
+level exception, packet slot and mode. This adds to the
+68,554 mix/jewel comparisons above, for **98,506** in this task and **23/23**
+planted mistakes. Existing data/price validation counts are not added again.
+Native service tests cover reservations, bundle cancellation, price callbacks,
+repair acceptance/rejection, repeated replies, purchases and sale slot reuse;
+synthetic table tests exercise the price adapter separately. Whole native
+service transactions are authored policy tested natively, not original x86
+transactions. Local `services-*` renders/logs stay under the mix artifact
+folders. The follow-up also restricts social movie dispatch to its actual
+movie IDs so mix buttons reach their handler, and widens script verb storage
+so long action names are not silently truncated.
+
+The service review found and fixed focused text routing, a rejected jewel
+script selecting a store draft item, stale consumed codes in trade-capacity
+checks and missing mu-client include dependencies. The native regressions
+cover these. A real-movie host run focused the zen field, typed 1000 through
+`mu_gfx_layer_text`, clicked Register and observed one committed listing;
+`store-typed.png` and `store-typed.log` are local evidence. No callback prices
+were injected in that run. The parser's long-name test runs the native
+headless CLI. Service test additions: three reconstructed, fourteen GFx,
+three native-book and one parser regression. Whole-task totals are eighteen
+reconstructed and thirty-four native mix/service tests.
+
+Inventory tooltip snapshots now carry current durability/excellent state into
+the existing formatter, so repair no longer shows a stale full-durability
+line above the current quote.

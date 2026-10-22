@@ -69,6 +69,10 @@ static int host_jewel_check(void *user,int jewel,const mu_mix_item *it,int visib
     return !visible && (jewel==0x1c10 ? it->option<4 : it->level<9);
 }
 
+static int host_store(void *user,const mu_mix_item *it) { (void)user;return !it->period; }
+static int host_repair(void *user,const mu_mix_item *it,int npc,int32_t *cost,int32_t *maximum) {
+    (void)user;*maximum=100;*cost=npc?100:200;return it->durability<100 && !it->period;
+}
 static int host_choice(void *user, int index)
 {
     (void)user;
@@ -156,7 +160,7 @@ int main(int argc, char **argv)
     mu_gfx_layer_config cfg = {.movie_dir = argv[1], .lib_path = argv[2], .width = (int32_t)(pw * scale),
                                .height = (int32_t)(ph * scale), .shared = 1, .log = getenv("MU_GFX_LOG") ? stderr : NULL,
                                .scale = scale};
-    cfg.mix_quote=host_mix_quote;cfg.jewel_check=host_jewel_check;
+    cfg.mix_quote=host_mix_quote;cfg.jewel_check=host_jewel_check;cfg.store_check=host_store;cfg.repair_quote=host_repair;
     if (getenv("MU_GFX_HOST_TEXT"))
         cfg.text = host_text;
     if (getenv("MU_GFX_HOST_CHOICE"))
@@ -215,6 +219,15 @@ int main(int argc, char **argv)
                 drawn += px[p * 4 + 3] != 0;
             printf("composite drawn %ld\n", drawn);
             free(px);
+        } else if (!strcmp(op,"service") && i+3<argc) {
+            printf("service %s %d\n",a,mu_gfx_layer_service_action(L,a,atoi(argv[i+2]),atoi(argv[i+3])));i+=3;
+        } else if (!strcmp(op,"canreceive")) {
+            printf("{\"can_receive\":%d}\n",mu_gfx_layer_inventory_can_receive(L,atoi(a)));i++;
+        } else if (!strcmp(op,"servicestate")) {
+            int pending,opened,products,draft;mu_gfx_layer_service_state(L,&pending,&opened,&products,&draft);
+            printf("{\"pending\":%d,\"opened\":%d,\"products\":%d,\"draft\":%d,\"placed\":%d,\"zen\":%lld,\"durability\":[",pending,opened,products,draft,mu_gfx_layer_items_placed(L),(long long)mu_gfx_layer_hero(L)->zen);
+            for(int k=0;k<mu_gfx_layer_item_count(L);k++){mu_mix_item snap;mu_gfx_layer_item_snapshot(L,k,&snap);printf("%s%d",k?",":"",snap.durability);}
+            printf("]}\n");
         } else if (!strcmp(op, "mixact") && i+3<argc) {
             printf("mixact %s %d\n",a,mu_gfx_layer_mix_action(L,a,atoi(argv[i+2]),atoi(argv[i+3])));i+=3;
         } else if (!strcmp(op, "additem") && i+4<argc) {

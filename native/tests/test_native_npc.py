@@ -137,6 +137,12 @@ class Session(unittest.TestCase):
         self.assertEqual(out['summary']['pick_hits'], 0)
         self.assertEqual(out['opens'], [])
 
+    def test_item_service_script_names_are_not_truncated(self):
+        verbs=('mixresult','storebundle','storeconfirm','storepurchase','serviceresult','repairall')
+        script=' '.join(f'{k}:{v}:0' for k,v in enumerate(verbs))
+        out=run(self.root,self.placement,self.demo,'--frames','8','--npc-script',script)
+        self.assertEqual(out['result'].returncode,0)
+
     def test_bad_scripts_and_tables_are_refused(self):
         for text in ('5:hug:smith', '5:click', 'click:smith', '5:talk'):
             r = subprocess.run([str(WALK), '--game-root', str(self.root), '--headless', '--npc-script', text],

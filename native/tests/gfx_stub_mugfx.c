@@ -316,6 +316,10 @@ static const char *run_invoke(MuGfx *g, const char *path, const char *method, co
     } else if (is(g, "winQuestSummary") && !strcmp(method, "onFileLoad")) {
         call(g, "QuestSummary", "[\"onLoad\",\"_level0.win\"]");
         call(g, "QuestSummary", "[\"onOpenWindow\",false]");
+    } else if (!strcmp(method,"testFocus")) {
+        g->edit=1;g->text[0]=0;
+    } else if (!strcmp(method,"testStoreSubmit") && is(g,"PersonalShopRegister")) {
+        char a[128];snprintf(a,sizeof a,"[%s,0,0]",g->text[0]?g->text:"0");call(g,"OnClickOk",a);
     } else if (!strcmp(method, "testCall")) {
         /* test hook: the movie raises a callback, e.g. a menu button's onHotKey */
         char name[64] = "", rest[400] = "";
@@ -445,6 +449,8 @@ void mugfx_start(MuGfx *g)
         call(g, "requestWindowPos", "[45.0,21.0]");
     } else if (is(g,"MixGoblinSel")) {
         call(g,"UIInit","[\"g_mcMixGoblinSel\"]");
+    } else if (is(g,"PersonalShopProductList") || is(g,"PersonalShopRegister") || is(g,"PersonalShopPurchase")) {
+        char a[96];snprintf(a,sizeof a,"[\"g_%s\"]",g->name);call(g,"UIInit",a);
     } else if (is(g, "SkillInfoPopup")) {
         call(g, "UIInit", "[\"g_mcSkillInfoPopup\"]");
     } else if (is(g, "MasterSkillTree") || is(g, "SkillTree4th") || is(g, "SkillTree5th") || is(g, "MoveCommand")) {

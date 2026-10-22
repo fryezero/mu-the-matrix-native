@@ -755,3 +755,20 @@ requests an upgrade. These are offline demo answers. `mu-world --npc-script` acc
 ## Tests
 
 `make test` runs `native/tests`. The portable checks build everything from authored synthetic models and textures. The private checks run with `MU_RECOVERY_INTEGRATION=1 MU_GAME_ROOT=...`. Set `MU_NATIVE_GOLDEN_PER_VERSION` and `MU_NATIVE_GOLDEN_MAX_VERTICES` to widen the installed golden sample. The private mesh-draw execution test needs Unicorn (`tools/requirements-lock.txt`) and the pinned evidence (`MU_CLIENT_TEXT`, `MU_IMAGE_DATA`, `MU_TRIG_FLAG`, `MU_MATH_DATA`, or the default `evidence/` paths); `MU_MESHDRAW_PER_FOLDER` widens its installed sample. Renders of installed assets stay local and are never committed.
+
+
+Personal-store/repair demo verbs use `--npc-script` in the same GFx host:
+`store`, `storereg:ROW`, `storeput:CELL`, `storebundle:0|1`,
+`storeprice:CURRENCY:VALUE` (0 zen, 1 Bless, 2 Soul), `storeconfirm`,
+`storecancel`, `storeunlist:ROW`, `storeopen`, `storeclose`, `storesale:ROW`.
+The inventory's store button opens the real product-list movie; select a row,
+click inventory items, set prices, then Register. Cancel while editing an
+existing product removes that listing; closing the window cancels the edit.
+`storebrowse`, `storepurchase:0`, `storebuy` exercise the sample trader and
+purchase movie. Zen-only demo settlement is supported; jewel settlement
+refuses the request. `repairmode` toggles NPC repair, `selfrepair` toggles
+inventory repair, `repair:CELL` / `repairall` request a delayed quote/result.
+`damage:CELL:DURABILITY` authors an offline fixture, `serviceresult:0|1`
+selects reject/accept for subsequent service requests. No live server or real
+inventory is used. See [client-mix.md](../docs/research/client-mix.md) for the
+reconstructed boundaries and missing snapshot fields.
