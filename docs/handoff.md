@@ -22,6 +22,18 @@ in every situation. No game runtime or recovery behavior changed in this documen
 
 Read `status.md`, then choose a task from `roadmap.md`. Gameplay recovery needs runtime evidence. The user no longer has a Windows PC available, so do not make access to one a prerequisite for the next task. The full x86 Linux/Wine guest on this Mac has now restored readable client code; start with `research/restored-client-text.md` and `../runtime-linux/README.md`.
 
+## Move snapshot compatibility (NATIVE-MAP-002)
+
+The 298 failures come from skill2's lang5, not the distinct quest2/lang5 named in the brief. All three
+snapshots have identical 69 real move records. The missing-key default has nonzero sort fields only in
+skill2; `Tables.lookup` now supplies its captured record to C. Read
+[client-maps.md](research/client-maps.md#move-default-records-native-map-002) for digests, addresses and
+the five-family failure breakdown. Private reports/logs: `renders/map2/` and `scratch/map2/` under
+`~/Documents/mu-mac-tools/native/`. Native offline rows agree across all captures and three sort orders;
+private map travel passes. Lang4 and both lang5 copies each pass 5,001 instruction cases with zero mismatches
+and all 10 planted mistakes detected. Portable map tests: 11 pass; native map tests: 9 pass. No game session
+was opened. Party markers and mixing remain outside this change.
+
 ## Quest follow-ups and later skill inputs (NATIVE-POLISH-001)
 
 F6 56/7B dispatch to the existing walk path through `mu_quest_resume_path`; world reload retains an armed

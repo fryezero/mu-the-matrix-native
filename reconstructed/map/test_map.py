@@ -28,6 +28,36 @@ def f32(v):
     return struct.unpack('<f', struct.pack('<f', v))[0]
 
 
+def snapshot_with_move_default():
+    """An authored sparse table with a nonzero default and one ordinary row."""
+    def record(name, rid, zen, level, x44, x48):
+        raw = bytearray(0x50)
+        for off, value in ((4, name), (0x1c, b'Default')):
+            raw[off:off + len(value)] = value
+            struct.pack_into('<II', raw, off + 0x10, len(value), 15)
+        for off, value in ((0, rid), (0x34, zen), (0x38, level), (0x3c, 99), (0x40, 8),
+                           (0x44, x44), (0x48, x48), (0x4c, 19)):
+            struct.pack_into('<i', raw, off, value)
+        return raw
+
+    move = bytearray(0xa0)
+    struct.pack_into('<II', move, 0x38, 0x1000, 1)
+    move[0x4c:0x9c] = record(b'Fallback', 23, 123, 77, -7, 4)
+    head, node, gate_head = bytearray(0x20), bytearray(0x64), bytearray(0x20)
+    struct.pack_into('<III', head, 0, 0x1100, 0x1100, 0x1100)
+    head[0xd] = 1
+    struct.pack_into('<III', node, 0, 0x1000, 0x1000, 0x1000)
+    struct.pack_into('<i', node, 0x10, 5)
+    node[0x14:] = record(b'Regular', 5, 0, 0, 2, -2)
+    struct.pack_into('<III', gate_head, 0, 0x1200, 0x1200, 0x1200)
+    gate_head[0xd] = 1
+    blocks = [(vm.MOVEREQ, move), (0x1000, head), (0x1100, node), (0x1200, gate_head),
+              (vm.GATE + 0x38, struct.pack('<II', 0x1200, 0))]
+    data = b'MULANGV1' + struct.pack('<I', len(blocks))
+    data += b''.join(struct.pack('<II', address, len(raw)) + raw for address, raw in blocks)
+    return vm.plain.Snapshot(data)
+
+
 class Lib:
     def __init__(self):
         subprocess.run(['make', '-s', '-C', str(HERE)], check=True)
@@ -153,13 +183,43 @@ class MapTests(unittest.TestCase):
         self.assertEqual(n, 80)
         self.assertEqual([(arr[i].key, arr[i].order, arr[i].key2) for i in range(n)],
                          [(k, i, k) for i, k in enumerate(keys + [999])])
-        self.assertEqual((arr[79].x44, arr[79].x48), (0, 0))    # absent key: the default record
+        self.assertEqual((arr[79].x44, arr[79].x48), (0, 0))    # NULL callback result selects the empty fallback
         for order, field in ((0, 'order'), (1, 'x44'), (2, 'x48')):
             before = sorted((arr[i].key, arr[i].order) for i in range(n))
             self.L.mu_move_sort(arr, n, order)
             vals = [getattr(arr[i], field) for i in range(n)]
             self.assertEqual(vals, sorted(vals))
             self.assertEqual(sorted((arr[i].key, arr[i].order) for i in range(n)), before)
+
+    def test_snapshot_default_for_missing_moves(self):
+        t = vm.Tables(snapshot_with_move_default())
+        self.assertEqual(t.keys, [5])  # the default is not a selectable table row
+        for key in (0, 35, 36, 999, -1):
+            address = t.lookup(None, key)
+            self.assertIsNotNone(address)
+            r = vm.MoveRecord.from_address(address)
+            self.assertEqual((r.id, r.name, r.server_name, r.zen, r.min_level, r.max_level, r.gate,
+                              r.x44, r.x48, r.x4c), (23, b'Fallback', b'Default', 123, 77, 99, 8, -7, 4, 19))
+        arr, n = vm.native_build(self.lib.n, t, [5, 999])
+        self.assertEqual(vm.native_entries(arr, n), [(5, 2, 0, -2, 5, 0, 0, 0),
+                                                     (999, -7, 1, 4, 999, 0, 0, 0)])
+        self.L.mu_move_sort(arr, n, 1)
+        self.assertEqual([e.key for e in arr[:n]], [999, 5])
+        # Use the authored text callback, so no GlobalText snapshot is needed.
+        text = Records([]).text
+        h = self.hero(level=76, zen=123)
+        self.L.mu_move_availability(arr, n, ctypes.byref(h), t.lookup, text, None)
+        self.assertEqual([e.enabled for e in arr[:n]], [0, 1])
+        h.level, h.pk_level, h.zen = 77, 5, 6150
+        self.L.mu_move_availability(arr, n, ctypes.byref(h), t.lookup, text, None)
+        self.assertEqual([e.enabled for e in arr[:n]], [1, 1])
+        row = vm.MoveRow()
+        self.L.mu_move_row_make(ctypes.byref(arr[0]), 0, ctypes.byref(h), 0, t.lookup, text, None, ctypes.byref(row))
+        self.assertEqual((row.map, row.level, row.zen, row.map_idx), (b'Fallback', b'77', b'6150', 999))
+        result = vm.ClickResult()
+        self.L.mu_move_click(arr, n, 0, 0, 0, 0x11223344, ctypes.byref(result))
+        self.assertEqual(result.accepted, 1)
+        self.assertEqual(bytes(result.packet[:result.packet_length]), bytes.fromhex('c10b8e0244332211e703ff'))
 
     def hero(self, **kw):
         h = vm.MoveHero(level=400, zen=100000, strife_ok=1)

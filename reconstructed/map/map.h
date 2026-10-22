@@ -142,8 +142,9 @@ typedef struct mu_move_entry {
     uint8_t pad;
 } mu_move_entry;
 
-/* The record lookup the module uses (key -> record, NULL when absent: the
- * client then uses the table's default record, all zero). */
+/* The record lookup the module uses (key -> record). On a miss, return the
+ * table's runtime default (client lookup 0x0113c431: this + 0x4c). NULL selects
+ * an empty, zero-valued fallback for callers without a captured default. */
 typedef const mu_move_record *(*mu_move_lookup_fn)(void *user, int32_t key);
 
 /* The manager's constructor 0x00d3b4cb (verified): one entry per key of the

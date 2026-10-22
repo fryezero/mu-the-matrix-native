@@ -179,4 +179,57 @@ That input is not interchangeable with the original snapshot. Its failed log rem
 `scratch/polish/map-validator.log`; the passing original-input run is `map-validator-lang4.log`.
 An isolated archive of pre-polish `62be84d` reproduced exactly **298/5,001** with that same lang5 input:
 build 70, sort 31, availability 79, rows 48 and click 70. The failures therefore predate this follow-up;
-the newer snapshot remains unsupported by those families. Local report: `map-baseline-lang5.json`.
+the newer snapshot was unsupported by those families. Local report: `map-baseline-lang5.json`.
+NATIVE-MAP-002 resolves that input mismatch below.
+
+## Move default records (NATIVE-MAP-002)
+
+The pinned text and image-section digests above are unchanged. The failure is a **validator input bug**.
+The C algorithms already accept a caller-supplied default record; the validator returned NULL on a missing
+key, selecting C's empty fallback while Unicorn read the snapshot's runtime default. The former API comment
+incorrectly described that fallback as an always-zero client record.
+
+There are two distinct local files called lang5.bin. Snapshot SHA-256 identities:
+
+- `scratch/lang/live/lang4.bin`: `0461a408fd6b016def81043b43338d80d1851cec7bd7959ca8a2cf655dab9709`.
+- `scratch/quest2/live/lang5.bin`: `2bd041e633122183514925fbbd0ae828972c358c728527ea1a9fc1752814b657`.
+- `scratch/skill2/live/lang5.bin`: `59974e2e44ef80fb4e3551000f691837bc8f7e411dab28436aaa6bf676f5adf5`.
+
+All three have the same 69 movereq keys and identical decoded records, including both strings and every
+exported integer. Only skill2's capture reproduces the reported **298/5,001** failures. Its default at
+`0x06fbb898`, table `0x06fbb84c + 0x4c`, has nonzero fields at record `+0x44/+0x48/+0x4c`;
+those fields are zero in the other two snapshots. Default strings, level and cost agree. This is an
+observed runtime-state difference, not evidence of changed map requirements or of why those words differ.
+
+**Instruction evidence:** lookup `0x0113c3f5` takes the missing-key branch at `0x0113c431..0x0113c437`
+and returns `this + 0x4c`. The record copy `0x00bde686` reads the sort fields at
+`0x00bde704/0x00bde710`; constructor `0x00d3b593..0x00d3b5a2` places them in the move entry.
+No instruction, captured field or failing comparison is patched or excluded.
+
+| Family | Old failures on skill2 lang5 | Cause |
+|---|---:|---|
+| move_build | 70 | Randomly injected missing keys read nonzero default sort fields in Unicorn and zeros in C. |
+| move_sort | 31 | Built managers inherit those unequal fields; their sorted order differs. Synthetic vector sorts agree. |
+| availability | 79 | The comparison includes the whole built manager, retaining unequal fields and sometimes unequal pre-sort order before flags are assigned by position. |
+| rows | 48 | SetMoveMapList sorts those managers; the default's sort fields change the position of its empty-name row. |
+| click | 70 | The comparison includes the manager as well as effects; inherited fields/order differ, even when a click's effects agree. |
+
+`Tables.lookup` now returns the full captured default for an absent key, including its strings, rather than
+NULL. C retains its empty fallback for callers without a runtime default. The synthetic sparse-snapshot
+regression uses independently authored nonzero strings, cost, level and sort fields, and checks missing-key
+lookups, construction, sorting, availability, rows and click. Reports now include `snapshot_sha256` so two
+same-named captures cannot be confused.
+
+There is no changed live movereq data to migrate. The native session builds its selectable list from real
+table keys only, so its Move window never uses this missing-key default during construction. Offline
+`mu-walk`, using the same `mu_map` session and row builder as mu-world/mu-client, produced identical 69-row
+lists in all three sort orders for all three exports, **621 rows**. The native map tests also pass with
+skill2's current tables, including private Lorencia → Noria → Lorencia travel. No live client was launched.
+
+Reproduce with the pinned text/data and `scripts/validate_map.py --snapshot PATH --cases 500 --mutations`.
+Each of the three snapshots passes **5,001 cases, zero mismatches, all 10 planted mistakes detected**
+with seed 1. Portable reconstructed map tests: **11 pass**. Native map tests: **9 pass**, including the
+private travel check with skill2's current data.
+Reports and logs stay local under `~/Documents/mu-mac-tools/native/renders/map2/` and `scratch/map2/`.
+The pre-fix reports are `baseline-lang5.json` for quest2 and `baseline-skill2-lang5.json` for the failing input.
+The navimap locale blocker and the earlier bounded teleport limitations remain unchanged.
