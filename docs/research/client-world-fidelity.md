@@ -211,8 +211,17 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
    the contrast is compressed; the pattern stays with the ground when the hero moves (second session, two positions
    per map). The primary and frame light grids equal the native ones, the light-offset grid `0x0bc35430` is all zero,
    FogEnable is off and the fog globals are the BeginOpengl defaults (live reads), and the textures are the same. Both
-   folders hold a `Fog.OZJ` that no string in the captured code names. The source (a GL state, a second pass, an
-   overlay) was not found; a GL call trace of the Wine-track `mugl` layer in these two worlds is the next step.
+   folders hold a `Fog.OZJ` that no string in the captured code names. Two further live sessions:
+   - a `mugl` GL trace of one frame in Lorencia and one in Tarkan (`C:\mutools\mugl-trace.txt`) shows the same
+     terrain call families (RenderFace `0x016cfab3` / alpha face `0x016cfb53`, grass `0x016d16bf`) and the same state
+     and texture-environment calls; Tarkan only adds 75 RenderPlane3D quads (`0x0184c2bc`, its leaves, 16 × 16
+     texels) and two screen quads (`0x0184f707`). No extra terrain pass, fog or lighting state.
+   - an A/B in Tarkan at one tile with the Wine-track `mugl` batching (`mugl-mode.txt` `off`) and all its code
+     hotpatches (`mugl-hotpatch.txt` 0) switched off, restored afterwards: the masked mean |Δ| against the native frame
+     drops from 18.8 to 13.2 and some regions darken by up to 10 %; others stay brighter than the native, and a capture
+     after reloading the map without the JPEG hotpatch is still brighter. Part of the difference therefore comes from
+     the Wine-track renderer (to report to the mu-the-matrix-mac track); the rest is not explained. Fine shading
+     comparisons against the Mac-hosted client should take this into account.
 3. The brazier and torch flames themselves in Kanturu and Karutan (their lights are ported; the flames come from
    RenderObjectVisual `0x017f9758`'s world cases, not ported), and the visual-pass flags (`+0xa` drawn after the
    characters in Noria, Elbeland, Raklion, Karutan).
