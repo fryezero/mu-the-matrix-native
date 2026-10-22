@@ -11,6 +11,8 @@
 #include "../core/mu_npc.h"
 #include "../core/mu_quest.h"
 #include "../core/mu_map.h"
+#include "../core/mu_progress.h"
+#include "../../reconstructed/charsel/charcreate.h"
 #include "../core/mu_walk.h"
 #include "../core/mu_ui_font.h"
 #include "../../reconstructed/hud/tooltip_html.h"
@@ -59,6 +61,8 @@ struct world_gfx {
     wg_tree *tree;
     double scale;
     mu_mix_book *mix;
+    /* NATIVE-PROGRESS-001: the hero's progression (core/mu_progress), when the host binds it */
+    struct mu_progress *progress;
 };
 
 static int mix_quote(void *user,int group,const mu_mix_item *items,int n,mu_mix_quote *out)
@@ -438,10 +442,16 @@ static void demo_buffs(world_gfx *g, const char *open)
 
 /* The character window rows of a class index ("class=N" in --gfx-open, default 1: the demo hero's
  * Blade Knight) from CharacterInfoSetup (0x00b3dedc's order). */
+static void char_rows_class(world_gfx *g, int32_t cls);
+
 static void char_rows(world_gfx *g, const char *open)
 {
     const char *p = open ? strstr(open, "class=") : NULL;
-    int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 1;
+    char_rows_class(g, p ? (int32_t)strtol(p + 6, NULL, 0) : 1);
+}
+
+static void char_rows_class(world_gfx *g, int32_t cls)
+{
     cls &= 0xf;                   /* class= accepts the hero's stage bits as well as a base class index */
     const mu_lang_charinfo *rows[256];
     int n = mu_lang_charinfo_rows(mu_lang_shared(), cls, rows, 256);
@@ -470,6 +480,20 @@ static void char_rows(world_gfx *g, const char *open)
         case 29: r->value_key = MU_GFX_ROW_ENERGY; break;
         case 42: r->value_key = MU_GFX_ROW_COMMAND; break;
         case 10: r->value_key = MU_GFX_ROW_DAMAGE; break;
+        /* NATIVE-PROGRESS-001: the class formula's rows (static reading of the labels; the window's own value
+         * builder 0x00b40661 is not reconstructed) */
+        case 11: r->value_key = MU_GFX_ROW_ATK_RATE; break;
+        case 12: r->value_key = MU_GFX_ROW_PVP_RATE; break;
+        case 20: r->value_key = MU_GFX_ROW_DEFENSE; break;
+        case 22: r->value_key = MU_GFX_ROW_DEF_RATE; break;
+        case 23: r->value_key = MU_GFX_ROW_PVP_DEFRATE; break;
+        case 32: r->value_key = MU_GFX_ROW_MAGIC; break;
+        case 33: r->value_key = MU_GFX_ROW_CURSE; break;
+        case 26: r->value_key = MU_GFX_ROW_HP; break;
+        case 27: r->value_key = MU_GFX_ROW_SD; break;
+        case 34: r->value_key = MU_GFX_ROW_MANA; break;
+        case 35: r->value_key = MU_GFX_ROW_AG; break;
+        case 21: r->value_key = MU_GFX_ROW_ATK_SPEED; break;
         default: r->value_key = MU_GFX_ROW_NONE; break;
         }
     }
@@ -1051,6 +1075,83 @@ static int quest_action(world_gfx *g, const char *verb, const char *arg)
     return -1;
 }
 
+/* NATIVE-PROGRESS-001: CharacterInfoFrame's "+" buttons go through the client's rule and request */
+static int stat_button(void *user, double row)
+{
+    world_gfx *g = user;
+    if (!g->progress)
+        return 0;
+    mu_progress_button(g->progress, row);
+    return 1;
+}
+
+static void progress_sync(world_gfx *g)
+{
+    mu_progress *p = g->progress;
+    if (!p || !g->layer)
+        return;
+    if (p->exp_dirty) {
+        mu_gfx_layer_exp_data(g->layer, p->exp_json);
+        p->exp_dirty = 0;
+    }
+    if (!p->hero_dirty)
+        return;
+    p->hero_dirty = 0;
+    mu_progress_view v;
+    mu_progress_get_view(p, &v);
+    mu_gfx_hero h = *mu_gfx_layer_hero(g->layer);
+    h.level = v.level;
+    h.master_level = v.master_level;
+    h.points = v.points;
+    h.exp = v.stage >= 3 ? v.master_exp : v.exp;
+    h.exp_max = v.stage >= 3 ? v.master_next : v.next_exp;
+    h.strength = v.stats[0] + v.added[0];
+    h.agility = v.stats[1] + v.added[1];
+    h.vitality = v.stats[2] + v.added[2];
+    h.energy = v.stats[3] + v.added[3];
+    h.command = v.stats[4] + v.added[4];
+    h.max_hp = v.life_max;
+    h.max_mp = v.mana_max;
+    h.max_sd = v.shield_max;
+    h.max_ag = v.ag_max;
+    if (h.hp > h.max_hp)
+        h.hp = h.max_hp;
+    if (h.mp > h.max_mp)
+        h.mp = h.max_mp;
+    const char *cname = mu_lang_text(mu_lang_shared(), mu_ccr_class_name_text(p->hero[0x12], 1));
+    if (cname && *cname)   /* the class name 0x0139cc2e (NATIVE-CHARCREATE-001) */
+        mu_lang_ascii(h.class_name, sizeof h.class_name, cname);
+    h.has_derived = 1;
+    h.dmg_min = v.dmg_min;
+    h.dmg_max = v.dmg_max;
+    h.atk_rate = v.atk_rate;
+    h.pvp_rate = v.pvp_rate;
+    h.defense = v.defense;
+    h.def_rate = v.def_rate;
+    h.pvp_defrate = v.pvp_defrate;
+    h.magic_min = v.magic_min;
+    h.magic_max = v.magic_max;
+    h.curse_min = v.curse_min;
+    h.curse_max = v.curse_max;
+    snprintf(h.speed_text, sizeof h.speed_text, "%s", v.speed_text);
+    for (int i = 0; i < 5; i++)
+        h.added[i] = v.added[i];
+    mu_gfx_layer_set_hero(g->layer, &h);
+}
+
+void world_gfx_progress(world_gfx *g, struct mu_progress *p)
+{
+    if (!g)
+        return;
+    g->progress = p;
+    if (p) {
+        char_rows_class(g, p->attr[MU_PRG_A_CLASS]);
+        p->hero_dirty = 1;
+        p->exp_dirty = p->exp_json[0] != 0;
+        progress_sync(g);
+    }
+}
+
 world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
                           int shared, const char *open, char *error, size_t error_size)
 {
@@ -1078,7 +1179,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .quest_call = quest_call, .dialog_wrapped = quest_wrapped, .window_key = quest_key,
                                .window_draw = window_draw, .mix_quote = mix_quote,
                                .jewel_check = jewel_check, .jewel_request = jewel_request,
-                               .tooltip_snapshot=tooltip_snapshot, .store_check = store_check, .repair_quote = repair_quote, .repair_request = repair_request};
+                               .tooltip_snapshot=tooltip_snapshot, .store_check = store_check, .repair_quote = repair_quote, .repair_request = repair_request,
+                               .stat_button = stat_button};
     if (getenv("MU_GFX_LOG"))
         cfg.log = fopen(getenv("MU_GFX_LOG"), "w");
     g->layer = mu_gfx_layer_open(&cfg, error, error_size);
@@ -1213,6 +1315,7 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     g->time_ms += dt_ms;
     wg_items_set_time(g->items, g->time_ms);
     wg_skill_tick(g->skill, dt_ms);
+    progress_sync(g);   /* NATIVE-PROGRESS-001 */
     mu_gfx_layer_advance(g->layer, dt_ms);
     if (draw)
         mu_gfx_layer_draw_gl(g->layer);

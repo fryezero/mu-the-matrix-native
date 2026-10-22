@@ -55,6 +55,18 @@ writes side-by-side/diff images and a scoreboard (camera, image stats, object fi
 The 2026-10-22 captures (13 maps) and their decoded placements are local under `~/Documents/mu-mac-tools/native/`
 (`scratch/fidelity2/live/`, `renders/fidelity2/`). Next: the gaps ranked in
 [client-world-fidelity.md](research/client-world-fidelity.md#4-gaps-ranked-by-visibility).
+## Experience, levels and stat points (NATIVE-PROGRESS-001)
+
+Read [`research/client-progression.md`](research/client-progression.md). `reconstructed/progress` holds the class
+formulas, the experience table and bar, the progression answers, the "+" buttons and the speed row; compare with
+`tools/python/bin/python scripts/validate_progress.py --cases 500 --mutations` (main checkout's Python, about 50 s;
+reports in `~/Documents/mu-mac-tools/native/scratch/progress/`). `native/core/mu_progress` is the session with the
+demo server; mu-world/mu-walk/mu-client take `--progress`, `--progress-class/-level/-points/-rate` and
+`--progress-script "F:kill:CLASS F:add:STAT F:button:ROW"`; with `--gfx` the bar, the character rows and the "+"
+buttons follow it (`world_gfx_progress`), with `--combat` kills feed it and the level up draws its flares and ground.
+Renders stay local (`~/Documents/mu-mac-tools/native/renders/progress/`). Next: CalculateAll's equipment options
+(slot 4/8) and the master tree, the window's value builder `0x00b40661`, the third-class joints `0x7f78`
+0x2d/0x2e, the join packet `0x0124cc64`.
 
 ## Move snapshot compatibility (NATIVE-MAP-002)
 

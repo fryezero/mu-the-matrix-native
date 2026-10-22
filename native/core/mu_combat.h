@@ -322,5 +322,8 @@ int32_t mu_combat_live_points(const mu_combat *combat);
 int32_t mu_combat_live_fx(const mu_combat *combat);
 int32_t mu_combat_live_particles(const mu_combat *combat);
 int32_t mu_combat_live_joints(const mu_combat *combat);
+/* NATIVE-PROGRESS-001: an effect call of the level-up handler at the hero (joint / effect pools) */
+void mu_combat_hero_joint(mu_combat *combat, int32_t type, int32_t subtype, float scale, uint16_t key);
+void mu_combat_hero_effect(mu_combat *combat, int32_t type, int32_t subtype);
 
 #endif

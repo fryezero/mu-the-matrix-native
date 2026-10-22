@@ -424,7 +424,7 @@ struct LaunchPlan {
 
         args += ["--placement", Paths.placement]
         if s.npc { args += ["--npc", "--npc-demo", Paths.npcDemo] }
-        if s.combat { args.append("--combat") }
+        if s.combat { args += ["--combat", "--progress"] }   // NATIVE-PROGRESS-001: kills give experience
         if s.items { args.append("--items") }
         if !s.names { args.append("--no-names") }
         if !s.env { args.append("--no-env") }

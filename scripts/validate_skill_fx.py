@@ -763,7 +763,7 @@ def compare_calls(client, mine, skip_tail=True):
 # --------------------------------------------------------------------------
 # Families.
 
-EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x41c, 0), (0x41d, 0), (0x457, 0),
+EFFECT_KINDS = [(0x43b, 0), (0x43b, 2), (0x413, 1), (0x7f2b, 0), (0x7f84, 1), (0x7f84, 0), (0x41c, 0), (0x41d, 0), (0x457, 0),
                 (0x421, 0), (0x453, 0), (0x454, 0), (0x419, 0), (0x41a, 0), (0x419, 1), (0x41a, 1),
                 (0x40e, 0),   # the Tormenta tornado (NATIVE-JOINT-001)
                 (0x5ac, 0), (0x5ac, 1), (0x5ad, 0), (0x5ad, 1),   # the character select's star dragon (NATIVE-CHARSEL-003)

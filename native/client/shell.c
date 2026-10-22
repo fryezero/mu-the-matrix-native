@@ -705,6 +705,8 @@ static int open_world(mu_shell *s)
     c.objects_dir = s->cfg.world_objects;
     c.quiet = s->cfg.quiet;
     c.hero_name = entry && entry->name[0] ? entry->name : NULL;
+    c.progress = s->cfg.world_progress;   /* NATIVE-PROGRESS-001 */
+    c.level = entry ? entry->level : 0;
     for (int i = 0; entry && i < MU_CHARACTER_ITEMS; ++i)
         c.items[i] = entry->items[i];
     char error[512];

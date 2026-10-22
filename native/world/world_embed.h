@@ -48,6 +48,9 @@ typedef struct mu_world_embed_config {
     const char *helper;            /* NATIVE-HELPERS-001: the hero's helper (mu-world --helper, DEMO), may be NULL */
     int32_t helper_state;          /* its ride state, -1: the name's */
     int no_helpers;
+    /* NATIVE-PROGRESS-001: experience, levels and stat points (mu-world --progress) at the character's level */
+    int progress;
+    int32_t level;
 } mu_world_embed_config;
 
 mu_world_embed *mu_world_embed_open(const mu_world_embed_config *config, char *error, size_t error_size);

@@ -79,6 +79,12 @@ typedef struct mu_gfx_hero {
     int64_t exp, exp_max;
     int32_t strength, agility, vitality, energy, command;
     int64_t zen, ruud;
+    /* NATIVE-PROGRESS-001: the class formula's values (has_derived = 1 when set; the character window's rows) */
+    int has_derived;
+    int32_t dmg_min, dmg_max, atk_rate, pvp_rate, defense, def_rate, pvp_defrate;
+    int32_t magic_min, magic_max, curse_min, curse_max;
+    char speed_text[32];        /* the speed row's text (0x00b40380) */
+    int32_t added[5];           /* the stats' added values (the rows' third column) */
 } mu_gfx_hero;
 
 /* The InfoPopup HTML for an item (the client's tooltip pipeline, see
@@ -182,6 +188,9 @@ typedef struct mu_gfx_layer_config {
     int (*store_check)(void *user, const mu_mix_item *item);
     int (*repair_quote)(void *user, const mu_mix_item *item, int npc, int32_t *cost, int32_t *maximum);
     void (*repair_request)(void *user, int cell, int npc);
+    /* NATIVE-PROGRESS-001: CharacterInfoFrame's onClickButton(row) (user = tooltip_user); returns 1 when the host
+     * handled it (the client's request and the server's answers), 0 for the layer's stand-in */
+    int (*stat_button)(void *user, double row);
 } mu_gfx_layer_config;
 enum { MU_GFX_TIP_PLAIN = 0, MU_GFX_TIP_SHOP, MU_GFX_TIP_SELL };
 
@@ -202,6 +211,9 @@ void mu_gfx_layer_close(mu_gfx_layer *layer);
 void mu_gfx_layer_resize(mu_gfx_layer *layer, int32_t width, int32_t height);
 
 void mu_gfx_layer_set_hero(mu_gfx_layer *layer, const mu_gfx_hero *hero);
+/* NATIVE-PROGRESS-001: the experience bar's setExpData object as the client builds it (0x00c5125b,
+ * reconstructed/progress); invoked on main's mcExpBar at the next step.  NULL returns to the stand-in. */
+void mu_gfx_layer_exp_data(mu_gfx_layer *layer, const char *json);
 /* Skills the data movie knows (sent to ASData with skill.setSkillAll). */
 void mu_gfx_layer_set_skills(mu_gfx_layer *layer, const mu_gfx_skill *skills, int n);
 /* 1 when the HUD runs as the client's base movie (base.swf), 0 standalone. */
@@ -326,7 +338,11 @@ int mu_gfx_layer_buff_count(const mu_gfx_layer *layer);
  * value are the HTML the client's line builder 0x00ab4dc0 makes of the label (colour) and of the value; the
  * layer fills the value of the rows it knows (value_key) from the hero, "-" otherwise. */
 enum { MU_GFX_ROW_NONE = 0, MU_GFX_ROW_CLASS, MU_GFX_ROW_LEVEL, MU_GFX_ROW_POINTS, MU_GFX_ROW_STRENGTH,
-       MU_GFX_ROW_AGILITY, MU_GFX_ROW_VITALITY, MU_GFX_ROW_ENERGY, MU_GFX_ROW_COMMAND, MU_GFX_ROW_DAMAGE };
+       MU_GFX_ROW_AGILITY, MU_GFX_ROW_VITALITY, MU_GFX_ROW_ENERGY, MU_GFX_ROW_COMMAND, MU_GFX_ROW_DAMAGE,
+       /* NATIVE-PROGRESS-001 */
+       MU_GFX_ROW_ATK_RATE, MU_GFX_ROW_PVP_RATE, MU_GFX_ROW_DEFENSE, MU_GFX_ROW_DEF_RATE, MU_GFX_ROW_PVP_DEFRATE,
+       MU_GFX_ROW_MAGIC, MU_GFX_ROW_CURSE, MU_GFX_ROW_HP, MU_GFX_ROW_MANA, MU_GFX_ROW_SD, MU_GFX_ROW_AG,
+       MU_GFX_ROW_ATK_SPEED };
 typedef struct mu_gfx_char_row {
     int32_t type, id, sort, button, color, value_color, value_key;
     char label[128];            /* plain text (the layer builds the HTML) */
