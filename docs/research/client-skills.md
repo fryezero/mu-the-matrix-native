@@ -381,7 +381,7 @@ runs `0x01096dd0`. The stamp manager's reset runs in the window's `0x00c2008b`.
 
 | Family | Client routines | Cases | Mismatches |
 |---|---|---:|---:|
-| list | `0x0126176e` with the stamp manager, the hotkey manager and `0x00bb1c32`/`0x00bb1c10` running for real | 500 | 0 |
+| list | `0x0126176e` with the stamp manager, the hotkey manager and `0x00bb1c32`/`0x00bb1c10` running for real | 300 | 0 |
 | keys | `0x0126f225` to `0x0126f2fa` (keys, Save, `0x01096f37`), then `0x00a08330` | 500 | 0 |
 | stamp | `0x01095c77` over synthetic Skill(Kor) maps with class maps, then `0x010961b0` | 500 | 0 |
 
@@ -707,29 +707,30 @@ The other routines:
 
 ### Validation
 
-`scripts/validate_skill_later.py --snapshot s2_tree4.bin --cases 500 --mutations` runs the client's routines
-under Unicorn on the snapshot. Each handler comes from its real constructor, and the client's own allocations are
+`scripts/validate_skill_later.py --snapshot s2_tree4.bin --cases 300 --mutations` runs the client's routines
+under Unicorn on the snapshot (one process per family with `--families X`, and `--mutations --mutants-only` for
+the planted mistakes, run in parallel; `--progress N` prints a line every N cases with the slowest case). Each handler comes from its real constructor, and the client's own allocations are
 read back. Results:
 
 | Family | Client routines | Cases | Mismatches |
 |---|---|---:|---:|
-| table | `0x010b4406` over every snapshot record plus absent keys | TABLE_CASES | 0 |
-| row | `0x010b4506` into fresh tables (failed casts through the catch path, short rows, unknown classes, repeats) | 500 | 0 |
-| build | `0x00c24024` per class, with random hero answers; invokes and the whole runtime state | 500 | 0 |
-| list | 7E 02 `0x0127f539` with random entries (levels, propagation, links, page, refresh, `0x00c2a1b7`) | 500 | 0 |
-| page | `0x00c25b6c`/`0x00c23dc2` on random states | 500 | 0 |
-| click | `0x00c25bda` and the confirm answer (messages, confirm box, branch popup, request fields) | 500 | 0 |
-| answer | 7E 01 `0x0125051f` (results 1/4/7) and 7E 03 `0x0127f679` | N_ANSWER | 0 |
-| tooltip | `0x00c29007`/`0x00c2986a` (text list, colours, bold, headers, anchor) | N_TOOLTIP | 0 |
-| text | SetText `0x00c23175`, SetLevel `0x00c239c2` | N_TEXT | 0 |
-| side | 7E 06/7E 05 with CreateSideOption and the side state | N_SIDE | 0 |
-| sideclick | `0x00c2a5ad` and the confirm answer 0x79 (request fields) | N_SIDECLICK | 0 |
-| sidetip | `0x00c29a29` | N_SIDETIP | 0 |
-| icons | `0x00c2bb34` (RenderBitmap calls) | N_ICONS | 0 |
+| table | `0x010b4406` over every snapshot record plus absent keys | 2,910 | 0 |
+| row | `0x010b4506` into fresh tables (failed casts through the catch path, short rows, unknown classes, repeats) | 300 | 0 |
+| build | `0x00c24024` per class, with random hero answers; invokes and the whole runtime state | 300 | 0 |
+| list | 7E 02 `0x0127f539` with random entries (levels, propagation, links, page, refresh, `0x00c2a1b7`) | 300 | 0 |
+| page | `0x00c25b6c`/`0x00c23dc2` on random states | 300 | 0 |
+| click | `0x00c25bda` and the confirm answer (messages, confirm box, branch popup, request fields) | 300 | 0 |
+| answer | 7E 01 `0x0125051f` (results 1/4/7) and 7E 03 `0x0127f679` | 300 | 0 |
+| tooltip | `0x00c29007`/`0x00c2986a` (text list, colours, bold, headers, anchor) | 300 | 0 |
+| text | SetText `0x00c23175`, SetLevel `0x00c239c2` | 300 | 0 |
+| side | 7E 06/7E 05 with CreateSideOption and the side state | 300 | 0 |
+| sideclick | `0x00c2a5ad` and the confirm answer 0x79 (request fields) | 300 | 0 |
+| sidetip | `0x00c29a29` | 300 | 0 |
+| icons | `0x00c2bb34` (RenderBitmap calls) | 300 | 0 |
 
-That is TOTAL_CASES cases and 0 mismatches. Ten planted mistakes (`-DMU_SKILL_MUTATION=21..30`) were all
+That is 6,510 cases and 0 mismatches. Ten planted mistakes (`-DMU_SKILL_MUTATION=21..30`) were all
 detected. Coverage per family (invokes, boxes, requests) is in the local report
-`scratch/skill3/reports/later-500.json`.
+`scratch/skill3/reports/par/*.json`.
 
 Modelled pieces:
 
