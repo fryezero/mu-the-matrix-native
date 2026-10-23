@@ -36,6 +36,7 @@ import random
 import struct
 import subprocess
 import sys
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
@@ -86,12 +87,15 @@ class Gfx:
         self.movie = m.alloc(0x40, define=True)
         m.put32(self.movie, self.vt)
 
-        def at(fn, cleanup):
-            a = m._new_stub()
-            m.stub(a, fn, cleanup)
-            return a
-        m.put32(self.vt + 0x34, at(self._object, 0x10))
-        m.put32(self.vt + 0x38, at(self._array, 4))
+        slots = m.__dict__.setdefault('_gfx_stubs', {})
+
+        def at(key, fn, cleanup):      # one stub address per machine: a new one per case adds a code hook each
+            if key not in slots:        # time, and Unicorn walks every code hook per instruction
+                slots[key] = m._new_stub()
+            m.stub(slots[key], fn, cleanup)
+            return slots[key]
+        m.put32(self.vt + 0x34, at('object', self._object, 0x10))
+        m.put32(self.vt + 0x38, at('array', self._array, 4))
         m.stub(0x00404dd0, self._set_member, 0x10)
         m.stub(0x00405060, self._set_element, 0xc)
         m.stub(0x00405010, self._set_size, 8)
@@ -580,13 +584,25 @@ def first_diff(a, b, path=''):
     return None if a == b else f'{path}: {a!r:.300} != {b!r:.300}'
 
 
+PROGRESS = 0   # --progress N: a stderr line every N cases
+
+
 class Family:
     def __init__(self, name):
         self.name, self.cases, self.mismatches, self.examples = name, 0, 0, []
         self.coverage = {}
+        self.started = self.last = time.monotonic()
+        self.slowest = (0.0, None)
 
     def check(self, key, client, native):
         self.cases += 1
+        now = time.monotonic()
+        if now - self.last > self.slowest[0]:
+            self.slowest = (now - self.last, repr(key)[:120])
+        self.last = now
+        if PROGRESS and self.cases % PROGRESS == 0:
+            print(f'[{self.name}] {self.cases} cases, {now - self.started:.0f} s, {self.mismatches} mismatches, '
+                  f'slowest {self.slowest[0]:.1f} s', file=sys.stderr, flush=True)
         if isinstance(client, tuple) and client and isinstance(client[0], list) and \
                 all(isinstance(e, tuple) for e in client[0]):
             tags = sorted({e[1] if e[0] == 'invoke' else e[0] for e in client[0]})
@@ -605,7 +621,8 @@ class Family:
 
     def report(self):
         return {'cases': self.cases, 'mismatches': self.mismatches, 'coverage': self.coverage,
-                'examples': self.examples}
+                'examples': self.examples, 'seconds': round(time.monotonic() - self.started, 1),
+                'slowest': {'seconds': round(self.slowest[0], 1), 'case': self.slowest[1]}}
 
 
 def run_build(cl, nat, rng, fam, classes, rows, case_of, texts, cases):
@@ -1396,11 +1413,15 @@ def main():
     p.add_argument('--cases', type=int, default=200)
     p.add_argument('--seed', type=int, default=3)
     p.add_argument('--families', default=','.join(FAMILIES))
-    p.add_argument('--mutations', action='store_true', help='also run the planted mistakes 21..27')
+    p.add_argument('--mutations', action='store_true', help='also run the planted mistakes 21..30')
     p.add_argument('--lib')
     p.add_argument('--strict', action='store_true', help='report reads outside the snapshot (slow)')
     p.add_argument('--output')
+    p.add_argument('--progress', type=int, default=25, help='stderr progress line every N cases (0: off)')
+    p.add_argument('--mutants-only', action='store_true', help='skip the clean families, run only the mutants')
     a = p.parse_args()
+    global PROGRESS
+    PROGRESS = a.progress
     for path, digest in ((a.text, vl.TEXT_SHA256), (a.data, vl.DATA_SHA256)):
         if vl.sha256_file(path) != digest:
             raise SystemExit(f'{path}: unexpected SHA-256')
@@ -1425,7 +1446,7 @@ def main():
     rng = random.Random(a.seed)
     report = {}
     names = a.families.split(',')
-    for name in names:
+    for name in ([] if a.mutants_only else names):
         report[name] = run_family(name, cl, nat, rng, classes, rows, case_of, texts, a.cases)
         nat.load_table(classes, rows, min_columns)          # the row family leaves synthetic classes
     if a.mutations:
