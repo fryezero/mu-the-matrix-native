@@ -10,12 +10,17 @@ the client decrypts from `Data\Lang.mpr`.
 | `objread` | the static-object sector lists, plus a fixed list of scene globals | [client-objects](../docs/research/client-objects.md), [client-login-scene](../docs/research/client-login-scene.md), `scripts/live_objects_to_plain.py`, `scripts/live_object_state.py` |
 | `memread` | fixed address ranges named on the command line | [client-path](../docs/research/client-path.md) |
 | `lightread` | the lighting inputs of the model draws | [client-model-light](../docs/research/client-model-light.md), `scripts/validate_model_light.py` |
-| `langread` | the tables built from `Data\Lang.mpr` (optional extra nodes/maps) | [client-lang-tables](../docs/research/client-lang-tables.md), [client-quests](../docs/research/client-quests.md), `scripts/live_lang_to_plain.py` |
+| `langread` | the tables built from `Data\Lang.mpr` (optional extra nodes/maps; `graph:` pointer closures from a root or a pointer path, NATIVE-SKILL-003) | [client-lang-tables](../docs/research/client-lang-tables.md), [client-quests](../docs/research/client-quests.md), `scripts/live_lang_to_plain.py` |
 
 ```sh
 make live-readers                 # or: make -C live-readers objread
 live-readers/build/objread <main.exe pid> snap.bin
 ```
+
+`langread PID out.bin graph:0x06fbb8ec=0x44,10,0 graph:0x01d22c0c/0x1f8/0=0xfc,3,0x100` copies 4ThTreeData's nested
+maps and the SkillTree4th handler (a path `A/B/C` is `[[A]+B]+C`). It follows only maps, vectors and strings, or with
+the third number any pointer (that many bytes), and only into read+write memory or main.exe's uninitialised data
+([client-skills section 12](../docs/research/client-skills.md#12-the-fourth-tree-native-skill-003)).
 
 Rules:
 

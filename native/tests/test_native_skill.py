@@ -234,6 +234,36 @@ class Book(unittest.TestCase):
         restored = book(self.dir/'lang', root, 'demofile', demo, 'demo', 129, 'master', 330)[-1]
         self.assertEqual((restored['level'], restored['master_points'], restored['damage']), (1, 100, 25))
 
+    def test_fourth_tree_demo(self):
+        """NATIVE-SKILL-003: core/mu_skill_tree4 over a synthetic tree4.tsv; the demo login, a learned point."""
+        lang = self.dir/'tree4-lang'
+        write_lang(lang)
+
+        def rec(index, group, children=(), req=-1, cost=1, max_level=2):
+            links = list(children) + [-1] * (5 - len(children))
+            cols = [index, group, 0, index, 1000 + index, -1, 1, 7]
+            for c in links:
+                cols += [c, 1]
+            return cols + [cost, max_level, 1, req, 0 if req < 0 else 1, -1, -1, -1, -1]
+        rows = [rec(0, 0, (1,), req=19), rec(1, 0), rec(10, 0, req=999), rec(0, 2, cost=5)]
+        (lang/'tree4.tsv').write_text('#synthetic min_columns 22\nclass\t1\n' +
+                                      ''.join('1\t' + '\t'.join(map(str, r)) + '\t0\n' for r in rows))
+        out = book(lang, self.dir/'root', 'demofile', self.dir/'demo.txt', 'demo', 1, 'tree4', 1, 3, 't4state',
+                   't4click', 0, 't4click', 0, 't4click', 10, 't4tab', 2, 't4click', 0, 't4state')
+        self.assertEqual((out[3]['tree4'], out[3]['records']), (1, 4))
+        g0 = out[4]['t4state']['groups'][0]
+        nodes = {n[0]: n for n in g0['nodes']}
+        self.assertEqual((nodes[0][6], nodes[10][6]), (1, 0))        # root 0's skill 19 is learned; 999 is not
+        self.assertEqual(out[5], {'t4click': 1, 'answered': 1, 'boxes': 1})
+        self.assertEqual(out[6], {'t4click': 1, 'answered': 1, 'boxes': 1})
+        self.assertEqual(out[7], {'t4click': 0, 'answered': 0, 'boxes': 1})       # requirement message
+        self.assertEqual(out[9], {'t4click': 0, 'answered': 0, 'boxes': 1})       # tab 2: 1 point < cost 5
+        end = out[10]['t4state']
+        self.assertEqual(end['points'], 1)
+        nodes = {n[0]: n for n in end['groups'][0]['nodes']}
+        self.assertEqual(nodes[0][3], 2)                                  # two demo answers: level 2
+        self.assertEqual(nodes[1][6], 1)                                  # opened at level 1
+
     def test_weapon_rule_reaches_the_bar(self):
         lang = self.dir/'weapon-lang'
         write_lang(lang)

@@ -146,6 +146,18 @@ world changes on the next frame (`mu_map_take_teleport` in `advance()`). mu-worl
 **Next.** NPC markers from the placement (the server's 0xE7 records), the Move window's client position,
 the event world map (0x73), mu-client's scene world after a travel, a live 0xE7 capture to compare marker names.
 
+## Fourth skill tree (NATIVE-SKILL-003)
+
+Read section 12 of [`research/client-skills.md`](research/client-skills.md). Capture: `langread PID out.bin
+nested:0x6d8 graph:0x06fbb8ec=0x44,10,0 graph:0x06fbb930=0x80,8,0 graph:0x06fbbaec=0x4c,8,0` (local snapshots in
+`~/Documents/mu-mac-tools/native/scratch/skill3/live/`); `live_lang_to_plain.py` writes `tree4.tsv`,
+`tree4_tips.tsv`, `tree4_side.tsv` for `MU_LANG_DIR`. Validate with `validate_skill_later.py --snapshot
+s2_tree4.bin --cases 300 --mutations` (main checkout's Python; fast mode drops per-read hooks, `--strict` keeps
+them). Run one process per family (`--families X`, mutants with `--mutations --mutants-only`) in parallel: about
+8 minutes for 6,510 cases and the 10 mutants. Stub addresses must be allocated once per machine: every new stub
+address adds a Unicorn code hook, and case time then grows with the case count. Renders: `~/Documents/mu-mac-tools/native/renders/skill3/`. Next: the side stat panel `0x00c26ed3`,
+SetClassName/SetExp, 7E 07, then the fifth tree from `s3_tree5.bin` (section 12 lists its entry points).
+
 ## Skill state, usability and Master tree (NATIVE-SKILL-002)
 
 Read sections 8..10 of [`research/client-skills.md`](research/client-skills.md). `skill_list.c`, `skill_canuse.c`

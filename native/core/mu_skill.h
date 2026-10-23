@@ -65,6 +65,9 @@ int mu_skill_book_requirement(mu_skill_book *book, int32_t base, int32_t *skill,
 void mu_skill_book_master_build(mu_skill_book *book);
 int mu_skill_book_master_tooltip(mu_skill_book *book, int slot, char *title, size_t title_cap, char *body,
                                  size_t body_cap);
+/* NATIVE-SKILL-003: the tooltip environment the book's tooltips use (Skill(Kor), GlobalText, the measure,
+ * FormulaData, the screen rate), for the fourth tree's tooltips. */
+void mu_skill_book_tip_env(mu_skill_book *book, mu_skill_tip_env *out);
 /* FormulaData is a host boundary, as in the Unicorn comparison. Absent callback answers 0. */
 void mu_skill_book_set_formula(mu_skill_book *book, mu_master_formula_fn formula, void *user);
 double mu_skill_book_formula(mu_skill_book *book, int group, int id, int argument);

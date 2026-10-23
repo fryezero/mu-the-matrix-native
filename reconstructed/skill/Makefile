@@ -1,8 +1,8 @@
 CC = clang
 CFLAGS = -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -fPIC -ffp-contract=off -fno-fast-math
 SUFFIX = $(if $(filter Darwin,$(shell uname -s)),dylib,so)
-SRC = skill_table.c skill_use.c skill_tooltip.c skill_list.c master_tree.c skill_canuse.c ../hud/tooltip_html.c
-HDR = skill_table.h skill_use.h skill_tooltip.h skill_list.h master_tree.h skill_canuse.h ../hud/tooltip_html.h
+SRC = skill_table.c skill_use.c skill_tooltip.c skill_list.c master_tree.c skill_canuse.c tree4.c tree4_ui.c tree4_side.c ../hud/tooltip_html.c
+HDR = skill_table.h skill_use.h skill_tooltip.h skill_list.h master_tree.h skill_canuse.h tree4.h ../hud/tooltip_html.h
 
 all: libclientskill.$(SUFFIX)
 
