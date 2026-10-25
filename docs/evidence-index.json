@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-17",
+  "updated": "2026-10-25",
   "target": {
     "name": "Mu The Matrix main.exe",
     "sha256": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
@@ -862,7 +862,892 @@
     "linux_text_capture_verified": true,
     "capture_tool_sha256": "11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8",
     "current_source_files": 129,
-    "local_integration_note": "Skinning worktree: all 209 pass with MU_GAME_ROOT set to the read-only runtime/client copy."
+    "local_integration_note": "Skinning worktree: all 209 pass with MU_GAME_ROOT set to the read-only runtime/client copy.",
+    "validators": {
+      "generated_by": "scripts/run_validators.py --private (VERIFY-HARNESS-001)",
+      "date": "2026-10-25",
+      "commit": "8efe6e74eb8c3b9a6be8b559e50a6a0a3ec096aa",
+      "note": "Run on this Mac (offline, no live game) from the claude/verify-harness tree on top of the recorded commit, with the validate_*.py files of the VERIFY-HARNESS-001 commit; every report equals the same run on the unmigrated tree except timing fields. Inputs: the main checkout's evidence/ (MU_EVIDENCE_DIR), MU_GAME_ROOT, the local langread snapshots (MU_SNAPSHOT_DIR) and MU_PATH_DIRECTIONS=x86-guest-sec3-25. Skips are missing pinned inputs: section3 (x86-linux-capture-04, not reproducible) and the verified-v14 manifest.",
+      "environment": {
+        "commit": "8efe6e74eb8c3b9a6be8b559e50a6a0a3ec096aa",
+        "python": "3.12.15",
+        "unicorn": "2.1.4",
+        "platform": "darwin",
+        "evidence_dir": "MU_EVIDENCE_DIR",
+        "game_root_set": true,
+        "snapshot_dir_set": true
+      },
+      "totals": {
+        "pass": 69,
+        "fail": 1,
+        "error": 0,
+        "skip": 5
+      },
+      "pins": {
+        "text": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724",
+        "text08": "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724",
+        "data": "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f",
+        "flag": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+        "feature": "bce941d196c26696f1f5d701d21a8a9e414e81d6e15a48f3663313e3cd7cc4b9",
+        "feature09": "bce941d196c26696f1f5d701d21a8a9e414e81d6e15a48f3663313e3cd7cc4b9",
+        "record_bias": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "record_template": "5998e9d1dd9bf48af6af87a1ef8c7783b818ac8329637ada08cc5fb329042376",
+        "section3": "0571c519b1c4eaf97a143d2dd29bf2a3799e56b2f613cda0d084f4b857c1dc6f",
+        "directions": "a8cc45492d67c784853284cd426fd5c48a994a55d124bd970c1da1e46616f8b5",
+        "target": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
+        "v14_manifest": "fffcbad941e9bad394489382e79ad6d9d2e9f405847975de0eff113babd366ff",
+        "edge_diagnostics": "ba945b166c52e068a4ed12bbbc67a27f68d697fcf64197aaff627b09e45b909a",
+        "lang3": "f07b4c022e9cd1be2db8dd03052e9957254012bb8b893371eede749fecbf62a3",
+        "lang4": "0461a408fd6b016def81043b43338d80d1851cec7bd7959ca8a2cf655dab9709",
+        "quest_lang5": "2bd041e633122183514925fbbd0ae828972c358c728527ea1a9fc1752814b657",
+        "skill_lang5": "59974e2e44ef80fb4e3551000f691837bc8f7e411dab28436aaa6bf676f5adf5",
+        "skill_tree4": "65e69d1570292b600cea1ceb8908c10b5e9438cd71d8c75f15d424c7eac5d7d9",
+        "light_login": "140d09ee4181416820f1aae17c21048e44a7f0e21d9ab7a1e02cabf288a7ee4a",
+        "objects_login": "8b94aba21bd18cb5d114f8918a7af8465d0fafe9a65576b0e885c7c2bb18716e"
+      },
+      "rows": {
+        "validate_actors": {
+          "status": "pass",
+          "test": "reconstructed/actors/test_actors.py::ActorTests.test_private_original_actor_instructions",
+          "cases": 22542,
+          "mutants": 3,
+          "checks": "11/11 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_audio": {
+          "status": "pass",
+          "test": "reconstructed/audio/test_client_audio.py::ClientAudioTests.test_private_original_audio_instructions",
+          "cases": 10367,
+          "mutants": 232,
+          "checks": "9/9 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_bone_tracks": {
+          "status": "pass",
+          "test": "reconstructed/model-codec/test_bone_tracks.py::BoneTrackTests.test_private_original_bone_track_instructions",
+          "cases": 738,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_camera": {
+          "status": "pass",
+          "test": "reconstructed/camera/test_client_camera.py::PrivateCameraValidation.test_instruction_comparison",
+          "cases": 2180,
+          "mutants": 13,
+          "checks": "5/5 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_character": {
+          "status": "pass",
+          "test": "reconstructed/model-codec/test_character.py::CharacterTests.test_private_original_character_instructions",
+          "cases": 1532,
+          "mutants": 1,
+          "checks": "10/10 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_charcreate": {
+          "status": "fail",
+          "test": "reconstructed/charsel/test_charcreate.py::PrivateCharCreateValidation.test_instruction_comparison",
+          "cases": 1488,
+          "mutants": 6,
+          "reason": "exit 1: serverclass   256 cases    0 mismatches | total 1488 cases, 0 mismatches, 24.3 s | mutations detected: 5/6",
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_charsel": {
+          "status": "pass",
+          "test": "reconstructed/charsel/test_charsel.py::PrivateCharselValidation.test_instruction_comparison",
+          "cases": 360,
+          "mutants": 12,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_charsel_gfx": {
+          "status": "pass",
+          "test": "reconstructed/charsel/test_charsel_gfx.py::PrivateCharselGfxValidation.test_instruction_comparison",
+          "cases": 420,
+          "mutants": 5,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_charsel_window": {
+          "status": "pass",
+          "test": "reconstructed/charsel/test_charsel.py::PrivateCharselValidation.test_window_comparison",
+          "cases": 20,
+          "mutants": 7,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_charsel_world": {
+          "status": "pass",
+          "test": "tests/test_charsel_world_private.py::CharselWorldPrivateTests.test_routines_match_client",
+          "cases": 1200,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_client_clear": {
+          "status": "pass",
+          "test": "reconstructed/client-memory/test_clear64.py::Clear64Tests.test_private_scalar_and_sse_paths_match_captured_instructions",
+          "cases": 768,
+          "checks": "5/5 report expectations",
+          "pins": [
+            "text08"
+          ]
+        },
+        "validate_client_copy": {
+          "status": "pass",
+          "test": "reconstructed/client-memory/test_copy64.py::Copy64Tests.test_private_captured_instructions_match_reconstruction",
+          "cases": 393,
+          "checks": "3/3 report expectations",
+          "pins": [
+            "text08"
+          ]
+        },
+        "validate_client_lea_decode": {
+          "status": "skip",
+          "test": "reconstructed/model-codec/test_client_lea_decode.py::ClientLeaDecodeTests.test_private_scalar_instructions_and_relocation_checks",
+          "reason": "pinned input 'v14_manifest' (verified-v14 private model corpus manifest) is missing: <repo>/model-recovery/verified-v14/manifest.json does not exist; set MU_V14_MANIFEST or pass the path explicitly (default repo/model-recovery/verified-v14/manifest.json); pinned input 'edge_diagnostics' (rejected v15 model diagnostics (model-edge)) is missing: $MU_EVIDENCE_DIR/model-edge/diagnostics.json does not exist; set MU_EDGE_DIAGNOSTICS or MU_EVIDENCE_DIR or pass the path explicitly (default evidence/model-edge/diagnostics.json)",
+          "pins": [
+            "text"
+          ]
+        },
+        "validate_client_lea_key": {
+          "status": "pass",
+          "test": "reconstructed/model-codec/test_client_lea.py::ClientLeaKeyTests.test_private_captured_setup_instructions",
+          "cases": 1320,
+          "checks": "5/5 report expectations",
+          "pins": [
+            "text"
+          ]
+        },
+        "validate_combat": {
+          "status": "pass",
+          "test": "reconstructed/combat/test_combat.py::CombatTests.test_client_comparison_and_generated_table",
+          "cases": 496,
+          "mutants": 12,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_data_tables": {
+          "status": "pass",
+          "test": "tests/test_data_tables_private.py::DataTablesPrivateTests.test_loaders_and_codecs_match_client",
+          "cases": 266,
+          "mutants": 51,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "feature",
+            "text"
+          ]
+        },
+        "validate_effect_tree": {
+          "status": "skip",
+          "test": "reconstructed/effects/test_effect_tree.py::PrivateEffectTreeValidation.test_instruction_comparison",
+          "reason": "pinned input 'section3' (third section from 0x01ced000, x86-linux-capture-04 prefix file (not reproducible: the 2026-10-24 guest rebuild read a different whole-file digest)) is missing: $MU_EVIDENCE_DIR/x86-linux-capture-04/main-01ced000.bin does not exist; set MU_SECTION3 or MU_DATA_SECTION or MU_EVIDENCE_DIR or pass the path explicitly (default evidence/x86-linux-capture-04/main-01ced000.bin)",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_effects": {
+          "status": "skip",
+          "test": "reconstructed/effects/test_effects.py::PrivateEffectValidation.test_instruction_comparison",
+          "reason": "pinned input 'section3' (third section from 0x01ced000, x86-linux-capture-04 prefix file (not reproducible: the 2026-10-24 guest rebuild read a different whole-file digest)) is missing: $MU_EVIDENCE_DIR/x86-linux-capture-04/main-01ced000.bin does not exist; set MU_SECTION3 or MU_DATA_SECTION or MU_EVIDENCE_DIR or pass the path explicitly (default evidence/x86-linux-capture-04/main-01ced000.bin)",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_environment": {
+          "status": "pass",
+          "test": "reconstructed/environment/test_environment.py::PrivateUnicorn.test_short_comparison",
+          "cases": 400,
+          "mutants": 10,
+          "checks": "8/8 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_fidelity": {
+          "status": "pass",
+          "test": "native/tests/test_native_fidelity.py::PrivateValidators.test_fidelity_sections",
+          "cases": 991,
+          "checks": "1/1 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "lang3",
+            "text"
+          ]
+        },
+        "validate_gfx3": {
+          "status": "pass",
+          "test": "native/tests/test_native_gfx3.py::ClientRoutines.test_validator_matches_the_client",
+          "mutants": 5,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_helpers": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_helpers",
+          "cases": 8667,
+          "mutants": 11,
+          "checks": "31/31 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_hero_sound": {
+          "status": "pass",
+          "test": "reconstructed/audio/test_hero_sound.py::HeroSoundTests.test_unicorn_comparison",
+          "cases": 2000,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_hud": {
+          "status": "pass",
+          "test": "reconstructed/hud/test_hud.py::TestPrivate.test_private_client_instructions",
+          "cases": 48,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_item_fields": {
+          "status": "pass",
+          "test": "tests/test_data_tables_private.py::DataTablesPrivateTests.test_item_attributes_match_client",
+          "cases": 4881,
+          "checks": "3/3 report expectations",
+          "pins": [
+            "data",
+            "feature",
+            "text"
+          ]
+        },
+        "validate_item_models": {
+          "status": "pass",
+          "test": "tests/test_data_tables_private.py::DataTablesPrivateTests.test_item_model_mapping_matches_client",
+          "cases": 4881,
+          "checks": "6/6 report expectations",
+          "pins": [
+            "data",
+            "feature",
+            "text"
+          ]
+        },
+        "validate_item_price": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_item_price",
+          "cases": 290639,
+          "mutants": 5,
+          "checks": "11/11 report expectations",
+          "pins": [
+            "data",
+            "feature",
+            "text"
+          ]
+        },
+        "validate_item_services": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_item_services",
+          "cases": 29952,
+          "mutants": 6,
+          "checks": "9/9 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_items": {
+          "status": "pass",
+          "test": "reconstructed/items/test_items.py::PrivateUnicornTest.test_validator",
+          "cases": 444,
+          "mutants": 11,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_joints": {
+          "status": "pass",
+          "test": "reconstructed/joints/test_joints.py::ClientComparison.test_unicorn_comparison",
+          "cases": 180,
+          "mutants": 9,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_lang": {
+          "status": "pass",
+          "test": "native/tests/test_native_lang.py::PrivateValidator.test_client_consumers_equal_the_native_module",
+          "cases": 47276,
+          "mutants": 8,
+          "checks": "3/3 report expectations",
+          "pins": [
+            "data",
+            "lang3",
+            "text"
+          ]
+        },
+        "validate_login_world": {
+          "status": "pass",
+          "test": "tests/test_login_world_private.py::LoginWorldPrivateTests.test_routines_match_client",
+          "cases": 1200,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_map": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_map",
+          "cases": 5001,
+          "mutants": 10,
+          "checks": "11/11 report expectations",
+          "pins": [
+            "data",
+            "lang4",
+            "text"
+          ]
+        },
+        "validate_map_polish": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_map_polish",
+          "cases": 876,
+          "mutants": 3,
+          "checks": "8/8 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_meshdraw": {
+          "status": "pass",
+          "test": "native/tests/test_native_viewer.py::PrivateInstalledTests.test_private_client_mesh_draw_execution",
+          "cases": 14619,
+          "mutants": 4,
+          "checks": "17/17 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_mix": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_mix",
+          "cases": 52533,
+          "mutants": 11,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_mix_manager": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_mix_manager",
+          "cases": 16021,
+          "mutants": 6,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_model_codec": {
+          "status": "skip",
+          "test": "reconstructed/model-codec/test_model_codec.py::ModelCodecTests.test_private_captured_instructions_and_installed_v12_models",
+          "reason": "pinned input 'v14_manifest' (verified-v14 private model corpus manifest) is missing: <repo>/model-recovery/verified-v14/manifest.json does not exist; set MU_V14_MANIFEST or pass the path explicitly (default repo/model-recovery/verified-v14/manifest.json)",
+          "pins": [
+            "text"
+          ]
+        },
+        "validate_model_edge": {
+          "status": "pass",
+          "test": "reconstructed/model-codec/test_model_reader.py::ModelReaderTests.test_private_client_reader_pose_transform_and_draw",
+          "cases": 954,
+          "checks": "12/12 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_model_light": {
+          "status": "pass",
+          "test": "tests/test_model_light_private.py::ModelLightPrivateTests.test_native_object_light_equals_the_client_transform",
+          "cases": 1433,
+          "checks": "5/5 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "light_login",
+            "objects_login",
+            "text"
+          ]
+        },
+        "validate_mount_visuals": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_mount_visuals",
+          "cases": 8400,
+          "checks": "14/14 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_movement": {
+          "status": "pass",
+          "test": "reconstructed/movement/test_client_movement.py::MovementTests.test_instruction_comparison",
+          "cases": 6614,
+          "mutants": 16,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_names": {
+          "status": "pass",
+          "test": "reconstructed/names/test_names.py::Private.test_unicorn_comparison",
+          "mutants": 12,
+          "checks": "1/1 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_npc": {
+          "status": "pass",
+          "test": "native/tests/test_native_npc.py::Installed.test_validator",
+          "cases": 16127,
+          "mutants": 5,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_npc_dialogue": {
+          "status": "pass",
+          "test": "native/tests/test_native_lang2.py::Installed.test_dialogue_validator",
+          "cases": 18444,
+          "mutants": 5,
+          "checks": "3/3 report expectations",
+          "pins": [
+            "data",
+            "feature",
+            "text"
+          ]
+        },
+        "validate_object_render": {
+          "status": "pass",
+          "test": "tests/test_object_render_private.py::ObjectRenderPrivateTests.test_routines_match_client",
+          "cases": 1984,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_objects": {
+          "status": "skip",
+          "test": "tests/test_objects_private.py::ObjectsPrivateTests.test_loader_and_model_table_match_client",
+          "reason": "pinned input 'section3' (third section from 0x01ced000, x86-linux-capture-04 prefix file (not reproducible: the 2026-10-24 guest rebuild read a different whole-file digest)) is missing: $MU_EVIDENCE_DIR/x86-linux-capture-04/main-01ced000.bin does not exist; set MU_SECTION3 or MU_DATA_SECTION or MU_EVIDENCE_DIR or pass the path explicitly (default evidence/x86-linux-capture-04/main-01ced000.bin)",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_particles": {
+          "status": "pass",
+          "test": "reconstructed/particles/test_particles.py::ClientComparison.test_unicorn_comparison",
+          "cases": 407,
+          "mutants": 22,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_path": {
+          "status": "pass",
+          "test": "reconstructed/path/test_client_path.py::FollowerTests.test_instruction_comparison",
+          "cases": 4719,
+          "mutants": 30,
+          "checks": "5/5 report expectations",
+          "pins": [
+            "data",
+            "directions",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_pets": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_pets",
+          "cases": 1062,
+          "mutants": 9,
+          "checks": "16/16 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_players": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_players",
+          "cases": 4768,
+          "mutants": 7,
+          "checks": "10/10 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_pose_builder": {
+          "status": "pass",
+          "test": "reconstructed/model-codec/test_pose_builder.py::PoseBuilderTests.test_private_original_pose_builder_instructions",
+          "cases": 2055,
+          "mutants": 2,
+          "checks": "10/10 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_pose_concat": {
+          "status": "pass",
+          "test": "reconstructed/record-math/test_pose_concat.py::PoseConcatTests.test_private_original_pose_instructions",
+          "cases": 5176,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "text"
+          ]
+        },
+        "validate_progress": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_progress",
+          "cases": 10503,
+          "mutants": 16,
+          "checks": "11/11 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_protocol": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_protocol",
+          "cases": 800,
+          "checks": "6/6 report expectations",
+          "pins": [
+            "data",
+            "text08"
+          ]
+        },
+        "validate_quest": {
+          "status": "pass",
+          "test": "native/tests/test_native_quest.py::Validator.test_validator",
+          "cases": 8203,
+          "mutants": 6,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "lang4",
+            "text"
+          ]
+        },
+        "validate_quest2": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_quest2",
+          "cases": 7004,
+          "mutants": 5,
+          "checks": "8/8 report expectations",
+          "pins": [
+            "data",
+            "quest_lang5",
+            "text"
+          ]
+        },
+        "validate_quest_polish": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_quest_polish",
+          "cases": 2001,
+          "mutants": 2,
+          "checks": "8/8 report expectations",
+          "pins": [
+            "data",
+            "quest_lang5",
+            "text"
+          ]
+        },
+        "validate_raven": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_raven",
+          "cases": 4000,
+          "mutants": 4,
+          "checks": "18/18 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_record_math": {
+          "status": "pass",
+          "test": "reconstructed/record-math/test_record_math.py::RecordMathTests.test_private_captured_record_arithmetic_matches",
+          "cases": 2730,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "text"
+          ]
+        },
+        "validate_renderchar": {
+          "status": "pass",
+          "test": "reconstructed/renderchar/test_renderchar.py::RenderCharLibrary.test_private_original_render_instructions",
+          "cases": 638,
+          "checks": "4/4 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_rotation": {
+          "status": "pass",
+          "test": "reconstructed/record-math/test_rotation.py::RotationTests.test_private_original_rotation_instructions",
+          "cases": 8012,
+          "checks": "10/10 report expectations",
+          "pins": [
+            "data",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_scene": {
+          "status": "pass",
+          "test": "reconstructed/scene/test_scene.py::SceneTests.test_private_instruction_comparison",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_skill": {
+          "status": "pass",
+          "test": "native/tests/test_native_skill.py::Installed.test_validator",
+          "cases": 9696,
+          "mutants": 11,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "lang3",
+            "text"
+          ]
+        },
+        "validate_skill_fx": {
+          "status": "pass",
+          "test": "reconstructed/combat/test_skill_fx.py::Private.test_client_comparison",
+          "cases": 660,
+          "mutants": 20,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_skill_later": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_skill_later",
+          "cases": 2935,
+          "mutants": 10,
+          "checks": "30/30 report expectations",
+          "pins": [
+            "data",
+            "skill_tree4",
+            "text"
+          ]
+        },
+        "validate_skill_server": {
+          "status": "pass",
+          "test": "native/tests/test_native_skill.py::Installed.test_validator",
+          "cases": 548,
+          "mutants": 6,
+          "checks": "2/2 report expectations",
+          "pins": [
+            "data",
+            "lang3",
+            "text"
+          ]
+        },
+        "validate_skill_tree": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_skill_tree",
+          "cases": 7876,
+          "mutants": 3,
+          "checks": "9/9 report expectations",
+          "pins": [
+            "data",
+            "skill_lang5",
+            "text"
+          ]
+        },
+        "validate_skinning": {
+          "status": "pass",
+          "test": "reconstructed/model-codec/test_skinning.py::SkinningTests.test_private_original_transform_and_tick_instructions",
+          "cases": 2303,
+          "mutants": 4,
+          "checks": "15/15 report expectations",
+          "pins": [
+            "data",
+            "feature09",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_social": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_social",
+          "cases": 7000,
+          "mutants": 10,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_social2": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_social2",
+          "cases": 29700,
+          "mutants": 36,
+          "checks": "11/11 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_terrain": {
+          "status": "pass",
+          "test": "tests/test_orphan_validators_private.py::OrphanValidators.test_terrain",
+          "cases": 583500,
+          "checks": "78/78 report expectations",
+          "pins": [
+            "data",
+            "flag",
+            "text"
+          ]
+        },
+        "validate_ui": {
+          "status": "pass",
+          "test": "reconstructed/ui/test_ui.py::UiTests.test_private_client_instructions",
+          "cases": 794,
+          "checks": "11/11 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_ui_widgets": {
+          "status": "pass",
+          "test": "reconstructed/ui/test_ui_widgets.py::WidgetTests.test_private_client_instructions",
+          "cases": 630,
+          "checks": "7/7 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        },
+        "validate_world_fidelity": {
+          "status": "pass",
+          "test": "tests/test_world_fidelity_private.py::WorldFidelityPrivateTests.test_routines_match_client",
+          "cases": 200,
+          "mutants": 2,
+          "checks": "5/5 report expectations",
+          "pins": [
+            "data",
+            "text"
+          ]
+        }
+      },
+      "helpers": {
+        "parent_runs_them": [
+          "validate_social2_display",
+          "validate_social2_display_guest",
+          "validate_social2_finalizer",
+          "validate_social2_finalizer_guest",
+          "validate_social2_formula",
+          "validate_social2_formula_guest",
+          "validate_social2_item_guest",
+          "validate_social2_items",
+          "validate_social2_lifecycle",
+          "validate_social2_packets",
+          "validate_social2_present",
+          "validate_social2_present_cases",
+          "validate_social2_present_extra_guest",
+          "validate_social2_present_guest",
+          "validate_social2_receive",
+          "validate_social2_receive_guest"
+        ]
+      }
+    }
   },
   "client_executable_section_restored": true
 }

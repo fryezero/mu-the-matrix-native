@@ -45,6 +45,8 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 
 
 def load_camera_validator():
@@ -652,8 +654,7 @@ DIRECTION_TABLES = [
     [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)],
     [(1, 1), (-1, 1), (1, -1), (-1, -1), (0, 1), (1, 0), (0, -1), (-1, 0)],
 ]
-DATA_SECTION_BASE, DATA_SECTION_SHA256 = 0x01ced000, \
-    '0571c519b1c4eaf97a143d2dd29bf2a3799e56b2f613cda0d084f4b857c1dc6f'
+DATA_SECTION_BASE, DATA_SECTION_SHA256 = 0x01ced000, pins.SECTION3.sha256
 
 
 def read_data_section(path):
@@ -935,10 +936,8 @@ def run_mutations(guest, families, stubs, seed, count):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT',
-                                                         str(ROOT / 'evidence/x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', default=os.environ.get(
-        'MU_IMAGE_DATA', str(ROOT / 'evidence/image-data-run10/data-capture-10/client-image-data.bin')))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--cases', type=int, default=400, help='random cases per family')
     parser.add_argument('--seed', type=int, default=0x574c44)
     parser.add_argument('--only', default=None, help='comma-separated family names')
@@ -947,8 +946,7 @@ def main(argv=None):
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'),
                         help='installed client: path cases also run on its attribute maps')
     parser.add_argument('--path-worlds', default='0,2,3,142', help='world indices for the installed maps')
-    parser.add_argument('--data-section', default=os.environ.get(
-        'MU_DATA_SECTION', str(ROOT / 'evidence/x86-linux-capture-04/main-01ced000.bin')),
+    parser.add_argument('--data-section', default=pins.SECTION3.default_str(),
         help='runtime capture of the section at 0x01ced000: checks the direction table and near plane')
     args = parser.parse_args(argv)
     data_section = None

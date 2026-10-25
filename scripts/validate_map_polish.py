@@ -25,6 +25,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm
 import validate_gfx3 as gfx
 import validate_map as vm
@@ -142,17 +143,14 @@ def registration(text, data):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
-    p.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
+    p.add_argument('--text', default=pins.TEXT.default_str())
+    p.add_argument('--data', default=pins.DATA.default_str())
     p.add_argument('--cases', type=int, default=500)
     p.add_argument('--seed', type=int, default=1)
     p.add_argument('--mutations', action='store_true')
     p.add_argument('--output')
     a = p.parse_args()
-    for path, digest in ((a.text, vl.TEXT_SHA256), (a.data, vl.DATA_SHA256)):
-        if vl.sha256_file(path) != digest:
-            raise SystemExit(f'{path}: unexpected SHA-256')
-    text, data = Path(a.text).read_bytes(), Path(a.data).read_bytes()
+    text, data = pins.TEXT.read(a.text, exit=True), pins.DATA.read(a.data, exit=True)
     fam = run_teleports(text, data, vm.Native(), a.cases, a.seed)
     report = {'text_sha256': vl.TEXT_SHA256, 'data_sha256': vl.DATA_SHA256,
               'teleport_core': fam.summary(), 'registration': registration(text, data)}

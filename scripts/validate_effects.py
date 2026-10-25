@@ -37,12 +37,14 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 TEXT_BASE, DATA_BASE = 0x401000, 0x1a7c000
-TEXT_BYTES, DATA_BYTES = 23572480, 2557764
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+TEXT_BYTES, DATA_BYTES = pins.TEXT.size, pins.DATA.size
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 SEC3_BASE, SEC3_INIT_END = 0x1ced000, 0x1ced000 + 0x12a00
-SEC3_SHA256 = '0571c519b1c4eaf97a143d2dd29bf2a3799e56b2f613cda0d084f4b857c1dc6f'   # capture-04 prefix file
+SEC3_SHA256 = pins.SECTION3.sha256   # capture-04 prefix file
 SEC3_INIT_SHA256 = None   # filled at first use and reported
 BSS_END = 0xbdd2000
 TERRAIN_STUBS = 0x51000000
@@ -102,13 +104,7 @@ def fbits(x):
     return struct.unpack('<I', struct.pack('<f', x))[0]
 
 
-def load_pinned(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if size is not None and len(payload) != size:
-        raise ValueError(f'{label}: unexpected size')
-    if hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError(f'{label}: SHA-256 mismatch')
-    return payload
+load_pinned = pins.loader(ValueError, '{label}: unexpected size or SHA-256 mismatch')
 
 
 class Machine:

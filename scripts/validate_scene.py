@@ -51,10 +51,11 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 
-TEXT_BYTES, TEXT_SHA256 = 23572480, '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BYTES, DATA_SHA256 = 2557764, 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+TEXT_BYTES, TEXT_SHA256 = pins.TEXT.size, pins.TEXT.sha256
+DATA_BYTES, DATA_SHA256 = pins.DATA.size, pins.DATA.sha256
 
 STACK_TOKEN = 0x5354414b
 NET_SEND = 0x4e455453
@@ -797,10 +798,8 @@ def mutations():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(
-        ROOT / 'evidence/x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(
-        ROOT / 'evidence/image-data-run10/data-capture-10/client-image-data.bin')))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--cases', type=int, default=200, help='cases per routine')
     parser.add_argument('--loading-ui-cases', type=int, default=40)
     parser.add_argument('--only', nargs='*', choices=sorted(ROUTINES) + ['loading_ui'])
@@ -808,11 +807,8 @@ def main(argv=None):
     parser.add_argument('--seed', type=int, default=20261018)
     parser.add_argument('--report')
     args = parser.parse_args(argv)
-    text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
-    if len(text) != TEXT_BYTES or hashlib.sha256(text).hexdigest() != TEXT_SHA256:
-        raise SystemExit('restored text does not match the pinned capture')
-    if len(data) != DATA_BYTES or hashlib.sha256(data).hexdigest() != DATA_SHA256:
-        raise SystemExit('image data does not match the pinned capture')
+    text = pins.TEXT.read(args.text, mismatch=SystemExit('restored text does not match the pinned capture'))
+    data = pins.DATA.read(args.data, mismatch=SystemExit('image data does not match the pinned capture'))
     digests = routine_digests(text)
     for name, pinned in PINNED.items():
         if digests[name]['sha256'] != pinned:

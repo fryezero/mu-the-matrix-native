@@ -20,11 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(ROOT / "scripts"))
 import client_ui_machine as cm
+import pins
 import validate_social2_packets as helpers
 
-TEXT_SHA256 = "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724"
-DATA_SHA256 = "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f"
-INPUT = Path.home() / "Documents/main-exe-study/evidence"
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 Kind = Literal[
     "room_open",
     "mail_send",
@@ -363,16 +363,8 @@ class ClientOracle:
     """Reusable pinned-code executor. Each run resets the full model and machine."""
 
     def __init__(self, text_path: Path | None = None, data_path: Path | None = None):
-        text = (text_path or INPUT / "x86-text-capture-09/client-text.bin").read_bytes()
-        data = (
-            data_path
-            or INPUT / "image-data-run10/data-capture-10/client-image-data.bin"
-        ).read_bytes()
-        if (
-            hashlib.sha256(text).hexdigest() != TEXT_SHA256
-            or hashlib.sha256(data).hexdigest() != DATA_SHA256
-        ):
-            raise ValueError("private capture hash mismatch")
+        text = pins.TEXT.read(text_path, mismatch=ValueError("private capture hash mismatch"))
+        data = pins.DATA.read(data_path, mismatch=ValueError("private capture hash mismatch"))
         self.machine = cm.Machine(text, data)
         self.stub_manifest: dict[int, tuple[int, str]] = {}
         self.decision_hits: set[str] = set()

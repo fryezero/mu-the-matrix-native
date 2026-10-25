@@ -13,9 +13,11 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
 BODIES = {
     0x927060: (4677, 'ccc0ee915849c68077c607526892a398731c53f81635c9ac780c401f6aa26239'),
     0x929370: (4288, '6fa51533865332b415f88ecde322aea8e9778f7dbcfbe116a7112b70d8f747ce'),
@@ -90,9 +92,7 @@ def check_model_key_link(payload):
 
 
 def validate(text, library):
-    payload = Path(text).read_bytes()
-    if len(payload) != TEXT_BYTES or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
-        raise ValueError('Input does not match the pinned restored text')
+    payload = pins.load(text, TEXT_BYTES, TEXT_SHA256, mismatch=ValueError('Input does not match the pinned restored text'))
     relocation = check_relocation(payload)
     caller = check_model_key_link(payload)
     import unicorn
@@ -184,9 +184,9 @@ def validate(text, library):
 
 def compare_corpus(library, game_root, manifest, diagnostics):
     manifest_raw, diagnostics_raw = Path(manifest).read_bytes(), Path(diagnostics).read_bytes()
-    if hashlib.sha256(manifest_raw).hexdigest() != 'fffcbad941e9bad394489382e79ad6d9d2e9f405847975de0eff113babd366ff':
+    if hashlib.sha256(manifest_raw).hexdigest() != pins.V14_MANIFEST.sha256:
         raise ValueError('Private corpus manifest identity mismatch')
-    if hashlib.sha256(diagnostics_raw).hexdigest() != 'ba945b166c52e068a4ed12bbbc67a27f68d697fcf64197aaff627b09e45b909a':
+    if hashlib.sha256(diagnostics_raw).hexdigest() != pins.EDGE_DIAGNOSTICS.sha256:
         raise ValueError('Private rejected-model diagnostics identity mismatch')
     records = [record for record in json.loads(manifest_raw)['files'] if record.get('version') == 15]
     rejected = {record['path']: record for record in json.loads(diagnostics_raw)['files']}
@@ -247,8 +247,8 @@ def main():
                         ('libmodelcodec.dylib' if sys.platform == 'darwin' else 'libmodelcodec.so'))
     parser.add_argument('--output', type=Path)
     parser.add_argument('--game-root', type=Path)
-    parser.add_argument('--manifest', type=Path, default=ROOT/'model-recovery/verified-v14/manifest.json')
-    parser.add_argument('--diagnostics', type=Path, default=ROOT/'evidence/model-edge/diagnostics.json')
+    parser.add_argument('--manifest', type=Path, default=pins.V14_MANIFEST.default())
+    parser.add_argument('--diagnostics', type=Path, default=pins.EDGE_DIAGNOSTICS.default())
     args = parser.parse_args()
     try:
         result = validate(args.text, args.library)

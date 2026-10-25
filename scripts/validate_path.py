@@ -40,15 +40,17 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-TEXT_BASE, TEXT_BYTES = 0x401000, 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BASE, DATA_BYTES = 0x1a7c000, 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
+TEXT_BASE, TEXT_BYTES = 0x401000, pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_BASE, DATA_BYTES = 0x1a7c000, pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 FLAG_ADDRESS = 0x0bdd1cc8
-FLAG_SHA256 = '67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450'
+FLAG_SHA256 = pins.FLAG.sha256
 DIRECTIONS_ADDRESS = 0x01cf1640
 DIRECTIONS_SECTION = 0x01ced000
-DIRECTIONS_SHA256 = 'a8cc45492d67c784853284cd426fd5c48a994a55d124bd970c1da1e46616f8b5'
+DIRECTIONS_SHA256 = pins.DIRECTIONS.sha256
 
 ROUTINES = {
     'path_finding2': (0x012b0e85, 0x1c7, '361a18e5813b76746f898f0b073663ca18207d8ae5d603f8e64ee0ac7599705c'),
@@ -218,13 +220,7 @@ def same(a, b):
     return fbits(a) == fbits(b)
 
 
-def load_pinned(path, size, digest, label, offset=0):
-    with open(path, 'rb') as handle:
-        handle.seek(offset)
-        payload = handle.read(size)
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError(f'Input does not match pinned {label}: {path}')
-    return payload
+load_pinned = pins.loader(ValueError, 'Input does not match pinned {label}: {path}')
 
 
 class Stop(Exception):
@@ -1800,14 +1796,10 @@ MUTATIONS = [
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    evidence = ROOT / 'evidence'
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(evidence / 'x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', default=os.environ.get(
-        'MU_IMAGE_DATA', str(evidence / 'image-data-run10/data-capture-10/client-image-data.bin')))
-    parser.add_argument('--flag', default=os.environ.get(
-        'MU_TRIG_FLAG', str(evidence / 'trig-state-15/captures/late/math-dispatch-flag.bin')))
-    parser.add_argument('--directions', default=os.environ.get(
-        'MU_PATH_DIRECTIONS', str(evidence / 'path-table-live-01/live-a-01ced000.bin')),
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
+    parser.add_argument('--flag', default=pins.FLAG.default_str())
+    parser.add_argument('--directions', default=pins.DIRECTIONS.default_str(),
         help='capture of the third section from 0x01ced000 holding the neighbour table 0x01cf1640 '
              '(the live read path-table-live-01 or x86-linux-capture-04/main-01ced000.bin)')
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'))
