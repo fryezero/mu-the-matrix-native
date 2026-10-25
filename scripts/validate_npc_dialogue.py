@@ -42,6 +42,8 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 
 
 def load_module(name, path):
@@ -250,11 +252,9 @@ def encode_records(decoded):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--text', type=Path, default=Path(os.environ.get(
-        'MU_CLIENT_TEXT', ROOT/'evidence/x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', type=Path, default=Path(os.environ.get(
-        'MU_IMAGE_DATA', ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')))
-    parser.add_argument('--feature', type=Path, default=ROOT/'evidence/image-data-run10/math-capture-10/cpu-features.bin')
+    parser.add_argument('--text', type=Path, default=pins.TEXT.default())
+    parser.add_argument('--data', type=Path, default=pins.DATA.default())
+    parser.add_argument('--feature', type=Path, default=pins.FEATURE.default())
     parser.add_argument('--game-root', type=Path, default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--mu-data', type=Path, default=ROOT/'native/build/mu-data')
     parser.add_argument('--libnpc', type=Path, default=ROOT/'reconstructed/npc/libnpc.dylib')
@@ -267,9 +267,7 @@ def main():
     started = time.time()
     text = tables.load_pinned(args.text, tables.TEXT_BYTES, tables.TEXT_SHA256, 'restored text')
     data = tables.load_pinned(args.data, tables.DATA_BYTES, tables.DATA_SHA256, 'second image section')
-    feature_path = args.feature if args.feature.exists() else \
-        Path.home()/'Documents/main-exe-study/evidence/image-data-run10/math-capture-10/cpu-features.bin'
-    feature = tables.load_pinned(feature_path, 4, tables.FEATURE_SHA256, 'CPU feature word')
+    feature = tables.load_pinned(args.feature, 4, tables.FEATURE_SHA256, 'CPU feature word')
     bodies = {name: {'start': hex(a), 'end_exclusive': hex(b),
                      'sha256': hashlib.sha256(text[a - tables.TEXT_BASE:b - tables.TEXT_BASE]).hexdigest()}
               for name, (a, b) in BODIES.items()}

@@ -43,12 +43,14 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
 DATA_BASE = 0x01a7c000
-DATA_BYTES = 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+DATA_BYTES = pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 FLAG_ADDRESS = 0x0bdd1cc8
 CELLS = 65536
 KEY = bytes((0xfc, 0xcf, 0xab))
@@ -822,11 +824,7 @@ def synthetic_scene(seed, world=0, extended=False):
 # --------------------------------------------------------------------------
 # Client execution under Unicorn.
 
-def check_identity(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError(f'Input does not match the pinned {label}')
-    return payload
+check_identity = pins.loader(ValueError, 'Input does not match the pinned {label}')
 
 
 def descriptor(base, limit, access=0x93, flags=0xc):

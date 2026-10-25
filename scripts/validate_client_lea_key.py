@@ -13,10 +13,12 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+TARGET_SHA256 = pins.TARGET.sha256
 FUNCTION = 0x92a430
 FUNCTION_BYTES = 6446
 FUNCTION_SHA256 = '027959c97d01690e622312ae0c16e269a7b95cb30d3af160486349219a28b0da'
@@ -43,9 +45,7 @@ def synthetic_cases():
 
 
 def validate(text, library):
-    payload = Path(text).read_bytes()
-    if len(payload) != TEXT_BYTES or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
-        raise ValueError('Input does not match the pinned restored text')
+    payload = pins.load(text, TEXT_BYTES, TEXT_SHA256, mismatch=ValueError('Input does not match the pinned restored text'))
     function = payload[FUNCTION-TEXT_BASE:FUNCTION-TEXT_BASE+FUNCTION_BYTES]
     if hashlib.sha256(function).hexdigest() != FUNCTION_SHA256:
         raise ValueError('Pinned setup body mismatch')

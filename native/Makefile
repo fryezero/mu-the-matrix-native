@@ -228,6 +228,19 @@ $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared core/mu_protocol.c -o $@
 
+# ---- C3/C4 CryptoModule (NET-CRYPTO-001) ----
+# native/net/crypto.cpp over Crypto++; a library of its own for the tests and
+# scripts/validate_crypto.py (ctypes). Planted mistakes for the validator:
+# build/crypto-mutants/libmucrypto_m<k> built with -DMU_CRYPTO_MUTATION=<k>.
+CRYPTO_LIB := $(BUILD)/libmucrypto.$(SHLIB_EXT)
+all: $(CRYPTO_LIB)
+$(CRYPTO_LIB): net/crypto.cpp net/mu_crypto.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -fPIC -shared net/crypto.cpp $(CRYPTOPP_LIBS) -o $@
+$(BUILD)/crypto-mutants/libmucrypto_m%.$(SHLIB_EXT): net/crypto.cpp net/mu_crypto.h
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -DMU_CRYPTO_MUTATION=$* -fPIC -shared net/crypto.cpp $(CRYPTOPP_LIBS) -o $@
+
 # Data tables (NATIVE-DATA-001): no Crypto++ or image dependencies.
 DATA_SRC := core/mu_data.c $(RECON)/data/data_codec.c $(RECON)/data/data_tables.c $(RECON)/data/item_attributes.c \
 	$(RECON)/data/table_layouts.c

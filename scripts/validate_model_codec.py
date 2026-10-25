@@ -13,13 +13,15 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+TARGET_SHA256 = pins.TARGET.sha256
 FUNCTION = 0x98c5f2
 FUNCTION_BYTES = 194
-MANIFEST_SHA256 = 'fffcbad941e9bad394489382e79ad6d9d2e9f405847975de0eff113babd366ff'
+MANIFEST_SHA256 = pins.V14_MANIFEST.sha256
 
 
 def synthetic_cases():
@@ -73,9 +75,7 @@ def installed_inputs(game_root, manifest):
 
 
 def validate(text, library, game_root=None, manifest=None):
-    payload = Path(text).read_bytes()
-    if len(payload) != TEXT_BYTES or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
-        raise ValueError('Input does not match the pinned restored text')
+    payload = pins.load(text, TEXT_BYTES, TEXT_SHA256, mismatch=ValueError('Input does not match the pinned restored text'))
     inputs = installed_inputs(game_root, manifest) if game_root is not None else []
     # Import only after identities so portable refusal tests require no emulator.
     import unicorn
@@ -217,7 +217,7 @@ def main():
     parser.add_argument('--library', type=Path, default=ROOT/'reconstructed/model-codec'/
                         ('libmodelcodec.dylib' if sys.platform == 'darwin' else 'libmodelcodec.so'))
     parser.add_argument('--game-root', type=Path)
-    parser.add_argument('--manifest', type=Path, default=ROOT/'model-recovery/verified-v14/manifest.json')
+    parser.add_argument('--manifest', type=Path, default=pins.V14_MANIFEST.default())
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     try:

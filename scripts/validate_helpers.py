@@ -53,13 +53,14 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
 import actor_machine as am  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 LIB = ROOT/f'reconstructed/helpers/libclient_helpers.{SUFFIX}'
-DEFAULT_TEXT = ROOT/'evidence/x86-text-capture-09/client-text.bin'
-DEFAULT_DATA = ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'
+DEFAULT_TEXT = pins.TEXT.default()
+DEFAULT_DATA = pins.DATA.default()
 
 OBJ = 0x3d8
 BUGS = 0x0bdc3220

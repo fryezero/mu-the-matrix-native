@@ -73,13 +73,14 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 import live_lang_to_plain as plain  # noqa: E402
 
-DEFAULT_TEXT = ROOT/'evidence/x86-text-capture-09/client-text.bin'
-DEFAULT_DATA = ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+DEFAULT_TEXT = pins.TEXT.default()
+DEFAULT_DATA = pins.DATA.default()
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 MAPS_HEADER = ROOT/'native/core/mu_lang_maps.h'
 
 GLOBAL_TEXT, GLOBAL_TEXT_STRING = 0x0095f027, 0x011753c3
@@ -798,8 +799,8 @@ def maps_header(table):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshot', required=True, help='langread snapshot (local)')
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(DEFAULT_TEXT)))
-    parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(DEFAULT_DATA)))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--families', default='map_table,text,skill_lookup,skill_info,gate,move,npc,enchant,map_names,'
                                                'buff,buff_tooltip,addbuff,soulconv,charinfo,charinfo_rows')
@@ -807,10 +808,7 @@ def main():
     parser.add_argument('--mutations', action='store_true', help='check that planted mistakes are caught')
     parser.add_argument('--output')
     args = parser.parse_args()
-    for path, digest in ((args.text, TEXT_SHA256), (args.data, DATA_SHA256)):
-        if sha256_file(path) != digest:
-            raise SystemExit(f'{path}: unexpected SHA-256')
-    text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
+    text, data = pins.TEXT.read(args.text, exit=True), pins.DATA.read(args.data, exit=True)
     snap = plain.Snapshot.load(args.snapshot)
     rng = random.Random(args.seed)
     families = args.families.split(',')

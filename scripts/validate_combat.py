@@ -51,6 +51,7 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
 import actor_machine as am  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -927,8 +928,8 @@ HEAVY = {'create_point', 'move_points', 'render_points', 'show_damage'}   # 180 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--text', default=str(ROOT/'evidence/x86-text-capture-09/client-text.bin'))
-    parser.add_argument('--data', default=str(ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--library', default=str(ROOT/f'reconstructed/combat/libcombat.{SUFFIX}'))
     parser.add_argument('--cases', type=int, default=300)
     parser.add_argument('--heavy-cases', type=int, default=None, help='cases of the pool families (default cases/3)')

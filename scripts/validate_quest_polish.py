@@ -26,6 +26,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm
 import validate_lang as vl
 import validate_map as vm
@@ -116,17 +117,14 @@ def run_tabs(text, data, snap):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
-    p.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
+    p.add_argument('--text', default=pins.TEXT.default_str())
+    p.add_argument('--data', default=pins.DATA.default_str())
     p.add_argument('--snapshot', required=True)
     p.add_argument('--cases', type=int, default=2000)
     p.add_argument('--mutations', action='store_true')
     p.add_argument('--output')
     a = p.parse_args()
-    for path, digest in ((a.text, vl.TEXT_SHA256), (a.data, vl.DATA_SHA256)):
-        if vl.sha256_file(path) != digest:
-            raise SystemExit(f'{path}: unexpected SHA-256')
-    text, data = Path(a.text).read_bytes(), Path(a.data).read_bytes()
+    text, data = pins.TEXT.read(a.text, exit=True), pins.DATA.read(a.data, exit=True)
     subprocess.run(['make', '-s', '-C', str(ROOT / 'reconstructed/quest')], check=True)
     lib = ROOT / 'reconstructed/quest/libquest.dylib'
     fam = run_answers(text, data, lib, a.cases, 1)

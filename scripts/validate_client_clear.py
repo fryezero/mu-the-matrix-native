@@ -8,19 +8,20 @@ from pathlib import Path
 import random
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
+
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+TARGET_SHA256 = pins.TARGET.sha256
 CLEAR_ADDRESS = 0x401020
 HELPER_PAGE = 0x194c000
 FEATURE_ADDRESS = 0x1cf6618
 
 
 def validate(capture, library):
-    payload = Path(capture).read_bytes()
-    if len(payload) != TEXT_BYTES or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
-        raise ValueError('Capture does not match the pinned restored client text')
+    payload = pins.load(capture, TEXT_BYTES, TEXT_SHA256, mismatch=ValueError('Capture does not match the pinned restored client text'))
     import unicorn
     from unicorn import (Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE,
                          UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE, UC_MEM_WRITE)

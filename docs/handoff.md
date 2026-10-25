@@ -40,6 +40,33 @@
 - `GAME-LOCK.md` still names `~/Documents/mu-mac-tools`; the folder is now under `~/Documents/MTM/`. Its 3- and
   15-minute limits stand until the owner changes them.
 
+## Guest rebuild and private checks (CAPTURE-REBUILD-001, 2026-10-24)
+
+The QEMU x86 guest was rebuilt from the pinned Debian image (`20261015-2632`, SHA-512 matched) on QEMU 11.1.2, with
+Wine `8.0~repack-4` and Mesa `22.3.6-1+deb12u2` (llvmpipe, OpenGL 4.5), `restrict=on` networking (outbound, host and
+DNS checked unreachable). The client restored its text within 30 s. Each scope was captured with the tool revision
+that made the pinned capture (`42ae903`, `3162f2f`, `f8cb2fd`, `b4bd515`); all manifests report
+`complete_within_scope`, and every pinned digest was reproduced exactly: text `2bd5f2e9…`, second section
+`c985e2e6…`, feature word `bce941d1…`, record bias/template `af5570f5…`/`5998e9d1…`, trig flag `67abdd72…`. The
+neighbour table at `0x01cf1640` in a guest read of `0x01ced000` matches `a8cc4549…`
+(`evidence/x86-guest-sec3-25/`, used through `MU_PATH_DIRECTIONS`).
+
+With `MU_RECOVERY_INTEGRATION=1` and an installation whose `main.exe` matches the pin, 35 of 38 suites pass. The rest:
+
+- `reconstructed/charsel`: all 1,488 character-create cases match, but its private test runs `--cases 60`, whose
+  20 planted-mistake cases contain no CP949 lead byte, so the code-page mutant goes undetected (5/6). The
+  documented `--cases 300 --mutations` run detects 6/6. The test's case count is too small, not the C.
+- `reconstructed/effects`: needs the `x86-linux-capture-04/main-01ced000.bin` whole-file digest `0571c519…`; no
+  prefix of a fresh guest read reproduces it (different runtime state).
+- `reconstructed/model-codec`: the two corpus checks need `model-recovery/verified-v14/manifest.json` (pinned
+  `fffcbad9…`); this installation scans to `27afde53…` with the same counts, also with the scanner of `e617b79`.
+  The instruction comparison itself passes (4,048 synthetic cases, 0 mismatches). `evidence/model-edge/diagnostics.json`
+  came from uncommitted probe code.
+
+A Mac Wine capture (free runtime, no mugl, launcher GAME START, pre-login) matched only the record bias, template
+and trig flag: the text differs from the guest's in a few bytes (22,180,556 vs 22,180,554 positions differ from the
+on-disk section), the feature word is 7 (Rosetta) instead of `0x2f`. It is not a substitute for the guest captures.
+
 ## Verification skills (VERIFY-SKILLS-001, 2026-10-24)
 
 Two project-local agent skills were generated with pstack on branch `claude/pstack-verify-skills`:

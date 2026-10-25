@@ -46,12 +46,13 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 
-DEFAULT_TEXT = ROOT/'evidence/x86-text-capture-09/client-text.bin'
-DEFAULT_DATA = ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+DEFAULT_TEXT = pins.TEXT.default()
+DEFAULT_DATA = pins.DATA.default()
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 LIB_DIR = ROOT/'reconstructed/npc'
 
 RECEIVE_TALK = 0x01280659
@@ -588,8 +589,8 @@ def run_all(text, data, lib, args, rng, report):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', DEFAULT_TEXT))
-    ap.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', DEFAULT_DATA))
+    ap.add_argument('--text', default=pins.TEXT.default_str())
+    ap.add_argument('--data', default=pins.DATA.default_str())
     ap.add_argument('--cases', type=int, default=1000, help='axis and segment cases')
     ap.add_argument('--talk-cases', type=int, default=8, help='cases per talk result byte')
     ap.add_argument('--pick-cases', type=int, default=300)
@@ -598,10 +599,7 @@ def main():
     ap.add_argument('--emit-box', action='store_true')
     ap.add_argument('--json', help='write the report here')
     args = ap.parse_args()
-    for path, digest, label in ((args.text, TEXT_SHA256, 'text'), (args.data, DATA_SHA256, 'data')):
-        if not Path(path).is_file() or sha256(path) != digest:
-            raise SystemExit(f'{label}: missing or unexpected input {path}')
-    text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
+    text, data = pins.TEXT.read(args.text, exit=True), pins.DATA.read(args.data, exit=True)
     report = {}
     boxes = run_box(text, data)
     if args.emit_box:
