@@ -224,6 +224,22 @@ build = ["reconstructed/combat"]
 args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--heavy-cases", "4", "--output", "{report}"]
 note = "the test also regenerates attack_speed_table.h with scripts/combat_static.py; that half is not a validator"
 
+[validate_crypto]
+test = "tests/test_crypto_private.py::CryptoPrivateTests.test_module_matches_client_instructions"
+pins = ["text", "data", "feature"]
+families = ["ctor", "open", "set_key", "factory", "encrypt", "decrypt"]
+cases = 568
+mutants = 14
+cases_at = "families.*.cases"
+mutants_at = "mutations.*.caught"
+build = ["native"]
+args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--scale", "2", "--mutations", "--report", "{report}"]
+note = "NET-CRYPTO-001; the test's --scale 2 run (the finding's 1,073 cases are the default --scale 4)"
+[validate_crypto.expect]
+"ok" = true
+"families.*.mismatches" = 0
+"coverage_problems" = {len = 0}
+
 [validate_data_tables]
 test = "tests/test_data_tables_private.py::DataTablesPrivateTests.test_loaders_and_codecs_match_client"
 pins = ["text", "data", "feature"]
