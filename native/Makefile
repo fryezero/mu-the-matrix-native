@@ -54,7 +54,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
-            core/mu_progress.c \
+            core/mu_progress.c core/mu_protocol.c \
             core/mu_social_messages.c core/mu_social_item_tables.c core/mu_social_item_view.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
@@ -384,6 +384,19 @@ $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_ba
 # app/Makefile: launcher, network guard, bundled dylibs, optional libmugfx (MUGFX_LIB=...).
 preview-app: $(BUILD)/mu-client
 	$(MAKE) -C app
+
+# ---- NET-LINK-001: the transport, links and connections (native/net) ----
+# mu_protocol.c is in CORE_SRC since NET-LINK-001 (no code change; verify-protocol-cbmc reran).
+# build/libmunet: the net layer alone, for native/tests/test_transport.py (ctypes).
+NET_SRC := net/transport.c net/transport_lock.c net/transport_sockets.c net/transport_replay.c net/conn.c
+NET_HDR := $(wildcard net/*.h) core/mu_protocol.h
+NET_SO := $(BUILD)/libmunet.$(SHLIB_EXT)
+
+all: $(NET_SO)
+
+$(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) -fPIC -shared $(NET_SRC) core/mu_protocol.c -o $@
 
 clean:
 	rm -rf $(BUILD)
