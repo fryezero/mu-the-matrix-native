@@ -88,19 +88,19 @@ typedef struct action {
 } action;
 
 typedef struct front {
-    const char *root, *session, *out_dir, *backend, *sound_table, *placement, *players, *wav_path, *font;
-    const char *helper;               /* NATIVE-HELPERS-001: --helper ITEM [--helper-state N] (DEMO) */
-    int32_t helper_state;
-    const char *world_objects, *charsel_objects, *login_objects;
+    const char *root, *session, *out_dir, *backend, *wav_path, *font;
+    /* WORLD-RT-001: the world scene's options, parsed straight into the runtime's struct (NATIVE-APP-001's
+     * --combat --items --npc --npc-demo --progress --no-names --no-env --no-particles, --sound-table,
+     * --placement, --players, --helper, --helper-state, --world-objects) and passed through the shell */
+    mu_world_rt_options world;
+    const char *charsel_objects, *login_objects;
     const char *gfx_dir, *gfx_open;   /* NATIVE-GFX-003: the GFx interface in the world scene */
     const char *gfx_log;              /* NATIVE-CHARSEL-003 */
     const char *store;                /* NATIVE-CHARCREATE-001: the OFFLINE DEMO character store */
     int no_store;
     char store_default[4096];
     int double_click;                 /* the scripted click is a double click */
-    const char *label, *title, *npc_demo;                      /* NATIVE-APP-001 */
-    int combat, items, npc, no_names, no_env, no_particles;
-    int progress;   /* NATIVE-PROGRESS-001 */
+    const char *label, *title;                                 /* NATIVE-APP-001 */
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
     int32_t hold_scene;               /* NATIVE-PERF-001: --hold SCENE stops the autoplay there (0: never) */
     const char *perf_path;            /* NATIVE-PERF-001: --perf FILE, --perf-sync */
@@ -434,9 +434,9 @@ static void on_opened(void *user, int kind, void *embed)
     if (kind == MU_SHELL_EMBED_CHARSEL)
         mu_charsel_embed_gl_setup(embed);
     else
-        mu_world_embed_gl_setup(embed);
+        mu_world_rt_gl_setup(embed);
     if (!f->headless && kind == MU_SHELL_EMBED_WORLD)
-        mu_world_embed_resize(embed, f->dw, f->dh);
+        mu_world_rt_resize(embed, f->dw, f->dh);
     if (kind == MU_SHELL_EMBED_WORLD && f->gfx_dir && !f->gfx) {
         /* The GFx interface over the world scene, as mu-world --gfx (the
          * client's GFx manager draws after the 3D pass in the main scene). */
@@ -446,7 +446,7 @@ static void on_opened(void *user, int kind, void *embed)
         if (!f->gfx)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
         else
-            mu_world_embed_set_gfx(embed, f->gfx, f->headless ? 1.0 : f->scale);
+            mu_world_rt_set_gfx(embed, f->gfx, f->headless ? 1.0 : f->scale);
         f->gfx_clock = on_ticks(f);
     }
 #endif
@@ -467,14 +467,14 @@ static void on_closing(void *user, int kind, void *embed)
         return;
     }
     if (kind == MU_SHELL_EMBED_WORLD && f->gfx) {
-        mu_world_embed_set_gfx(embed, NULL, 1.0);
+        mu_world_rt_set_gfx(embed, NULL, 1.0);
         world_gfx_close(f->gfx);
         f->gfx = NULL;
     }
     if (kind == MU_SHELL_EMBED_CHARSEL)
         mu_charsel_embed_gl_teardown(embed);
     else
-        mu_world_embed_gl_teardown(embed);
+        mu_world_rt_gl_teardown(embed);
 #endif
 }
 
@@ -510,13 +510,13 @@ static void compose(front *f)
             mu_charsel_embed_draw_gl(mu_shell_charsel(f->shell), f->width, f->height);
             mu_perf_end(MU_PERF_SCENE, perf);
         } else {
-            mu_world_embed *w = mu_shell_world(f->shell);
-            mu_world_embed_draw_gl(w, f->width, f->height);
+            mu_world_rt *w = mu_shell_world(f->shell);
+            mu_world_rt_draw_gl(w, f->width, f->height);
             if (f->gfx) {
                 double perf = mu_perf_begin();
                 uint32_t now = on_ticks(f);
-                const mu_walk *walk = mu_world_embed_walk(w);
-                world_gfx_set_location(f->gfx, mu_world_embed_folder(w) - 1, walk->hero.position[0],
+                const mu_walk *walk = mu_world_rt_walk(w);
+                world_gfx_set_location(f->gfx, mu_world_rt_folder(w) - 1, walk->hero.position[0],
                                        walk->hero.position[1]);
                 world_gfx_frame(f->gfx, (double)(now - f->gfx_clock), 1);
                 f->gfx_clock = now;
@@ -539,7 +539,7 @@ static void compose(front *f)
         else if (view == MU_SHELL_VIEW_CHARSEL)
             mu_charsel_embed_draw_soft(mu_shell_charsel(f->shell), &f->raster);
         else
-            mu_world_embed_draw_soft(mu_shell_world(f->shell), &f->raster);
+            mu_world_rt_draw_soft(mu_shell_world(f->shell), &f->raster);
         memcpy(f->pixels, f->raster.color, bytes);
     }
     double perf = mu_perf_begin();
@@ -718,22 +718,6 @@ static int parse_script(front *f, const char *text)
     return 0;
 }
 
-/* NATIVE-APP-001: the offline label and mu-world's features for the world scene. */
-static void world_options(const front *f, mu_shell_config *c)
-{
-    c->label = f->label;
-    c->world_combat = f->combat;
-    c->world_progress = f->progress;
-    c->world_items = f->items;
-    c->world_npc = f->npc;
-    c->npc_demo = f->npc_demo;
-    c->world_no_names = f->no_names;
-    c->world_no_env = f->no_env;
-    c->world_no_particles = f->no_particles;
-    c->helper = f->helper;
-    c->helper_state = f->helper_state;
-}
-
 /* ---- headless ---- */
 
 static void note_scene(front *f)
@@ -784,11 +768,8 @@ static int headless(front *f)
     c.width = f->width;
     c.height = f->height;
     c.audio = f->audio;
-    c.sound_table = f->sound_table;
-    c.placement = f->placement;
-    world_options(f, &c);
-    c.players = f->players;
-    c.world_objects = f->world_objects;
+    c.label = f->label;   /* NATIVE-APP-001 */
+    c.world = f->world;   /* WORLD-RT-001: one options struct from here to the world runtime */
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
     c.title_step_ms = 0;
@@ -1046,11 +1027,8 @@ static int windowed(front *f)
     c.width = f->width;
     c.height = f->height;
     c.audio = f->audio;
-    c.sound_table = f->sound_table;
-    c.placement = f->placement;
-    world_options(f, &c);
-    c.players = f->players;
-    c.world_objects = f->world_objects;
+    c.label = f->label;   /* NATIVE-APP-001 */
+    c.world = f->world;   /* WORLD-RT-001: one options struct from here to the world runtime */
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
     c.title_step_ms = 150;
@@ -1265,7 +1243,7 @@ int main(int argc, char **argv)
     f.every = 0;
     f.audio = 1;
     f.font = "Tahoma";
-    f.helper_state = -1;   /* NATIVE-HELPERS-001: the helper name's ride state */
+    mu_world_rt_default_options(&f.world);   /* mu-world's defaults (the helper name's ride state, ...) */
 #ifdef MU_CLIENT_NO_GL
     f.headless = 1;
     f.backend = "soft";
@@ -1278,13 +1256,13 @@ int main(int argc, char **argv)
         if (!strcmp(k, "--quiet")) { f.quiet = 1; continue; }
         if (!strcmp(k, "--no-audio")) { f.audio = 0; continue; }
         if (!strcmp(k, "--auto")) { f.autoplay = 1; continue; }
-        if (!strcmp(k, "--combat")) { f.combat = 1; continue; }   /* NATIVE-APP-001 */
-        if (!strcmp(k, "--progress")) { f.progress = 1; continue; }   /* NATIVE-PROGRESS-001 */
-        if (!strcmp(k, "--items")) { f.items = 1; continue; }
-        if (!strcmp(k, "--npc")) { f.npc = 1; continue; }
-        if (!strcmp(k, "--no-names")) { f.no_names = 1; continue; }
-        if (!strcmp(k, "--no-env")) { f.no_env = 1; continue; }
-        if (!strcmp(k, "--no-particles")) { f.no_particles = 1; continue; }
+        if (!strcmp(k, "--combat")) { f.world.combat = 1; continue; }   /* NATIVE-APP-001 */
+        if (!strcmp(k, "--progress")) { f.world.progress = 1; continue; }   /* NATIVE-PROGRESS-001 */
+        if (!strcmp(k, "--items")) { f.world.ground_items = 1; continue; }
+        if (!strcmp(k, "--npc")) { f.world.npc = 1; continue; }
+        if (!strcmp(k, "--no-names")) { f.world.no_names = 1; continue; }
+        if (!strcmp(k, "--no-env")) { f.world.no_env = 1; continue; }
+        if (!strcmp(k, "--no-particles")) { f.world.no_particles = 1; continue; }
         if (!strcmp(k, "--no-store")) { f.no_store = 1; continue; }
         if (!strcmp(k, "--perf-sync")) { f.perf_sync = 1; continue; }   /* NATIVE-PERF-001 */
         if (!strcmp(k, "--gpu-overlay")) { f.gpu_overlay = 1; continue; }
@@ -1298,15 +1276,15 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--width")) f.width = atoi(v);
         else if (!strcmp(k, "--height")) f.height = atoi(v);
         else if (!strcmp(k, "--font")) f.font = v;
-        else if (!strcmp(k, "--sound-table")) f.sound_table = v;
-        else if (!strcmp(k, "--placement")) f.placement = v;
-        else if (!strcmp(k, "--players")) f.players = v;
-        else if (!strcmp(k, "--helper")) f.helper = v;
-        else if (!strcmp(k, "--helper-state")) f.helper_state = atoi(v);
-        else if (!strcmp(k, "--world-objects")) f.world_objects = v;
+        else if (!strcmp(k, "--sound-table")) f.world.sound_table = v;
+        else if (!strcmp(k, "--placement")) f.world.placement = v;
+        else if (!strcmp(k, "--players")) f.world.players = v;
+        else if (!strcmp(k, "--helper")) f.world.helper = v;
+        else if (!strcmp(k, "--helper-state")) f.world.helper_state = atoi(v);
+        else if (!strcmp(k, "--world-objects")) f.world.objects_dir = v;
         else if (!strcmp(k, "--charsel-objects")) f.charsel_objects = v;
         else if (!strcmp(k, "--login-objects")) f.login_objects = v;
-        else if (!strcmp(k, "--objects-dir")) f.world_objects = f.charsel_objects = f.login_objects = v;
+        else if (!strcmp(k, "--objects-dir")) f.world.objects_dir = f.charsel_objects = f.login_objects = v;
         else if (!strcmp(k, "--seconds")) f.seconds = strtof(v, NULL);
         else if (!strcmp(k, "--out-dir")) f.out_dir = v;
         else if (!strcmp(k, "--backend")) f.backend = v;
@@ -1317,7 +1295,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--gfx")) f.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) f.gfx_open = v;
         else if (!strcmp(k, "--gfx-log")) f.gfx_log = v;
-        else if (!strcmp(k, "--npc-demo")) { f.npc_demo = v; f.npc = 1; }
+        else if (!strcmp(k, "--npc-demo")) { f.world.npc_demo = v; f.world.npc = 1; }
         else if (!strcmp(k, "--label")) f.label = v;
         else if (!strcmp(k, "--title")) f.title = v;
         else if (!strcmp(k, "--store")) f.store = v;

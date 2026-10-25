@@ -22,7 +22,7 @@
  *               request: answered by the offline session) -> (1) -> scene 4
  *   4 loading   mu_scenemgr_loading: Interface\LSBg01_1..4 and CLoadingScene,
  *               one frame, scene 6; the world loads while it is shown
- *   6 world     the mu-world session (world/world_embed) with the chosen
+ *   6 world     the world runtime (world/mu_world_rt.h, mu-world's session) with the chosen
  *               character's class (copied into the Hero by start loading) and
  *               equipment at the session's join position; Esc returns to
  *               character select (mu_scenemgr_return_to_character)
@@ -31,7 +31,7 @@
  * (mu_scenemgr_frame_music: login theme in scenes 3 and 5).
  *
  * The shell does no GL itself: the front end (client/main.c) draws the 3D
- * view the shell names (character select or world) with the embed's GL or
+ * view the shell names (character select or world) with the embed's or the world runtime's GL or
  * software renderer, then hands the frame to mu_shell_overlay for the 2D
  * layer. The title and loading scenes block inside the dispatcher like the
  * client's and show their frames through platform.present.
@@ -45,7 +45,7 @@
 #include "../charsel/charsel_embed.h"
 #include "../core/mu_login.h"
 #include "../core/mu_ui_raster.h"
-#include "../world/world_embed.h"
+#include "../world/mu_world_rt.h"
 #include "offline-session.h"
 
 typedef struct mu_shell mu_shell;
@@ -59,7 +59,7 @@ typedef struct mu_shell_platform {
     void (*present)(void *user, const uint8_t *rgba);
     /* millisecond clock (GetTickCount) */
     uint32_t (*ticks)(void *user);
-    /* an embed opened (GL front ends upload its textures) / is about to close */
+    /* an embed or the world runtime opened (GL front ends upload its textures) / is about to close */
     void (*embed_opened)(void *user, int kind, void *embed);
     void (*embed_closing)(void *user, int kind, void *embed);
     /* wait `ms` between the title's startup steps (window front ends), may be NULL */
@@ -92,18 +92,13 @@ typedef struct mu_shell_config {
     int32_t width, height;         /* drawable pixels */
     int audio;                     /* login music (mu_audio engine) */
     int32_t audio_rate;
-    const char *sound_table;       /* world sound (extracted locally), may be NULL */
-    const char *placement;         /* world demo actors, may be NULL */
-    /* NATIVE-APP-001: the offline label's first line (NULL: the default) and mu-world's features in scene 6 */
+    /* NATIVE-APP-001: the offline label's first line (NULL: the default) */
     const char *label;
-    int world_combat, world_items, world_npc;
-    int world_progress;            /* NATIVE-PROGRESS-001: --progress */
-    const char *npc_demo;          /* the NPC demo table (Lorencia, like the placement), may be NULL */
-    int world_no_names, world_no_env, world_no_particles;
-    const char *players;           /* NATIVE-PLAYERS-001: world demo players, may be NULL */
-    const char *helper;            /* NATIVE-HELPERS-001: the hero's helper (mu-world --helper, DEMO), may be NULL */
-    int32_t helper_state;          /* its ride state (-1: the name's) */
-    const char *world_objects;     /* local decoded world objects, may be NULL */
+    /* WORLD-RT-001: scene 6's world runtime options as the front end parsed them (mu_world_rt_default_options,
+     * then the world sound table, demo placement, NPC table and players, objects and mu-world's feature
+     * switches); open_world adds the join (world, class, tile, angle, equipment, name, level), the drawable
+     * size, the audio switch and quiet */
+    mu_world_rt_options world;
     const char *charsel_objects;   /* local decoded EncTerrain94.plain, may be NULL */
     const char *login_objects;     /* local decoded EncTerrain95.plain (login world), may be NULL */
     uint32_t title_step_ms;        /* platform.pause between the title's progress frames */
@@ -133,10 +128,10 @@ void mu_shell_char(mu_shell *s, int ch);                         /* typed charac
  * its host (title and loading render inside; the frame driver's logic for
  * scenes 3, 5 and 6). */
 void mu_shell_frame(mu_shell *s, uint32_t now);
-/* What the front end draws before the overlay, and the embed to draw. */
+/* What the front end draws before the overlay, and the embed or world runtime to draw. */
 int mu_shell_view(const mu_shell *s);
 mu_charsel_embed *mu_shell_charsel(mu_shell *s);
-mu_world_embed *mu_shell_world(mu_shell *s);
+mu_world_rt *mu_shell_world(mu_shell *s);
 mu_login_session *mu_shell_login(mu_shell *s);
 /* The 2D layer over the frame (top-down RGBA, width x height). */
 void mu_shell_overlay(mu_shell *s, uint8_t *rgba);

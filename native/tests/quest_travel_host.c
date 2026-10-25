@@ -1,14 +1,15 @@
-/* Request -> world reload -> delayed F6 answer -> remaining movement, on synthetic data. */
-#define main mu_world_test_cli_main
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#include "../world/main.c"
-#pragma GCC diagnostic pop
-#undef main
+/* Request -> world reload -> delayed F6 answer -> remaining movement, on synthetic data.  WORLD-RT-001: over the
+ * world runtime (world/mu_world_rt.h, its internals for the walk, the map session and the travel counters)
+ * instead of compiling world/main.c into this file. */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "../core/mu_quest.h"
+#include "../world/world_rt_internal.h"
 
 typedef struct context {
-    app *a;
+    mu_world_rt *a;
     int answers;
 } context;
 
@@ -37,13 +38,15 @@ int main(int argc, char **argv)
 {
     if (argc != 3 && argc != 4) return 2;
     const int fail = argc == 4;
-    app *a = calloc(1, sizeof *a);
+    mu_world_rt_options o;
+    memset(&o, 0, sizeof o);   /* the bare runtime: world 0, class 0, no sound, the map session on */
+    o.root = argv[1];
+    o.tile[0] = o.tile[1] = 80;
+    o.width = o.height = 64;
+    o.no_env = o.no_particles = o.no_helpers = o.no_names = o.no_players = o.quiet = 1;
+    char open_error[512];
+    mu_world_rt *a = mu_world_rt_open(&o, open_error, sizeof open_error);
     if (!a) return 2;
-    a->root = argv[1];
-    a->tile[0] = a->tile[1] = 80;
-    a->width = a->height = 64;
-    a->no_env = a->no_particles = a->no_helpers = a->no_names = a->no_players = a->quiet = 1;
-    if (load(a)) return 2;
     context c = {a, 0};
     mu_quest_host host = {.user = &c, .path_start = start_path};
     mu_quest_session q;
@@ -58,7 +61,7 @@ int main(int argc, char **argv)
     q.client.hero_x = q.client.hero_y = 80;
     mu_guide_go(&q.client);
     const int armed = q.stats.requests == 1 && q.travels == 1 && a->walk.auto_path.flag == 1;
-    advance(a, 0);
+    mu_world_rt_frame(a, 0);
     const int restored = fail ? a->world == 0 && a->walk.hero.tile[0] == 80 && a->walk.auto_path.flag == 0 :
                                a->world == 3 && a->walk.hero.tile[0] == 10 && a->walk.auto_path.flag == 1 &&
                                a->walk.auto_path.mode == 1 && a->walk.auto_path.target_x == 42 &&
@@ -67,12 +70,11 @@ int main(int argc, char **argv)
     for (int k = 0; k < 4; ++k) mu_quest_session_step(&q);
     const int resumed = fail ? c.answers == 0 && !a->walk.hero.movement :
                               c.answers == 1 && a->walk.auto_path.flag == 2 && a->walk.hero.movement;
-    for (uint32_t now = 40; now <= 30000; now += 40) advance(a, now);
+    for (uint32_t now = 40; now <= 30000; now += 40) mu_world_rt_frame(a, now);
     const int arrived = fail ? a->walk.hero.tile[0] == 80 && a->walk.hero.tile[1] == 80 :
                               a->walk.hero.tile[0] == 42 && a->walk.hero.tile[1] == 43 && !a->walk.hero.movement;
     printf("{\"armed\":%d,\"restored\":%d,\"resumed\":%d,\"arrived\":%d}\n", armed, restored, resumed, arrived);
     mu_quest_session_close(&q);
-    unload(a);
-    free(a);
+    mu_world_rt_close(a);
     return armed && restored && resumed && arrived ? 0 : 1;
 }

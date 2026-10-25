@@ -176,12 +176,34 @@ $(BUILD)/mu-effect: tools/mu_effect_tool.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_effect_tool.c -o $(BUILD)/mu_effect_tool.o
 	$(CXX) $(BUILD)/mu_effect_tool.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
+# ---- WORLD-RT-001: the world runtime (world/mu_world_rt.h) and its command line (world/world_tool.c) ----
+# world_rt.c, input.c and parts/*.c (one or two rows of world/parts.def each) are the one world runtime that
+# mu-world, mu-walk, mu-client, mu-shell and the test hosts link, built twice: without GL into build/world-rt
+# (mu-walk, mu-shell, hosts) and with GL and the GFx layer's headers into build/world-rt-gl (mu-world).
+# mu-client and mu-shell compile the same sources through CLIENT_SRC.
+WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts/hero.c world/parts/sound.c \
+                world/parts/npc.c world/parts/actors.c world/parts/objects.c world/parts/env.c \
+                world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
+                world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
+                world/parts/map.c world/parts/gfx.c world/parts/marker.c
+WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
+WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
+WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
+
+$(BUILD)/world-rt/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $@
+
+$(BUILD)/world-rt-gl/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) world/world_gfx.h gfx/mu_gfx_layer.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $< -o $@
+
 # Walk-around session, headless software build (NATIVE-WORLD-001).
 # NATIVE-WORLD-002 links the audio library (in-world sound, WAV output).
-$(BUILD)/mu-walk: world/main.c $(LIB) $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c world/main.c -o $(BUILD)/mu_walk.o
-	$(CXX) $(BUILD)/mu_walk.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
-	$(CXX) $(BUILD)/mu_walk.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(AUDIO_LIBS) $(UI_LIBS) -lm -o $@
+$(BUILD)/mu-walk: $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
+	$(CXX) $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) \
+	  $(AUDIO_LIBS) $(UI_LIBS) -lm -o $@
+# ---- end WORLD-RT-001 block ----
 
 # Click-to-move demonstrator (NATIVE-PATH-001).
 $(BUILD)/mu-path: tools/mu_path.c $(LIB)
@@ -198,9 +220,9 @@ $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o
 	$(CXX) $(BUILD)/helper_fx_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
-$(BUILD)/quest-travel-host: tests/quest_travel_host.c world/main.c $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/quest-travel-host: tests/quest_travel_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $(BUILD)/quest_travel_host.o
-	$(CXX) $(BUILD)/quest_travel_host.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # NATIVE-SKILL-001: the skill book (core/mu_skill) test host.
 $(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB)
@@ -330,15 +352,17 @@ $(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) tools/mu_audio_live.c $(BUILD)/libmuaudio.a \
 	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
 
-# Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.
-WORLD_SRC := world/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(GFX_SRC)
+# Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.  WORLD-RT-001: the runtime and world_tool.c come
+# from build/world-rt-gl; build/world/main.o of an earlier build (world/main.c) is removed first.
+WORLD_SRC := viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(GFX_SRC)
 
-$(BUILD)/mu-world: $(WORLD_SRC) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-world: $(WORLD_SRC) $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/world
+	@rm -f $(BUILD)/world/main.o
 	for f in $(WORLD_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/world/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	$(CXX) $(BUILD)/world/*.o $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
@@ -353,16 +377,17 @@ $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headles
 
 # ---- mu-client: the client's scene flow, offline (NATIVE-SHELL-001) ----
 # client/shell.c runs reconstructed/scene over the character-select and world
-# sessions, which world/world_embed.c and charsel/charsel_embed.c compile from
-# world/main.c and charsel/main.c unchanged. build/mu-shell is the headless
+# sessions: the world runtime (WORLD-RT-001, world/mu_world_rt.h) and
+# charsel/charsel_embed.c, which compiles charsel/main.c unchanged. build/mu-shell is the headless
 # software build (portable tests), build/mu-client the SDL2 + OpenGL window.
-CLIENT_SRC := client/main.c client/shell.c client/offline-session.c world/world_embed.c charsel/charsel_embed.c \
+CLIENT_SRC := client/main.c client/shell.c client/offline-session.c $(WORLD_RT_SRC) charsel/charsel_embed.c \
               charsel/charsel_list_gfx.c charsel/charsel_mugfx.c charsel/charsel_create_gfx.c
-CLIENT_HDR := gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h client/shell.h client/offline-session.h world/world_embed.h charsel/charsel_embed.h world/main.c charsel/main.c \
+CLIENT_HDR := gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h client/shell.h client/offline-session.h $(WORLD_RT_HDR) charsel/charsel_embed.h charsel/main.c \
               charsel/charsel_list_gfx.h charsel/charsel_mugfx.h charsel/charsel_create_gfx.h
 
 $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/shell
+	@rm -f $(BUILD)/shell/world_embed.o   # WORLD-RT-001: the textual embed of world/main.c is gone
 	for f in $(CLIENT_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
 	    -o $(BUILD)/shell/$$(basename $$f .c).o || exit 1; \
@@ -373,6 +398,7 @@ CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_ba
 
 $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h viewer/ui_gl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/client
+	@rm -f $(BUILD)/client/world_embed.o   # WORLD-RT-001: the textual embed of world/main.c is gone
 	for f in $(CLIENT_GL_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
 	    -o $(BUILD)/client/$$(basename $$f .c).o || exit 1; \

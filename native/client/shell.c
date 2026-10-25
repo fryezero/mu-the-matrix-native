@@ -93,7 +93,7 @@ struct mu_shell {
     uint32_t gfx_clock, last_click;
     int32_t last_click_x, last_click_y;
     int32_t enter_seen;
-    mu_world_embed *world;
+    mu_world_rt *world;             /* WORLD-RT-001: scene 6's world runtime */
     mu_login_session *login;        /* NATIVE-LOGIN-001: the 3D login world */
     int login_draw3d;               /* the login render's 3D block ran this frame */
     int join_answer;                /* the offline session answered a join request */
@@ -434,9 +434,9 @@ static void remember_world(mu_shell *s)
 {
     if (!s->world)
         return;
-    const mu_walk *w = mu_world_embed_walk(s->world);
+    const mu_walk *w = mu_world_rt_walk(s->world);
     s->g.world = w->world;
-    s->g.world_folder = mu_world_embed_folder(s->world);
+    s->g.world_folder = mu_world_rt_folder(s->world);
     /* The offline server keeps each character's last location across scene changes. */
     int32_t i = 0;
     while (i < s->session.join_count && s->session.joins[i].slot != s->hero_slot)
@@ -455,7 +455,7 @@ static void close_world(mu_shell *s)
         remember_world(s);
         if (s->platform.embed_closing)
             s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_WORLD, s->world);
-        mu_world_embed_close(s->world);
+        mu_world_rt_close(s->world);
         s->world = NULL;
     }
 }
@@ -677,8 +677,9 @@ static int open_world(mu_shell *s)
 {
     mu_offline_join join = mu_offline_session_join(&s->session, s->hero_slot);
     const mu_charsel_entry *entry = mu_offline_session_character(&s->session, s->hero_slot);
-    mu_world_embed_config c;
-    memset(&c, 0, sizeof c);
+    /* WORLD-RT-001: the front end's world options (NATIVE-APP-001's features, the demo files, the sound table,
+     * the objects) with the join: the demo files belong to Lorencia (demo_world 0) */
+    mu_world_rt_options c = s->cfg.world;
     c.root = s->cfg.root;
     c.world = join.world;
     c.class_byte = s->hero_class;
@@ -687,38 +688,25 @@ static int open_world(mu_shell *s)
     c.angle = join.angle;
     c.width = s->cfg.width;
     c.height = s->cfg.height;
-    c.sound_table = s->cfg.sound_table;
-    c.audio = s->cfg.audio && s->cfg.sound_table;
+    c.audio = s->cfg.audio && c.sound_table;
     c.audio_rate = s->cfg.audio_rate;
-    c.placement = s->cfg.placement;
     c.demo_world = 0;
-    c.combat = s->cfg.world_combat;   /* NATIVE-APP-001 */
-    c.ground_items = s->cfg.world_items;
-    c.npc = s->cfg.world_npc;
-    c.npc_demo = s->cfg.npc_demo;
-    c.no_names = s->cfg.world_no_names;
-    c.no_env = s->cfg.world_no_env;
-    c.no_particles = s->cfg.world_no_particles;
-    c.players = s->cfg.players;   /* NATIVE-PLAYERS-001: Lorencia's demo players */
-    c.helper = s->cfg.helper;   /* NATIVE-HELPERS-001 */
-    c.helper_state = s->cfg.helper_state;
-    c.objects_dir = s->cfg.world_objects;
     c.quiet = s->cfg.quiet;
     c.hero_name = entry && entry->name[0] ? entry->name : NULL;
-    c.progress = s->cfg.world_progress;   /* NATIVE-PROGRESS-001 */
-    c.level = entry ? entry->level : 0;
-    for (int i = 0; entry && i < MU_CHARACTER_ITEMS; ++i)
-        c.items[i] = entry->items[i];
+    c.level = entry ? entry->level : 0;   /* NATIVE-PROGRESS-001 */
+    c.has_items = 1;
+    for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
+        c.items[i] = entry ? entry->items[i] : NULL;
     char error[512];
-    s->world = mu_world_embed_open(&c, error, sizeof error);
+    s->world = mu_world_rt_open(&c, error, sizeof error);
     if (!s->world) {
         snprintf(s->status, sizeof s->status, "world %d: %s", join.world, error);
         fprintf(stderr, "%s\n", s->status);
         return 1;
     }
-    mu_world_embed_set_clock(s->world, s->now);
+    mu_world_rt_set_clock(s->world, s->now);
     s->g.world = join.world;
-    s->g.world_folder = mu_world_embed_folder(s->world);
+    s->g.world_folder = mu_world_rt_folder(s->world);
     if (s->platform.embed_opened)
         s->platform.embed_opened(s->platform.user, MU_SHELL_EMBED_WORLD, s->world);
     return 0;
@@ -1125,10 +1113,12 @@ static void world_frame(mu_shell *s, uint32_t now)
             log_transition(s, "Esc: back to character select");
             return;
         }
-        mu_world_embed_key(s->world, vk, down);
-        mu_world_embed_message(s->world, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
+        mu_world_rt_key(s->world, vk, down);
+        mu_world_rt_message(s->world, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
+        if (down)   /* WORLD-RT-001: the world's own keys (Alt, Space, 1..0), as in mu-world's window */
+            mu_world_rt_hotkey(s->world, vk);
     }
-    mu_world_embed_advance(s->world, now);
+    mu_world_rt_frame(s->world, now);
     remember_world(s);
 }
 
@@ -1240,7 +1230,7 @@ void mu_shell_mouse_move(mu_shell *s, int32_t x, int32_t y)
     if (s->g.scene == MU_SCENE_CHARACTER && s->charsel_gfx)
         mu_charsel_list_gfx_mouse(s->charsel_gfx, 0, 0, x, y);
     if (s->g.scene == MU_SCENE_MAIN && s->world)
-        mu_world_embed_message(s->world, MU_WM_MOUSEMOVE, s->button_held ? 1u : 0u,
+        mu_world_rt_message(s->world, MU_WM_MOUSEMOVE, s->button_held ? 1u : 0u,
                                ((uint32_t)(uint16_t)y << 16) | (uint16_t)x);
 }
 
@@ -1276,18 +1266,20 @@ void mu_shell_mouse_button(mu_shell *s, int button, int down)
             s->button_held = 0;
         }
     }
-    if (s->g.scene == MU_SCENE_MAIN && s->world) {
+    /* WORLD-RT-001: a right press over a monster casts the skill bar's selection (mu-world's window), else the
+     * button's window message */
+    if (s->g.scene == MU_SCENE_MAIN && s->world && !(button == 1 && down && mu_world_rt_right_button(s->world))) {
         uint32_t message = button == 0 ? (down ? 0x201u : 0x202u) : button == 1 ? (down ? 0x204u : 0x205u)
                                                                                : (down ? 0x207u : 0x208u);
-        mu_world_embed_message(s->world, message, down && button == 0 ? 1u : 0u,
-                               ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x);
+        mu_world_rt_message(s->world, message, down && button == 0 ? 1u : 0u,
+                            ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x);
     }
 }
 
 void mu_shell_wheel(mu_shell *s, int32_t delta)
 {
     if (s->g.scene == MU_SCENE_MAIN && s->world)
-        mu_world_embed_message(s->world, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)(delta * 120) << 16, 0);
+        mu_world_rt_message(s->world, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)(delta * 120) << 16, 0);
 }
 
 void mu_shell_key(mu_shell *s, int vk, int down)
@@ -1430,7 +1422,7 @@ mu_charsel_embed *mu_shell_charsel(mu_shell *s)
     return s->charsel;
 }
 
-mu_world_embed *mu_shell_world(mu_shell *s)
+mu_world_rt *mu_shell_world(mu_shell *s)
 {
     return s->world;
 }
@@ -1584,7 +1576,7 @@ void mu_shell_resize(mu_shell *s, int32_t w, int32_t h)
     if (s->login)
         mu_login_resize(s->login, (uint32_t)w, (uint32_t)h);
     if (s->world)
-        mu_world_embed_resize(s->world, w, h);
+        mu_world_rt_resize(s->world, w, h);
     if (s->charsel) {
         mu_charsel_embed_resize(s->charsel, w, h);
         if (s->charsel_gfx)
@@ -1679,7 +1671,7 @@ int32_t mu_shell_end_frame(mu_shell *s, uint32_t now)
     if (s->g.scene == MU_SCENE_CHARACTER && s->charsel)
         sleep = mu_charsel_end_render(mu_charsel_embed_session(s->charsel));
     else if (s->g.scene == MU_SCENE_MAIN && s->world)
-        sleep = mu_world_embed_end_frame(s->world);
+        sleep = mu_world_rt_end_frame(s->world);
     else {
         uint32_t elapsed = now - s->frame_start;
         sleep = elapsed < 40 ? (int32_t)(40 - elapsed) : 0;   /* Sleep(40 - elapsed), 0x0185267a */
@@ -1700,12 +1692,12 @@ void mu_shell_mix(mu_shell *s, float *out, uint32_t frames)
     memset(out, 0, (size_t)frames * 2 * sizeof *out);
     if (s->audio)
         mu_audio_engine_mix(mu_audio_host_engine(s->audio), out, frames);
-    if (s->g.scene == MU_SCENE_MAIN && s->world && mu_world_embed_has_sound(s->world) &&
-        mu_world_embed_sound_rate(s->world) == mu_shell_audio_rate(s)) {
+    if (s->g.scene == MU_SCENE_MAIN && s->world && mu_world_rt_has_sound(s->world) &&
+        mu_world_rt_sound_rate(s->world) == mu_shell_audio_rate(s)) {
         static float world[2 * 4096];
         for (uint32_t done = 0; done < frames;) {
             uint32_t n = frames - done > 4096 ? 4096 : frames - done;
-            mu_world_embed_mix(s->world, world, n);
+            mu_world_rt_mix(s->world, world, n);
             for (uint32_t i = 0; i < 2 * n; ++i)
                 out[2 * done + i] += world[i];
             done += n;
