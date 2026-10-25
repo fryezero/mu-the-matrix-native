@@ -140,11 +140,23 @@ tests) identifies the 17 ciphers it can instantiate:
 | 9·6 | SAFER-K | 16 | 8 |
 | 9·7 | SAFER-SK | 16 | 8 |
 
-(Index 9's sub-cipher is `key[0] & 7`.) This is recorded for completeness; the
-keyed block-cipher selection is a large, library-specific keyschedule and is
-**not** reimplemented in the native module. A native client would reproduce it by
-driving the same primitives (Crypto++ is already a repository dependency), which
-is left as the next step.
+(Index 9's sub-cipher is `key[0] & 7`.)
+
+**Reconstructed (NET-CRYPTO-001).** The CryptoModule is now reimplemented over
+Crypto++ and verified against the client's own instructions; see
+[client-crypto.md](client-crypto.md). That finding has the context record
+(`0x98` bytes: channel, the two packet counters starting at 1, the `0x63`-filled
+128-byte state, the cipher holder), the `SetKey` hash selection (selector byte →
+`% 11` → the 10-entry table `0x018eaf30`: MD5 default, SHA-256/384/512,
+MD4, RIPEMD-128/160/256/320), the per-case key length and rekey interval (8,
+`0x20` or `0x800`), the ECB encrypt/decrypt with the trailing pad-count byte, and
+the per-direction counter that rekeys from the state table every interval.
+Inside `main.exe` all key material is internal (the seed string, then the state
+table). Whether code outside the image re-keys a channel is unresolved and blocked
+by the protection boundary: the hooked call sites and the uncalled SetKeyChannel
+are listed there. The native module is `native/net/mu_crypto.h` +
+`native/net/crypto.cpp` (`libmucrypto`); the comparison is
+`scripts/validate_crypto.py`.
 
 ## Receive dispatcher (static)
 
