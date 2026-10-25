@@ -165,7 +165,7 @@ Behaviour (observed in `mu-gfx-window` and mu-world; layer choices marked):
 **mu-world.** `mu-world --gfx DIR [--gfx-open inventory,character]` (`native/world/world_gfx.c`) opens the
 layer after the 3D pass, in the window and headless GL. It feeds SDL input to the layer first and uses the
 game root for Item.bmd sizes/names and the tooltip tables. mu-world's functions are unchanged, and mu-client
-links the layer because `world_embed.c` compiles `world/main.c`. Headless run: 60 frames with the HUD,
+links the layer because `world_embed.c` compiles `world/main.c` (since WORLD-RT-001 the world is the runtime module `world/mu_world_rt.h` and `world_embed.c` is gone). Headless run: 60 frames with the HUD,
 inventory and character window, 12 renders, 35 callbacks, 169 invokes.
 
 ## Verification

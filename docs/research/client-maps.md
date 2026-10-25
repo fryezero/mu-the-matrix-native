@@ -98,7 +98,7 @@ the target gate's rectangle (Noria 172,114 in gate 27; Lorencia 137,127 in gate 
   (the zen cost taken), the overlay's units are the world's entrance gates named "<map> Entrance" (demo text).
 - **Travel API** (for NATIVE-QUEST-002's "Go Now" and scripts): `mu_map_travel_to(session, world, x, y)`,
   `mu_map_travel_move(session, key)`, and `mu_map_take_teleport` which mu-world polls every frame.
-- `native/world/main.c` (mu-world, mu-walk, mu-client through `world_embed.c`): the gate test each logic step; a
+- `native/world/main.c` (mu-world, mu-walk, mu-client through `world_embed.c`; since WORLD-RT-001 `world/world_rt.c` and `world/parts/`): the gate test each logic step; a
   teleport to another world unloads and reloads with the existing loader (`load()`), keeps the clock, applies the
   character's equipment again, keeps the start world's demo files there only, and prints the notice.
   `--travel-script "F:move:KEY F:to:WORLD:X:Y F:rows F:sort:N F:click:ROW F:tab F:mwin F:mclick:ROW"`, `--no-map`.

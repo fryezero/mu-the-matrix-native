@@ -1,5 +1,31 @@
 # Continue from here
 
+## Stage 1 merged (2026-10-25)
+
+**Merged.** PRs #160-#165 are on main. Each passed `make test` on its merged tree; the last ran 1,283 tests. Each
+lane's note is in `docs/handoffs/`:
+- `NET-CRYPTO-001.md`
+- `NET-LINK-001.md`
+- `SESSION-CORE-001.md`
+- `FIXTURE-001.md`
+- `WORLD-RT-001.md`
+- `VERIFY-HARNESS-001.md`
+
+**Integration fix.** `validate_crypto.py` now takes its pins from `scripts/pins.py` and has a manifest row; it
+passed through the runner (568 cases at `--scale 2`, 14/14).
+
+**Paused.**
+- NET-DISPATCH-001: the agent was stopped by a safety check while writing `scripts/gen_dispatch.py`, so nothing was
+  committed; the owner decides how it continues.
+- Until then the session routes come from `native/net/dispatch.seed.def`.
+
+**Next (stage 2).**
+- NET-DECODE-001: the receive stage `0x012220fd` and the send wrap, over `libmucrypto`; this unblocks the
+  encrypted `0x16` report and C3 fixtures.
+- Feed `mu-walk --progress` through the session, now that WORLD-RT-001 is merged.
+- CHARSEL-RT-001, INPUT-001, LAYOUT-001.
+- `test_charcreate` to 300 cases.
+
 ## Port completion design (ARCH-PORT-001, 2026-10-24)
 
 **Decision and process**
