@@ -1,0 +1,14 @@
+# FIXTURE-001 (sketch): a synthetic scenario. Authored, committed, no game data.
+# Lines: endpoint, use BEHAVIOR args..., at TICK send ..., expect ...
+endpoint connect 127.0.0.1:44405            # the session's configured connect server in this run
+endpoint game    127.0.0.1:55901            # announced by the account behavior's F4 03
+use account servers=demo-servers.txt characters=demo-characters.txt create_limit=5
+use progress exp_rate=1 latency=2
+use players file=lorencia-demo-players.txt
+use ground drops=on
+use combat monster_hp=60 damage=8..14 latency=2 counter=on
+use npc table=lorencia-demo-npc.txt
+use map town=0:133,127
+join slot=0 world=0 tile=133,127 angle=0
+expect unhandled=0                           # every frame sent had a dispatcher row
+expect unrecovered<=3                        # WALK, ATTACK, KEEPALIVE bodies until SESSION-COMBAT-001 / NET-ACCOUNT-001

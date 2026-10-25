@@ -1,0 +1,4 @@
+/* ops/npc.ops (sketch) */
+MU_OP(0xDF, MU_SUB_NONE, npc_talk_result)         /* mu_npc_talk_result -> MU_CUE_WINDOW cues */
+MU_SUBMIT(MU_INTENT_TALK, npc_talk)                            /* C1 0x95 after MoveHero's local refusals */
+MU_SUBMIT(MU_INTENT_CLOSE_TALK, npc_close)

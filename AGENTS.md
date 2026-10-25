@@ -16,7 +16,7 @@ The owner authorizes merging reviewed changes into `main` once their relevant ch
 - Record arithmetic, x87 precision, cofactors or inverse aliasing: `docs/research/record-math.md` and `reconstructed/record-math/README.md`.
 - Image or effect formats: `docs/asset-recovery.md`.
 - BMD geometry or encryption: `docs/model-recovery.md` and `model-recovery/SOURCES.md`.
-- New module/platform boundaries: `docs/architecture.md`.
+- New module/platform boundaries: `docs/architecture.md`; the completion architecture and milestone plan: `docs/design/native-port/`.
 - Uploads, evidence, and licensing scope: `docs/evidence-policy.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Evidence and implementation rules

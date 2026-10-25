@@ -1,0 +1,36 @@
+/* WORLD-RT-001 (sketch): the world's parts, one row each. THE list.
+ *
+ *   MU_PART(id, ops_symbol, tick_order, draw_order)
+ *
+ * tick_order reproduces on_step (main.c:758-826), which copies the client's
+ * MoveCharacters/MoveHero order; draw_order reproduces draw_gl/draw_soft. test_world_parts.py
+ * pins both orders against the documented client order so a reordering is a visible diff.
+ * Each part's file lives in native/world/parts/<id>.c and reads the session; the demo server
+ * it used to step moved to native/fixture/behaviors/. Order 0 = the part has no such hook.
+ *
+ * Session-owned handler state that the client advances per tick (the quest client's timers and
+ * guide throttle today; event countdowns later) is stepped by the session itself, called from
+ * the part row that holds its place in the client's order (quest_step below), so the order is
+ * kept and only session code writes session state.
+ */
+/*      id          ops                 tick  draw   reads (session)               replaces                         */
+MU_PART(sound,      mu_part_sound,       10,   0)   /* hero motion, cues SOUND         world_sound in on_step        */
+MU_PART(characters, mu_part_characters,  20,   0)   /* tick only: MoveCharacters over the whole CharactersClient
+                                                       * table in index order, hero skipped (mu_rp_move_step), as the
+                                                       * client's single loop; replaces the separate actor and player
+                                                       * steps at 20 and 70 (a fidelity change: test pins it) */
+MU_PART(actors,     mu_part_actors,       0,  40)   /* frame/draw: viewport monsters/NPCs  mu_world_actors demo wander */
+MU_PART(npc,        mu_part_npc,         30,   0)   /* viewport, cues WINDOW           mu_npc + mu_npc_demo          */
+MU_PART(quest_step, mu_part_quest_step,  40,   0)   /* tick only: mu_session_step(s, MU_DOMAIN_QUESTS)  world_gfx_quest_step (GL only) */
+MU_PART(combat,     mu_part_combat,      50,  60)   /* viewport, cues DAMAGE/EFFECT    mu_combat demo server         */
+MU_PART(progress,   mu_part_progress,    60,  70)   /* hero, cues LEVEL_UP/EFFECT      mu_progress demo queue        */
+MU_PART(players,    mu_part_players,      0,  50)   /* frame/draw: viewport players    mu_world_players file feed    */
+MU_PART(social,     mu_part_social,      80,   0)   /* party/trade/friends/messages    mu_social local echo          */
+MU_PART(helpers,    mu_part_helpers,     90,  55)   /* viewport equipment (pets)       --helper demo                 */
+MU_PART(items,      mu_part_items,      100,  80)   /* ground (Items[])                mu_items direct mu_gi_create  */
+MU_PART(names,      mu_part_names,      110, 800)   /* viewport, cues CHAT             mu_world_names                */
+MU_PART(objects,    mu_part_objects,    120,  20)   /* place                           (unchanged: not replicated)   */
+MU_PART(env,        mu_part_env,        130,  30)   /* place                           (unchanged)                   */
+MU_PART(particles,  mu_part_particles,  140,  90)   /* cues EFFECT                     (unchanged)                   */
+MU_PART(map,        mu_part_map,        150, 850)   /* map, cues                       mu_map demo + gate step       */
+MU_PART(gfx,        mu_part_gfx,          0, 900)   /* frame/draw/input only: every domain, all cues   world_gfx opened by client/main.c */

@@ -261,7 +261,7 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Audio: music, ambient, footsteps, effects | Done |
 | Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done |
 | Network: protocol framing | Partly (packet build/parse tools) |
-| Live login and encrypted session, end-to-end gameplay against the real servers | Not started (out of scope for now) |
+| Live login and encrypted session, end-to-end gameplay against the real servers | Not started; designed ([plan](docs/design/native-port/plan.md)) |
 
 Every case count is a comparison of the authored C against the client's own instructions in Unicorn, with planted
 mistakes to prove the check can fail. The full per-milestone record is in [docs/status.md](docs/status.md) and
@@ -270,8 +270,9 @@ mistakes to prove the check can fail. The full per-milestone record is in [docs/
 ### What is still missing
 
 - **Online play.** The client runs offline only. A local demo server answers warps, mixes, trades, quest rewards,
-  level-ups and mail; its answers are labelled demo values, not the real server's rules. The login, the encrypted
-  session and the live protocol are out of scope for now.
+  level-ups and mail; its answers are labelled demo values, not the real server's rules. Logging in to the live
+  service is the decided end state; the session core, the encrypted protocol and the operator contract it needs
+  are planned in [docs/design/native-port](docs/design/native-port/README.md).
 - **Skills.** The 4th and 5th skill trees are being worked on; their windows open but stay empty. Formula data and
   the server's equipment, buff and event feeds are not wired yet.
 - **World details.** Icarus's cloud layer and dragons, the brazier and torch flames themselves, Tarkan and Raklion's
@@ -366,8 +367,9 @@ tests/             Repository-level tests (publication boundary, static maps, pr
   screenshots and renders made for documentation, reviewed and hash-pinned. You need your own installed client
   to build anything that shows the game.
 - **Out of scope.** The client's protection and licensing modules (the packer, IGC.dll, RGS.dll, "Hash
-  Protection") are treated as opaque and are not analysed. The network encryption and login packets are not
-  worked on; the native client runs offline against local demo answers and blocks outside connections.
+  Protection") are treated as opaque and are not analysed. Current native builds run offline against local
+  demo answers and block outside connections. The live login is the planned end state and goes through an operator
+  contract, never through the launcher's or IGC's protected handshake.
 - **Ownership.** Mu The Matrix, its client, assets and servers belong to their owners; this project is done with
   the server owner's authorization. The MIT license ([LICENSE](LICENSE)) covers this project's own code and
   documentation only, not the game, its assets or anything derived from them. Third-party components (SDL2,

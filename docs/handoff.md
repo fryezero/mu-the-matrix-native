@@ -1,5 +1,42 @@
 # Continue from here
 
+## Port completion design (ARCH-PORT-001, 2026-10-24)
+
+**Decision and process**
+- The owner decided that the finished native client logs in to the **real live servers**.
+- Branch `claude/architect-native-port` adds the design that follows from that decision, in `docs/design/native-port/`:
+  `rationale.md`, `plan.md` and `sketch/`, with `MODULES.md` and about 60 type and signature sketches at their
+  future repository paths.
+- It was made with pstack `architect`:
+  - four read-only explorers covering runtime composition, network and demo servers, coverage gaps, and
+    verification;
+  - one explainer, with the "why" constraints;
+  - three structurally different candidates: a session core, a re-hosted original image, and a trace contract;
+  - an independent cross-judge, which scored them 29/27/13 and picked the same base;
+  - a synthesis on the session core.
+- The grafts and rejections are recorded in `rationale.md`, under "Synthesis decision".
+
+**What changed outside the design directory.** The decision is recorded in `docs/roadmap.md` (end state and
+"Completing the native port"), the `README.md` scope lines and an `AGENTS.md` pointer. No code or test changed.
+
+**Checks.**
+- `scripts/audit_repository.py` and `make test`; see the PR for the results.
+- The sketches are not compiled.
+
+**Next step.**
+- Start the stage-1 lanes, which need no owner or operator answer: NET-DISPATCH-001 (`gen_dispatch.py` →
+  `native/net/dispatch.def` plus `validate_dispatch.py`), NET-CRYPTO-001, NET-LINK-001 → SESSION-CORE-001 (the hero
+  domain over a loopback fixture; plaintext `0x16` must produce `C1 4D 02 00 16`), WORLD-RT-001, CHARSEL-RT-001 and
+  VERIFY-HARNESS-001.
+- Each lane owns the paths listed in `plan.md`, under "Parallel lanes".
+- Ask the owner and the operator now:
+  - NET-CONTRACT-001: what a login needs beyond the account, whether a native client is allowed, heartbeats, and
+    permission to record the owner's own traffic;
+  - the live-test rules in POLICY-LIVE-001;
+  - whether DATA-ACQ-001 (operator plaintext) or DATA-ACQ-002 (guided capture) is the Native Data path for other
+    users;
+  - an Apple Developer account for APP-DIST-001.
+
 ## Verification skills (VERIFY-SKILLS-001, 2026-10-24)
 
 Two project-local agent skills were generated with pstack on branch `claude/pstack-verify-skills`:

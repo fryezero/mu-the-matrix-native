@@ -1,5 +1,22 @@
 # Current status
 
+## Port completion design, 2026-10-24
+
+The owner set the end state: the native client logs in to the live Mu The Matrix service; demo servers become test
+fixtures. [docs/design/native-port](design/native-port/README.md) holds the architecture and every remaining
+milestone. In brief:
+
+- **Session core.** A server-authoritative session owns all replicated game state in the record types the verified
+  handlers already write.
+- **Routing from the binary.** One dispatcher, whose routing is generated from the client's own jump table into a
+  checked-in table.
+- **Layout manifest.** One table of client record fields feeds the native code, the live readers and the validators.
+- **World runtime.** A real module replaces the `#include main.c` embeds.
+- **Fixtures.** The demo servers become wire-level fixtures.
+- **Replay oracle.** It re-runs every received frame through the original dispatcher.
+
+No code changed. The sketches are design files only, under `docs/design/native-port/sketch/`.
+
 ## README refresh, 2026-10-22
 
 The README now covers the milestones merged since the split (maps and travel, skills 2, pets and mounts 2, quests 2,
