@@ -62,9 +62,11 @@ Plan row: `docs/design/native-port/plan.md` section B. Contract: `docs/design/na
   `CORE_SRC` change: **10/10 harnesses PASS** - the 9 existing `mu_protocol.c` harnesses unchanged
   (frame_parse 0 of 566, recv_drain 0 of 545, recv_push 0 of 470, packet_begin 0 of 460, packet_build
   0 of 471, packet_add 0 of 475, xor_inverse 0 of 443, xor_window 0 of 474, xor_upper 0 of 455 failed)
-  plus the new `link_pull` (0 of 1091 failed, 37 s). `run.sh --mutants`: **13/13 planted mistakes caught**
-  (the 11 existing ones in 18 harness runs as before, plus `pull-no-guard` and `pull-room-plus-one` on
-  `conn.c`, both caught by `link_pull`). The final rerun on the committed tree is in the PR description.
+  plus the new `link_pull` (0 of 1098 failed, 29 s; final run on the committed tree). `run.sh --mutants`:
+  **13/13 planted mistakes caught** in 18 harness runs (the 11 existing ones as before, plus `pull-no-guard`
+  and `pull-room-plus-one` on `conn.c`, both caught by `link_pull`). A first mutant run had a `|` inside a
+  sed program, which the table's field separator split; the runner now refuses a sed program that does not
+  parse instead of passing silently, and the pattern was rewritten without `|`.
 - `make test` and `scripts/audit_repository.py`: see the PR description (run once on the whole branch).
 
 ## Artifacts
