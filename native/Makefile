@@ -401,7 +401,7 @@ $(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
 # ---- SESSION-CORE-001: the session core and its domains (native/session) ----
 # scripts/gen_domains.py generates the domain, route, intent and behaviour lists into build/gen and
 # fails the build on a broken rule (a duplicate route binding, an unrouted intent kind, ...). Two
-# variants of the objects: dev (MU_SESSION_SEED and MU_SESSION_AUDIT) for
+# variants of the objects: dev (MU_SESSION_SEED and MU_SESSION_AUDIT, fixture included) for
 # mu-session and the tests, and product (neither, no fixture), whose library must carry no seed or
 # fixture symbol (native/tests/test_session_core.py).
 PYTHON ?= python3
@@ -411,9 +411,10 @@ GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard
               $(wildcard net/dispatch.def net/dispatch.seed.def net/ignore.def) $(wildcard fixture/behaviors/*.c)
 SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
                $(wildcard session/domains/*.c)
+FIXTURE_SRC := fixture/fixture.c $(wildcard fixture/behaviors/*.c)
 SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
-SESSION_DEV_OBJ := $(patsubst %.c,$(BUILD)/sdev/%.o,$(NET_SRC) $(SESSION_SRC))
+SESSION_DEV_OBJ := $(patsubst %.c,$(BUILD)/sdev/%.o,$(NET_SRC) $(SESSION_SRC) $(FIXTURE_SRC))
 SESSION_PROD_OBJ := $(patsubst %.c,$(BUILD)/sprod/%.o,$(NET_SRC) $(SESSION_SRC))
 
 all: $(BUILD)/libmusession.a $(BUILD)/libmusession_product.a
@@ -438,6 +439,13 @@ $(BUILD)/libmusession.a: $(SESSION_DEV_OBJ)
 $(BUILD)/libmusession_product.a: $(SESSION_PROD_OBJ)
 	rm -f $@
 	ar rcs $@ $^
+
+# ---- FIXTURE-001: the fixture server (native/fixture) and the session CLI (native/tools/mu_session.c) ----
+all: $(BUILD)/mu-session
+
+$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -c tools/mu_session.c -o $(BUILD)/mu_session.o
+	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) -lm -o $@
 
 clean:
 	rm -rf $(BUILD)
