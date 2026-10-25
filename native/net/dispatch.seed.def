@@ -1,0 +1,36 @@
+/* native/net/dispatch.seed.def: the seed route table (SESSION-CORE-001).
+ *
+ * The MU_STATIC rows of docs/design/native-port/sketch/native/net/dispatch.def: client handler
+ * addresses read from the disassembly in the existing findings (client-progression.md, ...), not
+ * yet verified against the jump table 0x0128e59d behind 0x01287ead. The wire-research lane's
+ * scripts/gen_dispatch.py writes the real, Unicorn-verified native/net/dispatch.def; whenever that
+ * file exists, scripts/gen_domains.py uses it and ignores this seed, so neither lane edits the
+ * other's file. Rows tagged MU_UNKNOWN in the sketch (route expected, address not recovered) are
+ * left out: a route with no address cannot be bound, and an unrouted frame is journaled as unbound
+ * either way.
+ *
+ *   MU_FAMILY(opcode, c1_at, c2_at, client_subdispatcher)   sub byte offset per head family
+ *   MU_ROUTE(opcode, sub, client_handler, evidence)          one case the original reaches
+ *
+ * Families are listed only for opcodes that have a seeded route.
+ */
+MU_FAMILY(0xF4, MU_AT_UNKNOWN, 4, 0x012883f0u)   /* sub-dispatch by packet[4] of a C2 head (static); C1 offset unknown */
+MU_FAMILY(0xA0, 3, 4, 0x0128805cu)               /* reconstructed/skill/skill_list.h:7-8 (static) */
+MU_FAMILY(0x55, 3, 4, MU_ADDR_UNVERIFIED)        /* sub at [3] / [4] (reconstructed/progress: 0x55 57, 0x55 94) */
+
+MU_ROUTE(0xF4, 0x03, 0x0127ea69u, MU_STATIC)
+MU_ROUTE(0xF4, 0x06, 0x0127ec2fu, MU_STATIC)
+MU_ROUTE(0x20, MU_SUB_NONE, 0x0122c216u, MU_STATIC)
+MU_ROUTE(0x16, MU_SUB_NONE, 0x01234c08u, MU_STATIC)
+MU_ROUTE(0xA0, 0x06, 0x01250b05u, MU_STATIC)
+MU_ROUTE(0xA0, 0x11, 0x01223f04u, MU_STATIC)
+MU_ROUTE(0xA0, 0x22, 0x01285b68u, MU_STATIC)
+MU_ROUTE(0xA0, 0x30, 0x0127bd9eu, MU_STATIC)
+MU_ROUTE(0xA0, 0x60, 0x01285efau, MU_STATIC)
+MU_ROUTE(0x55, 0x57, 0x0122a5f6u, MU_STATIC)
+MU_ROUTE(0x55, 0x94, 0x0122a13du, MU_STATIC)
+MU_ROUTE(0x1C, MU_SUB_NONE, 0x0128136du, MU_STATIC)
+MU_ROUTE(0xDF, MU_SUB_NONE, 0x01280659u, MU_STATIC)
+MU_ROUTE(0x12, MU_SUB_NONE, 0x0122d413u, MU_STATIC)
+MU_ROUTE(0x3d, MU_SUB_NONE, 0x0126568eu, MU_STATIC)
+MU_ROUTE(0x14, MU_SUB_NONE, 0x01232986u, MU_STATIC)

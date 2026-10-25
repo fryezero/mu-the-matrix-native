@@ -398,6 +398,47 @@ $(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared $(NET_SRC) core/mu_protocol.c -o $@
 
+# ---- SESSION-CORE-001: the session core and its domains (native/session) ----
+# scripts/gen_domains.py generates the domain, route, intent and behaviour lists into build/gen and
+# fails the build on a broken rule (a duplicate route binding, an unrouted intent kind, ...). Two
+# variants of the objects: dev (MU_SESSION_SEED and MU_SESSION_AUDIT) for
+# mu-session and the tests, and product (neither, no fixture), whose library must carry no seed or
+# fixture symbol (native/tests/test_session_core.py).
+PYTHON ?= python3
+GEN := $(BUILD)/gen
+GEN_STAMP := $(GEN)/.stamp
+GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard session/ops/*.ops) \
+              $(wildcard net/dispatch.def net/dispatch.seed.def net/ignore.def) $(wildcard fixture/behaviors/*.c)
+SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
+               $(wildcard session/domains/*.c)
+SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h
+SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
+SESSION_DEV_OBJ := $(patsubst %.c,$(BUILD)/sdev/%.o,$(NET_SRC) $(SESSION_SRC))
+SESSION_PROD_OBJ := $(patsubst %.c,$(BUILD)/sprod/%.o,$(NET_SRC) $(SESSION_SRC))
+
+all: $(BUILD)/libmusession.a $(BUILD)/libmusession_product.a
+
+$(GEN_STAMP): $(GEN_INPUTS)
+	@mkdir -p $(GEN)
+	$(PYTHON) ../scripts/gen_domains.py --out $(GEN)
+	@touch $@
+
+$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -c $< -o $@
+
+$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -c $< -o $@
+
+$(BUILD)/libmusession.a: $(SESSION_DEV_OBJ)
+	rm -f $@
+	ar rcs $@ $^
+
+$(BUILD)/libmusession_product.a: $(SESSION_PROD_OBJ)
+	rm -f $@
+	ar rcs $@ $^
+
 clean:
 	rm -rf $(BUILD)
 

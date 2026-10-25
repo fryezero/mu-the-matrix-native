@@ -1,0 +1,13 @@
+/* ops/hero.ops: experience, levels, stats, respawn (reconstructed/progress, verified in Unicorn). */
+
+MU_OP(0x16, MU_SUB_NONE, hero_kill_exp)          /* 0x01234c08; refuses encrypted == 0 with C1 4D 02 00 16, Send(1, 0) */
+MU_OP(0xA0, 0x06, hero_levelup)                   /* 0x01250b05 */
+MU_OP(0xA0, 0x11, hero_point)                     /* 0x01223f04 */
+MU_OP(0xA0, 0x22, hero_master_levelup)            /* 0x01285b68 */
+MU_OP(0xA0, 0x30, hero_respawn)                   /* 0x0127bd9e (attribute part); may be MU_APPLY_WORLD_CHANGE */
+MU_OP(0xA0, 0x60, hero_master_exp)                /* 0x01285efa */
+MU_OP(0x55, 0x57, hero_stats)                     /* 0x0122a5f6 -> 0x00b3ee5e */
+MU_OP(0x55, 0x94, hero_speed)                     /* 0x0122a13d */
+
+MU_SUBMIT(MU_INTENT_ADD_STAT, hero_add_stat)                   /* mu_prg_stat_button + mu_prg_stat_request */
+MU_SUBMIT(MU_INTENT_MASTER_POINT, hero_master_point)           /* UNRECOVERED: no request body */

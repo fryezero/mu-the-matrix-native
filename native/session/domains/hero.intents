@@ -1,0 +1,3 @@
+/* domains/hero.intents: the hero domain's intent kinds (generated into build/gen/session_intents.h). */
+MU_INTENT_KIND(ADD_STAT, add_stat, struct { int32_t stat; })                 /* 0..4: strength .. command */
+MU_INTENT_KIND(MASTER_POINT, master_point, struct { int32_t skill; })        /* request body not reconstructed */
