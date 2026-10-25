@@ -151,7 +151,7 @@ A row whose input is absent is a skip naming the input. A row whose input differ
    These are the three known causes behind 2026-10-24's 35 of 38. The memory note filed the first under "charsel"; it is charcreate, in the same test directory.
 3. **The same run on the unmigrated tree** (a `git archive` of 8efe6e7, built separately) gave 69/1/5 with the same reasons. `compare_runs.py`: 69 reports identical after dropping timing keys, and `skill_later` differing only in `slowest.case`. The 5 skips and 16 helpers have no reports and the same status.
 4. **In-process private suites** under integration: `reconstructed/client-memory` (10), `reconstructed/record-math` (23) and `reconstructed/scene` (11), all OK. They call `validate()`/`main()` directly, so they also cover the loader contracts.
-5. **Orphan suite** under integration: ORPHAN_RESULT.
+5. **Orphan suite** under integration (`python -m unittest -v tests.test_orphan_validators_private`, same environment): **20 tests, all OK, 2,638 s**. Without `MU_RECOVERY_INTEGRATION` all 20 skip, as part of check 1.
 
 Per-validator numbers come from the migrated run. "Cases" and "mutants" are what each report counts at its `cases_at`/`mutants_at`.
 
