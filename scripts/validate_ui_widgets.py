@@ -45,6 +45,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 import model_hierarchy_common as common  # noqa: E402
 import validate_ui as vu  # noqa: E402
@@ -1121,8 +1122,8 @@ def validate_cut_text(client, lib, rng, report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('--text', default=ROOT/'evidence/x86-text-capture-09/client-text.bin')
-    parser.add_argument('--data', default=ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')
+    parser.add_argument('--text', default=pins.TEXT.default())
+    parser.add_argument('--data', default=pins.DATA.default())
     parser.add_argument('--library')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--cases', type=int, default=60)

@@ -1,0 +1,1424 @@
+# One row per scripts/validate_*.py (VERIFY-HARNESS-001). Read by scripts/run_validators.py; checked by
+# tests/test_validators_manifest.py (every validator has a row and every row a validator).
+#
+# test: the owning test (file::Class.method) that runs this comparison privately
+# pins: scripts/pins.py inputs; families: what the run covers; cases/mutants: what it is expected to report
+# (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
+# (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
+
+[validate_actors]
+test = "reconstructed/actors/test_actors.py::ActorTests.test_private_original_actor_instructions"
+pins = ["text", "data"]
+families = ["character_step", "monster_open", "set_action", "unarmed_stop"]
+cases = 22542
+mutants = 3
+cases_at = ["monster_open.cases", "set_action.cases", "unarmed_stop.cases", "character_step.cases"]
+mutants_at = "monster_open.negative_controls"
+build = ["reconstructed/actors"]
+args = ["--text", "{text}", "--data", "{data}", "--classes", "0x100", "--output", "{report}"]
+[validate_actors.expect]
+"monster_open.matches" = {same_as = "monster_open.cases"}
+"monster_open.cases" = {min = 1276}
+"monster_open.negative_controls.*" = {truthy = true}
+"character_step.matches" = {same_as = "character_step.cases"}
+"set_action.matches" = {same_as = "set_action.cases"}
+"unarmed_stop.matches" = {same_as = "unarmed_stop.cases"}
+"character_step.branches.*" = {truthy = true}
+"classes.static_disagree" = 0
+"player_speeds.written" = 213
+
+[validate_audio]
+test = "reconstructed/audio/test_client_audio.py::ClientAudioTests.test_private_original_audio_instructions"
+pins = ["text", "data"]
+families = ["frame", "init", "manager", "openworld", "settings"]
+cases = 10367
+mutants = 232
+cases_at = ["frame.cases", "openworld.cases", "manager.scripts", "init.scripts", "settings.cases"]
+mutants_at = "frame_sensitivity.detected"
+build = ["reconstructed/audio"]
+args = ["--text", "{text}", "--data", "{data}", "--random", "200", "--report", "{report}"]
+[validate_audio.expect]
+"frame.equal" = {same_as = "frame.cases"}
+"frame.cases" = {min = 600}
+"frame_sensitivity.missed" = 0
+"openworld.equal" = {same_as = "openworld.cases"}
+"manager.equal" = {same_as = "manager.scripts"}
+"init.equal" = {same_as = "init.scripts"}
+"settings.equal" = {same_as = "settings.cases"}
+
+[validate_bone_tracks]
+test = "reconstructed/model-codec/test_bone_tracks.py::BoneTrackTests.test_private_original_bone_track_instructions"
+pins = ["text", "data", "flag", "feature09"]
+families = ["installed", "synthetic"]
+cases = 738
+cases_at = ["synthetic.cases", "installed.cases"]
+needs = ["game_root"]
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--versions", "12,14", "--workers", "4", "--output", "{report}"]
+[validate_bone_tracks.expect]
+"synthetic.matches" = {same_as = "synthetic.cases"}
+"synthetic.cases" = {min = 301}
+"negative_control_elide_empty_differences" = {min = 1}
+"installed.per_version.12" = {eq = {files = 180, reader_rejected = 0, compared = 180, matches = 180, keys = 3802}}
+"installed.per_version.14" = {eq = {files = 216, reader_rejected = 0, compared = 216, matches = 216, keys = 15562}}
+"installed.worst_quaternion_error" = {max = 1e-06}
+
+[validate_camera]
+test = "reconstructed/camera/test_client_camera.py::PrivateCameraValidation.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["viewport2 0x01849ec4", "perspective2 0x01849d76", "BeginOpengl 0x0184adc7 (to GetOpenGLMatrix)", "CreateScreenVector 0x01849f08", "Projection 0x0184a244", "Projection float 0x0184a3ce", "Projection float 0.83 0x0184a2e8", "TransformPosition 0x0184a455", "FaceNormalize 0x00d01206", "InsideTest 0x018506bc", "CollisionDetectLineToFace 0x0184f96c", "RenderTerrainTile pick 0x016ccda5", "lerp 0x0185047d", "ease 0x018504c6", "timer elapsed 0x018519ff", "timer update 0x00c9b4ac", "MoveMainCamera 0x0185498e (in-world path)", "MoveMainCamera 0x0185498e (scene 3/5 camera-record path)", "wheel zoom 0x018588d9 + 0x0185a9bf", "key scan 0x00ec5475", "key queries 0x00ec5577/ac/e2/0x00ec5618", "WM_MOUSEMOVE 0x0121012c", "mouse messages 0x0120fee3", "frame start and cap 0x018524e7/0x0185265a"]
+cases = 2180
+mutants = 13
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/camera"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--output", "{report}"]
+[validate_camera.expect]
+"results.*.mismatches" = 0
+"mutations.*.mismatches" = {all_min = 1}
+"results" = {len_min = 23}
+
+[validate_character]
+test = "reconstructed/model-codec/test_character.py::CharacterTests.test_private_original_character_instructions"
+pins = ["text", "data", "flag", "feature09"]
+families = ["class_helpers", "loader", "positions"]
+cases = 1532
+mutants = 1
+cases_at = ["positions.cases", "class_helpers.*.cases", "loader.calls"]
+mutants_at = "negative_controls"
+needs = ["game_root"]
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--limit", "12", "--output", "{report}"]
+[validate_character.expect]
+"positions.matches" = {same_as = "positions.cases"}
+"positions.cases" = {min = 380}
+"class_helpers.*.cases" = 256
+"class_helpers.*.matches" = 256
+"loader.match" = true
+"loader.calls" = 380
+"negative_controls.unscaled_rotation_position" = {min = 1}
+"installed.player_states.*.ok" = true
+
+[validate_charcreate]
+test = "reconstructed/charsel/test_charcreate.py::PrivateCharCreateValidation.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["show", "restrict", "klass", "board", "name", "input", "count", "created", "message", "deleted", "render", "menu", "classname", "serverclass"]
+cases = 1488
+mutants = 6
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/charsel"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--report", "{report}"]
+note = "60 cases (the owning test) miss the code-page mutant: 5 of 6 caught on 2026-10-24 and 2026-10-25; 300 cases catch 6 of 6"
+
+[validate_charsel]
+test = "reconstructed/charsel/test_charsel.py::PrivateCharselValidation.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["SetCharacterPosition 0x00da9ff3", "CreateObject 0x00daa2b2 + SetCharacterPosition 0x00da9ff3 (map-object sequences)", "SetCharacterScale 0x01394f6f", "CreateHero 0x0137f824", "RenderCharacterScene 0x018576b3", "scene-5 logic tick 0x01856e6c"]
+cases = 360
+mutants = 12
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/charsel"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--output", "{report}"]
+[validate_charsel.expect]
+"results.*.mismatches" = 0
+"mutations.*.mismatches" = {all_min = 1}
+
+[validate_charsel_gfx]
+test = "reconstructed/charsel/test_charsel_gfx.py::PrivateCharselGfxValidation.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["list", "show", "select", "index", "arrow", "dispatch", "init"]
+cases = 420
+mutants = 5
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/charsel"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--report", "{report}"]
+
+[validate_charsel_window]
+test = "reconstructed/charsel/test_charsel.py::PrivateCharselValidation.test_window_comparison"
+pins = ["text", "data"]
+cases = 20
+mutants = 7
+cases_at = "charsel_window.cases"
+mutants_at = "mutations"
+build = ["reconstructed/charsel", "reconstructed/ui"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "20", "--mutations", "--output", "{report}"]
+
+[validate_charsel_world]
+test = "tests/test_charsel_world_private.py::CharselWorldPrivateTests.test_routines_match_client"
+pins = ["text", "data"]
+families = ["create", "move", "visual", "custom", "after", "after_pass"]
+cases = 1200
+cases_at = "families.*.cases"
+build = ["reconstructed/objects"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--output", "{report}"]
+[validate_charsel_world.expect]
+"ok" = true
+"families.*.cases" = {all_min = 1}
+"families.*.equal" = {same_as = "families.*.cases"}
+
+[validate_client_clear]
+test = "reconstructed/client-memory/test_clear64.py::Clear64Tests.test_private_scalar_and_sse_paths_match_captured_instructions"
+pins = ["text08"]
+cases = 768
+cases_at = "cases"
+build = ["reconstructed/client-memory"]
+args = ["--capture", "{text08}", "--library", "{repo}/reconstructed/client-memory/libclient_memory.{so}", "--output", "{report}"]
+note = "the test calls validate() in-process; this is its command-line form"
+[validate_client_clear.expect]
+"mismatches" = 0
+"cases" = 768
+"feature_branch_entries" = ["0x194cdc7", "0x194ce05"]
+"unexpected_memory_accesses" = []
+
+[validate_client_copy]
+test = "reconstructed/client-memory/test_copy64.py::Copy64Tests.test_private_captured_instructions_match_reconstruction"
+pins = ["text08"]
+cases = 393
+cases_at = "cases"
+build = ["reconstructed/client-memory"]
+args = ["--capture", "{text08}", "--library", "{repo}/reconstructed/client-memory/libclient_memory.{so}", "--output", "{report}"]
+note = "the test calls validate() in-process; this is its command-line form"
+[validate_client_copy.expect]
+"mismatches" = 0
+"cases" = 393
+
+[validate_client_lea_decode]
+test = "reconstructed/model-codec/test_client_lea_decode.py::ClientLeaDecodeTests.test_private_scalar_instructions_and_relocation_checks"
+pins = ["text", "v14_manifest", "edge_diagnostics"]
+needs = ["game_root"]
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--game-root", "{game_root}", "--manifest", "{v14_manifest}", "--diagnostics", "{edge_diagnostics}", "--output", "{report}"]
+[validate_client_lea_decode.expect]
+"mismatches" = 0
+"scalar_instruction_cases" = 1152
+"relocation_checks" = {len = 4}
+"avx_helpers_executed" = false
+"installed_v15.native_reader_matches" = 11583
+"installed_v15.original_instructions_executed_for_corpus" = false
+
+[validate_client_lea_key]
+test = "reconstructed/model-codec/test_client_lea.py::ClientLeaKeyTests.test_private_captured_setup_instructions"
+pins = ["text"]
+cases = 1320
+cases_at = "instruction_cases"
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--output", "{report}"]
+[validate_client_lea_key.expect]
+"mismatches" = 0
+"instruction_cases" = {min = 1001}
+"wrong_schedule_mismatches" = {min = 1001}
+"supported_key_bytes" = [16, 24, 32]
+
+[validate_combat]
+test = "reconstructed/combat/test_combat.py::CombatTests.test_client_comparison_and_generated_table"
+pins = ["text", "data"]
+families = ["damage_color", "damage_scale", "create_point", "move_points", "render_points", "render_number", "show_damage", "attack_speed", "player_attack", "in_range", "shock_allowed", "dead_fade"]
+cases = 496
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "negative_controls"
+build = ["reconstructed/combat"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--heavy-cases", "4", "--output", "{report}"]
+note = "the test also regenerates attack_speed_table.h with scripts/combat_static.py; that half is not a validator"
+
+[validate_data_tables]
+test = "tests/test_data_tables_private.py::DataTablesPrivateTests.test_loaders_and_codecs_match_client"
+pins = ["text", "data", "feature"]
+families = ["codec", "summary"]
+cases = 266
+mutants = 51
+cases_at = ["summary.loader_cases", "codec.installed"]
+mutants_at = "summary.mutation_cases"
+needs = ["game_root"]
+build = ["reconstructed/data"]
+args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--game-root", "{game_root}", "--output", "{report}"]
+[validate_data_tables.expect]
+"summary.matches" = {same_as = "summary.loader_cases"}
+"summary.installed_files" = {min = 44}
+"summary.mutations_rejected_by_client" = {same_as = "summary.mutation_cases"}
+"codec.failure_count" = 0
+"codec.counts.*" = {sum_min = 10001}
+
+[validate_effect_tree]
+test = "reconstructed/effects/test_effect_tree.py::PrivateEffectTreeValidation.test_instruction_comparison"
+pins = ["text", "data", "section3"]
+needs = ["game_root"]
+build = ["reconstructed/effects"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--game-root", "{game_root}", "--limit", "60", "--mutations", "20", "--clones", "20", "--scenes", "10", "--frames", "20", "--output", "{report}"]
+[validate_effect_tree.expect]
+"mismatches" = 0
+"cases" = 110
+"render_passes_compared" = {min = 1}
+
+[validate_effects]
+test = "reconstructed/effects/test_effects.py::PrivateEffectValidation.test_instruction_comparison"
+pins = ["text", "data", "section3"]
+needs = ["game_root"]
+build = ["reconstructed/effects"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--game-root", "{game_root}", "--limit", "40", "--mutations", "40", "--frames", "30", "--output", "{report}"]
+[validate_effects.expect]
+"mismatches" = 0
+"cases" = 80
+"vertices_compared" = {min = 10001}
+
+[validate_environment]
+test = "reconstructed/environment/test_environment.py::PrivateUnicorn.test_short_comparison"
+pins = ["text", "data"]
+cases = 400
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutations"
+build = ["reconstructed/environment"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "400", "--ticks", "60", "--mutations", "--output", "{report}"]
+note = "the documented run (docs/handoff.md, NATIVE-ENV-001: 400 cases, 94/94 probes, 10/10 mutants). The test passes --cases 8 --ticks 20 --worlds 0,1,2,3,7,0x8d and checks only its stdout; that short run reaches 46 of 94 branch probes, which the validator reports as exit 1"
+[validate_environment.expect]
+"ok" = true
+"equal" = {same_as = "cases"}
+"probes_missed" = []
+"mismatches" = []
+"stopped" = []
+"mutations.*.detected" = true
+
+[validate_fidelity]
+test = "native/tests/test_native_fidelity.py::PrivateValidators.test_fidelity_sections"
+pins = ["text", "data", "flag", "feature09", "lang3"]
+families = ["env_light", "object_screen", "special_models", "lang_tables", "set_prefix"]
+cases = 991
+cases_at = ["env_light.cases", "object_screen.cases", "special_models.cases", "set_prefix.cases", "lang_tables.cases"]
+needs = ["game_root"]
+args = ["--text", "{text}", "--data", "{data}", "--sections", "env_light,object_screen,special_models,lang_tables,set_prefix", "--env-runs", "1", "--env-steps", "120", "--cases", "200", "--game-root", "{game_root}", "--snapshot", "{lang3}", "--set-bits", "1", "--set-limit", "300", "--output", "{report}"]
+note = "one run of both test methods (test_fidelity_sections and test_lang_families); the flag and feature words come from pins.FLAG and pins.FEATURE09"
+
+[validate_gfx3]
+test = "native/tests/test_native_gfx3.py::ClientRoutines.test_validator_matches_the_client"
+pins = ["text", "data"]
+mutants = 5
+mutants_at = "mutations"
+needs = ["cc"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "6", "--mutations", "--output", "{report}"]
+[validate_gfx3.expect]
+"$stdout" = {contains = "all cases match"}
+
+[validate_helpers]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_helpers"
+pins = ["text", "data"]
+families = ["bugs", "mount_class", "mount_move", "mount_render", "rider"]
+cases = 8667
+mutants = 11
+cases_at = ["bugs.cases", "mount_class.factory_cases", "mount_class.classes", "mount_move.cases", "rider.cases", "rider.category", "mount_render.cases"]
+mutants_at = ["mutations.*", "bugs.negative.*", "mount_move.negative.*"]
+needs = ["clang"]
+build = ["reconstructed/helpers"]
+timeout = 900
+args = ["--text", "{text}", "--data", "{data}", "--bug-cases", "1000", "--cases", "1000", "--negative", "60", "--mutations", "--report", "{report}"]
+note = "documented 8,639 counts the 25 class/state entries of NATIVE-HELPERS-001; with NATIVE-HELPERS-002 the class section has 53 entries, so the same arguments give 8,667 (1000+1102+53+1000+4000+512+1000; observed locally). cases_at counts mount_class.classes by its length. mutants = 6 recompiled + 5 negative controls (bools counted True)"
+[validate_helpers.expect]
+"bugs.cases" = 1000
+"bugs.mismatches" = 0
+"bugs.steps" = 21471
+"bugs.events" = 68474
+"bugs.probes" = {len = 22}
+"bugs.probes.*" = {all_min = 1}
+"bugs.negative" = {len = 2}
+"bugs.negative.*" = {truthy = true}
+"mount_class.factory_cases" = 1102
+"mount_class.factory_mismatches" = 0
+"mount_class.mismatches" = 0
+"mount_class.classes" = {len = 53}
+"mount_move.cases" = 1000
+"mount_move.mismatches" = 0
+"mount_move.steps" = 9544
+"mount_move.events" = 26818
+"mount_move.probes" = {len = 9}
+"mount_move.probes.*" = {all_min = 1}
+"mount_move.negative" = {len = 3}
+"mount_move.negative.*" = {truthy = true}
+"rider.cases" = 4000
+"rider.category" = 512
+"rider.mismatches" = 0
+"mount_render.cases" = 1000
+"mount_render.mismatches" = 0
+"mount_render.steps" = 5962
+"mount_render.lift_cases" = 334
+"mutations" = {len = 6}
+"mutations.*" = {truthy = true}
+
+[validate_hero_sound]
+test = "reconstructed/audio/test_hero_sound.py::HeroSoundTests.test_unicorn_comparison"
+pins = ["text", "data"]
+families = ["foot_reset", "footstep_trigger", "hero_tile", "play_walk_sound"]
+cases = 2000
+cases_at = ["play_walk_sound.cases", "footstep_trigger.cases", "foot_reset.cases", "hero_tile.cases"]
+build = ["reconstructed/audio"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "600", "--output", "{report}"]
+[validate_hero_sound.expect]
+"$stdout" = {contains = "ALL PASS"}
+
+[validate_hud]
+test = "reconstructed/hud/test_hud.py::TestPrivate.test_private_client_instructions"
+pins = ["text", "data"]
+families = ["grid", "slots", "pass", "item3d", "html", "format"]
+cases = 48
+cases_at = ["grid.cases", "slots.cases", "pass.cases", "html.cases", "format.cases", "item3d.cases"]
+build = ["reconstructed/hud"]
+args = ["--text", "{text}", "--data", "{data}", "--sections", "grid,slots,pass,item3d,html,format", "--cases", "8", "--output", "{report}"]
+[validate_hud.expect]
+"grid.cases" = 8
+"slots.cases" = 8
+"pass.cases" = 8
+"item3d.cases" = 8
+"html.cases" = 8
+"format.cases" = 8
+
+[validate_item_fields]
+test = "tests/test_data_tables_private.py::DataTablesPrivateTests.test_item_attributes_match_client"
+pins = ["text", "data", "feature"]
+cases = 4881
+cases_at = "codes"
+needs = ["game_root"]
+build = ["reconstructed/data"]
+args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--game-root", "{game_root}", "--output", "{report}"]
+[validate_item_fields.expect]
+"mismatch_count" = 0
+"codes" = {min = 4001}
+
+[validate_item_models]
+test = "tests/test_data_tables_private.py::DataTablesPrivateTests.test_item_model_mapping_matches_client"
+pins = ["text", "data", "feature"]
+cases = 4881
+cases_at = "records"
+needs = ["game_root"]
+build = ["native"]
+args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--game-root", "{game_root}", "--output", "{report}"]
+[validate_item_models.expect]
+"mismatch_count" = 0
+"found" = {same_as = "records"}
+"model_loader_calls" = {same_as = "records"}
+"getter_queries" = 15099
+"duplicate_code_case.match" = true
+
+[validate_item_price]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_item_price"
+pins = ["text", "data", "feature"]
+families = ["cases"]
+cases = 290639
+mutants = 5
+cases_at = ["cases.installed", "cases.synthetic", "cases.repair_from_value", "cases.repair_random"]
+mutants_at = "mutations_detected"
+needs = ["game_root", "clang"]
+build = ["reconstructed/price"]
+timeout = 900
+args = ["--evidence", "{evidence}", "--game-root", "{game_root}", "--mutations", "--output", "{report}"]
+note = "pins text/data/feature are listed for the runner's presence/digest check only (no placeholder is passed: the script derives the paths from --evidence). codes 4881 = 234,288 / 48 is derived, and the installed / repair_from_value counts depend on the installed Item.bmd (report item_file_sha256 not documented)"
+[validate_item_price.expect]
+"mismatch_count" = 0
+"codes" = 4881
+"cases.installed" = 234288
+"cases.synthetic" = 2000
+"cases.repair_from_value" = 34351
+"cases.repair_random" = 20000
+"mutations" = {len = 5}
+"mutations.*" = {all_min = 1}
+"mutations_detected" = 5
+
+[validate_item_services]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_item_services"
+pins = ["text", "data"]
+cases = 29952
+mutants = 6
+cases_at = "comparisons"
+mutants_at = "mutations"
+needs = ["clang"]
+args = ["--evidence", "{evidence}", "--cases", "10000", "--mutations", "--report", "{report}"]
+note = "the script cannot take {text}/{data}: it only has --evidence (a directory). Either add --text/--data (pins) to it or give the runner an evidence-dir placeholder. If the 10,000-case run proves >10 min, use --cases 2000 (mutants period/flag/bound/level are caught 3020/6152/517/69 times at 10,000, so they should still be caught; unverified) and expect counts to scale (ban/register 2000)"
+[validate_item_services.expect]
+"comparisons" = 29952
+"mismatches" = 0
+"counts.ban" = 10000
+"counts.register" = 10000
+"counts.stable_helper" = 9811
+"counts.single_repair_packet" = 128
+"mutations" = {len = 6}
+
+[validate_items]
+test = "reconstructed/items/test_items.py::PrivateUnicornTest.test_validator"
+pins = ["text", "data"]
+families = ["item_angle", "label_color", "object_attr", "name", "create", "viewport", "move", "render", "select", "frustum", "monster_voice"]
+cases = 444
+mutants = 11
+cases_at = "families.*.cases"
+mutants_at = "negative_controls"
+build = ["reconstructed/items"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--heavy-cases", "6", "--output", "{report}"]
+
+[validate_joints]
+test = "reconstructed/joints/test_joints.py::ClientComparison.test_unicorn_comparison"
+pins = ["text", "data"]
+families = ["joint_create", "joint_move", "joint_render"]
+cases = 180
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "negative_controls"
+build = ["reconstructed/joints"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--output", "{report}"]
+
+[validate_lang]
+test = "native/tests/test_native_lang.py::PrivateValidator.test_client_consumers_equal_the_native_module"
+pins = ["text", "data", "lang3"]
+families = ["map_table", "text", "skill_lookup", "skill_info", "gate", "move", "npc", "enchant_first", "enchant_mesh", "map_names", "buff", "buff_item", "buff_getters", "buff_tooltip", "addbuff", "soulconv", "charinfo", "charinfo_rows"]
+cases = 47276
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+needs = ["cc"]
+args = ["--snapshot", "{lang3}", "--text", "{text}", "--data", "{data}", "--mutations", "--output", "{report}"]
+[validate_lang.expect]
+"$stdout" = {contains = "all cases match"}
+
+[validate_login_world]
+test = "tests/test_login_world_private.py::LoginWorldPrivateTests.test_routines_match_client"
+pins = ["text", "data"]
+families = ["create", "move", "visual", "custom", "after", "after_pass"]
+cases = 1200
+cases_at = "families.*.cases"
+build = ["reconstructed/objects"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--output", "{report}"]
+[validate_login_world.expect]
+"ok" = true
+"families.*.cases" = {all_min = 1}
+"families.*.equal" = {same_as = "families.*.cases"}
+
+[validate_map]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_map"
+pins = ["text", "data", "lang4"]
+families = ["hud_update", "units", "detected", "show", "move_build", "move_sort", "availability", "rows", "click", "gates"]
+cases = 5001
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutations.*.detected"
+needs = ["cc"]
+build = ["reconstructed/map"]
+timeout = 900
+args = ["--snapshot", "{lang4}", "--text", "{text}", "--data", "{data}", "--cases", "500", "--mutations", "--output", "{report}"]
+[validate_map.expect]
+"cases" = 5001
+"mismatches" = 0
+"families" = {len = 10}
+"families.*.mismatches" = 0
+"families.*.cases" = {sum = 5001}
+"families.show.cases" = 501
+"snapshot_sha256" = "0461a408fd6b016def81043b43338d80d1851cec7bd7959ca8a2cf655dab9709"
+"mutations" = {len = 10}
+"mutations.*.detected" = true
+
+[validate_map_polish]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_map_polish"
+pins = ["text", "data"]
+families = ["registration", "teleport_core"]
+cases = 876
+mutants = 3
+cases_at = ["teleport_core.cases", "registration.cases"]
+mutants_at = "mutations"
+needs = ["cc"]
+build = ["reconstructed/map"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "500", "--mutations", "--output", "{report}"]
+[validate_map_polish.expect]
+"teleport_core.cases" = 875
+"teleport_core.mismatches" = 0
+"registration.alignment" = 10
+"registration.window" = "MoveCommand"
+"mutations" = {len = 3}
+"mutations.*" = {truthy = true}
+
+[validate_meshdraw]
+test = "native/tests/test_native_viewer.py::PrivateInstalledTests.test_private_client_mesh_draw_execution"
+pins = ["text", "data", "flag", "feature09"]
+families = ["installed", "names_installed", "names_synthetic", "pinned", "synthetic"]
+cases = 14619
+mutants = 4
+cases_at = ["synthetic.viewer_cases", "synthetic.mutated_cases", "installed.cases", "pinned.cases", "names_synthetic.names", "names_installed.names"]
+mutants_at = "negative_controls"
+needs = ["game_root"]
+build = ["native"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--per-folder", "3", "--mutations", "300", "--math-sweep", "20000", "--output", "{report}"]
+[validate_meshdraw.expect]
+"synthetic.viewer_matches" = {same_as = "synthetic.viewer_cases"}
+"synthetic.mutated_matches" = {same_as = "synthetic.mutated_cases"}
+"synthetic.viewer_cases" = {min = 207}
+"installed.matches" = {same_as = "installed.cases"}
+"installed.cases" = {min = 251}
+"uncovered" = []
+"negative_controls.*" = {truthy = true}
+"names_synthetic.matches" = {same_as = "names_synthetic.names"}
+"names_installed.matches" = {same_as = "names_installed.names"}
+"names_installed.names" = {min = 1001}
+"math_sweep.*.binary32_differences" = 0
+"x87_transcendentals_in_draw_cases" = {eq = {}}
+"pinned.matches" = {same_as = "pinned.cases"}
+"pinned.corners_group" = "9d9cf95c32ad48c51ad25b749e5f33841c87db9c58dc1deded05d5997d8ccc00"
+"pinned.replay_group" = "86f3593ad959e835e18255b0518c69efccd395c2140ae11a4953a80ffa4d901c"
+
+[validate_mix]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_mix"
+pins = ["text", "data"]
+cases = 52533
+mutants = 11
+cases_at = "total"
+mutants_at = "mutations"
+needs = ["game_root", "clang"]
+build = ["reconstructed/mix"]
+args = ["--text", "{text}", "--data", "{data}", "--game-root", "{game_root}", "--cases", "2000", "--mutations", "--output", "{report}"]
+[validate_mix.expect]
+"total" = 52533
+"mismatches" = 0
+"inputs.mix.recipes" = 3009
+"inputs.mix.sha256" = "44e2e3451e526dcaac72e28f15f00cc06573030997d0316e0156e381a338b498"
+"mutations" = {len = 11}
+
+[validate_mix_manager]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_mix_manager"
+pins = ["text", "data"]
+cases = 16021
+mutants = 6
+cases_at = "total"
+mutants_at = "mutations"
+needs = ["game_root", "clang"]
+build = ["reconstructed/mix"]
+args = ["--text", "{text}", "--data", "{data}", "--game-root", "{game_root}", "--cases", "2000", "--mutations", "--output", "{report}"]
+[validate_mix_manager.expect]
+"total" = 16021
+"mismatches" = 0
+"cases.installed_select" = 21
+"installed.candidate_rows" = 3009
+"mutations" = {len = 6}
+
+[validate_model_codec]
+test = "reconstructed/model-codec/test_model_codec.py::ModelCodecTests.test_private_captured_instructions_and_installed_v12_models"
+pins = ["text", "v14_manifest"]
+needs = ["game_root"]
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--game-root", "{game_root}", "--manifest", "{v14_manifest}", "--output", "{report}"]
+[validate_model_codec.expect]
+"mismatches" = 0
+"installed_v12.files" = 180
+"synthetic_instruction_cases" = {min = 1001}
+
+[validate_model_edge]
+test = "reconstructed/model-codec/test_model_reader.py::ModelReaderTests.test_private_client_reader_pose_transform_and_draw"
+pins = ["text", "data", "flag", "feature09"]
+families = ["summary"]
+cases = 954
+cases_at = ["summary.pose_calls", "summary.transform_calls", "summary.draw_calls"]
+needs = ["game_root"]
+build = ["reconstructed/model-codec", "native"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--native", "{repo}/native/build/mu-render", "--output", "{report}"]
+[validate_model_edge.expect]
+"failures" = []
+"summary.files" = 17
+"summary.reader_matches" = 17
+"summary.authored_reader_matches" = 17
+"summary.pose_matches" = {same_as = "summary.pose_calls"}
+"summary.transform_matches" = {same_as = "summary.transform_calls"}
+"summary.draw_matches" = {same_as = "summary.draw_calls"}
+"summary.geometry_state_dependent_files" = []
+"summary.synthetic_readers.matches" = {same_as = "summary.synthetic_readers.cases"}
+"summary.native_corner_streams.matches" = {same_as = "summary.native_corner_streams.files"}
+"summary.native_corner_streams.files" = {min = 15}
+
+[validate_model_light]
+test = "tests/test_model_light_private.py::ModelLightPrivateTests.test_native_object_light_equals_the_client_transform"
+pins = ["text", "data", "flag", "feature09", "objects_login", "light_login"]
+cases = 1433
+cases_at = "totals.normals"
+needs = ["game_root"]
+build = ["native", "reconstructed/model-codec"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--world", "94", "--objects", "{objects_login}", "--live", "{light_login}", "--output", "{report}"]
+note = "the test takes MU_LIGHT_OBJECTS/MU_LIGHT_SNAPSHOT; the runner uses the login-scene pins (login-a, EncTerrain95)"
+[validate_model_light.expect]
+"live_override" = 1
+"totals.objects" = {min = 1}
+"totals.equal" = {same_as = "totals.normals"}
+"totals.negative_differ" = {min = 1}
+
+[validate_mount_visuals]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_mount_visuals"
+pins = ["text", "data"]
+families = ["class", "functors"]
+cases = 8400
+mutants = 3
+cases_at = ["functors.cases", "class.shining_tail_visuals.cases", "class.shining_tail_steps.cases", "class.ghost_horse_visuals.cases", "class.ghost_horse_steps.cases"]
+build = ["reconstructed/helpers"]
+timeout = 300
+args = ["--text", "{text}", "--data", "{data}", "--cases", "300", "--output", "{report}"]
+note = "no recompiled mutants; the three negative controls are hit counts (2 under negative_controls, 1 at class.negative_time), so no single mutants_at path counts them: leave mutants_at unset (or use \"negative_controls\" = 2 and keep class.negative_time in expect). \"class.*\" cannot be used: the class dict mixes routine dicts with the int negative_time"
+[validate_mount_visuals.expect]
+"all_equal" = true
+"registry.pairs" = 1171
+"registry.mount_models_match" = true
+"functors.cases" = 7200
+"functors.equal" = 7200
+"functors.calls" = 66129
+"class.shining_tail_visuals.equal" = 300
+"class.shining_tail_steps.equal" = 300
+"class.ghost_horse_visuals.equal" = 300
+"class.ghost_horse_steps.equal" = 300
+"negative_controls.time" = 40
+"negative_controls.v" = 40
+"class.negative_time" = 30
+
+[validate_movement]
+test = "reconstructed/movement/test_client_movement.py::MovementTests.test_instruction_comparison"
+pins = ["text", "data"]
+families = ["create_angle 0x012aed9e", "far_angle 0x012af218", "turn_angle2 0x012aefff", "move_path 0x012b0846", "request_height 0x016cc9e2", "move_speed 0x013957b5", "move_position 0x0137b351", "set_action 0x012affa4", "walk_select 0x0139002a", "stop_select 0x01391e55", "loader_speeds 0x018311f7", "find_path 0x012b1c45", "path_finding2 0x012b0e85"]
+cases = 6614
+mutants = 16
+cases_at = "results.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/movement"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--output", "{report}"]
+[validate_movement.expect]
+"results.*.mismatches" = 0
+"mutations.*.mismatches" = {all_min = 1}
+
+[validate_names]
+test = "reconstructed/names/test_names.py::Private.test_unicorn_comparison"
+pins = ["text", "data"]
+families = ["helpers", "addinfo", "update", "small", "kind", "bubble"]
+mutants = 12
+mutants_at = "negative_controls.planted"
+build = ["reconstructed/names"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "20", "--negative", "100", "--output", "{report}"]
+
+[validate_npc]
+test = "native/tests/test_native_npc.py::Installed.test_validator"
+pins = ["text", "data"]
+families = ["axis", "box", "pick", "segment", "talk"]
+cases = 16127
+mutants = 5
+cases_at = ["box.types", "talk.cases", "axis.cases", "segment.cases", "pick.cases"]
+mutants_at = "mutations"
+needs = ["game_root"]
+build = ["reconstructed/npc"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--talk-cases", "2", "--pick-cases", "120", "--mutations", "--json", "{report}"]
+
+[validate_npc_dialogue]
+test = "native/tests/test_native_lang2.py::Installed.test_dialogue_validator"
+pins = ["text", "data", "feature"]
+families = ["text", "state_text", "option_text", "option_next", "select"]
+cases = 18444
+mutants = 5
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+needs = ["game_root"]
+build = ["reconstructed/npc", "native"]
+args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--game-root", "{game_root}", "--mutations", "--output", "{report}"]
+[validate_npc_dialogue.expect]
+"$stdout" = {contains = "all cases match"}
+
+[validate_object_render]
+test = "tests/test_object_render_private.py::ObjectRenderPrivateTests.test_routines_match_client"
+pins = ["text", "data"]
+families = ["light", "body_light", "create", "move_pass", "handler_moves", "move", "visual", "render_pass", "render", "move_pre"]
+cases = 1984
+cases_at = "families.*.cases"
+build = ["reconstructed/objects"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--output", "{report}"]
+[validate_object_render.expect]
+"ok" = true
+"families.*.cases" = {all_min = 1}
+"families.*.equal" = {same_as = "families.*.cases"}
+
+[validate_objects]
+test = "tests/test_objects_private.py::ObjectsPrivateTests.test_loader_and_model_table_match_client"
+pins = ["text", "data", "section3"]
+needs = ["game_root"]
+build = ["reconstructed/objects"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--game-root", "{game_root}", "--synthetic", "200", "--worlds", "0-149", "--output", "{report}"]
+[validate_objects.expect]
+"loader_synthetic.failure_count" = 0
+"loader_synthetic.negative_controls.*" = {truthy = true}
+"loader_installed.files" = {min = 80}
+"loader_installed.matching_authored" = {same_as = "loader_installed.files"}
+"loader_installed.openworld_would_accept" = 0
+"model_table.failure_count" = 0
+"model_table.totals.types_compared" = 45000
+
+[validate_particles]
+test = "reconstructed/particles/test_particles.py::ClientComparison.test_unicorn_comparison"
+pins = ["text", "data"]
+families = ["create", "wrapper", "move", "wind", "render", "sprite", "sprite_create", "sprite_render", "shadow", "bone", "bone_lookup", "visual"]
+cases = 407
+mutants = 22
+cases_at = "families.*.cases"
+mutants_at = "negative_controls"
+build = ["reconstructed/particles"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--heavy-cases", "4", "--output", "{report}"]
+
+[validate_path]
+test = "reconstructed/path/test_client_path.py::FollowerTests.test_instruction_comparison"
+pins = ["text", "data", "flag", "directions"]
+families = ["PathFinding2 synthetic", "MovePath", "walk (MovePath + MoveCharacterPosition)", "CreateAngle 0x012aed9e", "angle difference 0x012af218", "TurnAngle 0x012aefff", "heuristic 0x012b1bcf", "step cost 0x012b1b67", "occupancy clear 0x0137a7ce", "long path 0x012b104c", "auto move start", "auto move refresh", "auto move next", "auto move reset", "run counter 0x0139002a", "stop run counter 0x0138fe69", "move speed with predicates 0x013957b5", "world predicate 0xe0558b", "world predicate 0x16a88d3", "world predicate 0x9dacb8", "class predicate 0x0139bd24", "buff mount 0x0106c5e9", "PathFinding2 installed", "walk on installed paths", "long path, installed maps"]
+cases = 4719
+mutants = 30
+cases_at = "total"
+mutants_at = "mutations"
+build = ["reconstructed/path"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--directions", "{directions}", "--cases", "80", "--mutations", "--output", "{report}"]
+[validate_path.expect]
+"mismatches" = 0
+"mutations.*.mismatches" = {all_min = 1}
+"families" = {len_min = 15}
+
+[validate_pets]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_pets"
+pins = ["text", "data"]
+families = ["data", "session"]
+cases = 1062
+mutants = 9
+cases_at = ["data.cases", "session.cases"]
+mutants_at = ["mutations.*", "session.negative.*"]
+needs = ["game_root", "clang"]
+build = ["reconstructed/pets"]
+timeout = 1200
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--negative", "60", "--mutations", "--report", "{report}"]
+note = "needs game_root only for the documented installed petdata case: the script reads MU_GAME_ROOT from the inherited environment (the runner passes os.environ), there is no {game_root} argument. Without it data.cases is 61 and installed_records 0. session.calls is assumed to be the doc's \"host calls\" (45,962)"
+[validate_pets.expect]
+"data.cases" = 62
+"data.mismatches" = 0
+"data.installed_records" = 8
+"data.kinds.installed" = 1
+"session.cases" = 1000
+"session.mismatches" = 0
+"session.steps" = 28280
+"session.calls" = 45962
+"session.probes" = {len = 28}
+"session.probes.*" = {all_min = 1}
+"session.negative" = {len = 3}
+"session.negative.*" = {truthy = true}
+"mutations" = {len = 6}
+"mutations.*" = {truthy = true}
+
+[validate_players]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_players"
+pins = ["text", "data"]
+families = ["helpers", "equipment", "move", "step"]
+cases = 4768
+mutants = 7
+cases_at = ["sections.helpers.result.byte_helpers", "sections.helpers.result.wing_and_ride_state", "sections.equipment.result.cases", "sections.move.result.cases", "sections.step.result.cases"]
+mutants_at = "negative_controls.sections"
+build = ["reconstructed/players"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--negative", "60", "--output", "{report}"]
+[validate_players.expect]
+"sections.*.mismatches" = 0
+"sections.helpers.result.byte_helpers" = 768
+"sections.helpers.result.wing_and_ride_state" = 1000
+"sections.equipment.result.cases" = 1000
+"sections.move.result.cases" = 1000
+"sections.step.result.cases" = 1000
+"negative_controls.planted" = 7
+"negative_controls.caught" = 7
+
+[validate_pose_builder]
+test = "reconstructed/model-codec/test_pose_builder.py::PoseBuilderTests.test_private_original_pose_builder_instructions"
+pins = ["text", "data", "flag", "feature09"]
+families = ["installed", "synthetic"]
+cases = 2055
+mutants = 2
+cases_at = ["synthetic.cases", "installed.cases"]
+mutants_at = "negative_controls"
+needs = ["game_root"]
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--versions", "12,14", "--workers", "4", "--output", "{report}"]
+[validate_pose_builder.expect]
+"synthetic.matches" = {same_as = "synthetic.cases"}
+"synthetic.cases" = {min = 451}
+"negative_controls.*" = {truthy = true}
+"installed.matches" = {same_as = "installed.cases"}
+"installed.per_version.12.files" = 180
+"installed.per_version.14.files" = 216
+"installed.per_version.12.reader_rejected" = 0
+"installed.per_version.14.reader_rejected" = 0
+
+[validate_pose_concat]
+test = "reconstructed/record-math/test_pose_concat.py::PoseConcatTests.test_private_original_pose_instructions"
+pins = ["text"]
+cases = 5176
+cases_at = "instruction_cases"
+build = ["reconstructed/record-math"]
+args = ["--text", "{text}", "--output", "{report}"]
+[validate_pose_concat.expect]
+"mismatches" = 0
+"instruction_cases" = {min = 1001}
+"snapshot_negative_control_differences" = {min = 1}
+
+[validate_progress]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_progress"
+pins = ["text", "data"]
+families = ["calc", "bar", "table", "button", "stats", "speed", "options", "respawn", "levelup", "point", "exp", "master", "master_exp"]
+cases = 10503
+mutants = 16
+cases_at = "families.*.cases"
+mutants_at = "mutations.*.detected"
+needs = ["cc"]
+build = ["reconstructed/progress"]
+timeout = 900
+args = ["--text", "{text}", "--data", "{data}", "--cases", "600", "--mutations", "--work", "{work}", "--report", "{report}"]
+note = "10,503 = 12 x 600 + table (1503 + 3 x 600); this reproduces the documented 13-family run (client-progression.md:168-169), not the older 11-family 8,003-case table"
+[validate_progress.expect]
+"families" = {len = 13}
+"families.*.mismatches" = 0
+"families.*.cases" = {sum = 10503}
+"families.table.cases" = 3303
+"families.options.cases" = 600
+"families.respawn.cases" = 600
+"families.calc.cases" = 600
+"mutations" = {len = 16}
+"mutations.*.detected" = true
+
+[validate_protocol]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_protocol"
+pins = ["text08", "data"]
+families = ["add_data_cases", "recv_framing_cases"]
+cases = 800
+mutants = 0
+cases_at = ["add_data_cases", "recv_framing_cases"]
+build = ["native"]
+timeout = 300
+args = ["--text", "{text08}", "--data", "{data}", "--output", "{report}"]
+note = "fixed case counts (500/300, rng seed 0x4d55), no CLI to change them; no mutants. The verify-protocol-cbmc skill covers the same module by bounded model checking"
+[validate_protocol.expect]
+"add_data_cases" = 500
+"recv_framing_cases" = 300
+"mismatches" = 0
+"failures" = {len = 0}
+"pinned_routines" = {len = 3}
+
+[validate_quest]
+test = "native/tests/test_native_quest.py::Validator.test_validator"
+pins = ["text", "data", "lang4"]
+families = ["category", "runtime", "build", "lookup", "text", "html", "packets", "windows"]
+cases = 8203
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/quest"]
+args = ["--snapshot", "{lang4}", "--text", "{text}", "--data", "{data}", "--sequences", "20", "--length", "20", "--text-rounds", "1", "--mutations", "--output", "{report}"]
+
+[validate_quest2]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_quest2"
+pins = ["text", "data", "quest_lang5"]
+families = ["guide-data", "guide", "summary", "move", "wrap", "dialog-wrap", "classic-data", "classic"]
+cases = 7004
+mutants = 5
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+needs = ["game_root", "clang"]
+build = ["reconstructed/quest"]
+timeout = 900
+args = ["--snapshot", "{quest_lang5}", "--text", "{text}", "--data", "{data}", "--game-root", "{game_root}", "--sequences", "30", "--length", "30", "--wrap-cases", "2000", "--mutations", "--output", "{report}"]
+[validate_quest2.expect]
+"families.*.cases" = {sum = 7004}
+"families.*.mismatches" = 0
+"families.wrap.cases" = 2000
+"families.guide-data.cases" = 383
+"mutations" = {len = 5}
+"mutations.*" = {truthy = true}
+
+[validate_quest_polish]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_quest_polish"
+pins = ["text", "data", "quest_lang5"]
+families = ["move_answers", "tabs"]
+cases = 2001
+mutants = 2
+cases_at = ["move_answers.cases", "tabs.cases"]
+mutants_at = "mutations"
+needs = ["cc"]
+build = ["reconstructed/quest"]
+args = ["--text", "{text}", "--data", "{data}", "--snapshot", "{quest_lang5}", "--cases", "2000", "--mutations", "--output", "{report}"]
+[validate_quest_polish.expect]
+"move_answers.cases" = 2000
+"move_answers.mismatches" = 0
+"tabs.keys" = [0, 1, 2, 3, 4]
+"tabs.event_tab_registered" = false
+"mutations" = {len = 2}
+"mutations.*" = {truthy = true}
+
+[validate_raven]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_raven"
+pins = ["text", "data"]
+families = ["draw", "sessions"]
+cases = 4000
+mutants = 4
+cases_at = ["sessions.total.cases", "draw.total.cases"]
+mutants_at = "mutations.*"
+needs = ["clang"]
+build = ["reconstructed/raven"]
+timeout = 900
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--draw-cases", "3000", "--negative", "60", "--mutations", "--report", "{report}"]
+note = "mapping of the doc's \"4,037 pet bytes\" to sessions.total.sets is inferred (28,961+6,095+4,037 = 39,093 steps); the doc's 112,628 host calls is probably sessions.total.events (not asserted). The in-tree mutant rebuild makes this row unsafe to run in parallel with anything that loads libclient_raven"
+[validate_raven.expect]
+"sessions.total.cases" = 1000
+"sessions.total.mismatches" = 0
+"sessions.total.steps" = 39093
+"sessions.total.moves" = 28961
+"sessions.total.renders" = 6095
+"sessions.total.sets" = 4037
+"sessions.total.probes_hit" = 35
+"sessions.failures" = {len = 0}
+"draw.total.cases" = 3000
+"draw.total.raven" = 2009
+"draw.total.soul" = 991
+"draw.total.calls" = 26843
+"draw.total.mismatches" = 0
+"negative.world" = 21
+"mutations" = {len = 4}
+"mutations.*" = {truthy = true}
+
+[validate_record_math]
+test = "reconstructed/record-math/test_record_math.py::RecordMathTests.test_private_captured_record_arithmetic_matches"
+pins = ["text"]
+families = ["cofactor_cases", "inverse_cases"]
+cases = 2730
+cases_at = ["cofactor_cases", "inverse_cases"]
+build = ["reconstructed/record-math"]
+args = ["--capture", "{text}", "--math-data", "{math_data}", "--library", "{repo}/reconstructed/record-math/librecord_math.{so}", "--output", "{report}"]
+note = "the math-data directory {math_data} (capture.json, record-bias, record-template, cpu-features) is checked by the validator against pins.RECORD_BIAS, RECORD_TEMPLATE, FEATURE and MATH_CAPTURE_TOOL_SHA256"
+[validate_record_math.expect]
+"mismatches" = 0
+"inverse_cases" = {min = 500}
+"cofactor_cases" = {min = 1000}
+
+[validate_renderchar]
+test = "reconstructed/renderchar/test_renderchar.py::RenderCharLibrary.test_private_original_render_instructions"
+pins = ["text", "data", "flag", "feature09"]
+families = ["back", "character", "items", "light"]
+cases = 638
+cases_at = ["back.checks", "character.compared", "light.compared", "items.compared"]
+build = ["reconstructed/renderchar"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--sections", "back,character,items,light", "--back-checks", "100", "--characters", "60", "--classify", "none", "--cases", "500", "--light-cases", "60", "--output", "{report}"]
+note = "one run of the three test invocations (two in test_renderchar, the light section in test_native_fidelity)"
+[validate_renderchar.expect]
+"back.ok" = true
+"character.ok" = true
+"items.matches" = {same_as = "items.compared"}
+
+[validate_rotation]
+test = "reconstructed/record-math/test_rotation.py::RotationTests.test_private_original_rotation_instructions"
+pins = ["text", "data", "flag"]
+cases = 8012
+cases_at = "instruction_cases"
+needs = ["clang"]
+build = ["reconstructed/record-math"]
+prepare = [["clang", "-O2", "-std=c11", "-ffp-contract=off", "{repo}/scripts/scan_trig_midpoints.c", "-lm", "-o", "{work}/scan"], ["{work}/scan", "64", ">", "{work}/midpoints.txt"]]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--midpoints", "{work}/midpoints.txt", "--output", "{report}"]
+[validate_rotation.expect]
+"mismatches" = 0
+"composition_with_client_trig_mismatches" = 0
+"stopped_cases" = 0
+"instruction_cases" = {min = 7001}
+"trig_host_float_equal" = {same_as = "trig_calls"}
+"alias_alignment_mismatches" = 0
+"state_variant_mismatches" = 0
+"axis_order_negative_control_differences" = {min = 1001}
+"double_intermediate_negative_control_differences" = {min = 1}
+
+[validate_scene]
+test = "reconstructed/scene/test_scene.py::SceneTests.test_private_instruction_comparison"
+pins = ["text", "data"]
+build = ["reconstructed/scene"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "25", "--loading-ui-cases", "10", "--report", "{report}"]
+note = "the test calls main([...]) in-process; this is the same argument list"
+
+[validate_skill]
+test = "native/tests/test_native_skill.py::Installed.test_validator"
+pins = ["text", "data", "lang3"]
+families = ["lexcast", "row", "req", "mana", "delay_start", "delay_ready", "delay_tick", "special", "feed", "icon", "wrap", "tooltip", "tiphtml"]
+cases = 9696
+mutants = 11
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+needs = ["game_root"]
+build = ["reconstructed/skill"]
+args = ["--snapshot", "{lang3}", "--text", "{text}", "--data", "{data}", "--game-root", "{game_root}", "--cases", "60", "--mutations", "--output", "{report}"]
+note = "the test reads the snapshot from SNAP; the runner passes the lang3 pin"
+
+[validate_skill_fx]
+test = "reconstructed/combat/test_skill_fx.py::Private.test_client_comparison"
+pins = ["text", "data"]
+families = ["effect_create", "effect_decal", "effect_move", "check_magic", "particle_create", "particle_move", "particle_render", "joint_create", "joint_move", "joint_render", "player_voice"]
+cases = 660
+mutants = 20
+cases_at = "families.*.cases"
+mutants_at = "negative_controls"
+build = ["reconstructed/combat"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--output", "{report}"]
+
+[validate_skill_later]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_skill_later"
+pins = ["text", "data", "skill_tree4"]
+families = ["answer", "build", "click", "icons", "list", "page", "row", "side", "sideclick", "sidetip", "table", "text", "tooltip"]
+cases = 2935
+mutants = 10
+cases_at = ["table.cases", "row.cases", "build.cases", "list.cases", "page.cases", "click.cases", "answer.cases", "tooltip.cases", "text.cases", "side.cases", "sideclick.cases", "sidetip.cases", "icons.cases"]
+mutants_at = "mutations.*"
+needs = ["clang"]
+build = ["reconstructed/skill"]
+timeout = 1800
+args = ["--snapshot", "{skill_tree4}", "--text", "{text}", "--data", "{data}", "--cases", "25", "--mutations", "--progress", "0", "--output", "{report}"]
+note = "REDUCED from the documented --cases 300 (6,510 cases) because one serial process would take ~30-60 min. At 25: table 2,610 + 25 = 2,635, the other 12 families 25 each, total 2,935; the mutants also run 25 cases each and, with the same seeds (random.Random(seed + N)), replay the first 25 cases of the documented runs, where every mutant was already caught (inferred from the .err progress lines). A s"
+[validate_skill_later.expect]
+"table.cases" = 2635
+"row.cases" = 25
+"build.cases" = 25
+"list.cases" = 25
+"page.cases" = 25
+"click.cases" = 25
+"answer.cases" = 25
+"tooltip.cases" = 25
+"text.cases" = 25
+"side.cases" = 25
+"sideclick.cases" = 25
+"sidetip.cases" = 25
+"icons.cases" = 25
+"table.mismatches" = 0
+"row.mismatches" = 0
+"build.mismatches" = 0
+"list.mismatches" = 0
+"page.mismatches" = 0
+"click.mismatches" = 0
+"answer.mismatches" = 0
+"tooltip.mismatches" = 0
+"text.mismatches" = 0
+"side.mismatches" = 0
+"sideclick.mismatches" = 0
+"sidetip.mismatches" = 0
+"icons.mismatches" = 0
+"mutations" = {len = 10}
+"mutations.*" = {truthy = true}
+
+[validate_skill_server]
+test = "native/tests/test_native_skill.py::Installed.test_validator"
+pins = ["text", "data", "lang3"]
+families = ["list", "keys", "stamp", "canuse", "world", "marker"]
+cases = 548
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/skill"]
+args = ["--snapshot", "{lang3}", "--text", "{text}", "--data", "{data}", "--cases", "60", "--mutations", "--output", "{report}"]
+note = "the test reads the snapshot from SNAP; the runner passes the lang3 pin"
+
+[validate_skill_tree]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_skill_tree"
+pins = ["text", "data", "skill_lang5"]
+families = ["class", "build", "access", "click", "answer", "text", "position", "damage", "tooltip", "icons"]
+cases = 7876
+mutants = 3
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+needs = ["game_root"]
+build = ["reconstructed/skill"]
+args = ["--snapshot", "{skill_lang5}", "--text", "{text}", "--data", "{data}", "--game-root", "{game_root}", "--cases", "500", "--mutations", "--output", "{report}"]
+note = "docs do not say whether MU_GAME_ROOT was set for the 7,876 run; counts are identical either way. Use --game-root '' to force the synthetic build tables if no game root."
+[validate_skill_tree.expect]
+"mismatches" = 0
+"families.*.cases" = {sum = 7876}
+"families.class.cases" = 256
+"families.build.cases" = 120
+"families.access.cases" = 4000
+"mutations" = {len = 3}
+"mutations.*" = {truthy = true}
+
+[validate_skinning]
+test = "reconstructed/model-codec/test_skinning.py::SkinningTests.test_private_original_transform_and_tick_instructions"
+pins = ["text", "data", "flag", "feature09"]
+families = ["chained_transform", "installed", "synthetic_tick", "synthetic_transform"]
+cases = 2303
+mutants = 4
+cases_at = ["synthetic_transform.cases", "chained_transform.cases", "synthetic_tick.cases", "installed.transform.cases", "installed.tick.cases"]
+mutants_at = "negative_controls"
+needs = ["game_root"]
+build = ["reconstructed/model-codec"]
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--game-root", "{game_root}", "--versions", "12,14", "--workers", "4", "--output", "{report}"]
+[validate_skinning.expect]
+"synthetic_transform.matches" = {same_as = "synthetic_transform.cases"}
+"synthetic_transform.cases" = {min = 200}
+"chained_transform.matches" = {same_as = "chained_transform.cases"}
+"chained_transform.cases" = {min = 20}
+"synthetic_tick.matches" = {same_as = "synthetic_tick.cases"}
+"synthetic_tick.cases" = {min = 450}
+"negative_controls.*" = {truthy = true}
+"installed.transform.matches" = {same_as = "installed.transform.cases"}
+"installed.tick.matches" = {same_as = "installed.tick.cases"}
+"installed.transform.vertices" = {min = 20001}
+"installed.per_version.12.files" = 180
+"installed.per_version.14.files" = 216
+"installed.per_version.14.compared" = 216
+
+[validate_social]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_social"
+pins = ["text", "data"]
+families = ["party_request", "party_fields", "party_state", "party_bars", "trade_lock", "trade_packets", "trade_result", "friends", "whisper", "markers"]
+cases = 7000
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutations"
+needs = ["clang"]
+build = ["reconstructed/social"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "500", "--mutations", "--output", "{report}"]
+[validate_social.expect]
+"cases" = 7000
+"mismatches" = 0
+"families.trade_packets.cases" = 2500
+"mutations" = {len = 10}
+"mutations.*" = {truthy = true}
+
+[validate_social2]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_social2"
+pins = ["text", "data"]
+families = ["item_unpack", "party_invite", "party_answer", "party_popup", "party_remove", "party_result", "party_permission", "party_autoaccept", "room_text", "room_membership", "mail_body", "mail_header", "mail_write", "room_send", "room_roster", "room_connect", "mail_read_request", "mail_delete_request", "item_finalizer", "excellent_value", "item_categories", "artifact_requests", "guardian_requests", "item_prefix", "advanced_eligibility", "trade_ban", "formula_evaluation", "ordinary_display", "excellent_display", "socket_display", "harmony_gate", "guardian_constructor", "guardian_presenter", "artifact_selection", "artifact_constructor", "artifact_presenter", "earring_selection", "earring_numeric", "earring_presenter", "errtel_presenter", "errtel_plan", "pentagram_presenter", "advanced_selection", "advanced_threshold", "advanced_presenter", "receive_room_open", "receive_mail_send", "receive_mail_delete", "receive_mail_read", "receive_mail_body", "receive_pending_track", "receive_pending_close", "receive_pending_bind", "receive_pending_get"]
+cases = 29700
+mutants = 36
+cases_at = "cases"
+mutants_at = "mutations"
+needs = ["game_root", "clang"]
+build = ["reconstructed/social", "reconstructed/data"]
+timeout = 1200
+args = ["--text", "{text}", "--data", "{data}", "--game-root", "{game_root}", "--cases", "500", "--mutations", "--output", "{report}"]
+note = "without --game-root, formula_evaluation drops the 6x210 installed-row cases: 503 instead of 1,763, total 28,440 instead of 29,700. The two receive_unrepresentable keys contain spaces; check lookup() handles them (split on \".\" only, so they work)."
+[validate_social2.expect]
+"cases" = 29700
+"mismatches" = 0
+"families" = {len = 54}
+"families.formula_evaluation.cases" = 1763
+"families.formula_evaluation.formula_file_sha256" = "d92f32f6aa417387348112aaae83c1153b826933683a8b4cf9960e44a29176d4"
+"receive_unrepresentable_cases.external peer-map sentinel" = 2
+"receive_unrepresentable_cases.invalid pre-existing cache packet" = 8
+"mutations" = {len = 36}
+"mutations.*" = {truthy = true}
+
+[validate_social2_display]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2"
+
+[validate_social2_display_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_display"
+
+[validate_social2_finalizer]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2, validate_social2_finalizer_guest, validate_social2_items, validate_social2_display"
+
+[validate_social2_finalizer_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2"
+
+[validate_social2_formula]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2, validate_social2_present"
+
+[validate_social2_formula_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_formula, validate_social2_present_guest, validate_social2_present_extra_guest"
+
+[validate_social2_item_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_items"
+
+[validate_social2_items]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2, validate_social2_display"
+
+[validate_social2_lifecycle]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2"
+
+[validate_social2_packets]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2, validate_social2_lifecycle, validate_social2_receive_guest"
+
+[validate_social2_present]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2"
+
+[validate_social2_present_cases]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_present"
+
+[validate_social2_present_extra_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_present"
+
+[validate_social2_present_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_present"
+
+[validate_social2_receive]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2"
+
+[validate_social2_receive_guest]
+kind = "helper"
+parent = "validate_social2"
+note = "imported by validate_social2_receive"
+
+[validate_terrain]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_terrain"
+pins = ["text", "data", "flag"]
+families = ["add_light", "attributes", "decal", "face_normal", "frame_update", "frustum_2d", "frustum_3d", "height_bytes", "height_choice", "height_rgb", "installed", "light_bmp", "map", "normals", "primary_light", "render_frustum", "render_terrain", "test_frustum_2d", "tile_corners", "tile_streams", "tile_uv", "world_tile_streams", "xor3"]
+cases = 583500
+mutants = 7
+cases_at = ["xor3.cases", "face_normal.cases", "normals.cases", "primary_light.cases", "tile_uv.cases", "tile_corners.cases", "tile_streams.cases", "render_terrain.cases", "height_bytes.cases", "height_rgb.cases", "light_bmp.cases", "attributes.cases", "map.cases", "frame_update.cases", "height_choice.cases", "add_light.cases", "world_tile_streams.cases", "frustum_3d.cases", "frustum_2d.cases", "test_frustum_2d.cases", "render_frustum.cases", "decal.cases", "installed.compared.*.tile_streams.cases"]
+needs = ["game_root"]
+build = ["reconstructed/terrain", "native"]
+timeout = 2400
+args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--game-root", "{game_root}", "--scale-002", "5", "--installed-worlds", "1,143,64,8", "--installed-tiles", "0", "--output", "{report}"]
+note = "the documented numbers come from TWO local runs (final.json: --scale-002 5 synthetic, no game root; inst-full.json: --skip-002 + installed); this row combines them in one process, which is unverified (installed() sets its own world/extra state, so interaction is unlikely). If it fails only in installed.*, split it: drop --game-root/--installed-* to reproduce final.json exactly. If it runs far over"
+[validate_terrain.expect]
+"xor3.cases" = 20
+"xor3.matches" = {same_as = "xor3.cases"}
+"face_normal.cases" = 400
+"face_normal.matches" = {min = 371}
+"face_normal.generated_nan_sign_only" = {max = 29}
+"normals.cases" = 3
+"normals.matches" = {same_as = "normals.cases"}
+"primary_light.cases" = 6
+"primary_light.matches" = {same_as = "primary_light.cases"}
+"tile_uv.cases" = 300
+"tile_uv.matches" = {same_as = "tile_uv.cases"}
+"tile_corners.cases" = 300
+"tile_corners.matches" = {same_as = "tile_corners.cases"}
+"tile_streams.cases" = 2700
+"tile_streams.matches" = {same_as = "tile_streams.cases"}
+"tile_streams.unsupported" = 0
+"render_terrain.cases" = 2
+"render_terrain.matches" = {same_as = "render_terrain.cases"}
+"height_bytes.cases" = 3
+"height_bytes.matches" = {same_as = "height_bytes.cases"}
+"height_rgb.cases" = 2
+"height_rgb.matches" = {same_as = "height_rgb.cases"}
+"light_bmp.cases" = 3
+"light_bmp.matches" = {same_as = "light_bmp.cases"}
+"attributes.cases" = 6
+"attributes.matches" = {same_as = "attributes.cases"}
+"map.cases" = 1
+"map.matches" = 1
+"frame_update.cases" = 8
+"frame_update.matches" = {same_as = "frame_update.cases"}
+"height_choice.cases" = 256
+"height_choice.matches" = 256
+"height_choice.python_model_equal" = 256
+"height_choice.negative_control_literal_only_differs" = {min = 1}
+"add_light.cases" = 800
+"add_light.matches" = 800
+"add_light.negative_controls.clamp1_differs" = 196
+"add_light.negative_controls.noclamp_differs" = 189
+"add_light.negative_controls.python_model_equal" = 200
+"world_tile_streams.cases" = 43200
+"world_tile_streams.matches" = 43147
+"world_tile_streams.unsupported" = 53
+"world_tile_streams.calls" = 679893
+"world_tile_streams.effects" = 371
+"world_tile_streams.model_and_negative_controls.compared" = 2100
+"world_tile_streams.model_and_negative_controls.python_model_equal" = 2100
+"world_tile_streams.model_and_negative_controls.generic_scroll_differs" = 185
+"world_tile_streams.model_and_negative_controls.generic_blend_differs" = 44
+"frustum_3d.cases" = 200
+"frustum_3d.matches" = 200
+"frustum_2d.cases" = 300
+"frustum_2d.matches" = 300
+"test_frustum_2d.cases" = 15000
+"test_frustum_2d.matches" = 15000
+"test_frustum_2d.python_model_equal" = 15000
+"test_frustum_2d.negative_control_range_sign_differs" = {min = 1}
+"render_frustum.cases" = 20
+"render_frustum.matches" = 20
+"decal.cases" = 300
+"decal.matches" = 300
+"negative_controls.uv_natural_index_differs" = true
+"installed.worlds" = 83
+"installed.client_loops.height_bytes" = [55, 55]
+"installed.client_loops.height_rgb" = [27, 27]
+"installed.client_loops.light_bmp" = [87, 87]
+"installed.client_loops.attributes" = [90, 90]
+"installed.client_loops.map" = [84, 84]
+"installed.client_loops.failures" = {len = 0}
+"installed.compared" = {len = 4}
+"installed.compared.*.normals" = true
+"installed.compared.*.primary_light" = true
+"installed.compared.*.tile_streams.matches" = {same_as = "installed.compared.*.tile_streams.cases"}
+"installed.compared.1.tile_streams.cases" = 130050
+"installed.compared.143.tile_streams.cases" = 130050
+"installed.compared.64.tile_streams.cases" = 129520
+"installed.compared.64.tile_streams.unsupported" = 530
+"installed.compared.8.tile_streams.cases" = 130050
+
+[validate_ui]
+test = "reconstructed/ui/test_ui.py::UiTests.test_private_client_instructions"
+pins = ["text", "data"]
+families = ["font_cases", "jpeg_cases", "login_overlay_cases", "render_bitmap_color_cases", "sprite_cases", "state_projection_cases", "text_cases", "tga_cases", "title_scene_cases"]
+cases = 794
+cases_at = ["render_bitmap_color_cases", "state_projection_cases", "sprite_cases", "title_scene_cases", "text_cases", "font_cases", "login_overlay_cases", "tga_cases", "jpeg_cases"]
+needs = ["game_root"]
+build = ["reconstructed/ui"]
+args = ["--text", "{text}", "--data", "{data}", "--tga-limit", "40", "--jpeg-large", "1", "--jpeg-small", "25", "--game-root", "{game_root}", "--output", "{report}"]
+[validate_ui.expect]
+"render_bitmap_color_cases" = 48
+"state_projection_cases" = 192
+"sprite_cases" = 160
+"title_scene_cases" = 40
+"text_cases" = 140
+"login_overlay_cases" = 48
+"font_cases" = 11
+"tga_cases" = {min = 48}
+"tga_installed_files" = 40
+"jpeg_cases" = {min = 26}
+
+[validate_ui_widgets]
+test = "reconstructed/ui/test_ui_widgets.py::WidgetTests.test_private_client_instructions"
+pins = ["text", "data"]
+families = ["credits", "cut_text_cases", "server_window", "sprites", "winex"]
+cases = 630
+cases_at = ["cut_text_cases", "sprites.cases", "winex.cases", "server_window.cases", "credits.cases"]
+build = ["reconstructed/ui"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "10", "--output", "{report}"]
+[validate_ui_widgets.expect]
+"cut_text_cases" = 400
+"sprites.cases" = 120
+"winex.cases" = 60
+"server_window.cases" = 10
+"credits.cases" = 40
+"server_window.state_words" = {min = 100001}
+
+[validate_world_fidelity]
+test = "tests/test_world_fidelity_private.py::WorldFidelityPrivateTests.test_routines_match_client"
+pins = ["text", "data"]
+families = ["scene"]
+cases = 200
+mutants = 2
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/objects"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--mutations", "--mutation-cases", "200", "--output", "{report}"]
+[validate_world_fidelity.expect]
+"ok" = true
+"families.*.cases" = {all_min = 1}
+"families.*.equal" = {same_as = "families.*.cases"}

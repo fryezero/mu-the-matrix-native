@@ -24,12 +24,14 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-TEXT_BASE, TEXT_BYTES = 0x401000, 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BASE, DATA_BYTES = 0x1a7c000, 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
+TEXT_BASE, TEXT_BYTES = 0x401000, pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_BASE, DATA_BYTES = 0x1a7c000, pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 FLAG_ADDRESS = 0x0bdd1cc8
-FLAG_SHA256 = '67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450'
+FLAG_SHA256 = pins.FLAG.sha256
 
 # Routine bodies pinned by SHA-256 of the restored bytes (start, length, digest).
 ROUTINES = {
@@ -108,11 +110,7 @@ def same(a, b):
     return fbits(a) == fbits(b)
 
 
-def load_pinned(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError(f'Input does not match pinned {label}')
-    return payload
+load_pinned = pins.loader(ValueError, 'Input does not match pinned {label}')
 
 
 class Stop(Exception):
@@ -1334,10 +1332,8 @@ def run_mutations(guest, families, seed, count):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     import os
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT',
-                                                         str(ROOT / 'evidence/x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', default=os.environ.get(
-        'MU_IMAGE_DATA', str(ROOT / 'evidence/image-data-run10/data-capture-10/client-image-data.bin')))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--flag', default=None, help='captured 4-byte dispatch flag (trig-state capture)')
     parser.add_argument('--cases', type=int, default=400, help='random cases per routine family')
     parser.add_argument('--seed', type=int, default=0x46524d)

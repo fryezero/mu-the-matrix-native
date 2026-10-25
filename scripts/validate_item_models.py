@@ -31,6 +31,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 spec = importlib.util.spec_from_file_location('validate_data_tables', ROOT/'scripts/validate_data_tables.py')
 tables = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tables)
@@ -196,9 +198,9 @@ def authored_models(binary, item_file):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--text', type=Path, default=ROOT/'evidence/x86-text-capture-09/client-text.bin')
-    parser.add_argument('--data', type=Path, default=ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')
-    parser.add_argument('--feature', type=Path, default=ROOT/'evidence/image-data-run10/math-capture-10/cpu-features.bin')
+    parser.add_argument('--text', type=Path, default=pins.TEXT.default())
+    parser.add_argument('--data', type=Path, default=pins.DATA.default())
+    parser.add_argument('--feature', type=Path, default=pins.FEATURE.default())
     parser.add_argument('--game-root', type=Path, default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--mu-data', type=Path, default=ROOT/'native/build/mu-data')
     parser.add_argument('--output', type=Path)

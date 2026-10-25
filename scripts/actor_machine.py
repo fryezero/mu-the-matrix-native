@@ -18,12 +18,16 @@ verified second image section (0x01a7c000) with:
 """
 import hashlib
 import struct
+import sys
 from pathlib import Path
 
-TEXT_BASE, TEXT_BYTES = 0x401000, 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BASE, DATA_BYTES = 0x1a7c000, 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
+
+TEXT_BASE, TEXT_BYTES = 0x401000, pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_BASE, DATA_BYTES = 0x1a7c000, pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 STACK, STACK_BYTES = 0x31000000, 0x20000
 ENTRY_ESP = STACK + 0x1c000
 SENTINEL = 0x7ffe0000
@@ -33,11 +37,7 @@ FPCW, MXCSR = 0x027f, 0x1f80
 PAGE = 0x1000
 
 
-def load_pinned(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise SystemExit(f'{label}: unexpected size or SHA-256 ({path})')
-    return payload
+load_pinned = pins.load_pinned
 
 
 def align(value, boundary=PAGE):

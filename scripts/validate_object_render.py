@@ -49,6 +49,7 @@ import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 import actor_machine as am  # noqa: E402
 
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
@@ -1247,12 +1248,8 @@ def mutations(machine, args):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    evidence = ROOT / 'evidence'
-    if not evidence.exists():   # a worktree: the main checkout keeps the pinned captures
-        evidence = Path.home() / 'Documents/main-exe-study/evidence'
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(evidence / 'x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(
-        evidence / 'image-data-run10/data-capture-10/client-image-data.bin')))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--library', default=str(ROOT / f'reconstructed/objects/libobjects.{SUFFIX}'))
     parser.add_argument('--cases', type=int, default=300)
     parser.add_argument('--seed', type=int, default=0x0b2e)
