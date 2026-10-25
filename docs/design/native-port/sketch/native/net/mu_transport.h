@@ -13,6 +13,17 @@
  * connect that is not the configured connect server or an endpoint the session itself
  * learned from the service (F4 03 game-server address, a messenger room's chat server).
  * There is no other path to a socket in the product, which a symbol test checks.
+ *
+ * One client at a time (operator rule, 2026-10-25: one account, one logged-in client). The
+ * sockets transport takes the client lock before its first connect and fails with
+ * MU_TRANSPORT_LOCKED while another client holds it:
+ *   - product: a per-user single-instance lock, plus a refusal while an original main.exe or
+ *     MuTheMatrix.exe the user started is running (the user is playing; never touch it);
+ *   - agents and live tests (MU_AGENT=1): the shared game lock of mu-mac-tools' GAME-LOCK.md,
+ *     whose owner line must equal MU_LOCK_ID, exactly as mu-autologin.sh checks it. The lock
+ *     directory comes from MU_GAME_LOCK_DIR (no path is compiled in).
+ * The lock is released by mu_transport_free. A second login the service refuses as "already
+ * connected" closes the session with MU_CLOSE_ALREADY_CONNECTED instead of retrying.
  */
 #ifndef MU_TRANSPORT_H
 #define MU_TRANSPORT_H
@@ -31,8 +42,16 @@ typedef struct mu_endpoint {
 
 typedef struct mu_transport mu_transport;
 
-/* Product transport. `allowed` seeds the allowlist (normally just the connect server). */
-mu_transport *mu_transport_sockets(const mu_endpoint *allowed, size_t count, char *error, size_t error_size);
+typedef enum mu_transport_status {
+    MU_TRANSPORT_OK = 0,
+    MU_TRANSPORT_LOCKED,         /* another client holds the client lock (owner line in `error`) */
+    MU_TRANSPORT_ERROR
+} mu_transport_status;
+
+/* Product transport. `allowed` seeds the allowlist (normally just the connect server). Takes the
+ * client lock (see above) before returning; NULL with *status = MU_TRANSPORT_LOCKED when it is held. */
+mu_transport *mu_transport_sockets(const mu_endpoint *allowed, size_t count, mu_transport_status *status,
+                                   char *error, size_t error_size);
 
 typedef enum mu_replay_mode {
     MU_REPLAY_STRICT = 0,        /* a divergent outbound byte is a failure */

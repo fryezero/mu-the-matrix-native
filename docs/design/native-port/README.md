@@ -12,6 +12,7 @@ structurally different candidate designs, an independent cross-judge, and a synt
 | `sketch/` | Type and signature sketches at their future repository paths. Bodies are `MU_NOT_IMPLEMENTED()` or `TODO` pseudocode. Nothing here is built; each milestone moves its files into place and fills them in |
 
 Status classes in the plan: **EA** evidence-available, **BP** blocked by the protection boundary, **OP** needs the
-owner or the server operator. The protection boundary is unchanged: no part of this design analyses, forges,
-records or replays launcher, IGC.dll or RGS.dll material; session establishment is an operator contract
-(NET-CONTRACT-001).
+owner or the server operator. The operator's answers (2026-10-25: account-only login, native client allowed,
+recording and automated play allowed, one client at a time) are in
+[service-contract.md](../../research/service-contract.md). The protection boundary is unchanged: no part of this
+design analyses, forges, records or replays launcher, IGC.dll or RGS.dll material.

@@ -57,10 +57,12 @@ typedef struct mu_client_build {
 
 /* Launcher-session material. The original receives something from the official launcher /
  * IGC.dll over localhost:55232; its content is behind the protection boundary and is NOT
- * recovered, forged or replayed here. If NET-ACCOUNT-001 shows the login body carries such a
- * field, the session asks this source for it. This repository ships exactly two
- * implementations: mu_proof_not_required() and mu_proof_unavailable(). Anything else must come
- * from a recorded operator contract (NET-CONTRACT-001). */
+ * recovered, forged or replayed here. The operator answered NET-CONTRACT-001 on 2026-10-25: a
+ * login needs only the account and password, and a native client is allowed. The live
+ * configuration therefore uses mu_proof_not_required(): any login-body field the original fills
+ * from launcher/IGC material (NET-ACCOUNT-001 tags them) is sent empty, and LIVE-LOGIN-001 shows
+ * the service accepts that. mu_proof_unavailable() stays for the refusal path's tests. Nothing
+ * else ships here. */
 typedef enum mu_proof_status {
     MU_PROOF_OK = 0,            /* out filled by an operator-sanctioned source */
     MU_PROOF_NOT_REQUIRED,      /* the service accepts a login without launcher material */
@@ -82,7 +84,7 @@ const mu_login_proof_source *mu_proof_not_required(void);
 const mu_login_proof_source *mu_proof_unavailable(void);
 
 typedef struct mu_session_config {
-    mu_endpoint connect_server;          /* from settings / the operator contract; never from the install */
+    mu_endpoint connect_server;          /* from settings (confirmed by the first recording); never from the install */
     mu_transport *transport;             /* sockets (product), fixture loopback (tests), replay (gate 3) */
     const mu_client_build *build;
     const mu_login_proof_source *proof;
@@ -126,6 +128,7 @@ typedef enum mu_close_reason {
     MU_CLOSE_DECRYPT_ERROR,             /* "Decrypt error : g_byPacketSerialRecv" path of 0x01221b94 */
     MU_CLOSE_LOGIN_REFUSED,             /* F1 01 result != success; status.code holds the result byte */
     MU_CLOSE_CLIENT_OUTDATED,           /* the result code the server uses for a wrong version */
+    MU_CLOSE_ALREADY_CONNECTED,         /* the account is logged in elsewhere (one client at a time); no retry */
     MU_CLOSE_NEEDS_OPERATOR_CONTRACT    /* the login needs launcher material no sanctioned source provides */
 } mu_close_reason;
 

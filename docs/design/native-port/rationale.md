@@ -40,10 +40,12 @@ Several things make the shape non-obvious:
 ```c
 /* native/client/main.c - the whole network story of the front end */
 mu_endpoint service = settings.endpoint;                          /* from the operator contract */
+mu_transport_status ts;
 mu_transport *net = dev_fixture ? mu_fixture_transport(fixture)   /* tests: wire-level fake server */
-                                : mu_transport_sockets(&service, 1, err, sizeof err);
+                                : mu_transport_sockets(&service, 1, &ts, err, sizeof err);
+if (!net && ts == MU_TRANSPORT_LOCKED) return show_notice(err);   /* one client at a time */
 shell_cfg.session = (mu_session_config){.connect_server = service, .transport = net,
-                                        .build = &MU_PINNED_BUILD, .proof = mu_proof_not_required(),
+                                        .build = &MU_PINNED_BUILD, .proof = mu_proof_not_required(), /* operator: account only */
                                         .lang = lang, .game_root = root, .journal = journal};
 mu_shell *shell = mu_shell_new(&shell_cfg, &platform, err, sizeof err);
 for (;;) {
@@ -239,7 +241,9 @@ mu_world_rt_input / window callbacks / shell ─► mu_intent ─► mu_session_
    reconstructed login body by provenance: user (from `mu_secret`), build (pinned bytes from the restored text), or
    launcher (`mu_login_proof_source`). The repository ships only `mu_proof_not_required()` and
    `mu_proof_unavailable()`, and the latter closes with `MU_CLOSE_NEEDS_OPERATOR_CONTRACT`. Nothing forges, replays
-   or analyses launcher or IGC material.
+   or analyses launcher or IGC material. The operator answered on 2026-10-25 that a login needs only the account
+   and password, so the live configuration is `mu_proof_not_required()`: launcher-tagged fields are sent empty, and
+   the first live login shows what the service does with them.
 7. **The world is a runtime over the session, not a copy of it.** `world/main.c` becomes `mu_world_rt` plus
    `parts.def`, one row per subsystem with the client's tick order and draw order. `mu-world`, `mu-walk` and
    `mu-client` become thin front ends. Feature flags disappear from the product, because the server decides what
@@ -248,6 +252,11 @@ mu_world_rt_input / window callbacks / shell ─► mu_intent ─► mu_session_
 8. **One input router in the world** (`mu_world_rt_input`). It applies GFx first refusal, then the key scan, panel
    bindings, hotkeys and finally walk/attack, and its outputs are intents. The cast, pick-up and right-click paths
    that `mu-client` could not reach become reachable.
+9. **One client at a time is the transport's rule, not the caller's.** The account can be logged in from one
+   client only, original or native. The sockets transport takes the client lock before it connects. In the
+   product that is a single-instance lock plus a refusal while an original client is running. For agents and live
+   tests it is the shared game lock with its owner check. A side-by-side comparison is two sequential runs aligned
+   on the join and the client clock, never two clients at once.
 
 ### Interface depth
 
@@ -400,27 +409,33 @@ working and changes no `reconstructed/*` source.
 
 ## Open questions and risks
 
-- What must a login present beyond account and password? Is it launcher or IGC material, a client serial, or a
-  version? Will the operator grant a native-client allowance, or provide a sanctioned token source
-  (NET-CONTRACT-001)? Without one, does the owner accept that the native client stops at
-  `MU_CLOSE_NEEDS_OPERATOR_CONTRACT`?
-- Does IGC.dll add traffic after the handshake (heartbeats, integrity reports)? If the server disconnects clients
-  that do not send them, only the operator can decide what a native client sends instead. Is the owner prepared to
-  ask?
+**Answered by the owner and the operator (2026-10-24/25).**
+- A login needs only the account and password, and a native client is allowed.
+- The owner's sessions may be recorded, and automated play is allowed.
+- One client may be logged in at a time.
+- Each user runs a guided capture for their own Native Data (DATA-ACQ-002). Operator-supplied plaintext is not
+  taken.
+- Signing and notarization are deferred.
+- Live runs use the owner's dev account, whose password lives only in the Keychain item `mu-the-matrix-dev`.
+
+**Still open. The first recording or the code answers these; none needs a person.**
+- What is the connect-server endpoint? A second-hand note says `mtm2112.muthematrix.com:44205`, game server MTM-1.
+  Does IGC.dll add traffic after the login (heartbeats, integrity reports)? Does the service check the client
+  version? CAPTURE-KIT-001's first recording settles all three. If the service disconnects a client that does not
+  send an IGC heartbeat, that is a new question for the operator. It is not something to imitate.
 - Where exactly does the client drain its packet queue (the caller of `0x01221b94`)? Are the serials reset on the
   connect-to-game-server hop? Which CryptoModule channel and key does each connection use, and is any key sent by
-  the server? These are evidence-available, but they decide whether recorded C3/C4 can be decrypted offline.
-- May the owner's own original-client traffic be captured on the Wine side (a `ws2_32` relay outside `main.exe`
-  and IGC) for replay and comparison? Its effect on the protected client is unknown. Who approves, and under which
-  live-test rules (rate, accounts, no automation that breaks service rules)?
-- Native Data for other users: will the operator supply plaintext objects and Lang tables? If not, is a guided
-  Wine-track acquisition with each user's own account acceptable as the product path?
-- Version drift: if the live service moves past the pinned `main.exe`, does the project re-pin (rerun families,
-  re-acquire Native Data, re-diff the jump table), or does it freeze on this build?
-- The F6 `0x70/0x71` extra XOR needs 3 bytes at `0x06fca280` (third section, never captured). Is a scoped capture
-  approved?
-- Is "no offline mode in the product" the owner's intent, or should the signed app keep a labelled fixture mode
-  for demonstrations?
+  the server? These are evidence-available, and they decide whether recorded C3/C4 can be decrypted offline. If
+  not, plaintext comes from the post-decode buffer.
+- What does a Wine-side `ws2_32` relay do to the protected client? Unknown until CAPTURE-KIT-001 runs.
+- Version drift: if the live service moves past the pinned `main.exe`, the project re-pins. That means rerunning
+  the families, regenerating `dispatch.def` and repeating the guided capture. The version check found in the first
+  recording decides how early the client can tell.
+- The F6 `0x70/0x71` extra XOR needs 3 bytes at `0x06fca280`: a `memread` of the running client under the game
+  lock, or the code that writes them.
+- The game lock limits each run to 3 minutes and each session to 15. The operator allows unlimited automated play.
+  The harness takes its limits from `GAME-LOCK.md`, so longer runs are a change to that file, the owner's call.
+- Should the app keep a labelled fixture mode for demonstrations, or ship live-only?
 
 ## Next implementation step
 

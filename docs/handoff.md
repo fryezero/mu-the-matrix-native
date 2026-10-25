@@ -29,13 +29,16 @@
   domain over a loopback fixture; plaintext `0x16` must produce `C1 4D 02 00 16`), WORLD-RT-001, CHARSEL-RT-001 and
   VERIFY-HARNESS-001.
 - Each lane owns the paths listed in `plan.md`, under "Parallel lanes".
-- Ask the owner and the operator now:
-  - NET-CONTRACT-001: what a login needs beyond the account, whether a native client is allowed, heartbeats, and
-    permission to record the owner's own traffic;
-  - the live-test rules in POLICY-LIVE-001;
-  - whether DATA-ACQ-001 (operator plaintext) or DATA-ACQ-002 (guided capture) is the Native Data path for other
-    users;
-  - an Apple Developer account for APP-DIST-001.
+- The owner and the operator answered on 2026-10-25 (`docs/research/service-contract.md`):
+  - a login needs only the account, and a native client is allowed;
+  - sessions may be recorded, and automated play is allowed;
+  - one client may be logged in at a time;
+  - each user runs a guided capture for Native Data;
+  - signing is deferred.
+- Live runs use the dev account. The password stays in the Keychain item `mu-the-matrix-dev`.
+- The plan now has LIVE-HARNESS-001 (`scripts/live_session.py`, game lock) and the client lock in NET-LINK-001.
+- `GAME-LOCK.md` still names `~/Documents/mu-mac-tools`; the folder is now under `~/Documents/MTM/`. Its 3- and
+  15-minute limits stand until the owner changes them.
 
 ## Verification skills (VERIFY-SKILLS-001, 2026-10-24)
 

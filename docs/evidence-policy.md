@@ -25,3 +25,8 @@ Each substantive finding needs an input hash, a bounded question, its original a
 Run `python3 scripts/audit_repository.py` before committing. Review staged filenames and diffs. The audit rejects generated/binary formats, acquisition directories, oversized files and local-machine paths. It is a useful boundary check, not a substitute for reading changed content.
 
 Memory-capture helpers and analysis should stay within the selected game and the owner's authorized environment. Keep game-account credentials out of reports and do not upload process captures as GitHub issue attachments or workflow artifacts.
+
+Session recordings (journals of native or original-client sessions, NET-CONTRACT-001 permits recording the owner's
+own sessions) are local evidence like memory captures: ignored directories only, never committed or uploaded. They
+carry the client build digest. Login and delete payloads are written as their length only, and nothing the launcher
+or IGC.dll produces is recorded.

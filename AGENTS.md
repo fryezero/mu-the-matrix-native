@@ -35,6 +35,12 @@ game lock). For code capture, full x86 system emulation with Linux Wine (`runtim
 prepared; actual native Windows validation is still open. Distinguish compatibility-environment captures from
 native Windows evidence.
 
+Live service work follows [docs/research/service-contract.md](docs/research/service-contract.md):
+- use the owner's dev account through `scripts/live_session.py` once it exists, under the shared game lock;
+- run one client at a time;
+- keep the password in the Keychain item `mu-the-matrix-dev`, never in output, logs, journals or the repository;
+- keep recordings and journals in ignored directories.
+
 Run `make test` with the configured Python. Private integration is opt-in; missing original inputs must produce an explicit skip in portable tests or an error in requested integration checks. Keep synthetic regression fixtures independent of proprietary data. Every behavior claim needs a relevant test or a precise unverified limitation.
 
 At handoff, update `docs/status.md`, the relevant finding document, and `docs/handoff.md` with changes, actual checks, artifact locations and the next concrete step. Keep the broader roadmap honest. A native game build is complete only after the acceptance gates in `docs/roadmap.md` pass.

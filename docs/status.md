@@ -15,7 +15,9 @@ milestone. In brief:
 - **Fixtures.** The demo servers become wire-level fixtures.
 - **Replay oracle.** It re-runs every received frame through the original dispatcher.
 
-No code changed. The sketches are design files only, under `docs/design/native-port/sketch/`.
+No code changed. The sketches are design files only, under `docs/design/native-port/sketch/`. On 2026-10-25 the
+operator confirmed account-only login, native client, recordings and automated play, with one client at a time
+([service-contract](research/service-contract.md)).
 
 ## README refresh, 2026-10-22
 
