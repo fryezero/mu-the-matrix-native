@@ -52,6 +52,7 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
 import actor_machine as am  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1106,7 +1107,7 @@ MUTATIONS = [
 
 def run_mutations(machine, args, worlds):
     out = []
-    tmp = Path(args.output).parent if args.output else Path('/tmp')
+    tmp = Path(args.output).parent if args.output else pins.work_dir('validate_environment')
     for mid, label, mworlds in MUTATIONS:
         lib_path = build_library(mid, tmp/f'libclient_env_mut{mid}.{SUFFIX}')
         L = Library(lib_path)

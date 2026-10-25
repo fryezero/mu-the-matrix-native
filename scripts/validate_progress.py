@@ -39,11 +39,11 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
-EVIDENCE = ROOT / 'evidence' if (ROOT / 'evidence').exists() else Path.home() / 'Documents/main-exe-study/evidence'
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 PRGDIR = ROOT / 'reconstructed' / 'progress'
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 
@@ -1562,18 +1562,17 @@ FAMILIES['master_exp'] = recv_family(0x01285efa, 0x18, setup_master_exp, native_
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--text', type=Path, default=EVIDENCE / 'x86-text-capture-09/client-text.bin')
-    ap.add_argument('--data', type=Path, default=EVIDENCE / 'image-data-run10/data-capture-10/client-image-data.bin')
+    ap.add_argument('--text', type=Path, default=pins.TEXT.default())
+    ap.add_argument('--data', type=Path, default=pins.DATA.default())
     ap.add_argument('--cases', type=int, default=200)
     ap.add_argument('--seed', type=int, default=20261022)
     ap.add_argument('--only', nargs='*', default=None)
     ap.add_argument('--mutations', action='store_true')
-    ap.add_argument('--work', type=Path, default=Path('/tmp/validate_progress'))
+    ap.add_argument('--work', type=Path, default=pins.work_dir('validate_progress'))
     ap.add_argument('--report', type=Path)
     args = ap.parse_args()
-    text, data = args.text.read_bytes(), args.data.read_bytes()
-    if sha256(text) != TEXT_SHA256 or sha256(data) != DATA_SHA256:
-        sys.exit('the pinned captures do not match')
+    text = pins.TEXT.read(args.text, mismatch=SystemExit('the pinned captures do not match'))
+    data = pins.DATA.read(args.data, mismatch=SystemExit('the pinned captures do not match'))
     args.work.mkdir(parents=True, exist_ok=True)
     report = {'text': TEXT_SHA256, 'data': DATA_SHA256, 'families': {}}
     names = args.only or list(FAMILIES)

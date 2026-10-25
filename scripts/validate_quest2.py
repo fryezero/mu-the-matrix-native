@@ -47,6 +47,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 import live_lang_to_plain as plain  # noqa: E402
 import validate_lang as vl  # noqa: E402
@@ -1439,8 +1440,8 @@ def run_family(name, text, data, snap, plain_dir, quest_bmd, args, lib_path=None
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshot', required=True, help='langread snapshot with the guide tables (local)')
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
-    parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--families', default='guide-data,guide,summary,move,wrap,dialog-wrap,classic-data,classic')
     parser.add_argument('--wrap-cases', type=int, default=2000)
@@ -1450,10 +1451,7 @@ def main():
     parser.add_argument('--output')
     parser.add_argument('--mutations', action='store_true', help='check planted mistakes in each new logic module')
     args = parser.parse_args()
-    for path, digest in ((args.text, vl.TEXT_SHA256), (args.data, vl.DATA_SHA256)):
-        if vl.sha256_file(path) != digest:
-            raise SystemExit(f'{path}: unexpected SHA-256')
-    text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
+    text, data = pins.TEXT.read(args.text, exit=True), pins.DATA.read(args.data, exit=True)
     snap = plain.Snapshot.load(args.snapshot)
     report = {'text_sha256': vl.TEXT_SHA256, 'data_sha256': vl.DATA_SHA256, 'seed': args.seed, 'families': {}}
     t0 = time.time()

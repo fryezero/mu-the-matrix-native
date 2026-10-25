@@ -54,6 +54,8 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 
 
 def load_module(name, path):
@@ -323,7 +325,7 @@ def socket_setup(rng, records):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--evidence', type=Path, default=ROOT/'evidence')
+    parser.add_argument('--evidence', type=Path, default=pins.evidence_dir())
     parser.add_argument('--game-root', type=Path, default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--library', type=Path, default=ROOT/f'reconstructed/price/libitemprice.{SUFFIX}')
     parser.add_argument('--cases-per-code', type=int, default=16, help='random states per installed code (x3 goldTypes)')
@@ -336,11 +338,11 @@ def main():
     args = parser.parse_args()
     started = time.time()
     ev = args.evidence
-    text = tables.load_pinned(ev/'x86-text-capture-09/client-text.bin', tables.TEXT_BYTES, tables.TEXT_SHA256,
+    text = tables.load_pinned(ev/pins.TEXT.relative, tables.TEXT_BYTES, tables.TEXT_SHA256,
                               'restored text')
-    data = tables.load_pinned(ev/'image-data-run10/data-capture-10/client-image-data.bin', tables.DATA_BYTES,
+    data = tables.load_pinned(ev/pins.DATA.relative, tables.DATA_BYTES,
                               tables.DATA_SHA256, 'second image section')
-    feature = tables.load_pinned(ev/'image-data-run10/math-capture-10/cpu-features.bin', 4, tables.FEATURE_SHA256,
+    feature = tables.load_pinned(ev/pins.FEATURE.relative, 4, tables.FEATURE_SHA256,
                                  'CPU feature word')
     if not args.game_root:
         raise SystemExit('--game-root or MU_GAME_ROOT is required')

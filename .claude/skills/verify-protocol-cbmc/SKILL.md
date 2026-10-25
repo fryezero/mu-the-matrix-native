@@ -32,6 +32,12 @@ layouts in `mu_protocol.h`. Then run the check before and after.
 | `mu_recv_push` 156–164 | `recv_push.c` | R3 |
 | `mu_packet_begin` 114–134, `mu_packet_add` 97–112 (plain path), `mu_packet_finish` 136–149, `mu_packet_len` 92–95, `packet_set_size` 86–90 | `packet_begin.c`, `packet_build.c`, `packet_add.c` | S1 |
 | `mu_send_xor_encode` 68–73, `mu_send_xor_decode` 75–84 | `xor_inverse.c`, `xor_window.c`, `xor_upper.c` | S2 |
+| `native/net/conn.c` `mu_conn_pull` 103–119 (+ `mu_recv_push`) | `link_pull.c` | L1, L2 |
+
+`link_pull.c` (NET-LINK-001) covers the step that feeds link bytes into the ring; its line numbers
+are those of `native/net/conn.c` at the NET-LINK-001 commit, and the `mu_conn` layout (the ring first)
+is asserted in the harness. `native/core/mu_protocol.c` joined `CORE_SRC` in NET-LINK-001 with no code
+change, so the sync commit below still describes it.
 
 Not covered: `mu_serial_next` 194–199 (a byte counter; it is never called from
 the harnesses), `native/tools/mu_proto.c` (the CLI around this module), and
@@ -133,6 +139,17 @@ allows; CBMC explores all of them at once, it does not sample.
   sits past the 64-byte window (the loop's index arithmetic does not depend on
   where the range sits, but that is an argument, not a proof).
 
+- **L1, L2 — the link-to-dechunker step keeps the client's 0x2000 guard and loses nothing.**
+  `mu_conn_pull` (native/net/conn.c) with 0x2000 bytes already buffered, or once the connection
+  stopped, reads nothing from the link, leaves the ring as it was, reports `MU_DECODE_OVERFLOW` and
+  stays stopped (L1: the client's `0x01290792` compares with 0x2000 at `0x0129079e` and logs "Receive
+  Packet Buffer Overflow" instead of calling recv). Otherwise it asks the link for exactly the ring's
+  room (0x2000 − buffered, as the client's recv), pushes every byte the link returns after the
+  buffered ones and never holds more than 0x2000 (L2). Harm otherwise: a server burst overruns the
+  ring, bytes are dropped silently, or a frame that cannot fit is waited for forever.
+  Bound: any buffered length 0..0x2000 with any contents and any stopped flag; a link read of
+  0..0x40 bytes of any value (the link's contract: at most `cap` bytes).
+
 ## Run it
 
 ```sh
@@ -145,7 +162,7 @@ CBMC's `0 of N failed`, then `RESULT: all properties hold ...`. Exit status 0.
 Measured on an Apple-silicon Mac at the sync commit, each harness alone:
 frame_parse 0 s, recv_drain 58 s, recv_push 17 s, packet_begin 1 s,
 packet_build 2 s, packet_add 4 s, xor_inverse 16 s, xor_window 50 s,
-xor_upper 29 s; the whole run takes 3 to 4 minutes, longer when another
+xor_upper 29 s, link_pull 39 s; the whole run takes 3 to 4 minutes, longer when another
 solver shares the machine. Each run is capped by `VERIFY_TIMEOUT` (default
 600 s); a `[TIME]` line means the solver did not finish, not that the property
 failed. Logs land in `$TMPDIR/verify-protocol-cbmc/` (`VERIFY_LOGDIR`
@@ -269,6 +286,11 @@ the real file is never touched. The property that guards it must fail
 | finish-wrong-byte | C1/C3 size field takes the high byte instead of the low byte | S1 (`packet_begin`, `packet_build`) |
 | encode-one-too-far | encode loop `i < end` → `i <= end` | S2 (`xor_upper`, `xor_window`) |
 | decode-ascending | decode walks ascending instead of descending | S2 (`xor_inverse`) |
+| pull-no-guard | drop the 0x2000 / stopped check in `mu_conn_pull` (conn.c) | L1 (`link_pull`) |
+| pull-room-plus-one | `mu_conn_pull` asks the link for one byte more than the room | L2 (`link_pull`) |
+
+A mutant row's fourth field names the source it edits: empty for `mu_protocol.c`, `conn` for
+`native/net/conn.c` (the harness then includes the mutated copy through `MU_CONN_SOURCE`).
 
 The whole mutant run takes about 5 minutes. The `run.sh` table says per
 harness whether a mutant run uses `--stop-on-fail` (the z3 harnesses: one

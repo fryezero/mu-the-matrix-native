@@ -39,14 +39,15 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins as input_pins  # noqa: E402  (main() has a local named pins)
 import client_ui_machine as cm  # noqa: E402
 try:
     from unicorn.x86_const import UC_X86_REG_FPCW, UC_X86_REG_MXCSR
 except ImportError:  # pragma: no cover
     UC_X86_REG_FPCW = UC_X86_REG_MXCSR = None
 
-TEXT_BYTES, TEXT_SHA256 = 23572480, '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BYTES, DATA_SHA256 = 2557764, 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+TEXT_BYTES, TEXT_SHA256 = input_pins.TEXT.size, input_pins.TEXT.sha256
+DATA_BYTES, DATA_SHA256 = input_pins.DATA.size, input_pins.DATA.sha256
 
 # Executed routine bodies, pinned (start, end, SHA-256 of the restored bytes).
 ROUTINES = {
@@ -806,10 +807,8 @@ FAMILIES = [
 def main(argv=None):
     import os
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT',
-                                                         str(ROOT / 'evidence/x86-text-capture-09/client-text.bin')))
-    parser.add_argument('--data', default=os.environ.get(
-        'MU_IMAGE_DATA', str(ROOT / 'evidence/image-data-run10/data-capture-10/client-image-data.bin')))
+    parser.add_argument('--text', default=input_pins.TEXT.default_str())
+    parser.add_argument('--data', default=input_pins.DATA.default_str())
     parser.add_argument('--cases', type=int, default=200)
     parser.add_argument('--seed', type=int, default=0x43534c)
     parser.add_argument('--only', default=None)
@@ -817,12 +816,8 @@ def main(argv=None):
     parser.add_argument('--print-pins', action='store_true')
     parser.add_argument('--mutations', action='store_true', help='also check that planted mistakes are detected')
     args = parser.parse_args(argv)
-    text = Path(args.text).read_bytes()
-    data = Path(args.data).read_bytes()
-    if len(text) != TEXT_BYTES or hashlib.sha256(text).hexdigest() != TEXT_SHA256:
-        raise SystemExit('restored text does not match the pinned capture')
-    if len(data) != DATA_BYTES or hashlib.sha256(data).hexdigest() != DATA_SHA256:
-        raise SystemExit('second section does not match the pinned capture')
+    text = input_pins.TEXT.read(args.text, mismatch=SystemExit('restored text does not match the pinned capture'))
+    data = input_pins.DATA.read(args.data, mismatch=SystemExit('second section does not match the pinned capture'))
     pins = {}
     for name, (start, end, _) in ROUTINES.items():
         pins[name] = hashlib.sha256(text[start - cm.TEXT_BASE:end - cm.TEXT_BASE]).hexdigest()

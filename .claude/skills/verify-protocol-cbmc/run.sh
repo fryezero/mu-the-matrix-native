@@ -15,6 +15,7 @@ ROOT="$(cd "$HERE/../../.." && pwd)"
 HARNESS="$HERE/harness"
 SRC="$ROOT/native/core/mu_protocol.c"
 HDR="$ROOT/native/core/mu_protocol.h"
+CONN_SRC="$ROOT/native/net/conn.c"     # link_pull.c: the link -> dechunker step (NET-LINK-001)
 TIMEOUT="${VERIFY_TIMEOUT:-600}"
 LOGDIR="${VERIFY_LOGDIR:-${TMPDIR:-/tmp}/verify-protocol-cbmc}"
 mkdir -p "$LOGDIR"
@@ -44,6 +45,7 @@ packet_add   S1    z3  26 full    stop
 xor_inverse  S2    sat 26 nouwrap full
 xor_window   S2    sat 24 full    full
 xor_upper    S2    sat 24 full    full
+link_pull    L1,L2 z3  70 full    stop
 '
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "missing $1: brew install cbmc z3" >&2; exit 2; }; }
@@ -76,6 +78,10 @@ cbmc_run() {
     [ "$backend" = z3 ] && flags="$flags --smt2"
     log="$LOGDIR/$name${MUTANT_TAG:-}.log"
     start=$(date +%s)
+    # link_pull.c also includes native/net/conn.c (or its mutated copy, CONN_SOURCE) and its headers
+    if [ "$name" = link_pull ]; then
+        set -- -I "$ROOT/native/net" -DMU_CONN_SOURCE="\"${CONN_SOURCE:-$CONN_SRC}\"" "$@"
+    fi
     alarm_run "$TIMEOUT" cbmc "$HARNESS/$name.c" \
         -DMU_PROTOCOL_SOURCE="\"$source\"" --unwind "$unwind" $flags "$@" > "$log" 2>&1
     rc=$?
@@ -99,7 +105,9 @@ cbmc_run() {
     esac
 }
 
-# A planted mistake: NAME, sed program applied to a copy of the product source, harnesses that must fail.
+# A planted mistake: NAME, sed program applied to a copy of the product source, harnesses that must fail,
+# and the source it edits (empty: native/core/mu_protocol.c; conn: native/net/conn.c). Fields are split
+# on '|', so a sed program must not contain one.
 MUTANTS='
 parse-size-unchecked   |/if (size > avail)/{N;d;}                                                    |frame_parse recv_drain
 parse-two-bytes        |s/if (avail < 3u)/if (avail < 2u)/                                           |frame_parse
@@ -112,6 +120,8 @@ begin-no-head          |s/mu_packet_add(p, \&head, 1u, 0);/\/* head add removed 
 finish-wrong-byte      |s/p->obj\[3\] = (uint8_t)(size \& 0xffu);/p->obj[3] = (uint8_t)((size >> 8) \& 0xffu);/|packet_begin packet_build
 encode-one-too-far     |s/for (i = start; i < end; ++i)/for (i = start; i <= end; ++i)/              |xor_upper xor_window
 decode-ascending       |s/for (i = end; i-- > start;)/for (i = start; i < end; ++i)/                |xor_inverse
+pull-no-guard          |/rx.len >= MU_RECV_CAP) {$/,/^    }$/d                                          |link_pull |conn
+pull-room-plus-one     |s/size_t room = MU_RECV_CAP - c->rx.len;/size_t room = MU_RECV_CAP - c->rx.len + 1u;/|link_pull |conn
 '
 
 run_all() {
@@ -127,13 +137,23 @@ run_all() {
 run_mutants() {
     echo "verify-protocol-cbmc --mutants: each planted mistake must make its property fail"
     status=0
-    printf '%s\n' "$MUTANTS" | while IFS='|' read -r mname prog expect; do
+    printf '%s\n' "$MUTANTS" | while IFS='|' read -r mname prog expect target; do
         mname=$(printf '%s' "$mname" | tr -d ' '); [ -n "$mname" ] || continue
         prog=$(printf '%s' "$prog" | sed 's/[[:space:]]*$//')
+        target=$(printf '%s' "${target:-}" | tr -d ' ')
         dir=$(mktemp -d "${TMPDIR:-/tmp}/mu-protocol-mutant.XXXXXX")
         cp "$HDR" "$dir/mu_protocol.h"
-        sed -e "$prog" "$SRC" > "$dir/mu_protocol.c"
-        if cmp -s "$SRC" "$dir/mu_protocol.c"; then
+        if [ "$target" = conn ]; then
+            cp "$SRC" "$dir/mu_protocol.c"
+            orig="$CONN_SRC"; mutated="$dir/conn.c"
+        else
+            orig="$SRC"; mutated="$dir/mu_protocol.c"
+        fi
+        if ! sed -e "$prog" "$orig" > "$mutated"; then
+            echo "[ERROR] $mname: the sed program does not parse; fix MUTANTS"
+            echo "$mname" >> "$LOGDIR/mutant-misses"; rm -rf "$dir"; continue
+        fi
+        if cmp -s "$orig" "$mutated"; then
             echo "[STALE] $mname: the sed program matched nothing; the product changed, update MUTANTS"
             echo "$mname" >> "$LOGDIR/mutant-misses"; rm -rf "$dir"; continue
         fi
@@ -141,7 +161,11 @@ run_mutants() {
         for h in $expect; do
             # one counterexample is the point here; the table says whether --stop-on-fail is faster for this harness
             mode=$(row "$h" | awk '{print $6}'); extra=""; [ "$mode" = stop ] && extra="--stop-on-fail"
-            MUTANT_TAG=".$mname" cbmc_run "$h" "$dir/mu_protocol.c" $extra > "$dir/out" 2>&1; rc=$?
+            if [ "$target" = conn ]; then
+                MUTANT_TAG=".$mname" CONN_SOURCE="$dir/conn.c" cbmc_run "$h" "$SRC" $extra > "$dir/out" 2>&1; rc=$?
+            else
+                MUTANT_TAG=".$mname" cbmc_run "$h" "$dir/mu_protocol.c" $extra > "$dir/out" 2>&1; rc=$?
+            fi
             line=$(head -1 "$dir/out")
             case $rc in
                 1) printf '[CAUGHT] %s\n' "$line" ;;

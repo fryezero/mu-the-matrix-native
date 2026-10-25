@@ -54,7 +54,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
-            core/mu_progress.c \
+            core/mu_progress.c core/mu_protocol.c \
             core/mu_social_messages.c core/mu_social_item_tables.c core/mu_social_item_view.c
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
@@ -250,6 +250,19 @@ $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared core/mu_protocol.c -o $@
 
+# ---- C3/C4 CryptoModule (NET-CRYPTO-001) ----
+# native/net/crypto.cpp over Crypto++; a library of its own for the tests and
+# scripts/validate_crypto.py (ctypes). Planted mistakes for the validator:
+# build/crypto-mutants/libmucrypto_m<k> built with -DMU_CRYPTO_MUTATION=<k>.
+CRYPTO_LIB := $(BUILD)/libmucrypto.$(SHLIB_EXT)
+all: $(CRYPTO_LIB)
+$(CRYPTO_LIB): net/crypto.cpp net/mu_crypto.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -fPIC -shared net/crypto.cpp $(CRYPTOPP_LIBS) -o $@
+$(BUILD)/crypto-mutants/libmucrypto_m%.$(SHLIB_EXT): net/crypto.cpp net/mu_crypto.h
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -DMU_CRYPTO_MUTATION=$* -fPIC -shared net/crypto.cpp $(CRYPTOPP_LIBS) -o $@
+
 # Data tables (NATIVE-DATA-001): no Crypto++ or image dependencies.
 DATA_SRC := core/mu_data.c $(RECON)/data/data_codec.c $(RECON)/data/data_tables.c $(RECON)/data/item_attributes.c \
 	$(RECON)/data/table_layouts.c
@@ -410,6 +423,68 @@ $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_ba
 # app/Makefile: launcher, network guard, bundled dylibs, optional libmugfx (MUGFX_LIB=...).
 preview-app: $(BUILD)/mu-client
 	$(MAKE) -C app
+
+# ---- NET-LINK-001: the transport, links and connections (native/net) ----
+# mu_protocol.c is in CORE_SRC since NET-LINK-001 (no code change; verify-protocol-cbmc reran).
+# build/libmunet: the net layer alone, for native/tests/test_transport.py (ctypes).
+NET_SRC := net/transport.c net/transport_lock.c net/transport_sockets.c net/transport_replay.c net/conn.c
+NET_HDR := $(wildcard net/*.h) core/mu_protocol.h
+NET_SO := $(BUILD)/libmunet.$(SHLIB_EXT)
+
+all: $(NET_SO)
+
+$(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) -fPIC -shared $(NET_SRC) core/mu_protocol.c -o $@
+
+# ---- SESSION-CORE-001: the session core and its domains (native/session) ----
+# scripts/gen_domains.py generates the domain, route, intent and behaviour lists into build/gen and
+# fails the build on a broken rule (a duplicate route binding, an unrouted intent kind, ...). Two
+# variants of the objects: dev (MU_SESSION_SEED and MU_SESSION_AUDIT, fixture included) for
+# mu-session and the tests, and product (neither, no fixture), whose library must carry no seed or
+# fixture symbol (native/tests/test_session_core.py).
+PYTHON ?= python3
+GEN := $(BUILD)/gen
+GEN_STAMP := $(GEN)/.stamp
+GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard session/ops/*.ops) \
+              $(wildcard net/dispatch.def net/dispatch.seed.def net/ignore.def) $(wildcard fixture/behaviors/*.c)
+SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
+               $(wildcard session/domains/*.c)
+FIXTURE_SRC := fixture/fixture.c $(wildcard fixture/behaviors/*.c)
+SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h
+SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
+SESSION_DEV_OBJ := $(patsubst %.c,$(BUILD)/sdev/%.o,$(NET_SRC) $(SESSION_SRC) $(FIXTURE_SRC))
+SESSION_PROD_OBJ := $(patsubst %.c,$(BUILD)/sprod/%.o,$(NET_SRC) $(SESSION_SRC))
+
+all: $(BUILD)/libmusession.a $(BUILD)/libmusession_product.a
+
+$(GEN_STAMP): $(GEN_INPUTS)
+	@mkdir -p $(GEN)
+	$(PYTHON) ../scripts/gen_domains.py --out $(GEN)
+	@touch $@
+
+$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -c $< -o $@
+
+$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -c $< -o $@
+
+$(BUILD)/libmusession.a: $(SESSION_DEV_OBJ)
+	rm -f $@
+	ar rcs $@ $^
+
+$(BUILD)/libmusession_product.a: $(SESSION_PROD_OBJ)
+	rm -f $@
+	ar rcs $@ $^
+
+# ---- FIXTURE-001: the fixture server (native/fixture) and the session CLI (native/tools/mu_session.c) ----
+all: $(BUILD)/mu-session
+
+$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -c tools/mu_session.c -o $(BUILD)/mu_session.o
+	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) -lm -o $@
 
 clean:
 	rm -rf $(BUILD)

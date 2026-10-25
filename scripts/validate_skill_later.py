@@ -40,6 +40,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 import live_lang_to_plain as plain  # noqa: E402
 import validate_lang as vl  # noqa: E402
@@ -1407,8 +1408,8 @@ def run_family(name, cl, nat, rng, classes, rows, case_of, texts, cases):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
-    p.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
+    p.add_argument('--text', default=pins.TEXT.default_str())
+    p.add_argument('--data', default=pins.DATA.default_str())
     p.add_argument('--snapshot', required=True)
     p.add_argument('--cases', type=int, default=200)
     p.add_argument('--seed', type=int, default=3)
@@ -1422,9 +1423,7 @@ def main():
     a = p.parse_args()
     global PROGRESS
     PROGRESS = a.progress
-    for path, digest in ((a.text, vl.TEXT_SHA256), (a.data, vl.DATA_SHA256)):
-        if vl.sha256_file(path) != digest:
-            raise SystemExit(f'{path}: unexpected SHA-256')
+    text, data = pins.TEXT.read(a.text, exit=True), pins.DATA.read(a.data, exit=True)
     snap = plain.Snapshot.load(a.snapshot)
     relocate(snap)
     texts_table = dict(plain.read_text(snap))
@@ -1432,7 +1431,7 @@ def main():
     def texts(i):
         v = texts_table.get(i, b'')
         return v if isinstance(v, bytes) else v.encode('latin1')
-    cl = Client(Path(a.text).read_bytes(), Path(a.data).read_bytes(), snap, texts, a.strict)
+    cl = Client(text, data, snap, texts, a.strict)
     nat = Native(None, a.lib)
     classes, rows, min_columns = table_rows(snap)
     nat.load_table(classes, rows, min_columns)

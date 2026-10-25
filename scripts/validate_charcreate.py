@@ -46,12 +46,12 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins as input_pins  # noqa: E402  (main() has a local named pins)
 import client_ui_machine as cm  # noqa: E402
 
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+TEXT_SHA256 = input_pins.TEXT.sha256
+DATA_SHA256 = input_pins.DATA.sha256
 PINNED_FILE = Path(__file__).with_suffix('.pins.json')
-EVIDENCE = ROOT / 'evidence' if (ROOT / 'evidence').exists() else Path.home() / 'Documents/main-exe-study/evidence'
 
 RUN = (   # client code executed (pinned by SHA-256 in validate_charcreate.pins.json)
     0x00b49bf4, 0x00b4b684, 0x00b4a442, 0x00b4a4a1, 0x00b4a349, 0x00b49eca, 0x00b4b29d, 0x0110cb45,
@@ -990,8 +990,8 @@ def run_mutations(h, lib, count, seed):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--text', type=Path, default=EVIDENCE / 'x86-text-capture-09/client-text.bin')
-    ap.add_argument('--data', type=Path, default=EVIDENCE / 'image-data-run10/data-capture-10/client-image-data.bin')
+    ap.add_argument('--text', type=Path, default=input_pins.TEXT.default())
+    ap.add_argument('--data', type=Path, default=input_pins.DATA.default())
     ap.add_argument('--cases', type=int, default=200, help='cases per family')
     ap.add_argument('--seed', type=int, default=20261021)
     ap.add_argument('--family', action='append', choices=FAMILIES)
@@ -1000,8 +1000,9 @@ def main(argv=None):
     ap.add_argument('--write-pins', action='store_true')
     ap.add_argument('--report', type=Path)
     a = ap.parse_args(argv)
-    text, data = a.text.read_bytes(), a.data.read_bytes()
-    if sha256(text) != TEXT_SHA256 or sha256(data) != DATA_SHA256:
+    try:
+        text, data = input_pins.TEXT.read(a.text), input_pins.DATA.read(a.data)
+    except input_pins.PinMismatch:
         print('pinned inputs differ', file=sys.stderr)
         return 2
     h = Harness(text, data)

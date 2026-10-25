@@ -12,18 +12,15 @@ import hashlib
 import importlib.util
 from pathlib import Path
 import struct
+import sys
 
 DEFAULT_REPO = Path(__file__).resolve().parents[1]
-DEFAULT_TEXT = (
-    Path.home()
-    / "Documents/main-exe-study/evidence/x86-text-capture-09/client-text.bin"
-)
-DEFAULT_DATA = (
-    Path.home()
-    / "Documents/main-exe-study/evidence/image-data-run10/data-capture-10/client-image-data.bin"
-)
-TEXT_SHA256 = "2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724"
-DATA_SHA256 = "c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f"
+sys.path.insert(0, str(DEFAULT_REPO / 'scripts'))
+import pins  # noqa: E402
+DEFAULT_TEXT = pins.TEXT.default()
+DEFAULT_DATA = pins.DATA.default()
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 
 
 def _load_machine(repo):

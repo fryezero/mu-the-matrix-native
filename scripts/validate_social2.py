@@ -27,6 +27,8 @@ import validate_social2_receive as receives
 import validate_social2_present as presenters
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 
 
 class Wire(C.Structure):
@@ -109,15 +111,8 @@ def run_items(m, lib, cases):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    evidence = Path.home() / "Documents/main-exe-study/evidence"
-    p.add_argument(
-        "--text", type=Path, default=evidence / "x86-text-capture-09/client-text.bin"
-    )
-    p.add_argument(
-        "--data",
-        type=Path,
-        default=evidence / "image-data-run10/data-capture-10/client-image-data.bin",
-    )
+    p.add_argument("--text", type=Path, default=pins.TEXT.default())
+    p.add_argument("--data", type=Path, default=pins.DATA.default())
     p.add_argument("--cases", type=int, default=500)
     p.add_argument("--mutations", action="store_true")
     p.add_argument(
@@ -132,12 +127,8 @@ def main():
     a = p.parse_args()
     if a.cases <= 0:
         p.error("--cases must be positive")
-    text, data = a.text.read_bytes(), a.data.read_bytes()
-    if (
-        hashlib.sha256(text).hexdigest() != base.vn.TEXT_SHA256
-        or hashlib.sha256(data).hexdigest() != base.vn.DATA_SHA256
-    ):
-        raise ValueError("private capture hash mismatch")
+    text = pins.TEXT.read(a.text, mismatch=ValueError("private capture hash mismatch"))
+    data = pins.DATA.read(a.data, mismatch=ValueError("private capture hash mismatch"))
     m = base.Machine(text, data)
     m.allow((0xF08DCA, 0xF08F2F), (0xF09DDC, 0xF09E41))
     subprocess.run(

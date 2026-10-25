@@ -33,15 +33,11 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 import renderchar_machine as rmach  # noqa: E402
 from renderchar_machine import f2u, u2f  # noqa: E402
 
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
-
-
-def default_evidence(relative):
-    local = ROOT / 'evidence' / relative
-    return local if local.exists() else Path.home() / 'Documents/main-exe-study/evidence' / relative
 
 
 def build(directory, target):
@@ -375,8 +371,8 @@ def random_ros_case(rng):
 def object_screen_section(text, data, args):
     lib = build('reconstructed/hud', f'libmu_hud.{SUFFIX}')
     lib.mu_hud_object_screen.argtypes = [ctypes.POINTER(RosIn), ctypes.POINTER(RosOut)]
-    flag = default_evidence('trig-state-15/captures/late/math-dispatch-flag.bin').read_bytes()[:4]
-    feature = default_evidence('x86-math-capture-09/cpu-features.bin').read_bytes()[:4]
+    flag = pins.FLAG.read()
+    feature = pins.FEATURE09.read()
     world_args = (text, data, flag, feature)
     rng = random.Random(args.seed + 5)
     tally = Tally()
@@ -492,8 +488,8 @@ def header_calls(path):
 
 
 def special_models_section(text, data, args):
-    flag = default_evidence('trig-state-15/captures/late/math-dispatch-flag.bin').read_bytes()[:4]
-    feature = default_evidence('x86-math-capture-09/cpu-features.bin').read_bytes()[:4]
+    flag = pins.FLAG.read()
+    feature = pins.FEATURE09.read()
     world_args = (text, data, flag, feature)
     result, calls = loader_calls(world_args)
     if args.emit_special_models:
@@ -563,7 +559,7 @@ def snapshot_machine(text, data, snap, game_root, kinds):
     m.heap_checks(False)
     # the CRT's memset/memcpy feature words: __favor 0x0bdcb284 (no ERMS) and the captured math feature word
     m.put32(0x0bdcb284, 0)
-    m.write(0x01cf6618, default_evidence('x86-math-capture-09/cpu-features.bin').read_bytes()[:4])
+    m.write(0x01cf6618, pins.FEATURE09.read())
     m.write(0x01cf0448, bytes([0xfc, 0xcf, 0xab, 0]))   # the record key global (as scripts/validate_data_tables.py)
     m.put32(0x01cf65c0, 0xc179bffe)                       # __security_cookie (any value; Linux capture's)
     files, records = {}, {}
@@ -768,9 +764,8 @@ def lang_tables_section(text, data, args):
 # ---------------------------------------------------------------- main
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--text', type=Path, default=default_evidence('x86-text-capture-09/client-text.bin'))
-    parser.add_argument('--data', type=Path,
-                        default=default_evidence('image-data-run10/data-capture-10/client-image-data.bin'))
+    parser.add_argument('--text', type=Path, default=pins.TEXT.default())
+    parser.add_argument('--data', type=Path, default=pins.DATA.default())
     parser.add_argument('--sections', default='env_light,object_screen,special_models')
     parser.add_argument('--seed', type=int, default=20261018)
     parser.add_argument('--env-runs', type=int, default=2)
