@@ -1,5 +1,9 @@
 # Current status
 
+## Guest rebuild, 2026-10-24
+
+The QEMU x86 guest was rebuilt from the pinned image and reproduced every pinned capture digest (text, second section, math data, trig flag). Private integration: 35 of 39 suites pass; the other four need an older capture-04 section file, the pinned model manifest, or more planted-mistake cases. Details in [handoff](handoff.md#guest-rebuild-and-private-checks-capture-rebuild-001-2026-10-24).
+
 ## README refresh, 2026-10-22
 
 The README now covers the milestones merged since the split (maps and travel, skills 2, pets and mounts 2, quests 2,
