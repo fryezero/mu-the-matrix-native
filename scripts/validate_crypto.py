@@ -53,7 +53,6 @@ import argparse
 import ctypes
 import hashlib
 import json
-import os
 from pathlib import Path
 import random
 import struct
@@ -63,19 +62,16 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import client_ui_machine as cm  # noqa: E402
+import pins  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 LIB = ROOT/f'native/build/libmucrypto.{SUFFIX}'
 MUTANT_DIR = ROOT/'native/build/crypto-mutants'
 
-TEXT_BYTES, TEXT_SHA256 = 23572480, '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BYTES, DATA_SHA256 = 2557764, 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
-FEATURE_SHA256 = 'bce941d196c26696f1f5d701d21a8a9e414e81d6e15a48f3663313e3cd7cc4b9'
-EVIDENCE = Path(os.environ.get('MU_EVIDENCE', ROOT/'evidence'))
-DEFAULT_TEXT = EVIDENCE/'x86-text-capture-09/client-text.bin'
-DEFAULT_DATA = EVIDENCE/'image-data-run10/data-capture-10/client-image-data.bin'
-DEFAULT_FEATURE = EVIDENCE/'image-data-run10/math-capture-10/cpu-features.bin'
+TEXT_BYTES, TEXT_SHA256 = pins.TEXT.size, pins.TEXT.sha256
+DATA_BYTES, DATA_SHA256 = pins.DATA.size, pins.DATA.sha256
+FEATURE_SHA256 = pins.FEATURE.sha256
 
 MOD_ENC, MOD_DEC = 0x06fce2fc, 0x06fce31c
 SOCKET = 0x06fca2d8
@@ -139,11 +135,7 @@ def s32(value):
     return value - (1 << 32) if value & 0x80000000 else value
 
 
-def load_pinned(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError(f'{label} does not match the pinned capture')
-    return payload
+load_pinned = pins.loader(ValueError, '{label} does not match the pinned capture')
 
 
 # ---- the authored module ----------------------------------------------------------------------
@@ -847,9 +839,9 @@ def build(path):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--text', default=str(DEFAULT_TEXT))
-    ap.add_argument('--data', default=str(DEFAULT_DATA))
-    ap.add_argument('--feature', default=str(DEFAULT_FEATURE))
+    ap.add_argument('--text', default=None)
+    ap.add_argument('--data', default=None)
+    ap.add_argument('--feature', default=None)
     ap.add_argument('--seed', type=int, default=20261025)
     ap.add_argument('--scale', type=int, default=4, help='case-count multiplier')
     ap.add_argument('--families', default=','.join(FAMILIES))
@@ -857,13 +849,15 @@ def main(argv=None):
     ap.add_argument('--mutants-only', action='store_true')
     ap.add_argument('--report', default=None)
     args = ap.parse_args(argv)
-    for path in (args.text, args.data, args.feature):
-        if not Path(path).is_file():
+    inputs = [pin.path(given) for pin, given in ((pins.TEXT, args.text), (pins.DATA, args.data),
+                                                 (pins.FEATURE, args.feature))]
+    for path in inputs:
+        if not path.is_file():
             print(f'skip: private input missing: {path}')
             return 2
-    text = load_pinned(args.text, TEXT_BYTES, TEXT_SHA256, 'restored text')
-    data = load_pinned(args.data, DATA_BYTES, DATA_SHA256, 'image data')
-    feature = load_pinned(args.feature, 4, FEATURE_SHA256, 'CPU feature word')
+    text = load_pinned(inputs[0], TEXT_BYTES, TEXT_SHA256, 'restored text')
+    data = load_pinned(inputs[1], DATA_BYTES, DATA_SHA256, 'image data')
+    feature = load_pinned(inputs[2], 4, FEATURE_SHA256, 'CPU feature word')
     t0 = time.time()
 
     def digest(lo, hi, n=64):
