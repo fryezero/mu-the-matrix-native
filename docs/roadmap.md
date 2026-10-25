@@ -10,6 +10,14 @@
 
 The later macOS goal does not replace exact-version source recovery. No completion date or guarantee of full recovery is established by the current artifacts. An offline replacement server is not assumed to be requested.
 
+**End state (owner decision, 2026-10-24):** the finished native client logs in to the live Mu The Matrix service the
+way the Windows client does. The per-feature demo servers remain only as offline test fixtures. The protection
+boundary is unchanged: launcher, IGC.dll and RGS.dll material is never analysed, forged, recorded or replayed. The
+operator answered on 2026-10-25: a login needs only the account, a native client is allowed, sessions may be
+recorded, automated play is allowed, and one client may be logged in at a time
+([service-contract](research/service-contract.md)). The architecture and every remaining milestone
+are in [design/native-port](design/native-port/README.md).
+
 ## Ready tasks
 
 | ID | Work | Completion evidence | Dependencies |
@@ -93,9 +101,16 @@ The later macOS goal does not replace exact-version source recovery. No completi
 
 Inventory restored functions and imports. Pick one bounded behavior with a usable reference and reconstruct it through tests. Expand the function/type map and subsystem boundaries only as evidence supports them. Track initialization and companion-library behavior separately from gameplay.
 
-## Later, intentionally unspecified
+## Completing the native port
 
-Whole-client reconstruction, faithful renderer/input/audio modules, network/service integration, platform separation, native macOS graphics/windowing choices, packaging and end-to-end gameplay verification. These depend on code that has not yet been recovered.
+The remaining work toward the gates above (network and session, one owner for game state, the world runtime and
+input, the live service, the remaining GFx windows and gameplay systems, the remaining worlds, audio, Native Data
+for other users, packaging, and the gate 3/5 verification) is planned milestone by milestone in
+[design/native-port/plan.md](design/native-port/plan.md), with its architecture in
+[design/native-port/rationale.md](design/native-port/rationale.md). Stage-1 lanes that need no owner or operator
+answer: NET-DISPATCH-001, NET-CRYPTO-001, NET-LINK-001 → SESSION-CORE-001, WORLD-RT-001, CHARSEL-RT-001,
+VERIFY-HARNESS-001, DATA-ACQ-003/004 and the RENDER-WORLDS groups. No milestone waits for a person: the operator
+questions are answered, guided capture is the Native Data path, and signing (APP-DIST-001) is deferred by the owner.
 | NATIVE-PLAYERS-001 | Implemented (other players, demo server): `reconstructed/players` (class byte, ChangeCharacterExt with the wing switch / item level / class skin, the move packet 0x3d, MoveCharacters' remote step), `native/core/mu_world_players` in mu-world/mu-client (`--players`: viewport / move / die / store / destroy packets, parts with the render passes, path replay, fade, plates and setStore) | Private Unicorn run: 5 families, 4,768 cases, 0 mismatches, 7/7 planted mistakes detected; portable library examples and synthetic-world tests; private Lorencia run ([finding](research/client-remote-players.md)) | Viewport record, creation effects, destroy and store packets static; pose states, pets, helper models and mount pose not drawn; player hover/selection and the equipment change packet 0x45 open; demo server stands in for the real one |
 | NATIVE-HELPERS-001 | Implemented (pets and mounts): `reconstructed/helpers` (CreateBug/MoveBug/RenderBug/DeleteBug, mount kind/factory and 21 classes, base and classic class moves, action map, rider action 0x0106c382, lift, render), `native/core/mu_world_helpers` in mu-world/mu-client (`--helper`, demo players' `pet=`/`ride=`), rider hooks in mu_walk/mu_world_players | Private Unicorn run: 8,639 cases (bugs 1,000 sessions / 21,471 steps, factory 1,102 keys, 25 class entries, moves 1,000, rider 4,000 + 512, render 1,000), 0 mismatches, 5 negative controls and 6 planted mistakes detected; portable and private mu-walk tests ([finding](research/client-helpers.md)) | Data-driven pets (`0x00b990b0`), Dark Raven, Muun pets, the later mounts' own visuals, the transformations' rider actions; manager set/init, Imp block and opcode 0x25 static; no live comparison |
 | NATIVE-HELPERS-002 | Implemented: 24 mount functors; Shining Tail/Ghost Horse class effects; Dark Horse ring, flying steps, Fenrir effects; pet process and Dark Raven; Preview helper picker | Unicorn: 8,400 mount visual/step cases, particles 11,400, joints 5,400, effects 4,500; zero mismatches, planted mistakes caught; native owner/pose/bounds regression and local renders ([finding](research/client-helper-visuals.md)) | Alternate-grid shock rings; other later/rare/transformed class visuals and moves; Muun pets; inventory-driven helper selection |

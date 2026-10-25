@@ -1,0 +1,27 @@
+/* ops/quests.ops (sketch): every row delegates to the reconstructed mu_quest_receive mini-router, which
+ * reads the opcode at p[2] and the sub at p[3] (C1 layout, quest_packets.c:227). A quest frame that
+ * arrives as C2 would be misread: TODO(SESSION-QUEST-001) record each sub's head from the jump table
+ * cases and refuse (journal) a C2 frame for a C1-verified row instead of passing it. */
+MU_OP(0xC0, MU_SUB_NONE, quests_receive)
+MU_OP(0xA1, MU_SUB_NONE, quests_receive)
+MU_OP(0xA4, MU_SUB_NONE, quests_receive)
+MU_OP(0x86, MU_SUB_NONE, quests_receive)
+MU_OP(0xF6, 0x1c, quests_receive)
+MU_OP(0xF6, 0x50, quests_receive)
+MU_OP(0xF6, 0x51, quests_receive)
+MU_OP(0xF6, 0x56, quests_receive)
+MU_OP(0xF6, 0x6f, quests_receive)
+MU_OP(0xF6, 0x70, quests_receive)   /* + payload XOR keyed with 3 bytes at 0x06fca280 */
+MU_OP(0xF6, 0x71, quests_receive)   /* same */
+MU_OP(0xF6, 0x72, quests_receive)
+MU_OP(0xF6, 0x73, quests_receive)
+MU_OP(0xF6, 0x74, quests_receive)
+MU_OP(0xF6, 0x75, quests_receive)
+MU_OP(0xF6, 0x7b, quests_receive)
+MU_OP(0xF6, 0x81, quests_receive)
+MU_OP(0xF6, 0x82, quests_receive)
+MU_OP(0xF6, 0x83, quests_receive)
+/* Quest window events are generated intent kinds (MU_INTENT_WINDOW_QUEST_*), one per window that
+ * owns session-side handler state; see native/gfx/windows/<movie>.c meta lines. */
+MU_SUBMIT(MU_INTENT_WINDOW_QUEST_PROGRESS, quests_window_event)
+MU_SUBMIT(MU_INTENT_WINDOW_QUEST_INFO, quests_window_event)

@@ -1,0 +1,12 @@
+/* ops/hero.ops (sketch): experience, levels, stats, respawn (reconstructed/progress, verified). */
+
+MU_OP(0x16, MU_SUB_NONE, hero_kill_exp)          /* refuses encrypted == 0 with C1 4D 02 00 16 */
+MU_OP(0xA0, 0x06, hero_levelup)
+MU_OP(0xA0, 0x11, hero_point)
+MU_OP(0xA0, 0x22, hero_master_levelup)
+MU_OP(0xA0, 0x30, hero_respawn)                   /* may be MU_APPLY_WORLD_CHANGE */
+MU_OP(0xA0, 0x60, hero_master_exp)
+MU_OP(0x55, 0x57, hero_stats)
+MU_OP(0x55, 0x94, hero_speed)
+
+MU_SUBMIT(MU_INTENT_ADD_STAT, hero_add_stat)                   /* mu_prg_stat_button + mu_prg_stat_request */

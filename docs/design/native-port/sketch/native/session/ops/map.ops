@@ -1,0 +1,8 @@
+/* ops/map.ops (sketch): place, teleport, minimap records. */
+
+MU_OP(0x1C, MU_SUB_NONE, map_teleport)            /* arrives as C3: mu_teleport_parse after decode */
+MU_OP(0xE7, 0x03, map_minimap_records)
+
+MU_SUBMIT(MU_INTENT_GATE, map_gate)                            /* the gate entrance test's move request */
+MU_SUBMIT(MU_INTENT_WARP, map_warp)                            /* MoveCommand's request (reconstructed/map) */
+MU_SUBMIT(MU_INTENT_WALK, map_walk)                            /* SendMove 0x016b5cd0: body TODO(SESSION-COMBAT-001) */

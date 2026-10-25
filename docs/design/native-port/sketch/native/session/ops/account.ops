@@ -1,0 +1,26 @@
+/* ops/account.ops (sketch): connect server, login, character list, join.
+ * Row format: MU_OP(opcode, sub, apply) binds a native apply function to a route of
+ * native/net/dispatch.def; MU_SUBMIT(intent, fn) routes an intent. Client addresses and the
+ * sub-dispatch offsets live only in dispatch.def (generated from the binary). */
+
+MU_OP(0xF4, 0x03, account_server_connect)   /* ReceiveServerConnect: address packet[4], port packet[0x14] */
+MU_OP(0xF4, 0x05, account_server_item)
+MU_OP(0xF4, 0x06, account_server_list)      /* list parser 0x010721d4 */
+
+MU_OP(0xF1, 0x01, account_login_result)   /* -> protocol 0x14 or MU_CLOSE_LOGIN_REFUSED */
+MU_OP(0xF1, 0x02, account_server_move)    /* "game-server move" */
+MU_OP(0xF1, 0x03, account_client_close)
+
+/* TODO(NET-ACCOUNT-001): the character-list answer (CreateHero per entry), created 0x0122b648 and deleted
+ * answers (reconstructed/charsel/charcreate.h already verifies their effects), the join answer that ends
+ * in 0x0185a75a(1) (MU_APPLY_WORLD_CHANGE). Their opcodes come from the jump table, not from public lists. */
+
+MU_SUBMIT(MU_INTENT_CHOOSE_SERVER, account_choose_server)
+MU_SUBMIT(MU_INTENT_LOGIN, account_login)
+MU_SUBMIT(MU_INTENT_REQUEST_CHARACTERS, account_request_characters)   /* 0x00988d22 */
+MU_SUBMIT(MU_INTENT_CREATE_CHARACTER, account_create)
+MU_SUBMIT(MU_INTENT_DELETE_CHARACTER, account_delete)
+MU_SUBMIT(MU_INTENT_JOIN, account_join)                               /* scene.c:260 MU_SCENE_NET_SEND */
+MU_SUBMIT(MU_INTENT_LEAVE_WORLD, account_leave_world)
+MU_SUBMIT(MU_INTENT_LOGOUT, account_logout)
+MU_SUBMIT(MU_INTENT_KEEPALIVE, account_keepalive)                     /* scene.c:125 tail send, SendCounter > 31 */

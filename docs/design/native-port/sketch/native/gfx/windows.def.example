@@ -1,0 +1,24 @@
+/* build/gen/windows.def - GENERATED (shown as an example) from native/gfx/windows/*.c: each file
+ * defines one `const mu_window_view_ops mu_wv_<id>` with a `MU_WINDOW_META(movie, milestone)` line
+ * that gen_windows.py collects. FILES[] (mu_gfx_layer.c:374-379) and the slot enum are generated
+ * from it, so parallel window milestones add files and never edit a shared list. Two files that
+ * claim one movie fail the generator.
+ *   MU_WINDOW(movie, view_ops, milestone) */
+
+/* wired today (30 in FILES[] + base-loaded), migrated to session views by their domain milestones */
+MU_WINDOW(main,                     mu_wv_main,               SESSION-HERO-001)
+MU_WINDOW(InventoryFrame,           mu_wv_inventory,          SESSION-ITEMS-001)
+MU_WINDOW(CharacterInfoFrame,       mu_wv_character,          SESSION-HERO-001)
+MU_WINDOW(NpcShop,                  mu_wv_npc_shop,           SESSION-NPC-001)
+MU_WINDOW(MyQuestInfo,              mu_wv_quest_info,         SESSION-QUEST-001)
+MU_WINDOW(winParty,                 mu_wv_party,              SESSION-SOCIAL-001)
+MU_WINDOW(Trade,                    mu_wv_trade,              SESSION-SOCIAL-001)
+/* ... the remaining 23 of FILES[] ... */
+
+/* not wired today (about 135), by system milestone */
+MU_WINDOW(ServerSelect,             mu_wv_server_select,      GFX-ACCOUNT-001)
+MU_WINDOW(winLoginSceneBottomUI,    mu_wv_login_bottom,       GFX-ACCOUNT-001)
+MU_WINDOW(PersonalShopProductList,  mu_wv_pshop_list,         SYS-STORES-001)
+MU_WINDOW(GuildInfo,                mu_wv_guild_info,         SYS-GUILD-001)       /* movie name TBD from the inventory */
+MU_WINDOW(BloodCastle,              mu_wv_blood_castle,       SYS-EVENTS-BC-001)   /* movie name TBD */
+/* ... */

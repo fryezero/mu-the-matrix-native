@@ -1,5 +1,45 @@
 # Continue from here
 
+## Port completion design (ARCH-PORT-001, 2026-10-24)
+
+**Decision and process**
+- The owner decided that the finished native client logs in to the **real live servers**.
+- Branch `claude/architect-native-port` adds the design that follows from that decision, in `docs/design/native-port/`:
+  `rationale.md`, `plan.md` and `sketch/`, with `MODULES.md` and about 60 type and signature sketches at their
+  future repository paths.
+- It was made with pstack `architect`:
+  - four read-only explorers covering runtime composition, network and demo servers, coverage gaps, and
+    verification;
+  - one explainer, with the "why" constraints;
+  - three structurally different candidates: a session core, a re-hosted original image, and a trace contract;
+  - an independent cross-judge, which scored them 29/27/13 and picked the same base;
+  - a synthesis on the session core.
+- The grafts and rejections are recorded in `rationale.md`, under "Synthesis decision".
+
+**What changed outside the design directory.** The decision is recorded in `docs/roadmap.md` (end state and
+"Completing the native port"), the `README.md` scope lines and an `AGENTS.md` pointer. No code or test changed.
+
+**Checks.**
+- `scripts/audit_repository.py` and `make test`; see the PR for the results.
+- The sketches are not compiled.
+
+**Next step.**
+- Start the stage-1 lanes, which need no owner or operator answer: NET-DISPATCH-001 (`gen_dispatch.py` →
+  `native/net/dispatch.def` plus `validate_dispatch.py`), NET-CRYPTO-001, NET-LINK-001 → SESSION-CORE-001 (the hero
+  domain over a loopback fixture; plaintext `0x16` must produce `C1 4D 02 00 16`), WORLD-RT-001, CHARSEL-RT-001 and
+  VERIFY-HARNESS-001.
+- Each lane owns the paths listed in `plan.md`, under "Parallel lanes".
+- The owner and the operator answered on 2026-10-25 (`docs/research/service-contract.md`):
+  - a login needs only the account, and a native client is allowed;
+  - sessions may be recorded, and automated play is allowed;
+  - one client may be logged in at a time;
+  - each user runs a guided capture for Native Data;
+  - signing is deferred.
+- Live runs use the dev account. The password stays in the Keychain item `mu-the-matrix-dev`.
+- The plan now has LIVE-HARNESS-001 (`scripts/live_session.py`, game lock) and the client lock in NET-LINK-001.
+- `GAME-LOCK.md` still names `~/Documents/mu-mac-tools`; the folder is now under `~/Documents/MTM/`. Its 3- and
+  15-minute limits stand until the owner changes them.
+
 ## Guest rebuild and private checks (CAPTURE-REBUILD-001, 2026-10-24)
 
 The QEMU x86 guest was rebuilt from the pinned Debian image (`20261015-2632`, SHA-512 matched) on QEMU 11.1.2, with

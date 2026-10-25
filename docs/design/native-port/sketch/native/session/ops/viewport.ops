@@ -1,0 +1,8 @@
+/* ops/viewport.ops (sketch): the CharactersClient table (players now; monsters/NPCs when 0x13 is recovered). */
+
+MU_OP(0x12, MU_SUB_NONE, viewport_players)      /* mu_rp_viewport_record + mu_rp_viewport_apply */
+MU_OP(0x3d, MU_SUB_NONE, viewport_move)                 /* mu_rp_move_packet */
+MU_OP(0x14, MU_SUB_NONE, viewport_delete)
+MU_OP(0x17, MU_SUB_NONE, viewport_die)
+MU_OP(0x3f, MU_SUB_NONE, viewport_store)          /* personal-shop titles */
+/* TODO(VIEWPORT-MONSTER-001): 0x13 monster/NPC viewport (no reconstruction yet; evidence available) */

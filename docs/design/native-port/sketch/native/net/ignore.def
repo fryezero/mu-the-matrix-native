@@ -1,0 +1,8 @@
+/* native/net/ignore.def (sketch): routes the native client deliberately does not bind.
+ *
+ *   MU_IGNORE(opcode, sub, "reason")
+ *
+ * Each row needs a reason a reviewer can check (e.g. "handler only writes IGC-owned state",
+ * "debug opcode, no effect in release"). A frame on an ignored route is journaled but not
+ * counted as a coverage hole. An MU_IGNORE row and an MU_OP row on the same route fail the build.
+ */

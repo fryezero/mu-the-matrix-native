@@ -1,0 +1,193 @@
+# Plan: the rest of the native macOS port
+
+Status classes: **EA** evidence-available (restored text, installed data or the fixture are enough),
+**BP** blocked-by-protection (needs launcher/IGC/WinLicense material that is out of scope), **OP**
+needs-owner-or-operator (a decision, an account, a contract or hardware). A milestone can be EA in its
+reconstruction and OP in its live step; both are listed.
+
+Evidence follows the project's conventions. Unicorn work is reported as "families, cases, 0 mismatches, k/k
+planted mistakes" against pins `2bd5f2e9…` / `c985e2e6…`. Portable work means synthetic tests in `make test`.
+Private runs are labelled as compatibility-environment (Wine) evidence. Every migration milestone also reruns
+the existing families it touches, and shows unchanged case counts and 0 mismatches as proof that the
+reconstructed code is untouched.
+
+## A. Policy and the service contract
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| POLICY-LIVE-001 | Owner and operator answers recorded (2026-10-24/25): the live service is the end state; a native client is allowed; the owner's sessions may be recorded; automated play is allowed; one client (original or native) logged in at a time. Live runs use the owner's dev account, whose password stays in the Keychain item `mu-the-matrix-dev` and is never printed, logged, journaled or committed; agents follow the shared game lock (`GAME-LOCK.md` in mu-mac-tools). Done in this plan's PR: `AGENTS.md`, `docs/evidence-policy.md`, `docs/research/service-contract.md`. The launcher/IGC boundary is unchanged | Doc diff in the PR; `scripts/audit_repository.py` passes | — | Done (PR #161) |
+| NET-CONTRACT-001 | Answered by the operator on 2026-10-25 and recorded in `docs/research/service-contract.md` (no secrets): the login needs only the account and password, a native client is allowed, recordings of the owner's sessions are allowed, automated play is allowed, one client logged in at a time. Still to observe (in the first CAPTURE-KIT-001 recording, not to ask): the connect-server endpoint (second-hand note: `mtm2112.muthematrix.com:44205`, game server MTM-1), required heartbeats, and whether the service checks the client version | Contract note merged; the endpoint and heartbeat findings added after the first recording | — | Answered; endpoint/heartbeats EA (first recording) |
+
+## B. Wire layer (`native/net`)
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| NET-LINK-001 | `mu_transport` (nonblocking sockets over kqueue with the endpoint allowlist and the **client lock**, a loopback hook, replay), `mu_link`, `mu_conn` skeleton. `mu_protocol.c` into `CORE_SRC`. Client lock: per-user single instance plus refusal while an original client runs (product); the shared game lock with the `MU_LOCK_ID` owner check under `MU_AGENT=1` (agents and live tests), directory from `MU_GAME_LOCK_DIR` | Portable: partial reads and writes, the 0x2000 receive guard reproduces the client's stop, allowlist refusal, replay divergence report, lock held → `MU_TRANSPORT_LOCKED` with the owner line, lock released on free, a foreign `MU_LOCK_ID` refused (temp lock directories). CBMC: the 9 `mu_protocol.c` harnesses rerun, plus one new harness on the link to dechunker path (`verify-protocol-cbmc`) | — | EA |
+| NET-CRYPTO-001 | The CryptoModule over Crypto++: ctor `0x018df200` seeding both maps, SetKey `0x018ea8d0` (10-entry hash table `0x018eaf30`, 17 ciphers, index-9 sub-cipher, rekey interval), Encrypt `0x018df500`/Decrypt `0x018df460` | Unicorn: ctor, SetKey, Encrypt and Decrypt families over seeded keys, channels, lengths and rekey boundaries, every cipher reached; at least 8 planted mistakes caught. Portable: public Crypto++ vectors for the 17 ciphers | — | EA |
+| NET-DECODE-001 | Decode stage `0x01221b94` (C1/C2 through; C3/C4 decrypt plus serial check; the layout passed to `0x01287ead`), send wrap `0x00d51e8c`, serial semantics across the connect-to-game hop, which channel each connection uses, whether any key comes from the server | Unicorn: decode (pass-through, decrypt, bad serial, short frame) and wrap families with mutants; CBMC bounds harness on `mu_decode`; finding doc names the answers | NET-CRYPTO-001, NET-LINK-001 | EA (BP for any key the finding shows comes from IGC) |
+| NET-DISPATCH-001 | Recover the routing and make it data: `scripts/gen_dispatch.py` reads the 254-entry jump table `0x0128e59d` and every sub-dispatcher (F1 `0x0128b24d`, F4 `0x012883f0`, A0 `0x0128805c`, 0x55, F6, E7, …) with its C1 and C2 sub offsets and writes the checked-in `native/net/dispatch.def`; the caller of `0x01221b94` (the queue-drain point in the frame); queue `0x01291777` capacity and overflow; `mu-session --coverage`/`--strict` and `native/net/ignore.def` | `scripts/validate_dispatch.py`: `0x01287ead` under Unicorn with stubbed handlers over all opcodes, sub bytes and both head families equals `dispatch.def` row for row; 3/3 planted mistakes (swapped row, dropped family offset, wrong head family). Coverage report lists every unbound route by client address. `docs/research/client-dispatch.md` (addresses, no bytes) | — | EA |
+| NET-ACCOUNT-001 | The account bodies: F4 06 plus list parser `0x010721d4`, F4 05, F4 03 `0x0127ea69`, F1 01/02/03 (including the already-connected result), the character-list answer with CreateHero, create/delete answers, the join answer. Request builders: server choice, login (every field tagged user / build / launcher; per the operator, launcher-tagged fields are sent empty), list request `0x00988d22`, create, delete, join (`scene.c:260`), the dispatcher tail packet (`scene.c:125`) | Unicorn family per handler and builder, with mutants. Login field table with provenance. If the tail packet's content comes from IGC, it is sent empty like the launcher fields and LIVE-LOGIN-001 records what the service does | NET-DISPATCH-001 | EA |
+| LAYOUT-001 | The layout manifest: `native/session/layout/<domain>.def` (one file per domain lane; the generator merges contributions to one record) (CHARACTER, CharacterAttribute, CharacterMachine, OBJECT, ITEM, the scene globals) and `scripts/gen_layout.py` generating accessors, the per-record field tables (projection adapters, lease audit, journal dump) and `build/gen/layout.json` (memread, the replay oracle, the validators). Overlapping declarations fail the build | Portable: generator conflict test (negative build), projection round-trip over every bound field, `layout.json` consumed by `live-readers` and one existing validator instead of its pasted offsets | SESSION-CORE-001 | EA |
+| LAYOUT-PROBE-001 | Settle the offset conflicts between existing reconstructions before their rows are marked verified: OBJECT "live" at `+0x00` (charsel, ground items) vs `+0x08` (combat); CHARACTER level at `+0x144` (scene) vs `+0x14e` (players); CharacterAttribute size (`0x200` used by progress vs the record extending past `+0x928`, skill ids at `+0x1e6`) | Unicorn probes of the client routines that read each field, written up in `docs/research/client-layout-probes.md`; the owning domain lanes mark their manifest rows VERIFIED from it; affected families rerun unchanged | — (rows applied after LAYOUT-001) | EA |
+
+## C. Session core and game-state ownership (`native/session`, `native/fixture`)
+
+Each domain migration flips exactly one domain from its demo feed to frames. It moves the demo half of
+`native/core/mu_<x>.c` to `native/fixture/behaviors/<x>.c` and the replicated state into
+`native/session/domains/<x>*`, and points its world part and GFx windows at the session. At no point does a domain
+have two feeds.
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| SESSION-CORE-001 | `mu_session` (pump, submit, revisions, cue ring, lease with audit, world port, barrier, journal, seed), generated lists (`gen_domains.py`, joining `ops/*.ops` with `native/net/dispatch.def`; until NET-DISPATCH-001 regenerates it, the wire-research lane's first commit seeds `dispatch.def` with the MU_STATIC routes already in the findings), include audit, and the **hero domain** as the first vertical slice. `mu-walk`/`mu-world --progress` fed by real C1 frames from a loopback fixture | Portable: barrier and attach idempotency; cue loss; the lease audit catches a planted motion-zone violation; duplicate ops row fails compilation (negative build test); every intent kind routed; plaintext `0x16` yields `C1 4D 02 00 16`. The 11 progress families rerun unchanged (8,003 cases). `mu-walk --progress` hashes and renders identical to before | NET-LINK-001 | EA |
+| FIXTURE-001 | Fixture server: loopback and TCP `mu_fixture_serve`, the server role of `mu_conn` with the mirror CryptoModule, scenario format, behaviour registry, `mu-fixture-server` tool | Portable: the round trip through the verified builders and parsers, C3 both directions after NET-CRYPTO-001, two seeds give two reproducible journals | NET-LINK-001 (C3: NET-DECODE-001) | EA |
+| SESSION-ACCOUNT-001 | Account domain. The shell's network-shaped `host_call` cases answer from the session; `g.protocol` is derived; `MU_SCENE_NET_SEND` is split by the preceding call record (join after `0x009a13f4`, tail after `0x00ac9be9`; the scene number cannot tell them apart because the tail is emitted in every scene); `offline-session.*` moves to `behaviors/account.c`; charsel create/delete become intents; `CHARSEL-RT-001` reads characters from the session | `mu-shell`/`mu-client --fixture` reach scene 6 through real F4/F1/list/join frames, 0 unbound frames on the scenario's routes; a fixture tail send in scene 5 is a KEEPALIVE, not a JOIN (regression test). Scene-manager (7,000 cases) and charcreate (4,368) families rerun unchanged. Synthetic flow tests updated | SESSION-CORE-001, NET-ACCOUNT-001, NET-DECODE-001 | EA |
+| WORLD-RT-001 (see D) | | | | |
+| SESSION-MAP-001 | Map domain: place, teleport C3 1C, E7 03, gate and warp intents, respawn place; the barrier with world-runtime travel; `mu_map` demo moves to fixture; warp cost from `mu_session_money` | Map families rerun (5,001 + 875 + 2,001); travel tests over encrypted C3; `leaks` shows no per-visit `mapsess` | SESSION-CORE-001, WORLD-RT-001, NET-DECODE-001 | EA |
+| SESSION-VIEWPORT-001 | CharactersClient domain; players 0x12/0x3d/0x14/0x17/0x3f as frames; the `characters` part (one MoveCharacters loop); players and helpers render from records; the CHARACTER rows of the layout manifest; projection adapters. The 0x12 pieces in `remote_players.h` (`mu_rp_viewport_record`, `mu_rp_character_create`, `mu_rp_viewport_apply`, handler `0x0122d413`) are static readings: verify them as a family before binding the route | New Unicorn family for the 0x12 handler with mutants; players (4,768) and helpers (8,639) families rerun; projection round-trip test; single-loop order pinned against `on_step`; the one-time hash change recorded with its reason | SESSION-CORE-001, WORLD-RT-001, LAYOUT-001 | EA |
+| VIEWPORT-MONSTER-001 | Reconstruct the monster/NPC viewport `0x13` and the monster creation path into the same records; the actors part renders records; demo placement becomes the fixture `monsters` behaviour | Unicorn family for the `0x13` handler and creation, with mutants; NATIVE-WORLD-002 monster visuals unchanged on the synthetic world | NET-DISPATCH-001, SESSION-VIEWPORT-001 | EA |
+| SESSION-COMBAT-001 | Reconstruct the bodies: damage `0x01224455`, die `0x01234585`, action `0x78`, the attack and cast requests, SendMove `0x016b5cd0`. Combat part becomes view plus intents; demo becomes the fixture `combat` behaviour; kills are server-driven only (the two kill-detection paths disappear) | Unicorn families per body and builder; combat families rerun (25,200 + 30,000); fixture fight scenario: attack, then damage, die, `0x16` exp, `0x20` drop, quest `A4` kill, all through frames | VIEWPORT-MONSTER-001, NET-DECODE-001 | EA |
+| SESSION-ITEMS-001 | Ground domain (`0x20` through `mu_gi_viewport_parse`, the pick-up request) and inventory domain (list, move, insert, delete, durability answers, equipment changes into viewport and hero); the GFx inventory reads the session; `item items[48]` deleted | Items families rerun (22,200); new families for inventory packets and the pick-up builder; inventory survives a return to character select (fixture test) | SESSION-CORE-001, WORLD-RT-001, NET-DISPATCH-001 | EA |
+| SESSION-ITEMS-002 | Mix, jewels and repair: request and answer bodies; `mu_mix` delayed demo replies become fixture | Mix families rerun (68,554 / 98,506); new body families | SESSION-ITEMS-001 | EA |
+| SESSION-HERO-002 | Equipment, buffs and CalculateAll inputs (`mu_prg_env.item_*`, `has_buff`) from the inventory and buff packets; HUD from one source | New buff/equipment packet families; progress CalculateAll families with real inputs | SESSION-ITEMS-001 | EA |
+| SESSION-SKILL-001 | Skills domain: A0 20/03/10/14, FE/FF, `0x7E`; cast intent; save keys; demo becomes fixture; skills exist in headless builds | Skill families rerun (12,763 + 4,508 + 7,876 + 6,510) | SESSION-CORE-001, SESSION-COMBAT-001 | EA |
+| SESSION-QUEST-001 | Quests domain (the whole `mu_quest_client`); log-sink adapter; window events; quest step at its tick position; demo becomes fixture. F6 `0x70/0x71` XOR with the 3 bytes at `0x06fca280` | Quest families rerun (NATIVE-QUEST-001/002, POLISH-001); quests in `mu-walk`; quest state survives character select. `0x70/0x71` stays journaled as undecoded until a scoped capture or the writer of `0x06fca280` is found | SESSION-CORE-001, WORLD-RT-001 | EA (the 3 bytes: a `memread` under the game lock) |
+| SESSION-NPC-001 | NPC domain: talk result to window cues, talk request C1 `0x95`, shop list packet, vault, buy, sell, repair | NPC families rerun (talk 4,096 …); new shop-list family | SESSION-CORE-001, SESSION-ITEMS-001 | EA |
+| SESSION-SOCIAL-001 | Party, trade, friends and messenger/mail domains; normalized keys mapped to wire routes from NET-DISPATCH-001; chat-server connection (room answer address plus ticket); source of the room text key[3] | Social families rerun (7,000 + 29,700); routing rows verified; the orphan `validate_social*` scripts brought under tests | NET-DISPATCH-001, SESSION-CORE-001 | EA |
+| SESSION-GLOBALS-001 | Process globals become per session or runtime (`mu_lang_shared`, `imps[]`, `step_context current`, skill demo tables, `mu_perf`) | Two sequential sessions in one process give the same journals and state dumps as two fresh processes | SESSION-CORE-001, WORLD-RT-001 | EA |
+
+## D. World runtime and input
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| WORLD-RT-001 | `world/main.c` becomes `mu_world_rt` plus `parts/*.c` plus `parts.def` plus `world_tool.c`; `world_embed.*` and `#define main` deleted; the four feature-flag layers become one options struct. Behaviour-preserving: unmigrated demo subsystems stay inside their parts | Every existing headless hash and render (mu-world, mu-walk, mu-client, mu-shell; `verify-mu-native` suites) identical; `test_world_parts.py` pins tick and draw orders | — | EA |
+| CHARSEL-RT-001 | The same for `charsel_embed.c`: `mu_charsel_rt` | Charsel families and renders unchanged | — | EA |
+| INPUT-001 | The input router in the runtime; key scan `0x00ec5475` and panel bindings (names recovered); missing keys (Y, Q/W/E/R, Z, X, J, G, B, N, K, H, D, S, Home/End, F1, IME candidate); outputs are intents; one script format shared with the Wine-track injector | Unicorn for the binding table where it is code; `verify-mu-native` runs in `mu-client` reaching cast, pick-up, right-click skill and every panel; committed input coverage table (key, client handler, native handler) | WORLD-RT-001 | EA |
+| WORLD-ORDER-001 | Make the tick and draw orders evidence instead of a pinned hand list: reconstruct MoveMainScene/RenderMainScene as a call-record family (the scene manager's host shape) and check `parts.def`'s two order columns against the call order it records. Not a prerequisite of WORLD-RT-001 | Unicorn family over the two routines with mutants; `test_world_parts.py` reads the recorded order instead of a literal | WORLD-RT-001 | EA |
+
+## E. Live service
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| LIVE-HARNESS-001 | `scripts/live_session.py`: the one way agents and tests touch the live service. Acquires the shared game lock, refuses while a client it did not start is running, sets `MU_AGENT`/`MU_LOCK_ID`, runs either the native client or the original (via the Wine track's `mu-autologin.sh` and injector) with an input script, reads the account name from settings and the password from the Keychain item `mu-the-matrix-dev` only inside the client process, keeps runs inside the lock's time limits and in safe areas (MTM-1 is a PvP server), collects the journal and window-only screenshots, quits the client and releases the lock (also on error) | Portable: lock acquire/refuse/release and cleanup on failure with temp lock directories and stub clients; one private dry run against the original client | NET-LINK-001 | EA |
+| LIVE-LOGIN-001 | First live login with the owner's dev account through `scripts/live_session.py` (LIVE-HARNESS-001): connect, list, hop, login, list, join, walk in a safe area, logout. Launcher-tagged login fields empty (operator: account only) | Redacted journal in ignored `verify-runs/`; every received frame routed or listed as unbound; no decrypt errors; window-only screenshots reviewed for account data; the game lock held for the whole run | LIVE-HARNESS-001, SESSION-ACCOUNT-001, APP-LIVE-001 | EA (dev account) |
+| CAPTURE-KIT-001 | In `mu-the-matrix-mac`: one session of the original client under the game lock, with the native client closed (one client at a time), produces, in one act, (a) a journal recording of the owner's own traffic from a Wine-side `ws2_32` relay logger outside `main.exe`/IGC, with WorldTime stamps, INPUT records from the injector and, for C3/C4, ciphertext beside plaintext read from the post-decode buffer when offline decryption is not possible, and (b) that user's Native Data (`objread`/`langread`/audio tables) for every world visited, both carrying the client build digest. Nothing the launcher or IGC produces is recorded. Native Data stays per user | A recorded login plus Lorencia session; the client behaves normally with the relay present; `mu-session replay` opens the recording (build digest checked); Native Data written with a manifest that the native app accepts | LIVE-HARNESS-001, SESSION-CORE-001 (format); recording permitted by the operator (NET-CONTRACT-001) | EA |
+| LIVE-COMPARE-001 | Gate-3 comparison: replay recorded original streams into native sessions (C3/C4 decrypted with NET-CRYPTO/DECODE, checked against the recorded plaintext); dump records at the WorldTime of each `memread` snapshot; field-by-field reports through `layout.json`; tolerances for MOTION fields defined | Reports over recorded sessions covering login, walk, fight, pick-up, shop, quest, party, travel and relog; every compared field equal or explained; divergences filed as milestones | CAPTURE-KIT-001, NET-DECODE-001, LAYOUT-001, the domain milestones | EA once recordings exist (BP if keys come from IGC) |
+| LIVE-PLAY-001 | Gate-5 gameplay: one representative script on the live service through the app, and the same script through the original via the Wine injector, **one after the other** (one client at a time), aligned on the join and on WorldTime/session ticks; persistence across relog and app restart | Side-by-side report from two sequential runs: state dumps, screenshots over time, audio cue logs; persistence checks pass | LIVE-LOGIN-001, INPUT-001, APP-LIVE-001, the domain milestones | EA |
+
+## F. GFx windows and gameplay systems
+
+Each item below is one milestone shape: receive handlers and request builders reconstructed (Unicorn families plus
+mutants), its own session domain and ops rows, intents, window views in `native/gfx/windows/`, a fixture behaviour
+and scenario, renders, and a live check when E is available. All are **EA** for the client side. Server-specific
+content (cash-shop catalogues, event schedules) is observable only live (OP).
+
+| ID | Scope | Depends on |
+|---|---|---|
+| GFX-ACCOUNT-001 | ServerSelect, the GFx account dialog (`onLoginOkClick` into `mu_secret`), winLoginSceneBottomUI, SelectMenu; Keychain "remember" through the launcher pipe | SESSION-ACCOUNT-001, APP-LIVE-001 |
+| GFX-BASE-001 | Base-loaded movies with no data today: ItemDurability, Tooltip/Popups content, bufflist, expanded inventory, warehouse, PartyFrame | SESSION-ITEMS-001, SESSION-HERO-002, SESSION-SOCIAL-001 |
+| SYS-STORES-001 | PersonalShop*, PrivateStore, SearchPrivateStore (with viewport `0x3f`); IngameShop, MBoxShop and RuudShop (catalogues OP) | SESSION-ITEMS-001 |
+| SYS-GUILD-001 | Guilds and party matching: packets, windows, marks, wars, name-plate fields | SESSION-VIEWPORT-001 |
+| SYS-EVENTS-* | One per family: Blood Castle, Devil Square, Chaos Castle, Illusion Temple, Kanturu event, Empire Guardian, Arka/BattleCore/Field, Ordeal Square, Strongest Match, Labyrinth, Doppelganger, BombHunt, minigames. Each covers entrance (talk ENTRANCE kind), state packets, event-map handlers, music managers | SESSION-NPC-001, SESSION-MAP-001; rendering also DATA-ACQ |
+| SYS-SIEGE-001 | Castle siege: packets, windows, map handlers | SYS-GUILD-001 |
+| SYS-DUEL-GENS-001 | Duel, DuelWatch, GensRanking (name-plate fields exist) | SESSION-VIEWPORT-001 |
+| SYS-ITEMSYS-001 | Pentagram, Elemental, Socket, Harmony, MixStone, MUMix, GremoryCase, ExtensionBag, EventInventory | SESSION-ITEMS-002 |
+| SYS-SKILL5-001 | The five SkillTree5th windows, 0x32 managers, cards as items (captures exist) | SESSION-SKILL-001 |
+| SYS-MISC-001 | Macro/AutomaticMacro, CommandWindow/QuickCommand, DivideWindow, MonsterInfo, BossHpUI, DamageCount, DeathPenaltyExpRecovery, HelpWindow, SeasonPass, Artifact and Pet windows, Muun pets | relevant domains |
+| SYS-CHAT-001 | The client's chat command parser and chat routing (replacing the native demo controls) | SESSION-SOCIAL-001 |
+
+## G. Rendering of the remaining worlds
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| RENDER-WORLDS-* (one per world group) | The remaining world-handler classes (48 in the client): CreateObject/MoveObject/RenderObjectVisual per world; Devias doors and flicker, Tarkan, Elbeland `0x00e30b86`, Raklion slot `0x00e94619` and snow, Icarus cloud layer `0x018016b0` and dragons, Kanturu/Karutan flames; the RenderObject shadow block, the custom render registry `0x017f76ec`, the AfterCharacter `+0xa` pass, the region importer `0x00e22826` | Unicorn families per handler with mutants; fidelity tour per world where objects exist | — (objects: DATA-ACQ) | EA code; objects for 68 worlds BP as files, EA through the guided capture (DATA-ACQ-002) |
+| RENDER-TERRAIN-002 | 0x2000 overlay faces, Chaos Castle per-face effects, camera-angle frustum (worlds 6, 0x49), fog and alpha ref, the alternate signed height grid (worlds 0x18..0x1d, 0x24) | Unicorn families; synthetic renders | — | EA |
+| RENDER-ITEMS-002 | The 1,674 type-specific item branches, the RenderLinkItem effect switch, the 27 RenderItem3D special codes; map-object and Muun effect tables (probably Lang scripts) | Families; table decode once Lang tables are acquired | DATA-ACQ (tables) | EA |
+| RENDER-TIME-001 | Multi-frame fidelity: time-varying fields, a camera path per map, mugl patches off on the live side | Per-map time-series reports with defined thresholds | INPUT-001 (shared scripts) | EA |
+
+## H. Audio
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| AUDIO-002 | SND_Play call sites (1,980) become `MU_CUE_SOUND` as each domain migrates; event-world music managers; NPC voices; monster registration order; music 43/44 from a scoped capture | FMOD-call log of the original (Wine) against the native cue/audio log over the LIVE-PLAY script; the existing audio families rerun | domain milestones | EA (43/44: a `memread` of `0x01cf1680` under the game lock); the virtualised gap `0x01854279` BP |
+
+## I. Native Data for other users
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| DATA-ACQ-001 | (Not taken: the owner chose guided capture, DATA-ACQ-002, as the product path.) | — | — | Dropped |
+| DATA-ACQ-002 | Guided acquisition, **the owner's chosen product path** for other users: the CAPTURE-KIT-001 Native Data half, packaged in the Wine-track app with a guided visit to every world (event maps included) on the user's own client and account. It runs only while no other client is open (the native app refuses to start a capture while it is connected, and the reverse) | A second macOS user account (the owner's test account) reproduces the owner's Native Data digests | CAPTURE-KIT-001 | EA |
+| DATA-ACQ-003 | First run without system `python3`/Pillow: `gfxconvert` ported to C, or a bundled, signed interpreter | Converted movies hash-equal to the Python output; first run on a clean user succeeds | — | EA |
+| DATA-ACQ-004 | Version drift: a Native Data manifest keyed by the client build hash; refuse mismatched data with a clear message; a re-acquisition procedure; a jump-table diff tool for a new build | Portable tests on manifests; a documented re-pin procedure | NET-DISPATCH-001 | EA |
+
+## J. Packaging, signing, update
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| APP-LIVE-001 | Product without `mu-nonet`; `LaunchPlan` without feature flags or `DYLD_INSERT_LIBRARIES`; endpoint from configuration; credential pipe; redacted logs; `test_native_app.py` rewritten ("connects only to the allowlisted endpoints", TCP fixture black-box run, no `mu_fixture_*`/`mu_session_open_seeded` symbol in the product) | Bundle tests pass; black-box run of the bundled `mu-client` against `mu-fixture-server` reaches the world | SESSION-CORE-001, SESSION-ACCOUNT-001 | EA |
+| APP-DIST-001 | Developer ID signing, hardened runtime, notarization, DMG; relocatable dylibs; Ruffle built from its pinned source instead of being fetched and patched at app build time. **Deferred by the owner** (2026-10-25); the app stays locally signed until then. APP-LIVE-001 already removes the dyld insertion that would block the hardened runtime | `spctl`/`stapler` checks; a notarized DMG installs on a clean Mac | APP-LIVE-001; Apple Developer account | Deferred (OP) |
+| APP-UPDATE-001 | Update channel and a version check against the service's client build (the version behaviour comes from the first recording, NET-CONTRACT-001) | Upgrade test from N-1 keeps settings, Native Data and Keychain items | APP-LIVE-001 (signed appcast: APP-DIST-001) | EA (manual channel); signed channel deferred |
+| APP-GATE5-001 | Install, restart and upgrade tests on a clean macOS user or VM with the locally signed app: install, first-run Native Data through the guided capture, fixture TCP session, quit and relaunch (option.ini persists), upgrade. Repeat with the notarized DMG once APP-DIST-001 lands | Scripted runs recorded as gate-5 evidence (fixture part) | APP-LIVE-001, DATA-ACQ-002, DATA-ACQ-003 | EA (live part in LIVE-PLAY-001) |
+
+## K. Verification for gates 3 and 5
+
+| ID | Scope | Completion evidence | Depends on | Status |
+|---|---|---|---|---|
+| VERIFY-HARNESS-001 | One manifest-driven validator runner (`scripts/validators.toml`: pins, cases, mutants, owning test); pins in `scripts/pins.py` instead of 31 pasted digests; a shared Unicorn machine for the 19 standalone setups; `docs/evidence-index.json` regenerated from runs; the ~25 orphan validators referenced by tests | Every validator reachable from `make integration`; index regenerated; no pasted digests left (grep test) | — | EA |
+| VERIFY-SESSION-001 | Fixture full-stack suites in CI, one scenario per domain; `verify-mu-native` gains `--fixture`, inbound-frame script events and journal summaries in its JSON rows | CI runs every scenario; `unbound == 0`; unrecovered counts are reported and decrease milestone by milestone | SESSION-CORE-001, FIXTURE-001 | EA |
+| VERIFY-REPLAY-001 | The replay oracle: for every inbound frame of a fixture run or a recording, seed `client_ui_machine` from the session's client-layout snapshot (via `layout.json`), run the original `0x01287ead` with callees stubbed, and compare record writes and the call stream with the native apply. This checks the dispatcher, every apply function and every projection adapter against the original on real session state, not only on synthetic per-family cases | `scripts/replay_oracle.py`: 0 mismatches over the fixture scenarios of every migrated domain; planted mistakes (wrong apply on a route, dropped write-back, off-by-one manifest field) caught; undefined-byte stops reported as layout coverage | LAYOUT-001, VERIFY-SESSION-001, NET-DISPATCH-001 | EA |
+| VERIFY-GATE3-001 | The gate-3 dossier: dispatch equality, a family behind every row, full-stack fixture runs, LIVE-COMPARE-001 reports, the live login journal | Reviewed dossier; `evidence-index.json` gate-3 fields updated with links | NET-DISPATCH-001, LIVE-COMPARE-001, LIVE-LOGIN-001 | EA |
+| VERIFY-GATE5-001 | The gate-5 dossier: LIVE-PLAY-001, input coverage, rendering and audio over time, persistence, APP-GATE5-001 (signed distribution recorded as deferred, not as passed) | Reviewed dossier; `native_macos_client` set true only then | LIVE-PLAY-001, APP-GATE5-001, RENDER-TIME-001, AUDIO-002 | EA |
+| VERIFY-WINDOWS-001 | Native Windows ground truth for at least the captures gate 3 relies on | Captures labelled native Windows, compared with the Wine captures | owner hardware | OP |
+
+## Sequencing
+
+Critical path to a live login:
+NET-DISPATCH-001 → NET-ACCOUNT-001 ─┐
+NET-CRYPTO-001 → NET-DECODE-001 ────┼→ SESSION-ACCOUNT-001 → APP-LIVE-001 → LIVE-LOGIN-001 (with LIVE-HARNESS-001)
+NET-LINK-001 → SESSION-CORE-001 ────┘
+
+Critical path to gate 3: the above, plus CAPTURE-KIT-001 → LIVE-COMPARE-001, and VERIFY-REPLAY-001, over the migrated domains (VIEWPORT,
+MONSTER, COMBAT, ITEMS, MAP, NPC, QUEST, SKILL, SOCIAL).
+
+Gate 5 additionally needs INPUT-001, APP-DIST-001, APP-GATE5-001, RENDER-TIME-001, AUDIO-002, DATA-ACQ-001 or -002,
+and LIVE-PLAY-001.
+
+The owner and operator questions were answered on 2026-10-24/25 (NET-CONTRACT-001, POLICY-LIVE-001, guided capture
+as the Native Data path); signing is deferred. Nothing on the critical path waits for a person any more: the live
+milestones need only the dev account and the game lock. The one rule that shapes scheduling is one client at a
+time: CAPTURE-KIT-001, LIVE-LOGIN-001, LIVE-COMPARE-001 recordings and LIVE-PLAY-001 runs are serialized through the
+game lock, and a side-by-side is two sequential runs, never two clients at once.
+
+## Parallel lanes and file ownership
+
+Lanes run on separate branches and worktrees. "Owns" is the set of paths a lane may edit. Within one stage, lanes
+never share an owned path.
+
+| Stage | Lane | Milestones (in order) | Owns |
+|---|---|---|---|
+| 1 (now) | wire-research | NET-DISPATCH-001 → NET-ACCOUNT-001 → LAYOUT-PROBE-001 | `native/net/dispatch.def`, `native/net/ignore.def`, `scripts/gen_dispatch.py`, `scripts/validate_dispatch.py`, `scripts/probe_layout.py`, `docs/research/client-layout-probes.md` (the probe results; each domain lane marks its own manifest rows VERIFIED from them), `scripts/validate_account*.py`, `docs/research/client-dispatch.md`, `docs/research/client-account.md` |
+| 1 | crypto | NET-CRYPTO-001 → NET-DECODE-001 | `native/net/crypto.cpp`, `native/net/mu_crypto.h`, `native/net/decode.c`, `scripts/validate_crypto.py`, `scripts/validate_decode.py`, `native/tests/test_crypto.py` |
+| 1 | transport-core | NET-LINK-001 → SESSION-CORE-001 → FIXTURE-001 → LAYOUT-001 | `native/net/{mu_transport.h,mu_link.h,link_*.c,conn.c}`, `native/session/**`, `scripts/gen_layout.py`, `scripts/gen_domains.py`, `native/fixture/**`, `native/tools/mu_session.c`, the `CORE_SRC` line and new targets in `native/Makefile` |
+| 1 | world | WORLD-RT-001 → INPUT-001 → WORLD-ORDER-001 | `native/world/**`, embed callbacks in `native/client/main.c`, world targets in `native/Makefile` |
+| 1 | charsel | CHARSEL-RT-001 | `native/charsel/**` |
+| 1 | verification | VERIFY-HARNESS-001 → (after LAYOUT-001) VERIFY-REPLAY-001 | `scripts/validators.toml`, `scripts/pins.py`, `scripts/*_machine.py`, edits inside `scripts/validate_*.py` limited to pin and loader imports (coordinate with the wire lanes on new files only) |
+| 1 | data and app | DATA-ACQ-003, DATA-ACQ-004, APP-DIST-001 prep | `native/gfx/gfxconvert*`, `native/app/**` (except network bits) |
+| 1 | content | RENDER-WORLDS-* (one agent per world group), RENDER-TERRAIN-002 | per-world files in `reconstructed/objects/` and `native/core/mu_objects_runtime*`; split `object_render.c` cases per world first if two groups would collide |
+| 2 (after SESSION-CORE-001 and WORLD-RT-001) | one lane per domain | SESSION-VIEWPORT → VIEWPORT-MONSTER → COMBAT → SKILL; SESSION-ITEMS → ITEMS-002 → HERO-002; SESSION-MAP; SESSION-QUEST; SESSION-NPC (after ITEMS); SESSION-SOCIAL; SESSION-ACCOUNT | per domain: `native/session/domains/<d>*`, `native/session/ops/<d>.ops`, `native/session/domains/<d>.intents`, `native/fixture/behaviors/<d>.c`, `native/fixture/scenarios/<d>-*.scn`, `native/world/parts/<part>.c`, `native/gfx/windows/<movie>.c`, and the demo half of `native/core/mu_<d>.c` it deletes |
+| 2 | app-live | APP-LIVE-001 → GFX-ACCOUNT-001 | `native/app/**`, `native/tests/test_native_app.py`, `native/gfx/windows/{ServerSelect,…}.c` |
+| 3 (after stage 2 domains) | one lane per system | GFX-BASE-001, SYS-* | their own domain, ops, intents, behaviour and window files |
+| 3 | live | CAPTURE-KIT-001 (in `mu-the-matrix-mac`), LIVE-LOGIN-001, LIVE-COMPARE-001, LIVE-PLAY-001 | `scripts/session_compare.py`, ignored `verify-runs/`, the Wine-track repository |
+
+Why stage-2 lanes do not collide: domains, ops rows, intents, fixture behaviours and windows are separate files
+collected by generators (`build/gen/*`). Two lanes never edit a shared list. The intent enum and payload union in
+`mu_intent.h` are generated from `domains/<d>.intents`; the sketch shows them hand-written for readability. The
+only shared hand-written file is `native/world/parts.def`, and its rows all exist after WORLD-RT-001. A migration
+changes only its own row's comment, so it merges trivially.
+
+## Gate mapping
+
+| Gate | Shown by |
+|---|---|
+| 3. The reconstructed client behaves correctly against the expected services and data | Dispatch equality with the client's jump table (NET-DISPATCH-001). Families behind every row and builder. Fixture full-stack runs in CI (VERIFY-SESSION-001). The live login journal (LIVE-LOGIN-001). Session-to-memory comparisons of recorded original sessions (LIVE-COMPARE-001). Collected in VERIFY-GATE3-001 |
+| 5. Representative gameplay, persistence, input, rendering/audio, installation and restart on macOS | LIVE-PLAY-001 (gameplay, persistence across relog and restart), INPUT-001 coverage table, RENDER-TIME-001 and AUDIO-002 time series, APP-GATE5-001 (install, restart, upgrade), APP-DIST-001 (signed distribution). Collected in VERIFY-GATE5-001 |

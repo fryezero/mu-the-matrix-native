@@ -1,0 +1,28 @@
+/* native/session/layout/viewport.def (sketch): the viewport domain's rows of the CHARACTER record.
+ * The layout manifest (native/session/layout/*.def) is the ONE place client record field offsets
+ * are written down (graft from the re-hosted-image candidate); each domain lane owns its own file.
+ *
+ *   MU_RECORD(name, client_size, evidence)
+ *   MU_FIELD(record, client_offset, size, type, zone, member, evidence)
+ *       zone      REPLICATED (written by apply during pump) | MOTION (written by the world tick under
+ *                 the mu_sim lease) | VIEW (derived each frame, never compared)
+ *       member    the mu_rp_character member it maps to, or - when no native struct carries it
+ *       evidence  VERIFIED (a Unicorn family reads/writes it) | STATIC | LIVE (memread observed)
+ *
+ * scripts/gen_layout.py merges every native/session/layout/*.def and generates:
+ *   build/gen/layout_<record>.h   accessors, MU_<RECORD>_FIELDS[] (projection, lease audit, dump)
+ *   build/gen/layout.json         for live-readers (memread/objread), session_compare.py, the
+ *                                 replay oracle and the Python validators
+ * It FAILS THE BUILD when two .def files declare overlapping byte ranges of one record with
+ * different types or zones, so per-domain lanes can add fields without a shared hand list.
+ *
+ * Open (LAYOUT-PROBE-001): two existing reconstructions disagree and need a Unicorn probe before the
+ * rows below are marked VERIFIED - OBJECT "live" at +0x00 (charsel, ground items) vs +0x08 (combat);
+ * CHARACTER level at +0x144 (scene) vs +0x14e (players).
+ */
+MU_RECORD(CHARACTER, 0x3670, STATIC)
+MU_FIELD(CHARACTER, 0x012, 1, u8,  REPLICATED, class_byte, STATIC)       /* scene H_RECORD+0x12 (shell.c pokes) */
+MU_FIELD(CHARACTER, 0x023, 1, u8,  REPLICATED, dead,       STATIC)       /* progress lookups; confirm in LAYOUT-001 */
+MU_FIELD(CHARACTER, 0x03e, 2, i16, REPLICATED, key,        STATIC)       /* players; confirm in LAYOUT-001 */
+MU_FIELD(CHARACTER, 0x044, 32, str, REPLICATED, name,      STATIC)       /* scene H_RECORD+0x44 (shell.c pokes) */
+/* ... TODO(LAYOUT-001): every field the verified families touch, then the motion zone (+0x3194 path) */

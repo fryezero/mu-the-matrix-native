@@ -1,0 +1,3 @@
+/* ops/ground.ops (sketch) */
+MU_OP(0x20, MU_SUB_NONE, ground_viewport)          /* mu_gi_viewport_parse finally gets its caller */
+MU_SUBMIT(MU_INTENT_PICK_UP, ground_pick_up)                   /* request body: TODO(SESSION-ITEMS-001) */

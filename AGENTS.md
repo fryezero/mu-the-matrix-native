@@ -16,7 +16,7 @@ The owner authorizes merging reviewed changes into `main` once their relevant ch
 - Record arithmetic, x87 precision, cofactors or inverse aliasing: `docs/research/record-math.md` and `reconstructed/record-math/README.md`.
 - Image or effect formats: `docs/asset-recovery.md`.
 - BMD geometry or encryption: `docs/model-recovery.md` and `model-recovery/SOURCES.md`.
-- New module/platform boundaries: `docs/architecture.md`.
+- New module/platform boundaries: `docs/architecture.md`; the completion architecture and milestone plan: `docs/design/native-port/`.
 - Uploads, evidence, and licensing scope: `docs/evidence-policy.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Evidence and implementation rules
@@ -34,6 +34,12 @@ game lock). For code capture, full x86 system emulation with Linux Wine (`runtim
 `docs/research/restored-client-text.md`) restored a repeatable client-code region. The Windows helper remains
 prepared; actual native Windows validation is still open. Distinguish compatibility-environment captures from
 native Windows evidence.
+
+Live service work follows [docs/research/service-contract.md](docs/research/service-contract.md):
+- use the owner's dev account through `scripts/live_session.py` once it exists, under the shared game lock;
+- run one client at a time;
+- keep the password in the Keychain item `mu-the-matrix-dev`, never in output, logs, journals or the repository;
+- keep recordings and journals in ignored directories.
 
 Run `make test` with the configured Python. Private integration is opt-in; missing original inputs must produce an explicit skip in portable tests or an error in requested integration checks. Keep synthetic regression fixtures independent of proprietary data. Every behavior claim needs a relevant test or a precise unverified limitation.
 
