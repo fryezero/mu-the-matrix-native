@@ -40,6 +40,13 @@ needed for source inspection, use commit
 
 `make test` also builds `native/` (core and `build/mu-render`) and runs `native/tests`. The core needs only clang and Crypto++. libjpeg is optional: install `jpeg-turbo` with Homebrew or `libjpeg-dev` on Debian/Ubuntu. The windowed viewer needs SDL2: `brew install sdl2`, then `make native-viewer`. Its tests skip explicitly when `sdl2-config` is absent, and its headless GL check skips when no offscreen context can be created. The private viewer checks use `MU_GAME_ROOT`. See [the native viewer](../native/README.md).
 
+## Verification skills
+
+`.claude/skills/verify-mu-native/SKILL.md` drives the built native programs on a synthetic game root and
+captures proof under `verify-runs/` (ignored). `.claude/skills/verify-protocol-cbmc/SKILL.md` runs CBMC with z3
+(`brew install cbmc z3`) over `native/core/mu_protocol.c`. Both need `tools/python` and the native build above;
+neither touches the installed client.
+
 ## Private integration checks
 
 Supply the exact `main.exe` locally at `input/main.exe`. Its SHA-256 must be

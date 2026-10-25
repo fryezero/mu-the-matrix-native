@@ -1,5 +1,29 @@
 # Continue from here
 
+## Verification skills (VERIFY-SKILLS-001, 2026-10-24)
+
+Two project-local agent skills were generated with pstack on branch `claude/pstack-verify-skills`:
+
+- `.claude/skills/verify-mu-native/` drives the native programs the way a user does, on a synthetic game root
+  built from the `native/tests` fixtures (no installed client): `mu-client` scene flow (headless GL and a real
+  window with `shot:`), `mu-world`/`mu-walk` click-to-move, run and zoom, `mu-viewer` model and terrain renders
+  with GL-versus-software agreement, `mu-proto`. `features/` is the maintained map (five features, exact commands
+  and the end state that proves each). Runs live in `verify-runs/<id>/` (git-ignored; `proof/` survives
+  `cleanup.sh`). Proven on this Mac: every recipe in the map passed at `024e949`.
+- `.claude/skills/verify-protocol-cbmc/` is the formal check of `native/core/mu_protocol.c` with CBMC 6.11.0 and
+  z3 (`brew install cbmc z3`; one command, `run.sh`, about three minutes): six properties over nine harnesses,
+  all holding at `024e949`. Frame parsing never reads past the available bytes (0..24); one receive drain never
+  touches memory outside the 0x2000 ring and delivers consecutive, rule-shaped frames (0..12 buffered bytes);
+  `mu_recv_push` refuses exactly at the ring capacity and leaves state unchanged; the packet builder stays inside
+  the 0x145c object and refuses exactly past 0x145a (adds 0..20 bytes); XorData decode inverts encode and writes
+  only its range. `run.sh --mutants` plants eleven mistakes in a temporary copy and all eleven are caught. No real
+  bug. Not proven: multi-push streams directly (argued from R2 + R3; a direct harness did not finish), the C3/C4
+  CryptoModule payload, sockets and callers, `mu_serial_next`, `native/tools/mu_proto.c`.
+
+Environment notes: `tools/python` (venv from `tools/requirements-lock.txt`) and `cbmc` (Homebrew) were installed
+for them; the Bash tool of the agent harness runs zsh, so the recipes spell every argument out. Keep the map
+honest with `/pstack:maintain-verification-skill` and the harness with `/pstack:maintain-formal-verification-skill`.
+
 ## README refresh (DOCS-README-002)
 
 README images 18–25 come from local renders; their full-size sources and a map to each README image are in
