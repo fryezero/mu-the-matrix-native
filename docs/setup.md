@@ -61,6 +61,23 @@ python3 scripts/loader_recover.py
 MU_RECOVERY_INTEGRATION=1 make test PYTHON=./tools/python/bin/python
 ```
 
+Every validator finds its pinned inputs through `scripts/pins.py`:
+- an explicit path wins;
+- then the pin's variable (`MU_CLIENT_TEXT`, `MU_IMAGE_DATA`, ...);
+- then `MU_EVIDENCE_DIR` (default `evidence/`).
+
+Langread snapshots resolve under `MU_SNAPSHOT_DIR`. From a worktree, point `MU_EVIDENCE_DIR` at the main
+checkout's `evidence/`.
+
+To run every validator, or a subset, with reports:
+
+```sh
+MU_RECOVERY_INTEGRATION=1 ./tools/python/bin/python scripts/run_validators.py --private --jobs 3 --report verify-runs/<run>
+```
+
+`--list` shows each row's inputs and owning test. More than three jobs can exhaust memory on a laptop; `--resume`
+reruns the killed rows.
+
 The decoder integration check needs `evidence/loader-recovery/recovery.json` and
 the original executable. Three model integration checks need the installed model
 files. The v14 check pins three source digests and compares decoded digests

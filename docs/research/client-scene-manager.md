@@ -169,7 +169,7 @@ of the reconstructed routines drive the native modules.
 
 `world_embed.c` and `charsel_embed.c` compile mu-world's and mu-charsel's `main.c` unchanged into their own
 translation units and wrap their static load/frame/draw routines, so mu-client shows exactly what mu-world and
-mu-charsel show and follows their changes without copies (mu-world itself is not edited).
+mu-charsel show and follows their changes without copies (mu-world itself is not edited). (Since WORLD-RT-001 the world is the runtime module `world/mu_world_rt.h`; `world_embed.c` is gone.)
 
 **Offline session** (`native/client/offline-session.*`). The client waits for the network at four points: the server
 list, the login answer (protocol 0x14), the character list (0x33) and the join answer (`0x0185a75a(1)`, world and

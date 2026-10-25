@@ -444,6 +444,9 @@ $(NET_SO): $(NET_SRC) core/mu_protocol.c $(NET_HDR)
 # mu-session and the tests, and product (neither, no fixture), whose library must carry no seed or
 # fixture symbol (native/tests/test_session_core.py).
 PYTHON ?= python3
+# The generator needs only the standard library. A relative PYTHON (make test PYTHON=tools/python/bin/python
+# from the repository root) is resolved as given or relative to the root; otherwise python3.
+GEN_PYTHON := $(firstword $(wildcard $(PYTHON) ../$(PYTHON)) $(if $(findstring /,$(PYTHON)),python3,$(PYTHON)))
 GEN := $(BUILD)/gen
 GEN_STAMP := $(GEN)/.stamp
 GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard session/ops/*.ops) \
@@ -460,7 +463,7 @@ all: $(BUILD)/libmusession.a $(BUILD)/libmusession_product.a
 
 $(GEN_STAMP): $(GEN_INPUTS)
 	@mkdir -p $(GEN)
-	$(PYTHON) ../scripts/gen_domains.py --out $(GEN)
+	$(GEN_PYTHON) ../scripts/gen_domains.py --out $(GEN)
 	@touch $@
 
 $(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)

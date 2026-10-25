@@ -201,7 +201,7 @@ route against the real movie (`MU_NAMES_GFX_MOVIES`).
   `setMessage` on the clip, display-info changes as `_x`/`_y`/`_visible` (window pixels / Retina scale). The clips are
   addressed by the movie's names (`playerContainer.ply_<key>`, `container.mon_<key>`); the client keeps the `addMC`
   clip value instead. The movie loads asynchronously: the plates created before are replayed once its channel appears.
-  `mu-client --gfx` attaches the same sink to the embedded world (`mu_world_embed_set_gfx`).
+  `mu-client --gfx` attaches the same sink to the embedded world (`mu_world_embed_set_gfx`; since WORLD-RT-001 `mu_world_rt_set_gfx`).
 - Without the movie (headless software renders, CI), `mu_names_draw` composites a stand-in with the shared label
   helper `native/core/mu_label` (the movies' HTML subset through the GDI text boundary; one-pixel shadow, bar and box
   colours are viewer choices), laid out from the sprite positions above. NATIVE-ITEMS-001's item labels share its glyph

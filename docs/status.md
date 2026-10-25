@@ -1,5 +1,16 @@
 # Current status
 
+## Stage 1 of the port completion, 2026-10-25
+
+Four lanes from [the plan](design/native-port/plan.md) are merged (#162-#165):
+- **Cipher.** The C3/C4 CryptoModule, equal to the client on 1,073 Unicorn cases.
+- **Transport, session core and fixture.** The transport with the client lock; the session core with the hero
+  domain fed by real C1 frames from a loopback fixture.
+- **World module.** The world runtime as a real module, with byte-identical outputs.
+- **Validator harness.** One pins module, a manifest and a runner for every validator.
+
+The routing lane (NET-DISPATCH-001) is paused. Correction: the receive stage is `0x012220fd`, not `0x01221b94`.
+
 ## Port completion design, 2026-10-24
 
 The owner set the end state: the native client logs in to the live Mu The Matrix service; demo servers become test

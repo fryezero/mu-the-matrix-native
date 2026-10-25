@@ -502,8 +502,8 @@ login overlay and server select → an OFFLINE DEMO account panel (any input, no
 (mu-charsel's session) → loading screen → the world (mu-world's session) with the chosen character's class and
 equipment → Esc back to character select. There is no server connection: `client/offline-session.*` answers the
 server list, login, character list and join from `client/demo-session.txt` (a real session would come from the
-network layer, which is out of scope). `world/world_embed.c` and `charsel/charsel_embed.c` compile mu-world's and
-mu-charsel's `main.c` unchanged as modules. `build/mu-shell` is the headless software build (`make -C native`).
+network layer, which is out of scope). The world is the runtime module `world/mu_world_rt.h` (WORLD-RT-001), shared
+by mu-world, mu-walk and mu-client; `charsel/charsel_embed.c` still compiles mu-charsel's `main.c` as a module. `build/mu-shell` is the headless software build (`make -C native`).
 
 ```sh
 native/build/mu-client --game-root "$MU_GAME_ROOT" --session native/client/demo-session.txt
@@ -709,7 +709,7 @@ graphics option (4). Water/lava worlds such as Vulcanus (63) and Atlans (7) now 
 | `core/mu_frame.*`, `tools/mu_frame.c`, `frame/` | Frame-loop skeleton: client timing, camera, input and picking (NATIVE-FRAME-001); headless tool and SDL2 window |
 | `core/mu_effect.*`, `tools/mu_effect_tool.c` | Data/Effect `.ein` particle systems and billboards through `reconstructed/effects` (instruction-compared), software-raster draw with the client's blend modes; headless CLI `build/mu-effect` (`render`, `sheet`, `dump`, `scan`) (NATIVE-FX-001). See [the finding](../docs/research/client-effects.md) |
 | `core/mu_effect_scene.*` | Effect trees and scenes of several effects like the client's EffectManager: template cache by name, clones, owner-attached instances, octree, frustum render pass over a loaded world; `mu-effect scene` (NATIVE-FX-002). See [the finding](../docs/research/client-effect-manager.md) |
-| `client/`, `world/world_embed.*`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; mu-world and mu-charsel as modules (NATIVE-SHELL-001) |
+| `client/`, `world/mu_world_rt.h`, `charsel/charsel_embed.*` | mu-client: scene manager runtime over `reconstructed/scene`, offline session, window/headless front end; the world runtime (WORLD-RT-001) and mu-charsel as modules (NATIVE-SHELL-001) |
 | `app/` | Mu The Matrix Native Preview.app: Swift launcher, the `mu-nonet` network guard, dylib bundling, the bundle Makefile (NATIVE-APP-001) |
 | `core/mu_perf.*`, `viewer/ui_gl.*`, `viewer/gl_batch.*`, `tools/perf_report.py`, `tools/imgdiff.py` | Frame-time breakdown and the cap's precise sleep, the 2D layer on the GPU, draw batching, percentile report, pixel comparison (NATIVE-PERF-001) |
 | `core/mu_lang.*`, `core/mu_lang_maps.h`, `tools/mu_lang_tool.c` | Lang.mpr tables from local plaintext read off the running client: GlobalText, skills (GetSkillInformation), gates, moves, NPC names, EnchantEffect, map names; `build/mu-lang` (NATIVE-LANG-001); BuffEffect (addBuff, buff popup lines), CharacterInfoSetup (the row builder's order), SkillRequire, MonsterSoulConversion, MUQuestString (NATIVE-LANG-002). See [the finding](../docs/research/client-lang-tables.md) |

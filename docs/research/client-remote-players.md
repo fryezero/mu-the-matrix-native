@@ -178,7 +178,7 @@ store, walking into and out of the demo range, `--no-players`, determinism). Pri
   through the demo guild table, a party member's HP bar); removeInfo at destroy and after the fade; the store box
   through `mu_names_set_store` (the real movie's `setStore` through the GFx layer with `--gfx`, a stand-in box in
   the software path).
-- `mu-world --players FILE [--no-players] [--player-range N]`, `mu-client --players FILE` (world_embed), reports
+- `mu-world --players FILE [--no-players] [--player-range N]`, `mu-client --players FILE` (world_embed; since WORLD-RT-001 the world runtime), reports
   `players_frame` per frame and a `players` summary.
 
 Renders stay local under `~/Documents/mu-mac-tools/native/renders/players/`: `gl1/` and `lorencia-players.mp4` (the
