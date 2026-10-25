@@ -17,6 +17,7 @@ import tempfile
 
 from validate_mix import ROOT, SUFFIX, TEXT_SHA, DATA_SHA, Client, Values, native, put, source, condition, recipe
 import client_ui_machine as cm
+import pins
 from unicorn.x86_const import UC_X86_REG_ECX
 
 
@@ -204,14 +205,13 @@ def run(client,lib,cases):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--text',type=Path,default=ROOT/'evidence/x86-text-capture-09/client-text.bin')
-    ap.add_argument('--data',type=Path,default=ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')
+    ap.add_argument('--text',type=Path,default=pins.TEXT.default())
+    ap.add_argument('--data',type=Path,default=pins.DATA.default())
     ap.add_argument('--cases',type=int,default=2000);ap.add_argument('--output',type=Path)
     ap.add_argument('--game-root',type=Path)
     ap.add_argument('--mutations',action='store_true');args=ap.parse_args()
-    text,data=args.text.read_bytes(),args.data.read_bytes()
-    for b,d in ((text,TEXT_SHA),(data,DATA_SHA)):
-        if hashlib.sha256(b).hexdigest()!=d:raise ValueError('input digest mismatch')
+    text=pins.TEXT.read(args.text,mismatch=ValueError('input digest mismatch'))
+    data=pins.DATA.read(args.data,mismatch=ValueError('input digest mismatch'))
     subprocess.run(['make','-C',str(ROOT/'reconstructed/mix')],check=True,capture_output=True)
     lib=bind(ROOT/f'reconstructed/mix/libmix.{SUFFIX}')
     client=Manager(text,data);counts,corpus=run(client,lib,args.cases)

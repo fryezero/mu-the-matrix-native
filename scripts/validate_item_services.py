@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 from validate_mix import ROOT, TEXT_SHA, DATA_SHA, Client, put
 import client_ui_machine as cm
+import pins
 
 
 def bind(path):
@@ -72,13 +73,11 @@ class Services(Client):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--cases',type=int,default=10000)
-    p.add_argument('--evidence',type=Path,default=ROOT/'evidence');p.add_argument('--report',type=Path);p.add_argument('--mutations',action='store_true')
+    p.add_argument('--evidence',type=Path,default=pins.evidence_dir());p.add_argument('--report',type=Path);p.add_argument('--mutations',action='store_true')
     a=p.parse_args()
     base=a.evidence
-    text=(base/'x86-text-capture-09/client-text.bin').read_bytes()
-    data=(base/'image-data-run10/data-capture-10/client-image-data.bin').read_bytes()
-    assert hashlib.sha256(text).hexdigest()==TEXT_SHA
-    assert hashlib.sha256(data).hexdigest()==DATA_SHA
+    text=pins.TEXT.read(base/pins.TEXT.relative)
+    data=pins.DATA.read(base/pins.DATA.relative)
     client=Services(text,data);rng=random.Random(0x53544f52);corpus=[];counts={}
     src=ROOT/'reconstructed/mix/item_services.c'
     with tempfile.TemporaryDirectory() as td:

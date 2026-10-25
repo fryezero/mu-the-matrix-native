@@ -31,14 +31,16 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+TARGET_SHA256 = pins.TARGET.sha256
 DATA_BASE = 0x1a7c000
-DATA_BYTES = 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+DATA_BYTES = pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 
 ADD_DATA = 0xd51c9b
 XOR_DATA = 0xd52055
@@ -68,11 +70,7 @@ FLUSH_FN = 0x129170b  # queue flush, thiscall
 OP_NEW = 0x191ba7b
 
 
-def load_pinned(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError('%s does not match the pinned capture' % label)
-    return payload
+load_pinned = pins.loader(ValueError, '{label} does not match the pinned capture')
 
 
 class Harness:
@@ -370,10 +368,8 @@ def native_dechunk(stream):
 def main():
     ext = 'dylib' if sys.platform == 'darwin' else 'so'
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--text', type=Path,
-                        default=ROOT / 'evidence/x86-capture-text-08/client-text.bin')
-    parser.add_argument('--data', type=Path,
-                        default=ROOT / 'evidence/image-data-run10/data-capture-10/client-image-data.bin')
+    parser.add_argument('--text', type=Path, default=pins.TEXT08.default())
+    parser.add_argument('--data', type=Path, default=pins.DATA.default())
     parser.add_argument('--library', type=Path,
                         default=ROOT / 'native/build' / ('libmuprotocol.' + ext))
     parser.add_argument('--output', type=Path)

@@ -41,12 +41,13 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 
-DEFAULT_TEXT = ROOT/'evidence/x86-text-capture-09/client-text.bin'
-DEFAULT_DATA = ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+DEFAULT_TEXT = pins.TEXT.default()
+DEFAULT_DATA = pins.DATA.default()
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_SHA256 = pins.DATA.sha256
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 LIB = ROOT/f'reconstructed/names/libnames.{SUFFIX}'
 SECURITY_COOKIE = 0x01cf65c0
@@ -1447,9 +1448,8 @@ def main():
     parser.add_argument('--output', default='')
     parser.add_argument('--negative', type=int, default=0, help='cases per planted mistake (0: skip the controls)')
     args = parser.parse_args()
-    text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
-    if hashlib.sha256(text).hexdigest() != TEXT_SHA256 or hashlib.sha256(data).hexdigest() != DATA_SHA256:
-        raise SystemExit('the pinned restored text and image data are required')
+    text = pins.TEXT.read(args.text, exit=True)
+    data = pins.DATA.read(args.data, exit=True)
     lib = load_library(args.library)
     client = Client(text, data)
     sections = dict(helpers=validate_helpers, **SECTIONS)

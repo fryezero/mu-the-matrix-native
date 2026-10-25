@@ -69,6 +69,7 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
 import actor_machine as am  # noqa: E402
 import validate_combat as vc  # noqa: E402
 
@@ -1591,17 +1592,10 @@ NEGATIVES = ['create_fire1_large', 'wrapper_no_exempt', 'move_smoke_light_16', '
              'tail_initial_life_20', 'tail_glint_no_alpha', 'tail_fire_no_saved_colour', 'breath_no_direction']   # NATIVE-HELPERS-002
 
 
-def default_evidence(relative):
-    local = ROOT/'evidence'/relative
-    if local.exists():
-        return str(local)
-    return str(Path.home()/'Documents/main-exe-study/evidence'/relative)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--text', default=default_evidence('x86-text-capture-09/client-text.bin'))
-    parser.add_argument('--data', default=default_evidence('image-data-run10/data-capture-10/client-image-data.bin'))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--library', default=str(ROOT/f'reconstructed/particles/libclient_particles.{SUFFIX}'))
     parser.add_argument('--cases', type=int, default=300)
     parser.add_argument('--heavy-cases', type=int, default=None, help='cases of the 1000-record families')

@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import client_ui_machine as cm
 import validate_names as vn
 import validate_map as vm
+import pins
 
 I = C.c_int32
 
@@ -584,27 +585,13 @@ def run_markers(m, l, rng, n):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument(
-        "--text",
-        default=str(
-            Path.home()
-            / "Documents/main-exe-study/evidence/x86-text-capture-09/client-text.bin"
-        ),
-    )
-    p.add_argument(
-        "--data",
-        default=str(
-            Path.home()
-            / "Documents/main-exe-study/evidence/image-data-run10/data-capture-10/client-image-data.bin"
-        ),
-    )
+    p.add_argument("--text", default=pins.TEXT.default_str())
+    p.add_argument("--data", default=pins.DATA.default_str())
     p.add_argument("--cases", type=int, default=500)
     p.add_argument("--mutations", action="store_true")
     p.add_argument("--output")
     a = p.parse_args()
-    text, data = Path(a.text).read_bytes(), Path(a.data).read_bytes()
-    assert hashlib.sha256(text).hexdigest() == vn.TEXT_SHA256
-    assert hashlib.sha256(data).hexdigest() == vn.DATA_SHA256
+    text, data = pins.TEXT.read(a.text), pins.DATA.read(a.data)
     m = Machine(text, data)
     for lo, hi in (
         (0xC77C65, 0xC77E23),

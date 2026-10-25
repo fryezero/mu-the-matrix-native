@@ -24,9 +24,10 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
 import client_ui_machine as cm
+import pins
 
-TEXT_SHA = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_SHA = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+TEXT_SHA = pins.TEXT.sha256
+DATA_SHA = pins.DATA.sha256
 SUFFIX = 'dylib' if sys.platform == 'darwin' else 'so'
 JEWEL, MATCH, READY, REPEAT, EXTRA = 0xad50b4, 0xd06e3c, 0xd04fc3, 0xd05394, 0xd051b8
 FORMULA, RATE, COST, REQUEST = 0xd09bbb, 0xd098da, 0xd099f2, 0x960420
@@ -329,13 +330,13 @@ def mutation(lib,observations):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--text',type=Path,default=os.environ.get('MU_CLIENT_TEXT',ROOT/'evidence/x86-text-capture-09/client-text.bin'))
-    ap.add_argument('--data',type=Path,default=os.environ.get('MU_IMAGE_DATA',ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin'))
+    ap.add_argument('--text',type=Path,default=pins.TEXT.default())
+    ap.add_argument('--data',type=Path,default=pins.DATA.default())
     ap.add_argument('--cases',type=int,default=1000);ap.add_argument('--mutations',action='store_true');ap.add_argument('--output',type=Path)
     ap.add_argument('--game-root',type=Path,default=os.environ.get('MU_GAME_ROOT'))
-    args=ap.parse_args();text=args.text.read_bytes();data=args.data.read_bytes()
-    for b,d in ((text,TEXT_SHA),(data,DATA_SHA)):
-        if hashlib.sha256(b).hexdigest()!=d:raise ValueError('private input digest mismatch')
+    args=ap.parse_args()
+    text=pins.TEXT.read(args.text,mismatch=ValueError('private input digest mismatch'))
+    data=pins.DATA.read(args.data,mismatch=ValueError('private input digest mismatch'))
     subprocess.run(['make','-C',str(ROOT/'reconstructed/mix')],check=True,capture_output=True)
     lib=native(ROOT/f'reconstructed/mix/libmix.{SUFFIX}');client=Client(text,data)
     counts,observations=run(client,lib,args.cases)

@@ -10,17 +10,18 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
 TEXT_BASE = 0x401000
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
+TEXT_SHA256 = pins.TEXT.sha256
 FUNCTION = 0xcff83e
 FUNCTION_BYTES = 1790
 FUNCTION_SHA256 = 'c358cd6e89029b912c7297f31c049c8383a5aa85bf6400ee77c6e033c01bcb7c'
 
 
 def validate(text, library):
-    payload = Path(text).read_bytes()
-    if len(payload) != 23572480 or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
-        raise ValueError('Input does not match pinned restored text')
+    payload = pins.load(text, pins.TEXT.size, TEXT_SHA256,
+                        mismatch=ValueError('Input does not match pinned restored text'))
     function = payload[FUNCTION-TEXT_BASE:FUNCTION-TEXT_BASE+FUNCTION_BYTES]
     if hashlib.sha256(function).hexdigest() != FUNCTION_SHA256:
         raise ValueError('Pinned pose helper body mismatch')

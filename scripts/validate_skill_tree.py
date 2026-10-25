@@ -42,6 +42,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
+import pins  # noqa: E402
 import client_ui_machine as cm  # noqa: E402
 import live_lang_to_plain as plain  # noqa: E402
 import validate_lang as vl  # noqa: E402
@@ -1133,8 +1134,8 @@ def mutations(m, snap, args, families, work):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshot', default=os.environ.get('SNAP'), help='langread snapshot (local)')
-    parser.add_argument('--text', default=os.environ.get('MU_CLIENT_TEXT', str(vl.DEFAULT_TEXT)))
-    parser.add_argument('--data', default=os.environ.get('MU_IMAGE_DATA', str(vl.DEFAULT_DATA)))
+    parser.add_argument('--text', default=pins.TEXT.default_str())
+    parser.add_argument('--data', default=pins.DATA.default_str())
     parser.add_argument('--game-root', default=os.environ.get('MU_GAME_ROOT'))
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--cases', type=int, default=500)
@@ -1143,9 +1144,8 @@ def main():
     parser.add_argument('--output')
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
-    text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
-    if vl.sha256_file(args.text) != vl.TEXT_SHA256 or vl.sha256_file(args.data) != vl.DATA_SHA256:
-        raise SystemExit('the pinned captures are required (MU_CLIENT_TEXT / MU_IMAGE_DATA)')
+    text = pins.TEXT.read(args.text, exit=True)
+    data = pins.DATA.read(args.data, exit=True)
     if not args.snapshot:
         raise SystemExit('--snapshot (or SNAP) is required')
     snap = plain.Snapshot.load(args.snapshot)

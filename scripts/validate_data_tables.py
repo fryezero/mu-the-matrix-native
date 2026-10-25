@@ -42,12 +42,14 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-TEXT_BASE, TEXT_BYTES = 0x401000, 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BASE, DATA_BYTES = 0x1a7c000, 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins  # noqa: E402
+TEXT_BASE, TEXT_BYTES = 0x401000, pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_BASE, DATA_BYTES = 0x1a7c000, pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 FEATURE_ADDRESS = 0x01cf6618
-FEATURE_SHA256 = 'bce941d196c26696f1f5d701d21a8a9e414e81d6e15a48f3663313e3cd7cc4b9'
+FEATURE_SHA256 = pins.FEATURE.sha256
 SECTION3_BASE, SECTION3_BYTES = 0x1ced000, 0xa0e5000
 KEY3 = bytes((0xfc, 0xcf, 0xab))
 KEY_GLOBAL, PACKAGE_KEY_GLOBAL = 0x01cf0448, 0x01cf0ea8
@@ -79,11 +81,7 @@ GDT = 0x7fe00000
 FILE_HANDLE = 0x40000000
 
 
-def load_pinned(path, size, digest, label):
-    payload = Path(path).read_bytes()
-    if len(payload) != size or hashlib.sha256(payload).hexdigest() != digest:
-        raise ValueError(f'Input does not match pinned {label}')
-    return payload
+load_pinned = pins.loader(ValueError, 'Input does not match pinned {label}')
 
 
 class Library:
@@ -617,9 +615,9 @@ def mutations(spec, image):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--text', type=Path, default=ROOT/'evidence/x86-text-capture-09/client-text.bin')
-    parser.add_argument('--data', type=Path, default=ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin')
-    parser.add_argument('--feature', type=Path, default=ROOT/'evidence/image-data-run10/math-capture-10/cpu-features.bin')
+    parser.add_argument('--text', type=Path, default=pins.TEXT.default())
+    parser.add_argument('--data', type=Path, default=pins.DATA.default())
+    parser.add_argument('--feature', type=Path, default=pins.FEATURE.default())
     parser.add_argument('--library', type=Path, default=ROOT/'reconstructed/data' /
                         ('libdatatables.dylib' if sys.platform == 'darwin' else 'libdatatables.so'))
     parser.add_argument('--game-root', type=Path, default=os.environ.get('MU_GAME_ROOT'))

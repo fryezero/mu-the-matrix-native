@@ -8,29 +8,29 @@ import math
 from pathlib import Path
 import random
 import struct
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
 
 TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+TARGET_SHA256 = pins.TARGET.sha256
 CONTROL_WORD = 0x027f
-DATA_REGIONS = {
-    'record-bias.bin': (0x1a7dd40, 8, 'af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc'),
-    'record-template.bin': (0x1cf3b00, 64, '5998e9d1dd9bf48af6af87a1ef8c7783b818ac8329637ada08cc5fb329042376'),
-    'cpu-features.bin': (0x1cf6618, 4, 'bce941d196c26696f1f5d701d21a8a9e414e81d6e15a48f3663313e3cd7cc4b9'),
-}
+DATA_REGIONS = {pin.relative.rsplit('/', 1)[1]: (pin.base, pin.size, pin.sha256)
+                for pin in (pins.RECORD_BIAS, pins.RECORD_TEMPLATE, pins.FEATURE)}
 
 
 def load_inputs(capture, data_directory):
-    payload = Path(capture).read_bytes()
-    if len(payload) != TEXT_BYTES or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
-        raise ValueError('Text does not match the pinned restored client')
+    payload = pins.load(capture, TEXT_BYTES, TEXT_SHA256,
+                        mismatch=ValueError('Text does not match the pinned restored client'))
     root = Path(data_directory)
     manifest = json.loads((root / 'capture.json').read_text())
     expected = {'format': 'mu-linux-wine-math-capture-v1', 'scope': 'math-data',
                 'target_sha256': TARGET_SHA256, 'expected_bytes': 76,
                 'restored_text_sha256_before': TEXT_SHA256, 'restored_text_sha256_after': TEXT_SHA256,
-                'capture_tool_sha256': '11bcd31f1e502ad11c281fd048e4a6bb18fa922584edff33174c667bf4bf34d8'}
+                'capture_tool_sha256': pins.MATH_CAPTURE_TOOL_SHA256}
     if any(manifest.get(key) != value for key, value in expected.items()):
         raise ValueError('Math manifest does not match the verified capture profile')
     checks = ('complete_within_scope', 'same_process', 'process_still_running',
