@@ -11,7 +11,7 @@ that made the pinned capture (`42ae903`, `3162f2f`, `f8cb2fd`, `b4bd515`); all m
 neighbour table at `0x01cf1640` in a guest read of `0x01ced000` matches `a8cc4549…`
 (`evidence/x86-guest-sec3-25/`, used through `MU_PATH_DIRECTIONS`).
 
-With `MU_RECOVERY_INTEGRATION=1` and an installation whose `main.exe` matches the pin, 35 of 39 suites pass. The rest:
+With `MU_RECOVERY_INTEGRATION=1` and an installation whose `main.exe` matches the pin, 35 of 38 suites pass. The rest:
 
 - `reconstructed/charsel`: all 1,488 character-create cases match, but its private test runs `--cases 60`, whose
   20 planted-mistake cases contain no CP949 lead byte, so the code-page mutant goes undetected (5/6). The
