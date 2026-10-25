@@ -1,0 +1,40 @@
+/* WORLD-RT-001: the world's parts, one row each.  THE list.
+ *
+ *   MU_PART(id, ops, pre_tick, tick, frame, draw_gl, draw_soft, report)
+ *
+ * The row order is the open order (world/main.c load()).  Each number orders that column; 0 = the part has no
+ * such hook.  The columns reproduce world/main.c (commit f997742) exactly:
+ *   pre_tick   combat_pre_step (main.c:331-341): MoveHero's pick-up, NPC and attack cases before the walk
+ *   tick       on_step (main.c:758-826), which copies the client's MoveHero/MoveCharacters order
+ *   frame      advance (main.c:1636-1688) after the walk, placement and the render-pass camera
+ *   draw_gl    draw_gl (main.c:2296-2518): RenderScene's 3D passes, then the label overlay
+ *   draw_soft  draw_soft (main.c:2549-2680): the same in the software raster (helpers and marker differ)
+ *   report     report_frame / report_summary (main.c:2684-2919): the frame rows and the summary rows
+ * native/tests/test_world_parts.py pins every column against that order, so a reordering is a visible diff
+ * (WORLD-ORDER-001 then checks the tick and draw columns against the reconstructed MoveMainScene and
+ * RenderMainScene).  A subsystem that acts at two places of a pass has two rows (npc_demo before the actors,
+ * npc after the names; actors and actor_effects; items and item_labels).
+ *
+ * Every part's file is native/world/parts/<file>.c (several rows may share a file). */
+/*      id             ops                    pre  tick frame  gl  soft rep    world/main.c                                */
+MU_PART(terrain,       mu_part_terrain,         0,    0,  20,  10,  10,   0) /* terrain_frame, RenderTerrain, tiles      */
+MU_PART(hero,          mu_part_hero,            0,    0,   0,  30,  30,   0) /* the hero's parts (RenderCharacter)       */
+MU_PART(sound,         mu_part_sound,           0,   10,   0,   0,   0,  10) /* HeroTile, footsteps; per-frame block     */
+MU_PART(npc_demo,      mu_part_npc_demo,        0,    0,   0,   0,   0,   0) /* the NPC demo table (joins the placement) */
+MU_PART(actors,        mu_part_actors,          0,   20,  60,  60,  50,  50) /* demo placement: monsters and NPCs        */
+MU_PART(objects,       mu_part_objects,         0,  120,  30,  20,  20,  40) /* MoveObjects, lights, RenderObjects        */
+MU_PART(env,           mu_part_env,             0,  130,   0,  80,  70,  20) /* MoveLeaves/Boids/Fishs, weather          */
+MU_PART(particles,     mu_part_particles,       0,  140,  50, 100,  90,  30) /* MoveEffects/Joints/Particles, shadows     */
+MU_PART(combat,        mu_part_combat,         30,   50,  40, 120, 120,  60) /* attack case, demo server, effects        */
+MU_PART(progress,      mu_part_progress,        0,   60,   0,   0,   0,  70) /* experience, levels (demo server)         */
+MU_PART(items,         mu_part_items,          10,  100,  10,  70,  60,  80) /* ground items: pick-up, MoveItems, Render */
+MU_PART(names,         mu_part_names,           0,  110, 100, 140, 140, 110) /* hudPlayerName's game side                */
+MU_PART(npc,           mu_part_npc,            20,   30,   0,   0,   0, 120) /* NPC pick, talk case, demo answer          */
+MU_PART(players,       mu_part_players,         0,   70,  70,  40,  40,  90) /* other players (demo file feed)           */
+MU_PART(social,        mu_part_social,          0,   80,  90,   0,   0, 130) /* party/trade/friends/messages (local)     */
+MU_PART(helpers,       mu_part_helpers,         0,   90,   0,  50,  80, 100) /* pets and mounts                          */
+MU_PART(map,           mu_part_map,             0,  150,  80,   0,   0, 140) /* LoadingWorld, gate test, hudMap          */
+MU_PART(quest_step,    mu_part_quest_step,      0,   40,   0,   0,   0,   0) /* the quest demo's step (GFx builds)       */
+MU_PART(marker,        mu_part_marker,          0,    0,   0,  90, 100,   0) /* viewer aid: the clicked point            */
+MU_PART(actor_effects, mu_part_actor_effects,   0,    0,   0, 110, 110,   0) /* the actors' EffectManager instances      */
+MU_PART(item_labels,   mu_part_item_labels,     0,    0,   0, 130, 130,   0) /* the ground items' name labels            */
