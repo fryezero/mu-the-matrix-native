@@ -820,8 +820,8 @@ def c_stream(lib, case, generic=False):
     return status, stream
 
 
-def client_stream(world_args, case):
-    w = World(*world_args)
+def client_stream(world_args, case, world_factory=None):
+    w = (world_factory or World)(*world_args)
     m = w.m
     w.add_model(case['type'], MODEL)
     if case['record'] is not None:

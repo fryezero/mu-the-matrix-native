@@ -44,6 +44,29 @@ int main(void)
         mu_renderchar_type_from_path("Spear513.bmd") != -1) return 9;
     printf("{\"created\":%llu,\"random_calls\":%llu,\"missing_bones_skipped\":5,\"full\":true}\n",
            (unsigned long long)p->sprites->created, (unsigned long long)p->rand_calls);
+    mu_world_particles_discard_sprites(p);
+    bmd.bone_count = 20;
+    for (int k = 0; k < 20; ++k)
+        bones[k * 12] = bones[k * 12 + 5] = bones[k * 12 + 10] = 1;
+    p->rand_state = 1;
+    p->rand_calls = 0;
+    n = mu_renderchar_link_effects(&model, bones, 0x14f0, p);
+    if (n < 10 || n > 20 || p->rand_calls != (uint64_t)n + 1) return 10;
+    s = &p->sprites->records[0];
+    if (s->position[0] != -260 || s->position[1] != 140 || s->position[2] != 290) return 11;
+    mu_world_particles_discard_sprites(p);
+    p->rand_state = 1;
+    /* The existing particle engine explicitly refuses Spark03 subtype 11.
+     * Its two requests remain counted as unsupported; five sprites are live. */
+    if (mu_renderchar_link_effects(&model, bones, 0x12fb, p) != 5 ||
+        p->stats.created != 0 || p->stats.unsupported != 2) return 15;
+    mu_world_particles_discard_sprites(p);
+    bmd.bone_count = 1;
+    if (mu_renderchar_link_effects(&model, bones, 0x12fb, p) != 3) return 12;
+    s = &p->sprites->records[0];
+    if (s->position[0] != 140 || s->position[1] != 220 || s->type != 0x7ef7) return 13;
+    for (int i = 0; i < MU_PT_SPRITES; ++i) p->sprites->records[i].live = 1;
+    if (mu_renderchar_link_effects(&model, bones, 0x14f0, p) != 0) return 14;
     mu_world_particles_close(p);
     free(p);
     return 0;

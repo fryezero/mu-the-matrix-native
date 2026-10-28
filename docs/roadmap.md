@@ -141,7 +141,7 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 
 ## Coordinating agents
 
-| RENDER-ITEMS-002 parts 1/2 | Implemented: inventory special-code remaps; 103 scalar remaps, 11 special body types, six bow link effects; shared native character/ground/inventory draws | Part 1: 5,512 cases, part 2: 135,176; 0 mismatches and 6/6 mutants each; native regressions/local renders ([finding](research/client-render-items.md)) | 1,663 body types, other RenderLinkItem effects, Muun/nested map-object tables, hero equipment feeds and part-1 limits remain |
+| RENDER-ITEMS-002 parts 1/2/3 | Implemented subsets: inventory remaps; 103 scalar remaps, 262/1,674 body types; three link callers/eight types verified, two targets fully integrated | Part 3: 74,292 Unicorn cases, 0 mismatches, 8/8 mutants; part 2 regression: 135,176, 6/6; ranked 798-shape survey, native renders ([finding](research/client-render-items.md)) | 1,412 body types, 17 class skins, Spark03 subtype 11 consumer, further links, Muun/nested map-object tables and prior record/buff/outline/model limits |
 
 | NATIVE-MAP-002 | Implemented: captured absent-key Move default supplied to the validator; snapshot digest in reports; synthetic nonzero-default regression | Lang4 and both lang5 copies each pass 5,001 instruction cases, zero mismatches, all 10 mutants; identical 69 real records and 621 native rows across sort orders; 11 reconstructed and 9 native map tests pass ([finding](research/client-maps.md#move-default-records-native-map-002)) | Native Move behavior unchanged; navimap locale state and prior teleport limits remain open |
 | NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |
@@ -152,3 +152,5 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 Use issue IDs matching these task IDs, claim a scope before editing, and name the owned directories and output paths. Independent tasks can run on separate branches/worktrees. Dependent tasks should consume a reviewed interface or evidence result. A PR closes a task only when its completion evidence is present; partial research belongs in a handoff with open questions.
 
 SESSION-QUEST-001 is implemented: [session state, fixture checks and limits](handoffs/SESSION-QUEST-001.md).
+
+SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](handoffs/SESSION-VIEWPORT-001.md).

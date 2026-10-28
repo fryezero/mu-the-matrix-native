@@ -52,7 +52,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_icarus.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
-            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
+            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c fixture/characters_spec.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
             core/mu_progress.c core/mu_protocol.c \
             core/mu_social_messages.c core/mu_social_item_tables.c core/mu_social_item_view.c
@@ -93,7 +93,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
              $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/item_present.c $(RECON)/social/social_packets.c
-CORE_OBJ := $(patsubst core/%.c,$(BUILD)/core/%.o,$(CORE_SRC))
+CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
@@ -192,23 +192,23 @@ $(BUILD)/mu-effect: tools/mu_effect_tool.c $(LIB)
 WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts/hero.c world/parts/sound.c \
                 world/parts/npc.c world/parts/actors.c world/parts/objects.c world/parts/env.c \
                 world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
-                world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
+                world/parts/characters.c world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
                 world/parts/map.c world/parts/gfx.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
 
-$(BUILD)/world-rt/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS)
+$(BUILD)/world-rt/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $@
 
-$(BUILD)/world-rt-gl/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) world/world_gfx.h gfx/mu_gfx_layer.h
+$(BUILD)/world-rt-gl/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP) world/world_gfx.h gfx/mu_gfx_layer.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $< -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $< -o $@
 
 # Walk-around session, headless software build (NATIVE-WORLD-001).
 # NATIVE-WORLD-002 links the audio library (in-world sound, WAV output).
-$(BUILD)/mu-walk: $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-walk: $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	$(CXX) $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) \
 	  $(AUDIO_LIBS) $(UI_LIBS) -lm -o $@
 # ---- end WORLD-RT-001 block ----
@@ -234,8 +234,8 @@ $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o
 	$(CXX) $(BUILD)/helper_fx_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
-$(BUILD)/quest-travel-host: tests/quest_travel_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $(BUILD)/quest_travel_host.o
+$(BUILD)/quest-travel-host: tests/quest_travel_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/quest_travel_host.o
 	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # NATIVE-SKILL-001: the skill book (core/mu_skill) test host.
@@ -382,11 +382,11 @@ $(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a $(BUILD)/dat
 # from build/world-rt-gl; build/world/main.o of an earlier build (world/main.c) is removed first.
 WORLD_SRC := viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c $(GFX_SRC)
 
-$(BUILD)/mu-world: $(WORLD_SRC) $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-world: $(WORLD_SRC) $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h world/world_gfx.h gfx/mu_gfx_layer.h gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h gfx/mu_gfx_sdl.h $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	@mkdir -p $(BUILD)/world
 	@rm -f $(BUILD)/world/main.o
 	for f in $(WORLD_SRC); do \
-	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/world/*.o $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
@@ -411,22 +411,22 @@ CLIENT_SRC := client/main.c client/shell.c client/offline-session.c $(WORLD_RT_S
 CLIENT_HDR := gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h client/shell.h client/offline-session.h $(WORLD_RT_HDR) $(CHARSEL_RT_HDR) \
               charsel/charsel_list_gfx.h charsel/charsel_mugfx.h charsel/charsel_create_gfx.h
 
-$(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	@mkdir -p $(BUILD)/shell
 	@rm -f $(BUILD)/shell/*.o # CHARSEL-RT-001: migrate the old basename objects
 	for f in $(CLIENT_SRC); do \
-	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
 	    -o $(BUILD)/shell/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/shell/*.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/ui_gl.c $(GFX_SRC)
 
-$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h viewer/ui_gl.h $(LIB) $(BUILD)/libmuaudio.a
+$(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h viewer/ui_gl.h $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	@mkdir -p $(BUILD)/client
 	@rm -f $(BUILD)/client/*.o # CHARSEL-RT-001: migrate the old basename objects
 	for f in $(CLIENT_GL_SRC); do \
-	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
 	    -o $(BUILD)/client/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/client/*.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
@@ -467,7 +467,7 @@ GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard
 SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
                $(wildcard session/domains/*.c)
 FIXTURE_SRC := fixture/fixture.c $(wildcard fixture/behaviors/*.c)
-SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h
+SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h core/mu_world_players.h fixture/characters_demo.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
 LAYOUT_STAMP := $(GEN)/.layout-stamp
 LAYOUT_INPUTS := ../scripts/gen_layout.py $(wildcard session/layout/*.def)
@@ -519,7 +519,7 @@ clean:
 CFLAGS += -I build/gen -I session
 $(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
-QUEST_LIB_SRC := $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
+QUEST_LIB_SRC := fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
 $(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
 
@@ -542,6 +542,15 @@ $(BUILD)/mu-native-data: data/manifest.cpp data/manifest.h
 
 .PHONY: layout
 layout: $(LAYOUT_STAMP)
+
+$(BUILD)/core/mu_world_players.o: core/mu_world_players.c $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c core/mu_world_players.c -o $@
+
+$(BUILD)/fixture/characters_spec.o: fixture/characters_spec.c $(HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
+
+$(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
 
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o
