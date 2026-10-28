@@ -46,7 +46,7 @@ endif
 RECON := ../reconstructed
 CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
-            core/mu_terrain.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
+            core/mu_terrain.c core/mu_world_haze.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
@@ -59,7 +59,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/object_render.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/object_render.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
@@ -98,7 +98,7 @@ RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/icarus.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/icarus.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
@@ -193,7 +193,7 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/npc.c world/parts/actors.c world/parts/objects.c world/parts/env.c \
                 world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
                 world/parts/characters.c world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
-                world/parts/map.c world/parts/gfx.c world/parts/marker.c
+                world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
@@ -556,6 +556,9 @@ $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o
 	$(CXX) $(BUILD)/icarus-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+$(BUILD)/world-haze-host: tests/world_haze_host.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/world-haze-host.o
+	$(CXX) $(BUILD)/world-haze-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 # VIEWPORT-MONSTER-001: decoded-record -> model/effect cache lifecycle.
 $(BUILD)/monsters-lifecycle-host: tests/monsters_lifecycle_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/monsters_lifecycle_host.o
