@@ -9,6 +9,7 @@
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/monsters_demo.h"
+#include "../../fixture/skills_demo.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -119,6 +120,8 @@ static int actors_open(struct mu_world_rt *a, void *self)
         a->combat_config.monster_hp,a->combat_config.damage_min,a->combat_config.damage_max,a->combat_config.latency_steps,
         a->combat_config.seed,a->combat_config.counter_attack,a->combat_config.respawn_steps,a->combat_config.hero_hp,a->combat_config.hero_respawn_steps);
     fprintf(out,"use skills\nat 1 skills root %s\nat 1 skills login %d 30\n",a->root,a->walk.hero.class_byte);
+    mu_skills_demo_hero(out, a->walk.hero.class_byte, a->map->world,
+                        a->walk.hero.tile[0], a->walk.hero.tile[1], a->walk.hero.angle[2]);
     fclose(out);
     mu_fixture_options options = {scenario, NULL, 0x5eed2026u};
     mu_fixture *fixture = mu_fixture_open(&options, error, sizeof error);

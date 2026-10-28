@@ -830,6 +830,10 @@ int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t se
 #endif /* MU_FIXTURE_NO_TCP */
 
 void *mu_fixture_behavior_state(mu_fixture *f, const char *name) {
-    for (int i=0; f && i<f->ctx.nuse; i++) if(!strcmp(f->ctx.use[i].b->name,name)) return f->ctx.use[i].self;
+    return mu_fx_behavior_state(f ? &f->ctx : NULL, name);
+}
+
+void *mu_fx_behavior_state(mu_fixture_ctx *ctx, const char *name) {
+    for (int i=0; ctx && i<ctx->nuse; i++) if(!strcmp(ctx->use[i].b->name,name)) return ctx->use[i].self;
     return NULL;
 }
