@@ -33,3 +33,16 @@ and `renders/render-worlds-n`; both are deleted after merge with the worktree an
 were only read. No new local input needs retention.
 
 ## Checks
+
+Merge lock taken at 18:38 CDT (queue empty). Latest main `f5a3199` (including RENDER-WORLDS-M and NATIVE-PERF-004)
+merged as `a326169`; conflicts in `native/Makefile`, `scripts/validators.toml` and the three status docs keep
+both sides. On the merged tree:
+
+- `bash scripts/local-macos-ci.sh` passes: **1,650 tests across 38 discovery runs, 211 explicit skips, zero
+  failures/errors; 11/11 fixture scenarios; native viewer and reader builds; publication audit 1,616 files,
+  zero rejected**. Readers built only. No hosted workflow dispatched.
+- Registered private G/H/I/J/N: **5/5 pass, no errors/skips** (N: 13,000 cases, 29/29 mutants).
+- `world_handler_coverage.py`: 48 classes, 57 registrations, 288 addresses; 52/144, 18/48.
+- N portable tests 3 pass + 1 private skip; native N host passes.
+
+Only this checks section changed after the gate.
