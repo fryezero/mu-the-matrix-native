@@ -70,7 +70,8 @@ Use the same installed text/data files for both revisions, through ignored `evid
 
 ## Delivery and cleanup
 
-Final gate, PR and cleanup: pending.
+Implementation, capture comparison and private owning tests are complete and pushed. The lane is
+queued for the serialized final sequence. Full local gate, PR merge and cleanup remain pending.
 Task-local reports live under `mu-mac-tools/native/scratch/verify-harness-002` only until delivery;
 they contain private derived reports and are deleted after merge. No new input needs to be retained.
 
