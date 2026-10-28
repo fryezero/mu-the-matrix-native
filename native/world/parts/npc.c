@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #include "../world_rt_internal.h"
+#include "../../core/mu_session_audio.h"
 
 static int npc_demo_open(struct mu_world_rt *a, void *self)
 {
@@ -72,8 +73,8 @@ static void npc_close_all(void *context)
 static void npc_sound(void *context, int32_t id)
 {
     mu_world_rt *a = context;
-    if (a->has_sound)
-        mu_audio_host_play(a->sound.host, id, 0);   /* SND_Play(id, 0, 0) */
+    /* ReceiveTalk's common tail, reached only after the reconstructed encrypted gate. */
+    mu_session_npc_talk_sound(a->actors.session, id);
 }
 
 static int npc_open(struct mu_world_rt *a, void *self)
@@ -113,8 +114,8 @@ static void npc_pre_tick(struct mu_world_rt *a, void *self)
 static void npc_tick(struct mu_world_rt *a, void *self)
 {
     (void)self;
-    if (a->npc)
-        mu_npc_step(a->npc);
+    if (a->npc) mu_npc_step(a->npc);
+    world_rt_characters_audio_drain(a);
 }
 
 static void npc_report_frame(const struct mu_world_rt *a, const void *self, int32_t frame)
