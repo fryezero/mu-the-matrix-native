@@ -833,8 +833,7 @@ def build_cases(game_root, frames, mutations, clones, scenes, seed, limit):
 def validate(args):
     text = base.load_pinned(args.text, base.TEXT_BYTES, base.TEXT_SHA256, 'restored text')
     data = base.load_pinned(args.data, base.DATA_BYTES, base.DATA_SHA256, 'image data')
-    sec3 = base.load_pinned(args.section3, None, base.SEC3_SHA256, 'section-3 capture')[:base.SEC3_INIT_END -
-                                                                                      base.SEC3_BASE]
+    sec3 = base.load_section3(args.section3)
     bodies = {name: hashlib.sha256(text[s - base.TEXT_BASE:e - base.TEXT_BASE]).hexdigest()
               for name, (s, e) in BODIES.items()}
     machine = TreeMachine(text, data, sec3)
@@ -861,7 +860,8 @@ def validate(args):
     total = lambda key: sum(r.get(key, 0) or 0 for r in results)
     return {
         'text_sha256': base.TEXT_SHA256, 'data_sha256': base.DATA_SHA256,
-        'section3_initialized_sha256': hashlib.sha256(sec3).hexdigest(), 'bodies': bodies,
+        'section3_initialized_sha256': hashlib.sha256(sec3).hexdigest(),
+        'section3_initialized_bytes': len(sec3), 'bodies': bodies,
         'library_sha256': hashlib.sha256(Path(args.library).read_bytes()).hexdigest(),
         'cases': len(results), 'cases_by_kind': {k: sum(1 for c in cases if c['kind'] == k)
                                                  for k in ('tree', 'clone', 'manager')},
@@ -886,7 +886,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--text', type=Path, required=True, help='x86-text-capture-09/client-text.bin')
     parser.add_argument('--data', type=Path, required=True, help='data-capture-10/client-image-data.bin')
-    parser.add_argument('--section3', type=Path, required=True, help='x86-linux-capture-04/main-01ced000.bin')
+    parser.add_argument('--section3', type=Path, default=base.pins.EFFECTS_INIT.default(),
+                        help='capture or range file starting at 0x01ced000; only the pinned initialized range is read')
     parser.add_argument('--game-root', type=Path, required=True)
     parser.add_argument('--library', type=Path, default=ROOT / 'reconstructed/effects' /
                         ('libeffects.dylib' if sys.platform == 'darwin' else 'libeffects.so'))

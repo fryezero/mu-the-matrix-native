@@ -1,5 +1,7 @@
 # Current status
 
+INTEGRATION-GREEN-001 completed: all 38 private-enabled directories green; 1,464 unique tests passed, 15 optional Ruffle-related skips, zero failures. Local Mac gate passed, seven fixture scenarios passed. [Checks, input provenance and limits](handoffs/INTEGRATION-GREEN-001.md).
+
 RENDER-WORLDS-G implements the 48-class inventory and Santa Village/Vulcanus primary methods: 6,000 instruction cases, zero mismatches, 13/13 compiled mutants; 19/144 primary families verified across 7/48 classes. Full Mac gate passes, 1,466 tests; 28 unaffected PNG hashes identical. [Evidence](research/client-worlds-g.md), [handoff](handoffs/RENDER-WORLDS-G.md).
 
 RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,463 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
