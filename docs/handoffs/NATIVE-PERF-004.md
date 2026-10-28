@@ -25,6 +25,9 @@ Native-only offline performance work. No original client or launcher was used.
   reports the same first byte, then aborts. `MU_PERF_004_BASELINE=1` restores
   the byte loop. A new test checks identical audit lines in both modes over
   three scenarios; a skip-everything mutant is caught.
+- Locked final gate on `80a0317` (main `38d08a9` merged): `bash scripts/local-macos-ci.sh`
+  passes 38 suites, 1,645 tests (1,436 pass, 209 explicit skips, 0 failures),
+  11/11 fixture scenarios, audit of 1,607 files with zero rejections.
 - Controlled-clock full-frame pairs: 2,804/2,804 identical on the branch
   (`b65d56a`) and 2,804/2,804 on the source integrated with main `fa63719`.
 

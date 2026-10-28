@@ -9146,5 +9146,20 @@
       "mu_model_transform": 517
     },
     "classification": "main-thread CPU (draw submission + logic) at 1280x800; GPU-bound time added at retina"
+  },
+  "final_gate": {
+    "source": "80a0317",
+    "base_main": "38d08a9",
+    "macos_gate": {
+      "suites": 38,
+      "tests_run": 1645,
+      "passed": 1436,
+      "skipped": 209,
+      "failed": 0,
+      "fixtures_passed": 11,
+      "fixtures_total": 11,
+      "audit_files": 1607,
+      "audit_rejected": 0
+    }
   }
 }
