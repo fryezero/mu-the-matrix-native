@@ -302,6 +302,7 @@ struct mu_gfx_layer {
     movie mv[MU_GFX_MOVIES];
     int order[MU_GFX_MOVIES];   /* window z-order, bottom first */
     int norder;
+    int help_ready;             /* SYS-MISC-001b: installed provider loaded */
     int32_t w, h;               /* the movies' stage in points */
     int32_t px_w, px_h;         /* window pixels */
     double scale;               /* pixels per point (Retina 2) */
@@ -389,7 +390,7 @@ static const char *const FILES[MU_GFX_MOVIES] = {"main", "InventoryFrame", "Info
                                                  "MyQuestInfo", "SkillInfoPopup", "SkillStampFrame", "MoveCommand",
                                                  "MasterSkillTree", "SkillTree4th", "SkillTree5th",
                                                  "winQuestSummary", "QuestProgressInfo", "NpcJobChangeQuest", "winParty", "Trade", "FriendMenu", "FriendWindow", "MixGoblinSel", "MixInventoryFrame", "PersonalShopProductList", "PersonalShopRegister", "PersonalShopPurchase",
-                                                 "winOption", "winSystemMenu"};
+                                                 "winOption", "winSystemMenu", "HelpWindow"};
 
 static int service_reserved(const mu_gfx_layer *L,int index);
 static int service_inventory(mu_gfx_layer *L,int cell);
@@ -1095,7 +1096,8 @@ void mu_gfx_layer_show(mu_gfx_layer *L, int m, int open)
     if (!L || m < 0 || m >= MU_GFX_MOVIES || !L->mv[m].g)
         return;
     movie *mv = &L->mv[m];
-    if (!open && inventory_busy(L) && (m==MU_GFX_INVENTORY || m==MU_GFX_NPC_SHOP || m>=MU_GFX_STORE_LIST))return;
+    if (!open && inventory_busy(L) && (m==MU_GFX_INVENTORY || m==MU_GFX_NPC_SHOP ||
+        (m>=MU_GFX_STORE_LIST && m<=MU_GFX_STORE_PURCHASE)))return;
     if (!open && m==MU_GFX_STORE_REGISTER)L->services.draft_active=0;
     if (!open && m==MU_GFX_INVENTORY) {
         for(int k=MU_GFX_STORE_LIST;k<=MU_GFX_STORE_PURCHASE;k++)mu_gfx_layer_show(L,k,0);
@@ -1707,7 +1709,7 @@ static const int WINDOW_ALIGN[MU_GFX_MOVIES] = {
     [MU_GFX_QUEST_SUMMARY] = 9, [MU_GFX_QUEST_NOTICE] = 9, [MU_GFX_JOB_QUEST] = 9,
     [MU_GFX_PARTY] = 9, [MU_GFX_TRADE] = 9, [MU_GFX_FRIENDS] = 9, [MU_GFX_MESSENGER] = 9,
     [MU_GFX_MIX_SELECT] = 9, [MU_GFX_MIX] = 9,
-    [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9
+    [MU_GFX_OPTION] = 9, [MU_GFX_SYSTEM_MENU] = 9, [MU_GFX_HELP] = 9
 };
 
 static void window_sizes(mu_gfx_layer *L)
@@ -1734,7 +1736,7 @@ static void window_sizes(mu_gfx_layer *L)
             invokef(L, m, L->mv[m].path, "SetAlign", "[%d]", WINDOW_ALIGN[m]);
         }
         /* 0x00acb333 -> 0x00aae4ae sizes every handler, including the align-9 stamp window. */
-        if (WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP) {
+        if (WINDOW_ALIGN[m] != 9 || m == MU_GFX_SKILL_STAMP || m == MU_GFX_HELP) {
             invokef(L, m, L->mv[m].path, "SetWindowSize", "[%d,%d]", L->w, L->h);
         }
     }
@@ -2521,6 +2523,14 @@ int mu_gfx_layer_text_active(const mu_gfx_layer *L)
     return L && L->chat_edit;
 }
 
+void mu_gfx_layer_help_ready(mu_gfx_layer *L, int ready)
+{
+    if (!L) return;
+    L->help_ready = ready != 0;
+    if (!ready) mu_gfx_layer_show(L, MU_GFX_HELP, 0);
+    if (ready) logf_(L, "game: HelpWindow ready; Ctrl+H is a native binding (original open route unrecorded)");
+}
+
 int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int mods)
 {
     if (!L)
@@ -2556,6 +2566,15 @@ int mu_gfx_layer_key(mu_gfx_layer *L, int down, int vk, uint32_t codepoint, int 
         L->main_down_vk = 0;
         if (down)
             chat_open(L, 1);
+        return 1;
+    }
+    if (down && vk == 'H' && mods == 2) {
+        if (!L->help_ready || !L->mv[MU_GFX_HELP].g || !L->mv[MU_GFX_HELP].path[0]) return 0;
+        mu_gfx_layer_toggle(L, MU_GFX_HELP);
+        return 1;
+    }
+    if (down && vk == 27 && !mods && L->mv[MU_GFX_HELP].open) {
+        mu_gfx_layer_show(L, MU_GFX_HELP, 0);
         return 1;
     }
     if (!main->g)

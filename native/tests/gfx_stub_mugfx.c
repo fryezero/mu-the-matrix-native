@@ -432,6 +432,8 @@ void mugfx_start(MuGfx *g)
         g->win_x = 348;
         g->win_y = 40;
         call(g, "requestWindowPos", "[348.0,40.0]");
+    } else if (is(g, "HelpWindow")) {
+        call(g, "UIInit", "[\"g_mcHelpWindow\"]");
     } else if (is(g, "InfoPopup")) {
         call(g, "UIInit", "[\"g_mcInfoPopup\"]");
     } else if (is(g, "CharacterInfoFrame")) {

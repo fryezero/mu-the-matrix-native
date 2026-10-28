@@ -107,7 +107,8 @@ static int panel(mu_world_rt *a, int vk, int mods)
     /* Existing adapters own toggle/close behavior and their context guards. */
     int native_key = vk == 'I' || vk == 'V' || vk == 'C' || vk == 'T' || vk == 'M' ||
                      vk == 'O' || vk == 'F' || vk == 'U' || vk == 'A' || vk == 27 || vk == 13 ||
-                     vk == 9 || (vk >= '0' && vk <= '9') || vk == 'Q' || vk == 'R' || vk == 'W' || vk == 'E';
+                     vk == 9 || (vk >= '0' && vk <= '9') || vk == 'Q' || vk == 'R' || vk == 'W' || vk == 'E' ||
+                     (vk == 'H' && mods == 2); /* SYS-MISC-001b: labelled native HelpWindow binding */
     if (l && native_key) {
         int used = mu_gfx_layer_key(l, 1, vk, (uint32_t)vk, mods);
         if (used) return 1;
