@@ -41,7 +41,11 @@ int main(void)
     if (mu_renderchar_link_effects(&model, bones, 0x12ec, p) != 0) return 8;
     if (mu_renderchar_type_from_path("Data/Item/Bow05.bmd") != 0x12ea ||
         mu_renderchar_type_from_path("Wing01.bmd") != 0x22e6 ||
-        mu_renderchar_type_from_path("Spear513.bmd") != -1) return 9;
+        mu_renderchar_type_from_path("Spear513.bmd") != -1 ||
+        mu_renderchar_type_from_path("HelmClass01.bmd") != 0x3700 ||
+        mu_renderchar_type_from_path("Data/Player/BootClass81.bmd") != -1 ||
+        mu_renderchar_type_from_path("BootClass00.bmd") != -1 ||
+        mu_renderchar_type_from_path("bOoTcLaSs80.bmd") != 0x388f) return 9;
     printf("{\"created\":%llu,\"random_calls\":%llu,\"missing_bones_skipped\":5,\"full\":true}\n",
            (unsigned long long)p->sprites->created, (unsigned long long)p->rand_calls);
     mu_world_particles_discard_sprites(p);

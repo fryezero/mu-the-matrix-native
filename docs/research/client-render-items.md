@@ -4,7 +4,8 @@ Part 1 covers RenderItem3D's restored special-code chain and native inventory in
 [Part 2 below](#part-2-bounded-body-and-link-effects-render-items-002b) adds 103 scalar remaps,
 11 body types and six bow link effects. [Part 3 below](#part-3-body-clusters-and-offset-links-render-items-002c)
 raises body coverage to 262/1,674 and records exact remaining branches.
-Muun/map-object effect placement remains deferred. Neither part starts or reads a live client.
+[Part 4 below](#part-4-armour-weapons-skins-and-spark03-render-items-002d) raises it to 426/1,674, adds
+eleven skins and consumes Spark03/11. Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
 
@@ -389,7 +390,9 @@ The previously partial bow `0x12fb` now consumes both conditional Spark03 subtyp
 `particles.c` implements creation `0x015de226..0x015de357`, movement `0x01651b78..0x01651ca6` and the existing
 render path. Five targets/ten types now have complete native consumers in the established no-owner domain.
 Character attachments use saved poses and frame time. Ground/inventory receive the body rules through
-their existing hooks. Synthetic native checks cover missing bones, pool exhaustion, the new links and
+their existing hooks. Hero inference now recognizes the five existing ClassNN filename families within
+the model-codec bounds. This does not resolve unavailable special-model mappings. Synthetic native checks
+cover class filename bounds, missing bones, pool exhaustion, the new links and
 successful subtype-11 allocations. Global random synchronization and temporary-owner limitations remain.
 
 The bounded unselected, non-shadow, no-buff, supported-record and no-mesh-override domain from part 3 is

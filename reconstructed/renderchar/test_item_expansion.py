@@ -41,6 +41,22 @@ class ItemExpansion(unittest.TestCase):
             self.assertEqual(self.draws(self.item(type=t))[0], 1)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
+    def test_private_clock_edges(self):
+        import pins
+        from item_body_machine import ResetWorld
+        v = self.v
+        wa = tuple(pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE))
+        reset = ResetWorld(wa)
+        for clock in (0, -1, 1569, 1570, 1571, 785, -785, -1570, 2147483520, 2147483648):
+            with self.subTest(clock=clock):
+                case = v.classify_case(0x1950, v.CLASSIFY[0])
+                case.update(item_level=0, option1=0, ext=0, time=v.f2u(clock))
+                result, expected, other, _ = v.client_stream(wa, case, reset)
+                self.assertTrue(result['ok'])
+                self.assertFalse(other)
+                self.assertEqual(v.c_stream(self.lib, case), (0, expected))
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_private_original_instructions(self):
         import gen_item_bodies as gen
         with tempfile.TemporaryDirectory() as tmp:

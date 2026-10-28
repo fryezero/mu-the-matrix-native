@@ -22,6 +22,9 @@ implemented targets, covering ten types, now have native consumers. Spark03/11's
 records are compared separately, including random consumption. The existing saved-pose adapter feeds the
 particle pool, skips absent bones and handles exhausted pools. Hero, remote-player, NPC, ground and GFx
 inventory bodies continue through the shared renderer; link effects remain character attachments.
+The hero filename inference also recognizes the existing five ClassNN part families, including
+HelmClass01 as 0x3700, with the model-codec stride and bounds. This supplies a class part type without
+claiming authoritative equipment or resolving missing special-model files.
 
 Local reports: `~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002d/`.
 Local before/after renders: `~/Documents/MTM/mu-mac-tools/native/renders/render-items-002d/`.

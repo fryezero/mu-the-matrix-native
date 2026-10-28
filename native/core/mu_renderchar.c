@@ -8,6 +8,7 @@
 #include <strings.h>
 
 #include "../../reconstructed/renderchar/link_bones.h"
+#include "../../reconstructed/model-codec/character.h"
 #include "mu_lang.h"
 #include "mu_particles.h"
 #include "../../reconstructed/record-math/record_math.h"
@@ -28,6 +29,16 @@ int32_t mu_renderchar_type_from_path(const char *path)
         if (number < 1 || number > 512)
             return -1;
         return 0xae6 + names[i].group * 512 + (int32_t)number - 1;
+    }
+    static const char *class_parts[] = {"helmclass", "armorclass", "pantclass", "gloveclass", "bootclass"};
+    for (size_t i = 0; i < sizeof class_parts / sizeof class_parts[0]; ++i) {
+        size_t n = strlen(class_parts[i]);
+        if (strncasecmp(base, class_parts[i], n) || !isdigit((unsigned char)base[n]))
+            continue;
+        long number = strtol(base + n, NULL, 10);
+        if (number < 1 || number > MU_CHARACTER_PART_STRIDE)
+            return -1;
+        return (int32_t)(MU_CHARACTER_PART_BASE + i * MU_CHARACTER_PART_STRIDE) + (int32_t)number - 1;
     }
     return -1;
 }
