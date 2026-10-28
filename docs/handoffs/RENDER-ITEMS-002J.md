@@ -1,7 +1,7 @@
 # RENDER-ITEMS-002 part 10
 
 Base `9e0cceb`, isolated branch/worktree `codex/render-items-002j`, issue #234.
-Checkpoint `752d4d8` is pushed. Only this lane is edited/built. No live client,
+Checkpoints `752d4d8` and `f8523d5` are pushed. Only this lane is edited/built. No live client,
 launcher or hosted workflow is used.
 
 ## Coverage and implementation
@@ -83,8 +83,10 @@ shield bone 800. Body random consumption is explicitly trapped and absent in
 this subset; shield callers each retain one random call.
 
 All **750 earlier generated recipe rows** retain their complete rules and
-metadata after re-indexing, with the new retain-ancient flag zero. The inherited
-part-9 validator and the serialized gate remain pending below.
+metadata after re-indexing, with the new retain-ancient flag zero. The inherited part-9 validator passes **31,724 cases, zero mismatches and 9/9
+compiled mutants**, and reproduces both tables on the final source. Together,
+these runs provide **65,346 instruction comparisons, zero mismatches and 21/21
+mutants**. The serialized gate remains pending below.
 
 Portable renderchar: **56 tests, thirteen explicit private-input skips**.
 Native character renderer: **13 tests, one installed-client skip**. The new
@@ -136,3 +138,15 @@ validation, behind RENDER-WORLDS-L, VERIFY-HARNESS-002 and NATIVE-PERF-004.
 Do not start a locked sequence that cannot finish before 14:45. If unmerged,
 push all verified changes, remove this lane's queue entry, release any owned lock,
 remove unnecessary bulk outputs, retain the worktree and record the exact next step.
+
+
+## Stable preflight
+
+With source frozen after the hidden-mesh correction, `bash scripts/local-macos-ci.sh`
+passes **1,597 tests across 38 suites, 203 explicit skips, zero failures** on the
+original part-9 base plus this lane. All **10/10 fixture scenarios and 77
+expectations** pass, with 80 inbound frames, zero unbound/undecodable frames and
+the existing two unrecovered intents/seven unsent frames explicit. Native
+viewer/readers build; audit accepts **1,544 staged files, zero rejected**.
+All four final native after-images retain their hashes/counters on this build.
+The final serialized latest-main gate remains required. No hosted CI is run.
