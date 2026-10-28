@@ -21,6 +21,10 @@ class Items(unittest.TestCase):
             p=Path(tmp)/'view.scn'
             p.write_text('endpoint game 127.0.0.1:55906\nat 1 send game c2 00 18 20 01 03 e7 78 78 01 00 ff 00 00 00 00 ff ff ff ff ff ff ff ff\nat 3 send game c2 00 07 21 01 03 e7\n')
             r=subprocess.run([str(host),str(p)],capture_output=True,text=True)
+            for field in ('live','type','data'):
+                bad=subprocess.run([str(host),str(p),field],capture_output=True,text=True)
+                self.assertNotEqual(bad.returncode,0,field)
+                self.assertIn('replicated zone',bad.stderr)
         self.assertEqual(r.returncode,0,r.stderr)
 
     def test_walk_drop_pickup_removal_and_despawn(self):

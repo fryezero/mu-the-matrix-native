@@ -3,6 +3,7 @@
 #include "../fixture/mu_fixture.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 typedef struct view { mu_session *s; int calls; } view;
 static void present(void *ctx,int32_t slot,const uint8_t e[19])
 {
@@ -13,7 +14,7 @@ static void present(void *ctx,int32_t slot,const uint8_t e[19])
 }
 int main(int argc,char **argv)
 {
-    if(argc!=2)return 2;
+    if(argc<2 || argc>3)return 2;
     char error[512];mu_fixture_options opt={argv[1],NULL,7};
     mu_fixture *f=mu_fixture_open(&opt,error,sizeof error);assert(f);
     mu_transport *t=mu_fixture_transport(f);mu_session_config cfg={0};cfg.transport=t;
@@ -24,7 +25,13 @@ int main(int argc,char **argv)
     assert(a.calls==1);mu_items_view v=mu_session_items(s);assert(v.used[999] && v.pool[999].data.code==1);
     mu_session_items_bind(s,NULL,NULL);mu_session_detach_world(s);
     mu_sim sim=mu_session_sim_begin(s);assert(sim.ground==v.pool && sim.ground_count==1000);
-    sim.ground[999].object.position[2]=180;mu_session_sim_end(s,&sim);
+    sim.ground[999].object.position[2]=180;
+    if(argc==3) {
+        if(!strcmp(argv[2],"live"))sim.ground[999].object.live=0;
+        if(!strcmp(argv[2],"type"))sim.ground[999].object.type=7;
+        if(!strcmp(argv[2],"data"))sim.ground[999].data.code=7;
+    }
+    mu_session_sim_end(s,&sim);
     mu_session_items_bind(s,present,&b);assert(b.calls==0 && mu_session_items(s).creates==1 && mu_session_items(s).pool[999].object.position[2]==180);
     for(unsigned tick=3;tick<=4;++tick){mu_transport_poll(t,tick*40);mu_session_pump(s,tick*40);}
     v=mu_session_items(s);assert(!v.used[999] && !v.pool[999].object.live && v.deletes==1);
