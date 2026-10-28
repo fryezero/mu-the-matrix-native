@@ -51,7 +51,16 @@ With the existing deterministic GFx test clock, all **4,096,000 RGBA bytes match
 `42882ea88738acdcb6aa4bafc388cd8faa5e5fdd46c4e08322d837e7b88b1625`. An initial ordinary-clock
 comparison differed only in animated skill icons; no map pixel differed. No render pins changed.
 
-Final locked gate and fixture-suite counts are recorded after the final merge with origin/main.
+Final validation integrates origin/main `3fd2daf` at runtime commit `24705ae` under the merge lock.
+Fixture verification passes **10/10 scenarios, 77 expectations, 80 inbound frames, zero unbound or
+undecodable frames**. The five map expectations accompany nine frames across all three recorded routes.
+The existing two unrecovered intents and seven unsent requests across other scenarios remain explicit.
+The registered new validator passes **120 cases and four compiled mutants**, with no errors or skips.
+`bash scripts/local-macos-ci.sh` passes on that combined runtime commit: **1,577 tests across
+38 suites, 197 explicit private/optional skips, zero failures or errors**. Native suite: **748 tests**.
+Viewer and read-only reader builds pass; readers were built and never run. Repository publication
+audit: **1,525 files, zero rejected**. Include audit passes. The gate's scenario rerun also passes.
+The lock was acquired at 12:33 CDT and is released immediately after the authorized merge.
 No hosted workflow or live client/launcher was used. Source and synthetic fixtures only are
 committed; input symlinks, local reports and renders remain untracked and are deleted after merge.
 PERF-004 confirmed parts/map.c and the map adapter free of overlap before the runtime hook edit.
@@ -63,3 +72,11 @@ request transform 0x00cda52b and its server-provided key, plus account/world bar
 Warp cost/session money, respawn place and the travel demo migration remain outside this slice.
 The navimap formatter still lacks captured C++ locale state. Party icons retain their social
 owner. No world/account relog persistence or real-server marker policy is claimed.
+
+The early broad run exposed three isolated dispatcher-build test failures because their temporary copy
+omitted the newly included map header. Adding that header restored all ten generator/build checks.
+The first private travel invocation used the older Native Data directory without its manifest; the
+passing nine-test rerun uses the existing manifest-bearing APP-REFRESH-001 Native Data inputs.
+Self-review covered scoped ownership, bounds/atomicity, identity updates/removal, session borrow lifetime,
+view cache invalidation and shutdown/reload. No independent agent review is claimed. The locked merge
+retained both map and AUDIO-002D validator entries in the sole manifest conflict.
