@@ -54,13 +54,15 @@ int main(int argc, char **argv)
     if (mu_quest_session_open(&q, argv[2], "guide 11\n", &host, error, sizeof error)) return 2;
     q.user = &c;
     q.travel = enter_map;
-    mu_quest_set_move_answer(&q.client, resume_path);
+    mu_quest_set_move_answer(mu_quest_session_client(&q), resume_path);
     for (int k = 0; k < 4; ++k) mu_quest_session_step(&q);
-    q.client.hero_class = 1;
-    q.client.hero_level = q.client.hero_level_total = 10;
-    q.client.hero_x = q.client.hero_y = 80;
-    mu_guide_go(&q.client);
-    const int armed = q.stats.requests == 1 && q.travels == 1 && a->walk.auto_path.flag == 1;
+    mu_quest_session_client(&q)->hero_class = 1;
+    mu_quest_session_client(&q)->hero_level = mu_quest_session_client(&q)->hero_level_total = 10;
+    mu_quest_session_client(&q)->hero_x = mu_quest_session_client(&q)->hero_y = 80;
+    mu_guide_go(mu_quest_session_client(&q));
+    mu_quest_session_command(&q,"travel 3 42 43");
+    mu_quest_session_step(&q);
+    const int armed = q.travels == 1 && a->walk.auto_path.flag == 1;
     mu_world_rt_frame(a, 0);
     const int restored = fail ? a->world == 0 && a->walk.hero.tile[0] == 80 && a->walk.auto_path.flag == 0 :
                                a->world == 3 && a->walk.hero.tile[0] == 10 && a->walk.auto_path.flag == 1 &&

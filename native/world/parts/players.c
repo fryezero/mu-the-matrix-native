@@ -59,7 +59,7 @@ static void players_frame(struct mu_world_rt *a, void *self, uint32_t now)
 /* NATIVE-PLAYERS-001: one part / weapon / wing of another player through RenderObjDraw's passes (the level
  * glow, excellent and ancient passes of NATIVE-RENDERCHAR-001; class parts and special types take the plain
  * pass) with the character light and the object alpha (the dead fade). */
-static void player_item_draw(const mu_world_rt *a, int32_t i, int item, const mu_render_backend *backend, float alpha)
+static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_render_backend *backend, float alpha)
 {
     const mu_world_player *q = &a->players->list[i];
     const mu_character_item *it = &q->model.items[item];
@@ -85,6 +85,8 @@ static void player_item_draw(const mu_world_rt *a, int32_t i, int item, const mu
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_renderchar_stats rs = {0, 0};
     mu_renderchar_draw_item(&it->model, &glow, &env, q->model.params.light, alpha, &options, backend, &ds, &rs);
+    if (item >= MU_CHARACTER_PART_SLOTS && a->has_particles)
+        mu_renderchar_link_effects(&it->model, it->bones, glow.type, &a->particles);
 }
 
 static void players_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
