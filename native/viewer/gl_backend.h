@@ -22,9 +22,10 @@
  * choices: `linear` forces GL_LINEAR for every texture, clear colour, camera,
  * front-face winding. */
 /* Optional profiling query lifecycle, with a current GL context. */
-void mu_gl_perf_begin(void);
-void mu_gl_perf_end(void);
-void mu_gl_perf_free(void);
+struct mu_perf;
+void mu_gl_perf_begin(struct mu_perf *p);
+void mu_gl_perf_end(struct mu_perf *p);
+void mu_gl_perf_free(struct mu_perf *p);
 
 struct mu_gl_batch;
 

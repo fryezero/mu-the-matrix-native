@@ -89,9 +89,21 @@ void mu_skill_book_allow(mu_skill_book *book, int32_t skill, int32_t class_index
 
 /* OFFLINE DEMO server (core/mu_skill_demo.c): the login packets (the class's skill list, then its saved bar) for a
  * class byte; mu_skill_book_demo is the same for a class index.  Returns the learned count. */
-int mu_skill_demo_load(const char *path);     /* "list CLASS SKILL..." / "keys CLASS K1..K9 K0" lines; -1 no file */
-int mu_skill_book_demo_login(mu_skill_book *book, int32_t class_byte);
-int mu_skill_book_demo(mu_skill_book *book, int32_t class_index);
+enum { MU_DEMO_CLASSES = 16, MU_DEMO_SKILLS = 64 };
+typedef struct mu_skill_demo_class {
+    int32_t skills[MU_DEMO_SKILLS];
+    int count;
+    int32_t keys[MU_SKILL_SLOTS];
+    int has_keys;
+} mu_skill_demo_class;
+typedef struct mu_skill_demo {
+    mu_skill_demo_class classes[MU_DEMO_CLASSES];
+    int ready;
+} mu_skill_demo;
+void mu_skill_demo_reset(mu_skill_demo *model);
+int mu_skill_demo_load(mu_skill_demo *model, const char *path);     /* "list CLASS SKILL..." / "keys CLASS K1..K9 K0" lines; -1 no file */
+int mu_skill_book_demo_login(mu_skill_demo *model, mu_skill_book *book, int32_t class_byte);
+int mu_skill_book_demo(mu_skill_demo *model, mu_skill_book *book, int32_t class_index);
 /* DEMO: the server's 0xFE (learned) or 0xFF (forget != 0) packet for one skill. */
 int mu_skill_book_demo_learn(mu_skill_book *book, int32_t skill, int forget);
 const mu_skill_hero *mu_skill_book_hero(const mu_skill_book *book);

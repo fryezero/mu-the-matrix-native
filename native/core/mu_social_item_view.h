@@ -7,6 +7,7 @@
 /* A complete wire instance plus resolved display rows. Activation of equipment
  * bonuses and opaque client predicates is distinct from this trade preview. */
 typedef struct mu_social_item_view {
+    const struct mu_lang *lang;
     mu_social_item_wire wire;
     mu_social_item_context context;
     mu_social_item_decoded decoded;

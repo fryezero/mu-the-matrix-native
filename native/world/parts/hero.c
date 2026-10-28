@@ -21,6 +21,7 @@ static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *opt
     glow.type = mu_renderchar_type_from_path(item->path);
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
+    env.lang = a->lang;
     env.time = a->map->time;
     mu_draw_stats ds = {0};
     mu_renderchar_draw_item(&item->model, &glow, &env, a->ch.params.light, 1.0f, options, backend, &ds, NULL);
@@ -86,7 +87,7 @@ static void hero_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
     hero_part *p = self;
     mu_draw_options options;
     mu_draw_default_options(&options);
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     if (a->batch)
         mu_gl_batch_session_begin(a->batch);
     if (a->has_character)

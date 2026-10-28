@@ -15,6 +15,7 @@ typedef struct option_row {
     char *text;
 } option_row;
 struct mu_social_item_tables {
+    mu_lang *lang;
     mu_data_table excellent[2], socket, harmony, formula, set_type, set_option;
     const mu_data_table *items;
     mu_gi_sets *sets;
@@ -197,8 +198,8 @@ static int has_record(void *context, int32_t code) {
     return t->items && code >= 0 && mu_item_find(t->items, (uint32_t)code, &it) == 0;
 }
 static int legendary(void *context, int32_t type, int32_t codes[4]) {
-    (void)context;
-    return mu_lang_legendary(mu_lang_shared(), type, codes);
+    const mu_social_item_tables *t = context;
+    return mu_lang_legendary(t->lang, type, codes);
 }
 static void build_sets(mu_social_item_tables *t) {
     if (!okay(&t->set_type) || !okay(&t->set_option))
@@ -211,8 +212,8 @@ static void build_sets(mu_social_item_tables *t) {
     in.set_option = t->set_option.bytes + t->set_option.result.records_offset;
     const mu_lang_cash_set *sets;
     const mu_lang_cash_item *items;
-    in.cash_set_count = mu_lang_cash_sets(mu_lang_shared(), &sets);
-    in.cash_item_count = mu_lang_cash_items(mu_lang_shared(), &items);
+    in.cash_set_count = mu_lang_cash_sets(t->lang, &sets);
+    in.cash_item_count = mu_lang_cash_items(t->lang, &items);
     const char **names = calloc(in.cash_set_count ? in.cash_set_count : 1, sizeof *names);
     const char **names2 = calloc(in.cash_set_count ? in.cash_set_count : 1, sizeof *names2);
     int32_t *triples = calloc(in.cash_item_count ? in.cash_item_count * 3 : 1, sizeof *triples);
@@ -241,6 +242,7 @@ mu_social_item_tables *mu_social_item_tables_load(const char *root, const char *
     if (!t)
         return NULL;
     t->items = items;
+    t->lang = mu_lang_load(lang ? lang : getenv("MU_LANG_DIR"));
     load(&t->excellent[0], root, "excellentcommonoption.bmd");
     load(&t->excellent[1], root, "excellentwingoption.bmd");
     load(&t->socket, root, "socketitem.bmd");
@@ -266,6 +268,7 @@ void mu_social_item_tables_free(mu_social_item_tables *t) {
     mu_data_free(&t->formula);
     mu_data_free(&t->set_type);
     mu_data_free(&t->set_option);
+    mu_lang_free(t->lang);
     free(t);
 }
 int mu_social_excellent_available(const mu_social_item_tables *t, int family) {
@@ -482,3 +485,5 @@ int mu_social_guardian_lookup_row(void *user, int kind, int key, int base, int32
             out[i] = row[3 + i];
     return 1;
 }
+
+const mu_lang *mu_social_item_tables_lang(const mu_social_item_tables *t) { return t ? t->lang : NULL; }

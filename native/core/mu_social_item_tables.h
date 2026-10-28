@@ -3,6 +3,8 @@
 #include "mu_data.h"
 #include "../../reconstructed/social/item_formula.h"
 typedef struct mu_social_item_tables mu_social_item_tables;
+struct mu_lang;
+const struct mu_lang *mu_social_item_tables_lang(const mu_social_item_tables *);
 typedef struct mu_social_excellent_row {
     char text[101];
     int32_t value_type, value, format;
