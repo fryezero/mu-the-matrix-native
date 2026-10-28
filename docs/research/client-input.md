@@ -87,7 +87,7 @@ Existing UI adapters retain their own eligibility and close rules.
 | Space | `00efd9ab` -> nearest eligible ground item; selection at `00efdb94` | Existing native pick-up adapter; verified offline reply, no real item mutation |
 | 1..0 | UI skill-bar listener; selected-skill controller `0107e99a` | GFx bar selection when interface present; prior numeric demo casts without GFx retained and labeled native policy |
 | Right mouse | selected-skill controller `0107e99a`, existing skill checks | GFx mouse first, then selected skill at picked actor, then walk mouse fallback |
-| Esc/Enter/Back/arrows | scan plus existing text/window/scene controllers | Text/window first; existing native scene navigation without interface |
+| Esc/Enter/Back/arrows | scan plus existing text/window/scene controllers | Text/window first; existing native scene navigation through front-end aliases/fallback without the interface |
 | IME preedit, candidate digits, commit | GFx IME state/path names and `IME.swf` candidate movie are static evidence, not emulated here | SDL TEXTEDITING -> layer compose; preedit keys stay with the OS candidate path; Enter cannot prematurely submit chat and candidate digits cannot select a bar skill or cast; TEXTINPUT -> UTF-8 commit. macOS owns candidate selection. Original IME.swf remains unbound |
 
 All other VK values return to the native walk input without a panel action. This table covers the recovered
@@ -114,7 +114,7 @@ join/tick journal specified by LIVE-PLAY-001. Windowed slow frames do not become
 | `move:X,Y` | Drawable-pixel mouse position, signed 16-bit coordinates |
 | `ldown:X,Y`, `lup:X,Y`, `rdown:X,Y`, `rup:X,Y` | Explicit button edge and position |
 | `wheel:N` | Signed wheel detents, -100..100 |
-| `text:UTF8` | Committed text; percent-encode spaces, semicolons, percent signs and non-ASCII bytes |
+| `text:UTF8` | Committed text; percent-encode spaces, semicolons, #, percent signs and non-ASCII bytes |
 | `compose:CURSOR:UTF8` | Preedit; cursor is a code-point index, -1 to cancel, percent encoding as above |
 | `focus:0`, `focus:1` | Lost/gained focus; loss clears held input and preedit |
 

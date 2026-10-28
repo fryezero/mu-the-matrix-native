@@ -24,24 +24,43 @@ original client, launcher, live game, network protocol or protected module was t
 
 - Original instructions: 528 scan cases, 135,168 key decisions, 42 menu-binding cases, zero mismatches;
   7/7 compiled mutants detected. Context-dependent panel bodies and the original IME are outside this family.
-- Router tests: 9/9 with the private comparison enabled. Synthetic downstream adapters exercise repeat
+- Router tests: 12/12 with the private comparison enabled. Synthetic downstream adapters exercise repeat
   suppression, releases, focus loss, modifiers, preedit digits, mouse delivery and malformed schedules/actions.
 - Baseline comparison: 48/48 PNGs identical across mu-client, mu-shell, mu-world and mu-walk. Four pairs,
   same authored root and input. No-input render behavior is intended to remain unchanged.
 - mu-client real OpenGL and real local libmugfx: numeric demo cast; selected-skill right click; a killed
   synthetic monster's demo drop picked up with Space. The right-click journey records 1 selected-skill
   success, 5 combat skill actions, 1 kill, 1 drop and 1 completed pick-up. No real item mutation.
-- Panel/key coverage drive and native candidate-focus drive: final results recorded below after integration.
+- Real local Ruffle with the app-converted corpus: twelve existing panels plus chat reached and visually
+  inspected. Inventory, character, imprint, master/fourth/fifth tree, quests, move, friends, options,
+  personal store and system menu open/close through keys. Missing synthetic labels/icon sheets remain
+  visible limits; this is access/state proof, not original-client image equality. The fifth item viewer is absent.
+- Q/W/E/R: two Q uses consume two demo potions; W/E/R each refuse twice as empty slots. The item regression
+  separately checks 25 uses, exhaustion and invalid indices. This exposes the existing HUD policy through a
+  small public GFx hook; no item-domain request is invented.
+- Native preedit: candidate digit 2 and Enter during composition do not select/cast or prematurely submit
+  chat. One UTF-8 commit produces one chat submission; selected skill remains 19, casts/refused remain zero.
+- The converter default-mode corpus initially logged invokes without displaying several panels. Those
+  attempts are retained as failed visual preconditions. Only app conversion with bridge/client globals
+  enabled supplies the accepted UI proof.
+- Incremental integration exposed stale charsel objects after the world object layout grew. The corrected
+  header dependency is also in the merged Icarus/viewport lanes. It was retained; no charsel behavior changed.
 - Local macOS gate: pending integrated run. Reader binaries are built by that gate, never run against a client.
 
 ## Artifacts
 
 Ignored source captures are symlinked from main. They and the Python link are never staged.
 Local scratch and reports: `~/Documents/MTM/mu-mac-tools/native/scratch/input-001/`.
-Proof and manifests will be retained at `~/Documents/MTM/mu-mac-tools/native/renders/input-001/` before
+Proof and manifests are retained at `~/Documents/MTM/mu-mac-tools/native/renders/input-001/` before
 removing the owned worktree. The source-only commit does not include captured bytes, decoded tables,
 movies, screenshots, renders or journals. Artifact manifests identify binary digests; changed build inputs
 require a new run manifest and another drive.
+
+## Review
+
+Self-review covered the repository evidence rules and input scope. Runtime code does not import wire or
+session-private headers, decoded client data is not committed, unavailable operations are explicit and
+both front ends share the parser/SDL translation. No independent reviewer or live-game proof is claimed.
 
 ## Remaining
 
