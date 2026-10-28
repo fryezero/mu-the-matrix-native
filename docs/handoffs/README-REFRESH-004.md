@@ -27,7 +27,14 @@ resolve.
 
 ## Checks
 
-GATE_RESULTS
+Under the merge queue and lock, origin/main was still `fa63719`, so no integration merge was needed.
+`bash scripts/local-macos-ci.sh` (task-scoped TMPDIR) passed: **1,630 tests across 38 discovery suites,
+208 explicit private/optional skips, zero failures/errors**. All **11/11 fixture scenarios** pass **86
+expectations** with **86 inbound frames**, zero unbound/undecodable; the existing two unrecovered intents and
+nine unsent requests are reported. Native viewer and read-only reader builds pass (readers built only).
+Publication audit: **1,586 staged files, zero rejected**. Only this handoff's check summary changed after the
+gate; the staged audit is repeated before merge. This lane claims no new private run, instruction comparison,
+timing or live acceptance. Self-review against the brief and source PRs; no independent review claimed.
 
 ## Cleanup and remaining work
 
