@@ -63,5 +63,6 @@ export MU_V14_MANIFEST="$NEW_SCAN_DIRECTORY/manifest.json"
 
 The scanner exits 1 because the complete corpus includes the 17 explicit rejections and 74 unsupported
 formats. Inspect its manifest rather than treating this expected scan status as a decoder-test failure.
-Two independent runs must produce the new exact digest. The scanner records no absolute root or timestamps.
+Two independent runs on 2026-10-27 produced the new exact digest. The scanner records no absolute root or timestamps.
+The scanner file SHA-256 was `748a79dab2c776222e92a684d45f032e3586ee1df42334264f3e28896d4816cd`.
 See [the task handoff](../handoffs/INTEGRATION-GREEN-001.md) for actual test counts and local report locations.

@@ -2,6 +2,7 @@
 from dataclasses import replace
 import hashlib
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 import tempfile
 import unittest
@@ -14,23 +15,29 @@ import validate_effect_tree as tree
 
 
 class EffectInputTests(unittest.TestCase):
-    def test_both_validators_use_the_same_range_loader(self):
-        self.assertIs(tree.base.load_section3, effects.load_section3)
-
-    def test_range_rejects_changes_and_truncation_but_ignores_unused_tail(self):
+    def test_validators_reject_changed_or_truncated_range_before_emulation(self):
         payload = b'authored initialized section'
         pin = replace(pins.EFFECTS_INIT, size=len(payload), sha256=hashlib.sha256(payload).hexdigest())
         with tempfile.TemporaryDirectory() as folder, mock.patch.object(pins, 'EFFECTS_INIT', pin):
             path = Path(folder) / 'section.bin'
-            for tail in (b'', b'first runtime tail', b'different runtime tail'):
-                path.write_bytes(payload + tail)
-                self.assertEqual(effects.load_section3(path), payload)
-            for damaged in (payload[:-1], b'X' + payload[1:]):
-                path.write_bytes(damaged)
-                with self.assertRaises(pins.PinMismatch):
-                    effects.load_section3(path)
-            with self.assertRaises(pins.PinMissing):
-                effects.load_section3(Path(folder) / 'absent.bin')
+            args = SimpleNamespace(text=None, data=None, section3=path, sse2_math=1)
+            for validator, machine in ((effects, 'Machine'), (tree, 'TreeMachine')):
+                with self.subTest(validator=validator.__name__), \
+                        mock.patch.object(effects, 'load_pinned', return_value=b''), \
+                        mock.patch.object(validator, machine, side_effect=RuntimeError('emulation reached')) as build:
+                    for damaged in (payload[:-1], b'X' + payload[1:]):
+                        path.write_bytes(damaged)
+                        with self.assertRaises(pins.PinMismatch):
+                            validator.validate(args)
+                    path.unlink()
+                    with self.assertRaises(pins.PinMissing):
+                        validator.validate(args)
+                    build.assert_not_called()
+                    for tail in (b'', b'first runtime tail', b'different runtime tail'):
+                        path.write_bytes(payload + tail)
+                        with self.assertRaisesRegex(RuntimeError, 'emulation reached'):
+                            validator.validate(args)
+                        self.assertEqual(build.call_args.args[2], payload)
 
     def test_range_covers_exactly_the_mapped_initialized_bytes(self):
         pin = pins.EFFECTS_INIT
