@@ -243,5 +243,70 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
 3. The brazier and torch flames themselves in Kanturu and Karutan (their lights are ported; the flames come from
    RenderObjectVisual `0x017f9758`'s world cases, not ported), and the visual-pass flags (`+0xa` drawn after the
    characters in Noria, Elbeland, Raklion, Karutan).
-4. Move cases of Devias (doors, flicker), Tarkan, Elbeland (`0x00e30b86`) and Raklion (handler slot `0x00e94619`);
-   objects that world code creates (Devias 422–424, Raklion); Raklion's snow.
+4. RENDER-WORLDS-B reconstructs the Devias, Tarkan, Elbeland and Raklion move cases, code-created placements
+   and Raklion snow. See section 5 for verified coverage and remaining nested-effect and comparison limits.
+
+## 5. RENDER-WORLDS-B, 2026-10-27
+
+**Verified.** Per-world C is in `reconstructed/objects/{devias,tarkan,elbeland,raklion}.c`; snow is in
+`reconstructed/environment/raklion_snow.c`. `scripts/validate_worlds_b.py` compares compiled production C to the
+same pinned text and second image section used above, without starting the client. Eight families, 500 cases each,
+**4,000 equal, zero mismatches, zero stopped; all 10 compiled planted mistakes detected**.
+
+| Family | Original instructions | Compared |
+|---|---|---|
+| Devias move | `0x017fffda..0x018006dd` | doors at 200-unit boundary and cardinal/noncardinal headings, bounds gate, flicker, fire and two particle calls; object bytes, ordered calls, RNG |
+| Tarkan move | `0x01800bf8..0x018013a0` | all 18 special types, both light ranges, scroll moduli, sine and signed cosine clock; object bytes, ordered calls |
+| Elbeland move | `0x00e30b86..0x00e31169`, helper `0x00e34169` | world-51 sound/safe-zone gates, lights, scrolls, pulse, hidden markers, type 62's boid slot 1 creation; dead/live pool bytes and RNG |
+| Raklion move | `0x00e94619..0x00e946a5` | type 22 pulse, hidden types 70/80, default path |
+| Devias placements | `0x018394d3..0x01839797` | the three complete constructor records, types 422, 423, 424 |
+| Raklion placements | `0x0183f710..0x0183fa87` | worlds 57/58, two constructor records per world |
+| Raklion create | `0x00e943c0..0x00e94616` | three effect calls of type 427, offsets and full argument tails |
+| Raklion snow | `0x00e9ec6a..0x00e9ee77` | scale branches, hero-relative position, angle, rotated velocity, untouched leaf bytes and RNG |
+
+The Devias/Tarkan families enter their switch branches after the generic tick with a declared caller frame.
+They do not re-prove the generic tick. Engine services are recording stubs. World membership answers are supplied
+explicitly. Handler state is seeded with its event-timer flag clear. The boid live setter/getter, trigonometric
+wrappers, AngleMatrix, VectorRotate and door
+TurnAngle2 execute as original instructions. Raklion's inherited handler timer is covered only with flag `+0x23` clear;
+its active event timer is outside this static-world reconstruction. Placement families execute the loader slices and record the
+constructor arguments; model/texture loading and CreateObject allocation are stubbed. Fixed placement cases are
+repeated, not distinct worlds or assets. Mutants cover the door boundary, flicker, placement coordinate, terrain
+light range, scroll rate, live-slot guard, pulse rate, effect height and snow velocity.
+
+**Native integration.** The object loader adds code-created records before model loading, skips exact type/position
+duplicates in `--keep-all` exports, and loads their named NPC models. The native type capacity includes 422–427.
+Shared dispatch changes call the per-world routines. A two-line world hook supplies Elbeland's shared boid pool and
+safe-zone bit. Raklion's leaf creator feeds the existing MoveLeaves, default movement and billboard rendering.
+Creation effects are queued until the native effect callback exists. Only this group's worlds use that queue.
+
+**Snapshot and render checks.** The fourteen-map tour ran before and after on this branch against the local
+2026-10-22 object/light captures. The orchestrator confirms that the original live PNGs were deleted in the 2026-10-23 cleanup. The object/light
+snapshots and retained score reports are the authoritative live evidence. Therefore fresh image mean error against the live client is
+**unavailable**, not zero or copied from the old report. Native GL frames were inspected for Devias town, Elbeland
+and Raklion. All nine unaffected worlds' final PNG SHA-256 values are unchanged. Devias 4 and Tarkan also have
+unchanged final PNGs at their arrival cameras; their new behavior is covered by instruction cases elsewhere.
+
+| Capture | Missing objects before → after | Near-hero frame-light mean absolute difference before → after |
+|---|---:|---:|
+| Devias 4 | 3 → 0 | 0 → 0 |
+| Devias town | 3 → 0 | 0.00386 → 0.00068 |
+| Tarkan | 0 → 0 | 0 → 0 |
+| Elbeland | 0 → 0 | 0.03336 → 0.02078 |
+| Raklion | 2 → 0 | 0.02574 → 0.02574 |
+
+The local Mac gate on the combined branch passed 1,364 tests with 159 explicit skips and no failures;
+publication audit accepted 1,203 files with none rejected. Native fixture, viewer and read-only reader checks passed.
+
+No extra placements in these captures; primary light remains exactly equal in all fourteen captures. Devias town's
+static-field differences fall 6 → 4, with time-dependent flicker remaining. Tarkan has three new BlendMesh
+comparisons of type 82, which the verified move case sets to zero but the old live snapshot retained as -1.
+This is reported rather than forcing the snapshot value. Raklion now has actual snow motion instead of live
+zero-initialized leaf records. No live game was used, and no renders or captured bytes are committed.
+
+**Remaining boundaries.** The nested warp-model effects `0x1a8..0x1ad` now reach the existing effect callback, whose
+factory still rejects these unreconstructed effect kinds. Their effect lifecycle/rendering is not claimed here.
+Elbeland's `0x1a3` boid creation is wired, but its separate environment mover/model renderer remains unported.
+Sound calls are compared and counted by the object host, as before. The Tarkan/Raklion haze, visual-pass fields,
+other world-handler classes and siblings A/C remain separate work. Next step: take fresh live captures of Devias, Tarkan, Elbeland and Raklion under the shared game lock in a
+separate authorized run, then rerun the image-error tour. This run did not start a client.

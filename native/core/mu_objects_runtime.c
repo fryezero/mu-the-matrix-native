@@ -7,6 +7,8 @@
 #include "mu_objects.h"
 #include "mu_objects_icarus.h"
 
+#include "../../reconstructed/environment/env.h"
+
 #include "../../reconstructed/objects/login_world.h"
 #include "../../reconstructed/objects/charsel_world.h"
 
@@ -107,6 +109,10 @@ int mu_objects_start(mu_objects *o, const char *game_root)
                 rt->play_speed[created[k].args[0]] = fbits(created[k].args[2]);
                 rt->play_speed_set[created[k].args[0]] = 1;
             }
+        for (int32_t k = 0; k < create_log.count; ++k)
+            if ((o->world == 2 || o->world == 57 || o->world == 58) &&
+                created[k].call == MU_OBJ_CALL_CREATE_EFFECT && rt->startup_effect_count < 12)
+                rt->startup_effects[rt->startup_effect_count++] = created[k];
         if (status == MU_OBJ_SKIPPED) {
             ++rt->outside;
             continue;
@@ -278,6 +284,22 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
     mu_objects_runtime *rt = &o->rt;
     if (!rt->ready)
         return;
+    if (rt->effect) {
+        for (int32_t k = 0; k < rt->startup_effect_count; ++k) {
+            const mu_obj_event *e = &rt->startup_effects[k];
+            const int32_t owner = e->object;
+            uint8_t *oimage = image(o, owner);
+            float position[3], angle[3], light[3];
+            for (int q = 0; q < 3; ++q) {
+                position[q] = fbits(e->args[1 + q]);
+                angle[q] = mu_obj_f32(oimage, e->args[4] + (uint32_t)q * 4u);
+                light[q] = mu_obj_f32(oimage, e->args[5] + (uint32_t)q * 4u);
+            }
+            rt->effect(rt->hook_context, (int32_t)e->args[0], (int32_t)e->args[6], position, angle, light, -1);
+            ++rt->effect_events;
+        }
+        rt->startup_effect_count = 0;
+    }
     particles_step(rt);
     rt->light_count = 0;
     step_context c = {o, in};
@@ -316,6 +338,12 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
     mi.rand_fn = step_rand;
     mi.context = &c;
     mi.now_ms = rt->now_ms;
+    mi.hero_safe = rt->hero_safe;
+    uint8_t elbeland_pool[MU_OBJ_SIZE] = {0};
+    if (o->world == 51 && rt->environment) {
+        mu_env_object_store(&rt->environment->boids[1], elbeland_pool);
+        mi.elbeland_pool = elbeland_pool;
+    }
     mu_obj_event local[64];
     for (int32_t k = 0; k < pass.count; ++k) {
         const mu_obj_event *e = &pass.events[k];
@@ -351,6 +379,9 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         }
     }
     if (o->world == 10) rt->icarus_count=sky_ordinal;
+
+    if (mi.elbeland_pool)
+        mu_env_object_load(&rt->environment->boids[1], elbeland_pool);
     ++rt->steps;
 }
 

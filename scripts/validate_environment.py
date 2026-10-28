@@ -1023,7 +1023,7 @@ def am_cvt(v):
 
 def build_library(mutation, out):
     src = ROOT/'reconstructed/environment'
-    files = [str(src/n) for n in ('env_core.c', 'env_boids.c', 'env_icarus.c', 'env_fish.c', 'env_leaves.c', 'env_world.c',
+    files = [str(src/n) for n in ('env_core.c', 'env_boids.c', 'env_icarus.c', 'env_fish.c', 'env_leaves.c', 'raklion_snow.c', 'env_world.c',
                                   'env_test_host.c')] + [str(ROOT/'reconstructed/record-math/record_math.c')]
     cmd = ['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared',
            f'-DMU_ENV_MUTATION={mutation}', *files, '-lm', '-o', str(out)]

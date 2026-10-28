@@ -143,6 +143,10 @@ int mu_objects_load_plain(mu_objects *o, const uint8_t *plain, size_t size, char
     }
     mu_objects_parse(plain, size, &o->header, o->records, n, &parsed);
     o->count = parsed;
+    if (mu_objects_worlds_b_records(o)) {
+        snprintf(error, error_size, "out of memory adding world placements");
+        return o->status = MU_OBJECTS_FILE_ERROR;
+    }
     snprintf(o->source, sizeof o->source, "plain");
     return o->status = MU_OBJECTS_FILE_OK;
 }
@@ -292,7 +296,10 @@ int mu_objects_load_models(mu_objects *o, const char *game_root, int no_textures
         o->models[type] = m;
         ++o->types_used;
         char relative[512], message[512];
-        if (!mu_objects_model_file(o->world, type, relative, sizeof relative) ||
+        const char *world_model = mu_objects_worlds_b_model(o->world, type);
+        if (world_model)
+            snprintf(relative, sizeof relative, "%s", world_model);
+        if ((!world_model && !mu_objects_model_file(o->world, type, relative, sizeof relative)) ||
             !mu_objects_resolve(game_root, relative, m->path, sizeof m->path) ||
             mu_bmd_load_file(m->path, &m->bmd, message, sizeof message) != MU_BMD_OK) {
             ++o->models_missing;
