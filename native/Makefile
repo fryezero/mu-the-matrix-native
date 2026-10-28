@@ -554,6 +554,9 @@ $(BUILD)/fixture/%.o: fixture/%.c $(HEADERS)
 
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
 
+# SESSION-COMBAT-001: core combat submits generated intents before the session library builds.
+$(BUILD)/core/mu_combat.o: $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
+
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o
 	$(CXX) $(BUILD)/icarus-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

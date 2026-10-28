@@ -180,8 +180,11 @@ static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, c
     mu_renderchar_stats rs = {0};
     mu_renderchar_draw_item(&part->model, &npc->player_glow[item], &env, npc->player->params.light, 1.0f,
                              &options, backend, &ds, &rs);
-    if (item >= MU_CHARACTER_PART_SLOTS && a->has_particles)
-        mu_renderchar_link_effects(&part->model, part->bones, npc->player_glow[item].type, &a->particles);
+    if ((item >= MU_CHARACTER_PART_SLOTS || npc->player_glow[item].type == 0x389c ||
+         npc->player_glow[item].type == 0x389d) && a->has_particles)
+        mu_renderchar_link_effects(&part->model,
+            item < MU_CHARACTER_PART_SLOTS ? npc->player->player_bones : part->bones,
+            npc->player_glow[item].type, &a->particles);
 }
 
 static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
