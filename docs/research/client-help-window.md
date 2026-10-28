@@ -53,13 +53,16 @@ The controller comparison below verifies these field uses:
 | `0x00` | Signed 32-bit row ID; zero terminates provider construction |
 | `0x04` | Category byte: 0 or 13 enters the hotkey list; 1 enters the chat list |
 | `0x05` | Auxiliary category byte: 1 or 2 also enters a third list |
-| `0x06` | Key string, 64-byte field |
-| `0x46` | Description string, remaining 66 bytes in the record |
+| `0x06` | Key string starts here, 64 bytes before the description |
+| `0x46` | Description string starts here, 66 bytes remain in the record |
 
 The generic table-layout inventory calls `0x04` a 16-bit group; the controller
 actually branches on its two bytes independently. `0x00b89866` stops at the
 first zero ID, clears the first two lists and appends to the third list without
 clearing it. List fields are `+0x11078`, `+0x11084`, `+0x11090`.
+The original string constructors read to NUL. They do not establish whether
+the final two record bytes are part of a declared text array or padding.
+The native 66-byte description bound uses the remaining record extent.
 
 Loader `0x00b89977` checks base load success, reads the file and builds lists,
 then invokes InitText with GlobalText IDs `0xd57..0xd5b`, SetPosCenter,
@@ -172,3 +175,18 @@ claim that its listed legacy shortcuts are working native bindings.
 Still required before merge: full current-main Mac gate under the queue/lock,
 review of shared hooks against the active lanes, and any resulting repairs.
 This WIP has no PR and makes no merge or installed-app refresh claim.
+
+Final checks extend the reader to seven compiled mutants: decoding the whole
+payload in one XOR unit is caught, directly testing the per-record phase reset.
+Both registered validators pass with 887 synthetic cases and 18 total mutants.
+The separate installed reader case brings the total to 888 comparisons.
+The registry consistency suite passes 17/17 tests.
+
+A final real client window run also supplies the installed GlobalText export,
+resizes from 1280 by 800 to 1024 by 768, and switches tabs with the mouse.
+Both resized renders were inspected; center placement and row content remain
+visible. The run exits at frame 145 after 8.98 seconds. Some installed heading
+strings and long descriptions clip in the converted movie's fixed text fields.
+This is observed, not an original-image comparison. Review the HelpWindow text
+layout before calling the visual result final; no shared font/movie rewrite
+was made to hide the clipping.

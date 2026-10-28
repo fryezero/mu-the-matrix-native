@@ -12,8 +12,10 @@
 /* Authored byte-oriented interface to HelpWindow's table at handler +0x78.
  * Original reader: 0x00b8968b. No decoded game data is included here.
  * Row: signed i32 id at 0; category byte at 4; auxiliary category byte at 5;
- * NUL-terminated key at 6, text at 0x46. The last two bytes are not read by
- * the reconstructed controller. See client-help-window.md for bounds. */
+ * NUL-terminated key starts at 6, text at 0x46. Native string bounds are
+ * 64 bytes before the text and 66 bytes remaining in the record. The
+ * original declared text-array extent versus trailing padding is unknown;
+ * its string constructors read to NUL. See client-help-window.md. */
 typedef struct { uint8_t rows[MU_HELP_ROWS][MU_HELP_ROW_SIZE]; } mu_help_table;
 
 typedef enum {

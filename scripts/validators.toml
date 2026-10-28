@@ -2083,7 +2083,7 @@ test = "tests/test_help.py::HelpReaderTests.test_original_instructions"
 pins = ["text", "data", "feature"]
 families = ["valid", "corrupt", "missing"]
 cases = 55
-mutants = 6
+mutants = 7
 cases_at = "cases"
 mutants_at = "mutants"
 build = []
@@ -2091,7 +2091,7 @@ args = ["--cases", "48", "--mutants", "--output", "{report}"]
 [validate_help.expect]
 "cases" = 55
 "mismatches" = 0
-"mutants" = {len = 6}
+"mutants" = {len = 7}
 "mutants.*.caught" = true
 
 [validate_help_controller]

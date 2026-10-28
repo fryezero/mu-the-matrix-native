@@ -45,7 +45,7 @@ Full evidence, addresses, source digests and semantic limits are in
 ## Checks actually completed
 
 - Reader: 56 comparisons, zero mismatches. Families: 48 valid synthetic,
-  6 corrupt, 1 missing, 1 installed. 25,088 original row decode calls; all six
+  6 corrupt, 1 missing, 1 installed. 25,088 original row decode calls; all seven
   compiled mutants caught. Registry run omits installed data, so expects 55.
 - Controller: 832 comparisons, zero mismatches; all eleven compiled mutants
   caught. Constructor provider projection 64, build 64, hotkeys 192, chat 64,
@@ -68,6 +68,13 @@ Full evidence, addresses, source digests and semantic limits are in
   terminated after confirming its PID/command because `--frames` bounds only
   headless mode. Use `--seconds` and/or a scripted `quit` for a window run.
 
+Final registered run: 887 synthetic comparisons and 18 compiled mutants pass;
+the installed reader case adds one, total 888. The final window also uses the
+installed GlobalText export and resizes to 1024x768. Both tab renders inspected;
+center position and rows remain visible, but some long headings/descriptions
+clip in fixed movie text fields. It exits at frame 145 in 8.98 seconds. Review
+that visual limit before final acceptance; no original-image claim is made.
+
 No full `scripts/local-macos-ci.sh` gate, latest-main merge, PR or installed
 Preview app refresh is claimed. No original client or network ran.
 
@@ -81,8 +88,9 @@ Preview app refresh is claimed. No original client or network ran.
    entire original C++ constructor recovered. A native callback lifetime is
    tested, but it does not reconstruct C++ refcount internals.
 3. Rebuild the native client, repeat Ctrl+H/Esc/tab checks after final integration
-   and confirm resizing retains HelpWindow placement. The shared size hook
-   uses the movie's SetWindowSize to preserve its center fraction.
+   and review the fixed-field heading/description clipping with installed
+   GlobalText. A 1280x800 to 1024x768 window run already confirms placement
+   and tab content; the shared size hook uses SetWindowSize.
 4. Acquire the queue/lock only when a full current-main Mac gate and merge can
    finish. Run the full gate, repair real failures, open/merge the PR, release
    the lock and clean up per the brief. Do not resume other SYS-MISC windows.
@@ -108,3 +116,8 @@ Python caches after summaries are committed, before the deadline. They are
 disposable builds, logs, AS exports and screenshots; none is a new input.
 Keep the worktree and its two untracked evidence/Python links. Rebuild from
 source on resume. Do not remove another lane's scratch or the shared inputs.
+
+Cleanup completed before the owner deadline: lane scratch/renders, native/build
+and the task-created Python caches were deleted. The worktree and its two
+untracked input links remain. The committed finding and this handoff retain
+the counts, commands and limitations; no generated output is needed to resume.
