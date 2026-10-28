@@ -147,7 +147,8 @@ typedef struct mu_pt_host {
  *   0x7f5b 0 (the mounts' dust), drop01 0x7fcd 0 (the Dark Horse's dust in
  *   Atlans) and Spark03 0x7f26 0xf (Fenrir's sparks);
  *   RENDER-EFFECTS-003: Spark02/2, explosion 0x7f54/0, flare01 0x7ef7/0,
- *   smoke01 subtypes 4, 6, 7 and 8. */
+ *   smoke01 subtypes 4, 6, 7 and 8; RENDER-WORLDS-L: WATERFALL3/16,
+ *   firehik_mono01/2, mono02/6, mono03/2, WATERFALL5/0, WATERFALL3/8, WATERFALL2/4. */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =
