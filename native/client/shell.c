@@ -375,11 +375,7 @@ static void music(mu_shell *s, uint32_t routine, uint32_t name)
     get_string(s, name, path, sizeof path);
     if (!path[0])
         return;
-    mu_audio_client *client = mu_audio_host_client(s->audio);
-    if (routine == MU_SC_PLAY_MP3)
-        mu_audio_play_mp3(client, path);
-    else
-        mu_audio_stop_mp3(client, path);
+    mu_audio_host_music_literal(s->audio, path, name, routine == MU_SC_PLAY_MP3);
 }
 
 /* ---- embeds ------------------------------------------------------------- */

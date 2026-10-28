@@ -301,9 +301,7 @@ int mu_render_world_character(const mu_options *o)
     mu_world_particles *particles = NULL;
     long link_sprites = 0;
     for (int k = MU_CHARACTER_PART_SLOTS; k < MU_CHARACTER_ITEMS; ++k) {
-        int32_t count = 0;
-        mu_rc_link_sprites(W.glow[k].type, 0, NULL, 0, &count);
-        if (count && c.items[k].loaded && !particles) {
+        if (mu_rc_link_supported(W.glow[k].type) && c.items[k].loaded && !particles) {
             particles = calloc(1, sizeof *particles);
             char error[256];
             if (!particles || mu_world_particles_open(particles, o->game_root, NULL, 0, 1,

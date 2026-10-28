@@ -5,8 +5,8 @@
  * The block is a switch on the world that starts ambient loops (SND_Play with
  * loop 1) and per-world music, followed by unconditional "stop everything
  * that does not belong to this world" passes. Event worlds delegate to their
- * own managers, which are reported as MU_WORLD_DELEGATE events and not
- * reconstructed here. Calls appear in exactly the client order.
+ * own managers, reported here as MU_WORLD_DELEGATE events. mu_event_music
+ * below expands them at the native host boundary. Calls keep client order.
  */
 #include "client_audio.h"
 
@@ -265,4 +265,94 @@ int mu_audio_world_full_music_volume(int32_t world)
 float mu_audio_world_music_volume(int32_t world)
 {
     return mu_audio_world_full_music_volume(world) ? 1.0f : 0.4f;
+}
+
+/* Event managers called by the frame block. Addresses identify the original
+ * routines; the public hook grammar stays identical to audio_world_frame. */
+int mu_event_music(uint32_t manager, const mu_event_music_state *s,
+                   const mu_world_audio_hooks *hooks)
+{
+    emitter e = {hooks};
+    int32_t w = s->world;
+    switch (manager) {
+    case 0x00db3e26:
+        if (w != 34) { mp3stop(&e, 17); break; }
+        if (!(s->known & MU_AUDIO_CRYWOLF)) goto unknown;
+        switch (s->crywolf) {
+        case 2: mp3stop(&e, 17); mp3(&e, 19); break;
+        case 3: mp3stop(&e, 19); mp3(&e, 18); break;
+        case 4: mp3stop(&e, 18); mp3(&e, 20); break;
+        case 5:
+            mp3stop(&e, 18); mp3stop(&e, 20);
+            play(&e, s->crywolf_result == 10 ? 0x247 : 0x246, 0);
+            break;
+        default: mp3(&e, 17); break;
+        }
+        break;
+    case 0x00e8e857:
+        if (w != 39) { mp3stop(&e, 24); mp3stop(&e, 25); mp3stop(&e, 26); break; }
+        if (!(s->known & MU_AUDIO_KANTURU)) goto unknown;
+        if (s->kanturu == 1 || s->kanturu == 2) { mp3stop(&e, 26); mp3(&e, 24); }
+        else if (s->kanturu == 3) { mp3stop(&e, 26); mp3stop(&e, 24); mp3(&e, 25); }
+        else { mp3stop(&e, 24); mp3stop(&e, 25); mp3(&e, 26); }
+        break;
+    case 0x00e84474:
+        if (w == 38 || w == 137) mp3(&e, 23); else mp3stop(&e, 23);
+        break;
+    case 0x00d557af:
+        if (w == 41) mp3(&e, 27);
+        else if (w == 42) mp3(&e, 28);
+        else { mp3stop(&e, 27); mp3stop(&e, 28); }
+        break;
+    case 0x00db747f: /* getter then 0x00db7501 */
+    case 0x00db7501:
+        if (!(s->known & MU_AUDIO_TEMPLE)) goto unknown;
+        if (s->temple == 1) mp3(&e, 29);
+        else if (s->temple == 2 || s->temple == 3) { mp3stop(&e, 29); mp3(&e, 30); }
+        else if (s->temple == 0) { mp3stop(&e, 29); mp3stop(&e, 30); }
+        break;
+    case 0x00e9e9c5:
+        if (w == 57) mp3(&e, 34); else mp3stop(&e, 34);
+        if (w == 58 && !(s->known & MU_AUDIO_RAKLION)) goto unknown;
+        if (w == 58 && s->raklion == 1) mp3(&e, 35); else mp3stop(&e, 35);
+        break;
+    case 0x00e42ad0:
+        if (w == 62) mp3(&e, 36); /* no stop on leaving */
+        break;
+    case 0x00e92fc8:
+        if (w == 63) mp3(&e, 38); else mp3stop(&e, 38);
+        break;
+    case 0x00dd306c: if (w == 69) mp3(&e, 39); break;
+    case 0x00dd8891: if (w == 70) mp3(&e, 40); break;
+    case 0x00dde543: if (w == 71) mp3(&e, 41); break;
+    case 0x00de5467: if (w >= 72 && w <= 74) mp3(&e, 42); break;
+    case 0x00e6dd22: break; /* empty manager in this capture */
+    case 0x00e189e4:
+        if (w == 80) mp3(&e, 45); else mp3stop(&e, 45);
+        if (w == 81) mp3(&e, 46); else mp3stop(&e, 46);
+        break;
+    case 0x00d73c38:
+        if (w == 91 || w == 92) mp3(&e, 47); else mp3stop(&e, 47);
+        break;
+    default: return 0;
+    }
+    return 1;
+unknown:
+    ev(&e, MU_WORLD_UNRECOVERED, (int32_t)manager, 0);
+    return 1;
+}
+
+#include "audio_registration.inc"
+
+/* Three reachable NPC voice decisions in MoveCharacter's model cases.
+ * 0x013b53e4, 0x013b540f, 0x013b543c..0x013b549c. The caller owns rand,
+ * action, frame and buff 0x1b; other per-character side effects are excluded. */
+int32_t mu_audio_npc_voice(int32_t model, int32_t random, uint16_t action,
+                          float frame, int buff_1b)
+{
+    if (model == 0xa0b) return random % 64 == 0 ? 161 : -1;
+    if (model == 0xa06) return random % 256 == 0 ? 160 : -1;
+    if (model == 0xa01 && !buff_1b && action == 0 && frame >= 5.0f && frame <= 10.0f)
+        return 160;
+    return -1;
 }

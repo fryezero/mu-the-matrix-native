@@ -85,7 +85,7 @@ typedef struct mu_rc_item {
 
 /* Effective glow level (0x0176cf4a..0x0176dce9). */
 int32_t mu_rc_item_glow_level(const mu_rc_item *item);
-/* Draw calls for one item; count receives the number written. */
+/* Draw calls for one item; count receives the required count, including on FULL. */
 int mu_rc_item_draws(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                      int32_t *count);
 /* The same without the type check (the classification sweep uses it). */
@@ -102,8 +102,22 @@ typedef struct mu_rc_link_sprite {
     float scale, light[3], rotation;
     int32_t blend, axes;
 } mu_rc_link_sprite;
+/* Query without consuming the random stream or allocating effects. */
+int mu_rc_link_supported(int32_t type);
 int mu_rc_link_sprites(int32_t type, int32_t random_value, mu_rc_link_sprite *out,
                         int32_t capacity, int32_t *count);
+
+/* Offset sprites and particles at 0x012c741a / 0x012c761d. The random
+ * callback is consumed in original call order, including conditional calls.
+ * Return SPECIAL without consuming random state for an unknown type. */
+typedef struct mu_rc_link_effect {
+    mu_rc_link_sprite sprite;
+    float offset[3];
+    int32_t particle; /* 0: sprite, otherwise CreateParticle subtype */
+} mu_rc_link_effect;
+typedef int32_t (*mu_rc_random_fn)(void *context);
+int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
+                        mu_rc_link_effect *out, int32_t capacity, int32_t *count);
 
 /* PartObjectColor 0x016db5eb for a type without a hardcoded colour:
  * out = alpha*bright*enchant, then the kind-B overrides 0x26 / 0x5b. */
