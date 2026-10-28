@@ -106,7 +106,13 @@ or traversed during cleanup. No new local input needs retention.
 
 After freezing the source and test changes, `bash scripts/local-macos-ci.sh`
 passes **1,564 tests across 38 suites, 194 explicit skips, zero failures**;
-all **9/9 fixture scenarios** pass, native viewer/readers build, and publication
+all **9/9 fixture scenarios and 72 expectations** pass, with **71 inbound
+frames**, zero unbound/undecodable frames and the existing two unrecovered
+intents/seven unsent frames explicit. Native viewer/readers build, and publication
 audit accepts **1,502 files, zero rejected**. This preflight is on the lane's
 original main base. The final serialized latest-main gate remains required.
 The lock was occupied by NATIVE-PERF-004, then AUDIO-002D while this lane waited.
+
+The updated 12:36 fairness rule is adopted. This lane joined `merge-queue.txt`
+as `RENDER-ITEMS-002I` behind effects and worlds K and takes the lock only when
+first. The final integration gate and PR merge are still pending in this checkpoint.
