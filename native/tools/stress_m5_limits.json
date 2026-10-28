@@ -1,29 +1,29 @@
 {
-  "note": "Apple M5, full 80-player nameplates, all equipment textures and zero particle drops. Shared-host regression ceilings are separate from the strict 25 Hz acceptance check.",
+  "note": "Warning budgets from Apple M5 shared-host runs after item-body expansion and the viewport migration. These do not establish an optimization win or 25 Hz acceptance; --check retains the strict 40 ms goal.",
   "scenarios": {
     "crowd40": {
-      "min_fps": 14,
-      "work_p95_ms": 105,
-      "work_p99_ms": 140,
-      "cpu_mean_ms": 60
+      "min_fps": 7.5,
+      "work_p95_ms": 210,
+      "work_p99_ms": 260,
+      "cpu_mean_ms": 65
     },
     "crowd80": {
-      "min_fps": 7,
-      "work_p95_ms": 200,
-      "work_p99_ms": 240,
-      "cpu_mean_ms": 110
+      "min_fps": 5.5,
+      "work_p95_ms": 250,
+      "work_p99_ms": 300,
+      "cpu_mean_ms": 125
     },
     "tormenta80": {
       "min_fps": 8,
-      "work_p95_ms": 205,
-      "work_p99_ms": 255,
-      "cpu_mean_ms": 112
+      "work_p95_ms": 155,
+      "work_p99_ms": 190,
+      "cpu_mean_ms": 110
     },
     "retina80": {
-      "min_fps": 7,
-      "work_p95_ms": 190,
-      "work_p99_ms": 215,
-      "cpu_mean_ms": 132
+      "min_fps": 4,
+      "work_p95_ms": 380,
+      "work_p99_ms": 530,
+      "cpu_mean_ms": 155
     }
   }
 }

@@ -49,6 +49,14 @@ about original x86 behavior. Existing instruction comparisons remain the oracle 
 
 ## Workloads and results
 
+The timing binary is from `a2a1c00`, after the viewport migration, expanded item bodies and AUDIO-002.
+The final world-D merge adds warp worlds outside this matrix; it is covered by the final gate and its
+validators. The timing table is a snapshot of that measured binary, not a claim for every later world.
+Upstream session scheduling changes and their intended hash differences are documented separately in
+[SESSION-VIEWPORT-001](../handoffs/SESSION-VIEWPORT-001.md). Both perf modes here use the same post-migration
+feed. Legacy presentation capacity rises from that milestone's eight-model cache to 80.
+
+
 `native/tools/bench_stress.py` generates authored demo files. Every player has five +11 armor pieces,
 a weapon with excellent glow and wings. Each scene has 32 wandering monsters, repeated skills 9/10/14/24/26,
 area requests, particles and lightning joints. Existing demo damage/death/removal/respawn rules stay active;
@@ -62,31 +70,32 @@ an attached Retina panel. The map opens at frame 60 in every scene, camera FOV 6
 objects, environment and names enabled. Audio output is disabled during timing.
 
 Before and after are paired sequentially per scenario, first 50 frames excluded. Crowd40 uses 24-second
-runs, the three 80-player scenes 60-second runs. Measured frame counts before/after are 254/314,
-320/397, 428/469 and 332/385 respectively. The
-benchmarks did not overlap each other. Other agents were running CPU-intensive validations on this Mac;
+runs, the three 80-player scenes 60-second runs. Measured frame counts before/after are 103/162,
+270/321, 332/494 and 368/219 respectively. The
+benchmarks did not overlap each other. Other agents and this task were running CPU/GPU-intensive validations on this Mac;
 load averages and concurrent workloads varied throughout the run. Thus these are shared-host measurements, with scheduling,
 frequency and thermal variation. Do not infer a clean single-host speedup ratio from them. Frame counts
 and binary hashes, exact commands and workload summaries are retained locally.
 
 | Scenario | Before fps | After fps | Before frame p50/p95/p99 ms | After frame p50/p95/p99 ms | CPU before/after ms | World GL before/after ms |
 |---|---:|---:|---|---|---|---|
-| crowd40 | 15.23 | 17.19 | 61.8/93.6/123.4 | 55.0/83.1/112.3 | 55.4/49.4 | 33.8/27.5 |
-| crowd80 | 6.79 | 8.64 | 148.3/209.4/246.3 | 110.4/164.7/195.4 | 112.5/92.0 | 60.3/42.9 |
-| tormenta80 | 8.81 | 9.60 | 108.4/154.8/204.5 | 95.5/168.0/209.8 | 106.3/93.4 | 49.7/40.8 |
-| retina80 | 7.48 | 8.72 | 131.2/169.7/196.4 | 109.6/155.1/173.5 | 127.3/109.5 | 64.3/52.0 |
+| crowd40 | 7.84 | 9.40 | 122.2/195.1/211.3 | 99.3/172.7/213.1 | 65.7/52.6 | 61.9/44.0 |
+| crowd80 | 6.36 | 6.97 | 160.8/222.1/242.6 | 139.0/206.6/240.5 | 108.8/100.4 | 60.7/49.9 |
+| tormenta80 | 7.12 | 10.26 | 137.0/194.7/221.9 | 95.4/124.8/151.6 | 112.4/89.6 | 58.2/37.3 |
+| retina80 | 7.71 | 4.89 | 128.0/165.5/198.6 | 201.7/314.7/441.4 | 124.1/126.9 | 62.4/80.5 |
 
 CPU is mean main-thread execution time, not whole-process CPU. World GL is the mean asynchronous
 `GL_TIME_ELAPSED` interval around the world draw. It overlaps CPU submission and can include GPU pipeline
 bubbles. Ruffle renders through Metal outside that query. These columns cannot be added or subtracted
 to derive total GPU execution or idle time. A complete Ruffle GPU split remains unmeasured.
 
-After work p95/p99, excluding cap sleep: crowd40 83.1/112.3 ms; crowd80 164.7/195.4 ms;
-Tormenta 168.0/209.8 ms; large target 155.1/173.5 ms. Every scenario fails the strict 40 ms target.
-The longer after runs have GFx means 56.2, 46.5 and 44.1 ms in the 80-player scenes. Crowd40 GFx
-averages 18.9 ms. Main-thread work still exceeds budget even before accounting for all scheduling waits.
-The Tormenta tail worsens slightly despite its lower mean CPU cost. These shared-host results do not
-establish improvement at every percentile or in every possible scene.
+After work p95/p99, excluding cap sleep: crowd40 172.7/213.1 ms; crowd80 206.6/240.5 ms;
+Tormenta 124.8/151.6 ms; large target 314.7/441.4 ms. Every scenario fails the strict 40 ms target.
+After GFx means are 39.9/70.4/42.1/86.6 ms. The large target regresses in fps and tails, while its CPU
+mean changes from 124.1 to 126.9 ms. This is an unresolved performance result, not a success hidden by
+an average. Shared GPU/CPU contention, real-time logic catch-up and Ruffle timing vary between these
+runs; their separate contributions are not isolated. Repeat an idle, controlled run before claiming a
+causal speedup. No claim of improvement at every percentile or in every scene is made.
 
 Per-object pose caching was not added: safe keys must account for shared bone/root buffers, attachment
 state and every transform/light input. No cache with incomplete invalidation was shipped.
@@ -112,8 +121,9 @@ make -C native world client
 
 The committed `stress_m5_limits.json` separates the measured M5 regression envelope from the 25 Hz goal.
 All four measured after runs pass the committed full-nameplate regression envelopes. All four strict
-25 Hz goal checks fail. These are deliberately different results. The envelope
-allows scheduling variation, with independent frame-tail and CPU limits; it catches
+25 Hz goal checks fail. These are deliberately different results. The warning envelope
+uses the final full-nameplate, expanded-item-body workload, with independent frame-tail and CPU limits.
+Passing it establishes neither an optimization win nor 25 Hz acceptance. It catches
 large draw-path regressions without pretending the current baseline meets the target. Synthetic tests
 exercise fast/slow, missing workload and both threshold paths. Recalibrate on other hardware or an idle
 Mac, preserving the strict 25 Hz check. The JSON limits are reviewed summaries, not proprietary data.
