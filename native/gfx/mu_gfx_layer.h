@@ -65,7 +65,7 @@ enum { MU_GFX_MAIN, MU_GFX_INVENTORY, MU_GFX_TOOLTIP, MU_GFX_CHARACTER, MU_GFX_C
        MU_GFX_NPC_SHOP, MU_GFX_STORAGE, MU_GFX_QUEST_PROGRESS, MU_GFX_MY_QUEST, MU_GFX_SKILL_POPUP,
        MU_GFX_SKILL_STAMP, MU_GFX_MOVE_COMMAND, MU_GFX_MASTER_TREE, MU_GFX_TREE4, MU_GFX_TREE5,
        MU_GFX_QUEST_SUMMARY, MU_GFX_QUEST_NOTICE, MU_GFX_JOB_QUEST, MU_GFX_PARTY, MU_GFX_TRADE, MU_GFX_FRIENDS, MU_GFX_MESSENGER, MU_GFX_MIX_SELECT, MU_GFX_MIX, MU_GFX_STORE_LIST, MU_GFX_STORE_REGISTER, MU_GFX_STORE_PURCHASE,
-       MU_GFX_OPTION, MU_GFX_SYSTEM_MENU, MU_GFX_MOVIES };
+       MU_GFX_OPTION, MU_GFX_SYSTEM_MENU, MU_GFX_HELP, MU_GFX_MOVIES };
 /* NATIVE-PROGRESS-001 adds winOption and winSystemMenu (optional KeyWindows): their channel calls, O and the
  * Esc that no other window takes go to cfg.progress_call. */
 /* NATIVE-MAP-001 adds MoveCommand (the Move window, optional); its callbacks and the base movie's other channels
@@ -222,6 +222,9 @@ void mu_gfx_layer_trade_items(mu_gfx_layer *, const mu_gfx_item_draw *, int);
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *config, char *error, size_t error_size);
 void mu_gfx_layer_close(mu_gfx_layer *layer);
+/* SYS-MISC-001b: enable the labelled native Ctrl+H binding only after the
+ * installed HelpWindow rows have been loaded. Missing data stays unavailable. */
+void mu_gfx_layer_help_ready(mu_gfx_layer *layer, int ready);
 void mu_gfx_layer_resize(mu_gfx_layer *layer, int32_t width, int32_t height);
 
 void mu_gfx_layer_set_hero(mu_gfx_layer *layer, const mu_gfx_hero *hero);

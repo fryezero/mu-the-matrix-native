@@ -2105,6 +2105,39 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
 
+# SYS-MISC-001b: temporary compiled libraries are built by these validators.
+[validate_help]
+test = "tests/test_help.py::HelpReaderTests.test_original_instructions"
+pins = ["text", "data", "feature"]
+families = ["valid", "corrupt", "missing"]
+cases = 55
+mutants = 7
+cases_at = "cases"
+mutants_at = "mutants"
+build = []
+args = ["--cases", "48", "--mutants", "--output", "{report}"]
+[validate_help.expect]
+"cases" = 55
+"mismatches" = 0
+"mutants" = {len = 7}
+"mutants.*.caught" = true
+
+[validate_help_controller]
+test = "tests/test_help_controller.py::HelpControllerTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["construct-provider-projection", "build", "hotkeys", "chatkeys", "reload", "load", "load-refusal"]
+cases = 832
+mutants = 11
+cases_at = "cases"
+mutants_at = "mutants"
+build = []
+args = ["--cases", "64", "--mutants", "--output", "{report}"]
+[validate_help_controller.expect]
+"cases" = 832
+"mismatches" = 0
+"mutants" = {len = 11}
+"mutants.*.caught" = true
+
 [validate_item_wings_next]
 test = "reconstructed/renderchar/test_item_wings_next.py::ItemWingsNext.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
