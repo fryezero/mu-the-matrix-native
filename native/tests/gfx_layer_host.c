@@ -28,6 +28,7 @@
 
 static void print_state(mu_gfx_layer *L)
 {
+    const mu_gfx_hero *h = mu_gfx_layer_hero(L);
     printf("{\"inventory_open\": %d, \"character_open\": %d, \"held\": %d, \"cells\": [",
            mu_gfx_layer_is_open(L, MU_GFX_INVENTORY), mu_gfx_layer_is_open(L, MU_GFX_CHARACTER), mu_gfx_layer_held(L));
     for (int i = 0; i < mu_gfx_layer_item_count(L); i++)
@@ -35,10 +36,10 @@ static void print_state(mu_gfx_layer *L)
     int32_t v[4];
     mu_gfx_layer_view(L, MU_GFX_INVENTORY, v);
     printf("], \"text_active\": %d, \"chat_sent\": \"%s\", \"main_path\": \"%s\", \"inventory_path\": \"%s\", "
-           "\"inventory_view\": [%d, %d, %d, %d], \"points\": %d, \"base_mode\": %d, \"chat_path\": \"%s\"}\n",
+           "\"inventory_view\": [%d, %d, %d, %d], \"points\": %d, \"base_mode\": %d, \"chat_path\": \"%s\", \"hero_name\":\"%s\",\"hp\":%d,\"max_hp\":%d,\"max_mp\":%d,\"max_sd\":%d,\"max_ag\":%d}\n",
            mu_gfx_layer_text_active(L), mu_gfx_layer_last_sent(L), mu_gfx_layer_path(L, MU_GFX_MAIN),
            mu_gfx_layer_path(L, MU_GFX_INVENTORY), v[0], v[1], v[2], v[3], mu_gfx_layer_hero(L)->points,
-           mu_gfx_layer_base_mode(L), mu_gfx_layer_path(L, MU_GFX_CHAT));
+           mu_gfx_layer_base_mode(L), mu_gfx_layer_path(L, MU_GFX_CHAT), h->name, h->hp, h->max_hp, h->max_mp, h->max_sd, h->max_ag);
     fflush(stdout);
 }
 

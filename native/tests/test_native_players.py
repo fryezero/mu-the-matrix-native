@@ -176,6 +176,38 @@ class RangeTests(Build):
         self.assertIsNone(out['summary'])
 
 
+class ArmourTexturesTests(Build):
+    def test_player_folder_fallback_keeps_effect_textures(self):
+        import io
+        import native_fixtures as nf
+        from test_native_data import item_file, item_record
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(write_combat_world(Path(tmp)/'game'))
+            item = root/'Data/Item'
+            item.mkdir()
+            model = nf.write_textured_model(root/'Data/Player', 7)
+            (item/'HelmMale10.bmd').write_bytes(model.read_bytes())
+            local = root/'Data/Local'
+            local.mkdir(exist_ok=True)
+            rec = bytearray(item_record(7*512+9, b'Data\\Item\\', b'HelmMale10.bmd', b'Demo helm'))
+            rec[0x250:0x253] = bytes(3)
+            (local/'item.bmd').write_bytes(item_file([bytes(rec)]))
+            effects = root/'Data/Effect'
+            effects.mkdir(exist_ok=True)
+            for name in ('Chrome02', '2', 'flame_chrome', 'Chrome06', 'Chrome01', 'Shiny01'):
+                jpeg = io.BytesIO()
+                Image.new('RGB', (8, 8), (40, 80, 120)).save(jpeg, format='JPEG')
+                (effects/(name+'.ozj')).write_bytes(bytes(24) + jpeg.getvalue())
+            players = Path(tmp)/'players.txt'
+            players.write_text('player Demo01 class=1 at=121,120 helm=7:9:11\n')
+            out = run(root, players, '--frames', '1')
+            player = out['players'][0]
+            self.assertEqual(player['loaded'][1], 1)
+            self.assertEqual(player['textures_missing'][1], 0)
+            self.assertEqual(player['effect_textures_loaded'][1], 6)
+
+
 @unittest.skipUnless(PRIVATE, 'needs MU_RECOVERY_INTEGRATION=1 and MU_GAME_ROOT')
 class PrivateTests(unittest.TestCase):
     def test_lorencia_demo_players(self):
