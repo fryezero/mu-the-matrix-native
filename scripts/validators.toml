@@ -2057,6 +2057,26 @@ args = ["--cases", "60", "--mutations", "--output", "{report}"]
 all_equal = true
 all_mutants_caught = true
 
+[validate_audio_charsel]
+test = "native/tests/test_audio_charsel.py::CharselAudio.test_original_charsel_audio"
+pins = ["text", "data"]
+families = ["enter", "escape", "common"]
+cases = 5968
+mutants = 11
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/charsel", "native"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_charsel.expect]
+"cases" = 5968
+"mismatches" = 0
+"families.enter" = 5760
+"families.escape" = 64
+"families.common" = 144
+"sites" = {len = 3}
+"mutants" = {len = 11}
+"mutants.*" = "caught"
+
 [validate_item_coverage]
 test = "reconstructed/renderchar/test_item_coverage.py::ItemCoverage.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
