@@ -247,9 +247,11 @@ same pinned text and second image section used above, without starting the clien
 | Raklion snow | `0x00e9ec6a..0x00e9ee77` | scale branches, hero-relative position, angle, rotated velocity, untouched leaf bytes and RNG |
 
 The Devias/Tarkan families enter their switch branches after the generic tick with a declared caller frame.
-They do not re-prove the generic tick. Engine services are recording stubs; world membership answers and the
-boid live setter/getter are supplied explicitly. Trigonometric wrappers, AngleMatrix, VectorRotate and door
-TurnAngle2 execute as original instructions. Placement families execute the loader slices and record the
+They do not re-prove the generic tick. Engine services are recording stubs. World membership answers are supplied
+explicitly. Handler state is seeded with its event-timer flag clear. The boid live setter/getter, trigonometric
+wrappers, AngleMatrix, VectorRotate and door
+TurnAngle2 execute as original instructions. Raklion's inherited handler timer is covered only with flag `+0x23` clear;
+its active event timer is outside this static-world reconstruction. Placement families execute the loader slices and record the
 constructor arguments; model/texture loading and CreateObject allocation are stubbed. Fixed placement cases are
 repeated, not distinct worlds or assets. Mutants cover the door boundary, flicker, placement coordinate, terrain
 light range, scroll rate, live-slot guard, pulse rate, effect height and snow velocity.
@@ -261,8 +263,8 @@ safe-zone bit. Raklion's leaf creator feeds the existing MoveLeaves, default mov
 Creation effects are queued until the native effect callback exists. Only this group's worlds use that queue.
 
 **Snapshot and render checks.** The fourteen-map tour ran before and after on this branch against the local
-2026-10-22 object/light captures. The original live PNGs named by the manifests are absent from this checkout's
-local evidence tree, as are the old side-by-side images. Therefore image mean error against the live client is
+2026-10-22 object/light captures. The orchestrator confirms that the original live PNGs were deleted in the 2026-10-23 cleanup. The object/light
+snapshots and retained score reports are the authoritative live evidence. Therefore fresh image mean error against the live client is
 **unavailable**, not zero or copied from the old report. Native GL frames were inspected for Devias town, Elbeland
 and Raklion. All nine unaffected worlds' final PNG SHA-256 values are unchanged. Devias 4 and Tarkan also have
 unchanged final PNGs at their arrival cameras; their new behavior is covered by instruction cases elsewhere.
@@ -275,6 +277,9 @@ unchanged final PNGs at their arrival cameras; their new behavior is covered by 
 | Elbeland | 0 → 0 | 0.03336 → 0.02078 |
 | Raklion | 2 → 0 | 0.02574 → 0.02574 |
 
+The local Mac gate on the combined branch passed 1,364 tests with 159 explicit skips and no failures;
+publication audit accepted 1,203 files with none rejected. Native fixture, viewer and read-only reader checks passed.
+
 No extra placements in these captures; primary light remains exactly equal in all fourteen captures. Devias town's
 static-field differences fall 6 → 4, with time-dependent flicker remaining. Tarkan has three new BlendMesh
 comparisons of type 82, which the verified move case sets to zero but the old live snapshot retained as -1.
@@ -285,5 +290,5 @@ zero-initialized leaf records. No live game was used, and no renders or captured
 factory still rejects these unreconstructed effect kinds. Their effect lifecycle/rendering is not claimed here.
 Elbeland's `0x1a3` boid creation is wired, but its separate environment mover/model renderer remains unported.
 Sound calls are compared and counted by the object host, as before. The Tarkan/Raklion haze, visual-pass fields,
-other world-handler classes and siblings A/C remain separate work. Reacquire the missing October PNG artifacts
-from the owner's archive for a fresh image-error score; this task did not start a client to replace them.
+other world-handler classes and siblings A/C remain separate work. Next step: take fresh live captures of Devias, Tarkan, Elbeland and Raklion under the shared game lock in a
+separate authorized run, then rerun the image-error tour. This run did not start a client.

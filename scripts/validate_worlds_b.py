@@ -100,19 +100,17 @@ def move(machine, lib, g, cases, world):
             0x16CACFC: light,
             0x168FAFD: particle,
             0xA6AC96: sound,
-            0xEA17C0: lambda m: 0,
             0xEA233C: lambda m: 1,
             0xE309A7: lambda m: 1,
             0xE309D9: lambda m: 0,
             0x16D34DB: lambda m: 0,
-            0x95F977: lambda m: int(pool[0]),
-            0x129F4A5: lambda m: (m.uc.mem_write(POOL, b"\1") or (0, 4)),
         }
         regs = v.global_regions(
             world,
             6,
             [
                 am.defined_region("object", O, bytes(o)),
+                am.defined_region("handler", v.FAKE, bytes(0x40)),
                 am.defined_region("pool", POOL, bytes(pool)),
                 am.defined_region("time", v.TIME, v.pack_f(time), writable=False),
                 am.defined_region("bounds", v.BOUNDS, struct.pack("<i", bounds), writable=False),
@@ -131,7 +129,7 @@ def move(machine, lib, g, cases, world):
             result = machine.execute(BODIES[name][0], [O], regs, stubs, frame=(0x180, {}))
             stop = None if result["stopped"] == ("end",) else v.stopped_reason(result)
         else:
-            result = v.run(machine, BODIES[name][0], [O], regs, stubs, cleanup=4 if world == 57 else 0)
+            result = v.run(machine, BODIES[name][0], [O], regs, stubs, cleanup=4 if world == 57 else 0, ecx=v.FAKE)
             stop = v.stopped_reason(result)
         if stop:
             tally.add(False, {"case": n, "type": typ}, stop)
