@@ -94,6 +94,13 @@ def check(result, *, headless):
     return failures
 
 
+def measurement_complete(result, *, headless, frames, seconds):
+    if headless:
+        return result['frames'] == frames
+    elapsed = result['frames'] * result['frame_ms']['mean'] / 1000.0
+    return math.isfinite(elapsed) and elapsed >= seconds * 0.95
+
+
 def regression(result, limits):
     failures = []
     metrics = [result.get('fps'), result.get('frames'),
@@ -160,6 +167,8 @@ def main(argv=None):
     ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
     ap.add_argument('--scenario', choices=SCENARIOS, action='append')
     a = ap.parse_args(argv)
+    if a.gpu_timing and a.headless:
+        ap.error('--gpu-timing requires the window shared-surface path')
     if a.frames <= 50 or a.seconds <= 0:
         ap.error('use more than 50 frames and a positive duration')
     for key in ('MU_GFX_NO_ITEM_MODELS', 'MU_GFX_NO_ICON_MODELS', 'MU_GFX_NO_SKILLS',
@@ -203,12 +212,17 @@ def main(argv=None):
         stderr = (directory / 'stderr.log').read_text()
         if code or 'continuing without' in stderr or 'libmugfx' in stderr or 'too many' in stderr:
             raise RuntimeError(f'{name}: incomplete workload, exit {code}; inspect {directory}')
+        all_frames = perf_report.summarize(str(directory / 'frames.tsv'), scene=6)
+        if not measurement_complete(all_frames, headless=a.headless, frames=a.frames, seconds=a.seconds):
+            raise RuntimeError(f'{name}: benchmark stopped before the requested measurement completed')
         result = perf_report.summarize(str(directory / 'frames.tsv'), scene=6, skip_first=50, metal_log=metal)
         if metal and (not result['metal']['supported'] or result['metal']['missing_frames']):
             raise RuntimeError(f'{name}: incomplete Metal timing: {result["metal"]}')
         rows = [json.loads(line) for line in (directory / 'stdout.jsonl').read_text().splitlines()
                 if line.startswith('{')]
         result['workload'] = workload(rows, SCENARIOS[name][2])
+        if metal and result['workload']['gfx'].get('shared') != 1:
+            raise RuntimeError(f'{name}: Metal timing requires shared-surface rendering')
         result['failures'] = check(result, headless=a.headless)
         report['scenarios'][name] = result
         result['regression_failures'] = regression(result, limits[name])

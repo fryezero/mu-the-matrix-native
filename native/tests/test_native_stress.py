@@ -35,6 +35,13 @@ class BenchmarkContract(unittest.TestCase):
                     self.assertEqual(caught.exception.code, 2)
                     self.assertIn(f'{key} would omit part of the stress workload', err.getvalue())
 
+    def test_metal_cannot_silently_report_readback_as_cached_zero(self):
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            with self.assertRaises(SystemExit):
+                bench.main(['--game-root', '/unused', '--data', '/unused', '--gfx-lib', '/unused',
+                            '--out', '/unused', '--headless', '--gpu-timing'])
+        self.assertIn('requires the window shared-surface path', err.getvalue())
+
     def test_generated_crowd_has_eighty_distinct_equipped_players(self):
         with tempfile.TemporaryDirectory() as tmp:
             p, a = bench.fixtures(Path(tmp), (182, 128), 80)
@@ -63,6 +70,13 @@ class BenchmarkContract(unittest.TestCase):
             self.assertTrue(bench.check(dict(r, fps=value), headless=True))
             self.assertTrue(bench.check(dict(r, work_ms={'p95': value, 'p99': 35}), headless=False))
         self.assertTrue(bench.check(dict(r, frame_ms={}), headless=False))
+
+    def test_interrupted_run_is_not_a_completed_benchmark(self):
+        r = {'frames': 750, 'frame_ms': {'mean': 40}}
+        self.assertFalse(bench.measurement_complete(r, headless=False, frames=300, seconds=60))
+        self.assertTrue(bench.measurement_complete(r, headless=False, frames=300, seconds=30))
+        self.assertFalse(bench.measurement_complete(r, headless=True, frames=1000, seconds=30))
+        self.assertTrue(bench.measurement_complete(r, headless=True, frames=750, seconds=30))
 
     def test_pacing_tails_fail_even_at_25_fps(self):
         result = {'frames': 200, 'fps': 25, 'work_ms': {'p95': 30, 'p99': 35},

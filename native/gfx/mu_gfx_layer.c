@@ -2731,7 +2731,8 @@ static void render_readback(mu_gfx_layer *L, movie *mv, int m)
 static void render_movies(mu_gfx_layer *L, int force_readback)
 {
 #ifndef MU_GFX_NO_GL
-    if (L->api.perf_frame) L->api.perf_frame((uint64_t)mu_perf_frame_index());
+    if (L->shared && !force_readback && L->api.perf_frame)
+        L->api.perf_frame((uint64_t)mu_perf_frame_index());
 #endif
     int submitted = 0;
     double t_submit = now_ms();
@@ -2765,7 +2766,7 @@ static void render_movies(mu_gfx_layer *L, int force_readback)
         L->gpu_wait_ms += wait;
         L->gpu_waits++;
     }
-    if (L->api.perf_end) L->api.perf_end();
+    if (L->shared && !force_readback && L->api.perf_end) L->api.perf_end();
 }
 
 void mu_gfx_layer_render(mu_gfx_layer *L)
