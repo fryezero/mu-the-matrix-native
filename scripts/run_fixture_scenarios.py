@@ -63,15 +63,19 @@ def prepare(text: str, script: str) -> tuple[str, int]:
     last = 0
     for number, raw in enumerate(text.splitlines(), 1):
         line = raw.split('#', 1)[0].strip()
-        if line.startswith('endpoint '):
-            parts = line.split()
+        parts = line.split()
+        if not parts:
+            continue
+        if parts[0] == 'endpoint':
             if len(parts) != 3:
                 raise ValueError(f'line {number}: expected endpoint ROLE HOST:PORT')
             host, port = parts[2].rsplit(':', 1)
             if not ipaddress.ip_address(host.strip('[]')).is_loopback or not 0 < int(port) < 65536:
                 raise ValueError(f'line {number}: fixture endpoints must be numeric loopback addresses')
-        if line.startswith('at '):
-            tick = int(line.split()[1])
+        if parts[0] == 'at':
+            if len(parts) < 3:
+                raise ValueError(f'line {number}: expected at TICK COMMAND')
+            tick = int(parts[1])
             if not 1 <= tick <= 1_000_000:
                 raise ValueError(f'line {number}: tick outside 1..1000000')
             last = max(last, tick)

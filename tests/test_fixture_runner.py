@@ -50,16 +50,18 @@ class FixtureRunner(unittest.TestCase):
                 runner.script_lines(script)
 
     def test_schedule_includes_server_only_tail_and_script_tail(self):
-        _, ticks = runner.prepare('at 100 progress join\n', '')
-        self.assertEqual(ticks, 120)
+        for separator in (' ', '\t'):
+            _, ticks = runner.prepare(f'at{separator}100 progress join\n', '')
+            self.assertEqual(ticks, 120)
         _, ticks = runner.prepare('at 100 progress join\n', '140:inbound:c103fe')
         self.assertEqual(ticks, 160)
 
     def test_only_numeric_loopback_endpoints_are_accepted(self):
         for host in ('192.0.2.1', 'example.com', '127.0.0.1:0'):
             endpoint = host if host.endswith(':0') else host + ':55901'
-            with self.subTest(endpoint=endpoint), self.assertRaises(ValueError):
-                runner.prepare('endpoint game ' + endpoint, '')
+            for separator in (' ', '\t'):
+                with self.subTest(endpoint=endpoint, separator=separator), self.assertRaises(ValueError):
+                    runner.prepare(f'endpoint{separator}game ' + endpoint, '')
         runner.prepare('endpoint game 127.0.0.1:55901', '')
 
     def test_journal_summary_and_per_route_counts(self):
