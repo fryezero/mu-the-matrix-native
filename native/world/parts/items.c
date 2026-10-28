@@ -152,7 +152,7 @@ static void item_labels_draw_soft(struct mu_world_rt *a, void *self, mu_world_dr
 #ifndef MU_WORLD_NO_GL
 typedef struct items_part {
     mu_gl_backend item_gl[MU_WORLD_ITEM_MODELS];
-    const mu_world_rt *rt;         /* the runtime of the running draw (the item callback's context) */
+    mu_world_rt *rt;               /* the runtime of the running draw (the item callback's context) */
 } items_part;
 
 static void items_gl_teardown(struct mu_world_rt *a, void *self)
