@@ -69,6 +69,43 @@ int main(void)
     p->world_time = 700.25f;
     if (mu_renderchar_link_effects(&model, bones, 0x0afc, p) != 2) return 17;
     mu_world_particles_discard_sprites(p);
+    uint64_t random_before = p->rand_calls;
+    if (mu_renderchar_link_effects(&model, bones, 0x0afd, p) != 7 ||
+        p->rand_calls != random_before + 3) return 18;
+    mu_world_particles_discard_sprites(p);
+    /* Skin sprites ignore body_scale, preserve the saved bone translation, then add origin. */
+    if (mu_renderchar_link_effects(&model, bones, 0x389c, p) != 1 ||
+        p->rand_calls != random_before + 3) return 19;
+    s = &p->sprites->records[0];
+    if (s->position[0] != 100 || s->position[1] != 210 || s->position[2] != 310 ||
+        s->type != 0x7f26 || s->owner != MU_PT_NO_OWNER) return 20;
+    mu_world_particles_discard_sprites(p);
+    if (mu_renderchar_link_effects(&model, bones, 0x389d, p) != 1) return 21;
+    s = &p->sprites->records[0];
+    if (s->position[1] != 205 || s->position[2] != 280) return 22;
+    bmd.bone_count = 0;
+    if (mu_renderchar_link_effects(&model, bones, 0x389c, p) != 0) return 23;
+    mu_world_particles_discard_sprites(p);
+    for (int i = 0; i < MU_PT_SPRITES; ++i) p->sprites->records[i].live = 1;
+    bmd.bone_count = 20;
+    if (mu_renderchar_link_effects(&model, bones, 0x389c, p) != 0 ||
+        mu_renderchar_link_effects(&model, bones, 0x0afd, p) != 0) return 24;
+    mu_world_particles_discard_sprites(p);
+    p->rand_state = 1;
+    uint64_t before_chain = p->rand_calls;
+    if (mu_renderchar_link_effects(&model, bones, 0x12f9, p) != 10 ||
+        p->rand_calls != before_chain + 1) return 25;
+    s = &p->sprites->records[9];
+    if (s->position[0] != 110 || s->position[1] != 220 || s->position[2] != 310 ||
+        s->light[0] != 1 || s->light[1] != 1 || s->light[2] != 1) return 26;
+    mu_world_particles_discard_sprites(p);
+    bmd.bone_count = 3;
+    if (mu_renderchar_link_effects(&model, bones, 0x12f9, p) != 4) return 27;
+    /* Ground/inventory skin entry point must not allocate weapon link sprites. */
+    before_chain = p->rand_calls;
+    if (mu_renderchar_skin_effects(&model, bones, 0x12f9, p) ||
+        p->rand_calls != before_chain) return 28;
+    mu_world_particles_discard_sprites(p);
     bmd.bone_count = 1;
     if (mu_renderchar_link_effects(&model, bones, 0x12fb, p) != 3) return 12;
     s = &p->sprites->records[0];

@@ -44,8 +44,6 @@ TEXT_BYTES, DATA_BYTES = pins.TEXT.size, pins.DATA.size
 TEXT_SHA256 = pins.TEXT.sha256
 DATA_SHA256 = pins.DATA.sha256
 SEC3_BASE, SEC3_INIT_END = 0x1ced000, 0x1ced000 + 0x12a00
-SEC3_SHA256 = pins.SECTION3.sha256   # capture-04 prefix file
-SEC3_INIT_SHA256 = None   # filled at first use and reported
 BSS_END = 0xbdd2000
 TERRAIN_STUBS = 0x51000000
 STUB, HEAP, HEAP_BYTES = 0x50000000, 0x40000000, 0x8000000
@@ -105,6 +103,11 @@ def fbits(x):
 
 
 load_pinned = pins.loader(ValueError, '{label}: unexpected size or SHA-256 mismatch')
+
+
+def load_section3(path):
+    """Verify exactly the initialized bytes that Machine maps; the runtime tail is unused."""
+    return pins.EFFECTS_INIT.read(path)
 
 
 class Machine:
@@ -756,8 +759,7 @@ def build_cases(game_root, limit, frames, mutations, seed):
 def validate(args):
     text = load_pinned(args.text, TEXT_BYTES, TEXT_SHA256, 'restored text')
     data = load_pinned(args.data, DATA_BYTES, DATA_SHA256, 'image data')
-    sec3_file = load_pinned(args.section3, None, SEC3_SHA256, 'section-3 capture')
-    sec3 = sec3_file[:SEC3_INIT_END - SEC3_BASE]
+    sec3 = load_section3(args.section3)
     bodies = {name: hashlib.sha256(text[s - TEXT_BASE:e - TEXT_BASE]).hexdigest() for name, (s, e) in BODIES.items()}
     machine = Machine(text, data, sec3, args.sse2_math)
     library = NativeLibrary(args.library)
@@ -775,7 +777,7 @@ def validate(args):
     mismatches = [r for r in results if r.get('mismatch')]
     effect_blocks = len(machine.blocks)
     summary = {
-        'text_sha256': TEXT_SHA256, 'data_sha256': DATA_SHA256, 'section3_capture_sha256': SEC3_SHA256,
+        'text_sha256': TEXT_SHA256, 'data_sha256': DATA_SHA256, 'section3_initialized_bytes': len(sec3),
         'section3_initialized_sha256': hashlib.sha256(sec3).hexdigest(), 'bodies': bodies,
         'library_sha256': hashlib.sha256(Path(args.library).read_bytes()).hexdigest(),
         'cases': len(results), 'installed_cases': sum(1 for c in cases if not c['label'].startswith('mutation')),
@@ -806,7 +808,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--text', type=Path, required=True, help='x86-text-capture-09/client-text.bin')
     parser.add_argument('--data', type=Path, required=True, help='data-capture-10/client-image-data.bin')
-    parser.add_argument('--section3', type=Path, required=True, help='x86-linux-capture-04/main-01ced000.bin')
+    parser.add_argument('--section3', type=Path, default=pins.EFFECTS_INIT.default(),
+                        help='capture or range file starting at 0x01ced000; only the pinned initialized range is read')
     parser.add_argument('--game-root', type=Path, required=True)
     parser.add_argument('--library', type=Path, default=ROOT / 'reconstructed/effects' /
                         ('libeffects.dylib' if sys.platform == 'darwin' else 'libeffects.so'))

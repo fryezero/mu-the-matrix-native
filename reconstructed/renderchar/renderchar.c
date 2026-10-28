@@ -1,6 +1,6 @@
 /* Item render decisions of the client's world path. See renderchar.h.
- * Build with -ffp-contract=off: every product and sum below is one binary32
- * SSE operation in the client (MSVC /arch:SSE2), in the order written. */
+ * Build with -ffp-contract=off: float products and sums follow the client's
+ * binary32 SSE order. Explicit double casts retain its binary64 blend pulse. */
 #include "renderchar.h"
 
 #include <math.h>
@@ -11,6 +11,8 @@
 #include "item_glow.h"
 #include "skin_glow.h"
 #include "item_bodies.h"
+#include "skin_bodies.h"
+#include "item_links.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -19,15 +21,20 @@ static float client_sin(float x)
     return (float)sin((double)x);
 }
 
-/* 0x0185bdc4(-4,0), then 0x01705495 adds 0.2. */
-static float armour_pulse(float time)
+/* 0x0185bdc4(-4,0). Callers add their own body-light or blend-light offset. */
+static float armour_wave(float time)
 {
     int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
     float x = (float)(tick % -1570) * 0.001f * -4.0f;
     float w = (float)cos((double)x);
     if (3.1415927f > x)
         w = -w;
-    return (w + 1.0f) * 0.5f + 0.2f;
+    return (w + 1.0f) * 0.5f;
+}
+
+static float armour_pulse(float time)
+{
+    return armour_wave(time) + 0.2f;
 }
 
 typedef struct sink {
@@ -78,46 +85,17 @@ static int body_type(int32_t type)
     return -1;
 }
 
-/* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
- * to the actual draw arguments and current model fields, never saved pixels.
- * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
-static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha, int32_t hidden, int32_t texture)
+static void apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_t *input,
+                         const mu_rc_draw *base)
 {
-    int type = body_type(s->item->type);
-    if (type < 0 || !s->parameters) {
-        emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-        return;
-    }
-    mu_rc_draw base;
-    sink one = {&base, 1, 0, s->item, s->model, 0};
-    emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[20], words[16];
-    input[0] = base.flags;
-    memcpy(&input[1], &base.alpha, 4);
-    input[2] = (uint32_t)base.blend_mesh;
-    memcpy(&input[3], &base.blend_light, 4);
-    memcpy(&input[4], &base.u, 4);
-    memcpy(&input[5], &base.v, 4);
-    input[6] = (uint32_t)base.hidden;
-    input[7] = (uint32_t)base.texture;
-    memcpy(&input[8], base.body_light, 12);
-    input[11] = (uint32_t)base.level_field;
-    memcpy(&input[12], base.shade, 12);
-    input[15] = base.flag_ca;
-    memcpy(&input[16], &s->item->object_alpha, 4);
-    float pulse = mu_rc_body_types[type].pulse ? armour_pulse(s->item->time) : 0.0f;
-    for (int k = 0; k < 3; ++k) {
-        float light = base.body_light[k] * pulse;
-        memcpy(&input[17 + k], &light, 4);
-    }
-    int recipe = mu_rc_body_types[type].recipe[phase];
-    for (int i = 0; i < mu_rc_body_recipes[recipe].count; ++i) {
+    uint32_t words[16];
+    for (int i = 0; i < recipe->count; ++i) {
         for (int k = 0; k < 16; ++k) {
-            int source = mu_rc_body_recipes[recipe].draw[i].source[k];
-            words[k] = source ? input[source - 1] : mu_rc_body_recipes[recipe].draw[i].value[k];
+            int source = recipe->draw[i].source[k];
+            words[k] = source ? input[source - 1] : recipe->draw[i].value[k];
         }
-        mu_rc_draw d = base;
-        d.entry = mu_rc_body_recipes[recipe].draw[i].entry;
+        mu_rc_draw d = *base;
+        d.entry = recipe->draw[i].entry;
         if (d.entry == MU_RC_ENTRY_BODY) {
             d.flags = words[0];
             memcpy(&d.alpha, &words[1], 4);
@@ -144,6 +122,45 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
             s->out[s->count] = d;
         ++s->count;
     }
+}
+
+/* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
+ * to the actual draw arguments and current model fields, never saved pixels.
+ * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
+static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha, int32_t hidden, int32_t texture)
+{
+    int type = body_type(s->item->type);
+    if (type < 0 || !s->parameters) {
+        emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
+        return;
+    }
+    mu_rc_draw base;
+    sink one = {&base, 1, 0, s->item, s->model, 0};
+    emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
+    uint32_t input[21];
+    input[0] = base.flags;
+    memcpy(&input[1], &base.alpha, 4);
+    input[2] = (uint32_t)base.blend_mesh;
+    memcpy(&input[3], &base.blend_light, 4);
+    memcpy(&input[4], &base.u, 4);
+    memcpy(&input[5], &base.v, 4);
+    input[6] = (uint32_t)base.hidden;
+    input[7] = (uint32_t)base.texture;
+    memcpy(&input[8], base.body_light, 12);
+    input[11] = (uint32_t)base.level_field;
+    memcpy(&input[12], base.shade, 12);
+    input[15] = base.flag_ca;
+    memcpy(&input[16], &s->item->object_alpha, 4);
+    float pulse = mu_rc_body_types[type].pulse ? armour_pulse(s->item->time) : 0.0f;
+    for (int k = 0; k < 3; ++k) {
+        float light = base.body_light[k] * pulse;
+        memcpy(&input[17 + k], &light, 4);
+    }
+    float blend = mu_rc_body_types[type].blend_pulse ?
+        (float)((double)armour_wave(s->item->time) * 0.7 + (double)0.3f) : 0.0f;
+    if (blend > 1.0f) blend = 1.0f;
+    memcpy(&input[20], &blend, 4);
+    apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base);
 }
 
 /* Item-table predicates 0x00cd6017 (kind B, +0x251), 0x00cd5fac (kind A,
@@ -345,7 +362,8 @@ static void scale_light(float out[3], const float light[3], float factor)
 
 int mu_rc_item_special(int32_t type)
 {
-    if (body_type(type) >= 0)
+    if (body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
+        (type >= 0x389b && type <= 0x389e))
         return 0;
     /* RENDER-ITEMS-002b: complete body streams, not the link-effect switch. */
     if (type == 0x12ed || type == 0x12f5 || (type >= 0x22e6 && type <= 0x22eb) ||
@@ -363,7 +381,8 @@ int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, 
     *count = 0;
     if (mu_rc_item_special(it->type))
         return MU_RC_SPECIAL;
-    if (body_type(it->type) >= 0 && (it->a10 != -1 || it->a11 != -1))
+    if ((body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
+        (it->a10 != -1 || it->a11 != -1))
         return MU_RC_UNSUPPORTED;
     /* 0x01770e41..0x01770ef8: wing blend-light writes survive every pass. */
     if (it->type == 0x22ea || it->type == 0x248c || it->type == 0x22eb || it->type == 0x248d) {
@@ -371,6 +390,13 @@ int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, 
         float pulse = client_sin(it->time * 0.001f);
         copy.blend_light = (it->type == 0x22eb || it->type == 0x248d) ?
             (pulse + 1.0f) / 4.0f : pulse + 1.1f;
+        return item_draws_impl(&copy, model, out, capacity, count, 1);
+    }
+    if (it->type == 0x389d) {
+        mu_rc_item copy = *it;
+        float clock = -it->time;
+        int32_t tick = !(clock >= -2147483648.0f && clock < 2147483648.0f) ? INT32_MIN : (int32_t)clock;
+        copy.v = (float)(tick % 4000) * 0.00025f;
         return item_draws_impl(&copy, model, out, capacity, count, 1);
     }
     return item_draws_impl(it, model, out, capacity, count, 1);
@@ -405,6 +431,34 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
     int type_row = body_type(it->type);
     if (parameters && type_row >= 0 && mu_rc_body_types[type_row].plain)
         level = 0;
+    if (parameters) {
+        for (size_t i = 0; i < sizeof mu_rc_skin_bodies / sizeof mu_rc_skin_bodies[0]; ++i) {
+            int32_t tested = mu_rc_skin_bodies[i].effective ? level : (it->item_level >> 3) & 15;
+            if (it->type != mu_rc_skin_bodies[i].type ||
+                (mu_rc_skin_bodies[i].level >= 0 && tested != mu_rc_skin_bodies[i].level))
+                continue;
+            mu_rc_draw base;
+            sink one = {&base, 1, 0, it, model, 0};
+            emit(&one, MU_RC_ENTRY_BODY, 0, it->render_type, it->alpha, 0, -1);
+            uint32_t input[17];
+            input[0] = base.flags;
+            memcpy(&input[1], &base.alpha, 4);
+            input[2] = (uint32_t)base.blend_mesh;
+            memcpy(&input[3], &base.blend_light, 4);
+            memcpy(&input[4], &base.u, 4);
+            memcpy(&input[5], &base.v, 4);
+            input[6] = (uint32_t)base.hidden;
+            input[7] = (uint32_t)base.texture;
+            memcpy(&input[8], base.body_light, 12);
+            input[11] = (uint32_t)base.level_field;
+            memcpy(&input[12], base.shade, 12);
+            input[15] = base.flag_ca;
+            memcpy(&input[16], &it->object_alpha, 4);
+            apply_recipe(&s, &mu_rc_skin_bodies[i].recipe, input, &base);
+            *count = s.count;
+            return s.count > capacity ? MU_RC_FULL : MU_RC_OK;
+        }
+    }
     const float *L = it->light;
     uint32_t rt = it->render_type;
     uint32_t keep = rt & 0x100u;
@@ -503,11 +557,32 @@ done:
     return s.count > capacity ? MU_RC_FULL : MU_RC_OK;
 }
 
+/* RenderObjDraw 0x0176ffe0..0x01770591. Transform without scale, then add OBJECT position. */
+int mu_rc_skin_effect(int32_t type, float time, mu_rc_link_effect *out)
+{
+    if (type != 0x389c && type != 0x389d)
+        return 0;
+    float pulse = client_sin(time * 0.002f) * 0.35f + 0.65f;
+    *out = (mu_rc_link_effect){0};
+    out->sprite = (mu_rc_link_sprite){0, 0x7f26, pulse * 0.8f + (type == 0x389c ? 2.0f : 2.5f),
+        {pulse * 0.32f, pulse * 0.32f, pulse * 2.0f}, 0, 0, 4};
+    out->offset[1] = type == 0x389c ? 0 : -5.0f;
+    out->offset[2] = type == 0x389c ? 15.0f : -15.0f;
+    if (type == 0x389d) {
+        out->sprite.light[0] = pulse * 2.0f;
+        out->sprite.light[2] = pulse * 0.32f;
+    }
+    return 1;
+}
+
 int mu_rc_link_supported(int32_t type)
 {
+    for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
+        if (type == mu_rc_link_chains[i].type)
+            return 1;
     return type == 0x12ea || type == 0x12eb || type == 0x12ec || type == 0x12f7 ||
            type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb ||
-           type == 0x0ef4 || type == 0x0afc;
+           type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe;
 }
 
 static float link_intensity(int32_t random_value)
@@ -555,12 +630,41 @@ int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, vo
                            mu_rc_link_effect *out, int32_t capacity, int32_t *count)
 {
     *count = 0;
-    if (type != 0x14f0 && type != 0x12fb && type != 0x0ef4 && type != 0x0afc)
+    int chain_index = -1;
+    for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
+        if (type == mu_rc_link_chains[i].type)
+            chain_index = (int)i;
+    if (chain_index < 0 && type != 0x14f0 && type != 0x12fb && type != 0x0ef4 && type != 0x0afc && type != 0x0afd && type != 0x0afe)
         return MU_RC_SPECIAL;
     float intensity = link_intensity(random(context));
     mu_rc_link_effect effects[20] = {0};
     int n = 0;
-    if (type == 0x14f0) {
+    if (chain_index >= 0) {
+        /* 0x012cb556 / 0x012cb7ab: shared bone chains, original random order. */
+        const mu_rc_link_chain *chain = &mu_rc_link_chains[chain_index];
+        for (int i = 0; i < chain->count; ++i) {
+            int bone = chain->first + i;
+            if (chain->flash && random(context) % 3 == 0) {
+                mu_rc_link_effect *e = &effects[n++];
+                e->sprite = (mu_rc_link_sprite){bone, 0x7f67, 0.6f, {0.4f, 0.4f, 0.4f},
+                                               (float)(random(context) % 360), 0, 4};
+                e->offset[2] = chain->z;
+            }
+            float light[3];
+            for (int k = 0; k < 3; ++k)
+                light[k] = intensity * chain->rgb[k];
+            if (!chain->flash) {
+                mu_rc_link_effect *e = &effects[n++];
+                e->sprite = (mu_rc_link_sprite){bone, 0x7f67, 1.0f, {light[0], light[1], light[2]}, 0, 0, 4};
+                e->offset[2] = chain->z;
+            }
+            if (chain->white && i == chain->count - 1)
+                light[0] = light[1] = light[2] = 1.0f;
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){bone, 0x7ef7, 2.0f, {light[0], light[1], light[2]}, 0, 0, 4};
+            e->offset[2] = chain->z;
+        }
+    } else if (type == 0x14f0) {
         for (int i = 0; i < 10; ++i) {
             float x = (float)i * 30.0f - 180.0f;
             if (random(context) % 3 == 0) {
@@ -609,6 +713,32 @@ int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, vo
             e->offset[0] = i ? -5.0f : 5.0f;
             e->offset[1] = -22.0f;
             e->offset[2] = -10.0f;
+        }
+    } else if (type == 0x0afd) { /* 0x012c807d..0x012c856c */
+        float jitter = (float)(random(context) % 60) / 20.0f - 1.5f;
+        float scale = (float)(random(context) % 30) / 20.0f + 1.5f;
+        float pulse = client_sin(time * 0.7f) * 0.2f + 0.5f;
+        float rotation = time * 0.0006f * 360.0f;
+        for (int i = 0; i < 7; ++i) {
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){i < 4 ? 4 : i + 2,
+                i < 2 ? 0x7f67 : 0x7ef7,
+                i == 0 ? scale : i == 1 ? scale - 0.4f : i == 2 ? 2.3f : i == 6 ? 1.0f : 2.0f,
+                {0.2f, 0.2f, pulse}, i < 2 ? rotation + (i ? 90.0f : 0.0f) : 0.0f, 0, 4};
+            if (i < 3) e->offset[1] = e->offset[2] = jitter;
+            if (i == 3) e->offset[0] = 30.0f;
+        }
+    } else if (type == 0x0afe) { /* 0x012c8d7b..0x012c91f9 */
+        for (int i = 0; i < 5; ++i) {
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){2, i < 2 ? 0x7ef8 : i < 4 ? 0x7f67 : 0x7ef7,
+                i < 2 ? 0.45f : i == 2 ? 0.7f : i == 3 ? (float)(random(context) % 100) / 180.0f + 0.5f : 3.0f,
+                {0.6f, 0.6f, 0.6f}, i == 3 ? time * 0.0006f * 360.0f : 0.0f, 0, 4};
+            if (i < 2) e->offset[2] = i ? -3.0f : 3.0f;
+            if (i == 4) {
+                float pulse = client_sin(time * 0.4f) * 0.25f + 0.6f;
+                e->sprite.light[0] = e->sprite.light[1] = e->sprite.light[2] = pulse;
+            }
         }
     } else {
         if (random(context) % 2 == 1) {

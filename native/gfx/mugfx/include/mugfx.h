@@ -63,6 +63,12 @@ MuGfx *mugfx_open_shared(const char *swf_path, int width, int height, char *err,
 int mugfx_render_shared(MuGfx *g, int wait);
 /* Wait for every frame submitted so far (one GPU queue for all movies). */
 void mugfx_gpu_wait(void);
+/* Optional ABI-3 profiling extension. MU_GFX_GPU_LOG records complete Metal
+ * queue intervals by host frame, including offscreen Ruffle submissions and
+ * CPU encoding gaps. No frame wait; mugfx_close drains diagnostics on shutdown.
+ * Cached frames have an explicit zero-submission end marker. */
+void mugfx_perf_frame(uint64_t frame);
+void mugfx_perf_end(void);
 void *mugfx_iosurface(MuGfx *g, int *width, int *height, uint32_t *seed);
 
 /* GFx Movie::HitTest with shapes: 1 when a visible shape not under a

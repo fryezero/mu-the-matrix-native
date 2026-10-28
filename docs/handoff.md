@@ -2,6 +2,8 @@
 
 SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
 
+INTEGRATION-GREEN-001: [handoff](handoffs/INTEGRATION-GREEN-001.md). Full offline integration is green with explicit optional skips; captures and corpus identity are documented. No new local input retained; lane artifacts are removed after merge.
+
 RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.
 
 RENDER-WORLDS-E: [handoff](handoffs/RENDER-WORLDS-E.md). Elbeland boids and Raklion event timer implemented; Aida light accumulation attributed. Full Mac gate passes, 1,463 tests; fourteen-view scores/hashes unchanged.
@@ -37,7 +39,7 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 4: [handoff](handoffs/RENDER-ITEMS-002D.md). 426/1,674 bodies, 11/17 skins, five link targets/ten types integrated and Spark03/11 consumed. Remaining: 1,248 bodies, six skins and further links; Muun/nested map-object tables remain deferred.
+RENDER-ITEMS-002 part 6: [handoff](handoffs/RENDER-ITEMS-002F.md). 559/1,674 bodies, 17/17 skins, nine link targets/fourteen types integrated; ground and both inventory paths consume skin sprites. Remaining: 1,115 bodies, pose-aware rank 5, owner-dependent links and prior model/domain limits. Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 
@@ -374,6 +376,7 @@ is the CharacterSelect movie's game side (compare with `scripts/validate_charsel
 local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: the create-character panel (offline: local
 characters) and the GFx menu; class-name codes 9/10.
 - NATIVE-PERF-002: integrated timings, matching render hashes and the remaining 80-player/pacing shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
+- NATIVE-PERF-003: [measurements, exact full-frame comparisons and remaining 80-player target](handoffs/NATIVE-PERF-003.md). Final real-time comparisons and full Metal intervals are recorded; strict 25 Hz work/pacing acceptance remains open. AS2 wall time is pinned only for image comparisons.
 
 ## Native frame time and window (NATIVE-PERF-001)
 

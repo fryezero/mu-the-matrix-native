@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 28 Oct 2026 07:10:00 -0500
+Subject: [PATCH 8/8] mu: opt-in host clock for deterministic AS2 comparisons
+
+Normal players retain wall time. A comparison host can pin AS2 getTimer
+while continuing to advance movie frames and timers normally. Pinning only
+the date and tick delta does not pin Flash tweens which call getTimer.
+
+---
+diff --git a/core/src/context.rs b/core/src/context.rs
+--- a/core/src/context.rs
++++ b/core/src/context.rs
+@@ -184,6 +184,8 @@
+
+     /// The instant at which the SWF was launched.
+     pub start_time: Instant,
++    /// Optional host clock for deterministic AS2 comparison runs.
++    pub gfx_test_time_ms: Option<u32>,
+
+     /// The instant at which the current update started.
+     pub update_start: Instant,
+diff --git a/core/src/player.rs b/core/src/player.rs
+--- a/core/src/player.rs
++++ b/core/src/player.rs
+@@ -390,6 +390,7 @@
+
+     /// The instant at which the SWF was launched.
+     start_time: Instant,
++    gfx_test_time_ms: Option<u32>,
+
+     /// The maximum amount of time that can be called before a `Error::ExecutionTimeout`
+     /// is raised. This defaults to 15 seconds but can be changed.
+@@ -545,6 +546,12 @@
+     /// Returns the duration of a single frame.
+     fn frame_duration(&self) -> FloatDuration {
+         FloatDuration::from_millis(self.frame_time(1000.0))
++    }
++
++    /// Pin AS2 getTimer to host simulation time for image comparisons only.
++    /// None retains Flash's normal wall clock and busy-loop offset behavior.
++    pub fn set_gfx_test_time(&mut self, time_ms: Option<u32>) {
++        self.gfx_test_time_ms = time_ms;
+     }
+
+     pub fn tick(&mut self, dt: FloatDuration) {
+@@ -2445,6 +2452,7 @@
+                 avm2,
+                 external_interface,
+                 start_time: this.start_time,
++                gfx_test_time_ms: this.gfx_test_time_ms,
+                 update_start: Instant::now(),
+                 max_execution_duration: this.max_execution_duration,
+                 focus_tracker: stage.focus_tracker(),
+@@ -3177,6 +3185,7 @@
+                 frame_accumulator: FloatDuration::ZERO,
+                 recent_run_frame_timings: VecDeque::with_capacity(10),
+                 start_time: Instant::now(),
++                gfx_test_time_ms: None,
+                 time_offset: 0,
+                 time_til_next_timer: None,
+                 max_execution_duration: self.max_execution_duration,
+diff --git a/core/src/avm1/activation.rs b/core/src/avm1/activation.rs
+--- a/core/src/avm1/activation.rs
++++ b/core/src/avm1/activation.rs
+@@ -1255,9 +1255,9 @@
+             *self.context.time_offset += 1;
+         }
+
+-        let time = Instant::now()
+-            .duration_since(self.context.start_time)
+-            .as_millis() as u32;
++        let time = self.context.gfx_test_time_ms.unwrap_or_else(|| {
++            Instant::now().duration_since(self.context.start_time).as_millis() as u32
++        });
+         let result = time.wrapping_add(*self.context.time_offset);
+         self.context.avm1.push(result.into());
+         Ok(FrameControl::Continue)

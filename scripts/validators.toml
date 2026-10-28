@@ -6,6 +6,34 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_item_ranked]
+test = "reconstructed/renderchar/test_item_ranked.py::ItemRanked.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "links"]
+cases = 17736
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_ranked.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
+[validate_item_continuation]
+test = "reconstructed/renderchar/test_item_continuation.py::ItemContinuation.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "skins", "links"]
+cases = 25772
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_continuation.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_item_expansion]
 test = "reconstructed/renderchar/test_item_expansion.py::ItemExpansion.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -344,10 +372,10 @@ args = ["--text", "{text}", "--data", "{data}", "--feature", "{feature}", "--gam
 
 [validate_effect_tree]
 test = "reconstructed/effects/test_effect_tree.py::PrivateEffectTreeValidation.test_instruction_comparison"
-pins = ["text", "data", "section3"]
+pins = ["text", "data", "effects_init"]
 needs = ["game_root"]
 build = ["reconstructed/effects"]
-args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--game-root", "{game_root}", "--limit", "60", "--mutations", "20", "--clones", "20", "--scenes", "10", "--frames", "20", "--output", "{report}"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{effects_init}", "--game-root", "{game_root}", "--limit", "60", "--mutations", "20", "--clones", "20", "--scenes", "10", "--frames", "20", "--output", "{report}"]
 [validate_effect_tree.expect]
 "mismatches" = 0
 "cases" = 110
@@ -355,10 +383,10 @@ args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--g
 
 [validate_effects]
 test = "reconstructed/effects/test_effects.py::PrivateEffectValidation.test_instruction_comparison"
-pins = ["text", "data", "section3"]
+pins = ["text", "data", "effects_init"]
 needs = ["game_root"]
 build = ["reconstructed/effects"]
-args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--game-root", "{game_root}", "--limit", "40", "--mutations", "40", "--frames", "30", "--output", "{report}"]
+args = ["--text", "{text}", "--data", "{data}", "--section3", "{effects_init}", "--game-root", "{game_root}", "--limit", "40", "--mutations", "40", "--frames", "30", "--output", "{report}"]
 [validate_effects.expect]
 "mismatches" = 0
 "cases" = 80

@@ -59,6 +59,10 @@ struct mu_world_particles;
  * saved bone pose. Missing bones are skipped, never indexed speculatively. */
 long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32_t type,
                                struct mu_world_particles *particles);
+/* RenderObjDraw skin sprites only, for ground and inventory callers. Does not
+ * add character-only RenderLinkItem weapon effects. Uses the supplied pose. */
+long mu_renderchar_skin_effects(const mu_model *model, const float *bones, int32_t type,
+                               struct mu_world_particles *particles);
 /* Draws one transformed item model with its world-render passes. base supplies
  * textures, culling and alpha-test overrides; light is the character light
  * (character +0x1b8), alpha the object alpha. */
