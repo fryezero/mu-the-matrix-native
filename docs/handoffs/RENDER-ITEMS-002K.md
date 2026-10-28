@@ -85,4 +85,13 @@ runtime/viewer hook, effect consumer, perf/mesh/scene or session code changed. M
 map-object tables remain deferred, as do the earlier record, buff, selection, shadow, override,
 NewUI and Box of Luck limits.
 
+## Stable preflight
+
+With the source frozen, `bash scripts/local-macos-ci.sh` on the `fa63719` base passes **1,633 tests
+across 38 suites, 209 explicit skips, zero failures**. All **11/11 fixture scenarios** pass, with 86
+inbound frames and zero unbound or undecodable frames. The existing two unrecovered intents and
+nine unsent frames stay explicit. Viewer and readers build. The publication audit accepts **1,588
+staged files, zero rejected**. Portable renderchar: **59 tests, fourteen private skips**. Native
+character renderer: **13 tests, one installed-client skip**.
+
 GATE_PLACEHOLDER
