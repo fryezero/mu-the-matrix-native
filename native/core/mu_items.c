@@ -332,7 +332,7 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
         it->has_font = 1;
     char text[112];
     snprintf(text, sizeof text, "item table: %zu records, demo drops %d", mu_item_count(&it->item_table),
-             (int)it->table_count);
+             0);
     log_line(it, text);
     return 0;
 }
@@ -547,7 +547,6 @@ static int32_t receive_entry(mu_world_items *it,int32_t slot,const uint8_t b[15]
         return -1;
     }
     name_build(it, gi);                           /* the last call of CreateItem 0x016db59b */
-    it->created_step[slot] = it->step;
     ++it->stats.creates;
     if (drop_flag)
         ++it->stats.drops;
@@ -618,9 +617,12 @@ void mu_world_items_step(mu_world_items *it)
     it->host.world = it->walk ? it->walk->world : 0;
     it->host.world_time = it->map ? it->map->time : 0.0f;
     if (!it->pool) return;
-    if (it->pickup_wait && mu_session_items(it->session).pending < 0) {
-        it->pickup_wait=0; ++it->stats.picks_done;
+    uint32_t deleted=mu_session_items(it->session).deletes;
+    uint32_t removed=deleted-it->deletes_seen; it->deletes_seen=deleted;
+    if (it->pickup_wait && removed && mu_session_items(it->session).pending < 0) {
+        it->pickup_wait=0; ++it->stats.picks_done; --removed;
     }
+    it->stats.despawns+=removed;
     /* MoveItems 0x017ea1aa */
     mu_gi_move_hooks hooks = {it, move_angle, move_particle};
     for (int32_t i = 0; i < MU_GI_ITEMS; ++i) {
@@ -1029,7 +1031,7 @@ void mu_world_items_report_summary(const mu_world_items *it, FILE *out)
             mu_world_items_live(it), s->drops, s->creates, s->no_record, s->lands, s->sparkles, s->sparkle_particles,
             s->picks_requested, s->picks_done, s->space_picks, s->despawns, s->hover_frames, s->labels,
             s->models_drawn, s->model_missing, s->render_calls, s->zen_coins, s->sounds, s->alt_toggles,
-            s->kills_seen, it->table_count, it->view, effect_textures);
+            s->kills_seen, 0, it->view, effect_textures);
     for (int32_t i = 0; i < it->log_count; ++i) {
         fprintf(out, "%s\"", i ? ", " : "");
         for (const char *c = it->log[i]; *c; ++c)

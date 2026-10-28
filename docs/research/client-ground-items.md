@@ -256,3 +256,58 @@ voices, space pick-up).
   models' files (the loader `0x0183220e`, verified).
 - **Not reproduced.** The pentagram/errtel lookups of CreateItem; the item OBB (`+0x31c`) and the ray test `0x018500bf`; the model getter's texture folder for item models;
   the inventory side of a pick-up (NATIVE-GFX-003's interface is not fed).
+
+## 10. SESSION-ITEMS-001a, 2026-10-28
+
+The session now owns the ground pool and the last 19-byte viewport entry for each of its 1,000 slots.
+`items_viewport` uses the unchanged `mu_gi_viewport_parse`; `items_delete` binds the recorded C2 `0x21`
+route at `0x012338bc`. Short native frames are rejected before mutation. Invalid delete keys clamp to
+slot zero, including `0xffff`; the delete handler does not strip the viewport drop bit. Its engine
+boundary is ITEM reset, SetLive(0), then optional label removal. The native projection uses the existing
+ITEM reset model, including code -1, and live zero. Unknown ITEM fields remain outside that model.
+
+The view binds creation services to the session, then runs the existing CreateItem/name/motion/render
+reconstruction on that pool. Rebinding an already live projection retains its state and does not play
+the drop sound again. Detached viewport entries are retained for later projection. Movement leases
+expose `sim.ground`; server packet bytes and ITEM data are audited as replicated, object fields as motion.
+No new per-frame allocation was added. Existing renderer/effect/perf implementations are unchanged.
+
+`native/fixture/behaviors/items.c` owns scripted drops, removal latency and despawn. Combat's fixed
+synthetic sword reward goes to that server model, then through `0x20`; the combat-event drop callback
+is removed. This deliberately retains the merged combat fixture's fixed sword policy rather than
+claiming the historical random drop table. Timers remain synthetic server policy.
+
+### Bounded instruction evidence
+
+The target, text and data identities remain those in the Identity table above. The new validator
+`scripts/validate_session_items.py` executes the original delete body `0x012338bc..0x012339dd`, the zen
+builder slice `0x016983d6..0x01698485`, ordinary builder slice `0x01698f65..0x01699017`, and the successful
+pickup sound/label slice `0x01242b3c..0x01242c2b`. Engine reset/live/label services and packet construction
+are recording stubs. Mid-function slices receive explicit synthetic frame locals. They do not execute
+MoveHero's eligibility/capacity checks, the keyed AddData transform, encryption, inventory insertion,
+UI notifications or the pickup handler's decode prelude. Each report hashes its exact instruction slices.
+
+Both captured ordinary and zen builders call Begin(C1, **0**), add the slot high byte then low byte with
+keyed AddData, set pending slot `0x01cf1028`, and call Send(1,0). The zero opcode is the observed capture
+value; it has not been replaced with a packet number from another client. The native builder returns
+those pre-transform bytes, and the session journals the encrypted request as unsent. The pickup-tail
+comparison proves jewel/special/default sound selection and label removal after successful insertion;
+it does not establish a complete answer handler or a ground-live reset.
+
+### Explicit missing evidence
+
+No finding records the inbound opcode/subopcode for `0x012424bd`, `0x012420a5`, `0x01242ea8` or
+`0x00b0fd9e`. `0x012424bd` begins by decoding a 19-byte body using the packet trailer and
+`0x06fca280`; that work is outside this lane. No new pickup-answer route is guessed or bound.
+The fixture's explicit `pickup SLOT` command schedules a **0x21 removal**, not an answer to an unsent
+request. The view's synthetic pickup action invokes that same server command. No inventory item or zen
+balance is credited, and no pickup success sound is claimed for that removal.
+
+`client-quests.md` records inventory insert handler `0x01227c51` but gives no route. Other inventory
+list/move/delete/durability/equipment routes are not recorded here. The rest of SESSION-ITEMS-001 needs
+those exact routes and applicable decode boundaries before migration, followed by GFx inventory,
+equipment consumers and same-session character-select persistence. Specialized pickup destinations
+also need their eligibility/capacity interfaces; only the recorded ordinary/zen builder slices are
+verified here. No dispatcher table, crypto, account/login, live session, original client or launcher used.
+
+Final check counts are in [the milestone handoff](../handoffs/SESSION-ITEMS-001a.md).

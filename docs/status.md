@@ -1,5 +1,7 @@
 # Current status
 
+SESSION-ITEMS-001a: bounded session ground ownership and fixture 20/21 feed; encrypted pickup stays unsent and answer/inventory routes remain open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
+
 RENDER-WORLDS-I implements Loren Market/Uruk primary methods: 6,000 instruction cases, zero mismatches, 33/33 compiled mutants; 31/144 verified primary families across 11/48 classes. Locked Mac gate passes 1,548 tests with 191 explicit skips; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-i.md), [checks and limits](handoffs/RENDER-WORLDS-I.md).
 
 RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).

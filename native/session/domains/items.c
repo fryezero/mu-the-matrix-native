@@ -11,7 +11,7 @@ void mu_session_items_bind(mu_session *s, mu_items_present_fn fn, void *ctx)
 {
     s->items.present = fn; s->items.context = ctx;
     if (fn) for (int i = 0; i < MU_GI_ITEMS; ++i)
-        if (s->items.used[i]) fn(ctx, i, s->items.entries[i]);
+        if (s->items.used[i] && !s->items.pool[i].object.live) fn(ctx, i, s->items.entries[i]);
 }
 mu_apply items_viewport(mu_session *s, const mu_frame *f)
 {
@@ -41,6 +41,7 @@ mu_apply items_delete(mu_session *s, const mu_frame *f)
         int slot = slots[i];
         /* Reset ITEM and SetLive(0). Other object/label bytes survive in the client. */
         memset(&s->items.pool[slot].data, 0, sizeof s->items.pool[slot].data);
+        s->items.pool[slot].data.code = -1;
         s->items.pool[slot].object.live = 0;
         s->items.used[slot] = 0;
         memset(s->items.entries[slot], 0, 19);
@@ -68,6 +69,7 @@ void mu_dom_items_zones(const mu_session *s,mu_audit_zones *z)
 {
     mu_audit_add(z,"items.used",s->items.used,0,sizeof s->items.used,MU_ZONE_REPLICATED,"server slots");
     mu_audit_add(z,"items.entries",(const uint8_t *)s->items.entries,0,sizeof s->items.entries,MU_ZONE_REPLICATED,"viewport bytes");
+    mu_audit_add(z,"items.counts",(const uint8_t *)&s->items.creates,0,2*sizeof(uint32_t),MU_ZONE_REPLICATED,"applied frame counts");
     for (int i=0;i<MU_GI_ITEMS;++i) {
         const uint8_t *p=(const uint8_t *)&s->items.pool[i];
         mu_audit_add(z,"items.pool",p,0,offsetof(mu_gi_item,object),MU_ZONE_REPLICATED,"key and item data");

@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+SESSION-ITEMS-001a: bounded session ground ownership and fixture 20/21 feed; encrypted pickup stays unsent and answer/inventory routes remain open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
+
 README-REFRESH-003 implemented: public progress through PR #207, bounded coverage and honest offline/performance limits; existing pinned images reused. [Checks and sources](handoffs/README-REFRESH-003.md).
 
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).

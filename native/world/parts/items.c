@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
+#include "../../fixture/behavior.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,7 +46,7 @@ static int items_open(struct mu_world_rt *a, void *self)
             free(a->ground);
             a->ground = NULL;
         } else {
-            p->session=world_rt_characters_session(a); p->fixture=world_rt_characters_fixture(a);
+            p->session=a->actors.session; p->fixture=a->actors.fixture;
             if(!p->session) {
                 char path[]="/tmp/mu-items-XXXXXX"; int fd=mkstemp(path); if(fd<0)return 1;
                 FILE *f=fdopen(fd,"w"); if(!f) {close(fd);unlink(path);return 1;}

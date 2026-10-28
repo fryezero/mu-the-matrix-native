@@ -55,12 +55,10 @@ struct mu_session;
 struct mu_world_particles;
 
 #define MU_WORLD_ITEM_MODELS 64
-#define MU_WORLD_ITEM_EVENTS 64
-#define MU_WORLD_ITEM_TABLE 24
 #define MU_WORLD_ITEM_LABELS 96
 
 typedef struct mu_world_items_config {
-    uint32_t seed;              /* demo drop choices; also the client rand() state (the client seeds it with time()) */
+    uint32_t seed;              /* fixture and client cosmetic RNG */
     int32_t drop_latency;       /* demo: steps from the death message to the drop (item viewport) message */
     int32_t pickup_latency;     /* demo: steps from the pick-up request to the answer */
     int32_t despawn_steps;      /* demo: the server removes an item after this many steps (0: never) */
@@ -81,19 +79,6 @@ typedef struct mu_world_item_model {
     mu_model model;
     mu_textures textures;
 } mu_world_item_model;
-
-typedef struct mu_world_item_drop {      /* one entry of the demo drop table */
-    int32_t code, level_max, weight;
-    uint8_t excellent_chance, ancient_chance;   /* percent */
-    int32_t zen_min, zen_max;
-} mu_world_item_drop;
-
-typedef struct mu_world_item_event {
-    int32_t step, kind;         /* 1 drop, 2 pick-up answer */
-    int32_t code, level, zen, slot;
-    uint8_t excellent, ancient;
-    float x, y;
-} mu_world_item_event;
 
 typedef struct mu_world_item_label {
     int32_t index;
@@ -120,7 +105,7 @@ typedef struct mu_world_items {
     struct mu_session *session;
     void *fixture_items;
     mu_gi_item *pool; /* session-owned, presentation writes object fields only */
-    int32_t created_step[MU_GI_ITEMS];
+    uint32_t deletes_seen;
     mu_walk *walk;
     const mu_world *map;
     struct mu_world_particles *particles;
@@ -146,8 +131,6 @@ typedef struct mu_world_items {
     int32_t model_count;
     mu_character *mannequin;    /* the Player skeleton armour parts are posed with (RenderItems poses model 0xa91) */
     int mannequin_failed;
-    mu_world_item_drop table[MU_WORLD_ITEM_TABLE];
-    int32_t table_count, table_weight;
     mu_ui_font font;
     int has_font;
     char game_root[1024];
@@ -174,8 +157,8 @@ void mu_world_items_bind(mu_world_items *items, struct mu_session *session, void
 int32_t mu_world_items_drop(mu_world_items *items, int32_t code, int32_t level_byte, uint8_t excellent, uint8_t ancient,
                             int32_t zen, float x, float y, int32_t drop_flag);
 
-/* One logic step: the demo server's messages, MoveItems with the sparkle, the
- * hero's pick-up mode and the despawn. */
+/* One logic step over the session pool: MoveItems, sparkle and pickup intent.
+ * Fixture timers and handlers own creation/removal. */
 void mu_world_items_step(mu_world_items *items);
 /* Before MoveHero's walk and click code: a left click while an item is
  * selected starts the pick-up walk and consumes the click (returns 1). */
