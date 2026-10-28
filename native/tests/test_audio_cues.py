@@ -146,7 +146,7 @@ class AudioCues(unittest.TestCase):
         src=cls.folder/'test.c'; src.write_text(HARNESS)
         obj=cls.folder/'test.o';cls.exe=cls.folder/'test'
         subprocess.run(['clang','-std=c11','-DMU_SESSION_SEED','-I',str(NATIVE),'-I',str(NATIVE/'build/gen'),'-I',str(NATIVE/'session'),'-c',str(src),'-o',str(obj)],check=True)
-        cmd=['clang++',str(obj),str(NATIVE/'build/libmusession.a'),str(NATIVE/'build/libmunative.a'),str(NATIVE/'build/libmuaudio.a'),'-lm','-o',str(cls.exe)]
+        cmd=['clang++',str(obj),str(NATIVE/'build/libmusession.a'),str(NATIVE/'build/libmunative.a'),str(NATIVE/'build/libmuaudio.a'),*(['-framework','CoreText','-framework','CoreGraphics','-framework','CoreFoundation'] if sys.platform=='darwin' else []),'-lm','-o',str(cls.exe)]
         crypto_prefix = subprocess.check_output(['brew','--prefix','cryptopp'],text=True).strip() if shutil.which('brew') else '/usr'
         cmd += ['-L'+crypto_prefix+'/lib','-lcryptopp']
         jpeg_prefix = '/usr'

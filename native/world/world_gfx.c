@@ -1266,7 +1266,7 @@ void world_gfx_progress(world_gfx *g, struct mu_progress *p)
 }
 
 world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
-                          int shared, const char *open, char *error, size_t error_size)
+                          int shared, const char *open, struct mu_session *session, char *error, size_t error_size)
 {
     world_gfx *g = calloc(1, sizeof *g);
     if (!g) {
@@ -1344,7 +1344,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         const char *p = open ? strstr(open, "class=") : NULL;
         int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 0x81;
         if (!getenv("MU_GFX_NO_SKILLS")) {
-            g->skill = wg_skill_open(game_root, mu_lang_shared(), getenv("MU_LANG_DIR"), cls);
+            g->skill = wg_skill_open(game_root, mu_lang_shared(), getenv("MU_LANG_DIR"), cls, session);
             wg_skill_attach(g->skill, g->layer);
             g->scale = scale > 0 ? scale : 1.0;
             wg_skill_set_screen(g->skill, (int32_t)(width / g->scale));
@@ -1459,6 +1459,7 @@ void world_gfx_frame(world_gfx *g, double dt_ms, int draw)
     g->time_ms += dt_ms;
     wg_items_set_time(g->items, g->time_ms);
     wg_skill_tick(g->skill, dt_ms);
+    wg_tree_tick(g->tree);
     progress_sync(g);   /* NATIVE-PROGRESS-001 */
     wg_options_step(g->options, dt_ms);
     mu_gfx_layer_advance(g->layer, dt_ms);

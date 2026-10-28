@@ -441,7 +441,7 @@ static void on_opened(void *user, int kind, void *embed)
          * client's GFx manager draws after the 3D pass in the main scene). */
         char error[512];
         f->gfx = world_gfx_open(f->gfx_dir, f->root, f->width, f->height, f->headless ? 1.0 : f->scale, 1,
-                                f->gfx_open, error, sizeof error);
+                                f->gfx_open, mu_world_rt_skill_session(embed), error, sizeof error);
         if (!f->gfx)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
         else

@@ -9,6 +9,7 @@ struct mu_gfx_layer;
 struct mu_lang;
 typedef struct wg_tree wg_tree;
 wg_tree *wg_tree_open(struct wg_skill *skill, struct mu_gfx_layer *layer, const struct mu_lang *lang);
+void wg_tree_tick(wg_tree *tree);
 void wg_tree_close(wg_tree *tree);
 void wg_tree_call(wg_tree *tree, int movie, const char *name, const char *args);
 void wg_tree_draw(wg_tree *tree, int movie, int32_t stage_w, int32_t stage_h);

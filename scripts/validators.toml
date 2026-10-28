@@ -1794,3 +1794,13 @@ args = ["--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+[validate_session_skills]
+test = "native/tests/test_session_skills.py::Private.test_save_builder_and_mutants"
+pins = ["text", "data"]
+families = ["keys", "packet_tail"]
+cases = 80
+mutants = 3
+cases_at = "families.*"
+mutants_at = "mutants_caught"
+args = ["--cases", "40", "--mutants", "--output", "{report}"]

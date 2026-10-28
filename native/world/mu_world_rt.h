@@ -148,6 +148,9 @@ int mu_world_rt_has_sound(const mu_world_rt *rt);
 uint32_t mu_world_rt_sound_rate(const mu_world_rt *rt);
 void mu_world_rt_mix(mu_world_rt *rt, float *out, uint32_t frames);
 
+struct mu_session;
+struct mu_session *mu_world_rt_skill_session(mu_world_rt *rt);
+
 /* State for reports and the shell. */
 const mu_walk *mu_world_rt_walk(const mu_world_rt *rt);
 int32_t mu_world_rt_folder(const mu_world_rt *rt);

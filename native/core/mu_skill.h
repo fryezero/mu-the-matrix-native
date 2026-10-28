@@ -111,6 +111,7 @@ enum { MU_SKILL_CAST_OK = 0, MU_SKILL_CAST_NONE, MU_SKILL_CAST_UNUSABLE, MU_SKIL
  * the usability, IsSkillReady, the mana / AG check), then StartSkillDelay.  events: the onUseSkillDelay
  * (skill, delay) pairs; *potion: mana was short (the client drinks a potion then).  DEMO: a cast spends
  * the mana and AG of GetSkillInformation (the server's job). */
+int mu_skill_book_check_cast(mu_skill_book *, int32_t skill, int *potion);
 int mu_skill_book_cast(mu_skill_book *book, int32_t skill, int32_t events[2][2], int *nevents, int *potion);
 const char *mu_skill_cast_name(int result);
 void mu_skill_book_tick(mu_skill_book *book, int32_t dt_ms);

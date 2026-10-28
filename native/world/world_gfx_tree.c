@@ -3,6 +3,7 @@
 #include "world_gfx_tree.h"
 #include "world_gfx_skill.h"
 #include "../core/mu_skill.h"
+#include "../session/mu_session.h"
 #include "../core/mu_skill_tree4.h"
 #include "../core/mu_lang.h"
 #include "../gfx/mu_gfx_layer.h"
@@ -19,6 +20,9 @@ struct wg_tree {
     mu_gfx_layer *layer;
     const mu_lang *lang;
     int pending_slot, hover_slot;
+    mu_cue_cursor cursor;
+    char cue_args[262144];
+    size_t cue_size;
     mu_skill_tree4 *t4;                 /* NATIVE-SKILL-003 */
     int t4_pending, t4_ready;           /* the click awaiting its second click (index + 1), the demo login sent */
     int t4_resend;                      /* resend the page at the next draw (layer choice: the movie's slot clips
@@ -42,13 +46,6 @@ static void quote(char *dst, size_t cap, const char *src)
     }
     dst[at++] = '"';
     dst[at] = 0;
-}
-
-static const char *text(void *user, int32_t id)
-{
-    wg_tree *t = user;
-    const char *s = mu_lang_text(t->lang, id);
-    return s ? s : "";
 }
 
 static void invoke(void *user, const char *name, const char *args)
@@ -118,6 +115,20 @@ static void tooltip(wg_tree *t, int slot)
     t->hover_slot = slot;
 }
 
+static int submit_master(wg_tree *t, int32_t skill)
+{
+    mu_intent in={.kind=MU_INTENT_SKILL_MASTER_LEARN};in.u.skill_master_learn.skill=skill;
+    return mu_session_submit(wg_skill_session(t->skill),&in).status==MU_SUBMIT_SENT;
+}
+static int submit_fourth(wg_tree *t,const uint8_t *p,size_t n)
+{
+    mu_intent in={0};
+    if(n==9) {in.kind=MU_INTENT_SKILL_TREE4_LEARN;in.u.skill_tree4_learn.group=p[4];
+        in.u.skill_tree4_learn.skill=(uint16_t)(p[5]|p[6]<<8);in.u.skill_tree4_learn.index=(uint16_t)(p[7]|p[8]<<8);}
+    else if(n==7) {in.kind=MU_INTENT_SKILL_TREE4_SIDE;in.u.skill_tree4_side.category=p[4];
+        in.u.skill_tree4_side.slot=p[5];in.u.skill_tree4_side.level=p[6];}
+    return mu_session_submit(wg_skill_session(t->skill),&in).status==MU_SUBMIT_SENT;
+}
 static void click(wg_tree *t, int slot)
 {
     mu_master_tree *tree = mu_skill_book_master(t->book);
@@ -136,11 +147,9 @@ static void click(wg_tree *t, int slot)
         return;
     }
     int32_t skill;
-    uint8_t request[8];
     if (mu_master_confirm(tree, 0x47, 0, &skill)) {
-        size_t size = mu_master_request(request, sizeof request, skill);
-        if (mu_skill_book_demo_master_request(t->book, request, size)) {
-            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: Master skill answer received.");
+        if (submit_master(t, skill)) {
+            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: Master skill request queued.");
             tooltip(t, slot);
         }
     }
@@ -156,26 +165,13 @@ static void t4_invoke(void *user, const char *name, const char *json)
     mu_gfx_layer_invoke(t->layer, MU_GFX_TREE4, NULL, name, json && *json ? json : "[]");
 }
 
-static void t4_confirm(void *user, int id, const char *s)
-{
-    (void)id;
-    message(user, 0, s);
-    mu_gfx_layer_chat(((wg_tree *)user)->layer, 3, "", "OFFLINE DEMO: click the same skill again to confirm.");
-}
-
-static void t4_message(void *user, const char *s) { message(user, 0, s); }
-
 static void t4_login(wg_tree *t)
 {
     if (!t->t4 || t->t4_ready)
         return;
-    const mu_skill_hero *hero = mu_skill_book_hero(t->book);
-    mu_skill_tree4_enter(t->t4, hero ? hero->class_index : 0);
-    const mu_gfx_hero *gh = mu_gfx_layer_hero(t->layer);
-    /* OFFLINE DEMO points (the server's); the live hero showed "Skill Point: 0" */
-    mu_skill_tree4_demo_login(t->t4, gh && gh->level >= 400 ? 30 : 10);
-    mu_skill_tree4_demo_side(t->t4);
     t->t4_ready = 1;
+    /* Login state arrived as fixture frames before the window opened. */
+
 }
 
 static void t4_click(wg_tree *t, int index)
@@ -196,8 +192,8 @@ static void t4_click(wg_tree *t, int index)
     uint16_t skill, idx;
     if (mu_t4_confirm(w, 0, &group, &skill, &idx)) {
         size_t n = mu_t4_request(req, sizeof req, group, skill, idx);
-        if (mu_skill_tree4_demo_request(t->t4, req, n))
-            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: fourth tree answer received.");
+        if (submit_fourth(t, req, n))
+            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: fourth tree request queued.");
     }
 }
 
@@ -235,8 +231,8 @@ static void t4_side_click(wg_tree *t, int index)
     uint8_t a, b, c, req[16];
     if (mu_t4_side_confirm(w, 0, &a, &b, &c)) {
         size_t n = mu_t4_side_request(req, sizeof req, a, b, c);
-        if (mu_skill_tree4_demo_side_request(t->t4, req, n))
-            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: fourth tree side option answer received.");
+        if (submit_fourth(t, req, n))
+            mu_gfx_layer_chat(t->layer, 3, "", "OFFLINE DEMO: fourth tree side option request queued.");
     }
 }
 
@@ -287,7 +283,6 @@ static void t4_call(wg_tree *t, const char *name, const char *args)
     } else if (!strcmp(name, "SelectBranchSkill") && n >= 2) {
         /* the choice opens the confirm box; the demo answers the second click of the same node */
         mu_t4_env e2 = *env;
-        e2.confirm = t4_confirm;
         if (mu_t4_select_branch(w, &e2, (int32_t)v[0], (int32_t)v[1]))
             t->t4_pending = (int)v[1] + 1;
     } else if (!strcmp(name, "VisibleBranchSkill") && n >= 1) {
@@ -308,22 +303,37 @@ wg_tree *wg_tree_open(wg_skill *skill, mu_gfx_layer *layer, const mu_lang *lang)
     t->book = wg_skill_book(skill);
     t->layer = layer;
     t->lang = lang;
-    mu_master_env *env = mu_skill_book_master_env(t->book);
-    env->user = t;
-    env->text = text;
-    env->invoke = invoke;
-    env->msgbox = message;
-    env->confirm = confirm;
-    t->t4 = mu_skill_tree4_open(getenv("MU_LANG_DIR"), t->book);
-    mu_skill_tree4_host host = {t, text, t4_invoke, t4_message, t4_confirm};
-    mu_skill_tree4_set_host(t->t4, &host);
+    t->t4 = mu_session_skills_tree4(wg_skill_session(skill));
     return t;
+}
+
+void wg_tree_tick(wg_tree *t)
+{
+    if(!t)return;
+    mu_cue cues[32];size_t n;uint32_t lost;
+    do {
+        n=mu_session_cues(wg_skill_session(t->skill),&t->cursor,cues,32,&lost);
+        if(lost)t->cue_size=0;
+        for(size_t i=0;i<n;++i) {
+            mu_cue *c=&cues[i];
+            if(c->kind!=MU_CUE_WINDOW || (strcmp(c->u.window.movie,"skills-master") && strcmp(c->u.window.movie,"skills-fourth")))continue;
+            if(c->u.window.args[1])t->cue_size=0;
+            size_t take=strlen(c->u.window.json);
+            if(t->cue_size+take>=sizeof t->cue_args) {t->cue_size=0;continue;}
+            memcpy(t->cue_args+t->cue_size,c->u.window.json,take+1);t->cue_size+=take;
+            if(c->u.window.args[0])continue;
+            int fourth=!strcmp(c->u.window.movie,"skills-fourth");
+            if(!strcmp(c->u.window.method,"message"))message(t,0,t->cue_args);
+            else if(!strcmp(c->u.window.method,"confirm"))confirm(t,0,t->cue_args);
+            else if(fourth)t4_invoke(t,c->u.window.method,t->cue_args);
+            else invoke(t,c->u.window.method,t->cue_args);
+            t->cue_size=0;
+        }
+    }while(n);
 }
 
 void wg_tree_close(wg_tree *t)
 {
-    if (t)
-        mu_skill_tree4_close(t->t4);
     free(t);
 }
 

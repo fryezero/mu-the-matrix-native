@@ -1,0 +1,12 @@
+# synthetic
+0	Arial
+4784	Mana %d
+4785	AG %d
+4786	Range %d
+4787	Cooldown: %.1f sec.
+4788	Damage %d
+4790	(Imprint Bonus %d%%)
+4791	Neutral
+5897	All Elements
+6340	Energy %d
+6342	 / 

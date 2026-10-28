@@ -8,26 +8,7 @@
 #include "mu_skill.h"
 #include "../../reconstructed/hud/tooltip_html.h"
 
-#define DEMO_NODES 1024
-
-typedef struct demo_node { int32_t group, index, level; } demo_node;
-
-struct mu_skill_tree4 {
-    mu_t4_table table;
-    size_t records;
-    mu_t4_tip *tips;                  /* tree4_tips.tsv, sorted by skill */
-    int ntips;
-    mu_t4_side_table side;            /* tree4_side.tsv */
-    mu_t4_window window;
-    mu_t4_env env;
-    mu_skill_book *book;
-    int32_t cls;
-    /* OFFLINE DEMO server state */
-    mu_skill_tree4_host host;
-    demo_node demo[DEMO_NODES];
-    int ndemo;
-    int32_t points;
-};
+#include "mu_skill_tree4_internal.h"
 
 static int skill_info(void *u, int32_t skill, int *byte0, int *use_type)
 {
@@ -301,123 +282,6 @@ int mu_skill_tree4_receive(mu_skill_tree4 *t, const uint8_t *packet, size_t size
     return mu_t4_receive(&t->window, &t->env, packet, size);
 }
 
-/* ---- OFFLINE DEMO server ---------------------------------------------------------------------------------- */
-
-static demo_node *demo_at(mu_skill_tree4 *t, int32_t group, int32_t index)
-{
-    for (int i = 0; i < t->ndemo; ++i)
-        if (t->demo[i].group == group && t->demo[i].index == index)
-            return &t->demo[i];
-    return NULL;
-}
-
-/* DEMO: the hero meets the fourth tree's master requirements (f[21] of use type 3/4 at f[22]): the server's full
- * A0 10 list again with those Master nodes raised to the level (existing entries keep theirs). */
-static void demo_requirements(mu_skill_tree4 *t, const mu_t4_tclass *c)
-{
-    mu_master_tree *tree = t->book ? mu_skill_book_master(t->book) : NULL;
-    if (!tree || !c)
-        return;
-    static uint8_t packet[12 + 16 * MU_MASTER_NODES];
-    memset(packet, 0, sizeof packet);
-    packet[0] = 0xc2;
-    packet[3] = 0xa0;
-    packet[4] = 0x10;
-    int count = 0;
-    for (int i = 0; i < tree->nnodes && count < MU_MASTER_NODES; ++i) {
-        const mu_master_node *node = &tree->nodes[i];
-        int level = mu_master_level(tree, node->skill);
-        for (int g = 0; g < c->ngroups; ++g)
-            for (int k = 0; k < c->groups[g].nrec; ++k) {
-                const mu_t4_record *r = &c->groups[g].rec[k];
-                const mu_skill_record *sr = mu_skill_book_record(t->book, r->f[MU_T4_REQ_SKILL]);
-                if (r->f[MU_T4_REQ_SKILL] == node->skill && sr && (sr->use_type == 3 || sr->use_type == 4) &&
-                    r->f[MU_T4_REQ_LEVEL] > level)
-                    level = r->f[MU_T4_REQ_LEVEL];
-            }
-        if (level <= 0)
-            continue;
-        uint8_t *e = packet + 12 + 16 * count++;
-        float value = 25.0f, next = 30.0f;          /* DEMO values, as mu_skill_book_demo_master_login */
-        e[0] = node->slot;
-        e[1] = (uint8_t)level;
-        memcpy(e + 4, &value, 4);
-        memcpy(e + 8, &next, 4);
-        e[12] = 1;
-    }
-    size_t size = 12 + 16 * (size_t)count;
-    packet[1] = (uint8_t)(size >> 8);
-    packet[2] = (uint8_t)size;
-    memcpy(packet + 8, &count, 4);
-    mu_skill_book_receive(t->book, packet, size);
-}
-
-int mu_skill_tree4_demo_login(mu_skill_tree4 *t, int32_t points)
-{
-    if (!t)
-        return 0;
-    const mu_t4_tclass *c = mu_t4_table_class_of(&t->table, t->cls);
-    demo_requirements(t, c);
-    t->points = points;
-    t->ndemo = 0;
-    for (int g = 0; c && g < c->ngroups; ++g)
-        for (int i = 0; i < c->groups[g].nrec && t->ndemo < DEMO_NODES; ++i)
-            t->demo[t->ndemo++] = (demo_node){c->groups[g].key, c->groups[g].rec[i].f[MU_T4_INDEX], 0};
-    size_t size = 0xb + 12 * (size_t)t->ndemo;
-    uint8_t *p = calloc(1, size);
-    if (!p)
-        return 0;
-    p[0] = 0xc2;               /* C2 head (size big-endian), opcode +3, sub +4: points +5, count +7, entries +0xb */
-    p[1] = (uint8_t)(size >> 8);
-    p[2] = (uint8_t)size;
-    p[3] = 0x7e;
-    p[4] = 2;
-    p[5] = (uint8_t)points;
-    p[6] = (uint8_t)(points >> 8);
-    uint32_t n = (uint32_t)t->ndemo;
-    memcpy(p + 7, &n, 4);
-    for (int i = 0; i < t->ndemo; ++i) {
-        uint8_t *e = p + 0xb + 12 * i;
-        e[0] = (uint8_t)t->demo[i].group;
-        e[1] = (uint8_t)t->demo[i].index;
-        e[2] = (uint8_t)(t->demo[i].index >> 8);
-        e[3] = 0;
-        float zero = 0;
-        memcpy(e + 4, &zero, 4);
-        memcpy(e + 8, &zero, 4);
-    }
-    int r = mu_t4_receive(&t->window, &t->env, p, size);
-    free(p);
-    return r;
-}
-
-int mu_skill_tree4_demo_request(mu_skill_tree4 *t, const uint8_t *packet, size_t size)
-{
-    if (!t || size < 9 || packet[0] != 0xc1 || packet[2] != 0x7e || packet[3] != 1)
-        return 0;
-    int32_t group = packet[4], index = packet[7] | packet[8] << 8;
-    const mu_t4_record *r = mu_t4_table_get(&t->table, t->cls, group, index);
-    demo_node *d = demo_at(t, group, index);
-    uint8_t a[0x13] = {0xc1, 0x13, 0x7e, 1};
-    if (!r || !d || d->level >= r->f[MU_T4_MAX] || t->points < r->f[MU_T4_COST]) {
-        a[4] = 7;              /* the client's message 3: not enough points */
-        return mu_t4_receive(&t->window, &t->env, a, sizeof a);
-    }
-    d->level += 1;
-    t->points -= r->f[MU_T4_COST];
-    a[4] = 1;
-    a[5] = (uint8_t)t->points;
-    a[6] = (uint8_t)(t->points >> 8);
-    a[7] = (uint8_t)group;
-    a[8] = (uint8_t)d->level;
-    a[9] = (uint8_t)index;
-    a[10] = (uint8_t)(index >> 8);
-    float value = (float)d->level, next = (float)(d->level + 1);     /* DEMO stand-ins */
-    memcpy(a + 0xb, &value, 4);
-    memcpy(a + 0xf, &next, 4);
-    return mu_t4_receive(&t->window, &t->env, a, sizeof a);
-}
-
 int mu_skill_tree4_tooltip(mu_skill_tree4 *t, int side, int32_t index, char *title, size_t title_cap, char *body,
                            size_t body_cap, int32_t pos[2])
 {
@@ -445,42 +309,4 @@ void mu_skill_tree4_icons(mu_skill_tree4 *t, float x0, float y0, float scale, mu
 {
     if (t && t->book)
         mu_t4_icons(&t->window, mu_skill_book_env(t->book), x0, y0, scale, 1.0f, 1.0f, draw, user);
-}
-
-/* OFFLINE DEMO: the side options at login (7E 06, the eight entries at level 0) and a C1 07 7E 05 request. */
-int mu_skill_tree4_demo_side(mu_skill_tree4 *t)
-{
-    if (!t)
-        return 0;
-    uint8_t p[9 + 11 * 8] = {0xc1, (uint8_t)sizeof p, 0x7e, 6, 0, 8, 0, 0, 0};
-    for (int i = 0; i < 8; ++i) {
-        uint8_t *e = p + 9 + 11 * i;
-        e[0] = (uint8_t)(i >> 2);
-        e[1] = (uint8_t)(i % 4);
-    }
-    return mu_t4_receive(&t->window, &t->env, p, sizeof p);
-}
-
-int mu_skill_tree4_demo_side_request(mu_skill_tree4 *t, const uint8_t *packet, size_t size)
-{
-    if (!t || size < 7 || packet[0] != 0xc1 || packet[2] != 0x7e || packet[3] != 5)
-        return 0;
-    int i = packet[4] * 4 + packet[5];
-    int32_t cost = 1;                 /* DEMO: one point per side level (the server's cost table is unknown) */
-    uint8_t a[0x12] = {0xc1, 0x12, 0x7e, 5};
-    if (i < 0 || i >= MU_T4_SIDE || t->points < cost) {
-        a[4] = 7;
-        return mu_t4_receive(&t->window, &t->env, a, sizeof a);
-    }
-    t->points -= cost;
-    a[4] = 1;
-    a[5] = packet[4];
-    a[6] = (uint8_t)t->points;
-    a[7] = (uint8_t)(t->points >> 8);
-    a[8] = packet[6];
-    a[9] = packet[5];
-    float value = packet[6], next = (float)(packet[6] + 1);
-    memcpy(a + 0xa, &value, 4);
-    memcpy(a + 0xe, &next, 4);
-    return mu_t4_receive(&t->window, &t->env, a, sizeof a);
 }

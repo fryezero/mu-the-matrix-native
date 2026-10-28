@@ -21,7 +21,7 @@ COLUMNS = ('pre_tick', 'tick', 'frame', 'draw_gl', 'draw_soft', 'report')
 MAIN_C_ORDER = {
     # load() main.c:459-744 (the rows that open something)
     'open': ['sound', 'npc_demo', 'actors', 'objects', 'env', 'particles', 'combat', 'progress', 'items', 'names',
-             'npc', 'players', 'social', 'helpers', 'map', 'characters', 'haze'],
+             'npc', 'players', 'social', 'helpers', 'map', 'characters', 'haze', 'skills'],
     # combat_pre_step main.c:331-341
     'pre_tick': ['items', 'npc', 'combat'],
     # advance main.c:1660-1686, after mu_walk_update / mu_walk_place / mu_walk_begin_render (terrain_frame's object
@@ -29,14 +29,14 @@ MAIN_C_ORDER = {
     'frame': ['items', 'terrain', 'objects', 'combat', 'particles', 'actors', 'players', 'map', 'social', 'names'],
     # report_frame main.c:2707-2727 and report_summary main.c:2793-2915 (one order for both)
     'report': ['sound', 'env', 'particles', 'objects', 'actors', 'combat', 'progress', 'items', 'players', 'helpers',
-               'names', 'npc', 'social', 'map', 'quest_step'],
+               'names', 'npc', 'social', 'map', 'quest_step', 'skills'],
 }
 
 # The call each hook makes at its place in main.c (column -> row -> function called in the hook's body).
 SIGNATURE = {
     'pre_tick': {'items': 'mu_world_items_pre_step', 'npc': 'mu_npc_pre_step', 'combat': 'mu_combat_pre_step'},
     'tick': {'sound': 'mu_world_sound_hero_step', 'npc': 'mu_npc_step',
-             'quest_step': 'world_gfx_quest_step', 'combat': 'mu_combat_step', 'progress': 'mu_progress_step',
+             'quest_step': 'world_gfx_quest_step', 'skills': 'mu_session_step', 'combat': 'mu_combat_step', 'progress': 'mu_progress_step',
              'characters': 'mu_world_players_step_one', 'social': 'mu_social_step', 'helpers': 'mu_world_helpers_step',
              'items': 'mu_world_items_step', 'names': 'mu_world_names_step', 'objects': 'mu_objects_step',
              'env': 'mu_world_env_step', 'particles': 'mu_world_particles_step', 'map': 'mu_map_gate_step'},
@@ -119,7 +119,7 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 24)
+        self.assertEqual(len(ids), 25)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 

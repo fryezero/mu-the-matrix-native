@@ -1,3 +1,4 @@
+#include "../core/mu_lang.h"
 /* native/tools/mu_session.c: the session's CLI, for validators, tests and humans (SESSION-CORE-001,
  * FIXTURE-001).
  *
@@ -270,6 +271,7 @@ static mu_world_port stub_port(stub_world *w)
 /* ---- a headless run ------------------------------------------------------------------------------- */
 
 typedef struct run {
+    struct mu_lang *skill_lang;
     const char *scenario;
     mu_session *session;
     mu_transport *transport;
@@ -353,8 +355,23 @@ static void client_action(run *r, const mu_scenario_line *line)
             unsigned x=0,y=0,skill=0,type=0;sscanf(rest,"%*s %u %u %u %u",&x,&y,&skill,&type);
             in.u.combat_cast.x=(uint8_t)x;in.u.combat_cast.y=(uint8_t)y;in.u.combat_cast.skill=(uint8_t)skill;in.u.combat_cast.type=(uint8_t)type;
         }
+        if(in.kind==MU_INTENT_SKILL_CAST) {
+            unsigned skill=0,x=0,y=0,type=0;sscanf(rest,"%*s %u %u %u %u",&skill,&x,&y,&type);
+            in.u.skill_cast.skill=(int32_t)skill;in.u.skill_cast.x=(uint8_t)x;in.u.skill_cast.y=(uint8_t)y;in.u.skill_cast.type=(uint8_t)type;
+        } else if(in.kind==MU_INTENT_SKILL_TREE4_LEARN) {
+            unsigned group=0,skill=0,index=0;sscanf(rest,"%*s %u %u %u",&group,&skill,&index);
+            in.u.skill_tree4_learn.group=(uint8_t)group;in.u.skill_tree4_learn.skill=(uint16_t)skill;in.u.skill_tree4_learn.index=(uint16_t)index;
+        } else if(in.kind==MU_INTENT_SKILL_TREE4_SIDE) {
+            unsigned cat=0,slot=0,level=0;sscanf(rest,"%*s %u %u %u",&cat,&slot,&level);
+            in.u.skill_tree4_side.category=(uint8_t)cat;in.u.skill_tree4_side.slot=(uint8_t)slot;in.u.skill_tree4_side.level=(uint8_t)level;
+        }
         mu_submit s = mu_session_submit(r->session, &in);
         row_action(line->tick, line->text, mu_submit_status_name(s.status));
+    } else if (!strcmp(verb, "skill-data")) {
+        r->skill_lang=mu_lang_load(rest);
+        int rc=mu_session_skills_bind(r->session,r->skill_lang,rest,NULL);
+        row_action(line->tick,line->text,rc?"no skill data":"skill data bound");
+        if(rc)r->failed_actions++;
     } else if (!strcmp(verb, "quest-data")) {
         char dir[4096]; const char *slash=strrchr(r->scenario,'/');
         if(rest[0]=='/') snprintf(dir,sizeof dir,"%s",rest);
@@ -439,6 +456,18 @@ static int64_t value_of(run *r, const char *key, int *ok)
                 if(!strcmp(field,"count"))return f[1];
             }
         }
+        *ok=0;return 0;
+    }
+    if(!strncmp(key,"skills.",7)) {
+        mu_skill_book *b=mu_session_skills(r->session);
+        const mu_skill_hero *hero=mu_skill_book_hero(b);
+        if(!strcmp(key,"skills.count"))return hero?hero->count:0;
+        if(!strcmp(key,"skills.selected"))return mu_skill_book_selected(b);
+        if(!strcmp(key,"skills.last_cast"))return mu_session_skills_last_cast(r->session);
+        if(!strcmp(key,"skills.points4"))return mu_skill_tree4_window(mu_session_skills_tree4(r->session))->points;
+        if(!strncmp(key,"skills.key.",11)) {int i=atoi(key+11);return i>=0&&i<10?mu_skill_book_hotkeys(b)->slots[i]:-1;}
+        if(!strncmp(key,"skills.learned.",15))return mu_skill_learned_index(hero,atoi(key+15))>=0;
+        if(!strncmp(key,"skills.master.",14))return mu_master_level(mu_skill_book_master(b),atoi(key+14));
         *ok=0;return 0;
     }
     struct {
@@ -669,6 +698,7 @@ static int run_session(const char *scenario, const char *to, uint32_t seed, uint
     }
 
     mu_session_close(r.session);
+    mu_lang_free(r.skill_lang);
     mu_journal_summary js;
     mu_journal_summary_get(r.journal, &js);
     mu_journal_close(r.journal);

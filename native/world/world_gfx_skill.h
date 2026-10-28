@@ -16,13 +16,15 @@
 struct mu_gfx_layer;
 struct mu_lang;
 struct mu_skill_book;
+struct mu_session;
 typedef struct wg_skill wg_skill;
 
-wg_skill *wg_skill_open(const char *game_root, const struct mu_lang *lang, const char *lang_dir, int32_t class_byte);
+wg_skill *wg_skill_open(const char *game_root, const struct mu_lang *lang, const char *lang_dir, int32_t class_byte, struct mu_session *session);
 void wg_skill_close(wg_skill *s);
 /* Becomes the layer's skill host (mu_gfx_layer_set_skill_host). */
 void wg_skill_attach(wg_skill *s, struct mu_gfx_layer *layer);
 struct mu_skill_book *wg_skill_book(wg_skill *s);
+struct mu_session *wg_skill_session(wg_skill *s);
 void wg_skill_set_world(wg_skill *s, int32_t world);
 void wg_skill_set_buffs(wg_skill *s, const int32_t *ids, int count);
 /* The common RenderBitmap path for tree icons and the Imprint overlays; GL context must be current. */

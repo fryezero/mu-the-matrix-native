@@ -29,8 +29,9 @@ typedef struct world_gfx world_gfx;
 /* width/height in drawable pixels, scale = pixels per window point (Retina
  * 2: the movies lay out in points and draw at full resolution).  `open`
  * lists windows to show at start ("inventory,character"). */
+struct mu_session;
 world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int width, int height, double scale,
-                          int shared, const char *open, char *error, size_t error_size);
+                          int shared, const char *open, struct mu_session *session, char *error, size_t error_size);
 void world_gfx_close(world_gfx *g);
 /* NATIVE-PERF-001: the window changed size (drawable pixels): every movie's stage and the client's window
  * placement (SetWindowSize, SetScale(83) below 700 points of height) follow. */

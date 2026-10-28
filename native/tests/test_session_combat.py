@@ -20,7 +20,7 @@ class Combat(unittest.TestCase):
         subprocess.run(['make','-C',str(NATIVE),'build/mu-session'],check=True,capture_output=True)
         subprocess.run(['cc','-std=c11','-DMU_SESSION_SEED','-I',str(NATIVE/'session'),'-I',str(NATIVE/'build/gen'),
                         str(NATIVE/'tests/combat_host.c'),str(NATIVE/'build/libmusession.a'),
-                        str(NATIVE/'build/libmunative.a'),'-lm','-o',str(cls.host)],check=True,capture_output=True)
+                        str(NATIVE/'build/libmunative.a'),*(['-framework','CoreText','-framework','CoreGraphics','-framework','CoreFoundation'] if sys.platform=='darwin' else []),'-lm','-o',str(cls.host)],check=True,capture_output=True)
 
     @classmethod
     def tearDownClass(cls): cls.tmp.cleanup()

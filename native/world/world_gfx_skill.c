@@ -16,12 +16,15 @@
 #include "../core/mu_image.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_skill.h"
+#include "../session/mu_session.h"
 #include "../gfx/mu_gfx_layer.h"
 
 #define SHEETS 12
 
 struct wg_skill {
     mu_skill_book *book;
+    mu_session *session;
+    mu_cue_cursor cursor;
     mu_gfx_layer *layer;
     mu_skill_stamp stamp;
     char root[4096];
@@ -84,23 +87,20 @@ void wg_skill_set_buffs(wg_skill *s, const int32_t *ids, int count)
     wg_skill_set_world(s, s->world);
 }
 
-wg_skill *wg_skill_open(const char *game_root, const mu_lang *lang, const char *lang_dir, int32_t class_byte)
+wg_skill *wg_skill_open(const char *game_root, const mu_lang *lang, const char *lang_dir, int32_t class_byte, mu_session *session)
 {
     wg_skill *s = calloc(1, sizeof *s);
     if (!s)
         return NULL;
-    s->book = mu_skill_book_open(lang, lang_dir, game_root);
+    (void)lang; (void)lang_dir; (void)class_byte;
+    s->session = session;
+    s->book = mu_session_skills(session);
     if (!s->book) {
         free(s);
         return NULL;
     }
     snprintf(s->root, sizeof s->root, "%s", game_root ? game_root : "");
     wg_skill_set_world(s, 0);
-    /* OFFLINE DEMO: the server's login packets (skill list, saved bar) from core/mu_skill_demo.c; MU_SKILL_DEMO
-     * names a demo file ("list CLASS SKILL..." / "keys CLASS K1..K9 K0") */
-    if (getenv("MU_SKILL_DEMO"))
-        mu_skill_demo_load(getenv("MU_SKILL_DEMO"));
-    mu_skill_book_demo_login(s->book, class_byte);
     mu_skill_book_stamp_open(s->book, &s->stamp);
     return s;
 }
@@ -112,9 +112,11 @@ void wg_skill_close(wg_skill *s)
     for (int i = 0; i < SHEETS; i++)
         if (s->sheets[i].ok)
             glDeleteTextures(1, &s->sheets[i].tex);
-    mu_skill_book_close(s->book);
+
     free(s);
 }
+
+mu_session *wg_skill_session(wg_skill *s) { return s ? s->session : NULL; }
 
 mu_skill_book *wg_skill_book(wg_skill *s) { return s ? s->book : NULL; }
 
@@ -128,7 +130,7 @@ static void sync_stats(wg_skill *s)
     mu_skill_stats st = {.class_byte = hero->class_index, .strength = (uint16_t)h->strength,
                          .agility = (uint16_t)h->agility, .vitality = (uint16_t)h->vitality,
                          .energy = (uint16_t)h->energy, .command = (uint16_t)h->command, .mana = h->mp, .ag = h->ag};
-    mu_skill_book_set_stats(s->book, &st);
+    mu_session_skills_context(s->session, &st);
 }
 
 /* ---- host callbacks ---------------------------------------------------------------------------------- */
@@ -144,7 +146,8 @@ static void host_select(void *user, int slot, int skill)
 {
     wg_skill *s = user;
     (void)skill;
-    mu_skill_book_select_slot(s->book, slot);
+    mu_intent in = {.kind=MU_INTENT_SKILL_SELECT}; in.u.skill_select.slot=slot;
+    mu_session_submit(s->session,&in);
 }
 
 static int host_tooltip(void *user, int32_t skill, char *title, size_t title_cap, char *body, size_t body_cap)
@@ -199,7 +202,8 @@ static void host_stamp_save(void *user)
     wg_skill *s = user;
     /* 0x00c20db4: the stamp manager's Save, the CurrentSkill rule, the bar (the client also sends the slots to the
      * server; the demo keeps them) */
-    mu_skill_book_stamp_save(s->book);
+    mu_intent in = {.kind=MU_INTENT_SKILL_SAVE_KEYS};
+    mu_session_submit(s->session,&in);
 }
 
 static int host_stamp_tab(void *user, int tab)
@@ -371,23 +375,9 @@ int wg_skill_cast(wg_skill *s, int32_t *skill)
     int32_t k = mu_skill_book_selected(s->book);
     if (skill)
         *skill = k;
-    int32_t events[2][2];
-    int n = 0, potion = 0;
-    int r = mu_skill_book_cast(s->book, k, events, &n, &potion);
-    if (r != MU_SKILL_CAST_OK) {
-        s->refused++;
-        return r;
-    }
-    s->casts++;
-    for (int i = 0; i < n; i++)
-        mu_gfx_layer_skill_delay(s->layer, events[i][0], events[i][1]);
-    if (s->layer) {                                         /* DEMO: the mana and AG the cast spent */
-        mu_gfx_hero h = *mu_gfx_layer_hero(s->layer);
-        const mu_skill_hero *hero = mu_skill_book_hero(s->book);
-        h.mp = hero->mana < 0 ? 0 : hero->mana;
-        h.ag = hero->ag < 0 ? 0 : hero->ag;
-        mu_gfx_layer_set_hero(s->layer, &h);
-    }
+    int potion=0;
+    int r=mu_skill_book_check_cast(s->book,k,&potion);
+    if(r==MU_SKILL_CAST_OK)++s->casts;else ++s->refused;
     return r;
 }
 
@@ -398,7 +388,7 @@ int wg_skill_server(wg_skill *s, const char *verb, int32_t skill)
     int forget = !strcmp(verb, "forget");
     if (!forget && strcmp(verb, "learn"))
         return 0;
-    return mu_skill_book_demo_learn(s->book, skill, forget);    /* DEMO: the server's 0xFE / 0xFF packet */
+    (void)skill; return 0; /* Use fixture learn/forget scenario commands. */
 }
 
 void wg_skill_set_screen(wg_skill *s, int32_t width)
@@ -409,8 +399,16 @@ void wg_skill_set_screen(wg_skill *s, int32_t width)
 
 void wg_skill_tick(wg_skill *s, double dt_ms)
 {
-    if (s)
-        mu_skill_book_tick(s->book, (int32_t)dt_ms);
+    (void)dt_ms;
+    if (!s) return;
+    mu_cue cues[32]; uint32_t lost; size_t n;
+    do {
+        n=mu_session_cues(s->session,&s->cursor,cues,32,&lost);
+        for(size_t i=0;i<n;++i)
+            if(cues[i].kind==MU_CUE_WINDOW && !strcmp(cues[i].u.window.movie,"skills") &&
+               !strcmp(cues[i].u.window.method,"delay"))
+                mu_gfx_layer_skill_delay(s->layer,cues[i].u.window.args[0],cues[i].u.window.args[1]);
+    } while(n);
 }
 
 void wg_skill_counts(const wg_skill *s, long *casts, long *refused, long *icons_drawn, long *tooltips)

@@ -5,6 +5,7 @@
 #include "../world_rt_internal.h"
 #include "../../session/mu_session.h"
 #include "../../core/mu_session_audio.h"
+#include "../../core/mu_lang.h"
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/characters_demo.h"
@@ -75,6 +76,7 @@ static int characters_open(mu_world_rt *a, void *self)
     if(!file) {close(fd);unlink(path);return 1;}
     fprintf(file,"endpoint game 127.0.0.1:55902\nuse characters x=%d y=%d file=%s\n",
             a->walk.hero.tile[0],a->walk.hero.tile[1],a->players_file);
+    fprintf(file,"use skills\nat 1 skills root %s\nat 1 skills login %d 30\n",a->root,a->walk.hero.class_byte);
     fclose(file);
     mu_fixture_options options={path,NULL,0x9a7e2026u};
     char error[1024]={0};
@@ -86,10 +88,12 @@ static int characters_open(mu_world_rt *a, void *self)
     mu_fixture_endpoint(p->fixture,"game",&cfg.connect_server);
     cfg.transport=p->transport;cfg.build=&MU_PINNED_BUILD;cfg.proof=mu_proof_not_required();
     mu_session_seed seed={0};
+    seed.class_byte=a->walk.hero.class_byte;
     seed.place.world=a->map->world;
     seed.place.tile[0]=a->walk.hero.tile[0];seed.place.tile[1]=a->walk.hero.tile[1];
     p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);
     if(!p->session) {fprintf(stderr,"characters: %s\n",error);return 1;}
+    mu_session_skills_bind(p->session,mu_lang_shared(),getenv("MU_LANG_DIR"),a->root);
 attach:
     p->audio_rng = 0x41554432u;
     p->services.map = a->map; p->services.walk = &a->walk;
