@@ -4601,5 +4601,531 @@
         "group_sha256": "325df370bea0e47eb86f686f3059b0d8b8a4dfef2301e6b7a64a2848e5592e08"
       }
     }
+  },
+  "rejected_per_flush_streaming": {
+    "on/tormenta80": {
+      "machine": "macOS-27.0.1-arm64-arm-64bit",
+      "mode": "window-capped",
+      "load_start": [
+        7.5302734375,
+        4.88427734375,
+        4.49755859375
+      ],
+      "binary_sha256": "e4cfd29f90d7278ff9d1009d5744096ea2183be4ed535c7f3a3fb1902c185584",
+      "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+      "perf_003_baseline": false,
+      "perf_004_baseline": false,
+      "pose_tasks_requested": 4,
+      "perf_004_vbo_baseline": false,
+      "gpu_timing": true,
+      "gfx_double_buffer": true,
+      "region_reference": false,
+      "scenarios": {
+        "tormenta80": {
+          "frames": 1320,
+          "fps": 24.49871954287171,
+          "frame_ms": {
+            "p50": 40.013,
+            "p90": 40.019,
+            "p95": 40.0391,
+            "p99": 79.81248999999998,
+            "mean": 40.81845984848485
+          },
+          "work_ms": {
+            "p50": 35.752,
+            "p90": 38.487700000000004,
+            "p95": 39.41570000000001,
+            "p99": 79.80967999999999,
+            "mean": 36.834017424242425
+          },
+          "phases": {
+            "events": {
+              "mean": 0.03814318181818181,
+              "p95": 0.056,
+              "samples": 1320
+            },
+            "logic": {
+              "mean": 4.797037121212121,
+              "p95": 5.382199999999999,
+              "samples": 1320
+            },
+            "terrain": {
+              "mean": 2.5229348484848484,
+              "p95": 2.8404999999999987,
+              "samples": 1320
+            },
+            "objects": {
+              "mean": 3.040715909090909,
+              "p95": 3.2321,
+              "samples": 1320
+            },
+            "characters": {
+              "mean": 14.38630984848485,
+              "p95": 15.634599999999997,
+              "samples": 1320
+            },
+            "env": {
+              "mean": 0.047646212121212124,
+              "p95": 0.053,
+              "samples": 1320
+            },
+            "particles": {
+              "mean": 1.1060787878787879,
+              "p95": 1.3661,
+              "samples": 1320
+            },
+            "effects": {
+              "mean": 0.14267196969696969,
+              "p95": 0.24704999999999996,
+              "samples": 1320
+            },
+            "gfx": {
+              "mean": 7.47381893939394,
+              "p95": 10.072299999999998,
+              "samples": 1320
+            },
+            "swap": {
+              "mean": 0.8569340909090909,
+              "p95": 1.1030499999999999,
+              "samples": 1320
+            },
+            "sleep": {
+              "mean": 3.9844424242424243,
+              "p95": 6.216799999999998,
+              "samples": 1320
+            },
+            "cpu": {
+              "mean": 33.4490553030303,
+              "p95": 36.3292,
+              "samples": 1320
+            },
+            "gpu_world": {
+              "mean": 21.93445655487805,
+              "p95": 23.32175,
+              "samples": 1312
+            },
+            "gpu_gfx": {
+              "mean": 0.5239504573170731,
+              "p95": 0.7764500000000001,
+              "samples": 1312
+            },
+            "process_cpu": {
+              "mean": 39.667987878787876,
+              "p95": 42.879349999999995,
+              "samples": 1320
+            }
+          },
+          "metal": {
+            "mean": 3.568478219434231,
+            "p95": 3.863131241814699,
+            "samples": 1320,
+            "missing_frames": 0,
+            "supported": true
+          },
+          "failures": [
+            "capped fps outside 24.8..25.2",
+            "work p95 > 38 ms or p99 > 40 ms",
+            "frame pacing p95 > 41 ms or p99 > 42 ms"
+          ],
+          "regression_failures": [],
+          "streaming": {
+            "vbo_uploads": 7431252,
+            "vbo_failures": 0
+          }
+        }
+      }
+    },
+    "on/crowd80": {
+      "machine": "macOS-27.0.1-arm64-arm-64bit",
+      "mode": "window-capped",
+      "load_start": [
+        4.22021484375,
+        3.56298828125,
+        4.0224609375
+      ],
+      "binary_sha256": "e4cfd29f90d7278ff9d1009d5744096ea2183be4ed535c7f3a3fb1902c185584",
+      "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+      "perf_003_baseline": false,
+      "perf_004_baseline": false,
+      "pose_tasks_requested": 4,
+      "perf_004_vbo_baseline": false,
+      "gpu_timing": true,
+      "gfx_double_buffer": true,
+      "region_reference": false,
+      "scenarios": {
+        "crowd80": {
+          "frames": 1239,
+          "fps": 22.963276882963683,
+          "frame_ms": {
+            "p50": 40.014,
+            "p90": 50.01540000000008,
+            "p95": 71.68029999999999,
+            "p99": 90.33967999999989,
+            "mean": 43.54779176755448
+          },
+          "work_ms": {
+            "p50": 35.976,
+            "p90": 50.013400000000075,
+            "p95": 71.67729999999999,
+            "p99": 90.33667999999989,
+            "mean": 39.35562953995157
+          },
+          "phases": {
+            "events": {
+              "mean": 0.05642372881355932,
+              "p95": 0.082,
+              "samples": 1239
+            },
+            "logic": {
+              "mean": 5.101592413236481,
+              "p95": 9.1797,
+              "samples": 1239
+            },
+            "terrain": {
+              "mean": 2.2911089588377727,
+              "p95": 5.013999999999993,
+              "samples": 1239
+            },
+            "objects": {
+              "mean": 1.6102017756255045,
+              "p95": 1.9790999999999972,
+              "samples": 1239
+            },
+            "characters": {
+              "mean": 16.235033898305083,
+              "p95": 27.8174,
+              "samples": 1239
+            },
+            "env": {
+              "mean": 0.086136400322841,
+              "p95": 0.09709999999999991,
+              "samples": 1239
+            },
+            "particles": {
+              "mean": 0.18615334947538337,
+              "p95": 0.8192999999999997,
+              "samples": 1239
+            },
+            "effects": {
+              "mean": 0.5979677158999193,
+              "p95": 1.0194999999999994,
+              "samples": 1239
+            },
+            "gfx": {
+              "mean": 9.919877320419692,
+              "p95": 21.636499999999984,
+              "samples": 1239
+            },
+            "swap": {
+              "mean": 0.9533276836158192,
+              "p95": 1.1191,
+              "samples": 1239
+            },
+            "sleep": {
+              "mean": 4.192162227602905,
+              "p95": 9.0517,
+              "samples": 1239
+            },
+            "cpu": {
+              "mean": 34.97571025020177,
+              "p95": 54.066599999999994,
+              "samples": 1239
+            },
+            "gpu_world": {
+              "mean": 22.487346060113726,
+              "p95": 35.923,
+              "samples": 1231
+            },
+            "gpu_gfx": {
+              "mean": 0.4573874898456539,
+              "p95": 0.685,
+              "samples": 1231
+            },
+            "process_cpu": {
+              "mean": 41.85875302663438,
+              "p95": 61.41469999999999,
+              "samples": 1239
+            }
+          },
+          "metal": {
+            "mean": 3.974348533402676,
+            "p95": 6.415595856378786,
+            "samples": 1239,
+            "missing_frames": 0,
+            "supported": true
+          },
+          "failures": [
+            "capped fps outside 24.8..25.2",
+            "work p95 > 38 ms or p99 > 40 ms",
+            "frame pacing p95 > 41 ms or p99 > 42 ms"
+          ],
+          "regression_failures": [],
+          "streaming": {
+            "vbo_uploads": 5954377,
+            "vbo_failures": 0
+          }
+        }
+      }
+    },
+    "off/tormenta80": {
+      "machine": "macOS-27.0.1-arm64-arm-64bit",
+      "mode": "window-capped",
+      "load_start": [
+        5.47509765625,
+        4.826171875,
+        4.50390625
+      ],
+      "binary_sha256": "e4cfd29f90d7278ff9d1009d5744096ea2183be4ed535c7f3a3fb1902c185584",
+      "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+      "perf_003_baseline": false,
+      "perf_004_baseline": false,
+      "pose_tasks_requested": 4,
+      "perf_004_vbo_baseline": true,
+      "gpu_timing": true,
+      "gfx_double_buffer": true,
+      "region_reference": false,
+      "scenarios": {
+        "tormenta80": {
+          "frames": 1359,
+          "fps": 24.97486892328727,
+          "frame_ms": {
+            "p50": 40.013,
+            "p90": 40.017,
+            "p95": 40.0251,
+            "p99": 40.431,
+            "mean": 40.0402501839588
+          },
+          "work_ms": {
+            "p50": 32.806999999999995,
+            "p90": 36.2904,
+            "p95": 37.401500000000006,
+            "p99": 39.65092000000002,
+            "mean": 33.42562619573216
+          },
+          "phases": {
+            "events": {
+              "mean": 0.03869315673289184,
+              "p95": 0.0440999999999999,
+              "samples": 1359
+            },
+            "logic": {
+              "mean": 4.091556291390728,
+              "p95": 5.106199999999999,
+              "samples": 1359
+            },
+            "terrain": {
+              "mean": 1.7893951434878588,
+              "p95": 2.0162,
+              "samples": 1359
+            },
+            "objects": {
+              "mean": 2.832616629874908,
+              "p95": 3.085,
+              "samples": 1359
+            },
+            "characters": {
+              "mean": 13.004673289183222,
+              "p95": 14.3302,
+              "samples": 1359
+            },
+            "env": {
+              "mean": 0.04448123620309051,
+              "p95": 0.05,
+              "samples": 1359
+            },
+            "particles": {
+              "mean": 0.8621339220014718,
+              "p95": 1.084,
+              "samples": 1359
+            },
+            "effects": {
+              "mean": 0.12856585724797645,
+              "p95": 0.2230999999999999,
+              "samples": 1359
+            },
+            "gfx": {
+              "mean": 7.193359087564385,
+              "p95": 9.6928,
+              "samples": 1359
+            },
+            "swap": {
+              "mean": 0.9012597498160412,
+              "p95": 1.247,
+              "samples": 1359
+            },
+            "sleep": {
+              "mean": 6.614623988226636,
+              "p95": 8.875399999999999,
+              "samples": 1359
+            },
+            "cpu": {
+              "mean": 30.3173016924209,
+              "p95": 34.310199999999995,
+              "samples": 1359
+            },
+            "gpu_world": {
+              "mean": 20.028821613619538,
+              "p95": 21.5585,
+              "samples": 1351
+            },
+            "gpu_gfx": {
+              "mean": 0.5792694300518134,
+              "p95": 0.889,
+              "samples": 1351
+            },
+            "process_cpu": {
+              "mean": 36.78061221486387,
+              "p95": 40.8699,
+              "samples": 1359
+            }
+          },
+          "metal": {
+            "mean": 3.537179052552539,
+            "p95": 3.8631333445664495,
+            "samples": 1359,
+            "missing_frames": 0,
+            "supported": true
+          },
+          "failures": [],
+          "regression_failures": [],
+          "streaming": {
+            "vbo_uploads": 0,
+            "vbo_failures": 0
+          }
+        }
+      }
+    },
+    "off/crowd80": {
+      "machine": "macOS-27.0.1-arm64-arm-64bit",
+      "mode": "window-capped",
+      "load_start": [
+        3.16845703125,
+        3.25830078125,
+        3.96142578125
+      ],
+      "binary_sha256": "e4cfd29f90d7278ff9d1009d5744096ea2183be4ed535c7f3a3fb1902c185584",
+      "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+      "perf_003_baseline": false,
+      "perf_004_baseline": false,
+      "pose_tasks_requested": 4,
+      "perf_004_vbo_baseline": true,
+      "gpu_timing": true,
+      "gfx_double_buffer": true,
+      "region_reference": false,
+      "scenarios": {
+        "crowd80": {
+          "frames": 1321,
+          "fps": 24.436865747947806,
+          "frame_ms": {
+            "p50": 40.013,
+            "p90": 40.019,
+            "p95": 40.403,
+            "p99": 67.88559999999997,
+            "mean": 40.92177819833459
+          },
+          "work_ms": {
+            "p50": 31.918000000000003,
+            "p90": 35.051,
+            "p95": 37.17700000000001,
+            "p99": 67.88259999999997,
+            "mean": 32.97724829674489
+          },
+          "phases": {
+            "events": {
+              "mean": 0.05417032551097653,
+              "p95": 0.051,
+              "samples": 1321
+            },
+            "logic": {
+              "mean": 4.577380015140045,
+              "p95": 5.331,
+              "samples": 1321
+            },
+            "terrain": {
+              "mean": 1.4780772142316427,
+              "p95": 1.52,
+              "samples": 1321
+            },
+            "objects": {
+              "mean": 1.427451930355791,
+              "p95": 1.497,
+              "samples": 1321
+            },
+            "characters": {
+              "mean": 14.004189250567752,
+              "p95": 15.226,
+              "samples": 1321
+            },
+            "env": {
+              "mean": 0.07665102195306586,
+              "p95": 0.087,
+              "samples": 1321
+            },
+            "particles": {
+              "mean": 0.1272096896290689,
+              "p95": 0.136,
+              "samples": 1321
+            },
+            "effects": {
+              "mean": 0.36464723694171086,
+              "p95": 0.741,
+              "samples": 1321
+            },
+            "gfx": {
+              "mean": 8.301847085541256,
+              "p95": 11.736,
+              "samples": 1321
+            },
+            "swap": {
+              "mean": 0.8713709311127933,
+              "p95": 0.971,
+              "samples": 1321
+            },
+            "sleep": {
+              "mean": 7.944529901589705,
+              "p95": 11.538,
+              "samples": 1321
+            },
+            "cpu": {
+              "mean": 30.417644208932625,
+              "p95": 34.49,
+              "samples": 1321
+            },
+            "gpu_world": {
+              "mean": 19.533237623762375,
+              "p95": 20.855600000000003,
+              "samples": 1313
+            },
+            "gpu_gfx": {
+              "mean": 0.43686976389946686,
+              "p95": 0.664,
+              "samples": 1313
+            },
+            "process_cpu": {
+              "mean": 36.73766767600303,
+              "p95": 40.994,
+              "samples": 1321
+            }
+          },
+          "metal": {
+            "mean": 3.626628942790467,
+            "p95": 3.857875009998679,
+            "samples": 1321,
+            "missing_frames": 0,
+            "supported": true
+          },
+          "failures": [
+            "capped fps outside 24.8..25.2",
+            "work p95 > 38 ms or p99 > 40 ms",
+            "frame pacing p95 > 41 ms or p99 > 42 ms"
+          ],
+          "regression_failures": [],
+          "streaming": {
+            "vbo_uploads": 0,
+            "vbo_failures": 0
+          }
+        }
+      }
+    }
   }
 }

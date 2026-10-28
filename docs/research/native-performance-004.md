@@ -199,3 +199,20 @@ The synthetic GL stream remains pixel-identical, forced upload failure preserves
 pixels, and a pre-existing external buffer remains bound/alive. Wrong UV offsets
 and omitted binding restoration are both caught. The vertex-buffer candidate's
 throughput has not yet been claimed; final integrated verification remains.
+
+
+The per-flush streaming version was rejected despite exact images. The same-
+binary off/on crowd80 pair measured 24.44/22.96 fps and 30.42/34.98 ms main CPU;
+its optimized run made 5,954,377 uploads. The counterbalanced on/off Tormenta pair
+measured 24.50/24.98 fps and 33.45/30.32 ms CPU, with 7,431,252 optimized uploads.
+Only the Tormenta reference passed strict acceptance. All results are retained.
+
+The new candidate captures only calls inside the existing batch-session contract.
+It copies each pending packed vertex block before that source storage can change,
+records state/draw commands in their original order, and uploads larger immutable
+chunks. Explicit flush and session end remain real submission barriers. Each
+chunk starts with fresh array pointers. Allocation/upload failure drains existing
+commands and falls back to the unchanged client-array delivery. No state or draw
+sorting is introduced. Initial synthetic GL checks pass across chunk boundaries,
+including upload failure, external buffer restoration and both prior mutants;
+full-scene checks and throughput are still pending for this candidate.

@@ -73,7 +73,7 @@ class VertexUploads(unittest.TestCase):
             variants = (source,
                         source.replace('uploaded = glGetError() == GL_NO_ERROR;', 'uploaded = 0;'),
                         source.replace('(3 * sizeof(float))', '(4 * sizeof(float))'),
-                        source.replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);', ''))
+                        source.replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);', '').replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)previous_array_buffer);', ''))
             for i, variant in enumerate(variants):
                 src, host = Path(tmp) / 'batch.c', Path(tmp) / 'host'
                 src.write_text(variant)

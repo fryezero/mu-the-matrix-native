@@ -97,3 +97,15 @@ pass, including forced upload failure and 2/2 mutants; 604/604 full frames match
 with successful uploads and zero fallback in optimized mode. Next measure the
 streaming candidate independently, then complete the queued final sequence.
 No Ruffle bridge/movie or nameplate behavior was changed.
+
+
+## Ordered capture WIP checkpoint
+
+Per-flush uploads regress both measured scenes and are rejected. Current source
+captures ordered state/draw packets and copies packed vertices into larger
+immutable chunks inside existing batch sessions. Public flush/session-end remain
+barriers; fallback retains existing commands and the still-intact pending block.
+Three initial GL tests pass across chunk boundaries and injected upload failure;
+full-scene preflight and timing are next. This is WIP, not a 25 Hz claim.
+The lane re-appended itself at the queue tail when this implementation cycle
+began. Follow the current file ordering; no merge lock is held by this lane.

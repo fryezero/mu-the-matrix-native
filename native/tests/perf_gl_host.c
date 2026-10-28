@@ -357,6 +357,12 @@ static void batch_stream(sink *s, const GLuint tex[3])
                 s_end(s);
             }
         }
+    /* Offscreen primitives cross the capture chunk boundary without extra fill. */
+    for (int i = 0; i < 24000; ++i) {
+        s_begin(s, GL_TRIANGLES);
+        s_v(s, 10, 10, 0); s_v(s, 11, 10, 0); s_v(s, 10, 11, 0);
+        s_end(s);
+    }
     s_enable(s, GL_BLEND, 0);
     s_mask(s, 1);
     s_enable(s, GL_ALPHA_TEST, 1);
