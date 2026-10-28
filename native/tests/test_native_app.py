@@ -137,13 +137,12 @@ class PreviewApp(unittest.TestCase):
                     'Resources/session/demo-servers.txt', 'Resources/session/demo-characters.txt',
                     'Resources/world/lorencia-demo-placement.txt', 'Resources/world/lorencia-demo-npc.txt',
                     'Resources/world/lorencia-demo-players.txt',
-                    'Resources/converter/native/gfx/gfxconvert.py', 'Resources/converter/native/gfx/gfxswf.py',
-                    'Resources/converter/model-recovery/libmodulus.dylib'):
+                    'MacOS/gfxconvert'):
             self.assertTrue((c / rel).is_file(), rel)
         self.assertTrue(os.access(c / 'MacOS/mu-client', os.X_OK))
         # nothing but authored files and built code: no game data, no converted movies, no caches
         names = {p.name for p in self.app.rglob('*')}
-        self.assertFalse({n for n in names if n.endswith(('.swf', '.ozg', '.bmd', '.plain', '.tsv', '.pyc'))})
+        self.assertFalse({n for n in names if n.endswith(('.swf', '.ozg', '.bmd', '.plain', '.tsv', '.pyc', '.py'))})
         self.assertNotIn('__pycache__', names)
 
     def test_signature_is_adhoc_strict_and_without_hardened_runtime(self):
@@ -226,6 +225,40 @@ int main(void) {
         self.assertIn('lang: copied', self.launch(env, '--setup', '--force').stdout)
         self.assertEqual(snapshot(self.root), self.root_before)
         self.assertTrue((base / 'logs/launcher.log').is_file())
+
+    def test_first_run_converter_without_python_or_pillow(self):
+        from test_native_gfx import build_root
+        import gfxconvert as oracle
+        root = write_root(self.dir / 'conversion-root')
+        gfx = build_root(root)
+        for stem in ('base', 'main'):
+            (gfx / f'{stem}.ozg').write_bytes((gfx / 'Test.ozg').read_bytes())
+        env, base = self.env('conversion', MU_NATIVE_GAME_ROOT=str(root),
+                             MU_NATIVE_SCRATCH=str(self.dir / 'absent-scratch'), PATH='/nonexistent')
+        home = base / 'home'
+        home.mkdir(parents=True)
+        env.update(HOME=str(home), CFFIXED_USER_HOME=str(home))
+        # Old settings may carry a python key. It must be ignored, not executed.
+        support = base / 'support'
+        support.mkdir()
+        (support / 'settings.json').write_text(json.dumps({'python': '/must-not-run/python3'}))
+        self.launch(env, '--setup')
+        nd = support / 'Native Data'
+        record = json.loads((nd / 'setup.json').read_text())
+        self.assertEqual((record['gfx']['status'], record['gfx']['files']), ('converted', 3))
+        fonts = oracle.FontResolver(gfx, 'English', oracle.LATIN_SUBSET)
+        for stem in ('Test', 'base', 'main'):
+            expected, _ = oracle.convert_movie(gfx / f'{stem}.ozg', fonts, True, bridge=True,
+                                               init_vars={'_root.isClient': True})
+            self.assertEqual((nd / 'gfx' / f'{stem}.swf').read_bytes(), expected)
+        # Repeat and forced replacement both work, also with no Python on PATH.
+        self.assertIn('gfx: kept', self.launch(env, '--setup').stdout)
+        self.assertIn('gfx: converted', self.launch(env, '--setup', '--force').stdout)
+        before = {p.name: p.read_bytes() for p in (nd / 'gfx').glob('*.swf')}
+        (gfx / 'Broken.ozg').write_bytes(b'FWS')
+        self.launch(env, '--setup', '--force')
+        self.assertNotEqual(json.loads((nd / 'setup.json').read_text())['gfx']['status'], 'converted')
+        self.assertEqual({p.name: p.read_bytes() for p in (nd / 'gfx').glob('*.swf')}, before)
 
     def plan(self, env, *args):
         return json.loads(self.launch(env, '--print-plan', *args).stdout)

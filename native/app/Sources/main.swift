@@ -73,8 +73,7 @@ func checkBundle() -> Int32 {
     let required = [Paths.client, Paths.nonet, Paths.session, Paths.resources + "/session/demo-servers.txt",
                     Paths.resources + "/session/demo-characters.txt", Paths.placement, Paths.npcDemo, Paths.players,
                     Paths.converter,
-                    Paths.resources + "/converter/native/gfx/gfxswf.py",
-                    Paths.resources + "/converter/model-recovery/libmodulus.dylib", Paths.resources + "/AppIcon.icns"]
+                    Paths.resources + "/AppIcon.icns"]
     let missing = required.filter { !Paths.exists($0) }
     for m in missing { print("missing: \(m)") }
     print("mu-client: \(Paths.exists(Paths.client) ? "bundled" : "MISSING")")
