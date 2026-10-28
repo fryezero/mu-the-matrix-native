@@ -76,10 +76,12 @@ and pinned captures; optional export consumers run separately against existing e
 the snapshot scratch root. No app folder, manifest guard or original game file is changed.
 
 The optional installed Lorencia-fire test exposed a separate stale expectation: it required exactly 17 loaded
-particle bitmaps. The current `mu_particles.c` bank has 49 effect entries plus the two world rain textures, 51 total,
-including later helper, terrain, Icarus and world-warp additions. The run loaded all 51. The test now requires exactly
-51 successful loads and retains its creation, unsupported-count and drawn-particle assertions. This updates a
-coverage count to the expanded bank; it does not accept a missing bitmap or change production rendering.
+particle bitmaps. The current bank has 49 effect entries plus the two rain textures, 51 slots total. RENDER-WORLDS-E
+loads Map_Smoke1 at slot 48 only in Elbeland, world 51. The exact Lorencia expectation is therefore 48 successful
+loads, one intentionally unloaded slot, then both rain textures loaded. A missing applicable bitmap still fails.
+The existing Elbeland synthetic host test supplies Map_Smoke1 and requires its particle to draw in world 51.
+The original creation, unsupported-count and drawn-particle assertions remain unchanged. No production rendering
+or asset-loading rule changes in this lane.
 
 ## Clean build ordering
 
@@ -89,3 +91,12 @@ dependency. This lane covers the transitive core consumers as well. Core facades
 and layout generation stamps and session headers, as world/session objects already do. The fresh-target
 regression checks generator ordering for combat, NPC and player consumers. This changes build dependencies
 only. It does not change handlers, routing, fixture policy or instruction-comparison expectations.
+
+## Installed audio and personal settings
+
+The optional installed-table audio branch expected an audible two-second render while implicitly loading
+personal Option.ini audio settings. On this installation it rendered 88,200 frames with peak 0.0. The same
+script, table and assets with the existing `--no-options` flag rendered the same frame count with peak
+0.427441. The test now explicitly uses default test gains. Its frame count, nonzero peak threshold, installed
+WAV scan, music decode and table-count assertions remain unchanged. Portable tests still exercise Option.ini
+gains and mutes. No installed setting, table, sound file or production audio behavior changed.

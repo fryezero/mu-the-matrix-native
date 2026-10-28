@@ -41,7 +41,7 @@ regressions exercise both validators and verify rejection before emulation.
 
 The historical 2026-10-24 result was 35/38 suites. On 2026-10-28, the installed target and all provenance
 were rechecked, and a third strict scan reproduced the new manifest pin. The installed export baseline
-at `8eac05c` passed 8/9 tests; only the old 17-texture expectation failed against 51 loaded textures.
+at `8eac05c` passed 8/9 tests; only the old 17-texture expectation failed against the expanded 51-slot bank.
 The clean native build failed before generated session headers existed. A regression reproduces that
 ordering defect; core objects now wait for generation.
 
