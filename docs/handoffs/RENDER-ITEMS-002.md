@@ -19,3 +19,8 @@ Local gate on the part-1 tree: `bash scripts/local-macos-ci.sh tools/python/bin/
 1,304 tests across 38 suites, 156 explicit skips, native builds and publication audit clean.
 The validator harness reports 5,512 cases and 6 mutants, pass. Self-review against the brief
 and repository evidence rules found no remaining blocking issue in this bounded scope.
+
+Final combined-tree gate after CHARSEL-RT-001, VERIFY-SESSION-001 and LAYOUT-001 merges passed:
+1,327 tests across 38 discovery runs, 156 explicit skips, offline fixture scenarios, native builds and
+publication audit, zero rejections. Report: local scratch `render-items-002/final-gate.log`.
+The earlier in-progress integration run mixed old test imports with the layout merge and is not a gate result.
