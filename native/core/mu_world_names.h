@@ -5,14 +5,13 @@
  *
  * Joins core/mu_names to the session: the hero (kind 1) and the demo-placed
  * monsters and NPCs (kind from SetMonsterInfo 0x013b8ade: NPCs get no
- * plate), their positions, the demo combat's HP, deaths and respawns, the
+ * plate), their positions, session viewport HP, deaths and respawns, the
  * character under the cursor and chat lines.
  *
  * Server data, DEMO here: character keys (hero 0x1234 as mu_combat, actors
  * 0x100 + index), the hero's name and level, monster levels (0: names are
- * never coloured), monster HP (mu_combat's demo hit points, 100/100 without
- * combat) and the HP packet's timing (after every change), the chat echo of
- * the hero's own lines.  Names and name heights come from the Npcname(kor)
+ * never coloured), the chat echo of the hero's own lines. Remote HP comes only from the
+ * session viewport; absent HP stays zero and no damage-based pool is invented.  Names and name heights come from the Npcname(kor)
  * table (core/mu_lang, NATIVE-LANG-001: MU_LANG_DIR) when present;
  * otherwise the placement label and height 200 are placeholders.  Picking
  * the character under the cursor uses the demo cylinder test of mu_combat,
@@ -35,7 +34,7 @@ typedef struct mu_world_names {
     mu_world_actors *actors;
     mu_combat *combat;
     int32_t hero_key, actor_key0;
-    int32_t hp_seen[MU_WORLD_ACTORS_MAX];
+    uint32_t hp_seen[MU_WORLD_ACTORS_MAX];
     uint8_t dead_seen[MU_WORLD_ACTORS_MAX], shown[MU_WORLD_ACTORS_MAX];
     const struct mu_lang *lang;       /* NATIVE-LANG-001 tables (Npcname), NULL without them */
     struct mu_lang *own_lang;

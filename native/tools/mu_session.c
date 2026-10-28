@@ -346,6 +346,13 @@ static void client_action(run *r, const mu_scenario_line *line)
         }
         /* every hero intent payload starts with one int32 */
         memcpy(&in.u, &(int32_t){(int32_t)a}, sizeof(int32_t));
+        if(in.kind==MU_INTENT_COMBAT_ATTACK) {
+            unsigned key=0,dir=0;sscanf(rest,"%*s %u %u",&key,&dir);
+            in.u.combat_attack.target=(uint16_t)key;in.u.combat_attack.direction=(uint8_t)dir;
+        } else if(in.kind==MU_INTENT_COMBAT_CAST) {
+            unsigned x=0,y=0,skill=0,type=0;sscanf(rest,"%*s %u %u %u %u",&x,&y,&skill,&type);
+            in.u.combat_cast.x=(uint8_t)x;in.u.combat_cast.y=(uint8_t)y;in.u.combat_cast.skill=(uint8_t)skill;in.u.combat_cast.type=(uint8_t)type;
+        }
         mu_submit s = mu_session_submit(r->session, &in);
         row_action(line->tick, line->text, mu_submit_status_name(s.status));
     } else if (!strcmp(verb, "quest-data")) {
@@ -410,6 +417,17 @@ static int64_t value_of(run *r, const char *key, int *ok)
     mu_fixture_report_get(r->fixture, &fr);
     mu_place pl = mu_session_place(r->session);
     *ok = 1;
+    if(!strncmp(key,"combat.",7)) {
+        if(!strcmp(key,"combat.damage"))return (int64_t)mu_session_combat_count(r->session,1);
+        if(!strcmp(key,"combat.die"))return (int64_t)mu_session_combat_count(r->session,2);
+        if(!strcmp(key,"combat.action"))return (int64_t)mu_session_combat_count(r->session,3);
+        if(!strcmp(key,"combat.drop"))return (int64_t)mu_session_combat_count(r->session,4);
+        if(!strcmp(key,"combat.rev"))return mu_session_rev(r->session,MU_DOMAIN_COMBAT);
+    }
+    if(!strncmp(key,"quest.kills.",12)) {
+        const mu_quest_client *c=mu_session_quest(r->session);
+        return c?mu_classic_kills((mu_quest_client *)c,atoi(key+12)):0;
+    }
     if(!strncmp(key,"quest.",6)) {
         const mu_quest_client *c=mu_session_quest(r->session);
         if(c && !strcmp(key,"quest.hero_class")) return c->hero_class;

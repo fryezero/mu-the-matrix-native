@@ -64,7 +64,6 @@ static void items_tick(struct mu_world_rt *a, void *self)
 {
     (void)self;
     if (a->ground) {
-        mu_world_items_watch_combat(a->ground, a->combat);
         mu_world_items_step(a->ground);
     }
 }

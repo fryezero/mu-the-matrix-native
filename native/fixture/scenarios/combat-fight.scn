@@ -1,0 +1,22 @@
+# SESSION-COMBAT-001: an attack request and authoritative frame results. Synthetic rules only.
+endpoint game 127.0.0.1:55904
+use monsters
+use combat hp=1 lo=50 hi=50 latency=2 counter=0
+join world=0 tile=120,120 class=1 level=10 name=Fighter slot=0
+at 1 client quest-data native/fixture/scenarios/quest-tables
+at 2 monsters actor 3 121 120 1 label Spider
+at 2 combat actor 1024 3 121 120
+at 3 client submit combat_attack 1024 1
+at 4 send game c1 09 c5 04 00 01 79 00 01
+at 8 client submit combat_cast 121 120 17
+at 9 client lease
+expect unbound = 0
+expect undecodable = 0
+expect combat.action = 1
+expect combat.damage = 1
+expect combat.die = 1
+expect combat.drop = 1
+expect quest.kills.3 = 1
+expect fixture.requests = 1
+expect unsent = 2
+expect unrecovered = 0

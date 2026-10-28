@@ -2,6 +2,9 @@
 
 RENDER-WORLDS-E implements Elbeland boids/clouds and Raklion event timing, and attributes Aida's light outlier. Full Mac gate passes, 1,458 tests; saved-view scores/hashes unchanged. [Checks and remaining inputs](handoffs/RENDER-WORLDS-E.md).
 
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+
 WORLD-ORDER-001 implemented: main-world call-order family and part-column adapters. [Counts and boundaries](handoffs/WORLD-ORDER-001.md).
 
 RENDER-WORLDS-F implements the Tarkan/Raklion screen haze. [Checks and image-score limitation](handoffs/RENDER-WORLDS-F.md).
