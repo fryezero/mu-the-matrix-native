@@ -15,6 +15,7 @@ ANCHORS = {
     'draw': {0x016cd468: ('terrain',), 0x016d5020: ('objects',),
              0x0137a3c2: ('hero', 'players', 'actors'), 0x017e9495: ('items',),
              0x00c9e4e3: ('helpers',), 0x01538145: ('env',),
+             0x016d6949: ('objects_after',),
              0x00a75708: ('actor_effects',), 0x0159123f: ('particles',),
              0x0169159e: ('combat',), 0x00def268: ('haze',)},
 }
@@ -48,7 +49,7 @@ ADDITIONS = {
         ('map', 'particles', 'native gate/travel check, no standalone MoveMainScene call'),
     ),
     'draw_gl': (
-        ('marker', 'env', 'native clicked-point viewer aid; no client counterpart'),
+        ('marker', 'objects_after', 'native clicked-point viewer aid follows the deferred object pass; no client counterpart'),
         ('item_labels', 'haze', 'native item-label overlay; original labels are inside GFx/UI callees'),
         ('names', 'item_labels', 'native name overlay; original names are inside character/GFx callees'),
     ),

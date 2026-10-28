@@ -291,8 +291,11 @@ long mu_objects_render_raster(mu_objects *objects, const mu_world *map, mu_raste
 
 /* timeGetTime for the next step and frame (the pulse of 0x00cfec8d). */
 void mu_objects_set_clock(mu_objects *objects, uint32_t now_ms);
-/* RenderObjects_AfterCharacter (mu_login_after_pass) for the frustum polygon: rt.after_list.
- * Worlds other than 0x5e and (NATIVE-CHARSEL-002) 0x5d: none. */
+/* RenderObjects_AfterCharacter for the frustum polygon: rt.after_list.
+ * Scene handlers cover 0x5d/0x5e; RENDER-WORLDS-A covers 3, 0x33, 0x39/0x3a and 0x50/0x51. */
+/* Extra first-pass meshes of Raklion's split bodies, 0 for an ordinary draw. */
+int32_t mu_objects_first_meshes(mu_objects *objects, int32_t draw_index, const mu_world *map,
+                               mu_object_model *model, mu_object_mesh *meshes, int32_t capacity);
 void mu_objects_after_visibility(mu_objects *objects, const mu_terrain_frustum *frustum, int32_t scene_state);
 /* The after-character draw of rt.after_list[k]: the RenderObject setup (body light, pose) and the
  * world's slot 0x3c, whose RenderMesh calls (and, in world 0x5d, RenderBody calls: mesh_plus_one 0) land
