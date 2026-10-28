@@ -39,8 +39,8 @@ launcher, live service or dispatcher-table walk. [Finding](../research/client-so
   boundaries are modelled; the list's existing field/arithmetic slices remain
   covered by the unchanged social validator. No whole-container equivalence claim.
 - Existing unchanged social families: **7,000 cases, zero mismatches, 10/10 compiled
-  controls caught**. The required 29,700-case round-2 run is in progress.
-- Three focused party tests pass with private input enabled. They cover every route,
+  controls caught**. The unchanged round-2 run passes **29,700 cases, zero mismatches, 36/36 compiled controls caught**. Total instruction comparisons: **41,700**, zero mismatches; **51/51 compiled mutants/controls** detected.
+- Four focused party tests pass with private input enabled. They cover every route,
   exact request bytes/encryption flags, malformed-frame atomicity, duplicate and
   unknown invitation identity, independent cursors, detached updates, reattachment,
   and unchanged hero stats. The fixture has six inbound frames, zero unbound or
@@ -48,7 +48,7 @@ launcher, live service or dispatcher-table walk. [Finding](../research/client-so
 - Existing three social regressions pass, including inventory/trade/messenger,
   stationary marker refresh, host rebinding and two-world membership retention.
   Input-router header regression was corrected; its 13 tests pass with one explicit
-  private skip. Include audit and diff whitespace check pass.
+  private skip. Include audit and diff whitespace check pass. The registered validator passes with 200 cases and all five mutants, zero failures/errors/skips.
 - Real ABI-3 Ruffle/native GL: 80 frames, three representative captures. Inspected
   winParty Hero/Aeris and Aeris's fixture-supplied 38/61 bars. Uses the existing
   manifest-bearing APP-REFRESH-001 Native Data and installed game assets. The old

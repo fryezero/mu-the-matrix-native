@@ -393,6 +393,7 @@ int mu_party_demo_action(mu_social_session *s, const char *verb, const char *arg
     if (!s->session)
         return 0;
     party_fixture *f = model(s);
+    s->party_notice = 0;
     const char *name = *arg ? arg : s->target;
     int k = peer(f, name), notice = 0;
     mu_intent in = {0};

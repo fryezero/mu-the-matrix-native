@@ -36,6 +36,23 @@ class Party(unittest.TestCase):
             r=subprocess.run([str(exe),str(scenario)],capture_output=True,text=True)
             self.assertEqual(r.returncode,0,r.stderr)
 
+    def test_empty_and_wrong_head_packets_and_decline_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'empty.scn'
+            p.write_text('endpoint game 127.0.0.1:55907\njoin world=0 tile=120,120 class=1 level=10 name=Hero slot=0\n'
+                'at 1 send game c2 00 05 42 00\n'
+                'at 2 send game c1 04 44 00\n'
+                'at 3 send game c1 05 42 00 00\n'
+                'at 4 send game c2 00 05 43 00\n'
+                'at 5 send game c1 05 40 ab cd\n'
+                'at 6 client submit party_answer 0\n'
+                'expect party.count = 0\nexpect party.key = 43981\nexpect party.pending = 0\n'
+                'expect unbound = 0\nexpect undecodable = 0\nexpect unsent = 1\n')
+            r,rows=run_tool('fixture',p)
+            self.assertEqual(r.returncode,0,r.stderr)
+            self.assertEqual([x['result'] for x in jnl(rows,'frame_in')],['done','done','ignored','ignored','done'])
+            self.assertEqual(jnl(rows,'frame_out')[0]['bytes'],'c1 06 86 00 ab cd')
+
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','private pinned instructions')
 class Private(unittest.TestCase):
     def test_original_party_adapters(self):

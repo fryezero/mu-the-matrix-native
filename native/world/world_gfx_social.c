@@ -342,6 +342,10 @@ int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *a
         restore_offer(g);
         g->trade = 0;
     }
+    if (!ok && g->s->party_notice &&
+        (!strcmp(verb, "party") || !strcmp(verb, "leave") || !strcmp(verb, "kick") ||
+         !strcmp(verb, "confirm-leave")))
+        mu_gfx_layer_social_notice(g->l, g->s->party_notice, "Party action refused (offline demo).");
     notice(g, ok ? g->s->last : "Social action refused (offline demo)");
     return ok;
 }

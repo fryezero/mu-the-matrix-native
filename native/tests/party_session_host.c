@@ -37,6 +37,12 @@ int main(int argc, char **argv)
     assert(!memcmp(&saved, mu_session_party(s).members, sizeof saved));
     pump(s, t, 4);
     assert(!memcmp(&saved, mu_session_party(s).members, sizeof saved));
+    mu_intent invalid = {.kind = MU_INTENT_PARTY_ANSWER};
+    assert(mu_session_submit(s, &invalid).status == MU_SUBMIT_REFUSED);
+    invalid.kind = MU_INTENT_PARTY_LEAVE; invalid.u.party_leave.member = 5;
+    assert(mu_session_submit(s, &invalid).status == MU_SUBMIT_REFUSED);
+    invalid.kind = MU_INTENT_PARTY_INVITE; invalid.u.party_invite.key = 65536;
+    assert(mu_session_submit(s, &invalid).status == MU_SUBMIT_REFUSED);
     pump(s, t, 5);
     assert(mu_session_party(s).pending && mu_session_party(s).request_key == 0x1234);
     pump(s, t, 6);
