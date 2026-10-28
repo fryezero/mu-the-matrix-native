@@ -29,7 +29,8 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_SMOKE:
         return subtype == 0 || subtype == 1 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f || subtype == 21;
     case MU_PT_BITMAP_SPARK2:
-        return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
+        return subtype == 0 || subtype == 1 || subtype == 2;   /* 2: Inferno; 1: NATIVE-HELPERS-002 (the angel's sparkles) */
+    case 0x7f54: return subtype == 0;          /* Explosion01, Meteorite and Inferno */
     case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
     case MU_PT_BITMAP_DROP:
@@ -258,9 +259,17 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         v[0] = 0.0f;
         v[1] = (float)(mu_pt_rand(h) % 20 + 20) * 0.1f;
         v[2] = 0.0f;
+        if (subtype == 2) {                        /* 0x015dc299 */
+            p->scale *= 2.0f;
+            for (int k = 0; k < 3; ++k) v[k] = 3.0f * v[k];
+        }
         mu_vector_rotate(v, m, p->velocity);
         break;
     }
+    case 0x7f54:                                   /* 0x015e42eb */
+        p->lifetime = 20;
+        if (h && h->scene_state != 3 && h->sound) h->sound(h->context, 0x40);
+        break;
     case MU_PT_BITMAP_FLARE:
         /* 0x015eee83, subtype 1 */
         p->lifetime = 50;
@@ -583,6 +592,13 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->position[k] = p->position[k] + p->velocity[k];
             break;
         }
+        case 0x7f54: {                            /* 0x01622ea1..0x01623c2e */
+            p->frame = (20 - p->lifetime) / 2;
+            float l = (float)p->lifetime / 20.0f;
+            const float light[3] = {l * 0.5f, l * 0.3f, l * 0.1f};
+            if (h && h->light) h->light(h->context, p->position[0], p->position[1], light, 4);
+            break;
+        }
         case MU_PT_BITMAP_FLARE:
             /* 0x016635ad, subtype 1: dims and shrinks */
             for (int k = 0; k < 3; ++k)
@@ -828,6 +844,12 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
         state(out, MU_PT_STATE_BLEND, 0);            /* NATIVE-HELPERS-002, 0x01596f41 */
+        break;
+    case 0x7f54:                                   /* 0x015925e6, 4x4 explosion sheet */
+        s->rotation = 0.0f;
+        s->u = (float)(p->frame % 4) * 0.25f + 0.005f;
+        s->v = (float)(p->frame / 4) * 0.25f + 0.005f;
+        s->uw = s->vh = 0.24f;
         break;
     case MU_PT_BITMAP_DROP: {
         /* NATIVE-HELPERS-002, 0x01592374: cell frame % 9 of a 3x3 sheet (0.24 wide, 0.005 inset), upright */

@@ -158,11 +158,15 @@ class Particle(ctypes.Structure):
                 ('initial_scale', ctypes.c_float), ('field_80', ctypes.c_float), ('field_84', ctypes.c_float)]
 
 
+SOUND_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32)
+LIGHT_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_float, ctypes.c_float,
+                          ctypes.POINTER(ctypes.c_float), ctypes.c_int32)
+
 class Host(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('terrain_height', HEIGHT_FN),
                 ('owner_position', OWNER_FN), ('world', ctypes.c_int32), ('world_time', ctypes.c_float),
                 ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32),
-                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN)]
+                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN), ('sound', SOUND_FN), ('light', LIGHT_FN)]
 
 
 class Bitmap(ctypes.Structure):
@@ -418,7 +422,15 @@ class Case:
         def sqrt(mm):
             x = mm.float_argument(0)
             return mm.x87_return(f32(math.sqrt(x)) if x >= 0 else float('nan'))
-        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine, 0x00961a07: sqrt}
+        def sound(mm):
+            self.client_calls.append(('sound', mm.argument(0)))
+            return 0
+        def light(mm):
+            self.client_calls.append(('light', mm.float_argument(0), mm.float_argument(1),
+                                      mm.floats(mm.argument(2), 3), mm.argument(3)))
+            return 0
+        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine, 0x00961a07: sqrt,
+                0x00a6ac96: sound, 0x016cacfc: light}
 
     def owner_regions(self):
         out = []
@@ -454,9 +466,11 @@ class Case:
         def cloud_owner(ctx, owner, reset):
             if reset: self.owner_hidden = 0
             return int(getattr(self, 'visible', 1) == 1)
-        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height), CLOUD_OWNER_FN(cloud_owner))
+        def sound(ctx, index): self.c_calls.append(('sound', index))
+        def light(ctx, x, y, rgb, radius): self.c_calls.append(('light', x, y, list(rgb[:3]), radius))
+        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height), CLOUD_OWNER_FN(cloud_owner), SOUND_FN(sound), LIGHT_FN(light))
         self._keep.append(fns)
-        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3], fns[4])
+        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3], fns[4], fns[5], fns[6])
 
     def bitmap_region(self):
         # NATIVE-HELPERS-002: the record the getter 0x00ebbec8 returns (only the height +0x208 defined)

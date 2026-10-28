@@ -129,6 +129,9 @@ typedef struct mu_pt_host {
     float (*bitmap_height)(void *context, int32_t bitmap);
     /* Icarus clouds: OBJECT +0xb; reset +0x68 when the last invisible-frame lifetime expires. */
     int (*cloud_owner)(void *context, int32_t owner, int reset_hidden);
+    /* Explosion sprite services. Optional; native sound remains counted in this rendering lane. */
+    void (*sound)(void *context, int32_t id);
+    void (*light)(void *context, float x, float y, const float rgb[3], int32_t range);
 } mu_pt_host;
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed

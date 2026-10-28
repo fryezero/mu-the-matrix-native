@@ -587,7 +587,7 @@ static void inferno_ring(mu_combat *c, const float center[3])
         p[0] = p[0] + center[0];
         p[1] = p[1] + center[1];
         p[2] = p[2] + center[2];
-        ++c->stats.unsupported;   /* the burst 0x013c07f4 */
+        mu_sfx_inferno_burst(p, 1, &c->env);
         const float zero[3] = {0.0f, 0.0f, 0.0f};
         create_effect(c, MU_SFX_MODEL_STONE1 + crt_rand(c) % 2, 1, p, zero, white, -1, NULL);
         create_effect(c, MU_SFX_MODEL_STONE1 + crt_rand(c) % 2, 0, p, zero, white, -1, NULL);
@@ -650,6 +650,12 @@ static void end_of_attack(mu_combat *c)
     case 11:
         /* 0x013b05eb: one wave for a player. Only monster 0x7b7 adds +/-10 degrees. */
         create_effect(c, 0x41f, 0, pos, angle, light, -1, NULL);
+        break;
+    case 2:
+        /* 0x013b00a7: target position/angle and caster light, no owner. */
+        if (target_ok)
+            create_effect(c, MU_SFX_MODEL_FIRE, 0, c->actors->list[t].position,
+                          c->actors->list[t].angle, light, -1, NULL);
         break;
     case 4:
         /* 0x013b0397: MODEL_FIRE subtype 1 from the caster, owned by the target */

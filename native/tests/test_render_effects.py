@@ -35,12 +35,12 @@ class RenderEffects(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def cast(self, skill, particles=True):
+    def cast(self, skill, particles=True, frames=36):
         with tempfile.TemporaryDirectory() as tmp:
             cmd = [str(ROOT/'native/build/mu-walk'), '--game-root', str(self.root), '--headless',
                    '--backend', 'soft', '--no-audio', '--no-items', '--no-players', '--tile', '120,120',
                    '--placement', str(self.placement), '--combat', '--combat-weapon', 'staff', '--class', '0',
-                   '--combat-script', f'2:skill:{skill}:spider;3:stop', '--frames', '36', '--every', '1',
+                   '--combat-script', f'2:skill:{skill}:spider;3:stop', '--frames', str(frames), '--every', '1',
                    '--width', '160', '--height', '100', '--out-dir', tmp]
             if not particles: cmd += ['--no-particles']
             p = subprocess.run(cmd, capture_output=True, text=True)
@@ -74,6 +74,44 @@ class RenderEffects(unittest.TestCase):
                         for name in files: (self.root/'Data/Skill'/(name+'.off')).rename(self.root/'Data/Skill'/name)
                 self.assertTrue(images)
                 self.assertNotEqual(images, absent)
+
+    def test_meteorite_and_inferno_session_pixels(self):
+        assets = self.root/'Data/Skill'
+        names = ('Fire01.bmd', 'Stone01.bmd', 'Stone02.bmd', 'Inferno01.bmd')
+        for i, name in enumerate(names):
+            (assets/name).write_bytes(nf.synthetic_layout(200+i, actions=1, keys=(8,)))
+        effect = self.root/'Data/Effect'
+        for name in ('Spark02.OZJ', 'Explosion01.OZJ', 'Fire01.OZJ'):
+            (effect/name).write_bytes(ozj_jpeg(32, 32))
+        try:
+            for skill in (2, 14):
+                with self.subTest(skill=skill):
+                    rows, images = self.cast(skill, frames=48)
+                    summary = next(r for r in rows if r.get('combat') is True)
+                    self.assertEqual(summary['requests_unsent'], 1)
+                    self.assertEqual((summary['hits'], summary['kills'], summary['unsupported']), (0, 0, 0))
+                    self.assertGreaterEqual(summary['fx_created'], 7 if skill == 2 else 17)
+                    self.assertGreater(summary['particles_created'], 0)
+                    frames = [r for r in rows if 'combat_frame' in r]
+                    self.assertTrue(any(0x413 in f['effect_types'] for f in frames) if skill == 2 else
+                                    any(0x457 in f['effect_types'] for f in frames))
+                    self.assertTrue(all(f['monsters'][0]['hp'] == frames[0]['monsters'][0]['hp'] for f in frames))
+                    _, absent = self.cast(skill, particles=False, frames=48)
+                    self.assertNotEqual(images, absent)
+        finally:
+            for name in names: (assets/name).unlink()
+            for name in ('Spark02.OZJ', 'Explosion01.OZJ', 'Fire01.OZJ'): (effect/name).unlink()
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
+    def test_priority_original_instructions_and_compiled_mutants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp)/'report.json'
+            subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects3.py'), '--cases', '60',
+                            '--mutations', '--output', str(report)], check=True, capture_output=True)
+            r = json.loads(report.read_text())
+            self.assertTrue(r['all_equal'])
+            self.assertTrue(r['all_mutants_caught'])
+            self.assertEqual(len(r['mutants']), 8)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_original_instructions_and_compiled_mutants(self):
