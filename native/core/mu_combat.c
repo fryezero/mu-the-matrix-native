@@ -196,7 +196,7 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->hero_key = HERO_KEY;
     c->target = -1;
     c->intent_skill = -1;
-    c->lang = mu_lang_shared();   /* NATIVE-LANG-001: the client's skill table when MU_LANG_DIR has it */
+    c->lang = mu_lang_load_default();   /* NATIVE-LANG-001: the client's skill table when MU_LANG_DIR has it */
     c->attack_target = -1;
     c->last_sound = -1;
     c->hero_hp = 0;
@@ -231,6 +231,7 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
 
 void mu_combat_free(mu_combat *c)
 {
+    mu_lang_free(c->lang);
     for (int32_t i = 0; i < c->bitmap_count; ++i)
         if (c->bitmaps[i].loaded)
             mu_image_free(&c->bitmaps[i].image);
@@ -1236,7 +1237,7 @@ int32_t mu_combat_quads(mu_combat *c, mu_combat_quad *quads, int32_t max)
     /* RenderJoints 0x01589b56(0) through the shared joint helpers (NATIVE-JOINT-001): ribbons in world
      * space, in the blend of their render type, with the colour in effect for each quad; GL clamps the
      * vertex colour (glColor3f) to 0..1 */
-    static mu_joint_quad jq[4096];
+    mu_joint_quad jq[4096];
     const int32_t joint_quads = mu_joints_quads(c->joints, MU_SFX_JOINTS, 0, c->map ? c->map->time : 0.0f, jq, 4096);
     for (int32_t k = 0; k < joint_quads; ++k) {
         mu_combat_quad *q = next_quad(quads, max, &n);
@@ -1520,7 +1521,7 @@ static void raster_quad(mu_raster *raster, const mu_combat_quad *q, const mu_ima
 void mu_combat_draw_raster(mu_combat *c, mu_raster *raster)
 {
     mu_combat_draw_models(c, raster_model, raster);
-    static mu_combat_quad quads[1024];
+    mu_combat_quad quads[1024];
     int32_t n = mu_combat_quads(c, quads, 1024);
     float saved[16];
     memcpy(saved, raster->view, sizeof saved);

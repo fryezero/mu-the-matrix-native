@@ -170,7 +170,7 @@ static void combat_draw(mu_world_rt *a, combat_part *p)
 {
     mu_combat *c = a->combat;
     mu_combat_draw_models(c, combat_model_gl, p);
-    static mu_combat_quad quads[1024];
+    mu_combat_quad quads[1024];
     int32_t n = mu_combat_quads(c, quads, 1024);
     glDepthMask(GL_FALSE);
     glDisable(GL_ALPHA_TEST);
@@ -233,7 +233,7 @@ static void combat_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     if (a->combat)
         combat_draw(a, self);
-    mu_perf_end(MU_PERF_EFFECTS, d->perf);
+    mu_perf_end(a->perf, MU_PERF_EFFECTS, d->perf);
 }
 #endif
 

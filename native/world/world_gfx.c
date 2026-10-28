@@ -33,6 +33,8 @@
 #include "../../reconstructed/mix/item_services.h"
 
 struct world_gfx {
+    mu_lang *lang;
+    char quest_item_name[96];
     mu_gfx_layer *layer;
     mu_hud_tip_tables tables;
     const char *root;
@@ -150,7 +152,7 @@ static int contextual_price_line(world_gfx *g, int32_t code, int32_t level, int 
     char num[32];
     int64_t price = client_price(g, code, level, context == MU_GFX_TIP_SHOP ? MU_PRICE_BUY : MU_PRICE_SELL);
     mu_price_format((uint32_t)price, num, sizeof num);
-    const char *fmt = mu_lang_text(mu_lang_shared(), context == MU_GFX_TIP_SHOP ? 0x654 : 0x3f);
+    const char *fmt = mu_lang_text(g->lang, context == MU_GFX_TIP_SHOP ? 0x654 : 0x3f);
     if (context == MU_GFX_TIP_SHOP)
         snprintf(line, 256, "Buy %s (%s)", num, num); /* stand-in without GlobalText */
     else
@@ -238,8 +240,8 @@ static const uint8_t *record_of(void *user, int32_t code)
 
 static int soul_conversion(void *user, int32_t code)
 {
-    (void)user;
-    return mu_lang_soul_conversion(mu_lang_shared(), code);
+    world_gfx *g = user;
+    return mu_lang_soul_conversion(g->lang, code);
 }
 
 static int64_t client_price(world_gfx *g, int32_t code, int32_t level, int gold_type)
@@ -389,14 +391,14 @@ static void demo_items(world_gfx *g)
         int32_t code = ITEMS[i][0], level = ITEMS[i][1];
         uint8_t w = 1, h = 2;
         char name[96];
-        snprintf(name, sizeof name, "Item %d", (int)code);
+        snprintf(name, sizeof g->quest_item_name, "Item %d", (int)code);
         if (g->scratch && g->tables.have_items) {
             mu_hud_inventory_init(g->scratch);
             int k = mu_hud_inventory_add(g->scratch, &g->tables.items, g->root, code, level, 1, 2);
             if (k >= 0) {
                 w = g->scratch->items[k].grid.width;
                 h = g->scratch->items[k].grid.height;
-                snprintf(name, sizeof name, "%s", g->scratch->items[k].name);
+                snprintf(name, sizeof g->quest_item_name, "%s", g->scratch->items[k].name);
             }
         }
         mu_gfx_layer_add_item(g->layer, code, level, w, h, name);
@@ -434,7 +436,7 @@ static int load_dialogue(world_gfx *g, const char *root)
  * font: not reproduced). */
 static int dialogue_show(world_gfx *g, int32_t state)
 {
-    static char text[4096], options[MU_DLG_OPTIONS][96];
+    char text[4096], options[MU_DLG_OPTIONS][96];
     const char *t = mu_dlg_state_text(&g->dlg, state);
     mu_gfx_npc_dialog d;
     memset(&d, 0, sizeof d);
@@ -498,9 +500,9 @@ static int dialogue_choice(void *user, int index)
  * reconstructed).  No hero buff values offline (the value lines show their plain description). */
 static int buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
 {
-    (void)user;
+    world_gfx *g = user;
     char lines[16][256];
-    int n = mu_lang_buff_tooltip(mu_lang_shared(), buff, NULL, lines, 16);
+    int n = mu_lang_buff_tooltip(g->lang, buff, NULL, lines, 16);
     if (n <= 0)
         return 1;
     char clean[16][300];
@@ -524,7 +526,7 @@ static int buff_tooltip(void *user, int32_t buff, char *html, size_t cap)
 static void demo_buffs(world_gfx *g, const char *open)
 {
     const char *p = open ? strstr(open, "buffs=") : NULL;
-    if (!p || !mu_lang_shared())
+    if (!p || !g->lang)
         return;
     for (p += 6; *p && *p != ',';) {
         char *end = NULL;
@@ -532,7 +534,7 @@ static void demo_buffs(world_gfx *g, const char *open)
         if (end == p)
             break;
         mu_lang_addbuff a;
-        if (mu_lang_buff_addbuff(mu_lang_shared(), (int32_t)v, &a)) {
+        if (mu_lang_buff_addbuff(g->lang, (int32_t)v, &a)) {
             mu_gfx_buff b = {a.buff, a.is_debuff, a.is_cash, a.has_detail, a.detail};
             mu_gfx_layer_add_buff(g->layer, &b);
         }
@@ -554,10 +556,10 @@ static void char_rows_class(world_gfx *g, int32_t cls)
 {
     cls &= 0xf;                   /* class= accepts the hero's stage bits as well as a base class index */
     const mu_lang_charinfo *rows[256];
-    int n = mu_lang_charinfo_rows(mu_lang_shared(), cls, rows, 256);
+    int n = mu_lang_charinfo_rows(g->lang, cls, rows, 256);
     if (n <= 0)
         return;
-    static mu_gfx_char_row out[256];
+    mu_gfx_char_row out[256];
     for (int i = 0; i < n; i++) {
         mu_gfx_char_row *r = &out[i];
         memset(r, 0, sizeof *r);
@@ -604,32 +606,32 @@ static void char_rows_class(world_gfx *g, int32_t cls)
 
 static const char *quest_text(void *user, int32_t index)
 {
-    (void)user;
-    return mu_lang_text(mu_lang_shared(), index);
+    world_gfx *g = user;
+    return mu_lang_text(g->lang, index);
 }
 
 static const char *quest_npc(void *user, int32_t npc)
 {
-    (void)user;
-    return mu_lang_npc_name(mu_lang_shared(), npc);
+    world_gfx *g = user;
+    return mu_lang_npc_name(g->lang, npc);
 }
 
 static const char *quest_map(void *user, int32_t world)
 {
-    (void)user;
-    return mu_lang_map_name(mu_lang_shared(), world);
+    world_gfx *g = user;
+    return mu_lang_map_name(g->lang, world);
 }
 
 static const char *quest_item(void *user, int32_t code)
 {
     world_gfx *g = user;
-    static char name[96];
+    char *name = g->quest_item_name;
     name[0] = 0;
     if (g->scratch && g->tables.have_items) {
         mu_hud_inventory_init(g->scratch);
         int k = mu_hud_inventory_add(g->scratch, &g->tables.items, g->root, code, 0, 1, 2);
         if (k >= 0)
-            snprintf(name, sizeof name, "%s", g->scratch->items[k].name);
+            snprintf(name, sizeof g->quest_item_name, "%s", g->scratch->items[k].name);
     }
     return name;
 }
@@ -1231,7 +1233,7 @@ static void progress_sync(world_gfx *g)
         h.hp = h.max_hp;
     if (h.mp > h.max_mp)
         h.mp = h.max_mp;
-    const char *cname = mu_lang_text(mu_lang_shared(), mu_ccr_class_name_text(p->hero[0x12], 1));
+    const char *cname = mu_lang_text(g->lang, mu_ccr_class_name_text(p->hero[0x12], 1));
     if (cname && *cname)   /* the class name 0x0139cc2e (NATIVE-CHARCREATE-001) */
         mu_lang_ascii(h.class_name, sizeof h.class_name, cname);
     h.has_derived = 1;
@@ -1276,7 +1278,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     g->root = game_root;
     g->mix = mu_mix_book_open(game_root);
     g->scale = scale > 0 ? scale : 1.0;
-    const char *face = mu_lang_text(mu_lang_shared(), 0);
+    g->lang = mu_lang_load_default();
+    const char *face = mu_lang_text(g->lang, 0);
     mu_ui_font_open(&g->quest_font, face && *face ? face : "Tahoma", 12, 400);
     g->scratch = malloc(sizeof *g->scratch);
     mu_hud_tip_tables_load(game_root, &g->tables);
@@ -1295,8 +1298,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
                                .icons = g->items && !getenv("MU_GFX_NO_ICON_MODELS") ? wg_items_icons : NULL,
                                .items_user = g->items,
                                .double_buffer = !getenv("MU_GFX_SINGLE_BUFFER"),
-                               .text = mu_lang_shared() ? lang_text : NULL,
-                               .text_user = (void *)mu_lang_shared(),
+                               .text = g->lang ? lang_text : NULL,
+                               .text_user = (void *)g->lang,
                                .price = item_price,
                                .price_ex = item_price_ex,
                                .tooltip_ex = tooltip_ex,
@@ -1334,7 +1337,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
     char_rows(g, open);
     mu_gfx_skill *skills = malloc(1024 * sizeof *skills);
     if (skills) {
-        g->skills = mu_lang_skill_count(mu_lang_shared()) ? lang_skills(mu_lang_shared(), skills, 1024)
+        g->skills = mu_lang_skill_count(g->lang) ? lang_skills(g->lang, skills, 1024)
                                                           : wg_skills_load(game_root, skills, 1024);
         if (g->skills > 0)
             mu_gfx_layer_set_skills(g->layer, skills, g->skills);
@@ -1344,13 +1347,13 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         const char *p = open ? strstr(open, "class=") : NULL;
         int32_t cls = p ? (int32_t)strtol(p + 6, NULL, 0) : 0x81;
         if (!getenv("MU_GFX_NO_SKILLS")) {
-            g->skill = wg_skill_open(game_root, mu_lang_shared(), getenv("MU_LANG_DIR"), cls, session);
+            g->skill = wg_skill_open(game_root, g->lang, getenv("MU_LANG_DIR"), cls, session);
             wg_skill_attach(g->skill, g->layer);
             g->scale = scale > 0 ? scale : 1.0;
             wg_skill_set_screen(g->skill, (int32_t)(width / g->scale));
-            g->tree = wg_tree_open(g->skill, g->layer, mu_lang_shared());
+            g->tree = wg_tree_open(g->skill, g->layer, g->lang);
             const mu_master_tree *tree = mu_skill_book_master(wg_skill_book(g->skill));
-            const char *class_name = tree && tree->mask ? mu_lang_text(mu_lang_shared(), tree->gt_title) : NULL;
+            const char *class_name = tree && tree->mask ? mu_lang_text(g->lang, tree->gt_title) : NULL;
             if (class_name) {
                 mu_gfx_hero hero = *mu_gfx_layer_hero(g->layer);
                 mu_lang_ascii(hero.class_name, sizeof hero.class_name, class_name);
@@ -1425,12 +1428,12 @@ void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session)
     wg_tree_close(g->tree);g->tree=NULL;
     wg_skill_close(g->skill);g->skill=NULL;
     if(!session || getenv("MU_GFX_NO_SKILLS"))return;
-    g->skill=wg_skill_open(g->root,mu_lang_shared(),getenv("MU_LANG_DIR"),0,session);
+    g->skill=wg_skill_open(g->root,g->lang,getenv("MU_LANG_DIR"),0,session);
     wg_skill_attach(g->skill,g->layer);
     int32_t w,h;mu_gfx_layer_stage_size(g->layer,&w,&h);(void)h;
     wg_skill_set_screen(g->skill,w);
     wg_skill_set_world(g->skill,g->world);
-    g->tree=wg_tree_open(g->skill,g->layer,mu_lang_shared());
+    g->tree=wg_tree_open(g->skill,g->layer,g->lang);
     for(int movie=MU_GFX_MASTER_TREE;movie<=MU_GFX_TREE5;++movie)wg_tree_call(g->tree,movie,"UIInit","[]");
 }
 
@@ -1452,6 +1455,7 @@ void world_gfx_close(world_gfx *g)
     mu_hud_tip_tables_free(&g->tables);
     mu_dlg_free(&g->dlg);
     free(g->scratch);
+    mu_lang_free(g->lang);
     free(g);
 }
 
@@ -1493,7 +1497,7 @@ void world_gfx_set_location(world_gfx *g, int world, float x, float y)
      * GlobalText read from the client (NATIVE-LANG-001); without the tables
      * the data folder's name stands in.  Cells are 100 world units. */
     char name[64];
-    const char *map = mu_lang_map_name(mu_lang_shared(), world);
+    const char *map = mu_lang_map_name(g->lang, world);
     if (map)
         mu_lang_ascii(name, sizeof name, map);
     else
@@ -1534,12 +1538,12 @@ mu_gfx_layer *world_gfx_layer(world_gfx *g)
 
 /* ---- NPC windows (NATIVE-NPC-001) ---- */
 
-static void npc_title(const mu_npc_open *o, const char *label, char *out, size_t cap)
+static void npc_title(world_gfx *g, const mu_npc_open *o, const char *label, char *out, size_t cap)
 {
     /* Npcname(kor): for npcdialogue the dialogue NPC the result names (0x00fdc96c(class) stores its name for
      * SetTitle, static), otherwise the clicked NPC's class */
     int32_t index = o->kind == MU_NPC_WINDOW_DIALOG && o->window.dialogue >= 0 ? o->window.dialogue : o->server_class;
-    const mu_lang_npc *npc = mu_lang_npc_get(mu_lang_shared(), index);
+    const mu_lang_npc *npc = mu_lang_npc_get(g->lang, index);
     if (npc && npc->name && npc->name[0])
         mu_lang_ascii(out, cap, npc->name);
     else
@@ -1551,7 +1555,7 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
     if (!g || !o)
         return;
     char title[96];
-    npc_title(o, label, title, sizeof title);
+    npc_title(g, o, label, title, sizeof title);
     const mu_npc_demo_row *row = o->demo;
     if (o->kind == MU_NPC_WINDOW_CLASSIC && g->have_quest) {
         qw(g, MU_Q_TARGET, NULL, NULL, o->server_class, 0);
@@ -1573,14 +1577,14 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
             g->hide_contribute = 1;   /* 0x00be88b8: VisibleContribute(0) unless a Gens steward of the hero's Gens */
         dialogue_show(g, 0);
     } else if (o->kind == MU_NPC_WINDOW_DIALOG) {
-        static char text[4096], options[13][96];
+        char text[4096], options[13][96];
         mu_gfx_npc_dialog d;
         memset(&d, 0, sizeof d);
         d.title = title;
         size_t n = 0;
         text[0] = 0;
         for (int i = 0; row && i < row->dialog_count && n < sizeof text; i++) {
-            const char *line = mu_lang_dialog(mu_lang_shared(), row->dialog[i]);
+            const char *line = mu_lang_dialog(g->lang, row->dialog[i]);
             char clean[2048];
             if (line)
                 mu_lang_ascii(clean, sizeof clean, line);
@@ -1592,7 +1596,7 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
             snprintf(text, sizeof text, "(demo dialogue)");
         d.text = text;
         for (int i = 0; row && i < row->option_count && i < 13; i++) {
-            const char *line = mu_lang_dialog(mu_lang_shared(), row->options[i]);
+            const char *line = mu_lang_dialog(g->lang, row->options[i]);
             if (line)
                 mu_lang_ascii(options[i], sizeof options[i], line);
             else
@@ -1607,13 +1611,13 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
                        o->window.dialogue == 0x3ab || o->window.dialogue == 0x3ac;
         mu_gfx_layer_npc_dialog(g->layer, &d);
     } else if (o->kind == MU_NPC_WINDOW_SHOP) {
-        static mu_gfx_slot_item items[MU_NPC_ITEMS];
+        mu_gfx_slot_item items[MU_NPC_ITEMS];
         int n = 0;
         for (int i = 0; row && i < row->shop_count && n < MU_NPC_ITEMS; i++)
             item_info(g, row->shop[i].code, row->shop[i].level, &items[n++]);
         mu_gfx_layer_npc_shop(g->layer, title, o->repair, o->shop_tabs, items, n);
     } else if (o->kind == MU_NPC_WINDOW_STORAGE) {
-        static mu_gfx_slot_item items[MU_NPC_ITEMS];
+        mu_gfx_slot_item items[MU_NPC_ITEMS];
         int n = 0;
         for (int i = 0; i < g->npc_storage_count && n < MU_NPC_ITEMS; i++)
             item_info(g, g->npc_storage[i].code, g->npc_storage[i].level, &items[n++]);
@@ -1681,3 +1685,7 @@ void world_gfx_npc_storage(world_gfx *g, const mu_npc_item *items, int n)
     g->npc_storage_count = n > MU_NPC_ITEMS ? MU_NPC_ITEMS : n;
     memcpy(g->npc_storage, items, (size_t)g->npc_storage_count * sizeof *items);
 }
+
+const mu_lang *world_gfx_lang(const world_gfx *g) { return g ? g->lang : NULL; }
+
+void world_gfx_set_perf(world_gfx *g, struct mu_perf *p) { if (g) mu_gfx_layer_set_perf(g->layer, p); }

@@ -35,9 +35,6 @@ static const part_row ROWS[MU_PART_COUNT] = {
 #undef MU_PART
 };
 
-static int8_t SEQ[COLS][MU_PART_COUNT + 1];   /* row indices sorted by the column's order, -1 terminated */
-static int seq_state;                          /* 0 not built, 1 built, -1 inconsistent */
-
 static int has_hook(const mu_world_part_ops *o, int col)
 {
     switch (col) {
@@ -52,10 +49,8 @@ static int has_hook(const mu_world_part_ops *o, int col)
 
 /* Sorts each column once and checks the list: a hook exactly where the column has a number (draw_gl hooks are
  * absent from a MU_WORLD_NO_GL build), and no two rows with one number. */
-static int seq_build(char *error, size_t error_size)
+static int seq_build(mu_world_rt *a, char *error, size_t error_size)
 {
-    if (seq_state)
-        return seq_state < 0;
     static const char *const COLUMN[COLS] = {"pre_tick", "tick", "frame", "draw_gl", "draw_soft", "report"};
     for (int c = 0; c < COLS; ++c) {
         int n = 0;
@@ -68,29 +63,26 @@ static int seq_build(char *error, size_t error_size)
             if ((order != 0) != hook) {
                 snprintf(error, error_size, "parts.def: %s %s %s", ROWS[i].ops->name, COLUMN[c],
                          order ? "has a number but no hook" : "has a hook but no number");
-                seq_state = -1;
                 return 1;
             }
             if (!order)
                 continue;
             int k = n++;
-            for (; k > 0 && ROWS[SEQ[c][k - 1]].order[c] > order; --k)
-                SEQ[c][k] = SEQ[c][k - 1];
-            if (k > 0 && ROWS[SEQ[c][k - 1]].order[c] == order) {
-                snprintf(error, error_size, "parts.def: %s and %s share %s order %d", ROWS[SEQ[c][k - 1]].ops->name,
+            for (; k > 0 && ROWS[a->seq[c][k - 1]].order[c] > order; --k)
+                a->seq[c][k] = a->seq[c][k - 1];
+            if (k > 0 && ROWS[a->seq[c][k - 1]].order[c] == order) {
+                snprintf(error, error_size, "parts.def: %s and %s share %s order %d", ROWS[a->seq[c][k - 1]].ops->name,
                          ROWS[i].ops->name, COLUMN[c], order);
-                seq_state = -1;
                 return 1;
             }
-            SEQ[c][k] = (int8_t)i;
+            a->seq[c][k] = (int8_t)i;
         }
-        SEQ[c][n] = -1;
+        a->seq[c][n] = -1;
     }
-    seq_state = 1;
     return 0;
 }
 
-#define EACH(col, i) for (const int8_t *each_ = SEQ[col]; ((i) = *each_) >= 0; ++each_)
+#define EACH(col, i) for (const int8_t *each_ = a->seq[col]; ((i) = *each_) >= 0; ++each_)
 
 /* ---- the logic step hooks (mu_walk_step) ---- */
 
@@ -361,22 +353,28 @@ static int32_t equipment_weapon_kind(const mu_world_rt_options *o)
 
 static void free_runtime(mu_world_rt *a)
 {
+#ifndef MU_WORLD_NO_GL
+    world_gfx_map_close(a->gfxmap);
+#endif
+    free(a->mapsess);
     mu_social_messages_destroy(a->social ? &a->social->messages : NULL);
     free(a->social);
     for (int i = 0; i < MU_PART_COUNT; ++i)
         free(a->part[i]);
+    mu_lang_free(a->lang);
     free(a);
 }
 
 mu_world_rt *mu_world_rt_open(const mu_world_rt_options *o, char *error, size_t error_size)
 {
-    if (seq_build(error, error_size))
-        return NULL;
     mu_world_rt *a = calloc(1, sizeof *a);
     if (!a) {
         snprintf(error, error_size, "out of memory");
         return NULL;
     }
+    if (seq_build(a, error, error_size)) { free_runtime(a); return NULL; }
+    a->perf = o->perf;
+    a->lang = mu_lang_load_default();
     for (int i = 0; i < MU_PART_COUNT; ++i)
         if (ROWS[i].ops->state_size && !(a->part[i] = calloc(1, ROWS[i].ops->state_size))) {
             snprintf(error, error_size, "out of memory");
@@ -583,7 +581,7 @@ void mu_world_rt_gl_teardown(mu_world_rt *a)
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
-    mu_gl_perf_free();
+    mu_gl_perf_free(a->perf);
     mu_gl_batch_free(a->batch);
     a->batch = NULL;
     a->gl_ready = 0;
@@ -657,7 +655,7 @@ void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t co
 
 long mu_world_rt_draw_gl(mu_world_rt *a, int32_t width, int32_t height)
 {
-    mu_gl_perf_begin();
+    mu_gl_perf_begin(a->perf);
     const mu_client_view *v = &a->walk.frame.view;
     uint8_t clear[4] = {sky[0], sky[1], sky[2], sky[3]};
     if (a->has_env)
@@ -670,7 +668,7 @@ long mu_world_rt_draw_gl(mu_world_rt *a, int32_t width, int32_t height)
     int i;
     EACH(COL_DRAW_GL, i)
         ROWS[i].ops->draw_gl(a, a->part[i], &d);
-    mu_gl_perf_end();
+    mu_gl_perf_end(a->perf);
     return d.faces;
 }
 
@@ -707,6 +705,7 @@ static void options_chat(void *user, const char *text)
 
 void world_rt_names_gfx_attach(mu_world_rt *a, double scale)
 {
+    world_gfx_set_perf(a->gfx, a->perf);
     a->gfx_scale = scale;
     if (a->gfxsocial && a->gfxsocial_owner != a->gfx) { world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL; }
     if (!a->gfxsocial && a->gfx && a->social) {
@@ -740,6 +739,7 @@ void mu_world_rt_set_gfx(mu_world_rt *a, struct world_gfx *gfx, double scale)
     }
     a->gfx = gfx;
     if (gfx) {
+        world_gfx_set_perf(gfx, a->perf);
         world_rt_names_gfx_attach(a, scale);
         world_gfx_quest_setup(gfx, a->npc_demo ? a->npc_demo->quests : NULL);   /* NATIVE-QUEST-001 */
     } else if (a->names)

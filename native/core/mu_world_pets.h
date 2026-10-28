@@ -31,6 +31,7 @@ typedef struct mu_wp_stats {
 
 typedef struct mu_world_pets {
     mu_pets p;
+    struct mu_world_helpers *helpers; /* host binding for this pet process */
     mu_pet_owner owners[16];
     mu_pet_inputs inputs;
     int loaded;               /* petdata.bmd: 0 ok, 1 missing, 2 corrupted, -1 not read */

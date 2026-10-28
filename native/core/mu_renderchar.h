@@ -41,7 +41,7 @@ typedef struct mu_renderchar_env {
     float time;              /* 0x06fce370 */
     int32_t quality;         /* graphics option (glow level cap 2q+5 for q <= 4) */
     float glow_color[3];     /* EnchantEffect colour (viewer parameter) */
-    const struct mu_lang *lang;   /* EnchantEffect table (mu_renderchar_default_env: mu_lang_shared()) */
+    const struct mu_lang *lang;   /* EnchantEffect table (borrowed from the runtime) */
     int glow_override;       /* 1: glow_color for every item even with the table */
     uint32_t render_type;    /* 2: body parts and RenderLinkItem items */
 } mu_renderchar_env;

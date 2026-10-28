@@ -25,24 +25,11 @@ static int deliver_tree(mu_skill_tree4 *t, const uint8_t *p, size_t n, mu_skill_
     int r = mu_skill_tree4_receive(t, p, n);
     return output ? output(u, p, n) : r;
 }
-#define DEMO_CLASSES 16
-#define DEMO_SKILLS 64
-
-typedef struct demo_class {
-    int32_t skills[DEMO_SKILLS];
-    int count;
-    int32_t keys[MU_SKILL_SLOTS];     /* the saved bar: key 1..9, 0 (-1 none) */
-    int has_keys;
-} demo_class;
-
-static demo_class demo[DEMO_CLASSES];
-static int demo_ready;
-
-static void demo_set(int ci, const int32_t *skills, const int32_t *keys)
+static void demo_set(mu_skill_demo *model, int ci, const int32_t *skills, const int32_t *keys)
 {
-    demo_class *d = &demo[ci];
+    mu_skill_demo_class *d = &model->classes[ci];
     d->count = 0;
-    for (const int32_t *p = skills; *p && d->count < DEMO_SKILLS; p++)
+    for (const int32_t *p = skills; *p && d->count < MU_DEMO_SKILLS; p++)
         d->skills[d->count++] = *p;
     for (int i = 0; i < MU_SKILL_SLOTS; i++)
         d->keys[i] = keys ? keys[i] : (i < d->count ? d->skills[i] : -1);
@@ -50,7 +37,7 @@ static void demo_set(int ci, const int32_t *skills, const int32_t *keys)
 }
 
 /* Built-in demo lists (skill indices of the classic classes). */
-static void demo_defaults(void)
+void mu_skill_demo_reset(mu_skill_demo *model)
 {
     static const int32_t DW[] = {17, 4, 11, 3, 6, 2, 7, 1, 5, 8, 9, 10, 12, 14, 13, 16, 38, 39, 0};
     /* the demo hero (Blade Knight): melee skills, Blood Storm (a master skill with a 5 s delay)
@@ -59,19 +46,19 @@ static void demo_defaults(void)
     static const int32_t DK_KEYS[MU_SKILL_SLOTS] = {19, 41, 22, 344, 42, 43, 18, 20, 21, 23};
     static const int32_t ELF[] = {24, 26, 27, 28, 30, 31, 32, 51, 52, 33, 34, 35, 36, 0};
     static const int32_t ANY[] = {17, 4, 9, 10, 14, 22, 41, 24, 26, 3, 6, 2, 0};
-    for (int ci = 0; ci < DEMO_CLASSES; ci++)
-        demo_set(ci, ANY, NULL);
-    demo_set(0, DW, NULL);
-    demo_set(1, DK, DK_KEYS);
-    demo_set(2, ELF, NULL);
-    demo_ready = 1;
+    for (int ci = 0; ci < MU_DEMO_CLASSES; ci++)
+        demo_set(model, ci, ANY, NULL);
+    demo_set(model, 0, DW, NULL);
+    demo_set(model, 1, DK, DK_KEYS);
+    demo_set(model, 2, ELF, NULL);
+    model->ready = 1;
 }
 
 /* A demo file: "list CLASS SKILL..." and "keys CLASS K1 K2 .. K9 K0" (-1 none) lines, '#' comments. */
-int mu_skill_demo_load(const char *path)
+int mu_skill_demo_load(mu_skill_demo *model, const char *path)
 {
-    if (!demo_ready)
-        demo_defaults();
+    if (!model->ready)
+        mu_skill_demo_reset(model);
     FILE *f = path ? fopen(path, "r") : NULL;
     if (!f)
         return -1;
@@ -80,19 +67,19 @@ int mu_skill_demo_load(const char *path)
     while (fgets(line, sizeof line, f)) {
         char word[16];
         int ci, used;
-        if (line[0] == '#' || sscanf(line, "%15s %d%n", word, &ci, &used) != 2 || ci < 0 || ci >= DEMO_CLASSES)
+        if (line[0] == '#' || sscanf(line, "%15s %d%n", word, &ci, &used) != 2 || ci < 0 || ci >= MU_DEMO_CLASSES)
             continue;
         const char *p = line + used;
-        int32_t v[DEMO_SKILLS + 1];
+        int32_t v[MU_DEMO_SKILLS + 1];
         int k = 0;
         char *end;
-        for (long x = strtol(p, &end, 0); end != p && k < DEMO_SKILLS; x = strtol(p, &end, 0)) {
+        for (long x = strtol(p, &end, 0); end != p && k < MU_DEMO_SKILLS; x = strtol(p, &end, 0)) {
             v[k++] = (int32_t)x;
             p = end;
         }
         if (!strcmp(word, "list")) {
             v[k] = 0;
-            demo_class *d = &demo[ci];
+            mu_skill_demo_class *d = &model->classes[ci];
             d->count = 0;
             for (int i = 0; i < k; i++)
                 if (v[i] > 0)
@@ -100,8 +87,8 @@ int mu_skill_demo_load(const char *path)
             n++;
         } else if (!strcmp(word, "keys")) {
             for (int i = 0; i < MU_SKILL_SLOTS; i++)
-                demo[ci].keys[i] = i < k ? v[i] : -1;
-            demo[ci].has_keys = 1;
+                model->classes[ci].keys[i] = i < k ? v[i] : -1;
+            model->classes[ci].has_keys = 1;
             n++;
         }
     }
@@ -109,14 +96,14 @@ int mu_skill_demo_load(const char *path)
     return n;
 }
 
-int mu_skill_book_demo_login_emit(mu_skill_book *b, int32_t class_byte, mu_skill_output output, void *user)
+int mu_skill_book_demo_login_emit(mu_skill_demo *model, mu_skill_book *b, int32_t class_byte, mu_skill_output output, void *user)
 {
     if (!b)
         return 0;
-    if (!demo_ready)
-        demo_defaults();
+    if (!model->ready)
+        mu_skill_demo_reset(model);
     int ci = class_byte & 0xf;
-    const demo_class *d = &demo[ci];
+    const mu_skill_demo_class *d = &model->classes[ci];
     /* DEMO class map: without the records' class maps (skills_class.tsv) the demo's own list says which skills
      * the class has (the stamp manager's tabs are built from the class map) */
     if (!mu_skill_book_has_classes(b))
@@ -140,9 +127,9 @@ int mu_skill_book_demo_login_emit(mu_skill_book *b, int32_t class_byte, mu_skill
     return mu_skill_book_hero(b)->count;
 }
 
-int mu_skill_book_demo(mu_skill_book *b, int32_t class_index)
+int mu_skill_book_demo(mu_skill_demo *model, mu_skill_book *b, int32_t class_index)
 {
-    return mu_skill_book_demo_login(b, class_index);
+    return mu_skill_book_demo_login(model, b, class_index);
 }
 
 int mu_skill_book_demo_learn_emit(mu_skill_book *b, int32_t skill, int forget, mu_skill_output output, void *user)
@@ -239,7 +226,7 @@ static void demo_requirements(mu_skill_tree4 *t, const mu_t4_tclass *c, mu_skill
     mu_master_tree *tree = t->book ? mu_skill_book_master(t->book) : NULL;
     if (!tree || !c)
         return;
-    static uint8_t packet[12 + 16 * MU_MASTER_NODES];
+    uint8_t packet[12 + 16 * MU_MASTER_NODES];
     memset(packet, 0, sizeof packet);
     packet[0] = 0xc2;
     packet[3] = 0xa0;
@@ -378,7 +365,7 @@ int mu_skill_tree4_demo_side_request_emit(mu_skill_tree4 *t, const uint8_t *pack
     return deliver_tree(t, a, sizeof a, output, user);
 }
 
-int mu_skill_book_demo_login(mu_skill_book *b, int32_t class_byte) { return mu_skill_book_demo_login_emit(b, class_byte, NULL, NULL); }
+int mu_skill_book_demo_login(mu_skill_demo *model, mu_skill_book *b, int32_t class_byte) { return mu_skill_book_demo_login_emit(model, b, class_byte, NULL, NULL); }
 int mu_skill_book_demo_learn(mu_skill_book *b, int32_t skill, int forget) { return mu_skill_book_demo_learn_emit(b, skill, forget, NULL, NULL); }
 int mu_skill_book_demo_master_login(mu_skill_book *b) { return mu_skill_book_demo_master_login_emit(b, NULL, NULL); }
 int mu_skill_book_demo_master_request(mu_skill_book *b, const uint8_t *p, size_t size) { return mu_skill_book_demo_master_request_emit(b, p, size, NULL, NULL); }
@@ -386,5 +373,3 @@ int mu_skill_tree4_demo_login(mu_skill_tree4 *t, int32_t points) { return mu_ski
 int mu_skill_tree4_demo_request(mu_skill_tree4 *t, const uint8_t *packet, size_t size) { return mu_skill_tree4_demo_request_emit(t, packet, size, NULL, NULL); }
 int mu_skill_tree4_demo_side(mu_skill_tree4 *t) { return mu_skill_tree4_demo_side_emit(t, NULL, NULL); }
 int mu_skill_tree4_demo_side_request(mu_skill_tree4 *t, const uint8_t *packet, size_t size) { return mu_skill_tree4_demo_side_request_emit(t, packet, size, NULL, NULL); }
-
-void mu_skill_demo_reset(void) { demo_defaults(); }

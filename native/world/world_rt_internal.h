@@ -53,6 +53,9 @@ enum {
 };
 
 struct mu_world_rt {
+    int8_t seq[6][MU_PART_COUNT + 1];
+    struct mu_perf *perf;
+    struct mu_lang *lang;
     uint8_t input_state[256], input_down[256];
     int input_composing, input_x, input_y, input_suspended;
     /* the world and the hero (world/main.c's options) */

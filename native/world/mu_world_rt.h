@@ -32,7 +32,9 @@ typedef struct mu_world_rt mu_world_rt;
  * the shell's join answer set, passed through unchanged.  mu_world_rt_default_options gives mu-world's
  * defaults; a memset of zero is the bare runtime (the test hosts).  Until the session exists the join
  * (world, class, tile, angle, equipment, name, level) and the demo feature switches live here too. */
+struct mu_perf;
 typedef struct mu_world_rt_options {
+    struct mu_perf *perf; /* borrowed front-end profiling context, NULL disables */
     /* read-only inputs */
     const char *root;              /* game root (models, terrain, textures, WAVs) */
     const char *player;            /* Player.bmd (NULL: ROOT/Data/Player/Player.bmd) */
