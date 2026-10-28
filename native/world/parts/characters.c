@@ -4,6 +4,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "../world_rt_internal.h"
 #include "../../session/mu_session.h"
+#include "../../core/mu_session_audio.h"
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/characters_demo.h"
@@ -20,6 +21,8 @@ typedef struct characters_part {
     void *demo;
     uint32_t tick;
     mu_world_players services;
+    mu_cue_cursor audio_cursor;
+    uint32_t audio_rng;
 } characters_part;
 
 void world_rt_actors_sync(mu_world_rt *a);
@@ -68,6 +71,7 @@ static int characters_open(mu_world_rt *a, void *self)
     p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);
     if(!p->session) {fprintf(stderr,"characters: %s\n",error);return 1;}
 attach:
+    p->audio_rng = 0x41554432u;
     p->services.map = a->map; p->services.walk = &a->walk;
     mu_world_port port;
     mu_world_players_port(a->players ? a->players : &p->services,&port);
@@ -97,6 +101,18 @@ static void characters_close(mu_world_rt *a, void *self)
         a->actors.session = NULL; a->actors.transport = NULL; a->actors.fixture = NULL;
     }
     memset(p, 0, sizeof *p);
+}
+
+mu_session *world_rt_characters_session(mu_world_rt *a)
+{
+    characters_part *p = a->part[MU_PART_characters];
+    return p ? p->session : NULL;
+}
+
+void world_rt_characters_audio_drain(mu_world_rt *a)
+{
+    characters_part *p = a->part[MU_PART_characters];
+    if (p) mu_session_audio_drain(p->session, &p->audio_cursor, a->has_sound ? a->sound.host : NULL);
 }
 
 static void characters_tick(mu_world_rt *a, void *self)
@@ -129,7 +145,20 @@ static void characters_tick(mu_world_rt *a, void *self)
         if(!sim.used[i])continue;
         for(int32_t k=0;a->has_actors && k<a->actors.count;++k)
             if(a->actors.list[k].session_slot==i && a->actors.list[k].session_key==sim.characters[i].key) {
-                mu_world_actors_step_one(&a->actors,k,&sim.characters[i]);break;
+                mu_world_actor *actor = &a->actors.list[k];
+                mu_world_actors_step_one(&a->actors,k,&sim.characters[i]);
+                if (sim.characters[i].live) {
+                    int32_t model = actor->actor.spec.model_index;
+                    int32_t random = 0;
+                    if (model == 0xa0b || model == 0xa06) {
+                        /* Audio-only MSVC rand stream. Never consume the visual RNG. */
+                        p->audio_rng = p->audio_rng * 214013u + 2531011u;
+                        random = (int32_t)((p->audio_rng >> 16) & 0x7fffu);
+                    }
+                    float frame = actor->player ? mu_model_frame(&actor->player->player) : mu_actor_frame(&actor->actor);
+                    mu_session_npc_voice(p->session, model, random, sim.characters[i].action, frame, -1);
+                }
+                break;
             }
         for(int32_t k=0;a->players && k<a->players->count;++k)
             if(a->players->list[k].key==sim.characters[i].key) {
@@ -138,6 +167,7 @@ static void characters_tick(mu_world_rt *a, void *self)
     }
     if(a->players) a->players->leased_records=NULL;
     mu_session_sim_end(p->session,&sim);
+    world_rt_characters_audio_drain(a);
     if(a->players) ++a->players->steps;
     if(a->has_actors) ++a->actors.steps;
 }

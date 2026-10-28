@@ -2,6 +2,8 @@
 
 RENDER-WORLDS-E: [handoff](handoffs/RENDER-WORLDS-E.md). Elbeland boids and Raklion event timer implemented; Aida light accumulation attributed. Full Mac gate passes, 1,449 tests; fourteen-view scores/hashes unchanged.
 
+AUDIO-002 part 2: [handoff](handoffs/AUDIO-002B.md). Thirty caller sites have adapters into the character session ring; one NPC buff input remains unresolved. Combat, unmigrated domains, music 43/44 and LIVE-PLAY comparison remain separate.
+
 WORLD-ORDER-001: [handoff](handoffs/WORLD-ORDER-001.md). Tick/draw expectations now read compiled call records; native deviations are explicit. No runtime/order-number change.
 
 RENDER-WORLDS-F: [handoff](handoffs/RENDER-WORLDS-F.md). Missing additive screen passes recovered and wired in both renderers. Original Tarkan/Raklion PNGs are absent, so live-image error remains unmeasured.

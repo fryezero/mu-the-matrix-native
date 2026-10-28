@@ -4,6 +4,17 @@
 #include <stdio.h>
 
 #include "../world_rt_internal.h"
+#include "../../core/mu_session_audio.h"
+
+static void character_walk_sound(void *context, uint32_t site, int32_t id)
+{
+    mu_world_rt *a = context;
+    mu_session *session = world_rt_characters_session(a);
+    if (session) {
+        mu_session_sound_emit(session, 0x013b1f61u, site, id, -2, 0);
+        world_rt_characters_audio_drain(a);
+    } else if (a->has_sound) mu_audio_host_play(a->sound.host, id, 0);
+}
 
 static int sound_open(struct mu_world_rt *a, void *self)
 {
@@ -16,6 +27,8 @@ static int sound_open(struct mu_world_rt *a, void *self)
             return 1;
         }
         a->has_sound = 1;
+        a->sound.sound_cue = character_walk_sound;
+        a->sound.sound_context = a;
     }
     return 0;
 }
@@ -33,6 +46,17 @@ void world_rt_env_sound(void *context, int32_t id)
     mu_world_rt *a = context;
     if (a->has_sound)
         mu_audio_host_play(a->sound.host, id, 0);
+}
+
+/* Environment callers with a migrated character session use that session's ring.
+ * Standalone legacy world viewers have no session and retain their direct facade. */
+void world_rt_ambient_sound(void *context, int32_t id)
+{
+    mu_world_rt *a = context;
+    mu_session *session = world_rt_characters_session(a);
+    if (session && mu_session_ambient_sound(session, id))
+        world_rt_characters_audio_drain(a);
+    else if (a->has_sound) mu_audio_host_play(a->sound.host, id, 0);
 }
 
 /* End of every logic step: the client's MoveCharacters runs the hero's per-character routine (foot reset after

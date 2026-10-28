@@ -1753,3 +1753,18 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations"
 "ok" = true
 "families.*.equal" = {same_as = "families.*.cases"}
 "families.*.stopped" = 0
+
+[validate_audio_callers]
+test = "native/tests/test_audio_cues.py::AudioCues.test_original_domain_audio_callers"
+pins = ["text", "data"]
+families = ["voice", "talk", "walk", "ambient", "objects"]
+cases = 5528
+mutants = 18
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["native"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_callers.expect]
+mismatches = 0
+"families.*.mismatches" = 0
+"mutants.*" = "caught"
