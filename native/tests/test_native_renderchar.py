@@ -92,6 +92,13 @@ class WorldRender(unittest.TestCase):
         info, _ = self.render('--item-type', 'weapon1=0x22ea', '--item-level', 'all=13', '--world-time', '700')
         self.assertEqual((info['special'], info['passes']), (0, 21))
 
+    def test_remaining_skin_bodies_and_sprites(self):
+        early, _ = self.render('--item-type', 'helm=0x3895', '--item-level', 'helm=14', '--quality', '0')
+        self.assertEqual((early['special'], early['passes']), (0, 7))
+        for t in (0x389c, 0x389d):
+            skin, _ = self.render('--item-type', f'helm={t}', '--world-time', '500')
+            self.assertEqual((skin['special'], skin['link_sprites']), (0, 1))
+
     def test_native_link_saved_pose_and_capacity(self):
         subprocess.run(['make', '-s', '-C', str(NATIVE), 'build/item-render-host'], check=True, capture_output=True)
         result = subprocess.run([str(NATIVE/'build/item-render-host')], check=True, capture_output=True, text=True)

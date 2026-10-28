@@ -20,7 +20,7 @@ SKINS = glow.SKIN_TYPES
 def mutations(directory, bodies, links):
     source = (ROOT/'reconstructed/renderchar/renderchar.c').read_text()
     changes = {
-        'armour-pulse': ('* 0.5f + 0.2f;', '* 0.5f + 0.3f;'),
+        'armour-pulse': ('return armour_wave(time) + 0.2f;', 'return armour_wave(time) + 0.3f;'),
         'mesh-index': ('d.mesh = (int32_t)words[0];', 'd.mesh = (int32_t)words[0] + 1;'),
         'skin-level': ('level = mu_rc_skin_glow_rows[i].levels[level];', 'level = mu_rc_skin_glow_rows[i].levels[level] + 1;'),
         'skin-record-bound': ('(uint32_t)(it->type - 0xae6) <= 0x2c00u && it->kind_a', 'it->kind_a'),

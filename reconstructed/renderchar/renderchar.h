@@ -115,6 +115,8 @@ typedef struct mu_rc_link_effect {
     float offset[3];
     int32_t particle; /* 0: sprite, otherwise CreateParticle subtype */
 } mu_rc_link_effect;
+/* Class-skin RenderObjDraw sprite. Transform with translate=0, then add the object origin. */
+int mu_rc_skin_effect(int32_t type, float time, mu_rc_link_effect *out);
 typedef int32_t (*mu_rc_random_fn)(void *context);
 int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
                         mu_rc_link_effect *out, int32_t capacity, int32_t *count);
