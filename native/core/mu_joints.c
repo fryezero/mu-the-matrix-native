@@ -30,10 +30,11 @@ int32_t mu_joints_move_all(mu_jt_joint *pool, int32_t count, const mu_jt_env *en
         mu_jt_joint *j = &pool[i];
         if (!j->live)
             continue;
-        mu_jt_move_inputs in = {time_step, 0, 0, 0};
+        mu_jt_move_inputs in = {time_step, 0, 0, i, 0};
         if (inputs)
             inputs(inputs_context, j, &in);
         in.time_step = time_step;
+        in.index = i;
         if (!mu_jt_move(j, env, &in)) {
             j->live = 0;
             continue;

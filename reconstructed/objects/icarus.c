@@ -67,3 +67,26 @@ void mu_icarus_object(const uint8_t *o,int32_t index,int32_t selected,int32_t *o
     e.args[9]=MU_ICARUS_SPRITE_HERO; e.args[10]=0; e.args[11]=4; emit(log,&e);
     for(int k=0;k<2;++k) joint(log,index,0x7f7c,p,p,a,6,(float)(random(context)%20)+10.0f);
 }
+
+/* RenderObjectVisual world 10, types 0..5, 0x017fba5e..0x017fbf34.
+ * Model lookup and the common random brightness call precede this slice. */
+void mu_icarus_cover(uint8_t *o, int32_t index, mu_obj_log *log)
+{
+    int32_t type = mu_obj_i32(o, MU_OBJF_TYPE);
+    if (type < 0 || type > 5) return;
+    if (mu_obj_i32(o, MU_OBJF_HIDDEN_MESH) != -2) {
+        for (int i = 0; i < (type < 3 ? 20 : 10); ++i) {
+            mu_obj_event e = {MU_OBJ_CALL_PARTICLE, index, 12, {0}};
+            e.args[0] = 0x7f89;
+            for (int k = 0; k < 3; ++k) {
+                e.args[1+k] = bits(mu_obj_f32(o, MU_OBJF_POSITION + 4u*(unsigned)k));
+                e.args[4+k] = bits(mu_obj_f32(o, MU_OBJF_ANGLE + 4u*(unsigned)k));
+                e.args[7+k] = bits(0.1f);
+            }
+            e.args[10] = (uint32_t)type;
+            e.args[11] = bits(mu_obj_f32(o, MU_OBJF_SCALE));
+            emit(log, &e);
+        }
+    }
+    mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, -2);
+}

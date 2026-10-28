@@ -122,7 +122,7 @@ MATRIX = 0x29400000
 
 KINDS = [(0x7ef7, 1)] + [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7f5a, 0), (0x7f5a, 2), (0x7f5a, 3), (0x7f25, 0), (0x771c, 0), (0x771d, 0),
                                                             (0x7f2b, 0), (0x7f26, 0), (0x7f26, 1),
-                                                            (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
+                                                            *[(0x7f89, s) for s in range(6)], (0x7f89, 0x14), (0x801a, 2),   # NATIVE-JOINT-001: login mist/spray
                                                             (0x7f66, 0), (0x7f66, 1),      # Noria's Shiny01
                                                             # NATIVE-CHARSEL-002: the character-select scene
                                                             (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5),
@@ -144,6 +144,7 @@ F3 = ctypes.c_float*3
 RAND_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)
 HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_float, ctypes.c_float)
 OWNER_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_float))
+CLOUD_OWNER_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int)
 BITMAP_HEIGHT_FN = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_int32)
 
 
@@ -161,7 +162,7 @@ class Host(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('terrain_height', HEIGHT_FN),
                 ('owner_position', OWNER_FN), ('world', ctypes.c_int32), ('world_time', ctypes.c_float),
                 ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32),
-                ('bitmap_height', BITMAP_HEIGHT_FN)]
+                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN)]
 
 
 class Bitmap(ctypes.Structure):
@@ -255,7 +256,7 @@ def load_library(path):
             ('mu_pt_wrapper_keeps', [P(Host), I, I], ctypes.c_int),
             ('mu_pt_create_record', [P(Particle), P(Host), I, FP, FP, FP, I, ctypes.c_float, I, I], ctypes.c_int),
             ('mu_pt_move_record', [P(Particle), P(Host)], ctypes.c_int),
-            ('mu_pt_render_record', [P(Particle), P(Bitmap), U8, P(RenderCall)], ctypes.c_int),
+            ('mu_pt_render_record', [P(Particle), P(Bitmap), U8, ctypes.c_float, I, P(RenderCall)], ctypes.c_int),
             ('mu_pt_render_sprite', [FP, P(SpriteCall), I, P(GL)], None),
             ('mu_pt_sprite_create', [P(Sprites), I, FP, ctypes.c_float, FP, I, ctypes.c_float, I, I, P(Sheet)], I),
             ('mu_pt_sprites_mark_visible', [P(Sprites)], None),
@@ -426,7 +427,11 @@ class Case:
             mask = bytearray(0x400)
             struct.pack_into('<3f', raw, 0x158, *pos)
             mask[0x158:0x164] = b'\1'*12
-            out.append(am.Region(f'owner{i}', object_address(i), bytes(raw), bytes(mask), writable=False))
+            raw[0xb] = getattr(self, "visible", 1)
+            mask[0xb] = 1
+            struct.pack_into("<i", raw, 0x68, -2)
+            mask[0x68:0x6c] = b"\1"*4
+            out.append(am.Region(f'owner{i}', object_address(i), bytes(raw), bytes(mask), writable=True))
         return out
 
     def host(self, world=0, world_time=0.0, dt=0.1, divisor=1, scene=6):
@@ -446,9 +451,12 @@ class Case:
         def bitmap_height(ctx, index):
             self.c_calls.append(('bitmap', index))
             return self.bitmap_h
-        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height))
+        def cloud_owner(ctx, owner, reset):
+            if reset: self.owner_hidden = 0
+            return int(getattr(self, 'visible', 1) == 1)
+        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height), CLOUD_OWNER_FN(cloud_owner))
         self._keep.append(fns)
-        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3])
+        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3], fns[4])
 
     def bitmap_region(self):
         # NATIVE-HELPERS-002: the record the getter 0x00ebbec8 returns (only the height +0x208 defined)
@@ -513,7 +521,7 @@ def family_create(m, lib, rng, cases, report, negatives):
         light = [rf(rng, 0.0, 1.5) for _ in range(3)]
         scale = f32(rng.choice([1.0, 1.0, 0.5, 2.0, 4.0, rf(rng, 0.1, 8.0)]))
         arg8 = rng.randrange(-2**31, 2**31)
-        owner = rng.choice([-1, -1, 0])
+        owner = 0 if kind[0] == 0x7f89 and kind[1] < 6 else rng.choice([-1, -1, 0])
         world = rng.choice([0, 2, 0x22, 0x8d, 0x8b, 0x5d])
         world_time = f32(rng.choice([0.0, 39.0, 123456.0, rng.uniform(0, 3.0e6)]))
         scene = rng.choice([6, 5, 5, 3])
@@ -654,12 +662,17 @@ def family_move(m, lib, rng, cases, report, negatives):
     for n in range(cases):
         kind = KINDS[n % len(KINDS)]
         p = random_particle(rng, kind)
+        if kind[0] == 0x7f89 and kind[1] < 6: p.owner = 0
         world = rng.choice([0, 0x22, 0x8d, 2])
         dt = f32(rng.choice([0.1, 0.1, rf(rng, 0.0, 2.0)]))
         case = Case(rng, height=rng.uniform(-50, 400), owners=[[rf(rng, 0, 25600), rf(rng, 0, 25600), 150.0]])
+        cloud = kind[0] == 0x7f89 and kind[1] < 6
+        case.visible = rng.choice([0, 1, 2]) if cloud else 1
+        case.owner_hidden = -2
+        world_time = f32(rng.uniform(-1e6, 1e6)) if cloud else 0.0
         record = particle_region(lib, p)
-        regions = [record, case.bitmap_region()] + globals_region(world, 0.0, dt) + case.owner_regions()
-        host = case.host(world, 0.0, dt)
+        regions = [record, case.bitmap_region()] + globals_region(world, world_time, dt) + case.owner_regions()
+        host = case.host(world, world_time, dt)
         before = Particle.from_buffer_copy(p)
         if p.lifetime <= 0 or not p.live:
             moved = lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
@@ -678,6 +691,9 @@ def family_move(m, lib, rng, cases, report, negatives):
             if mismatch is None and (len(case.client_calls) != len(case.c_calls) or
                                      not all(vc._same_call(a, b) for a, b in zip(case.client_calls, case.c_calls))):
                 mismatch = ('calls', case.client_calls, case.c_calls)
+        if cloud and vc.ok(r):
+            client_hidden = struct.unpack_from('<i', r['regions']['owner0'], 0x68)[0]
+            if client_hidden != case.owner_hidden: mismatch = ('owner hidden', client_hidden, case.owner_hidden)
         equal = moved == 1 and vc.ok(r) and mismatch is None
         report.add('move', equal, {'case': n, 'kind': [hex(kind[0]), kind[1]], 'mismatch': mismatch,
                                    'stopped': r['stopped'], 'error': r['error'], 'checks': r['checks']})
@@ -756,6 +772,7 @@ def family_render(m, lib, rng, cases, report, negatives):
         if rng.random() < 0.3:
             p.position[2] = f32(rng.choice([300.0, 350.0, 299.99997, 350.00003, 1e9]))
         case = Case(rng)
+        world_time = f32(rng.uniform(0, 1e6))
         record = particle_region(lib, p)
         bmr = am.Region('bitmap', BITMAP_RECORD, am.poison(0x220, 0x44), bytes(0x220), writable=False)
         bmr.define(BITMAP_RECORD+0x204, struct.pack('<ff', bm.width, bm.height))
@@ -782,10 +799,10 @@ def family_render(m, lib, rng, cases, report, negatives):
                                          STATE_ADD: wrapper(STATE_ADD, 0), STATE_ALPHA: wrapper(STATE_ALPHA, 1),
                                          STATE_SUB: wrapper(STATE_SUB, 0), STATE_6B7: wrapper(STATE_6B7, 0),
                                          STATE_6DA: wrapper(STATE_6DA, 0), STATE_BLEND: wrapper(STATE_BLEND, 0)})
-        r = m.execute(0x015912e9, [0x5500 | mode], [record, bmr], stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME),
+        r = m.execute(0x015912e9, [0x5500 | mode], [record, bmr] + globals_region(world_time=world_time), stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME, {-0x60: n}),
                       cleanup=4)
         rc = RenderCall()
-        drawn = lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), mode, ctypes.byref(rc))
+        drawn = lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), mode, world_time, n, ctypes.byref(rc))
         mine = []
         if drawn == 1:
             mine.append(('bitmap', p.tex_type))

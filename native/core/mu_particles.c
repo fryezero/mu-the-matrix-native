@@ -9,6 +9,7 @@
 #include "mu_world_actors.h"
 #include "mu_objects.h"
 #include "mu_env.h"
+#include "../../reconstructed/objects/icarus.h"
 #include "mu_world_helpers.h"
 #include "mu_meshdraw.h"
 #include "../../reconstructed/environment/env.h"
@@ -112,6 +113,15 @@ static float h_bitmap_height(void *c, int32_t bitmap)
     return s >= 0 && p->bitmap_present[s] ? (float)p->bitmaps.images[s].height : 0.0f;
 }
 
+static int h_cloud_owner(void *c, int32_t index, int reset)
+{
+    mu_world_particles *p = c;
+    uint8_t *o = p->objects ? mu_objects_object_image(p->objects, index) : NULL;
+    if (!o) return 0;
+    if (reset) mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, 0);
+    return o[MU_OBJF_VISIBLE] == 1;
+}
+
 static void host(mu_world_particles *p, mu_pt_host *h)
 {
     memset(h, 0, sizeof *h);
@@ -125,6 +135,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->drop_divisor = 1;
     h->scene_state = p->scene_state;   /* SceneFlag (NATIVE-CHARSEL-002: WATERFALL2 in scene 5) */
     h->bitmap_height = h_bitmap_height;
+    h->cloud_owner = h_cloud_owner;
 }
 
 /* ---- assets ---- */
@@ -313,6 +324,13 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
         *o = hero_view(p);
         return o;
     }
+    if (index >= MU_WORLD_FX_BOID_BASE && index < MU_WORLD_FX_BOID_BASE + MU_ENV_BOIDS) {
+        if (!p->environment) return NULL;
+        const mu_env_object *b = &p->environment->env.boids[index - MU_WORLD_FX_BOID_BASE];
+        memset(o, 0, sizeof *o); o->live = b->live; o->visible = b->visible; o->type = b->type;
+        memcpy(o->position, b->position, 12); memcpy(o->light, b->light, 12);
+        return o;
+    }
     if (index >= MU_WH_EFFECT_BASE && index < MU_WORLD_FX_HERO_OBJECT)
         return mu_world_helpers_effect_object(p->helpers, index, o) ? o : NULL;
     if (index >= MU_WORLD_ACTOR_FX_BASE && index < MU_WH_EFFECT_BASE) {
@@ -352,6 +370,7 @@ static void joint_env(mu_world_particles *p, mu_jt_env *env)
     env->object = jt_object;
     env->call = jt_call;
     env->world_time = p->world_time;
+    env->ambient_clock = p->environment ? p->environment->inputs.ambient_clock : 0;
 }
 
 static int32_t sfx_rand(void *c) { return mu_world_particles_rand(c); }
@@ -991,7 +1010,7 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
     mu_pt_sprites_mark_visible(p->sprites);   /* 0x01692887 */
     const int32_t sprites = mu_pt_sprites_render(p->sprites, 0, p->world_time, p->camera, bitmap_info, p, &gl,
                                                  NULL, NULL);
-    const int32_t particles = mu_pt_render_all(&p->list, 0, p->camera, bitmap_info, p, &gl);
+    const int32_t particles = mu_pt_render_all(&p->list, 0, p->camera, p->world_time, bitmap_info, p, &gl);
     p->stats.drawn_sprites = (uint32_t)sprites;
     p->stats.drawn_particles = (uint32_t)particles;
     p->stats.shadows = p->stats.pending_shadows;   /* the frame's RenderBoids/RenderFishs ran before the sprite pass */
@@ -1413,12 +1432,31 @@ static void o_effect(void *c, int32_t type, int32_t subtype, const float positio
     mu_world_particles_effect(c, type, subtype, position, angle, light, owner, 0.0f, &info);
 }
 
+/* Icarus consumes the authored visual events here, keeping object-only tools independent of UI hosts. */
+static void icarus_cover(mu_world_particles *p, mu_objects *o, int32_t index)
+{
+    mu_obj_event events[20]; mu_obj_log log = {0, 20, 0, events};
+    (void)mu_world_particles_rand(p); /* RenderObjectVisual's common brightness. */
+    mu_icarus_cover(mu_objects_object_image(o, index), index, &log);
+    for (int i = 0; i < log.count; ++i) {
+        const mu_obj_event *e = &events[i];
+        float pos[3], angle[3], light[3], scale;
+        memcpy(pos, e->args + 1, 12); memcpy(angle, e->args + 4, 12);
+        memcpy(light, e->args + 7, 12); memcpy(&scale, e->args + 11, 4);
+        mu_world_particles_create_owned(p, 0x7f89, pos, angle, light, (int32_t)e->args[10], scale, index);
+    }
+}
+
 static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model, mu_object_model *m)
 {
     mu_world_particles *p = c;
     uint8_t *img = mu_objects_object_image(o, index);
     if (!img)
         return;
+    if (o->world == 10) {
+        if (has_model) icarus_cover(p, o, index);
+        return;
+    }
     mu_pt_visual_object v;
     memset(&v, 0, sizeof v);
     v.index = index;
@@ -1456,6 +1494,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.hook_context = p;
         p->objects = objects;
     }
+    p->environment = env;
     if (env)
         env->particles = p;
 }
