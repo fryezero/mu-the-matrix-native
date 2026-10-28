@@ -44,17 +44,41 @@ their checked-in rendering rules from pinned instructions. Twenty further origin
 signed clocks, wrap/remainder boundaries and conversion limits. New evidence totals **25,792 cases**.
 These comparisons cover bounded draw/service streams, not every persistent model/OBJECT byte or GL output.
 
-Earlier body/link/skin/particle regression results and the full Mac release gate are recorded below after
-the resumed runs complete. Reports/logs stay local under
-`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002e/resume/`.
+Earlier body/link/skin/particle regressions and the full Mac release gate are listed below. Finalization
+reports/logs stay local under
+`~/Documents/MTM/mu-mac-tools/native/scratch/render-items-002e/finalize/`; the preceding interrupted run
+remains preserved in `resume/`.
 
 Offline before/after renders are preserved under `mu-mac-tools/native/renders/render-items-002e/`, with
-reproduced pairs and the textured pulse proof in `resume/`.
+reproduced pairs in `finalize/` and the textured pulse proof in `resume/`. All eight scene reports
+match the preceding resumed renders. A temporary clock mutant is caught by the pixel regression; the
+production renderer passes it.
 The authored armour scene changes from three refused bodies/three passes to zero refusals/24 passes;
 the early-return skins change from three refusals/three passes to zero refusals/seven passes. The other skin
 scene has four passes and two allocated sprites. These are untextured synthetic software renders, not
 original-client pixel comparisons. The sword scene allocates five sprites but has unchanged image pixels
 without effect textures. Previous milestones' renders/hashes remain preserved.
+
+## Release checks
+
+The full local Mac gate passed after merging main through #196: **1,463 tests** across 38 suites,
+178 explicit skips; **6/6 fixture scenarios**, 46 inbound frames, zero unbound/undecodable frames;
+viewer and reader builds; repository audit. Main's subsequent #197 merge is integrated and its full
+release gate is running. No hosted CI is used.
+
+Fresh inherited comparisons, all with zero mismatches:
+
+| Family | Cases | Compiled mutants caught |
+|---|---:|---:|
+| Part 2 remaps/body/link/bone helper | 135,176 | 6/6 |
+| Part 4 body/skin/link | 52,172 | 7/7 |
+| Spark03/11 create/move/render | 1,500 | 3/3 |
+
+The native renderer suite passes **8 tests, one explicit installed-client skip**; its seven executed
+checks include the authored textured skin pulse, saved poses, missing bones and full pools.
+The separate twenty signed-clock comparisons pass. The temporary clock-forwarding mutant is caught
+by rendered pixels, beyond the nine part-5 instruction mutants. Coverage membership agrees with the
+compiled refusal function and both survey TSVs; survey identities/ranks/stopped-state counts are unchanged.
 
 ## Review and remaining work
 
@@ -62,7 +86,10 @@ The interrupted checkpoint was reviewed against the brief, repository standards 
 boundaries. The generated skin fallback retains initial shade, and all world body hooks supply saved player
 bones rather than a later overwritten shared item pose. The coverage TSVs were checked independently against
 the original survey and enabled C recipe membership. After correcting the standalone clock forwarding,
-self-review found no blocking issue in this subset.
+self-review found no blocking issue in this subset. The inherited part-4 mutant anchors were narrowed
+to their original axe/sword branches after the new swords made two expressions ambiguous. The Spark03
+mutant build now links `world_flames.c`, required by the production particle code merged from #187.
+These are validator repairs; the earlier rendering expectations remain unchanged.
 
 Remaining: **1,173 item bodies**, further links, rank-5 pose-aware animation and rank-9 armour branches.
 Rank 5 reads the absent model action pointer at `+0x30`, stopping at `0x012b51a7` from `0x01747a0a`;

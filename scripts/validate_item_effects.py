@@ -49,7 +49,8 @@ def main():
                     raise AssertionError(('mutant anchor', name))
                 path, library = directory/f'{name}.c', directory/f'{name}.{p.SUFFIX}'
                 path.write_text(source.replace(old, new))
-                sources = ['sprites.c', 'shadow.c', 'visual.c', 'layout.c', '../record-math/record_math.c']
+                sources = ['world_flames.c', 'sprites.c', 'shadow.c', 'visual.c', 'layout.c',
+                           '../record-math/record_math.c']
                 subprocess.run(['clang', '-shared', '-fPIC', '-O2', '-std=c11', '-ffp-contract=off',
                                 '-I', str(ROOT/'reconstructed/particles'), str(path),
                                 *[str(ROOT/'reconstructed/particles'/s) for s in sources], '-lm', '-o', str(library)], check=True)
