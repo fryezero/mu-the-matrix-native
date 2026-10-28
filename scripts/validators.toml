@@ -2042,3 +2042,17 @@ args = ["--cases", "3000", "--mutations", "--report", "{report}"]
 "sites" = {len = 6}
 "mutants" = {len = 8}
 "mutants.*" = "caught"
+
+[validate_item_coverage]
+test = "reconstructed/renderchar/test_item_coverage.py::ItemCoverage.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "clocks", "links"]
+cases = 31724
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_coverage.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
