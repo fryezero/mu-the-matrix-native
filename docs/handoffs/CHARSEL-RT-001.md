@@ -73,7 +73,9 @@ source are retained under the scratch directory below.
   154 explicit skips, native suite 535 tests / 76 skips. Repeated after merging main `15962e9` into
   the lane: 38 suites / 1,285 tests, 155 explicit skips, native suite 535 tests / 75 skips. Viewer and read-only
   reader builds and the repository audit passed, 1,125 staged files / zero rejected on the integrated tree.
-  Reader binaries were built, never run against the client. Both lanes' shared-doc additions were retained.
+  Repeated again after integrating DATA-ACQ-003 from main `ce337ba`: 38 suites / 1,297 tests, 155 skips,
+  native suite 547 tests / 75 skips; viewer/reader builds passed; audit 1,135 files / zero rejected.
+  Reader binaries were built, never run against the client. All lanes' shared-doc additions were retained.
 
 ## Local artifacts
 
