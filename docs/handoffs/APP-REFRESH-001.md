@@ -67,3 +67,9 @@ launcher, live read, account, network or protection work.
   audio rows remain explicit, not treated as new exceptions or full fidelity.
 - Production manifest check, repeat setup and three corrupted-build refusal
   entry points pass with no Python on PATH and no child started on refusal.
+- The resource regression also forces a synthetic hero death and waits for its
+  respawn: hero death count is positive, final dead flag is zero, HP/MP/AG are
+  positive and the spawn tile is retained. Eight focused skill tests pass,
+  including this four-path subtest, with one explicit private-instruction skip.
+- The new inline fixture helper is a world/client build dependency; a forced
+  make dry run confirms all three callers and mu-client rebuild when it changes.
