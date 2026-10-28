@@ -126,6 +126,16 @@ static void apply_recipe(sink *s, const mu_rc_body_recipe *recipe, const uint32_
     }
 }
 
+/* 0x0185bdc4(-1,0), then SSE scale/add at 0x017471a3. */
+static float mesh_light_pulse(float time)
+{
+    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
+    float x = (float)(tick % -6283) * 0.001f * -1.0f;
+    float wave = (float)cos((double)x);
+    if (3.1415927f > x) wave = -wave;
+    return ((wave + 1.0f) * 0.5f) * 0.8f + 0.2f;
+}
+
 /* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
  * to the actual draw arguments and current model fields, never saved pixels.
  * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
@@ -139,7 +149,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     mu_rc_draw base;
     sink one = {&base, 1, 0, s->item, s->model, 0, NULL};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[25];
+    uint32_t input[27];
     input[0] = base.flags;
     memcpy(&input[1], &base.alpha, 4);
     input[2] = (uint32_t)base.blend_mesh;
@@ -182,6 +192,20 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         if (value > 0.65f) value = 0.65f;
         memcpy(&input[24], &value, 4);
     }
+    if (mask & 16u) {
+        float value = mesh_light_pulse(s->item->time);
+        memcpy(&input[25], &value, 4);
+    }
+    if (mask & 32u) {
+        float value = s->item->time * 0.0001f;
+        memcpy(&input[26], &value, 4);
+    }
+    /* The helper's optional level word is supplied only above the +7 quality cap. */
+    if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
+        s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&
+        s->item->item_level != -1 &&
+        ((s->item->item_level >> 3) & 15) >= 9)
+        phase = phase == 5 ? 7 : 6;
     apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base);
 }
 
@@ -264,11 +288,7 @@ static void rank5_body(sink *s)
     if (!s->context || !s->context->lighting)
         return;
     float time = it->time;
-    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
-    float x = (float)(tick % -6283) * 0.001f * -1.0f;
-    float wave = (float)cos((double)x);
-    if (3.1415927f > x) wave = -wave;
-    float pulse = ((wave + 1.0f) * 0.5f) * 0.8f + 0.2f;
+    float pulse = mesh_light_pulse(time);
     int first = blue ? 4 : 2;
     rank5_mesh(s, blue ? s->context->blue_mesh : 1, blue ? s->context->blue_mesh : 1,
                pulse, it->u, it->v, blue ? 0x84d9 : it->type == 0x1c2b ? 0x84da : 0x84db, 1.0f);
@@ -747,7 +767,7 @@ int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, vo
         /* Every caller consumes the common random intensity, even if unused. */
         float sin2 = client_sin(time * 0.002f), sin1 = client_sin(time * 0.001f);
         float values[] = {0, link_intensity(random(context)), sin2 * 0.35f + 0.65f, sin2, sin1,
-                          client_sin(time * 0.01f) * 360.0f, sin1 * 0.5f + 0.5f};
+                          client_sin(time * 0.01f) * 360.0f, sin1 * 0.5f + 0.5f, fabsf(sin1) + 0.1f};
         int n = mu_rc_pulse_links[row].count;
         for (int i = 0; i < n && i < capacity; ++i) {
             const mu_rc_pulse_sprite *rule = &mu_rc_pulse_sprites[mu_rc_pulse_links[row].first + i];

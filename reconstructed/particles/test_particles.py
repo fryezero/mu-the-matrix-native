@@ -77,11 +77,41 @@ class ParticleTests(unittest.TestCase):
                                           v.F3(*angle), v.F3(1.0, 0.5, 0.25), kind[1], f32(scale), owner, 7)
         return p, ok, fx
 
+    def test_world_consumer_subtypes_move_and_render(self):
+        for kind in [(0x7ef7, 0)] + [(0x7f5a, sub) for sub in (4, 6, 7, 8)]:
+            with self.subTest(kind=kind):
+                p, ok, fx = self.create(kind, [17, 23, 11, 19, 47])
+                self.assertEqual(ok, 1)
+                host = fx.host(world_time=123456.0)
+                host.wind_sum[:] = [1.0, -0.75, 0.0]
+                self.assertEqual(self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host)), 1)
+                draw = self.v.RenderCall()
+                bitmap = self.v.Bitmap(32.0, 32.0, 3)
+                self.assertEqual(self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bitmap), 0, 0.0, 0,
+                                                              ctypes.byref(draw)), 1)
+                self.assertEqual(draw.sprites, 1)
+                if kind == (0x7f5a, 6):
+                    self.assertEqual(p.lifetime, 9)
+                    self.assertEqual(draw.sprite.rotation, 0.0)
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
+    def test_world_consumer_original_instructions(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp)/'report.json'
+            subprocess.run([sys.executable, str(ROOT/'scripts/validate_world_particle_consumers.py'), '--cases',
+                            '60', '--mutations', '--output', str(report)], check=True, capture_output=True)
+            r = json.loads(report.read_text())
+            self.assertTrue(r['all_equal'])
+            self.assertTrue(r['all_mutants_caught'])
+            self.assertEqual(len(r['mutants']), 7)
+
     def test_supported_kinds(self):
         sup = self.lib.mu_pt_kind_supported
         for kind in self.v.KINDS:
             self.assertEqual(sup(*kind), 1, kind)
-        for kind in [(0x7f3c, 7), (0x7f3c, 18), (0x7f5a, 4), (0x771c, 1), (0x7ef7, 0), (0x7f26, 2)]:
+        for kind in [(0x7f3c, 7), (0x7f3c, 18), (0x7f5a, 5), (0x771c, 1), (0x7ef7, 2), (0x7f26, 2)]:
             self.assertEqual(sup(*kind), 0, kind)
 
     def test_common_initialisation(self):

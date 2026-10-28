@@ -2,11 +2,15 @@
 
 AUDIO-002 part 5: three character-select Enter/Esc sound-25 sites reach the native host. Caller adapters 73 to 76; 5,968 original-tick cases, zero mismatches, 11/11 compiled mutants. [Checks and limits](handoffs/AUDIO-002E.md).
 
+RENDER-WORLDS-K: built-in Lost Tower/Tarkan/Icarus producers and Atlans dispatch correction; 6,000 instruction cases, 21/21 source mutants plus 2/2 native host controls. Icarus image error 26.897 to 23.154. Locked Mac gate passes 1,585 tests. [Checks and limits](handoffs/RENDER-WORLDS-K.md).
+
+RENDER-EFFECTS-003: Meteorite, Aqua Beam primary chain and Inferno bursts; K particle consumers and three exact bitmap registrations. Primary routes 15/23 to 18/23, weighted 46/77 to 56/77. 24,453 instruction comparisons plus 2,547 removal checks, 17 instruction mutants plus one frame mutant and four loader-call checks. Locked Mac gate passes 1,582 tests (200 explicit skips) and ten fixture scenarios. [Evidence](research/client-render-effects-003.md), [checks and remaining work](handoffs/RENDER-EFFECTS-003.md).
+
 SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the session and plaintext fixture; 6,501 instruction cases, zero mismatches, 4 compiled and 10 historical mutants caught. Travel remains unchanged. [Checks and limits](handoffs/SESSION-MAP-001a.md).
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. Locked Mac gate passes 1,563 tests; final G/H/I/J passes 24,000 instruction cases and 95/95 mutants. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
-RENDER-ITEMS-002 part 8: 662/1,674 bounded bodies, 17/17 skins, fourteen link targets/nineteen types. Rank-5 mesh streams now draw with lighting; owner-bone effects remain open. Adds eight further ranked armour bodies and spear/shield links. Locked Mac gate passes 1,559 tests. [Checks and limits](handoffs/RENDER-ITEMS-002H.md).
+RENDER-ITEMS-002 part 9: 769/1,674 bounded bodies, 17/17 skins, fifteen link targets/twenty types. Adds 107 ranked bodies and the nine-bone shield link; 31,724 new instruction cases, zero mismatches, 9/9 mutants. Full rank-5 owner effects remain open. Locked Mac gate passes 1,590 tests. [Checks and limits](handoffs/RENDER-ITEMS-002I.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
