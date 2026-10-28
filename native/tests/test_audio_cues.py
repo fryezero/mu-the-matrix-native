@@ -53,6 +53,10 @@ int main(int argc, char **argv) {
         assert(mu_audio_host_play(h,160,0));
         float pcm[2];mu_audio_engine_mix(mu_audio_host_engine(h),pcm,1);
         assert(pcm[0]==0.25f); /* first registered site, despite reversed TSV order */
+    } else if (!strcmp(argv[2],"hosts")) {
+        mu_audio_host *other=mu_audio_host_new(&cfg,error,sizeof error);assert(other);
+        mu_audio_host_play(h,152,0);mu_audio_host_play(other,152,0);
+        mu_audio_host_free(other);mu_audio_host_play(h,153,0);
     } else if (!strcmp(argv[2],"literal")) {
         mu_audio_host_music_literal(h,table.rows[0].path,1234,1);
         assert(mu_audio_engine_active_voices(mu_audio_host_engine(h))==1);
@@ -91,7 +95,9 @@ class AudioCues(unittest.TestCase):
         r=subprocess.run([str(self.exe),str(self.table),name],capture_output=True,text=True,env=dict(os.environ,MU_AUDIO_CUE_LOG=str(log)))
         self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         rows=[json.loads(line) for line in log.read_text().splitlines()]
-        self.assertEqual([r['seq'] for r in rows],list(range(len(rows))))
+        for host in {r['host'] for r in rows}:
+            stream=[r for r in rows if r['host']==host]
+            self.assertEqual([r['seq'] for r in stream],list(range(len(stream))))
         self.assertTrue(all(r['audio']==1 for r in rows));return rows
     def test_hero_ring_and_shared_domain_adapter_play_once(self):
         plays=[r for r in self.run_case('route') if r['op']=='play']
@@ -109,6 +115,11 @@ class AudioCues(unittest.TestCase):
         self.assertEqual([r['time_ms'] for r in missing],[0,120])
         music=[r['id'] for r in rows if r['op']=='music' and r['time_ms']==40]
         self.assertIn(25,music)
+    def test_overlapping_hosts_have_distinct_streams(self):
+        rows=self.run_case('hosts')
+        hosts={r['host'] for r in rows};self.assertEqual(len(hosts),2)
+        for host in hosts:
+            self.assertEqual([r['op'] for r in rows if r['host']==host and r['op'] in ['open','close']],['open','close'])
     def test_scene_music_literal_identity_is_logged(self):
         rows=[r for r in self.run_case('literal') if 'music_literal' in r['op']]
         self.assertEqual([(r['op'],r['id']) for r in rows],[('music_literal',1234),('stopmusic_literal',1234)])

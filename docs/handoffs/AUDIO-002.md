@@ -23,12 +23,12 @@ Branch `codex/audio-002`, own worktree from main `5ebc2b6`. No original client, 
   window-log adapter. Current reconstructed quests have **no** SND_Play sites. Tests do not invent an
   original quest sound; synthetic log input checks the shared adapter. Independent session audio cursors
   are installed in headless and GFx quest/session consumers. Window/effect cursors keep their own reads.
-- Seven native tests prove hero handler -> ring -> decoded PCM, one-time replay, provenance, independent
+- Eight native tests prove hero handler -> ring -> decoded PCM, one-time replay, provenance, independent
   readers, exactly 26 lost cues out of 1,050, duplicate suppression, silent drain, registration by site,
   event input invalidation and log-open refusal. Four portable tests cover the event/NPC boundaries. The shell logs scene music by pinned literal identity.
   Self-review covered the task scope and repository standards; no independent review is claimed.
 - Native logs: `MU_AUDIO_CUE_LOG=/absolute/path/audio.jsonl`, JSONL schema `audio:1`. Open/close delimit
-  each host; `seq` is host-local. Sound decisions carry cue sequence, handler, at_key and session tick.
+  each host; `host` distinguishes overlapping hosts and `seq` is host-local. Sound decisions carry cue sequence, handler, at_key and session tick.
   Frame time advances 40 ms per audio tick. Requests, unresolved inputs and ring loss are explicit.
   These are audio decisions, not a captured FMOD import log. The finding documents result codes.
 - The TSV extractor adds optional source-site provenance. Explicit registration requires a newly extracted

@@ -205,7 +205,7 @@ unmigrated tool facade as documented by SESSION-CORE-001; this task does not mig
 
 Set `MU_AUDIO_CUE_LOG=/absolute/path/audio.jsonl` before starting the native client or audio tools.
 Each host appends `open`/`close` boundaries and ordered JSONL records with `audio:1`, host-local `seq`,
-`time_ms` from its 40 ms audio frame clock, world, op, id, loop, result, cue sequence, handler, at_key and
+`host` distinguishing overlapping engines, `time_ms` from its 40 ms audio frame clock, world, op, id, loop, result, cue sequence, handler, at_key and
 session tick and registration source site. Scene music requests carry the pinned string-literal address
 in `id` under `music_literal`/`stopmusic_literal`, so the shell can log track identity without filenames. For sound play, result 1 starts, 0 suppresses/fails, -1 is unresolved. Music/stop records
 are requests, result 2 when resolved, not claims of an FMOD call or successful decoding. Registration
@@ -215,7 +215,7 @@ initialization. No paths, account data or runtime pointers appear in records. A 
 expand requests through the verified SND/FMOD manager and align the independent frame/session clocks;
 this log alone is not an original-versus-native FMOD comparison. No original FMOD log was captured here.
 
-Seven native tests check handler-to-ring-to-PCM, shared adapter provenance, two independent readers,
+Eight native tests check handler-to-ring-to-PCM, shared adapter provenance, two independent readers,
 once-only drain, exact 26/1,050 cue loss, suppression, silent drains, site order, explicit event state and
 log-open refusal. Four additional portable checks cover event gates and NPC voice boundaries. Four synthetic world PNGs remain byte-identical with logging off/on, with 3,447 logged decisions
 and 45 play requests in the enabled 40-frame run. The existing
