@@ -88,6 +88,18 @@ int32_t mu_rc_item_glow_level(const mu_rc_item *item);
 /* Draw calls for one item; count receives the required count, including on FULL. */
 int mu_rc_item_draws(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                      int32_t *count);
+/* Rank-5 body inputs that are outside the scalar item/model records. Named
+ * meshes are the result of 0x012bd4a6, -1 when absent. A missing context is
+ * the original unlit, no-owner body domain. */
+typedef struct mu_rc_item_context {
+    int32_t lighting, blue_mesh, black_mesh;
+    int32_t (*random)(void *context);
+    void *context;
+} mu_rc_item_context;
+int mu_rc_item_rank5(int32_t type);
+int mu_rc_item_draws_context(const mu_rc_item *item, mu_rc_model *model,
+                            mu_rc_draw *out, int32_t capacity, int32_t *count,
+                            const mu_rc_item_context *context);
 /* The same without the type check (the classification sweep uses it). */
 int mu_rc_item_draws_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count);

@@ -75,7 +75,7 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
         return 0;
     if (type == 0x389c || type == 0x389d)
         return mu_renderchar_skin_effects(model, bones, type, p);
-    if (type == 0x0afa || type == 0x0eed || type == 0x0eee || type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
+    if (type == 0x10f0 || type == 0x16f5 || type == 0x0afa || type == 0x0eed || type == 0x0eee || type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
         mu_rc_link_effect effects[20];
         int32_t n = 0;
         if (mu_rc_link_effects_time(type, p->world_time, link_random, p, effects, 20, &n) != MU_RC_OK)
@@ -175,7 +175,17 @@ int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glo
     mu_rc_model m = {{light[0], light[1], light[2]}, 0, {light[0], light[1], light[2]}, 0, 0};
     mu_rc_draw draws[32];
     int32_t count = 0;
-    int status = glow->type < 0 ? MU_RC_SPECIAL : mu_rc_item_draws(&it, &m, draws, 32, &count);
+    mu_rc_item_context context = {model->params.lighting, -1, -1,
+                                  env->particles ? link_random : NULL, env->particles};
+    if (mu_rc_item_rank5(glow->type)) {
+        for (int i = 0; i < model->bmd->mesh_count; ++i) {
+            const char *name = model->bmd->meshes[i].texture;
+            if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
+            if (context.black_mesh == -1 && !strcmp(name, "Item1161_Black.jpg")) context.black_mesh = i;
+        }
+    }
+    int status = glow->type < 0 ? MU_RC_SPECIAL :
+        mu_rc_item_draws_context(&it, &m, draws, 32, &count, &context);
     if (status != MU_RC_OK) {
         /* plain textured body (viewer fallback) */
         count = 1;
@@ -193,6 +203,9 @@ int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glo
     }
     for (int32_t i = 0; i < count; ++i) {
         const mu_rc_draw *d = &draws[i];
+        /* A failed named mesh lookup is a no-op in the original mesh callee. */
+        if (d->entry == MU_RC_ENTRY_MESH && d->mesh < 0)
+            continue;
         mu_draw_options o = *base;
         mu_draw_model_fields f;
         memcpy(f.color, d->body_light, sizeof f.color);

@@ -160,6 +160,23 @@ class WorldRender(unittest.TestCase):
         self.assertNotEqual(start['sha256'],plain['sha256'])
         self.assertNotEqual(later['sha256'],start['sha256'])
 
+    def test_rank5_lighting_and_named_mesh_draws(self):
+        path=self.tmp/'rank5-armour.bmd'
+        raw=nf.character_layout(112,bones=50,meshes=6,dummies=(9,21))
+        raw=raw.replace(nf.name32('part4.tga'),nf.name32('Item1161_Blue.jpg'))
+        raw=raw.replace(nf.name32('part5.tga'),nf.name32('Item1161_Black.jpg'))
+        path.write_bytes(raw)
+        options=('--part','2',path,'--item-type','armor=0x1c26')
+        unlit,_=self.render(*options,'--lighting','0')
+        lit,_=self.render(*options,'--lighting','1','--world-time','0')
+        later,_=self.render(*options,'--lighting','1','--world-time','500')
+        repeat,_=self.render(*options,'--lighting','1','--world-time','0')
+        self.assertEqual((unlit['special'],unlit['passes']),(0,8))
+        self.assertEqual((lit['special'],lit['passes']),(0,11))
+        self.assertEqual(lit['sha256'],repeat['sha256'])
+        self.assertNotEqual(lit['sha256'],unlit['sha256'])
+        self.assertNotEqual(lit['sha256'],later['sha256'])
+
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),
                     ('--actor-weapon', 'x')):

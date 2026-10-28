@@ -96,6 +96,7 @@ static void items_model_raster(void *context, const mu_world_item_draw *d)
     mu_renderchar_default_env(&env);
     env.lang = a->lang;
     env.time = a->map->time;
+    env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = a->ground->config.quality;
     memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
     mu_draw_options options;
@@ -181,6 +182,7 @@ static void items_model_gl(void *context, const mu_world_item_draw *d)
     mu_renderchar_default_env(&env);
     env.lang = a->lang;
     env.time = a->map->time;
+    env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = a->ground->config.quality;
     memcpy(env.glow_color, a->ground->config.glow_color, sizeof env.glow_color);
     mu_draw_options options;

@@ -1877,3 +1877,17 @@ args = ["--cases", "6000", "--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+[validate_item_next]
+test = "reconstructed/renderchar/test_item_next.py::ItemNext.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "rank5", "links"]
+cases = 14232
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_next.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}

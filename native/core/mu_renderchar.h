@@ -37,7 +37,9 @@ typedef struct mu_renderchar_glow {
     uint8_t kind_a, kind_b, item_kind;
 } mu_renderchar_glow;
 
+struct mu_world_particles;
 typedef struct mu_renderchar_env {
+    struct mu_world_particles *particles; /* borrowed random stream, optional offline viewer input */
     float time;              /* 0x06fce370 */
     int32_t quality;         /* graphics option (glow level cap 2q+5 for q <= 4) */
     float glow_color[3];     /* EnchantEffect colour (viewer parameter) */
