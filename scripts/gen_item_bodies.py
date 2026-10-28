@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate reviewed rendering parameter recipes from pinned instructions.
 
-Probes infer only constants and copies of draw inputs. Independent randomized
+Probes infer constants, copies of draw inputs and copies of the shared armour pulse. Independent randomized
 full-function comparisons in validate_item_clusters.py decide which types may
 be enabled. Unknown recipes fail regeneration. This is finite instruction
 comparison, not symbolic proof of every input or record kind.
@@ -43,6 +43,31 @@ REVIEWED_TYPES = [
     0x246e, 0x246f, 0x2470, 0x2471, 0x2472, 0x2473, 0x2474, 0x2475, 0x2476, 0x24ab,
     0x24b3,
 ]
+ADDITIONAL_TYPES = [
+    0x0b01, 0x0b06, 0x0b07, 0x0b08, 0x0b0e, 0x0b18, 0x0b44, 0x0ef6, 0x0f04, 0x0f0a,
+    0x12fc, 0x12fe, 0x1325, 0x1507, 0x1508, 0x1536, 0x1537, 0x1538, 0x1539, 0x153a,
+    0x1545, 0x154e, 0x1551, 0x16f7, 0x16f8, 0x16fa, 0x170e, 0x1917, 0x1918, 0x191b,
+    0x191c, 0x191e, 0x1930, 0x1931, 0x1933, 0x1978, 0x1979, 0x197a, 0x19de, 0x19f0,
+    0x19f5, 0x19f6, 0x19f7, 0x19f9, 0x19fc, 0x19fe, 0x19ff, 0x1a01, 0x1a42, 0x1b05,
+    0x1b0a, 0x1b17, 0x1b1b, 0x1b1e, 0x1b21, 0x1b22, 0x1b23, 0x1b31, 0x1b39, 0x1b78,
+    0x1b79, 0x1b7a, 0x1cf9, 0x1d05, 0x1d0a, 0x1d1e, 0x1d31, 0x1d78, 0x1d79, 0x1dde,
+    0x1de6, 0x1df0, 0x1df4, 0x1df5, 0x1df6, 0x1df7, 0x1df8, 0x1df9, 0x1dfa, 0x1dfb,
+    0x1dfc, 0x1dfd, 0x1dfe, 0x1dff, 0x1e00, 0x1e01, 0x1e1f, 0x1e36, 0x1e42, 0x1e78,
+    0x1f0a, 0x1f12, 0x1f1b, 0x1f7b, 0x1fde, 0x1ff4, 0x1ff5, 0x1ff8, 0x1ff9, 0x1ffa,
+    0x1ffd, 0x2000, 0x2001, 0x201f, 0x2078, 0x217b, 0x21de, 0x21f4, 0x21f5, 0x21f8,
+    0x21f9, 0x21fa, 0x21fd, 0x2200, 0x2201, 0x221f, 0x2278, 0x3700, 0x3890, 0x3891,
+    0x3894, 0x3897, 0x3898, 0x3899, 0x389a, 0x389f, 0x38a0, 0x38a2,
+]
+# Size-rank 3, shared armour mesh pulse at 0x01705471.
+PULSE_TYPES = [
+    0x1950, 0x1951, 0x1954, 0x1955, 0x1956, 0x1959, 0x19b1, 0x19bd, 0x19da, 0x1a1b,
+    0x1a74, 0x1b50, 0x1b51, 0x1b54, 0x1b55, 0x1b56, 0x1b59, 0x1bb1, 0x1bbd, 0x1bda,
+    0x1c1b, 0x1c74, 0x1d50, 0x1d54, 0x1d56, 0x1d59, 0x1db1, 0x1e1b, 0x1e74, 0x1f50,
+    0x1f51, 0x1f54, 0x1f55, 0x1f56, 0x1f59, 0x1fb1, 0x1fbd, 0x1fda, 0x201b, 0x2074,
+    0x2150, 0x2154, 0x2156, 0x2159, 0x21b1, 0x221b, 0x2274,
+]
+ADDITIONAL_TYPES += PULSE_TYPES
+
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
              for index in (*range(0x11c, 0x12c), 0x13a, 0x15d, 0x193)]
 PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477)]
@@ -50,7 +75,12 @@ PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477)]
 def flat(d):
     return [*d[1], *d[2], d[3], *d[4], d[5]]
 
+_sample_state = None
+
+
 def sample(wa, lib, t, lv, seed, opt=0, ext=0):
+    import math
+    global _sample_state
     tags = []
 
     class W(v.World):
@@ -64,7 +94,13 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
                     tags.append(m.backtrace()[1])
                     return old(m)
                 self.m.stub(addr, h, 32)
-    factory = W
+    if _sample_state is None or _sample_state[0] is not wa:
+        from item_body_machine import ResetWorld
+        _sample_state = (wa, ResetWorld(wa, W), tags)
+    else:
+        tags = _sample_state[2]
+        tags.clear()
+    factory = _sample_state[1]
     case = v.random_case_any(random.Random(seed), t)
     case.update(item_level=lv << 3, quality=9, option1=opt, ext=ext, record=(0, 0, 0), a10=0xffffffff, a11=0xffffffff, render_type=(2, 0x102, 0x40042)[seed % 3])
     (r, st, other, m) = v.client_stream(wa, case, factory)
@@ -81,7 +117,19 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
         groups[1:1] = [('empty', []), ('empty', [])]
     if not r['ok'] or other or len(groups) != len(generic):
         return None
-    return [(flat(a) + [case['object_alpha']], [(b[0], flat(b)) for b in bs]) for (a, (_, bs)) in zip(generic, groups)]
+    # 0x0185bdc4(-4,0) + 0.2. Each operation rounds to binary32.
+    f = lambda x: v.u2f(v.f2u(x))
+    time = v.u2f(case['time'])
+    tick = int(time) if -2147483648 <= time < 2147483648 else -2147483648
+    rem = tick - int(tick / -1570) * -1570
+    x = f(f(rem * f(0.001)) * -4)
+    w = f(math.cos(x))
+    if f(3.1415927) > x:
+        w = -w
+    pulse = f(f(f(w + 1) * 0.5) + f(0.2))
+    return [(flat(a) + [case['object_alpha']] +
+             [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]],
+             [(b[0], flat(b)) for b in bs]) for (a, (_, bs)) in zip(generic, groups)]
 
 def infer(samples):
     if any((s is None for s in samples)):
@@ -97,7 +145,7 @@ def infer(samples):
         for f in range(16):
             ys = [s[1][k][1][f] for s in samples]
             preferred = f if samples[0][1][k][0] == 'BODY' or f >= 7 else f - 1 if f > 0 else None
-            order = ([preferred] if preferred is not None else []) + [i for i in range(17) if len({s[0][i] for s in samples}) > 1]
+            order = ([preferred] if preferred is not None else []) + [i for i in range(len(samples[0][0])) if len({s[0][i] for s in samples}) > 1]
             match = next((i for i in order if [s[0][i] for s in samples] == ys), None)
             if match is not None:
                 cells.append(('in', match))
@@ -112,38 +160,35 @@ def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
-    for t in REVIEWED_TYPES:
-        ss = [sample(wa, lib, t, lv, seed) for lv in (0, 7, 13) for seed in (3401, 7254, 9874, 3404, 7257, 9877)]
-        if any((s is None for s in ss)) or any((len(s) != n for (s, n) in zip(ss, [1] * 18 if t in PLAIN_TYPES else [1] * 6 + [2] * 6 + [5] * 6))):
+    for t in REVIEWED_TYPES + ADDITIONAL_TYPES:
+        levels = range(16) if t >= 0x3700 else (0, 7, 13)
+        ss = [sample(wa, lib, t, lv, seed) for lv in levels
+              for seed in (3401, 7254, 9874, 3404, 7257, 9877)]
+        if any(s is None for s in ss):
             continue
-        rr = []
-        for pairs in ([s[0] for (i, s) in enumerate(ss) if i % 3 != 0], [s[0] for s in ss] if t in PLAIN_TYPES else [s[1] for s in ss[6:12]] + [p for s in ss[12:] for p in s[3:5]], [s[0] for s in ss] if t in PLAIN_TYPES else [p for s in ss[12:] for p in s[1:3]]):
-            recipe = infer(pairs)
-            if recipe is None:
-                break
-            rr.append(recipe)
-        if len(rr) != 3:
-            continue
-        for (opt, ext) in ((1, 0), (0, 1)):
+        phases = [[] for _ in range(6)]
+        for index, stream in enumerate(ss):
+            phases[5 if index % 3 == 0 else 0].append(stream[0])
+            for pair in stream[1:]:
+                flags = pair[0][0] & ~0x100
+                if flags not in (0x44, 0x48, 0x240, 0x1040):
+                    raise ValueError(f'unclassified helper flags {flags:#x}')
+                phase = 1 if flags in (0x44, 0x48) else 2
+                phases[phase].append(pair)
+        for opt, ext, phase in ((1, 0, 3), (0, 1, 4)):
             if ext and t in DIM_TYPES:
-                rr.append([])
                 continue
-            extra = [sample(wa, lib, t, 0, seed, opt, ext) for seed in (3401, 7254, 9874, 3404, 7257, 9877)]
-            if any((s is None or len(s) != 2 for s in extra)):
+            extra = [sample(wa, lib, t, 0, seed, opt, ext)
+                     for seed in (3401, 7254, 9874, 3404, 7257, 9877)]
+            if any(s is None for s in extra):
                 break
-            r = infer([s[-1] for s in extra])
-            if r is None:
-                break
-            rr.append(r)
-        if len(rr) != 5:
-            continue
-        r = infer([s[0] for (i, s) in enumerate(ss) if i % 3 == 0])
-        if r is None:
-            continue
-        rr.append(r)
-        types[t] = rr
-    if set(types) != set(REVIEWED_TYPES):
-        raise ValueError("reviewed recipe no longer fits the pinned instructions")
+            phases[phase] = [s[-1] for s in extra]
+        else:
+            rules = [infer(pairs) if pairs else [] for pairs in phases]
+            if all(rule is not None for rule in rules):
+                types[t] = rules
+    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES):
+        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES) - set(types))]))
     return types
 
 
@@ -160,7 +205,7 @@ def render(types):
         rows.append((t, indices))
     lines = ['/* Generated by scripts/gen_item_bodies.py. Rendering rules only.',
              ' * source=0 selects value; source=1..16 copies the generic draw word;',
-             ' * source=17 copies OBJECT alpha. See client-render-items.md part 3. */',
+             ' * source=17 copies OBJECT alpha. source=18..20 copies the pulsed body light. See client-render-items.md. */',
              'static const struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[8]; } mu_rc_body_recipes[] = {']
     for rule in recipes:
         lines.append('    {%d, {' % len(rule))
@@ -169,10 +214,10 @@ def render(types):
             values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
             lines.append('        {%d, {%s}, {%s}},' % (1 if entry == 'BODY' else 2, sources, values))
         lines.append('    }},')
-    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[6]; uint8_t dim, plain; } mu_rc_body_types[] = {']
+    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[6]; uint8_t dim, plain, pulse; } mu_rc_body_types[] = {']
     for t, indices in rows:
-        lines.append('    {0x%04x, {%s}, %d, %d},' %
-                     (t, ', '.join(map(str, indices)), t in DIM_TYPES, t in PLAIN_TYPES))
+        lines.append('    {0x%04x, {%s}, %d, %d, %d},' %
+                     (t, ', '.join(map(str, indices)), t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES))
     return '\n'.join(lines + ['};', ''])
 
 

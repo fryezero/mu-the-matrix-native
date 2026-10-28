@@ -52,7 +52,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
             core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_icarus.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
-            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c fixture/characters_spec.c core/mu_perf.c \
+            core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c fixture/characters_spec.c fixture/monsters_spec.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
             core/mu_progress.c core/mu_protocol.c \
             core/mu_social_messages.c core/mu_social_item_tables.c core/mu_social_item_view.c
@@ -62,7 +62,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/terrain/terrain.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
-             $(RECON)/actors/actors.c $(RECON)/path/client_path.c \
+             $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
              $(RECON)/ui/ui2d.c $(RECON)/ui/ui_text.c $(RECON)/ui/ui_texture.c $(RECON)/ui/ui_login.c \
              $(RECON)/ui/ui_widget.c $(RECON)/ui/ui_server.c $(RECON)/ui/ui_credit.c $(RECON)/ui/ui_charsel.c \
              $(RECON)/ui/ui_loading.c $(RECON)/scene/scene.c \
@@ -519,7 +519,7 @@ clean:
 CFLAGS += -I build/gen -I session
 $(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
-QUEST_LIB_SRC := fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
+QUEST_LIB_SRC := fixture/monsters_spec.c $(RECON)/actors/viewport_monsters.c $(RECON)/actors/actors.c $(RECON)/model-codec/skinning.c $(RECON)/model-codec/pose_builder.c $(RECON)/model-codec/bone_tracks.c $(RECON)/record-math/record_math.c fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
 $(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
 
@@ -546,7 +546,7 @@ layout: $(LAYOUT_STAMP)
 $(BUILD)/core/mu_world_players.o: core/mu_world_players.c $(HEADERS) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c core/mu_world_players.c -o $@
 
-$(BUILD)/fixture/characters_spec.o: fixture/characters_spec.c $(HEADERS)
+$(BUILD)/fixture/%.o: fixture/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
 
@@ -555,3 +555,8 @@ $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o
 	$(CXX) $(BUILD)/icarus-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# VIEWPORT-MONSTER-001: decoded-record -> model/effect cache lifecycle.
+$(BUILD)/monsters-lifecycle-host: tests/monsters_lifecycle_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/monsters_lifecycle_host.o
+	$(CXX) $(BUILD)/monsters_lifecycle_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@

@@ -42,7 +42,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FLARE:
         return subtype == 1;                   /* NATIVE-FIDELITY-002: Icarus's cloud puffs */
     case MU_PT_BITMAP_SPARK3:
-        return subtype == 0 || subtype == 1 || subtype == 0xf || subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
+        return subtype == 0 || subtype == 1 || subtype == 11 || subtype == 0xf || subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
@@ -272,6 +272,15 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             p->position[0] += rand_range(h, -10.0f, 10.0f, 1);
             p->position[1] += rand_range(h, -10.0f, 10.0f, 1);
             p->position[2] += rand_range(h, -10.0f, 10.0f, 1);
+            break;
+        }
+        if (subtype == 11) { /* 0x015de226..0x015de357, weapon sparks */
+            p->alpha = 1.0f;
+            p->velocity[0] = (float)(mu_pt_rand(h) % 8) - 4.0f;
+            p->velocity[1] = (float)(mu_pt_rand(h) % 4);
+            p->velocity[2] = (float)(mu_pt_rand(h) % 4);
+            p->lifetime = 30; /* Spark03/11 */
+            p->scale = (float)(mu_pt_rand(h) % 5) / 10.0f + 1.0f;
             break;
         }
         /* 0x015dd48c; subtype 1: 0x015dd4c7 */
@@ -573,6 +582,15 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->velocity[0] += rand_range(h, -0.6f, 0.6f, 10);
                 p->velocity[1] += rand_range(h, 0.3f, 0.8f, 10);
                 p->velocity[2] += rand_range(h, -0.2f, 0.8f, 10);
+                break;
+            }
+            if (p->subtype == 11) { /* 0x01651b78..0x01651ca6 */
+                for (int k = 0; k < 3; ++k)
+                    p->light[k] /= 1.05f;
+                p->scale -= 0.04f;
+                p->alpha -= 0.001f;
+                if (!(0.0f < p->alpha))
+                    p->live = 0;
                 break;
             }
             if (p->subtype == 0xf) {

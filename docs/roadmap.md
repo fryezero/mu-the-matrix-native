@@ -1,5 +1,6 @@
 # Roadmap and work queue
 
+
 RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).
 
 RENDER-WORLDS-B is implemented for the bounded per-world move/create and snow paths. [Coverage and remaining limits](handoffs/RENDER-WORLDS-B.md).
@@ -144,7 +145,7 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 
 ## Coordinating agents
 
-| RENDER-ITEMS-002 parts 1/2/3 | Implemented subsets: inventory remaps; 103 scalar remaps, 262/1,674 body types; three link callers/eight types verified, two targets fully integrated | Part 3: 74,292 Unicorn cases, 0 mismatches, 8/8 mutants; part 2 regression: 135,176, 6/6; ranked 798-shape survey, native renders ([finding](research/client-render-items.md)) | 1,412 body types, 17 class skins, Spark03 subtype 11 consumer, further links, Muun/nested map-object tables and prior record/buff/outline/model limits |
+| RENDER-ITEMS-002 parts 1/2/3/4 | Implemented subsets: 103 item scalar remaps, all 17 skin scalar rules; 426/1,674 item bodies and 11/17 skins; five link targets/ten types with consumers | Part 4 adds 137 armour, 27 weapons and 11 skins, complete 47-type armour cluster and Spark03/11; 53,682 new cases, zero mismatches, 10/10 mutants; macOS gate passes ([finding](research/client-render-items.md)) | 1,248 bodies, six skins, further links, Muun/nested map-object tables and prior record/buff/outline/model limits |
 
 | NATIVE-MAP-002 | Implemented: captured absent-key Move default supplied to the validator; snapshot digest in reports; synthetic nonzero-default regression | Lang4 and both lang5 copies each pass 5,001 instruction cases, zero mismatches, all 10 mutants; identical 69 real records and 621 native rows across sort orders; 11 reconstructed and 9 native map tests pass ([finding](research/client-maps.md#move-default-records-native-map-002)) | Native Move behavior unchanged; navimap locale state and prior teleport limits remain open |
 | NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |
@@ -158,3 +159,5 @@ Use issue IDs matching these task IDs, claim a scope before editing, and name th
 SESSION-QUEST-001 is implemented: [session state, fixture checks and limits](handoffs/SESSION-QUEST-001.md).
 
 SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](handoffs/SESSION-VIEWPORT-001.md).
+
+VIEWPORT-MONSTER-001 is implemented: [record feed, instruction comparisons and limits](handoffs/VIEWPORT-MONSTER-001.md).

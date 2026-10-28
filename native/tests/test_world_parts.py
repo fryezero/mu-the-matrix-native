@@ -45,7 +45,7 @@ MAIN_C_ORDER = {
 # The call each hook makes at its place in main.c (column -> row -> function called in the hook's body).
 SIGNATURE = {
     'pre_tick': {'items': 'mu_world_items_pre_step', 'npc': 'mu_npc_pre_step', 'combat': 'mu_combat_pre_step'},
-    'tick': {'sound': 'mu_world_sound_hero_step', 'actors': 'mu_world_actors_step', 'npc': 'mu_npc_step',
+    'tick': {'sound': 'mu_world_sound_hero_step', 'npc': 'mu_npc_step',
              'quest_step': 'world_gfx_quest_step', 'combat': 'mu_combat_step', 'progress': 'mu_progress_step',
              'characters': 'mu_world_players_step_one', 'social': 'mu_social_step', 'helpers': 'mu_world_helpers_step',
              'items': 'mu_world_items_step', 'names': 'mu_world_names_step', 'objects': 'mu_objects_step',
@@ -156,6 +156,12 @@ class PartsDefTests(unittest.TestCase):
                     body = function_body(self.sources[name], fields[column])
                     self.assertIsNotNone(body, f'{fields[column]} in {name}')
                     self.assertRegex(body, r'\b' + re.escape(call) + r'\(')
+
+    def test_actors_step_only_inside_shared_character_loop(self):
+        characters = (WORLD / 'parts/characters.c').read_text()
+        actors = (WORLD / 'parts/actors.c').read_text()
+        self.assertIn('mu_world_actors_step_one(', characters)
+        self.assertNotIn('mu_world_actors_step(', actors)
 
     def test_runtime_dispatches_through_the_columns(self):
         rt = (WORLD / 'world_rt.c').read_text()
