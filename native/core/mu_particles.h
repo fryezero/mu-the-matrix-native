@@ -51,7 +51,7 @@
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
 enum { MU_WORLD_PT_BITMAPS = 50, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 5, MU_WORLD_FX_QUADS = 8192,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 11, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
 typedef struct mu_world_fx_light {
@@ -108,6 +108,7 @@ typedef struct mu_world_particles {
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */
     mu_world_fx_model models[MU_WORLD_FX_MODELS];
+    const mu_terrain_frustum *frustum; /* current render polygon, optional for standalone hosts */
     float hero_position[3];                /* [0x0a39d754] + 0x33ac (the tornado's sound distance) */
     int has_hero;
     mu_joint_quad *joint_quads;            /* MU_WORLD_FX_QUADS, the last RenderJoints */

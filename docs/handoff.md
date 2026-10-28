@@ -2,6 +2,8 @@
 
 - RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and after-character draws; integrated local Mac gate passed.
 
+RENDER-WORLDS-D: [handoff](handoffs/RENDER-WORLDS-D.md). Noria missing object 1 to 0; warp create/move/render wired. Raklion active event timer and Elbeland boids remain explicit follow-ups.
+
 AUDIO-002 part 1: [handoff](handoffs/AUDIO-002.md). Native session audio reader and JSONL log are ready; event state and NPC lifecycle callers follow their domain migrations. The exact 43/44 read and virtualised gap remain open.
 
 SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned player records and fixture-driven --players.
