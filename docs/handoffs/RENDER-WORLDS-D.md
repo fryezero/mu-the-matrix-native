@@ -14,7 +14,9 @@ portal placement. [Full evidence, ranked gaps and scoreboard](../research/client
   is claimed. The retained Dungeon/Icarus/Kanturu image errors stay 2.019/62.030/3.717.
 - Native GL portal views inspected for Devias, Noria and Raklion, with 3/5/3 effect models drawn.
 
-Local Mac gate: pending final result.
+Local Mac gate passed on the combined #181/D tree: 1,368 tests across 38 suites, 161 explicit skips,
+zero failures; both fixture scenarios pass; viewer/readers build; repository audit rejects zero files.
+The B handler regression also retains 4,000 equal comparisons and 10/10 compiled mutants.
 
 Artifacts stay outside the repository:
 - `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-d/`: validation, mutant, runner, gate and hash reports,

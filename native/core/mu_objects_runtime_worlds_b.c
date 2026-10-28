@@ -1,7 +1,7 @@
 /* RENDER-WORLDS-B: native ownership of code-created map placements. */
 #include "../../reconstructed/objects/worlds_b.h"
 #include "mu_objects.h"
-#include "../../reconstructed/objects/world_warp.h"
+#include "../../reconstructed/objects/noria.h"
 #include <stdlib.h>
 #include <string.h>
 

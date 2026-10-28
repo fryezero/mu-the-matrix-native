@@ -417,7 +417,9 @@ The three available live-image mean errors remain 2.019 / 62.030 / 3.717 for Dun
 
 The existing create/move effect families also pass 1,200 comparisons, zero mismatches. The new validator passes
 through `scripts/run_validators.py`, with its manifest counts and mutants checked. Synthetic placement/dedup
-checks now include Noria. The local Mac gate and full check counts are recorded in the milestone handoff.
+checks now include Noria. The combined-tree local Mac gate passed 1,368 tests across 38 suites with 161 explicit skips, both fixture
+scenarios and viewer/readers builds. The B handler regression retains 4,000 equal comparisons and 10/10
+compiled mutants. Counts and artifact paths are also recorded in the milestone handoff.
 
 ### Reproduction and remaining work
 
