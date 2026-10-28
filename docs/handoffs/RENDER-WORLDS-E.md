@@ -75,6 +75,25 @@ Current reports are `main89-families/`, `main89-object.json`, `main89-light.json
 `main89-scoreboard-proof.json` and `main89-summary.json` in this lane's scratch directory.
 Source checkpoint `960260e` contains the merge; only evidence documentation changed after the gate.
 
+## Final integration with audio
+
+Audio #196 advanced main to `b223709e` at the next merge attempt. Checkpoint `d22a6b5` integrates its sound
+adapters, preserving both status entries and all E timer/cloud hooks. Only the shared documentation entries
+conflicted. Latest-main and E were again clean-built in this worktree. Their fourteen complete scoreboards
+and 28 first/final PNG hashes match, including the scores listed above. No missing/extra placements or
+primary-light differences were introduced. The final retained render trees are `audio-main-before` and
+`audio-main-after`; identical files are hardlinked. Previous trees remain available as lossless gzip files,
+deduplicated by their decompressed SHA-256. No main-checkout or sibling-worktree files were edited or built.
+`audio-main-scoreboard-proof.json` pins both binaries and every compared frame.
+
+The audio-integrated gate passes 1,458 tests with 178 explicit skips, zero failures/errors, all six fixture
+scenarios, viewer/readers builds and the 1,340-file audit with zero rejected. All nine registered validators
+pass: the eight world/order suites retain 38,098 cases and 76 mutants; the audio caller suite adds 5,516
+instruction comparisons, 12 static checks and 18 compiled mutants. Refreshed MoveObject and isolated terrain
+comparisons retain the prior 3,168 cases and 19 compiled mutants, plus both clamp controls. World/Aida total
+41,266; including audio, 46,782 instruction cases and 113 compiled mutants, with zero mismatches. Logs and
+reports use the `audio-main-*` prefix in this lane's scratch directory.
+
 ## Implementation and limits
 
 Per-world files: `reconstructed/environment/env_elbeland.c`, `reconstructed/particles/elbeland.c`,

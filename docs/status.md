@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,449 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
+RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,458 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
 
 AUDIO-002 part 2: 30 character/NPC/creature/object sound sites have session cue adapters, with one unresolved buff input. 5,516 new instruction cases plus 12 static checks, zero mismatches, 18/18 compiled mutants. [Checks and limits](handoffs/AUDIO-002B.md).
 
