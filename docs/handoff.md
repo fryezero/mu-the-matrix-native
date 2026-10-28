@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and archived live-image comparison remain bounded.
+
 DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisition procedure](native-data.md). Jump-table diff remains pending on paused NET-DISPATCH-001.
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.

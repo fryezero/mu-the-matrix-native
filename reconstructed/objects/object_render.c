@@ -3,6 +3,7 @@
  * Floating-point expressions keep the client's binary32 operation order
  * (built with -ffp-contract=off). */
 #include "object_render.h"
+#include "worlds_b.h"
 #include "login_world.h"
 #include "charsel_world.h"
 
@@ -434,6 +435,10 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
     }
     if (world_create(o, world, index, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
+    if (world == 57 || world == 58) {
+        mu_raklion_create(o, index, log);
+        return MU_OBJ_OK;
+    }
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x2c */
         mu_login_create(o, index, log);
         return MU_OBJ_OK;
@@ -958,6 +963,22 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world == 0x8d) {
         tormenta_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 2) {
+        mu_devias_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 8) {
+        mu_tarkan_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 51) {
+        mu_elbeland_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 57 || world == 58) {
+        mu_raklion_move(o, in->time);
         return MU_OBJ_OK;
     }
     if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */

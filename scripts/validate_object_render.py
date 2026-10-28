@@ -144,7 +144,8 @@ class MoveInputs(ctypes.Structure):
     _fields_ = [('world', ctypes.c_int32), ('scene_state', ctypes.c_int32), ('hero_tile', ctypes.c_int32),
                 ('time', ctypes.c_float), ('hero', ctypes.c_float * 3), ('has_model', ctypes.c_uint8),
                 ('model_has_actions', ctypes.c_uint8), ('speed', SPEED_FN), ('rand_fn', RAND_FN),
-                ('context', ctypes.c_void_p), ('now_ms', ctypes.c_uint32)]
+                ('context', ctypes.c_void_p), ('now_ms', ctypes.c_uint32), ('bounds_mode', ctypes.c_int32),
+                ('hero_safe', ctypes.c_uint8), ('elbeland_pool', ctypes.c_void_p)]
 
 
 class World(ctypes.Structure):
@@ -1228,7 +1229,7 @@ def mutations(machine, args):
     for label, file, old, new, family in MUTATIONS:
         scratch = Path(tempfile.mkdtemp(prefix='objrender-mut-'))
         try:
-            for name in ('objects', 'terrain', 'record-math', 'model-codec'):
+            for name in ('objects', 'terrain', 'record-math', 'model-codec', 'movement'):
                 shutil.copytree(ROOT / 'reconstructed' / name, scratch / name,
                                 ignore=shutil.ignore_patterns('*.dylib', '*.so', '__pycache__'))
             path = scratch / 'objects' / file
