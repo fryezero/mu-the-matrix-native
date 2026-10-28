@@ -22,9 +22,11 @@ class WorldsL(unittest.TestCase):
             root = Path(tmp)
             effect = root/'Data/Effect'
             effect.mkdir(parents=True)
-            for name in ('Shiny04', 'firehik_mono01', 'firehik_mono02', 'firehik_mono03',
-                         'WATERFALL2', 'WATERFALL3', 'WATERFALL5'):
-                (effect/(name+'.OZJ')).write_bytes(ozj_jpeg(32, 32))
+            files = [('Shiny04', 16, 16), ('firehik_mono01', 32, 16),
+                     ('firehik_mono02', 32, 32), ('firehik_mono03', 64, 32),
+                     ('WATERFALL2', 64, 64), ('WATERFALL3', 128, 64), ('WATERFALL5', 128, 128)]
+            for name, width, height in files:
+                (effect/(name+'.OZJ')).write_bytes(ozj_jpeg(width, height))
             chunks = [b'BMD\x0a', b'worlds-l'.ljust(32, b'\0'), struct.pack('<HHH', 0, 15, 1),
                       struct.pack('<hB', 2, 0)]
             for bone in range(15):

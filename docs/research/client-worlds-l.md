@@ -85,6 +85,8 @@ seven particle-full checks and one sprite-full check, absent-asset drawing and
 six unsupported-neighbor admission checks. It runs the real Karutan lamp/type-114
 and Raklion type-70/80 producer callbacks into the particle module. Pool-full
 behavior is a native bounded-pool policy; the original particle list is unbounded.
+Distinct power-of-two fixture dimensions verify the actual native filenames
+for all four new slots, so swapping available assets cannot pass by quad count.
 The existing J host separately retains its 3,600 preparations and missing-bone
 refusal checks. Portable particle and prior effects tests remain green.
 
