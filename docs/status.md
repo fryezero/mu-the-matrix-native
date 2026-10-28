@@ -1,7 +1,5 @@
 # Current status
 
-- RENDER-WORLDS-A reconstruction: Kanturu/Karutan flames and four world groups' after-character pass; 9,000 Unicorn cases, 0 mismatches, 13/13 mutants. [Handoff](handoffs/RENDER-WORLDS-A.md).
-
 RENDER-WORLDS-D: six warp effect kinds and Noria portal placement; 2,400 Unicorn cases, zero mismatches, 8/8 compiled mutants. [Evidence](research/client-world-fidelity.md#6-render-worlds-d-2026-10-27), [handoff](handoffs/RENDER-WORLDS-D.md).
 
 AUDIO-002 part 1: event music decisions, monster/NPC registration, bounded NPC voices and native cue logging implemented. 76,150 new Unicorn cases, zero mismatches, 22/22 compiled mutants. [Checks and limits](handoffs/AUDIO-002.md).
@@ -11,6 +9,8 @@ SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helpe
 RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
 
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
+
+RENDER-WORLDS-A reconstruction: Kanturu/Karutan flames and four world groups' after-character pass; 9,000 Unicorn cases, 0 mismatches, 13/13 mutants. [Handoff](handoffs/RENDER-WORLDS-A.md).
 
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
 F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).

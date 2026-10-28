@@ -1,7 +1,5 @@
 # Continue from here
 
-- RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and after-character draws; integrated local Mac gate passed.
-
 RENDER-WORLDS-D: [handoff](handoffs/RENDER-WORLDS-D.md). Noria missing object 1 to 0; warp create/move/render wired. Raklion active event timer and Elbeland boids remain explicit follow-ups.
 
 AUDIO-002 part 1: [handoff](handoffs/AUDIO-002.md). Native session audio reader and JSONL log are ready; event state and NPC lifecycle callers follow their domain migrations. The exact 43/44 read and virtualised gap remain open.
@@ -11,6 +9,8 @@ SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned
 RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
 
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
+
+RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and after-character draws; integrated local Mac gate passed.
 
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
 the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.
