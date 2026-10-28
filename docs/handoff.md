@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-I: [handoff](handoffs/RENDER-WORLDS-I.md). Six Loren Market/Uruk primary methods verified; 31/144 families across 11/48 classes. DATA-ACQ-002, Uruk weather/keyed-effect/colored-joint consumers and 113 primary methods remain.
+
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
 RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.

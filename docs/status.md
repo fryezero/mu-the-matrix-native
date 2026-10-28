@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-I implements Loren Market/Uruk primary methods: 6,000 instruction cases, zero mismatches, 33/33 compiled mutants; 31/144 verified primary families across 11/48 classes. [Evidence](research/client-worlds-i.md), [checks and limits](handoffs/RENDER-WORLDS-I.md).
+
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
 RENDER-WORLDS-H implements Duel Arena/world-82 primary methods: 6,000 instruction cases, zero mismatches, 19/19 compiled mutants; 25/144 verified primary families across 9/48 classes. Full Mac gate passes, 1,511 tests; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-h.md), [handoff](handoffs/RENDER-WORLDS-H.md).

@@ -88,7 +88,13 @@ int main(int argc,char **argv)
     mu_objects_step(o,&in);assert(o->rt.light_count==1 && o->rt.lights[0].x>900);
     m->bmd.bone_count=1;long bad=o->rt.move_unsupported;
     mu_objects_step(o,&in);assert(o->rt.light_count==0 && o->rt.move_unsupported==bad+1);
+    int old_sprites=sprites;
+    assert(!mu_objects_prepare_index(o,0,NULL,6,&options));
+    assert(sprites==old_sprites);
     m->bmd.bone_count=4;
+    o->world=101;uint32_t seed=o->rt.seed;
+    assert(!mu_objects_prepare_index(o,0,NULL,6,&options));
+    assert(generic==1 && o->rt.seed==seed);
     free(o->rt.events);free(o->rt.images);mu_model_free(&m->model);mu_bmd_free(&m->bmd);free(m);free(o);
     return 0;
 }
