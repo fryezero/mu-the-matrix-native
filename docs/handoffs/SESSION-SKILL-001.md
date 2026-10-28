@@ -19,12 +19,14 @@ answer; the headless skill tick refreshes that context before window checks. Lea
 
 ## Validation
 
-The pre-integration full Mac gate passes: 1,473 tests, 180 expected private-input skips, fixture
-suites, native viewer, read-only reader builds and publication audit. The final latest-main gate
-is recorded below before merge.
+The final clean-build Mac gate passes after integrating `origin/main` at `6fcbfb4`: 1505 tests,
+186 expected private-input skips, 8/8 fixture suites, native viewer, read-only reader builds
+and publication audit with zero rejected paths. The main checkout was not edited or built.
 
 - Historical base/server/Master reruns: 12,763 + 4,508 + 7,876 cases, zero mismatches;
-  11/11 + 6/6 + 3/3 compiled mistakes caught. Fourth-tree rerun is recorded below.
+  11/11 + 6/6 + 3/3 compiled mistakes caught. Fourth-tree rerun: 6,510 cases across 13
+  families, zero mismatches; all 10/10 compiled mistakes caught. Total: 33,157 instruction
+  comparisons, zero mismatches, 35/35 planted mistakes caught.
 - VERIFY-SESSION: 8/8 scenarios, 67 inbound frames, zero unbound/undecodable frames.
   Skills alone: 14 inbound frames covering nine skill routes and hero context, 11 expectations, three plaintext
   requests, zero unrecovered intents and one encrypted cast unsent. The other suites retain two
@@ -33,8 +35,8 @@ is recorded below before merge.
   travel 0 to 1, replacement view rebound and another fixture learn accepted; 7 learned skills at
   completion. This checks runtime ownership; it is not a comparison against the live game.
   Representative first/final PNG SHA-256 values are recorded rather than claimed unchanged:
-  `16c67bf752cbb84e20ee8cf0e6be40a2809127c98d1760f30c9a693e98ca174b` and
-  `3066cfb2e09e07965535d50fcd0180b447bacd424f42a981197da8306063e8b9`.
+  `91abf6572f28ab23e0818b413579d60f0258d7139fe22a9383e65f80af7b38c0` and
+  `d17874c6f54f4d1f98810ae16692d4900f073e6ebc84eb4af5aadef899c707bb`.
 - New key serialization, plaintext save tail and Master-point write: 1,500 instruction comparisons,
   zero mismatches; all five compiled mistakes caught, including offset and sign extension.
 - Seven focused session tests pass with the private instruction check enabled: learned-state lease
