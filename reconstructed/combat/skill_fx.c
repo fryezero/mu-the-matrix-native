@@ -176,6 +176,18 @@ static uint16_t call_wall(const mu_sfx_env *env, mu_sfx_effect *e, float x, floa
     return (uint16_t)(env && env->call ? env->call(env->context, &c, e) : 0);
 }
 
+/* VectorNormalize 0x00cff0d3 (the length it returns is unused here) */
+static void vector_normalize(float v[3])
+{
+    const float length = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    if (f32bits(0x358637bdu) > length) {   /* 1e-6 */
+        v[0] = v[1] = v[2] = 0.0f;
+        return;
+    }
+    for (int k = 0; k < 3; ++k)
+        v[k] = v[k] / length;
+}
+
 static void kill_effect(const mu_sfx_env *env, mu_sfx_effect *e);
 
 static void call_plain(const mu_sfx_env *env, mu_sfx_effect *e, int32_t routine)
@@ -291,6 +303,7 @@ static int effect_supported(int32_t type, int32_t sub)
     case MU_SFX_BITMAP_FLARE: return sub == 0;
     /* RENDER-EFFECTS-004: Rageful Blow (0x461 stores a random subtype) and its pieces */
     case MU_SFX_RAGEFUL_BLOW: return 1;
+    case MU_SFX_MODEL_GUARDIAN_WING: return sub == 4;
     case MU_SFX_MODEL_QUAKE1: case MU_SFX_MODEL_QUAKE5: case MU_SFX_MODEL_QUAKE8: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_QUAKE2: return sub >= 0 && sub <= 2;
     case MU_SFX_MODEL_QUAKE3: case MU_SFX_MODEL_QUAKE4: case MU_SFX_MODEL_QUAKE7:
@@ -597,6 +610,28 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         break;
     /* RENDER-EFFECTS-004: Rageful Blow. 0x461 is the flying weapon; the EarthQuake01..08,
      * flashing and tail models 0x462..0x46b are its impact pieces, scaled by the info key / 100. */
+    case MU_SFX_MODEL_GUARDIAN_WING: {             /* 0x013e4f55, subtype 4: 0x013e4f6f */
+        float old[3];
+        copy3(old, e->position);
+        for (int k = 0; k < 3; ++k)
+            e->position[k] = (float)(smod(env_rand(env), 20) - 10) * 4.0f + e->position[k];
+        for (int k = 0; k < 3; ++k)
+            e->direction[k] = old[k] - e->position[k];
+        vector_normalize(e->direction);
+        const int32_t drift = trunc_i32((float)(smod(env_rand(env), 10) - 5) * f32bits(0x3da3d70au));   /* 0.08 */
+        for (int k = 0; k < 3; ++k)
+            e->direction[k] = (float)drift + e->direction[k];
+        const float step = (float)(smod(env_rand(env), 20) - 10);
+        e->scale = step * (e->scale * f32bits(0x3cf5c28fu)) + e->scale;   /* 0.03 */
+        e->lifetime = 25;
+        e->alpha = F_0_3;
+        e->gravity = F_0_1;
+        for (int k = 0; k < 3; ++k)
+            e->angle[k] = (float)smod(env_rand(env), 360);
+        for (int k = 0; k < 3; ++k)
+            e->spin[k] = (float)(smod(env_rand(env), 10) - 5);
+        break;
+    }
     case MU_SFX_RAGEFUL_BLOW:                     /* 0x013ce830 */
         e->heading = e->angle[0];
         e->heading_yz[0] = e->angle[1];
@@ -1239,6 +1274,13 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         }
         goto lifetime;
     }
+    case MU_SFX_MODEL_GUARDIAN_WING:                              /* 0x0146b64c, subtype 4 */
+        for (int k = 0; k < 3; ++k)
+            e->light[k] = e->light[k] * f32bits(0x3f7851ecu);   /* 0.97 */
+        e->alpha = e->alpha * f32bits(0x3f7851ecu);
+        for (int k = 0; k < 3; ++k)
+            e->angle[k] = e->spin[k] + e->angle[k];
+        break;
     case MU_SFX_MODEL_QUAKE1:                                     /* 0x01452410 */
         e->blend_light = (float)e->lifetime * F_0_1 / 3.0f;
         if (e->lifetime < 10)

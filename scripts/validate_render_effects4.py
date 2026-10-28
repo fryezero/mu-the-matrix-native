@@ -30,9 +30,9 @@ import validate_particles as pt
 ROOT = Path(__file__).resolve().parents[1]
 f32 = fx.f32
 CREATE_KINDS = [(0x461, 0), (0x462, 0), (0x462, 1), (0x463, 0), (0x463, 1), (0x463, 2), (0x464, 0), (0x465, 0),
-                (0x466, 0), (0x466, 1), (0x468, 0), (0x469, 0), (0x469, 1), (0x46a, 0), (0x46b, 0)]
+                (0x466, 0), (0x466, 1), (0x468, 0), (0x469, 0), (0x469, 1), (0x46a, 0), (0x46b, 0), (0x460, 4)]
 MOVE_KINDS = [(0x461, 0)] * 6 + [(0x462, 0), (0x463, 0), (0x464, 0), (0x465, 0), (0x466, 0), (0x468, 0),
-                                 (0x469, 0), (0x46a, 0), (0x46b, 0)]
+                                 (0x469, 0), (0x46a, 0), (0x46b, 0), (0x460, 4)]
 WALL_ROUTINE, ITEM_LINKS = 0x016d34cd, 0x01295f18
 TERRAIN_COLOR, RENDER_PART, POSE = 0x016cb08d, 0x017e63f4, 0x012b5064
 WEAPON_DRAW, ITEM_INIT = 0x01532bd2, 0x016da00b
@@ -42,7 +42,7 @@ ITEM_TYPES = [0xa99, 0xa9d, 0xaa1, 0xaa2, 0xae6, 0xaeb, 0xaf0, 0xaf3, 0xaf4, 0xb
               0x14ee, 0x14ef, 0x14f1, 0x14f3, 0x150c, 0x1513, 0x1516, 0x16f1, 0x16f2, 0x16f3, 0x16f4, 0x16f6,
               0x1701, 0x1702, 0x170b, 0x1711, 0x18fe, 0x1cfe, 0x22e6, 0x22e9, 0x236a, 0x248e, 0x24e6, 0x26e7,
               0x26fb, 0x28e6, 0x1200, 0x0b00]
-RB_MOVE_DEFINED = fx.MOVE_DEFINED | {'impact', 'heading_yz', 'field_80'}
+RB_MOVE_DEFINED = fx.MOVE_DEFINED | {'impact', 'heading_yz', 'field_80', 'spin'}
 INIT_FIELDS = {'live', 'flag5', 'flag_c', 'action', 'prior_action', 'type', 'field_68', 'blend_mesh', 'scale',
                'blend_light', 'blend_u', 'blend_v', 'velocity', 'gravity', 'frame', 'prior_frame', 'alpha', 'light',
                'field_4', 'field_c0'}
@@ -66,6 +66,10 @@ MUTANTS = [
     ('tail_gravity', 'e->gravity = e->gravity + 60.0f;', 'e->gravity = e->gravity + 50.0f;', 'effect_move', (0x46b, 0)),
     ('flash_scale', '        e->scale = 0.5f;\n        e->lifetime = 15;', '        e->scale = 0.6f;\n        e->lifetime = 15;',
      'effect_create', (0x46a, 0)),
+    ('wing_fade', 'e->alpha = e->alpha * f32bits(0x3f7851ecu);', 'e->alpha = e->alpha * f32bits(0x3f75c28fu);',
+     'effect_move', (0x460, 4)),
+    ('wing_drift', '(float)(smod(env_rand(env), 20) - 10) * 4.0f + e->position[k];',
+     '(float)(smod(env_rand(env), 20) - 10) * 3.0f + e->position[k];', 'effect_create', (0x460, 4)),
     ('item_scale', '    e->scale = F_0_8;\n    call_plain(env, e, MU_SFX_CALL_ITEM_LINKS);',
      '    e->scale = F_0_9;\n    call_plain(env, e, MU_SFX_CALL_ITEM_LINKS);', 'item_init', None),
     ('weapon_level', 'out->level = (int32_t)(o ? o->level : 0) << 3;', 'out->level = (int32_t)(o ? o->level : 0) << 2;',
@@ -143,6 +147,8 @@ def random_rb(rng, kind):
         e.impact[k] = f32(rng.uniform(400.0, 25000.0)) if rng.random() < 0.7 else e.position[k]
     e.impact[2] = f32(rng.uniform(0.0, 600.0))
     e.heading = f32(rng.choice([0.0, 80.0, rng.uniform(0.0, 720.0)]))
+    for k in range(3):
+        e.spin[k] = f32(rng.choice([-5.0, 0.0, 4.0, rng.uniform(-5.0, 5.0)]))
     for k in range(2):
         e.heading_yz[k] = f32(rng.choice([0.0, 180.0, rng.uniform(0.0, 360.0)]))
     e.client_hit = rng.choice([0, 0, 0, 1, 3])
@@ -354,7 +360,8 @@ def run(cases, mutations):
                 result['mutants'][name] = {'cases': f['cases'], 'caught': f['cases'] - f['equal']}
     bodies = {'rb_create': (0x013ce830, 0x013cec46), 'rb_move': (0x01450a73, 0x01452410),
               'rb_pieces_move': (0x01452410, 0x01453033), 'flash_tail_move': (0x0144e1d7, 0x0144e44c),
-              'flash_tail_create': (0x013c94a8, 0x013c9647), 'item_init': (0x016da00b, 0x016daa01),
+              'flash_tail_create': (0x013c94a8, 0x013c9647), 'wing_create': (0x013e4f55, 0x013e53ff),
+              'wing_move': (0x0146b64c, 0x0146b809), 'normalize': (0x00cff0d3, 0x00cff1c9), 'item_init': (0x016da00b, 0x016daa01),
               'weapon_draw': (0x01532bd2, 0x01532f27)}
     result['bodies'] = {name: {'start': hex(a), 'end': hex(b),
                                'sha256': hashlib.sha256(text[a-am.TEXT_BASE:b-am.TEXT_BASE]).hexdigest()}

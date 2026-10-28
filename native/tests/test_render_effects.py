@@ -141,6 +141,37 @@ class RenderEffects(unittest.TestCase):
         finally:
             for name in names: (assets/name).unlink()
 
+    def test_guardian_wing_pet_effect_pixels(self):
+        """RENDER-EFFECTS-004: Spirit of Guardian's effect 0x460/4 is created, kept and drawn."""
+        from test_native_pets import write_pet_models
+        with tempfile.TemporaryDirectory() as tmp:
+            root = write_combat_world(Path(tmp)/'game')
+            write_pet_models(root, with_data=False)
+            item = root/'Data/Item'
+            nf.write_textured_model(item, 45).rename(item/'maria.bmd')
+            skill = root/'Data/Skill'; skill.mkdir(exist_ok=True)
+            wing = skill/'darkwing_hetachi.bmd'
+            nf.write_textured_model(skill, 46).rename(wing)
+
+            def run():
+                with tempfile.TemporaryDirectory() as out:
+                    p = subprocess.run([str(ROOT/'native/build/mu-walk'), '--game-root', str(root), '--headless',
+                                        '--backend', 'soft', '--no-audio', '--no-env', '--no-items', '--no-players',
+                                        '--tile', '120,120', '--helper', 'spirit', '--frames', '30', '--every', '1',
+                                        '--width', '160', '--height', '100', '--out-dir', out],
+                                       capture_output=True, text=True)
+                    self.assertEqual(p.returncode, 0, p.stderr)
+                    stats = [json.loads(x) for x in p.stdout.splitlines() if '"effects_created"' in x]
+                    images = [hashlib.sha256(x.read_bytes()).hexdigest() for x in sorted(Path(out).glob('*.png'))]
+                return stats[-1], images
+            stats, images = run()
+            self.assertEqual(stats['effects_created'], 30)    # one wing per drawn frame
+            self.assertEqual(stats['effects_unsupported'], 0)
+            self.assertEqual(stats['effects_live'], 25)       # lifetime 25
+            wing.rename(skill/'off.bmd')
+            _, absent = run()
+            self.assertNotEqual(images, absent)
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_rageful_blow_original_instructions_and_compiled_mutants(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -69,6 +69,7 @@ enum {
     MU_SFX_BITMAP_JOINT_ENERGY = 0x7fd8,  /* Effect\JointEnergy01.jpg (Heal) */
     MU_SFX_BITMAP_SHOCKWAVE = 0x8012,     /* Effect\ShockWave.jpg: the mounts' flying step (NATIVE-HELPERS-002) */
     /* RENDER-EFFECTS-004: Rageful Blow (loader 0x0183451b..0x018345fc) */
+    MU_SFX_MODEL_GUARDIAN_WING = 0x460, /* Skill\darkwing_hetachi.bmd: Spirit of Guardian's drifting wing (pets, subtype 4) */
     MU_SFX_RAGEFUL_BLOW = 0x461,      /* no model: draws its owner's weapon (RenderEffects 0x01532bd2) */
     MU_SFX_MODEL_QUAKE1 = 0x462,      /* Skill\EarthQuake01.bmd .. 0x469 EarthQuake08.bmd */
     MU_SFX_MODEL_QUAKE2 = 0x463,
@@ -162,6 +163,7 @@ typedef struct mu_sfx_effect {
     float heading_yz[2];     /* +0x174, +0x178: with heading (+0x170) the weapon's second angle vector */
     uint8_t field_4;         /* +0x04 */
     float field_c0;          /* +0xc0 */
+    float spin[3];           /* +0x194 per-step angle change (0x460 subtype 4) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */

@@ -145,7 +145,7 @@ class Effect(ctypes.Structure):
                 ('field_2e4', ctypes.c_int32), ('field_6', ctypes.c_uint8), ('field_70', ctypes.c_int32),
                 ('heading', ctypes.c_float), ('field_64', ctypes.c_int32), ('time_mark', ctypes.c_uint32),
                 ('impact', ctypes.c_float*3), ('heading_yz', ctypes.c_float*2), ('field_4', ctypes.c_uint8),
-                ('field_c0', ctypes.c_float)]   # RENDER-EFFECTS-004
+                ('field_c0', ctypes.c_float), ('spin', ctypes.c_float*3)]   # RENDER-EFFECTS-004
 
 
 class Info(ctypes.Structure):
@@ -409,7 +409,7 @@ EFFECT_FIELDS = [
     ('field_6', 0x06, 'B', 1), ('field_70', 0x70, 'i', 1), ('heading', 0x170, 'f', 1),
     ('field_64', 0x64, 'i', 1), ('time_mark', 0x9c, 'I', 1),   # NATIVE-HELPERS-002
     ('impact', 0x110, 'f', 3), ('heading_yz', 0x174, 'f', 2), ('field_4', 0x04, 'B', 1),
-    ('field_c0', 0xc0, 'f', 1),   # RENDER-EFFECTS-004
+    ('field_c0', 0xc0, 'f', 1), ('spin', 0x194, 'f', 3),   # RENDER-EFFECTS-004
 ]
 # visible (+0x0b) is an input of the hit checks only; owner (+0x34c) is a pointer handled separately.
 
