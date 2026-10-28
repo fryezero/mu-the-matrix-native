@@ -61,13 +61,16 @@ without effect textures. Previous milestones' renders/hashes remain preserved.
 
 ## Release checks
 
-The full local Mac gate passed after merging main through #196: **1,463 tests** across 38 suites,
-178 explicit skips; **6/6 fixture scenarios**, 46 inbound frames, zero unbound/undecodable frames;
-viewer and reader builds; repository audit. Main's subsequent #197 merge is integrated. Its interim gate exposed a missing generated-header
+The final local Mac gate passed under the serialized merge lock on main **7b494b9**, including
+#187, #195, #196, #197 and #198: **1,476 tests** across 38 suites, **181 explicit skips**;
+**7/7 fixture scenarios**, **53 inbound frames**, zero unbound/undecodable frames; viewer and reader
+builds; repository audit, **1,372 files, zero rejected**. Log: `finalize/final-locked-gate.log`.
+The lock was acquired at 06:56 CDT and is held through the final PR merge, then released.
+
+An earlier gate passed before #197. Its subsequent incremental build exposed a missing generated-header
 dependency for `core/mu_combat.o`; the Makefile now refreshes domain/intent and layout headers before
-compiling it. The failed incremental build, repaired compile and a changed-intent dry-run are recorded in
-`finalize/`. The merge lock was acquired at 06:56 CDT. Main through #198 is integrated and the protected
-final Mac gate is running. No hosted CI is used.
+compiling it. The failed build, repaired compile and a changed-intent dry-run are recorded in `finalize/`.
+No hosted CI was used.
 
 Fresh inherited comparisons, all with zero mismatches:
 

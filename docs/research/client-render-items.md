@@ -5,7 +5,9 @@ Part 1 covers RenderItem3D's restored special-code chain and native inventory in
 11 body types and six bow link effects. [Part 3 below](#part-3-body-clusters-and-offset-links-render-items-002c)
 raises body coverage to 262/1,674 and records exact remaining branches.
 [Part 4 below](#part-4-armour-weapons-skins-and-spark03-render-items-002d) raises it to 426/1,674, adds
-eleven skins and consumes Spark03/11. Muun/map-object effect placement remains deferred. All parts run offline.
+eleven skins and consumes Spark03/11. [Part 5 below](#part-5-remaining-skins-and-ranked-body-clusters-render-items-002e)
+raises coverage to 501/1,674 bodies and 17/17 skins, with seven link targets/twelve types consumed.
+Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
 
