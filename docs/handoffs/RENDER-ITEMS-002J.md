@@ -86,7 +86,7 @@ All **750 earlier generated recipe rows** retain their complete rules and
 metadata after re-indexing, with the new retain-ancient flag zero. The inherited part-9 validator passes **31,724 cases, zero mismatches and 9/9
 compiled mutants**, and reproduces both tables on the final source. Together,
 these runs provide **65,346 instruction comparisons, zero mismatches and 21/21
-mutants**. The serialized gate remains pending below.
+mutants**. The serialized gate is recorded below.
 
 Portable renderchar: **56 tests, thirteen explicit private-input skips**.
 Native character renderer: **13 tests, one installed-client skip**. The new
@@ -127,8 +127,8 @@ dependency. No new private input needs retention.
 Local reports, fixtures, baseline binaries and renders are under
 `mu-mac-tools/native/{scratch,renders}/render-items-002j/`. After merge release the
 lock immediately, delete both directories and lane build/verification outputs,
-then remove the worktree/local branch. Shared input symlinks are never committed
-or traversed during deletion. Final latest-main gate and merge remain pending.
+retain the worktree and local branch under the owner's later hard-stop instruction. Shared input symlinks are never committed
+or traversed during deletion. The serialized release is recorded below.
 
 
 ## Deadline and queue
@@ -156,8 +156,36 @@ The final serialized latest-main gate remains required. No hosted CI is run.
 Release readiness: all new/inherited instruction checks and the stable preflight
 are complete. This lane is first in the queue while VERIFY-HARNESS-002 holds the
 lock. The operational latest-start cutoff is **14:25 CDT** to reserve fifteen
-minutes for integration, clean gate and merge. Next: take the lock only when
-released and still before that cutoff; fetch/merge latest origin/main, clean-build
-and run the full Mac gate, open/link/merge the PR, then release and clean up.
+minutes for integration, clean gate and merge. The final sequence acquired the lock at 14:15:56, before that cutoff.
+The latest owner instruction retains the worktree and branch after cleanup,
+including after a successful merge.
 If that window closes, finish the unmerged checkpoint/cleanup before 14:40 and
 retain the worktree for the owner.
+
+
+## Serialized release
+
+At **14:15:56 CDT**, first in queue, this lane acquired the lock and removed
+its queue entry. Latest main **7ed43f8**, including audio E, party, Worlds L and
+Harness 002, merged cleanly into **a874281**. No item-render source changed in
+that integration. `make -C native clean` preceded the final gate.
+
+The locked `bash scripts/local-macos-ci.sh` passes **1,615 tests across 38 suites,
+206 explicit skips, zero failures**. All **11/11 fixture scenarios** pass, with
+**86 inbound frames**, zero unbound/undecodable frames and the existing two
+unrecovered intents/nine unsent frames explicit. Viewer/readers build; publication
+audit accepts **1,569 staged files, zero rejected**. The fixture dirty marker
+reflects only the two untracked shared input symlinks. The result-recording commit
+changes documentation only. No hosted workflow is used.
+
+All four representative native after-images retain their hashes/counters after
+integration: the mapped seed inventory, atlas armour, twenty shield sprites and
+the ordinary control. The six before/after PNGs and all task scratch/build outputs
+will be deleted after merge. The latest owner hard-stop instruction overrides the
+original worktree-deletion rule: **retain render-items-002j and its local branch**.
+Existing Python/evidence input symlinks remain available and are never committed.
+No new private input is needed to resume.
+
+Self-review of the final diff, original-comparison boundary, native capacities,
+random order and supported hidden-mesh inputs found no remaining blocking issue.
+The 794-body backlog, failed probe fits and owner/effects/model limits stay open.
