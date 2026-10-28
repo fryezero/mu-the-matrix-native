@@ -1,5 +1,7 @@
 # Current status
 
+LAYOUT-PROBE-001 settles the separate OBJECT live/fade bytes, the two CHARACTER level reads, and the CharacterAttribute prefix/extent distinction. [Evidence](research/client-layout-probes.md).
+
 ## Stage 1 of the port completion, 2026-10-25
 
 Four lanes from [the plan](design/native-port/plan.md) are merged (#162-#165):

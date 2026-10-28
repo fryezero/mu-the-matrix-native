@@ -1,5 +1,7 @@
 # Continue from here
 
+LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
+
 ## Stage 1 merged (2026-10-25)
 
 **Merged.** PRs #160-#165 are on main. Each passed `make test` on its merged tree; the last ran 1,283 tests. Each
