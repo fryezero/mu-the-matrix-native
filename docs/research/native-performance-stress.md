@@ -20,7 +20,8 @@ PERF-001's older overlay and cap too.
 
 The first sampling profile, `sample PID 3 1`, has 1,835 main-thread samples: 780 in `players_draw_gl`, 725
 under its mesh/body draw, and repeated corner adaptation, state decoding and immediate GL entry points.
-Skinning and Ruffle also appear. These are observations of the host implementation, not new conclusions
+Skinning and Ruffle also appear. A final 80-player profile identifies skinning, Ruffle AVM1 property
+lookup/case folding, mesh drawing and batch vertex delivery among the remaining executing hot paths. These are observations of the host implementation, not new conclusions
 about original x86 behavior. Existing instruction comparisons remain the oracle for the reconstructed math.
 
 ## Changes
@@ -118,6 +119,13 @@ exercise fast/slow, missing workload and both threshold paths. Recalibrate on ot
 Mac, preserving the strict 25 Hz check. The JSON limits are reviewed summaries, not proprietary data.
 
 ## Verification
+
+The final parallel merges also exposed an incremental-build dependency typo: the software character-select
+objects named undefined `CORE_HDR` rather than `HEADERS`. They retained the old `mu_objects` layout after
+the rendering lane enlarged it, so two existing object-lifecycle tests failed. The one-word Makefile fix
+rebuilds those consumers; all four targeted character-select lifecycle/snapshot tests then pass. It changes
+no scene behavior.
+
 
 A long `--combat-script` exposed a new main-branch Native Data integration issue: script text was probed
 as a filesystem path and failed with ENAMETOOLONG. The guard now skips text-valued script/walk/wheel
