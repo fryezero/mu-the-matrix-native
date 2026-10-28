@@ -120,6 +120,13 @@ Mac, preserving the strict 25 Hz check. The JSON limits are reviewed summaries, 
 
 ## Verification
 
+The expanded item-body classifier changes the seeded generic candidate list of the existing renderchar
+validator. All 500 requested item cases are accounted for: 106 existing record-type-4 exclusions and
+394 exact comparisons, all matching. With back/character/light cases the total is 625, rather than the
+stale manifest value 638. The manifest now pins those counts and light equality explicitly. New special
+bodies are separately compared by the item-cluster validator; no mismatch was waived.
+
+
 The final parallel merges also exposed an incremental-build dependency typo: the software character-select
 objects named undefined `CORE_HDR` rather than `HEADERS`. They retained the old `mu_objects` layout after
 the rendering lane enlarged it, so two existing object-lifecycle tests failed. The one-word Makefile fix
