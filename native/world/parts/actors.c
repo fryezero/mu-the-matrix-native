@@ -134,7 +134,7 @@ static int actors_open(struct mu_world_rt *a, void *self)
     mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte; seed.place.world = a->map->world;
     mu_session *session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!session) { mu_transport_free(transport); mu_fixture_close(fixture); return 1; }
-    mu_session_skills_bind(session, mu_lang_shared(), getenv("MU_LANG_DIR"), a->root);
+    mu_session_skills_bind(session, a->lang, getenv("MU_LANG_DIR"), a->root);
     mu_world_port port = {0}; port.context = a; port.world = a->map->world; port.terrain_height = actors_height;
     mu_session_attach_world(session, &port);
     mu_transport_poll(transport, 40); mu_session_pump(session, 40);
@@ -177,6 +177,7 @@ static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, c
     const mu_character_item *part = &npc->player->items[item];
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
+    env.lang = a->lang;
     env.time = a->map->time;
     env.quality = 5;
     mu_draw_options options;
@@ -341,7 +342,7 @@ static void actors_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
     }
     if (a->batch)
         mu_gl_batch_session_end(a->batch);
-    mu_perf_end(MU_PERF_CHARACTERS, d->perf);
+    mu_perf_end(a->perf, MU_PERF_CHARACTERS, d->perf);
 }
 
 /* The effects' phase: the actors' EffectManager instances (the combat part closes the phase). */
@@ -349,7 +350,7 @@ static void actor_effects_draw_gl(struct mu_world_rt *a, void *self, mu_world_dr
 {
     (void)self;
     const mu_client_view *v = &a->walk.frame.view;
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     if (a->has_actors && a->actors.has_effects && a->actors.effects.instance_count) {
         float eye[3], target[3];
         world_rt_effect_camera(a, eye, target);

@@ -301,7 +301,7 @@ void mu_names_update(mu_names *n, void (*project)(void *context, const float pos
     n->project = project;
     n->project_context = context;
     n->now = now;
-    static mu_hn_op ops[MU_NAMES_MAX * 16];
+    mu_hn_op ops[MU_NAMES_MAX * 16];
     int32_t count = mu_hn_update(&n->window, lookup, &n->env, ops, (int32_t)(sizeof ops / sizeof ops[0]));
     for (int32_t i = 0; i < count; ++i)
         emit(n, type_of(n, ops[i].key), &ops[i], 1);

@@ -54,7 +54,7 @@ have two feeds.
 | SESSION-QUEST-001 | Quests domain (the whole `mu_quest_client`); log-sink adapter; window events; quest step at its tick position; demo becomes fixture. F6 `0x70/0x71` XOR with the 3 bytes at `0x06fca280` | Quest families rerun (NATIVE-QUEST-001/002, POLISH-001); quests in `mu-walk`; quest state survives character select. `0x70/0x71` stays journaled as undecoded until a scoped capture or the writer of `0x06fca280` is found | SESSION-CORE-001, WORLD-RT-001 | Implemented, 2026-10-27; [checks and remaining](../../handoffs/SESSION-QUEST-001.md) |
 | SESSION-NPC-001 | NPC domain: talk result to window cues, talk request C1 `0x95`, shop list packet, vault, buy, sell, repair | NPC families rerun (talk 4,096 …); new shop-list family | SESSION-CORE-001, SESSION-ITEMS-001 | EA |
 | SESSION-SOCIAL-001 | Party, trade, friends and messenger/mail domains; normalized keys mapped to wire routes from NET-DISPATCH-001; chat-server connection (room answer address plus ticket); source of the room text key[3] | Social families rerun (7,000 + 29,700); routing rows verified; the orphan `validate_social*` scripts brought under tests | NET-DISPATCH-001, SESSION-CORE-001 | EA |
-| SESSION-GLOBALS-001 | Process globals become per session or runtime (`mu_lang_shared`, `imps[]`, `step_context current`, skill demo tables, `mu_perf`) | Two sequential sessions in one process give the same journals and state dumps as two fresh processes | SESSION-CORE-001, WORLD-RT-001 | EA |
+| SESSION-GLOBALS-001 | Process globals become per session or runtime (`mu_lang_shared`, `imps[]`, `step_context current`, skill demo tables, `mu_perf`) | Two sequential sessions in one process give the same journals and state dumps as two fresh processes | SESSION-CORE-001, WORLD-RT-001 | Implemented; [inventory and checks](../../handoffs/SESSION-GLOBALS-001.md) |
 
 ## D. World runtime and input
 
@@ -118,6 +118,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | NATIVE-PERF-002 | Extreme offline crowd/combat/GFx benchmark; host timing, batching and allocation work | Measured comparison, preserved renders, local gate ([finding](../../research/native-performance-stress.md)) | NATIVE-PERF-001 | Partial: crowd40 passes the checker with pacing tails; three 80-player 25 fps targets remain open |
 | NATIVE-PERF-003 | Full shared-GFx GPU interval, pacing and native CPU optimization | Exact full-frame comparisons and measured costs ([finding](../../research/native-performance-003.md)) | NATIVE-PERF-002 | Partial: verified changes and final timing; strict 25 Hz work/pacing acceptance remains open |
 | README-STRESS-001 | Eighty-player README images, remote-armour glow texture lookup fix and public demo HUD | Synthetic regression, controlled GL hashes and local gate ([finding](../../research/readme-stress.md)) | NATIVE-PERF-003 | Implemented; historical timings only, 25 fps crowd target open |
+| README-REFRESH-003 | Public README coverage through PR #207; existing reviewed images reused | Documentation/source cross-check, local Mac gate and publication audit ([handoff](../../handoffs/README-REFRESH-003.md)) | Merged PRs #168–#207 | Implemented; runtime and media unchanged |
 
 ## H. Audio
 

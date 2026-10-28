@@ -605,3 +605,18 @@ $(BUILD)/worlds-h-host: tests/worlds_h_host.c $(LIB) $(HEADERS)
 
 # Core consumers include the generated public domain and intent headers.
 $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
+
+# SESSION-GLOBALS-001: real session/world tool entries, twice without exec.
+$(BUILD)/session-repeat-host: tests/session_repeat_host.c tools/mu_session.c $(BUILD)/libmusession.a $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -Dmain=mu_session_tool_main -c tools/mu_session.c -o $(BUILD)/session_repeat_tool.o
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tests/session_repeat_host.c -o $(BUILD)/session_repeat_host.o
+	$(CXX) $(BUILD)/session_repeat_host.o $(BUILD)/session_repeat_tool.o $(BUILD)/libmusession.a $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/world-repeat-host: tests/session_repeat_host.c world/world_tool.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -Dmain=mu_world_tool_main -c world/world_tool.c -o $(BUILD)/world_repeat_tool.o
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DREPEAT_WORLD -c tests/session_repeat_host.c -o $(BUILD)/world_repeat_host.o
+	$(CXX) $(BUILD)/world_repeat_host.o $(BUILD)/world_repeat_tool.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+$(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/globals_owner_host.o
+	$(CXX) $(BUILD)/globals_owner_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@

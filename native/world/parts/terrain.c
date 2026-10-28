@@ -245,7 +245,7 @@ static void terrain_gl_teardown(struct mu_world_rt *a, void *self)
 static void terrain_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     terrain_part *t = self;
-    d->perf = mu_perf_begin();   /* NATIVE-PERF-001: phase times (off unless --perf) */
+    d->perf = mu_perf_begin(a->perf);   /* NATIVE-PERF-001: phase times (off unless --perf) */
     t->batch = a->batch;
     mu_terrain_sink sink = {t, g_state, g_bind, g_begin, g_tex, g_c3, g_c4, g_v, g_end};
     if (a->batch) {   /* NATIVE-PERF-001: the same stream, merged draws */
@@ -271,7 +271,7 @@ static void terrain_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         mu_gl_batch_session_end(a->batch);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
-    mu_perf_end(MU_PERF_TERRAIN, d->perf);
+    mu_perf_end(a->perf, MU_PERF_TERRAIN, d->perf);
     d->faces = stats.faces;
 }
 #endif

@@ -56,11 +56,6 @@ typedef struct mu_lang_npc {          /* Npcname(kor) record (0x28 bytes), gette
 mu_lang *mu_lang_load(const char *dir);
 mu_lang *mu_lang_load_default(void);
 void mu_lang_free(mu_lang *lang);
-/* The process-wide tables from MU_LANG_DIR, loaded on first use (NULL when
- * the variable is unset or the directory holds no table).  Consumers that
- * have no configuration path of their own use it. */
-const mu_lang *mu_lang_shared(void);
-
 typedef struct mu_lang_counts {
     size_t text, skills, gates, moves, npcs, dialog, enchant_codes, enchant_entries;
     size_t buffs, charinfo, skillreq, soulconv, questtext;   /* NATIVE-LANG-002 */

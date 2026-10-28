@@ -1132,7 +1132,7 @@ long mu_objects_render_raster(mu_objects *o, const mu_world *map, mu_raster *ras
     raster->texture_filter = NULL;
     raster->texture_wrap = NULL;
     raster->linear = linear;
-    static mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
+    mu_fx_vertex quads[4 * MU_OBJECT_PARTICLES];
     for (int32_t b = 0; b < 2 && eye && target; ++b) {
         mu_fx_draw_state state;
         const uint32_t n = mu_objects_particle_quads(o, b, eye, target, quads, 4 * MU_OBJECT_PARTICLES, &state);

@@ -28,6 +28,7 @@
 #include "../../reconstructed/helpers/helpers.h"
 #include "../../reconstructed/helpers/mount_class.h"
 #include "mu_bmd.h"
+#include "mu_renderchar.h"
 #include "mu_model.h"
 #include "mu_raster.h"
 #include "mu_scene.h"
@@ -78,7 +79,14 @@ typedef struct mu_wh_stats {
     uint32_t passes, decals;                         /* NATIVE-HELPERS-002: model passes, terrain decals (last draw) */
 } mu_wh_stats;
 
+typedef struct mu_wh_imp_slot {
+    int tried;
+    mu_renderchar_attachment a;
+    struct mu_character *host;
+} mu_wh_imp_slot;
+
 typedef struct mu_world_helpers {
+    mu_wh_imp_slot imps[MU_WH_OWNERS];
     mu_helpers h;
     mu_hp_mounts mounts;
     mu_hp_owner owners[MU_WH_OWNERS];

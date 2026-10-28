@@ -12,6 +12,7 @@
 #endif
 
 #include <sched.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,16 +22,6 @@ static const char *const names[MU_PERF_PHASES] = {
     "events", "logic", "terrain", "objects", "characters", "items", "env", "particles",
     "effects", "labels", "scene", "gfx", "overlay", "present", "swap", "sleep",
 };
-
-static struct {
-    FILE *log;
-    int sync;
-    void (*finish)(void);
-    double phase[MU_PERF_PHASES];
-    double last, cpu_last, gpu_ms, gpu_gfx_ms;
-    int64_t gpu_frame, gpu_gfx_frame;
-    int64_t frame;
-} P;
 
 double mu_perf_now(void)
 {
@@ -46,86 +37,87 @@ static double cpu_now(void)
     return (double)t.tv_sec * 1000.0 + (double)t.tv_nsec / 1.0e6;
 }
 
-void mu_perf_gpu_sample(double ms, int64_t frame) { P.gpu_ms = ms; P.gpu_frame = frame; }
-void mu_perf_gpu_gfx_sample(double ms, int64_t frame) { P.gpu_gfx_ms = ms; P.gpu_gfx_frame = frame; }
-int64_t mu_perf_frame_index(void) { return P.frame; }
+void mu_perf_gpu_sample(mu_perf *p, double ms, int64_t frame) { if (!p) return; p->gpu_ms = ms; p->gpu_frame = frame; }
+void mu_perf_gpu_gfx_sample(mu_perf *p, double ms, int64_t frame) { if (!p) return; p->gpu_gfx_ms = ms; p->gpu_gfx_frame = frame; }
+int64_t mu_perf_frame_index(mu_perf *p) { return p ? p->frame : 0; }
 
-int mu_perf_open(const char *path, int sync)
+int mu_perf_open(mu_perf *p, const char *path, int sync)
 {
-    mu_perf_close();
+    if (!p) return 1;
+    mu_perf_close(p);
     if (!path || !path[0])
         return 0;
-    P.log = fopen(path, "w");
-    if (!P.log)
+    p->log = fopen(path, "w");
+    if (!p || !p->log)
         return 1;
-    P.sync = sync;
-    fprintf(P.log, "frame\tscene\ttotal_ms");
+    p->sync = sync;
+    fprintf(p->log, "frame\tscene\ttotal_ms");
     for (int i = 0; i < MU_PERF_PHASES; ++i)
-        fprintf(P.log, "\t%s_ms", names[i]);
-    fprintf(P.log, "\tcpu_ms\tgpu_world_ms\tgpu_frame\tgpu_gfx_ms\tgpu_gfx_frame\n");
-    P.cpu_last = cpu_now();
-    P.gpu_ms = -1.0;
-    P.gpu_frame = -1;
-    P.gpu_gfx_ms = -1.0;
-    P.gpu_gfx_frame = -1;
-    memset(P.phase, 0, sizeof P.phase);
-    P.last = mu_perf_now();
-    P.frame = 0;
+        fprintf(p->log, "\t%s_ms", names[i]);
+    fprintf(p->log, "\tcpu_ms\tgpu_world_ms\tgpu_frame\tgpu_gfx_ms\tgpu_gfx_frame\n");
+    p->cpu_last = cpu_now();
+    p->gpu_ms = -1.0;
+    p->gpu_frame = -1;
+    p->gpu_gfx_ms = -1.0;
+    p->gpu_gfx_frame = -1;
+    memset(p->phase, 0, sizeof p->phase);
+    p->last = mu_perf_now();
+    p->frame = 0;
     return 0;
 }
 
-void mu_perf_close(void)
+void mu_perf_close(mu_perf *p)
 {
-    if (P.log)
-        fclose(P.log);
-    P.log = NULL;
+    if (p && p->log)
+        fclose(p->log);
+    if (p) memset(p, 0, offsetof(mu_perf, gl_timer)); /* query lifetime ends at GL teardown */
 }
 
-int mu_perf_enabled(void) { return P.log != NULL; }
+int mu_perf_enabled(mu_perf *p) { return p && p->log != NULL; }
 
-void mu_perf_set_sync(void (*finish)(void)) { P.finish = finish; }
+void mu_perf_set_sync(mu_perf *p, void (*finish)(void)) { if (p) p->finish = finish; }
 
-double mu_perf_begin(void)
+double mu_perf_begin(mu_perf *p)
 {
-    if (!P.log)
+    if (!p || !p->log)
         return 0.0;
-    if (P.sync && P.finish)
-        P.finish();
+    if (p->sync && p->finish)
+        p->finish();
     return mu_perf_now();
 }
 
-void mu_perf_end(int phase, double stamp)
+void mu_perf_end(mu_perf *p, int phase, double stamp)
 {
-    if (!P.log || phase < 0 || phase >= MU_PERF_PHASES)
+    if (!p || !p->log || phase < 0 || phase >= MU_PERF_PHASES)
         return;
-    if (P.sync && P.finish)
-        P.finish();
-    P.phase[phase] += mu_perf_now() - stamp;
+    if (p->sync && p->finish)
+        p->finish();
+    p->phase[phase] += mu_perf_now() - stamp;
 }
 
-void mu_perf_add(int phase, double ms)
+void mu_perf_add(mu_perf *p, int phase, double ms)
 {
-    if (P.log && phase >= 0 && phase < MU_PERF_PHASES)
-        P.phase[phase] += ms;
+    if (p && p->log && phase >= 0 && phase < MU_PERF_PHASES)
+        p->phase[phase] += ms;
 }
 
-void mu_perf_frame(int32_t scene)
+void mu_perf_frame(mu_perf *p, int32_t scene)
 {
-    if (!P.log)
+    if (!p || !p->log)
         return;
     double now = mu_perf_now(), cpu = cpu_now();
-    fprintf(P.log, "%lld\t%d\t%.3f", (long long)P.frame, scene, now - P.last);
+    fprintf(p->log, "%lld\t%d\t%.3f", (long long)p->frame, scene, now - p->last);
     for (int i = 0; i < MU_PERF_PHASES; ++i)
-        fprintf(P.log, "\t%.3f", P.phase[i]);
-    fprintf(P.log, "\t%.3f\t%.3f\t%lld\t%.3f\t%lld\n", cpu - P.cpu_last, P.gpu_ms, (long long)P.gpu_frame, P.gpu_gfx_ms, (long long)P.gpu_gfx_frame);
-    P.cpu_last = cpu;
-    P.gpu_ms = -1.0;
-    P.gpu_frame = -1;
-    P.gpu_gfx_ms = -1.0;
-    P.gpu_gfx_frame = -1;
-    memset(P.phase, 0, sizeof P.phase);
-    P.last = now;
-    ++P.frame;
+        fprintf(p->log, "\t%.3f", p->phase[i]);
+    fprintf(p->log, "\t%.3f\t%.3f\t%lld\t%.3f\t%lld\n", cpu - p->cpu_last, p->gpu_ms, (long long)p->gpu_frame, p->gpu_gfx_ms, (long long)p->gpu_gfx_frame);
+    p->cpu_last = cpu;
+    p->gpu_ms = -1.0;
+    p->gpu_frame = -1;
+    p->gpu_gfx_ms = -1.0;
+    p->gpu_gfx_frame = -1;
+    memset(p->phase, 0, sizeof p->phase);
+    p->last = now;
+    ++p->frame;
 }
 
 static void nap(double ms)
@@ -193,16 +185,15 @@ static void sleep_until(double deadline)
     precise(0);
 }
 
-static double pace_start;
-void mu_perf_pace_begin(void) { pace_start = mu_perf_now(); }
-void mu_perf_pace_end(int32_t client_sleep)
+void mu_perf_pace_begin(mu_perf *p) { p->pace_start = mu_perf_now(); }
+void mu_perf_pace_end(mu_perf *p, int32_t client_sleep)
 {
     const char *baseline = getenv("MU_PERF_003_BASELINE");
     if (mu_perf_baseline() || (baseline && baseline[0] == '1')) {
         if (client_sleep > 0) mu_sleep_ms((uint32_t)client_sleep);
         return;
     }
-    sleep_until(pace_start + 40.0);
+    sleep_until(p->pace_start + 40.0);
 }
 
 void mu_sleep_ms(uint32_t ms)

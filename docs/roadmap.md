@@ -1,5 +1,9 @@
 # Roadmap and work queue
 
+README-REFRESH-003 implemented: public progress through PR #207, bounded coverage and honest offline/performance limits; existing pinned images reused. [Checks and sources](handoffs/README-REFRESH-003.md).
+
+SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
+
 SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
 
 INTEGRATION-GREEN-001 completed: reproducible private input identities, repaired harness entry points, 38/38 private-enabled directories green; [counts and legitimate skips](handoffs/INTEGRATION-GREEN-001.md).

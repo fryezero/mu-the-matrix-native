@@ -96,7 +96,7 @@ static int characters_open(mu_world_rt *a, void *self)
     seed.place.tile[0]=a->walk.hero.tile[0];seed.place.tile[1]=a->walk.hero.tile[1];
     p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);
     if(!p->session) {fprintf(stderr,"characters: %s\n",error);return 1;}
-    mu_session_skills_bind(p->session,mu_lang_shared(),getenv("MU_LANG_DIR"),a->root);
+    mu_session_skills_bind(p->session,a->lang,getenv("MU_LANG_DIR"),a->root);
 attach:
     p->audio_rng = 0x41554432u;
     p->services.map = a->map; p->services.walk = &a->walk;

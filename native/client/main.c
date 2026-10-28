@@ -86,6 +86,7 @@
 typedef mu_input_action action;
 
 typedef struct front {
+    mu_perf perf;
     const char *root, *session, *out_dir, *backend, *wav_path, *font;
     /* WORLD-RT-001: the world scene's options, parsed straight into the runtime's struct (NATIVE-APP-001's
      * --combat --items --npc --npc-demo --progress --no-names --no-env --no-particles, --sound-table,
@@ -501,18 +502,18 @@ static void compose(front *f)
     } else if (f->gl) {
 #ifndef MU_CLIENT_NO_GL
         if (view == MU_SHELL_VIEW_LOGIN && f->login_gl) {
-            double perf = mu_perf_begin();
+            double perf = mu_perf_begin(&f->perf);
             mu_login_gl_draw(f->login_gl, mu_shell_login(f->shell), f->width, f->height);
-            mu_perf_end(MU_PERF_SCENE, perf);
+            mu_perf_end(&f->perf, MU_PERF_SCENE, perf);
         } else if (view == MU_SHELL_VIEW_CHARSEL) {
-            double perf = mu_perf_begin();
+            double perf = mu_perf_begin(&f->perf);
             mu_charsel_rt_draw_gl(mu_shell_charsel(f->shell), f->width, f->height);
-            mu_perf_end(MU_PERF_SCENE, perf);
+            mu_perf_end(&f->perf, MU_PERF_SCENE, perf);
         } else {
             mu_world_rt *w = mu_shell_world(f->shell);
             mu_world_rt_draw_gl(w, f->width, f->height);
             if (f->gfx) {
-                double perf = mu_perf_begin();
+                double perf = mu_perf_begin(&f->perf);
                 uint32_t now = on_ticks(f);
                 const mu_walk *walk = mu_world_rt_walk(w);
                 world_gfx_set_location(f->gfx, mu_world_rt_folder(w) - 1, walk->hero.position[0],
@@ -522,14 +523,14 @@ static void compose(front *f)
                 int menu = wg_options_take_request(world_gfx_options(f->gfx));   /* NATIVE-PROGRESS-001 */
                 if (menu >= 0)
                     mu_shell_world_menu(f->shell, menu);
-                mu_perf_end(MU_PERF_GFX, perf);
+                mu_perf_end(&f->perf, MU_PERF_GFX, perf);
             }
         }
         if (!gpu) {
-            double perf = mu_perf_begin();
+            double perf = mu_perf_begin(&f->perf);
             glFinish();
             mu_gl_read(f->width, f->height, f->pixels);
-            mu_perf_end(MU_PERF_OVERLAY, perf);
+            mu_perf_end(&f->perf, MU_PERF_OVERLAY, perf);
         }
 #endif
     } else {
@@ -541,9 +542,9 @@ static void compose(front *f)
             mu_world_rt_draw_soft(mu_shell_world(f->shell), &f->raster);
         memcpy(f->pixels, f->raster.color, bytes);
     }
-    double perf = mu_perf_begin();
+    double perf = mu_perf_begin(&f->perf);
     mu_shell_overlay(f->shell, f->pixels);
-    mu_perf_end(MU_PERF_OVERLAY, perf);
+    mu_perf_end(&f->perf, MU_PERF_OVERLAY, perf);
 #ifndef MU_CLIENT_NO_GL
     if (gpu && f->headless && f->out_dir) {   /* captures read the finished frame back */
         glFinish();
@@ -766,7 +767,8 @@ static int headless(front *f)
     c.height = f->height;
     c.audio = f->audio;
     c.label = f->label;   /* NATIVE-APP-001 */
-    c.world = f->world;   /* WORLD-RT-001: one options struct from here to the world runtime */
+    c.world = f->world;
+    c.world.perf = &f->perf;   /* WORLD-RT-001: one options struct from here to the world runtime */
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
     c.title_step_ms = 0;
@@ -799,24 +801,24 @@ static int headless(front *f)
     f->last_scene = mu_shell_scene(f->shell);
     f->visit[f->last_scene & 7] = 1;
     int status = 0;
-    if (f->perf_path && mu_perf_open(f->perf_path, f->perf_sync))
+    if (f->perf_path && mu_perf_open(&f->perf, f->perf_path, f->perf_sync))
         fprintf(stderr, "cannot write %s\n", f->perf_path);
 #ifndef MU_CLIENT_NO_GL
-    mu_perf_set_sync(glFinish);
+    mu_perf_set_sync(&f->perf, glFinish);
 #endif
     for (f->frame = 0; f->frame < f->frames && !mu_shell_quit(f->shell); ++f->frame) {
-        double perf = mu_perf_begin();
+        double perf = mu_perf_begin(&f->perf);
         click_step(f);
         for (int32_t i = 0; i < f->action_count; ++i)
             if (f->actions[i].frame == f->frame)
                 do_action(f, f->actions[i].what);
         if (f->autoplay)
             autoplay(f);
-        mu_perf_end(MU_PERF_EVENTS, perf);
-        perf = mu_perf_begin();
+        mu_perf_end(&f->perf, MU_PERF_EVENTS, perf);
+        perf = mu_perf_begin(&f->perf);
         int before = mu_shell_scene(f->shell);
         mu_shell_frame(f->shell, f->now);
-        mu_perf_end(MU_PERF_LOGIC, perf);
+        mu_perf_end(&f->perf, MU_PERF_LOGIC, perf);
         note_scene(f);
         int scene = mu_shell_scene(f->shell);
         f->scene_frames[scene & 7]++;
@@ -832,9 +834,9 @@ static int headless(front *f)
         if (sleep > 0)
             f->now += (uint32_t)sleep;
         wav_pump(f, f->now);
-        mu_perf_frame(mu_shell_scene(f->shell));   /* headless: no cap sleep, the frame time is its work */
+        mu_perf_frame(&f->perf, mu_shell_scene(f->shell));   /* headless: no cap sleep, the frame time is its work */
     }
-    mu_perf_close();
+    mu_perf_close(&f->perf);
     const char *const *lines;
     int32_t transitions = mu_shell_transitions(f->shell, &lines);
     const mu_scenemgr_globals *g = mu_shell_globals(f->shell);
@@ -1026,7 +1028,8 @@ static int windowed(front *f)
     c.height = f->height;
     c.audio = f->audio;
     c.label = f->label;   /* NATIVE-APP-001 */
-    c.world = f->world;   /* WORLD-RT-001: one options struct from here to the world runtime */
+    c.world = f->world;
+    c.world.perf = &f->perf;   /* WORLD-RT-001: one options struct from here to the world runtime */
     c.charsel_objects = f->charsel_objects;
     c.login_objects = f->login_objects;
     c.title_step_ms = 150;
@@ -1067,9 +1070,9 @@ static int windowed(front *f)
     f->audio_start = SDL_GetTicks();
     uint32_t start = SDL_GetTicks(), frames = 0;
     (void)window_w;
-    if (f->perf_path && mu_perf_open(f->perf_path, f->perf_sync))
+    if (f->perf_path && mu_perf_open(&f->perf, f->perf_path, f->perf_sync))
         fprintf(stderr, "cannot write %s\n", f->perf_path);
-    mu_perf_set_sync(glFinish);
+    mu_perf_set_sync(&f->perf, glFinish);
     f->last_scene = mu_shell_scene(f->shell);
     f->visit[f->last_scene & 7] = 1;
     uint32_t fps_start = start, fps_frames = 0;
@@ -1083,8 +1086,8 @@ static int windowed(front *f)
             fprintf(stderr, "the launcher is gone: quitting\n");
             break;
         }
-        mu_perf_pace_begin();
-        double perf = mu_perf_begin();
+        mu_perf_pace_begin(&f->perf);
+        double perf = mu_perf_begin(&f->perf);
         /* NATIVE-PERF-001: the frame starts before the event pump, as the client's idle loop reads the clock
          * before PeekMessage; the login/title cap Sleep(40 - elapsed) then covers the whole pass */
         uint32_t now = SDL_GetTicks();
@@ -1146,18 +1149,18 @@ static int windowed(front *f)
                 do_action(f, f->actions[i].what);
         if (f->autoplay)
             autoplay(f);
-        mu_perf_end(MU_PERF_EVENTS, perf);
-        perf = mu_perf_begin();
+        mu_perf_end(&f->perf, MU_PERF_EVENTS, perf);
+        perf = mu_perf_begin(&f->perf);
         mu_shell_frame(f->shell, now);
-        mu_perf_end(MU_PERF_LOGIC, perf);
+        mu_perf_end(&f->perf, MU_PERF_LOGIC, perf);
         note_scene(f);
         if (mu_shell_quit(f->shell))
             break;
         compose(f);
-        perf = mu_perf_begin();
+        perf = mu_perf_begin(&f->perf);
         if (!mu_shell_gpu_overlay(f->shell))
             screen_quad(f, f->pixels);
-        mu_perf_end(MU_PERF_PRESENT, perf);
+        mu_perf_end(&f->perf, MU_PERF_PRESENT, perf);
         if (f->shot[0]) {   /* the finished frame, still in the back buffer */
             glFinish();
             mu_gl_read(f->width, f->height, f->pixels);
@@ -1167,17 +1170,17 @@ static int windowed(front *f)
                 fprintf(stderr, "capture %s (%d x %d)\n", f->shot, f->width, f->height);
             f->shot[0] = 0;
         }
-        perf = mu_perf_begin();
+        perf = mu_perf_begin(&f->perf);
         SDL_GL_SwapWindow(f->window);
-        mu_perf_end(MU_PERF_SWAP, perf);
+        mu_perf_end(&f->perf, MU_PERF_SWAP, perf);
         ++frames;
         perf = mu_perf_now();
         audio_pump(f, SDL_GetTicks());   /* before the cap: it is the host's, the cap measures the whole pass */
         int32_t sleep = mu_shell_end_frame(f->shell, SDL_GetTicks());
-        mu_perf_pace_end(sleep);
-        if (mu_perf_enabled())
-            mu_perf_add(MU_PERF_SLEEP, mu_perf_now() - perf);
-        mu_perf_frame(mu_shell_scene(f->shell));
+        mu_perf_pace_end(&f->perf, sleep);
+        if (mu_perf_enabled(&f->perf))
+            mu_perf_add(&f->perf, MU_PERF_SLEEP, mu_perf_now() - perf);
+        mu_perf_frame(&f->perf, mu_shell_scene(f->shell));
         if (frames % 25 == 0) {
             static const char *names[8] = {"", "", "title", "login", "loading", "character select", "world", ""};
             char title[400];
@@ -1197,7 +1200,7 @@ static int windowed(front *f)
     printf("{\"frames\": %u, \"seconds\": %.2f, \"scene\": %d, \"drawable\": [%d, %d], \"gpu_overlay\": %s}\n",
            frames, (SDL_GetTicks() - start) / 1000.0, mu_shell_scene(f->shell), f->dw, f->dh,
            mu_shell_gpu_overlay(f->shell) ? "true" : "false");
-    mu_perf_close();
+    mu_perf_close(&f->perf);
     mu_shell_free(f->shell);
     f->shell = NULL;
     if (f->screen_texture)

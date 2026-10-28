@@ -35,13 +35,13 @@ static int open_skills(mu_world_rt *a, void *self)
     p->fixture = mu_fixture_open(&options, error, sizeof error); unlink(path);
     if (!p->fixture) return 1;
     p->owned = 1; p->transport = mu_fixture_transport(p->fixture);
-    mu_session_config cfg = {0}; cfg.transport = p->transport; cfg.lang = mu_lang_shared();
+    mu_session_config cfg = {0}; cfg.transport = p->transport; cfg.lang = a->lang;
     mu_fixture_endpoint(p->fixture, "game", &cfg.connect_server);
     mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte;
     seed.place.world = a->walk.world;
     p->session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!p->session) return 1;
-    return mu_session_skills_bind(p->session, mu_lang_shared(), getenv("MU_LANG_DIR"), a->root) != 0;
+    return mu_session_skills_bind(p->session, a->lang, getenv("MU_LANG_DIR"), a->root) != 0;
 }
 static void tick_skills(mu_world_rt *a, void *self)
 {

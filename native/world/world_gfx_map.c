@@ -154,7 +154,7 @@ static void move_list(world_gfx_map *m)
 {
     /* the list builder 0x00bdd08d: SetMoveMapList, ClearFavorMap, AddMoveMapDataByMapIndex per favourite */
     const char *path = mu_gfx_layer_path(m->layer, MU_GFX_MOVE_COMMAND);
-    static mu_move_row rows[MU_MAP_MOVES_MAX];
+    mu_move_row rows[MU_MAP_MOVES_MAX];
     int n = mu_map_move_rows(m->s, rows, MU_MAP_MOVES_MAX);
     size_t cap = 256 + (size_t)n * 512, k = 0;
     char *buf = malloc(cap), q[4][160];

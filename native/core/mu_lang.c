@@ -769,17 +769,6 @@ mu_lang *mu_lang_load_default(void)
     return mu_lang_load(getenv("MU_LANG_DIR"));
 }
 
-const mu_lang *mu_lang_shared(void)
-{
-    static int loaded;
-    static mu_lang *shared;
-    if (!loaded) {
-        loaded = 1;
-        shared = mu_lang_load_default();
-    }
-    return shared;
-}
-
 void mu_lang_free(mu_lang *L)
 {
     if (!L)

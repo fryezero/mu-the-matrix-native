@@ -5,7 +5,7 @@
  *
  * Native measurement only: it times the host's own phases (logic, the 3D
  * passes, the GFx layer, presentation) and never changes what is computed or
- * drawn.  Off by default: every call is a cheap test of one global until a
+ * drawn.  Off by default: every call is a cheap test of its context until a
  * front end opens a log (mu-client/mu-world --perf FILE).  With `sync`, each
  * phase end first waits for the GPU (the front end's glFinish hook), so a
  * phase's time includes the GPU work it queued (diagnostic mode: it costs
@@ -16,6 +16,7 @@
  * native/tools/perf_report.py turns logs into percentiles. */
 
 #include <stdint.h>
+#include <stdio.h>
 
 enum {
     MU_PERF_EVENTS,      /* event pump, input */
@@ -37,27 +38,42 @@ enum {
     MU_PERF_PHASES
 };
 
+/* Zero-initialize per front end. A world/GFx runtime borrows this context. */
+typedef struct mu_perf {
+    FILE *log;
+    int sync;
+    void (*finish)(void);
+    double phase[MU_PERF_PHASES];
+    double last, cpu_last, gpu_ms, gpu_gfx_ms, pace_start;
+    int64_t gpu_frame, gpu_gfx_frame, frame;
+    struct {
+        uint32_t query[8];
+        int64_t frame[8];
+        int checked, supported, active, cursor;
+    } gl_timer;
+} mu_perf;
+
 /* Opens the log (NULL or "" leaves profiling off).  Returns 0 on success. */
-int mu_perf_open(const char *path, int sync);
-void mu_perf_close(void);
-int mu_perf_enabled(void);
+int mu_perf_open(mu_perf *p, const char *path, int sync);
+void mu_perf_close(mu_perf *p);
+int mu_perf_enabled(mu_perf *p);
 /* The front end's GPU wait for sync mode (glFinish). */
-void mu_perf_set_sync(void (*finish)(void));
+void mu_perf_set_sync(mu_perf *p, void (*finish)(void));
 
 double mu_perf_now(void);   /* milliseconds, monotonic */
 /* Phase timing: mu_perf_begin returns a stamp (0 when off), mu_perf_end adds
  * the elapsed time to the phase. */
-double mu_perf_begin(void);
-void mu_perf_end(int phase, double stamp);
-void mu_perf_add(int phase, double ms);
+double mu_perf_begin(mu_perf *p);
+void mu_perf_end(mu_perf *p, int phase, double stamp);
+void mu_perf_add(mu_perf *p, int phase, double ms);
 /* Ends a frame: writes its line (total = time since the previous frame end). */
-void mu_perf_frame(int32_t scene);
+void mu_perf_frame(mu_perf *p, int32_t scene);
 /* Diagnostic CPU thread time and asynchronous world GL timer queries. GPU results
  * carry their source frame; -1 means unavailable. Ruffle/Metal is outside this query. */
-void mu_perf_gpu_sample(double ms, int64_t frame);
+void mu_perf_gpu_sample(mu_perf *p, double ms, int64_t frame);
 /* Separate, non-overlapping GL query around the complete GFx compositor/item pass. */
-void mu_perf_gpu_gfx_sample(double ms, int64_t frame);
-int64_t mu_perf_frame_index(void);
+void mu_perf_gpu_gfx_sample(mu_perf *p, double ms, int64_t frame);
+int64_t mu_perf_frame_index(mu_perf *p);
 
 /* The host's Sleep(ms) for the client's frame cap: wakes at the requested
  * time (a coarse sleep, then short sleeps and a final spin under 0.2 ms)
@@ -66,8 +82,8 @@ int64_t mu_perf_frame_index(void);
 void mu_sleep_ms(uint32_t ms);
 /* Host window pacing. Measure this frame's work against a 40 ms deadline;
  * the reconstructed integer clock and headless simulation stay untouched. */
-void mu_perf_pace_begin(void);
-void mu_perf_pace_end(int32_t client_sleep);
+void mu_perf_pace_begin(mu_perf *p);
+void mu_perf_pace_end(mu_perf *p, int32_t client_sleep);
 
 /* MU_PERF_BASELINE=1: the paths before NATIVE-PERF-001, for before/after measurements on any machine:
  * plain sleeps at the cap, the software 2D layer over a read-back frame, immediate-mode draws. */

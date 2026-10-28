@@ -14,8 +14,8 @@
 /* NATIVE-PROGRESS-001: GlobalText from the client's tables (MU_LANG_DIR), NULL for the stand-ins */
 static const char *progress_text(void *context, int32_t index)
 {
-    (void)context;
-    return mu_lang_text(mu_lang_shared(), index);
+    mu_world_rt *a = context;
+    return mu_lang_text(a->lang, index);
 }
 
 /* NATIVE-PROGRESS-001: the lines of the reconstructed progression handlers (reconstructed/progress): the
