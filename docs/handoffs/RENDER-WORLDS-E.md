@@ -4,7 +4,31 @@ Elbeland boid movement, native model drawing and typhoon clouds are implemented.
 arming, millisecond timer, ordered emitter requests and quake state are implemented behind an explicit event
 input. Aida's largest near-hero light difference has an accumulation signature; no brightness adjustment was made.
 
-## Evidence and checks
+## Final locked verification
+
+The final base is `bf430a75`, including A #187, audio #196 and combat #197. Source checkpoint `ff395ba`
+integrates it while holding the shared merge lock. Only evidence documentation changed after this gate.
+
+- `bash scripts/local-macos-ci.sh`: 1,463 tests, 179 explicit skips, zero failures/errors; 7/7 fixture
+  scenarios, 53 incoming frames with zero unbound/undecodable frames; viewer/readers builds; audit 1,354
+  files, zero rejected. This final run passed without retry or exclusions.
+- All ten registered world/order/audio/combat validators pass with zero errors/skips. E retains 4,840
+  matching cases and 12/12 compiled mutants, including 40 multi-tick sessions and 2,400 compared steps.
+  With the refreshed MoveObject and isolated terrain comparisons, the total is 47,022 matching instruction
+  cases, 12 separately labeled static ambient checks, all 119 compiled mutants caught and both modeled
+  clamp controls detected. The registered combat slice is 240 cases, not the earlier combat lane's 6,000.
+- Latest main and E were clean-built separately in this owned worktree. All fourteen complete scoreboards
+  and 28 first/final PNG SHA-256 values match. Missing/extra objects remain zero, primary light remains exact.
+  Aida/Elbeland/Raklion frame-light mean errors remain 0.65117/0.02078/0.02574. The three surviving image
+  scores remain Dungeon 2.019, Icarus 26.897 and Kanturu 4.006. No active-event/boid image improvement is claimed.
+
+Final reports are `locked-summary.json`, `locked-scoreboard-proof.json`, `locked-families/`,
+`locked-object.json`, `locked-light.json` and `locked-gate.log` in this lane's scratch directory.
+Final renders are `locked-before/` and `locked-after/` under this lane's render directory. Identical files
+are hardlinked without changing paths or bytes. Earlier trees remain losslessly gzip-archived with original
+hashes retained. The following sections preserve the earlier integration evidence and its limits.
+
+## Evidence and earlier checks
 
 - `validate_worlds_e.py --cases 600 --mutations`: 4,840 comparisons, zero mismatches or stopped cases,
   12/12 compiled planted mistakes caught. Eight families have 600 cases each. The ninth has 40 Elbeland

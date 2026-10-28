@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,458 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
+RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,463 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
 
 SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
 

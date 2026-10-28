@@ -655,3 +655,11 @@ MoveObject and reset/add checks, totals are 41,266 matching cases and 95 compile
 controls. The final full Mac gate passes 1,449 tests with 177 explicit skips, all six fixture scenarios and
 the 1,336-file audit with zero rejections. The prior paragraph records the earlier pre-A baseline; the
 `main89-*` reports and the integration section of the handoff are the final combined-tree evidence.
+
+Final locked integration also includes audio #196 and combat #197, base `bf430a75`. All ten registered
+world/order/audio/combat validators pass. Including the refreshed MoveObject and isolated terrain comparisons:
+47,022 matching instruction cases, 12 separate static checks, all 119 compiled mutants and both modeled
+clamp controls detected. The full Mac gate passes 1,463 tests with 179 explicit skips, seven fixture scenarios,
+viewer/readers builds and the 1,354-file audit with zero rejections. Fresh latest-main/E builds retain equal
+fourteen-view scoreboards and all 28 frame hashes. `locked-*` local reports and the handoff's final verification
+section supersede the earlier integration checkpoints above. No additional original-client observation occurred.
