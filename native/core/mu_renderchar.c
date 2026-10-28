@@ -32,10 +32,41 @@ int32_t mu_renderchar_type_from_path(const char *path)
     return -1;
 }
 
+static int32_t link_random(void *context)
+{
+    return mu_world_particles_rand(context);
+}
+
 long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32_t type, mu_world_particles *p)
 {
     if (!p || !model || !model->bmd || !bones)
         return 0;
+    if (type == 0x14f0 || type == 0x12fb) {
+        mu_rc_link_effect effects[20];
+        int32_t n = 0;
+        if (mu_rc_link_effects(type, link_random, p, effects, 20, &n) != MU_RC_OK)
+            return 0;
+        long created = 0;
+        for (int32_t i = 0; i < n; ++i) {
+            const mu_rc_link_effect *e = &effects[i];
+            const mu_rc_link_sprite *s = &e->sprite;
+            if (s->bone < 0 || s->bone >= model->bmd->bone_count || s->bone >= MU_MODEL_MAX_BONES)
+                continue;
+            float position[3];
+            mu_pt_transform_position(bones + 12 * s->bone, e->offset, position, 1,
+                                      model->params.body_scale, model->params.origin);
+            if (e->particle) {
+                created += mu_world_particles_create(p, s->bitmap, position, model->params.angles,
+                                                       s->light, e->particle, s->scale);
+            } else {
+                uint64_t before = p->sprites->created;
+                mu_world_particles_sprite(p, s->bitmap, position, s->scale, s->light,
+                                           MU_PT_NO_OWNER, s->rotation, s->blend, s->axes);
+                created += p->sprites->created != before;
+            }
+        }
+        return created;
+    }
     mu_rc_link_sprite sprites[10];
     int32_t count = 0;
     if (mu_rc_link_sprites(type, 0, sprites, 10, &count) != MU_RC_OK)

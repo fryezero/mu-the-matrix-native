@@ -2,6 +2,8 @@
 
 - NATIVE-PERF-002: benchmark, preserved-render checks and the measured 25 fps shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
 
+AUDIO-002 part 1: [handoff](handoffs/AUDIO-002.md). Native session audio reader and JSONL log are ready; event state and NPC lifecycle callers follow their domain migrations. The exact 43/44 read and virtualised gap remain open.
+
 SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned player records and fixture-driven --players.
 
 RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
@@ -15,7 +17,7 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 2: [handoff](handoffs/RENDER-ITEMS-002B.md). 11 body types and six bow effects implemented; 1,663 body types and the other link branches remain, along with Muun/nested map-object tables.
+RENDER-ITEMS-002 part 3: [handoff](handoffs/RENDER-ITEMS-002C.md). 262/1,674 body types, ranked branch tables and three verified link callers. Remaining: 1,412 body types, 17 class skins, Spark03 subtype 11 and further links; Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 
