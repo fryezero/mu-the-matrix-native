@@ -2,6 +2,7 @@
 
 SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
 
+AUDIO-002 part 2: 30 character/NPC/creature/object sound sites have session cue adapters, with one unresolved buff input. 5,516 new instruction cases plus 12 static checks, zero mismatches, 18/18 compiled mutants. [Checks and limits](handoffs/AUDIO-002B.md).
 
 WORLD-ORDER-001 implements recorded tick/draw order checks; 2,400 Unicorn cases, zero mismatches, all 294 branch edges and 10/10 compiled mutants. Native order adapters are explicit; runtime orders unchanged. [Evidence](research/client-world-order.md), [handoff](handoffs/WORLD-ORDER-001.md).
 

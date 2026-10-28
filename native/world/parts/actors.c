@@ -47,6 +47,17 @@ static void label_actors(mu_world_rt *a)
         }
     }
 }
+/* Open-model audio registration follows the viewport/cache order. Audio's model cache
+ * prevents a despawn or cache rebuild from registering an already-open model again. */
+static void actors_audio_register(mu_world_rt *a)
+{
+    if (!a->has_sound) return;
+    for (int32_t i = 0; i < a->actors.count; ++i) {
+        const mu_actor_spec *spec = &a->actors.list[i].actor.spec;
+        mu_audio_host_register_actor(a->sound.host, spec->monster_type, spec->model_index);
+    }
+}
+
 /* Cache identity changes also drop old effect instances. Session lifetime stays in characters. */
 void world_rt_actors_sync(mu_world_rt *a)
 {
@@ -67,6 +78,7 @@ void world_rt_actors_sync(mu_world_rt *a)
     if (a->gl_ready) actors_gl_teardown(a, a->part[MU_PART_actors]);
 #endif
     mu_world_actors_free(&a->actors); a->actors = next; label_actors(a);
+    actors_audio_register(a);
 #ifndef MU_WORLD_NO_GL
     if (a->gl_ready) actors_gl_setup(a, a->part[MU_PART_actors]);
 #endif
@@ -129,6 +141,7 @@ static int actors_open(struct mu_world_rt *a, void *self)
     a->actors.record_stamp = record_stamp(&view);
     label_actors(a);
     a->has_actors = 1;
+    actors_audio_register(a);
     return 0;
 }
 
