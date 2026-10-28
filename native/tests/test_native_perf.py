@@ -16,6 +16,7 @@ installed client data (Lorencia with the demo placement; the whole mu-client
 flow), as in docs/research/native-performance.md.
 """
 import json
+import ctypes
 import os
 from pathlib import Path
 import shutil
@@ -25,6 +26,7 @@ import sys
 import tempfile
 import unittest
 import zlib
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
@@ -85,6 +87,56 @@ class ToolTests(unittest.TestCase):
             self.assertEqual(imgdiff.main([str(a), str(b), '--max-delta', '9']), 0)
             self.assertEqual(imgdiff.main([str(a), str(b), '--max-delta', '2']), 1)
             self.assertEqual(imgdiff.main([str(a), str(b), '--max-delta', '2', '--max-fraction', '0.05']), 0)
+
+
+@unittest.skipUnless(CC and sys.platform == 'darwin', 'needs macOS C compiler')
+class PacingTests(unittest.TestCase):
+    def test_current_work_deadline_overrun_and_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lib = Path(tmp) / 'pace.dylib'
+            subprocess.run([CC, '-std=c11', '-D_POSIX_C_SOURCE=200809L', '-dynamiclib',
+                            '-Dclock_gettime=fake_clock_gettime', '-Dnanosleep=fake_nanosleep',
+                            '-Dsched_yield=fake_sched_yield', str(NATIVE / 'core/mu_perf.c'),
+                            str(HERE / 'perf_pace_clock.c'), '-o', str(lib)], check=True, capture_output=True)
+            clock = ctypes.CDLL(str(lib))
+            clock.pace_test_clock.argtypes = [ctypes.c_double]
+            clock.mu_perf_now.restype = ctypes.c_double
+            for work in (0, 8, 26, 39, 45, 60):
+                with self.subTest(work=work), mock.patch.dict(os.environ, MU_PERF_BASELINE='0',
+                                                             MU_PERF_003_BASELINE='0'):
+                    clock.pace_test_clock(1000)
+                    clock.mu_perf_pace_begin()
+                    clock.pace_test_clock(1000 + work)
+                    clock.mu_perf_pace_end(12)
+                    self.assertAlmostEqual(clock.mu_perf_now(), 1000 + max(work, 40), delta=0.03)
+            with mock.patch.dict(os.environ, MU_PERF_BASELINE='0', MU_PERF_003_BASELINE='1'):
+                clock.pace_test_clock(1000)
+                clock.mu_perf_pace_begin()
+                clock.pace_test_clock(1026)
+                clock.mu_perf_pace_end(12)
+                self.assertAlmostEqual(clock.mu_perf_now(), 1038, delta=0.03)
+
+
+@unittest.skipUnless(CC, 'needs a C compiler')
+class RegionSearchTests(unittest.TestCase):
+    def test_transform_outputs_equal_the_canonical_region_search(self):
+        from test_native_viewer import nf, STATES, reference
+        subprocess.run(['make', '-C', str(NATIVE), 'build/mu-render'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            for seed in (5, 6):
+                model = directory / 'synthetic.bmd'
+                model.write_bytes(nf.synthetic_layout(seed, four_corner=seed == 6))
+                for state in STATES:
+                    outputs = []
+                    for mode in ('1', '0'):
+                        dump = directory / f'{mode}.bin'
+                        subprocess.run([str(NATIVE / 'build/mu-render'), 'dump', str(model), '--out', str(dump),
+                                        *map(str, reference.cli_arguments(state))],
+                                       env=dict(os.environ, MU_PERF_REGION_REFERENCE=mode, MU_PERF_003_BASELINE='0'),
+                                       check=True, capture_output=True)
+                        outputs.append(dump.read_bytes())
+                    self.assertEqual(outputs[0], outputs[1], (seed, state))
 
 
 def build_gl_host(tmp):

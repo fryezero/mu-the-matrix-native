@@ -38,24 +38,12 @@ void mu_scene_inputs_free(mu_scene_inputs *in)
     memset(in, 0, sizeof *in);
 }
 
-int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_scene_inputs *in)
+static int inputs_fill(const mu_model *model, const mu_draw_options *o, mu_scene_inputs *in)
 {
-    memset(in, 0, sizeof *in);
     const mu_bmd *b = model->bmd;
     const mu_model_params *p = &model->params;
     const int32_t count = b->mesh_count;
-    const int32_t slots = count > 0 ? count : 1;
-    in->meshes = calloc((size_t)slots, sizeof *in->meshes);
-    in->texture_index = calloc((size_t)slots, sizeof *in->texture_index);
-    in->texture_type = calloc((size_t)slots, sizeof *in->texture_type);
-    const int32_t extras = o->textures ? o->textures->extra_count : 0;   /* NATIVE-HELPERS-002 */
-    in->bitmaps = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT + extras), sizeof *in->bitmaps);
-    in->bitmap_index = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT + extras), sizeof *in->bitmap_index);
-    in->subs = calloc((size_t)slots, sizeof *in->subs);
-    if (!in->meshes || !in->texture_index || !in->texture_type || !in->bitmaps || !in->bitmap_index || !in->subs) {
-        mu_scene_inputs_free(in);
-        return 1;
-    }
+    const int32_t extras = o->textures ? o->textures->extra_count : 0;
     for (int32_t i = 0; i < count; ++i) {
         const mu_bmd_mesh *bm = &b->meshes[i];
         mu_meshdraw_mesh *m = &in->meshes[i];
@@ -150,6 +138,38 @@ int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_sc
     mu_gl_cache_scene_defaults(&in->cache);
     return 0;
 }
+
+int mu_scene_inputs_build(const mu_model *model, const mu_draw_options *o, mu_scene_inputs *in)
+{
+    memset(in, 0, sizeof *in);
+    const mu_bmd *b = model->bmd;
+    const int32_t count = b->mesh_count;
+    const int32_t slots = count > 0 ? count : 1;
+    in->meshes = calloc((size_t)slots, sizeof *in->meshes);
+    in->texture_index = calloc((size_t)slots, sizeof *in->texture_index);
+    in->texture_type = calloc((size_t)slots, sizeof *in->texture_type);
+    const int32_t extras = o->textures ? o->textures->extra_count : 0;   /* NATIVE-HELPERS-002 */
+    in->bitmaps = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT + extras), sizeof *in->bitmaps);
+    in->bitmap_index = calloc((size_t)(slots + MU_TEXTURE_SPECIAL_COUNT + extras), sizeof *in->bitmap_index);
+    in->subs = calloc((size_t)slots, sizeof *in->subs);
+    if (!in->meshes || !in->texture_index || !in->texture_type || !in->bitmaps || !in->bitmap_index || !in->subs) {
+        mu_scene_inputs_free(in);
+        return 1;
+    }
+    return inputs_fill(model, o, in);
+}
+
+/* Per-draw storage, rebuilt from all current model/texture inputs each call.
+ * Larger models and auxiliary bitmap lists retain the allocating path. */
+enum { LOCAL_MESHES = 16, LOCAL_EXTRAS = 16,
+       LOCAL_BITMAPS = LOCAL_MESHES + MU_TEXTURE_SPECIAL_COUNT + LOCAL_EXTRAS };
+typedef struct scene_storage {
+    mu_meshdraw_mesh meshes[LOCAL_MESHES];
+    int32_t texture_index[LOCAL_MESHES], texture_type[LOCAL_MESHES];
+    uint8_t subs[LOCAL_MESHES][5];
+    mu_bitmap bitmaps[LOCAL_BITMAPS];
+    int32_t bitmap_index[LOCAL_BITMAPS];
+} scene_storage;
 
 /* Adapter: literal GL calls -> backend (effective state before each glBegin). */
 typedef struct adapter {
@@ -257,9 +277,24 @@ static int edge_apply(mu_scene_inputs *in, edge_views *e)
 int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const mu_render_backend *backend,
                         mu_draw_stats *stats)
 {
-    mu_scene_inputs in;
-    if (mu_scene_inputs_build(model, o, &in))
+    mu_scene_inputs in = {0};
+    scene_storage storage = {0};
+    const char *baseline003 = getenv("MU_PERF_003_BASELINE");
+    int extras = o->textures ? o->textures->extra_count : 0;
+    int local = !(baseline003 && baseline003[0] == '1') &&
+                model->bmd->mesh_count >= 0 && model->bmd->mesh_count <= LOCAL_MESHES &&
+                extras >= 0 && extras <= LOCAL_EXTRAS;
+    if (local) {
+        in.meshes = storage.meshes;
+        in.texture_index = storage.texture_index;
+        in.texture_type = storage.texture_type;
+        in.subs = storage.subs;
+        in.bitmaps = storage.bitmaps;
+        in.bitmap_index = storage.bitmap_index;
+        inputs_fill(model, o, &in);
+    } else if (mu_scene_inputs_build(model, o, &in)) {
         return 1;
+    }
     /* Draws are sequential; these tables need no heap allocation per glow
      * pass. Each routine writes exactly the entries it reads, as before. */
     float local_colours[3 * MU_MESHDRAW_MAX_ENTRIES];
@@ -270,13 +305,13 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     float *table = old_alloc ? malloc(sizeof local_table) : local_table;
     if (!colours || !table) {
         if (old_alloc) { free(colours); free(table); }
-        mu_scene_inputs_free(&in);
+        if (!local) mu_scene_inputs_free(&in);
         return 1;
     }
     edge_views edge = {NULL, colours, table};
     if (edge_apply(&in, &edge)) {
         if (old_alloc) { free(colours); free(table); }
-        mu_scene_inputs_free(&in);
+        if (!local) mu_scene_inputs_free(&in);
         return 1;
     }
     adapter a = {backend, o, in.model.mesh_count, {0}, 0};
@@ -310,6 +345,6 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     }
     edge_free(&edge, in.model.mesh_count);
     if (old_alloc) { free(colours); free(table); }
-    mu_scene_inputs_free(&in);
+    if (!local) mu_scene_inputs_free(&in);
     return 0;
 }

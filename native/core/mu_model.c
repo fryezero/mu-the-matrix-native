@@ -445,6 +445,31 @@ void mu_model_share(mu_model *m, uint8_t *bones, uint8_t *root, uint8_t *quatern
     share_region(m, R_QUATERNIONS, quaternions, MU_MODEL_SHARED_QUATERNION_BYTES);
 }
 
+/* Transform output addresses are late in the canonical region list. A
+ * disjoint view may search them earlier without changing a single address or
+ * byte. Keep the original precedence for foreign/overlapping memory layouts. */
+static mu_client_memory transform_memory(const mu_model *m, mu_client_image view[MU_MODEL_REGION_COUNT])
+{
+    mu_client_memory memory = m->memory;
+    const char *baseline = getenv("MU_PERF_003_BASELINE");
+    const char *reference = getenv("MU_PERF_REGION_REFERENCE");
+    if (memory.regions != m->regions || memory.count != MU_MODEL_REGION_COUNT || (baseline && baseline[0] == '1') ||
+        (reference && reference[0] == '1')) return memory;
+    for (uint32_t i = 0; i < memory.count; ++i)
+        for (uint32_t j = i + 1; j < memory.count; ++j) {
+            const mu_client_image *p = &memory.regions[i], *q = &memory.regions[j];
+            if ((uint64_t)p->base < (uint64_t)q->base + q->size &&
+                (uint64_t)q->base < (uint64_t)p->base + p->size) return memory;
+        }
+    static const unsigned order[MU_MODEL_REGION_COUNT] = {
+        R_WINDOW, R_BONES, R_VERTICES, R_NORMALS, R_LIGHTS, R_QUATERNIONS,
+        R_SECONDARY, R_ROOT, R_GLOBALS, R_WORLD, R_SCENE, R_BOUNDS,
+    };
+    for (unsigned i = 0; i < MU_MODEL_REGION_COUNT; ++i) view[i] = memory.regions[order[i]];
+    memory.regions = view;
+    return memory;
+}
+
 int mu_model_transform_all(mu_model *m)
 {
     const mu_model_params *p = &m->params;
@@ -455,7 +480,9 @@ int mu_model_transform_all(mu_model *m)
         float_bits(p->light_scale), float_bits(p->light_minimum)};
     mu_transform_globals globals = {MU_SKIN_BONE_SCALE, MU_SKIN_LIGHT_OVERRIDE, MU_SKIN_WORLD, MU_SKIN_BOUNDS_MODE,
                                     MU_SKIN_SECONDARY_LIGHT};
-    return mu_model_transform(&m->memory, m->model, &arguments, &globals) == MU_SKIN_OK ? MU_MODEL_OK : MU_MODEL_ERROR;
+    mu_client_image regions[MU_MODEL_REGION_COUNT];
+    mu_client_memory memory = transform_memory(m, regions);
+    return mu_model_transform(&memory, m->model, &arguments, &globals) == MU_SKIN_OK ? MU_MODEL_OK : MU_MODEL_ERROR;
 }
 
 int mu_model_update(mu_model *m)
