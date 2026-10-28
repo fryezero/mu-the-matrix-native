@@ -3,6 +3,8 @@
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
 unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.
 
+LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
+
 ## Stage 1 merged (2026-10-25)
 
 **Merged.** PRs #160-#165 are on main. Each passed `make test` on its merged tree; the last ran 1,283 tests. Each

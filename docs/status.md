@@ -6,6 +6,8 @@
 and standalone charsel comparisons preserve every render and hash. The private character-create test now runs
 300 cases per family and detects all 6 planted mistakes. [Handoff](handoffs/CHARSEL-RT-001.md).
 
+LAYOUT-PROBE-001 settles the separate OBJECT live/fade bytes, the two CHARACTER level reads, and the CharacterAttribute prefix/extent distinction. [Evidence](research/client-layout-probes.md).
+
 ## Stage 1 of the port completion, 2026-10-25
 
 Four lanes from [the plan](design/native-port/plan.md) are merged (#162-#165):

@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+LAYOUT-PROBE-001: offset conflicts probed; [evidence](research/client-layout-probes.md). LAYOUT-001 follows.
+
 ## Destination and acceptance gates
 
 1. Understand the exact Windows client with source-bound code and data evidence.
