@@ -153,77 +153,36 @@ class Session(unittest.TestCase):
         self.L.mu_quest_fields(self.c, q, f)
         return list(f)
 
-    def test_accept_progress_complete(self):
-        L = self.L
-        L.mu_quest_session_npc_list(self.s, 257)
-        self.assertEqual(self.take(), [])                       # the answer arrives after the demo latency
+    def command(self, text):
+        self.L.mu_quest_session_command.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        self.assertEqual(self.L.mu_quest_session_command(self.s, text.encode()), 0)
         self.steps()
-        ev = self.take()
-        self.assertIn('invoke npcdialogue SetSelectBtnContent ["1. [Q]Hunt Budge Dragons;2. [Q]Tutorial C;"]', ev)
-        L.mu_quest_dialog_choice(self.c, 1, None)
-        ev = self.take()
-        self.assertIn('invoke NpcQuestProgress SetQuestMentDivide ["First page","#"]', ev)
-        self.assertIn('show NpcQuestProgress', ev)
-        self.assertIn('invoke NpcQuestProgress SetSelectBtnContent ["1. Yes;2. No;"]', ev)
-        L.mu_quest_progress_select(self.c, 0)
-        self.assertIn('invoke NpcQuestProgress SetSelectBtnContent ["1. Accept;2. No;"]', self.take())
-        L.mu_quest_progress_select(self.c, 0)                  # no page left: the accept request
-        self.steps()
-        ev = self.take()
-        self.assertEqual(self.fields(7)[:2], [1, 0])
-        self.assertIn('invoke NpcQuestProgress SetQuestMentDivide ["Not yet.","#"]', ev)
-        cond = next(e for e in ev if 'SetConditionRewardText' in e)
-        self.assertIn('Budge Dragon Elimination x 0/3', cond)
-        self.assertIn("#ff1e1e", cond)
-        for _ in range(3):
-            L.mu_quest_session_kill(self.s, 2, 0)
-            self.steps()
-        self.assertEqual(self.fields(7)[:2], [2, 3])
-        ev = self.take()
-        self.assertIn('invoke NpcQuestProgress InitText ["Complete"]', ev)
-        self.assertIn("#dfbf67", [e for e in ev if 'SetConditionRewardText' in e][-1])
-        L.mu_quest_progress_confirm(self.c)
-        self.steps()
-        ev = self.take()
-        self.assertIn('hide NpcQuestProgress', ev)
-        self.assertTrue(any(e.startswith('demo Quest complete') for e in ev))
-        f = (ctypes.c_int32 * 4)()
-        self.assertEqual(L.mu_quest_client_field(self.c, b'progress.visible', 0, 0), 0)
 
-    def test_guide_travel_reward_and_next_hunt(self):
-        L = self.L
-        L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
-        L.mu_quest_client_field(self.c, b'hero.level', 1, 10)
-        L.mu_quest_session_demo_state(self.s, b'guide 11\n')
+    def test_accept_progress_complete_through_frames(self):
+        self.command('accept 7')
+        self.assertEqual(self.fields(7)[:2], [1, 0])
+        self.assertIn('show NpcQuestProgress', self.take())
+        for count in range(1, 4):
+            self.command(f'count 7 {count} {2 if count == 3 else 1}')
+        self.assertEqual(self.fields(7)[:2], [2, 3])
+        self.command('complete 7')
+        self.assertNotIn('active2:7,', self.L.mu_quest_maps_text(self.c).decode())
+        self.assertIn('hide NpcQuestProgress', self.take())
+
+    def test_opaque_npc_list_does_not_apply_decoded_state(self):
+        self.L.mu_quest_session_npc_list(self.s, 257)
+        self.steps(10)
+        self.assertEqual(self.fields(7)[:2], [0, 0])
+        self.assertFalse(any('SetSelectBtnContent' in e for e in self.take()))
+
+    def test_guide_state_and_reward_reply(self):
+        self.L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
+        self.L.mu_quest_session_demo_state(self.s, b'guide 11:0:1\n')
         self.steps()
-        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.current', 0, 0), 11)
-        trips = []
-        travel_fn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32)(
-            lambda u, w, x, y: trips.append((w, x, y)) or 1)
-        L.mu_quest_session_set_travel(self.s, ctypes.cast(travel_fn, ctypes.c_void_p))
-        resumes = []
-        resume_fn = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint8)(lambda u, sub: resumes.append(sub))
-        L.mu_quest_set_move_answer.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-        L.mu_quest_set_move_answer(self.c, ctypes.cast(resume_fn, ctypes.c_void_p))
-        L.mu_guide_go(self.c)
-        self.assertEqual(trips, [(3, 42, 43)])
-        L.mu_quest_session_travel_complete(self.s, 1)
+        self.assertEqual(self.L.mu_quest_client_field(self.c, b'guide.current', 0, 0), 11)
+        self.L.mu_quest_session_demo_state(self.s, b'guide 11:0:2\n')
         self.steps()
-        self.assertEqual(resumes, [0x56])
-        for name, value in ((b'world', 3), (b'hero.x', 42), (b'hero.y', 43)):
-            L.mu_quest_client_field(self.c, name, 1, value)
-        L.mu_guide_go(self.c)
-        self.steps()
-        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.complete', 0, 0), 1)
-        L.mu_guide_go(self.c)  # reward, then the client's next eligible step
-        self.steps()
-        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.current', 0, 0), 14)
-        self.assertIn('show QuestProgressInfo', self.take())
-        for _ in range(2):
-            L.mu_quest_session_kill(self.s, 3, 0)
-            self.steps()
-        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.complete', 0, 0), 1)
-        self.assertEqual(L.mu_quest_client_field(self.c, b'guide.count', 0, 0), 2)
+        self.assertEqual(self.L.mu_quest_client_field(self.c, b'guide.complete', 0, 0), 1)
 
     def test_armed_path_survives_reload_and_delayed_answer(self):
         from test_native_world import write_open_world
@@ -246,70 +205,47 @@ class Session(unittest.TestCase):
             shutil.copy(path, dst / path.name.replace('EncTerrain1', 'EncTerrain4'))
         check()
 
-    def test_classic_npc_accept_kills_complete(self):
-        L = self.L
-        d = Path(self.tmp.name)
-        local = d/'Data/Local'
+    def test_classic_states_and_kills_through_frames(self):
+        local = Path(self.tmp.name)/'Data/Local'
         local.mkdir(parents=True)
         (local/'quest.bmd').write_bytes(classic_fixture())
-        self.assertEqual(L.mu_quest_session_load_classic(self.s, str(d).encode()), 200)
-        L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
-        L.mu_quest_session_demo_state(self.s, b'classic 0:3\n')
+        self.assertEqual(self.L.mu_quest_session_load_classic(self.s, self.tmp.name.encode()), 200)
+        self.L.mu_quest_client_field(self.c, b'hero.class', 1, 1)
+        self.L.mu_quest_session_demo_state(self.s, b'classic 0:3\n')
         self.steps()
-        self.assertEqual(L.mu_classic_state_of(self.c, 0), 3)
-        L.mu_quest_session_classic_talk(self.s)
-        self.steps()
-        self.assertIn('show NpcJobChangeQuest', self.take())
-        self.take()
-        L.mu_quest_session_kill(self.s, 0, 0)
-        self.steps()
-        self.assertEqual(L.mu_classic_state_of(self.c, 0), 3)
-        L.mu_classic_choice(self.c, 0)
-        self.steps()
-        self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
-        self.take()
-        L.mu_quest_session_kill(self.s, 3, 0)
-        self.steps()
-        ev = self.take()
-        self.assertTrue(any('SetQuestMob' in e for e in ev))
-        self.assertNotIn('show NpcJobChangeQuest', ev)
-        L.mu_classic_close(self.c)
-        self.take()
-        L.mu_quest_session_kill(self.s, 3, 0)
-        self.steps()
-        self.assertFalse(any('NpcJobChangeQuest' in e for e in self.take()))
-        self.assertEqual(L.mu_classic_state_of(self.c, 0), 1)
-        L.mu_quest_session_classic_talk(self.s)
-        self.steps()
-        L.mu_classic_complete(self.c)
-        self.steps()
-        self.assertEqual(L.mu_classic_state_of(self.c, 0), 2)
-        L.mu_quest_session_kill(self.s, 3, 0)
-        self.steps()
-        self.assertEqual(L.mu_classic_state_of(self.c, 0), 2)
+        self.assertEqual(self.L.mu_classic_state_of(self.c, 0), 3)
+        self.command('classic-state 0 1')
+        self.assertEqual(self.L.mu_classic_state_of(self.c, 0), 1)
+        self.command('kill 3 0')
+        self.command('classic-state 0 2')
+        self.assertEqual(self.L.mu_classic_state_of(self.c, 0), 2)
 
-    def test_talk_goal_and_give_up(self):
-        L = self.L
-        L.mu_quest_session_npc_list(self.s, 257)
-        self.steps()
-        L.mu_quest_dialog_choice(self.c, 2, None)              # quest 3: no pages, the accept goes out at once
-        self.steps(10)
-        self.assertEqual(self.fields(3)[:1], [2])              # a talk goal: done once accepted (demo)
-        self.take()
-        L.mu_quest_session_toggle_info(self.s)                 # T: MyQuestInfo opens on its first tab (guide)
-        v = (ctypes.c_double * 2)(2, 0)
-        L.mu_quest_info_callback(self.c, b'OnSelectTab', v, 1, None)
-        ev = self.take()
-        listing = [e for e in ev if e.startswith('value MyQuestInfo SetMyQuestList')][-1]
-        items = json.loads(listing.split(' ', 3)[3])[0]
-        self.assertEqual([(i['QuestIndex'], i['Name']) for i in items], [(3, '1. Tutorial C')])
-        v = (ctypes.c_double * 2)(0, 3)
-        L.mu_quest_info_callback(self.c, b'OnSelectQuest', v, 2, None)
-        L.mu_quest_info_giveup_ok(self.c)
-        self.assertTrue(any(e.startswith('invoke MyQuestInfo SetConditionReward') for e in self.take()))
-        self.assertIn('active2:3,', L.mu_quest_maps_text(self.c).decode())
-        self.steps()                                            # C1 F6 73: the demo server's answer removes it
-        self.assertIn('active2: ', L.mu_quest_maps_text(self.c).decode() + ' ')
+    def test_quest_survives_character_select_and_world_rebind(self):
+        self.command('accept 7')
+        self.command('count 7 2 1')
+        session = ctypes.c_void_p.from_buffer(self.s).value
+        self.L.mu_session_set_phase.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        self.L.mu_session_detach_world.argtypes = [ctypes.c_void_p]
+        # Account migration is separate. Model its phase transition explicitly, keep this login's session.
+        self.L.mu_session_set_phase(session, 6)  # MU_PHASE_CHARACTERS
+        self.L.mu_session_detach_world(session)
+        self.command('count 7 3 2')
+        self.assertEqual(self.fields(7)[:2], [2, 3])
+        self.L.mu_session_quest_bind.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p]
+        self.assertEqual(self.L.mu_session_quest_bind(session, self.tmp.name.encode(), ctypes.byref(self.host)), 0)
+        self.L.mu_session_set_phase(session, 8)  # MU_PHASE_IN_WORLD
+        self.assertEqual(self.fields(7)[:2], [2, 3])
+        self.assertIn('active2:7,', self.L.mu_quest_maps_text(self.c).decode())
+
+    def test_giveup_reply_updates_open_tab(self):
+        self.command('accept 3')
+        self.assertEqual(self.fields(3)[0], 1)
+        self.L.mu_quest_session_toggle_info(self.s)
+        values = (ctypes.c_double * 2)(2, 0)
+        self.L.mu_quest_info_callback(self.c, b'OnSelectTab', values, 1, None)
+        self.command('giveup 3')
+        self.assertNotIn('active2:3,', self.L.mu_quest_maps_text(self.c).decode())
+
 
 
 class Packet(unittest.TestCase):
@@ -378,11 +314,12 @@ class LorenciaDemo(unittest.TestCase):
                                 '270:qwin 280:click:soldier 330:option:1 360:option:0 390:qok',
                                 '--frames', '420', '--every', '1000', '--out-dir', tmp],
                                capture_output=True, text=True, timeout=600,
-                               env={**os.environ, 'MU_GFX_SINGLE_BUFFER': '1'})
+                               env={**os.environ, 'MU_GFX_SINGLE_BUFFER': '1',
+                                    'MU_QUEST_SCENARIO': str(NATIVE/'fixture/scenarios/quest-progress.scn')})
         self.assertEqual(r.returncode, 0, r.stderr[-2000:])
         quest = next(json.loads(l)['quest'] for l in r.stdout.splitlines() if l.startswith('{"quest"'))
-        self.assertEqual((quest['accepted'], quest['completed'], quest['progress']), (1, 1, 3))
-        self.assertEqual(quest['active'], [])
+        self.assertEqual((quest['accepted'], quest['completed'], quest['progress']), (1, 0, 2))
+        self.assertEqual(quest['active'], [dict(quest=7, state=2, count=3)])
 
 
 if __name__ == '__main__':

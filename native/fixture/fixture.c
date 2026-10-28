@@ -89,7 +89,7 @@ static int role_of(const char *name)
 
 /* ---- behaviour services ------------------------------------------------------------------- */
 
-uint32_t mu_fx_rand(mu_fixture_ctx *ctx)
+uint32_t mu_fixture_rand(mu_fixture_ctx *ctx)
 {
     uint32_t x = ctx->rng ? ctx->rng : 0x9e3779b9u;   /* xorshift32 */
     x ^= x << 13;
@@ -701,6 +701,7 @@ size_t mu_fixture_behavior_names(const char *const **names)
 
 /* ---- TCP: one client over a loopback socket --------------------------------------------------- */
 
+#ifndef MU_FIXTURE_NO_TCP
 static uint32_t clock_ms(void)
 {
     struct timespec ts;
@@ -815,4 +816,11 @@ int mu_fixture_serve(mu_fixture *f, const char *host, uint16_t port, uint32_t se
     }
     link_free(l);
     return 0;
+}
+
+#endif /* MU_FIXTURE_NO_TCP */
+
+void *mu_fixture_behavior_state(mu_fixture *f, const char *name) {
+    for (int i=0; f && i<f->ctx.nuse; i++) if(!strcmp(f->ctx.use[i].b->name,name)) return f->ctx.use[i].self;
+    return NULL;
 }

@@ -39,7 +39,7 @@ MAIN_C_ORDER = {
                   'actor_effects', 'combat', 'item_labels', 'names'],
     # report_frame main.c:2707-2727 and report_summary main.c:2793-2915 (one order for both)
     'report': ['sound', 'env', 'particles', 'objects', 'actors', 'combat', 'progress', 'items', 'players', 'helpers',
-               'names', 'npc', 'social', 'map'],
+               'names', 'npc', 'social', 'map', 'quest_step'],
 }
 
 # The call each hook makes at its place in main.c (column -> row -> function called in the hook's body).
@@ -54,13 +54,13 @@ SIGNATURE = {
               'combat': 'mu_combat_terrain_lights', 'particles': 'mu_world_particles_apply_lights',
               'actors': 'mu_world_actors_frame', 'players': 'mu_world_players_frame', 'map': 'world_gfx_map_frame',
               'social': 'world_gfx_social_frame', 'names': 'mu_world_names_frame'},
-    'draw_gl': {'terrain': 'mu_terrain_render', 'objects': 'mu_objects_visibility', 'hero': 'mu_scene_draw_model',
+    'draw_gl': {'terrain': 'mu_terrain_render', 'objects': 'mu_objects_visibility', 'hero': 'hero_item_draw',
                 'players': 'player_item_draw', 'helpers': 'mu_world_helpers_draw', 'actors': 'npc_item_draw',
                 'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw', 'marker': 'marker',
                 'particles': 'mu_world_particles_draw', 'actor_effects': 'mu_effect_scene_render_to',
                 'combat': 'combat_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
     'draw_soft': {'terrain': 'mu_world_draw_raster_view', 'objects': 'mu_objects_render_raster',
-                  'hero': 'mu_scene_draw_model', 'players': 'player_item_draw', 'actors': 'npc_item_draw',
+                  'hero': 'hero_item_draw', 'players': 'player_item_draw', 'actors': 'npc_item_draw',
                   'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw_raster',
                   'helpers': 'mu_world_helpers_draw_raster', 'particles': 'mu_world_particles_draw_raster',
                   'marker': 'marker', 'actor_effects': 'mu_effect_scene_render', 'combat': 'mu_combat_draw_raster',
