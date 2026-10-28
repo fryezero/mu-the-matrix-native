@@ -1,6 +1,7 @@
 /* SESSION-SKILL-001. Reconstructed skill bodies are unchanged. */
 #include "../session_internal.h"
 #include "skills_wire.h"
+#include "skills_audio.h"
 #ifdef MU_SESSION_SEED
 #include "../mu_session_seed.h"
 #endif
@@ -44,6 +45,7 @@ int mu_session_skills_bind(mu_session *s, const struct mu_lang *lang, const char
     if (!s->skills.book || !s->skills.tree4) return -1;
     mu_master_env *e=mu_skill_book_master_env(s->skills.book);
     e->user=s;e->text=skill_text;e->invoke=master_invoke;e->msgbox=master_message;e->confirm=master_confirm;
+    e->event=mu_session_master_audio_event;
     mu_skill_tree4_host host={s,skill_text,tree_invoke,tree_message,tree_confirm};
     mu_skill_tree4_set_host(s->skills.tree4,&host);
     mu_skill_book_enter(s->skills.book, s->skills.class_byte);

@@ -1922,6 +1922,68 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_render_effects3]
+test = "native/tests/test_render_effects.py::RenderEffects.test_priority_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fx_effect_create", "fx_effect_move", "fx_burst", "fx_aqua_render", "pt_create", "pt_move", "pt_render"]
+cases = 720
+mutants = 10
+cases_at = "comparisons.*.families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_render_effects3.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_world_particle_consumers]
+test = "reconstructed/particles/test_particles.py::ParticleTests.test_world_consumer_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 900
+mutants = 7
+cases_at = "comparisons.*.families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_world_particle_consumers.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_audio_domains]
+test = "native/tests/test_audio_domains.py::DomainAudio.test_original_domain_audio"
+pins = ["text", "data", "skill_lang5"]
+families = ["npc", "master"]
+cases = 2544
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio", "reconstructed/skill", "native"]
+args = ["--snapshot", "{skill_lang5}", "--cases", "600", "--mutations", "--report", "{report}"]
+[validate_audio_domains.expect]
+"cases" = 2544
+"mismatches" = 0
+"families.*.mismatches" = 0
+"mutants" = {len = 7}
+"mutants.*" = "caught"
+"quest_static" = {len = 24}
+
+[validate_worlds_j]
+test = "reconstructed/objects/test_worlds_j.py::WorldsJTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["karutan_create", "karutan_move", "karutan_visual", "raklion_visual", "raklion_create", "raklion_move"]
+cases = 6000
+mutants = 30
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_j.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_session_items]
 test = "native/tests/test_session_items.py::Private.test_recorded_delete_builder_and_answer_tail"
 pins = ["text", "data"]
@@ -1931,6 +1993,55 @@ mutants = 4
 cases_at = "cases.*"
 mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+
+[validate_worlds_k]
+test = "reconstructed/objects/test_worlds_k.py::WorldsKTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["losttower_visual", "tarkan_visual", "icarus_flare", "losttower_push", "atlans_dispatch"]
+cases = 6000
+mutants = 21
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_worlds_k.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_session_map_overlay]
+test = "native/tests/test_session_map_overlay.py::Private.test_recorded_map_handlers"
+pins = ["text", "data"]
+families = ["marker3", "marker4", "detector_packet"]
+cases = 120
+mutants = 4
+cases_at = "cases"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+[validate_session_map_overlay.expect]
+"cases" = 120
+"mismatches" = 0
+"families" = {len = 3}
+"families.*.mismatches" = 0
+"mutants_caught" = {len = 4}
+
+[validate_audio_items]
+test = "native/tests/test_audio_items.py::ItemAudio.test_original_ground_audio"
+pins = ["text", "data"]
+families = ["create"]
+cases = 3000
+mutants = 8
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/items", "native"]
+args = ["--cases", "3000", "--mutations", "--report", "{report}"]
+[validate_audio_items.expect]
+"cases" = 3000
+"mismatches" = 0
+"sites" = {len = 6}
+"mutants" = {len = 8}
+"mutants.*" = "caught"
 
 [validate_item_coverage]
 test = "reconstructed/renderchar/test_item_coverage.py::ItemCoverage.test_original_instructions"

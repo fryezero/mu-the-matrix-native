@@ -573,9 +573,8 @@ static void create_arrow(mu_combat *c, float angle_offset)
 }
 
 /* Inferno's ring 0x0142da3e(position, 0) (static reading): eight points at
- * 45-degree steps, 220 units out; at each a burst 0x013c07f4 (not
- * reconstructed) and two stones, Stone 0x419 + rand % 2 of subtype 1 and of
- * subtype 0. */
+ * 45-degree steps, 220 units out; at each the verified subtype-0 burst
+ * and two stones, Stone 0x419 + rand % 2 of subtype 1 and of subtype 0. */
 static void inferno_ring(mu_combat *c, const float center[3])
 {
     static const float reach[3] = {0.0f, -220.0f, 0.0f};
@@ -587,7 +586,7 @@ static void inferno_ring(mu_combat *c, const float center[3])
         p[0] = p[0] + center[0];
         p[1] = p[1] + center[1];
         p[2] = p[2] + center[2];
-        ++c->stats.unsupported;   /* the burst 0x013c07f4 */
+        mu_sfx_inferno_burst(p, 1, &c->env);
         const float zero[3] = {0.0f, 0.0f, 0.0f};
         create_effect(c, MU_SFX_MODEL_STONE1 + crt_rand(c) % 2, 1, p, zero, white, -1, NULL);
         create_effect(c, MU_SFX_MODEL_STONE1 + crt_rand(c) % 2, 0, p, zero, white, -1, NULL);
@@ -651,6 +650,12 @@ static void end_of_attack(mu_combat *c)
         /* 0x013b05eb: one wave for a player. Only monster 0x7b7 adds +/-10 degrees. */
         create_effect(c, 0x41f, 0, pos, angle, light, -1, NULL);
         break;
+    case 2:
+        /* 0x013b00a7: target position/angle and caster light, no owner. */
+        if (target_ok)
+            create_effect(c, MU_SFX_MODEL_FIRE, 0, c->actors->list[t].position,
+                          c->actors->list[t].angle, light, -1, NULL);
+        break;
     case 4:
         /* 0x013b0397: MODEL_FIRE subtype 1 from the caster, owned by the target */
         create_effect(c, MU_SFX_MODEL_FIRE, 1, pos, angle, light, target_ok ? t : -1, &info);
@@ -688,6 +693,16 @@ static void end_of_attack(mu_combat *c)
         create_effect(c, MU_SFX_MODEL_CIRCLE, 0, pos, h->angle, light, MU_COMBAT_HERO_OBJECT, &info);
         create_effect(c, MU_SFX_MODEL_CIRCLE_LIGHT, 0, pos, h->angle, light, -1, NULL);
         break;
+    case 12: {
+        /* 0x013ac8a2: caster-local (-20,-90,100), then the beam effect. */
+        const float offset[3] = {-20.0f, -90.0f, 100.0f};
+        float m[12], at[3];
+        mu_angle_matrix(h->angle, m);
+        mu_vector_rotate(offset, m, at);
+        for (int k = 0; k < 3; ++k) at[k] += pos[k];
+        create_effect(c, 0x7f4e, 0, at, h->angle, light, -1, NULL);
+        break;
+    }
     case 14:
         /* Inferno 0x013acc46: the ring, then Inferno01 owned by the caster */
         info.skill = 14;
@@ -1438,12 +1453,18 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
     return drawn;
 }
 
-void mu_combat_terrain_lights(const mu_combat *c, mu_world *map)
+void mu_combat_terrain_lights(mu_combat *c, mu_world *map)
 {
     if (!map)
         return;
+    /* Prepare the render-time sprite chain before the world's sprite pass. */
+    const int32_t step_lights = c->light_count;
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
+        mu_sfx_aqua_render(&c->effects[i], &c->env);
     for (int32_t i = 0; i < c->light_count; ++i)
         mu_world_add_light(map, c->lights[i].x, c->lights[i].y, c->lights[i].rgb, c->lights[i].range);
+    /* A second frame can precede the next logic step. Keep only step lights. */
+    c->light_count = step_lights;
 }
 
 int32_t mu_combat_live_points(const mu_combat *c)

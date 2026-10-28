@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "../../session/mu_session_seed.h"
+#include "../../core/mu_session_audio.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/items_demo.h"
 #include <stdlib.h>
@@ -30,6 +31,7 @@ typedef struct items_part {
     mu_transport *transport;
     uint32_t tick;
     int owned;
+    mu_cue_cursor audio_cursor;
 } items_part;
 
 static int items_open(struct mu_world_rt *a, void *self)
@@ -101,6 +103,8 @@ static void items_tick(struct mu_world_rt *a, void *self)
         mu_sim sim=mu_session_sim_begin(p->session);
         mu_world_items_step(a->ground);
         mu_session_sim_end(p->session,&sim);
+        /* Shared character sessions already have their own audio reader. */
+        if(p->owned) mu_session_audio_drain(p->session,&p->audio_cursor,a->has_sound?a->sound.host:NULL);
     }
 }
 

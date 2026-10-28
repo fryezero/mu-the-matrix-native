@@ -58,7 +58,7 @@ def inventory(text, data):
 def markdown(document):
     rows = document['classes']
     lines = ['# World-handler class coverage', '',
-             'RENDER-WORLDS-G/H/I. Static address inventory from factory `0x00ea488e`, its allocation constructors and',
+             'RENDER-WORLDS-G/H/I/J. Static address inventory from factory `0x00ea488e`, its allocation constructors and',
              'the pinned second-section vtables. Class IDs use the first registered world; labels are descriptive,',
              'not recovered symbol names. The default BaseMap registration for world 146 is outside the 48 concrete classes.', '',
              '`V` = compiled native C has an instruction-compared family, within the scope recorded in JSON.',
@@ -93,10 +93,10 @@ def markdown(document):
               '| 1 Dungeon | 016d8e3a switch, verified | 017ff238 switch, verified | 017fc8e0, bounded verified |',
               '| 2 Devias | 016d8538 switch, verified | 017fffda, B verified | 017f9bdc bounded verified; placements D/B |',
               '| 3 Noria | 016d8538 switch, verified | 017ff238 switch, verified | 017f9dd1 bounded verified; placement D |',
-              '| 4 Lost Tower | generic only | 017ff238 switch, verified | 017f6ca7 call logged, body missing |',
-              '| 7 Atlans | 016d8538 switch, verified | 017ff238 switch, verified | remaining visual body missing |',
-              '| 8 Tarkan | 016d8538 switch, verified | 01800bf8, B verified | F haze verified; remaining visual missing |',
-              '| 10 Icarus | generic only | 0180249e bounded verified | C/C2 sky, cover, ribbons and dragons verified; type-10 bone flare missing |',
+              '| 4 Lost Tower | generic only | 017ff238 switch, verified | K verifies 017f6ca7 push helper and 017fa92b sprite producers |',
+              '| 7 Atlans | 016d8538 switch, verified | 017ff238 switch, verified | K verifies default switch landing 017fcb5c; no dedicated Atlans visual case |',
+              '| 8 Tarkan | 016d8538 switch, verified | 01800bf8, B verified | F haze; K verifies 017fb2a4 lamp/plume producers; EFFECTS-003 consumers |',
+              '| 10 Icarus | generic only | 0180249e bounded verified | C/C2 sky/cover/ribbons/dragons; K verifies type-10 Bone01 flare producer; EFFECTS-003 consumer |',
               '| 33, 54 Aida | generic only | 00d6202f bounded verified | E source/reset-history attribution; capture history missing |',
               '| 37, 40 Kanturu | 00e74a58 bounded verified | 00e74ae0 bounded verified | A bounded flames/after-character verified |',
               '| 51 Elbeland | 00e30a02 bounded verified | 00e30b86, B verified | E boid movement/clouds verified; captured speeds missing |', '',

@@ -13,4 +13,9 @@ mu_items_view mu_session_items(const mu_session *s);
  * retains packet records and reconstructs the presentation when a view rebinds. */
 typedef void (*mu_items_present_fn)(void *, int32_t, const uint8_t[19]);
 void mu_session_items_bind(mu_session *s, mu_items_present_fn fn, void *ctx);
+/* Borrow the static Item.bmd presence lookup for arrival-time audio only.
+ * Return 1 present, 0 absent, -1 unknown. Clear before releasing that owner.
+ * Binding never replays cues. */
+typedef int (*mu_items_audio_record_fn)(void *, int32_t code);
+void mu_session_items_audio_bind(mu_session *s, mu_items_audio_record_fn fn, void *ctx);
 #endif

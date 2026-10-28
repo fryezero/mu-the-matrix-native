@@ -127,10 +127,11 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         if (status == MU_OBJ_UNSUPPORTED || !runtime_hides_modelled(o->world)) {
             /* live sidecar: types the running client marked HiddenMesh -2. Outside Lorencia, Tormenta and the two
              * scene worlds most of them are set at draw time (emitter markers, NATIVE-FIDELITY-002), which is not
-             * ported; CreateObject's own -2 cases are already applied. */
+             * ported; CreateObject's own -2 cases are already applied. One-shot visual producers
+             * must retain their fresh state until their first draw, as in Icarus C2 and Tarkan K. */
             const int32_t t = o->records[i].type;
             if (t >= 0 && t < MU_OBJECT_TYPES && o->hidden_type[t] &&
-                !(o->world == 10 && t <= 5))
+                !(o->world == 10 && t <= 5) && !(o->world == 8 && t == 60))
                 mu_obj_set_i32(img, MU_OBJF_HIDDEN_MESH, -2);
         }
         const int32_t t = o->records[i].type;
@@ -390,7 +391,11 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
             ++rt->move_unsupported;
         for (int32_t j = 0; j < log.count; ++j) {
             const mu_obj_event *m = &local[j];
-            if (m->call == MU_OBJ_CALL_TICK) {
+            if (m->call == MU_OBJ_CALL_LOSTTOWER_VISUAL) {
+                mu_obj_event output[1]; mu_obj_log pushed = {0, 1, 0, output};
+                mu_losttower_push(image(o, i), i, in->hero, rt->hero_action, &pushed);
+                if (pushed.count && o->sound) o->sound(o->sound_context, (int32_t)output[0].args[0]);
+            } else if (m->call == MU_OBJ_CALL_TICK) {
                 tick(o, i, fbits(m->args[0]));
             } else if (m->call == MU_MARKET_BONE_LIGHT) {
                 market_bone_light(o, i, m);
@@ -573,6 +578,18 @@ static void visual_bone(void *context, int32_t bone, const float local[3], float
     }
 }
 
+/* Name lookup uses the current object's posed model without allocating per frame. */
+static void builtin_bone(void *context, const char *name, const float local[3], float out[3])
+{
+    visual_context *c = context;
+    out[0] = out[1] = out[2] = 0;
+    for (int32_t k = 0; k < c->m->bmd.bone_count; ++k)
+        if (strcmp(c->m->bmd.bones[k].name, name) == 0) {
+            visual_bone(context, k, local, out);
+            return;
+        }
+}
+
 static void consume_visual(mu_objects *o, const mu_obj_log *log)
 {
     mu_objects_runtime *rt = &o->rt;
@@ -639,7 +656,15 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
-    if (o->world == MU_CSW_WORLD)
+    if (o->world == 4 || o->world == 7 || o->world == 8)
+        mu_builtin_visual(img, i, o->world, m && m->loaded, world_time, visual_rand,
+                          posed ? builtin_bone : NULL, &c, &log);
+    else if (o->world == 10) {
+        /* Existing cover hook consumes the common brightness from the particle RNG. */
+        if (o->rt.visual) o->rt.visual(o->rt.hook_context, o, i, m && m->loaded, posed ? (mu_object_model *)m : NULL);
+        if (posed) mu_icarus_bone_flare(img, i, builtin_bone, &c, &log);
+    }
+    else if (o->world == MU_CSW_WORLD)
         mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
     else if (o->world == 79 && m && m->loaded) {
         const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
@@ -652,6 +677,19 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         mu_uruk_visual(img, i, o->world, o->rt.uruk_weather, world_time, visual_rand, &c, &log);
     else if (o->world == 79 || o->world == 100)
         return;
+    else if ((o->world == 80 || o->world == 81) && m && m->loaded) {
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int needs_bones = type == 66 || type == 72;
+        const int bones_ready = posed && m->bmd.bone_count > (type == 66 ? 14 : 11);
+        if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Existing outer RenderObjectVisual flicker draw. */
+        mu_karutan_visual(img, i, o->world, world_time, visual_rand,
+                          bones_ready ? visual_bone : NULL, &c, &log);
+    }
+    else if (o->world == 80 || o->world == 81)
+        return;
+    else if (o->world == 57 || o->world == 58)
+        mu_raklion_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 64)
         mu_duel_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 82)
@@ -671,18 +709,14 @@ static int world_flames(mu_objects *o, int32_t i, uint8_t *img, const mu_object_
 {
     if (!m || !m->loaded)
         return 0;
-    if (o->world != 0x25 && o->world != 0x28 && o->world != 0x50 && o->world != 0x51)
+    if (o->world != 0x25 && o->world != 0x28)
         return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
     (void)visual_rand(&c);
-    int status;
-    if (o->world == 0x25 || o->world == 0x28)
-        status = mu_kanturu_flames(img, i, o->world, time, visual_rand, posed ? visual_bone : NULL,
-                                   &c, &log);
-    else
-        status = mu_karutan_flames(img, i, visual_rand, &c, &log);
+    const int status = mu_kanturu_flames(img, i, o->world, time, visual_rand,
+                                         posed ? visual_bone : NULL, &c, &log);
     consume_visual(o, &log);
     return status != MU_OBJ_UNSUPPORTED;
 }
@@ -729,7 +763,10 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
     const int login = o->world == MU_LOGIN_WORLD, charsel = o->world == MU_CSW_WORLD;
-    const int primary_visual = o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 || o->world == 79 || o->world == 100;
+    const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) ||
+                               o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
+                               o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
+                               o->world == 80 || o->world == 81;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -754,7 +791,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         !login && !charsel && in.has_model && status != MU_OBJ_SKIPPED && mu_world_defer(img, o->world);
     int posed = 0;
     if (login || charsel || primary_visual) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
-        if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0)))
+        if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0) ||
+                               o->world == 80 || o->world == 81 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
     } else if (!rt->visual) {
@@ -763,7 +801,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int flame = 0;
     if (!login && !charsel &&
-        (o->world == 0x25 || o->world == 0x28 || o->world == 0x50 || o->world == 0x51)) {
+        (o->world == 0x25 || o->world == 0x28)) {
         if (m && m->loaded && !posed)
             posed = pose_object(o, img, m, &log);
         flame = world_flames(o, i, img, m, in.light.time, posed);

@@ -826,6 +826,8 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
         regions = [inputs, record, object_region(objects), hero,
                    am.defined_region('hero-ptr', HERO_DATA_PTR, struct.pack('<I', HERO_DATA), writable=False)]
         hero_obj = rng.choice([-1, 0, 1, owner]) if tornado_hero is None else tornado_hero
+        if kind[0] == 0x7f4e:
+            hero_obj = -1   # visual-only beam corpus excludes hero source writeback/area service
         hero_char = (object_address(hero_obj) - 0x3254) & 0xffffffff if hero_obj >= 0 else 0x5000000
         regions += [am.defined_region('hero', HERO_POINTER, struct.pack('<I', hero_char), writable=False)]
         r = m.execute(CREATE_EFFECT, [kind[0], kind[1], INPUTS, INPUTS+12, INPUTS+24, object_address(owner),
