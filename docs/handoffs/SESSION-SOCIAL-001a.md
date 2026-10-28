@@ -31,7 +31,7 @@ launcher, live service or dispatcher-table walk. [Finding](../research/client-so
 - Allocations are confined to fixture/session/view opening and existing transport
   machinery. This lane adds no allocation in its party tick or GFx frame functions.
 
-## Checks so far
+## Checks
 
 - New production-adapter comparisons: **5,000 cases, zero mismatches, 5/5 compiled
   mutants caught**, 1,000 per family. List-envelope slice, full update name/count
@@ -58,14 +58,28 @@ launcher, live service or dispatcher-table walk. [Finding](../research/client-so
   run found an isolated header-copy omission and a fixed intent-list expectation;
   both are corrected, along with the input-router include dependency. Party action
   feedback is refreshed rather than retaining the previous action's text.
-- Full release gate and final integration counts will be recorded before merge.
+- Final locked clean `bash scripts/local-macos-ci.sh` on runtime commit `04826fc`,
+  integrated through origin/main `374777c`: **1,600 tests across 38 suites,
+  204 explicit private/optional skips, zero failures**. Native suite: 763 tests.
+  Viewer and read-only reader builds pass; readers were built only. Repository
+  audit: **1,556 files, zero rejected**. No hosted workflow was dispatched.
+- Final VERIFY-SESSION: **11/11 scenarios, 86 inbound frames, zero unbound or
+  undecodable frames**. The party scenario has nine expectations and six inbound
+  frames covering all five routes, one plaintext leave and two intentionally unsent
+  requests. Across all scenarios, two unrelated unrecovered intents and nine
+  total unsent requests remain explicit. The report's dirty flag is from the
+  untracked Python/evidence symlinks; tracked source was clean during the gate.
+- Final merge resolved append conflicts in status/handoff, static seed rows and
+  validator registrations by retaining both lanes. Generation and TOML parsing
+  passed before the clean gate. Map-overlay ownership stayed with its merged lane.
+  The merge lock was acquired at 13:46 CDT and will be released immediately after
+  the authorized PR merge.
 
 Self-review checked the brief's owned paths, static-route provenance, full-frame
 validation before mutation, request bounds and encryption flags, pending-key
 retention, independent cursors, snapshot authority, shutdown order and fixture-only
-membership. No independent agent review is claimed. The worktree is queued for
-the serialized latest-main integration and release gate; all implementation and
-focused-check fixes are pushed as checkpoints.
+membership. No independent agent review is claimed. Latest-main integration and the serialized release gate passed; implementation
+and focused-check fixes were pushed as checkpoints.
 
 Temporary reports/renders are in the lane's external scratch/render directories.
 They and build outputs will be deleted after merge; no new retained input is needed.

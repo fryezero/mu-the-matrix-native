@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-SESSION-SOCIAL-001a: party list/invitations and supplied bars now use a session domain and plaintext fixture feed; winParty retained. Invite/answer sends remain unsent pending NET-DECODE. [Checks and remaining social work](handoffs/SESSION-SOCIAL-001a.md).
+SESSION-SOCIAL-001a: party list/invitations and supplied bars now use a session domain and plaintext fixture feed; winParty retained. Locked Mac gate passes 1,600 tests. Invite/answer sends remain unsent pending NET-DECODE. [Checks and remaining social work](handoffs/SESSION-SOCIAL-001a.md).
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 

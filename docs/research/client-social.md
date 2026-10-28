@@ -168,3 +168,13 @@ Five thousand cases pass, zero mismatches; all five compiled domain mutants are
 caught. This composes bounded evidence, not full container/transport equivalence.
 The original pinned hashes and compatibility-environment evidence limits above
 remain unchanged. [Release checks and remaining work](../handoffs/SESSION-SOCIAL-001a.md).
+
+Final release gate on `04826fc`, integrated with main `374777c`, passes 1,600 tests,
+204 explicit skips and zero failures. Eleven fixture scenarios carry 86 inbound
+frames with zero unbound/undecodable frames. The party scenario has six frames and
+two intentionally unsent requests. Unchanged social families rerun at 7,000 and
+29,700 cases; with the 5,000 adapter cases, total 41,700 comparisons, zero mismatches,
+and 51/51 compiled controls/mutants caught. Existing render/hash assertions pass;
+three real winParty captures were inspected. No golden pins were changed. Intended
+differences are the single fixture feed, journaled unsent invite/answer requests and
+independent notice cursors. No original-image fidelity or live acceptance is claimed.
