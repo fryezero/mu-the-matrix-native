@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+SYS-MISC-001a is blocked after the BossHPUI arithmetic checkpoint: 2,500 instruction comparisons, zero mismatches, 6/6 mutants. Missing handler/route evidence and movie contract differences prevent a window/session completion claim. [Resume details](handoffs/SYS-MISC-001a.md).
+
 SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
 
 INTEGRATION-GREEN-001 completed: reproducible private input identities, repaired harness entry points, 38/38 private-enabled directories green; [counts and legitimate skips](handoffs/INTEGRATION-GREEN-001.md).

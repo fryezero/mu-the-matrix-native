@@ -41,3 +41,44 @@ The pinned image strings contain the BossHPUI/HelpWindow/CommandWindow/QuickComm
 registrations. The exact MonsterInfo and DamageCount class registrations and receive/request
 paths have not yet been identified. Movie interfaces alone are not instruction validation.
 No arbitrary packet route or invented request is justified by these observations.
+
+## Verified arithmetic checkpoint
+
+`reconstructed/misc/misc.c` implements BossHPUI's initialization, zero-to-three
+palette mapping, segment-unit write, gauge remainder and layered palette update.
+`validate_misc.py --cases 500 --mutants` executes **2,500 comparisons in five families,
+zero mismatches, six of six compiled mistakes caught**. Both bar offsets are covered.
+The CRT ceil and float-to-int return are modeled boundary services; the segment-unit
+comparison is a bounded interior slice with a synthetic caller frame. These counts
+are window arithmetic evidence only, not packet, movie or session acceptance.
+
+Four portable tests cover palette/layer boundaries, gauge full-health and remainder
+semantics, atomic host refusal of invalid divisors, and independent bars/reset.
+The private test additionally runs 200 instruction comparisons and the six mutants.
+The registered validator is `validate_misc` in `scripts/validators.toml`.
+
+## Blocked acceptance and exact next work
+
+SYS-MISC-001a is **not implemented**. No window/domain/fixture migration is claimed.
+The current seed route table and existing findings do not identify a remote monster
+HP/level answer, a BossHPUI answer, or MonsterInfo/DamageCount receive/request bodies.
+The combat domain's F3 events contain damage amounts, not authoritative remote
+current/max HP. Subtracting them from invented health would create a second feed.
+The viewport migration explicitly lists remote HP-update routing as remaining work.
+
+The supplied movie contracts also do not match the proposed self-contained HUD
+scope: MonsterInfo has no level argument; DamageCount is a text/caution dialog;
+CommandWindow/QuickCommand initiate social/item operations with target/world guards.
+No request builder or packet format can be inferred from a movie callback name.
+
+To resume without crossing the current limits, supply an existing offline finding or
+captured scoped native caller for the missing remote-HP and MonsterInfo/DamageCount
+bodies and its route provenance. Then validate those bodies, add only evidenced seed
+rows, and implement the misc domain/ops/intents, fixture behaviour/scenario and GFx
+views. Resolve whether DamageCount should reproduce its actual dialog or the task
+requires a different damage-display movie. Commands need a reviewed delegation seam
+to their owning social/item domains. HelpWindow additionally needs its helpdata.bmd
+row-input contract, not an invented shortcut list.
+
+No dispatcher/jump-table walk, crypto/decode work, new live capture, or speculative
+route was performed to bridge these gaps. No full-window render is claimed.

@@ -1863,3 +1863,16 @@ args = ["--cases", "6000", "--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+# SYS-MISC-001a WIP. Window math only; this does not certify a packet/domain migration.
+[validate_misc]
+test = "native/tests/test_misc.py::Private.test_original_window_arithmetic_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["init", "colour", "gauge", "update", "maximum"]
+cases = 2500
+mutants = 6
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--cases", "500", "--mutants", "--output", "{report}"]
+[validate_misc.expect]
+mismatches = 0

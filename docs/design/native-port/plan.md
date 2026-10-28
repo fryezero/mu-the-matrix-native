@@ -93,7 +93,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | SYS-DUEL-GENS-001 | Duel, DuelWatch, GensRanking (name-plate fields exist) | SESSION-VIEWPORT-001 |
 | SYS-ITEMSYS-001 | Pentagram, Elemental, Socket, Harmony, MixStone, MUMix, GremoryCase, ExtensionBag, EventInventory | SESSION-ITEMS-002 |
 | SYS-SKILL5-001 | The five SkillTree5th windows, 0x32 managers, cards as items (captures exist) | SESSION-SKILL-001 |
-| SYS-MISC-001 | Macro/AutomaticMacro, CommandWindow/QuickCommand, DivideWindow, MonsterInfo, BossHpUI, DamageCount, DeathPenaltyExpRecovery, HelpWindow, SeasonPass, Artifact and Pet windows, Muun pets | relevant domains |
+| SYS-MISC-001 | Macro/AutomaticMacro, CommandWindow/QuickCommand, DivideWindow, MonsterInfo, BossHpUI, DamageCount, DeathPenaltyExpRecovery, HelpWindow, SeasonPass, Artifact and Pet windows, Muun pets. Part 1 SYS-MISC-001a is blocked at a verified BossHPUI arithmetic checkpoint; [missing evidence and resume](../../handoffs/SYS-MISC-001a.md) | relevant domains |
 | SYS-CHAT-001 | The client's chat command parser and chat routing (replacing the native demo controls) | SESSION-SOCIAL-001 |
 
 ## G. Rendering of the remaining worlds

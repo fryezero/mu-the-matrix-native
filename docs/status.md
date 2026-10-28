@@ -1,5 +1,7 @@
 # Current status
 
+SYS-MISC-001a is blocked after the BossHPUI arithmetic checkpoint: 2,500 instruction comparisons, zero mismatches, 6/6 mutants. Missing handler/route evidence and movie contract differences prevent a window/session completion claim. [Resume details](handoffs/SYS-MISC-001a.md).
+
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
 RENDER-WORLDS-H implements Duel Arena/world-82 primary methods: 6,000 instruction cases, zero mismatches, 19/19 compiled mutants; 25/144 verified primary families across 9/48 classes. Full Mac gate passes, 1,511 tests; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-h.md), [handoff](handoffs/RENDER-WORLDS-H.md).
