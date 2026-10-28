@@ -34,23 +34,29 @@ is uncontrolled. Earlier unfavorable observations are retained in the summary.
 
 A GL client-array pointer memoization experiment was committed as a checkpoint,
 then rejected: the synthetic GL test passed but 98/151 full crowd40 frames differed.
-It and its experiment-only tests are removed. Current runtime equals `6ba4690`;
+It and its experiment-only tests are removed. The PERF-004-authored runtime equals `6ba4690`;
 `c68f68b` records the rejection and preserves its measurements. No GL pointer or
 state setup optimization remains.
 
-## Next sequence
+## Integrated checkpoint
 
-Wait for the common merge lock, acquire it with a standalone checked command,
-merge latest origin/main, resolve conflicts preserving both lanes, then run the
-full local Mac gate and the final integrated frame/timing matrix. The earlier
-attempt to merge locally after a failed lock acquisition was immediately aborted;
-no PR or main merge occurred. Never repeat that command-chain error.
+Latest main `26018b4` is merged in `4f37645`, under the lane's merge lock acquired
+at 11:57 on 2026-10-28. Both lanes' status lines and Makefile targets are kept.
+The world tool retains every temporal sampling hook and suppresses only PNG
+encoding/writing in hash-only mode. No upstream behavior is discarded.
 
-Known integration conflicts against then-main `3162017`: keep all upstream
-status/handoff rows and our own row. In `native/world/world_tool.c`, keep all
-RENDER-TIME-001 sampling hooks, adding only `!getenv("MU_PERF_HASH_ONLY")` around
-PNG encoding/writing when `save` is true. Hashing, drawing, readback and sampling
-must stay active. The path/hash buffers are initialized empty already.
+The full local macOS gate passes: 38 suites, 1,566 test invocations comprising
+1,384 passes and 182 explicit skips; 9/9 fixture scenarios; repository audit
+1,514 files, zero rejected. Native world/client are built from this source.
+The four-workload 701-frame comparison is in progress in `final-frames/`.
+Its first three scenarios pass 701/701 each; retina is still running.
+
+Next finish that comparison, run the eight sequential 60-second window pairs
+with GPU timing and normal clocks, summarize honest strict/regression results,
+update the milestone docs, create/merge the PR and release the lock immediately.
+If resuming after failure, inspect the existing owner file before proceeding;
+never remove another lane's lock. This lane's earlier uncommitted merge after a
+failed lock acquisition was aborted; the actual integration above is lock-held.
 
 Private lane scratch is `~/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/`.
 It contains `data`, the built `libmugfx.dylib`, original and resumed profiles,

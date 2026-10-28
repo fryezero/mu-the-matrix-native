@@ -2099,5 +2099,19 @@
         "optimized_group_sha256": "4fa6c9fdbb7763d0fb73345c184f1123df138c43d83fc4b75d6206e266c1f1e1"
       }
     }
+  },
+  "integration": {
+    "source": "4f37645",
+    "base_main": "26018b4",
+    "macos_gate": {
+      "suites": 38,
+      "tests_run": 1566,
+      "passed": 1384,
+      "skipped": 182,
+      "fixtures_passed": 9,
+      "fixtures_total": 9,
+      "audit_files": 1514,
+      "audit_rejected": 0
+    }
   }
 }
