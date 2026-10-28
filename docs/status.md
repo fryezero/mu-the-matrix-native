@@ -2,6 +2,8 @@
 
 - NATIVE-PERF-002: extreme offline stress harness, CPU/GL timing and ordered character draw optimization; the 25 fps stress goal remains open. [Evidence](research/native-performance-stress.md), [handoff](handoffs/NATIVE-PERF-002.md).
 
+RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
+
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
 F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).
 

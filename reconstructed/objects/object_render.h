@@ -220,6 +220,9 @@ typedef struct mu_obj_move_inputs {
     mu_obj_rand_fn rand_fn;
     void *context;
     uint32_t now_ms;            /* timeGetTime (world 0x5e's pulse, NATIVE-LOGIN-001) */
+    int32_t bounds_mode;        /* 0x0b437bfc, Devias door movement */
+    uint8_t hero_safe;          /* terrain attribute bit 0, Elbeland sounds */
+    uint8_t *elbeland_pool;     /* optional fixed boid slot 1, world 51 type 0x3e */
 } mu_obj_move_inputs;
 
 /* MoveObject 0x017ff238: roof fade (world 0 types 0x7d/0x7e by HeroTile 4, world 2),

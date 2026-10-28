@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-B is implemented for the bounded per-world move/create and snow paths. [Coverage and remaining limits](handoffs/RENDER-WORLDS-B.md).
+
 LAYOUT-001: generated layout tables and JSON consumers implemented; [evidence](research/client-layout-manifest.md).
 
 LAYOUT-PROBE-001: offset conflicts probed; [evidence](research/client-layout-probes.md). LAYOUT-001 follows.
