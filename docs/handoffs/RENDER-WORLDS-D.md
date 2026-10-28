@@ -11,7 +11,7 @@ portal placement. [Full evidence, ranked gaps and scoreboard](../research/client
 - Fourteen-map-view tour at 25 steps: Noria missing 1 to 0, all other missing/extra counts stay zero;
   primary light exact everywhere; every frame-light score unchanged; thirteen final PNG hashes unchanged.
   Noria's changed hash follows new particle RNG consumption at its arrival camera. No live-image improvement
-  is claimed. The retained Dungeon/Icarus/Kanturu image errors stay 2.019/61.760/3.717.
+  is claimed. The retained Dungeon/Icarus/Kanturu image errors stay 2.019/62.030/3.717.
 - Native GL portal views inspected for Devias, Noria and Raklion, with 3/5/3 effect models drawn.
 
 Local Mac gate: pending final result.
@@ -21,7 +21,9 @@ Artifacts stay outside the repository:
   manifests and logs.
 - `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-d/`: before/after tour and portal GL renders.
 
-Remaining: A's flames and after-character work; C's Icarus work; Elbeland boid mover/model draw after C merges;
+Remaining: A's flames and after-character work; C2's remaining Icarus work; Elbeland boid mover/model draw is
+unblocked by #181 but ranks below the measured placement/effect defects: the captured arrival view has zero
+native boids and no live boid-pool snapshot or PNG to score it;
 Raklion's inherited active event timer/effects/quake and authoritative timer inputs; Aida's concentrated transient
 frame-light outlier; Tarkan/Raklion haze and fresh live-image comparisons in a separate authorized run.
 The timer has no captured handler state to score, so the reproducible placement/effect gaps were selected first.

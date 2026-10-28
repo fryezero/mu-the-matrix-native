@@ -316,7 +316,9 @@ separate authorized run, then rerun the image-error tour. This run did not start
 
 ### Tour and ranking
 
-The baseline is main `952868f`, including RENDER-WORLDS-B #180 and RENDER-TERRAIN-002 #175.
+The initial baseline was main `952868f`. After #181 merged, both the main baseline `5f6b0cf` and D's
+combined branch were rebuilt in D's worktree and the full tour repeated. This includes B #180, terrain #175
+and C #181; no builds ran in the main checkout.
 `scripts/fidelity_tour.py run` rendered all fourteen captured views of thirteen maps at their arrival cameras,
 25 logic steps, GL, 1722 x 1048. It compared the retained 2026-10-22 OBJECT/global/light snapshots.
 Only Dungeon, Icarus and Kanturu have surviving live PNGs, under `renders/readme-sources/`.
@@ -325,8 +327,8 @@ No new live capture was taken. A blank image score for the other eleven views me
 Ranked by supported visible scope, rather than treating unlike measurements as one score:
 
 1. **Icarus sky/clouds/dragons and Kanturu/Karutan flames/after-character flags.** The retained image errors
-   are Icarus 61.760, Kanturu 3.717 and Dungeon 2.019 at 25 steps. The Icarus and flame/after-character work
-   belongs to C and A respectively; D leaves it intact. After-character field counts are Noria 16,
+   are Icarus 62.030, Kanturu 3.717 and Dungeon 2.019 at 25 steps. The Icarus and flame/after-character work
+   is now C2's remaining Icarus lane and A's flame/after-character lane; D leaves both intact. After-character field counts are Noria 16,
    Kanturu 3, Elbeland 19, Raklion 10 and Karutan 6.
 2. **Missing Noria warp placement and rejected nested warp effects.** One Noria object of type 424 was absent;
    Devias and Raklion each rejected three startup effect calls. These have direct placement/lifecycle code
@@ -346,7 +348,10 @@ Ranked by supported visible scope, rather than treating unlike measurements as o
    state, so the tour cannot assign an active timer image score. Static reading: Raklion's default move calls
    inherited `0x00ea17c0`; `+0x23` enables its timer, `+0x20` selects event behavior, and `0x00ea186c` emits the
    event effects/quake. That active lifecycle remains unimplemented, below the reproducible placement/effect
-   defects for this slice. Elbeland's mover/model draw is deferred until C's boid work merges, as requested.
+   defects for this slice. After C #181 merged, Elbeland was reassessed. This arrival view has zero native boids, a safe-zone hero
+   and no live boid-pool snapshot or live PNG. The tour therefore supplies no measured boid deficit. Its
+   now-unblocked movers `0x00ca33c3` and `0x00ca3ce1`, model registration and draw path remain a lower-ranked
+   follow-up that can reuse C's shared flight/render loop. No Elbeland movement equivalence is claimed.
 
 ### Verified reconstruction and host integration
 
@@ -408,7 +413,7 @@ The thirteen other final PNG SHA-256 values are unchanged, including all ten vie
 Noria's arrival camera is away from the new portal; its changed frame reflects the new particle RNG consumption,
 not a measured live-image improvement. Devias/Raklion's arrival frames also remain unchanged, while separate
 portal-camera runs draw 3/5/3 native effect models. Do not substitute those views for live comparisons.
-The three available live-image mean errors remain 2.019 / 61.760 / 3.717 for Dungeon / Icarus / Kanturu.
+The three available live-image mean errors remain 2.019 / 62.030 / 3.717 for Dungeon / Icarus / Kanturu.
 
 The existing create/move effect families also pass 1,200 comparisons, zero mismatches. The new validator passes
 through `scripts/run_validators.py`, with its manifest counts and mutants checked. Synthetic placement/dedup
@@ -421,7 +426,7 @@ GL frames and complete scoreboards: `~/Documents/MTM/mu-mac-tools/native/renders
 Both are local only. Run `scripts/validate_worlds_d.py --cases 600 --mutations --output <local-report>`
 with the repo Python, or its manifest row with private integration enabled.
 
-Next work: A/C-owned visual paths; Elbeland mover/model draw after C merges; the inherited Raklion event
+Next work: A-owned visual paths and C2-owned remaining Icarus paths; unblocked Elbeland mover/model draw; the inherited Raklion event
 lifecycle, including the event-state and timer inputs; attribute Aida's transient frame light from existing
 source/effect code or a separately authorized future capture; fresh locked live images of the changed worlds.
 No live game, launcher, network, service, protection module or running-client memory was touched.
