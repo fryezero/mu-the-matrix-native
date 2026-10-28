@@ -142,6 +142,19 @@ VISIBLE_TYPES = [
     0x21dc, 0x21ee, 0x221d, 0x2240, 0x2276,
 ]
 
+# Part 11: per-type wave/sine scalar programs; independent full streams checked.
+SCALAR_TYPES = [
+    0x0b02, 0x0b20, 0x0b24, 0x0b25, 0x0b67, 0x0b6a, 0x0b6b, 0x0f0e, 0x0f0f, 0x0f14,
+    0x0f1b, 0x10f8, 0x10ff, 0x1109, 0x1310, 0x1322, 0x132b, 0x132c, 0x14f9, 0x1549,
+    0x154c, 0x157d, 0x157e, 0x157f, 0x1580, 0x1581, 0x1582, 0x1583, 0x1705, 0x1708,
+    0x1719, 0x171a, 0x1739, 0x173a, 0x173b, 0x173c, 0x173d, 0x173e, 0x173f, 0x1747,
+    0x1756, 0x1945, 0x19b7, 0x19c1, 0x19c2, 0x1a15, 0x1b45, 0x1bb7, 0x1bc1, 0x1bc2,
+    0x1c14, 0x1c15, 0x1c16, 0x1c17, 0x1c22, 0x1c23, 0x1d45, 0x1e17, 0x1f45, 0x1fb7,
+    0x1fc1, 0x1fc2, 0x2217, 0x2514, 0x2515, 0x2516, 0x2523, 0x2528, 0x252b, 0x255f,
+    0x2566, 0x2567, 0x26f7, 0x271b, 0x271c, 0x2727, 0x2728, 0x2729, 0x272a, 0x2742,
+    0x2743, 0x2745, 0x278b, 0x278c, 0x278d, 0x278e, 0x27a3,
+]
+
 PROBE_SEEDS = (3401, 7254, 9874, 3404, 7257, 9877, 3407, 7260, 9880, 3413, 7266, 9886)
 
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
@@ -180,13 +193,139 @@ def body_scalars(time):
             f((atlas30-int(atlas30/6)*6)*f(0.167)), f(int(atlas30/6)*f(0.2)),
             f((atlas13-int(atlas13/4)*4)*f(0.25)), f(int(atlas13/4)*f(0.25)), sine, fast, wave)
 
+# Part 11: per-type straight-line SSE scalars after the wave helper 0x0185bdc4(a,b)
+# or the sin wrapper 0x009681bd(time*k). Sites are the return addresses hit by the
+# probes; the pinned bytes must match exactly or the site is ignored.
+WAVE_HELPER, SINE_WRAPPER = 0x0185bdc4, 0x009681bd
+SCALAR_OPS = {0x59: 1, 0x58: 2, 0x5c: 3, 0x5e: 4}   # mulss, addss, subss, divss
+MOVSS_ESP = bytes.fromhex('f30f110424')
+
+
+def _word(wa, address):
+    import struct
+    base = 0x01a7c000
+    if not base <= address <= base + len(wa[1]) - 4:
+        return None
+    return struct.unpack_from('<I', wa[1], address - base)[0]
+
+
+def _text(wa, address, size):
+    return wa[0][address - 0x00401000:address - 0x00401000 + size]
+
+
+def _load(wa, address):
+    """movss xmm0,[abs] at address; returns the constant word."""
+    import struct
+    code = _text(wa, address, 8)
+    return _word(wa, struct.unpack_from('<I', code, 4)[0]) if code[:4] == bytes.fromhex('f30f1005') else None
+
+
+def parse_scalar(wa, helper, ret):
+    """Return (kind, a, b, ops) or None. kind 1 = wave(a,b), 2 = sin(time*a)."""
+    import struct
+    call = ret - 5
+    if _text(wa, call, 1) != b'\xe8' or _text(wa, call - 5, 5) != MOVSS_ESP:
+        return None
+    if helper == WAVE_HELPER:
+        a = _load(wa, call - 13)
+        if a is None or _text(wa, call - 14, 1) != b'\x51' or _text(wa, call - 19, 5) != MOVSS_ESP:
+            return None
+        if _text(wa, call - 22, 3) == bytes.fromhex('0f57c0') and _text(wa, call - 23, 1) == b'\x51':
+            b = 0
+        else:
+            b = _load(wa, call - 27)
+            if b is None or _text(wa, call - 28, 1) != b'\x51':
+                return None
+        a_value = v.u2f(a)
+        if a_value == 0 or not 2 <= abs(6283.185546875 / a_value) < 2**31:
+            return None
+        kind, pops = 1, b'\x59\x59'
+    elif helper == SINE_WRAPPER:
+        if (_text(wa, call - 6, 1) != b'\x51' or _text(wa, call - 14, 4) != bytes.fromhex('f30f5905') or
+                _text(wa, call - 22, 8) != bytes.fromhex('f30f1005') + (0x06fce370).to_bytes(4, 'little')):
+            return None
+        a = _word(wa, struct.unpack_from('<I', _text(wa, call - 14, 8), 4)[0])
+        if a is None:
+            return None
+        b, kind, pops = 0, 2, b'\x59'
+    else:
+        return None
+    at = ret
+    if _text(wa, at, len(pops)) != pops:
+        return None
+    at += len(pops)
+    fstp, reload = _text(wa, at, 6), _text(wa, at + 6, 8)
+    double = fstp[:2] == b'\xdd\x9d'
+    if fstp[:2] not in (b'\xd9\x9d', b'\xdd\x9d'):
+        return None
+    if reload[:4] != (bytes.fromhex('f20f1085') if double else bytes.fromhex('f30f1085')) or fstp[2:] != reload[4:]:
+        # The stored binary32 local itself, as at 0x01711064.
+        return None if double else (kind, a, b, ())
+    at += 14
+    ops = []
+    while len(ops) < 4:
+        code = _text(wa, at, 8)
+        if code[:2] != (b'\xf2\x0f' if double else b'\xf3\x0f') or code[2] not in SCALAR_OPS or code[3] != 0x05:
+            break
+        address = struct.unpack_from('<I', code, 4)[0]
+        word = _word(wa, address)
+        if word is None:
+            return None
+        if double:
+            high = _word(wa, address + 4)
+            if high is None:
+                return None
+            word |= high << 32
+        ops.append((SCALAR_OPS[code[2]] | (8 if double else 0), word))
+        at += 8
+    if double and (not ops or _text(wa, at, 4) != bytes.fromhex('f20f5ac0')):
+        return None
+    return kind, a, b, tuple(ops)
+
+
+def wave_helper(a, b, time):
+    """0x0185bdc4: signed cosine wave with its degree phase, binary32 steps."""
+    import math
+    f = lambda x: v.u2f(v.f2u(x))
+    def cvtt(x):
+        return int(x) if -2147483648 <= x < 2147483648 else -2147483648
+    x = f(f(f(f(b * f(0.017453292)) * f(1000.0)) / a) + time)
+    tick, period = cvtt(x), cvtt(f(f(6283.1855) / a))
+    rem = int(math.fmod(tick, period))
+    y = f(f(rem * f(0.001)) * a)
+    w = f(math.cos(y))
+    if f(3.1415927) > y:
+        w = -w
+    return f(f(w + f(1.0)) * f(0.5))
+
+
+def scalar_value(program, time):
+    import math
+    f = lambda x: v.u2f(v.f2u(x))
+    kind, a, b, ops = program
+    if kind == 1:
+        value = wave_helper(v.u2f(a), v.u2f(b), time)
+    else:
+        value = f(math.sin(f(time * v.u2f(a))))
+    import struct
+    double = bool(ops) and ops[0][0] & 8
+    for op, word in ops:
+        k = struct.unpack('<d', struct.pack('<Q', word))[0] if double else v.u2f(word)
+        op &= 7
+        value = value * k if op == 1 else value + k if op == 2 else value - k if op == 3 else value / k
+        if not double:
+            value = f(value)
+    return v.f2u(f(value))
+
+
 def flat(d):
     return [*d[1], *d[2], d[3], *d[4], d[5]]
 
 _sample_state = None
+_site_sink = None
 
 
-def sample(wa, lib, t, lv, seed, opt=0, ext=0):
+def sample(wa, lib, t, lv, seed, opt=0, ext=0, params=(), sites=None):
     import math
     global _sample_state
     tags = []
@@ -202,6 +341,15 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
                     tags.append(m.backtrace()[1])
                     return old(m)
                 self.m.stub(addr, h, 32)
+            from unicorn import UC_HOOK_CODE
+            def site(uc, address, size, context):
+                if _site_sink is not None:
+                    m = self.m
+                    _site_sink.add((address, m.r32(uc.reg_read(m.x86.UC_X86_REG_ESP))))
+            for addr in (WAVE_HELPER, SINE_WRAPPER):
+                self.m.uc.hook_add(UC_HOOK_CODE, site, begin=addr, end=addr)
+    global _site_sink
+    _site_sink = sites
     if _sample_state is None or _sample_state[0] is not wa:
         from item_body_machine import ResetWorld
         _sample_state = (wa, ResetWorld(wa, W), tags)
@@ -251,7 +399,8 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
     blend = f(wave * 0.7 + f(0.3))
     if blend > 1: blend = 1.0
     return [(flat(a) + [case['object_alpha']] +
-             [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)] + [case['object_hidden'] & 0xffffffff],
+             [v.f2u(f(v.u2f(word) * pulse)) for word in flat(a)[8:11]] + [v.f2u(blend)] + [v.f2u(x) for x in body_scalars(time)] + [case['object_hidden'] & 0xffffffff] +
+             [scalar_value(program, time) for program in params],
              [(b[0], flat(b)) for b in bs]) for (a, (_, bs)) in zip(generic, groups)]
 
 def infer(samples):
@@ -279,52 +428,96 @@ def infer(samples):
         outs.append((samples[0][1][k][0], cells))
     return outs
 
+ALL_TYPES = (REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES +
+             NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES + SCALAR_TYPES)
+
+
+def fit(wa, lib, t, scalars=False):
+    """Probe one type; return (phase rules, scalar programs), or None if no recipe fits.
+
+    With scalars, a type that does not fit the shared inputs is probed again with
+    the parsed per-type scalar sites appended as further inputs."""
+    sites = set()
+    rules = _fit(wa, lib, t, (), sites)
+    if rules is not None or not scalars:
+        return None if rules is None else (rules, ())
+    programs = []
+    for helper, ret in sorted(sites):
+        program = parse_scalar(wa, helper, ret)
+        if program is not None and program not in programs:
+            programs.append(program)
+    if not programs:
+        return None
+    rules = _fit(wa, lib, t, tuple(programs), None)
+    if rules is None:
+        return None
+    # Keep only referenced programs, renumbered in first-use order.
+    used = sorted({value - 35 for rule in rules for _, cells in rule for op, value in cells if op == 'in' and value >= 35})
+    remap = {old: 35 + new for new, old in enumerate(used)}
+    rules = [[(entry, [(op, remap.get(value - 35, value) if op == 'in' and value >= 35 else value) for op, value in cells])
+              for entry, cells in rule] for rule in rules]
+    return rules, tuple(programs[k] for k in used)
+
+
+def _fit(wa, lib, t, params, sites):
+    levels = range(16) if t >= 0x3700 else (0, 7, 13)
+    ss = [sample(wa, lib, t, lv, seed, params=params, sites=sites) for lv in levels
+          for seed in PROBE_SEEDS]
+    if any(s is None for s in ss) and sites is None:
+        return None
+    phases = [[] for _ in range(8)]
+    for index, stream in enumerate(ss):
+        if stream is None:
+            continue
+        phase = 5 if index % 3 == 0 else 0
+        if t in CLOCK_TYPES and index // len(PROBE_SEEDS) == 2:
+            phase = 7 if phase == 5 else 6
+        phases[phase].append(stream[0])
+        for pair in stream[1:]:
+            flags = pair[0][0] & ~0x100
+            if flags not in (0x44, 0x48, 0x240, 0x1040):
+                raise ValueError(f'unclassified helper flags {flags:#x}')
+            phase = 1 if flags in (0x44, 0x48) else 2
+            phases[phase].append(pair)
+    for opt, ext, phase in ((1, 0, 3), (0, 1, 4)):
+        if ext and t in DIM_TYPES:
+            continue
+        extra = [sample(wa, lib, t, 0, seed, opt, ext, params=params, sites=sites)
+                 for seed in PROBE_SEEDS]
+        if any(s is None for s in extra):
+            ss.append(None)
+            if sites is None:
+                return None
+            continue
+        phases[phase] = [s[-1] for s in extra]
+    if any(s is None for s in ss):
+        return None
+    rules = [infer(pairs) if pairs else [] for pairs in phases]
+    if any(rule is None for rule in rules):
+        return None
+    if t in ATLAS_TYPES:
+        # These ancient mesh branches retain the preceding body light.
+        rules[4] = [(entry, [(op, value-4 if 8 <= field <= 10 and op == 'in' and 12 <= value <= 14 else value)
+                             for field,(op,value) in enumerate(cells)]) for entry,cells in rules[4]]
+    return rules
+
+
 def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
-    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES:
-        levels = range(16) if t >= 0x3700 else (0, 7, 13)
-        ss = [sample(wa, lib, t, lv, seed) for lv in levels
-              for seed in PROBE_SEEDS]
-        if any(s is None for s in ss):
-            continue
-        phases = [[] for _ in range(8)]
-        for index, stream in enumerate(ss):
-            phase = 5 if index % 3 == 0 else 0
-            if t in CLOCK_TYPES and index // len(PROBE_SEEDS) == 2:
-                phase = 7 if phase == 5 else 6
-            phases[phase].append(stream[0])
-            for pair in stream[1:]:
-                flags = pair[0][0] & ~0x100
-                if flags not in (0x44, 0x48, 0x240, 0x1040):
-                    raise ValueError(f'unclassified helper flags {flags:#x}')
-                phase = 1 if flags in (0x44, 0x48) else 2
-                phases[phase].append(pair)
-        for opt, ext, phase in ((1, 0, 3), (0, 1, 4)):
-            if ext and t in DIM_TYPES:
-                continue
-            extra = [sample(wa, lib, t, 0, seed, opt, ext)
-                     for seed in PROBE_SEEDS]
-            if any(s is None for s in extra):
-                break
-            phases[phase] = [s[-1] for s in extra]
-        else:
-            rules = [infer(pairs) if pairs else [] for pairs in phases]
-            if all(rule is not None for rule in rules):
-                if t in ATLAS_TYPES:
-                    # These ancient mesh branches retain the preceding body light.
-                    rules[4] = [(entry, [(op, value-4 if 8 <= field <= 10 and op == 'in' and 12 <= value <= 14 else value)
-                                         for field,(op,value) in enumerate(cells)]) for entry,cells in rules[4]]
-                types[t] = rules
-    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES):
-        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES + CLOCK_TYPES + CLUSTER_TYPES + WING_TYPES + VISIBLE_TYPES) - set(types))]))
+    for t in ALL_TYPES:
+        fitted = fit(wa, lib, t, scalars=True)
+        if fitted is not None:
+            types[t] = fitted
+    if set(types) != set(ALL_TYPES):
+        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(ALL_TYPES) - set(types))]))
     return types
 
 
 def render(types):
-    recipes, rows = [], []
-    for t, rules in sorted(types.items()):
+    recipes, rows, programs = [], [], []
+    for t, (rules, scalars) in sorted(types.items()):
         indices = []
         for rule in rules:
             if len(rule) > 16:
@@ -332,10 +525,15 @@ def render(types):
             if rule not in recipes:
                 recipes.append(rule)
             indices.append(recipes.index(rule))
-        rows.append((t, indices))
+        if len(scalars) > 8:
+            raise ValueError('more than eight scalar programs')
+        rows.append((t, indices, len(programs), len(scalars)))
+        programs.extend(scalars)
     lines = ['/* Generated by scripts/gen_item_bodies.py. Rendering rules only.',
              ' * source=0 selects value; source=1..16 copies the generic draw word;',
-             ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh. See client-render-items.md. */',
+             ' * source=17 copies OBJECT alpha. source=18..20 copies pulsed body light; source=21 copies armour blend pulse. source=22..34 selects clock scalars; source=35 copies OBJECT hidden mesh;',
+             ' * source=36.. selects the type\'s own scalar program (kind 1 = wave 0x0185bdc4(a,b), 2 = sin(time*a), then mul/add/sub/div, binary32 or op|8 binary64 with one final rounding). See client-render-items.md. */',
+             '#define MU_RC_BODY_SCALARS 8',
              'typedef struct { uint8_t count; struct { int32_t entry; uint8_t source[16]; uint32_t value[16]; } draw[16]; } mu_rc_body_recipe;',
              'static const mu_rc_body_recipe mu_rc_body_recipes[] = {']
     for rule in recipes:
@@ -345,12 +543,23 @@ def render(types):
             values = ', '.join('0' if op == 'in' else '0x%08xu' % (v & 0xffffffff) for op, v in cells)
             lines.append('        {%d, {%s}, {%s}},' % (1 if entry == 'BODY' else 2, sources, values))
         lines.append('    }},')
-    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; } mu_rc_body_types[] = {']
-    for t, indices in rows:
-        lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d},' %
+    lines += ['};', 'typedef struct { uint8_t kind, count; uint32_t a, b; uint8_t op[4]; uint64_t k[4]; } mu_rc_body_scalar;',
+              'static const mu_rc_body_scalar mu_rc_body_scalars[] = {']
+    for kind, a, b, ops in programs:
+        ops = list(ops) + [(0, 0)] * (4 - len(ops))
+        lines.append('    {%d, %d, 0x%08xu, 0x%08xu, {%s}, {%s}},' % (
+            kind, sum(1 for op, _ in ops if op), a, b, ', '.join(str(op) for op, _ in ops),
+            ', '.join('0x%xull' % k for _, k in ops)))
+    if not programs:
+        lines.append('    {0, 0, 0, 0, {0, 0, 0, 0}, {0, 0, 0, 0}},')
+    lines += ['};', 'static const struct { int32_t type; uint16_t recipe[8]; uint8_t level_split, retain_ancient; uint8_t dim, plain, pulse, blend_pulse; uint16_t scalar_mask; uint16_t scalar_first; uint8_t scalar_count; } mu_rc_body_types[] = {']
+    for t, indices, first, count in rows:
+        rules = types[t][0]
+        lines.append('    {0x%04x, {%s}, %d, %d, %d, %d, %d, %d, %d, %d, %d},' %
                      (t, ', '.join(map(str, indices)), t in CLOCK_TYPES, t in ATLAS_TYPES, t in DIM_TYPES, t in PLAIN_TYPES, t in PULSE_TYPES,
-                      any(op == 'in' and value == 20 for rule in types[t] for _, cells in rule for op, value in cells),
-                      sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in types[t] for _, cells in rule for op,value in cells))))
+                      any(op == 'in' and value == 20 for rule in rules for _, cells in rule for op, value in cells),
+                      sum(1 << k for k in range(13) if any(op == 'in' and value == 21+k for rule in rules for _, cells in rule for op,value in cells)),
+                      first, count))
     return '\n'.join(lines + ['};', ''])
 
 
