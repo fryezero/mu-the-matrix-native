@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited primary routes 12/23 to 15/23, weighted 37/77 to 46/77. New instruction evidence: 11,000 comparisons, zero mismatches, 8/8 compiled mutants. [Coverage and limits](research/client-skill-visual-coverage.md), [checks](handoffs/RENDER-EFFECTS-002.md).
+RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited primary routes 12/23 to 15/23, weighted 37/77 to 46/77. New instruction evidence: 10,619 instruction comparisons and 381 removal checks, zero mismatches, 8/8 compiled mutants. Locked Mac gate passes 1,550 tests. [Coverage and limits](research/client-skill-visual-coverage.md), [checks](handoffs/RENDER-EFFECTS-002.md).
 
 RENDER-WORLDS-I: [handoff](handoffs/RENDER-WORLDS-I.md). Six Loren Market/Uruk primary methods verified; 31/144 families across 11/48 classes. DATA-ACQ-002, Uruk weather/keyed-effect/colored-joint consumers and 113 primary methods remain.
 

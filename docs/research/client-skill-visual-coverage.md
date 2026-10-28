@@ -122,11 +122,12 @@ data `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
 | Effect create | 0x013c0f19; Ice 0x013d01a5, debris 0x013d5d55, Poison01 0x013d71c9, wave 0x013cf050 | 4,000, 1,000 per kind | 0 |
 | Effect move | 0x0142fd09; Ice 0x0146b979, debris 0x0145d25b, Poison01 0x0144f50b, wave 0x01453c6c | 4,000, 1,000 per kind | 0 |
 | Poison smoke create | 0x015ae7b0, subtype body 0x015c5f15 | 1,000 | 0 |
-| Poison smoke move | 0x01616c80, record body, subtype 0x01634dc5 | 1,000 including head erasures | 0 |
+| Poison smoke move | 0x01616c80, record body, subtype 0x01634dc5 | 619 instruction comparisons + 381 native head-removal checks | 0 |
 | Poison smoke render | 0x0159123f, record body | 1,000 | 0 |
 
 `validate_render_effects.py --cases 1000 --mutations` compares authored compiled C
-with original instructions, record fields, ordered emitted calls and RNG counts.
+with original instructions in 10,619 cases, checking record fields, ordered
+emitted calls and RNG counts. An additional 381 cases check native head removal.
 It uses a fresh strict machine for every family and mutant. Owner/no-owner,
 terrain contact, animation completion, absent model, lifetime expiry and emission
 branches vary. Particle render checks sprite calls/blend, not the original GPU.
@@ -162,8 +163,15 @@ checks exactly one encrypted request stays unsent, no invented damage/death,
 expected model types/counts, no unsupported emissions, learned session state,
 and changed software-rendered pixels when the new assets/particle pass are
 removed. It uses synthetic authored assets, not client data. This shares the
-same end-of-attack path used by checked GFx casts. The full checked GFx skill-bar
-interaction and a live original-client image comparison are separate limits.
+same end-of-attack path used by checked GFx casts. Three additional headless
+OpenGL/GFx runs use the existing converted `all-bridge` movies, authored tables
+and one learned/initially selected skill per fixture session. Checked casts 1/7/11
+all return OK, produce one unsent request each and zero unsupported emissions,
+hits or kills. They create respectively 0/6/1 effects and 10/16/52 particles over
+30 frames. The older movie's hotkey-change probe reported skill-zero callbacks
+and retained the previous selection; these separate-session casts do not certify
+hotkey selection. Full bar editing and a live original-client image comparison
+remain outside this evidence.
 
 New casts intentionally change pixels, RNG consumption, particles and terrain
 lights. Existing spell, noncombat and golden outputs must retain their hashes.

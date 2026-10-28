@@ -14,7 +14,8 @@ bounded native-route counts, not coverage of all 973 snapshot skill records.
 
 Checkpoint verification:
 
-- 11,000 focused original-instruction comparisons, zero mismatches. Eight compiled
+- 11,000 focused cases: 10,619 original-instruction comparisons plus 381 native
+  head-removal checks, zero mismatches. Eight compiled
   production-C mutants detected, with individual disagreement counts in the finding.
 - 33,000 existing skill/effect/voice comparisons, zero mismatches.
 - Two native tests pass with private checks enabled. Three synthetic fixture casts
@@ -36,8 +37,12 @@ worktree, branch and build outputs. No new private input needs retention.
 
 Remaining: Meteorite subtype 0, Aqua Beam, Rageful Blow, Inferno's burst,
 buff auras, arrow/master/later-class variants and live image comparison. The
-checked GFx bar shares the adapter, but this milestone's session test drives its
-fixture combat route rather than replaying the bar UI. Original model rendering
+portable session test drives the fixture combat route. Additional real GL/GFx
+runs pass checked casts for 1/7/11, each in a fresh session with one initially
+selected skill; one unsent request and zero unsupported emissions/hits/kills per
+run. The legacy `all-bridge` movie's hotkey-change probe kept the previous
+selection with skill-zero callbacks. It therefore does not establish selection
+or bar editing, and those are not claimed. Original model rendering
 and caller selection retain their explicit static evidence limits.
 
 The unchanged particle regression corpus passes 30,495 cases, zero mismatches.
@@ -47,3 +52,18 @@ the same expanded inputs reproduces both at cases 1619/2339, 40/42 breath cases
 equal. The original regression corpus is preserved; the new Poison kind has its
 own focused corpus. Breath precision is a separate remaining issue, not fixed or
 included in this milestone's zero-mismatch claim.
+
+## Locked release gate
+
+Latest main `3162017` is merged at `b834901`. The full
+`bash scripts/local-macos-ci.sh` gate passes: 1,550 tests, 191 explicit skips,
+8/8 fixture scenarios, 67 inbound frames, zero unbound/undecodable frames,
+viewer/readers builds and publication audit, 1,482 staged files, zero rejected.
+The fixtures retain two unrecovered intents and six deliberately unsent frames.
+The registered focused validator passes again after the merge. No hosted CI or
+live client was run. The fixture dirty flag includes the local input symlinks
+and release-documentation edits; runtime source was unchanged during the gate.
+
+Own Standards and Spec diff review found no blocking implementation issues.
+The caller/model-render, legacy hotkey-movie and breadth limits above remain
+explicit. This is a subset milestone, not complete skill-visual parity.

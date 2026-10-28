@@ -570,8 +570,8 @@ unknown-HP output changes are described above. All evidence remains local in the
 
 Player Poison, target Ice/debris and Power Wave now use the existing fixed effect
 pools and native renderers. The [coverage inventory](client-skill-visual-coverage.md)
-records all 23 native routes, sixteen classes, priority assumptions, 11,000 new
-instruction comparisons with zero mismatches and eight caught compiled mutants.
+records all 23 native routes, sixteen classes, priority assumptions, 10,619 new
+instruction comparisons and 381 removal checks with zero mismatches and eight caught compiled mutants.
 Its caller audit corrects two earlier shorthand descriptions: Poison01 is a
 monster-only model at the audited site; a player emits ten smoke particles.
 Player Power Wave emits one model; the two side waves belong to monster 0x7b7.
