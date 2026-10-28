@@ -1,8 +1,8 @@
 # HelpWindow, SYS-MISC-001b
 
-WIP, 2026-10-28. The reader and bounded controller comparisons pass; the real
+2026-10-28. The reader and bounded controller comparisons pass; the real
 movie is hosted in an isolated viewer and the native offline client. The
-locked full Mac gate and merge remain open. No original client, network or
+locked full Mac gate passed (1,630 tests). No original client, network or
 live game ran.
 
 ## Inputs and method
@@ -172,9 +172,8 @@ claim that its listed legacy shortcuts are working native bindings.
   12 tests, 6 pass / 6 optional skips. Input router: 13 tests, 12 pass / 1
   optional private skip. No old renderer hash is intentionally changed.
 
-Still required before merge: full current-main Mac gate under the queue/lock,
-review of shared hooks against the active lanes, and any resulting repairs.
-This WIP has no PR and makes no merge or installed-app refresh claim.
+The locked gate and hook review were completed on resume (below). No
+installed-app refresh is claimed.
 
 Final checks extend the reader to seven compiled mutants: decoding the whole
 payload in one XOR unit is caught, directly testing the per-record phase reset.
