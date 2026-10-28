@@ -85,3 +85,15 @@ The updated common brief was reread. The lane is queued after RENDER-EFFECTS-003
 RENDER-WORLDS-K and RENDER-ITEMS-002I. Follow MERGE QUEUE before acquiring: only
 when first or empty, remove own line immediately after acquisition; re-append
 on abort. No lock is currently held by this lane.
+
+
+## Streaming checkpoint
+
+The frame QoS experiment was rejected and all its production/test code removed;
+its four unfavorable/partial timing runs remain in the summary. Current source
+adds explicit GL vertex-buffer streaming at batch flushes, with checked fallback,
+external binding restoration and context-owned deletion. Three targeted GL tests
+pass, including forced upload failure and 2/2 mutants; 604/604 full frames match,
+with successful uploads and zero fallback in optimized mode. Next measure the
+streaming candidate independently, then complete the queued final sequence.
+No Ruffle bridge/movie or nameplate behavior was changed.

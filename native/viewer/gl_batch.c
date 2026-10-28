@@ -31,6 +31,10 @@ struct mu_gl_batch {
     int in_begin;
     uint32_t prim_mode;
     int32_t prim_first;
+    GLuint upload_buffer;
+    GLint saved_array_buffer;
+    int stream, stream_disabled;
+    long uploads, upload_failures;
     int arrays;              /* client arrays enabled in this session */
     mu_gl_batch_stats stats;
 };
@@ -68,6 +72,7 @@ void mu_gl_batch_free(mu_gl_batch *b)
 {
     if (!b)
         return;
+    if (b->upload_buffer) glDeleteBuffers(1, &b->upload_buffer);
     free(b->v);
     free(b->first);
     free(b->counts);
@@ -89,9 +94,30 @@ void mu_gl_batch_flush(mu_gl_batch *b)
         b->arrays = 1;
     }
     const GLsizei stride = (GLsizei)(STRIDE * sizeof(float));
-    glVertexPointer(3, GL_FLOAT, stride, b->v);
-    glTexCoordPointer(2, GL_FLOAT, stride, b->v + 3);
-    glColorPointer(4, GL_FLOAT, stride, b->v + 5);
+    int uploaded = 0;
+    if (b->stream && !b->stream_disabled) {
+        if (!b->upload_buffer) glGenBuffers(1, &b->upload_buffer);
+        if (b->upload_buffer) {
+            glBindBuffer(GL_ARRAY_BUFFER, b->upload_buffer);
+            const GLsizeiptr bytes = (GLsizeiptr)((size_t)b->count * STRIDE * sizeof(float));
+            glBufferData(GL_ARRAY_BUFFER, bytes, b->v, GL_STREAM_DRAW);
+            uploaded = glGetError() == GL_NO_ERROR;
+        }
+        if (uploaded) ++b->uploads;
+        else { ++b->upload_failures; b->stream_disabled = 1; }
+    }
+    /* Every draw refreshes all three pointers, including after other batches.
+     * Failed uploads use the unchanged client-array delivery of these bytes. */
+    if (uploaded) {
+        glVertexPointer(3, GL_FLOAT, stride, (const void *)(uintptr_t)0);
+        glTexCoordPointer(2, GL_FLOAT, stride, (const void *)(uintptr_t)(3 * sizeof(float)));
+        glColorPointer(4, GL_FLOAT, stride, (const void *)(uintptr_t)(5 * sizeof(float)));
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexPointer(3, GL_FLOAT, stride, b->v);
+        glTexCoordPointer(2, GL_FLOAT, stride, b->v + 3);
+        glColorPointer(4, GL_FLOAT, stride, b->v + 5);
+    }
     if (b->mode == GL_TRIANGLE_FAN) {
         if (b->fans == 1)
             glDrawArrays(GL_TRIANGLE_FAN, b->first[0], b->counts[0]);
@@ -114,6 +140,10 @@ void mu_gl_batch_session_begin(mu_gl_batch *b)
     b->fans = 0;
     b->in_begin = 0;
     b->arrays = 0;
+    const char *reference = getenv("MU_PERF_004_BASELINE");
+    const char *vbo_reference = getenv("MU_PERF_004_VBO_BASELINE");
+    b->stream = !(reference && reference[0] == '1') && !(vbo_reference && vbo_reference[0] == '1');
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &b->saved_array_buffer);
     glGetFloatv(GL_CURRENT_COLOR, b->color);
     float t[4];
     glGetFloatv(GL_CURRENT_TEXTURE_COORDS, t);
@@ -130,6 +160,7 @@ void mu_gl_batch_session_end(mu_gl_batch *b)
         glDisableClientState(GL_COLOR_ARRAY);
         b->arrays = 0;
     }
+    glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);
     /* immediate mode would have left the last glColor/glTexCoord current */
     glColor4f(b->color[0], b->color[1], b->color[2], b->color[3]);
     glTexCoord2f(b->texcoord[0], b->texcoord[1]);
@@ -305,4 +336,10 @@ void mu_gl_batch_stats_get(const mu_gl_batch *b, mu_gl_batch_stats *out)
 void mu_gl_batch_stats_reset(mu_gl_batch *b)
 {
     memset(&b->stats, 0, sizeof b->stats);
+}
+
+void mu_gl_batch_upload_stats(const mu_gl_batch *b, long *uploads, long *failures)
+{
+    *uploads = b->uploads;
+    *failures = b->upload_failures;
 }

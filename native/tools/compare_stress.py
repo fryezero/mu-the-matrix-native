@@ -37,7 +37,7 @@ def main():
               'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(), 'scenarios': {}}
     env = dict(os.environ, MU_LANG_DIR=str(a.data / 'lang'), MU_GFX_LIB=str(a.gfx_lib),
                MU_GFX_TEST_CLOCK='1', MU_GFX_SINGLE_BUFFER='1', MU_PERF_HASH_ONLY='1',
-               MU_PERF_004_POSE_TASKS='4', MU_PERF_BASELINE='0', MU_PERF_002_BASELINE='0', MU_PERF_003_BASELINE='0', MU_NO_GL_BATCH='0')
+               MU_PERF_004_VBO_BASELINE='0', MU_PERF_004_POSE_TASKS='4', MU_PERF_BASELINE='0', MU_PERF_002_BASELINE='0', MU_PERF_003_BASELINE='0', MU_NO_GL_BATCH='0')
     for name in a.scenario or bench.SCENARIOS:
         results = []
         for mode in ('1', '0'):
@@ -56,6 +56,9 @@ def main():
             if len(hashes) != a.frames or any(len(h) != 64 for h in hashes):
                 raise ValueError(f'{name}: missing full-frame hashes')
             bench.workload(rows, bench.SCENARIOS[name][2])
+            uploads = next((r for r in rows if 'vbo_uploads' in r), None)
+            if uploads is None or uploads.get('vbo_failures') != 0 or bool(uploads['vbo_uploads']) != (mode == '0'):
+                raise ValueError(f'{name}: streaming path not complete')
             if list((d / 'hashes').glob('*.png')):
                 raise ValueError('hash-only comparison wrote bulk images')
             results.append(hashes)

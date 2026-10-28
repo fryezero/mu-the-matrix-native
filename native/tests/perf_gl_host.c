@@ -400,6 +400,11 @@ static int batch_mode(void)
     GLuint tex[3] = {make_texture(1), make_texture(2), make_texture(3)};
     uint8_t *img[2];
     mu_gl_batch_stats stats;
+    long uploads = 0, failures = 0;
+    int binding_restored = 1;
+    GLuint external_buffer;
+    glGenBuffers(1, &external_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, external_buffer);
     memset(&stats, 0, sizeof stats);
     for (int pass = 0; pass < 2; ++pass) {
         glViewport(0, 0, W, H);
@@ -420,6 +425,10 @@ static int batch_mode(void)
         if (s.b) {
             mu_gl_batch_session_end(s.b);
             mu_gl_batch_stats_get(s.b, &stats);
+            mu_gl_batch_upload_stats(s.b, &uploads, &failures);
+            GLint binding;
+            glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &binding);
+            binding_restored &= (GLuint)binding == external_buffer;
             mu_gl_batch_free(s.b);
         }
         glFinish();
@@ -427,14 +436,16 @@ static int batch_mode(void)
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, img[pass]);
     }
+    binding_restored &= glIsBuffer(external_buffer) == GL_TRUE;
+    glDeleteBuffers(1, &external_buffer);
     long differing = 0;
     for (size_t i = 0; i < (size_t)W * (size_t)H; ++i)
         if (memcmp(img[0] + i * 4, img[1] + i * 4, 3))
             ++differing;
     printf("{\"identical\": %s, \"differing\": %ld, \"primitives\": %ld, \"draws\": %ld, \"state_calls\": %ld, "
-           "\"state_applied\": %ld, \"vertices\": %ld}\n",
+           "\"state_applied\": %ld, \"vertices\": %ld, \"uploads\": %ld, \"upload_failures\": %ld, \"binding_restored\": %d}\n",
            differing ? "false" : "true", differing, stats.primitives, stats.draws, stats.state_calls,
-           stats.state_applied, stats.vertices);
+           stats.state_applied, stats.vertices, uploads, failures, binding_restored);
     free(img[0]);
     free(img[1]);
     return 0;

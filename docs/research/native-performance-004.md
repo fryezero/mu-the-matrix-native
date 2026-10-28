@@ -163,3 +163,39 @@ a causal pacing win. A crowd80 repeat with 4/2/1 jobs measures 24.65/22.87/24.64
 fps and 67.03/97.13/67.86 ms frame p99; all fail. One job executes serial poses
 with topology optimization retained, so the remaining tails are not isolated
 to pose fan-out. Other host activity remains uncontrolled. Every run is retained.
+
+
+## Rejected frame QoS override
+
+A window-frame-only pthread QoS override was lifecycle-tested and measured,
+then removed because it did not establish a consistent gain. All 1,122/1,269
+measured optimized frames in crowd80/Tormenta successfully acquired an override;
+reference frames acquired none. The same-binary off/on crowd80 pair is
+21.53/21.23 fps, p99 103.61/121.49 ms. The counterbalanced on/off Tormenta pair is
+23.56/22.31 fps, p99 100.67/106.43 ms. All four fail strict acceptance. The
+candidate did not meet the target, and no scheduling-policy change remains.
+All metrics and successful API-activation counts are retained in the summary.
+
+
+## Explicit vertex streaming candidate
+
+A fresh eight-second sample after frame 650 has 4,548 main-thread samples,
+2,437 under world drawing, 1,399 under remote-player drawing and 680 under GFx.
+GFx advance occupies 603; nameplate setter calls are small. The sample covers
+the late-frame period and is diagnostic, not a timing result. Native drawing
+and driver submission remain a leading cost after pose parallelism.
+
+The candidate uploads the same packed nine-float vertices to a model-independent
+GL streaming buffer at each existing batch flush. All primitive order, counts,
+state changes and all three pointer updates are retained. No pointer memoization
+returns. Sessions restore the caller's array-buffer binding; the batch deletes
+its buffer during the existing context-owned GL teardown. An upload error
+selects the unchanged client-array path for the rest of the batch lifetime.
+Timing/comparison tools reject missing uploads or any fallback rather than
+silently calling the old path optimized. `--perf-004-vbo-baseline` isolates it.
+
+All 604 preflight full-frame pairs are byte-identical and have no upload failures.
+The synthetic GL stream remains pixel-identical, forced upload failure preserves
+pixels, and a pre-existing external buffer remains bound/alive. Wrong UV offsets
+and omitted binding restoration are both caught. The vertex-buffer candidate's
+throughput has not yet been claimed; final integrated verification remains.

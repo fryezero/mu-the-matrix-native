@@ -1,5 +1,6 @@
 """Parallel character poses preserve every model window and attachment output."""
 import hashlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -62,6 +63,34 @@ class TopologyProof(unittest.TestCase):
                                check=True, capture_output=True)
                 result = subprocess.run([str(host)], capture_output=True)
                 self.assertEqual(result.returncode == 0, i == 0, (i, result))
+
+
+@unittest.skipUnless(sys.platform == 'darwin', 'needs macOS offscreen GL')
+class VertexUploads(unittest.TestCase):
+    def test_pixels_fallback_and_foreign_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = (NATIVE / 'viewer/gl_batch.c').read_text()
+            variants = (source,
+                        source.replace('uploaded = glGetError() == GL_NO_ERROR;', 'uploaded = 0;'),
+                        source.replace('(3 * sizeof(float))', '(4 * sizeof(float))'),
+                        source.replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);', ''))
+            for i, variant in enumerate(variants):
+                src, host = Path(tmp) / 'batch.c', Path(tmp) / 'host'
+                src.write_text(variant)
+                subprocess.run(['clang', '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+                                '-DGL_SILENCE_DEPRECATION', '-I', str(NATIVE / 'viewer'),
+                                str(HERE / 'perf_gl_host.c'), str(src), str(NATIVE / 'viewer/ui_gl.c'),
+                                str(NATIVE / 'viewer/gl_headless.c'), str(NATIVE / 'core/mu_ui_raster.c'),
+                                '-framework', 'OpenGL', '-lm', '-o', str(host)], check=True, capture_output=True)
+                r = subprocess.run([str(host), 'batch', '256', '192'], capture_output=True, text=True,
+                                   env=dict(os.environ, MU_PERF_004_BASELINE='0', MU_PERF_004_VBO_BASELINE='0'))
+                if r.returncode == 3:
+                    self.skipTest('no offscreen GL context')
+                self.assertEqual(r.returncode, 0, (i, r.stderr))
+                data = json.loads(r.stdout)
+                self.assertEqual(data['identical'] and data['binding_restored'], i < 2, (i, data))
+                self.assertEqual(data['upload_failures'], int(i == 1))
+                self.assertEqual(data['uploads'] > 0, i != 1)
 
 
 if __name__ == '__main__':
