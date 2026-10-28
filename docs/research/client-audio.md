@@ -235,6 +235,6 @@ the inferred index-43 name and unresolved index 44. The virtualised gap `0x01854
 out of reach. The other domains' SND_Play sites, event packet state and model-lifecycle wiring remain
 with their domain migrations; the later LIVE-PLAY FMOD comparison remains open.
 
-Final local Mac gate after the viewport and B/C world merges: 1,388 tests, 164 explicit skips, zero
-failures; viewer/readers build and repository audit pass, 1,238 files, zero rejected. The final gate is
-`native/scratch/audio-002/gate-viewport-release.log` under `mu-mac-tools`; the handoff gives the full path.
+Final local Mac gate after the viewport, B/C worlds and item rendering merges: 1,393 tests, 165 explicit skips, zero
+failures; viewer/readers build and repository audit pass, 1,247 files, zero rejected. The final gate is
+`native/scratch/audio-002/gate-items-release.log` under `mu-mac-tools`; the handoff gives the full path.
