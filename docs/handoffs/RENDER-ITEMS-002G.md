@@ -94,7 +94,20 @@ Fresh inherited instruction comparisons all have zero mismatches:
 Including part 7, this run has **195,228 instruction comparisons**, zero mismatches, and **40/40 compiled
 instruction mutants caught**. Self-review against the owner brief, repository standards and the bounded
 native consumers found no blocking issue after correcting the saturated-clock probe fit. Complete rank-5
-rendering remains partial as stated above. The serialized final integration/gate is pending the merge lock.
+rendering remains partial as stated above.
+
+The resumed release acquired the merge lock and integrated main `89a6ed9` in `ef54116`. The only conflict
+was the appended validator manifest entries; both item-gear and combat-audio entries are retained and load.
+The locked full Mac gate passes: **1,528 tests across 38 discovery runs**, **188 explicit skips**, zero
+failures, viewer/readers built and **1,449 audit files, zero rejected**. Eight fixture scenarios pass all
+61 expectations with 67 inbound frames, zero unbound/undecodable frames, and the existing two unrecovered
+intents and six unsent frames explicit. The fixture dirty marker reflects only the untracked shared-input
+symlinks, not tracked source edits. No hosted workflow was dispatched.
+
+A fresh resumed part-7 run reproduces all **25,256 cases**, zero mismatches, **10/10 mutants** and both
+generated tables. All **1,691** TSV memberships independently agree with compiled admission. Re-rendering
+on the integrated native build preserves all six before/after PNG hashes and counters, including the
+ordinary control, ranked scene and pulse links. No additional private input needs retention.
 
 
 ## Remaining work and cleanup
