@@ -136,7 +136,8 @@ extern "C" int mu_native_data_check_args(int argc, char **argv) {
             std::string arg = argv[i];
             if (arg == "--label" || arg == "--title" || arg == "--gfx-open" ||
                 arg == "--walk" || arg == "--wheel" ||
-                (arg.size() >= 7 && arg.compare(arg.size() - 7, 7, "-script") == 0)) { ++i; continue; }
+                (arg != "--input-script" && arg.size() >= 7 &&
+                 arg.compare(arg.size() - 7, 7, "-script") == 0)) { ++i; continue; }
             paths.emplace_back(arg);
             auto p = managedRoot(argv[i]); if (!p.empty()) roots.insert(p);
         }
