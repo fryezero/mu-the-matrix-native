@@ -150,6 +150,15 @@ class PartsDefTests(unittest.TestCase):
                 a[column], b[column] = b[column], a[column]
                 self.assertNotEqual(column_order(rows, column), expected)
 
+    def test_client_reordering_propagates_to_part_expectation(self):
+        for column, a, b in (('tick', 0x016a9150, 0x0137a7ce),
+                             ('draw_gl', 0x016cd468, 0x016d5020),
+                             ('draw_soft', 0x016cd468, 0x016d5020)):
+            trace = list(self.recorded['tick' if column == 'tick' else 'draw'])
+            i, j = next(i for i, c in enumerate(trace) if c[0] == a), next(i for i, c in enumerate(trace) if c[0] == b)
+            trace[i], trace[j] = trace[j], trace[i]
+            self.assertNotEqual(column_order(self.rows, column), self.adapter.projected_order(trace, column))
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private original-instruction comparison')
     def test_original_world_order_instructions(self):
         subprocess.run([sys.executable, str(HERE.parents[1] / 'scripts/validate_world_order.py'),

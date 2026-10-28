@@ -155,7 +155,7 @@ static int castle_rectangle(const mu_scenemgr_host *h, uint32_t p)
     /* comiss/jb rejects unordered values as well as below-bound values. */
     float x = real(h, p), y = real(h, p + 4);
     return x >= real(h, 0x01af7098) && real(h, 0x01aae3f0) >= x &&
-        y >= real(h, 0x01af70a0) && y >= real(h, 0x01af70a4);
+        y >= real(h, 0x01af70a0) && real(h, 0x01af70a4) >= y;
 }
 int mu_world_order_draw(const mu_scenemgr_host *h)
 {
