@@ -4,6 +4,12 @@ This continues [PERF-003](native-performance-003.md) on the native macOS client.
 All scenes use the full-quality [PERF-002 workloads](native-performance-stress.md).
 No original client or launcher was started, stopped, read or driven.
 
+At the owner's hard stop this is pushed WIP, with no PR/merge. Runtime `4bd5d38`
+has a completed local Mac gate and 2,804 matching full-frame pairs. The full
+eight-run matrix still fails strict acceptance in all optimized 80-player scenes.
+The [latest table and limits](#ordered-capture-wip-repeat-and-hard-stop-boundary)
+and the [resume handoff](../handoffs/NATIVE-PERF-004.md) describe the final state.
+
 ## Implementation and correctness boundary
 
 Remote characters now prepare their placement in list order, update their own
@@ -218,7 +224,7 @@ chunk boundaries and verifies public flush barriers, allocation/upload failure
 fallback, and external buffer restoration. All three wrong-UV, binding and blend
 mutants are caught. On runtime `4bd5d38`, all 604 full-scene preflight frame pairs
 match, with successful uploads and no fallback. Matched timing and the current
-source gate remain pending at this checkpoint.
+source gate are recorded in the following sections.
 
 
 ## Ordered capture WIP repeat and hard-stop boundary
@@ -245,5 +251,35 @@ preserving as WIP, but steady 25 Hz and the pacing goal remain unachieved.
 The owner ends all lanes at 14:45 CDT. NATIVE-PERF-004 withdrew from the merge
 queue at 14:02, holds no lock, and will keep the worktree with a pushed checkpoint.
 No PR or main merge is claimed. Current-source local checks and the long frame
-comparison are recorded separately when completed; a future release still needs
+comparison are recorded below; a future release still needs
 latest-main integration and the entire lock-held final sequence.
+
+
+The current runtime cleanly rebuilds world/client. The full local Mac script
+passes at gate head `6787d03`: 38 suites, 1,567 invocations (1,386 passes and 181
+explicit skips), 9/9 fixture scenarios and 1,514 audited files with zero rejected.
+The first attempt passed tests/fixtures but rejected absolute Metal log paths in
+the new aggregate. Those references were sanitized, staged and audited, then the
+whole script was rerun successfully. The rerun additionally passes the headless-
+object case after the first script builds mu-viewer. This is WIP verification on
+the existing branch base, outside a final merge sequence; latest main remains
+unintegrated.
+
+
+The rebuilt ordered-capture candidate passes all **2,804/2,804** full-frame pairs
+(701 in each scene), covering all 32 scripted skill events. The optimized paths
+have successful uploads and zero fallback. Both groups' full-frame hash digests
+and the actual binary/library hashes are retained in the aggregate. This extends
+the candidate's earlier 604-pair preflight; it does not extend the current-main
+integration boundary.
+
+
+The final capture-only crowd80 off/on pair holds poses/topology enabled in both
+60-second runs. Off/on measures 24.90/24.96 fps,
+27.02/26.04 ms main CPU, and
+43.50/40.42 ms frame p99. Both warning checks pass;
+only capture-on passes strict acceptance in this repeat. This does not replace
+the unfavorable full matrix or establish all-scene steady 25 Hz. The source is
+frozen at `4bd5d38`; no further measurements or implementation changes are made
+before the owner's stop. The first next step is a post-capture tail profile and
+CPU/GL/Metal correlation using the retained crowd80 timing inputs.

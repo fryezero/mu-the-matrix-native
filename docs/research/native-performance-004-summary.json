@@ -7647,5 +7647,686 @@
         }
       }
     }
+  },
+  "ordered_capture_gate": {
+    "runtime_source": "4bd5d38",
+    "git_head_at_gate": "6787d03",
+    "latest_main_integrated": false,
+    "clean_world_client_build": true,
+    "macos_gate": {
+      "suites": 38,
+      "invocations": 1567,
+      "passed": 1386,
+      "skipped": 181,
+      "fixtures_passed": 9,
+      "fixtures_total": 9,
+      "audit_files": 1514,
+      "audit_rejected": 0
+    },
+    "earlier_attempt": {
+      "tests_passed": 1385,
+      "skipped": 182,
+      "fixtures_passed": 9,
+      "audit_rejected": 1,
+      "cause": "Absolute Metal log paths in the new aggregate; replaced with a lane-scratch marker, staged audit passed, then the whole script was rerun.",
+      "extra_case_on_rerun": "The first script built mu-viewer after testing; the rerun additionally passed test_viewer_headless_objects instead of skipping it."
+    }
+  },
+  "ordered_capture_long_frames": {
+    "pose_tasks_requested": 4,
+    "binary_sha256": "d83b9104861bf39142f2c77a95fdd6281e11b3a58b9e62ad05f85e0dd1827cc9",
+    "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+    "scenarios": {
+      "crowd40": {
+        "frames": 701,
+        "differing": [],
+        "group_sha256": "8e24446ede712545d77c705482b656da982cdc51c71a7c242b4cd187eb251906",
+        "optimized_group_sha256": "8e24446ede712545d77c705482b656da982cdc51c71a7c242b4cd187eb251906"
+      },
+      "crowd80": {
+        "frames": 701,
+        "differing": [],
+        "group_sha256": "4f704e6b4daa30972ebae2a909364ee56110193f2b14eed4d58d03553caa6b98",
+        "optimized_group_sha256": "4f704e6b4daa30972ebae2a909364ee56110193f2b14eed4d58d03553caa6b98"
+      },
+      "tormenta80": {
+        "frames": 701,
+        "differing": [],
+        "group_sha256": "70f1cbeeb07d9353a6fd6323c070ce5f542fed9b309d2a204b3587e314f05fde",
+        "optimized_group_sha256": "70f1cbeeb07d9353a6fd6323c070ce5f542fed9b309d2a204b3587e314f05fde"
+      },
+      "retina80": {
+        "frames": 701,
+        "differing": [],
+        "group_sha256": "e26c96550528005ff87635d77b9724b25a729282b7071f92fb486880a59e1d5c",
+        "optimized_group_sha256": "e26c96550528005ff87635d77b9724b25a729282b7071f92fb486880a59e1d5c"
+      }
+    },
+    "runtime_source": "4bd5d38"
+  },
+  "ordered_capture_ablation": {
+    "runtime_source": "4bd5d38",
+    "order": "crowd80 off then on; pose/topology enabled in both",
+    "reports": {
+      "crowd80-off": {
+        "machine": "macOS-27.0.1-arm64-arm-64bit",
+        "mode": "window-capped",
+        "load_start": [
+          2.36181640625,
+          2.744140625,
+          3.54638671875
+        ],
+        "binary_sha256": "d83b9104861bf39142f2c77a95fdd6281e11b3a58b9e62ad05f85e0dd1827cc9",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_003_baseline": false,
+        "perf_004_baseline": false,
+        "pose_tasks_requested": 4,
+        "perf_004_vbo_baseline": true,
+        "gpu_timing": true,
+        "gfx_double_buffer": true,
+        "region_reference": false,
+        "scenarios": {
+          "crowd80": {
+            "log": "<lane-scratch>/capture-ablation/crowd80-off/crowd80/frames.tsv",
+            "frames": 1357,
+            "fps": 24.90285683665084,
+            "frame_ms": {
+              "p50": 40.014,
+              "p90": 40.018,
+              "p95": 40.035,
+              "p99": 43.50092,
+              "mean": 40.15603537214444
+            },
+            "work_ms": {
+              "p50": 29.913,
+              "p90": 32.759,
+              "p95": 34.211800000000004,
+              "p99": 42.50564000000008,
+              "mean": 30.157750184229922
+            },
+            "max_ms": 85.558,
+            "over_40ms": 0.014738393515106854,
+            "phases": {
+              "events": {
+                "mean": 0.041029476787030214,
+                "p95": 0.048,
+                "samples": 1357
+              },
+              "logic": {
+                "mean": 3.7022004421518058,
+                "p95": 4.444000000000001,
+                "samples": 1357
+              },
+              "terrain": {
+                "mean": 1.3079734708916728,
+                "p95": 1.4226,
+                "samples": 1357
+              },
+              "objects": {
+                "mean": 1.3312365512159174,
+                "p95": 1.4192,
+                "samples": 1357
+              },
+              "characters": {
+                "mean": 12.716403095062638,
+                "p95": 13.5936,
+                "samples": 1357
+              },
+              "env": {
+                "mean": 0.06801694915254237,
+                "p95": 0.075,
+                "samples": 1357
+              },
+              "particles": {
+                "mean": 0.12703168754605748,
+                "p95": 0.12920000000000004,
+                "samples": 1357
+              },
+              "effects": {
+                "mean": 0.44179218865143693,
+                "p95": 0.673,
+                "samples": 1357
+              },
+              "gfx": {
+                "mean": 6.929876197494473,
+                "p95": 9.3308,
+                "samples": 1357
+              },
+              "swap": {
+                "mean": 1.0280803242446575,
+                "p95": 1.8732,
+                "samples": 1357
+              },
+              "sleep": {
+                "mean": 9.998285187914519,
+                "p95": 13.5434,
+                "samples": 1357
+              },
+              "cpu": {
+                "mean": 27.01868607221813,
+                "p95": 30.1552,
+                "samples": 1357
+              },
+              "gpu_world": {
+                "mean": 18.294103780578205,
+                "p95": 19.2992,
+                "samples": 1349
+              },
+              "gpu_gfx": {
+                "mean": 0.5877449962935508,
+                "p95": 0.948,
+                "samples": 1349
+              },
+              "process_cpu": {
+                "mean": 33.4549697862933,
+                "p95": 36.6736,
+                "samples": 1357
+              }
+            },
+            "metal": {
+              "mean": 3.625435365948005,
+              "p95": 4.199674999108538,
+              "samples": 1357,
+              "missing_frames": 0,
+              "supported": true
+            },
+            "workload": {
+              "players": {
+                "count": 80,
+                "steps": 1499,
+                "viewport_packets": 80,
+                "move_packets": 0,
+                "destroy_packets": 0,
+                "die_packets": 0,
+                "store_packets": 0,
+                "path_calls": 158,
+                "teleports": 0,
+                "addinfo": 80,
+                "removeinfo": 0,
+                "item_table": 1,
+                "range": 40
+              },
+              "actors": {
+                "actors": 32,
+                "actor_steps": 1499,
+                "actor_moves": 158,
+                "actor_arrivals": 149,
+                "effect_instances": 0
+              },
+              "combat": {
+                "combat": true,
+                "weapon": 6,
+                "attack_speed": 40.0,
+                "attacks": 0,
+                "skills": 95,
+                "arrows": 24,
+                "fx_created": 2867,
+                "hits": 0,
+                "misses": 0,
+                "shocks": 0,
+                "kills": 0,
+                "deaths": 0,
+                "removed": 0,
+                "respawns": 0,
+                "points_created": 0,
+                "monster_attacks": 0,
+                "hero_hits": 0,
+                "picks": 0,
+                "pick_hits": 0,
+                "particles_created": 232,
+                "joints_created": 710,
+                "projectile_hits": 24,
+                "area_requests": 226,
+                "sprites": 630,
+                "unsupported": 72,
+                "hero_shocks": 0,
+                "hero_deaths": 0,
+                "monster_voices": 0,
+                "requests_sent": 7,
+                "requests_unsent": 95,
+                "sounds": 77,
+                "bitmaps_loaded": 15,
+                "models_loaded": 12,
+                "skill_table": 973
+              },
+              "gfx": {
+                "shared": 1,
+                "renders": 4163,
+                "callbacks": 287,
+                "invokes": 4525,
+                "inventory_open": 1,
+                "tooltips": 1,
+                "base_mode": 1,
+                "skills": 973,
+                "item_models": 12664,
+                "item_models_missing": 0,
+                "icon_models": 1,
+                "skill_book": {
+                  "records": 973,
+                  "tooltip_texts": 592,
+                  "learned": 18,
+                  "selected": 17,
+                  "casts": 0,
+                  "refused": 0,
+                  "window_icons": 0,
+                  "tooltips": 0,
+                  "window_open": 0,
+                  "last": ""
+                }
+              },
+              "map": {
+                "map": true,
+                "world": 0,
+                "tile": [
+                  184,
+                  127
+                ],
+                "travels": 0,
+                "travel_failures": 0,
+                "zen": 10000000,
+                "moves": 69,
+                "gates": 625,
+                "loading_world": 0,
+                "map_shown": 1,
+                "map_available": 1,
+                "units": 5,
+                "npc_units": 0,
+                "move_open": 0
+              },
+              "particles": {
+                "particles": true,
+                "created": 6147,
+                "dropped": 0,
+                "unsupported": 0,
+                "overflow": 0,
+                "live": 96,
+                "max_live": 142,
+                "steps": 1499,
+                "sprites_created": 3444,
+                "drawn_particles": 96,
+                "drawn_sprites": 2,
+                "shadows": 603,
+                "shadow_vertices": 235941,
+                "visuals": 191605,
+                "joints": 75,
+                "effects": 0,
+                "rand_calls": 266983,
+                "bitmaps": [
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  1,
+                  1
+                ]
+              },
+              "player_models": 80
+            },
+            "streaming": {
+              "vbo_uploads": 0,
+              "vbo_failures": 0
+            },
+            "failures": [
+              "work p95 > 38 ms or p99 > 40 ms",
+              "frame pacing p95 > 41 ms or p99 > 42 ms"
+            ],
+            "regression_failures": []
+          }
+        }
+      },
+      "crowd80-on": {
+        "machine": "macOS-27.0.1-arm64-arm-64bit",
+        "mode": "window-capped",
+        "load_start": [
+          2.5576171875,
+          2.74072265625,
+          3.4853515625
+        ],
+        "binary_sha256": "d83b9104861bf39142f2c77a95fdd6281e11b3a58b9e62ad05f85e0dd1827cc9",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_003_baseline": false,
+        "perf_004_baseline": false,
+        "pose_tasks_requested": 4,
+        "perf_004_vbo_baseline": false,
+        "gpu_timing": true,
+        "gfx_double_buffer": true,
+        "region_reference": false,
+        "scenarios": {
+          "crowd80": {
+            "log": "<lane-scratch>/capture-ablation/crowd80-on/crowd80/frames.tsv",
+            "frames": 1360,
+            "fps": 24.963903755413657,
+            "frame_ms": {
+              "p50": 40.013,
+              "p90": 40.018,
+              "p95": 40.026,
+              "p99": 40.420410000000004,
+              "mean": 40.0578375
+            },
+            "work_ms": {
+              "p50": 27.8225,
+              "p90": 30.5297,
+              "p95": 32.000699999999995,
+              "p99": 36.75426000000001,
+              "mean": 27.982911764705882
+            },
+            "max_ms": 56.387,
+            "over_40ms": 0.0058823529411764705,
+            "phases": {
+              "events": {
+                "mean": 0.042684558823529416,
+                "p95": 0.046,
+                "samples": 1360
+              },
+              "logic": {
+                "mean": 3.6928705882352943,
+                "p95": 4.1812,
+                "samples": 1360
+              },
+              "terrain": {
+                "mean": 1.1535661764705882,
+                "p95": 1.26605,
+                "samples": 1360
+              },
+              "objects": {
+                "mean": 1.2698808823529413,
+                "p95": 1.3671499999999999,
+                "samples": 1360
+              },
+              "characters": {
+                "mean": 11.898711029411764,
+                "p95": 12.77375,
+                "samples": 1360
+              },
+              "env": {
+                "mean": 0.06889411764705883,
+                "p95": 0.079,
+                "samples": 1360
+              },
+              "particles": {
+                "mean": 0.11006985294117647,
+                "p95": 0.122,
+                "samples": 1360
+              },
+              "effects": {
+                "mean": 0.29196691176470585,
+                "p95": 0.6361499999999999,
+                "samples": 1360
+              },
+              "gfx": {
+                "mean": 6.988528676470588,
+                "p95": 9.382449999999999,
+                "samples": 1360
+              },
+              "swap": {
+                "mean": 0.9854058823529412,
+                "p95": 1.7197999999999993,
+                "samples": 1360
+              },
+              "sleep": {
+                "mean": 12.07492573529412,
+                "p95": 14.75505,
+                "samples": 1360
+              },
+              "cpu": {
+                "mean": 26.039407352941176,
+                "p95": 28.951749999999997,
+                "samples": 1360
+              },
+              "gpu_world": {
+                "mean": 17.067199704142013,
+                "p95": 18.0508,
+                "samples": 1352
+              },
+              "gpu_gfx": {
+                "mean": 0.5461457100591716,
+                "p95": 0.8942500000000002,
+                "samples": 1352
+              },
+              "process_cpu": {
+                "mean": 32.444574264705885,
+                "p95": 35.566449999999996,
+                "samples": 1360
+              }
+            },
+            "metal": {
+              "mean": 3.5810399509928708,
+              "p95": 4.166306249680929,
+              "samples": 1360,
+              "missing_frames": 0,
+              "supported": true
+            },
+            "workload": {
+              "players": {
+                "count": 80,
+                "steps": 1499,
+                "viewport_packets": 80,
+                "move_packets": 0,
+                "destroy_packets": 0,
+                "die_packets": 0,
+                "store_packets": 0,
+                "path_calls": 145,
+                "teleports": 0,
+                "addinfo": 80,
+                "removeinfo": 0,
+                "item_table": 1,
+                "range": 40
+              },
+              "actors": {
+                "actors": 32,
+                "actor_steps": 1499,
+                "actor_moves": 145,
+                "actor_arrivals": 134,
+                "effect_instances": 0
+              },
+              "combat": {
+                "combat": true,
+                "weapon": 6,
+                "attack_speed": 40.0,
+                "attacks": 0,
+                "skills": 97,
+                "arrows": 30,
+                "fx_created": 2879,
+                "hits": 0,
+                "misses": 0,
+                "shocks": 0,
+                "kills": 0,
+                "deaths": 0,
+                "removed": 0,
+                "respawns": 0,
+                "points_created": 0,
+                "monster_attacks": 0,
+                "hero_hits": 0,
+                "picks": 0,
+                "pick_hits": 0,
+                "particles_created": 181,
+                "joints_created": 584,
+                "projectile_hits": 30,
+                "area_requests": 228,
+                "sprites": 504,
+                "unsupported": 56,
+                "hero_shocks": 0,
+                "hero_deaths": 0,
+                "monster_voices": 0,
+                "requests_sent": 5,
+                "requests_unsent": 97,
+                "sounds": 79,
+                "bitmaps_loaded": 15,
+                "models_loaded": 12,
+                "skill_table": 973
+              },
+              "gfx": {
+                "shared": 1,
+                "renders": 4175,
+                "callbacks": 287,
+                "invokes": 4532,
+                "inventory_open": 1,
+                "tooltips": 1,
+                "base_mode": 1,
+                "skills": 973,
+                "item_models": 12691,
+                "item_models_missing": 0,
+                "icon_models": 1,
+                "skill_book": {
+                  "records": 973,
+                  "tooltip_texts": 592,
+                  "learned": 18,
+                  "selected": 17,
+                  "casts": 0,
+                  "refused": 0,
+                  "window_icons": 0,
+                  "tooltips": 0,
+                  "window_open": 0,
+                  "last": ""
+                }
+              },
+              "map": {
+                "map": true,
+                "world": 0,
+                "tile": [
+                  181,
+                  129
+                ],
+                "travels": 0,
+                "travel_failures": 0,
+                "zen": 10000000,
+                "moves": 69,
+                "gates": 625,
+                "loading_world": 0,
+                "map_shown": 1,
+                "map_available": 1,
+                "units": 5,
+                "npc_units": 0,
+                "move_open": 0
+              },
+              "particles": {
+                "particles": true,
+                "created": 6072,
+                "dropped": 0,
+                "unsupported": 0,
+                "overflow": 0,
+                "live": 95,
+                "max_live": 129,
+                "steps": 1499,
+                "sprites_created": 3324,
+                "drawn_particles": 95,
+                "drawn_sprites": 2,
+                "shadows": 601,
+                "shadow_vertices": 235353,
+                "visuals": 192623,
+                "joints": 75,
+                "effects": 0,
+                "rand_calls": 267850,
+                "bitmaps": [
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  1,
+                  1
+                ]
+              },
+              "player_models": 80
+            },
+            "streaming": {
+              "vbo_uploads": 28200,
+              "vbo_failures": 0
+            },
+            "failures": [],
+            "regression_failures": []
+          }
+        }
+      }
+    }
   }
 }

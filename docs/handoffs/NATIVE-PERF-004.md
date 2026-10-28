@@ -11,14 +11,18 @@ Native-only offline performance work. No original client or launcher was used.
 - Runtime source checkpoint: `4bd5d38`; subsequent checkpoint changes are
   documentation/evidence only unless this section says otherwise.
 - Integrated main is `26018b4`, merged in `4f37645`. Later main changes have
-  **not** been integrated. A 14:12 fetch observed main `23f3e08` (eight later
+  **not** been integrated. An earlier fetch observed main `23f3e08` (eight later
   merges). This is not a current-main final gate or release.
-- No PR, no merge to main. Strict all-scene 25 Hz acceptance remains open.
+- No PR, no merge to main. The owner explicitly requested no merge today.
+  Strict all-scene 25 Hz acceptance remains open.
 - No merge lock is held by this lane. Its queue entry was removed at 14:02
   under the owner's hard-stop instruction. Read the current common brief and
   queue before a future final sequence; append at the tail when ready.
-- Latest ordered-capture timing and extended frame/gate results are recorded
-  below when completed. Never infer a new candidate's proof from an old one.
+- The eight-run timing matrix and clean build are complete. The current-source
+  Mac script passes 1,386 tests with 181 explicit skips across 38 suites, 9/9
+  fixtures, and an audit of 1,514 files with zero rejections. The rebuilt candidate
+  matches all 2,804 full-frame pairs, 701 per scenario, with successful uploads
+  and zero fallback. This WIP gate was outside a final merge sequence.
 
 ## Retained implementation
 
@@ -55,6 +59,8 @@ not be added. GPU busy time remains unmeasured.
 - Ordered-capture preflight: **604/604** full-frame pairs (151 per scenario),
   successful uploads, zero fallback. This includes GFx, the map, effects, models,
   nameplates and combat; deterministic AS2 time and single-buffer presentation.
+  The current rebuilt candidate additionally passes **2,804/2,804** pairs through
+  frame 700, covering all 32 scripted skill events in every scenario.
 - Pose tests compare every mapped model window plus saved player/attachment
   bones, serial versus 1/4/8/80 requested jobs, over changing states, hidden and
   missing models; counts 0/1/7/8/9 cover the worker threshold.
@@ -68,6 +74,12 @@ not be added. GPU busy time remains unmeasured.
   1,384 passes and 182 explicit skips; 9/9 fixtures; 1,514 audited files,
   zero rejections. Its 2,804/2,804 frame pairs cover all 32 scripted skill events.
   That gate predates bounded jobs and both VBO candidates.
+- Current runtime `4bd5d38`, gate head `6787d03`: clean world/client build and the
+  complete Mac script pass (1,386 pass, 181 skips, 38 suites; 9/9 fixtures;
+  1,514 audited files, zero rejections). The first attempt reached all tests
+  and fixtures but rejected absolute Metal log paths in the aggregate. Those
+  references were sanitized and the entire script rerun successfully. The rerun
+  also executes the headless-object case after the first script builds mu-viewer.
 
 The first integrated paired table lowers mean CPU but fails strict acceptance
 in every optimized 80-player scene. Four-job Tormenta repeats passed, while
@@ -79,7 +91,8 @@ Rejected experiments remain documented: client-array pointer memoization differe
 in 98/151 crowd40 frames; scoped thread QoS gave no consistent gain; per-flush
 VBOs preserved 604/604 frames but regressed timings with millions of uploads.
 None of those production implementations remains. The ordered capture candidate
-is a separate implementation and needs its own timing decision.
+is a separate implementation; its full matrix and capture-only pair remain WIP
+evidence, not all-scene acceptance.
 
 ## Resume inputs and exact next step
 
@@ -92,8 +105,12 @@ Worktree `evidence` and `tools/python` are untracked borrowed links; never stage
 
 The eight-run ordered-capture matrix is complete: all warning checks pass, but
 strict optimized acceptance passes only crowd40. The retained implementation is
-WIP; isolate capture with its disable switch and investigate the remaining
-80-player pacing failures. The complete before/after table is in the finding. Reproduce with:
+WIP; investigate the remaining 80-player pacing failures. The first next step
+is a post-capture sampling profile after frame 650, correlated with the saved
+crowd80 tail timings. The capture-only off/on pair measures
+24.90/24.96 fps, 27.02/26.04 ms main CPU, and 43.50/40.42 ms frame p99.
+Only on passes strict acceptance in this repeat; the full optimized matrix still
+fails all three 80-player scenes. The complete table is in the finding. Reproduce with:
 
 ```sh
 ./tools/python/bin/python native/tools/compare_stress.py \
@@ -116,3 +133,31 @@ repeat full frames and timing on the integrated source, then PR/merge. Release
 only this lane's lock. After merge delete all owned scratch/build outputs,
 worktree and local branch. The earlier merge begun after a failed lock acquisition
 was immediately aborted; the recorded `4f37645` integration/gate was lock-held.
+
+
+## Hard-stop cleanup and resume
+
+Keep this worktree and branch. Owned bulk renders, raw reports, C build outputs,
+the Rust target cache and the patched Ruffle worktree were removed before handback.
+Only the existing data links, one 14 MiB `libmugfx.dylib`, a borrowed pristine
+Ruffle link, and a small `resume/` folder remain in lane scratch. Nothing in the
+borrowed data/evidence/Python targets is deleted. The library hash is recorded in
+the aggregate; it reproduces this checkpoint, not unintegrated main changes.
+
+`resume/` retains the completed gate log (compressed), the long frame hash report,
+the previous pre-capture profile (compressed), final capture-only crowd80 timing
+inputs (compressed), and `profile-capture.py`. From the worktree, rebuild world
+then run that small profiling script with the repo Python for the first next
+measurement. It uses the same full-quality scene and samples eight seconds after
+frame 650. No post-capture sample has been collected yet.
+
+The Rust `mugfx-shot` helper/cache are removed; rebuild with
+`MU_GFX_DEPS="$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/deps" sh native/gfx/fetch-ruffle.sh` and
+`MU_GFX_DEPS="$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/deps" sh native/gfx/build-mugfx.sh` when reproducing
+the gate's optional built-binary coverage. Existing cached pristine source is
+borrowed through the retained link. Never delete that target.
+
+The owner requires the WIP checkpoint pushed by 14:40 and all agents stopped by
+14:45 CDT. No lock or queue slot remains assigned to this lane. A future release
+needs a new queue entry, latest-main integration, the full local gate and renewed
+full-quality frame/timing acceptance.
