@@ -370,7 +370,7 @@ LIVE-PLAY's original FMOD/native log comparison remain open. No live client was 
 hook now reads that session-owned snapshot for model `0xa01`, rather than passing unknown. The original
 key lookup `0x01295ade`, the voice fragment `0x013b543c..0x013b549c` and AddBuff's world restriction
 `0x0128723b` run in the new comparison. Buff key `0x1b` suppresses sound 160 at `0x013b5494`;
-action 0 and frames 5 through 10 are required when it is absent. The table-existence answer, unrelated
+action 0 and frames 5 through 10 are required when it is absent. The table-existence answer is checked with the original getter on the pinned skill snapshot. Unrelated
 visual effects and insertion are hosts; the MSVC map is synthetic and its lookup executes as original
 instructions. This uses the latest complete viewport snapshot. Dynamic add/remove/expiry handlers
 are not migrated and are not inferred from a packet list. Unknown snapshots still emit missing input.

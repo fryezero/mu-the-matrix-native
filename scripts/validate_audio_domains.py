@@ -17,6 +17,7 @@ from pathlib import Path
 import random
 import struct
 import subprocess
+import sys
 import tempfile
 import pins
 from validate_audio import Machine, ARENA, STACK, STACK_SIZE
@@ -64,9 +65,10 @@ def build(tmp,name,audio=None,skills=None):
         if src.is_dir() and src.name not in ('core','session'):(folder/src.name).symlink_to(src)
     if not (tmp/'reconstructed').exists():(tmp/'reconstructed').symlink_to(ROOT/'reconstructed')
     (folder/'wrapper.c').write_text(WRAPPER);out=folder/'adapter.dylib'
+    frameworks=['-framework','CoreText','-framework','CoreGraphics','-framework','CoreFoundation','-framework','AudioToolbox'] if sys.platform=='darwin' else []
     subprocess.run(['clang','-std=c11','-O2','-shared','-I',str(folder),'-I',str(folder/'session'),'-I',str(ROOT/'native/build/gen'),
                     str(folder/'wrapper.c'),str(ROOT/'reconstructed/audio/audio_world.c'),
-                    str(ROOT/'native/build/libmunative.a'),'-lm','-framework','CoreText','-framework','CoreGraphics','-framework','CoreFoundation','-framework','AudioToolbox','-o',str(out)],check=True)
+                    str(ROOT/'native/build/libmunative.a'),'-lm',*frameworks,'-o',str(out)],check=True)
     lib=C.CDLL(str(out));lib.npc.argtypes=[C.c_int,C.c_int,C.c_int,C.c_float,C.c_int,C.c_int,C.POINTER(C.c_uint16),C.POINTER(Decision)]
     lib.master.argtypes=[C.c_char_p,C.c_int,C.POINTER(Decision)];return lib
 
@@ -190,12 +192,14 @@ def main():
     snap=tree.plain.Snapshot.load(snapshot);bm=tree.vl.LangMachine(text,data,snap);bm.prepare(force=True)
     bm.call(0x10de759,[27],ecx=tree.plain.BUFF)
     buff_index=bm.uc.reg_read(tree.cm.UC_X86_REG_EAX);assert buff_index!=0xffffffff
-    report={'buff_table_key_verified':True,'text_sha256':pins.TEXT.sha256,'data_sha256':pins.DATA.sha256,'families':{},'mutants':{},'mismatches':0,'quest_static':quest_audit(text)}
+    report={'snapshot_sha256':pins.SKILL_LANG5.sha256,'buff_table_key_verified':True,'text_sha256':pins.TEXT.sha256,'data_sha256':pins.DATA.sha256,'families':{},'mutants':{},'mismatches':0,'quest_static':quest_audit(text)}
     with tempfile.TemporaryDirectory(prefix='audio-domains-') as folder:
         tmp=Path(folder);corpora={'npc':npc_corpus(text,data,buff_index),'master':master_corpus(text,data,snapshot,a.cases,tmp)};lib=build(tmp,'plain')
         for name,corpus in corpora.items():
             error=check(lib,name,corpus);assert error is None,(name,error)
             report['families'][name]={'cases':len(corpus),'mismatches':0}
+        unknown=rows(lib,'npc',(0,0xa01,0,7.,0,0,(C.c_uint16*0)()))
+        assert unknown==[(0x13b23f8,0x13b5494,0x1295ade,-2,0,1)]
         # Unsupported event names/ids must not acquire invented original provenance.
         for event in [(b'stats',25),(b'sound',26),(b'',25)]:assert rows(lib,'master',event)==[]
         if a.mutations:

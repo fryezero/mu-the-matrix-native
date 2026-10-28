@@ -26,7 +26,31 @@ The hero's earlier receive sound and per-frame/event manager paths are outside t
 
 ## Checks
 
-Pending implementation validation and final locked gate. Exact counts will replace this paragraph.
+- Baseline local Mac gate: 1,550 tests, 192 explicit skips, zero failures; viewer/read-only readers
+  build and publication audit pass. Readers were built, never run.
+- New `validate_audio_domains`: 1,944 NPC plus 600 full Master click cases, **2,544 comparisons,
+  zero mismatches, 7/7 compiled mutants caught**. Unknown inputs and unsupported events are checked too.
+  Buff key 0x1b's table existence is verified by the original getter on the pinned skill snapshot.
+  The NPC comparison runs AddBuff's world/eligibility gates and the real map lookup/voice fragment.
+  Effects, map insertion and the already-verified static table answer are hosts; zero-filled stack tag
+  slots follow the existing MSVC harness convention. This does not claim the whole buff subsystem.
+- **26/26 focused private audio tests pass**, including viewport absence/presence, complete-snapshot
+  replacement, destruction and key reuse, failed Master clicks, silent requests, independent readers,
+  silent draining, log provenance and unchanged render hashes. The synthetic world Smith animation
+  never reaches frame 5; the new frame-driven session test exercises the sound at frame 7.
+- Expanded existing audio: **13,967/13,967 equal**, **232/232** world perturbations caught. The entire
+  before/after JSON reports match, including five captured body hashes. The existing PCM golden stays
+  `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
+  Existing 42 world plus 14 combat frame hashes agree with audio enabled/disabled. No hash expectation
+  or old comparison body was changed.
+- Part 1 unchanged: 76,150 cases, zero mismatches, 22/22 compiled mutants. Part 2 unchanged: 5,516
+  instruction cases plus 12 static checks, zero mismatches, 18/18 mutants. Part 3 unchanged: 19,548
+  cases, zero mismatches, 16/16 mutants. Hero audio: 2,000 cases, zero mismatches, all negative controls.
+- The first private part-2 rerun could not link `mu_market_*` / `mu_uruk_*` after RENDER-WORLDS-I.
+  Its compile list now includes those two production sources. The repaired runner passes all 5,528
+  checks without changing comparisons or expectations. Manifest tests pass 17/17; include audit passes.
+
+Final integrated gate and quest/environment totals are pending the merge lock.
 
 ## Limits and cleanup
 
