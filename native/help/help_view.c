@@ -93,13 +93,50 @@ static int provider_count(view *v, const char *field)
     return atoi(value);
 }
 
+static double number(view *v, const char *path)
+{
+    const char *value = v->a.get_variable(v->movie, path);
+    return value ? atof(value) : -1;
+}
+
+/* --scroll-check: drive the list to both ends through the movie's own
+ * scrollWheel (MUScrollingList clamps to rows - renderers) and count row
+ * fields whose text is wider than their fixed single-line field. */
+static int scroll_check(view *v, const char *list, int rows)
+{
+    char path[320];
+    snprintf(path, sizeof path, "%s.%s.renderers.length", v->path, list);
+    int renderers = (int)number(v, path), clipped = 0, reached = -1;
+    if (renderers < 1) return 0;
+    for (int end = 0; end < 2; ++end) {
+        snprintf(path, sizeof path, "%s.%s", v->path, list);
+        v->a.invoke(v->movie, path, "scrollWheel", end ? "[-1000]" : "[1000]");
+        for (int i = 0; i < 3; ++i) v->a.advance(v->movie, 40.0);
+        snprintf(path, sizeof path, "%s.%s._scrollPosition", v->path, list);
+        reached = (int)number(v, path);
+        /* At the far end, skip rows already counted at the top. */
+        for (int r = end ? renderers - reached : 0; r < renderers && r < rows; ++r)
+            for (int f = 1; f <= 2; ++f) {
+                snprintf(path, sizeof path, "%s.%s.renderers.%d.textField%d.textWidth", v->path, list, r, f);
+                double text = number(v, path);
+                snprintf(path, sizeof path, "%s.%s.renderers.%d.textField%d._width", v->path, list, r, f);
+                clipped += text > 0 && text + 4 > number(v, path);
+            }
+    }
+    int last = rows > renderers ? rows - renderers : 0;
+    printf("{\"list\":\"%s\",\"rows\":%d,\"renderers\":%d,\"last_scroll\":%d,\"expected\":%d,\"clipped_fields\":%d}\n",
+           list, rows, renderers, reached, last, clipped);
+    return reached == last;
+}
+
 int main(int argc, char **argv)
 {
     const char *movie = NULL, *data = NULL, *library = NULL, *output = NULL;
-    int windowed = 0, chat = 0, mode = 0, frames = 40;
+    int windowed = 0, chat = 0, mode = 0, frames = 40, check = 0;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--window")) windowed = 1;
         else if (!strcmp(argv[i], "--chat")) chat = 1;
+        else if (!strcmp(argv[i], "--scroll-check")) check = 1;
         else if (i + 1 < argc && !strcmp(argv[i], "--movie")) movie = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--data")) data = argv[++i];
         else if (i + 1 < argc && !strcmp(argv[i], "--lib")) library = argv[++i];
@@ -109,7 +146,7 @@ int main(int argc, char **argv)
         else { fprintf(stderr, "Unknown/incomplete option: %s\n", argv[i]); return 2; }
     }
     if (!movie || !data || !library || frames < 1 || frames > 10000 || (mode != 0 && mode != 1)) {
-        fprintf(stderr, "mu-help-view --movie FILE --data FILE --lib FILE [--out PNG] [--window] [--chat] [--mode 0|1] [--frames N]\n");
+        fprintf(stderr, "mu-help-view --movie FILE --data FILE --lib FILE [--out PNG] [--window] [--chat] [--mode 0|1] [--frames N] [--scroll-check]\n");
         return 2;
     }
     int result = 1;
@@ -153,6 +190,11 @@ int main(int argc, char **argv)
         goto done;
     }
     v.a.invoke(v.movie, v.path, "SetVisible", "[true]");
+    if (check) {
+        for (int i = 0; i < 5; ++i) v.a.advance(v.movie, 40.0);
+        if (!scroll_check(&v, "scrollingHotKey", v.hotkeys) || !scroll_check(&v, "scrollingChatKey", v.chatkeys))
+            goto done;
+    }
     if (chat) v.a.invoke(v.movie, v.path, "OnClickChatHotKey", "[]");
     pixels = malloc(bytes);
     if (!pixels) goto done;

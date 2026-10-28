@@ -190,3 +190,35 @@ strings and long descriptions clip in the converted movie's fixed text fields.
 This is observed, not an original-image comparison. Review the HelpWindow text
 layout before calling the visual result final; no shared font/movie rewrite
 was made to hide the clipping.
+
+## Text layout and scrolling review (resume, 2026-10-28)
+
+Static, from the converted movie's ActionScript and tags: HelpWindow sets
+plain `.text`; every heading and row field is a single-line DefineEditText
+(`multiline=false`, `wordWrap=false`) using the 12 px `$NormalFont` import.
+The list renderer (MUComplexListItemRenderer) writes Data1/Data2 into fixed
+fields with no truncation or ellipsis. The validated controller passes row
+and GlobalText strings unchanged, so overlong text clips at the field edge in
+the original movie as well. The native converter inlines the font that the
+English `fontconfig.txt` maps `$NormalFont` to (Arial Unicode MS, see
+native-gfx.md), so equal clipping is an inference; GFx versus Ruffle text
+layout can still differ by a few pixels. No host wrapping, truncation or
+movie edit is added: any of these would diverge from the original.
+
+Measured with `native/help` `--scroll-check` on the installed file (lengths
+only, no row text recorded): 133 rows, keys at most 13 bytes, descriptions at
+most 25, all ASCII, no newlines, so the host's conversion buffers and the
+Latin-1 policy are not involved. Each list has 20 renderers. Hotkeys reach
+their last position (mode 0: 32 rows, position 12; mode 1: 28 rows,
+position 8); the 14 chat rows fit without scrolling. One chat description
+field is 2.8 px wider than its 154.2 px field; no hotkey field clips. With
+the installed GlobalText headings, the chat tab label measures 130 px in a
+99 px button field; the 60 px column headings do not report textWidth in this
+runtime. MUScrollingList overrides only the scrollPosition setter, so its
+getter is undefined; the check reads `_scrollPosition`. Mouse wheel input
+already reaches the movie under the cursor through the shared router
+(WM_MOUSEWHEEL to layer mouse kind 3); no new hook was needed.
+
+Hook review: Ctrl+H collides with no recovered menu key (only Ctrl+Z/Ctrl+X
+are menu keys), is enabled only after a valid load, and is consumed before the
+main movie. The Esc close follows the layer's existing fixed-priority chain.

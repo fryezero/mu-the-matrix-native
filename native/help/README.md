@@ -21,6 +21,11 @@ the chat tab, or `--mode 1` for the alternate-input filter. Esc closes the test
 viewer. Pointer events reach the actual movie. The tool requires SDL2 through
 pkg-config and the existing ABI-3 mugfx library; it does not build Rust.
 
+`--scroll-check` scrolls each list to both ends through the movie's own
+`scrollWheel` and fails unless the last scroll position equals
+rows - renderers (the MUScrollingList clamp). It also prints how many row
+fields have text wider than their fixed single-line field.
+
 The JSON summary checks actual movie provider counts against sent row counts.
 Inspect the PNG as well. Count agreement alone does not prove visible content.
 Only explicit `--out` writes an image; all files are local and must not be
