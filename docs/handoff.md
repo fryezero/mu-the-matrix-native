@@ -15,6 +15,7 @@ lane's note is in `docs/handoffs/`:
 - `FIXTURE-001.md`
 - `WORLD-RT-001.md`
 - `VERIFY-HARNESS-001.md`
+- [DATA-ACQ-003.md](handoffs/DATA-ACQ-003.md): bundled C first-run converter; 261 file and 9,166 bitmap hashes equal per option mode; temporary-HOME setup without Python passes, real second user unavailable.
 
 **Integration fix.** `validate_crypto.py` now takes its pins from `scripts/pins.py` and has a manifest row; it
 passed through the runner (568 cases at `--scale 2`, 14/14).
