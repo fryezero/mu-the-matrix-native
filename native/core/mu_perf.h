@@ -52,6 +52,10 @@ void mu_perf_end(int phase, double stamp);
 void mu_perf_add(int phase, double ms);
 /* Ends a frame: writes its line (total = time since the previous frame end). */
 void mu_perf_frame(int32_t scene);
+/* Diagnostic CPU thread time and asynchronous world GL timer queries. GPU results
+ * carry their source frame; -1 means unavailable. Ruffle/Metal is outside this query. */
+void mu_perf_gpu_sample(double ms, int64_t frame);
+int64_t mu_perf_frame_index(void);
 
 /* The host's Sleep(ms) for the client's frame cap: wakes at the requested
  * time (a coarse sleep, then short sleeps and a final spin under 0.2 ms)

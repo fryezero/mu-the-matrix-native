@@ -57,7 +57,7 @@
 #include "mu_data.h"
 #include "mu_walk.h"
 
-#define MU_WORLD_PLAYERS_MAX 8
+#define MU_WORLD_PLAYERS_MAX 80 /* offline stress capacity, not a server viewport claim */
 #define MU_WORLD_PLAYER_ROUTE 16
 #define MU_WORLD_PLAYER_GUILDS 4
 

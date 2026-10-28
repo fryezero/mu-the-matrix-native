@@ -143,14 +143,16 @@ static void players_gl_teardown(struct mu_world_rt *a, void *self)
                 mu_gl_release(&p->player_gl[i][n]);
 }
 
-/* NATIVE-PLAYERS-001: RenderCharacter's parts (NATIVE-PERF-001: the players' parts draw directly, with uploads
- * and their own backends, outside the batch session the hero part opened). */
+/* RenderCharacter's ordered parts. Upload before opening the remote-player
+ * batch; helpers still use direct GL after this session ends. */
 static void players_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     (void)d;
     players_part *p = self;
     if (a->batch && a->players)
         mu_gl_batch_session_end(a->batch);
+    const char *baseline = getenv("MU_PERF_002_BASELINE");
+    int batch = a->batch && !(baseline && atoi(baseline));
     for (int32_t i = 0; a->players && i < a->players->count; ++i) {
         float alpha = mu_world_players_alpha(a->players, i);
         if (alpha <= 0.0f)
@@ -170,6 +172,18 @@ static void players_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             mu_gl_backend *gl = &p->player_gl[i][mu_world_draw_order[n]];
             if (!gl->textures)
                 mu_gl_upload(gl, &item->textures, 0);
+        }
+    }
+    if (batch) mu_gl_batch_session_begin(a->batch);
+    for (int32_t i = 0; a->players && i < a->players->count; ++i) {
+        float alpha = mu_world_players_alpha(a->players, i);
+        if (alpha <= 0.0f) continue;
+        const mu_world_player *q = &a->players->list[i];
+        for (int n = 0; n < MU_CHARACTER_ITEMS; ++n) {
+            const mu_character_item *item = &q->model.items[mu_world_draw_order[n]];
+            if (!item->loaded) continue;
+            mu_gl_backend *gl = &p->player_gl[i][mu_world_draw_order[n]];
+            gl->batch = batch ? a->batch : NULL;
             mu_render_backend backend;
             mu_gl_backend_bind(gl, &backend);
             if (a->has_particles)
@@ -177,6 +191,7 @@ static void players_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             player_item_draw(a, i, mu_world_draw_order[n], &backend, alpha);
         }
     }
+    if (batch) mu_gl_batch_session_end(a->batch);
 }
 #endif
 
