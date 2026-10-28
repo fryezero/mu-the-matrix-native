@@ -67,7 +67,19 @@ enum {
     MU_SFX_BITMAP_MAGIC_GROUND2 = 0x7f84, /* Effect\Magic_Ground2.jpg (Heal) */
     MU_SFX_BITMAP_JOINT_SPIRIT = 0x7fd3,  /* Effect\JointSpirit01.jpg (Evil Spirit) */
     MU_SFX_BITMAP_JOINT_ENERGY = 0x7fd8,  /* Effect\JointEnergy01.jpg (Heal) */
-    MU_SFX_BITMAP_SHOCKWAVE = 0x8012      /* Effect\ShockWave.jpg: the mounts' flying step (NATIVE-HELPERS-002) */
+    MU_SFX_BITMAP_SHOCKWAVE = 0x8012,     /* Effect\ShockWave.jpg: the mounts' flying step (NATIVE-HELPERS-002) */
+    /* RENDER-EFFECTS-004: Rageful Blow (loader 0x0183451b..0x018345fc) */
+    MU_SFX_MODEL_GUARDIAN_WING = 0x460, /* Skill\darkwing_hetachi.bmd: Spirit of Guardian's drifting wing (pets, subtype 4) */
+    MU_SFX_RAGEFUL_BLOW = 0x461,      /* no model: draws its owner's weapon (RenderEffects 0x01532bd2) */
+    MU_SFX_MODEL_QUAKE1 = 0x462,      /* Skill\EarthQuake01.bmd .. 0x469 EarthQuake08.bmd */
+    MU_SFX_MODEL_QUAKE2 = 0x463,
+    MU_SFX_MODEL_QUAKE3 = 0x464,
+    MU_SFX_MODEL_QUAKE4 = 0x465,
+    MU_SFX_MODEL_QUAKE5 = 0x466,
+    MU_SFX_MODEL_QUAKE7 = 0x468,
+    MU_SFX_MODEL_QUAKE8 = 0x469,
+    MU_SFX_MODEL_FLASHING = 0x46a,    /* Skill\flashing.bmd */
+    MU_SFX_MODEL_TAIL = 0x46b         /* Skill\tail.bmd */
 };
 
 /* Client routines reported through the call hook. */
@@ -88,7 +100,10 @@ enum {
     MU_SFX_CALL_POSE = 0x012b5064,            /* model Animation(bones 0x06fce398, frame, prior frame, prior action, angle,
                                                  head angle, 0, 0): poses the effect's model (type) */
     MU_SFX_CALL_BONE = 0x012b678d,            /* model TransformByObjectBone(out, o, bone (range), 0): env->bone answers */
-    MU_SFX_CALL_KILL = 0x009b0451             /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
+    MU_SFX_CALL_KILL = 0x009b0451,            /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
+    MU_SFX_CALL_ITEM_LINKS = 0x01295f18,      /* RENDER-EFFECTS-004: the item initialiser's +0x358 list reset (o = -2) */
+    MU_SFX_CALL_WALL = 0x016d34cd             /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
+                                                 subtype = x, range = y; returns the attribute word */
 };
 
 #define MU_SFX_EFFECTS 200
@@ -143,6 +158,12 @@ typedef struct mu_sfx_effect {
     /* NATIVE-HELPERS-002 */
     int32_t field_64;        /* +0x64 Fenrir's lightning: fade stage; the paws' marks: the sheet frame */
     uint32_t time_mark;      /* +0x9c the paws' marks: timeGetTime() of the last frame step */
+    /* RENDER-EFFECTS-004: Rageful Blow 0x461 and the item-object initialiser its renderer runs */
+    float impact[3];         /* +0x110 the blow's ground point (the hop's origin) */
+    float heading_yz[2];     /* +0x174, +0x178: with heading (+0x170) the weapon's second angle vector */
+    uint8_t field_4;         /* +0x04 */
+    float field_c0;          /* +0xc0 */
+    float spin[3];           /* +0x194 per-step angle change (0x460 subtype 4) */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */
@@ -363,5 +384,68 @@ void mu_sfx_inferno_burst(const float position[3], uint8_t visible, const mu_sfx
 
 /* RenderEffects primary Aqua Beam sprite/light chain, ordinary worlds. */
 void mu_sfx_aqua_render(mu_sfx_effect *effect, const mu_sfx_env *env);
+
+/* RENDER-EFFECTS-004: the item object initialiser 0x016da00b (per-model blend presets; the
+ * WorldTime clock is env->world_time) and Rageful Blow's weapon draw, RenderEffects 0x01532bd2:
+ * from step 11 of its 20 on, the owner's weapon model (owner +0x56 + 0xae6) at the record
+ * position. The record is re-initialised as that item (light 0.3, scale 0.8 or the preset,
+ * gravity kept) before RenderPartObject 0x017e63f4. terrain_light: RequestTerrainLight 0x016cb08d
+ * at the position; hero_byte: [[0x0a39d754] + 0x12]. Returns 0 when nothing is drawn. */
+typedef struct mu_sfx_weapon_draw {
+    int32_t model;
+    float origin[3];          /* model BodyOrigin +0x78 */
+    float angle[3], head_angle[3];
+    float frame, prior_frame;
+    uint16_t prior_action, action;
+    uint8_t hero_class;       /* model +0xa4 */
+    float light[3];
+    float alpha;
+    int32_t level;            /* RenderPartObject argument 5: owner +0x41 << 3 */
+} mu_sfx_weapon_draw;
+
+void mu_sfx_item_object_init(mu_sfx_effect *e, const mu_sfx_env *env);
+int mu_sfx_rageful_weapon(mu_sfx_effect *e, const float terrain_light[3], uint8_t hero_byte, const mu_sfx_env *env,
+                          mu_sfx_weapon_draw *out);
+
+/* RENDER-EFFECTS-004: CreateArrows 0x0158d5bd(character, object, target, skill, flag, skill index) and
+ * CreateArrow 0x0158cf57 (verified). The archer's inputs that come from other subsystems: */
+typedef struct mu_sfx_archer {
+    int16_t weapon;           /* character + 0x19ac: the slot-0 item model type */
+    int32_t hero_weapon;      /* [[0x01d1df18] + 0x1b68], the hero's slot-0 item index (-1 none) */
+    uint8_t is_hero;          /* character == [0x0a39d754] */
+    uint8_t master_1a2;       /* 0x00bb1e55 on skill record 0x1a2 (0x00ac3bf7 / 0x0095f998) */
+    int32_t tree_value;       /* 0x01094039(skill index): CreateArrow's last argument in the fan */
+    int32_t mastery;          /* 0x00bb1c32 on the current skill's record */
+    uint8_t special;          /* 0x00cd6017 on the bow's attribute 0x54: the 0x6a9 shot */
+    uint16_t key;             /* object + 0x54 */
+    uint16_t field_364;       /* object + 0x364 */
+} mu_sfx_archer;
+
+#define MU_SFX_ARROW_SHOTS 8
+typedef struct mu_sfx_arrow_shots {
+    int count;                /* CreateArrow calls, in order */
+    float angle[MU_SFX_ARROW_SHOTS][3];   /* the object's angle at each call */
+    int32_t last[MU_SFX_ARROW_SHOTS];
+    int serial_steps;         /* ++[[0x01d1df18] + 0x2dec] */
+    int bow_sparks;           /* bow 0x12f9's fifteen bone sparks follow (not reconstructed) */
+} mu_sfx_arrow_shots;
+
+/* angle: the object's angle, turned for each shot and restored. Returns the number of shots. */
+int mu_sfx_create_arrows(const mu_sfx_archer *a, float angle[3], uint16_t skill, uint16_t flag, uint16_t index,
+                         mu_sfx_arrow_shots *out);
+
+enum { MU_SFX_CALL_ARROW_EFFECT = 0x013c0e0a };   /* CreateEffect(type, subtype, pos, angle, light, owner, scale, info) */
+enum { MU_SFX_ARROW_OWNER_OBJECT = 0, MU_SFX_ARROW_OWNER_CHARACTER = 1, MU_SFX_ARROW_OWNER_TARGET = 2 };
+typedef struct mu_sfx_arrow_effect {
+    int32_t routine;          /* 0: nothing (no arrow for this bow), MU_SFX_CALL_EFFECT (0x49d), MU_SFX_CALL_ARROW_EFFECT */
+    int32_t type, subtype, owner;
+    float position[3], angle[3];   /* light: the object's; scale 0 */
+    mu_sfx_info info;
+    int32_t sounds[3];        /* PlayBuffer(sound, object, 0); negative: 0x00a6ad76(-sound, 1) */
+    int sound_count;
+} mu_sfx_arrow_effect;
+
+int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const float angle[3], uint16_t skill,
+                        uint16_t flag, uint16_t index, int32_t last, const mu_sfx_env *env, mu_sfx_arrow_effect *out);
 
 #endif

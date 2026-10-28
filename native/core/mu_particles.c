@@ -76,7 +76,9 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {0x1a8, -1, "Data/Npc/warp01.bmd"}, {0x1a9, -1, "Data/Npc/warp02.bmd"},
     {0x1aa, -1, "Data/Npc/warp03.bmd"}, {0x1ab, -1, "Data/Npc/warp01.bmd"},
     {0x1ac, -1, "Data/Npc/warp02.bmd"}, {0x1ad, -1, "Data/Npc/warp03.bmd"},
-    {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"}};
+    {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"},
+    /* RENDER-EFFECTS-004: Spirit of Guardian's wing 0x460 (AccessModel 0x0183375e, every world) */
+    {MU_SFX_MODEL_GUARDIAN_WING, -1, "Data/Skill/darkwing_hetachi.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
