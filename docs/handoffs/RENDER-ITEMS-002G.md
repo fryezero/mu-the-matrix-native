@@ -79,8 +79,23 @@ These are offline native renders, not live-client fidelity comparisons. Earlier 
 
 Baseline local macOS gate passes: 1,511 tests across 38 discovery runs, 187 explicit skips, native viewer/readers
 and publication audit, 1,429 files and zero rejections. No hosted workflow was dispatched.
-Part-6 regression passes **17,736 cases**, zero mismatches, **6/6 mutants**. Further earlier-family
-regressions and the final lock-held gate are still running or pending and will be recorded before merge.
+Preflight on the part-7 branch passes: **1,518 tests across 38 discovery runs**, **187 explicit skips**,
+native viewer/readers and publication audit, **1,435 files, zero rejected**.
+
+Fresh inherited instruction comparisons all have zero mismatches:
+
+| Family | Cases | Compiled mutants caught |
+|---|---:|---:|
+| Part 3 bodies, links and transforms | 74,292 | 8/8 |
+| Part 4 bodies, skins and links | 52,172 | 7/7 |
+| Part 5 bodies, skins and links | 25,772 | 9/9 |
+| Part 6 bodies and link chains | 17,736 | 6/6 |
+
+Including part 7, this run has **195,228 instruction comparisons**, zero mismatches, and **40/40 compiled
+instruction mutants caught**. Self-review against the owner brief, repository standards and the bounded
+native consumers found no blocking issue after correcting the saturated-clock probe fit. Complete rank-5
+rendering remains partial as stated above. The serialized final integration/gate is pending the merge lock.
+
 
 ## Remaining work and cleanup
 
