@@ -15,4 +15,4 @@ The local macOS gate and final suite counts are recorded below after verificatio
 
 Remaining: NET-DECODE-001 for actual wire construction/encrypted requests and experience acceptance;
 SESSION-SKILL-001 for broader cast/skill integration; SESSION-ITEMS-001 for ground ownership/pickup;
-special-world body services and live comparison. No live game, crypto or keyed-transform reconstruction.
+the separate remote HP-update route, special-world body services and live comparison. No live game, crypto or keyed-transform reconstruction.

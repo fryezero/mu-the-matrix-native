@@ -200,10 +200,6 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->attack_target = -1;
     c->last_sound = -1;
     c->hero_hp = 0;
-    if (walk) {
-        c->hero_home[0] = walk->hero.tile[0];
-        c->hero_home[1] = walk->hero.tile[1];
-    }
     c->crt_seed = config->seed ? config->seed : 1u;
     c->time_step = 0.1f;
     init_env(c);
@@ -225,10 +221,8 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
         mu_character_apply_player_speeds(hero);
     for (int32_t i = 0; actors && i < actors->count; ++i) {
         mu_combat_monster *m = &c->monsters[i];
-        m->hp = -1; /* remote HP is unknown until a server viewport supplies it */
         m->alpha = 1.0f;
         m->saved_wander = -1;
-        memcpy(m->home, actors->list[i].position, sizeof m->home);
     }
     load_bitmaps(c, root);
     load_models(c, root);
@@ -1134,9 +1128,10 @@ void mu_combat_receive(mu_combat *c)
         if(c->actor_revisions[k]!=view.equipment_revision[slot]) {
             if(c->actor_revisions[k] && c->monsters[k].dead) ++c->stats.respawns;
             memset(&c->monsters[k],0,sizeof c->monsters[k]);c->monsters[k].alpha=1;
-            c->monsters[k].hp=(int32_t)view.records[slot].hp;c->monsters[k].saved_wander=-1;
+            c->monsters[k].saved_wander=-1;
             c->actor_revisions[k]=view.equipment_revision[slot];
         }
+        c->monsters[k].hp=view.records[slot].hp;c->monsters[k].max_hp=view.records[slot].max_hp;
     }
     mu_combat_frame_event events[MU_COMBAT_HISTORY];uint32_t lost=0;
     size_t n=mu_session_combat_events(c->session,&c->receive_cursor,events,MU_COMBAT_HISTORY,&lost);c->receive_lost+=lost;
@@ -1625,7 +1620,7 @@ void mu_combat_report_frame(const mu_combat *c, FILE *out, int32_t frame)
             continue;
         const mu_combat_monster *m = &c->monsters[i];
         const mu_world_actor *a = &c->actors->list[i];
-        fprintf(out, "%s{\"actor\": %d, \"hp\": %d, \"action\": %u, \"dead\": %u, \"alpha\": %.4f,"
+        fprintf(out, "%s{\"actor\": %d, \"hp\": %u, \"action\": %u, \"dead\": %u, \"alpha\": %.4f,"
                 " \"z\": %.3f, \"removed\": %u, \"attack_time\": %u}", first ? "" : ", ", i, m->hp,
                 mu_actor_action(&a->actor), m->dead, (double)m->alpha, (double)a->position[2], m->removed,
                 m->attack_time);

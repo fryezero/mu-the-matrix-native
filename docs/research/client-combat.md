@@ -500,7 +500,7 @@ both select case 1 at `0x01222f53` through `0x0122374d`. Other actions remain ig
 
 `native/session/domains/combat_wire.c` contains the record writes and pre-transform request construction.
 `scripts/validate_session_combat.py` executes the captured bodies with synthetic records and independent service
-stubs. Its AddData stub records plaintext inputs and checks the encode argument; neither keyed AddData,
+stubs, fresh per family and mutant run. Die/action reset fields start nonzero. Its AddData stub records plaintext inputs and checks the encode argument; neither keyed AddData,
 receive decode nor the Send wrap is executed. The action switch now executes its real two selected branches;
 the interrupted WIP had jumped directly to the case and tested only action `78`.
 
@@ -546,8 +546,12 @@ is preserved: this scenario observes an experience frame and its unsent report, 
 and quest `A4` frames, zero unbound/undecodable, one consumed request, two unsent requests and one quest kill.
 Portable tests also check malformed-frame atomicity, damage without death, known/absent targets and event loss.
 Ground ownership/pickup remains SESSION-ITEMS-001; `20` currently hands validated rows to the existing view.
+Remote HP bars use only session viewport HP/max values. The synthetic viewport has zero HP/max, so its bar
+remains zero instead of estimating HP from damage. The separate HP-update route was not recovered or bound.
+The old character fixture now emits the complete nine-byte die frame. The seed-only combat transport check
+has one explicit include-audit allowance; product-library checks still reject fixture symbols.
 
 Intentional output changes: combat frame timing and RNG ownership now follow the fixture, cast visuals cannot
-kill while their encrypted requests are unsent, the synthetic drop is one Short Sword row, and respawn reaches
+kill while their encrypted requests are unsent, remote HP is no longer fabricated, the synthetic drop is one Short Sword row, and respawn reaches
 the view one poll after the server emits it. Native regression expectations record those changes. Existing
 render/hash fixtures outside the fight remain required by the full local gate. No live client was used.

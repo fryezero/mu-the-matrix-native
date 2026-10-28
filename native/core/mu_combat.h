@@ -112,7 +112,6 @@ enum {
 
 #define MU_COMBAT_PARTICLES 2048
 #define MU_COMBAT_LIGHTS 256
-#define MU_COMBAT_EVENTS 64
 #define MU_COMBAT_HERO_OBJECT MU_WORLD_ACTORS_MAX   /* object index of the hero in the effect environment */
 
 /* One AddTerrainLight call of the last logic step (re-applied after the
@@ -122,28 +121,22 @@ typedef struct mu_combat_light {
     int32_t range;
 } mu_combat_light;
 
-/* A pending demo server message. */
+/* One received damage result for presentation. */
 typedef struct mu_combat_event {
-    int32_t step;             /* due logic step */
-    int32_t kind;             /* 1 damage to a monster, 2 damage to the hero */
     int32_t actor;
     int32_t damage, type;
     uint8_t flag8, flag_a, shock;
 } mu_combat_event;
 
 typedef struct mu_combat_monster {
-    int32_t hp;               /* demo */
+    uint32_t hp, max_hp;      /* session viewport values; zero max means unavailable */
     uint8_t dead;             /* c + 0x23 */
     uint8_t attack_time;      /* c + 0x21 */
     uint8_t counter;          /* c + 0x28 */
     float fade_timer;         /* c + 0x1a8 */
     float alpha;              /* o + 0xdc */
     uint8_t removed;
-    int32_t respawn;          /* demo: steps until respawn */
     int32_t saved_wander;     /* wander radius while not fighting */
-    int32_t aggro;            /* demo: attacks the hero */
-    int32_t cooldown;         /* demo: steps until the next counter-attack */
-    float home[3];
     float voice_3324;         /* c + 0x3324: SetPlayerDie's sound block marks it 0.001 (NATIVE-ITEMS-001) */
 } mu_combat_monster;
 
@@ -189,8 +182,6 @@ typedef struct mu_combat {
     mu_combat_light lights[MU_COMBAT_LIGHTS];
     int32_t light_count;
     float time_step;           /* [0x01cf103c] */
-    mu_combat_event events[MU_COMBAT_EVENTS];
-    int32_t event_count;
     /* hero */
     int32_t hero_key;          /* 0x06fca288 */
     int32_t target;            /* actor index or -1 */
@@ -198,11 +189,9 @@ typedef struct mu_combat {
     int32_t attack_target;     /* target of the running attack */
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
-    int32_t hero_hp;           /* demo */
+    int32_t hero_hp;           /* session hero HP */
     uint8_t hero_dead;         /* c + 0x23 */
     float hero_3324;           /* c + 0x3324: SetPlayerDie's voice runs once (0.001 after it) */
-    int32_t hero_respawn;      /* demo: steps until the respawn, 0 none */
-    int32_t hero_home[2];      /* demo: the respawn tile */
     mu_combat_sound_fn play_sound;   /* optional (mu-world sets it when sound is on) */
     void *sound_context;
     uint32_t sounds_played;
