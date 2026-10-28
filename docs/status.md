@@ -1,5 +1,11 @@
 # Current status
 
+## Character-select runtime, CHARSEL-RT-001, 2026-10-27
+
+`mu_charsel_rt` replaces the textual embed with one options struct and nine explicit parts. The scene-flow
+and standalone charsel comparisons preserve every render and hash. The private character-create test now runs
+300 cases per family and detects all 6 planted mistakes. [Handoff](handoffs/CHARSEL-RT-001.md).
+
 ## Stage 1 of the port completion, 2026-10-25
 
 Four lanes from [the plan](design/native-port/plan.md) are merged (#162-#165):

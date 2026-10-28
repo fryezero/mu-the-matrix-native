@@ -435,12 +435,11 @@ light without its rise) disagree.
   TestFrustrum2D passes everything only in scenes 1..4, so in scene 5 the polygon decides what RenderObjects draws.
   NATIVE-CHARSEL-001 used the in-world values (1, 2400): the polygon was 4.8 times too small and culled the left
   waterfall, the castle and the cliffs. `mu_world_client_frustum_scaled` takes the two values.
-* `charsel/main.c` draws in the render's order: terrain, RenderObjects, the shown character with each part's shadow
+* `charsel/parts.def` orders `mu_charsel_rt`'s draw passes: terrain, RenderObjects, the shown character with each part's shadow
   (the item render's shadow block, `mu_world_particles_character_shadow`, static), the effect models,
   RenderObjects_AfterCharacter, the highlight decals, then RenderJoints/RenderSprites/RenderParticles. Headless frames
   that are not saved still run RenderObjects (`mu_charsel_frame_objects`). `--objects-out FILE` writes each object's
-  type, position, +0xb, +0xa and blend v. `mu-client` gets all of this through `charsel_embed.c` (function names
-  unchanged).
+  type, position, +0xb, +0xa and blend v. `mu-client` gets all of this through `mu_charsel_rt` (CHARSEL-RT-001).
 
 Viewer choices: the module's own rand(); the joints are drawn after the decals instead of before the
 after-character pass (the scene creates none); effect kinds that are not reconstructed (stardr01 `0x5ac`, `0x59a`)
@@ -785,3 +784,21 @@ their panel), `try4/` (a Slayer created and listed), `try5/` (delete flow: confi
 * The server-message window `+0x63a8`.
 * The list handler's equipment decoding (packet data, deliberately not traced).
 * GlobalText (`Data\Lang.mpr`) for the tip and warning strings.
+
+
+## Character-select runtime extraction, CHARSEL-RT-001 (2026-10-27)
+
+Verified host refactor from `a9128ef`. `native/charsel/charsel_rt.c` dispatches the existing passes through
+`parts.def`: scene assets, terrain, objects, character, effects, after-character objects, decals, billboards,
+and the optional standalone 2D layer. `mu_charsel_rt_options` replaces the embed config; `charsel_tool.c` owns
+CLI parsing, scripts and reports. No reconstructed routine or client-code pin changed. The existing session
+still owns the scene tick, characters and particles; session-account migration remains open.
+
+The private character-create check now uses `--cases 300 --mutations`, as does its validator manifest row.
+This gives 4,368 instruction comparisons with zero mismatches and detects 6/6 planted mistakes, including the
+CP949 mutant that 60 cases missed. The two private charsel tests that referenced the removed `EVIDENCE`
+attribute now let the validator resolve and check its pins, so requested integration reports missing inputs
+as errors. The charcreate run took 50.4 seconds on this Mac with concurrent checks.
+
+The comparison scope, exact counts, local artifact paths and limits are in
+[the lane handoff](../handoffs/CHARSEL-RT-001.md). No live client was used.
