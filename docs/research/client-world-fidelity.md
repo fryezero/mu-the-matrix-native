@@ -545,3 +545,12 @@ steps. Total 4,840 comparisons, zero mismatches/stops, 12/12 compiled mutants ca
 and all final PNG hashes remain unchanged. The arrival views have no active event/boid state to measure.
 The source addresses, pins, native-host checks, score values and explicit remaining inputs are in the
 [milestone handoff](../handoffs/RENDER-WORLDS-E.md).
+
+The final 2026-10-28 rerun on main `0a854411` plus E passes all six registered E/B/D/Icarus/C2/F suites:
+26,698 cases, zero mismatches/stops, all 53 compiled mutants caught. The separate MoveObject recheck passes
+3,000 cases and 19 mutants. Fresh isolated executions of the terrain validator's reset/add-light loops pass
+8/8 and 160/160 cases, with both clamp controls detected. The three authored Aida-history tests pass.
+The rebuilt E binary and retained same-main baseline produce equal complete scoreboards and fourteen equal
+final PNG hashes. Aida/Elbeland/Raklion frame-light errors remain 0.65117/0.02078/0.02574; missing/extra
+placements remain zero and primary light remains exact. These are regression results with the saved arrival
+state. The snapshots still cannot score an active event or moving boid against the original image.

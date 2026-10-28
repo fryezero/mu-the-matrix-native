@@ -18,7 +18,31 @@ input. Aida's largest near-hero light difference has an accumulation signature; 
   still have zero missing/extra objects and exact primary light. Aida's frame-light mean remains 0.65117;
   Elbeland 0.02078 and Raklion 0.02574. These snapshots contain no live boid pool or event timer state, and
   Elbeland's safe arrival view has zero native boids. No live-image improvement is claimed.
-- Full Mac gate and registered validator/regression results are recorded below after the final combined-tree run.
+- Final registered checks on `origin/main` `0a854411` plus this lane: six validators pass with no errors or
+  skips. E has 4,840 cases and 12 mutants; B 4,000/10; D 2,400/8; Icarus 5,240/8; Icarus C2 8,400/8;
+  F 1,818/7. All 26,698 cases match, with zero stopped cases and all 53 compiled mutants caught.
+- The native host test covers event arming, the exact expiry boundary, repeated active emissions, missing
+  models, special-type skips, quake reset, installed model names and boid-owned particle drawing. The three
+  portable Aida-history tests pass. The full Mac gate result is recorded below.
+
+## Final fidelity tour, 2026-10-28
+
+The before binary is the retained `resume-main-mu-world` from the prior resume, built at `0a854411`, which is
+still current main. Its SHA-256 is `fea84f85e3dba965b8fe740bb5d2347a60f60e2284f0fd8c3e234c791b1026bc`.
+The after binary was rebuilt in this worktree at `8401213`. Both use the same 2026-10-22 object/light snapshots,
+installed assets, camera and 25-step tour manifests. The complete scoreboards are equal; all fourteen final
+PNG SHA-256 values are equal, including every unaffected world. Missing/extra placements are 0/0 before and
+after on all views. Primary-light mean and maximum errors are zero throughout.
+
+| View | Near-hero frame-light mean before | After | Final PNG |
+|---|---:|---:|---|
+| Aida | 0.65117 | 0.65117 | Identical |
+| Elbeland | 0.02078 | 0.02078 | Identical |
+| Raklion | 0.02574 | 0.02574 | Identical |
+
+The surviving image scores also remain unchanged: Dungeon 2.019, Icarus 26.897 and Kanturu 3.717. The other
+eleven original PNGs remain unavailable. No active-event or boid image improvement is inferred from this tour.
+`final-20261028-scoreboard-proof.json` records per-view before/after metrics, PNG digests and binary digests.
 
 ## Implementation and limits
 
@@ -54,13 +78,16 @@ terrain code resets only a visible rectangle and preserves the rest. The snapsho
 history, so its exact extent and the reason for the native/captured boundary difference remain unverified.
 Do not fit a new brightness constant or claim complete Aida visual equivalence from this result.
 
-The 2026-10-28 instruction recheck covers 3,000 MoveObject cases with zero mismatches/stops and 19/19
+The final 2026-10-28 instruction recheck covers 3,000 MoveObject cases with zero mismatches/stops and 19/19
 compiled mutants detected, including Aida's deliberately wrong source brightness. Terrain frame reset
 `0x016ca4fa` matches in 8/8 cases; AddTerrainLight `0x016cacfc` matches in 160/160 cases. Both light-clamp
 negative controls differ from the original. These verify the source/reset/add rules, not the captured reset
-history. The supplemental reduced terrain run also reports one unrelated world-53 face-effect mismatch
-and 29 generated-NaN sign-only cases. No terrain implementation changed in this lane; these are not counted
-as zero-mismatch terrain coverage.
+history. The final focused terrain run re-executes the unchanged frame-update and add-light family loops
+from `validate_terrain.py`, each in a fresh emulator, against the compiled production terrain C. Its 40
+negative-control cases catch the upper clamp in 40 and the missing lower clamp in 34; the ordinary Python
+reference matches all 40. The earlier broad reduced terrain run reported one unrelated world-53 face-effect
+mismatch and 29 generated-NaN sign-only cases. No terrain implementation changed in this lane; that broad
+run is not counted as zero-mismatch terrain coverage.
 
 Pins: text `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`;
 data `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
@@ -74,7 +101,8 @@ Both remain local. No input symlinks, captured bytes, decoded assets or generate
 
 ## Remaining work
 
-A's flames/after-character pass and C2's Icarus work remain owned by those lanes. Other open work is the
+A's flames/after-character pass remains with that lane; C2's merged Icarus paths pass the regression above.
+Other open work is the
 authoritative Raklion state feed, its downstream event effect families, captured Elbeland action speeds,
 the Aida reset-box/history input and fresh synchronized visual captures in a separately authorized run.
 Tarkan/Raklion haze remains outside this lane. Self-review covers standards and the task scope; no independent
