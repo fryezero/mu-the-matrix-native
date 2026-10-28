@@ -62,9 +62,10 @@ It checks particle/sprite/joint callbacks, ownership, subtype and scale, missing
 and sibling-world dispatch. It needs no game assets and would fail if either new visual dispatch were removed.
 The private validator is registered in `scripts/validators.toml` and has an opt-in unittest.
 
-Fourteen saved-snapshot tour renders at the existing 25-frame endpoint retain **14/14 PNG hashes,
+Fourteen saved-snapshot tour renders at the existing 25-frame endpoint retain **28/28 first/final PNG hashes,
 14/14 object dumps and 14/14 light dumps**. None is world 62/63, so these are unaffected-world regressions,
-not Santa/Vulcanus image-fidelity evidence. The local Mac gate and reviewed source audit are recorded in
+not Santa/Vulcanus image-fidelity evidence. The full local Mac gate passes with 1,466 tests, 179 explicit skips and seven fixture scenarios.
+The reviewed publication audit rejects zero of 1,367 files. Details are recorded in
 [the handoff](../handoffs/RENDER-WORLDS-G.md).
 
 ## Remaining work and DATA-ACQ-002

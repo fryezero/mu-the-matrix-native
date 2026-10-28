@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-RENDER-WORLDS-G implements the 48-class inventory and all three primary Santa Village/Vulcanus methods. Six thousand instruction cases, 13/13 mutants, 14 unaffected hashes unchanged; [limits and remaining work](handoffs/RENDER-WORLDS-G.md).
+RENDER-WORLDS-G implements the 48-class inventory and all three primary Santa Village/Vulcanus methods. Six thousand instruction cases, 13/13 mutants, 28 unaffected first/final hashes unchanged; full Mac gate passes; [limits and remaining work](handoffs/RENDER-WORLDS-G.md).
 
 RENDER-WORLDS-E implements Elbeland boids/clouds and Raklion event timing, and attributes Aida's light outlier. Full Mac gate passes, 1,463 tests; saved-view scores/hashes unchanged. [Checks and remaining inputs](handoffs/RENDER-WORLDS-E.md).
 
