@@ -1598,7 +1598,6 @@ args = ["--cases", "500", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
-<<<<<<< HEAD
 [validate_viewport_monsters]
 test = "native/tests/test_session_monsters.py::PrivateMonsters.test_original_handler_and_creation"
 pins = ["text", "data"]
@@ -1615,7 +1614,7 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations"
 "handler_cases" = 1000
 "creation_cases" = 963
 "mutants.caught" = 8
-=======
+
 [validate_worlds_d]
 test = "reconstructed/objects/test_worlds_d.py::WorldsDTests.test_original_instructions"
 pins = ["text", "data"]
@@ -1631,4 +1630,3 @@ args = ["--cases", "600", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
->>>>>>> origin/main

@@ -1,10 +1,8 @@
 # Roadmap and work queue
 
-<<<<<<< HEAD
 VIEWPORT-MONSTER-001 is implemented: [record feed, instruction comparisons and limits](handoffs/VIEWPORT-MONSTER-001.md).
-=======
+
 RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).
->>>>>>> origin/main
 
 RENDER-WORLDS-B is implemented for the bounded per-world move/create and snow paths. [Coverage and remaining limits](handoffs/RENDER-WORLDS-B.md).
 
