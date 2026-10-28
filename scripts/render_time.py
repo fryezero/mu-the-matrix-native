@@ -16,14 +16,14 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / 'scripts/render_time/paths.json'
-GROUPS = {'camera': 9, 'objects': 16, 'particles': 10, 'environment': 8,
+GROUPS = {'camera': 9, 'objects': 19, 'particles': 10, 'environment': 8,
           'lights': 6, 'sky': 4, 'rng': 5, 'image': 48}
 HASHES = ('objects_hash', 'particles_hash', 'environment_hash', 'lights_hash', 'image_hash')
 NATIVE_TOLERANCE = 1e-6
 # Live thresholds are per-component absolute error after normalizing object/pool sums by count.
 LIVE_LIMITS = {
     'camera': [1, 1, 1, .05, 1, 1, 1, .01, .01],
-    'objects': [0, .05, .05, .01, .01, .01, .01, 1, 1, 1, .1, .1, .1, .01, .01, .01],
+    'objects': [0, .05, .05, .01, .01, .01, .01, 1, 1, 1, .1, .1, .1, .01, .01, .01, .05, 0, 0],
     'particles': [.1, 5, 5, 5, 2, .05, .05, 1, 0, .1],
     'environment': [.1, 5, 5, 5, .05, .05, .1, 2],
     'lights': [1e-6, 1e-6, 1e-6, .05, .05, .05],
@@ -64,6 +64,8 @@ def validate_series(s):
         raise ValueError('series needs version, source and maps')
     names = set()
     for e in s['maps']:
+        if Path(e['name']).name != e['name'] or e['name'] in ('.', '..'):
+            raise ValueError('unsafe map name')
         if e['name'] in names:
             raise ValueError('duplicate map')
         names.add(e['name'])
@@ -72,6 +74,8 @@ def validate_series(s):
             raise ValueError('need 3..1001 temporal samples per map')
         previous = None
         for r in rows:
+            if type(r['frame']) is not int or type(r['steps']) is not int:
+                raise ValueError('frame and steps must be integers')
             for k in ('frame', 'world_time', 'steps'):
                 if type(r[k]) not in (int, float) or not math.isfinite(r[k]):
                     raise ValueError(f'nonfinite {k}')
@@ -98,7 +102,7 @@ def validate_series(s):
 def coverage(rows):
     camera = [r['camera'] for r in rows]
     start = camera[0]
-    return {'walk_distance': round(max(math.dist(start[:3], c[:3]) for c in camera), 6),
+    return {'walk_distance': round(max(math.dist(start[:2], c[:2]) for c in camera), 6),
             'fov_span': round(max(c[7] for c in camera) - min(c[7] for c in camera), 6),
             'varying_groups': [g for g in GROUPS if any(r[g] != rows[0][g] for r in rows[1:])]}
 
@@ -115,6 +119,16 @@ def capture(plan_path, binary, game_root, objects_dir, out, only=None, backend='
         raise ValueError('unknown/empty map selection')
     if not Path(game_root).is_dir() or (objects_dir and not Path(objects_dir).is_dir()):
         raise ValueError('missing private input directory')
+    placements = {}
+    if objects_dir:
+        for e in entries:
+            path = Path(objects_dir) / f"EncTerrain{e.get('folder', e['world'] + 1)}.plain"
+            if not path.is_file():
+                raise ValueError(f'missing captured placement: {path.name}')
+            placements[e['name']] = {path.suffix: digest(path)}
+            for suffix in ('.hidden', '.velocity'):
+                sidecar = path.with_suffix(suffix)
+                if sidecar.is_file(): placements[e['name']][suffix] = digest(sidecar)
     out.mkdir()
     result = {'version': 1, 'source': 'native', 'draw_every_frame': True,
               'plan_sha256': digest(plan_path), 'binary_sha256': digest(binary),
@@ -127,6 +141,7 @@ def capture(plan_path, binary, game_root, objects_dir, out, only=None, backend='
                '--width', str(p['width']), '--height', str(p['height']), '--no-audio',
                '--no-names', '--no-helpers', '--no-map', '--no-players',
                '--frames', str(p['frames']), '--every', str(p['save_every']), '--out-dir', str(dest),
+               '--time-series-start-ms', str(p.get('start_world_time_ms', 100000)),
                '--time-series-every', str(p['sample_every']), '--input-script', str(e['script_path']),
                '--env-seed', '1', '--particle-seed', '1']
         if objects_dir:
@@ -138,7 +153,8 @@ def capture(plan_path, binary, game_root, objects_dir, out, only=None, backend='
         rows = [json.loads(line) for line in run.stdout.splitlines() if line.startswith('{')]
         samples = [r for r in rows if r.get('time_series') == 1]
         entry = {k: e[k] for k in ('name', 'world', 'tile')}
-        entry.update(script_sha256=digest(e['script_path']), expected_frames=schedule(p), samples=samples)
+        entry.update(script_sha256=digest(e['script_path']), expected_frames=schedule(p), samples=samples,
+                     placement_sha256=placements.get(e['name']))
         result['maps'].append(entry)
         validate_series(result)
         if entry['expected_frames'] != [r['frame'] for r in samples]:
@@ -186,10 +202,12 @@ def compare(reference, candidate, mode='native'):
         for key in ('world', 'tile', 'script_sha256', 'expected_frames'):
             if key not in a or a[key] != b.get(key):
                 failures.append(f'{key} differs or missing')
+        if mode == 'native' and a.get('placement_sha256') != b.get('placement_sha256'):
+            failures.append('placement/sidecar provenance differs')
         cov = coverage(b['samples'])
         if cov['walk_distance'] < 50 or cov['fov_span'] < 1:
             failures.append('path needs >=50 world units of walking and >=1 degree of zoom')
-        # WorldTime epochs can differ on live; pair only the recorded relative times, never best-match images.
+        # Check both absolute phase and elapsed time; never best-match images.
         epoch_a, epoch_b = a['samples'][0]['world_time'], b['samples'][0]['world_time']
         maxima = {g: 0.0 for g in GROUPS if mode == 'native' or g != 'rng'}
         for x, y in zip(a['samples'], b['samples']):
@@ -197,6 +215,9 @@ def compare(reference, candidate, mode='native'):
                 failures.append(f"frame {y['frame']}: WorldTime/frame alignment")
             if mode == 'native' and (x['world_time'] != y['world_time'] or x['steps'] != y['steps']):
                 failures.append(f"frame {y['frame']}: native clock/steps")
+            if mode == 'live' and (abs(x['world_time'] - y['world_time']) > 20 or
+                    x['steps'] - a['samples'][0]['steps'] != y['steps'] - b['samples'][0]['steps']):
+                failures.append(f"frame {y['frame']}: absolute WorldTime/relative steps")
             for g in maxima:
                 for i, (v, w) in enumerate(zip(x[g], y[g])):
                     error = abs(v-w) if mode == 'native' else live_error(g, x[g], y[g], i)
@@ -240,6 +261,12 @@ def main(argv=None):
             return 0
         result = compare(json.loads(a.reference.read_text()), json.loads(a.candidate.read_text()), a.mode)
         a.report.write_text(json.dumps(result, indent=2) + '\n')
+        per_map = a.report.parent / (a.report.stem + '-maps')
+        per_map.mkdir(exist_ok=True)
+        for entry in result['maps']:
+            report = {**entry, 'mode': result['mode'], 'errors': result['errors'],
+                      'passed': entry['passed'] and not result['errors'], 'thresholds': result['thresholds']}
+            (per_map / (entry['name'] + '.json')).write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps({'passed': result['passed'], 'maps': len(result['maps']), 'errors': result['errors']}))
         return 0 if result['passed'] else 1
     except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError) as error:

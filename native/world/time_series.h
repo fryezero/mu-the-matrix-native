@@ -6,7 +6,7 @@
 static void time_values(const char *name, const double *v, int n)
 {
     printf(",\"%s\":[", name);
-    for (int i = 0; i < n; ++i) printf("%s%.9g", i ? "," : "", v[i]);
+    for (int i = 0; i < n; ++i) printf("%s%.12g", i ? "," : "", v[i]);
     printf("]");
 }
 
@@ -29,20 +29,24 @@ static void time_series_sample(const mu_world_rt *a, int frame, const uint8_t *r
     /* Ordered sums plus a checksum preserve cancellation-sensitive changes. Object list order is native-only. */
     const int offsets[] = {MU_OBJF_FRAME, MU_OBJF_PRIOR_FRAME, MU_OBJF_ALPHA, MU_OBJF_BLEND_U,
         MU_OBJF_BLEND_V, MU_OBJF_BLEND_LIGHT, MU_OBJF_POSITION, MU_OBJF_POSITION+4, MU_OBJF_POSITION+8,
-        MU_OBJF_ANGLE, MU_OBJF_ANGLE+4, MU_OBJF_ANGLE+8, MU_OBJF_LIGHT, MU_OBJF_LIGHT+4, MU_OBJF_LIGHT+8};
-    double objects[16] = {0};
+        MU_OBJF_ANGLE, MU_OBJF_ANGLE+4, MU_OBJF_ANGLE+8, MU_OBJF_LIGHT, MU_OBJF_LIGHT+4, MU_OBJF_LIGHT+8, MU_OBJF_TIMER};
+    double objects[19] = {0};
     uint64_t oh = UINT64_C(14695981039346656037);
     for (int i = 0; a->has_objects && i < a->objects.count; ++i) {
         const uint8_t *o = a->objects.rt.images + i * MU_OBJ_SIZE;
         if (!o[MU_OBJF_LIVE]) continue;
         objects[0]++;
-        for (int k = 0; k < 15; ++k) {
+        uint16_t action; memcpy(&action, o + MU_OBJF_ACTION, sizeof action);
+        objects[17] += o[MU_OBJF_VISIBLE]; objects[18] += action;
+        oh = time_hash(oh, o + MU_OBJF_VISIBLE, 1);
+        oh = time_hash(oh, &action, sizeof action);
+        for (int k = 0; k < 16; ++k) {
             float f; memcpy(&f, o + offsets[k], sizeof f);
             objects[k+1] += f;
             oh = time_hash(oh, &f, sizeof f);
         }
     }
-    time_values("objects", objects, 16);
+    time_values("objects", objects, 19);
     printf(",\"objects_hash\":\"%016llx\"", (unsigned long long)oh);
     double particles[10] = {0};
     uint64_t ph = UINT64_C(14695981039346656037);
@@ -83,7 +87,8 @@ static void time_series_sample(const mu_world_rt *a, int frame, const uint8_t *r
         lights[3+i%3] += a->map->light[i] / (double)MU_TERRAIN_CELLS;
     }
     time_values("lights", lights, 6);
-    uint64_t lh = time_hash(UINT64_C(14695981039346656037), a->map->light, sizeof a->map->light);
+    uint64_t lh = time_hash(UINT64_C(14695981039346656037), a->map->primary, sizeof a->map->primary);
+    lh = time_hash(lh, a->map->light, sizeof a->map->light);
     printf(",\"lights_hash\":\"%016llx\"", (unsigned long long)lh);
     uint8_t clear[4] = {0};
     if (a->has_env) mu_world_env_clear(&a->env, clear);

@@ -109,6 +109,7 @@ typedef struct tool {
     const char *out_dir, *backend;
     int32_t frames, every, pause, headless;
     int32_t time_series_every;
+    uint32_t time_series_start;
     float seconds;
     int32_t waypoints[MAX_WAYPOINTS][2], waypoint_count;
     /* NATIVE-PATH-002: a long-distance auto move */
@@ -714,7 +715,7 @@ static int headless(tool *t)
     uint8_t *pixels = malloc(bytes);
     if (!pixels)
         return 1;
-    uint32_t now = 100000;
+    uint32_t now = t->time_series_start;
 #ifndef MU_WORLD_NO_GL
     uint32_t gfx_clock = now;
 #endif
@@ -1088,7 +1089,7 @@ static int usage(void)
                     "                [--sound-table TSV] [--no-audio] [--wav OUT.wav] [--audio-rate HZ]\n"
                     "                [--placement DEMO.txt] [--legacy-box]\n"
                     "                [--objects-dir DIR]   local decoded EncTerrain<n>.plain files\n"
-                    "                [--time-series-every N]   headless full draw, compact post-draw samples, max 10001 frames\n"
+                    "                [--time-series-every N] [--time-series-start-ms MS]   headless full draw, compact post-draw samples, max 10001 frames\n"
                     "                [--fidelity-dump PREFIX]   PREFIX-obj.bin / PREFIX-light.bin at the end (fidelity tour)\n"
                     "                [--combat] [--combat-weapon none|sword|twohand|spear|bow|crossbow|staff]\n"
                     "                [--attack-speed N] [--combat-seed N] [--hero-hp N] [--combat-script \"F:attack:ACTOR F:skill:N:ACTOR ...\"]\n"
@@ -1119,6 +1120,7 @@ int main(int argc, char **argv)
     memset(&t, 0, sizeof t);
     mu_world_rt_options *o = &t.o;
     mu_world_rt_default_options(o);
+    t.time_series_start = 100000;
     t.frames = 300;
     t.every = 10;
     t.pause = 8;
@@ -1179,6 +1181,11 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--helper-state")) o->helper_state = atoi(v);
         else if (!strcmp(k, "--player-range")) o->player_range = atoi(v);
         else if (!strcmp(k, "--objects-dir")) o->objects_dir = v;
+        else if (!strcmp(k, "--time-series-start-ms")) {
+            char *end; unsigned long n = strtoul(v, &end, 10);
+            if (!*v || *end || *v == '-' || n < 1 || n > 2140000000UL) return usage();
+            t.time_series_start = (uint32_t)n;
+        }
         else if (!strcmp(k, "--time-series-every")) {
             char *end; long n = strtol(v, &end, 10);
             if (!*v || *end || n < 1 || n > 10000) return usage();
