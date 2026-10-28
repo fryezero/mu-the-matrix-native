@@ -226,7 +226,9 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
 1. **Icarus cover and emitter gap closed by RENDER-WORLDS-C2** (section 7). The remaining image error includes
    unsynchronised cloud rotation, puff distribution, ribbons, dragons and uncaptured hero equipment. The earlier
    RENDER-WORLDS-C results in section 3.5 are historical.
-2. **Tarkan and Raklion haze**: the client's terrain is up to ~1.35× brighter, the darker light-map areas most, so
+2. **Tarkan and Raklion haze**: RENDER-WORLDS-F recovers the missing additive screen passes. See [the verified finding](client-world-haze.md) for instruction evidence, native measurements and unavailable original-image scores. The following diagnosis is historical.
+
+   The earlier observation was that the client's terrain is up to ~1.35× brighter, the darker light-map areas most, so
    the contrast is compressed; the pattern stays with the ground when the hero moves (second session, two positions
    per map). The primary and frame light grids equal the native ones, the light-offset grid `0x0bc35430` is all zero,
    FogEnable is off and the fog globals are the BeginOpengl defaults (live reads), and the textures are the same. Both
