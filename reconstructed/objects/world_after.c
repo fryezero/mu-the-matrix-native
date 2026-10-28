@@ -51,7 +51,7 @@ int mu_world_after_pass(mu_obj_world *w, const mu_obj_render_inputs *in, int32_t
                 uint8_t *o = w->objects[k];
                 const float x = mu_obj_f32(o, MU_OBJF_POSITION) * 0.01f,
                             y = mu_obj_f32(o, MU_OBJF_POSITION + 4) * 0.01f;
-                /* The special predicate has its own frustum test, with range -100. */
+                /* The special predicate has its own, wider per-world frustum test. */
                 const int special = mu_world_after_special(o, in->world) &&
                                     mu_terrain_test_frustum_2d(in->x2d, in->y2d, in->scene_state, x, y,
                                                                in->world == 0x33 ? -400.0f : -600.0f);

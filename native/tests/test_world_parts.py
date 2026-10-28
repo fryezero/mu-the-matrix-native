@@ -114,7 +114,7 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 22)
+        self.assertEqual(len(ids), 23)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 
