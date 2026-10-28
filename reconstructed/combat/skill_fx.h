@@ -67,7 +67,18 @@ enum {
     MU_SFX_BITMAP_MAGIC_GROUND2 = 0x7f84, /* Effect\Magic_Ground2.jpg (Heal) */
     MU_SFX_BITMAP_JOINT_SPIRIT = 0x7fd3,  /* Effect\JointSpirit01.jpg (Evil Spirit) */
     MU_SFX_BITMAP_JOINT_ENERGY = 0x7fd8,  /* Effect\JointEnergy01.jpg (Heal) */
-    MU_SFX_BITMAP_SHOCKWAVE = 0x8012      /* Effect\ShockWave.jpg: the mounts' flying step (NATIVE-HELPERS-002) */
+    MU_SFX_BITMAP_SHOCKWAVE = 0x8012,     /* Effect\ShockWave.jpg: the mounts' flying step (NATIVE-HELPERS-002) */
+    /* RENDER-EFFECTS-004: Rageful Blow (loader 0x0183451b..0x018345fc) */
+    MU_SFX_RAGEFUL_BLOW = 0x461,      /* no model: draws its owner's weapon (RenderEffects 0x01532bd2) */
+    MU_SFX_MODEL_QUAKE1 = 0x462,      /* Skill\EarthQuake01.bmd .. 0x469 EarthQuake08.bmd */
+    MU_SFX_MODEL_QUAKE2 = 0x463,
+    MU_SFX_MODEL_QUAKE3 = 0x464,
+    MU_SFX_MODEL_QUAKE4 = 0x465,
+    MU_SFX_MODEL_QUAKE5 = 0x466,
+    MU_SFX_MODEL_QUAKE7 = 0x468,
+    MU_SFX_MODEL_QUAKE8 = 0x469,
+    MU_SFX_MODEL_FLASHING = 0x46a,    /* Skill\flashing.bmd */
+    MU_SFX_MODEL_TAIL = 0x46b         /* Skill\tail.bmd */
 };
 
 /* Client routines reported through the call hook. */
@@ -88,7 +99,10 @@ enum {
     MU_SFX_CALL_POSE = 0x012b5064,            /* model Animation(bones 0x06fce398, frame, prior frame, prior action, angle,
                                                  head angle, 0, 0): poses the effect's model (type) */
     MU_SFX_CALL_BONE = 0x012b678d,            /* model TransformByObjectBone(out, o, bone (range), 0): env->bone answers */
-    MU_SFX_CALL_KILL = 0x009b0451             /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
+    MU_SFX_CALL_KILL = 0x009b0451,            /* NATIVE-HELPERS-002: SetLive(o, 0)'s cleanup of the record (o = -2) */
+    MU_SFX_CALL_ITEM_LINKS = 0x01295f18,      /* RENDER-EFFECTS-004: the item initialiser's +0x358 list reset (o = -2) */
+    MU_SFX_CALL_WALL = 0x016d34cd             /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x], unmasked index:
+                                                 subtype = x, range = y; returns the attribute word */
 };
 
 #define MU_SFX_EFFECTS 200
@@ -143,6 +157,11 @@ typedef struct mu_sfx_effect {
     /* NATIVE-HELPERS-002 */
     int32_t field_64;        /* +0x64 Fenrir's lightning: fade stage; the paws' marks: the sheet frame */
     uint32_t time_mark;      /* +0x9c the paws' marks: timeGetTime() of the last frame step */
+    /* RENDER-EFFECTS-004: Rageful Blow 0x461 and the item-object initialiser its renderer runs */
+    float impact[3];         /* +0x110 the blow's ground point (the hop's origin) */
+    float heading_yz[2];     /* +0x174, +0x178: with heading (+0x170) the weapon's second angle vector */
+    uint8_t field_4;         /* +0x04 */
+    float field_c0;          /* +0xc0 */
 } mu_sfx_effect;
 
 /* CreateEffect's info block (argument 8, 0x20 bytes). */
@@ -363,5 +382,27 @@ void mu_sfx_inferno_burst(const float position[3], uint8_t visible, const mu_sfx
 
 /* RenderEffects primary Aqua Beam sprite/light chain, ordinary worlds. */
 void mu_sfx_aqua_render(mu_sfx_effect *effect, const mu_sfx_env *env);
+
+/* RENDER-EFFECTS-004: the item object initialiser 0x016da00b (per-model blend presets; the
+ * WorldTime clock is env->world_time) and Rageful Blow's weapon draw, RenderEffects 0x01532bd2:
+ * from step 11 of its 20 on, the owner's weapon model (owner +0x56 + 0xae6) at the record
+ * position. The record is re-initialised as that item (light 0.3, scale 0.8 or the preset,
+ * gravity kept) before RenderPartObject 0x017e63f4. terrain_light: RequestTerrainLight 0x016cb08d
+ * at the position; hero_byte: [[0x0a39d754] + 0x12]. Returns 0 when nothing is drawn. */
+typedef struct mu_sfx_weapon_draw {
+    int32_t model;
+    float origin[3];          /* model BodyOrigin +0x78 */
+    float angle[3], head_angle[3];
+    float frame, prior_frame;
+    uint16_t prior_action, action;
+    uint8_t hero_class;       /* model +0xa4 */
+    float light[3];
+    float alpha;
+    int32_t level;            /* RenderPartObject argument 5: owner +0x41 << 3 */
+} mu_sfx_weapon_draw;
+
+void mu_sfx_item_object_init(mu_sfx_effect *e, const mu_sfx_env *env);
+int mu_sfx_rageful_weapon(mu_sfx_effect *e, const float terrain_light[3], uint8_t hero_byte, const mu_sfx_env *env,
+                          mu_sfx_weapon_draw *out);
 
 #endif

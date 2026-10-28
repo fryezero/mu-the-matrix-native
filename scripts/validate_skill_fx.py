@@ -143,7 +143,9 @@ class Effect(ctypes.Structure):
                 ('position', ctypes.c_float*3), ('angle', ctypes.c_float*3), ('start', ctypes.c_float*3),
                 ('owner', ctypes.c_int32), ('field_364', ctypes.c_uint16), ('field_58', ctypes.c_int32),
                 ('field_2e4', ctypes.c_int32), ('field_6', ctypes.c_uint8), ('field_70', ctypes.c_int32),
-                ('heading', ctypes.c_float), ('field_64', ctypes.c_int32), ('time_mark', ctypes.c_uint32)]
+                ('heading', ctypes.c_float), ('field_64', ctypes.c_int32), ('time_mark', ctypes.c_uint32),
+                ('impact', ctypes.c_float*3), ('heading_yz', ctypes.c_float*2), ('field_4', ctypes.c_uint8),
+                ('field_c0', ctypes.c_float)]   # RENDER-EFFECTS-004
 
 
 class Info(ctypes.Structure):
@@ -156,7 +158,8 @@ class Object(ctypes.Structure):   # mu_jt_object (reconstructed/joints)
     _fields_ = [('live', ctypes.c_uint8), ('visible', ctypes.c_uint8), ('weapon', ctypes.c_int16),
                 ('position', ctypes.c_float*3), ('light', ctypes.c_float*3),
                 ('action', ctypes.c_uint16), ('type', ctypes.c_int32),
-                ('eye_188', ctypes.c_float*3), ('eye_194', ctypes.c_float*3)]   # NATIVE-HELPERS-002
+                ('eye_188', ctypes.c_float*3), ('eye_194', ctypes.c_float*3),   # NATIVE-HELPERS-002
+                ('angle', ctypes.c_float*3), ('level', ctypes.c_int8)]   # RENDER-EFFECTS-004
 
 
 class Call(ctypes.Structure):
@@ -405,6 +408,8 @@ EFFECT_FIELDS = [
     ('start', 0x1d0, 'f', 3), ('field_364', 0x364, 'H', 1), ('field_58', 0x58, 'i', 1), ('field_2e4', 0x2e4, 'i', 1),
     ('field_6', 0x06, 'B', 1), ('field_70', 0x70, 'i', 1), ('heading', 0x170, 'f', 1),
     ('field_64', 0x64, 'i', 1), ('time_mark', 0x9c, 'I', 1),   # NATIVE-HELPERS-002
+    ('impact', 0x110, 'f', 3), ('heading_yz', 0x174, 'f', 2), ('field_4', 0x04, 'B', 1),
+    ('field_c0', 0xc0, 'f', 1),   # RENDER-EFFECTS-004
 ]
 # visible (+0x0b) is an input of the hit checks only; owner (+0x34c) is a pointer handled separately.
 
@@ -485,7 +490,9 @@ def object_region(objects, writable=False):
         struct.pack_into('<h', data, base+0x56, o.weapon)
         struct.pack_into('<3f', data, base+0x158, *o.position)
         struct.pack_into('<i', data, base+0x5c, o.type)
-        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0x5c, 4)):
+        struct.pack_into('<3f', data, base+0x164, *o.angle)   # RENDER-EFFECTS-004
+        struct.pack_into('<b', data, base+0x41, o.level)
+        for a, n in ((0, 1), (0x0b, 1), (0x56, 2), (0x158, 12), (0x5c, 4), (0x164, 12), (0x41, 1)):
             mask[base+a:base+a+n] = b'\1'*n
     return am.Region('objects', OBJECTS, bytes(data), bytes(mask), writable)
 
