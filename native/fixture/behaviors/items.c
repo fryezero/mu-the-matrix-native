@@ -36,6 +36,18 @@ int32_t mu_items_demo_drop(void *state,int32_t code,int32_t level,uint8_t excell
     if(code==0x1c0f) {b[6]=(uint8_t)(zen>>24);b[1]=(uint8_t)(zen>>16);b[2]=(uint8_t)(zen>>8);b[4]=(uint8_t)zen;}
     return slot;
 }
+static void emit_drop(items_fixture *s,mu_fixture_ctx *ctx,item_slot *e)
+{
+    mu_packet p; mu_packet_begin(&p,0xc2,0x20);uint8_t count=1;
+    mu_packet_add(&p,&count,1,0);mu_packet_add(&p,e->bytes,19,0);
+    if(mu_fx_send(ctx,MU_CONN_GAME,&p,0)==0) {e->sent=1;e->due=mu_fx_step(ctx)+(uint32_t)s->despawn;}
+}
+void mu_fx_items_reward(mu_fixture_ctx *ctx,int32_t code,float x,float y)
+{
+    items_fixture *s=mu_fx_behavior_state(ctx,"items");
+    int slot=mu_items_demo_drop(s,code,0,0,0,0,x,y,1);
+    if(slot>=0)emit_drop(s,ctx,&s->slots[slot]);
+}
 int mu_items_demo_remove(void *state,int32_t slot)
 {
     items_fixture *s=state; if(!s || slot<0 || slot>=1000 || !s->slots[slot].used)return 0;
@@ -56,8 +68,7 @@ static void step(void *self,mu_fixture_ctx *ctx,uint32_t now)
         item_slot *e=&s->slots[i]; if(!e->used)continue;
         mu_packet p;
         if(!e->sent) {
-            mu_packet_begin(&p,0xc2,0x20);uint8_t count=1;mu_packet_add(&p,&count,1,0);mu_packet_add(&p,e->bytes,19,0);
-            if(mu_fx_send(ctx,MU_CONN_GAME,&p,0)==0) {e->sent=1;e->due=s->tick+(uint32_t)s->despawn;}
+            emit_drop(s,ctx,e);
         } else if((e->remove || s->despawn>0) && e->due<=s->tick) {
             uint8_t b[3]={1,(uint8_t)(i>>8),(uint8_t)i}; mu_packet_begin(&p,0xc2,0x21);mu_packet_add(&p,b,3,0);
             if(mu_fx_send(ctx,MU_CONN_GAME,&p,0)==0)memset(e,0,sizeof *e);
