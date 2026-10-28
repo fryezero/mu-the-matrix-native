@@ -134,6 +134,32 @@ class WorldRender(unittest.TestCase):
         self.assertNotEqual(start['sha256'], plain['sha256'])
         self.assertNotEqual(later['sha256'], start['sha256'])
 
+    def test_pulse_weapon_admission_clock_and_pixels(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest('Pillow is needed for authored flare texture')
+        import io
+        probe = self.tmp/'pulse-jpeg-probe.tga'
+        probe.write_bytes(nf.tga(2,2,5))
+        if not json.loads(run('image',probe).stdout)['jpeg']:
+            self.skipTest('native renderer was built without JPEG')
+        root = self.tmp/'pulse-game'
+        effect = root/'Data/Effect'
+        effect.mkdir(parents=True,exist_ok=True)
+        options = ('--game-root',root,'--item-type','weapon0=0xeee')
+        plain,_ = self.render(*options,'--world-time','0',no_textures=False)
+        jpeg = io.BytesIO()
+        Image.new('RGB',(32,32),(48,48,48)).save(jpeg,'JPEG')
+        (effect/'Flare.OZJ').write_bytes(bytes(24)+jpeg.getvalue())
+        (effect/'Shiny02.OZJ').write_bytes(bytes(24)+jpeg.getvalue())
+        start,_ = self.render(*options,'--world-time','0',no_textures=False)
+        later,_ = self.render(*options,'--world-time','500',no_textures=False)
+        self.assertEqual((start['link_sprites'],later['link_sprites']),(4,4))
+        self.assertEqual(start['special'],0)
+        self.assertNotEqual(start['sha256'],plain['sha256'])
+        self.assertNotEqual(later['sha256'],start['sha256'])
+
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),
                     ('--actor-weapon', 'x')):
