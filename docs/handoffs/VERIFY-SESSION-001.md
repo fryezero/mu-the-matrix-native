@@ -29,6 +29,12 @@ verification skill support. Work was confined to the dedicated worktree. No nati
   synthetic geometry/noise and offline labels. No real-client screenshot was taken.
 - `bash scripts/local-macos-ci.sh` at `6b0169d`: 1,299 tests, 154 skips, pass. The additional explicit
   discovered fixture suite passed both scenarios; the repository audit rejected zero files.
+- Final integrated gate at `83734e0`, including main through DATA-ACQ-003 merge `ce337ba`: 1,313 tests,
+  155 skips, zero failures. Both scenarios passed again with the counts above; audit: 1,128 files,
+  zero rejected. The earlier post-layout gate at `afc84cd` passed 1,301 tests with 155 skips.
+- Final self-review against AGENTS.md and the milestone scope found no remaining standards or spec
+  defects. The timeout test uses a deterministic control; tab-separated fixture directives have explicit
+  scheduling and endpoint checks. No independent review or new private validation is claimed.
 
 ## Evidence
 
@@ -38,6 +44,10 @@ the two suite journals and schema-1 summary. Recipe renders and full helper proo
 `~/Documents/MTM/mu-mac-tools/native/renders/verify-session-001/recipes/`, recorded at code checkpoint
 `6b0169d` with binary digests in `run.json`. Authored code and synthetic scenarios alone
 are committed. The Python worktree symlink is not committed.
+
+The final gate's suite is copied to scratch `integrated-suite/`. Every run, including failed recipe
+attempts, is archived under renders `worktree-verify-runs/`. The session binary digest still matches the
+recipe run. The main checkout is on another lane's `codex/input-001`; cleanup leaves it unchanged.
 
 The runner records the current commit, dirty state and binary/script digests; the skill's `run.json`
 records the native binaries. The finding explains the JSON contract and limits:
