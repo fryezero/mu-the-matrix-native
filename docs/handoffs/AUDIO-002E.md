@@ -56,7 +56,7 @@ The tick's existing body pin remains `0ad0e9720d46bc4b09a67af4e6ddd0223f05c7bd4b
 - Four standalone charsel PNG hashes equal the pre-change binary's hashes. Three shell flows retain
   equal audio-on/off render hashes. Existing render and PCM golden assertions are unchanged.
 - Unchanged `validate_charsel.py --cases 1000 --mutations`: **6,000 cases, zero mismatches**, all
-  **11/11** historical compiled mutants detected. Six families each have 1,000 cases, including tick
+  **12/12** historical compiled mutants detected. Six families each have 1,000 cases, including tick
   and render. No reconstructed charsel source or prior validator comparison is changed.
 
 - Unchanged existing audio comparison at `--random 2000`: **13,967/13,967 equal** and **232/232**
@@ -64,6 +64,10 @@ The tick's existing body pin remains `0ad0e9720d46bc4b09a67af4e6ddd0223f05c7bd4b
 - Installed manifest-bearing APP-REFRESH-001 table smoke: the real installed sound 25 decodes and the
   scene-5 Enter request plays once. The older owner Native Data folder correctly refused its absent
   manifest; it was left unchanged. No new table extraction or private-data copy is needed.
+
+The portable audio collection also passes: **49 tests, six explicit instruction/private skips**.
+The existing golden PCM test passes unchanged at SHA-256
+`207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
 
 ## Final integration
 

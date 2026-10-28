@@ -816,6 +816,6 @@ Esc-to-server shortcut remains unchanged and bypasses these branches.
 
 New complete-tick instruction comparison: 5,760 Enter + 64 Escape + 144 common = **5,968 cases,
 zero mismatches/stops, 11/11 compiled mutants caught**. The unchanged existing charsel validator passes
-another 6,000 cases and 11/11 mutants. Six native tests cover sound delivery, mute/disable, detach,
+another 6,000 cases and 12/12 mutants. Six native tests cover sound delivery, mute/disable, detach,
 close and shell wiring; pre-change standalone hashes and audio-on/off shell renders agree.
 [Full evidence and limits](../handoffs/AUDIO-002E.md). No original client or live service was used.

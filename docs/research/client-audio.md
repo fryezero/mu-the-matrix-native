@@ -440,7 +440,7 @@ advance **73/73 to 76/76**.
 recording-service boundary and original sound-call return addresses as the independent site oracle.
 Families: **5,760 Enter, 64 Escape, 144 common-gate cases; 5,968 total, zero mismatches/stops**.
 All **11/11 compiled mutants** are caught. Initialization, selection and the panel-close byte are also
-compared. The unchanged six-family charsel comparison separately passes 6,000 cases and all 11 mutants.
+compared. The unchanged six-family charsel comparison separately passes 6,000 cases and all 12 mutants.
 The original body/capture pins and reconstructed source remain unchanged.
 
 Six focused tests cover once-per-press delivery, refused Enter, held/blocked keys, real decoded PCM,
