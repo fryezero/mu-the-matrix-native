@@ -166,7 +166,7 @@ static void adapter_call(void *context, uint32_t op, const uint32_t w[4])
     const mu_render_backend *b = a->backend;
     if (b->gl)
         b->gl->call(b->gl->context, op, w);
-    if (mu_meshdraw_state_apply(&a->state, op, w))
+    if (op >= MU_GL_OP_ENABLE && mu_meshdraw_state_apply(&a->state, op, w))
         return;
     float f[4];
     memcpy(f, w, sizeof f);
@@ -260,18 +260,22 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     mu_scene_inputs in;
     if (mu_scene_inputs_build(model, o, &in))
         return 1;
-    float *colours = malloc(sizeof(float) * 3 * MU_MESHDRAW_MAX_ENTRIES);
-    float *table = malloc(sizeof(float) * 2 * (MU_MESHDRAW_MAX_ENTRIES + 1));
+    /* Draws are sequential; these tables need no heap allocation per glow
+     * pass. Each routine writes exactly the entries it reads, as before. */
+    float local_colours[3 * MU_MESHDRAW_MAX_ENTRIES];
+    float local_table[2 * (MU_MESHDRAW_MAX_ENTRIES + 1)];
+    const char *baseline = getenv("MU_PERF_002_BASELINE");
+    int old_alloc = baseline && atoi(baseline);
+    float *colours = old_alloc ? malloc(sizeof local_colours) : local_colours;
+    float *table = old_alloc ? malloc(sizeof local_table) : local_table;
     if (!colours || !table) {
-        free(colours);
-        free(table);
+        if (old_alloc) { free(colours); free(table); }
         mu_scene_inputs_free(&in);
         return 1;
     }
     edge_views edge = {NULL, colours, table};
     if (edge_apply(&in, &edge)) {
-        free(colours);
-        free(table);
+        if (old_alloc) { free(colours); free(table); }
         mu_scene_inputs_free(&in);
         return 1;
     }
@@ -279,7 +283,8 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     mu_meshdraw_state_defaults(&a.state);
     mu_gl_sink sink = {&a, adapter_call};
     mu_meshdraw_scratch scratch = {colours, table, &edge, edge_tables};
-    mu_meshdraw_env env = {&in.model, &in.globals, &in.cache, &sink, mu_scene_bitmap, &in, &scratch};
+    mu_meshdraw_env env = {&in.model, &in.globals, &in.cache, &sink, mu_scene_bitmap, &in, &scratch,
+                           !old_alloc && !backend->gl ? &backend->sink : NULL};
     mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
     if (o->mesh_plus_one > 0) {
         long corners = 0;
@@ -304,8 +309,7 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
         stats->faulted += counts.faulted;
     }
     edge_free(&edge, in.model.mesh_count);
-    free(colours);
-    free(table);
+    if (old_alloc) { free(colours); free(table); }
     mu_scene_inputs_free(&in);
     return 0;
 }

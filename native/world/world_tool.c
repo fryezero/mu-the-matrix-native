@@ -138,6 +138,7 @@ typedef struct tool {
     int32_t npc_next, npc_click_stage, npc_click_x, npc_click_y;
     const char *perf_path;   /* NATIVE-PERF-001: --perf FILE [--perf-sync] */
     int perf_sync;
+    float perf_fov;   /* offline camera stress override, 0 uses the client camera */
     /* NATIVE-SKILL-001: --skill-script "F:verb[:a[:b]] ..." (select, cast, open, close, drag, over, out, save,
      * cancel, page, tip); with --gfx a right click on a monster casts the bar's selected skill */
     struct { int32_t frame; char verb[12]; int a, b; } skill_items[48];
@@ -730,8 +731,10 @@ static int headless(tool *t)
         int gfx_draw = a->gfx && t->out_dir && t->every > 0 && (frame % t->every == 0 || frame == t->frames - 1);
         if (a->gfx)
             world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
+        perf = mu_perf_begin();
         if (a->gfx && !gfx_draw)
             world_gfx_frame(a->gfx, (double)(now - gfx_clock), 0);
+        mu_perf_end(MU_PERF_GFX, perf);
         if (a->gfx) {   /* NATIVE-PROGRESS-001: the system menu's request */
             int menu = wg_options_take_request(world_gfx_options(a->gfx));
             if (menu >= 0 && !a->quiet)
@@ -1092,6 +1095,7 @@ static int usage(void)
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
                     "                [--gfx DIR [--gfx-open inventory,character]]   GFx interface (converted movies)\n"
                     "                [--no-names] [--hero-name NAME] [--monster-info 0|1] [--chat-script \"F:text;F:text\"]\n"
+                    "                [--perf FILE] [--perf-sync] [--perf-fov 20..90]   offline diagnostics\n"
                     "                [--players DEMO.txt] [--no-players] [--player-range TILES]\n"
                     "                [--social-script \"F:party:NAME;F:accept;F:trade:NAME;F:offer:CELL;F:zen:N;F:ok\"]   offline social demo\n"
                     "                [--helper angel|imp|uniria|dinorant|darkhorse|fenrir[-black|-blue|-gold]|CODE]\n"
@@ -1143,6 +1147,7 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--width")) o->width = atoi(v);
         else if (!strcmp(k, "--height")) o->height = atoi(v);
         else if (!strcmp(k, "--seconds")) t.seconds = strtof(v, NULL);
+        else if (!strcmp(k, "--perf-fov")) t.perf_fov = strtof(v, NULL);
         else if (!strcmp(k, "--perf")) t.perf_path = v;   /* NATIVE-PERF-001 */
         else if (!strcmp(k, "--frames")) t.frames = atoi(v);
         else if (!strcmp(k, "--every")) t.every = atoi(v);
@@ -1246,6 +1251,16 @@ int main(int argc, char **argv)
     t.rt = mu_world_rt_open(o, error, sizeof error);   /* the loaders said why on stderr */
     if (!t.rt)
         return 1;
+    if (t.perf_fov != 0.0f) {
+        if (!(t.perf_fov >= 20.0f && t.perf_fov <= 90.0f)) {
+            mu_world_rt_close(t.rt);
+            return usage();
+        }
+        /* Synthetic wide camera without changing the reconstructed zoom limits. */
+        mu_frame_world *f = &t.rt->walk.frame;
+        f->camera.world_fov = t.perf_fov;
+        f->camera.fov_from = f->camera.fov_to = f->view.fov = t.perf_fov;
+    }
     t.rt->has_auto = t.has_auto;
 #ifndef MU_WORLD_NO_GL
     int status = t.headless ? headless(&t) : windowed(&t);

@@ -32,15 +32,6 @@
 
 #define MU_SCENE_TEXTURE_BASE 0x9000
 
-/* Per-corner part of the stream (glColor3f and glColor3fv both go to color3). */
-typedef struct mu_meshdraw_sink {
-    void *context;
-    void (*texcoord)(void *context, float s, float t);
-    void (*color3)(void *context, const float rgb[3]);
-    void (*color4)(void *context, float r, float g, float b, float a);
-    void (*vertex)(void *context, const float xyz[3]);
-} mu_meshdraw_sink;
-
 typedef struct mu_render_backend {
     void *context;
     /* Effective state and texture slot (index into mu_textures, -1 none) before glBegin. */
