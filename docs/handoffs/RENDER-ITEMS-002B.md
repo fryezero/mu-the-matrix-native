@@ -22,4 +22,10 @@ jump limits remain. The other 92 remap-table types still refuse their unrecovere
 Native random state is the existing particle pool's own stream; one-frame sprites have no durable owner index.
 No original game or launcher was started, stopped or read. No terrain or per-world-object files changed.
 
-Baseline local Mac gate passed before changes. Final gate and merge details follow after integration checks.
+Local macOS gate on the tree integrated with main `fecdddd`: 1357 tests across 38 discovery runs, 158 explicit private/unavailable-input skips. Offline fixture scenarios, native viewer/readers and publication audit pass, zero rejected files. No hosted workflow dispatched.
+
+The existing generic item validator also passes 1,586 comparisons, zero mismatches, with 414 explicit
+unsupported inputs excluded. The registered new validator passes with no skips. Self-review against the
+brief, repository standards and evidence policy found no blocking issue for this bounded subset.
+The first gate caught two historical hero-call structural assertions; their expected call now follows
+the shared item helper and the combined gate passes. Local log: `scratch/render-items-002b/integrated-gate.log`.

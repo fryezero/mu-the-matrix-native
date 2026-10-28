@@ -1,8 +1,9 @@
-# Inventory item special cases, RENDER-ITEMS-002 part 1
+# Item rendering, RENDER-ITEMS-002
 
-This PR covers RenderItem3D's restored special-code chain and its native inventory integration.
-The 1,674 RenderObjDraw type branches, RenderLinkItem's effect switch, their character/ground integrations,
-and Muun/map-object effect placement remain for later parts. Nothing here starts or reads a live client.
+Part 1 covers RenderItem3D's restored special-code chain and native inventory integration.
+[Part 2 below](#part-2-bounded-body-and-link-effects-render-items-002b) adds 103 scalar remaps,
+11 body types and six bow link effects. It records the remaining 1,663 body types and other effect targets.
+Muun/map-object effect placement remains deferred. Neither part starts or reads a live client.
 
 ## Identity and evidence
 
@@ -223,3 +224,5 @@ Remaining, precisely:
 - Muun owner/effect integration and the missing nested map-object table graphs from part 1.
 - Authoritative hero equipment levels/options, special-window `0x1c64`, unresolved costume model files,
   and Box of Luck signed levels above 7 crossing the external jump. These remain unchanged scope limits.
+
+Final part-2 gate: Local macOS gate on the tree integrated with main `fecdddd`: 1357 tests across 38 discovery runs, 158 explicit private/unavailable-input skips. Offline fixture scenarios, native viewer/readers and publication audit pass, zero rejected files. No hosted workflow dispatched.
