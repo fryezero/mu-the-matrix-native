@@ -115,3 +115,13 @@ The full private run exposed two tests still calling the removed `default_eviden
 refactor. Both now resolve their explicit text argument through `pins.TEXT.require()`. A requested integration
 run without that core capture errors rather than skips. The validators retain all hashes, arguments and
 comparisons, including the existing 40 particle cases with four heavy cases and 60 joint cases.
+
+## Final verification, 2026-10-28
+
+All 38 private-enabled discovery directories pass after full native/particle/joint reruns. The run has 1,479
+tests: 1,455 passed, 24 skipped, zero failed. A separate 11/11 export group covers nine of those skips, yielding
+1,464 unique passes and 15 legitimate optional Ruffle/movie skips. The local Mac gate passes with 1,298 passed,
+181 expected opt-in/optional skips, zero failed; all seven fixture scenarios and the publication audit pass.
+A third independent strict scan reproduces the new manifest pin. Detailed counts and the pre-existing inputs
+needed for future runs are in the lane handoff. All lane-local reports and generated intermediates are removed
+after merge under the owner's cleanup rule. No proprietary bytes or manifests enter the repository.
