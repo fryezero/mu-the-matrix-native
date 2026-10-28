@@ -554,3 +554,5 @@ The rebuilt E binary and retained same-main baseline produce equal complete scor
 final PNG hashes. Aida/Elbeland/Raklion frame-light errors remain 0.65117/0.02078/0.02574; missing/extra
 placements remain zero and primary light remains exact. These are regression results with the saved arrival
 state. The snapshots still cannot score an active event or moving boid against the original image.
+The full local Mac gate passes 1,445 tests with 175 explicit skips, all six fixture scenarios, viewer/readers
+builds and the publication audit. The disk-exhaustion retry and local evidence paths are recorded in the handoff.

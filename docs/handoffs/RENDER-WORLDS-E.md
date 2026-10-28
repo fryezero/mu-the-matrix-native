@@ -23,7 +23,13 @@ input. Aida's largest near-hero light difference has an accumulation signature; 
   F 1,818/7. All 26,698 cases match, with zero stopped cases and all 53 compiled mutants caught.
 - The native host test covers event arming, the exact expiry boundary, repeated active emissions, missing
   models, special-type skips, quake reset, installed model names and boid-owned particle drawing. The three
-  portable Aida-history tests pass. The full Mac gate result is recorded below.
+  portable Aida-history tests pass.
+- Full `bash scripts/local-macos-ci.sh` passes: 1,445 tests, 175 explicit skips, zero failures/errors;
+  6/6 fixture scenarios, 46 incoming frames with zero unbound/undecodable frames; viewer/readers build;
+  publication audit 1,322 files, zero rejected. Only evidence documentation changed after this run.
+  The first attempt exhausted disk in temporary fixture creation. Losslessly archiving 372 older lane
+  PNG/grid files freed 991,876,176 bytes; the complete gate then passed. Current before/after PNGs are intact.
+  Logs are `final-20261028-gate.log` and `final-20261028-gate-retry.log`; no test was excluded to pass the retry.
 
 ## Final fidelity tour, 2026-10-28
 
@@ -102,8 +108,7 @@ Both remain local. No input symlinks, captured bytes, decoded assets or generate
 ## Remaining work
 
 A's flames/after-character pass remains with that lane; C2's merged Icarus paths pass the regression above.
-Other open work is the
-authoritative Raklion state feed, its downstream event effect families, captured Elbeland action speeds,
+Other open work is the authoritative Raklion state feed, its downstream event effect families, captured Elbeland action speeds,
 the Aida reset-box/history input and fresh synchronized visual captures in a separately authorized run.
 Tarkan/Raklion haze remains outside this lane. Self-review covers standards and the task scope; no independent
 review or live gameplay validation is claimed.

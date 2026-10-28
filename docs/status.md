@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Combined-tree gate pending. [Handoff](handoffs/RENDER-WORLDS-E.md).
+RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,445 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
 
 WORLD-ORDER-001 implements recorded tick/draw order checks; 2,400 Unicorn cases, zero mismatches, all 294 branch edges and 10/10 compiled mutants. Native order adapters are explicit; runtime orders unchanged. [Evidence](research/client-world-order.md), [handoff](handoffs/WORLD-ORDER-001.md).
 
