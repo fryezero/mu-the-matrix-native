@@ -1689,3 +1689,19 @@ args = ["--cases", "600", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_f]
+test = "native/tests/test_native_worlds_f.py::WorldsFInstructions.test_original_instructions"
+pins = ["text", "data"]
+families = ["tarkan", "raklion", "quad", "load", "world_gate"]
+cases = 1818
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+args = ["--cases", "600", "--mutations", "--output", "{report}"]
+[validate_worlds_f.expect]
+"families.*.equal" = {same_as = "families.*.cases"}
+"families.*.mismatches" = 0
+"families.*.stopped" = 0
+"mutants.*.caught" = true
+"mutants.*.stopped" = 0
