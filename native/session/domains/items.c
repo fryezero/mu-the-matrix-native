@@ -72,8 +72,12 @@ void mu_dom_items_zones(const mu_session *s,mu_audit_zones *z)
     mu_audit_add(z,"items.counts",(const uint8_t *)&s->items.creates,0,2*sizeof(uint32_t),MU_ZONE_REPLICATED,"applied frame counts");
     for (int i=0;i<MU_GI_ITEMS;++i) {
         const uint8_t *p=(const uint8_t *)&s->items.pool[i];
-        mu_audit_add(z,"items.pool",p,0,offsetof(mu_gi_item,object),MU_ZONE_REPLICATED,"key and item data");
-        mu_audit_add(z,"items.pool",p,offsetof(mu_gi_item,object),sizeof(mu_gi_object),MU_ZONE_MOTION,"MoveItems and render plan");
+        uint32_t object=(uint32_t)offsetof(mu_gi_item,object);
+        uint32_t type=object+(uint32_t)offsetof(mu_gi_object,type);
+        mu_audit_add(z,"items.pool",p,0,object+1,MU_ZONE_REPLICATED,"key, item data and live");
+        mu_audit_add(z,"items.pool",p,object+1,type-object-1,MU_ZONE_MOTION,"object presentation");
+        mu_audit_add(z,"items.pool",p,type,sizeof(int32_t),MU_ZONE_REPLICATED,"object type");
+        mu_audit_add(z,"items.pool",p,type+4,(uint32_t)sizeof(mu_gi_item)-type-4,MU_ZONE_MOTION,"MoveItems, render plan and labels");
     }
 }
 #ifdef MU_SESSION_SEED

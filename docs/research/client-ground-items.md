@@ -269,7 +269,7 @@ ITEM reset model, including code -1, and live zero. Unknown ITEM fields remain o
 The view binds creation services to the session, then runs the existing CreateItem/name/motion/render
 reconstruction on that pool. Rebinding an already live projection retains its state and does not play
 the drop sound again. Detached viewport entries are retained for later projection. Movement leases
-expose `sim.ground`; server packet bytes and ITEM data are audited as replicated, object fields as motion.
+expose `sim.ground`; server packet bytes, ITEM data, object live/type are audited as replicated; other object/label fields are presentation motion.
 No new per-frame allocation was added. Existing renderer/effect/perf implementations are unchanged.
 
 `native/fixture/behaviors/items.c` owns scripted drops, removal latency and despawn. Combat's fixed
