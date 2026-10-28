@@ -193,9 +193,9 @@ def main():
                           'distinct_paths': len({r['path'].lower() for r in sounds})}}
     Path(args.out).write_text(json.dumps(result, indent=1) + '\n')
     if args.tsv:
-        lines = ['# kind\tid\tpath\tlegacy_channels\tlegacy_3d\tloader']
+        lines = ['# kind\tid\tpath\tlegacy_channels\tlegacy_3d\tloader\tsite']
         for r in sounds:
-            lines.append(f"sound\t{r['id']}\t{r['path']}\t{r['legacy_channels']}\t{r['legacy_3d']}\t{r['loader']}")
+            lines.append(f"sound\t{r['id']}\t{r['path']}\t{r['legacy_channels']}\t{r['legacy_3d']}\t{r['loader']}\t{r['site']}")
         for entry in music:
             if entry['path']:
                 lines.append(f"music\t{entry['index']}\t{entry['path']}\t-\t-\t{entry['evidence']}")

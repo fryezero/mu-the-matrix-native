@@ -105,14 +105,14 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 
 | RENDER-WORLDS-B | Devias/Tarkan/Elbeland/Raklion move/create and snow | 4,000 Unicorn cases, zero mismatches, 10/10 mutants; fourteen-map snapshot/native-render tour | — | Implemented within [documented limits](../../handoffs/RENDER-WORLDS-B.md), nested warp effects and fresh locked captures remain |
 | RENDER-TERRAIN-002 | 0x2000 overlay faces, Chaos Castle per-face effects, camera-angle frustum (worlds 6, 0x49), fog and alpha ref, the alternate signed height grid (worlds 0x18..0x1d, 0x24) | 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants; 1,800 particle cases; synthetic renders and unchanged-world hashes | — | Implemented; [handoff](../../handoffs/RENDER-TERRAIN-002.md) |
-| RENDER-ITEMS-002 | Parts 1/2 implemented: 28 inventory codes; 103 scalar remaps, 11/1,674 body types and six bow link effects. Remaining: 1,663 body types, other link effects, Muun placement, nested map-object tables | Part 1: 5,512 cases; part 2: 135,176, 0 mismatches, 6/6 mutants each; [finding](../../research/client-render-items.md) | DATA-ACQ (nested map-object tables missing; 16 Muun rows decoded locally) | EA, partial |
+| RENDER-ITEMS-002 | Parts 1/2/3 implemented subsets: inventory remaps, 103 scalar remaps, 262/1,674 body types; three verified link callers, two fully integrated. Remaining: 1,412 bodies, 17 skins, Spark03 subtype 11, further links, Muun/nested map-object tables | Part 3: 74,292 cases, 0 mismatches, 8/8 mutants; [finding](../../research/client-render-items.md) | DATA-ACQ (nested map-object tables missing; 16 Muun rows decoded locally) | EA, partial |
 | RENDER-TIME-001 | Multi-frame fidelity: time-varying fields, a camera path per map, mugl patches off on the live side | Per-map time-series reports with defined thresholds | INPUT-001 (shared scripts) | EA |
 
 ## H. Audio
 
 | ID | Scope | Completion evidence | Depends on | Status |
 |---|---|---|---|---|
-| AUDIO-002 | SND_Play call sites (1,980) become `MU_CUE_SOUND` as each domain migrates; event-world music managers; NPC voices; monster registration order; music 43/44 from a scoped capture | FMOD-call log of the original (Wine) against the native cue/audio log over the LIVE-PLAY script; the existing audio families rerun | domain milestones | EA (43/44: a `memread` of `0x01cf1680` under the game lock); the virtualised gap `0x01854279` BP |
+| AUDIO-002 | SND_Play call sites (1,980) become `MU_CUE_SOUND` as each domain migrates; event-world music managers; NPC voices; monster registration order; music 43/44 from a scoped capture | FMOD-call log of the original (Wine) against the native cue/audio log over the LIVE-PLAY script; the existing audio families rerun | domain milestones | Part 1 implemented: 76,150 Unicorn cases, zero mismatches, 22/22 mutants; event managers, registration, bounded NPC voices, session reader/log ([handoff](../../handoffs/AUDIO-002.md)). Domain callers and LIVE-PLAY comparison remain; 43/44 exact read recorded, gap `0x01854279` BP |
 
 ## I. Native Data for other users
 

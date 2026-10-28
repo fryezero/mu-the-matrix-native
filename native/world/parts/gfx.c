@@ -1,18 +1,20 @@
 /* SESSION-QUEST-001: quest logic at tick 40 in both headless and GFx tools. */
 #include "../world_rt_internal.h"
 #include "../../core/mu_quest.h"
+#include "../../core/mu_session_audio.h"
 #include <stdlib.h>
 #include <string.h>
 typedef struct quest_part
 {
     mu_quest_session q;
+    mu_cue_cursor audio_cursor;
 } quest_part;
 static void quest_step_tick(struct mu_world_rt *a, void *self)
 {
 #ifndef MU_WORLD_NO_GL
     if (a->gfx)
     {
-        world_gfx_quest_step(a->gfx);
+        world_gfx_quest_step(a->gfx, a->has_sound ? a->sound.host : NULL);
         return;
     }
 #endif
@@ -35,6 +37,7 @@ static void quest_step_tick(struct mu_world_rt *a, void *self)
     in.u.quest_context.level = in.u.quest_context.total = 1;
     mu_session_submit(p->q.session, &in);
     mu_quest_session_step(&p->q);
+    mu_session_audio_drain(p->q.session, &p->audio_cursor, a->has_sound ? a->sound.host : NULL);
 }
 static void quest_close(struct mu_world_rt *a, void *self)
 {

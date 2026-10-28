@@ -5,9 +5,11 @@
 
 #include <math.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "special_types.h"
 #include "item_glow.h"
+#include "item_bodies.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -21,6 +23,7 @@ typedef struct sink {
     int32_t capacity, count;
     const mu_rc_item *item;
     mu_rc_model *model;
+    int parameters;
 } sink;
 
 static void emit(sink *s, int32_t entry, int32_t mesh, uint32_t flags, float alpha, int32_t hidden, int32_t texture)
@@ -46,6 +49,84 @@ static void emit(sink *s, int32_t entry, int32_t mesh, uint32_t flags, float alp
         d->flag_ca = s->model->flag_ca;
     }
     s->count++;
+}
+
+static int body_type(int32_t type)
+{
+    size_t low = 0, high = sizeof mu_rc_body_types / sizeof mu_rc_body_types[0];
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        if (mu_rc_body_types[mid].type < type)
+            low = mid + 1;
+        else if (mu_rc_body_types[mid].type > type)
+            high = mid;
+        else
+            return (int)mid;
+    }
+    return -1;
+}
+
+/* Apply a shared mesh/body recipe to one generic helper call. Selectors refer
+ * to the actual draw arguments and current model fields, never saved pixels.
+ * Phases: base, colour2, colour, excellent, ancient, base with flag 0x40000. */
+static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha, int32_t hidden, int32_t texture)
+{
+    int type = body_type(s->item->type);
+    if (type < 0 || !s->parameters) {
+        emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
+        return;
+    }
+    mu_rc_draw base;
+    sink one = {&base, 1, 0, s->item, s->model, 0};
+    emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
+    uint32_t input[17], words[16];
+    input[0] = base.flags;
+    memcpy(&input[1], &base.alpha, 4);
+    input[2] = (uint32_t)base.blend_mesh;
+    memcpy(&input[3], &base.blend_light, 4);
+    memcpy(&input[4], &base.u, 4);
+    memcpy(&input[5], &base.v, 4);
+    input[6] = (uint32_t)base.hidden;
+    input[7] = (uint32_t)base.texture;
+    memcpy(&input[8], base.body_light, 12);
+    input[11] = (uint32_t)base.level_field;
+    memcpy(&input[12], base.shade, 12);
+    input[15] = base.flag_ca;
+    memcpy(&input[16], &s->item->object_alpha, 4);
+    int recipe = mu_rc_body_types[type].recipe[phase];
+    for (int i = 0; i < mu_rc_body_recipes[recipe].count; ++i) {
+        for (int k = 0; k < 16; ++k) {
+            int source = mu_rc_body_recipes[recipe].draw[i].source[k];
+            words[k] = source ? input[source - 1] : mu_rc_body_recipes[recipe].draw[i].value[k];
+        }
+        mu_rc_draw d = base;
+        d.entry = mu_rc_body_recipes[recipe].draw[i].entry;
+        if (d.entry == MU_RC_ENTRY_BODY) {
+            d.flags = words[0];
+            memcpy(&d.alpha, &words[1], 4);
+            d.blend_mesh = (int32_t)words[2];
+            memcpy(&d.blend_light, &words[3], 4);
+            memcpy(&d.u, &words[4], 4);
+            memcpy(&d.v, &words[5], 4);
+            d.hidden = (int32_t)words[6];
+        } else {
+            d.mesh = (int32_t)words[0];
+            d.flags = words[1];
+            memcpy(&d.alpha, &words[2], 4);
+            d.blend_mesh = (int32_t)words[3];
+            memcpy(&d.blend_light, &words[4], 4);
+            memcpy(&d.u, &words[5], 4);
+            memcpy(&d.v, &words[6], 4);
+        }
+        d.texture = (int32_t)words[7];
+        memcpy(d.body_light, &words[8], 12);
+        d.level_field = (int32_t)words[11];
+        memcpy(d.shade, &words[12], 12);
+        d.flag_ca = (uint8_t)words[15];
+        if (s->count < s->capacity)
+            s->out[s->count] = d;
+        ++s->count;
+    }
 }
 
 /* Item-table predicates 0x00cd6017 (kind B, +0x251), 0x00cd5fac (kind A,
@@ -92,6 +173,10 @@ static float client_fabs(float x)                         /* 0x0184f8ff */
 static void part_body(sink *s, float alpha, uint32_t flags, int32_t a6, int32_t a7)
 {
     const mu_rc_item *it = s->item;
+    if (s->parameters && body_type(it->type) >= 0) {
+        emit_parameter_body(s, flags & 0x40000u ? 5 : 0, flags, alpha, -1, -1);
+        return;
+    }
     /* 0x016f5894..0x016f5a26, without buffs 6/0x8f: no mesh overrides. */
     if (it->type == 0x12ed || it->type == 0x12f5) {
         emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, -1, -1);
@@ -210,13 +295,16 @@ static void body_color2(sink *s, float alpha, uint32_t flags, float bright, int3
     } else {
         mu_rc_part_object_color(s->item, alpha, bright, bl);
     }
-    emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, -1, a7);
+    emit_parameter_body(s, 1, flags, alpha, -1, a7);
 }
 
 /* RenderPartObjectBodyColor 0x016dec15, generic path. */
 static void body_color(sink *s, float alpha, uint32_t flags, float bright, int32_t a6)
 {
     float *bl = s->model->body_light;
+    int type = body_type(s->item->type);
+    if (s->parameters && type >= 0 && mu_rc_body_types[type].dim)
+        return; /* This family omits the ordinary high-level colour passes. */
     if (flags & 0x10u) {
         bl[0] = bl[1] = bl[2] = 1.0f;
     } else if (flags & 0x800u) {
@@ -224,7 +312,7 @@ static void body_color(sink *s, float alpha, uint32_t flags, float bright, int32
     } else {
         part_object_color2(s->item, alpha, bright, bl);
     }
-    emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, -1, a6);
+    emit_parameter_body(s, flags & 0x800u ? 4 : 2, flags, alpha, -1, a6);
 }
 
 static void scale_light(float out[3], const float light[3], float factor)
@@ -235,6 +323,8 @@ static void scale_light(float out[3], const float light[3], float factor)
 
 int mu_rc_item_special(int32_t type)
 {
+    if (body_type(type) >= 0)
+        return 0;
     /* RENDER-ITEMS-002b: complete body streams, not the link-effect switch. */
     if (type == 0x12ed || type == 0x12f5 || (type >= 0x22e6 && type <= 0x22eb) ||
         type == 0x22f1 || type == 0x248c || type == 0x248d)
@@ -244,26 +334,36 @@ int mu_rc_item_special(int32_t type)
     return mu_rc_special_type(type);
 }
 
+static int item_draws_impl(const mu_rc_item *, mu_rc_model *, mu_rc_draw *, int32_t, int32_t *, int);
+
 int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity, int32_t *count)
 {
     *count = 0;
     if (mu_rc_item_special(it->type))
         return MU_RC_SPECIAL;
+    if (body_type(it->type) >= 0 && (it->a10 != -1 || it->a11 != -1))
+        return MU_RC_UNSUPPORTED;
     /* 0x01770e41..0x01770ef8: wing blend-light writes survive every pass. */
     if (it->type == 0x22ea || it->type == 0x248c || it->type == 0x22eb || it->type == 0x248d) {
         mu_rc_item copy = *it;
         float pulse = client_sin(it->time * 0.001f);
         copy.blend_light = (it->type == 0x22eb || it->type == 0x248d) ?
             (pulse + 1.0f) / 4.0f : pulse + 1.1f;
-        return mu_rc_item_draws_generic(&copy, model, out, capacity, count);
+        return item_draws_impl(&copy, model, out, capacity, count, 1);
     }
-    return mu_rc_item_draws_generic(it, model, out, capacity, count);
+    return item_draws_impl(it, model, out, capacity, count, 1);
 }
 
 int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count)
 {
-    sink s = {out, capacity, 0, it, model};
+    return item_draws_impl(it, model, out, capacity, count, 0);
+}
+
+static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
+                             int32_t *count, int parameters)
+{
+    sink s = {out, capacity, 0, it, model, parameters};
     *count = 0;
     if (it->select != 0 || it->object_shadow == 1 || it->a13 == 1)
         return MU_RC_UNSUPPORTED;
@@ -280,6 +380,9 @@ int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
                            it->kind_b == 0x27 || it->kind_b == 0x4b || it->kind_b == 0x72 || it->item_kind == 8 || it->item_kind == 0xb))
         return MU_RC_UNSUPPORTED;
     int32_t level = mu_rc_item_glow_level(it);
+    int type_row = body_type(it->type);
+    if (parameters && type_row >= 0 && mu_rc_body_types[type_row].plain)
+        level = 0;
     const float *L = it->light;
     uint32_t rt = it->render_type;
     uint32_t keep = rt & 0x100u;
@@ -353,7 +456,7 @@ int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
             model->body_light[0] = p;
             model->body_light[1] = p * 0.3f;
             model->body_light[2] = 1.0f - p;
-            emit(&s, MU_RC_ENTRY_BODY, 0, 0x42, 1.0f, -1, -1);
+            emit_parameter_body(&s, 3, 0x42, 1.0f, -1, -1);
             goto done;
         }
     }
@@ -362,12 +465,31 @@ int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
         int tier = (e & 1) ? 1 : (e & 2) ? 2 : (e & 0x10) ? 3 : (e & 0x20) ? 4 : 0;   /* 0x009e072d */
         if (tier == 0 || !it->has_record || it->item_kind == 4)
             goto done;
-        float a = client_sin(it->time * 0.001f) * 0.5f + 0.4f;
-        body_color(&s, a, 0x840, 1.0f, -1);
+        if (parameters && type_row >= 0 && mu_rc_body_types[type_row].dim) {
+            /* 0x017e5e19..0x017e61bd: three cumulative colour passes. */
+            float a = client_sin(it->time * 0.004f) * 0.5f + 0.4f;
+            s.parameters = 0;
+            for (int i = 0; i < 3; ++i)
+                body_color(&s, a, 0x240, 1.0f, -1);
+        } else {
+            float a = client_sin(it->time * 0.001f) * 0.5f + 0.4f;
+            body_color(&s, a, 0x840, 1.0f, -1);
+        }
     }
 done:
     *count = s.count;
     return s.count > capacity ? MU_RC_FULL : MU_RC_OK;
+}
+
+int mu_rc_link_supported(int32_t type)
+{
+    return type == 0x12ea || type == 0x12eb || type == 0x12ec || type == 0x12f7 ||
+           type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb;
+}
+
+static float link_intensity(int32_t random_value)
+{
+    return (float)(random_value % 30 + 70) * 0.005f;
 }
 
 /* RenderLinkItem 0x012c6aa1 and 0x012c70e7..0x012c7415. */
@@ -377,7 +499,7 @@ int mu_rc_link_sprites(int32_t type, int32_t random_value, mu_rc_link_sprite *ou
     *count = 0;
     if (type != 0x12ea && type != 0x12eb && type != 0x12ec && type != 0x12f7 && type != 0x1301 && type != 0x1303)
         return MU_RC_SPECIAL;
-    float intensity = (float)(random_value % 30 + 70) * 0.005f;
+    float intensity = link_intensity(random_value);
     int many = type == 0x12ec || type == 0x12f7 || type == 0x1303;
     int extra = type == 0x12f7 || type == 0x1303;
     int n = many ? (extra ? 10 : 6) : 2;
@@ -399,8 +521,60 @@ int mu_rc_link_sprites(int32_t type, int32_t random_value, mu_rc_link_sprite *ou
     return n > capacity ? MU_RC_FULL : MU_RC_OK;
 }
 
+/* 0x012c741a..0x012c7a40. Offsets precede TransformPosition. */
+int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
+                        mu_rc_link_effect *out, int32_t capacity, int32_t *count)
+{
+    *count = 0;
+    if (type != 0x14f0 && type != 0x12fb)
+        return MU_RC_SPECIAL;
+    float intensity = link_intensity(random(context));
+    mu_rc_link_effect effects[20] = {0};
+    int n = 0;
+    if (type == 0x14f0) {
+        for (int i = 0; i < 10; ++i) {
+            float x = (float)i * 30.0f - 180.0f;
+            if (random(context) % 3 == 0) {
+                mu_rc_link_effect *e = &effects[n++];
+                e->sprite = (mu_rc_link_sprite){0, 0x7f67, 0.6f, {0.4f, 0.4f, 0.4f},
+                                                (float)(random(context) % 360), 0, 4};
+                e->offset[0] = x;
+                e->offset[1] = -40.0f;
+            }
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){0, 0x7ef7, 2.0f,
+                                            {intensity, intensity * 0.3f, intensity * 0.1f}, 0, 0, 4};
+            e->offset[0] = x;
+            e->offset[1] = -40.0f;
+        }
+    } else {
+        if (random(context) % 2 == 1) {
+            for (int i = 0; i < 2; ++i) {
+                mu_rc_link_effect *e = &effects[n++];
+                e->sprite = (mu_rc_link_sprite){i == 0 ? 4 : 12, 0x7f26, 0.8f,
+                                                {0.8f, 0.8f, 0.2f}, 0, 0, 4};
+                e->particle = 11;
+            }
+        }
+        for (int i = 0; i < 2; ++i) {
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){i == 0 ? 7 : 15, 0x7ef7, 2.0f,
+                                            {0.5f, 0.5f, 0.1f}, 0, 0, 4};
+        }
+        static const float scales[3] = {0.8f, 1.3f, 2.0f};
+        for (int i = 0; i < 3; ++i) {
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){0, 0x7ef7, scales[i], {1, 1, 0.4f}, 0, 0, 4};
+            e->offset[0] = 20.0f;
+        }
+    }
+    for (int i = 0; i < n && i < capacity; ++i)
+        out[i] = effects[i];
+    *count = n;
+    return n > capacity ? MU_RC_FULL : MU_RC_OK;
+}
+
 /* ---- back carry ---- */
-#include <string.h>
 
 #include "back_matrices.h"
 #include "../record-math/record_math.h"
