@@ -116,6 +116,13 @@ int mu_terrain_height_is_rgb(int32_t w, int *unresolved)
     return mu_terrain_world_handler_flag(w) == 1; /* 0x00ea594b -> 0x00ea2713 -> vtable slot 1 */
 }
 
+/* RENDER-WORLDS-O: the tile-bitmap loader 0x01829457 opens Data\World<n> with n = 0x81 (Abyss of
+ * Atlans 1's folder) when 0x016a8325(folder - 1) holds, i.e. for folders 129..131 (worlds 128..130). */
+int32_t mu_terrain_tile_folder(int32_t folder)
+{
+    return folder - 1 >= 0x80 && folder - 1 <= 0x82 ? 0x81 : folder;
+}
+
 static uint32_t read32(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
 
 int mu_terrain_light_bmp(const uint8_t *file, size_t size, float *out, int32_t capacity, int32_t *pixels)
