@@ -17,7 +17,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 43
+#define MU_WORLD_PT_EFFECTS 44
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
@@ -33,7 +33,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2, MU_SFX_BITMAP_LIGHTING_A + 3,
     MU_SFX_BITMAP_LIGHTING_A + 4,
     0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd, 0x7fe0, 0x8098, MU_JT_BITMAP_LASER,
-    MU_PT_BITMAP_SMOKE5, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    MU_PT_BITMAP_SMOKE5, 0x7f8a, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
@@ -48,11 +48,12 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ",
     "Data/Effect/Steam_01.OZJ", "Data/Effect/Smoke_line.OZJ", "Data/Effect/firehik_mono01.OZJ",
     "Data/Effect/lightmarks_mzin.OZJ", "Data/Effect/flareBlue.OZJ", "Data/Effect/flareRed.OZJ",
-    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt"};
+    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt", "Data/Effect/cloudLight.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
 static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
+    {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"},
     {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"},
     /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
      * textures from Data\Effect\) */
@@ -1425,6 +1426,11 @@ static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model
     mu_obj_set_f32(img, MU_OBJF_BLEND_V, v.blend_v);
 }
 
+static void o_joint(void *c,int32_t type,const float p[3],const float t[3],const float a[3],int32_t sub,int32_t owner,float scale)
+{
+    mu_world_particles_joint(c,type,p,t,a,sub,owner,scale,0xffff,0,0,0xffff,0,NULL);
+}
+
 void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects, struct mu_world_env *env)
 {
     if (objects) {
@@ -1432,6 +1438,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.visual = o_visual;
         objects->rt.sprite = o_sprite;
         objects->rt.effect = o_effect;
+        objects->rt.joint = o_joint;
         objects->rt.hook_context = p;
         p->objects = objects;
     }

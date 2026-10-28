@@ -65,7 +65,7 @@ BODIES = {
     'move_humming': (0x012af2f1, 0x012af52d), 'normalise': (0x00cfd15f, 0x00cfd203),
     'near_zero': (0x00a72592, 0x00a725c5), 'radians': (0x00cee2cb, 0x00cee2ea), 'sign': (0x0185ca80, 0x0185caa4),
 }
-KINDS = [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0),
+KINDS = [(0x7f7c, 6), (0x7f7d, 0)] + [(0x7f7d, s) for s in range(0x10, 0x1b)] + [(0x7fd5, 0), (0x7fd8, 1), (0x7fd3, 0),
                                                      (0x7f78, 0), (0x7f78, 1), (0x7fd6, 0x43), (0x7fd6, 0x44),
                                                      (0x7f78, 41), (0x7f78, 42)]
 
@@ -343,7 +343,7 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         inputs = am.defined_region('inputs', sf.INPUTS, struct.pack('<9f', *pos, *tpos, *angle), writable=False)
         hero = am.Region('hero-data', sf.HERO_DATA, am.poison(0x3000, 0x13), bytes(0x3000))
         hero.define(sf.HERO_DATA+0x2dec, bytes([serial]))
-        regions = [record, inputs, object_region(objects), hero,
+        regions = [am.defined_region('world',0x1cf15fc,struct.pack('<i',10)), record, inputs, object_region(objects), hero,
                    am.defined_region('hero-ptr', sf.HERO_DATA_PTR, struct.pack('<I', sf.HERO_DATA), writable=False),
                    am.defined_region('world-time', WORLD_TIME, struct.pack('<f', world_time), writable=False)]
         stubs = case.stubs(m)

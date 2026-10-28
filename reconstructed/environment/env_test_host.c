@@ -142,6 +142,12 @@ void mu_env_test_host_init(mu_env_test_host *t, mu_env *env)
     t->frustum_mask = 3;
 }
 
+static void h_open_monster(void *c, int32_t model)
+{
+    mu_env_event *e = push(c, 8);
+    e->a = model;
+}
+
 void mu_env_test_host_bind(mu_env_test_host *t, mu_env_host *h)
 {
     memset(h, 0, sizeof *h);
@@ -155,6 +161,7 @@ void mu_env_test_host_bind(mu_env_test_host *t, mu_env_host *h)
     h->init = h_init;
     h->has_model = h_has_model;
     h->create_effect = h_effect;
+    h->open_monster = h_open_monster;
 }
 
 /* ---- render ---- */

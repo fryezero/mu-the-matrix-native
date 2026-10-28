@@ -24,6 +24,10 @@ void env_set_live(mu_env *env, mu_env_object *o, uint8_t live);
 void env_fade_alpha(mu_env_object *o);
 void env_flock(mu_env *env, mu_env_object *o, int32_t index, mu_env_object *list, int32_t count);
 
+int env_icarus_create(mu_env *env, const mu_env_inputs *in, mu_env_object *o, int32_t index);
+
+void env_icarus_emitter_move(mu_env *env, const mu_env_inputs *in, mu_env_object *o, int32_t index);
+
 /* World predicates, all leaf routines of the client (address in the comment). */
 static inline int env_blood_castle(int32_t w) { return (w >= 11 && w <= 17) || w == 52; }  /* 0x009dacec */
 static inline int env_chaos_castle(int32_t w) { return (w >= 18 && w <= 23) || w == 53 || w == 97; }  /* 0x009dacb8 */

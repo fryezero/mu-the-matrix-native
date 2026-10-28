@@ -161,7 +161,7 @@ PROBES = {  # branch probes (address: label); every one must be reached
 STEP_LEAVES, STEP_BOIDS, STEP_FISHS, STEP_RB0, STEP_RB1, STEP_RF, STEP_RL = 1, 2, 3, 4, 5, 6, 7
 STEP_NAMES = {1: 'move_leaves', 2: 'move_boids', 3: 'move_fishs', 4: 'render_boids_0', 5: 'render_boids_1',
               6: 'render_fishs', 7: 'render_leaves'}
-BOID_WORLDS = [0, 1, 3, 4, 7, 0x80, 0x81, 0x82, 11, 15, 52, 0x74, 0x77, 24, 36, 2, 0x8d]
+BOID_WORLDS = [10, 0, 1, 3, 4, 7, 0x80, 0x81, 0x82, 11, 15, 52, 0x74, 0x77, 24, 36, 2, 0x8d]
 FISH_WORLDS = [0, 1, 4, 6, 7, 0x74, 0x80, 0x82, 0x85, 8, 0x21, 0x36, 0x86, 0x22, 24, 2, 3, 0x8d]
 LEAF_WORLDS = [0, 2, 3, 7, 0x80, 0x81, 0x8d, 0xa, 0x84]
 TARGET_WORLDS = [0, 1, 2, 3, 7, 0x8d]
@@ -205,7 +205,7 @@ class Inputs(ctypes.Structure):
                 ('hero_action', ctypes.c_uint16), ('hero_safe_zone', ctypes.c_uint8),
                 ('camera_position', ctypes.c_float * 3), ('world_time', ctypes.c_float),
                 ('frame_time', ctypes.c_float), ('event_state', ctypes.c_int32), ('login_scene', ctypes.c_int32),
-                ('attributes', ctypes.c_void_p), ('layer1', ctypes.c_void_p)]
+                ('attributes', ctypes.c_void_p), ('layer1', ctypes.c_void_p), ('ambient_clock', ctypes.c_int32)]
 
 
 class Library:
@@ -287,6 +287,7 @@ class NativeSession:
         i.hero_action = s['hero_action']
         i.hero_safe_zone = s['safe']
         i.world_time = s['time']
+        i.ambient_clock = am_cvt(s['time'])
         i.frame_time = f32(0.1)
         i.event_state = s['event']
         i.login_scene = 0
@@ -476,6 +477,7 @@ class Client:
 
     def regions(self, s):
         dynamic = [
+            am.defined_region('ambient-clock', 0xbdc5eb0, struct.pack('<i', am_cvt(s['time'])), writable=False),
             am.defined_region('world', WORLD, struct.pack('<i', s['world']), writable=False),
             am.defined_region('event', EVENT, struct.pack('<i', s['event']), writable=False),
             am.defined_region('time', TIME, struct.pack('<f', s['time']), writable=False),
@@ -755,6 +757,8 @@ def native_events(session, events, case, s):
             out.append(('init', e.a))
         elif k == 7:
             out.append(('effect', e.a, e.b, e.c, f[0]))
+        elif k == 8:
+            out.append(('open_monster', e.a))
         elif k == 20:
             out.append(('frustum', e.a, f[0], f[1], f[2]))
         elif k == 21:
@@ -1019,7 +1023,7 @@ def am_cvt(v):
 
 def build_library(mutation, out):
     src = ROOT/'reconstructed/environment'
-    files = [str(src/n) for n in ('env_core.c', 'env_boids.c', 'env_fish.c', 'env_leaves.c', 'env_world.c',
+    files = [str(src/n) for n in ('env_core.c', 'env_boids.c', 'env_icarus.c', 'env_fish.c', 'env_leaves.c', 'env_world.c',
                                   'env_test_host.c')] + [str(ROOT/'reconstructed/record-math/record_math.c')]
     cmd = ['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared',
            f'-DMU_ENV_MUTATION={mutation}', *files, '-lm', '-o', str(out)]
@@ -1101,6 +1105,8 @@ MUTATIONS = [
     (7, 'Tormenta rain rises 0.2 per call', [0x8d]),
     (8, 'RenderBoids without the +90 turn', [0, 1, 3]),
     (9, 'default leaf move fades 0.04', [2, 7]),
+    (11, 'Icarus dragon height 500', [10]),
+    (12, 'Icarus dragon size base 5', [10]),
     (10, 'TurnAngle rounds toward the long way', [0, 7]),
 ]
 

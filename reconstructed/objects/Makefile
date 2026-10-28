@@ -10,7 +10,7 @@ all: $(LIB)
 # render routines (object_render.c, NATIVE-OBJECTS-002) use the terrain's
 # TestFrustrum2D and record-math's AngleMatrix/VectorRotate. charsel_world.c is the
 # character-select scene's handler (NATIVE-CHARSEL-002).
-SOURCES := objects.c object_render.c login_world.c charsel_world.c ../model-codec/model_codec.c ../terrain/terrain.c ../record-math/record_math.c
+SOURCES := objects.c object_render.c icarus.c login_world.c charsel_world.c ../model-codec/model_codec.c ../terrain/terrain.c ../record-math/record_math.c
 
 $(LIB): $(SOURCES) objects.h object_render.h login_world.h charsel_world.h ../model-codec/model_codec.h ../terrain/terrain.h ../record-math/record_math.h
 	$(CC) $(CFLAGS) -shared $(SOURCES) -lm -o $@
