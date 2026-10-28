@@ -1,0 +1,1 @@
+MU_INTENT_KIND(ITEM_PICKUP, item_pickup, struct { int32_t slot; })

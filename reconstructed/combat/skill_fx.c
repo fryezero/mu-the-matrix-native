@@ -207,6 +207,7 @@ static int effect_supported(int32_t type, int32_t sub)
     switch (type) {
     case MU_SFX_MODEL_ARROW: return sub == 0 || sub == 2;
     case MU_SFX_MODEL_FIRE: return sub == 1;
+    case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
     case MU_SFX_BITMAP_THUNDER: return sub == 0;
     case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
     case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
@@ -411,6 +412,38 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->time_mark = env_time(env);
         e->position[2] = 0.0f;
         break;
+    /* RENDER-EFFECTS-002: the basic Ice, Poison and Power Wave model cases. */
+    case MU_SFX_MODEL_ICE:                                  /* 0x013d01a5 */
+        e->lifetime = 50;
+        e->scale = F_0_8;
+        e->velocity = 1.0f;
+        e->angle[0] = 0.0f;
+        e->blend_mesh = 0;
+        break;
+    case MU_SFX_MODEL_POISON:                                  /* 0x013d71c9 */
+        e->blend_mesh = 1;
+        e->lifetime = 40;
+        e->scale = 1.0f;
+        break;
+    case MU_SFX_MODEL_WAVE:                                  /* 0x013cf050 */
+        e->blend_mesh = 0;
+        e->lifetime = 20;
+        e->direction[1] = -60.0f;
+        break;
+    case MU_SFX_MODEL_ICE_DEBRIS: {                                /* 0x013d5d55, Ice debris */
+        e->blend_mesh = 0;
+        e->blend_light = F_0_3;
+        float v[3] = {0.0f, (float)(smod(env_rand(env), 256) + 64) * F_0_1, 0.0f};
+        e->position[2] = e->position[2] + 50.0f;
+        e->lifetime = smod(env_rand(env), 16) + 32;
+        e->scale = (float)(smod(env_rand(env), 4) + 8) * F_0_1;
+        e->angle[2] = (float)smod(env_rand(env), 360);
+        float m[12];
+        mu_angle_matrix(e->angle, m);
+        mu_vector_rotate(v, m, e->direction);
+        e->gravity = (float)(smod(env_rand(env), 16) + 8);
+        break;
+    }
     case MU_SFX_MODEL_FIRE: {
         /* 0x013d2f05; subtype 1 takes the default branch 0x013d4086 */
         e->blend_mesh = 1;
@@ -709,6 +742,64 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 0, 1.0f, MU_SFX_NO_OWNER);
         check(env, e, MU_SFX_CALL_CHECK_ARROW);
         break;
+    case MU_SFX_MODEL_ICE:                                  /* 0x0146b979 */
+        if (e->frame >= 5.0f) {
+            e->velocity = 0.0f;
+            if (smod(env_rand(env), 2) == 0) {
+                float p[3];
+                p[0] = e->position[0] + (float)(smod(env_rand(env), 64) - 32);
+                p[1] = e->position[1] + (float)(smod(env_rand(env), 64) - 32);
+                p[2] = e->position[2] + (float)(smod(env_rand(env), 128) + 32);
+                call_particle(env, e, 0x7f5a, p, e->angle, e->light, 0, 1.0f, -1);
+            }
+            e->alpha = e->alpha - f32bits(0x3d4ccccd); /* 0.05 */
+            if (e->alpha < 0.0f)
+                kill_effect(env, e);
+        }
+        light[0] = -lum * F_0_4;
+        light[1] = -lum * F_0_3;
+        light[2] = -lum * F_0_2;
+        call_terrain_light(env, e, light, 2);
+        break;
+    case MU_SFX_MODEL_POISON:                                  /* 0x0144f50b */
+        e->blend_light = (float)e->lifetime * F_0_1;
+        e->alpha = (float)e->lifetime * F_0_1;
+        light[0] = lum * F_0_3;
+        light[1] = lum;
+        light[2] = lum * f32bits(0x3f19999a);       /* 0.6 */
+        call_terrain_light(env, e, light, 2);
+        break;
+    case MU_SFX_MODEL_WAVE:                                  /* 0x01453c6c */
+        e->blend_light = (float)e->lifetime * F_0_1;
+        e->blend_u = -(float)e->lifetime * F_0_2;
+        for (int k = 0; k < 4; ++k)
+            call_particle(env, e, 0x7f5a, e->position, e->angle, e->light, 3, 1.0f, -1);
+        light[0] = lum * F_0_3;
+        light[1] = lum * f32bits(0x3f19999a);
+        light[2] = lum;
+        call_terrain_light(env, e, light, 3);
+        break;
+    case MU_SFX_MODEL_ICE_DEBRIS: {                                /* 0x0145d25b */
+        for (int k = 0; k < 3; ++k)
+            e->position[k] = e->position[k] + e->direction[k];
+        e->direction[0] = F_0_9 * e->direction[0];
+        e->direction[1] = F_0_9 * e->direction[1];
+        e->direction[2] = F_0_9 * e->direction[2];
+        e->position[2] = e->position[2] + e->gravity;
+        e->gravity = e->gravity - 3.0f;
+        float ground = env_height(env, e->position[0], e->position[1]);
+        if (ground > e->position[2]) {
+            e->position[2] = ground;
+            e->gravity = -e->gravity * 0.5f;
+            e->lifetime -= 4;
+            e->angle[0] = e->angle[0] - e->scale * 128.0f;
+        } else {
+            e->angle[0] = e->angle[0] - e->scale * 32.0f;
+        }
+        if (smod(env_rand(env), 10) == 0)
+            call_particle(env, e, 0x7f5a, e->position, e->angle, e->light, 0, 1.0f, -1);
+        break;
+    }
     case MU_SFX_MODEL_FIRE:
         /* 0x0146bff4, subtype 1 */
         e->blend_light = 0.0f;

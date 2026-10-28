@@ -107,7 +107,8 @@ typedef struct mu_combat_model {
 enum {
     MU_COMBAT_MODEL_ARROW = 0, MU_COMBAT_MODEL_FIRE, MU_COMBAT_MODEL_CIRCLE, MU_COMBAT_MODEL_CIRCLE_LIGHT,
     MU_COMBAT_MODEL_INFERNO, MU_COMBAT_MODEL_LASER, MU_COMBAT_MODEL_STONE1, MU_COMBAT_MODEL_STONE2,
-    MU_COMBAT_MODEL_WEAPON, MU_COMBAT_MODELS
+    MU_COMBAT_MODEL_WEAPON, MU_COMBAT_MODEL_ICE, MU_COMBAT_MODEL_ICE_DEBRIS,
+    MU_COMBAT_MODEL_WAVE, MU_COMBAT_MODELS
 };
 
 #define MU_COMBAT_PARTICLES 2048
@@ -158,8 +159,6 @@ typedef struct mu_combat {
     uint64_t receive_cursor;
     uint32_t receive_lost;
     uint32_t place_sequence;
-    void (*drop)(void *context,const uint8_t entry[19]);
-    void *drop_context;
     uint32_t actor_revisions[MU_WORLD_ACTORS_MAX];
     /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
      * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */

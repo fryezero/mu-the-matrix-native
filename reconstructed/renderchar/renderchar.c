@@ -44,6 +44,7 @@ typedef struct sink {
     const mu_rc_item *item;
     mu_rc_model *model;
     int parameters;
+    const mu_rc_item_context *context;
 } sink;
 
 static void emit(sink *s, int32_t entry, int32_t mesh, uint32_t flags, float alpha, int32_t hidden, int32_t texture)
@@ -136,7 +137,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         return;
     }
     mu_rc_draw base;
-    sink one = {&base, 1, 0, s->item, s->model, 0};
+    sink one = {&base, 1, 0, s->item, s->model, 0, NULL};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
     uint32_t input[25];
     input[0] = base.flags;
@@ -228,11 +229,73 @@ static float client_fabs(float x)                         /* 0x0184f8ff */
     return 0.0f > x ? -x : x;
 }
 
+/* Rank 5, 0x017479b1..0x0174a489. The pose call changes bones for
+ * owner effects; these mesh calls retain the incoming transformed geometry. */
+int mu_rc_item_rank5(int32_t type)
+{
+    return (type >= 0x1c24 && type <= 0x1c34) || type == 0x1c44 || type == 0x1c7a;
+}
+
+static void rank5_mesh(sink *s, int mesh, int blend, float light, float u, float v, int texture, float alpha)
+{
+    const mu_rc_item *saved = s->item;
+    mu_rc_item item = *saved;
+    item.blend_mesh = blend;
+    item.blend_light = light;
+    item.u = u;
+    item.v = v;
+    s->item = &item;
+    emit(s, MU_RC_ENTRY_MESH, mesh, 2, alpha, -1, texture);
+    s->item = saved;
+}
+
+static int32_t rank5_random(const sink *s)
+{
+    return s->context && s->context->random ? s->context->random(s->context->context) : 0;
+}
+
+static void rank5_body(sink *s)
+{
+    const mu_rc_item *it = s->item;
+    int blue = it->type == 0x1c26 || it->type == 0x1c27 || it->type == 0x1c2c ||
+               it->type == 0x1c2e || it->type == 0x1c2f || it->type == 0x1c33 || it->type == 0x1c44;
+    for (int mesh = 0; mesh < (blue ? 4 : 2); ++mesh)
+        rank5_mesh(s, mesh, -1, 1.0f, it->u, it->v, -1, 1.0f);
+    if (!s->context || !s->context->lighting)
+        return;
+    float time = it->time;
+    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
+    float x = (float)(tick % -6283) * 0.001f * -1.0f;
+    float wave = (float)cos((double)x);
+    if (3.1415927f > x) wave = -wave;
+    float pulse = ((wave + 1.0f) * 0.5f) * 0.8f + 0.2f;
+    int first = blue ? 4 : 2;
+    rank5_mesh(s, blue ? s->context->blue_mesh : 1, blue ? s->context->blue_mesh : 1,
+               pulse, it->u, it->v, blue ? 0x84d9 : it->type == 0x1c2b ? 0x84da : 0x84db, 1.0f);
+    if (!blue) {
+        float random_light = (float)(rank5_random(s) % 5) / 5.0f + 0.5f;
+        rank5_mesh(s, first, first, random_light, it->u, it->v, -1, 1.0f);
+    }
+    float divided = time / 80.0f;
+    int32_t frame = !(divided >= -2147483648.0f && divided < 2147483648.0f) ? INT32_MIN : (int32_t)divided;
+    float u = (float)(frame % 4) * 0.25f + (float)(rank5_random(s) % 4) * 0.0f;
+    rank5_mesh(s, blue ? 4 : 3, blue ? 4 : 3, 0.6f, u, it->v, -1, 1.0f);
+    if (blue) {
+        float random_light = (float)(rank5_random(s) % 5) / 5.0f + 0.5f;
+        rank5_mesh(s, 5, 5, random_light, it->u, it->v, -1, 1.0f);
+    }
+    /* Bone-dependent particles are outside this no-owner context. */
+}
+
 /* RenderPartObjectBody 0x016e036c, generic tail 0x017020e2 / 0x0176cad9;
  * the +15 attachment models class15_* (0xa99..0xaa1, 0x016fc881..0x016fca83). */
 static void part_body(sink *s, float alpha, uint32_t flags, int32_t a6, int32_t a7)
 {
     const mu_rc_item *it = s->item;
+    if (s->parameters && mu_rc_item_rank5(it->type)) {
+        rank5_body(s);
+        return;
+    }
     if (s->parameters && body_type(it->type) >= 0) {
         emit_parameter_body(s, flags & 0x40000u ? 5 : 0, flags, alpha, -1, -1);
         return;
@@ -383,7 +446,7 @@ static void scale_light(float out[3], const float light[3], float factor)
 
 int mu_rc_item_special(int32_t type)
 {
-    if (body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
+    if (mu_rc_item_rank5(type) || body_type(type) >= 0 || type == 0x3895 || type == 0x3896 ||
         (type >= 0x389b && type <= 0x389e))
         return 0;
     /* RENDER-ITEMS-002b: complete body streams, not the link-effect switch. */
@@ -395,14 +458,19 @@ int mu_rc_item_special(int32_t type)
     return mu_rc_special_type(type);
 }
 
-static int item_draws_impl(const mu_rc_item *, mu_rc_model *, mu_rc_draw *, int32_t, int32_t *, int);
+static int item_draws_impl(const mu_rc_item *, mu_rc_model *, mu_rc_draw *, int32_t, int32_t *, int, const mu_rc_item_context *);
 
 int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity, int32_t *count)
+{
+    return mu_rc_item_draws_context(it, model, out, capacity, count, NULL);
+}
+
+int mu_rc_item_draws_context(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity, int32_t *count, const mu_rc_item_context *context)
 {
     *count = 0;
     if (mu_rc_item_special(it->type))
         return MU_RC_SPECIAL;
-    if ((body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
+    if ((mu_rc_item_rank5(it->type) || body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
         (it->a10 != -1 || it->a11 != -1))
         return MU_RC_UNSUPPORTED;
     /* 0x016ed6e8 and the shared armour fallback: OBJECT blend writes survive the tails. */
@@ -410,7 +478,7 @@ int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, 
         mu_rc_item copy = *it;
         float wave = client_sin(it->time * 0.001f);
         copy.blend_light = it->type == 0x0eee ? wave * 0.6f + 0.4f : wave * 0.4f + 0.6f;
-        return item_draws_impl(&copy, model, out, capacity, count, 1);
+        return item_draws_impl(&copy, model, out, capacity, count, 1, context);
     }
     /* 0x01770e41..0x01770ef8: wing blend-light writes survive every pass. */
     if (it->type == 0x22ea || it->type == 0x248c || it->type == 0x22eb || it->type == 0x248d) {
@@ -418,28 +486,28 @@ int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, 
         float pulse = client_sin(it->time * 0.001f);
         copy.blend_light = (it->type == 0x22eb || it->type == 0x248d) ?
             (pulse + 1.0f) / 4.0f : pulse + 1.1f;
-        return item_draws_impl(&copy, model, out, capacity, count, 1);
+        return item_draws_impl(&copy, model, out, capacity, count, 1, context);
     }
     if (it->type == 0x389d) {
         mu_rc_item copy = *it;
         float clock = -it->time;
         int32_t tick = !(clock >= -2147483648.0f && clock < 2147483648.0f) ? INT32_MIN : (int32_t)clock;
         copy.v = (float)(tick % 4000) * 0.00025f;
-        return item_draws_impl(&copy, model, out, capacity, count, 1);
+        return item_draws_impl(&copy, model, out, capacity, count, 1, context);
     }
-    return item_draws_impl(it, model, out, capacity, count, 1);
+    return item_draws_impl(it, model, out, capacity, count, 1, context);
 }
 
 int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
                              int32_t *count)
 {
-    return item_draws_impl(it, model, out, capacity, count, 0);
+    return item_draws_impl(it, model, out, capacity, count, 0, NULL);
 }
 
 static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, int32_t capacity,
-                             int32_t *count, int parameters)
+                             int32_t *count, int parameters, const mu_rc_item_context *context)
 {
-    sink s = {out, capacity, 0, it, model, parameters};
+    sink s = {out, capacity, 0, it, model, parameters, context};
     *count = 0;
     if (it->select != 0 || it->object_shadow == 1 || it->a13 == 1)
         return MU_RC_UNSUPPORTED;
@@ -466,7 +534,7 @@ static int item_draws_impl(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw 
                 (mu_rc_skin_bodies[i].level >= 0 && tested != mu_rc_skin_bodies[i].level))
                 continue;
             mu_rc_draw base;
-            sink one = {&base, 1, 0, it, model, 0};
+            sink one = {&base, 1, 0, it, model, 0, NULL};
             emit(&one, MU_RC_ENTRY_BODY, 0, it->render_type, it->alpha, 0, -1);
             uint32_t input[17];
             input[0] = base.flags;

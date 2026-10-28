@@ -38,9 +38,7 @@ static void rewards(combat_fixture *s,mu_fixture_ctx *ctx,fighter *f)
     for(int i=0;i<ACTORS;++i)if(s->actors[i].used && s->actors[i].cls==f->cls)kills+=s->actors[i].kills;
     int l=1+f->cls%40,gain=(l+25)*l/3;
     uint8_t exp[10]={0xc1,10,0x16,(uint8_t)(f->key>>8),(uint8_t)f->key,(uint8_t)(gain>>8),(uint8_t)gain};send_frame(ctx,exp,sizeof exp);
-    /* Synthetic Short Sword, one viewport row. SESSION-ITEMS will own the full ground domain. */
-    uint8_t drop[24]={0xc2,0,24,0x20,1,0x80,1,f->x,f->y};drop[9]=1;drop[10]=0;drop[11]=255;
-    send_frame(ctx,drop,sizeof drop);
+    mu_fx_items_reward(ctx,1,(float)f->x*100+50,(float)f->y*100+50);
     uint8_t quest[48]={0xc1,48,0xa4};for(int i=0;i<5;++i) {put32(quest+8+i*8,-1);put32(quest+12+i*8,-1);}
     put32(quest+8,f->cls);put32(quest+12,(int32_t)kills);send_frame(ctx,quest,sizeof quest);
 }

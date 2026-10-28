@@ -565,3 +565,15 @@ or undecodable frames; combat contributes seven frames and ten expectations. The
 1,342 staged files with zero rejections. The private session test passes all five tests; its 240-case/six-mutant
 validator also passes through `run_validators.py`. No golden/render hash pins changed. Intended combat and
 unknown-HP output changes are described above. All evidence remains local in the milestone scratch directory.
+
+## 10. RENDER-EFFECTS-002, 2026-10-28
+
+Player Poison, target Ice/debris and Power Wave now use the existing fixed effect
+pools and native renderers. The [coverage inventory](client-skill-visual-coverage.md)
+records all 23 native routes, sixteen classes, priority assumptions, 10,619 new
+instruction comparisons and 381 removal checks with zero mismatches and eight caught compiled mutants.
+Its caller audit corrects two earlier shorthand descriptions: Poison01 is a
+monster-only model at the audited site; a player emits ten smoke particles.
+Player Power Wave emits one model; the two side waves belong to monster 0x7b7.
+The session cast test leaves encrypted requests unsent and never invents damage.
+[Release checks and remaining work](../handoffs/RENDER-EFFECTS-002.md).

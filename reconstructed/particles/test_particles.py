@@ -81,7 +81,7 @@ class ParticleTests(unittest.TestCase):
         sup = self.lib.mu_pt_kind_supported
         for kind in self.v.KINDS:
             self.assertEqual(sup(*kind), 1, kind)
-        for kind in [(0x7f3c, 7), (0x7f3c, 18), (0x7f5a, 1), (0x771c, 1), (0x7ef7, 0), (0x7f26, 2)]:
+        for kind in [(0x7f3c, 7), (0x7f3c, 18), (0x7f5a, 4), (0x771c, 1), (0x7ef7, 0), (0x7f26, 2)]:
             self.assertEqual(sup(*kind), 0, kind)
 
     def test_common_initialisation(self):
