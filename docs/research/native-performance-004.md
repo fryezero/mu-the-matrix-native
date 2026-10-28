@@ -22,7 +22,7 @@ topology and absent/failed cache allocations retain the checked edge path. Trans
 none is cached. The literal mesh entry points remain checked. Each model frees
 its own cache. Identical equipment is not assumed to have identical poses.
 
-`MU_PERF_004_BASELINE=1` restores both prior paths on the same binary.
+`MU_PERF_004_BASELINE=1` restores the serial pose, checked topology and client-array paths on the same binary.
 `bench_stress.py --perf-004-baseline` records that choice explicitly. Main-thread
 and whole-process CPU time are separate columns; dispatch/driver worker CPU is
 included only by the latter. CPU intervals overlap the GL and Metal queue
@@ -213,6 +213,37 @@ records state/draw commands in their original order, and uploads larger immutabl
 chunks. Explicit flush and session end remain real submission barriers. Each
 chunk starts with fresh array pointers. Allocation/upload failure drains existing
 commands and falls back to the unchanged client-array delivery. No state or draw
-sorting is introduced. Initial synthetic GL checks pass across chunk boundaries,
-including upload failure, external buffer restoration and both prior mutants;
-full-scene checks and throughput are still pending for this candidate.
+sorting is introduced. Three focused GL tests pass. The extended stream crosses
+chunk boundaries and verifies public flush barriers, allocation/upload failure
+fallback, and external buffer restoration. All three wrong-UV, binding and blend
+mutants are caught. On runtime `4bd5d38`, all 604 full-scene preflight frame pairs
+match, with successful uploads and no fallback. Matched timing and the current
+source gate remain pending at this checkpoint.
+
+
+## Ordered capture WIP repeat and hard-stop boundary
+
+Runtime `4bd5d38` is frozen for this repeat. Eight sequential 60-second window
+runs use the same binary and full-quality workload; 50 warm-up frames are
+excluded. Before disables all PERF-004 changes; after enables bounded poses,
+topology proof and ordered capture. Order alternates by scenario. No tests,
+builds or profiles from this lane overlap the timings. Other lanes share the
+host, so these observations do not isolate a causal speedup.
+
+| Scenario | Before fps | After fps | Before main CPU ms | After main CPU ms | Before frame p99 ms | After frame p99 ms |
+|---|---:|---:|---:|---:|---:|---:|
+| crowd40 | 24.99 | 24.99 | 22.84 | 20.58 | 40.04 | 40.04 |
+| crowd80 | 24.65 | 24.56 | 32.00 | 27.15 | 66.70 | 60.01 |
+| tormenta80 | 23.39 | 23.89 | 37.05 | 31.42 | 88.38 | 77.55 |
+| retina80 | 21.64 | 24.22 | 40.72 | 34.32 | 55.33 | 66.03 |
+
+All eight warning-envelope checks pass. Only crowd40 passes strict acceptance
+in the optimized mode; every optimized 80-player scene fails fps and pacing/work
+tail limits. No acceptance or quality limit changed. The lower mean CPU is worth
+preserving as WIP, but steady 25 Hz and the pacing goal remain unachieved.
+
+The owner ends all lanes at 14:45 CDT. NATIVE-PERF-004 withdrew from the merge
+queue at 14:02, holds no lock, and will keep the worktree with a pushed checkpoint.
+No PR or main merge is claimed. Current-source local checks and the long frame
+comparison are recorded separately when completed; a future release still needs
+latest-main integration and the entire lock-held final sequence.

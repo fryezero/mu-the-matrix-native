@@ -1,6 +1,6 @@
 # Current status
 
-NATIVE-PERF-004: verified pose workers and topology cache; integrated performance acceptance in progress. [Checks and limits](handoffs/NATIVE-PERF-004.md).
+NATIVE-PERF-004 WIP: pose workers, exact topology cache and ordered GL capture; 25 Hz/pacing acceptance remains open. [Checks and limits](handoffs/NATIVE-PERF-004.md).
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. Locked Mac gate passes 1,563 tests; final G/H/I/J passes 24,000 instruction cases and 95/95 mutants. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
