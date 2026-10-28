@@ -112,7 +112,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 
 | ID | Scope | Completion evidence | Depends on | Status |
 |---|---|---|---|---|
-| AUDIO-002 | SND_Play call sites (1,980) become `MU_CUE_SOUND` as each domain migrates; event-world music managers; NPC voices; monster registration order; music 43/44 from a scoped capture | FMOD-call log of the original (Wine) against the native cue/audio log over the LIVE-PLAY script; the existing audio families rerun | domain milestones | EA (43/44: a `memread` of `0x01cf1680` under the game lock); the virtualised gap `0x01854279` BP |
+| AUDIO-002 | SND_Play call sites (1,980) become `MU_CUE_SOUND` as each domain migrates; event-world music managers; NPC voices; monster registration order; music 43/44 from a scoped capture | FMOD-call log of the original (Wine) against the native cue/audio log over the LIVE-PLAY script; the existing audio families rerun | domain milestones | Part 1 implemented: 76,150 Unicorn cases, zero mismatches, 22/22 mutants; event managers, registration, bounded NPC voices, session reader/log ([handoff](../../handoffs/AUDIO-002.md)). Domain callers and LIVE-PLAY comparison remain; 43/44 exact read recorded, gap `0x01854279` BP |
 
 ## I. Native Data for other users
 

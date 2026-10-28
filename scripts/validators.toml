@@ -1537,6 +1537,48 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
 
+[validate_audio_events]
+test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_events"
+pins = ["text", "data"]
+families = ["crywolf", "kanturu_battle", "kanturu", "balgas", "temple", "raklion", "santa", "duel", "imperial1", "imperial2", "imperial3", "imperial4", "empty", "karutan", "acheron"]
+cases = 70980
+mutants = 15
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_events.expect]
+mismatches = 0
+mutants = {len = 15}
+
+[validate_audio_registration]
+test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_registration"
+pins = ["text", "data"]
+families = ["monster", "npc"]
+cases = 2988
+mutants = 4
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_registration.expect]
+mismatches = 0
+mutants = {len = 4}
+
+[validate_audio_voices]
+test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_voices"
+pins = ["text", "data"]
+families = ["random64", "random256", "action_frame"]
+cases = 2182
+mutants = 3
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_voices.expect]
+mismatches = 0
+mutants = {len = 3}
+
 [validate_icarus]
 test = "native/tests/test_native_icarus.py::IcarusInstructions.test_compiled_c_matches_client_and_mutants_fail"
 pins = ["text", "data"]

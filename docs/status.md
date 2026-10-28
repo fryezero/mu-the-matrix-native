@@ -2,6 +2,8 @@
 
 INPUT-001: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
 
+AUDIO-002 part 1: event music decisions, monster/NPC registration, bounded NPC voices and native cue logging implemented. 76,150 new Unicorn cases, zero mismatches, 22/22 compiled mutants. [Checks and limits](handoffs/AUDIO-002.md).
+
 SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
 
 RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
