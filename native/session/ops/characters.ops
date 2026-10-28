@@ -1,0 +1,7 @@
+/* SESSION-VIEWPORT-001. 0x12 field/default/placement ranges are compared by
+ * validate_viewport; external services retain the documented static limits. */
+MU_OP(0x12, MU_SUB_NONE, characters_players)
+MU_OP(0x3d, MU_SUB_NONE, characters_move)
+MU_OP(0x14, MU_SUB_NONE, characters_destroy)
+MU_OP(0x17, MU_SUB_NONE, characters_die)
+MU_OP(0x3f, 0x02, characters_stores)
