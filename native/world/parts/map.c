@@ -14,7 +14,7 @@ static int map_open(struct mu_world_rt *a, void *self)
         if (!a->mapsess) {
             a->mapsess = calloc(1, sizeof *a->mapsess);
             if (a->mapsess)
-                mu_map_session_init(a->mapsess, mu_lang_shared(), a->world, a->tile[0], a->tile[1]);
+                mu_map_session_init(a->mapsess, a->lang, a->world, a->tile[0], a->tile[1]);
         }
         if (a->mapsess) {
             mu_map_set_position(a->mapsess, a->world, a->walk.hero.tile[0], a->walk.hero.tile[1]);

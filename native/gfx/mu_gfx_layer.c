@@ -289,6 +289,7 @@ typedef struct hotkey_item {
 #include "mu_gfx_services_state.h"
 
 struct mu_gfx_layer {
+    struct mu_perf *perf;
 #ifndef MU_GFX_NO_GL
     struct {
         GLuint query[8];
@@ -2746,7 +2747,7 @@ static void render_movies(mu_gfx_layer *L, int force_readback)
 {
 #ifndef MU_GFX_NO_GL
     if (L->shared && !force_readback && L->api.perf_frame)
-        L->api.perf_frame((uint64_t)mu_perf_frame_index());
+        L->api.perf_frame((uint64_t)mu_perf_frame_index(L->perf));
 #endif
     int submitted = 0;
     double t_submit = now_ms();
@@ -4004,7 +4005,7 @@ int mu_gfx_layer_mix_action(mu_gfx_layer *L,const char *verb,int a,int b)
 #ifndef MU_GFX_NO_GL
 static void perf_gl_begin(mu_gfx_layer *L)
 {
-    if (!mu_perf_enabled()) return;
+    if (!mu_perf_enabled(L->perf)) return;
     if (!L->perf_gl.checked) {
         const char *ext = (const char *)glGetString(GL_EXTENSIONS);
         L->perf_gl.supported = ext && (strstr(ext, "GL_EXT_timer_query") || strstr(ext, "GL_ARB_timer_query"));
@@ -4022,9 +4023,9 @@ static void perf_gl_begin(mu_gfx_layer *L)
         if (!ready) return;
         GLuint64EXT ns = 0;
         glGetQueryObjectui64vEXT(L->perf_gl.query[i], GL_QUERY_RESULT, &ns);
-        mu_perf_gpu_gfx_sample((double)ns / 1.0e6, L->perf_gl.frame[i]);
+        mu_perf_gpu_gfx_sample(L->perf, (double)ns / 1.0e6, L->perf_gl.frame[i]);
     }
-    L->perf_gl.frame[i] = mu_perf_frame_index();
+    L->perf_gl.frame[i] = mu_perf_frame_index(L->perf);
     glBeginQuery(GL_TIME_ELAPSED_EXT, L->perf_gl.query[i]);
     L->perf_gl.active = 1;
 }
@@ -4693,3 +4694,5 @@ int mu_gfx_layer_inventory_exchange(mu_gfx_layer *L, const int tokens[32], const
         }
     return 1;
 }
+
+void mu_gfx_layer_set_perf(mu_gfx_layer *L, struct mu_perf *p) { if (L) L->perf = p; }

@@ -53,6 +53,8 @@ extern "C" {
 #endif
 
 typedef struct mu_gfx_layer mu_gfx_layer;
+struct mu_perf;
+void mu_gfx_layer_set_perf(mu_gfx_layer *, struct mu_perf *);
 void mu_gfx_layer_social_notice(mu_gfx_layer *, int32_t text_id, const char *fallback);
 
 /* NATIVE-NPC-001 adds the NPC windows: npcdialogue (NpcDialogue.swf), NpcShop

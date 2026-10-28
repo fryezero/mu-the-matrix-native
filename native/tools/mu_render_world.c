@@ -16,6 +16,7 @@
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_renderchar.h"
+#include "../core/mu_lang.h"
 #include "../core/mu_particles.h"
 #include "../../reconstructed/model-codec/character.h"
 
@@ -263,6 +264,8 @@ int mu_render_world_character(const mu_options *o)
     }
     /* +15 attachments share the character's bone/root storage. */
     static mu_renderchar_attachment att[sizeof ATTACH / sizeof ATTACH[0]];
+    mu_lang *lang = mu_lang_load_default();
+    W.env.lang = lang;
     mu_renderchar_host host = {c.shared_bones, c.shared_root, c.shared_quaternions};
     int attached = 0;
     if (W.attachments && o->game_root) {
@@ -282,6 +285,7 @@ int mu_render_world_character(const mu_options *o)
     mu_raster raster;
     if (mu_raster_init(&raster, o->width, o->height)) {
         fprintf(stderr, "bad image size\n");
+        mu_lang_free(lang);
         return 1;
     }
     raster.linear = o->linear;
@@ -312,6 +316,7 @@ int mu_render_world_character(const mu_options *o)
                 free(frames);
                 mu_raster_free(&raster);
                 mu_character_free(&c);
+                mu_lang_free(lang);
                 return 1;
             }
         }
@@ -389,6 +394,7 @@ int mu_render_world_character(const mu_options *o)
     free(frames);
     mu_raster_free(&raster);
     mu_character_free(&c);
+    mu_lang_free(lang);
     return status;
 }
 
@@ -410,15 +416,19 @@ int mu_render_world_actor(const mu_options *o)
     int32_t steps = (int32_t)(o->time / 0.04f + 0.5f);
     for (int32_t k = 0; k < steps; ++k)
         mu_actor_step(&actor, NULL);
+    mu_lang *lang = mu_lang_load_default();
+    W.env.lang = lang;
     mu_renderchar_host host;
     if (mu_renderchar_host_init(&host, &actor.model)) {
         mu_actor_free(&actor);
+        mu_lang_free(lang);
         return 1;
     }
     if (mu_actor_update(&actor)) {
         fprintf(stderr, "actor update failed\n");
         mu_renderchar_host_free(&host);
         mu_actor_free(&actor);
+        mu_lang_free(lang);
         return 1;
     }
     /* Weapon link bones assigned by the character create 0x0137d8a1 for the model index. */
@@ -441,8 +451,10 @@ int mu_render_world_actor(const mu_options *o)
     float position[3] = {o->params.origin[0], o->params.origin[1], o->params.origin[2]};
     float light[3] = {o->params.color[0], o->params.color[1], o->params.color[2]};
     mu_raster raster;
-    if (mu_raster_init(&raster, o->width, o->height))
+    if (mu_raster_init(&raster, o->width, o->height)) {
+        mu_lang_free(lang);
         return 1;
+    }
     raster.linear = o->linear;
     raster.front_ccw = !o->front_cw;
     mu_camera camera;
@@ -495,5 +507,6 @@ int mu_render_world_actor(const mu_options *o)
     mu_raster_free(&raster);
     mu_renderchar_host_free(&host);
     mu_actor_free(&actor);
+    mu_lang_free(lang);
     return status;
 }

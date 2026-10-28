@@ -17,10 +17,9 @@ const char *mu_map_text(const mu_map_session *s, int32_t index)
         return t;
     /* a miss: the client's lookup 0x011753c3 returns "[Text] error index : %d" (never an empty text, which
      * every name rule of the move window would match) */
-    static char ring[4][48];
-    static unsigned next;
-    char *buf = ring[next++ & 3];
-    snprintf(buf, sizeof ring[0], "[Text] error index : %d", (int)index);
+    mu_map_session *owner = (mu_map_session *)s;
+    char *buf = owner->text_ring[owner->text_next++ & 3];
+    snprintf(buf, sizeof owner->text_ring[0], "[Text] error index : %d", (int)index);
     return buf;
 }
 

@@ -3,15 +3,14 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <stdatomic.h>
 #include <stdio.h>
+#include <sys/file.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 
 /* Startup sound sets (the two loaders that register the permanent ids). */
 static const uint32_t startup_loaders[] = {0x018392db, 0x018433ed};
-
-static atomic_uint next_log_host = 1;
 
 struct mu_audio_host {
     mu_audio_engine *engine;
@@ -27,7 +26,7 @@ struct mu_audio_host {
     mu_event_music_state event_music;
     FILE *cue_log;
     uint64_t log_seq;
-    uint32_t log_host;
+    uint64_t log_host;
     uint32_t time_ms, session_tick;
     void (*observer)(void *ctx, int kind, int32_t a, int32_t b);
     void *observer_ctx;
@@ -74,10 +73,10 @@ static void audio_log(mu_audio_host *h, const char *op, int32_t id, int32_t loop
     if (!h->cue_log) return;
     fprintf(h->cue_log, "{\"audio\":1,\"seq\":%llu,\"time_ms\":%u,\"world\":%d,"
             "\"op\":\"%s\",\"id\":%d,\"loop\":%d,\"result\":%d,\"cue_seq\":%llu,"
-            "\"handler\":%u,\"at_key\":%d,\"session_tick\":%u,\"site\":%u,\"host\":%u}\n",
+            "\"handler\":%u,\"at_key\":%d,\"session_tick\":%u,\"site\":%u,\"host\":%llu}\n",
             (unsigned long long)h->log_seq++, h->time_ms, h->world.world, op, id, !strcmp(op, "register") ? 0 : loop, result,
             (unsigned long long)(cue ? cue->seq : 0), cue ? cue->handler : 0,
-            cue ? cue->u.sound.at_key : -2, h->session_tick, !strcmp(op, "register") ? (uint32_t)loop : cue ? cue->u.sound.site : 0, h->log_host);
+            cue ? cue->u.sound.at_key : -2, h->session_tick, !strcmp(op, "register") ? (uint32_t)loop : cue ? cue->u.sound.site : 0, (unsigned long long)h->log_host);
     fflush(h->cue_log);
 }
 
@@ -279,8 +278,17 @@ mu_audio_host *mu_audio_host_new(const mu_audio_host_config *config, char *error
             failf(error, error_size, "cannot open audio cue log %s", cue_path);
             return NULL;
         }
-        host->log_host = atomic_fetch_add(&next_log_host, 1);
+        /* Each open record starts a stream at a unique position in this append log.
+         * A new log starts at 1 even after earlier hosts in the same process. */
+        if (flock(fileno(host->cue_log), LOCK_EX) != 0 || fseek(host->cue_log, 0, SEEK_END) != 0) {
+            failf(error, error_size, "cannot identify audio cue log stream");
+            mu_audio_host_free(host);
+            return NULL;
+        }
+        long offset = ftell(host->cue_log);
+        host->log_host = offset >= 0 ? (uint64_t)offset + 1u : 1u;
         audio_log(host, "open", 0, 0, 1, NULL);
+        flock(fileno(host->cue_log), LOCK_UN);
     }
     return host;
 }

@@ -32,7 +32,7 @@ static const char *global_text(void *user, int32_t index)
     int tip_line = index == 0x6ae || index == 0x6cb || index == 0x6cc;
     if (tip_line && tip)
         return tip;
-    const char *text = mu_lang_text(mu_lang_shared(), index);
+    const char *text = mu_lang_text(ui->lang, index);
     if (text)
         return text;
     return tip_line ? LIVE_TIP : "";
@@ -79,6 +79,7 @@ int mu_charsel_ui_init(mu_charsel_ui *ui, const char *root, int32_t width, int32
     if (mu_ui_raster_init(&ui->raster, width, height))
         return 1;
     ui->inner = mu_ui_raster_sink(&ui->raster);
+    ui->lang = mu_lang_load_default();
     ui->state.sink.user = ui;
     ui->state.sink.call = sink_call;
     ui->state.lookup = mu_ui_assets_lookup;
@@ -123,6 +124,7 @@ int mu_charsel_ui_init(mu_charsel_ui *ui, const char *root, int32_t width, int32
 
 void mu_charsel_ui_free(mu_charsel_ui *ui)
 {
+    mu_lang_free(ui->lang);
     free(ui->text.dib);
     mu_ui_font_set_close(&ui->fonts);
     mu_ui_assets_free(&ui->assets);

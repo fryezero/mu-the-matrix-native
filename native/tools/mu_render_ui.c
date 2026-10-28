@@ -35,6 +35,7 @@
 #include "../../reconstructed/ui/ui_text.h"
 
 typedef struct ui_options {
+    mu_lang *lang;
     const char *screen, *root, *out, *font, *version, *string, *variant, *text454, *text455, *format456;
     const char *list, *frames, *fixed_font, *text565, *text566, *text567, *credits;
     int32_t time_ms;
@@ -308,9 +309,9 @@ static int render_text(const ui_options *o)
 /* GlobalText[454..456] of the login overlay: the tables read from the
  * client (NATIVE-LANG-001) when present, else the observed strings.  456 is
  * a format with one %s; a table string without exactly one %s is not used. */
-static const char *login_text(int32_t index, const char *observed)
+static const char *login_text(const ui_options *o, int32_t index, const char *observed)
 {
-    const char *text = mu_lang_text(mu_lang_shared(), index);
+    const char *text = mu_lang_text(o->lang, index);
     if (!text)
         return observed;
     if (index == 456) {
@@ -363,9 +364,9 @@ static int render_login(const ui_options *o)
     memset(&strings, 0, sizeof strings);
     /* Defaults: the strings the installed client showed in a live capture on
      * 2026-10-17 (read off the screen; the encrypted text file is not decoded). */
-    strings.text454 = o->text454 ? o->text454 : login_text(454, "Mu The Matrix, Private Server Since 2005 / ");
-    strings.text455 = o->text455 ? o->text455 : login_text(455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
-    strings.format456 = o->format456 ? o->format456 : login_text(456, "Ver %s");
+    strings.text454 = o->text454 ? o->text454 : login_text(o, 454, "Mu The Matrix, Private Server Since 2005 / ");
+    strings.text455 = o->text455 ? o->text455 : login_text(o, 455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
+    strings.format456 = o->format456 ? o->format456 : login_text(o, 456, "Ver %s");
     for (int i = 0; i < 5; ++i)
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
     clear(&state);
@@ -379,7 +380,7 @@ static int render_login(const ui_options *o)
     int result = finish(o, &raster, "login", loaded, 3);
     fprintf(stderr, "login: font %s %s (%d px), strings %s\n", font.face,
             font.backend ? "CoreText" : "placeholder", font.height,
-            o->text454 || o->text455 || o->format456 ? "from options" : mu_lang_text(mu_lang_shared(), 454) ? "GlobalText (MU_LANG_DIR)" : "observed live defaults");
+            o->text454 || o->text455 || o->format456 ? "from options" : mu_lang_text(o->lang, 454) ? "GlobalText (MU_LANG_DIR)" : "observed live defaults");
     free(text.dib);
     mu_ui_font_close(&font);
     mu_ui_assets_free(&assets);
@@ -426,6 +427,7 @@ static void screen_call(void *user, int op, const uint32_t *words, int count, co
 }
 
 typedef struct global_texts {
+    const mu_lang *lang;
     const char *t565, *t566, *t567;
     int forced;               /* set from options: they win over the tables */
 } global_texts;
@@ -435,7 +437,7 @@ typedef struct global_texts {
 static const char *global_text(void *user, int32_t index)
 {
     const global_texts *t = user;
-    const char *text = mu_lang_text(mu_lang_shared(), index);
+    const char *text = mu_lang_text(t->lang, index);
     if (text && !t->forced)
         return text;
     switch (index) {
@@ -553,7 +555,7 @@ static int render_servers(const ui_options *o)
     mu_ui_login_text strings;
     mu_ui_ctx ctx;
     screen_sink sink;
-    global_texts texts;
+    global_texts texts = {.lang = o->lang};
     mu_ui_server_list *list = calloc(1, sizeof *list);
     mu_ui_server_win *win = calloc(1, sizeof *win);
     float fade = o->fade - 0.02f;
@@ -676,9 +678,9 @@ static int render_servers(const ui_options *o)
     ctx.input.lbutton_down = ctx.input.lbutton_up = 0;
 
     memset(&strings, 0, sizeof strings);
-    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : login_text(454, "Mu The Matrix, Private Server Since 2005 / ");
-    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : login_text(455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
-    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : login_text(456, "Ver %s");
+    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : login_text(o, 454, "Mu The Matrix, Private Server Since 2005 / ");
+    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : login_text(o, 455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
+    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : login_text(o, 456, "Ver %s");
     for (int i = 0; i < 5; ++i) {
         const char *version = o->version ? o->version : "10000";
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
@@ -721,9 +723,9 @@ static void login_overlay(const ui_options *o, mu_ui_state *state, mu_ui_ctx *ct
     mu_ui_login_text strings;
     float fade = o->fade - 0.02f;
     memset(&strings, 0, sizeof strings);
-    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : login_text(454, "Mu The Matrix, Private Server Since 2005 / ");
-    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : login_text(455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
-    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : login_text(456, "Ver %s");
+    strings.text454 = o->no_text ? "\n" : o->text454 ? o->text454 : login_text(o, 454, "Mu The Matrix, Private Server Since 2005 / ");
+    strings.text455 = o->no_text ? "\n" : o->text455 ? o->text455 : login_text(o, 455, "  COPYRIGHT WEBZEN, INC. ALL RIGHTS RESERVED.");
+    strings.format456 = o->no_text ? "\n%s" : o->format456 ? o->format456 : login_text(o, 456, "Ver %s");
     for (int i = 0; i < 5; ++i) {
         const char *version = o->version ? o->version : "10000";
         strings.version_bytes[i] = (uint8_t)((unsigned char)(version[i] ? version[i] : ' ') + i + 1);
@@ -908,16 +910,14 @@ int mu_render_ui_main(int argc, char **argv)
         usage(argv[0]);
         return 2;
     }
-    if (!strcmp(o.screen, "title"))
-        return render_title(&o);
-    if (!strcmp(o.screen, "text"))
-        return render_text(&o);
-    if (!strcmp(o.screen, "login"))
-        return render_login(&o);
-    if (!strcmp(o.screen, "servers"))
-        return render_servers(&o);
-    if (!strcmp(o.screen, "credits"))
-        return render_credits(&o);
-    usage(argv[0]);
-    return 2;
+    o.lang = mu_lang_load_default();
+    int result = 2;
+    if (!strcmp(o.screen, "title")) result = render_title(&o);
+    else if (!strcmp(o.screen, "text")) result = render_text(&o);
+    else if (!strcmp(o.screen, "login")) result = render_login(&o);
+    else if (!strcmp(o.screen, "servers")) result = render_servers(&o);
+    else if (!strcmp(o.screen, "credits")) result = render_credits(&o);
+    else usage(argv[0]);
+    mu_lang_free(o.lang);
+    return result;
 }

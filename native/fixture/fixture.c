@@ -27,7 +27,11 @@ static const mu_fixture_behavior *const BEHAVIORS[] = {
 #include "fixture_behaviors.def"
 #undef MU_FX_BEHAVIOR
     NULL};
-static const char *BEHAVIOR_NAMES[sizeof BEHAVIORS / sizeof BEHAVIORS[0]];
+static const char *const BEHAVIOR_NAMES[] = {
+#define MU_FX_BEHAVIOR(sym) #sym,
+#include "fixture_behaviors.def"
+#undef MU_FX_BEHAVIOR
+    NULL};
 
 #define MAX_USES 8
 #define MAX_LINES 512
@@ -77,7 +81,7 @@ struct mu_fixture {
     mu_fixture_ctx ctx;
 };
 
-static const char *ROLE_NAMES[MU_CONN_KINDS] = {"connect", "game", "chat"};
+static const char *const ROLE_NAMES[MU_CONN_KINDS] = {"connect", "game", "chat"};
 
 static int role_of(const char *name)
 {
@@ -701,9 +705,7 @@ void mu_fixture_script_get(const mu_fixture *f, mu_fixture_script *out)
 
 size_t mu_fixture_behavior_names(const char *const **names)
 {
-    size_t n = 0;
-    for (; BEHAVIORS[n]; ++n)
-        BEHAVIOR_NAMES[n] = BEHAVIORS[n]->name;
+    size_t n = sizeof BEHAVIOR_NAMES / sizeof BEHAVIOR_NAMES[0] - 1;
     *names = BEHAVIOR_NAMES;
     return n;
 }

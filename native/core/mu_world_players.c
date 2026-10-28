@@ -775,7 +775,7 @@ void mu_world_players_sync(mu_world_players *p, const mu_characters_view *v)
         if(!q->store_open&&v->store_open[slot]) {
             q->store_open=1;++p->store_packets;
             if (p->names) {
-                const mu_lang *lang = mu_lang_shared();
+                const mu_lang *lang = p->names->lang;
                 const char *label = lang ? mu_lang_text(lang, 0x450) : NULL;
                 mu_names_set_store(&p->names->names, q->key, 1, v->store_title[slot], label ? label : "Store");
             }
