@@ -128,12 +128,56 @@ The optimized version preserves all 604 full-frame hashes above.
 
 ## Final timing
 
-The final-source real-time repeat is pending. The earlier complete compiler /
-storage / pacing matrix is retained locally in final-* and measured crowd40
-24.98 ->24.98, crowd80 23.53 ->24.45, Tormenta80 21.83 ->22.07 and retina80
-17.78 ->17.87 fps. Only crowd40 passes the strict 25 Hz goal in that matrix.
-Every kept frame has a complete Metal interval. It precedes the region-search
-candidate and is not presented as a final-source timing.
+Final-source window repeats use normal AS2 wall time and asynchronous double-buffer
+presentation. Each run lasts 60 seconds, drops the first 50 frames and checks the
+complete workload. Reference and optimized builds use the same source at
+`1529b8c`; the reference selects O2/non-LTO, 16 Rust codegen units and
+`--perf-003-baseline`. The optimized build uses the default macOS O3/ThinLTO,
+region search, bounded storage and deadline pacing. Run order alternates by
+scenario. Build hashes and commands are in `continued/resume-builds.json` and
+`continued/resume-*/`.
+
+| Scenario | Build | Frames | fps | Frame p50 / p95 / p99 ms | CPU mean ms | World GL mean ms | GFx GL mean ms | Metal queue mean ms |
+|---|---|---:|---:|---|---:|---:|---:|---:|
+| crowd40 | before | 1,355 | 24.78 | 40.20 / 48.50 / 52.80 | 30.79 | 15.62 | 0.46 | 4.02 |
+| crowd40 | after | 1,363 | 24.90 | 40.01 / 40.64 / 43.74 | 29.23 | 15.18 | 0.46 | 3.96 |
+| crowd80 | before | 856 | 16.52 | 59.64 / 75.39 / 99.22 | 57.66 | 22.93 | 0.67 | 7.11 |
+| crowd80 | after | 943 | 18.37 | 53.62 / 65.24 / 75.56 | 52.27 | 22.05 | 0.67 | 6.70 |
+| tormenta80 | before | 762 | 15.40 | 61.75 / 88.64 / 106.45 | 61.55 | 25.58 | 0.68 | 7.26 |
+| tormenta80 | after | 978 | 18.94 | 52.15 / 63.18 / 68.42 | 51.36 | 22.20 | 0.69 | 6.24 |
+| retina80 | before | 688 | 13.59 | 71.19 / 93.39 / 111.66 | 68.11 | 30.34 | 2.35 | 10.51 |
+| retina80 | after | 899 | 17.58 | 56.77 / 62.81 / 65.62 | 52.26 | 25.56 | 2.85 | 10.22 |
+
+All eight runs pass the existing M5 regression warning envelope. None passes the
+strict 25 Hz work/pacing acceptance in this repeat. Even crowd40's optimized
+24.90 fps has failing tails; its earlier 24.98 fps strict pass remains an earlier
+observation. The three optimized 80-player scenes remain below 25 fps. Their
+results are shared-host observations, not isolated causal estimates or proof of
+a fixed speedup. No acceptance limit or visual-quality setting was relaxed.
+
+All measured frames have complete Metal intervals. CPU means are main-thread
+CPU time. World GL, GFx GL and Metal queue columns are separate elapsed intervals
+that overlap CPU work and can overlap one another; do not add them into a GPU
+total. Queue/busy-time limits remain as described above.
+
+The earlier complete compiler/storage/pacing matrix remains in `final-*` and
+measured crowd40 24.98 ->24.98, crowd80 23.53 ->24.45, Tormenta80 21.83 ->22.07
+and retina80 17.78 ->17.87 fps. It preceded region search and is retained as
+historical evidence rather than substituted for the final-source repeat.
+
+## Final verification and disk recovery
+
+The completed original-instruction meshdraw validator in `continued/oracle-final`
+has 843/843 draw cases, 247/247 pinned cases and 13,529/13,529 texture names,
+zero mismatches, no uncovered draw branches and all four negative controls
+caught. Fourteen installed models are explicitly skipped. The reconstructed draw
+library is compared with x86 instructions; the 604-frame native comparison above
+separately covers the host/compiler changes.
+
+The ENOSPC recovery removes rebuildable Rust output, duplicated experimental
+libraries/source and raw frame dumps. Keep all numerical reports and supporting
+logs, per-frame hashes and eight representative before/after images. The final
+lock-held Mac gate and merge provenance are recorded in the milestone handoff.
 
 ## Reproduction
 

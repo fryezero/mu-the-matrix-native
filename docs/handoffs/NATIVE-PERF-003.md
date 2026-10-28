@@ -34,5 +34,11 @@ Disk recovery removed the lane's rebuildable Rust outputs, duplicate experimenta
 libraries and bulk frames. Numerical logs, per-frame hashes and eight representative
 before/after PNGs remain. Rust target output is now ignored explicitly.
 
-Next: final-source real-time matrix with normal wall clock, then the lock-held
-latest-main merge, full local gate, PR and merge. The 80-player 25 Hz goal stays open.
+The final-source 60-second pairs are complete with normal wall clock: crowd40
+24.78 ->24.90, crowd80 16.52 ->18.37, Tormenta80 15.40 ->18.94 and retina80
+13.59 ->17.58 fps. All eight pass the unchanged regression warning envelope;
+none passes strict work/pacing acceptance in this shared-host repeat. Full frame
+percentiles and CPU/GL/Metal costs are in the finding. Every measured frame has
+a complete Metal interval. The 80-player 25 Hz goal and crowd40 tails stay open.
+
+Next: lock-held latest-main merge, full local gate, PR and merge.
