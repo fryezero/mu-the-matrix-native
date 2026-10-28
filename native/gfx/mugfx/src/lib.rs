@@ -564,6 +564,7 @@ pub unsafe extern "C" fn mugfx_open_shared(path: *const c_char, width: c_int, he
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mugfx_close(g: *mut MuGfx) {
     if !g.is_null() {
+        perf::flush();
         drop(unsafe { Box::from_raw(g) });
     }
 }

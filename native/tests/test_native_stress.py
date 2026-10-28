@@ -94,6 +94,8 @@ class BenchmarkContract(unittest.TestCase):
         self.assertEqual(bench.regression(result, limits), [])
         self.assertTrue(bench.check(result, headless=False))
         self.assertTrue(bench.regression(dict(result, fps=15), limits))
+        self.assertTrue(bench.regression(dict(result, fps=float('nan')), limits))
+        self.assertTrue(bench.regression(dict(result, phases={'cpu': {'mean': float('nan')}}), limits))
         self.assertTrue(bench.regression(dict(result, phases={'cpu': {'mean': 60}}), limits))
         self.assertTrue(bench.regression(dict(result, work_ms={'p95': 90, 'p99': 100}), limits))
 

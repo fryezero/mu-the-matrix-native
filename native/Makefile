@@ -16,7 +16,18 @@ BUILD := build
 UNAME := $(shell uname -s)
 
 WARN := -Wall -Wextra -Werror -Wconversion
-CFLAGS := -std=c11 -O2 -ffp-contract=off -fno-fast-math $(WARN)
+# NATIVE-PERF-003: optimize the native host across translation units while
+# retaining the reconstructed binary32 arithmetic contract. The portable
+# build keeps its existing flags and does not require an LTO linker plugin.
+ifeq ($(UNAME),Darwin)
+NATIVE_PERF_LTO ?= 1
+endif
+ifeq ($(NATIVE_PERF_LTO),1)
+NATIVE_OPT := -O3 -flto=thin
+else
+NATIVE_OPT := -O2
+endif
+CFLAGS := -std=c11 $(NATIVE_OPT) -ffp-contract=off -fno-fast-math $(WARN)
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Werror -Wconversion
 
 CRYPTOPP_PREFIX ?= $(shell if command -v brew >/dev/null 2>&1; then brew --prefix cryptopp; else echo /usr; fi)

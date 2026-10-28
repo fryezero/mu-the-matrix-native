@@ -1377,6 +1377,7 @@ dependencies = [
  "async-channel",
  "futures",
  "image",
+ "objc2",
  "objc2-core-foundation",
  "objc2-io-surface",
  "objc2-metal",
@@ -1613,6 +1614,7 @@ dependencies = [
  "bitflags",
  "block2",
  "objc2",
+ "objc2-core-foundation",
  "objc2-foundation",
  "objc2-io-surface",
 ]

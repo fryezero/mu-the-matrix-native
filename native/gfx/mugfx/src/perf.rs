@@ -1,182 +1,121 @@
-//! Opt-in queue timestamps around the entire shared movie render call, including
-//! offscreen/filter flushes. Intervals include CPU encoding gaps and queue bubbles;
-//! they are not GPU busy time. No added waits, 64 in-flight slots globally.
-//! MU_GFX_GPU_LOG is a private JSONL path. Missing samples are never zero time.
-use std::fs::File;
-use std::io::Write;
-use std::sync::{Arc, Mutex, OnceLock};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use ruffle_render_wgpu::wgpu;
+//! Opt-in Metal queue interval for the complete host GFx frame, including
+//! Ruffle's offscreen/filter flushes. Includes CPU encoding gaps, not GPU busy
+//! time. Two four-byte copy markers bracket the same queue. No frame waits; only diagnostic shutdown drains outstanding samples.
 
-static FRAME: AtomicU64 = AtomicU64::new(0);
-static SUBMISSIONS: AtomicU64 = AtomicU64::new(0);
-static LOG: OnceLock<Option<Arc<Mutex<File>>>> = OnceLock::new();
-fn log() -> Option<Arc<Mutex<File>>> {
-    LOG.get_or_init(|| std::env::var_os("MU_GFX_GPU_LOG").and_then(|p| {
-        match File::create(p) {
-            Ok(file) => Some(Arc::new(Mutex::new(file))),
-            Err(e) => { eprintln!("mugfx GPU log: {e}"); None }
+#[cfg(target_os = "macos")]
+mod metal {
+    use std::fs::File;
+    use std::io::Write;
+    use objc2::rc::Retained;
+    use objc2::runtime::ProtocolObject;
+    use objc2_metal::{MTLCommandBuffer, MTLCommandBufferStatus};
+    use ruffle_render_wgpu::wgpu;
+    type Raw = Retained<ProtocolObject<dyn MTLCommandBuffer>>;
+    struct Sample { frame: u64, begin: Raw, end: Raw }
+    pub struct State {
+        log: File,
+        frame: u64,
+        active: Option<Raw>,
+        attempted: bool,
+        pending: Vec<Sample>,
+        src: wgpu::Buffer,
+        dst: wgpu::Buffer,
+    }
+    impl State {
+        pub fn new() -> Option<Self> {
+            let path = std::env::var_os("MU_GFX_GPU_LOG")?;
+            let mut log = File::create(path).ok()?;
+            let d = crate::descriptors().ok()?;
+            let supported = unsafe { d.device.as_hal::<wgpu::hal::api::Metal>() }.is_some();
+            let _ = writeln!(log, "{{\"supported\":{supported}}}");
+            if !supported { return None; }
+            let src = d.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("GFx timer source"), size: 4, usage: wgpu::BufferUsages::COPY_SRC,
+                mapped_at_creation: false,
+            });
+            let dst = d.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("GFx timer destination"), size: 4, usage: wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            Some(Self { log, frame: 0, active: None, attempted: false, pending: Vec::new(), src, dst })
         }
-    })).clone()
+        fn marker(&self) -> Option<Raw> {
+            let d = crate::descriptors().ok()?;
+            let mut encoder = d.device.create_command_encoder(&Default::default());
+            encoder.copy_buffer_to_buffer(&self.src, 0, &self.dst, 0, 4);
+            // Retain for read-only status/timestamp access after wgpu submits it.
+            // Never commit, mutate or release wgpu's reference to this buffer.
+            let raw = unsafe { encoder.as_hal_mut::<wgpu::hal::api::Metal, _, _>(|e| {
+                e.and_then(|e| e.raw_command_buffer()).and_then(|raw| {
+                    Retained::retain(raw as *const _ as *mut ProtocolObject<dyn MTLCommandBuffer>)
+                })
+            }) };
+            d.queue.submit([encoder.finish()]);
+            raw
+        }
+        pub fn frame(&mut self, frame: u64) { self.drain(false); self.frame = frame; }
+        pub fn begin(&mut self) {
+            if self.attempted { return; }
+            self.attempted = true;
+            if self.pending.len() < 64 { self.active = self.marker(); }
+            if self.active.is_none() {
+                let _ = writeln!(self.log, "{{\"frame\":{},\"dropped\":true}}", self.frame);
+            }
+        }
+        pub fn end(&mut self) {
+            if let Some(begin) = self.active.take() {
+                if let Some(end) = self.marker() {
+                    self.pending.push(Sample { frame: self.frame, begin, end });
+                }
+            }
+            let submissions = u32::from(self.attempted);
+            self.attempted = false;
+            let _ = writeln!(self.log, "{{\"frame\":{},\"event\":\"end\",\"submissions\":{submissions}}}", self.frame);
+            self.drain(false);
+        }
+        pub fn drain(&mut self, wait: bool) {
+            self.pending.retain(|s| {
+                if wait { s.end.waitUntilCompleted(); }
+                if s.end.status() < MTLCommandBufferStatus::Completed { return true; }
+                let start = s.begin.GPUStartTime();
+                let end = s.end.GPUEndTime();
+                if s.begin.status() == MTLCommandBufferStatus::Completed &&
+                    s.end.status() == MTLCommandBufferStatus::Completed && start > 0.0 && end >= start {
+                    let ms = (end - start) * 1000.0;
+                    let _ = writeln!(self.log, "{{\"frame\":{},\"gpu_ms\":{ms}}}", s.frame);
+                } else {
+                    let _ = writeln!(self.log, "{{\"frame\":{},\"invalid\":true}}", s.frame);
+                }
+                false
+            });
+        }
+    }
 }
 
-/// Optional ABI-3 extension. The host tags all submissions with its render frame.
+#[cfg(target_os = "macos")]
+fn with_state(f: impl FnOnce(&mut metal::State)) {
+    thread_local! { static STATE: std::cell::RefCell<Option<metal::State>> = std::cell::RefCell::new(metal::State::new()); }
+    STATE.with(|state| { if let Some(s) = state.borrow_mut().as_mut() { f(s); } });
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn mugfx_perf_frame(frame: u64) {
-    FRAME.store(frame, Ordering::Relaxed);
-    SUBMISSIONS.store(0, Ordering::Relaxed);
+    #[cfg(target_os = "macos")]
+    with_state(|s| s.frame(frame));
+    #[cfg(not(target_os = "macos"))]
+    let _ = frame;
 }
-
-/// End marker distinguishes a cached frame (zero submissions) from lost data.
 #[unsafe(no_mangle)]
 pub extern "C" fn mugfx_perf_end() {
-    if let Some(log) = log() {
-        let _ = writeln!(log.lock().unwrap(), "{{\"frame\":{},\"event\":\"end\",\"submissions\":{}}}",
-            FRAME.load(Ordering::Relaxed), SUBMISSIONS.load(Ordering::Relaxed));
-    }
+    #[cfg(target_os = "macos")]
+    with_state(|s| s.end());
 }
-
-struct Slot {
-    resolve: wgpu::Buffer,
-    read: wgpu::Buffer,
-    ready: Arc<AtomicBool>,
-}
-
-pub struct Timer { query: wgpu::QuerySet, slots: Vec<Slot>, movie: u32, log: Arc<Mutex<File>>, marker: wgpu::TextureView, pipeline: wgpu::RenderPipeline }
-impl Timer {
-    pub fn new(device: &wgpu::Device, movie: u32) -> Option<Self> {
-        let log = log()?;
-        let supported = device.features().contains(wgpu::Features::TIMESTAMP_QUERY);
-        let _ = writeln!(log.lock().unwrap(), "{{\"movie\":{movie},\"supported\":{supported}}}");
-
-        if !supported { return None; }
-        // One Metal counter sample buffer. A QuerySet per slot exhausts the
-        // driver's counter-buffer allocation before the first movie renders.
-        let query = device.create_query_set(&wgpu::QuerySetDescriptor {
-            label: Some("mugfx perf"), ty: wgpu::QueryType::Timestamp, count: 128,
-        });
-        let slots = (0..64).map(|_| Slot {
-            resolve: device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("mugfx perf resolve"), size: 16,
-                usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
-                mapped_at_creation: false,
-            }),
-            read: device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("mugfx perf read"), size: 16,
-                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-                mapped_at_creation: false,
-            }),
-            ready: Arc::new(AtomicBool::new(true)),
-        }).collect();
-        let marker = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("mugfx timestamp marker"),
-            size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
-            mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT, view_formats: &[],
-        }).create_view(&Default::default());
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("mugfx timer"),
-            source: wgpu::ShaderSource::Wgsl(r#"
-                @vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
-                    let p = array(vec2f(-1., -1.), vec2f(3., -1.), vec2f(-1., 3.));
-                    return vec4f(p[i], 0., 1.);
-                }
-                @fragment fn fs() -> @location(0) vec4f { return vec4f(0.); }
-            "#.into()),
-        });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("mugfx timer"), layout: None,
-            vertex: wgpu::VertexState { module: &shader, entry_point: Some("vs"),
-                compilation_options: Default::default(), buffers: &[] },
-            primitive: Default::default(), depth_stencil: None, multisample: Default::default(),
-            fragment: Some(wgpu::FragmentState { module: &shader, entry_point: Some("fs"),
-                compilation_options: Default::default(), targets: &[Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba8Unorm, blend: None, write_mask: wgpu::ColorWrites::ALL,
-                })] }), multiview_mask: None, cache: None,
-        });
-        Some(Self { query, slots, movie, log, marker, pipeline })
-    }
-    pub fn begin(&self, device: &wgpu::Device) -> Option<(usize, wgpu::CommandBuffer, wgpu::CommandBuffer)> {
-        SUBMISSIONS.fetch_add(1, Ordering::Relaxed);
-        let Some((i, s)) = self.slots.iter().enumerate().find(|(_, s)| s.ready.swap(false, Ordering::Acquire)) else {
-            let _ = writeln!(self.log.lock().unwrap(), "{{\"frame\":{},\"movie\":{},\"dropped\":true}}",
-                FRAME.load(Ordering::Relaxed), self.movie);
-            return None;
-        };
-        let mut begin = device.create_command_encoder(&Default::default());
-        // Pass-boundary timestamps work with Apple's counter sampling and
-        // Ruffle's GL-ES limits, which intentionally disable compute shaders.
-        self.mark(&mut begin, i as u32 * 2);
-        let mut end = device.create_command_encoder(&Default::default());
-        self.mark(&mut end, i as u32 * 2 + 1);
-        end.resolve_query_set(&self.query, i as u32 * 2..i as u32 * 2 + 2, &s.resolve, 0);
-        end.copy_buffer_to_buffer(&s.resolve, 0, &s.read, 0, 16);
-        Some((i, begin.finish(), end.finish()))
-    }
-    fn mark(&self, encoder: &mut wgpu::CommandEncoder, index: u32) {
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("mugfx timestamp"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.marker, depth_slice: None, resolve_target: None,
-                ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                    store: wgpu::StoreOp::Store },
-            })],
-            depth_stencil_attachment: None, occlusion_query_set: None,
-            timestamp_writes: Some(wgpu::RenderPassTimestampWrites {
-                query_set: &self.query, beginning_of_pass_write_index: if index % 2 == 0 { Some(index) } else { None },
-                end_of_pass_write_index: if index % 2 == 1 { Some(index) } else { None },
-            }), multiview_mask: None,
-        });
-        pass.set_pipeline(&self.pipeline);
-        pass.draw(0..3, 0..1);
-    }
-    pub fn submitted(&self, i: usize, period: f32) {
-        let s = &self.slots[i];
-        let read = s.read.clone();
-        let ready = s.ready.clone();
-        let log = self.log.clone();
-        let movie = self.movie;
-        let frame = FRAME.load(Ordering::Relaxed);
-        s.read.slice(..).map_async(wgpu::MapMode::Read, move |result| {
-            if result.is_ok() {
-                let bytes = read.slice(..).get_mapped_range().expect("mapped timer buffer");
-                let start = u64::from_ne_bytes(bytes[0..8].try_into().unwrap());
-                let end = u64::from_ne_bytes(bytes[8..16].try_into().unwrap());
-                if end < start || start == 0 || end == 0 {
-                    let _ = writeln!(log.lock().unwrap(), "{{\"frame\":{frame},\"movie\":{movie},\"invalid\":true,\"start\":{start},\"end\":{end}}}");
-                    drop(bytes);
-                    read.unmap();
-                    ready.store(true, Ordering::Release);
-                    return;
-                }
-                let ms = (end - start) as f64 * period as f64 / 1.0e6;
-                let _ = writeln!(log.lock().unwrap(), "{{\"frame\":{frame},\"movie\":{movie},\"gpu_ms\":{ms}}}");
-                drop(bytes);
-                read.unmap();
-            } else {
-                let _ = writeln!(log.lock().unwrap(), "{{\"frame\":{frame},\"movie\":{movie},\"map_error\":true}}");
-            }
-            ready.store(true, Ordering::Release);
-        });
-    }
-}
-
-/// Bracket all Ruffle submissions, including ActiveFrame::submit_direct flushes.
-/// Keep normal rendering byte-for-byte on the old path when logging is disabled.
 pub fn render(f: impl FnOnce()) {
-    static TIMER: OnceLock<Option<Timer>> = OnceLock::new();
-    let timer = TIMER.get_or_init(|| {
-        if log().is_none() { return None; }
-        crate::descriptors().ok().and_then(|d| Timer::new(&d.device, 0))
-    });
-    let Some(timer) = timer else { f(); return };
-    let d = crate::descriptors().unwrap();
-    let timing = timer.begin(&d.device);
-    if let Some((i, begin, end)) = timing {
-        d.queue.submit([begin]);
-        f();
-        d.queue.submit([end]);
-        timer.submitted(i, d.queue.get_timestamp_period());
-    } else { f(); }
+    #[cfg(target_os = "macos")]
+    with_state(|s| s.begin());
+    f();
+}
+pub fn flush() {
+    #[cfg(target_os = "macos")]
+    with_state(|s| s.drain(true));
 }

@@ -96,6 +96,11 @@ def check(result, *, headless):
 
 def regression(result, limits):
     failures = []
+    metrics = [result.get('fps'), result.get('frames'),
+               result.get('phases', {}).get('cpu', {}).get('mean')]
+    metrics += [result.get('work_ms', {}).get(key) for key in ('p95', 'p99')]
+    if any(not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0 for v in metrics):
+        return ['missing, negative or nonfinite timing metric']
     if result['frames'] < 100:
         failures.append('fewer than 100 measured frames')
     if result['fps'] < limits['min_fps']:
