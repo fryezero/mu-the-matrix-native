@@ -77,4 +77,4 @@ class Private(unittest.TestCase):
     def test_save_builder_and_mutants(self):
         p=subprocess.run([sys.executable,str(ROOT/'scripts/validate_session_skills.py'),'--cases','40','--mutants'],capture_output=True,text=True)
         self.assertEqual(p.returncode,0,p.stderr)
-        row=json.loads(p.stdout);self.assertEqual((row['total'],row['mismatches'],len(row['mutants_caught'])),(80,0,3))
+        row=json.loads(p.stdout);self.assertEqual((row['total'],row['mismatches'],len(row['mutants_caught'])),(120,0,5))

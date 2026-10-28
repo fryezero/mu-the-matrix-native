@@ -20,13 +20,14 @@ def build(source,out):
 def load(path):
     l=C.CDLL(str(path));l.mu_skills_save_request.argtypes=[C.POINTER(C.c_uint8),C.c_size_t,C.POINTER(C.c_int32),C.POINTER(C.c_uint8)]
     l.mu_skills_save_request.restype=C.c_size_t
+    l.mu_skills_master_points_apply.argtypes=[C.POINTER(C.c_uint8),C.c_size_t,C.POINTER(C.c_uint8),C.c_size_t]
     return l
 
 def run(text,data,lib,n):
     rng=random.Random(20261028)
     # One fresh machine per run, including each compiled mutant.
     m=cm.Machine(text,data)
-    m.allow((0x182ff60,0x182ffdf),(0x18304cc,0x183052c))
+    m.allow((0x182ff60,0x182ffdf),(0x18304cc,0x183052c),(0x1285995,0x12859b4),(0xa00192,0xa001a6))
     slots=[];packet=[];sends=[]
     m.stub(0x95f861,lambda m:0x11111111)
     m.stub(0x1096a19,lambda m:slots[m.args(1)[0]]&0xffffffff,4)
@@ -64,7 +65,25 @@ def run(text,data,lib,n):
         packet[1]=len(packet)
         assert bytes(out)==bytes(packet),(i,bytes(out).hex(),bytes(packet).hex())
         assert lib.mu_skills_save_request(out,40,a,tail)==0
-    return {'keys':n,'packet_tail':n}
+    # Execute the answer prefix and its real +0x34 setter, comparing the whole attribute record.
+    for i in range(n):
+        m.reset()
+        raw=bytes(rng.randrange(256) for _ in range(0x200))
+        packet=bytearray(0x1d);struct.pack_into('<H',packet,6,rng.choice([0,1,99,32767,32768,65535,rng.randrange(65536)]))
+        attr=m.alloc(len(raw),define=True);m.write(attr,raw);m.put32(0x1d1df1c,attr)
+        p=m.alloc(len(packet),define=True);m.write(p,packet)
+        esp=cm.STACK_BASE+cm.STACK_SIZE-0x1000
+        m.write(esp,struct.pack('<II',cm.RETURN_SENTINEL,p))
+        m.uc.reg_write(cm.UC_X86_REG_ESP,esp)
+        m.uc.reg_write(cm.UC_X86_REG_EBP,0)
+        m.uc.emu_start(0x1285995,0x12859b4,count=1000)
+        assert not m.errors,m.errors
+        assert m.uc.reg_read(cm.UC_X86_REG_EIP)==0x12859b4
+        a=(C.c_uint8*len(raw)).from_buffer_copy(raw);b=(C.c_uint8*len(packet)).from_buffer_copy(packet)
+        assert lib.mu_skills_master_points_apply(a,len(a),b,len(b))==1
+        assert bytes(a)==m.read(attr,len(raw)),i
+        assert lib.mu_skills_master_points_apply(a,0x37,b,len(b))==0
+    return {'keys':n,'packet_tail':n,'master_points':n}
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--cases',type=int,default=500);p.add_argument('--mutants',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
@@ -72,7 +91,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         tmp=Path(tmp);path=tmp/'clean.dylib';build(SRC,path);families=run(text,data,load(path),a.cases);caught=[]
         if a.mutants:
-            for i,(name,old,new) in enumerate([('rotation','(i+1)%10','i'),('endian','(id>>8)','id'),('opcode','out[3]=0x30','out[3]=0x31')]):
+            for i,(name,old,new) in enumerate([('rotation','(i+1)%10','i'),('endian','(id>>8)','id'),('opcode','out[3]=0x30','out[3]=0x31'),('points_offset','attr + 0x34','attr + 0x30'),('points_sign','(int16_t)((uint16_t)frame[6]','(uint16_t)((uint16_t)frame[6]')]):
                 source=tmp/f'm{i}.c';s=SRC.read_text();assert s.count(old)==1;source.write_text(s.replace(old,new));path=tmp/f'm{i}.dylib';build(source,path)
                 try:run(text,data,load(path),32)
                 except AssertionError:caught.append(name)

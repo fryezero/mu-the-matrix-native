@@ -121,16 +121,15 @@ mu_session *wg_skill_session(wg_skill *s) { return s ? s->session : NULL; }
 
 mu_skill_book *wg_skill_book(wg_skill *s) { return s ? s->book : NULL; }
 
-/* The hero values the checks read, from the layer's hero (DEMO values until a server feeds them). */
+/* The headless tick and the view read the same session-owned hero context. */
 static void sync_stats(wg_skill *s)
 {
-    const mu_gfx_hero *h = s->layer ? mu_gfx_layer_hero(s->layer) : NULL;
-    if (!h)
-        return;
-    const mu_skill_hero *hero = mu_skill_book_hero(s->book);
-    mu_skill_stats st = {.class_byte = hero->class_index, .strength = (uint16_t)h->strength,
-                         .agility = (uint16_t)h->agility, .vitality = (uint16_t)h->vitality,
-                         .energy = (uint16_t)h->energy, .command = (uint16_t)h->command, .mana = h->mp, .ag = h->ag};
+    mu_hero_stats h;
+    mu_session_hero(s->session, &h);
+    mu_skill_stats st = {.class_byte = h.class_byte, .strength = (uint16_t)h.stats[0],
+                         .agility = (uint16_t)h.stats[1], .vitality = (uint16_t)h.stats[2],
+                         .energy = (uint16_t)h.stats[3], .command = (uint16_t)h.stats[4],
+                         .mana = h.mp, .ag = h.ag};
     mu_session_skills_context(s->session, &st);
 }
 

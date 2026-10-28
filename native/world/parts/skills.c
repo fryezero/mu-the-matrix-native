@@ -51,6 +51,7 @@ static void tick_skills(mu_world_rt *a, void *self)
                        .energy=(uint16_t)h.stats[3],.command=(uint16_t)h.stats[4],.mana=h.mp,.ag=h.ag};
     mu_session_skills_context(p->session,&st);
     mu_sim sim=mu_session_sim_begin(p->session);mu_session_step(p->session,MU_DOMAIN_SKILLS,&sim);mu_session_sim_end(p->session,&sim);
+    if(p->owned)mu_transport_flush(p->transport);
     (void)a;
 }
 static void close_skills(mu_world_rt *a,void *self)
