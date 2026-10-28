@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-terrain: headless front end of the native terrain mode (NATIVE-TERRAIN-001).
  *
  *   mu-terrain info    ROOT --world N            JSON load report of Data/World<folder>
@@ -323,6 +324,9 @@ static int command_render(const args *a)
     camera.fov_y = a->fov;
     camera.near_plane = 50.0f;
     camera.far_plane = 80000.0f;
+    float terrain_eye[3];
+    mu_camera_eye(&camera,terrain_eye);
+    mu_world_terrain_view(w,camera.target,terrain_eye);
     mu_camera_view(&camera, raster.view);
     mu_camera_projection(&camera, (float)a->width / (float)a->height, raster.projection);
     static const uint8_t background[4] = {0, 0, 0, 255};
@@ -528,6 +532,7 @@ static int command_scan(const args *a)
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     if (argc >= 3 && !strcmp(argv[1], "decrypt"))
         return command_decrypt(argv[2]);
     args a;

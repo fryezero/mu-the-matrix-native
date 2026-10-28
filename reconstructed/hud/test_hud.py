@@ -172,8 +172,8 @@ class TestSlots(unittest.TestCase):
         self.assertEqual(out.position[0], f32(f32(20.0*0.5 + 100.0)/inp.rate_x))
         self.assertEqual(out.position[1], f32(f32(480.0 - f32(40.0*0.75 + 200.0))/inp.rate_y))
         self.assertEqual((out.position[2], list(out.angle)), (-100.0, [270.0, -10.0, 0.0]))
-        inp.code = 0x1c0b
-        self.assertEqual(self.lib.mu_item3d(ctypes.byref(inp), ctypes.byref(out)), 2)    # special case
+        inp.code, inp.level_word = 0x1c0b, 8 << 3
+        self.assertEqual(self.lib.mu_item3d(ctypes.byref(inp), ctypes.byref(out)), 2)    # external jump
         inp.code, inp.kind_b_6a = 12, 1
         self.lib.mu_item3d(ctypes.byref(inp), ctypes.byref(out))
         self.assertEqual(out.position[2], -140.0)

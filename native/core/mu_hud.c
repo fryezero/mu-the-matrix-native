@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L /* stat with -std=c11 on glibc */
 /* Native in-game interface pieces (see mu_hud.h). */
 #include "mu_hud.h"
+#include "../../reconstructed/items/ground_items.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,6 +102,33 @@ static void model_path(const char *root, const mu_item *item, char *out, size_t 
         out[0] = 0;
 }
 
+int mu_hud_item_model_path(const mu_data_table *items, const char *game_root, int32_t model, char *out, size_t size)
+{
+    if (!size)
+        return 0;
+    out[0] = 0;
+    if (!game_root)
+        return 0;
+    char special[256];
+    if (mu_gi_special_model_file(model, special, sizeof special)) {
+        int n = snprintf(out, size, "%s/%s", game_root, special);
+        if (n < 0 || (size_t)n >= size) {
+            out[0] = 0;
+            return 0;
+        }
+        for (char *p = out; *p; ++p)
+            if (*p == '\\') *p = '/';
+        struct stat st;
+        if (stat(out, &st) != 0)
+            out[0] = 0;
+    } else {
+        mu_item record;
+        if (items && mu_item_model(items, model, &record) == 1)
+            model_path(game_root, &record, out, size);
+    }
+    return out[0] != 0;
+}
+
 int mu_hud_inventory_add(mu_hud_inventory *inv, const mu_data_table *items, const char *game_root, int32_t code,
                          int32_t level, uint8_t w, uint8_t h)
 {
@@ -168,9 +196,9 @@ static void pass_emit(void *user, const mu_slot_call *call)
             d->item = i;
 }
 
-int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
+int32_t mu_hud_inventory_pass_at(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
                               int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
-                              int32_t hover_item, mu_hud_item_draw *draws, int32_t max)
+                              int32_t hover_item, float time, mu_hud_item_draw *draws, int32_t max)
 {
     mu_slot_page page = {&inv->grid, geo->slot_x, geo->slot_y, geo->cell_w, geo->cell_h, geo->gap_x, geo->gap_y};
     mu_slot_frame frame = {1, geo->align, geo->movie_x, geo->movie_y, geo->alpha, geo->scale, &page, 1, 1};
@@ -201,6 +229,7 @@ int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_g
         mu_item3d_in sys;
         memset(&sys, 0, sizeof sys);
         sys.cursor_in = win.cursor_in;
+        sys.time = time;
         mu_hud_trs_find(trs, it->code, scale_factor, &sys.trs);
         if (it->has_record) {
             sys.kind_b_6a = it->record.attributes.kind_b == 0x6a;
@@ -218,6 +247,13 @@ int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_g
         d->cell_rect[3] = d->slot.h / ry;
     }
     return ctx.count;
+}
+
+int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
+                              int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
+                              int32_t hover_item, mu_hud_item_draw *draws, int32_t max)
+{
+    return mu_hud_inventory_pass_at(inv, geo, screen_w, screen_h, trs, scale_factor, hover_item, 0.0f, draws, max);
 }
 
 void mu_hud_item_projection(int32_t screen_w, int32_t screen_h, float m[16])

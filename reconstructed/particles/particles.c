@@ -29,6 +29,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 0 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f;
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
+    case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
     case MU_PT_BITMAP_DROP:
         return subtype == 0;                   /* NATIVE-HELPERS-002 (the mounts' dust) */
@@ -279,6 +280,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             mu_vector_rotate(burst, m, p->velocity);
         }
         break;
+    case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2: {
         /* NATIVE-HELPERS-002, 0x015ccbd4 (shared with 0x7f5e), subtype 0: a puff pushed along the angle */
         float m[12];
@@ -564,7 +566,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             if (0.2f > p->scale)
                 p->live = 0;
             break;
-        case MU_PT_BITMAP_SMOKE2: {
+        case MU_PT_BITMAP_SMOKE5:
+    case MU_PT_BITMAP_SMOKE2: {
             /* NATIVE-HELPERS-002, 0x01658099, subtype 0: fades over 32 steps, grows, drifts and slows, and sits
              * on the terrain by half its height */
             float l = (float)p->lifetime / 32.0f;
@@ -760,6 +763,7 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
         if (p->subtype == 2)
             state(out, MU_PT_STATE_SUBTRACT, 0);     /* 0x01596e05 */
         break;
+    case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
         state(out, MU_PT_STATE_BLEND, 0);            /* NATIVE-HELPERS-002, 0x01596f41 */
         break;

@@ -25,6 +25,16 @@ class QuestSession(unittest.TestCase):
             self.assertEqual([f['sub'] for f in frames],[0x70,0x71])
             self.assertEqual(first(rows,'status')['undecodable'],2)
 
+    def test_quest_journals_have_no_host_pointer_differences(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outputs=[]
+            for name in ('first','second'):
+                path=Path(tmp)/(name+'.mujnl')
+                result,rows=run_tool('fixture',NATIVE/'fixture/scenarios/quest-progress.scn','--ticks',25,'--journal',path)
+                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                outputs.append(path.read_bytes())
+            self.assertEqual(outputs[0],outputs[1])
+
     def test_headless_walk_receives_guide_state_at_quest_tick(self):
         import subprocess,json
         with tempfile.TemporaryDirectory() as tmp:

@@ -140,7 +140,7 @@ $(MODULUS_OBJ): ../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -c $< -o $@
 
-$(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
+$(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ) $(BUILD)/data-manifest.o
 	rm -f $@
 	ar rcs $@ $^
 
@@ -277,10 +277,12 @@ $(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_data.c $(DATA_SRC) -o $@
 
-# Lang.mpr tables read from the client (NATIVE-LANG-001): no other dependency.
-$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h
+# Lang.mpr tables read from the client; managed exports use the manifest guard.
+$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h $(BUILD)/data-manifest.o
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) tools/mu_lang_tool.c core/mu_lang.c -o $@
+	$(CC) $(CFLAGS) -c tools/mu_lang_tool.c -o $(BUILD)/mu_lang_tool.o
+	$(CC) $(CFLAGS) -c core/mu_lang.c -o $(BUILD)/mu_lang.o
+	$(CXX) $(BUILD)/mu_lang_tool.o $(BUILD)/mu_lang.o $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) -o $@
 
 # ---- windowed viewer ----
 SDL_CONFIG ?= sdl2-config
@@ -359,14 +361,16 @@ $(BUILD)/libmuaudio.a: $(AUDIO_OBJ)
 $(AUDIO_SO): $(AUDIO_OBJ)
 	$(CC) -shared $^ $(AUDIO_LIBS) -lm -o $@
 
-$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) tools/mu_audio.c $(BUILD)/libmuaudio.a $(AUDIO_LIBS) -lm -o $@
+$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o
+	$(CC) $(CFLAGS) -c tools/mu_audio.c -o $(BUILD)/mu_audio_tool.o
+	$(CXX) $(BUILD)/mu_audio_tool.o $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # Live playback through SDL2 audio (optional, like the viewer).
 audio-live: $(BUILD)/mu-audio-live
 
-$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) tools/mu_audio_live.c $(BUILD)/libmuaudio.a \
+$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o
+	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) -c tools/mu_audio_live.c -o $(BUILD)/mu_audio_live.o
+	$(CXX) $(BUILD)/mu_audio_live.o $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) \
 	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
 
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.  WORLD-RT-001: the runtime and world_tool.c come
@@ -460,6 +464,14 @@ SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease
 FIXTURE_SRC := fixture/fixture.c $(wildcard fixture/behaviors/*.c)
 SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
+LAYOUT_STAMP := $(GEN)/.layout-stamp
+LAYOUT_INPUTS := ../scripts/gen_layout.py $(wildcard session/layout/*.def)
+
+$(LAYOUT_STAMP): $(LAYOUT_INPUTS)
+	@mkdir -p $(GEN)
+	$(GEN_PYTHON) ../scripts/gen_layout.py --out $(GEN)
+	@touch $@
+
 SESSION_DEV_OBJ := $(patsubst %.c,$(BUILD)/sdev/%.o,$(NET_SRC) $(SESSION_SRC) $(FIXTURE_SRC))
 SESSION_PROD_OBJ := $(patsubst %.c,$(BUILD)/sprod/%.o,$(NET_SRC) $(SESSION_SRC))
 
@@ -470,11 +482,11 @@ $(GEN_STAMP): $(GEN_INPUTS)
 	$(GEN_PYTHON) ../scripts/gen_domains.py --out $(GEN)
 	@touch $@
 
-$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -c $< -o $@
 
-$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -c $< -o $@
 
@@ -489,7 +501,7 @@ $(BUILD)/libmusession_product.a: $(SESSION_PROD_OBJ)
 # ---- FIXTURE-001: the fixture server (native/fixture) and the session CLI (native/tools/mu_session.c) ----
 all: $(BUILD)/mu-session
 
-$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession_world.a $(LIB) $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -c tools/mu_session.c -o $(BUILD)/mu_session.o
 	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) -lm -o $@
 
@@ -503,13 +515,25 @@ CFLAGS += -I build/gen -I session
 $(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
 QUEST_LIB_SRC := $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
-$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP)
+$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
 
 # Offline app keeps its no-network-import contract; TCP fixture serving stays in mu-session.
-$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -DMU_FIXTURE_NO_TCP -c $< -o $@
 $(BUILD)/libmusession_world.a: $(filter-out $(BUILD)/sdev/fixture/fixture.o,$(SESSION_DEV_OBJ)) $(BUILD)/sdev/fixture/world_fixture.o
 	rm -f $@
 	ar rcs $@ $^
+
+# DATA-ACQ-004: shared portable manifest validator and acquisition helper.
+all: $(BUILD)/mu-native-data
+$(BUILD)/data-manifest.o: data/manifest.cpp data/manifest.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -c $< -o $@
+$(BUILD)/mu-native-data: data/manifest.cpp data/manifest.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -DMU_MANIFEST_TOOL $< $(CRYPTOPP_LIBS) -o $@
+
+.PHONY: layout
+layout: $(LAYOUT_STAMP)

@@ -60,5 +60,7 @@ joint renderer is unchanged; its existing tests stay in the gate.
 
 Reports and scratch are retained outside the worktree under
 `~/Documents/MTM/mu-mac-tools/native/scratch/session-quest-001/`, including `unicorn/`, fixture suites and gates.
+The integrated layout audit uses scalar-only quest zones, excluding host pointers from journals; repeated
+quest fixture journals are byte-identical. Its zone capacity includes the pinned 484 quest records.
 Renders are under `~/Documents/MTM/mu-mac-tools/native/renders/session-quest-001/`.
 Only authored source and synthetic tables/scenarios are committed.

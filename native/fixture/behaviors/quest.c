@@ -517,7 +517,7 @@ void demo_demo_state(quest_demo *s, const char *text)
     {
         uint8_t b[64] = {0xc1, 0, 0xc0, (uint8_t)s->classic_count};
         size_t bytes = (size_t)(s->classic_count / 4 + 1);
-        memcpy(b + 4, s->classic_states, bytes);
+        memcpy(b + 4, s->classic_states, bytes < sizeof s->classic_states ? bytes : sizeof s->classic_states);
         queue(s, b, 4 + bytes);
     }
 }

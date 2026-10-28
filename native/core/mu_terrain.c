@@ -2,6 +2,7 @@
 #include "mu_terrain.h"
 
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,6 +61,15 @@ const char *mu_world_bitmap_file(int32_t w, int32_t bitmap, char *buffer, size_t
     const int special = w == 0x3f || (w >= 0x52 && w <= 0x5a); /* 0x00e94004 / 0x00e3068f */
     *linear = 0;
     const char *name = NULL;
+    if (mu_terrain_is_signed_world(w) && i < 2 && i >= 0) {
+        *linear = i == 0;
+        return snprintf(buffer, size, "../Object25/%s", i ? "water2.jpg" : "water1.tga") < (int)size ? buffer : NULL;
+    }
+    if (i == 0x7722 - MU_TERRAIN_TEXTURE_TILE) {
+        if (w != 0x71 && w != 0x91) return NULL;
+        *linear = 1;
+        return snprintf(buffer, size, "../World114/cubemap_up.jpg") < (int)size ? buffer : NULL;
+    }
     if (i >= 0 && i < 14) {
         name = tiles[i];
         if (alpha_tile_world(w, i))
@@ -304,6 +314,22 @@ mu_world *mu_world_load(const char *root, int32_t world, uint32_t seed, int text
     check_objects(w, root, folder);
     if (textures)
         load_bitmaps(w, root, folder);
+    if (world==0x71) {
+        w->reflection_uv=malloc(2*MU_TERRAIN_CELLS*sizeof(float));
+        float *normal=malloc(3*MU_TERRAIN_CELLS*sizeof(float));
+        if (!w->reflection_uv || !normal) { free(normal); mu_world_free(w); return NULL; }
+        mu_terrain_scene scene; mu_world_scene(w,&scene);
+        mu_terrain_reflection_init(&scene,normal,w->reflection_uv);
+        free(normal);
+    }
+    w->terrain_random=seed;
+    w->hero_position[0]=6400.0f; w->hero_position[1]=6400.0f;
+    if (mu_terrain_is_signed_world(world)) {
+        w->signed_grid=malloc(sizeof *w->signed_grid);
+        if (!w->signed_grid) { mu_world_free(w); return NULL; }
+        mu_terrain_signed_init(w->signed_grid,world);
+        mu_terrain_signed_mesh(w->signed_grid,64,64);
+    }
     mu_world_frame(w, 0.0f);
     return w;
 }
@@ -316,6 +342,8 @@ void mu_world_free(mu_world *w)
         mu_image_free(&w->bitmaps[i]);
     for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i)
         mu_image_free(&w->extra[i]);
+    free(w->signed_grid);
+    free(w->reflection_uv);
     free(w);
 }
 
@@ -344,7 +372,7 @@ const mu_image *mu_world_bitmap_wrap(const mu_world *w, int32_t id, int *linear,
 {
     const int32_t i = id - MU_TERRAIN_TEXTURE_TILE;
     if (clamp)
-        *clamp = 0;
+        *clamp = mu_terrain_is_signed_world(w->world) && id == MU_TERRAIN_TEXTURE_TILE + 1;
     if (i >= 0 && i < MU_WORLD_BITMAPS && w->bitmaps[i].width > 0) {
         if (linear)
             *linear = w->bitmap_linear[i];
@@ -366,8 +394,40 @@ const mu_image *mu_world_bitmap(const mu_world *w, int32_t id, int *linear)
     return mu_world_bitmap_wrap(w, id, linear, NULL);
 }
 
+void mu_world_terrain_view(mu_world *w, const float hero[3], const float camera[3])
+{
+    memcpy(w->hero_position,hero,3*sizeof(float));
+    memcpy(w->camera_position,camera,3*sizeof(float));
+    if (w->signed_grid) mu_terrain_signed_mesh(w->signed_grid,(int32_t)(hero[0]/100.0f),(int32_t)(hero[1]/100.0f));
+}
+
+static int terrain_random(void *context)
+{
+    mu_world *w=context;
+    w->terrain_random=w->terrain_random*214013u+2531011u;
+    return (int)((w->terrain_random>>16)&0x7fffu);
+}
+static void terrain_effect(void *context, int32_t type, const float p[3], const float light[3])
+{
+    mu_world *w=context;
+    if (w->terrain_effect) w->terrain_effect(w->terrain_effect_context,type,p,light);
+}
+
 void mu_world_frame_box(mu_world *w, float time, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
+    if (w->signed_grid && time != w->time) {
+        if (w->terrain_steps++ % 40 == 0) {
+            int x=(int)(w->hero_position[0]/100.0f)*2+terrain_random(w)%30-15;
+            int y=(int)(w->hero_position[1]/100.0f)*2+25;
+            mu_terrain_signed_ripple(w->signed_grid,x,y,20,2,2000,terrain_random,w);
+        }
+        w->signed_grid->active ^= 1;
+        mu_terrain_signed_step(w->signed_grid);
+        mu_terrain_signed_wave(w->signed_grid,(int32_t)(w->hero_position[0]/100.0f),
+            (int32_t)(w->hero_position[1]/100.0f),time);
+        mu_terrain_signed_mesh(w->signed_grid,(int32_t)(w->hero_position[0]/100.0f),
+            (int32_t)(w->hero_position[1]/100.0f));
+    }
     w->time = time;
     w->box[0] = x0;
     w->box[1] = y0;
@@ -446,6 +506,16 @@ void mu_world_scene(mu_world *w, mu_terrain_scene *s)
     s->frame_counter = w->frame_counter;
     s->texture_size = texture_size;
     s->texture_context = w;
+    s->signed_grid=w->signed_grid;
+    s->reflection_normal=w->normal;
+    s->reflection_uv=w->reflection_uv;
+    memcpy(s->camera_position,w->camera_position,sizeof s->camera_position);
+    /* This milestone connects the Chaos effect only. Keep the optional older
+     * world-0x22 water emitter disabled in this host, as before. */
+    const int chaos=(w->world>=0x12 && w->world<=0x17) || w->world==0x35 || w->world==0x61;
+    s->random=chaos ? terrain_random : NULL;
+    s->effect=terrain_effect; s->effect_context=w;
+    s->hero_z=w->hero_position[2]; s->chaos_state=w->chaos_state; s->camera_shake=&w->camera_shake;
 }
 
 void mu_world_state(int32_t state, int32_t argument, mu_meshdraw_state *o)
@@ -546,6 +616,10 @@ static void raster_sink(raster_context *x, mu_world *w, mu_raster *raster, mu_te
 int mu_world_draw_raster(mu_world *w, mu_raster *raster, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
                          mu_world_draw_stats *stats)
 {
+    mu_terrain_environment environment;
+    const float fog_color[4]={0,0,0,0};
+    mu_terrain_environment_config(0,0.0f,fog_color,&environment);
+    raster->alpha_reference=environment.alpha_reference;
     raster_context x;
     mu_terrain_sink sink;
     raster_sink(&x, w, raster, &sink);
@@ -563,6 +637,10 @@ int mu_world_draw_raster(mu_world *w, mu_raster *raster, int32_t x0, int32_t y0,
 int mu_world_draw_raster_view(mu_world *w, mu_raster *raster, const mu_terrain_frustum *frustum,
                               int32_t scene_state, int top_view, mu_world_draw_stats *stats)
 {
+    mu_terrain_environment environment;
+    const float fog_color[4]={0,0,0,0};
+    mu_terrain_environment_config(0,0.0f,fog_color,&environment);
+    raster->alpha_reference=environment.alpha_reference;
     raster_context x;
     mu_terrain_sink sink;
     raster_sink(&x, w, raster, &sink);
@@ -582,6 +660,10 @@ long mu_world_decal_raster(mu_world *w, mu_raster *raster, int32_t texture, floa
                            float size_y, const float rgb[3], float rotation, float alpha, float height, int follow,
                            int flip, int32_t state)
 {
+    mu_terrain_environment environment;
+    const float fog_color[4]={0,0,0,0};
+    mu_terrain_environment_config(0,0.0f,fog_color,&environment);
+    raster->alpha_reference=environment.alpha_reference;
     raster_context x;
     mu_terrain_sink sink;
     raster_sink(&x, w, raster, &sink);
@@ -594,6 +676,7 @@ long mu_world_decal_raster(mu_world *w, mu_raster *raster, int32_t texture, floa
 
 float mu_world_height_at(const mu_world *w, float x, float y)
 {
+    if (w->signed_grid) return mu_terrain_signed_height(w->signed_grid,x<0.0f ? 0.0f:x,y<0.0f ? 0.0f:y);
     float fx = x / 100.0f, fy = y / 100.0f;
     if (fx < 0.0f) fx = 0.0f;
     if (fy < 0.0f) fy = 0.0f;

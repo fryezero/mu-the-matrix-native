@@ -48,6 +48,8 @@ def make_tree(tmp: Path) -> Path:
 
 
 def gen(t: Path, *extra):
+    subprocess.run([sys.executable, str(ROOT / 'scripts/gen_layout.py'), '--layout',
+                    str(t / 'native/session/layout'), '--out', str(t / 'gen')], check=True)
     return subprocess.run([sys.executable, str(GEN), '--session', str(t / 'native/session'), '--net',
                            str(t / 'native/net'), '--fixture', str(t / 'native/fixture'), '--out', str(t / 'gen'),
                            *extra], capture_output=True, text=True)

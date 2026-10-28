@@ -126,9 +126,13 @@ void mu_dom_quest_zones(const mu_session *s, mu_audit_zones *z)
     if (!s->quest.ready)
         return;
     const mu_quest_system *q = &s->quest.client.qs;
-    mu_audit_add(z, "quest.records", (const uint8_t *)q->quests, 0, (uint32_t)(q->nquests * sizeof *q->quests),
-                 MU_ZONE_REPLICATED, "quest records");
-    mu_audit_add(z, "quest.system", (const uint8_t *)q, 0, sizeof *q, MU_ZONE_REPLICATED, "active sets and maps");
+    /* Host pointers are not client records and must not enter deterministic journals. */
+    for (size_t i = 0; i < q->nquests; ++i)
+        mu_audit_add(z, "quest.record", (const uint8_t *)&q->quests[i], offsetof(mu_quest, index),
+                     (uint32_t)(sizeof(mu_quest) - offsetof(mu_quest, index)), MU_ZONE_REPLICATED,
+                     "quest scalar fields");
+    mu_audit_add(z, "quest.counts", (const uint8_t *)q->nactive, 0, sizeof q->nactive, MU_ZONE_REPLICATED,
+                 "active set counts");
     for (int i = 0; i < 3; i++)
         mu_audit_add(z, "quest.active", (const uint8_t *)q->active[i], 0,
                      (uint32_t)(q->nactive[i] * sizeof *q->active[i]), MU_ZONE_REPLICATED, "active quest indices");

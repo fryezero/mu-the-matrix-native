@@ -1,5 +1,6 @@
 /* SESSION-CORE-001: the journal writer and reader (format in mu_journal.h). */
 #include "session_internal.h"
+#include "layout_all.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,7 +118,7 @@ void mu_journal_start(mu_journal *j, const char *build_sha256_hex)
     memset(h, 0, sizeof h);
     memcpy(h, MAGIC, sizeof MAGIC);
     digest(build_sha256_hex, h + 8);
-    /* h + 40: the layout manifest digest, zero until LAYOUT-001 */
+    digest(MU_LAYOUT_SHA256, h + 40);
     put32(h + 72, j->live ? 1u : 0u);
     fwrite(h, 1, sizeof h, j->f);
 }
