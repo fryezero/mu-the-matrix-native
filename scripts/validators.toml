@@ -6,6 +6,21 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_render_items]
+test = "reconstructed/hud/test_render_items.py::RenderItemsTests.test_private_original_instructions"
+pins = ["text", "data"]
+families = ["overrides", "spin", "box", "window", "generic"]
+cases = 5512
+mutants = 6
+cases_at = ["families.overrides.cases", "families.spin.cases", "families.box.cases", "families.window.cases", "families.generic.cases"]
+mutants_at = "mutants"
+build = ["reconstructed/hud"]
+args = ["--mutations", "--output", "{report}"]
+[validate_render_items.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+"special_codes" = 28
+
 [validate_actors]
 test = "reconstructed/actors/test_actors.py::ActorTests.test_private_original_actor_instructions"
 pins = ["text", "data"]

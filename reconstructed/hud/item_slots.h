@@ -85,7 +85,7 @@ int mu_slot_pass(const mu_slot_frame *frame, int32_t screen_w, int32_t screen_h,
 float mu_gfx_rate_x(int32_t screen_w);
 float mu_gfx_rate_y(int32_t screen_h);
 
-/* ---- RenderItem3D 0x016c154e, general path ------------------------- */
+/* ---- RenderItem3D 0x016c154e -------------------------------------- */
 
 /* Per-code render info (map 0x06fbb624+0x38, default record 0x06fbaa40;
  * filled from Data/Local/itemtrsdata.bmd by a loader outside the restored
@@ -119,6 +119,8 @@ typedef struct mu_item3d_in {
     mu_item_trs trs;            /* the render info found for code */
     float frame_scale;          /* GFx manager +0xa0 -> +0x58 */
     float rate_x, rate_y;       /* GFx manager +0x2cc, +0x2d0 */
+    float time;                /* 0x06fce370: unselected 0x1a47..0x1a4b spin */
+    uint8_t special_window_active; /* NewUI 0x00f2c0d5 object's +0x1c, for code 0x1c64 */
 } mu_item3d_in;
 
 /* RenderObjectScreen 0x016c2d82 arguments. */
@@ -135,9 +137,9 @@ typedef struct mu_item3d_out {
 
 enum { MU_ITEM3D_NONE = 0, MU_ITEM3D_DRAW = 1, MU_ITEM3D_SPECIAL = 2 };
 
-/* Returns NONE for code -1, SPECIAL for the 27 codes with model/offset
- * special cases (not reconstructed; one of them runs through a runtime
- * patch), DRAW with *out filled otherwise. */
+/* Returns NONE for code -1, SPECIAL for Box of Luck 0x1c0b with signed
+ * level_word >> 3 above 7 (external runtime jump), DRAW otherwise.
+ * RENDER-ITEMS-002 part 1 covers the restored special-code chain. */
 int mu_item3d(const mu_item3d_in *in, mu_item3d_out *out);
 /* 1 when `code` is one of RenderItem3D's special-case codes. */
 int mu_item3d_is_special(int32_t code);

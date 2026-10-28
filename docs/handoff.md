@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-ITEMS-002 part 1: [handoff](handoffs/RENDER-ITEMS-002.md). Inventory special-code paths are covered; next are the type-specific body/effect switches and Muun integration.
+
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
