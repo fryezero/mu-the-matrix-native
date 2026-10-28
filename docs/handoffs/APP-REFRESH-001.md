@@ -45,3 +45,25 @@ launcher, live read, account, network or protection work.
 - Three real-data travel operations, Lorencia to Devias to Noria to Lorencia,
   pass in mu-world, zero travel failures. Windowed click travel remains next.
 - Full gate, final smoke repetition, installation and merge are still pending.
+
+## Additional verification
+
+- Initial full local macOS gate: 1,518 tests across 38 suites, 1,331 pass and
+  187 explicit skips; all eight fixture scenarios pass. Viewer/readers build;
+  publication audit accepts 1,434 files with zero rejected. Reader binaries
+  were built only, never run against a process.
+- Fixed INPUT-001 recipe: `--items` is explicit and a left-click attack follows
+  the selected cast. Current scene proof records one selected cast, two combat
+  skill actions, one kill, one drop, one request and one completed pickup.
+  Encrypted skill requests remain unsent; a cast alone does not prove damage.
+- Windowed selected-cast journey: 400 frames, 22.07 seconds, skill 19 reports
+  `ok`; cast/kill/pickup frames inspected with the authored root's noise textures.
+- Windowed Move-panel clicks: Lorencia -> Noria -> Devias -> Lorencia, all three
+  travel logs and textured destination captures inspected, no failure/crash.
+- Sound: app smoke with explicit `--audio`, BGM enabled through Options in an
+  isolated settings directory, 545,428 stereo PCM frames with int16 peak 12,471.
+  The installed preferences mute BGM and set effect volume to zero; unchanged.
+  Cue logs include successful playback and session-origin cues. Unrecovered
+  audio rows remain explicit, not treated as new exceptions or full fidelity.
+- Production manifest check, repeat setup and three corrupted-build refusal
+  entry points pass with no Python on PATH and no child started on refusal.

@@ -82,11 +82,14 @@ class Skills(unittest.TestCase):
         players=self.directory/'resources-players.txt';players.write_text('')
         for name,options in [('skills',['--no-players']),
                              ('characters',['--players',str(players)]),
-                             ('actors',['--placement',str(placement),'--combat'])]:
+                             ('actors',['--placement',str(placement),'--combat']),
+                             ('respawn',['--placement',str(placement),'--combat','--hero-hp','1',
+                                         '--combat-script','2:attack:0'])]:
             with self.subTest(path=name):
+                frames = 260 if name == 'respawn' else 8
                 p=subprocess.run([str(NATIVE/'build/mu-walk'),'--game-root',str(root),
                                   '--headless','--backend','soft','--out-dir',str(self.directory/name),
-                                  '--tile','120,120','--frames','8','--every','7','--no-audio',
+                                  '--tile','120,120','--frames',str(frames),'--every',str(frames-1),'--no-audio',
                                   '--no-particles','--no-items',*options],capture_output=True,text=True,
                                  env={**os.environ,'MU_LANG_DIR':str(lang)})
                 self.assertEqual(p.returncode,0,p.stderr)
@@ -96,6 +99,12 @@ class Skills(unittest.TestCase):
                 self.assertGreater(skills['ag'],0)
                 last=[r for r in rows if 'tile' in r and 'steps' in r and 'frame' in r][-1]
                 self.assertEqual(last['tile'],[120,120])
+                if name == 'respawn':
+                    combat=next(r for r in rows if r.get('combat') is True)
+                    self.assertGreater(combat['hero_deaths'],0)
+                    back=[r for r in rows if 'hero_dead' in r][-1]
+                    self.assertEqual(back['hero_dead'],0)
+                    self.assertGreater(back['hero_hp'],0)
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','private pinned instructions')
 class Private(unittest.TestCase):
