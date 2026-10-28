@@ -117,3 +117,15 @@ explicit private skip. A clean J-main build in this owned worktree supplies the 
 only Lost Tower's first/final PNGs change with K. All 26 other PNGs, 14 OBJECT and 14 light hashes match.
 The pre-J and post-J K tours differ only in the three Karutan artifacts documented by J.
 The image scores remain 2.019 / 26.897 / 4.006; no new original image was acquired.
+
+## Hidden Tarkan producers
+
+A later lifecycle audit found that MoveObject hides Tarkan type 63 before rendering. The native host now
+poses this lamp even when its mesh is hidden, so Bone02 comes from the current object rather than suppressing
+the sprite request. Type 60 is also exempt from imported hidden sidecars until its first visual burst.
+Authored native assertions cover both startup state and the hidden lamp's exact world position.
+Removing either host clause in a separately compiled native mutant is detected: **2/2 host controls**,
+followed by a restored production host pass. These are additional to the 18 instruction-compared mutants.
+The first ad-hoc mutant attempt exposed same-second make caching; the final checks explicitly remove the
+owned runtime object, archive and host executable before each compile, including restoration.
+The final post-EFFECTS-003 tour and gate must cover these host fixes; the earlier tour counts above predate them.

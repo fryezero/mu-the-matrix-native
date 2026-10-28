@@ -127,10 +127,11 @@ int mu_objects_start(mu_objects *o, const char *game_root)
         if (status == MU_OBJ_UNSUPPORTED || !runtime_hides_modelled(o->world)) {
             /* live sidecar: types the running client marked HiddenMesh -2. Outside Lorencia, Tormenta and the two
              * scene worlds most of them are set at draw time (emitter markers, NATIVE-FIDELITY-002), which is not
-             * ported; CreateObject's own -2 cases are already applied. */
+             * ported; CreateObject's own -2 cases are already applied. One-shot visual producers
+             * must retain their fresh state until their first draw, as in Icarus C2 and Tarkan K. */
             const int32_t t = o->records[i].type;
             if (t >= 0 && t < MU_OBJECT_TYPES && o->hidden_type[t] &&
-                !(o->world == 10 && t <= 5))
+                !(o->world == 10 && t <= 5) && !(o->world == 8 && t == 60))
                 mu_obj_set_i32(img, MU_OBJF_HIDDEN_MESH, -2);
         }
         const int32_t t = o->records[i].type;
@@ -790,7 +791,8 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         !login && !charsel && in.has_model && status != MU_OBJ_SKIPPED && mu_world_defer(img, o->world);
     int posed = 0;
     if (login || charsel || primary_visual) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
-        if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0) || o->world == 80 || o->world == 81))
+        if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0) ||
+                               o->world == 80 || o->world == 81 || (o->world == 8 && t == 63)))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
     } else if (!rt->visual) {

@@ -25,6 +25,12 @@ int main(int argc,char **argv)
 {
     assert(argc==2);mu_objects *o=calloc(1,sizeof *o);mu_object_model *m=calloc(1,sizeof *m);assert(o&&m);char error[256];
     assert(!mu_bmd_load_file(argv[1],&m->bmd,error,sizeof error));assert(!mu_model_init(&m->model,&m->bmd,NULL,error,sizeof error));m->loaded=1;
+    /* A captured hidden sidecar must not pre-hide the one-shot type-60 producer. */
+    mu_objects *started=calloc(1,sizeof *started);assert(started);
+    started->world=8;started->count=1;started->records=calloc(1,sizeof *started->records);assert(started->records);
+    mu_objects_record_init(started->records);started->records[0].type=60;started->hidden_type[60]=1;
+    assert(!mu_objects_start(started,NULL));assert(mu_obj_i32(mu_objects_object_image(started,0),MU_OBJF_HIDDEN_MESH)!=-2);
+    mu_objects_runtime_free(started);free(started->records);free(started);
     o->count=1;o->rt.ready=1;o->rt.images=calloc(1,MU_OBJ_SIZE);assert(o->rt.images);
     o->rt.sprite=sprite;o->rt.particle=particle;o->rt.visual=visual;o->sound=sound;
     uint8_t *img=o->rt.images;img[MU_OBJF_LIVE]=img[MU_OBJF_VISIBLE]=1;
@@ -38,6 +44,9 @@ int main(int argc,char **argv)
     o->world=8;o->models[60]=m;mu_obj_set_i32(img,MU_OBJF_TYPE,60);mu_obj_set_i32(img,MU_OBJF_HIDDEN_MESH,-1);
     mu_objects_prepare_index(o,0,NULL,6,&options);assert(particles==20 && mu_obj_i32(img,MU_OBJF_HIDDEN_MESH)==-2);
     mu_objects_prepare_index(o,0,NULL,6,&options);assert(particles==20);
+    /* MoveObject hides type 63; its visual still needs this object's current pose. */
+    o->models[63]=m;mu_obj_set_i32(img,MU_OBJF_TYPE,63);
+    assert(!mu_objects_prepare_index(o,0,NULL,6,&options));assert(sprites==13 && last_x==229 && other==0);
     o->world=10;o->models[10]=m;mu_obj_set_i32(img,MU_OBJF_TYPE,10);mu_obj_set_i32(img,MU_OBJF_HIDDEN_MESH,-1);mu_obj_set_f32(img,MU_OBJF_POSITION,99);
     assert(mu_objects_prepare_index(o,0,NULL,6,&options));assert(particles==21 && other==1);
     m->loaded=0;mu_objects_prepare_index(o,0,NULL,6,&options);assert(particles==21);m->loaded=1;

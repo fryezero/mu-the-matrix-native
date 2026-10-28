@@ -72,3 +72,15 @@ worktree and local branch. No new local input needs retention. Committed docs an
 Remaining exact-fidelity inputs: missing original PNGs, synchronized clock/RNG/effect pools, the type-23
 transform input, earlier Aida reset history and Elbeland speeds. The other 37 uncaptured factory classes
 remain outside K and require DATA-ACQ-002.
+
+## Hidden Tarkan producers
+
+A later lifecycle audit found that MoveObject hides Tarkan type 63 before rendering. The native host now
+poses this lamp even when its mesh is hidden, so Bone02 comes from the current object rather than suppressing
+the sprite request. Type 60 is also exempt from imported hidden sidecars until its first visual burst.
+Authored native assertions cover both startup state and the hidden lamp's exact world position.
+Removing either host clause in a separately compiled native mutant is detected: **2/2 host controls**,
+followed by a restored production host pass. These are additional to the 18 instruction-compared mutants.
+The first ad-hoc mutant attempt exposed same-second make caching; the final checks explicitly remove the
+owned runtime object, archive and host executable before each compile, including restoration.
+The final post-EFFECTS-003 tour and gate must cover these host fixes; the earlier tour counts above predate them.
