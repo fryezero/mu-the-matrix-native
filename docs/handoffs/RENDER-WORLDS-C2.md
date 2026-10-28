@@ -36,9 +36,10 @@ and the surviving 2026-10-22 snapshots/image were used. No changes in `native/wo
   expiry/re-entry; actual environment-to-joint route; distinct boid targets; owner death; logic clock independent
   of elapsed milliseconds. Tour mask test checks intersection with the HUD exclusions, area and empty/wrong-size
   masks. The registered tests retain explicit private-input skips in the portable gate.
-- Final local gate: pending combined-main run. An earlier attempt exhausted disk while writing the consecutive
-  full-resolution frame set. Its errors were file writes/temporary-directory allocation; owned renders were
-  compressed/trimmed before retry. No external worktree or client data was removed.
+- Final local gate passed on the tree merged with current main `0b7edfc`: **1,395 tests, 166 explicit skips,
+  zero failures**. Fixture scenarios pass; viewer/readers build; audit **1,251 files, zero rejected**. An earlier
+  attempt exhausted disk during full-resolution frame capture; its file-write errors were resolved by
+  compressing/trimming only C2 renders before this successful rerun. No hosted workflow was dispatched.
 
 Commands from the worktree:
 
