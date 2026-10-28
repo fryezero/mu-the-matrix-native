@@ -71,7 +71,7 @@ Some of the recorded comparisons:
 | Party, trade, messenger, mail | 36,700 comparisons over two rounds, 0 mismatches |
 
 Every claim is labelled as verified, statically read or demo. The details live in
-[75 research notes](docs/research/), [status](docs/status.md) and [roadmap](docs/roadmap.md).
+[research notes](docs/research/), [status](docs/status.md) and [roadmap](docs/roadmap.md).
 
 ## What works today
 
@@ -94,7 +94,10 @@ reconstructed 2D layer, in the **Native Preview** app.
 ### Character select and creation
 
 The character-select world with its waterfalls and selection light, the GFx character list, and the creation panel
-with all 16 classes, name rules and the menu.
+with all 16 classes, name rules and the menu. The standalone tool and the full client now share one
+character-select runtime with explicit draw passes; the extraction preserved the existing renders.
+Account-backed character lists and create/delete requests remain separate work
+([runtime checks](docs/handoffs/CHARSEL-RT-001.md)).
 
 <p align="center"><img src="docs/images/03-character-select.jpg" alt="Native character select with the GFx character list" width="820"></p>
 
@@ -106,7 +109,21 @@ with all 16 classes, name rules and the menu.
 ### The world: terrain, lighting, objects, water, weather
 
 Terrain with the client's lighting, water and lava, world objects through the client's object lifecycle, ambient
-creatures (fish, birds, leaves), weather, blob shadows and frustum culling.
+creatures (fish, birds, leaves), weather, blob shadows and frustum culling. The October 27–28 work adds:
+
+| World | Now rendered natively |
+|---|---|
+| Icarus | Persistent cloud cover, sky lights, swirls, dragons and emitter ribbons |
+| Kanturu and Karutan | Flame particles and the deferred object pass |
+| Devias, Tarkan, Elbeland and Raklion | Doors, object movement and code-created placements; Elbeland boids/clouds and Raklion snow |
+| Tarkan and Raklion | Additive screen haze |
+| Noria and warp sites | Portal placement and nested warp effects |
+| Santa Village, Vulcanus, Duel Arena and world 82 | Primary object create, move and visual methods |
+
+Coverage is **25/144 verified primary world-handler families across 9/48 classes**. That inventory counts
+class methods, not complete maps; other world paths have separate checks. Raklion's event timer is implemented,
+but starts inactive without authoritative event state. Exact animation phases and fresh live comparisons remain
+open ([world evidence](docs/research/client-world-fidelity.md), [coverage inventory](docs/research/client-worlds-h.md)).
 
 <p align="center"><img src="docs/images/05-world-atlans-devias-noria-lorencia.jpg" alt="Atlans, Devias, Noria and Lorencia rendered natively" width="900"></p>
 
@@ -127,8 +144,31 @@ difference dropped from 6.9 to 2.0 in Dungeon and from 9.9 to 3.7 in Kanturu.
 
 <p align="center"><img src="docs/images/18-world-fidelity-live-before-after.jpg" alt="Icarus, Dungeon and Kanturu: the original client, the native client before the fixes, and after" width="900"><br>
 <sub>Left: the original client (live, in Wine). Middle and right: native before and after the fixes. The live hero
-wears its own gear; the native one is the demo character. Icarus's cloud layer is still missing
+wears its own gear; the native one is the demo character. These October 22 images predate the cloud, dragon,
+flame and haze work above. They record that earlier comparison
 (<a href="docs/research/client-world-fidelity.md">evidence and remaining gaps</a>).</sub></p>
+
+### Input and the local test session
+
+Keyboard, mouse and scripted actions now enter one world input router. It handles held keys, focus loss and
+UTF-8 text/preedit, so typing does not trigger combat. `--input-script FILE` shares the same frame-based key,
+mouse, wheel and text format across `mu-client`, `mu-shell`, `mu-world` and `mu-walk`. Available bindings and
+panels still waiting for an implementation are listed in the [input coverage table](docs/research/client-input.md).
+
+The session now owns these domains, with replies supplied by a local loopback test server:
+
+| Feed | Session behavior |
+|---|---|
+| Hero and quests | Hero updates, quest progress, tracker and window state |
+| Nearby players | Creation, movement, death, store state, equipment and helper presentation |
+| Monsters and NPCs | Shared viewport records, fixture placement and movement |
+| Combat | Action, damage and death replies drive the rendered results |
+| Skills | Learned skills, saved hotkeys, Master ranks and fourth-tree state in headless and GFx builds |
+
+**Eight fixture scenarios pass**, with 67 inbound plaintext frames and no unbound or undecodable frames in
+those scenarios. Two unrecovered intents and six unsent frames remain explicit. Encrypted quest/skill/combat
+requests stay unsent; fixtures supply their replies. This is offline session coverage, not online play
+([session checks](docs/handoffs/SESSION-SKILL-001.md)).
 
 ### Maps and travel
 
@@ -158,7 +198,9 @@ buffs, inventory, tooltips, shops, quest and skill windows.
 ### NPCs, shops and quests
 
 Talking to NPCs (dialogue text from the client's tables), shops and the vault, and the client's quest system with
-requirements and rewards, answered by a local demo server.
+requirements and rewards. The loopback fixture now feeds quest state through the session. NPC quest-list
+replies still need decoding, so that browsing path is unavailable
+([session limits](docs/handoffs/SESSION-QUEST-001.md)).
 
 <p align="center"><img src="docs/images/09-npc-dialogue-and-shop.jpg" alt="NPC dialogue and the blacksmith's shop" width="900"></p>
 
@@ -168,11 +210,13 @@ needed. The Shadow Phantom Soldier (NPC 257) stands in Lorencia in its +13 armou
 
 <p align="center"><img src="docs/images/21-quests-guide-tracker.jpg" alt="Left: a guide quest's dialogue and My Quests with Go Now. Right: a completed quest, the tracker and NPC 257" width="900"></p>
 
-### Skills and the Master tree
+### Skills, the Master tree and the fourth tree
 
 The skill bar greys out what the character cannot use, tooltips show damage with the Master bonuses, and A opens
 the Master skill tree with its icons, tooltips and learn requests. The Skill Imprint window sits where the client
-puts it.
+puts it. Ctrl+A opens the fourth tree with its data, tooltips, icons and demo learn replies; its side stat panel
+and some updates remain open. The fifth-tree windows can open, but their card/item behavior is unfinished
+([fourth-tree evidence](docs/research/client-skills.md#12-the-fourth-tree-native-skill-003)).
 
 | | |
 |---|---|
@@ -198,6 +242,13 @@ tail, Ghost Horse's aura and breath, Fenrir's lightning), the data-driven pets s
 Guardian and Rudolph, and the Dark Raven.
 
 <p align="center"><img src="docs/images/22-mounts-pets-effects.jpg" alt="Twelve of the later mounts with a rider; below: Shining Tail, Ghost Horse, Fenrir and the Panda pet" width="900"></p>
+
+### Item rendering
+
+The shared renderer now covers **559/1,674 special item bodies and 17/17 class skins**, including linked weapon
+sprites and skin sprites on ground items and in inventory. These are bounded special draw branches, not a count
+of every item the client can display. Ordinary models already use the common pipeline; **1,115 special bodies**
+and further attachment/pose cases remain ([coverage and checks](docs/handoffs/RENDER-ITEMS-002F.md)).
 
 ### Item mixing, personal store and repair
 
@@ -238,6 +289,14 @@ Those measurements used the full-interface stress workload before this texture-l
 screenshots use spaced crowds, eight monsters and closed panels; their throughput was not measured
 ([capture details and checks](docs/research/readme-stress.md)).
 
+### Sound
+
+World and event music, ambient sounds, footsteps and effects run through the native audio engine. Session cues
+now carry walking, NPC/creature/object sounds and combat/skill sounds, including player and monster hurt/death
+voices. Cue logs record the original sound site and session tick. Event/buff inputs, unmigrated sound callers,
+two music entries and the original-client audio comparison remain open
+([audio evidence](docs/research/client-audio.md)).
+
 ### Performance
 
 Light offline scenes reach the client's own **25 FPS** (40 ms) frame cap with headroom,
@@ -258,12 +317,15 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Client identity, unpacking boundary, code capture (QEMU x86 Linux/Wine guest) | Done |
 | Formats: images, BMD models v10/12/14/15 (encrypted envelopes), terrain, effects JSON, data tables, `Lang.mpr` tables | Done |
 | Model pipeline: decoder, bone tracks, pose builder, skinning, mesh draw | Done, verified in Unicorn |
-| World: terrain, lighting, water/lava, objects, culling, environment, weather | Done for the tested worlds |
-| Characters: assembly, gear, glow, world render rules, monsters and NPCs | Done |
+| World: terrain, lighting, water/lava, objects, culling, environment, weather | Tested paths implemented; 25/144 primary handler families across 9/48 classes, remaining methods open |
+| Characters: assembly, gear, glow, monsters and NPCs | Offline rendering; players/monsters/NPCs now consume session records |
+| Special item rendering | Partial; 559/1,674 bodies, 17/17 class skins; 1,115 bodies remain |
 | Movement: click-to-move, path finding, long-distance auto move, walk/run rules | Done, verified |
-| Scenes: title, login world, server select, character select and creation, loading | Done (offline) |
+| Input: one router and shared scripts across world/client tools | Implemented; 570 instruction cases, 0 mismatches, 7/7 planted mistakes caught; unavailable panels listed separately |
+| Scenes: title, login world, server select, character select and creation, loading | Offline; shared character-select runtime, unchanged render comparisons; account session still open |
 | Interface: 2D layer, legacy windows, GFx movies via Ruffle, HUD, inventory, tooltips, names, chat bubbles | Done |
-| Gameplay systems: combat and skill effects, items, NPC talk/shops/vault, quests, skills, other players, pets and mounts | Client side done; server answers are a local demo |
+| Gameplay systems: combat, items, NPC talk/shops/vault, quests, skills, players, pets and mounts | Offline implementations with domain-specific limits; session migrations continue |
+| Session: hero, quests, players, monsters/NPCs, combat and skills | Local plaintext fixture feeds; 8/8 scenarios, 67 inbound frames, 0 unbound/undecodable in those scenarios |
 | Maps and travel: Tab map with NPC markers, Move window, gates, world changes | Done offline; 5,001 Unicorn cases, 0 mismatches |
 | Skills 2: skill state, usability, Master tree, Imprint position | Done offline; 12,384 cases, 0 mismatches |
 | Pets and mounts 2: 24 mounts, class effects, pets, Dark Raven | Done; 8,400 mount and over 21,000 effect cases, 0 mismatches |
@@ -271,30 +333,37 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Item mixing, jewels, personal store, repair | Client side done; 98,506 comparisons, 0 mismatches |
 | Social: party, trade, friends, messenger, whispers, mail | Client side done; 36,700 comparisons, 0 mismatches |
 | Progression: experience, levels, stat points, Options window, system menu, respawn | Done offline; 18,506 cases, 0 mismatches |
-| World fidelity: live vs native tour of 13 maps, fixes in Icarus, Dungeon, Kanturu, Atlans, Karutan | Ongoing; 10,600 cases of the fixes, 0 mismatches |
-| Skills 3: 4th and 5th skill trees | In progress |
-| Audio: music, ambient, footsteps, effects | Done |
+| World fidelity: original vs native tour of 13 maps, clouds/dragons, flames, object details and screen haze | Named fixes implemented; fresh synchronized live comparisons remain open |
+| Later skills: fourth and fifth trees | Fourth tree implemented offline, 6,510 instruction cases, 0 mismatches; fifth-tree card/item behavior remains open |
+| Audio: music, ambient, footsteps, effects | Event music and session sound cues implemented; remaining callers/inputs and live audio parity open |
 | Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done |
-| Network: protocol framing | Partly (packet build/parse tools) |
-| Live login and encrypted session, end-to-end gameplay against the real servers | Not started; designed ([plan](docs/design/native-port/plan.md)) |
+| First run and Native Data | Bundled C converter needs no Python; build-keyed manifests verify inputs/outputs and refuse incompatible sets; second-user acquisition remains open |
+| Private integration | 38/38 private-enabled test directories green at PR #200; 1,464 unique tests passed, 15 optional Ruffle/movie skips ([record](docs/handoffs/INTEGRATION-GREEN-001.md)) |
+| Crowded-scene performance | NATIVE-PERF-003 measured crowd80 18.4 fps / tormenta80 18.9 fps; 25 fps target open |
+| Network: framing, transport and CryptoModule | Implemented components; encrypted decode/send, recovered routing and account integration remain open |
+| Live login and end-to-end gameplay against the real servers | Not available; remaining network/live lanes are left to the owner ([plan](docs/design/native-port/plan.md)) |
 
-Every case count is a comparison of the authored C against the client's own instructions in Unicorn, with planted
-mistakes to prove the check can fail. The full per-milestone record is in [docs/status.md](docs/status.md) and
+Instruction-case counts compare authored C against the client's own instructions in Unicorn, with planted
+mistakes to prove the check can fail. Fixture frames and integration tests are separate checks; their counts do
+not claim original-instruction or live-game parity. The full per-milestone record is in [docs/status.md](docs/status.md) and
 [docs/roadmap.md](docs/roadmap.md).
 
 ### What is still missing
 
-- **Online play.** The client runs offline only. A local demo server answers warps, mixes, trades, quest rewards,
-  level-ups and mail; its answers are labelled demo values, not the real server's rules. Logging in to the live
-  service is the decided end state; the session core, the encrypted protocol and the operator contract it needs
-  are planned in [docs/design/native-port](docs/design/native-port/README.md).
-- **Skills.** The 4th and 5th skill trees are being worked on; their windows open but stay empty. Formula data and
-  the server's equipment, buff and event feeds are not wired yet.
-- **World details.** Icarus's cloud layer and dragons, the brazier and torch flames themselves, Tarkan and Raklion's
-  haze, and some world-specific object movement (Devias doors, Raklion snow) still differ from the original.
-- **Items and social.** Jewel settlement, harmony options and the separate Chaos weapon system are open; trade and
-  mail keep the data the server would send but nothing travels over a network.
-- **Helpers.** Muun pets, the rarer transformed classes' effects and choosing the helper from the inventory.
+- **Online play.** The preview remains offline. Framing, transport, the CryptoModule and migrated session
+  domains exist, but encrypted decode/send, recovered routing, account/login and live acceptance remain. Those
+  network/live lanes are left to the owner. Fixtures supply synthetic replies, not the real server's rules.
+- **Skills and quests.** Fifth-tree card/item behavior, fourth-tree side stats, FormulaData and authoritative
+  equipment/buff/event inputs remain open. NPC quest-list replies still need decoding; encrypted requests stay
+  unsent ([quest limits](docs/handoffs/SESSION-QUEST-001.md), [skill limits](docs/handoffs/SESSION-SKILL-001.md)).
+- **Rendering and live comparisons.** There are 119 primary world-handler families and 1,115 special item bodies
+  left, plus further effects and attachments. The named cloud/flame/haze fixes do not establish complete map
+  fidelity; captured clocks, RNG and effect pools are missing for synchronized comparisons.
+- **Performance.** The full-interface 80-player workload still falls below 25 fps; frame-pacing tails remain open.
+- **Items, social and helpers.** Jewel settlement, harmony options, the separate Chaos weapon system, Muun pets,
+  rare transformed-class effects and inventory-driven helper selection remain. Trade/mail still use demo replies.
+- **Installation for other users.** Python-free first run and build-keyed data checks work in temporary-home tests.
+  Guided capture and a real second-user install/restart/upgrade proof remain open; distribution signing is deferred.
 
 ## Architecture
 
@@ -338,7 +407,7 @@ no game files. The [Mac app](https://github.com/fryezero/mu-the-matrix-mac) inst
 brew install cryptopp sdl2 jpeg-turbo
 git clone https://github.com/fryezero/mu-the-matrix-native.git && cd mu-the-matrix-native
 python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements-portable.txt
-make test PYTHON=tools/.venv/bin/python          # builds everything, runs ~480 tests (private checks skip)
+make test PYTHON=tools/.venv/bin/python          # builds native tools and runs tests (private checks skip)
 make -C native client                            # native/build/mu-client (and mu-world, mu-charsel)
 
 export MU_GAME_ROOT="$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix"
@@ -348,7 +417,10 @@ native/build/mu-viewer "$MU_GAME_ROOT/Data/Monster/Monster01.bmd"               
 ```
 
 For the GFx interface, fetch and build Ruffle first (`native/gfx/fetch-ruffle.sh && native/gfx/build-mugfx.sh`).
-The double-clickable **Native Preview app** bundles all of it with a first-run data setup and a network guard:
+The double-clickable **Native Preview app** bundles all of it with a first-run data setup and a network guard.
+First run uses a bundled C converter, so the built app needs no Python/Pillow. Build-keyed Native Data manifests
+record source/output hashes and reject incompatible or incomplete sets
+([setup and re-acquisition](docs/native-data.md)):
 
 ```sh
 make -C native preview-app        # native/build/app/Mu The Matrix Native Preview.app
@@ -370,7 +442,7 @@ model-recovery/    BMD geometry, bones, animation and encrypted envelopes (v10/1
 asset-recovery/    Image wrappers and text-mesh readers
 runtime-linux/     QEMU x86 Linux/Wine guest procedure for code capture (historical, unmaintained)
 windows-capture/   Read-only Windows capture helper (not yet validated on Windows)
-docs/              Status, roadmap, handoff, architecture, 75 research notes, images
+docs/              Status, roadmap, handoff, architecture, research notes, images
 tests/             Repository-level tests (publication boundary, static maps, private checks)
 ```
 

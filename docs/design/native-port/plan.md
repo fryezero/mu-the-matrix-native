@@ -118,6 +118,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | NATIVE-PERF-002 | Extreme offline crowd/combat/GFx benchmark; host timing, batching and allocation work | Measured comparison, preserved renders, local gate ([finding](../../research/native-performance-stress.md)) | NATIVE-PERF-001 | Partial: crowd40 passes the checker with pacing tails; three 80-player 25 fps targets remain open |
 | NATIVE-PERF-003 | Full shared-GFx GPU interval, pacing and native CPU optimization | Exact full-frame comparisons and measured costs ([finding](../../research/native-performance-003.md)) | NATIVE-PERF-002 | Partial: verified changes and final timing; strict 25 Hz work/pacing acceptance remains open |
 | README-STRESS-001 | Eighty-player README images, remote-armour glow texture lookup fix and public demo HUD | Synthetic regression, controlled GL hashes and local gate ([finding](../../research/readme-stress.md)) | NATIVE-PERF-003 | Implemented; historical timings only, 25 fps crowd target open |
+| README-REFRESH-003 | Public README coverage through PR #207; existing reviewed images reused | Documentation/source cross-check, local Mac gate and publication audit ([handoff](../../handoffs/README-REFRESH-003.md)) | Merged PRs #168–#207 | Implemented; runtime and media unchanged |
 
 ## H. Audio
 
