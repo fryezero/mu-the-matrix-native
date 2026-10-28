@@ -1994,6 +1994,22 @@ cases_at = "cases.*"
 mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
 
+[validate_worlds_k]
+test = "reconstructed/objects/test_worlds_k.py::WorldsKTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["losttower_visual", "tarkan_visual", "icarus_flare", "losttower_push", "atlans_dispatch"]
+cases = 6000
+mutants = 21
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_worlds_k.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_session_map_overlay]
 test = "native/tests/test_session_map_overlay.py::Private.test_recorded_map_handlers"
 pins = ["text", "data"]

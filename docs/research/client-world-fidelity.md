@@ -682,3 +682,12 @@ The [temporal measurement contract](client-render-time.md) adds fourteen INPUT-0
 worlds, full-draw native time series and explicit regression thresholds. It preserves the still tour and all
 reconstructed rules. The installed-data check measures native repeatability; the original-client time series,
 clock/pool/RNG alignment and mugl-off live scores remain open. No live game was used.
+
+## RENDER-WORLDS-K built-in visuals, 2026-10-28
+
+Lost Tower sprites/push, Tarkan lamp/plume producers and Icarus's type-10 Bone01 flare are reconstructed.
+EFFECTS-003 supplies their particle consumers/assets. In the final full-draw fourteen-view tour against
+fresh main 037a8899, Dungeon stays 2.021, Icarus improves **26.897 to 23.154**, and Kanturu stays 3.444.
+All 24 unaffected endpoint PNGs, 14 OBJECT and 14 light hashes match. Original images are unavailable
+for the other eleven views. Atlans world 7 selects the default hook chain, not a dedicated visual case.
+[Finding, complete scoreboard and boundaries](client-worlds-k.md), [gate and cleanup](../handoffs/RENDER-WORLDS-K.md).
