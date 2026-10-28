@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 /* parts/items.c (WORLD-RT-001): ground items (NATIVE-ITEMS-001, core/mu_items, on with --combat or --items):
  * monsters that die drop DEMO items (the server's item viewport message, made up here), which fall, spin and land
  * as CreateItem/MoveItems do, render through RenderItems' plan with the item render passes and carry
@@ -5,6 +6,10 @@
  * items (pick-up case, MoveItems, selection, RenderItems after the characters) and item_labels (the labels over
  * the frame). */
 #include <stdio.h>
+#include <unistd.h>
+#include "../../session/mu_session_seed.h"
+#include "../../fixture/mu_fixture.h"
+#include "../../fixture/items_demo.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,9 +20,21 @@
 #endif
 #include "../world_rt_internal.h"
 
+typedef struct items_part {
+#ifndef MU_WORLD_NO_GL
+    mu_gl_backend item_gl[MU_WORLD_ITEM_MODELS];
+#endif
+    mu_world_rt *rt;
+    mu_session *session;
+    mu_fixture *fixture;
+    mu_transport *transport;
+    uint32_t tick;
+    int owned;
+} items_part;
+
 static int items_open(struct mu_world_rt *a, void *self)
 {
-    (void)self;
+    items_part *p=self;
     char error[1024];
     if ((a->combat_on || a->items_on) && !a->no_items) {   /* NATIVE-ITEMS-001 */
         a->ground = calloc(1, sizeof *a->ground);
@@ -29,6 +46,21 @@ static int items_open(struct mu_world_rt *a, void *self)
             free(a->ground);
             a->ground = NULL;
         } else {
+            p->session=a->actors.session; p->fixture=a->actors.fixture;
+            if(!p->session) {
+                char path[]="/tmp/mu-items-XXXXXX"; int fd=mkstemp(path); if(fd<0)return 1;
+                FILE *f=fdopen(fd,"w"); if(!f) {close(fd);unlink(path);return 1;}
+                fprintf(f,"endpoint game 127.0.0.1:55906\nuse items latency=%d despawn=%d\n",
+                        a->items_config.pickup_latency,a->items_config.despawn_steps); fclose(f);
+                mu_fixture_options opt={path,NULL,a->items_config.seed};
+                p->fixture=mu_fixture_open(&opt,error,sizeof error);unlink(path); if(!p->fixture)return 1;
+                p->owned=1;p->transport=mu_fixture_transport(p->fixture);
+                mu_session_config cfg={0};cfg.transport=p->transport;
+                mu_fixture_endpoint(p->fixture,"game",&cfg.connect_server);
+                mu_session_seed seed={0};seed.place.world=a->map->world;
+                p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);if(!p->session)return 1;
+            }
+            mu_world_items_bind(a->ground,p->session,mu_items_demo_state(p->fixture));
             if (a->has_particles)
                 a->ground->particles = &a->particles;
             a->ground->frustum = &a->frustum;   /* RenderItems' TestFrustrum uses the frame's planes */
@@ -43,12 +75,13 @@ static int items_open(struct mu_world_rt *a, void *self)
 
 static void items_close(struct mu_world_rt *a, void *self)
 {
-    (void)self;
+    items_part *p=self;
     if (a->ground) {
         mu_world_items_close(a->ground);
         free(a->ground);
         a->ground = NULL;
     }
+    if(p->owned) {mu_session_close(p->session);mu_transport_free(p->transport);mu_fixture_close(p->fixture);}
 }
 
 /* NATIVE-ITEMS-001: a click on the selected item starts the pick-up walk. */
@@ -62,9 +95,12 @@ static void items_pre_tick(struct mu_world_rt *a, void *self)
 /* NATIVE-ITEMS-001: the demo server's drops, MoveItems, the pick-up mode. */
 static void items_tick(struct mu_world_rt *a, void *self)
 {
-    (void)self;
+    items_part *p=self;
     if (a->ground) {
+        if(p->owned) {++p->tick;mu_transport_poll(p->transport,p->tick*40);mu_session_pump(p->session,p->tick*40);}
+        mu_sim sim=mu_session_sim_begin(p->session);
         mu_world_items_step(a->ground);
+        mu_session_sim_end(p->session,&sim);
     }
 }
 
@@ -152,11 +188,6 @@ static void item_labels_draw_soft(struct mu_world_rt *a, void *self, mu_world_dr
 }
 
 #ifndef MU_WORLD_NO_GL
-typedef struct items_part {
-    mu_gl_backend item_gl[MU_WORLD_ITEM_MODELS];
-    mu_world_rt *rt;               /* the runtime of the running draw (the item callback's context) */
-} items_part;
-
 static void items_gl_teardown(struct mu_world_rt *a, void *self)
 {
     (void)a;
@@ -295,8 +326,8 @@ static void item_labels_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw
 
 const mu_world_part_ops mu_part_items = {
     .name = "items",
-#ifndef MU_WORLD_NO_GL
     .state_size = sizeof(items_part),
+#ifndef MU_WORLD_NO_GL
     .draw_gl = items_draw_gl,
     .gl_teardown = items_gl_teardown,
 #endif

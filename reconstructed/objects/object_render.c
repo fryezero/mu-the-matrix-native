@@ -1,5 +1,6 @@
 #include "worlds_g.h"
 #include "worlds_h.h"
+#include "worlds_i.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
  * Floating-point expressions keep the client's binary32 operation order
@@ -439,6 +440,11 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         return MU_OBJ_OK;
     if (world == 57 || world == 58) {
         mu_raklion_create(o, index, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 79 || world == 100) {
+        if (world == 79) mu_market_create(o, index, log);
+        else mu_uruk_create(o, world);
         return MU_OBJ_OK;
     }
     if (world == 64 || world == 82) {
@@ -995,6 +1001,14 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
+    if (world == 79) {
+        mu_market_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 100) {
+        mu_uruk_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
     if (world == 64 || world == 82) {
         if (world == 64) mu_duel_move(o, index, in, log);
         else mu_world82_move(o, world);

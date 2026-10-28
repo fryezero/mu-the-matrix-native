@@ -70,7 +70,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/loren_market.c $(RECON)/objects/uruk.c $(RECON)/objects/duel_arena.c $(RECON)/objects/world82.c $(RECON)/objects/santa_village.c $(RECON)/objects/vulcanus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/raklion_event.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
@@ -109,7 +109,7 @@ RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_g.h $(RECON)/objects/worlds_g_internal.h $(RECON)/objects/icarus.h $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_g.h $(RECON)/objects/worlds_g_internal.h $(RECON)/objects/worlds_i.h $(RECON)/objects/icarus.h $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
@@ -541,7 +541,7 @@ clean:
 CFLAGS += -I build/gen -I session
 $(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
-QUEST_LIB_SRC := $(RECON)/movement/client_movement.c fixture/monsters_spec.c $(RECON)/actors/viewport_monsters.c $(RECON)/actors/actors.c $(RECON)/model-codec/skinning.c $(RECON)/model-codec/pose_builder.c $(RECON)/model-codec/bone_tracks.c $(RECON)/record-math/record_math.c fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
+QUEST_LIB_SRC := $(RECON)/items/ground_items.c $(RECON)/movement/client_movement.c fixture/monsters_spec.c $(RECON)/actors/viewport_monsters.c $(RECON)/actors/actors.c $(RECON)/model-codec/skinning.c $(RECON)/model-codec/pose_builder.c $(RECON)/model-codec/bone_tracks.c $(RECON)/record-math/record_math.c fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
 $(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(LIB) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) $(LIB) $(UI_LIBS) -lm -o $@
 
@@ -605,6 +605,10 @@ $(BUILD)/worlds-h-host: tests/worlds_h_host.c $(LIB) $(HEADERS)
 
 # Core consumers include the generated public domain and intent headers.
 $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
+
+$(BUILD)/worlds-i-host: tests/worlds_i_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-i-host.o
+	$(CXX) $(BUILD)/worlds-i-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # SESSION-GLOBALS-001: real session/world tool entries, twice without exec.
 $(BUILD)/session-repeat-host: tests/session_repeat_host.c tools/mu_session.c $(BUILD)/libmusession.a $(LIB)

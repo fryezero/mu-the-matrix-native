@@ -104,6 +104,8 @@ mu_sim mu_session_sim_begin(mu_session *s)
     s->sim_open = 1;
     sim.epoch = ++s->sim_epoch;
     sim.hero_record = s->hero.record;
+    sim.ground = s->items.pool;
+    sim.ground_count = MU_GI_ITEMS;
     sim.characters = s->characters.records;
     sim.used = s->characters.used;
     sim.character_count = MU_CHARACTERS_MAX;
