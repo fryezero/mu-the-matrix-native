@@ -1,0 +1,21 @@
+# Synthetic quest replies through transport -> dispatch -> session. No encrypted request shortcut.
+endpoint game 127.0.0.1:55902
+use quest latency=2
+join world=0 tile=10,10 class=1 level=10 name=Quester
+at 1 client quest-data native/fixture/scenarios/quest-tables
+at 3 quest accept 7
+at 7 quest count 7 1 1
+at 10 client detach
+at 12 quest count 7 3 2
+at 15 client attach 0
+at 17 client submit quest_window 0
+at 18 client submit quest_window 13
+at 19 client lease
+expect unbound = 0
+expect undecodable = 0
+expect quest.7.state = 2
+expect quest.7.count = 3
+expect frames_in = 3
+expect unsent = 1
+expect quest.hero_class = 1
+expect quest.hero_level = 10

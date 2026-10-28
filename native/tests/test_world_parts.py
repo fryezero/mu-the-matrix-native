@@ -39,7 +39,7 @@ MAIN_C_ORDER = {
                   'actor_effects', 'combat', 'item_labels', 'names'],
     # report_frame main.c:2707-2727 and report_summary main.c:2793-2915 (one order for both)
     'report': ['sound', 'env', 'particles', 'objects', 'actors', 'combat', 'progress', 'items', 'players', 'helpers',
-               'names', 'npc', 'social', 'map'],
+               'names', 'npc', 'social', 'map', 'quest_step'],
 }
 
 # The call each hook makes at its place in main.c (column -> row -> function called in the hook's body).

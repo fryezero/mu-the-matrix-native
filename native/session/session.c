@@ -322,7 +322,7 @@ static void apply_frame(mu_session *s, mu_frame *f)
     s->frames_in++;
     uint32_t cues = (uint32_t)(s->cues.next_seq - cues_before);
     mu_journal_count_cues(s->cfg.journal, cues);
-    mu_journal_frame_in(s->cfg.journal, s->tick, s->now, f, MU_DECODE_OK, &s->route, (int)r, 0, cues);
+    mu_journal_frame_in(s->cfg.journal, s->tick, s->now, f, r == MU_APPLY_UNDECODED ? MU_DECODE_BODY : MU_DECODE_OK, &s->route, (int)r, 0, cues);
     mu_journal_end_frame(s->cfg.journal);
     if (r == MU_APPLY_WORLD_CHANGE && s->phase != MU_PHASE_CLOSED) {
         s->waiting_world = s->place.world;

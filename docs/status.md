@@ -1,5 +1,8 @@
 # Current status
 
+SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
+F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).
+
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
 RENDER-ITEMS-002 part 2: 103 scalar remaps, 11/1,674 body types and six bow link effects integrated. 135,176 Unicorn cases, zero mismatches, 6/6 mutants. [Evidence](research/client-render-items.md#part-2-bounded-body-and-link-effects-render-items-002b).
