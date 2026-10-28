@@ -60,10 +60,14 @@ this handoff, finding and PR body. Final locked gate and cleanup are recorded be
 
 Representative installed-data GL PNG hashes at frame 24, three images inspected
 after correcting the explosion asset spelling. Meteorite and Inferno hashes
-changed as intended because the explosion sheet now loads; Aqua remains identical:
+changed as intended because the explosion sheet now loads. GL checks draw every
+frame while retaining only one PNG per skill (`--time-series-every 25`). This
+avoids capture-only sprite accumulation: Aqua draws exactly twenty sprites on
+frame 24. Its refreshed evidence hash reflects that render-check setting, not a
+source change:
 
 - Meteorite `bf321538a9a9bd09b11523be34ed318617ed6dbdf94cd5d07d0f2dfe6f2e82b4`.
-- Aqua Beam `8aa6dee9171a0fcdc63c216507a2f1ddc2a84a40d8144478a65211bfb603aa19`.
+- Aqua Beam `c52e2828443e2e006a46c40ceac936e1682789cb4e01640447759225920e8326`.
 - Inferno `92963b3899acb731796bd115dba74c7d1ca36471de39f698cf8f05fd1084dffb`.
 
 Five native tests pass with private checks enabled, including the nine-quad
