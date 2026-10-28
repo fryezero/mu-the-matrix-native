@@ -2,6 +2,7 @@
  * the split between client behaviour and the labelled demo / viewer choices. */
 #define _POSIX_C_SOURCE 200809L
 #include "mu_combat.h"
+#include "mu_combat_audio.h"
 #include "../session/mu_session.h"
 
 #include <math.h>
@@ -53,14 +54,14 @@ void mu_combat_default_config(mu_combat_config *config)
     config->hero_respawn_steps = 100;
 }
 
-static void play(mu_combat *c, int32_t id)
+static void play(mu_combat *c, mu_combat_audio d, int16_t key)
 {
-    if (id < 0)
-        return;
+    int32_t id=d.id;
+    if (id < 0 || !d.site) return;
+    mu_combat_audio_emit(c->session,d,key);
     ++c->sounds_played;
-    c->last_sound = id;
-    if (c->play_sound)
-        c->play_sound(c->sound_context, id);
+    c->last_sound=id;
+    if (!c->session && c->play_sound) c->play_sound(c->sound_context,id);
 }
 
 static mu_player_state hero_state(const mu_combat *c)
@@ -193,6 +194,7 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->actors = actors;
     c->map = walk ? walk->map : NULL;
     c->rng = config->seed ? config->seed : 1u;
+    c->audio_rng = config->seed;
     c->hero_key = HERO_KEY;
     c->target = -1;
     c->intent_skill = -1;
@@ -464,6 +466,9 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             }
         }
         return 0;
+    case MU_SFX_CALL_SOUND:
+        play(c, (mu_combat_audio){0x013c0f19u,0x013c42eeu,call->type}, -3);
+        return 0;
     case MU_SFX_CALL_SERIAL:
         ++c->serial;
         c->env.serial = c->serial;
@@ -603,9 +608,7 @@ static void end_of_attack(mu_combat *c)
     int target_ok = c->actors && t >= 0 && t < c->actors->count;
     if (target_ok)   /* the end-of-attack angle: CreateAngle toward the target (0x013af01b) */
         angle[2] = mu_create_angle(pos[0], pos[1], c->actors->list[t].position[0], c->actors->list[t].position[1]);
-    const mu_skill_visual *visual = skill ? mu_skill_visual_find(skill) : NULL;
-    if (visual)
-        play(c, visual->end_sound);   /* the end-of-attack blocks' sounds (0x42, 0x75, 0x77, 0x73, ...) */
+    play(c, mu_combat_skill_sound(skill, 1, -1, 0), -1);   /* the end-of-attack blocks' sounds (0x42, 0x75, 0x77, 0x73, ...) */
     switch (skill) {
     case 0:
         if (h->action >= 0x7e && h->action <= 0x81)   /* 0x013aea7a: bow actions shoot */
@@ -768,7 +771,7 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
             if (!used)
                 c->crt_seed = saved;   /* rand() is called only on the slot path */
             if (snd >= 0) {
-                play(c, snd);
+                play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_SHOCK, 1, snd), a->session_key);
                 ++c->stats.monster_voices;
             }
         }
@@ -792,7 +795,7 @@ static void hero_hit(mu_combat *c, int32_t damage, int32_t type)
             rands[k] = (int32_t)(visual_rand(c) & 0x7fff);
         mu_player_shock(&st, rands, 4, &action, &sound);
         mu_walk_set_action(c->walk, action, player_speed(c, action));   /* SetAction 0x012affa4 */
-        play(c, sound);
+        play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_SHOCK, 0, sound), -1);
         ++c->stats.hero_shocks;
     }
 
@@ -813,8 +816,8 @@ static void hero_dead_step(mu_combat *c)
             rands[k] = (int32_t)(visual_rand(c) & 0x7fff);
         mu_player_die(&st, rands, 4, &action, sounds);
         mu_walk_set_action(c->walk, action, player_speed(c, action));
-        play(c, sounds[0]);
-        play(c, sounds[1]);
+        play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_DIE, 0, sounds[0]), -1);
+        play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_DIE, 0, sounds[1]), -1);
         c->hero_3324 = 0.001f;   /* the voice played once */
         ++c->stats.hero_deaths;
     }
@@ -928,15 +931,14 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
         int32_t used = r.rand_used < 8 ? r.rand_used : 8;
         mu_player_attack_sound(&st, in.bow_kind, in.weapon[0], in.weapon[1], c->map ? c->map->world : 0,
                                rands + used, 8 - used, &sound);
-        play(c, sound);
+        play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_ATTACK, 0, sound), -1);
     } else {
         const mu_skill_visual *v = mu_skill_visual_find(skill);
         action = v && v->action >= 0 ? v->action
                                      : mu_player_magic_action(h->class_byte, mu_class_check(h->class_byte), rands[0]);
         ++c->stats.skills;
         /* the receive handlers' sounds of the melee skills and buffs (0x70..0x73, 0x6f) */
-        if (v && v->sound >= 0 && v->sound != 0x34d)
-            play(c, v->sound);
+        play(c, mu_combat_skill_sound(skill, 0, -1, 0), -1);
     }
     if (action >= 0)
         mu_walk_set_action(w, action, player_speed(c, action));
@@ -1107,7 +1109,7 @@ static void monster_step(mu_combat *c, int32_t i)
             int32_t r[1] = {0}, act, snd;
             mu_monster_die(&v, r, 0, &act, &snd);
             if (snd >= 0) {
-                play(c, snd);
+                play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_DIE, 1, snd), a->session_key);
                 ++c->stats.monster_voices;
             }
             if (m->voice_3324 == 0.0f && v.has_model)
@@ -1172,6 +1174,13 @@ void mu_combat_receive(mu_combat *c)
             mu_combat_monster *m=&c->monsters[i];
             int32_t action=mu_monster_attack_action(m->counter,0);m->counter=(uint8_t)(m->counter+2);
             if(action>=0)set_monster_action(c,i,action);m->attack_time=1;++c->stats.monster_attacks;
+            mu_monster_voice voice=monster_voice(c,i);
+            if ((!c->map || c->map->world!=0x49) && voice.field_3324==0.0f && voice.has_model && voice.slots[2]!=-1) {
+                c->audio_rng=c->audio_rng*214013u+2531011u;
+                int32_t id=mu_combat_monster_attack(c->map?c->map->world:0,voice.field_3324,voice.has_model,voice.object_kind,voice.slots[2],voice.slots[3],
+                                                   (int32_t)((c->audio_rng>>16)&0x7fffu));
+                play(c,mu_combat_voice_sound(MU_COMBAT_AUDIO_ATTACK,1,id),c->actors->list[i].session_key);
+            }
         }
     }
 }

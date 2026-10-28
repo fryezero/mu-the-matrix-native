@@ -2,6 +2,7 @@
 /* Other players in the walk-around world (NATIVE-PLAYERS-001); see mu_world_players.h. */
 #define _POSIX_C_SOURCE 200809L
 #include "mu_world_players.h"
+#include "mu_combat_audio.h"
 #include "../fixture/characters_demo.h"
 #include "../session/mu_session.h"
 
@@ -554,6 +555,8 @@ static void player_step(mu_world_players *p, mu_world_player *q)
             for (int k = 0; k < 4; ++k)
                 rands[k] = (int32_t)(visual_rand(p) & 0x7fff);
             mu_player_die(&st, rands, 4, &action, sounds);
+            for (int k=0;k<2;++k)
+                mu_combat_audio_emit(p->session,mu_combat_voice_sound(MU_COMBAT_AUDIO_DIE,0,sounds[k]),q->c.key);
             set_action(q, action, mu_character_action_speed(&q->model, (uint16_t)action));
             q->voice_3324 = 0.001f;
         }
