@@ -357,3 +357,9 @@ renders were preserved.
 - New-type mesh overrides and the older outline/shadow/buff/record-kind limits; authoritative hero instances;
   unresolved model mappings, the special NewUI window and displaced Box of Luck branch.
 - Muun placement and the missing nested map-object table graph remain deferred exactly as before.
+
+Local macOS gate passed on the tree integrated with main `54ae63f`: **1,378 tests across 38 discovery
+runs, 162 explicit private/unavailable-input skips**. Offline fixture scenarios, native viewer/readers and
+publication audit pass, 1,237 tracked files audited, zero rejected. No hosted workflow was dispatched.
+Self-review against the brief, repository standards and recorded evidence found no blocking issue in this
+bounded subset. The subtype-11 consumer gap and all unimplemented types remain explicit above.

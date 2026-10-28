@@ -22,7 +22,7 @@ include helm/armour/pants set indices 39..44. [Finding](../research/client-rende
   saved poses, offsets, absent bones, full pools and explicit subtype-11 refusal. New private owning test and
   manifest row. Fresh-machine controls check the resettable Unicorn world before its body sweep.
 - Inspected before/after renders and reports are local under `mu-mac-tools/native/{renders,scratch}/render-items-002c/`.
-  Set-40 parts: three refused bodies to zero, 13 to 25 passes. Staff: 11 linked sprites after; its body still
+  Synthetic inventory: one new armour model, zero refusals, 10/90 triangles at levels 0/13. Set-40 parts: three refused bodies to zero, 13 to 25 passes. Staff: 11 linked sprites after; its body still
   refuses its unrelated branch. No client bytes, table records, textures or renders are committed.
 
 Remaining: **1,412 special body types and all 17 class skins**, with exact branch membership and priorities
@@ -30,3 +30,9 @@ in the TSVs. Next untouched armour cluster has 47 types. Next link target is `0x
 `0x012c7e68` for `0x0afc`. Spark03 subtype 11 needs its creation/update/render consumer. New-type mesh overrides,
 older record-kind/buff/selection/shadow limits, authoritative hero items and unresolved model mappings remain.
 Muun and nested map-object tables stay deferred. No original client/launcher process was started, stopped or read.
+
+Local macOS gate passed on the tree integrated with main `54ae63f`: **1,378 tests across 38 discovery
+runs, 162 explicit private/unavailable-input skips**. Offline fixture scenarios, native viewer/readers and
+publication audit pass, 1,237 tracked files audited, zero rejected. No hosted workflow was dispatched.
+Self-review against the brief, repository standards and recorded evidence found no blocking issue in this
+bounded subset. The subtype-11 consumer gap and all unimplemented types remain explicit above.
