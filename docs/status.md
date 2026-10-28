@@ -1,5 +1,12 @@
 # Current status
 
+## Fixture session verification, 2026-10-27
+
+VERIFY-SESSION-001 adds discovered loopback suites to `make test` and the local Mac gate. Two hero scenarios
+cover all eight bound routes with 17 inbound plaintext frames and zero unbound/undecodable frames. The
+verification skill accepts `--fixture`, inbound events and journal summaries, including remaining-work
+counts. [Checks and limits](handoffs/VERIFY-SESSION-001.md).
+
 ## Stage 1 of the port completion, 2026-10-25
 
 Four lanes from [the plan](design/native-port/plan.md) are merged (#162-#165):

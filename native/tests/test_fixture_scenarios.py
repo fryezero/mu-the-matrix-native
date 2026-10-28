@@ -1,9 +1,12 @@
 """The discovered full-stack fixture suites and verification skill, synthetic and loopback only."""
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -106,12 +109,14 @@ class FixtureScenarios(unittest.TestCase):
         self.assertIn('File exists', process.stderr)
 
     def test_timeout_fails_and_retains_attempt_evidence(self):
-        process, rows = self.drive('timeout', '--fixture', PROGRESS, '--timeout', '0.000001')
-        self.assertEqual(process.returncode, 1)
-        self.assertEqual(rows[-1]['failed'], 1)
         folder = self.directory / 'timeout/hero-progress'
+        # Exercise the timeout report deterministically, without racing a fast native process.
+        error = subprocess.TimeoutExpired('mu-session', 1, output=b'partial', stderr=b'timed out')
+        with patch.object(runner.subprocess, 'run', side_effect=error), redirect_stdout(io.StringIO()):
+            result = runner.run_scenario(PROGRESS, folder, '', 1, 1)
+        self.assertFalse(result['pass'])
         self.assertEqual((folder / 'exit.txt').read_text(), 'timeout\n')
-        self.assertTrue((folder / 'stdout.jsonl').exists())
+        self.assertEqual((folder / 'stdout.jsonl').read_bytes(), b'partial')
 
 
 if __name__ == '__main__':
