@@ -96,7 +96,14 @@ int mu_social_action(mu_social_session *s, const char *verb, const char *arg)
         !strcmp(verb, "confirm-leave") || !strcmp(verb, "leave") || !strcmp(verb, "kick") ||
         !strcmp(verb, "health") || !strcmp(verb, "party-result") ||
         ((!strcmp(verb, "accept") || !strcmp(verb, "decline")) && (s->pending == 1 || s->pending == 3)))
-        return mu_party_demo_action(s, verb, arg);
+    {
+        int ok = mu_party_demo_action(s, verb, arg);
+        if (ok) {
+            ++s->revision;
+            snprintf(s->last, sizeof s->last, "%s %.80s (offline demo)", verb, arg);
+        }
+        return ok;
+    }
     const char *name = arg[0] ? arg : s->target;
     if (!strcmp(verb, "target")) {
         if (player(s, name) < 0)

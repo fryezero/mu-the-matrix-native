@@ -34,6 +34,7 @@ int main(void) {
     assert(mu_social_party_markers(&s.party, "Hero", 1, 0, m) == 2);
     assert(m[0].x == 264 && m[0].y == 270);
     assert(mu_social_action(&s, "health", "Aeris,38,61"));
+    assert(!strcmp(s.last, "health Aeris,38,61 (offline demo)"));
     mu_social_step(&s, 0, 120, 120);
     assert(s.party.members[1].hp_percent == 38 && s.party.members[1].mp_percent == 61);
     assert(mu_social_action(&s, "kick", "Kyra"));

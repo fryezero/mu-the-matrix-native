@@ -54,6 +54,10 @@ launcher, live service or dispatcher-table walk. [Finding](../research/client-so
   manifest-bearing APP-REFRESH-001 Native Data and installed game assets. The old
   legacy Native Data path correctly refused its absent manifest. No owner data changed.
   No original-image fidelity score or new golden hash is claimed.
+- All 58 session checks pass, six explicit private skips. The exploratory native
+  run found an isolated header-copy omission and a fixed intent-list expectation;
+  both are corrected, along with the input-router include dependency. Party action
+  feedback is refreshed rather than retaining the previous action's text.
 - Full release gate and final integration counts will be recorded before merge.
 
 Temporary reports/renders are in the lane's external scratch/render directories.
