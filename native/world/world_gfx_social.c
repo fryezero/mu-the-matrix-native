@@ -1,4 +1,5 @@
 #include "world_gfx_social.h"
+#include "../session/mu_session.h"
 #include "../../reconstructed/hud/item_slots.h"
 #include "../../reconstructed/social/item_options.h"
 #include "../gfx/mu_gfx_layer.h"
@@ -10,7 +11,8 @@ struct world_gfx_social {
     mu_social_session *s;
     int revision, party, friends, trade, friends_initialized;
     float x[2], y[2], w[2], h[2];
-    int prompt;
+    int prompt, prompt_key;
+    mu_cue_cursor party_cursor;
     char map_path[160];
     int tokens[32];
     mu_gfx_slot_item escrow[32];
@@ -340,6 +342,10 @@ int world_gfx_social_action(world_gfx_social *g, const char *verb, const char *a
         restore_offer(g);
         g->trade = 0;
     }
+    if (!ok && g->s->party_notice &&
+        (!strcmp(verb, "party") || !strcmp(verb, "leave") || !strcmp(verb, "kick") ||
+         !strcmp(verb, "confirm-leave")))
+        mu_gfx_layer_social_notice(g->l, g->s->party_notice, "Party action refused (offline demo).");
     notice(g, ok ? g->s->last : "Social action refused (offline demo)");
     return ok;
 }
@@ -977,6 +983,7 @@ world_gfx_social *world_gfx_social_open(struct mu_gfx_layer *l, mu_social_sessio
     g->revision = -1;
     g->message_revision = g->mailbox_revision = -1;
     g->party = 1;
+    if (s->session) g->party_cursor = mu_session_cue_cursor(s->session);
     mu_gfx_social_hooks h = {g, window, key, chat, inventory};
     mu_gfx_layer_set_social_hooks(l, &h);
     const char *path = mu_gfx_layer_path(l, MU_GFX_TRADE);
@@ -1010,12 +1017,16 @@ void world_gfx_social_frame(world_gfx_social *g)
     if (!g)
         return;
     mu_social_session *s = g->s;
-    if (s->party_notice) {
-        mu_gfx_layer_social_notice(g->l, s->party_notice, "Party request result (offline demo).");
-        s->party_notice = 0;
+    if (s->session) {
+        mu_cue cues[16]; uint32_t lost; size_t n;
+        while ((n = mu_session_cues(s->session, &g->party_cursor, cues, 16, &lost)) > 0)
+            for (size_t i = 0; i < n; ++i)
+                if (cues[i].kind == MU_CUE_NOTICE)
+                    mu_gfx_layer_social_notice(g->l, cues[i].u.notice.global_text, "Party request result (offline demo).");
     }
     messages_frame(g);
-    if (g->prompt != s->pending) {
+    if (g->prompt != s->pending || g->prompt_key != s->request_key) {
+        g->prompt_key = s->request_key;
         g->prompt = s->pending;
         if (s->pending) {
             char t[192];
@@ -1049,7 +1060,7 @@ void world_gfx_social_frame(world_gfx_social *g)
                  "\"CancelMandate\":\"Cancel\"}]");
             n = (size_t)snprintf(b, sizeof b, "[[");
             for (int i = 0; i < s->party.count; i++) {
-                mu_party_member *m = &s->party.members[i];
+                const mu_party_member *m = &s->party.members[i];
                 quote(q, sizeof q, m->name);
                 n += (size_t)snprintf(
                     b + n, sizeof b - n,

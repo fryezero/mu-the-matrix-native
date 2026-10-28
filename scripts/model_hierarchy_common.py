@@ -5,16 +5,22 @@ Only the verified restored first section and second image section are accepted.
 Nothing here executes client code; it decodes bytes with Capstone and reports
 what the decoded instructions literally do.
 """
+import errno
 import hashlib
+import os
 from pathlib import Path
+import sys
 
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
-TEXT_BASE = 0x00401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-DATA_BASE = 0x01a7c000
-DATA_BYTES = 2557764
-DATA_SHA256 = 'c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
+
+TARGET_SHA256 = pins.TARGET.sha256
+TEXT_BASE = pins.TEXT.base
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+DATA_BASE = pins.DATA.base
+DATA_BYTES = pins.DATA.size
+DATA_SHA256 = pins.DATA.sha256
 
 
 class PinError(ValueError):
@@ -26,13 +32,18 @@ def sha256(data):
 
 
 def load_pinned(path, size, digest):
-    data = Path(path).read_bytes()
-    if len(data) != size:
-        raise PinError(f'{path}: expected {size} bytes, found {len(data)}')
-    found = sha256(data)
-    if found != digest:
-        raise PinError(f'{path}: SHA-256 {found} does not match pinned {digest}')
-    return data
+    try:
+        return pins.load(path, size, digest)
+    except pins.PinMissing:
+        # Callers also depend on the native missing-file message and exception fields.
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(Path(path))) from None
+    except pins.PinMismatch:
+        # Only rejected inputs need another read for this tool's detailed legacy diagnostics.
+        data = Path(path).read_bytes()
+        if len(data) != size:
+            raise PinError(f'{path}: expected {size} bytes, found {len(data)}') from None
+        found = sha256(data)
+        raise PinError(f'{path}: SHA-256 {found} does not match pinned {digest}') from None
 
 
 def load_text(path):

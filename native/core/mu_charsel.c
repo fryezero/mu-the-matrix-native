@@ -1,5 +1,6 @@
 /* Native character-select scene (NATIVE-CHARSEL-001). See mu_charsel.h. */
 #include "mu_charsel.h"
+#include "mu_charsel_audio.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -330,8 +331,15 @@ int mu_charsel_attach_objects(mu_charsel_session *s, const char *root, mu_object
     return 0;
 }
 
+void mu_charsel_set_sound(mu_charsel_session *s, mu_charsel_sound_fn sound, void *context)
+{
+    s->sound = sound;
+    s->sound_context = sound ? context : NULL;
+}
+
 void mu_charsel_free(mu_charsel_session *s)
 {
+    mu_charsel_set_sound(s, NULL, NULL);
     if (s->has_particles)
         mu_world_particles_close(&s->particles);
     for (int i = 0; i < MU_CHARSEL_MAX_ENTRIES; ++i)
@@ -389,6 +397,12 @@ static void step(mu_charsel_session *s)
     mu_charsel_tick_step(t, &log);
     s->selected = t->selected;
     for (int32_t i = 0; i < log.count; ++i) {
+        mu_cue cue;
+        if (mu_charsel_audio_cue(&log, i, &cue)) {
+            cue.seq = ++s->sound_sequence;
+            if (s->sound)
+                s->sound(s->sound_context, &cue, s->steps + 1);
+        }
         if (log.events[i].call == 0x0185a75a)
             ++s->enter_requests;
         else if (log.events[i].call == 0x00c8c8b1)

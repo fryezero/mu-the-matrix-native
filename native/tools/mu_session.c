@@ -453,6 +453,14 @@ static int64_t value_of(run *r, const char *key, int *ok)
     *ok = 1;
     if(!strcmp(key,"motion.x"))return r->world.tile[0];
     if(!strcmp(key,"motion.y"))return r->world.tile[1];
+    if (!strncmp(key,"party.",6)) {
+        mu_party_view v=mu_session_party(r->session);
+        if (!strcmp(key,"party.count")) return v.members->count;
+        if (!strcmp(key,"party.pending")) return v.pending;
+        if (!strcmp(key,"party.key")) return v.request_key;
+        if (!strcmp(key,"party.invitations")) return v.invitations;
+        if (!strcmp(key,"party.hp0")) return v.members->members[0].hp_percent;
+    }
     if(!strncmp(key,"combat.",7)) {
         if(!strcmp(key,"combat.damage"))return (int64_t)mu_session_combat_count(r->session,1);
         if(!strcmp(key,"combat.die"))return (int64_t)mu_session_combat_count(r->session,2);
