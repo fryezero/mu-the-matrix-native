@@ -2,6 +2,8 @@
 
 RENDER-WORLDS-K: Lost Tower sprites/push, Tarkan lamp/plume producers and Icarus type-10 flare producer; Atlans switch inventory corrected. Instruction and locked-gate results are in [the handoff](handoffs/RENDER-WORLDS-K.md). Particle consumers belong to EFFECTS-003.
 
+RENDER-EFFECTS-003: Meteorite, Aqua Beam primary chain and Inferno bursts; K particle consumers and three exact bitmap registrations. Primary routes 15/23 to 18/23, weighted 46/77 to 56/77. 24,453 instruction comparisons plus 2,547 removal checks, 17 instruction mutants plus one frame mutant and four loader-call checks. Locked Mac gate passes 1,582 tests (200 explicit skips) and ten fixture scenarios. [Evidence](research/client-render-effects-003.md), [checks and remaining work](handoffs/RENDER-EFFECTS-003.md).
+
 SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the session and plaintext fixture; 6,501 instruction cases, zero mismatches, 4 compiled and 10 historical mutants caught. Travel remains unchanged. [Checks and limits](handoffs/SESSION-MAP-001a.md).
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).

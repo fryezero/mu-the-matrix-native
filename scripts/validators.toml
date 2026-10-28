@@ -1922,6 +1922,34 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_render_effects3]
+test = "native/tests/test_render_effects.py::RenderEffects.test_priority_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fx_effect_create", "fx_effect_move", "fx_burst", "fx_aqua_render", "pt_create", "pt_move", "pt_render"]
+cases = 720
+mutants = 10
+cases_at = "comparisons.*.families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_render_effects3.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_world_particle_consumers]
+test = "reconstructed/particles/test_particles.py::ParticleTests.test_world_consumer_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 900
+mutants = 7
+cases_at = "comparisons.*.families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_world_particle_consumers.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_audio_domains]
 test = "native/tests/test_audio_domains.py::DomainAudio.test_original_domain_audio"
 pins = ["text", "data", "skill_lang5"]
