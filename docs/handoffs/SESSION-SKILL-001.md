@@ -14,7 +14,8 @@ uses the same hero context for headless and GFx checks. A0 14 writes a sign-exte
 CharacterAttribute +0x34 through 0x00a00192. It is distinct from the progression counter at +0x30.
 The inherited 16-bit write and +0x30 refresh were corrected and compared with the real instructions.
 World unload clears view callbacks before the owning session closes; world load rebinds the replacement
-book. Learned state survives view detachment and rebinding within the same session.
+book. The fixture supplies its initial available Master points via the existing plaintext A0 60 hero
+answer; the headless skill tick refreshes that context before window checks. Learned state survives view detachment and rebinding within the same session.
 
 ## Validation
 
@@ -24,8 +25,8 @@ is recorded below before merge.
 
 - Historical base/server/Master reruns: 12,763 + 4,508 + 7,876 cases, zero mismatches;
   11/11 + 6/6 + 3/3 compiled mistakes caught. Fourth-tree rerun is recorded below.
-- VERIFY-SESSION: 8/8 scenarios, 66 inbound frames, zero unbound/undecodable frames.
-  Skills alone: 13 inbound frames covering nine bound routes, 11 expectations, three plaintext
+- VERIFY-SESSION: 8/8 scenarios, 67 inbound frames, zero unbound/undecodable frames.
+  Skills alone: 14 inbound frames covering nine skill routes and hero context, 11 expectations, three plaintext
   requests, zero unrecovered intents and one encrypted cast unsent. The other suites retain two
   unrecovered intents and five additional unsent frames.
 - Real OpenGL/GFx synthetic-world drive: Skill Imprint opened, fixture learn/forget, Save handled,

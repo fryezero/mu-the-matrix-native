@@ -26,7 +26,7 @@ class Skills(unittest.TestCase):
         p,rows=run_tool('fixture',SCENARIOS/'skills-state.scn','--ticks',15)
         self.assertEqual(p.returncode,0,p.stdout[-3000:]+p.stderr)
         report=first(rows,'summary')
-        self.assertEqual((report['frames_in'],report['unbound_frames'],report['undecodable_frames'],report['unsent_frames']),(13,0,0,1))
+        self.assertEqual((report['frames_in'],report['unbound_frames'],report['undecodable_frames'],report['unsent_frames']),(14,0,0,1))
         cast=next(x for x in jnl(rows,'frame_out') if hexbytes(x['bytes'])[2]==0xd7)
         self.assertEqual((cast['send'],cast['encrypted']),('needs_crypto',1))
         self.assertEqual(hexbytes(cast['bytes']),bytes.fromhex('c1 06 d7 79 78 13'))

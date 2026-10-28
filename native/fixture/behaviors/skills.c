@@ -39,6 +39,11 @@ static int login(skills_fixture *s, int cls, int points)
     mu_skill_demo_reset();
     if (s->file[0]) mu_skill_demo_load(s->file);
     mu_skill_book_demo_login_emit(s->book, cls, emit, s);
+    /* The former demo's 100 available Master points arrive through the existing hero answer.
+     * Keep +0x34 authoritative before a tree click; no client-side seed or view override. */
+    uint8_t master_context[24] = {0xc1, 24, 0xa0, 0x60};
+    master_context[22] = 100;
+    emit(s, master_context, sizeof master_context);
     mu_skill_tree4_enter(s->tree, cls & 15);
     mu_skill_tree4_demo_login_emit(s->tree, points, emit, s);
     mu_skill_tree4_demo_side_emit(s->tree, emit, s);

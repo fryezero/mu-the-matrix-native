@@ -26,6 +26,7 @@ int main(int argc,char **argv)
         mu_session_step(s,MU_DOMAIN_SKILLS,&sim);
         if(argc>3 && !strcmp(argv[3],"poison"))((mu_skill_hero *)mu_skill_book_hero(book))->skills[0]^=1;
         mu_session_sim_end(s,&sim);
+        if(tick==2 && mu_skill_book_master_env(book)->points!=100)return 6;
         mu_transport_flush(transport);
     }
     mu_skill_stats context={.class_byte=129};mu_session_skills_context(s,&context);

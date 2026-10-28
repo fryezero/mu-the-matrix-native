@@ -163,6 +163,7 @@ void mu_dom_skills_free(mu_session *s)
 void mu_dom_skills_step(mu_session *s, const mu_sim *sim)
 {
     (void)sim;
+    mu_session_skills_context(s, NULL);
     uint32_t dt = s->now - s->skills.last_tick; s->skills.last_tick = s->now;
     mu_skill_book_tick(s->skills.book, (int32_t)(dt > 10000 ? 10000 : dt));
 }

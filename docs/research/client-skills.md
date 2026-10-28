@@ -804,7 +804,10 @@ catch five compiled mistakes: key rotation, endian, opcode, attribute offset and
 Text/data pins are the existing captures recorded in the handoff. This is original-instruction
 evidence for the bounded slices; it does not establish a keyed packet transform or server policy.
 
-The synthetic `skills-state.scn` is discovered by VERIFY-SESSION with 13 inbound frames, all nine
+The fixture sends its initial available Master points via the existing A0 60 hero handler,
+which writes +0x34; the skill tick refreshes that context in headless builds too.
+
+The synthetic `skills-state.scn` is discovered by VERIFY-SESSION with 14 inbound frames, all nine
 skill routes exercised, zero unbound/undecodable frames, 11 expectations, three plaintext requests
 and one encrypted cast journaled unsent. Separate tests verify successful fixture Master learn,
 detached answers, rebinding without replacing learned state, lease audit rejection, incomplete
