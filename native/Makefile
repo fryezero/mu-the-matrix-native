@@ -574,3 +574,6 @@ $(BUILD)/monsters-lifecycle-host: tests/monsters_lifecycle_host.c $(WORLD_RT_HDR
 $(BUILD)/worlds-g-host: tests/worlds_g_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-g-host.o
 	$(CXX) $(BUILD)/worlds-g-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# Core consumers include the generated public domain and intent headers.
+$(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
