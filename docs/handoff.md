@@ -1,5 +1,8 @@
 # Continue from here
 
+CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
+unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.
+
 LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
 
 ## VERIFY-SESSION-001, 2026-10-27
@@ -32,8 +35,7 @@ passed through the runner (568 cases at `--scale 2`, 14/14).
 - NET-DECODE-001: the receive stage `0x012220fd` and the send wrap, over `libmucrypto`; this unblocks the
   encrypted `0x16` report and C3 fixtures.
 - Feed `mu-walk --progress` through the session, now that WORLD-RT-001 is merged.
-- CHARSEL-RT-001, INPUT-001, LAYOUT-001.
-- `test_charcreate` to 300 cases.
+- INPUT-001, LAYOUT-001. CHARSEL-RT-001 and the 300-case private charcreate check are complete.
 
 ## Port completion design (ARCH-PORT-001, 2026-10-24)
 
