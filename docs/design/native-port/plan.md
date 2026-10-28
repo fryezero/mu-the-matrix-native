@@ -117,6 +117,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | RENDER-TIME-001 | Multi-frame fidelity: time-varying fields, a camera path per map, mugl patches off on the live side | Per-map time-series reports with defined thresholds | INPUT-001 (shared scripts) | EA |
 | NATIVE-PERF-002 | Extreme offline crowd/combat/GFx benchmark; host timing, batching and allocation work | Measured comparison, preserved renders, local gate ([finding](../../research/native-performance-stress.md)) | NATIVE-PERF-001 | Partial: crowd40 passes the checker with pacing tails; three 80-player 25 fps targets remain open |
 | NATIVE-PERF-003 | Full shared-GFx GPU interval, pacing and native CPU optimization | Exact full-frame comparisons and measured costs ([finding](../../research/native-performance-003.md)) | NATIVE-PERF-002 | Partial: verified changes and final timing; strict 25 Hz work/pacing acceptance remains open |
+| NATIVE-PERF-004 | Native character pose workers and model-owned exact topology proof | Full-frame equality, paired window timing and local gate ([finding](../../research/native-performance-004.md)) | NATIVE-PERF-003 | Integration in progress |
 | README-STRESS-001 | Eighty-player README images, remote-armour glow texture lookup fix and public demo HUD | Synthetic regression, controlled GL hashes and local gate ([finding](../../research/readme-stress.md)) | NATIVE-PERF-003 | Implemented; historical timings only, 25 fps crowd target open |
 
 ## H. Audio

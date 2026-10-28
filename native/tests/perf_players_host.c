@@ -16,10 +16,13 @@ static void model_hash(const mu_model *m)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) return 2;
+    if (argc < 2 || argc > 4) return 2;
+    int players = argc > 2 ? atoi(argv[2]) : 9;
+    int frames = argc > 3 ? atoi(argv[3]) : 32;
+    if (players < 0 || players > MU_WORLD_PLAYERS_MAX || frames < 1) return 2;
     mu_world_players *p = calloc(1, sizeof *p);
     if (!p) return 3;
-    p->count = 9;
+    p->count = players;
     for (int i = 0; i < p->count; ++i) {
         mu_world_player *q = &p->list[i];
         char error[256];
@@ -30,10 +33,11 @@ int main(int argc, char **argv)
             q->model.items[j].link_bone = 1;
         }
     }
-    for (int frame = 0; frame < 32; ++frame) {
+    for (int frame = 0; frame < frames; ++frame) {
         for (int i = 0; i < p->count; ++i) {
             mu_world_player *q = &p->list[i];
             q->in_view = (frame + i) % 7 != 0;
+            q->has_model = (frame + i) % 11 != 0;
             for (int k = 0; k < 3; ++k) {
                 q->c.position[k] = (float)(frame * 17 + i * 3 + k);
                 q->c.angle[k] = (float)(i * 15 + frame * 2 + k);

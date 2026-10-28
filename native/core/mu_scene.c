@@ -244,7 +244,7 @@ static void edge_tables(void *context, int32_t mesh, int32_t light_count, const 
     (void)texcoord_count;
     (void)normal_texcoords;
     edge_views *e = context;
-    if (e->views[mesh].triangles)
+    if (e->views && e->views[mesh].triangles)
         mu_edge_zero_tables(&e->views[mesh], e->colours, e->table);
 }
 
@@ -263,6 +263,9 @@ static void edge_free(edge_views *e, int32_t count)
 static int edge_apply(mu_scene_inputs *in, edge_views *e, uint64_t regular)
 {
     const int32_t count = in->model.mesh_count;
+    /* A fully proved model needs no edge storage, even for glow passes. */
+    if (count > 0 && count <= 64 && regular == (UINT64_MAX >> (64 - count)))
+        return 0;
     e->views = calloc((size_t)(count > 0 ? count : 1), sizeof *e->views);
     if (!e->views)
         return 1;

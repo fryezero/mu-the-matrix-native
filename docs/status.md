@@ -1,5 +1,7 @@
 # Current status
 
+NATIVE-PERF-004: verified pose workers and topology cache; integrated performance acceptance in progress. [Checks and limits](handoffs/NATIVE-PERF-004.md).
+
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
 
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
