@@ -774,7 +774,7 @@ static int headless(tool *t)
                 memcpy(pixels, raster.color, bytes);
             }
             mu_sha256_hex(pixels, bytes, hash);
-            snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
+            if (save) snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
             if (save && mu_png_write(path, pixels, a->width, a->height)) {
                 fprintf(stderr, "cannot write %s\n", path);
                 return 1;

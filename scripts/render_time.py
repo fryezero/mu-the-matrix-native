@@ -40,7 +40,7 @@ def load_plan(path=PLAN):
     p = json.loads(path.read_text())
     if p['version'] != 1 or not 21 <= p['frames'] <= 10001 or not 1 <= p['sample_every'] <= 10000:
         raise ValueError('invalid time-series plan')
-    if p['frames'] // p['sample_every'] > 1000 or p['save_every'] < (p['frames'] - 1) / 2:
+    if len(schedule(p)) > 1001 or p['save_every'] < (p['frames'] - 1) / 2:
         raise ValueError('plan exceeds 1001 samples or three PNGs per view')
     if not p['maps'] or len({e['name'] for e in p['maps']}) != len(p['maps']):
         raise ValueError('empty/duplicate maps')
