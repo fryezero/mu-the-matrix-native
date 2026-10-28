@@ -45,3 +45,25 @@ The milestone [handoff](../handoffs/README-REFRESH-003.md) records the final loc
 Latest main `237f094`, PR #211, was integrated under the merge lock before that gate; its runtime ownership
 changes and both sets of shared-doc entries are preserved. The authored diff remains seven Markdown files.
 The full Mac gate uses synthetic/offline tests; this documentation lane does not repeat #200's private run.
+
+## README-REFRESH-004 claim sources
+
+Documentation-only refresh on 2026-10-28 from main `fa63719`, the merge of PR #241. Read every merged PR
+from #214 through #241 (19 merged PRs; the other numbers are issues) and their committed handoffs. No new
+instruction, live-game or timing evidence was acquired.
+
+| Public claim | Merged source and evidence boundary |
+|---|---|
+| Native Preview refresh | [APP-REFRESH-001](../handoffs/APP-REFRESH-001.md) #215; offline smoke runs, stale export lookup and MP/AG fixes. No gate-5, second-user or signing completion |
+| Temporal checks | [RENDER-TIME-001](../handoffs/RENDER-TIME-001.md) #217; native half only, fourteen views/thirteen maps, 21 samples per view. LIVE half open |
+| World coverage | [I](../handoffs/RENDER-WORLDS-I.md) #219, [J](../handoffs/RENDER-WORLDS-J.md) #227, [K](../handoffs/RENDER-WORLDS-K.md) #232, [L](../handoffs/RENDER-WORLDS-L.md) #238. 33/144 primary methods across 11/48 classes, 111 remain. Icarus full-draw error 26.897 → 23.154 is the only new image score; eleven original PNGs are unavailable |
+| Skill visuals | [RENDER-EFFECTS-002](../handoffs/RENDER-EFFECTS-002.md) #221 and [003](../handoffs/RENDER-EFFECTS-003.md) #230; 18/23 primary, 56/77 weighted, bounded to the 23 native cast routes. Rageful Blow and variants remain |
+| Special item bodies/links | [Part 7](../handoffs/RENDER-ITEMS-002G.md) #216, [H](../handoffs/RENDER-ITEMS-002H.md) #225, [I](../handoffs/RENDER-ITEMS-002I.md) #233, [J](../handoffs/RENDER-ITEMS-002J.md) #240. 880/1,674 bodies, 17/17 skins, 17 link targets / 22 types; 794 bodies and rank-5 owner effects remain |
+| Session domains | [Ground items](../handoffs/SESSION-ITEMS-001a.md) #224, [minimap markers](../handoffs/SESSION-MAP-001a.md) #229, [party](../handoffs/SESSION-SOCIAL-001a.md) #237, plus [globals](../handoffs/SESSION-GLOBALS-001.md) #211. 11/11 fixture scenarios, 86 inbound frames, zero unbound/undecodable; two unrecovered intents and nine unsent requests. No pick-up answer, inventory insertion, zen credit or encrypted round-trip |
+| Sound | [AUDIO-002D](../handoffs/AUDIO-002D.md) #228 and [AUDIO-002E](../handoffs/AUDIO-002E.md) #235; 76 caller adapters/sound-capable sites. Pick-up success, event/remote inputs, music 43/44 and FMOD parity remain |
+| HelpWindow | [SYS-MISC-001b](../handoffs/SYS-MISC-001b.md) #241; 888 instruction cases, 18/18 mutants. Ctrl+H is a native binding; the original open route is not established |
+| 80-player performance | [NATIVE-PERF-003](../handoffs/NATIVE-PERF-003.md) #201; crowd80 18.37 and tormenta80 18.94 fps, rounded to 18.4/18.9. No later PR re-timed them; 25 fps remains open |
+
+[VERIFY-HARNESS-002](../handoffs/VERIFY-HARNESS-002.md) #239 is internal validator plumbing and is not
+summarised in the README. No images were added, generated or edited; all README media and audit pins are
+unchanged. Network, login, live play and owner-blocked lanes remain listed as open.
