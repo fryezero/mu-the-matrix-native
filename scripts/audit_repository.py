@@ -10,7 +10,7 @@ PRIVATE_DIRS = {'input','evidence','runtime','vendor','publish','dist','node_mod
 GENERATED = {'.exe','.dll','.bin','.obj','.bmd','.smd','.png','.jpg','.zip','.dmp','.mdmp','.dylib','.so','.o','.pyc','.orig','.new'}
 
 
-# Owner-requested README screenshots and renders (reviewed 2026-10-21 and 2026-10-22: window-only,
+# Owner-requested README screenshots and renders (reviewed 2026-10-21, 2026-10-22 and 2026-10-28: window-only,
 # no account names, passwords or private paths). Only these exact bytes are
 # documentation media; all other binary/generated inputs remain rejected.
 REVIEWED_MEDIA = {
@@ -64,6 +64,10 @@ REVIEWED_MEDIA = {
         '556cc31af55fc527713aec258651ddeed12f4aef0d619f61606a99ea2c244be3',
     'docs/images/25-progression-character-options-menu.jpg':
         'ce1ddc4822f24d33c6678160a83ff089d3905170d9ac99b71c42d16aa19b0435',
+    'docs/images/26-80-players-lorencia.jpg':
+        'cad4e3993c3d72313f58e21230a7b9ec4b8085ef016f5b860ce7a1a4542e85d1',
+    'docs/images/27-80-players-tormenta-combat.jpg':
+        'a8386983e35fb5de8bb8315eb1e6d4057373729d373c2a33c9f94b02ec4b06b8',
 }
 
 
