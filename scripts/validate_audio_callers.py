@@ -102,7 +102,7 @@ def build(tmp, name, header=None, world=None, talk=None, hero=None, objects=None
     object_deps = [ROOT/'reconstructed/objects'/n for n in
                    ('objects.c','devias.c','tarkan.c','elbeland.c','raklion.c','icarus.c','noria.c',
                     'login_world.c','charsel_world.c','vulcanus.c','santa_village.c','duel_arena.c','world82.c',
-                    'loren_market.c','uruk.c')]
+                    'loren_market.c','uruk.c','world_karutan_visual.c','world_raklion_visual.c')]
     object_deps += [ROOT/'reconstructed'/n for n in
                     ('movement/client_movement.c','model-codec/model_codec.c','terrain/terrain.c','record-math/record_math.c')]
     out = folder/'adapter.dylib'

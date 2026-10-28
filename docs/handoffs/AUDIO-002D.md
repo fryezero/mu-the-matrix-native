@@ -47,8 +47,9 @@ The hero's earlier receive sound and per-frame/event manager paths are outside t
   instruction cases plus 12 static checks, zero mismatches, 18/18 mutants. Part 3 unchanged: 19,548
   cases, zero mismatches, 16/16 mutants. Hero audio: 2,000 cases, zero mismatches, all negative controls.
 - The first private part-2 rerun could not link `mu_market_*` / `mu_uruk_*` after RENDER-WORLDS-I.
-  Its compile list now includes those two production sources. The repaired runner passes all 5,528
-  checks without changing comparisons or expectations. Manifest tests pass 17/17; include audit passes.
+  Its compile list now includes Loren Market/Uruk and the two primary world-method sources needed
+  by RENDER-WORLDS-J. The repaired runner passes all 5,528
+  checks with an identical JSON report, without changing comparisons or expectations. Manifest tests pass 17/17; include audit passes.
 
 - Unchanged quests: 8,203 + 7,004 + 2,001 = **17,208 comparisons, zero mismatches, 13/13 mutants**.
   Environment: 400 cases, 80,520 steps, 94/94 branch probes, zero mismatches/stops, 12/12 mutants.
