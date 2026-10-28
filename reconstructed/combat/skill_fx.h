@@ -38,6 +38,10 @@
  * LoadBitmap indices (Data\Effect\...), both static readings of the loaders
  * 0x018202b4 and 0x0185baac. */
 enum {
+    MU_SFX_MODEL_ICE = 0x412,        /* Skill\Ice01.bmd */
+    MU_SFX_MODEL_POISON = 0x414,     /* Skill\Poison01.bmd, monster-only caller */
+    MU_SFX_MODEL_ICE_DEBRIS = 0x41b, /* Skill\Ice02.bmd */
+    MU_SFX_MODEL_WAVE = 0x41f,       /* Skill\Magic02.bmd */
     MU_SFX_MODEL_STONE1 = 0x419,      /* Skill\Stone01.bmd */
     MU_SFX_MODEL_STONE2 = 0x41a,      /* Skill\Stone02.bmd */
     MU_SFX_MODEL_CIRCLE = 0x41c,      /* Skill\Circle01.bmd (Hellfire) */
