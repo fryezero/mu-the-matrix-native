@@ -250,15 +250,19 @@ static int finish(const hud_options *o, scene *sc, const char *extra)
 }
 
 /* Draws one item model into `r` with the RenderObjectScreen object state. */
-static int draw_model(const hud_options *o, mu_raster *r, const mu_hud_item *it, const mu_hud_item_draw *d,
-                      long *triangles)
+static int draw_model(const hud_options *o, const mu_data_table *items, mu_raster *r, const mu_hud_item *it,
+                      const mu_hud_item_draw *d, long *triangles)
 {
-    (void)o;
-    if (!it->model_path[0])
+    char path[1024];
+    snprintf(path, sizeof path, "%s", it->model_path);
+    if (d->out.model != it->code + 0xae6) {
+        mu_hud_item_model_path(items, o->root, d->out.model, path, sizeof path);
+    }
+    if (!path[0])
         return 0;
     mu_bmd bmd;
     char error[256];
-    if (mu_bmd_load_file(it->model_path, &bmd, error, sizeof error) != MU_BMD_OK)
+    if (mu_bmd_load_file(path, &bmd, error, sizeof error) != MU_BMD_OK)
         return 0;
     mu_model_params params;
     mu_model_default_params(&params);
@@ -283,7 +287,7 @@ static int draw_model(const hud_options *o, mu_raster *r, const mu_hud_item *it,
     mu_model_update(&model);
     mu_textures textures;
     char directory[1024];
-    snprintf(directory, sizeof directory, "%s", it->model_path);
+    snprintf(directory, sizeof directory, "%s", path);
     char *slash = strrchr(directory, '/');
     if (slash)
         slash[1] = 0;
@@ -347,8 +351,8 @@ static int render_inventory(const hud_options *o)
     }
     mu_hud_window_geometry geo = mu_hud_inventory_geometry_live();
     mu_hud_item_draw draws[MU_HUD_MAX_ITEMS];
-    int32_t n = mu_hud_inventory_pass(&inv, &geo, o->width, o->height, have_trs ? &trs : NULL, o->item_scale,
-                                      o->hover, draws, MU_HUD_MAX_ITEMS);
+    int32_t n = mu_hud_inventory_pass_at(&inv, &geo, o->width, o->height, have_trs ? &trs : NULL, o->item_scale,
+                                         o->hover, (float)o->time_ms, draws, MU_HUD_MAX_ITEMS);
     scene sc;
     if (scene_open(&sc, o))
         return 1;
@@ -397,7 +401,7 @@ static int render_inventory(const hud_options *o)
                     draws[k].cell_rect[1], draws[k].cell_rect[2], draws[k].cell_rect[3], draws[k].out.position[0],
                     draws[k].out.position[1], draws[k].out.position[2], draws[k].out.scale, draws[k].out.angle[0],
                     draws[k].out.angle[1], draws[k].out.angle[2]);
-        if (draw_model(o, &r, it, &draws[k], &triangles))
+        if (draw_model(o, &t.items, &r, it, &draws[k], &triangles))
             drawn++;
         else
             missing++;

@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-ITEMS-002 part 1: inventory special-code chain and native remapped-model loading; 5,512 Unicorn cases, zero mismatches, 6/6 mutants. Large body/effect switches remain. [Evidence](research/client-render-items.md).
+
 LAYOUT-PROBE-001 settles the separate OBJECT live/fade bytes, the two CHARACTER level reads, and the CharacterAttribute prefix/extent distinction. [Evidence](research/client-layout-probes.md).
 
 ## Stage 1 of the port completion, 2026-10-25

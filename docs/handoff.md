@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-ITEMS-002 part 1: [handoff](handoffs/RENDER-ITEMS-002.md). Inventory special-code paths are covered; next are the type-specific body/effect switches and Muun integration.
+
 LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
 
 ## Stage 1 merged (2026-10-25)
