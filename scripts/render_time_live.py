@@ -3,7 +3,10 @@
 
 `schedule` converts an INPUT-001 script into rtinput's event list (focus/move/ldown/lup/wheel only).
 `export` reads rtsample's JSON lines, rtinput's log and mugl's statistics log, rejects torn or wide WorldTime
-brackets, and writes the live series plus the private native plan (live tile and observed WorldTime epoch).
+brackets, and writes the live series plus the private native plan: live tile and client size, the plan's script with
+positions scaled to that size (the same client-area fractions rtinput replayed), the observed WorldTime epoch, and a
+sample at every iteration. `pair` takes that dense native capture and keeps, for each live sample, the native row at
+the live sample's recorded relative logic ordinal (never chosen by error).
 Nothing here reads client memory; inputs are the local capture files. See docs/research/client-render-time.md.
 """
 import argparse
@@ -56,6 +59,17 @@ def parse_script(text):
     return events
 
 
+def scale_script(events, width, height):
+    """INPUT-001 text with positions mapped to a width x height client: the fractions rtinput replays."""
+    lines = ['# RENDER-TIME-002: positions scaled from 640x480 drawable pixels to the live client area', '0:focus:1']
+    for frame, verb, x, y in events:
+        if verb == 'wheel':
+            lines.append(f'{frame}:wheel:{x}')
+        else:
+            lines.append(f'{frame}:{verb}:{x * width // 640},{y * height // 480}')
+    return '\n'.join(lines) + '\n'
+
+
 def mugl_provenance(stats_text, mask_text, mode_text):
     """Effective hotpatch mask = the last `=== hotpatch mask N` line mugl logged in this session."""
     masks = re.findall(r'^=== hotpatch mask (-?\d+):', stats_text, re.M)
@@ -97,24 +111,32 @@ def export(samples_path, inputs_path, plan_path, name, mugl, out_dir, provenance
     if len(pre) != 1 or len(arm) != 1 or len(end) != 1:
         raise ValueError('capture needs one preflight, arm and end line')
     pre, arm, end = pre[0], arm[0], end[0]
-    accepted = {}
-    rejected = []
-    for l in (l for l in lines if l['kind'] == 'sample'):
-        a, b = l['pre'], l['post']
-        torn = any(a[k] != b[k] for k in ('presented', 'logic', 'cframe'))
-        width = b['world_time'] - a['world_time']
-        if torn or not 0 <= width <= BRACKET_MS:
-            rejected.append({'frame': l['frame'], 'torn': torn, 'bracket_ms': width})
-            continue
-        if l['frame'] in accepted:
-            raise ValueError(f"duplicate accepted sample {l['frame']}")
-        accepted[l['frame']] = l
+    # Frame k = the first accepted post-draw read, in capture order, at least k logic steps after arm. A read is
+    # rejected when a counter moved (torn) or WorldTime moved more than BRACKET_MS (the next frame had begun).
+    candidates = [l for l in lines if l['kind'] == 'sample']
+    if not candidates or candidates[0]['frame'] != 0 or arm['logic'] != candidates[0]['pre']['logic'] \
+            or end['arm_logic'] != arm['logic']:
+        raise ValueError('arm epoch does not match the frame-0 sample')
     expected = rt.schedule(plan)
+    accepted, rejected, at = {}, [], 0
+    for k in expected:
+        while at < len(candidates):
+            l = candidates[at]; at += 1
+            a, b = l['pre'], l['post']
+            if a['logic'] - arm['logic'] < k:
+                continue
+            torn = any(a[key] != b[key] for key in ('presented', 'logic', 'cframe'))
+            width = b['world_time'] - a['world_time']
+            if torn or not 0 <= width <= BRACKET_MS:
+                rejected.append({'frame': k, 'logic': a['logic'] - arm['logic'], 'torn': torn, 'bracket_ms': width})
+                continue
+            accepted[k] = l
+            break
     if sorted(accepted) != expected:
         raise ValueError(f'missing samples: {sorted(set(expected) - set(accepted))}')
     first = accepted[0]
-    if arm['logic'] != first['pre']['logic'] or end['arm_logic'] != arm['logic']:
-        raise ValueError('arm epoch does not match the frame-0 sample')
+    if first is not candidates[0]:
+        raise ValueError('the frame-0 sample was rejected')
     worlds = {l['world'] for l in accepted.values()} | {pre['world']}
     if worlds != {entry['world']}:
         raise ValueError(f'world changed or differs from the plan: {sorted(worlds)}')
@@ -122,9 +144,11 @@ def export(samples_path, inputs_path, plan_path, name, mugl, out_dir, provenance
     client = next((e for e in events if e[0] == 'client'), None)
     sent = [e for e in events if e[0] == 'event']
     script_events = parse_script(entry['script_path'].read_text())
-    if client is None or [int(e[1]) for e in sent] != [e[0] for e in script_events]:
+    if client is None or [(int(e[1]), e[2], int(e[3]), int(e[4])) for e in sent] != script_events:
         raise ValueError('input log does not replay the plan script')
     width, height = int(client[3]), int(client[4])
+    if not 320 <= width <= 4096 or not 240 <= height <= 4096:
+        raise ValueError('implausible client area')
     lateness = [float(e[8]) - float(e[6]) for e in sent]
     shots = shots or {}
     rows, bracket = [], []
@@ -139,14 +163,16 @@ def export(samples_path, inputs_path, plan_path, name, mugl, out_dir, provenance
                         'logic': l['pre']['logic'] - arm['logic'], 'cframe': l['pre']['cframe'] - first['pre']['cframe'],
                         'presented': l['pre']['presented'] - first['pre']['presented'],
                         'read_ms': round((l['post']['host_us'] - l['pre']['host_us']) / 1000, 3),
-                        'attempt': l['attempt'], 'particle_list': l['particle_list']})
+                        'attempt': l['attempt'], 'particle_list': l['particle_list'], 'input': l.get('input')})
     tile = [int(pre['tile'][0]), int(pre['tile'][1])]
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    native_plan = {'version': 1, 'width': plan['width'], 'height': plan['height'], 'frames': plan['frames'],
-                   'sample_every': plan['sample_every'], 'save_every': plan['save_every'],
-                   'start_world_time_ms': int(round(first['pre']['world_time'])),
-                   'maps': [{'name': name, 'world': entry['world'], 'tile': tile, 'script': str(entry['script_path'])}]}
+    script = out_dir / f'{name}-{width}x{height}.input'
+    script.write_text(scale_script(script_events, width, height))
+    frames = max(plan['frames'], bracket[-1]['logic'] + 1)
+    native_plan = {'version': 1, 'width': width, 'height': height, 'frames': frames, 'sample_every': 1,
+                   'save_every': -(-(frames - 1) // 2), 'start_world_time_ms': int(round(first['pre']['world_time'])),
+                   'maps': [{'name': name, 'world': entry['world'], 'tile': tile, 'script': script.name}]}
     native_plan_path = out_dir / 'native-plan.json'
     native_plan_path.write_text(json.dumps(native_plan, indent=1) + '\n')
     series = {
@@ -164,7 +190,8 @@ def export(samples_path, inputs_path, plan_path, name, mugl, out_dir, provenance
             'client_area': [width, height], 'foreground': client[6] == '1' if len(client) > 6 else None},
         'provenance': provenance or {},
         'maps': [{'name': name, 'world': entry['world'], 'tile': tile, 'plan_tile': entry['tile'],
-                  'script_sha256': rt.digest(entry['script_path']), 'expected_frames': expected,
+                  'script_sha256': rt.digest(script), 'base_script_sha256': rt.digest(entry['script_path']),
+                  'expected_frames': expected,
                   'samples': rows, 'unavailable': UNAVAILABLE,
                   'image_frames': sorted(shots), 'preflight': {k: pre[k] for k in
                       ('hero', 'tile', 'hero_frame', 'hero_action', 'eye', 'angle', 'fov', 'objects')},
@@ -176,6 +203,38 @@ def export(samples_path, inputs_path, plan_path, name, mugl, out_dir, provenance
     series['maps'][0]['coverage'] = rt.coverage(rows)
     (out_dir / 'series.json').write_text(json.dumps(series, separators=(',', ':')) + '\n')
     return series
+
+
+def pair(live, native):
+    """Native rows at the live samples' relative logic ordinals, relabelled with the live frame numbers."""
+    rt.validate_series(live)
+    rt.validate_series(native)
+    if live['source'] != 'live' or native['source'] != 'native' or live['plan_sha256'] != native.get('plan_sha256'):
+        raise ValueError('pair needs a live series and the native capture of its private plan')
+    out = {k: v for k, v in native.items() if k != 'maps'}
+    out['maps'] = []
+    for e in live['maps']:
+        n = next((m for m in native['maps'] if m['name'] == e['name']), None)
+        if n is None:
+            raise ValueError(f"native capture lacks {e['name']}")
+        base = n['samples'][0]['steps']
+        if n['expected_frames'] != list(range(len(n['samples']))) or \
+                any(r['steps'] - base != r['frame'] for r in n['samples']):
+            raise ValueError('pairing needs a native sample at every iteration, one logic step each')
+        rows = []
+        live0 = e['samples'][0]['steps']
+        for r in e['samples']:
+            step = r['steps'] - live0
+            if step >= len(n['samples']):
+                raise ValueError(f'native capture ends before live step {step}')
+            row = dict(n['samples'][step], frame=r['frame'], native_frame=step)
+            rows.append(row)
+        m = {k: v for k, v in n.items() if k not in ('samples', 'coverage')}
+        m.update(samples=rows, expected_frames=e['expected_frames'], coverage=rt.coverage(n['samples']))
+        out['maps'].append(m)
+    out['paired_by'] = 'relative logic ordinal of each live sample'
+    rt.validate_series(out)
+    return out
 
 
 def main(argv=None):
@@ -196,12 +255,22 @@ def main(argv=None):
     p.add_argument('--shot', action='append', default=[], help='FRAME=window.png')
     p.add_argument('--title-px', type=int, default=64)
     p.add_argument('--out', type=Path, required=True)
+    p = sub.add_parser('pair')
+    p.add_argument('live', type=Path)
+    p.add_argument('native', type=Path)
+    p.add_argument('--out', type=Path, required=True)
     a = parser.parse_args(argv)
     try:
         if a.command == 'schedule':
             events = parse_script(a.script.read_text())
             a.out.write_text(''.join(f'{f} {v} {x} {y}\n' for f, v, x, y in events))
             print(json.dumps({'events': len(events), 'script_sha256': rt.digest(a.script)}))
+            return 0
+        if a.command == 'pair':
+            out = pair(json.loads(a.live.read_text()), json.loads(a.native.read_text()))
+            a.out.write_text(json.dumps(out, separators=(',', ':')) + '\n')
+            print(json.dumps({'paired': [len(m['samples']) for m in out['maps']],
+                              'native_frames': [[r['native_frame'] for r in m['samples']] for m in out['maps']]}))
             return 0
         mugl = mugl_provenance(a.mugl_stats.read_text(errors='replace'), a.mugl_mask.read_text(), a.mugl_mode.read_text())
         shots = {int(k): Path(v) for k, _, v in (s.partition('=') for s in a.shot)}

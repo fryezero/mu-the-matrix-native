@@ -11,6 +11,9 @@
    Options: --frames N (201) --every N (10) --go PATH (created after frame 0: the injector's arm signal)
             --preflight (print the scene/hero/neighbour line and exit) --timeout-ms N (20000 without an edge)
             --shot-window ID --shot-dir DIR --shot-frames a,b,c (screencapture -l ID after those samples)
+            --all-edges (also sample every other post-draw edge after arm, "frame":-1; the exporter selects)
+   Each sample also carries input-delivery diagnostics: MouseWheel 0x0bdc59a4, the zoom index 0x0bdc5914, the zoom
+   settled flag 0x0bdc5ed8 (client-camera-input.md) and the hero action.
 
    Addresses (finding docs): world 0x01cf15fc; hero CHARACTER [0x0a39d754], its OBJECT at +0x3254;
    camera eye 0x0bdc5ab4, angle 0x0bdc58f0, FOV 0x01cf1634; static objects in 256 sector lists at 0x0bdb61f0
@@ -50,7 +53,8 @@ enum { OBJ = 0x3d8, OBJ_READ = 0x358, SECTORS = 0x0bdb61f0, HERO = 0x0a39d754, H
        EYE = 0x0bdc5ab4, ANGLE = 0x0bdc58f0, FOV = 0x01cf1634, PARTICLES = 0x0a3a9adc, PT = 0xb4,
        EFFECTS = 0x0a4ca430, NEFFECTS = 200, JOINTS = 0x0a4fa4f0, NJOINTS = 500, JOINT = 0xa64,
        BOIDS = 0x0bdb71f0, NBOIDS = 40, FISH = 0x0bdc0bb0, NFISH = 10, LEAVES = 0x0a3a0e28, NLEAVES = 200,
-       PRIMARY = 0x0bab5430, FRAMELIGHT = 0x0b9f5430, CELLS = 256 * 256, CHARS = 0x01d1dbbc, CHAR = 0x3670 };
+       PRIMARY = 0x0bab5430, FRAMELIGHT = 0x0b9f5430, CELLS = 256 * 256, CHARS = 0x01d1dbbc, CHAR = 0x3670,
+       MOUSE_WHEEL = 0x0bdc59a4, ZOOM_INDEX = 0x0bdc5914, ZOOM_SETTLED = 0x0bdc5ed8 };
 
 typedef struct { uint32_t presented, logic, cframe; float wt; double us; } bracket;
 static uint32_t presented_addr;
@@ -178,6 +182,8 @@ static int sample(FILE *f, int frame, int attempt, const bracket *pre)
     if (rd(JOINTS, big, sizeof big)) return -1;
     int joints = 0;
     for (int i = 0; i < NJOINTS; ++i) joints += big[(size_t)i * JOINT] != 0;
+    int32_t wheel = 0, zoom = 0, settled = 0;
+    rd(MOUSE_WHEEL, &wheel, 4); rd(ZOOM_INDEX, &zoom, 4); rd(ZOOM_SETTLED, &settled, 4);
     bracket post;
     if (read_bracket(&post)) return -1;
     fprintf(f, "{\"kind\":\"sample\",\"frame\":%d,\"attempt\":%d,\"world\":%d,\"objects_rewalked\":%d", frame, attempt, world, rewalked);
@@ -190,7 +196,9 @@ static int sample(FILE *f, int frame, int attempt, const bracket *pre)
     values(f, "particles", particles, 10);
     values(f, "environment", environment, 8);
     values(f, "lights", lights, 6);
-    fprintf(f, ",\"joints\":%d,\"particle_list\":{\"size\":%u,\"walked\":%u}}\n", joints, size, walked);
+    fprintf(f, ",\"joints\":%d,\"particle_list\":{\"size\":%u,\"walked\":%u}", joints, size, walked);
+    fprintf(f, ",\"input\":{\"wheel\":%d,\"zoom_index\":%d,\"zoom_settled\":%d,\"hero_action\":%u}}\n",
+            wheel, zoom, settled, (unsigned)(ho[0x2a] | ho[0x2b] << 8));
     fflush(f);
     return post.presented != pre->presented || post.logic != pre->logic || post.cframe != pre->cframe ? 1 : 0;
 }
@@ -236,10 +244,11 @@ static void shot(const char *window, const char *dir, int frame)
 int main(int c, char **v)
 {
     if (c < 4) { fprintf(stderr, "usage: rtsample pid presented-address out.jsonl [options]\n"); return 2; }
-    int frames = 201, every = 10, only_preflight = 0, timeout_ms = 20000;
+    int frames = 201, every = 10, only_preflight = 0, timeout_ms = 20000, all_edges = 0;
     const char *go = NULL, *window = NULL, *shot_dir = NULL, *shot_frames = "";
     for (int i = 4; i < c; ++i) {
         if (!strcmp(v[i], "--preflight")) only_preflight = 1;
+        else if (!strcmp(v[i], "--all-edges")) all_edges = 1;
         else if (i + 1 < c && !strcmp(v[i], "--frames")) frames = atoi(v[++i]);
         else if (i + 1 < c && !strcmp(v[i], "--every")) every = atoi(v[++i]);
         else if (i + 1 < c && !strcmp(v[i], "--go")) go = v[++i];
@@ -276,7 +285,10 @@ int main(int c, char **v)
         if (pre.presented != last + 1 && edges) fprintf(f, "{\"kind\":\"skipped_edges\",\"from\":%u,\"to\":%u}\n", last, pre.presented);
         last = pre.presented; last_edge = pre.us; ++edges;
         if (next == 0) arm = pre.logic;
-        if (pre.logic - arm < (uint32_t)targets[next]) continue;
+        if (pre.logic - arm < (uint32_t)targets[next]) {
+            if (all_edges && next > 0 && sample(f, -1, 0, &pre) < 0) { fprintf(stderr, "sample read failed\n"); return 1; }
+            continue;
+        }
         ++attempt;
         int r = sample(f, targets[next], attempt, &pre);
         if (r < 0) { fprintf(stderr, "sample read failed\n"); return 1; }

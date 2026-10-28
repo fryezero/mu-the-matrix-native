@@ -47,9 +47,9 @@ def sampler_lines(epoch=250000.0, logic0=9000, torn_at=(), wide_at=()):
     return out
 
 
-def input_log(late=1.0):
+def input_log(late=1.0, size='640 480'):
     events = live.parse_script(rt.load_plan()['maps'][0]['script_path'].read_text())
-    return 'client 100 132 640 480 foreground 1\n' + ''.join(
+    return f'client 100 132 {size} foreground 1\n' + ''.join(
         f'event {f} {v} {x} {y} due {f * 40.0:.1f} sent {f * 40.0 + late:.1f}\n' for f, v, x, y in events)
 
 
@@ -160,6 +160,95 @@ class LiveExportTests(unittest.TestCase):
         self.assertEqual(subprocess.run(args[:-2] + ['--out', str(self.tmp / 'p')], capture_output=True).returncode, 0)
         (self.tmp / 'stats.txt').write_text('no mask line\n')
         self.assertEqual(subprocess.run(args, capture_output=True).returncode, 2)
+
+
+class LiveSelectionAndPairingTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def export(self, lines, size='640 480'):
+        (self.tmp / 's.jsonl').write_text(''.join(json.dumps(l) + '\n' for l in lines))
+        (self.tmp / 'i.log').write_text(input_log(size=size))
+        return live.export(self.tmp / 's.jsonl', self.tmp / 'i.log', rt.PLAN, '00b-lorencia', MUGL_OFF, self.tmp / 'out')
+
+    def test_all_edges_selection_skips_worldtime_moves(self):
+        lines = sampler_lines()
+        out = []
+        for l in lines:
+            out.append(l)
+            if l['kind'] == 'sample' and l['frame'] in (40, 90):
+                # extra edges before the next target: one where WorldTime moved during the read, one clean
+                for j, wt_move in ((3, 50), (7, 0)):
+                    e = copy.deepcopy(l); e['frame'] = -1; e['attempt'] = 0
+                    for side in ('pre', 'post'):
+                        e[side]['logic'] += j; e[side]['presented'] += j; e[side]['cframe'] += j
+                        e[side]['world_time'] += 40 * j
+                    e['post']['world_time'] += wt_move
+                    out.append(e)
+        # make the frame-50 target itself a WorldTime move: the selection must fall through to frame 60's read
+        target = next(l for l in out if l.get('frame') == 50)
+        target['post']['world_time'] += 49
+        s = self.export(out)
+        ev = s['phase_evidence']
+        self.assertEqual([(r['frame'], r['logic'], r['torn'], r['bracket_ms']) for r in ev['rejected']],
+                         [(50, 50, False, 49), (90, 93, False, 50)])
+        logic = {b['frame']: b['logic'] for b in ev['samples']}
+        # each frame takes the next accepted read: late reads are recorded as late, never relabelled
+        self.assertEqual([logic[k] for k in (40, 50, 60, 80, 90, 100)], [40, 60, 70, 90, 97, 100])
+
+    def test_scaled_script_and_dense_native_plan(self):
+        s = self.export(sampler_lines(), size='960 600')
+        plan = rt.load_plan(self.tmp / 'out/native-plan.json')
+        self.assertEqual((plan['width'], plan['height'], plan['sample_every'], plan['frames']), (960, 600, 1, 201))
+        self.assertEqual(len(rt.schedule(plan)), 201)
+        events = live.parse_script(plan['maps'][0]['script_path'].read_text())
+        self.assertEqual(events[:3], [(40, 'move', 600, 300), (41, 'ldown', 600, 300), (44, 'lup', 600, 300)])
+        self.assertEqual(events[4], (120, 'move', 390, 300))
+        e = s['maps'][0]
+        self.assertEqual(e['script_sha256'], rt.digest(plan['maps'][0]['script_path']))
+        self.assertEqual(e['base_script_sha256'], rt.digest(rt.PLAN.parent / '00b-lorencia.input'))
+        self.assertEqual(s['phase_evidence']['client_area'], [960, 600])
+        late = sampler_lines(torn_at=(200,))
+        self.assertEqual(rt.load_plan(self.export(late) and self.tmp / 'out/native-plan.json')['frames'], 202)
+
+    def dense_native(self, live_series, frames=205, base=1):
+        rows = []
+        for i in range(frames):
+            r = {'frame': i, 'world': 0, 'world_time': 250000 + 40 * i, 'steps': base + i}
+            for g, n in rt.GROUPS.items():
+                r[g] = [float(i)] * n
+            for key in rt.HASHES:
+                r[key] = '0' * (64 if key == 'image_hash' else 16)
+            rows.append(r)
+        m = live_series['maps'][0]
+        return {'version': 1, 'source': 'native', 'draw_every_frame': True, 'plan_sha256': live_series['plan_sha256'],
+                'phase': 'native-fresh-world-seed-1', 'maps': [{'name': m['name'], 'world': 0, 'tile': m['tile'],
+                'script_sha256': m['script_sha256'], 'expected_frames': list(range(frames)), 'samples': rows}]}
+
+    def test_pair_uses_recorded_logic_ordinals(self):
+        s = self.export(sampler_lines(torn_at=(110,)))
+        paired = live.pair(s, self.dense_native(s))
+        rows = paired['maps'][0]['samples']
+        self.assertEqual([r['frame'] for r in rows], rt.schedule(rt.load_plan()))
+        self.assertEqual(rows[11]['native_frame'], 111)
+        self.assertEqual(rows[11]['camera'][0], 111.0)
+        self.assertEqual(rows[12]['native_frame'], 120)
+        result = rt.compare(s, paired, 'live')
+        self.assertFalse(any('relative steps' in f for f in result['maps'][0]['failures']))
+        self.assertIn('phase', ' '.join(result['errors']))
+        with self.assertRaises(ValueError):
+            live.pair(s, self.dense_native(s, frames=150))
+        sparse = self.dense_native(s)
+        sparse['maps'][0]['samples'][5]['steps'] += 1
+        for r in sparse['maps'][0]['samples'][6:]: r['steps'] += 1
+        with self.assertRaises(ValueError):
+            live.pair(s, sparse)
+        other = self.dense_native(s); other['plan_sha256'] = 'x'
+        with self.assertRaises(ValueError):
+            live.pair(s, other)
 
 
 class LiveCompareTests(unittest.TestCase):
