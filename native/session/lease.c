@@ -47,7 +47,8 @@ void mu_audit_layout(mu_audit_zones *zs, const char *name, const uint8_t *base, 
         if (end > size)
             end = size;
         mu_audit_add(zs, name, base, f->offset, end - f->offset,
-                     f->zone == MU_LAYOUT_MOTION ? MU_ZONE_MOTION : MU_ZONE_REPLICATED, f->name);
+                     f->zone == MU_LAYOUT_MOTION ? MU_ZONE_MOTION :
+                     f->zone == MU_LAYOUT_VIEW ? MU_ZONE_VIEW : MU_ZONE_REPLICATED, f->name);
         at = end;
     }
     if (at < size)
@@ -74,6 +75,7 @@ size_t mu_session_zone_views(const mu_session *s, mu_session_zone_view *out, siz
         out[n].offset = zs.z[i].offset;
         out[n].size = zs.z[i].size;
         out[n].motion = zs.z[i].zone == MU_ZONE_MOTION;
+        out[n].view = zs.z[i].zone == MU_ZONE_VIEW;
     }
     return n;
 }

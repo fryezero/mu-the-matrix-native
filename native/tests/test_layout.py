@@ -155,6 +155,49 @@ class Layout(unittest.TestCase):
             self.assertEqual(restored.raw[:r['size']], expected)
         self.assertGreater(tested, 90)
 
+    @unittest.skipUnless(CC, 'C compiler unavailable')
+    def test_lease_adapter_preserves_zones_gaps_and_prefix_bounds(self):
+        self.generate()
+        subprocess.run([sys.executable, str(ROOT / 'scripts/gen_domains.py'),
+                        '--out', str(self.out)], check=True, capture_output=True)
+        source = self.t / 'zones.c'
+        source.write_text(r'''#include "session_internal.h"
+#include <assert.h>
+void mu_dom_hero_zones(const mu_session *s, mu_audit_zones *z) { (void)s; (void)z; }
+void mu_dom_hero_step(mu_session *s, const mu_sim *sim) { (void)s; (void)sim; }
+int main(void) {
+    uint8_t bytes[8] = {0};
+    mu_audit_zones zs = {0};
+    const mu_layout_field fields[] = {
+        {"replicated", "u8", "STATIC", 1, 1, 0, MU_LAYOUT_REPLICATED},
+        {"motion", "u8", "STATIC", 3, 1, 1, MU_LAYOUT_MOTION},
+        {"view", "u8", "STATIC", 5, 1, 2, MU_LAYOUT_VIEW}
+    };
+    const mu_layout_record rec = {"test", "STATIC", 8, 3, 0, fields, 3};
+    mu_audit_layout(&zs, "test", bytes, 8, &rec);
+    assert(zs.count == 7);
+    assert(zs.z[1].zone == MU_ZONE_REPLICATED);
+    assert(zs.z[3].zone == MU_ZONE_MOTION);
+    assert(zs.z[5].zone == MU_ZONE_VIEW);
+    unsigned at = 0;
+    for (int i = 0; i < zs.count; ++i) {
+        assert(zs.z[i].offset == at);
+        at += zs.z[i].size;
+        if (!(i & 1)) assert(zs.z[i].zone == MU_ZONE_REPLICATED);
+    }
+    assert(at == 8);
+    zs.count = 0;
+    mu_audit_layout(&zs, "prefix", bytes, 4, &rec);
+    assert(zs.count == 4 && zs.z[3].offset + zs.z[3].size == 4);
+    return 0;
+}
+''')
+        exe = self.t / 'zones'
+        subprocess.run([CC, '-std=c11', '-Wall', '-Wextra', '-Werror', '-Wconversion',
+                        '-I', str(self.out), '-I', str(ROOT / 'native/session'),
+                        str(source), str(ROOT / 'native/session/lease.c'), '-o', str(exe)], check=True)
+        subprocess.run([str(exe)], check=True)
+
     def test_json_drives_reader_header_and_existing_validator(self):
         data = self.generate()
         import validate_items

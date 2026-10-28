@@ -38,7 +38,8 @@ separate 0x1e4 class object with owner/attribute pointers and derived totals.
 - `layout.json`: the same fields, widths, zones, evidence, known extents and optional global addresses.
   `sha256` covers canonical JSON without the digest key. Source file/line provenance is included.
 
-Projection packs only bound fields; restore leaves unknown gaps untouched. The lease adapter uses
+Projection packs only bound fields; restore leaves unknown gaps untouched. Source and destination
+buffers must be disjoint. The lease adapter uses
 the field tables but also protects unknown gaps as replicated, including in prefix-sized records.
 The journal dumps those same zones and records the layout digest at header bytes 40..71. Old journals
 retain their existing reader/build-digest contract; consumers can inspect the layout digest before

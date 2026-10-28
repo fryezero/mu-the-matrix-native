@@ -64,7 +64,7 @@ typedef struct mu_cue_ring {
 } mu_cue_ring;
 
 /* ---- lease audit zones -------------------------------------------------------------------- */
-typedef enum mu_zone { MU_ZONE_REPLICATED = 0, MU_ZONE_MOTION } mu_zone;
+typedef enum mu_zone { MU_ZONE_REPLICATED = 0, MU_ZONE_MOTION, MU_ZONE_VIEW } mu_zone;
 typedef struct mu_audit_zone {
     const char *name;            /* "hero.record" */
     const uint8_t *base;         /* the record */

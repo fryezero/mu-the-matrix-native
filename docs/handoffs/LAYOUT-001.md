@@ -25,10 +25,11 @@ LAYOUT-PROBE-001's merge `15962e94cb4c2d8bcf85ade0d7bba0867b50d214`.
 
 ## Checks
 
-- Five generator/projection/consumer tests pass: 3 real overlap build failures, 6 invalid-declaration
+- Six generator/projection/consumer tests pass: 3 real overlap build failures, 6 invalid-declaration
   failures, deterministic/disjoint domain merge, previous-output preservation on failure, every field
   and every array element through compiled C, short buffers, bad indexes, untouched unknown bytes,
-  JSON-driven reader constants, existing validator tables, and JSON digest rejection.
+  JSON-driven reader constants, existing validator tables, JSON digest rejection, and the real lease
+  adapter preserving REPLICATED/MOTION/VIEW, unknown gaps and prefix bounds.
 - The changed item validator: 3,740 original-instruction cases, zero mismatches, 10/11 existing controls
   detected, identical to the probe milestone. The frustum control's zero remains a documented limit.
 - Local macOS gate and journal integration: final counts are recorded below after the updated-main gate.
