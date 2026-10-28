@@ -27,14 +27,16 @@ were used. No changes in `native/world` or the sibling world-handler cases.
 The Unicorn families compare compiled production C with the actual pinned instructions. Engine calls are
 recording stubs. Vector accessors, AngleMatrix, VectorRotate, tail shift and humming execute as client code;
 CRT trig follows the earlier joint/environment validators. MSVC random return values and call counts are
-compared, not guessed from a screenshot. These checks do not replay the captured client's random state.
+compared, not guessed from a screenshot. These checks do not replay the captured client's random state. The
+native ambient clock input uses integer world time, a host choice rather than a captured clock replay.
 
 ## Checks
 
 - Registered `validate_icarus`: sky 2,000, object 2,000, joint create/move/render 400 each, and 40 Icarus world
   sessions. Total 5,240 comparisons, zero mismatches or stopped cases; 8/8 compiled mutants caught. Each dragon
   session runs 20 ticks, alternates clean and fuzzed pools, and includes directed warps. The suite freezes its
-  C sources before compiling so concurrent merges/builds cannot change a comparison halfway through it.
+  C sources before compiling so concurrent merges/builds cannot change a comparison halfway through it. The 40
+  sessions cover 2,400 steps, 275,977 ordered host calls and 225,851 random calls.
 - Broad joint regression: 660 cases per create/move/render family, 1,980 equal, 9/9 existing negative controls.
 - Existing effect create/move regression: 600 per family, 1,200 equal. The puff single-move mistake differs in 18
   cases. These are existing effect families, separately from the eight compiled Icarus controls.
@@ -43,7 +45,7 @@ compared, not guessed from a screenshot. These checks do not replay the captured
 - Final local macOS gate: pending.
 
 Reports are local under `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-c/`, with the final scoped
-report and runner summary in `final-registered/`.
+report and runner summary in `owner-registered/`.
 
 ## Fidelity and remaining work
 
