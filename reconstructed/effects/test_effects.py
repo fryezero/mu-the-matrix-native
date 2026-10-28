@@ -18,6 +18,8 @@ import unittest
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 LIBRARY = HERE / ('libeffects.dylib' if sys.platform == 'darwin' else 'libeffects.so')
+sys.path.insert(0, str(ROOT / 'scripts'))
+import pins
 spec = importlib.util.spec_from_file_location('validate_effects', ROOT / 'scripts/validate_effects.py')
 V = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(V)
