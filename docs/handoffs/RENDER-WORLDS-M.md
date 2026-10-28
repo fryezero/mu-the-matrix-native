@@ -36,3 +36,14 @@ World-handler-coverage counts do not change.
 
 After merge remove `mu-mac-tools/native/{scratch,renders}/render-worlds-m`, the worktree builds
 (`native/build-base`), the worktree and local branch. No new retained INPUT is required.
+
+## Final locked release gate
+
+Acquired the FIFO merge lock at 18:19 CDT and merged latest origin/main `d4b6a11` (DATA-ACQ-002,
+AUDIO-002F, README-REFRESH-004); status/handoff conflicts keep both sides. DATA-ACQ-002 adds no world-100
+capture, so the Uruk weather limit stands. On the integrated tree the validator again passes 18,000 checks
+(17,052 original, 948 native removals), zero mismatches, 17/17 mutants and 4/4 loader calls;
+world-handler-coverage is unchanged. After `make -C native clean`, `bash scripts/local-macos-ci.sh`
+passes: 38 unittest runs, 1,640 tests, 210 explicit optional/private skips, zero failures; 11/11 fixture
+scenarios; native viewer and reader builds; 1,598 audited files, zero rejected. No hosted workflow or
+original client was run.
