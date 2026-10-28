@@ -1,8 +1,7 @@
 /* The map overlay and the Move window over the GFx layer (NATIVE-MAP-001, docs/research/client-maps.md).
  *
  * hudMap (a child of the base movie) gets the client's game side: InitData on
- * load, LoadWorldMap per world, the server's units (core/mu_map's demo
- * records) through addUnit, the showMap rule (Tab in the movie, "View Map" in
+ * load, LoadWorldMap per world, the session's frame-fed overlay records through addUnit, the showMap rule (Tab in the movie, "View Map" in
  * the Move window) and every frame the hero marker's rotation and the map's
  * offset (0x00c6af22).  MoveCommand gets InitFixtedText, the list rows
  * (SetMoveMapList), the sort orders, favourites and the row click with the

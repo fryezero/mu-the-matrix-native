@@ -1,5 +1,7 @@
 # Current status
 
+SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the session and plaintext fixture; 6,501 instruction cases, zero mismatches, 4 compiled and 10 historical mutants caught. Travel remains unchanged. [Checks and limits](handoffs/SESSION-MAP-001a.md).
+
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. Locked Mac gate passes 1,563 tests; final G/H/I/J passes 24,000 instruction cases and 95/95 mutants. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
 RENDER-ITEMS-002 part 8: 662/1,674 bounded bodies, 17/17 skins, fourteen link targets/nineteen types. Rank-5 mesh streams now draw with lighting; owner-bone effects remain open. Adds eight further ranked armour bodies and spear/shield links. Locked Mac gate passes 1,559 tests. [Checks and limits](handoffs/RENDER-ITEMS-002H.md).

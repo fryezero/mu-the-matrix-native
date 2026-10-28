@@ -194,3 +194,5 @@ SESSION-QUEST-001 is implemented: [session state, fixture checks and limits](han
 SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](handoffs/SESSION-VIEWPORT-001.md).
 
 VIEWPORT-MONSTER-001 is implemented: [record feed, instruction comparisons and limits](handoffs/VIEWPORT-MONSTER-001.md).
+
+SESSION-MAP-001a bounded overlay slice is implemented: [checks and remaining travel work](handoffs/SESSION-MAP-001a.md).

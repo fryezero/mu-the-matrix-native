@@ -1,0 +1,18 @@
+# Synthetic map markers and detector refresh. No travel or request migration.
+endpoint game 127.0.0.1:55907
+join world=0 tile=120,120 class=1 level=10 name=Map slot=0
+use map_overlay
+at 1 map_overlay marker 7 1 0 0 120 121 Guide
+at 2 map_overlay marker 7 1 6 0 122 123 Updated guide
+at 3 send game c1 0a e7 04 07 00 00 00 78 79
+at 4 send game c2 00 18 e7 05 00 00 03 00 00 00 00 00 00 01 78 00 79 00 02 7a 00 7b 00
+at 5 send game c1 0c e7 03 07 01 00 00 78 79 58 58
+at 6 send game c2 00 0e e7 05 00 00 02 00 01 01 00 01 00
+at 7 send game c1 0a e7 04 07 00 00 01 00 00
+at 8 send game c2 00 09 e7 05 00 00 00 00
+at 9 map_overlay marker 7 1 0 1 0 0 Removed
+expect unbound = 0
+expect undecodable = 0
+expect fixture.answers = 9
+expect unrecovered = 0
+expect unsent = 0
