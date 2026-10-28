@@ -53,6 +53,8 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 RENDER-ITEMS-002 part 6: [handoff](handoffs/RENDER-ITEMS-002F.md). 559/1,674 bodies, 17/17 skins, nine link targets/fourteen types integrated; ground and both inventory paths consume skin sprites. Remaining: 1,115 bodies, pose-aware rank 5, owner-dependent links and prior model/domain limits. Muun/nested map-object tables remain deferred.
 
+RENDER-ITEMS-002 part 7: [handoff](handoffs/RENDER-ITEMS-002G.md). 635/1,674 bodies, 17/17 skins, twelve links/seventeen types. Every committed README stress-kit body is admitted. Locked Mac gate passes, 1,528 tests. Rank-5 pose/point oracle advances; full rendering, 1,039 bodies and prior limits remain.
+
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 
 INPUT-001 implemented: [router handoff and final checks](handoffs/INPUT-001.md), [recovered bindings and input-script contract](research/client-input.md). Unavailable domain/window rows and original IME candidate UI remain explicit.

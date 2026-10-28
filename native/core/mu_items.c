@@ -476,10 +476,11 @@ static mu_world_item_model *model_for(mu_world_items *it, int32_t type, int32_t 
     if (m->textures.missing && is_armour(type)) {
         /* viewer choice: armour models sit in Data/Item, their bitmaps in Data/Player (the classic loader's
          * OpenTexture(model, "Player\\")); the texture folder rule of this client is not traced */
-        char player[2048];
+        char player[2048], effect[2048];
+        snprintf(effect, sizeof effect, "%s/Data/Effect", it->game_root);
         snprintf(player, sizeof player, "%s/Data/Player", it->game_root);
         mu_textures_free(&m->textures);
-        mu_textures_load_with_effects(&m->textures, &m->bmd, player, directory);
+        mu_textures_load_with_effects(&m->textures, &m->bmd, player, effect);
     }
     m->loaded = 1;
     return m;
@@ -1088,16 +1089,24 @@ void mu_world_items_report_frame(const mu_world_items *it, FILE *out, int32_t fr
 
 void mu_world_items_report_summary(const mu_world_items *it, FILE *out)
 {
+    int effect_textures = 0;
+    for (int32_t i = 0; i < it->model_count; ++i) {
+        const mu_textures *t = &it->models[i].textures;
+        for (int k = 0; it->models[i].loaded && t->slots && k < MU_TEXTURE_SPECIAL_COUNT &&
+                        t->model_count + k < t->count; ++k)
+            if (t->slots[t->model_count + k])
+                ++effect_textures;
+    }
     const mu_world_items_stats *s = &it->stats;
     fprintf(out, "{\"items\": true, \"live\": %d, \"drops\": %u, \"creates\": %u, \"no_record\": %u, \"lands\": %u,"
             " \"sparkles\": %u, \"sparkle_particles\": %u, \"picks_requested\": %u, \"picks_done\": %u,"
             " \"space_picks\": %u, \"despawns\": %u, \"hover_frames\": %u, \"labels\": %u, \"models_drawn\": %u,"
             " \"model_missing\": %u, \"render_calls\": %u, \"zen_coins\": %u, \"sounds\": %u, \"alt_toggles\": %u,"
-            " \"kills_seen\": %u, \"demo_table\": %d, \"view\": %d, \"log\": [",
+            " \"kills_seen\": %u, \"demo_table\": %d, \"view\": %d, \"effect_textures_loaded\": %d, \"log\": [",
             mu_world_items_live(it), s->drops, s->creates, s->no_record, s->lands, s->sparkles, s->sparkle_particles,
             s->picks_requested, s->picks_done, s->space_picks, s->despawns, s->hover_frames, s->labels,
             s->models_drawn, s->model_missing, s->render_calls, s->zen_coins, s->sounds, s->alt_toggles,
-            s->kills_seen, it->table_count, it->view);
+            s->kills_seen, it->table_count, it->view, effect_textures);
     for (int32_t i = 0; i < it->log_count; ++i) {
         fprintf(out, "%s\"", i ? ", " : "");
         for (const char *c = it->log[i]; *c; ++c)

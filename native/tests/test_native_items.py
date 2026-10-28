@@ -85,6 +85,35 @@ class ItemsTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
+    def test_ground_player_folder_fallback_keeps_effect_textures(self):
+        import io
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest('Pillow is needed for authored glow textures')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(write_items_world(tmp))
+            model = nf.write_textured_model(root/'Data/Player', 7)
+            (root/'Data/Item/HelmMale10.bmd').write_bytes(model.read_bytes())
+            record = bytearray(item_record(7*512+9, b'Data\\Item\\', b'HelmMale10.bmd', b'Demo helm'))
+            record[0x250:0x253] = bytes(3)
+            (root/'Data/Local/item.bmd').write_bytes(item_file([bytes(record)]))
+            effect = root/'Data/Effect'
+            effect.mkdir(exist_ok=True)
+            for name in ('Chrome02', '2', 'flame_chrome', 'Chrome06', 'Chrome01', 'Shiny01'):
+                jpeg = io.BytesIO()
+                Image.new('RGB', (8,8), (40,80,120)).save(jpeg, format='JPEG')
+                (effect/(name+'.ozj')).write_bytes(bytes(24)+jpeg.getvalue())
+            probe = root/'probe.tga'
+            probe.write_bytes(nf.tga(2,2,5))
+            capability = subprocess.run([str(NATIVE/'build/mu-render'),'image',str(probe)],
+                                        check=True,capture_output=True,text=True)
+            if not json.loads(capability.stdout)['jpeg']:
+                self.skipTest('native renderer was built without JPEG')
+            result = run(root, '--items', '--frames', '4', '--item-script', '1:drop:3593:88:120,120')
+            self.assertEqual(result['summary']['model_missing'], 0)
+            self.assertEqual(result['summary']['effect_textures_loaded'], 6)
+
     def test_fall_land_pose_and_label(self):
         out = run(self.root, '--items', '--frames', '70', '--item-script', '2:drop:0x1c0f:0:122,120;3:drop:1:0x48:120,122')
         s = out['summary']
