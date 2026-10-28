@@ -1,5 +1,7 @@
 # Continue from here
 
+AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants. [Checks and limits](handoffs/AUDIO-002F.md).
+
 README-REFRESH-004: [handoff](handoffs/README-REFRESH-004.md), [claim sources](research/readme-refresh.md#readme-refresh-004-claim-sources). Public progress refreshed through PR #241; images/pins unchanged, no runtime code or live game used.
 
 SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).
