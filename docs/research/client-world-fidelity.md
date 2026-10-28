@@ -533,6 +533,13 @@ through accumulated additions: approximately one effective update to the left of
 This attributes the sample without changing the verified source brightness. The reset rectangle/history remains
 uncaptured. No new live observation was made.
 
+The resumed analysis records the object/light input hashes and has three portable regressions using authored
+snapshots and the production terrain reset/add functions. The 179-update partial-reset case reproduces the
+channel signature despite changing flicker. A fresh instruction recheck matches 3,000 MoveObject cases and
+detects all 19 compiled mutants, including Aida's wrong brightness. The terrain reset and add-light families
+match 8/8 and 160/160 cases, with both clamp negative controls detected. This verifies the underlying rules;
+the exact reset box and time history of the saved Aida frame remain an inference boundary.
+
 Eight instruction families compare 600 cases each; 40 Elbeland movement/render sessions add 2,400 compared
 steps. Total 4,840 comparisons, zero mismatches/stops, 12/12 compiled mutants caught. The fourteen-view scoreboard
 and all final PNG hashes remain unchanged. The arrival views have no active event/boid state to measure.

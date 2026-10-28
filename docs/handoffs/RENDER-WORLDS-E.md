@@ -43,6 +43,9 @@ zero body scale is preserved. The typhoon uses OBJECT +0xa0 for its body scale, 
 Clouds keep a stable boid owner handle through movement and rendering.
 
 Aida attribution is reproducible with `scripts/analyze_aida_light_history.py` over the saved object/light files.
+The report records both input SHA-256 digests and the source tile. Three portable regressions exercise the
+diagnostic with authored object/light snapshots and the production terrain C: one addition, 179 additions
+across a partial reset, and rejection of incomplete grids or a non-Aida world.
 The type-30 emitter at tile approximately 95.656,6.781 has a range-2 footprint. Green minus red per call is
 0.2 times the radial falloff, independent of flicker. At x=94/95 the saved grid gives 1.000 effective update;
 at x=96/97 it gives approximately 179.05..179.18. Red and blue agree to about 0.012 despite the large strength.
@@ -50,6 +53,14 @@ This supports accumulated additions across a reset boundary, not a missing high-
 terrain code resets only a visible rectangle and preserves the rest. The snapshots lack that rectangle and its
 history, so its exact extent and the reason for the native/captured boundary difference remain unverified.
 Do not fit a new brightness constant or claim complete Aida visual equivalence from this result.
+
+The 2026-10-28 instruction recheck covers 3,000 MoveObject cases with zero mismatches/stops and 19/19
+compiled mutants detected, including Aida's deliberately wrong source brightness. Terrain frame reset
+`0x016ca4fa` matches in 8/8 cases; AddTerrainLight `0x016cacfc` matches in 160/160 cases. Both light-clamp
+negative controls differ from the original. These verify the source/reset/add rules, not the captured reset
+history. The supplemental reduced terrain run also reports one unrelated world-53 face-effect mismatch
+and 29 generated-NaN sign-only cases. No terrain implementation changed in this lane; these are not counted
+as zero-mismatch terrain coverage.
 
 Pins: text `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`;
 data `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
