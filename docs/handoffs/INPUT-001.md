@@ -33,8 +33,9 @@ original client, launcher, live game, network protocol or protected module was t
   success, 5 combat skill actions, 1 kill, 1 drop and 1 completed pick-up. No real item mutation.
 - Real local Ruffle with the app-converted corpus: twelve existing panels plus chat reached and visually
   inspected. Inventory, character, imprint, master/fourth/fifth tree, quests, move, friends, options,
-  personal store and system menu open/close through keys. Missing synthetic labels/icon sheets remain
-  visible limits; this is access/state proof, not original-client image equality. The fifth item viewer is absent.
+  personal store and system menu open/close through keys. Missing synthetic labels/icon sheets and
+  unpopulated or cropped tree views remain visible limits. This is access/state proof; original-client
+  image equality is not established. The fifth item viewer is absent.
 - Q/W/E/R: two Q uses consume two demo potions; W/E/R each refuse twice as empty slots. The item regression
   separately checks 25 uses, exhaustion and invalid indices. This exposes the existing HUD policy through a
   small public GFx hook; no item-domain request is invented.
@@ -45,7 +46,12 @@ original client, launcher, live game, network protocol or protected module was t
   enabled supplies the accepted UI proof.
 - Incremental integration exposed stale charsel objects after the world object layout grew. The corrected
   header dependency is also in the merged Icarus/viewport lanes. It was retained; no charsel behavior changed.
-- Local macOS gate: pending integrated run. Reader binaries are built by that gate, never run against a client.
+- Final local macOS gate at `113ed0b`, after main `07e5816` including the audio and warp-effect lanes:
+  **1,407 tests across 38 suites, 167 explicit skips, zero failures**. All five discovered fixture
+  scenarios pass. Viewer/read-only readers build; audit accepts **1,265 files, zero rejected**.
+  Reader binaries were built, never run against a client. `warp-integrated-gate.log` is the acceptance log.
+- The earlier disk-full run failed while writing temporary fixtures/PNGs. It is retained as a failed
+  environment precondition. The final gate passed after losslessly archiving this task's earlier proof.
 
 ## Artifacts
 
@@ -55,6 +61,13 @@ Proof and manifests are retained at `~/Documents/MTM/mu-mac-tools/native/renders
 removing the owned worktree. The source-only commit does not include captured bytes, decoded tables,
 movies, screenshots, renders or journals. Artifact manifests identify binary digests; changed build inputs
 require a new run manifest and another drive.
+
+Final proof is `20261027-233325-input-001-release`, code checkpoint `113ed0b`, retained in
+`release-proof.tar.zst` with the fixture reports. Its real-library/movie hashes, exact commands,
+selected environment values, state assertions and per-panel visual-inspection record stay in `proof/`.
+All recorded binary digests remain unchanged after the drives. Application Support entry metadata is
+unchanged. The run's dirty flag comes from the two untracked local input symlinks; tracked source was clean.
+Earlier proof is retained in `icarus-checkpoint.tar.zst` and the sibling `input-001-earlier.tar.zst`.
 
 ## Review
 

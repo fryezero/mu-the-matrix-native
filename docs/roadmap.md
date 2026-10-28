@@ -153,7 +153,6 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 
 Use issue IDs matching these task IDs, claim a scope before editing, and name the owned directories and output paths. Independent tasks can run on separate branches/worktrees. Dependent tasks should consume a reviewed interface or evidence result. A PR closes a task only when its completion evidence is present; partial research belongs in a handoff with open questions.
 
-
 SESSION-QUEST-001 is implemented: [session state, fixture checks and limits](handoffs/SESSION-QUEST-001.md).
 
 SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](handoffs/SESSION-VIEWPORT-001.md).
