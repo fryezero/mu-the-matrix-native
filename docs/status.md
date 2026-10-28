@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-F implements Tarkan/Raklion additive screen haze; 1,818 instruction comparisons, zero mismatches, 7/7 compiled mutants. Twelve other tour PNG hashes unchanged; original-image scores unavailable. [Evidence](research/client-world-haze.md), [handoff](handoffs/RENDER-WORLDS-F.md).
+
 RENDER-WORLDS-C2: persistent Icarus cloud cover and `0x472/1` emitter ribbons implemented; ambient clock corrected. Image error falls to 26.897 / 27.663 at 25 / 400 steps. [Evidence](research/client-world-fidelity.md#7-render-worlds-c2-persistent-icarus-cover-and-emitter-ribbons), [handoff](handoffs/RENDER-WORLDS-C2.md).
 
 RENDER-WORLDS-D: six warp effect kinds and Noria portal placement; 2,400 Unicorn cases, zero mismatches, 8/8 compiled mutants. [Evidence](research/client-world-fidelity.md#6-render-worlds-d-2026-10-27), [handoff](handoffs/RENDER-WORLDS-D.md).

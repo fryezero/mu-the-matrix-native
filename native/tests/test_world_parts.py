@@ -22,7 +22,7 @@ COLUMNS = ('pre_tick', 'tick', 'frame', 'draw_gl', 'draw_soft', 'report')
 MAIN_C_ORDER = {
     # load() main.c:459-744 (the rows that open something)
     'open': ['sound', 'npc_demo', 'actors', 'objects', 'env', 'particles', 'combat', 'progress', 'items', 'names',
-             'npc', 'players', 'social', 'helpers', 'map', 'characters'],
+             'npc', 'players', 'social', 'helpers', 'map', 'characters', 'haze'],
     # combat_pre_step main.c:331-341
     'pre_tick': ['items', 'npc', 'combat'],
     # on_step main.c:758-826
@@ -33,10 +33,10 @@ MAIN_C_ORDER = {
     'frame': ['items', 'terrain', 'objects', 'combat', 'particles', 'actors', 'players', 'map', 'social', 'names'],
     # draw_gl main.c:2296-2518
     'draw_gl': ['terrain', 'objects', 'hero', 'players', 'helpers', 'actors', 'items', 'env', 'marker', 'particles',
-                'actor_effects', 'combat', 'item_labels', 'names'],
+                'actor_effects', 'combat', 'haze', 'item_labels', 'names'],
     # draw_soft main.c:2549-2680
     'draw_soft': ['terrain', 'objects', 'hero', 'players', 'actors', 'items', 'env', 'helpers', 'particles', 'marker',
-                  'actor_effects', 'combat', 'item_labels', 'names'],
+                  'actor_effects', 'combat', 'haze', 'item_labels', 'names'],
     # report_frame main.c:2707-2727 and report_summary main.c:2793-2915 (one order for both)
     'report': ['sound', 'env', 'particles', 'objects', 'actors', 'combat', 'progress', 'items', 'players', 'helpers',
                'names', 'npc', 'social', 'map', 'quest_step'],
@@ -58,13 +58,13 @@ SIGNATURE = {
                 'players': 'player_item_draw', 'helpers': 'mu_world_helpers_draw', 'actors': 'npc_item_draw',
                 'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw', 'marker': 'marker',
                 'particles': 'mu_world_particles_draw', 'actor_effects': 'mu_effect_scene_render_to',
-                'combat': 'combat_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
+                'combat': 'combat_draw', 'haze': 'mu_world_haze_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
     'draw_soft': {'terrain': 'mu_world_draw_raster_view', 'objects': 'mu_objects_render_raster',
                   'hero': 'hero_item_draw', 'players': 'player_item_draw', 'actors': 'npc_item_draw',
                   'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw_raster',
                   'helpers': 'mu_world_helpers_draw_raster', 'particles': 'mu_world_particles_draw_raster',
                   'marker': 'marker', 'actor_effects': 'mu_effect_scene_render', 'combat': 'mu_combat_draw_raster',
-                  'item_labels': 'mu_world_items_label_blit', 'names': 'mu_world_names_draw'},
+                  'haze': 'mu_world_haze_draw_raster', 'item_labels': 'mu_world_items_label_blit', 'names': 'mu_world_names_draw'},
 }
 
 HOOK = {'pre_tick': ('pre_tick',), 'tick': ('tick',), 'frame': ('frame',), 'draw_gl': ('draw_gl',),
@@ -114,7 +114,7 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 22)
+        self.assertEqual(len(ids), 23)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 

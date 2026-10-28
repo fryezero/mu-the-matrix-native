@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-F: [handoff](handoffs/RENDER-WORLDS-F.md). Missing additive screen passes recovered and wired in both renderers. Original Tarkan/Raklion PNGs are absent, so live-image error remains unmeasured.
+
 RENDER-WORLDS-C2: [handoff](handoffs/RENDER-WORLDS-C2.md). Persistent cover, owner-aware emitter ribbons and integer ambient clock are implemented. Raw Icarus image error is 26.897 / 27.663; exact captured animation phase remains unavailable.
 
 RENDER-WORLDS-D: [handoff](handoffs/RENDER-WORLDS-D.md). Noria missing object 1 to 0; warp create/move/render wired. Raklion active event timer and Elbeland boids remain explicit follow-ups.
