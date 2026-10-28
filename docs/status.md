@@ -1,5 +1,7 @@
 # Current status
 
+SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
+
 INTEGRATION-GREEN-001 completed: all 38 private-enabled directories green; 1,464 unique tests passed, 15 optional Ruffle-related skips, zero failures. Local Mac gate passed, seven fixture scenarios passed. [Checks, input provenance and limits](handoffs/INTEGRATION-GREEN-001.md).
 
 RENDER-WORLDS-G implements the 48-class inventory and Santa Village/Vulcanus primary methods: 6,000 instruction cases, zero mismatches, 13/13 compiled mutants; 19/144 primary families verified across 7/48 classes. Full Mac gate passes, 1,466 tests; 28 unaffected PNG hashes identical. [Evidence](research/client-worlds-g.md), [handoff](handoffs/RENDER-WORLDS-G.md).

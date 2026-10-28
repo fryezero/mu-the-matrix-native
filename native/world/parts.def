@@ -47,3 +47,5 @@ MU_PART(objects_after, mu_part_objects_after, 0, 0, 0, 85, 85, 0) /* RenderObjec
 MU_PART(characters, mu_part_characters, 0, 21, 0, 0, 0, 0) /* session MoveCharacters, after actor lane */
 
 MU_PART(haze, mu_part_haze, 0, 0, 0, 125, 125, 0) /* screen weather before 2D labels, RENDER-WORLDS-F */
+
+MU_PART(skills, mu_part_skills, 0, 41, 0, 0, 0, 151) /* session skills in headless and GFx */

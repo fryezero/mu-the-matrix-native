@@ -1,0 +1,6 @@
+MU_INTENT_KIND(SKILL_SELECT, skill_select, struct { int32_t slot; })
+MU_INTENT_KIND(SKILL_SAVE_KEYS, skill_save_keys, struct { uint8_t options[17]; })
+MU_INTENT_KIND(SKILL_CAST, skill_cast, struct { int32_t skill; uint8_t x; uint8_t y; uint8_t type; })
+MU_INTENT_KIND(SKILL_MASTER_LEARN, skill_master_learn, struct { int32_t skill; })
+MU_INTENT_KIND(SKILL_TREE4_LEARN, skill_tree4_learn, struct { uint16_t skill; uint16_t index; uint8_t group; })
+MU_INTENT_KIND(SKILL_TREE4_SIDE, skill_tree4_side, struct { uint8_t category; uint8_t slot; uint8_t level; })

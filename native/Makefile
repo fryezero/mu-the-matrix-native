@@ -205,7 +205,7 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/npc.c world/parts/actors.c world/parts/objects.c world/parts/env.c \
                 world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
                 world/parts/characters.c world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
-                world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/marker.c
+                world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
 WORLD_RT_SRC += world/input_keys.c
 WORLD_RT_HDR += world/input_keys.h world/input_sdl.h
@@ -260,9 +260,9 @@ $(BUILD)/quest-travel-host: tests/quest_travel_host.c $(WORLD_RT_HDR) $(WORLD_RT
 	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # NATIVE-SKILL-001: the skill book (core/mu_skill) test host.
-$(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB)
+$(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB) $(BUILD)/libmusession.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tests/skill_book_host.c -o $(BUILD)/skill_book_host.o
-	$(CXX) $(BUILD)/skill_book_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/skill_book_host.o $(BUILD)/libmusession.a $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # The mesh-draw module alone, for the Python equivalence tests (ctypes).
 $(BUILD)/libmumeshdraw.dylib $(BUILD)/libmumeshdraw.so: core/mu_meshdraw.c core/mu_meshdraw.h core/mu_meshdraw_case.c core/mu_meshdraw_case.h
@@ -487,7 +487,7 @@ GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard
               $(wildcard net/dispatch.def net/dispatch.seed.def net/ignore.def) $(wildcard fixture/behaviors/*.c)
 SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
                $(wildcard session/domains/*.c)
-FIXTURE_SRC := fixture/fixture.c $(wildcard fixture/behaviors/*.c)
+FIXTURE_SRC := fixture/fixture.c fixture/skills_model.c $(wildcard fixture/behaviors/*.c)
 SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h core/mu_world_players.h fixture/characters_demo.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
 LAYOUT_STAMP := $(GEN)/.layout-stamp
@@ -529,7 +529,7 @@ all: $(BUILD)/mu-session
 
 $(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -c tools/mu_session.c -o $(BUILD)/mu_session.o
-	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) -lm -o $@
+	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) $(UI_LIBS) -lm -o $@
 
 clean:
 	rm -rf $(BUILD)
@@ -541,8 +541,8 @@ CFLAGS += -I build/gen -I session
 $(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
 QUEST_LIB_SRC := $(RECON)/movement/client_movement.c fixture/monsters_spec.c $(RECON)/actors/viewport_monsters.c $(RECON)/actors/actors.c $(RECON)/model-codec/skinning.c $(RECON)/model-codec/pose_builder.c $(RECON)/model-codec/bone_tracks.c $(RECON)/record-math/record_math.c fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
-$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP) $(LAYOUT_STAMP)
-	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
+$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(LIB) $(GEN_STAMP) $(LAYOUT_STAMP)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) $(LIB) $(UI_LIBS) -lm -o $@
 
 # Offline app keeps its no-network-import contract; TCP fixture serving stays in mu-session.
 $(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
@@ -597,3 +597,6 @@ $(BUILD)/monsters-lifecycle-host: tests/monsters_lifecycle_host.c $(WORLD_RT_HDR
 $(BUILD)/worlds-g-host: tests/worlds_g_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-g-host.o
 	$(CXX) $(BUILD)/worlds-g-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# Core consumers include the generated public domain and intent headers.
+$(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)

@@ -840,6 +840,7 @@ void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
         return;
     c->target = actor;
     c->intent_skill = skill;
+    c->intent_skill_checked = 0;
     int32_t mana = 0, distance = 0, ag = 0;
     const char *name = mu_lang_skill_info(c->lang, skill, 0, &mana, &distance, &ag);
     if (name) {   /* GetSkillInformation 0x01696458 over the client's table */
@@ -848,6 +849,12 @@ void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
                  mu_lang_ascii(clean, sizeof clean, name), mana, ag, distance);
         log_line(c, line);
     }
+}
+
+void mu_combat_cast_checked(mu_combat *c, int32_t skill, int32_t actor)
+{
+    mu_combat_cast(c,skill,actor);
+    if(c->intent_skill==skill)c->intent_skill_checked=1;
 }
 
 void mu_combat_stop(mu_combat *c)
@@ -882,6 +889,13 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
     mu_walk *w = c->walk;
     mu_hero *h = &w->hero;
     const mu_world_actor *a = &c->actors->list[t];
+    if (skill && c->session && c->intent_skill_checked) {
+        mu_intent in={.kind=MU_INTENT_SKILL_CAST};in.u.skill_cast.skill=skill;
+        in.u.skill_cast.x=(uint8_t)a->tile[0];in.u.skill_cast.y=(uint8_t)a->tile[1];
+        mu_session_submit(c->session,&in);
+        if(mu_session_skills_last_cast(c->session)!=MU_SKILL_CAST_OK)return;
+        ++c->stats.requests_unsent; /* the existing cast builder requires crypto */
+    }
     /* face the target: CreateAngle 0x012aed9e(hero x, y, target x, y) */
     h->angle[2] = mu_create_angle(h->position[0], h->position[1], a->position[0], a->position[1]);
     int32_t action = -1;
@@ -931,7 +945,7 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
     engage(c, t);                   /* demo: the target stops wandering once attacked */
     c->attack_target = t;
     c->attack_skill = skill;
-    if (c->session) {
+    if (c->session && (!skill || !c->intent_skill_checked)) {
         mu_intent in = {0};
         if (!skill) {
             in.kind=MU_INTENT_COMBAT_ATTACK;

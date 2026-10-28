@@ -779,3 +779,36 @@ Not yet done:
   (SkillTree5thInventory +0x29c, item insert through vtable +0x58); and opcode 0x32 subs 0/5/7/0x21 reach
   `0x010a42d6`/`0x010a407d`/`0x010a4234`/`0x010a382a`. Sub 5 passes the item through the opaque keyed transform
   `0x00b1055c`.
+
+
+## 13. Session migration, SESSION-SKILL-001, 2026-10-28
+
+The existing verified bodies in `reconstructed/skill` are unchanged. Session `skills_apply` binds
+A0 20/03/10/14 and the evidenced 7E 01/02/03/05/06 answers. FE/FF remain variants of A0 20.
+The skill book and fourth-tree manager now belong to the session rather than the GFx view. The world
+steps them in headless builds too. View callbacks emit intents; frame handlers retain all replicated
+learned-list, key, Master-rank and fourth-tree updates. Fixture policy moved out of core into
+`native/fixture/skills_model.c`; its independent model emits replies through the fixture transport.
+
+The new save-key builder compares only the ten serialized hotkeys at `0x0182ff60..0x0182ffdf`
+and plaintext tail at `0x018304cc..0x0183052c` of `0x0182ff32`. The 17-byte settings suffix is
+opaque caller input. Keyed AddData is a recorder stub, never executed. Existing Master/fourth-tree
+builders and the combat cast builder retain their earlier instruction evidence.
+
+A migration regression exposed a distinct attribute field: A0 14 at `0x01285995..0x012859b4`
+sign-extends packet +6 and calls `0x00a00192`, which writes a dword at CharacterAttribute +0x34.
+The skills context reads this same field, not progression's +0x30 counter. The new validator executes
+the answer prefix and real setter and compares the entire attribute record with compiled authored C.
+Together the new serialization/tail/attribute comparisons pass 1,500 cases with zero mismatches and
+catch five compiled mistakes: key rotation, endian, opcode, attribute offset and sign extension.
+Text/data pins are the existing captures recorded in the handoff. This is original-instruction
+evidence for the bounded slices; it does not establish a keyed packet transform or server policy.
+
+The fixture sends its initial available Master points via the existing A0 60 hero handler,
+which writes +0x34; the skill tick refreshes that context in headless builds too.
+
+The synthetic `skills-state.scn` is discovered by VERIFY-SESSION with 14 inbound frames, all nine
+skill routes exercised, zero unbound/undecodable frames, 11 expectations, three plaintext requests
+and one encrypted cast journaled unsent. Separate tests verify successful fixture Master learn,
+detached answers, rebinding without replacing learned state, lease audit rejection, incomplete
+frames and headless ownership. [Final validation and limits](../handoffs/SESSION-SKILL-001.md).

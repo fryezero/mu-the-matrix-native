@@ -385,9 +385,10 @@ static void skill_script(tool *t, int32_t frame)
         int32_t skill = 0;
         const char *last = "";
 #ifndef MU_WORLD_NO_GL
-        if (!a->gfx)
-            continue;
-        if (!strcmp(verb, "select")) {          /* the bar's own key: 1..9, 0 -> onSelectSkill */
+        if (!strcmp(verb,"learn") || !strcmp(verb,"forget")) {
+            result=mu_world_rt_skill_demo_change(a,x,!strcmp(verb,"forget"));
+        } else if (!a->gfx) continue;
+        else if (!strcmp(verb, "select")) {          /* the bar's own key: 1..9, 0 -> onSelectSkill */
             int vk = x == 9 ? '0' : '1' + x;
             mu_world_rt_key(a, vk, 1);
             mu_world_rt_key(a, vk, 0);
@@ -690,7 +691,7 @@ static int headless(tool *t)
     if (gl)
         mu_world_rt_gl_setup(a);
     if (gl && t->gfx_dir) {
-        a->gfx = world_gfx_open(t->gfx_dir, a->root, a->width, a->height, 1.0, 1, t->gfx_open, error, sizeof error);
+        a->gfx = world_gfx_open(t->gfx_dir, a->root, a->width, a->height, 1.0, 1, t->gfx_open, mu_world_rt_skill_session(a), error, sizeof error);
         if (!a->gfx)
             fprintf(stderr, "gfx: %s (continuing without the interface)\n", error);
         else
@@ -895,7 +896,7 @@ static int windowed(tool *t)
     mu_world_rt_gl_setup(a);
     if (t->gfx_dir) {
         char error[512];
-        a->gfx = world_gfx_open(t->gfx_dir, a->root, dw, dh, scale, 1, t->gfx_open, error, sizeof error);
+        a->gfx = world_gfx_open(t->gfx_dir, a->root, dw, dh, scale, 1, t->gfx_open, mu_world_rt_skill_session(a), error, sizeof error);
         if (a->gfx) {
             if (a->npc_demo)   /* NATIVE-NPC-001: the demo vault */
                 world_gfx_npc_storage(a->gfx, a->npc_demo->storage, a->npc_demo->storage_count);

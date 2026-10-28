@@ -83,7 +83,7 @@ mu_apply combat_action(mu_session *s,const mu_frame *f)
     mu_session_touch(s,MU_DOMAIN_CHARACTERS);
     mu_combat_frame_event e={.kind=3,.key=key,.target=target};event(s,&e);return MU_APPLY_DONE;
 }
-static mu_submit send_plain(mu_session *s,uint8_t *b,size_t n,int encrypted)
+mu_submit mu_combat_send_plain(mu_session *s,const uint8_t *b,size_t n,int encrypted)
 {
     mu_submit r={MU_SUBMIT_REFUSED,-1};if(!n) return r;
     /* Plain AddData only. Never enter keyed AddData, decode or the crypto wrap here. */
@@ -103,19 +103,19 @@ static mu_submit send_plain(mu_session *s,uint8_t *b,size_t n,int encrypted)
 mu_submit combat_attack(mu_session *s,const mu_intent *in)
 {
     uint8_t b[7];size_t n=mu_combat_attack_request(b,in->u.combat_attack.target,in->u.combat_attack.direction,0);
-    return send_plain(s,b,n,0);
+    return mu_combat_send_plain(s,b,n,0);
 }
 mu_submit combat_cast(mu_session *s,const mu_intent *in)
 {
     uint8_t b[7];size_t n=mu_combat_cast_request(b,in->u.combat_cast.x,in->u.combat_cast.y,in->u.combat_cast.skill,in->u.combat_cast.type);
-    return send_plain(s,b,n,1);
+    return mu_combat_send_plain(s,b,n,1);
 }
 mu_submit combat_move(mu_session *s,const mu_intent *in)
 {
     uint8_t b[16];int32_t delay;
     size_t n=mu_combat_move_request(b,s->combat.hero_key,in->u.combat_move.x,in->u.combat_move.y,in->u.combat_move.count,
                                   in->u.combat_move.target_x,in->u.combat_move.target_y,in->u.combat_move.angle,0,&delay);
-    return send_plain(s,b,n,0);
+    return mu_combat_send_plain(s,b,n,0);
 }
 void mu_dom_combat_init(mu_session *s) { memset(&s->combat,0,sizeof s->combat); }
 void mu_dom_combat_free(mu_session *s) { (void)s; }

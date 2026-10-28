@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
+
 INTEGRATION-GREEN-001 completed: reproducible private input identities, repaired harness entry points, 38/38 private-enabled directories green; [counts and legitimate skips](handoffs/INTEGRATION-GREEN-001.md).
 
 RENDER-WORLDS-G implements the 48-class inventory and all three primary Santa Village/Vulcanus methods. Six thousand instruction cases, 13/13 mutants, 28 unaffected first/final hashes unchanged; full Mac gate passes; [limits and remaining work](handoffs/RENDER-WORLDS-G.md).

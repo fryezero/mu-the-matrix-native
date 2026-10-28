@@ -48,6 +48,9 @@ def make_tree(tmp: Path) -> Path:
 
     shutil.copytree(ROOT / 'reconstructed/actors', t / 'reconstructed/actors', ignore=shutil.ignore_patterns('*.dylib', '*.so', '__pycache__'))
     shutil.copytree(ROOT / 'reconstructed/quest', t / 'reconstructed/quest')
+    shutil.copy(NATIVE / 'core/mu_skill.h', t / 'native/core/mu_skill.h')
+    shutil.copy(NATIVE / 'core/mu_skill_tree4.h', t / 'native/core/mu_skill_tree4.h')
+    shutil.copytree(ROOT / 'reconstructed/skill', t / 'reconstructed/skill', ignore=shutil.ignore_patterns('*.dylib', '*.so', '__pycache__'))
     return t
 
 
