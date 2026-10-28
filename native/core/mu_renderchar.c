@@ -8,6 +8,7 @@
 #include <strings.h>
 
 #include "../../reconstructed/renderchar/link_bones.h"
+#include "../../reconstructed/model-codec/character.h"
 #include "mu_lang.h"
 #include "mu_particles.h"
 #include "../../reconstructed/record-math/record_math.h"
@@ -29,6 +30,16 @@ int32_t mu_renderchar_type_from_path(const char *path)
             return -1;
         return 0xae6 + names[i].group * 512 + (int32_t)number - 1;
     }
+    static const char *class_parts[] = {"helmclass", "armorclass", "pantclass", "gloveclass", "bootclass"};
+    for (size_t i = 0; i < sizeof class_parts / sizeof class_parts[0]; ++i) {
+        size_t n = strlen(class_parts[i]);
+        if (strncasecmp(base, class_parts[i], n) || !isdigit((unsigned char)base[n]))
+            continue;
+        long number = strtol(base + n, NULL, 10);
+        if (number < 1 || number > MU_CHARACTER_PART_STRIDE)
+            return -1;
+        return (int32_t)(MU_CHARACTER_PART_BASE + i * MU_CHARACTER_PART_STRIDE) + (int32_t)number - 1;
+    }
     return -1;
 }
 
@@ -41,10 +52,10 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
 {
     if (!p || !model || !model->bmd || !bones)
         return 0;
-    if (type == 0x14f0 || type == 0x12fb) {
+    if (type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc) {
         mu_rc_link_effect effects[20];
         int32_t n = 0;
-        if (mu_rc_link_effects(type, link_random, p, effects, 20, &n) != MU_RC_OK)
+        if (mu_rc_link_effects_time(type, p->world_time, link_random, p, effects, 20, &n) != MU_RC_OK)
             return 0;
         long created = 0;
         for (int32_t i = 0; i < n; ++i) {

@@ -11,4 +11,5 @@ void mu_icarus_object(const uint8_t *object, int32_t index, int32_t selected, in
 #define MU_ICARUS_SPRITE_HERO 2u
 #define MU_ICARUS_JOINT 0x0153b02cu
 #define MU_ICARUS_SPRITE 0x01692eb7u
+void mu_icarus_cover(uint8_t *object, int32_t index, mu_obj_log *log);
 #endif
