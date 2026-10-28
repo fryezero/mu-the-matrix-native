@@ -1085,15 +1085,19 @@ note = "the math-data directory {math_data} (capture.json, record-bias, record-t
 test = "reconstructed/renderchar/test_renderchar.py::RenderCharLibrary.test_private_original_render_instructions"
 pins = ["text", "data", "flag", "feature09"]
 families = ["back", "character", "items", "light"]
-cases = 638
+cases = 625
 cases_at = ["back.checks", "character.compared", "light.compared", "items.compared"]
 build = ["reconstructed/renderchar"]
 args = ["--text", "{text}", "--data", "{data}", "--flag", "{flag}", "--feature", "{feature09}", "--sections", "back,character,items,light", "--back-checks", "100", "--characters", "60", "--classify", "none", "--cases", "500", "--light-cases", "60", "--output", "{report}"]
-note = "one run of the three test invocations (two in test_renderchar, the light section in test_native_fidelity)"
+note = "one run of the three test invocations; 625 comparisons after item-cluster expansion changes the seeded generic candidate population (500 item requests, 106 record-type-4 exclusions, 394 compared)"
 [validate_renderchar.expect]
 "back.ok" = true
 "character.ok" = true
 "items.matches" = {same_as = "items.compared"}
+"items.cases" = 500
+"items.excluded" = 106
+"items.compared" = 394
+"light.matches" = {same_as = "light.compared"}
 
 [validate_rotation]
 test = "reconstructed/record-math/test_rotation.py::RotationTests.test_private_original_rotation_instructions"
@@ -1571,6 +1575,19 @@ args = ["--mutations", "--output", "{report}"]
 "signed_mesh_009f86d6.matches" = { same_as = "signed_mesh_009f86d6.cases" }
 "signed_draw_009f9644.matches" = { same_as = "signed_draw_009f9644.cases" }
 
+[validate_input]
+test = "native/tests/test_input_router.py::InputRouter.test_private_original_input_instructions"
+pins = ["text"]
+families = ["scan", "bindings"]
+cases = 570
+mutants = 7
+cases_at = ["families.scan.cases", "families.bindings.cases"]
+mutants_at = "mutants"
+args = ["--mutations", "--output", "{report}"]
+[validate_input.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_audio_events]
 test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_events"
 pins = ["text", "data"]
@@ -1707,3 +1724,17 @@ args = ["--cases", "600", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.caught" = true
 "mutants.*.stopped" = 0
+
+[validate_world_order]
+test = "native/tests/test_world_parts.py::PartsDefTests.test_original_world_order_instructions"
+pins = ["text", "data"]
+families = ["tick", "draw"]
+cases = 2400
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_world_order.expect]
+"ok" = true
+"families.*.equal" = {same_as = "families.*.cases"}
+"families.*.stopped" = 0

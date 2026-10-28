@@ -253,6 +253,9 @@ int mu_gfx_layer_add_item(mu_gfx_layer *layer, int32_t code, int32_t level, int3
 int mu_gfx_layer_mouse(mu_gfx_layer *layer, int kind, int button, double x, double y);
 /* Keys: Windows/Flash virtual key codes; mods 1 shift, 2 ctrl/cmd, 4 alt.
  * Returns 1 when the interface used the key (text entry, window hotkeys). */
+/* INPUT-001: the existing offline item action shared by the HUD button and
+ * world key router. Slots 1..3 are empty in the current one-potion-slot demo. */
+int mu_gfx_layer_use_item_hotkey(mu_gfx_layer *layer, int slot);
 int mu_gfx_layer_key(mu_gfx_layer *layer, int down, int vk, uint32_t codepoint, int mods);
 int mu_gfx_layer_text(mu_gfx_layer *layer, const char *utf8);
 /* 1 while a text field (chat input) has the keyboard. */

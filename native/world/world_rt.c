@@ -577,6 +577,7 @@ void mu_world_rt_gl_teardown(mu_world_rt *a)
     for (int i = 0; i < a->fx_count; ++i)
         glDeleteTextures(1, &a->fx_names[i]);
     a->fx_count = 0;
+    mu_gl_perf_free();
     mu_gl_batch_free(a->batch);
     a->batch = NULL;
     a->gl_ready = 0;
@@ -650,6 +651,7 @@ void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t co
 
 long mu_world_rt_draw_gl(mu_world_rt *a, int32_t width, int32_t height)
 {
+    mu_gl_perf_begin();
     const mu_client_view *v = &a->walk.frame.view;
     uint8_t clear[4] = {sky[0], sky[1], sky[2], sky[3]};
     if (a->has_env)
@@ -662,6 +664,7 @@ long mu_world_rt_draw_gl(mu_world_rt *a, int32_t width, int32_t height)
     int i;
     EACH(COL_DRAW_GL, i)
         ROWS[i].ops->draw_gl(a, a->part[i], &d);
+    mu_gl_perf_end();
     return d.faces;
 }
 

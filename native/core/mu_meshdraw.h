@@ -157,6 +157,15 @@ typedef struct mu_meshdraw_scratch {
                    int32_t texcoord_count, const float *normal_texcoords);
 } mu_meshdraw_scratch;
 
+/* Per-corner part of the stream (glColor3f and glColor3fv both go to color3). */
+typedef struct mu_meshdraw_sink {
+    void *context;
+    void (*texcoord)(void *context, float s, float t);
+    void (*color3)(void *context, const float rgb[3]);
+    void (*color4)(void *context, float r, float g, float b, float a);
+    void (*vertex)(void *context, const float xyz[3]);
+} mu_meshdraw_sink;
+
 typedef struct mu_meshdraw_env {
     mu_meshdraw_model *model;
     const mu_meshdraw_globals *globals;
@@ -165,6 +174,9 @@ typedef struct mu_meshdraw_env {
     mu_bitmap_lookup bitmap;
     void *bitmap_context;
     mu_meshdraw_scratch *scratch;
+    /* Optional host delivery of the same per-corner float values. NULL keeps
+     * the literal stream for instruction comparisons and GL recorders. */
+    const mu_meshdraw_sink *vertices;
 } mu_meshdraw_env;
 
 enum {

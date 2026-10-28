@@ -60,3 +60,5 @@ Values marked "at the sync commit" were observed at commit `024e949` with the sy
 - [Protocol CLI](./protocol-cli.md): frame building, parsing, dechunking and send obfuscation in `mu-proto`.
 - [Fixture sessions](./fixture-session.md): discovered full-stack session suites, inbound script events,
   per-route hits and journal counts in `mu-session`. This path uses no renderer or socket listener.
+
+- [World input](./input.md): shared input files, cast, pick-up, right-click skills, panel coverage and native IME focus.
