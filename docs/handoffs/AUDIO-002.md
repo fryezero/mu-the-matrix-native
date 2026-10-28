@@ -42,7 +42,8 @@ The first integrated gate exposed a pre-existing Makefile typo: character-select
 on undefined `CORE_HDR`, so they retained the old `mu_objects` layout after the world-lane merge.
 Two existing tests reproduced zero retained objects. Changing that prerequisite to `HEADERS` rebuilt the
 objects and both tests passed unchanged. `make -n -W core/mu_objects.h` confirms header changes now
-schedule the rebuild. This one-line build fix is included; no character-select runtime behavior changed.
+schedule the rebuild. The parallel Icarus lane independently merged the same fix, so it is now also
+in main. No character-select runtime behavior changed.
 Final gate results are recorded below after integration with current main.
 
 The existing native audio render remains SHA-256
