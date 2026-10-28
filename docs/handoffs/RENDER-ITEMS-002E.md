@@ -66,7 +66,8 @@ The full local Mac gate passed after merging main through #196: **1,463 tests** 
 viewer and reader builds; repository audit. Main's subsequent #197 merge is integrated. Its interim gate exposed a missing generated-header
 dependency for `core/mu_combat.o`; the Makefile now refreshes domain/intent and layout headers before
 compiling it. The failed incremental build, repaired compile and a changed-intent dry-run are recorded in
-`finalize/`. The final gate/merge wait for the serialized merge lock. No hosted CI is used.
+`finalize/`. The merge lock was acquired at 06:56 CDT. Main through #198 is integrated and the protected
+final Mac gate is running. No hosted CI is used.
 
 Fresh inherited comparisons, all with zero mismatches:
 
@@ -91,7 +92,8 @@ bones rather than a later overwritten shared item pose. The coverage TSVs were c
 the original survey and enabled C recipe membership. After correcting the standalone clock forwarding,
 self-review found no blocking issue in this subset. The inherited part-4 mutant anchors were narrowed
 to their original axe/sword branches after the new swords made two expressions ambiguous. The Spark03
-mutant build now links `world_flames.c`, required by the production particle code merged from #187.
+mutant build now links `world_flames.c` and `elbeland.c`, required by the production particle code
+merged from #187 and #195. Its 1,500 cases and 3/3 controls pass again after that integration.
 These are validator repairs; the earlier rendering expectations remain unchanged.
 
 Remaining: **1,173 item bodies**, further links, rank-5 pose-aware animation and rank-9 armour branches.
