@@ -73,8 +73,22 @@ The existing golden PCM test passes unchanged at SHA-256
 
 Implementation checkpoints `aa00052` and `3a9103e` were pushed before the merge-queue wait.
 
-Pending the fair merge queue and serialized latest-main/full-Mac-gate sequence. This section will record
-its actual results before merge. Standards/spec self-review covers callback and table lifetime,
+Acquired the merge lock from the front of the fair queue at 13:38 CDT. Latest main `9e0cceb`,
+including RENDER-EFFECTS-003, RENDER-WORLDS-K and RENDER-ITEMS-002I, is integrated in `0c9555d`.
+Only added status introductions and validator rows conflicted; both lanes' entries are retained.
+No runtime source conflict occurred, and all charsel/audio runtime and original-comparison sources
+are unchanged from the checked implementation checkpoint.
+
+After `make -C native clean`, `bash scripts/local-macos-ci.sh` passes: **1,596 tests across 38 suites,
+203 explicit private/optional skips, zero failures/errors**. All **10/10 fixture scenarios** pass,
+**77 expectations and 80 inbound frames**, zero unbound/undecodable frames. The existing two
+unrecovered intents and seven unsent requests remain explicit. Viewer and read-only reader builds
+pass; readers were never run. Repository audit: **1,544 files, zero rejected**. No hosted workflow ran.
+The fixture report's dirty flag is the untracked local Python symlink; tracked source was clean at the gate.
+
+The final integrated standalone charsel rerun retains **4/4 pre-change PNG hashes**. The six focused
+private tests are repeated on the final integrated tree with zero failures or skips. Only release
+summaries change after the passing gate. Standards/spec self-review covers callback/table lifetime,
 provenance, silent delivery, visual preservation and owned-path scope; no independent review is claimed.
 
 ## Limits and cleanup
