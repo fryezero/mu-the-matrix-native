@@ -61,3 +61,30 @@ After merge remove `mu-mac-tools/native/{scratch,renders}/render-worlds-l`, all
 worktree builds/temp outputs, the worktree and local branch. No new retained
 INPUT is required. Durable evidence lives in the committed finding/handoff and
 PR body. Fast-forward the main checkout only if it is clean and on main.
+
+
+## Final locked release gate
+
+Acquired the FIFO merge lock at 13:55 CDT. Integrated latest origin/main
+`c2fe0e28652cb2477fa97e8db390fc8c42bdb532`, including K, items, audio and party.
+Shared status/validator conflicts preserve both lane entries. No incoming
+implementation was removed. The integrated merge commit is `1511479`.
+
+After `make -C native clean`, rebuilt parent and production binaries entirely
+inside this owned worktree. The latest-parent tour again preserves all 14 OBJECT
+and 14 light hashes plus all 26 PNG hashes across the 13 unaffected views.
+Only Karutan's two PNGs intentionally change. Latest Karutan and Raklion frames
+were visually inspected. Baseline source replacements were restored byte for
+byte before the gate; no temporary source or input link is committed.
+
+`bash scripts/local-macos-ci.sh` passes at 14:02 CDT: 38 unittest suites,
+1,602 tests, 204 explicit optional/private skips, zero failures; 11/11 fixture
+scenarios; native viewer and read-only reader builds; 1,562 audited files,
+zero rejected. No hosted workflow or original client was run. The final diff
+contains only this lane's source/hooks, registration tests, build/validator
+entries and documentation. No image-fidelity score or new capture is claimed.
+
+On that integrated tree, the final full particle rerun passes the same 21,000
+checks, 19,390 original comparisons and 1,610 native removals, zero mismatches
+or stops, all 13 compiled mutants and all five loader sequences. All local
+outputs are disposable; the final reply confirms merge and cleanup.

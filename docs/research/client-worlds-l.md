@@ -120,3 +120,9 @@ stay open. No new input needs retention.
 Run `scripts/run_validators.py --private --only validate_worlds_l`, the
 `native/tests/test_native_worlds_l.py` host/private tests and the full
 `bash scripts/local-macos-ci.sh` gate. [Release and cleanup handoff](../handoffs/RENDER-WORLDS-L.md).
+
+
+The final locked integration against `c2fe0e2` repeats the same unchanged
+14 OBJECT/14 light and 26 unaffected PNG results. The clean Mac gate passes
+1,602 tests with 204 explicit skips, 11/11 fixture scenarios and the 1,562-file
+audit with zero rejections. [Locked release record](../handoffs/RENDER-WORLDS-L.md#final-locked-release-gate).
