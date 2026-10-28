@@ -1,6 +1,6 @@
 # Continue from here
 
-- RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and after-character draws; integrated gate pending.
+- RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and after-character draws; integrated local Mac gate passed.
 
 AUDIO-002 part 1: [handoff](handoffs/AUDIO-002.md). Native session audio reader and JSONL log are ready; event state and NPC lifecycle callers follow their domain migrations. The exact 43/44 read and virtualised gap remain open.
 

@@ -9,16 +9,20 @@ mutants are caught. Three synthetic native tests cover ten sessions: both flame 
 for four world groups on GL/software. Eight world-part checks pin the combined viewport and deferred draw hooks.
 Character-select's stale core-header dependency was corrected, matching the sibling C fix.
 
-Final local gate: pending. The first combined viewport gate caught the expected world-part count at 22 instead
-of 23; that merge bookkeeping error was fixed before the release gate. Siblings B/C and viewport hooks are retained.
+Final local macOS gate passes on main `0b7edfc`: **1,397 tests in 38 discovery runs, 166 explicit skips, zero failures; audit 1,261 files, zero rejected**. Fixture scenarios and native viewer/readers build
+also pass. The log is `a-isolated-gate.log`. The earlier world-part count error was fixed; a later parallel run
+exhausted disk space, then passed after owned intermediate PNG cleanup and an isolated temporary directory.
+Siblings B/C, viewport, item and audio integrations are retained. Self-review found no remaining scope/standards
+findings; no independent review is claimed.
 
 Local reports are in `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds/`: `a-final-validate.json`,
-`a-final-{before,after}*.json`, `a-final-hashes.json` and the gate logs. Renders stay under
+`a-final-{before,after}*.json`, `a-final-hashes.json`, `a-final-render-sha256.json` and the gate logs. Renders stay under
 `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-a/final-{before,after}*`. No live game was used.
 
 The tour baseline `54ae63f` includes B/C and SESSION-VIEWPORT-001. With every frame rendered on both builds,
 Kanturu's masked live-image error is 3.717 -> 3.444; share off by more than 24 is 0.0275 -> 0.0245. The default
 sparse two-render tour gives 3.717 -> 4.006 because particles are emitted during rendering. Phases are not synchronized.
+After the item/audio merges all 53 final native frames repeat byte-for-byte.
 All eighteen PNG hashes from nine unaffected maps remain unchanged; Raklion's two frames also remain unchanged.
 Primary terrain light equals the captured grid on all fourteen maps.
 

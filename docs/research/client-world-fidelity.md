@@ -345,6 +345,8 @@ of LoadBitmap at `0x01820fcf`, `0x0182188f`, `0x01821b2f`, `0x01821b4f`, not gue
 
 The synthetic native regression exercises hidden Kanturu emission, Karutan particle/sprite creation and drawing,
 and all four world groups' after-pass bodies on both GL and software backends, ten native sessions in three tests.
+The final local gate passes 1,397 tests with 166 explicit skips and no failures; the audit accepts
+1,261 files with no rejection. Item/audio integration preserves all 53 final native frame hashes.
 The character-select build dependency now uses `HEADERS`, replacing undefined `CORE_HDR`, so changes to the
 particle table's struct layout rebuild every character-select consumer.
 
