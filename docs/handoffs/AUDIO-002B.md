@@ -30,7 +30,20 @@ their direct audio facade.
 - Fourteen cue tests with private instruction comparison enabled pass. Three additional synthetic-world
   tests pass, covering actual world-part routing, talk and voice provenance, 239 ordered Aida object requests
   over 240 ticks, and 42/42 audio-enabled/disabled frame hashes equal.
-- Existing-family reruns and full local Mac gate: final results are recorded below before publication.
+- Expanded existing audio comparison: 13,967/13,967 equal, 232/232 perturbations detected. The entire JSON
+  report, including all five captured routine hashes, equals the recovered baseline report. Counts are
+  frame 2,407, OpenWorld 277, manager 2,023, init 107 and settings 9,153.
+- Full `bash scripts/local-macos-ci.sh` passes: 1,449 tests, 175 explicit skips, zero failures/errors; six
+  fixture scenarios pass with 46 inbound frames, zero unbound and zero undecodable frames. The fixtures'
+  two unrecovered intents and three unsent frames remain expected limitations. Viewer/readers builds and
+  repository audit pass, 1,314 files audited, zero rejected. The first gate attempt hit transient ENOSPC in
+  the macOS temp directory; the complete rerun uses a lane-scoped `TMPDIR` and passes without source changes.
+- Manifest runner: seven families pass, zero failures/errors/skips. Unchanged part-1 event music
+  70,980 + registration 2,988 + voices 2,182 = 76,150 instruction cases, zero mismatches, 22/22 compiled
+  mutants. All three JSON reports equal the recovered checkpoint reports. Hero audio: 2,000 cases,
+  zero mismatches, all fourteen negative controls detected, all eleven captured routine hashes unchanged.
+  Environment: 400/400 cases, 80,520 steps, 94/94 branch probes, zero mismatches/stops, 12/12 mutants caught.
+  The runner's smaller existing-audio corpus also passes 10,367 cases and 232 perturbations.
 
 No existing validator body or expected render/PCM hash changed. The audio golden PCM remains
 `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
@@ -46,3 +59,5 @@ No whole-client sound parity is claimed.
 All raw reports, local inputs and logs remain in
 `~/Documents/MTM/mu-mac-tools/native/scratch/audio-002b/`; renders stay in the corresponding
 `native/renders/audio-002b/` directory. No private inputs or local symlinks are published.
+Gate log: `gate-scoped.log`; expanded audio report: `audio-expanded-current.json`; cue test log:
+`cues-current-private.log`; manifest-driven original-instruction reports: `validated-current/`.

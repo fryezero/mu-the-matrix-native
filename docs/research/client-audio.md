@@ -303,5 +303,12 @@ session retain the direct facade. Per-frame music/ambient managers remain in the
 Combat stays with SESSION-COMBAT-001. Music 43/44, `0x01854279..0x018542c2`, event packet inputs,
 original RNG phase and LIVE-PLAY FMOD parity remain open. No whole-client audio parity is claimed.
 
-Final gate and unchanged-family rerun counts are recorded in [the part-2 handoff](../handoffs/AUDIO-002B.md).
+Final local Mac gate: 1,449 tests, 175 explicit skips, zero failures/errors; six fixture scenarios pass,
+viewer/readers builds and repository audit pass, 1,314 files, zero rejected. Seven manifest-driven
+instruction validators pass with no skips. Unchanged reruns: expanded audio 13,967 cases and 232/232
+perturbations, part 1 76,150 cases and 22/22 compiled mutants, hero audio 2,000 cases and all fourteen
+negative controls, environment 400 cases, 94/94 probes and 12/12 mutants. All comparisons have zero
+mismatches. Expanded audio and all three part-1 JSON reports equal the recovered baseline reports;
+all existing captured routine hashes and expected render/PCM hashes remain unchanged. Exact commands,
+fixture limits and log paths are recorded in [the part-2 handoff](../handoffs/AUDIO-002B.md).
 All raw reports, local inputs and logs remain outside the published tree.
