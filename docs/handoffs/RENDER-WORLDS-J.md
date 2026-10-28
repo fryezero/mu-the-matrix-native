@@ -52,4 +52,26 @@ original behavior, host sequencing and publication boundaries. No independent re
 
 ## Final locked integration
 
-Pending final merge-lock acquisition, latest-main integration and full local Mac gate.
+Acquired the merge lock at 11:45 CDT. Latest main `00bb4d9`, including effects #221, session items #224
+and item rendering #225, is integrated as `650a5f1` and pushed. Conflicts in the three top-level status docs
+and validator registry preserve both sides. Native Makefile auto-merge retains every host target. The merged
+registry passes 17 portable tests and the 1,505-file publication audit rejects zero files.
+
+The final tour rebuilds the latest-main production versions of J's five runtime/source/header files inside
+this owned worktree, renders, restores the committed J bytes in a finally block, rebuilds and renders again.
+No second checkout or input copies are created; git verifies exact source restoration before the final gate.
+Against this fresh `00bb4d9` baseline, the same **26/26 unaffected PNG, 13/13 OBJECT and 13/13 light hashes**
+are preserved. Only the expected three Karutan artifacts change. All fourteen primary grids match; the thirteen
+unaffected complete scoreboard entries match. Both before/after hash sets also exactly match the initial
+`3162017`-based tour, so the original 42-body-light-copy attribution and MAE still apply. The refreshed final
+Karutan frame was inspected. Five representative PNGs remain temporarily; bulk native dumps are already deleted.
+K's built-in Lost Tower/Atlans/Tarkan/Icarus visual work remains outside J and is not touched.
+
+Final registered G/H/I/J run passes **24,000 instruction cases, zero mismatches/stops, 95/95 compiled
+mutants**, with four passes and no errors/skips. J contributes 6,000 cases and 30 mutants, including its
+directed signed/zero scale samples. The earlier unchanged A regression contributes a separate 9,000 cases
+and 13 mutants. The full locked `bash scripts/local-macos-ci.sh` passes **1,563 tests across 38 discovery runs, 194 explicit
+private/optional skips, zero failures/errors; 9/9 fixture scenarios; native viewer and reader builds;
+publication audit 1,505 files, zero rejected**. Readers were built only. No hosted workflow was dispatched.
+Only evidence/status documentation changes after this gate. The final publication audit is rerun before
+committing that documentation. No local input needs retention; cleanup removes every lane output and its worktree.

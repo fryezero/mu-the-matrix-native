@@ -112,6 +112,10 @@ Karutan clouds `0x7f89/0`, the old three flame kinds and type-72 sprite bitmaps 
 an availability audit and callback proof, not a new instruction proof of their nested rendering. Particle/effect
 and bitmap consumers belong to the active effects lane and were not changed here.
 
+The final locked Mac gate passes 1,563 tests with 194 explicit skips, nine fixture scenarios and the
+1,505-file publication audit with zero rejections. Final registered G/H/I/J passes 24,000 cases and 95/95
+compiled mutants with zero mismatches/stops. [Final integration and cleanup](../handoffs/RENDER-WORLDS-J.md#final-locked-integration).
+
 ## Skipped capture worlds and continuation
 
 The other 37 concrete classes have no usable population/light/camera capture in the available tour and are
