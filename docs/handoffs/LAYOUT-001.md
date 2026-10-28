@@ -32,7 +32,15 @@ LAYOUT-PROBE-001's merge `15962e94cb4c2d8bcf85ade0d7bba0867b50d214`.
   adapter preserving REPLICATED/MOTION/VIEW, unknown gaps and prefix bounds.
 - The changed item validator: 3,740 original-instruction cases, zero mismatches, 10/11 existing controls
   detected, identical to the probe milestone. The frustum control's zero remains a documented limit.
-- Local macOS gate and journal integration: final counts are recorded below after the updated-main gate.
+- Real session/fixture journal integration test passes: generated layout digest, every attribute field
+  boundary and full 0x1b50 known extent, including timers.
+- Final local macOS gate passed after integrating DATA-ACQ-003 and CHARSEL-RT-001: 1,304 tests,
+  155 explicit skips, viewer and four reader builds; audit 1,147 files, zero rejected. Include audit
+  and diff whitespace checks also pass. A prior gate was invalidated when a concurrent upstream merge
+  conflicted in the shared docs during its audit; both docs were resolved preserving both milestones,
+  and this final gate was rerun from the clean combined tree.
+- Pinned probes rerun: 7,452 cases, zero mismatches, 7/7 competing hypotheses; private probe tests 2/2.
+- The compiled projection/accessor test covers all 118 fields and 9,098 scalar/array elements.
 
 Private reports/logs: `~/Documents/MTM/mu-mac-tools/native/scratch/layout-001/`.
 
