@@ -17,6 +17,7 @@
  * the client's answer for a key outside CharactersClient.
  */
 #include "../session_internal.h"
+#include "audio_cue.h"
 #include "layout_StatMachine.h"
 
 #include <stdio.h>
@@ -145,16 +146,10 @@ static void env_emit(void *user, const char *line)
         mu_session_cue(s, &c);
         return;
     }
-    case 0x00a6ac96u: { /* PlayBuffer SOUND OBJECT LOOP */
-        cue_init(s, &c, MU_CUE_SOUND);
-        const char *p = rest;
-        c.u.sound.id = (int32_t)hex_at(p, &p);
-        uint32_t object = hex_at(p, &p);
-        c.u.sound.at_key = object ? -1 : -2;
-        c.u.sound.loop = (int)hex_at(p, NULL);
-        mu_session_cue(s, &c);
+    case 0x00a6ac96u:
+        mu_domain_sound_cue(s, line);
         return;
-    }
+
     case 0x01219a39u:   /* the chat window's system line */
     case 0x0095f547u: { /* its other line (master experience) */
         cue_init(s, &c, MU_CUE_CHAT);

@@ -282,6 +282,27 @@ int mu_world_is_karutan(int32_t world);
 int mu_world_is_kubera(int32_t world);
 int mu_world_is_scorched(int32_t world);
 
+/* AUDIO-002: event inputs are supplied by their owning domains. Unknown fields
+ * emit UNRECOVERED rather than choosing an event phase. */
+enum { MU_AUDIO_CRYWOLF = 1, MU_AUDIO_KANTURU = 2,
+       MU_AUDIO_TEMPLE = 4, MU_AUDIO_RAKLION = 8 };
+typedef struct mu_event_music_state {
+    int32_t world, crywolf, crywolf_result, kanturu, temple, raklion;
+    uint32_t known;
+} mu_event_music_state;
+int mu_event_music(uint32_t manager, const mu_event_music_state *state,
+                   const mu_world_audio_hooks *hooks);
+
+/* Ordered registration at model open. preloaded means the opener exited before
+ * loading anything. Each site resolves against the local audio TSV, not id order. */
+void mu_audio_register_monster(int32_t type, int preloaded,
+    void (*load)(void *, uint32_t, int32_t, int32_t, int32_t), void *ctx);
+void mu_audio_register_npc(int32_t type, int preloaded,
+    void (*load)(void *, uint32_t, int32_t, int32_t, int32_t), void *ctx);
+
+int32_t mu_audio_npc_voice(int32_t model, int32_t random, uint16_t action,
+                          float frame, int buff_1b);
+
 #ifdef __cplusplus
 }
 #endif
