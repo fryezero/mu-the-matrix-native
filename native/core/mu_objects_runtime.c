@@ -125,7 +125,8 @@ int mu_objects_start(mu_objects *o, const char *game_root)
              * scene worlds most of them are set at draw time (emitter markers, NATIVE-FIDELITY-002), which is not
              * ported; CreateObject's own -2 cases are already applied. */
             const int32_t t = o->records[i].type;
-            if (t >= 0 && t < MU_OBJECT_TYPES && o->hidden_type[t])
+            if (t >= 0 && t < MU_OBJECT_TYPES && o->hidden_type[t] &&
+                !(o->world == 10 && t <= 5))
                 mu_obj_set_i32(img, MU_OBJF_HIDDEN_MESH, -2);
         }
         const int32_t t = o->records[i].type;
