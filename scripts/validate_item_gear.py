@@ -22,7 +22,7 @@ ALLOWED={0x0eee:[('gl','glPushMatrix',[]),('gl','glPopMatrix',[])]}
 def link_cases(wa,lib):
     rng=random.Random(0x2002a7)
     vectors=[]
-    for t in pulse.rules():
+    for t in (0x0afa, 0x0eed, 0x0eee):
         for k in range(100):
             values=[k]*32 if k<30 else [rng.randrange(32768) for _ in range(32)]
             for variant,time in enumerate((0,700.25,123456,-150.5)):

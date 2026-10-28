@@ -9,6 +9,8 @@ eleven skins and consumes Spark03/11. [Part 5 below](#part-5-remaining-skins-and
 raises coverage to 501/1,674 bodies and 17/17 skins, with seven link targets/twelve types consumed.
 Part 6 reaches 559 bodies and consumes ground/inventory skin sprites.
 Part 7 reaches **635/1,674 bodies**, preserves **17/17 skins**, and consumes **twelve link targets/seventeen types**.
+Part 8 reaches **662/1,674 bounded bodies** and **fourteen link targets/nineteen types**.
+Its rank-5 no-owner mesh streams draw; full owner effects remain open.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -660,3 +662,83 @@ final counts, mutation detections, local render inspection, regression runs and 
 Remaining: **1,039 bodies**, full pose-aware rank-5 rendering, further links including owner-dependent
 Laser/17 and shared-clock state, authoritative hero equipment, model mappings and the earlier domain,
 NewUI/Box of Luck limits. Muun and nested map-object tables remain deferred. No live game or launcher is used.
+
+## Part 8, rank-5 mesh streams and further links, RENDER-ITEMS-002H
+
+Bounded coverage reaches **662/1,674 item bodies**, **17/17 class skins**, and
+**fourteen RenderLinkItem targets covering nineteen types**. This adds all nineteen
+rank-5 types and eight armour types at size ranks 83 and 88. The original survey's
+1,691 identities, ranks and stopped-state observations stay intact. Only membership
+and the three shape coverage counts change.
+
+### Rank-5 draw boundary
+
+**Verified:** the complete RenderObjDraw mesh stream for `0x1c24..0x1c34`, `0x1c44`
+and `0x1c7a`, with OBJECT owner-bone pointer `+0x318` absent. The comparison runs the
+real pose builder at `0x017479b1..0x01747a0a`, with authored action and bone tracks.
+Lighting byte `model+0x50`, named Blue mesh hits/misses, clock, level, flags, alpha,
+excellent/ancient tails and random consumption vary independently. Each type has
+584 cases, 292 per lighting state, **11,096 total, zero mismatches**. Another
+**760** supported-record and signed/conversion-clock cases pass. Pose matrices
+and transformed authored points retain the separate part-7 comparison.
+
+**Static:** no transform call intervenes between that pose call and the mesh draws
+at `0x01747a0a..0x0174a489`. The body draws consume the incoming transformed
+vertices; the rebuilt bones serve the later owner effects. The native body adapter
+therefore preserves incoming geometry and saved poses. Re-posing and skinning the
+body inside this adapter would change geometry that the original branch retains.
+
+The authored C emits two or four base meshes, then the lighting-dependent overlays.
+Blue-name lookup follows the first exact texture-name match and preserves a missing
+mesh as -1, which the native adapter skips. Other sets select fixed mesh/bitmap
+indices. The pulse uses signed integer conversion, remainder by -6283 and binary32
+cosine arithmetic. Random blend light is `(rand()%5)/5+0.5`; UV uses
+`int(time/80)%4*0.25` and retains the original random call even though its captured
+multiplier is zero. The existing runtime particle pool supplies the random stream;
+a standalone caller without one uses an explicit zero-valued viewer input.
+
+**Limit:** this completes the mesh branch in the existing no-owner body domain.
+It does not complete full rank-5 owner rendering. With readable owner bones 35 and
+26, the original continues through `0x84e2`/`0x83de` particles, `0x7fdd` sprites and
+additional level-9 overlays. Those paths, their pose-state effects and particle
+consumers remain open. No pose-only or no-owner result counts as proof of them.
+
+### Ranked bodies and links
+
+The eight armour types are `0x1b8b`, `0x1b8f`, `0x1bbe`, `0x1bdb`, `0x1f8b`,
+`0x1f8f`, `0x1fbe`, `0x1fdb`. The existing generated recipe executor consumes them
+through hero, remote player, NPC, ground and both inventory body paths. Independent
+full-function checks pass **2,336 cases**, 292 per type, zero mismatches. The five
+previously rejected ancient-tail candidates remain refused.
+
+Two further sprite-only callers use the generated scalar-link executor:
+
+- `0x012cd341`, spear `0x10f0`: bones 1..8 emit flare `0x7ef7`, scale 1.3 and
+  intensity times `(0.2,0.1,0.8)`.
+- `0x012cb9d7`, shield `0x16f5`: bone 1 and local offset `(15,-15,0)` emit
+  `0x7f67` at scale 1.5 and `0x7ef7` at intensity+1.5, with intensity times
+  `(0.6,0.6,2)`.
+
+Each caller consumes one common random intensity. Full hand/back-carry caller
+comparisons pass **800 cases**, zero mismatches. Native saved-pose, missing-bone and
+full-pool tests include both links. They remain character attachments; their own
+unrelated body recipes are still refused. No effect/particle/joint implementation,
+perf, mesh or scene file changed; the new draw paths allocate no per-frame storage.
+
+### Native evidence and remainder
+
+Six offline PNGs compare three authored scenes before/after. A baseline built from
+`a38ec75` item sources uses the same surrounding renderer. The ordinary control is
+byte-identical, framebuffer SHA-256 `308aad6447474892fd2f7cabf6dff610b9e59fa602a05c04552c5aeff25a62c9`.
+The rank-5/ranked armour scene changes from two refusals to zero and 17 to 36 passes,
+with 7,490 changed pixels. Its untextured additive geometry saturates white, so the
+pixels do not establish material fidelity. The linked spear/shield scene allocates
+ten sprites, changes 25,912 pixels with authored textures, and retains two explicit
+body refusals. These are native synthetic renders, not original-client images.
+
+Remaining: **1,012 item bodies**, full rank-5 owner effects, further link targets,
+Muun/nested map-object inputs and the prior model, owner/random, selection/shadow,
+buff/record, mesh-override, hero-instance, NewUI and external Box of Luck limits.
+The combined 14,992 comparisons have zero mismatches, all nine compiled mutants
+are detected, and both generated tables reproduce. Release checks and cleanup are recorded in the
+[part-8 handoff](../handoffs/RENDER-ITEMS-002H.md).
