@@ -2,6 +2,7 @@
  * the split between client behaviour and the labelled demo / viewer choices. */
 #define _POSIX_C_SOURCE 200809L
 #include "mu_combat.h"
+#include "../session/mu_session.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -24,8 +25,8 @@ static void log_line(mu_combat *c, const char *text)
         snprintf(c->log[c->log_count++], sizeof c->log[0], "%s", text);
 }
 
-/* Demo randomness (xorshift; not the client's rand()). */
-static uint32_t demo_rand(mu_combat *c)
+/* Presentation randomness for bounded player action services. */
+static uint32_t visual_rand(mu_combat *c)
 {
     uint32_t x = c->rng ? c->rng : 0x9e3779b9u;
     x ^= x << 13;
@@ -197,9 +198,8 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
     c->intent_skill = -1;
     c->lang = mu_lang_shared();   /* NATIVE-LANG-001: the client's skill table when MU_LANG_DIR has it */
     c->attack_target = -1;
-    c->pending_target = -1;
     c->last_sound = -1;
-    c->hero_hp = config->hero_hp;
+    c->hero_hp = 0;
     if (walk) {
         c->hero_home[0] = walk->hero.tile[0];
         c->hero_home[1] = walk->hero.tile[1];
@@ -225,7 +225,7 @@ int mu_combat_init(mu_combat *c, const char *root, mu_walk *walk, mu_character *
         mu_character_apply_player_speeds(hero);
     for (int32_t i = 0; actors && i < actors->count; ++i) {
         mu_combat_monster *m = &c->monsters[i];
-        m->hp = config->monster_hp;
+        m->hp = -1; /* remote HP is unknown until a server viewport supplies it */
         m->alpha = 1.0f;
         m->saved_wander = -1;
         memcpy(m->home, actors->list[i].position, sizeof m->home);
@@ -289,14 +289,6 @@ static void engage(mu_combat *c, int32_t i)
 static void set_monster_action(mu_combat *c, int32_t i, int32_t action)
 {
     mu_actor_set_action(&c->actors->list[i].actor, action);   /* SetAction 0x012affa4 */
-}
-
-static float hero_distance(const mu_combat *c, int32_t i)
-{
-    const mu_hero *h = &c->walk->hero;
-    const mu_world_actor *a = &c->actors->list[i];
-    float dx = (float)(h->tile[0] - a->tile[0]), dy = (float)(h->tile[1] - a->tile[1]);
-    return sqrtf(dx * dx + dy * dy);
 }
 
 /* ---------------------------------------------------------------- effects (NATIVE-COMBAT-002) */
@@ -410,7 +402,6 @@ static void add_light(mu_combat *c, float x, float y, const float rgb[3], int32_
     l->range = range;
 }
 
-static void demo_damage(mu_combat *c, int32_t actor, int32_t delay);
 
 /* The arrow hit check 0x013bd374 (static reading of its default path): an
  * arrow the client tests itself (+0x3b) ends when it comes within 100 units
@@ -429,8 +420,6 @@ static void check_arrow(mu_combat *c, mu_sfx_effect *e)
             continue;
         e->live = 0;   /* SetLive(0), 0x013bd6d9 */
         ++c->stats.projectile_hits;
-        if (i == c->pending_target)
-            demo_damage(c, i, 0);
         return;
     }
 }
@@ -478,8 +467,6 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
             mu_sfx_check_magic(e, &c->env);
             if (e->lifetime == 1 && before != 1) {
                 ++c->stats.projectile_hits;
-                if (e->owner == c->pending_target)
-                    demo_damage(c, e->owner, 0);
             }
         }
         return 0;
@@ -488,17 +475,8 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         c->env.serial = c->serial;
         return 0;
     case MU_SFX_CALL_AREA: {   /* = MU_SFX_CALL_AREA_ATTACK */
-        /* the hero's area attack request: the demo server hits the monsters
-         * in range of the request's position */
+        /* The visual request is counted; server answers arrive independently as frames. */
         ++c->stats.area_requests;
-        for (int32_t i = 0; c->actors && i < c->actors->count; ++i) {
-            if (!alive(c, i))
-                continue;
-            const float *p = c->actors->list[i].position;
-            float dx = p[0] - call->position[0], dy = p[1] - call->position[1];
-            if (dx * dx + dy * dy <= call->scale * call->scale)
-                demo_damage(c, i, c->config.latency_steps);
-        }
         return 0;
     }
     case MU_SFX_CALL_SPRITE:
@@ -725,46 +703,11 @@ static void move_pools(mu_combat *c)
 
 /* ---------------------------------------------------------------- the demo server */
 
-static void push_event(mu_combat *c, int32_t delay, int32_t kind, int32_t actor, int32_t damage, int32_t type,
-                       uint8_t flag8, uint8_t flag_a)
-{
-    if (c->event_count >= MU_COMBAT_EVENTS)
-        return;
-    mu_combat_event *e = &c->events[c->event_count++];
-    e->step = c->step + delay;
-    e->kind = kind;
-    e->actor = actor;
-    e->damage = damage;
-    e->type = type;
-    e->flag8 = flag8;
-    e->flag_a = flag_a;
-}
+
 
 /* Demo damage roll: 10% miss, 10% critical (type 3), 10% excellent (type 2),
  * 5% double damage (packet[0x0d] bit 7 -> stacked points), else normal. */
-static void roll_damage(mu_combat *c, int32_t *damage, int32_t *type, uint8_t *flag8)
-{
-    uint32_t r = demo_rand(c) % 100u;
-    int32_t span = c->config.damage_max - c->config.damage_min + 1;
-    int32_t base = c->config.damage_min + (int32_t)(demo_rand(c) % (uint32_t)(span > 0 ? span : 1));
-    *flag8 = 0;
-    *type = 0;
-    if (r < 10) {
-        *damage = 0;
-        return;
-    }
-    if (r < 20) {
-        *type = 3;
-        base = base * 3 / 2;
-    } else if (r < 30) {
-        *type = 2;
-        base = base * 6 / 5;
-    } else if (r < 35) {
-        *flag8 = 1;
-        base *= 2;
-    }
-    *damage = base;
-}
+
 
 static float terrain_height(void *context, float x, float y)
 {
@@ -780,20 +723,7 @@ static float env_terrain_height(void *context, float x, float y)
 
 /* Demo server: one damage message for an actor after delay steps; the
  * projectile attack's rolled damage when it is the pending one. */
-static void demo_damage(mu_combat *c, int32_t actor, int32_t delay)
-{
-    int32_t damage, type;
-    uint8_t flag8;
-    if (actor == c->pending_target) {
-        damage = c->pending_damage;
-        type = c->pending_type;
-        flag8 = c->pending_flag8;
-        c->pending_target = -1;
-    } else {
-        roll_damage(c, &damage, &type, &flag8);
-    }
-    push_event(c, delay, 1, actor, damage, type, flag8, 0);
-}
+
 
 static void show_damage(mu_combat *c, int32_t key, const float position[3], int32_t damage, int32_t type,
                         uint8_t flag8, uint8_t flag_a)
@@ -837,7 +767,7 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
     engage(c, i);
     /* damage packet 0x01224455: the shock bit set ("Success") calls
      * SetPlayerShock 0x0138f92f before the text */
-    if (e->damage > 0) {
+    if (e->shock && mu_shock_gate(m->dead,mu_actor_action(&a->actor),e->damage,e->type)) {
         int32_t action = mu_shock_action(m->dead, a->actor.spec.model_index, mu_actor_action(&a->actor),
                                          a->server_class, e->damage, e->type);
         if (action >= 0) {
@@ -857,31 +787,10 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
                 ++c->stats.monster_voices;
             }
         }
-        ++c->stats.hits;
-    } else {
-        ++c->stats.misses;
     }
+    if(e->damage>0)++c->stats.hits;else ++c->stats.misses;
     show_damage(c, MONSTER_KEY_BASE + i, a->position, e->damage, e->type, e->flag8, e->flag_a);
-    m->hp -= e->damage;
-    if (c->config.counter_attack)
-        m->aggro = 1;
-    if (m->hp <= 0) {
-        /* die packet 0x01234585: Dead (c + 0x23) = 1, then MoveCharacter
-         * counts it up and SetPlayerDie runs from 15 on */
-        m->dead = 1;
-        m->aggro = 0;
-        m->attack_time = 0;
-        ++c->stats.kills;
-        char text[96];
-        snprintf(text, sizeof text, "step %d: %s dies", c->step, a->label[0] ? a->label : "monster");
-        log_line(c, text);
-        if (c->kill)
-            c->kill(c->kill_context, i, a->server_class);
-        if (c->target == i) {
-            c->target = -1;
-            c->intent_skill = -1;
-        }
-    }
+
 }
 
 static float player_speed(const mu_combat *c, int32_t action);
@@ -895,23 +804,13 @@ static void hero_hit(mu_combat *c, int32_t damage, int32_t type)
         mu_player_state st = hero_state(c);
         int32_t rands[4], action = -1, sound = -1;
         for (int k = 0; k < 4; ++k)
-            rands[k] = (int32_t)(demo_rand(c) & 0x7fff);
+            rands[k] = (int32_t)(visual_rand(c) & 0x7fff);
         mu_player_shock(&st, rands, 4, &action, &sound);
         mu_walk_set_action(c->walk, action, player_speed(c, action));   /* SetAction 0x012affa4 */
         play(c, sound);
         ++c->stats.hero_shocks;
     }
-    if (c->config.hero_hp > 0 && !c->hero_dead) {
-        c->hero_hp -= damage;
-        if (c->hero_hp <= 0) {
-            c->hero_dead = 1;   /* the die packet: Dead = 1 */
-            mu_combat_stop(c);
-            c->hero_attack_time = 0;
-            if (h->movement)
-                mu_walk_stop(c->walk);
-            log_line(c, "the hero dies (demo)");
-        }
-    }
+
 }
 
 /* MoveCharacter's dead counter for the hero: SetPlayerDie from 15 on
@@ -920,61 +819,23 @@ static void hero_dead_step(mu_combat *c)
 {
     if (!c->hero_dead)
         return;
-    if (c->hero_respawn > 0) {
-        if (--c->hero_respawn == 0) {
-            /* demo: the server's respawn puts the hero back on its first tile */
-            mu_walk *w = c->walk;
-            if (!(c->hero_respawned && c->hero_respawned(c->kill_context))) {
-                w->hero.tile[0] = c->hero_home[0];
-                w->hero.tile[1] = c->hero_home[1];
-                w->hero.position[0] = (float)c->hero_home[0] * 100.0f + 50.0f;
-                w->hero.position[1] = (float)c->hero_home[1] * 100.0f + 50.0f;
-            }
-            int32_t stop = mu_player_stop_action(w->hero.class_byte);
-            mu_walk_set_action(w, stop, mu_player_stop_speed(stop));
-            c->hero_dead = 0;
-            c->hero_hp = c->config.hero_hp;
-            c->hero_3324 = 0.0f;
-            log_line(c, "the hero respawns (demo)");
-        }
-        return;
-    }
     int die = 0;
     c->hero_dead = mu_dead_step(c->hero_dead, &die);
     if (die && c->hero_3324 == 0.0f) {
         mu_player_state st = hero_state(c);
         int32_t rands[4], action = -1, sounds[2];
         for (int k = 0; k < 4; ++k)
-            rands[k] = (int32_t)(demo_rand(c) & 0x7fff);
+            rands[k] = (int32_t)(visual_rand(c) & 0x7fff);
         mu_player_die(&st, rands, 4, &action, sounds);
         mu_walk_set_action(c->walk, action, player_speed(c, action));
         play(c, sounds[0]);
         play(c, sounds[1]);
         c->hero_3324 = 0.001f;   /* the voice played once */
         ++c->stats.hero_deaths;
-        c->hero_respawn = c->config.hero_respawn_steps;
     }
 }
 
-static void process_events(mu_combat *c)
-{
-    int32_t kept = 0;
-    for (int32_t k = 0; k < c->event_count; ++k) {
-        mu_combat_event e = c->events[k];
-        if (e.step > c->step) {
-            c->events[kept++] = e;
-            continue;
-        }
-        if (e.kind == 1)
-            monster_hit(c, &e);
-        else if (e.kind == 2) {
-            show_damage(c, c->hero_key, c->walk->hero.position, e.damage, e.type, 0, 0);
-            ++c->stats.hero_hits;
-            hero_hit(c, e.damage, e.type);
-        }
-    }
-    c->event_count = kept;
-}
+
 
 /* ---------------------------------------------------------------- the hero */
 
@@ -1041,7 +902,7 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
     int32_t action = -1;
     int32_t rands[8];
     for (int k = 0; k < 8; ++k)
-        rands[k] = (int32_t)(demo_rand(c) & 0x7fff);
+        rands[k] = (int32_t)(visual_rand(c) & 0x7fff);
     if (skill == 0) {
         mu_attack_input in;
         memset(&in, 0, sizeof in);
@@ -1085,32 +946,21 @@ static void start_attack(mu_combat *c, int32_t t, int32_t skill)
     engage(c, t);                   /* demo: the target stops wandering once attacked */
     c->attack_target = t;
     c->attack_skill = skill;
-    /* demo server: buffs and Heal deal no damage; the area skills' damage
-     * follows the client's area requests (MU_SFX_CALL_AREA); projectiles'
-     * damage waits for their hit check (or 40 steps); other attacks' damage
-     * packet arrives latency steps later. Twisting Slash: every monster
-     * within 250 units (demo). */
-    if (skill == 26 || skill == 27 || skill == 28 || skill == 9 || skill == 10 || skill == 14)
-        return;
-    int bow = weapons[c->config.weapon].bow_kind != 0;
-    if ((skill == 0 && bow) || skill == 24 || skill == 4 || skill == 17) {
-        roll_damage(c, &c->pending_damage, &c->pending_type, &c->pending_flag8);
-        c->pending_target = t;
-        c->pending_deadline = c->step + 40;
-        return;
-    }
-    if (skill == 41) {
-        for (int32_t i = 0; i < c->actors->count; ++i) {
-            if (!alive(c, i))
-                continue;
-            float dx = c->actors->list[i].position[0] - h->position[0];
-            float dy = c->actors->list[i].position[1] - h->position[1];
-            if (dx * dx + dy * dy <= 250.0f * 250.0f)
-                demo_damage(c, i, c->config.latency_steps + 2);
+    if (c->session) {
+        mu_intent in = {0};
+        if (!skill) {
+            in.kind=MU_INTENT_COMBAT_ATTACK;
+            in.u.combat_attack.target=(uint16_t)a->session_key;
+            in.u.combat_attack.direction=mu_attack_direction(h->angle[2]);
+        } else {
+            in.kind=MU_INTENT_COMBAT_CAST;
+            in.u.combat_cast.x=(uint8_t)a->tile[0];in.u.combat_cast.y=(uint8_t)a->tile[1];
+            in.u.combat_cast.skill=(uint8_t)skill;
         }
-        return;
+        mu_submit submitted=mu_session_submit(c->session,&in);
+        if(submitted.status==MU_SUBMIT_SENT)++c->stats.requests_sent;else ++c->stats.requests_unsent;
     }
-    demo_damage(c, t, c->config.latency_steps);
+
 }
 
 /* MoveHero's attack case for the selected target: range, walk, attack. */
@@ -1211,39 +1061,13 @@ void mu_combat_pre_step(mu_combat *c)
 
 /* ---------------------------------------------------------------- monsters */
 
-static void respawn(mu_combat *c, int32_t i)
-{
-    mu_combat_monster *m = &c->monsters[i];
-    mu_world_actor *a = &c->actors->list[i];
-    memcpy(a->position, m->home, sizeof a->position);
-    a->tile[0] = (int32_t)(m->home[0] / 100.0f);
-    a->tile[1] = (int32_t)(m->home[1] / 100.0f);
-    if (m->saved_wander >= 0)
-        a->wander = m->saved_wander;
-    a->moving = 0;
-    a->idle_steps = 20;
-    m->saved_wander = -1;
-    m->hp = c->config.monster_hp;
-    m->voice_3324 = 0.0f;
-    m->dead = 0;
-    m->removed = 0;
-    m->fade_timer = 0.0f;
-    m->alpha = 1.0f;
-    m->attack_time = 0;
-    m->aggro = 0;
-    set_monster_action(c, i, 0);
-    ++c->stats.respawns;
-}
+
 
 static void monster_step(mu_combat *c, int32_t i)
 {
     mu_combat_monster *m = &c->monsters[i];
     mu_world_actor *a = &c->actors->list[i];
-    if (m->removed) {
-        if (--m->respawn <= 0)
-            respawn(c, i);
-        return;
-    }
+    if (m->removed) return;
     if (m->dead) {
         /* 0x013a5ea1 before the animation step */
         mu_fade_state s;
@@ -1259,7 +1083,6 @@ static void monster_step(mu_combat *c, int32_t i)
         a->position[2] = s.z;
         if (s.removed) {
             m->removed = 1;
-            m->respawn = c->config.respawn_steps;
             ++c->stats.removed;
             return;
         }
@@ -1284,31 +1107,7 @@ static void monster_step(mu_combat *c, int32_t i)
         }
         return;
     }
-    if (m->attack_time && mu_attack_time_step(&m->attack_time, MU_ATTACK_TIME_LIMIT)) {
-        /* end of the monster's attack: the demo server sends the hero's damage */
-        int32_t damage, type;
-        uint8_t flag8;
-        roll_damage(c, &damage, &type, &flag8);
-        push_event(c, 0, 2, i, damage / 3, 0, 0, 0);
-    }
-    /* demo counter-attack: a monster that was hit attacks the hero within
-     * 1.5 tiles every 50 steps, through the action packet 0x78 path:
-     * SetPlayerAttack's monster branch and AttackTime = 1 */
-    if (m->aggro && !m->attack_time) {
-        if (m->cooldown > 0) {
-            --m->cooldown;
-        } else if (hero_distance(c, i) <= 1.5f) {
-            const mu_hero *h = &c->walk->hero;
-            a->angle[2] = mu_create_angle(a->position[0], a->position[1], h->position[0], h->position[1]);
-            int32_t action = mu_monster_attack_action(m->counter, 0);
-            m->counter = (uint8_t)(m->counter + 2);   /* the branch and the common tail */
-            if (action >= 0)
-                set_monster_action(c, i, action);
-            m->attack_time = 1;
-            m->cooldown = 50;
-            ++c->stats.monster_attacks;
-        }
-    }
+    if (m->attack_time) mu_attack_time_step(&m->attack_time,MU_ATTACK_TIME_LIMIT);
     /* after the hit or attack animation the monster stands (demo: the
      * server's next action packet) */
     uint16_t now = mu_actor_action(&a->actor);
@@ -1316,15 +1115,65 @@ static void monster_step(mu_combat *c, int32_t i)
         set_monster_action(c, i, 0);
 }
 
+/* Ordered session outputs are the only source of damage, death and remote attacks. */
+void mu_combat_receive(mu_combat *c)
+{
+    if(!c->session)return;
+    c->hero_key=mu_session_combat_hero_key(c->session);
+    mu_place place=mu_session_place(c->session);
+    if(c->place_sequence!=place.seq) {
+        c->place_sequence=place.seq;c->hero_dead=0;c->hero_3324=0;
+        int32_t action=mu_player_stop_action(c->walk->hero.class_byte);
+        mu_walk_set_action(c->walk,action,mu_player_stop_speed(action));
+    }
+    mu_hero_stats hero;mu_session_hero(c->session,&hero);c->hero_hp=hero.hp;
+    mu_characters_view view=mu_session_characters(c->session);
+    for(int32_t k=0;c->actors && k<c->actors->count;++k) {
+        int32_t slot=c->actors->list[k].session_slot;
+        if(slot<0 || slot>=view.capacity)continue;
+        if(c->actor_revisions[k]!=view.equipment_revision[slot]) {
+            if(c->actor_revisions[k] && c->monsters[k].dead) ++c->stats.respawns;
+            memset(&c->monsters[k],0,sizeof c->monsters[k]);c->monsters[k].alpha=1;
+            c->monsters[k].hp=(int32_t)view.records[slot].hp;c->monsters[k].saved_wander=-1;
+            c->actor_revisions[k]=view.equipment_revision[slot];
+        }
+    }
+    mu_combat_frame_event events[MU_COMBAT_HISTORY];uint32_t lost=0;
+    size_t n=mu_session_combat_events(c->session,&c->receive_cursor,events,MU_COMBAT_HISTORY,&lost);c->receive_lost+=lost;
+    for(size_t j=0;j<n;++j) {
+        const mu_combat_frame_event *e=&events[j];int32_t i=-1;
+        for(int32_t k=0;c->actors && k<c->actors->count;++k)
+            if((uint16_t)c->actors->list[k].session_key==e->key) {i=k;break;}
+        if(e->kind==4) {if(c->drop)c->drop(c->drop_context,e->drop);}
+        else if(e->kind==1) {
+            mu_combat_event hit={.actor=i,.damage=e->damage.amount,.type=e->damage.type,
+                .flag8=e->damage.flags[3],.flag_a=e->damage.flags[4],.shock=e->damage.shock};
+            if(e->key==c->hero_key) {
+                show_damage(c,c->hero_key,c->walk->hero.position,hit.damage,hit.type,hit.flag8,hit.flag_a);
+                if(hit.shock)hero_hit(c,hit.damage,hit.type);++c->stats.hero_hits;
+            } else if(i>=0)monster_hit(c,&hit);
+        } else if(e->kind==2) {
+            if(e->key==c->hero_key) {c->hero_dead=1;c->hero_attack_time=0;mu_combat_stop(c);mu_walk_stop(c->walk);}
+            else if(i>=0 && !c->monsters[i].dead) {
+                c->monsters[i].dead=1;c->monsters[i].attack_time=0;++c->stats.kills;
+                char text[96];snprintf(text,sizeof text,"step %d: %s dies (server frame)",c->step,c->actors->list[i].label);log_line(c,text);
+                if(c->target==i)mu_combat_stop(c);
+            }
+        } else if(e->kind==3 && i>=0) {
+            mu_combat_monster *m=&c->monsters[i];
+            int32_t action=mu_monster_attack_action(m->counter,0);m->counter=(uint8_t)(m->counter+2);
+            if(action>=0)set_monster_action(c,i,action);m->attack_time=1;++c->stats.monster_attacks;
+        }
+    }
+}
+
 /* ---------------------------------------------------------------- step */
 
 void mu_combat_step(mu_combat *c)
 {
     ++c->step;
-    process_events(c);
+    mu_combat_receive(c);
     hero_dead_step(c);
-    if (c->pending_target >= 0 && c->step >= c->pending_deadline)
-        demo_damage(c, c->pending_target, 0);   /* the server answers anyway */
     if (c->hero_attack_time && mu_attack_time_step(&c->hero_attack_time, MU_ATTACK_TIME_LIMIT)) {
         refresh_objects(c);
         end_of_attack(c);

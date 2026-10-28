@@ -168,12 +168,10 @@ void mu_world_items_close(mu_world_items *items);
  * index; level_byte as the client's packet byte 1 (level << 3 | skill 0x80 |
  * luck 4 | option 0..3); zen is the amount for code 0x1c0f. Returns the pool
  * slot, or -1 (no free slot or no Item.bmd record). */
+int32_t mu_world_items_receive_entry(mu_world_items *items,int32_t slot,const uint8_t bytes[15],float x,float y,int32_t drop_flag);
 int32_t mu_world_items_drop(mu_world_items *items, int32_t code, int32_t level_byte, uint8_t excellent, uint8_t ancient,
                             int32_t zen, float x, float y, int32_t drop_flag);
 
-/* Watches the combat monsters (call after mu_combat_step): a death message
- * schedules a demo drop. combat may be NULL. */
-void mu_world_items_watch_combat(mu_world_items *items, const struct mu_combat *combat);
 /* One logic step: the demo server's messages, MoveItems with the sparkle, the
  * hero's pick-up mode and the despawn. */
 void mu_world_items_step(mu_world_items *items);

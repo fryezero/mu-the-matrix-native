@@ -102,6 +102,9 @@ static int actors_open(struct mu_world_rt *a, void *self)
     fprintf(out, "endpoint game 127.0.0.1:55902\nuse monsters file=%s\n", placement);
     if (a->players_file && !a->no_players)
         fprintf(out, "use characters defer=1 x=%d y=%d file=%s\n", a->walk.hero.tile[0], a->walk.hero.tile[1], a->players_file);
+    if (a->combat_on) fprintf(out,"use combat hp=%d lo=%d hi=%d latency=%d seed=%u counter=%d respawn=%d hero_hp=%d hero_respawn=%d\n",
+        a->combat_config.monster_hp,a->combat_config.damage_min,a->combat_config.damage_max,a->combat_config.latency_steps,
+        a->combat_config.seed,a->combat_config.counter_attack,a->combat_config.respawn_steps,a->combat_config.hero_hp,a->combat_config.hero_respawn_steps);
     fclose(out);
     mu_fixture_options options = {scenario, NULL, 0x5eed2026u};
     mu_fixture *fixture = mu_fixture_open(&options, error, sizeof error);

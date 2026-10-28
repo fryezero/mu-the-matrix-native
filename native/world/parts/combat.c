@@ -21,24 +21,6 @@ static void combat_sound(void *context, int32_t id)
     mu_audio_host_play(a->sound.host, id, 0);   /* SND_Play(id, object, 0) */
 }
 
-/* NATIVE-QUEST-001: a monster died: the quest demo server counts it (core/mu_quest).  NATIVE-PROGRESS-001:
- * the progression demo server gives its experience. */
-static void combat_kill(void *context, int32_t actor, int32_t server_class)
-{
-    mu_world_rt *a = context;
-    if (a->progress)
-        mu_progress_kill(a->progress, server_class, actor);
-#ifndef MU_WORLD_NO_GL
-    if (a->gfx)
-        world_gfx_quest_kill(a->gfx, server_class);
-#else
-    (void)server_class;
-#endif
-}
-
-/* NATIVE-PROGRESS-001: the hero's respawn (the server's 0xA0 sub 0x30 answer when the demo delay ends):
- * the DEMO town (mu_map_respawn: the teleport the host takes next step changes the world when needed)
- * and the client's handler over the progress session. */
 int world_rt_combat_respawned(void *context)
 {
     mu_world_rt *a = context;
@@ -50,6 +32,13 @@ int world_rt_combat_respawned(void *context)
         printf("{\"respawn\": {\"world\": %d, \"tile\": [%d, %d], \"town\": %d}}\n", (int)world, (int)x, (int)y,
                placed);
     return placed;
+}
+
+static void combat_drop(void *context,const uint8_t entry[19])
+{
+    mu_world_rt *a=context;if(!a->ground)return;
+    uint16_t key=(uint16_t)((entry[0]<<8)|entry[1]);int32_t slot=key&0x7fff;if(slot>=1000)slot=0;
+    mu_world_items_receive_entry(a->ground,slot,entry+4,((float)entry[2]+0.5f)*100,((float)entry[3]+0.5f)*100,key>>15);
 }
 
 static int combat_open(struct mu_world_rt *a, void *self)
@@ -80,9 +69,8 @@ static int combat_open(struct mu_world_rt *a, void *self)
             a->combat->play_sound = combat_sound;
             a->combat->sound_context = a;
         }
-        a->combat->kill = combat_kill;   /* NATIVE-QUEST-001: the quest demo's kill progress */
-        a->combat->kill_context = a;
-        a->combat->hero_respawned = world_rt_combat_respawned;   /* NATIVE-PROGRESS-001 */
+        a->combat->session = a->actors.session;
+        a->combat->drop=combat_drop;a->combat->drop_context=a;
     }
     return 0;
 }

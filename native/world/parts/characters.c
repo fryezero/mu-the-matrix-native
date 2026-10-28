@@ -8,6 +8,7 @@
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/characters_demo.h"
 #include "../../fixture/monsters_demo.h"
+#include "../../fixture/combat_demo.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,6 +119,8 @@ static void characters_tick(mu_world_rt *a, void *self)
     }
     if(p->tick && a->players)mu_characters_demo_observe(p->demo,a->players);
     if(a->has_actors) mu_monsters_demo_observe(mu_fixture_behavior_state(p->fixture,"monsters"), &a->actors);
+    if(a->has_actors)mu_combat_demo_observe(mu_fixture_behavior_state(p->fixture,"combat"),&a->actors,a->walk.hero.tile[0],a->walk.hero.tile[1]);
+    mu_transport_flush(p->transport);
     mu_transport_poll(p->transport,++p->tick*40u);
     mu_session_pump(p->session,p->tick*40u);
     world_rt_actors_sync(a);

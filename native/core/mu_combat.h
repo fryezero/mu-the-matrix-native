@@ -55,6 +55,7 @@
 #include "mu_textures.h"
 #include "mu_walk.h"
 #include "mu_world_actors.h"
+#include "../session/domains/combat.h"
 
 enum {
     MU_COMBAT_WEAPON_NONE = 0,
@@ -128,7 +129,7 @@ typedef struct mu_combat_event {
     int32_t kind;             /* 1 damage to a monster, 2 damage to the hero */
     int32_t actor;
     int32_t damage, type;
-    uint8_t flag8, flag_a;
+    uint8_t flag8, flag_a, shock;
 } mu_combat_event;
 
 typedef struct mu_combat_monster {
@@ -148,6 +149,7 @@ typedef struct mu_combat_monster {
 } mu_combat_monster;
 
 typedef struct mu_combat_stats {
+    uint32_t requests_sent,requests_unsent;
     uint32_t attacks, skills, arrows, fx_created, hits, misses, kills, removed, respawns;
     uint32_t points_created, monster_attacks, hero_hits, picks, pick_hits;
     uint32_t shocks, deaths;
@@ -160,6 +162,13 @@ struct mu_world_particles;
 
 typedef struct mu_combat {
     mu_combat_config config;
+    mu_session *session;
+    uint64_t receive_cursor;
+    uint32_t receive_lost;
+    uint32_t place_sequence;
+    void (*drop)(void *context,const uint8_t entry[19]);
+    void *drop_context;
+    uint32_t actor_revisions[MU_WORLD_ACTORS_MAX];
     /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
      * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */
     struct mu_world_particles *legacy_particles;
@@ -197,18 +206,8 @@ typedef struct mu_combat {
     int32_t hero_home[2];      /* demo: the respawn tile */
     mu_combat_sound_fn play_sound;   /* optional (mu-world sets it when sound is on) */
     void *sound_context;
-    /* NATIVE-QUEST-001: a monster died (actor index, server class): the quest demo's progress */
-    void (*kill)(void *context, int32_t actor, int32_t server_class);
-    void *kill_context;
-    /* NATIVE-PROGRESS-001: the server's respawn answer (0xA0 sub 0x30) when the demo delay ends; returns 1
-     * when the host placed the hero (the respawn town), 0 for the demo's first tile */
-    int (*hero_respawned)(void *context);
     uint32_t sounds_played;
     int32_t last_sound;
-    int32_t pending_target;    /* demo: the projectile attack whose damage waits for its hit check */
-    int32_t pending_deadline;
-    int32_t pending_damage, pending_type;
-    uint8_t pending_flag8;
     uint8_t hero_counter;      /* c + 0x28 */
     int16_t weapon_item[2];    /* c + 0x19ac (client item indices of the demo weapon) */
     float speeds[MU_PLAYER_ACTIONS];   /* SetAttackSpeed result; < 0 for actions it does not store */
