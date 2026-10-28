@@ -84,7 +84,28 @@ All **30/30 focused private audio tests** pass after the ground extension, inclu
 sites and five actual native voices, duplicate-id suppression, silent drain, known missing records,
 non-drop flags, delete/request silence, and detached arrival without late replay. The item-only and
 shared-character world paths both play once. Eight additional frame-hash pairs match, giving **64/64**
-world/combat/item comparisons with audio enabled/disabled. Final integrated gate is pending.
+world/combat/item comparisons with audio enabled/disabled. The complete 30-test private suite was
+repeated on the final integrated tree and passes with no skips.
+
+## Final locked gate
+
+Acquired the lock at 12:25 CDT after the other lanes released it. Latest main `26018b4`, including
+RENDER-ITEMS-002H and RENDER-WORLDS-J, is integrated in `2938153`. The only conflict was appended
+validator entries; both intents are retained. The final audio caller build includes their primary-world
+source dependencies. No renderer/performance source is authored by this lane.
+
+After `make -C native clean`, `bash scripts/local-macos-ci.sh` passes: **1,571 tests across 38 suites,
+197 explicit private/optional skips, zero failures/errors**. Native suite: 742 tests. All **9/9 fixture
+scenarios** pass, **72 expectations, 71 inbound frames, zero unbound/undecodable**; the existing two
+unrecovered intents and seven unsent requests remain explicit. Viewer and read-only readers build;
+readers were never run. Repository audit: **1,512 files, zero rejected**. Include/manifest checks pass.
+No hosted workflow ran.
+
+The gate ran at runtime/source head `2938153`; the fixture report's dirty flag is from the two
+untracked evidence/Python symlinks. Tracked runtime source was clean. Only release summaries are
+edited after the passing gate. Standards/spec self-review covers input availability, callback release,
+silent drain, source-site provenance, duplicate suppression, scoped ownership and evidence limits.
+No independent reviewer is claimed. Checkpoints `01391fb`, `c93f092` and `244f20a` were pushed.
 
 ## Limits and cleanup
 
