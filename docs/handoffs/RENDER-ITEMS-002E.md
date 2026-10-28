@@ -63,14 +63,17 @@ without effect textures. Previous milestones' renders/hashes remain preserved.
 
 The full local Mac gate passed after merging main through #196: **1,463 tests** across 38 suites,
 178 explicit skips; **6/6 fixture scenarios**, 46 inbound frames, zero unbound/undecodable frames;
-viewer and reader builds; repository audit. Main's subsequent #197 merge is integrated and its full
-release gate is running. No hosted CI is used.
+viewer and reader builds; repository audit. Main's subsequent #197 merge is integrated. Its interim gate exposed a missing generated-header
+dependency for `core/mu_combat.o`; the Makefile now refreshes domain/intent and layout headers before
+compiling it. The failed incremental build, repaired compile and a changed-intent dry-run are recorded in
+`finalize/`. The final gate/merge wait for the serialized merge lock. No hosted CI is used.
 
 Fresh inherited comparisons, all with zero mismatches:
 
 | Family | Cases | Compiled mutants caught |
 |---|---:|---:|
 | Part 2 remaps/body/link/bone helper | 135,176 | 6/6 |
+| Part 3 body/link/transform | 74,292 | 8/8 |
 | Part 4 body/skin/link | 52,172 | 7/7 |
 | Spark03/11 create/move/render | 1,500 | 3/3 |
 
