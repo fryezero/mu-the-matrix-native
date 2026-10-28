@@ -136,11 +136,11 @@ static float mesh_light_pulse(float time)
     return ((wave + 1.0f) * 0.5f) * 0.8f + 0.2f;
 }
 
-/* 0x0185bdc4(a,b): degree phase b, signed period 6283.1855/a, binary32 steps. */
-static float client_wave(float a, float b, float time)
+/* 0x0185bdc4(a,0): signed period 6283.1855/a, binary32 steps. The zero
+ * phase term adds a signed zero to time and cannot change the tick. */
+static float client_wave(float a, float time)
 {
-    float x = b * 0.017453292f * 1000.0f / a + time;
-    int32_t tick = !(x >= -2147483648.0f && x < 2147483648.0f) ? INT32_MIN : (int32_t)x;
+    int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;
     int32_t period = (int32_t)(6283.1855f / a);
     float y = (float)(tick % period) * 0.001f * a;
     float w = (float)cos((double)y);
@@ -153,10 +153,9 @@ static float client_wave(float a, float b, float time)
  * Operation bit 8 marks the binary64 form (fstp qword .. cvtsd2ss). */
 static float body_scalar(const mu_rc_body_scalar *p, float time)
 {
-    float a, b, value;
+    float a, value;
     memcpy(&a, &p->a, 4);
-    memcpy(&b, &p->b, 4);
-    value = p->kind == 1 ? client_wave(a, b, time) : client_sin(time * a);
+    value = p->kind == 1 ? client_wave(a, time) : client_sin(time * a);
     if (p->count && (p->op[0] & 8)) {
         double wide = value;
         for (int i = 0; i < p->count; ++i) {
