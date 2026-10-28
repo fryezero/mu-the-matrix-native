@@ -148,6 +148,7 @@ typedef struct mu_jt_env {
     void (*call)(void *context, const mu_jt_call *call);         /* NULL: calls are not reported */
     uint8_t serial;            /* [[0x01d1df18] + 0x2dec], the hero's skill serial (Evil Spirit) */
     float world_time;          /* WorldTime [0x06fce370], ms */
+    int32_t ambient_clock;    /* [0x0bdc5eb0], independent of WorldTime */
     float creation_light[3];   /* CreateJoint argument 12, the eye trails' supplied colour */
 } mu_jt_env;
 
@@ -174,6 +175,7 @@ typedef struct mu_jt_move_inputs {
     float time_step;           /* [0x01cf103c] */
     int wall_scene;            /* [0x01ec8ee7] (Evil Spirit's wall stop) */
     uint16_t wall;             /* terrain attribute at the head (0x016d348d) */
+    int32_t index;            /* MoveJoint argument 2, pool ordinal */
     int is_hero_target;        /* the target is the hero's object */
 } mu_jt_move_inputs;
 

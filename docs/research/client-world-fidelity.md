@@ -223,9 +223,9 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
 
 ## 4. Gaps (ranked by visibility)
 
-1. **Icarus's persistent soft grey coverage**: the named sky, cloudLight, blue-swirl and dragon instruction paths
-   are ported in RENDER-WORLDS-C (section 3.5), but the screenshot's grey coverage remains unexplained. The ten
-   accompanying boid emitters' `0x472/1` joint requests are counted by the native host, not rendered.
+1. **Icarus cover and emitter gap closed by RENDER-WORLDS-C2** (section 7). The remaining image error includes
+   unsynchronised cloud rotation, puff distribution, ribbons, dragons and uncaptured hero equipment. The earlier
+   RENDER-WORLDS-C results in section 3.5 are historical.
 2. **Tarkan and Raklion haze**: the client's terrain is up to ~1.35× brighter, the darker light-map areas most, so
    the contrast is compressed; the pattern stays with the ground when the hero moves (second session, two positions
    per map). The primary and frame light grids equal the native ones, the light-offset grid `0x0bc35430` is all zero,
@@ -434,3 +434,90 @@ Next work: A-owned visual paths and C2-owned remaining Icarus paths; unblocked E
 lifecycle, including the event-state and timer inputs; attribute Aida's transient frame light from existing
 source/effect code or a separately authorized future capture; fresh locked live images of the changed worlds.
 No live game, launcher, network, service, protection module or running-client memory was touched.
+
+
+
+## 7. RENDER-WORLDS-C2: persistent Icarus cover and emitter ribbons
+
+**Verified.** The persistent grey cover comes from RenderObjectVisual's world-10 branch,
+`0x017fba5e..0x017fbf34`, rather than the rare two-step cloud model. Types 0..2 create 20 `clouds`
+`0x7f89` particles each; types 3..5 create 10 each, subtype = object type, light `(0.1, 0.1, 0.1)`,
+owner = source OBJECT. Creation only runs while HiddenMesh is not -2, then sets it to -2. The native visual
+dispatcher previously excluded world 10. Its imported hidden-type sidecar also set -2 before the first draw,
+which would suppress this producer even after adding the handler. Native startup now leaves these six types
+for their verified visual handler to hide.
+
+`reconstructed/particles/icarus_clouds.inc` implements their creation and movement. The initial lifetime is 30;
+while the source's visible byte is exactly 1, movement resets it to 50 before the common decrement. Once the
+source stays invisible until lifetime 1, the particle dies and resets the source HiddenMesh to 0, allowing
+re-entry to create its cover again. Size is `(rand % 20 + 180) * 0.01`, independent of requested size; vertical
+motion uses `sin((WorldTime + gravity) / 5000) * 20`. Subtypes 1/4 and 2/5 turn in opposite directions in the
+mover; subtype 0 uses the render ordinal's parity, and subtype 3 turns in RenderParticles. The renderer now
+receives WorldTime and the list ordinal. These kinds use their supplied light directly, without the alpha
+multiplication of the older login-mist subtype 20. The existing additive RGB texture path and sprite-pass order
+remain in use; no opacity, spawn-rate or lifetime tuning was introduced to fit the still.
+
+**Verified.** `0x472/1` creation, movement and rendering now use the shared joint pool: target-relative animated
+head, 30 tails, `JointSpirit01`, lifetime 999999, light `(0.2, 0.2, 0.2)` at creation and the client's per-segment
+geometry/fade. Native boid owner handles are distinct from map-object, actor, helper and hero handles, so the
+joint follows the boid and terminates when it dies. The native Icarus ambient clock previously used elapsed
+milliseconds. The writer `0x01851f82..0x01851f8d` increments `0x0bdc5eb0` once per 40 ms logic step; the host
+now supplies the logic ordinal, with zero as the fresh-world phase. The captured session's starting counter is
+unknown. Other worlds' host clocks are unchanged.
+
+`scripts/validate_icarus_c2.py`, registered in `scripts/validators.toml`, freezes the production C and compares
+seven families at 1,200 cases each: cover producer, cloud create/move/render and emitter joint create/move/render.
+**8,400 equal, zero mismatches/stops, all 8 compiled planted mistakes caught.** It covers all six cloud subtypes,
+hidden guards, source visibility 0/1/2, source reset, positive/negative WorldTime, both render ordinals, live/dead/
+absent joint owners, and signed/wrapped clocks and pool indices. Engine services are recording stubs. The joint's
+character resolver answers absent, and the non-Icarus event-world predicate answers false for world 10. Scalar
+trig uses the existing validator's host-libm boundary. Native integration tests cover sidecar initialization,
+80 visible ticks without duplication, expiry/re-entry, real boid-to-joint creation, owner death and the separate
+clock. Exact commands, additional checks and limits are in [the handoff](../handoffs/RENDER-WORLDS-C2.md).
+
+### Image diagnosis
+
+All scores below use the surviving full-resolution README-source PNG, 1722 by 1048 client area, the tour's
+unchanged HUD/hero masks and original mean absolute difference. Lower is better. No live client was used.
+
+| Logic steps | Before #181 | #181 | C2 |
+|---|---:|---:|---:|
+| 25 | 61.760 | 62.030 | 26.897 |
+| 400 | 54.673 | 60.935 | 27.663 |
+
+The #181 regression is localised by one fixed mask made from its before/after frame difference, threshold >1
+in any RGB channel. At 25 steps this footprint covers 11,280 of 1,178,576 scored pixels, 0.957%; its error rises
+29.802 to 58.026, accounting for the whole +0.270 regression. The other 1,167,296 pixels score 62.069 on both
+sides. At 400 steps the footprint covers 552,285 pixels, 46.860%; its error rises 59.271 to 72.617. Outside it,
+error changes only 50.617 to 50.633. The broad late-frame change agrees with the sky helper's added RNG calls
+changing where the existing puff system emits; dragons and ribbons are also phase dependent. This is an image
+measurement and source-based inference about phase, not a replay of the captured random stream.
+
+C2 draw-only ablations preserve all simulation and RNG calls. They isolate the missing cover from moving
+ribbons and creatures; masks are the exact changed RGB footprints, intersected with the existing HUD masks.
+They supplement the whole-scene score. Overlapping layer contributions must not be added together.
+
+| Omitted draw layer | 25-step error | 400-step error |
+|---|---:|---:|
+| Persistent cover | 61.798 | 60.919 |
+| Emitter ribbons | 26.674 | 27.664 |
+| Dragons | 26.557 | 27.597 |
+| Rising puff particles | 26.897 | 26.801 |
+| Blue swirls | 26.897 | 27.788 |
+
+The cover footprint spans 1,138,288 / 1,136,661 scored pixels at these frames; it accounts for most of the missing
+brightness. The added moving elements can improve or worsen a single-frame score: at 400 steps omitting puffs
+improves it by 0.862, whereas omitting swirls worsens it by 0.125. This does not justify removing either verified
+behavior. Across 307 consecutive full-resolution native frames, steps 1..307, error ranges 26.481..32.609 with
+mean 28.691. The separate 400-step endpoint is 27.663. No live time series survives, so this measures sensitivity
+to native phase against one still, not temporal equivalence. The older full effect pool snapshots identify rising
+puffs but lack this separate particle list and the boid/joint/sprite pools.
+
+Camera, primary light and static-object comparisons stay in the tour. All thirteen other capture PNG hashes are
+unchanged against #181 before the parallel D merge. After D #188, all thirteen match its new main baseline,
+including its Noria change, and Icarus retains the same two scores. `fidelity_tour.py` now accepts optional `element_masks` per map and reports their areas
+and errors without replacing the whole-scene metric; `icarus_fidelity.py` produces the phase and ablation report.
+No moving-region exclusion is used to claim the target passed. Local inputs, frame reports, masks, selected
+renders and the full 307-row score series remain under the C2 scratch/render directories. Renders and captures
+are not committed. Remaining limits are exact captured RNG/clock/pool phase, the hero/equipment mask, and the
+unported world-10 type-10 bone flare. Sibling worlds and after-character rendering remain with lanes A/D.

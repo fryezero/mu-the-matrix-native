@@ -82,7 +82,7 @@ Call = sf.Call
 
 class MoveInputs(ctypes.Structure):
     _fields_ = [('time_step', ctypes.c_float), ('wall_scene', ctypes.c_int), ('wall', ctypes.c_uint16),
-                ('is_hero_target', ctypes.c_int)]
+                ('index', ctypes.c_int32), ('is_hero_target', ctypes.c_int)]
 
 
 RAND_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p)
@@ -93,7 +93,7 @@ CALL_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(Call))
 
 class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
-                ('call', CALL_FN), ('serial', ctypes.c_uint8), ('world_time', ctypes.c_float), ('creation_light', ctypes.c_float*3)]
+                ('call', CALL_FN), ('serial', ctypes.c_uint8), ('world_time', ctypes.c_float), ('ambient_clock', ctypes.c_int32), ('creation_light', ctypes.c_float*3)]
 
 
 STATE_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32)
@@ -324,7 +324,7 @@ def family_joint_create(m, lib, rng, cases, report, negatives):
         kind = KINDS[n % len(KINDS)]
         pos, tpos, angle, scale = random_create_args(rng, kind)
         objects = [random_object(rng) for _ in range(2)]
-        target = rng.choice([0, 1]) if kind[0] in (0x7f7d, 0x7f78, 0x7fd6) else rng.choice([-1, 0, 1])
+        target = rng.choice([0, 1]) if kind[0] in (0x472, 0x7f7d, 0x7f78, 0x7fd6) else rng.choice([-1, 0, 1])
         key, skill, byte10, word13, arg14 = (rng.choice([rng.randrange(0, 0x10000), 2, 0xffff, 0, 3]),
                                               rng.choice([0x7f5, 9, 0x123]),
                                               rng.randrange(0, 256), rng.randrange(0, 0x10000),
@@ -465,13 +465,23 @@ def family_joint_move(m, lib, rng, cases, report, negatives):
             case.client_calls.append(('wall', mm.float_argument(0), mm.float_argument(1)))
             return wall, 0
         stubs[sf.WALL_ATTRIBUTE] = wall_stub
+        index = n if kind[0] == 0x472 else 0
+        clock = rng.choice([0, -2147483648, 2147483647, rng.randrange(-10000000, 10000000)])
+        if kind[0] == 0x472:
+            record.define(JOINT_POOL + 0xa40, struct.pack('<i', 0))
+            regions += [am.defined_region('ambient-clock', 0xbdc5eb0, struct.pack('<i', clock)),
+                        am.defined_region('world', 0x1cf15fc, struct.pack('<i', 10))]
+            stubs[0x95f6db] = lambda mm: (0, 4)
+            stubs[0x9a13f4] = lambda mm: (0, 0)
+            stubs[0xe0558b] = lambda mm: (0, 0)
         before = Joint.from_buffer_copy(j)
-        r = m.execute(MOVE_JOINT, [JOINT_POOL, 0], regions, stubs)
+        r = m.execute(MOVE_JOINT, [JOINT_POOL, index], regions, stubs)
         env = case.jenv()
+        env.ambient_clock = clock
         is_hero = 1 if (hero_obj >= 0 and hero_obj == j.target) else 0
         if j.type == 0x7fd3 and j.scale == 80.0 and wall_scene:
             case.c_calls.append(('wall', None, None))
-        inputs = MoveInputs(step, wall_scene, wall, is_hero)
+        inputs = MoveInputs(step, wall_scene, wall, index, is_hero)
         supported = lib.mu_jt_move(ctypes.byref(j), ctypes.byref(env), ctypes.byref(inputs))
         mismatch = None
         if vc.ok(r):
