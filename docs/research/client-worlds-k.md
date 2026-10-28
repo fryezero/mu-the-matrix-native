@@ -133,3 +133,9 @@ The final post-EFFECTS-003 tour and gate must cover these host fixes; the earlie
 An offline installed-model check also confirms all **9 named-bone requirements across 5 models**:
 Lost Tower types 19/20/23, Tarkan type 63 and Icarus type 10. This checks the loaded asset names,
 not original animation phase. No client process was touched, and the small inspector is deleted with scratch.
+
+Static downstream limit: Tarkan type 83's `0x419/0x41a` requests use the existing Stone01/Stone02
+lifecycle in `reconstructed/combat/skill_fx.c`. The combat renderer loads both models, but the separate
+world-particle host's `fx_model_files` has no slots for them and `draw_models` skips missing slots.
+The remaining work is that world-host model binding, not reconstruction of a missing stone lifecycle.
+K emits and compares the original calls without adding effect/particle files.
