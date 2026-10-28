@@ -41,7 +41,7 @@ both sides. On the merged tree:
 - `bash scripts/local-macos-ci.sh` passes: **1,650 tests across 38 discovery runs, 211 explicit skips, zero
   failures/errors; 11/11 fixture scenarios; native viewer and reader builds; publication audit 1,616 files,
   zero rejected**. Readers built only. No hosted workflow dispatched.
-- Registered private G/H/I/J/N: **5/5 pass, no errors/skips** (N: 13,000 cases, 29/29 mutants).
+- Registered private G/H/I/J/N, run on the pre-merge branch `c28d0d4`: **5/5 pass, no errors/skips** (N: 13,000 cases, 29/29 mutants).
 - `world_handler_coverage.py`: 48 classes, 57 registrations, 288 addresses; 52/144, 18/48.
 - N portable tests 3 pass + 1 private skip; native N host passes.
 
