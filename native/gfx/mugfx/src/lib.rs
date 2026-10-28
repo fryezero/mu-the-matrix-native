@@ -65,6 +65,7 @@ use url::Url;
 
 #[cfg(target_os = "macos")]
 mod surface;
+mod perf;
 mod navigator;
 
 /// `const char *callback(void *user, const char *name, const char *args_json)`.

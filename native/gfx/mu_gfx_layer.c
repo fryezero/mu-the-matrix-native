@@ -71,12 +71,14 @@
 #include "item_slots.h"
 #include "tooltip_html.h"
 #include "mugfx/include/mugfx.h"
+#include "../core/mu_perf.h"
 
 #define MAX_ITEMS 48
 
 /* ---- mugfx, loaded at run time --------------------------------------------- */
 
 typedef struct mugfx_api {
+    void (*perf_frame)(uint64_t);
     void *dl;
     int (*abi_version)(void);
     MuGfx *(*open)(const char *, int, int, char *, size_t);
@@ -161,6 +163,7 @@ static int api_load(mugfx_api *api, const char *explicit_path, char *error, size
             return -1;                                                                                         \
         }                                                                                                      \
     } while (0)
+    *(void **)(&api->perf_frame) = dlsym(api->dl, "mugfx_perf_frame");
     SYM(abi_version, "mugfx_abi_version");
     if (api->abi_version() != MUGFX_ABI_VERSION) {
         snprintf(error, cap, "libmugfx ABI %d, expected %d (rebuild it)", api->abi_version(), MUGFX_ABI_VERSION);
@@ -2715,6 +2718,7 @@ static void render_readback(mu_gfx_layer *L, movie *mv, int m)
 
 static void render_movies(mu_gfx_layer *L, int force_readback)
 {
+    if (L->api.perf_frame) L->api.perf_frame((uint64_t)mu_perf_frame_index());
     int submitted = 0;
     double t_submit = now_ms();
     for (int m = 0; m < MU_GFX_MOVIES; m++) {
