@@ -238,3 +238,70 @@ with their domain migrations; the later LIVE-PLAY FMOD comparison remains open.
 Final local Mac gate after the viewport, B/C worlds and item rendering merges: 1,393 tests, 165 explicit skips, zero
 failures; viewer/readers build and repository audit pass, 1,247 files, zero rejected. The final gate is
 `native/scratch/audio-002/gate-items-release.log` under `mu-mac-tools`; the handoff gives the full path.
+
+## AUDIO-002 part 2, 2026-10-28
+
+The existing `codex/audio-002b` checkpoint was reviewed and completed after merging main `0a85441`.
+Only this worktree was built or edited. No original client, launcher or live service was used.
+
+**Implemented.** Thirty source call sites have adapters into the character session ring. Twenty-nine can
+emit `MU_CUE_SOUND`; the third NPC voice reports its missing buff input as described below.
+An independent audio cursor consumes them without taking the window/effect readers' cues. Sound logs
+retain the original call instruction in `site`, the owning routine in `handler`, cue sequence and
+session tick. `at_key = -2` denotes the original null object, and `-3` denotes the ambient creature.
+The verified SND_Play implementation ignores that pointer. The renderer and visual RNG are unchanged.
+
+| Caller | Original routine and SND_Play sites | Sound ids / conditions |
+|---|---|---|
+| Walking, 10 sites | `0x013b1f61`: `0x013b200a`, `202f`, `2054`, `208c`, `20ab`, `20c7`, `20e6`, `2136`, `2146`, `2156`, all with prefix `0x013b` | Snow 10, grass 9, swim 11, bridge 1233, soil 8; existing action/manager/world/safe-zone/tile/terrain gates unchanged |
+| NPC voices, 3 sites | `0x013b23f8`: `0x013b5402`, `0x013b542f`, `0x013b5494` | Models `0xa0b`/`0xa06` select 161/160 on signed random remainder 64/256 = 0; `0xa01` selects 160 for action 0, frame 5..10, buff `0x1b` absent |
+| ReceiveTalk windows, 2 sites | `0x01280659`: `0x012811ca`, `0x012811d8` | 25 then 28, only after the reconstructed encrypted-input gate and valid result path |
+| Ambient creatures, 5 sites | `0x00c9eb04`: `0x00c9fcd5`, `0x00c9fcfb`, `0x00c9fd2f`, `0x00c9fd74`; `0x00ca05b3`: `0x00ca1c80` | 12, 13, 14, 138, 15; existing random, distance and action gates unchanged |
+| Aida objects | `0x00d6202f`: `0x00d622d1` | 584, worlds 33/54 |
+| Kanturu objects, 5 sites | `0x00e74ae0`: `0x00e74c6e`, `0x00e74f29`, `0x00e74f57`, `0x00e75033`, `0x00e7507d` | 618, 616, 617, 619, 620, with the existing type cases and common-tail ordering, worlds 37/40 |
+| Karutan object | `0x00e13a9e`: `0x00e13bd2` | 1445, type `0x87`, worlds 80/81 |
+| Tormenta objects, 3 sites | `0x00e4c95e`: `0x00e4ca6a`, `0x00e4cb19`, `0x00e4cbc8` | 1409/1412/1411 for types 6/183/200 at distance <= 1300*scale / 450 / 800 |
+
+**Verified.** `validate_audio_callers.py` compiles the production selectors and cue adapters. It compares
+ordered routine/site/id/null-object/loop decisions against the original instructions, including no-call
+cases. Corpus: NPC voice fragments 2,182, full ReceiveTalk 2,304, PlayWalkSound 610, object handlers
+420. That is **5,516 instruction cases, zero mismatches**. Twelve additional ambient id/site mapping
+checks statically verify the literal push and SND_Play target, including seven unsupported ids.
+The unchanged `validate_environment` family verifies the ambient decision gates. The validator's total
+is **5,528 checks**, with **18/18 compiled mutants caught**, including wrong voice route/frame/buff,
+talk gate/id/site order, terrain/world/site selection, ambient loop, object site/id/type/distance/order.
+Object comparisons execute the four original handlers with finite synthetic geometry, scale 0.5/1/2,
+distance boundary neighbors, seven world ids, type controls and ordered multiple sounds. The NaN-distance
+probe stopped in the original CRT's uncaptured error path at `0x019bd00e`; it is excluded rather than
+replaced with an inferred result. Full object motion and surrounding model services remain covered by
+the existing object families, not by the new sound-only comparison.
+
+**Native integration.** Model-open sound registration follows the migrated actor cache order and retains
+one cache per audio host across viewport rebuilds. Source-site registration still uses the part-1
+first-successful-load rule. An audio-only MSVC random stream supplies the two probabilistic NPC voices;
+its phase is a native choice, not an observed original RNG state. The third voice's buff state is absent
+from the migrated viewport records. It emits `MU_CUE_AUDIO_INPUT`, logged as `unrecovered` with input
+`0x01295ade`, instead of assuming the buff is absent. Supplying a known buff value is verified by the
+adapter tests, but no new replicated buff fields are invented here.
+
+Fourteen focused cue tests pass with private comparison enabled. They cover real hero handler -> ring
+-> PCM, independent readers, one-time drain, exact 26/1,050 cue loss, silent drain, registration order,
+model cache reuse, provenance, explicit missing input, event invalidation, and object runtime distance
+gating. Three synthetic-world tests cover installed world parts: NPC talk/voice/walking provenance,
+239 Aida object requests after initial visibility setup over 240 ticks, and **42/42 frame hashes equal**
+with audio enabled/disabled in Lorencia and Aida. The initial visibility warmup is preserved.
+The native audio golden PCM remains
+`207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
+No existing validator body, expected render hash or PCM hash was changed.
+
+**Scope inventory.** The migrated quest windows have no reconstructed SND_Play sites; part 1's shared
+adapter remains installed. ReceiveTalk's two window sounds are covered above. The legacy CButton,
+credits and character-select UI, legacy progress/master-tree windows, ground-item pickup sounds and
+pet/raven callers have no migrated owning session here. Their future domain migrations must use the
+same ring contract; they are not included in the 30-site count. Standalone worlds without a character
+session retain the direct facade. Per-frame music/ambient managers remain in their part-1 host path.
+Combat stays with SESSION-COMBAT-001. Music 43/44, `0x01854279..0x018542c2`, event packet inputs,
+original RNG phase and LIVE-PLAY FMOD parity remain open. No whole-client audio parity is claimed.
+
+Final gate and unchanged-family rerun counts are recorded in [the part-2 handoff](../handoffs/AUDIO-002B.md).
+All raw reports, local inputs and logs remain outside the published tree.
