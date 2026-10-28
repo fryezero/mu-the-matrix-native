@@ -357,7 +357,7 @@ static void free_runtime(mu_world_rt *a)
     world_gfx_map_close(a->gfxmap);
 #endif
     free(a->mapsess);
-    mu_social_messages_destroy(a->social ? &a->social->messages : NULL);
+    mu_social_close(a->social);
     free(a->social);
     for (int i = 0; i < MU_PART_COUNT; ++i)
         free(a->part[i]);

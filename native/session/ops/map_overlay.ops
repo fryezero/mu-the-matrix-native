@@ -1,0 +1,3 @@
+MU_OP(0xE7, 0x03, map_overlay_marker)
+MU_OP(0xE7, 0x04, map_overlay_marker)
+MU_OP(0xE7, 0x05, map_overlay_detected)

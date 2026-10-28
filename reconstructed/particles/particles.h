@@ -129,6 +129,10 @@ typedef struct mu_pt_host {
     float (*bitmap_height)(void *context, int32_t bitmap);
     /* Icarus clouds: OBJECT +0xb; reset +0x68 when the last invisible-frame lifetime expires. */
     int (*cloud_owner)(void *context, int32_t owner, int reset_hidden);
+    /* Explosion sprite services. Optional; native sound remains counted in this rendering lane. */
+    void (*sound)(void *context, int32_t id);
+    void (*light)(void *context, float x, float y, const float rgb[3], int32_t range);
+    float wind_sum[3];      /* MoveParticles list +0x14..+0x1c, flare drift */
 } mu_pt_host;
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed
@@ -141,7 +145,10 @@ typedef struct mu_pt_host {
  *   0x8017 0 and chasellight 0x8022 5 (the character-select scene);
  *   NATIVE-HELPERS-002: Spark02 0x7f25 1 (the angel's sparkles), smoke02
  *   0x7f5b 0 (the mounts' dust), drop01 0x7fcd 0 (the Dark Horse's dust in
- *   Atlans) and Spark03 0x7f26 0xf (Fenrir's sparks). */
+ *   Atlans) and Spark03 0x7f26 0xf (Fenrir's sparks);
+ *   RENDER-EFFECTS-003: Spark02/2, explosion 0x7f54/0, flare01 0x7ef7/0,
+ *   smoke01 subtypes 4, 6, 7 and 8; RENDER-WORLDS-L: WATERFALL3/16,
+ *   firehik_mono01/2, mono02/6, mono03/2, WATERFALL5/0, WATERFALL3/8, WATERFALL2/4. */
 int mu_pt_kind_supported(int32_t type, int32_t subtype);
 
 /* The wrapper 0x0168fafd's drop rule (verified): in world 0x8b only, r =

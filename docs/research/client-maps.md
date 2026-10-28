@@ -233,3 +233,28 @@ private travel check with skill2's current data.
 Reports and logs stay local under `~/Documents/mu-mac-tools/native/renders/map2/` and `scratch/map2/`.
 The pre-fix reports are `baseline-lang5.json` for quest2 and `baseline-skill2-lang5.json` for the failing input.
 The navimap locale blocker and the earlier bounded teleport limitations remain unchanged.
+
+## Session overlay records, SESSION-MAP-001a, 2026-10-28
+
+[Implementation, checks and remaining scope](../handoffs/SESSION-MAP-001a.md).
+The unchanged capture09 text and run10 data pins above back three additional handler families.
+C1 E7/03 and /04 retain the documented marker offsets. C2 E7/05 reads a little-endian u16 count
+at +7, then count five-byte records at +9: kind byte, x little-endian u16, y little-endian u16.
+The loop at 0x01233cf8..0x01233d4e skips kind zero, zero-extends coordinates and passes the
+compacted vector to 0x00c6b6c2. Keys index that compacted vector, not the packet rows. The handler
+calls the show setter when the overlay is hidden. Routing remains MU_STATIC finding-backed
+metadata; no dispatcher table was walked.
+
+New comparisons execute 0x0126d85c, 0x0123134b and 0x01233c9b with the original GFx helper
+instructions. Each family passes 500 cases, zero mismatches. Four compiled parser mutants
+change marker key, zero-kind filtering, x high-byte handling and compacted key; all fail.
+The window getter, vector insertion/copy, heap and GFx host are modeled. The show setter is not
+part of these collection comparisons. Existing map families pass 5,001 cases and all ten mutants.
+
+The native session now owns markers/dots. The plaintext fixture supplies synthetic portal/NPC
+placements; the HUD replays retained records and detector arrays on revision or rebind. Empty
+refresh clears stale dots explicitly, although the original helper emits no movie call for an
+empty vector. Native count/name/head/capacity checks reject malformed data atomically. The actual
+hudMap movie arrays verify add/update/remove, stale retention on malformed frames, empty refresh
+and host rebind. Travel requests and placement remain in mu_map; the encrypted full milestone,
+party feed and locale formatter limits above remain open. No live session was accessed.

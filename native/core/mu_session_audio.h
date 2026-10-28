@@ -81,4 +81,21 @@ static inline void mu_session_npc_voice(mu_session *session, int32_t model, int3
     int32_t id = mu_audio_npc_voice(model, rand_value, action, frame, buff_1b);
     if (id >= 0) mu_session_sound_emit(session, 0x013b23f8u, site, id, -2, 0);
 }
+/* Latest complete monster/NPC viewport snapshot, already owned by the session.
+ * The original AddBuff rejects remote objects in 0x009dacb8's worlds. The
+ * 0x1b key has no extra gate in 0x01219ef8. Dynamic buff handlers/expiry are
+ * not migrated; this adapter neither simulates nor writes their state. */
+static inline void mu_session_npc_viewport_voice(mu_session *session, int32_t model, int32_t random,
+                                                uint16_t action, float frame, int32_t world,
+                                                const mu_monster_viewport *viewport)
+{
+    int buff = -1;
+    if (viewport && viewport->size >= 28 && viewport->buff_count <= 56) {
+        buff = 0;
+        if (!mu_rp_world_rule(world))
+            for (unsigned i = 0; i < viewport->buff_count; ++i)
+                if (viewport->buff_type[i] == 0x1b) { buff = 1; break; }
+    }
+    mu_session_npc_voice(session, model, random, action, frame, buff);
+}
 #endif

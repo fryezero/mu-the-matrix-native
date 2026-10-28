@@ -336,7 +336,7 @@ class CItem(ctypes.Structure):
                 ('blend_light', ctypes.c_float), ('u', ctypes.c_float), ('v', ctypes.c_float), ('buff_39', ctypes.c_uint8),
                 ('buff_12', ctypes.c_uint8), ('buff_41', ctypes.c_uint8), ('object_shadow', ctypes.c_uint8),
                 ('time', ctypes.c_float), ('quality', ctypes.c_int32), ('has_record', ctypes.c_int32),
-                ('kind_a', ctypes.c_uint8), ('kind_b', ctypes.c_uint8), ('item_kind', ctypes.c_uint8), ('enchant', F3)]
+                ('kind_a', ctypes.c_uint8), ('kind_b', ctypes.c_uint8), ('item_kind', ctypes.c_uint8), ('enchant', F3), ('object_hidden', ctypes.c_int32)]
 
 
 def emit_back_table(path, table):
@@ -801,7 +801,7 @@ def c_stream(lib, case, generic=False):
                  blend_light=u2f(case['blend_light']), u=u2f(case['u']), v=u2f(case['v']),
                  time=u2f(case['time']), quality=case['quality'], has_record=int(case['record'] is not None),
                  kind_a=(case['record'] or (0, 0, 0))[0], kind_b=(case['record'] or (0, 0, 0))[1],
-                 item_kind=(case['record'] or (0, 0, 0))[2], enchant=F3(*[u2f(x) for x in case['enchant']]))
+                 item_kind=(case['record'] or (0, 0, 0))[2], object_hidden=case.get('object_hidden',0), enchant=F3(*[u2f(x) for x in case['enchant']]))
     model = CModel(body_light=F3(*[u2f(x) for x in case['model_light']]), level_field=case['model_level'],
                    shade=F3(*[u2f(x) for x in case['model_shade']]), flag_ca=case['model_ca'])
     out = (CDraw * 32)()
@@ -837,6 +837,7 @@ def client_stream(world_args, case, world_factory=None):
     m.w32(MODEL + 0x40, case['model_level'])
     m.write(MODEL + 0xca, bytes([case['model_ca']]))
     m.w32(OBJ + 0xdc, case['object_alpha'])
+    m.w32(OBJ + 0x68, case.get('object_hidden',0))
     m.w32(OBJ + 0x74, case['blend_mesh'])
     m.w32(OBJ + 0xa8, case['blend_light'])
     m.w32(OBJ + 0xac, case['u'])

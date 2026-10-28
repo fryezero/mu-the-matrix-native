@@ -138,3 +138,43 @@ Local evidence: `~/Documents/mu-mac-tools/native/scratch/social/` and renders un
 `~/Documents/mu-mac-tools/native/renders/social/checked-{trade,messenger,map,travel}/`.
 Use `MU_GFX_SINGLE_BUFFER=1` for sparse headless captures; otherwise the first capture after showing a
 window can contain its previous asynchronous texture. No live game was needed.
+
+## SESSION-SOCIAL-001a
+
+2026-10-28. Party-only session/fixture migration, retaining winParty and the existing
+party-marker read consumer. The five recorded static routes above and result 41 at
+`0x0127373e` are appended to `dispatch.seed.def`; `dispatch.def` and its jump table
+are untouched. `session/domains/party*` owns list and pending key. `mu_social.party`
+is a compatibility snapshot, with in-view projected for presentation. Synthetic
+membership, positions, bar values and timing now belong to the fixture behavior.
+No party path changes hero or remote-character attributes.
+
+Invite/answer/leave call the unchanged original builders. Send(1,0) invite/answer
+bytes remain journaled unsent. Explicit fixture commands supply synthetic outcomes;
+only ordinary C1 leave/kick uses the dev plaintext loopback request lane. The
+pending guard refuses a second invitation until answered, retaining key/name
+identity; this guard is native UI policy, distinct from the original key-store.
+Unknown keys remain answerable without inventing a character name. Clear retains
+the stored key. Full packet guards reject malformed list/update/clear frames before
+any membership write. Each view reads notices through its own cursor.
+
+New validator `validate_session_party.py` compares compiled production adapters
+with pinned instructions: list envelope `0x01271a2b..0x01271a42`, complete update
+loop `0x00c78952..0x00c78c17`, clear `0x0127178c..0x012719c9`, request
+`0x01270d06..0x01270d9e` and result `0x0127373e..0x01273d07`. The list delegates to
+the existing parser whose field/math slice is separately verified. Manager handles,
+STL names/lookup, strings and optional GFx windows are explicit oracle boundaries.
+Five thousand cases pass, zero mismatches; all five compiled domain mutants are
+caught. This composes bounded evidence, not full container/transport equivalence.
+The original pinned hashes and compatibility-environment evidence limits above
+remain unchanged. [Release checks and remaining work](../handoffs/SESSION-SOCIAL-001a.md).
+
+Final release gate on `04826fc`, integrated with main `374777c`, passes 1,600 tests,
+204 explicit skips and zero failures. Eleven fixture scenarios carry 86 inbound
+frames with zero unbound/undecodable frames. The party scenario has six frames and
+two intentionally unsent requests. Unchanged social families rerun at 7,000 and
+29,700 cases; with the 5,000 adapter cases, total 41,700 comparisons, zero mismatches,
+and 51/51 compiled controls/mutants caught. Existing render/hash assertions pass;
+three real winParty captures were inspected. No golden pins were changed. Intended
+differences are the single fixture feed, journaled unsent invite/answer requests and
+independent notice cursors. No original-image fidelity or live acceptance is claimed.

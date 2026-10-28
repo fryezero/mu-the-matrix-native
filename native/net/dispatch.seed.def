@@ -82,3 +82,17 @@ MU_ROUTE(0x7E, 0x02, 0x0127f539u, MU_STATIC)
 MU_ROUTE(0x7E, 0x03, 0x0127f679u, MU_STATIC)
 MU_ROUTE(0x7E, 0x05, 0x012226cau, MU_STATIC)
 MU_ROUTE(0x7E, 0x06, 0x012225feu, MU_STATIC)
+
+/* client-social.md and client-social-original.md, recorded party routes only. */
+MU_ROUTE(0x40, MU_SUB_NONE, 0x01270d06u, MU_STATIC)
+MU_ROUTE(0x41, MU_SUB_NONE, 0x0127373eu, MU_STATIC)
+MU_ROUTE(0x42, MU_SUB_NONE, 0x012719c9u, MU_STATIC)
+MU_ROUTE(0x43, MU_SUB_NONE, 0x0127178cu, MU_STATIC)
+MU_ROUTE(0x44, MU_SUB_NONE, 0x01271711u, MU_STATIC)
+
+/* SESSION-MAP-001a: client-maps.md recorded routes, no dispatch-table walk.
+ * C1 03/04 marker layouts; C2 05 detector layout. Other head/body pairs refuse. */
+MU_FAMILY(0xE7, 3, 4, MU_ADDR_UNVERIFIED)
+MU_ROUTE(0xE7, 0x03, 0x0126d85cu, MU_STATIC)
+MU_ROUTE(0xE7, 0x04, 0x0123134bu, MU_STATIC)
+MU_ROUTE(0xE7, 0x05, 0x01233c9bu, MU_STATIC)

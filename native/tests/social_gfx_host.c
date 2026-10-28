@@ -116,7 +116,7 @@ static void full_item_trade(mu_gfx_layer *l, mu_world_players *p) {
     assert(token);
     mu_gfx_layer_inventory_finish(l, token, 1);
     world_gfx_social_close(g);
-    mu_social_messages_destroy(&s.messages);
+    mu_social_close(&s);
 }
 int main(int argc, char **argv) {
     assert(argc == 3);
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
     assert(s.party.count == 2 && s.completed == 1);
     assert(!s.party.members[1].in_view);
     world_gfx_social_close(g);
-    mu_social_messages_destroy(&s.messages);
+    mu_social_close(&s);
     mu_gfx_layer_close(l);
     free(p);
     puts("{\"social_gfx\":true,\"passed\":true}");

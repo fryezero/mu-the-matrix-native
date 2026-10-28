@@ -21,15 +21,20 @@ static void copy3(float d[3], const float s[3])
     d[2] = s[2];
 }
 
+/* Kept separate from world producer ownership. */
+#include "worlds_l.inc"
+
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
+    if (mu_pt_worlds_l_kind(type, subtype)) return 1;
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
-        return subtype == 0 || subtype == 1 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f || subtype == 21;
+        return subtype == 0 || subtype == 1 || subtype == 2 || (subtype >= 3 && subtype <= 8 && subtype != 5) || subtype == 0x75 || subtype == 0x7f || subtype == 21;
     case MU_PT_BITMAP_SPARK2:
-        return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
+        return subtype == 0 || subtype == 1 || subtype == 2;   /* 2: Inferno; 1: NATIVE-HELPERS-002 (the angel's sparkles) */
+    case 0x7f54: return subtype == 0;          /* Explosion01, Meteorite and Inferno */
     case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
     case MU_PT_BITMAP_DROP:
@@ -40,7 +45,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_THUNDER:
         return subtype == 0;
     case MU_PT_BITMAP_FLARE:
-        return subtype == 1;                   /* NATIVE-FIDELITY-002: Icarus's cloud puffs */
+        return subtype == 0 || subtype == 1;   /* 0: Icarus; NATIVE-FIDELITY-002: Icarus's cloud puffs */
     case MU_PT_BITMAP_SPARK3:
         return subtype == 0 || subtype == 1 || subtype == 11 || subtype == 0xf || subtype == 0x2a;   /* 0xf: NATIVE-HELPERS-002 (Fenrir) */
     case 0x831d: case 0x83b3: return subtype == 6;
@@ -151,6 +156,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     if (!mu_pt_kind_supported(type, subtype))
         return 0;
 
+    if (mu_pt_worlds_l_kind(type, subtype)) {
+        mu_pt_worlds_l_create(p, h, scale);
+        return 1;
+    }
     if (mu_pt_world_flame_kind(type, subtype)) {
         mu_pt_world_flame_create(p, h, scale);
         return 1;
@@ -204,11 +213,30 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
             p->scale = (float)(mu_pt_rand(h) % 32 + 48) * scale * 0.01f;
             p->angle[0] = (float)(mu_pt_rand(h) % 360);
             p->rotation = (float)(mu_pt_cvttss2si(h ? h->world_time : 0.0f) % 360);
-        } else if (subtype == 0) {                         /* 0x015c4c7b */
+        } else if (subtype == 0 || subtype == 4) {         /* 0x015c4c7b */
             p->lifetime = 16;
             p->scale = (float)(mu_pt_rand(h) % 32 + 48) * 0.01f;   /* (type 0x844 would take rand % 3 + 28) */
             p->angle[0] = (float)(mu_pt_rand(h) % 360);
             p->rotation = (float)(mu_pt_cvttss2si(h ? h->world_time : 0.0f) % 360);
+        } else if (subtype == 6) {                  /* 0x015c639e */
+            p->lifetime = 30;
+            p->gravity = (float)(mu_pt_rand(h) % 1000);
+            p->scale = (float)(mu_pt_rand(h) % 20 + 180) * 0.01f;
+            p->position[0] = (float)(mu_pt_rand(h) % 200 - 100) * scale + p->position[0];
+            p->position[1] = (float)(mu_pt_rand(h) % 200 - 100) * scale + p->position[1];
+            p->position[2] = (float)(mu_pt_rand(h) % 20 + 20) + p->position[2];
+            p->rotation = p->position[2];
+        } else if (subtype == 7) {                  /* 0x015c657d */
+            p->lifetime = 30;
+            p->velocity[1] = (float)(mu_pt_rand(h) % 4 + 6) * p->scale;
+            p->gravity = (float)(mu_pt_rand(h) % 200) / 200.0f;
+            p->scale = ((float)(mu_pt_rand(h) % 20 + 120) * 0.01f) * p->scale;
+            p->rotation = (float)(mu_pt_rand(h) % 360);
+        } else if (subtype == 8) {                  /* 0x015c66df */
+            p->lifetime = 24;
+            p->velocity[1] = -(float)(mu_pt_rand(h) % 8 + 32) * 0.3f;
+            p->scale *= 0.8f;
+            p->rotation = (float)(mu_pt_rand(h) % 360);
         } else if (subtype == 1) {                  /* 0x015c5f15: Poison burst */
             p->lifetime = 50;
             p->scale = (float)(mu_pt_rand(h) % 32 + 80) * 0.01f;
@@ -258,12 +286,26 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         v[0] = 0.0f;
         v[1] = (float)(mu_pt_rand(h) % 20 + 20) * 0.1f;
         v[2] = 0.0f;
+        if (subtype == 2) {                        /* 0x015dc299 */
+            p->scale *= 2.0f;
+            for (int k = 0; k < 3; ++k) v[k] = 3.0f * v[k];
+        }
         mu_vector_rotate(v, m, p->velocity);
         break;
     }
+    case 0x7f54:                                   /* 0x015e42eb */
+        p->lifetime = 20;
+        if (h && h->scene_state != 3 && h->sound) h->sound(h->context, 0x40);
+        break;
     case MU_PT_BITMAP_FLARE:
-        /* 0x015eee83, subtype 1 */
-        p->lifetime = 50;
+        if (subtype == 0) {                        /* 0x015eec34 */
+            p->lifetime = mu_pt_rand(h) % 10 + 10;
+            p->gravity = (float)(mu_pt_rand(h) % 10) + 10.0f;
+            p->scale = (((float)(mu_pt_rand(h) % 50) + 50.0f) / 100.0f) * scale;
+        } else {
+            /* 0x015eee83, subtype 1 */
+            p->lifetime = 50;
+        }
         break;
     case MU_PT_BITMAP_THUNDER:
         /* 0x015bda75 */
@@ -475,7 +517,9 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         owner_position(p, h);   /* 0x01616fee..0x01617071 */
     int supported = mu_pt_kind_supported(p->type, p->subtype);
     if (supported) {
-        if (mu_pt_world_flame_kind(p->type, p->subtype))
+        if (mu_pt_worlds_l_kind(p->type, p->subtype))
+            mu_pt_worlds_l_move(p, h);
+        else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
         case MU_PT_BITMAP_FIRE:
@@ -523,6 +567,41 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->gravity = p->gravity + 0.2f;
                 p->position[2] = p->position[2] + p->gravity;
                 p->scale = p->scale + 0.05f;
+            } else if (p->subtype == 4) {                    /* 0x01635535 */
+                float l = (float)p->lifetime / 8.0f;
+                p->light[0] = (l * 120.0f) / 255.0f;
+                p->light[1] = (l * 100.7f) / 255.0f;
+                p->light[2] = (l * 80.0f) / 255.0f;
+                p->gravity += 0.2f;
+                p->position[2] += p->gravity;
+                p->scale += 0.05f;
+            } else if (p->subtype == 6) {                    /* 0x0163583a */
+                p->lifetime = 10;
+                float t = (h ? h->world_time : 0.0f) + p->gravity;
+                float angle = t / 5000.0f;
+                p->position[2] = (float)sin((double)angle) * 20.0f + p->rotation;
+                t = p->gravity + (h ? h->world_time : 0.0f);
+                angle = ((float)(mu_pt_cvttss2si(t) % 1800) * 0.1f) * 0.01745329238474369f;
+                p->scale = (float)sin((double)angle) * 0.5f + 1.8f;
+                p->light[0] = 0.6f * 0.6f; p->light[1] = 0.6f * 0.5f; p->light[2] = 0.6f * 0.4f;
+            } else if (p->subtype == 7) {                    /* 0x01635a07 */
+                float l = 1.0f;
+                p->scale += 0.03f; p->gravity += 1.0f; p->velocity[1] -= 0.1f;
+                p->position[2] -= p->gravity;
+                if (p->lifetime < 5) { l = (float)p->lifetime / 8.0f; p->scale -= 0.1f; }
+                p->light[0] = l * 0.725f; p->light[1] = l * 0.572f; p->light[2] = l * 0.333f;
+            } else if (p->subtype == 8) {                    /* 0x01635bf9 */
+                p->gravity += 0.02f;
+                if (p->lifetime > 5) {
+                    p->scale += p->gravity;
+                    p->position[2] = p->gravity * 20.0f + p->position[2];
+                    for (int k = 0; k < 3; ++k) p->velocity[k] = 1.05f * p->velocity[k];
+                    float l = (float)p->lifetime / 24.0f;
+                    p->light[0] = p->light[1] = p->light[2] = l;
+                    for (int k = 0; k < 3; ++k) p->velocity[k] = 0.4f * p->velocity[k];
+                } else {
+                    for (int k = 0; k < 3; ++k) { p->light[k] /= 2.0f; p->velocity[k] = 0.0f; }
+                }
             } else if (p->subtype == 1) {                    /* 0x01634dc5 */
                 float l = (float)p->lifetime / 50.0f;
                 p->light[0] = l * 0.5f;
@@ -583,7 +662,29 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
                 p->position[k] = p->position[k] + p->velocity[k];
             break;
         }
+        case 0x7f54: {                            /* 0x01622ea1..0x01623c2e */
+            p->frame = (20 - p->lifetime) / 2;
+            float l = (float)p->lifetime / 20.0f;
+            const float light[3] = {l * 0.5f, l * 0.3f, l * 0.1f};
+            if (h && h->light) h->light(h->context, p->position[0], p->position[1], light, 4);
+            break;
+        }
         case MU_PT_BITMAP_FLARE:
+            if (p->subtype == 0) {                 /* 0x01662886..0x016635a8 */
+                float drift[3];
+                drift[0] = (float)(mu_pt_rand(h) % 2001 - 1000) * 0.0004000000189989805f;   /* client 0x39d1b718, one ULP above 0.0004f */
+                drift[1] = (float)(mu_pt_rand(h) % 2001 - 1000) * 0.0004000000189989805f;   /* client 0x39d1b718, one ULP above 0.0004f */
+                drift[2] = 0.0f;
+                for (int k = 0; k < 3; ++k) {
+                    drift[k] = (drift[k] + (h ? h->wind_sum[k] : 0.0f)) * 0.5f;
+                    p->position[k] += drift[k];
+                }
+                p->position[2] = 5.0f * 0.5f + p->position[2];
+                p->scale -= 0.05f;
+                p->light[0] = p->light[1] = p->light[2] = p->scale;
+                if (0.1f >= p->scale) { p->live = 0; p->lifetime = -1; }
+                break;
+            }
             /* 0x016635ad, subtype 1: dims and shrinks */
             for (int k = 0; k < 3; ++k)
                 p->light[k] = 0.9f * p->light[k];
@@ -820,6 +921,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
         s->uw = 0.25f;
         break;
     case MU_PT_BITMAP_SMOKE:
+        if (p->subtype == 6) s->rotation = 0.0f;
         if (p->subtype == 0x7f)
             for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         if (p->subtype == 2 || p->subtype == 21)
@@ -828,6 +930,12 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     case MU_PT_BITMAP_SMOKE5:
     case MU_PT_BITMAP_SMOKE2:
         state(out, MU_PT_STATE_BLEND, 0);            /* NATIVE-HELPERS-002, 0x01596f41 */
+        break;
+    case 0x7f54:                                   /* 0x015925e6, 4x4 explosion sheet */
+        s->rotation = 0.0f;
+        s->u = (float)(p->frame % 4) * 0.25f + 0.005f;
+        s->v = (float)(p->frame / 4) * 0.25f + 0.005f;
+        s->uw = s->vh = 0.24f;
         break;
     case MU_PT_BITMAP_DROP: {
         /* NATIVE-HELPERS-002, 0x01592374: cell frame % 9 of a 3x3 sheet (0.24 wide, 0.005 inset), upright */
@@ -935,6 +1043,11 @@ void mu_pt_wind_step(mu_pt_system *s, const mu_pt_host *h)
 void mu_pt_move_all(mu_pt_system *s, const mu_pt_host *h)
 {
     mu_pt_wind_step(s, h);
+    mu_pt_host step_host;
+    if (h) step_host = *h; else memset(&step_host, 0, sizeof step_host);
+    step_host.wind_sum[0] = s->wind_sum[0]; step_host.wind_sum[1] = s->wind_sum[1];
+    step_host.wind_sum[2] = 0.0f;
+    h = &step_host;
     int32_t kept = 0;
     for (int32_t i = 0; i < s->count; ++i) {
         mu_pt_particle p = s->records[i];

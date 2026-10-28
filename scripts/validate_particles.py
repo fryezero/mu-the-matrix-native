@@ -158,11 +158,15 @@ class Particle(ctypes.Structure):
                 ('initial_scale', ctypes.c_float), ('field_80', ctypes.c_float), ('field_84', ctypes.c_float)]
 
 
+SOUND_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int32)
+LIGHT_FN = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_float, ctypes.c_float,
+                          ctypes.POINTER(ctypes.c_float), ctypes.c_int32)
+
 class Host(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('terrain_height', HEIGHT_FN),
                 ('owner_position', OWNER_FN), ('world', ctypes.c_int32), ('world_time', ctypes.c_float),
                 ('frame_time', ctypes.c_float), ('drop_divisor', ctypes.c_int32), ('scene_state', ctypes.c_int32),
-                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN)]
+                ('bitmap_height', BITMAP_HEIGHT_FN), ('cloud_owner', CLOUD_OWNER_FN), ('sound', SOUND_FN), ('light', LIGHT_FN), ('wind_sum', F3)]
 
 
 class Bitmap(ctypes.Structure):
@@ -418,7 +422,15 @@ class Case:
         def sqrt(mm):
             x = mm.float_argument(0)
             return mm.x87_return(f32(math.sqrt(x)) if x >= 0 else float('nan'))
-        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine, 0x00961a07: sqrt}
+        def sound(mm):
+            self.client_calls.append(('sound', mm.argument(0)))
+            return 0
+        def light(mm):
+            self.client_calls.append(('light', mm.float_argument(0), mm.float_argument(1),
+                                      mm.floats(mm.argument(2), 3), mm.argument(3)))
+            return 0
+        return {RAND: rand, TERRAIN: height, SINE: sine, COSINE: cosine, 0x00961a07: sqrt,
+                0x00a6ac96: sound, 0x016cacfc: light}
 
     def owner_regions(self):
         out = []
@@ -454,9 +466,11 @@ class Case:
         def cloud_owner(ctx, owner, reset):
             if reset: self.owner_hidden = 0
             return int(getattr(self, 'visible', 1) == 1)
-        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height), CLOUD_OWNER_FN(cloud_owner))
+        def sound(ctx, index): self.c_calls.append(('sound', index))
+        def light(ctx, x, y, rgb, radius): self.c_calls.append(('light', x, y, list(rgb[:3]), radius))
+        fns = (RAND_FN(rand), HEIGHT_FN(height), OWNER_FN(owner), BITMAP_HEIGHT_FN(bitmap_height), CLOUD_OWNER_FN(cloud_owner), SOUND_FN(sound), LIGHT_FN(light))
         self._keep.append(fns)
-        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3], fns[4])
+        return Host(None, fns[0], fns[1], fns[2], world, f32(world_time), f32(dt), divisor, scene, fns[3], fns[4], fns[5], fns[6])
 
     def bitmap_region(self):
         # NATIVE-HELPERS-002: the record the getter 0x00ebbec8 returns (only the height +0x208 defined)
@@ -671,8 +685,13 @@ def family_move(m, lib, rng, cases, report, negatives):
         case.owner_hidden = -2
         world_time = f32(rng.uniform(-1e6, 1e6)) if cloud else 0.0
         record = particle_region(lib, p)
-        regions = [record, case.bitmap_region()] + globals_region(world, world_time, dt) + case.owner_regions()
+        wind = ([f32(n % 7 * 0.25), f32(-0.75), f32(0.125)] if kind == (0x7ef7, 0) else [0.0]*3)
+        list_raw = bytearray(0x20)
+        struct.pack_into('<3f', list_raw, 0x14, *wind)
+        list_state = am.defined_region('list-wind', 0x29000000, bytes(list_raw))
+        regions = [list_state, record, case.bitmap_region()] + globals_region(world, world_time, dt) + case.owner_regions()
         host = case.host(world, world_time, dt)
+        host.wind_sum[:] = wind
         before = Particle.from_buffer_copy(p)
         if p.lifetime <= 0 or not p.live:
             moved = lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
@@ -680,7 +699,7 @@ def family_move(m, lib, rng, cases, report, negatives):
             report.cover('move', 'erased at the head')
             continue
         stubs = shared_stubs(case, m, {0x0168ee7d: jump_stub(0x0168eea4), BITMAP_RECORD_GET: case.bitmap_stub()})
-        r = m.execute(0x01616f7c, [], regions, stubs, ecx=POOL, frame=mid_frame(MOVE_FRAME, {-0x38: 7}))
+        r = m.execute(0x01616f7c, [], regions, stubs, ecx=POOL, frame=mid_frame(MOVE_FRAME, {-0x38: 7, -0x14: 0x29000000}))
         moved = lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))
         mismatch = None
         if vc.ok(r):

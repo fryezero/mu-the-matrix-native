@@ -103,6 +103,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
+             $(RECON)/help/help.c $(RECON)/help/help_controller.c \
              $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/item_present.c $(RECON)/social/social_packets.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
@@ -114,7 +115,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
-           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/particles/icarus_clouds.inc \
+           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/particles/icarus_clouds.inc $(RECON)/particles/worlds_l.inc \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/world_flames.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
@@ -122,7 +123,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
            $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(RECON)/raven/raven.h $(RECON)/pets/pets.h $(wildcard $(RECON)/quest/*.h) \
            $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h $(wildcard $(RECON)/social/*.h) $(wildcard $(RECON)/mix/*.h) \
-           $(wildcard $(RECON)/progress/*.h)
+           $(wildcard $(RECON)/progress/*.h) $(RECON)/help/help.h world/world_gfx_help.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -326,7 +327,7 @@ DL_LIBS := -ldl
 endif
 # NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
 GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c world/world_gfx_skill.c world/world_gfx_tree.c \
-           world/world_gfx_map.c world/world_gfx_options.c world/world_gfx_social.c
+           world/world_gfx_map.c world/world_gfx_options.c world/world_gfx_social.c world/world_gfx_help.c
 GFX_CFLAGS := -I gfx -I $(RECON)/hud
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/terrain_view.c
 
@@ -606,6 +607,10 @@ $(BUILD)/worlds-h-host: tests/worlds_h_host.c $(LIB) $(HEADERS)
 # Core consumers include the generated public domain and intent headers.
 $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 
+$(BUILD)/worlds-k-host: tests/worlds_k_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-k-host.o
+	$(CXX) $(BUILD)/worlds-k-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/worlds-i-host: tests/worlds_i_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-i-host.o
 	$(CXX) $(BUILD)/worlds-i-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
@@ -630,6 +635,14 @@ $(BUILD)/perf-players-host: tests/perf_players_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/perf-players-host.o
 	$(CXX) $(BUILD)/perf-players-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
+$(BUILD)/particle-consumers-host: tests/particle_consumers_host.c $(LIB) $(HEADERS) $(BUILD)/libmusession_world.a $(BUILD)/libmuaudio.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/particle_consumers_host.o
+	$(CXX) $(BUILD)/particle_consumers_host.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
 $(BUILD)/worlds-j-host: tests/worlds_j_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-j-host.o
 	$(CXX) $(BUILD)/worlds-j-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-l-host: tests/worlds_l_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-l-host.o
+	$(CXX) $(BUILD)/worlds-l-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@

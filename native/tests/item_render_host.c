@@ -113,11 +113,11 @@ int main(void)
     for (int i = 0; i < MU_PT_SPRITES; ++i) p->sprites->records[i].live = 1;
     if (mu_renderchar_link_effects(&model, bones, 0x14f0, p) != 0) return 14;
     /* Part 7 pulse recipes: the native admission, saved pose, offsets and bounds. */
-    const int32_t pulse_types[] = {0x0afa, 0x0eed, 0x0eee, 0x10f0, 0x16f5};
-    const long pulse_counts[] = {4, 2, 4, 8, 2};
-    for (int i = 0; i < 5; ++i) {
+    const int32_t pulse_types[] = {0x0afa, 0x0eed, 0x0eee, 0x10f0, 0x16f5, 0x16fa, 0x16f7, 0x16fb};
+    const long pulse_counts[] = {4, 2, 4, 8, 2, 9, 10, 10};
+    for (int i = 0; i < 8; ++i) {
         mu_world_particles_discard_sprites(p);
-        bmd.bone_count = 9;
+        bmd.bone_count = 20;
         p->world_time = 500;
         uint64_t before = p->rand_calls;
         if (!mu_rc_link_supported(pulse_types[i]) ||
@@ -130,6 +130,11 @@ int main(void)
         if (i == 4 && (p->sprites->records[0].position[0] != 132 ||
                        p->sprites->records[0].position[1] != 190 ||
                        p->sprites->records[0].position[2] != 290)) return 34;
+        if (i == 5 && (p->sprites->records[0].position[0] != 102 ||
+                       p->sprites->records[8].position[0] != 118)) return 35;
+        if (i >= 6 && (p->sprites->records[0].position[0] != 108 ||
+                       p->sprites->records[6].position[0] != 120)) return 36;
+        if (i == 6 && p->sprites->records[7].type != 0x7fe0) return 37;
         mu_world_particles_discard_sprites(p);
         bmd.bone_count = 1;
         if (mu_renderchar_link_effects(&model, bones, pulse_types[i], p) != 0) return 31;

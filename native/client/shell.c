@@ -103,6 +103,7 @@ struct mu_shell {
     uint16_t hero_level;
     /* audio */
     mu_audio_host *audio;
+    mu_audio_table sound_table;
     /* input */
     int32_t mouse_x, mouse_y;
     uint8_t button_down, button_up, button_held;
@@ -363,6 +364,12 @@ static void audio_open(mu_shell *s)
     config.engine.rate = (uint32_t)(s->cfg.audio_rate > 0 ? s->cfg.audio_rate : 44100);
     config.engine.game_root = s->cfg.root;
     char error[256];
+    if (s->cfg.world.sound_table) {
+        if (!mu_audio_table_load(s->cfg.world.sound_table, &s->sound_table, error, sizeof error))
+            config.table = &s->sound_table;
+        else if (!s->cfg.quiet)
+            fprintf(stderr, "audio table: %s\n", error);
+    }
     s->audio = mu_audio_host_new(&config, error, sizeof error);
     if (!s->audio && !s->cfg.quiet)
         fprintf(stderr, "audio: %s (continuing without music)\n", error);
@@ -377,6 +384,12 @@ static void music(mu_shell *s, uint32_t routine, uint32_t name)
     if (!path[0])
         return;
     mu_audio_host_music_literal(s->audio, path, name, routine == MU_SC_PLAY_MP3);
+}
+
+static void charsel_sound(void *context, const mu_cue *cue, uint32_t tick)
+{
+    mu_shell *s = context;
+    mu_audio_host_cue(s->audio, cue, tick);
 }
 
 /* ---- embeds ------------------------------------------------------------- */
@@ -420,6 +433,7 @@ static void close_charsel(mu_shell *s)
         s->charsel_ui = NULL;
     }
     if (s->charsel) {
+        mu_charsel_set_sound(mu_charsel_rt_session(s->charsel), NULL, NULL);
         if (s->platform.embed_closing)
             s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
         mu_charsel_rt_close(s->charsel);
@@ -584,6 +598,7 @@ static int open_charsel(mu_shell *s)
         return 1;
     }
     mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
+    mu_charsel_set_sound(cs, charsel_sound, s);
     cs->frame.clock.frame_tick = s->now;
     s->enter_seen = cs->enter_requests;
     s->charsel_ui = calloc(1, sizeof *s->charsel_ui);
@@ -650,6 +665,7 @@ static int rebuild_charsel(mu_shell *s)
         s->charsel_ui = NULL;
     }
     if (s->charsel) {
+        mu_charsel_set_sound(mu_charsel_rt_session(s->charsel), NULL, NULL);
         if (s->platform.embed_closing)
             s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
         mu_charsel_rt_close(s->charsel);
@@ -1219,6 +1235,7 @@ void mu_shell_free(mu_shell *s)
     mu_ui_raster_free(&s->raster);
     if (s->audio)
         mu_audio_host_free(s->audio);
+    mu_audio_table_free(&s->sound_table);
     mu_lang_free(s->lang);
     free(s);
 }

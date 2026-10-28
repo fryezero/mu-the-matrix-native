@@ -2,9 +2,25 @@
 
 NATIVE-PERF-004 WIP: pose workers, exact topology cache and ordered GL capture; 25 Hz/pacing acceptance remains open. [Checks and limits](handoffs/NATIVE-PERF-004.md).
 
+SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).
+
+VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Locked Mac gate passes 1,608 tests and 11 fixtures. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
+
+RENDER-WORLDS-L: seven Karutan/Raklion/Market particle lifecycles and four exact bitmap registrations. 21,000 checks, zero mismatches, 13/13 compiled mutants and five original loader calls; saved-tour OBJECT/light and 13 other views unchanged. [Evidence](research/client-worlds-l.md), [checks and limits](handoffs/RENDER-WORLDS-L.md).
+
+SESSION-SOCIAL-001a: party list/invitations and supplied bars now use a session domain and plaintext fixture feed; winParty retained. Locked Mac gate passes 1,600 tests. Invite/answer sends remain unsent pending NET-DECODE. [Checks and remaining social work](handoffs/SESSION-SOCIAL-001a.md).
+
+AUDIO-002 part 5: three character-select Enter/Esc sound-25 sites reach the native host. Caller adapters 73 to 76; 5,968 original-tick cases, zero mismatches, 11/11 compiled mutants; locked clean Mac gate passes 1,596 tests. [Checks and limits](handoffs/AUDIO-002E.md).
+
+RENDER-WORLDS-K: built-in Lost Tower/Tarkan/Icarus producers and Atlans dispatch correction; 6,000 instruction cases, 21/21 source mutants plus 2/2 native host controls. Icarus image error 26.897 to 23.154. Locked Mac gate passes 1,585 tests. [Checks and limits](handoffs/RENDER-WORLDS-K.md).
+
+RENDER-EFFECTS-003: Meteorite, Aqua Beam primary chain and Inferno bursts; K particle consumers and three exact bitmap registrations. Primary routes 15/23 to 18/23, weighted 46/77 to 56/77. 24,453 instruction comparisons plus 2,547 removal checks, 17 instruction mutants plus one frame mutant and four loader-call checks. Locked Mac gate passes 1,582 tests (200 explicit skips) and ten fixture scenarios. [Evidence](research/client-render-effects-003.md), [checks and remaining work](handoffs/RENDER-EFFECTS-003.md).
+
+SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the session and plaintext fixture; 6,501 instruction cases, zero mismatches, 4 compiled and 10 historical mutants caught. Travel remains unchanged. [Checks and limits](handoffs/SESSION-MAP-001a.md).
+
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
-RENDER-ITEMS-002 part 8: 662/1,674 bounded bodies, 17/17 skins, fourteen link targets/nineteen types. Rank-5 mesh streams now draw with lighting; owner-bone effects remain open. Adds eight further ranked armour bodies and spear/shield links. Locked Mac gate passes 1,559 tests. [Checks and limits](handoffs/RENDER-ITEMS-002H.md).
+RENDER-ITEMS-002 part 10: 880/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 104 armour, one weapon and the six requested seed bodies; 33,622 new instruction cases, zero mismatches, 12/12 compiled mutants. Locked Mac gate passes 1,615 tests. 794 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002J.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
@@ -21,6 +37,8 @@ README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](r
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
 
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
+
+AUDIO-002 part 4: latest viewport buff input resolves the NPC voice; the migrated Master click enters the cue ring. Caller adapters 66 to 73, sound-capable sites 65 to 73, including six ground-drop sites after SESSION-ITEMS-001a. 5,544 instruction cases, zero mismatches, 15/15 compiled mutants; locked clean Mac gate passes 1,571 tests. [Checks and limits](handoffs/AUDIO-002D.md).
 
 RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.
 

@@ -362,3 +362,93 @@ fallback when the table is absent. Remote transformed hit/attack contexts emit
 Special monster bodies and transformed death effects retain their earlier limits.
 This is not full-client sound parity. Music 43/44, the virtualised gap and
 LIVE-PLAY's original FMOD/native log comparison remain open. No live client was used.
+
+
+## AUDIO-002 part 4, 2026-10-28
+
+**Verified, bounded.** The existing monster/NPC viewport snapshot retains all buff keys. The world audio
+hook now reads that session-owned snapshot for model `0xa01`, rather than passing unknown. The original
+key lookup `0x01295ade`, the voice fragment `0x013b543c..0x013b549c` and AddBuff's world restriction
+`0x0128723b` run in the new comparison. Buff key `0x1b` suppresses sound 160 at `0x013b5494`;
+action 0 and frames 5 through 10 are required when it is absent. The table-existence answer is checked with the original getter on the pinned skill snapshot. Unrelated
+visual effects and insertion are hosts; the MSVC map is synthetic and its lookup executes as original
+instructions. This uses the latest complete viewport snapshot. Dynamic add/remove/expiry handlers
+are not migrated and are not inferred from a packet list. Unknown snapshots still emit missing input.
+No per-tick allocation or replicated-state write is added.
+
+**Verified.** SESSION-SKILL-001's Master environment now binds its previously discarded event callback.
+`OnClickBtnSkillSlot 0x00bb22e1` plays sound 25 at `0x00bb23d1` after finding a slot and before checking
+points/prerequisites. The callback emits a typed sound with explicit original routine/site and null-object
+key `-2`. Invalid slots, unsupported events and learn requests do not acquire sound cues. The session
+reader supplies cue sequence and tick to the unchanged native log.
+
+`validate_audio_domains.py` executes 1,944 NPC cases, including real buff-map lookup, world restrictions,
+empty/present/absent/duplicate keys, action and finite/nonfinite frame edges. It also runs 600 complete
+Master click/confirmation cases through the unchanged original/reconstructed caller comparison, recording
+SND_Play return addresses independently. Total: **2,544 cases, zero mismatches, 7/7 compiled mutants**.
+The unchanged viewport family separately verifies the existing buff-record parser.
+
+**Static scope audit.** The same validator follows intraprocedural branches in 24 migrated quest
+receive/callback roots. None contains a direct SND_Play call. Reconstructed quests still have no sound
+call to route; ReceiveTalk's two earlier sites remain in part 2. This does not assert silence of every
+transitive helper or GFx movie. Existing quest instruction families are rerun unchanged.
+
+The caller subtotal advances from **66 adapters / 65 sound-capable sites to 73 / 73**. This adds seven
+distinct original sites and supplies the input for the existing NPC site; the earlier hero receive sound
+and per-frame/event manager paths are outside this subtotal. SESSION-COMBAT-001 still has no remote
+magic-result output, and SESSION-GLOBALS-001 adds ownership rather than new replicated inputs.
+Event inputs, remote magic results, other domains, music 43/44, the virtualised gap, original RNG phase
+and LIVE-PLAY's original FMOD/native comparison remain open. No live client or launcher was used.
+Final checks and cleanup are recorded in [the part-4 handoff](../handoffs/AUDIO-002D.md).
+
+
+### Ground-item extension after SESSION-ITEMS-001a
+
+The orchestrator added ground-item scope after PR #224 merged at `3a61d99`. Six CreateItem sites are
+**verified** against the complete unchanged caller family: zen `0x016daafd` selects 31, jewels
+`0x016dadde` select 69, special item `0x016dae04` selects 723, two special ranges use distinct
+`0x016dae36` / `0x016dae5f` sites for sound 90, and ordinary items use `0x016dae76` for sound 30.
+Original routine: `0x016daa27`. `validate_audio_items` compares 3,000 cases with zero mismatches and
+catches all 8 compiled mutants, including missing-record/drop gates and the two sound-90 branches.
+It preserves the existing caller validator's explicitly documented compare repair at its runtime-patched
+branch; the opaque destination remains outside the comparison. Together with NPC/Master this is
+**5,544 new part-4 cases, zero mismatches, 15/15 compiled mutants**.
+
+The session emits drop cues at viewport arrival. A borrowed static-record getter preserves CreateItem's
+record-presence gate. Closing the view clears it; detached arrivals report missing input and are never
+replayed on attachment. The presenter suppresses its old direct audio path for session items; standalone
+tools retain that facade. Item-only sessions have their own cursor; shared character sessions retain one
+reader. Tests cover all six sites, actual native voices, duplicate-id suppression, silent drain, missing
+records, non-drop viewports, detachment/rebind and deletion.
+
+The verified delete/despawn handler has no sound call. Requests remain silent. Successful pickup-answer
+sites `0x01242b81`, `0x01242ba6`, `0x01242bbf` require the unrecorded answer route/decode and stay open.
+The existing 4,000-case session-item comparison verifies those bounded instructions but does not supply
+that route. No pickup success, inventory insertion or zen credit is inferred from a fixture delete.
+
+
+## AUDIO-002 part 5, 2026-10-28
+
+**Verified, bounded.** The scene-5 tick `0x01856e6c` plays sound 25 with null object and loop 0 at
+`0x01857064` for Enter, `0x01857163` for Esc opening the menu, and `0x018571e6` for Esc closing the
+create panel. Enter plays before `0x009a5029` can refuse entry. The native tick now consumes these
+existing reconstructed events through an explicit immediate sound callback. The shell binds it to its
+existing audio host and supplies the configured installed table. Caller adapters / sound-capable sites
+advance **73/73 to 76/76**.
+
+`validate_audio_charsel` executes the complete pinned tick over synthetic state, using the existing
+recording-service boundary and original sound-call return addresses as the independent site oracle.
+Families: **5,760 Enter, 64 Escape, 144 common-gate cases; 5,968 total, zero mismatches/stops**.
+All **11/11 compiled mutants** are caught. Initialization, selection and the panel-close byte are also
+compared. The unchanged six-family charsel comparison separately passes 6,000 cases and all 12 mutants.
+The original body/capture pins and reconstructed source remain unchanged.
+
+Six focused tests cover once-per-press delivery, refused Enter, held/blocked keys, real decoded PCM,
+mute/disabled audio, detach/rebind without replay, close cleanup and the three shell paths. Four
+standalone charsel PNG hashes equal the pre-change binary; shell audio-on/off renders agree. The shell
+GFx tests use a stand-in movie host and the real native scene renderer, not original GFx-image evidence.
+The immediate callback has no backlog. In `audio:1`, this handler's `session_tick` is the charsel logic
+step and its `cue_seq` is per visit, rather than a network-session sequence. Standalone tools need an
+explicit callback. The existing no-GFx Esc-to-server shortcut, GFx double-click and unmapped
+CButton/credits sounds are outside these three branches. Final checks and broader limits are recorded
+in [the part-5 handoff](../handoffs/AUDIO-002E.md). No original client or live service was used.

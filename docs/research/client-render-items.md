@@ -11,6 +11,8 @@ Part 6 reaches 559 bodies and consumes ground/inventory skin sprites.
 Part 7 reaches **635/1,674 bodies**, preserves **17/17 skins**, and consumes **twelve link targets/seventeen types**.
 Part 8 reaches **662/1,674 bounded bodies** and **fourteen link targets/nineteen types**.
 Its rank-5 no-owner mesh streams draw; full owner effects remain open.
+Part 9 reaches **769/1,674 bodies** and **fifteen link targets/twenty types**.
+Part 10 reaches **880/1,674 bodies** and **seventeen link targets/twenty-two types**.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -742,3 +744,104 @@ buff/record, mesh-override, hero-instance, NewUI and external Box of Luck limits
 The combined 14,992 comparisons have zero mismatches, all nine compiled mutants
 are detected, and both generated tables reproduce. Release checks and cleanup are recorded in the
 [part-8 handoff](../handoffs/RENDER-ITEMS-002H.md).
+
+## Part 9, further ranked bodies and shield links, RENDER-ITEMS-002I
+
+Bounded coverage reaches **769/1,674 bodies**, **17/17 skins**, and **fifteen
+RenderLinkItem targets/twenty types**. The 107 body additions comprise 43 armour,
+five weapons, one wing and 58 survey `pet/item` types. Exact membership remains
+in the generated rendering rules and survey TSVs. All 1,691 compiled admissions
+agree with membership; original ranks, identities and stopped states stay intact.
+Fifty-five more shapes are complete, for 192 total. The largest completed shapes
+are seven-type armour ranks 21, 36, 46 and 49. Visibility remains model-index inference.
+
+The armour helper at `0x01747185..0x017471c9` evaluates `0x0185bdc4(-1,0)`,
+then rounds the multiply by 0.8 and add of 0.2 in SSE order. It shares the existing
+rank-5 pulse, including signed conversion and remainder by -6283. The optional
+level-9 overlay at `0x0174b438..0x0174b4e9` uses U/V `time*0.0001`. Its helper
+level word and the effective glow level are distinct inputs. The word is absent
+on low-quality fallback paths; a record forcing glow level 9 on a raw-level-zero
+item does not enable the overlay. Render flag 0x400 clears glow before the record
+rules, so testing that flag alone would incorrectly reject some overlays.
+The recipe executor retains the existing six phases and adds high-level variants
+of its two base phases. Its scalar sources are evaluated only when requested.
+
+The full ranked survey supplied 133 further fitting candidates. Independent
+compiled-C/full-function comparisons rejected 54 and admitted 79. Historical
+ancient-tail exclusions remain refused. These are bounded command-stream claims,
+not proof from fitting probes or graphics-driver pixels.
+
+Shield `0x16fa`, RenderLinkItem target `0x012dbc1e..0x012dc0ee`, emits 0x7ef7
+sprites on bones 1..9, each at scale 1.5. Colour is
+`(abs(sin(time*0.001))+0.1)*(0.8,0.3,0.8)` with binary32 operations.
+The initial random intensity remains consumed even though unused. The shared
+saved-pose native adapter handles these sprites; character, ground and inventory
+body callers already consume all new body recipes. Weapon links remain attachments.
+No new particle/effect/joint consumer or per-frame allocation was added.
+
+The strict validator passes **31,244 body cases, 80 clock boundaries and 400
+full link callers, 31,724 total**, zero mismatches. All **9/9 compiled mutants**
+are detected, including the raw-level/quality guard, UV, cosine, ancient phase
+and shield colour/bone rules. The inherited part-8 comparison adds 14,992 cases
+and 9/9 mutants. All 643 earlier recipe rows keep identical rules and metadata;
+21,728 C-to-C preservation cases cover all 679 earlier body/skin types separately.
+Representative render changes, preserved controls, release gate and cleanup are in the [part-9 handoff](../handoffs/RENDER-ITEMS-002I.md).
+The pinned executable and captures above apply unchanged. **905 bodies remain**,
+plus full rank-5 owner effects, further links and the earlier domain/model limits.
+Rank-5's 0x84e2/0x83de particles and 0x7fdd owner sprites are listed for the effects
+lane; no consumer files were edited. Muun/nested map-object placement stays deferred.
+
+
+## Part 10, atlas armour, six requested seed bodies and shield links, RENDER-ITEMS-002J
+
+Bounded bodies reach **880/1,674**, up 111: 104 armour, one weapon and the six
+requested types 0x2322..0x2327. Skins remain **17/17**; consumed links reach
+**seventeen targets/twenty-two types**. The original survey now has 228 complete
+shapes. Only coverage membership changes; its historical ranks, identities,
+service sites and stopped observations are retained.
+
+The survey's six-type wing label is model-index inference. The installed native
+Item.bmd getter maps those types to elemental seeds, codes 6204..6209, all using
+s30_seed.bmd. Their original body branch 0x016f5f3e..0x016f6253 suppresses ordinary
+level glow and emits flags 2/0x44 in six fixed colours. Excellent/ancient tails
+remain. OBJECT hidden mesh +0x68 is explicit for these six types. Full-function
+cases vary -1/0/2 independently of flags; native item viewers supply -1 to draw
+the seed's only mesh. The inherited zero hides that mesh. Other types retain the
+previous domain. This is six seed bodies, not six new wearable-wing mappings.
+
+Rank-39/42 armour uses signed atlas frames `(tick%600)/20` and `(tick%455)/35`,
+with 6x5 and 4x4 UV grids. Their ancient mesh streams retain preceding body light
+separately from model shade. Fourteen types carry that flag. New scalar sources
+also cover strict abs(sin(time*0.0008)), the -6 wave with signed remainder -1047,
+binary64 0.9 plus binary32 0.1 and upper clamp one, and the unoffset -4 wave.
+Strict absolute value preserves negative zero. The generated scalar mask grows
+to thirteen bits; evaluation remains lazy and allocation-free.
+
+The initial full-function screen rejected 69 of 166 fitting candidates. Correcting
+the atlas ancient-light path admits fourteen of them; **55 remain refused**.
+Earlier ancient-tail exclusions remain refused. An independent hidden-mesh sweep
+also rejected a constant fit caused by correlated flag/hidden-mesh probes; generation
+now varies those inputs independently. Probes alone do not establish coverage.
+
+Two no-owner shield callers use the existing saved-pose sprite adapter:
+0x16f7 at 0x012db542..0x012dba1c and 0x16fb at 0x012dc0f3..0x012dc628. Each emits
+ten sprites and consumes its unused common random intensity once. Their full
+ordered caller streams include hand variants, deep colours and original owner
+arguments. Real position helper 0x012b678d is compared separately with production
+transform math for absent owner overrides, nonzero bone translations, scale and
+object origin. Persistent owner-follow and global random synchronization remain
+unverified. Existing native bitmaps/consumers suffice; no effects-lane file changes.
+
+The strict comparison passes **33,622 cases**, zero mismatches: 32,412 full body
+streams, 210 clock boundaries, 800 complete shield callers and 200 real position
+helper/compiled-transform comparisons. All **12/12 compiled mutants** are caught;
+both tables reproduce. All 750 prior recipe rows retain identical rules/metadata,
+and 25,152 compiled before/after cases preserve all 786 prior body/skin types.
+All 1,691 survey memberships agree with compiled admission.
+
+The [part-10 handoff](../handoffs/RENDER-ITEMS-002J.md) records the strict families,
+compiled mutations, native tests, inspected inventory/armour/link pairs, unchanged
+control hash, release gate and cleanup. The executable and capture pins at the
+top apply unchanged. **794 bodies remain**, plus rank-5 owner effects and the
+previous record/buff/selection/shadow/override, hero-instance, model, NewUI and Box
+of Luck limits. Muun/nested map-object tables remain deferred.

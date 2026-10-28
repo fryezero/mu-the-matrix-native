@@ -356,4 +356,12 @@ typedef struct mu_sfx_joint_quad {
 int mu_sfx_joint_render(const mu_sfx_joint *j, uint8_t mode, float color[3], int32_t *render_type,
                         mu_sfx_joint_quad *quads, int max);
 
+/* RENDER-EFFECTS-003 adds Fire01/0 and Aqua Beam 0x7f4e/0 for ordinary worlds.
+ * Aqua creation excludes the hero-only source writeback and area-request services.
+ * Original 0x013c07f4, bounded Inferno subtype 0. */
+void mu_sfx_inferno_burst(const float position[3], uint8_t visible, const mu_sfx_env *env);
+
+/* RenderEffects primary Aqua Beam sprite/light chain, ordinary worlds. */
+void mu_sfx_aqua_render(mu_sfx_effect *effect, const mu_sfx_env *env);
+
 #endif
