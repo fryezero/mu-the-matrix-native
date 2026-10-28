@@ -59,7 +59,8 @@ and captured RNG phase are not established.
 
 Type 48's original divides by `trunc32(scale * 60)`. A zero divisor traps in x86; native C explicitly suppresses
 that emission after the gate draw. This is a deliberate host guard outside successful instruction equivalence,
-with a portable zero-scale regression. It is not counted among the 6,000 passing original-method cases.
+with a portable zero-scale regression. A directed original-instruction probe confirms UC_ERR_EXCEPTION.
+This expected trap is not counted among the 6,000 passing original-method cases.
 
 ## Native and regression evidence
 
@@ -68,13 +69,33 @@ synthetic loaded model metadata and hidden geometry. Particle/sprite/effect call
 subtypes, owners and scale. Each type also checks missing and unloaded models for silence and unchanged RNG.
 The sibling world calls the generic host. G's sibling-silence fixture now uses world 65, since 64 is implemented.
 Public create/move tests exercise both worlds; bounded zero/one/full-capacity logs preserve OBJECT and RNG state.
-G/H registered validators pass together: **12,000 comparisons, zero mismatches/stops, 32/32 compiled mutants**.
+Three separately linked native controls also fail the host assertions when either class dispatch is removed
+or the effect scale is forced to zero. G/H registered validators pass together: **12,000 comparisons, zero mismatches/stops, 32/32 compiled mutants**.
 
 Fourteen existing snapshot views retain **28/28 first/final PNG hashes, 14/14 object dumps and 14/14 light dumps**
 against the owned-worktree baseline. Both builds use the same saved captures and installed assets, whose
 executable matches the target pin. These are unaffected-world regressions. No world-64/world-82 image score
 or full nested particle/effect-rendering equivalence is claimed. Existing downstream unsupported-kind counters
 remain in use. Full Mac gate results are in [the handoff](../handoffs/RENDER-WORLDS-H.md).
+
+### Downstream limits
+
+Static consumer audit: existing A flame lifecycles support the three fire requests from Duel type 36 and
+world-82 type 6; the sprite host consumes their flare. Existing smoke subtype 21 supports world-82 type 5.
+The primary-method proof does not add the following nested lifecycles, which existing hosts reject/count:
+
+| Emitter | Requested family still missing downstream |
+|---|---|
+| Duel type 35 | particle `0x7f5a/22` |
+| World-82 type 0 | particle `0x801b/7` |
+| World-82 type 1 | particle `0x7f5a/69` |
+| World-82 types 2/3 | particles `0x7f89/16` and `/11` |
+| World-82 type 4 | effect `0x7f42/7` |
+| World-82 type 47 | particles `0x8086/2`, `0x8087/6`, `0x8089/2` |
+| World-82 type 48 | particle `0x7ef7/15` |
+
+This list is separate from the 119 missing class methods. The native callback regressions establish argument
+plumbing; they do not establish that these rejected nested requests produce pixels.
 
 ## DATA-ACQ-002 and remaining work
 

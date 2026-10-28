@@ -13,7 +13,7 @@ Implemented the complete primary create/move/visual group for Duel Arena and wor
 - Coverage: **9/48 classes, 25/144 verified primary families, zero static-only and 119 missing**.
 - Production native host: eleven emitter types, 200 draws each, with exact callbacks, owners and effect scale;
   every type also checks absent/unloaded models and RNG stability. Public dispatch, bounded logs and invalid
-  scatter-scale safety regressions pass. G's generic-sibling test now uses unimplemented world 65 instead of 64.
+  scatter-scale safety regressions pass. Three separately linked native omission/scale controls are caught. G's generic-sibling test now uses unimplemented world 65 instead of 64.
 - Saved October 22 fourteen-view regression: **28/28 PNG hashes, 14/14 object dump hashes and 14/14 light dump
   hashes identical** against the pre-change baseline. Original stale manifest paths were repaired only in local
   task manifests. Worlds 64/82 have no live object/image capture, so no image-fidelity improvement is claimed.
@@ -25,6 +25,6 @@ main-checkout build or sibling-worktree work. No original bytes, assets, snapsho
 Self-review covers standards, original behavior, native consumers and evidence boundaries; no independent review.
 
 Remaining: DATA-ACQ-002 for world 64 and 82 objects/models/light/clock/RNG/pools/camera/PNG, the other 119 primary
-methods and separately inventoried custom/after/invisible slots. Full nested-pool image replay remains open.
+methods and separately inventoried custom/after/invisible slots. The finding lists the unsupported downstream particle/effect requests; their lifecycles and full nested-pool image replay remain open.
 After merge, remove this task's scratch/renders/builds, worktree and local branch. No newly created local INPUT
 needs to survive. Counts and limitations remain in this handoff, the finding and PR.
