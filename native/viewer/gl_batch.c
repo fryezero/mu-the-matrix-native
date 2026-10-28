@@ -31,6 +31,8 @@ struct mu_gl_batch {
     int in_begin;
     uint32_t prim_mode;
     int32_t prim_first;
+    uintptr_t array_base; /* client pointer state, invalidated at each session */
+    int reference004;
     int arrays;              /* client arrays enabled in this session */
     mu_gl_batch_stats stats;
 };
@@ -88,10 +90,15 @@ void mu_gl_batch_flush(mu_gl_batch *b)
         glEnableClientState(GL_COLOR_ARRAY);
         b->arrays = 1;
     }
-    const GLsizei stride = (GLsizei)(STRIDE * sizeof(float));
-    glVertexPointer(3, GL_FLOAT, stride, b->v);
-    glTexCoordPointer(2, GL_FLOAT, stride, b->v + 3);
-    glColorPointer(4, GL_FLOAT, stride, b->v + 5);
+    /* GL reads current client-memory contents on every draw. Pointer state
+     * only changes after storage moves or another session may have used GL. */
+    if (b->reference004 || b->array_base != (uintptr_t)b->v) {
+        const GLsizei stride = (GLsizei)(STRIDE * sizeof(float));
+        glVertexPointer(3, GL_FLOAT, stride, b->v);
+        glTexCoordPointer(2, GL_FLOAT, stride, b->v + 3);
+        glColorPointer(4, GL_FLOAT, stride, b->v + 5);
+        b->array_base = (uintptr_t)b->v;
+    }
     if (b->mode == GL_TRIANGLE_FAN) {
         if (b->fans == 1)
             glDrawArrays(GL_TRIANGLE_FAN, b->first[0], b->counts[0]);
@@ -114,6 +121,9 @@ void mu_gl_batch_session_begin(mu_gl_batch *b)
     b->fans = 0;
     b->in_begin = 0;
     b->arrays = 0;
+    b->array_base = 0;
+    const char *reference = getenv("MU_PERF_004_BASELINE");
+    b->reference004 = reference && reference[0] == '1';
     glGetFloatv(GL_CURRENT_COLOR, b->color);
     float t[4];
     glGetFloatv(GL_CURRENT_TEXTURE_COORDS, t);

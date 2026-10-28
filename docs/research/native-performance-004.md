@@ -22,7 +22,14 @@ topology and absent/failed cache allocations retain the checked edge path. Trans
 none is cached. The literal mesh entry points remain checked. Each model frees
 its own cache. Identical equipment is not assumed to have identical poses.
 
-`MU_PERF_004_BASELINE=1` restores both prior paths on the same binary.
+The GL batch sets vertex, UV and color array pointers once per session and again
+when the backing buffer moves. Every draw still reads the current vertex bytes.
+The first flush always restores all pointers because other GL users may have
+changed them between sessions. No primitive, state transition or draw is removed.
+A synthetic repeated-session test grows the buffer and overwrites all three GL
+pointers between sessions; removing session invalidation is detected.
+
+`MU_PERF_004_BASELINE=1` restores all prior paths on the same binary.
 `bench_stress.py --perf-004-baseline` records that choice explicitly. Main-thread
 and whole-process CPU time are separate columns; dispatch/driver worker CPU is
 included only by the latter. CPU intervals overlap the GL and Metal queue
@@ -88,3 +95,25 @@ after merge under the disk cleanup rule. No threshold is widened.
 The final source additionally avoids edge-view allocation for fully proved
 models. The integrated repeat below measures that version against its own
 PERF-004 reference on the same binary and current main quality/content.
+
+
+## Resumed profile and instruction comparison
+
+Fresh optimized profiles at 11:12 contain 1,508 main-thread samples in crowd80
+and 1,660 in Tormenta80. Remote pose update occupies 43 and 36 inclusive main
+samples, versus 243 and 233 in the earlier profiles. These are separate shared-
+host observations, not a normalized cost ratio. Tormenta has 993 samples under
+world drawing and 237 under GFx; GL driver submissions remain a leading cost.
+This motivated the client-array pointer setup change. No profile overlaps a
+timing matrix from this task.
+
+The fresh original-instruction validator passes all 843 draw cases, 247 pinned
+cases and 13,529 texture names, zero mismatches, every draw branch reached and
+4/4 negative controls caught. Fourteen installed models are explicit exclusions.
+The reconstructed instruction paths are unchanged; native-host optimizations
+are checked separately through exact streams, model buffers and full frames.
+
+The 20-second pointer/combined pilot measured crowd80 14.73 to 16.79 fps and
+Tormenta80 11.17 to 15.59 fps. Every run fails strict acceptance. These short
+shared-host observations are retained in the aggregate evidence; they do not
+establish a causal speedup or substitute for the final matrix.

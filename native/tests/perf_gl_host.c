@@ -384,7 +384,7 @@ static void batch_stream(sink *s, const GLuint tex[3])
         s_enable(s, GL_TEXTURE_2D, m % 11 != 0);
         s_bind(s, tex[m % 2]);
         s_begin(s, GL_TRIANGLES);
-        for (int t = 0; t < 6; ++t) {
+        for (int t = 0; t < (m == 29 ? 1200 : 6); ++t) {
             float cx = (float)(m % 6) / 3.0f - 0.9f, cy = (float)(m / 6) / 3.0f - 0.8f;
             float a = (float)t * 1.047f;
             s_tex(s, 0.5f, 0.5f); s_c4(s, 1, 0.5f, 0.2f, 0.8f); s_v(s, cx, cy, 0.3f);
@@ -414,11 +414,20 @@ static int batch_mode(void)
         glAlphaFunc(GL_GREATER, 0.25f);
         glColor4f(1, 1, 1, 1);
         sink s = {pass ? mu_gl_batch_new() : NULL};
-        if (s.b)
-            mu_gl_batch_session_begin(s.b);
-        batch_stream(&s, tex);
+        float poison[40000] = {0};
+        for (int repeat = 0; repeat < (s.b ? 2 : 1); ++repeat) {
+            if (repeat) {
+                /* Other GL clients can change pointers between sessions. */
+                glVertexPointer(3, GL_FLOAT, 0, poison);
+                glTexCoordPointer(2, GL_FLOAT, 0, poison);
+                glColorPointer(4, GL_FLOAT, 0, poison);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            }
+            if (s.b) mu_gl_batch_session_begin(s.b);
+            batch_stream(&s, tex);
+            if (s.b) mu_gl_batch_session_end(s.b);
+        }
         if (s.b) {
-            mu_gl_batch_session_end(s.b);
             mu_gl_batch_stats_get(s.b, &stats);
             mu_gl_batch_free(s.b);
         }
