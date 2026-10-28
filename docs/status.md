@@ -25,7 +25,7 @@ RENDER-ITEMS-002 part 4: 426/1,674 item bodies and 11/17 class skins; the 47-typ
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 
-INPUT-001: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
+INPUT-001 implemented: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Final gate: 1,425 tests; 13 focused checks. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
 
 ## Character-select runtime, CHARSEL-RT-001, 2026-10-27
 

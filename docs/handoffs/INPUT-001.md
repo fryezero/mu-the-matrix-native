@@ -82,6 +82,16 @@ unchanged. The run's dirty flag comes from the two untracked local input symlink
 Earlier proof is retained in `icarus-checkpoint.tar.zst`, `warp-checkpoint.tar.zst`,
 `c2-checkpoint.tar.zst` and the sibling `input-001-earlier.tar.zst`.
 
+Completion proof is `20261028-001421-input-001-completion`, source checkpoint `cf8cec0`, in
+`completion-proof.tar.zst` alongside the fixture reports. All cast/right-click/drop/pick-up, Q/W/E/R
+and preedit assertions pass again; all 48 baseline PNG pairs remain identical. The extra cancellation
+journey submits the previously committed `ok` exactly once after `compose:-1:` with remaining text,
+with zero gameplay casts. All thirteen panel/chat captures and the cancellation frames were inspected
+again. Missing synthetic labels/icons and cropped or unpopulated tree views remain visible. No original
+IME or real-GFx frame equality is claimed. Binary digests and Application Support metadata are unchanged
+after the drives. `completion-proof.log` records the commands' results; the archive retains their full
+commands, state logs, input digests, settings metadata and visual-inspection record.
+
 ## Review
 
 Self-review covered the repository evidence rules and input scope. Runtime code does not import wire or
