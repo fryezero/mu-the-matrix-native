@@ -1,7 +1,7 @@
 # RENDER-ITEMS-002 part 9
 
 Base `00bb4d9`, isolated branch/worktree `codex/render-items-002i`, issue #226.
-Only this lane is edited and built. No live client/launcher or hosted workflow is used.
+Checkpoint `6b88dc0` is pushed. Only this lane is edited and built. No live client/launcher or hosted workflow is used.
 
 ## Coverage and implementation
 
@@ -37,13 +37,55 @@ per-world object or audio implementation changed. New frame paths allocate no st
 
 The executable/text/data identities in the [finding](../research/client-render-items.md)
 remain unchanged. `validate_item_coverage.py --mutations` owns the new families
-and its manifest/private test. Final strict results, inherited checks, native
-renders and the serialized release gate are recorded below when complete.
+and its manifest/private test. The strict run passes **31,724 cases, zero mismatches**:
 
-Portable renderchar: 51 tests, twelve explicit private-input skips. A temporary
+| Family | Cases | Mismatches |
+|---|---:|---:|
+| Complete bounded body streams, 107 types times 292 states | 31,244 | 0 |
+| Signed/remainder/conversion clock boundaries, four representative shapes | 80 | 0 |
+| Full shield callers, clocks/random sequences/hand variants | 400 | 0 |
+
+All **9/9 separately compiled mutants** are caught. Detection counts: cosine
+period 8,215; overlay quality 407; overlay raw-level threshold 305; overlay scroll
+2,230; mesh index 26,944; object alpha 23,088; ancient phase 307; shield absolute
+value 200; shield bone 400. Both generated tables reproduce from pinned instructions.
+Combined with the inherited run below, **46,716 original-instruction comparisons**
+have zero mismatches and **18/18 mutants** are caught. The C-to-C preservation
+checks below are separate from that instruction count.
+
+Portable renderchar: **51 tests, twelve explicit private-input skips**. Native
+character renderer: **11 tests, one installed-client skip**. The new native test
+checks two sprites with a three-bone model and nine with all required bones.
+Saved translations, missing bones and full pools pass through the existing host.
+All **643 existing generated rows** retain identical six recipes and scalar/flag
+metadata after re-indexing. Compiled before/after draws for all **679 existing
+body/skin types** match in **21,728 cases**, zero mismatches.
+
+Inherited part 8 passes **14,992 cases, zero mismatches, 9/9 mutants**, including
+11,856 rank-5 lighting/record/clock cases, 2,336 armour cases and 800 link cases.
+Both generated tables reproduce from the pinned instructions.
+
+Six inspected PNGs compare three authored scenes before/after. The ordinary
+control stays byte-identical, framebuffer SHA-256
+`44061fca1b7785a415ca53e4091b7eb9f71aec5fc65e6e32db0eb27c7eb4d3e2`.
+The body scene replaces one refusal with zero, increases passes 21 to 27 and
+changes 6,255/120,000 pixels. The shield scene adds nine sprites and changes
+17,059 pixels with authored textures. Additive untextured geometry saturates
+white; these images do not establish material or live-client fidelity.
+
+Self-review against the brief and repository evidence rules found the native
+fixture's missing shield bones, corrected with separate bounded/full-bone cases.
+The original stream comparisons corrected the raw/effective-level guard and
+excluded the 54 failing fitting candidates. A phase-selection mutant was
+ineffective because those two new recipe phases are equal; the compiled ancient
+phase mutant tests an actual difference instead.
+ A temporary
 candidate table deliberately fails the historical refusal tests; the rejected
 candidates are removed and the production suite passes. The initial broad gate
-was interrupted by builds during implementation and is not a release result.
+ran during edits, and the next preflight retained the older shield-test assertion
+in an already-imported module. Neither is a release result. The corrected native
+suite passes in a fresh process; the final full gate runs after integration under
+the lock.
 
 ## Remaining work and coordination
 

@@ -778,8 +778,13 @@ saved-pose native adapter handles these sprites; character, ground and inventory
 body callers already consume all new body recipes. Weapon links remain attachments.
 No new particle/effect/joint consumer or per-frame allocation was added.
 
-Strict family/mutant counts, representative render changes, preserved controls,
-release gate and cleanup are in the [part-9 handoff](../handoffs/RENDER-ITEMS-002I.md).
+The strict validator passes **31,244 body cases, 80 clock boundaries and 400
+full link callers, 31,724 total**, zero mismatches. All **9/9 compiled mutants**
+are detected, including the raw-level/quality guard, UV, cosine, ancient phase
+and shield colour/bone rules. The inherited part-8 comparison adds 14,992 cases
+and 9/9 mutants. All 643 earlier recipe rows keep identical rules and metadata;
+21,728 C-to-C preservation cases cover all 679 earlier body/skin types separately.
+Representative render changes, preserved controls, release gate and cleanup are in the [part-9 handoff](../handoffs/RENDER-ITEMS-002I.md).
 The pinned executable and captures above apply unchanged. **905 bodies remain**,
 plus full rank-5 owner effects, further links and the earlier domain/model limits.
 Rank-5's 0x84e2/0x83de particles and 0x7fdd owner sprites are listed for the effects

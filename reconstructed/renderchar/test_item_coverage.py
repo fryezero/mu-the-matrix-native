@@ -60,6 +60,7 @@ class ItemCoverage(unittest.TestCase):
             report=json.loads(path.read_text())
             self.assertEqual(report['families']['bodies']['cases'],292*(len(gen.CLOCK_TYPES)+len(gen.CLUSTER_TYPES)))
             self.assertEqual(report['families']['links']['cases'],400)
+            self.assertEqual(report['families']['clocks']['cases'],80)
             self.assertTrue(all(f['mismatches']==0 for f in report['families'].values()))
             self.assertEqual(len(report['mutants']),9)
             self.assertTrue(all(report['mutants'].values()))

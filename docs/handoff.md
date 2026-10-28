@@ -1,6 +1,6 @@
 # Continue from here
 
-RENDER-ITEMS-002 part 9: 769/1,674 bounded bodies, 17/17 skins, fifteen link targets/twenty types. Adds 107 ranked bodies and the nine-bone shield link. Full rank-5 owner effects remain open. [Checks and limits](handoffs/RENDER-ITEMS-002I.md).
+RENDER-ITEMS-002 part 9: 769/1,674 bounded bodies, 17/17 skins, fifteen link targets/twenty types. Adds 107 ranked bodies and the nine-bone shield link; 31,724 new instruction cases, zero mismatches, 9/9 mutants. Full rank-5 owner effects remain open. [Checks and limits](handoffs/RENDER-ITEMS-002I.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
