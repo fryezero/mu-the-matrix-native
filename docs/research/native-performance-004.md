@@ -117,3 +117,31 @@ differed in 98/151 frames. The narrower test missed a real-renderer dependency;
 its exact cause is unresolved. Pointer memoization and its experiment-specific
 tests are removed. All GL pointer/state setup remains unchanged. The failed
 pilot and frame comparison are retained in aggregate evidence.
+
+
+## First integrated repeat
+
+Runtime `4f37645` includes main `26018b4`. The lock-held Mac gate passes 1,384
+tests, with 182 explicit skips across 38 suites, 9/9 fixture scenarios and an
+audit of 1,514 files with zero rejections. All 2,804 full-frame pairs, 0..700 in
+each workload, are byte-identical. These cover all 32 scripted skill events.
+
+Eight sequential 60-second window runs use that exact binary in both modes;
+50 warm-up frames are excluded. Order alternates by scenario as above. No tests,
+builds, sampling or comparisons from this task overlap timing. Other host work
+is uncontrolled. All eight runs pass the unchanged warning limits. Only crowd40
+passes strict acceptance after optimization. The acceptance shortfall remains.
+
+| Scenario | Before fps | After fps | Before frame p99 ms | After frame p99 ms | Main CPU before/after ms |
+|---|---:|---:|---:|---:|---:|
+| crowd40 | 24.98 | 24.89 | 40.36 | 40.45 | 23.18 / 20.98 |
+| crowd80 | 24.95 | 24.82 | 40.42 | 51.43 | 31.41 / 26.74 |
+| tormenta80 | 24.98 | 24.66 | 40.45 | 67.70 | 33.43 / 29.58 |
+| retina80 | 22.51 | 24.19 | 52.98 | 80.25 | 38.79 / 33.61 |
+
+Crowd80's reference passes strict acceptance. Tormenta's reference misses the
+work-tail limit. Lower average CPU cost does not establish improved pacing:
+optimized frame tails regress in this repeat. The largest slow frames involve
+character drawing and GFx as well as logic. Worker scheduling, host load and
+frequency changes are not isolated. The final merge sequence is aborted and its
+lock released for a bounded-worker experiment; no PR is opened on this result.

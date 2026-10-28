@@ -48,15 +48,16 @@ encoding/writing in hash-only mode. No upstream behavior is discarded.
 The full local macOS gate passes: 38 suites, 1,566 test invocations comprising
 1,384 passes and 182 explicit skips; 9/9 fixture scenarios; repository audit
 1,514 files, zero rejected. Native world/client are built from this source.
-The four-workload 701-frame comparison is in progress in `final-frames/`.
-Its first three scenarios pass 701/701 each; retina is still running.
+The 701-frame comparison passes all 2,804 pairs. The eight 60-second timing
+runs in `final-paired/` pass warning limits but strict acceptance fails in all
+three optimized 80-player scenes. Mean CPU falls; tails regress. The finding and
+aggregate summary retain every result. No PR is opened on this result.
 
-Next finish that comparison, run the eight sequential 60-second window pairs
-with GPU timing and normal clocks, summarize honest strict/regression results,
-update the milestone docs, create/merge the PR and release the lock immediately.
-If resuming after failure, inspect the existing owner file before proceeding;
-never remove another lane's lock. This lane's earlier uncommitted merge after a
-failed lock acquisition was aborted; the actual integration above is lock-held.
+The final sequence is aborted and the lane's lock is released. Next test a
+bounded pose-worker team, verify model buffers and frames, then reacquire the
+lock for current-main integration and the complete final sequence. The earlier
+uncommitted merge after a failed lock acquisition was aborted; the actual
+integration and gate above were correctly lock-held.
 
 Private lane scratch is `~/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/`.
 It contains `data`, the built `libmugfx.dylib`, original and resumed profiles,
