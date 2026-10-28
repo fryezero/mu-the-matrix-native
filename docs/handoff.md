@@ -22,6 +22,8 @@ SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequ
 
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
+AUDIO-002 part 4: latest viewport buff input resolves the NPC voice; the migrated Master click enters the cue ring. Caller adapters 66 to 73, sound-capable sites 65 to 73, including six ground-drop sites after SESSION-ITEMS-001a. 5,544 instruction cases, zero mismatches, 15/15 compiled mutants; locked clean Mac gate passes 1,571 tests. [Checks and limits](handoffs/AUDIO-002D.md).
+
 RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.
 
 README-STRESS-001: [handoff](handoffs/README-STRESS-001.md). README images 26/27 are privacy-reviewed and pinned; remote armour now retains Data/Effect glow textures. Historical #201 timings remain contextual.
