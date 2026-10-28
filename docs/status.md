@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-G implements the 48-class inventory and Santa Village/Vulcanus primary methods: 6,000 instruction cases, zero mismatches, 13/13 compiled mutants; 19/144 primary families verified across 7/48 classes. Full Mac gate passes, 1,466 tests; 28 unaffected PNG hashes identical. [Evidence](research/client-worlds-g.md), [handoff](handoffs/RENDER-WORLDS-G.md).
+
 RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,463 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
 
 SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).

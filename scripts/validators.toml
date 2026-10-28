@@ -1764,6 +1764,22 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations"
 "families.*.equal" = {same_as = "families.*.cases"}
 "families.*.stopped" = 0
 
+[validate_worlds_g]
+test = "reconstructed/objects/test_worlds_g.py::WorldsGTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["santa_create", "santa_move", "santa_visual", "vulcanus_create", "vulcanus_move", "vulcanus_visual"]
+cases = 6000
+mutants = 13
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_g.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
 [validate_audio_callers]
 test = "native/tests/test_audio_cues.py::AudioCues.test_original_domain_audio_callers"
 pins = ["text", "data"]
