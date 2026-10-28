@@ -2,6 +2,8 @@
 
 INPUT-001: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
 
+RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
+
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
 
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.

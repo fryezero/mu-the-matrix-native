@@ -2,6 +2,8 @@
 
 INPUT-001: [router handoff](handoffs/INPUT-001.md), [recovered bindings and input-script contract](research/client-input.md). Unavailable domain/window rows and original IME candidate UI remain explicit.
 
+RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
+
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
 
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
