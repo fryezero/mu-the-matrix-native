@@ -13,12 +13,14 @@
 #ifndef MU_DOM_HERO_STATE_H
 #define MU_DOM_HERO_STATE_H
 #include "../../../reconstructed/progress/progress.h"
+#include "layout_CharacterAttribute.h"
+#include "layout_CHARACTER.h"
 
 #define MU_HERO_RECORD_SIZE 0x400u
-#define MU_HERO_TILE_OFFSET 0x180u   /* CHARACTER +0x180/+0x184: the tile (motion zone) */
+#define MU_HERO_TILE_OFFSET MU_LAYOUT_CHARACTER_tile_OFFSET   /* CHARACTER +0x180/+0x184: the tile (motion zone) */
 
 typedef struct mu_dom_hero {
-    uint8_t attr[MU_PRG_ATTR_SIZE];          /* CharacterAttribute (class byte at +0x187, HP +0x68, ...) */
+    uint8_t attr[MU_LAYOUT_CharacterAttribute_SIZE];          /* CharacterAttribute (class byte at +0x187, HP +0x68, ...) */
     uint8_t machine[MU_PRG_MACHINE_SIZE];    /* the stat machine's totals */
     uint8_t record[MU_HERO_RECORD_SIZE];     /* the hero CHARACTER's replicated part (class +0x12); its tile
                                               * (+0x180/+0x184) is refreshed from the world port before each

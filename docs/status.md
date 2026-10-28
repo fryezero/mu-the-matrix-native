@@ -1,5 +1,7 @@
 # Current status
 
+LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
+
 LAYOUT-PROBE-001 settles the separate OBJECT live/fade bytes, the two CHARACTER level reads, and the CharacterAttribute prefix/extent distinction. [Evidence](research/client-layout-probes.md).
 
 ## Stage 1 of the port completion, 2026-10-25

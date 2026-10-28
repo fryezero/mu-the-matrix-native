@@ -1,5 +1,7 @@
 # Continue from here
 
+LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
+
 LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
 
 ## Stage 1 merged (2026-10-25)

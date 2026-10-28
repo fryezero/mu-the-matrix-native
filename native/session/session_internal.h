@@ -72,13 +72,17 @@ typedef struct mu_audit_zone {
     mu_zone zone;
     const char *field;           /* what lives there, for the abort message */
 } mu_audit_zone;
-#define MU_AUDIT_ZONES_MAX 64
+#define MU_AUDIT_ZONES_MAX 256
 typedef struct mu_audit_zones {
     mu_audit_zone z[MU_AUDIT_ZONES_MAX];
     int count;
 } mu_audit_zones;
 void mu_audit_add(mu_audit_zones *zs, const char *name, const uint8_t *base, uint32_t offset, uint32_t size, mu_zone zone,
                   const char *field);
+
+#include "layout_types.h"
+void mu_audit_layout(mu_audit_zones *zs, const char *name, const uint8_t *base, uint32_t size,
+                     const mu_layout_record *record);
 
 struct mu_session_seed;
 
