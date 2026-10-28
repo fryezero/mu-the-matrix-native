@@ -21,7 +21,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | World 71 class | 71 | `0x1aa8038` | `0xdd8d6d` M | `0xdd8ef8` M | `0xdd9192` M |
 | World 72 class | 72 | `0x1aa8230` | `0xdde9e0` M | `0xddeb8a` M | `0xddee5e` M |
 | World 79 class | 79 | `0x1aac310` | `0xe6c0ec` M | `0xe6c1bf` M | `0xe6c678` M |
-| Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` M | `0xe13a9e` V | `0xe13be4` M |
+| Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` M | `0xe13a9e` V | `0xe13be4` V |
 | World 91 class | 91 | `0x1aa59cc` | `0xd6a6d7` M | `0xd6a7aa` M | `0xd6ae34` M |
 | World 92 class | 92, 96, 101, 111 | `0x1aa6154` | `0xd7bd7d` M | `0xd7be29` M | `0xd7be80` M |
 | CGMCharacterScene_Ex | 93 | `0x1aa7338` | `0xdaa2b2` V | `0xdaa82b` V | `0xdaa9dd` V |
@@ -60,7 +60,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M |
 
-7/48 classes have at least one verified primary method. Of 144 primary methods: 18 verified families, 0 static-only C, 126 missing.
+7/48 classes have at least one verified primary method. Of 144 primary methods: 19 verified families, 0 static-only C, 125 missing.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
 for all 48 classes: invisible-sector move +1c, custom render +38 and after render +3c, with separate statuses.
@@ -80,9 +80,9 @@ These are not extra factory classes and do not count toward 48 or 144. Their ver
 | 7 Atlans | 016d8538 switch, verified | 017ff238 switch, verified | remaining visual body missing |
 | 8 Tarkan | 016d8538 switch, verified | 01800bf8, B verified | F haze verified; remaining visual missing |
 | 10 Icarus | generic only | 0180249e bounded verified | C/C2 sky, cover, ribbons and dragons verified; type-10 bone flare missing |
-| 33, 54 Aida | generic only | 00d6202f bounded verified | lane E owns transient light |
-| 37, 40 Kanturu | 00e74a58 bounded verified | 00e74ae0 bounded verified | lane A owns flames and after-character |
-| 51 Elbeland | 00e30a02 bounded verified | 00e30b86, B verified | lane E owns boid movement |
+| 33, 54 Aida | generic only | 00d6202f bounded verified | E source/reset-history attribution; capture history missing |
+| 37, 40 Kanturu | 00e74a58 bounded verified | 00e74ae0 bounded verified | A bounded flames/after-character verified |
+| 51 Elbeland | 00e30a02 bounded verified | 00e30b86, B verified | E boid movement/clouds verified; captured speeds missing |
 
 ## Reproduce and limits
 

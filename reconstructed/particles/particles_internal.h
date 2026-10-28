@@ -18,4 +18,8 @@ static inline int32_t mu_pt_cvttss2si(float value)
 /* C % on int32 with the client's idiv semantics for INT32_MIN % -1 avoided
  * (the divisors here are positive constants). */
 
+void mu_pt_elbeland_render(mu_pt_particle *, float world_time);
+void mu_pt_elbeland_create(mu_pt_particle *, const mu_pt_host *);
+void mu_pt_elbeland_move(mu_pt_particle *, const mu_pt_host *);
+
 #endif

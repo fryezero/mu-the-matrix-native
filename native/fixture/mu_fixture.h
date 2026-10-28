@@ -55,6 +55,8 @@ void mu_fixture_close(mu_fixture *f);
  * transport's poll (server time = the poll's now_ms; one step per poll). The fixture keeps
  * ownership: free the transport (mu_transport_free) before mu_fixture_close. */
 mu_transport *mu_fixture_transport(mu_fixture *f);
+/* True only for our in-process loopback transport, never TCP or replay. */
+int mu_fixture_is_transport(const mu_transport *t);
 
 /* Out-of-process: serve the scenario on a loopback TCP port for one client connection, stepping
  * every step_ms until the client closes or `seconds` pass. Returns 0 after a session, -1 on an error

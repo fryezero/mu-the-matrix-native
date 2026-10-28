@@ -36,15 +36,15 @@
         },
         "custom_render": {
           "entry": "0xe949f8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded deferred-flag and first-mesh branches; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_raklion_visual.c"
         },
         "after_render": {
           "entry": "0xe96536",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded selected deferred object draws; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_raklion_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",
@@ -511,21 +511,21 @@
         },
         "visual": {
           "entry": "0xe13be4",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded type-113 brazier sprite/particle calls; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
         },
         "custom_render": {
           "entry": "0xe14596",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded deferred-flag and first-mesh branches; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
         },
         "after_render": {
           "entry": "0xe1543e",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "RENDER-WORLDS-A bounded selected deferred object draws; compiled C against original instructions with mutants. See client-world-fidelity.md and handoffs/RENDER-WORLDS-A.md; remaining branches and image-phase limits stay open.",
+          "source": "reconstructed/objects/world_karutan_visual.c"
         },
         "invisible_move": {
           "entry": "0xd5cbbc",

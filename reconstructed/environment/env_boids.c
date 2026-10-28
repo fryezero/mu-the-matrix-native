@@ -363,6 +363,8 @@ void mu_env_move_boids(mu_env *env, const mu_env_inputs *in)
         float speed = 1.0f;
         if (o->type == 0x7c4 || o->type == 0x7c6)
             speed = 0.5f;
+        if (w == 51 && env->host.action_speed)
+            speed = env->host.action_speed(env->host.context, o);
         if (env->host.animate)
             env->host.animate(env->host.context, o, speed);
         switch (o->type) {
@@ -379,7 +381,11 @@ void mu_env_move_boids(mu_env *env, const mu_env_inputs *in)
         case 0x472:
             if (w == 10) env_icarus_emitter_move(env, in, o, i);
             break;
-        default:   /* 0x7c6, 0x1a3, 0x1a4 movers are not ported */
+        case 0x1a3:
+        case 0x1a4:
+            env_elbeland_move(env, in, o);
+            break;
+        default:   /* 0x7c6 mover is not ported */
             break;
         }
         boid_flight(env, in, o, i);
@@ -452,6 +458,8 @@ void mu_env_render_boids(mu_env *env, const mu_env_inputs *in, uint8_t pass, con
                     if (r->sprite)
                         r->sprite(r->context, 0x7ef7, eye, 0.1f, light, o);
                 }
+                if (o->type == 0x1a4 && env->host.create_particle_owned)
+                    env->host.create_particle_owned(env->host.context, 0x7f89, o->position, o->angle, o->light, 18, o->velocity, o);
                 if (in->world != 0xa && in->world != 0x84) {
                     if (r->alpha_test)
                         r->alpha_test(r->context, 1);

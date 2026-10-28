@@ -96,10 +96,12 @@ int32_t mu_world_sound_hero_step(mu_world_sound *s, const mu_world_sound_hero *h
     int32_t played = -1;
     for (int i = 0; i < calls; ++i) {
         mu_walk_sound_state state = {s->world, s->hero_tile, h->action, h->safe_zone, h->tile[0], h->tile[1], 0};
-        int32_t id = mu_walk_sound_id(&state, attributes);
+        mu_walk_sound_decision decision = mu_walk_sound_select(&state, attributes);
+        int32_t id = decision.id;
         if (id < 0)
             continue;
-        if (s->host)
+        if (s->sound_cue) s->sound_cue(s->sound_context, decision.site, id);
+        else if (s->host)
             mu_audio_host_play(s->host, id, 0);   /* SND_Play(id, hero, 0) */
         ++s->footsteps;
         if (id >= MU_SOUND_WALK_SOIL && id <= MU_SOUND_SWIM)

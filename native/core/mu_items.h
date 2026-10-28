@@ -130,7 +130,6 @@ typedef struct mu_world_items {
     char (*record_names)[65];
     int32_t random_table[100];  /* 0x06fc9cb8: rand() % 360 at WinMain */
     uint32_t crt_seed;          /* rand() 0x01989721 state */
-    uint32_t demo_seed;
     mu_gi_host host;
     int32_t view;               /* hudPlayerName +0x5c: label view (Alt toggles, starts 1) */
     int32_t selected;           /* SelectedItem 0x01cf114c */
@@ -139,7 +138,6 @@ typedef struct mu_world_items {
     int32_t pickup_wait;        /* the request was sent; waiting for the answer */
     mu_world_item_event events[MU_WORLD_ITEM_EVENTS];
     int32_t event_count;
-    uint8_t prev_dead[MU_WORLD_ACTORS_MAX];
     mu_world_item_model models[MU_WORLD_ITEM_MODELS];
     int32_t model_count;
     mu_character *mannequin;    /* the Player skeleton armour parts are posed with (RenderItems poses model 0xa91) */
@@ -168,12 +166,10 @@ void mu_world_items_close(mu_world_items *items);
  * index; level_byte as the client's packet byte 1 (level << 3 | skill 0x80 |
  * luck 4 | option 0..3); zen is the amount for code 0x1c0f. Returns the pool
  * slot, or -1 (no free slot or no Item.bmd record). */
+int32_t mu_world_items_receive_entry(mu_world_items *items,int32_t slot,const uint8_t bytes[15],float x,float y,int32_t drop_flag);
 int32_t mu_world_items_drop(mu_world_items *items, int32_t code, int32_t level_byte, uint8_t excellent, uint8_t ancient,
                             int32_t zen, float x, float y, int32_t drop_flag);
 
-/* Watches the combat monsters (call after mu_combat_step): a death message
- * schedules a demo drop. combat may be NULL. */
-void mu_world_items_watch_combat(mu_world_items *items, const struct mu_combat *combat);
 /* One logic step: the demo server's messages, MoveItems with the sparkle, the
  * hero's pick-up mode and the despawn. */
 void mu_world_items_step(mu_world_items *items);

@@ -150,6 +150,9 @@ typedef struct mu_objects_runtime {
                    const float light[3], int32_t owner);
     void (*joint)(void *context, int32_t type, const float position[3], const float target[3],
                   const float angle[3], int32_t subtype, int32_t owner, float scale);
+    void (*effect_scaled)(void *, int32_t, int32_t, const float[3], const float[3], const float[3], int32_t, float);
+    uint8_t raklion_state[0x28];
+    float raklion_quake, raklion_hero_angle[3];
     int32_t icarus_count; /* previous MoveObjects ordinal, 0x0bdc5890 */
     long effect_events;
     void *hook_context;
@@ -168,6 +171,8 @@ typedef struct mu_objects {
     float uniform_light;              /* > 0: body light (v, v, v) instead of the terrain light */
     uint8_t hidden_type[MU_OBJECT_TYPES]; /* types the running client marked +0x68 = -2 (not drawn) */
     int32_t hidden_types;
+    void (*sound)(void *context, int32_t id); /* selected object sound, in call order */
+    void *sound_context;
     mu_objects_runtime rt;            /* NATIVE-OBJECTS-002 */
 } mu_objects;
 
@@ -238,6 +243,9 @@ typedef struct mu_objects_step_inputs {
  * light events. Call after the frame light copy; the AddTerrainLight calls are kept in rt.lights
  * and applied by mu_objects_apply_lights. Advances the stand-in particles one step. */
 void mu_objects_step(mu_objects *objects, const mu_objects_step_inputs *inputs);
+/* Event state input, supplied by its owning domain; initially inactive. */
+void mu_objects_raklion_set_event(mu_objects *, uint8_t event);
+void mu_objects_raklion_move(mu_objects *, int32_t type, const float hero[3]);
 int mu_objects_worlds_b_records(mu_objects *objects);
 const char *mu_objects_worlds_b_model(int32_t world, int32_t type);
 
@@ -289,8 +297,11 @@ long mu_objects_render_raster(mu_objects *objects, const mu_world *map, mu_raste
 
 /* timeGetTime for the next step and frame (the pulse of 0x00cfec8d). */
 void mu_objects_set_clock(mu_objects *objects, uint32_t now_ms);
-/* RenderObjects_AfterCharacter (mu_login_after_pass) for the frustum polygon: rt.after_list.
- * Worlds other than 0x5e and (NATIVE-CHARSEL-002) 0x5d: none. */
+/* RenderObjects_AfterCharacter for the frustum polygon: rt.after_list.
+ * Scene handlers cover 0x5d/0x5e; RENDER-WORLDS-A covers 3, 0x33, 0x39/0x3a and 0x50/0x51. */
+/* Extra first-pass meshes of Raklion's split bodies, 0 for an ordinary draw. */
+int32_t mu_objects_first_meshes(mu_objects *objects, int32_t draw_index, const mu_world *map,
+                               mu_object_model *model, mu_object_mesh *meshes, int32_t capacity);
 void mu_objects_after_visibility(mu_objects *objects, const mu_terrain_frustum *frustum, int32_t scene_state);
 /* The after-character draw of rt.after_list[k]: the RenderObject setup (body light, pose) and the
  * world's slot 0x3c, whose RenderMesh calls (and, in world 0x5d, RenderBody calls: mesh_plus_one 0) land

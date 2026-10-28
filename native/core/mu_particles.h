@@ -51,7 +51,7 @@
  * MoveParticles in that order each step; the effect models before the joints, the joints before the sprite
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
-enum { MU_WORLD_PT_BITMAPS = 46, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
+enum { MU_WORLD_PT_BITMAPS = 51, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
        MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 11, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
@@ -105,7 +105,7 @@ typedef struct mu_world_particles {
     /* NATIVE-JOINT-001: the world objects' joints and effects */
     struct mu_world_helpers *helpers;      /* helper OBJECTs for mount-owned effects and joints */
     const struct mu_world_actors *actors;  /* NPC-owned joints; actor ids use MU_WORLD_ACTOR_FX_BASE */
-    struct mu_world_env *environment;      /* Icarus joint owners, lifetime of the attached world */
+    struct mu_world_env *environment;      /* boid-owned particles and joints */
     struct mu_objects *objects;            /* owners and targets (object images), NULL none */
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */

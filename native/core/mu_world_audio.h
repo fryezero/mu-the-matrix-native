@@ -46,6 +46,9 @@ typedef struct mu_world_sound_hero {
 
 typedef struct mu_world_sound {
     mu_audio_host *host;
+    /* Optional session cue sink; standalone tools keep the direct audio facade. */
+    void (*sound_cue)(void *context, uint32_t site, int32_t id);
+    void *sound_context;
     mu_audio_table table;
     int has_table;
     int32_t world;

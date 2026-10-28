@@ -1,6 +1,12 @@
 # Continue from here
 
-RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 126 primary methods remain.
+RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.
+
+RENDER-WORLDS-E: [handoff](handoffs/RENDER-WORLDS-E.md). Elbeland boids and Raklion event timer implemented; Aida light accumulation attributed. Full Mac gate passes, 1,463 tests; fourteen-view scores/hashes unchanged.
+
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+AUDIO-002 part 2: [handoff](handoffs/AUDIO-002B.md). Thirty caller sites have adapters into the character session ring; one NPC buff input remains unresolved. Combat, unmigrated domains, music 43/44 and LIVE-PLAY comparison remain separate.
 
 WORLD-ORDER-001: [handoff](handoffs/WORLD-ORDER-001.md). Tick/draw expectations now read compiled call records; native deviations are explicit. No runtime/order-number change.
 
@@ -19,6 +25,8 @@ VIEWPORT-MONSTER-001: [handoff](handoffs/VIEWPORT-MONSTER-001.md), shared monste
 RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
 
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
+
+RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and deferred draws after the environment, integrated through main `0a85441`; refreshed Mac gate passes and fidelity results are recorded.
 
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
 the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.

@@ -2,7 +2,7 @@
 
 RENDER-WORLDS-G, 2026-10-28. The [coverage inventory](world-handler-coverage.md) accounts for 48 concrete
 factory classes, 57 registered worlds and 288 method-slot addresses. The three primary slots have
-18 verified families and 126 missing methods across 144 entries; seven classes have at least one verified
+19 verified families and 125 missing methods across 144 entries; seven classes have at least one verified
 primary method. The inherited BaseMap registration for world 146 is outside these counts.
 
 ## Provenance and boundaries
@@ -69,7 +69,9 @@ not Santa/Vulcanus image-fidelity evidence. The local Mac gate and reviewed sour
 
 ## Remaining work and DATA-ACQ-002
 
-The other 126 primary methods and the inventory's separately marked custom/after/invisible slots remain open.
+The other 125 primary methods and the inventory's separately marked custom/after/invisible slots remain open.
+The integrated A lane adds bounded Karutan visual coverage and Raklion/Karutan custom/after slot annotations;
+the seven-class count is unchanged. E's inherited event helpers are outside the three primary slots.
 Santa/Vulcanus custom-render and after-render slots are missing; setting Vulcanus type 70's byte does not
 claim its second-pass drawing is implemented. This lane does not change the excluded A/E handlers or prior
 Icarus/Devias/Tarkan/Raklion work. The interrupted checkpoint's nonexistent Duel Arena references were removed;

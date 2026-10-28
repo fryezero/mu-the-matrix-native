@@ -11,8 +11,9 @@ This milestone recovers what the client does in a fight and joins it to the nati
 NATIVE-COMBAT-002 (section 8) adds the older effect system that draws skills and projectiles (effects, particles,
 joints), the area skills, the hero's own hit and death, and the combat sounds.
 
-There is no server. Who hits, the damage, the death and the respawn are a clearly labelled demo; the client's side of
-each message is reconstructed.
+SESSION-COMBAT-001 moves the synthetic server policy into the loopback fixture. Damage, death, rewards and
+respawn reach the presentation through session frames. Earlier sections describe the original demo implementation;
+section 9 records the migration and its plaintext boundary.
 
 Labels used below:
 
@@ -473,3 +474,94 @@ make -C reconstructed/combat && make -C native && make -C native world
 python3 -m unittest discover -s reconstructed/combat -p 'test_*.py'
 python3 -m unittest native.tests.test_native_combat
 ```
+
+
+## 9. SESSION-COMBAT-001, 2026-10-28
+
+### Scoped routing, static evidence
+
+Only the two owner-authorized reverse lookups were performed. In the pinned capture09 text, the dispatcher
+prefix at `0x01287eed..0x01287f0a` bounds the opcode to `0xfd` and indexes `0x0128e59d + opcode * 4` directly.
+The lookup compared table destinations against the call blocks for the two requested handler addresses.
+Only the matching blocks and their two seed rows are retained. No dispatcher generator, table export,
+sub-dispatch recovery or other routing changes belong to this milestone.
+
+| Opcode | Slot address | Selected block | Handler call | Handler |
+|---|---|---|---|---|
+| `F3` | `0x0128e969` | `0x012885f7` | `0x012885fa` | `0x01224455` |
+| `C5` | `0x0128e8b1` | `0x01288613` | `0x01288619` | `0x01222b6d` |
+
+These two rows in `native/net/dispatch.seed.def` remain `MU_STATIC`. Body comparisons do not promote routing
+evidence to a full dispatcher comparison. Existing `17`, `16`, `20` and `A4` seed rows are reused unchanged.
+Within the action body, only action bytes `78` and `79` were selected: the selector bytes at `0x0122385b/5c`
+both select case 1 at `0x01222f53` through `0x0122374d`. Other actions remain ignored by this domain.
+
+### Instruction comparisons, verified within the stated bounds
+
+`native/session/domains/combat_wire.c` contains the record writes and pre-transform request construction.
+`scripts/validate_session_combat.py` executes the captured bodies with synthetic records and independent service
+stubs, fresh per family and mutant run. Die/action reset fields start nonzero. Its AddData stub records plaintext inputs and checks the encode argument; neither keyed AddData,
+receive decode nor the Send wrap is executed. The action switch now executes its real two selected branches;
+the interrupted WIP had jumped directly to the case and tested only action `78`.
+
+| Family | Original entry | Cases | Compared output |
+|---|---|---:|---|
+| Damage | `0x01224455` | 1,000 | key/shock/type/flags, last-damage word, hero HP/SD subtraction and clamp |
+| Die | `0x01234585` | 1,000 | dead/movement/reset fields, killing-skill byte and skill 40/59/392 flag |
+| Action `78/79` | `0x01222b6d` | 1,000 | no-target direction, position snap, attack-time, voice reset and target index |
+| Attack request | `0x016b6214` | 1,000 | blocked gate, opcode `43`, target bytes, action `78`, direction, Send flags |
+| Position cast | `0x016b6361` | 1,000 | `D7` and type-11 `C9`, coordinates, skill byte, encrypted Send flag |
+| SendMove | `0x016b5cd0` | 1,000 | counts 0..15, clamp to 14, path nibbles, final direction, delay and Send flags |
+
+Total 6,000 comparisons, zero mismatches; all six compiled planted mistakes fail. Mutants change the damage
+word, dead byte, attack-time byte, attack opcode, cast opcode and move start coordinate. The existing combat
+families also pass: 25,200 comparisons, 12/12 mutants; skill/effect families 33,000 comparisons, 20/20 mutants.
+The latter includes the required 30,000 effect cases plus 3,000 player-voice cases. All have zero mismatches.
+The text/data hashes in Identity are unchanged. Reports are local under
+`~/Documents/MTM/mu-mac-tools/native/scratch/session-combat-001/`.
+
+Engine/UI/effect services and their event/world predicates are stubbed in the new body comparator. Damage
+uses the packet flag-8 text branch; the existing combat families cover the other text scales. Action target
+geometry is supplied to the body; session tests separately exercise facing a known target and both action bytes.
+The new comparator verifies the no-target original path. Special-world side effects, the rest of the action
+handler, target-based cast variants and live behavior remain outside the claim.
+
+### Session, fixture and presentation
+
+The combat domain owns ordered damage/die/action/drop outputs, a bounded event history with explicit loss,
+and the combat fields absent from the current CHARACTER projection. It projects/restores existing CHARACTER
+fields through the layout adapters. Damage never causes death. The world combat part submits attack/cast/move
+intents and renders session results. Both local kill paths are gone: combat no longer generates damage/death,
+experience or quest kills, and ground items no longer watch combat dead flags to invent drops. Projectile and
+area effect completion produces presentation only.
+
+`fixture/behaviors/combat.c` owns synthetic HP, damage rolls, latency, counters, respawn and rewards. Its
+attack/move requests use a fixture-only plaintext callback before the fixture's legacy decode path. The session
+checks the actual in-process fixture transport, so a loopback TCP address alone cannot send these bytes.
+Casts are journaled with `needs_crypto` and remain unsent without entering keyed transformation or encryption.
+Product combat requests are likewise journaled unsent. The existing hero domain's plaintext `16` refusal/report
+is preserved: this scenario observes an experience frame and its unsent report, not a plaintext experience gain.
+
+`combat-fight.scn` joins the discovered VERIFY-SESSION suites and checks attack, action, damage, die, `16`, `20`
+and quest `A4` frames, zero unbound/undecodable, one consumed request, two unsent requests and one quest kill.
+Portable tests also check malformed-frame atomicity, damage without death, known/absent targets and event loss.
+Ground ownership/pickup remains SESSION-ITEMS-001; `20` currently hands validated rows to the existing view.
+Remote HP bars use only session viewport HP/max values. The synthetic viewport has zero HP/max, so its bar
+remains zero instead of estimating HP from damage. The separate HP-update route was not recovered or bound.
+The old character fixture now emits the complete nine-byte die frame. The seed-only combat transport check
+has one explicit include-audit allowance; product-library checks still reject fixture symbols.
+
+Intentional output changes: combat frame timing and RNG ownership now follow the fixture, cast visuals cannot
+kill while their encrypted requests are unsent, remote HP is no longer fabricated, the synthetic drop is one Short Sword row, and respawn reaches
+the view one poll after the server emits it. Native regression expectations record those changes. Existing
+render/hash fixtures outside the fight remain required by the full local gate. No live client was used.
+
+
+### Final local release gate
+
+With latest main `b223709` integrated at `2b36422`, `bash scripts/local-macos-ci.sh` passes: 1,458 tests run,
+177 explicit skips, 7/7 fixture scenarios and 50 expectations. The suite receives 53 frames with zero unbound
+or undecodable frames; combat contributes seven frames and ten expectations. The publication audit checks
+1,342 staged files with zero rejections. The private session test passes all five tests; its 240-case/six-mutant
+validator also passes through `run_validators.py`. No golden/render hash pins changed. Intended combat and
+unknown-HP output changes are described above. All evidence remains local in the milestone scratch directory.

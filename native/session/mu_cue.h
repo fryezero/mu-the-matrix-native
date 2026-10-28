@@ -33,7 +33,8 @@ typedef enum mu_cue_kind {
     MU_CUE_LEVEL_UP,             /* level or master level changed (HUD flash; the joints arrive as EFFECT cues) */
     MU_CUE_ANSWER,               /* the server answered an intent kind: accepted or refused with a code */
     MU_CUE_UNHANDLED,            /* development: a frame whose route has no apply function (counted, journaled) */
-    MU_CUE_CALL                  /* a client routine the handler called that no typed cue covers yet (address + args) */
+    MU_CUE_CALL,                 /* a client routine the handler called that no typed cue covers yet (address + args) */
+    MU_CUE_AUDIO_INPUT          /* unresolved input for a sound decision, u.sound.id = missing routine */
 } mu_cue_kind;
 
 typedef enum mu_window_verb { MU_WINDOW_OPEN = 1, MU_WINDOW_SHOW, MU_WINDOW_CLOSE, MU_WINDOW_CLOSE_ALL,
@@ -44,7 +45,7 @@ typedef struct mu_cue {
     mu_cue_kind kind;
     uint32_t handler;            /* the client handler that produced it (provenance for tests and the journal) */
     union {
-        struct { int32_t id; int16_t at_key; int loop; } sound;              /* at_key -1: the hero, -2: none */
+        struct { int32_t id; int16_t at_key; int loop; uint32_t site; } sound;              /* at_key -1: hero, -2: none, -3: environment object */
         struct { int32_t type, subtype; int16_t owner_key; float position[3]; } effect;
         struct { int16_t target_key; int32_t amount; int32_t color; } damage;
         struct { int32_t channel; char name[11]; char text[256]; } chat;
