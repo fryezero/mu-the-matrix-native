@@ -119,7 +119,9 @@ static void host_sound(void *context, int32_t id)
 {
     mu_world_items *it = context;
     ++it->stats.sounds;
-    if (it->play_sound)
+    /* Session arrivals emit once, even while silent. Reconstructing presentation
+     * on rebind must not replay a drop; standalone tools retain their facade. */
+    if (!it->session && it->play_sound)
         it->play_sound(it->sound_context, id);
 }
 
@@ -338,7 +340,10 @@ int mu_world_items_open(mu_world_items *it, const char *root, mu_walk *walk, con
 
 void mu_world_items_close(mu_world_items *it)
 {
-    if(it->session)mu_session_items_bind(it->session,NULL,NULL);
+    if(it->session) {
+        mu_session_items_bind(it->session,NULL,NULL);
+        mu_session_items_audio_bind(it->session,NULL,NULL);
+    }
     mu_lang_free(it->lang);
     mu_gi_sets_free(it->sets);
     mu_data_free(&it->set_type);
@@ -562,12 +567,18 @@ static void present_entry(void *ctx,int32_t slot,const uint8_t entry[19])
     unsigned key=((unsigned)entry[0]<<8)|entry[1];
     receive_entry(it,slot,entry+4,((float)entry[2]+0.5f)*100,((float)entry[3]+0.5f)*100,(int32_t)(key>>15));
 }
+static int audio_record(void *ctx, int32_t code)
+{
+    const mu_gi_record *record = record_of(ctx, code);
+    return record && record->present;
+}
 void mu_world_items_bind(mu_world_items *it,mu_session *s,void *fixture_items)
 {
     it->session=s; it->fixture_items=fixture_items;
     /* Pointer refers to session storage. Replicated fields are changed only by handlers;
      * MoveItems/render/selection write object motion/view fields. */
     it->pool=(mu_gi_item *)mu_session_items(s).pool;
+    mu_session_items_audio_bind(s,audio_record,it);
     mu_session_items_bind(s,present_entry,it);
 }
 
