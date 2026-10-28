@@ -31,9 +31,10 @@ class Items(unittest.TestCase):
         self.assertEqual([x['apply'] for x in frames],['items_viewport','items_delete']*2)
         self.assertEqual([x['result'] for x in frames],['done']*4)
         out=jnl(rows,'frame_out')
-        self.assertEqual(len(out),1)
-        self.assertEqual((out[0]['send'],out[0]['encrypted']),('needs_crypto',1))
-        self.assertEqual(out[0]['bytes'],'c1 05 00 00 00')
+        self.assertEqual(len(out),2)
+        self.assertEqual(out[0]['bytes'],'c1 06 a2 79 78 10')
+        self.assertEqual((out[1]['send'],out[1]['encrypted']),('needs_crypto',1))
+        self.assertEqual(out[1]['bytes'],'c1 05 00 00 00')
 
     def scenario(self,body,expect):
         with tempfile.TemporaryDirectory() as tmp:

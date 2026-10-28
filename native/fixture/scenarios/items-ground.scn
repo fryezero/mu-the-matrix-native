@@ -2,8 +2,9 @@
 # encrypted request is unsent and the inbound pickup-answer route is absent.
 endpoint game 127.0.0.1:55906
 use items latency=2 despawn=12
+use combat counter=0
 join world=0 tile=120,120 class=1 level=10 name=Items slot=0
-at 1 client lease tile 121 120
+at 1 client walk 121 120
 at 2 items drop 1 121 120
 at 3 client submit item_pickup 0
 at 4 items pickup 0
@@ -16,5 +17,7 @@ expect items.deletes = 2
 expect items.live = 0
 expect items.pending = -1
 expect unsent = 1
-expect fixture.requests = 0
+expect fixture.requests = 1
+expect motion.x = 121
+expect motion.y = 120
 expect unrecovered = 0
