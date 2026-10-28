@@ -59,6 +59,11 @@ class InputRouter(unittest.TestCase):
         self.assertEqual(rows[2]['messages'],2)  # releases only, no gameplay key press
         self.assertEqual(rows[-1]['casts'],1)
 
+    def test_negative_cursor_cancels_preedit_with_remaining_text(self):
+        rows=self.drive('compose:1:%E4%B8%AD','key:49','compose:-1:%E4%B8%AD','key:49')
+        self.assertEqual(rows[1]['casts'],0)
+        self.assertEqual(rows[-1]['casts'],1)
+
     def test_missing_panel_is_explicit(self):
         for r in self.drive('key:Y','key:G','key:B','key:N','key:K'):
             self.assertEqual(r['result'],-1)

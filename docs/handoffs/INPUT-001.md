@@ -24,8 +24,10 @@ original client, launcher, live game, network protocol or protected module was t
 
 - Original instructions: 528 scan cases, 135,168 key decisions, 42 menu-binding cases, zero mismatches;
   7/7 compiled mutants detected. Context-dependent panel bodies and the original IME are outside this family.
-- Router tests: 12/12 with the private comparison enabled. Synthetic downstream adapters exercise repeat
+- Router tests: 13/13 with the private comparison enabled. Synthetic downstream adapters exercise repeat
   suppression, releases, focus loss, modifiers, preedit digits, mouse delivery and malformed schedules/actions.
+- Completion regression: a negative preedit cursor with remaining text now clears composition and forwards
+  an empty cancellation to GFx. The test failed before the fix and passes afterward.
 - Baseline comparison: 48/48 scene/walk recipe PNGs without GFx identical across mu-client, mu-shell,
   mu-world and mu-walk. Four pairs, same authored root and input. No-input render behavior is unchanged.
 - mu-client real OpenGL and real local libmugfx: numeric demo cast; selected-skill right click; a killed
@@ -46,10 +48,15 @@ original client, launcher, live game, network protocol or protected module was t
   enabled supplies the accepted UI proof.
 - Incremental integration exposed stale charsel objects after the world object layout grew. The corrected
   header dependency is also in the merged Icarus/viewport lanes. It was retained; no charsel behavior changed.
-- Final local macOS gate at `1a5677e`, after main `128679f` including the monster-session and item lanes:
+- Earlier local macOS gate at `1a5677e`, after main `128679f` including the monster-session and item lanes:
   **1,421 tests across 38 suites, 172 explicit skips, zero failures**. All six discovered fixture
   scenarios pass. Viewer/read-only readers build; audit accepts **1,286 files, zero rejected**.
   Reader binaries were built, never run against a client. `monster-items-gate.log` is the acceptance log.
+- Completion local macOS gate, with current main `f4b5c5c` and the preedit cancellation regression:
+  **1,425 tests across 38 suites, 173 explicit skips, zero failures**. All six fixture scenarios pass;
+  viewer/read-only readers build; audit accepts **1,297 files, zero rejected**.
+  `completion-final-gate.log` is the final gate log. The private router run passes 13/13, and the
+  manifest runner passes the input family without a skip in `completion-registered/`.
 - The earlier disk-full run failed while writing temporary fixtures/PNGs. It is retained as a failed
   environment precondition. The final gate passed after losslessly archiving this task's earlier proof.
 - An additional strict cross-run check of all 391 GFx-inclusive PNGs did not establish repeatability.
@@ -67,8 +74,8 @@ removing the owned worktree. The source-only commit does not include captured by
 movies, screenshots, renders or journals. Artifact manifests identify binary digests; changed build inputs
 require a new run manifest and another drive.
 
-Final proof is `20261027-235509-input-001-monster-release`, code checkpoint `1a5677e`, retained in
-`release-proof.tar.zst` with the fixture reports. Its real-library/movie hashes, exact commands,
+Earlier proof is `20261027-235509-input-001-monster-release`, code checkpoint `1a5677e`, retained in
+`monster-checkpoint.tar.zst`. Its real-library/movie hashes, exact commands,
 selected environment values, state assertions and per-panel visual-inspection record stay in `proof/`.
 All recorded binary digests remain unchanged after the drives. Application Support entry metadata is
 unchanged. The run's dirty flag comes from the two untracked local input symlinks; tracked source was clean.

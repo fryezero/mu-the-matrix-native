@@ -77,3 +77,4 @@ $V/run-tool.sh "$RUN" input mu-client --game-root "$RUN/root" --session "$RUN/se
 - Frame indices are front-end iterations, not server WorldTime or a cross-client timing comparison.
 - The original IME.swf, missing windows and authoritative mount/helper/shop controllers remain in the
   coverage table. This recipe never supplies their state or claims them as verified.
+- `compose:-1:UTF8` cancels preedit, including any remaining text. The next Enter can submit chat.

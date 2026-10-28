@@ -34,6 +34,10 @@ not trigger gameplay again. Focus loss releases keys and cancels composition. Wi
 by SDL events; the scan's platform inputs are modeled in the instruction comparison. The router does
 not claim instruction equality for this platform adaptation or for demo combat/server rules.
 
+A negative preedit cursor cancels composition even if the event retains text. The router clears that text
+before forwarding the cancellation to GFx. A native regression verifies that the next gameplay key is no
+longer suppressed; this is native script policy, not an original-IME comparison.
+
 ## Scan
 
 `0x00ec5475..0x00ec5576` updates 256 bytes in the object at ECX. The enabled byte is

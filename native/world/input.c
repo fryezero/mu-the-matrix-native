@@ -163,10 +163,12 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
     }
     if (a->input_suspended) return 1;
     if (m->kind == MU_INPUT_TEXT || m->kind == MU_INPUT_COMPOSE) {
-        a->input_composing = m->kind == MU_INPUT_COMPOSE && m->text && *m->text;
+        const char *text = m->text ? m->text : "";
+        if (m->kind == MU_INPUT_COMPOSE && m->cursor < 0) text = "";
+        a->input_composing = m->kind == MU_INPUT_COMPOSE && *text;
 #ifndef MU_WORLD_NO_GL
-        return l ? (m->kind == MU_INPUT_TEXT ? mu_gfx_layer_text(l, m->text ? m->text : "") :
-                    mu_gfx_layer_compose(l, m->text ? m->text : "", m->cursor)) : 0;
+        return l ? (m->kind == MU_INPUT_TEXT ? mu_gfx_layer_text(l, text) :
+                    mu_gfx_layer_compose(l, text, m->cursor)) : 0;
 #else
         return 0;
 #endif
