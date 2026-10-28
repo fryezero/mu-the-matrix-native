@@ -144,13 +144,21 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
 	rm -f $@
 	ar rcs $@ $^
 
-$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world.c tools/mu_render_world.h charsel/main.c tools/mu_render_hud.c $(LIB)
+# CHARSEL-RT-001: scene 5 is one module in every front end, with a separate CLI.
+CHARSEL_RT_SRC := charsel/charsel_rt.c $(sort $(wildcard charsel/parts/*.c))
+CHARSEL_RT_HDR := charsel/mu_charsel_rt.h charsel/charsel_rt_internal.h charsel/charsel_part.h charsel/parts.def
+CHARSEL_RT_OBJ := $(patsubst %.c,$(BUILD)/charsel-rt/%.o,$(CHARSEL_RT_SRC))
+$(BUILD)/charsel-rt/%.o: %.c $(CHARSEL_RT_HDR) $(CORE_HDR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c $< -o $@
+
+$(BUILD)/mu-render: tools/mu_render.c tools/mu_render_ui.c tools/mu_render_world.c tools/mu_render_world.h charsel/charsel_tool.c $(CHARSEL_RT_OBJ) tools/mu_render_hud.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render.c -o $(BUILD)/mu_render.o
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_ui.c -o $(BUILD)/mu_render_ui.o
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_world.c -o $(BUILD)/mu_render_world.o
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tools/mu_render_hud.c -o $(BUILD)/mu_render_hud.o
-	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -DMU_CHARSEL_TOOL_ONLY -c charsel/main.c -o $(BUILD)/mu_render_charsel.o
-	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(BUILD)/mu_render_charsel.o $(BUILD)/mu_render_hud.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/charsel_tool.c -o $(BUILD)/mu_render_charsel.o
+	$(CXX) $(BUILD)/mu_render.o $(BUILD)/mu_render_ui.o $(BUILD)/mu_render_world.o $(BUILD)/mu_render_charsel.o $(BUILD)/mu_render_hud.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # The 2D layer alone (reconstruction + software GL + assets), for the Python
 # validator and tests (ctypes).
@@ -211,9 +219,10 @@ $(BUILD)/mu-path: tools/mu_path.c $(LIB)
 	$(CXX) $(BUILD)/mu_path.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
 
 # Character-select scene, headless software build (NATIVE-CHARSEL-001).
-$(BUILD)/mu-charsel: charsel/main.c $(LIB)
+$(BUILD)/mu-charsel: charsel/main.c charsel/charsel_tool.c $(CHARSEL_RT_OBJ) $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/main.c -o $(BUILD)/mu_charsel.o
-	$(CXX) $(BUILD)/mu_charsel.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/charsel_tool.c -o $(BUILD)/mu_charsel_tool.o
+	$(CXX) $(BUILD)/mu_charsel.o $(BUILD)/mu_charsel_tool.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
@@ -379,9 +388,9 @@ $(BUILD)/mu-world: $(WORLD_SRC) $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
-CHARSEL_SRC := charsel/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c
+CHARSEL_SRC := charsel/main.c charsel/charsel_tool.c $(CHARSEL_RT_SRC) viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c
 
-$(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headless.h $(LIB)
+$(BUILD)/mu-charsel-window: $(CHARSEL_SRC) $(CHARSEL_RT_HDR) viewer/gl_backend.h viewer/gl_headless.h $(LIB)
 	@mkdir -p $(BUILD)/charsel
 	for f in $(CHARSEL_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/charsel/$$(basename $$f .c).o || exit 1; \
@@ -391,19 +400,19 @@ $(BUILD)/mu-charsel-window: $(CHARSEL_SRC) viewer/gl_backend.h viewer/gl_headles
 # ---- mu-client: the client's scene flow, offline (NATIVE-SHELL-001) ----
 # client/shell.c runs reconstructed/scene over the character-select and world
 # sessions: the world runtime (WORLD-RT-001, world/mu_world_rt.h) and
-# charsel/charsel_embed.c, which compiles charsel/main.c unchanged. build/mu-shell is the headless
+# charsel/mu_charsel_rt.h. build/mu-shell is the headless
 # software build (portable tests), build/mu-client the SDL2 + OpenGL window.
-CLIENT_SRC := client/main.c client/shell.c client/offline-session.c $(WORLD_RT_SRC) charsel/charsel_embed.c \
+CLIENT_SRC := client/main.c client/shell.c client/offline-session.c $(WORLD_RT_SRC) $(CHARSEL_RT_SRC) \
               charsel/charsel_list_gfx.c charsel/charsel_mugfx.c charsel/charsel_create_gfx.c
-CLIENT_HDR := gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h client/shell.h client/offline-session.h $(WORLD_RT_HDR) charsel/charsel_embed.h charsel/main.c \
+CLIENT_HDR := gfx/mu_gfx_services.inc gfx/mu_gfx_services_state.h client/shell.h client/offline-session.h $(WORLD_RT_HDR) $(CHARSEL_RT_HDR) \
               charsel/charsel_list_gfx.h charsel/charsel_mugfx.h charsel/charsel_create_gfx.h
 
 $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/shell
-	@rm -f $(BUILD)/shell/world_embed.o   # WORLD-RT-001: the textual embed of world/main.c is gone
+	@rm -f $(BUILD)/shell/*.o # CHARSEL-RT-001: migrate the old basename objects
 	for f in $(CLIENT_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
-	    -o $(BUILD)/shell/$$(basename $$f .c).o || exit 1; \
+	    -o $(BUILD)/shell/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
@@ -411,10 +420,10 @@ CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_ba
 
 $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_backend.h viewer/gl_batch.h viewer/gl_headless.h viewer/ui_gl.h $(LIB) $(BUILD)/libmuaudio.a
 	@mkdir -p $(BUILD)/client
-	@rm -f $(BUILD)/client/world_embed.o   # WORLD-RT-001: the textual embed of world/main.c is gone
+	@rm -f $(BUILD)/client/*.o # CHARSEL-RT-001: migrate the old basename objects
 	for f in $(CLIENT_GL_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
-	    -o $(BUILD)/client/$$(basename $$f .c).o || exit 1; \
+	    -o $(BUILD)/client/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
 	$(CXX) $(BUILD)/client/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
