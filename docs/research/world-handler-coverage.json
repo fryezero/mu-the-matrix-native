@@ -52,6 +52,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "earlier",
+        "detail": "2026-10-22 tour (Raklion 224,211)"
       }
     },
     {
@@ -100,6 +104,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window (event map)"
       }
     },
     {
@@ -148,6 +156,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Vulcanus 124,129"
       }
     },
     {
@@ -196,6 +208,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window (duel entry only)"
       }
     },
     {
@@ -244,6 +260,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -292,6 +312,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window (event map)"
       }
     },
     {
@@ -340,6 +364,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window (event map)"
       }
     },
     {
@@ -388,6 +416,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window (event map)"
       }
     },
     {
@@ -436,6 +468,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window (event map)"
       }
     },
     {
@@ -484,6 +520,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Loren Market 56,74; Event Square 204,57"
       }
     },
     {
@@ -533,6 +573,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "earlier",
+        "detail": "2026-10-22 tour (Karutan 125,123)"
       }
     },
     {
@@ -581,6 +625,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Acheron 58,191"
       }
     },
     {
@@ -632,6 +680,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: none of 92/96/101/111 is in the Warps window (event maps)"
       }
     },
     {
@@ -680,6 +732,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "earlier",
+        "detail": "NATIVE-OBJECTS-001 character-select read"
       }
     },
     {
@@ -728,6 +784,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "earlier",
+        "detail": "NATIVE-OBJECTS-001 login read"
       }
     },
     {
@@ -776,6 +836,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -824,6 +888,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -872,6 +940,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -920,6 +992,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Ferea 236,152"
       }
     },
     {
@@ -968,6 +1044,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Nixies Lake 25,119"
       }
     },
     {
@@ -1016,6 +1096,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -1064,6 +1148,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -1112,6 +1200,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Deep Dungeon 1 120,126"
       }
     },
     {
@@ -1160,6 +1252,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Deep Dungeon 2 131,128"
       }
     },
     {
@@ -1208,6 +1304,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Deep Dungeon 3 123,123"
       }
     },
     {
@@ -1256,6 +1356,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Deep Dungeon 4 125,119"
       }
     },
     {
@@ -1304,6 +1408,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Deep Dungeon 5 126,119"
       }
     },
     {
@@ -1352,6 +1460,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -1400,6 +1512,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Swamp of Darkness 129,122"
       }
     },
     {
@@ -1452,6 +1568,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Kubera Mine 237,88 (world 123 only)"
       }
     },
     {
@@ -1500,6 +1620,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Abyss of Atlans 1 130,127"
       }
     },
     {
@@ -1548,6 +1672,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Abyss of Atlans 2 128,124"
       }
     },
     {
@@ -1596,6 +1724,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Abyss of Atlans 3 128,124"
       }
     },
     {
@@ -1644,6 +1776,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Scorched Canyon 236,14"
       }
     },
     {
@@ -1692,6 +1828,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Red Smoke Icarus 130,116"
       }
     },
     {
@@ -1740,6 +1880,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Temple of Arnil 125,57"
       }
     },
     {
@@ -1788,6 +1932,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Gray Aida 124,30"
       }
     },
     {
@@ -1836,6 +1984,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Old Kethotum 128,17"
       }
     },
     {
@@ -1884,6 +2036,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Burning Kethotum 127,17"
       }
     },
     {
@@ -1932,6 +2088,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Kanturu Underground 129,124"
       }
     },
     {
@@ -1980,6 +2140,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Ignis Volcano 124,119"
       }
     },
     {
@@ -2028,6 +2192,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: not in the Warps window"
       }
     },
     {
@@ -2076,6 +2244,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Bloody Tarkan 128,38"
       }
     },
     {
@@ -2124,6 +2296,10 @@
           "scope": "bounded; see existing scene/object finding",
           "source": "reconstructed/objects/object_render.c; reconstructed/particles/visual.c"
         }
+      },
+      "capture": {
+        "status": "earlier",
+        "detail": "NATIVE-OBJECTS-001 Tormenta read"
       }
     },
     {
@@ -2172,6 +2348,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Twisted Karutan 121,120"
       }
     },
     {
@@ -2220,6 +2400,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Kardamahal Underground Temple 125,22"
       }
     },
     {
@@ -2268,6 +2452,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "captured",
+        "detail": "DATA-ACQ-002 2026-10-28: Swamp of Destruction 107,130"
       }
     },
     {
@@ -2316,6 +2504,10 @@
           "scope": "static entry only; no native implementation claimed",
           "source": null
         }
+      },
+      "capture": {
+        "status": "not_reachable",
+        "detail": "DATA-ACQ-002 2026-10-28: Aquila's Temple needs total level 1650; Nighty has 1600 (entry shown red)"
       }
     }
   ]

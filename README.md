@@ -81,7 +81,11 @@ where marked as the original client.
 ### Title, login and server select
 
 The client's login world (ships, sea, sky, island beam) with the server list and login overlay drawn by the
-reconstructed 2D layer, in the **Native Preview** app.
+reconstructed 2D layer, in the **Native Preview** app. The Preview was rebuilt from current main on October 28,
+fixing a stale data lookup and missing hero MP/AG that refused selected-skill casts. Its offline smoke runs
+walk, cast, pick up a drop and travel Lorencia → Noria → Devias → Lorencia; the network guard records zero
+connection attempts
+([refresh checks](docs/handoffs/APP-REFRESH-001.md)).
 
 <p align="center"><img src="docs/images/02-login-server-select.jpg" alt="Native login scene with server select" width="820"></p>
 
@@ -120,11 +124,22 @@ creatures (fish, birds, leaves), weather, blob shadows and frustum culling. The 
 | Tarkan and Raklion | Additive screen haze |
 | Noria and warp sites | Portal placement and nested warp effects |
 | Santa Village, Vulcanus, Duel Arena and world 82 | Primary object create, move and visual methods |
+| Loren Market and Uruk Mountain | Primary object methods; Market lamps follow the current pose |
+| Raklion and Karutan | Primary methods completed; Karutan lamp/waterfall and Raklion/Market particle lifecycles |
+| Lost Tower, Tarkan and Icarus | Built-in sprites and push bodies, lamps and plumes, Icarus bone flares |
 
-Coverage is **25/144 verified primary world-handler families across 9/48 classes**. That inventory counts
-class methods, not complete maps; other world paths have separate checks. Raklion's event timer is implemented,
-but starts inactive without authoritative event state. Exact animation phases and fresh live comparisons remain
-open ([world evidence](docs/research/client-world-fidelity.md), [coverage inventory](docs/research/client-worlds-h.md)).
+Coverage is **33/144 verified primary world-handler methods across 11/48 classes**; 111 remain. That
+inventory counts class methods, not complete maps; other world paths have separate checks. In the saved
+fourteen-view tour, the built-in Icarus visuals reduce its full-draw image error from **26.897 to 23.154**.
+Eleven of the tour's original images are unavailable, so the other new world work claims no image score.
+Raklion's event timer is implemented, but starts inactive without authoritative event state. Exact animation
+phases and fresh live comparisons remain open ([world evidence](docs/research/client-world-fidelity.md),
+[coverage inventory](docs/research/client-worlds-j.md), [built-in visuals](docs/handoffs/RENDER-WORLDS-K.md)).
+
+A native temporal check now replays fourteen scripted views in thirteen maps and compares 21 full-draw samples
+per view (animation, objects, particles, lights, sky, RNG) against fixed thresholds, as a regression gate. Its
+original-client half, capturing the same paths in the live client with matched clocks, remains open
+([temporal checks](docs/handoffs/RENDER-TIME-001.md)).
 
 <p align="center"><img src="docs/images/05-world-atlans-devias-noria-lorencia.jpg" alt="Atlans, Devias, Noria and Lorencia rendered natively" width="900"></p>
 
@@ -165,23 +180,34 @@ The session now owns these domains, with replies supplied by a local loopback te
 | Monsters and NPCs | Shared viewport records, fixture placement and movement |
 | Combat | Action, damage and death replies drive the rendered results |
 | Skills | Learned skills, saved hotkeys, Master ranks and fourth-tree state in headless and GFx builds |
+| Ground items | Drops, labels, pick-up removal and despawn; no inventory insertion or zen credit is claimed |
+| Minimap markers | NPC/portal markers and detector dots, replayed when the map movie reopens |
+| Party | Party membership, supplied member bars and invitations in the existing party HUD |
 
-**Eight fixture scenarios pass**, with 67 inbound plaintext frames and no unbound or undecodable frames in
-those scenarios. Two unrecovered intents and six unsent frames remain explicit. Encrypted quest/skill/combat
-requests stay unsent; fixtures supply their replies. This is offline session coverage, not online play
-([session checks](docs/handoffs/SESSION-SKILL-001.md)).
+Mutable session and runtime state has explicit owners, with sequential and fresh-process parity checks
+([state ownership](docs/handoffs/SESSION-GLOBALS-001.md)).
+
+**Eleven fixture scenarios pass**, with 86 inbound plaintext frames and no unbound or undecodable frames in
+those scenarios. Two unrecovered intents and nine unsent requests remain explicit. Encrypted quest/skill/combat,
+pick-up and party requests stay unsent; fixtures supply their replies. This is offline session coverage, not
+online play ([items](docs/handoffs/SESSION-ITEMS-001a.md), [map](docs/handoffs/SESSION-MAP-001a.md),
+[party](docs/handoffs/SESSION-SOCIAL-001a.md)).
 
 ### Maps and travel
 
 Tab opens the client's map overlay (its own `hudMap` movie) with the NPC and gate markers; M opens the Move window
 with its level and cost list. Choosing a destination, or walking into a gate, loads the next world, as in the
-original. The demo server answers the warp.
+original. The demo server answers the warp. The map's NPC/portal markers and detector dots now come from session
+records; travel, warp requests and respawn keep their earlier offline path.
 
 <p align="center"><img src="docs/images/19-maps-tab-overlay-move-window.jpg" alt="Left: the Tab map overlay with NPC markers in Lorencia. Right: the Move window" width="900"></p>
 
 ### Effects and particles
 
-Skill effects, joints (lightning), particles, sprites and the client's JSON effect system.
+Skill effects, joints (lightning), particles, sprites and the client's JSON effect system. Poison, Ice, Power
+Wave, Meteorite, Aqua Beam and Inferno now draw their primary spell visuals. An audit of the 23 native cast
+routes counts **18/23 primary visuals (56/77 weighted by exposure)**; Rageful Blow, buff/arrow/later-class
+variants and live comparison remain ([skill visual coverage](docs/research/client-skill-visual-coverage.md)).
 
 <p align="center"><img src="docs/images/06-effects-skills-particles.jpg" alt="Area skills with damage text and Lorencia's fires and waterspout" width="900"></p>
 
@@ -189,7 +215,9 @@ Skill effects, joints (lightning), particles, sprites and the client's JSON effe
 
 The client's interface is Scaleform GFx (Flash). The native client converts the installed movies and runs them in a
 [patched Ruffle](native/gfx/ruffle-patches) with the client's ActionScript extensions: the HUD, character window,
-buffs, inventory, tooltips, shops, quest and skill windows.
+buffs, inventory, tooltips, shops, quest and skill windows. The HelpWindow loads the client's hotkey and chat help
+rows into its real movie, opened with Ctrl+H. That key is a labelled native binding: the original open route is
+not yet established ([help window](docs/handoffs/SYS-MISC-001b.md)).
 
 | | |
 |---|---|
@@ -246,10 +274,12 @@ Guardian and Rudolph, and the Dark Raven.
 
 ### Item rendering
 
-The shared renderer now covers **559/1,674 special item bodies and 17/17 class skins**, including linked weapon
-sprites and skin sprites on ground items and in inventory. These are bounded special draw branches, not a count
-of every item the client can display. Ordinary models already use the common pipeline; **1,115 special bodies**
-and further attachment/pose cases remain ([coverage and checks](docs/handoffs/RENDER-ITEMS-002F.md)).
+The shared renderer now covers **880/1,674 special item bodies and 17/17 class skins**, with linked sprites for
+**17 targets / 22 item types** (weapons and shields) and skin sprites on ground items and in inventory. Recent
+additions include rank-5 mesh streams, atlas armour and elemental seeds. These are bounded special draw
+branches, not a count of every item the client can display. Ordinary models already use the common pipeline;
+**794 special bodies**, full rank-5 owner effects and further links remain
+([coverage and checks](docs/handoffs/RENDER-ITEMS-002J.md)).
 
 ### Item mixing, personal store and repair
 
@@ -263,7 +293,8 @@ does not predict the real server's results.
 
 The party list and its markers, trade with full item details (excellent options from the client's tables), friends,
 the messenger with whispers, and mail with read, reply, compose and delete. All of it runs on the client's own
-handlers, with demo players standing in for real ones.
+handlers, with demo players standing in for real ones. Party membership and invitations now arrive through the
+session; trade, friends and mail have not moved yet.
 
 <p align="center"><img src="docs/images/24-social-party-trade-mail-whisper.jpg" alt="Trade with an item tooltip and the party list; the friends list with mail; a whisper conversation" width="900"></p>
 
@@ -288,14 +319,16 @@ For context, [NATIVE-PERF-003, PR #201](https://github.com/fryezero/mu-the-matri
 **crowd80 at 18.4 fps** and **tormenta80 at 18.9 fps** on this M5 Mac. **The 25 fps target remains open.**
 Those measurements used the full-interface stress workload before this texture-loading correction. These
 screenshots use spaced crowds, eight monsters and closed panels; their throughput was not measured
-([capture details and checks](docs/research/readme-stress.md)).
+([capture details and checks](docs/research/readme-stress.md)). No later performance milestone has re-timed
+these scenes, so those remain the current figures.
 
 ### Sound
 
 World and event music, ambient sounds, footsteps and effects run through the native audio engine. Session cues
 now carry walking, NPC/creature/object sounds and combat/skill sounds, including player and monster hurt/death
-voices. Cue logs record the original sound site and session tick. Event/buff inputs, unmigrated sound callers,
-two music entries and the original-client audio comparison remain open
+voices, the Master-tree click and ground drops; character select's Enter/Escape sounds use their own callback.
+That makes **76 migrated sound sites**. Cue logs record the original sound site and session tick. Event/buff inputs, pick-up success sounds, other
+unmigrated callers, two music entries and the original-client audio comparison remain open
 ([audio evidence](docs/research/client-audio.md)).
 
 ### Performance
@@ -318,15 +351,16 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Client identity, unpacking boundary, code capture (QEMU x86 Linux/Wine guest) | Done |
 | Formats: images, BMD models v10/12/14/15 (encrypted envelopes), terrain, effects JSON, data tables, `Lang.mpr` tables | Done |
 | Model pipeline: decoder, bone tracks, pose builder, skinning, mesh draw | Done, verified in Unicorn |
-| World: terrain, lighting, water/lava, objects, culling, environment, weather | Tested paths implemented; 25/144 primary handler families across 9/48 classes, remaining methods open |
+| World: terrain, lighting, water/lava, objects, culling, environment, weather | Tested paths implemented; 33/144 primary handler methods across 11/48 classes, 111 methods open |
 | Characters: assembly, gear, glow, monsters and NPCs | Offline rendering; players/monsters/NPCs now consume session records |
-| Special item rendering | Partial; 559/1,674 bodies, 17/17 class skins; 1,115 bodies remain |
+| Special item rendering | Partial; 880/1,674 bodies, 17/17 class skins, links for 17 targets / 22 types; 794 bodies remain |
 | Movement: click-to-move, path finding, long-distance auto move, walk/run rules | Done, verified |
 | Input: one router and shared scripts across world/client tools | Implemented; 570 instruction cases, 0 mismatches, 7/7 planted mistakes caught; unavailable panels listed separately |
 | Scenes: title, login world, server select, character select and creation, loading | Offline; shared character-select runtime, unchanged render comparisons; account session still open |
 | Interface: 2D layer, legacy windows, GFx movies via Ruffle, HUD, inventory, tooltips, names, chat bubbles | Done |
+| Help window: help rows, controller, real movie | Implemented offline; 888 instruction cases, 0 mismatches, 18/18 planted mistakes caught; Ctrl+H is a native binding |
 | Gameplay systems: combat, items, NPC talk/shops/vault, quests, skills, players, pets and mounts | Offline implementations with domain-specific limits; session migrations continue |
-| Session: hero, quests, players, monsters/NPCs, combat and skills | Local plaintext fixture feeds; 8/8 scenarios, 67 inbound frames, 0 unbound/undecodable in those scenarios |
+| Session: hero, quests, players, monsters/NPCs, combat, skills, ground items, minimap markers, party | Local plaintext fixture feeds; 11/11 scenarios, 86 inbound frames, 0 unbound/undecodable in those scenarios |
 | Maps and travel: Tab map with NPC markers, Move window, gates, world changes | Done offline; 5,001 Unicorn cases, 0 mismatches |
 | Skills 2: skill state, usability, Master tree, Imprint position | Done offline; 12,384 cases, 0 mismatches |
 | Pets and mounts 2: 24 mounts, class effects, pets, Dark Raven | Done; 8,400 mount and over 21,000 effect cases, 0 mismatches |
@@ -334,10 +368,12 @@ removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 21
 | Item mixing, jewels, personal store, repair | Client side done; 98,506 comparisons, 0 mismatches |
 | Social: party, trade, friends, messenger, whispers, mail | Client side done; 36,700 comparisons, 0 mismatches |
 | Progression: experience, levels, stat points, Options window, system menu, respawn | Done offline; 18,506 cases, 0 mismatches |
-| World fidelity: original vs native tour of 13 maps, clouds/dragons, flames, object details and screen haze | Named fixes implemented; fresh synchronized live comparisons remain open |
+| World fidelity: original vs native tour of 13 maps, clouds/dragons, flames, object details and screen haze | Named fixes implemented; Icarus image error 26.897 → 23.154; fresh synchronized live comparisons remain open |
+| Temporal fidelity: scripted camera paths, multi-frame samples, thresholds | Native half implemented as a regression gate; original-client capture half open |
+| Skill visuals: primary spell effects on the 23 native cast routes | 18/23 primary (56/77 weighted); Rageful Blow and later variants open |
 | Later skills: fourth and fifth trees | Fourth tree implemented offline, 6,510 instruction cases, 0 mismatches; fifth-tree card/item behavior remains open |
-| Audio: music, ambient, footsteps, effects | Event music and session sound cues implemented; remaining callers/inputs and live audio parity open |
-| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done |
+| Audio: music, ambient, footsteps, effects | Event music and 76 sound sites on session cues; remaining callers/inputs and live audio parity open |
+| Packaging: `Mu The Matrix Native Preview.app`, 25 FPS frame cap, resizable window, full screen | Done; Preview rebuilt and smoke-tested on October 28 (PR #215) |
 | First run and Native Data | Bundled C converter needs no Python; build-keyed manifests verify inputs/outputs and refuse incompatible sets; second-user acquisition remains open |
 | Private integration | 38/38 private-enabled test directories green at PR #200; 1,464 unique tests passed, 15 optional Ruffle/movie skips ([record](docs/handoffs/INTEGRATION-GREEN-001.md)) |
 | Crowded-scene performance | NATIVE-PERF-003 measured crowd80 18.4 fps / tormenta80 18.9 fps; 25 fps target open |
@@ -357,12 +393,14 @@ not claim original-instruction or live-game parity. The full per-milestone recor
 - **Skills and quests.** Fifth-tree card/item behavior, fourth-tree side stats, FormulaData and authoritative
   equipment/buff/event inputs remain open. NPC quest-list replies still need decoding; encrypted requests stay
   unsent ([quest limits](docs/handoffs/SESSION-QUEST-001.md), [skill limits](docs/handoffs/SESSION-SKILL-001.md)).
-- **Rendering and live comparisons.** There are 119 primary world-handler families and 1,115 special item bodies
-  left, plus further effects and attachments. The named cloud/flame/haze fixes do not establish complete map
-  fidelity; captured clocks, RNG and effect pools are missing for synchronized comparisons.
+- **Rendering and live comparisons.** There are 111 primary world-handler methods and 794 special item bodies
+  left, plus rank-5 owner effects, further links, five primary skill visuals and other effects. The named
+  cloud/flame/haze fixes do not establish complete map fidelity. The native temporal gate exists, but the original-client capture with matched clocks, RNG and
+  effect pools is still missing for synchronized comparisons.
 - **Performance.** The full-interface 80-player workload still falls below 25 fps; frame-pacing tails remain open.
 - **Items, social and helpers.** Jewel settlement, harmony options, the separate Chaos weapon system, Muun pets,
-  rare transformed-class effects and inventory-driven helper selection remain. Trade/mail still use demo replies.
+  rare transformed-class effects and inventory-driven helper selection remain. Pick-up answers, inventory
+  insertion and zen credit are not migrated; trade, friends and mail still use demo replies.
 - **Installation for other users.** Python-free first run and build-keyed data checks work in temporary-home tests.
   Guided capture and a real second-user install/restart/upgrade proof remain open; distribution signing is deferred.
 

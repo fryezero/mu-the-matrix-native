@@ -87,6 +87,7 @@ Existing UI adapters retain their own eligibility and close rules.
 | End | `00efc39a`, also `0095523a` -> `00b8a5e2/00b8a8cf/00b8a8fc`, HuntRecord, manager +1d0 | Unavailable; hunt-record view/domain absent |
 | Ctrl+T/J/I/A/F/V | `00efc0da/104/1ad/1d7/280/29c` -> PlayGuide, fifth-tree plus item viewer, item viewer, fourth tree, `009603a5`, store request | Ctrl+A toggles the existing fourth-tree view; Ctrl+J toggles the fifth-tree view. Its separate item viewer remains unavailable. Other listed modifier routes explicitly refuse. Original class/window/transport predicates are not ported here |
 | F1 | `00f07398`, `00f24f64` -> `00f2b13e`, close legacy windows 24/25 when already open | Unavailable; these legacy views are absent. No invented F1-open binding |
+| Ctrl+H | Native binding, original HelpWindow-open route unrecorded | WIP SYS-MISC-001b: opens installed HelpWindow rows only after valid file load; Esc and the movie close button close it. Bare H and F1 retain the rows above. [Evidence and limits](client-help-window.md) |
 | Alt | `00efc7d3` -> setItemView `00efdca1` | Existing local ground-label toggle |
 | Space | `00efd9ab` -> nearest eligible ground item; selection at `00efdb94` | Existing native pick-up adapter; verified offline reply, no real item mutation |
 | 1..0 | UI skill-bar listener; selected-skill controller `0107e99a` | GFx bar selection when interface present; prior numeric demo casts without GFx retained and labeled native policy |

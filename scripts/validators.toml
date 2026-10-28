@@ -1655,6 +1655,21 @@ args = ["--mutations", "--report", "{report}"]
 mismatches = 0
 mutants = {len = 15}
 
+[validate_audio_music]
+test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_music_table"
+pins = ["text", "data", "music_table_read", "music_group_word"]
+families = ["doppelganger", "sites", "table", "group_word"]
+cases = 4291
+mutants = 10
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio"]
+args = ["--require-live", "--table-read", "{music_table_read}", "--group-word", "{music_group_word}", "--mutations", "--report", "{report}"]
+[validate_audio_music.expect]
+mismatches = 0
+mutants = {len = 10}
+"families.*.mismatches" = 0
+
 [validate_audio_registration]
 test = "reconstructed/audio/test_audio_002.py::Audio002.test_original_registration"
 pins = ["text", "data"]
@@ -2119,6 +2134,39 @@ args = ["--mutations", "--output", "{report}"]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
 
+# SYS-MISC-001b: temporary compiled libraries are built by these validators.
+[validate_help]
+test = "tests/test_help.py::HelpReaderTests.test_original_instructions"
+pins = ["text", "data", "feature"]
+families = ["valid", "corrupt", "missing"]
+cases = 55
+mutants = 7
+cases_at = "cases"
+mutants_at = "mutants"
+build = []
+args = ["--cases", "48", "--mutants", "--output", "{report}"]
+[validate_help.expect]
+"cases" = 55
+"mismatches" = 0
+"mutants" = {len = 7}
+"mutants.*.caught" = true
+
+[validate_help_controller]
+test = "tests/test_help_controller.py::HelpControllerTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["construct-provider-projection", "build", "hotkeys", "chatkeys", "reload", "load", "load-refusal"]
+cases = 832
+mutants = 11
+cases_at = "cases"
+mutants_at = "mutants"
+build = []
+args = ["--cases", "64", "--mutants", "--output", "{report}"]
+[validate_help_controller.expect]
+"cases" = 832
+"mismatches" = 0
+"mutants" = {len = 11}
+"mutants.*.caught" = true
+
 [validate_item_wings_next]
 test = "reconstructed/renderchar/test_item_wings_next.py::ItemWingsNext.test_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -2132,3 +2180,17 @@ args = ["--mutations", "--output", "{report}"]
 [validate_item_wings_next.expect]
 "families.*.mismatches" = 0
 "mutants.*" = {truthy = true}
+
+[validate_worlds_m]
+test = "native/tests/test_native_worlds_m.py::WorldsM.test_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 1080
+mutants = 17
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_worlds_m.expect]
+all_equal = true
+all_mutants_caught = true

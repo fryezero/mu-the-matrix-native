@@ -19,6 +19,8 @@
  *   world <world> [tile=N safe=N x=N y=N rain=N attr=N boss=N]
  *                             per-frame ambient/music selection from now on
  *   noworld                   stop running the per-frame selection
+ *   eventmusic <field> <value> event input for the managers (marks it known)
+ *   manager <address>         run one reconstructed event-music manager now
  *   options <path>            load an Option.ini and apply it
  *   end                       end of the render
  */
@@ -82,6 +84,9 @@ void mu_audio_host_cue_loss(mu_audio_host *host, uint32_t lost, uint32_t session
  * when the shell has no music table. No native pointer or filename is logged. */
 void mu_audio_host_music_literal(mu_audio_host *host, const char *path, uint32_t literal, int play);
 void mu_audio_host_set_event_music(mu_audio_host *host, const mu_event_music_state *state);
+/* AUDIO-002F: runs one reconstructed event-music manager now, for an owning domain whose
+ * original call point is not in the captured frame block (Doppelganger 0x00e305ee). 0: unknown. */
+int mu_audio_host_event_manager(mu_audio_host *host, uint32_t manager);
 /* Explicit model-open registration in client order, with first-successful-load wins. */
 int mu_audio_host_register_monster(mu_audio_host *host, int32_t type, int preloaded);
 int mu_audio_host_register_npc(mu_audio_host *host, int32_t model, int preloaded);

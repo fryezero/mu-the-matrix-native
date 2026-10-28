@@ -1,0 +1,1896 @@
+{
+  "schema": 1,
+  "milestone": "DATA-ACQ-002",
+  "date": "2026-10-28",
+  "target_main_exe_sha256": "3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a",
+  "client": "owner free-runtime prefix (Mu The Matrix.app, runtime archive-c50cb6145767), window 1722 x 1048 client area (LauncherOption DevModeIndex 4, restored to 2 after each session), server MTM-1, character Nighty",
+  "readers": "live-readers/{objread,lightread,memread} built from this branch (read-only mach_vm_read_overwrite)",
+  "native": "native/build/mu-world --headless --backend gl --fidelity-dump, 25 logic steps, same world/tile/size, scripts/fidelity_tour.py",
+  "local_inputs_not_committed": "~/Documents/MTM/mu-mac-tools/native/scratch/data-acq-002/{live,plain}",
+  "captures": [
+    {
+      "capture": "112-ferea",
+      "label": "Ferea",
+      "world": 112,
+      "tile": [
+        236,
+        152
+      ],
+      "captured_local": "2026-10-28 17:35:07",
+      "objects": {
+        "linked_in_sectors": 4029,
+        "count_global": 4029,
+        "installed_obj_bytes": 181309,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "112-ferea-glob.bin": "fae3a7a0e6865e17292b75637c6d876feef612c41c012291da694af0451d1dea",
+        "112-ferea-light.bin": "00170b0c5fdb3d61e967c1b7f65c1326d9f33554a2a709db0784bdc3e9b0fd86",
+        "112-ferea-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "112-ferea-mem-01cf15fc.bin": "d5159e1943d90d2d62790e7e379224f0058f556f91451d472ae3eb70e76b928e",
+        "112-ferea-mem-06fce370.bin": "99f15673565dc75019ddad0f5667d94118c7a4aebc59a98fcd446a8c94c5958e",
+        "112-ferea-obj.bin": "b9fd56bc295fcbc92b2c3e229b77f86b9cd8b47ea476740d090a9b40a2bdf72c",
+        "112-ferea-time.txt": "0f2e9720682fc059c472e46a50715ea06b8aeb03e5a2c897fb3456819e83a40d",
+        "112-ferea.png": "1ab1905221e3ca5f170b6d9b78470e2b90adb23341bcb80decaaa7acb157050f"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1532856.0,
+        "image_mean_abs_diff": 2.37,
+        "image_share_off_24": 0.0043,
+        "objects_native": 4029,
+        "objects_matched": 4029,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 944
+        },
+        "static_field_differences_near_hero": {
+          "range": 18
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.01504,
+        "frame_light_near_hero_cells_over_0_05": 26,
+        "native_objects_drawn": 75,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "113-nixies-lake",
+      "label": "Nixies Lake",
+      "world": 113,
+      "tile": [
+        25,
+        119
+      ],
+      "captured_local": "2026-10-28 17:35:28",
+      "objects": {
+        "linked_in_sectors": 6915,
+        "count_global": 6915,
+        "installed_obj_bytes": 221284,
+        "record_versions_fitting_installed_length": [
+          1
+        ]
+      },
+      "files_sha256": {
+        "113-nixies-lake-glob.bin": "d80a6e00cb3b18f4b1c6aff0fdc18e64605fe0ba6ec27d18813238925f04ea3b",
+        "113-nixies-lake-light.bin": "51281dc457f30b9a84d4508382d9918e96c11beb933899b3aa262b187b75dd43",
+        "113-nixies-lake-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "113-nixies-lake-mem-01cf15fc.bin": "fcb5ce3b49ae097a649ad8bb5a049c4dac407d44a5ede739f71fc99ae815bdc3",
+        "113-nixies-lake-mem-06fce370.bin": "a1d5262fd663a315ef2ca49846794a6bbb8b872fca294fddb6b8f76b50968a39",
+        "113-nixies-lake-obj.bin": "c8905fea28d41a75e2c03ed4c3da1bd008bd0a0013897185569cc092ba4e5fa1",
+        "113-nixies-lake-time.txt": "77938b5932a1188f09eb880cdca0c0c44cca83ee7c88bb07e80a193d38f1a51b",
+        "113-nixies-lake.png": "41065dd5d2ded2f152dc373048287772b5500e6230f87bbcce9c125401591f45"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1554081.0,
+        "image_mean_abs_diff": 7.001,
+        "image_share_off_24": 0.0632,
+        "objects_native": 6915,
+        "objects_matched": 6915,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 3402,
+          "after_character": 436
+        },
+        "static_field_differences_near_hero": {
+          "range": 135,
+          "after_character": 34
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.01555,
+        "frame_light_near_hero_cells_over_0_05": 25,
+        "native_objects_drawn": 299,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "116-deep-dungeon-1",
+      "label": "Deep Dungeon 1",
+      "world": 116,
+      "tile": [
+        120,
+        126
+      ],
+      "captured_local": "2026-10-28 17:39:51",
+      "objects": {
+        "linked_in_sectors": 3035,
+        "count_global": 3035,
+        "installed_obj_bytes": 91054,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "116-deep-dungeon-1-glob.bin": "bdf435ebf6105fc7e63cb7c8352c0fd9b0b69bafa3fa57680ec0af90e9137413",
+        "116-deep-dungeon-1-light.bin": "7c89316074ea66a3b33bdfd8bc609f6796c69537bf6b83e66dd28020cb8cc90d",
+        "116-deep-dungeon-1-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "116-deep-dungeon-1-mem-01cf15fc.bin": "5ac8e481b28a00c120999d0d9f441b12db24617e6e92c50ef4ffaffbc29215e3",
+        "116-deep-dungeon-1-mem-06fce370.bin": "3e6580a74a2d3b62f9e9e7984a07b7fca87e1678ae0d85a2fa0848144a42436a",
+        "116-deep-dungeon-1-obj.bin": "24ca9582bbded52c7d0a81e5812f74072d869afd4a51ae58aa799033f6290b29",
+        "116-deep-dungeon-1-time.txt": "53a1e36bba7c482d52386b5544f0ae0128580b81dc5c1ac375c1991b1985bf37",
+        "116-deep-dungeon-1.png": "21e347e400330972397e0cf26c5b80e8a6daffb5c47b8648635b6ba0f320f612"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1816467.0,
+        "image_mean_abs_diff": 5.745,
+        "image_share_off_24": 0.0626,
+        "objects_native": 3035,
+        "objects_matched": 3035,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 149
+        },
+        "static_field_differences_near_hero": {},
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.02053,
+        "frame_light_near_hero_cells_over_0_05": 58,
+        "native_objects_drawn": 129,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "117-deep-dungeon-2",
+      "label": "Deep Dungeon 2",
+      "world": 117,
+      "tile": [
+        131,
+        128
+      ],
+      "captured_local": "2026-10-28 17:40:49",
+      "objects": {
+        "linked_in_sectors": 3079,
+        "count_global": 3079,
+        "installed_obj_bytes": 92374,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "117-deep-dungeon-2-glob.bin": "7c9adfc310eddbc15c80d13c9f4ec4d62c71e8255874a6ce06b4ee2052e6d838",
+        "117-deep-dungeon-2-light.bin": "9f7034261f9d8b6305a839f9603ac8283c0ec7da4bb49cf7d57b03e3fba54bce",
+        "117-deep-dungeon-2-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "117-deep-dungeon-2-mem-01cf15fc.bin": "14991d02dca7fdf08e3ad111a86ed529ddd913d93938b2b2616e5a1ca11835de",
+        "117-deep-dungeon-2-mem-06fce370.bin": "18eda32efd15640005d5d1c1b2008baaa6ab9327b04816232b18691dc6ab98f9",
+        "117-deep-dungeon-2-obj.bin": "60a67b27af78a9252558997bd63eea8d5b96e07db90d5d57285ae8fb545009c4",
+        "117-deep-dungeon-2-time.txt": "f38fa23247b1be72233feae70aded3db693265787a461a0eb512ad8d6ea74f42",
+        "117-deep-dungeon-2.png": "a5b3fe5f535cb2e55b1e62d3770ec28e3e0bd96ed104f239dbde754d5bf6d2a7"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1875202.0,
+        "image_mean_abs_diff": 4.453,
+        "image_share_off_24": 0.0297,
+        "objects_native": 3079,
+        "objects_matched": 3079,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 1421
+        },
+        "static_field_differences_near_hero": {
+          "range": 57
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.01982,
+        "frame_light_near_hero_cells_over_0_05": 61,
+        "native_objects_drawn": 132,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "118-deep-dungeon-3",
+      "label": "Deep Dungeon 3",
+      "world": 118,
+      "tile": [
+        123,
+        123
+      ],
+      "captured_local": "2026-10-28 17:41:11",
+      "objects": {
+        "linked_in_sectors": 3718,
+        "count_global": 3718,
+        "installed_obj_bytes": 111544,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "118-deep-dungeon-3-glob.bin": "c1e66948a45d04fc64b80546f7bec57fee261c99aed92c7b54da6091a98f5376",
+        "118-deep-dungeon-3-light.bin": "773cd930f4944a0c06b2dc2e827e32d63206ccfe4a273fa9c00d2f93f281d894",
+        "118-deep-dungeon-3-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "118-deep-dungeon-3-mem-01cf15fc.bin": "2f3f26aa3c5df1ab66c8ea32eb8df668c7026884bf36f49eacff55809971b92e",
+        "118-deep-dungeon-3-mem-06fce370.bin": "a0d0a2f28881cb439268db4dca273760e363a6ec84c0932cbe24db20426fb911",
+        "118-deep-dungeon-3-obj.bin": "5cdb48d43766211bb357d9b1f016712fd99c13926a930b08998b5644a7558db7",
+        "118-deep-dungeon-3-time.txt": "20defc9b05af8bf4d8af6bfeebd44e9acb156e83b95d2a56d307ea5af4b308b7",
+        "118-deep-dungeon-3.png": "f94f15c3077b21eb80fedee5a273c9d3b632330c94f6cf668e9bf1d4f6363790"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.007,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1896363.0,
+        "image_mean_abs_diff": 14.168,
+        "image_share_off_24": 0.2082,
+        "objects_native": 3718,
+        "objects_matched": 3718,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 1716
+        },
+        "static_field_differences_near_hero": {
+          "range": 69
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.02382,
+        "frame_light_near_hero_cells_over_0_05": 89,
+        "native_objects_drawn": 278,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "119-deep-dungeon-4",
+      "label": "Deep Dungeon 4",
+      "world": 119,
+      "tile": [
+        125,
+        119
+      ],
+      "captured_local": "2026-10-28 17:41:32",
+      "objects": {
+        "linked_in_sectors": 3446,
+        "count_global": 3446,
+        "installed_obj_bytes": 103384,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "119-deep-dungeon-4-glob.bin": "1666e7781d8fd0217cc312c26311f91ed373885ca6b721652d8058c6610609e3",
+        "119-deep-dungeon-4-light.bin": "2c5fcbd9a0e7f2923e983301a987fa58fffecb94d6ae98d5770311c85aff4ddb",
+        "119-deep-dungeon-4-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "119-deep-dungeon-4-mem-01cf15fc.bin": "155f36a0c95d96849d2119053f1089cbf752a4a460631aebec79ddc67d717a95",
+        "119-deep-dungeon-4-mem-06fce370.bin": "0bfad982e3d958085a64a18c57129bf5b7cb4ddecd632e48201adb659427a69d",
+        "119-deep-dungeon-4-obj.bin": "6d2a753b1739eb2eb8aac04a942c3399fc3c7ac6a26406dca8b97cab285b0866",
+        "119-deep-dungeon-4-time.txt": "6dfc8d848f50cf9a84dbbd7e20ccf5a1e517f9ea4cb599b795938de27de41f4d",
+        "119-deep-dungeon-4.png": "ac22ade2539d2f65607030f1a1715c50ca399d4fd82883d25167f45e0d0b30f7"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1917605.0,
+        "image_mean_abs_diff": 10.017,
+        "image_share_off_24": 0.1372,
+        "objects_native": 3446,
+        "objects_matched": 3446,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 1105
+        },
+        "static_field_differences_near_hero": {
+          "range": 27
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.02769,
+        "frame_light_near_hero_cells_over_0_05": 98,
+        "native_objects_drawn": 91,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "120-deep-dungeon-5",
+      "label": "Deep Dungeon 5",
+      "world": 120,
+      "tile": [
+        126,
+        119
+      ],
+      "captured_local": "2026-10-28 17:41:53",
+      "objects": {
+        "linked_in_sectors": 8494,
+        "count_global": 8494,
+        "installed_obj_bytes": 254824,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "120-deep-dungeon-5-glob.bin": "085922fa8f872880fd93bf3250f96fe090bac915d0a7378ebd654e1eedd1a48d",
+        "120-deep-dungeon-5-light.bin": "d743ebc565d49123c6c1425c4fb7c720dce6d8a00a0d9503696a406c95e0ae20",
+        "120-deep-dungeon-5-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "120-deep-dungeon-5-mem-01cf15fc.bin": "39f7df2295794226494d19411e88f2dfb0ac718d916434b22e4df044e0c9a016",
+        "120-deep-dungeon-5-mem-06fce370.bin": "adeac4f3bf5bf3d646e95154ee995089c4b686e10a2b27479d587b3dce171238",
+        "120-deep-dungeon-5-obj.bin": "08783b536e58d30be7a4e08df5fb5c40ab25ec61029b214f48d6f056785ce2e7",
+        "120-deep-dungeon-5-time.txt": "4ff473422c105597386b40f0962e7d0f66243fc36899e2d6cebeb8051219dfbc",
+        "120-deep-dungeon-5.png": "410d8027b2c68dea0c15bfc82e3ad5a74c9602d95043e7ada96b7faea5587eb9"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1938771.0,
+        "image_mean_abs_diff": 6.353,
+        "image_share_off_24": 0.0532,
+        "objects_native": 8494,
+        "objects_matched": 8494,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 5897
+        },
+        "static_field_differences_near_hero": {
+          "range": 178
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.03706,
+        "frame_light_near_hero_cells_over_0_05": 117,
+        "native_objects_drawn": 354,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "122-swamp-darkness",
+      "label": "Swamp of Darkness",
+      "world": 122,
+      "tile": [
+        129,
+        122
+      ],
+      "captured_local": "2026-10-28 17:40:12",
+      "objects": {
+        "linked_in_sectors": 4985,
+        "count_global": 4985,
+        "installed_obj_bytes": 164509,
+        "record_versions_fitting_installed_length": [
+          2
+        ]
+      },
+      "files_sha256": {
+        "122-swamp-darkness-glob.bin": "2aa867685984405e0ae5389c033aa352d59e3807a36d9827c4b6ac76f1d47538",
+        "122-swamp-darkness-light.bin": "4d417331b598b30ad59fde1903bfd79cee41d95858372c66b30fe9b8dade261f",
+        "122-swamp-darkness-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "122-swamp-darkness-mem-01cf15fc.bin": "0c6dd1f6fe5fe1034cc4e3fb476d3bb385d72a6dd9c6d63962d247ad6cea0849",
+        "122-swamp-darkness-mem-06fce370.bin": "6d2d37d0ba78c9e5f39b4bf0b29b50ef6bd491772a22a684d23c50606a5e4654",
+        "122-swamp-darkness-obj.bin": "44b0da5248a0ad6628c3a987dbfc34c93bedb88ac1270fd473ec8ab0a6d7d82f",
+        "122-swamp-darkness-time.txt": "f86ec4f948c410e2a61fe0e3fafc979bac44a7aa55b977e08ff095e8916b9d43",
+        "122-swamp-darkness.png": "1bae6741a5395e59ee4a47dcf226a3f1d4c544e097b86abc3dae5704d9594ce0"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1837841.0,
+        "image_mean_abs_diff": 1.709,
+        "image_share_off_24": 0.0113,
+        "objects_native": 4985,
+        "objects_matched": 4985,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 2411,
+          "after_character": 97
+        },
+        "static_field_differences_near_hero": {
+          "range": 38,
+          "after_character": 9
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0,
+        "frame_light_near_hero_cells_over_0_05": 0,
+        "native_objects_drawn": 101,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "123-kubera",
+      "label": "Kubera Mine",
+      "world": 123,
+      "tile": [
+        237,
+        88
+      ],
+      "captured_local": "2026-10-28 17:34:00",
+      "objects": {
+        "linked_in_sectors": 1730,
+        "count_global": 1730,
+        "installed_obj_bytes": 57094,
+        "record_versions_fitting_installed_length": [
+          2
+        ]
+      },
+      "files_sha256": {
+        "123-kubera-glob.bin": "dd3ec34fc034316b1cca5ff5fabb9be3c60a7decfb8a4ee63d3c4dbdbe4fee37",
+        "123-kubera-light.bin": "6def9eab4b5e33b2976714f94c081dfc969bb3662d51964fc4c1a982adf57e24",
+        "123-kubera-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "123-kubera-mem-01cf15fc.bin": "b3cf5bb113442c9ba61ed0a485159b767ca181dd447f5a3d93e9dd73564ae762",
+        "123-kubera-mem-06fce370.bin": "5e429eb309241c075398f131a8852652a88e521f84d7f2aa51879fb082a0f8ec",
+        "123-kubera-obj.bin": "a26630df0594cb6fc70922cad768ee9660e40f2c6ff98f8d3f2f81bd71dba39e",
+        "123-kubera-time.txt": "7c698926f43053eb0002a5ade4f889740db7d498ec609d6b5ed13add89c0937d",
+        "123-kubera.png": "9115e66c61b61b950c423798f3b0f8d5ca953463f961f2a8b8f466e10cccc4d4"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1465798.0,
+        "image_mean_abs_diff": 12.609,
+        "image_share_off_24": 0.0743,
+        "objects_native": 1730,
+        "objects_matched": 1730,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 498,
+          "after_character": 73,
+          "velocity": 1
+        },
+        "static_field_differences_near_hero": {
+          "range": 12,
+          "after_character": 4
+        },
+        "primary_light_mean_abs": 0.03515,
+        "primary_light_max_abs": 1.0,
+        "frame_light_near_hero_mean_abs": 0.10538,
+        "frame_light_near_hero_cells_over_0_05": 278,
+        "native_objects_drawn": 164,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "128-abyss-atlans-1",
+      "label": "Abyss of Atlans 1",
+      "world": 128,
+      "tile": [
+        130,
+        127
+      ],
+      "captured_local": "2026-10-28 17:42:14",
+      "objects": {
+        "linked_in_sectors": 3908,
+        "count_global": 3908,
+        "installed_obj_bytes": 175864,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "128-abyss-atlans-1-glob.bin": "d769e163e783dbdedbfaf053424bfe4d4b984a063969c9d423c530d6961de0bc",
+        "128-abyss-atlans-1-light.bin": "e180cdd5e294a187b7b510c222e3a6348cfa8d8b9350176ee40b9db47ace2cd8",
+        "128-abyss-atlans-1-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "128-abyss-atlans-1-mem-01cf15fc.bin": "40a4b5fb33fd1b17fa87bb5ed0c9f13bd857cc79359bacd652435fd7c1feb5a4",
+        "128-abyss-atlans-1-mem-06fce370.bin": "8eafc4198e8e7fe9ae92701d4b8fa359f392ac3430ae2bb424720d9b960b63f1",
+        "128-abyss-atlans-1-obj.bin": "c410647ea96a5fdbb88d480fea00ad1144a380401f534c7144e0f2fb37fa5f48",
+        "128-abyss-atlans-1-time.txt": "80d12b2f6d0061eff25461cd6e7fc09894098d3c219c75acb32ae579b3d7255f",
+        "128-abyss-atlans-1.png": "f80bf96c334111ac4075ff669cfa2a30e3792268480e53d95bf9a2f0a695d6bf"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1960206.0,
+        "image_mean_abs_diff": 7.946,
+        "image_share_off_24": 0.0482,
+        "objects_native": 3908,
+        "objects_matched": 3908,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 160,
+          "blend_mesh": 57,
+          "blend_light": 57,
+          "velocity": 2
+        },
+        "static_field_differences_near_hero": {
+          "blend_mesh": 56,
+          "blend_light": 56,
+          "after_character": 10,
+          "velocity": 2
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.09429,
+        "frame_light_near_hero_cells_over_0_05": 3,
+        "native_objects_drawn": 241,
+        "native_object_models_missing": 2
+      }
+    },
+    {
+      "capture": "129-abyss-atlans-2",
+      "label": "Abyss of Atlans 2",
+      "world": 129,
+      "tile": [
+        128,
+        124
+      ],
+      "captured_local": "2026-10-28 17:42:46",
+      "objects": {
+        "linked_in_sectors": 5899,
+        "count_global": 5899,
+        "installed_obj_bytes": 265459,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "129-abyss-atlans-2-glob.bin": "c27edb07d137ba8ab4667a4724dcb051a75fa82662ae26718a1e9a006ffced0a",
+        "129-abyss-atlans-2-light.bin": "53ac165ae8638d7593518d8fceddd1ea1df255ba95187ddc0d330e5167d5055c",
+        "129-abyss-atlans-2-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "129-abyss-atlans-2-mem-01cf15fc.bin": "e3d34f9d5b72c4d240922d43521f59017578ea58f6a542cfdb287770701acd55",
+        "129-abyss-atlans-2-mem-06fce370.bin": "834547d80ffd53e2d7a01acf4d578596966feae6da9afe7377f9a3779991ac01",
+        "129-abyss-atlans-2-obj.bin": "ece3e755580441d05c1ba41241621fb955162131c40f96f64b65c229bb9d81cf",
+        "129-abyss-atlans-2-time.txt": "d0e9df53225c17ce20e55ac696ce6ea0647fd3c5a88298af6caedcf381494ff3",
+        "129-abyss-atlans-2.png": "56f140a1c21ee93daa816772f6a925c5803bf61a99e52dda208c1c40c8a70a44"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1991418.0,
+        "image_mean_abs_diff": 82.17,
+        "image_share_off_24": 0.9278,
+        "objects_native": 5899,
+        "objects_matched": 5899,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 393,
+          "blend_mesh": 60,
+          "blend_light": 53,
+          "velocity": 6
+        },
+        "static_field_differences_near_hero": {
+          "blend_mesh": 53,
+          "blend_light": 48,
+          "after_character": 22,
+          "velocity": 2
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.04471,
+        "frame_light_near_hero_cells_over_0_05": 4,
+        "native_objects_drawn": 338,
+        "native_object_models_missing": 4
+      }
+    },
+    {
+      "capture": "130-abyss-atlans-3",
+      "label": "Abyss of Atlans 3",
+      "world": 130,
+      "tile": [
+        128,
+        124
+      ],
+      "captured_local": "2026-10-28 17:43:27",
+      "objects": {
+        "linked_in_sectors": 5238,
+        "count_global": 5238,
+        "installed_obj_bytes": 235714,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "130-abyss-atlans-3-glob.bin": "fda17c8c8d65e6c60c7eb515775e6bfa7c88d8b815fad7a28f4464c7e1df9fd6",
+        "130-abyss-atlans-3-light.bin": "dd97148ec497d2062cd8e0b8b140723a26ccb17271904fa39dd4b31f98f3778c",
+        "130-abyss-atlans-3-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "130-abyss-atlans-3-mem-01cf15fc.bin": "289837175548fd01c2795c111d26b48f1ce40737bbc4dc0242a353bcb4f8642f",
+        "130-abyss-atlans-3-mem-06fce370.bin": "2ed9c87e9767cb56f6b52ebdfb36298ba596b62d0e63bf7a8f727f219a18854e",
+        "130-abyss-atlans-3-obj.bin": "0fdf60876ca4cabd8a83b76a0ced16ace2c5c1a3b22632496943c039149207d9",
+        "130-abyss-atlans-3-time.txt": "c43b316d8c4b78406a2f73d69ced3ccf3c6c58bd7c9a51b1c3bcd38ee7a432d7",
+        "130-abyss-atlans-3.png": "508a34294c576b5b8b7d4c897e6cb3c79f6fc09fe2f797c8f6f59310ed6983eb"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2032831.0,
+        "image_mean_abs_diff": 47.984,
+        "image_share_off_24": 0.8807,
+        "objects_native": 5238,
+        "objects_matched": 5238,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 329,
+          "blend_mesh": 65,
+          "blend_light": 60,
+          "velocity": 1
+        },
+        "static_field_differences_near_hero": {
+          "blend_mesh": 63,
+          "blend_light": 60,
+          "after_character": 29,
+          "velocity": 1
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.05352,
+        "frame_light_near_hero_cells_over_0_05": 25,
+        "native_objects_drawn": 266,
+        "native_object_models_missing": 3
+      }
+    },
+    {
+      "capture": "131-scorched-canyon",
+      "label": "Scorched Canyon",
+      "world": 131,
+      "tile": [
+        236,
+        14
+      ],
+      "captured_local": "2026-10-28 17:43:49",
+      "objects": {
+        "linked_in_sectors": 7111,
+        "count_global": 7111,
+        "installed_obj_bytes": 319999,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "131-scorched-canyon-glob.bin": "cb6cd25b6f8ec13c6e4a9f543e6c290953bb9d3d06f4778492faceb89dd75bce",
+        "131-scorched-canyon-light.bin": "2f0f274bf0172a4247ca4ab9b600992af2431f3faa7973095ebc459c37fd5507",
+        "131-scorched-canyon-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "131-scorched-canyon-mem-01cf15fc.bin": "ef8d6833f542b025dfa064e91c8c6ec163144e22115ee795c7e1f5fb5b0d03b8",
+        "131-scorched-canyon-mem-06fce370.bin": "2c962600d202778f81e3ee5d798d681bd33656c24a6600a5b2ecd5a0d384f206",
+        "131-scorched-canyon-obj.bin": "a2508dfb627c2c93e2966a47faec9d35db70a96b3009273e631595244394a98b",
+        "131-scorched-canyon-time.txt": "de4841551f3ec4dcf6730c9e56cbe4646aea65bb898d796002695d91f6ec04d0",
+        "131-scorched-canyon.png": "9b3763758bd58bad2fe4653bfb05a68789dbe4f48ebbf89213b248b8f5ca1945"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2054481.0,
+        "image_mean_abs_diff": 7.624,
+        "image_share_off_24": 0.028,
+        "objects_native": 7111,
+        "objects_matched": 7111,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 4192,
+          "after_character": 181,
+          "velocity": 1
+        },
+        "static_field_differences_near_hero": {
+          "range": 83,
+          "velocity": 1
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.01155,
+        "frame_light_near_hero_cells_over_0_05": 25,
+        "native_objects_drawn": 266,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "132-red-smoke-icarus",
+      "label": "Red Smoke Icarus",
+      "world": 132,
+      "tile": [
+        130,
+        116
+      ],
+      "captured_local": "2026-10-28 17:44:11",
+      "objects": {
+        "linked_in_sectors": 2093,
+        "count_global": 2093,
+        "installed_obj_bytes": 94189,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "132-red-smoke-icarus-glob.bin": "957db01b925d6cda360cfa0139b91e8e8441b3ea6fe9c64695b248245b6a9240",
+        "132-red-smoke-icarus-light.bin": "6306d6894f3dbe82d6b2563dd817a512784297cdcdfc1238def2e2539a254aff",
+        "132-red-smoke-icarus-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "132-red-smoke-icarus-mem-01cf15fc.bin": "83ae4ccedd1964b903ff2a597d95faee16c713a1ebf5c841dee4825a55ddad04",
+        "132-red-smoke-icarus-mem-06fce370.bin": "0dfce0c029b181e27476f23448845301100c6194cc5e9cccb9f7c8c4da27b84e",
+        "132-red-smoke-icarus-obj.bin": "31489aa2bd5b886c1e369b7654bf56d2837f7cd1e2fb9fc9f3cdf08e62b2b549",
+        "132-red-smoke-icarus-time.txt": "e4fa673cad36a7f0a2fa034a9f65e0d6427398a26f31d0f7ca84d075f1203250",
+        "132-red-smoke-icarus.png": "c353244f09aa25f51fb4eb8085491d34e4789a89aae47c91f9b425c47862593b"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 6916.0,
+        "far_native": 6916.0,
+        "world_time_live": 2076599.0,
+        "image_mean_abs_diff": 26.344,
+        "image_share_off_24": 0.3854,
+        "objects_native": 2093,
+        "objects_matched": 2092,
+        "objects_missing": 1,
+        "objects_extra": 1,
+        "missing_types": {
+          "30": 1
+        },
+        "extra_types": {
+          "30": 1
+        },
+        "static_field_differences_map": {
+          "after_character": 1812
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 45
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0,
+        "frame_light_near_hero_cells_over_0_05": 0,
+        "native_objects_drawn": 413,
+        "native_object_models_missing": 4
+      }
+    },
+    {
+      "capture": "133-arenil-temple",
+      "label": "Temple of Arnil (Move: Arenil Temple)",
+      "world": 133,
+      "tile": [
+        125,
+        57
+      ],
+      "captured_local": "2026-10-28 17:44:33",
+      "objects": {
+        "linked_in_sectors": 9402,
+        "count_global": 9402,
+        "installed_obj_bytes": 423094,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "133-arenil-temple-glob.bin": "59ee7c4977611f0ad09d96d7e067505312b94778ee9f90675b678cf44f5e9981",
+        "133-arenil-temple-light.bin": "57aa7132194546f424221cc71832eb69ca0ef5ea204684fceddd48cbbc3c7111",
+        "133-arenil-temple-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "133-arenil-temple-mem-01cf15fc.bin": "361c779f71f5f98fbad54f8e87d59fb5a12d47b497435b0074113a3c04ca87b8",
+        "133-arenil-temple-mem-06fce370.bin": "2a87bb67d86e0a9eb57fc3dbd3d48b91b63693d1052138452a344110c096c9f3",
+        "133-arenil-temple-obj.bin": "2d3791974e821b784a17c0e8ac98f142ede7296cfd698da248954a74d98c890c",
+        "133-arenil-temple-time.txt": "2a737e65aba84eafb0918a3442e6e7e244637ea37669f3b0e9ba83e16fa6217f",
+        "133-arenil-temple.png": "a3439373f3e831de6ed8bafbd62599abab412329b930f99a9d581eb38a0322f7"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3603.6,
+        "far_native": 3603.6,
+        "world_time_live": 2098634.0,
+        "image_mean_abs_diff": 1.028,
+        "image_share_off_24": 0.0019,
+        "objects_native": 9402,
+        "objects_matched": 9402,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 6143,
+          "after_character": 332
+        },
+        "static_field_differences_near_hero": {
+          "range": 164,
+          "after_character": 2
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0,
+        "frame_light_near_hero_cells_over_0_05": 0,
+        "native_objects_drawn": 487,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "134-ashen-aida",
+      "label": "Gray Aida (Move: Ashen Aida)",
+      "world": 134,
+      "tile": [
+        124,
+        30
+      ],
+      "captured_local": "2026-10-28 17:44:55",
+      "objects": {
+        "linked_in_sectors": 3889,
+        "count_global": 3889,
+        "installed_obj_bytes": 175009,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "134-ashen-aida-glob.bin": "9225d89277b7db8d44ec0c07d84358850f77b6252c6901f85b95fa2596b8eb84",
+        "134-ashen-aida-light.bin": "7c29919a07bce21173c5bcd792af7a63c92978f83fae1f54f0e00bfa058acd2f",
+        "134-ashen-aida-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "134-ashen-aida-mem-01cf15fc.bin": "d0d711f86ee982c91af59d62295ce514ab8cee3f24d506ac5c38432755985c30",
+        "134-ashen-aida-mem-06fce370.bin": "68358ff4e0a04f55e2846b8b860881d1f5c65e7be3d268f60efc1972fea4bf49",
+        "134-ashen-aida-obj.bin": "08efbb5c673e7d08d8b49d76e4c1df821a65673b7b8bd0a5deea0dafac01d2db",
+        "134-ashen-aida-time.txt": "ffd248b0fd3c3e6d1fba1dcdf77878ed8be7308841555f00ad6c25d9b133a08a",
+        "134-ashen-aida.png": "327b60bd427b445509295dd24feb978881586a8a87a3b70fc4bb0a078be692ab"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2120616.0,
+        "image_mean_abs_diff": 13.153,
+        "image_share_off_24": 0.203,
+        "objects_native": 3889,
+        "objects_matched": 3889,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 2889,
+          "after_character": 34,
+          "blend_light": 3
+        },
+        "static_field_differences_near_hero": {
+          "range": 123,
+          "after_character": 11,
+          "blend_light": 1
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.01058,
+        "frame_light_near_hero_cells_over_0_05": 21,
+        "native_objects_drawn": 412,
+        "native_object_models_missing": 2
+      }
+    },
+    {
+      "capture": "135-old-kethotum",
+      "label": "Old Kethotum",
+      "world": 135,
+      "tile": [
+        128,
+        17
+      ],
+      "captured_local": "2026-10-28 17:39:09",
+      "objects": {
+        "linked_in_sectors": 4940,
+        "count_global": 4940,
+        "installed_obj_bytes": 222304,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "135-old-kethotum-glob.bin": "4e53de43fa3e27f0d654a294b5cf05edf681d0f6bc93b941d4784cf71e280dea",
+        "135-old-kethotum-light.bin": "df38f9cf9f47da1d15cbe37d644fac26e49f39c6e9c0d2b1e105801a58579865",
+        "135-old-kethotum-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "135-old-kethotum-mem-01cf15fc.bin": "336ec846e7c147a2110ce36538244e56d64326857e2f340c849814b3de8d60af",
+        "135-old-kethotum-mem-06fce370.bin": "c40373fc100537a3d2b9f17b1a296677e405aa4adfdf98e112b805be38bc8db7",
+        "135-old-kethotum-obj.bin": "91feee91bf254fefb5c3c23e45a679e4c44b49bd182e7b49ffa74671b6da3e18",
+        "135-old-kethotum-time.txt": "33e086a4da069a6480fa31553a711b31db2a6493847479a012b2be878b3637f8",
+        "135-old-kethotum.png": "662e50e644f8320789782ce24b52b0ad6dfae0e23ab972fc627c6bdbf3a32845"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1774302.0,
+        "image_mean_abs_diff": 2.388,
+        "image_share_off_24": 0.0136,
+        "objects_native": 4940,
+        "objects_matched": 4940,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 318,
+          "range": 81
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 13,
+          "range": 10
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00996,
+        "frame_light_near_hero_cells_over_0_05": 22,
+        "native_objects_drawn": 157,
+        "native_object_models_missing": 2
+      }
+    },
+    {
+      "capture": "136-blaze-kethotum",
+      "label": "Burning Kethotum (Move: Blaze Kethotum)",
+      "world": 136,
+      "tile": [
+        127,
+        17
+      ],
+      "captured_local": "2026-10-28 17:45:41",
+      "objects": {
+        "linked_in_sectors": 3784,
+        "count_global": 3784,
+        "installed_obj_bytes": 170284,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "136-blaze-kethotum-glob.bin": "6d90cb9d378024d21a4e36eb5e7f6566f4057bbd2a59c15ed75d5adbec49aa28",
+        "136-blaze-kethotum-light.bin": "28e6de9c30df00dfe9ac2327922302fa76fd72c1062837432174c593c4d4a04b",
+        "136-blaze-kethotum-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "136-blaze-kethotum-mem-01cf15fc.bin": "d0ab2dbc6a0344eceeba8cb66bb8cb5d5064297e6036cb6235bf70aa240cc1d4",
+        "136-blaze-kethotum-mem-06fce370.bin": "435d8074426f81041e3ee66c5c726795610fbe69b20259476432c0b70ab4574c",
+        "136-blaze-kethotum-obj.bin": "40a8c5b8febbde45530a08cfbf05d278c4a016d92ad9b41f167fb91eb84a14b8",
+        "136-blaze-kethotum-time.txt": "3ff9a78e38810205de003ba86d56c5f30d5ee5378ddaacf6b98113516a0a9549",
+        "136-blaze-kethotum.png": "a6183f85ca64a4fa61d63206d8b346ca28a22e404a6f47fa052a3490a2419fc9"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2167128.0,
+        "image_mean_abs_diff": 8.661,
+        "image_share_off_24": 0.1163,
+        "objects_native": 3784,
+        "objects_matched": 3784,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 214,
+          "after_character": 89
+        },
+        "static_field_differences_near_hero": {
+          "range": 15,
+          "after_character": 10
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0,
+        "frame_light_near_hero_cells_over_0_05": 0,
+        "native_objects_drawn": 102,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "137-kanturu-underground",
+      "label": "Kanturu Underground",
+      "world": 137,
+      "tile": [
+        129,
+        124
+      ],
+      "captured_local": "2026-10-28 17:46:04",
+      "objects": {
+        "linked_in_sectors": 12679,
+        "count_global": 12679,
+        "installed_obj_bytes": 570559,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "137-kanturu-underground-glob.bin": "58b58ad65fc63fb4a9f7375cb9e3fae42420e38a0082f25735ab0b7cea0f74c5",
+        "137-kanturu-underground-light.bin": "b0fd56eca9871fe34dcf6088c65dd85e48773bc1b4edba04d8710b69f7adec6f",
+        "137-kanturu-underground-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "137-kanturu-underground-mem-01cf15fc.bin": "9d95ecdc40c002bd6692e7019660c5a68070cb4f771ec494e9617cf93eb255ec",
+        "137-kanturu-underground-mem-06fce370.bin": "c998a415d9655daba077cbfd4f9bf6802c9c2a3a0331dfdca489572b71f182e5",
+        "137-kanturu-underground-obj.bin": "bd3fdc2d1defd41c13258c2ccbfd713c8a96d56d768bcbb1995fba2782977279",
+        "137-kanturu-underground-time.txt": "e126768d3fbd0cd066d627128d6bc3a42b08a28647e8a50dcd9c99c95bd834e1",
+        "137-kanturu-underground.png": "9d19dd5809d658b98c6dc7b76a4176678db2e3950843ebc1714b3f32b734058f"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2189556.0,
+        "image_mean_abs_diff": 5.899,
+        "image_share_off_24": 0.0458,
+        "objects_native": 12679,
+        "objects_matched": 12679,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 6028,
+          "hidden_mesh": 24,
+          "after_character": 20,
+          "blend_light": 11,
+          "velocity": 11
+        },
+        "static_field_differences_near_hero": {
+          "range": 90,
+          "after_character": 16,
+          "hidden_mesh": 13,
+          "blend_light": 11,
+          "velocity": 11
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0,
+        "frame_light_near_hero_cells_over_0_05": 0,
+        "native_objects_drawn": 334,
+        "native_object_models_missing": 1
+      }
+    },
+    {
+      "capture": "138-ignis-volcano",
+      "label": "Ignis Volcano",
+      "world": 138,
+      "tile": [
+        124,
+        119
+      ],
+      "captured_local": "2026-10-28 17:46:26",
+      "objects": {
+        "linked_in_sectors": 4959,
+        "count_global": 4959,
+        "installed_obj_bytes": 223159,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "138-ignis-volcano-glob.bin": "8345f25277c03aa25bb6002ca2bce82a21ad3e4070510e32f7881d5a1527a456",
+        "138-ignis-volcano-light.bin": "206ded2f9817a8f2fb20603358aaee53d0f6d0d8dda1f14bc4d06f33bd573ab1",
+        "138-ignis-volcano-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "138-ignis-volcano-mem-01cf15fc.bin": "b32db0840ccf3071a76f5553dbef026480345c7c02cc9f8de5d52f5e64d84259",
+        "138-ignis-volcano-mem-06fce370.bin": "19bc05d1a5ac7d28712df8dd000145b5f486d465c03837c12d184e26776e6bc8",
+        "138-ignis-volcano-obj.bin": "3cacdb4a36c065ad9fec6b63eed92d64352a8ce993bfa61a6ca29bc6cf3d2a88",
+        "138-ignis-volcano-time.txt": "beb735d82aa4a2b3c64c53f3f731cf11c20491db71ab32f8288ff05c91370704",
+        "138-ignis-volcano.png": "71329eb9634567682db2daa480cfc304c5c7b59fe92c668ba12e3d297688b81e"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2211781.0,
+        "image_mean_abs_diff": 4.139,
+        "image_share_off_24": 0.0368,
+        "objects_native": 4959,
+        "objects_matched": 4959,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 775,
+          "after_character": 262
+        },
+        "static_field_differences_near_hero": {
+          "range": 31,
+          "after_character": 8
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.02156,
+        "frame_light_near_hero_cells_over_0_05": 47,
+        "native_objects_drawn": 214,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "140-bloody-tarkan",
+      "label": "Bloody Tarkan",
+      "world": 140,
+      "tile": [
+        128,
+        38
+      ],
+      "captured_local": "2026-10-28 17:46:48",
+      "objects": {
+        "linked_in_sectors": 3055,
+        "count_global": 3055,
+        "installed_obj_bytes": 137479,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "140-bloody-tarkan-glob.bin": "e224ea010684f7ea866a4090419d544803536cb1d9c7a5968cfc8873b6326ee1",
+        "140-bloody-tarkan-light.bin": "ed08144418cda612b7774495558b672dd7aabe9702d7b3dd414e39bdc33b719f",
+        "140-bloody-tarkan-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "140-bloody-tarkan-mem-01cf15fc.bin": "b148298cfdcaa355ea208e5475d0fb6b4262fe69c3fc67f239105fa7f50a392d",
+        "140-bloody-tarkan-mem-06fce370.bin": "6a228877b076a98289e0d1b8920e9f7985bb252bff936634ed39649a7432c0d8",
+        "140-bloody-tarkan-obj.bin": "ba7b4b3acf405855f7928653386d8c8bf500adc57c594cda01e1801333f96707",
+        "140-bloody-tarkan-time.txt": "66cf1b890d46d8a2b98591814631a3773eb8acc692eee3d29f30b6b80459a6ed",
+        "140-bloody-tarkan.png": "52234b364d573ef8f541a0a50fa57c7c68593f3376804202e189374303225a5c"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2233975.0,
+        "image_mean_abs_diff": 5.225,
+        "image_share_off_24": 0.002,
+        "objects_native": 3055,
+        "objects_matched": 3055,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 28,
+          "velocity": 2
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 7
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00524,
+        "frame_light_near_hero_cells_over_0_05": 18,
+        "native_objects_drawn": 200,
+        "native_object_models_missing": 3
+      }
+    },
+    {
+      "capture": "142-twisted-karutan",
+      "label": "Twisted Karutan",
+      "world": 142,
+      "tile": [
+        121,
+        120
+      ],
+      "captured_local": "2026-10-28 17:47:10",
+      "objects": {
+        "linked_in_sectors": 7061,
+        "count_global": 7061,
+        "installed_obj_bytes": 317749,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "142-twisted-karutan-glob.bin": "48cc78c61d9d9b9813bdc432ffb80e1443a81090b4042e0452ef2347f3a8e89e",
+        "142-twisted-karutan-light.bin": "16cb0718de8f54bcabc102781740c1f594f445a18d83b1c5f7fa6b4f4a257877",
+        "142-twisted-karutan-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "142-twisted-karutan-mem-01cf15fc.bin": "77169e6e85cbeb01c2018a69757b5cca28d2badd4a701702a8174837c4b5525e",
+        "142-twisted-karutan-mem-06fce370.bin": "70846db76b336135bc84127beb3e1ef9580efee0498f0f96c36c0dfec04511d8",
+        "142-twisted-karutan-obj.bin": "aaa05d100d6d2b842212f3606ac0645d3d0ee4a833fe4c6821465c6c084786fe",
+        "142-twisted-karutan-time.txt": "0b98228a460b67b0249551acb852e91aa9eddd97035c27d5749f432b8b261f7e",
+        "142-twisted-karutan.png": "427b75caddb9f8a1e2b0bd2515443f79e04551138f4de5cccc9cf92564c15959"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2256043.0,
+        "image_mean_abs_diff": 13.48,
+        "image_share_off_24": 0.1712,
+        "objects_native": 7061,
+        "objects_matched": 7061,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 5047,
+          "after_character": 1345,
+          "velocity": 123
+        },
+        "static_field_differences_near_hero": {
+          "range": 215,
+          "after_character": 100,
+          "velocity": 3
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00582,
+        "frame_light_near_hero_cells_over_0_05": 15,
+        "native_objects_drawn": 587,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "143-kardamahal",
+      "label": "Kardamahal Underground Temple",
+      "world": 143,
+      "tile": [
+        125,
+        22
+      ],
+      "captured_local": "2026-10-28 17:47:33",
+      "objects": {
+        "linked_in_sectors": 6383,
+        "count_global": 6383,
+        "installed_obj_bytes": 287239,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "143-kardamahal-glob.bin": "f85f53d472361ae93cc37b37e42edb90eaeb20c3cbb9ca047c4cd311960215bf",
+        "143-kardamahal-light.bin": "e6713acf85ab54e3e0715056c5a0a9ad156a66779ad11d8d6d9819efb8eb46e5",
+        "143-kardamahal-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "143-kardamahal-mem-01cf15fc.bin": "2ac6c59034453d076e01ee58261be978ae44dd691f714297c7278d757de064ef",
+        "143-kardamahal-mem-06fce370.bin": "f3dae1270383443c3f21ff3a3685212128e318ecbfb529ab783c4bfa86786699",
+        "143-kardamahal-obj.bin": "1e83ce6a841a577be1a59be5726851b599ab232aff87a1128ffc5d61a1d1235a",
+        "143-kardamahal-time.txt": "62da29c2198aa5c42dabb34966b82d3f4be57c5556a084b024f1ac7722b1615f",
+        "143-kardamahal.png": "abbc469543846f397febef757761c6e90de9272caaa16d8235025523e3bec6e4"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 4686.4,
+        "far_native": 4686.4,
+        "world_time_live": 2278426.0,
+        "image_mean_abs_diff": 10.912,
+        "image_share_off_24": 0.0917,
+        "objects_native": 6383,
+        "objects_matched": 6383,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 286,
+          "after_character": 176,
+          "velocity": 88
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 13,
+          "range": 9
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00121,
+        "frame_light_near_hero_cells_over_0_05": 5,
+        "native_objects_drawn": 570,
+        "native_object_models_missing": 2
+      }
+    },
+    {
+      "capture": "144-swamp-destruction",
+      "label": "Swamp of Destruction",
+      "world": 144,
+      "tile": [
+        107,
+        130
+      ],
+      "captured_local": "2026-10-28 17:47:55",
+      "objects": {
+        "linked_in_sectors": 8988,
+        "count_global": 8988,
+        "installed_obj_bytes": 413452,
+        "record_versions_fitting_installed_length": [
+          4
+        ]
+      },
+      "files_sha256": {
+        "144-swamp-destruction-glob.bin": "94a8757761ca4952a79b8374275a2da1d959797e20ed9def3b844c0a831a7367",
+        "144-swamp-destruction-light.bin": "c93e0aaced330fd0dd3d98c7681bea0681e9ed1225fe63992df56ae72e961e14",
+        "144-swamp-destruction-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "144-swamp-destruction-mem-01cf15fc.bin": "72bc68d99673b04f024fc8ef0f46124ded65dee2a08485def16eba9187218dae",
+        "144-swamp-destruction-mem-06fce370.bin": "913904409278eef136663e5318e71c7111ee6f9847b39f2a7dcd9d7e9df061c3",
+        "144-swamp-destruction-obj.bin": "a547dafde80bbcd5b9275896b275f2b94328fe50d53591e08fdc9ddcdb560391",
+        "144-swamp-destruction-time.txt": "cb44dca29cb468131f21d1ca2fcb04541b7eab59049d3f6261a5a1e5e86d3d06",
+        "144-swamp-destruction.png": "8d00b101dd7c8e834c5ef34340006fc9cf6c8c310d334b6b8cf734d91789f842"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2300918.0,
+        "image_mean_abs_diff": 12.755,
+        "image_share_off_24": 0.0237,
+        "objects_native": 8988,
+        "objects_matched": 8988,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "range": 5767,
+          "velocity": 1563,
+          "after_character": 902
+        },
+        "static_field_differences_near_hero": {
+          "range": 85,
+          "velocity": 40,
+          "after_character": 14
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.03157,
+        "frame_light_near_hero_cells_over_0_05": 82,
+        "native_objects_drawn": 244,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "38-kanturu-remain",
+      "label": "Kanturu Relics (Move: Kanturu Remain)",
+      "world": 38,
+      "tile": [
+        71,
+        104
+      ],
+      "captured_local": "2026-10-28 17:51:59",
+      "objects": {
+        "linked_in_sectors": 2121,
+        "count_global": 2121,
+        "installed_obj_bytes": 95449,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "38-kanturu-remain-glob.bin": "5431beae602a15fa2f55355dfd03ba186f36d415ccbd701da46685b315a4174a",
+        "38-kanturu-remain-light.bin": "d5831550e581c0fe23cf97a7ae59fbfef50000efeb443df59412acacf256a57c",
+        "38-kanturu-remain-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "38-kanturu-remain-mem-01cf15fc.bin": "56fa3105de58e157a329c7a6730a0a3b9e3ac69f93ae7726ccc0a7cb6e61f060",
+        "38-kanturu-remain-mem-06fce370.bin": "11ebad6d07e791fb0debd97c1064dcdf9ca54fcba8ee1b9628b61d861cd07a9c",
+        "38-kanturu-remain-obj.bin": "d3fc9450e3d80121b889146c51e5492aeb9a4604dfdf8d98a5791d78b94d8262",
+        "38-kanturu-remain-time.txt": "0c7ab735c695d71e36792e38143bf3ee37b30e013c3006d1983caba1f9d49778",
+        "38-kanturu-remain.png": "abdf15e19d13aa61b9148cdc4dda3455e0a9481970970aaf482768144c95acd7"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2545191.0,
+        "image_mean_abs_diff": 6.121,
+        "image_share_off_24": 0.0562,
+        "objects_native": 2121,
+        "objects_matched": 2121,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "hidden_mesh": 17,
+          "after_character": 13,
+          "blend_light": 6,
+          "velocity": 6
+        },
+        "static_field_differences_near_hero": {
+          "hidden_mesh": 17,
+          "after_character": 13,
+          "blend_light": 6,
+          "velocity": 6
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0,
+        "frame_light_near_hero_cells_over_0_05": 0,
+        "native_objects_drawn": 119,
+        "native_object_models_missing": 9
+      }
+    },
+    {
+      "capture": "40-battlegrounds",
+      "label": "BattleGrounds",
+      "world": 40,
+      "tile": [
+        230,
+        151
+      ],
+      "captured_local": "2026-10-28 17:51:00",
+      "objects": {
+        "linked_in_sectors": 2016,
+        "count_global": 2014,
+        "installed_obj_bytes": 90634,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "40-battlegrounds-glob.bin": "445c551a9470eb1d4e375fbfc5b0caf58dd7f47dc6ac3cfd9790d7960d93eeb8",
+        "40-battlegrounds-light.bin": "d5a7313791ebedb46fb4c04011432c512f8d706941f77395933b21e6356a55cb",
+        "40-battlegrounds-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "40-battlegrounds-mem-01cf15fc.bin": "508eb12fee4f5c724398e922b4671894be22eefd00b5ff62ce47813b6ed1baa2",
+        "40-battlegrounds-mem-06fce370.bin": "6b3af8d6c9c1bf8f025173c82098265547da91cb0a4d1102c7fb4358052b0ca1",
+        "40-battlegrounds-obj.bin": "888fd18ed8c2d48377109aff1c724791b722a0ea51c3c80bac0081377dde1604",
+        "40-battlegrounds-time.txt": "c7d9b944a9d2a1a478497846439ff098dd3dda1e69fd92fe6952a2b51ffbc37b",
+        "40-battlegrounds.png": "28c57eeaff5c36e6cd0c5e194d853b041d2d07c7ab93ba77d77bb0e7b6ee7f14"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2485837.0,
+        "image_mean_abs_diff": 3.985,
+        "image_share_off_24": 0.0426,
+        "objects_native": 2014,
+        "objects_matched": 2014,
+        "objects_missing": 2,
+        "objects_extra": 0,
+        "missing_types": {
+          "2606": 2
+        },
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 6
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 4
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00605,
+        "frame_light_near_hero_cells_over_0_05": 19,
+        "native_objects_drawn": 186,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "56-swamp-calmness",
+      "label": "Swamp of Calmness",
+      "world": 56,
+      "tile": [
+        136,
+        108
+      ],
+      "captured_local": "2026-10-28 17:51:39",
+      "objects": {
+        "linked_in_sectors": 4236,
+        "count_global": 4236,
+        "installed_obj_bytes": 190624,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "56-swamp-calmness-glob.bin": "fd6393d95b27298650bd5e94caa7af70eebf1e5b2c5ecdeac71ec6f4a77074fe",
+        "56-swamp-calmness-light.bin": "3738baa8ffc7bcfe70f8456cc3abbf5e6a99738571c381446ae7f942cdf88628",
+        "56-swamp-calmness-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "56-swamp-calmness-mem-01cf15fc.bin": "33ff50c9fac2d9b7945477a77c27c5f7326ecd7c68385814738fa4dca6d86e32",
+        "56-swamp-calmness-mem-06fce370.bin": "7dbbae9611f12d4d939969c7e272e56d700265c43a8dd6510aa4de1630b89036",
+        "56-swamp-calmness-obj.bin": "8dd34e3b61efa53c6f3996be967135d634293d538f506377191a5eaefbd3392a",
+        "56-swamp-calmness-time.txt": "9735bacfff173b8fefdb6962efc53f8e9d79d76f9965f8529d8ffa6a5d3f95b0",
+        "56-swamp-calmness.png": "880175e9aa366f9c8b0175c584bf7cdc18ab3158449fa1939204162936138679"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.007,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2524573.0,
+        "image_mean_abs_diff": 7.31,
+        "image_share_off_24": 0.0117,
+        "objects_native": 4236,
+        "objects_matched": 4236,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {},
+        "static_field_differences_near_hero": {},
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.02946,
+        "frame_light_near_hero_cells_over_0_05": 69,
+        "native_objects_drawn": 165,
+        "native_object_models_missing": 3
+      }
+    },
+    {
+      "capture": "63-vulcanus",
+      "label": "Vulcanus",
+      "world": 63,
+      "tile": [
+        124,
+        129
+      ],
+      "captured_local": "2026-10-28 17:32:30",
+      "objects": {
+        "linked_in_sectors": 2319,
+        "count_global": 2319,
+        "installed_obj_bytes": 104359,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "63-vulcanus-glob.bin": "827c005d902fa522b09a0f3f7ad9abbb3b1a50c14ac10d7a3edc071dafe5cf3e",
+        "63-vulcanus-light.bin": "3c4b0dc27d977508b32c5af6e0bc829981d1bac287ff2c4844b94929fbefb0b7",
+        "63-vulcanus-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "63-vulcanus-mem-01cf15fc.bin": "72f73b0405701423454e783b2ba1ef50372cfa34bff0b9b5e35f41eebab9125a",
+        "63-vulcanus-mem-06fce370.bin": "daa3f01d6652d11b611c4965a68369427820bae6a33d101d1c08c7f526ed5bec",
+        "63-vulcanus-obj.bin": "e9046fe266aaa771c219802b5a66bbe683d3f862ed288af88fd6c24a82cc895e",
+        "63-vulcanus-time.txt": "3c193f56b3c981f43bf4baa50e3321c177d2d9b5d1ae823b22e4162f33c2e7cc",
+        "63-vulcanus.png": "8db4d1ffc0122863fc50ab1887e233960477ee89ffc62536dbb14e5939c79817"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.005,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3700.0,
+        "far_native": 3257.8,
+        "world_time_live": 1375441.0,
+        "image_mean_abs_diff": 2.665,
+        "image_share_off_24": 0.0158,
+        "objects_native": 2319,
+        "objects_matched": 2319,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {},
+        "static_field_differences_near_hero": {},
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0087,
+        "frame_light_near_hero_cells_over_0_05": 22,
+        "native_objects_drawn": 213,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "79-loren-market",
+      "label": "Loren Market",
+      "world": 79,
+      "tile": [
+        56,
+        74
+      ],
+      "captured_local": "2026-10-28 17:30:11",
+      "objects": {
+        "linked_in_sectors": 1486,
+        "count_global": 1486,
+        "installed_obj_bytes": 66874,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "79-loren-market-glob.bin": "c8c8e049b2c59a5e6e32cfd63dd3d67fdae884ba4040b47791d01b3f4066770e",
+        "79-loren-market-light.bin": "efda1e1e2332c7ce3eda3b89d651da70019f892e3c3cab0d158d68317ef5a094",
+        "79-loren-market-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "79-loren-market-mem-01cf15fc.bin": "b4d06be01251cc77da16b34663acb77736610d7eb13ccb390bf36afc4eb6d696",
+        "79-loren-market-mem-06fce370.bin": "fa556ca09d514ad124842e62110e37e78571ba3afaea23de86cd2043d87995ed",
+        "79-loren-market-obj.bin": "004f4f833622ca03fea3348724174700ccab1143c4549de9af3594d89d697f48",
+        "79-loren-market-time.txt": "48c793667486cc7ef24a4e89c853befee0e8aad68d8fefa589df7d71762113f6",
+        "79-loren-market.png": "0584db901db533de063398e5035686ac3fb20ab86a889bad180e4e3f0d77cc52"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1237072.0,
+        "image_mean_abs_diff": 4.361,
+        "image_share_off_24": 0.0389,
+        "objects_native": 1486,
+        "objects_matched": 1486,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "after_character": 1
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 1
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.01222,
+        "frame_light_near_hero_cells_over_0_05": 40,
+        "native_objects_drawn": 202,
+        "native_object_models_missing": 3
+      }
+    },
+    {
+      "capture": "79b-event-square",
+      "label": "Event Square",
+      "world": 79,
+      "tile": [
+        204,
+        57
+      ],
+      "captured_local": "2026-10-28 17:33:22",
+      "objects": {
+        "linked_in_sectors": 1486,
+        "count_global": 1486,
+        "installed_obj_bytes": 66874,
+        "record_versions_fitting_installed_length": [
+          3
+        ]
+      },
+      "files_sha256": {
+        "79b-event-square-glob.bin": "9a8d57a3d6b64e80817699f4ef0028bee0812d7256763a3548d5bc5c0fd96e42",
+        "79b-event-square-light.bin": "1d00b186a6e51f198d11220e66be4e9e1d6ef21118a5fe020ef4b93907ca0b00",
+        "79b-event-square-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "79b-event-square-mem-01cf15fc.bin": "b4d06be01251cc77da16b34663acb77736610d7eb13ccb390bf36afc4eb6d696",
+        "79b-event-square-mem-06fce370.bin": "eef2a0aa2d0b35e188ee2a9997c6a351c0364cc3ef815dc69abeaf1350d3d385",
+        "79b-event-square-obj.bin": "3fccd7eb5f4d3f887eb2ba2fb3c65a5928de435c55d917278065c5ed27d74ab3",
+        "79b-event-square-time.txt": "4680e74a2957a277357eac83283170257e3e3e822548df6c2949c1ea32deb8c7",
+        "79b-event-square.png": "9c367b532cee69cef8e704a5cd7b2ca9c3735f5772e207563ec010d2db95309b"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 1427799.0,
+        "image_mean_abs_diff": 3.604,
+        "image_share_off_24": 0.0171,
+        "objects_native": 1486,
+        "objects_matched": 1486,
+        "objects_missing": 0,
+        "objects_extra": 0,
+        "missing_types": {},
+        "extra_types": {},
+        "static_field_differences_map": {
+          "hidden_mesh": 3,
+          "after_character": 3
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 3,
+          "hidden_mesh": 1
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00526,
+        "frame_light_near_hero_cells_over_0_05": 27,
+        "native_objects_drawn": 286,
+        "native_object_models_missing": 3
+      }
+    },
+    {
+      "capture": "91-acheron",
+      "label": "Acheron (Move: Akeron)",
+      "world": 91,
+      "tile": [
+        58,
+        191
+      ],
+      "captured_local": "2026-10-28 17:34:33",
+      "objects": {
+        "linked_in_sectors": 5834,
+        "count_global": 5834,
+        "installed_obj_bytes": 175024,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "91-acheron-glob.bin": "26222c88c99f97e70edb937d9d46ada005bbc0b8f440fe7f4b056fb0ed9920c4",
+        "91-acheron-light.bin": "81033849cf293a8a10bfad6026b79ae0655dee1dab5b2f08892931acf2c3b988",
+        "91-acheron-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "91-acheron-mem-01cf15fc.bin": "56c5348c22504d8d1c1d0df22eb7a3afd2be4ba7b9d426295fafa31244c985f8",
+        "91-acheron-mem-06fce370.bin": "b76edcb94f6cbb35f3a2c6b677b1df34569f602ff424ad6272bdaf747a2e69fb",
+        "91-acheron-obj.bin": "612b11f1132a78ba424ad9090701e894017930c8d9b3f2c101b1439d504a3585",
+        "91-acheron-time.txt": "ca0293617253ccbb1e2a15760a26c10851ca3250e621eeee3d504907d282e4d0",
+        "91-acheron.png": "e5769387e2134e21398dac5e45ffc87c29213d1f2e8b43ca0e3dc78d24dbee94"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3000.0,
+        "far_native": 3000.0,
+        "world_time_live": 1499242.0,
+        "image_mean_abs_diff": 7.706,
+        "image_share_off_24": 0.0424,
+        "objects_native": 5834,
+        "objects_matched": 5833,
+        "objects_missing": 1,
+        "objects_extra": 1,
+        "missing_types": {
+          "0": 1
+        },
+        "extra_types": {
+          "0": 1
+        },
+        "static_field_differences_map": {
+          "after_character": 58,
+          "range": 27
+        },
+        "static_field_differences_near_hero": {
+          "after_character": 39
+        },
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.0147,
+        "frame_light_near_hero_cells_over_0_05": 25,
+        "native_objects_drawn": 165,
+        "native_object_models_missing": 0
+      }
+    },
+    {
+      "capture": "6-arena",
+      "label": "Arena",
+      "world": 6,
+      "tile": [
+        72,
+        174
+      ],
+      "captured_local": "2026-10-28 17:52:18",
+      "objects": {
+        "linked_in_sectors": 1417,
+        "count_global": 1417,
+        "installed_obj_bytes": 42514,
+        "record_versions_fitting_installed_length": [
+          0
+        ]
+      },
+      "files_sha256": {
+        "6-arena-glob.bin": "f965879a568bfc130a70e909897878bdc5c1e5dcb45d304c6efcd46cb79c5636",
+        "6-arena-light.bin": "88ce8d422e69884deaa0302718873d56610623814019a2515f3c9820d0703e1a",
+        "6-arena-mem-01cf15ec.bin": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+        "6-arena-mem-01cf15fc.bin": "d558c744bfa8a48a3626b0cd61c4107ff859ae318a97a9248e8a42b57e2b485b",
+        "6-arena-mem-06fce370.bin": "3ca26107e0bc54b32677be3b7e428081503c4c41deef090444a035535232da19",
+        "6-arena-obj.bin": "54916a158aedbce608ddc171fc2c0ec8ff0cf009c2835d0418bf0cff4036c1f0",
+        "6-arena-time.txt": "2c76522bd163ee818a2f66c1e5bbd258e8ac21804090128ba8ea40fc57523d95",
+        "6-arena.png": "6316989ca960ea3b62798117ec01b9511336bdba0f6908e30415fcc33be331ee"
+      },
+      "comparison": {
+        "camera_eye_distance": 0.004,
+        "pitch_difference": 0.0,
+        "fov_difference": 0.0,
+        "far_live": 3257.8,
+        "far_native": 3257.8,
+        "world_time_live": 2563371.0,
+        "image_mean_abs_diff": 3.761,
+        "image_share_off_24": 0.0118,
+        "objects_native": 1416,
+        "objects_matched": 1416,
+        "objects_missing": 1,
+        "objects_extra": 0,
+        "missing_types": {
+          "-515": 1
+        },
+        "extra_types": {},
+        "static_field_differences_map": {},
+        "static_field_differences_near_hero": {},
+        "primary_light_mean_abs": 0.0,
+        "primary_light_max_abs": 0.0,
+        "frame_light_near_hero_mean_abs": 0.00387,
+        "frame_light_near_hero_cells_over_0_05": 14,
+        "native_objects_drawn": 118,
+        "native_object_models_missing": 0
+      }
+    }
+  ],
+  "music_read": {
+    "when": "2026-10-28 17:28, server-select screen (scene before login), same client session as captures 63/79/91/112/113/123",
+    "reads": {
+      "0x01cf1680+0x130": "8bb024c22ccd96aace4d6ce425d82a80c21de06a32d60e6f0b7cc498aaf87a57",
+      "0x06fba808+4": "5c105296380d7a760bed89b1d6b61d829f8fc43bba392a3dc164e6b55400eab8",
+      "index_name_table_local": "f515356f22c73696fb27ff3624d340071e0ba33844b8a3c8570914e87759c1eb"
+    },
+    "result": {
+      "nonnull_pointers": 76,
+      "distinct_pointers": 72,
+      "first_pointer": "0x01af63ec",
+      "pointer_order": "nondecreasing; ranks equal the static literal order",
+      "index_43": {
+        "word_at": "0x01cf172c",
+        "pointer": "0x01af6848",
+        "name": "data\\music\\iDoppelganger.mp3"
+      },
+      "index_44": {
+        "word_at": "0x01cf1730",
+        "pointer": "0x01af6848",
+        "name": "data\\music\\iDoppelganger.mp3"
+      },
+      "value_0x06fba808_le_u32": "0x6973754d (ASCII \"Musi\"; inference: start of a text buffer at this scene)"
+    }
+  }
+}

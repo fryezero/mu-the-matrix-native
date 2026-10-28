@@ -44,7 +44,7 @@ typedef struct mu_perf {
     int sync;
     void (*finish)(void);
     double phase[MU_PERF_PHASES];
-    double last, cpu_last, gpu_ms, gpu_gfx_ms, pace_start;
+    double last, cpu_last, process_cpu_last, gpu_ms, gpu_gfx_ms, pace_start;
     int64_t gpu_frame, gpu_gfx_frame, frame;
     struct {
         uint32_t query[8];

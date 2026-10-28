@@ -98,6 +98,7 @@ typedef struct mu_model {
     mu_client_memory memory;
     mu_model_params params;
     int32_t posed;            /* 1 after a successful pose; 0 uses identity bone matrices */
+    struct mu_perf_mesh_cache *draw_topology; /* owned host validation proof, no pose cache */
 } mu_model;
 
 enum { MU_MODEL_OK = 0, MU_MODEL_ERROR = 1 };

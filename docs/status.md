@@ -2,6 +2,18 @@
 
 RENDER-EFFECTS-004: Rageful Blow's ordinary-world chain (0x461 and nine pieces, item initialiser, weapon draw), Triple Shot through verified CreateArrows/CreateArrow (0/+15/-15) and Spirit of Guardian's wing 0x460/4. Primary routes 18/23 to 20/23, weighted 56/77 to 65/77. 32,000 instruction comparisons, zero mismatches, 15/15 compiled mutants. Rank-5 item owner effects remain for a slice agreed with RENDER-ITEMS-002K. [Evidence](research/client-render-effects-004.md), [checks and remaining work](handoffs/RENDER-EFFECTS-004.md).
 
+NATIVE-PERF-004 (merged, acceptance open): pose workers, exact topology cache, ordered GL capture and a lease-audit fast path; main-thread CPU lower in all seven paired runs, 2,804/2,804 frame pairs identical; strict 25 Hz passes only crowd40. Next: NATIVE-PERF-005. [Checks and limits](handoffs/NATIVE-PERF-004.md).
+
+RENDER-WORLDS-M: six Uruk nested particle lifecycles and the `flare_mono` registration (Market/Raklion kinds were already L's). 18,000 checks, zero mismatches, 17/17 compiled mutants and four original loader calls; 16 saved views unchanged; authored Uruk view 47 unsupported requests to 0. [Evidence](research/client-worlds-m.md), [checks and limits](handoffs/RENDER-WORLDS-M.md).
+
+DATA-ACQ-002: guided live captures on the owner's client (four locked sessions, warps only): 32 arrival captures in 31 worlds, 27/48 world classes now have an original populated capture; 16 classes are not reachable by warp. Native camera within 0.007, primary light equal in 31/32; music indices 43 and 44 both iDoppelganger. [Captures and comparison](research/client-world-captures-2.md), [inputs and limits](handoffs/DATA-ACQ-002.md).
+
+AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants; locked Mac gate passes 1,634 tests. [Checks and limits](handoffs/AUDIO-002F.md).
+
+README-REFRESH-004 updates the public README through PR #241: world, item, skill-visual, session, sound, HelpWindow, temporal and Preview progress, with offline, live and 25 fps limits kept. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-004.md).
+
+SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).
+
 VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Locked Mac gate passes 1,608 tests and 11 fixtures. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
 
 RENDER-WORLDS-L: seven Karutan/Raklion/Market particle lifecycles and four exact bitmap registrations. 21,000 checks, zero mismatches, 13/13 compiled mutants and five original loader calls; saved-tour OBJECT/light and 13 other views unchanged. [Evidence](research/client-worlds-l.md), [checks and limits](handoffs/RENDER-WORLDS-L.md).
