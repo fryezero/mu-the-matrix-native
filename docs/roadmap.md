@@ -2,6 +2,8 @@
 
 SYS-MISC-001b WIP: HelpWindow reader/controller instruction checks and native Ctrl+H hosting; no locked full gate or merge yet. [Exact state and resume steps](handoffs/SYS-MISC-001b.md).
 
+SESSION-SOCIAL-001a: party list/invitations and supplied bars now use a session domain and plaintext fixture feed; winParty retained. Locked Mac gate passes 1,600 tests. Invite/answer sends remain unsent pending NET-DECODE. [Checks and remaining social work](handoffs/SESSION-SOCIAL-001a.md).
+
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
@@ -159,6 +161,7 @@ are in [design/native-port](design/native-port/README.md).
 | INPUT-001 | Implemented: world input router, shared script parser and recovered binding coverage | 570 instruction cases, 0 mismatches, 7/7 mutants; 1,425-test final gate; native cast/right-click/pick-up and baseline render proof ([handoff](handoffs/INPUT-001.md)) | Unavailable panels/controllers and original IME candidate movie listed in the coverage table; live shared-script comparison remains open |
 | CHARSEL-RT-001 | Implemented: `mu_charsel_rt` + nine explicit parts + one options struct + separate tool; charsel embed removed | Charsel families and render comparisons unchanged; charcreate 4,368 cases, 0 mismatches, 6/6 planted mistakes ([handoff](handoffs/CHARSEL-RT-001.md)) | Session-backed account/list intents remain SESSION-ACCOUNT-001 |
 | VERIFY-HARNESS-001 | Implemented: `scripts/pins.py`, `scripts/validators.toml` (92 rows) and `scripts/run_validators.py`; orphan validators under private tests | Private run 69 pass / 1 fail (charcreate case count) / 5 skip (capture-04, v14 manifest), identical on an unmodified tree ([handoff](handoffs/VERIFY-HARNESS-001.md)) | Shared Unicorn base machine not started |
+| VERIFY-HARNESS-002 | Implemented: window-map and hierarchy helpers use shared pins/loading; exact errors preserved | Eight before/after reports equal except two elapsed-time fields; 72 private owning tests pass; locked Mac gate 1,608 tests / 11 fixtures ([handoff](handoffs/VERIFY-HARNESS-002.md)) | Eight out-of-scope loader exceptions and shared Unicorn machine consolidation remain |
 
 ## Next after a valid capture
 
@@ -184,7 +187,7 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 
 ## Coordinating agents
 
-| RENDER-ITEMS-002 parts 1-9 | Implemented subsets: 103 item scalar remaps, all 17 skin scalar rules; 769/1,674 bounded item bodies and 17/17 skins; fifteen link targets/twenty types with consumers; ground/inventory skin sprites | Part 9 adds 107 ranked bodies and the nine-bone shield link ([handoff](handoffs/RENDER-ITEMS-002I.md), [finding](research/client-render-items.md)) | 905 bodies, rank-5 owner effects, further links, Muun/nested map-object tables and prior record/buff/outline/model limits |
+| RENDER-ITEMS-002 parts 1-10 | Implemented subsets: 103 item scalar remaps, all 17 skin scalar rules; 880/1,674 bounded bodies and 17/17 skins; seventeen link targets/twenty-two types; ground/inventory skin sprites | Part 10 adds atlas armour, the six requested seed bodies and two shield links ([handoff](handoffs/RENDER-ITEMS-002J.md), [finding](research/client-render-items.md)) | 794 bodies, rank-5 owner effects, further links, Muun/nested map-object tables and prior record/buff/outline/model limits |
 
 | NATIVE-MAP-002 | Implemented: captured absent-key Move default supplied to the validator; snapshot digest in reports; synthetic nonzero-default regression | Lang4 and both lang5 copies each pass 5,001 instruction cases, zero mismatches, all 10 mutants; identical 69 real records and 621 native rows across sort orders; 11 reconstructed and 9 native map tests pass ([finding](research/client-maps.md#move-default-records-native-map-002)) | Native Move behavior unchanged; navimap locale state and prior teleport limits remain open |
 | NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |
@@ -202,3 +205,5 @@ SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](
 VIEWPORT-MONSTER-001 is implemented: [record feed, instruction comparisons and limits](handoffs/VIEWPORT-MONSTER-001.md).
 
 SESSION-MAP-001a bounded overlay slice is implemented: [checks and remaining travel work](handoffs/SESSION-MAP-001a.md).
+
+RENDER-WORLDS-L recorded consumer subset is implemented: [checks and remaining work](handoffs/RENDER-WORLDS-L.md).

@@ -75,7 +75,7 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
         return 0;
     if (type == 0x389c || type == 0x389d)
         return mu_renderchar_skin_effects(model, bones, type, p);
-    if (type == 0x16fa || type == 0x10f0 || type == 0x16f5 || type == 0x0afa || type == 0x0eed || type == 0x0eee || type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
+    if (type == 0x16f7 || type == 0x16fb || type == 0x16fa || type == 0x10f0 || type == 0x16f5 || type == 0x0afa || type == 0x0eed || type == 0x0eee || type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
         mu_rc_link_effect effects[20];
         int32_t n = 0;
         if (mu_rc_link_effects_time(type, p->world_time, link_random, p, effects, 20, &n) != MU_RC_OK)
@@ -145,6 +145,8 @@ static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_rend
     it->ext_option = g->ext;
     it->render_type = env->render_type;
     it->a10 = -1;
+    if (it->type >= 0x2322 && it->type <= 0x2327)
+        it->object_hidden = -1; /* draw every seed mesh in the viewer item context */
     it->a11 = -1;
     it->a12 = 3;
     it->alpha = alpha;

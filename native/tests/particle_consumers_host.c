@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     assert(mu_world_particles_draw(&particles, identity, &target) == 9);
     assert(particles.stats.drawn_sprites == 3 && particles.stats.drawn_particles == 6 && vertices == 54);
     /* Last three effect slots, before rain02/rain03; actual loader sampling metadata. */
-    for (int i = MU_WORLD_PT_BITMAPS - 5; i < MU_WORLD_PT_BITMAPS - 2; ++i) {
+    for (int i = MU_WORLD_PT_BITMAPS - 9; i < MU_WORLD_PT_BITMAPS - 6; ++i) {
         assert(particles.bitmaps.slots[i] && particles.bitmaps.filter[i] == 0x2601);
         assert(particles.bitmaps.wrap[i] == 0x2900 && particles.bitmaps.components[i] == 3);
     }

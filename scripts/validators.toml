@@ -2043,6 +2043,34 @@ args = ["--cases", "3000", "--mutations", "--report", "{report}"]
 "mutants" = {len = 8}
 "mutants.*" = "caught"
 
+[validate_worlds_l]
+test = "native/tests/test_native_worlds_l.py::WorldsL.test_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 1260
+mutants = 13
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_worlds_l.expect]
+all_equal = true
+all_mutants_caught = true
+
+[validate_session_party]
+test = "native/tests/test_session_party.py::Private.test_original_party_adapters"
+pins = ["text", "data"]
+families = ["list_envelope", "update_loop", "clear", "request", "result"]
+cases = 200
+mutants = 5
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+[validate_session_party.expect]
+"total" = 200
+"mismatches" = 0
+"mutants_caught" = {len = 5}
+
 [validate_audio_charsel]
 test = "native/tests/test_audio_charsel.py::CharselAudio.test_original_charsel_audio"
 pins = ["text", "data"]
@@ -2109,3 +2137,17 @@ args = ["--cases", "64", "--mutants", "--output", "{report}"]
 "mismatches" = 0
 "mutants" = {len = 11}
 "mutants.*.caught" = true
+
+[validate_item_wings_next]
+test = "reconstructed/renderchar/test_item_wings_next.py::ItemWingsNext.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "clocks", "links", "position"]
+cases = 33622
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_wings_next.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}

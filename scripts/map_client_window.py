@@ -2,9 +2,15 @@
 """Map bounded decoded control flow; candidate entries are not recovered symbols."""
 import argparse
 from collections import deque
+import errno
 import hashlib
 import json
+import os
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pins  # noqa: E402
 
 from capstone import (Cs, CS_ARCH_X86, CS_MODE_32, CS_GRP_CALL, CS_GRP_JUMP,
                       CS_GRP_RET, CS_GRP_INT, CS_GRP_IRET, CS_GRP_BRANCH_RELATIVE)
@@ -12,10 +18,10 @@ from capstone.x86_const import (X86_OP_IMM, X86_OP_MEM, X86_INS_LEA,
                                 X86_INS_JMP, X86_INS_LJMP, X86_INS_HLT, X86_INS_UD2)
 
 MAX_WINDOW = 262144
-TEXT_BASE = 0x401000
-TEXT_BYTES = 23572480
-TEXT_SHA256 = '2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724'
-TARGET_SHA256 = '3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a'
+TEXT_BASE = pins.TEXT.base
+TEXT_BYTES = pins.TEXT.size
+TEXT_SHA256 = pins.TEXT.sha256
+TARGET_SHA256 = pins.TARGET.sha256
 
 
 def map_window(data, base, seeds, max_functions=1024, max_instructions=4096, discover_padding=True):
@@ -153,8 +159,12 @@ def main():
     parser.add_argument('--no-padding', action='store_true')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    payload = args.capture.read_bytes()
-    if len(payload) != TEXT_BYTES or hashlib.sha256(payload).hexdigest() != TEXT_SHA256:
+    try:
+        payload = pins.load(args.capture, TEXT_BYTES, TEXT_SHA256)
+    except pins.PinMissing:
+        # Keep the native missing-file exception exposed by this CLI before migration.
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(args.capture)) from None
+    except pins.PinMismatch:
         parser.error('Capture does not match the pinned restored client text')
     if args.offset < 0 or not 0 < args.length <= MAX_WINDOW or args.offset + args.length > len(payload):
         parser.error('Selected window is outside the pinned capture or exceeds the window bound')

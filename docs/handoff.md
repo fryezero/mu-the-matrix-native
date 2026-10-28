@@ -2,6 +2,12 @@
 
 SYS-MISC-001b WIP: HelpWindow reader/controller instruction checks and native Ctrl+H hosting; no locked full gate or merge yet. [Exact state and resume steps](handoffs/SYS-MISC-001b.md).
 
+VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Locked Mac gate passes 1,608 tests and 11 fixtures. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
+
+RENDER-WORLDS-L: seven Karutan/Raklion/Market particle lifecycles and four exact bitmap registrations. 21,000 checks, zero mismatches, 13/13 compiled mutants and five original loader calls; saved-tour OBJECT/light and 13 other views unchanged. [Evidence](research/client-worlds-l.md), [checks and limits](handoffs/RENDER-WORLDS-L.md).
+
+SESSION-SOCIAL-001a: party list/invitations and supplied bars now use a session domain and plaintext fixture feed; winParty retained. Locked Mac gate passes 1,600 tests. Invite/answer sends remain unsent pending NET-DECODE. [Checks and remaining social work](handoffs/SESSION-SOCIAL-001a.md).
+
 AUDIO-002 part 5: three character-select Enter/Esc sound-25 sites reach the native host. Caller adapters 73 to 76; 5,968 original-tick cases, zero mismatches, 11/11 compiled mutants; locked clean Mac gate passes 1,596 tests. [Checks and limits](handoffs/AUDIO-002E.md).
 
 RENDER-WORLDS-K: built-in Lost Tower/Tarkan/Icarus producers and Atlans dispatch correction; 6,000 instruction cases, 21/21 source mutants plus 2/2 native host controls. Icarus image error 26.897 to 23.154. Locked Mac gate passes 1,585 tests. [Checks and limits](handoffs/RENDER-WORLDS-K.md).
@@ -12,7 +18,7 @@ SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the ses
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
-RENDER-ITEMS-002 part 9: 769/1,674 bounded bodies, 17/17 skins, fifteen link targets/twenty types. Adds 107 ranked bodies and the nine-bone shield link; 31,724 new instruction cases, zero mismatches, 9/9 mutants. Full rank-5 owner effects remain open. Locked Mac gate passes 1,590 tests. [Checks and limits](handoffs/RENDER-ITEMS-002I.md).
+RENDER-ITEMS-002 part 10: 880/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 104 armour, one weapon and the six requested seed bodies; 33,622 new instruction cases, zero mismatches, 12/12 compiled mutants. Locked Mac gate passes 1,615 tests. 794 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002J.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
