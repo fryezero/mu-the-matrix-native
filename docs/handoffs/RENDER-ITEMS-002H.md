@@ -39,14 +39,14 @@ The new original-instruction validator has a manifest row and owning private tes
 | Two complete link callers | 800 | 0 |
 | Total | 14,992 | 0 |
 
-The first 14,232 cases reproduce both generated tables and detect **9/9 compiled
-mutants**. Detection counts: base mesh count 11,096; lighting branch 11,096;
-pulse period 5,529; UV period 4,165; random range 4,427; named mesh 2,044;
-body alpha 2,336; link bone 800; link scale 800. The additional 760 record/clock
-cases also pass independently. The combined reproduction is running.
+The combined **14,992 cases** reproduce both generated tables and detect **9/9
+compiled mutants**. Detection counts: base mesh count 11,856; lighting branch
+11,856; pulse period 5,681; UV period 4,355; random range 4,731; named mesh 2,184;
+body alpha 2,336; link bone 800; link scale 800.
 
 Inherited part 6 passes **17,736 cases, 6/6 mutants**; part 7 passes **25,256 cases,
-10/10 mutants**. Every family has zero mismatches. All **635 existing generated
+10/10 mutants**. Together these runs cover **57,984 comparisons, zero mismatches,
+25/25 mutants**. Every family has zero mismatches. All **635 existing generated
 rows** retain identical recipes and scalar flags after re-indexing; only eight
 rows are added. The preflight local Mac gate passes **1,548 tests across 38
 runs, 191 explicit skips**, viewer/readers and publication audit, **1,472 files,

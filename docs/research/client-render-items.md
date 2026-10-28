@@ -739,5 +739,6 @@ body refusals. These are native synthetic renders, not original-client images.
 Remaining: **1,012 item bodies**, full rank-5 owner effects, further link targets,
 Muun/nested map-object inputs and the prior model, owner/random, selection/shadow,
 buff/record, mesh-override, hero-instance, NewUI and external Box of Luck limits.
-Release checks, mutation counts and cleanup are recorded in the
+The combined 14,992 comparisons have zero mismatches, all nine compiled mutants
+are detected, and both generated tables reproduce. Release checks and cleanup are recorded in the
 [part-8 handoff](../handoffs/RENDER-ITEMS-002H.md).
