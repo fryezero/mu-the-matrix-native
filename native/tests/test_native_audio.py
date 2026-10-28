@@ -23,6 +23,7 @@ import math
 import os
 from pathlib import Path
 import random
+import re
 import shutil
 import struct
 import subprocess
@@ -362,6 +363,24 @@ class NativeAudioTests(unittest.TestCase):
         self.assertEqual(at(1700), round((0.02 + 0.04)*32768))                            # music muted
         self.assertEqual(at(2200), 0)                                                     # world 5 stops all
 
+    def test_doppelganger_manager_music(self):
+        # AUDIO-002F: manager 0x00e305ee plays index 43 only when its event input is known and nonzero.
+        files = {'data/music/dop.wav': constant_wav(0.1, RATE)}
+        rows = ['music\t43\tdata\\music\\Dop.wav\t-\t-\tlive read']
+        root, table = self.game('doppelganger', files, rows, self.options_ini(music=1.0))
+        script = ('0 world 65\n0 manager 0x00e305ee\n400 eventmusic doppelganger 0\n400 manager 0x00e305ee\n'
+                  '800 eventmusic doppelganger 1\n800 manager 0x00e305ee\n1200 end\n')
+        _, values = self.render(root, table, script)
+        left = values[0::2]
+        self.assertEqual(max(left[:int(0.8*RATE)]), 0)
+        self.assertEqual(left[int(1.0*RATE)], round(0.1*32768))
+        for bad in ('0 manager 0x1234\n', '0 eventmusic dragons 1\n', '0 eventmusic doppelganger\n'):
+            path = root/'bad.txt'
+            path.write_text(bad)
+            result = subprocess.run([str(TOOL), 'render', '--table', str(table), '--root', str(root), '--script',
+                                     str(path), '--out', str(root/'bad.wav')], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0, bad)
+
     def test_list_and_script_errors(self):
         root, table = self.game('list', {'Data/Sound/a.wav': constant_wav(0.1, 10, 2, 22050)},
                                 ['sound\t3\tData\\Sound\\A.WAV\t2\t1\t0x18433ed', 'sound\t4\tData\\Sound\\gone.wav\t1\t1\t0x0',
@@ -432,6 +451,13 @@ class NativeAudioTests(unittest.TestCase):
             listing = subprocess.run([str(TOOL), 'list', '--table', table, '--root', game], capture_output=True,
                                      text=True, check=True).stdout
             self.assertRegex(listing, r'# 15\d\d rows, 13\d\d ids')
+            # AUDIO-002F: all 76 music indices resolve and every named file is installed.
+            music = subprocess.run([str(TOOL), 'list', '--table', table, '--root', game, '--music'],
+                                   capture_output=True, text=True, check=True).stdout.splitlines()
+            rows = [line for line in music if re.match(r'\d+ ', line)]
+            self.assertEqual(len(rows), 76)
+            self.assertFalse([line for line in rows if 'missing' in line or '(unresolved)' in line])
+            self.assertIn('iDoppelganger.mp3', rows[43] + rows[44])
             script = self.work/'private.txt'
             script.write_text('0 openworld 0\n0 world 0 safe=1\n500 play 25\n1000 world 0 safe=1 tile=4\n2000 end\n')
             out = self.work/'private.wav'

@@ -313,11 +313,19 @@ LIGHT_LOGIN = Pin('light_login', '140d09ee4181416820f1aae17c21048e44a7f0e21d9ab7
 OBJECTS_LOGIN = Pin('objects_login', '8b94aba21bd18cb5d114f8918a7af8465d0fafe9a65576b0e885c7c2bb18716e', None,
                     'objects/live/plain/EncTerrain95.plain', root='snapshot', env=('MU_LIGHT_OBJECTS',),
                     what='decoded login-scene object file EncTerrain95 (local plaintext of an installed file)')
+# AUDIO-002F's music read (DATA-ACQ-002 live session, 2026-10-28 17:28, read-only memread; docs/research/
+# client-audio.md "AUDIO-002 part 6"): the 76 music pointers and the first word of the channel-group names.
+MUSIC_TABLE_READ = Pin('music_table_read', '8bb024c22ccd96aace4d6ce425d82a80c21de06a32d60e6f0b7cc498aaf87a57', 0x130,
+                       'audio-002f/music-read/m-01cf1680.bin', root='snapshot', env=('MU_MUSIC_TABLE_READ',),
+                       base=0x01cf1680, what='live read of the music pointer array 0x01cf1680 (76 pointers)')
+MUSIC_GROUP_WORD = Pin('music_group_word', '5c105296380d7a760bed89b1d6b61d829f8fc43bba392a3dc164e6b55400eab8', 4,
+                       'audio-002f/music-read/m-06fba808.bin', root='snapshot', env=('MU_MUSIC_GROUP_WORD',),
+                       base=0x06fba808, what='live read of 0x06fba808 (first channel-group name std::string)')
 
 PINS = {pin.name: pin for pin in (TEXT, TEXT08, DATA, FLAG, FEATURE, FEATURE09, RECORD_BIAS, RECORD_TEMPLATE,
                                    SECTION3, EFFECTS_INIT, DIRECTIONS, TARGET, V14_MANIFEST, EDGE_DIAGNOSTICS,
                                    LANG3, LANG4, QUEST_LANG5, SKILL_LANG5, SKILL_TREE4, LIGHT_LOGIN,
-                                   OBJECTS_LOGIN)}
+                                   OBJECTS_LOGIN, MUSIC_TABLE_READ, MUSIC_GROUP_WORD)}
 # Digests pinned here that are not files of their own (checked by tests/test_pins.py like the others).
 OTHER_DIGESTS = {'math_capture_tool': MATH_CAPTURE_TOOL_SHA256}
 

@@ -26,6 +26,20 @@ class Audio002(unittest.TestCase):
     def test_partial_raklion_input_preserves_prior_call(self):
         s=State(58,0,0,0,0,0,0)
         self.assertEqual(events(self.lib,0xe9e9c5,s),[(4,34,0),(6,0xe9e9c5,0)])
+    def test_doppelganger_manager(self):
+        from validate_audio_music import State as MusicState, native as music
+        s=MusicState(65,0,0,0,0,0,0,1)
+        self.assertEqual(music(self.lib,0xe305ee,s),[(6,0xe305ee,0)])
+        for world in (0,65,68,200):
+            for value,want in ((0,[]),(1,[(3,43,0)]),(-1,[(3,43,0)]),(0x100,[(3,43,0)])):
+                s=MusicState(world,0,0,0,0,0,16,value)
+                self.assertEqual(music(self.lib,0xe305ee,s),want)
+    def test_music_layout_names_every_index(self):
+        from extract_audio_tables import MUSIC_LAYOUT
+        self.assertEqual(len(MUSIC_LAYOUT),76)
+        self.assertNotIn(None,MUSIC_LAYOUT)
+        self.assertEqual((MUSIC_LAYOUT[43],MUSIC_LAYOUT[44]),(40,40))
+        self.assertEqual(sorted(set(MUSIC_LAYOUT)),list(range(72)))
     def test_npc_voice_edges(self):
         f=self.lib.mu_audio_npc_voice;f.argtypes=[C.c_int32,C.c_int32,C.c_uint16,C.c_float,C.c_int]
         self.assertEqual(f(0xa0b,-64,0,0,0),161)
@@ -41,6 +55,8 @@ class Audio002(unittest.TestCase):
     def test_original_events(self):self.compare('validate_audio_events')
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','Pinned Unicorn audio registration is opt-in')
     def test_original_registration(self):self.compare('validate_audio_registration')
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','Pinned Unicorn music table is opt-in')
+    def test_original_music_table(self):self.compare('validate_audio_music')
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','Pinned Unicorn NPC voices are opt-in')
     def test_original_voices(self):self.compare('validate_audio_voices')
 if __name__=='__main__':unittest.main()

@@ -519,6 +519,25 @@ int mu_audio_host_command(mu_audio_host *host, const char *command, char *error,
         mu_audio_host_set_world(host, &s, boss);
         return 0;
     }
+    if (!strcmp(name, "eventmusic")) {
+        static const char *fields[] = {"crywolf", "crywolf_result", "kanturu", "temple", "raklion", "doppelganger"};
+        static const uint32_t bits[] = {MU_AUDIO_CRYWOLF, 0, MU_AUDIO_KANTURU, MU_AUDIO_TEMPLE, MU_AUDIO_RAKLION,
+                                        MU_AUDIO_DOPPELGANGER};
+        mu_event_music_state *e = &host->event_music;
+        int32_t *slots[] = {&e->crywolf, &e->crywolf_result, &e->kanturu, &e->temple, &e->raklion, &e->doppelganger};
+        size_t i = 0;
+        while (argc > 1 && i < sizeof fields/sizeof fields[0] && strcmp(argv[1], fields[i])) i++;
+        if (argc < 3 || i == sizeof fields/sizeof fields[0] || !parse_int(argv[2], &value))
+            return failf(error, error_size, "eventmusic <crywolf|crywolf_result|kanturu|temple|raklion|doppelganger> <value>");
+        *slots[i] = value;
+        e->known |= bits[i];
+        return 0;
+    }
+    if (!strcmp(name, "manager")) {
+        if (argc < 2 || !parse_int(argv[1], &value) || !mu_audio_host_event_manager(host, (uint32_t)value))
+            return failf(error, error_size, "manager <reconstructed event-music manager address>");
+        return 0;
+    }
     if (!strcmp(name, "noworld")) {
         host->world_active = 0;
         return 0;
@@ -656,6 +675,12 @@ void mu_audio_host_set_event_music(mu_audio_host *host, const mu_event_music_sta
 {
     host->event_music = *state;
     host->event_music.world = host->world.world;
+}
+
+int mu_audio_host_event_manager(mu_audio_host *host, uint32_t manager)
+{
+    mu_world_audio_hooks hooks = {host, NULL, NULL, host_event};
+    return host && mu_event_music(manager, &host->event_music, &hooks);
 }
 typedef struct registration { mu_audio_host *host; int failures; } registration;
 static void register_site(void *ctx, uint32_t site, int32_t id, int32_t channels, int32_t flag)

@@ -2,6 +2,12 @@
 
 RENDER-WORLDS-M: six Uruk nested particle lifecycles and the `flare_mono` registration (Market/Raklion kinds were already L's). 18,000 checks, zero mismatches, 17/17 compiled mutants and four original loader calls; 16 saved views unchanged; authored Uruk view 47 unsupported requests to 0. [Evidence](research/client-worlds-m.md), [checks and limits](handoffs/RENDER-WORLDS-M.md).
 
+DATA-ACQ-002: guided live captures on the owner's client (four locked sessions, warps only): 32 arrival captures in 31 worlds, 27/48 world classes now have an original populated capture; 16 classes are not reachable by warp. Native camera within 0.007, primary light equal in 31/32; music indices 43 and 44 both iDoppelganger. [Captures and comparison](research/client-world-captures-2.md), [inputs and limits](handoffs/DATA-ACQ-002.md).
+
+AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants; locked Mac gate passes 1,634 tests. [Checks and limits](handoffs/AUDIO-002F.md).
+
+README-REFRESH-004: [handoff](handoffs/README-REFRESH-004.md), [claim sources](research/readme-refresh.md#readme-refresh-004-claim-sources). Public progress refreshed through PR #241; images/pins unchanged, no runtime code or live game used.
+
 SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).
 
 VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Locked Mac gate passes 1,608 tests and 11 fixtures. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
