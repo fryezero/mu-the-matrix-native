@@ -70,3 +70,11 @@ allocation. Checkpoints pushed at f248d35, 9821de5, 80e5cde and 53e35eb.
 Only the ignored `tools/python` and `evidence` symlinks are used; none is staged. No new
 private input needs retention. After merge: remove renders/render-effects-004,
 scratch/render-effects-004, `native/build`, this worktree and the local branch.
+
+## Locked release gate
+
+Took the queued merge lock at 18:49 CDT after RENDER-WORLDS-N and removed only this lane's
+queue line. Integrated origin/main `35cab4a`; the shared status/handoff conflicts kept both
+sides. `bash scripts/local-macos-ci.sh` on the merged tree (clean `native/build`) passes:
+38 unittest suites, 1,654 tests, 212 explicit skips, zero failures; 11/11 fixture scenarios;
+audit 1,619 staged files, zero rejected. No hosted workflow or live game was run.
