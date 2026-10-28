@@ -125,7 +125,9 @@ class InstalledLorenciaFires(unittest.TestCase):
                       '--out-dir', out_dir, '--width', 320, '--height', 200, '--objects-dir',
                       os.environ['MU_OBJECTS_PLAIN_DIR'])
         p = out['particles']
-        self.assertEqual(p['bitmaps'], [1]*17)   # the effect bitmaps, the joints' and the login's (NATIVE-JOINT-001), rain02/03
+        # The registered bank includes the later helper, terrain, Icarus and world-warp textures.
+        # Keep the complete bank check: a missing installed bitmap must still fail.
+        self.assertEqual(p['bitmaps'], [1]*46)
         self.assertGreater(p['created'], 20)
         self.assertEqual(p['unsupported'], 0)
         self.assertGreater(p['drawn_particles'], 0)

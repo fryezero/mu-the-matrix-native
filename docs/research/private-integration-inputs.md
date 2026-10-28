@@ -66,3 +66,17 @@ formats. Inspect its manifest rather than treating this expected scan status as 
 Two independent runs on 2026-10-27 produced the new exact digest. The scanner records no absolute root or timestamps.
 The scanner file SHA-256 was `748a79dab2c776222e92a684d45f032e3586ee1df42334264f3e28896d4816cd`.
 See [the task handoff](../handoffs/INTEGRATION-GREEN-001.md) for actual test counts and local report locations.
+
+## Native checks and environment isolation
+
+The app's legacy Native Data directory has `setup.json` but no current manifest. Passing its lang/object/audio
+paths as ambient environment made native tools correctly refuse that set, including unrelated synthetic tests.
+The portable gate runs without those private export variables. The native private suite uses only the installation
+and pinned captures; optional export consumers run separately against existing explicit research exports under
+the snapshot scratch root. No app folder, manifest guard or original game file is changed.
+
+The optional installed Lorencia-fire test exposed a separate stale expectation: it required exactly 17 loaded
+particle bitmaps. The current `mu_particles.c` bank has 44 effect entries plus the two world rain textures, 46 total,
+including later helper, terrain, Icarus and world-warp additions. The run loaded all 46. The test now requires exactly
+46 successful loads and retains its creation, unsupported-count and drawn-particle assertions. This updates a
+coverage count to the expanded bank; it does not accept a missing bitmap or change production rendering.
