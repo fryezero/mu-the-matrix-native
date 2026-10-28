@@ -36,8 +36,6 @@ UNMIGRATED = {
     'loader_recover.py': 'protector-loader recovery; main.exe pin',
     'loader_trace_static.py': 'protector-loader trace; evidence path',
     'loader_validate.py': 'protector-loader validation; evidence path',
-    'map_client_window.py': 'window-map tool; text and main.exe pins',
-    'model_hierarchy_common.py': 'model-hierarchy tool; main.exe/text/data pins',
 }
 EVIDENCE_PATH = re.compile(r"""main-exe-study|(ROOT|REPO|HERE)\s*/\s*['"]evidence\b|['"]evidence/[\w.-]+/""")
 # Module-level digests that pin one client routine's bytes (a one-entry ROUTINES table), not an input.
