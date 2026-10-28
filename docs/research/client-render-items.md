@@ -122,3 +122,104 @@ Next: reconstruct a bounded family of RenderObjDraw's 1,674 special types and Re
 feed it through the shared character/ground/inventory body renderer, and add original-instruction streams
 and mutants. Follow with Muun owner/effect integration using the decoded 16 rows. Map-object effects need
 the nested snapshot inputs above; the displaced Box of Luck branch remains outside this part.
+
+## Part 2, bounded body and link effects, RENDER-ITEMS-002B
+
+The complete scalar level-remap chain and a first body/effect family are implemented.
+This is a coherent subset of part 2, not completion of the 1,674-type backlog.
+The executable identity and evidence labels above still apply. Original client processes were left alone.
+
+### Recovered rules
+
+`scripts/gen_item_glow.py` executes the closed type switch `0x0176d160..0x0176dc26` on all
+8,192 item types and all 16 masked input levels. It emits 103 affected model types with 16 scalar
+results each in `reconstructed/renderchar/item_glow.h`. The chain's SHA-256 is
+`3720a8a2a4d7c411f0f95a4f879dfb4a41f9448922c667281bef6dc57f67f33c`.
+It runs after render flag `0x400` clears the input level, before kind-B overrides and the quality cap.
+The table contains authored rendering rules derived from instructions, with no captured instruction bytes.
+
+Complete body streams are enabled for **11 of the original 1,674 special item types**, within the existing
+unselected, non-shadow, supported-record, no-buff domain:
+
+- `0x12ed`, `0x12f5`: zero stays zero; other levels map to `2*level+1`. Their body branch
+  `0x016f5894..0x016f5a26` ignores the caller's hidden mesh and texture override when buffs 6/0x8f are absent.
+- `0x22e6..0x22eb`, `0x22f1`, `0x248c`, `0x248d`: suppress ordinary item-level glow.
+  `0x22ea/0x248c` set BlendMeshLight to `sin(time*0.001)+1.1`;
+  `0x22eb/0x248d` use `(sin(time*0.001)+1)/4`. Excellent/ancient passes still run afterward.
+
+RenderLinkItem's **six bow types**, `0x12ea`, `0x12eb`, `0x12ec`, `0x12f7`, `0x1301`, `0x1303`,
+share the switch branch `0x012c70e7..0x012c7415`. Their authored C emits bitmap `0x7f67`:
+
+- `0x12ea/0x12eb/0x1301`: bones 2 and 6, light `l*(1,0.6,0.2)`;
+- `0x12ec`: bones 13 through 18, light `l*(0.6,1,0.8)`;
+- `0x12f7/0x1303`: bones 13 through 18, then 5 through 8, light `l*(0.5,0.5,0.8)`.
+
+Here `l = (rand()%30+70)*0.005`, with binary32 operations. Scale is 1, rotation and blend are zero.
+The executed helper `0x0150e746..0x0150e7c9` applies TransformPosition with translation, then calls
+CreateSprite with axes 4 and the default 1-by-1 sheet. These are verified instruction boundaries;
+file names such as Bow05 or Wing05 remain viewer inference from the standard filename convention.
+
+### Native integration
+
+The shared item body renderer feeds ground items, remote players, NPC equipment and GFx inventory icons.
+The hero's two plain draws now call it too. `mu-render ui inventory` uses the same body pass rather than
+one textured draw, with drawn-model record kinds, level and option inputs. Level/glow pixels in that tool
+are intentionally changed. Ground-item code and per-world/terrain files are unchanged.
+
+Small character draw hooks emit the six bow effects into the existing particle pool. The native adapter
+uses the item's saved bone matrices, its scale and origin, not the shared pose buffer overwritten by later
+items. It skips absent bones and counts successful allocations separately from the client's ambiguous
+slot-zero/full return. Sprite rendering kills these records in the current frame. The native owner is
+`MU_PT_NO_OWNER`, since the original temporary item OBJECT has no durable native pool index. Owner-dependent
+behavior beyond these one-frame sprites is not claimed. The native particle pool supplies its existing
+MSVC random stream; that stream is not synchronized with the original client's global random consumers.
+
+The hero still has filename-derived types and level-zero inputs, without authoritative equipment instances.
+The character tool accepts explicit levels/options and renders the new sprite family. Remote-player and NPC
+inputs retain their existing item records. Ground and inventory paths consume body rules only; RenderLinkItem
+is a character attachment path, so it does not add these linked sprites to dropped or inventory items.
+
+### Instruction checks and native regressions
+
+`./tools/python/bin/python scripts/validate_item_types.py --mutations --output LOCAL.json`:
+
+| Family | Cases | Mismatches | Boundary |
+|---|---:|---:|---|
+| Scalar remaps | 131,072 | 0 | 8,192 types times 16 levels, original closed chain vs compiled C |
+| Complete body streams | 3,212 | 0 | 11 types, 192 level/state combinations and 100 random cases each |
+| Link sprite calls | 792 | 0 | 6 types, 33 random results, hand/back carry and both hands |
+| Bone-position helper | 100 | 0 | Original helper including TransformPosition vs compiled shared C math |
+| Total | 135,176 | 0 | Scalar counts do not imply complete body coverage for 103 types |
+
+Six separately compiled mistakes are caught: removed remap, 229 cases; wing pulse offset, 584;
+weapon hidden-mesh override, 107; wrong link bone, 396; doubled intensity, 792; missing last sprite, 264.
+The body stream comparison checks every draw argument and model light/shade/level/flag bit, rejects
+unexpected service calls and requires normal ABI return. It varies quality, masked/unmasked level bits,
+render flags, record absence, supported kinds, overrides, alpha, time and initial model state.
+The link comparison records deep colour/sheet values, not transient pointer addresses.
+The bone-helper comparison executes its original instructions without the old recorder stub.
+
+Portable examples cover remap/cap ordering, adjacent type refusal, pulses, excellent tails and bounded output.
+The native host checks saved-pose replacement, scale/origin, five missing bones, unknown types and a full
+sprite pool. Native character and inventory tests verify the shared pass integration. The new private
+validator has a manifest row and owning test. Reports stay in local scratch `render-items-002b/`.
+
+### Renders and remaining work
+
+Local `renders/render-items-002b/` holds inspected before/after inventory and character PNGs.
+The character has Bow05 at +13/excellent and Wing05: 32 passes in both versions, one refused body type
+before and zero after, with two linked sprites after. The wing's blend pulse and the two bow flares are
+visible. The six-item inventory draws all six models in both versions; triangles change from 1,196 to
+2,322 because it now draws item body/glow passes. These are native offline renders, not live-client
+pixel comparisons. Part 1's renders and their hashes are preserved.
+
+Remaining, precisely:
+
+- **1,663 of 1,674 special body types**, plus the 17 class-part skins. The other 92 types in the
+  103-row remap table have only their scalar remap recovered; their body/effect branches remain refused.
+- RenderLinkItem's other switch targets. The implemented target is `0x012c70e7`; the next branch starts
+  at `0x012c741a`. The no-buff body comparison does not recover weapon buffs 6/0x8f, record-kind special
+  branches, selection outlines, shadows or `a13=1`.
+- Muun owner/effect integration and the missing nested map-object table graphs from part 1.
+- Authoritative hero equipment levels/options, special-window `0x1c64`, unresolved costume model files,
+  and Box of Luck signed levels above 7 crossing the external jump. These remain unchanged scope limits.

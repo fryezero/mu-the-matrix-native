@@ -77,6 +77,15 @@ def synthetic_root(folder):
 
 
 class NativeHudTests(unittest.TestCase):
+    def test_inventory_uses_item_body_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = synthetic_root(tmp)
+            low = run('inventory', '--root', root, '--items', '0:0', '--out', root/'low.png')
+            high = run('inventory', '--root', root, '--items', '0:13', '--out', root/'high.png')
+            self.assertEqual((low['models_drawn'], high['models_drawn']), (1, 1))
+            self.assertGreater(high['triangles'], low['triangles'])
+            self.assertNotEqual(high['framebuffer_sha256'], low['framebuffer_sha256'])
+
     def test_special_model_remap_without_ordinary_model(self):
         with tempfile.TemporaryDirectory() as folder:
             root = synthetic_root(folder)

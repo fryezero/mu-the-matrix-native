@@ -74,7 +74,7 @@ static void actors_frame(struct mu_world_rt *a, void *self, uint32_t now)
         mu_world_actors_frame(&a->actors, 0.1f);   /* effect node update per frame, dt [0x01cf103c] = 0.1 */
 }
 
-static void npc_item_draw(const mu_world_rt *a, const mu_world_actor *npc, int item, const mu_render_backend *backend)
+static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, const mu_render_backend *backend)
 {
     const mu_character_item *part = &npc->player->items[item];
     mu_renderchar_env env;
@@ -88,6 +88,8 @@ static void npc_item_draw(const mu_world_rt *a, const mu_world_actor *npc, int i
     mu_renderchar_stats rs = {0};
     mu_renderchar_draw_item(&part->model, &npc->player_glow[item], &env, npc->player->params.light, 1.0f,
                              &options, backend, &ds, &rs);
+    if (item >= MU_CHARACTER_PART_SLOTS && a->has_particles)
+        mu_renderchar_link_effects(&part->model, part->bones, npc->player_glow[item].type, &a->particles);
 }
 
 static void actors_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)

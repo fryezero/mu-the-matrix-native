@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-ITEMS-002 part 1: inventory special-code chain and native remapped-model loading; 5,512 Unicorn cases, zero mismatches, 6/6 mutants. Large body/effect switches remain. [Evidence](research/client-render-items.md).
+RENDER-ITEMS-002 part 2: 103 scalar remaps, 11/1,674 body types and six bow link effects integrated. 135,176 Unicorn cases, zero mismatches, 6/6 mutants. [Evidence](research/client-render-items.md#part-2-bounded-body-and-link-effects-render-items-002b).
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 

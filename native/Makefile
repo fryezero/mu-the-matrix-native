@@ -224,6 +224,11 @@ $(BUILD)/mu-charsel: charsel/main.c charsel/charsel_tool.c $(CHARSEL_RT_OBJ) $(L
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/charsel_tool.c -o $(BUILD)/mu_charsel_tool.o
 	$(CXX) $(BUILD)/mu_charsel.o $(BUILD)/mu_charsel_tool.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+# RENDER-ITEMS-002b saved-pose and sprite-capacity regression.
+$(BUILD)/item-render-host: tests/item_render_host.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/item_render_host.o
+	$(CXX) $(BUILD)/item_render_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o

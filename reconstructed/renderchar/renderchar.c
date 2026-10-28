@@ -7,6 +7,7 @@
 #include <stddef.h>
 
 #include "special_types.h"
+#include "item_glow.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -65,6 +66,12 @@ int32_t mu_rc_item_glow_level(const mu_rc_item *it)
     int32_t level = (it->item_level >> 3) & 0xf;          /* 0x0176cf4a sar 3, and 0xf */
     if (it->render_type & 0x400u)                          /* 0x0176cf65 */
         level = 0;
+    /* Closed type switch 0x0176d160..0x0176dc26, before kind and quality. */
+    for (size_t i = 0; i < sizeof mu_rc_glow_rows / sizeof mu_rc_glow_rows[0]; ++i)
+        if (it->type == mu_rc_glow_rows[i].type) {
+            level = mu_rc_glow_rows[i].levels[level];
+            break;
+        }
     if (kind_b(it, 0x26) || kind_b(it, 0x5b))              /* 0x0176dc26 / 0x0176dc50 */
         level = 9;
     if (it->quality <= 4) {                                /* 0x0176dc78: cap 2q+5 */
@@ -85,6 +92,11 @@ static float client_fabs(float x)                         /* 0x0184f8ff */
 static void part_body(sink *s, float alpha, uint32_t flags, int32_t a6, int32_t a7)
 {
     const mu_rc_item *it = s->item;
+    /* 0x016f5894..0x016f5a26, without buffs 6/0x8f: no mesh overrides. */
+    if (it->type == 0x12ed || it->type == 0x12f5) {
+        emit(s, MU_RC_ENTRY_BODY, 0, flags, alpha, -1, -1);
+        return;
+    }
     if (it->type >= 0xa99 && it->type <= 0xaa1) {
         mu_rc_item copy = *it;
         float k = 0.8f - client_fabs(client_sin(it->time * 0.0018f) * 0.5f);
@@ -223,6 +235,10 @@ static void scale_light(float out[3], const float light[3], float factor)
 
 int mu_rc_item_special(int32_t type)
 {
+    /* RENDER-ITEMS-002b: complete body streams, not the link-effect switch. */
+    if (type == 0x12ed || type == 0x12f5 || (type >= 0x22e6 && type <= 0x22eb) ||
+        type == 0x22f1 || type == 0x248c || type == 0x248d)
+        return 0;
     if (type >= 0xa99 && type <= 0xaa1)          /* +15 attachment models, own rule in part_body */
         return 0;
     return mu_rc_special_type(type);
@@ -233,6 +249,14 @@ int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, 
     *count = 0;
     if (mu_rc_item_special(it->type))
         return MU_RC_SPECIAL;
+    /* 0x01770e41..0x01770ef8: wing blend-light writes survive every pass. */
+    if (it->type == 0x22ea || it->type == 0x248c || it->type == 0x22eb || it->type == 0x248d) {
+        mu_rc_item copy = *it;
+        float pulse = client_sin(it->time * 0.001f);
+        copy.blend_light = (it->type == 0x22eb || it->type == 0x248d) ?
+            (pulse + 1.0f) / 4.0f : pulse + 1.1f;
+        return mu_rc_item_draws_generic(&copy, model, out, capacity, count);
+    }
     return mu_rc_item_draws_generic(it, model, out, capacity, count);
 }
 
@@ -344,6 +368,35 @@ int mu_rc_item_draws_generic(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
 done:
     *count = s.count;
     return s.count > capacity ? MU_RC_FULL : MU_RC_OK;
+}
+
+/* RenderLinkItem 0x012c6aa1 and 0x012c70e7..0x012c7415. */
+int mu_rc_link_sprites(int32_t type, int32_t random_value, mu_rc_link_sprite *out,
+                        int32_t capacity, int32_t *count)
+{
+    *count = 0;
+    if (type != 0x12ea && type != 0x12eb && type != 0x12ec && type != 0x12f7 && type != 0x1301 && type != 0x1303)
+        return MU_RC_SPECIAL;
+    float intensity = (float)(random_value % 30 + 70) * 0.005f;
+    int many = type == 0x12ec || type == 0x12f7 || type == 0x1303;
+    int extra = type == 0x12f7 || type == 0x1303;
+    int n = many ? (extra ? 10 : 6) : 2;
+    for (int i = 0; i < n; ++i) {
+        if (i >= capacity)
+            continue;
+        mu_rc_link_sprite *s = &out[i];
+        s->bone = many ? (i < 6 ? 13 + i : 5 + i - 6) : (i == 0 ? 2 : 6);
+        s->bitmap = 0x7f67;
+        s->scale = 1.0f;
+        s->light[0] = intensity * (extra ? 0.5f : type == 0x12ec ? 0.6f : 1.0f);
+        s->light[1] = intensity * (extra ? 0.5f : type == 0x12ec ? 1.0f : 0.6f);
+        s->light[2] = intensity * (many ? 0.8f : 0.2f);
+        s->rotation = 0.0f;
+        s->blend = 0;
+        s->axes = 4;  /* 0x0150e746 */
+    }
+    *count = n;
+    return n > capacity ? MU_RC_FULL : MU_RC_OK;
 }
 
 /* ---- back carry ---- */
