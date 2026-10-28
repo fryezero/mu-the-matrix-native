@@ -80,22 +80,25 @@ static const char *const menu_names[] = {
     "IngameShop", "CharacterInfoFrame", "MyQuestInfo", "CommandWindow", "MoveCommand",
     "winOption", "menu 6 (no-op)", "PersonalShop", "SystemMenu", "FriendMenu", "Guildmatching_2024",
     "GensRanking", "MatchingSelect", "PetInventoryFrame", "InventoryFrame", "GremoryCase",
-    "ItemHotKey0", "ItemHotKey1", "ItemHotKey2", "ItemHotKey3", "MUHelper", "MUHelper settings"
+    "ItemHotKey0", "ItemHotKey1", "ItemHotKey2", "ItemHotKey3", "mcRide mount toggle", "mcGiantRide mount toggle"
 };
 
 static int panel(mu_world_rt *a, int vk, int mods)
 {
     int id = mu_input_menu(vk, mods);
-    if (mods == 2 && (vk == 'T' || vk == 'J' || vk == 'I' || vk == 'A' || vk == 'F' || vk == 'V')) {
-        if (!a->quiet) fprintf(stderr, "input: Ctrl+%c unavailable (client modifier branch not migrated)\n", vk);
-        return -1;
-    }
 #ifndef MU_WORLD_NO_GL
     mu_gfx_layer *l = a->gfx ? world_gfx_layer(a->gfx) : NULL;
     if (l && !mods && (vk == 'S' || vk == 'P') && mu_gfx_layer_is_open(l, MU_GFX_INVENTORY)) {
         if (mu_gfx_layer_is_open(l, MU_GFX_STORE_LIST)) mu_gfx_layer_show(l, MU_GFX_STORE_LIST, 0);
         else return mu_gfx_layer_service_action(l, "store", 0, 0) ? 1 : -1;
         return 1;
+    }
+    if (l && mods == 2 && (vk == 'A' || vk == 'J')) {
+        int movie = vk == 'A' ? MU_GFX_TREE4 : MU_GFX_TREE5;
+        if (*mu_gfx_layer_path(l, movie)) {
+            mu_gfx_layer_toggle(l, movie);
+            return 1;
+        }
     }
     /* Existing adapters own toggle/close behavior and their context guards. */
     int native_key = vk == 'I' || vk == 'V' || vk == 'C' || vk == 'T' || vk == 'M' ||
@@ -108,6 +111,10 @@ static int panel(mu_world_rt *a, int vk, int mods)
         if (used || (!mods && (vk == 'Q' || vk == 'W' || vk == 'E' || vk == 'R'))) return 1;
     }
 #endif
+    if (mods == 2 && (vk == 'T' || vk == 'J' || vk == 'I' || vk == 'A' || vk == 'F' || vk == 'V')) {
+        if (!a->quiet) fprintf(stderr, "input: Ctrl+%c unavailable (client modifier branch not migrated)\n", vk);
+        return -1;
+    }
     if (id == 6) {
         if (!a->quiet) fprintf(stderr, "input: menu 6 has an empty client handler (0x00c73690)\n");
         return 1;

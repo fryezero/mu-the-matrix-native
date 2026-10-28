@@ -19,6 +19,10 @@ The manifest registers this comparison and the native private test runs it.
 at `0x00ac4a79`, rather than guessed from familiar MU key layouts. The comparison executes individual
 key-test blocks up to their dispatch calls. It does not execute all the context guards or window bodies.
 
+The Ctrl+Z/X names are confirmed by `00c71a41/00c71c6d` invoking
+`mcRide.setRideInfo` and `mcGiantRide.setRideInfo`. They are mount controls. The helper controller is the
+separate Home path; bare Z opens MacroMain.
+
 **Native policy:** SDL events and scripts share `mu_world_rt_input`. Text focus and preedit take first
 refusal, followed by native UI adapters, then Alt/Space/combat, then the walk input. Keys already down do
 not trigger gameplay again. Focus loss releases keys and cancels composition. Win32 polling is replaced
@@ -49,8 +53,8 @@ Existing UI adapters retain their own eligibility and close rules.
 | I | `00efc593` -> menu 14 -> `00c73a2f`, InventoryFrame | GFx inventory toggle |
 | C | `00efc5cd` -> menu 1 -> `00c733cf`, CharacterInfoFrame; excludes held Shift | Existing character-window adapter |
 | Q/W/E/R | `00efc86c/8a6/8e0/91a` -> menus 16..19 -> `00c557db`, item slots 0..3 | Actual down/up events to main's item listener; existing offline consumable policy |
-| Ctrl+Z | `00efc964` -> menu 20 -> `00c71eab`, helper toggle/start path | Unavailable; authoritative helper controller absent |
-| Ctrl+X | `00efc9ad` -> menu 21 -> `00c71efb`, helper alternate/configuration path | Unavailable; helper controller absent |
+| Ctrl+Z | `00efc964` -> menu 20 -> `00c71eab`, mcRide mount toggle | Unavailable; replicated mount controller absent |
+| Ctrl+X | `00efc9ad` -> menu 21 -> `00c71efb`, mcGiantRide mount toggle | Unavailable; replicated giant-mount controller absent |
 | X | `00efc9e6` -> menu 0 -> `00c73193`, IngameShop | Unavailable; shop/account service absent |
 | T | `00efca20` -> menu 2 -> `00c733fe`, MyQuestInfo | Existing quest window adapter; requires quest tables/session |
 | M | `00efca5a` -> menu 4 -> `00c73699`, MoveCommand | Existing map view adapter |
@@ -72,7 +76,7 @@ Existing UI adapters retain their own eligibility and close rules.
 | Home | `00efd1a7` -> helper controller, including `00c8de1c` and helper start/stop requests | Unavailable; helper domain absent; no request reconstructed in this lane |
 | Z | `00efd3a4` -> `00aae767`, MacroMain, manager +144 | Unavailable; macro view/controller absent |
 | End | `00efc39a`, also `0095523a` -> `00b8a5e2/00b8a8cf/00b8a8fc`, HuntRecord, manager +1d0 | Unavailable; hunt-record view/domain absent |
-| Ctrl+T/J/I/A/F/V | `00efc0da/104/1ad/1d7/280/29c` -> PlayGuide, fifth-tree plus item viewer, item viewer, fourth tree, `009603a5`, store request | Explicit unavailable modifier route. The original class, window and transport predicates are not ported here |
+| Ctrl+T/J/I/A/F/V | `00efc0da/104/1ad/1d7/280/29c` -> PlayGuide, fifth-tree plus item viewer, item viewer, fourth tree, `009603a5`, store request | Ctrl+A toggles the existing fourth-tree view; Ctrl+J toggles the fifth-tree view. Its separate item viewer remains unavailable. Other listed modifier routes explicitly refuse. Original class/window/transport predicates are not ported here |
 | F1 | `00f07398`, `00f24f64` -> `00f2b13e`, close legacy windows 24/25 when already open | Unavailable; these legacy views are absent. No invented F1-open binding |
 | Alt | `00efc7d3` -> setItemView `00efdca1` | Existing local ground-label toggle |
 | Space | `00efd9ab` -> nearest eligible ground item; selection at `00efdb94` | Existing native pick-up adapter; verified offline reply, no real item mutation |
