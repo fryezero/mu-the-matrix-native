@@ -147,8 +147,10 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.frames <= 50 or a.seconds <= 0:
         ap.error('use more than 50 frames and a positive duration')
-    for key in ('MU_GFX_NO_ITEM_MODELS', 'MU_GFX_NO_ICON_MODELS', 'MU_GFX_NO_SKILLS'):
-        if os.environ.get(key):
+    for key in ('MU_GFX_NO_ITEM_MODELS', 'MU_GFX_NO_ICON_MODELS', 'MU_GFX_NO_SKILLS',
+                'MU_GFX_PLAIN_ITEMS'):
+        # The renderer uses getenv presence, including an empty value.
+        if key in os.environ:
             ap.error(f'{key} would omit part of the stress workload')
     a.out = a.out.resolve()
     if NATIVE.parent == a.out or NATIVE.parent in a.out.parents:

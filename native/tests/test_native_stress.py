@@ -1,4 +1,6 @@
 """NATIVE-PERF-002: workload integrity, budget failures and exact ordered rendering."""
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -7,6 +9,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
@@ -17,6 +20,21 @@ from test_native_combat import write_combat_world
 
 
 class BenchmarkContract(unittest.TestCase):
+    def test_quality_overrides_are_rejected_even_when_empty(self):
+        args = ['--game-root', '/unused', '--data', '/unused', '--gfx-lib', '/unused',
+                '--out', '/unused']
+        for key in ('MU_GFX_NO_ITEM_MODELS', 'MU_GFX_NO_ICON_MODELS', 'MU_GFX_NO_SKILLS',
+                    'MU_GFX_PLAIN_ITEMS'):
+            for value in ('', '1'):
+                with self.subTest(key=key, value=value), \
+                        mock.patch.dict(os.environ, {key: value}, clear=True), \
+                        mock.patch.object(Path, 'read_bytes', side_effect=AssertionError('quality guard bypassed')), \
+                        contextlib.redirect_stderr(io.StringIO()) as err:
+                    with self.assertRaises(SystemExit) as caught:
+                        bench.main(args)
+                    self.assertEqual(caught.exception.code, 2)
+                    self.assertIn(f'{key} would omit part of the stress workload', err.getvalue())
+
     def test_generated_crowd_has_eighty_distinct_equipped_players(self):
         with tempfile.TemporaryDirectory() as tmp:
             p, a = bench.fixtures(Path(tmp), (182, 128), 80)
