@@ -23,6 +23,8 @@ from validate_audio import Machine, STACK, STACK_SIZE, ARENA
 ROOT=Path(__file__).resolve().parents[1]
 WRAPPER='''
 #include "mu_combat_audio.h"
+mu_combat_audio extra(int model,float played,int primary) { return mu_combat_extra_shock_sound(model,played,primary); }
+mu_combat_audio effect(int id) { return mu_combat_effect_sound(id); }
 mu_combat_audio voice(int kind,int monster,int id) { return mu_combat_voice_sound(kind,monster,id); }
 mu_combat_audio monster(int world,float played,int model,int kind,int s2,int s3,int random) {
  return mu_combat_voice_sound(MU_COMBAT_AUDIO_ATTACK,1,mu_combat_monster_attack(world,played,model,kind,(int16_t)s2,(int16_t)s3,random));
@@ -40,6 +42,8 @@ def build(tmp,name,header=None):
     out=folder/'adapter.dylib'
     subprocess.run(['clang','-std=c11','-O2','-shared','-I',str(folder),'-I',str(ROOT/'native/session'),'-I',str(ROOT/'native/build/gen'),str(folder/'wrapper.c'),'-o',str(out)],check=True)
     lib=C.CDLL(str(out))
+    lib.extra.argtypes=[C.c_int,C.c_float,C.c_int];lib.extra.restype=Decision
+    lib.effect.argtypes=[C.c_int];lib.effect.restype=Decision
     lib.voice.argtypes=[C.c_int]*3;lib.voice.restype=Decision
     lib.skill.argtypes=[C.c_int]*4;lib.skill.restype=Decision
     lib.monster.argtypes=[C.c_int,C.c_float,C.c_int,C.c_int,C.c_int,C.c_int,C.c_int];lib.monster.restype=Decision
@@ -47,6 +51,10 @@ def build(tmp,name,header=None):
 class Sites(fx.FxMachine):
     def execute(self,start,args,regions,stubs,**kwargs):
         self.sounds=[]
+        if start==0x138f92f and args[0]==0x2e000000:
+            # Bound the comparison after the five model-7e2 particle iterations.
+            # Retain its extra SND_Play but leave visual calls/RNG to their lane.
+            stubs=dict(stubs);stubs[0x138fd43]=lambda m:('x87',0x138fe55)
         original=stubs.get(0xa6ac96)
         if original:
             def sound(m):
@@ -54,20 +62,41 @@ class Sites(fx.FxMachine):
                 self.sounds.append((start,ret-5,m.argument(0)))
                 return original(m)
             stubs=dict(stubs);stubs[0xa6ac96]=sound
-        return super().execute(start,args,regions,stubs,**kwargs)
+        self.last_result=super().execute(start,args,regions,stubs,**kwargs)
+        return self.last_result
 class CorpusReport(vc.Report):
     def __init__(self,m,monster):
         super().__init__();self.m=m;self.monster=monster;self.corpus=[]
     def add(self,family,equal,failure=None):
-        super().add(family,equal,failure)
+        if not equal and self.monster and failure['kind']=='shock' and failure['type']=='0x7e2':
+            # The legacy family models only the primary voice. This lane also
+            # compares the supplemental model-7e2 sound, recorded below.
+            equal=(vc.ok(self.m.last_result) and failure['stopped'] is None and failure['rand'][0]==failure['rand'][1] and
+                   [x for x in failure['client'] if x!=('sound',0x86)]==failure['c'])
         assert equal,(family,failure)
+        super().add(family,equal,failure)
         kind={'shock':0,'die':1,'attack':2}[failure['kind']]
-        self.corpus.append(((kind,self.monster),self.m.sounds[:]))
+        extra_model=int(failure['type'],16) if self.monster and kind==0 else -1
+        played=struct.unpack('<f',self.m.uc.mem_read(0x2e003324,4))[0] if extra_model>=0 else 0.
+        primary=next((x[1] for x in failure['c'] if x[0]=='sound'),-1)
+        self.corpus.append(((kind,self.monster,extra_model,played,primary),self.m.sounds[:]))
 def voice_corpus(text,data,cases,monster):
     m=Sites(text,data);r=CorpusReport(m,monster);neg={k:0 for k in items.NEGATIVES+['player_shock_action_5']}
     rng=random.Random(20023)
     if monster:items.family_monster_voice(m,None,rng,cases,r,neg)
     else:fx.family_player_voice(m,fx.load_library(ROOT/'reconstructed/combat/libcombat.dylib'),rng,cases,r,neg)
+    return r.corpus
+def effect_corpus(text,data,cases):
+    m=Sites(text,data)
+    class Report(vc.Report):
+        def __init__(self):super().__init__();self.corpus=[]
+        def add(self,family,equal,failure=None):
+            assert equal,(family,failure)
+            self.corpus.append(((),m.sounds[:]))
+    r=Report()
+    from collections import defaultdict
+    fx.family_effect_create(m,fx.load_library(ROOT/'reconstructed/combat/libcombat.dylib'),
+                            random.Random(20023),cases,r,defaultdict(int))
     return r.corpus
 # Start immediately before the sound pushes, or before its deciding branch.
 # The surrounding spell effects/animation services have their own families.
@@ -124,14 +153,22 @@ def monster_attack_corpus(text,data):
 def check(lib,name,corpus):
     seen=set()
     for args,want in corpus:
-        if name=='monster_attack':
+        if name=='effects':
+            got=[]
+            for routine,site,id in want:
+                d=lib.effect(id);got.append((d.routine,d.site,d.id))
+        elif name=='monster_attack':
             d=lib.monster(*args);got=[] if not d.site else [(d.routine,d.site,d.id)]
         elif name=='skills':
             d=lib.skill(*args);got=[] if not d.site else [(d.routine,d.site,d.id)]
         else:
             got=[]
             for routine,site,id in want:
-                d=lib.voice(*args,id);got.append((d.routine,d.site,d.id))
+                if site==0x138fe5e: continue
+                d=lib.voice(args[0],args[1],id);got.append((d.routine,d.site,d.id))
+            if args[2]>=0:
+                d=lib.extra(args[2],args[3],args[4])
+                if d.site:got.append((d.routine,d.site,d.id))
         seen.update(x[1] for x in want)
         if got!=want:return (args,want,got),seen
     return None,seen
@@ -140,7 +177,8 @@ def main():
     p.add_argument('--mutations',action='store_true');p.add_argument('--report');a=p.parse_args()
     text,data=pins.TEXT.read(),pins.DATA.read()
     corpora={'player':voice_corpus(text,data,a.cases,0),'monster':voice_corpus(text,data,a.cases,1),
-             'skills':skill_corpus(text,data),'monster_attack':monster_attack_corpus(text,data)}
+             'skills':skill_corpus(text,data),'monster_attack':monster_attack_corpus(text,data),
+             'effects':effect_corpus(text,data,a.cases)}
     report={'text_sha256':pins.TEXT.sha256,'data_sha256':pins.DATA.sha256,'families':{},'mutants':{},'mismatches':0}
     with tempfile.TemporaryDirectory(prefix='audio-combat-') as folder:
         tmp=Path(folder);lib=build(tmp,'plain')
@@ -160,7 +198,11 @@ def main():
                       ('slash-gate','skills','special_state==3','special_state==2'),
                       ('energy-ball','skills','case 17:','case 18:'),
                       ('monster-attack-slot','monster_attack','random%2 ? slot3 : slot2','random%2 ? slot2 : slot3'),
-                      ('monster-attack-world','monster_attack','world==0x49','world==0x48')]
+                      ('monster-attack-world','monster_attack','world==0x49','world==0x48'),
+                      ('effect-site','effects','0x013c42eeu','0x013c42efu'),
+                      ('extra-site','monster','0x0138fe5eu','0x0138fc68u'),
+                      ('extra-model','monster','model==0x7e2','model==0x7e3'),
+                      ('extra-marker','monster','played==0.0f) {','played!=0.0f) {')]
             for name,family,old,new in variants:
                 assert old in header
                 bad=build(tmp,name,header.replace(old,new,1));error,_=check(bad,family,corpora[family])

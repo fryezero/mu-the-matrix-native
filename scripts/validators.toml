@@ -1836,13 +1836,13 @@ args = ["--cases", "40", "--mutants", "--output", "{report}"]
 [validate_audio_combat]
 test = "native/tests/test_audio_combat.py::CombatAudio.test_original_combat_audio"
 pins = ["text", "data"]
-families = ["player", "monster", "skills", "monster_attack"]
-cases = 2748
-mutants = 12
+families = ["player", "monster", "skills", "monster_attack", "effects"]
+cases = 19548
+mutants = 16
 cases_at = "cases"
 mutants_at = "mutants"
 build = ["native", "reconstructed/combat", "reconstructed/actors"]
-args = ["--cases", "600", "--mutations", "--report", "{report}"]
+args = ["--cases", "6000", "--mutations", "--report", "{report}"]
 [validate_audio_combat.expect]
 mismatches = 0
 "families.*.mismatches" = 0

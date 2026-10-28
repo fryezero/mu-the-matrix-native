@@ -35,6 +35,12 @@ static inline mu_combat_audio mu_combat_voice_sound(int kind, int monster, int32
     }
     return d;
 }
+static inline mu_combat_audio mu_combat_extra_shock_sound(int32_t model, float played, int32_t primary)
+{
+    mu_combat_audio d={0x0138f92fu,0,-1};
+    if (model==0x7e2 && primary>=0 && played==0.0f) { d.site=0x0138fe5eu;d.id=0x86; }
+    return d;
+}
 /* SetPlayerAttack's model-slot tail, same slot pair as the hurt voice. */
 static inline int32_t mu_combat_monster_attack(int world, float played, int has_model, int kind, int16_t slot2, int16_t slot3, int32_t random)
 {
@@ -72,6 +78,11 @@ static inline mu_combat_audio mu_combat_skill_sound(int32_t skill, int end, int3
         case 42: d.site=0x013a954du;d.id=0x95;break;
         }
     }
+    return d;
+}
+static inline mu_combat_audio mu_combat_effect_sound(int32_t id)
+{
+    mu_combat_audio d={0x013c0f19u,id==0x582 ? 0x013c42eeu : 0,id};
     return d;
 }
 static inline void mu_combat_audio_emit(mu_session *s, mu_combat_audio d, int16_t key)

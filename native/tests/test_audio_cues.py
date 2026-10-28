@@ -16,6 +16,7 @@ HARNESS=r'''
 #include "core/mu_session_audio.h"
 #include "core/mu_world_audio.h"
 #include "core/mu_objects.h"
+#include "core/mu_world_players.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +51,26 @@ int main(int argc, char **argv) {
         assert(mu_audio_engine_active_voices(mu_audio_host_engine(h))==2);
         float pcm[2];mu_audio_engine_mix(mu_audio_host_engine(h),pcm,1);
         assert(pcm[0]==0.375f && pcm[1]==0.375f);
+    } else if (!strcmp(argv[2],"remote_combat")) {
+        mu_world_players *p=calloc(1,sizeof *p);assert(p);
+        mu_world map={0};p->map=&map;p->session=s;p->count=1;p->rng=123;
+        mu_world_player *q=&p->list[0];q->key=q->c.key=0x200;q->in_view=1;
+        q->c.model=0xa91;q->c.slots[MU_RP_SLOT_WEAPON0].type=0xae6;
+        q->c.slots[MU_RP_SLOT_WEAPON1].type=-1;
+        s->combat.next=4;
+        s->combat.events[0]=(mu_combat_frame_event){.kind=3,.key=0x200};
+        s->combat.events[1]=(mu_combat_frame_event){.kind=1,.key=0x200,.damage={.shock=1,.amount=10}};
+        s->combat.events[2]=(mu_combat_frame_event){.kind=1,.key=0x200,.damage={.shock=0,.amount=10}};
+        s->combat.events[3]=(mu_combat_frame_event){.kind=2,.key=0x200};
+        mu_world_players_combat_audio(p);mu_world_players_combat_audio(p);
+        assert(p->rng==123 && q->c.action==0 && q->c.hp==0 && p->audio_receive_cursor==4);
+        q->c.transformed=1;s->combat.next=5;
+        s->combat.events[4]=(mu_combat_frame_event){.kind=3,.key=0x200};
+        mu_world_players_combat_audio(p);
+        mu_session_audio_drain(s,&audio,h);mu_session_audio_drain(s,&audio,h);
+        mu_cue cues[8];uint32_t lost=0;assert(mu_session_cues(s,&view,cues,8,&lost)==3 && !lost);
+        assert(cues[0].kind==MU_CUE_SOUND && cues[1].kind==MU_CUE_SOUND && cues[2].kind==MU_CUE_AUDIO_INPUT);
+        free(p);
     } else if (!strcmp(argv[2],"ambient")) {
         int ids[]={12,13,14,138,15};
         for (int i=0;i<5;++i) assert(mu_session_ambient_sound(s,ids[i]));
@@ -175,6 +196,12 @@ class AudioCues(unittest.TestCase):
         plays=[r for r in self.run_case('route') if r['op']=='play']
         self.assertEqual([(r['id'],r['loop'],r['handler'],r['at_key'],r['session_tick']) for r in plays],[(152,0,0x1250b05,-2,7),(153,1,0xbe906d,-1,7)])
         self.assertLess(plays[0]['cue_seq'],plays[1]['cue_seq'])
+    def test_remote_combat_reads_results_once_and_preserves_visual_state(self):
+        rows=self.run_case('remote_combat');plays=[r for r in rows if r['op']=='play']
+        self.assertEqual([r['site'] for r in plays],[0x1393a3f,0x138fcf5])
+        self.assertTrue(all(r['at_key']==0x200 and r['session_tick']==7 for r in plays))
+        missing=[r for r in rows if r['op']=='unrecovered']
+        self.assertEqual([(r['handler'],r['site'],r['id']) for r in missing],[(0x1392bde,0x139389a,0x139f3db)])
     def test_environment_cues_keep_all_five_sites(self):
         rows=[r for r in self.run_case('ambient') if r['op']=='play']
         self.assertEqual([(r['id'],r['site'],r['at_key']) for r in rows],

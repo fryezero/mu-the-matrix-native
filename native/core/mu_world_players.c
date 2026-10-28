@@ -680,6 +680,52 @@ void mu_world_players_port(mu_world_players *p, mu_world_port *port)
     port->path_finding2=port_path; port->terrain_height=port_height;
 }
 
+/* AUDIO-002C: an independent reader of combat results for remote voices.
+ * This reader changes no actor motion, health, action or visual RNG. */
+void mu_world_players_combat_audio(mu_world_players *p)
+{
+    if (!p->session) return;
+    mu_combat_frame_event events[MU_COMBAT_HISTORY];
+    uint32_t lost=0;
+    size_t n=mu_session_combat_events(p->session,&p->audio_receive_cursor,events,MU_COMBAT_HISTORY,&lost);
+    p->audio_receive_lost+=lost;
+    for (size_t i=0;i<n;++i) {
+        const mu_combat_frame_event *e=&events[i];
+        for (int k=0;k<p->count;++k) {
+            mu_world_player *q=&p->list[k];
+            if (!q->in_view || q->key!=e->key) continue;
+            int kind=e->kind==1 ? MU_COMBAT_AUDIO_SHOCK : MU_COMBAT_AUDIO_ATTACK;
+            if (e->kind!=1 && e->kind!=3) break;
+            if (e->kind==1 && (!e->damage.shock ||
+                !mu_shock_gate(q->c.dead,q->c.action,e->damage.amount,e->damage.type))) break;
+            if (q->c.transformed) {
+                mu_session_sound_missing(p->session,kind==MU_COMBAT_AUDIO_SHOCK?0x0138f92fu:0x01392bdeu,
+                                        kind==MU_COMBAT_AUDIO_SHOCK?0x0138fbdau:0x0139389au,0x0139f3dbu);
+                break;
+            }
+            mu_player_state st={0};
+            st.class_byte=q->c.class_byte;
+            st.class_check=(uint8_t)mu_class_check(st.class_byte);
+            st.transform=q->c.helper;st.field_3324=q->voice_3324;
+            int32_t randoms[2];
+            for (int j=0;j<2;++j) {
+                p->audio_rng=p->audio_rng*214013u+2531011u;
+                randoms[j]=(int32_t)((p->audio_rng>>16)&0x7fffu);
+            }
+            int32_t action=-1,sound=-1;
+            if (kind==MU_COMBAT_AUDIO_SHOCK)
+                mu_player_shock(&st,randoms,2,&action,&sound);
+            else {
+                int bow=q->weapon_kind==MU_WEAPON_BOW ? 1 : q->weapon_kind==MU_WEAPON_CROSSBOW ? 2 : 0;
+                mu_player_attack_sound(&st,bow,q->c.slots[MU_RP_SLOT_WEAPON0].type,
+                    q->c.slots[MU_RP_SLOT_WEAPON1].type,p->map->world,randoms,2,&sound);
+            }
+            mu_combat_audio_emit(p->session,mu_combat_voice_sound(kind,0,sound),q->c.key);
+            break;
+        }
+    }
+}
+
 void mu_world_players_sync(mu_world_players *p, const mu_characters_view *v)
 {
     for(int i=0;i<p->count;++i) {
@@ -727,4 +773,5 @@ void mu_world_players_sync(mu_world_players *p, const mu_characters_view *v)
             char text[112];snprintf(text,sizeof text,"store: %s opens '%s' (demo)",q->spec.name,v->store_title[slot]);log_line(p,text);
         }
     }
+    mu_world_players_combat_audio(p);
 }

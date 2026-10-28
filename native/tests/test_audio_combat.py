@@ -44,8 +44,8 @@ class CombatAudio(unittest.TestCase):
         off,_=self.run_world('silent',args,False)
         self.assertTrue(any(s['handler']==0x1392bde and s['at_key']==-1 for s in sounds))
         self.assertTrue(any(s['handler']==0x138f92f and s['at_key']==-1 for s in sounds))
-        self.assertTrue(any(s['site']==0x138fc68 and s['at_key']==0x100 for s in sounds))
-        self.assertTrue(any(s['site']==0x13943e5 and s['at_key']==0x100 for s in sounds))
+        self.assertTrue(any(s['site']==0x138fc68 and s['at_key']==0x400 for s in sounds))
+        self.assertTrue(any(s['site']==0x13943e5 and s['at_key']==0x400 for s in sounds))
         a=[r['sha256'] for r in on if 'sha256' in r];b=[r['sha256'] for r in off if 'sha256' in r]
         self.assertEqual(len(a),14);self.assertEqual(a,b)
     def test_hero_and_remote_player_death(self):
@@ -64,9 +64,10 @@ class CombatAudio(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','Pinned combat audio instructions are opt-in')
     def test_original_combat_audio(self):
         report=self.folder/'original.json'
-        subprocess.run([sys.executable,str(NATIVE.parent/'scripts/validate_audio_combat.py'),'--cases','600',
-                        '--mutations','--report',str(report)],check=True,capture_output=True)
-        data=json.loads(report.read_text());self.assertEqual(data['cases'],2748)
-        self.assertEqual(data['mismatches'],0);self.assertEqual(len(data['mutants']),12)
+        result=subprocess.run([sys.executable,str(NATIVE.parent/'scripts/validate_audio_combat.py'),'--cases','6000',
+                        '--mutations','--report',str(report)],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        data=json.loads(report.read_text());self.assertEqual(data['cases'],19548)
+        self.assertEqual(data['mismatches'],0);self.assertEqual(len(data['mutants']),16)
         self.assertTrue(all(v=='caught' for v in data['mutants'].values()))
 if __name__=='__main__':unittest.main()

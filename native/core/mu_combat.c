@@ -467,7 +467,7 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         }
         return 0;
     case MU_SFX_CALL_SOUND:
-        play(c, (mu_combat_audio){0x013c0f19u,0x013c42eeu,call->type}, -3);
+        play(c, mu_combat_effect_sound(call->type), -3);
         return 0;
     case MU_SFX_CALL_SERIAL:
         ++c->serial;
@@ -774,6 +774,9 @@ static void monster_hit(mu_combat *c, const mu_combat_event *e)
                 play(c, mu_combat_voice_sound(MU_COMBAT_AUDIO_SHOCK, 1, snd), a->session_key);
                 ++c->stats.monster_voices;
             }
+            /* The model 0x7e2 tail follows the primary voice, after its five
+             * particle iterations. Native audio does not consume that visual RNG. */
+            play(c,mu_combat_extra_shock_sound(v.object_type,v.field_3324,snd),a->session_key);
         }
     }
     if(e->damage>0)++c->stats.hits;else ++c->stats.misses;
