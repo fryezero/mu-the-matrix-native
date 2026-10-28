@@ -49,3 +49,15 @@ there is no releasable implementation or final merge sequence. No hosted workflo
 The worktree and branch are kept to resume. Generated builds, private movie exports,
 disassembly scratch and transient reports are removed after the final WIP checkpoint;
 only the existing evidence/Python input symlinks remain. No new private input is needed.
+
+Final WIP regression gate on runtime commit `a6171e4` passed:
+`bash scripts/local-macos-ci.sh`, **1,521 tests in 38 suites, 188 explicit skips,
+zero failures**. Native viewer and read-only reader builds passed. Publication audit:
+**1,440 staged files, zero rejected**. All **8/8 existing fixture scenarios pass,
+67 inbound frames, zero unbound/undecodable**, with the existing 2 unrecovered intents
+and 6 unsent frames. These regressions do not add misc fixture acceptance. The suite's
+dirty flag includes local input symlinks and the subsequent evidence-only doc update.
+No golden/render hashes or reconstructed production sources were changed.
+
+A local self-review checked the C arithmetic, instruction boundaries, compiled-mutant
+comparisons, staged paths and scope claims. No independent review is claimed.

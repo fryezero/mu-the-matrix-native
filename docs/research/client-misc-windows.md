@@ -82,3 +82,19 @@ row-input contract, not an invented shortcut list.
 
 No dispatcher/jump-table walk, crypto/decode work, new live capture, or speculative
 route was performed to bridge these gaps. No full-window render is claimed.
+
+## Static movie provenance
+
+The inspected inputs are existing locally converted bridge movies under
+`mu-mac-tools/native/scratch/gfx/all-bridge/`, exported with the existing local
+JPEXS tool. These digests identify those derived files, not unconverted original
+movie bytes. No native-handler equivalence follows from this inspection.
+
+| Movie | Inspected SWF SHA-256 |
+|---|---|
+| MonsterInfo.swf | `2f02da2e76885d599bbf5b42afafd5c282d7eb0046c7243bf4cbe11ca3cd95a7` |
+| BossHpUI.swf | `e091669041e0f282f5ea4ad8f712e9bfe937c94796838a234791eaebd244ca02` |
+| DamageCount.swf | `b14f1e0c6e06a0aae6b43fe2518f6e859dd024c4862a8e811e26c35a38e13427` |
+| HelpWindow.swf | `c12ab7e6f778677b7a7e9ac646cdc8c12eb2200bcd49556585380491c3e75c49` |
+| CommandWindow.swf | `d0116554f0948d2dc7131b3064fe2d893dc86c577c10e80c48964f0377ac65d6` |
+| QuickCommand.swf | `53ac35aaab833ca5b1a3fc679b770688ca057fee9ab020775b47dda57d84ebf6` |
