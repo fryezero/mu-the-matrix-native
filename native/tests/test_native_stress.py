@@ -50,10 +50,12 @@ class BenchmarkContract(unittest.TestCase):
 
     def test_workload_rejects_missing_players_or_effects(self):
         rows = [{'players': {'count': 80, 'viewport_packets': 80, 'addinfo': 80}}, {'actors': 32},
-                {'gfx': {'renders': 100, 'inventory_open': 1, 'item_models_missing': 0}},
+                {'gfx': {'renders': 100, 'inventory_open': 1, 'item_models_missing': 0, 'item_models': 10, 'base_mode': 1}},
                 {'map': True, 'map_shown': 1}, {'combat': True, 'skills': 4, 'area_requests': 4,
                                              'particles_created': 12, 'fx_created': 20, 'joints_created': 12},
                 {'particles': True, 'created': 100, 'dropped': 0, 'overflow': 0}]
+        rows += [{'player': i, 'loaded': [0, 1, 1, 1, 1, 1, 1, 0, 1],
+                  'textures_missing': [-1, 0, 0, 0, 0, 0, 0, -1, 0]} for i in range(80)]
         self.assertEqual(bench.workload(rows, 80)['players']['count'], 80)
         for index in range(len(rows)):
             with self.assertRaises(ValueError):
@@ -61,6 +63,38 @@ class BenchmarkContract(unittest.TestCase):
         rows[0]['players']['viewport_packets'] = 8
         with self.assertRaises(ValueError):
             bench.workload(rows, 80)
+
+
+class DirectCornerStream(unittest.TestCase):
+    def test_stream_and_tables_match_and_detect_two_mutants(self):
+        import validate_meshdraw as vm
+        subprocess.run(['make', '-C', str(NATIVE), 'build/mu-render'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            cc = shutil.which('clang') or shutil.which('cc')
+            if not cc:
+                self.skipTest('needs a C compiler')
+            hosts = []
+            for mutant in range(3):
+                host = directory / f'host-{mutant}'
+                subprocess.run([cc, '-std=c11', '-O2', '-ffp-contract=off', '-fno-fast-math',
+                                '-Wall', '-Wextra', '-Werror', f'-DPERF_MUTANT={mutant}',
+                                str(HERE / 'perf_corner_host.c'), str(NATIVE / 'core/mu_meshdraw.c'),
+                                str(NATIVE / 'core/mu_meshdraw_case.c'), '-lm', '-o', str(host)],
+                               check=True, capture_output=True)
+                hosts.append(host)
+            killed = set()
+            cases = vm.pinned_cases(directory)
+            self.assertEqual(len(cases), 247)
+            for label, case, _ in cases:
+                path = directory / 'case.bin'
+                path.write_bytes(case)
+                literal = subprocess.check_output([str(hosts[0]), '0', str(path)])
+                self.assertEqual(literal, subprocess.check_output([str(hosts[0]), '1', str(path)]), label)
+                for mutant in (1, 2):
+                    if subprocess.check_output([str(hosts[mutant]), '1', str(path)]) != literal:
+                        killed.add(mutant)
+            self.assertEqual(killed, {1, 2})
 
 
 @unittest.skipUnless(sys.platform == 'darwin', 'offscreen GL needs macOS')
@@ -110,6 +144,7 @@ class OrderedRendering(unittest.TestCase):
                 summary = next(r['players'] for r in rows if isinstance(r.get('players'), dict))
                 self.assertEqual(summary['count'], 80)
                 self.assertGreaterEqual(summary['viewport_packets'], 80)
+                self.assertEqual(summary['addinfo'], 80)
                 states.append([r for r in rows if 'players_frame' in r or 'players' in r])
                 captures.append(out)
             self.assertEqual(states[0], states[1])

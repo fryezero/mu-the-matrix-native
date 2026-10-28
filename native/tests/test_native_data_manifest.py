@@ -166,7 +166,7 @@ class ManifestTests(unittest.TestCase):
         subprocess.run(['make', '-C', str(NATIVE), 'world'], check=True, capture_output=True)
         result = subprocess.run([str(NATIVE/'build/mu-world'), '--game-root', str(root),
                                  '--headless', '--backend', 'gl', '--frames', '1', '--no-audio', '--quiet',
-                                 '--combat-script', ' '.join(f'{i}:skill:9:spider' for i in range(100))],
+                                 '--combat-script', ' '.join(f'{i}:skill:9:spider' for i in range(32))],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 

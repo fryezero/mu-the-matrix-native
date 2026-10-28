@@ -104,6 +104,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | RENDER-TERRAIN-002 | 0x2000 overlay faces, Chaos Castle per-face effects, camera-angle frustum (worlds 6, 0x49), fog and alpha ref, the alternate signed height grid (worlds 0x18..0x1d, 0x24) | 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants; 1,800 particle cases; synthetic renders and unchanged-world hashes | — | Implemented; [handoff](../../handoffs/RENDER-TERRAIN-002.md) |
 | RENDER-ITEMS-002 | Parts 1/2 implemented: 28 inventory codes; 103 scalar remaps, 11/1,674 body types and six bow link effects. Remaining: 1,663 body types, other link effects, Muun placement, nested map-object tables | Part 1: 5,512 cases; part 2: 135,176, 0 mismatches, 6/6 mutants each; [finding](../../research/client-render-items.md) | DATA-ACQ (nested map-object tables missing; 16 Muun rows decoded locally) | EA, partial |
 | RENDER-TIME-001 | Multi-frame fidelity: time-varying fields, a camera path per map, mugl patches off on the live side | Per-map time-series reports with defined thresholds | INPUT-001 (shared scripts) | EA |
+| NATIVE-PERF-002 | Extreme offline crowd/combat/GFx benchmark; host timing, batching and allocation work | Measured comparison, preserved renders, local gate ([finding](../../research/native-performance-stress.md)) | NATIVE-PERF-001 | Optimizations implemented; 25 fps stress target open |
 
 ## H. Audio
 

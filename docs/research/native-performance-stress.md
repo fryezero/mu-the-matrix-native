@@ -34,7 +34,10 @@ about original x86 behavior. Existing instruction comparisons remain the oracle 
   The backend already maps both `glColor3f` and `glColor3fv` to its `color3` operation.
 - Per-draw color/UV scratch tables use bounded stack storage, about 300 KB, instead of two large heap
   allocations on every mesh/glow pass. Edge-case table handling is unchanged. Other scene allocations remain.
-- The authored offline player capacity is 80 instead of eight. This is not a server-viewport capacity claim.
+- The authored offline player capacity is 80 instead of eight, and the native name pool is 128 instead
+  of 64. All 80 plates plus 32 actors and the hero now fit. Earlier exploratory measurements silently
+  admitted only 31 player plates and are excluded from the final comparison. This is not a server-viewport
+  capacity claim. The additional names are an intended capacity fix, used equally by both benchmark modes.
 - `mu-world --perf-fov 65` widens the offline camera beyond the reconstructed three-step wheel limit,
   without changing that reconstructed limit or INPUT-001. It changes the benchmark camera intentionally;
   both sides use the same override. It is not a complete interactive free-camera implementation.
@@ -57,30 +60,35 @@ Master/fourth skill trees. `tormenta80` uses world 141 at 50,46 with the same wi
 an attached Retina panel. The map opens at frame 60 in every scene, camera FOV 65, all normal effects,
 objects, environment and names enabled. Audio output is disabled during timing.
 
-Before and after are paired sequentially per scenario, 24 seconds each, first 50 frames excluded. The
+Before and after are paired sequentially per scenario, first 50 frames excluded. Crowd40 uses 24-second
+runs, the three 80-player scenes 60-second runs. Measured frame counts before/after are 254/314,
+320/397, 428/469 and 332/385 respectively. The
 benchmarks did not overlap each other. Other agents were running CPU-intensive validations on this Mac;
-load averages were roughly 8 at the start. Thus these are shared-host measurements, with scheduling,
+load averages and concurrent workloads varied throughout the run. Thus these are shared-host measurements, with scheduling,
 frequency and thermal variation. Do not infer a clean single-host speedup ratio from them. Frame counts
 and binary hashes, exact commands and workload summaries are retained locally.
 
 | Scenario | Before fps | After fps | Before frame p50/p95/p99 ms | After frame p50/p95/p99 ms | CPU before/after ms | World GL before/after ms |
 |---|---:|---:|---|---|---|---|
-| crowd40 | 20.71 | 23.81 | 47.2/60.2/72.2 | 41.5/53.0/60.8 | 45.9/38.6 | 25.6/19.4 |
-| crowd80 | 13.67 | 21.62 | 70.4/92.3/120.8 | 45.1/56.0/63.2 | 71.0/45.5 | 32.9/20.4 |
-| tormenta80 | 16.17 | 19.45 | 61.0/69.6/76.0 | 51.3/58.0/65.3 | 61.3/50.8 | 30.2/22.7 |
-| retina80 | 14.05 | 16.50 | 69.0/75.9/126.8 | 60.4/65.8/68.9 | 69.6/59.7 | 39.1/30.7 |
+| crowd40 | 15.23 | 17.19 | 61.8/93.6/123.4 | 55.0/83.1/112.3 | 55.4/49.4 | 33.8/27.5 |
+| crowd80 | 6.79 | 8.64 | 148.3/209.4/246.3 | 110.4/164.7/195.4 | 112.5/92.0 | 60.3/42.9 |
+| tormenta80 | 8.81 | 9.60 | 108.4/154.8/204.5 | 95.5/168.0/209.8 | 106.3/93.4 | 49.7/40.8 |
+| retina80 | 7.48 | 8.72 | 131.2/169.7/196.4 | 109.6/155.1/173.5 | 127.3/109.5 | 64.3/52.0 |
 
 CPU is mean main-thread execution time, not whole-process CPU. World GL is the mean asynchronous
 `GL_TIME_ELAPSED` interval around the world draw. It overlaps CPU submission and can include GPU pipeline
 bubbles. Ruffle renders through Metal outside that query. These columns cannot be added or subtracted
 to derive total GPU execution or idle time. A complete Ruffle GPU split remains unmeasured.
 
-After work p95/p99, excluding cap sleep: crowd40 49.6/54.9 ms; crowd80 56.0/63.2 ms;
-Tormenta 58.0/65.3 ms; large target 65.8/68.9 ms. Every scenario fails the strict 40 ms target.
-For the large target the remaining mean phases include logic 9.8, terrain 6.9, objects 9.7,
-characters 13.0 and GFx 18.1 ms. The GFx phase and repeated character/skin/mesh work still consume too much
-of the budget. Per-object pose caching was not added: safe keys must account for shared bone/root buffers,
-attachment state and every transform/light input. No cache with incomplete invalidation was shipped.
+After work p95/p99, excluding cap sleep: crowd40 83.1/112.3 ms; crowd80 164.7/195.4 ms;
+Tormenta 168.0/209.8 ms; large target 155.1/173.5 ms. Every scenario fails the strict 40 ms target.
+The longer after runs have GFx means 56.2, 46.5 and 44.1 ms in the 80-player scenes. Crowd40 GFx
+averages 18.9 ms. Main-thread work still exceeds budget even before accounting for all scheduling waits.
+The Tormenta tail worsens slightly despite its lower mean CPU cost. These shared-host results do not
+establish improvement at every percentile or in every possible scene.
+
+Per-object pose caching was not added: safe keys must account for shared bone/root buffers, attachment
+state and every transform/light input. No cache with incomplete invalidation was shipped.
 
 ## Reproduction and regression gates
 
@@ -102,18 +110,29 @@ make -C native world client
 ```
 
 The committed `stress_m5_limits.json` separates the measured M5 regression envelope from the 25 Hz goal.
-The measured after runs pass all four regression envelopes. They fail all four goal checks. The envelope
-allows about 15-25 percent scheduling variation, with independent frame-tail and CPU limits; it catches
+All four measured after runs pass the committed full-nameplate regression envelopes. All four strict
+25 Hz goal checks fail. These are deliberately different results. The envelope
+allows scheduling variation, with independent frame-tail and CPU limits; it catches
 large draw-path regressions without pretending the current baseline meets the target. Synthetic tests
 exercise fast/slow, missing workload and both threshold paths. Recalibrate on other hardware or an idle
 Mac, preserving the strict 25 Hz check. The JSON limits are reviewed summaries, not proprietary data.
 
 ## Verification
 
+A long `--combat-script` exposed a new main-branch Native Data integration issue: script text was probed
+as a filesystem path and failed with ENAMETOOLONG. The guard now skips text-valued script/walk/wheel
+options, with a portable regression using 32 valid script entries. The owner's legacy Native Data folder
+was left unchanged; a fresh scratch clone was stamped against the pinned installed build for validation.
+
+
 Verification results and retained artifact paths are listed in [the handoff](../handoffs/NATIVE-PERF-002.md).
-The direct-corner comparison normalizes only Color3f/Color3fv to the backend's shared color3 operation;
-all other stream words and scratch-table bytes must match. Dropping a vertex or replacing alpha with 1
-must fail. Existing software hashes and literal instruction-stream digests are unchanged.
+The committed direct-corner host compares all 247 pinned synthetic cases, including full stream words
+and scratch-table bytes. It normalizes Color3f/Color3fv only, as the backend already does. Both planted
+mistakes, a dropped vertex and forced alpha 1, are caught. Existing software hashes and literal
+instruction-stream digests are unchanged. Synthetic and private
+render comparisons cover the host optimization. A private comparison caught a new batch session clearing
+the hero's pending geometry when no remote-player session existed. The fix requires that session before
+opening the batch; a dedicated absent-players regression now covers it.
 
 Private frame comparisons use the same scene/camera/logic clock at frames 0,60,120. They disable GFx in
 both modes because Ruffle already has timing-dependent frame differences between identical runs, as

@@ -1,5 +1,7 @@
 # Continue from here
 
+- NATIVE-PERF-002: benchmark, preserved-render checks and the measured 25 fps shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
+
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
 the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.
 

@@ -1,29 +1,29 @@
 {
-  "note": "Regression ceilings for the measured Apple M5 shared-host matrix; the separate 25 Hz target stays strict. Rerun with other jobs idle for product acceptance.",
+  "note": "Apple M5, full 80-player nameplates, all equipment textures and zero particle drops. Shared-host regression ceilings are separate from the strict 25 Hz acceptance check.",
   "scenarios": {
     "crowd40": {
-      "min_fps": 20,
-      "work_p95_ms": 60,
-      "work_p99_ms": 70,
-      "cpu_mean_ms": 46
+      "min_fps": 14,
+      "work_p95_ms": 105,
+      "work_p99_ms": 140,
+      "cpu_mean_ms": 60
     },
     "crowd80": {
-      "min_fps": 18,
-      "work_p95_ms": 68,
-      "work_p99_ms": 80,
-      "cpu_mean_ms": 55
+      "min_fps": 7,
+      "work_p95_ms": 200,
+      "work_p99_ms": 240,
+      "cpu_mean_ms": 110
     },
     "tormenta80": {
-      "min_fps": 16,
-      "work_p95_ms": 70,
-      "work_p99_ms": 82,
-      "cpu_mean_ms": 61
+      "min_fps": 8,
+      "work_p95_ms": 205,
+      "work_p99_ms": 255,
+      "cpu_mean_ms": 112
     },
     "retina80": {
-      "min_fps": 14,
-      "work_p95_ms": 80,
-      "work_p99_ms": 100,
-      "cpu_mean_ms": 72
+      "min_fps": 7,
+      "work_p95_ms": 190,
+      "work_p99_ms": 215,
+      "cpu_mean_ms": 132
     }
   }
 }

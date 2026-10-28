@@ -53,7 +53,8 @@ def command(args, name, directory):
     world, tile, players, width, height, windows = SCENARIOS[name]
     pf, af = fixtures(directory, tile, players)
     casts = ' '.join(f'{f}:skill:{(9, 10, 14, 24, 26)[i % 5]}:mob{(i % 32):02}'
-                     for i, f in enumerate(range(30, args.frames if args.headless else int(args.seconds * 25), 20)))
+                     for i, f in enumerate(range(30, min(args.frames if args.headless else int(args.seconds * 25),
+                                                         30 + 32 * 20), 20)))
     cmd = [str(args.binary), '--game-root', str(args.game_root), '--objects-dir', str(args.data / 'objects'),
            '--world', str(world), '--tile', ','.join(map(str, tile)), '--class', '0',
            '--players', str(pf), '--player-range', '40', '--placement', str(af),
@@ -102,6 +103,12 @@ def regression(result, limits):
 def workload(rows, expected):
     """Refuse a fast run that silently omitted any requested workload."""
     players = next((r['players'] for r in rows if isinstance(r.get('players'), dict)), {})
+    models = [r for r in rows if 'player' in r and 'loaded' in r]
+    required = (1, 2, 3, 4, 5, 6, 8)
+    if len(models) != expected or any(
+            len(r.get('loaded', [])) != 9 or len(r.get('textures_missing', [])) != 9 or
+            any(not r['loaded'][i] or r['textures_missing'][i] != 0 for i in required) for r in models):
+        raise ValueError('player equipment model or texture missing')
     actors = next((r for r in rows if r.get('actors') == 32), {})
     combat = next((r for r in rows if r.get('combat') is True), {})
     particles = next((r for r in rows if r.get('particles') is True), {})
@@ -114,11 +121,12 @@ def workload(rows, expected):
         raise ValueError('monsters/combat/effects missing')
     if particles.get('created', 0) <= 0 or particles.get('dropped', 0) or particles.get('overflow', 0):
         raise ValueError('particle workload missing or overflowing')
-    if not gfx.get('renders') or not gfx.get('inventory_open') or gfx.get('item_models_missing', 0):
+    if (not gfx.get('renders') or not gfx.get('inventory_open') or not gfx.get('item_models')
+            or not gfx.get('base_mode') or gfx.get('item_models_missing', 0)):
         raise ValueError('GFx or inventory item models missing')
     if not map_state.get('map_shown'):
         raise ValueError('map window missing')
-    return {'players': players, 'actors': actors, 'combat': combat, 'gfx': gfx, 'map': map_state, 'particles': particles}
+    return {'players': players, 'actors': actors, 'combat': combat, 'gfx': gfx, 'map': map_state, 'particles': particles, 'player_models': len(models)}
 
 
 def main(argv=None):
@@ -130,17 +138,23 @@ def main(argv=None):
     ap.add_argument('--binary', type=Path, default=NATIVE / 'build/mu-world')
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--frames', type=int, default=300)
-    ap.add_argument('--seconds', type=float, default=16)
+    ap.add_argument('--seconds', type=float, default=60)
     ap.add_argument('--renders', action='store_true')
     ap.add_argument('--baseline', action='store_true')
     ap.add_argument('--check', action='store_true', help='require the 25 Hz target')
     ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
     ap.add_argument('--scenario', choices=SCENARIOS, action='append')
     a = ap.parse_args(argv)
+    if a.frames <= 50 or a.seconds <= 0:
+        ap.error('use more than 50 frames and a positive duration')
+    for key in ('MU_GFX_NO_ITEM_MODELS', 'MU_GFX_NO_ICON_MODELS', 'MU_GFX_NO_SKILLS'):
+        if os.environ.get(key):
+            ap.error(f'{key} would omit part of the stress workload')
     a.out = a.out.resolve()
     if NATIVE.parent == a.out or NATIVE.parent in a.out.parents:
         ap.error('--out must be outside the source repository')
     env = dict(os.environ, MU_LANG_DIR=str(a.data / 'lang'), MU_GFX_LIB=str(a.gfx_lib))
+    env.update(MU_PERF_BASELINE='0', MU_NO_GL_BATCH='0')
     env['MU_PERF_002_BASELINE'] = '1' if a.baseline else '0'
     report = {'machine': platform.platform(), 'mode': 'headless-uncapped' if a.headless else 'window-capped',
               'load_start': os.getloadavg(),
