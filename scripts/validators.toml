@@ -1709,3 +1709,17 @@ args = ["--cases", "600", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.caught" = true
 "mutants.*.stopped" = 0
+
+[validate_world_order]
+test = "native/tests/test_world_parts.py::PartsDefTests.test_original_world_order_instructions"
+pins = ["text", "data"]
+families = ["tick", "draw"]
+cases = 2400
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_world_order.expect]
+"ok" = true
+"families.*.equal" = {same_as = "families.*.cases"}
+"families.*.stopped" = 0
