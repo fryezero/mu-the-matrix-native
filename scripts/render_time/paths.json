@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "width": 640,
+  "height": 480,
+  "frames": 201,
+  "sample_every": 10,
+  "save_every": 100,
+  "maps": [
+    {
+      "name": "00b-lorencia",
+      "world": 0,
+      "tile": [
+        137,
+        130
+      ],
+      "script": "00b-lorencia.input"
+    },
+    {
+      "name": "01-dungeon",
+      "world": 1,
+      "tile": [
+        108,
+        247
+      ],
+      "script": "01-dungeon.input"
+    },
+    {
+      "name": "02-devias",
+      "world": 2,
+      "tile": [
+        71,
+        181
+      ],
+      "script": "02-devias.input"
+    },
+    {
+      "name": "02b-devias-town",
+      "world": 2,
+      "tile": [
+        199,
+        48
+      ],
+      "script": "02b-devias-town.input"
+    },
+    {
+      "name": "03-noria",
+      "world": 3,
+      "tile": [
+        174,
+        109
+      ],
+      "script": "03-noria.input"
+    },
+    {
+      "name": "04-losttower",
+      "world": 4,
+      "tile": [
+        208,
+        79
+      ],
+      "script": "04-losttower.input"
+    },
+    {
+      "name": "07-atlans",
+      "world": 7,
+      "tile": [
+        19,
+        15
+      ],
+      "script": "07-atlans.input"
+    },
+    {
+      "name": "08-tarkan",
+      "world": 8,
+      "tile": [
+        195,
+        70
+      ],
+      "script": "08-tarkan.input"
+    },
+    {
+      "name": "10-icarus",
+      "world": 10,
+      "tile": [
+        15,
+        13
+      ],
+      "script": "10-icarus.input"
+    },
+    {
+      "name": "33-aida",
+      "world": 33,
+      "tile": [
+        84,
+        11
+      ],
+      "script": "33-aida.input"
+    },
+    {
+      "name": "37-kanturu",
+      "world": 37,
+      "tile": [
+        19,
+        218
+      ],
+      "script": "37-kanturu.input"
+    },
+    {
+      "name": "51-elbeland",
+      "world": 51,
+      "tile": [
+        53,
+        224
+      ],
+      "script": "51-elbeland.input"
+    },
+    {
+      "name": "57-raklion",
+      "world": 57,
+      "tile": [
+        224,
+        211
+      ],
+      "script": "57-raklion.input"
+    },
+    {
+      "name": "80-karutan",
+      "world": 80,
+      "tile": [
+        125,
+        123
+      ],
+      "script": "80-karutan.input"
+    }
+  ]
+}

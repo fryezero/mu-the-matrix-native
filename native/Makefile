@@ -208,7 +208,7 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
 WORLD_RT_SRC += world/input_keys.c
-WORLD_RT_HDR += world/input_keys.h world/input_sdl.h
+WORLD_RT_HDR += world/input_keys.h world/input_sdl.h world/time_series.h
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
 
