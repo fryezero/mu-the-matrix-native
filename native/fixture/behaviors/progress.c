@@ -273,7 +273,7 @@ static int progress_on_command(void *self, mu_fixture_ctx *ctx, const char *comm
             snprintf(error, error_size, "kill CLASS|random [KEY]");
             return -1;
         }
-        int32_t cls = !strcmp(what, "random") ? (int32_t)(mu_fx_rand(ctx) % 40u) : (int32_t)strtol(what, NULL, 0);
+        int32_t cls = !strcmp(what, "random") ? (int32_t)(mu_fixture_rand(ctx) % 40u) : (int32_t)strtol(what, NULL, 0);
         return kill(p, ctx, cls, key);
     }
     if (!strcmp(verb, "levelup")) {

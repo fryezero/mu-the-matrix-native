@@ -136,7 +136,7 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 
 ## Coordinating agents
 
-| RENDER-ITEMS-002 part 1 | Implemented: inventory RenderItem3D special-code chain and native remapped-model loading | 5,512 Unicorn cases, 0 mismatches, 6/6 mutants; generic wrapper 3,000; native regression and local renders ([finding](research/client-render-items.md)) | Type-specific body/RenderLinkItem effects, character/ground integration, Muun placement and nested map-object tables remain |
+| RENDER-ITEMS-002 parts 1/2 | Implemented: inventory special-code remaps; 103 scalar remaps, 11 special body types, six bow link effects; shared native character/ground/inventory draws | Part 1: 5,512 cases, part 2: 135,176; 0 mismatches and 6/6 mutants each; native regressions/local renders ([finding](research/client-render-items.md)) | 1,663 body types, other RenderLinkItem effects, Muun/nested map-object tables, hero equipment feeds and part-1 limits remain |
 
 | NATIVE-MAP-002 | Implemented: captured absent-key Move default supplied to the validator; snapshot digest in reports; synthetic nonzero-default regression | Lang4 and both lang5 copies each pass 5,001 instruction cases, zero mismatches, all 10 mutants; identical 69 real records and 621 native rows across sort orders; 11 reconstructed and 9 native map tests pass ([finding](research/client-maps.md#move-default-records-native-map-002)) | Native Move behavior unchanged; navimap locale state and prior teleport limits remain open |
 | NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |
@@ -147,3 +147,5 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 Use issue IDs matching these task IDs, claim a scope before editing, and name the owned directories and output paths. Independent tasks can run on separate branches/worktrees. Dependent tasks should consume a reviewed interface or evidence result. A PR closes a task only when its completion evidence is present; partial research belongs in a handoff with open questions.
 
 | INPUT-001 | World input router, shared script parser and recovered binding coverage | 570 instruction cases, 0 mismatches, 7/7 mutants; native cast/right-click/pick-up and baseline render proof ([handoff](handoffs/INPUT-001.md)) | Unavailable panels/controllers and original IME candidate movie listed in the coverage table; live shared-script comparison remains open |
+
+SESSION-QUEST-001 is implemented: [session state, fixture checks and limits](handoffs/SESSION-QUEST-001.md).

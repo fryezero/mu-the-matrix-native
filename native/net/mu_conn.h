@@ -58,7 +58,8 @@ typedef enum mu_decode_status {
     MU_DECODE_SERIAL,            /* the serial check failed ("Decrypt error" path) */
     MU_DECODE_CRYPTO,            /* Decrypt refused or not available (no CryptoModule before NET-DECODE-001) */
     MU_DECODE_BAD,               /* not a frame the client would dispatch (shorter than its header + opcode) */
-    MU_DECODE_OVERFLOW           /* the client's 0x2000 receive guard: the connection stops receiving */
+    MU_DECODE_OVERFLOW,          /* the client's 0x2000 receive guard: the connection stops receiving */
+    MU_DECODE_BODY               /* framing decoded; domain body remains opaque */
 } mu_decode_status;
 
 typedef struct mu_net mu_net;
