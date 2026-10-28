@@ -1,6 +1,6 @@
 # World-handler class coverage
 
-RENDER-WORLDS-G/H/I. Static address inventory from factory `0x00ea488e`, its allocation constructors and
+RENDER-WORLDS-G/H/I/J. Static address inventory from factory `0x00ea488e`, its allocation constructors and
 the pinned second-section vtables. Class IDs use the first registered world; labels are descriptive,
 not recovered symbol names. The default BaseMap registration for world 146 is outside the 48 concrete classes.
 
@@ -11,7 +11,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 
 | Class | Worlds, decimal | Vtable | Create +2c | Move +30 | Visual +34 |
 |---|---|---|---|---|---|
-| Raklion | 57, 58 | `0x1aad9d0` | `0xe943c0` V | `0xe94619` V | `0xe946a8` M |
+| Raklion | 57, 58 | `0x1aad9d0` | `0xe943c0` V | `0xe94619` V | `0xe946a8` V |
 | Santa Village | 62 | `0x1aab3c8` | `0xe4231c` V | `0xe42370` V | `0xe423d8` V |
 | Vulcanus | 63 | `0x1aad63c` | `0xe8ec09` V | `0xe8ec80` V | `0xe8ece1` V |
 | Duel Arena | 64 | `0x1aa7c54` | `0xdc6643` V | `0xdc6685` V | `0xdc6790` V |
@@ -21,7 +21,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | World 71 class | 71 | `0x1aa8038` | `0xdd8d6d` M | `0xdd8ef8` M | `0xdd9192` M |
 | World 72 class | 72 | `0x1aa8230` | `0xdde9e0` M | `0xddeb8a` M | `0xddee5e` M |
 | Loren Market | 79 | `0x1aac310` | `0xe6c0ec` V | `0xe6c1bf` V | `0xe6c678` V |
-| Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` M | `0xe13a9e` V | `0xe13be4` V |
+| Karutan | 80, 81 | `0x1aa9a4c` | `0xe13a87` V | `0xe13a9e` V | `0xe13be4` V |
 | World 91 class | 91 | `0x1aa59cc` | `0xd6a6d7` M | `0xd6a7aa` M | `0xd6ae34` M |
 | World 92 class | 92, 96, 101, 111 | `0x1aa6154` | `0xd7bd7d` M | `0xd7be29` M | `0xd7be80` M |
 | CGMCharacterScene_Ex | 93 | `0x1aa7338` | `0xdaa2b2` V | `0xdaa82b` V | `0xdaa9dd` V |
@@ -60,7 +60,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M |
 
-11/48 classes have at least one verified primary method. Of 144 primary methods: 31 verified families, 0 static-only C, 113 missing.
+11/48 classes have at least one verified primary method. Of 144 primary methods: 33 verified families, 0 static-only C, 111 missing.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
 for all 48 classes: invisible-sector move +1c, custom render +38 and after render +3c, with separate statuses.

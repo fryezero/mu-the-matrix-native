@@ -676,6 +676,19 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
         mu_uruk_visual(img, i, o->world, o->rt.uruk_weather, world_time, visual_rand, &c, &log);
     else if (o->world == 79 || o->world == 100)
         return;
+    else if ((o->world == 80 || o->world == 81) && m && m->loaded) {
+        const int32_t type = mu_obj_i32(img, MU_OBJF_TYPE);
+        const int needs_bones = type == 66 || type == 72;
+        const int bones_ready = posed && m->bmd.bone_count > (type == 66 ? 14 : 11);
+        if (needs_bones && !bones_ready) ++o->rt.draw_unsupported;
+        (void)visual_rand(&c); /* Existing outer RenderObjectVisual flicker draw. */
+        mu_karutan_visual(img, i, o->world, world_time, visual_rand,
+                          bones_ready ? visual_bone : NULL, &c, &log);
+    }
+    else if (o->world == 80 || o->world == 81)
+        return;
+    else if (o->world == 57 || o->world == 58)
+        mu_raklion_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 64)
         mu_duel_visual(img, i, m && m->loaded, visual_rand, &c, &log);
     else if (o->world == 82)
@@ -695,18 +708,14 @@ static int world_flames(mu_objects *o, int32_t i, uint8_t *img, const mu_object_
 {
     if (!m || !m->loaded)
         return 0;
-    if (o->world != 0x25 && o->world != 0x28 && o->world != 0x50 && o->world != 0x51)
+    if (o->world != 0x25 && o->world != 0x28)
         return 0;
     visual_context c = {o, m};
     mu_obj_event events[64];
     mu_obj_log log = {0, 64, 0, events};
     (void)visual_rand(&c);
-    int status;
-    if (o->world == 0x25 || o->world == 0x28)
-        status = mu_kanturu_flames(img, i, o->world, time, visual_rand, posed ? visual_bone : NULL,
-                                   &c, &log);
-    else
-        status = mu_karutan_flames(img, i, visual_rand, &c, &log);
+    const int status = mu_kanturu_flames(img, i, o->world, time, visual_rand,
+                                         posed ? visual_bone : NULL, &c, &log);
     consume_visual(o, &log);
     return status != MU_OBJ_UNSUPPORTED;
 }
@@ -753,7 +762,10 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
     const int login = o->world == MU_LOGIN_WORLD, charsel = o->world == MU_CSW_WORLD;
-    const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) || o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 || o->world == 79 || o->world == 100;
+    const int primary_visual = o->world == 4 || o->world == 7 || o->world == 8 || (o->world == 10 && t == 10) ||
+                               o->world == 62 || o->world == 63 || o->world == 64 || o->world == 82 ||
+                               o->world == 79 || o->world == 100 || o->world == 57 || o->world == 58 ||
+                               o->world == 80 || o->world == 81;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -778,7 +790,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         !login && !charsel && in.has_model && status != MU_OBJ_SKIPPED && mu_world_defer(img, o->world);
     int posed = 0;
     if (login || charsel || primary_visual) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
-        if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0)))
+        if (m && m->loaded && (status != MU_OBJ_SKIPPED || (o->world == 79 && log.count > 0) || o->world == 80 || o->world == 81))
             posed = pose_object(o, img, m, &log);
         handler_visual(o, i, img, primary_visual ? m : posed ? m : NULL, in.light.time, posed);
     } else if (!rt->visual) {
@@ -787,7 +799,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
     int flame = 0;
     if (!login && !charsel &&
-        (o->world == 0x25 || o->world == 0x28 || o->world == 0x50 || o->world == 0x51)) {
+        (o->world == 0x25 || o->world == 0x28)) {
         if (m && m->loaded && !posed)
             posed = pose_object(o, img, m, &log);
         flame = world_flames(o, i, img, m, in.light.time, posed);

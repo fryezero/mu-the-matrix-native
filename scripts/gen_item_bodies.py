@@ -102,6 +102,9 @@ EXPANDED_TYPES = [
     0x2905, 0x2906, 0x2907, 0x2908, 0x2909, 0x290a,
 ]
 
+# Part 8: next ranked armour clusters, independently compared.
+NEXT_TYPES = [0x1f8b, 0x1f8f, 0x1fbe, 0x1fdb, 0x1b8b, 0x1b8f, 0x1bbe, 0x1bdb]
+
 PROBE_SEEDS = (3401, 7254, 9874, 3404, 7257, 9877, 3407, 7260, 9880, 3413, 7266, 9886)
 
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
@@ -226,7 +229,7 @@ def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
-    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES:
+    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES:
         levels = range(16) if t >= 0x3700 else (0, 7, 13)
         ss = [sample(wa, lib, t, lv, seed) for lv in levels
               for seed in PROBE_SEEDS]
@@ -253,8 +256,8 @@ def extract():
             rules = [infer(pairs) if pairs else [] for pairs in phases]
             if all(rule is not None for rule in rules):
                 types[t] = rules
-    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES):
-        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES) - set(types))]))
+    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES):
+        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES + EXPANDED_TYPES + NEXT_TYPES) - set(types))]))
     return types
 
 

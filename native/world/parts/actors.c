@@ -180,6 +180,7 @@ static void npc_item_draw(mu_world_rt *a, const mu_world_actor *npc, int item, c
     mu_renderchar_default_env(&env);
     env.lang = a->lang;
     env.time = a->map->time;
+    env.particles = a->has_particles ? &a->particles : NULL;
     env.quality = 5;
     mu_draw_options options;
     mu_draw_default_options(&options);

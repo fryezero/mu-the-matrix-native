@@ -305,7 +305,7 @@ int mu_render_world_character(const mu_options *o)
     mu_world_particles *particles = NULL;
     long link_sprites = 0;
     for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
-        if ((mu_rc_link_supported(W.glow[k].type) || W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&
+        if ((mu_rc_item_rank5(W.glow[k].type) || mu_rc_link_supported(W.glow[k].type) || W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&
             c.items[k].loaded && !particles) {
             particles = calloc(1, sizeof *particles);
             char error[256];
@@ -329,6 +329,7 @@ int mu_render_world_character(const mu_options *o)
                 break;
         }
         mu_renderchar_env env = W.env;
+        env.particles = particles;
         env.time = W.world_time + 40.0f * (float)(n * o->frame_steps);
         if (particles)
             particles->world_time = env.time;   /* body and link callers read the same 0x06fce370 clock */
