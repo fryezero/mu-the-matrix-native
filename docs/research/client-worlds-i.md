@@ -95,11 +95,22 @@ type 108's keyed `0x806e/12` effect and type 109's colored `0x7f7d/13` joint. Th
 compared and kept in distinct commands, and the host increments `draw_unsupported` rather than dropping the
 key/color into an approximate emission. No pixels are claimed for those requests.
 
-The primary-method proof does not port every requested nested lifecycle. Market `0x801e/0`, `0x801c/8` and
-`0x801b/4`, and Uruk smoke/cloud/window/offset kinds still require downstream coverage review or implementation.
-Existing particle hosts retain their unsupported counters. The common fire lifecycles and existing waterfall
-families are reused. Market type 68's after-character flag does not establish its missing class after-render
-method. No custom-render, after-render or invisible-sector method is promoted to verified by this change.
+Static consumer audit against `mu_pt_kind_supported` and `mu_pt_world_flame_kind`: these requested nested
+particle families remain unsupported and counted by the existing particle host.
+
+| Source | Missing particle family |
+|---|---|
+| Market 54/55/56 | `0x801e/0`, `0x801c/8`, `0x801b/4` |
+| Uruk 89/93 | `0x7f5a/69` |
+| Uruk 90/91 | `0x7f89/25` |
+| Uruk 92 | `0x801b/7` |
+| Uruk 105/106 | `0x7fdd/3`, `0x8184/2` |
+| Uruk 108 | `0x7f5a/22`, `0x7fd5/0` |
+
+The common fire lifecycles, `0x801a/2`, `0x801c/14`, `0x801b/2` and `0x7f5a/21` are reused from existing
+consumers. This is a static availability audit, not a new proof of their nested rendering. Market type 68's
+after-character flag does not establish its missing class after-render method. No custom-render,
+after-render or invisible-sector method is promoted to verified by this change.
 
 ## Saved-capture regression and continuation
 
