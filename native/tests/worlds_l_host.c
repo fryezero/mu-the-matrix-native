@@ -65,9 +65,9 @@ int main(int argc,char **argv)
     assert(p.stats.drawn_particles==7&&p.stats.drawn_sprites==1&&vertices==48);
     /* Old slots remain stable; the four new load-time registrations precede rain. */
     const int sizes[][2]={{16,16},{32,32},{64,32},{128,128}};
-    for(int i=MU_WORLD_PT_BITMAPS-6;i<MU_WORLD_PT_BITMAPS-2;++i) {
+    for(int i=MU_WORLD_PT_BITMAPS-7;i<MU_WORLD_PT_BITMAPS-3;++i) {
         assert(p.bitmaps.slots[i]&&p.bitmaps.filter[i]==0x2601&&p.bitmaps.wrap[i]==0x2900);
-        int n=i-(MU_WORLD_PT_BITMAPS-6);
+        int n=i-(MU_WORLD_PT_BITMAPS-7);
         assert(p.bitmaps.images[i].width==sizes[n][0]&&p.bitmaps.images[i].height==sizes[n][1]);
     }
     producers(argv[2]);

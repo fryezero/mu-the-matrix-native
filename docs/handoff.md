@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-M: six Uruk nested particle lifecycles and the `flare_mono` registration (Market/Raklion kinds were already L's). 18,000 checks, zero mismatches, 17/17 compiled mutants and four original loader calls; 16 saved views unchanged; authored Uruk view 47 unsupported requests to 0. [Evidence](research/client-worlds-m.md), [checks and limits](handoffs/RENDER-WORLDS-M.md).
+
 DATA-ACQ-002: guided live captures on the owner's client (four locked sessions, warps only): 32 arrival captures in 31 worlds, 27/48 world classes now have an original populated capture; 16 classes are not reachable by warp. Native camera within 0.007, primary light equal in 31/32; music indices 43 and 44 both iDoppelganger. [Captures and comparison](research/client-world-captures-2.md), [inputs and limits](handoffs/DATA-ACQ-002.md).
 
 AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants; locked Mac gate passes 1,634 tests. [Checks and limits](handoffs/AUDIO-002F.md).
