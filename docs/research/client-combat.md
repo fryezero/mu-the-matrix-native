@@ -555,3 +555,13 @@ Intentional output changes: combat frame timing and RNG ownership now follow the
 kill while their encrypted requests are unsent, remote HP is no longer fabricated, the synthetic drop is one Short Sword row, and respawn reaches
 the view one poll after the server emits it. Native regression expectations record those changes. Existing
 render/hash fixtures outside the fight remain required by the full local gate. No live client was used.
+
+
+### Final local release gate
+
+With latest main `b223709` integrated at `2b36422`, `bash scripts/local-macos-ci.sh` passes: 1,458 tests run,
+177 explicit skips, 7/7 fixture scenarios and 50 expectations. The suite receives 53 frames with zero unbound
+or undecodable frames; combat contributes seven frames and ten expectations. The publication audit checks
+1,342 staged files with zero rejections. The private session test passes all five tests; its 240-case/six-mutant
+validator also passes through `run_validators.py`. No golden/render hash pins changed. Intended combat and
+unknown-HP output changes are described above. All evidence remains local in the milestone scratch directory.

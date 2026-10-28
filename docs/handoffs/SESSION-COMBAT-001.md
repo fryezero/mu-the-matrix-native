@@ -11,7 +11,17 @@ The interrupted checkpoint was reviewed and corrected before release. [Finding a
 - `combat-fight.scn` runs in VERIFY-SESSION; attack/action/damage/die/16/20/A4, zero unbound/undecodable.
 
 Local artifacts: `~/Documents/MTM/mu-mac-tools/native/scratch/session-combat-001/`.
-The local macOS gate and final suite counts are recorded below after verification.
+Final release verification on `2b36422`, with latest main `b223709` integrated:
+
+- `bash scripts/local-macos-ci.sh`: passed; 1,458 tests run, 177 explicit skips; viewer/readers build and repository audit pass, 1,342 staged files, zero rejected.
+- VERIFY-SESSION: 7/7 scenarios, 50 expectations, 53 inbound frames, zero unbound/undecodable. The combat scenario has seven inbound frames and ten expectations; its two unsent requests are intentional.
+- Private session test: 5/5 pass, including 240 instruction cases and six mutants. Registered validator runner: one pass, no failures/errors/skips.
+- New 6,000 + existing 25,200 + effects/voice 33,000 comparisons total 64,200, zero mismatches; six compiled mutants and 32 existing modeled negative controls all caught.
+- No existing golden/render hash pins changed. Combat timing/RNG, unsent-cast kills, synthetic drop and unknown remote-HP presentation changes are recorded in the finding. Pinned text/data hashes are unchanged.
+
+Release evidence: `release-audio-ci.log`, `resume-combat-wire.json`, `resume-combat.json`, `resume-skillfx.json`, `resume-session-private.log`, `resume-manifest/`, plus the local CI fixture reports under this worktree's ignored `verify-runs/` before cleanup. A durable copy of the final fixture report is retained in the scratch directory. Untracked evidence/Python symlinks account for the fixture runner's dirty flag; no tracked source changes were pending during this gate.
+
+Manual scope/standards review corrected incomplete fixture die frames, unknown HP sentinel conversion, reset-test coverage and the seed-only fixture include boundary. The first full gate's three findings are closed in the final passing gate. No hosted workflow or live client was run.
 
 Remaining: NET-DECODE-001 for actual wire construction/encrypted requests and experience acceptance;
 SESSION-SKILL-001 for broader cast/skill integration; SESSION-ITEMS-001 for ground ownership/pickup;
