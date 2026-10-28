@@ -203,7 +203,8 @@ quest/session ring in both GFx and headless world tools, leaving window/effect r
 rings can carry hero receive-handler cues too. The legacy `mu_progress` world demo remains a separate,
 unmigrated tool facade as documented by SESSION-CORE-001; this task does not migrate that demo's state.
 
-Set `MU_AUDIO_CUE_LOG=/absolute/path/audio.jsonl` before starting the native client or audio tools.
+With native audio enabled, set `MU_AUDIO_CUE_LOG=/absolute/path/audio.jsonl` before starting the native
+client or audio tools.
 Each host appends `open`/`close` boundaries and ordered JSONL records with `audio:1`, host-local `seq`,
 `host` distinguishing overlapping engines, `time_ms` from its 40 ms audio frame clock, world, op, id, loop, result, cue sequence, handler, at_key and
 session tick and registration source site. Scene music requests carry the pinned string-literal address
