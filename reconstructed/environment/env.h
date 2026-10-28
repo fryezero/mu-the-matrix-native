@@ -156,6 +156,7 @@ typedef struct mu_env_host {
     /* the effect factory 0x0153b02c(bitmap, position, position, angle, ..., owner, scale, ...)
      * of the fish creators in worlds 8, 0x21, 0x22, 0x86 and Kalima (optional) */
     void (*create_effect)(void *context, int32_t bitmap, const mu_env_object *owner, float scale, int32_t argument);
+    void (*open_monster)(void *context, int32_t model); /* 0x0180b0f4, asset request */
 } mu_env_host;
 
 /* Client state the routines read. */
@@ -172,6 +173,7 @@ typedef struct mu_env_inputs {
     int32_t login_scene;           /* 0x01ec3254; only 0 (in-world) is ported */
     const uint16_t *attributes;    /* TerrainWall 0x0b795420, 256x256 */
     const uint8_t *layer1;         /* TerrainMappingLayer1 0x0b735420, 256x256 */
+    int32_t ambient_clock; /* 0x0bdc5eb0, millisecond clock */
 } mu_env_inputs;
 
 /* World object of Tormenta Island (class vtable 0x01aabd10, constructor

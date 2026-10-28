@@ -2,6 +2,8 @@
 
 SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
 
+RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
+
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
 
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
