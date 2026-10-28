@@ -1,7 +1,8 @@
 # Session and runtime globals, SESSION-GLOBALS-001
 
 This is native lifetime plumbing. Reconstructed client routines, routes, record layouts, fixture policy and
-hash pins are unchanged. No original client, launcher, live service or installed data was used.
+hash pins are unchanged. No original client, launcher or live service was used. Lifecycle and render comparisons use authored data;
+the separate instruction regressions read existing offline captures and installed tables.
 
 ## Ownership inventory
 
@@ -45,7 +46,21 @@ attachment. The second world has two learned skills rather than the first world'
 A third test overlaps two world runtimes, each with different language tables and a rendered Imp. It destroys
 the second, verifies the first's text and unchanged image, and exercises two independent skill demo models and
 profiling contexts. Closing one profiling context preserves the other's phases and frame counter.
+Two fresh audio logs in that same process each start at host 1; overlapping hosts in one append log remain
+distinct in the existing audio-cue tests.
 These tests use authored synthetic worlds/tables and loopback fixtures only.
+
+## Differential renders
+
+Baseline main `7d813a93295dcf831dd900dbb8c9708022a27629` and milestone runtime source `0e2ae05` were built in
+this lane's worktree, with a clean native build between versions. Four synthetic `mu-walk` drives agree in
+exit status, complete stdout/stderr and all sixteen PNG files. The configurations are the ordinary world,
+Imp, Demon and actor/combat/items/progression. Common arguments are `--headless --backend soft --no-audio
+--width 64 --height 64 --frames 12 --every 4 --tile 120,120`, with an output directory. The last drive uses
+`actor 3 123 120 6 label spider` and `--combat-script 2:attack:spider`. Inputs are the existing authored
+`write_combat_world` and `write_helper_models` test fixtures. No Ruffle or installed-data comparison is inferred.
+The identical JSON-serialized, sorted PNG-manifest digest is
+`139f05641b94ee8911187e28f8a3cbeb1ed59644074f6bcb96b118e7e3a39b1f`.
 
 ## Evidence boundary
 
