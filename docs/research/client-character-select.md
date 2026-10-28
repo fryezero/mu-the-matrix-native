@@ -802,3 +802,20 @@ as errors. The manifest run, including mutants, took 58.7 seconds on this Mac.
 
 The comparison scope, exact counts, local artifact paths and limits are in
 [the lane handoff](../handoffs/CHARSEL-RT-001.md). No live client was used.
+
+
+## AUDIO-002 part 5: native tick sound delivery
+
+The three sound-25 branches of scene tick `0x01856e6c` now reach the shell's existing audio host through
+`mu_charsel_set_sound`. Verified source sites are Enter `0x01857064`, Esc menu `0x01857163` and Esc
+panel close `0x018571e6`; object NULL, loop 0. Enter's sound precedes the later refusal check.
+The original tick gates run unchanged, including busy, panel/menu, input, selection and protocol gates.
+The native callback is immediate and borrowed; detach discards sounds and close clears it. The shell
+supplies the configured sound table, while standalone tools need an explicit callback. Its no-GFx
+Esc-to-server shortcut remains unchanged and bypasses these branches.
+
+New complete-tick instruction comparison: 5,760 Enter + 64 Escape + 144 common = **5,968 cases,
+zero mismatches/stops, 11/11 compiled mutants caught**. The unchanged existing charsel validator passes
+another 6,000 cases and 12/12 mutants. Six native tests cover sound delivery, mute/disable, detach,
+close and shell wiring; pre-change standalone hashes and audio-on/off shell renders agree.
+[Full evidence and limits](../handoffs/AUDIO-002E.md). No original client or live service was used.

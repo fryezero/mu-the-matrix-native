@@ -45,6 +45,8 @@ def make_tree(tmp: Path) -> Path:
     shutil.copy(ROOT / 'reconstructed/social/social.h', t / 'reconstructed/social/social.h')
     (t / 'reconstructed/progress').mkdir(parents=True)
     shutil.copy(ROOT / 'reconstructed/progress/progress.h', t / 'reconstructed/progress/progress.h')
+    (t / 'reconstructed/map').mkdir(parents=True)
+    shutil.copy(ROOT / 'reconstructed/map/map.h', t / 'reconstructed/map/map.h')
     (t / 'reconstructed/items').mkdir(parents=True)
     shutil.copy(ROOT / 'reconstructed/items/ground_items.h', t / 'reconstructed/items/ground_items.h')
     (t / 'reconstructed/players').mkdir(parents=True)

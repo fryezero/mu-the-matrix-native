@@ -341,3 +341,13 @@ this milestone's.
   through this module; the clouds/WATERFALL1 particle kinds are not reconstructed.
 - The split passes (modes 1 and 2) are reconstructed but the native draws mode 0 only, as the in-world branch
   does.
+
+## RENDER-EFFECTS-003 consumers
+
+Spark02/2, Explosion01/0, Icarus flare01/0 and Tarkan smoke01/4/6/7/8 now have
+focused original-instruction create/move/render comparisons and compiled mutants.
+The world sprite assets Magic_Ground2 0x7f84, lightning3 0x7f38 and Impack03 0x8021
+are registered with their verified LINEAR/CLAMP loader arguments. See the
+[finding](client-render-effects-003.md) for counts, provenance, native dispatch,
+wind input and remaining producer/visual limits. The historical particle corpus
+and mount-breath rounding behavior are unchanged.

@@ -606,6 +606,10 @@ $(BUILD)/worlds-h-host: tests/worlds_h_host.c $(LIB) $(HEADERS)
 # Core consumers include the generated public domain and intent headers.
 $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 
+$(BUILD)/worlds-k-host: tests/worlds_k_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-k-host.o
+	$(CXX) $(BUILD)/worlds-k-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 $(BUILD)/worlds-i-host: tests/worlds_i_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-i-host.o
 	$(CXX) $(BUILD)/worlds-i-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
@@ -624,6 +628,10 @@ $(BUILD)/world-repeat-host: tests/session_repeat_host.c world/world_tool.c $(WOR
 $(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/globals_owner_host.o
 	$(CXX) $(BUILD)/globals_owner_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+$(BUILD)/particle-consumers-host: tests/particle_consumers_host.c $(LIB) $(HEADERS) $(BUILD)/libmusession_world.a $(BUILD)/libmuaudio.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/particle_consumers_host.o
+	$(CXX) $(BUILD)/particle_consumers_host.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 $(BUILD)/worlds-j-host: tests/worlds_j_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-j-host.o

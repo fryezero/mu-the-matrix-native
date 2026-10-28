@@ -123,12 +123,9 @@ void mu_map_session_init(mu_map_session *s, const mu_lang *lang, int32_t world, 
 
 void mu_map_set_position(mu_map_session *s, int32_t world, int32_t tile_x, int32_t tile_y)
 {
-    int changed = world != s->world;
     s->world = world;
     s->tile_x = tile_x;
     s->tile_y = tile_y;
-    if (changed)
-        mu_map_clear_npcs(s);
 }
 
 /* ---- map overlay ---------------------------------------------------------------------------------------- */
@@ -158,53 +155,10 @@ int mu_map_session_load_map(mu_map_session *s, const char *game_root, char *name
     return s->hud.available;
 }
 
-static void add_unit_packet(mu_map_session *s, int32_t key, int32_t type, int32_t state, int32_t x, int32_t y,
-                            const char *name)
+void mu_map_bind_overlay(mu_map_session *s, const struct mu_session *overlay)
 {
-    /* the demo server's 0xE7 sub-3 record, parsed by the client's rule */
-    uint8_t p[64] = {0xc1, 0, 0xe7, 3, (uint8_t)key, (uint8_t)type, (uint8_t)state, 0, (uint8_t)x, (uint8_t)y};
-    size_t n = strlen(name);
-    if (n > 40)
-        n = 40;
-    memcpy(p + 10, name, n);
-    p[10 + n] = 0;
-    p[1] = (uint8_t)(11 + n);
-    if (s->nunits < MU_MAP_UNITS_MAX && mu_map_unit_packet(p, 11 + n, 1, &s->units[s->nunits]) == MU_MAP_UNIT_ADD)
-        s->nunits++;
-}
-
-void mu_map_demo_units(mu_map_session *s)
-{
-    s->nunits = 0;
-    int key = 0;
-    for (int i = 0; i < s->ngates; i++) {
-        const mu_gate *g = &s->gates[i];
-        if (g->flag != 1 || g->world != s->world)
-            continue;
-        const mu_gate *t = gate_lookup(s, g->target);
-        char label[96];
-        const char *name = t ? mu_map_world_name(s, t->world) : "";
-        snprintf(label, sizeof label, "%s%sEntrance", name, name[0] ? " " : "");   /* DEMO text */
-        add_unit_packet(s, key++, 0, 0, (g->x1 + g->x2) / 2, (g->y1 + g->y2) / 2, label);
-    }
-    for (int i = 0; i < s->nnpcs && s->nunits < MU_MAP_UNITS_MAX; i++)
-        s->units[s->nunits++] = s->npcs[i];
-    s->units_dirty = 1;
-}
-
-void mu_map_clear_npcs(mu_map_session *s)
-{
-    s->nnpcs = 0;
-    mu_map_demo_units(s);
-}
-
-void mu_map_add_npc(mu_map_session *s, int32_t key, const char *name, int32_t tile_x, int32_t tile_y)
-{
-    int before = s->nunits;
-    add_unit_packet(s, key, 1, 0, tile_x, tile_y, name ? name : "");
-    if (s->nunits > before && s->nnpcs < MU_MAP_UNITS_MAX)
-        s->npcs[s->nnpcs++] = s->units[before];
-    s->units_dirty = 1;
+    s->overlay = overlay;
+    ++s->overlay_epoch;
 }
 
 void mu_map_toggle(mu_map_session *s, int show, mu_map_show_result *out)
@@ -387,8 +341,6 @@ int mu_map_take_teleport(mu_map_session *s, mu_teleport *out)
     s->pending = 0;
     s->gate_sent = 0;
     s->loading_world = out->number ? MU_TELEPORT_LOADING_WORLD : 0;
-    if (mu_teleport_changes_world(out, s->world))
-        s->units_dirty = 1;
     /* Number zero moves the hero without reading a new world into the client's globals. */
     if (!out->number)
         out->world = (uint16_t)s->world;

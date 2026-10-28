@@ -57,6 +57,7 @@ static void objects_tick(struct mu_world_rt *a, void *self)
         mu_objects_step_inputs in = {6, a->map->layer1[index], a->map->time,
                                      {h->position[0], h->position[1], h->position[2]}, a->frustum.x2d,
                                      a->frustum.y2d};
+        a->objects.rt.hero_action = h->action;
         a->objects.rt.environment = a->has_env ? &a->env.env : NULL;
         a->objects.rt.hero_safe = (uint8_t)(a->map->attributes[index] & 1u);
         if (a->world == 57 || a->world == 58) mu_objects_set_clock(&a->objects, a->walk.frame.now);

@@ -180,6 +180,22 @@ class WorldRender(unittest.TestCase):
         missing,_=self.render(*options,'--lighting','1','--world-time','0')
         self.assertEqual((missing['special'],missing['passes']),(0,10))
 
+    def test_ranked_body_and_nine_bone_shield_use_shared_draws(self):
+        path = self.tmp/'ranked-armour.bmd'
+        path.write_bytes(nf.character_layout(113,bones=50,meshes=6,dummies=(9,21)))
+        ordinary,_ = self.render('--part','2',path)
+        body,_ = self.render('--part','2',path,'--item-type','armor=0x2024',
+                             '--world-time','500')
+        again,_ = self.render('--part','2',path,'--item-type','armor=0x2024',
+                              '--world-time','500')
+        self.assertEqual(body['special'],0)
+        self.assertGreater(body['passes'],ordinary['passes'])
+        self.assertEqual(body['sha256'],again['sha256'])
+        shield,_ = self.render('--item-type','weapon0=0x16fa')
+        self.assertEqual((shield['special'],shield['link_sprites']),(0,2))
+        complete,_ = self.render('--weapon','0',path,'--item-type','weapon0=0x16fa')
+        self.assertEqual((complete['special'],complete['link_sprites']),(0,9))
+
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),
                     ('--actor-weapon', 'x')):

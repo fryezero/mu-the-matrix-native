@@ -7,12 +7,16 @@
 #include <string.h>
 
 #include "../core/mu_lang.h"
+#include "../session/mu_session.h"
 #include "../gfx/mu_gfx_layer.h"
 
 struct world_gfx_map {
     mu_gfx_layer *layer;
     mu_map_session *s;
     const char *root;
+    uint32_t overlay_rev, overlay_epoch, detector_seq;
+    const mu_session *overlay_owner;
+    int overlay_valid;
     int hud_inited;
     int32_t map_world;          /* world whose image and units the movie holds (-1: none) */
     char hud_path[160];
@@ -87,14 +91,28 @@ static void hud_units(world_gfx_map *m)
 {
     char buf[512], q[160];
     mu_gfx_layer_invoke(m->layer, MU_GFX_MAIN, m->hud_path, "delAllUnit", "[]");
-    for (int i = 0; i < m->s->nunits; i++) {
-        const mu_map_unit *u = &m->s->units[i];
+    mu_map_overlay_view v = mu_session_map_overlay(m->s->overlay);
+    for (int i = 0; i < v.count; i++) {
+        const mu_map_unit *u = &v.markers[i];
         jstr(q, sizeof q, u->text);
         snprintf(buf, sizeof buf, "[{\"type\":%d,\"key\":%d,\"state\":%d,\"text\":%s,\"x\":%.9g,\"y\":%.9g}]", u->type,
                  u->key, u->state, q, (double)u->x, (double)u->y);
         mu_gfx_layer_invoke(m->layer, MU_GFX_MAIN, m->hud_path, "addUnit", buf);
     }
-    m->s->units_dirty = 0;
+    /* AddDetectedUnit takes one array argument, as 0x00c6b6c2 does.
+     * Bound stack storage, no allocation on the frame path. Empty refresh is explicit. */
+    char dots[MU_MAP_DETECTED_MAX * 128 + 4];
+    size_t n = 0;
+    dots[n++] = '['; dots[n++] = '[';
+    for (int i = 0; i < v.detected_count; ++i) {
+        const mu_map_unit *u = &v.detected[i];
+        n += (size_t)snprintf(dots+n, sizeof dots-n,
+            "%s{\"type\":%d,\"key\":%d,\"state\":0,\"text\":\"\",\"x\":%.9g,\"y\":%.9g}",
+            i ? "," : "", u->type, u->key, (double)u->x, (double)u->y);
+    }
+    snprintf(dots+n, sizeof dots-n, "]]");
+    mu_gfx_layer_invoke(m->layer, MU_GFX_MAIN, m->hud_path, "AddDetectedUnit", dots);
+    m->overlay_rev = v.revision; m->overlay_owner = m->s->overlay; m->overlay_valid = 1; m->overlay_epoch = m->s->overlay_epoch;
 }
 
 static void show(world_gfx_map *m, int b)
@@ -105,9 +123,8 @@ static void show(world_gfx_map *m, int b)
         notice(m, m->s->notice);
     if (r.set_show) {
         mu_gfx_layer_invoke(m->layer, MU_GFX_MAIN, m->hud_path, "setShowMap", r.shown ? "[true]" : "[false]");
-        /* C1 E7 01: the server answers with the world's units (the demo sends them again) */
+        /* Showing the view replays current records, without changing session state. */
         if (r.shown) {
-            mu_map_demo_units(m->s);
             hud_units(m);
         }
     }
@@ -304,17 +321,23 @@ void world_gfx_map_frame(world_gfx_map *m, const float hero_pos[2], float hero_a
         snprintf(m->hud_path, sizeof m->hud_path, "%s", path);
         m->hud_inited = 0;
         m->map_world = -1;
+        m->overlay_valid = 0;
     }
     if (!m->hud_inited)
         hud_init(m);
     if (m->map_world != m->s->world) {
         hud_load_world(m);
         if (m->s->hud.shown) {
-            mu_map_demo_units(m->s);
             hud_units(m);
         }
     }
-    if (m->s->hud.shown && m->s->units_dirty)
+    mu_map_overlay_view overlay = mu_session_map_overlay(m->s->overlay);
+    if (overlay.detector_seq && overlay.detector_seq != m->detector_seq) {
+        m->s->hud.shown = 1;
+        mu_gfx_layer_invoke(m->layer, MU_GFX_MAIN, m->hud_path, "setShowMap", "[true]");
+    }
+    m->detector_seq = overlay.detector_seq;
+    if (m->s->hud.shown && (!m->overlay_valid || m->overlay_owner != m->s->overlay || m->overlay_epoch != m->s->overlay_epoch || m->overlay_rev != overlay.revision))
         hud_units(m);
     mu_map_hud_frame f;
     mu_map_hud_update(&m->s->hud, 1, 1, hero_pos, hero_angle_z, &f);

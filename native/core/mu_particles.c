@@ -19,7 +19,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 49
+#define MU_WORLD_PT_EFFECTS 53
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE, MU_PT_BITMAP_SMOKE, MU_PT_BITMAP_FLARE, MU_PT_BITMAP_SPARK3, MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER, MU_JT_BITMAP_SPARK, MU_JT_BITMAP_SPIRIT,
@@ -35,7 +35,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2,
     MU_SFX_BITMAP_LIGHTING_A + 3, MU_SFX_BITMAP_LIGHTING_A + 4, 0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd,
     0x7fe0, 0x8098, MU_JT_BITMAP_LASER, MU_PT_BITMAP_SMOKE5, 0x8016, 0x806e, 0x8084, 0x8085, 0x7f8a, 0x7f21,
-    MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    0x7f54, 0x7f84, 0x7f38, 0x8021, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ", "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
@@ -53,7 +53,9 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt",
     /* LoadBitmap 01820fcf,0182188f,01821b2f,01821b4f, RENDER-WORLDS-A. */
     "Data/Effect/fantaF.OZJ", "Data/Effect/firehik02.OZJ", "Data/Effect/firehik01.OZJ",
-    "Data/Effect/firehik03.OZJ", "Data/Effect/cloudLight.OZJ", "Data/Effect/Map_Smoke1.OZJ"};
+    "Data/Effect/firehik03.OZJ", "Data/Effect/cloudLight.OZJ", "Data/Effect/Map_Smoke1.OZJ", "Data/Effect/Explotion01.OZJ",
+    /* LoadBitmap 0x01821599 / 0x01822345 / 0x01821f65, LINEAR/CLAMP/1/0. */
+    "Data/Effect/Magic_Ground2.OZJ", "Data/Effect/lightning3.OZJ", "Data/Effect/Impack03.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -125,6 +127,21 @@ static int h_cloud_owner(void *c, int32_t index, int reset)
     return o[MU_OBJF_VISIBLE] == 1;
 }
 
+static void h_sound(void *context, int32_t id)
+{
+    (void)id;
+    ((mu_world_particles *)context)->stats.sounds++;
+}
+
+static void h_light(void *context, float x, float y, const float rgb[3], int32_t range)
+{
+    mu_world_particles *p = context;
+    if (p->light_count >= MU_WORLD_FX_LIGHTS) return;
+    mu_world_fx_light *l = &p->lights[p->light_count++];
+    l->x = x; l->y = y; l->range = range;
+    memcpy(l->rgb, rgb, sizeof l->rgb);
+}
+
 static void host(mu_world_particles *p, mu_pt_host *h)
 {
     memset(h, 0, sizeof *h);
@@ -139,6 +156,8 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->scene_state = p->scene_state;   /* SceneFlag (NATIVE-CHARSEL-002: WATERFALL2 in scene 5) */
     h->bitmap_height = h_bitmap_height;
     h->cloud_owner = h_cloud_owner;
+    h->sound = h_sound;
+    h->light = h_light;
 }
 
 /* ---- assets ---- */
