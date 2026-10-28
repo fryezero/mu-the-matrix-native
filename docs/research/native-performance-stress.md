@@ -1,7 +1,7 @@
 # Extreme native scenes, NATIVE-PERF-002
 
-The ordered character draw path costs less CPU time, and the offline demo can now exercise 80 equipped
-players. **The 25 fps target is still open in every measured stress scenario.** This milestone supplies
+The offline demo can now exercise 80 equipped players through ordered batching and direct corner delivery.
+**The 25 fps target is still open in every measured stress scenario.** This milestone supplies
 reproducible workloads, profiling, measured optimizations and regression checks, with the shortfall recorded
 below. It does not establish 25 fps in arbitrary worlds or the finished native client.
 
@@ -20,9 +20,12 @@ PERF-001's older overlay and cap too.
 
 The first sampling profile, `sample PID 3 1`, has 1,835 main-thread samples: 780 in `players_draw_gl`, 725
 under its mesh/body draw, and repeated corner adaptation, state decoding and immediate GL entry points.
-Skinning and Ruffle also appear. A final 80-player profile identifies skinning, Ruffle AVM1 property
+Skinning and Ruffle also appear. A later 80-player profile on the pre-final `a2a1c00` snapshot identifies skinning, Ruffle AVM1 property
 lookup/case folding, mesh drawing and batch vertex delivery among the remaining executing hot paths. These are observations of the host implementation, not new conclusions
 about original x86 behavior. Existing instruction comparisons remain the oracle for the reconstructed math.
+Two repeat `sample` attempts on the integrated binary produced no usable profile. One was stopped after
+its demo exited; the other exceeded a 90-second timeout. The earlier completed profiles remain the sampling evidence.
+A fresh integrated sampling profile is still needed.
 
 ## Changes
 
@@ -49,13 +52,11 @@ about original x86 behavior. Existing instruction comparisons remain the oracle 
 
 ## Workloads and results
 
-The timing binary is from `a2a1c00`, after the viewport migration, expanded item bodies and AUDIO-002.
-The final world-D merge adds warp worlds outside this matrix; it is covered by the final gate and its
-validators. The timing table is a snapshot of that measured binary, not a claim for every later world.
-Upstream session scheduling changes and their intended hash differences are documented separately in
-[SESSION-VIEWPORT-001](../handoffs/SESSION-VIEWPORT-001.md). Both perf modes here use the same post-migration
-feed. Legacy presentation capacity rises from that milestone's eight-model cache to 80.
-
+The final timing binary is from `4d556f3`, integrated through main `128679f`, including the expanded
+item bodies, Icarus C2 and the monster/session migration. Both modes use this same binary. Upstream
+session scheduling and intended item/effect differences belong to their own milestones; they occur on
+both sides here. Legacy presentation capacity rises from eight models to 80. The earlier timing snapshot
+from `a2a1c00` is retained locally, including its unfavorable large-target result.
 
 `native/tools/bench_stress.py` generates authored demo files. Every player has five +11 armor pieces,
 a weapon with excellent glow and wings. Each scene has 32 wandering monsters, repeated skills 9/10/14/24/26,
@@ -69,33 +70,37 @@ Master/fourth skill trees. `tormenta80` uses world 141 at 50,46 with the same wi
 an attached Retina panel. The map opens at frame 60 in every scene, camera FOV 65, all normal effects,
 objects, environment and names enabled. Audio output is disabled during timing.
 
-Before and after are paired sequentially per scenario, first 50 frames excluded. Crowd40 uses 24-second
-runs, the three 80-player scenes 60-second runs. Measured frame counts before/after are 103/162,
-270/321, 332/494 and 368/219 respectively. The
-benchmarks did not overlap each other. Other agents and this task were running CPU/GPU-intensive validations on this Mac;
-load averages and concurrent workloads varied throughout the run. Thus these are shared-host measurements, with scheduling,
-frequency and thermal variation. Do not infer a clean single-host speedup ratio from them. Frame counts
-and binary hashes, exact commands and workload summaries are retained locally.
+Before and after are paired sequentially per scenario, first 50 frames excluded. Crowd40 uses 40-second
+runs, the three 80-player scenes 60-second runs. Measured frame counts before/after are 333/397,
+326/309, 209/304 and 201/309 respectively. The benchmarks did not overlap each other. Other agents and
+this task ran CPU/GPU-intensive validation and build work on this Mac. Load, scheduling, frequency and
+thermal conditions varied. These shared-host measurements do not isolate a causal speedup. Binary
+hashes, commands, workload summaries and raw frame logs are retained locally.
 
 | Scenario | Before fps | After fps | Before frame p50/p95/p99 ms | After frame p50/p95/p99 ms | CPU before/after ms | World GL before/after ms |
 |---|---:|---:|---|---|---|---|
-| crowd40 | 7.84 | 9.40 | 122.2/195.1/211.3 | 99.3/172.7/213.1 | 65.7/52.6 | 61.9/44.0 |
-| crowd80 | 6.36 | 6.97 | 160.8/222.1/242.6 | 139.0/206.6/240.5 | 108.8/100.4 | 60.7/49.9 |
-| tormenta80 | 7.12 | 10.26 | 137.0/194.7/221.9 | 95.4/124.8/151.6 | 112.4/89.6 | 58.2/37.3 |
-| retina80 | 7.71 | 4.89 | 128.0/165.5/198.6 | 201.7/314.7/441.4 | 124.1/126.9 | 62.4/80.5 |
+| crowd40 | 10.40 | 12.05 | 91.6/148.2/190.1 | 81.9/119.3/133.1 | 58.0/52.0 | 46.8/36.4 |
+| crowd80 | 7.08 | 6.38 | 131.7/224.3/270.8 | 141.5/248.5/269.0 | 110.8/106.2 | 55.0/52.2 |
+| tormenta80 | 4.61 | 6.76 | 218.6/289.9/332.0 | 146.0/204.5/235.5 | 126.1/110.1 | 82.5/51.1 |
+| retina80 | 5.02 | 6.99 | 204.9/254.5/316.5 | 134.8/209.1/260.5 | 141.2/120.1 | 88.0/60.6 |
 
 CPU is mean main-thread execution time, not whole-process CPU. World GL is the mean asynchronous
 `GL_TIME_ELAPSED` interval around the world draw. It overlaps CPU submission and can include GPU pipeline
 bubbles. Ruffle renders through Metal outside that query. These columns cannot be added or subtracted
 to derive total GPU execution or idle time. A complete Ruffle GPU split remains unmeasured.
 
-After work p95/p99, excluding cap sleep: crowd40 172.7/213.1 ms; crowd80 206.6/240.5 ms;
-Tormenta 124.8/151.6 ms; large target 314.7/441.4 ms. Every scenario fails the strict 40 ms target.
-After GFx means are 39.9/70.4/42.1/86.6 ms. The large target regresses in fps and tails, while its CPU
-mean changes from 124.1 to 126.9 ms. This is an unresolved performance result, not a success hidden by
-an average. Shared GPU/CPU contention, real-time logic catch-up and Ruffle timing vary between these
-runs; their separate contributions are not isolated. Repeat an idle, controlled run before claiming a
-causal speedup. No claim of improvement at every percentile or in every scene is made.
+After work p95/p99, excluding cap sleep: crowd40 119.3/133.1 ms; crowd80 248.5/269.0 ms;
+Tormenta 204.5/235.5 ms; large target 209.1/260.5 ms. Every scenario fails the strict 40 ms target.
+After GFx means are 29.4/77.1/70.8/57.4 ms. The 80-player Lorencia run regresses from 7.08 to 6.38 fps
+although its main-thread CPU mean falls from 110.8 to 106.2 ms. The GFx phase alone exceeds the entire
+40 ms budget in three scenes. The world-GL interval also exceeds 40 ms in those scenes, but overlaps
+CPU submission and omits Ruffle's Metal work. Its contribution cannot be separated by subtraction.
+
+The earlier `a2a1c00` large-target pair regressed from 7.71 to 4.89 fps, p99 198.6 to 441.4 ms. This
+integrated repeat improves there but regresses in Lorencia. Neither result is discarded. Shared CPU/GPU
+contention, real-time catch-up and Ruffle timing are not isolated. Repeat on an idle Mac before claiming
+a causal speedup or a win in every scene. Main-thread CPU is lower in all four final pairs, but that
+observation also remains subject to the shared-host conditions.
 
 Per-object pose caching was not added: safe keys must account for shared bone/root buffers, attachment
 state and every transform/light input. No cache with incomplete invalidation was shipped.
@@ -120,11 +125,11 @@ make -C native world client
 ```
 
 The committed `stress_m5_limits.json` separates the measured M5 regression envelope from the 25 Hz goal.
-All four measured after runs pass the committed full-nameplate regression envelopes. All four strict
-25 Hz goal checks fail. These are deliberately different results. The warning envelope
-uses the final full-nameplate, expanded-item-body workload, with independent frame-tail and CPU limits.
-Passing it establishes neither an optimization win nor 25 Hz acceptance. It catches
-large draw-path regressions without pretending the current baseline meets the target. Synthetic tests
+Three final after runs pass its committed warning envelopes. Tormenta fails the fps floor, frame tails
+and CPU ceiling. Those failures remain visible and the limits were not widened to accept the integrated
+repeat. All four strict 25 Hz goal checks fail. Passing a warning envelope establishes neither an
+optimization win nor 25 Hz acceptance. It is a repeatable warning check against the earlier full-nameplate,
+expanded-item workload; shared-host load can exceed it. Synthetic tests
 exercise fast/slow, missing workload and both threshold paths. Recalibrate on other hardware or an idle
 Mac, preserving the strict 25 Hz check. The JSON limits are reviewed summaries, not proprietary data.
 
