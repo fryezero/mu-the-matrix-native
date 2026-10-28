@@ -223,7 +223,66 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
      the Wine-track renderer (to report to the mu-the-matrix-mac track); the rest is not explained. Fine shading
      comparisons against the Mac-hosted client should take this into account.
 3. The brazier and torch flames themselves in Kanturu and Karutan (their lights are ported; the flames come from
-   RenderObjectVisual `0x017f9758`'s world cases, not ported), and the visual-pass flags (`+0xa` drawn after the
+   RenderObjectVisual `0x017f9758`'s world cases, now covered by RENDER-WORLDS-A below), and the visual-pass flags (`+0xa` drawn after the
    characters in Noria, Elbeland, Raklion, Karutan).
 4. Move cases of Devias (doors, flicker), Tarkan, Elbeland (`0x00e30b86`) and Raklion (handler slot `0x00e94619`);
    objects that world code creates (Devias 422–424, Raklion); Raklion's snow.
+
+## RENDER-WORLDS-A, 2026-10-27
+
+Authored per-world files in `reconstructed/objects/world_*_visual.c` implement the scoped Kanturu/Karutan
+visuals and the deferred body/mesh handlers. `world_after.c` dispatches only the four requested world groups.
+The native object runtime consumes their particle/sprite logs and draws the second pass after characters/items,
+before the environment. Raklion's opaque meshes remain in the first pass and its glow meshes in the second.
+Elbeland's deferred lamps also reach the sprite pool. Existing login/character-select dispatch remains intact.
+
+### Verified instruction comparisons
+
+The executable target remains SHA-256 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+Text and second-image-data use the repository's capture09/run10 pins. `validate_render_worlds_a.py` records
+complete routine hashes with its report and compares compiled authored C against the original instructions.
+
+| Family | Cases | Boundary |
+|---|---:|---|
+| Kanturu flames, `0x00e75089` | 1,000 | Types 59 smoke subtype 21, 61 fantaF, 70 bone-6 glow; type 60 has no visual call here; worlds 37/40 |
+| Karutan brazier, `0x00e13be4` | 1,000 | Type 113, flare sprite and firehik01/02/03 particle choice; worlds 80/81 |
+| Second pass, `0x016d6949` | 1,000 | Worlds 3/51/57/58/80/81; sectors, objects, counter, live/flag checks, special predicate and draw calls |
+| Deferred draw bodies/meshes | 1,000 | Noria `0x016d67c7`, Elbeland `0x00e321bb`, Raklion `0x00e96536`, Karutan `0x00e1543e`; object writes and calls, including Elbeland bone sprites |
+| Flag-writing branches | 1,000 | Elbeland/Raklion/Karutan type sets, including negative types and pre-existing flag values; only the flag byte is claimed by this family |
+| Raklion first meshes | 1,000 | Types 83/92 at `0x00e949f8`; the body meshes before their deferred glow |
+| Particle creation | 1,000 | Smoke01/21, fantaF/0, firehik01/0, firehik02/4, firehik03/0 |
+| Particle movement | 1,000 | Same five kinds, lifetime/fade/scale/rise/rotation and existing common motion |
+| Particle rendering | 1,000 | Same kinds, bitmap/state/Sprite call; smoke21 uses subtract blending |
+
+**9,000 cases, zero mismatches, zero stopped cases; 13/13 compiled planted mistakes detected.** Bone transforms,
+particle/sprite leaf calls and mesh/body calls are explicit recording boundaries. Sine executes as original code;
+the C uses the repository's established float-rounded host-sine equivalent. The new bitmap names are static reads
+of LoadBitmap at `0x01820fcf`, `0x0182188f`, `0x01821b2f`, `0x01821b4f`, not guessed assets.
+
+The synthetic native regression exercises hidden Kanturu emission, Karutan particle/sprite creation and drawing,
+and all four worlds' after-pass bodies. The renderer's GL and software draw hooks share the same prepared calls.
+The character-select build dependency now uses `HEADERS`, replacing undefined `CORE_HDR`, so changes to the
+particle table's struct layout rebuild every character-select consumer.
+
+### Fidelity and remaining evidence limits
+
+No original client or launcher ran. Local artifacts are under `mu-mac-tools/native/scratch/render-worlds/` and
+`mu-mac-tools/native/renders/render-worlds-a/`; none are committed.
+
+The owner confirmed the October 23 image cleanup. Only Dungeon, Icarus and Kanturu survive at full resolution in
+`renders/readme-sources/`. The surviving Kanturu image is the live visual oracle; object/light snapshots and
+historical score reports remain the live evidence for Karutan/Noria/Elbeland/Raklion. Native before/after frames
+cover those four maps. Fresh live captures of them, under the game lock in a later run, remain the next step.
+
+At the tour's default 25 logic steps and two rendered frames, Kanturu masked mean error is **3.717 -> 4.006**.
+That sparse sampling creates only two particles. Rendering all 25 frames, as gameplay does, creates 53 particles
+and gives **3.444**, with the flames visibly at the captured torch positions. These are unsynchronised particle
+phases, not a claim of exact frame equality. The nine unaffected tour entries retain both frame hashes.
+
+Near-hero `after_character` field differences against the October 22 snapshots are Noria **15 -> 15**,
+Elbeland **12 -> 0**, Raklion **10 -> 0**, Karutan **6 -> 6**. Noria type 19 is selected by `0x017fece6` before
+any live/flag gate; this port reproduces that selector without inventing the separate capture's flag writer.
+Karutan's remaining flags belong to objects outside the native first pass. Other per-world body effects,
+world handlers, creation effects, region import, shadow/custom registries and the sibling B/C work are outside A.
+
+See [the milestone handoff](../handoffs/RENDER-WORLDS-A.md) for the integrated gate and merge record.

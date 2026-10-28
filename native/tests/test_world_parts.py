@@ -32,10 +32,10 @@ MAIN_C_ORDER = {
     # lights are the objects row)
     'frame': ['items', 'terrain', 'objects', 'combat', 'particles', 'actors', 'players', 'map', 'social', 'names'],
     # draw_gl main.c:2296-2518
-    'draw_gl': ['terrain', 'objects', 'hero', 'players', 'helpers', 'actors', 'items', 'env', 'marker', 'particles',
+    'draw_gl': ['terrain', 'objects', 'hero', 'players', 'helpers', 'actors', 'items', 'objects_after', 'env', 'marker', 'particles',
                 'actor_effects', 'combat', 'item_labels', 'names'],
     # draw_soft main.c:2549-2680
-    'draw_soft': ['terrain', 'objects', 'hero', 'players', 'actors', 'items', 'env', 'helpers', 'particles', 'marker',
+    'draw_soft': ['terrain', 'objects', 'hero', 'players', 'actors', 'items', 'objects_after', 'env', 'helpers', 'particles', 'marker',
                   'actor_effects', 'combat', 'item_labels', 'names'],
     # report_frame main.c:2707-2727 and report_summary main.c:2793-2915 (one order for both)
     'report': ['sound', 'env', 'particles', 'objects', 'actors', 'combat', 'progress', 'items', 'players', 'helpers',
@@ -56,12 +56,12 @@ SIGNATURE = {
               'social': 'world_gfx_social_frame', 'names': 'mu_world_names_frame'},
     'draw_gl': {'terrain': 'mu_terrain_render', 'objects': 'mu_objects_visibility', 'hero': 'mu_scene_draw_model',
                 'players': 'player_item_draw', 'helpers': 'mu_world_helpers_draw', 'actors': 'npc_item_draw',
-                'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw', 'marker': 'marker',
+                'items': 'mu_world_items_draw', 'objects_after': 'mu_objects_after_visibility', 'env': 'mu_world_env_draw', 'marker': 'marker',
                 'particles': 'mu_world_particles_draw', 'actor_effects': 'mu_effect_scene_render_to',
                 'combat': 'combat_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
     'draw_soft': {'terrain': 'mu_world_draw_raster_view', 'objects': 'mu_objects_render_raster',
                   'hero': 'mu_scene_draw_model', 'players': 'player_item_draw', 'actors': 'npc_item_draw',
-                  'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw_raster',
+                  'items': 'mu_world_items_draw', 'objects_after': 'mu_objects_after_visibility', 'env': 'mu_world_env_draw_raster',
                   'helpers': 'mu_world_helpers_draw_raster', 'particles': 'mu_world_particles_draw_raster',
                   'marker': 'marker', 'actor_effects': 'mu_effect_scene_render', 'combat': 'mu_combat_draw_raster',
                   'item_labels': 'mu_world_items_label_blit', 'names': 'mu_world_names_draw'},
@@ -114,7 +114,7 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 21)
+        self.assertEqual(len(ids), 22)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 

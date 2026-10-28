@@ -38,3 +38,5 @@ MU_PART(quest_step,    mu_part_quest_step,      0,   40,   0,   0,   0,   0) /* 
 MU_PART(marker,        mu_part_marker,          0,    0,   0,  90, 100,   0) /* viewer aid: the clicked point            */
 MU_PART(actor_effects, mu_part_actor_effects,   0,    0,   0, 110, 110,   0) /* the actors' EffectManager instances      */
 MU_PART(item_labels,   mu_part_item_labels,     0,    0,   0, 130, 130,   0) /* the ground items' name labels            */
+
+MU_PART(objects_after, mu_part_objects_after, 0, 0, 0, 75, 65, 0) /* RenderObjects_AfterCharacter */

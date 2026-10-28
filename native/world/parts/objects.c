@@ -75,16 +75,18 @@ static void objects_report_summary(const struct mu_world_rt *a, const void *self
 {
     (void)self;
     if (a->has_objects)
-        printf("{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"
-               " \"objects_created\": %d, \"objects_create_unsupported\": %d, \"object_steps\": %u,"
-               " \"objects_moved\": %ld, \"object_ticks\": %ld, \"object_lights\": %ld, \"object_particles\": %ld,"
-               " \"object_sounds\": %ld, \"object_draw_list\": %d, \"object_lights_last_step\": %d,"
-               " \"objects_animated\": %d}\n",
-               a->objects.count, a->objects.models_loaded, a->objects.models_missing, a->objects_drawn,
-               a->objects.rt.created, a->objects.rt.create_unsupported, a->objects.rt.steps, a->objects.rt.moved,
-               a->objects.rt.ticks, a->objects.rt.light_events, a->objects.rt.particle_events,
-               a->objects.rt.sound_events, a->objects.rt.draw_count, a->objects.rt.light_count,
-               mu_objects_animated(&a->objects));
+        printf(
+            "{\"objects\": %d, \"object_models\": %d, \"object_models_missing\": %d, \"objects_drawn\": %ld,"
+            " \"objects_created\": %d, \"objects_create_unsupported\": %d, \"object_steps\": %u,"
+            " \"objects_moved\": %ld, \"object_ticks\": %ld, \"object_lights\": %ld, \"object_particles\": "
+            "%ld,"
+            " \"object_sounds\": %ld, \"object_draw_list\": %d, \"object_lights_last_step\": %d,"
+            " \"objects_animated\": %d, \"object_after_meshes\": %ld}\n",
+            a->objects.count, a->objects.models_loaded, a->objects.models_missing, a->objects_drawn,
+            a->objects.rt.created, a->objects.rt.create_unsupported, a->objects.rt.steps, a->objects.rt.moved,
+            a->objects.rt.ticks, a->objects.rt.light_events, a->objects.rt.particle_events,
+            a->objects.rt.sound_events, a->objects.rt.draw_count, a->objects.rt.light_count,
+            mu_objects_animated(&a->objects), a->objects.rt.after_meshes);
 }
 
 #ifndef MU_WORLD_NO_GL
@@ -129,7 +131,15 @@ static void objects_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             mu_render_backend backend;
             mu_gl_backend_bind(&p->object_gl[m->type], &backend);
             mu_draw_stats ds = {0, 0, 0, 0};
-            if (!mu_scene_draw_model(&m->model, &object_options, &backend, &ds))
+            mu_object_mesh meshes[4];
+            const int32_t count = mu_objects_first_meshes(&a->objects, k, a->map, m, meshes, 4);
+            if (count) {
+                for (int32_t j = 0; j < count; ++j) {
+                    meshes[j].options.fields = &meshes[j].fields;
+                    mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds);
+                }
+                ++a->objects_drawn;
+            } else if (!mu_scene_draw_model(&m->model, &object_options, &backend, &ds))
                 ++a->objects_drawn;
         }
         if (a->batch)
@@ -140,6 +150,77 @@ static void objects_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
     mu_perf_end(MU_PERF_OBJECTS, d->perf);
 }
 #endif
+
+/* RENDER-WORLDS-A: 0x016d6949 after characters/items, before the environment. */
+static void objects_after_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
+{
+    (void)self;
+    if (!a->has_objects)
+        return;
+    mu_objects_after_visibility(&a->objects, &a->frustum, 6);
+    mu_render_backend backend;
+    mu_raster_backend(d->raster, &backend);
+    for (int32_t k = 0; k < a->objects.rt.after_count; ++k) {
+        mu_object_mesh meshes[40];
+        int32_t count;
+        mu_object_model *m = mu_objects_prepare_after(&a->objects, k, a->map, 6, meshes, 40, &count);
+        if (!m)
+            continue;
+        d->raster->textures = m->textures.slots;
+        d->raster->texture_count = m->textures.count;
+        d->raster->texture_filter = m->textures.filter;
+        d->raster->texture_wrap = m->textures.wrap;
+        for (int32_t j = 0; j < count; ++j) {
+            meshes[j].options.fields = &meshes[j].fields;
+            mu_draw_stats ds = {0};
+            mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds);
+        }
+    }
+    d->raster->textures = NULL;
+    d->raster->texture_count = 0;
+    d->raster->texture_filter = NULL;
+    d->raster->texture_wrap = NULL;
+}
+#ifndef MU_WORLD_NO_GL
+static void objects_after_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
+{
+    objects_part *p = self;
+    (void)d;
+    if (!a->has_objects)
+        return;
+    mu_objects_after_visibility(&a->objects, &a->frustum, 6);
+    if (a->batch)
+        mu_gl_batch_session_begin(a->batch);
+    for (int32_t k = 0; k < a->objects.rt.after_count; ++k) {
+        mu_object_mesh meshes[40];
+        int32_t count;
+        mu_object_model *m = mu_objects_prepare_after(&a->objects, k, a->map, 6, meshes, 40, &count);
+        if (!m)
+            continue;
+        mu_render_backend backend;
+        mu_gl_backend_bind(&p->object_gl[m->type], &backend);
+        for (int32_t j = 0; j < count; ++j) {
+            meshes[j].options.fields = &meshes[j].fields;
+            mu_draw_stats ds = {0};
+            mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds);
+        }
+    }
+    if (a->batch)
+        mu_gl_batch_session_end(a->batch);
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+}
+#endif
+const mu_world_part_ops mu_part_objects_after = {
+    .name = "objects_after",
+#ifndef MU_WORLD_NO_GL
+    .state_size = sizeof(objects_part),
+    .gl_setup = objects_gl_setup,
+    .gl_teardown = objects_gl_teardown,
+    .draw_gl = objects_after_draw_gl,
+#endif
+    .draw_soft = objects_after_draw_soft,
+};
 
 const mu_world_part_ops mu_part_objects = {
     .name = "objects",
