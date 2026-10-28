@@ -23,6 +23,7 @@
 #include "../core/mu_bmd.h"
 #include "../core/mu_data.h"
 #include "../core/mu_hud.h"
+#include "../core/mu_particles.h"
 #include "../core/mu_hud_tip.h"
 #include "../core/mu_model.h"
 #include "../core/mu_png.h"
@@ -321,6 +322,16 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     env.time = (float)o->time_ms;
     const float light[3] = {1.0f, 1.0f, 1.0f};
     mu_renderchar_draw_item(&model, &glow, &env, light, 1.0f, &draw, &backend, &stats, NULL);
+    if (glow.type == 0x389c || glow.type == 0x389d) {
+        mu_world_particles *p = calloc(1, sizeof *p);
+        if (p && !mu_world_particles_open(p, o->root, NULL, 0, 1, !o->root, error, sizeof error)) {
+            p->world_time = env.time;
+            mu_renderchar_skin_effects(&model, mu_model_bone_matrices(&model), glow.type, p);
+            mu_world_particles_draw_raster(p, r, r->view);
+            mu_world_particles_close(p);
+        }
+        free(p);
+    }
     *triangles += r->triangles - before;
     r->textures = NULL;
     r->texture_count = 0;
