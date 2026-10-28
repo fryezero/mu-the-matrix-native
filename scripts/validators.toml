@@ -1931,3 +1931,17 @@ mutants = 4
 cases_at = "cases.*"
 mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+
+[validate_item_coverage]
+test = "reconstructed/renderchar/test_item_coverage.py::ItemCoverage.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "clocks", "links"]
+cases = 31724
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_coverage.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
