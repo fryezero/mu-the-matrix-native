@@ -178,3 +178,53 @@ void mu_gl_read(int32_t width, int32_t height, uint8_t *rgba)
         memcpy(rgba + row * (size_t)y, flipped + row * (size_t)(height - 1 - y), row);
     free(flipped);
 }
+
+/* Asynchronous GL elapsed queries. Never wait for a result or reuse a pending
+ * query. CPU wall phases and thread CPU remain independent measurements. */
+#include "../core/mu_perf.h"
+static struct {
+    GLuint query[8];
+    int64_t frame[8];
+    int checked, supported, active, cursor;
+} timer;
+
+void mu_gl_perf_begin(void)
+{
+    if (!mu_perf_enabled()) return;
+    if (!timer.checked) {
+        const char *ext = (const char *)glGetString(GL_EXTENSIONS);
+        timer.supported = ext && (strstr(ext, "GL_EXT_timer_query") || strstr(ext, "GL_ARB_timer_query"));
+        timer.checked = 1;
+        if (timer.supported) {
+            glGenQueries(8, timer.query);
+            for (int i = 0; i < 8; ++i) timer.frame[i] = -1;
+        }
+    }
+    if (!timer.supported) return;
+    int i = timer.cursor;
+    if (timer.frame[i] >= 0) {
+        GLint ready = 0;
+        glGetQueryObjectiv(timer.query[i], GL_QUERY_RESULT_AVAILABLE, &ready);
+        if (!ready) return;
+        GLuint64EXT ns = 0;
+        glGetQueryObjectui64vEXT(timer.query[i], GL_QUERY_RESULT, &ns);
+        mu_perf_gpu_sample((double)ns / 1.0e6, timer.frame[i]);
+    }
+    timer.frame[i] = mu_perf_frame_index();
+    glBeginQuery(GL_TIME_ELAPSED_EXT, timer.query[i]);
+    timer.active = 1;
+}
+
+void mu_gl_perf_end(void)
+{
+    if (!timer.active) return;
+    glEndQuery(GL_TIME_ELAPSED_EXT);
+    timer.active = 0;
+    timer.cursor = (timer.cursor + 1) % 8;
+}
+
+void mu_gl_perf_free(void)
+{
+    if (timer.supported) glDeleteQueries(8, timer.query);
+    memset(&timer, 0, sizeof timer);
+}
