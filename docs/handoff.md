@@ -1,5 +1,13 @@
 # Continue from here
 
+RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.
+
+RENDER-WORLDS-E: [handoff](handoffs/RENDER-WORLDS-E.md). Elbeland boids and Raklion event timer implemented; Aida light accumulation attributed. Full Mac gate passes, 1,463 tests; fourteen-view scores/hashes unchanged.
+
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+AUDIO-002 part 2: [handoff](handoffs/AUDIO-002B.md). Thirty caller sites have adapters into the character session ring; one NPC buff input remains unresolved. Combat, unmigrated domains, music 43/44 and LIVE-PLAY comparison remain separate.
+
 WORLD-ORDER-001: [handoff](handoffs/WORLD-ORDER-001.md). Tick/draw expectations now read compiled call records; native deviations are explicit. No runtime/order-number change.
 
 RENDER-WORLDS-F: [handoff](handoffs/RENDER-WORLDS-F.md). Missing additive screen passes recovered and wired in both renderers. Original Tarkan/Raklion PNGs are absent, so live-image error remains unmeasured.
@@ -18,6 +26,8 @@ RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object
 
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
 
+RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and deferred draws after the environment, integrated through main `0a85441`; refreshed Mac gate passes and fidelity results are recorded.
+
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
 the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.
 
@@ -25,7 +35,7 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 4: [handoff](handoffs/RENDER-ITEMS-002D.md). 426/1,674 bodies, 11/17 skins, five link targets/ten types integrated and Spark03/11 consumed. Remaining: 1,248 bodies, six skins and further links; Muun/nested map-object tables remain deferred.
+RENDER-ITEMS-002 part 5: [handoff](handoffs/RENDER-ITEMS-002E.md). 501/1,674 bodies, 17/17 skins, seven link targets/twelve types integrated. Remaining: 1,173 bodies, pose-aware rank-5 and rank-9 armour shapes, further links, ground/inventory skin sprites and prior model/domain limits. Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 

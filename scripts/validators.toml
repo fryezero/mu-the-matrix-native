@@ -6,6 +6,20 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_item_continuation]
+test = "reconstructed/renderchar/test_item_continuation.py::ItemContinuation.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "skins", "links"]
+cases = 25772
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_continuation.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_item_expansion]
 test = "reconstructed/renderchar/test_item_expansion.py::ItemExpansion.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -297,6 +311,16 @@ mutants_at = "negative_controls"
 build = ["reconstructed/combat"]
 args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--heavy-cases", "4", "--output", "{report}"]
 note = "the test also regenerates attack_speed_table.h with scripts/combat_static.py; that half is not a validator"
+
+[validate_session_combat]
+test = "native/tests/test_session_combat.py::Private.test_original_bodies_builders_and_mutants"
+pins = ["text", "data"]
+families = ["damage", "die", "action", "attack", "cast", "move"]
+cases = 240
+mutants = 6
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
 
 [validate_crypto]
 test = "tests/test_crypto_private.py::CryptoPrivateTests.test_module_matches_client_instructions"
@@ -1575,6 +1599,21 @@ args = ["--mutations", "--output", "{report}"]
 "signed_mesh_009f86d6.matches" = { same_as = "signed_mesh_009f86d6.cases" }
 "signed_draw_009f9644.matches" = { same_as = "signed_draw_009f9644.cases" }
 
+[validate_render_worlds_a]
+test = "tests/test_render_worlds_a_private.py::RenderWorldsAPrivate.test_original_instructions"
+pins = ["text", "data"]
+families = ["kanturu", "karutan", "after_pass", "after_draw", "flags", "first_draw", "particle_create", "particle_move", "particle_render"]
+cases = 9000
+mutants = 13
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/objects", "reconstructed/particles"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_render_worlds_a.expect]
+"ok" = true
+"families.*.cases" = {all_min = 1000}
+"families.*.equal" = {same_as = "families.*.cases"}
+
 [validate_input]
 test = "native/tests/test_input_router.py::InputRouter.test_private_original_input_instructions"
 pins = ["text"]
@@ -1694,6 +1733,21 @@ args = ["--cases", "600", "--mutations", "--output", "{report}"]
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
 
+[validate_worlds_e]
+test = "reconstructed/objects/test_worlds_e.py::WorldsEInstructions.test_original_instructions"
+pins = ["text", "data"]
+families = ["0x1a3", "0x1a4", "arm", "step", "emit", "cloud_create", "cloud_move", "cloud_render", "elbeland_sessions"]
+cases = 4840
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/environment", "reconstructed/particles", "reconstructed/objects"]
+args = ["--cases", "600", "--mutations", "--output", "{report}"]
+[validate_worlds_e.expect]
+"families.*.equal" = { same_as = "families.*.cases" }
+"families.*.stopped" = 0
+"mutants.*.caught" = true
+
 [validate_worlds_f]
 test = "native/tests/test_native_worlds_f.py::WorldsFInstructions.test_original_instructions"
 pins = ["text", "data"]
@@ -1723,3 +1777,34 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations"
 "ok" = true
 "families.*.equal" = {same_as = "families.*.cases"}
 "families.*.stopped" = 0
+
+[validate_worlds_g]
+test = "reconstructed/objects/test_worlds_g.py::WorldsGTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["santa_create", "santa_move", "santa_visual", "vulcanus_create", "vulcanus_move", "vulcanus_visual"]
+cases = 6000
+mutants = 13
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_g.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
+
+[validate_audio_callers]
+test = "native/tests/test_audio_cues.py::AudioCues.test_original_domain_audio_callers"
+pins = ["text", "data"]
+families = ["voice", "talk", "walk", "ambient", "objects"]
+cases = 5528
+mutants = 18
+cases_at = "cases"
+mutants_at = "mutants"
+build = ["native"]
+args = ["--mutations", "--report", "{report}"]
+[validate_audio_callers.expect]
+mismatches = 0
+"families.*.mismatches" = 0
+"mutants.*" = "caught"

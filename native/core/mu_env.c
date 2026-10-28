@@ -56,6 +56,13 @@ static void h_set_action(void *c, mu_env_object *o, int32_t action)
     mu_move_set_action(&o->action, &o->prior_action, &o->frame, &o->prior_frame, count, action);
 }
 
+/* The installed BMD reader leaves PlaySpeed unwritten. Keep the actor host's
+ * explicit 0.25 default until a captured per-action runtime table is supplied. */
+static float h_action_speed(void *c, const mu_env_object *o)
+{
+    (void)c; (void)o; return 0.25f;
+}
+
 static void h_animate(void *c, mu_env_object *o, float speed)
 {
     mu_world_env *e = c;
@@ -77,6 +84,15 @@ static void h_particle(void *c, int32_t bitmap, const float p[3], const float a[
     e->stats.particles++;
     if (e->particles)   /* CreateParticle 0x0168fafd (NATIVE-PARTICLE-001) */
         mu_world_particles_create(e->particles, bitmap, p, a, l, s, scale);
+}
+
+static void h_particle_owned(void *c, int32_t type, const float p[3], const float a[3], const float l[3],
+                             int32_t sub, float scale, const mu_env_object *owner)
+{
+    mu_world_env *e = c;
+    ++e->stats.particles;
+    if (e->particles) mu_world_particles_create_owned(e->particles, type, p, a, l, sub, scale,
+        MU_WORLD_FX_BOID_BASE + (int32_t)(owner - e->env.boids));
 }
 
 static void h_kill(void *c, mu_env_object *o)
@@ -140,6 +156,9 @@ static void add_world_models(mu_world_env *e, const char *root, int no_assets)
         add_model(e, root, MU_ENV_MODEL_RAT, no_assets);
     } else if (w == 10) {
         add_model(e, root, 0x7c4, no_assets);
+    } else if (w == 51) {
+        add_model(e, root, 0x1a3, no_assets);
+        add_model(e, root, 0x1a4, no_assets);
     } else if (w == 3) {
         add_model(e, root, MU_ENV_MODEL_BUTTERFLY, no_assets);
     } else if (w == 6) {
@@ -209,7 +228,9 @@ int mu_world_env_open(mu_world_env *e, const char *root, const mu_world *map, in
     h.play_sound = h_sound;
     h.set_action = h_set_action;
     h.animate = h_animate;
+    h.action_speed = h_action_speed;
     h.create_particle = h_particle;
+    h.create_particle_owned = h_particle_owned;
     h.kill = h_kill;
     h.init = h_init;
     h.create_effect = h_effect;   /* has_model NULL: the world's models count as loaded, as in the client */
@@ -335,7 +356,7 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
     p.light_ambient = MU_ENV_LIGHT_AMBIENT;
     p.light_scale = MU_ENV_LIGHT_SCALE;
     p.light_minimum = MU_ENV_LIGHT_MINIMUM;
-    p.body_scale = o->type == 0x7c4 ? o->velocity : o->scale; /* dragon OBJECT +0xa0 */
+    p.body_scale = (o->type == 0x7c4 || o->type == 0x1a3 || o->type == 0x1a4) ? o->velocity : o->scale; /* Elbeland and dragon OBJECT +0xa0 */
     /* RenderObject(o, a1, ...): Animation(..., !a1) and Transform(..., translate a1) (the setup 0x017ec896, compared
      * in the objects' render family): fish (a1 0) are posed with the scale in the bones, so their normals carry it
      * into the light term; boids (a1 1) are not (NATIVE-LIGHT-001) */

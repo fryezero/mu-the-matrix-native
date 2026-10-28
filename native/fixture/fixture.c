@@ -322,6 +322,11 @@ static void on_frame(const uint8_t *frame, size_t size, void *ud)
         ctx->report.undecodable_requests++;
         return;
     }
+    mu_fixture_request rq = {d->link->role, frame[0], frame[hlen],
+        size > (size_t)hlen + 1u ? frame[hlen + 1] : 0x100u, 0, frame, size};
+    for (int i = 0; i < ctx->nuse; ++i)
+        if (ctx->use[i].b->on_plain_request && ctx->use[i].b->on_plain_request(ctx->use[i].self, ctx, &rq))
+            return;
     /* undo the client's XorData: every byte after the opcode went through AddData(.., 1) in the
      * request builders reconstructed so far (0x0095c204, the stat request 0x00b48aca) */
     mu_packet obj;
@@ -334,7 +339,6 @@ static void on_frame(const uint8_t *frame, size_t size, void *ud)
     obj.obj[1] = (uint8_t)(size >> 8);
     memcpy(&obj.obj[2], frame, size);
     mu_send_xor_decode(obj.obj, hlen + 1u, size);
-    mu_fixture_request rq;
     rq.conn = d->link->role;
     rq.head = frame[0];
     rq.opcode = frame[hlen];
@@ -659,6 +663,11 @@ mu_transport *mu_fixture_transport(mu_fixture *f)
     mu_transport *t = mu_transport_wrap(&LOOPBACK_OPS, &f->ctx);
     f->ctx.transport_alive = t != NULL;
     return t;
+}
+
+int mu_fixture_is_transport(const mu_transport *t)
+{
+    return mu_transport_impl(t, &LOOPBACK_OPS) != NULL;
 }
 
 void mu_fixture_report_get(const mu_fixture *f, mu_fixture_report *out)

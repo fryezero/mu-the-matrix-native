@@ -20,10 +20,9 @@
  *     0x013a5ea1, removal) and the monster attack toward the hero (action
  *     packet 0x78: SetPlayerAttack's monster branch, AttackTime).
  *
- * DEMO, not client behaviour (there is no server): who hits, the damage
- * values, types and the miss chance, the hit-point pools, the latency of
- * the damage and death packets, the monsters' counter-attacks and their
- * timing, the respawn after removal, the skill ranges without the client's
+ * SESSION-COMBAT-001: damage, death, attacks and respawns arrive from the session.
+ * Synthetic server policy lives in fixture/behaviors/combat.c. Encrypted casts
+ * remain journaled as unsent. Viewer choices include skill ranges without the client's
  * skill table (NATIVE-LANG-001 supplies it from MU_LANG_DIR), auto-repeating the
  * attack while the target lives, and the picking of a monster under the
  * cursor (a cylinder around the actor, not the client's selection routine).
@@ -55,6 +54,7 @@
 #include "mu_textures.h"
 #include "mu_walk.h"
 #include "mu_world_actors.h"
+#include "../session/domains/combat.h"
 
 enum {
     MU_COMBAT_WEAPON_NONE = 0,
@@ -112,7 +112,6 @@ enum {
 
 #define MU_COMBAT_PARTICLES 2048
 #define MU_COMBAT_LIGHTS 256
-#define MU_COMBAT_EVENTS 64
 #define MU_COMBAT_HERO_OBJECT MU_WORLD_ACTORS_MAX   /* object index of the hero in the effect environment */
 
 /* One AddTerrainLight call of the last logic step (re-applied after the
@@ -122,32 +121,27 @@ typedef struct mu_combat_light {
     int32_t range;
 } mu_combat_light;
 
-/* A pending demo server message. */
+/* One received damage result for presentation. */
 typedef struct mu_combat_event {
-    int32_t step;             /* due logic step */
-    int32_t kind;             /* 1 damage to a monster, 2 damage to the hero */
     int32_t actor;
     int32_t damage, type;
-    uint8_t flag8, flag_a;
+    uint8_t flag8, flag_a, shock;
 } mu_combat_event;
 
 typedef struct mu_combat_monster {
-    int32_t hp;               /* demo */
+    uint32_t hp, max_hp;      /* session viewport values; zero max means unavailable */
     uint8_t dead;             /* c + 0x23 */
     uint8_t attack_time;      /* c + 0x21 */
     uint8_t counter;          /* c + 0x28 */
     float fade_timer;         /* c + 0x1a8 */
     float alpha;              /* o + 0xdc */
     uint8_t removed;
-    int32_t respawn;          /* demo: steps until respawn */
     int32_t saved_wander;     /* wander radius while not fighting */
-    int32_t aggro;            /* demo: attacks the hero */
-    int32_t cooldown;         /* demo: steps until the next counter-attack */
-    float home[3];
     float voice_3324;         /* c + 0x3324: SetPlayerDie's sound block marks it 0.001 (NATIVE-ITEMS-001) */
 } mu_combat_monster;
 
 typedef struct mu_combat_stats {
+    uint32_t requests_sent,requests_unsent;
     uint32_t attacks, skills, arrows, fx_created, hits, misses, kills, removed, respawns;
     uint32_t points_created, monster_attacks, hero_hits, picks, pick_hits;
     uint32_t shocks, deaths;
@@ -160,6 +154,13 @@ struct mu_world_particles;
 
 typedef struct mu_combat {
     mu_combat_config config;
+    mu_session *session;
+    uint64_t receive_cursor;
+    uint32_t receive_lost;
+    uint32_t place_sequence;
+    void (*drop)(void *context,const uint8_t entry[19]);
+    void *drop_context;
+    uint32_t actor_revisions[MU_WORLD_ACTORS_MAX];
     /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
      * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */
     struct mu_world_particles *legacy_particles;
@@ -181,8 +182,6 @@ typedef struct mu_combat {
     mu_combat_light lights[MU_COMBAT_LIGHTS];
     int32_t light_count;
     float time_step;           /* [0x01cf103c] */
-    mu_combat_event events[MU_COMBAT_EVENTS];
-    int32_t event_count;
     /* hero */
     int32_t hero_key;          /* 0x06fca288 */
     int32_t target;            /* actor index or -1 */
@@ -190,25 +189,13 @@ typedef struct mu_combat {
     int32_t attack_target;     /* target of the running attack */
     int32_t attack_skill;      /* skill of the running attack */
     uint8_t hero_attack_time;  /* c + 0x21 */
-    int32_t hero_hp;           /* demo */
+    int32_t hero_hp;           /* session hero HP */
     uint8_t hero_dead;         /* c + 0x23 */
     float hero_3324;           /* c + 0x3324: SetPlayerDie's voice runs once (0.001 after it) */
-    int32_t hero_respawn;      /* demo: steps until the respawn, 0 none */
-    int32_t hero_home[2];      /* demo: the respawn tile */
     mu_combat_sound_fn play_sound;   /* optional (mu-world sets it when sound is on) */
     void *sound_context;
-    /* NATIVE-QUEST-001: a monster died (actor index, server class): the quest demo's progress */
-    void (*kill)(void *context, int32_t actor, int32_t server_class);
-    void *kill_context;
-    /* NATIVE-PROGRESS-001: the server's respawn answer (0xA0 sub 0x30) when the demo delay ends; returns 1
-     * when the host placed the hero (the respawn town), 0 for the demo's first tile */
-    int (*hero_respawned)(void *context);
     uint32_t sounds_played;
     int32_t last_sound;
-    int32_t pending_target;    /* demo: the projectile attack whose damage waits for its hit check */
-    int32_t pending_deadline;
-    int32_t pending_damage, pending_type;
-    uint8_t pending_flag8;
     uint8_t hero_counter;      /* c + 0x28 */
     int16_t weapon_item[2];    /* c + 0x19ac (client item indices of the demo weapon) */
     float speeds[MU_PLAYER_ACTIONS];   /* SetAttackSpeed result; < 0 for actions it does not store */

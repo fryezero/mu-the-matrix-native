@@ -38,7 +38,7 @@ class ItemExpansion(unittest.TestCase):
                 d = self.draws(self.item(type=t, kind_a=kind, option1=1, ext_option=1))[1]
                 self.assertEqual(d[-1].flags, 0x42)
         for t in (0x3895, 0x3896, 0x389b, 0x389c, 0x389d, 0x389e):
-            self.assertEqual(self.draws(self.item(type=t))[0], 1)
+            self.assertEqual(self.draws(self.item(type=t))[0], 0)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_private_clock_edges(self):

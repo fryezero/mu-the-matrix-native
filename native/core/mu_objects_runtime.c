@@ -1,3 +1,4 @@
+#include "../../reconstructed/objects/world_visual.h"
 /* The client's world-object lifecycle in the native session (NATIVE-OBJECTS-002,
  * docs/research/client-objects-render.md): CreateObject, MoveObjects/MoveObject per logic step,
  * RenderObjects/RenderObject per frame, through reconstructed/objects/object_render.c. The
@@ -11,6 +12,8 @@
 
 #include "../../reconstructed/objects/login_world.h"
 #include "../../reconstructed/objects/charsel_world.h"
+#include "../../reconstructed/objects/worlds_g.h"
+#include "../../reconstructed/objects/icarus.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -356,6 +359,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         mi.has_model = (uint8_t)(t >= 0 && t < MU_OBJECT_TYPES && o->models[t] && o->models[t]->loaded);
         mu_obj_log log = {0, 64, 0, local};
         const int status = mu_obj_move(image(o, i), i, &mi, &log);
+        if (status == MU_OBJ_OK) mu_objects_raklion_move(o, t, in->hero);
         ++rt->moved;
         if (status == MU_OBJ_UNSUPPORTED)
             ++rt->move_unsupported;
@@ -376,6 +380,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 ++rt->particle_events;
             } else if (m->call == MU_OBJ_CALL_SOUND) {
                 ++rt->sound_events;
+                if (o->sound) o->sound(o->sound_context, (int32_t)m->args[0]);
             }
         }
     }
@@ -388,6 +393,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
 
 void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
 {
+    if (map && (o->world == 57 || o->world == 58)) map->camera_shake = o->rt.raklion_quake;
     for (int32_t i = 0; map && i < o->rt.light_count; ++i) {
         const mu_object_light *l = &o->rt.lights[i];
         mu_world_add_light(map, l->x, l->y, l->rgb, l->range);
@@ -479,6 +485,8 @@ static uint8_t charsel_custom(void *context, int32_t index)
 static int pose_object(mu_objects *o, uint8_t *img, mu_object_model *m, const mu_obj_log *log)
 {
     mu_model_params p = m->model.params;
+    if (mu_world_after_enabled(o->world))
+        p.light_skip_mesh = -1;
     memcpy(p.origin, img + MU_OBJF_POSITION, 12);
     memcpy(p.angles, img + MU_OBJF_ANGLE, 12);
     p.body_scale = mu_obj_f32(img, MU_OBJF_SCALE);
@@ -538,20 +546,11 @@ static void visual_bone(void *context, int32_t bone, const float local[3], float
     }
 }
 
-/* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
- * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls. */
-static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time)
+static void consume_visual(mu_objects *o, const mu_obj_log *log)
 {
     mu_objects_runtime *rt = &o->rt;
-    visual_context c = {o, m};
-    mu_obj_event events[64];
-    mu_obj_log log = {0, 64, 0, events};
-    if (o->world == MU_CSW_WORLD)
-        mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
-    else
-        mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
-    for (int32_t k = 0; k < log.count; ++k) {
-        const mu_obj_event *e = &events[k];
+    for (int32_t k = 0; k < log->count; ++k) {
+        const mu_obj_event *e = &log->events[k];
         if (e->call == MU_OBJ_CALL_SPRITE && rt->sprite) {   /* CreateSprite 0x01692eb7 (NATIVE-JOINT-001) */
             float position[3], light[3];
             for (int q = 0; q < 3; ++q) {
@@ -571,6 +570,15 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             sp->scale = fbits(e->args[4]);
             sp->rotation = fbits(e->args[8]);
             ++rt->sprite_events;
+        } else if (e->call == MU_ICARUS_JOINT && rt->joint) {
+            float position[3], target[3], angle[3];
+            for (int q = 0; q < 3; ++q) {
+                position[q] = fbits(e->args[1 + q]);
+                target[q] = fbits(e->args[4 + q]);
+                angle[q] = fbits(e->args[7 + q]);
+            }
+            rt->joint(rt->hook_context, (int32_t)e->args[0], position, target, angle,
+                      (int32_t)e->args[10], e->args[11] ? e->object : -1, fbits(e->args[12]));
         } else if (e->call == MU_OBJ_CALL_PARTICLE) {
             spawn(rt, e);
             ++rt->particle_events;
@@ -587,6 +595,46 @@ static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_obje
             ++rt->effect_events;
         }
     }
+}
+/* RenderObjectVisual's handler slot 0x34 of the login world (CGMLogInScene_Ex) and, NATIVE-CHARSEL-002, of
+ * the character-select world (CGMCharacterScene_Ex): its CreateSprite / CreateParticle / CreateEffect calls.
+ */
+static void handler_visual(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float world_time)
+{
+    visual_context c = {o, m};
+    mu_obj_event events[64];
+    mu_obj_log log = {0, 64, 0, events};
+    if (o->world == MU_CSW_WORLD)
+        mu_csw_visual(img, i, world_time, visual_rand, m && m->loaded ? visual_bone : NULL, NULL, &c, &log);
+    else if (o->world == 62)
+        mu_santa_visual(img, i, m && m->loaded, world_time, &log);
+    else if (o->world == 63)
+        mu_vulcanus_visual(img, i, o->world, m && m->loaded, world_time, visual_rand, &c, &log);
+    else
+        mu_login_visual(img, i, visual_rand, m && m->loaded ? visual_bone : NULL, &c, &log);
+    consume_visual(o, &log);
+}
+
+/* Scoped per-world RenderObjectVisual hooks. The initial flicker rand in
+ * 0x017f9758 is consumed before its world dispatch, even when the hook has no flame. */
+static int world_flames(mu_objects *o, int32_t i, uint8_t *img, const mu_object_model *m, float time, int posed)
+{
+    if (!m || !m->loaded)
+        return 0;
+    if (o->world != 0x25 && o->world != 0x28 && o->world != 0x50 && o->world != 0x51)
+        return 0;
+    visual_context c = {o, m};
+    mu_obj_event events[64];
+    mu_obj_log log = {0, 64, 0, events};
+    (void)visual_rand(&c);
+    int status;
+    if (o->world == 0x25 || o->world == 0x28)
+        status = mu_kanturu_flames(img, i, o->world, time, visual_rand, posed ? visual_bone : NULL,
+                                   &c, &log);
+    else
+        status = mu_karutan_flames(img, i, visual_rand, &c, &log);
+    consume_visual(o, &log);
+    return status != MU_OBJ_UNSUPPORTED;
 }
 
 /* Draw options of a RenderMesh(mesh, flags, alpha, blend mesh, blend light, u, v, texture) event. */
@@ -631,6 +679,7 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     const int32_t t = mu_obj_i32(img, MU_OBJF_TYPE);
     mu_object_model *m = t >= 0 && t < MU_OBJECT_TYPES ? o->models[t] : NULL;
     const int login = o->world == MU_LOGIN_WORLD, charsel = o->world == MU_CSW_WORLD;
+    const int worlds_g = o->world == 62 || o->world == 63;
     mu_obj_draw_inputs in;
     memset(&in, 0, sizeof in);
     in.world = o->world;
@@ -651,16 +700,30 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
     mu_obj_log log = {0, 16, 0, local};
     memset(rt->model_fields, 0, sizeof rt->model_fields);
     const int status = mu_obj_render(img, i, rt->model_fields, 0, &in, &log);
+    const int deferred =
+        !login && !charsel && in.has_model && status != MU_OBJ_SKIPPED && mu_world_defer(img, o->world);
     int posed = 0;
-    if (login || charsel) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
+    if (login || charsel || worlds_g) {   /* RenderObjectVisual follows RenderObject, also for hidden objects (slot 0x34) */
         if (m && m->loaded && status != MU_OBJ_SKIPPED)
             posed = pose_object(o, img, m, &log);
-        handler_visual(o, i, img, posed ? m : NULL, in.light.time);
+        handler_visual(o, i, img, worlds_g ? m : posed ? m : NULL, in.light.time);
     } else if (!rt->visual) {
         mu_obj_visual(img, o->world, in.light.time);   /* RenderObjectVisual follows RenderObject */
     }
     /* NATIVE-PARTICLE-001: RenderObjectVisual through the particle module, after RenderObject */
-    const int hook = rt->visual && !login && !charsel, has_model = m && m->loaded;
+    int flame = 0;
+    if (!login && !charsel &&
+        (o->world == 0x25 || o->world == 0x28 || o->world == 0x50 || o->world == 0x51)) {
+        if (m && m->loaded && !posed)
+            posed = pose_object(o, img, m, &log);
+        flame = world_flames(o, i, img, m, in.light.time, posed);
+    }
+    const int hook = rt->visual && !login && !charsel && !flame && !worlds_g, has_model = m && m->loaded;
+    if (deferred && !((o->world == 0x39 || o->world == 0x3a) && (t == 0x53 || t == 0x5c))) {
+        if (hook)
+            rt->visual(rt->hook_context, o, i, has_model, posed ? m : NULL);
+        return NULL;
+    }
     if (status == MU_OBJ_SKIPPED) {
         ++rt->draw_skipped;
         if (hook)
@@ -708,11 +771,37 @@ mu_object_model *mu_objects_prepare_index(mu_objects *o, int32_t i, const mu_wor
         options->v_offset = mu_obj_f32(img, MU_OBJF_BLEND_V);
         options->skip_mesh = mu_obj_i32(img, MU_OBJF_HIDDEN_MESH);
     }
+    if (deferred) { /* Raklion's opaque meshes precede its deferred glow. */
+        if (t == 0x53)
+            options->skip_mesh = 4;
+        else if (t == 0x5c)
+            options->mesh_plus_one = 1;
+    }
     options->time = map ? map->time : 0.0f;
     ++rt->drawn;
     if (hook)   /* after RenderObject's draw arguments, as in RenderObjects */
         rt->visual(rt->hook_context, o, i, 1, m);
     return m;
+}
+
+int32_t mu_objects_first_meshes(mu_objects *o, int32_t k, const mu_world *map, mu_object_model *m,
+                                mu_object_mesh *meshes, int32_t capacity)
+{
+    if ((o->world != 0x39 && o->world != 0x3a) || k < 0 || k >= o->rt.draw_count)
+        return 0;
+    const int32_t i = o->rt.draw_list[k];
+    mu_obj_event events[4];
+    mu_obj_log log = {0, 4, 0, events};
+    if (mu_raklion_before(image(o, i), i, &log) != MU_OBJ_OK)
+        return 0;
+    int32_t count = 0;
+    for (int32_t j = 0; j < log.count && count < capacity; ++j) {
+        mu_object_mesh *mesh = &meshes[count++];
+        mesh_options(&events[j], m, map, &mesh->options);
+        memset(&mesh->fields, 0, sizeof mesh->fields);
+        memcpy(mesh->fields.color, m->model.params.color, 12);
+    }
+    return count;
 }
 
 uint8_t *mu_objects_object_image(mu_objects *o, int32_t index)
@@ -761,7 +850,8 @@ void mu_objects_after_visibility(mu_objects *o, const mu_terrain_frustum *f, int
 {
     mu_objects_runtime *rt = &o->rt;
     rt->after_count = 0;
-    if (!rt->ready || (o->world != MU_LOGIN_WORLD && o->world != MU_CSW_WORLD))
+    if (!rt->ready ||
+        (o->world != MU_LOGIN_WORLD && o->world != MU_CSW_WORLD && !mu_world_after_enabled(o->world)))
         return;
     mu_obj_render_inputs in;
     memset(&in, 0, sizeof in);
@@ -770,7 +860,10 @@ void mu_objects_after_visibility(mu_objects *o, const mu_terrain_frustum *f, int
     in.x2d = f->x2d;
     in.y2d = f->y2d;
     mu_obj_log log = {0, rt->event_capacity, 0, rt->events};
-    mu_login_after_pass(&rt->world, &in, &rt->render_counter, &log);
+    if (mu_world_after_enabled(o->world))
+        mu_world_after_pass(&rt->world, &in, &rt->render_counter, &log);
+    else
+        mu_login_after_pass(&rt->world, &in, &rt->render_counter, &log);
     for (int32_t k = 0; k < log.count; ++k)
         if (log.events[k].call == MU_OBJ_CALL_AFTER_DRAW && rt->after_count < o->count)
             rt->after_list[rt->after_count++] = log.events[k].object;
@@ -819,8 +912,18 @@ mu_object_model *mu_objects_prepare_after(mu_objects *o, int32_t k, const mu_wor
     mu_obj_log log = {0, 40, 0, events};
     if (o->world == MU_CSW_WORLD)
         mu_csw_after_render(img, i, &log);   /* NATIVE-CHARSEL-002: RenderBody or the pedestal's glow mesh */
-    else
+    else if (o->world == MU_LOGIN_WORLD)
         mu_login_after_render(img, rt->model_fields, i, rt->now_ms, NULL, NULL, &log);
+    else {
+        visual_context c = {o, m};
+        mu_world_after_render(img, i, o->world, map ? map->time : 0.0f, &log, visual_bone, &c);
+        if ((o->world == 0x50 || o->world == 0x51) && (t == 0x37 || t == 0x39)) {
+            mu_model_params params = m->model.params;
+            params.light_skip_mesh = 0;
+            mu_model_apply_params(&m->model, &params);
+        }
+        consume_visual(o, &log);
+    }
     float color[3];
     memcpy(color, rt->model_fields + MU_MDL_COLOR, 12);   /* the colour the slot restores last */
     float current[3];
@@ -1005,7 +1108,15 @@ long mu_objects_render_raster(mu_objects *o, const mu_world *map, mu_raster *ras
         raster->texture_filter = m->textures.filter;
         raster->texture_wrap = m->textures.wrap;
         mu_draw_stats ds = {0, 0, 0, 0};
-        if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
+        mu_object_mesh meshes[4];
+        const int32_t count = mu_objects_first_meshes(o, k, map, m, meshes, 4);
+        if (count) {
+            for (int32_t j = 0; j < count; ++j) {
+                meshes[j].options.fields = &meshes[j].fields;
+                mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds);
+            }
+            ++drawn;
+        } else if (!mu_scene_draw_model(&m->model, &options, &backend, &ds))
             ++drawn;
     }
     raster->textures = NULL;

@@ -100,10 +100,10 @@ int mu_world_names_init(mu_world_names *wn, const mu_world_names_config *cfg, mu
             c->height = 200;
         }
         c->level = 0;   /* DEMO: the server's monster level */
-        int32_t max = combat && combat->config.monster_hp > 0 ? combat->config.monster_hp : 100;
-        c->max_hp = (uint32_t)max;
-        c->hp = (uint32_t)(combat ? combat->monsters[i].hp : max);
-        wn->hp_seen[i] = (int32_t)c->hp;
+        /* Damage frames do not supply remote HP. Until an HP route is recovered, use only viewport values. */
+        c->max_hp = combat && combat->monsters[i].max_hp ? combat->monsters[i].max_hp : 1;
+        c->hp = combat ? combat->monsters[i].hp : 0;
+        wn->hp_seen[i] = c->hp;
         actor_record(wn, i);
     }
     return 0;
@@ -137,6 +137,7 @@ void mu_world_names_step(mu_world_names *wn)
         if (!c || c->kind != MU_HN_MONSTER)
             continue;
         const mu_combat_monster *m = &wn->combat->monsters[i];
+        c->max_hp=m->max_hp?m->max_hp:1;
         int32_t key = actor_key(wn, i);
         if (m->dead >= 15 && !wn->dead_seen[i]) {
             /* MoveCharacter calls SetPlayerDie 0x01393a61 from dead counter 15 on (mu_combat); for a
@@ -148,15 +149,15 @@ void mu_world_names_step(mu_world_names *wn)
         if (!m->dead && !m->removed && wn->dead_seen[i]) {
             /* DEMO respawn: the server creates the monster again (viewport packet -> addInfo) */
             wn->dead_seen[i] = 0;
-            c->hp = (uint32_t)(m->hp > 0 ? m->hp : 0);
+            c->hp = m->hp;
             wn->hp_seen[i] = m->hp;
             actor_record(wn, i);
             wn->shown[i] = (uint8_t)mu_names_add(&wn->names, key);
         }
         if (!wn->dead_seen[i] && m->hp != wn->hp_seen[i]) {
-            /* DEMO: the monster HP packet (0x0126eecf -> setHp) after each change */
+            /* Session viewport HP changed. A separate HP-update route remains unrecovered here. */
             wn->hp_seen[i] = m->hp;
-            c->hp = (uint32_t)(m->hp > 0 ? m->hp : 0);
+            c->hp = m->hp;
             mu_names_set_hp(&wn->names, key, c->hp, c->max_hp);
         }
     }

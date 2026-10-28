@@ -1,5 +1,13 @@
 # Current status
 
+RENDER-WORLDS-G implements the 48-class inventory and Santa Village/Vulcanus primary methods: 6,000 instruction cases, zero mismatches, 13/13 compiled mutants; 19/144 primary families verified across 7/48 classes. Full Mac gate passes, 1,466 tests; 28 unaffected PNG hashes identical. [Evidence](research/client-worlds-g.md), [handoff](handoffs/RENDER-WORLDS-G.md).
+
+RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Aida accumulation attributed; full Mac gate passes, 1,463 tests. [Handoff](handoffs/RENDER-WORLDS-E.md).
+
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+AUDIO-002 part 2: 30 character/NPC/creature/object sound sites have session cue adapters, with one unresolved buff input. 5,516 new instruction cases plus 12 static checks, zero mismatches, 18/18 compiled mutants. [Checks and limits](handoffs/AUDIO-002B.md).
+
 WORLD-ORDER-001 implements recorded tick/draw order checks; 2,400 Unicorn cases, zero mismatches, all 294 branch edges and 10/10 compiled mutants. Native order adapters are explicit; runtime orders unchanged. [Evidence](research/client-world-order.md), [handoff](handoffs/WORLD-ORDER-001.md).
 
 RENDER-WORLDS-F implements Tarkan/Raklion additive screen haze; 1,818 instruction comparisons, zero mismatches, 7/7 compiled mutants. Twelve other tour PNG hashes unchanged; original-image scores unavailable. [Evidence](research/client-world-haze.md), [handoff](handoffs/RENDER-WORLDS-F.md).
@@ -18,12 +26,14 @@ RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Pe
 
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
 
+RENDER-WORLDS-A: Kanturu/Karutan flames and four world groups' deferred objects; integrated through main `0a85441` with recorded after-environment order. 9,000 Unicorn cases, 0 mismatches, 13/13 mutants; refreshed Mac gate passes. [Handoff](handoffs/RENDER-WORLDS-A.md).
+
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
 F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).
 
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
-RENDER-ITEMS-002 part 4: 426/1,674 item bodies and 11/17 class skins; the 47-type armour cluster is complete, with 137 armour and 27 weapon additions. Five link targets/ten types now have native consumers, including Spark03/11. New checks: 53,682 instruction cases, zero mismatches, 10/10 mutants caught. [Handoff](handoffs/RENDER-ITEMS-002D.md).
+RENDER-ITEMS-002 part 5: 501/1,674 item bodies and 17/17 class skins; seven link targets/twelve types consumed. Adds 75 body types, the remaining six skins and two sword links. New instruction checks: 25,792 cases, zero mismatches, 9/9 mutants caught. [Checks and limits](handoffs/RENDER-ITEMS-002E.md).
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 

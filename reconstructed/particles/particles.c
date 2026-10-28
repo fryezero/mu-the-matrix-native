@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "particles.h"
+#include "world_flames.h"
 #include "particles_internal.h"
 #include "../record-math/record_math.h"
 
@@ -26,7 +27,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
     case MU_PT_BITMAP_SMOKE:
-        return subtype == 0 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f;
+        return subtype == 0 || subtype == 2 || subtype == 3 || subtype == 0x75 || subtype == 0x7f || subtype == 21;
     case MU_PT_BITMAP_SPARK2:
         return subtype == 0 || subtype == 1;   /* 1: NATIVE-HELPERS-002 (the angel's sparkles) */
     case MU_PT_BITMAP_SMOKE5:
@@ -45,7 +46,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
-        return (subtype >= 0 && subtype <= 5) || subtype == 0x14;
+        return (subtype >= 0 && subtype <= 5) || subtype == 0x14 || subtype == 18;
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
@@ -54,12 +55,13 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 2;
     case MU_PT_BITMAP_WATERFALL3:
         return subtype == 0xe;
+    case 0x8016:
     case MU_PT_BITMAP_FANTA_B:
         return subtype == 0;
     case MU_PT_BITMAP_CHASELLIGHT:
         return subtype == 5;
     default:
-        return 0;
+        return mu_pt_world_flame_kind(type, subtype);
     }
 }
 
@@ -149,6 +151,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
     if (!mu_pt_kind_supported(type, subtype))
         return 0;
 
+    if (mu_pt_world_flame_kind(type, subtype)) {
+        mu_pt_world_flame_create(p, h, scale);
+        return 1;
+    }
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         /* 0x015ba585, subtype table 0x01616318 */
@@ -183,7 +189,12 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         break;
     case MU_PT_BITMAP_SMOKE:
         /* 0x015c4c55, subtype table 0x016163a0 */
-        if (subtype == 0x7f) {                      /* 0x015cbdb4 */
+        if (subtype == 21) { /* 0x015c6a19 */
+            p->lifetime = 80;
+            p->scale = (float)(mu_pt_rand(h) % 64 + 64) * p->scale * 0.005f;
+            p->rotation = (float)(mu_pt_rand(h) % 360);
+            p->gravity = (float)(mu_pt_rand(h) % 32 + 60) * 0.1f;
+        } else if (subtype == 0x7f) {                      /* 0x015cbdb4 */
             p->lifetime = p->initial_lifetime = 100;
             p->scale = rand_range(h, 50.0f, 100.0f, 1) * 0.01f * scale;
             p->alpha = 1.0f;
@@ -357,6 +368,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->light[0] = p->light[1] = p->light[2] = 0.0f;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (subtype == 18) { mu_pt_elbeland_create(p, h); break; }
         if (subtype <= 5) { mu_pt_icarus_cloud_create(p, h, scale); break; }
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
         p->lifetime = 300;
@@ -407,6 +419,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->position[1] = ((float)(mu_pt_rand(h) % 40) - 20.0f) + p->position[1];
         p->position[2] = ((float)(mu_pt_rand(h) % 20) - 10.0f) + p->position[2];
         break;
+    case 0x8016:
     case MU_PT_BITMAP_FANTA_B:
         /* 0x015f1549, subtype 0 (none of 5..9): 0x015f1743, 0x015f1827 */
         p->lifetime = 24;
@@ -453,7 +466,9 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
         owner_position(p, h);   /* 0x01616fee..0x01617071 */
     int supported = mu_pt_kind_supported(p->type, p->subtype);
     if (supported) {
-        switch (p->type) {
+        if (mu_pt_world_flame_kind(p->type, p->subtype))
+            mu_pt_world_flame_move(p, h);
+        else switch (p->type) {
         case MU_PT_BITMAP_FIRE:
             /* 0x016282c9, subtype table 0x0168f278 */
             p->gravity = p->gravity + 0.004f;
@@ -471,7 +486,13 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             break;
         case MU_PT_BITMAP_SMOKE:
             /* 0x016333e0, subtype table 0x0168f2fc */
-            if (p->subtype == 0x7f) {                        /* 0x0163e8e0 */
+            if (p->subtype == 21) { /* 0x016366eb */
+                p->light[0] = p->light[1] = p->light[2] = (float)p->lifetime / 50.0f;
+                p->gravity -= 0.1f;
+                p->position[0] -= p->gravity * 0.2f;
+                p->position[2] += p->gravity;
+                p->scale -= 0.01f;
+            } else if (p->subtype == 0x7f) {                        /* 0x0163e8e0 */
                 if (p->lifetime < p->initial_lifetime / 2)
                     p->alpha -= 1.0f / (float)(p->initial_lifetime / 2);
                 p->scale += 0.03f;
@@ -652,6 +673,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->position[2] += p->gravity;
             break;
         case MU_PT_BITMAP_CLOUDS:
+            if (p->subtype == 18) { mu_pt_elbeland_move(p, h); break; }
             if (p->subtype <= 5) { mu_pt_icarus_cloud_move(p, h); break; }
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
             if (!(p->lifetime > 0)) {
@@ -699,6 +721,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             for (int k = 0; k < 3; ++k)
                 p->light[k] = p->light[k] / 1.1f;
             break;
+        case 0x8016:
         case MU_PT_BITMAP_FANTA_B:
             /* 0x016672be, subtype 0 0x01667872: shrinks, slows, rises, fades over 25 steps */
             p->scale = p->scale - 0.02f;
@@ -743,7 +766,7 @@ static void state(mu_pt_render_call *c, int32_t wrapper, int32_t argument)
     }
 }
 
-int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out)
+int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out)
 {
     memset(out, 0, sizeof *out);
     /* 0x015912e9: the height filters of the two split passes */
@@ -782,7 +805,7 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
     case MU_PT_BITMAP_SMOKE:
         if (p->subtype == 0x7f)
             for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
-        if (p->subtype == 2)
+        if (p->subtype == 2 || p->subtype == 21)
             state(out, MU_PT_STATE_SUBTRACT, 0);     /* 0x01596e05 */
         break;
     case MU_PT_BITMAP_SMOKE5:
@@ -811,6 +834,7 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
             for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (p->subtype == 18) { mu_pt_elbeland_render(p, world_time); s->rotation = p->rotation; break; }
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
         if (p->subtype == 0 || p->subtype == 3) {
             float rate = p->subtype == 3 || ordinal % 2 == 0 ? 0.02f : -0.02f;
@@ -909,7 +933,7 @@ int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera
 {
     int32_t drawn = 0;
     for (int32_t i = 0; i < s->count; ++i) {
-        const mu_pt_particle *p = &s->records[i];
+        mu_pt_particle *p = &s->records[i];
         if (!p->live)
             continue;
         mu_pt_bitmap b;

@@ -58,6 +58,8 @@ typedef struct mu_walk_sound_state {
 /* PlayWalkSound 0x013b1f61: the id it passes to SND_Play, or -1 when it plays
  * nothing (actions 0x59..0x5f, or the manager predicate). attributes is the
  * 256x256 terrain attribute grid 0x0b795420 (read only in world 0x7a). */
+typedef struct mu_walk_sound_decision { int32_t id; uint32_t site; } mu_walk_sound_decision;
+mu_walk_sound_decision mu_walk_sound_select(const mu_walk_sound_state *state, const uint16_t *attributes);
 int32_t mu_walk_sound_id(const mu_walk_sound_state *state, const uint16_t *attributes);
 
 /* 0x016a88d3: worlds where the hero swims outside the safe zone (Atlans

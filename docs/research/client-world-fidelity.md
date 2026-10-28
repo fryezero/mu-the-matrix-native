@@ -244,7 +244,7 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
      the Wine-track renderer (to report to the mu-the-matrix-mac track); the rest is not explained. Fine shading
      comparisons against the Mac-hosted client should take this into account.
 3. The brazier and torch flames themselves in Kanturu and Karutan (their lights are ported; the flames come from
-   RenderObjectVisual `0x017f9758`'s world cases, not ported), and the visual-pass flags (`+0xa` drawn after the
+   RenderObjectVisual `0x017f9758`'s world cases, now covered by RENDER-WORLDS-A below), and the visual-pass flags (`+0xa` drawn after the
    characters in Noria, Elbeland, Raklion, Karutan).
 4. RENDER-WORLDS-B reconstructs the Devias, Tarkan, Elbeland and Raklion move cases, code-created placements
    and Raklion snow. See section 5 for verified coverage and remaining nested-effect and comparison limits.
@@ -313,6 +313,96 @@ Elbeland's `0x1a3` boid creation is wired, but its separate environment mover/mo
 Sound calls are compared and counted by the object host, as before. The Tarkan/Raklion haze, visual-pass fields,
 other world-handler classes and siblings A/C remain separate work. Next step: take fresh live captures of Devias, Tarkan, Elbeland and Raklion under the shared game lock in a
 separate authorized run, then rerun the image-error tour. This run did not start a client.
+
+## RENDER-WORLDS-A, 2026-10-27
+
+Authored per-world files in `reconstructed/objects/world_*_visual.c` implement the scoped Kanturu/Karutan
+visuals and the deferred body/mesh handlers. `world_after.c` dispatches only the four requested world groups.
+The native object runtime consumes their particle/sprite logs and draws the second pass after characters/items,
+after the environment, matching RenderMainScene's recorded `0x016d6949` call. Raklion's opaque meshes remain in the first pass and its glow meshes in the second.
+Elbeland's deferred lamps also reach the sprite pool. Existing login/character-select dispatch remains intact.
+
+### Verified instruction comparisons
+
+The executable target remains SHA-256 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`.
+Text and second-image-data use the repository's capture09/run10 pins. `validate_render_worlds_a.py` records
+complete routine hashes with its report and compares compiled authored C against the original instructions.
+
+| Family | Cases | Boundary |
+|---|---:|---|
+| Kanturu flames, `0x00e75089` | 1,000 | Types 59 smoke subtype 21, 61 fantaF, 70 bone-6 glow; type 60 has no visual call here; worlds 37/40 |
+| Karutan brazier, `0x00e13be4` | 1,000 | Type 113, flare sprite and firehik01/02/03 particle choice; worlds 80/81 |
+| Second pass, `0x016d6949` | 1,000 | Worlds 3/51/57/58/80/81; sectors, objects, counter, live/flag checks, special predicate and draw calls |
+| Deferred draw bodies/meshes | 1,000 | Noria `0x016d67c7`, Elbeland `0x00e321bb`, Raklion `0x00e96536`, Karutan `0x00e1543e`; object writes and calls, including Elbeland bone sprites |
+| Flag-writing branches | 1,000 | Elbeland/Raklion/Karutan type sets, including negative types and pre-existing flag values; only the flag byte is claimed by this family |
+| Raklion first meshes | 1,000 | Types 83/92 at `0x00e949f8`; the body meshes before their deferred glow |
+| Particle creation | 1,000 | Smoke01/21, fantaF/0, firehik01/0, firehik02/4, firehik03/0 |
+| Particle movement | 1,000 | Same five kinds, lifetime/fade/scale/rise/rotation and existing common motion |
+| Particle rendering | 1,000 | Same kinds, bitmap/state/Sprite call; smoke21 uses subtract blending |
+
+**9,000 cases, zero mismatches, zero stopped cases; 13/13 compiled planted mistakes detected.** Bone transforms,
+particle/sprite leaf calls and mesh/body calls are explicit recording boundaries. Sine executes as original code;
+the C uses the repository's established float-rounded host-sine equivalent. The new bitmap names are static reads
+of LoadBitmap at `0x01820fcf`, `0x0182188f`, `0x01821b2f`, `0x01821b4f`, not guessed assets.
+
+The synthetic native regression exercises hidden Kanturu emission, Karutan particle/sprite creation and drawing,
+and all four world groups' after-pass bodies on both GL and software backends, ten native sessions in three tests.
+The earlier local gate passed 1,397 tests with 166 explicit skips and no failures; the audit accepts
+1,261 files with no rejection. Item/audio integration preserves all 53 final native frame hashes.
+The character-select build dependency now uses `HEADERS`, replacing undefined `CORE_HDR`, so changes to the
+particle table's struct layout rebuild every character-select consumer.
+
+### Fidelity and remaining evidence limits
+
+No original client or launcher ran. Local artifacts are under `mu-mac-tools/native/scratch/render-worlds/` and
+`mu-mac-tools/native/renders/render-worlds-a/`; none are committed.
+
+The owner confirmed the October 23 image cleanup. Only Dungeon, Icarus and Kanturu survive at full resolution in
+`renders/readme-sources/`. The surviving Kanturu image is the live visual oracle; object/light snapshots and
+historical score reports remain the live evidence for Karutan/Noria/Elbeland/Raklion. Native before/after frames
+cover those four maps. Fresh live captures of them, under the game lock in a later run, remain the next step.
+
+The final tour baseline is main `54ae63f`, including siblings B/C and SESSION-VIEWPORT-001. At the tour's
+25 logic steps and two rendered frames, Kanturu masked mean error is **3.717 -> 4.006**. That sparse sampling
+creates only two particles. Rendering every frame on both builds gives **3.717 -> 3.444**, and the share of pixels
+off by more than 24 falls **0.0275 -> 0.0245**. The after build creates 53 particles, visibly at the captured torch
+positions. These are unsynchronised particle phases, not exact frame equality.
+
+The nine unaffected tour entries retain both frame hashes, eighteen unchanged PNGs. Raklion also retains both
+hashes at this camera, while its deferred flags are corrected. Primary terrain light equals the captured grid in
+all fourteen maps. The native before/after images for the four maps without live PNGs were inspected locally.
+
+Near-hero `after_character` field differences against the October 22 snapshots are Noria **15 -> 15**,
+Elbeland **12 -> 0**, Raklion **10 -> 0**, Karutan **6 -> 6**. Noria type 19 is selected by `0x017fece6` before
+any live/flag gate; this port reproduces that selector without inventing the separate capture's flag writer.
+Karutan's remaining six differences are on different records: before they are live 1/native 0; after they are
+live 0/native 1. The unchanged count does not mean that no flags were written. Capture history and the native
+pass's visibility are not synchronized, so the exact remaining cause needs a fresh capture. Other per-world body
+effects, world handlers, creation effects, region import and shadow/custom registries are outside A. Sibling B/C
+implementations were retained during integration.
+
+See [the milestone handoff](../handoffs/RENDER-WORLDS-A.md) for the integrated gate and merge record.
+
+### Resume integration, 2026-10-28
+
+Latest main `0a85441` and source checkpoint `c235421` were rebuilt separately in the existing A worktree.
+`parts.def` now places the deferred draw at 85 in both backends, after the environment. The order adapter
+anchors it to the recorded original `0x016d6949` call. Missing-anchor and call-reordering tests cover it;
+the GL viewer marker follows the deferred pass. Other native order adapters remain unchanged.
+Both A and input validator registrations survive the merge. A's manifest now expects 9,000 total cases,
+correcting the prior per-family count of 1,000, without changing the comparison itself.
+
+Registered validators pass 9,000 A cases and 2,400 order cases, zero mismatches/stops, 23/23 compiled mutants
+caught and 294/294 order branch edges. Full Mac gate: 1,444 tests across 38 discovery suites, 175 explicit skips, zero failures; audit 1,324 files, zero rejected.
+All six fixture scenarios and native viewer/readers builds pass. No reader was run against a client.
+
+The refreshed fourteen-view tour reproduces the reported fidelity numbers against the surviving Kanturu PNG:
+sparse error 3.717 -> 4.006 and share over 24 of 0.0275 -> 0.0287; continuous 25-frame error
+3.717 -> 3.444 and share 0.0275 -> 0.0245. All fourteen primary light grids match exactly and all views
+have zero missing/extra placements. Eighteen unaffected frame hashes plus Raklion's two are unchanged.
+Near-hero after-flag counts remain Noria 15, Elbeland 0, Raklion 0 and Karutan 6. Final native frames were
+visually inspected; missing live PNGs, capture history and unsynchronised phases remain explicit limits.
+Reports and artifact paths are in the [updated handoff](../handoffs/RENDER-WORLDS-A.md).
 
 ## 6. RENDER-WORLDS-D, 2026-10-27
 
@@ -523,3 +613,53 @@ No moving-region exclusion is used to claim the target passed. Local inputs, fra
 renders and the full 307-row score series remain under the C2 scratch/render directories. Renders and captures
 are not committed. Remaining limits are exact captured RNG/clock/pool phase, the hero/equipment mask, and the
 unported world-10 type-10 bone flare. Sibling worlds and after-character rendering remain with lanes A/D.
+
+## 8. RENDER-WORLDS-E, 2026-10-27
+
+Elbeland's two boid movers, Object52 model registration and typhoon-owned clouds now run through the native
+environment and particle hosts. Raklion has its inherited event arming/timer, emitter requests and quake, with
+an explicit domain-owned state input. Aida's type-30 emitter explains the outlier's colour and radial footprint
+through accumulated additions: approximately one effective update to the left of column 96 and 179 to its right.
+This attributes the sample without changing the verified source brightness. The reset rectangle/history remains
+uncaptured. No new live observation was made.
+
+The resumed analysis records the object/light input hashes and has three portable regressions using authored
+snapshots and the production terrain reset/add functions. The 179-update partial-reset case reproduces the
+channel signature despite changing flicker. A fresh instruction recheck matches 3,000 MoveObject cases and
+detects all 19 compiled mutants, including Aida's wrong brightness. The terrain reset and add-light families
+match 8/8 and 160/160 cases, with both clamp negative controls detected. This verifies the underlying rules;
+the exact reset box and time history of the saved Aida frame remain an inference boundary.
+
+Eight instruction families compare 600 cases each; 40 Elbeland movement/render sessions add 2,400 compared
+steps. Total 4,840 comparisons, zero mismatches/stops, 12/12 compiled mutants caught. The fourteen-view scoreboard
+and all final PNG hashes remain unchanged. The arrival views have no active event/boid state to measure.
+The source addresses, pins, native-host checks, score values and explicit remaining inputs are in the
+[milestone handoff](../handoffs/RENDER-WORLDS-E.md).
+
+The final 2026-10-28 rerun on main `0a854411` plus E passes all six registered E/B/D/Icarus/C2/F suites:
+26,698 cases, zero mismatches/stops, all 53 compiled mutants caught. The separate MoveObject recheck passes
+3,000 cases and 19 mutants. Fresh isolated executions of the terrain validator's reset/add-light loops pass
+8/8 and 160/160 cases, with both clamp controls detected. The three authored Aida-history tests pass.
+The rebuilt E binary and retained same-main baseline produce equal complete scoreboards and fourteen equal
+final PNG hashes. Aida/Elbeland/Raklion frame-light errors remain 0.65117/0.02078/0.02574; missing/extra
+placements remain zero and primary light remains exact. These are regression results with the saved arrival
+state. The snapshots still cannot score an active event or moving boid against the original image.
+The full local Mac gate passes 1,445 tests with 175 explicit skips, all six fixture scenarios, viewer/readers
+builds and the publication audit. The disk-exhaustion retry and local evidence paths are recorded in the handoff.
+
+After A #187 advanced main to `89c63acc`, E merged it and preserved both lanes' build/texture additions.
+Both latest-main and combined-tree binaries were clean-built in E's owned worktree. All fourteen scoreboards
+and 28 first/final PNG hashes match between those builds, retaining A's Kanturu sparse image score 4.006.
+The final eight-validator run has 38,098 matching cases and 76 caught compiled mutants. With the separate
+MoveObject and reset/add checks, totals are 41,266 matching cases and 95 compiled mutants, plus both clamp
+controls. The final full Mac gate passes 1,449 tests with 177 explicit skips, all six fixture scenarios and
+the 1,336-file audit with zero rejections. The prior paragraph records the earlier pre-A baseline; the
+`main89-*` reports and the integration section of the handoff are the final combined-tree evidence.
+
+Final locked integration also includes audio #196 and combat #197, base `bf430a75`. All ten registered
+world/order/audio/combat validators pass. Including the refreshed MoveObject and isolated terrain comparisons:
+47,022 matching instruction cases, 12 separate static checks, all 119 compiled mutants and both modeled
+clamp controls detected. The full Mac gate passes 1,463 tests with 179 explicit skips, seven fixture scenarios,
+viewer/readers builds and the 1,354-file audit with zero rejections. Fresh latest-main/E builds retain equal
+fourteen-view scoreboards and all 28 frame hashes. `locked-*` local reports and the handoff's final verification
+section supersede the earlier integration checkpoints above. No additional original-client observation occurred.

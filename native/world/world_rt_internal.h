@@ -178,6 +178,9 @@ void world_rt_gl_effect(void *context, const mu_fx_vertex *vertices, uint32_t co
 /* parts/sound.c */
 void world_rt_sound_frame(mu_world_rt *a);
 void world_rt_env_sound(void *context, int32_t id);
+void world_rt_characters_audio_drain(mu_world_rt *a);
+mu_session *world_rt_characters_session(mu_world_rt *a);
+void world_rt_ambient_sound(void *context, int32_t id);
 
 /* parts/combat.c: the hero's respawn (the demo's 0xA0 sub 0x30 answer, also the travel script's "respawn") */
 int world_rt_combat_respawned(void *context);

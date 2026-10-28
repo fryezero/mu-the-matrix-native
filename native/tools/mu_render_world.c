@@ -300,8 +300,9 @@ int mu_render_world_character(const mu_options *o)
     char hash[65] = "";
     mu_world_particles *particles = NULL;
     long link_sprites = 0;
-    for (int k = MU_CHARACTER_PART_SLOTS; k < MU_CHARACTER_ITEMS; ++k) {
-        if (mu_rc_link_supported(W.glow[k].type) && c.items[k].loaded && !particles) {
+    for (int k = 0; k < MU_CHARACTER_ITEMS; ++k) {
+        if ((mu_rc_link_supported(W.glow[k].type) || W.glow[k].type == 0x389c || W.glow[k].type == 0x389d) &&
+            c.items[k].loaded && !particles) {
             particles = calloc(1, sizeof *particles);
             char error[256];
             if (!particles || mu_world_particles_open(particles, o->game_root, NULL, 0, 1,
@@ -324,6 +325,8 @@ int mu_render_world_character(const mu_options *o)
         }
         mu_renderchar_env env = W.env;
         env.time = W.world_time + 40.0f * (float)(n * o->frame_steps);
+        if (particles)
+            particles->world_time = env.time;   /* body and link callers read the same 0x06fce370 clock */
         mu_raster_clear(&raster, o->background);
         mu_render_backend backend;
         mu_raster_backend(&raster, &backend);
@@ -338,6 +341,8 @@ int mu_render_world_character(const mu_options *o)
             draw.textures = o->no_textures ? NULL : &item->textures;
             mu_renderchar_draw_item(&item->model, &W.glow[parts[k]], &env, c.params.light, 1.0f, &draw, &backend,
                                     &stats, &rstats);
+            if (W.glow[parts[k]].type == 0x389c || W.glow[parts[k]].type == 0x389d)
+                link_sprites += mu_renderchar_link_effects(&item->model, c.player_bones, W.glow[parts[k]].type, particles);
         }
         for (size_t k = 0; k < sizeof ATTACH / sizeof ATTACH[0]; ++k) {
             if (!att[k].loaded)

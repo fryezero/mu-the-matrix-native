@@ -1,0 +1,7 @@
+MU_OP(0xF3, MU_SUB_NONE, combat_damage)
+MU_OP(0xC5, MU_SUB_NONE, combat_action)
+MU_OP(0x17, MU_SUB_NONE, combat_die)
+MU_SUBMIT(MU_INTENT_COMBAT_ATTACK, combat_attack)
+MU_SUBMIT(MU_INTENT_COMBAT_CAST, combat_cast)
+MU_SUBMIT(MU_INTENT_COMBAT_MOVE, combat_move)
+MU_OP(0x20, MU_SUB_NONE, combat_drop)
