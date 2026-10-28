@@ -1507,7 +1507,7 @@ mutants_at = "mutants"
 build = ["reconstructed/objects", "reconstructed/joints"]
 args = ["--text", "{text}", "--data", "{data}", "--cases", "2000", "--mutations", "--output", "{report}"]
 [validate_icarus.expect]
-"families.*.equal" = {same_as = "cases"}
+"families.*.equal" = {same_as = "families.*.cases"}
 "families.*.mismatch_count" = 0
 "families.*.stopped" = 0
 "mutants.*.caught" = true

@@ -20,6 +20,9 @@ were used. No changes in `native/world` or the sibling world-handler cases.
 - `native/core/mu_objects_icarus.*`: consumes the events into native light/effect/sprite/joint hosts, with bounded
   event storage. The particle host loads `Object11/cloud.bmd` and `Effect/cloudLight.OZJ`; the environment loads
   `Monster32.bmd`, the file requested by OpenMonster(31). Existing texture and effect-model slots are preserved.
+- The character-select object rule now depends on the actual core header list. Its former undefined `CORE_HDR`
+  dependency kept stale objects after these structure additions; the character-select lifecycle checks pass after
+  the corrected incremental rebuild.
 
 The Unicorn families compare compiled production C with the actual pinned instructions. Engine calls are
 recording stubs. Vector accessors, AngleMatrix, VectorRotate, tail shift and humming execute as client code;
@@ -38,7 +41,7 @@ implementation. The original window PNG is the local audited README source copy
 `renders/readme-sources/18--fidelity2_live_10-icarus.png`. Several other historical live PNGs are absent, so those
 maps have render hashes and object/light comparisons without a new image-error number.
 
-Initial results: 25-step mean absolute image difference 61.760 → 61.854; 400-step 54.673 → 60.942. These are
+Initial results: 25-step mean absolute image difference 61.760 → 62.030; 400-step 54.673 → 60.935. These are
 regressions, not fidelity improvements. Sky random calls change the puff distribution, and the native seeds are
 not the captured client's state. The named cloud/lightning/sprite/swirl paths are implemented, but do not explain
 or reproduce the persistent grey coverage of the live capture. Dragons and cloud lights are visible. All thirteen

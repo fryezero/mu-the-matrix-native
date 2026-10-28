@@ -198,7 +198,7 @@ ordered host calls, including random consumption. The existing joint and environ
 lifecycle. Exact final counts, commands and limitations are in [the handoff](../handoffs/RENDER-WORLDS-C.md).
 
 This is not a claim that the persistent grey layer matches the capture. At 25 steps the image error regresses
-61.760 → 61.854, and at 400 steps 54.673 → 60.942. The verified sky helper emits only once in fifty steps and
+61.760 → 62.030, and at 400 steps 54.673 → 60.935. The verified sky helper emits only once in fifty steps and
 its cloud model lives two steps. Its port, cloud lights and dragons do not explain the persistent coverage in
 the screenshot. Other thirteen capture hashes remain unchanged. Full joint/sprite/attached-tree state at the
 screenshot frame is still needed; no live capture was attempted here.

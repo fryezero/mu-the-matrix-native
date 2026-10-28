@@ -148,7 +148,7 @@ $(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ) $(BUILD)/data-manifest.o
 CHARSEL_RT_SRC := charsel/charsel_rt.c $(sort $(wildcard charsel/parts/*.c))
 CHARSEL_RT_HDR := charsel/mu_charsel_rt.h charsel/charsel_rt_internal.h charsel/charsel_part.h charsel/parts.def
 CHARSEL_RT_OBJ := $(patsubst %.c,$(BUILD)/charsel-rt/%.o,$(CHARSEL_RT_SRC))
-$(BUILD)/charsel-rt/%.o: %.c $(CHARSEL_RT_HDR) $(CORE_HDR)
+$(BUILD)/charsel-rt/%.o: %.c $(CHARSEL_RT_HDR) $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c $< -o $@
 
