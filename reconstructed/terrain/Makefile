@@ -5,7 +5,7 @@ LIB := libterrain.$(SUFFIX)
 
 all: $(LIB)
 
-$(LIB): terrain.c terrain.h ../record-math/record_math.c ../record-math/record_math.h
-	$(CC) $(CFLAGS) -shared terrain.c ../record-math/record_math.c -lm -o $@
+$(LIB): terrain.c terrain.h world_haze.c world_haze.h ../record-math/record_math.c ../record-math/record_math.h
+	$(CC) $(CFLAGS) -shared terrain.c world_haze.c ../record-math/record_math.c -lm -o $@
 
 .PHONY: all
