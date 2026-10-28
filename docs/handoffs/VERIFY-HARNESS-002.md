@@ -70,8 +70,23 @@ Use the same installed text/data files for both revisions, through ignored `evid
 
 ## Delivery and cleanup
 
-Implementation, capture comparison and private owning tests are complete and pushed. The lane is
-queued for the serialized final sequence. Full local gate, PR merge and cleanup remain pending.
+The serialized final sequence acquired the queue/merge lock at 14:05 CDT on 2026-10-28.
+Merged latest `origin/main` at `23f3e08e660932184a2394c54f5f8e2e276692c3` into gate head
+`740912fb6cd65f5934bfae2b81aa713b307dedef`. The only conflicts were added status paragraphs in
+`docs/status.md` and `docs/handoff.md`; both lane entries were retained.
+
+`bash scripts/local-macos-ci.sh` completed successfully on that combined head:
+
+- 38 suites, 1,608 tests, 205 explicit skips, zero failures.
+- 11/11 fixture scenarios pass; 86 inbound frames, zero unbound/undecodable frames.
+  Existing fixture limits remain two unrecovered intents and nine unsent frames.
+- Native viewer and read-only reader builds pass. No reader is run against a live game.
+- Repository audit: 1,565 files accepted, zero rejected.
+- The fixture metadata's `dirty: true` comes from the two untracked local-input symlinks,
+  `evidence` and `tools/python`. Tracked source was clean for the gate; neither link is staged.
+
+PR creation/merge and the brief's cleanup follow this gate. This handoff receives only documentation
+updates after the tested head; the code and tests remain unchanged.
 Task-local reports live under `mu-mac-tools/native/scratch/verify-harness-002` only until delivery;
 they contain private derived reports and are deleted after merge. No new input needs to be retained.
 
