@@ -185,10 +185,14 @@ class ClientTests(unittest.TestCase):
         self.render('perf', '--perf', log, '--gpu-overlay')
         header, rows = perf_report.read(str(log))
         self.assertEqual(header[:3], ['frame', 'scene', 'total_ms'])
-        for phase in ('logic_ms', 'terrain_ms', 'objects_ms', 'overlay_ms', 'scene_ms'):
+        for phase in ('logic_ms', 'terrain_ms', 'objects_ms', 'overlay_ms', 'scene_ms',
+                      'cpu_ms', 'gpu_world_ms', 'gpu_frame'):
             self.assertIn(phase, header)
         self.assertEqual(len(rows), 120)
         self.assertTrue(any(r['terrain_ms'] > 0 for r in rows if r['scene'] == 6))
+        self.assertTrue(all(r['cpu_ms'] >= 0 for r in rows))
+        self.assertTrue(all(r['gpu_frame'] < r['frame'] for r in rows))
+        self.assertTrue(all(r['gpu_world_ms'] >= 0 or r['gpu_frame'] == -1 for r in rows))
         self.assertTrue(all(r['sleep_ms'] == 0 for r in rows))   # headless: the virtual clock does not sleep
 
 

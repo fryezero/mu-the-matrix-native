@@ -85,23 +85,40 @@ def check(result, *, headless):
     return failures
 
 
+def regression(result, limits):
+    failures = []
+    if result['frames'] < 100:
+        failures.append('fewer than 100 measured frames')
+    if result['fps'] < limits['min_fps']:
+        failures.append('fps below measured M5 regression floor')
+    for percentile in ('p95', 'p99'):
+        if result['work_ms'][percentile] > limits[f'work_{percentile}_ms']:
+            failures.append(f'work {percentile} exceeds M5 regression ceiling')
+    if result['phases'].get('cpu', {}).get('mean', float('inf')) > limits['cpu_mean_ms']:
+        failures.append('thread CPU exceeds M5 regression ceiling')
+    return failures
+
+
 def workload(rows, expected):
     """Refuse a fast run that silently omitted any requested workload."""
     players = next((r['players'] for r in rows if isinstance(r.get('players'), dict)), {})
     actors = next((r for r in rows if r.get('actors') == 32), {})
     combat = next((r for r in rows if r.get('combat') is True), {})
+    particles = next((r for r in rows if r.get('particles') is True), {})
     gfx = next((r['gfx'] for r in rows if isinstance(r.get('gfx'), dict)), {})
     map_state = next((r for r in rows if r.get('map') is True), {})
-    if players.get('count') != expected or players.get('viewport_packets', 0) < expected:
+    if players.get('count') != expected or players.get('viewport_packets', 0) < expected or players.get('addinfo', 0) < expected:
         raise ValueError('crowd truncated or outside the viewport')
     if not actors or not all(combat.get(k, 0) > 0 for k in
-                             ('skills', 'area_requests', 'particles_created', 'joints_created')):
+                             ('skills', 'area_requests', 'fx_created', 'joints_created')):
         raise ValueError('monsters/combat/effects missing')
+    if particles.get('created', 0) <= 0 or particles.get('dropped', 0) or particles.get('overflow', 0):
+        raise ValueError('particle workload missing or overflowing')
     if not gfx.get('renders') or not gfx.get('inventory_open') or gfx.get('item_models_missing', 0):
         raise ValueError('GFx or inventory item models missing')
     if not map_state.get('map_shown'):
         raise ValueError('map window missing')
-    return {'players': players, 'actors': actors, 'combat': combat, 'gfx': gfx, 'map': map_state}
+    return {'players': players, 'actors': actors, 'combat': combat, 'gfx': gfx, 'map': map_state, 'particles': particles}
 
 
 def main(argv=None):
@@ -116,7 +133,8 @@ def main(argv=None):
     ap.add_argument('--seconds', type=float, default=16)
     ap.add_argument('--renders', action='store_true')
     ap.add_argument('--baseline', action='store_true')
-    ap.add_argument('--check', action='store_true')
+    ap.add_argument('--check', action='store_true', help='require the 25 Hz target')
+    ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
     ap.add_argument('--scenario', choices=SCENARIOS, action='append')
     a = ap.parse_args(argv)
     a.out = a.out.resolve()
@@ -128,6 +146,7 @@ def main(argv=None):
               'load_start': os.getloadavg(),
               'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(), 'scenarios': {}}
     failed = False
+    limits = json.loads((NATIVE / 'tools/stress_m5_limits.json').read_text())['scenarios']
     for name in a.scenario or SCENARIOS:
         directory = a.out / name
         directory.mkdir(parents=True, exist_ok=False)
@@ -146,11 +165,12 @@ def main(argv=None):
         result['workload'] = workload(rows, SCENARIOS[name][2])
         result['failures'] = check(result, headless=a.headless)
         report['scenarios'][name] = result
-        failed |= bool(result['failures'])
+        result['regression_failures'] = regression(result, limits[name])
+        failed |= bool(a.check and result['failures']) or bool(a.check_regression and result['regression_failures'])
         (a.out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
         print(f"{name}: {result['fps']:.2f} fps, work p95 {result['work_ms']['p95']:.2f} ms; "
               f"{result['failures'] or 'PASS'}", flush=True)
-    return int(a.check and failed)
+    return int(failed)
 
 
 if __name__ == '__main__':

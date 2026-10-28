@@ -59,7 +59,7 @@ static void players_frame(struct mu_world_rt *a, void *self, uint32_t now)
 /* NATIVE-PLAYERS-001: one part / weapon / wing of another player through RenderObjDraw's passes (the level
  * glow, excellent and ancient passes of NATIVE-RENDERCHAR-001; class parts and special types take the plain
  * pass) with the character light and the object alpha (the dead fade). */
-static void player_item_draw(const mu_world_rt *a, int32_t i, int item, const mu_render_backend *backend, float alpha)
+static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_render_backend *backend, float alpha)
 {
     const mu_world_player *q = &a->players->list[i];
     const mu_character_item *it = &q->model.items[item];
@@ -152,7 +152,7 @@ static void players_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
     if (a->batch && a->players)
         mu_gl_batch_session_end(a->batch);
     const char *baseline = getenv("MU_PERF_002_BASELINE");
-    int batch = a->batch && !(baseline && atoi(baseline));
+    int batch = a->batch && a->players && !(baseline && atoi(baseline));
     for (int32_t i = 0; a->players && i < a->players->count; ++i) {
         float alpha = mu_world_players_alpha(a->players, i);
         if (alpha <= 0.0f)

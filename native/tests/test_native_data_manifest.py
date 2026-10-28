@@ -160,6 +160,16 @@ class ManifestTests(unittest.TestCase):
                                  '--title', 'Native Data', '--no-audio', '--quiet'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_native_consumer_does_not_treat_long_scripts_as_paths(self):
+        from test_native_shell import write_root
+        root = write_root(self.base/'root')
+        subprocess.run(['make', '-C', str(NATIVE), 'world'], check=True, capture_output=True)
+        result = subprocess.run([str(NATIVE/'build/mu-world'), '--game-root', str(root),
+                                 '--headless', '--backend', 'gl', '--frames', '1', '--no-audio', '--quiet',
+                                 '--combat-script', ' '.join(f'{i}:skill:9:spider' for i in range(100))],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_planted_mistakes_are_caught(self):
         original = (NATIVE/'data/manifest.cpp').read_text()
         mutations = {

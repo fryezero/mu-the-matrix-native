@@ -3,13 +3,14 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
 
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
-sys.path[:0] = [str(HERE), str(NATIVE / 'tools')]
+sys.path[:0] = [str(HERE), str(NATIVE / 'tools'), str(NATIVE.parent / 'scripts')]
 import bench_stress as bench
 import imgdiff
 from test_native_combat import write_combat_world
@@ -37,11 +38,22 @@ class BenchmarkContract(unittest.TestCase):
         self.assertTrue(bench.check(dict(r, fps=24.9), headless=True))
         self.assertEqual(bench.check(dict(r, fps=90), headless=True), [])
 
+    def test_regression_ceiling_is_separate_from_the_25_hz_target(self):
+        limits = {'min_fps': 18, 'work_p95_ms': 68, 'work_p99_ms': 80, 'cpu_mean_ms': 55}
+        result = {'frames': 200, 'fps': 21, 'work_ms': {'p95': 56, 'p99': 63},
+                  'phases': {'cpu': {'mean': 45}}}
+        self.assertEqual(bench.regression(result, limits), [])
+        self.assertTrue(bench.check(result, headless=False))
+        self.assertTrue(bench.regression(dict(result, fps=15), limits))
+        self.assertTrue(bench.regression(dict(result, phases={'cpu': {'mean': 60}}), limits))
+        self.assertTrue(bench.regression(dict(result, work_ms={'p95': 90, 'p99': 100}), limits))
+
     def test_workload_rejects_missing_players_or_effects(self):
-        rows = [{'players': {'count': 80, 'viewport_packets': 80}}, {'actors': 32},
+        rows = [{'players': {'count': 80, 'viewport_packets': 80, 'addinfo': 80}}, {'actors': 32},
                 {'gfx': {'renders': 100, 'inventory_open': 1, 'item_models_missing': 0}},
                 {'map': True, 'map_shown': 1}, {'combat': True, 'skills': 4, 'area_requests': 4,
-                                             'particles_created': 12, 'joints_created': 12}]
+                                             'particles_created': 12, 'fx_created': 20, 'joints_created': 12},
+                {'particles': True, 'created': 100, 'dropped': 0, 'overflow': 0}]
         self.assertEqual(bench.workload(rows, 80)['players']['count'], 80)
         for index in range(len(rows)):
             with self.assertRaises(ValueError):
@@ -53,6 +65,26 @@ class BenchmarkContract(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == 'darwin', 'offscreen GL needs macOS')
 class OrderedRendering(unittest.TestCase):
+    def test_absent_players_preserves_the_hero_batch(self):
+        subprocess.run(['make', '-C', str(NATIVE), 'world'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'game'
+            root.mkdir()
+            write_combat_world(root)
+            outputs = []
+            for mode in ('1', '0'):
+                out = Path(tmp) / mode
+                r = subprocess.run([str(NATIVE / 'build/mu-world'), '--game-root', str(root),
+                                    '--headless', '--backend', 'gl', '--frames', '3', '--every', '1',
+                                    '--out-dir', str(out), '--width', '160', '--height', '120',
+                                    '--tile', '120,120', '--no-audio'],
+                                   env=dict(os.environ, MU_PERF_002_BASELINE=mode),
+                                   capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr[-2000:])
+                outputs.append(out)
+            for p in outputs[0].glob('*.png'):
+                self.assertTrue(imgdiff.compare(p, outputs[1] / p.name, 0)['identical'], p.name)
+
     def test_scaled_demo_preserves_pixels_and_state(self):
         subprocess.run(['make', '-C', str(NATIVE), 'world'], check=True, capture_output=True)
         with tempfile.TemporaryDirectory() as tmp:
