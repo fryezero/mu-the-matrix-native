@@ -62,3 +62,5 @@ Values marked "at the sync commit" were observed at commit `024e949` with the sy
   per-route hits and journal counts in `mu-session`. This path uses no renderer or socket listener.
 
 - [World input](./input.md): shared input files, cast, pick-up, right-click skills, panel coverage and native IME focus.
+- [Preview refresh](./preview-app.md): owner-requested app build, no-Python first run,
+  manifest refusal, real window/panel/click-travel checks and installation boundary.

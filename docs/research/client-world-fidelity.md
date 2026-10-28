@@ -675,3 +675,10 @@ Uruk emitter callbacks have synthetic native-host checks. The saved fourteen-vie
 base `7d813a9`. These are unaffected-world regressions; neither new class has captured objects/images.
 [Finding, engine boundaries, downstream limits and DATA-ACQ-002 needs](client-worlds-i.md),
 [handoff and final gate](../handoffs/RENDER-WORLDS-I.md).
+
+## RENDER-TIME-001 native temporal checks, 2026-10-28
+
+The [temporal measurement contract](client-render-time.md) adds fourteen INPUT-001 paths across these thirteen
+worlds, full-draw native time series and explicit regression thresholds. It preserves the still tour and all
+reconstructed rules. The installed-data check measures native repeatability; the original-client time series,
+clock/pool/RNG alignment and mugl-off live scores remain open. No live game was used.

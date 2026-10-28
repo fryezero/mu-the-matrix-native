@@ -22,6 +22,7 @@ typedef struct ini_entry {
 } ini_entry;
 
 struct wg_options {
+    mu_lang *lang;
     mu_gfx_layer *layer;
     wg_options_hooks h;
     char path[1024];
@@ -263,7 +264,7 @@ static int32_t env_member_int(void *user, const char *name)
 static const char *env_text(void *user, int32_t index)
 {
     (void)user;
-    const char *t = mu_lang_text(mu_lang_shared(), index);
+    const char *t = mu_lang_text(((wg_options *)user)->lang, index);
     if (t && *t)
         return t;
     switch (index) {   /* English stand-ins of the labels (the client's GlobalText, NATIVE-LANG-001) */
@@ -377,6 +378,7 @@ wg_options *wg_options_open(mu_gfx_layer *layer, const char *settings_dir, const
     wg_options *o = calloc(1, sizeof *o);
     if (!o)
         return NULL;
+    o->lang = mu_lang_load_default();
     o->layer = layer;
     if (hooks)
         o->h = *hooks;
@@ -433,6 +435,7 @@ wg_options *wg_options_open(mu_gfx_layer *layer, const char *settings_dir, const
 
 void wg_options_close(wg_options *o)
 {
+    mu_lang_free(o->lang);
     free(o);
 }
 

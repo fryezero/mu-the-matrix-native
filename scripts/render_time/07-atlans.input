@@ -1,0 +1,8 @@
+# RENDER-TIME-001 07-atlans, world 7, start tile 19,15
+# INPUT-001 v1; 640x480 drawable pixels, 25 Hz, frames 0..200.
+# Stand for 40 iterations, walk east on screen, zoom, walk west, restore zoom.
+0:focus:1
+40:move:400,240 41:ldown:400,240 44:lup:400,240
+90:wheel:1
+120:move:260,240 121:ldown:260,240 124:lup:260,240
+160:wheel:-1

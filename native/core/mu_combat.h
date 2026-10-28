@@ -209,7 +209,7 @@ typedef struct mu_combat {
     mu_combat_stats stats;
     char log[32][96];
     int32_t log_count;
-    const struct mu_lang *lang;   /* NATIVE-LANG-001: skill table (names, distance, mana), or NULL */
+    struct mu_lang *lang;   /* NATIVE-LANG-001: skill table (names, distance, mana), or NULL */
 } mu_combat;
 
 /* Binds the combat state to a session (all pointers stay owned by the

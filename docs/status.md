@@ -2,6 +2,16 @@
 
 RENDER-WORLDS-I implements Loren Market/Uruk primary methods: 6,000 instruction cases, zero mismatches, 33/33 compiled mutants; 31/144 verified primary families across 11/48 classes. [Evidence](research/client-worlds-i.md), [checks and limits](handoffs/RENDER-WORLDS-I.md).
 
+RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
+
+APP-REFRESH-001: current native Preview rebuild and offline smoke; fixes stale
+scratch discovery and zero/overwritten fixture MP/AG. Final local gate passes,
+1,521 tests. [Checks and install sequence](handoffs/APP-REFRESH-001.md).
+
+README-REFRESH-003 updates the public README through PR #207, with current session/render/audio/data coverage and explicit offline, live-comparison and 25 fps limits. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-003.md).
+
+SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
+
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
 RENDER-WORLDS-H implements Duel Arena/world-82 primary methods: 6,000 instruction cases, zero mismatches, 19/19 compiled mutants; 25/144 verified primary families across 9/48 classes. Full Mac gate passes, 1,511 tests; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-h.md), [handoff](handoffs/RENDER-WORLDS-H.md).
@@ -46,6 +56,8 @@ F6 70/71 stay undecoded and encrypted requests stay unsent pending their separat
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
 RENDER-ITEMS-002 part 6: 559/1,674 item bodies and 17/17 class skins; nine link targets/fourteen types consumed. Adds 58 ranked bodies, including all twelve rank-9 types, two sprite chains and ground/inventory skin sprites. New instruction checks: 17,736 cases, zero mismatches, 6/6 mutants caught. Locked Mac gate passes, 1,498 tests. Rank 5 remains pose-dependent and refused. [Checks and limits](handoffs/RENDER-ITEMS-002F.md).
+
+RENDER-ITEMS-002 part 7: 635/1,674 bodies, 17/17 skins, twelve link targets/seventeen types. 25,256 new instruction cases, zero mismatches, 10/10 mutants. Adds stress mace and ranked clock-driven bodies; ground armour retains Data/Effect glow textures. Locked Mac gate passes, 1,528 tests. Rank-5 pose/point comparisons advance the oracle; its full draw branch remains refused. [Checks and limits](handoffs/RENDER-ITEMS-002G.md).
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 

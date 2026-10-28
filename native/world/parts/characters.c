@@ -11,6 +11,7 @@
 #include "../../fixture/characters_demo.h"
 #include "../../fixture/monsters_demo.h"
 #include "../../fixture/combat_demo.h"
+#include "../../fixture/skills_demo.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,6 +78,8 @@ static int characters_open(mu_world_rt *a, void *self)
     fprintf(file,"endpoint game 127.0.0.1:55902\nuse characters x=%d y=%d file=%s\n",
             a->walk.hero.tile[0],a->walk.hero.tile[1],a->players_file);
     fprintf(file,"use skills\nat 1 skills root %s\nat 1 skills login %d 30\n",a->root,a->walk.hero.class_byte);
+    mu_skills_demo_hero(file, a->walk.hero.class_byte, a->map->world,
+                        a->walk.hero.tile[0], a->walk.hero.tile[1], a->walk.hero.angle[2]);
     fclose(file);
     mu_fixture_options options={path,NULL,0x9a7e2026u};
     char error[1024]={0};
@@ -93,7 +96,7 @@ static int characters_open(mu_world_rt *a, void *self)
     seed.place.tile[0]=a->walk.hero.tile[0];seed.place.tile[1]=a->walk.hero.tile[1];
     p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);
     if(!p->session) {fprintf(stderr,"characters: %s\n",error);return 1;}
-    mu_session_skills_bind(p->session,mu_lang_shared(),getenv("MU_LANG_DIR"),a->root);
+    mu_session_skills_bind(p->session,a->lang,getenv("MU_LANG_DIR"),a->root);
 attach:
     p->audio_rng = 0x41554432u;
     p->services.map = a->map; p->services.walk = &a->walk;

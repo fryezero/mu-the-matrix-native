@@ -22,6 +22,7 @@
 #include "mu_ui_raster.h"
 
 typedef struct mu_charsel_ui {
+    struct mu_lang *lang;
     mu_ui_raster raster;
     mu_ui_assets assets;
     mu_ui_state state;

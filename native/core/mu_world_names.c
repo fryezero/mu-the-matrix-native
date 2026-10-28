@@ -62,7 +62,10 @@ int mu_world_names_init(mu_world_names *wn, const mu_world_names_config *cfg, mu
         wn->own_lang = mu_lang_load(cfg->lang_dir);
         wn->lang = wn->own_lang;
     } else
-        wn->lang = mu_lang_shared();
+    {
+        wn->own_lang = mu_lang_load_default();
+        wn->lang = wn->own_lang;
+    }
     int32_t hero_level = cfg && cfg->hero_level > 0 ? cfg->hero_level : 400;
     wn->names.env.hero_level = hero_level;
     /* the hero: the join packet's CreateHero, then addInfo (0x0124cc64) */

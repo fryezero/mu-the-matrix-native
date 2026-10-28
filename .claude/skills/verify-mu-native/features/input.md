@@ -45,6 +45,7 @@ assets remain the run's own files. Record those two private input paths and thei
 ```text
 10:enter 14:enter 30:enter
 40:move:361,237 42:rdown:361,237 43:rup:361,237
+60:ldown:361,237 61:lup:361,237
 200:key:32 250:key:32 300:key:32 350:key:32 380:key:32 395:key:18
 ```
 
@@ -53,7 +54,7 @@ MU_LANG_DIR="$RUN/lang" MU_SKILL_DEMO="$RUN/skill-demo.txt" MU_GFX_LIB="$MU_INPU
 MU_GFX_LOG="$RUN/proof/input.gfx.log" \
 $V/run-tool.sh "$RUN" input mu-client --game-root "$RUN/root" --session "$RUN/session.txt" \
   --headless --backend gl --no-audio --no-store --width 640 --height 480 --frames 400 --every 15 \
-  --combat --placement "$RUN/placement.txt" --gfx "$MU_INPUT_MOVIES" --input-script "$RUN/input.txt" \
+  --combat --items --placement "$RUN/placement.txt" --gfx "$MU_INPUT_MOVIES" --input-script "$RUN/input.txt" \
   --out-dir "$RUN/proof/input"
 ```
 
@@ -74,6 +75,10 @@ $V/run-tool.sh "$RUN" input mu-client --game-root "$RUN/root" --session "$RUN/se
 - A key's positive consumed result alone does not prove a panel. Verify its view state, invokes and PNG.
 - A bar digit selects a skill when GFx is present. Numeric casts without GFx retain the old demo policy.
 - The skill record and learned/saved bar are separate fixtures. Missing either can cause a legitimate refusal.
+- Session hero MP/AG must also arrive from the offline progress fixture. Zero
+  resources are a failed precondition. The left click after casting exercises
+  plaintext attack damage; encrypted skill requests remain unsent, so the cast
+  alone does not establish a kill or drop.
 - Frame indices are front-end iterations, not server WorldTime or a cross-client timing comparison.
 - The original IME.swf, missing windows and authoritative mount/helper/shop controllers remain in the
   coverage table. This recipe never supplies their state or claims them as verified.

@@ -13,6 +13,7 @@
 #include "item_bodies.h"
 #include "skin_bodies.h"
 #include "item_links.h"
+#include "item_pulse_links.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -137,7 +138,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     mu_rc_draw base;
     sink one = {&base, 1, 0, s->item, s->model, 0};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[21];
+    uint32_t input[25];
     input[0] = base.flags;
     memcpy(&input[1], &base.alpha, 4);
     input[2] = (uint32_t)base.blend_mesh;
@@ -160,6 +161,26 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         (float)((double)armour_wave(s->item->time) * 0.7 + (double)0.3f) : 0.0f;
     if (blend > 1.0f) blend = 1.0f;
     memcpy(&input[20], &blend, 4);
+    uint8_t mask = mu_rc_body_types[type].scalar_mask;
+    if (mask & 1u) {
+        float value = (client_sin(s->item->time * 0.0015f) + 1.0f) * 0.5f;
+        memcpy(&input[21], &value, 4);
+    }
+    if (mask & 2u) {
+        float value = client_sin(s->item->time * 0.002f) * 0.3f + 0.7f;
+        memcpy(&input[22], &value, 4);
+    }
+    if (mask & 4u) {
+        float clock = s->item->time;
+        int32_t tick = !(clock >= -2147483648.0f && clock < 2147483648.0f) ? INT32_MIN : (int32_t)clock;
+        float value = (float)(tick % 2000) * 0.0005f;
+        memcpy(&input[23], &value, 4);
+    }
+    if (mask & 8u) {
+        float value = armour_wave(s->item->time) * 0.65f + 0.2f;
+        if (value > 0.65f) value = 0.65f;
+        memcpy(&input[24], &value, 4);
+    }
     apply_recipe(s, &mu_rc_body_recipes[mu_rc_body_types[type].recipe[phase]], input, &base);
 }
 
@@ -384,6 +405,13 @@ int mu_rc_item_draws(const mu_rc_item *it, mu_rc_model *model, mu_rc_draw *out, 
     if ((body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
         (it->a10 != -1 || it->a11 != -1))
         return MU_RC_UNSUPPORTED;
+    /* 0x016ed6e8 and the shared armour fallback: OBJECT blend writes survive the tails. */
+    if (it->type == 0x0eee || it->type == 0x18fe || it->type == 0x1cfe) {
+        mu_rc_item copy = *it;
+        float wave = client_sin(it->time * 0.001f);
+        copy.blend_light = it->type == 0x0eee ? wave * 0.6f + 0.4f : wave * 0.4f + 0.6f;
+        return item_draws_impl(&copy, model, out, capacity, count, 1);
+    }
     /* 0x01770e41..0x01770ef8: wing blend-light writes survive every pass. */
     if (it->type == 0x22ea || it->type == 0x248c || it->type == 0x22eb || it->type == 0x248d) {
         mu_rc_item copy = *it;
@@ -580,6 +608,9 @@ int mu_rc_link_supported(int32_t type)
     for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
         if (type == mu_rc_link_chains[i].type)
             return 1;
+    for (size_t i = 0; i < sizeof mu_rc_pulse_links / sizeof mu_rc_pulse_links[0]; ++i)
+        if (type == mu_rc_pulse_links[i].type)
+            return 1;
     return type == 0x12ea || type == 0x12eb || type == 0x12ec || type == 0x12f7 ||
            type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb ||
            type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe;
@@ -626,10 +657,42 @@ int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
     return mu_rc_link_effects_time(type, 0.0f, random, context, out, capacity, count);
 }
 
+static float link_scalar(const mu_rc_link_scalar *rule, const float *values)
+{
+    if (!rule->source)
+        return rule->add;
+    float value = values[rule->source];
+    if (rule->mul != 1.0f)
+        value *= rule->mul;
+    if (rule->add != 0.0f)
+        value += rule->add;
+    return value;
+}
+
 int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, void *context,
                            mu_rc_link_effect *out, int32_t capacity, int32_t *count)
 {
     *count = 0;
+    for (size_t row = 0; row < sizeof mu_rc_pulse_links / sizeof mu_rc_pulse_links[0]; ++row) {
+        if (mu_rc_pulse_links[row].type != type)
+            continue;
+        /* Every caller consumes the common random intensity, even if unused. */
+        float sin2 = client_sin(time * 0.002f), sin1 = client_sin(time * 0.001f);
+        float values[] = {0, link_intensity(random(context)), sin2 * 0.35f + 0.65f, sin2, sin1,
+                          client_sin(time * 0.01f) * 360.0f, sin1 * 0.5f + 0.5f};
+        int n = mu_rc_pulse_links[row].count;
+        for (int i = 0; i < n && i < capacity; ++i) {
+            const mu_rc_pulse_sprite *rule = &mu_rc_pulse_sprites[mu_rc_pulse_links[row].first + i];
+            mu_rc_link_effect e = {0};
+            e.sprite = (mu_rc_link_sprite){rule->bone, rule->bitmap, link_scalar(&rule->scale, values),
+                {link_scalar(&rule->rgb[0], values), link_scalar(&rule->rgb[1], values),
+                 link_scalar(&rule->rgb[2], values)}, link_scalar(&rule->rotation, values), 0, 4};
+            memcpy(e.offset, rule->offset, sizeof e.offset);
+            out[i] = e;
+        }
+        *count = n;
+        return n > capacity ? MU_RC_FULL : MU_RC_OK;
+    }
     int chain_index = -1;
     for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
         if (type == mu_rc_link_chains[i].type)

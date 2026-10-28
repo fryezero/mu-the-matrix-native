@@ -2,6 +2,14 @@
 
 RENDER-WORLDS-I: [handoff](handoffs/RENDER-WORLDS-I.md). Six Loren Market/Uruk primary methods verified; 31/144 families across 11/48 classes. DATA-ACQ-002, Uruk weather/keyed-effect/colored-joint consumers and 113 primary methods remain.
 
+RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
+
+APP-REFRESH-001: [app refresh, smoke and installation](handoffs/APP-REFRESH-001.md).
+
+README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](research/readme-refresh.md). Public progress refreshed through PR #207; existing images/pins unchanged, no runtime code or live game used.
+
+SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
+
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
 
 RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.
@@ -48,6 +56,8 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
 RENDER-ITEMS-002 part 6: [handoff](handoffs/RENDER-ITEMS-002F.md). 559/1,674 bodies, 17/17 skins, nine link targets/fourteen types integrated; ground and both inventory paths consume skin sprites. Remaining: 1,115 bodies, pose-aware rank 5, owner-dependent links and prior model/domain limits. Muun/nested map-object tables remain deferred.
+
+RENDER-ITEMS-002 part 7: [handoff](handoffs/RENDER-ITEMS-002G.md). 635/1,674 bodies, 17/17 skins, twelve links/seventeen types. Every committed README stress-kit body is admitted. Locked Mac gate passes, 1,528 tests. Rank-5 pose/point oracle advances; full rendering, 1,039 bodies and prior limits remain.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 

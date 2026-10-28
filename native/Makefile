@@ -208,7 +208,8 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
 WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
 WORLD_RT_SRC += world/input_keys.c
-WORLD_RT_HDR += world/input_keys.h world/input_sdl.h
+WORLD_RT_HDR += world/input_keys.h world/input_sdl.h world/time_series.h
+WORLD_RT_HDR += fixture/skills_demo.h
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
 
@@ -608,3 +609,18 @@ $(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP)
 $(BUILD)/worlds-i-host: tests/worlds_i_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-i-host.o
 	$(CXX) $(BUILD)/worlds-i-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# SESSION-GLOBALS-001: real session/world tool entries, twice without exec.
+$(BUILD)/session-repeat-host: tests/session_repeat_host.c tools/mu_session.c $(BUILD)/libmusession.a $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -Dmain=mu_session_tool_main -c tools/mu_session.c -o $(BUILD)/session_repeat_tool.o
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c tests/session_repeat_host.c -o $(BUILD)/session_repeat_host.o
+	$(CXX) $(BUILD)/session_repeat_host.o $(BUILD)/session_repeat_tool.o $(BUILD)/libmusession.a $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/world-repeat-host: tests/session_repeat_host.c world/world_tool.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -Dmain=mu_world_tool_main -c world/world_tool.c -o $(BUILD)/world_repeat_tool.o
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DREPEAT_WORLD -c tests/session_repeat_host.c -o $(BUILD)/world_repeat_host.o
+	$(CXX) $(BUILD)/world_repeat_host.o $(BUILD)/world_repeat_tool.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+$(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/globals_owner_host.o
+	$(CXX) $(BUILD)/globals_owner_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@

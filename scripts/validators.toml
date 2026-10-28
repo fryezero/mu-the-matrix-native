@@ -1849,6 +1849,20 @@ cases_at = "families.*"
 mutants_at = "mutants_caught"
 args = ["--cases", "40", "--mutants", "--output", "{report}"]
 
+[validate_item_gear]
+test = "reconstructed/renderchar/test_item_gear.py::ItemGear.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "links", "clocks", "rank5_pose", "rank5_points"]
+cases = 25256
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/model-codec", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_gear.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_audio_combat]
 test = "native/tests/test_audio_combat.py::CombatAudio.test_original_combat_audio"
 pins = ["text", "data"]

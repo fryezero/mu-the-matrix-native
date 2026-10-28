@@ -47,7 +47,7 @@ typedef struct mu_world_names {
 typedef struct mu_world_names_config {
     const char *hero_name;            /* DEMO */
     int32_t hero_level;               /* DEMO */
-    const char *lang_dir;             /* NATIVE-LANG-001 tables; NULL: mu_lang_shared() ($MU_LANG_DIR) */
+    const char *lang_dir;             /* NATIVE-LANG-001 tables; NULL: owned load from $MU_LANG_DIR */
     const char *font_face;            /* stand-in font (NULL "Arial") */
     int monster_view;                 /* the option byte +0x44 (client default 1) */
 } mu_world_names_config;
