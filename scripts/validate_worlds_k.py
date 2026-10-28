@@ -49,7 +49,9 @@ def family(machine,lib,name,cases):
         time=v.f32(g.choice([-10001,-1,0,3500,3501,3999,4000,4500,4501,4999,5000,1e6,g.uniform(-1e5,1e5)]))
         # Direct the narrow type-83 phase window as well as its two boundaries.
         if typ==83:
-            v.put_f(raw,0x16c,0);time=[3500,3501,3700,3999,4000,4501,-1][(n//len(TYPES[world]))%7]
+            ordinal=n//len(TYPES[world]);angle=[0,1.75,-2.75,45,-45,359][ordinal%6]
+            v.put_f(raw,0x16c,angle)
+            time=int(angle)*10+[3500,3501,3700,3999,4000,4501,-1][ordinal%7]
         present=n%11!=0;seed=g.getrandbits(32);rnd=v.MsvcRand(seed);crnd=v.MsvcRand(seed)
         calls=[];bones=[];cbones=[];names={}
         hero=[v.f32(g.uniform(-100,100)) for _ in range(3)];action=[0,49,50,51,110,111,65535][n%7]
@@ -120,7 +122,9 @@ MUTANTS=[('0.3f,light,rotation','0.4f,light,rotation','losttower_visual'),
 ('bone(ctx,"Bone01",zero,p);particle','bone(ctx,"Bone02",zero,p);particle','icarus_flare'),
 ('action<111','action<110','losttower_push'),('sqrtf(x*x+y*y)<50.0f','sqrtf(x*x+y*y)<=50.0f','losttower_push'),
 ('0.6f*mu_obj_f32','0.5f*mu_obj_f32','losttower_push'),('-x*4.0f','-x*3.0f','losttower_push'),
-('world!=7','world!=6','atlans_dispatch')]
+('world!=7','world!=6','atlans_dispatch'),
+(')*10u',')*9u','tarkan_visual'),('clock<','clock<=','tarkan_visual'),
+('mu_obj_f32(o,0xf8)<0.1f','mu_obj_f32(o,0xf8)<=0.1f','losttower_push')]
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--cases',type=int,default=1200);ap.add_argument('--mutations',action='store_true');ap.add_argument('--output');a=ap.parse_args()
     text,data=pins.TEXT.read(),pins.DATA.read();machine=Machine(text,data)

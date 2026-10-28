@@ -33,4 +33,4 @@ class WorldsKTests(unittest.TestCase):
             subprocess.run([sys.executable,str(ROOT/'scripts/validate_worlds_k.py'),'--cases','1200','--mutations','--output',str(report)],check=True,capture_output=True)
             r=json.loads(report.read_text());self.assertEqual(sum(x['cases'] for x in r['families'].values()),6000)
             self.assertTrue(all(x['equal']==x['cases'] and not x['stopped'] for x in r['families'].values()))
-            self.assertEqual(len(r['mutants']),18);self.assertTrue(all(x['detected'] and not x['stopped'] for x in r['mutants']))
+            self.assertEqual(len(r['mutants']),21);self.assertTrue(all(x['detected'] and not x['stopped'] for x in r['mutants']))

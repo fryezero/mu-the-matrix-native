@@ -139,3 +139,12 @@ lifecycle in `reconstructed/combat/skill_fx.c`. The combat renderer loads both m
 world-particle host's `fx_model_files` has no slots for them and `draw_models` skips missing slots.
 The remaining work is that world-host model binding, not reconstruction of a missing stone lifecycle.
 K emits and compares the original calls without adding effect/particle files.
+
+## Expanded boundary corpus
+
+The final K corpus adds signed nonzero Tarkan type-83 angles and catches three additional compiled
+mistakes: wrong angle multiplier, inclusive upper clock bound and inclusive Lost Tower velocity guard.
+It retains **6,000 equal cases, zero mismatches/stops**, with **21/21 compiled source mutants**.
+The combined registered G/H/I/J/K rerun now totals **30,000 equal cases and 116/116 source mutants**,
+five passes and no errors/skips. The two native host controls remain separate. Earlier 18/113 counts
+above identify the smaller historical corpus, not the final boundary coverage.
