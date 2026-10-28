@@ -1,5 +1,7 @@
 # Continue from here
 
+- RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
+
 ## Stage 1 merged (2026-10-25)
 
 **Merged.** PRs #160-#165 are on main. Each passed `make test` on its merged tree; the last ran 1,283 tests. Each

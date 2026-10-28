@@ -2,7 +2,7 @@
 """RENDER-TERRAIN-002: compiled terrain C against pinned original instructions.
 
 Synthetic inputs only. Reports stay local. Imports, texture lookups, random
-numbers, particle allocation, buff predicates and camera singleton are explicit
+numbers, particle allocation, hero-name predicates and camera singleton are explicit
 host boundaries. Terrain arithmetic, reflection, signed-grid updates and mesh
 construction run as original instructions. No original client is launched.
 """
@@ -194,7 +194,8 @@ def compare(client, lib, scale=1):
         uc.mem_write(base,b'\xa5'*C.sizeof(Grid)); uc.mem_write(base,struct.pack('<i',w))
         # Constructor owns active and count; Init clears just grids and direction.
         run(0x9f953b); lib.mu_terrain_signed_init(C.byref(obj),w)
-        check(row,bytes(uc.mem_read(base+4,0x100000)),bytes(obj)[4:0x100004],bytes([1])*0x100000)
+        check(row,(bytes(uc.mem_read(base+4,0x100000)),bytes(uc.mem_read(base+0x100008,12))),
+            (bytes(obj)[4:0x100004],bytes(obj.light)),(bytes([1])*0x100000,bytes(obj.light)))
     row=family('signed_ripple_009f9952')
     lib.mu_terrain_signed_ripple.argtypes=[v.VOIDP]+[C.c_int]*5+[v.RANDOM_CALLBACK,v.VOIDP]
     for k in range(40*scale):
@@ -292,7 +293,7 @@ def mutations(output):
     with ThreadPoolExecutor(max_workers=3) as pool:return list(pool.map(one,MUTANTS))
 
 def main():
-    ap=argparse.ArgumentParser(description=__doc__.splitlines()[0]);ap.add_argument('--scale',type=int,default=1);ap.add_argument('--output',required=True);ap.add_argument('--library',default=str(v.ROOT/'reconstructed/terrain/libterrain.dylib'));ap.add_argument('--mutations',action='store_true')
+    ap=argparse.ArgumentParser(description=__doc__.splitlines()[0]);ap.add_argument('--scale',type=int,default=1);ap.add_argument('--output',required=True);ap.add_argument('--library',default=str(v.ROOT/'reconstructed/terrain'/('libterrain.dylib' if sys.platform=='darwin' else 'libterrain.so')));ap.add_argument('--mutations',action='store_true')
     args=ap.parse_args()
     text=pins.TEXT.read();data=pins.DATA.read();flag=pins.FLAG.read()
     c=v.Client(text,data,flag);v.install_crt(c)

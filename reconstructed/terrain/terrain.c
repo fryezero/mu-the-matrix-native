@@ -8,6 +8,8 @@
 
 #include "../record-math/record_math.h"
 
+static void mu_terrain_normalize(float v[3]);
+
 int32_t mu_terrain_index(int32_t x, int32_t y) { return (int32_t)((uint32_t)y * 256u + (uint32_t)x); } /* wraps like imul/add */
 
 int32_t mu_terrain_index_repeat(int32_t x, int32_t y) { return (y & 255) * 256 + (x & 255); }
@@ -489,7 +491,6 @@ static int render_face(const mu_terrain_scene *scene, int32_t layer, const int32
                     z = (b - a) * (fx - (float)x) + a;
                 }
                 direction[2] = z - scene->camera_position[2];
-                extern void mu_terrain_normalize(float v[3]);
                 mu_terrain_normalize(direction);
                 const float up[3] = {0, 0, 1};
                 mu_terrain_reflection_uv(direction, scene->reflection_normal ? &scene->reflection_normal[3*i] : up,
@@ -1186,7 +1187,7 @@ long mu_terrain_decal(const mu_terrain_scene *scene, int32_t texture, float x, f
 }
 
 /* Normalize 0x00cff0d3 uses float division, unlike FaceNormalize. */
-void mu_terrain_normalize(float v[3])
+static void mu_terrain_normalize(float v[3])
 {
     float length = (float)sqrt((double)((v[0]*v[0] + v[1]*v[1]) + v[2]*v[2]));
     if (length < 0.000001f) { memset(v, 0, 3*sizeof(float)); return; }
@@ -1286,6 +1287,8 @@ float mu_terrain_signed_height(const mu_terrain_signed_grid *g, float x, float y
 void mu_terrain_signed_mesh(mu_terrain_signed_grid *g, int32_t hx, int32_t hy)
 {
     g->count=0;
+    _Static_assert(offsetof(mu_terrain_signed_grid,active)==0x100004,"signed active layout");
+    _Static_assert(offsetof(mu_terrain_signed_grid,count)==0x114ad4,"signed count layout");
     int count[1764]={0};
     for (int y=0; y<42; ++y) for (int x=0; x<42; ++x) {
         int i=y*42+x, gx=hx*2-25+x, gy=hy*2-15+y;

@@ -371,7 +371,7 @@ const mu_image *mu_world_bitmap_wrap(const mu_world *w, int32_t id, int *linear,
 {
     const int32_t i = id - MU_TERRAIN_TEXTURE_TILE;
     if (clamp)
-        *clamp = 0;
+        *clamp = mu_terrain_is_signed_world(w->world) && id == MU_TERRAIN_TEXTURE_TILE + 1;
     if (i >= 0 && i < MU_WORLD_BITMAPS && w->bitmaps[i].width > 0) {
         if (linear)
             *linear = w->bitmap_linear[i];

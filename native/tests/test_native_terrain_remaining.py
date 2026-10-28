@@ -3,6 +3,7 @@ import ctypes as C
 import json
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -59,7 +60,6 @@ class RemainingTerrainTests(Build):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);write_world(root,25,seed=10)
             assets=root/'Data/Object25';assets.mkdir(parents=True)
-            (assets/'water1.OZT').write_bytes(nf.tga(32,32,1,alpha=True))
             # OZTs wrap the first four TGA bytes in front of the payload.
             tga=nf.tga(32,32,1,alpha=True);(assets/'water1.OZT').write_bytes(tga[:4]+tga)
             (assets/'water2.OZJ').write_bytes(ozj_tga(32,32,9))
@@ -68,6 +68,24 @@ class RemainingTerrainTests(Build):
             b=json.loads(run('render',root,*args,'--time',2000).stdout)
             self.assertEqual((a['status'],a['faces'],a['missing_texture_binds']),(0,3362,0))
             self.assertNotEqual(a['sha256'],b['sha256'])
+
+    def test_chaos_smoke_reaches_native_particle_pool(self):
+        from test_native_world import write_open_world
+        with tempfile.TemporaryDirectory() as tmp:
+            root=write_open_world(Path(tmp)/'game');write_world(root,19,seed=3)
+            effect=root/'Data/Effect';effect.mkdir()
+            tga=nf.tga(32,32,7,alpha=True);(effect/'smoke05.ozt').write_bytes(tga[:4]+tga)
+            tool=Path(__file__).resolve().parents[1]/'build/mu-walk'
+            r=subprocess.run([str(tool),'--game-root',str(root),'--world','18','--tile','24,77',
+                '--headless','--frames','20','--every','20','--width','120','--height','80',
+                '--backend','soft','--no-audio','--no-env','--no-items','--no-names','--no-map','--quiet',
+                '--out-dir',str(Path(tmp)/'out')],capture_output=True,text=True)
+            self.assertEqual(r.returncode,0,r.stderr)
+            rows=[json.loads(line) for line in r.stdout.splitlines() if line.startswith('{')]
+            particles=next(row for row in rows if row.get('particles') is True)
+            self.assertGreater(particles['created'],0)
+            self.assertGreater(particles['drawn_particles'],0)
+            self.assertEqual((particles['unsupported'],particles['overflow']),(0,0))
 
     def test_camera_worlds_accept_frustum(self):
         with tempfile.TemporaryDirectory() as tmp:

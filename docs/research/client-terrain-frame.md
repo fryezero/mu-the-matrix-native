@@ -249,3 +249,12 @@ imports used by handler constructors, and the CRT feature bit. `glColor3f` is re
 * Which object/character/effect sources add lights in a given scene (they need objects, which stay blocked, and
   actors).
 * Fog and the alpha reference, as before.
+
+
+## RENDER-TERRAIN-002 follow-up, 2026-10-27
+
+The previously unresolved overlays, Chaos Castle face effects, camera-angle frustum and fog/alpha setup are
+implemented and instruction-compared. Kalima now uses its separate signed-grid mesh. See
+[the remaining-terrain finding](client-terrain-remaining.md) for per-routine counts, compiled mutants, native
+integration, unchanged-world hashes and host-input limits. The earlier unsupported-path statements and counts
+above describe the earlier milestone, not the current implementation.

@@ -132,8 +132,8 @@ typedef struct mu_world_draw_stats {
 
 /* Draws the box (tile coordinates, inclusive, client order) into a software
  * raster frame: RenderTerrain's opaque pass, then the alpha state and the
- * grass pass when the world draws them. State mapping and the alpha
- * reference (0.25) are viewer choices for what the client sets elsewhere. */
+ * grass pass when the world draws them, or Kalima's signed-grid mesh.
+ * State mapping and alpha reference 0.25 follow the recovered GL setup. */
 int mu_world_draw_raster(mu_world *world, mu_raster *raster, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
                          mu_world_draw_stats *stats);
 

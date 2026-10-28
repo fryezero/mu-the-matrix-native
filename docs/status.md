@@ -1,5 +1,7 @@
 # Current status
 
+- RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
+
 ## Stage 1 of the port completion, 2026-10-25
 
 Four lanes from [the plan](design/native-port/plan.md) are merged (#162-#165):

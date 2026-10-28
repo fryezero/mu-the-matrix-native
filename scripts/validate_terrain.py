@@ -856,6 +856,7 @@ def synthetic_scene(seed, world=0, extended=False):
         for n in range(32):
             sizes[0x76f8 + n] = (float(g.choice((64, 128, 256))), float(g.choice((64, 128, 256))))
         sizes[0x7723] = (128.0, 128.0)
+        sizes[0x7722] = (256.0, 256.0)
     scene['sizes'] = sizes
     return scene
 
@@ -1628,8 +1629,7 @@ def terrain2_checks(client, authored, report, g, scale=1):
     particles = []
     client.extra = {CRT_RAND: lambda c: c.ret(crt_rand(), 0),
                     PARTICLE: lambda c: (particles.append(('effect', c.arg(0)) + c.read_floats(c.arg(1), 3)),
-                                         c.ret(0, 0)),
-                    CHAOS_EFFECTS: ret_with(0)}
+                                         c.ret(0, 0))}
     # seeds whose first rand() % 50 == 0, so world 0x22's water tiles spawn particles
     particle_seeds = [v for v in range(200000) if ((((v * 214013 + 2531011) & 0xffffffff) >> 16) & 0x7fff) % 50 == 0][:40]
     for seed, world in enumerate(SPECIAL_WORLDS):

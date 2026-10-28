@@ -80,7 +80,7 @@ static void gl_textures(terrain_view *v)
 {
     for (int32_t i = 0; i < MU_WORLD_BITMAPS; ++i) {
         const mu_image *image = &v->map->bitmaps[i];
-        v->names[i] = image->width > 0 ? gl_upload(image, v->map->bitmap_linear[i], 0) : 0;
+        v->names[i] = image->width > 0 ? gl_upload(image, v->map->bitmap_linear[i], mu_terrain_is_signed_world(v->map->world) && i == 1) : 0;
     }
     for (int32_t i = 0; i < MU_WORLD_EXTRA; ++i) {
         const mu_image *image = &v->map->extra[i];

@@ -236,8 +236,8 @@ void mu_terrain_chaos_face(const mu_terrain_scene *scene, int32_t x, int32_t y);
 void mu_terrain_reflection_init(const mu_terrain_scene *scene, float *normal, float *uv);
 void mu_terrain_reflection_uv(const float direction[3], const float normal[3], float uv[2]);
 struct mu_terrain_frustum_2d_params;
-/* CreateFrustrum2D with the world-6 buff predicate and the world-0x49 camera
- * pitch interpolator supplied explicitly. The old entry uses no buff/offset. */
+/* CreateFrustrum2D with the world-6 hero-name predicate and the world-0x49 camera
+ * pitch interpolator supplied explicitly. The old entry uses no special name or pitch offset. */
 int mu_terrain_frustum_2d_camera(int32_t world, const float position[3], const float angle[3],
     const struct mu_terrain_frustum_2d_params *params, int wide, int special_view,
     float pitch_offset, float x[4], float y[4]);
@@ -249,8 +249,7 @@ int mu_terrain_frustum_2d_camera(int32_t world, const float position[3], const f
  * alpha face of layer 2 when any alpha value is > 0. pass 2 is the grass
  * pass: a GL_QUADS blade where every alpha is <= 0, grass is enabled and the
  * layer-1 grass bitmap exists. Returns MU_TERRAIN_OK, MU_TERRAIN_UNSUPPORTED
- * (nothing emitted for that part) for a 0x2000 overlay face or a missing
- * bitmap the client would dereference, or MU_TERRAIN_BAD_INDEX. */
+ * for a missing bitmap the client would dereference, or MU_TERRAIN_BAD_INDEX. */
 int mu_terrain_draw_tile(const mu_terrain_scene *scene, int32_t pass, float xf, float yf, int32_t xi, int32_t yi,
                          const mu_terrain_sink *sink, mu_terrain_tile_stats *stats);
 
@@ -392,8 +391,8 @@ int mu_terrain_frustum_2d_params_for(int32_t world_index, int32_t mode, int32_t 
  *          a = 71 (67 in worlds 0x86 and 0x8b), max = 0x0184f93f
  *   p0 = (-wf, (distance - back) + lift, 0), p1 = (wf, same, 0),
  *   p2 = (wn, near - back, 0),               p3 = (-wn, same, 0)
- *   angle = (0, 0, 45) (world 0x49 and the "webzen" world 6 use the camera
- *          angle instead: not reconstructed, returns MU_TERRAIN_UNSUPPORTED)
+ *   angle = (0, 0, 45), world 0x49 uses -CameraAngle plus pitch offset;
+ *          the special world-6 hero names use yaw -CameraAngle[2].
  *   x2d[i] = (VectorRotate(p_i, AngleMatrix(angle))[0] + position[0]) * 0.01f,
  *   y2d likewise with component 1.
  * The routine first re-applies the camera field of view when the camera

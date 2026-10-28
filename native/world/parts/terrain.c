@@ -92,7 +92,13 @@ static void terrain_frame(struct mu_world_rt *a, void *self, uint32_t now)
     if (mu_terrain_frustum_2d_params_for(a->map->world, 0, width, (float)width / 640.0f * factor, 2400.0f * factor,
                                          &params)) {
         const float angle[3] = {v->angle[0], v->angle[1], v->angle[2]};
-        mu_terrain_frustum_2d(a->map->world, hero, angle, &params, 0, f->x2d, f->y2d);
+        int special=a->map->world==6 && a->hero_name && strstr(a->hero_name,"webzen");
+        if (special) {
+            const float scale=(float)width/640.0f;
+            params.distance=8500.0f; params.near_offset=8500.0f*0.05f; params.back_offset=8500.0f*0.47f;
+            params.width_far=3000.0f*scale; params.width_near=540.0f*scale;
+        }
+        mu_terrain_frustum_2d_camera(a->map->world,hero,angle,&params,0,special,0.0f,f->x2d,f->y2d);
     }
     mu_world_frame_box(a->map, (float)now, f->x_min, f->y_min, f->x_max, f->y_max);
 }
@@ -110,6 +116,8 @@ static void terrain_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *
                              &stats);
     else
         mu_world_draw_raster_view(a->map, raster, &a->frustum, 6, 0, &stats);
+    if ((a->map->world>=0x12 && a->map->world<=0x17) || a->map->world==0x35 || a->map->world==0x61)
+        a->walk.frame.camera.earthquake=a->map->camera_shake;
     a->tile_stats = stats.tiles;
     d->faces = stats.tiles.faces;
 }
@@ -214,8 +222,9 @@ static void terrain_gl_setup(struct mu_world_rt *a, void *self)
         GLint filter = a->map->bitmap_linear[i] ? GL_LINEAR : GL_NEAREST;  /* loader argument 0x2601 / 0x2600 */
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        GLint wrap=mu_terrain_is_signed_world(a->map->world) && i==1 ? GL_CLAMP : GL_REPEAT;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image->width, image->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                      image->rgba);
         t->tiles[i] = name;
@@ -255,6 +264,8 @@ static void terrain_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
                         mu_terrain_alpha_layers(a->map->world), &sink, &stats);
     else   /* RenderTerrain with the client's block and tile tests, in-game scene state 6 */
         mu_terrain_render(&scene, &a->frustum, 6, 0, mu_terrain_alpha_layers(a->map->world), &sink, &stats);
+    if ((a->map->world>=0x12 && a->map->world<=0x17) || a->map->world==0x35 || a->map->world==0x61)
+        a->walk.frame.camera.earthquake=a->map->camera_shake;
     a->tile_stats = stats;
     if (a->batch)
         mu_gl_batch_session_end(a->batch);
