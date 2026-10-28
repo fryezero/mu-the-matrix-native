@@ -95,6 +95,7 @@
 #include "../viewer/gl_backend.h"
 #include "../viewer/gl_headless.h"
 #include "world_gfx_options.h"
+#include "input_sdl.h"
 #endif
 #include "world_rt_internal.h"
 
@@ -111,6 +112,8 @@ typedef struct tool {
     /* NATIVE-PATH-002: a long-distance auto move */
     int32_t auto_target[2], has_auto, auto_started;
     int32_t wheel_frame[MAX_WHEELS], wheel_delta[MAX_WHEELS], wheel_count;
+    mu_input_action input_script[MU_INPUT_SCRIPT_MAX];
+    int input_count;
     /* script state */
     int32_t next_waypoint, idle_frames, click_stage, click_x, click_y;
     /* NATIVE-WORLD-002: the headless WAV and the window's audio clock */
@@ -386,8 +389,8 @@ static void skill_script(tool *t, int32_t frame)
             continue;
         if (!strcmp(verb, "select")) {          /* the bar's own key: 1..9, 0 -> onSelectSkill */
             int vk = x == 9 ? '0' : '1' + x;
-            mu_gfx_layer_key(world_gfx_layer(a->gfx), 1, vk, (uint32_t)vk, 0);
-            mu_gfx_layer_key(world_gfx_layer(a->gfx), 0, vk, (uint32_t)vk, 0);
+            mu_world_rt_key(a, vk, 1);
+            mu_world_rt_key(a, vk, 0);
             result = 1;
         } else if (!strcmp(verb, "cast")) {
             result = world_rt_skill_cast_at(a, x, &skill);
@@ -449,8 +452,8 @@ static void progress_script(tool *t, int32_t frame)
             mu_progress_button(a->progress, ROWS[it->a]);
 #ifndef MU_WORLD_NO_GL
         else if (a->gfx && !strcmp(it->verb, "key")) {   /* a key of the layer (79 'O', 27 Esc) */
-            mu_gfx_layer_key(world_gfx_layer(a->gfx), 1, it->a, (uint32_t)it->a, 0);
-            mu_gfx_layer_key(world_gfx_layer(a->gfx), 0, it->a, (uint32_t)it->a, 0);
+            mu_world_rt_key(a, it->a, 1);
+            mu_world_rt_key(a, it->a, 0);
         } else if (a->gfx && !strcmp(it->verb, "click")) {   /* a left click at X * 10000 + Y (window pixels) */
             double x = it->a / 10000, y = it->a % 10000;
             mu_gfx_layer *l = world_gfx_layer(a->gfx);
@@ -558,6 +561,14 @@ static int parse_travel_script(tool *t, const char *text)
 
 static void script(tool *t, int32_t frame)
 {
+    for (int i = 0; i < t->input_count; ++i) {
+        if (t->input_script[i].frame == frame) {
+            int result = mu_world_rt_action(t->rt, t->input_script[i].what);
+            if (!t->rt->quiet) fprintf(stderr, "frame %d: input result %d: %s\n", frame, result,
+                                      t->input_script[i].what);
+        }
+    }
+
     mu_world_rt *a = t->rt;
     social_script(t, frame);
     mu_walk *w = &a->walk;
@@ -909,44 +920,14 @@ static int windowed(tool *t)
         double perf = mu_perf_begin();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (a->gfx && world_gfx_event(a->gfx, &e, scale))
-                continue;   /* the interface took it */
-            if (e.type == SDL_QUIT) {
-                running = 0;
-            } else if (e.type == SDL_MOUSEMOTION) {
-                mu_world_rt_message(a, MU_WM_MOUSEMOVE, 0, pack((int)(e.motion.x * scale), (int)(e.motion.y * scale)));
-            } else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT &&
-                       mu_world_rt_right_button(a)) {
-                /* NATIVE-SKILL-001: the skill bar's selection cast at the monster under the mouse */
-            } else if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
-                int down = e.type == SDL_MOUSEBUTTONDOWN;
-                uint32_t message = e.button.button == SDL_BUTTON_LEFT ? (down ? 0x201u : 0x202u)
-                                 : e.button.button == SDL_BUTTON_RIGHT ? (down ? 0x204u : 0x205u)
-                                 : (down ? 0x207u : 0x208u);
-                mu_world_rt_message(a, message, 0, pack((int)(e.button.x * scale), (int)(e.button.y * scale)));
-            } else if (e.type == SDL_MOUSEWHEEL) {
-                int delta = e.wheel.y * 120;
-                mu_world_rt_message(a, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)delta << 16, 0);
-            } else if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
-                int vk = mu_vk_from_hid((int)e.key.keysym.scancode);
-                int down = e.type == SDL_KEYDOWN;
-                mu_world_rt_key(a, vk, down);
-                mu_world_rt_message(a, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
-                if (down && !e.key.repeat && vk == 0x1b && ++escapes >= 2)
-                    running = 0;
-                else if (down && vk != 0x1b)
-                    escapes = 0;
-                if (down && !e.key.repeat)   /* Alt, space, 1..0 (the world's own keys) */
-                    mu_world_rt_hotkey(a, vk);
-                if (down && !e.key.repeat && vk == 0x4f) {   /* O: screenshot */
-                    uint8_t *pixels = malloc((size_t)dw * (size_t)dh * 4);
-                    if (pixels) {
-                        mu_gl_read(dw, dh, pixels);
-                        mu_png_write("mu-world-screenshot.png", pixels, dw, dh);
-                        free(pixels);
-                    }
-                }
-            }
+            if (e.type == SDL_KEYDOWN && mu_gfx_sdl_vk((int)e.key.keysym.scancode) != 0x1b)
+                escapes = 0;
+            if (mu_world_rt_sdl_event(a, &e, scale)) continue;
+            if (e.type == SDL_QUIT) running = 0;
+            else if (e.type == SDL_KEYDOWN && !e.key.repeat &&
+                     mu_gfx_sdl_vk((int)e.key.keysym.scancode) == 0x1b && ++escapes >= 2)
+                running = 0;   /* without GFx, two Escape presses retain standalone quit */
+
         }
         mu_perf_end(MU_PERF_EVENTS, perf);
         perf = mu_perf_begin();
@@ -1108,6 +1089,7 @@ static int usage(void)
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--npc] [--npc-demo FILE] [--npc-script \"F:click:ACTOR F:buy:SLOT F:close ...\"]   NPC talk (demo server)\n"
+                    "                [--input-script FILE | --script \"F:ACTION ...\"]   shared physical input\n"
                     "                [--skill-script \"F:select:SLOT F:cast:ACTOR F:open F:drag:FROM:TO F:over:SLOT F:save F:tip:SLOT\"]   skills (--gfx)\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
@@ -1243,6 +1225,20 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--joint-demo")) o->joint_demo = (int32_t)strtol(v, NULL, 0);
         else if (!strcmp(k, "--hero-name")) o->hero_name = v;
         else if (!strcmp(k, "--monster-info")) o->no_monster_info = !atoi(v);
+        else if (!strcmp(k, "--script")) {
+            t.input_count = mu_input_script_parse(v, t.input_script);
+            if (t.input_count < 0) return usage();
+            for (int q = 0; q < t.input_count; ++q)
+                if (mu_world_rt_action(NULL, t.input_script[q].what) == -2) return usage();
+        }
+        else if (!strcmp(k, "--input-script")) {
+            char *text = mu_input_script_read(v);
+            if (!text) { fprintf(stderr, "cannot read input script %s\n", v); return 2; }
+            t.input_count = mu_input_script_parse(text, t.input_script); free(text);
+            if (t.input_count < 0) return usage();
+            for (int q = 0; q < t.input_count; ++q)
+                if (mu_world_rt_action(NULL, t.input_script[q].what) == -2) return usage();
+        }
         else if (!strcmp(k, "--chat-script")) { if (parse_chat(&t, v)) return usage(); }
         else return usage();
     }
