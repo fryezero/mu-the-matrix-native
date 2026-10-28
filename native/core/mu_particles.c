@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "mu_particles.h"
+#include "../../reconstructed/objects/world_warp.h"
 #include "mu_world_actors.h"
 #include "mu_objects.h"
 #include "mu_env.h"
@@ -59,7 +60,11 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {MU_SFX_MODEL_STAR_DRAGON, 0x5d, "Data/Effect/stardr01.bmd"},
     {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"},
     /* NATIVE-HELPERS-002: Fenrir's body lightning (AccessModel 0x01834a74, every world: world -1) */
-    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"}};
+    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"},
+    /* AccessModels 0x0183943f/0x018397d1/0x0183f529: shared warp models. */
+    {0x1a8, -1, "Data/Npc/warp01.bmd"}, {0x1a9, -1, "Data/Npc/warp02.bmd"},
+    {0x1aa, -1, "Data/Npc/warp03.bmd"}, {0x1ab, -1, "Data/Npc/warp01.bmd"},
+    {0x1ac, -1, "Data/Npc/warp02.bmd"}, {0x1ad, -1, "Data/Npc/warp03.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -188,6 +193,8 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
     for (int i = 0; i < MU_WORLD_FX_MODELS; ++i) {
         mu_world_fx_model *m = &p->models[i];
         m->type = fx_model_files[i].type;
+        if (mu_world_warp_type(m->type) && world != 2 && world != 3 && world != 57 && world != 58)
+            continue;
         if (no_assets || (fx_model_files[i].world != world && fx_model_files[i].world != -1))
             continue;
         char path[4096], message[512], directory[2048];
@@ -420,6 +427,7 @@ static void sfx_owner_bone(void *c, int32_t owner, int32_t bone, const float in[
 static void effect_env(mu_world_particles *p, mu_sfx_env *env)
 {
     memset(env, 0, sizeof *env);
+    env->world_time = p->world_time;
     env->bone = sfx_bone;
     env->owner_bone = sfx_owner_bone;
     env->context = p;
@@ -526,7 +534,9 @@ int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subty
             continue;
         mu_sfx_env env;
         effect_env(p, &env);
-        if (mu_sfx_effect_create(e, type, subtype, position, angle, light, owner, scale, info, &env)) {
+        float creation_light[3];
+        memcpy(creation_light, light, sizeof creation_light);
+        if (mu_sfx_effect_create(e, type, subtype, position, angle, creation_light, owner, scale, info, &env)) {
             p->stats.effects_created++;
             return 1;
         }
@@ -1066,6 +1076,11 @@ int32_t mu_world_particles_draw_models(mu_world_particles *p, mu_world_particles
         if (slot < 0)
             continue;
         mu_world_fx_model *m = &p->models[slot];
+        if (mu_world_warp_type(e->type)) {
+            if (!mu_world_warp_render(e, p->frustum ? p->frustum->normal : NULL,
+                p->frustum ? p->frustum->d : NULL, 0, m->bmd.mesh_count))
+                continue;
+        }
         mu_model_params params = m->model.params;
         for (int k = 0; k < 3; ++k) {
             params.origin[k] = e->position[k];
