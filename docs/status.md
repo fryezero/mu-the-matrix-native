@@ -1,6 +1,6 @@
 # Current status
 
-RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
+RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
 
 APP-REFRESH-001: current native Preview rebuild and offline smoke; fixes stale
 scratch discovery and zero/overwritten fixture MP/AG. Final local gate passes,

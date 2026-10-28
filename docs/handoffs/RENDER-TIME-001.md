@@ -41,6 +41,24 @@ evidence. The saved still tour and historical original-image scores were not rec
 No earlier temporal baseline exists, so installed checks establish current-binary repeatability. Future
 baseline-vs-candidate checks can use `MU_RENDER_TIME_BASELINE`; the comparator permits changed binary hashes.
 
+## Final locked verification after resume
+
+The resumed run acquired the merge lock at 10:49 CDT and integrated main `7ce87c6` in `96b2eb0`.
+Shared-document conflicts preserve both milestones; the Makefile retains both new header dependencies.
+The full `bash scripts/local-macos-ci.sh` passed on that tree: **1,544 tests across 38 suites,
+189 explicit private/optional skips, zero failures**. The native suite contains 724 tests. All eight fixture
+scenarios passed, with 67 inbound frames and zero unbound/undecodable frames. The existing two unrecovered
+intents and six unsent frames remain reported. Viewer/read-only reader builds passed; readers were not run.
+The repository audit checked **1,469 files, zero rejected**. No hosted workflow was dispatched.
+
+The final private temporal rerun passed **16/16 tests, no skips**, after the main merge. Its fourteen views
+again produced 294 equal sample pairs, 588 samples and 5,628 full draw iterations. The additional Icarus run
+produced 41 samples over 201 iterations, with all 21 common rows equal across sample cadences. Every route
+retained 141.421356 units of XY movement and 9 degrees of FOV span. These are installed-data repeatability
+checks, not original-client comparisons. Self-review covered the scoped diff, defaults, full-draw guards,
+thresholds, private-data boundary and merged ownership changes; no independent agent review is claimed.
+Only evidence documentation changed after the final runtime gate. No new retained local input is needed.
+
 ## Native thresholds
 
 All maps, sample indices, scripts, placement/sidecar hashes, WorldTime and logic ordinals must agree. Numeric

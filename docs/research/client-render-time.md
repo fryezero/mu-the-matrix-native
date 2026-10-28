@@ -168,4 +168,7 @@ The full local gate discovers the portable suite through `native/tests`; no shar
    approving the threshold policy. Release the game lock and restore the capture setup. No exporter, live
    capture, original-pool restoration or live score was implemented or run in this native milestone.
 
-Final counts and measured native coverage are in [the milestone handoff](../handoffs/RENDER-TIME-001.md).
+The final locked tree includes main `7ce87c6`. The full Mac gate passed 1,544 tests across 38 suites with
+189 explicit skips and zero failures. The post-merge private temporal rerun passed 16/16 tests, including
+294 equal sample pairs across fourteen views and 21 equal common Icarus samples across two cadences.
+Full counts and measured native coverage are in [the milestone handoff](../handoffs/RENDER-TIME-001.md).
