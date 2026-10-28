@@ -178,12 +178,24 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
                    (a->input_down[0x12] ? 4 : 0);
         a->input_down[m->vk] = (uint8_t)(m->down != 0);
         mu_input_scan(a->input_state, a->input_down, 1, 1, 1, 0);
+        /* macOS owns candidate selection. Enter during preedit must not submit
+         * chat, and candidate digits must not reach a global movie key listener. */
+        if (a->input_composing) {
+            if (m->down && m->vk == 27) {
+                a->input_composing = 0;
 #ifndef MU_WORLD_NO_GL
-        /* Text and IME candidates have first refusal, including repeated keys.
-         * Never let a digit in preedit fall through to the combat hotkeys. */
-        if (l && (mu_gfx_layer_text_active(l) || a->input_composing)) {
+                if (l) mu_gfx_layer_compose(l, "", -1);
+#endif
+            }
+            mu_walk_key(&a->walk, m->vk, 0);
+            if (!m->down) mu_walk_message(&a->walk, 0x101u, (uint32_t)m->vk, 0);
+            return 1;
+        }
+#ifndef MU_WORLD_NO_GL
+        if (l && mu_gfx_layer_text_active(l)) {
             mu_gfx_layer_key(l, m->down, m->vk, (uint32_t)m->vk, mods);
             mu_walk_key(&a->walk, m->vk, 0);
+            if (!m->down) mu_walk_message(&a->walk, 0x101u, (uint32_t)m->vk, 0);
             return 1;
         }
 #endif
@@ -196,7 +208,7 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
 #endif
             return 1;
         }
-        if (a->input_composing || was_down || m->repeat || a->input_state[m->vk] != 2) return 1;
+        if (was_down || m->repeat || a->input_state[m->vk] != 2) return 1;
         int used = panel(a, m->vk, mods);
         if (used) return used;
         if ((!mods || m->vk == 0x12) && gameplay_key(a, m->vk)) {

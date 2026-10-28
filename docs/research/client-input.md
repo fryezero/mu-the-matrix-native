@@ -88,7 +88,7 @@ Existing UI adapters retain their own eligibility and close rules.
 | 1..0 | UI skill-bar listener; selected-skill controller `0107e99a` | GFx bar selection when interface present; prior numeric demo casts without GFx retained and labeled native policy |
 | Right mouse | selected-skill controller `0107e99a`, existing skill checks | GFx mouse first, then selected skill at picked actor, then walk mouse fallback |
 | Esc/Enter/Back/arrows | scan plus existing text/window/scene controllers | Text/window first; existing native scene navigation without interface |
-| IME preedit, candidate digits, commit | GFx IME state/path names and `IME.swf` candidate movie are static evidence, not emulated here | SDL TEXTEDITING -> layer compose; keys during text/preedit never reach combat; TEXTINPUT -> UTF-8 commit. macOS owns candidate selection. Original IME.swf remains unbound |
+| IME preedit, candidate digits, commit | GFx IME state/path names and `IME.swf` candidate movie are static evidence, not emulated here | SDL TEXTEDITING -> layer compose; preedit keys stay with the OS candidate path; Enter cannot prematurely submit chat and candidate digits cannot select a bar skill or cast; TEXTINPUT -> UTF-8 commit. macOS owns candidate selection. Original IME.swf remains unbound |
 
 All other VK values return to the native walk input without a panel action. This table covers the recovered
 world branch and existing native routes; it is not a claim to have reconstructed every key in every scene,
