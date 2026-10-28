@@ -26,8 +26,8 @@ original client, launcher, live game, network protocol or protected module was t
   7/7 compiled mutants detected. Context-dependent panel bodies and the original IME are outside this family.
 - Router tests: 12/12 with the private comparison enabled. Synthetic downstream adapters exercise repeat
   suppression, releases, focus loss, modifiers, preedit digits, mouse delivery and malformed schedules/actions.
-- Baseline comparison: 48/48 PNGs identical across mu-client, mu-shell, mu-world and mu-walk. Four pairs,
-  same authored root and input. No-input render behavior is intended to remain unchanged.
+- Baseline comparison: 48/48 scene/walk recipe PNGs without GFx identical across mu-client, mu-shell,
+  mu-world and mu-walk. Four pairs, same authored root and input. No-input render behavior is unchanged.
 - mu-client real OpenGL and real local libmugfx: numeric demo cast; selected-skill right click; a killed
   synthetic monster's demo drop picked up with Space. The right-click journey records 1 selected-skill
   success, 5 combat skill actions, 1 kill, 1 drop and 1 completed pick-up. No real item mutation.
@@ -46,12 +46,17 @@ original client, launcher, live game, network protocol or protected module was t
   enabled supplies the accepted UI proof.
 - Incremental integration exposed stale charsel objects after the world object layout grew. The corrected
   header dependency is also in the merged Icarus/viewport lanes. It was retained; no charsel behavior changed.
-- Final local macOS gate at `113ed0b`, after main `07e5816` including the audio and warp-effect lanes:
-  **1,407 tests across 38 suites, 167 explicit skips, zero failures**. All five discovered fixture
-  scenarios pass. Viewer/read-only readers build; audit accepts **1,265 files, zero rejected**.
-  Reader binaries were built, never run against a client. `warp-integrated-gate.log` is the acceptance log.
+- Final local macOS gate at `1a5677e`, after main `128679f` including the monster-session and item lanes:
+  **1,421 tests across 38 suites, 172 explicit skips, zero failures**. All six discovered fixture
+  scenarios pass. Viewer/read-only readers build; audit accepts **1,286 files, zero rejected**.
+  Reader binaries were built, never run against a client. `monster-items-gate.log` is the acceptance log.
 - The earlier disk-full run failed while writing temporary fixtures/PNGs. It is retained as a failed
   environment precondition. The final gate passed after losslessly archiving this task's earlier proof.
+- An additional strict cross-run check of all 391 GFx-inclusive PNGs did not establish repeatability.
+  In the final run 239 are identical and 152 differ, including HUD demo values and animated borders.
+  The exact timing cause was not isolated. All twelve final panel captures plus chat were inspected
+  again, and the action/state assertions pass. This limitation does not change the separate 48/48
+  baseline result; no real-GFx frame equality is claimed.
 
 ## Artifacts
 
@@ -62,12 +67,13 @@ removing the owned worktree. The source-only commit does not include captured by
 movies, screenshots, renders or journals. Artifact manifests identify binary digests; changed build inputs
 require a new run manifest and another drive.
 
-Final proof is `20261027-233325-input-001-release`, code checkpoint `113ed0b`, retained in
+Final proof is `20261027-235509-input-001-monster-release`, code checkpoint `1a5677e`, retained in
 `release-proof.tar.zst` with the fixture reports. Its real-library/movie hashes, exact commands,
 selected environment values, state assertions and per-panel visual-inspection record stay in `proof/`.
 All recorded binary digests remain unchanged after the drives. Application Support entry metadata is
 unchanged. The run's dirty flag comes from the two untracked local input symlinks; tracked source was clean.
-Earlier proof is retained in `icarus-checkpoint.tar.zst` and the sibling `input-001-earlier.tar.zst`.
+Earlier proof is retained in `icarus-checkpoint.tar.zst`, `warp-checkpoint.tar.zst`,
+`c2-checkpoint.tar.zst` and the sibling `input-001-earlier.tar.zst`.
 
 ## Review
 
