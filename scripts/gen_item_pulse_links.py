@@ -31,13 +31,17 @@ def rules():
     rows[0x10f0] = [(bone,0x7ef7,(0,0,0),const(1.3),(expr(1,0.2),expr(1,0.1),expr(1,0.8)),const(0)) for bone in range(1,9)]
     rows[0x16f5] = [(1,bitmap,(15,-15,0),scale,(expr(1,0.6),expr(1,0.6),expr(1,2)),const(0))
                     for bitmap,scale in ((0x7f67,const(1.5)),(0x7ef7,expr(1,1,1.5)))]
+    # Shield 0x012dbc1e..0x012dc0ee: nine bones and abs(sin)+0.1.
+    rows[0x16fa] = [(bone,0x7ef7,(0,0,0),const(1.5),
+                     (expr(7,0.8),expr(7,0.3),expr(7,0.8)),const(0))
+                    for bone in range(1,10)]
     return rows
 
 def expected(t, value, time):
     f = lambda x: v.u2f(v.f2u(x))
     sin2, sin1 = f(math.sin(f(time*f(0.002)))), f(math.sin(f(time*f(0.001))))
     scalars = (0,f((value%30+70)*f(0.005)), f(f(sin2*f(0.35))+f(0.65)),
-               sin2,sin1,f(f(math.sin(f(time*f(0.01))))*360),f(f(sin1*f(0.5))+f(0.5)))
+               sin2,sin1,f(f(math.sin(f(time*f(0.01))))*360),f(f(sin1*f(0.5))+f(0.5)), f(abs(sin1)+f(0.1)))
     def evaluate(e):
         source,mul,add=e
         if not source:return v.f2u(add)

@@ -2056,3 +2056,17 @@ args = ["--cases", "60", "--mutations", "--output", "{report}"]
 [validate_worlds_l.expect]
 all_equal = true
 all_mutants_caught = true
+
+[validate_item_coverage]
+test = "reconstructed/renderchar/test_item_coverage.py::ItemCoverage.test_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "clocks", "links"]
+cases = 31724
+mutants = 9
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_coverage.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}

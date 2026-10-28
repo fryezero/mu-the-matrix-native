@@ -11,6 +11,7 @@ Part 6 reaches 559 bodies and consumes ground/inventory skin sprites.
 Part 7 reaches **635/1,674 bodies**, preserves **17/17 skins**, and consumes **twelve link targets/seventeen types**.
 Part 8 reaches **662/1,674 bounded bodies** and **fourteen link targets/nineteen types**.
 Its rank-5 no-owner mesh streams draw; full owner effects remain open.
+Part 9 reaches **769/1,674 bodies** and **fifteen link targets/twenty types**.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -742,3 +743,49 @@ buff/record, mesh-override, hero-instance, NewUI and external Box of Luck limits
 The combined 14,992 comparisons have zero mismatches, all nine compiled mutants
 are detected, and both generated tables reproduce. Release checks and cleanup are recorded in the
 [part-8 handoff](../handoffs/RENDER-ITEMS-002H.md).
+
+## Part 9, further ranked bodies and shield links, RENDER-ITEMS-002I
+
+Bounded coverage reaches **769/1,674 bodies**, **17/17 skins**, and **fifteen
+RenderLinkItem targets/twenty types**. The 107 body additions comprise 43 armour,
+five weapons, one wing and 58 survey `pet/item` types. Exact membership remains
+in the generated rendering rules and survey TSVs. All 1,691 compiled admissions
+agree with membership; original ranks, identities and stopped states stay intact.
+Fifty-five more shapes are complete, for 192 total. The largest completed shapes
+are seven-type armour ranks 21, 36, 46 and 49. Visibility remains model-index inference.
+
+The armour helper at `0x01747185..0x017471c9` evaluates `0x0185bdc4(-1,0)`,
+then rounds the multiply by 0.8 and add of 0.2 in SSE order. It shares the existing
+rank-5 pulse, including signed conversion and remainder by -6283. The optional
+level-9 overlay at `0x0174b438..0x0174b4e9` uses U/V `time*0.0001`. Its helper
+level word and the effective glow level are distinct inputs. The word is absent
+on low-quality fallback paths; a record forcing glow level 9 on a raw-level-zero
+item does not enable the overlay. Render flag 0x400 clears glow before the record
+rules, so testing that flag alone would incorrectly reject some overlays.
+The recipe executor retains the existing six phases and adds high-level variants
+of its two base phases. Its scalar sources are evaluated only when requested.
+
+The full ranked survey supplied 133 further fitting candidates. Independent
+compiled-C/full-function comparisons rejected 54 and admitted 79. Historical
+ancient-tail exclusions remain refused. These are bounded command-stream claims,
+not proof from fitting probes or graphics-driver pixels.
+
+Shield `0x16fa`, RenderLinkItem target `0x012dbc1e..0x012dc0ee`, emits 0x7ef7
+sprites on bones 1..9, each at scale 1.5. Colour is
+`(abs(sin(time*0.001))+0.1)*(0.8,0.3,0.8)` with binary32 operations.
+The initial random intensity remains consumed even though unused. The shared
+saved-pose native adapter handles these sprites; character, ground and inventory
+body callers already consume all new body recipes. Weapon links remain attachments.
+No new particle/effect/joint consumer or per-frame allocation was added.
+
+The strict validator passes **31,244 body cases, 80 clock boundaries and 400
+full link callers, 31,724 total**, zero mismatches. All **9/9 compiled mutants**
+are detected, including the raw-level/quality guard, UV, cosine, ancient phase
+and shield colour/bone rules. The inherited part-8 comparison adds 14,992 cases
+and 9/9 mutants. All 643 earlier recipe rows keep identical rules and metadata;
+21,728 C-to-C preservation cases cover all 679 earlier body/skin types separately.
+Representative render changes, preserved controls, release gate and cleanup are in the [part-9 handoff](../handoffs/RENDER-ITEMS-002I.md).
+The pinned executable and captures above apply unchanged. **905 bodies remain**,
+plus full rank-5 owner effects, further links and the earlier domain/model limits.
+Rank-5's 0x84e2/0x83de particles and 0x7fdd owner sprites are listed for the effects
+lane; no consumer files were edited. Muun/nested map-object placement stays deferred.
