@@ -14,14 +14,15 @@ portal placement. [Full evidence, ranked gaps and scoreboard](../research/client
   is claimed. The retained Dungeon/Icarus/Kanturu image errors stay 2.019/62.030/3.717.
 - Native GL portal views inspected for Devias, Noria and Raklion, with 3/5/3 effect models drawn.
 
-Local Mac gate passed on the combined #181/D tree: 1,368 tests across 38 suites, 161 explicit skips,
-zero failures; both fixture scenarios pass; viewer/readers build; repository audit rejects zero files.
-The B handler regression also retains 4,000 equal comparisons and 10/10 compiled mutants.
+Local Mac gate passed on the combined tree through main #185: 1,395 tests across 38 suites, 166 explicit skips,
+zero failures; both fixture scenarios pass; viewer/readers build; repository audit accepts 1,255 files and rejects zero.
+The B handler regression retains 4,000 equal comparisons and 10/10 compiled mutants. The existing object
+regression passes 2,980 comparisons and 19/19 mutants.
 
 Artifacts stay outside the repository:
 - `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-d/`: validation, mutant, runner, gate and hash reports,
   manifests and logs.
-- `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-d/`: before/after tour and portal GL renders.
+- `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-d/`: before-main/after tour and portal GL renders.
 
 Remaining: A's flames and after-character work; C2's remaining Icarus work; Elbeland boid mover/model draw is
 unblocked by #181 but ranks below the measured placement/effect defects: the captured arrival view has zero
