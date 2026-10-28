@@ -5,6 +5,7 @@ Strict original create/move/render bodies, independent of the frozen historical
 particle corpus. Move includes explicit native head-removal cases. All five
 subtypes use the existing fixed-pool native path; the world producer is separate.
 """
+import ctypes as C
 import argparse
 import hashlib
 import json
@@ -29,6 +30,31 @@ MUTANTS = [
 ]
 
 
+REGISTRATIONS = [(0x01821581, 0x01821599, 0x7f84, 'Effect\\Magic_Ground2.jpg'),
+                 (0x0182232d, 0x01822345, 0x7f38, 'Effect\\lightning3.jpg'),
+                 (0x01821f4d, 0x01821f65, 0x8021, 'Effect\\Impack03.jpg')]
+
+
+def registrations(text, data):
+    result = []
+    for start, site, bitmap, path in REGISTRATIONS:
+        m = base.fx.FxMachine(text, data)
+        calls = []
+        def load(mm):
+            args = [mm.argument(i) for i in range(6)]
+            at = args[0] - am.DATA_BASE
+            name = data[at:at+256].split(b'\0')[0].decode('ascii')
+            calls.append([name, *args[1:]])
+            return 1
+        def done(mm): return 0
+        r = m.execute(start, [], [], {0x0185baac: load, site+8: done})
+        expected = [[path, bitmap, 0x2601, 0x2900, 1, 0]]
+        result.append({'call': hex(site), 'path': path, 'bitmap': hex(bitmap),
+                       'filter': '0x2601', 'wrap': '0x2900', 'flags': [1, 0],
+                       'equal': base.fx.vc.ok(r) and calls == expected})
+    return result
+
+
 def run(cases, mutations):
     text = am.load_pinned(pins.TEXT.default_str(), am.TEXT_BYTES, am.TEXT_SHA256, 'text')
     data = am.load_pinned(pins.DATA.default_str(), am.DATA_BYTES, am.DATA_SHA256, 'data')
@@ -50,7 +76,8 @@ def run(cases, mutations):
     result['bodies'] = {name: {'start': hex(a), 'end': hex(b),
                               'sha256': hashlib.sha256(text[a-am.TEXT_BASE:b-am.TEXT_BASE]).hexdigest()}
                         for name, (a, b) in bodies.items()}
-    result['all_equal'] = all(f['cases'] == f['equal'] for r in result['comparisons'].values() for f in r['families'].values())
+    result['registrations'] = registrations(text, data)
+    result['all_equal'] = all(r['equal'] for r in result['registrations']) and all(f['cases'] == f['equal'] for r in result['comparisons'].values() for f in r['families'].values())
     result['all_mutants_caught'] = all(m['caught'] > 0 for m in result['mutants'].values())
     return result
 

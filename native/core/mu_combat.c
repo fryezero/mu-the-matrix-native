@@ -573,9 +573,8 @@ static void create_arrow(mu_combat *c, float angle_offset)
 }
 
 /* Inferno's ring 0x0142da3e(position, 0) (static reading): eight points at
- * 45-degree steps, 220 units out; at each a burst 0x013c07f4 (not
- * reconstructed) and two stones, Stone 0x419 + rand % 2 of subtype 1 and of
- * subtype 0. */
+ * 45-degree steps, 220 units out; at each the verified subtype-0 burst
+ * and two stones, Stone 0x419 + rand % 2 of subtype 1 and of subtype 0. */
 static void inferno_ring(mu_combat *c, const float center[3])
 {
     static const float reach[3] = {0.0f, -220.0f, 0.0f};

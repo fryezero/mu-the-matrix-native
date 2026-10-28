@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-EFFECTS-003: Meteorite, Aqua Beam primary chain and Inferno bursts; K particle consumers and three exact bitmap registrations. Primary routes 15/23 to 18/23, weighted 46/77 to 56/77. 24,453 instruction comparisons plus 2,547 removal checks, 17/17 compiled mutants and three loader-call checks. [Evidence](research/client-render-effects-003.md), [checks and remaining work](handoffs/RENDER-EFFECTS-003.md).
+
 RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited primary routes 12/23 to 15/23, weighted 37/77 to 46/77. New instruction evidence: 10,619 instruction comparisons and 381 removal checks, zero mismatches, 8/8 compiled mutants. Locked Mac gate passes 1,550 tests. [Coverage and limits](research/client-skill-visual-coverage.md), [checks](handoffs/RENDER-EFFECTS-002.md).
 
 RENDER-WORLDS-I implements Loren Market/Uruk primary methods: 6,000 instruction cases, zero mismatches, 33/33 compiled mutants; 31/144 verified primary families across 11/48 classes. Locked Mac gate passes 1,548 tests with 191 explicit skips; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-i.md), [checks and limits](handoffs/RENDER-WORLDS-I.md).

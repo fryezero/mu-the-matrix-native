@@ -1,7 +1,7 @@
-# Skill visual coverage, RENDER-EFFECTS-002
+# Skill visual coverage, RENDER-EFFECTS-003
 
 This is a reviewed coverage summary, not an export of Skill(Kor). The baseline is
-main `a38ec75`, including SESSION-COMBAT-001 #197 and SESSION-SKILL-001 #204.
+main `cf81357`, including RENDER-EFFECTS-002 #221, SESSION-COMBAT-001 #197 and SESSION-SKILL-001 #204.
 The scope is the player cast's primary visible result, its particles/joints and its
 session adapter. A working icon, sound, animation or CreateEffect call alone does
 not establish a rendered spell. Damage policy and encrypted request delivery are
@@ -38,15 +38,15 @@ Alchemist = 14, Crusader = 15.
 | Skill / primary visual | Eligible classes | Table level / use | Weight | Before | After | Rendered result or remaining gap |
 |---|---|---|---:|---|---|---|
 | 0 normal attack | All, weapon-dependent | All levels | 5 | P | P | Weapon actions; bow arrow model and trail |
-| 1 Poison | DW, MG, RW, Mage, Alchemist | 30, early spell | 3 | M | P | Ten smoke01/1 particles at target; model 0x414 belongs to a monster branch |
-| 2 Meteorite | DW, MG, Summoner, RW, Mage, Alchemist | 21, early spell | 3 | M | M | Fire01 subtype 0, distinct from Fire Ball subtype 1 |
+| 1 Poison | DW, MG, RW, Mage, Alchemist | 30, early spell | 3 | P | P | Ten smoke01/1 particles at target; model 0x414 belongs to a monster branch |
+| 2 Meteorite | DW, MG, Summoner, RW, Mage, Alchemist | 21, early spell | 3 | M | P | Falling Fire01/0, six impact stones, Explosion01/0 |
 | 4 Fire Ball | DW, MG, Summoner, RW, Mage, Alchemist | 5, early spell | 3 | P | P | Fire01/1, fire trail and impact stones |
-| 7 Ice | DW, MG, Summoner, Light Wizard, Mage, Alchemist | 25, early/control | 3 | M | P | Ice01 and five Ice02 debris models, smoke and negative terrain light |
+| 7 Ice | DW, MG, Summoner, Light Wizard, Mage, Alchemist | 25, early/control | 3 | P | P | Ice01 and five Ice02 debris models, smoke and negative terrain light |
 | 9 Evil Spirit | DW, MG, RW | 50, repeated area farming | 5 | P | P | Eight spirit ribbons, wide-spirit Laser01 and terrain light |
 | 10 Hellfire | DW, MG, RW, Mage, Alchemist | 60, area spell | 2 | P | P | Circle01/02, fire and stones |
-| 11 Power Wave | DW, MG, Summoner, Light Wizard, Mage, Alchemist | 9, early spell | 3 | M | P | One Magic02 model and four smoke01/3 particles per step |
-| 12 Aqua Beam | DW, MG, Light Wizard, Alchemist | 74, directional spell | 3 | M | M | 0x7f4e beam family and per-step character case |
-| 14 Inferno | DW, MG, RW, Mage, Alchemist | 88, recurring area spell | 4 | L | L | Inferno01 and ring stones; burst 0x013c07f4 absent |
+| 11 Power Wave | DW, MG, Summoner, Light Wizard, Mage, Alchemist | 9, early spell | 3 | P | P | One Magic02 model and four smoke01/3 particles per step |
+| 12 Aqua Beam | DW, MG, Light Wizard, Alchemist | 74, directional spell | 3 | M | P | Ordinary-world 20-sprite Spark03 beam and terrain-light chain; hero area requests remain separate |
+| 14 Inferno | DW, MG, RW, Mage, Alchemist | 88, recurring area spell | 4 | L | P | Inferno01, ring stones, eight bursts of 20 Spark02/2 particles plus Explosion01/0 |
 | 17 Energy Ball | DW | 2, starting spell | 3 | P | P | Thunder01 and Spark03 particles |
 | 19 Falling Slash | DK, MG, DL, RF, Crusader | 0, weapon skill | 2 | P | P | Weapon action 0x89; no separate model at audited end site |
 | 20 Lunge | DK, MG, DL, GL, Slayer | 0, weapon skill | 2 | P | P | Weapon action 0x8a |
@@ -61,11 +61,12 @@ Alchemist = 14, Crusader = 15.
 | 42 Rageful Blow | DK, Slayer, Crusader | 170, later melee farming | 4 | M | M | 0x461 impact and character-step branch |
 | 43 Death Stab | DK | 160, later melee combat | 4 | L | L | Action 0x9e; associated skill-step trails remain unaudited |
 
-Totals: **12 P / 5 L / 6 M before; 15 P / 5 L / 3 M after**, out of 23
-routes. Strict primary coverage rises from 52.2% to 65.2%. The sum of priority
-weights is 77; primary-covered weight rises from 37/77 to 46/77, or 48.1% to
-59.7%. Limited rows receive no primary-coverage credit. No percentage here applies
-to all client skills, aliases, monsters, gear effects or worlds.
+Totals: **15 P / 5 L / 3 M before; 18 P / 4 L / 1 M after**, out of 23
+routes. Strict primary coverage rises from 65.2% to 78.3%. Primary-covered
+priority weight rises from **46/77 to 56/77**, or 59.7% to 72.7%. Limited rows
+receive no primary-coverage credit. These percentages do not apply to all client
+skills, variants, monsters, gear effects or worlds. The earlier #221 milestone
+moved 12/23 and 37/77 to the present baseline.
 
 ## Other client skill groups and class exposure
 
@@ -77,21 +78,21 @@ candidate casts, is learned, or has a unique effect. Classes overlap.
 
 | Class | Candidate records | Audited primary records before / after | Highest-priority remaining visuals |
 |---|---:|---:|---|
-| DW | 69 | 4 / 7 | Aqua Beam, Meteorite, Inferno burst, later area spells |
+| DW | 69 | 7 / 10 | Later area spells |
 | DK | 63 | 6 / 6 | Rageful Blow, Death Stab trails, later combos |
 | Elf | 73 | 1 / 1 | Buff auras, arrow variants, later bow area skills |
-| MG | 79 | 9 / 12 | Aqua Beam, Meteorite, later blade/spell families |
+| MG | 79 | 12 / 15 | Later blade/spell families |
 | DL | 64 | 4 / 4 | Command/fire-chain and raven-specific combat visuals |
-| Summoner | 64 | 1 / 3 | Summon/drain/lightning and later class spells |
+| Summoner | 64 | 3 / 4 | Summon/drain/lightning and later class spells |
 | RF | 58 | 1 / 1 | Fist/charge/area families |
 | GL | 57 | 1 / 1 | Lance/charge/area families |
-| RW | 68 | 3 / 4 | Rune-specific area spells and Meteorite |
+| RW | 68 | 4 / 6 | Rune-specific area spells |
 | Slayer | 54 | 4 / 4 | Class trails and Rageful Blow |
 | Gun Crusher | 50 | 0 / 0 | Gun/projectile/area families |
-| Light Wizard | 60 | 0 / 2 | Aqua Beam and class-specific light spells |
-| Mage | 68 | 2 / 5 | Meteorite and class-specific spells |
+| Light Wizard | 60 | 2 / 3 | Class-specific light spells |
+| Mage | 68 | 5 / 7 | Class-specific spells |
 | Illusion Knight | 43 | 1 / 1 | Illusion/weapon-copy families |
-| Alchemist | 67 | 2 / 5 | Aqua Beam, Meteorite and alchemy families |
+| Alchemist | 67 | 5 / 8 | Alchemy families |
 | Crusader | 54 | 2 / 2 | Rageful Blow and holy/charge families |
 
 These remaining class families have **missing session visual selection**. Some
@@ -110,7 +111,7 @@ coverage; map/Muun attachment tables remain a separate gap. World, helper and ge
 effects are tracked by their own finding documents. This inventory does not
 claim those thousands of effect call sites are all implemented.
 
-## New instruction evidence
+## RENDER-EFFECTS-002 instruction evidence
 
 Same pinned target as client-combat.md: executable SHA-256
 `3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a`,
@@ -141,7 +142,7 @@ wave speed 200/200, Ice fade 62/200, debris bounce spin 97/200, wave emission co
 mutated production C builds checked by the same comparison, not altered expected
 values. Reports include full body hashes and remain local until cleanup.
 
-## Native integration and limits
+## RENDER-EFFECTS-002 integration and limits
 
 `mu_combat` loads Ice01/Ice02/Magic02 once, uses the existing fixed effect and
 particle pools, and forwards smoke to the existing world particle renderer. No
@@ -175,3 +176,21 @@ remain outside this evidence.
 
 New casts intentionally change pixels, RNG consumption, particles and terrain
 lights. Existing spell, noncombat and golden outputs must retain their hashes.
+
+## RENDER-EFFECTS-003 evidence and limits
+
+[New finding](client-render-effects-003.md): 11,277 skill instruction comparisons
+plus 723 native removal checks; 10/10 compiled mutants caught. Three fixture casts
+reach the new draws without invented damage or delivered encrypted requests.
+The K-coordinated world consumers add 13,176 instruction comparisons plus 1,824
+removal checks, with 7/7 compiled mutants. They add no skill coverage credit.
+
+Rageful Blow remains M. Static inspection of MoveEffect 0x01450a73 shows distinct
+lifetime-11 and lifetime-10 impact branches producing 0x463..0x469, terrain-gated
+pieces and owner-weapon rendering 0x01532bd2. Implementing only 0x461 create or its
+eight tail fragments would leave the principal impact missing. No partial port
+is retained. Buff auras, arrows, Death Stab trails, master/later-class selection
+and live image comparison remain open. Aqua Beam here is subtype 0 in ordinary
+worlds, without the special-world wall cutoff or hero-only area-request and
+source-buffer-writeback services. Those are explicit limits, not additional
+primary cast routes. The pre-existing mount-breath rounding difference is unchanged.

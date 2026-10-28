@@ -102,6 +102,18 @@ class RenderEffects(unittest.TestCase):
             for name in names: (assets/name).unlink()
             for name in ('Spark02.OZJ', 'Explosion01.OZJ', 'Fire01.OZJ'): (effect/name).unlink()
 
+    def test_world_particle_consumers_and_sprite_registrations(self):
+        subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,
+                       capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            effect = Path(tmp)/'Data/Effect'
+            effect.mkdir(parents=True)
+            for name in ('flare01.OZJ', 'smoke01.OZJ', 'Magic_Ground2.OZJ', 'lightning3.OZJ', 'Impack03.OZJ'):
+                (effect/name).write_bytes(ozj_jpeg(32, 32))
+            p = subprocess.run([str(ROOT/'native/build/particle-consumers-host'), tmp], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn('eight quads, exact sampling: OK', p.stdout)
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_priority_original_instructions_and_compiled_mutants(self):
         with tempfile.TemporaryDirectory() as tmp:

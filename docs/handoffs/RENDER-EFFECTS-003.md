@@ -1,25 +1,69 @@
 # RENDER-EFFECTS-003
 
-Checkpoint: Meteorite falling Fire01/0, six impact stones and Explosion01/0;
-Inferno ring bursts with twenty Spark02/2 particles and one Explosion01/0 each.
-Fixed pools and load-time assets only. No per-frame allocation, perf/mesh/scene,
-item, audio or live-client work.
+Implements Meteorite, Aqua Beam's ordinary-world primary chain and Inferno's
+bursts in fixture session casts. Primary native routes rise **15/23 to 18/23**;
+weighted primary coverage **46/77 to 56/77**. This is a subset milestone.
+[Coverage inventory](../research/client-skill-visual-coverage.md),
+[instruction evidence and limits](../research/client-render-effects-003.md).
 
-Initial verification: 9,000 focused cases, zero mismatches, eight compiled
-production-C mutants caught. Particle move includes explicit native head-removal
-checks, to be separated in final instruction counts. Four native tests pass with
-private checks, including fixture-session casts and rendered-pixel removal checks.
+Also supplies RENDER-WORLDS-K's five requested particle consumers and three
+sprite assets. K owns the producer/world files. No live game, perf/mesh/scene,
+item or audio-lane changes. Existing fixed pools and load-time textures are
+reused; no per-frame allocations added. Checkpoints pushed at 01c0b39 and 64e6f3d.
 
-Aqua Beam and Rageful Blow instruction/caller inspection is in progress. Their
-primary coverage remains missing until the complete visual reaches native draws.
-Existing mount-breath rounding behavior is unchanged. Coverage/documents, final
-regressions, locked gate and release checks follow before merge.
+## Verified checks before the merge lock
 
-Second checkpoint: Aqua Beam's ordinary-world primary 20-sprite chain is now
-implemented and fixture-rendered. Skill checks: 12,000 cases, zero mismatches,
-10/10 compiled mutants caught. K-requested consumers 0x7ef7/0 and smoke01/4/6/7/8
-pass 15,000 cases with 7/7 compiled mutants. Across the two new corpora this is
-24,453 original-instruction comparisons plus 2,547 native head-removal checks.
-Rageful Blow remains missing: its lifetime-11/10 impacts require 0x463..0x469,
-terrain rules and the owner-weapon renderer. No partial 0x461 port is retained.
-The primary inventory will move 15/23 to 18/23 and weighted 46/77 to 56/77.
+- New skills: 11,277 original-instruction comparisons plus 723 native removal
+  checks; zero mismatches. 10/10 compiled production-C mutants caught.
+- K consumers: 13,176 original-instruction comparisons plus 1,824 native removal
+  checks; zero mismatches. 7/7 compiled production-C mutants caught.
+- Three original LoadBitmap call sequences verified under Unicorn: 0x01821599
+  Magic_Ground2/0x7f84, 0x01822345 lightning3/0x7f38, 0x01821f65 Impack03/0x8021;
+  exact paths, LINEAR/CLAMP and flags 1,0.
+- Existing skill/effect/voice corpus: 33,000 checks, zero mismatches. Historical
+  particle corpus: 30,495 checks, zero mismatches. Its kind order remains fixed;
+  the pre-existing mount-breath rounding difference remains unchanged.
+- Reconstructed combat 38 tests and particles 23 tests pass with private checks.
+  Native visual suite has five tests, including fixture casts and the native
+  eight-quad consumer/registration host; final private-enabled rerun follows.
+- Fixture casts assert one unsent encrypted request each, unchanged target HP,
+  zero invented hits/kills and zero unsupported emissions. Asset/pass removal
+  changes rendered pixels. The three priority skills were also rendered with
+  installed assets in headless OpenGL and visually inspected.
+- Fire Ball software image at frame 21 is identical before/after, SHA-256
+  `5b39b449dd20415a6981ad7c8071bec56e3e4dc9eec381eee71b8d81f77582a8`.
+  Baseline cf81357 authored runtime sources were temporarily built in this owned
+  worktree and restored before the after build. No main/other checkout was built.
+  No existing hash pin changed. New skill and newly consumed world particles,
+  sprites, RNG consumption and terrain lights intentionally change.
+
+## Remaining work
+
+Rageful Blow is still missing. Its lifetime-11/10 impacts at MoveEffect
+0x01450a73 need 0x463..0x469, terrain rules and the owner-weapon renderer
+0x01532bd2. No partial 0x461 port is retained. Buff auras, arrow/Death Stab trails,
+master/later-class selectors and live original-image comparison remain.
+Aqua Beam here is subtype 0 in ordinary worlds. Hero-only source-buffer
+writeback/area requests and special-world wall cutoffs remain outside this
+visual adapter. Model/caller selection retains the prior static evidence limit.
+Particle sound is counted; actual delivery remains with AUDIO-002D.
+K's producer placement is not certified by these consumer tests.
+
+## Cleanup
+
+Only existing ignored Python/evidence symlinks are used; none is staged. No new
+private input needs retention. After merge, remove lane-local scratch/renders,
+all worktree build outputs, this worktree and local branch. Durable evidence is
+this handoff, finding and PR body. Final locked gate and cleanup are recorded below.
+
+Representative installed-data GL PNG hashes at frame 24, three images inspected:
+
+- Meteorite `d51fcb34ccea83a4ed866c815f78a4305196540966d9dcf762f87a8cdb0ceb22`.
+- Aqua Beam `8aa6dee9171a0fcdc63c216507a2f1ddc2a84a40d8144478a65211bfb603aa19`.
+- Inferno `549688b8ed2feacfe03de0aa280aea17644004a8534cbc25fa798e3f70dbcab9`.
+
+Five native tests pass with private checks enabled, including the eight-quad
+registration host. Both new registered validators pass, zero failures/errors/skips.
+Own Standards and Spec diff review retains the explicit subset limits above and
+finds no blocking issue in the implemented paths. Shared status edits are limited
+to this milestone's additions. No delegated review or hosted workflow was run.

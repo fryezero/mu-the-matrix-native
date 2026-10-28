@@ -624,3 +624,7 @@ $(BUILD)/world-repeat-host: tests/session_repeat_host.c world/world_tool.c $(WOR
 $(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/globals_owner_host.o
 	$(CXX) $(BUILD)/globals_owner_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+$(BUILD)/particle-consumers-host: tests/particle_consumers_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/particle_consumers_host.o
+	$(CXX) $(BUILD)/particle_consumers_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
