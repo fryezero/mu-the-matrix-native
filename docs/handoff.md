@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.
+
 README-STRESS-001: [handoff](handoffs/README-STRESS-001.md). README images 26/27 are privacy-reviewed and pinned; remote armour now retains Data/Effect glow textures. Historical #201 timings remain contextual.
 
 SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).

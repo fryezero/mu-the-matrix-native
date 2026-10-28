@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-H implements Duel Arena/world-82 primary methods: 6,000 instruction cases, zero mismatches, 19/19 compiled mutants; 25/144 verified primary families across 9/48 classes. Full Mac gate passes, 1,511 tests; all 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-h.md), [handoff](handoffs/RENDER-WORLDS-H.md).
+
 README-STRESS-001: two reviewed 80-player README images, corrected remote-armour glow texture lookup and synthetic public HUD mode. [Cause, checks and limits](handoffs/README-STRESS-001.md).
 
 SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
