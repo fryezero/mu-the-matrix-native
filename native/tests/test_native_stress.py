@@ -48,7 +48,7 @@ class BenchmarkContract(unittest.TestCase):
             self.assertEqual(len(actors), 32)
 
     def test_budget_rejects_slow_or_short_measurements(self):
-        r = {'frames': 200, 'fps': 25.0, 'work_ms': {'p95': 30, 'p99': 35}}
+        r = {'frames': 200, 'fps': 25.0, 'work_ms': {'p95': 30, 'p99': 35}, 'frame_ms': {'p95': 40, 'p99': 41}}
         self.assertEqual(bench.check(r, headless=False), [])
         for key, value in [('fps', 24.5), ('frames', 99)]:
             self.assertTrue(bench.check(dict(r, **{key: value}), headless=False))
@@ -56,10 +56,33 @@ class BenchmarkContract(unittest.TestCase):
         self.assertTrue(bench.check(dict(r, fps=24.9), headless=True))
         self.assertEqual(bench.check(dict(r, fps=90), headless=True), [])
 
+    def test_pacing_tails_fail_even_at_25_fps(self):
+        result = {'frames': 200, 'fps': 25, 'work_ms': {'p95': 30, 'p99': 35},
+                  'frame_ms': {'p95': 44, 'p99': 46}}
+        self.assertIn('frame pacing p95 > 41 ms or p99 > 42 ms', bench.check(result, headless=False))
+
+    def test_metal_missing_unsupported_invalid_and_cached_frames(self):
+        import perf_report
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / 'metal.jsonl'
+            rows = [{'supported': True}, {'frame': 1, 'gpu_ms': 2}, {'frame': 1, 'gpu_ms': 3},
+                    {'frame': 1, 'event': 'end', 'submissions': 2},
+                    {'frame': 2, 'event': 'end', 'submissions': 0},
+                    {'frame': 3, 'event': 'end', 'submissions': 1},
+                    {'frame': 4, 'map_error': True}, {'frame': 4, 'event': 'end', 'submissions': 1},
+                    {'frame': 0, 'gpu_ms': 999}, {'frame': 5, 'gpu_ms': -1},
+                    {'frame': 5, 'event': 'end', 'submissions': 1}]
+            log.write_text('\n'.join(map(json.dumps, rows)))
+            r = perf_report.metal_summary(log, {1, 2, 3, 4, 5, 6})
+            self.assertEqual((r['samples'], r['missing_frames'], r['mean']), (2, 4, 2.5))
+            rows[0]['supported'] = False
+            log.write_text('\n'.join(map(json.dumps, rows)))
+            self.assertIsNone(perf_report.metal_summary(log, {1, 2})['mean'])
+
     def test_regression_ceiling_is_separate_from_the_25_hz_target(self):
         limits = {'min_fps': 18, 'work_p95_ms': 68, 'work_p99_ms': 80, 'cpu_mean_ms': 55}
         result = {'frames': 200, 'fps': 21, 'work_ms': {'p95': 56, 'p99': 63},
-                  'phases': {'cpu': {'mean': 45}}}
+                  'phases': {'cpu': {'mean': 45}}, 'frame_ms': {'p95': 57, 'p99': 65}}
         self.assertEqual(bench.regression(result, limits), [])
         self.assertTrue(bench.check(result, headless=False))
         self.assertTrue(bench.regression(dict(result, fps=15), limits))

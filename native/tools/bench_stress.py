@@ -6,6 +6,7 @@ Window mode measures the actual 25 Hz cap; headless measures uncapped throughput
 Use --baseline after optimization to retain the old draw path on the same binary.
 """
 import argparse
+import ctypes
 import hashlib
 import json
 import os
@@ -81,6 +82,8 @@ def check(result, *, headless):
         failures.append('capped fps outside 24.8..25.2')
     if result['work_ms']['p95'] > 38 or result['work_ms']['p99'] > 40:
         failures.append('work p95 > 38 ms or p99 > 40 ms')
+    if not headless and (result['frame_ms']['p95'] > 41 or result['frame_ms']['p99'] > 42):
+        failures.append('frame pacing p95 > 41 ms or p99 > 42 ms')
     if headless and result['fps'] < 25:
         failures.append('uncapped throughput below 25 fps')
     return failures
@@ -141,6 +144,8 @@ def main(argv=None):
     ap.add_argument('--seconds', type=float, default=60)
     ap.add_argument('--renders', action='store_true')
     ap.add_argument('--baseline', action='store_true')
+    ap.add_argument('--perf-003-baseline', action='store_true', help='disable only PERF-003 optimizations')
+    ap.add_argument('--gpu-timing', action='store_true', help='require the full Metal timing extension')
     ap.add_argument('--check', action='store_true', help='require the 25 Hz target')
     ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
     ap.add_argument('--scenario', choices=SCENARIOS, action='append')
@@ -158,14 +163,26 @@ def main(argv=None):
     env = dict(os.environ, MU_LANG_DIR=str(a.data / 'lang'), MU_GFX_LIB=str(a.gfx_lib))
     env.update(MU_PERF_BASELINE='0', MU_NO_GL_BATCH='0')
     env['MU_PERF_002_BASELINE'] = '1' if a.baseline else '0'
+    env['MU_PERF_003_BASELINE'] = '1' if a.perf_003_baseline else '0'
+    if a.gpu_timing:
+        lib = ctypes.CDLL(str(a.gfx_lib))
+        for symbol in ('mugfx_perf_frame', 'mugfx_perf_end'):
+            if not hasattr(lib, symbol):
+                ap.error(f'--gpu-timing requires {symbol}; rebuild libmugfx')
     report = {'machine': platform.platform(), 'mode': 'headless-uncapped' if a.headless else 'window-capped',
               'load_start': os.getloadavg(),
-              'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(), 'scenarios': {}}
+              'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
+              'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(),
+              'perf_003_baseline': a.perf_003_baseline, 'gpu_timing': a.gpu_timing, 'scenarios': {}}
     failed = False
     limits = json.loads((NATIVE / 'tools/stress_m5_limits.json').read_text())['scenarios']
     for name in a.scenario or SCENARIOS:
         directory = a.out / name
         directory.mkdir(parents=True, exist_ok=False)
+        metal = directory / 'metal.jsonl' if a.gpu_timing else None
+        env.pop('MU_GFX_GPU_LOG', None)
+        if metal:
+            env['MU_GFX_GPU_LOG'] = str(metal)
         cmd = command(a, name, directory)
         (directory / 'command.json').write_text(json.dumps(cmd, indent=2) + '\n')
         with (directory / 'stdout.jsonl').open('w') as out, (directory / 'stderr.log').open('w') as err:
@@ -175,7 +192,9 @@ def main(argv=None):
         stderr = (directory / 'stderr.log').read_text()
         if code or 'continuing without' in stderr or 'libmugfx' in stderr or 'too many' in stderr:
             raise RuntimeError(f'{name}: incomplete workload, exit {code}; inspect {directory}')
-        result = perf_report.summarize(str(directory / 'frames.tsv'), scene=6, skip_first=50)
+        result = perf_report.summarize(str(directory / 'frames.tsv'), scene=6, skip_first=50, metal_log=metal)
+        if metal and (not result['metal']['supported'] or result['metal']['missing_frames']):
+            raise RuntimeError(f'{name}: incomplete Metal timing: {result["metal"]}')
         rows = [json.loads(line) for line in (directory / 'stdout.jsonl').read_text().splitlines()
                 if line.startswith('{')]
         result['workload'] = workload(rows, SCENARIOS[name][2])

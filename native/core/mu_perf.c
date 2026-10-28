@@ -27,8 +27,8 @@ static struct {
     int sync;
     void (*finish)(void);
     double phase[MU_PERF_PHASES];
-    double last, cpu_last, gpu_ms;
-    int64_t gpu_frame;
+    double last, cpu_last, gpu_ms, gpu_gfx_ms;
+    int64_t gpu_frame, gpu_gfx_frame;
     int64_t frame;
 } P;
 
@@ -47,6 +47,7 @@ static double cpu_now(void)
 }
 
 void mu_perf_gpu_sample(double ms, int64_t frame) { P.gpu_ms = ms; P.gpu_frame = frame; }
+void mu_perf_gpu_gfx_sample(double ms, int64_t frame) { P.gpu_gfx_ms = ms; P.gpu_gfx_frame = frame; }
 int64_t mu_perf_frame_index(void) { return P.frame; }
 
 int mu_perf_open(const char *path, int sync)
@@ -61,10 +62,12 @@ int mu_perf_open(const char *path, int sync)
     fprintf(P.log, "frame\tscene\ttotal_ms");
     for (int i = 0; i < MU_PERF_PHASES; ++i)
         fprintf(P.log, "\t%s_ms", names[i]);
-    fprintf(P.log, "\tcpu_ms\tgpu_world_ms\tgpu_frame\n");
+    fprintf(P.log, "\tcpu_ms\tgpu_world_ms\tgpu_frame\tgpu_gfx_ms\tgpu_gfx_frame\n");
     P.cpu_last = cpu_now();
     P.gpu_ms = -1.0;
     P.gpu_frame = -1;
+    P.gpu_gfx_ms = -1.0;
+    P.gpu_gfx_frame = -1;
     memset(P.phase, 0, sizeof P.phase);
     P.last = mu_perf_now();
     P.frame = 0;
@@ -114,10 +117,12 @@ void mu_perf_frame(int32_t scene)
     fprintf(P.log, "%lld\t%d\t%.3f", (long long)P.frame, scene, now - P.last);
     for (int i = 0; i < MU_PERF_PHASES; ++i)
         fprintf(P.log, "\t%.3f", P.phase[i]);
-    fprintf(P.log, "\t%.3f\t%.3f\t%lld\n", cpu - P.cpu_last, P.gpu_ms, (long long)P.gpu_frame);
+    fprintf(P.log, "\t%.3f\t%.3f\t%lld\t%.3f\t%lld\n", cpu - P.cpu_last, P.gpu_ms, (long long)P.gpu_frame, P.gpu_gfx_ms, (long long)P.gpu_gfx_frame);
     P.cpu_last = cpu;
     P.gpu_ms = -1.0;
     P.gpu_frame = -1;
+    P.gpu_gfx_ms = -1.0;
+    P.gpu_gfx_frame = -1;
     memset(P.phase, 0, sizeof P.phase);
     P.last = now;
     ++P.frame;

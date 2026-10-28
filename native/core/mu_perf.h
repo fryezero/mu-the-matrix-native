@@ -55,6 +55,8 @@ void mu_perf_frame(int32_t scene);
 /* Diagnostic CPU thread time and asynchronous world GL timer queries. GPU results
  * carry their source frame; -1 means unavailable. Ruffle/Metal is outside this query. */
 void mu_perf_gpu_sample(double ms, int64_t frame);
+/* Separate, non-overlapping GL query around the complete GFx compositor/item pass. */
+void mu_perf_gpu_gfx_sample(double ms, int64_t frame);
 int64_t mu_perf_frame_index(void);
 
 /* The host's Sleep(ms) for the client's frame cap: wakes at the requested

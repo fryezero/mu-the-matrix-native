@@ -655,7 +655,7 @@ pub unsafe extern "C" fn mugfx_render_shared(g: *mut MuGfx, wait: c_int) -> c_in
     #[cfg(target_os = "macos")]
     if g.kind == TargetKind::Surface {
         let t = Instant::now();
-        g.with_player(|p| p.render());
+        perf::render(|| g.with_player(|p| p.render()));
         let t_render = t.elapsed();
         let ok = g.with_player(|p| {
             let renderer =

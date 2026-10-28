@@ -51,7 +51,6 @@ pub struct SurfaceTarget {
     want_double: AtomicBool,
     size: (u32, u32),
     last: Mutex<Option<wgpu::SubmissionIndex>>,
-    timer: Option<crate::perf::Timer>,
 }
 
 impl fmt::Debug for SurfaceTarget {
@@ -142,7 +141,6 @@ impl SurfaceTarget {
             want_double: AtomicBool::new(false),
             size,
             last: Mutex::new(None),
-            timer: crate::perf::Timer::new(device, SEED.fetch_add(1, Ordering::Relaxed)),
         })
     }
 
@@ -305,17 +303,12 @@ impl RenderTarget for SurfaceTarget {
 
     fn submit<I: IntoIterator<Item = wgpu::CommandBuffer>>(
         &self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         command_buffers: I,
         _frame: Self::Frame,
     ) -> wgpu::SubmissionIndex {
-        let timing = self.timer.as_ref().and_then(|t| t.begin(device));
-        let index = if let Some((i, begin, end)) = timing {
-            let index = queue.submit(std::iter::once(begin).chain(command_buffers).chain(std::iter::once(end)));
-            self.timer.as_ref().unwrap().submitted(i, queue.get_timestamp_period());
-            index
-        } else { queue.submit(command_buffers) };
+        let index = queue.submit(command_buffers);
         *self.last.lock().unwrap() = Some(index.clone());
         if self.bufs.len() == 2 {
             let mut f = self.flip.lock().unwrap();
