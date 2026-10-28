@@ -10,6 +10,16 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../../core/mu_session_audio.h"
+
+static void object_sound(void *context, int32_t id)
+{
+    mu_world_rt *a = context;
+    mu_session *session = world_rt_characters_session(a);
+    if (session) {
+        if (mu_session_object_sound(session, id)) world_rt_characters_audio_drain(a);
+    } else if (a->has_sound) mu_audio_host_play(a->sound.host, id, 0);
+}
 
 static int objects_open(struct mu_world_rt *a, void *self)
 {
@@ -21,6 +31,8 @@ static int objects_open(struct mu_world_rt *a, void *self)
             mu_objects_load_models(&a->objects, a->root, 0);
             mu_objects_start(&a->objects, a->root);   /* NATIVE-OBJECTS-002: CreateObject per record */
             a->has_objects = 1;
+            a->objects.sound = object_sound;
+            a->objects.sound_context = a;
         } else {
             fprintf(stderr, "objects: %s (drawing none)\n", error);
         }
