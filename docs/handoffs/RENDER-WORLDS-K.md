@@ -32,6 +32,11 @@ Atlans checks the original switch landing and common RNG/model prefix; common ev
 outside that family. Scalar trig/sqrt and pose services retain the documented validator boundaries.
 No independent reviewer was delegated; this implementation agent reviewed source and test assertions.
 
+The preflight `bash scripts/local-macos-ci.sh` passes **1,558 tests across 38 discovery runs**,
+with **194 explicit skips**, zero failures/errors, all **9 fixture scenarios**, viewer/readers builds
+and an audit of **1,503 files, zero rejected**. Readers were built but never run.
+This is the pre-J gate; the final latest-main result below must supersede it.
+
 ## Integration still pending
 
 Merge latest main immediately after J lands, then rerun G/H/I/J/K and the latest-main tour comparison.
