@@ -29,6 +29,8 @@ lease, generated-layout and journal details remain in technical docs rather than
 
 No images added, generated or edited. Existing README images and `scripts/audit_repository.py` pins remain
 byte-identical. The reviewed source/provenance is retained in DOCS-README-002's handoff and README-STRESS-001.
+Images 26/27 were visually rechecked in this lane: synthetic short player names and the Preview hero, no account
+name, private path or other players' chat. All 27 reviewed-media hashes match the unchanged audit pins.
 The older world comparison caption now states that it predates the merged cloud/dragon/flame/haze work.
 Older quest images illustrate their captured UI, not proof that opaque NPC-list decoding is complete.
 

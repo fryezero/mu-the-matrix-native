@@ -18,7 +18,9 @@ Documentation-only task in the assigned new worktree `worktrees/readme-refresh-0
 ## Images
 
 None added or edited. Reused the existing reviewed and audit-pinned README media, including 26/27 from #205.
-No new renderer output or live-game screenshot was needed. Image bytes and publication pins are unchanged.
+No new renderer output or live-game screenshot was needed. Image bytes and publication pins are unchanged. Visually rechecked 26/27 for privacy: synthetic names only,
+no account names, private paths or other players' chat. All 27 media hashes match; all 59 local README
+file/directory targets exist. Diff whitespace check passes.
 
 ## Checks
 

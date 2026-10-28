@@ -20,7 +20,7 @@
 </p>
 
 > [!NOTE]
-> **Want to play now?** The native client is an **offline preview**: it does not connect to a server yet. To play
+> **Want to play now?** The native client is an **offline preview**: it does not connect to live servers yet. To play
 > Mu The Matrix on a Mac today, use [**mu-the-matrix-mac**](https://github.com/fryezero/mu-the-matrix-mac), the
 > one-download app that runs the original Windows client at 25 FPS.
 
@@ -109,7 +109,7 @@ Account-backed character lists and create/delete requests remain separate work
 ### The world: terrain, lighting, objects, water, weather
 
 Terrain with the client's lighting, water and lava, world objects through the client's object lifecycle, ambient
-creatures (fish, birds, leaves), weather, blob shadows and frustum culling. The October 27–28 work adds:
+creatures (fish, birds, leaves), weather, blob shadows and frustum culling. The October 27 and 28 work adds:
 
 | World | Now rendered natively |
 |---|---|
