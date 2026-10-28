@@ -59,6 +59,7 @@ enum {
     MU_PT_BITMAP_SPARK04 = 0x8155,      /* Effect\Spark04.jpg (sprites of object type 0x1f) */
     MU_PT_BITMAP_MAGIC_GROUND13 = 0x8145, /* Effect\magic_ground1_3.jpg (sprites of object type 0x49) */
     /* NATIVE-HELPERS-002: the helpers' kinds */
+    MU_PT_BITMAP_SMOKE5 = 0x7f5e,       /* Effect\smoke05.tga, Chaos Castle boundary */
     MU_PT_BITMAP_SMOKE2 = 0x7f5b,       /* Effect\smoke02.tga (the mounts' dust outside world 2) */
     MU_PT_BITMAP_DROP = 0x7fcd          /* Object8\drop01.jpg (Atlans; the Dark Horse's dust there), a 3x3 sheet */
 };

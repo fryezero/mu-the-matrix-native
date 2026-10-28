@@ -323,6 +323,9 @@ static int command_render(const args *a)
     camera.fov_y = a->fov;
     camera.near_plane = 50.0f;
     camera.far_plane = 80000.0f;
+    float terrain_eye[3];
+    mu_camera_eye(&camera,terrain_eye);
+    mu_world_terrain_view(w,camera.target,terrain_eye);
     mu_camera_view(&camera, raster.view);
     mu_camera_projection(&camera, (float)a->width / (float)a->height, raster.projection);
     static const uint8_t background[4] = {0, 0, 0, 255};

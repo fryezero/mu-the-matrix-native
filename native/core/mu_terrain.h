@@ -46,6 +46,15 @@ typedef struct mu_world {
     mu_image bitmaps[MU_WORLD_BITMAPS];    /* width 0 = not loaded */
     uint8_t bitmap_linear[MU_WORLD_BITMAPS];
     mu_world_report report;
+    mu_terrain_signed_grid *signed_grid;
+    float *reflection_uv;
+    float hero_position[3], camera_position[3];
+    uint32_t terrain_random, terrain_steps;
+    uint8_t chaos_state;
+    float camera_shake;
+    void (*terrain_effect)(void *, int32_t, const float *, const float *);
+    void *terrain_effect_context;
+
     /* NATIVE-TERRAIN-002 */
     int32_t frame_counter;                 /* [0x0b6b53e0], animated layer frame 0..31 */
     int32_t box[4];                        /* visible box of the last frame update */
@@ -77,6 +86,8 @@ uint8_t *mu_world_decrypt(const uint8_t *file, size_t size, const char magic[4],
  * missing or refused. */
 mu_world *mu_world_load(const char *root, int32_t world, uint32_t seed, int textures, char *error, size_t error_size);
 void mu_world_free(mu_world *world);
+
+void mu_world_terrain_view(mu_world *world, const float hero[3], const float camera[3]);
 
 /* Per-frame update for time t (ms): frame light = primary light (no dynamic
  * lights), wave grids of 0x016ca4fa over the whole map. */

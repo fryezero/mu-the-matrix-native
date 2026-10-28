@@ -294,7 +294,8 @@ static int world_chaos(int32_t w) { return (w >= 0x12 && w <= 0x17) || w == 0x35
 
 int mu_terrain_world_has_special_paths(int32_t w)
 {
-    return (w == 0x71 || w == 0x91 ? 1 : 0) | (world_chaos(w) ? 2 : 0);
+    (void)w;
+    return 0;
 }
 
 /* cvttss2si: out-of-range and NaN give 0x80000000. */
@@ -469,8 +470,52 @@ static int render_face(const mu_terrain_scene *scene, int32_t layer, const int32
         s->state(s->context, MU_TERRAIN_STATE_ALPHA, 1);
     else
         s->state(s->context, MU_TERRAIN_STATE_OPAQUE, 0);
-    if ((w == 0x71 || w == 0x91) && scene->detail >= 4 && (scene->attributes[index[0]] & 0x2000))
-        return MU_TERRAIN_UNSUPPORTED; /* 0x016cf5f0 / 0x016cf761 overlay faces (texture 0x7722) */
+    if ((w == 0x71 || w == 0x91) && scene->detail >= 4 && (scene->attributes[index[0]] & 0x2000)) {
+        float reflection[8];
+        for (int c = 0; c < 4; ++c) {
+            const int i = index[c];
+            if (w == 0x91) {
+                float direction[3] = {((float)(i % 256) + 50.0f) * 100.0f - scene->camera_position[0],
+                    ((float)(i / 256) + 50.0f) * 100.0f - scene->camera_position[1],
+                    0.0f - scene->camera_position[2]};
+                /* The original passes tile coordinates, not world units, to RequestTerrainHeight. */
+                const float fx = (float)(i % 256) / 100.0f, fy = (float)(i / 256) / 100.0f;
+                const int x = (int)fx, y = (int)fy, j = y * 256 + x;
+                float z;
+                if (scene->attributes[j] & 0x40) z = scene->water_height;
+                else {
+                    const float a = (scene->height[j + 256] - scene->height[j]) * (fy - (float)y) + scene->height[j];
+                    const float b = (scene->height[j + 257] - scene->height[j + 1]) * (fy - (float)y) + scene->height[j + 1];
+                    z = (b - a) * (fx - (float)x) + a;
+                }
+                direction[2] = z - scene->camera_position[2];
+                extern void mu_terrain_normalize(float v[3]);
+                mu_terrain_normalize(direction);
+                const float up[3] = {0, 0, 1};
+                mu_terrain_reflection_uv(direction, scene->reflection_normal ? &scene->reflection_normal[3*i] : up,
+                    &reflection[2*c]);
+            } else {
+                reflection[2*c] = scene->reflection_uv ? scene->reflection_uv[2*i] : 0.0f;
+                reflection[2*c+1] = scene->reflection_uv ? scene->reflection_uv[2*i+1] : 0.0f;
+            }
+        }
+        for (int pass = 0; pass < 2; ++pass) {
+            if (pass) s->state(s->context, MU_TERRAIN_STATE_ALPHA, 1);
+            s->bind(s->context, pass ? MU_TERRAIN_TEXTURE_TILE + layer : 0x7722);
+            s->begin(s->context, MU_TERRAIN_GL_TRIANGLE_FAN);
+            for (int c = 0; c < 4; ++c) {
+                const int i = index[c];
+                const float *t = pass ? &uv[2*c] : &reflection[2*c];
+                s->texcoord(s->context, t[0], t[1]);
+                s->color4(s->context, scene->light[3*i] + scene->light2[3*i],
+                    scene->light[3*i+1] + scene->light2[3*i+1], scene->light[3*i+2] + scene->light2[3*i+2],
+                    pass ? 1.0f - 0.4f : 0.4f);
+                s->vertex(s->context, &corner[3*c]);
+            }
+            s->end(s->context);
+        }
+        return MU_TERRAIN_OK;
+    }
     const int32_t texture = MU_TERRAIN_TEXTURE_TILE + layer;
     s->bind(s->context, texture);
     s->begin(s->context, MU_TERRAIN_GL_TRIANGLE_FAN);
@@ -512,6 +557,7 @@ static int opaque_tile(const mu_terrain_scene *scene, float xf, float yf, int32_
                        mu_terrain_tile_stats *stats)
 {
     const int32_t w = scene->world_index;
+    mu_terrain_chaos_face(scene, xi, yi);
     const int32_t i0 = index[0];
     const uint16_t att = scene->attributes[i0];
     const int neighbour = (att & 0x4000) != 0;
@@ -721,6 +767,12 @@ int mu_terrain_alpha_layers(int32_t w) { return !((w >= 0x12 && w <= 0x17) || w 
 int mu_terrain_draw(const mu_terrain_scene *scene, int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max,
                     int alpha_layers, const mu_terrain_sink *sink, mu_terrain_tile_stats *stats)
 {
+    if (scene->signed_grid && mu_terrain_is_signed_world(scene->world_index)) {
+        mu_terrain_signed_draw(scene->signed_grid, sink);
+        if (stats) { memset(stats,0,sizeof *stats); stats->faces=scene->signed_grid->count/3; }
+        return MU_TERRAIN_OK;
+    }
+
     x_min = clamp_box(x_min);
     y_min = clamp_box(y_min);
     x_max = clamp_box(x_max);
@@ -928,8 +980,13 @@ static float max_client(float a, float b) { return a > b ? a : b; } /* 0x0184f93
 int mu_terrain_frustum_2d(int32_t w, const float position[3], const float camera_angle[3],
                           const mu_terrain_frustum_2d_params *params, int wide, float x2d[4], float y2d[4])
 {
-    if (w == 0x49 || w == 6)
-        return MU_TERRAIN_UNSUPPORTED;
+    return mu_terrain_frustum_2d_camera(w, position, camera_angle, params, wide, 0, 0.0f, x2d, y2d);
+}
+
+int mu_terrain_frustum_2d_camera(int32_t w, const float position[3], const float camera_angle[3],
+    const mu_terrain_frustum_2d_params *params, int wide, int special_view, float pitch_offset,
+    float x2d[4], float y2d[4])
+{
     float width_far = params->width_far, width_near = params->width_near;
     if (wide) {
         width_far = width_far * 1.51f;
@@ -947,7 +1004,13 @@ int mu_terrain_frustum_2d(int32_t w, const float position[3], const float camera
     const float near_y = params->near_offset - params->back_offset;
     const float p[4][3] = {{-width_far, far_y, 0.0f}, {width_far, far_y, 0.0f}, {width_near, near_y, 0.0f},
                            {-width_near, near_y, 0.0f}};
-    const float angle[3] = {0.0f, 0.0f, 45.0f};
+    float angle[3] = {0.0f, 0.0f, 45.0f};
+    if (w == 6 && special_view) angle[2] = -camera_angle[2];
+    if (w == 0x49) {
+        angle[0] = -camera_angle[0] + pitch_offset;
+        angle[1] = -camera_angle[1];
+        angle[2] = -camera_angle[2];
+    }
     float matrix[12];
     mu_angle_matrix(angle, matrix); /* 0x00cff32a */
     for (int i = 0; i < 4; ++i) {
@@ -1011,6 +1074,12 @@ static int walk_view(const mu_terrain_scene *scene, int32_t pass, const mu_terra
 int mu_terrain_render(const mu_terrain_scene *scene, const mu_terrain_frustum *frustum, int32_t scene_state,
                       int top_view, int alpha_layers, const mu_terrain_sink *sink, mu_terrain_tile_stats *stats)
 {
+    if (scene->signed_grid && mu_terrain_is_signed_world(scene->world_index)) {
+        mu_terrain_signed_draw(scene->signed_grid, sink);
+        if (stats) { memset(stats,0,sizeof *stats); stats->faces=scene->signed_grid->count/3; }
+        return MU_TERRAIN_OK;
+    }
+
     sink->state(sink->context, MU_TERRAIN_STATE_OPAQUE, 0);
     int worst = walk_view(scene, 0, frustum, scene_state, top_view, sink, stats);
     sink->state(sink->context, MU_TERRAIN_STATE_ALPHA, 1);
@@ -1114,4 +1183,235 @@ long mu_terrain_decal(const mu_terrain_scene *scene, int32_t texture, float x, f
         }
     }
     return fans;
+}
+
+/* Normalize 0x00cff0d3 uses float division, unlike FaceNormalize. */
+void mu_terrain_normalize(float v[3])
+{
+    float length = (float)sqrt((double)((v[0]*v[0] + v[1]*v[1]) + v[2]*v[2]));
+    if (length < 0.000001f) { memset(v, 0, 3*sizeof(float)); return; }
+    for (int k=0; k<3; ++k) v[k] = v[k] / length;
+}
+
+void mu_terrain_reflection_uv(const float direction[3], const float normal[3], float uv[2])
+{
+    const float dot = (direction[0]*normal[0] + direction[1]*normal[1]) + direction[2]*normal[2];
+    float r[3];
+    for (int k=0; k<3; ++k) r[k] = direction[k] - (2.0f * dot) * normal[k];
+    mu_terrain_normalize(r);
+    float z = r[2] + 1.0f;
+    float m = 2.0f * (float)sqrt((double)((r[0]*r[0] + r[1]*r[1]) + z*z));
+    uv[0] = r[0] / m + 0.5f;
+    uv[1] = r[1] / m + 0.5f;
+}
+
+void mu_terrain_chaos_face(const mu_terrain_scene *s, int32_t x, int32_t y)
+{
+    if (!world_chaos(s->world_index) || !s->random || s->random(s->effect_context) % 8) return;
+    const int stage = s->chaos_state == 0 ? 0 : s->chaos_state == 3 ? 1 : s->chaos_state == 6 ? 2 : -1;
+    if (stage < 0) return;
+    /* Four inclusive strips shrink by two tiles at each collapse stage. */
+    const int lo = 23 + stage*2, hi = 44 - stage*2, bottom = 75 + stage*2, top = 108 - stage*2;
+    const int hit = (x>=lo && x<=hi && y>=bottom && y<=bottom+1) ||
+        (x>=hi-1 && x<=hi && y>=bottom+2 && y<=top) ||
+        (x>=lo && x<=hi-2 && y>=top-1 && y<=top) ||
+        (x>=lo && x<=lo+1 && y>=bottom+2 && y<=top-2);
+    if (!hit) return;
+    float pos[3] = {(float)x*100.0f, (float)y*100.0f, s->hero_z};
+    pos[0] = pos[0] + ((float)(s->random(s->effect_context)%30) - 15.0f);
+    pos[1] = pos[1] + ((float)(s->random(s->effect_context)%30) - 15.0f);
+    const float light[3] = {1,1,1};
+    if (s->effect) s->effect(s->effect_context, 0x7f5e, pos, light);
+    if (s->random(s->effect_context)%5 == 0) {
+        float shake = (float)(s->random(s->effect_context)%3 - 3) * 0.1f;
+        if (s->camera_shake) *s->camera_shake = shake;
+    }
+}
+
+int mu_terrain_is_signed_world(int32_t w) { return (w >= 0x18 && w <= 0x1d) || w == 0x24; }
+
+void mu_terrain_signed_init(mu_terrain_signed_grid *g, int32_t world)
+{
+    memset(g, 0, sizeof *g);
+    g->world = world;
+    g->light_direction[0] = 1.0f; g->light_direction[1] = -1.0f; g->light_direction[2] = 1.0f;
+}
+
+/* 0x009f85fc: arithmetic shifts and wrapping integer adds, including negatives. */
+static int32_t sar32(uint32_t n, unsigned shift)
+{
+    return (int32_t)((n >> shift) | ((n & 0x80000000u) ? (~0u << (32-shift)) : 0));
+}
+void mu_terrain_signed_step(mu_terrain_signed_grid *g)
+{
+    int32_t *dst = g->grid[g->active], *src = g->grid[g->active ^ 1];
+    for (int y=1; y<255; ++y) for (int x=1; x<255; ++x) {
+        int i = y*256+x;
+        uint32_t sum = (uint32_t)src[i+256] + (uint32_t)src[i-256];
+        sum += (uint32_t)src[i+1]; sum += (uint32_t)src[i-1];
+        uint32_t v = (uint32_t)sar32(sum,1) - (uint32_t)dst[i];
+        dst[i] = (int32_t)(v - (uint32_t)sar32(v,4));
+    }
+}
+
+/* 0x009f8318, four host sin calls corresponding to the client's float CRT wrapper. */
+void mu_terrain_signed_wave(mu_terrain_signed_grid *g, int32_t hx, int32_t hy, float time)
+{
+    int x0=hx*2-50, y0=hy*2-50, x1=hx*2+50, y1=hy*2+50;
+    if (x0<0) x0=0; if (y0<0) y0=0; if (x1>256) x1=256; if (y1>256) y1=256;
+    for (int y=y0; y<y1; ++y) for (int x=x0; x<x1; ++x) {
+        float a = (time*0.005f + (float)y*0.1f) + (float)x*0.1f;
+        int32_t n = cvtt((float)sin((double)a)*50.0f);
+        a = (time*0.003f + (float)x*0.1f) + (float)y*0.5f;
+        g->grid[2][y*256+x] = cvtt((float)n - (float)sin((double)a)*50.0f);
+        a = (time*0.001f + (float)y*0.5f) + (float)x*0.5f;
+        n = cvtt((float)sin((double)a)*25.0f);
+        a = (time*0.002f + (float)x*1.0f) + (float)y*0.3f;
+        g->grid[3][y*256+x] = cvtt((float)n - (float)sin((double)a)*25.0f);
+    }
+}
+
+float mu_terrain_signed_height(const mu_terrain_signed_grid *g, float x, float y)
+{
+    int xi=cvtt((x/100.0f)*2.0f), yi=cvtt((y/100.0f)*2.0f);
+    if (xi<0 || xi>=256 || yi<0 || yi>=256) return 0.0f;
+    int i=yi*256+xi;
+    float a=(float)g->grid[g->active][i]+350.0f;
+    float b=((float)g->grid[2][i]+350.0f) + ((float)g->grid[3][i]+350.0f);
+    return (b/2.0f+a)/4.0f;
+}
+
+/* 0x009f86d6, including the alternating triangle diagonals and averaging
+ * the face normals before float normalization. */
+void mu_terrain_signed_mesh(mu_terrain_signed_grid *g, int32_t hx, int32_t hy)
+{
+    g->count=0;
+    int count[1764]={0};
+    for (int y=0; y<42; ++y) for (int x=0; x<42; ++x) {
+        int i=y*42+x, gx=hx*2-25+x, gy=hy*2-15+y;
+        float z=350.0f;
+        if (gx>=0 && gx<256 && gy>=0 && gy<256) {
+            int j=gy*256+gx;
+            float a=(float)g->grid[g->active][j]+350.0f;
+            float b=((float)g->grid[2][j]+350.0f) + ((float)g->grid[3][j]+350.0f);
+            z=(b/2.0f+a)/2.0f;
+        }
+        g->vertex[i][0]=(float)gx*50.0f; g->vertex[i][1]=(float)gy*50.0f; g->vertex[i][2]=z;
+        memset(g->normal[i],0,3*sizeof(float));
+        if (x==41 || y==41) {
+            memcpy(g->normal[i],g->normal[i-1],3*sizeof(float));
+            continue;
+        }
+        int diag=((x&1)==(y&1));
+        int idx[6]={i,i+1,diag ? i+43:i+42,diag ? i:i+1,i+43,i+42};
+        memcpy(g->indices+g->count,idx,sizeof idx); g->count+=6;
+    }
+    for (int i=0; i<g->count; i+=3) {
+        int a=g->indices[i], b=g->indices[i+1], c=g->indices[i+2];
+        float n[3]; mu_terrain_face_normal(g->vertex[a],g->vertex[b],g->vertex[c],n);
+        int ids[3]={a,b,c};
+        for (int k=0; k<3; ++k) {
+            for (int j=0; j<3; ++j) g->normal[ids[k]][j]=n[j]+g->normal[ids[k]][j];
+            ++count[ids[k]];
+        }
+    }
+    for (int i=0; i<1764; ++i) {
+        for (int k=0; k<3; ++k) g->normal[i][k] = g->normal[i][k]/(float)count[i];
+        mu_terrain_normalize(g->normal[i]);
+    }
+}
+
+void mu_terrain_signed_draw(mu_terrain_signed_grid *g, const mu_terrain_sink *s)
+{
+    if (!mu_terrain_is_signed_world(g->world)) return;
+    for (int pass=0; pass<2; ++pass) {
+        s->state(s->context, pass ? MU_TERRAIN_STATE_ADDITIVE:MU_TERRAIN_STATE_ALPHA,pass ? 0:1);
+        s->bind(s->context, MU_TERRAIN_TEXTURE_TILE+pass);
+        s->begin(s->context,4);
+        if (!pass) { const float color[3]={0.2f,0.5f,0.65f}; s->color3(s->context,color); }
+        for (int j=0; j<g->count; ++j) {
+            int i=g->indices[j];
+            if (pass) {
+                float dot=(g->normal[i][0]*g->light_direction[0]+g->normal[i][1]*g->light_direction[1])+
+                    g->normal[i][2]*g->light_direction[2];
+                float l=1.0f-dot; const float color[3]={l,l*2.5f,l*3.0f}; s->color3(s->context,color);
+            }
+            /* The original passes the normal-derived Y coordinate first. */
+            s->texcoord(s->context,g->normal[i][1]*0.5f+0.5f,g->normal[i][2]*0.5f+0.1f);
+            s->vertex(s->context,g->vertex[i]);
+        }
+        s->end(s->context);
+    }
+}
+
+/* 0x016c936a and 0x016c95f9: world-0x71's map-load reflection grid. */
+void mu_terrain_reflection_init(const mu_terrain_scene *s, float *normal, float *uv)
+{
+    float edge[4][3]={{-1,-1,0.2f},{1,-1,0.2f},{-0.4f,0.4f,1},{1,1,0.2f}};
+    for (int i=0;i<4;++i) mu_terrain_normalize(edge[i]);
+    for (int x=0;x<256;++x) {
+        float t=(float)x/255.0f;
+        for (int k=0;k<3;++k) {
+            normal[3*x+k]=edge[0][k]+t*(edge[1][k]-edge[0][k]);
+            normal[3*(255*256+x)+k]=edge[2][k]+t*(edge[3][k]-edge[2][k]);
+        }
+        mu_terrain_normalize(&normal[3*x]);
+        mu_terrain_normalize(&normal[3*(255*256+x)]);
+    }
+    for (int x=0;x<256;++x) for (int y=1;y<255;++y) {
+        for (int k=0;k<3;++k) {
+            float a=normal[3*x+k], b=normal[3*(255*256+x)+k];
+            normal[3*(y*256+x)+k]=a+((float)y/255.0f)*(b-a);
+        }
+        mu_terrain_normalize(&normal[3*(y*256+x)]);
+    }
+    for (int y=0;y<256;++y) for (int x=0;x<256;++x) {
+        int i=y*256+x;
+        /* RequestTerrainHeight receives unscaled tile coordinates here too. */
+        float fx=(float)x/100.0f,fy=(float)y/100.0f; int xi=(int)fx,yi=(int)fy,j=yi*256+xi;
+        float z;
+        if (s->attributes[j]&0x40) z=s->water_height;
+        else {
+            float a=(s->height[j+256]-s->height[j])*(fy-(float)yi)+s->height[j];
+            float b=(s->height[j+257]-s->height[j+1])*(fy-(float)yi)+s->height[j+1];
+            z=(b-a)*(fx-(float)xi)+a;
+        }
+        float d[3]={((float)x+50.0f)*100.0f-16800.0f,((float)y+50.0f)*100.0f-10000.0f,z-25000.0f};
+        mu_terrain_normalize(d); mu_terrain_reflection_uv(d,&normal[3*i],&uv[2*i]);
+    }
+}
+
+void mu_terrain_environment_config(int fog, float density, const float color[4], mu_terrain_environment *out)
+{
+    out->alpha_reference=0.25f;
+    out->fog=fog!=0;
+    out->density=density;
+    memcpy(out->color,color,4*sizeof(float));
+}
+
+/* 0x009f9952, signed disturbance. The client caller uses radii 20/2 and
+ * amplitude 2000. Bounds/radius refusal here is the host memory boundary. */
+int mu_terrain_signed_ripple(mu_terrain_signed_grid *g, int x, int y, int rx, int ry, int amplitude,
+    int (*random)(void *), void *context)
+{
+    if (rx<1 || ry<1 || rx>126 || ry>126) return MU_TERRAIN_BAD_INDEX;
+    if (x<0) { if (!random) return MU_TERRAIN_BAD_INDEX; x=rx+random(context)%(255-2*rx)+1; }
+    if (y<0) { if (!random) return MU_TERRAIN_BAD_INDEX; y=ry+random(context)%(255-2*ry)+1; }
+    if (x>255 || y>255) return MU_TERRAIN_BAD_INDEX;
+    float scale=1024.0f/(float)rx; scale=scale*scale;
+    int x0=-rx, x1=rx, y0=-ry, y1=ry;
+    if (x-rx<1) x0-=x-rx-1;
+    if (y-ry<1) y0-=y-ry-1;
+    if (x+rx>255) x1-=x+rx-255;
+    if (y+ry>255) y1-=y+ry-255;
+    for (int dy=y0;dy<y1;++dy) for (int dx=x0;dx<x1;++dx) {
+        int distance=dy*dy+dx*dx;
+        if (distance>=rx*ry) continue;
+        float a=(float)sqrt((double)((float)distance*scale));
+        float c=(float)cos((double)a);
+        int32_t n=sar32((uint32_t)cvtt((c+65535.0f)*(float)amplitude),19);
+        int i=(y+dy)*256+x+dx;
+        g->grid[g->active][i]=(int32_t)((uint32_t)g->grid[g->active][i]+(uint32_t)n);
+    }
+    return MU_TERRAIN_OK;
 }

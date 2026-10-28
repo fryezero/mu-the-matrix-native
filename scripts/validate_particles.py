@@ -127,7 +127,7 @@ KINDS = [(0x7ef7, 1)] + [(0x7f3c, s) for s in (0, 1, 2, 3, 4, 5, 6, 17)] + [(0x7
                                                             # NATIVE-CHARSEL-002: the character-select scene
                                                             (0x801b, 2), (0x801c, 0xe), (0x8017, 0), (0x8022, 5),
                                                             # NATIVE-HELPERS-002: the helpers' kinds
-                                                            (0x7f25, 1), (0x7f5b, 0), (0x7fcd, 0), (0x7f26, 0xf), (0x831d, 6), (0x83b3, 6),
+                                                            (0x7f25, 1), (0x7f5b, 0), (0x7f5e, 0), (0x7fcd, 0), (0x7f26, 0xf), (0x831d, 6), (0x83b3, 6),
                                                             (0x8086, 0x13), (0x8086, 0x18), (0x7f26, 0x2a), (0x7f5a, 0x7f), (0x7f5a, 0x75)]
 BITMAP_RECORD_GET = 0x00ebbec8   # the bitmap record by index (this = 0x0bdc5f00), smoke02's height (NATIVE-HELPERS-002)
 STATE_BLEND = 0x0184abd5         # (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), smoke02's render (NATIVE-HELPERS-002)
