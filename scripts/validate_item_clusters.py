@@ -17,7 +17,7 @@ RANDOM = C.CFUNCTYPE(C.c_int32, C.c_void_p)
 class Effect(C.Structure):
     _fields_ = [('sprite', previous.Sprite), ('offset', C.c_float*3), ('particle', C.c_int32)]
 
-def c_effects(lib, t, values):
+def c_effects(lib, t, values, time=None):
     seq = iter(values)
     consumed = []
     @RANDOM
@@ -26,7 +26,10 @@ def c_effects(lib, t, values):
         consumed.append(value)
         return value
     out, n = (Effect*20)(), C.c_int32()
-    status = lib.mu_rc_link_effects(t, rand, None, out, 20, C.byref(n))
+    if time is None:
+        status = lib.mu_rc_link_effects(t, rand, None, out, 20, C.byref(n))
+    else:
+        status = lib.mu_rc_link_effects_time(t, C.c_float(time), rand, None, out, 20, C.byref(n))
     calls = []
     for e in out[:n.value]:
         s = e.sprite
@@ -34,10 +37,10 @@ def c_effects(lib, t, values):
                       tuple(v.f2u(x) for x in s.light), v.f2u(s.rotation), s.blend, s.axes, e.particle))
     return status, calls, len(consumed)
 
-def link_cases(wa, lib):
+def link_cases(wa, lib, types=(0x14f0, 0x12fb)):
     rng = random.Random(0x2002c)
     vectors = []
-    for t in (0x14f0, 0x12fb):
+    for t in types:
         for k in range(100):
             values = [k]*32 if k<30 else [rng.randrange(32768) for _ in range(32)]
             for variant in range(4):
@@ -66,14 +69,16 @@ def link_cases(wa, lib):
                     return 0
                 m.stub(0x01692eb7,sprite,0)
                 m.stub(0x0168fafd,particle,0)
+                time = (0.0, 700.25, 123456.0, -150.5)[variant]
+                m.wf(0x06fce370, time)
                 part=v.CHAR+0x19ac
                 m.write(part,struct.pack('<hBBBB',t,variant*4,variant&1,0,47))
                 result=m.run(0x012bd910,[0,0,v.f2u(15),v.CHAR,part,t,variant*4,variant&1,variant&1,1,0,variant>>1])
-                actual=c_effects(lib,t,values)
+                actual=c_effects(lib,t,values,time)
                 if not result['ok'] or actual!=(0,observed,len(consumed)):
                     raise AssertionError((hex(t),k,variant,result,observed,actual,len(consumed)))
                 vectors.append((t,values,actual))
-    return {'cases':len(vectors),'mismatches':0,'targets':['0x012c741a','0x012c761d']},vectors
+    return {'cases':len(vectors),'mismatches':0,'types':[hex(t) for t in types]},vectors
 
 def transform_cases(wa):
     """Real TransformPosition with nonzero offsets, versus production C math."""

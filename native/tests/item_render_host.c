@@ -56,10 +56,14 @@ int main(void)
     if (s->position[0] != -260 || s->position[1] != 140 || s->position[2] != 290) return 11;
     mu_world_particles_discard_sprites(p);
     p->rand_state = 1;
-    /* The existing particle engine explicitly refuses Spark03 subtype 11.
-     * Its two requests remain counted as unsupported; five sprites are live. */
-    if (mu_renderchar_link_effects(&model, bones, 0x12fb, p) != 5 ||
-        p->stats.created != 0 || p->stats.unsupported != 2) return 15;
+    /* Spark03/11 now consumes both conditional requests. */
+    if (mu_renderchar_link_effects(&model, bones, 0x12fb, p) != 7 ||
+        p->stats.created != 2 || p->stats.unsupported != 0) return 15;
+    mu_world_particles_discard_sprites(p);
+    if (mu_renderchar_link_effects(&model, bones, 0x0ef4, p) != 5) return 16;
+    mu_world_particles_discard_sprites(p);
+    p->world_time = 700.25f;
+    if (mu_renderchar_link_effects(&model, bones, 0x0afc, p) != 2) return 17;
     mu_world_particles_discard_sprites(p);
     bmd.bone_count = 1;
     if (mu_renderchar_link_effects(&model, bones, 0x12fb, p) != 3) return 12;

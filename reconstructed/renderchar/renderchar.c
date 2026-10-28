@@ -9,6 +9,7 @@
 
 #include "special_types.h"
 #include "item_glow.h"
+#include "skin_glow.h"
 #include "item_bodies.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
@@ -151,6 +152,11 @@ int32_t mu_rc_item_glow_level(const mu_rc_item *it)
     for (size_t i = 0; i < sizeof mu_rc_glow_rows / sizeof mu_rc_glow_rows[0]; ++i)
         if (it->type == mu_rc_glow_rows[i].type) {
             level = mu_rc_glow_rows[i].levels[level];
+            break;
+        }
+    for (size_t i = 0; i < sizeof mu_rc_skin_glow_rows / sizeof mu_rc_skin_glow_rows[0]; ++i)
+        if (it->type == mu_rc_skin_glow_rows[i].type) {
+            level = mu_rc_skin_glow_rows[i].levels[level];
             break;
         }
     if (kind_b(it, 0x26) || kind_b(it, 0x5b))              /* 0x0176dc26 / 0x0176dc50 */
@@ -484,7 +490,8 @@ done:
 int mu_rc_link_supported(int32_t type)
 {
     return type == 0x12ea || type == 0x12eb || type == 0x12ec || type == 0x12f7 ||
-           type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb;
+           type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb ||
+           type == 0x0ef4 || type == 0x0afc;
 }
 
 static float link_intensity(int32_t random_value)
@@ -525,8 +532,14 @@ int mu_rc_link_sprites(int32_t type, int32_t random_value, mu_rc_link_sprite *ou
 int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
                         mu_rc_link_effect *out, int32_t capacity, int32_t *count)
 {
+    return mu_rc_link_effects_time(type, 0.0f, random, context, out, capacity, count);
+}
+
+int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, void *context,
+                           mu_rc_link_effect *out, int32_t capacity, int32_t *count)
+{
     *count = 0;
-    if (type != 0x14f0 && type != 0x12fb)
+    if (type != 0x14f0 && type != 0x12fb && type != 0x0ef4 && type != 0x0afc)
         return MU_RC_SPECIAL;
     float intensity = link_intensity(random(context));
     mu_rc_link_effect effects[20] = {0};
@@ -546,6 +559,40 @@ int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
                                             {intensity, intensity * 0.3f, intensity * 0.1f}, 0, 0, 4};
             e->offset[0] = x;
             e->offset[1] = -40.0f;
+        }
+    } else if (type == 0x0ef4) { /* 0x012c7a45..0x012c7e63 */
+        float jitter = (float)(random(context) % 60) / 20.0f - 1.5f;
+        float scale = (float)(random(context) % 10) / 20.0f + 1.4f;
+        for (int i = 0; i < 2; ++i) {
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){0, 0x7f67, i ? scale - 0.3f : scale,
+                                            {1.0f, 0.3f, 0}, i ? 20.0f : 0.0f, 0, 4};
+            e->offset[1] = -100.0f + jitter;
+            e->offset[2] = jitter;
+        }
+        jitter = (float)(random(context) % 60) / 20.0f - 1.5f;
+        scale = (float)(random(context) % 10) / 20.0f + 1.0f;
+        mu_rc_link_effect *e = &effects[n++];
+        e->sprite = (mu_rc_link_sprite){0, 0x7ef7, scale + 0.3f, {1.0f, 0.3f, 0}, 0, 0, 4};
+        e->offset[1] = -100.0f + jitter;
+        e->offset[2] = jitter;
+        jitter = (float)(random(context) % 40) / 20.0f - 1.0f;
+        scale = (float)(random(context) % 8) / 20.0f + 0.4f;
+        for (int i = 0; i < 2; ++i) {
+            e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){0, 0x7f67, i ? scale - 0.2f : scale,
+                                            {1.0f, 0.3f, 0}, i ? 90.0f : 0.0f, 0, 4};
+            e->offset[1] = 100.0f + jitter;
+            e->offset[2] = jitter;
+        }
+    } else if (type == 0x0afc) { /* 0x012c7e68..0x012c8078 */
+        float pulse = client_sin(time * 0.4f) * 0.25f + 0.7f;
+        for (int i = 0; i < 2; ++i) {
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){0, 0x7ef8, 0.75f, {pulse, pulse - 0.5f, pulse - 0.5f}, 0, 0, 4};
+            e->offset[0] = i ? -5.0f : 5.0f;
+            e->offset[1] = -22.0f;
+            e->offset[2] = -10.0f;
         }
     } else {
         if (random(context) % 2 == 1) {

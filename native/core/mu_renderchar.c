@@ -41,10 +41,10 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
 {
     if (!p || !model || !model->bmd || !bones)
         return 0;
-    if (type == 0x14f0 || type == 0x12fb) {
+    if (type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc) {
         mu_rc_link_effect effects[20];
         int32_t n = 0;
-        if (mu_rc_link_effects(type, link_random, p, effects, 20, &n) != MU_RC_OK)
+        if (mu_rc_link_effects_time(type, p->world_time, link_random, p, effects, 20, &n) != MU_RC_OK)
             return 0;
         long created = 0;
         for (int32_t i = 0; i < n; ++i) {

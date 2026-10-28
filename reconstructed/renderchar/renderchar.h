@@ -118,6 +118,10 @@ typedef struct mu_rc_link_effect {
 typedef int32_t (*mu_rc_random_fn)(void *context);
 int mu_rc_link_effects(int32_t type, mu_rc_random_fn random, void *context,
                         mu_rc_link_effect *out, int32_t capacity, int32_t *count);
+/* Time-dependent sword caller, same stream contract as mu_rc_link_effects. */
+int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, void *context,
+                           mu_rc_link_effect *out, int32_t capacity, int32_t *count);
+
 
 /* PartObjectColor 0x016db5eb for a type without a hardcoded colour:
  * out = alpha*bright*enchant, then the kind-B overrides 0x26 / 0x5b. */
