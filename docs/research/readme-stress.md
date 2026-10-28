@@ -23,7 +23,8 @@ loader resolve Player/../Effect. No renderchar, reconstructed item decision,
 shader, light, geometry, quality setting or item type was changed. The player
 summary now reports `effect_textures_loaded` per slot; the stress checker rejects
 missing glow textures as well as missing base textures. This finding is for the
-items lane's awareness and does not claim any of its 1,173 remaining body types.
+items lane's awareness and does not reconstruct any remaining special-body rules.
+Part 6 merged during this task and brings its separate coverage to 559/1,674 bodies.
 The analogous ground-item fallback in `mu_items.c` is a separate consumer for
 that lane to assess; this change covers the remote-player failure reported here.
 

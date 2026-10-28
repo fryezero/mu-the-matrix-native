@@ -171,11 +171,17 @@ int world_rt_load(mu_world_rt *a)
     for (int i = 0; i < MU_PART_COUNT; ++i)
         if (ROWS[i].ops->open && ROWS[i].ops->open(a, a->part[i]))
             return 1;
+#ifndef MU_WORLD_NO_GL
+    if(a->gfx)world_gfx_rebind_skills(a->gfx,mu_world_rt_skill_session(a));
+#endif
     return 0;
 }
 
 void world_rt_unload(mu_world_rt *a)
 {
+#ifndef MU_WORLD_NO_GL
+    if(a->gfx)world_gfx_rebind_skills(a->gfx,NULL);
+#endif
     for (int i = MU_PART_COUNT - 1; i >= 0; --i)
         if (ROWS[i].ops->close)
             ROWS[i].ops->close(a, a->part[i]);

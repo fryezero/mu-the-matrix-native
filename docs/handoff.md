@@ -2,6 +2,8 @@
 
 README-STRESS-001: [handoff](handoffs/README-STRESS-001.md). README images 26/27 are privacy-reviewed and pinned; remote armour now retains Data/Effect glow textures. Historical #201 timings remain contextual.
 
+SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
+
 INTEGRATION-GREEN-001: [handoff](handoffs/INTEGRATION-GREEN-001.md). Full offline integration is green with explicit optional skips; captures and corpus identity are documented. No new local input retained; lane artifacts are removed after merge.
 
 RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.
@@ -39,7 +41,7 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 5: [handoff](handoffs/RENDER-ITEMS-002E.md). 501/1,674 bodies, 17/17 skins, seven link targets/twelve types integrated. Remaining: 1,173 bodies, pose-aware rank-5 and rank-9 armour shapes, further links, ground/inventory skin sprites and prior model/domain limits. Muun/nested map-object tables remain deferred.
+RENDER-ITEMS-002 part 6: [handoff](handoffs/RENDER-ITEMS-002F.md). 559/1,674 bodies, 17/17 skins, nine link targets/fourteen types integrated; ground and both inventory paths consume skin sprites. Remaining: 1,115 bodies, pose-aware rank 5, owner-dependent links and prior model/domain limits. Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 

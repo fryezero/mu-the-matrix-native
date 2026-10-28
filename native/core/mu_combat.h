@@ -185,6 +185,7 @@ typedef struct mu_combat {
     /* hero */
     int32_t hero_key;          /* 0x06fca288 */
     int32_t target;            /* actor index or -1 */
+    int intent_skill_checked; /* UI casts use the session skill checks; effect scripts remain explicit visual probes. */
     int32_t intent_skill;      /* -1 none, 0 normal attack, else the base skill */
     int32_t attack_target;     /* target of the running attack */
     int32_t attack_skill;      /* skill of the running attack */
@@ -234,6 +235,7 @@ void mu_combat_step(mu_combat *combat);
  * actor (actor -1: the current target), stop. */
 void mu_combat_attack(mu_combat *combat, int32_t actor);
 void mu_combat_cast(mu_combat *combat, int32_t skill, int32_t actor);
+void mu_combat_cast_checked(mu_combat *combat, int32_t skill, int32_t actor);
 void mu_combat_stop(mu_combat *combat);
 /* NATIVE-ITEMS-001: the monster under the mouse ray (the demo picking of
  * the click), -1 if none. The item selection runs when none is. */

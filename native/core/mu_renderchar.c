@@ -48,9 +48,9 @@ static int32_t link_random(void *context)
     return mu_world_particles_rand(context);
 }
 
-long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32_t type, mu_world_particles *p)
+long mu_renderchar_skin_effects(const mu_model *model, const float *bones, int32_t type, mu_world_particles *p)
 {
-    if (!p || !model || !model->bmd || !bones)
+    if (!p || !p->sprites || !model || !model->bmd || !bones)
         return 0;
     mu_rc_link_effect skin;
     if (mu_rc_skin_effect(type, p->world_time, &skin)) {
@@ -66,7 +66,16 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
                                    MU_PT_NO_OWNER, 0.0f, 0, 4);
         return p->sprites->created != before;
     }
-    if (type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
+    return 0;
+}
+
+long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32_t type, mu_world_particles *p)
+{
+    if (!p || !p->sprites || !model || !model->bmd || !bones)
+        return 0;
+    if (type == 0x389c || type == 0x389d)
+        return mu_renderchar_skin_effects(model, bones, type, p);
+    if (type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
         mu_rc_link_effect effects[20];
         int32_t n = 0;
         if (mu_rc_link_effects_time(type, p->world_time, link_random, p, effects, 20, &n) != MU_RC_OK)

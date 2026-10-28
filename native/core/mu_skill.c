@@ -434,7 +434,7 @@ void mu_skill_book_enter(mu_skill_book *b, int32_t class_byte)
     int stage = class_byte & 0x80 ? 5 : class_byte & 0x40 ? 4 : class_byte & 0x20 ? 3 : 0;
     if (stage)
         mu_master_class(&b->master, ((stage - 1) << 4) | (class_byte & 0xf));
-    b->menv.points = 100;                 /* OFFLINE DEMO master points, independent of stat points */
+    b->menv.points = 0;                   /* supplied by the authoritative hero context */
     mu_skill_book_master_build(b);
     /* Layer choice: the client builds the stamp manager in the window's 0x00c2008b (0x01095c77); the native
      * session builds it when the hero enters the world, before the server's packets arrive. */
@@ -519,14 +519,10 @@ const char *mu_skill_cast_name(int result)
     return result >= 0 && result <= MU_SKILL_CAST_AG ? names[result] : "?";
 }
 
-int mu_skill_book_cast(mu_skill_book *b, int32_t skill, int32_t events[2][2], int *nevents, int *potion)
+int mu_skill_book_check_cast(mu_skill_book *b, int32_t skill, int *potion)
 {
-    if (nevents)
-        *nevents = 0;
-    if (potion)
-        *potion = 0;
-    if (!b)
-        return MU_SKILL_CAST_NONE;
+    if (potion) *potion=0;
+    if (!b) return MU_SKILL_CAST_NONE;
     int index = mu_skill_learned_index(&b->hero, skill);
     if (index < 0)
         return MU_SKILL_CAST_NONE;
@@ -543,6 +539,19 @@ int mu_skill_book_cast(mu_skill_book *b, int32_t skill, int32_t events[2][2], in
             *potion = short_mana;
         return short_mana ? MU_SKILL_CAST_MANA : MU_SKILL_CAST_AG;
     }
+    return MU_SKILL_CAST_OK;
+}
+
+int mu_skill_book_cast(mu_skill_book *b, int32_t skill, int32_t events[2][2], int *nevents, int *potion)
+{
+    if (nevents)
+        *nevents = 0;
+    if (potion)
+        *potion = 0;
+    if (!b)
+        return MU_SKILL_CAST_NONE;
+    int result=mu_skill_book_check_cast(b,skill,potion);
+    if(result!=MU_SKILL_CAST_OK)return result;
     int32_t local[2][2];
     int n = mu_skill_delay_start(&b->env, &b->hero, skill, events ? events : local);
     for (int i = 0; i < b->hero.count; i++)
@@ -550,9 +559,6 @@ int mu_skill_book_cast(mu_skill_book *b, int32_t skill, int32_t events[2][2], in
             b->delays[i] = b->hero.timers[i];
     if (nevents)
         *nevents = n;
-    /* DEMO: the server takes the mana and AG */
-    b->hero.mana -= mana;
-    b->hero.ag -= skill == 0x28 || skill == 0x188 ? 0 : ag;
     return MU_SKILL_CAST_OK;
 }
 

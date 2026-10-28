@@ -23,6 +23,7 @@
 #include "../core/mu_lang.h"
 #include "../core/mu_hud.h"
 #include "../core/mu_model.h"
+#include "../core/mu_particles.h"
 #include "../core/mu_renderchar.h"
 #include "../core/mu_scene.h"
 #include "../core/mu_textures.h"
@@ -64,6 +65,8 @@ struct wg_items {
     long drawn, missing, icons;
     GLuint fbo, color, depth;
     int fbo_w, fbo_h, fbo_failed;
+    mu_world_particles *skin_particles;
+    mu_gl_backend skin_gl;
 };
 
 wg_items *wg_items_open(const char *game_root)
@@ -100,6 +103,11 @@ void wg_items_close(wg_items *w)
         return;
     for (int i = 0; i < MAX_MODELS; i++)
         model_free(&w->models[i]);
+    if (w->skin_particles) {
+        mu_gl_release(&w->skin_gl);
+        mu_world_particles_close(w->skin_particles);
+        free(w->skin_particles);
+    }
     if (w->mannequin) {
         mu_character_free(w->mannequin);
         free(w->mannequin);
@@ -305,6 +313,40 @@ static void ros_inputs(wg_items *w, const item_model *m, const mu_gfx_item_draw 
     in->object_alpha = 1.0f;                 /* ItemObjectAttribute's alpha (1 for these items) */
 }
 
+static int skin_backend(void *context, const mu_world_particles *p, mu_render_backend *out)
+{
+    wg_items *w = context;
+    if (!w->skin_gl.textures)
+        mu_gl_upload(&w->skin_gl, &p->bitmaps, 0);
+    mu_gl_backend_bind(&w->skin_gl, out);
+    return 0;
+}
+
+static void draw_skin(wg_items *w, const mu_model *model, int32_t type)
+{
+    if (type != 0x389c && type != 0x389d)
+        return;
+    if (!w->skin_particles) {
+        char error[256];
+        mu_world_particles *p = calloc(1, sizeof *p);
+        if (!p)
+            return;
+        if (mu_world_particles_open(p, w->have_root ? w->root : NULL, NULL, 0, 1,
+                                    !w->have_root, error, sizeof error)) {
+            free(p);
+            return;
+        }
+        w->skin_particles = p;
+    }
+    w->skin_particles->world_time = (float)w->time_ms;
+    mu_renderchar_skin_effects(model, mu_model_bone_matrices(model), type, w->skin_particles);
+    /* Consume only this icon's one-frame sprites, in its current projection/FBO. */
+    float view[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, view);
+    const mu_world_particles_target target = {w, skin_backend};
+    mu_world_particles_draw(w->skin_particles, view, &target);
+}
+
 static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, const mu_item3d_out *out,
                        int32_t stage_h)
 {
@@ -400,9 +442,11 @@ static void draw_model(wg_items *w, item_model *m, const mu_gfx_item_draw *d, co
     mu_renderchar_stats rstats = {0, 0};
     if (getenv("MU_GFX_PLAIN_ITEMS"))   /* debug: one plain textured body pass */
         mu_scene_draw_model(&m->model, &draw, &backend, &stats);
-    else
+    else {
         mu_renderchar_draw_item(&m->model, &glow, &env, ros.light, d->alpha > 0 ? d->alpha : 1.0f, &draw, &backend,
                                 &stats, &rstats);
+        draw_skin(w, &m->model, ros.render_type);
+    }
     w->drawn++;
 }
 

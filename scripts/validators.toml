@@ -6,6 +6,20 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_item_ranked]
+test = "reconstructed/renderchar/test_item_ranked.py::ItemRanked.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "links"]
+cases = 17736
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_ranked.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_item_continuation]
 test = "reconstructed/renderchar/test_item_continuation.py::ItemContinuation.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -1808,3 +1822,13 @@ args = ["--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+[validate_session_skills]
+test = "native/tests/test_session_skills.py::Private.test_save_builder_and_mutants"
+pins = ["text", "data"]
+families = ["keys", "packet_tail", "master_points"]
+cases = 120
+mutants = 5
+cases_at = "families.*"
+mutants_at = "mutants_caught"
+args = ["--cases", "40", "--mutants", "--output", "{report}"]

@@ -83,7 +83,7 @@ static void items_frame(struct mu_world_rt *a, void *self, uint32_t now)
 static void items_model_raster(void *context, const mu_world_item_draw *d)
 {
     mu_raster *raster = ((void **)context)[0];
-    const mu_world_rt *a = ((void **)context)[1];
+    mu_world_rt *a = ((void **)context)[1];
     raster->textures = d->textures->slots;
     raster->texture_count = d->textures->count;
     raster->texture_filter = d->textures->filter;
@@ -103,6 +103,8 @@ static void items_model_raster(void *context, const mu_world_item_draw *d)
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_renderchar_stats rs = {0, 0};
     mu_renderchar_draw_item(d->model, &glow, &env, d->light, d->alpha, &options, &backend, &ds, &rs);
+    if (a->has_particles)
+        mu_renderchar_skin_effects(d->model, mu_model_bone_matrices(d->model), d->type, &a->particles);
 }
 
 /* RenderItems (NATIVE-ITEMS-001); the raster's texture binding ends with the characters' passes. */
@@ -150,7 +152,7 @@ static void item_labels_draw_soft(struct mu_world_rt *a, void *self, mu_world_dr
 #ifndef MU_WORLD_NO_GL
 typedef struct items_part {
     mu_gl_backend item_gl[MU_WORLD_ITEM_MODELS];
-    const mu_world_rt *rt;         /* the runtime of the running draw (the item callback's context) */
+    mu_world_rt *rt;               /* the runtime of the running draw (the item callback's context) */
 } items_part;
 
 static void items_gl_teardown(struct mu_world_rt *a, void *self)
@@ -166,7 +168,7 @@ static void items_gl_teardown(struct mu_world_rt *a, void *self)
 static void items_model_gl(void *context, const mu_world_item_draw *d)
 {
     items_part *p = context;
-    const mu_world_rt *a = p->rt;
+    mu_world_rt *a = p->rt;
     mu_gl_backend *gl = &p->item_gl[d->slot];
     if (!gl->textures)
         mu_gl_upload(gl, d->textures, 0);
@@ -185,6 +187,8 @@ static void items_model_gl(void *context, const mu_world_item_draw *d)
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_renderchar_stats rs = {0, 0};
     mu_renderchar_draw_item(d->model, &glow, &env, d->light, d->alpha, &options, &backend, &ds, &rs);
+    if (a->has_particles)
+        mu_renderchar_skin_effects(d->model, mu_model_bone_matrices(d->model), d->type, &a->particles);
 }
 
 /* RenderItems after the characters (0x0185988d in the render scene). */

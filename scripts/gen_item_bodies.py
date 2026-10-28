@@ -80,6 +80,16 @@ CONTINUATION_TYPES = [
     0x280e, 0x2837, 0x2838, 0x2839, 0x283a,
 ]
 
+# Part 6: rank-9 and subsequent ranked shapes, independently compared.
+RANKED_TYPES = [
+    0x199f, 0x19a3, 0x19a4, 0x19a5, 0x19a6, 0x19a7, 0x19a8, 0x19a9, 0x19aa, 0x19ab,
+    0x19ac, 0x19ad, 0x1dc4, 0x1dc5, 0x1dc8, 0x1dcb, 0x1dd0, 0x1ddd, 0x1def, 0x1e41,
+    0x1fc5, 0x1fc6, 0x1fcb, 0x1fcd, 0x1fce, 0x1fef, 0x2041, 0x250d, 0x250e, 0x250f,
+    0x2510, 0x2524, 0x2525, 0x2526, 0x2527, 0x252d, 0x252e, 0x252f, 0x2530, 0x2531,
+    0x256c, 0x2719, 0x273a, 0x273b, 0x273c, 0x273d, 0x273e, 0x273f, 0x2740, 0x2746,
+    0x2747, 0x2748, 0x2758, 0x2759, 0x275a, 0x275b, 0x275c, 0x275d,
+]
+
 DIM_TYPES = [0xae6 + group * 512 + index for group in (7, 8, 9, 11)
              for index in (*range(0x11c, 0x12c), 0x13a, 0x15d, 0x193)]
 PLAIN_TYPES = [*range(0x234a, 0x2368), *range(0x241d, 0x2477)]
@@ -127,6 +137,10 @@ def sample(wa, lib, t, lv, seed, opt=0, ext=0):
         groups[-1][1].append(d)
     if len(groups) == 3 and len(generic) == 5:
         groups[1:1] = [('empty', []), ('empty', [])]
+    # Some armour branches return without the generic ancient helper. Keep an
+    # empty recipe for that phase rather than inventing an extra draw.
+    if ext and len(groups) + 1 == len(generic) and generic[-1][1][0] & 0x800:
+        groups.append(('omitted-ancient', []))
     if not r['ok'] or other or len(groups) != len(generic):
         return None
     # 0x0185bdc4(-4,0) + 0.2. Each operation rounds to binary32.
@@ -175,7 +189,7 @@ def extract():
     wa = tuple((pin.read() for pin in (pins.TEXT, pins.DATA, pins.FLAG, pins.FEATURE)))
     lib = C.CDLL(str(v.LIBRARY))
     types = {}
-    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES:
+    for t in REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES:
         levels = range(16) if t >= 0x3700 else (0, 7, 13)
         ss = [sample(wa, lib, t, lv, seed) for lv in levels
               for seed in (3401, 7254, 9874, 3404, 7257, 9877)]
@@ -202,8 +216,8 @@ def extract():
             rules = [infer(pairs) if pairs else [] for pairs in phases]
             if all(rule is not None for rule in rules):
                 types[t] = rules
-    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES):
-        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES) - set(types))]))
+    if set(types) != set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES):
+        raise ValueError("reviewed recipe no longer fits the pinned instructions: " + str([hex(t) for t in sorted(set(REVIEWED_TYPES + ADDITIONAL_TYPES + CONTINUATION_TYPES + RANKED_TYPES) - set(types))]))
     return types
 
 
