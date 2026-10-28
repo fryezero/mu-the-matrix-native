@@ -1,16 +1,15 @@
-"""WORLD-RT-001: native/world/parts.def pins the world runtime's tick and draw orders.
+"""WORLD-ORDER-001: check part orders against the compiled call-record family.
 
-world/main.c (3,622 lines, commit f997742) ran its subsystems in a fixed order in seven places: load(), the
-pre-step hook combat_pre_step (main.c:331-341), the step hook on_step (main.c:758-826, the client's
-MoveHero/MoveCharacters order), advance (main.c:1636-1688), draw_gl (main.c:2296-2518), draw_soft
-(main.c:2549-2680) and the reports (main.c:2684-2919).  The runtime (world/world_rt.c) now calls each part's hook
-in the order of a parts.def column.  These tests pin every column to main.c's order (a reordering is a visible
-diff), check that each row's hooks exist exactly where its columns have a number, and check that each hook
-still makes the subsystem call main.c made at that place, so a call moved to another part fails too.
-WORLD-ORDER-001 later replaces the literal tick and draw lists with the order recorded from the reconstructed
-MoveMainScene/RenderMainScene.
+Open/pre_tick/frame/report retain the WORLD-RT-001 regression pins. Tick and
+both draw columns derive from MoveMainScene/RenderMainScene records, with
+explicit native adapters in reconstructed/world-order/parts_order.py.
 """
 import re
+import importlib.util
+import os
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,25 +17,16 @@ HERE = Path(__file__).resolve().parent
 WORLD = HERE.parent / 'world'
 COLUMNS = ('pre_tick', 'tick', 'frame', 'draw_gl', 'draw_soft', 'report')
 
-# world/main.c at f997742, in call order (the row ids of parts.def).
+# WORLD-RT-001 non-simulation columns, in the native baseline order.
 MAIN_C_ORDER = {
     # load() main.c:459-744 (the rows that open something)
     'open': ['sound', 'npc_demo', 'actors', 'objects', 'env', 'particles', 'combat', 'progress', 'items', 'names',
-             'npc', 'players', 'social', 'helpers', 'map', 'characters'],
+             'npc', 'players', 'social', 'helpers', 'map', 'characters', 'haze'],
     # combat_pre_step main.c:331-341
     'pre_tick': ['items', 'npc', 'combat'],
-    # on_step main.c:758-826
-    'tick': ['sound', 'actors', 'characters', 'npc', 'quest_step', 'combat', 'progress', 'social', 'helpers', 'items',
-             'names', 'objects', 'env', 'particles', 'map'],
     # advance main.c:1660-1686, after mu_walk_update / mu_walk_place / mu_walk_begin_render (terrain_frame's object
     # lights are the objects row)
     'frame': ['items', 'terrain', 'objects', 'combat', 'particles', 'actors', 'players', 'map', 'social', 'names'],
-    # draw_gl main.c:2296-2518
-    'draw_gl': ['terrain', 'objects', 'hero', 'players', 'helpers', 'actors', 'items', 'env', 'marker', 'particles',
-                'actor_effects', 'combat', 'item_labels', 'names'],
-    # draw_soft main.c:2549-2680
-    'draw_soft': ['terrain', 'objects', 'hero', 'players', 'actors', 'items', 'env', 'helpers', 'particles', 'marker',
-                  'actor_effects', 'combat', 'item_labels', 'names'],
     # report_frame main.c:2707-2727 and report_summary main.c:2793-2915 (one order for both)
     'report': ['sound', 'env', 'particles', 'objects', 'actors', 'combat', 'progress', 'items', 'players', 'helpers',
                'names', 'npc', 'social', 'map', 'quest_step'],
@@ -58,13 +48,13 @@ SIGNATURE = {
                 'players': 'player_item_draw', 'helpers': 'mu_world_helpers_draw', 'actors': 'npc_item_draw',
                 'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw', 'marker': 'marker',
                 'particles': 'mu_world_particles_draw', 'actor_effects': 'mu_effect_scene_render_to',
-                'combat': 'combat_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
+                'combat': 'combat_draw', 'haze': 'mu_world_haze_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
     'draw_soft': {'terrain': 'mu_world_draw_raster_view', 'objects': 'mu_objects_render_raster',
                   'hero': 'hero_item_draw', 'players': 'player_item_draw', 'actors': 'npc_item_draw',
                   'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw_raster',
                   'helpers': 'mu_world_helpers_draw_raster', 'particles': 'mu_world_particles_draw_raster',
                   'marker': 'marker', 'actor_effects': 'mu_effect_scene_render', 'combat': 'mu_combat_draw_raster',
-                  'item_labels': 'mu_world_items_label_blit', 'names': 'mu_world_names_draw'},
+                  'haze': 'mu_world_haze_draw_raster', 'item_labels': 'mu_world_items_label_blit', 'names': 'mu_world_names_draw'},
 }
 
 HOOK = {'pre_tick': ('pre_tick',), 'tick': ('tick',), 'frame': ('frame',), 'draw_gl': ('draw_gl',),
@@ -106,6 +96,21 @@ def column_order(rows, column):
 class PartsDefTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        root = HERE.parents[1]
+        sys.path.insert(0, str(root / 'scripts'))
+        import validate_world_order as validator
+        cls.validator = validator
+        spec = importlib.util.spec_from_file_location('world_parts_order', root / 'reconstructed/world-order/parts_order.py')
+        cls.adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.adapter)
+        cls.temp = tempfile.TemporaryDirectory(prefix='mu-world-parts-')
+        cls.addClassCleanup(cls.temp.cleanup)
+        cls.lib = validator.build(cls.temp.name)
+        cls.recorded = {}
+        for family in ('tick', 'draw'):
+            host = validator.RecordingHost(validator.case())
+            host.run(cls.lib, family)
+            cls.recorded[family] = host.trace
         cls.rows = parse_rows()
         cls.sources = part_sources()
         cls.ops = {}
@@ -114,14 +119,50 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 22)
+        self.assertEqual(len(ids), 23)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 
-    def test_each_column_is_world_main_c_order(self):
-        for column in COLUMNS:
+    def test_non_simulation_columns_keep_native_baseline_order(self):
+        for column in ('pre_tick', 'frame', 'report'):
             with self.subTest(column=column):
                 self.assertEqual(column_order(self.rows, column), MAIN_C_ORDER[column])
+
+    def test_tick_and_draw_columns_follow_recorded_calls(self):
+        for column in ('tick', 'draw_gl', 'draw_soft'):
+            trace = self.recorded['tick' if column == 'tick' else 'draw']
+            self.assertEqual(column_order(self.rows, column), self.adapter.projected_order(trace, column), column)
+
+    def test_missing_recorded_anchor_is_rejected(self):
+        for column in ('tick', 'draw_gl', 'draw_soft'):
+            family = 'tick' if column == 'tick' else 'draw'
+            for anchor in self.adapter.ANCHORS[family]:
+                trace = [c for c in self.recorded[family] if c[0] != anchor]
+                with self.subTest(column=column, anchor=hex(anchor)), self.assertRaises(ValueError):
+                    self.adapter.projected_order(trace, column)
+
+    def test_part_order_mutations_are_detected(self):
+        for column in ('tick', 'draw_gl', 'draw_soft'):
+            expected = self.adapter.projected_order(self.recorded['tick' if column == 'tick' else 'draw'], column)
+            for i in range(len(expected) - 1):
+                rows = [dict(r) for r in self.rows]
+                a, b = ([r for r in rows if r['id'] == part][0] for part in expected[i:i+2])
+                a[column], b[column] = b[column], a[column]
+                self.assertNotEqual(column_order(rows, column), expected)
+
+    def test_client_reordering_propagates_to_part_expectation(self):
+        for column, a, b in (('tick', 0x016a9150, 0x0137a7ce),
+                             ('draw_gl', 0x016cd468, 0x016d5020),
+                             ('draw_soft', 0x016cd468, 0x016d5020)):
+            trace = list(self.recorded['tick' if column == 'tick' else 'draw'])
+            i, j = next(i for i, c in enumerate(trace) if c[0] == a), next(i for i, c in enumerate(trace) if c[0] == b)
+            trace[i], trace[j] = trace[j], trace[i]
+            self.assertNotEqual(column_order(self.rows, column), self.adapter.projected_order(trace, column))
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'private original-instruction comparison')
+    def test_original_world_order_instructions(self):
+        subprocess.run([sys.executable, str(HERE.parents[1] / 'scripts/validate_world_order.py'),
+                        '--cases', '1200', '--mutations', '--output', str(Path(self.temp.name) / 'comparison.json')], check=True)
 
     def test_numbers_are_unique_per_column(self):
         for column in COLUMNS:

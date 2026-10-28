@@ -1111,9 +1111,6 @@ static void world_frame(mu_shell *s, uint32_t now)
             return;
         }
         mu_world_rt_key(s->world, vk, down);
-        mu_world_rt_message(s->world, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
-        if (down)   /* WORLD-RT-001: the world's own keys (Alt, Space, 1..0), as in mu-world's window */
-            mu_world_rt_hotkey(s->world, vk);
     }
     mu_world_rt_frame(s->world, now);
     remember_world(s);
@@ -1265,7 +1262,7 @@ void mu_shell_mouse_button(mu_shell *s, int button, int down)
     }
     /* WORLD-RT-001: a right press over a monster casts the skill bar's selection (mu-world's window), else the
      * button's window message */
-    if (s->g.scene == MU_SCENE_MAIN && s->world && !(button == 1 && down && mu_world_rt_right_button(s->world))) {
+    if (s->g.scene == MU_SCENE_MAIN && s->world) {
         uint32_t message = button == 0 ? (down ? 0x201u : 0x202u) : button == 1 ? (down ? 0x204u : 0x205u)
                                                                                : (down ? 0x207u : 0x208u);
         mu_world_rt_message(s->world, message, down && button == 0 ? 1u : 0u,

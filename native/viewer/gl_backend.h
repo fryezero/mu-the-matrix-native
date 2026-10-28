@@ -21,6 +21,11 @@
  * glDepthFunc(GL_LEQUAL) from the scene setup 0x0184adc7, fog off. Viewer
  * choices: `linear` forces GL_LINEAR for every texture, clear colour, camera,
  * front-face winding. */
+/* Optional profiling query lifecycle, with a current GL context. */
+void mu_gl_perf_begin(void);
+void mu_gl_perf_end(void);
+void mu_gl_perf_free(void);
+
 struct mu_gl_batch;
 
 typedef struct mu_gl_backend {
