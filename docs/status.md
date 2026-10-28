@@ -2,6 +2,8 @@
 
 INPUT-001: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
 
+SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
+
 RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
 
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
@@ -11,7 +13,7 @@ F6 70/71 stay undecoded and encrypted requests stay unsent pending their separat
 
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
-RENDER-ITEMS-002 part 2: 103 scalar remaps, 11/1,674 body types and six bow link effects integrated. 135,176 Unicorn cases, zero mismatches, 6/6 mutants. [Evidence](research/client-render-items.md#part-2-bounded-body-and-link-effects-render-items-002b).
+RENDER-ITEMS-002 part 3: 262/1,674 body types; 798 branch shapes classified, three link callers/eight types verified. New checks: 74,292 Unicorn cases, 0 mismatches, 8/8 mutants. Spark03 subtype 11 remains an explicit consumer gap. [Handoff](handoffs/RENDER-ITEMS-002C.md).
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 
