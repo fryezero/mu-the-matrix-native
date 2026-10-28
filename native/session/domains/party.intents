@@ -1,0 +1,3 @@
+MU_INTENT_KIND(PARTY_INVITE, party_invite, struct { int32_t key; })
+MU_INTENT_KIND(PARTY_ANSWER, party_answer, struct { int32_t accept; })
+MU_INTENT_KIND(PARTY_LEAVE, party_leave, struct { int32_t member; })

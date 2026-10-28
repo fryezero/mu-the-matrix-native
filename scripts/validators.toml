@@ -2043,6 +2043,20 @@ args = ["--cases", "3000", "--mutations", "--report", "{report}"]
 "mutants" = {len = 8}
 "mutants.*" = "caught"
 
+[validate_session_party]
+test = "native/tests/test_session_party.py::Private.test_original_party_adapters"
+pins = ["text", "data"]
+families = ["list_envelope", "update_loop", "clear", "request", "result"]
+cases = 200
+mutants = 5
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+[validate_session_party.expect]
+"total" = 200
+"mismatches" = 0
+"mutants_caught" = {len = 5}
+
 [validate_audio_charsel]
 test = "native/tests/test_audio_charsel.py::CharselAudio.test_original_charsel_audio"
 pins = ["text", "data"]
