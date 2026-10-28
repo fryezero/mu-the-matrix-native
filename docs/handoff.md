@@ -4,7 +4,7 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 1: [handoff](handoffs/RENDER-ITEMS-002.md). Inventory special-code paths are covered; next are the type-specific body/effect switches and Muun integration.
+RENDER-ITEMS-002 part 2: [handoff](handoffs/RENDER-ITEMS-002B.md). 11 body types and six bow effects implemented; 1,663 body types and the other link branches remain, along with Muun/nested map-object tables.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
 

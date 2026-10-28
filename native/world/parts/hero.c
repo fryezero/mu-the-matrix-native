@@ -5,10 +5,28 @@
 
 #include "../../core/mu_perf.h"
 #include "../../core/mu_scene.h"
+#include "../../core/mu_renderchar.h"
 #ifndef MU_WORLD_NO_GL
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+
+static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *options,
+                           const mu_render_backend *backend)
+{
+    const mu_character_item *item = &a->ch.items[index];
+    mu_renderchar_glow glow = {0};
+    /* Hero item instances are not session-backed yet. Preserve the viewer's
+     * explicit level-zero input and infer standard model names only. */
+    glow.type = mu_renderchar_type_from_path(item->path);
+    mu_renderchar_env env;
+    mu_renderchar_default_env(&env);
+    env.time = a->map->time;
+    mu_draw_stats ds = {0};
+    mu_renderchar_draw_item(&item->model, &glow, &env, a->ch.params.light, 1.0f, options, backend, &ds, NULL);
+    if (index >= MU_CHARACTER_PART_SLOTS && a->has_particles)
+        mu_renderchar_link_effects(&item->model, item->bones, glow.type, &a->particles);
+}
 
 static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
@@ -32,8 +50,7 @@ static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
             if (a->has_particles)
                 mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
             options.textures = &item->textures;   /* bitmap GL names and component counts */
-            mu_draw_stats ds = {0, 0, 0, 0};
-            mu_scene_draw_model(&item->model, &options, &backend, &ds);
+            hero_item_draw(a, mu_world_draw_order[n], &options, &backend);
         }
 }
 
@@ -81,8 +98,7 @@ static void hero_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
             if (a->has_particles)   /* the part's shadow (item render 0x0176ce74, NATIVE-PARTICLE-001) */
                 mu_world_particles_character_shadow(&a->particles, &item->model, &item->bmd, &backend);
             options.textures = &item->textures;   /* bitmap GL names and component counts */
-            mu_draw_stats ds = {0, 0, 0, 0};
-            mu_scene_draw_model(&item->model, &options, &backend, &ds);
+            hero_item_draw(a, mu_world_draw_order[n], &options, &backend);
         }
 }
 #endif

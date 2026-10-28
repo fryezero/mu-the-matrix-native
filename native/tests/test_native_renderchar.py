@@ -88,6 +88,16 @@ class WorldRender(unittest.TestCase):
         unknown, _ = self.render('--item-type', 'weapon1=0x100')
         self.assertEqual(unknown['special'], 1)
 
+    def test_special_wing_uses_shared_body_renderer(self):
+        info, _ = self.render('--item-type', 'weapon1=0x22ea', '--item-level', 'all=13', '--world-time', '700')
+        self.assertEqual((info['special'], info['passes']), (0, 21))
+
+    def test_native_link_saved_pose_and_capacity(self):
+        subprocess.run(['make', '-s', '-C', str(NATIVE), 'build/item-render-host'], check=True, capture_output=True)
+        result = subprocess.run([str(NATIVE/'build/item-render-host')], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(result.stdout),
+                         dict(created=13, random_calls=4, missing_bones_skipped=5, full=True))
+
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),
                     ('--actor-weapon', 'x')):

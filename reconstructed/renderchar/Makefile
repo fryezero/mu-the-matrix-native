@@ -5,7 +5,7 @@ LIB := librenderchar.$(SUFFIX)
 
 all: $(LIB)
 
-$(LIB): renderchar.c renderchar.h special_types.h back_matrices.h ../record-math/record_math.c
+$(LIB): renderchar.c renderchar.h special_types.h item_glow.h back_matrices.h ../record-math/record_math.c
 	$(CC) $(CFLAGS) -ffp-contract=off -shared renderchar.c ../record-math/record_math.c -lm -o $@
 
 .PHONY: all

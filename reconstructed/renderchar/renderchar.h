@@ -19,7 +19,7 @@
  * 0x016dba54, 0x01806042 that an item type takes when none of their
  * type-specific branches matches. Types with their own branches are listed by
  * mu_rc_item_special (generated from the executed sweep); the library refuses
- * them. */
+ * them except the 11 bounded body types of RENDER-ITEMS-002B. */
 
 enum {
     MU_RC_OK = 0,
@@ -93,6 +93,17 @@ int mu_rc_item_draws_generic(const mu_rc_item *item, mu_rc_model *model, mu_rc_d
                              int32_t *count);
 /* 1 when the type takes a type-specific branch the library does not reproduce. */
 int mu_rc_item_special(int32_t type);
+
+/* RenderLinkItem's 0x012c70e7 family: six bow types. The caller applies
+ * 0x0150e746's bone transform and creates the one-frame sprite. Other effect
+ * switch cases return MU_RC_SPECIAL. random_value is a CRT rand result. */
+typedef struct mu_rc_link_sprite {
+    int32_t bone, bitmap;
+    float scale, light[3], rotation;
+    int32_t blend, axes;
+} mu_rc_link_sprite;
+int mu_rc_link_sprites(int32_t type, int32_t random_value, mu_rc_link_sprite *out,
+                        int32_t capacity, int32_t *count);
 
 /* PartObjectColor 0x016db5eb for a type without a hardcoded colour:
  * out = alpha*bright*enchant, then the kind-B overrides 0x26 / 0x5b. */
