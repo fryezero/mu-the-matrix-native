@@ -69,10 +69,10 @@ Formats: `Data/Music` holds 64 MP3 and 4 Ogg Vorbis files, `Data/Sound` 1,358 WA
 `PlayMp3 0x0120f602(path)` does nothing when the current music has the same name by `_stricmp`; otherwise
 it stops the Music group, releases the old sound, opens the new file with `createSound` and plays it looped
 on the Music group. `StopMp3 0x0120f5a0(path)` stops and releases only when the name matches. Paths come
-from a 76-entry array at `0x01cf1680` in the packed `.data` section, which no capture contains. Its 72
-literals sit in order at `0x01af63ec`. Index use pins the placement: 0..39 follow the literal order; 40..42
-repeat ImperialGuardianFort (worlds 70..74 managers); 43 is iDoppelganger; **44 is unresolved and unused**;
-45.. continue with Karutan_A. Cross-checks: the ambient sound played next to each index (Nars, NixiesLake,
+from a 76-entry array at `0x01cf1680` in the packed `.data` section, which no static capture contains. Its 72
+literals sit in order at `0x01af63ec`. Placement (**verified** by the AUDIO-002F live read, see part 6):
+0..39 follow the literal order; 40..42 repeat ImperialGuardianFort (worlds 70..74 managers); 43 and 44
+are both iDoppelganger (44 is unused by captured code); 45.. continue with Karutan_A. Cross-checks: the ambient sound played next to each index (Nars, NixiesLake,
 Labyrinth, Arenil, AsherAida, IgnisVolcano, Tarkan desert, TwistedKalutan, Aquila) and the BossWar routine
 `0x00985660`, which uses 66..71.
 
@@ -135,7 +135,8 @@ renders: `~/Documents/mu-mac-tools/native/renders/audio/`.
 
 ## Gaps and next steps
 
-- A fixed-scope capture of `0x01cf1680..0x01cf17b0` (and `0x06fba808`) would settle music indices 43/44.
+- ~~A fixed-scope capture of `0x01cf1680..0x01cf17b0` (and `0x06fba808`) would settle music indices
+  43/44.~~ Done in AUDIO-002 part 6: both are iDoppelganger; `0x06fba808` is the channel-group name string.
 - AUDIO-002 part 1 below reconstructs the frame-delegated event music managers, ordered monster/NPC
   registrations and three NPC voice fragments. The virtualised frame gap and other domains' SND_Play
   sites remain open.
@@ -452,3 +453,38 @@ step and its `cue_seq` is per visit, rather than a network-session sequence. Sta
 explicit callback. The existing no-GFx Esc-to-server shortcut, GFx double-click and unmapped
 CButton/credits sounds are outside these three branches. Final checks and broader limits are recorded
 in [the part-5 handoff](../handoffs/AUDIO-002E.md). No original client or live service was used.
+
+
+## AUDIO-002 part 6, 2026-10-28
+
+**Input.** DATA-ACQ-002's read-only live read (session s2, 17:28, pre-login screen, under its game lock):
+`0x01cf1680` for `0x130` bytes, `0x06fba808` for 4 bytes, and the 72 distinct pointed strings. The local
+copy is pinned as `music_table_read` and `music_group_word` (`scripts/pins.py`, under `MU_SNAPSHOT_DIR`).
+Digests and the kept path are in [the part-6 handoff](../handoffs/AUDIO-002F.md). No bytes or names are
+committed.
+
+**Verified table.** All 76 pointers equal the literal addresses the extractor's layout names in the
+pinned image data. **Indices 43 and 44 are both `data\music\iDoppelganger.mp3`** (`0x01af6848`), and
+40..42 repeat 39. The layout is no longer inferred anywhere. The 158 array references in the pinned
+text all use constant indices. 72 indices are used; 10, 14, 44 and 52 have no captured use; 43 is used
+only at `0x00e3062b`.
+
+**`0x06fba808` (verified, static plus live).** It is the first of three `std::string` objects (0x18
+bytes each) that the static initializer `0x008dc54b` constructs from "Music", "Environment" and
+"Effect". FMOD init (`0x010aaf81`) uses them to name the channel groups. The live word is `Musi`, the
+inline buffer of "Music". It plays no part in music selection.
+
+**Doppelganger manager `0x00e305ee` (verified body, caller unrecorded).** PlayMp3(43) when dword `+0x44`
+of the object at `+0x78` of singleton `0x00f2bb92` is nonzero. It has no world test and no stop. No
+captured code or data refers to the routine. The frame block therefore does not call it natively.
+`mu_event_music` reconstructs it behind the `MU_AUDIO_DOPPELGANGER` input bit, and the host exposes
+`mu_audio_host_event_manager` plus the `eventmusic`/`manager` script commands for the event domain.
+`validate_audio_music` runs 4,056 original-instruction cases plus 158 site, 76 table and 1 group-word
+checks: **4,291 cases, zero mismatches, 10/10 mutants** (6 compiled, 4 layout).
+
+**Installed files and native log.** All 72 distinct named files are installed (case-insensitive).
+`Data/Music` also holds `BlazeKethotum.mp3`, `lose.mp3` and `victory.mp3`, which the table does not name.
+A 13-segment `mu-audio` render with the JSONL log selects the expected track per world and scene,
+including iDoppelganger for world 65 once the event input is set. Its PCM decodes from the installed
+file. The manager's caller and event input, indices 10/14/52, the virtualised gap and the LIVE-PLAY
+FMOD comparison remain open.

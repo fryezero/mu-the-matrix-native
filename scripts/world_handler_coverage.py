@@ -65,10 +65,13 @@ def markdown(document):
              '`S` = authored static-only C. `M` = native method missing, even when its address is known.',
              'A V does not mean every state, subtype, nested effect or visual host is complete.',
              'Counts below concern the three primary class methods only; inherited no-ops remain M until compared.', '',
-             '| Class | Worlds, decimal | Vtable | Create +2c | Move +30 | Visual +34 |',
-             '|---|---|---|---|---|---|']
+             '`Capture` = original populated capture: C = DATA-ACQ-002 live capture, E = earlier live read,',
+             'N = not reachable through the Warps window or ordinary warps (reason in JSON).', '',
+             '| Class | Worlds, decimal | Vtable | Create +2c | Move +30 | Visual +34 | Capture |',
+             '|---|---|---|---|---|---|---|']
     counts = dict(verified_family=0, static_only=0, missing=0)
     classes = 0
+    captures = {}
     for row in rows:
         cells = []
         active = False
@@ -79,9 +82,14 @@ def markdown(document):
             active |= status == 'verified_family'
             cells.append(f"`{handler['entry']}` {'V' if status == 'verified_family' else 'S' if status == 'static_only' else 'M'}")
         classes += active
+        capture = row.get('capture', {}).get('status')
+        captures[capture] = captures.get(capture, 0) + 1
+        cells.append({'captured': 'C', 'earlier': 'E', 'not_reachable': 'N'}.get(capture, '-'))
         lines.append('| ' + ' | '.join([row['label'], ', '.join(map(str, row['worlds'])), '`'+row['vtable']+'`'] + cells) + ' |')
     lines += ['', f"{classes}/48 classes have at least one verified primary method. Of 144 primary methods: "
-              f"{counts['verified_family']} verified families, {counts['static_only']} static-only C, {counts['missing']} missing.", '',
+              f"{counts['verified_family']} verified families, {counts['static_only']} static-only C, {counts['missing']} missing.",
+              f"Original populated captures: {captures.get('captured', 0)} classes from DATA-ACQ-002, {captures.get('earlier', 0)} from "
+              f"earlier live reads, {captures.get('not_reachable', 0)} not reachable by warp.", '',
               'The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points',
               'for all 48 classes: invisible-sector move +1c, custom render +38 and after render +3c, with separate statuses.', '',
               '## Built-in worlds and hooks', '',
@@ -104,8 +112,9 @@ def markdown(document):
               '`tools/python/bin/python scripts/world_handler_coverage.py` checks all factory registrations, constructors,',
               'vtables and 288 slot addresses against the pinned text/data. `--write-markdown` regenerates this view.',
               'No bytes, decoded tables, captures or assets are exported. Implementation annotations require source review.',
-              'The fourteen-view tour has worlds 0/1/2/3/4/7/8/10/33/37/51/57/80. Other factory classes need',
-              'DATA-ACQ-002 object/clock/pool captures for visual checks. Synthetic instruction cases do not supply those images.', '']
+              'The fourteen-view tour has worlds 0/1/2/3/4/7/8/10/33/37/51/57/80. DATA-ACQ-002 adds arrival-tile captures of',
+              'the C classes above ([captures 2](client-world-captures-2.md)): object list, scene globals, light grids, a window',
+              'shot and the clock, not pool histories or RNG phase. The N classes still have no original populated capture.', '']
     return '\n'.join(lines)
 
 
