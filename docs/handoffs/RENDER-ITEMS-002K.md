@@ -51,7 +51,9 @@ scale 7,631; sine argument 11,090; single multiply 24,282; single add 25,510; bi
 scalar slot 610; scalar count 26,154; mesh index 24,634; object alpha 15,200. The body table
 reproduces from the pinned instructions.
 
-INHERITED_PLACEHOLDER
+The inherited part-10 validator passes on the final source: **33,622 cases, zero mismatches,
+12/12 compiled mutants**, with identical detection counts, and both generated tables reproduce.
+Together the two runs give **59,776 instruction comparisons, zero mismatches and 23/23 mutants**.
 
 Compiled C-to-C checks of the base `fa63719` library against this one cover all **897 earlier
 body/skin types in 28,704 random cases, zero mismatches**. Over all 1,691 survey types, admission
