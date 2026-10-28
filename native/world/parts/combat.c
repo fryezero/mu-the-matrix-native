@@ -90,6 +90,7 @@ static void combat_pre_tick(struct mu_world_rt *a, void *self)
     (void)self;
     if (a->combat)
         mu_combat_pre_step(a->combat);
+    world_rt_characters_audio_drain(a);
 }
 
 static void combat_tick(struct mu_world_rt *a, void *self)
@@ -97,6 +98,7 @@ static void combat_tick(struct mu_world_rt *a, void *self)
     (void)self;
     if (a->combat)
         mu_combat_step(a->combat);
+    world_rt_characters_audio_drain(a);
 }
 
 /* The effect lights after the frame's light copy. */

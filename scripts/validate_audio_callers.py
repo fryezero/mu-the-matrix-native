@@ -101,7 +101,7 @@ def build(tmp, name, header=None, world=None, talk=None, hero=None, objects=None
     # Compile the deciding production routine, with its authored dependencies.
     object_deps = [ROOT/'reconstructed/objects'/n for n in
                    ('objects.c','devias.c','tarkan.c','elbeland.c','raklion.c','icarus.c','noria.c',
-                    'login_world.c','charsel_world.c','vulcanus.c','santa_village.c')]
+                    'login_world.c','charsel_world.c','vulcanus.c','santa_village.c','duel_arena.c','world82.c')]
     object_deps += [ROOT/'reconstructed'/n for n in
                     ('movement/client_movement.c','model-codec/model_codec.c','terrain/terrain.c','record-math/record_math.c')]
     out = folder/'adapter.dylib'

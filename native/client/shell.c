@@ -609,6 +609,7 @@ static int open_charsel(mu_shell *s)
         gc.height = s->cfg.height;
         gc.scale = s->cfg.gfx_scale;
         gc.text = charsel_text;
+        gc.text_user = s;
         gc.log_path = s->cfg.gfx_log;
         gc.create = 1;   /* NATIVE-CHARCREATE-001 */
         gc.game_root = s->cfg.root;

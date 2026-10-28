@@ -102,6 +102,9 @@ typedef struct mu_world_players {
     int32_t key0;
     int32_t hero_guild;            /* DEMO: the hero's guild index (-1 none) */
     uint32_t rng, steps;
+    uint32_t audio_rng;
+    uint64_t audio_receive_cursor;
+    uint32_t audio_receive_lost;
     char guild_names[MU_WORLD_PLAYER_GUILDS][32];
     mu_rp_calls calls;             /* the last step's engine calls (reports) */
     uint32_t viewport_packets, move_packets, destroy_packets, die_packets, store_packets, path_calls, teleports,
@@ -128,6 +131,7 @@ void mu_world_players_attach(mu_world_players *p, struct mu_world_names *names, 
 struct mu_world_port;
 struct mu_characters_view;
 void mu_world_players_port(mu_world_players *p, struct mu_world_port *port);
+void mu_world_players_combat_audio(mu_world_players *p);
 void mu_world_players_sync(mu_world_players *p, const struct mu_characters_view *view);
 void mu_world_players_step_one(mu_world_players *p, int32_t index, mu_rp_character *record);
 /* Every rendered frame: places and poses the created players' models. */
