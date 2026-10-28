@@ -440,10 +440,9 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
         mu_raklion_create(o, index, log);
         return MU_OBJ_OK;
     }
-    if (world == 62 || world == 63 || world == 64) {
+    if (world == 62 || world == 63) {
         if (world == 62) mu_santa_create(o);
-        else if (world == 63) mu_vulcanus_create(o, world);
-        else mu_duel_create(o);
+        else mu_vulcanus_create(o, world);
         return MU_OBJ_OK;
     }
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x2c */
@@ -990,10 +989,9 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world_move(o, index, in, log) || hook_move(o, index, in, log))   /* NATIVE-FIDELITY-002 */
         return MU_OBJ_OK;
-    if (world == 62 || world == 63 || world == 64) {
+    if (world == 62 || world == 63) {
         if (world == 62) mu_santa_move(o, world);
-        else if (world == 63) mu_vulcanus_move(o, world);
-        else mu_duel_move(o, index, world, in->rand_fn, in->context, log);
+        else mu_vulcanus_move(o, world);
         return MU_OBJ_OK;
     }
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x30 */
