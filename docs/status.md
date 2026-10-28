@@ -1,6 +1,6 @@
 # Current status
 
-AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants. [Checks and limits](handoffs/AUDIO-002F.md).
+AUDIO-002 part 6: live-read music table verified: indices 43 and 44 are both iDoppelganger, all 76 names resolve and are installed; `0x06fba808` is the channel-group name string. Doppelganger manager `0x00e305ee` reconstructed (caller unrecorded); 4,291 cases, zero mismatches, 10/10 mutants; locked Mac gate passes 1,634 tests. [Checks and limits](handoffs/AUDIO-002F.md).
 
 README-REFRESH-004 updates the public README through PR #241: world, item, skill-visual, session, sound, HelpWindow, temporal and Preview progress, with offline, live and 25 fps limits kept. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-004.md).
 

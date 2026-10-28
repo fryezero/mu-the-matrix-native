@@ -73,7 +73,7 @@ The copy kept for later lanes is `~/Documents/MTM/mu-mac-tools/native/scratch/au
   music, so that render is silent by design. With `--no-options`, iDoppelganger decodes and plays,
   peak 0.8385.
 - Unchanged: `validate_audio_events` (70,980 cases, 15/15 mutants) and the rest of the audio tests.
-- Full gate: see the PR body and the status line.
+- Full locked gate `bash scripts/local-macos-ci.sh` on the final tree (main `2e0bfa1` already merged): 1,634 tests, 209 explicit skips, zero failures; 11 fixture scenarios pass; viewer/readers build; audit 1,588 files, zero rejected.
 
 ## Remaining work
 
