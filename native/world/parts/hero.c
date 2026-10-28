@@ -25,7 +25,8 @@ static void hero_item_draw(mu_world_rt *a, int index, const mu_draw_options *opt
     mu_draw_stats ds = {0};
     mu_renderchar_draw_item(&item->model, &glow, &env, a->ch.params.light, 1.0f, options, backend, &ds, NULL);
     if ((index >= MU_CHARACTER_PART_SLOTS || glow.type == 0x389c || glow.type == 0x389d) && a->has_particles)
-        mu_renderchar_link_effects(&item->model, index < MU_CHARACTER_PART_SLOTS ? a->ch.player_bones : item->bones, glow.type, &a->particles);
+        mu_renderchar_link_effects(&item->model,
+            index < MU_CHARACTER_PART_SLOTS ? a->ch.player_bones : item->bones, glow.type, &a->particles);
 }
 
 static void hero_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
