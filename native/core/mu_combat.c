@@ -354,7 +354,9 @@ static void create_effect(mu_combat *c, int32_t type, int32_t subtype, const flo
     mu_sfx_effect *e = effect_slot(c);   /* the first free record of the 200 (0x013c0f46) */
     if (!e)
         return;
-    if (mu_sfx_effect_create(e, type, subtype, position, angle, light, owner, 0.0f, info, &c->env)) {
+    float creation_light[3];
+    memcpy(creation_light, light, sizeof creation_light);
+    if (mu_sfx_effect_create(e, type, subtype, position, angle, creation_light, owner, 0.0f, info, &c->env)) {
         ++c->stats.fx_created;
         if (type == MU_SFX_MODEL_ARROW)
             ++c->stats.arrows;
