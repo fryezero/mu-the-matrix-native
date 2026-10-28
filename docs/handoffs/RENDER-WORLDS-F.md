@@ -21,11 +21,19 @@ service, protected module, main-checkout build or other agent's worktree was use
   runner passes with the same counts. GL imports and resource services are recording boundaries; the actual
   instructions execute the world branches, quad, coordinate scaling and state wrappers.
 - Portable new tests pass: flat-texture additive pixels, sibling silence, missing-texture silence, and runtime
-  draws on both GL/software backends in worlds 8/57/58. The existing eight world-part order checks pass.
+  draws on both GL/software backends in worlds 8/57/58. The combined tree's nine world-part order checks pass. The real runtime regression also rejects a separately linked
+  draw-only haze-omission binary.
 - Fourteen saved-snapshot tour views rendered at the existing 25-frame endpoint. **Twelve unaffected PNG hashes
   identical; fourteen object and light dump pairs identical.** Original Tarkan/Raklion images do not survive,
   so both before and after original-image errors are null. The script preserves this rather than inventing scores.
-- Full local Mac gate and broad weather regression: results recorded below before merge.
+- Supplementary unchanged-weather runs: the focused 12 sessions match across 680 steps and 50,095 host calls;
+  the broader 60 sessions match across 7,760 steps and 498,491 host calls. Neither is a passing whole-validator
+  run: their probe coverage is 20/94 and 90/94. All twelve existing weather mutations are detected in each run.
+  The full weather coverage gate needs the documented 400-case run; no weather source changed in this task.
+- After merging main through the monster/item lanes, a separately linked draw-only ablation reproduces all
+  fourteen before/after results above, including all twelve unchanged PNG hashes and all fourteen unchanged
+  light/object dump pairs. `fidelity-combined.json` and `registered-combined/` retain this rerun.
+- Full local Mac gate: final combined-tree result is recorded below before merge.
 
 ## Image evidence
 
@@ -61,7 +69,7 @@ the two tour commands. The manifests retain the original HUD/hero masks and save
 full digests, scratch assembly and renders remain local. No client bytes or decoded assets are committed.
 
 Next: a separately authorized capture of original Tarkan/Raklion PNGs plus simultaneous WorldTime and renderer
-mode, then a native replay at that clock. The main brightness cause is now a verified implementation rather
+mode, then a native replay at that clock. A missing brightness contribution is now verified rather
 than an unexplained terrain-light hypothesis. Fog.OZJ's possible other loaders remain unproven and are not
 needed by these verified passes. RenderLeaves phase, Wine-side batching/JPEG differences and sibling lanes
 remain separate.

@@ -8,7 +8,8 @@ in the order of a parts.def column.  These tests pin every column to main.c's or
 diff), check that each row's hooks exist exactly where its columns have a number, and check that each hook
 still makes the subsystem call main.c made at that place, so a call moved to another part fails too.
 WORLD-ORDER-001 later replaces the literal tick and draw lists with the order recorded from the reconstructed
-MoveMainScene/RenderMainScene.
+MoveMainScene/RenderMainScene. RENDER-WORLDS-F adds the recovered screen-weather pass after
+3D effects and before labels; the original source reference predates that pass.
 """
 import re
 import unittest
