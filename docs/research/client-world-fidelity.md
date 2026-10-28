@@ -344,7 +344,7 @@ the C uses the repository's established float-rounded host-sine equivalent. The 
 of LoadBitmap at `0x01820fcf`, `0x0182188f`, `0x01821b2f`, `0x01821b4f`, not guessed assets.
 
 The synthetic native regression exercises hidden Kanturu emission, Karutan particle/sprite creation and drawing,
-and all four worlds' after-pass bodies. The renderer's GL and software draw hooks share the same prepared calls.
+and all four world groups' after-pass bodies on both GL and software backends, ten native sessions in three tests.
 The character-select build dependency now uses `HEADERS`, replacing undefined `CORE_HDR`, so changes to the
 particle table's struct layout rebuild every character-select consumer.
 
@@ -358,15 +358,23 @@ The owner confirmed the October 23 image cleanup. Only Dungeon, Icarus and Kantu
 historical score reports remain the live evidence for Karutan/Noria/Elbeland/Raklion. Native before/after frames
 cover those four maps. Fresh live captures of them, under the game lock in a later run, remain the next step.
 
-At the tour's default 25 logic steps and two rendered frames, Kanturu masked mean error is **3.717 -> 4.006**.
-That sparse sampling creates only two particles. Rendering all 25 frames, as gameplay does, creates 53 particles
-and gives **3.444**, with the flames visibly at the captured torch positions. These are unsynchronised particle
-phases, not a claim of exact frame equality. The nine unaffected tour entries retain both frame hashes.
+The final tour baseline is main `54ae63f`, including siblings B/C and SESSION-VIEWPORT-001. At the tour's
+25 logic steps and two rendered frames, Kanturu masked mean error is **3.717 -> 4.006**. That sparse sampling
+creates only two particles. Rendering every frame on both builds gives **3.717 -> 3.444**, and the share of pixels
+off by more than 24 falls **0.0275 -> 0.0245**. The after build creates 53 particles, visibly at the captured torch
+positions. These are unsynchronised particle phases, not exact frame equality.
+
+The nine unaffected tour entries retain both frame hashes, eighteen unchanged PNGs. Raklion also retains both
+hashes at this camera, while its deferred flags are corrected. Primary terrain light equals the captured grid in
+all fourteen maps. The native before/after images for the four maps without live PNGs were inspected locally.
 
 Near-hero `after_character` field differences against the October 22 snapshots are Noria **15 -> 15**,
 Elbeland **12 -> 0**, Raklion **10 -> 0**, Karutan **6 -> 6**. Noria type 19 is selected by `0x017fece6` before
 any live/flag gate; this port reproduces that selector without inventing the separate capture's flag writer.
-Karutan's remaining flags belong to objects outside the native first pass. Other per-world body effects,
-world handlers, creation effects, region import, shadow/custom registries and the sibling B/C work are outside A.
+Karutan's remaining six differences are on different records: before they are live 1/native 0; after they are
+live 0/native 1. The unchanged count does not mean that no flags were written. Capture history and the native
+pass's visibility are not synchronized, so the exact remaining cause needs a fresh capture. Other per-world body
+effects, world handlers, creation effects, region import and shadow/custom registries are outside A. Sibling B/C
+implementations were retained during integration.
 
 See [the milestone handoff](../handoffs/RENDER-WORLDS-A.md) for the integrated gate and merge record.

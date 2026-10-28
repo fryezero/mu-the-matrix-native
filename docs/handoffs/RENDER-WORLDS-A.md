@@ -1,20 +1,34 @@
 # RENDER-WORLDS-A
 
 Kanturu/Karutan flame calls, their five particle kinds/bitmap loads, and the Noria/Elbeland/Raklion/Karutan
-after-character pass are implemented in isolated per-world files. Evidence and exact limits are in
+after-character pass are implemented in per-world files. Exact instruction boundaries and limits are in
 [client-world-fidelity](../research/client-world-fidelity.md#render-worlds-a-2026-10-27).
 
-Validation before integration: 9 families x 1,000 Unicorn cases, zero mismatches/stops; 13/13 compiled mutants.
-Synthetic native tests exercise both flame pools and the four world groups' deferred draws. Character-select's
-stale core-header dependency was fixed after its regression caught it. The final integrated local gate is pending.
+The integrated instruction comparison passes 9 families x 1,000 cases with zero mismatches/stops; all 13 compiled
+mutants are caught. Three synthetic native tests cover ten sessions: both flame pools, and deferred object draws
+for four world groups on GL/software. Eight world-part checks pin the combined viewport and deferred draw hooks.
+Character-select's stale core-header dependency was corrected, matching the sibling C fix.
 
-Local artifacts: `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds/a-*.json`, `a-*.log`, and
-`~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-a/{before,after,warm}`. No live game used.
+Final local gate: pending. The first combined viewport gate caught the expected world-part count at 22 instead
+of 23; that merge bookkeeping error was fixed before the release gate. Siblings B/C and viewport hooks are retained.
 
-Kanturu live image error: 3.717 before; 4.006 after with sparse tour sampling; 3.444 after rendering all 25 frames.
-Nine unaffected maps retain both frame hashes. Near-hero after-flag differences: Elbeland 12 -> 0, Raklion 10 -> 0;
-Noria 15 and Karutan 6 remain for the documented selector/visibility reasons.
+Local reports are in `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds/`: `a-final-validate.json`,
+`a-final-{before,after}*.json`, `a-final-hashes.json` and the gate logs. Renders stay under
+`~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-a/final-{before,after}*`. No live game was used.
 
-The owner confirmed missing live PNGs for Karutan/Noria/Elbeland/Raklion and authorized snapshot/report evidence
-plus native before/after there. Next: fresh live captures of those maps under the game lock in a later run, then
-phase-aligned multi-frame fidelity. Do not recreate them by running a live client during this milestone.
+The tour baseline `54ae63f` includes B/C and SESSION-VIEWPORT-001. With every frame rendered on both builds,
+Kanturu's masked live-image error is 3.717 -> 3.444; share off by more than 24 is 0.0275 -> 0.0245. The default
+sparse two-render tour gives 3.717 -> 4.006 because particles are emitted during rendering. Phases are not synchronized.
+All eighteen PNG hashes from nine unaffected maps remain unchanged; Raklion's two frames also remain unchanged.
+Primary terrain light equals the captured grid on all fourteen maps.
+
+Near-hero after-flag differences are Elbeland 12 -> 0, Raklion 10 -> 0, Noria 15 -> 15 and Karutan 6 -> 6.
+Noria type 19 is explicitly selected before the flag test; its separate flag writer remains unknown. Karutan's
+six after differences are different records from the six before differences. Exact capture-history/visibility
+causes remain unverified. The four maps' native before/after frames were inspected locally.
+
+The owner confirmed that live PNGs for Karutan/Noria/Elbeland/Raklion were deleted on October 23. Object/light
+snapshots and old score reports are the live evidence for those maps; Kanturu uses the surviving full-resolution
+README source. Next: fresh live captures of the four missing maps under the game lock in a later authorized run,
+then phase-aligned multi-frame fidelity. No live capture belongs in this run. Other handlers, creation effects,
+region import and the shadow/custom registries remain outside A. Scope claim: issue #177.
