@@ -175,13 +175,12 @@ int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glo
     mu_rc_model m = {{light[0], light[1], light[2]}, 0, {light[0], light[1], light[2]}, 0, 0};
     mu_rc_draw draws[32];
     int32_t count = 0;
-    mu_rc_item_context context = {model->params.lighting, -1, -1,
+    mu_rc_item_context context = {model->params.lighting, -1,
                                   env->particles ? link_random : NULL, env->particles};
     if (mu_rc_item_rank5(glow->type)) {
         for (int i = 0; i < model->bmd->mesh_count; ++i) {
             const char *name = model->bmd->meshes[i].texture;
             if (context.blue_mesh == -1 && !strcmp(name, "Item1161_Blue.jpg")) context.blue_mesh = i;
-            if (context.black_mesh == -1 && !strcmp(name, "Item1161_Black.jpg")) context.black_mesh = i;
         }
     }
     int status = glow->type < 0 ? MU_RC_SPECIAL :
@@ -204,7 +203,7 @@ int mu_renderchar_draw_item(const mu_model *model, const mu_renderchar_glow *glo
     for (int32_t i = 0; i < count; ++i) {
         const mu_rc_draw *d = &draws[i];
         /* A failed named mesh lookup is a no-op in the original mesh callee. */
-        if (d->entry == MU_RC_ENTRY_MESH && d->mesh < 0)
+        if (mu_rc_item_rank5(glow->type) && d->entry == MU_RC_ENTRY_MESH && d->mesh < 0)
             continue;
         mu_draw_options o = *base;
         mu_draw_model_fields f;

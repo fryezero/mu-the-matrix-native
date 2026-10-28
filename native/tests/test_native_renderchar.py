@@ -176,6 +176,9 @@ class WorldRender(unittest.TestCase):
         self.assertEqual(lit['sha256'],repeat['sha256'])
         self.assertNotEqual(lit['sha256'],unlit['sha256'])
         self.assertNotEqual(lit['sha256'],later['sha256'])
+        path.write_bytes(raw.replace(nf.name32('Item1161_Blue.jpg'),nf.name32('other.jpg')))
+        missing,_=self.render(*options,'--lighting','1','--world-time','0')
+        self.assertEqual((missing['special'],missing['passes']),(0,10))
 
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),

@@ -49,6 +49,7 @@ class ItemNext(unittest.TestCase):
             report=json.loads(output.read_text())
             self.assertEqual(report['families']['bodies']['cases'],2336)
             self.assertEqual(report['families']['rank5']['cases'],11096)
+            self.assertEqual(report['families']['rank5_records']['cases'],760)
             self.assertEqual(report['families']['links']['cases'],800)
             self.assertTrue(all(f['mismatches']==0 for f in report['families'].values()))
             self.assertEqual(len(report['mutants']),9)

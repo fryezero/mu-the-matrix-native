@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-ITEMS-002 part 8: 662/1,674 bounded bodies, 17/17 skins, fourteen link targets/nineteen types. Rank-5 mesh streams now draw with lighting; owner-bone effects remain open. Adds eight further ranked armour bodies and spear/shield links. [Checks and limits](handoffs/RENDER-ITEMS-002H.md).
+
 RENDER-TIME-001 native side: fourteen scripted views across thirteen maps, full-draw temporal samples and regression thresholds. Locked Mac gate passes 1,544 tests; private temporal rerun passes 16/16. The live capture/phase-alignment half remains open. [Checks and limits](handoffs/RENDER-TIME-001.md).
 
 APP-REFRESH-001: current native Preview rebuild and offline smoke; fixes stale

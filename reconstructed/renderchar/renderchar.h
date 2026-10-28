@@ -92,7 +92,7 @@ int mu_rc_item_draws(const mu_rc_item *item, mu_rc_model *model, mu_rc_draw *out
  * meshes are the result of 0x012bd4a6, -1 when absent. A missing context is
  * the original unlit, no-owner body domain. */
 typedef struct mu_rc_item_context {
-    int32_t lighting, blue_mesh, black_mesh;
+    int32_t lighting, blue_mesh;
     int32_t (*random)(void *context);
     void *context;
 } mu_rc_item_context;

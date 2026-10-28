@@ -125,6 +125,11 @@ int main(void)
             p->rand_calls != before + 1) return 29;
         if (i == 2 && (p->sprites->records[0].position[0] != 72 ||
                        p->sprites->records[1].position[0] != 122)) return 30;
+        if (i == 3 && (p->sprites->records[0].position[0] != 102 ||
+                       p->sprites->records[7].position[0] != 116)) return 33;
+        if (i == 4 && (p->sprites->records[0].position[0] != 132 ||
+                       p->sprites->records[0].position[1] != 190 ||
+                       p->sprites->records[0].position[2] != 290)) return 34;
         mu_world_particles_discard_sprites(p);
         bmd.bone_count = 1;
         if (mu_renderchar_link_effects(&model, bones, pulse_types[i], p) != 0) return 31;

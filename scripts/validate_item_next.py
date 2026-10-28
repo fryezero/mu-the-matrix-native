@@ -19,15 +19,15 @@ ROOT = Path(__file__).resolve().parents[1]
 LINKS = (0x10f0, 0x16f5)
 
 class Context(C.Structure):
-    _fields_ = [('lighting',C.c_int32),('blue',C.c_int32),('black',C.c_int32),
+    _fields_ = [('lighting',C.c_int32),('blue',C.c_int32),
                 ('random',clusters.RANDOM),('context',C.c_void_p)]
 
 
-def rank5_cases(wa, lib):
+def rank5_cases(wa, lib, records=False):
     payload = pose.seed()
     vectors = []
     for t in pose.TYPES:
-        for k in range(584):
+        for k in range(40 if records else 584):
             rng = random.Random(t*1000+k)
             case = v.random_case_any(rng,t)
             case.update(a10=0xffffffff,a11=0xffffffff,record=None,
@@ -39,6 +39,10 @@ def rank5_cases(wa, lib):
                 case.update(item_level=(level<<3)|(variant%8),quality=(0,1,2,3,4,5)[variant%6],
                             render_type=(2,0x102,0x402,0x40042)[variant%4],
                             option1=variant%3,ext=(0,1,2,0x10,0x20,0x33)[variant%6])
+            if records:
+                lighting=k%2
+                case['record']=(None,(0,0,0),(6,0,0),(0,0x26,0),(0,0x5b,0))[(k//2)%5]
+                case['time']=v.f2u((-500.5,-1,0,79.9,80,6282.9,6283,2147483648)[k//5])
             blue,black = (-1,-1) if k%4<2 else (3,1)
             calls=[]
             class World(v.World):
@@ -74,7 +78,7 @@ def rank5_cases(wa, lib):
             if not result['ok'] or other or actual!=(0,stream) or consumed!=len(calls):
                 raise AssertionError(('rank5 mesh',hex(t),k,case,result,other,stream,actual,consumed,len(calls)))
             vectors.append((case,lighting,blue,black,value,stream,len(calls)))
-        print(f'rank5 {t:#x}: 584/584',flush=True)
+        print(f'rank5 {t:#x}: {40 if records else 584} cases',flush=True)
     return {'cases':len(vectors),'mismatches':0,'boundary':'real pose; mesh streams with absent OBJECT owner bones'},vectors
 
 
@@ -82,7 +86,7 @@ def rank5_c(lib,case,lighting,blue,black,value):
     calls=[]
     @clusters.RANDOM
     def rand(_):calls.append(value);return value
-    context=Context(lighting,blue,black,rand,None)
+    context=Context(lighting,blue,rand,None)
     class Adapter:
         def mu_rc_item_draws(self,*args):
             return lib.mu_rc_item_draws_context(*args,C.byref(context))
@@ -111,7 +115,7 @@ def mutations(bodies,poses,links):
         'rank5-pulse':('tick % -6283','tick % -6282'),
         'rank5-uv':('time / 80.0f','time / 81.0f'),
         'rank5-random':('rank5_random(s) % 5','rank5_random(s) % 4'),
-        'rank5-named':('blue ? s->context->blue_mesh : 1','blue ? s->context->black_mesh : 1'),
+        'rank5-named':('blue ? s->context->blue_mesh : 1','blue ? s->context->blue_mesh + 1 : 1'),
         'body-alpha':('&s->item->object_alpha, 4','&base.alpha, 4'),
         'link-bone':('rule->bone, rule->bitmap','rule->bone + 1, rule->bitmap'),
         'link-scale':('value *= rule->mul;','value *= rule->mul + 0.1f;'),
@@ -144,6 +148,8 @@ def main():
     lib=C.CDLL(str(v.LIBRARY))
     report={'text_sha256':pins.TEXT.sha256,'data_sha256':pins.DATA.sha256,'families':{}}
     report['families']['rank5'],poses=rank5_cases(wa,lib)
+    report['families']['rank5_records'],record_vectors=rank5_cases(wa,lib,True)
+    poses+=record_vectors
     report['families']['bodies'],bodies,failures=clusters.body_cases(wa,lib,gen.NEXT_TYPES)
     assert not failures
     report['families']['links'],links=link_cases(wa,lib)
