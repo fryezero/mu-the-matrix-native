@@ -1877,3 +1877,17 @@ args = ["--cases", "6000", "--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+[validate_render_effects]
+test = "native/tests/test_render_effects.py::RenderEffects.test_original_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["fx_effect_create", "fx_effect_move", "pt_create", "pt_move", "pt_render"]
+cases = 660
+mutants = 8
+cases_at = "comparisons.*.families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/combat", "reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_render_effects.expect]
+all_equal = true
+all_mutants_caught = true
