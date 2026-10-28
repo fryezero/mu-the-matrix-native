@@ -16,3 +16,12 @@ $(TOOLS): %: build/%
 clean:
 	rm -rf build
 .PHONY: all clean $(TOOLS)
+
+# LAYOUT-001: build objread's constants from the shared JSON, never pasted offsets.
+PYTHON ?= python3
+.PHONY: layout-json
+layout-json:
+	$(MAKE) -C ../native layout PYTHON="$(PYTHON)"
+build/layout_reader.h: ../scripts/layout_manifest.py layout-json | build
+	$(PYTHON) ../scripts/layout_manifest.py --manifest ../native/build/gen/layout.json --reader-header $@
+build/objread: build/layout_reader.h

@@ -276,18 +276,11 @@ def load_library(path):
 # --------------------------------------------------------------------------
 # Object and item layouts (client offsets) and comparisons.
 
-OBJ_FIELDS = [('live', 0x00, 'B'), ('field_04', 0x04, 'B'), ('light_enable', 0x05, 'B'), ('visible', 0x0b, 'B'),
-              ('field_0c', 0x0c, 'B'), ('field_14', 0x14, 'i'), ('field_18', 0x18, 'i'), ('field_1c', 0x1c, 'i'),
-              ('action', 0x2a, 'H'), ('prior_action', 0x2c, 'H'), ('screen_x', 0x50, 'h'), ('screen_y', 0x52, 'h'),
-              ('type', 0x5c, 'i'), ('sparkle', 0x60, 'i'), ('hidden_mesh', 0x68, 'i'), ('blend_mesh', 0x74, 'i'),
-              ('scale', 0xa0, 'f'), ('blend_light', 0xa8, 'f'), ('blend_u', 0xac, 'f'), ('blend_v', 0xb0, 'f'),
-              ('field_bc', 0xbc, 'f'), ('field_c0', 0xc0, 'f'), ('gravity', 0xc8, 'f'), ('frame', 0xd0, 'f'),
-              ('prior_frame', 0xd4, 'f'), ('alpha', 0xdc, 'f'), ('light', 0xec, '3f'), ('bbox_min', 0x128, '3f'),
-              ('bbox_max', 0x134, '3f'), ('position', 0x158, '3f'), ('angle', 0x164, '3f'),
-              ('head_angle', 0x170, '3f')]
-ITEM_FIELDS = [('code', 0x10, 'i'), ('level', 0x14, 'i'), ('durability', 0x38, 'B'), ('excellent', 0x3a, 'B'),
-               ('ancient', 0x3b, 'B'), ('flag_72', 0x72, 'B'), ('sockets', 0x73, '5B'), ('element', 0x84, 'i'),
-               ('flag_92', 0x92, 'B'), ('flag_98', 0x98, 'B')]
+# LAYOUT-001: offsets/types come from the same JSON the live reader consumes.
+from layout_manifest import fields as layout_fields  # noqa: E402
+OBJ_FIELDS = layout_fields('OBJECT', omit=('fade_flag_08', 'next'))
+ITEM_FIELDS = layout_fields('ITEM')
+
 
 
 def field_size(fmt):

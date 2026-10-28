@@ -17,6 +17,7 @@
  * the client's answer for a key outside CharactersClient.
  */
 #include "../session_internal.h"
+#include "layout_StatMachine.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -405,14 +406,9 @@ void mu_dom_hero_free(mu_session *s)
 void mu_dom_hero_zones(const mu_session *s, mu_audit_zones *z)
 {
     const mu_dom_hero *h = &s->hero;
-    mu_audit_add(z, "hero.attr", h->attr, 0, MU_PRG_ATTR_SIZE, MU_ZONE_REPLICATED, "CharacterAttribute");
-    mu_audit_add(z, "hero.machine", h->machine, 0, MU_PRG_MACHINE_SIZE, MU_ZONE_REPLICATED, "stat machine");
-    mu_audit_add(z, "hero.record", h->record, 0, 0x12, MU_ZONE_REPLICATED, "CHARACTER");
-    mu_audit_add(z, "hero.record", h->record, 0x12, 1, MU_ZONE_REPLICATED, "class");
-    mu_audit_add(z, "hero.record", h->record, 0x13, MU_HERO_TILE_OFFSET - 0x13, MU_ZONE_REPLICATED, "CHARACTER");
-    mu_audit_add(z, "hero.record", h->record, MU_HERO_TILE_OFFSET, 8, MU_ZONE_MOTION, "tile");
-    mu_audit_add(z, "hero.record", h->record, MU_HERO_TILE_OFFSET + 8, MU_HERO_RECORD_SIZE - MU_HERO_TILE_OFFSET - 8,
-                 MU_ZONE_REPLICATED, "CHARACTER");
+    mu_audit_layout(z, "hero.attr", h->attr, sizeof h->attr, &MU_CharacterAttribute_LAYOUT);
+    mu_audit_layout(z, "hero.machine", h->machine, sizeof h->machine, &MU_StatMachine_LAYOUT);
+    mu_audit_layout(z, "hero.record", h->record, sizeof h->record, &MU_CHARACTER_LAYOUT);
     mu_audit_add(z, "hero.money", (const uint8_t *)&h->money, 0, sizeof h->money, MU_ZONE_REPLICATED, "money");
 }
 
@@ -442,19 +438,19 @@ void mu_session_hero(const mu_session *s, mu_hero_stats *v)
     if (!s)
         return;
     const uint8_t *a = s->hero.attr;
-    uint8_t cls = s->hero.record[0x12];
+    uint8_t cls = mu_layout_CHARACTER_class_byte(s->hero.record, sizeof s->hero.record, 0);
     snprintf(v->name, sizeof v->name, "%s", s->hero.name);
     v->class_byte = a[MU_PRG_A_CLASS];
     v->class_index = a[MU_PRG_A_CLASS] & 15;
     v->stage = mu_prg_class_stage(cls);
-    v->level = mu_prg_i32(a, MU_PRG_A_LEVEL);
+    v->level = mu_layout_CharacterAttribute_level(a, sizeof s->hero.attr, 0);
     v->master_level = mu_prg_master_level(a);
-    v->points = mu_prg_u16(a, MU_PRG_A_POINTS);
-    v->master_points = mu_prg_i32(a, MU_PRG_A_MPOINTS);
-    v->exp = (int64_t)mu_prg_u64(a, MU_PRG_A_EXP);
-    v->next_exp = (int64_t)mu_prg_u64(a, MU_PRG_A_NEXT_EXP);
-    v->master_exp = (int64_t)mu_prg_u64(a, MU_PRG_A_MEXP);
-    v->master_next_exp = (int64_t)mu_prg_u64(a, MU_PRG_A_MNEXT_EXP);
+    v->points = mu_layout_CharacterAttribute_points(a, sizeof s->hero.attr, 0);
+    v->master_points = mu_layout_CharacterAttribute_mpoints(a, sizeof s->hero.attr, 0);
+    v->exp = (int64_t)mu_layout_CharacterAttribute_exp(a, sizeof s->hero.attr, 0);
+    v->next_exp = (int64_t)mu_layout_CharacterAttribute_next_exp(a, sizeof s->hero.attr, 0);
+    v->master_exp = (int64_t)mu_layout_CharacterAttribute_mexp(a, sizeof s->hero.attr, 0);
+    v->master_next_exp = (int64_t)mu_layout_CharacterAttribute_mnext_exp(a, sizeof s->hero.attr, 0);
     static const size_t BASE[5] = {MU_PRG_A_STRENGTH, MU_PRG_A_DEXTERITY, MU_PRG_A_VITALITY, MU_PRG_A_ENERGY,
                                    MU_PRG_A_COMMAND};
     static const size_t ADD[5] = {MU_PRG_A_ADD_STR, MU_PRG_A_ADD_DEX, MU_PRG_A_ADD_VIT, MU_PRG_A_ADD_ENE,
@@ -465,28 +461,28 @@ void mu_session_hero(const mu_session *s, mu_hero_stats *v)
     }
     /* setHPMP 0x00c71772 (static): a third-class hero's maxima are +0x40..+0x4c */
     int third = (cls >> 5 & 1) == 1;
-    v->hp = mu_prg_i32(a, MU_PRG_A_LIFE);
-    v->mp = mu_prg_i32(a, MU_PRG_A_MANA);
-    v->sd = mu_prg_i32(a, MU_PRG_A_SHIELD);
-    v->ag = mu_prg_i32(a, MU_PRG_A_AG);
+    v->hp = mu_layout_CharacterAttribute_life(a, sizeof s->hero.attr, 0);
+    v->mp = mu_layout_CharacterAttribute_mana(a, sizeof s->hero.attr, 0);
+    v->sd = mu_layout_CharacterAttribute_shield(a, sizeof s->hero.attr, 0);
+    v->ag = mu_layout_CharacterAttribute_ag(a, sizeof s->hero.attr, 0);
     v->max_hp = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX : MU_PRG_A_LIFE_MAX);
     v->max_mp = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX + 4 : MU_PRG_A_MANA_MAX);
     v->max_sd = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX + 8 : MU_PRG_A_SHIELD_MAX);
     v->max_ag = mu_prg_i32(a, third ? MU_PRG_A_MLIFE_MAX + 12 : MU_PRG_A_AG_MAX);
-    v->attack_speed = mu_prg_u16(a, MU_PRG_A_ATK_SPEED);
-    v->magic_speed = mu_prg_u16(a, MU_PRG_A_MAGIC_SPEED);
+    v->attack_speed = mu_layout_CharacterAttribute_atk_speed(a, sizeof s->hero.attr, 0);
+    v->magic_speed = mu_layout_CharacterAttribute_magic_speed(a, sizeof s->hero.attr, 0);
     v->has_derived = s->hero.recalculated;
-    v->dmg_min = mu_prg_u16(a, MU_PRG_A_DMG_MIN_R);
-    v->dmg_max = mu_prg_u16(a, MU_PRG_A_DMG_MAX_R);
-    v->atk_rate = mu_prg_u16(a, MU_PRG_A_ATK_RATE);
-    v->pvp_rate = mu_prg_u16(a, MU_PRG_A_PVP_RATE);
-    v->defense = mu_prg_u16(a, MU_PRG_A_DEFENSE);
-    v->def_rate = mu_prg_u16(a, MU_PRG_A_DEF_RATE);
-    v->pvp_defrate = mu_prg_u16(a, MU_PRG_A_PVP_DEFRATE);
-    v->magic_min = mu_prg_u16(a, MU_PRG_A_MAGIC_MIN);
-    v->magic_max = mu_prg_u16(a, MU_PRG_A_MAGIC_MAX);
-    v->curse_min = mu_prg_u16(a, MU_PRG_A_CURSE_MIN);
-    v->curse_max = mu_prg_u16(a, MU_PRG_A_CURSE_MAX);
+    v->dmg_min = mu_layout_CharacterAttribute_dmg_min_r(a, sizeof s->hero.attr, 0);
+    v->dmg_max = mu_layout_CharacterAttribute_dmg_max_r(a, sizeof s->hero.attr, 0);
+    v->atk_rate = mu_layout_CharacterAttribute_atk_rate(a, sizeof s->hero.attr, 0);
+    v->pvp_rate = mu_layout_CharacterAttribute_pvp_rate(a, sizeof s->hero.attr, 0);
+    v->defense = mu_layout_CharacterAttribute_defense(a, sizeof s->hero.attr, 0);
+    v->def_rate = mu_layout_CharacterAttribute_def_rate(a, sizeof s->hero.attr, 0);
+    v->pvp_defrate = mu_layout_CharacterAttribute_pvp_defrate(a, sizeof s->hero.attr, 0);
+    v->magic_min = mu_layout_CharacterAttribute_magic_min(a, sizeof s->hero.attr, 0);
+    v->magic_max = mu_layout_CharacterAttribute_magic_max(a, sizeof s->hero.attr, 0);
+    v->curse_min = mu_layout_CharacterAttribute_curse_min(a, sizeof s->hero.attr, 0);
+    v->curse_max = mu_layout_CharacterAttribute_curse_max(a, sizeof s->hero.attr, 0);
 }
 
 int64_t mu_session_money(const mu_session *s)

@@ -1,5 +1,7 @@
 # Continue from here
 
+LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
+
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
 unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.
 
