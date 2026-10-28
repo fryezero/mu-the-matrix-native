@@ -1,5 +1,9 @@
 # Current status
 
+RENDER-ITEMS-002 part 1: inventory special-code chain and native remapped-model loading; 5,512 Unicorn cases, zero mismatches, 6/6 mutants. Large body/effect switches remain. [Evidence](research/client-render-items.md).
+
+LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
+
 ## Character-select runtime, CHARSEL-RT-001, 2026-10-27
 
 `mu_charsel_rt` replaces the textual embed with one options struct and nine explicit parts. The scene-flow
@@ -7,6 +11,13 @@ and standalone charsel comparisons preserve every render and hash. The private c
 300 cases per family and detects all 6 planted mistakes. [Handoff](handoffs/CHARSEL-RT-001.md).
 
 LAYOUT-PROBE-001 settles the separate OBJECT live/fade bytes, the two CHARACTER level reads, and the CharacterAttribute prefix/extent distinction. [Evidence](research/client-layout-probes.md).
+
+## Fixture session verification, 2026-10-27
+
+VERIFY-SESSION-001 adds discovered loopback suites to `make test` and the local Mac gate. Two hero scenarios
+cover all eight bound routes with 17 inbound plaintext frames and zero unbound/undecodable frames. The
+verification skill accepts `--fixture`, inbound events and journal summaries, including remaining-work
+counts. [Checks and limits](handoffs/VERIFY-SESSION-001.md).
 
 ## Stage 1 of the port completion, 2026-10-25
 

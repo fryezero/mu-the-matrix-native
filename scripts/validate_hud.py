@@ -510,7 +510,8 @@ class Item3dIn(Structure):
                 ('a48', c_int32), ('code2', c_int32), ('gfx_busy', c_uint8), ('cursor_in', c_uint8),
                 ('ui_3e_visible', c_uint8), ('ui_b602', c_uint8), ('kind_b_6a', c_uint8), ('kind_a_22', c_uint8),
                 ('code2_kind_b_6a', c_uint8), ('trs', ItemTRS), ('frame_scale', ctypes.c_float),
-                ('rate_x', ctypes.c_float), ('rate_y', ctypes.c_float)]
+                ('rate_x', ctypes.c_float), ('rate_y', ctypes.c_float), ('time', ctypes.c_float),
+                ('special_window_active', c_uint8)]
 
 
 class Item3dOut(Structure):

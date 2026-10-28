@@ -28,6 +28,7 @@ typedef struct mu_session_zone_view {
     const uint8_t *base;
     uint32_t offset, size;
     int motion;                  /* 1: writable under the lease */
+    int view;                    /* 1: derived, excluded from replicated-byte comparisons */
 } mu_session_zone_view;
 size_t mu_session_zone_views(const mu_session *s, mu_session_zone_view *out, size_t cap);
 

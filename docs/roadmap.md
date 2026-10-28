@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+LAYOUT-001: generated layout tables and JSON consumers implemented; [evidence](research/client-layout-manifest.md).
+
 LAYOUT-PROBE-001: offset conflicts probed; [evidence](research/client-layout-probes.md). LAYOUT-001 follows.
 
 ## Destination and acceptance gates
@@ -24,6 +26,7 @@ are in [design/native-port](design/native-port/README.md).
 
 | ID | Work | Completion evidence | Dependencies |
 |---|---|---|---|
+| VERIFY-SESSION-001 | Implemented: discovered loopback scenario suites in `make test` and local CI; skill `--fixture`, inbound events and journal JSON | Two hero scenarios, eight bound routes, 17 inbound frames, 21 expectations, zero unbound/undecodable; 16 new tests ([handoff](handoffs/VERIFY-SESSION-001.md)) | Later domains add scenarios; unrecovered master-point requests and two crypto-dependent reports remain explicit |
 | NATIVE-SOCIAL-001 | Implemented rounds 1/2: party HUD/actions, full-instance trade/options, friends/whispers, original messenger/mail handlers in mu-world/mu-client | Round 1: 7,000 comparisons, 10/10 mutants; round 2: 29,700 compiled-C comparisons, 0 mismatches, 36/36 mutants; native regressions and offline GL renders ([finding](research/client-social-original.md)) | Real transport, original code-page behavior, opaque/equipped option activation and uncaptured mastery bodies remain separate |
 | RUNTIME-X86 | Implemented: full x86 Debian/Wine runtime on the Mac | Exact client startup, GL/bitness checks, egress blocked, labeled capture limits | PR #6 merged; continue code mapping under CAP-002 |
 | NATIVE-VIEW-001 | Implemented (viewer only): native arm64 model viewer `native/` (SDL2 + OpenGL 2.1, headless CGL and software rasterizer) reusing the reconstructed decoders, bone-track loop, tick, pose builder and transform, with a platform-neutral port of the mesh-draw corner loop | CI: byte-identical golden data against the authored libraries and Python models in 50 synthetic cases, independent mesh-draw rule model in every portable mode, pinned software-render hashes on macOS arm64 and Linux x86_64, headless GL/software agreement (macOS). Reported, single private run: 12,627 installed models / 3,909,196 vertices byte-identical, Linux arm64 hashes, installed GL/software agreement. Post-merge review: TGA bounds fix, dependency notices | Mesh draw now executed and ported (CLIENT-MESHDRAW-EXEC-001); live draw arguments open; player skeleton/attachments moved to NATIVE-CHAR-001; terrain, effects, UI not started; native acceptance gates unchanged |
@@ -131,6 +134,8 @@ questions are answered, guided capture is the Native Data path, and signing (APP
 | NATIVE-MAP-001 | Implemented (maps and travel, demo server): `reconstructed/map` (hudMap's game side, the 0xE7 minimap records, the Move window's manager/sort/availability/rows/click/request, the gate entrance test), `native/core/mu_map` (session, demo server, travel API for quests), world changes in mu-world/mu-client, hudMap and MoveCommand over the GFx layer, NaviMap conversion | Unicorn: 10 families (hud_update, units, detected, show, move_build, move_sort, availability, rows, click, gates), 5,001 cases, 0 mismatches, 10/10 planted mistakes; live: both windows, the move manager and two warps; portable reconstructed and two-world travel tests ([finding](research/client-maps.md)) | Teleport handler, navimap formatter and strife list choice static; demo markers are portals only; Move window position; mu-client scene world after travel |
 
 ## Coordinating agents
+
+| RENDER-ITEMS-002 part 1 | Implemented: inventory RenderItem3D special-code chain and native remapped-model loading | 5,512 Unicorn cases, 0 mismatches, 6/6 mutants; generic wrapper 3,000; native regression and local renders ([finding](research/client-render-items.md)) | Type-specific body/RenderLinkItem effects, character/ground integration, Muun placement and nested map-object tables remain |
 
 | NATIVE-MAP-002 | Implemented: captured absent-key Move default supplied to the validator; snapshot digest in reports; synthetic nonzero-default regression | Lang4 and both lang5 copies each pass 5,001 instruction cases, zero mismatches, all 10 mutants; identical 69 real records and 621 native rows across sort orders; 11 reconstructed and 9 native map tests pass ([finding](research/client-maps.md#move-default-records-native-map-002)) | Native Move behavior unchanged; navimap locale state and prior teleport limits remain open |
 | NATIVE-POLISH-001 maps | Implemented: scene world and demo re-entry location, left-aligned MoveCommand, current-map E7 NPC feed | 875 bounded teleport checks + 1 registration, zero mismatches, 3/3 mutants caught; 60 GFx window cases; synthetic travel/re-entry and NPC lifecycle tests; local renders | Navimap's actual formatter needs uncaptured C++ locale state; teleport height and later cleanup remain outside the bounded comparison |

@@ -2,10 +2,20 @@
 
 DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisition procedure](native-data.md). Jump-table diff remains pending on paused NET-DISPATCH-001.
 
+RENDER-ITEMS-002 part 1: [handoff](handoffs/RENDER-ITEMS-002.md). Inventory special-code paths are covered; next are the type-specific body/effect switches and Muun integration.
+
+LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
+
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
 unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.
 
 LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
+
+## VERIFY-SESSION-001, 2026-10-27
+
+Discovered fixture suites and skill `--fixture` mode are implemented. Two hero scenarios cover all eight
+bound routes; per-scenario unbound is zero, unrecovered/unsent counts remain explicit. See
+[the milestone handoff](handoffs/VERIFY-SESSION-001.md) for checks, artifacts and remaining work.
 
 ## Stage 1 merged (2026-10-25)
 

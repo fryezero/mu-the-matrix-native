@@ -16,8 +16,12 @@
 void mu_audit_add(mu_audit_zones *zs, const char *name, const uint8_t *base, uint32_t offset, uint32_t size, mu_zone zone,
                   const char *field)
 {
-    if (zs->count >= MU_AUDIT_ZONES_MAX || !size)
+    if (!size)
         return;
+    if (zs->count >= MU_AUDIT_ZONES_MAX) {
+        fprintf(stderr, "lease audit: zone capacity exceeded\n");
+        abort();
+    }
     mu_audit_zone *z = &zs->z[zs->count++];
     z->name = name;
     z->base = base;
@@ -25,6 +29,30 @@ void mu_audit_add(mu_audit_zones *zs, const char *name, const uint8_t *base, uin
     z->size = size;
     z->zone = zone;
     z->field = field;
+}
+
+/* Bound fields name the audit/dump ranges; unknown gaps stay replicated.
+ * The session may own a prefix of a client record, so clip to its actual storage. */
+void mu_audit_layout(mu_audit_zones *zs, const char *name, const uint8_t *base, uint32_t size,
+                     const mu_layout_record *record)
+{
+    uint32_t at = 0;
+    for (size_t i = 0; i < record->field_count && at < size; ++i) {
+        const mu_layout_field *f = &record->fields[i];
+        if (f->offset >= size)
+            break;
+        if (f->offset > at)
+            mu_audit_add(zs, name, base, at, f->offset - at, MU_ZONE_REPLICATED, "unknown");
+        uint32_t end = f->offset + f->size;
+        if (end > size)
+            end = size;
+        mu_audit_add(zs, name, base, f->offset, end - f->offset,
+                     f->zone == MU_LAYOUT_MOTION ? MU_ZONE_MOTION :
+                     f->zone == MU_LAYOUT_VIEW ? MU_ZONE_VIEW : MU_ZONE_REPLICATED, f->name);
+        at = end;
+    }
+    if (at < size)
+        mu_audit_add(zs, name, base, at, size - at, MU_ZONE_REPLICATED, "unknown");
 }
 
 void mu_session_zones(const mu_session *s, mu_audit_zones *zones)
@@ -47,6 +75,7 @@ size_t mu_session_zone_views(const mu_session *s, mu_session_zone_view *out, siz
         out[n].offset = zs.z[i].offset;
         out[n].size = zs.z[i].size;
         out[n].motion = zs.z[i].zone == MU_ZONE_MOTION;
+        out[n].view = zs.z[i].zone == MU_ZONE_VIEW;
     }
     return n;
 }

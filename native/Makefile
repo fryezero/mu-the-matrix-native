@@ -469,6 +469,14 @@ SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease
 FIXTURE_SRC := fixture/fixture.c $(wildcard fixture/behaviors/*.c)
 SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
+LAYOUT_STAMP := $(GEN)/.layout-stamp
+LAYOUT_INPUTS := ../scripts/gen_layout.py $(wildcard session/layout/*.def)
+
+$(LAYOUT_STAMP): $(LAYOUT_INPUTS)
+	@mkdir -p $(GEN)
+	$(GEN_PYTHON) ../scripts/gen_layout.py --out $(GEN)
+	@touch $@
+
 SESSION_DEV_OBJ := $(patsubst %.c,$(BUILD)/sdev/%.o,$(NET_SRC) $(SESSION_SRC) $(FIXTURE_SRC))
 SESSION_PROD_OBJ := $(patsubst %.c,$(BUILD)/sprod/%.o,$(NET_SRC) $(SESSION_SRC))
 
@@ -479,11 +487,11 @@ $(GEN_STAMP): $(GEN_INPUTS)
 	$(GEN_PYTHON) ../scripts/gen_domains.py --out $(GEN)
 	@touch $@
 
-$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/sdev/%.o: %.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -c $< -o $@
 
-$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/sprod/%.o: %.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -c $< -o $@
 
@@ -498,7 +506,7 @@ $(BUILD)/libmusession_product.a: $(SESSION_PROD_OBJ)
 # ---- FIXTURE-001: the fixture server (native/fixture) and the session CLI (native/tools/mu_session.c) ----
 all: $(BUILD)/mu-session
 
-$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -c tools/mu_session.c -o $(BUILD)/mu_session.o
 	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) -lm -o $@
 
@@ -515,3 +523,6 @@ $(BUILD)/data-manifest.o: data/manifest.cpp data/manifest.h
 $(BUILD)/mu-native-data: data/manifest.cpp data/manifest.h
 	@mkdir -p $(BUILD)
 	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -DMU_MANIFEST_TOOL $< $(CRYPTOPP_LIBS) -o $@
+
+.PHONY: layout
+layout: $(LAYOUT_STAMP)
