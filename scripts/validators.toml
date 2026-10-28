@@ -1907,3 +1907,13 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_session_items]
+test = "native/tests/test_session_items.py::Private.test_recorded_delete_builder_and_answer_tail"
+pins = ["text", "data"]
+families = ["delete", "pickup_zen", "pickup_item", "pickup_tail"]
+cases = 160
+mutants = 4
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
