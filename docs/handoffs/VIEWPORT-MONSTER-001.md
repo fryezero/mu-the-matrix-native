@@ -55,3 +55,17 @@ to the two untracked input symlinks; tracked runtime source was committed for th
 The committed-tree fixture suite is rerun after those symlinks are removed.
 Artifacts are retained outside the disposable worktree under the scratch/renders directories named
 in the finding. No original client or live service was used; no wire crypto or dispatch generator.
+
+
+## Final PR gate through main #189
+
+After Icarus C2 main `3526a0a`, the fixed runtime tree `5890163` passes the complete local Mac gate:
+**1,403 tests in 38 suites, 168 explicit skips, zero failures**, including 619 native tests.
+Viewer/readers builds pass; audit **1,270 files, zero rejected**. All six scenarios again have
+**46 inbound frames, zero unbound/undecodable**, with the same two unrecovered intents and three
+unsent requests. `gate-main189.log` is the final acceptance log and supersedes the #188 counts.
+All 120 monster-world frame hashes also remain equal after #189 (`main189.json`).
+
+The PR's final follow-up changes evidence only. The clean committed-tree fixture suite has six passes,
+46 inbound frames and zero unbound/undecodable. Source and report artifacts remain in the external
+scratch/renders directories; the disposable worktree and local branch are removed after merge.
