@@ -16,7 +16,7 @@
  *               OFFLINE DEMO account panel (placeholder for the GFx login
  *               dialog: any input, nothing kept), protocol 0x14 -> the tick
  *               tail -> scene 5
- *   5 select    the mu-charsel session (charsel/charsel_embed) with the
+ *   5 select    the mu-charsel session (charsel/mu_charsel_rt) with the
  *               session's characters and the CCharSelMainWin 2D layer; the
  *               scene tick's Enter -> mu_scenemgr_start_loading(0) (join
  *               request: answered by the offline session) -> (1) -> scene 4
@@ -42,7 +42,7 @@
 
 #include "../../reconstructed/scene/scene.h"
 #include "../charsel/charsel_create_gfx.h"
-#include "../charsel/charsel_embed.h"
+#include "../charsel/mu_charsel_rt.h"
 #include "../core/mu_login.h"
 #include "../core/mu_ui_raster.h"
 #include "../world/mu_world_rt.h"
@@ -130,7 +130,7 @@ void mu_shell_char(mu_shell *s, int ch);                         /* typed charac
 void mu_shell_frame(mu_shell *s, uint32_t now);
 /* What the front end draws before the overlay, and the embed or world runtime to draw. */
 int mu_shell_view(const mu_shell *s);
-mu_charsel_embed *mu_shell_charsel(mu_shell *s);
+mu_charsel_rt *mu_shell_charsel(mu_shell *s);
 mu_world_rt *mu_shell_world(mu_shell *s);
 mu_login_session *mu_shell_login(mu_shell *s);
 /* The 2D layer over the frame (top-down RGBA, width x height). */
