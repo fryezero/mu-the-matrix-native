@@ -76,7 +76,8 @@ Fourteen existing snapshot views retain **28/28 first/final PNG hashes, 14/14 ob
 against the owned-worktree baseline. Both builds use the same saved captures and installed assets, whose
 executable matches the target pin. These are unaffected-world regressions. No world-64/world-82 image score
 or full nested particle/effect-rendering equivalence is claimed. Existing downstream unsupported-kind counters
-remain in use. Full Mac gate results are in [the handoff](../handoffs/RENDER-WORLDS-H.md).
+remain in use. The locked combined-tree Mac gate passes 1,511 tests with 187 explicit skips, eight fixture scenarios
+and a 1,429-file audit with zero rejections. Details are in [the handoff](../handoffs/RENDER-WORLDS-H.md).
 
 ### Downstream limits
 
