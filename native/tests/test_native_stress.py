@@ -116,6 +116,29 @@ class BenchmarkContract(unittest.TestCase):
             bench.workload(rows, 80)
 
 
+@unittest.skipUnless(sys.platform == 'darwin' and
+                     (NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib').exists(),
+                     'needs the built Metal GFx library')
+class MetalTiming(unittest.TestCase):
+    def test_complete_queue_frames_cached_marker_and_shutdown_drain(self):
+        import perf_report
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / 'metal.jsonl'
+            lib = NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib'
+            r = subprocess.run([sys.executable, str(HERE / 'perf_metal_host.py'),
+                                str(Path(tmp) / 'authored.swf'), str(lib)],
+                               env=dict(os.environ, MU_GFX_GPU_LOG=str(log)),
+                               capture_output=True, text=True, timeout=60)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            result = perf_report.metal_summary(log, {0, 1, 2})
+            self.assertTrue(result['supported'])
+            self.assertEqual((result['samples'], result['missing_frames']), (3, 0))
+            self.assertGreater(result['mean'], 0)
+            records = [json.loads(line) for line in log.read_text().splitlines()]
+            self.assertIn({'frame': 1, 'event': 'end', 'submissions': 0}, records)
+            self.assertEqual({r['frame'] for r in records if 'gpu_ms' in r}, {0, 2})
+
+
 class DirectCornerStream(unittest.TestCase):
     def test_stream_and_tables_match_and_detect_two_mutants(self):
         import validate_meshdraw as vm

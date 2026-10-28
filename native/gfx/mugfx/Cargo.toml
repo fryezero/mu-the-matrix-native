@@ -29,9 +29,10 @@ async-channel = "2.5.0"
 [target.'cfg(target_os = "macos")'.dependencies]
 wgpu = "30.0.1"
 objc2 = "0.6.4"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFDictionary", "CFNumber", "CFString"] }
 objc2-io-surface = { version = "0.3.2", default-features = false, features = ["std", "IOSurfaceRef", "IOSurfaceTypes", "libc", "objc2", "objc2-core-foundation"] }
-objc2-metal = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "MTLCommandBuffer", "MTLCommandEncoder", "MTLDevice", "MTLTexture", "MTLResource", "MTLAllocation", "MTLPixelFormat", "MTLTypes", "objc2-io-surface"] }
+objc2-metal = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "MTLBlitCommandEncoder", "MTLBuffer", "MTLCommandBuffer", "MTLCommandEncoder", "MTLDevice", "MTLTexture", "MTLResource", "MTLAllocation", "MTLPixelFormat", "MTLTypes", "objc2-io-surface"] }
 
 [[bin]]
 name = "mugfx-shot"

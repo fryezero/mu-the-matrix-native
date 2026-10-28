@@ -8,7 +8,8 @@ mod metal {
     use std::io::Write;
     use objc2::rc::Retained;
     use objc2::runtime::ProtocolObject;
-    use objc2_metal::{MTLCommandBuffer, MTLCommandBufferStatus};
+    use objc2_metal::{MTLCommandBuffer, MTLCommandBufferStatus, MTLBuffer, MTLResourceOptions, MTLDevice, MTLBlitCommandEncoder, MTLCommandEncoder};
+    use objc2_foundation::NSRange;
     use ruffle_render_wgpu::wgpu;
     type Raw = Retained<ProtocolObject<dyn MTLCommandBuffer>>;
     struct Sample { frame: u64, begin: Raw, end: Raw }
@@ -18,8 +19,7 @@ mod metal {
         active: Option<Raw>,
         attempted: bool,
         pending: Vec<Sample>,
-        src: wgpu::Buffer,
-        dst: wgpu::Buffer,
+        marker_buffer: Retained<ProtocolObject<dyn MTLBuffer>>,
     }
     impl State {
         pub fn new() -> Option<Self> {
@@ -29,24 +29,22 @@ mod metal {
             let supported = unsafe { d.device.as_hal::<wgpu::hal::api::Metal>() }.is_some();
             let _ = writeln!(log, "{{\"supported\":{supported}}}");
             if !supported { return None; }
-            let src = d.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("GFx timer source"), size: 4, usage: wgpu::BufferUsages::COPY_SRC,
-                mapped_at_creation: false,
-            });
-            let dst = d.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("GFx timer destination"), size: 4, usage: wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-            Some(Self { log, frame: 0, active: None, attempted: false, pending: Vec::new(), src, dst })
+            let device = unsafe { d.device.as_hal::<wgpu::hal::api::Metal>() }?;
+            let marker_buffer = device.raw_device().newBufferWithLength_options(4, MTLResourceOptions::StorageModeShared)?;
+            Some(Self { log, frame: 0, active: None, attempted: false, pending: Vec::new(), marker_buffer })
         }
         fn marker(&self) -> Option<Raw> {
             let d = crate::descriptors().ok()?;
             let mut encoder = d.device.create_command_encoder(&Default::default());
-            encoder.copy_buffer_to_buffer(&self.src, 0, &self.dst, 0, 4);
+            // This encoder uses only the raw API. Its private buffer stays alive
+            // through the shutdown drain; no Ruffle resource is accessed.
             // Retain for read-only status/timestamp access after wgpu submits it.
             // Never commit, mutate or release wgpu's reference to this buffer.
             let raw = unsafe { encoder.as_hal_mut::<wgpu::hal::api::Metal, _, _>(|e| {
                 e.and_then(|e| e.raw_command_buffer()).and_then(|raw| {
+                    let blit = raw.blitCommandEncoder()?;
+                    blit.fillBuffer_range_value(&self.marker_buffer, NSRange::new(0, 4), 0);
+                    blit.endEncoding();
                     Retained::retain(raw as *const _ as *mut ProtocolObject<dyn MTLCommandBuffer>)
                 })
             }) };

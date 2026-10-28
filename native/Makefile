@@ -142,10 +142,11 @@ $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
 
-# Reconstructed sources are compiled unchanged with their own module's flags.
+# Reconstructed sources stay unchanged. Keep their arithmetic flags while
+# allowing the native-only ThinLTO build to inline the memory/vector helpers.
 $(BUILD)/recon/%.o: $(RECON)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off -c $< -o $@
+	$(CC) -std=c11 $(NATIVE_OPT) -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fno-fast-math -c $< -o $@
 
 $(MODULUS_OBJ): ../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)

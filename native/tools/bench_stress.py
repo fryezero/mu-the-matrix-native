@@ -183,7 +183,8 @@ def main(argv=None):
               'load_start': os.getloadavg(),
               'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
               'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(),
-              'perf_003_baseline': a.perf_003_baseline, 'gpu_timing': a.gpu_timing, 'scenarios': {}}
+              'perf_003_baseline': a.perf_003_baseline, 'gpu_timing': a.gpu_timing,
+              'gfx_double_buffer': 'MU_GFX_SINGLE_BUFFER' not in env, 'scenarios': {}}
     failed = False
     limits = json.loads((NATIVE / 'tools/stress_m5_limits.json').read_text())['scenarios']
     for name in a.scenario or SCENARIOS:
