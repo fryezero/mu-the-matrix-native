@@ -4,12 +4,10 @@ This continues [PERF-003](native-performance-003.md) on the native macOS client.
 All scenes use the full-quality [PERF-002 workloads](native-performance-stress.md).
 No original client or launcher was started, stopped, read or driven.
 
-At the owner's hard stop this is pushed WIP, with no PR/merge. Runtime `4bd5d38`
-has a completed local Mac gate and 2,804 matching full-frame pairs. The full
-eight-run matrix still fails strict acceptance in all optimized 80-player scenes.
-The [latest table and limits](#ordered-capture-wip-repeat-and-hard-stop-boundary)
-and the [resume handoff](../handoffs/NATIVE-PERF-004.md) describe the final state.
-
+The 14:45 hard stop left this WIP; the 2026-10-28 resume added a post-capture
+profile and a lease-audit fast path and merged. Strict 25 Hz still passes only
+crowd40; see [lease fast path timing](#lease-fast-path-timing-integrated-source-fdad6c1)
+and [what NATIVE-PERF-005 should measure next](#what-native-perf-005-should-measure-next).
 ## Implementation and correctness boundary
 
 Remote characters now prepare their placement in list order, update their own
@@ -283,3 +281,74 @@ the unfavorable full matrix or establish all-scene steady 25 Hz. The source is
 frozen at `4bd5d38`; no further measurements or implementation changes are made
 before the owner's stop. The first next step is a post-capture tail profile and
 CPU/GL/Metal correlation using the retained crowd80 timing inputs.
+## Post-capture profile and lease-audit fast path (2026-10-28 resume)
+A Claude Opus 5.5 resume rebuilt runtime `c394bb3` and sampled crowd80 for
+eight seconds after frame 650 (1 ms interval, ordered capture enabled). The
+main thread has 4,559 samples: 2,605 under world drawing (1,120 remote-player
+draws, 505 terrain session end, 376 shadows, 158+116 objects), 1,135 under GFx
+(673 advance, 379 draw; Ruffle mouse picking alone 182), 641 under frame logic
+(250 session ticks, 239 joined pose team) and 157 under swap. GL driver
+back-pressure appears twice: 204 samples waiting on a driver semaphore inside
+the terrain flush and 141 inside swap. These waits are not CPU work.
+Correlated with the saved capture-only crowd80 tails: steady frames spend
+about 26 ms of main CPU with 11-13 ms of sleep headroom. Slow (>42 ms) frames
+grow every phase at once (logic, characters, GFx, terrain) rather than one
+phase. In the profiled run itself, terrain and object times doubled before the
+sampler started (2.69/2.07 ms versus 1.15/1.26 ms saved) while pooled
+character work rose only 9%. That pattern indicates host contention or
+frequency/core placement of the ordered thread, not a single new hot routine.
+Bottleneck classification: main-thread CPU (draw submission and logic) is the
+measured limit at 1280x800; presentation waits are secondary. Retina80 adds
+GPU-bound time (swap 8.2 ms, GPU world interval 29.5 ms in a loaded run).
+The largest self-time item in session logic was `mu_session_sim_end`: 179
+self samples (about 4% of the main thread). The world and client link the dev
+session library, whose lease audit compares every replicated byte after each
+lease in an early-exit byte loop. Equal zones now pass a single `memcmp`; a
+changed zone still runs the unchanged byte loop and reports the same first
+byte, field and journal event, then aborts. `MU_PERF_004_BASELINE=1` keeps the
+byte loop for every zone. No session state, RNG, draw or GL path changes.
+Verification: the session core/skills suites pass, including both existing
+lease-audit abort tests. A new test runs three scenarios (replicated class
+byte, the byte past the motion zone, and motion-zone-only writes) in both
+modes and requires identical audit lines; a fast path that skips all zones is
+caught. Controlled-clock full-frame pairs: 2,804/2,804 identical on the branch
+and again 2,804/2,804 on the source integrated with main `fa63719`
+(701 per scenario, all 32 scripted skill events).
+## Lease fast path timing (integrated source `fdad6c1`)
+Sequential 60-second window runs, 50 warm-up frames excluded, normal wall time
+and asynchronous presentation. Before is `--perf-004-baseline` (all PERF-004
+changes off, including the lease fast path) on the same binary. No Wine client
+ran, but other lanes' Python/clang jobs did: repeat 1 started at load 3.6-5.2
+(the 17:27 idle load was 1.3), repeat 2 at load 8-13. Neither is a quiet host.
+| Scenario (repeat) | Before fps | After fps | Before main CPU ms | After main CPU ms | Before logic ms | After logic ms | Before frame p99 ms | After frame p99 ms | Strict after |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| crowd40 (1) | 24.99 | 24.93 | 25.97 | 22.19 | 4.82 | 2.61 | 40.05 | 40.44 | pass |
+| crowd80 (1) | 24.56 | 23.18 | 36.82 | 32.78 | 7.46 | 4.04 | 45.92 | 82.76 | fail |
+| tormenta80 (1) | 22.93 | 24.78 | 40.24 | 32.55 | 7.87 | 3.84 | 84.90 | 51.39 | fail |
+| retina80 (1) | 15.52 | 20.37 | 56.76 | 40.34 | 10.13 | 4.58 | 72.09 | 56.43 | fail |
+| crowd80 (2) | 20.29 | 20.21 | 43.29 | 38.21 | 9.10 | 4.60 | 117.72 | 115.63 | fail |
+| tormenta80 (2) | 18.85 | 20.83 | 48.79 | 40.42 | 9.74 | 4.81 | 116.28 | 126.62 | fail |
+| retina80 (2) | 16.07 | 18.70 | 54.74 | 45.14 | 9.98 | 5.02 | 69.17 | 60.04 | fail |
+Main-thread CPU is lower in all seven pairs (3.8-16.4 ms) and logic time
+roughly halves in every pair; the lease fast path plausibly accounts for most of
+the logic drop (the baseline also restores serial poses and checked topology).
+Frames per second and tails follow host load more than the mode: crowd80 after
+in repeat 1 is the worst crowd80 run despite lower CPU. Strict 25 Hz acceptance
+still passes only crowd40. No acceptance, warning or quality limit changed.
+## What NATIVE-PERF-005 should measure next
+Start from a fresh baseline on a quiet host (load under 2, no other lane's
+builds, tests or Wine client), on the merged main, all four scenes in both
+modes, two counterbalanced repeats. Then, in this order:
+1. Per-frame correlation of slow frames with host state: run `powermetrics`
+   (CPU cluster frequency/residency) alongside one crowd80 run and check whether
+   >42 ms frames coincide with the ordered thread leaving the P-cluster or
+   lower frequency. All phases grow together in slow frames, which points there.
+2. Remaining main-thread CPU on crowd80/tormenta80 (after-mode 32-33 ms in
+   repeat 1): driver draw submission inside remote-player draws (texture-bind
+   flushes, about 1,100 samples) and terrain/swap driver semaphore waits.
+3. GFx advance (about 15% of main samples; Ruffle mouse picking 4% with a
+   stationary pointer) and the remaining self-time items: `getenv` inside every
+   `mu_scene_draw_model` (about 1%) and linear `mu_item_find` in remote-player
+   draws (about 1.4%).
+4. Retina80: GPU-bound time (swap 8 ms, GPU world interval about 29 ms) needs a
+   GPU-side measurement before any CPU change is expected to help.

@@ -1,6 +1,6 @@
 # Current status
 
-NATIVE-PERF-004 WIP: pose workers, exact topology cache and ordered GL capture; 25 Hz/pacing acceptance remains open. [Checks and limits](handoffs/NATIVE-PERF-004.md).
+NATIVE-PERF-004 (merged, acceptance open): pose workers, exact topology cache, ordered GL capture and a lease-audit fast path; main-thread CPU lower in all seven paired runs, 2,804/2,804 frame pairs identical; strict 25 Hz passes only crowd40. Next: NATIVE-PERF-005. [Checks and limits](handoffs/NATIVE-PERF-004.md).
 
 SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).
 

@@ -8328,5 +8328,823 @@
         }
       }
     }
+  },
+  "lease_paired_repeat1": {
+    "source": "fdad6c1 (branch b65d56a + main fa63719)",
+    "order": "crowd40 before/after, crowd80 after/before, tormenta80 before/after, retina80 after/before",
+    "other_host_work": "other lanes active; load_start recorded per run; no Wine client during these runs",
+    "reports": {
+      "crowd40-after": {
+        "load_start": [
+          3.64599609375,
+          5.27783203125,
+          6.43701171875
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "crowd40",
+        "fps": 24.932,
+        "frames": 1399,
+        "work_ms": {
+          "p50": 24.018,
+          "p90": 26.497,
+          "p95": 27.658,
+          "p99": 31.881,
+          "mean": 24.394
+        },
+        "frame_ms": {
+          "p50": 40.012,
+          "p90": 40.017,
+          "p95": 40.023,
+          "p99": 40.444,
+          "mean": 40.109
+        },
+        "phase_means_ms": {
+          "events": 0.037,
+          "logic": 2.608,
+          "terrain": 2.535,
+          "objects": 2.098,
+          "characters": 6.837,
+          "env": 0.075,
+          "particles": 0.203,
+          "effects": 0.128,
+          "gfx": 7.306,
+          "swap": 2.348,
+          "sleep": 15.716,
+          "cpu": 22.191,
+          "gpu_world": 12.022,
+          "gpu_gfx": 2.029,
+          "process_cpu": 27.038
+        },
+        "failures": [],
+        "regression_failures": [],
+        "vbo_uploads": 20286,
+        "vbo_failures": 0
+      },
+      "crowd40-before": {
+        "load_start": [
+          3.85400390625,
+          5.68994140625,
+          6.6640625
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "crowd40",
+        "fps": 24.989,
+        "frames": 1397,
+        "work_ms": {
+          "p50": 27.644,
+          "p90": 30.259,
+          "p95": 31.212,
+          "p99": 33.602,
+          "mean": 27.935
+        },
+        "frame_ms": {
+          "p50": 40.011,
+          "p90": 40.015,
+          "p95": 40.02,
+          "p99": 40.051,
+          "mean": 40.018
+        },
+        "phase_means_ms": {
+          "events": 0.035,
+          "logic": 4.817,
+          "terrain": 2.85,
+          "objects": 2.252,
+          "characters": 7.947,
+          "env": 0.073,
+          "particles": 0.2,
+          "effects": 0.13,
+          "gfx": 7.152,
+          "swap": 2.279,
+          "sleep": 12.082,
+          "cpu": 25.975,
+          "gpu_world": 13.741,
+          "gpu_gfx": 1.972,
+          "process_cpu": 29.185
+        },
+        "failures": [],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      },
+      "crowd80-after": {
+        "load_start": [
+          3.59375,
+          4.94189453125,
+          6.2294921875
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "crowd80",
+        "fps": 23.178,
+        "frames": 1256,
+        "work_ms": {
+          "p50": 33.509,
+          "p90": 51.929,
+          "p95": 67.59,
+          "p99": 82.76,
+          "mean": 37.226
+        },
+        "frame_ms": {
+          "p50": 40.013,
+          "p90": 51.933,
+          "p95": 67.593,
+          "p99": 82.763,
+          "mean": 43.144
+        },
+        "phase_means_ms": {
+          "events": 0.061,
+          "logic": 4.036,
+          "terrain": 3.103,
+          "objects": 2.319,
+          "characters": 14.7,
+          "env": 0.083,
+          "particles": 0.227,
+          "effects": 0.146,
+          "gfx": 9.078,
+          "swap": 2.541,
+          "sleep": 5.918,
+          "cpu": 32.776,
+          "gpu_world": 20.565,
+          "gpu_gfx": 1.996,
+          "process_cpu": 39.754
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 27426,
+        "vbo_failures": 0
+      },
+      "crowd80-before": {
+        "load_start": [
+          5.17333984375,
+          5.0625,
+          6.1728515625
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "crowd80",
+        "fps": 24.555,
+        "frames": 1325,
+        "work_ms": {
+          "p50": 39.086,
+          "p90": 42.568,
+          "p95": 43.666,
+          "p99": 45.921,
+          "mean": 39.367
+        },
+        "frame_ms": {
+          "p50": 40.015,
+          "p90": 42.57,
+          "p95": 43.668,
+          "p99": 45.923,
+          "mean": 40.724
+        },
+        "phase_means_ms": {
+          "events": 0.06,
+          "logic": 7.455,
+          "terrain": 2.956,
+          "objects": 2.382,
+          "characters": 15.509,
+          "env": 0.079,
+          "particles": 0.221,
+          "effects": 0.144,
+          "gfx": 7.652,
+          "swap": 2.368,
+          "sleep": 1.357,
+          "cpu": 36.822,
+          "gpu_world": 21.296,
+          "gpu_gfx": 2.052,
+          "process_cpu": 40.322
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      },
+      "retina80-after": {
+        "load_start": [
+          4.7451171875,
+          4.87841796875,
+          5.8603515625
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "retina80",
+        "fps": 20.368,
+        "frames": 1100,
+        "work_ms": {
+          "p50": 48.686,
+          "p90": 53.249,
+          "p95": 54.318,
+          "p99": 56.424,
+          "mean": 49.094
+        },
+        "frame_ms": {
+          "p50": 48.688,
+          "p90": 53.254,
+          "p95": 54.322,
+          "p99": 56.426,
+          "mean": 49.097
+        },
+        "phase_means_ms": {
+          "events": 0.078,
+          "logic": 4.577,
+          "terrain": 5.985,
+          "objects": 7.749,
+          "characters": 12.801,
+          "env": 0.045,
+          "particles": 1.668,
+          "effects": 0.138,
+          "gfx": 7.818,
+          "swap": 8.068,
+          "cpu": 40.339,
+          "gpu_world": 26.792,
+          "gpu_gfx": 7.687,
+          "process_cpu": 48.549
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 32200,
+        "vbo_failures": 0
+      },
+      "retina80-before": {
+        "load_start": [
+          4.005859375,
+          4.58203125,
+          5.6708984375
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "retina80",
+        "fps": 15.522,
+        "frames": 824,
+        "work_ms": {
+          "p50": 64.831,
+          "p90": 68.709,
+          "p95": 69.731,
+          "p99": 72.085,
+          "mean": 64.421
+        },
+        "frame_ms": {
+          "p50": 64.834,
+          "p90": 68.712,
+          "p95": 69.733,
+          "p99": 72.088,
+          "mean": 64.424
+        },
+        "phase_means_ms": {
+          "events": 0.087,
+          "logic": 10.133,
+          "terrain": 6.699,
+          "objects": 10.399,
+          "characters": 17.093,
+          "env": 0.053,
+          "particles": 1.628,
+          "effects": 0.181,
+          "gfx": 10.078,
+          "swap": 7.877,
+          "cpu": 56.755,
+          "gpu_world": 34.627,
+          "gpu_gfx": 7.403,
+          "process_cpu": 61.596
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      },
+      "tormenta80-after": {
+        "load_start": [
+          4.189453125,
+          4.67724609375,
+          5.8642578125
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "tormenta80",
+        "fps": 24.779,
+        "frames": 1341,
+        "work_ms": {
+          "p50": 34.784,
+          "p90": 39.444,
+          "p95": 41.416,
+          "p99": 51.386,
+          "mean": 35.458
+        },
+        "frame_ms": {
+          "p50": 40.012,
+          "p90": 40.038,
+          "p95": 41.418,
+          "p99": 51.39,
+          "mean": 40.357
+        },
+        "phase_means_ms": {
+          "events": 0.046,
+          "logic": 3.839,
+          "terrain": 2.466,
+          "objects": 4.423,
+          "characters": 13.166,
+          "env": 0.048,
+          "particles": 0.606,
+          "effects": 0.148,
+          "gfx": 7.57,
+          "swap": 2.408,
+          "sleep": 4.899,
+          "cpu": 32.548,
+          "gpu_world": 20.9,
+          "gpu_gfx": 2.065,
+          "process_cpu": 39.168
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 34116,
+        "vbo_failures": 0
+      },
+      "tormenta80-before": {
+        "load_start": [
+          4.29150390625,
+          4.857421875,
+          6.0146484375
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "tormenta80",
+        "fps": 22.928,
+        "frames": 1242,
+        "work_ms": {
+          "p50": 41.456,
+          "p90": 46.185,
+          "p95": 50.21,
+          "p99": 84.893,
+          "mean": 43.369
+        },
+        "frame_ms": {
+          "p50": 41.458,
+          "p90": 46.188,
+          "p95": 50.211,
+          "p99": 84.897,
+          "mean": 43.615
+        },
+        "phase_means_ms": {
+          "events": 0.061,
+          "logic": 7.87,
+          "terrain": 2.869,
+          "objects": 4.753,
+          "characters": 15.729,
+          "env": 0.048,
+          "particles": 0.579,
+          "effects": 0.165,
+          "gfx": 8.064,
+          "swap": 2.448,
+          "sleep": 0.246,
+          "cpu": 40.24,
+          "gpu_world": 23.988,
+          "gpu_gfx": 2.121,
+          "process_cpu": 43.647
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      }
+    }
+  },
+  "lease_paired_repeat2": {
+    "source": "fdad6c1 (branch b65d56a + main fa63719)",
+    "order": "crowd80 before/after, tormenta80 after/before, retina80 before/after",
+    "other_host_work": "other lanes active; load_start recorded per run; no Wine client during these runs",
+    "reports": {
+      "crowd80-after": {
+        "load_start": [
+          8.25439453125,
+          6.26513671875,
+          6.1845703125
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "crowd80",
+        "fps": 20.209,
+        "frames": 1090,
+        "work_ms": {
+          "p50": 37.159,
+          "p90": 80.593,
+          "p95": 91.964,
+          "p99": 115.631,
+          "mean": 46.256
+        },
+        "frame_ms": {
+          "p50": 40.017,
+          "p90": 80.597,
+          "p95": 91.966,
+          "p99": 115.634,
+          "mean": 49.484
+        },
+        "phase_means_ms": {
+          "events": 0.082,
+          "logic": 4.6,
+          "terrain": 4.081,
+          "objects": 2.844,
+          "characters": 17.921,
+          "env": 0.12,
+          "particles": 0.295,
+          "effects": 0.203,
+          "gfx": 12.643,
+          "swap": 2.651,
+          "sleep": 3.227,
+          "cpu": 38.206,
+          "gpu_world": 24.773,
+          "gpu_gfx": 1.777,
+          "process_cpu": 45.555
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 23940,
+        "vbo_failures": 0
+      },
+      "crowd80-before": {
+        "load_start": [
+          9.03955078125,
+          5.93896484375,
+          6.078125
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "crowd80",
+        "fps": 20.291,
+        "frames": 1088,
+        "work_ms": {
+          "p50": 42.426,
+          "p90": 79.289,
+          "p95": 94.694,
+          "p99": 117.723,
+          "mean": 49.046
+        },
+        "frame_ms": {
+          "p50": 42.429,
+          "p90": 79.291,
+          "p95": 94.697,
+          "p99": 117.725,
+          "mean": 49.283
+        },
+        "phase_means_ms": {
+          "events": 0.086,
+          "logic": 9.101,
+          "terrain": 3.719,
+          "objects": 2.876,
+          "characters": 18.628,
+          "env": 0.102,
+          "particles": 0.284,
+          "effects": 0.155,
+          "gfx": 11.076,
+          "swap": 2.524,
+          "sleep": 0.237,
+          "cpu": 43.288,
+          "gpu_world": 25.28,
+          "gpu_gfx": 1.858,
+          "process_cpu": 47.1
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      },
+      "retina80-after": {
+        "load_start": [
+          13.0029296875,
+          9.259765625,
+          7.49072265625
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "retina80",
+        "fps": 18.702,
+        "frames": 991,
+        "work_ms": {
+          "p50": 53.673,
+          "p90": 56.655,
+          "p95": 57.296,
+          "p99": 60.037,
+          "mean": 53.468
+        },
+        "frame_ms": {
+          "p50": 53.675,
+          "p90": 56.658,
+          "p95": 57.299,
+          "p99": 60.039,
+          "mean": 53.471
+        },
+        "phase_means_ms": {
+          "events": 0.085,
+          "logic": 5.019,
+          "terrain": 6.39,
+          "objects": 8.726,
+          "characters": 14.37,
+          "env": 0.053,
+          "particles": 1.7,
+          "effects": 0.154,
+          "gfx": 9.105,
+          "swap": 7.678,
+          "cpu": 45.139,
+          "gpu_world": 29.657,
+          "gpu_gfx": 7.238,
+          "process_cpu": 54.352
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 29148,
+        "vbo_failures": 0
+      },
+      "retina80-before": {
+        "load_start": [
+          11.01611328125,
+          8.4560546875,
+          7.10791015625
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "retina80",
+        "fps": 16.072,
+        "frames": 848,
+        "work_ms": {
+          "p50": 62.49,
+          "p90": 65.867,
+          "p95": 66.82,
+          "p99": 69.167,
+          "mean": 62.218
+        },
+        "frame_ms": {
+          "p50": 62.493,
+          "p90": 65.872,
+          "p95": 66.823,
+          "p99": 69.172,
+          "mean": 62.221
+        },
+        "phase_means_ms": {
+          "events": 0.087,
+          "logic": 9.98,
+          "terrain": 6.462,
+          "objects": 10.069,
+          "characters": 16.38,
+          "env": 0.051,
+          "particles": 1.617,
+          "effects": 0.165,
+          "gfx": 9.589,
+          "swap": 7.615,
+          "cpu": 54.741,
+          "gpu_world": 33.498,
+          "gpu_gfx": 7.16,
+          "process_cpu": 59.269
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      },
+      "tormenta80-after": {
+        "load_start": [
+          9.60205078125,
+          6.931640625,
+          6.43115234375
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": false,
+        "scenario": "tormenta80",
+        "fps": 20.834,
+        "frames": 1124,
+        "work_ms": {
+          "p50": 41.108,
+          "p90": 65.853,
+          "p95": 87.7,
+          "p99": 126.614,
+          "mean": 46.975
+        },
+        "frame_ms": {
+          "p50": 41.134,
+          "p90": 65.856,
+          "p95": 87.703,
+          "p99": 126.618,
+          "mean": 47.999
+        },
+        "phase_means_ms": {
+          "events": 0.157,
+          "logic": 4.811,
+          "terrain": 3.663,
+          "objects": 5.134,
+          "characters": 16.995,
+          "env": 0.077,
+          "particles": 0.736,
+          "effects": 0.215,
+          "gfx": 11.927,
+          "swap": 2.356,
+          "sleep": 1.023,
+          "cpu": 40.418,
+          "gpu_world": 26.076,
+          "gpu_gfx": 1.748,
+          "process_cpu": 47.786
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 28176,
+        "vbo_failures": 0
+      },
+      "tormenta80-before": {
+        "load_start": [
+          13.09716796875,
+          8.20654296875,
+          6.927734375
+        ],
+        "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+        "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+        "perf_004_baseline": true,
+        "scenario": "tormenta80",
+        "fps": 18.854,
+        "frames": 1015,
+        "work_ms": {
+          "p50": 49.626,
+          "p90": 58.336,
+          "p95": 82.265,
+          "p99": 116.273,
+          "mean": 53.038
+        },
+        "frame_ms": {
+          "p50": 49.629,
+          "p90": 58.338,
+          "p95": 82.268,
+          "p99": 116.276,
+          "mean": 53.04
+        },
+        "phase_means_ms": {
+          "events": 0.087,
+          "logic": 9.745,
+          "terrain": 3.621,
+          "objects": 5.775,
+          "characters": 18.852,
+          "env": 0.055,
+          "particles": 0.57,
+          "effects": 0.194,
+          "gfx": 11.185,
+          "swap": 2.308,
+          "cpu": 48.787,
+          "gpu_world": 28.617,
+          "gpu_gfx": 1.811,
+          "process_cpu": 52.404
+        },
+        "failures": [
+          "capped fps outside 24.8..25.2",
+          "work p95 > 38 ms or p99 > 40 ms",
+          "frame pacing p95 > 41 ms or p99 > 42 ms"
+        ],
+        "regression_failures": [],
+        "vbo_uploads": 0,
+        "vbo_failures": 0
+      }
+    }
+  },
+  "lease_frames": {
+    "branch_source": "b65d56a",
+    "integrated_source": "fdad6c1",
+    "frames_per_scenario": 701,
+    "branch": {
+      "binary_sha256": "3bb2702f1f2f7d40b8183b6888c4c7d473f9ec7b459c47c2474a0c87582308a7",
+      "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+      "scenarios": {
+        "crowd40": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        },
+        "crowd80": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        },
+        "tormenta80": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        },
+        "retina80": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        }
+      }
+    },
+    "integrated": {
+      "binary_sha256": "990d5d1ceee419230efe69a6a185d24717f54521d40f13f71a904f579529c673",
+      "gfx_sha256": "a7440a9ad64950d5e88ed3e27b116eb3b739036b543247f69cdc7cd4b6db9d3a",
+      "scenarios": {
+        "crowd40": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        },
+        "crowd80": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        },
+        "tormenta80": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        },
+        "retina80": {
+          "frames": 701,
+          "identical": 701,
+          "differing": []
+        }
+      }
+    }
+  },
+  "post_capture_profile": {
+    "source": "c394bb3 (runtime 4bd5d38)",
+    "scenario": "crowd80",
+    "window": "8 s at 1 ms after frame 650",
+    "main_thread_samples": 4559,
+    "inclusive": {
+      "world_draw": 2605,
+      "remote_player_draw": 1120,
+      "terrain_session_end": 505,
+      "shadows": 376,
+      "objects": 274,
+      "gfx_total": 1135,
+      "gfx_advance": 673,
+      "gfx_draw": 379,
+      "ruffle_mouse_pick": 182,
+      "frame_logic": 641,
+      "session_ticks": 250,
+      "pose_team_join": 239,
+      "swap": 157
+    },
+    "driver_waits": {
+      "terrain_flush_semaphore": 204,
+      "swap_semaphore": 141
+    },
+    "self": {
+      "mu_session_sim_end": 179,
+      "mu_item_find": 63,
+      "getenv_in_scene_draw": 44,
+      "mu_model_transform": 517
+    },
+    "classification": "main-thread CPU (draw submission + logic) at 1280x800; GPU-bound time added at retina"
   }
 }

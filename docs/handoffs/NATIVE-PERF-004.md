@@ -4,25 +4,43 @@ Native-only offline performance work. No original client or launcher was used.
 [Finding and before/after tables](../research/native-performance-004.md),
 [reviewed aggregate evidence](../research/native-performance-004-summary.json).
 
-## State at the owner's 2026-10-28 hard stop
+## Final state (2026-10-28 resume by Claude Opus 5.5)
 
-- Branch: `codex/native-perf-004`, pushed to `origin`; worktree:
-  `~/Documents/MTM/worktrees/native-perf-004`.
-- Runtime source checkpoint: `4bd5d38`; subsequent checkpoint changes are
-  documentation/evidence only unless this section says otherwise.
-- Integrated main is `26018b4`, merged in `4f37645`. Later main changes have
-  **not** been integrated. An earlier fetch observed main `23f3e08` (eight later
-  merges). This is not a current-main final gate or release.
-- No PR, no merge to main. The owner explicitly requested no merge today.
-  Strict all-scene 25 Hz acceptance remains open.
-- No merge lock is held by this lane. Its queue entry was removed at 14:02
-  under the owner's hard-stop instruction. Read the current common brief and
-  queue before a future final sequence; append at the tail when ready.
-- The eight-run timing matrix and clean build are complete. The current-source
-  Mac script passes 1,386 tests with 181 explicit skips across 38 suites, 9/9
-  fixtures, and an audit of 1,514 files with zero rejections. The rebuilt candidate
-  matches all 2,804 full-frame pairs, 701 per scenario, with successful uploads
-  and zero fallback. This WIP gate was outside a final merge sequence.
+- Branch `codex/native-perf-004`, merged to main through the PR named in
+  `docs/status.md` after the locked final sequence (latest main merged, full
+  Mac gate, `gh pr merge --merge`). Worktree, local branch and lane scratch are
+  removed after merge.
+- Strict all-scene 25 Hz acceptance is **not** met: only crowd40 passes. This
+  merge ships the measured CPU reductions and the profile; pacing moves to
+  NATIVE-PERF-005 (exact next measurements below).
+- Resume work: a post-frame-650 crowd80 sample (4,559 main-thread samples)
+  classifies the 1280x800 limit as main-thread CPU (draw submission and logic),
+  with GL driver semaphore waits in the terrain flush and swap as a secondary
+  cost and GPU-bound time added at retina. Slow frames grow in every phase at
+  once, which points at host contention or core/frequency placement rather than
+  one hot routine.
+- One measured fix: `mu_session_sim_end` (about 4% of main samples, self time)
+  compared every replicated session byte after each lease in a byte loop. Equal
+  zones now pass one `memcmp`; a change still runs the unchanged byte loop and
+  reports the same first byte, then aborts. `MU_PERF_004_BASELINE=1` restores
+  the byte loop. A new test checks identical audit lines in both modes over
+  three scenarios; a skip-everything mutant is caught.
+- Controlled-clock full-frame pairs: 2,804/2,804 identical on the branch
+  (`b65d56a`) and 2,804/2,804 on the source integrated with main `fa63719`.
+
+### Before/after fps per scene (integrated `fdad6c1`, same binary)
+
+| Scene | Before fps (r1 / r2) | After fps (r1 / r2) | Main CPU ms before → after (r1) | Strict after |
+|---|---:|---:|---:|---|
+| crowd40 | 24.99 / - | 24.93 / - | 25.97 → 22.19 | pass |
+| crowd80 | 24.56 / 20.29 | 23.18 / 20.21 | 36.82 → 32.78 | fail |
+| tormenta80 | 22.93 / 18.85 | 24.78 / 20.83 | 40.24 → 32.55 | fail |
+| retina80 | 15.52 / 16.07 | 20.37 / 18.70 | 56.76 → 40.34 | fail |
+
+Repeat 1 started at load 3.6-5.2, repeat 2 at 8-13 (other lanes' Python/clang
+jobs; no Wine client). Neither host was quiet; tails track host load. The
+capture-only pair at the 14:45 stop measured 24.90/24.96 fps. Full tables,
+logic times and p99s are in the [finding](../research/native-performance-004.md).
 
 ## Retained implementation
 
@@ -94,70 +112,19 @@ None of those production implementations remains. The ordered capture candidate
 is a separate implementation; its full matrix and capture-only pair remain WIP
 evidence, not all-scene acceptance.
 
-## Resume inputs and exact next step
+## Next: NATIVE-PERF-005
 
-Private lane input directory:
-`~/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/`.
-The `data` directory links to existing objects, language tables and converted GFx
-movies in other scratch lanes. Do not delete their targets. The installed root is
-`~/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix`.
-Worktree `evidence` and `tools/python` are untracked borrowed links; never stage.
-
-The eight-run ordered-capture matrix is complete: all warning checks pass, but
-strict optimized acceptance passes only crowd40. The retained implementation is
-WIP; investigate the remaining 80-player pacing failures. The first next step
-is a post-capture sampling profile after frame 650, correlated with the saved
-crowd80 tail timings. The capture-only off/on pair measures
-24.90/24.96 fps, 27.02/26.04 ms main CPU, and 43.50/40.42 ms frame p99.
-Only on passes strict acceptance in this repeat; the full optimized matrix still
-fails all three 80-player scenes. The complete table is in the finding. Reproduce with:
-
-```sh
-./tools/python/bin/python native/tools/compare_stress.py \
-  --game-root "$HOME/Library/Application Support/MuTheMatrix/prefix/drive_c/MuTheMatrix" \
-  --data "$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/data" \
-  --gfx-lib "$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/libmugfx.dylib" \
-  --out "$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/resume-frames" \
-  --frames 701
-```
-
-Build with `make -C native world client`. Timing uses `native/tools/bench_stress.py`
-with the same three input arguments, a fresh external `--out`, `--gpu-timing`,
-60 seconds per scene, and normal asynchronous presentation. Add
-`--perf-004-baseline` for the full before path, or `--perf-004-vbo-baseline` for
-capture-only ablation. Do not overlap timing with this lane's builds/tests/profiles.
-
-Once targets are met, queue fairly, acquire the lock, merge latest main keeping
-both lanes' hooks/rows, clean-build, complete `bash scripts/local-macos-ci.sh`,
-repeat full frames and timing on the integrated source, then PR/merge. Release
-only this lane's lock. After merge delete all owned scratch/build outputs,
-worktree and local branch. The earlier merge begun after a failed lock acquisition
-was immediately aborted; the recorded `4f37645` integration/gate was lock-held.
-
-
-## Hard-stop cleanup and resume
-
-Keep this worktree and branch. Owned bulk renders, raw reports, C build outputs,
-the Rust target cache and the patched Ruffle worktree were removed before handback.
-Only the existing data links, one 14 MiB `libmugfx.dylib`, a borrowed pristine
-Ruffle link, and a small `resume/` folder remain in lane scratch. Nothing in the
-borrowed data/evidence/Python targets is deleted. The library hash is recorded in
-the aggregate; it reproduces this checkpoint, not unintegrated main changes.
-
-`resume/` retains the completed gate log (compressed), the long frame hash report,
-the previous pre-capture profile (compressed), final capture-only crowd80 timing
-inputs (compressed), and `profile-capture.py`. From the worktree, rebuild world
-then run that small profiling script with the repo Python for the first next
-measurement. It uses the same full-quality scene and samples eight seconds after
-frame 650. No post-capture sample has been collected yet.
-
-The Rust `mugfx-shot` helper/cache are removed; rebuild with
-`MU_GFX_DEPS="$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/deps" sh native/gfx/fetch-ruffle.sh` and
-`MU_GFX_DEPS="$HOME/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/deps" sh native/gfx/build-mugfx.sh` when reproducing
-the gate's optional built-binary coverage. Existing cached pristine source is
-borrowed through the retained link. Never delete that target.
-
-The owner requires the WIP checkpoint pushed by 14:40 and all agents stopped by
-14:45 CDT. No lock or queue slot remains assigned to this lane. A future release
-needs a new queue entry, latest-main integration, the full local gate and renewed
-full-quality frame/timing acceptance.
+Start from a fresh baseline on the merged main, on a quiet host (load under 2,
+no other lane's builds/tests/Wine), all four scenes in both modes, two
+counterbalanced repeats, with `native/tools/bench_stress.py --gpu-timing
+--seconds 60` and `--perf-004-baseline` for the before path. Then measure, in
+order: (1) `powermetrics` CPU-cluster residency/frequency alongside one crowd80
+run, correlated per frame with >42 ms frames; (2) driver submission inside
+remote-player draws (texture-bind flushes) and the terrain/swap semaphore
+waits; (3) GFx advance (Ruffle mouse picking with a stationary pointer), the
+per-draw `getenv` in `mu_scene_draw_model` and linear `mu_item_find`;
+(4) a GPU-side measurement for retina80 before any CPU change there.
+Inputs are the same as before: the converted GFx movies, language tables and
+objects under other lanes' scratch (`gfx3/movies`, `quest2/lang`,
+`objects/live/plain`) plus a `libmugfx.dylib` built with
+`native/gfx/build-mugfx.sh`. This lane's own scratch is deleted.
