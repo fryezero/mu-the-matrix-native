@@ -75,7 +75,7 @@ long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32
         return 0;
     if (type == 0x389c || type == 0x389d)
         return mu_renderchar_skin_effects(model, bones, type, p);
-    if (type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
+    if (type == 0x0afa || type == 0x0eed || type == 0x0eee || type == 0x0af9 || type == 0x12f9 || type == 0x14f0 || type == 0x12fb || type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe) {
         mu_rc_link_effect effects[20];
         int32_t n = 0;
         if (mu_rc_link_effects_time(type, p->world_time, link_random, p, effects, 20, &n) != MU_RC_OK)
@@ -132,7 +132,7 @@ void mu_renderchar_default_env(mu_renderchar_env *env)
     env->quality = 5;
     env->glow_color[0] = env->glow_color[1] = env->glow_color[2] = 1.0f;
     env->render_type = 2;
-    env->lang = mu_lang_shared();
+    env->lang = NULL; /* caller supplies its runtime tables */
 }
 
 static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_renderchar_env *env, const float light[3],

@@ -112,6 +112,9 @@ typedef struct mu_world_items_stats {
 } mu_world_items_stats;
 
 typedef struct mu_world_items {
+    struct mu_lang *lang;
+    char name_ring[8][48], entry_name[32];
+    unsigned name_next;
     mu_world_items_config config;
     mu_gi_item pool[MU_GI_ITEMS];
     int32_t created_step[MU_GI_ITEMS];

@@ -33,6 +33,7 @@ static int kind(void *u, int slot, int value) { (void)u; return slot == 0 && val
 
 int main(int argc, char **argv)
 {
+    mu_skill_demo model = {0};
     if (argc < 3) {
         fprintf(stderr, "usage: %s LANG_DIR GAME_ROOT|- [OP ...]\n", argv[0]);
         return 2;
@@ -51,7 +52,7 @@ int main(int argc, char **argv)
         const char *op = argv[i];
         int a = i + 1 < argc ? atoi(argv[i + 1]) : 0;
         if (!strcmp(op, "demo")) {
-            printf("{\"demo\": %d}\n", mu_skill_book_demo(b, a));
+            printf("{\"demo\": %d}\n", mu_skill_book_demo(&model, b, a));
             mu_skill_book_stamp_open(b, &stamp);
             i++;
         } else if (!strcmp(op, "stats") && i + 7 < argc) {
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
         } else if (!strcmp(op, "cancel")) {
             mu_skill_book_stamp_cancel(b, &stamp);
         } else if (!strcmp(op, "demofile") && i + 1 < argc) {
-            printf("{\"demofile\": %d}\n", mu_skill_demo_load(argv[i + 1]));
+            printf("{\"demofile\": %d}\n", mu_skill_demo_load(&model, argv[i + 1]));
             i++;
         } else if (!strcmp(op, "learn") || !strcmp(op, "forget")) {
             printf("{\"%s\": %d}\n", op, mu_skill_book_demo_learn(b, a, op[0] == 'f'));

@@ -50,7 +50,7 @@ static void marker_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
     mu_render_backend backend;
     mu_gl_backend_bind(&plain, &backend);
     marker(a, &backend);
-    mu_perf_end(MU_PERF_ENV, d->perf);
+    mu_perf_end(a->perf, MU_PERF_ENV, d->perf);
 }
 #endif
 

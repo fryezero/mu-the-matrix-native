@@ -52,6 +52,7 @@ static const char *const TEXT_566 = "More than 20 years Online";
 static const char *const TEXT_567 = "enjoy our community!";
 
 struct mu_shell {
+    mu_lang *lang;
     mu_shell_config cfg;
     mu_shell_platform platform;
     mu_scenemgr_globals g;
@@ -235,8 +236,8 @@ static void ui_close(mu_shell *s)
 
 static const char *global_text(void *user, int32_t index)
 {
-    (void)user;
-    const char *text = mu_lang_text(mu_lang_shared(), index);
+    mu_shell *s = user;
+    const char *text = mu_lang_text(s->lang, index);
     if (text)
         return text;
     switch (index) {
@@ -505,8 +506,8 @@ static void open_login(mu_shell *s)
 
 static const char *charsel_text(void *user, int32_t index)
 {
-    (void)user;
-    return mu_lang_text(mu_lang_shared(), index);
+    mu_shell *s = user;
+    return mu_lang_text(s->lang, index);
 }
 
 /* ---- NATIVE-CHARCREATE-001: the OFFLINE DEMO answers to create, delete and the menu's requests ---- */
@@ -608,6 +609,7 @@ static int open_charsel(mu_shell *s)
         gc.height = s->cfg.height;
         gc.scale = s->cfg.gfx_scale;
         gc.text = charsel_text;
+        gc.text_user = s;
         gc.log_path = s->cfg.gfx_log;
         gc.create = 1;   /* NATIVE-CHARCREATE-001 */
         gc.game_root = s->cfg.root;
@@ -1147,6 +1149,7 @@ mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *p
         snprintf(error, error_size, "out of memory");
         return NULL;
     }
+    s->lang = mu_lang_load_default();
     s->cfg = *config;
     if (!s->cfg.font)
         s->cfg.font = "Tahoma";
@@ -1154,6 +1157,7 @@ mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *p
         s->platform = *platform;
     if (config->session_path) {
         if (mu_offline_session_load(&s->session, config->session_path, config->root, error, error_size)) {
+            mu_lang_free(s->lang);
             free(s);
             return NULL;
         }
@@ -1168,6 +1172,7 @@ mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *p
         localtime_r(&t, &tm);
         strftime(today, sizeof today, "%Y-%m-%d", &tm);
         if (mu_offline_session_use_store(&s->session, config->store_path, today, error, error_size)) {
+            mu_lang_free(s->lang);
             free(s);
             return NULL;
         }
@@ -1214,6 +1219,7 @@ void mu_shell_free(mu_shell *s)
     mu_ui_raster_free(&s->raster);
     if (s->audio)
         mu_audio_host_free(s->audio);
+    mu_lang_free(s->lang);
     free(s);
 }
 
@@ -1463,8 +1469,8 @@ static void overlay_gpu(mu_shell *s)
         mu_ui_begin_bitmap(&s->state);
         mu_ui_login_text strings;
         memset(&strings, 0, sizeof strings);
-        strings.text454 = mu_lang_text_or(mu_lang_shared(), 454, TEXT_454);
-        strings.text455 = mu_lang_text_or(mu_lang_shared(), 455, TEXT_455);
+        strings.text454 = mu_lang_text_or(s->lang, 454, TEXT_454);
+        strings.text455 = mu_lang_text_or(s->lang, 455, TEXT_455);
         strings.format456 = "Ver %s";
         for (int i = 0; i < 5; ++i)
             strings.version_bytes[i] = (uint8_t)("10000"[i] + i + 1);
@@ -1605,8 +1611,8 @@ void mu_shell_overlay(mu_shell *s, uint8_t *rgba)
         mu_ui_begin_bitmap(&s->state);
         mu_ui_login_text strings;
         memset(&strings, 0, sizeof strings);
-        strings.text454 = mu_lang_text_or(mu_lang_shared(), 454, TEXT_454);
-        strings.text455 = mu_lang_text_or(mu_lang_shared(), 455, TEXT_455);
+        strings.text454 = mu_lang_text_or(s->lang, 454, TEXT_454);
+        strings.text455 = mu_lang_text_or(s->lang, 455, TEXT_455);
         strings.format456 = "Ver %s";   /* GlobalText[456] is a format: kept fixed in the shell */
         for (int i = 0; i < 5; ++i)
             strings.version_bytes[i] = (uint8_t)("10000"[i] + i + 1);

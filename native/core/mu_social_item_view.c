@@ -87,8 +87,8 @@ static int format(char out[256], const char *pattern, const arg *args, size_t n)
     out[used] = 0;
     return 1;
 }
-static const char *gt(int id, const char *fallback) {
-    return mu_lang_text_or(mu_lang_shared(), id, fallback);
+static const char *gt(const mu_social_item_view *v, int id, const char *fallback) {
+    return mu_lang_text_or(v->lang, id, fallback);
 }
 static void line(mu_social_item_view *v, int color, const char *text) {
     if (!text || !*text)
@@ -137,7 +137,7 @@ static void present_line(mu_social_item_view *v, int color, const char *pattern,
                          const mu_social_present_args *p, const char *family) {
     if (p->mode == 2) {
         for (int i = 0; i < p->count; i++)
-            line(v, color, gt(p->global_text[i], ""));
+            line(v, color, gt(v, p->global_text[i], ""));
         return;
     }
     if (p->mode != 1)
@@ -145,7 +145,7 @@ static void present_line(mu_social_item_view *v, int color, const char *pattern,
     arg a[3];
     for (int i = 0; i < p->count; i++)
         a[i] = p->kind[i] == 1   ? ar(p->real[i])
-               : p->kind[i] == 3 ? as(gt(p->integer[i], ""))
+               : p->kind[i] == 3 ? as(gt(v, p->integer[i], ""))
                                  : ai(p->integer[i]);
     formatted(v, color, pattern, a, (size_t)p->count, family);
 }
@@ -184,7 +184,7 @@ static void display_line(mu_social_item_view *v, int color, const char *pattern,
     arg args[2];
     size_t n = 0;
     if (d->kind == 3 || d->kind == 4)
-        args[n++] = as(gt(d->label, ""));
+        args[n++] = as(gt(v, d->label, ""));
     if (d->kind == 1 || d->kind == 3)
         args[n++] = ai(d->integer);
     if (d->kind == 2 || d->kind == 4)
@@ -195,10 +195,10 @@ static void sockets(const mu_social_item_tables *t, const mu_social_item_hero *h
     mu_social_item_decoded *d = &v->decoded;
     if (!d->socket_count)
         return;
-    line(v, 6, gt(0xa5a, "Socket options"));
+    line(v, 6, gt(v, 0xa5a, "Socket options"));
     if (d->seed_index[0] == 46) {
         arg a = ai(v->wire.code / 512 == 4 ? 5 : 3);
-        formatted(v, 1, gt(0x1336, "Socket attack option %d"), &a, 1, "Socket");
+        formatted(v, 1, gt(v, 0x1336, "Socket attack option %d"), &a, 1, "Socket");
         return;
     }
     for (int i = 0; i < d->socket_count && i < 5; i++) {
@@ -206,7 +206,7 @@ static void sockets(const mu_social_item_tables *t, const mu_social_item_hero *h
         snprintf(prefix, sizeof prefix, "Socket %d", i + 1);
         if (d->seed_index[i] == 255) {
             char text[256];
-            snprintf(text, sizeof text, "%s: %s", prefix, gt(0xa5c, "Empty socket"));
+            snprintf(text, sizeof text, "%s: %s", prefix, gt(v, 0xa5c, "Empty socket"));
             line(v, 10, text);
             continue;
         }
@@ -228,14 +228,14 @@ static void sockets(const mu_social_item_tables *t, const mu_social_item_hero *h
             snprintf(val, sizeof val, "%3.1f", value.real);
         else
             snprintf(val, sizeof val, "%d%s", value.integer, row.value_type == 2 ? "%" : "");
-        snprintf(text, sizeof text, "%s: %.80s %.100s %s", prefix, gt(0xa4f + row.element, ""), row.name,
+        snprintf(text, sizeof text, "%s: %.80s %.100s %s", prefix, gt(v, 0xa4f + row.element, ""), row.name,
                  val);
         line(v, 1, text);
     }
     if (d->socket_bonus < 50) {
         mu_social_socket_row row;
         mu_social_display_value value;
-        line(v, 6, gt(0xa60, "Socket bonus"));
+        line(v, 6, gt(v, 0xa60, "Socket bonus"));
         if (mu_social_socket_get(t, 1, d->socket_bonus, &row) &&
             mu_social_socket_display((int8_t)row.value_type, (float)row.values[0], h->hp_known, h->max_hp,
                                      h->mp_known, h->max_mp, &value)) {
@@ -268,7 +268,7 @@ static void guardian(const mu_social_item_tables *t, mu_social_item_view *v) {
     mu_social_present_env env = {(void *)t, present_formula};
     for (int b = 0; b < 2; b++) {
         if (b && nb)
-            line(v, 3, gt(0x1573, "Guardian bonus options"));
+            line(v, 3, gt(v, 0x1573, "Guardian bonus options"));
         for (int i = 0; i < (b ? nb : n); i++) {
             mu_social_guardian_entry *entry = b ? &bonus[i] : &ordinary[i];
             mu_social_present_args args;
@@ -285,9 +285,9 @@ static void guardian(const mu_social_item_tables *t, mu_social_item_view *v) {
                 present_line(v, b ? 12 : 1, text ? text : "", &args, "Guardian option");
         }
     }
-    line(v, 1, gt(0xc34, "Guardian options"));
+    line(v, 1, gt(v, 0xc34, "Guardian options"));
     if (v->wire.durability <= 50)
-        line(v, 2, gt(0x15a4, "Guardian durability is low"));
+        line(v, 2, gt(v, 0x15a4, "Guardian durability is low"));
 }
 static void artifacts(const mu_social_item_tables *t, mu_social_item_view *v) {
     mu_social_present_env env = {(void *)t, present_formula};
@@ -324,13 +324,13 @@ static void artifacts(const mu_social_item_tables *t, mu_social_item_view *v) {
         int color = entry.threshold_flag ? 15 : 1;
         if (args.global_text[0]) {
             arg a[2] = {ai(args.global_text[1]), as(text)};
-            formatted(v, color, gt(args.global_text[0], "Rank %d %s"), a, 2, "Artifact rank");
+            formatted(v, color, gt(v, args.global_text[0], "Rank %d %s"), a, 2, "Artifact rank");
         } else
             line(v, color, text);
     }
 }
-static const char *element(int n) {
-    return n >= 1 && n <= 5 ? gt(0xe98 + n, "") : "";
+static const char *element(const mu_social_item_view *v, int n) {
+    return n >= 1 && n <= 5 ? gt(v, 0xe98 + n, "") : "";
 }
 static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *base, const mu_item *item,
                       mu_social_item_view *v) {
@@ -342,7 +342,7 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
         missing(v, "Element");
     else if (d->element) {
         char label[256];
-        snprintf(label, sizeof label, "Element: %s", element(d->element));
+        snprintf(label, sizeof label, "Element: %s", element(v, d->element));
         line(v, 6, label);
     }
     if (v->context.kind_a == 25) {
@@ -398,8 +398,8 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
                             continue;
                         }
                         static const int labels[5] = {0x12d5, 0x12d7, 0x12d4, 0x12d6, 0x12d8};
-                        arg a[2] = {as(gt(labels[e1 > 0 && e1 <= 5 ? e1 - 1 : 0], "")),
-                                    as(gt(labels[e2 > 0 && e2 <= 5 ? e2 - 1 : 0], ""))};
+                        arg a[2] = {as(gt(v, labels[e1 > 0 && e1 <= 5 ? e1 - 1 : 0], "")),
+                                    as(gt(v, labels[e2 > 0 && e2 <= 5 ? e2 - 1 : 0], ""))};
                         formatted(v, 10, text, a, 2, "Pentagram option");
                     } else
                         formatted(v, 10, text, NULL, 0, "Pentagram option");
@@ -411,7 +411,7 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
                         char req[256];
                         if (slot < 5)
                             snprintf(req, sizeof req, "Requires %.100s rank %u level %u (equipment needed)",
-                                     gt(0xf7c + (int)slot, "Errtel"), rank, level);
+                                     gt(v, 0xf7c + (int)slot, "Errtel"), rank, level);
                         else if (slot == 5)
                             snprintf(req, sizeof req, "Requires pentagram level %u%s", level,
                                      d->level >= (int)level ? "" : " (not met)");
@@ -433,7 +433,7 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
             if (d->socket_raw[i] != 255) {
                 char label[192];
                 snprintf(label, sizeof label, "%s: embedded options need current equipment",
-                         gt(0xf7c + i, "Errtel"));
+                         gt(v, 0xf7c + i, "Errtel"));
                 line(v, 10, label);
                 v->unresolved++;
             }
@@ -447,7 +447,7 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
             return;
         }
         arg count = ai(d->socket_count);
-        formatted(v, 6, gt(0xe57, "%d Rank Errtel"), &count, 1, "Errtel rank");
+        formatted(v, 6, gt(v, 0xe57, "%d Rank Errtel"), &count, 1, "Errtel rank");
         uint8_t slots[5];
         for (int i = 0; i < 5; i++)
             slots[i] = (uint8_t)d->socket_raw[i];
@@ -457,12 +457,12 @@ static void elemental(const mu_social_item_tables *t, const mu_hud_tip_tables *b
         for (int i = 0; i < count_lines; i++) {
             int level = plan[i].level, opt = plan[i].option;
             arg a[2] = {ai(plan[i].ordinal), ai(level)};
-            formatted(v, 6, gt(0xe58, "%d Rank Option +%d"), a, 2, "Errtel rank");
+            formatted(v, 6, gt(v, 0xe58, "%d Rank Option +%d"), a, 2, "Errtel rank");
             if (level > 10 || !find(t, "jewel", v->wire.code, plan[i].physical, opt, 3, row, &text)) {
                 arg fallback = ai(opt);
                 formatted(
                     v, 1,
-                    gt(opt == 15 ? 0x1298 : 0xe5a, opt == 15 ? "Undesignated option" : "Unknown option %d"),
+                    gt(v, opt == 15 ? 0x1298 : 0xe5a, opt == 15 ? "Undesignated option" : "Unknown option %d"),
                     &fallback, 1, "Errtel option");
                 continue;
             }
@@ -485,7 +485,7 @@ static void earring(const mu_social_item_tables *t, mu_social_item_view *v) {
     for (int bonus = 0; bonus < 2; bonus++) {
         int count = bonus ? f->bonus_count : f->special_count;
         if (bonus && count)
-            line(v, 6, gt(0x14c9, "Earring set options"));
+            line(v, 6, gt(v, 0x14c9, "Earring set options"));
         for (int i = 0; i < count; i++) {
             const int *o = bonus ? f->bonus[i] : f->special[i];
             int id = (uint8_t)o[0], rank = (uint8_t)o[1], tag = (uint8_t)o[2];
@@ -520,6 +520,7 @@ static void earring(const mu_social_item_tables *t, mu_social_item_view *v) {
 int mu_social_item_view_build(const mu_social_item_tables *t, const mu_hud_tip_tables *base,
                               const uint8_t bytes[15], const mu_social_item_hero *h, mu_social_item_view *v) {
     memset(v, 0, sizeof *v);
+    v->lang = mu_social_item_tables_lang(t);
     mu_social_item_unpack(bytes, &v->wire);
     mu_item item;
     if (!base || !base->have_items || mu_item_find(&base->items, (uint32_t)v->wire.code, &item))
@@ -604,7 +605,7 @@ int mu_social_item_view_build(const mu_social_item_tables *t, const mu_hud_tip_t
     if (v->decoded.period)
         line(v, 10, v->decoded.expired ? "Period item: expired" : "Period item");
     if (v->finalized.skill) {
-        const mu_lang_skill *skill = mu_lang_skill_get(mu_lang_shared(), v->finalized.skill);
+        const mu_lang_skill *skill = mu_lang_skill_get(v->lang, v->finalized.skill);
         char label[256];
         snprintf(label, sizeof label, "Skill: %s", skill ? skill->name : "available");
         line(v, 1, label);
@@ -614,7 +615,7 @@ int mu_social_item_view_build(const mu_social_item_tables *t, const mu_hud_tip_t
         mu_social_display_value display;
         if (mu_social_ordinary_display(v->wire.code, c->kind_a, (unsigned)option.id, (uint16_t)option.value,
                                        !!(v->decoded.ancient & 0x33), &display)) {
-            text = mu_lang_text(mu_lang_shared(), display.text);
+            text = mu_lang_text(v->lang, display.text);
             if (text)
                 display_line(v, 1, text, &display, "Additional option");
             else

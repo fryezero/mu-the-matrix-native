@@ -135,7 +135,7 @@ static void objects_gl_teardown(struct mu_world_rt *a, void *self)
 static void objects_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     objects_part *p = self;
-    d->perf = mu_perf_begin();
+    d->perf = mu_perf_begin(a->perf);
     a->objects_drawn = 0;
     if (a->has_objects) {   /* RenderObjects: client sector/object visibility, RenderObject per entry */
         if (a->batch)
@@ -165,7 +165,7 @@ static void objects_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
     }
-    mu_perf_end(MU_PERF_OBJECTS, d->perf);
+    mu_perf_end(a->perf, MU_PERF_OBJECTS, d->perf);
 }
 #endif
 

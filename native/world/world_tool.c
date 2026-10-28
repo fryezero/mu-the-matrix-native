@@ -104,6 +104,8 @@
 #define MAX_WHEELS 32
 
 typedef struct tool {
+    mu_perf perf;
+    uint32_t gfx_last;
     mu_world_rt_options o;         /* the runtime's options (the flags below that reach the world) */
     mu_world_rt *rt;
     const char *out_dir, *backend;
@@ -507,7 +509,7 @@ static void map_script(tool *t, int32_t frame)
         else if (!strcmp(it->verb, "respawn"))   /* NATIVE-PROGRESS-001: the respawn answer without a death */
             r = world_rt_combat_respawned(a);
         else if (!strcmp(it->verb, "rows") || !strcmp(it->verb, "click") || !strcmp(it->verb, "sort")) {
-            static mu_move_row rows[MU_MAP_MOVES_MAX];
+            mu_move_row rows[MU_MAP_MOVES_MAX];
             if (!strcmp(it->verb, "sort"))
                 mu_map_move_sort(s, it->a);
             int n = mu_map_move_rows(s, rows, MU_MAP_MOVES_MAX);
@@ -721,24 +723,24 @@ static int headless(tool *t)
 #endif
     a->walk.frame.clock.frame_tick = now;
     t->audio_start = now;
-    if (t->perf_path && mu_perf_open(t->perf_path, t->perf_sync))
+    if (t->perf_path && mu_perf_open(&t->perf, t->perf_path, t->perf_sync))
         fprintf(stderr, "cannot write %s\n", t->perf_path);
 #ifndef MU_WORLD_NO_GL
-    mu_perf_set_sync(glFinish);
+    mu_perf_set_sync(&t->perf, glFinish);
 #endif
     for (int32_t frame = 0; frame < t->frames; ++frame) {
-        double perf = mu_perf_begin();
+        double perf = mu_perf_begin(&t->perf);
         script(t, frame);
         mu_world_rt_frame(a, now);
-        mu_perf_end(MU_PERF_LOGIC, perf);
+        mu_perf_end(&t->perf, MU_PERF_LOGIC, perf);
 #ifndef MU_WORLD_NO_GL
         int gfx_draw = a->gfx && t->out_dir && t->every > 0 && (frame % t->every == 0 || frame == t->frames - 1);
         if (a->gfx)
             world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
-        perf = mu_perf_begin();
+        perf = mu_perf_begin(&t->perf);
         if (a->gfx && !gfx_draw)
             world_gfx_frame(a->gfx, (double)(now - gfx_clock), 0);
-        mu_perf_end(MU_PERF_GFX, perf);
+        mu_perf_end(&t->perf, MU_PERF_GFX, perf);
         if (a->gfx) {   /* NATIVE-PROGRESS-001: the system menu's request */
             int menu = wg_options_take_request(world_gfx_options(a->gfx));
             if (menu >= 0 && !a->quiet)
@@ -751,11 +753,11 @@ static int headless(tool *t)
         if (!save && !sample && gl && (t->perf_path || t->time_series_every)) {   /* NATIVE-PERF-001: every frame drawn when profiling */
 #ifndef MU_WORLD_NO_GL
             mu_world_rt_draw_gl(a, a->width, a->height);
-            perf = mu_perf_begin();
+            perf = mu_perf_begin(&t->perf);
             if (a->gfx)
                 world_gfx_frame(a->gfx, 0.0, 1);
             glFlush();
-            mu_perf_end(MU_PERF_GFX, perf);
+            mu_perf_end(&t->perf, MU_PERF_GFX, perf);
 #endif
         }
         if (!save && !sample && !gl && t->time_series_every)
@@ -795,9 +797,9 @@ static int headless(tool *t)
             fprintf(stderr, "audio buffer allocation failed\n");
             return 1;
         }
-        mu_perf_frame(6);
+        mu_perf_frame(&t->perf, 6);
     }
-    mu_perf_close();
+    mu_perf_close(&t->perf);
     if (a->has_sound && t->wav_path) {
         if (mu_wav_write16(t->wav_path, t->wav, (uint32_t)t->wav_frames, 2, mu_world_sound_rate(&a->sound))) {
             fprintf(stderr, "cannot write %s\n", t->wav_path);
@@ -812,6 +814,7 @@ static int headless(tool *t)
         printf("{%s}\n", line);
         world_gfx_quest_report(a->gfx, stdout);
         world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL;
+        world_gfx_map_close(a->gfxmap); a->gfxmap = NULL; a->gfxmap_owner = NULL;
         world_gfx_close(a->gfx);
         a->gfx = NULL;
     }
@@ -866,7 +869,7 @@ static void audio_pump(tool *t, uint32_t now)
     uint32_t frames = audio_due(t, now + lead);
     if (!frames)
         return;
-    static float buffer[2 * 48000];
+    float buffer[2 * 48000];
     uint32_t rate = mu_world_sound_rate(&a->sound);
     if (frames > rate)   /* after a stall, drop instead of queueing seconds of audio */
         frames = rate;
@@ -920,13 +923,13 @@ static int windowed(tool *t)
     t->audio_start = start;
     int running = 1, escapes = 0;
     int32_t printed = 0;
-    if (t->perf_path && mu_perf_open(t->perf_path, t->perf_sync))
+    if (t->perf_path && mu_perf_open(&t->perf, t->perf_path, t->perf_sync))
         fprintf(stderr, "cannot write %s\n", t->perf_path);
-    mu_perf_set_sync(glFinish);
+    mu_perf_set_sync(&t->perf, glFinish);
     uint32_t fps_start = start, fps_frames = 0;
     while (running) {
-        mu_perf_pace_begin();
-        double perf = mu_perf_begin();
+        mu_perf_pace_begin(&t->perf);
+        double perf = mu_perf_begin(&t->perf);
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_KEYDOWN && mu_gfx_sdl_vk((int)e.key.keysym.scancode) != 0x1b)
@@ -938,38 +941,38 @@ static int windowed(tool *t)
                 running = 0;   /* without GFx, two Escape presses retain standalone quit */
 
         }
-        mu_perf_end(MU_PERF_EVENTS, perf);
-        perf = mu_perf_begin();
+        mu_perf_end(&t->perf, MU_PERF_EVENTS, perf);
+        perf = mu_perf_begin(&t->perf);
         script(t, (int32_t)frames);
         mu_world_rt_frame(a, SDL_GetTicks());
-        mu_perf_end(MU_PERF_LOGIC, perf);
+        mu_perf_end(&t->perf, MU_PERF_LOGIC, perf);
         mu_world_rt_draw_gl(a, dw, dh);
-        perf = mu_perf_begin();
+        perf = mu_perf_begin(&t->perf);
         if (a->gfx) {
-            static uint32_t gfx_last;
+            uint32_t *gfx_last = &t->gfx_last;
             uint32_t now = SDL_GetTicks();
             world_gfx_set_location(a->gfx, a->world, a->walk.hero.position[0], a->walk.hero.position[1]);
-            world_gfx_frame(a->gfx, gfx_last ? (double)(now - gfx_last) : 0.0, 1);
-            gfx_last = now;
+            world_gfx_frame(a->gfx, *gfx_last ? (double)(now - *gfx_last) : 0.0, 1);
+            *gfx_last = now;
             int menu = wg_options_take_request(world_gfx_options(a->gfx));   /* NATIVE-PROGRESS-001 */
             if (menu == 0)
                 running = 0;   /* Exit Game, after the countdown */
             else if (menu > 0 && !a->quiet)
                 printf("{\"menu\": \"%s\"}\n", menu == 1 ? "switch character (mu-client)" : "select server (mu-client)");
         }
-        mu_perf_end(MU_PERF_GFX, perf);
-        perf = mu_perf_begin();
+        mu_perf_end(&t->perf, MU_PERF_GFX, perf);
+        perf = mu_perf_begin(&t->perf);
         SDL_GL_SwapWindow(window);
-        mu_perf_end(MU_PERF_SWAP, perf);
+        mu_perf_end(&t->perf, MU_PERF_SWAP, perf);
         ++frames;
         perf = mu_perf_now();
         int32_t sleep = mu_walk_end_render(&a->walk);
-        mu_perf_pace_end(sleep);
+        mu_perf_pace_end(&t->perf, sleep);
         world_rt_sound_frame(a);   /* after the cap, as 0x0185280c in the frame driver */
         audio_pump(t, SDL_GetTicks());
-        if (mu_perf_enabled())
-            mu_perf_add(MU_PERF_SLEEP, mu_perf_now() - perf);
-        mu_perf_frame(6);
+        if (mu_perf_enabled(&t->perf))
+            mu_perf_add(&t->perf, MU_PERF_SLEEP, mu_perf_now() - perf);
+        mu_perf_frame(&t->perf, 6);
         if (frames % 25 == 0) {
             const mu_hero *h = &a->walk.hero;
             char title[160];
@@ -991,7 +994,7 @@ static int windowed(tool *t)
         if (t->seconds > 0 && (SDL_GetTicks() - start) / 1000.0 >= t->seconds)
             running = 0;
     }
-    mu_perf_close();
+    mu_perf_close(&t->perf);
     double elapsed = (SDL_GetTicks() - start) / 1000.0;
     printf("{\"frames\": %u, \"seconds\": %.2f, \"fps\": %.2f, \"logic_steps\": %u, \"walked\": %.1f,"
            " \"arrivals\": %u, \"audio_device\": %s, \"audio_seconds\": %.2f}\n", frames, elapsed,
@@ -1008,7 +1011,8 @@ static int windowed(tool *t)
         SDL_CloseAudioDevice(t->audio_device);
     world_gfx_quest_report(a->gfx, stdout);
     world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL;
-    world_gfx_close(a->gfx);
+    world_gfx_map_close(a->gfxmap); a->gfxmap = NULL; a->gfxmap_owner = NULL;
+        world_gfx_close(a->gfx);
     a->gfx = NULL;
     mu_world_rt_gl_teardown(a);
     SDL_GL_DeleteContext(context);
@@ -1116,7 +1120,7 @@ static int usage(void)
 int main(int argc, char **argv)
 {
     if (!mu_native_data_check_args(argc, argv)) return 1;
-    static tool t;
+    tool t;
     memset(&t, 0, sizeof t);
     mu_world_rt_options *o = &t.o;
     mu_world_rt_default_options(o);
@@ -1269,6 +1273,7 @@ int main(int argc, char **argv)
         return usage();
     if (t.time_series_every && (!t.headless || t.frames > 10001)) return usage();
     char error[1024];
+    o->perf = &t.perf;
     t.rt = mu_world_rt_open(o, error, sizeof error);   /* the loaders said why on stderr */
     if (!t.rt)
         return 1;

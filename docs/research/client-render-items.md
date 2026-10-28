@@ -7,6 +7,8 @@ raises body coverage to 262/1,674 and records exact remaining branches.
 [Part 4 below](#part-4-armour-weapons-skins-and-spark03-render-items-002d) raises it to 426/1,674, adds
 eleven skins and consumes Spark03/11. [Part 5 below](#part-5-remaining-skins-and-ranked-body-clusters-render-items-002e)
 raises coverage to 501/1,674 bodies and 17/17 skins, with seven link targets/twelve types consumed.
+Part 6 reaches 559 bodies and consumes ground/inventory skin sprites.
+Part 7 reaches **635/1,674 bodies**, preserves **17/17 skins**, and consumes **twelve link targets/seventeen types**.
 Muun/map-object effect placement remains deferred. All parts run offline.
 
 ## Identity and evidence
@@ -570,3 +572,91 @@ subtype 17, which the joint consumer refuses. The sword target `0x012c91fe` chan
 state at `0x0a3a0e1c/20` and is not a stateless sprite recipe. Further links, authoritative hero instances,
 owner-follow/global-random synchronization, model mappings, selection/shadow/buff/record-kind and mesh
 overrides, NewUI and Box of Luck remain open. Muun and nested map-object tables remain deferred.
+
+
+## Part 7, stress gear, clock-driven bodies and pose boundary, RENDER-ITEMS-002G
+
+The executable and complete-capture identities above are unchanged. Part 7 adds **76 item bodies**, one
+weapon, 50 armour types and 25 types in the survey's `pet/item` model group. Bounded body coverage is
+**635/1,674**, with **17/17 class skins** unchanged. The committed README-STRESS-001 kits had one refused
+body, mace `0x0eee`, group 2/index 8. Every body in those eight kits now has an admitted stream. This does
+not mean arbitrary gear or all record configurations are implemented.
+
+Twelve more survey shapes are complete, at size ranks **11, 12, 16, 27, 28, 31, 35, 40, 41, 53, 58, 447**.
+There are 134 complete shapes. Exact membership remains in the generated C table and the two TSVs.
+The original shape IDs, ranks, stopped-state counts and service sites are preserved. Visibility remains
+inference from model indices. The classifier's coverage export now includes the part-6 and part-7 lists.
+
+### Parameterized clocks and bodies
+
+The recipe executor adds four scalar sources, evaluated only for types whose generated rows use them:
+
+- `0x016ecaf5`: `(sin(time * 0.0015f) + 1) * 0.5f`.
+- `0x016eec41`: `sin(time * 0.002f) * 0.3f + 0.7f`.
+- `0x01713552` and related sites: signed truncated time remainder modulo 2000, times `0.0005f`.
+- `0x01712fed..0x0171304b`: the existing `0x0185bdc4(-4,0)` wave times `0.65f`, plus `0.2f`,
+  clamped above binary32 `0.65f`. These operations round in SSE order.
+
+The mace's `0x016ed6e8` branch writes `sin(time * 0.001f) * 0.6f + 0.4f` to OBJECT blend light.
+The `0x18fe/0x1cfe` armour fallback writes the corresponding `0.4f` multiplier and `0.6f` addend.
+Those writes survive the later glow phases. The mace also executes a balanced GL matrix push/pop;
+`0x012b7e53/0x012b7e65` change no matrix values. The oracle requires exactly that pair, and only for
+this type. Native rendering can omit the redundant scope without changing geometry.
+
+Recipes may now contain up to sixteen draws, instead of eight; the native output bound stays 32.
+Capacity/sentinel checks and full streams cover admitted recipes. The original selection, shadow, buff,
+record-kind and mesh-override limits remain. Five fitting candidates still fail independent ancient-tail
+comparison and remain refused: `0x230f/0x248e/0x2490/0x2504/0x270f`.
+
+Independent cases exposed that the old generator's two flag-0x40000 probe clocks both saturated the
+clamped pulse. Its apparent constant fit failed at time 791240. Generation now probes clocks below the
+clamp too. The regression records the original blend word `1045510311` on that flag branch. The corrected
+rules are compared again over every admitted type, rather than accepting probe fit as evidence.
+
+### Three further link targets
+
+`gen_item_pulse_links.py` emits per-sprite scalar rules consumed by one C evaluator. The independent
+caller comparison varies clocks, random sequences and all four existing hand/link variants.
+
+- Type `0x0afa`, target `0x012cca07`, sprite sites `0x012ccb7c/0x012ccc40`, visits bones 1 and 2. Its coloured flare uses
+  `p = sin(time * 0.002f) * 0.35f + 0.65f`, scale `p*0.9f` and RGB `p*(0.43f,0.14f,0.6f)`.
+  Each is followed by a grey flare at scale `sin(time*0.002f)*0.5f+0.4f`.
+- Type `0x0eed`, target `0x012cbb43`, emits two bone-1 flares. The first uses the common random
+  intensity and scale 2; the second is grey at scale `sin(time*0.002f)+0.5f`.
+- Type `0x0eee`, target `0x012cbd11`, emits bone-1 flares at local X -15/+10 with scale
+  `sin(time*0.001f)+1`. Two Shiny02 sprites share the second position; their rotations are
+  `360 - sin(time*0.01f)*360` and `sin(time*0.01f)*360`, with the caller's pulsed grey colour.
+
+All three retain the common initial random call, including when its intensity is unused. The native
+hero, remote-player and NPC attachment hooks consume them using saved item bones, scale and origin.
+The standalone character tool's admission query includes them. Bounds, full pools, absent bones and
+random counts have native checks. These links remain character attachments; ground/inventory body
+rules do not acquire weapon sprites. Owner-follow and global-random synchronization remain unverified.
+
+### Rank-5 pose progress, still refused
+
+`item_pose_machine.py` populates two authored three-key actions and two parented bone tracks, reserves
+the seeded heap range from CRT allocations, and executes the real `0x017479b1..0x01747a0a` caller and
+`0x012b5064` builder. No pose instruction is stubbed. The actual caller arguments, keep-root/translate
+flags, clamped actions and negative/fractional/out-of-range frames are exercised across all nineteen types.
+Its output bone matrices match production `mu_pose_build` in **608 cases**. Another **1,216 cases** compare
+real TransformPosition on two authored nonzero points per pose with production point math.
+
+This advances beyond the former absent-action stop. It does **not** establish complete rank-5 rendering.
+The synthetic model has lighting byte zero and no populated named-mesh registry. Named-mesh selection,
+lighting-dependent passes, further clock/random branches, native re-pose/transform ordering and shared-pose
+restoration remain to be reconstructed together. All nineteen types stay refused. Point geometry and
+pose matrices are separate evidence from mesh dispatch, full skinned geometry and graphics-driver output.
+
+### Native loader, checks and limits
+
+The ground-armour Player-folder fallback now gets glow textures from `Data/Effect`, correcting the
+analogous lookup called out by README-STRESS-001. A synthetic item/model/JPEG regression checks all six
+loaded glow slots through the real ground loader. The original-directory mutant is caught with 0/6
+loaded slots; corrected code has 6/6. This is a native integration fix, not new x86 behavior.
+
+`scripts/validate_item_gear.py --mutations` owns the new instruction families. The release handoff records
+final counts, mutation detections, local render inspection, regression runs and the lock-held Mac gate.
+Remaining: **1,039 bodies**, full pose-aware rank-5 rendering, further links including owner-dependent
+Laser/17 and shared-clock state, authoritative hero equipment, model mappings and the earlier domain,
+NewUI/Box of Luck limits. Muun and nested map-object tables remain deferred. No live game or launcher is used.

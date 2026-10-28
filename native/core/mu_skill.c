@@ -710,7 +710,7 @@ int mu_skill_book_tooltip_lines(mu_skill_book *b, int32_t skill, mu_skill_tip *o
 
 int mu_skill_book_tooltip(mu_skill_book *b, int32_t skill, char *title, size_t title_cap, char *body, size_t body_cap)
 {
-    static mu_skill_tip tip;
+    mu_skill_tip tip;
     if (!mu_skill_book_tooltip_lines(b, skill, &tip))
         return 0;
     char *t = malloc(4096), *h = malloc(65536);

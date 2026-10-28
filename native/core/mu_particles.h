@@ -89,6 +89,8 @@ typedef struct mu_world_particles_stats {
 } mu_world_particles_stats;
 
 typedef struct mu_world_particles {
+    mu_jt_object object_scratch[4];
+    unsigned object_next;
     int32_t world;
     const mu_world *map;
     mu_pt_system list;

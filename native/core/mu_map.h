@@ -39,6 +39,8 @@ struct mu_lang;
 #define MU_MAP_UNITS_MAX 128
 
 typedef struct mu_map_session {
+    char text_ring[4][48];
+    unsigned text_next;
     const struct mu_lang *lang;
     /* hero */
     int32_t world, tile_x, tile_y;

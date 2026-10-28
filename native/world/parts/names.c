@@ -151,7 +151,7 @@ static void names_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
     if (a->names && !world_names_gfx_active(&a->names_gfx))
         names_gl(a, self, d->width, d->height);
-    mu_perf_end(MU_PERF_LABELS, d->perf);
+    mu_perf_end(a->perf, MU_PERF_LABELS, d->perf);
 }
 #endif
 
