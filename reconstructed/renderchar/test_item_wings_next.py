@@ -78,5 +78,5 @@ class ItemWingsNext(unittest.TestCase):
             self.assertEqual(report['families']['clocks']['cases'],210)
             self.assertEqual(report['families']['position']['cases'],200)
             self.assertTrue(all(f['mismatches']==0 for f in report['families'].values()))
-            self.assertEqual(len(report['mutants']),10)
+            self.assertEqual(len(report['mutants']),12)
             self.assertTrue(all(report['mutants'].values()))

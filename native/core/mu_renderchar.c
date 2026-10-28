@@ -145,6 +145,8 @@ static void fill_item(mu_rc_item *it, const mu_renderchar_glow *g, const mu_rend
     it->ext_option = g->ext;
     it->render_type = env->render_type;
     it->a10 = -1;
+    if (it->type >= 0x2322 && it->type <= 0x2327)
+        it->object_hidden = -1; /* draw every seed mesh in the viewer item context */
     it->a11 = -1;
     it->a12 = 3;
     it->alpha = alpha;

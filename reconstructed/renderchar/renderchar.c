@@ -149,7 +149,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
     mu_rc_draw base;
     sink one = {&base, 1, 0, s->item, s->model, 0, NULL};
     emit(&one, MU_RC_ENTRY_BODY, 0, flags, alpha, hidden, texture);
-    uint32_t input[34];
+    uint32_t input[35];
     input[0] = base.flags;
     memcpy(&input[1], &base.alpha, 4);
     input[2] = (uint32_t)base.blend_mesh;
@@ -231,6 +231,7 @@ static void emit_parameter_body(sink *s, int phase, uint32_t flags, float alpha,
         float value = armour_wave(s->item->time);
         memcpy(&input[33], &value, 4);
     }
+    input[34] = (uint32_t)s->item->object_hidden;
     /* The helper's optional level word is supplied only above the +7 quality cap. */
     if (mu_rc_body_types[type].level_split && (phase == 0 || phase == 5) &&
         s->item->quality > 1 && mu_rc_item_glow_level(s->item) >= 9 &&
@@ -524,6 +525,8 @@ int mu_rc_item_draws_context(const mu_rc_item *it, mu_rc_model *model, mu_rc_dra
         return MU_RC_SPECIAL;
     if ((mu_rc_item_rank5(it->type) || body_type(it->type) >= 0 || (it->type >= 0x3890 && it->type <= 0x38a2)) &&
         (it->a10 != -1 || it->a11 != -1))
+        return MU_RC_UNSUPPORTED;
+    if (it->object_hidden != 0 && !(it->type >= 0x2322 && it->type <= 0x2327))
         return MU_RC_UNSUPPORTED;
     /* 0x016ed6e8 and the shared armour fallback: OBJECT blend writes survive the tails. */
     if (it->type == 0x0eee || it->type == 0x18fe || it->type == 0x1cfe) {

@@ -214,6 +214,16 @@ class WorldRender(unittest.TestCase):
             missing,_ = self.render('--item-type',f'weapon0={t}')
             self.assertEqual((full['link_sprites'],missing['link_sprites']),(10,2 if t==0x16f7 else 0))
 
+    def test_seed_single_mesh_remains_visible(self):
+        path = self.tmp/'seed-one-mesh.bmd'
+        path.write_bytes(nf.character_layout(116,bones=3,meshes=1))
+        plain,_ = self.render('--weapon','0',path)
+        seed,_ = self.render('--weapon','0',path,'--item-type','weapon0=0x2322')
+        other,_ = self.render('--weapon','0',path,'--item-type','weapon0=0x2327')
+        self.assertEqual(seed['special'],0)
+        self.assertGreater(seed['triangles'],plain['triangles'])
+        self.assertNotEqual(seed['sha256'],other['sha256'])
+
     def test_refuses_malformed_options(self):
         for bad in (('--item-level', 'nine'), ('--item-level', 'sleeve=3'), ('--glow-color', '1,2'),
                     ('--actor-weapon', 'x')):

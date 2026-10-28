@@ -89,6 +89,8 @@ def clock_cases(wa, lib):
 def mutations(bodies, links):
     source = (ROOT/'reconstructed/renderchar/renderchar.c').read_text()
     changes = {
+        'object-hidden': ('input[34] = (uint32_t)s->item->object_hidden;', 'input[34] = 0;'),
+        'atlas-ancient-light': ('mu_rc_body_types[type].retain_ancient', '0'),
         'wing-level': ('mu_rc_body_types[type_row].plain)', 'mu_rc_body_types[type_row].plain && it->type < 0x2322)'),
         'atlas-period': ('tick % 600', 'tick % 601'),
         'atlas-frame': ('(tick % 455) / 35', '(tick % 455) / 36'),
@@ -130,7 +132,10 @@ def main():
     lib = C.CDLL(str(v.LIBRARY))
     report = {'text_sha256':pins.TEXT.sha256,'data_sha256':pins.DATA.sha256,'families':{}}
     types = gen.WING_TYPES + gen.VISIBLE_TYPES
-    report['families']['bodies'],bodies,failures = clusters.body_cases(wa,lib,types,args.screen,world_class=BodyWorld)
+    def configure(case,k):
+        if case['type'] in gen.WING_TYPES:
+            case['object_hidden'] = (-1,0,2)[k % 3]
+    report['families']['bodies'],bodies,failures = clusters.body_cases(wa,lib,types,args.screen,world_class=BodyWorld,configure_case=configure)
     if args.screen:
         report.update(rejected=[hex(f[0]) for f in failures],failures=failures)
     else:
