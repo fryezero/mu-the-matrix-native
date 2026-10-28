@@ -1966,6 +1966,22 @@ cases_at = "cases.*"
 mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
 
+[validate_session_map_overlay]
+test = "native/tests/test_session_map_overlay.py::Private.test_recorded_map_handlers"
+pins = ["text", "data"]
+families = ["marker3", "marker4", "detector_packet"]
+cases = 120
+mutants = 4
+cases_at = "cases"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+[validate_session_map_overlay.expect]
+"cases" = 120
+"mismatches" = 0
+"families" = {len = 3}
+"families.*.mismatches" = 0
+"mutants_caught" = {len = 4}
+
 [validate_audio_items]
 test = "native/tests/test_audio_items.py::ItemAudio.test_original_ground_audio"
 pins = ["text", "data"]
