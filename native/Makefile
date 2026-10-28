@@ -59,7 +59,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/object_render.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/terrain/world_haze.c $(RECON)/objects/objects.c $(RECON)/objects/icarus.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/world_warp.c $(RECON)/objects/noria.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/actors/viewport_monsters.c $(RECON)/path/client_path.c \
@@ -76,7 +76,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/joints/joints.c \
              $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_icarus.c $(RECON)/environment/env_fish.c \
              $(RECON)/environment/env_leaves.c $(RECON)/environment/raklion_snow.c $(RECON)/environment/env_world.c \
-             $(RECON)/particles/particles.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
+             $(RECON)/particles/particles.c $(RECON)/particles/world_flames.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
              $(RECON)/names/overhead_names.c $(RECON)/players/remote_players.c \
@@ -98,14 +98,14 @@ RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/icarus.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(RECON)/terrain/terrain.h $(RECON)/terrain/world_haze.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(RECON)/objects/icarus.h $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/worlds_b.h $(RECON)/objects/world_warp.h $(RECON)/objects/noria.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
            $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/particles/icarus_clouds.inc \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
-           $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h \
+           $(RECON)/particles/particles.h $(RECON)/particles/world_flames.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
            $(RECON)/names/overhead_names.h $(RECON)/players/remote_players.h \
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
