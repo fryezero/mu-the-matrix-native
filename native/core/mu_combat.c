@@ -162,6 +162,7 @@ static void load_models(mu_combat *c, const char *root)
         {0x466, "Data/Skill/EarthQuake05.bmd"}, {0x468, "Data/Skill/EarthQuake07.bmd"},
         {0x469, "Data/Skill/EarthQuake08.bmd"}, {0x46a, "Data/Skill/flashing.bmd"}, {0x46b, "Data/Skill/tail.bmd"},
     };
+    int32_t quake_missing = 0;
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
         mu_combat_model *m = &c->models[i];
         m->type = files[i].type;
@@ -173,6 +174,10 @@ static void load_models(mu_combat *c, const char *root)
         char path[4096], message[512], text[96];
         snprintf(path, sizeof path, "%s/%s", root, file);
         if (mu_bmd_load_file(path, &m->bmd, message, sizeof message) != MU_BMD_OK) {
+            if (i >= MU_COMBAT_MODEL_QUAKE1) {   /* RENDER-EFFECTS-004: one summary line for Rageful Blow's pieces */
+                ++quake_missing;
+                continue;
+            }
             snprintf(text, sizeof text, "model 0x%x missing (%s)", m->type, file);
             log_line(c, text);
             continue;
@@ -188,6 +193,12 @@ static void load_models(mu_combat *c, const char *root)
         mu_path_directory(path, directory, sizeof directory);
         mu_textures_load(&m->textures, &m->bmd, directory);
         m->loaded = 1;
+    }
+    if (quake_missing) {
+        char text[96];
+        snprintf(text, sizeof text, "Rageful Blow models: %d of %d missing", quake_missing,
+                 MU_COMBAT_MODELS - MU_COMBAT_MODEL_QUAKE1);
+        log_line(c, text);
     }
 }
 
@@ -591,6 +602,36 @@ static void create_arrow(mu_combat *c, float angle_offset)
     create_effect(c, MU_SFX_MODEL_ARROW, 0, pos, angle, light, MU_COMBAT_HERO_OBJECT, &info);
 }
 
+/* RENDER-EFFECTS-004: CreateArrows 0x0158d5bd / CreateArrow 0x0158cf57 (verified) for the hero. The services
+ * the native session does not model answer as for a character without master-tree skills, item option 0x54 or
+ * skill-tree value; only the Arrow01 (0x43b) shots of the bows here have a reconstructed effect. */
+static void create_arrows(mu_combat *c, uint16_t skill, uint16_t flag, uint16_t index)
+{
+    float pos[3], angle[3], light[3];
+    hero_frame(c, pos, angle, light);
+    mu_sfx_archer a;
+    memset(&a, 0, sizeof a);
+    a.weapon = c->weapon_item[0];
+    a.is_hero = 1;
+    a.hero_weapon = c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6;
+    a.key = (uint16_t)c->hero_key;
+    mu_sfx_arrow_shots shots;
+    mu_sfx_create_arrows(&a, angle, skill, flag, index, &shots);
+    for (int k = 0; k < shots.count && k < MU_SFX_ARROW_SHOTS; ++k) {
+        mu_sfx_arrow_effect out;
+        if (!mu_sfx_create_arrow(&a, pos, shots.angle[k], skill, flag, index, shots.last[k], &c->env, &out) ||
+            out.routine != MU_SFX_CALL_ARROW_EFFECT || out.owner != MU_SFX_ARROW_OWNER_OBJECT) {
+            ++c->stats.unsupported;
+            continue;
+        }
+        create_effect(c, out.type, out.subtype, out.position, out.angle, light, MU_COMBAT_HERO_OBJECT, &out.info);
+    }
+    for (int k = 0; k < shots.serial_steps; ++k) {
+        ++c->serial;
+        c->env.serial = c->serial;
+    }
+}
+
 /* Inferno's ring 0x0142da3e(position, 0) (static reading): eight points at
  * 45-degree steps, 220 units out; at each the verified subtype-0 burst
  * and two stones, Stone 0x419 + rand % 2 of subtype 1 and of subtype 0. */
@@ -635,10 +676,8 @@ static void end_of_attack(mu_combat *c)
             create_arrow(c, 0.0f);
         break;
     case 24:
-        /* Triple Shot: two CreateArrows calls (static: spread of +-8 degrees here) */
-        create_arrow(c, -8.0f);
-        create_arrow(c, 0.0f);
-        create_arrow(c, 8.0f);
+        /* Triple Shot 0x013af9db: CreateArrows(character, object, 0, 24, 1, 0) (verified fan) */
+        create_arrows(c, 24, 1, 0);
         break;
     case 1:
         /* 0x013affd6..0x013b0075: the player emits ten smoke01/1 particles.

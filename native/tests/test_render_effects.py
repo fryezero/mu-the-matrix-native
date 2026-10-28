@@ -141,6 +141,20 @@ class RenderEffects(unittest.TestCase):
         finally:
             for name in names: (assets/name).unlink()
 
+    def test_triple_shot_verified_fan(self):
+        """RENDER-EFFECTS-004: CreateArrows' default fan, three Arrow01 shots at 0, +15 and -15 degrees."""
+        arrow = self.root/'Data/Skill/Arrow01.bmd'
+        arrow.write_bytes(nf.synthetic_layout(400, actions=1, keys=(8,)))
+        try:
+            rows, images = self.cast_as(24, 'bow', 2, 30)
+            summary = next(r for r in rows if r.get('combat') is True)
+            self.assertEqual(summary['requests_unsent'], 1)
+            self.assertEqual((summary['arrows'], summary['unsupported']), (3, 0))
+            frames = [r for r in rows if 'combat_frame' in r]
+            self.assertTrue(any(f['effect_types'].count(0x43b) == 3 for f in frames))
+        finally:
+            arrow.unlink()
+
     def test_guardian_wing_pet_effect_pixels(self):
         """RENDER-EFFECTS-004: Spirit of Guardian's effect 0x460/4 is created, kept and drawn."""
         from test_native_pets import write_pet_models
@@ -181,7 +195,7 @@ class RenderEffects(unittest.TestCase):
             r = json.loads(report.read_text())
             self.assertTrue(r['all_equal'])
             self.assertTrue(r['all_mutants_caught'])
-            self.assertEqual(len(r['mutants']), 11)
+            self.assertEqual(len(r['mutants']), 15)
 
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,

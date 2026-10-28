@@ -210,7 +210,7 @@ typedef struct mu_combat {
     int32_t bitmap_count;
     mu_combat_model models[MU_COMBAT_MODELS];
     mu_combat_stats stats;
-    char log[32][96];
+    char log[48][96];
     int32_t log_count;
     struct mu_lang *lang;   /* NATIVE-LANG-001: skill table (names, distance, mana), or NULL */
 } mu_combat;

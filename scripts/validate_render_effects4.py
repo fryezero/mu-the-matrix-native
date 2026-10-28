@@ -70,6 +70,9 @@ MUTANTS = [
      'effect_move', (0x460, 4)),
     ('wing_drift', '(float)(smod(env_rand(env), 20) - 10) * 4.0f + e->position[k];',
      '(float)(smod(env_rand(env), 20) - 10) * 3.0f + e->position[k];', 'effect_create', (0x460, 4)),
+    ('triple_spread', '            angle[2] = angle[2] + 15.0f;\n            arrow_shot(out, angle, last);\n            angle[2] = angle[2] - 30.0f;',
+     '            angle[2] = angle[2] + 8.0f;\n            arrow_shot(out, angle, last);\n            angle[2] = angle[2] - 16.0f;', 'arrows', None),
+    ('arrow_table', '    case 0x12e8: return 0x43f;', '    case 0x12e8: return 0x43b;', 'arrow', None),
     ('item_scale', '    e->scale = F_0_8;\n    call_plain(env, e, MU_SFX_CALL_ITEM_LINKS);',
      '    e->scale = F_0_9;\n    call_plain(env, e, MU_SFX_CALL_ITEM_LINKS);', 'item_init', None),
     ('weapon_level', 'out->level = (int32_t)(o ? o->level : 0) << 3;', 'out->level = (int32_t)(o ? o->level : 0) << 2;',
@@ -84,6 +87,11 @@ def load(path):
     lib.mu_sfx_item_object_init.restype = None
     lib.mu_sfx_rageful_weapon.argtypes = [P(fx.Effect), C.c_float*3, C.c_uint8, P(fx.Env), P(WeaponDraw)]
     lib.mu_sfx_rageful_weapon.restype = C.c_int
+    lib.mu_sfx_create_arrows.argtypes = [P(Archer), C.c_float*3, C.c_uint16, C.c_uint16, C.c_uint16, P(Shots)]
+    lib.mu_sfx_create_arrows.restype = C.c_int
+    lib.mu_sfx_create_arrow.argtypes = [P(Archer), C.c_float*3, C.c_float*3, C.c_uint16, C.c_uint16, C.c_uint16,
+                                        C.c_int32, P(fx.Env), P(ArrowEffect)]
+    lib.mu_sfx_create_arrow.restype = C.c_int
     return lib
 
 
@@ -316,13 +324,175 @@ def family_weapon(m, lib, rng, cases, report):
                 mdl = r['regions']['model']
                 if mdl[0xa4] != out.hero_class or struct.unpack('<H', mdl[0xa8:0xaa])[0] != out.action:
                     mismatch = ('model state', mdl[0xa4], out.hero_class)
-                elif list(struct.unpack('<3f', mdl[0x78:0x84])) != [f32(v) for v in out.origin]:
+                elif not all(fx.same(x, y) for x, y in zip(struct.unpack('<3f', mdl[0x78:0x84]), out.origin)):
                     mismatch = ('body origin',)
             if mismatch is None and case.client_rand != case.c_rand:
                 mismatch = ('rand calls', case.client_rand, case.c_rand)
         report.add('weapon', vc.ok(r) and mismatch is None,
                    {'case': n, 'mismatch': mismatch, 'stopped': r['stopped'], 'error': r['error']})
         report.cover('weapon', 'drawn' if drawn else 'skipped')
+
+
+CREATE_ARROWS, CREATE_ARROW, ARROW_EFFECT = 0x0158d5bd, 0x0158cf57, 0x013c0e0a
+ARCHER_CHAR, ARCHER_OBJ, TARGET_OBJ, SKILL_LIST = 0x2b000000, 0x2c000000, 0x2c800000, 0x06fca278
+BOWS = [0x12e6, 0x12e7, 0x12e8, 0x12ee, 0x12f0, 0x12f6, 0x12f8, 0x12fc, 0x1300, 0x1305, 0x132f, 0x12e5, 0x1400,
+        -1, 0xae6]
+INDICES = [0x18, 0x18, 0, 0x34, 0x1a0, 0x33, 0x1a8, 0x2e, 0x7e7, 0x7fc, 0x2d7, 0x16]
+SKILLS = [0x18, 0x18, 0x7fc, 0x7ff, 0, 0x1a0]
+
+
+class Archer(C.Structure):
+    _fields_ = [('weapon', C.c_int16), ('hero_weapon', C.c_int32), ('is_hero', C.c_uint8), ('master_1a2', C.c_uint8),
+                ('tree_value', C.c_int32), ('mastery', C.c_int32), ('special', C.c_uint8), ('key', C.c_uint16),
+                ('field_364', C.c_uint16)]
+
+
+class Shots(C.Structure):
+    _fields_ = [('count', C.c_int), ('angle', (C.c_float*3)*8), ('last', C.c_int32*8), ('serial_steps', C.c_int),
+                ('bow_sparks', C.c_int)]
+
+
+class ArrowEffect(C.Structure):
+    _fields_ = [('routine', C.c_int32), ('type', C.c_int32), ('subtype', C.c_int32), ('owner', C.c_int32),
+                ('position', C.c_float*3), ('angle', C.c_float*3), ('info', fx.Info), ('sounds', C.c_int32*3),
+                ('sound_count', C.c_int)]
+
+
+def random_archer(rng):
+    a = Archer()
+    a.weapon = rng.choice(BOWS)
+    a.hero_weapon = rng.choice([-1, 0x800, 0x808, 0x812, a.weapon - 0xae6])
+    a.is_hero = rng.choice([0, 1])
+    a.master_1a2 = rng.choice([0, 1])
+    a.tree_value = rng.choice([0, 1, 7, rng.randrange(-5, 1000)])
+    a.mastery = rng.choice([0, 0x33, 0x2d7, 0x7fe, 0x18])
+    a.special = rng.choice([0, 0, 0, 1])
+    a.key = rng.randrange(0, 0x10000)
+    a.field_364 = rng.randrange(0, 0x10000)
+    return a
+
+
+def archer_regions(a, angle, position, serial, light):
+    char = am.Region('char', ARCHER_CHAR, am.poison(0x4000, 0x19), bytes(0x4000))
+    char.define(ARCHER_CHAR + 0x19ac, struct.pack('<h', a.weapon))
+    obj = am.Region('obj', ARCHER_OBJ, am.poison(0x400, 0x1b), bytes(0x400))
+    obj.define(ARCHER_OBJ + 0x164, struct.pack('<3f', *angle))
+    obj.define(ARCHER_OBJ + 0x158, struct.pack('<3f', *position))
+    obj.define(ARCHER_OBJ + 0xec, struct.pack('<3f', *light))
+    obj.define(ARCHER_OBJ + 0x54, struct.pack('<H', a.key))
+    obj.define(ARCHER_OBJ + 0x364, struct.pack('<H', a.field_364))
+    hero = am.Region('hero-data', fx.HERO_DATA, am.poison(0x3000, 0x13), bytes(0x3000))
+    hero.define(fx.HERO_DATA + 0x2dec, bytes([serial]))
+    hero.define(fx.HERO_DATA + 0x1b68, struct.pack('<i', a.hero_weapon))
+    return [char, obj, hero,
+            am.defined_region('hero-ptr', fx.HERO_DATA_PTR, struct.pack('<I', fx.HERO_DATA), writable=False),
+            am.defined_region('hero', fx.HERO_POINTER, struct.pack('<I', ARCHER_CHAR if a.is_hero else 0x2d000000),
+                              writable=False),
+            am.Region('skill-global', SKILL_LIST, am.poison(4, 0x2f), bytes(4))]
+
+
+def family_arrows(m, lib, rng, cases, report):
+    for n in range(cases):
+        a = random_archer(rng)
+        skill, index = rng.choice(SKILLS), rng.choice(INDICES)
+        flag = rng.choice([1, 1, 0, 2])
+        angle = [0.0, 0.0, f32(rng.choice([0.0, 45.0, 359.0, rng.uniform(0.0, 360.0)]))]
+        serial = rng.randrange(0, 256)
+        regions = archer_regions(a, angle, [1000.0, 2000.0, 100.0], serial, [1.0, 1.0, 1.0])
+        calls = []
+
+        def arrow(mm):
+            args = [mm.argument(i) for i in range(7)]
+            calls.append((mm.floats(ARCHER_OBJ + 0x164, 3), args[6] - (1 << 32) if args[6] & 0x80000000 else args[6],
+                          args[:6]))
+            return 0
+        stubs = {CREATE_ARROW: arrow, 0x01094039: lambda mm: a.tree_value & 0xffffffff,
+                 0x00ac3bf7: lambda mm: 0x0a000000, 0x0095f998: lambda mm: 0x0a000100,
+                 0x00bb1e55: lambda mm: (a.master_1a2, 4)}
+        if a.weapon == 0x12f9:
+            continue
+        r = m.execute(CREATE_ARROWS, [ARCHER_CHAR, ARCHER_OBJ, TARGET_OBJ, skill, flag, index], regions, stubs)
+        shots = Shots()
+        ang = (C.c_float*3)(*angle)
+        lib.mu_sfx_create_arrows(C.byref(a), ang, skill, flag, index, C.byref(shots))
+        mismatch = None
+        if vc.ok(r):
+            mine = [(list(shots.angle[k]), shots.last[k]) for k in range(shots.count)]
+            theirs = [(c[0], c[1]) for c in calls]
+            if [(list(map(f32, x)), y) for x, y in theirs] != [(list(map(f32, x)), y) for x, y in mine]:
+                mismatch = ('shots', theirs, mine)
+            elif any(c[2] != [ARCHER_CHAR, ARCHER_OBJ, TARGET_OBJ, skill, flag, index] for c in calls):
+                mismatch = ('shot arguments', calls)
+            elif r['regions']['hero-data'][0x2dec] != (serial + shots.serial_steps) & 0xff:
+                mismatch = ('serial', shots.serial_steps)
+            elif list(struct.unpack('<3f', r['regions']['obj'][0x164:0x170])) != [f32(v) for v in ang]:
+                mismatch = ('angle restored', list(ang))
+        report.add('arrows', vc.ok(r) and mismatch is None,
+                   {'case': n, 'mismatch': mismatch, 'stopped': r['stopped'], 'error': r['error']})
+        report.cover('arrows', f'{shots.count} shots')
+
+
+def family_arrow(m, lib, rng, cases, report):
+    for n in range(cases):
+        a = random_archer(rng)
+        skill, index = rng.choice(SKILLS), rng.choice(INDICES)
+        flag = rng.choice([1, 0, 2, 1])
+        last = rng.choice([0, 3, rng.randrange(-100, 100)])
+        angle = [f32(rng.uniform(0.0, 360.0)) if k == 2 else 0.0 for k in range(3)]
+        position = [f32(rng.uniform(100.0, 25000.0)), f32(rng.uniform(100.0, 25000.0)), f32(rng.uniform(0.0, 500.0))]
+        light = [f32(rng.uniform(0.1, 1.0)) for _ in range(3)]
+        regions = archer_regions(a, angle, position, 0, light)
+        case = fx.Case(rng, [], [], f32(rng.uniform(0.0, 400.0)))
+        calls = case.client_calls
+
+        def effect2(mm):
+            args = [mm.argument(i) for i in range(8)]
+            info = bytes(mm.uc.mem_read(args[7], 0x20))
+            calls.append(('arrow', args[0], args[1], mm.floats(args[2], 3), mm.floats(args[3], 3), mm.floats(args[4], 3),
+                          args[5], fx.from_bits(args[6]), struct.unpack('<5H2x5i', info)))
+            return 0
+
+        def effect(mm):
+            a_ = [mm.argument(i) for i in range(14)]
+            calls.append(('target', a_[0], a_[4], mm.floats(a_[1], 3), mm.floats(a_[2], 3), mm.floats(a_[3], 3),
+                          a_[5], fx.from_bits(a_[10]), (a_[6] & 0xffff, a_[7] & 0xffff, a_[8] & 0xffff,
+                                                       a_[9] & 0xffff, a_[11] & 0xffff, 0, 0, 0, a_[12], a_[13])))
+            return 0
+        stubs = case.stubs(m)
+        stubs.update({ARROW_EFFECT: effect2, fx.CREATE_EFFECT_WRAPPER: effect,
+                      0x00ac3bf7: lambda mm: 0x0a000000, 0x0095f998: lambda mm: 0x0a000100,
+                      0x00bb1c32: lambda mm: (a.mastery & 0xffffffff, 4),
+                      0x00cd4ea8: lambda mm: 0x0a000200, 0x00cd60da: lambda mm: (0x0a000300, 4),
+                      0x00cd6017: lambda mm: (a.special, 8),
+                      0x00a6ad76: lambda mm: (calls.append(('sound2', mm.argument(0), mm.argument(1))) or 0)})
+        r = m.execute(CREATE_ARROW, [ARCHER_CHAR, ARCHER_OBJ, TARGET_OBJ, skill, flag, index, last], regions, stubs)
+        env = case.env()
+        out = ArrowEffect()
+        lib.mu_sfx_create_arrow(C.byref(a), (C.c_float*3)(*position), (C.c_float*3)(*angle), skill, flag, index, last,
+                                C.byref(env), C.byref(out))
+        mismatch = None
+        if vc.ok(r):
+            sounds = [out.sounds[k] for k in range(out.sound_count)]
+            mine = [('sound', snd, fx.owner_of(ARCHER_OBJ), 0) for snd in sounds if snd in (0x55, 0x82)]
+            mine += [c for c in case.c_calls if c[0] == 'height']
+            owner = {0: ARCHER_OBJ, 1: ARCHER_CHAR + 0x3254, 2: TARGET_OBJ}[out.owner]
+            i = out.info
+            if out.routine == 0x013c0e0a:
+                mine.append(('arrow', out.type, out.subtype, list(out.position), list(out.angle), light, owner, 0.0,
+                             (i.key, i.skill, i.word4, i.word6, i.field8, 0, 0, 0, i.field18, i.field1c)))
+            elif out.routine:
+                mine.append(('target', out.type, out.subtype, list(out.position), list(out.angle), light, owner, 0.0,
+                             (i.key, i.skill, i.word4, i.word6, i.field8, 0, 0, 0, i.field18, i.field1c)))
+            mine += [('sound2', -snd, 1) if snd < 0 else ('sound', snd, -1, 0) for snd in sounds if snd not in (0x55, 0x82)]
+            theirs = [c if c[0] != 'sound' else ('sound', c[1], c[2], c[3]) for c in calls]
+            theirs = [c if c[0] not in ('arrow', 'target') else c[:6] + (c[6] if isinstance(c[6], int) else c[6],) + c[7:]
+                      for c in theirs]
+            mismatch = fx.compare_calls(theirs, mine)
+            if mismatch is None and r['regions']['skill-global'] != struct.pack('<I', index):
+                mismatch = ('skill global', r['regions']['skill-global'])
+        report.add('arrow', vc.ok(r) and mismatch is None,
+                   {'case': n, 'mismatch': mismatch, 'stopped': r['stopped'], 'error': r['error']})
+        report.cover('arrow', hex(out.type) if out.routine else 'none')
 
 
 def compare(text, data, lib, name, kinds, cases):
@@ -336,6 +506,10 @@ def compare(text, data, lib, name, kinds, cases):
         family_move(m, lib, rng, cases, report, kinds)
     elif name == 'item_init':
         family_item_init(m, lib, rng, cases, report)
+    elif name == 'arrows':
+        family_arrows(m, lib, rng, cases, report)
+    elif name == 'arrow':
+        family_arrow(m, lib, rng, cases, report)
     else:
         family_weapon(m, lib, rng, cases, report)
     return {'families': report.families, 'coverage': report.coverage}
@@ -347,7 +521,7 @@ def run(cases, mutations):
     result = {'text_sha256': am.TEXT_SHA256, 'data_sha256': am.DATA_SHA256, 'comparisons': {}, 'mutants': {}}
     lib = load(ROOT/'reconstructed'/('combat/libcombat.' + fx.SUFFIX))
     plan = [('effect_create', CREATE_KINDS, cases * len(CREATE_KINDS)), ('effect_move', MOVE_KINDS, cases * 10),
-            ('item_init', None, cases), ('weapon', None, cases)]
+            ('item_init', None, cases), ('weapon', None, cases), ('arrows', None, cases * 2), ('arrow', None, cases * 2)]
     for name, kinds, n in plan:
         result['comparisons'][name] = compare(text, data, lib, name, kinds, n)
     if mutations:
@@ -361,7 +535,8 @@ def run(cases, mutations):
     bodies = {'rb_create': (0x013ce830, 0x013cec46), 'rb_move': (0x01450a73, 0x01452410),
               'rb_pieces_move': (0x01452410, 0x01453033), 'flash_tail_move': (0x0144e1d7, 0x0144e44c),
               'flash_tail_create': (0x013c94a8, 0x013c9647), 'wing_create': (0x013e4f55, 0x013e53ff),
-              'wing_move': (0x0146b64c, 0x0146b809), 'normalize': (0x00cff0d3, 0x00cff1c9), 'item_init': (0x016da00b, 0x016daa01),
+              'wing_move': (0x0146b64c, 0x0146b809), 'normalize': (0x00cff0d3, 0x00cff1c9),
+              'create_arrows': (0x0158d5bd, 0x0158e1aa), 'create_arrow': (0x0158cf57, 0x0158d5bd), 'item_init': (0x016da00b, 0x016daa01),
               'weapon_draw': (0x01532bd2, 0x01532f27)}
     result['bodies'] = {name: {'start': hex(a), 'end': hex(b),
                                'sha256': hashlib.sha256(text[a-am.TEXT_BASE:b-am.TEXT_BASE]).hexdigest()}

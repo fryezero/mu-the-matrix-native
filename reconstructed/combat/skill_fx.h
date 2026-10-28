@@ -407,4 +407,45 @@ void mu_sfx_item_object_init(mu_sfx_effect *e, const mu_sfx_env *env);
 int mu_sfx_rageful_weapon(mu_sfx_effect *e, const float terrain_light[3], uint8_t hero_byte, const mu_sfx_env *env,
                           mu_sfx_weapon_draw *out);
 
+/* RENDER-EFFECTS-004: CreateArrows 0x0158d5bd(character, object, target, skill, flag, skill index) and
+ * CreateArrow 0x0158cf57 (verified). The archer's inputs that come from other subsystems: */
+typedef struct mu_sfx_archer {
+    int16_t weapon;           /* character + 0x19ac: the slot-0 item model type */
+    int32_t hero_weapon;      /* [[0x01d1df18] + 0x1b68], the hero's slot-0 item index (-1 none) */
+    uint8_t is_hero;          /* character == [0x0a39d754] */
+    uint8_t master_1a2;       /* 0x00bb1e55 on skill record 0x1a2 (0x00ac3bf7 / 0x0095f998) */
+    int32_t tree_value;       /* 0x01094039(skill index): CreateArrow's last argument in the fan */
+    int32_t mastery;          /* 0x00bb1c32 on the current skill's record */
+    uint8_t special;          /* 0x00cd6017 on the bow's attribute 0x54: the 0x6a9 shot */
+    uint16_t key;             /* object + 0x54 */
+    uint16_t field_364;       /* object + 0x364 */
+} mu_sfx_archer;
+
+#define MU_SFX_ARROW_SHOTS 8
+typedef struct mu_sfx_arrow_shots {
+    int count;                /* CreateArrow calls, in order */
+    float angle[MU_SFX_ARROW_SHOTS][3];   /* the object's angle at each call */
+    int32_t last[MU_SFX_ARROW_SHOTS];
+    int serial_steps;         /* ++[[0x01d1df18] + 0x2dec] */
+    int bow_sparks;           /* bow 0x12f9's fifteen bone sparks follow (not reconstructed) */
+} mu_sfx_arrow_shots;
+
+/* angle: the object's angle, turned for each shot and restored. Returns the number of shots. */
+int mu_sfx_create_arrows(const mu_sfx_archer *a, float angle[3], uint16_t skill, uint16_t flag, uint16_t index,
+                         mu_sfx_arrow_shots *out);
+
+enum { MU_SFX_CALL_ARROW_EFFECT = 0x013c0e0a };   /* CreateEffect(type, subtype, pos, angle, light, owner, scale, info) */
+enum { MU_SFX_ARROW_OWNER_OBJECT = 0, MU_SFX_ARROW_OWNER_CHARACTER = 1, MU_SFX_ARROW_OWNER_TARGET = 2 };
+typedef struct mu_sfx_arrow_effect {
+    int32_t routine;          /* 0: nothing (no arrow for this bow), MU_SFX_CALL_EFFECT (0x49d), MU_SFX_CALL_ARROW_EFFECT */
+    int32_t type, subtype, owner;
+    float position[3], angle[3];   /* light: the object's; scale 0 */
+    mu_sfx_info info;
+    int32_t sounds[3];        /* PlayBuffer(sound, object, 0); negative: 0x00a6ad76(-sound, 1) */
+    int sound_count;
+} mu_sfx_arrow_effect;
+
+int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const float angle[3], uint16_t skill,
+                        uint16_t flag, uint16_t index, int32_t last, const mu_sfx_env *env, mu_sfx_arrow_effect *out);
+
 #endif

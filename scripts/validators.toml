@@ -1939,9 +1939,9 @@ all_mutants_caught = true
 [validate_render_effects4]
 test = "native/tests/test_render_effects.py::RenderEffects.test_rageful_blow_original_instructions_and_compiled_mutants"
 pins = ["text", "data"]
-families = ["effect_create", "effect_move", "item_init", "weapon"]
-cases = 1620
-mutants = 11
+families = ["effect_create", "effect_move", "item_init", "weapon", "arrows", "arrow"]
+cases = 1920
+mutants = 15
 cases_at = "comparisons.*.families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/combat"]

@@ -2140,3 +2140,180 @@ int mu_sfx_rageful_weapon(mu_sfx_effect *e, const float terrain_light[3], uint8_
     e->type = (int32_t)(int16_t)trunc_i32(type);
     return 1;
 }
+
+/* ------------------------------------------------------------------------
+ * RENDER-EFFECTS-004: CreateArrows 0x0158d5bd and CreateArrow 0x0158cf57. */
+
+static const int16_t special_bows[] = {0x12f8, 0x12f9, 0x12fc, 0x12fd, 0x12fe, 0x12ff, 0x1300, 0x1302, 0x1304, 0x1305,
+                                       0x130a, 0x130c, 0x130e, 0x131e, 0x1320, 0x1323, 0x1326, 0x1329, 0x132c, 0x132f};
+
+static void arrow_shot(mu_sfx_arrow_shots *out, const float angle[3], int32_t last)
+{
+    if (out->count < MU_SFX_ARROW_SHOTS) {
+        copy3(out->angle[out->count], angle);
+        out->last[out->count] = last;
+    }
+    ++out->count;
+}
+
+int mu_sfx_create_arrows(const mu_sfx_archer *a, float angle[3], uint16_t skill, uint16_t flag, uint16_t index,
+                         mu_sfx_arrow_shots *out)
+{
+    memset(out, 0, sizeof *out);
+    if (index == 0x34 || index == 0x1a0 || index == 0x33 || index == 0x1a8 || index == 0x2e) {
+        arrow_shot(out, angle, 0);
+        out->serial_steps = 1;
+        return 1;
+    }
+    if (flag != 1) {                                   /* 0x0158dfa2 */
+        arrow_shot(out, angle, 0);
+    } else {
+        float saved[3];
+        copy3(saved, angle);
+        const int32_t last = a->tree_value;
+        int special = 0;
+        for (size_t i = 0; i < sizeof special_bows / sizeof special_bows[0]; ++i)
+            special |= a->weapon == special_bows[i];
+        if (special && (skill == 0x7fc || skill == 0x7ff)) {   /* 0x0158d900 */
+            const float s = skill == 0x7ff ? 0.5f : 8.0f;
+            if (skill != 0x7ff)
+                arrow_shot(out, angle, last);
+            angle[2] = 8.0f * s + angle[2];
+            arrow_shot(out, angle, last);
+            angle[2] = 8.0f * s + angle[2];
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 24.0f * s;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 8.0f * s;
+            arrow_shot(out, angle, last);
+        } else if (special && a->master_1a2) {          /* 0x0158daa9 */
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] + 8.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] + 8.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 24.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 8.0f;
+            arrow_shot(out, angle, last);
+            out->serial_steps = 1;
+        } else if (a->master_1a2 || special) {          /* 0x0158dd55 / 0x0158dbfc */
+            angle[2] = angle[2] + 5.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] + 10.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 20.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 10.0f;
+            arrow_shot(out, angle, last);
+            out->serial_steps = 1;
+        } else {                                        /* 0x0158de8b: Triple Shot's three arrows */
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] + 15.0f;
+            arrow_shot(out, angle, last);
+            angle[2] = angle[2] - 30.0f;
+            arrow_shot(out, angle, last);
+            out->serial_steps = 1;
+        }
+        copy3(angle, saved);
+    }
+    if (a->weapon == 0x12f9)
+        out->bow_sparks = 1;   /* 0x0158dfdc: fifteen sparks at the bow's bone, not reconstructed */
+    return out->count;
+}
+
+/* The arrow model a bow (item model type) shoots: the two jump tables at 0x0158d2b8 and 0x0158d34e. */
+static int32_t arrow_type(int32_t bow)
+{
+    switch (bow) {
+    case 0x12ee: case 0x12ef: return 0x43c;
+    case 0x12f0: return 0x440;
+    case 0x12f1: return 0x43e;
+    case 0x12f2: return 0x43d;
+    case 0x12f3: return 0x443;
+    case 0x12f4: return 0x442;
+    case 0x12f6: return 0x458;
+    case 0x12f8: return 0x471;
+    case 0x12f9: return 0x474;
+    case 0x1300: return 0x5b0;
+    case 0x1304: return 0x45e;
+    case 0x12e6: case 0x12e7: case 0x12e9: case 0x12ea: case 0x12eb: case 0x1301: return MU_SFX_MODEL_ARROW;
+    case 0x12e8: return 0x43f;
+    case 0x12ec: return 0x441;
+    case 0x12f7: case 0x1303: return 0x459;
+    case 0x12fa: return 0x47f;
+    case 0x12fb: return 0x45a;
+    case 0x12fc: return 0x45b;
+    case 0x12fd: return 0x45c;
+    case 0x12fe: return 0x525;
+    case 0x12ff: return 0x5b1;
+    case 0x1302: return 0x45d;
+    case 0x1305: return 0x60a;
+    case 0x130a: return 0x60d;
+    case 0x130c: return 0x60e;
+    case 0x130e: return 0x60f;
+    case 0x131e: return 0x610;
+    case 0x1320: return 0x612;
+    case 0x1323: return 0x613;
+    case 0x1326: return 0x614;
+    case 0x1329: return 0x615;
+    case 0x132c: return 0x616;
+    case 0x132f: return 0x617;
+    default: return -1;
+    }
+}
+
+int mu_sfx_create_arrow(const mu_sfx_archer *a, const float position[3], const float angle[3], uint16_t skill,
+                        uint16_t flag, uint16_t index, int32_t last, const mu_sfx_env *env, mu_sfx_arrow_effect *out)
+{
+    memset(out, 0, sizeof *out);
+    int32_t bow = a->weapon;
+    if (a->is_hero) {
+        bow = a->hero_weapon;
+        if (bow != -1)
+            bow = bow + 0xae6;
+    }
+    int32_t subtype = 0;
+    if (index == 0x34 || index == 0x1a0) {
+        subtype = 2;
+        out->sounds[out->sound_count++] = 0x55;
+    }
+    if (index == 0x33 || index == 0x1a8)
+        out->sounds[out->sound_count++] = 0x82;
+    if (flag == 2)
+        subtype = 0x63;
+    uint16_t field8 = 0xffff;
+    copy3(out->position, position);
+    if (index != 0x7e7 && index != 0x7fc && index != 0x7fd && index != 0x7fe && index != 0x2d7)
+        out->position[2] = env_height(env, out->position[0], out->position[1]);
+    copy3(out->angle, angle);
+    if (a->mastery == 0x33 || a->mastery == 0x2d7 || a->mastery == 0x7fe)
+        field8 = a->field_364;
+    out->subtype = subtype;
+    out->info.key = a->key;
+    out->info.skill = skill;
+    out->info.word4 = flag;
+    if (index == 0x2e) {                                /* 0x0158d18f: CreateEffect 0x49d at the target */
+        out->routine = MU_SFX_CALL_EFFECT;
+        out->type = 0x49d;
+        out->subtype = 0;
+        out->owner = MU_SFX_ARROW_OWNER_TARGET;
+        out->info.field8 = 0xffff;
+        return 1;
+    }
+    out->info.field8 = field8;
+    out->info.field18 = last;
+    out->routine = MU_SFX_CALL_ARROW_EFFECT;
+    if (a->special) {                                   /* 0x0158d232 */
+        out->type = 0x6a9;
+        out->owner = MU_SFX_ARROW_OWNER_CHARACTER;
+        out->sounds[out->sound_count++] = -0x524;       /* 0x00a6ad76(0x524, 1) */
+        out->sounds[out->sound_count++] = 0x524;
+        return 1;
+    }
+    out->type = arrow_type(bow);
+    out->owner = MU_SFX_ARROW_OWNER_OBJECT;
+    if (out->type == -1)
+        out->routine = 0;
+    return out->routine != 0;
+}
