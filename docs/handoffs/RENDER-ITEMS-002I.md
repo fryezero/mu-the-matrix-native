@@ -115,4 +115,29 @@ The lock was occupied by NATIVE-PERF-004, then AUDIO-002D while this lane waited
 
 The updated 12:36 fairness rule is adopted. This lane joined `merge-queue.txt`
 as `RENDER-ITEMS-002I` behind effects and worlds K and takes the lock only when
-first. The final integration gate and PR merge are still pending in this checkpoint.
+first. The checkpoint preceded the serialized release recorded below.
+
+## Serialized release
+
+The merge lock was acquired in queue order at **13:13:54 CDT** and this lane's
+queue line was removed immediately. Latest main **5d35f5d**, including worlds J/K,
+audio D, session-map and effects 3, is integrated in **e7747de**. Conflicts affected
+only shared status/handoff paragraphs, the plan row beside the new effects row,
+and appended validator entries. Both lanes' entries are retained; the item
+runtime and its original-instruction harnesses merged without changes.
+
+The locked `bash scripts/local-macos-ci.sh` passes **1,590 tests across 38 suites,
+201 explicit skips, zero failures**. All **10/10 fixture scenarios and 77
+expectations** pass, with **80 inbound frames**, zero unbound/undecodable frames
+and the existing two unrecovered intents/seven unsent frames explicit. Native
+viewer/readers build; publication audit accepts **1,540 files, zero rejected**.
+The fixture dirty marker reflects the untracked shared Python input symlink.
+All three post-change scene hashes and counters remain identical after integration.
+The subsequent result-recording commit changes documentation only.
+
+Self-review of the final diff against the brief, evidence policy and supported
+input domain found no remaining blocking issue. Full rank-5 owner effects and
+the 905-body backlog remain explicit above. No new local input needs retention.
+After PR merge, release the lock immediately, delete this lane's scratch/renders
+and build outputs, then remove the worktree and local branch. Shared input targets
+remain untouched. No hosted workflow was used.
