@@ -167,6 +167,8 @@ def main(argv=None):
     ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
     ap.add_argument('--scenario', choices=SCENARIOS, action='append')
     a = ap.parse_args(argv)
+    if 'MU_GFX_TEST_CLOCK' in os.environ:
+        ap.error('MU_GFX_TEST_CLOCK is only for deterministic render comparisons')
     if a.gpu_timing and a.headless:
         ap.error('--gpu-timing requires the window shared-surface path')
     if a.frames <= 50 or a.seconds <= 0:
@@ -193,7 +195,8 @@ def main(argv=None):
               'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
               'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(),
               'perf_003_baseline': a.perf_003_baseline, 'gpu_timing': a.gpu_timing,
-              'gfx_double_buffer': 'MU_GFX_SINGLE_BUFFER' not in env, 'scenarios': {}}
+              'gfx_double_buffer': 'MU_GFX_SINGLE_BUFFER' not in env,
+              'region_reference': env.get('MU_PERF_REGION_REFERENCE') == '1', 'scenarios': {}}
     failed = False
     limits = json.loads((NATIVE / 'tools/stress_m5_limits.json').read_text())['scenarios']
     for name in a.scenario or SCENARIOS:

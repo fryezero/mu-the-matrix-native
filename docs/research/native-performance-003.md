@@ -46,6 +46,10 @@ all three frame records must be complete after the shutdown drain. The separate
 - Small draw-input arrays use bounded per-call stack storage, rebuilt from every
   current model/texture/pass input. Models above 16 meshes or 16 auxiliary
   bitmaps retain the allocating path. There is no pose or lighting cache.
+- Skinning searches disjoint model memory regions in an order that reaches
+  vertex and normal outputs earlier. Region addresses, pointers and bytes stay
+  unchanged. Foreign, overlapping and externally supplied region lists keep
+  their original precedence. There is no transformed-vertex or pose cache.
 - Native macOS compilation uses O3 and ThinLTO, including the unchanged model
   math sources in the native library. Floating-point contraction stays disabled
   and fast math stays disabled. Portable builds retain O2. NATIVE_PERF_LTO=0
@@ -84,9 +88,52 @@ These pilots ran on a shared host with changing load. They do not isolate a
 causal speedup for each component or establish a win in every scene. No limits
 were widened to hide the unfavorable results.
 
-## Final evidence
+## Render equivalence and the comparison clock
 
-Final timings and frame comparisons are recorded after the serialized runs.
+Verified: all 604 full frames, 0 through 150 in each of the four workloads, are
+byte-identical between O2/non-LTO reference and optimized builds. Every frame
+includes the full GFx, nameplates, equipped crowd, item icons, combat effects,
+world objects and map opened at frame 60. The comparison uses synchronous
+single-buffer presentation and fixed AS2 simulation time. It does not prove
+that asynchronous presentation chooses the same completed frame under arbitrary
+host scheduling.
+
+The initial comparison failed on 46 HUD edge pixels in frame 0. A repeat of the
+unchanged reference also differed, excluding an optimization-only explanation.
+Ruffle's AS2 getTimer reads real wall time even with a fixed date and tick delta;
+the UI tweens therefore received different time inputs during model loading.
+Patch 0008 exposes an optional host clock. MU_GFX_TEST_CLOCK pins getTimer to the
+movie's accumulated advance time while keeping its frames, timers, busy-loop
+offset and animations enabled. The first-frame control and all 604 frame pairs
+then match exactly. Normal players retain wall time. An authored GetTime probe
+returns 0, 0, 40 across a real delay and a 40 ms advance only in comparison mode;
+the normal-mode probe confirms wall time still advances. The timing benchmark
+rejects this test-clock environment variable, including an empty value.
+
+## Region-search experiment
+
+The window ABBA experiment is retained locally in region-*. It did not establish
+a whole-scene speedup on the changing shared-host load. Crowd80 reference / new /
+new / reference fps are 19.31 / 18.14 / 15.74 / 14.45; Tormenta80 is 21.68 / 16.77 /
+16.83 / 21.74. These unfavorable observations are not discarded.
+
+An in-process, thread-CPU probe isolates the actual production transform wrapper
+on the installed HelmClass09 model with a fixed pose. Eight alternating batches
+make 120,000 successful transform calls, 60,000 per mode. Mean CPU time per 15,000
+calls is 552.265 ms with canonical search and 404.728 ms with reordered search,
+26.7% lower. Each batch's complete mapped regions equals the reference bytes.
+This is a local transform cost result, not a 26.7% frame-rate claim. Fourteen
+synthetic dump cases also compare every transform output byte in both modes.
+The optimized version preserves all 604 full-frame hashes above.
+
+## Final timing
+
+The final-source real-time repeat is pending. The earlier complete compiler /
+storage / pacing matrix is retained locally in final-* and measured crowd40
+24.98 ->24.98, crowd80 23.53 ->24.45, Tormenta80 21.83 ->22.07 and retina80
+17.78 ->17.87 fps. Only crowd40 passes the strict 25 Hz goal in that matrix.
+Every kept frame has a complete Metal interval. It precedes the region-search
+candidate and is not presented as a final-source timing.
 
 ## Reproduction
 

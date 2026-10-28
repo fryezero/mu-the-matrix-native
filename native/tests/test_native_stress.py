@@ -42,6 +42,13 @@ class BenchmarkContract(unittest.TestCase):
                             '--out', '/unused', '--headless', '--gpu-timing'])
         self.assertIn('requires the window shared-surface path', err.getvalue())
 
+    def test_test_clock_is_rejected_in_timing_even_when_empty(self):
+        with mock.patch.dict(os.environ, MU_GFX_TEST_CLOCK=''), \
+                contextlib.redirect_stderr(io.StringIO()) as err:
+            with self.assertRaises(SystemExit):
+                bench.main(['--game-root', '/unused', '--data', '/unused', '--gfx-lib', '/unused', '--out', '/unused'])
+        self.assertIn('only for deterministic render comparisons', err.getvalue())
+
     def test_generated_crowd_has_eighty_distinct_equipped_players(self):
         with tempfile.TemporaryDirectory() as tmp:
             p, a = bench.fixtures(Path(tmp), (182, 128), 80)
@@ -134,6 +141,24 @@ class BenchmarkContract(unittest.TestCase):
                      (NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib').exists(),
                      'needs the built Metal GFx library')
 class MetalTiming(unittest.TestCase):
+    def test_as2_clock_is_pinned_only_on_request(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lib = NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib'
+            for pinned in (False, True):
+                env = dict(os.environ)
+                env.pop('MU_GFX_TEST_CLOCK', None)
+                if pinned:
+                    env['MU_GFX_TEST_CLOCK'] = '1'
+                r = subprocess.run([sys.executable, str(HERE / 'perf_gfx_clock_host.py'),
+                                    str(Path(tmp) / 'clock.swf'), str(lib)],
+                                   env=env, capture_output=True, text=True, timeout=60)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                values = json.loads(r.stdout.strip())
+                if pinned:
+                    self.assertEqual(values, [0, 0, 40])
+                else:
+                    self.assertGreaterEqual(values[1] - values[0], 30)
+
     def test_complete_queue_frames_cached_marker_and_shutdown_drain(self):
         import perf_report
         with tempfile.TemporaryDirectory() as tmp:

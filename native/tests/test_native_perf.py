@@ -117,6 +117,28 @@ class PacingTests(unittest.TestCase):
                 self.assertAlmostEqual(clock.mu_perf_now(), 1038, delta=0.03)
 
 
+@unittest.skipUnless(CC, 'needs a C compiler')
+class RegionSearchTests(unittest.TestCase):
+    def test_transform_outputs_equal_the_canonical_region_search(self):
+        from test_native_viewer import nf, STATES, reference
+        subprocess.run(['make', '-C', str(NATIVE), 'build/mu-render'], check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            for seed in (5, 6):
+                model = directory / 'synthetic.bmd'
+                model.write_bytes(nf.synthetic_layout(seed, four_corner=seed == 6))
+                for state in STATES:
+                    outputs = []
+                    for mode in ('1', '0'):
+                        dump = directory / f'{mode}.bin'
+                        subprocess.run([str(NATIVE / 'build/mu-render'), 'dump', str(model), '--out', str(dump),
+                                        *map(str, reference.cli_arguments(state))],
+                                       env=dict(os.environ, MU_PERF_REGION_REFERENCE=mode, MU_PERF_003_BASELINE='0'),
+                                       check=True, capture_output=True)
+                        outputs.append(dump.read_bytes())
+                    self.assertEqual(outputs[0], outputs[1], (seed, state))
+
+
 def build_gl_host(tmp):
     host = Path(tmp) / 'perf-gl-host'
     srcs = [HERE / 'perf_gl_host.c', NATIVE / 'viewer/ui_gl.c', NATIVE / 'viewer/gl_batch.c',

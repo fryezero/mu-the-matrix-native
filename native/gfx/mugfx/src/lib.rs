@@ -380,6 +380,7 @@ pub struct MuGfx {
     ui: Rc<UiState>,
     pending: RefCell<Vec<Pending>>,
     kind: TargetKind,
+    test_clock_ms: Cell<Option<f64>>,
     width: Cell<u32>,
     height: Cell<u32>,
     reply: RefCell<CString>,
@@ -491,8 +492,10 @@ fn build_player(path: &str, w: u32, h: u32, kind: TargetKind) -> Result<Box<MuGf
         .with_fs_commands(Box::new(FsCommands(slot.clone())))
         .with_max_execution_duration(Duration::from_secs(5))
         .build();
+    let test_clock = std::env::var_os("MU_GFX_TEST_CLOCK").map(|_| 0.0);
     {
         let mut p = player.lock().unwrap();
+        p.set_gfx_test_time(test_clock.map(|t| t as u32));
         p.set_window_mode("transparent");
         p.set_viewport_dimensions(ViewportDimensions { width: w, height: h, scale_factor: 1.0 });
         // The client's movies run with keyboard focus (GFx movies get key
@@ -505,6 +508,7 @@ fn build_player(path: &str, w: u32, h: u32, kind: TargetKind) -> Result<Box<MuGf
         ui,
         pending: RefCell::new(Vec::new()),
         kind,
+        test_clock_ms: Cell::new(test_clock),
         width: Cell::new(w),
         height: Cell::new(h),
         reply: RefCell::new(CString::default()),
@@ -594,6 +598,11 @@ pub unsafe extern "C" fn mugfx_start(g: *mut MuGfx) {
 pub unsafe extern "C" fn mugfx_advance(g: *mut MuGfx, dt_ms: f64) {
     let Some(g) = (unsafe { g.as_ref() }) else { return };
     let t = Instant::now();
+    if let Some(time) = g.test_clock_ms.get() {
+        let time = time + dt_ms;
+        g.test_clock_ms.set(Some(time));
+        g.with_player(|p| p.set_gfx_test_time(Some(time as u32)));
+    }
     g.with_player(|p| p.tick(FloatDuration::from_millis(dt_ms)));
     g.run_pending();
     g.stats.borrow_mut().last_advance_ms = t.elapsed().as_secs_f64() * 1000.0;
