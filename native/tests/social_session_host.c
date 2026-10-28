@@ -69,11 +69,11 @@ int main(void) {
     assert(s.friends.count == 2);
     uint8_t answer[4] = {0xc1, 4, 0x41, 13};
     int members = s.party.count;
-    s.request_key = 0x1234;
+    int saved_key = s.request_key;
     assert(mu_social_receive(&s, answer, sizeof answer) && s.party_notice == 0x1263 &&
            s.party.count == members);
     uint8_t clear[5] = {0xc1, 5, 0x43, 0, 0};
-    assert(mu_social_receive(&s, clear, sizeof clear) && s.party.count == 0 && s.request_key == 0x1234 &&
+    assert(mu_social_receive(&s, clear, sizeof clear) && s.party.count == 0 && s.request_key == saved_key &&
            s.party_notice == 0x1f6);
     s.auto_enabled = 0;
     uint8_t invite_a[5] = {0xc1, 5, 0x40, 2, 0}, invite_b[5] = {0xc1, 5, 0x40, 2, 1};
@@ -86,7 +86,7 @@ int main(void) {
         kyra += !strcmp(s.party.members[i].name, "Kyra");
     }
     assert(aeris == 1 && kyra == 0);
-    mu_social_messages_destroy(&s.messages);
+    mu_social_close(&s);
     free(p);
     puts("{\"social_session\":true,\"passed\":true}");
     return 0;

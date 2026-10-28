@@ -12,6 +12,10 @@ N = Path(__file__).resolve().parents[1]
 
 
 class SocialSession(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        subprocess.run(["make", "-C", str(N), "build/libmusession_world.a", "build/libmunative.a"], check=True, capture_output=True)
+
     def test_membership_survives_world_travel(self):
         from test_native_combat import write_combat_world
         from test_native_map import second_world, write_lang
@@ -104,6 +108,9 @@ class SocialSession(unittest.TestCase):
                     "-I",
                     str(hud),
                     *map(str, sources),
+                    "-I", str(N / "build/gen"), "-I", str(N / "session"),
+                    str(N / "build/libmusession_world.a"), str(N / "build/libmunative.a"),
+                    *(["-framework", "CoreText", "-framework", "CoreGraphics", "-framework", "CoreFoundation"] if sys.platform == "darwin" else []),
                     "-lm",
                     *(["-ldl"] if sys.platform != "darwin" else []),
                     "-o",
@@ -180,8 +187,10 @@ class SocialSession(unittest.TestCase):
                     str(N / "core/mu_social_messages.c"),
                     str(N.parent / "reconstructed/social/social.c"),
                     str(N.parent / "reconstructed/social/social_packets.c"),
-                    "-o",
-                    str(exe),
+                    "-I", str(N / "build/gen"), "-I", str(N / "session"),
+                    str(N / "build/libmusession_world.a"), str(N / "build/libmunative.a"),
+                    *(["-framework", "CoreText", "-framework", "CoreGraphics", "-framework", "CoreFoundation"] if sys.platform == "darwin" else []),
+                    "-lm", "-o", str(exe),
                 ],
                 check=True,
                 capture_output=True,

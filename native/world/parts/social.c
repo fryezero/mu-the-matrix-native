@@ -12,6 +12,7 @@ static int social_open(struct mu_world_rt *a, void *self)
         a->social = calloc(1, sizeof *a->social);
         if (!a->social) return 1;
         mu_social_init(a->social, a->hero_name, a->players);
+        if (!a->social->session) return 1;
     } else {
         a->social->players = a->players;
         a->social->revision++;

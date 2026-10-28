@@ -1,0 +1,24 @@
+# Authored party display feed. Invite/answer Send(1,0) requests remain unsent.
+endpoint game 127.0.0.1:55907
+use party hero=Hero peers=Aeris,Kyra
+join world=0 tile=120,120 class=1 level=10 name=Hero slot=0
+at 1 party join 0
+at 2 party invite 512
+at 3 client detach
+at 4 party bars Hero,38,61
+at 5 client submit party_answer 1
+at 6 party result 13
+at 7 client submit party_leave 0
+at 8 client attach
+at 9 party join 1
+at 10 client submit party_invite 512
+at 11 client cues
+expect party.count = 2
+expect party.pending = 0
+expect party.key = 512
+expect party.hp0 = 38
+expect party.invitations = 1
+expect unbound = 0
+expect undecodable = 0
+expect unsent = 2
+expect fixture.undecodable = 0
