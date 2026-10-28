@@ -41,7 +41,7 @@
 #include "mu_scene.h"
 #include "mu_effect.h"
 
-#define MU_OBJECT_TYPES 300
+#define MU_OBJECT_TYPES 512
 
 enum {
     MU_OBJECTS_FILE_OK = 0,
@@ -93,9 +93,14 @@ typedef struct mu_object_mesh {
     mu_draw_model_fields fields;      /* model colour +0x54 at the call */
 } mu_object_mesh;
 struct mu_objects;
+struct mu_env;
 
 typedef struct mu_objects_runtime {
     int ready;
+    struct mu_env *environment; /* optional shared boid pool for Elbeland */
+    uint8_t hero_safe;
+    mu_obj_event startup_effects[12];
+    int32_t startup_effect_count;
     uint8_t *images;                  /* count * MU_OBJ_SIZE: client OBJECT images */
     uint8_t **pointers;
     int32_t *next;
@@ -230,6 +235,8 @@ typedef struct mu_objects_step_inputs {
  * light events. Call after the frame light copy; the AddTerrainLight calls are kept in rt.lights
  * and applied by mu_objects_apply_lights. Advances the stand-in particles one step. */
 void mu_objects_step(mu_objects *objects, const mu_objects_step_inputs *inputs);
+int mu_objects_worlds_b_records(mu_objects *objects);
+const char *mu_objects_worlds_b_model(int32_t world, int32_t type);
 
 /* Re-applies the last step's AddTerrainLight calls to the frame light (after each copy). */
 void mu_objects_apply_lights(const mu_objects *objects, mu_world *map);

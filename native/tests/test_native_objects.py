@@ -90,6 +90,32 @@ class ObjectsTests(unittest.TestCase):
             self.assertEqual(report['models']['7'][1], 0)
             self.assertEqual(len(report['models']), 300)
 
+    def test_code_created_world_placements_and_keep_all_deduplication(self):
+        for world, count in ((2, 3), (57, 2), (58, 2)):
+            with self.subTest(world=world), tempfile.TemporaryDirectory() as root:
+                folder = world + 1
+                write_world(root, folder)
+                data = Path(root) / 'Data' / f'World{folder}'
+                (data / f'EncTerrain{folder}.obj').write_bytes(v12_encrypt(obj_plain(folder, [])))
+                npc = Path(root) / 'Data' / 'Npc'
+                npc.mkdir(parents=True)
+                for seed, name in enumerate(('obj_donkey', 'obj_flag', 'warp01'), 1):
+                    model = nf.write_textured_model(npc, seed)
+                    model.rename(npc / f'{name}.bmd')
+                first = json.loads(run('objects', root, '--world', world).stdout)
+                rendered = json.loads(run('render', root, '--world', world, '--objects', 'installed',
+                                          '--target', '12850,12850', '--distance', 2500,
+                                          '--width', 96, '--height', 64).stdout)
+                self.assertEqual(rendered['objects']['models_missing'], 0)
+                self.assertEqual(rendered['objects']['models_loaded'],
+                                 3 if world == 2 else 2 if world == 57 else 1)
+                self.assertEqual(first['objects']['count'], count)
+                # Re-exporting all placements must not add a second copy at load time.
+                records = [(r[0], *r[1:4], r[6], r[7]) for r in first['records']]
+                (data / f'EncTerrain{folder}.obj').write_bytes(v12_encrypt(obj_plain(folder, records)))
+                second = json.loads(run('objects', root, '--world', world).stdout)
+                self.assertEqual(second['records'], first['records'])
+
     def test_render_draws_objects(self):
         with tempfile.TemporaryDirectory() as root:
             records = [(0, 12800.0, 12800.0, 0.0, 0.0, 30.0), (13, 12900.0, 12850.0, 0.0, 30.0, 30.0),
