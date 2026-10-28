@@ -42,7 +42,9 @@ native ambient clock input uses integer world time, a host choice rather than a 
   cases. These are existing effect families, separately from the eight compiled Icarus controls.
 - Native synthetic host: sky light/effect/joint events, cloudLight sprites, object ordinals, Monster32 mapping,
   and production sky-before-puff RNG order. The fixture explicitly marks its object runtime ready.
-- Final local macOS gate: pending.
+- `bash scripts/local-macos-ci.sh`: 1,366 tests, 160 explicit skips, zero failures; both fixture scenarios pass,
+  native viewer and readers build, audit 1,213 files with zero rejected. Run on the tree containing lane B
+  merge `952868f` and the final owner-aware sprite change.
 
 Reports are local under `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-c/`, with the final scoped
 report and runner summary in `owner-registered/`.
@@ -58,7 +60,8 @@ Initial results: 25-step mean absolute image difference 61.760 → 62.030; 400-s
 regressions, not fidelity improvements. Sky random calls change the puff distribution, and the native seeds are
 not the captured client's state. The named cloud/lightning/sprite/swirl paths are implemented, but do not explain
 or reproduce the persistent grey coverage of the live capture. Dragons and cloud lights are visible. All thirteen
-other capture hashes are unchanged at both sampled frames of the 25-step tour.
+other capture hashes are unchanged at both sampled frames of the 25-step tour. The final combined-tree tour
+also changes only Icarus relative to lane B's merged renders.
 
 The persistent grey layer remains an explicit gap. Do not increase cloud frequency, lifetime or opacity to match
 one screenshot: that would contradict the verified code. A later bounded capture needs the full joint/sprite
