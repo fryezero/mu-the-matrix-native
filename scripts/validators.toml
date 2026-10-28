@@ -6,6 +6,20 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_item_clusters]
+test = "reconstructed/renderchar/test_item_clusters.py::ItemClusters.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "links", "transforms"]
+cases = 74292
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_clusters.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
 [validate_item_types]
 test = "reconstructed/renderchar/test_item_types.py::ItemTypes.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
