@@ -100,3 +100,11 @@ script, table and assets with the existing `--no-options` flag rendered the same
 0.427441. The test now explicitly uses default test gains. Its frame count, nonzero peak threshold, installed
 WAV scan, music decode and table-count assertions remain unchanged. Portable tests still exercise Option.ini
 gains and mutes. No installed setting, table, sound file or production audio behavior changed.
+
+## Audio adapter after world-handler merges
+
+The complete private native run found a link failure in `validate_audio_callers.py`: its standalone adapter
+compiled the current `object_render.c` but omitted `vulcanus.c` and `santa_village.c`, which now supply four
+referenced handlers. The adapter now compiles both authored dependencies. No handler, comparison tolerance,
+case count or mutant requirement changes. The private audio test still requires 5,528 cases, zero mismatches
+and all 18 planted mistakes caught.
