@@ -37,23 +37,25 @@ pub extern "C" fn mugfx_perf_end() {
 }
 
 struct Slot {
-    query: wgpu::QuerySet,
     resolve: wgpu::Buffer,
     read: wgpu::Buffer,
     ready: Arc<AtomicBool>,
 }
 
-pub struct Timer { slots: Vec<Slot>, movie: u32, log: Arc<Mutex<File>>, marker: wgpu::ComputePipeline }
+pub struct Timer { query: wgpu::QuerySet, slots: Vec<Slot>, movie: u32, log: Arc<Mutex<File>>, marker: wgpu::TextureView, pipeline: wgpu::RenderPipeline }
 impl Timer {
     pub fn new(device: &wgpu::Device, movie: u32) -> Option<Self> {
         let log = log()?;
         let supported = device.features().contains(wgpu::Features::TIMESTAMP_QUERY);
         let _ = writeln!(log.lock().unwrap(), "{{\"movie\":{movie},\"supported\":{supported}}}");
 
-        let slots = (0..if supported { 64 } else { 0 }).map(|_| Slot {
-            query: device.create_query_set(&wgpu::QuerySetDescriptor {
-                label: Some("mugfx perf"), ty: wgpu::QueryType::Timestamp, count: 2,
-            }),
+        if !supported { return None; }
+        // One Metal counter sample buffer. A QuerySet per slot exhausts the
+        // driver's counter-buffer allocation before the first movie renders.
+        let query = device.create_query_set(&wgpu::QuerySetDescriptor {
+            label: Some("mugfx perf"), ty: wgpu::QueryType::Timestamp, count: 128,
+        });
+        let slots = (0..64).map(|_| Slot {
             resolve: device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("mugfx perf resolve"), size: 16,
                 usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
@@ -66,15 +68,34 @@ impl Timer {
             }),
             ready: Arc::new(AtomicBool::new(true)),
         }).collect();
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let marker = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("mugfx timestamp marker"),
-            source: wgpu::ShaderSource::Wgsl("@compute @workgroup_size(1) fn main() {}".into()),
+            size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+            mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT, view_formats: &[],
+        }).create_view(&Default::default());
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("mugfx timer"),
+            source: wgpu::ShaderSource::Wgsl(r#"
+                @vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+                    let p = array(vec2f(-1., -1.), vec2f(3., -1.), vec2f(-1., 3.));
+                    return vec4f(p[i], 0., 1.);
+                }
+                @fragment fn fs() -> @location(0) vec4f { return vec4f(0.); }
+            "#.into()),
         });
-        let marker = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("mugfx timestamp marker"), layout: None, module: &shader,
-            entry_point: Some("main"), compilation_options: Default::default(), cache: None,
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("mugfx timer"), layout: None,
+            vertex: wgpu::VertexState { module: &shader, entry_point: Some("vs"),
+                compilation_options: Default::default(), buffers: &[] },
+            primitive: Default::default(), depth_stencil: None, multisample: Default::default(),
+            fragment: Some(wgpu::FragmentState { module: &shader, entry_point: Some("fs"),
+                compilation_options: Default::default(), targets: &[Some(wgpu::ColorTargetState {
+                    format: wgpu::TextureFormat::Rgba8Unorm, blend: None, write_mask: wgpu::ColorWrites::ALL,
+                })] }), multiview_mask: None, cache: None,
         });
-        Some(Self { slots, movie, log, marker })
+        Some(Self { query, slots, movie, log, marker, pipeline })
     }
     pub fn begin(&self, device: &wgpu::Device) -> Option<(usize, wgpu::CommandBuffer, wgpu::CommandBuffer)> {
         SUBMISSIONS.fetch_add(1, Ordering::Relaxed);
@@ -84,27 +105,31 @@ impl Timer {
             return None;
         };
         let mut begin = device.create_command_encoder(&Default::default());
-        // Apple GPUs expose pass-boundary timestamps, not encoder timestamps.
-        { let mut pass = begin.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("mugfx perf begin"),
-            timestamp_writes: Some(wgpu::ComputePassTimestampWrites {
-                query_set: &s.query, beginning_of_pass_write_index: Some(0), end_of_pass_write_index: None,
-            }),
-        });
-        pass.set_pipeline(&self.marker);
-        pass.dispatch_workgroups(1, 1, 1); }
+        // Pass-boundary timestamps work with Apple's counter sampling and
+        // Ruffle's GL-ES limits, which intentionally disable compute shaders.
+        self.mark(&mut begin, i as u32 * 2);
         let mut end = device.create_command_encoder(&Default::default());
-        { let mut pass = end.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("mugfx perf end"),
-            timestamp_writes: Some(wgpu::ComputePassTimestampWrites {
-                query_set: &s.query, beginning_of_pass_write_index: None, end_of_pass_write_index: Some(1),
-            }),
-        });
-        pass.set_pipeline(&self.marker);
-        pass.dispatch_workgroups(1, 1, 1); }
-        end.resolve_query_set(&s.query, 0..2, &s.resolve, 0);
+        self.mark(&mut end, i as u32 * 2 + 1);
+        end.resolve_query_set(&self.query, i as u32 * 2..i as u32 * 2 + 2, &s.resolve, 0);
         end.copy_buffer_to_buffer(&s.resolve, 0, &s.read, 0, 16);
         Some((i, begin.finish(), end.finish()))
+    }
+    fn mark(&self, encoder: &mut wgpu::CommandEncoder, index: u32) {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mugfx timestamp"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.marker, depth_slice: None, resolve_target: None,
+                ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store },
+            })],
+            depth_stencil_attachment: None, occlusion_query_set: None,
+            timestamp_writes: Some(wgpu::RenderPassTimestampWrites {
+                query_set: &self.query, beginning_of_pass_write_index: if index % 2 == 0 { Some(index) } else { None },
+                end_of_pass_write_index: if index % 2 == 1 { Some(index) } else { None },
+            }), multiview_mask: None,
+        });
+        pass.set_pipeline(&self.pipeline);
+        pass.draw(0..3, 0..1);
     }
     pub fn submitted(&self, i: usize, period: f32) {
         let s = &self.slots[i];
@@ -118,8 +143,8 @@ impl Timer {
                 let bytes = read.slice(..).get_mapped_range().expect("mapped timer buffer");
                 let start = u64::from_ne_bytes(bytes[0..8].try_into().unwrap());
                 let end = u64::from_ne_bytes(bytes[8..16].try_into().unwrap());
-                if end < start {
-                    let _ = writeln!(log.lock().unwrap(), "{{\"frame\":{frame},\"movie\":{movie},\"invalid\":true}}");
+                if end < start || start == 0 || end == 0 {
+                    let _ = writeln!(log.lock().unwrap(), "{{\"frame\":{frame},\"movie\":{movie},\"invalid\":true,\"start\":{start},\"end\":{end}}}");
                     drop(bytes);
                     read.unmap();
                     ready.store(true, Ordering::Release);

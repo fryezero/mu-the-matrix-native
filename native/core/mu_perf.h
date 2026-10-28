@@ -64,6 +64,10 @@ int64_t mu_perf_frame_index(void);
  * instead of SDL_Delay's oversleep of one to two milliseconds on macOS,
  * which turned the login/title cap Sleep(40 - elapsed) into 23.9 fps. */
 void mu_sleep_ms(uint32_t ms);
+/* Host window pacing. Measure this frame's work against a 40 ms deadline;
+ * the reconstructed integer clock and headless simulation stay untouched. */
+void mu_perf_pace_begin(void);
+void mu_perf_pace_end(int32_t client_sleep);
 
 /* MU_PERF_BASELINE=1: the paths before NATIVE-PERF-001, for before/after measurements on any machine:
  * plain sleeps at the cap, the software 2D layer over a read-back frame, immediate-mode draws. */

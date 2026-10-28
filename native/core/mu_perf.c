@@ -153,12 +153,16 @@ static void precise(int on)
         p.computation = (uint32_t)(1.0 * ms);
         p.constraint = (uint32_t)(2.0 * ms);
         p.preemptible = 1;
-        thread_policy_set(mach_thread_self(), THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&p,
+        thread_t thread = mach_thread_self();
+        thread_policy_set(thread, THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&p,
                           THREAD_TIME_CONSTRAINT_POLICY_COUNT);
+        mach_port_deallocate(mach_task_self(), thread);
     } else {
         thread_standard_policy_data_t p;
-        thread_policy_set(mach_thread_self(), THREAD_STANDARD_POLICY, (thread_policy_t)&p,
+        thread_t thread = mach_thread_self();
+        thread_policy_set(thread, THREAD_STANDARD_POLICY, (thread_policy_t)&p,
                           THREAD_STANDARD_POLICY_COUNT);
+        mach_port_deallocate(mach_task_self(), thread);
     }
 }
 #else
@@ -177,6 +181,30 @@ int mu_perf_batching(void)
     return !(v && v[0] == '1') && !mu_perf_baseline();
 }
 
+static void sleep_until(double deadline)
+{
+    double left;
+    if (deadline <= mu_perf_now()) return;
+    precise(1);
+    while ((left = deadline - mu_perf_now()) > 0.3)
+        nap(left - 0.2);
+    while (deadline - mu_perf_now() > 0.0)
+        sched_yield();
+    precise(0);
+}
+
+static double pace_start;
+void mu_perf_pace_begin(void) { pace_start = mu_perf_now(); }
+void mu_perf_pace_end(int32_t client_sleep)
+{
+    const char *baseline = getenv("MU_PERF_003_BASELINE");
+    if (mu_perf_baseline() || (baseline && baseline[0] == '1')) {
+        if (client_sleep > 0) mu_sleep_ms((uint32_t)client_sleep);
+        return;
+    }
+    sleep_until(pace_start + 40.0);
+}
+
 void mu_sleep_ms(uint32_t ms)
 {
     if (!ms)
@@ -185,12 +213,5 @@ void mu_sleep_ms(uint32_t ms)
         nap((double)ms);
         return;
     }
-    const double deadline = mu_perf_now() + (double)ms;
-    double left;
-    precise(1);
-    while ((left = deadline - mu_perf_now()) > 0.3)
-        nap(left - 0.2);
-    while (deadline - mu_perf_now() > 0.0)
-        sched_yield();
-    precise(0);
+    sleep_until(mu_perf_now() + (double)ms);
 }

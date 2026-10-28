@@ -56,6 +56,14 @@ class BenchmarkContract(unittest.TestCase):
         self.assertTrue(bench.check(dict(r, fps=24.9), headless=True))
         self.assertEqual(bench.check(dict(r, fps=90), headless=True), [])
 
+    def test_nonfinite_or_missing_metrics_cannot_pass(self):
+        r = {'frames': 200, 'fps': 25.0, 'work_ms': {'p95': 30, 'p99': 35},
+             'frame_ms': {'p95': 40, 'p99': 41}}
+        for value in (float('nan'), float('inf'), -1, None):
+            self.assertTrue(bench.check(dict(r, fps=value), headless=True))
+            self.assertTrue(bench.check(dict(r, work_ms={'p95': value, 'p99': 35}), headless=False))
+        self.assertTrue(bench.check(dict(r, frame_ms={}), headless=False))
+
     def test_pacing_tails_fail_even_at_25_fps(self):
         result = {'frames': 200, 'fps': 25, 'work_ms': {'p95': 30, 'p99': 35},
                   'frame_ms': {'p95': 44, 'p99': 46}}

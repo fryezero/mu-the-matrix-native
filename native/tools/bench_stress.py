@@ -9,6 +9,7 @@ import argparse
 import ctypes
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -76,6 +77,10 @@ def command(args, name, directory):
 def check(result, *, headless):
     """Apple M5 envelope. Never call uncapped throughput measured capped fps."""
     failures = []
+    metrics = [result.get('fps'), result.get('frames')]
+    metrics += [result.get(group, {}).get(key) for group in ('work_ms', 'frame_ms') for key in ('p95', 'p99')]
+    if any(not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0 for v in metrics):
+        return ['missing, negative or nonfinite timing metric']
     if result['frames'] < 100:
         failures.append('fewer than 100 measured frames')
     if not headless and not 24.8 <= result['fps'] <= 25.2:

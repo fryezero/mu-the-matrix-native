@@ -1083,6 +1083,7 @@ static int windowed(front *f)
             fprintf(stderr, "the launcher is gone: quitting\n");
             break;
         }
+        mu_perf_pace_begin();
         double perf = mu_perf_begin();
         /* NATIVE-PERF-001: the frame starts before the event pump, as the client's idle loop reads the clock
          * before PeekMessage; the login/title cap Sleep(40 - elapsed) then covers the whole pass */
@@ -1173,8 +1174,7 @@ static int windowed(front *f)
         perf = mu_perf_now();
         audio_pump(f, SDL_GetTicks());   /* before the cap: it is the host's, the cap measures the whole pass */
         int32_t sleep = mu_shell_end_frame(f->shell, SDL_GetTicks());
-        if (sleep > 0)
-            mu_sleep_ms((uint32_t)sleep);   /* NATIVE-PERF-001: the host Sleep without oversleep */
+        mu_perf_pace_end(sleep);
         if (mu_perf_enabled())
             mu_perf_add(MU_PERF_SLEEP, mu_perf_now() - perf);
         mu_perf_frame(mu_shell_scene(f->shell));
