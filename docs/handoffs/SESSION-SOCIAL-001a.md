@@ -60,6 +60,13 @@ launcher, live service or dispatcher-table walk. [Finding](../research/client-so
   feedback is refreshed rather than retaining the previous action's text.
 - Full release gate and final integration counts will be recorded before merge.
 
+Self-review checked the brief's owned paths, static-route provenance, full-frame
+validation before mutation, request bounds and encryption flags, pending-key
+retention, independent cursors, snapshot authority, shutdown order and fixture-only
+membership. No independent agent review is claimed. The worktree is queued for
+the serialized latest-main integration and release gate; all implementation and
+focused-check fixes are pushed as checkpoints.
+
 Temporary reports/renders are in the lane's external scratch/render directories.
 They and build outputs will be deleted after merge; no new retained input is needed.
 Only authored code, synthetic scenarios and reviewed summaries are committed.
