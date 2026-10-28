@@ -19,6 +19,7 @@ A tour manifest (JSON) names, per map, a live capture taken under the game lock 
          "live_globals": "live/01-dungeon-glob.bin",                # objread's scene globals
          "live_light": "live/01-dungeon-light.bin",                 # live-readers/lightread snapshot
          "native_png": null, "native_dump": null,                   # optional: skip the render, use these
+         "element_masks": {"cloud_cover": "masks/cover.png"},          # optional PNGs, white includes pixels
          "note": "Dungeon 1 warp arrival"}
       ]
     }
@@ -341,10 +342,17 @@ def luminance_quantiles(im, mask, qs=(0.05, 0.5, 0.95)):
     return out
 
 
-def compare_images(live, native, masks, grid=4):
+def compare_images(live, native, masks, grid=4, include_mask=None):
     if live.size != native.size:
         native = native.resize(live.size, Image.BILINEAR)
     mask = mask_image(live.size, masks)
+    if include_mask is not None:
+        if include_mask.size != live.size:
+            raise ValueError("element mask must match the client area")
+        binary = include_mask.convert("L").point(lambda v: 255 if v else 0)
+        mask = ImageChops.multiply(mask, binary)
+    if not mask.getbbox():
+        raise ValueError("image comparison mask contains no pixels")
     diff = ImageChops.difference(live, native)
     gray = diff.convert('L')
     ds = ImageStat.Stat(diff, mask)
@@ -364,6 +372,7 @@ def compare_images(live, native, masks, grid=4):
             row.append(round(sum(ImageStat.Stat(diff.crop(box), m).mean) / 3, 2))
         regions.append(row)
     return {
+        'pixels': sum(mask.histogram()[1:]),
         'mean_abs_diff': round(sum(ds.mean) / 3, 3),
         'mean_abs_diff_rgb': [round(v, 3) for v in ds.mean],
         'share_off': round(off_share, 4),
@@ -411,6 +420,7 @@ def load_manifest(path):
             raise ValueError('every map needs name and world')
         for key in ('live_png', 'live_obj', 'live_globals', 'live_light', 'native_png', 'native_dump'):
             e[key] = resolve(e.get(key))
+        e['element_masks'] = {name: resolve(path) for name, path in e.get('element_masks', {}).items()}
     return m
 
 
@@ -441,7 +451,7 @@ def render(m, binary, only=None):
         frames.mkdir(parents=True, exist_ok=True)
         tx, ty = map_tile(e)
         cmd = [binary, '--game-root', root, '--world', str(e['world']), '--tile', f'{tx},{ty}', '--headless',
-               '--backend', m.get('backend', 'gl'), '--frames', str(m['frames']), '--every', str(m['frames'] - 1),
+               '--backend', m.get('backend', 'gl'), '--frames', str(m['frames']), '--every', str(m.get('every', m['frames'] - 1)),
                '--width', str(m['width']), '--height', str(m['height']), '--out-dir', str(frames),
                '--fidelity-dump', str(out / 'native')] + list(m['native_args']) + list(e.get('native_args', []))
         if m.get('objects_dir'):
@@ -518,6 +528,15 @@ def compare_map(m, e):
         live_im = client_area(e['live_png'], m['width'], m['height'], m['title_bar'])
         native_im = Image.open(native_png).convert('RGB')
         result['image'], diff, mask = compare_images(live_im, native_im, m['masks'])
+        # Optional authored masks supplement the unchanged whole-scene score. White pixels include a
+        # region; all HUD/hero exclusions still apply. Keep mask provenance with the local manifest.
+        if e.get('element_masks'):
+            result['image_elements'] = {}
+            for name, path in e['element_masks'].items():
+                element = Image.open(path)
+                stats, _, _ = compare_images(live_im, native_im, m['masks'], include_mask=element)
+                stats['fraction_of_scored_pixels'] = round(stats['pixels'] / result['image']['pixels'], 6)
+                result['image_elements'][name] = stats
         write_visuals(out, live_im, native_im.resize(live_im.size), diff, mask)
 
     dump = e.get('native_dump') or str(out / 'native')

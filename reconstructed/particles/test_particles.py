@@ -155,7 +155,7 @@ class ParticleTests(unittest.TestCase):
         self.lib.mu_pt_move_record(ctypes.byref(p), ctypes.byref(host))   # then sinks and fades
         self.assertEqual((p.position[2], p.alpha), (139.5, f32(f32(f32(0.1) + 0.04) - f32(0.025))))
         rc = self.v.RenderCall()
-        self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(self.v.Bitmap(64.0, 64.0, 3)), 0, ctypes.byref(rc))
+        self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(self.v.Bitmap(64.0, 64.0, 3)), 0, 0.0, 0, ctypes.byref(rc))
         self.assertEqual(rc.sprite.light[0], f32(1.0 * p.alpha))           # the light times the alpha
         # WATERFALL1 0x801a subtype 2 (the spray markers)
         p, ok, fx = self.create((0x801a, 2), [100, 3], scale=0.5)
@@ -234,12 +234,12 @@ class ParticleTests(unittest.TestCase):
         p.frame = 6
         rc = v.RenderCall()
         bm = v.Bitmap(64.0, 128.0, 3)
-        self.assertEqual(self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), 0, ctypes.byref(rc)), 1)
+        self.assertEqual(self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), 0, 0.0, 0, ctypes.byref(rc)), 1)
         s = rc.sprite
         self.assertEqual((s.width, s.height, s.rotation, s.u, s.uw, s.axes), (16.0, 128.0, 33.0, 0.5, 0.25, 4))
         self.assertEqual(list(rc.state)[:rc.state_count], [v.STATE_ADD])
         p.position[2] = 351.0
-        self.assertEqual(self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), 1, ctypes.byref(rc)), 0)
+        self.assertEqual(self.lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), 1, 0.0, 0, ctypes.byref(rc)), 0)
 
     def test_sprite_quad_upright(self):
         v = self.v
