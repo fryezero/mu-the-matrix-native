@@ -262,7 +262,7 @@ class LiveSelectionAndPairingTests(unittest.TestCase):
         self.assertNotIn('rng', out['max_error'])
         self.assertEqual(out['compare']['failure_count'], report['maps'][0]['failure_count'])
         self.assertEqual(len(out['diagnostic_camera_error']), 21)
-        self.assertNotIn('samples', json.dumps(out))
+        self.assertNotIn('"samples"', json.dumps(out))   # no per-sample records
 
 
 class LiveCompareTests(unittest.TestCase):
