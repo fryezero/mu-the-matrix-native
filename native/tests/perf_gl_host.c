@@ -322,6 +322,7 @@ static GLuint make_texture(int seed)
 /* A height field of tiles: per tile a fan with its layer texture (two textures in runs), every fifth tile
  * an alpha layer (blend, depth mask off) and an additive neighbour face; grass as quads with a trailing
  * incomplete quad; then mesh triangles with the full state re-applied before each mesh. */
+static int barrier_ok = 1;
 static void batch_stream(sink *s, const GLuint tex[3])
 {
     glEnable(GL_DEPTH_TEST);
@@ -357,6 +358,10 @@ static void batch_stream(sink *s, const GLuint tex[3])
                 s_end(s);
             }
         }
+    if (s->b) mu_gl_batch_flush(s->b);
+    GLint bound;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+    barrier_ok &= (GLuint)bound == tex[0] && glIsEnabled(GL_BLEND) == GL_FALSE;
     /* Offscreen primitives cross the capture chunk boundary without extra fill. */
     for (int i = 0; i < 24000; ++i) {
         s_begin(s, GL_TRIANGLES);
@@ -449,9 +454,9 @@ static int batch_mode(void)
         if (memcmp(img[0] + i * 4, img[1] + i * 4, 3))
             ++differing;
     printf("{\"identical\": %s, \"differing\": %ld, \"primitives\": %ld, \"draws\": %ld, \"state_calls\": %ld, "
-           "\"state_applied\": %ld, \"vertices\": %ld, \"uploads\": %ld, \"upload_failures\": %ld, \"binding_restored\": %d}\n",
+           "\"state_applied\": %ld, \"vertices\": %ld, \"uploads\": %ld, \"upload_failures\": %ld, \"binding_restored\": %d, \"barrier_ok\": %d}\n",
            differing ? "false" : "true", differing, stats.primitives, stats.draws, stats.state_calls,
-           stats.state_applied, stats.vertices, uploads, failures, binding_restored);
+           stats.state_applied, stats.vertices, uploads, failures, binding_restored, barrier_ok);
     free(img[0]);
     free(img[1]);
     return 0;

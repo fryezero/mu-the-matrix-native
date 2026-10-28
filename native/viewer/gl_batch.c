@@ -47,6 +47,7 @@ struct mu_gl_batch {
     int32_t command_count, command_capacity;
     GLuint upload_buffer;
     GLint saved_array_buffer;
+    int session_active;
     int stream, stream_disabled;
     long uploads, upload_failures;
     int arrays;              /* client arrays enabled in this session */
@@ -264,6 +265,7 @@ void mu_gl_batch_session_begin(mu_gl_batch *b)
                 !(vbo_reference && vbo_reference[0] == '1');
     b->bank_count = b->bank_fans = b->command_count = 0;
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &b->saved_array_buffer);
+    b->session_active = 1;
     glGetFloatv(GL_CURRENT_COLOR, b->color);
     float t[4];
     glGetFloatv(GL_CURRENT_TEXTURE_COORDS, t);
@@ -280,7 +282,8 @@ void mu_gl_batch_session_end(mu_gl_batch *b)
         glDisableClientState(GL_COLOR_ARRAY);
         b->arrays = 0;
     }
-    glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);
+    if (b->session_active) glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);
+    b->session_active = 0;
     /* immediate mode would have left the last glColor/glTexCoord current */
     glColor4f(b->color[0], b->color[1], b->color[2], b->color[3]);
     glTexCoord2f(b->texcoord[0], b->texcoord[1]);

@@ -72,8 +72,10 @@ class VertexUploads(unittest.TestCase):
             source = (NATIVE / 'viewer/gl_batch.c').read_text()
             variants = (source,
                         source.replace('uploaded = glGetError() == GL_NO_ERROR;', 'uploaded = 0;'),
+                        source.replace('if (!grow((void **)&b->commands', 'if (b->command_count > 20 || !grow((void **)&b->commands'),
                         source.replace('(3 * sizeof(float))', '(4 * sizeof(float))'),
-                        source.replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);', '').replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)previous_array_buffer);', ''))
+                        source.replace('if (b->session_active) glBindBuffer(GL_ARRAY_BUFFER, (GLuint)b->saved_array_buffer);', '').replace('glBindBuffer(GL_ARRAY_BUFFER, (GLuint)previous_array_buffer);', ''),
+                        source.replace('case C_BLEND: glBlendFunc((GLenum)c->a, (GLenum)c->b); break;', 'case C_BLEND: glBlendFunc(GL_ONE, GL_ZERO); break;'))
             for i, variant in enumerate(variants):
                 src, host = Path(tmp) / 'batch.c', Path(tmp) / 'host'
                 src.write_text(variant)
@@ -88,9 +90,10 @@ class VertexUploads(unittest.TestCase):
                     self.skipTest('no offscreen GL context')
                 self.assertEqual(r.returncode, 0, (i, r.stderr))
                 data = json.loads(r.stdout)
-                self.assertEqual(data['identical'] and data['binding_restored'], i < 2, (i, data))
-                self.assertEqual(data['upload_failures'], int(i == 1))
-                self.assertEqual(data['uploads'] > 0, i != 1)
+                self.assertEqual(data['identical'] and data['binding_restored'] and data['barrier_ok'], i < 3, (i, data))
+                self.assertEqual(data['upload_failures'], int(i in (1, 2)))
+                if i != 2:
+                    self.assertEqual(data['uploads'] > 0, i != 1)
 
 
 if __name__ == '__main__':
