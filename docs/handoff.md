@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.
+
 INTEGRATION-GREEN-001: [handoff](handoffs/INTEGRATION-GREEN-001.md). Full offline integration is green with explicit optional skips; captures and corpus identity are documented. No new local input retained; lane artifacts are removed after merge.
 
 RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.

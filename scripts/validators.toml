@@ -1822,3 +1822,19 @@ args = ["--mutations", "--report", "{report}"]
 mismatches = 0
 "families.*.mismatches" = 0
 "mutants.*" = "caught"
+
+[validate_worlds_h]
+test = "reconstructed/objects/test_worlds_h.py::WorldsHTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["duel_create", "duel_move", "duel_visual", "world82_create", "world82_move", "world82_visual"]
+cases = 6000
+mutants = 19
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_worlds_h.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
