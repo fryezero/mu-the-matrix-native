@@ -1,7 +1,7 @@
 # First-run GFx conversion in C, DATA-ACQ-003
 
 Verified on macOS arm64, 2026-10-27. This replaces an authored preprocessing tool,
-not a recovered client routine. The oracle is `native/gfx/gfxconvert.py`; no new
+not a recovered client routine. The oracle is `native/gfx/gfxconvert.py`, run with Pillow 11.3.0 and zlib 1.2.12; no new
 original-instruction or Unicorn claim is made.
 
 ## Implementation
@@ -53,7 +53,7 @@ options and again with the app's options:
 - Existing Native Data: 260/261 file hashes equal to the fresh Python and C runs.
   `winQuestSummary.swf` differs from both fresh runs. Its provenance was not
   investigated; the installed copy was left untouched. This is not a converter
-  mismatch. `corpus/summary.json` records that boundary.
+  mismatch. `corpus-final/summary.json` records that boundary.
 
 The signed bundle's `--setup` ran under `env -i`, a new temporary HOME and
 CFFIXED_USER_HOME, and `PATH=/nonexistent`. MU_NATIVE_SUPPORT_DIR and log/scratch
@@ -75,8 +75,8 @@ wrong font subset range and wrong bridge callback name.
 Checks include bundle layout/signing/self-containment, no Python files, synthetic
 first run with no Python/Pillow on PATH, retained legacy settings compatibility,
 repeat/forced conversion, preservation on conversion failure, the existing launch
-plan and synthetic offline smoke. The local macOS gate result is recorded in the
-milestone handoff.
+plan and synthetic offline smoke. The local macOS gate passes on integrated main `15962e9`: 1,297 tests,
+1,142 pass, 155 explicit skips; viewer/readers builds and repository audit pass.
 
 ## Repeat
 

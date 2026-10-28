@@ -18,7 +18,9 @@ Finding and repeat commands: [native-gfx-converter.md](../research/native-gfx-co
 - Portable converter: 11 tests; ASan/UBSan: 11 tests; planted mistakes: 3/3 caught.
   App: 12 tests, 11 pass, one explicit private smoke skip. Repeat/force and failed
   conversion preservation are covered.
-- Local gate: pending final run.
+- Local gate: `bash scripts/local-macos-ci.sh tools/python/bin/python` passes on
+  latest integrated main `15962e9`: 1,297 tests, 1,142 pass and 155 explicit skips;
+  viewer/readers build and repository audit pass, zero rejected files.
 
 Scratch, logs and per-file hashes:
 `~/Documents/MTM/mu-mac-tools/native/scratch/data-acq-003/`.
