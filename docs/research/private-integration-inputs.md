@@ -108,3 +108,10 @@ compiled the current `object_render.c` but omitted `vulcanus.c` and `santa_villa
 referenced handlers. The adapter now compiles both authored dependencies. No handler, comparison tolerance,
 case count or mutant requirement changes. The private audio test still requires 5,528 cases, zero mismatches
 and all 18 planted mistakes caught.
+
+## Particle and joint private entry points
+
+The full private run exposed two tests still calling the removed `default_evidence` helper after the central-pin
+refactor. Both now resolve their explicit text argument through `pins.TEXT.require()`. A requested integration
+run without that core capture errors rather than skips. The validators retain all hashes, arguments and
+comparisons, including the existing 40 particle cases with four heavy cases and 60 joint cases.
