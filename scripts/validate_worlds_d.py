@@ -18,6 +18,7 @@ import tempfile
 import validate_skill_fx as fx
 import validate_object_render as obj
 import actor_machine as am
+import pins
 
 ROOT = Path(__file__).resolve().parents[1]
 KINDS = [(t, s) for t in range(0x1a8, 0x1ae) for s in (0, 1, 2)]
@@ -126,8 +127,8 @@ def main():
     p.add_argument('--mutations', action='store_true')
     p.add_argument('--output', required=True)
     a = p.parse_args()
-    text = am.load_pinned(ROOT/'evidence/x86-text-capture-09/client-text.bin', am.TEXT_BYTES, am.TEXT_SHA256, 'text')
-    data = am.load_pinned(ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin', am.DATA_BYTES, am.DATA_SHA256, 'data')
+    text = pins.TEXT.read()
+    data = pins.DATA.read()
     am.STACK_BYTES, am.ENTRY_ESP = 0x80000, am.STACK + 0x7c000
     machine = fx.FxMachine(text, data)
     with tempfile.TemporaryDirectory(prefix='worlds-d-') as td:

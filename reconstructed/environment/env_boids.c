@@ -341,9 +341,8 @@ void mu_env_move_boids(mu_env *env, const mu_env_inputs *in)
                 } else if (env_deep_dungeon(w)) {
                     o->type = MU_ENV_MODEL_BAT;
                 } else {
-                    /* 0x00ca2154 (Icarus dragons, worlds 0xa/0x84) returns 0 here;
-                     * the shoal creator always returns 1. */
-                    handled = atlans_shoal(env, in, o);
+                    handled = env_icarus_create(env, in, o, i);
+                    if (!handled) handled = atlans_shoal(env, in, o);
                 }
                 if (handled != 1) {
                     o->alpha_enable = 1;
@@ -377,7 +376,10 @@ void mu_env_move_boids(mu_env *env, const mu_env_inputs *in)
         case MU_ENV_MODEL_CROW:
             move_bird(env, in, o);
             break;
-        default:   /* 0x472, 0x7c6, 0x1a3, 0x1a4 movers are not ported */
+        case 0x472:
+            if (w == 10) env_icarus_emitter_move(env, in, o, i);
+            break;
+        default:   /* 0x7c6, 0x1a3, 0x1a4 movers are not ported */
             break;
         }
         boid_flight(env, in, o, i);
