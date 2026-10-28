@@ -26,7 +26,11 @@ Implemented on `codex/data-acq-004` in its assigned isolated worktree.
   read-only and was not retroactively stamped.
 - Initial full local macOS gate: 1,310 tests, 1,155 pass and 155 explicit skips;
   viewer and read-only-reader builds pass; publication audit rejects zero files.
-  The integrated pre-merge gate will be recorded below.
+  Final integrated gate on `07637bc`, including layout, session verification,
+  item rendering and terrain milestones: 1,349 tests, 1,192 pass / 157 explicit
+  skips; 2/2 fixture scenarios; viewer/readers builds and audit of 1,172 staged
+  files pass, zero rejected. Fixture proof is archived in external scratch
+  under `final-fixture-report/`.
 - Standalone GFx window and audio-live consumer builds also pass. No reconstructed
   client algorithm or converter output was intentionally changed.
 
