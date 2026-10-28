@@ -1,6 +1,8 @@
 #ifndef MU_MONSTERS_DEMO_H
 #define MU_MONSTERS_DEMO_H
 #include "../core/mu_world_actors.h"
+typedef struct mu_fixture mu_fixture;
+void *mu_fixture_behavior_state(mu_fixture *fixture, const char *name);
 typedef struct mu_monster_spec {
     int32_t server_class, x, y, direction, wander;
     char label[48];

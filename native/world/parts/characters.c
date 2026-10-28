@@ -8,7 +8,6 @@
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/characters_demo.h"
 #include "../../fixture/monsters_demo.h"
-#include "../../fixture/behavior.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

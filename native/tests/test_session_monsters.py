@@ -50,7 +50,11 @@ class Monsters(unittest.TestCase):
             root=write_open_world(Path(tmp)/'root');write_life(root)
             placement=Path(tmp)/'placement.txt'
             placement.write_text('actor 3 123 122 2\nactor 251 118 118 4\nactor 873 116 118 0\n')
-            result=subprocess.run([str(NATIVE/'build/monsters-lifecycle-host'),str(root),str(placement)],
+            scenario=Path(tmp)/'lifecycle.scn'
+            b=bytearray(33);b[:14]=bytes([0xc2,0,33,0x13,1,0x84,2,0,251,120,120,120,120,0x50])
+            scenario.write_text(f'endpoint game 127.0.0.1:55902\nuse monsters file={placement}\n'
+                'at 2 send game c1 06 14 01 04 02\n'+f'at 3 send game {b.hex(" ")}\n')
+            result=subprocess.run([str(NATIVE/'build/monsters-lifecycle-host'),str(root),str(placement),str(scenario)],
                                   capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(json.loads(result.stdout),{'lifecycle':3,'destroyed_effects':1,'reused_identity':1})
