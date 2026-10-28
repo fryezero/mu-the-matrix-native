@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).
+
 RENDER-WORLDS-B is implemented for the bounded per-world move/create and snow paths. [Coverage and remaining limits](handoffs/RENDER-WORLDS-B.md).
 
 LAYOUT-001: generated layout tables and JSON consumers implemented; [evidence](research/client-layout-manifest.md).

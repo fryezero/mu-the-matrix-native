@@ -2,6 +2,7 @@
  * (NATIVE-COMBAT-002). See skill_fx.h and docs/research/client-combat.md.
  * Build with -ffp-contract=off. */
 #include "skill_fx.h"
+#include "../objects/world_warp.h"
 
 #include <math.h>
 #include <string.h>
@@ -201,6 +202,8 @@ static void fenrir_lightning_flash(mu_sfx_effect *e, const mu_sfx_env *env)
 
 static int effect_supported(int32_t type, int32_t sub)
 {
+    if (mu_world_warp_type(type))
+        return 1;
     switch (type) {
     case MU_SFX_MODEL_ARROW: return sub == 0 || sub == 2;
     case MU_SFX_MODEL_FIRE: return sub == 1;
@@ -254,7 +257,7 @@ static void call_area(const mu_sfx_env *env, mu_sfx_effect *e, float range)
 }
 
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
-                         const float angle[3], const float light[3], int32_t owner, float scale,
+                         const float angle[3], float light[3], int32_t owner, float scale,
                          const mu_sfx_info *info, const mu_sfx_env *env)
 {
     memset(e, 0, sizeof *e);
@@ -305,6 +308,10 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
     copy3(e->position, position);
     e->direction[0] = e->direction[1] = e->direction[2] = 0.0f;
 
+    if (mu_world_warp_type(type)) {
+        mu_world_warp_create(e, light, env);
+        return 1;
+    }
     switch (type) {
     case MU_SFX_MODEL_ARROW: {
         /* 0x013cb34d */
@@ -690,6 +697,8 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         e->start[2] = env_height(env, e->start[0], e->start[1]);
     }
 
+    if (mu_world_warp_type(type))
+        mu_world_warp_move(e, env ? env->world_time : 0.0f);
     switch (type) {
     case MU_SFX_MODEL_ARROW:
         /* 0x01464abf */

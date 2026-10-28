@@ -191,6 +191,7 @@ typedef struct mu_sfx_env {
      * bone, in, out, 0) on the owner's posed model (NULL: out is left alone) */
     uint32_t (*time_ms)(void *context);
     void (*owner_bone)(void *context, int32_t owner, int32_t bone, const float in[3], float out[3]);
+    float world_time;        /* 0x06fce370, warp pulse clock */
 } mu_sfx_env;
 
 /* CreateEffect 0x013c0f19 for the supported types and subtypes, from a
@@ -215,8 +216,9 @@ typedef struct mu_sfx_decal {
 } mu_sfx_decal;
 int mu_sfx_effect_decal(const mu_sfx_effect *effect, int32_t world, mu_sfx_decal *out);
 
+/* Warp types 0x1a8/9/b/c clear the writable caller light after copying it. */
 int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const float position[3],
-                         const float angle[3], const float light[3], int32_t owner, float scale,
+                         const float angle[3], float light[3], int32_t owner, float scale,
                          const mu_sfx_info *info, const mu_sfx_env *env);
 
 /* MoveEffect 0x0142fd09, one logic step of one live effect, for the types
