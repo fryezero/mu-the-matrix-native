@@ -1513,6 +1513,23 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--mutations",
 "families.*.cases" = {all_min = 1}
 "families.*.equal" = {same_as = "families.*.cases"}
 
+[validate_viewport_monsters]
+test = "native/tests/test_session_monsters.py::PrivateMonsters.test_original_handler_and_creation"
+pins = ["text", "data"]
+families = ["handler", "creation"]
+cases = 1963
+mutants = 8
+cases_at = ["handler_cases", "creation_cases"]
+mutants_at = "mutants.caught"
+needs = ["clang"]
+build = ["native"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_viewport_monsters.expect]
+"mismatches" = 0
+"handler_cases" = 1000
+"creation_cases" = 963
+"mutants.caught" = 8
+
 [validate_viewport]
 test = "native/tests/test_session_characters.py::PrivateViewport.test_original_0122d413"
 pins = ["text", "data"]
