@@ -471,6 +471,9 @@ saved item bones for links. The character renderer opens its effect pool for tho
 full pools and random consumption have native checks. Ground/inventory consume the skin body/UV commands;
 these paths still have no skin-sprite pool consumer. Owner-follow behavior and synchronization with the
 original global random stream remain outside the native claim. Hero equipment instances remain inferred.
+The resumed review caught a missing frame-clock copy in the standalone character renderer's particle pool.
+It now supplies the same time as the body commands. A native pixel regression with an authored Spark03 JPEG
+fails before the fix and passes after it, checking visible sprite colour/scale at times 0 and 500.
 
 ### Evidence and limits
 
@@ -479,7 +482,8 @@ The independent part-5 validator compares compiled production C with pinned orig
 The separate signed-clock controls cover twenty body-stream cases. Final mutation, regression and release-gate
 results are recorded in the [part-5 handoff](../handoffs/RENDER-ITEMS-002E.md).
 
-Inspected offline before/after renders stay under local `renders/render-items-002e/`. Synthetic armour goes
+Inspected offline before/after renders stay under local `renders/render-items-002e/`, with resumed renders in
+its `resume/` directory. Synthetic armour goes
 from three refused bodies/three fallback passes to zero refusals/24 passes. Three early-return skins go
 from three refusals/three passes to zero refusals/seven passes. The other skin scene has four passes and two
 allocated sprites. These are untextured authored meshes, not original-client pixels. The sword control

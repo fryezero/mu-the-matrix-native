@@ -65,6 +65,23 @@ class ItemContinuation(unittest.TestCase):
                                                         out, 1, C.byref(count)), 3)
         self.assertEqual(count.value, 7)
 
+    def test_skin_early_return_capacity_and_mesh_override_refusal(self):
+        item = self.item(type=0x3895, item_level=14 << 3, quality=0)
+        model, out, count = self.v.CModel(), (self.v.CDraw * 2)(), C.c_int32()
+        out[1].mesh = 999
+        status = self.lib.mu_rc_item_draws(C.byref(item), C.byref(model), out, 1, C.byref(count))
+        self.assertEqual((status, count.value, out[1].mesh), (3, 3, 999))
+        for field in ('a10', 'a11'):
+            for t in self.cont.SKINS:
+                with self.subTest(t=t, field=field):
+                    status, draws = self.draws(self.item(type=t, **{field: 0}))
+                    self.assertEqual((status, draws), (2, []))
+
+    def test_rejected_fitting_candidates_remain_refused(self):
+        for t in (0x230f, 0x2317, 0x248e, 0x2490, 0x2492, 0x2504, 0x270f):
+            with self.subTest(t=t):
+                self.assertEqual(self.draws(self.item(type=t)), (1, []))
+
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'original captures are opt-in')
     def test_private_signed_clock_edges(self):
         import pins

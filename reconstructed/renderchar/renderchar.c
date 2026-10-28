@@ -1,6 +1,6 @@
 /* Item render decisions of the client's world path. See renderchar.h.
- * Build with -ffp-contract=off: every product and sum below is one binary32
- * SSE operation in the client (MSVC /arch:SSE2), in the order written. */
+ * Build with -ffp-contract=off: float products and sums follow the client's
+ * binary32 SSE order. Explicit double casts retain its binary64 blend pulse. */
 #include "renderchar.h"
 
 #include <math.h>
@@ -20,7 +20,7 @@ static float client_sin(float x)
     return (float)sin((double)x);
 }
 
-/* 0x0185bdc4(-4,0), then 0x01705495 adds 0.2. */
+/* 0x0185bdc4(-4,0). Callers add their own body-light or blend-light offset. */
 static float armour_wave(float time)
 {
     int32_t tick = !(time >= -2147483648.0f && time < 2147483648.0f) ? INT32_MIN : (int32_t)time;

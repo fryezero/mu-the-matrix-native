@@ -325,6 +325,8 @@ int mu_render_world_character(const mu_options *o)
         }
         mu_renderchar_env env = W.env;
         env.time = W.world_time + 40.0f * (float)(n * o->frame_steps);
+        if (particles)
+            particles->world_time = env.time;   /* body and link callers read the same 0x06fce370 clock */
         mu_raster_clear(&raster, o->background);
         mu_render_backend backend;
         mu_raster_backend(&raster, &backend);
