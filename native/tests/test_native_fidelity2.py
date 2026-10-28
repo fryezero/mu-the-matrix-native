@@ -303,3 +303,20 @@ class TourTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ElementMasks(unittest.TestCase):
+    def test_elements_keep_hud_exclusions_and_report_their_area(self):
+        live = Image.new('RGB', (4, 4), (100, 100, 100))
+        native = Image.new('RGB', (4, 4), (80, 80, 80))
+        native.putpixel((0, 0), (0, 0, 0))
+        element = Image.new('L', (4, 4), 0)
+        for y in range(4):
+            for x in range(2): element.putpixel((x, y), 1)
+        stats, _, _ = tour.compare_images(live, native, [[0, 0, 1, 1]], include_mask=element)
+        self.assertEqual(stats['pixels'], 7)
+        self.assertEqual(stats['mean_abs_diff'], 20)
+        with self.assertRaises(ValueError):
+            tour.compare_images(live, native, [], include_mask=Image.new('L', (3, 4), 255))
+        with self.assertRaises(ValueError):
+            tour.compare_images(live, native, [], include_mask=Image.new('L', (4, 4), 0))

@@ -45,7 +45,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
-        return subtype == 0x14;
+        return (subtype >= 0 && subtype <= 5) || subtype == 0x14;
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
@@ -118,6 +118,8 @@ static void owner_position(mu_pt_particle *p, const mu_pt_host *h)
                                                                        p->owner_position[1])
                                                   : 0.0f;
 }
+
+#include "icarus_clouds.inc"
 
 int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, const float position[3],
                         const float angle[3], const float light[3], int32_t subtype, float scale, int32_t owner,
@@ -355,6 +357,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->light[0] = p->light[1] = p->light[2] = 0.0f;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (subtype <= 5) { mu_pt_icarus_cloud_create(p, h, scale); break; }
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
         p->lifetime = 300;
         p->gravity = (float)(mu_pt_rand(h) % 1000);
@@ -649,6 +652,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->position[2] += p->gravity;
             break;
         case MU_PT_BITMAP_CLOUDS:
+            if (p->subtype <= 5) { mu_pt_icarus_cloud_move(p, h); break; }
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
             if (!(p->lifetime > 0)) {
                 p->live = 0;
@@ -739,7 +743,7 @@ static void state(mu_pt_render_call *c, int32_t wrapper, int32_t argument)
     }
 }
 
-int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, mu_pt_render_call *out)
+int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out)
 {
     memset(out, 0, sizeof *out);
     /* 0x015912e9: the height filters of the two split passes */
@@ -808,8 +812,13 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
         break;
     case MU_PT_BITMAP_CLOUDS:
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
-        for (int k = 0; k < 3; ++k)
-            s->light[k] = p->light[k] * p->alpha;
+        if (p->subtype == 0 || p->subtype == 3) {
+            float rate = p->subtype == 3 || ordinal % 2 == 0 ? 0.02f : -0.02f;
+            s->rotation = (world_time * rate) * p->field_7c + p->start[1];
+        }
+        if (p->subtype == 0x14)
+            for (int k = 0; k < 3; ++k)
+                s->light[k] = p->light[k] * p->alpha;
         break;
     default:
         break;
@@ -895,7 +904,7 @@ void mu_pt_move_all(mu_pt_system *s, const mu_pt_host *h)
     s->count = kept;
 }
 
-int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera[12], mu_pt_bitmap_fn bitmap,
+int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera[12], float world_time, mu_pt_bitmap_fn bitmap,
                          void *bitmap_context, const mu_pt_gl *gl)
 {
     int32_t drawn = 0;
@@ -907,7 +916,7 @@ int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera
         if (!bitmap || !bitmap(bitmap_context, p->tex_type, &b))
             continue;
         mu_pt_render_call c;
-        if (mu_pt_render_record(p, &b, mode, &c) != 1)
+        if (mu_pt_render_record(p, &b, mode, world_time, i, &c) != 1)
             continue;
         for (int32_t k = 0; k < c.state_count; ++k)
             if (gl && gl->state)
