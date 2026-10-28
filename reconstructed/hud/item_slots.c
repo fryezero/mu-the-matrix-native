@@ -3,6 +3,7 @@
 #include "item_slots.h"
 
 #include <string.h>
+#include "item3d_overrides.h"
 
 static float int_as_float(int32_t value)
 {
@@ -122,9 +123,35 @@ int mu_item3d(const mu_item3d_in *in, mu_item3d_out *out)   /* 0x016c154e */
         select = 0;
     float fx = in->trs.offset_x, fy = in->trs.offset_y;
     float scale = !(0.0f >= in->scale_override) ? in->scale_override : in->trs.scale;
-    if (mu_item3d_is_special(in->code))
-        return MU_ITEM3D_SPECIAL;                      /* the special-case chain is not reconstructed */
+    /* 0x016c1afc jumps outside the restored image for Box of Luck levels >7.
+     * Preserve that evidence boundary; never guess the displaced compare. */
+    int32_t level = in->level_word >> 3;
+    if (in->code == 0x1c0b && level > 7)
+        return MU_ITEM3D_SPECIAL;
     int32_t model = in->code + 0xae6;
+    int32_t level_word = in->level_word;
+    float angle[3];
+    memcpy(angle, in->trs.rotation, sizeof angle);
+    /* Data-like branches of 0x016c168a..0x016c222d, generated from instructions. */
+    for (size_t i = 0; i < sizeof item3d_overrides / sizeof item3d_overrides[0]; ++i) {
+        const struct item3d_override *r = &item3d_overrides[i];
+        if (r->code != in->code || (r->level != -1 && r->level != level))
+            continue;
+        if (r->mask & 1u) model = r->model;
+        if (r->mask & 2u) fx = r->values[0];
+        if (r->mask & 4u) fy = r->values[1];
+        for (int k = 0; k < 3; ++k)
+            if (r->mask & (8u << k)) angle[k] = r->values[k + 2];
+        if (r->mask & 64u) scale = r->values[5];
+        if (r->mask & 128u) level_word = r->level_word;
+        break;
+    }
+    /* 0x016c19f9: these attachments spin even without the hover selection. */
+    if (in->code >= 0x1a47 && in->code <= 0x1a4b && !select)
+        angle[1] = in->time * 0.2f;
+    /* 0x016c219d: NewUI's special-item window +0x1c forces selection after no_select. */
+    if (in->code == 0x1c64 && in->special_window_active)
+        select = 1;
     float x = in->x, y = in->y;
     if (in->code2_kind_b_6a && in->kind_a_22)
         y = y - in->h * scale;
@@ -148,7 +175,7 @@ int mu_item3d(const mu_item3d_in *in, mu_item3d_out *out)   /* 0x016c154e */
     }
     out->position[2] = z;
     out->model = model;
-    out->level_word = in->level_word;
+    out->level_word = level_word;
     out->excellent = in->excellent;
     out->set_bits = in->set_bits;
     out->select = select;
@@ -158,7 +185,7 @@ int mu_item3d(const mu_item3d_in *in, mu_item3d_out *out)   /* 0x016c154e */
     out->scale = in->frame_scale * scale;
     out->a44 = in->a44;
     out->a48 = in->a48;
-    memcpy(out->angle, in->trs.rotation, sizeof out->angle);   /* 0x00cfc8f2 into 0x0b5e3c2c */
+    memcpy(out->angle, angle, sizeof out->angle);
     return MU_ITEM3D_DRAW;
 }
 

@@ -178,14 +178,10 @@ static item_model *model_for(wg_items *w, int32_t code, int32_t type)
     if (k >= 0)
         m->info = scratch->items[k];
     free(scratch);
-    char error[256], special[256];
-    if (type != code + 0xae6 && mu_gi_special_model_file(type, special, sizeof special)) {
-        snprintf(m->info.model_path, sizeof m->info.model_path, "%s/%s", w->root, special);
-        for (char *c = m->info.model_path; *c; ++c)
-            if (*c == '\\')
-                *c = '/';
-        k = 0;
-    }
+    char error[256];
+    if (type != code + 0xae6)
+        k = mu_hud_item_model_path(w->have_items ? &w->items : NULL, w->root, type,
+                                   m->info.model_path, sizeof m->info.model_path) ? 0 : -1;
     if (k < 0 || !m->info.model_path[0] || mu_bmd_load_file(m->info.model_path, &m->bmd, error, sizeof error) != MU_BMD_OK)
         return NULL;
     mu_model_params params;
@@ -233,7 +229,7 @@ static item_model *model_for(wg_items *w, int32_t code, int32_t type)
 }
 
 /* Slot wrapper + RenderItem3D (reconstructed/hud) for one item of the pass. */
-static int place_item(const wg_items *w, const item_model *m, const mu_gfx_item_draw *d, int32_t stage_w,
+static int place_item(const wg_items *w, const mu_gfx_item_draw *d, int32_t stage_w,
                       int32_t stage_h, mu_item3d_out *out)
 {
     float rx = mu_gfx_rate_x(stage_w), ry = mu_gfx_rate_y(stage_h);
@@ -260,10 +256,12 @@ static int place_item(const wg_items *w, const item_model *m, const mu_gfx_item_
     memset(&sys, 0, sizeof sys);
     sys.cursor_in = win.cursor_in;
     mu_hud_trs_find(w->have_trs ? &w->trs : NULL, d->code, ITEM_SCALE_FACTOR, &sys.trs);
-    if (m->info.has_record) {
-        sys.kind_b_6a = m->info.record.attributes.kind_b == 0x6a;
-        sys.kind_a_22 = m->info.record.attributes.kind_a == 0x22;
+    mu_item record;
+    if (w->have_items && mu_item_find(&w->items, (uint32_t)d->code, &record) == 0) {
+        sys.kind_b_6a = record.attributes.kind_b == 0x6a;
+        sys.kind_a_22 = record.attributes.kind_a == 0x22;
     }
+    sys.time = (float)w->time_ms;
     sys.frame_scale = d->frame_scale > 0 ? d->frame_scale : 1.0f;
     sys.rate_x = rx;
     sys.rate_y = ry;
@@ -295,10 +293,11 @@ static void ros_inputs(wg_items *w, const item_model *m, const mu_gfx_item_draw 
     in->state_prior_frame = m->anim_prior_frame;
     in->tick = 1;                            /* the slot pass's wrapper argument a40 = 1 */
     in->time = (float)w->time_ms;
-    if (m->info.has_record) {
+    mu_item record;
+    if (w->have_items && mu_item_model(&w->items, out->model, &record) == 1) {
         in->has_record = 1;
-        in->kind_a = m->info.record.attributes.kind_a;
-        in->item_kind = m->info.record.attributes.type;
+        in->kind_a = record.attributes.kind_a;
+        in->item_kind = record.attributes.type;
     }
     /* InvenItemAnimation (Lang.mpr, MU_LANG_DIR): absent without the tables */
     in->anim_present = mu_lang_inven_anim(mu_lang_shared(), d->code, &in->anim_action, &in->anim_speed);
@@ -438,9 +437,13 @@ void wg_items_draw(void *user, const mu_gfx_item_draw *items, int n, int32_t sta
         return;
     pass_begin(stage_w, stage_h);
     for (int i = 0; i < n; i++) {
-        item_model *m = model_for(w, items[i].code, items[i].code + 0xae6);
         mu_item3d_out out;
-        if (!m || place_item(w, m, &items[i], stage_w, stage_h, &out) != MU_ITEM3D_DRAW) {
+        if (place_item(w, &items[i], stage_w, stage_h, &out) != MU_ITEM3D_DRAW) {
+            w->missing++;
+            continue;
+        }
+        item_model *m = model_for(w, items[i].code, out.model);
+        if (!m) {
             w->missing++;
             continue;
         }

@@ -29,7 +29,7 @@ host-input limits are in [the finding](../research/client-terrain-remaining.md).
 - Synthetic software renders inspected; GL/software comparisons pass for ordinary terrain, both overlays and
   Kalima. Four ordinary-world pixel hashes, worlds 0/7/63/142, are identical to the pre-change build.
 - `bash scripts/local-macos-ci.sh ./tools/python/bin/python` passed after merging current `origin/main`:
-  1,328 tests across 38 suites, 156 explicit skips, plus the two fixture scenarios, Mac viewer/readers and
+  1,335 tests across 38 suites, 157 explicit skips, plus the two fixture scenarios, Mac viewer/readers and
   publication audit. The remaining-terrain validator was rerun on that tree, 2,147/2,147 and 14/14 mutants.
 
 ## Local artifacts
