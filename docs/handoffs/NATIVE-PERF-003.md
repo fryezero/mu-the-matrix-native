@@ -23,8 +23,16 @@ Verified so far:
 - Focused checks: perf 11 tests, 2 private skips; stress/Metal/clock 16 tests;
   GFx 2 15 tests, 2 skips. Full gates passed before the final clock addition.
 
-In progress at this checkpoint: the full original meshdraw instruction validator
-is running in continued/oracle-final. Do not claim its result before reading the
-summary. Next: latest-source real-time matrix with normal wall clock, then the
-lock-held final latest-main merge, full local gate, PR and merge. Do not claim
-the 80-player 25 Hz goal from the earlier compiler-only timings.
+The original meshdraw instruction validator completed in continued/oracle-final:
+843/843 draw cases, 247/247 pinned cases, 13,529/13,529 texture names, zero
+mismatches, all four negative controls detected and no uncovered draw branches.
+Fourteen installed models were explicitly skipped. This compares the reconstructed
+draw library with x86 instructions; the separate native full-frame comparison
+covers the host/compiler changes.
+
+Disk recovery removed the lane's rebuildable Rust outputs, duplicate experimental
+libraries and bulk frames. Numerical logs, per-frame hashes and eight representative
+before/after PNGs remain. Rust target output is now ignored explicitly.
+
+Next: final-source real-time matrix with normal wall clock, then the lock-held
+latest-main merge, full local gate, PR and merge. The 80-player 25 Hz goal stays open.

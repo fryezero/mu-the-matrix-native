@@ -40,6 +40,7 @@ __pycache__/
 /live-readers/build/
 
 /native/build/
+/native/gfx/mugfx/target/
 
 # verify-mu-native run directories (synthetic roots, proofs); see .claude/skills/verify-mu-native
 /verify-runs/
