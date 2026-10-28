@@ -23,9 +23,6 @@ trap 'rm -f "$todo"' EXIT
 for f in "$APP"/Contents/MacOS/*; do
     file "$f" | grep -q Mach-O && echo "$f|@executable_path/../Frameworks" >> "$todo"
 done
-for f in "$APP"/Contents/Resources/converter/model-recovery/*.dylib; do
-    [ -f "$f" ] && echo "$f|@loader_path/../../../Frameworks" >> "$todo"
-done
 for f in "$FW"/*.dylib; do
     [ -f "$f" ] && echo "$f|@loader_path" >> "$todo"
 done
@@ -71,7 +68,7 @@ fi
 
 # No Mach-O in the bundle may still name a library outside the system and the bundle.
 bad=0
-for f in "$APP"/Contents/MacOS/* "$FW"/*.dylib "$APP"/Contents/Resources/converter/model-recovery/*.dylib; do
+for f in "$APP"/Contents/MacOS/* "$FW"/*.dylib; do
     [ -f "$f" ] || continue
     file "$f" | grep -q Mach-O || continue
     for d in $(deps "$f"); do echo "bundle-dylibs: $f still loads $d" >&2; bad=1; done

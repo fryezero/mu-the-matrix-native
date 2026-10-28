@@ -29,7 +29,7 @@ APPQ := "$(APP)"
 SOURCES := Sources/PreviewCore.swift Sources/main.swift
 ICON_SRC := icon/make-icon.swift
 CLIENT := ../build/mu-client
-MODULUS := ../../model-recovery/libmodulus.dylib
+CONVERTER := ../build/gfxconvert/gfxconvert
 STAMP := $(B)/.app-stamp
 VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(MUGFX_LIB)|$(SDL3_LIB)|$(COMMIT)
 
@@ -41,8 +41,12 @@ $(shell mkdir -p '$(B)' && { printf '%s\n' '$(VARS)' | cmp -s - '$(B)/.vars' || 
 $(CLIENT):
 	$(MAKE) -C .. client
 
-$(MODULUS): ../../model-recovery/modulus.cpp
-	$(MAKE) -C ../../model-recovery libmodulus.dylib
+# Always ask the converter submake to check source dependencies.
+.PHONY: converter
+converter:
+	$(MAKE) -C ../gfx converter
+$(CONVERTER): converter
+	@test -x $@
 
 $(B)/MuNativePreview: $(SOURCES)
 	@mkdir -p $(B)
@@ -68,17 +72,16 @@ $(B)/Info.plist: Info.plist.in Makefile
 	    -e 's|@MIN_MACOS@|$(MIN_MACOS)|' -e 's|@COMMIT@|$(COMMIT)|' -e 's|@GFX@|$(if $(MUGFX_LIB),true,false)|' $< > $@
 	plutil -lint $@
 
-$(STAMP): $(CLIENT) $(MODULUS) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/AppIcon.icns $(B)/Info.plist bundle-dylibs.sh \
+$(STAMP): $(CLIENT) $(CONVERTER) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/AppIcon.icns $(B)/Info.plist bundle-dylibs.sh \
           ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt \
           ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
-          ../gfx/gfxconvert.py ../gfx/gfxswf.py $(MUGFX_LIB)
+          $(MUGFX_LIB)
 	rm -rf $(APPQ)
 	mkdir -p $(APPQ)/Contents/MacOS $(APPQ)/Contents/Frameworks $(APPQ)/Contents/Resources/session \
-	  $(APPQ)/Contents/Resources/world $(APPQ)/Contents/Resources/converter/native/gfx \
-	  $(APPQ)/Contents/Resources/converter/model-recovery
+	  $(APPQ)/Contents/Resources/world
 	cp $(B)/Info.plist $(APPQ)/Contents/Info.plist
 	printf 'APPL????' > $(APPQ)/Contents/PkgInfo
-	cp $(B)/MuNativePreview $(CLIENT) $(APPQ)/Contents/MacOS/
+	cp $(B)/MuNativePreview $(CLIENT) $(CONVERTER) $(APPQ)/Contents/MacOS/
 	cp $(B)/libmu-nonet.dylib $(APPQ)/Contents/Frameworks/
 	@if [ -n "$(MUGFX_LIB)" ]; then cp "$(MUGFX_LIB)" $(APPQ)/Contents/Frameworks/libmugfx.dylib && echo "bundled libmugfx ($(MUGFX_LIB))"; \
 	  else echo "NOTE: no libmugfx (native/gfx/build-mugfx.sh or MUGFX_LIB=...): the app uses the GFx stand-ins"; fi
@@ -86,12 +89,10 @@ $(STAMP): $(CLIENT) $(MODULUS) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/
 	cp ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt $(APPQ)/Contents/Resources/session/
 	cp ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
 	  $(APPQ)/Contents/Resources/world/
-	cp ../gfx/gfxconvert.py ../gfx/gfxswf.py $(APPQ)/Contents/Resources/converter/native/gfx/
-	cp $(MODULUS) $(APPQ)/Contents/Resources/converter/model-recovery/
 	./bundle-dylibs.sh $(APPQ) "$(SDL3_LIB)"
 	# inner code first, then the app (ad-hoc, no hardened runtime: the launcher loads the network guard
 	# into mu-client with DYLD_INSERT_LIBRARIES)
-	for f in $(APPQ)/Contents/Frameworks/*.dylib $(APPQ)/Contents/Resources/converter/model-recovery/*.dylib \
+	for f in $(APPQ)/Contents/Frameworks/*.dylib $(APPQ)/Contents/MacOS/gfxconvert \
 	         $(APPQ)/Contents/MacOS/mu-client; do codesign --force --sign - --timestamp=none "$$f" || exit 1; done
 	codesign --force --sign - --timestamp=none $(APPQ)
 	codesign --verify --strict --deep --verbose=1 $(APPQ)
