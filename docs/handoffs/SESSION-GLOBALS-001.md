@@ -39,10 +39,11 @@ addresses, live evidence or native-Windows comparison is inferred.
 | Base skills | 9,696 | 11/11 |
 | Skill-server packets | 548 | 6/6 |
 | Master tree | 7,876 | 3/3 |
+| Fourth tree | 2,935 | 10/10 |
 
 All have zero mismatches. The first optional run skipped four rows before input paths were supplied;
 those four were rerun successfully using existing offline snapshot/installation paths, without copying inputs.
-Fourth-tree registered check is finishing.
+**Total: 30,904 cases, zero mismatches, all 55/55 controls caught.** The seven final registered rows all pass.
 Reconstructed sources, manifest families, layouts, fixtures and golden hash pins are unchanged from main.
 Self-review covered owner release order, callback contexts, remaining mutable statics and the milestone spec;
 no independent agent review or live-game comparison is claimed.

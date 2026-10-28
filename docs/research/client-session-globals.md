@@ -71,5 +71,7 @@ World-session lifetime across account/character replacement still belongs to SES
 crypto/decode and the existing domain limitations remain separate. GFx transient serialization buffers outside
 the audited directories and the underlying Ruffle process are outside this milestone's concurrency claim.
 
-Final locked gate and differential counts are recorded in [the handoff](../handoffs/SESSION-GLOBALS-001.md).
+The final locked gate passes 1,519 tests with 188 explicit skips; all eight fixture scenarios pass.
+Seven unchanged instruction checks pass 30,904 cases with zero mismatches and all 55 controls caught.
+Detailed locked gate and differential counts are recorded in [the handoff](../handoffs/SESSION-GLOBALS-001.md).
 All lane scratch, binaries, renders and the worktree are removed after merge; no new private input is retained.
