@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-E implements Elbeland boids/clouds and Raklion event timing, and attributes Aida's light outlier. [Checks and remaining inputs](handoffs/RENDER-WORLDS-E.md).
+
 RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).
 
 RENDER-WORLDS-B is implemented for the bounded per-world move/create and snow paths. [Coverage and remaining limits](handoffs/RENDER-WORLDS-B.md).

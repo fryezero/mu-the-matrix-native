@@ -25,6 +25,8 @@ void env_set_live(mu_env *env, mu_env_object *o, uint8_t live);
 void env_fade_alpha(mu_env_object *o);
 void env_flock(mu_env *env, mu_env_object *o, int32_t index, mu_env_object *list, int32_t count);
 
+void env_elbeland_move(mu_env *, const mu_env_inputs *, mu_env_object *);
+
 int env_icarus_create(mu_env *env, const mu_env_inputs *in, mu_env_object *o, int32_t index);
 
 void env_icarus_emitter_move(mu_env *env, const mu_env_inputs *in, mu_env_object *o, int32_t index);

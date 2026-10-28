@@ -355,6 +355,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
         mi.has_model = (uint8_t)(t >= 0 && t < MU_OBJECT_TYPES && o->models[t] && o->models[t]->loaded);
         mu_obj_log log = {0, 64, 0, local};
         const int status = mu_obj_move(image(o, i), i, &mi, &log);
+        if (status == MU_OBJ_OK) mu_objects_raklion_move(o, t, in->hero);
         ++rt->moved;
         if (status == MU_OBJ_UNSUPPORTED)
             ++rt->move_unsupported;
@@ -387,6 +388,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
 
 void mu_objects_apply_lights(const mu_objects *o, mu_world *map)
 {
+    if (map && (o->world == 57 || o->world == 58)) map->camera_shake = o->rt.raklion_quake;
     for (int32_t i = 0; map && i < o->rt.light_count; ++i) {
         const mu_object_light *l = &o->rt.lights[i];
         mu_world_add_light(map, l->x, l->y, l->rgb, l->range);

@@ -453,6 +453,10 @@ class Client:
         self.tormenta.define(TORMENTA + 6, bytes([t[0]]))
         self.tormenta.define(TORMENTA + 0x14, struct.pack('<ff', t[1], t[2]))
         self.bmd = am.undefined_region('model', BMD, 0x100)
+        if case['world'] == 51:
+            self.bmd.define(BMD+0x30, struct.pack('<I', BMD+0x40))
+            for action in range(4):
+                self.bmd.define(BMD+0x44+16*action, struct.pack('<f',0.25+0.125*action))
         self.bitmap_record = am.undefined_region('bitmap-record', BITMAP_RECORD, 0x300)
         self.bitmap_record.define(BITMAP_RECORD + 0x214, bytes([case['bitmap_components']]))
         self.camera_matrix = am.defined_region('camera-matrix', CAMERA_MATRIX,
@@ -1023,7 +1027,7 @@ def am_cvt(v):
 
 def build_library(mutation, out):
     src = ROOT/'reconstructed/environment'
-    files = [str(src/n) for n in ('env_core.c', 'env_boids.c', 'env_icarus.c', 'env_fish.c', 'env_leaves.c', 'raklion_snow.c', 'env_world.c',
+    files = [str(src/n) for n in ('env_core.c', 'env_boids.c', 'env_icarus.c', 'env_elbeland.c', 'env_fish.c', 'env_leaves.c', 'raklion_snow.c', 'env_world.c',
                                   'env_test_host.c')] + [str(ROOT/'reconstructed/record-math/record_math.c')]
     cmd = ['clang', '-std=c11', '-O2', '-fPIC', '-ffp-contract=off', '-fno-fast-math', '-shared',
            f'-DMU_ENV_MUTATION={mutation}', *files, '-lm', '-o', str(out)]

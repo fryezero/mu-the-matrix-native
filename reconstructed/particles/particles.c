@@ -45,7 +45,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
-        return subtype == 0x14;
+        return subtype == 0x14 || subtype == 18;
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
@@ -346,6 +346,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->light[0] = p->light[1] = p->light[2] = 0.0f;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (subtype == 18) { mu_pt_elbeland_create(p, h); break; }
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
         p->lifetime = 300;
         p->gravity = (float)(mu_pt_rand(h) % 1000);
@@ -631,6 +632,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->position[2] += p->gravity;
             break;
         case MU_PT_BITMAP_CLOUDS:
+            if (p->subtype == 18) { mu_pt_elbeland_move(p, h); break; }
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
             if (!(p->lifetime > 0)) {
                 p->live = 0;
@@ -789,6 +791,7 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
             for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (p->subtype == 18) break;
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
         for (int k = 0; k < 3; ++k)
             s->light[k] = p->light[k] * p->alpha;

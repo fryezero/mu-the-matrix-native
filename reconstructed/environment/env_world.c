@@ -103,6 +103,10 @@ int mu_env_model_file(int32_t world, int32_t model, char *out, size_t out_size)
         int n = snprintf(out,out_size,"Data/Monster/Monster32.bmd");
         return n>0 && (size_t)n<out_size;
     }
+    if (world == 51 && (model == 0x1a3 || model == 0x1a4)) {
+        int n = snprintf(out, out_size, "Data/Object52/%s.bmd", model == 0x1a3 ? "sos3bi01" : "typhoonall");
+        return n > 0 && (size_t)n < out_size;
+    }
     const char *name = NULL;
     int32_t folder = 0, number = 1;
     if (world == 8 && model == 0x198) {   /* Tarkan: AccessModel(0x198, Data\Object9\, Bug, 2) */

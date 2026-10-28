@@ -150,6 +150,9 @@ typedef struct mu_objects_runtime {
                    const float light[3], int32_t owner);
     void (*joint)(void *context, int32_t type, const float position[3], const float target[3],
                   const float angle[3], int32_t subtype, int32_t owner, float scale);
+    void (*effect_scaled)(void *, int32_t, int32_t, const float[3], const float[3], const float[3], int32_t, float);
+    uint8_t raklion_state[0x28];
+    float raklion_quake, raklion_hero_angle[3];
     int32_t icarus_count; /* previous MoveObjects ordinal, 0x0bdc5890 */
     long effect_events;
     void *hook_context;
@@ -238,6 +241,9 @@ typedef struct mu_objects_step_inputs {
  * light events. Call after the frame light copy; the AddTerrainLight calls are kept in rt.lights
  * and applied by mu_objects_apply_lights. Advances the stand-in particles one step. */
 void mu_objects_step(mu_objects *objects, const mu_objects_step_inputs *inputs);
+/* Event state input, supplied by its owning domain; initially inactive. */
+void mu_objects_raklion_set_event(mu_objects *, uint8_t event);
+void mu_objects_raklion_move(mu_objects *, int32_t type, const float hero[3]);
 int mu_objects_worlds_b_records(mu_objects *objects);
 const char *mu_objects_worlds_b_model(int32_t world, int32_t type);
 

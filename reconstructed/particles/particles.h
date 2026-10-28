@@ -200,6 +200,7 @@ typedef struct mu_pt_render_call {
  * bitmap's component count, the kind's extra state and its RenderSprite.
  * Returns 1 when the record was drawn, 0 when skipped, 2 for a kind that is
  * not reconstructed (nothing filled). */
+void mu_pt_elbeland_render(mu_pt_particle *, float world_time);
 int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *bitmap, uint8_t mode, mu_pt_render_call *out);
 
 /* ------------------------------------------------------------------------

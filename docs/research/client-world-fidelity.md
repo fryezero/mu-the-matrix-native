@@ -434,3 +434,18 @@ Next work: A-owned visual paths and C2-owned remaining Icarus paths; unblocked E
 lifecycle, including the event-state and timer inputs; attribute Aida's transient frame light from existing
 source/effect code or a separately authorized future capture; fresh locked live images of the changed worlds.
 No live game, launcher, network, service, protection module or running-client memory was touched.
+
+## 7. RENDER-WORLDS-E, 2026-10-27
+
+Elbeland's two boid movers, Object52 model registration and typhoon-owned clouds now run through the native
+environment and particle hosts. Raklion has its inherited event arming/timer, emitter requests and quake, with
+an explicit domain-owned state input. Aida's type-30 emitter explains the outlier's colour and radial footprint
+through accumulated additions: approximately one effective update to the left of column 96 and 179 to its right.
+This attributes the sample without changing the verified source brightness. The reset rectangle/history remains
+uncaptured. No new live observation was made.
+
+Eight instruction families compare 600 cases each; 40 Elbeland movement/render sessions add 2,400 compared
+steps. Total 4,840 comparisons, zero mismatches/stops, 12/12 compiled mutants caught. The fourteen-view scoreboard
+and all final PNG hashes remain unchanged. The arrival views have no active event/boid state to measure.
+The source addresses, pins, native-host checks, score values and explicit remaining inputs are in the
+[milestone handoff](../handoffs/RENDER-WORLDS-E.md).

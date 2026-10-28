@@ -1613,3 +1613,18 @@ args = ["--cases", "600", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_worlds_e]
+test = "reconstructed/objects/test_worlds_e.py::WorldsEInstructions.test_original_instructions"
+pins = ["text", "data"]
+families = ["0x1a3", "0x1a4", "arm", "step", "emit", "cloud_create", "cloud_move", "cloud_render", "elbeland_sessions"]
+cases = 4840
+mutants = 12
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/environment", "reconstructed/particles", "reconstructed/objects"]
+args = ["--cases", "600", "--mutations", "--output", "{report}"]
+[validate_worlds_e.expect]
+"families.*.equal" = { same_as = "families.*.cases" }
+"families.*.stopped" = 0
+"mutants.*.caught" = true

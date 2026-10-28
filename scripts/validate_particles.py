@@ -782,9 +782,15 @@ def family_render(m, lib, rng, cases, report, negatives):
                                          STATE_ADD: wrapper(STATE_ADD, 0), STATE_ALPHA: wrapper(STATE_ALPHA, 1),
                                          STATE_SUB: wrapper(STATE_SUB, 0), STATE_6B7: wrapper(STATE_6B7, 0),
                                          STATE_6DA: wrapper(STATE_6DA, 0), STATE_BLEND: wrapper(STATE_BLEND, 0)})
-        r = m.execute(0x015912e9, [0x5500 | mode], [record, bmr], stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME),
+        regions = [record, bmr]
+        if kind == (0x7f89,18):
+            regions.append(am.defined_region('time', TIME, struct.pack('<f',12345.0)))
+        r = m.execute(0x015912e9, [0x5500 | mode], regions, stubs, ecx=POOL, frame=mid_frame(RENDER_FRAME),
                       cleanup=4)
         rc = RenderCall()
+        if kind == (0x7f89,18):
+            lib.mu_pt_elbeland_render.argtypes = [ctypes.POINTER(Particle),ctypes.c_float]
+            lib.mu_pt_elbeland_render(ctypes.byref(p),12345.0)
         drawn = lib.mu_pt_render_record(ctypes.byref(p), ctypes.byref(bm), mode, ctypes.byref(rc))
         mine = []
         if drawn == 1:
