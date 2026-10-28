@@ -1,6 +1,7 @@
 #include "worlds_g.h"
 #include "worlds_h.h"
 #include "worlds_i.h"
+#include "worlds_n.h"
 #include "world_visual.h"
 /* World-object creation, move pass and render pass of the client
  * (NATIVE-OBJECTS-002). See object_render.h and docs/research/client-objects-render.md.
@@ -460,6 +461,11 @@ int mu_obj_create(const mu_object_record *r, int32_t world, uint8_t *o, int32_t 
     if (world == 62 || world == 63) {
         if (world == 62) mu_santa_create(o);
         else mu_vulcanus_create(o, world);
+        return MU_OBJ_OK;
+    }
+    if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
+        if (world == 113) mu_nixies_create(o, world);
+        else mu_deep_dungeon_create(o, index, world, log);
         return MU_OBJ_OK;
     }
     if (world == MU_LOGIN_WORLD) {   /* CGMLogInScene_Ex slot 0x2c */
@@ -997,6 +1003,11 @@ int mu_obj_move(uint8_t *o, int32_t index, const mu_obj_move_inputs *in, mu_obj_
     }
     if (world == 100) {
         mu_uruk_move(o, index, in, log);
+        return MU_OBJ_OK;
+    }
+    if (world == 113 || (world >= 116 && world <= 120)) {   /* RENDER-WORLDS-N */
+        if (world == 113) mu_nixies_move(o, in);
+        else mu_deep_dungeon_move(o, index, in, log);
         return MU_OBJ_OK;
     }
     if (world == 64 || world == 82) {
