@@ -20,6 +20,10 @@ struct mu_audio_host {
     int32_t boss_zone;
     uint32_t rand_state;
     int delegate_logged;
+    mu_event_music_state event_music;
+    FILE *cue_log;
+    uint64_t log_seq;
+    uint32_t time_ms, session_tick;
     void (*observer)(void *ctx, int kind, int32_t a, int32_t b);
     void *observer_ctx;
 };
@@ -56,6 +60,22 @@ static void host_log(mu_audio_host *host, const char *format, ...)
     host->engine_config.log(host->engine_config.log_ctx, message);
 }
 
+/* Decisions are logged before/after the audio boundary without paths or pointers.
+ * result: 1 started, 0 suppressed/failed, -1 unresolved input/table, 2 stop request.
+ * cue_seq is meaningful when handler is nonzero. All SND_Play calls ignore object. */
+static void audio_log(mu_audio_host *h, const char *op, int32_t id, int32_t loop,
+                      int result, const mu_cue *cue)
+{
+    if (!h->cue_log) return;
+    fprintf(h->cue_log, "{\"audio\":1,\"seq\":%llu,\"time_ms\":%u,\"world\":%d,"
+            "\"op\":\"%s\",\"id\":%d,\"loop\":%d,\"result\":%d,\"cue_seq\":%llu,"
+            "\"handler\":%u,\"at_key\":%d,\"session_tick\":%u,\"site\":%u}\n",
+            (unsigned long long)h->log_seq++, h->time_ms, h->world.world, op, id, !strcmp(op, "register") ? 0 : loop, result,
+            (unsigned long long)(cue ? cue->seq : 0), cue ? cue->handler : 0,
+            cue ? cue->u.sound.at_key : -2, h->session_tick, !strcmp(op, "register") ? (uint32_t)loop : 0);
+    fflush(h->cue_log);
+}
+
 /* ---- tables -------------------------------------------------------------- */
 
 static int parse_int(const char *text, int32_t *value)
@@ -82,9 +102,9 @@ int mu_audio_table_load(const char *path, mu_audio_table *table, char *error, si
         size_t n = strcspn(line, "\r\n");
         line[n] = 0;
         if (!line[0] || line[0] == '#') continue;
-        char *fields[6] = {0};
+        char *fields[7] = {0};
         int count = 0;
-        for (char *p = line; count < 6;) {
+        for (char *p = line; count < 7;) {
             fields[count++] = p;
             char *tab = strchr(p, '\t');
             if (!tab) break;
@@ -119,6 +139,9 @@ int mu_audio_table_load(const char *path, mu_audio_table *table, char *error, si
             if (count > 3) parse_int(fields[3], &row->legacy_channels);
             if (count > 4) parse_int(fields[4], &row->legacy_3d);
             int32_t loader = 0;
+            row->site = 0;
+            int32_t site = 0;
+            if (count > 6 && parse_int(fields[6], &site)) row->site = (uint32_t)site;
             row->loader = count > 5 && parse_int(fields[5], &loader) ? (uint32_t)loader : 0;
         }
     }
@@ -243,12 +266,24 @@ mu_audio_host *mu_audio_host_new(const mu_audio_host_config *config, char *error
             return NULL;
         }
     }
+    const char *cue_path = getenv("MU_AUDIO_CUE_LOG");
+    if (cue_path && *cue_path) {
+        host->cue_log = fopen(cue_path, "a");
+        if (!host->cue_log) {
+            mu_audio_host_free(host);
+            failf(error, error_size, "cannot open audio cue log %s", cue_path);
+            return NULL;
+        }
+        audio_log(host, "open", 0, 0, 1, NULL);
+    }
     return host;
 }
 
 void mu_audio_host_free(mu_audio_host *host)
 {
     if (!host) return;
+    audio_log(host, "close", 0, 0, 1, NULL);
+    if (host->cue_log) fclose(host->cue_log);
     mu_audio_system_shutdown(&host->client);
     mu_audio_client_free_state(&host->client);
     mu_audio_engine_free(host->engine);
@@ -307,24 +342,31 @@ static void host_event(void *ctx, int kind, int32_t a, int32_t b)
 {
     mu_audio_host *host = ctx;
     if (host->observer) host->observer(host->observer_ctx, kind, a, b);
+    if (kind == MU_WORLD_DELEGATE) {
+        mu_world_audio_hooks hooks = {host, NULL, NULL, host_event};
+        if (mu_event_music((uint32_t)a, &host->event_music, &hooks)) return;
+    }
     switch (kind) {
     case MU_WORLD_SND_PLAY:
-        if (ensure_loaded(host, a)) mu_audio_snd_play(&host->client, a, NULL, b);
+        mu_audio_host_play(host, a, b);
         break;
     case MU_WORLD_SND_STOP:
         mu_audio_snd_stop(&host->client, a);
+        audio_log(host, "stop", a, 0, 2, NULL);
         break;
     case MU_WORLD_MP3_PLAY:
     case MU_WORLD_MP3_STOP: {
         const char *path = mu_audio_table_music_path(host->table, a);
+        audio_log(host, kind == MU_WORLD_MP3_PLAY ? "music" : "stopmusic", a, 0, path ? 2 : -1, NULL);
         if (!path) break;
         if (kind == MU_WORLD_MP3_PLAY) mu_audio_play_mp3(&host->client, path);
         else mu_audio_stop_mp3(&host->client, path);
         break;
     }
     default:
+        audio_log(host, "unrecovered", a, b, -1, NULL);
         if (!host->delegate_logged) {
-            host_log(host, "event-world managers and the protector-virtualised gap are not reconstructed");
+            host_log(host, "audio input or virtualised frame block is unrecovered");
             host->delegate_logged = 1;
         }
         break;
@@ -333,12 +375,18 @@ static void host_event(void *ctx, int kind, int32_t a, int32_t b)
 
 int mu_audio_host_play(mu_audio_host *host, int32_t id, int32_t loop)
 {
-    if (!ensure_loaded(host, id)) return 0;
-    return mu_audio_snd_play(&host->client, id, NULL, loop);
+    int loaded = ensure_loaded(host, id);
+    const mu_audio_entry *entry = mu_audio_snd_find(&host->client, id);
+    int was_playing = entry && entry->playing;
+    int result = loaded ? mu_audio_snd_play(&host->client, id, NULL, loop) : 0;
+    audio_log(host, "play", id, loop, loaded ? (was_playing ? 0 : result) : -1, NULL);
+    return result;
 }
 
 void mu_audio_host_set_world(mu_audio_host *host, const mu_world_audio_state *state, int32_t boss_zone)
 {
+    if (host->world.world != state->world) host->event_music.known = 0;
+    host->event_music.world = state->world;
     host->world = *state;
     host->boss_zone = boss_zone;
     host->world_active = 1;
@@ -358,6 +406,7 @@ void mu_audio_host_tick(mu_audio_host *host)
         mu_world_audio_frame(&host->world, &hooks);
     }
     mu_audio_system_update(&host->client);
+    host->time_ms += MU_AUDIO_FRAME_MS;
 }
 
 int mu_audio_host_command(mu_audio_host *host, const char *command, char *error, size_t error_size)
@@ -382,18 +431,22 @@ int mu_audio_host_command(mu_audio_host *host, const char *command, char *error,
     if (!strcmp(name, "play")) {
         if (argc < 2 || !parse_int(argv[1], &value)) return failf(error, error_size, "play <id> [loop]");
         if (argc > 2 && !parse_int(argv[2], &value2)) return failf(error, error_size, "play <id> [loop]");
-        if (ensure_loaded(host, value)) mu_audio_snd_play(client, value, NULL, value2);
+        mu_audio_host_play(host, value, value2);
         return 0;
     }
     if (!strcmp(name, "stop") || !strcmp(name, "remove")) {
         if (argc < 2 || !parse_int(argv[1], &value)) return failf(error, error_size, "%s <id>", name);
         if (name[0] == 's') mu_audio_snd_stop(client, value);
         else mu_audio_snd_remove(client, value);
+        audio_log(host, name, value, 0, 2, NULL);
         return 0;
     }
     if (!strcmp(name, "music") || !strcmp(name, "stopmusic")) {
         if (argc < 2) return failf(error, error_size, "%s <index|path>", name);
         const char *path = music_argument(host, argv[1]);
+        int32_t index = -1;
+        parse_int(argv[1], &index);
+        audio_log(host, name, index, 0, path ? 2 : -1, NULL);
         if (path) {
             if (name[0] == 'm') mu_audio_play_mp3(client, path);
             else mu_audio_stop_mp3(client, path);
@@ -449,9 +502,7 @@ int mu_audio_host_command(mu_audio_host *host, const char *command, char *error,
             else if (!strcmp(argv[i], "scene")) s.scene = v;
             else return failf(error, error_size, "unknown world field %s", argv[i]);
         }
-        host->world = s;
-        host->boss_zone = boss;
-        host->world_active = 1;
+        mu_audio_host_set_world(host, &s, boss);
         return 0;
     }
     if (!strcmp(name, "noworld")) {
@@ -564,4 +615,59 @@ int mu_audio_host_run(mu_audio_host *host, const mu_audio_script *script, mu_aud
     }
     free(chunk);
     return 0;
+}
+
+int mu_audio_host_cue(mu_audio_host *host, const mu_cue *cue, uint32_t session_tick)
+{
+    if (!host || !cue || cue->kind != MU_CUE_SOUND) return 0;
+    host->session_tick = session_tick;
+    int loaded = ensure_loaded(host, cue->u.sound.id);
+    const mu_audio_entry *entry = mu_audio_snd_find(&host->client, cue->u.sound.id);
+    int was_playing = entry && entry->playing;
+    int result = loaded ? mu_audio_snd_play(&host->client, cue->u.sound.id, NULL, cue->u.sound.loop) : 0;
+    audio_log(host, "play", cue->u.sound.id, cue->u.sound.loop, loaded ? (was_playing ? 0 : result) : -1, cue);
+    return result;
+}
+void mu_audio_host_cue_loss(mu_audio_host *host, uint32_t lost, uint32_t session_tick)
+{
+    if (!host || !lost) return;
+    host->session_tick = session_tick;
+    audio_log(host, "cue_loss", (int32_t)lost, 0, -1, NULL);
+}
+void mu_audio_host_set_event_music(mu_audio_host *host, const mu_event_music_state *state)
+{
+    host->event_music = *state;
+    host->event_music.world = host->world.world;
+}
+typedef struct registration { mu_audio_host *host; int failures; } registration;
+static void register_site(void *ctx, uint32_t site, int32_t id, int32_t channels, int32_t flag)
+{
+    registration *r = ctx;
+    const mu_audio_table *t = r->host->table;
+    const char *path = NULL;
+    for (size_t i = 0; t && i < t->count; ++i)
+        if (t->rows[i].site == site && t->rows[i].id == id) { path = t->rows[i].path; break; }
+    int ok = path && mu_audio_snd_load(&r->host->client, id, path, channels, flag);
+    if (!ok) ++r->failures;
+    audio_log(r->host, "register", id, (int32_t)site, ok ? 1 : -1, NULL);
+}
+int mu_audio_host_register_monster(mu_audio_host *host, int32_t type, int preloaded)
+{
+    registration r = {host, 0};
+    mu_audio_register_monster(type, preloaded, register_site, &r);
+    return r.failures;
+}
+int mu_audio_host_register_npc(mu_audio_host *host, int32_t model, int preloaded)
+{
+    registration r = {host, 0};
+    mu_audio_register_npc(model, preloaded, register_site, &r);
+    return r.failures;
+}
+
+void mu_audio_host_music_literal(mu_audio_host *host, const char *path, uint32_t literal, int play)
+{
+    if (!host || !path) return;
+    audio_log(host, play ? "music_literal" : "stopmusic_literal", (int32_t)literal, 0, 2, NULL);
+    if (play) mu_audio_play_mp3(&host->client, path);
+    else mu_audio_stop_mp3(&host->client, path);
 }

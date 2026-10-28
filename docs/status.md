@@ -1,5 +1,7 @@
 # Current status
 
+AUDIO-002 part 1: event music decisions, monster/NPC registration, bounded NPC voices and native cue logging implemented. 76,150 new Unicorn cases, zero mismatches, 22/22 compiled mutants. [Checks and limits](handoffs/AUDIO-002.md).
+
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
 F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).
 

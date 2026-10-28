@@ -340,7 +340,7 @@ AUDIO_SRC := core/mu_wav.c core/mu_audio.c core/mu_audio_decode.c core/mu_audio_
 AUDIO_RECON := $(RECON)/audio/audio_system.c $(RECON)/audio/audio_world.c $(RECON)/audio/audio_options.c \
                $(RECON)/audio/hero_sound.c
 AUDIO_HEADERS := core/mu_wav.h core/mu_audio.h core/mu_audio_host.h core/mu_png.h $(RECON)/audio/client_audio.h \
-                 core/mu_world_audio.h $(RECON)/audio/hero_sound.h
+                 core/mu_world_audio.h $(RECON)/audio/hero_sound.h $(RECON)/audio/audio_registration.inc session/mu_cue.h
 AUDIO_OBJ := $(patsubst core/%.c,$(BUILD)/audio/%.o,$(AUDIO_SRC)) $(patsubst $(RECON)/audio/%.c,$(BUILD)/audio/recon_%.o,$(AUDIO_RECON))
 ifeq ($(UNAME),Darwin)
 AUDIO_LIBS := -framework AudioToolbox -framework CoreFoundation

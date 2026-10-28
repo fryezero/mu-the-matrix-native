@@ -136,6 +136,99 @@ renders: `~/Documents/mu-mac-tools/native/renders/audio/`.
 ## Gaps and next steps
 
 - A fixed-scope capture of `0x01cf1680..0x01cf17b0` (and `0x06fba808`) would settle music indices 43/44.
-- Event-world music managers, the virtualised frame gap, the 1,980 SND_Play call sites (which game events
-  play which ids) and the monster/NPC registration order are not reconstructed.
+- AUDIO-002 part 1 below reconstructs the frame-delegated event music managers, ordered monster/NPC
+  registrations and three NPC voice fragments. The virtualised frame gap and other domains' SND_Play
+  sites remain open.
 - FMOD's own mixing, stealing and pan rules are unavailable; the engine's choices are listed above.
+
+## AUDIO-002 part 1, 2026-10-27
+
+Target and capture pins are the same as NATIVE-AUDIO-001 above. All new execution evidence is from the
+existing Wine-restored captures, with synthetic state. No original client, launcher or live service ran.
+
+**Verified event music.** `mu_event_music` reconstructs all 15 managers delegated to by the recovered frame
+block. Their call order, play/stop choices and boundaries match 70,980 instruction cases, 4,732 per manager.
+The comparison executes the original world predicates; the string lifetime, music pointer array and Kanturu
+singleton getter are modelled. The 15 compiled planted mistakes are all caught, including wrong world/index,
+reordered stops, a stop invented for Santa, the Raklion byte equality and a call invented in the empty manager.
+
+| Client routine | Inputs and decision |
+|---|---|
+| `0x00db3e26` | Crywolf, world 34; byte `0x01ec90af` phases, result `0x01cf0e78`; music 17-20, result sounds 582/583 |
+| `0x00e8e857` | Kanturu battle, world 39; singleton `0x009a6ef3` field `+0x7c`; music 24-26 |
+| `0x00e84474` | Kanturu worlds 38/137; music 23 |
+| `0x00d557af` | Balgas worlds 41/42; music 27/28 |
+| `0x00db7501` | Cursed temple object field `+0x14`; music 29/30; getter `0x00db747f` delegates here |
+| `0x00e9e9c5` | Raklion world 57 and boss world 58; object byte `+0x24` equals 1; music 34/35 |
+| `0x00e42ad0`, `0x00e92fc8` | Santa world 62, music 36, no stop branch; duel world 63, music 38 |
+| `0x00dd306c`, `0x00dd8891`, `0x00dde543`, `0x00de5467` | Imperial Guardian worlds 69, 70, 71, 72-74; indices 39-42; no stop branches |
+| `0x00e6dd22` | Empty body in this capture |
+| `0x00e189e4`, `0x00d73c38` | Karutan worlds 80/81, indices 45/46; Acheron worlds 91/92, index 47 |
+
+The native host expands the existing delegate event in place. The old frame family remains unchanged and
+still compares its delegate boundaries. The event state API has explicit known bits; the four state-dependent
+managers report unrecovered input until their owning domain supplies it. World changes clear those bits.
+The decisions are implemented; receiving those event states from service packets remains with the event lanes.
+
+**Verified registration order.** `audio_registration_static.py` lifts ordered SND_Load sites from the constant
+monster switches, the earlier model switch and NPC cases. `audio_registration.inc` contains only authored
+call sequences with ids, source sites and legacy arguments. It contains no filenames or captured bytes.
+The independent validator executes full OpenMonsterModel `0x0180b0f4..0x0181f25c` and OpenNpc
+`0x01808a40..0x0180ae1e`, with the existing actor machine's model/file/string services. It compares every
+sound call's site and arguments, rather than sorting ids. Result: 2,404 monster and 584 NPC cases, zero
+mismatches; all four compiled mutants caught. Cases cover 601 monster types and 146 NPC model types,
+worlds 0/39 and preloaded exits. A synthetic texture-flag array supplies OpenNpc's model `+0x34` read;
+the first validator attempt lacked that array and stopped on model 2646. The corrected run requires all
+machine checks, including return, defined reads and restored registers/SEH, before comparing calls.
+
+The TSV extractor adds an optional seventh `site` column. Native registration resolves the exact site;
+`SND_Load` keeps its existing first-successful-registration behavior. Tests reverse the two NPC paths for
+id 160 in the TSV, register models in the opposite order, then check the actual PCM. Old TSVs remain
+readable, but explicit per-model registration requires re-extraction with site provenance. Registration
+APIs do not alter the still-unmigrated actor/model loader lane or invent monster viewport state.
+
+**Verified NPC voice decisions.** Model cases `0xa0b`, `0xa06`, `0xa01` route at
+`0x013b33ef..0x013b3410`. Fragments `0x013b53e4..0x013b540a`, `0x013b540f..0x013b5437` and
+`0x013b543c..0x013b549c` choose sound 161 on signed rand remainder 64 = 0, sound 160 on remainder
+256 = 0, and sound 160 for action 0/frame 5 through 10 with buff 0x1b absent. The bounded fragments,
+not the whole MoveCharacter function, match 2,182 cases including negative random values, NaN and frame
+edges; all three compiled mutants caught. Animation writes after the last fragment are excluded. The
+selector is ready for the NPC/viewport lane; its character tick is not migrated here.
+
+**Session cues and native log.** The hero's verified receive-handler sound already emitted MU_CUE_SOUND.
+Its adapter now shares `domains/audio_cue.h` with quests. There are no SND_Play calls in the currently
+reconstructed quest routines, so no new quest sound id is asserted. The quest sink recognizes the common
+sound grammar before wrapping other lines as window cues. Independent audio cursors drain each attached
+quest/session ring in both GFx and headless world tools, leaving window/effect readers untouched. These
+rings can carry hero receive-handler cues too. The legacy `mu_progress` world demo remains a separate,
+unmigrated tool facade as documented by SESSION-CORE-001; this task does not migrate that demo's state.
+
+Set `MU_AUDIO_CUE_LOG=/absolute/path/audio.jsonl` before starting the native client or audio tools.
+Each host appends `open`/`close` boundaries and ordered JSONL records with `audio:1`, host-local `seq`,
+`time_ms` from its 40 ms audio frame clock, world, op, id, loop, result, cue sequence, handler, at_key and
+session tick and registration source site. Scene music requests carry the pinned string-literal address
+in `id` under `music_literal`/`stopmusic_literal`, so the shell can log track identity without filenames. For sound play, result 1 starts, 0 suppresses/fails, -1 is unresolved. Music/stop records
+are requests, result 2 when resolved, not claims of an FMOD call or successful decoding. Registration
+records put the source site in `site`; unrecovered records identify the missing input/routine in `id`.
+Cue-loss records report the exact dropped count, including nonsound cues. Log-open failure fails audio
+initialization. No paths, account data or runtime pointers appear in records. A future comparator must
+expand requests through the verified SND/FMOD manager and align the independent frame/session clocks;
+this log alone is not an original-versus-native FMOD comparison. No original FMOD log was captured here.
+
+Seven native tests check handler-to-ring-to-PCM, shared adapter provenance, two independent readers,
+once-only drain, exact 26/1,050 cue loss, suppression, silent drains, site order, explicit event state and
+log-open refusal. Four additional portable checks cover event gates and NPC voice boundaries. The existing
+native audio render hash remains `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
+
+**Unchanged families rerun.** Original audio: 2,407 frame cases, 277 OpenWorld cases, 2,023 manager scripts,
+107 init scripts, 9,153 UI cases, all equal, with 232/232 world-perturbation controls detected. Hero audio:
+600 walk, 600 trigger, 200 reset, 600 tile cases, zero mismatches; every existing negative-control variant
+is detected. No old family or render/hash expectation was changed.
+
+**Next exact read, not performed.** Under the game lock in a separately authorized live-capture task,
+read `0x01cf1680` for `0x130` bytes, the 76 little-endian music pointers, and `0x06fba808` for 4 bytes.
+The index-43/44 pointer words are specifically `0x01cf172c` and `0x01cf1730`. For each nonnull pointer,
+read its NUL-terminated filename with a 512-byte bound and retain it only in local evidence. This settles
+the inferred index-43 name and unresolved index 44. The virtualised gap `0x01854279..0x018542c2` remains
+out of reach. The other domains' SND_Play sites, event packet state and model-lifecycle wiring remain
+with their domain migrations; the later LIVE-PLAY FMOD comparison remains open.
