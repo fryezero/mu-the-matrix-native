@@ -55,7 +55,7 @@ JPEG_LIBS :=
 endif
 
 RECON := ../reconstructed
-CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
+CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_world_haze.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
@@ -488,7 +488,7 @@ GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard
 SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
                $(wildcard session/domains/*.c)
 FIXTURE_SRC := fixture/fixture.c fixture/skills_model.c $(wildcard fixture/behaviors/*.c)
-SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h core/mu_world_players.h fixture/characters_demo.h
+SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h core/mu_world_players.h core/mu_model.h core/mu_character.h fixture/characters_demo.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
 LAYOUT_STAMP := $(GEN)/.layout-stamp
 LAYOUT_INPUTS := ../scripts/gen_layout.py $(wildcard session/layout/*.def)
@@ -619,3 +619,8 @@ $(BUILD)/world-repeat-host: tests/session_repeat_host.c world/world_tool.c $(WOR
 $(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/globals_owner_host.o
 	$(CXX) $(BUILD)/globals_owner_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+
+# NATIVE-PERF-004: compare serial/parallel character buffer side effects.
+$(BUILD)/perf-players-host: tests/perf_players_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/perf-players-host.o
+	$(CXX) $(BUILD)/perf-players-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@

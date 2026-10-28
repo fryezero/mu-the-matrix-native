@@ -10,6 +10,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#endif
 
 #include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/movement/client_movement.h"
@@ -571,6 +574,18 @@ void mu_world_players_step_one(mu_world_players *p, int32_t index, mu_rp_charact
     *record = q->c;
 }
 
+/* Only the character's own model windows and shared-within-character bone,
+ * root and quaternion buffers are writable here. No session, RNG, plate,
+ * particle or GL work may enter this callback. dispatch_apply_f joins before
+ * the ordered consumers run, including helpers which read the saved bones. */
+static void pose_player(void *context, size_t index)
+{
+    mu_world_players *p = context;
+    mu_world_player *q = &p->list[index];
+    if (q->in_view && q->has_model)
+        mu_character_update(&q->model);
+}
+
 void mu_world_players_frame(mu_world_players *p)
 {
     for (int32_t i = 0; i < p->count; ++i) {
@@ -578,7 +593,20 @@ void mu_world_players_frame(mu_world_players *p)
         if (!q->in_view || !q->has_model)
             continue;
         place_model(p, q);
-        mu_character_update(&q->model);
+    }
+#ifdef __APPLE__
+    const char *reference = getenv("MU_PERF_004_BASELINE");
+    if (p->count >= 8 && !(reference && reference[0] == '1'))
+        dispatch_apply_f((size_t)p->count, dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), p,
+                         pose_player);
+    else
+#endif
+        for (int32_t i = 0; i < p->count; ++i)
+            pose_player(p, (size_t)i);
+    for (int32_t i = 0; i < p->count; ++i) {
+        mu_world_player *q = &p->list[i];
+        if (!q->in_view || !q->has_model)
+            continue;
         if (p->names)
             plate_character(p, q);
     }

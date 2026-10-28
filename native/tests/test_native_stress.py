@@ -198,6 +198,7 @@ class DirectCornerStream(unittest.TestCase):
                 subprocess.run([cc, '-std=c11', '-O2', '-ffp-contract=off', '-fno-fast-math',
                                 '-Wall', '-Wextra', '-Werror', f'-DPERF_MUTANT={mutant}',
                                 str(HERE / 'perf_corner_host.c'), str(NATIVE / 'core/mu_meshdraw.c'),
+                                str(NATIVE / 'core/mu_perf_mesh.c'),
                                 str(NATIVE / 'core/mu_meshdraw_case.c'), '-lm', '-o', str(host)],
                                check=True, capture_output=True)
                 hosts.append(host)
@@ -209,6 +210,7 @@ class DirectCornerStream(unittest.TestCase):
                 path.write_bytes(case)
                 literal = subprocess.check_output([str(hosts[0]), '0', str(path)])
                 self.assertEqual(literal, subprocess.check_output([str(hosts[0]), '1', str(path)]), label)
+                self.assertEqual(literal, subprocess.check_output([str(hosts[0]), '2', str(path)]), label)
                 for mutant in (1, 2):
                     if subprocess.check_output([str(hosts[mutant]), '1', str(path)]) != literal:
                         killed.add(mutant)

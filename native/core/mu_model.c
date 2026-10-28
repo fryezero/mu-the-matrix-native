@@ -1,5 +1,6 @@
 /* Client-memory model for the native viewer. See mu_model.h. */
 #include "mu_model.h"
+#include "mu_perf_mesh.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,6 +189,7 @@ void mu_model_free(mu_model *m)
         free(m->region_storage[index]);
     free(m->triangles);
     free(m->texcoords);
+    mu_perf_mesh_free(m->draw_topology);
     memset(m, 0, sizeof *m);
 }
 
@@ -280,6 +282,7 @@ int mu_model_init(mu_model *m, const mu_bmd *b, const mu_model_params *params, c
         return failure(m, error, error_size, "Out-of-range bone references exceed the supported foreign spans");
     m->triangles = calloc(nm ? nm : 1, sizeof *m->triangles);
     m->texcoords = calloc(nm ? nm : 1, sizeof *m->texcoords);
+    m->draw_topology = mu_perf_mesh_new((int32_t)nm); /* optional; allocation failure uses checks */
     if (!m->triangles || !m->texcoords)
         return failure(m, error, error_size, "Out of memory");
 

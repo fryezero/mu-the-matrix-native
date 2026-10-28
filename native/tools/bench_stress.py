@@ -164,6 +164,7 @@ def main(argv=None):
     ap.add_argument('--renders', action='store_true')
     ap.add_argument('--baseline', action='store_true')
     ap.add_argument('--perf-003-baseline', action='store_true', help='disable only PERF-003 optimizations')
+    ap.add_argument('--perf-004-baseline', action='store_true', help='disable only PERF-004 optimizations')
     ap.add_argument('--gpu-timing', action='store_true', help='require the full Metal timing extension')
     ap.add_argument('--check', action='store_true', help='require the 25 Hz target')
     ap.add_argument('--check-regression', action='store_true', help='check the measured M5 envelope')
@@ -187,6 +188,7 @@ def main(argv=None):
     env.update(MU_PERF_BASELINE='0', MU_NO_GL_BATCH='0')
     env['MU_PERF_002_BASELINE'] = '1' if a.baseline else '0'
     env['MU_PERF_003_BASELINE'] = '1' if a.perf_003_baseline else '0'
+    env['MU_PERF_004_BASELINE'] = '1' if a.perf_004_baseline else '0'
     if a.gpu_timing:
         lib = ctypes.CDLL(str(a.gfx_lib))
         for symbol in ('mugfx_perf_frame', 'mugfx_perf_end'):
@@ -196,7 +198,7 @@ def main(argv=None):
               'load_start': os.getloadavg(),
               'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
               'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(),
-              'perf_003_baseline': a.perf_003_baseline, 'gpu_timing': a.gpu_timing,
+              'perf_003_baseline': a.perf_003_baseline, 'perf_004_baseline': a.perf_004_baseline, 'gpu_timing': a.gpu_timing,
               'gfx_double_buffer': 'MU_GFX_SINGLE_BUFFER' not in env,
               'region_reference': env.get('MU_PERF_REGION_REFERENCE') == '1', 'scenarios': {}}
     failed = False
