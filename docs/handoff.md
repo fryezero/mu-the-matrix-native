@@ -361,6 +361,8 @@ is the CharacterSelect movie's game side (compare with `scripts/validate_charsel
 `mu_charsel_pick` runs NATIVE-NPC-001's `mu_npc_pick` for scene 5; `skill_fx.c` and `mu_particles` carry the star dragon 0x5ac/0x5ad. Renders stay
 local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: the create-character panel (offline: local
 characters) and the GFx menu; class-name codes 9/10.
+- NATIVE-PERF-002: integrated timings, matching render hashes and the remaining 80-player/pacing shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
+
 ## Native frame time and window (NATIVE-PERF-001)
 
 Read [`research/native-performance.md`](research/native-performance.md). Profile with `mu-client ... --auto --hold

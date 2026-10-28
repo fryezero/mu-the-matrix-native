@@ -68,22 +68,30 @@ static void gl_enable(const mu_meshdraw_env *e, uint32_t cap) { gl(e, MU_GL_OP_E
 static void gl_disable(const mu_meshdraw_env *e, uint32_t cap) { gl(e, MU_GL_OP_DISABLE, cap, 0, 0, 0); }
 static void gl_color3fv(const mu_meshdraw_env *e, const float *c)
 {
+    if (e->vertices) { e->vertices->color3(e->vertices->context, c); return; }
     gl(e, MU_GL_OP_COLOR3FV, fbits(c[0]), fbits(c[1]), fbits(c[2]), 0);
 }
 static void gl_color4f(const mu_meshdraw_env *e, float r, float g, float b, float a)
 {
+    if (e->vertices) { e->vertices->color4(e->vertices->context, r, g, b, a); return; }
     gl(e, MU_GL_OP_COLOR4F, fbits(r), fbits(g), fbits(b), fbits(a));
 }
 static void gl_color3f(const mu_meshdraw_env *e, float r, float g, float b)
 {
+    if (e->vertices) {
+        const float c[3] = {r, g, b};
+        e->vertices->color3(e->vertices->context, c); return;
+    }
     gl(e, MU_GL_OP_COLOR3F, fbits(r), fbits(g), fbits(b), 0);
 }
 static void gl_texcoord(const mu_meshdraw_env *e, float s, float t)
 {
+    if (e->vertices) { e->vertices->texcoord(e->vertices->context, s, t); return; }
     gl(e, MU_GL_OP_TEXCOORD2F, fbits(s), fbits(t), 0, 0);
 }
 static void gl_vertex(const mu_meshdraw_env *e, const float *v)
 {
+    if (e->vertices) { e->vertices->vertex(e->vertices->context, v); return; }
     gl(e, MU_GL_OP_VERTEX3FV, fbits(v[0]), fbits(v[1]), fbits(v[2]), 0);
 }
 

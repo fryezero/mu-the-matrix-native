@@ -48,7 +48,7 @@ def summarize(path, scene=None, skip_first=0):
         if run < skip_first:
             continue
         kept.append(r)
-    phases = [h[:-3] for h in header[3:]]
+    phases = [h[:-3] for h in header[3:] if h.endswith("_ms")]
     total = [r["total_ms"] for r in kept]
     work = [r["total_ms"] - r["sleep_ms"] for r in kept]
     seconds = sum(total) / 1000.0
@@ -64,11 +64,13 @@ def summarize(path, scene=None, skip_first=0):
     }
     out["frame_ms"]["mean"] = sum(total) / len(total) if total else 0.0
     out["work_ms"]["mean"] = sum(work) / len(work) if work else 0.0
+    source_frames = {r["frame"] for r in kept}
     for p in phases:
-        vals = [r[p + "_ms"] for r in kept]
+        vals = [r[p + "_ms"] for r in kept if r[p + "_ms"] >= 0
+                and (p != "gpu_world" or r.get("gpu_frame") in source_frames)]
         mean = sum(vals) / len(vals) if vals else 0.0
         if mean >= 0.005:
-            out["phases"][p] = {"mean": mean, "p95": percentile(vals, 95)}
+            out["phases"][p] = {"mean": mean, "p95": percentile(vals, 95), "samples": len(vals)}
     return out
 
 
