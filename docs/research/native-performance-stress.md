@@ -1,7 +1,8 @@
 # Extreme native scenes, NATIVE-PERF-002
 
 The offline demo can now exercise 80 equipped players through ordered batching and direct corner delivery.
-**The 25 fps target is still open in every measured stress scenario.** This milestone supplies
+**The 25 fps target is still open in the three 80-player scenes.** The serialized repeat's 40-player
+scene passes the committed 25 Hz check, with frame pacing tails recorded below. This milestone supplies
 reproducible workloads, profiling, measured optimizations and regression checks, with the shortfall recorded
 below. It does not establish 25 fps in arbitrary worlds or the finished native client.
 
@@ -52,7 +53,7 @@ A fresh integrated sampling profile is still needed.
 
 ## Workloads and results
 
-The final timing binary is from `4d556f3`, integrated through main `128679f`, including the expanded
+The earlier timing binary is from `4d556f3`, integrated through main `128679f`, including the expanded
 item bodies, Icarus C2 and the monster/session migration. Both modes use this same binary. Upstream
 session scheduling and intended item/effect differences belong to their own milestones; they occur on
 both sides here. Legacy presentation capacity rises from eight models to 80. The earlier timing snapshot
@@ -105,6 +106,33 @@ observation also remains subject to the shared-host conditions.
 Per-object pose caching was not added: safe keys must account for shared bone/root buffers, attachment
 state and every transform/light input. No cache with incomplete invalidation was shipped.
 
+## Serialized repeat, 2026-10-28
+
+The resumed run uses `f553b33`, which contains latest fetched main `f4b5c5c`, including the screen-haze
+merge. The C binaries were rebuilt by the local gate. Every timing report pins the binary SHA-256;
+both modes use the same binary. Each run lasts 60 seconds, excludes its first 50 frames and uses the
+same full-quality workloads defined above. Before runs first in crowd40/Tormenta, after runs first in
+crowd80/the large target. This task's builds, tests, rendering comparisons and sampling do not overlap
+the timing matrix. Other machine activity was not controlled, so this remains one paired repeat,
+not a causal experiment or a hardware-wide guarantee. Earlier unfavorable results above are retained.
+
+| Scenario | Before fps | After fps | Before p50/p95/p99 ms | After p50/p95/p99 ms | CPU before/after ms | World GL before/after ms |
+|---|---:|---:|---|---|---|---|
+| crowd40 | 24.98 | 24.99 | 39.9/43.4/45.5 | 39.9/44.3/46.3 | 29.8/26.2 | 17.2/14.1 |
+| crowd80 | 19.84 | 22.50 | 50.3/55.0/59.8 | 43.8/48.7/51.0 | 49.8/43.8 | 24.6/19.7 |
+| tormenta80 | 18.44 | 21.55 | 54.3/58.8/66.8 | 45.9/51.0/53.7 | 53.7/46.1 | 27.3/21.1 |
+| retina80 | 14.88 | 16.94 | 67.0/71.9/75.8 | 59.2/63.1/65.6 | 66.2/58.2 | 36.6/29.6 |
+
+Measured frames before/after are 1,384/1,387, 1,044/1,192, 968/1,139 and 770/879. The CPU/world-GL
+measurement boundaries above still apply. The GL interval overlaps submission and excludes Ruffle's
+Metal work, so a complete CPU/GPU split remains unavailable.
+
+After work p95/p99 are 31.1/32.6, 48.7/51.0, 51.0/53.7 and 63.1/65.6 ms. Crowd40 passes the committed
+25 Hz checker in both modes; its frame p99 of 46.3 ms after optimization still shows pacing jitter.
+Passing this checker does not mean every frame takes at most 40 ms. The three 80-player scenes fail
+both its capped-fps and work-tail criteria. All four after runs pass the unchanged M5 warning envelope.
+GFx means after are 6.9/15.4/15.4/17.1 ms. CPU work still exceeds 40 ms in the 80-player scenes.
+
 ## Reproduction and regression gates
 
 Use local installed inputs and the already converted Native Data. Raw reports, profiles and renders must
@@ -125,9 +153,9 @@ make -C native world client
 ```
 
 The committed `stress_m5_limits.json` separates the measured M5 regression envelope from the 25 Hz goal.
-Three final after runs pass its committed warning envelopes. Tormenta fails the fps floor, frame tails
-and CPU ceiling. Those failures remain visible and the limits were not widened to accept the integrated
-repeat. All four strict 25 Hz goal checks fail. Passing a warning envelope establishes neither an
+All four serialized-repeat after runs pass its committed warning envelopes. The earlier shared-load
+Tormenta run fails the fps floor, frame tails and CPU ceiling. Those failures remain visible and the
+limits were not widened. Three serialized-repeat strict 25 Hz goal checks fail. Passing a warning envelope establishes neither an
 optimization win nor 25 Hz acceptance. It is a repeatable warning check against the earlier full-nameplate,
 expanded-item workload; shared-host load can exceed it. Synthetic tests
 exercise fast/slow, missing workload and both threshold paths. Recalibrate on other hardware or an idle
@@ -154,6 +182,10 @@ as a filesystem path and failed with ENAMETOOLONG. The guard now skips text-valu
 options, with a portable regression using 32 valid script entries. The owner's legacy Native Data folder
 was left unchanged; a fresh scratch clone was stamped against the pinned installed build for validation.
 
+Review during resumption also found that inherited `MU_GFX_PLAIN_ITEMS` could omit inventory glow
+passes without being rejected. The benchmark now rejects this flag and every existing quality-omission
+flag by presence, matching the renderer's `getenv` checks even for empty values. One regression test
+covers all eight flag/value combinations before the benchmark reads binaries or creates output.
 
 Verification results and retained artifact paths are listed in [the handoff](../handoffs/NATIVE-PERF-002.md).
 The committed direct-corner host compares all 247 pinned synthetic cases, including full stream words
@@ -171,8 +203,8 @@ No visual difference is intended by the optimization. No client assets or render
 
 ## Remaining work
 
-- Hold 25 fps in these scenes on an idle Mac, then repeat under realistic concurrent load. The present
-  measurements explicitly do not satisfy that finish condition.
+- Hold 25 fps in the three 80-player scenes, reduce crowd40's pacing tails, then repeat under realistic
+  concurrent load. The present measurements do not satisfy the complete finish condition.
 - Profile the remaining Ruffle AVM/movie updates and Metal work, with full GPU timing, before changing it.
 - Investigate validated per-object pose/skin caches or less corner dispatch/scene allocation work while
   retaining shared-buffer side effects, lighting, alpha and attachment behavior.
