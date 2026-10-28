@@ -102,6 +102,101 @@ class RenderEffects(unittest.TestCase):
             for name in names: (assets/name).unlink()
             for name in ('Spark02.OZJ', 'Explotion01.OZJ', 'Fire01.OZJ'): (effect/name).unlink()
 
+    def cast_as(self, skill, weapon, cls, frames):
+        with tempfile.TemporaryDirectory() as tmp:
+            cmd = [str(ROOT/'native/build/mu-walk'), '--game-root', str(self.root), '--headless',
+                   '--backend', 'soft', '--no-audio', '--no-items', '--no-players', '--tile', '120,120',
+                   '--placement', str(self.placement), '--combat', '--combat-weapon', weapon, '--class', str(cls),
+                   '--combat-script', f'2:skill:{skill}:spider;3:stop', '--frames', str(frames), '--every', '1',
+                   '--width', '160', '--height', '100', '--out-dir', tmp]
+            p = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rows = [json.loads(x) for x in p.stdout.splitlines() if x.startswith('{')]
+            images = [hashlib.sha256(x.read_bytes()).hexdigest() for x in sorted(Path(tmp).glob('*.png'))]
+        return rows, images
+
+    def test_rageful_blow_session_pixels(self):
+        """RENDER-EFFECTS-004: the flying weapon 0x461, its impact pieces, quake ring and tails."""
+        assets = self.root/'Data/Skill'
+        names = ['EarthQuake0%d.bmd' % i for i in (1, 2, 3, 4, 5, 7, 8)] + ['flashing.bmd', 'tail.bmd']
+        for i, name in enumerate(names):
+            (assets/name).write_bytes(nf.synthetic_layout(300+i, actions=1, keys=(8,)))
+        try:
+            rows, images = self.cast_as(42, 'sword', 1, 48)
+            summary = next(r for r in rows if r.get('combat') is True)
+            self.assertEqual(summary['requests_unsent'], 1)
+            self.assertEqual((summary['hits'], summary['kills'], summary['unsupported']), (0, 0, 0))
+            self.assertEqual(summary['joints_created'], 8)   # the impact's eight 0x7fd5 sparks
+            frames = [r for r in rows if 'combat_frame' in r]
+            seen = set().union(*(set(f['effect_types']) for f in frames))
+            self.assertTrue({0x461, 0x462, 0x463, 0x464, 0x465, 0x466, 0x468, 0x469, 0x46a, 0x46b} <= seen, seen)
+            self.assertTrue(any(f['effect_types'].count(0x468) == 20 for f in frames))   # 4 rings x 5, open walls
+            self.assertTrue(all(f['monsters'][0]['hp'] == frames[0]['monsters'][0]['hp'] for f in frames))
+            for name in names: (assets/name).rename(assets/(name+'.off'))
+            try: _, absent = self.cast_as(42, 'sword', 1, 48)
+            finally:
+                for name in names: (assets/(name+'.off')).rename(assets/name)
+            self.assertTrue(images)
+            self.assertNotEqual(images, absent)
+        finally:
+            for name in names: (assets/name).unlink()
+
+    def test_triple_shot_verified_fan(self):
+        """RENDER-EFFECTS-004: CreateArrows' default fan, three Arrow01 shots at 0, +15 and -15 degrees."""
+        arrow = self.root/'Data/Skill/Arrow01.bmd'
+        arrow.write_bytes(nf.synthetic_layout(400, actions=1, keys=(8,)))
+        try:
+            rows, images = self.cast_as(24, 'bow', 2, 30)
+            summary = next(r for r in rows if r.get('combat') is True)
+            self.assertEqual(summary['requests_unsent'], 1)
+            self.assertEqual((summary['arrows'], summary['unsupported']), (3, 0))
+            frames = [r for r in rows if 'combat_frame' in r]
+            self.assertTrue(any(f['effect_types'].count(0x43b) == 3 for f in frames))
+        finally:
+            arrow.unlink()
+
+    def test_guardian_wing_pet_effect_pixels(self):
+        """RENDER-EFFECTS-004: Spirit of Guardian's effect 0x460/4 is created, kept and drawn."""
+        from test_native_pets import write_pet_models
+        with tempfile.TemporaryDirectory() as tmp:
+            root = write_combat_world(Path(tmp)/'game')
+            write_pet_models(root, with_data=False)
+            item = root/'Data/Item'
+            nf.write_textured_model(item, 45).rename(item/'maria.bmd')
+            skill = root/'Data/Skill'; skill.mkdir(exist_ok=True)
+            wing = skill/'darkwing_hetachi.bmd'
+            nf.write_textured_model(skill, 46).rename(wing)
+
+            def run():
+                with tempfile.TemporaryDirectory() as out:
+                    p = subprocess.run([str(ROOT/'native/build/mu-walk'), '--game-root', str(root), '--headless',
+                                        '--backend', 'soft', '--no-audio', '--no-env', '--no-items', '--no-players',
+                                        '--tile', '120,120', '--helper', 'spirit', '--frames', '30', '--every', '1',
+                                        '--width', '160', '--height', '100', '--out-dir', out],
+                                       capture_output=True, text=True)
+                    self.assertEqual(p.returncode, 0, p.stderr)
+                    stats = [json.loads(x) for x in p.stdout.splitlines() if '"effects_created"' in x]
+                    images = [hashlib.sha256(x.read_bytes()).hexdigest() for x in sorted(Path(out).glob('*.png'))]
+                return stats[-1], images
+            stats, images = run()
+            self.assertEqual(stats['effects_created'], 30)    # one wing per drawn frame
+            self.assertEqual(stats['effects_unsupported'], 0)
+            self.assertEqual(stats['effects_live'], 25)       # lifetime 25
+            wing.rename(skill/'off.bmd')
+            _, absent = run()
+            self.assertNotEqual(images, absent)
+
+    @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
+    def test_rageful_blow_original_instructions_and_compiled_mutants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp)/'report.json'
+            subprocess.run([sys.executable, str(ROOT/'scripts/validate_render_effects4.py'), '--cases', '60',
+                            '--mutations', '--output', str(report)], check=True, capture_output=True)
+            r = json.loads(report.read_text())
+            self.assertTrue(r['all_equal'])
+            self.assertTrue(r['all_mutants_caught'])
+            self.assertEqual(len(r['mutants']), 15)
+
     def test_world_particle_consumers_and_sprite_registrations(self):
         subprocess.run(['make', '-C', str(ROOT/'native'), 'build/particle-consumers-host'], check=True,
                        capture_output=True)

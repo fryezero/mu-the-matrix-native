@@ -10,6 +10,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#endif
 
 #include "../../reconstructed/actors/actors.h"
 #include "../../reconstructed/movement/client_movement.h"
@@ -571,6 +574,33 @@ void mu_world_players_step_one(mu_world_players *p, int32_t index, mu_rp_charact
     *record = q->c;
 }
 
+/* Only the character's own model windows and shared-within-character bone,
+ * root and quaternion buffers are writable here. No session, RNG, plate,
+ * particle or GL work may enter this callback. dispatch_apply_f joins before
+ * the ordered consumers run, including helpers which read the saved bones. */
+static void pose_player(void *context, size_t index)
+{
+    mu_world_players *p = context;
+    mu_world_player *q = &p->list[index];
+    if (q->in_view && q->has_model)
+        mu_character_update(&q->model);
+}
+
+
+#ifdef __APPLE__
+typedef struct pose_work {
+    mu_world_players *players;
+    size_t groups;
+} pose_work;
+
+static void pose_group(void *context, size_t group)
+{
+    const pose_work *work = context;
+    for (size_t i = group; i < (size_t)work->players->count; i += work->groups)
+        pose_player(work->players, i);
+}
+#endif
+
 void mu_world_players_frame(mu_world_players *p)
 {
     for (int32_t i = 0; i < p->count; ++i) {
@@ -578,7 +608,32 @@ void mu_world_players_frame(mu_world_players *p)
         if (!q->in_view || !q->has_model)
             continue;
         place_model(p, q);
-        mu_character_update(&q->model);
+    }
+#ifdef __APPLE__
+    const char *reference = getenv("MU_PERF_004_BASELINE");
+    if (p->count >= 8 && !(reference && reference[0] == '1')) {
+        /* Bound the team instead of exposing every character as a separate job.
+         * The diagnostic override retains the old fan-out for paired tests. */
+        size_t groups = 4;
+        const char *setting = getenv("MU_PERF_004_POSE_TASKS");
+        if (setting) {
+            char *end;
+            long requested = strtol(setting, &end, 10);
+            if (*setting && !*end && requested >= 1 && requested <= MU_WORLD_PLAYERS_MAX)
+                groups = (size_t)requested;
+        }
+        if (groups > (size_t)p->count) groups = (size_t)p->count;
+        pose_work work = {p, groups};
+        dispatch_apply_f(groups, dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), &work,
+                         pose_group);
+    } else
+#endif
+        for (int32_t i = 0; i < p->count; ++i)
+            pose_player(p, (size_t)i);
+    for (int32_t i = 0; i < p->count; ++i) {
+        mu_world_player *q = &p->list[i];
+        if (!q->in_view || !q->has_model)
+            continue;
         if (p->names)
             plate_character(p, q);
     }
