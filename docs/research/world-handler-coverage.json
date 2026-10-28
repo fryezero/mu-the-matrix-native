@@ -66,21 +66,21 @@
       "handlers": {
         "create": {
           "entry": "0xe4231c",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/santa_village.c"
         },
         "move": {
           "entry": "0xe42370",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/santa_village.c"
         },
         "visual": {
           "entry": "0xe423d8",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/santa_village.c"
         },
         "custom_render": {
           "entry": "0xe426cf",
@@ -114,21 +114,21 @@
       "handlers": {
         "create": {
           "entry": "0xe8ec09",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/vulcanus.c"
         },
         "move": {
           "entry": "0xe8ec80",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/vulcanus.c"
         },
         "visual": {
           "entry": "0xe8ece1",
-          "status": "missing",
-          "scope": "static entry only; no native implementation claimed",
-          "source": null
+          "status": "verified_family",
+          "scope": "Full primary method on synthetic OBJECTs; 1000 original-instruction cases per method, compiled mutants; engine allocations recorded. See client-worlds-g.md for finite clock domain and visual/data limits.",
+          "source": "reconstructed/objects/vulcanus.c"
         },
         "custom_render": {
           "entry": "0xe8f515",

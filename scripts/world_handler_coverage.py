@@ -129,7 +129,7 @@ def main():
     else:
         assert output.read_text() == rendered, 'stale markdown'
     print('48 classes, 57 world registrations, 288 slot addresses checked')
-    print(rendered.split('## Built-in')[0].splitlines()[-2])
+    print(next(line for line in rendered.splitlines() if '/48 classes have' in line))
     return 0
 
 

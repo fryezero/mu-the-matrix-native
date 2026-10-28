@@ -12,8 +12,8 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | Class | Worlds, decimal | Vtable | Create +2c | Move +30 | Visual +34 |
 |---|---|---|---|---|---|
 | Raklion | 57, 58 | `0x1aad9d0` | `0xe943c0` V | `0xe94619` V | `0xe946a8` M |
-| Santa Village | 62 | `0x1aab3c8` | `0xe4231c` M | `0xe42370` M | `0xe423d8` M |
-| Vulcanus | 63 | `0x1aad63c` | `0xe8ec09` M | `0xe8ec80` M | `0xe8ece1` M |
+| Santa Village | 62 | `0x1aab3c8` | `0xe4231c` V | `0xe42370` V | `0xe423d8` V |
+| Vulcanus | 63 | `0x1aad63c` | `0xe8ec09` V | `0xe8ec80` V | `0xe8ece1` V |
 | Duel Arena | 64 | `0x1aa7c54` | `0xdc6643` M | `0xdc6685` M | `0xdc6790` M |
 | World 82 class | 82 | `0x1aaab3c` | `0xe2bf57` M | `0xe2bf8d` M | `0xe2c002` M |
 | World 69 class | 69 | `0x1aa7dd4` | `0xdc6fab` M | `0xdc7136` M | `0xdc73d0` M |
@@ -60,7 +60,7 @@ Counts below concern the three primary class methods only; inherited no-ops rema
 | World 144 class | 144 | `0x1aab6a8` | `0xe46625` M | `0xe4696f` M | `0xe47bc2` M |
 | World 145 class | 145 | `0x1aa5e78` | `0xd75a6c` M | `0xd75ac6` M | `0xd77b3e` M |
 
-5/48 classes have at least one verified primary method. Of 144 primary methods: 12 verified families, 0 static-only C, 132 missing.
+7/48 classes have at least one verified primary method. Of 144 primary methods: 18 verified families, 0 static-only C, 126 missing.
 
 The companion [JSON](world-handler-coverage.json) records factory, constructor and related entry points
 for all 48 classes: invisible-sector move +1c, custom render +38 and after render +3c, with separate statuses.

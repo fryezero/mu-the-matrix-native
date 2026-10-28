@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-G implements the 48-class inventory and all three primary Santa Village/Vulcanus methods. Six thousand instruction cases, 13/13 mutants, 14 unaffected hashes unchanged; [limits and remaining work](handoffs/RENDER-WORLDS-G.md).
+
 WORLD-ORDER-001 implemented: main-world call-order family and part-column adapters. [Counts and boundaries](handoffs/WORLD-ORDER-001.md).
 
 RENDER-WORLDS-F implements the Tarkan/Raklion screen haze. [Checks and image-score limitation](handoffs/RENDER-WORLDS-F.md).

@@ -25,3 +25,18 @@ int mu_santa_move(uint8_t *o, int32_t world)
         return 0;
     }
 }
+
+/* Slot +34 0x00e423d8. Model is a presence gate only; there is no world check. */
+#include "worlds_g_internal.h"
+int mu_santa_visual(const uint8_t *o, int32_t index, int model_present, float time, mu_obj_log *log)
+{
+    const int32_t type = mu_obj_i32(o, MU_OBJF_TYPE);
+    if (!model_present || type < 0x1a || type > 0x1c)
+        return 0;
+    const float pulse = ((float)sin((double)(time * 0.005f)) + 1.0f) * 0.1f + 0.9f;
+    const float light[3] = {pulse * (type == 0x1a ? 0.8f : 0.0f),
+                            pulse * (type == 0x1c ? 0.6f : 0.2f),
+                            pulse * (type == 0x1b ? 0.8f : type == 0x1c ? 0.6f : 0.0f)};
+    wg_sprite(log, index, o, 8.0f * mu_obj_f32(o, MU_OBJF_SCALE), light);
+    return 1;
+}

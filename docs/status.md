@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-G implements the 48-class inventory and Santa Village/Vulcanus primary methods: 6,000 instruction cases, zero mismatches, 13/13 compiled mutants; 18/144 primary families verified across 7/48 classes. [Evidence](research/client-worlds-g.md), [handoff](handoffs/RENDER-WORLDS-G.md).
+
 WORLD-ORDER-001 implements recorded tick/draw order checks; 2,400 Unicorn cases, zero mismatches, all 294 branch edges and 10/10 compiled mutants. Native order adapters are explicit; runtime orders unchanged. [Evidence](research/client-world-order.md), [handoff](handoffs/WORLD-ORDER-001.md).
 
 RENDER-WORLDS-F implements Tarkan/Raklion additive screen haze; 1,818 instruction comparisons, zero mismatches, 7/7 compiled mutants. Twelve other tour PNG hashes unchanged; original-image scores unavailable. [Evidence](research/client-world-haze.md), [handoff](handoffs/RENDER-WORLDS-F.md).

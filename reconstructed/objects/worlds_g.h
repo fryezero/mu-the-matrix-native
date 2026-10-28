@@ -8,4 +8,7 @@ int mu_santa_create(uint8_t *);
 int mu_santa_move(uint8_t *, int32_t world);
 int mu_vulcanus_create(uint8_t *, int32_t world);
 int mu_vulcanus_move(uint8_t *, int32_t world);
+int mu_santa_visual(const uint8_t *, int32_t index, int model_present, float time, mu_obj_log *);
+int mu_vulcanus_visual(uint8_t *, int32_t index, int32_t world, int model_present, float time,
+                       mu_obj_rand_fn, void *, mu_obj_log *);
 #endif
