@@ -8,7 +8,7 @@ audio validators/tests; this handoff, the audio finding and AUDIO-002 status row
 43/44 and the virtualised frame gap are excluded.
 
 The recovered implementation is checkpointed in `ef125e3` and `ad10513`, with main `0a85441` merged in
-`11ce249`. Thirty original call sites have session cue adapters: ten walking, three NPC voice, two
+`11ce249` and latest main `89c63ac` merged in `959e3d9`. Thirty original call sites have session cue adapters: ten walking, three NPC voice, two
 ReceiveTalk/window, five creature ambience and ten world-object sites. Twenty-nine can emit sound with
 the migrated inputs. The third NPC voice requires buff `0x1b`, absent from the viewport records, and emits
 an explicit `MU_CUE_AUDIO_INPUT` instead. The selector is verified for both known buff values. See the
@@ -33,10 +33,10 @@ their direct audio facade.
 - Expanded existing audio comparison: 13,967/13,967 equal, 232/232 perturbations detected. The entire JSON
   report, including all five captured routine hashes, equals the recovered baseline report. Counts are
   frame 2,407, OpenWorld 277, manager 2,023, init 107 and settings 9,153.
-- Full `bash scripts/local-macos-ci.sh` passes: 1,449 tests, 175 explicit skips, zero failures/errors; six
+- Full `bash scripts/local-macos-ci.sh` passes: 1,453 tests, 176 explicit skips, zero failures/errors; six
   fixture scenarios pass with 46 inbound frames, zero unbound and zero undecodable frames. The fixtures'
   two unrecovered intents and three unsent frames remain expected limitations. Viewer/readers builds and
-  repository audit pass, 1,314 files audited, zero rejected. The first gate attempt hit transient ENOSPC in
+  repository audit pass, 1,328 files audited, zero rejected. The first gate attempt hit transient ENOSPC in
   the macOS temp directory; the complete rerun uses a lane-scoped `TMPDIR` and passes without source changes.
 - Manifest runner: seven families pass, zero failures/errors/skips. Unchanged part-1 event music
   70,980 + registration 2,988 + voices 2,182 = 76,150 instruction cases, zero mismatches, 22/22 compiled
@@ -47,6 +47,11 @@ their direct audio facade.
 
 No existing validator body or expected render/PCM hash changed. The audio golden PCM remains
 `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
+
+After integrating RENDER-WORLDS-A, all seventeen focused tests pass with private comparison enabled.
+Six audio/hero validator reports in `validated-integrated/` exactly equal the pre-merge reports. The
+environment sources and comparison library hash are unchanged. The full gate above was rerun on this
+combined tree. Only documentation changed after it passed.
 
 ## Remaining work
 
@@ -59,5 +64,5 @@ No whole-client sound parity is claimed.
 All raw reports, local inputs and logs remain in
 `~/Documents/MTM/mu-mac-tools/native/scratch/audio-002b/`; renders stay in the corresponding
 `native/renders/audio-002b/` directory. No private inputs or local symlinks are published.
-Gate log: `gate-scoped.log`; expanded audio report: `audio-expanded-current.json`; cue test log:
+Final integrated gate log: `gate-integrated.log`; expanded audio report: `audio-expanded-current.json`; cue test log:
 `cues-current-private.log`; manifest-driven original-instruction reports: `validated-current/`.
