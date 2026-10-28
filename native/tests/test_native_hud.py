@@ -77,6 +77,29 @@ def synthetic_root(folder):
 
 
 class NativeHudTests(unittest.TestCase):
+    def test_inventory_uses_item_body_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = synthetic_root(tmp)
+            low = run('inventory', '--root', root, '--items', '0:0', '--out', root/'low.png')
+            high = run('inventory', '--root', root, '--items', '0:13', '--out', root/'high.png')
+            self.assertEqual((low['models_drawn'], high['models_drawn']), (1, 1))
+            self.assertGreater(high['triangles'], low['triangles'])
+            self.assertNotEqual(high['framebuffer_sha256'], low['framebuffer_sha256'])
+
+    def test_special_model_remap_without_ordinary_model(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = synthetic_root(folder)
+            # Beer level 1 must use Beer02, even though the ordinary item
+            # has no record/file. A wrong filename cannot draw this model.
+            write_textured_model(root/'Data/Item', seed=9).rename(root/'Data/Item/Beer02.bmd')
+            before = run('inventory', '--root', root, '--items', '7177:0')
+            remap = run('inventory', '--root', root, '--items', '7177:1')
+            self.assertEqual((before['models_drawn'], before['models_missing']), (0, 1))
+            self.assertEqual((remap['models_drawn'], remap['models_missing'], remap['special']), (1, 0, 0))
+            (root/'Data/Item/Beer02.bmd').unlink()
+            missing = run('inventory', '--root', root, '--items', '7177:1')
+            self.assertEqual((missing['models_drawn'], missing['models_missing']), (0, 1))
+
     def test_synthetic_root_inventory(self):
         with tempfile.TemporaryDirectory() as folder:
             root = synthetic_root(folder)

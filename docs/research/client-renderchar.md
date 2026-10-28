@@ -1,5 +1,9 @@
 # In-world character and item render (NATIVE-RENDERCHAR-001)
 
+RENDER-ITEMS-002 part 1 recovers the inventory RenderItem3D special-code chain separately.
+[Its finding](client-render-items.md) records the generated overrides and native remapped-model loading;
+[Part 2](client-render-items.md#part-2-bounded-body-and-link-effects-render-items-002b) adds 103 scalar remaps, 11 of the 1,674 body types and six bow link effects. The historical coverage below predates that bounded extension.
+
 This milestone recovers the client's world render of characters and their
 items, which [native-character.md](native-character.md) had read statically:
 

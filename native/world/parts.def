@@ -34,7 +34,7 @@ MU_PART(players,       mu_part_players,         0,    0,  70,  40,  40,  90) /* 
 MU_PART(social,        mu_part_social,          0,   80,  90,   0,   0, 130) /* party/trade/friends/messages (local)     */
 MU_PART(helpers,       mu_part_helpers,         0,   90,   0,  50,  80, 100) /* pets and mounts                          */
 MU_PART(map,           mu_part_map,             0,  150,  80,   0,   0, 140) /* LoadingWorld, gate test, hudMap          */
-MU_PART(quest_step,    mu_part_quest_step,      0,   40,   0,   0,   0,   0) /* the quest demo's step (GFx builds)       */
+MU_PART(quest_step,    mu_part_quest_step,      0,   40,   0,   0,   0, 150) /* session quest step, headless + GFx       */
 MU_PART(marker,        mu_part_marker,          0,    0,   0,  90, 100,   0) /* viewer aid: the clicked point            */
 MU_PART(actor_effects, mu_part_actor_effects,   0,    0,   0, 110, 110,   0) /* the actors' EffectManager instances      */
 MU_PART(item_labels,   mu_part_item_labels,     0,    0,   0, 130, 130,   0) /* the ground items' name labels            */

@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-client: the client's scene flow natively, offline (NATIVE-SHELL-001).
  *
  * Title -> login (server select, OFFLINE DEMO account panel) -> character
@@ -1235,6 +1236,7 @@ static int usage(void)
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     static front f;
     memset(&f, 0, sizeof f);
     f.width = 1280;

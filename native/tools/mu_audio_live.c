@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-audio-live: plays an audio script live through SDL2 audio.
  *
  *   mu-audio-live --script FILE [--table TSV] [--root GAME] [--rate HZ]
@@ -54,6 +55,7 @@ static char *read_all(const char *path)
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     const char *script_path = NULL, *table_path = NULL, *root = NULL, *options = NULL;
     int verbose = 0, no_options = 0;
     uint32_t rate = 44100;

@@ -63,12 +63,13 @@ class SessionCore(unittest.TestCase):
         r, rows = run_tool('routes')
         self.assertEqual(r.returncode, 0, r.stderr)
         intents = [row['intent'] for row in rows if 'intent' in row]
-        self.assertEqual({i['name'] for i in intents}, {'add_stat', 'master_point'})
+        self.assertEqual({i['name'] for i in intents}, {'add_stat', 'master_point', 'quest_window', 'quest_context'})
         for i in intents:
             self.assertIsNotNone(i['submit'], i)
         routes = [row['route'] for row in rows if 'route' in row]
         bound = {(x['opcode'], x['sub']): x['apply'] for x in routes if x['apply']}
         self.assertEqual(sum(name.startswith('hero_') for name in bound.values()), 8)
+        self.assertEqual(sum(name == 'mu_quest_apply' for name in bound.values()), 19)
 
     def test_world_change_barrier_and_attach_idempotency(self):
         scn = self.scenario('at 3 progress respawn map=2 x=20 y=30 dir=3 money=7\n'

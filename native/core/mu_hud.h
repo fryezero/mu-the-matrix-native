@@ -6,7 +6,7 @@
  * The client's in-game windows are GFx (Scaleform) movies; their frames are
  * not reconstructed.  This module runs the reconstructed game side
  * (reconstructed/hud) for an inventory: the item grid, the slot pass and
- * RenderItem3D's general path, which give each item's model, position,
+ * RenderItem3D, which give each item's model, position,
  * rotation and scale for the orthographic item pass, and the tooltip text
  * pipeline (formatter cases, HTML assembly).
  *
@@ -70,6 +70,10 @@ void mu_hud_inventory_init(mu_hud_inventory *inv);
  * -1 when it does not fit. */
 int mu_hud_inventory_add(mu_hud_inventory *inv, const mu_data_table *items, const char *game_root, int32_t code,
                          int32_t level, uint8_t w, uint8_t h);
+/* Resolve the drawn model, including RenderItem3D remaps. Returns 1 for a
+ * known installed file, 0 with an empty path when unavailable. */
+int mu_hud_item_model_path(const mu_data_table *items, const char *game_root, int32_t model,
+                            char *out, size_t size);
 
 /* Geometry of the GFx inventory window in screen pixels (inputs). */
 typedef struct mu_hud_window_geometry {
@@ -95,6 +99,10 @@ typedef struct mu_hud_item_draw {
 int32_t mu_hud_inventory_pass(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
                               int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
                               int32_t hover_item, mu_hud_item_draw *draws, int32_t max);
+/* The same pass with the frame clock supplied to the special-code spin. */
+int32_t mu_hud_inventory_pass_at(const mu_hud_inventory *inv, const mu_hud_window_geometry *geo, int32_t screen_w,
+                                int32_t screen_h, const mu_hud_trs_table *trs, float scale_factor,
+                                int32_t hover_item, float time, mu_hud_item_draw *draws, int32_t max);
 
 /* Column-major glOrtho(0, W, 0, H, 20, 2000) of the item pass 0x00abfcca. */
 void mu_hud_item_projection(int32_t screen_w, int32_t screen_h, float m[16]);

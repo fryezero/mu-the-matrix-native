@@ -45,6 +45,8 @@ def make_tree(tmp: Path) -> Path:
     shutil.copy(ROOT / 'reconstructed/progress/progress.h', t / 'reconstructed/progress/progress.h')
     (t / 'reconstructed/players').mkdir(parents=True)
     shutil.copy(ROOT / 'reconstructed/players/remote_players.h', t / 'reconstructed/players/remote_players.h')
+
+    shutil.copytree(ROOT / 'reconstructed/quest', t / 'reconstructed/quest')
     return t
 
 

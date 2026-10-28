@@ -64,7 +64,7 @@ static int characters_open(mu_world_rt *a, void *self)
     a->players->session=p->session;
     a->players->record_action=record_action;
     a->players->record_context=p;
-    p->demo=mu_fixture_behavior_instance(p->fixture,"characters");
+    p->demo=mu_fixture_behavior_state(p->fixture,"characters");
     return 0;
 }
 

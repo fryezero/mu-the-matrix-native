@@ -45,12 +45,12 @@ typedef struct mu_fixture_behavior {
     void (*close)(void *self);
 } mu_fixture_behavior;
 
+void *mu_fixture_behavior_state(mu_fixture *f, const char *name);
+
 /* Services for behaviours. Frames are built with the verified mu_packet builder (plain adds: the
  * server does not XorData its answers). encrypted != 0 is refused (-2) until the mirror
  * CryptoModule exists; -1 when no client link of that kind is open. */
 int mu_fx_send(mu_fixture_ctx *ctx, mu_conn_kind conn, mu_packet *p, int encrypted);
-/* Avoid reconstructed/effects mu_fx_rand when the fixture joins the world. */
-#define mu_fx_rand mu_fixture_rand
 uint32_t mu_fixture_rand(mu_fixture_ctx *ctx);
 uint32_t mu_fx_now(const mu_fixture_ctx *ctx);
 uint32_t mu_fx_step(const mu_fixture_ctx *ctx);

@@ -118,13 +118,13 @@ static int cmd_behaviors(void)
 
 static const char *apply_name(int r)
 {
-    return r == 0 ? "done" : r == 1 ? "ignored" : r == 2 ? "world_change" : "?";
+    return r == 0 ? "done" : r == 1 ? "ignored" : r == 2 ? "world_change" : r == 3 ? "body_undecoded" : "?";
 }
 
 static const char *decode_name(int d)
 {
-    static const char *const N[] = {"ok", "serial", "crypto", "bad", "overflow"};
-    return d >= 0 && d < 5 ? N[d] : "?";
+    static const char *const N[] = {"ok", "serial", "crypto", "bad", "overflow", "body_undecoded"};
+    return d >= 0 && d < 6 ? N[d] : "?";
 }
 
 static const char *send_name(int s)
@@ -270,6 +270,7 @@ static mu_world_port stub_port(stub_world *w)
 /* ---- a headless run ------------------------------------------------------------------------------- */
 
 typedef struct run {
+    const char *scenario;
     mu_session *session;
     mu_transport *transport;
     mu_fixture *fixture;
@@ -347,6 +348,14 @@ static void client_action(run *r, const mu_scenario_line *line)
         memcpy(&in.u, &(int32_t){(int32_t)a}, sizeof(int32_t));
         mu_submit s = mu_session_submit(r->session, &in);
         row_action(line->tick, line->text, mu_submit_status_name(s.status));
+    } else if (!strcmp(verb, "quest-data")) {
+        char dir[4096]; const char *slash=strrchr(r->scenario,'/');
+        if(rest[0]=='/') snprintf(dir,sizeof dir,"%s",rest);
+        else snprintf(dir,sizeof dir,"%.*s%s",slash?(int)(slash-r->scenario+1):0,r->scenario,rest);
+        int rc=mu_session_quest_bind(r->session,dir,NULL);
+        if(rc && rest[0]!='/') rc=mu_session_quest_bind(r->session,rest,NULL);
+        row_action(line->tick,line->text,rc?"no quest tables":"quest tables bound");
+        if(rc)r->failed_actions++;
     } else if (!strcmp(verb, "attach")) {
         r->world.world = (int32_t)strtol(rest, NULL, 0);
         mu_place pl = mu_session_place(r->session);
@@ -401,6 +410,19 @@ static int64_t value_of(run *r, const char *key, int *ok)
     mu_fixture_report_get(r->fixture, &fr);
     mu_place pl = mu_session_place(r->session);
     *ok = 1;
+    if(!strncmp(key,"quest.",6)) {
+        const mu_quest_client *c=mu_session_quest(r->session);
+        if(c && !strcmp(key,"quest.hero_class")) return c->hero_class;
+        if(c && !strcmp(key,"quest.hero_level")) return c->hero_level;
+        int id;char field[32];
+        if(c && sscanf(key,"quest.%d.%31s",&id,field)==2) {
+            int32_t f[4]; if(mu_quest_fields(c,id,f)) {
+                if(!strcmp(field,"state"))return f[0];
+                if(!strcmp(field,"count"))return f[1];
+            }
+        }
+        *ok=0;return 0;
+    }
     struct {
         const char *k;
         int64_t v;
@@ -487,6 +509,7 @@ static int run_session(const char *scenario, const char *to, uint32_t seed, uint
 {
     run r;
     memset(&r, 0, sizeof r);
+    r.scenario=scenario;
     char err[512];
     mu_fixture_options fo = {scenario, NULL, seed};
     r.fixture = mu_fixture_open(&fo, err, sizeof err);

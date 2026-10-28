@@ -16,7 +16,7 @@ BUILD := build
 UNAME := $(shell uname -s)
 
 WARN := -Wall -Wextra -Werror -Wconversion
-CFLAGS := -I session -I build/gen -std=c11 -O2 -ffp-contract=off -fno-fast-math $(WARN)
+CFLAGS := -std=c11 -O2 -ffp-contract=off -fno-fast-math $(WARN)
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Werror -Wconversion
 
 CRYPTOPP_PREFIX ?= $(shell if command -v brew >/dev/null 2>&1; then brew --prefix cryptopp; else echo /usr; fi)
@@ -140,7 +140,7 @@ $(MODULUS_OBJ): ../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -c $< -o $@
 
-$(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ)
+$(LIB): $(CORE_OBJ) $(RECON_OBJ) $(MODULUS_OBJ) $(BUILD)/data-manifest.o
 	rm -f $@
 	ar rcs $@ $^
 
@@ -224,6 +224,11 @@ $(BUILD)/mu-charsel: charsel/main.c charsel/charsel_tool.c $(CHARSEL_RT_OBJ) $(L
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/charsel_tool.c -o $(BUILD)/mu_charsel_tool.o
 	$(CXX) $(BUILD)/mu_charsel.o $(BUILD)/mu_charsel_tool.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+# RENDER-ITEMS-002b saved-pose and sprite-capacity regression.
+$(BUILD)/item-render-host: tests/item_render_host.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/item_render_host.o
+	$(CXX) $(BUILD)/item_render_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o
@@ -249,11 +254,6 @@ $(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_proto.c core/mu_protocol.c -o $@
 
-# NATIVE-QUEST-001: the quest session (core/mu_quest over reconstructed/quest) for the tests (ctypes).
-QUEST_LIB_SRC := core/mu_quest.c $(wildcard $(RECON)/quest/quest_*.c)
-$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) core/mu_quest.h $(wildcard $(RECON)/quest/*.h)
-	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -fPIC -shared $(QUEST_LIB_SRC) -o $@
 
 $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
@@ -282,10 +282,12 @@ $(BUILD)/mu-data: tools/mu_data.c $(DATA_SRC) $(DATA_HDR)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_data.c $(DATA_SRC) -o $@
 
-# Lang.mpr tables read from the client (NATIVE-LANG-001): no other dependency.
-$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h
+# Lang.mpr tables read from the client; managed exports use the manifest guard.
+$(BUILD)/mu-lang: tools/mu_lang_tool.c core/mu_lang.c core/mu_lang.h core/mu_lang_maps.h $(BUILD)/data-manifest.o
 	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) tools/mu_lang_tool.c core/mu_lang.c -o $@
+	$(CC) $(CFLAGS) -c tools/mu_lang_tool.c -o $(BUILD)/mu_lang_tool.o
+	$(CC) $(CFLAGS) -c core/mu_lang.c -o $(BUILD)/mu_lang.o
+	$(CXX) $(BUILD)/mu_lang_tool.o $(BUILD)/mu_lang.o $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) -o $@
 
 # ---- windowed viewer ----
 SDL_CONFIG ?= sdl2-config
@@ -364,14 +366,16 @@ $(BUILD)/libmuaudio.a: $(AUDIO_OBJ)
 $(AUDIO_SO): $(AUDIO_OBJ)
 	$(CC) -shared $^ $(AUDIO_LIBS) -lm -o $@
 
-$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) tools/mu_audio.c $(BUILD)/libmuaudio.a $(AUDIO_LIBS) -lm -o $@
+$(BUILD)/mu-audio: tools/mu_audio.c $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o
+	$(CC) $(CFLAGS) -c tools/mu_audio.c -o $(BUILD)/mu_audio_tool.o
+	$(CXX) $(BUILD)/mu_audio_tool.o $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # Live playback through SDL2 audio (optional, like the viewer).
 audio-live: $(BUILD)/mu-audio-live
 
-$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a
-	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) tools/mu_audio_live.c $(BUILD)/libmuaudio.a \
+$(BUILD)/mu-audio-live: tools/mu_audio_live.c $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o
+	$(CC) $(CFLAGS) $$($(SDL_CONFIG) --cflags) -c tools/mu_audio_live.c -o $(BUILD)/mu_audio_live.o
+	$(CXX) $(BUILD)/mu_audio_live.o $(BUILD)/libmuaudio.a $(BUILD)/data-manifest.o $(CRYPTOPP_LIBS) \
 	  $$($(SDL_CONFIG) --libs) $(AUDIO_LIBS) -lm -o $@
 
 # Walk-around window (SDL2 + OpenGL 2.1), NATIVE-WORLD-001.  WORLD-RT-001: the runtime and world_tool.c come
@@ -511,6 +515,31 @@ clean:
 
 .PHONY: all viewer frame-window world charsel client audio audio-live clean preview-app
 
+# SESSION-QUEST-001: offline tools now use the dev session/fixture library.
+CFLAGS += -I build/gen -I session
+$(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
+$(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
+QUEST_LIB_SRC := fixture/characters_spec.c $(RECON)/players/remote_players.c $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
+$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP) $(LAYOUT_STAMP)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
+
+# Offline app keeps its no-network-import contract; TCP fixture serving stays in mu-session.
+$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -DMU_FIXTURE_NO_TCP -c $< -o $@
+$(BUILD)/libmusession_world.a: $(filter-out $(BUILD)/sdev/fixture/fixture.o,$(SESSION_DEV_OBJ)) $(BUILD)/sdev/fixture/world_fixture.o
+	rm -f $@
+	ar rcs $@ $^
+
+# DATA-ACQ-004: shared portable manifest validator and acquisition helper.
+all: $(BUILD)/mu-native-data
+$(BUILD)/data-manifest.o: data/manifest.cpp data/manifest.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -c $< -o $@
+$(BUILD)/mu-native-data: data/manifest.cpp data/manifest.h
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(CRYPTOPP_CFLAGS) -DMU_MANIFEST_TOOL $< $(CRYPTOPP_LIBS) -o $@
+
 .PHONY: layout
 layout: $(LAYOUT_STAMP)
 
@@ -521,13 +550,4 @@ $(BUILD)/fixture/characters_spec.o: fixture/characters_spec.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
 
-# The world tools remain offline: the in-process fixture, without its TCP server
-# or sockets transport. mu-session retains the separate TCP fixture test tool.
-SESSION_WORLD_OBJ := $(filter-out $(BUILD)/sdev/fixture/fixture.o $(BUILD)/sdev/net/transport_sockets.o,$(SESSION_DEV_OBJ)) $(BUILD)/sworld/fixture.o
-$(BUILD)/sworld/fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -DMU_FIXTURE_LOOPBACK_ONLY -c $< -o $@
-$(BUILD)/libmusession_world.a: $(SESSION_WORLD_OBJ)
-	rm -f $@
-	ar rcs $@ $^
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)

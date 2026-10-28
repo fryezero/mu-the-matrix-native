@@ -29,6 +29,7 @@ func smoke(_ args: [String]) -> Int32 {
     if !NativeData(dir: s.nativeDataDir).setupDone {
         _ = DataSetup.run(settings: s, gameRoot: root, force: false) { print("setup: \($0)") }
     }
+    if let error = DataManifest.check(s.nativeDataDir, gameRoot: root) { fail(error) }
     let plan = LaunchPlan.make(settings: s, gameRoot: root, screen: nil)
     var extra = ["--headless", "--backend", option(args, "--backend") ?? "soft", "--auto",
                  "--frames", option(args, "--frames") ?? "300", "--quiet"]
@@ -72,7 +73,7 @@ func smoke(_ args: [String]) -> Int32 {
 func checkBundle() -> Int32 {
     let required = [Paths.client, Paths.nonet, Paths.session, Paths.resources + "/session/demo-servers.txt",
                     Paths.resources + "/session/demo-characters.txt", Paths.placement, Paths.npcDemo, Paths.players,
-                    Paths.converter,
+                    Paths.converter, Paths.manifestTool,
                     Paths.resources + "/AppIcon.icns"]
     let missing = required.filter { !Paths.exists($0) }
     for m in missing { print("missing: \(m)") }
@@ -128,12 +129,15 @@ if let first = cliArgs.first {
             let wh = sz.split(separator: "x").compactMap { Double($0) }
             if wh.count == 2 { screen = (wh[0], wh[1]) }
         }
+        if let error = DataManifest.check(s.nativeDataDir, gameRoot: root) { fail(error) }
         print(LaunchPlan.make(settings: s, gameRoot: root, screen: screen).json)
         exit(0)
     case "--setup":
         let s = PreviewSettings.load()
         let r = DataSetup.run(settings: s, gameRoot: GameData.resolve(s), force: args.contains("--force")) { print($0) }
         for (k, v) in r.sorted(by: { $0.key < $1.key }) { print("\(k): \(v.status) (\(v.files) files) \(v.source) \(v.detail)") }
+        if r["manifest"]?.status == "failed" { fail(r["manifest"]!.detail) }
+        if let root = GameData.resolve(s), let error = DataManifest.check(s.nativeDataDir, gameRoot: root) { fail(error) }
         exit(0)
     case "--smoke":
         exit(smoke(args))
@@ -265,6 +269,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func launch(_ root: String) {
+        if let error = DataManifest.check(settings.nativeDataDir, gameRoot: root) {
+            let alert = NSAlert()
+            alert.messageText = "Native Data cannot be used"
+            alert.informativeText = error
+            alert.runModal()
+            showSettings()
+            return
+        }
         let size = NSScreen.main.map { ($0.visibleFrame.width, $0.visibleFrame.height) }.map { (Double($0.0), Double($0.1)) }
         let plan = LaunchPlan.make(settings: settings, gameRoot: root, screen: size)
         AppLog.write("plan \(plan.args) env \(plan.env) notes \(plan.notes)")

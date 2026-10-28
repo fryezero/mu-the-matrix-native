@@ -50,7 +50,8 @@
 typedef enum mu_apply {
     MU_APPLY_DONE = 0,           /* state written (revisions bumped by the apply function) */
     MU_APPLY_IGNORED,            /* the client's handler ignores it (or the route is unbound / ignored) */
-    MU_APPLY_WORLD_CHANGE        /* applied; the world changes: stop applying until attach_world(world) */
+    MU_APPLY_WORLD_CHANGE,       /* applied; the world changes: stop applying until attach_world(world) */
+    MU_APPLY_UNDECODED           /* domain body cannot be decoded; retained in journal */
 } mu_apply;
 
 typedef mu_apply (*mu_apply_fn)(mu_session *s, const mu_frame *f);

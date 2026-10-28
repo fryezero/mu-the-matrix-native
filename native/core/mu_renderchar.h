@@ -51,6 +51,14 @@ typedef struct mu_renderchar_stats {
 } mu_renderchar_stats;
 
 void mu_renderchar_default_env(mu_renderchar_env *env);
+/* Filename inference for viewer/hero equipment without an authoritative item
+ * record. Same standard filenames used by mu-render; -1 means unknown. */
+int32_t mu_renderchar_type_from_path(const char *path);
+struct mu_world_particles;
+/* The six reconstructed RenderLinkItem bow effects, using the item's own
+ * saved bone pose. Missing bones are skipped, never indexed speculatively. */
+long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32_t type,
+                               struct mu_world_particles *particles);
 /* Draws one transformed item model with its world-render passes. base supplies
  * textures, culling and alpha-test overrides; light is the character light
  * (character +0x1b8), alpha the object alpha. */

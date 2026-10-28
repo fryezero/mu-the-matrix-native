@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-charsel: the character-select scene natively (NATIVE-CHARSEL-001).
  *
  * One window (SDL2 + OpenGL 2.1) or a headless run (CGL/GLX offscreen, or the
@@ -357,6 +358,7 @@ int mu_charsel_tool_main(int argc, char **argv);
 
 int mu_charsel_tool_main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     app a;
     memset(&a, 0, sizeof a);
     mu_charsel_rt_default_options(&a.options);

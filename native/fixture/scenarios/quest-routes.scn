@@ -1,0 +1,25 @@
+# All 17 decodable quest routes. 70/71 are tested separately as opaque, never bypassed.
+endpoint game 127.0.0.1:55903
+use quest latency=1
+join world=0 tile=10,10 class=1 level=10 name=Routes
+at 1 client quest-data native/fixture/scenarios/quest-tables
+at 3 send game c1 08 f6 6f 00 00 07 00
+at 5 send game c1 09 f6 72 00 00 07 00 00
+at 7 send game c1 0b f6 75 00 00 07 00 01 00 01
+at 9 send game c1 0c f6 82 00 00 07 00 7b 00 00 00
+at 11 send game c1 08 f6 83 00 00 07 00
+at 13 send game c1 06 f6 81 00 00
+at 15 send game c1 09 f6 73 00 00 07 00 00
+at 17 send game c1 09 f6 74 00 00 07 00 00
+at 19 send game c1 08 f6 50 0b 00 00 01
+at 21 send game c1 07 f6 51 00 00 01
+at 23 send game c1 04 f6 56
+at 25 send game c1 04 f6 7b
+at 27 send game c1 05 c0 01 03
+at 29 send game c1 05 a1 00 03
+at 31 send game c1 30 a4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+at 33 send game c1 06 86 00 00 03
+at 35 send game c1 06 f6 1c 00 00
+expect unbound = 0
+expect undecodable = 0
+expect frames_in = 17
