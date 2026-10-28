@@ -1157,7 +1157,7 @@ mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *p
     if (config->session_path) {
         if (mu_offline_session_load(&s->session, config->session_path, config->root, error, error_size)) {
             mu_lang_free(s->lang);
-    free(s);
+            free(s);
             return NULL;
         }
     } else {
@@ -1172,7 +1172,7 @@ mu_shell *mu_shell_new(const mu_shell_config *config, const mu_shell_platform *p
         strftime(today, sizeof today, "%Y-%m-%d", &tm);
         if (mu_offline_session_use_store(&s->session, config->store_path, today, error, error_size)) {
             mu_lang_free(s->lang);
-    free(s);
+            free(s);
             return NULL;
         }
     }

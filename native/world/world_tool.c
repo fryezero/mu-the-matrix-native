@@ -506,7 +506,7 @@ static void map_script(tool *t, int32_t frame)
         else if (!strcmp(it->verb, "respawn"))   /* NATIVE-PROGRESS-001: the respawn answer without a death */
             r = world_rt_combat_respawned(a);
         else if (!strcmp(it->verb, "rows") || !strcmp(it->verb, "click") || !strcmp(it->verb, "sort")) {
-            static mu_move_row rows[MU_MAP_MOVES_MAX];
+            mu_move_row rows[MU_MAP_MOVES_MAX];
             if (!strcmp(it->verb, "sort"))
                 mu_map_move_sort(s, it->a);
             int n = mu_map_move_rows(s, rows, MU_MAP_MOVES_MAX);
@@ -807,6 +807,7 @@ static int headless(tool *t)
         printf("{%s}\n", line);
         world_gfx_quest_report(a->gfx, stdout);
         world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL;
+        world_gfx_map_close(a->gfxmap); a->gfxmap = NULL; a->gfxmap_owner = NULL;
         world_gfx_close(a->gfx);
         a->gfx = NULL;
     }
@@ -861,7 +862,7 @@ static void audio_pump(tool *t, uint32_t now)
     uint32_t frames = audio_due(t, now + lead);
     if (!frames)
         return;
-    static float buffer[2 * 48000];
+    float buffer[2 * 48000];
     uint32_t rate = mu_world_sound_rate(&a->sound);
     if (frames > rate)   /* after a stall, drop instead of queueing seconds of audio */
         frames = rate;
@@ -1003,7 +1004,8 @@ static int windowed(tool *t)
         SDL_CloseAudioDevice(t->audio_device);
     world_gfx_quest_report(a->gfx, stdout);
     world_gfx_social_close(a->gfxsocial); a->gfxsocial = NULL;
-    world_gfx_close(a->gfx);
+    world_gfx_map_close(a->gfxmap); a->gfxmap = NULL; a->gfxmap_owner = NULL;
+        world_gfx_close(a->gfx);
     a->gfx = NULL;
     mu_world_rt_gl_teardown(a);
     SDL_GL_DeleteContext(context);

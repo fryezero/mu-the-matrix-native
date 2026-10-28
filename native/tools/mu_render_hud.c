@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "../core/mu_bmd.h"
+#include "../core/mu_lang.h"
 #include "../core/mu_data.h"
 #include "../core/mu_hud.h"
 #include "../core/mu_particles.h"
@@ -319,6 +320,8 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     }
     mu_renderchar_env env;
     mu_renderchar_default_env(&env);
+    mu_lang *lang = mu_lang_load_default();
+    env.lang = lang;
     env.time = (float)o->time_ms;
     const float light[3] = {1.0f, 1.0f, 1.0f};
     mu_renderchar_draw_item(&model, &glow, &env, light, 1.0f, &draw, &backend, &stats, NULL);
@@ -335,6 +338,7 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     *triangles += r->triangles - before;
     r->textures = NULL;
     r->texture_count = 0;
+    mu_lang_free(lang);
     mu_textures_free(&textures);
     mu_model_free(&model);
     mu_bmd_free(&bmd);

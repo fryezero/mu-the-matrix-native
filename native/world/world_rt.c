@@ -737,6 +737,9 @@ void mu_world_rt_set_gfx(mu_world_rt *a, struct world_gfx *gfx, double scale)
         world_gfx_social_close(a->gfxsocial);
         a->gfxsocial = NULL;
     }
+    if (a->gfxmap && gfx != a->gfxmap_owner) {
+        world_gfx_map_close(a->gfxmap); a->gfxmap = NULL; a->gfxmap_owner = NULL;
+    }
     a->gfx = gfx;
     if (gfx) {
         world_gfx_set_perf(gfx, a->perf);

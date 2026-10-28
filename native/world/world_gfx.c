@@ -391,14 +391,14 @@ static void demo_items(world_gfx *g)
         int32_t code = ITEMS[i][0], level = ITEMS[i][1];
         uint8_t w = 1, h = 2;
         char name[96];
-        snprintf(name, sizeof g->quest_item_name, "Item %d", (int)code);
+        snprintf(name, sizeof name, "Item %d", (int)code);
         if (g->scratch && g->tables.have_items) {
             mu_hud_inventory_init(g->scratch);
             int k = mu_hud_inventory_add(g->scratch, &g->tables.items, g->root, code, level, 1, 2);
             if (k >= 0) {
                 w = g->scratch->items[k].grid.width;
                 h = g->scratch->items[k].grid.height;
-                snprintf(name, sizeof g->quest_item_name, "%s", g->scratch->items[k].name);
+                snprintf(name, sizeof name, "%s", g->scratch->items[k].name);
             }
         }
         mu_gfx_layer_add_item(g->layer, code, level, w, h, name);
@@ -1685,7 +1685,5 @@ void world_gfx_npc_storage(world_gfx *g, const mu_npc_item *items, int n)
     g->npc_storage_count = n > MU_NPC_ITEMS ? MU_NPC_ITEMS : n;
     memcpy(g->npc_storage, items, (size_t)g->npc_storage_count * sizeof *items);
 }
-
-const mu_lang *world_gfx_lang(const world_gfx *g) { return g ? g->lang : NULL; }
 
 void world_gfx_set_perf(world_gfx *g, struct mu_perf *p) { if (g) mu_gfx_layer_set_perf(g->layer, p); }

@@ -12,6 +12,7 @@
 #endif
 
 #include <sched.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +43,7 @@ int64_t mu_perf_frame_index(mu_perf *p) { return p ? p->frame : 0; }
 
 int mu_perf_open(mu_perf *p, const char *path, int sync)
 {
+    if (!p) return 1;
     mu_perf_close(p);
     if (!path || !path[0])
         return 0;
@@ -68,7 +70,7 @@ void mu_perf_close(mu_perf *p)
 {
     if (p && p->log)
         fclose(p->log);
-    if (p) memset(p, 0, sizeof *p);
+    if (p) memset(p, 0, offsetof(mu_perf, gl_timer)); /* query lifetime ends at GL teardown */
 }
 
 int mu_perf_enabled(mu_perf *p) { return p && p->log != NULL; }
