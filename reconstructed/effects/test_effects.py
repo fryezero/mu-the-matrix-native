@@ -177,7 +177,7 @@ class EffectTests(unittest.TestCase):
 
 
 GAME_ROOT = os.environ.get('MU_GAME_ROOT')
-EVIDENCE = Path(os.environ.get('MU_EVIDENCE', str(ROOT / 'evidence')))
+
 
 
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1' and GAME_ROOT,
@@ -188,9 +188,9 @@ class PrivateEffectValidation(unittest.TestCase):
             import unicorn  # noqa: F401
         except ImportError:
             self.skipTest('unicorn not installed')
-        text = os.environ.get('MU_CLIENT_TEXT', str(EVIDENCE / 'x86-text-capture-09/client-text.bin'))
-        data = os.environ.get('MU_IMAGE_DATA', str(EVIDENCE / 'image-data-run10/data-capture-10/client-image-data.bin'))
-        section3 = os.environ.get('MU_SECTION3', str(EVIDENCE / 'x86-linux-capture-04/main-01ced000.bin'))
+        text = pins.TEXT.default_str()
+        data = pins.DATA.default_str()
+        section3 = pins.EFFECTS_INIT.default_str()
         subprocess.run(['make', '-C', str(HERE)], check=True, capture_output=True)
         with tempfile.TemporaryDirectory() as folder:
             report = Path(folder) / 'effects.json'
