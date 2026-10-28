@@ -26,7 +26,8 @@ this is a control coverage limitation, not a successful sensitivity claim. Comba
 missed the hero-color control; 500/60 catches all 12. Initial items/scene runs lacked their
 shared UI library in this fresh worktree. After the local build they both pass unchanged.
 
-Local macOS gate: recorded in the PR after completion. Logs and reports are private under
+Local macOS gate passed: 1,285 tests, 156 explicit skips; native viewer and all four read-only
+reader builds passed; staged-tree audit 1,111 files, 0 rejected. Logs and reports are private under
 `~/Documents/MTM/mu-mac-tools/native/scratch/layout-001/`.
 
 Next: LAYOUT-001 on a fresh branch from the main containing this PR. Generate accessors,
