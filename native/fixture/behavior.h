@@ -52,6 +52,8 @@ void *mu_fixture_behavior_state(mu_fixture *f, const char *name);
 /* Compose independent server models without consulting client/session records. */
 void *mu_fx_behavior_state(mu_fixture_ctx *ctx, const char *name);
 int mu_fx_progress_resources(void *state, int32_t resources[4]);
+/* Emit a composed combat reward immediately, preserving exp/drop/quest order. */
+void mu_fx_items_reward(mu_fixture_ctx *ctx, int32_t code, float x, float y);
 
 /* Services for behaviours. Frames are built with the verified mu_packet builder (plain adds: the
  * server does not XorData its answers). encrypted != 0 is refused (-2) until the mirror

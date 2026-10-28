@@ -21,18 +21,6 @@ size_t mu_session_combat_events(const mu_session *s,uint64_t *cursor,mu_combat_f
 }
 uint64_t mu_session_combat_count(const mu_session *s,unsigned kind) { return kind<5?s->combat.count[kind]:0; }
 uint16_t mu_session_combat_hero_key(const mu_session *s) { return s->combat.hero_key; }
-/* Temporary 0x20 handoff for the fight fixture. Full ground ownership is SESSION-ITEMS-001. */
-mu_apply combat_drop(mu_session *s,const mu_frame *f)
-{
-    if(f->head!=0xc2 || f->length<5) return MU_APPLY_IGNORED;
-    unsigned count=f->bytes[4];
-    if(f->length<5+19*count) return MU_APPLY_IGNORED;
-    if(count>75) count=75;
-    for(unsigned i=0;i<count;++i) {
-        mu_combat_frame_event e={.kind=4};memcpy(e.drop,f->bytes+5+i*19,19);event(s,&e);
-    }
-    return count?MU_APPLY_DONE:MU_APPLY_IGNORED;
-}
 mu_apply combat_damage(mu_session *s,const mu_frame *f)
 {
     if(f->length<24 || f->head!=0xc1) return MU_APPLY_IGNORED;

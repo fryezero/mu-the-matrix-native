@@ -391,6 +391,23 @@ static void client_action(run *r, const mu_scenario_line *line)
     } else if (!strcmp(verb, "detach")) {
         mu_session_detach_world(r->session);
         row_action(line->tick, line->text, "detached");
+    } else if (!strcmp(verb, "walk")) {
+        /* Fixture driver for one client motion step, using the already verified
+         * combat move builder. This is not a reconstruction of pathfinding. */
+        int x=0,y=0;
+        if(sscanf(rest,"%d %d",&x,&y)!=2 || x<0 || x>255 || y<0 || y>255) {
+            r->failed_actions++; row_action(line->tick,line->text,"invalid walk"); return;
+        }
+        mu_intent in={0};in.kind=MU_INTENT_COMBAT_MOVE;
+        in.u.combat_move.count=1;in.u.combat_move.x[0]=(uint8_t)x;in.u.combat_move.y[0]=(uint8_t)y;
+        in.u.combat_move.target_x=(uint8_t)x;in.u.combat_move.target_y=(uint8_t)y;
+        mu_submit submitted=mu_session_submit(r->session,&in);
+        if(submitted.status!=MU_SUBMIT_SENT) {r->failed_actions++;return;}
+        r->world.tile[0]=x;r->world.tile[1]=y;
+        mu_sim sim=mu_session_sim_begin(r->session);
+        memcpy(sim.hero_record+0x180,&(int32_t){x},4);memcpy(sim.hero_record+0x184,&(int32_t){y},4);
+        mu_session_sim_end(r->session,&sim);
+        row_action(line->tick,line->text,"walked");
     } else if (!strcmp(verb, "lease")) {
         /* lease [write OFFSET VALUE]: one logic step; a write outside the motion zone is the planted bug */
         mu_sim sim = mu_session_sim_begin(r->session);
@@ -434,12 +451,21 @@ static int64_t value_of(run *r, const char *key, int *ok)
     mu_fixture_report_get(r->fixture, &fr);
     mu_place pl = mu_session_place(r->session);
     *ok = 1;
+    if(!strcmp(key,"motion.x"))return r->world.tile[0];
+    if(!strcmp(key,"motion.y"))return r->world.tile[1];
     if(!strncmp(key,"combat.",7)) {
         if(!strcmp(key,"combat.damage"))return (int64_t)mu_session_combat_count(r->session,1);
         if(!strcmp(key,"combat.die"))return (int64_t)mu_session_combat_count(r->session,2);
         if(!strcmp(key,"combat.action"))return (int64_t)mu_session_combat_count(r->session,3);
-        if(!strcmp(key,"combat.drop"))return (int64_t)mu_session_combat_count(r->session,4);
+        if(!strcmp(key,"combat.drop"))return mu_session_items(r->session).creates;
         if(!strcmp(key,"combat.rev"))return mu_session_rev(r->session,MU_DOMAIN_COMBAT);
+    }
+    if(!strncmp(key,"items.",6)) {
+        mu_items_view v=mu_session_items(r->session);
+        if(!strcmp(key,"items.creates"))return v.creates;
+        if(!strcmp(key,"items.deletes"))return v.deletes;
+        if(!strcmp(key,"items.pending"))return v.pending;
+        if(!strcmp(key,"items.live")) { int n=0; for(int i=0;i<MU_GI_ITEMS;++i)n+=v.used[i]!=0; return n; }
     }
     if(!strncmp(key,"quest.kills.",12)) {
         const mu_quest_client *c=mu_session_quest(r->session);

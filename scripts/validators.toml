@@ -1925,3 +1925,13 @@ args = ["--snapshot", "{skill_lang5}", "--cases", "600", "--mutations", "--repor
 "mutants" = {len = 7}
 "mutants.*" = "caught"
 "quest_static" = {len = 24}
+
+[validate_session_items]
+test = "native/tests/test_session_items.py::Private.test_recorded_delete_builder_and_answer_tail"
+pins = ["text", "data"]
+families = ["delete", "pickup_zen", "pickup_item", "pickup_tail"]
+cases = 160
+mutants = 4
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
