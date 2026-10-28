@@ -917,39 +917,14 @@ static int windowed(tool *t)
         double perf = mu_perf_begin();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (mu_world_rt_sdl_event(a, &e, scale))
-                continue;   /* the interface took it */
-            if (e.type == SDL_QUIT) {
-                running = 0;
-            } else if (e.type == SDL_MOUSEMOTION) {
-                mu_world_rt_message(a, MU_WM_MOUSEMOVE, 0, pack((int)(e.motion.x * scale), (int)(e.motion.y * scale)));
-            } else if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
-                int down = e.type == SDL_MOUSEBUTTONDOWN;
-                uint32_t message = e.button.button == SDL_BUTTON_LEFT ? (down ? 0x201u : 0x202u)
-                                 : e.button.button == SDL_BUTTON_RIGHT ? (down ? 0x204u : 0x205u)
-                                 : (down ? 0x207u : 0x208u);
-                mu_world_rt_message(a, message, 0, pack((int)(e.button.x * scale), (int)(e.button.y * scale)));
-            } else if (e.type == SDL_MOUSEWHEEL) {
-                int delta = e.wheel.y * 120;
-                mu_world_rt_message(a, MU_WM_MOUSEWHEEL, (uint32_t)(uint16_t)delta << 16, 0);
-            } else if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
-                int vk = mu_vk_from_hid((int)e.key.keysym.scancode);
-                int down = e.type == SDL_KEYDOWN;
-                mu_world_rt_key(a, vk, down);
-                mu_world_rt_message(a, down ? 0x100u : 0x101u, (uint32_t)vk, 0);
-                if (down && !e.key.repeat && vk == 0x1b && ++escapes >= 2)
-                    running = 0;
-                else if (down && vk != 0x1b)
-                    escapes = 0;
-                if (down && !e.key.repeat && vk == 0x4f) {   /* O: screenshot */
-                    uint8_t *pixels = malloc((size_t)dw * (size_t)dh * 4);
-                    if (pixels) {
-                        mu_gl_read(dw, dh, pixels);
-                        mu_png_write("mu-world-screenshot.png", pixels, dw, dh);
-                        free(pixels);
-                    }
-                }
-            }
+            if (e.type == SDL_KEYDOWN && mu_gfx_sdl_vk((int)e.key.keysym.scancode) != 0x1b)
+                escapes = 0;
+            if (mu_world_rt_sdl_event(a, &e, scale)) continue;
+            if (e.type == SDL_QUIT) running = 0;
+            else if (e.type == SDL_KEYDOWN && !e.key.repeat &&
+                     mu_gfx_sdl_vk((int)e.key.keysym.scancode) == 0x1b && ++escapes >= 2)
+                running = 0;   /* without GFx, two Escape presses retain standalone quit */
+
         }
         mu_perf_end(MU_PERF_EVENTS, perf);
         perf = mu_perf_begin();
@@ -1111,6 +1086,7 @@ static int usage(void)
                     "                [--items] [--no-items] [--item-script \"F:drop:CODE[:LEVEL[:X,Y[:SET]]] F:alt F:space F:hover:N F:pick:N\"]\n"
                     "                [--item-seed N] [--item-latency STEPS] [--item-despawn STEPS]\n"
                     "                [--npc] [--npc-demo FILE] [--npc-script \"F:click:ACTOR F:buy:SLOT F:close ...\"]   NPC talk (demo server)\n"
+                    "                [--input-script FILE | --script \"F:ACTION ...\"]   shared physical input\n"
                     "                [--skill-script \"F:select:SLOT F:cast:ACTOR F:open F:drag:FROM:TO F:over:SLOT F:save F:tip:SLOT\"]   skills (--gfx)\n"
                     "                [--no-env] [--env-tga-leaves] [--env-seed N] [--no-particles] [--particle-seed N]\n"
                     "                [--joint-demo SUB]   a lightning joint 0x7f7d SUB above the hero every 20 steps\n"
@@ -1247,12 +1223,16 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--script")) {
             t.input_count = mu_input_script_parse(v, t.input_script);
             if (t.input_count < 0) return usage();
+            for (int q = 0; q < t.input_count; ++q)
+                if (mu_world_rt_action(NULL, t.input_script[q].what) == -2) return usage();
         }
         else if (!strcmp(k, "--input-script")) {
             char *text = mu_input_script_read(v);
             if (!text) { fprintf(stderr, "cannot read input script %s\n", v); return 2; }
             t.input_count = mu_input_script_parse(text, t.input_script); free(text);
             if (t.input_count < 0) return usage();
+            for (int q = 0; q < t.input_count; ++q)
+                if (mu_world_rt_action(NULL, t.input_script[q].what) == -2) return usage();
         }
         else if (!strcmp(k, "--chat-script")) { if (parse_chat(&t, v)) return usage(); }
         else return usage();

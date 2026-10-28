@@ -73,8 +73,8 @@ static int right_button(mu_world_rt *a)
     return 0;
 }
 
-/* The session currently owns hero stat intents only. Gameplay actions below use
- * the existing native demo adapters until their domains publish typed intents.
+/* Existing view adapters submit their domain intents where migrated. Other gameplay
+ * actions use the native demo adapters until their domains publish typed intents.
  * Unsupported windows are explicit refusals, never fabricated session requests. */
 static const char *const menu_names[] = {
     "IngameShop", "CharacterInfoFrame", "MyQuestInfo", "CommandWindow", "MoveCommand",
@@ -135,11 +135,14 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
     mu_gfx_layer *l = a->gfx ? world_gfx_layer(a->gfx) : NULL;
 #endif
     if (m->kind == MU_INPUT_FOCUS) {
+        a->input_suspended = !m->down;
         if (!m->down) {
             for (int k = 0; k < 256; ++k) {
                 a->input_state[k] = a->input_down[k] = 0;
                 mu_walk_key(&a->walk, k, 0);
             }
+            mu_walk_message(&a->walk, 0x202u, 0, 0);
+            mu_walk_message(&a->walk, 0x205u, 0, 0);
             a->input_composing = 0;
 #ifndef MU_WORLD_NO_GL
             if (l) mu_gfx_layer_compose(l, "", -1);
@@ -147,6 +150,7 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
         }
         return 1;
     }
+    if (a->input_suspended) return 1;
     if (m->kind == MU_INPUT_TEXT || m->kind == MU_INPUT_COMPOSE) {
         a->input_composing = m->kind == MU_INPUT_COMPOSE && m->text && *m->text;
 #ifndef MU_WORLD_NO_GL

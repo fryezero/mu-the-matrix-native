@@ -30,9 +30,10 @@ class InputRouter(unittest.TestCase):
         self.assertEqual(rows[-1]['skill'],4)
 
     def test_focus_loss_releases_gameplay(self):
-        rows=self.drive('down:49','focus-lost','down:49')
+        rows=self.drive('down:49','focus-lost','down:49','focus:1','down:49')
         self.assertEqual(rows[1]['digit_held'],0)
-        self.assertEqual(rows[2]['casts'],2)
+        self.assertEqual(rows[2]['casts'],1)
+        self.assertEqual(rows[-1]['casts'],2)
 
     def test_alt_space_and_modifiers(self):
         rows=self.drive('key:18','key:32','down:17','key:49','up:17','key:49')

@@ -54,7 +54,7 @@ enum {
 
 struct mu_world_rt {
     uint8_t input_state[256], input_down[256];
-    int input_composing, input_x, input_y;
+    int input_composing, input_x, input_y, input_suspended;
     /* the world and the hero (world/main.c's options) */
     const char *root, *player;
     int32_t world, width, height, quiet;

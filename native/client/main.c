@@ -703,6 +703,14 @@ static int parse_script(front *f, const char *text)
 {
     int count = mu_input_script_parse(text, f->actions);
     if (count < 0) return 1;
+    for (int i = 0; i < count; ++i) {
+        const char *a = f->actions[i].what;
+        if ((!strncmp(a, "key:", 4) || !strncmp(a, "down:", 5) || !strncmp(a, "up:", 3) ||
+             !strncmp(a, "compose:", 8) || !strncmp(a, "move:", 5) || !strncmp(a, "ldown:", 6) ||
+             !strncmp(a, "lup:", 4) || !strncmp(a, "rdown:", 6) || !strncmp(a, "rup:", 4) ||
+             !strncmp(a, "focus:", 6) || !strncmp(a, "wheel:", 6)) && mu_world_rt_action(NULL, a) == -2)
+            return 1;
+    }
     f->action_count = count;
     return 0;
 }
