@@ -322,6 +322,7 @@ static GLuint make_texture(int seed)
 /* A height field of tiles: per tile a fan with its layer texture (two textures in runs), every fifth tile
  * an alpha layer (blend, depth mask off) and an additive neighbour face; grass as quads with a trailing
  * incomplete quad; then mesh triangles with the full state re-applied before each mesh. */
+static int barrier_ok = 1;
 static void batch_stream(sink *s, const GLuint tex[3])
 {
     glEnable(GL_DEPTH_TEST);
@@ -357,6 +358,16 @@ static void batch_stream(sink *s, const GLuint tex[3])
                 s_end(s);
             }
         }
+    if (s->b) mu_gl_batch_flush(s->b);
+    GLint bound;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+    barrier_ok &= (GLuint)bound == tex[0] && glIsEnabled(GL_BLEND) == GL_FALSE;
+    /* Offscreen primitives cross the capture chunk boundary without extra fill. */
+    for (int i = 0; i < 24000; ++i) {
+        s_begin(s, GL_TRIANGLES);
+        s_v(s, 10, 10, 0); s_v(s, 11, 10, 0); s_v(s, 10, 11, 0);
+        s_end(s);
+    }
     s_enable(s, GL_BLEND, 0);
     s_mask(s, 1);
     s_enable(s, GL_ALPHA_TEST, 1);
@@ -400,6 +411,11 @@ static int batch_mode(void)
     GLuint tex[3] = {make_texture(1), make_texture(2), make_texture(3)};
     uint8_t *img[2];
     mu_gl_batch_stats stats;
+    long uploads = 0, failures = 0;
+    int binding_restored = 1;
+    GLuint external_buffer;
+    glGenBuffers(1, &external_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, external_buffer);
     memset(&stats, 0, sizeof stats);
     for (int pass = 0; pass < 2; ++pass) {
         glViewport(0, 0, W, H);
@@ -420,6 +436,10 @@ static int batch_mode(void)
         if (s.b) {
             mu_gl_batch_session_end(s.b);
             mu_gl_batch_stats_get(s.b, &stats);
+            mu_gl_batch_upload_stats(s.b, &uploads, &failures);
+            GLint binding;
+            glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &binding);
+            binding_restored &= (GLuint)binding == external_buffer;
             mu_gl_batch_free(s.b);
         }
         glFinish();
@@ -427,14 +447,16 @@ static int batch_mode(void)
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, img[pass]);
     }
+    binding_restored &= glIsBuffer(external_buffer) == GL_TRUE;
+    glDeleteBuffers(1, &external_buffer);
     long differing = 0;
     for (size_t i = 0; i < (size_t)W * (size_t)H; ++i)
         if (memcmp(img[0] + i * 4, img[1] + i * 4, 3))
             ++differing;
     printf("{\"identical\": %s, \"differing\": %ld, \"primitives\": %ld, \"draws\": %ld, \"state_calls\": %ld, "
-           "\"state_applied\": %ld, \"vertices\": %ld}\n",
+           "\"state_applied\": %ld, \"vertices\": %ld, \"uploads\": %ld, \"upload_failures\": %ld, \"binding_restored\": %d, \"barrier_ok\": %d}\n",
            differing ? "false" : "true", differing, stats.primitives, stats.draws, stats.state_calls,
-           stats.state_applied, stats.vertices);
+           stats.state_applied, stats.vertices, uploads, failures, binding_restored, barrier_ok);
     free(img[0]);
     free(img[1]);
     return 0;

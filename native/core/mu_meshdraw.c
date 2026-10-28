@@ -230,7 +230,7 @@ void mu_gl_cache_scene_defaults(mu_gl_cache *c)
 
 /* ---- index check (authored convention) ---- */
 
-static int mesh_valid(const mu_meshdraw_mesh *m)
+int mu_meshdraw_mesh_valid(const mu_meshdraw_mesh *m)
 {
     if (m->normal_count > MU_MESHDRAW_MAX_ENTRIES)
         return 0;
@@ -254,7 +254,7 @@ static int mesh_valid(const mu_meshdraw_mesh *m)
 
 /* ---- mesh draw 0x012b8d1d ---- */
 
-int mu_meshdraw_mesh_draw(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw_args *a, long *corners)
+static int mesh_draw(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw_args *a, long *corners, int validated)
 {
     mu_meshdraw_model *M = e->model;
     uint32_t flags = a->flags;
@@ -267,7 +267,8 @@ int mu_meshdraw_mesh_draw(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw
     if (!(i < M->mesh_count) || !(i >= 0))
         return MU_MESHDRAW_RETURNED;
     const mu_meshdraw_mesh *mesh = &M->meshes[i];
-    if (mesh->texture_slot < 0 || mesh->texture_slot >= M->texture_count || !mesh_valid(mesh))
+    if (mesh->texture_slot < 0 || mesh->texture_slot >= M->texture_count ||
+        (!validated && !mu_meshdraw_mesh_valid(mesh)))
         return MU_MESHDRAW_REFUSED;
 
     /* 0x012b8d56: pre-loop colour when lighting is off */
@@ -706,7 +707,18 @@ static int count(mu_meshdraw_counts *c, int status, long corners)
     return status == MU_MESHDRAW_FAULT;
 }
 
-int mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int32_t skip, mu_meshdraw_counts *c)
+int mu_meshdraw_mesh_draw(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw_args *a, long *corners)
+{
+    return mesh_draw(e, i, a, corners, 0);
+}
+
+int mu_meshdraw_mesh_draw_validated(const mu_meshdraw_env *e, int32_t i, const mu_meshdraw_args *a, long *corners)
+{
+    return mesh_draw(e, i, a, corners, 1);
+}
+
+int mu_meshdraw_body_validated(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int32_t skip,
+                               mu_meshdraw_counts *c, uint64_t valid)
 {
     const mu_meshdraw_model *M = e->model;
     if (M->mesh_count == 0)
@@ -716,12 +728,13 @@ int mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int
         mu_meshdraw_args call = *args;
         const mu_meshdraw_mesh *mesh = &M->meshes[i];
         long corners = 0;
+        int checked = i < 64 && (valid & (UINT64_C(1) << i)) != 0;
         if (mesh->sub) {
             if (mesh->sub[1] != 0 || i == skip)
                 continue;
             if (mesh->sub[0])
                 call.select = i;
-            if (count(c, mu_meshdraw_mesh_draw(e, i, &call, &corners), corners))
+            if (count(c, mesh_draw(e, i, &call, &corners, checked), corners))
                 return MU_MESHDRAW_FAULT;
             const uint8_t pass = mesh->sub[4];
             if (pass == 1 || pass == 2) {
@@ -733,17 +746,22 @@ int mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int
                 mu_meshdraw_args outline = call;
                 outline.flags = pass == 1 ? 0x21 : 0x22;
                 outline.texture = -1;
-                if (count(c, mu_meshdraw_mesh_draw(e, i, &outline, &corners), corners))
+                if (count(c, mesh_draw(e, i, &outline, &corners, checked), corners))
                     return MU_MESHDRAW_FAULT;
                 gl_color3f(e, K_1, K_1, K_1);
             }
         } else if (i != skip) {
-            if (count(c, mu_meshdraw_mesh_draw(e, i, &call, &corners), corners))
+            if (count(c, mesh_draw(e, i, &call, &corners, checked), corners))
                 return MU_MESHDRAW_FAULT;
         }
     }
     gl(e, MU_GL_OP_POP_MATRIX, 0, 0, 0, 0);   /* 0x012b7e65 */
     return 0;
+}
+
+int mu_meshdraw_body(const mu_meshdraw_env *e, const mu_meshdraw_args *args, int32_t skip, mu_meshdraw_counts *c)
+{
+    return mu_meshdraw_body_validated(e, args, skip, c, 0);
 }
 
 /* ---- effective state for non-GL backends ---- */

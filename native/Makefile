@@ -55,7 +55,7 @@ JPEG_LIBS :=
 endif
 
 RECON := ../reconstructed
-CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
+CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_perf_mesh.c core/mu_meshdraw_case.c core/mu_image.c core/mu_png.c \
             core/mu_camera.c core/mu_raster.c core/mu_scene.c core/mu_textures.c core/mu_options.c core/mu_character.c \
             core/mu_terrain.c core/mu_world_haze.c core/mu_frame.c core/mu_actor.c core/mu_gif.c \
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
@@ -115,7 +115,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
-           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/particles/icarus_clouds.inc $(RECON)/particles/worlds_l.inc \
+           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc $(RECON)/particles/icarus_clouds.inc $(RECON)/particles/worlds_l.inc $(RECON)/particles/worlds_m.inc \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/world_flames.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \
@@ -207,7 +207,7 @@ WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts
                 world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
                 world/parts/characters.c world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
                 world/parts/haze.c world/parts/map.c world/parts/gfx.c world/parts/skills.c world/parts/marker.c
-WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
+WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def viewer/gl_batch.h
 WORLD_RT_SRC += world/input_keys.c
 WORLD_RT_HDR += world/input_keys.h world/input_sdl.h world/time_series.h
 WORLD_RT_HDR += fixture/skills_demo.h
@@ -490,7 +490,7 @@ GEN_INPUTS := ../scripts/gen_domains.py $(wildcard session/domains/*) $(wildcard
 SESSION_SRC := session/session.c session/dispatch.c session/cues.c session/lease.c session/journal.c \
                $(wildcard session/domains/*.c)
 FIXTURE_SRC := fixture/fixture.c fixture/skills_model.c $(wildcard fixture/behaviors/*.c)
-SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h core/mu_world_players.h fixture/characters_demo.h
+SESSION_HDR := $(NET_HDR) $(wildcard session/*.h session/domains/*.h fixture/*.h) $(RECON)/progress/progress.h core/mu_world_players.h core/mu_model.h core/mu_character.h fixture/characters_demo.h
 SESSION_CFLAGS := -I $(GEN) -I session -Werror=initializer-overrides
 LAYOUT_STAMP := $(GEN)/.layout-stamp
 LAYOUT_INPUTS := ../scripts/gen_layout.py $(wildcard session/layout/*.def)
@@ -630,6 +630,11 @@ $(BUILD)/globals-owner-host: tests/globals_owner_host.c $(WORLD_RT_HDR) $(WORLD_
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_SESSION_SEED -DMU_WORLD_NO_GL -c $< -o $(BUILD)/globals_owner_host.o
 	$(CXX) $(BUILD)/globals_owner_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
+# NATIVE-PERF-004: compare serial/parallel character buffer side effects.
+$(BUILD)/perf-players-host: tests/perf_players_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/perf-players-host.o
+	$(CXX) $(BUILD)/perf-players-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) -lm -o $@
+
 $(BUILD)/particle-consumers-host: tests/particle_consumers_host.c $(LIB) $(HEADERS) $(BUILD)/libmusession_world.a $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/particle_consumers_host.o
 	$(CXX) $(BUILD)/particle_consumers_host.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
@@ -641,6 +646,10 @@ $(BUILD)/worlds-j-host: tests/worlds_j_host.c $(LIB) $(HEADERS)
 $(BUILD)/worlds-l-host: tests/worlds_l_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-l-host.o
 	$(CXX) $(BUILD)/worlds-l-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+$(BUILD)/worlds-m-host: tests/worlds_m_host.c $(LIB) $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-m-host.o
+	$(CXX) $(BUILD)/worlds-m-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
 $(BUILD)/worlds-n-host: tests/worlds_n_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/worlds-n-host.o

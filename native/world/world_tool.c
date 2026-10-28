@@ -776,10 +776,13 @@ static int headless(tool *t)
                 memcpy(pixels, raster.color, bytes);
             }
             mu_sha256_hex(pixels, bytes, hash);
-            if (save) snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
-            if (save && mu_png_write(path, pixels, a->width, a->height)) {
-                fprintf(stderr, "cannot write %s\n", path);
-                return 1;
+            /* Hash/readback and temporal sampling remain active without PNG output. */
+            if (save && !getenv("MU_PERF_HASH_ONLY")) {
+                snprintf(path, sizeof path, "%s/frame-%04d.png", t->out_dir, frame);
+                if (mu_png_write(path, pixels, a->width, a->height)) {
+                    fprintf(stderr, "cannot write %s\n", path);
+                    return 1;
+                }
             }
         }
         if (sample) time_series_sample(a, frame, pixels, hash);

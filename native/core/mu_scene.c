@@ -2,6 +2,7 @@
 #include "mu_scene.h"
 
 #include "mu_edge.h"
+#include "mu_perf_mesh.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -243,7 +244,7 @@ static void edge_tables(void *context, int32_t mesh, int32_t light_count, const 
     (void)texcoord_count;
     (void)normal_texcoords;
     edge_views *e = context;
-    if (e->views[mesh].triangles)
+    if (e->views && e->views[mesh].triangles)
         mu_edge_zero_tables(&e->views[mesh], e->colours, e->table);
 }
 
@@ -259,13 +260,17 @@ static void edge_free(edge_views *e, int32_t count)
 
 /* Returns 0, or 1 when out of memory. A view that cannot be built leaves the
  * mesh as it is (the port refuses it). */
-static int edge_apply(mu_scene_inputs *in, edge_views *e)
+static int edge_apply(mu_scene_inputs *in, edge_views *e, uint64_t regular)
 {
     const int32_t count = in->model.mesh_count;
+    /* A fully proved model needs no edge storage, even for glow passes. */
+    if (count > 0 && count <= 64 && regular == (UINT64_MAX >> (64 - count)))
+        return 0;
     e->views = calloc((size_t)(count > 0 ? count : 1), sizeof *e->views);
     if (!e->views)
         return 1;
     for (int32_t i = 0; i < count; ++i) {
+        if (i < 64 && (regular & (UINT64_C(1) << i))) continue;
         mu_meshdraw_mesh view;
         int status = mu_edge_mesh_view(&in->meshes[i], &view, &e->views[i]);
         if (status == 1)
@@ -309,7 +314,13 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
         return 1;
     }
     edge_views edge = {NULL, colours, table};
-    if (edge_apply(&in, &edge)) {
+    uint64_t regular = 0;
+    const char *reference004 = getenv("MU_PERF_004_BASELINE");
+    if (!(reference004 && reference004[0] == '1'))
+        for (int32_t i = 0; i < in.model.mesh_count && i < 64; ++i)
+            if (mu_perf_mesh_regular(model->draw_topology, i, &in.meshes[i]))
+                regular |= UINT64_C(1) << i;
+    if (edge_apply(&in, &edge, regular)) {
         if (old_alloc) { free(colours); free(table); }
         if (!local) mu_scene_inputs_free(&in);
         return 1;
@@ -323,15 +334,18 @@ int mu_scene_draw_model(const mu_model *model, const mu_draw_options *o, const m
     mu_meshdraw_counts counts = {0, 0, 0, 0, 0};
     if (o->mesh_plus_one > 0) {
         long corners = 0;
-        int r = o->mesh_plus_one - 1 < in.model.mesh_count
-                    ? mu_meshdraw_mesh_draw(&env, o->mesh_plus_one - 1, &in.args, &corners) : MU_MESHDRAW_RETURNED;
+        int32_t mesh = o->mesh_plus_one - 1;
+        int checked = mesh < 64 && (regular & (UINT64_C(1) << mesh)) != 0;
+        int r = mesh < in.model.mesh_count
+                    ? (checked ? mu_meshdraw_mesh_draw_validated(&env, mesh, &in.args, &corners)
+                               : mu_meshdraw_mesh_draw(&env, mesh, &in.args, &corners)) : MU_MESHDRAW_RETURNED;
         counts.corners += corners;
         if (r == MU_MESHDRAW_DRAWN) counts.drawn++;
         else if (r == MU_MESHDRAW_RETURNED) counts.returned++;
         else if (r == MU_MESHDRAW_REFUSED) counts.refused++;
         else counts.faulted++;
     } else {
-        mu_meshdraw_body(&env, &in.args, in.skip, &counts);
+        mu_meshdraw_body_validated(&env, &in.args, in.skip, &counts, regular);
     }
     /* A fault stops where the client would crash; close the open primitive
      * for the backend (the client issues no glEnd). */

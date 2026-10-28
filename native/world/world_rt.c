@@ -858,6 +858,13 @@ static void write_fidelity_dump(const mu_world_rt *a)
 
 void world_rt_report_summary(const mu_world_rt *a, const char *renderer)
 {
+#ifndef MU_WORLD_NO_GL
+    if (a->batch) {
+        long uploads, failures;
+        mu_gl_batch_upload_stats(a->batch, &uploads, &failures);
+        printf("{\"vbo_uploads\": %ld, \"vbo_failures\": %ld}\n", uploads, failures);
+    }
+#endif
     if (a->fidelity_dump)
         write_fidelity_dump(a);
     const mu_walk *w = &a->walk;
