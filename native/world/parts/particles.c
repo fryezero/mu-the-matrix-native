@@ -73,6 +73,7 @@ static void particles_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw
     (void)self;
     const mu_client_view *v = &a->walk.frame.view;
     if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
+        a->particles.frustum = &a->frustum;
         mu_world_particles_draw_models_raster(&a->particles, d->raster);
         mu_world_particles_draw_raster(&a->particles, d->raster, v->modelview);
     }
@@ -159,6 +160,7 @@ static void particles_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *
     const mu_client_view *v = &a->walk.frame.view;
     d->perf = mu_perf_begin();
     if (a->has_particles) {   /* effect models, RenderJoints(0), the sprite section (NATIVE-PARTICLE-001, -JOINT-001) */
+        a->particles.frustum = &a->frustum;
         mu_world_particles_draw_models(&a->particles, particle_model_gl, self);
         mu_world_particles_target target = {self, particle_gl_backend};
         mu_world_particles_draw(&a->particles, v->modelview, &target);
