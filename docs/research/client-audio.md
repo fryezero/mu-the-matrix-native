@@ -425,3 +425,30 @@ The verified delete/despawn handler has no sound call. Requests remain silent. S
 sites `0x01242b81`, `0x01242ba6`, `0x01242bbf` require the unrecorded answer route/decode and stay open.
 The existing 4,000-case session-item comparison verifies those bounded instructions but does not supply
 that route. No pickup success, inventory insertion or zen credit is inferred from a fixture delete.
+
+
+## AUDIO-002 part 5, 2026-10-28
+
+**Verified, bounded.** The scene-5 tick `0x01856e6c` plays sound 25 with null object and loop 0 at
+`0x01857064` for Enter, `0x01857163` for Esc opening the menu, and `0x018571e6` for Esc closing the
+create panel. Enter plays before `0x009a5029` can refuse entry. The native tick now consumes these
+existing reconstructed events through an explicit immediate sound callback. The shell binds it to its
+existing audio host and supplies the configured installed table. Caller adapters / sound-capable sites
+advance **73/73 to 76/76**.
+
+`validate_audio_charsel` executes the complete pinned tick over synthetic state, using the existing
+recording-service boundary and original sound-call return addresses as the independent site oracle.
+Families: **5,760 Enter, 64 Escape, 144 common-gate cases; 5,968 total, zero mismatches/stops**.
+All **11/11 compiled mutants** are caught. Initialization, selection and the panel-close byte are also
+compared. The unchanged six-family charsel comparison separately passes 6,000 cases and all 12 mutants.
+The original body/capture pins and reconstructed source remain unchanged.
+
+Six focused tests cover once-per-press delivery, refused Enter, held/blocked keys, real decoded PCM,
+mute/disabled audio, detach/rebind without replay, close cleanup and the three shell paths. Four
+standalone charsel PNG hashes equal the pre-change binary; shell audio-on/off renders agree. The shell
+GFx tests use a stand-in movie host and the real native scene renderer, not original GFx-image evidence.
+The immediate callback has no backlog. In `audio:1`, this handler's `session_tick` is the charsel logic
+step and its `cue_seq` is per visit, rather than a network-session sequence. Standalone tools need an
+explicit callback. The existing no-GFx Esc-to-server shortcut, GFx double-click and unmapped
+CButton/credits sounds are outside these three branches. Final checks and broader limits are recorded
+in [the part-5 handoff](../handoffs/AUDIO-002E.md). No original client or live service was used.

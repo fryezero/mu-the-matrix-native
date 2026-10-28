@@ -1,0 +1,8 @@
+MU_OP(0x40, MU_SUB_NONE, party_request)
+MU_OP(0x41, MU_SUB_NONE, party_result)
+MU_OP(0x42, MU_SUB_NONE, party_list)
+MU_OP(0x43, MU_SUB_NONE, party_clear)
+MU_OP(0x44, MU_SUB_NONE, party_update)
+MU_SUBMIT(MU_INTENT_PARTY_INVITE, party_invite)
+MU_SUBMIT(MU_INTENT_PARTY_ANSWER, party_answer)
+MU_SUBMIT(MU_INTENT_PARTY_LEAVE, party_leave)

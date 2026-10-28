@@ -58,6 +58,11 @@
 #include "mu_particles.h"
 #include "mu_terrain.h"
 #include "mu_walk.h"
+#include "../session/mu_cue.h"
+
+/* Immediate, borrowed callback. NULL detaches; detached sounds are discarded.
+ * tick is the scene's logic-step number, not a network-session clock. */
+typedef void (*mu_charsel_sound_fn)(void *context, const mu_cue *cue, uint32_t tick);
 
 #define MU_CHARSEL_MAX_ENTRIES 10           /* NATIVE-CHARCREATE-001: all ten CharactersClient slots of the list (was 5) */
 #define MU_CHARSEL_PATH 1024
@@ -130,6 +135,9 @@ typedef struct mu_charsel_session {
      * closed) calls seen */
     uint8_t gfx_create_open, gfx_flag_79;
     int32_t menu_requests, panel_close_requests;
+    mu_charsel_sound_fn sound;
+    void *sound_context;
+    uint64_t sound_sequence;
 } mu_charsel_session;
 
 /* Loads World94, its camera record, Player.bmd and the list's models, creates
@@ -140,6 +148,7 @@ int mu_charsel_init(mu_charsel_session *s, const char *game_root, const mu_chars
                     const float markers[MU_CHARSEL_MARKERS][3], uint32_t window_width, uint32_t window_height,
                     float near_plane);
 void mu_charsel_free(mu_charsel_session *s);
+void mu_charsel_set_sound(mu_charsel_session *s, mu_charsel_sound_fn sound, void *context);
 
 /* The GFx list's selection (SelectIndex 0x00b4bed3): SelectedHero and the
  * shown character take `slot`. */
