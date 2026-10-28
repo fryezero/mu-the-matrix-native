@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-D: six warp effect kinds and Noria portal placement; 2,400 Unicorn cases, zero mismatches, 8/8 compiled mutants. [Evidence](research/client-world-fidelity.md#6-render-worlds-d-2026-10-27), [handoff](handoffs/RENDER-WORLDS-D.md).
+
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
 
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.

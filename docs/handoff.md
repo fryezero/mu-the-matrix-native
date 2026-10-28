@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-D: [handoff](handoffs/RENDER-WORLDS-D.md). Noria missing object 1 to 0; warp create/move/render wired. Raklion active event timer and Elbeland boids remain explicit follow-ups.
+
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
 
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
