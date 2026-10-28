@@ -1,5 +1,6 @@
 """SESSION-GLOBALS-001: real lifecycle parity, including different inputs on re-entry."""
 import os
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -79,3 +80,7 @@ class SessionGlobals(unittest.TestCase):
                                 *map(str, args + demos)], cwd=ROOT, capture_output=True)
             self.assertEqual(r.returncode, 0, r.stdout.decode() + r.stderr.decode())
             self.assertIn(b'independent world', r.stdout)
+            for demo in demos:
+                rows = [json.loads(line) for line in Path(str(demo) + '.audio').read_text().splitlines()]
+                self.assertEqual({row['host'] for row in rows}, {1})
+                self.assertEqual([row['op'] for row in rows], ['open', 'close'])

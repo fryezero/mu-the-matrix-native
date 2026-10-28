@@ -6,6 +6,7 @@
 #include "../world/world_rt_internal.h"
 #include "../core/mu_lang.h"
 #include "../core/mu_perf.h"
+#include "../core/mu_audio_host.h"
 #include "../core/mu_png.h"
 #include "../fixture/skills_model.h"
 
@@ -62,6 +63,14 @@ int main(int argc, char **argv)
     assert(mu_perf_enabled(&q));
     mu_perf_frame(&q, 6); mu_perf_close(&q);
     assert(!p.finish && p.frame == 0 && !mu_perf_enabled(&p));
+    for (int i = 4; i < 6; ++i) {
+        char log[4096];
+        snprintf(log, sizeof log, "%s.audio", argv[i]);
+        assert(!setenv("MU_AUDIO_CUE_LOG", log, 1));
+        mu_audio_host_config cfg = {0}; cfg.skip_options = 1; cfg.engine.game_root = "/";
+        mu_audio_host *host = mu_audio_host_new(&cfg, error, sizeof error);
+        assert(host); mu_audio_host_free(host);
+    }
     puts("independent world, language, helper, skill demo and perf owners");
     return 0;
 }
