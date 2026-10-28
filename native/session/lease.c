@@ -143,11 +143,18 @@ void mu_session_sim_end(mu_session *s, const mu_sim *sim)
     mu_audit_zones zs;
     mu_session_zones(s, &zs);
     size_t at = 0;
+    const char *reference = getenv("MU_PERF_004_BASELINE");
+    const int fast = !(reference && reference[0] == '1');
     for (int i = 0; i < zs.count && s->audit_snapshot; ++i) {
         const mu_audit_zone *z = &zs.z[i];
         if (z->zone != MU_ZONE_REPLICATED)
             continue;
         const uint8_t *now = z->base + z->offset;
+        /* NATIVE-PERF-004: equal zones skip the byte scan; a change still reports its first byte. */
+        if (fast && memcmp(now, s->audit_snapshot + at, z->size) == 0) {
+            at += z->size;
+            continue;
+        }
         for (uint32_t k = 0; k < z->size; ++k)
             if (now[k] != s->audit_snapshot[at + k]) {
                 char msg[256];

@@ -96,5 +96,36 @@ class VertexUploads(unittest.TestCase):
                     self.assertEqual(data['uploads'] > 0, i != 1)
 
 
+class LeaseAudit(unittest.TestCase):
+    """The equal-zone fast path reports the same first changed byte as the byte scan."""
+
+    def test_fast_and_reference_audits_agree(self):
+        from test_session_support import TOOL, run_tool, write_scenario
+        if not TOOL.exists():
+            self.skipTest('mu-session not built (make -C native)')
+        head = ('endpoint game 127.0.0.1:55901\nuse progress class=0x01 level=1 latency=0\n'
+                'join world=0 tile=10,10 angle=0 class=0x01 level=1 name=Core slot=0\n')
+        cases = (('at 2 progress join\nat 5 client lease write 0x12 9\n', 'hero.record+0x012 (class_byte)'),
+                 ('at 5 client lease write 0x188 1\n', 'hero.record+0x188'),
+                 ('at 5 client lease write 0x180 7\nat 6 client lease write 0x187 1\n', None))
+        with tempfile.TemporaryDirectory() as tmp:
+            for body, field in cases:
+                scn = write_scenario(Path(tmp) / 'case.scn', head + body)
+                lines = []
+                for reference in ('1', '0'):
+                    r, _ = run_tool('fixture', scn, '--ticks', 8,
+                                    env=dict(os.environ, MU_PERF_004_BASELINE=reference))
+                    if field is None:
+                        self.assertEqual(r.returncode, 0, r.stderr)
+                        lines.append('')
+                        continue
+                    self.assertLess(r.returncode, 0)
+                    audit = [line for line in r.stderr.splitlines() if line.startswith('lease audit:')]
+                    self.assertEqual(len(audit), 1, r.stderr)
+                    self.assertIn(field, audit[0])
+                    lines.append(audit[0])
+                self.assertEqual(lines[0], lines[1])
+
+
 if __name__ == '__main__':
     unittest.main()
