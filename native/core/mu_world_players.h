@@ -1,51 +1,14 @@
 #ifndef MU_WORLD_PLAYERS_H
 #define MU_WORLD_PLAYERS_H
 
-/* Other players in the walk-around world (NATIVE-PLAYERS-001, docs/research/client-remote-players.md).
- *
- * In the real game the server sends the player viewport (opcode 0x12: key, tile,
- * class, equipment bytes, name, PK level, target tile, pets, buffs), the moves
- * of each player (opcode 0x3d), their deaths (0x17), their personal stores
- * (0x3f) and the viewport destroy (0x14).  The native session has no server,
- * so a DEMO PLAYERS FILE stands in for those packets:
- *
- *     # comment
- *     player NAME class=0xCC at=X,Y [dir=D] [pk=N] [level=N] [guild=N] [party]
- *            [helm=G:I[:L[:E[:A]]]] [armor=..] [pants=..] [gloves=..] [boots=..] [weapon0=..] [weapon1=..] [wing=..]
- *            [ride=CODE] [ride_state=N] [pet=angel|imp|N] [route=X,Y;X,Y;...] [idle=STEPS] [die=STEP] [respawn=STEPS] [store=STEP] [title=TEXT]
- *
- * (G:I is the item group and index: helm=7:10 is Helm 11, the +L level,
- * E excellent, A ancient flags; class is the class byte as the character
- * select reports it (0x01 Dark Knight ...); underscores in TEXT are spaces).
- * The demo server encodes each player into the viewport's byte layout; from
- * there everything is the client's own code, reconstructed elsewhere:
- *
- *   - the record decode, CreateCharacter and the character create defaults,
- *     the class byte 0x0139ca62, ChangeCharacterExt 0x0137b68c with the wing
- *     switch and the item level code, the ride state (reconstructed/players,
- *     verified in Unicorn where executed; the record layout is a static
- *     reading);
- *   - the part models: the class parts of the Player loader for code 0x1ff
- *     (mu_character_part_path), Item.bmd's folder/file for item types (the
- *     model getter 0x00eaa8cf, NATIVE-DATA-002), armour textures from
- *     Data/Player (viewer choice, as NATIVE-ITEMS-001);
- *   - the move packet 0x0126568e and MoveCharacters' remote step 0x013b852a
- *     (verified) over the client path finder (PathFinding2, NATIVE-PATH-001),
- *     MovePath, CharacterMoveSpeed and MoveCharacterPosition (NATIVE-WORLD-001),
- *     SetPlayerWalk's run counter and walk action (NATIVE-PATH-002; the armed
- *     poses are the static table of NATIVE-ACTOR-001), SetPlayerStop;
- *   - every logic step the SetAction / animation step of the Player model with
- *     the loader's play speeds (NATIVE-ACTOR-001);
- *   - the dead counter, SetPlayerDie's Player branch and the dead fade
- *     (NATIVE-COMBAT-001/002), then the removal;
- *   - the name plates: addInfo at the viewport, PK colours, the guild line,
- *     party HP bars, removeInfo at destroy / death, setStore (NATIVE-NAMES-001).
- *
- * DEMO (not client behaviour, labelled): the players, their routes and
- * pauses, the viewport range around the hero (the server's range), the move
- * packet timing (a leg starts when the player stands), the deaths, respawns,
- * stores, the guild names and party membership, the HP values, the weapon
- * kind of a weapon type without its Item.bmd attributes. */
+/* Player presentation caches for session/domains/characters records.
+ * SESSION-VIEWPORT-001: --players is a loopback fixture. Its specification parser,
+ * equipment/viewport encodings and scheduler live in native/fixture. Core owns
+ * model loading, movement services, animation, fade, plates and draw inputs.
+ * q->c is a presentation copy refreshed from the session; motion is written back
+ * during leases. Helpers use the same record feed, including render-time poses.
+ * The retained spec is synthetic choreography/label metadata, never a packet feed.
+ * See docs/research/client-session-viewport.md for evidence and limits. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -103,6 +66,8 @@ typedef struct mu_world_player {
     int32_t respawn_in;
     uint8_t store_open;
     uint32_t moves, arrivals, creates, destroys, deaths, position_steps;
+    uint32_t session_generation, session_equipment_revision;
+    int32_t session_slot;
     uint8_t equipment[MU_RP_EQUIP_BYTES];   /* the last viewport record's equipment bytes */
     /* NATIVE-HELPERS-001: ChangeCharacterExt's engine calls of the last viewport record (the angel effect, DeleteBug,
      * the mount manager's reset / set) and their count; the mount manager's predicates for the player (riding
@@ -117,7 +82,12 @@ struct mu_world_names;
 struct mu_combat;
 struct mu_social_session;
 
+struct mu_session;
 typedef struct mu_world_players {
+    struct mu_session *session; /* dev runtime session, owned by the characters part */
+    void (*record_action)(void *context, int32_t slot, uint16_t action, uint16_t prior);
+    void *record_context;
+    mu_rp_character *leased_records; /* set only while a simulation lease is open */
     struct mu_social_session *social; /* NATIVE-SOCIAL-001 authoritative offline membership */
     mu_world_player list[MU_WORLD_PLAYERS_MAX];
     int32_t count;
@@ -154,9 +124,12 @@ void mu_world_players_free(mu_world_players *p);
 /* The overhead plates (addInfo / removeInfo / setStore go through it) and the hero's death state. */
 void mu_world_players_attach(mu_world_players *p, struct mu_world_names *names, const struct mu_combat *combat);
 
-/* One 40 ms logic step: the demo server's packets, then for every created player MoveCharacters' remote step,
- * the dead counter / fade and the animation step. */
-void mu_world_players_step(mu_world_players *p);
+/* One leased character step, called only by the characters part's table walk. */
+struct mu_world_port;
+struct mu_characters_view;
+void mu_world_players_port(mu_world_players *p, struct mu_world_port *port);
+void mu_world_players_sync(mu_world_players *p, const struct mu_characters_view *view);
+void mu_world_players_step_one(mu_world_players *p, int32_t index, mu_rp_character *record);
 /* Every rendered frame: places and poses the created players' models. */
 void mu_world_players_frame(mu_world_players *p);
 /* NATIVE-HELPERS-001: SetAction with the Player model's play speed (the rider actions). */

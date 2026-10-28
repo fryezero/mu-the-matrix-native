@@ -463,7 +463,7 @@ void mu_rp_viewport_apply(const mu_rp_viewport *v, mu_rp_character *c, const mu_
         c->position[1] = ((float)c->tile[1] + 0.5f) * 100.0f;
         c->field_3330 = 0.0f;
     } else {
-        int32_t mode = world_mode4(env->world) ? 4 : 2;
+        int32_t mode = 2;   /* 0x0122dc47: viewport starts with 2 in every world */
         if (!find_path(c, env, calls, mode) && !find_path(c, env, calls, 4))
             teleport(c);
     }
