@@ -45,6 +45,11 @@ full native suite passes 753 tests with 157 explicit skips; installed-data
 particle tests pass all five tests without skips. The private bitmap inventory
 expectation now includes the expanded 59-slot registry.
 
+The after-K parent comparison at `5d35f5d` also preserves all 14 OBJECT/light
+hashes and all 26 PNG hashes across the 13 unaffected views. Only Karutan PNGs
+change, as in the initial comparison. Both baseline and integrated binaries
+were built inside this worktree; no source outside it was changed.
+
 ## Integration and cleanup
 
 Join the merge queue only after focused checks and review. Hold the common lock
