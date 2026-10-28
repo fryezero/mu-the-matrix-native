@@ -202,3 +202,5 @@ SESSION-VIEWPORT-001 is implemented: [record ownership, comparisons and limits](
 VIEWPORT-MONSTER-001 is implemented: [record feed, instruction comparisons and limits](handoffs/VIEWPORT-MONSTER-001.md).
 
 SESSION-MAP-001a bounded overlay slice is implemented: [checks and remaining travel work](handoffs/SESSION-MAP-001a.md).
+
+RENDER-WORLDS-L recorded consumer subset is implemented: [checks and remaining work](handoffs/RENDER-WORLDS-L.md).

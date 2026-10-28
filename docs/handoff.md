@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-L: seven Karutan/Raklion/Market particle lifecycles and four exact bitmap registrations. 21,000 checks, zero mismatches, 13/13 compiled mutants and five original loader calls; saved-tour OBJECT/light and 13 other views unchanged. [Evidence](research/client-worlds-l.md), [checks and limits](handoffs/RENDER-WORLDS-L.md).
+
 SESSION-SOCIAL-001a: party list/invitations and supplied bars now use a session domain and plaintext fixture feed; winParty retained. Locked Mac gate passes 1,600 tests. Invite/answer sends remain unsent pending NET-DECODE. [Checks and remaining social work](handoffs/SESSION-SOCIAL-001a.md).
 
 AUDIO-002 part 5: three character-select Enter/Esc sound-25 sites reach the native host. Caller adapters 73 to 76; 5,968 original-tick cases, zero mismatches, 11/11 compiled mutants; locked clean Mac gate passes 1,596 tests. [Checks and limits](handoffs/AUDIO-002E.md).

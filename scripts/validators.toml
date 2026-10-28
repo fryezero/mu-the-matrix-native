@@ -2043,6 +2043,20 @@ args = ["--cases", "3000", "--mutations", "--report", "{report}"]
 "mutants" = {len = 8}
 "mutants.*" = "caught"
 
+[validate_worlds_l]
+test = "native/tests/test_native_worlds_l.py::WorldsL.test_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 1260
+mutants = 13
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--cases", "60", "--mutations", "--output", "{report}"]
+[validate_worlds_l.expect]
+all_equal = true
+all_mutants_caught = true
+
 [validate_session_party]
 test = "native/tests/test_session_party.py::Private.test_original_party_adapters"
 pins = ["text", "data"]
