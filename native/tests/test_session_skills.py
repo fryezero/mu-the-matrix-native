@@ -42,6 +42,17 @@ class Skills(unittest.TestCase):
         self.assertEqual(p.returncode,0,p.stderr)
         row=json.loads(p.stdout)
         self.assertEqual((row['same'],row['count'],row['key'],row['points'],row['unbound']),(1,7,330,23,0))
+    def test_master_success_comes_from_a_fixture_frame(self):
+        import shutil
+        from test_native_skill import write_master
+        tables=self.directory/'master-data';shutil.copytree(TABLES,tables);write_master(tables)
+        path=self.directory/'master.scn'
+        path.write_text('endpoint game 127.0.0.1:55905\nuse skills\n'+
+                        f'at 1 skills data {tables}\nat 1 skills root {tables}\nat 1 skills file {tables}/demo.txt\nat 2 skills login 129 30\n')
+        p=subprocess.run([str(self.host),str(path),str(tables),'master'],capture_output=True,text=True)
+        self.assertEqual(p.returncode,0,p.stderr)
+        row=json.loads(p.stdout)
+        self.assertEqual((row['master'],row['master_points'],row['key']),(1,99,330))
     def test_lease_catches_a_learned_skill_write(self):
         p=subprocess.run([str(self.host),str(self.scenario()),str(TABLES),'poison'],capture_output=True,text=True)
         self.assertNotEqual(p.returncode,0)

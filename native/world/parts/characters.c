@@ -128,6 +128,11 @@ static void characters_close(mu_world_rt *a, void *self)
     memset(p, 0, sizeof *p);
 }
 
+struct mu_fixture *world_rt_characters_fixture(mu_world_rt *a)
+{
+    characters_part *p=a->part[MU_PART_characters];return p?p->fixture:NULL;
+}
+
 mu_session *world_rt_characters_session(mu_world_rt *a)
 {
     characters_part *p = a->part[MU_PART_characters];

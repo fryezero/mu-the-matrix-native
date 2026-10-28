@@ -385,9 +385,10 @@ static void skill_script(tool *t, int32_t frame)
         int32_t skill = 0;
         const char *last = "";
 #ifndef MU_WORLD_NO_GL
-        if (!a->gfx)
-            continue;
-        if (!strcmp(verb, "select")) {          /* the bar's own key: 1..9, 0 -> onSelectSkill */
+        if (!strcmp(verb,"learn") || !strcmp(verb,"forget")) {
+            result=mu_world_rt_skill_demo_change(a,x,!strcmp(verb,"forget"));
+        } else if (!a->gfx) continue;
+        else if (!strcmp(verb, "select")) {          /* the bar's own key: 1..9, 0 -> onSelectSkill */
             int vk = x == 9 ? '0' : '1' + x;
             mu_world_rt_key(a, vk, 1);
             mu_world_rt_key(a, vk, 0);

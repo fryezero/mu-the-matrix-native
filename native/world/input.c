@@ -47,7 +47,7 @@ int world_rt_skill_cast_at(mu_world_rt *a, int32_t actor, int32_t *skill)
     if (r == MU_SKILL_CAST_OK) {
         a->skill_casts++;
         if (a->combat && actor >= 0)
-            mu_combat_cast(a->combat, *skill, actor);
+            mu_combat_cast_checked(a->combat, *skill, actor);
     } else {
         a->skill_refused++;
     }

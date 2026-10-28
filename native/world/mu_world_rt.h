@@ -150,6 +150,7 @@ void mu_world_rt_mix(mu_world_rt *rt, float *out, uint32_t frames);
 
 struct mu_session;
 struct mu_session *mu_world_rt_skill_session(mu_world_rt *rt);
+int mu_world_rt_skill_demo_change(mu_world_rt *rt, int32_t skill, int forget);
 
 /* State for reports and the shell. */
 const mu_walk *mu_world_rt_walk(const mu_world_rt *rt);

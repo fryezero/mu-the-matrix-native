@@ -109,6 +109,7 @@ void wg_skill_close(wg_skill *s)
 {
     if (!s)
         return;
+    mu_skill_book_set_use_state(s->book,NULL);
     for (int i = 0; i < SHEETS; i++)
         if (s->sheets[i].ok)
             glDeleteTextures(1, &s->sheets[i].tex);
@@ -379,16 +380,6 @@ int wg_skill_cast(wg_skill *s, int32_t *skill)
     int r=mu_skill_book_check_cast(s->book,k,&potion);
     if(r==MU_SKILL_CAST_OK)++s->casts;else ++s->refused;
     return r;
-}
-
-int wg_skill_server(wg_skill *s, const char *verb, int32_t skill)
-{
-    if (!s || !verb)
-        return 0;
-    int forget = !strcmp(verb, "forget");
-    if (!forget && strcmp(verb, "learn"))
-        return 0;
-    (void)skill; return 0; /* Use fixture learn/forget scenario commands. */
 }
 
 void wg_skill_set_screen(wg_skill *s, int32_t width)

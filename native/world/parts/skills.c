@@ -3,6 +3,7 @@
 #include "../world_rt_internal.h"
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
+#include "../../fixture/skills_demo.h"
 #include "../../core/mu_lang.h"
 #include <stdlib.h>
 #include <string.h>
@@ -13,11 +14,16 @@ struct mu_session *mu_world_rt_skill_session(mu_world_rt *a)
     skills_part *p = a->part[MU_PART_skills];
     return p ? p->session : NULL;
 }
+int mu_world_rt_skill_demo_change(mu_world_rt *a,int32_t skill,int forget)
+{
+    skills_part *p=a->part[MU_PART_skills];
+    return p && p->fixture ? mu_skills_demo_change(mu_fixture_behavior_state(p->fixture,"skills"),skill,forget) : 0;
+}
 static int open_skills(mu_world_rt *a, void *self)
 {
     skills_part *p = self;
     p->session = world_rt_characters_session(a);
-    if (p->session) return 0;
+    if (p->session) {p->fixture=world_rt_characters_fixture(a);return 0;}
     char path[] = "/tmp/mu-skills-XXXXXX", error[512];
     int fd = mkstemp(path); if (fd < 0) return 1;
     FILE *f = fdopen(fd, "w"); if (!f) {close(fd);unlink(path);return 1;}

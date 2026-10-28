@@ -74,13 +74,10 @@ static void invoke(void *user, const char *name, const char *args)
 
 static void sync_hero(wg_tree *t)
 {
-    const mu_gfx_hero *hero = mu_gfx_layer_hero(t->layer);
-    mu_master_env *env = mu_skill_book_master_env(t->book);
-    if (hero) {
-        env->level_sum = hero->level + hero->master_level;
-        env->exp = (uint64_t)hero->exp;
-        env->next_exp = (uint64_t)hero->exp_max;
-    }
+    mu_hero_stats hero;mu_session_hero(wg_skill_session(t->skill),&hero);
+    mu_master_env *env=mu_skill_book_master_env(t->book);
+    env->points=hero.master_points;env->level_sum=hero.level+hero.master_level;
+    env->exp=(uint64_t)hero.master_exp;env->next_exp=(uint64_t)hero.master_next_exp;
 }
 
 static void message(void *user, int owner, const char *s)

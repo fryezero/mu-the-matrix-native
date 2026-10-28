@@ -1,6 +1,7 @@
 /* SESSION-SKILL-001. Independent synthetic server model. Only emitted plaintext frames reach client state. */
 #include "../behavior.h"
 #include "../skills_model.h"
+#include "../skills_demo.h"
 #include "../../core/mu_lang.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,6 +72,11 @@ static int command(void *self, mu_fixture_ctx *ctx, const char *line, char *err,
         mu_skill_book_demo_learn_emit(s->book, skill, 1, emit, s); return 0;
     }
     snprintf(err, cap, "skills: unsupported command: %s", line); return -1;
+}
+int mu_skills_demo_change(void *self,int32_t skill,int forget)
+{
+    skills_fixture *s=self;
+    return s && s->ready ? mu_skill_book_demo_learn_emit(s->book,skill,forget,emit,s) : 0;
 }
 static int request(void *self, mu_fixture_ctx *ctx, const mu_fixture_request *rq)
 {

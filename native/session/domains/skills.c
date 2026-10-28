@@ -52,7 +52,13 @@ int mu_session_skills_bind(mu_session *s, const struct mu_lang *lang, const char
 }
 void mu_session_skills_context(mu_session *s, const mu_skill_stats *st)
 {
-    if (s && s->skills.book && st) mu_skill_book_set_stats(s->skills.book, st);
+    if (s && s->skills.book && st) {
+        mu_skill_book_set_stats(s->skills.book, st);
+        mu_hero_stats hero;mu_session_hero(s,&hero);
+        mu_master_env *e=mu_skill_book_master_env(s->skills.book);
+        e->points=hero.master_points;e->level_sum=hero.level+hero.master_level;
+        e->exp=(uint64_t)hero.master_exp;e->next_exp=(uint64_t)hero.master_next_exp;
+    }
 }
 static uint32_t read32(const uint8_t *p) {return (uint32_t)p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24;}
 static int complete_frame(const mu_session *s,const mu_frame *f)
@@ -72,9 +78,16 @@ mu_apply skills_apply(mu_session *s, const mu_frame *f)
 {
     if (f->opcode == 0x7e && s->route.sub == 7) return MU_APPLY_UNDECODED;
     if (!s->skills.book || !complete_frame(s,f)) return MU_APPLY_IGNORED;
+    mu_master_env *env=mu_skill_book_master_env(s->skills.book);
+    mu_hero_stats hero;mu_session_hero(s,&hero);env->points=hero.master_points;
     int r = f->opcode == 0xa0 ? mu_skill_book_receive(s->skills.book, f->bytes, f->length)
                              : mu_skill_tree4_receive(s->skills.tree4, f->bytes, f->length);
     if (!r) return MU_APPLY_IGNORED;
+    if(f->opcode==0xa0 && s->route.sub==0x14) {
+        /* 0x01285995 -> 0x00a00192: the answer writes CharacterAttribute +0x34. */
+        uint16_t points=(uint16_t)env->points;
+        memcpy(s->hero.attr+0x34,&points,2);mu_session_touch(s,MU_DOMAIN_HERO);
+    }
     s->skills.received = 1;
     mu_session_touch(s, MU_DOMAIN_SKILLS);
     return MU_APPLY_DONE;

@@ -1413,9 +1413,25 @@ int world_gfx_skill_action(world_gfx *g, const char *verb, int a, int b)
 {
     if (g && wg_tree_action(g->tree, verb, a))
         return 1;
-    if (g && (!strcmp(verb, "learn") || !strcmp(verb, "forget")))
-        return wg_skill_server(g->skill, verb, a);          /* NATIVE-SKILL-002: the demo server's packets */
     return g ? mu_gfx_layer_skill_action(g->layer, verb, a, b) : 0;
+}
+
+/* The current fixture world owns its session until SESSION-ACCOUNT attaches one for the login.
+ * Drop view callbacks before unload, then bind the replacement book after the next world loads. */
+void world_gfx_rebind_skills(world_gfx *g, struct mu_session *session)
+{
+    if(!g)return;
+    mu_gfx_layer_set_skill_host(g->layer,NULL);
+    wg_tree_close(g->tree);g->tree=NULL;
+    wg_skill_close(g->skill);g->skill=NULL;
+    if(!session || getenv("MU_GFX_NO_SKILLS"))return;
+    g->skill=wg_skill_open(g->root,mu_lang_shared(),getenv("MU_LANG_DIR"),0,session);
+    wg_skill_attach(g->skill,g->layer);
+    int32_t w,h;mu_gfx_layer_stage_size(g->layer,&w,&h);(void)h;
+    wg_skill_set_screen(g->skill,w);
+    wg_skill_set_world(g->skill,g->world);
+    g->tree=wg_tree_open(g->skill,g->layer,mu_lang_shared());
+    for(int movie=MU_GFX_MASTER_TREE;movie<=MU_GFX_TREE5;++movie)wg_tree_call(g->tree,movie,"UIInit","[]");
 }
 
 void world_gfx_close(world_gfx *g)
