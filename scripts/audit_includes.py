@@ -54,7 +54,7 @@ def rules():
         (lambda p: p == 'native/session/mu_session_tools.h',
          ('native/session', 'native/tools', 'native/tests', 'native/fixture'), 'the session tools header'),
         (lambda p: p == 'native/session/mu_session_seed.h',
-         ('native/session', 'native/tools', 'native/tests', 'native/world', 'native/client'), 'the seed header'),
+         ('native/session', 'native/tools', 'native/tests', 'native/world', 'native/client', 'native/fixture'), 'the seed header'),
         (lambda p: p in ('native/fixture/behavior.h', 'gen:fixture_behaviors.def'),
          ('native/fixture',), 'a fixture-internal file'),
         (lambda p: p == 'native/fixture/mu_fixture.h',

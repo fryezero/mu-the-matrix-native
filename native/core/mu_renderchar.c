@@ -1,13 +1,65 @@
 /* World-path item rendering. See mu_renderchar.h. */
 #include "mu_renderchar.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include "../../reconstructed/renderchar/link_bones.h"
 #include "mu_lang.h"
+#include "mu_particles.h"
 #include "../../reconstructed/record-math/record_math.h"
+
+int32_t mu_renderchar_type_from_path(const char *path)
+{
+    static const struct { const char *prefix; int group; } names[] = {
+        {"sword", 0}, {"axe", 1}, {"mace", 2}, {"spear", 3}, {"bow", 4}, {"staff", 5}, {"shield", 6},
+        {"helmmale", 7}, {"armormale", 8}, {"pantmale", 9}, {"glovemale", 10}, {"bootmale", 11}, {"wing", 12},
+    };
+    const char *base = strrchr(path, '/');
+    base = base ? base + 1 : path;
+    for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i) {
+        size_t n = strlen(names[i].prefix);
+        if (strncasecmp(base, names[i].prefix, n) || !isdigit((unsigned char)base[n]))
+            continue;
+        long number = strtol(base + n, NULL, 10);
+        if (number < 1 || number > 512)
+            return -1;
+        return 0xae6 + names[i].group * 512 + (int32_t)number - 1;
+    }
+    return -1;
+}
+
+long mu_renderchar_link_effects(const mu_model *model, const float *bones, int32_t type, mu_world_particles *p)
+{
+    if (!p || !model || !model->bmd || !bones)
+        return 0;
+    mu_rc_link_sprite sprites[10];
+    int32_t count = 0;
+    if (mu_rc_link_sprites(type, 0, sprites, 10, &count) != MU_RC_OK)
+        return 0;
+    mu_rc_link_sprites(type, mu_world_particles_rand(p), sprites, 10, &count);
+    long created = 0;
+    static const float zero[3] = {0};
+    for (int32_t i = 0; i < count; ++i) {
+        const mu_rc_link_sprite *s = &sprites[i];
+        if (s->bone < 0 || s->bone >= model->bmd->bone_count || s->bone >= MU_MODEL_MAX_BONES)
+            continue;
+        float position[3];
+        /* 0x0150e746 -> TransformPosition(…, translate=1). Native keep-root
+         * poses keep scale/origin outside the saved bone matrices. */
+        mu_pt_transform_position(bones + 12 * s->bone, zero, position, 1,
+                                  model->params.body_scale, model->params.origin);
+        uint64_t before = p->sprites->created;
+        mu_world_particles_sprite(p, s->bitmap, position, s->scale, s->light,
+                                   MU_PT_NO_OWNER, s->rotation, s->blend, s->axes);
+        if (p->sprites->created != before)
+            created++;
+    }
+    return created;
+}
 
 void mu_renderchar_default_env(mu_renderchar_env *env)
 {

@@ -28,6 +28,7 @@
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_scene.h"
+#include "../core/mu_renderchar.h"
 #include "../core/mu_textures.h"
 #include "../core/mu_ui_assets.h"
 #include "../core/mu_ui_font.h"
@@ -303,7 +304,23 @@ static int draw_model(const hud_options *o, const mu_data_table *items, mu_raste
     draw.textures = &textures;
     mu_draw_stats stats = {0, 0, 0, 0};
     long before = r->triangles;
-    mu_scene_draw_model(&model, &draw, &backend, &stats);
+    mu_renderchar_glow glow = {0};
+    glow.type = d->out.model;
+    glow.level = d->out.level_word >> 3;
+    glow.option1 = d->out.excellent;
+    glow.ext = d->out.set_bits;
+    mu_item record;
+    if (d->out.model >= 0xae6 && mu_item_find(items, (uint32_t)(d->out.model - 0xae6), &record) == 0) {
+        glow.has_record = 1;
+        glow.kind_a = record.attributes.kind_a;
+        glow.kind_b = record.attributes.kind_b;
+        glow.item_kind = record.attributes.type;
+    }
+    mu_renderchar_env env;
+    mu_renderchar_default_env(&env);
+    env.time = (float)o->time_ms;
+    const float light[3] = {1.0f, 1.0f, 1.0f};
+    mu_renderchar_draw_item(&model, &glow, &env, light, 1.0f, &draw, &backend, &stats, NULL);
     *triangles += r->triangles - before;
     r->textures = NULL;
     r->texture_count = 0;

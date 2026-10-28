@@ -85,6 +85,8 @@ static void player_item_draw(mu_world_rt *a, int32_t i, int item, const mu_rende
     mu_draw_stats ds = {0, 0, 0, 0};
     mu_renderchar_stats rs = {0, 0};
     mu_renderchar_draw_item(&it->model, &glow, &env, q->model.params.light, alpha, &options, backend, &ds, &rs);
+    if (item >= MU_CHARACTER_PART_SLOTS && a->has_particles)
+        mu_renderchar_link_effects(&it->model, it->bones, glow.type, &a->particles);
 }
 
 static void players_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
