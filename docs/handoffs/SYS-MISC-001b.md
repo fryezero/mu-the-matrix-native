@@ -1,4 +1,28 @@
-# SYS-MISC-001b WIP handoff
+# SYS-MISC-001b handoff
+
+## Final state (resume, 2026-10-28 evening, Claude Opus 5.5)
+
+Merged. Resumed at `75a70d9` on the same branch. Added `--scroll-check` to
+the isolated viewer and recorded the text-layout, scrolling and hook review in
+`docs/research/client-help-window.md`. No shared hook needed changing: rows
+are short ASCII (keys at most 13 bytes, descriptions at most 25); every movie
+field is single-line with no wrap, the same as the original movie; one chat
+description field and the installed chat-tab label clip at the field edge.
+Hotkey lists reach their last scroll position (12 for mode 0, 8 for mode 1);
+the mouse wheel already reaches the movie through the shared router.
+
+Merged latest main (conflicts only in status/handoff/roadmap lines and
+validators.toml; both sides kept). Checks on the merged tree:
+`tests/test_help*.py` with private inputs 13/13; `test_help_layer.py` 2/2;
+registered validators validate_help and validate_help_controller 2 pass
+(887 synthetic cases, 18 mutants); registry suites 38 tests OK (21 optional
+skips); full locked `scripts/local-macos-ci.sh`: 38 suites, 1,630 tests,
+0 failures, 208 optional private skips, audit 1,585 files 0 rejected, fixture
+replay 11/11 scenarios. Not done: an original-client image comparison of the
+clipping, the original platform mode-getter preference, and an F1/menu route,
+which the recovered input code does not establish.
+
+## Earlier WIP handoff (14:45 deadline)
 
 2026-10-28. Owner hard stop is 14:45 CDT; leave a pushed handoff by 14:40.
 Keep this worktree for resumption. No merge lock acquired, queue entry added

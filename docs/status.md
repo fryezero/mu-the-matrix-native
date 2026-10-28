@@ -1,6 +1,6 @@
 # Current status
 
-SYS-MISC-001b WIP: HelpWindow reader/controller instruction checks and native Ctrl+H hosting; no locked full gate or merge yet. [Exact state and resume steps](handoffs/SYS-MISC-001b.md).
+SYS-MISC-001b: HelpWindow helpdata reader/controller (888 original-instruction cases, zero mismatches, 18/18 mutants) and native Ctrl+H hosting of the real movie. Text clips only in fixed single-line movie fields (as the original lays them out); hotkey lists scroll to their last row. Locked Mac gate passes 1,630 tests. [Checks and limits](handoffs/SYS-MISC-001b.md).
 
 VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Locked Mac gate passes 1,608 tests and 11 fixtures. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
 

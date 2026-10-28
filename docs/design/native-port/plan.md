@@ -94,7 +94,7 @@ content (cash-shop catalogues, event schedules) is observable only live (OP).
 | SYS-ITEMSYS-001 | Pentagram, Elemental, Socket, Harmony, MixStone, MUMix, GremoryCase, ExtensionBag, EventInventory | SESSION-ITEMS-002 |
 | SYS-SKILL5-001 | The five SkillTree5th windows, 0x32 managers, cards as items (captures exist) | SESSION-SKILL-001 |
 | SYS-MISC-001 | Macro/AutomaticMacro, CommandWindow/QuickCommand, DivideWindow, MonsterInfo, BossHpUI, DamageCount, DeathPenaltyExpRecovery, HelpWindow, SeasonPass, Artifact and Pet windows, Muun pets | relevant domains |
-| SYS-MISC-001b | WIP HelpWindow subset: validated offline reader/controller and native Ctrl+H hosting; final locked gate/merge pending ([handoff](../../handoffs/SYS-MISC-001b.md)) | installed helpdata.bmd and converted movie; no server feed |
+| SYS-MISC-001b | Done: HelpWindow subset, validated offline reader/controller and native Ctrl+H hosting; text layout/scroll reviewed, locked gate passed ([handoff](../../handoffs/SYS-MISC-001b.md)) | installed helpdata.bmd and converted movie; no server feed |
 | SYS-CHAT-001 | The client's chat command parser and chat routing (replacing the native demo controls) | SESSION-SOCIAL-001 |
 
 ## G. Rendering of the remaining worlds
