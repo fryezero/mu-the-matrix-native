@@ -16,6 +16,7 @@
 #include "mu_scene.h"
 #include "mu_particles.h"
 #include "../../reconstructed/path/client_path.h"
+#include "../../reconstructed/objects/object_render.h"
 
 #define HERO_KEY 0x1234          /* any key: the hero's own key 0x06fca288 */
 #define MONSTER_KEY_BASE 0x100   /* demo keys of the placed actors */
@@ -155,6 +156,11 @@ static void load_models(mu_combat *c, const char *root)
         {0x41d, "Data/Skill/Circle02.bmd"}, {0x457, "Data/Skill/Inferno01.bmd"}, {0x421, "Data/Skill/Laser01.bmd"},
         {0x419, "Data/Skill/Stone01.bmd"}, {0x41a, "Data/Skill/Stone02.bmd"}, {MU_SFX_TWISTING_SWIRL, NULL},
         {0x412, "Data/Skill/Ice01.bmd"}, {0x41b, "Data/Skill/Ice02.bmd"}, {0x41f, "Data/Skill/Magic02.bmd"},
+        /* RENDER-EFFECTS-004: Rageful Blow, loader 0x0183451b..0x018345cf */
+        {0x462, "Data/Skill/EarthQuake01.bmd"}, {0x463, "Data/Skill/EarthQuake02.bmd"},
+        {0x464, "Data/Skill/EarthQuake03.bmd"}, {0x465, "Data/Skill/EarthQuake04.bmd"},
+        {0x466, "Data/Skill/EarthQuake05.bmd"}, {0x468, "Data/Skill/EarthQuake07.bmd"},
+        {0x469, "Data/Skill/EarthQuake08.bmd"}, {0x46a, "Data/Skill/flashing.bmd"}, {0x46b, "Data/Skill/tail.bmd"},
     };
     for (int i = 0; i < MU_COMBAT_MODELS; ++i) {
         mu_combat_model *m = &c->models[i];
@@ -328,6 +334,7 @@ static void refresh_objects(mu_combat *c)
     h->visible = 1;
     h->weapon = (int16_t)(c->weapon_item[0] < 0 ? -1 : c->weapon_item[0] - 0xae6);   /* TS: o + 0x56 */
     memcpy(h->position, c->walk->hero.position, sizeof h->position);
+    memcpy(h->angle, c->walk->hero.angle, sizeof h->angle);   /* RENDER-EFFECTS-004: Rageful Blow aims along it */
 }
 
 static mu_sfx_effect *effect_slot(mu_combat *c)
@@ -440,6 +447,14 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
         mu_sfx_info info;
         memset(&info, 0, sizeof info);
         int32_t owner = call->owner == -2 ? -1 : call->owner;
+        if (e && e->type == MU_SFX_RAGEFUL_BLOW) {
+            /* RENDER-EFFECTS-004: the pieces' info key (scale = key / 100). EarthQuake01..03 are owned by
+             * the flying weapon itself; they read only its type (not 0x804) for their red light, so the
+             * weapon's own owner stands in for it here. */
+            info.key = (uint16_t)call->range;
+            if (call->owner == -2)
+                owner = e->owner;
+        }
         create_effect(c, call->type, call->subtype, call->position, call->angle, call->light, owner, &info);
         return 0;
     }
@@ -471,6 +486,10 @@ static int env_call(void *context, const mu_sfx_call *call, mu_sfx_effect *e)
     case MU_SFX_CALL_SOUND:
         play(c, mu_combat_effect_sound(call->type), -3);
         return 0;
+    case MU_SFX_CALL_WALL: {   /* RENDER-EFFECTS-004: TerrainWall[(y << 8) + x]; out-of-grid reads as open */
+        const int32_t index = (call->range << 8) + call->subtype;
+        return c->map && index >= 0 && index < 0x10000 ? c->map->attributes[index] : 0;
+    }
     case MU_SFX_CALL_SERIAL:
         ++c->serial;
         c->env.serial = c->serial;
@@ -715,6 +734,12 @@ static void end_of_attack(mu_combat *c)
         /* Twisting Slash 0x013aba81: o + 0x56 = the weapon, then the spawner */
         info.skill = 41;
         create_effect(c, MU_SFX_TWISTING_SLASH, 0, pos, h->angle, light, MU_COMBAT_HERO_OBJECT, &info);
+        break;
+    case 42:
+        /* Rageful Blow 0x013a94a4: o + 0x56 = the weapon, o + 0x41 = its level, then the flying weapon
+         * 0x461 at the caster (the 0x95 sound is the end-of-attack sound above) */
+        info.skill = 42;
+        create_effect(c, MU_SFX_RAGEFUL_BLOW, 0, pos, h->angle, light, MU_COMBAT_HERO_OBJECT, &info);
         break;
     default:
         break;
@@ -1414,6 +1439,38 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
             angles[1] = 90.0f;
             angles[2] = e->angle[2];
             origin[2] = origin[2] + 100.0f;
+        } else if (e->type == MU_SFX_RAGEFUL_BLOW) {
+            /* RenderEffects 0x01532bd2 (verified): the caster's weapon, re-initialised as the item */
+            float terrain[3] = {1.0f, 1.0f, 1.0f};
+            if (c->map)
+                mu_obj_terrain_light(c->map->light, 6, 1, e->position[0], e->position[1], terrain);
+            mu_sfx_weapon_draw w;
+            if (!mu_sfx_rageful_weapon(e, terrain, 0, &c->env, &w) || !c->models[MU_COMBAT_MODEL_WEAPON].loaded)
+                continue;
+            mu_combat_model *m = &c->models[MU_COMBAT_MODEL_WEAPON];
+            mu_model_params p = m->model.params;
+            for (int k = 0; k < 3; ++k) {
+                p.origin[k] = w.origin[k];
+                p.angles[k] = w.angle[k];
+                p.color[k] = w.light[k];
+            }
+            p.body_scale = e->scale;
+            mu_model_apply_params(&m->model, &p);
+            mu_model_set_state(&m->model, 0, w.frame, w.prior_frame, 0);
+            if (mu_model_pose(&m->model) != MU_MODEL_OK || mu_model_transform_all(&m->model) != MU_MODEL_OK)
+                continue;
+            mu_draw_options options;
+            mu_draw_default_options(&options);
+            options.flags = 2u;
+            options.alpha = w.alpha;
+            options.select = e->blend_mesh;
+            options.color_scale = e->blend_light;
+            options.u_offset = e->blend_u;
+            options.v_offset = e->blend_v;
+            options.textures = &m->textures;
+            draw(context, &m->model, &m->textures, MU_COMBAT_MODEL_WEAPON, &options);
+            ++drawn;
+            continue;
         } else if (e->type >= 0x7a4 || slot < 0) {
             continue;   /* bitmap effects draw nothing themselves; missing models */
         }

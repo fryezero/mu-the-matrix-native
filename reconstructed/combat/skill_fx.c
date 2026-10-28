@@ -618,18 +618,12 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
             e->blend_mesh = 0;
         }
         break;
-    case MU_SFX_MODEL_QUAKE2:                     /* 0x013cea7b */
-        if (subtype == 0 || subtype == 1) {
-            e->lifetime = 20;
-            e->scale = (float)(int16_t)info->key / 100.0f;
-            e->blend_mesh = 0;
-            if (subtype == 1)
-                e->field_80 = 0x80;
-        } else if (subtype == 2) {
-            e->lifetime = 50;
-            e->scale = (float)(int16_t)info->key / 100.0f;
-            e->blend_mesh = 0;
-        }
+    case MU_SFX_MODEL_QUAKE2:                     /* 0x013cea7b, subtype 2: 0x013cead7 */
+        e->lifetime = subtype == 2 ? 50 : 20;
+        e->scale = (float)(int16_t)info->key / 100.0f;
+        e->blend_mesh = 0;
+        if (subtype == 1)
+            e->field_80 = 0x80;
         break;
     case MU_SFX_MODEL_QUAKE3:                     /* 0x013ceb08 */
         e->lifetime = 35;
