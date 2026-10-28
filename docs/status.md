@@ -18,6 +18,8 @@ SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the ses
 
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. Locked Mac gate passes 1,563 tests; final G/H/I/J passes 24,000 instruction cases and 95/95 mutants. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
+RENDER-ITEMS-002 part 11: 967/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 87 bodies (41 weapon, 22 armour, 24 pet/item) through per-type wave/sine scalar programs parsed from pinned instructions; 26,154 new instruction cases, zero mismatches, 11/11 compiled mutants. 707 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002K.md).
+
 RENDER-ITEMS-002 part 10: 880/1,674 bounded bodies, 17/17 skins, seventeen link targets/twenty-two types. Adds 104 armour, one weapon and the six requested seed bodies; 33,622 new instruction cases, zero mismatches, 12/12 compiled mutants. Locked Mac gate passes 1,615 tests. 794 bodies and rank-5 owner effects remain. [Checks and limits](handoffs/RENDER-ITEMS-002J.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
