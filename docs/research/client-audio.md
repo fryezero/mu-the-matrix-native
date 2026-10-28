@@ -362,3 +362,41 @@ fallback when the table is absent. Remote transformed hit/attack contexts emit
 Special monster bodies and transformed death effects retain their earlier limits.
 This is not full-client sound parity. Music 43/44, the virtualised gap and
 LIVE-PLAY's original FMOD/native log comparison remain open. No live client was used.
+
+
+## AUDIO-002 part 4, 2026-10-28
+
+**Verified, bounded.** The existing monster/NPC viewport snapshot retains all buff keys. The world audio
+hook now reads that session-owned snapshot for model `0xa01`, rather than passing unknown. The original
+key lookup `0x01295ade`, the voice fragment `0x013b543c..0x013b549c` and AddBuff's world restriction
+`0x0128723b` run in the new comparison. Buff key `0x1b` suppresses sound 160 at `0x013b5494`;
+action 0 and frames 5 through 10 are required when it is absent. The table-existence answer, unrelated
+visual effects and insertion are hosts; the MSVC map is synthetic and its lookup executes as original
+instructions. This uses the latest complete viewport snapshot. Dynamic add/remove/expiry handlers
+are not migrated and are not inferred from a packet list. Unknown snapshots still emit missing input.
+No per-tick allocation or replicated-state write is added.
+
+**Verified.** SESSION-SKILL-001's Master environment now binds its previously discarded event callback.
+`OnClickBtnSkillSlot 0x00bb22e1` plays sound 25 at `0x00bb23d1` after finding a slot and before checking
+points/prerequisites. The callback emits a typed sound with explicit original routine/site and null-object
+key `-2`. Invalid slots, unsupported events and learn requests do not acquire sound cues. The session
+reader supplies cue sequence and tick to the unchanged native log.
+
+`validate_audio_domains.py` executes 1,944 NPC cases, including real buff-map lookup, world restrictions,
+empty/present/absent/duplicate keys, action and finite/nonfinite frame edges. It also runs 600 complete
+Master click/confirmation cases through the unchanged original/reconstructed caller comparison, recording
+SND_Play return addresses independently. Total: **2,544 cases, zero mismatches, 7/7 compiled mutants**.
+The unchanged viewport family separately verifies the existing buff-record parser.
+
+**Static scope audit.** The same validator follows intraprocedural branches in 24 migrated quest
+receive/callback roots. None contains a direct SND_Play call. Reconstructed quests still have no sound
+call to route; ReceiveTalk's two earlier sites remain in part 2. This does not assert silence of every
+transitive helper or GFx movie. Existing quest instruction families are rerun unchanged.
+
+The caller subtotal advances from **66 adapters / 65 sound-capable sites to 67 / 67**. This adds one
+distinct original site and supplies the input for the existing NPC site; the earlier hero receive sound
+and per-frame/event manager paths are outside this subtotal. SESSION-COMBAT-001 still has no remote
+magic-result output, and SESSION-GLOBALS-001 adds ownership rather than new replicated inputs.
+Event inputs, remote magic results, other domains, music 43/44, the virtualised gap, original RNG phase
+and LIVE-PLAY's original FMOD/native comparison remain open. No live client or launcher was used.
+Final checks and cleanup are recorded in [the part-4 handoff](../handoffs/AUDIO-002D.md).

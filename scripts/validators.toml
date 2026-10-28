@@ -1907,3 +1907,21 @@ args = ["--cases", "1000", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_audio_domains]
+test = "native/tests/test_audio_domains.py::DomainAudio.test_original_domain_audio"
+pins = ["text", "data", "skill_lang5"]
+families = ["npc", "master"]
+cases = 2544
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/audio", "reconstructed/skill", "native"]
+args = ["--snapshot", "{skill_lang5}", "--cases", "600", "--mutations", "--report", "{report}"]
+[validate_audio_domains.expect]
+"cases" = 2544
+"mismatches" = 0
+"families.*.mismatches" = 0
+"mutants" = {len = 7}
+"mutants.*" = "caught"
+"quest_static" = {len = 24}
