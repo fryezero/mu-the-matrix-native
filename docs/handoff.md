@@ -1,5 +1,7 @@
 # Continue from here
 
+INPUT-001: [router handoff](handoffs/INPUT-001.md), [recovered bindings and input-script contract](research/client-input.md). Unavailable domain/window rows and original IME candidate UI remain explicit.
+
 DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisition procedure](native-data.md). Jump-table diff remains pending on paused NET-DISPATCH-001.
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.

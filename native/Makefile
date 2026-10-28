@@ -189,12 +189,12 @@ $(BUILD)/mu-effect: tools/mu_effect_tool.c $(LIB)
 # mu-world, mu-walk, mu-client, mu-shell and the test hosts link, built twice: without GL into build/world-rt
 # (mu-walk, mu-shell, hosts) and with GL and the GFx layer's headers into build/world-rt-gl (mu-world).
 # mu-client and mu-shell compile the same sources through CLIENT_SRC.
-WORLD_RT_SRC := world/world_rt.c world/input.c world/parts/terrain.c world/parts/hero.c world/parts/sound.c \
+WORLD_RT_SRC := world/world_rt.c world/input.c world/input_keys.c world/parts/terrain.c world/parts/hero.c world/parts/sound.c \
                 world/parts/npc.c world/parts/actors.c world/parts/objects.c world/parts/env.c \
                 world/parts/particles.c world/parts/combat.c world/parts/progress.c world/parts/items.c \
                 world/parts/names.c world/parts/players.c world/parts/social.c world/parts/helpers.c \
                 world/parts/map.c world/parts/gfx.c world/parts/marker.c
-WORLD_RT_HDR := world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
+WORLD_RT_HDR := world/input_keys.h world/input_sdl.h world/mu_world_rt.h world/world_rt_internal.h world/world_part.h world/parts.def
 WORLD_RT_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt/%.o,$(WORLD_RT_SRC))
 WORLD_RT_GL_OBJ := $(patsubst world/%.c,$(BUILD)/world-rt-gl/%.o,$(WORLD_RT_SRC))
 

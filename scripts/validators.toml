@@ -1480,3 +1480,16 @@ args = ["--mutations", "--output", "{report}"]
 "signed_height_009f9b67.matches" = { same_as = "signed_height_009f9b67.cases" }
 "signed_mesh_009f86d6.matches" = { same_as = "signed_mesh_009f86d6.cases" }
 "signed_draw_009f9644.matches" = { same_as = "signed_draw_009f9644.cases" }
+
+[validate_input]
+test = "native/tests/test_input_router.py::InputRouter.test_private_original_input_instructions"
+pins = ["text"]
+families = ["scan", "bindings"]
+cases = 570
+mutants = 7
+cases_at = ["families.scan.cases", "families.bindings.cases"]
+mutants_at = "mutants"
+args = ["--mutations", "--output", "{report}"]
+[validate_input.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}

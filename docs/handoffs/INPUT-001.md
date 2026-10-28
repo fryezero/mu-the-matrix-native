@@ -1,0 +1,51 @@
+# INPUT-001 handoff
+
+Owned worktree: `~/Documents/MTM/worktrees/input-001`, branch `codex/input-001`, base `fecdddd`.
+
+## Result and boundary
+
+The runtime has one input router for physical SDL events, both front ends' scripted input and the shell's
+existing message/key adapters. The shared script parser supports a file, stable ordering, explicit key and
+mouse edges, UTF-8 commit/preedit, focus and wheel. Original scan and binding-block comparisons are in
+`validate_input.py`. The recovered-name table and the cross-track script contract are in
+[client-input](../research/client-input.md).
+
+Working native adapters remain the current session/domain or offline-demo implementations. P now reaches
+the existing personal-store adapter while inventory is open, correcting the previous party alias. Original
+panels that have no migrated view/domain explicitly refuse; J dispatches the original empty handler. These
+rows are not working-panel claims. The original IME candidate movie remains unbound; macOS handles native
+candidate selection and text/preedit prevents candidate digits from triggering combat.
+
+Minimal shared shell edits remove its duplicate hotkey path and right-click shortcut so those events enter
+the router. No quest, viewport, object, sky or performance part was edited. No Wine-track repository,
+original client, launcher, live game, network protocol or protected module was touched.
+
+## Checks
+
+- Original instructions: 528 scan cases, 135,168 key decisions, 42 menu-binding cases, zero mismatches;
+  7/7 compiled mutants detected. Context-dependent panel bodies and the original IME are outside this family.
+- Router tests: 9/9 with the private comparison enabled. Synthetic downstream adapters exercise repeat
+  suppression, releases, focus loss, modifiers, preedit digits, mouse delivery and malformed schedules/actions.
+- Baseline comparison: 48/48 PNGs identical across mu-client, mu-shell, mu-world and mu-walk. Four pairs,
+  same authored root and input. No-input render behavior is intended to remain unchanged.
+- mu-client real OpenGL and real local libmugfx: numeric demo cast; selected-skill right click; a killed
+  synthetic monster's demo drop picked up with Space. The right-click journey records 1 selected-skill
+  success, 5 combat skill actions, 1 kill, 1 drop and 1 completed pick-up. No real item mutation.
+- Panel/key coverage drive and native candidate-focus drive: final results recorded below after integration.
+- Local macOS gate: pending integrated run. Reader binaries are built by that gate, never run against a client.
+
+## Artifacts
+
+Ignored source captures are symlinked from main. They and the Python link are never staged.
+Local scratch and reports: `~/Documents/MTM/mu-mac-tools/native/scratch/input-001/`.
+Proof and manifests will be retained at `~/Documents/MTM/mu-mac-tools/native/renders/input-001/` before
+removing the owned worktree. The source-only commit does not include captured bytes, decoded tables,
+movies, screenshots, renders or journals. Artifact manifests identify binary digests; changed build inputs
+require a new run manifest and another drive.
+
+## Remaining
+
+The coverage table's explicitly unavailable windows/controllers, original IME candidate movie, full
+context-guard reconstruction and live cross-track timing comparison remain open. Gameplay domains that
+have no session intent yet retain their existing offline adapters. No session intent enum or packet body
+was invented to disguise an unavailable operation.
