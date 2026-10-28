@@ -1,7 +1,7 @@
 # World input
 
 Physical SDL events and version-1 input files enter the same world router. The
-[coverage table](../../../../../docs/research/client-input.md) separates available native actions from
+[coverage table](../../../../docs/research/client-input.md) separates available native actions from
 original windows that still have no migrated view/domain.
 
 ## Sub-features
