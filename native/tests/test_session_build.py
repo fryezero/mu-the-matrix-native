@@ -43,6 +43,9 @@ def make_tree(tmp: Path) -> Path:
         (t / 'native/fixture/behaviors').mkdir(parents=True)
     (t / 'reconstructed/progress').mkdir(parents=True)
     shutil.copy(ROOT / 'reconstructed/progress/progress.h', t / 'reconstructed/progress/progress.h')
+    (t / 'reconstructed/players').mkdir(parents=True)
+    shutil.copy(ROOT / 'reconstructed/players/remote_players.h', t / 'reconstructed/players/remote_players.h')
+
     shutil.copytree(ROOT / 'reconstructed/quest', t / 'reconstructed/quest')
     return t
 
@@ -106,13 +109,8 @@ class Generated(unittest.TestCase):
 
     def test_dispatch_def_wins_over_the_seed(self):
         (self.t / 'native/net/dispatch.def').write_text(
-            'MU_FAMILY(0xA0, 3, 4, 0x0128805cu)\nMU_ROUTE(0xA0, 0x06, 0x01250b05u, MU_VERIFIED)\n'
-            'MU_ROUTE(0x16, MU_SUB_NONE, 0x01234c08u, MU_VERIFIED)\nMU_ROUTE(0x77, MU_SUB_NONE, 0x01111111u, MU_VERIFIED)\n'
-            'MU_FAMILY(0x55, 3, 4, MU_ADDR_UNVERIFIED)\nMU_ROUTE(0x55, 0x57, 0x0122a5f6u, MU_VERIFIED)\n'
-            'MU_ROUTE(0x55, 0x94, 0x0122a13du, MU_VERIFIED)\nMU_ROUTE(0xA0, 0x11, 0x01223f04u, MU_VERIFIED)\n'
-            'MU_ROUTE(0xA0, 0x22, 0x01285b68u, MU_VERIFIED)\nMU_ROUTE(0xA0, 0x30, 0x0127bd9eu, MU_VERIFIED)\n'
-            'MU_ROUTE(0xA0, 0x60, 0x01285efau, MU_VERIFIED)\n')
-        append(self.t / 'native/net/dispatch.def', (NATIVE / 'net/dispatch.seed.def').read_text().split('/* Quest findings')[1].split('*/', 1)[1].replace('MU_STATIC', 'MU_VERIFIED'))
+            (self.t / 'native/net/dispatch.seed.def').read_text().replace('MU_STATIC', 'MU_VERIFIED') +
+            '\nMU_ROUTE(0x77, MU_SUB_NONE, 0x01111111u, MU_VERIFIED)\n')
         r = gen(self.t)
         self.assertEqual(r.returncode, 0, r.stderr)
         s = self.summary()

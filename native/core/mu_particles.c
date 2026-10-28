@@ -17,7 +17,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 43
+#define MU_WORLD_PT_EFFECTS 44
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
@@ -33,7 +33,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2, MU_SFX_BITMAP_LIGHTING_A + 3,
     MU_SFX_BITMAP_LIGHTING_A + 4,
     0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd, 0x7fe0, 0x8098, MU_JT_BITMAP_LASER,
-    MU_PT_BITMAP_SMOKE5, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    MU_PT_BITMAP_SMOKE5, 0x7f8a, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
@@ -48,7 +48,7 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ",
     "Data/Effect/Steam_01.OZJ", "Data/Effect/Smoke_line.OZJ", "Data/Effect/firehik_mono01.OZJ",
     "Data/Effect/lightmarks_mzin.OZJ", "Data/Effect/flareBlue.OZJ", "Data/Effect/flareRed.OZJ",
-    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt"};
+    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt", "Data/Effect/cloudLight.OZJ"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
@@ -59,7 +59,8 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {MU_SFX_MODEL_STAR_DRAGON, 0x5d, "Data/Effect/stardr01.bmd"},
     {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"},
     /* NATIVE-HELPERS-002: Fenrir's body lightning (AccessModel 0x01834a74, every world: world -1) */
-    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"}};
+    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"},
+    {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
@@ -293,20 +294,19 @@ static mu_jt_object hero_view(const mu_world_particles *p)
     return o;
 }
 
-#define FX_HERO_OBJECT 0x7fffff00
 
 static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
 {
     static mu_jt_object scratch[4];
     static int next;
     mu_jt_object *o = &scratch[next++ & 3];
-    if (index == FX_HERO_OBJECT) {
+    if (index == MU_WORLD_FX_HERO_OBJECT) {
         if (!p->has_hero)
             return NULL;
         *o = hero_view(p);
         return o;
     }
-    if (index >= MU_WH_EFFECT_BASE && index < FX_HERO_OBJECT)
+    if (index >= MU_WH_EFFECT_BASE && index < MU_WORLD_FX_HERO_OBJECT)
         return mu_world_helpers_effect_object(p->helpers, index, o) ? o : NULL;
     if (index >= MU_WORLD_ACTOR_FX_BASE && index < MU_WH_EFFECT_BASE) {
         int32_t i = index - MU_WORLD_ACTOR_FX_BASE;
@@ -428,7 +428,7 @@ static void effect_env(mu_world_particles *p, mu_sfx_env *env)
     env->object = sfx_object;
     env->call = sfx_call;
     env->model = sfx_model;
-    env->hero_object = FX_HERO_OBJECT;
+    env->hero_object = MU_WORLD_FX_HERO_OBJECT;
     env->time_ms = sfx_time;   /* NATIVE-HELPERS-002: timeGetTime as the world time (viewer choice) */
 }
 
@@ -1425,6 +1425,11 @@ static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model
     mu_obj_set_f32(img, MU_OBJF_BLEND_V, v.blend_v);
 }
 
+static void o_joint(void *c,int32_t type,const float p[3],const float t[3],const float a[3],int32_t sub,int32_t owner,float scale)
+{
+    mu_world_particles_joint(c,type,p,t,a,sub,owner,scale,0xffff,0,0,0xffff,0,NULL);
+}
+
 void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects, struct mu_world_env *env)
 {
     if (objects) {
@@ -1432,6 +1437,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.visual = o_visual;
         objects->rt.sprite = o_sprite;
         objects->rt.effect = o_effect;
+        objects->rt.joint = o_joint;
         objects->rt.hook_context = p;
         p->objects = objects;
     }

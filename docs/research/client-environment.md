@@ -63,7 +63,7 @@ the model:
 | 3 Noria | `0x193` Butterfly01 | scale 0.3, light 1 |
 | Blood Castle 11..17, 52 | `0x1a2` Crow01 | |
 | 7, 0x80..0x82 | `0x199`/`0x19a` Fish02/03 | AtlansShoal `0x00ca27b1`, only while the hero is below y 12800; returns 1 in every world |
-| 0xa, 0x84 | `0x7c4` (Icarus dragons, `0x00ca2154`) | not ported |
+| 0xa, 0x84 | `0x7c4` (Icarus dragons, `0x00ca2154`) | world 10 ported by [RENDER-WORLDS-C](client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c); world 0x84 remains unported |
 | 0x33 | `0x1a4` | speed from the action table; not ported |
 
 The common setup puts the object at the hero ± 512 in x and y, 150..349 above the terrain, with phase

@@ -292,6 +292,10 @@ int mu_env_move_leaves(mu_env *env, const mu_env_inputs *in)
                 create_snow(env, in, l);
                 continue;
             }
+            if (w == 57 || w == 58) {
+                mu_env_raklion_snow(env, in, l);
+                continue;
+            }
             if (w == 3 || env_atlans(w)) {
                 create_drift(env, in, l);
                 continue;

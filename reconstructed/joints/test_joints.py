@@ -89,7 +89,9 @@ class JointTests(unittest.TestCase):
     def test_supported_kinds(self):
         for sub in range(0x10, 0x1b):
             self.assertEqual(self.lib.mu_jt_kind_supported(0x7f7d, sub), 1)
-        for kind in ((0x7f7d, 0), (0x7f7d, 0x1b), (0x7fd5, 5), (0x7fd6, 4), (0x7f79, 8)):
+        for kind in ((0x7f7c, 6), (0x7f7d, 0)):
+            self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 1)
+        for kind in ((0x7f7d, 1), (0x7f7d, 0x1b), (0x7fd5, 5), (0x7fd6, 4), (0x7f79, 8)):
             self.assertEqual(self.lib.mu_jt_kind_supported(*kind), 0)
 
     def test_create_bolt_target_and_light(self):

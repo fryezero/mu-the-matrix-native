@@ -9,6 +9,7 @@
 #include "../../viewer/gl_backend.h"
 #endif
 #include "../world_rt_internal.h"
+#include "../../session/mu_session.h"
 
 /* NATIVE-HELPERS-001: SetPlayerStop / SetPlayerWalk ask the rider action 0x0106c382 while the owner rides. */
 static int hero_ride(void *context, mu_walk *walk, int32_t how)
@@ -73,8 +74,17 @@ static void helpers_close(struct mu_world_rt *a, void *self)
 static void helpers_tick(struct mu_world_rt *a, void *self)
 {
     (void)self;
-    if (a->helpers)
+    if (!a->helpers) return;
+    if (a->players && a->players->session) {
+        mu_session *session = a->players->session;
+        mu_sim sim = mu_session_sim_begin(session);
+        a->players->leased_records = sim.characters;
         mu_world_helpers_step(a->helpers);
+        a->players->leased_records = NULL;
+        mu_session_sim_end(session, &sim);
+    } else {
+        mu_world_helpers_step(a->helpers);
+    }
 }
 
 static void helpers_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
