@@ -1,6 +1,7 @@
 /* RENDER-WORLDS-B: native ownership of code-created map placements. */
 #include "../../reconstructed/objects/worlds_b.h"
 #include "mu_objects.h"
+#include "../../reconstructed/objects/noria.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -10,6 +11,8 @@ int mu_objects_worlds_b_records(mu_objects *o)
     int32_t n = 0;
     if (o->world == 2)
         n = mu_devias_records(added);
+    else if (o->world == 3)
+        n = mu_noria_records(added);
     else if (o->world == 57 || o->world == 58)
         n = mu_raklion_records(o->world, added);
     if (!n)
@@ -42,6 +45,8 @@ const char *mu_objects_worlds_b_model(int32_t world, int32_t type)
         if (type == 424)
             return "Data/Npc/warp01.bmd";
     }
+    if (world == 3 && type == 424)
+        return "Data/Npc/warp01.bmd";
     if (world == 57 || world == 58) {
         if (type == 424)
             return "Data/Npc/warp01.bmd";

@@ -347,7 +347,7 @@ class Env(ctypes.Structure):
     _fields_ = [('context', ctypes.c_void_p), ('rand', RAND_FN), ('height', HEIGHT_FN), ('object', OBJECT_FN),
                 ('call', CALL_FN), ('model', MODEL_FN), ('serial', ctypes.c_uint8),
                 ('report_checks', ctypes.c_uint8), ('hero_object', ctypes.c_int32), ('bone', BONE_FN),
-                ('time_ms', TIME_FN), ('owner_bone', OWNER_BONE_FN)]   # NATIVE-HELPERS-002
+                ('time_ms', TIME_FN), ('owner_bone', OWNER_BONE_FN), ('world_time', ctypes.c_float)]   # NATIVE-HELPERS-002
 
 
 def load_library(path):
@@ -818,7 +818,7 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
                     objects[tornado_hero].position[k] = f32(pos[k] + rng.uniform(-900.0, 900.0))
         case = Case(rng, objects, rand_values(rng), vc.rfloat(rng, 0.1, 400.0))
         inputs = am.defined_region('inputs', INPUTS, struct.pack('<9f', *pos, *angle, *light) + info_bytes(info),
-                                   writable=False)
+                                   writable=0x1a8 <= kind[0] <= 0x1ad)
         record = am.Region('record', POOL, am.poison(0x3d8, 0x31), bytes(0x3d8))
         record.define(POOL, b'\0')        # slot 0 is free
         hero = am.Region('hero-data', HERO_DATA, am.poison(0x3000, 0x13), bytes(0x3000))
@@ -833,12 +833,15 @@ def family_effect_create(m, lib, rng, cases, report, negatives):
         e = Effect()
         F3 = ctypes.c_float*3
         env = case.env(serial=serial, hero_object=hero_obj)
-        supported = lib.mu_sfx_effect_create(ctypes.byref(e), kind[0], kind[1], F3(*pos), F3(*angle), F3(*light),
+        source_light = F3(*light)
+        supported = lib.mu_sfx_effect_create(ctypes.byref(e), kind[0], kind[1], F3(*pos), F3(*angle), source_light,
                                               owner, scale, ctypes.byref(info), ctypes.byref(env))
         mismatch = None
         if vc.ok(r):
             raw = r['regions']['record']
             mismatch = compare_effect(e, raw, record.defined)
+            if mismatch is None and bytes(source_light) != r['regions']['inputs'][24:36]:
+                mismatch = ('source light', list(source_light))
             if mismatch is None:
                 theirs = struct.unpack('<I', raw[0x34c:0x350])[0]
                 if theirs != object_address(owner):
@@ -947,9 +950,12 @@ def family_effect_move(m, lib, rng, cases, report, negatives):
             case.attributes = [rng.choice([0, 0, 8, 4, 0xc, 0x100, 0x108]) for _ in range(0x10000)]
             regions.append(am.defined_region('terrain-wall', TERRAIN_WALL, struct.pack('<65536H', *case.attributes),
                                              writable=False))
+        clock = f32(rng.uniform(-20000.0, 3000000.0))
+        regions.append(am.defined_region('clock', 0x06fce370, struct.pack('<f', clock), writable=False))
         before = Effect.from_buffer_copy(e)
         r = m.execute(MOVE_EFFECT, [POOL, 0], regions, case.stubs(m))
         env = case.env()
+        env.world_time = clock
         supported = lib.mu_sfx_effect_move(ctypes.byref(e), ctypes.byref(env))
         mismatch = None
         if vc.ok(r):

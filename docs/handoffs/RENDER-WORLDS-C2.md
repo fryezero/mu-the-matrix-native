@@ -19,7 +19,7 @@ and the surviving 2026-10-22 snapshots/image were used. No changes in `native/wo
   native phase zero is a host choice; the original capture's counter value is unavailable.
 - The rare sky cloud model, persistent cover, puffs and ribbons remain separate systems. No spawn, opacity,
   lifetime, colour or blend-factor tuning was used to fit the screenshot. Full findings and address boundaries
-  are in `docs/research/client-world-fidelity.md`, section 6.
+  are in `docs/research/client-world-fidelity.md`, section 7.
 
 ## Checks
 
