@@ -76,3 +76,10 @@ and the unpopulated fifth tree remain visible pre-existing acquisition/domain
 limits. No original-image equality, every-world rendering, live gameplay,
 second-user capture, signing distribution or gate-5 completion is claimed.
 Final gate, installation and cleanup results are in [the handoff](../handoffs/APP-REFRESH-001.md).
+
+The resumed locked gate passes 1,521 tests, 1,334 passed and 187 explicit skips,
+plus all eight fixture scenarios. The final 400-frame input repetition confirms
+one selected cast, zero skill refusals and one kill/drop/pickup. Manifest
+verification, repeat setup and three corrupt-build refusal paths pass again.
+The installation uses the app's setup in a new build-verified data folder;
+the legacy folder is preserved. The PR carries the post-merge install result.

@@ -1,6 +1,6 @@
 # APP-REFRESH-001
 
-Implementation checkpoint, 2026-10-28. Worktree `worktrees/app-refresh-001`, branch
+Implementation handoff, 2026-10-28. Worktree `worktrees/app-refresh-001`, branch
 `codex/app-refresh-001`, initial main `7d813a9`. Offline only; no original client,
 launcher, live read, account, network or protection work.
 
@@ -44,7 +44,7 @@ launcher, live read, account, network or protection work.
   effects are textured; no crash or unexpected console error in that run.
 - Three real-data travel operations, Lorencia to Devias to Noria to Lorencia,
   pass in mu-world, zero travel failures. Windowed click travel remains next.
-- Full gate, final smoke repetition, installation and merge are still pending.
+- Final gate and installation sequencing are recorded below.
 
 ## Additional verification
 
@@ -73,3 +73,41 @@ launcher, live read, account, network or protection work.
   including this four-path subtest, with one explicit private-instruction skip.
 - The new inline fixture helper is a world/client build dependency; a forced
   make dry run confirms all three callers and mu-client rebuild when it changes.
+
+## Final gate and installation sequence
+
+The interrupted final sequence resumed at `fe8c1b1`. The orchestrator had released
+the old lock and pushed that checkpoint. A new APP-REFRESH-001 lock was acquired;
+fetching and merging latest `origin/main` required no additional changes.
+
+- `bash scripts/local-macos-ci.sh` passes on Apple M5: 1,521 tests across 38
+  suites, 1,334 passed, 187 explicit skips, zero failures. All eight fixture
+  scenarios pass with 67 inbound frames, zero unbound/undecodable frames. Two
+  unrecovered intents and six unsent frames remain explicitly reported.
+- Viewer and read-only readers build; readers were never run against a process.
+  Publication audit accepts 1,443 files with zero rejected. Local input symlinks
+  account for the fixture report's dirty flag and are not committed.
+- The production-pin app was rebuilt with the existing real ABI-3 Ruffle.
+  Strict deep signature and bundle checks pass. No-Python manifest verification,
+  repeat setup and all three corrupt-build refusals pass again, starting no
+  child on refusal. Doctor passes with offscreen GL on Apple M5.
+- The repeated 400-frame INPUT-001 drive reaches scene 6, one selected cast,
+  zero skill refusals, one kill/drop and one completed pickup. The separate
+  windowed numeric attack/cast journey also exits successfully.
+- The final windowed selected-skill run reports skill 19 `ok`. Repeated app
+  Move-panel mouse clicks complete Lorencia -> Noria -> Devias -> Lorencia;
+  the guard exits with zero IP/connect/lookup attempts.
+
+Installation follows the authorized merge and lock release. The legacy
+`~/Library/Application Support/MuTheMatrixNative/Native Data` has no manifest;
+all 329 files match the pre-refresh checkpoint and must remain intact. Run the
+installed app's `--setup` with the freshly exported, verified components into
+`~/Library/Application Support/MuTheMatrixNative/APP-REFRESH-001/Native Data`,
+then select that destination in `settings.json`, retaining all other preferences.
+Verify the installed signature, bundle, root manifest, repeat setup, default
+launch plan and a 300-frame GL smoke with no Python on PATH. Keep audio and
+character-store writes isolated during that smoke.
+
+The PR records the merge SHA and actual installation/cleanup outcome after this
+commit. Retain only the installed app and its new Native Data as runtime inputs;
+delete this lane's scratch, temporary HOMEs, renders, build outputs and worktree.
