@@ -234,3 +234,7 @@ read its NUL-terminated filename with a 512-byte bound and retain it only in loc
 the inferred index-43 name and unresolved index 44. The virtualised gap `0x01854279..0x018542c2` remains
 out of reach. The other domains' SND_Play sites, event packet state and model-lifecycle wiring remain
 with their domain migrations; the later LIVE-PLAY FMOD comparison remains open.
+
+Final local Mac gate after the viewport and B/C world merges: 1,388 tests, 164 explicit skips, zero
+failures; viewer/readers build and repository audit pass, 1,238 files, zero rejected. The final gate is
+`native/scratch/audio-002/gate-viewport-release.log` under `mu-mac-tools`; the handoff gives the full path.

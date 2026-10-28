@@ -44,7 +44,11 @@ Two existing tests reproduced zero retained objects. Changing that prerequisite 
 objects and both tests passed unchanged. `make -n -W core/mu_objects.h` confirms header changes now
 schedule the rebuild. The parallel Icarus lane independently merged the same fix, so it is now also
 in main. No character-select runtime behavior changed.
-Final gate results are recorded below after integration with current main.
+Final `bash scripts/local-macos-ci.sh` at source head `f55fbda`, after main `54ae63f` and the B/C world
+lanes: **1,388 tests, 164 explicit skips, zero failures**. Viewer/read-only readers build; audit:
+**1,238 files, zero rejected**. All discovered fixture scenarios pass. `gate-viewport-release.log` is the
+final release record. Earlier passing gates are retained too. Existing GFx fixture initializer warnings
+are unchanged from baseline; strict production builds pass. No hosted workflows ran.
 
 The existing native audio render remains SHA-256
 `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
