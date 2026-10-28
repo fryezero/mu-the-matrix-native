@@ -30,6 +30,7 @@ import unittest
 HERE = Path(__file__).resolve().parent
 NATIVE = HERE.parent
 sys.path.insert(0, str(HERE))
+from test_native_data_manifest import CLIENT, TEST_PIN, stamp
 from test_native_shell import write_root, write_session  # noqa: E402
 
 NAME = 'Mu The Matrix Native Preview'
@@ -68,7 +69,7 @@ class PreviewApp(unittest.TestCase):
         cls.stub = cls.dir / 'libmugfx_stub.dylib'
         subprocess.run(['clang', '-std=c11', '-O1', '-shared', '-fPIC', '-o', str(cls.stub),
                         str(HERE / 'gfx_stub_mugfx.c')], check=True, capture_output=True)
-        build = subprocess.run(['make', '-C', str(NATIVE / 'app'), f'B={cls.dir / "build"}', f'MUGFX_LIB={cls.stub}'],
+        build = subprocess.run(['make', '-C', str(NATIVE / 'app'), f'B={cls.dir / "build"}', f'MUGFX_LIB={cls.stub}', f'CLIENT_SHA256={TEST_PIN}'],
                                capture_output=True, text=True)
         if build.returncode:
             raise AssertionError('app build failed:\n' + build.stdout[-3000:] + build.stderr[-3000:])
@@ -77,23 +78,28 @@ class PreviewApp(unittest.TestCase):
         cls.launcher = cls.app / 'Contents/MacOS/MuNativePreview'
         # a read-only synthetic game folder and a synthetic scratch folder
         cls.root = write_root(cls.dir / 'root')
+        (cls.root/'main.exe').write_bytes(CLIENT)
         (cls.dir / 'session').mkdir()
         cls.session = write_session(cls.dir / 'session')                  # synthetic characters (no item files)
         cls.scratch = cls.dir / 'scratch'
         (cls.scratch / 'lang').mkdir(parents=True)
         (cls.scratch / 'lang' / 'notes.txt').write_text('synthetic\n')
+        # Native Data producers never write directories/symlinks into a component.
         (cls.scratch / 'lang' / 'tools').mkdir()                      # folders are not copied
         objects = cls.scratch / 'objects/live/plain'
         objects.mkdir(parents=True)
         (objects / 'EncTerrain99.plain').write_bytes(b'\0' * 4)      # a world the flow never enters
         (objects / 'EncTerrain99.hidden').write_text('1\n')
-        (objects / 'README').write_text('not copied\n')
+        # Component inventories contain every file the exporter publishes.
         movies = cls.scratch / 'npc/movies'
         movies.mkdir(parents=True)
         for m in ('base', 'main', 'Chat'):
             (movies / f'{m}.swf').write_bytes(b'')                    # names only (the stub library)
         (cls.scratch / 'audio/tables').mkdir(parents=True)
         (cls.scratch / 'audio/tables/audio-tables.tsv').write_text('# synthetic\n')
+        cls.manifest_tool = cls.app/'Contents/MacOS/mu-native-data'
+        for component in (cls.scratch/'lang', objects, movies, cls.scratch/'audio/tables'):
+            stamp(cls.manifest_tool, component, cls.root/'main.exe')
         for p in [cls.root, *Path(cls.root).rglob('*')]:
             p.chmod(p.stat().st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
         cls.root_before = snapshot(cls.root)
@@ -211,9 +217,9 @@ int main(void) {
         env, base = self.env('setup')
         r = self.launch(env, '--setup')
         nd = base / 'support/Native Data'
-        self.assertEqual(sorted(p.name for p in (nd / 'lang').iterdir()), ['notes.txt'])
-        self.assertEqual(sorted(p.name for p in (nd / 'objects').iterdir()), ['EncTerrain99.hidden', 'EncTerrain99.plain'])
-        self.assertEqual(sorted(p.name for p in (nd / 'gfx').iterdir()), ['Chat.swf', 'base.swf', 'main.swf'])
+        self.assertEqual(sorted(p.name for p in (nd / 'lang').iterdir()), ['native-data.manifest', 'notes.txt'])
+        self.assertEqual(sorted(p.name for p in (nd / 'objects').iterdir()), ['EncTerrain99.hidden', 'EncTerrain99.plain', 'native-data.manifest'])
+        self.assertEqual(sorted(p.name for p in (nd / 'gfx').iterdir()), ['Chat.swf', 'base.swf', 'main.swf', 'native-data.manifest'])
         self.assertTrue((nd / 'sound/audio-tables.tsv').is_file())
         record = json.loads((nd / 'setup.json').read_text())
         self.assertEqual(record['gfx']['status'], 'copied')
@@ -221,7 +227,7 @@ int main(void) {
         self.assertEqual((record['lang']['files'], record['objects']['files']), (1, 2))
         self.assertIn('gfx: copied', r.stdout)
         # a second run keeps what is there; --force copies again
-        self.assertIn('lang: kept', self.launch(env, '--setup').stdout)
+        self.assertIn('manifest: kept', self.launch(env, '--setup').stdout)
         self.assertIn('lang: copied', self.launch(env, '--setup', '--force').stdout)
         self.assertEqual(snapshot(self.root), self.root_before)
         self.assertTrue((base / 'logs/launcher.log').is_file())
@@ -230,6 +236,7 @@ int main(void) {
         from test_native_gfx import build_root
         import gfxconvert as oracle
         root = write_root(self.dir / 'conversion-root')
+        (root/'main.exe').write_bytes(CLIENT)
         gfx = build_root(root)
         for stem in ('base', 'main'):
             (gfx / f'{stem}.ozg').write_bytes((gfx / 'Test.ozg').read_bytes())
@@ -252,11 +259,11 @@ int main(void) {
                                                init_vars={'_root.isClient': True})
             self.assertEqual((nd / 'gfx' / f'{stem}.swf').read_bytes(), expected)
         # Repeat and forced replacement both work, also with no Python on PATH.
-        self.assertIn('gfx: kept', self.launch(env, '--setup').stdout)
+        self.assertIn('manifest: kept', self.launch(env, '--setup').stdout)
         self.assertIn('gfx: converted', self.launch(env, '--setup', '--force').stdout)
         before = {p.name: p.read_bytes() for p in (nd / 'gfx').glob('*.swf')}
         (gfx / 'Broken.ozg').write_bytes(b'FWS')
-        self.launch(env, '--setup', '--force')
+        self.launch(env, '--setup', '--force', check=False)
         self.assertNotEqual(json.loads((nd / 'setup.json').read_text())['gfx']['status'], 'converted')
         self.assertEqual({p.name: p.read_bytes() for p in (nd / 'gfx').glob('*.swf')}, before)
 
@@ -324,18 +331,49 @@ int main(void) {
         self.assertIn('--fullscreen', a)
         self.assertEqual((a[a.index('--width') + 1], a[a.index('--height') + 1]), ('1344', '840'))
 
-    def test_plan_without_movies_falls_back_to_the_stand_ins(self):
+    def test_plan_with_missing_movies_refuses_partial_data(self):
         env, base = self.env('nomovies')
         self.launch(env, '--setup')
         shutil.rmtree(base / 'support/Native Data/gfx')
-        p = self.plan(env)
-        self.assertNotIn('--gfx', p['args'])
-        self.assertTrue(any('stand-ins' in n for n in p['notes']))
+        r = self.launch(env, '--print-plan', check=False)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('Native Data cannot be used:', r.stderr)
+
+    def test_manifest_first_run_and_refusal_under_temporary_home(self):
+        env, base = self.env('manifest-home')
+        home = base/'home'
+        home.mkdir(parents=True)
+        env.update(HOME=str(home), CFFIXED_USER_HOME=str(home), PATH='/nonexistent')
+        self.launch(env, '--setup')
+        nd = base/'support/Native Data'
+        manifest = nd/'native-data.manifest'
+        self.assertTrue(manifest.is_file())
+        text = manifest.read_text()
+        self.assertIn('client '+TEST_PIN, text)
+        self.assertIn('lang/notes.txt', text)
+        manifest.write_text(text.replace(TEST_PIN, '0'*64, 1))
+        for args in (('--print-plan',), ('--smoke',), ('--setup', '--force')):
+            r = self.launch(env, *args, check=False)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn('Native Data cannot be used:', r.stderr)
+            self.assertIn('Re-acquire Native Data', r.stderr)
+        self.assertEqual(manifest.read_text(), text.replace(TEST_PIN, '0'*64, 1))
+        self.assertFalse(list((base/'logs').glob('mu-client-*')))
+
+    def test_setup_refuses_unversioned_scratch(self):
+        scratch = self.dir/'unversioned'
+        (scratch/'lang').mkdir(parents=True)
+        (scratch/'lang/notes.txt').write_text('unversioned')
+        env, base = self.env('unversioned', MU_NATIVE_SCRATCH=str(scratch))
+        r = self.launch(env, '--setup', check=False)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('Native Data cannot be used:', r.stdout+r.stderr)
+        self.assertFalse((base/'support/Native Data/native-data.manifest').exists())
 
     # ---- launch
 
     def test_smoke_runs_the_whole_flow_offline_under_the_guard(self):
-        env, base = self.env('smoke')
+        env, base = self.env('smoke', MU_NATIVE_SCRATCH=str(self.dir/'no-smoke-scratch'))
         r = self.launch(env, '--smoke', '--backend', 'soft', '--frames', '300', '--size', '320x240', check=False)
         result = json.loads(r.stdout.strip().splitlines()[-1])
         self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-2000:])

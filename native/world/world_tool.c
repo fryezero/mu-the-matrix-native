@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-world / mu-walk: the command line over the world runtime (WORLD-RT-001; world/mu_world_rt.h).
  *
  * The first native "walk around the world" build (NATIVE-WORLD-001), made alive by NATIVE-WORLD-002
@@ -1123,6 +1124,7 @@ static int usage(void)
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     static tool t;
     memset(&t, 0, sizeof t);
     mu_world_rt_options *o = &t.o;

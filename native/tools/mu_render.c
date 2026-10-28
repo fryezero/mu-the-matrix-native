@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-render: headless front end of the native viewer core.
  *
  *   mu-render info    MODEL                 JSON summary of the checked model
@@ -836,6 +837,7 @@ int mu_charsel_tool_main(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     if (argc >= 2 && !strcmp(argv[1], "ui"))
         return mu_render_ui_main(argc, argv);
     if (argc >= 2 && !strcmp(argv[1], "charsel"))   /* NATIVE-CHARSEL-001, headless software scene */

@@ -23,6 +23,7 @@ two positions differ. The record order is sector order, not file order. Objects 
 0..299 (made by code, not by the file) are dropped unless --keep-all. The output is decoded game data: keep it
 local, never commit it.
 """
+import native_data_manifest as manifest
 import argparse
 import json
 from pathlib import Path
@@ -103,7 +104,11 @@ def main():
     parser.add_argument('--version', type=int, choices=range(6), help='record version to write (default 5)')
     parser.add_argument('--installed', type=Path,
                         help='installed EncTerrain<n>.obj: write the version its length implies for the count')
+    manifest.arguments(parser)
     args = parser.parse_args()
+    if args.out:
+        manifest.prepare(args)
+        manifest.prepare_output(args, args.out.parent)
     world, world2, count, objects = read_snapshot(args.snapshot)
     records = [fields(o, not args.start_position) for _, _, o in objects]
     kept = [r for r in records if args.keep_all or 0 <= r['type'] < 300]
@@ -122,6 +127,7 @@ def main():
         args.out.write_bytes(to_plain(folder, kept, version))
         hidden = sorted({r['type'] for r in kept if r['state_68'] == -2})
         args.out.with_suffix('.hidden').write_text(''.join(f'{t}\n' for t in hidden))
+        manifest.publish(args, args.out.parent, f'objects-export-v1-map-{folder}-version-{version}-start-{int(args.start_position)}-keep-{int(args.keep_all)}', [args.snapshot] + ([args.installed] if args.installed else []))
         print(json.dumps({'out': str(args.out), 'version': version, 'records': len(kept)}))
     return 0
 
