@@ -51,6 +51,13 @@ The network protocol is out of scope and the preview promises no connection. Thr
 
 ## Bundle
 
+For a current-main refresh, use the [app refresh recipe](native-app-refresh.md)
+and [verification feature](../../.claude/skills/verify-mu-native/features/preview-app.md).
+APP-REFRESH-001 also fixes default export discovery after the `Documents/MTM`
+move and missing offline session resources that prevented selected-skill casts.
+The existing-data rule is now [build-keyed manifest verification](../native-data.md);
+legacy `setup.json` alone is refused. Use a new folder and verified exports.
+
 `make -C native preview-app` (`native/app/Makefile`, modelled on the Wine-track app bundle in mu-the-matrix-mac): swiftc launcher, the guard,
 mu-client, the icon drawn by `native/app/icon/make-icon.swift`, the demo session and the Lorencia demo
 tables, and the C converter linked with the existing Modulus envelope reader. `bundle-dylibs.sh` copies Homebrew's Crypto++,

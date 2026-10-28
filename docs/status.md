@@ -1,5 +1,9 @@
 # Current status
 
+APP-REFRESH-001: current native Preview rebuild and offline smoke; fixes stale
+scratch discovery and zero/overwritten fixture MP/AG. Final local gate passes,
+1,521 tests. [Checks and install sequence](handoffs/APP-REFRESH-001.md).
+
 README-REFRESH-003 updates the public README through PR #207, with current session/render/audio/data coverage and explicit offline, live-comparison and 25 fps limits. Existing pinned images reused. [Handoff](handoffs/README-REFRESH-003.md).
 
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).

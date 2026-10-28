@@ -1,5 +1,7 @@
 # Continue from here
 
+APP-REFRESH-001: [app refresh, smoke and installation](handoffs/APP-REFRESH-001.md).
+
 README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](research/readme-refresh.md). Public progress refreshed through PR #207; existing images/pins unchanged, no runtime code or live game used.
 
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).

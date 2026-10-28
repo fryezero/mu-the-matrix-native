@@ -102,7 +102,16 @@ static int command(void *self,mu_fixture_ctx *ctx,const char *line,char *error,s
 static void hero_place(combat_fixture *s,mu_fixture_ctx *ctx)
 {
     uint8_t b[32]={0xc1,32,0xa0,0x30,(uint8_t)s->home_x,(uint8_t)s->home_y,(uint8_t)s->world,(uint8_t)(s->world>>8),1};
-    b[10]=(uint8_t)s->hero_max;b[11]=(uint8_t)(s->hero_max>>8);send_frame(ctx,b,sizeof b);
+    b[10]=(uint8_t)s->hero_max;b[11]=(uint8_t)(s->hero_max>>8);
+    /* A0/30 replaces all four resources, including on the initial combat join.
+     * Retain combat's HP policy and obtain MP/SD/AG from the progress server
+     * model when composed with it. Zero-filled fields erased skill mana. */
+    int32_t resources[4];
+    if (mu_fx_progress_resources(mu_fx_behavior_state(ctx, "progress"), resources))
+        for (int i=1;i<4;i++) {
+            b[10+2*i]=(uint8_t)resources[i];b[11+2*i]=(uint8_t)(resources[i]>>8);
+        }
+    send_frame(ctx,b,sizeof b);
 }
 static void respawn_actor(combat_fixture *s,mu_fixture_ctx *ctx,fighter *f)
 {
