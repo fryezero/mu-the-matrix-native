@@ -156,6 +156,7 @@ are in [design/native-port](design/native-port/README.md).
 | INPUT-001 | Implemented: world input router, shared script parser and recovered binding coverage | 570 instruction cases, 0 mismatches, 7/7 mutants; 1,425-test final gate; native cast/right-click/pick-up and baseline render proof ([handoff](handoffs/INPUT-001.md)) | Unavailable panels/controllers and original IME candidate movie listed in the coverage table; live shared-script comparison remains open |
 | CHARSEL-RT-001 | Implemented: `mu_charsel_rt` + nine explicit parts + one options struct + separate tool; charsel embed removed | Charsel families and render comparisons unchanged; charcreate 4,368 cases, 0 mismatches, 6/6 planted mistakes ([handoff](handoffs/CHARSEL-RT-001.md)) | Session-backed account/list intents remain SESSION-ACCOUNT-001 |
 | VERIFY-HARNESS-001 | Implemented: `scripts/pins.py`, `scripts/validators.toml` (92 rows) and `scripts/run_validators.py`; orphan validators under private tests | Private run 69 pass / 1 fail (charcreate case count) / 5 skip (capture-04, v14 manifest), identical on an unmodified tree ([handoff](handoffs/VERIFY-HARNESS-001.md)) | Shared Unicorn base machine not started |
+| VERIFY-HARNESS-002 | Implemented: window-map and hierarchy helpers use shared pins/loading; exact errors preserved | Eight before/after reports equal except two elapsed-time fields; 72 private owning tests pass ([handoff](handoffs/VERIFY-HARNESS-002.md)) | Eight out-of-scope loader exceptions and shared Unicorn machine consolidation remain |
 
 ## Next after a valid capture
 

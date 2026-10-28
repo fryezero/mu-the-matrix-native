@@ -16,7 +16,9 @@ The executable itself is not needed or read.
 
 Baseline `origin/main` is `5d35f5d`. Before editing either tool, run its installed-capture callers
 and retain their reports locally. Repeat the same commands after migration, using the same Python,
-Capstone and input files. Compare complete report bytes and all published metadata constants.
+Capstone and input files. Compare complete report bytes and all published metadata constants. Six reports are byte-identical;
+the widget and character-select reports differ only in their elapsed `seconds` fields. All eight
+results, eleven metadata constants and five recorded failure outcomes agree.
 The [handoff](../handoffs/VERIFY-HARNESS-002.md) records both sets of report hashes and check counts.
 
 ## Compatibility boundary

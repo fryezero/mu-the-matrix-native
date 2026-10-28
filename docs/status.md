@@ -1,5 +1,7 @@
 # Current status
 
+VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
+
 RENDER-WORLDS-K: built-in Lost Tower/Tarkan/Icarus producers and Atlans dispatch correction; 6,000 instruction cases, 21/21 source mutants plus 2/2 native host controls. Icarus image error 26.897 to 23.154. Locked Mac gate passes 1,585 tests. [Checks and limits](handoffs/RENDER-WORLDS-K.md).
 
 RENDER-EFFECTS-003: Meteorite, Aqua Beam primary chain and Inferno bursts; K particle consumers and three exact bitmap registrations. Primary routes 15/23 to 18/23, weighted 46/77 to 56/77. 24,453 instruction comparisons plus 2,547 removal checks, 17 instruction mutants plus one frame mutant and four loader-call checks. Locked Mac gate passes 1,582 tests (200 explicit skips) and ten fixture scenarios. [Evidence](research/client-render-effects-003.md), [checks and remaining work](handoffs/RENDER-EFFECTS-003.md).
