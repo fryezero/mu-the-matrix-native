@@ -141,7 +141,7 @@ static void characters_step(void *self, mu_fixture_ctx *ctx, uint32_t now)
         }
         if(dist>p->view_range+3&&!q->c.dead) {viewport_destroy(ctx,q);continue;}
         if((int32_t)p->steps==s->die_step&&!q->c.dead) {
-            uint8_t b[]={0xc1,5,0x17,(uint8_t)(q->key>>8),(uint8_t)q->key};
+            uint8_t b[]={0xc1,9,0x17,(uint8_t)(q->key>>8),(uint8_t)q->key,0,0,0,0};
             send_frame(ctx,b,sizeof b);
         }
         if((int32_t)p->steps==s->store_step&&!q->store_open&&!q->c.dead) store_packet(ctx,q);

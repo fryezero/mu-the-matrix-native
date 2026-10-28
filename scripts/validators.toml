@@ -312,6 +312,16 @@ build = ["reconstructed/combat"]
 args = ["--text", "{text}", "--data", "{data}", "--cases", "60", "--heavy-cases", "4", "--output", "{report}"]
 note = "the test also regenerates attack_speed_table.h with scripts/combat_static.py; that half is not a validator"
 
+[validate_session_combat]
+test = "native/tests/test_session_combat.py::Private.test_original_bodies_builders_and_mutants"
+pins = ["text", "data"]
+families = ["damage", "die", "action", "attack", "cast", "move"]
+cases = 240
+mutants = 6
+cases_at = "cases.*"
+mutants_at = "mutants_caught"
+args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+
 [validate_crypto]
 test = "tests/test_crypto_private.py::CryptoPrivateTests.test_module_matches_client_instructions"
 pins = ["text", "data", "feature"]

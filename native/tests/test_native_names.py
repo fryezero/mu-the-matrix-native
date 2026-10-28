@@ -94,16 +94,16 @@ class NamesTests(Build):
     def test_hp_packets_and_death(self):
         names, combat = self.out['names'], self.out['combat']
         hps = [plate(f, MONSTER)[6] for f in names if plate(f, MONSTER)]
-        self.assertEqual(hps[0], 100)
-        self.assertLess(min(hps), 100)
-        self.assertGreater(self.out['summary']['hp_updates'], 0)
+        self.assertEqual(set(hps), {0})  # fixture viewport has no HP; damage cannot invent a remote pool
+        self.assertEqual(self.out['summary']['hp_updates'], 0)
+        self.assertTrue(any(c['points'] > 0 for c in combat))
         dead = [c['monsters'][0]['dead'] for c in combat]
         gone = next(i for i, f in enumerate(names) if plate(f, MONSTER) is None)
         self.assertEqual(dead[gone], 15)                             # SetPlayerDie from the dead counter 15 on
         self.assertIsNotNone(plate(names[gone - 1], MONSTER))
         back = next(i for i, f in enumerate(names) if i > gone and plate(f, MONSTER) is not None)
         self.assertEqual(combat[back]['monsters'][0]['removed'], 0)
-        self.assertEqual(plate(names[back], MONSTER)[6], 100)
+        self.assertEqual(plate(names[back], MONSTER)[6], 0)
         self.assertEqual(self.out['summary']['removed'], 1)
 
     def test_chat_bubbles(self):

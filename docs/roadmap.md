@@ -1,5 +1,8 @@
 # Roadmap and work queue
 
+SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
+
+
 WORLD-ORDER-001 implemented: main-world call-order family and part-column adapters. [Counts and boundaries](handoffs/WORLD-ORDER-001.md).
 
 RENDER-WORLDS-F implements the Tarkan/Raklion screen haze. [Checks and image-score limitation](handoffs/RENDER-WORLDS-F.md).

@@ -123,7 +123,7 @@ class ItemsTest(unittest.TestCase):
         out = run(self.root, '--frames', '360', '--combat-script', '4:attack:spider', '--item-seed', '5',
                   placement=self.placement())
         self.assertGreaterEqual(out['combat']['kills'], 1)
-        self.assertGreaterEqual(out['summary']['kills_seen'], 1)
+        self.assertEqual(out['summary']['kills_seen'], 0)  # local kill observer was removed
         self.assertGreaterEqual(out['summary']['drops'], 1)
         again = run(self.root, '--frames', '360', '--combat-script', '4:attack:spider', '--item-seed', '5',
                     placement=self.placement())
