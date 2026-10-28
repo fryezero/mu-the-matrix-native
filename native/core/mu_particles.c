@@ -5,9 +5,11 @@
 #include <string.h>
 
 #include "mu_particles.h"
+#include "../../reconstructed/objects/world_warp.h"
 #include "mu_world_actors.h"
 #include "mu_objects.h"
 #include "mu_env.h"
+#include "../../reconstructed/objects/icarus.h"
 #include "mu_world_helpers.h"
 #include "mu_meshdraw.h"
 #include "../../reconstructed/environment/env.h"
@@ -60,6 +62,10 @@ static const struct { int32_t type, world; const char *file; } fx_model_files[MU
     {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"},
     /* NATIVE-HELPERS-002: Fenrir's body lightning (AccessModel 0x01834a74, every world: world -1) */
     {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"},
+    /* AccessModels 0x0183943f/0x018397d1/0x0183f529: shared warp models. */
+    {0x1a8, -1, "Data/Npc/warp01.bmd"}, {0x1a9, -1, "Data/Npc/warp02.bmd"},
+    {0x1aa, -1, "Data/Npc/warp03.bmd"}, {0x1ab, -1, "Data/Npc/warp01.bmd"},
+    {0x1ac, -1, "Data/Npc/warp02.bmd"}, {0x1ad, -1, "Data/Npc/warp03.bmd"},
     {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
@@ -107,6 +113,15 @@ static float h_bitmap_height(void *c, int32_t bitmap)
     return s >= 0 && p->bitmap_present[s] ? (float)p->bitmaps.images[s].height : 0.0f;
 }
 
+static int h_cloud_owner(void *c, int32_t index, int reset)
+{
+    mu_world_particles *p = c;
+    uint8_t *o = p->objects ? mu_objects_object_image(p->objects, index) : NULL;
+    if (!o) return 0;
+    if (reset) mu_obj_set_i32(o, MU_OBJF_HIDDEN_MESH, 0);
+    return o[MU_OBJF_VISIBLE] == 1;
+}
+
 static void host(mu_world_particles *p, mu_pt_host *h)
 {
     memset(h, 0, sizeof *h);
@@ -120,6 +135,7 @@ static void host(mu_world_particles *p, mu_pt_host *h)
     h->drop_divisor = 1;
     h->scene_state = p->scene_state;   /* SceneFlag (NATIVE-CHARSEL-002: WATERFALL2 in scene 5) */
     h->bitmap_height = h_bitmap_height;
+    h->cloud_owner = h_cloud_owner;
 }
 
 /* ---- assets ---- */
@@ -189,6 +205,8 @@ int mu_world_particles_open(mu_world_particles *p, const char *root, const mu_wo
     for (int i = 0; i < MU_WORLD_FX_MODELS; ++i) {
         mu_world_fx_model *m = &p->models[i];
         m->type = fx_model_files[i].type;
+        if (mu_world_warp_type(m->type) && world != 2 && world != 3 && world != 57 && world != 58)
+            continue;
         if (no_assets || (fx_model_files[i].world != world && fx_model_files[i].world != -1))
             continue;
         char path[4096], message[512], directory[2048];
@@ -306,6 +324,13 @@ static const mu_jt_object *fx_object(mu_world_particles *p, int32_t index)
         *o = hero_view(p);
         return o;
     }
+    if (index >= MU_WORLD_FX_BOID_BASE && index < MU_WORLD_FX_BOID_BASE + MU_ENV_BOIDS) {
+        if (!p->environment) return NULL;
+        const mu_env_object *b = &p->environment->env.boids[index - MU_WORLD_FX_BOID_BASE];
+        memset(o, 0, sizeof *o); o->live = b->live; o->visible = b->visible; o->type = b->type;
+        memcpy(o->position, b->position, 12); memcpy(o->light, b->light, 12);
+        return o;
+    }
     if (index >= MU_WH_EFFECT_BASE && index < MU_WORLD_FX_HERO_OBJECT)
         return mu_world_helpers_effect_object(p->helpers, index, o) ? o : NULL;
     if (index >= MU_WORLD_ACTOR_FX_BASE && index < MU_WH_EFFECT_BASE) {
@@ -345,6 +370,7 @@ static void joint_env(mu_world_particles *p, mu_jt_env *env)
     env->object = jt_object;
     env->call = jt_call;
     env->world_time = p->world_time;
+    env->ambient_clock = p->environment ? p->environment->inputs.ambient_clock : 0;
 }
 
 static int32_t sfx_rand(void *c) { return mu_world_particles_rand(c); }
@@ -420,6 +446,7 @@ static void sfx_owner_bone(void *c, int32_t owner, int32_t bone, const float in[
 static void effect_env(mu_world_particles *p, mu_sfx_env *env)
 {
     memset(env, 0, sizeof *env);
+    env->world_time = p->world_time;
     env->bone = sfx_bone;
     env->owner_bone = sfx_owner_bone;
     env->context = p;
@@ -526,7 +553,9 @@ int mu_world_particles_effect(mu_world_particles *p, int32_t type, int32_t subty
             continue;
         mu_sfx_env env;
         effect_env(p, &env);
-        if (mu_sfx_effect_create(e, type, subtype, position, angle, light, owner, scale, info, &env)) {
+        float creation_light[3];
+        memcpy(creation_light, light, sizeof creation_light);
+        if (mu_sfx_effect_create(e, type, subtype, position, angle, creation_light, owner, scale, info, &env)) {
             p->stats.effects_created++;
             return 1;
         }
@@ -981,7 +1010,7 @@ long mu_world_particles_draw(mu_world_particles *p, const float modelview[16], c
     mu_pt_sprites_mark_visible(p->sprites);   /* 0x01692887 */
     const int32_t sprites = mu_pt_sprites_render(p->sprites, 0, p->world_time, p->camera, bitmap_info, p, &gl,
                                                  NULL, NULL);
-    const int32_t particles = mu_pt_render_all(&p->list, 0, p->camera, bitmap_info, p, &gl);
+    const int32_t particles = mu_pt_render_all(&p->list, 0, p->camera, p->world_time, bitmap_info, p, &gl);
     p->stats.drawn_sprites = (uint32_t)sprites;
     p->stats.drawn_particles = (uint32_t)particles;
     p->stats.shadows = p->stats.pending_shadows;   /* the frame's RenderBoids/RenderFishs ran before the sprite pass */
@@ -1066,6 +1095,11 @@ int32_t mu_world_particles_draw_models(mu_world_particles *p, mu_world_particles
         if (slot < 0)
             continue;
         mu_world_fx_model *m = &p->models[slot];
+        if (mu_world_warp_type(e->type)) {
+            if (!mu_world_warp_render(e, p->frustum ? p->frustum->normal : NULL,
+                p->frustum ? p->frustum->d : NULL, 0, m->bmd.mesh_count))
+                continue;
+        }
         mu_model_params params = m->model.params;
         for (int k = 0; k < 3; ++k) {
             params.origin[k] = e->position[k];
@@ -1398,12 +1432,31 @@ static void o_effect(void *c, int32_t type, int32_t subtype, const float positio
     mu_world_particles_effect(c, type, subtype, position, angle, light, owner, 0.0f, &info);
 }
 
+/* Icarus consumes the authored visual events here, keeping object-only tools independent of UI hosts. */
+static void icarus_cover(mu_world_particles *p, mu_objects *o, int32_t index)
+{
+    mu_obj_event events[20]; mu_obj_log log = {0, 20, 0, events};
+    (void)mu_world_particles_rand(p); /* RenderObjectVisual's common brightness. */
+    mu_icarus_cover(mu_objects_object_image(o, index), index, &log);
+    for (int i = 0; i < log.count; ++i) {
+        const mu_obj_event *e = &events[i];
+        float pos[3], angle[3], light[3], scale;
+        memcpy(pos, e->args + 1, 12); memcpy(angle, e->args + 4, 12);
+        memcpy(light, e->args + 7, 12); memcpy(&scale, e->args + 11, 4);
+        mu_world_particles_create_owned(p, 0x7f89, pos, angle, light, (int32_t)e->args[10], scale, index);
+    }
+}
+
 static void o_visual(void *c, struct mu_objects *o, int32_t index, int has_model, mu_object_model *m)
 {
     mu_world_particles *p = c;
     uint8_t *img = mu_objects_object_image(o, index);
     if (!img)
         return;
+    if (o->world == 10) {
+        if (has_model) icarus_cover(p, o, index);
+        return;
+    }
     mu_pt_visual_object v;
     memset(&v, 0, sizeof v);
     v.index = index;
@@ -1441,6 +1494,7 @@ void mu_world_particles_attach(mu_world_particles *p, struct mu_objects *objects
         objects->rt.hook_context = p;
         p->objects = objects;
     }
+    p->environment = env;
     if (env)
         env->particles = p;
 }

@@ -1597,3 +1597,35 @@ args = ["--cases", "500", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_icarus_c2]
+test = "native/tests/test_native_icarus.py::IcarusInstructions.test_c2_cover_and_emitter_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["cover", "cloud_create", "cloud_move", "cloud_render", "joint_create", "joint_move", "joint_render"]
+cases = 8400
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/particles", "reconstructed/joints"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_icarus_c2.expect]
+"families.*.equal" = {same_as = "families.*.cases"}
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.caught" = true
+
+[validate_worlds_d]
+test = "reconstructed/objects/test_worlds_d.py::WorldsDTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["effect_create", "effect_move", "warp_render", "noria_placement"]
+cases = 2400
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/combat"]
+args = ["--cases", "600", "--mutations", "--output", "{report}"]
+[validate_worlds_d.expect]
+"families.*.equal" = { same_as = "families.*.cases" }
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

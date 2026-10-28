@@ -223,9 +223,9 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
 
 ## 4. Gaps (ranked by visibility)
 
-1. **Icarus's persistent soft grey coverage**: the named sky, cloudLight, blue-swirl and dragon instruction paths
-   are ported in RENDER-WORLDS-C (section 3.5), but the screenshot's grey coverage remains unexplained. The ten
-   accompanying boid emitters' `0x472/1` joint requests are counted by the native host, not rendered.
+1. **Icarus cover and emitter gap closed by RENDER-WORLDS-C2** (section 7). The remaining image error includes
+   unsynchronised cloud rotation, puff distribution, ribbons, dragons and uncaptured hero equipment. The earlier
+   RENDER-WORLDS-C results in section 3.5 are historical.
 2. **Tarkan and Raklion haze**: the client's terrain is up to ~1.35× brighter, the darker light-map areas most, so
    the contrast is compressed; the pattern stays with the ground when the hero moves (second session, two positions
    per map). The primary and frame light grids equal the native ones, the light-offset grid `0x0bc35430` is all zero,
@@ -311,3 +311,213 @@ Elbeland's `0x1a3` boid creation is wired, but its separate environment mover/mo
 Sound calls are compared and counted by the object host, as before. The Tarkan/Raklion haze, visual-pass fields,
 other world-handler classes and siblings A/C remain separate work. Next step: take fresh live captures of Devias, Tarkan, Elbeland and Raklion under the shared game lock in a
 separate authorized run, then rerun the image-error tour. This run did not start a client.
+
+## 6. RENDER-WORLDS-D, 2026-10-27
+
+### Tour and ranking
+
+The initial baseline was main `952868f`. After #181 merged, both the main baseline `5f6b0cf` and D's
+combined branch were rebuilt in D's worktree and the full tour repeated. This includes B #180, terrain #175
+and C #181; no builds ran in the main checkout.
+`scripts/fidelity_tour.py run` rendered all fourteen captured views of thirteen maps at their arrival cameras,
+25 logic steps, GL, 1722 x 1048. It compared the retained 2026-10-22 OBJECT/global/light snapshots.
+Only Dungeon, Icarus and Kanturu have surviving live PNGs, under `renders/readme-sources/`.
+No new live capture was taken. A blank image score for the other eleven views means unavailable.
+
+Ranked by supported visible scope, rather than treating unlike measurements as one score:
+
+1. **Icarus sky/clouds/dragons and Kanturu/Karutan flames/after-character flags.** The retained image errors
+   are Icarus 62.030, Kanturu 3.717 and Dungeon 2.019 at 25 steps. The Icarus and flame/after-character work
+   is now C2's remaining Icarus lane and A's flame/after-character lane; D leaves both intact. After-character field counts are Noria 16,
+   Kanturu 3, Elbeland 19, Raklion 10 and Karutan 6.
+2. **Missing Noria warp placement and rejected nested warp effects.** One Noria object of type 424 was absent;
+   Devias and Raklion each rejected three startup effect calls. These have direct placement/lifecycle code
+   and model evidence, so D fixes both. The portal cameras confirm the native effects draw.
+3. **Aida frame-light outliers and remaining frame light.** Aida has the largest near-hero grid error, 0.65117,
+   concentrated in 21 of 600 cells above 0.05; its worst cell differs by 88.12099. Its object light calls are
+   already reconstructed. The snapshots lack the transient effect/source state needed to attribute this
+   outlier to an additional emitter or capture timing. D does not fit arbitrary brightness to this sample.
+   Dungeon follows at 0.04404; other maps are in the table below. Primary light is exact everywhere.
+4. **Tarkan/Raklion haze and timing-dependent fields.** Eleven arrival views lack live PNGs, so the old image
+   ranking remains historical evidence only. Lost Tower's 25 BlendMesh differences and Atlans's 22 BlendMesh
+   differences include objects the original snapshot had not moved. Atlans also has 35 pulse differences;
+   Lorencia, Devias, Tarkan, Aida and Raklion have the remaining light, pulse, speed or action differences
+   listed in the local detailed scores. Existing instruction comparisons take precedence over forcing a
+   captured time-dependent field. No new unsupported move branch was established by this tour.
+5. **Raklion active event timer and Elbeland boids.** The object/light capture format contains no handler timer
+   state, so the tour cannot assign an active timer image score. Static reading: Raklion's default move calls
+   inherited `0x00ea17c0`; `+0x23` enables its timer, `+0x20` selects event behavior, and `0x00ea186c` emits the
+   event effects/quake. That active lifecycle remains unimplemented, below the reproducible placement/effect
+   defects for this slice. After C #181 merged, Elbeland was reassessed. This arrival view has zero native boids, a safe-zone hero
+   and no live boid-pool snapshot or live PNG. The tour therefore supplies no measured boid deficit. Its
+   now-unblocked movers `0x00ca33c3` and `0x00ca3ce1`, model registration and draw path remain a lower-ranked
+   follow-up that can reuse C's shared flight/render loop. No Elbeland movement equivalence is claimed.
+
+### Verified reconstruction and host integration
+
+Production C lives in `reconstructed/objects/world_warp.c` and `noria.c`. The shared effect factory/mover
+only dispatches the warp cases. Model mappings are static readings of AccessModels
+`0x0183943f`, `0x018397d1` and `0x0183f529`: types `0x1a8/0x1ab`, `0x1a9/0x1ac`, `0x1aa/0x1ad`
+use Npc/warp01, warp02, warp03. Only worlds 2, 3, 57 and 58 load these native effect models.
+
+| Family | Original instructions | Compared |
+|---|---|---|
+| Warp create | Full CreateEffect `0x013c0f19`, branches `0x013c38ef/0x013c391b` | 600 records, all six kinds and subtypes 0/1/default; caller-light clear after copy, lifetime, mesh, RNG, owner/info fields, ordered calls |
+| Warp move | Full MoveEffect `0x0142fd09`, branch `0x01435834` | 600 records; clock pulses, rotation, owner/height, model/animation, motion, expiry, ordered calls and RNG |
+| Warp render selection | `0x015182c6` through the type switch to `0x01518d73`; TestFrustrum `0x016ccc14` executes | 600 records; five 3D planes, exact radius boundary, live/visible and alpha/mesh gates, RenderObject arguments |
+| Noria placement | `0x01839870..0x01839952` | 600 repeated fixed constructor comparisons, including position, angle and record tail |
+
+All **2,400 comparisons equal; zero mismatches, zero stopped cases; 8/8 compiled planted mistakes detected**.
+The placement cases repeat one fixed record, not 600 distinct assets. The common constructor is stubbed as
+zero initialization; engine allocation, animation playback, terrain height and drawing are recording stubs.
+The trigonometric wrappers use the existing host-libm substitution. RenderObject's mesh implementation is
+existing native code, not re-proved by the render-selection family. Pins:
+
+- Text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`.
+- Second-section SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+
+The mutable light argument is explicit at the reconstructed factory. Native hosts supply a local copy;
+these map-created source records already start with zero light. Runtime mutation of arbitrary caller-owned
+nonzero light is not claimed. The Noria placement reuses B's exact type/position deduplication and named-model
+loading. Noria's five creation calls now join the existing deferred startup queue. The two lines added in
+`native/world/parts/particles.c` pass the current render frustum; no input flow is changed.
+
+The first integration probe exposed a wrong 2D culling assumption. It was replaced with the original five-plane
+3D test and added to the executed comparison. Four synthetic world sessions now create/live/draw respectively
+3/5/3/6 effects with no rejected kinds, and repeat runs have identical stdout and image hashes.
+Native GL portal views were inspected for Devias, Noria and Raklion. The local world-58 installed view has no
+placement input, so its 6-effect integration is synthetic evidence only.
+
+### Scoreboard before and after
+
+| Capture | Missing before / after | Extra before / after | Static field differences before / after | Frame-light mean near hero before / after |
+|---|---:|---:|---:|---:|
+| 00b-lorencia | 0 / 0 | 0 / 0 | 17 / 17 | 0.00713 / 0.00713 |
+| 01-dungeon | 0 / 0 | 0 / 0 | 0 / 0 | 0.04404 / 0.04404 |
+| 02-devias | 0 / 0 | 0 / 0 | 0 / 0 | 0.0 / 0.0 |
+| 02b-devias-town | 0 / 0 | 0 / 0 | 4 / 4 | 0.00068 / 0.00068 |
+| 03-noria | 1 / 0 | 0 / 0 | 23 / 23 | 0.02568 / 0.02568 |
+| 04-losttower | 0 / 0 | 0 / 0 | 25 / 25 | 0.02683 / 0.02683 |
+| 07-atlans | 0 / 0 | 0 / 0 | 57 / 57 | 0.01404 / 0.01404 |
+| 08-tarkan | 0 / 0 | 0 / 0 | 3 / 3 | 0.0 / 0.0 |
+| 10-icarus | 0 / 0 | 0 / 0 | 0 / 0 | 0.0 / 0.0 |
+| 33-aida | 0 / 0 | 0 / 0 | 5 / 5 | 0.65117 / 0.65117 |
+| 37-kanturu | 0 / 0 | 0 / 0 | 3 / 3 | 0.01144 / 0.01144 |
+| 51-elbeland | 0 / 0 | 0 / 0 | 19 / 19 | 0.02078 / 0.02078 |
+| 57-raklion | 0 / 0 | 0 / 0 | 16 / 16 | 0.02574 / 0.02574 |
+| 80-karutan | 0 / 0 | 0 / 0 | 6 / 6 | 0.01339 / 0.01339 |
+
+All primary-grid mean errors remain 0 over 65,536 cells per view. Every frame-grid score is unchanged.
+Noria missing objects falls 1 to 0; all fourteen captures now have zero missing and zero extra objects.
+The thirteen other final PNG SHA-256 values are unchanged, including all ten views outside the changed worlds.
+Noria's arrival camera is away from the new portal; its changed frame reflects the new particle RNG consumption,
+not a measured live-image improvement. Devias/Raklion's arrival frames also remain unchanged, while separate
+portal-camera runs draw 3/5/3 native effect models. Do not substitute those views for live comparisons.
+The three available live-image mean errors remain 2.019 / 62.030 / 3.717 for Dungeon / Icarus / Kanturu.
+
+The existing create/move effect families also pass 1,200 comparisons, zero mismatches. The new validator passes
+through `scripts/run_validators.py`, with its manifest counts and mutants checked. Synthetic placement/dedup
+checks now include Noria. The combined-tree local Mac gate through main #185 passed 1,395 tests across 38 suites with 166 explicit skips, both fixture
+scenarios and viewer/readers builds. The B handler regression retains 4,000 equal comparisons and 10/10
+compiled mutants; the existing object validator passes 2,980 comparisons and 19/19 mutants.
+The post-#183/#184/#185 tour retains the same thirteen unchanged image hashes and every light score.
+Counts and artifact paths are also recorded in the milestone handoff.
+
+### Reproduction and remaining work
+
+Reports/manifests/logs: `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-d/`.
+GL frames and complete scoreboards: `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-d/`.
+Both are local only. Run `scripts/validate_worlds_d.py --cases 600 --mutations --output <local-report>`
+with the repo Python, or its manifest row with private integration enabled.
+
+Next work: A-owned visual paths and C2-owned remaining Icarus paths; unblocked Elbeland mover/model draw; the inherited Raklion event
+lifecycle, including the event-state and timer inputs; attribute Aida's transient frame light from existing
+source/effect code or a separately authorized future capture; fresh locked live images of the changed worlds.
+No live game, launcher, network, service, protection module or running-client memory was touched.
+
+
+
+## 7. RENDER-WORLDS-C2: persistent Icarus cover and emitter ribbons
+
+**Verified.** The persistent grey cover comes from RenderObjectVisual's world-10 branch,
+`0x017fba5e..0x017fbf34`, rather than the rare two-step cloud model. Types 0..2 create 20 `clouds`
+`0x7f89` particles each; types 3..5 create 10 each, subtype = object type, light `(0.1, 0.1, 0.1)`,
+owner = source OBJECT. Creation only runs while HiddenMesh is not -2, then sets it to -2. The native visual
+dispatcher previously excluded world 10. Its imported hidden-type sidecar also set -2 before the first draw,
+which would suppress this producer even after adding the handler. Native startup now leaves these six types
+for their verified visual handler to hide.
+
+`reconstructed/particles/icarus_clouds.inc` implements their creation and movement. The initial lifetime is 30;
+while the source's visible byte is exactly 1, movement resets it to 50 before the common decrement. Once the
+source stays invisible until lifetime 1, the particle dies and resets the source HiddenMesh to 0, allowing
+re-entry to create its cover again. Size is `(rand % 20 + 180) * 0.01`, independent of requested size; vertical
+motion uses `sin((WorldTime + gravity) / 5000) * 20`. Subtypes 1/4 and 2/5 turn in opposite directions in the
+mover; subtype 0 uses the render ordinal's parity, and subtype 3 turns in RenderParticles. The renderer now
+receives WorldTime and the list ordinal. These kinds use their supplied light directly, without the alpha
+multiplication of the older login-mist subtype 20. The existing additive RGB texture path and sprite-pass order
+remain in use; no opacity, spawn-rate or lifetime tuning was introduced to fit the still.
+
+**Verified.** `0x472/1` creation, movement and rendering now use the shared joint pool: target-relative animated
+head, 30 tails, `JointSpirit01`, lifetime 999999, light `(0.2, 0.2, 0.2)` at creation and the client's per-segment
+geometry/fade. Native boid owner handles are distinct from map-object, actor, helper and hero handles, so the
+joint follows the boid and terminates when it dies. The native Icarus ambient clock previously used elapsed
+milliseconds. The writer `0x01851f82..0x01851f8d` increments `0x0bdc5eb0` once per 40 ms logic step; the host
+now supplies the logic ordinal, with zero as the fresh-world phase. The captured session's starting counter is
+unknown. Other worlds' host clocks are unchanged.
+
+`scripts/validate_icarus_c2.py`, registered in `scripts/validators.toml`, freezes the production C and compares
+seven families at 1,200 cases each: cover producer, cloud create/move/render and emitter joint create/move/render.
+**8,400 equal, zero mismatches/stops, all 8 compiled planted mistakes caught.** It covers all six cloud subtypes,
+hidden guards, source visibility 0/1/2, source reset, positive/negative WorldTime, both render ordinals, live/dead/
+absent joint owners, and signed/wrapped clocks and pool indices. Engine services are recording stubs. The joint's
+character resolver answers absent, and the non-Icarus event-world predicate answers false for world 10. Scalar
+trig uses the existing validator's host-libm boundary. Native integration tests cover sidecar initialization,
+80 visible ticks without duplication, expiry/re-entry, real boid-to-joint creation, owner death and the separate
+clock. Exact commands, additional checks and limits are in [the handoff](../handoffs/RENDER-WORLDS-C2.md).
+
+### Image diagnosis
+
+All scores below use the surviving full-resolution README-source PNG, 1722 by 1048 client area, the tour's
+unchanged HUD/hero masks and original mean absolute difference. Lower is better. No live client was used.
+
+| Logic steps | Before #181 | #181 | C2 |
+|---|---:|---:|---:|
+| 25 | 61.760 | 62.030 | 26.897 |
+| 400 | 54.673 | 60.935 | 27.663 |
+
+The #181 regression is localised by one fixed mask made from its before/after frame difference, threshold >1
+in any RGB channel. At 25 steps this footprint covers 11,280 of 1,178,576 scored pixels, 0.957%; its error rises
+29.802 to 58.026, accounting for the whole +0.270 regression. The other 1,167,296 pixels score 62.069 on both
+sides. At 400 steps the footprint covers 552,285 pixels, 46.860%; its error rises 59.271 to 72.617. Outside it,
+error changes only 50.617 to 50.633. The broad late-frame change agrees with the sky helper's added RNG calls
+changing where the existing puff system emits; dragons and ribbons are also phase dependent. This is an image
+measurement and source-based inference about phase, not a replay of the captured random stream.
+
+C2 draw-only ablations preserve all simulation and RNG calls. They isolate the missing cover from moving
+ribbons and creatures; masks are the exact changed RGB footprints, intersected with the existing HUD masks.
+They supplement the whole-scene score. Overlapping layer contributions must not be added together.
+
+| Omitted draw layer | 25-step error | 400-step error |
+|---|---:|---:|
+| Persistent cover | 61.798 | 60.919 |
+| Emitter ribbons | 26.674 | 27.664 |
+| Dragons | 26.557 | 27.597 |
+| Rising puff particles | 26.897 | 26.801 |
+| Blue swirls | 26.897 | 27.788 |
+
+The cover footprint spans 1,138,288 / 1,136,661 scored pixels at these frames; it accounts for most of the missing
+brightness. The added moving elements can improve or worsen a single-frame score: at 400 steps omitting puffs
+improves it by 0.862, whereas omitting swirls worsens it by 0.125. This does not justify removing either verified
+behavior. Across 307 consecutive full-resolution native frames, steps 1..307, error ranges 26.481..32.609 with
+mean 28.691. The separate 400-step endpoint is 27.663. No live time series survives, so this measures sensitivity
+to native phase against one still, not temporal equivalence. The older full effect pool snapshots identify rising
+puffs but lack this separate particle list and the boid/joint/sprite pools.
+
+Camera, primary light and static-object comparisons stay in the tour. All thirteen other capture PNG hashes are
+unchanged against #181 before the parallel D merge. After D #188, all thirteen match its new main baseline,
+including its Noria change, and Icarus retains the same two scores. `fidelity_tour.py` now accepts optional `element_masks` per map and reports their areas
+and errors without replacing the whole-scene metric; `icarus_fidelity.py` produces the phase and ablation report.
+No moving-region exclusion is used to claim the target passed. Local inputs, frame reports, masks, selected
+renders and the full 307-row score series remain under the C2 scratch/render directories. Renders and captures
+are not committed. Remaining limits are exact captured RNG/clock/pool phase, the hero/equipment mask, and the
+unported world-10 type-10 bone flare. Sibling worlds and after-character rendering remain with lanes A/D.

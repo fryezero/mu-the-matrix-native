@@ -13,6 +13,7 @@
 #include "mu_joints.h"
 
 /* Owner handle for the hero OBJECT in joint/effect/sprite requests. */
+#define MU_WORLD_FX_BOID_BASE 0x7ffffe00
 #define MU_WORLD_FX_HERO_OBJECT 0x7fffff00
 #include "../../reconstructed/particles/particles.h"
 #include "../../reconstructed/combat/skill_fx.h"
@@ -51,7 +52,7 @@
  * section. Viewer choices: these pools are the module's own (the skills keep theirs in mu_combat), the effect
  * models play their first action (frame += speed, looping) and the tornado's PlayBuffer is counted, not played. */
 enum { MU_WORLD_PT_BITMAPS = 46, MU_WORLD_PT_CAPACITY = 4096, MU_WORLD_PT_SHADOW_MESHES = 64,
-       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 5, MU_WORLD_FX_QUADS = 8192,
+       MU_WORLD_FX_EFFECTS = MU_SFX_EFFECTS, MU_WORLD_FX_MODELS = 11, MU_WORLD_FX_QUADS = 8192,
        MU_WORLD_FX_LIGHTS = MU_JT_JOINTS + MU_SFX_EFFECTS };
 
 typedef struct mu_world_fx_light {
@@ -104,10 +105,12 @@ typedef struct mu_world_particles {
     /* NATIVE-JOINT-001: the world objects' joints and effects */
     struct mu_world_helpers *helpers;      /* helper OBJECTs for mount-owned effects and joints */
     const struct mu_world_actors *actors;  /* NPC-owned joints; actor ids use MU_WORLD_ACTOR_FX_BASE */
+    struct mu_world_env *environment;      /* Icarus joint owners, lifetime of the attached world */
     struct mu_objects *objects;            /* owners and targets (object images), NULL none */
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */
     mu_world_fx_model models[MU_WORLD_FX_MODELS];
+    const mu_terrain_frustum *frustum; /* current render polygon, optional for standalone hosts */
     float hero_position[3];                /* [0x0a39d754] + 0x33ac (the tornado's sound distance) */
     int has_hero;
     mu_joint_quad *joint_quads;            /* MU_WORLD_FX_QUADS, the last RenderJoints */
