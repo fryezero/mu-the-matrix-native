@@ -23,3 +23,13 @@ class IcarusInstructions(unittest.TestCase):
             r=json.loads(report.read_text())
             self.assertTrue(all(t['cases']==t['equal'] and not t['stopped'] for t in r['families'].values()))
             self.assertTrue(all(m['caught'] for m in r['mutants']))
+
+    def test_c2_cover_and_emitter_instructions_and_compiled_mutants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp)/'c2.json'
+            subprocess.run([sys.executable, str(NATIVE.parent/'scripts/validate_icarus_c2.py'),
+                            '--cases', '1200', '--mutations', '--output', str(report)], check=True, capture_output=True)
+            r = json.loads(report.read_text())
+            self.assertEqual(len(r['families']), 7)
+            self.assertTrue(all(t['equal'] == 1200 and not t['stopped'] for t in r['families'].values()))
+            self.assertTrue(all(m['caught'] for m in r['mutants']))

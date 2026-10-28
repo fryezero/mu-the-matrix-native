@@ -127,6 +127,8 @@ typedef struct mu_pt_host {
     /* NATIVE-HELPERS-002: the bitmap record's height +0x208 through the getter 0x00ebbec8(bitmaps 0x0bdc5f00,
      * index) (smoke02 sits on the terrain by half its size; NULL: 0) */
     float (*bitmap_height)(void *context, int32_t bitmap);
+    /* Icarus clouds: OBJECT +0xb; reset +0x68 when the last invisible-frame lifetime expires. */
+    int (*cloud_owner)(void *context, int32_t owner, int reset_hidden);
 } mu_pt_host;
 
 /* 1 when CreateParticle, MoveParticles and RenderParticles are reconstructed
@@ -200,8 +202,7 @@ typedef struct mu_pt_render_call {
  * bitmap's component count, the kind's extra state and its RenderSprite.
  * Returns 1 when the record was drawn, 0 when skipped, 2 for a kind that is
  * not reconstructed (nothing filled). */
-void mu_pt_elbeland_render(mu_pt_particle *, float world_time);
-int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *bitmap, uint8_t mode, mu_pt_render_call *out);
+int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *bitmap, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out);
 
 /* ------------------------------------------------------------------------
  * The list (CreateParticle's push_back, MoveParticles, RenderParticles). */
@@ -275,7 +276,7 @@ void mu_pt_sprite_corners(const float camera[12], const mu_pt_sprite_call *sprit
  * through a NULL record; the record is skipped and counted). Returns the
  * number of sprites drawn. */
 typedef int (*mu_pt_bitmap_fn)(void *context, int32_t bitmap, mu_pt_bitmap *out);
-int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera[12], mu_pt_bitmap_fn bitmap,
+int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera[12], float world_time, mu_pt_bitmap_fn bitmap,
                          void *bitmap_context, const mu_pt_gl *gl);
 
 /* ------------------------------------------------------------------------

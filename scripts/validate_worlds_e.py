@@ -242,7 +242,8 @@ def main():
         'sha256':hashlib.sha256(text[x-am.TEXT_BASE:y-am.TEXT_BASE]).hexdigest()}
         for name,x,y in [('circle',0xca33c3,0xca3ce1),('typhoon',0xca3ce1,0xca3e2f),
             ('arm',0xea176f,0xea17c0),('step',0xea17c0,0xea186c),('emit',0xea186c,0xea233c),
-            ('timer',0xc9b482,0xc9b508)]}
+            ('timer',0xc9b482,0xc9b508),('cloud_create',0x15ec345,0x15ec6a4),
+            ('cloud_move',0x1660886,0x1660d51),('cloud_render',0x15995aa,0x1599629)]}
     if a.output: a.output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
     return int(any(r['mismatch_count'] or r['stopped'] for r in report['families'].values()) or

@@ -111,6 +111,7 @@ static void normalize3(float v[3])
 int mu_jt_kind_supported(int32_t type, int32_t subtype)
 {
     switch (type) {
+    case 0x472: return subtype == 1;
     case MU_JT_BITMAP_ENERGY:
         return subtype == 1;
     case MU_JT_BITMAP_SPIRIT:
@@ -266,6 +267,16 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
     }
     int supported = mu_jt_kind_supported(type, subtype);
     switch (type) {
+    case 0x472: {
+        if (!supported) break;
+        const mu_jt_object *o = jobject(env, target);
+        if (!o) return 0;
+        copy3(j->target_position, o->position);
+        j->light[0] = j->light[1] = j->light[2] = 0.2f;
+        j->lifetime = 999999; j->max_tails = 30;
+        j->tex_type = MU_JT_BITMAP_SPIRIT; j->scale = scale;
+        break;
+    }
     case MU_JT_BITMAP_LASER: {
         /* 0x0153d070 / 0x0153d168: persistent trails at the target's two eyes. */
         if (!supported) break;
@@ -649,7 +660,7 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
 {
     if (!mu_jt_kind_supported(j->type, j->subtype))
         return 0;
-    const mu_jt_move_inputs zero = {0.0f, 0, 0, 0};
+    const mu_jt_move_inputs zero = {0};
     if (!in)
         in = &zero;
     float m[12] = {0};
@@ -664,6 +675,11 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
     }
     const mu_jt_object *t = jobject(env, j->target);
     switch (j->type) {
+    case 0x472:
+        if (j->target < 0) break;
+        if (!t || !t->live) { j->live = 0; j->lifetime = 0; break; }
+        move_icarus_emitter(j, env, in->index);
+        break;
     case MU_JT_BITMAP_LASER:
         /* 0x0155a798 / 0x0155a85a: keep the trail alive while its owner is live. */
         if (j->target < 0) break;
@@ -942,7 +958,10 @@ int mu_jt_render(const mu_jt_joint *j, uint8_t mode, float world_time, const mu_
     default: break;
     }
     /* the record colour: none for 0x7fd5 (its subtype 5 binds the texture an extra time) */
-    if (j->type != MU_JT_BITMAP_SPARK)
+    if (j->type == 0x472) {
+        float f = (float)(j->lifetime < 20 ? j->lifetime : 20) * 0.05f;
+        gl_color(gl, f * j->light[0], f * j->light[1], f * j->light[2]);
+    } else if (j->type != MU_JT_BITMAP_SPARK)
         gl_color(gl, j->light[0] * j->brightness, j->light[1] * j->brightness, j->light[2] * j->brightness);
     if (gl && gl->bind)
         gl->bind(gl->context, j->tex_type);

@@ -3,6 +3,7 @@
 #include "characters.h"
 typedef struct mu_dom_characters {
     mu_rp_character records[MU_CHARACTERS_MAX];
+    mu_monster_viewport monsters[MU_CHARACTERS_MAX];
     uint8_t used[MU_CHARACTERS_MAX];
     uint32_t generation[MU_CHARACTERS_MAX], equipment_revision[MU_CHARACTERS_MAX];
     uint8_t equipment[MU_CHARACTERS_MAX][MU_RP_EQUIP_BYTES];

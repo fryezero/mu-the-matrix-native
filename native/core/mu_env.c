@@ -109,8 +109,12 @@ static void h_init(void *c, mu_env_object *o)
 
 static void h_effect(void *c, int32_t bitmap, const mu_env_object *o, float scale, int32_t argument)
 {
-    (void)bitmap, (void)o, (void)scale, (void)argument;
-    ((mu_world_env *)c)->stats.effects++;
+    mu_world_env *e = c;
+    ++e->stats.effects;
+    if (e->world == 10 && bitmap == 0x472 && argument == 1 && e->particles)
+        mu_world_particles_joint(e->particles, bitmap, o->position, o->position, o->angle, argument,
+                                 MU_WORLD_FX_BOID_BASE + (int32_t)(o - e->env.boids), scale,
+                                 0xffff, 0, 0, 0xffff, 0, NULL);
 }
 
 /* ---- assets ---- */
@@ -274,7 +278,8 @@ void mu_world_env_step(mu_world_env *e, const mu_world_env_hero *hero, const flo
     in->hero_action = hero->action;
     in->hero_safe_zone = hero->safe_zone;
     in->world_time = world_time;
-    in->ambient_clock = mu_env_cvttss2si(world_time);
+    /* 0x01851f82 increments this integer once per 40 ms logic step. */
+    in->ambient_clock = e->world == 10 ? (int32_t)e->stats.steps : mu_env_cvttss2si(world_time);
     in->frame_time = 0.1f;   /* [0x01cf103c] */
     in->attributes = e->map->attributes;
     in->layer1 = e->map->layer1;

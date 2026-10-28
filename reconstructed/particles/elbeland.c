@@ -36,6 +36,5 @@ void mu_pt_elbeland_move(mu_pt_particle *p, const mu_pt_host *h)
 /* RenderParticles 0x015995aa, before RenderSprite. */
 void mu_pt_elbeland_render(mu_pt_particle *p, float time)
 {
-    if (p->type == MU_PT_BITMAP_CLOUDS && p->subtype == 18)
-        p->rotation = (time * 0.02f) * p->field_7c + p->start[1];
+    p->rotation = (time * 0.02f) * p->field_7c + p->start[1];
 }

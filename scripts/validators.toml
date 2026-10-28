@@ -6,6 +6,36 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_item_expansion]
+test = "reconstructed/renderchar/test_item_expansion.py::ItemExpansion.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["bodies", "links", "skin_remaps"]
+cases = 52172
+mutants = 7
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_expansion.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+
+[validate_item_effects]
+test = "reconstructed/renderchar/test_item_effects.py::ItemEffects.test_private_original_instructions"
+pins = ["text", "data"]
+families = ["create", "move", "render"]
+cases = 1500
+mutants = 3
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_effects.expect]
+"families.create.equal" = {same_as = "families.create.cases"}
+"families.move.equal" = {same_as = "families.move.cases"}
+"families.render.equal" = {same_as = "families.render.cases"}
+"mutants.*" = {truthy = true}
+
 [validate_item_clusters]
 test = "reconstructed/renderchar/test_item_clusters.py::ItemClusters.test_private_original_instructions"
 pins = ["text", "data", "flag", "feature"]
@@ -1483,6 +1513,23 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--mutations",
 "families.*.cases" = {all_min = 1}
 "families.*.equal" = {same_as = "families.*.cases"}
 
+[validate_viewport_monsters]
+test = "native/tests/test_session_monsters.py::PrivateMonsters.test_original_handler_and_creation"
+pins = ["text", "data"]
+families = ["handler", "creation"]
+cases = 1963
+mutants = 8
+cases_at = ["handler_cases", "creation_cases"]
+mutants_at = "mutants.caught"
+needs = ["clang"]
+build = ["native"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_viewport_monsters.expect]
+"mismatches" = 0
+"handler_cases" = 1000
+"creation_cases" = 963
+"mutants.caught" = 8
+
 [validate_viewport]
 test = "native/tests/test_session_characters.py::PrivateViewport.test_original_0122d413"
 pins = ["text", "data"]
@@ -1597,6 +1644,22 @@ args = ["--cases", "500", "--mutations", "--output", "{report}"]
 "families.*.stopped" = 0
 "mutants.*.detected" = {all_min = 1}
 "mutants.*.stopped" = 0
+
+[validate_icarus_c2]
+test = "native/tests/test_native_icarus.py::IcarusInstructions.test_c2_cover_and_emitter_instructions_and_compiled_mutants"
+pins = ["text", "data"]
+families = ["cover", "cloud_create", "cloud_move", "cloud_render", "joint_create", "joint_move", "joint_render"]
+cases = 8400
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/particles", "reconstructed/joints"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_icarus_c2.expect]
+"families.*.equal" = {same_as = "families.*.cases"}
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.caught" = true
 
 [validate_worlds_d]
 test = "reconstructed/objects/test_worlds_d.py::WorldsDTests.test_original_instructions"

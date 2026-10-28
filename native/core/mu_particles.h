@@ -105,7 +105,7 @@ typedef struct mu_world_particles {
     /* NATIVE-JOINT-001: the world objects' joints and effects */
     struct mu_world_helpers *helpers;      /* helper OBJECTs for mount-owned effects and joints */
     const struct mu_world_actors *actors;  /* NPC-owned joints; actor ids use MU_WORLD_ACTOR_FX_BASE */
-    struct mu_world_env *environment; /* boid-owned cloud particles */
+    struct mu_world_env *environment;      /* boid-owned particles and joints */
     struct mu_objects *objects;            /* owners and targets (object images), NULL none */
     mu_jt_joint *joints;                   /* MU_JT_JOINTS records */
     mu_sfx_effect *effects;                /* MU_WORLD_FX_EFFECTS records */

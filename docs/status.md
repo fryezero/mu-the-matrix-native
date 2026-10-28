@@ -2,11 +2,16 @@
 
 RENDER-WORLDS-E: Elbeland boids/clouds and Raklion event timer implemented; 4,840 instruction comparisons, zero mismatches, 12/12 mutants. Combined-tree gate pending. [Handoff](handoffs/RENDER-WORLDS-E.md).
 
+
+RENDER-WORLDS-C2: persistent Icarus cloud cover and `0x472/1` emitter ribbons implemented; ambient clock corrected. Image error falls to 26.897 / 27.663 at 25 / 400 steps. [Evidence](research/client-world-fidelity.md#7-render-worlds-c2-persistent-icarus-cover-and-emitter-ribbons), [handoff](handoffs/RENDER-WORLDS-C2.md).
+
 RENDER-WORLDS-D: six warp effect kinds and Noria portal placement; 2,400 Unicorn cases, zero mismatches, 8/8 compiled mutants. [Evidence](research/client-world-fidelity.md#6-render-worlds-d-2026-10-27), [handoff](handoffs/RENDER-WORLDS-D.md).
 
 AUDIO-002 part 1: event music decisions, monster/NPC registration, bounded NPC voices and native cue logging implemented. 76,150 new Unicorn cases, zero mismatches, 22/22 compiled mutants. [Checks and limits](handoffs/AUDIO-002.md).
 
 SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
+
+VIEWPORT-MONSTER-001 implements the shared monster/NPC session feed and fixture placement. [Evidence](research/client-viewport-monsters.md).
 
 RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
 
@@ -17,7 +22,7 @@ F6 70/71 stay undecoded and encrypted requests stay unsent pending their separat
 
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
-RENDER-ITEMS-002 part 3: 262/1,674 body types; 798 branch shapes classified, three link callers/eight types verified. New checks: 74,292 Unicorn cases, 0 mismatches, 8/8 mutants. Spark03 subtype 11 remains an explicit consumer gap. [Handoff](handoffs/RENDER-ITEMS-002C.md).
+RENDER-ITEMS-002 part 4: 426/1,674 item bodies and 11/17 class skins; the 47-type armour cluster is complete, with 137 armour and 27 weapon additions. Five link targets/ten types now have native consumers, including Spark03/11. New checks: 53,682 instruction cases, zero mismatches, 10/10 mutants caught. [Handoff](handoffs/RENDER-ITEMS-002D.md).
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 
