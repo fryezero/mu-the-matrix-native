@@ -27,7 +27,7 @@ def run(text,data,lib,n):
     def stop(mm):mm.uc.reg_write(cm.UC_X86_REG_EIP,cm.RETURN_SENTINEL);return cm.REDIRECT
     def reset_item(mm):log.append(('reset',(ecx()-0xb4780cc)//0x560));return 0
     def live(mm):log.append(('live',(ecx()-0xb4781f8)//0x560,mm.args(1)[0]));return 0
-    def label(mm):mm.write(mm.args(1)[0],struct.pack('<II',1,0));return 0
+    def label(mm):mm.write(mm.args(1)[0],struct.pack('<II',int(has_label),0));return 0
     def remove(mm):log.append(('label',(mm.args(1)[0]-0xb4780c8)//0x560));return 0
     m.stub(0xccc144,reset_item);m.stub(0x129f4a5,live,4);m.stub(0x9a19ae,label,4)
     m.stub(0xc84152,remove,4);m.stub(0x9617c6,lambda mm:0)
@@ -47,7 +47,7 @@ def run(text,data,lib,n):
     counts={}
     for family,(start,end) in SLICES.items():
         for i in range(n):
-            m.reset();log.clear();packet.clear();sends.clear()
+            m.reset();log.clear();packet.clear();sends.clear();has_label=i%2==0
             if family=='delete':
                 keys=[0,999,1000,65535]+[rng.randrange(65536) for _ in range(i%20)]
                 if i==0:keys=[]
@@ -55,7 +55,7 @@ def run(text,data,lib,n):
                 ptr=m.alloc(len(p),define=True);m.write(ptr,p);m.call(start,[ptr]);out=(C.c_uint16*255)()
                 count=lib.mu_items_delete_parse(buf(p),len(p),out);assert count==len(keys)
                 expected=[]
-                for j in range(count):expected.extend([('reset',out[j]),('live',out[j],0),('label',out[j])])
+                for j in range(count):expected.extend([('reset',out[j]),('live',out[j],0)]+([('label',out[j])] if has_label else []))
                 assert log==expected,(family,i,log,expected)
             else:
                 frame=m.alloc(0x10000,define=True)+0xf000
@@ -75,7 +75,7 @@ def run(text,data,lib,n):
                     code=codes[i%len(codes)] if i%2 else rng.randrange(0x2c01)
                     slot=i%1000;m.put32(frame-0x14,code);m.put32(frame-0xe0,slot);m.put32(0xa39d754,0x30000000)
                     m.call(start);sound=lib.mu_items_pickup_tail(code)
-                    assert log==[('sound',sound),('label',slot)],(family,i,log,sound)
+                    assert log==[('sound',sound)]+([('label',slot)] if has_label else []),(family,i,log,sound)
         counts[family]=n
     return counts
 

@@ -1,7 +1,6 @@
 /* Dropped items in the walk-around world (NATIVE-ITEMS-001). See mu_items.h. */
 #include "mu_items.h"
 #include "../session/mu_session.h"
-#include "../fixture/mu_fixture.h"
 #include "../fixture/items_demo.h"
 #include "mu_label.h"
 #include "../../reconstructed/items/item_sets.h"
@@ -598,6 +597,9 @@ static void request_pickup(mu_world_items *it, int32_t slot)
     if (it->pickup_wait)
         return;
     if (!it->session) return;
+    const mu_gi_record *record=record_of(it,it->pool[slot].data.code);
+    if(it->pool[slot].data.code!=MU_GI_CODE_ZEN && (!record || record->kind_b==0x0b || record->kind_b==0x0c ||
+        (record->kind_b>=0x24 && record->kind_b<=0x2b))) return;
     mu_intent in={0}; in.kind=MU_INTENT_ITEM_PICKUP; in.u.item_pickup.slot=slot;
     mu_submit r=mu_session_submit(it->session,&in);
     if (r.status==MU_SUBMIT_REFUSED) return;

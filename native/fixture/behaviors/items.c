@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+void *mu_items_demo_state(mu_fixture *fixture) { return mu_fixture_behavior_state(fixture,"items"); }
 typedef struct item_slot { uint8_t bytes[19], used, sent, remove; uint32_t due; } item_slot;
 typedef struct items_fixture { item_slot slots[1000]; uint32_t tick; int latency, despawn; } items_fixture;
 static int arg(const char *args,const char *name,int fallback)

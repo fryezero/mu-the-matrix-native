@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
-#include "../../fixture/behavior.h"
+#include "../../fixture/items_demo.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,7 +60,7 @@ static int items_open(struct mu_world_rt *a, void *self)
                 mu_session_seed seed={0};seed.place.world=a->map->world;
                 p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);if(!p->session)return 1;
             }
-            mu_world_items_bind(a->ground,p->session,mu_fixture_behavior_state(p->fixture,"items"));
+            mu_world_items_bind(a->ground,p->session,mu_items_demo_state(p->fixture));
             if (a->has_particles)
                 a->ground->particles = &a->particles;
             a->ground->frustum = &a->frustum;   /* RenderItems' TestFrustrum uses the frame's planes */
