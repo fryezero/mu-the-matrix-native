@@ -1,6 +1,5 @@
 # Continue from here
 
-INPUT-001: [router handoff](handoffs/INPUT-001.md), [recovered bindings and input-script contract](research/client-input.md). Unavailable domain/window rows and original IME candidate UI remain explicit.
 
 RENDER-WORLDS-C2: [handoff](handoffs/RENDER-WORLDS-C2.md). Persistent cover, owner-aware emitter ribbons and integer ambient clock are implemented. Raw Icarus image error is 26.897 / 27.663; exact captured animation phase remains unavailable.
 
@@ -9,6 +8,8 @@ RENDER-WORLDS-D: [handoff](handoffs/RENDER-WORLDS-D.md). Noria missing object 1 
 AUDIO-002 part 1: [handoff](handoffs/AUDIO-002.md). Native session audio reader and JSONL log are ready; event state and NPC lifecycle callers follow their domain migrations. The exact 43/44 read and virtualised gap remain open.
 
 SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned player records and fixture-driven --players.
+
+VIEWPORT-MONSTER-001: [handoff](handoffs/VIEWPORT-MONSTER-001.md), shared monster/NPC records and fixture-driven placement.
 
 RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
 
@@ -21,9 +22,11 @@ DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisitio
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
-RENDER-ITEMS-002 part 3: [handoff](handoffs/RENDER-ITEMS-002C.md). 262/1,674 body types, ranked branch tables and three verified link callers. Remaining: 1,412 body types, 17 class skins, Spark03 subtype 11 and further links; Muun/nested map-object tables remain deferred.
+RENDER-ITEMS-002 part 4: [handoff](handoffs/RENDER-ITEMS-002D.md). 426/1,674 bodies, 11/17 skins, five link targets/ten types integrated and Spark03/11 consumed. Remaining: 1,248 bodies, six skins and further links; Muun/nested map-object tables remain deferred.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.
+
+INPUT-001: [router handoff](handoffs/INPUT-001.md), [recovered bindings and input-script contract](research/client-input.md). Unavailable domain/window rows and original IME candidate UI remain explicit.
 
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
 unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.

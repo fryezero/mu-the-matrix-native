@@ -37,7 +37,7 @@ def c_link(lib, t, rand):
                      v.f2u(s.rotation), s.blend, s.axes) for s in out[:n.value]]
 
 
-def scalar_cases(text, lib):
+def scalar_cases(text, lib, types=range(0xae6, 0x2ae6)):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_32
     from unicorn.x86_const import UC_X86_REG_EBP, UC_X86_REG_EIP
     u = Uc(UC_ARCH_X86, UC_MODE_32)
@@ -47,7 +47,7 @@ def scalar_cases(text, lib):
     bp = 0x20001000
     u.reg_write(UC_X86_REG_EBP, bp)
     tally = {'cases': 0, 'mismatches': 0}
-    for t in range(0xae6, 0x2ae6):
+    for t in types:
         u.mem_write(bp + 12, struct.pack('<i', t))
         it = v.CItem(type=t, render_type=2, quality=9)
         for level in range(16):
