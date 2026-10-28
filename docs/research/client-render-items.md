@@ -381,7 +381,7 @@ bound; higher skin IDs do not acquire a synthetic item-record kind.
 
 Two next RenderLinkItem targets are implemented and integrated:
 
-- `0x012c7a45`, type `0x0ef4`: five flares on bone zero at two ends of the axe. Original random order selects
+- `0x012c7a45`, type `0x0ef4`: five flares on bone zero at two ends of the weapon. Original random order selects
   jitter and scales; the second/fifth sprites rotate 20/90 degrees. Bitmaps are `0x7f67` and `0x7ef7`.
 - `0x012c7e68`, type `0x0afc`: two `0x7ef8` sprites at `(5,-22,-10)` and `(-5,-22,-10)`, scale 0.75,
   with light `(p,p-0.5,p-0.5)`, `p = sin(time*0.4)*0.25+0.7`.
@@ -400,3 +400,11 @@ unchanged. Six skins remain refused, including their extra level branches/effect
 rejected fourteen additional probe-fitting weapon candidates with different ancient-tail light behavior.
 They remain refused. Full counts and exact remaining types are in the handoff. Before/after native renders
 stay local and show the intended added passes on synthetic geometry; they are not original-client pixels.
+
+`validate_item_expansion.py --mutations` passes **52,172 cases**, zero mismatches, **7/7 mutants** caught:
+51,100 full body/skin streams, 800 link caller streams and 272 scalar skin cases. Both generated tables
+reproduce from pinned instructions. Ten further private comparisons cover signed clock boundaries.
+`validate_item_effects.py --mutations` passes **1,500 cases**, zero mismatches, **3/3 mutants**, comparing
+Spark03/11 creation, movement and rendering separately. Total new evidence is **53,682 cases and 10/10
+mutants**. Call-stream and record comparisons remain distinct from native render evidence and graphics-driver
+behavior. The complete scope, local artifact locations, regressions and merge gate are in the handoff.
