@@ -46,12 +46,12 @@ SIGNATURE = {
               'social': 'world_gfx_social_frame', 'names': 'mu_world_names_frame'},
     'draw_gl': {'terrain': 'mu_terrain_render', 'objects': 'mu_objects_visibility', 'hero': 'hero_item_draw',
                 'players': 'player_item_draw', 'helpers': 'mu_world_helpers_draw', 'actors': 'npc_item_draw',
-                'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw', 'marker': 'marker',
+                'items': 'mu_world_items_draw', 'objects_after': 'mu_objects_after_visibility', 'env': 'mu_world_env_draw', 'marker': 'marker',
                 'particles': 'mu_world_particles_draw', 'actor_effects': 'mu_effect_scene_render_to',
                 'combat': 'combat_draw', 'haze': 'mu_world_haze_draw', 'item_labels': 'items_labels_gl', 'names': 'names_gl'},
     'draw_soft': {'terrain': 'mu_world_draw_raster_view', 'objects': 'mu_objects_render_raster',
                   'hero': 'hero_item_draw', 'players': 'player_item_draw', 'actors': 'npc_item_draw',
-                  'items': 'mu_world_items_draw', 'env': 'mu_world_env_draw_raster',
+                  'items': 'mu_world_items_draw', 'objects_after': 'mu_objects_after_visibility', 'env': 'mu_world_env_draw_raster',
                   'helpers': 'mu_world_helpers_draw_raster', 'particles': 'mu_world_particles_draw_raster',
                   'marker': 'marker', 'actor_effects': 'mu_effect_scene_render', 'combat': 'mu_combat_draw_raster',
                   'haze': 'mu_world_haze_draw_raster', 'item_labels': 'mu_world_items_label_blit', 'names': 'mu_world_names_draw'},
@@ -119,7 +119,7 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 23)
+        self.assertEqual(len(ids), 24)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 
@@ -153,7 +153,9 @@ class PartsDefTests(unittest.TestCase):
     def test_client_reordering_propagates_to_part_expectation(self):
         for column, a, b in (('tick', 0x016a9150, 0x0137a7ce),
                              ('draw_gl', 0x016cd468, 0x016d5020),
-                             ('draw_soft', 0x016cd468, 0x016d5020)):
+                             ('draw_soft', 0x016cd468, 0x016d5020),
+                             ('draw_gl', 0x01538145, 0x016d6949),
+                             ('draw_soft', 0x01538145, 0x016d6949)):
             trace = list(self.recorded['tick' if column == 'tick' else 'draw'])
             i, j = next(i for i, c in enumerate(trace) if c[0] == a), next(i for i, c in enumerate(trace) if c[0] == b)
             trace[i], trace[j] = trace[j], trace[i]
