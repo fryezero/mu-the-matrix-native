@@ -18,6 +18,8 @@ RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object
 
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
 
+RENDER-WORLDS-A: [handoff](handoffs/RENDER-WORLDS-A.md), per-world flames and deferred draws after the environment, integrated through main `0a85441`; refreshed Mac gate passes and fidelity results are recorded.
+
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
 the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.
 

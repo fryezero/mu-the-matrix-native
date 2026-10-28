@@ -1575,6 +1575,21 @@ args = ["--mutations", "--output", "{report}"]
 "signed_mesh_009f86d6.matches" = { same_as = "signed_mesh_009f86d6.cases" }
 "signed_draw_009f9644.matches" = { same_as = "signed_draw_009f9644.cases" }
 
+[validate_render_worlds_a]
+test = "tests/test_render_worlds_a_private.py::RenderWorldsAPrivate.test_original_instructions"
+pins = ["text", "data"]
+families = ["kanturu", "karutan", "after_pass", "after_draw", "flags", "first_draw", "particle_create", "particle_move", "particle_render"]
+cases = 9000
+mutants = 13
+cases_at = "families.*.cases"
+mutants_at = "mutations"
+build = ["reconstructed/objects", "reconstructed/particles"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_render_worlds_a.expect]
+"ok" = true
+"families.*.cases" = {all_min = 1000}
+"families.*.equal" = {same_as = "families.*.cases"}
+
 [validate_input]
 test = "native/tests/test_input_router.py::InputRouter.test_private_original_input_instructions"
 pins = ["text"]
