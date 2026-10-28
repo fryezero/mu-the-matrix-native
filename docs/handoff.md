@@ -1,5 +1,7 @@
 # Continue from here
 
+- RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
+
 RENDER-ITEMS-002 part 1: [handoff](handoffs/RENDER-ITEMS-002.md). Inventory special-code paths are covered; next are the type-specific body/effect switches and Muun integration.
 
 LAYOUT-001: [handoff](handoffs/LAYOUT-001.md), generated read-side layouts and JSON consumers. Per-domain migrations can extend their own .def files.

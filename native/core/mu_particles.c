@@ -17,7 +17,7 @@
  * the joints' textures (JointThunder01, Spark01, JointSpirit01, JointEnergy01; LoadBitmap 0x0182239b..) and
  * the login scene's clouds and WATERFALL1; NATIVE-CHARSEL-002 the character-select scene's WATERFALL2/3,
  * fantaB, Spark04, magic_ground1_3 and Impack03 (the selection light 0x8022 subtype 5 draws Impack03). */
-#define MU_WORLD_PT_EFFECTS 42
+#define MU_WORLD_PT_EFFECTS 43
 static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_PT_BITMAP_FIRE,   MU_PT_BITMAP_SMOKE,  MU_PT_BITMAP_FLARE,       MU_PT_BITMAP_SPARK3,   MU_PT_BITMAP_THUNDER,
     MU_PT_BITMAP_SPARK2, MU_PT_BITMAP_SHINY2, MU_JT_BITMAP_THUNDER,      MU_JT_BITMAP_SPARK,    MU_JT_BITMAP_SPIRIT,
@@ -33,7 +33,7 @@ static const int32_t bitmap_ids[MU_WORLD_PT_BITMAPS] = {
     MU_SFX_BITMAP_LIGHTING_A, MU_SFX_BITMAP_LIGHTING_A + 1, MU_SFX_BITMAP_LIGHTING_A + 2, MU_SFX_BITMAP_LIGHTING_A + 3,
     MU_SFX_BITMAP_LIGHTING_A + 4,
     0x831d, 0x83b3, 0x8086, 0x8438, 0x7fdd, 0x7fe0, 0x8098, MU_JT_BITMAP_LASER,
-    MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
+    MU_PT_BITMAP_SMOKE5, MU_PT_BITMAP_RAIN_SPLASH, MU_PT_BITMAP_RAIN_RING};
 static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/Fire01.OZJ",  "Data/Effect/smoke01.OZJ", "Data/Effect/flare01.OZJ", "Data/Effect/Spark03.OZJ",
     "Data/Effect/Thunder01.OZJ", "Data/Effect/Spark02.OZJ", "Data/Effect/Shiny02.OZJ",
@@ -48,7 +48,7 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/eff_lightinga04.OZJ", "Data/Effect/eff_lightinga05.OZJ",
     "Data/Effect/Steam_01.OZJ", "Data/Effect/Smoke_line.OZJ", "Data/Effect/firehik_mono01.OZJ",
     "Data/Effect/lightmarks_mzin.OZJ", "Data/Effect/flareBlue.OZJ", "Data/Effect/flareRed.OZJ",
-    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ"};
+    "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt"};
 
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */

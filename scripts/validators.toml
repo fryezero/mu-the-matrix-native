@@ -1364,9 +1364,9 @@ note = "the documented numbers come from TWO local runs (final.json: --scale-002
 "add_light.negative_controls.noclamp_differs" = 189
 "add_light.negative_controls.python_model_equal" = 200
 "world_tile_streams.cases" = 43200
-"world_tile_streams.matches" = 43147
-"world_tile_streams.unsupported" = 53
-"world_tile_streams.calls" = 679893
+"world_tile_streams.matches" = 43200
+"world_tile_streams.unsupported" = 0
+"world_tile_streams.calls" = 682695
 "world_tile_streams.effects" = 371
 "world_tile_streams.model_and_negative_controls.compared" = 2100
 "world_tile_streams.model_and_negative_controls.python_model_equal" = 2100
@@ -1453,3 +1453,30 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--mutations",
 "ok" = true
 "families.*.cases" = {all_min = 1}
 "families.*.equal" = {same_as = "families.*.cases"}
+
+[validate_terrain_remaining]
+test = "tests/test_orphan_validators_private.py::OrphanValidators.test_terrain_remaining"
+pins = ["text", "data", "flag"]
+families = ["reflection_uv_016c977c", "overlay_face_016cf46c", "reflection_normals_016c936a", "reflection_grid_016c95f9", "camera_frustum_016d20d9", "fog_alpha_0184b043_0184b0bb", "chaos_face_009dc0b1", "signed_init_009f953b", "signed_ripple_009f9952", "signed_step_009f85fc", "signed_wave_009f8318", "signed_height_009f9b67", "signed_mesh_009f86d6", "signed_draw_009f9644"]
+cases = 2147
+mutants = 14
+cases_at = ["reflection_uv_016c977c.cases", "overlay_face_016cf46c.cases", "reflection_normals_016c936a.cases", "reflection_grid_016c95f9.cases", "camera_frustum_016d20d9.cases", "fog_alpha_0184b043_0184b0bb.cases", "chaos_face_009dc0b1.cases", "signed_init_009f953b.cases", "signed_ripple_009f9952.cases", "signed_step_009f85fc.cases", "signed_wave_009f8318.cases", "signed_height_009f9b67.cases", "signed_mesh_009f86d6.cases", "signed_draw_009f9644.cases"]
+build = ["reconstructed/terrain"]
+timeout = 600
+args = ["--mutations", "--output", "{report}"]
+[validate_terrain_remaining.expect]
+"compiled_mutations.*.caught" = { truthy = true }
+"reflection_uv_016c977c.matches" = { same_as = "reflection_uv_016c977c.cases" }
+"overlay_face_016cf46c.matches" = { same_as = "overlay_face_016cf46c.cases" }
+"reflection_normals_016c936a.matches" = { same_as = "reflection_normals_016c936a.cases" }
+"reflection_grid_016c95f9.matches" = { same_as = "reflection_grid_016c95f9.cases" }
+"camera_frustum_016d20d9.matches" = { same_as = "camera_frustum_016d20d9.cases" }
+"fog_alpha_0184b043_0184b0bb.matches" = { same_as = "fog_alpha_0184b043_0184b0bb.cases" }
+"chaos_face_009dc0b1.matches" = { same_as = "chaos_face_009dc0b1.cases" }
+"signed_init_009f953b.matches" = { same_as = "signed_init_009f953b.cases" }
+"signed_ripple_009f9952.matches" = { same_as = "signed_ripple_009f9952.cases" }
+"signed_step_009f85fc.matches" = { same_as = "signed_step_009f85fc.cases" }
+"signed_wave_009f8318.matches" = { same_as = "signed_wave_009f8318.cases" }
+"signed_height_009f9b67.matches" = { same_as = "signed_height_009f9b67.cases" }
+"signed_mesh_009f86d6.matches" = { same_as = "signed_mesh_009f86d6.cases" }
+"signed_draw_009f9644.matches" = { same_as = "signed_draw_009f9644.cases" }
