@@ -39,10 +39,13 @@ def main(argv):
         print(__doc__, file=sys.stderr)
         return 2
     data = rows(argv[1])
-    frames = [r for r in data if 'frame' in r and not r.get('summary')]
+    frames = [r for r in data if ('frame' in r and not r.get('summary')) or r.get('jnl') == 'frame_in']
     if argv[2:3] == ['--frames']:
         for f in frames:
-            if 'tag' in f:
+            if f.get('jnl') == 'frame_in':
+                print(f"{f['scenario']} tick {f['tick']} {f['conn']} opcode {f['opcode']:#x} "
+                      f"sub {f['sub']} {f['decode']} {f['apply']} {f['bytes']}")
+            elif 'tag' in f:
                 print(f"{f['frame']:5d} scene {f['scene']} {f['tag']:10s} {f.get('png', '')}")
             else:
                 print(f"{f['frame']:5d} tile {f.get('tile')} action {f.get('action')} moving {f.get('moving')} fov {f.get('fov')}")

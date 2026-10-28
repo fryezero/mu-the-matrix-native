@@ -14,7 +14,7 @@ ok()   { echo "ok    $*"; }
 warn() { echo "WARN  $*"; }
 bad()  { echo "FAIL  $*"; fail=1; }
 
-for b in mu-client mu-world mu-walk mu-viewer mu-render mu-proto mu-terrain; do
+for b in mu-client mu-world mu-walk mu-viewer mu-render mu-proto mu-terrain mu-session; do
   if [ -x "$REPO/native/build/$b" ]; then ok "native/build/$b"; else bad "native/build/$b missing: make -C native && make -C native viewer"; fi
 done
 
@@ -32,12 +32,6 @@ else
 fi
 
 if command -v sdl2-config >/dev/null 2>&1; then ok "sdl2-config $(sdl2-config --version)"; else bad "sdl2-config missing: brew install sdl2"; fi
-
-if pgrep -qf 'main\.exe' 2>/dev/null; then
-  warn "a Wine client (main.exe) is running: this skill never reads, signals or launches it"
-else
-  ok "no Wine client process visible"
-fi
 
 if [ -n "$RUN" ]; then
   if [ -f "$RUN/run.json" ]; then ok "run.json present"; else bad "$RUN/run.json missing: create runs with scripts/new-run.sh"; fi

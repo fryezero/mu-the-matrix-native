@@ -1,0 +1,17 @@
+# VERIFY-SESSION-001: the two master routes absent from hero-progress.scn.
+# Synthetic server state; no request body for master_point has been recovered.
+endpoint game 127.0.0.1:55901
+use progress class=0x21 level=400 latency=1
+join world=0 tile=133,127 class=0x21 level=400 name=Master slot=0
+at 2 progress join
+at 5 progress master
+at 8 client submit master_point 0
+
+expect hero.master_level = 1
+expect hero.level = 400
+expect frames_in = 4
+expect unbound = 0
+expect undecodable = 0
+expect unsent = 0
+expect unrecovered = 1
+expect phase = in_world
