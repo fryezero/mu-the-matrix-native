@@ -71,6 +71,8 @@ The existing golden PCM test passes unchanged at SHA-256
 
 ## Final integration
 
+Implementation checkpoints `aa00052` and `3a9103e` were pushed before the merge-queue wait.
+
 Pending the fair merge queue and serialized latest-main/full-Mac-gate sequence. This section will record
 its actual results before merge. Standards/spec self-review covers callback and table lifetime,
 provenance, silent delivery, visual preservation and owned-path scope; no independent review is claimed.
