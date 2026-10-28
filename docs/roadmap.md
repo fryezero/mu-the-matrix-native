@@ -1,5 +1,6 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-F implements the Tarkan/Raklion screen haze. [Checks and image-score limitation](handoffs/RENDER-WORLDS-F.md).
 
 RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).
 

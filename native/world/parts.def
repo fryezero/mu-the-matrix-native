@@ -42,3 +42,5 @@ MU_PART(item_labels,   mu_part_item_labels,     0,    0,   0, 130, 130,   0) /* 
 MU_PART(objects_after, mu_part_objects_after, 0, 0, 0, 75, 65, 0) /* RenderObjects_AfterCharacter */
 
 MU_PART(characters, mu_part_characters, 0, 21, 0, 0, 0, 0) /* session MoveCharacters, after actor lane */
+
+MU_PART(haze, mu_part_haze, 0, 0, 0, 125, 125, 0) /* screen weather before 2D labels, RENDER-WORLDS-F */
