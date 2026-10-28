@@ -44,9 +44,12 @@ Minimal shared edits:
 Baseline and new binaries were built on this Mac. Baseline gate passed before edits. Baseline binaries and
 source are retained under the scratch directory below.
 
+- Manifest runner over all five charsel rows: 5 pass, 0 fail/error/skip, including the updated
+  character-create count. Captures retain text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`
+  and data SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
 - Private `reconstructed/charsel` suite: 28 tests pass, including all four Unicorn comparisons.
 - Character-create: 4,368 cases, zero mismatches, 6/6 planted mistakes detected. The 300-case run gives the
-  name mutant 60 trials including CP949 lead bytes. Measured at 50.4 seconds with concurrent checks.
+  name mutant 60 trials including CP949 lead bytes. The validator reported 50.4 seconds for comparisons; the manifest run including mutants took 58.7 seconds.
 - Character select: 360 cases across six families, zero mismatches, 12/12 mutants.
 - Legacy charsel window: 20 cases, zero mismatches, 7/7 mutants.
 - GFx charsel: 420 cases across seven families, zero mismatches, 5/5 mutants.
@@ -63,9 +66,14 @@ source are retained under the scratch directory below.
   mu-shell, plus cycling/Enter through mu-charsel, mu-charsel-window in GL/software, and mu-render charsel.
   19 drives, 320 PNGs; exit codes, stdout, stderr and PNG bytes unchanged. Selected character-select PNG
   inspected in the real output. The synthetic textures and incomplete body assets look the same as baseline.
+- Real SDL window recipe with added scene-5 capture: 118 frames in 6.03 seconds, reached scene 6,
+  character-select and world PNGs captured at 1280 x 960. Character-select output inspected; the run was
+  concurrent with tests, so no frame-rate claim.
 - Local macOS gate: `bash scripts/local-macos-ci.sh tools/python/bin/python` passed, 38 suites / 1,283 tests,
-  154 explicit skips, native suite 535 tests / 76 skips; viewer and read-only reader builds, repository audit
-  passed. Reader binaries were built, never run against the client.
+  154 explicit skips, native suite 535 tests / 76 skips. Repeated after merging main `15962e9` into
+  the lane: 38 suites / 1,285 tests, 155 explicit skips, native suite 535 tests / 75 skips. Viewer and read-only
+  reader builds and the repository audit passed, 1,125 staged files / zero rejected on the integrated tree.
+  Reader binaries were built, never run against the client. Both lanes' shared-doc additions were retained.
 
 ## Local artifacts
 

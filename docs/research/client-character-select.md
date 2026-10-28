@@ -798,7 +798,7 @@ The private character-create check now uses `--cases 300 --mutations`, as does i
 This gives 4,368 instruction comparisons with zero mismatches and detects 6/6 planted mistakes, including the
 CP949 mutant that 60 cases missed. The two private charsel tests that referenced the removed `EVIDENCE`
 attribute now let the validator resolve and check its pins, so requested integration reports missing inputs
-as errors. The charcreate run took 50.4 seconds on this Mac with concurrent checks.
+as errors. The manifest run, including mutants, took 58.7 seconds on this Mac.
 
 The comparison scope, exact counts, local artifact paths and limits are in
 [the lane handoff](../handoffs/CHARSEL-RT-001.md). No live client was used.
