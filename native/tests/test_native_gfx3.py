@@ -126,15 +126,16 @@ def window_movie():
 class PatchSeries(unittest.TestCase):
     def test_gfx3_patches_follow_the_gfx2_series(self):
         names = [p.name for p in PATCHES]
-        self.assertEqual(len(names), 7)
+        self.assertEqual(len(names), 8)
         self.assertTrue(names[5].startswith('0006-mu-GFx-movie-load-order'))
         self.assertTrue(names[6].startswith('0007-mu-host-supplied-images'))
+        self.assertTrue(names[7].startswith('0008-mu-host-clock'))
         files6 = {l.split()[2][2:] for l in PATCHES[5].read_text().splitlines() if l.startswith('diff --git')}
         files7 = {l.split()[2][2:] for l in PATCHES[6].read_text().splitlines() if l.startswith('diff --git')}
         self.assertEqual(files6, {'core/src/display_object/movie_clip.rs', 'core/src/loader.rs'})
         self.assertEqual(files7, {'core/src/avm1/runtime.rs', 'core/src/avm1/globals/bitmap_data.rs',
                                   'core/src/player.rs'})
-        for p in PATCHES[5:]:
+        for p in PATCHES[5:7]:  # These provenance/marker checks belong to the two GFx 3 patches.
             text = p.read_text()
             self.assertIn('Co-Authored-By: Claude Opus 5.5', text)
             self.assertIn('mu patch', text)

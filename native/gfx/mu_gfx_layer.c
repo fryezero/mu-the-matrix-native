@@ -71,12 +71,15 @@
 #include "item_slots.h"
 #include "tooltip_html.h"
 #include "mugfx/include/mugfx.h"
+#include "../core/mu_perf.h"
 
 #define MAX_ITEMS 48
 
 /* ---- mugfx, loaded at run time --------------------------------------------- */
 
 typedef struct mugfx_api {
+    void (*perf_frame)(uint64_t);
+    void (*perf_end)(void);
     void *dl;
     int (*abi_version)(void);
     MuGfx *(*open)(const char *, int, int, char *, size_t);
@@ -161,6 +164,8 @@ static int api_load(mugfx_api *api, const char *explicit_path, char *error, size
             return -1;                                                                                         \
         }                                                                                                      \
     } while (0)
+    *(void **)(&api->perf_frame) = dlsym(api->dl, "mugfx_perf_frame");
+    *(void **)(&api->perf_end) = dlsym(api->dl, "mugfx_perf_end");
     SYM(abi_version, "mugfx_abi_version");
     if (api->abi_version() != MUGFX_ABI_VERSION) {
         snprintf(error, cap, "libmugfx ABI %d, expected %d (rebuild it)", api->abi_version(), MUGFX_ABI_VERSION);
@@ -284,6 +289,13 @@ typedef struct hotkey_item {
 #include "mu_gfx_services_state.h"
 
 struct mu_gfx_layer {
+#ifndef MU_GFX_NO_GL
+    struct {
+        GLuint query[8];
+        int64_t frame[8];
+        int checked, supported, active, cursor;
+    } perf_gl;
+#endif
     mu_gfx_layer_config cfg;
     mugfx_api api;
     movie mv[MU_GFX_MOVIES];
@@ -2264,6 +2276,9 @@ void mu_gfx_layer_close(mu_gfx_layer *L)
 {
     if (!L)
         return;
+#ifndef MU_GFX_NO_GL
+    if (L->perf_gl.supported) glDeleteQueries(8, L->perf_gl.query);
+#endif
     for (int m = 0; m < MU_GFX_MOVIES; m++) {
         movie *mv = &L->mv[m];
 #ifndef MU_GFX_NO_GL
@@ -2715,6 +2730,10 @@ static void render_readback(mu_gfx_layer *L, movie *mv, int m)
 
 static void render_movies(mu_gfx_layer *L, int force_readback)
 {
+#ifndef MU_GFX_NO_GL
+    if (L->shared && !force_readback && L->api.perf_frame)
+        L->api.perf_frame((uint64_t)mu_perf_frame_index());
+#endif
     int submitted = 0;
     double t_submit = now_ms();
     for (int m = 0; m < MU_GFX_MOVIES; m++) {
@@ -2747,6 +2766,7 @@ static void render_movies(mu_gfx_layer *L, int force_readback)
         L->gpu_wait_ms += wait;
         L->gpu_waits++;
     }
+    if (L->shared && !force_readback && L->api.perf_end) L->api.perf_end();
 }
 
 void mu_gfx_layer_render(mu_gfx_layer *L)
@@ -3966,12 +3986,50 @@ int mu_gfx_layer_mix_action(mu_gfx_layer *L,const char *verb,int a,int b)
 
 #include "mu_gfx_services.inc"
 
+/* Disjoint from the world query. No wait and no reuse of pending queries. */
+#ifndef MU_GFX_NO_GL
+static void perf_gl_begin(mu_gfx_layer *L)
+{
+    if (!mu_perf_enabled()) return;
+    if (!L->perf_gl.checked) {
+        const char *ext = (const char *)glGetString(GL_EXTENSIONS);
+        L->perf_gl.supported = ext && (strstr(ext, "GL_EXT_timer_query") || strstr(ext, "GL_ARB_timer_query"));
+        L->perf_gl.checked = 1;
+        if (L->perf_gl.supported) {
+            glGenQueries(8, L->perf_gl.query);
+            for (int i = 0; i < 8; ++i) L->perf_gl.frame[i] = -1;
+        }
+    }
+    if (!L->perf_gl.supported) return;
+    int i = L->perf_gl.cursor;
+    if (L->perf_gl.frame[i] >= 0) {
+        GLint ready = 0;
+        glGetQueryObjectiv(L->perf_gl.query[i], GL_QUERY_RESULT_AVAILABLE, &ready);
+        if (!ready) return;
+        GLuint64EXT ns = 0;
+        glGetQueryObjectui64vEXT(L->perf_gl.query[i], GL_QUERY_RESULT, &ns);
+        mu_perf_gpu_gfx_sample((double)ns / 1.0e6, L->perf_gl.frame[i]);
+    }
+    L->perf_gl.frame[i] = mu_perf_frame_index();
+    glBeginQuery(GL_TIME_ELAPSED_EXT, L->perf_gl.query[i]);
+    L->perf_gl.active = 1;
+}
+static void perf_gl_end(mu_gfx_layer *L)
+{
+    if (!L->perf_gl.active) return;
+    glEndQuery(GL_TIME_ELAPSED_EXT);
+    L->perf_gl.active = 0;
+    L->perf_gl.cursor = (L->perf_gl.cursor + 1) % 8;
+}
+#endif
+
 void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
 {
 #ifndef MU_GFX_NO_GL
     if (!L)
         return;
     render_movies(L, 0);
+    perf_gl_begin(L);
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -4038,6 +4096,7 @@ void mu_gfx_layer_draw_gl(mu_gfx_layer *L)
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
     glPopAttrib();
+    perf_gl_end(L);
 #else
     (void)L;
 #endif

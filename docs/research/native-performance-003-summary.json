@@ -1,0 +1,510 @@
+{
+  "milestone": "NATIVE-PERF-003",
+  "date": "2026-10-28",
+  "evidence_class": "reviewed run summary and artifact provenance; no client bytes or images",
+  "timing_source_commit": "1529b8c42d7da8c22c6556465e9a162a96ac6507",
+  "timing_origin_main": "c769a5d51b0192821a05da9bb8070dd5e0bc762e",
+  "settings": {
+    "duration_seconds": 60,
+    "discard_first_frames": 50,
+    "mode": "window-capped",
+    "as2_clock": "normal wall time",
+    "gfx_presentation": "asynchronous double buffer",
+    "run_order": [
+      "crowd40 before",
+      "crowd40 after",
+      "crowd80 after",
+      "crowd80 before",
+      "tormenta80 before",
+      "tormenta80 after",
+      "retina80 after",
+      "retina80 before"
+    ],
+    "reference_c": "NATIVE_PERF_LTO=0; --perf-003-baseline",
+    "reference_rust": "CARGO_PROFILE_RELEASE_LTO=false; CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16",
+    "optimized_c": "default macOS O3/ThinLTO; contraction and fast math disabled",
+    "optimized_rust": "default release ThinLTO; codegen-units=1"
+  },
+  "timings": [
+    {
+      "scenario": "crowd40",
+      "build": "before",
+      "frames": 1355,
+      "fps": 24.781625867423205,
+      "frame_ms": {
+        "p50": 40.197,
+        "p90": 46.3634,
+        "p95": 48.4963,
+        "p99": 52.801780000000015,
+        "mean": 40.3524774907749
+      },
+      "work_ms": {
+        "p50": 34.845,
+        "p90": 40.8,
+        "p95": 42.6997,
+        "p99": 46.1562,
+        "mean": 35.25693726937269
+      },
+      "cpu_ms": 30.791772693726937,
+      "world_gl_ms": 15.619481069042315,
+      "gfx_gl_ms": 0.4582279138827023,
+      "metal_ms": 4.020040067332896,
+      "metal_samples": 1355,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "1d882438253387b519cb51b503135f661e899b289ebaa19acf96a3f29acf93c1",
+      "gfx_sha256": "0cae9a2f8c6c7612c9bd6b9aa3749045c51a35cb38f477140c18fcc8db0be439",
+      "load_start": [
+        9.68359375,
+        8.58154296875,
+        6.697265625
+      ]
+    },
+    {
+      "scenario": "crowd40",
+      "build": "after",
+      "frames": 1363,
+      "fps": 24.89725543835153,
+      "frame_ms": {
+        "p50": 40.012,
+        "p90": 40.1298,
+        "p95": 40.6399,
+        "p99": 43.74212000000004,
+        "mean": 40.165069699192955
+      },
+      "work_ms": {
+        "p50": 33.301,
+        "p90": 38.578,
+        "p95": 40.166399999999996,
+        "p99": 43.74012000000004,
+        "mean": 33.574959647835655
+      },
+      "cpu_ms": 29.229170212765954,
+      "world_gl_ms": 15.184177121771219,
+      "gfx_gl_ms": 0.45609077490774913,
+      "metal_ms": 3.9567319025105836,
+      "metal_samples": 1363,
+      "strict_failures": [
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "95f4d52c9366d5e2983b4f45e4f3586a6ea7956b9f3d5dc5c07898c442935db4",
+      "gfx_sha256": "f9683a8ae0cfba63fc4463d4b4fe5e01bc614c9194d6db97084ef003f92dc63e",
+      "load_start": [
+        7.8251953125,
+        8.2412109375,
+        6.70458984375
+      ]
+    },
+    {
+      "scenario": "crowd80",
+      "build": "before",
+      "frames": 856,
+      "fps": 16.518365131861614,
+      "frame_ms": {
+        "p50": 59.644000000000005,
+        "p90": 70.894,
+        "p95": 75.385,
+        "p99": 99.21550000000008,
+        "mean": 60.538678738317756
+      },
+      "work_ms": {
+        "p50": 59.641000000000005,
+        "p90": 70.89150000000001,
+        "p95": 75.38275000000002,
+        "p99": 99.21295000000008,
+        "mean": 60.53601869158879
+      },
+      "cpu_ms": 57.65900700934579,
+      "world_gl_ms": 22.92669575471698,
+      "gfx_gl_ms": 0.6732287735849057,
+      "metal_ms": 7.113766939451082,
+      "metal_samples": 856,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "1d882438253387b519cb51b503135f661e899b289ebaa19acf96a3f29acf93c1",
+      "gfx_sha256": "0cae9a2f8c6c7612c9bd6b9aa3749045c51a35cb38f477140c18fcc8db0be439",
+      "load_start": [
+        7.3837890625,
+        7.880859375,
+        6.767578125
+      ]
+    },
+    {
+      "scenario": "crowd80",
+      "build": "after",
+      "frames": 943,
+      "fps": 18.36545216561205,
+      "frame_ms": {
+        "p50": 53.619,
+        "p90": 62.2474,
+        "p95": 65.2394,
+        "p99": 75.56414000000001,
+        "mean": 54.45006150583245
+      },
+      "work_ms": {
+        "p50": 53.617,
+        "p90": 62.2446,
+        "p95": 65.2365,
+        "p99": 75.56156000000001,
+        "mean": 54.447967126193
+      },
+      "cpu_ms": 52.270251325556735,
+      "world_gl_ms": 22.04949732620321,
+      "gfx_gl_ms": 0.6717700534759359,
+      "metal_ms": 6.700274302032336,
+      "metal_samples": 943,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "95f4d52c9366d5e2983b4f45e4f3586a6ea7956b9f3d5dc5c07898c442935db4",
+      "gfx_sha256": "f9683a8ae0cfba63fc4463d4b4fe5e01bc614c9194d6db97084ef003f92dc63e",
+      "load_start": [
+        6.89013671875,
+        7.90087890625,
+        6.6884765625
+      ]
+    },
+    {
+      "scenario": "tormenta80",
+      "build": "before",
+      "frames": 762,
+      "fps": 15.398112749103879,
+      "frame_ms": {
+        "p50": 61.7485,
+        "p90": 79.6218,
+        "p95": 88.6382,
+        "p99": 106.45337999999998,
+        "mean": 64.94302362204725
+      },
+      "work_ms": {
+        "p50": 61.745,
+        "p90": 79.6197,
+        "p95": 88.63525,
+        "p99": 106.45076999999999,
+        "mean": 64.94032283464567
+      },
+      "cpu_ms": 61.55062992125985,
+      "world_gl_ms": 25.57596153846154,
+      "gfx_gl_ms": 0.6810477453580902,
+      "metal_ms": 7.258964785673531,
+      "metal_samples": 762,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "1d882438253387b519cb51b503135f661e899b289ebaa19acf96a3f29acf93c1",
+      "gfx_sha256": "0cae9a2f8c6c7612c9bd6b9aa3749045c51a35cb38f477140c18fcc8db0be439",
+      "load_start": [
+        7.3974609375,
+        7.77001953125,
+        6.8037109375
+      ]
+    },
+    {
+      "scenario": "tormenta80",
+      "build": "after",
+      "frames": 978,
+      "fps": 18.94410589979893,
+      "frame_ms": {
+        "p50": 52.152,
+        "p90": 60.7011,
+        "p95": 63.1836,
+        "p99": 68.41978,
+        "mean": 52.78686707566462
+      },
+      "work_ms": {
+        "p50": 52.15,
+        "p90": 60.699099999999994,
+        "p95": 63.18245,
+        "p99": 68.41701,
+        "mean": 52.78458895705521
+      },
+      "cpu_ms": 51.36160327198364,
+      "world_gl_ms": 22.19737113402062,
+      "gfx_gl_ms": 0.6917340206185567,
+      "metal_ms": 6.242009670881208,
+      "metal_samples": 978,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "95f4d52c9366d5e2983b4f45e4f3586a6ea7956b9f3d5dc5c07898c442935db4",
+      "gfx_sha256": "f9683a8ae0cfba63fc4463d4b4fe5e01bc614c9194d6db97084ef003f92dc63e",
+      "load_start": [
+        7.7060546875,
+        7.7958984375,
+        6.8828125
+      ]
+    },
+    {
+      "scenario": "retina80",
+      "build": "before",
+      "frames": 688,
+      "fps": 13.585016832191277,
+      "frame_ms": {
+        "p50": 71.186,
+        "p90": 87.27069999999999,
+        "p95": 93.3869,
+        "p99": 111.66144,
+        "mean": 73.61050872093023
+      },
+      "work_ms": {
+        "p50": 71.1825,
+        "p90": 87.268,
+        "p95": 93.3839,
+        "p99": 111.65857,
+        "mean": 73.6072456395349
+      },
+      "cpu_ms": 68.10794912790698,
+      "world_gl_ms": 30.33513088235294,
+      "gfx_gl_ms": 2.3502911764705883,
+      "metal_ms": 10.511367066883818,
+      "metal_samples": 688,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "1d882438253387b519cb51b503135f661e899b289ebaa19acf96a3f29acf93c1",
+      "gfx_sha256": "0cae9a2f8c6c7612c9bd6b9aa3749045c51a35cb38f477140c18fcc8db0be439",
+      "load_start": [
+        8.349609375,
+        7.78662109375,
+        6.9912109375
+      ]
+    },
+    {
+      "scenario": "retina80",
+      "build": "after",
+      "frames": 899,
+      "fps": 17.580561554425145,
+      "frame_ms": {
+        "p50": 56.769,
+        "p90": 61.4694,
+        "p95": 62.8124,
+        "p99": 65.62162,
+        "mean": 56.88100444938821
+      },
+      "work_ms": {
+        "p50": 56.768,
+        "p90": 61.4666,
+        "p95": 62.809599999999996,
+        "p99": 65.61962,
+        "mean": 56.878929922135704
+      },
+      "cpu_ms": 52.257875417130144,
+      "world_gl_ms": 25.555719416386083,
+      "gfx_gl_ms": 2.8489618406285073,
+      "metal_ms": 10.216946190437282,
+      "metal_samples": 899,
+      "strict_failures": [
+        "capped fps outside 24.8..25.2",
+        "work p95 > 38 ms or p99 > 40 ms",
+        "frame pacing p95 > 41 ms or p99 > 42 ms"
+      ],
+      "regression_failures": [],
+      "binary_sha256": "95f4d52c9366d5e2983b4f45e4f3586a6ea7956b9f3d5dc5c07898c442935db4",
+      "gfx_sha256": "f9683a8ae0cfba63fc4463d4b4fe5e01bc614c9194d6db97084ef003f92dc63e",
+      "load_start": [
+        6.669921875,
+        7.4384765625,
+        6.81640625
+      ]
+    }
+  ],
+  "measured_frames": 7844,
+  "missing_metal_frames": 0,
+  "regression_passes": 8,
+  "strict_passes": 0,
+  "frame_comparison": {
+    "as2_clock": "accumulated advance time",
+    "gfx_presentation": "synchronous single buffer",
+    "scenarios": {
+      "crowd40": {
+        "identical_frames": 151,
+        "frame_range": [
+          0,
+          150
+        ],
+        "hashes_sha256": "7134f81f3c75fd9e1822505c2b2615ecb60aeaeabb0f940795128d461f447f9c",
+        "reference_binary_sha256": "213132c6e77c1533275f2ce6aa64337284fdfb8ca85948c7843073e72e7bbfef",
+        "optimized_binary_sha256": "54e3684b7126cdc5e020c9f82de49acfd86fb1029dd516127918b3f3e380f44b",
+        "reference_gfx_sha256": "eba792a4cec0870e8e368d3b3fbf692285c1d099beaada8d17b8f46169cf53ea",
+        "optimized_gfx_sha256": "19534e007dc96e196dfcab05f9a583914a694ad5f13c7f59b2faad25fb73c60a"
+      },
+      "crowd80": {
+        "identical_frames": 151,
+        "frame_range": [
+          0,
+          150
+        ],
+        "hashes_sha256": "6d03193a9834bbcf7370c91a61d59157117b8c492339487a7d154cf735775108",
+        "reference_binary_sha256": "213132c6e77c1533275f2ce6aa64337284fdfb8ca85948c7843073e72e7bbfef",
+        "optimized_binary_sha256": "54e3684b7126cdc5e020c9f82de49acfd86fb1029dd516127918b3f3e380f44b",
+        "reference_gfx_sha256": "eba792a4cec0870e8e368d3b3fbf692285c1d099beaada8d17b8f46169cf53ea",
+        "optimized_gfx_sha256": "19534e007dc96e196dfcab05f9a583914a694ad5f13c7f59b2faad25fb73c60a"
+      },
+      "tormenta80": {
+        "identical_frames": 151,
+        "frame_range": [
+          0,
+          150
+        ],
+        "hashes_sha256": "741dffadc34f26c428a3ff7d43eba6f6442f363522906cd3a9aa64f740993b33",
+        "reference_binary_sha256": "213132c6e77c1533275f2ce6aa64337284fdfb8ca85948c7843073e72e7bbfef",
+        "optimized_binary_sha256": "54e3684b7126cdc5e020c9f82de49acfd86fb1029dd516127918b3f3e380f44b",
+        "reference_gfx_sha256": "eba792a4cec0870e8e368d3b3fbf692285c1d099beaada8d17b8f46169cf53ea",
+        "optimized_gfx_sha256": "19534e007dc96e196dfcab05f9a583914a694ad5f13c7f59b2faad25fb73c60a"
+      },
+      "retina80": {
+        "identical_frames": 151,
+        "frame_range": [
+          0,
+          150
+        ],
+        "hashes_sha256": "ec1720d193fe2771835034f1043a41a8c24dd3b8737cd01cf2b536fe7fbff97d",
+        "reference_binary_sha256": "213132c6e77c1533275f2ce6aa64337284fdfb8ca85948c7843073e72e7bbfef",
+        "optimized_binary_sha256": "54e3684b7126cdc5e020c9f82de49acfd86fb1029dd516127918b3f3e380f44b",
+        "reference_gfx_sha256": "eba792a4cec0870e8e368d3b3fbf692285c1d099beaada8d17b8f46169cf53ea",
+        "optimized_gfx_sha256": "19534e007dc96e196dfcab05f9a583914a694ad5f13c7f59b2faad25fb73c60a"
+      }
+    },
+    "identical_frames": 604,
+    "limitations": "Does not assert identical asynchronous frame selection or normal wall-time tween phase."
+  },
+  "meshdraw_oracle": {
+    "draw_cases": 843,
+    "pinned_cases": 247,
+    "texture_names": 13529,
+    "mismatches": 0,
+    "negative_controls_detected": 4,
+    "negative_controls_total": 4,
+    "uncovered_branches": 0,
+    "installed_models_skipped": 14,
+    "limitation": "Compares the reconstructed draw library with x86 instructions; native host/compiler equivalence is a separate full-frame check."
+  },
+  "region_probe": {
+    "production_calls": 120000,
+    "batches": 8,
+    "calls_per_batch": 15000,
+    "reference_cpu_ms_mean": 552.265,
+    "ordered_cpu_ms_mean": 404.728,
+    "mapped_bytes_equal": true,
+    "synthetic_dump_pairs": 14,
+    "limitation": "Local transform cost only; unfavorable shared-host frame ablations retained in the finding."
+  },
+  "focused_checks": {
+    "perf": {
+      "tests": 11,
+      "skips": 2
+    },
+    "stress_metal_clock": {
+      "tests": 16,
+      "skips": 0
+    },
+    "gfx2": {
+      "tests": 15,
+      "skips": 2
+    },
+    "gfx3": {
+      "tests": 12,
+      "skips": 2
+    }
+  },
+  "cleanup": "All native-perf-003 scratch, renders, builds and worktree removed after merge. Only four README candidate PNGs, commands.json, regenerate.py and capture-notes.md remain as future README-task inputs in renders/readme-candidates/stress80, named in the handoff.",
+  "readme_candidates": [
+    {
+      "file": "perf003-crowd80-f0180.png",
+      "scenario": "crowd80",
+      "fov": 65,
+      "frame": 180,
+      "matching_full_ui_benchmark_fps": 18.37,
+      "capture_fps": null,
+      "fps_boundary": "Headless presentation capture is not timed. Full-UI benchmark fps is contextual only.",
+      "sha256": "b90db102efd052ec52ec73f00ad093a3a5f27477694674621db3837c9a0f9681",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "file": "perf003-tormenta80-f0180.png",
+      "scenario": "tormenta80",
+      "fov": 65,
+      "frame": 180,
+      "matching_full_ui_benchmark_fps": 18.94,
+      "capture_fps": null,
+      "fps_boundary": "Headless presentation capture is not timed. Full-UI benchmark fps is contextual only.",
+      "sha256": "d4c15c8e7818eacd92bb633ed3c850023203b1037eb43200a34e90daec06278d",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "file": "perf003-retina80-f0180.png",
+      "scenario": "retina80",
+      "fov": 65,
+      "frame": 180,
+      "matching_full_ui_benchmark_fps": 17.58,
+      "capture_fps": null,
+      "fps_boundary": "Headless presentation capture is not timed. Full-UI benchmark fps is contextual only.",
+      "sha256": "5949873927f216073dbc718a9d588173b23c03e93701fc9ab85baf8dfd3467b7",
+      "width": 3456,
+      "height": 2160
+    },
+    {
+      "file": "perf003-crowd80-wide-f0120.png",
+      "scenario": "crowd80",
+      "fov": 80,
+      "frame": 120,
+      "matching_full_ui_benchmark_fps": 18.37,
+      "capture_fps": null,
+      "fps_boundary": "Headless presentation capture is not timed. Full-UI benchmark fps is contextual only.",
+      "sha256": "681c2bec91f0b25140be84a34e8f71069c6370c498d69370dae0b92144ace2b5",
+      "width": 1280,
+      "height": 800
+    }
+  ],
+  "final_gate": {
+    "command": "bash scripts/local-macos-ci.sh",
+    "integrated_origin_main": "cb4bd9c",
+    "tested_base_commit": "df94a207edb4d9635e388252bd633542498ceefa",
+    "working_tree_test_fix": {
+      "path": "native/tests/test_native_gfx3.py",
+      "blob_sha1": "f18cd4dc5a3d226fb25fe74c8843e976ceba942a",
+      "reason": "Recognize patch 8; restrict GFx 3 provenance assertions to patches 6 and 7."
+    },
+    "tests": 1489,
+    "suites": 38,
+    "skips": 170,
+    "failures": 0,
+    "fixture_scenarios_passed": 7,
+    "fixture_scenarios_failed": 0,
+    "fixture_expectations": 50,
+    "fixture_inbound_frames": 53,
+    "fixture_unbound_frames": 0,
+    "fixture_undecodable_frames": 0,
+    "fixture_unrecovered_intents": 2,
+    "fixture_unsent_frames": 5,
+    "audit_files": 1384,
+    "audit_rejections": 0,
+    "mac_build_checks_passed": true,
+    "gfx_library_sha256": "a7e2c9777becacdc178096fba87dd0fcc858816da13473f81e6ba8f05a578968",
+    "initial_attempt": "One stale GFx 3 patch-count assertion failed; focused correction and full rerun pass."
+  }
+}

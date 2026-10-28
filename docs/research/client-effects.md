@@ -38,6 +38,10 @@ texture manager `0x00a8fb55` (returns no texture or a fake one), the terrain hei
 (no-ops) and the heap imports. Section-3 bytes beyond the initialized part start zeroed; the report lists every
 section-3 address a case read before writing it.
 
+The private tests now pin exactly this initialized range. The original whole capture was recovered locally;
+[INTEGRATION-GREEN-001](private-integration-inputs.md#effects-input-scope) records the scope change and why the
+fresh guest read remains rejected.
+
 ## 1. Data model (compared)
 
 * `.ein` is JSON. `Type` 0 is a particle system (vtable `0x01a81d0c`, 0x158-byte object), `Type` 1 a billboard

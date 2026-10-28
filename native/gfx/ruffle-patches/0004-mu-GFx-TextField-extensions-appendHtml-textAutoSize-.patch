@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: fryezero <108418382+fryezero@users.noreply.github.com>
 Date: Sun, 18 Oct 2026 14:35:25 -0500
-Subject: [PATCH 4/7] mu: GFx TextField extensions (appendHtml, textAutoSize,
+Subject: [PATCH 4/8] mu: GFx TextField extensions (appendHtml, textAutoSize,
  verticalAlign)
 
 appendHtml(html) appends to the field's HTML; textAutoSize "shrink" scales

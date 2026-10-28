@@ -35,6 +35,20 @@ class BenchmarkContract(unittest.TestCase):
                     self.assertEqual(caught.exception.code, 2)
                     self.assertIn(f'{key} would omit part of the stress workload', err.getvalue())
 
+    def test_metal_cannot_silently_report_readback_as_cached_zero(self):
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            with self.assertRaises(SystemExit):
+                bench.main(['--game-root', '/unused', '--data', '/unused', '--gfx-lib', '/unused',
+                            '--out', '/unused', '--headless', '--gpu-timing'])
+        self.assertIn('requires the window shared-surface path', err.getvalue())
+
+    def test_test_clock_is_rejected_in_timing_even_when_empty(self):
+        with mock.patch.dict(os.environ, MU_GFX_TEST_CLOCK=''), \
+                contextlib.redirect_stderr(io.StringIO()) as err:
+            with self.assertRaises(SystemExit):
+                bench.main(['--game-root', '/unused', '--data', '/unused', '--gfx-lib', '/unused', '--out', '/unused'])
+        self.assertIn('only for deterministic render comparisons', err.getvalue())
+
     def test_generated_crowd_has_eighty_distinct_equipped_players(self):
         with tempfile.TemporaryDirectory() as tmp:
             p, a = bench.fixtures(Path(tmp), (182, 128), 80)
@@ -48,7 +62,7 @@ class BenchmarkContract(unittest.TestCase):
             self.assertEqual(len(actors), 32)
 
     def test_budget_rejects_slow_or_short_measurements(self):
-        r = {'frames': 200, 'fps': 25.0, 'work_ms': {'p95': 30, 'p99': 35}}
+        r = {'frames': 200, 'fps': 25.0, 'work_ms': {'p95': 30, 'p99': 35}, 'frame_ms': {'p95': 40, 'p99': 41}}
         self.assertEqual(bench.check(r, headless=False), [])
         for key, value in [('fps', 24.5), ('frames', 99)]:
             self.assertTrue(bench.check(dict(r, **{key: value}), headless=False))
@@ -56,13 +70,53 @@ class BenchmarkContract(unittest.TestCase):
         self.assertTrue(bench.check(dict(r, fps=24.9), headless=True))
         self.assertEqual(bench.check(dict(r, fps=90), headless=True), [])
 
+    def test_nonfinite_or_missing_metrics_cannot_pass(self):
+        r = {'frames': 200, 'fps': 25.0, 'work_ms': {'p95': 30, 'p99': 35},
+             'frame_ms': {'p95': 40, 'p99': 41}}
+        for value in (float('nan'), float('inf'), -1, None):
+            self.assertTrue(bench.check(dict(r, fps=value), headless=True))
+            self.assertTrue(bench.check(dict(r, work_ms={'p95': value, 'p99': 35}), headless=False))
+        self.assertTrue(bench.check(dict(r, frame_ms={}), headless=False))
+
+    def test_interrupted_run_is_not_a_completed_benchmark(self):
+        r = {'frames': 750, 'frame_ms': {'mean': 40}}
+        self.assertFalse(bench.measurement_complete(r, headless=False, frames=300, seconds=60))
+        self.assertTrue(bench.measurement_complete(r, headless=False, frames=300, seconds=30))
+        self.assertFalse(bench.measurement_complete(r, headless=True, frames=1000, seconds=30))
+        self.assertTrue(bench.measurement_complete(r, headless=True, frames=750, seconds=30))
+
+    def test_pacing_tails_fail_even_at_25_fps(self):
+        result = {'frames': 200, 'fps': 25, 'work_ms': {'p95': 30, 'p99': 35},
+                  'frame_ms': {'p95': 44, 'p99': 46}}
+        self.assertIn('frame pacing p95 > 41 ms or p99 > 42 ms', bench.check(result, headless=False))
+
+    def test_metal_missing_unsupported_invalid_and_cached_frames(self):
+        import perf_report
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / 'metal.jsonl'
+            rows = [{'supported': True}, {'frame': 1, 'gpu_ms': 2}, {'frame': 1, 'gpu_ms': 3},
+                    {'frame': 1, 'event': 'end', 'submissions': 2},
+                    {'frame': 2, 'event': 'end', 'submissions': 0},
+                    {'frame': 3, 'event': 'end', 'submissions': 1},
+                    {'frame': 4, 'map_error': True}, {'frame': 4, 'event': 'end', 'submissions': 1},
+                    {'frame': 0, 'gpu_ms': 999}, {'frame': 5, 'gpu_ms': -1},
+                    {'frame': 5, 'event': 'end', 'submissions': 1}]
+            log.write_text('\n'.join(map(json.dumps, rows)))
+            r = perf_report.metal_summary(log, {1, 2, 3, 4, 5, 6})
+            self.assertEqual((r['samples'], r['missing_frames'], r['mean']), (2, 4, 2.5))
+            rows[0]['supported'] = False
+            log.write_text('\n'.join(map(json.dumps, rows)))
+            self.assertIsNone(perf_report.metal_summary(log, {1, 2})['mean'])
+
     def test_regression_ceiling_is_separate_from_the_25_hz_target(self):
         limits = {'min_fps': 18, 'work_p95_ms': 68, 'work_p99_ms': 80, 'cpu_mean_ms': 55}
         result = {'frames': 200, 'fps': 21, 'work_ms': {'p95': 56, 'p99': 63},
-                  'phases': {'cpu': {'mean': 45}}}
+                  'phases': {'cpu': {'mean': 45}}, 'frame_ms': {'p95': 57, 'p99': 65}}
         self.assertEqual(bench.regression(result, limits), [])
         self.assertTrue(bench.check(result, headless=False))
         self.assertTrue(bench.regression(dict(result, fps=15), limits))
+        self.assertTrue(bench.regression(dict(result, fps=float('nan')), limits))
+        self.assertTrue(bench.regression(dict(result, phases={'cpu': {'mean': float('nan')}}), limits))
         self.assertTrue(bench.regression(dict(result, phases={'cpu': {'mean': 60}}), limits))
         self.assertTrue(bench.regression(dict(result, work_ms={'p95': 90, 'p99': 100}), limits))
 
@@ -81,6 +135,47 @@ class BenchmarkContract(unittest.TestCase):
         rows[0]['players']['viewport_packets'] = 8
         with self.assertRaises(ValueError):
             bench.workload(rows, 80)
+
+
+@unittest.skipUnless(sys.platform == 'darwin' and
+                     (NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib').exists(),
+                     'needs the built Metal GFx library')
+class MetalTiming(unittest.TestCase):
+    def test_as2_clock_is_pinned_only_on_request(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lib = NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib'
+            for pinned in (False, True):
+                env = dict(os.environ)
+                env.pop('MU_GFX_TEST_CLOCK', None)
+                if pinned:
+                    env['MU_GFX_TEST_CLOCK'] = '1'
+                r = subprocess.run([sys.executable, str(HERE / 'perf_gfx_clock_host.py'),
+                                    str(Path(tmp) / 'clock.swf'), str(lib)],
+                                   env=env, capture_output=True, text=True, timeout=60)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                values = json.loads(r.stdout.strip())
+                if pinned:
+                    self.assertEqual(values, [0, 0, 40])
+                else:
+                    self.assertGreaterEqual(values[1] - values[0], 30)
+
+    def test_complete_queue_frames_cached_marker_and_shutdown_drain(self):
+        import perf_report
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / 'metal.jsonl'
+            lib = NATIVE / 'gfx/mugfx/target/release/libmugfx.dylib'
+            r = subprocess.run([sys.executable, str(HERE / 'perf_metal_host.py'),
+                                str(Path(tmp) / 'authored.swf'), str(lib)],
+                               env=dict(os.environ, MU_GFX_GPU_LOG=str(log)),
+                               capture_output=True, text=True, timeout=60)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            result = perf_report.metal_summary(log, {0, 1, 2})
+            self.assertTrue(result['supported'])
+            self.assertEqual((result['samples'], result['missing_frames']), (3, 0))
+            self.assertGreater(result['mean'], 0)
+            records = [json.loads(line) for line in log.read_text().splitlines()]
+            self.assertIn({'frame': 1, 'event': 'end', 'submissions': 0}, records)
+            self.assertEqual({r['frame'] for r in records if 'gpu_ms' in r}, {0, 2})
 
 
 class DirectCornerStream(unittest.TestCase):

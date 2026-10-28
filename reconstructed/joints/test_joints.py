@@ -199,11 +199,8 @@ class JointTests(unittest.TestCase):
 @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'set MU_RECOVERY_INTEGRATION=1')
 class ClientComparison(unittest.TestCase):
     def test_unicorn_comparison(self):
-        v = vj()
-        text = Path(v.default_evidence('x86-text-capture-09/client-text.bin'))
-        if not text.exists():
-            self.skipTest('restored text capture not present')
-        result = subprocess.run([sys.executable, str(ROOT/'scripts/validate_joints.py'), '--cases', '60'],
+        text = vj().pins.TEXT.require()
+        result = subprocess.run([sys.executable, str(ROOT/'scripts/validate_joints.py'), '--text', str(text), '--cases', '60'],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout[-3000:] + result.stderr[-2000:])
 

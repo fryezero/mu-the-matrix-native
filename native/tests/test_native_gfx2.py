@@ -2,7 +2,7 @@
 
 Portable (synthetic data authored here, no client bytes):
   * the Ruffle patch series (native/gfx/ruffle-patches) is a well-formed
-    `git am` series (five NATIVE-GFX-002 patches, two more since
+    `git am` series (five NATIVE-GFX-002 patches, later extensions since
     NATIVE-GFX-003) that only touches Ruffle's core crate; when a
     pristine pinned Ruffle checkout is present ($MU_GFX_DEPS), it applies;
   * gfxconvert.py replaces a GFx DefineCompactedFont by the same-named
@@ -169,7 +169,7 @@ def lines_after(out, op):
 
 class PatchSeries(unittest.TestCase):
     def test_series_is_well_formed(self):
-        self.assertEqual(len(PATCHES), 7)   # 0001-0005 NATIVE-GFX-002, 0006-0007 NATIVE-GFX-003
+        self.assertEqual(len(PATCHES), 8)   # GFx extensions and PERF-003 comparison clock
         subjects = []
         for i, p in enumerate(PATCHES, 1):
             text = p.read_text()
@@ -180,7 +180,7 @@ class PatchSeries(unittest.TestCase):
             files = re.findall(r'^diff --git a/(\S+) b/', text, re.M)
             self.assertTrue(files)
             self.assertTrue(all(f.startswith('core/src/') for f in files), files)
-            self.assertIn('Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>', text)
+            self.assertRegex(text, r'(?m)^From: .+ <[^>]+>$')
         joined = '\n'.join(subjects)
         for word in ('onPressAux', 'hitTestDisable', 'Selection', 'TextField', 'host view', 'load order',
                      'host-supplied images'):

@@ -1,5 +1,7 @@
 # Continue from here
 
+INTEGRATION-GREEN-001: [handoff](handoffs/INTEGRATION-GREEN-001.md). Full offline integration is green with explicit optional skips; captures and corpus identity are documented. No new local input retained; lane artifacts are removed after merge.
+
 RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.
 
 RENDER-WORLDS-E: [handoff](handoffs/RENDER-WORLDS-E.md). Elbeland boids and Raklion event timer implemented; Aida light accumulation attributed. Full Mac gate passes, 1,463 tests; fourteen-view scores/hashes unchanged.
@@ -372,6 +374,7 @@ is the CharacterSelect movie's game side (compare with `scripts/validate_charsel
 local (`~/Documents/mu-mac-tools/native/renders/charsel3/`; JPEXS output and the probe in `scratch/charsel3/`). Next: the create-character panel (offline: local
 characters) and the GFx menu; class-name codes 9/10.
 - NATIVE-PERF-002: integrated timings, matching render hashes and the remaining 80-player/pacing shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
+- NATIVE-PERF-003: [measurements, exact full-frame comparisons and remaining 80-player target](handoffs/NATIVE-PERF-003.md). Final real-time comparisons and full Metal intervals are recorded; strict 25 Hz work/pacing acceptance remains open. AS2 wall time is pinned only for image comparisons.
 
 ## Native frame time and window (NATIVE-PERF-001)
 

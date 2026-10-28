@@ -22,6 +22,11 @@ The new fixture contains 91 independently generated synthetic oracle vectors cov
 
 Current complete results are `model-recovery/verified-v14/manifest.json`. Three v14 models were exported as JSON/OBJ. Independent decoded hashes are in `evidence/v14-source/project-oracle-comparison.json`. These remain ignored local artifacts. This is structural recovery; original rendering and gameplay remain unverified.
 
+INTEGRATION-GREEN-001 re-pins the strict, no-export scan from `fffcbad9…` to `27afde53…`.
+All input identities agree; three export annotations and 17 improved rejection messages explain the difference.
+Full digests and the exact reproducible scan command are recorded in
+[INTEGRATION-GREEN-001](research/private-integration-inputs.md#model-corpus-manifest-provenance).
+
 Build with Crypto++ installed, then `make -C model-recovery`. The Python v10/v12 readers and v15 Python fallback remain usable independently, but the complete default build/test suite now requires Crypto++ for v14.
 
 

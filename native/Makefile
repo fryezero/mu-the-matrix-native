@@ -16,7 +16,18 @@ BUILD := build
 UNAME := $(shell uname -s)
 
 WARN := -Wall -Wextra -Werror -Wconversion
-CFLAGS := -std=c11 -O2 -ffp-contract=off -fno-fast-math $(WARN)
+# NATIVE-PERF-003: optimize the native host across translation units while
+# retaining the reconstructed binary32 arithmetic contract. The portable
+# build keeps its existing flags and does not require an LTO linker plugin.
+ifeq ($(UNAME),Darwin)
+NATIVE_PERF_LTO ?= 1
+endif
+ifeq ($(NATIVE_PERF_LTO),1)
+NATIVE_OPT := -O3 -flto=thin
+else
+NATIVE_OPT := -O2
+endif
+CFLAGS := -std=c11 $(NATIVE_OPT) -ffp-contract=off -fno-fast-math $(WARN)
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Werror -Wconversion
 
 CRYPTOPP_PREFIX ?= $(shell if command -v brew >/dev/null 2>&1; then brew --prefix cryptopp; else echo /usr; fi)
@@ -131,10 +142,11 @@ $(BUILD)/core/%.o: core/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $@
 
-# Reconstructed sources are compiled unchanged with their own module's flags.
+# Reconstructed sources stay unchanged. Keep their arithmetic flags while
+# allowing the native-only ThinLTO build to inline the memory/vector helpers.
 $(BUILD)/recon/%.o: $(RECON)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -ffp-contract=off -c $< -o $@
+	$(CC) -std=c11 $(NATIVE_OPT) -Wall -Wextra -Werror -Wconversion -ffp-contract=off -fno-fast-math -c $< -o $@
 
 $(MODULUS_OBJ): ../model-recovery/modulus.cpp
 	@mkdir -p $(dir $@)
@@ -561,8 +573,9 @@ $(BUILD)/fixture/%.o: fixture/%.c $(HEADERS)
 
 $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
 
-# SESSION-COMBAT-001: core combat submits generated intents before the session library builds.
-$(BUILD)/core/mu_combat.o: $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
+# Core facades consume session headers too, including generated intents and layouts.
+$(CORE_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
+
 
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o

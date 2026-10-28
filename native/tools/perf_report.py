@@ -11,6 +11,7 @@ character select, 3 login); --skip-first drops each scene visit's first frames
 """
 import argparse
 import json
+import math
 import sys
 
 
@@ -36,7 +37,7 @@ def read(path):
     return header, rows
 
 
-def summarize(path, scene=None, skip_first=0):
+def summarize(path, scene=None, skip_first=0, metal_log=None):
     header, rows = read(path)
     kept, last, run = [], None, 0
     for r in rows:
@@ -67,11 +68,46 @@ def summarize(path, scene=None, skip_first=0):
     source_frames = {r["frame"] for r in kept}
     for p in phases:
         vals = [r[p + "_ms"] for r in kept if r[p + "_ms"] >= 0
-                and (p != "gpu_world" or r.get("gpu_frame") in source_frames)]
+                and (not p.startswith("gpu_") or r.get("gpu_frame" if p == "gpu_world" else "gpu_gfx_frame") in source_frames)]
         mean = sum(vals) / len(vals) if vals else 0.0
         if mean >= 0.005:
             out["phases"][p] = {"mean": mean, "p95": percentile(vals, 95), "samples": len(vals)}
+    if metal_log is not None:
+        out["metal"] = metal_summary(metal_log, source_frames)
     return out
+
+
+def metal_summary(path, source_frames):
+    """Only complete source frames contribute; cached frames explicitly cost zero.
+
+    Queue elapsed intervals include encoding gaps, not isolated GPU busy time.
+    A missing callback, unsupported device or failed map is never a zero sample.
+    """
+    frames = {}
+    supported = False
+    with open(path) as f:
+        for line in f:
+            r = json.loads(line)
+            if 'supported' in r:
+                supported |= r['supported'] is True
+                continue
+            if r.get('frame') not in source_frames:
+                continue
+            frame = frames.setdefault(r['frame'], {'expected': None, 'samples': [], 'bad': False})
+            if r.get('event') == 'end':
+                if frame['expected'] is not None:
+                    frame['bad'] = True  # repeated frame markers are ambiguous
+                frame['expected'] = r['submissions']
+            elif 'gpu_ms' in r and math.isfinite(r['gpu_ms']) and r['gpu_ms'] >= 0:
+                frame['samples'].append(r['gpu_ms'])
+            else:
+                frame['bad'] = True
+    values = [sum(f['samples']) for f in frames.values()
+              if supported and not f['bad'] and f['expected'] == len(f['samples'])]
+    return {'mean': sum(values) / len(values) if values else None,
+            'p95': percentile(values, 95) if values else None,
+            'samples': len(values), 'missing_frames': len(source_frames) - len(values),
+            'supported': supported}
 
 
 def main(argv):

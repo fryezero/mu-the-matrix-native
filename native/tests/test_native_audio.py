@@ -435,8 +435,9 @@ class NativeAudioTests(unittest.TestCase):
             script = self.work/'private.txt'
             script.write_text('0 openworld 0\n0 world 0 safe=1\n500 play 25\n1000 world 0 safe=1 tile=4\n2000 end\n')
             out = self.work/'private.wav'
+            # This checks installed decoding/mixing, independent of personal mute/volume preferences.
             result = subprocess.run([str(TOOL), 'render', '--table', table, '--root', game, '--script', str(script),
-                                     '--out', str(out)], capture_output=True, text=True)
+                                     '--out', str(out), '--no-options'], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             stats = json.loads(result.stdout)
             self.assertEqual(stats['frames'], 88200)

@@ -917,6 +917,7 @@ static int windowed(tool *t)
     mu_perf_set_sync(glFinish);
     uint32_t fps_start = start, fps_frames = 0;
     while (running) {
+        mu_perf_pace_begin();
         double perf = mu_perf_begin();
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -955,8 +956,7 @@ static int windowed(tool *t)
         ++frames;
         perf = mu_perf_now();
         int32_t sleep = mu_walk_end_render(&a->walk);
-        if (sleep > 0)
-            mu_sleep_ms((uint32_t)sleep);   /* NATIVE-PERF-001: the host Sleep without oversleep */
+        mu_perf_pace_end(sleep);
         world_rt_sound_frame(a);   /* after the cap, as 0x0185280c in the frame driver */
         audio_pump(t, SDL_GetTicks());
         if (mu_perf_enabled())
