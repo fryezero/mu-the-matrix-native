@@ -26,13 +26,16 @@ Fresh runs after the disk recovery use the pinned original text/data and compile
 | Part 6 bodies and new link chains | 17,736 | 0 | 6/6 |
 | Part 5 bodies, skins and links | 25,772 | 0 | 9/9 |
 | Part 4 bodies, skins and links | 52,172 | 0 | 7/7 |
-| Part 3 bodies, links and offset transforms | pending rerun | pending | pending |
+| Part 3 bodies, links and offset transforms | 74,292 | 0 | 8/8 |
 
 Part 6 consists of 16,936 full body streams across 58 types and 800 link caller streams. Mutant detection
 counts are ancient phase 1,233; object alpha 11,680; chain bone 800; chain scale 400; random choice 360;
 final white flare 400. Both generated tables reproduce. All 1,691 survey entries, including 17 skins,
 agree with the compiled refusal function; size ranks and original survey identities are preserved.
-The part-5 run interrupted by ENOSPC now completes with all nine mutants detected. The two errors in
+The part-5 run interrupted by ENOSPC now completes with all nine mutants detected. The inherited part-3
+`staff-choice` mutant anchor now selects only its original staff branch after the new chain introduced
+a second matching expression; all eight original mutants are caught. Across these four validators,
+169,972 instruction cases have zero mismatches and all 30 mutants are detected. The two errors in
 an earlier body-test log do not reproduce on the recovered checkpoint.
 
 Portable renderchar suite: 39 tests, nine expected private-input skips. Native character-render suite:
@@ -41,7 +44,8 @@ inventory and the actual GFx item/FBO consumer. Each ground backend tests both q
 level 1, three sprites for three draws, without additional random calls. Authored textured pixels verify
 the sprite clock and repeated icon frames. Missing bones, bounded pools and random order remain covered.
 
-Full integrated local release gate: pending merge lock. No hosted workflow is used.
+The full preflight `bash scripts/local-macos-ci.sh` passes on the part-5 base plus this lane. The final
+latest-main integration and locked release gate remain pending the merge lock. No hosted workflow is used.
 
 ## Offline renders and cleanup
 
