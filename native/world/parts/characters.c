@@ -122,7 +122,7 @@ static void characters_close(mu_world_rt *a, void *self)
         a->players->record_context=NULL;
     }
     characters_part *p=self;
-    if(a->ground && a->ground->session==p->session) {
+    if(p->session && a->ground && a->ground->session==p->session) {
         mu_session_items_bind(p->session,NULL,NULL);
         a->ground->session=NULL; a->ground->pool=NULL;
     }
