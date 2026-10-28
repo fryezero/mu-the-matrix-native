@@ -1,5 +1,7 @@
 # Continue from here
 
+LAYOUT-PROBE-001: [handoff](handoffs/LAYOUT-PROBE-001.md). The manifest must preserve both flag/level fields and describe the attribute extent as a minimum.
+
 ## VERIFY-SESSION-001, 2026-10-27
 
 Discovered fixture suites and skill `--fixture` mode are implemented. Two hero scenarios cover all eight

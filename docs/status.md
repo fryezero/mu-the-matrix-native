@@ -1,5 +1,7 @@
 # Current status
 
+LAYOUT-PROBE-001 settles the separate OBJECT live/fade bytes, the two CHARACTER level reads, and the CharacterAttribute prefix/extent distinction. [Evidence](research/client-layout-probes.md).
+
 ## Fixture session verification, 2026-10-27
 
 VERIFY-SESSION-001 adds discovered loopback suites to `make test` and the local Mac gate. Two hero scenarios
