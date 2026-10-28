@@ -314,7 +314,7 @@ args = ["--text", "{text}", "--data", "{data}", "--section3", "{section3}", "--g
 test = "reconstructed/environment/test_environment.py::PrivateUnicorn.test_short_comparison"
 pins = ["text", "data"]
 cases = 400
-mutants = 10
+mutants = 12
 cases_at = "cases"
 mutants_at = "mutations"
 build = ["reconstructed/environment"]
@@ -1537,6 +1537,22 @@ args = ["--mutations", "--report", "{report}"]
 [validate_audio_voices.expect]
 mismatches = 0
 mutants = {len = 3}
+
+[validate_icarus]
+test = "native/tests/test_native_icarus.py::IcarusInstructions.test_compiled_c_matches_client_and_mutants_fail"
+pins = ["text", "data"]
+families = ["sky", "object", "icarus_joint_create", "icarus_joint_move", "icarus_joint_render", "dragons"]
+cases = 5240
+mutants = 8
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects", "reconstructed/joints"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "2000", "--mutations", "--output", "{report}"]
+[validate_icarus.expect]
+"families.*.equal" = {same_as = "families.*.cases"}
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.caught" = true
 
 [validate_worlds_b]
 test = "reconstructed/objects/test_worlds_b.py::WorldsBTests.test_original_instructions"

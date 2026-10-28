@@ -2,6 +2,8 @@
 
 AUDIO-002 part 1: event music decisions, monster/NPC registration, bounded NPC voices and native cue logging implemented. 76,150 new Unicorn cases, zero mismatches, 22/22 compiled mutants. [Checks and limits](handoffs/AUDIO-002.md).
 
+RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
+
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
 
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
