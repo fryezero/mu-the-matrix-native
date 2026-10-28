@@ -31,8 +31,19 @@ compared, not guessed from a screenshot. These checks do not replay the captured
 
 ## Checks
 
-Pending final local gate and merged-tree results. Reports are local under
-`~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-c/`.
+- Registered `validate_icarus`: sky 2,000, object 2,000, joint create/move/render 400 each, and 40 Icarus world
+  sessions. Total 5,240 comparisons, zero mismatches or stopped cases; 8/8 compiled mutants caught. Each dragon
+  session runs 20 ticks, alternates clean and fuzzed pools, and includes directed warps. The suite freezes its
+  C sources before compiling so concurrent merges/builds cannot change a comparison halfway through it.
+- Broad joint regression: 660 cases per create/move/render family, 1,980 equal, 9/9 existing negative controls.
+- Existing effect create/move regression: 600 per family, 1,200 equal. The puff single-move mistake differs in 18
+  cases. These are existing effect families, separately from the eight compiled Icarus controls.
+- Native synthetic host: sky light/effect/joint events, cloudLight sprites, object ordinals, Monster32 mapping,
+  and production sky-before-puff RNG order. The fixture explicitly marks its object runtime ready.
+- Final local macOS gate: pending.
+
+Reports are local under `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-c/`, with the final scoped
+report and runner summary in `final-registered/`.
 
 ## Fidelity and remaining work
 

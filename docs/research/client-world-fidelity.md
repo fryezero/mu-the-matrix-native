@@ -195,7 +195,8 @@ emitter records whose mover `0x00ca3189` is also reconstructed. OpenMonster(31) 
 
 Evidence uses the same text/data pins as section 1. `scripts/validate_icarus.py` compares the compiled C and
 ordered host calls, including random consumption. The existing joint and environment validators cover the
-lifecycle. Exact final counts, commands and limitations are in [the handoff](../handoffs/RENDER-WORLDS-C.md).
+lifecycle. The scoped run passes 5,240 comparisons with zero mismatches and 8/8 compiled mutants; its 40 dragon
+sessions exercise 20 ticks each, alternating clean/fuzzed pools and directed warps. Exact commands and limitations are in [the handoff](../handoffs/RENDER-WORLDS-C.md).
 
 This is not a claim that the persistent grey layer matches the capture. At 25 steps the image error regresses
 61.760 → 62.030, and at 400 steps 54.673 → 60.935. The verified sky helper emits only once in fifty steps and

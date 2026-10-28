@@ -1499,9 +1499,9 @@ args = ["--mutations", "--output", "{report}"]
 [validate_icarus]
 test = "native/tests/test_native_icarus.py::IcarusInstructions.test_compiled_c_matches_client_and_mutants_fail"
 pins = ["text", "data"]
-families = ["sky", "object", "icarus_joint_create", "icarus_joint_move", "icarus_joint_render"]
-cases = 5200
-mutants = 6
+families = ["sky", "object", "icarus_joint_create", "icarus_joint_move", "icarus_joint_render", "dragons"]
+cases = 5240
+mutants = 8
 cases_at = "families.*.cases"
 mutants_at = "mutants"
 build = ["reconstructed/objects", "reconstructed/joints"]

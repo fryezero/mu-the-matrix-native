@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 from collections import defaultdict
 import validate_joints as vj
+import validate_environment as ve
 import actor_machine as am
 import pins
 import validate_object_render as v
@@ -88,6 +89,20 @@ def family(machine,lib,kind,cases):
         tally.add(ok,{'case':n,'client':calls,'native':native,'rand':[rnd.seed,crnd.seed]})
     return tally
 
+def dragon_sessions(machine, lib, count, ticks=20, fuzz=True):
+    results=[]
+    g=random.Random(20261027)
+    for n in range(count):
+        case=ve.make_case(g,n,lib,[10],fuzz=fuzz and n%2==1)
+        if n%8==0: case['teleport']=5
+        results.append(ve.run_case(machine,lib,case,ticks,4,random.Random(case['seed'])))
+    return {'cases':count,'equal':sum(not r['mismatch'] and not r['stopped'] for r in results),
+            'mismatch_count':sum(bool(r['mismatch']) for r in results),
+            'stopped':sum(bool(r['stopped']) for r in results),
+            'steps':sum(r['steps'] for r in results),'host_calls':sum(r['events'] for r in results),
+            'rand_calls':sum(r['rand_calls'] for r in results),
+            'examples':[r for r in results if r['mismatch'] or r['stopped']][:4]}
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--text',type=Path,default=pins.TEXT.default_str());ap.add_argument('--data',type=Path,default=pins.DATA.default_str());ap.add_argument('--cases',type=int,default=1000);ap.add_argument('--mutations',action='store_true');ap.add_argument('--output');args=ap.parse_args()
     text=am.load_pinned(args.text,am.TEXT_BYTES,am.TEXT_SHA256,'text')
@@ -132,6 +147,23 @@ def main():
                 dict(vj.FAMILIES)[which](jm,vj.load_library(out),random.Random(20261027),100,r,defaultdict(int))
                 t=r.families[which]
                 report['mutants'].append({'name':name,'caught':t['equal']<t['cases'],'cases':t['cases'],'differences':t['cases']-t['equal']})
+    # Freeze the environment sources before compiling: sibling merges and other builds cannot alter
+    # a long-running comparison or its mutants halfway through the run.
+    with tempfile.TemporaryDirectory() as td:
+        frozen=Path(td)
+        for folder in ['environment','record-math']:
+            shutil.copytree(ROOT/'reconstructed'/folder,frozen/'reconstructed'/folder)
+        ve.ROOT=frozen
+        em=ve.EnvMachine(text,data)
+        elib=ve.Library(ve.build_library(0,frozen/f'env.{SUFFIX}'))
+        t=dragon_sessions(em,elib,40)
+        report['families']['dragons']=t
+        print('dragons',t)
+        if args.mutations:
+            for mid,name in [(11,'dragon height'),(12,'dragon scale')]:
+                mutant=ve.Library(ve.build_library(mid,frozen/f'env-mut{mid}.{SUFFIX}'))
+                t=dragon_sessions(em,mutant,8,ticks=10,fuzz=False)
+                report['mutants'].append({'name':name,'caught':t['mismatch_count']>0 and not t['stopped'],'cases':t['cases'],'differences':t['mismatch_count']})
     if args.output: Path(args.output).write_text(json.dumps(report,indent=2)+'\n')
     return int(any(t['mismatch_count'] or t['stopped'] for t in report['families'].values()) or any(not t['caught'] for t in report['mutants']))
 if __name__=='__main__':raise SystemExit(main())
