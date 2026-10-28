@@ -70,3 +70,18 @@ After the lock-held gate and reviewed final evidence, create/merge the PR,
 release only our lock, delete the entire lane scratch/render trees and build
 outputs, then remove the worktree and local branch. Update this handoff with
 final counts and limitations before publication. Keep no new large local input.
+
+## Bounded-team checkpoint
+
+The candidate now bounds poses to four strided jobs. Three focused tests pass
+with serial and 1/4/8/80-job requests, and 604/604 new preflight frames match.
+The team ablations lower process CPU but do not consistently fix pacing.
+Tormenta passes strict acceptance for both 4 and 80 jobs; crowd80 still fails
+with 1/2/4/80 jobs in the current repeats. Reports are `team-paired/` and
+`team-repeat/`; the aggregate summary retains all results. Next investigate
+scoped main-render scheduling before claiming the target.
+
+The updated common brief was reread. The lane is queued after RENDER-EFFECTS-003,
+RENDER-WORLDS-K and RENDER-ITEMS-002I. Follow MERGE QUEUE before acquiring: only
+when first or empty, remove own line immediately after acquisition; re-append
+on abort. No lock is currently held by this lane.

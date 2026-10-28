@@ -586,6 +586,21 @@ static void pose_player(void *context, size_t index)
         mu_character_update(&q->model);
 }
 
+
+#ifdef __APPLE__
+typedef struct pose_work {
+    mu_world_players *players;
+    size_t groups;
+} pose_work;
+
+static void pose_group(void *context, size_t group)
+{
+    const pose_work *work = context;
+    for (size_t i = group; i < (size_t)work->players->count; i += work->groups)
+        pose_player(work->players, i);
+}
+#endif
+
 void mu_world_players_frame(mu_world_players *p)
 {
     for (int32_t i = 0; i < p->count; ++i) {
@@ -596,10 +611,22 @@ void mu_world_players_frame(mu_world_players *p)
     }
 #ifdef __APPLE__
     const char *reference = getenv("MU_PERF_004_BASELINE");
-    if (p->count >= 8 && !(reference && reference[0] == '1'))
-        dispatch_apply_f((size_t)p->count, dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), p,
-                         pose_player);
-    else
+    if (p->count >= 8 && !(reference && reference[0] == '1')) {
+        /* Bound the team instead of exposing every character as a separate job.
+         * The diagnostic override retains the old fan-out for paired tests. */
+        size_t groups = 4;
+        const char *setting = getenv("MU_PERF_004_POSE_TASKS");
+        if (setting) {
+            char *end;
+            long requested = strtol(setting, &end, 10);
+            if (*setting && !*end && requested >= 1 && requested <= MU_WORLD_PLAYERS_MAX)
+                groups = (size_t)requested;
+        }
+        if (groups > (size_t)p->count) groups = (size_t)p->count;
+        pose_work work = {p, groups};
+        dispatch_apply_f(groups, dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), &work,
+                         pose_group);
+    } else
 #endif
         for (int32_t i = 0; i < p->count; ++i)
             pose_player(p, (size_t)i);

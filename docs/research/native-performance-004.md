@@ -145,3 +145,21 @@ optimized frame tails regress in this repeat. The largest slow frames involve
 character drawing and GFx as well as logic. Worker scheduling, host load and
 frequency changes are not isolated. The final merge sequence is aborted and its
 lock released for a bounded-worker experiment; no PR is opened on this result.
+
+
+## Bounded pose team
+
+The candidate bounds pose work to four strided jobs, joined before all ordered
+consumers. The diagnostic `--pose-tasks 1/2/4/8/80` records its requested count;
+80 preserves the prior per-character jobs. All model buffers match serial mode
+with requests 1/4/8/80, and all 604 preflight frames match. No pose math changes.
+
+With cache optimization enabled in both modes, 80/4-job crowd80 measurements
+are 23.06/22.98 fps, process CPU 39.66/37.95 ms and frame p99 87.04/80.59 ms;
+both fail strict acceptance. Tormenta's counterbalanced 4/80 pair measures
+24.90/24.94 fps, process CPU 35.64/37.47 ms and p99 40.43/40.45 ms; both pass.
+The smaller team lowers observed total CPU in both pairs but does not establish
+a causal pacing win. A crowd80 repeat with 4/2/1 jobs measures 24.65/22.87/24.64
+fps and 67.03/97.13/67.86 ms frame p99; all fail. One job executes serial poses
+with topology optimization retained, so the remaining tails are not isolated
+to pose fan-out. Other host activity remains uncontrolled. Every run is retained.

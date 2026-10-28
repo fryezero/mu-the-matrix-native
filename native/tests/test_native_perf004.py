@@ -23,12 +23,13 @@ class PoseWorkers(unittest.TestCase):
             model = Path(tmp) / 'authored.bmd'
             model.write_bytes(nf.synthetic_layout(19, meshes=2, bones=7, actions=2, keys=(4, 3)))
             hashes = []
-            for reference in ('1', '0', '0'):
+            for reference, tasks in (('1', '4'), ('0', '1'), ('0', '4'), ('0', '8'), ('0', '80'), ('0', '4')):
                 result = subprocess.run([str(NATIVE / 'build/perf-players-host'), str(model)], check=True,
-                                        capture_output=True, env=dict(os.environ, MU_PERF_004_BASELINE=reference))
+                                        capture_output=True, env=dict(os.environ, MU_PERF_004_BASELINE=reference,
+                                                                 MU_PERF_004_POSE_TASKS=tasks))
                 self.assertGreater(len(result.stdout.splitlines()), 30000)
                 hashes.append(hashlib.sha256(result.stdout).hexdigest())
-            self.assertEqual(hashes, [hashes[0]] * 3)
+            self.assertEqual(hashes, [hashes[0]] * len(hashes))
 
     def test_empty_small_and_worker_threshold_counts(self):
         with tempfile.TemporaryDirectory() as tmp:

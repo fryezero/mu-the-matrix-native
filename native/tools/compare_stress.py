@@ -33,11 +33,11 @@ def main():
         ap.error('--out must be outside the repository')
     a.headless, a.renders, a.seconds = True, False, 0
     a.out.mkdir(parents=True, exist_ok=False)
-    report = {'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
+    report = {'pose_tasks_requested': 4, 'binary_sha256': hashlib.sha256(a.binary.read_bytes()).hexdigest(),
               'gfx_sha256': hashlib.sha256(a.gfx_lib.read_bytes()).hexdigest(), 'scenarios': {}}
     env = dict(os.environ, MU_LANG_DIR=str(a.data / 'lang'), MU_GFX_LIB=str(a.gfx_lib),
                MU_GFX_TEST_CLOCK='1', MU_GFX_SINGLE_BUFFER='1', MU_PERF_HASH_ONLY='1',
-               MU_PERF_BASELINE='0', MU_PERF_002_BASELINE='0', MU_PERF_003_BASELINE='0', MU_NO_GL_BATCH='0')
+               MU_PERF_004_POSE_TASKS='4', MU_PERF_BASELINE='0', MU_PERF_002_BASELINE='0', MU_PERF_003_BASELINE='0', MU_NO_GL_BATCH='0')
     for name in a.scenario or bench.SCENARIOS:
         results = []
         for mode in ('1', '0'):
