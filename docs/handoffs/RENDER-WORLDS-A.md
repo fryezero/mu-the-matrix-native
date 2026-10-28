@@ -44,4 +44,6 @@ WORLD-ORDER-001 recorded-order tests, including A's hook signatures and 24-part 
 anchors to original call `0x016d6949` and follows the environment in both draw columns, at order 85.
 The GL viewer marker follows that pass. Existing helper adapters remain explicit. Reordering environment and
 deferred-object calls must change both projected draw expectations. Sibling input/performance, world and
-session integrations remain present. Validation and refreshed fidelity results follow below.
+session integrations remain present. The registered A validator now expects 9,000 total cases, correcting its stale per-family count of 1,000.
+The initial runner rejected only that count; all nine comparisons and thirteen mutants already passed.
+Validation and refreshed fidelity results follow below.
