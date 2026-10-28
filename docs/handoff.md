@@ -1,5 +1,7 @@
 # Continue from here
 
+AUDIO-002 part 1: [handoff](handoffs/AUDIO-002.md). Native session audio reader and JSONL log are ready; event state and NPC lifecycle callers follow their domain migrations. The exact 43/44 read and virtualised gap remain open.
+
 SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned player records and fixture-driven --players.
 
 RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
