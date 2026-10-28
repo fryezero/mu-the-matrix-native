@@ -23,10 +23,11 @@ static void copy3(float d[3], const float s[3])
 
 /* Kept separate from world producer ownership. */
 #include "worlds_l.inc"
+#include "worlds_m.inc"
 
 int mu_pt_kind_supported(int32_t type, int32_t subtype)
 {
-    if (mu_pt_worlds_l_kind(type, subtype)) return 1;
+    if (mu_pt_worlds_l_kind(type, subtype) || mu_pt_worlds_m_kind(type, subtype)) return 1;
     switch (type) {
     case MU_PT_BITMAP_FIRE:
         return (subtype >= 0 && subtype <= 6) || subtype == 17;
@@ -158,6 +159,10 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
 
     if (mu_pt_worlds_l_kind(type, subtype)) {
         mu_pt_worlds_l_create(p, h, scale);
+        return 1;
+    }
+    if (mu_pt_worlds_m_kind(type, subtype)) {
+        mu_pt_worlds_m_create(p, h, scale);
         return 1;
     }
     if (mu_pt_world_flame_kind(type, subtype)) {
@@ -519,6 +524,8 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
     if (supported) {
         if (mu_pt_worlds_l_kind(p->type, p->subtype))
             mu_pt_worlds_l_move(p, h);
+        else if (mu_pt_worlds_m_kind(p->type, p->subtype))
+            mu_pt_worlds_m_move(p, h);
         else if (mu_pt_world_flame_kind(p->type, p->subtype))
             mu_pt_world_flame_move(p, h);
         else switch (p->type) {
@@ -972,6 +979,7 @@ int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, 
     default:
         break;
     }
+    mu_pt_worlds_m_render(p, s);
     out->sprites = 1;
     return 1;
 }
