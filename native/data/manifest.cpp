@@ -130,14 +130,21 @@ void check(const fs::path &dir, const fs::path &client = {}) {
 extern "C" int mu_native_data_check_args(int argc, char **argv) {
     try {
         std::set<fs::path> roots;
-        for (int i = 1; i < argc; ++i) { auto p = managedRoot(argv[i]); if (!p.empty()) roots.insert(p); }
+        std::vector<fs::path> paths;
+        for (int i = 1; i < argc; ++i) {
+            // Display text may itself say "Native Data"; it is not a path.
+            std::string arg = argv[i];
+            if (arg == "--label" || arg == "--title" || arg == "--gfx-open") { ++i; continue; }
+            paths.emplace_back(arg);
+            auto p = managedRoot(argv[i]); if (!p.empty()) roots.insert(p);
+        }
         for (const auto *key : {"MU_LANG_DIR", "MU_OBJECTS_PLAIN_DIR", "MU_GFX_DIR", "MU_AUDIO_TABLE"}) {
             auto p = managedRoot(std::getenv(key)); if (!p.empty()) roots.insert(p);
         }
         for (const auto &root : roots) check(root);
         if (!roots.empty()) {
-            for (int i = 1; i < argc; ++i) {
-                fs::path exe = fs::path(argv[i]) / "main.exe";
+            for (const auto &path : paths) {
+                fs::path exe = path / "main.exe";
                 if (fs::exists(exe)) require(hashFile(exe).hash == MU_CLIENT_SHA256, "installed main.exe build mismatch");
             }
         }

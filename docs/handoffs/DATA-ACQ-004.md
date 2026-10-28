@@ -14,7 +14,7 @@ Implemented on `codex/data-acq-004` in its assigned isolated worktree.
   conversion inputs, and refuses legacy, mismatched or incomplete data. `--force`
   cannot relabel a bad set. Optional components can be absent at acquisition;
   missing files from a recorded component fail verification.
-- Portable manifest tests: 11 pass, including the language export and native
+- Portable manifest tests: 12 pass, including the language export and native
   consumer boundaries; 3/3 planted mistakes caught. App tests: 14, 13 pass and
   one explicit private smoke skip. Temporary-HOME tests create manifests without
   Python and refuse mismatches through setup/plan/smoke without starting a client.

@@ -151,6 +151,15 @@ class ManifestTests(unittest.TestCase):
             self.manifest.write_text(text)
             (self.data/'table.txt').write_text('authored\n')
 
+    def test_native_consumer_does_not_treat_display_text_as_a_path(self):
+        from test_native_shell import write_root
+        root = write_root(self.base/'root')
+        subprocess.run(['make', '-C', str(NATIVE), 'build/mu-shell'], check=True, capture_output=True)
+        result = subprocess.run([str(NATIVE/'build/mu-shell'), '--game-root', str(root),
+                                 '--headless', '--frames', '1', '--label', 'Native Data',
+                                 '--title', 'Native Data', '--no-audio', '--quiet'], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_planted_mistakes_are_caught(self):
         original = (NATIVE/'data/manifest.cpp').read_text()
         mutations = {
