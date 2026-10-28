@@ -1335,7 +1335,7 @@ int mu_sfx_joint_move(mu_sfx_joint *j, const mu_sfx_env *env, float time_step, i
 {
     mu_jt_env e;
     jt_env(env, &e);
-    const mu_jt_move_inputs in = {time_step, wall_scene, wall, is_hero_target};
+    const mu_jt_move_inputs in = {time_step, wall_scene, wall, 0, is_hero_target};
     return mu_jt_move(j, &e, &in);
 }
 

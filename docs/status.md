@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-C2: persistent Icarus cloud cover and `0x472/1` emitter ribbons implemented; ambient clock corrected. Image error falls to 26.897 / 27.663 at 25 / 400 steps. [Evidence](research/client-world-fidelity.md#6-render-worlds-c2-persistent-icarus-cover-and-emitter-ribbons), [handoff](handoffs/RENDER-WORLDS-C2.md).
+
 RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
 
 RENDER-WORLDS-B: Devias/Tarkan/Elbeland/Raklion moves, code-created placements and Raklion snow; 4,000 Unicorn cases, zero mismatches, 10/10 mutants. [Evidence](research/client-world-fidelity.md#5-render-worlds-b-2026-10-27), [handoff](handoffs/RENDER-WORLDS-B.md).
