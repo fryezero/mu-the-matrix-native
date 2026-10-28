@@ -1,0 +1,29 @@
+# SESSION-SKILL-001. Authored tables and plaintext fixture replies only.
+endpoint game 127.0.0.1:55905
+use skills
+join world=0 tile=120,120 class=129 level=10 name=Skilled slot=0
+at 1 client skill-data native/fixture/scenarios/skills-tables
+at 1 skills data native/fixture/scenarios/skills-tables
+at 1 skills file native/fixture/scenarios/skills-tables/demo.txt
+at 2 skills login 129 30
+at 3 client submit skill_select 1
+at 4 skills learn 330
+at 5 skills forget 22
+at 6 client submit skill_save_keys
+at 7 client submit skill_tree4_learn 0 1000 0
+at 8 client submit skill_tree4_side 0 0 1
+at 9 send game c1 06 7e 03 1c 00
+at 10 send game c1 1d a0 14 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+at 11 client submit skill_cast 19 121 120 0
+at 12 client lease
+expect unbound = 0
+expect undecodable = 0
+expect skills.count = 7
+expect skills.selected = 330
+expect skills.learned.22 = 0
+expect skills.learned.330 = 1
+expect skills.key.1 = 330
+expect skills.points4 = 28
+expect fixture.requests = 3
+expect unsent = 1
+expect unrecovered = 0

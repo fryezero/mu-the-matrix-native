@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "../../core/mu_perf.h"
+#include "../../core/mu_lang.h"
 #include "../../core/mu_renderchar.h"
 #include "../../core/mu_scene.h"
 #ifndef MU_WORLD_NO_GL
@@ -117,6 +118,7 @@ static int actors_open(struct mu_world_rt *a, void *self)
     if (a->combat_on) fprintf(out,"use combat hp=%d lo=%d hi=%d latency=%d seed=%u counter=%d respawn=%d hero_hp=%d hero_respawn=%d\n",
         a->combat_config.monster_hp,a->combat_config.damage_min,a->combat_config.damage_max,a->combat_config.latency_steps,
         a->combat_config.seed,a->combat_config.counter_attack,a->combat_config.respawn_steps,a->combat_config.hero_hp,a->combat_config.hero_respawn_steps);
+    fprintf(out,"use skills\nat 1 skills root %s\nat 1 skills login %d 30\n",a->root,a->walk.hero.class_byte);
     fclose(out);
     mu_fixture_options options = {scenario, NULL, 0x5eed2026u};
     mu_fixture *fixture = mu_fixture_open(&options, error, sizeof error);
@@ -126,9 +128,10 @@ static int actors_open(struct mu_world_rt *a, void *self)
     mu_session_config cfg = {0}; cfg.transport = transport;
     mu_fixture_endpoint(fixture, "game", &cfg.connect_server);
     cfg.build = &MU_PINNED_BUILD; cfg.proof = mu_proof_not_required();
-    mu_session_seed seed = {0}; seed.place.world = a->map->world;
+    mu_session_seed seed = {0}; seed.class_byte = a->walk.hero.class_byte; seed.place.world = a->map->world;
     mu_session *session = mu_session_open_seeded(&cfg, &seed, error, sizeof error);
     if (!session) { mu_transport_free(transport); mu_fixture_close(fixture); return 1; }
+    mu_session_skills_bind(session, mu_lang_shared(), getenv("MU_LANG_DIR"), a->root);
     mu_world_port port = {0}; port.context = a; port.world = a->map->world; port.terrain_height = actors_height;
     mu_session_attach_world(session, &port);
     mu_transport_poll(transport, 40); mu_session_pump(session, 40);

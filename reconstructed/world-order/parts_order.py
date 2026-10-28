@@ -43,6 +43,7 @@ ADDITIONS = {
         ('actors', 'sound', 'native fixture placement/sync before the shared MoveCharacters loop; no separate client mover'),
         ('npc', 'characters', 'demo NPC talk/answer step, no standalone MoveMainScene call'),
         ('quest_step', 'npc', 'native session quest step, no standalone MoveMainScene call'),
+        ('skills', 'quest_step', 'session skill delay tick, shared by headless and GFx; no new original call claim'),
         ('progress', 'combat', 'demo progression settlement, no standalone MoveMainScene call'),
         ('social', 'progress', 'native social demo tick, no standalone MoveMainScene call'),
         ('names', 'items', 'native overhead-name state tick; original updates live in character/UI callees'),

@@ -2,6 +2,10 @@
 
 RENDER-WORLDS-H implements Duel Arena/world-82 primary methods: 6,000 instruction cases, zero mismatches, 19/19 compiled mutants; 25/144 verified primary families across 9/48 classes. All 28 unaffected PNG hashes unchanged. [Evidence](research/client-worlds-h.md), [handoff](handoffs/RENDER-WORLDS-H.md).
 
+README-STRESS-001: two reviewed 80-player README images, corrected remote-armour glow texture lookup and synthetic public HUD mode. [Cause, checks and limits](handoffs/README-STRESS-001.md).
+
+SESSION-SKILL-001: session-owned learned skills, hotkeys and trees in headless/GFx builds; demo replies use one plaintext fixture feed and encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-SKILL-001.md).
+
 INTEGRATION-GREEN-001 completed: all 38 private-enabled directories green; 1,464 unique tests passed, 15 optional Ruffle-related skips, zero failures. Local Mac gate passed, seven fixture scenarios passed. [Checks, input provenance and limits](handoffs/INTEGRATION-GREEN-001.md).
 
 RENDER-WORLDS-G implements the 48-class inventory and Santa Village/Vulcanus primary methods: 6,000 instruction cases, zero mismatches, 13/13 compiled mutants; 19/144 primary families verified across 7/48 classes. Full Mac gate passes, 1,466 tests; 28 unaffected PNG hashes identical. [Evidence](research/client-worlds-g.md), [handoff](handoffs/RENDER-WORLDS-G.md).

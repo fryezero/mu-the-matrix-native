@@ -2187,6 +2187,20 @@ static void demo_hero(mu_gfx_hero *h)
     h->command = 0;
     h->zen = 182790999;
     h->ruud = 411067;
+    /* Opt-in authored values for public offline captures. Normal hosts can
+     * still replace this state with mu_gfx_layer_set_hero. */
+    const char *public_demo = getenv("MU_GFX_PUBLIC_DEMO");
+    if (public_demo && !strcmp(public_demo, "1")) {
+        snprintf(h->name, sizeof h->name, "Preview");
+        h->hp = h->max_hp = 12000;
+        h->mp = h->max_mp = 8000;
+        h->sd = h->max_sd = 4000;
+        h->ag = h->max_ag = 2000;
+        h->exp = 1000;
+        h->exp_max = 10000;
+        h->zen = 100000;
+        h->ruud = 0;
+    }
 }
 
 mu_gfx_layer *mu_gfx_layer_open(const mu_gfx_layer_config *c, char *error, size_t cap)

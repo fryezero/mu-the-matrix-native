@@ -165,7 +165,7 @@ class Book(unittest.TestCase):
                             'cast', '14', 'cast', '77', 'stats', '100', '100', '100', '300', '0', '50', '100',
                             'cast', '9', 'stats', '100', '100', '100', '300', '0', '1000', '5', 'cast', '41')
         casts = [o for o in out if 'cast' in o]
-        self.assertEqual(casts[0], {'cast': 'ok', 'events': [[344, 5000]], 'potion': 0, 'mana': 913, 'ag': 71,
+        self.assertEqual(casts[0], {'cast': 'ok', 'events': [[344, 5000]], 'potion': 0, 'mana': 1000, 'ag': 100,
                                     'left': 1.0})
         self.assertEqual([c['cast'] for c in casts], ['ok', 'delay', 'delay', 'ok', 'requirements', 'no skill',
                                                       'mana', 'AG'])

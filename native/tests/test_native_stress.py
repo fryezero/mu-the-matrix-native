@@ -127,11 +127,16 @@ class BenchmarkContract(unittest.TestCase):
                                              'particles_created': 12, 'fx_created': 20, 'joints_created': 12},
                 {'particles': True, 'created': 100, 'dropped': 0, 'overflow': 0}]
         rows += [{'player': i, 'loaded': [0, 1, 1, 1, 1, 1, 1, 0, 1],
-                  'textures_missing': [-1, 0, 0, 0, 0, 0, 0, -1, 0]} for i in range(80)]
+                  'textures_missing': [-1, 0, 0, 0, 0, 0, 0, -1, 0],
+                  'effect_textures_loaded': [0, 6, 6, 6, 6, 6, 6, 0, 6]} for i in range(80)]
         self.assertEqual(bench.workload(rows, 80)['players']['count'], 80)
         for index in range(len(rows)):
             with self.assertRaises(ValueError):
                 bench.workload(rows[:index] + rows[index + 1:], 80)
+        rows[-1]['effect_textures_loaded'][2] = 0
+        with self.assertRaises(ValueError):
+            bench.workload(rows, 80)
+        rows[-1]['effect_textures_loaded'][2] = 6
         rows[0]['players']['viewport_packets'] = 8
         with self.assertRaises(ValueError):
             bench.workload(rows, 80)
