@@ -5182,7 +5182,7 @@
         "region_reference": false,
         "scenarios": {
           "crowd40": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/crowd40-after/crowd40/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/crowd40-after/crowd40/frames.tsv",
             "frames": 1405,
             "fps": 24.98925995400482,
             "frame_ms": {
@@ -5490,7 +5490,7 @@
         "region_reference": false,
         "scenarios": {
           "crowd40": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/crowd40-before/crowd40/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/crowd40-before/crowd40/frames.tsv",
             "frames": 1400,
             "fps": 24.989666326729857,
             "frame_ms": {
@@ -5798,7 +5798,7 @@
         "region_reference": false,
         "scenarios": {
           "crowd80": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/crowd80-after/crowd80/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/crowd80-after/crowd80/frames.tsv",
             "frames": 1335,
             "fps": 24.561916147384526,
             "frame_ms": {
@@ -6110,7 +6110,7 @@
         "region_reference": false,
         "scenarios": {
           "crowd80": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/crowd80-before/crowd80/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/crowd80-before/crowd80/frames.tsv",
             "frames": 1343,
             "fps": 24.65450013285526,
             "frame_ms": {
@@ -6422,7 +6422,7 @@
         "region_reference": false,
         "scenarios": {
           "retina80": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/retina80-after/retina80/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/retina80-after/retina80/frames.tsv",
             "frames": 1304,
             "fps": 24.22269708698105,
             "frame_ms": {
@@ -6734,7 +6734,7 @@
         "region_reference": false,
         "scenarios": {
           "retina80": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/retina80-before/retina80/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/retina80-before/retina80/frames.tsv",
             "frames": 1149,
             "fps": 21.64345150626461,
             "frame_ms": {
@@ -7041,7 +7041,7 @@
         "region_reference": false,
         "scenarios": {
           "tormenta80": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/tormenta80-after/tormenta80/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/tormenta80-after/tormenta80/frames.tsv",
             "frames": 1290,
             "fps": 23.885785506090542,
             "frame_ms": {
@@ -7353,7 +7353,7 @@
         "region_reference": false,
         "scenarios": {
           "tormenta80": {
-            "log": "/Users/frye/Documents/MTM/mu-mac-tools/native/scratch/native-perf-004/capture-paired/tormenta80-before/tormenta80/frames.tsv",
+            "log": "<lane-scratch>/capture-paired/tormenta80-before/tormenta80/frames.tsv",
             "frames": 1269,
             "fps": 23.38964505577739,
             "frame_ms": {
