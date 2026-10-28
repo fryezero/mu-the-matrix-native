@@ -202,6 +202,7 @@ typedef struct mu_combat {
     float speeds[MU_PLAYER_ACTIONS];   /* SetAttackSpeed result; < 0 for actions it does not store */
     int32_t step;
     uint32_t rng;
+    uint32_t audio_rng; /* AUDIO-002C: new attack voices cannot change visual random phase. */
     mu_combat_bitmap bitmaps[MU_COMBAT_BITMAPS];
     int32_t bitmap_count;
     mu_combat_model models[MU_COMBAT_MODELS];
