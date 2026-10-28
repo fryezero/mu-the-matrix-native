@@ -2,6 +2,8 @@
 
 RENDER-WORLDS-K: Lost Tower sprites/push, Tarkan lamp/plume producers and Icarus type-10 flare producer; Atlans switch inventory corrected. Instruction and locked-gate results are in [the handoff](handoffs/RENDER-WORLDS-K.md). Particle consumers belong to EFFECTS-003.
 
+SESSION-MAP-001a: frame-fed NPC/portal markers and detector dots through the session and plaintext fixture; 6,501 instruction cases, zero mismatches, 4 compiled and 10 historical mutants caught. Travel remains unchanged. [Checks and limits](handoffs/SESSION-MAP-001a.md).
+
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
 RENDER-ITEMS-002 part 8: 662/1,674 bounded bodies, 17/17 skins, fourteen link targets/nineteen types. Rank-5 mesh streams now draw with lighting; owner-bone effects remain open. Adds eight further ranked armour bodies and spear/shield links. Locked Mac gate passes 1,559 tests. [Checks and limits](handoffs/RENDER-ITEMS-002H.md).
@@ -21,6 +23,8 @@ README-REFRESH-003: [handoff](handoffs/README-REFRESH-003.md), [claim sources](r
 SESSION-GLOBALS-001: explicit session/runtime state ownership and committed sequential/fresh-process parity checks. [Inventory and checks](handoffs/SESSION-GLOBALS-001.md).
 
 AUDIO-002 part 3: 36 combat/skill sound sites use session cues, including remote player and monster voices; 19,548 instruction cases. [Checks and limits](handoffs/AUDIO-002C.md).
+
+AUDIO-002 part 4: latest viewport buff input resolves the NPC voice; the migrated Master click enters the cue ring. Caller adapters 66 to 73, sound-capable sites 65 to 73, including six ground-drop sites after SESSION-ITEMS-001a. 5,544 instruction cases, zero mismatches, 15/15 compiled mutants; locked clean Mac gate passes 1,571 tests. [Checks and limits](handoffs/AUDIO-002D.md).
 
 RENDER-WORLDS-H: [handoff](handoffs/RENDER-WORLDS-H.md). Six Duel Arena/world-82 methods verified; 25/144 primary families across 9/48 classes. DATA-ACQ-002 and 119 primary methods remain.
 
