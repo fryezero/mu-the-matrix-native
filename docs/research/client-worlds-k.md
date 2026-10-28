@@ -129,3 +129,7 @@ followed by a restored production host pass. These are additional to the 18 inst
 The first ad-hoc mutant attempt exposed same-second make caching; the final checks explicitly remove the
 owned runtime object, archive and host executable before each compile, including restoration.
 The final post-EFFECTS-003 tour and gate must cover these host fixes; the earlier tour counts above predate them.
+
+An offline installed-model check also confirms all **9 named-bone requirements across 5 models**:
+Lost Tower types 19/20/23, Tarkan type 63 and Icarus type 10. This checks the loaded asset names,
+not original animation phase. No client process was touched, and the small inspector is deleted with scratch.
