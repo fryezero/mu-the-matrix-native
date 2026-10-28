@@ -68,7 +68,7 @@ def handler(text,data,lib,n):
         env=vp.Env();env.world=0x52 if i%3==0 else 0;answers=iter(cl.path_answers)
         callback=vp.PATHFN(lambda *args:int(next(answers,False)));env.path_finding2=callback
         lib.mu_monster_viewport_apply(C.byref(c),C.byref(v),C.byref(env))
-        packet=bytes([0xc2,0,(5+v.size)&255,0x13,1])+b[:v.size]
+        packet=bytes([0xc2,(5+v.size)>>8,(5+v.size)&255,0x13,1])+b[:v.size]
         a=m.alloc(len(packet),define=True);m.write(a,packet);m.call(0x122c426,[a])
         assert strides==[5+v.size],(i,"stride",strides,v.size)
         assert cl.create_args==(v.server_class,v.x,v.y,v.key,v.level),(i,'create args',cl.create_args)
