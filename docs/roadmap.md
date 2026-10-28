@@ -1,6 +1,6 @@
 # Roadmap and work queue
 
-SESSION-ITEMS-001a: bounded session ground ownership and fixture 20/21 feed; encrypted pickup stays unsent and answer/inventory routes remain open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
+SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
 README-REFRESH-003 implemented: public progress through PR #207, bounded coverage and honest offline/performance limits; existing pinned images reused. [Checks and sources](handoffs/README-REFRESH-003.md).
 

@@ -47,8 +47,8 @@ MoveItems `36ba5cde…`).
 | Label colour class → `"#RRGGBB"` | `0x00c84f00` | verified |
 | hudPlayerName window: constructor fields, per-frame label position loop, setItemView | `0x00afaff8`, `0x00c81d1e`, `0x00efdca1` | static |
 | Alt toggles the label view; space picks up | `0x00efc7d3` in `0x00efbca1`; `0x00efd9ab` | static |
-| MoveHero's pick-up case (range 1.5, the request) | `0x01698376..` in `0x01697c17` | static |
-| Delete (0x21) and pick-up answer handlers | `0x012338bc`, `0x012424bd` (and `0x012420a5`, `0x01242ea8`, `0x00b0fd9e`) | static |
+| MoveHero's pick-up case (range 1.5, the request) | `0x01698376..` in `0x01697c17` | ordinary/zen builder slices verified in section 10; eligibility static |
+| Delete (0x21) and pick-up answer handlers | `0x012338bc`, `0x012424bd` (and `0x012420a5`, `0x01242ea8`, `0x00b0fd9e`) | delete engine boundary and successful sound/label slice verified in section 10; full pickup answers remain static |
 | ClearItems | `0x017ea38b` | static |
 | SetPlayerShock / SetPlayerDie, monster branches (hurt and death sounds) | `0x0138f92f`, `0x01393a61` | verified |
 | SetMonsterSound(model, ten slots) from OpenMonsterModel | `0x018329fa` in `0x0180b0f4` | extracted (100 model types, `monster_sound_table.h`) |
@@ -249,7 +249,7 @@ voices, space pick-up).
   are not compared with the client.
 - **Runtime patches.** The compare at `0x016dad9b` (inferred) and `0x00cd1534` are patched by an unanalysed module.
 - **Static only.** The addItem HTML and anchor, the per-frame label loop, setItemView and the Alt toggle,
-  SelectObjects, MoveHero's pick-up case and the request packets, the answer and delete handlers, the space-bar
+  SelectObjects, MoveHero's eligibility/capacity checks, full pickup-answer decoding/inventory paths, the space-bar
   pick-up, ClearItems, the AS layout.
 - **Closed by NATIVE-FIDELITY-001** ([client-fidelity.md](client-fidelity.md)): the set-item prefix `0x009e0551`
   (verified), the "set tier" (PentagramOption `0x011447ac`), the suffix spacing (GlobalText 176–178), the special

@@ -18,11 +18,36 @@ through the recorded 21 handler. It does not insert inventory, credit zen or cla
 
 - New original instruction comparison: 4,000 cases, zero mismatches; 4/4 compiled mutants caught.
   Families: delete, zen builder, ordinary builder, successful pickup sound/label tail, 1,000 each.
-- Existing unchanged item families: rerun in progress, target 22,200.
+- Existing unchanged item families: **22,200 comparisons, zero mismatches; 11/11 historical negative controls caught**.
 - Focused session checks: malformed atomicity, invalid-key clamp, pending/refusal, slot 999,
   detach/rebind/delete and motion lease; native synthetic item drive covers fall/pose/labels,
   click/space removal, combat drop and determinism.
-- Full locked Mac gate and final fixture counts pending.
+- Final locked `bash scripts/local-macos-ci.sh` on runtime commit `1a3364e`, with main `cf81357`
+  integrated: **1,555 tests across 38 suites, 193 explicit private/optional skips, zero failures**.
+  Native suite: 730 tests. Viewer and read-only reader builds pass; readers were never run.
+  Repository publication audit: **1,496 files, zero rejected**. Include audit passes.
+- VERIFY-SESSION: **9/9 scenarios, 72 expectations, 71 inbound frames, zero unbound/undecodable**.
+  The new items scenario has four inbound frames, eleven expectations, one plaintext move request,
+  one encrypted pickup request unsent, and no unrecovered intent. Across all scenarios the prior
+  two unrecovered intents and seven total unsent requests remain explicit.
+- Registered `validate_session_items`: one pass, zero failures/errors/skips, 160 comparison cases
+  and four compiled mutants at the manifest's smaller scale. The full new run has 4,000 cases.
+- Three deliberate lease mutations of live, type and ITEM data are rejected. The motion write and
+  detach/rebind path succeed. The fixture walk driver uses the already verified move builder;
+  native click/space tests exercise the existing world walk/range path.
+
+Total instruction comparisons: **26,200, zero mismatches**, with four compiled mutants and eleven
+historical modeled controls all detected. No reconstructed item sources or golden/render pins changed.
+Existing item/ground software and GL skin/render checks pass. Intentional changes are the frame-driven
+creation/removal timing, empty legacy demo-table statistic, and removal without an unproven pickup
+success sound or inventory credit. The fixed combat sword policy and exp/drop/quest frame order remain.
+
+The development run found missing isolated-test headers, a new intent expectation and reward-frame order;
+all were corrected before the clean final gate. Self-review covered scope, callback shutdown ordering,
+null/error cleanup, slot bounds, pending requests, lease ownership and fixture composition. No independent
+agent review or original-client visual comparison is claimed. Gate logs/reports existed only under this
+lane's external scratch directory and ignored worktree outputs, and are deleted after merge. No hosted
+workflow was dispatched. The merge lock was acquired at 11:19 CDT and is released immediately after merge.
 
 ## Remaining SESSION-ITEMS-001 evidence
 
