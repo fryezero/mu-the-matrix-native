@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-EFFECTS-004: Rageful Blow's ordinary-world chain (0x461 and nine pieces, item initialiser, weapon draw), Triple Shot through verified CreateArrows/CreateArrow (0/+15/-15) and Spirit of Guardian's wing 0x460/4. Primary routes 18/23 to 20/23, weighted 56/77 to 65/77. 32,000 instruction comparisons, zero mismatches, 15/15 compiled mutants. Rank-5 item owner effects remain for a slice agreed with RENDER-ITEMS-002K. [Evidence](research/client-render-effects-004.md), [checks and remaining work](handoffs/RENDER-EFFECTS-004.md).
+
 VERIFY-HARNESS-002: two bounded tools now use shared capture pins and loading, with exact legacy errors. Eight before/after caller reports agree apart from two elapsed-time fields; 72 private owning tests pass. Locked Mac gate passes 1,608 tests and 11 fixtures. Eight loader exceptions and shared-machine consolidation remain. [Evidence and checks](handoffs/VERIFY-HARNESS-002.md).
 
 RENDER-WORLDS-L: seven Karutan/Raklion/Market particle lifecycles and four exact bitmap registrations. 21,000 checks, zero mismatches, 13/13 compiled mutants and five original loader calls; saved-tour OBJECT/light and 13 other views unchanged. [Evidence](research/client-worlds-l.md), [checks and limits](handoffs/RENDER-WORLDS-L.md).
