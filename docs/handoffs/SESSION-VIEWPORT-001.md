@@ -73,3 +73,13 @@ models; generic 400-character rendering and the monster/NPC actor migration rema
 Account-owned session lifetime, wire crypto, recovered dispatch and replay remain separate milestones.
 Static/inferred pet/muun/pose/effect branches and store-close/equipment-change routes are not upgraded by
 this migration. See the finding for the precise original-instruction comparison domain.
+
+## Integrated PR gate through #181
+
+After Icarus main merge `5f6b0cf`, clean `bash scripts/local-macos-ci.sh` at `6e82547` passes
+**1,373 tests, 162 explicit skips, zero failures**, viewer/readers and audit
+**1,228 files, zero rejected**. All five discovered scenarios again carry 42 inbound frames with
+zero unbound/undecodable; the two unrecovered intents and three unsent requests stay explicit.
+This supersedes the earlier #180 gate for PR acceptance. `gate-main181.log` and
+`release-suite-main181/` retain the proof. Its tracked source was committed; only input symlinks
+made the suite's dirty flag true. No additional runtime changes were needed after this merge.
