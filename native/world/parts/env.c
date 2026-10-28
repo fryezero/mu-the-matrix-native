@@ -21,10 +21,8 @@ static int env_open(struct mu_world_rt *a, void *self)
             return 1;
         }
         a->has_env = 1;
-        if (a->has_sound) {
-            a->env.sound = world_rt_env_sound;
-            a->env.sound_context = a;
-        }
+        a->env.sound = world_rt_ambient_sound;
+        a->env.sound_context = a;
     }
     return 0;
 }

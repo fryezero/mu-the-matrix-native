@@ -85,6 +85,8 @@ void mu_audio_host_set_event_music(mu_audio_host *host, const mu_event_music_sta
 /* Explicit model-open registration in client order, with first-successful-load wins. */
 int mu_audio_host_register_monster(mu_audio_host *host, int32_t type, int preloaded);
 int mu_audio_host_register_npc(mu_audio_host *host, int32_t model, int preloaded);
+/* Model cache survives viewport rebuilds for this audio host. monster_type < 0 selects OpenNpc. */
+void mu_audio_host_register_actor(mu_audio_host *host, int32_t monster_type, int32_t model);
 /* The per-frame world selection state from now on (the "world" command). */
 void mu_audio_host_set_world(mu_audio_host *host, const mu_world_audio_state *state, int32_t boss_zone);
 /* Observer of the per-frame block's events (mu_world_audio_event_kind). */

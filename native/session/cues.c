@@ -2,6 +2,7 @@
  * number of readers, each with its own cursor; a reader that falls more than MU_CUE_RING cues
  * behind loses the oldest and is told how many. */
 #include "session_internal.h"
+#include "mu_audio_cue.h"
 
 #include <string.h>
 
@@ -39,4 +40,30 @@ mu_cue_cursor mu_session_cue_cursor(const mu_session *s)
 {
     mu_cue_cursor c = {s ? s->cues.next_seq : 0};
     return c;
+}
+
+void mu_session_sound_emit(mu_session *s, uint32_t routine, uint32_t site,
+                           int32_t id, int16_t at_key, int loop)
+{
+    if (!s) return;
+    mu_cue cue = {0};
+    cue.kind = MU_CUE_SOUND;
+    cue.handler = routine;
+    cue.u.sound.id = id;
+    cue.u.sound.at_key = at_key;
+    cue.u.sound.loop = loop;
+    cue.u.sound.site = site;
+    mu_session_cue(s, &cue);
+}
+
+void mu_session_sound_missing(mu_session *s, uint32_t routine, uint32_t site, uint32_t input)
+{
+    if (!s) return;
+    mu_cue cue = {0};
+    cue.kind = MU_CUE_AUDIO_INPUT;
+    cue.handler = routine;
+    cue.u.sound.id = (int32_t)input;
+    cue.u.sound.at_key = -2;
+    cue.u.sound.site = site;
+    mu_session_cue(s, &cue);
 }

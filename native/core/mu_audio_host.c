@@ -22,6 +22,7 @@ struct mu_audio_host {
     mu_world_audio_state world;
     int32_t boss_zone;
     uint32_t rand_state;
+    uint8_t actor_models[0x4000];
     int delegate_logged;
     mu_event_music_state event_music;
     FILE *cue_log;
@@ -76,7 +77,7 @@ static void audio_log(mu_audio_host *h, const char *op, int32_t id, int32_t loop
             "\"handler\":%u,\"at_key\":%d,\"session_tick\":%u,\"site\":%u,\"host\":%u}\n",
             (unsigned long long)h->log_seq++, h->time_ms, h->world.world, op, id, !strcmp(op, "register") ? 0 : loop, result,
             (unsigned long long)(cue ? cue->seq : 0), cue ? cue->handler : 0,
-            cue ? cue->u.sound.at_key : -2, h->session_tick, !strcmp(op, "register") ? (uint32_t)loop : 0, h->log_host);
+            cue ? cue->u.sound.at_key : -2, h->session_tick, !strcmp(op, "register") ? (uint32_t)loop : cue ? cue->u.sound.site : 0, h->log_host);
     fflush(h->cue_log);
 }
 
@@ -624,8 +625,12 @@ int mu_audio_host_run(mu_audio_host *host, const mu_audio_script *script, mu_aud
 
 int mu_audio_host_cue(mu_audio_host *host, const mu_cue *cue, uint32_t session_tick)
 {
-    if (!host || !cue || cue->kind != MU_CUE_SOUND) return 0;
+    if (!host || !cue || (cue->kind != MU_CUE_SOUND && cue->kind != MU_CUE_AUDIO_INPUT)) return 0;
     host->session_tick = session_tick;
+    if (cue->kind == MU_CUE_AUDIO_INPUT) {
+        audio_log(host, "unrecovered", cue->u.sound.id, 0, -1, cue);
+        return 0;
+    }
     int loaded = ensure_loaded(host, cue->u.sound.id);
     const mu_audio_entry *entry = mu_audio_snd_find(&host->client, cue->u.sound.id);
     int was_playing = entry && entry->playing;
@@ -675,4 +680,12 @@ void mu_audio_host_music_literal(mu_audio_host *host, const char *path, uint32_t
     audio_log(host, play ? "music_literal" : "stopmusic_literal", (int32_t)literal, 0, 2, NULL);
     if (play) mu_audio_play_mp3(&host->client, path);
     else mu_audio_stop_mp3(&host->client, path);
+}
+
+void mu_audio_host_register_actor(mu_audio_host *host, int32_t monster_type, int32_t model)
+{
+    if (!host || model < 0 || model >= (int32_t)sizeof host->actor_models || host->actor_models[model]) return;
+    host->actor_models[model] = 1;
+    if (monster_type >= 0) mu_audio_host_register_monster(host, monster_type, 0);
+    else mu_audio_host_register_npc(host, model, 0);
 }

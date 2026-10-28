@@ -34,33 +34,39 @@ int mu_world_is_water(int32_t world)
     return mu_world_is_atlans(world) || (world >= 0x18 && world <= 0x1d) || world == 0x24;
 }
 
-int32_t mu_walk_sound_id(const mu_walk_sound_state *s, const uint16_t *attributes)
+mu_walk_sound_decision mu_walk_sound_select(const mu_walk_sound_state *s, const uint16_t *attributes)
 {
     if (s->hero_action >= 0x59 && s->hero_action <= 0x5f)
-        return -1;
+        return (mu_walk_sound_decision){-1, 0};
     if (s->manager_state)
-        return -1;
+        return (mu_walk_sound_decision){-1, 0};
     const int32_t w = s->world;
     if (w == 2 && s->hero_tile != 3 && s->hero_tile < 10)
-        return MU_SOUND_WALK_SNOW;
+        return (mu_walk_sound_decision){MU_SOUND_WALK_SNOW, 0x013b200au};
     if (w == 0 && s->hero_tile == 0)
-        return MU_SOUND_WALK_GRASS;
+        return (mu_walk_sound_decision){MU_SOUND_WALK_GRASS, 0x013b202fu};
     if (w == 3 && s->hero_tile == 0)
-        return MU_SOUND_WALK_GRASS;
+        return (mu_walk_sound_decision){MU_SOUND_WALK_GRASS, 0x013b2054u};
     if (mu_world_is_water(w) && !s->hero_safe_zone)
-        return MU_SOUND_SWIM;
+        return (mu_walk_sound_decision){MU_SOUND_SWIM, 0x013b208cu};
     if (w >= 0x39 && w <= 0x3a)      /* 0x00ea233c */
-        return MU_SOUND_WALK_SNOW;
+        return (mu_walk_sound_decision){MU_SOUND_WALK_SNOW, 0x013b20abu};
     if (w == 0x79)
-        return MU_SOUND_WALK_SNOW;
+        return (mu_walk_sound_decision){MU_SOUND_WALK_SNOW, 0x013b20c7u};
     if (w == 0x3e)                   /* 0x00e42f6d */
-        return MU_SOUND_WALK_SNOW;
+        return (mu_walk_sound_decision){MU_SOUND_WALK_SNOW, 0x013b20e6u};
     if (w == 0x7a) {
         /* 0x016d34db: ((y & 0xff) << 8) + (x & 0xff) */
         uint32_t index = (((uint32_t)s->hero_y & 0xffu) << 8) + ((uint32_t)s->hero_x & 0xffu);
-        return (attributes[index] & 0x8000) ? MU_SOUND_WALK_BRIDGE : MU_SOUND_WALK_SOIL;
+        return (attributes[index] & 0x8000) ? (mu_walk_sound_decision){MU_SOUND_WALK_BRIDGE, 0x013b2136u}
+                                           : (mu_walk_sound_decision){MU_SOUND_WALK_SOIL, 0x013b2146u};
     }
-    return MU_SOUND_WALK_SOIL;
+    return (mu_walk_sound_decision){MU_SOUND_WALK_SOIL, 0x013b2156u};
+}
+
+int32_t mu_walk_sound_id(const mu_walk_sound_state *s, const uint16_t *attributes)
+{
+    return mu_walk_sound_select(s, attributes).id;
 }
 
 int mu_footstep_trigger(int32_t object_type, int is_hero, uint16_t action, float frame, uint8_t foot[2])
