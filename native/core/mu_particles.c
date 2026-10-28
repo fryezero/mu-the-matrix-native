@@ -53,7 +53,7 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
     "Data/Effect/lightmarks.OZJ", "Data/Effect/JointLaser01.OZJ", "Data/Effect/smoke05.ozt",
     /* LoadBitmap 01820fcf,0182188f,01821b2f,01821b4f, RENDER-WORLDS-A. */
     "Data/Effect/fantaF.OZJ", "Data/Effect/firehik02.OZJ", "Data/Effect/firehik01.OZJ",
-    "Data/Effect/firehik03.OZJ", "Data/Effect/cloudLight.OZJ", "Data/Effect/Map_Smoke1.OZJ", "Data/Effect/Explosion01.OZJ",
+    "Data/Effect/firehik03.OZJ", "Data/Effect/cloudLight.OZJ", "Data/Effect/Map_Smoke1.OZJ", "Data/Effect/Explotion01.OZJ",
     /* LoadBitmap 0x01821599 / 0x01822345 / 0x01821f65, LINEAR/CLAMP/1/0. */
     "Data/Effect/Magic_Ground2.OZJ", "Data/Effect/lightning3.OZJ", "Data/Effect/Impack03.OZJ"};
 

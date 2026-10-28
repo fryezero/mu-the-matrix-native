@@ -9,7 +9,7 @@ weighted primary coverage **46/77 to 56/77**. This is a subset milestone.
 Also supplies RENDER-WORLDS-K's five requested particle consumers and three
 sprite assets. K owns the producer/world files. No live game, perf/mesh/scene,
 item or audio-lane changes. Existing fixed pools and load-time textures are
-reused; no per-frame allocations added. Checkpoints pushed at 01c0b39 and 64e6f3d.
+reused; no per-frame allocations added. Checkpoints pushed at 01c0b39, 64e6f3d and 1b2be47.
 
 ## Verified checks before the merge lock
 
@@ -17,15 +17,17 @@ reused; no per-frame allocations added. Checkpoints pushed at 01c0b39 and 64e6f3
   checks; zero mismatches. 10/10 compiled production-C mutants caught.
 - K consumers: 13,176 original-instruction comparisons plus 1,824 native removal
   checks; zero mismatches. 7/7 compiled production-C mutants caught.
-- Three original LoadBitmap call sequences verified under Unicorn: 0x01821599
-  Magic_Ground2/0x7f84, 0x01822345 lightning3/0x7f38, 0x01821f65 Impack03/0x8021;
-  exact paths, LINEAR/CLAMP and flags 1,0.
+- Four original LoadBitmap call sequences verified under Unicorn: 0x01821719
+  Explotion01/0x7f54 plus the three K registrations at 0x01821599
+  Magic_Ground2/0x7f84, 0x01822345 lightning3/0x7f38 and 0x01821f65
+  Impack03/0x8021; exact paths, LINEAR/CLAMP and flags 1,0. The audit corrected
+  the authored explosion asset path to the client spelling Explotion01.
 - Existing skill/effect/voice corpus: 33,000 checks, zero mismatches. Historical
   particle corpus: 30,495 checks, zero mismatches. Its kind order remains fixed;
   the pre-existing mount-breath rounding difference remains unchanged.
 - Reconstructed combat 38 tests and particles 23 tests pass with private checks.
   Native visual suite has five tests, including fixture casts and the native
-  eight-quad consumer/registration host; final private-enabled rerun follows.
+  nine-quad consumer/registration host; private-enabled rerun passes.
 - Fixture casts assert one unsent encrypted request each, unchanged target HP,
   zero invented hits/kills and zero unsupported emissions. Asset/pass removal
   changes rendered pixels. The three priority skills were also rendered with
@@ -56,13 +58,15 @@ private input needs retention. After merge, remove lane-local scratch/renders,
 all worktree build outputs, this worktree and local branch. Durable evidence is
 this handoff, finding and PR body. Final locked gate and cleanup are recorded below.
 
-Representative installed-data GL PNG hashes at frame 24, three images inspected:
+Representative installed-data GL PNG hashes at frame 24, three images inspected
+after correcting the explosion asset spelling. Meteorite and Inferno hashes
+changed as intended because the explosion sheet now loads; Aqua remains identical:
 
-- Meteorite `d51fcb34ccea83a4ed866c815f78a4305196540966d9dcf762f87a8cdb0ceb22`.
+- Meteorite `bf321538a9a9bd09b11523be34ed318617ed6dbdf94cd5d07d0f2dfe6f2e82b4`.
 - Aqua Beam `8aa6dee9171a0fcdc63c216507a2f1ddc2a84a40d8144478a65211bfb603aa19`.
-- Inferno `549688b8ed2feacfe03de0aa280aea17644004a8534cbc25fa798e3f70dbcab9`.
+- Inferno `92963b3899acb731796bd115dba74c7d1ca36471de39f698cf8f05fd1084dffb`.
 
-Five native tests pass with private checks enabled, including the eight-quad
+Five native tests pass with private checks enabled, including the nine-quad
 registration host. Both new registered validators pass, zero failures/errors/skips.
 Own Standards and Spec diff review retains the explicit subset limits above and
 finds no blocking issue in the implemented paths. Shared status edits are limited

@@ -81,21 +81,23 @@ owned and tested by RENDER-WORLDS-K; this change does not claim their placement.
 
 ## K sprite registrations
 
-Three additional LoadBitmap calls executed under Unicorn with the pinned
+Three K-requested LoadBitmap calls and the explosion registration executed under Unicorn with the pinned
 path pointers and all six arguments recorded. Each matches filter GL_LINEAR
 0x2601, wrap GL_CLAMP 0x2900 and final flags 1,0.
 
 | Bitmap | Call | Original path | Pointer |
 |---|---|---|---|
+| 0x7f54 | 0x01821719 | Effect\Explotion01.jpg | 0x01af1920 |
 | 0x7f84 | 0x01821599 | Effect\Magic_Ground2.jpg | 0x01af16d0 |
 | 0x7f38 | 0x01822345 | Effect\lightning3.jpg | 0x01af29dc |
 | 0x8021 | 0x01821f65 | Effect\Impack03.jpg | 0x01af26a0 |
 
-The native asset list resolves these to the installed OZJ files and retains
+The final audit corrected an authored asset typo, Explosion01, to the original
+spelling Explotion01. The native asset list resolves these to installed OZJ files and retains
 LINEAR/CLAMP metadata. A synthetic production-host test creates all five particle
-subtypes and these three sprites, moves and draws them through native dispatch,
-asserts eight quads and checks actual loaded sampling metadata. K owns the world
-producer calls and their own comparisons. These three registration checks are
+subtypes, an explosion and these three sprites, moves and draws them through
+native dispatch, asserts nine quads and checks actual loaded sampling metadata. K owns the world
+producer calls and their own comparisons. These four registration checks are
 additional to the 24,453 instruction cases above.
 
 ## Compiled planted mistakes

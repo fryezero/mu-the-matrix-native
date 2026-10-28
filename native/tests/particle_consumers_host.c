@@ -31,21 +31,22 @@ int main(int argc, char **argv)
     assert(mu_world_particles_create(&particles, 0x7ef7, pos, zero, light, 0, 1));
     for (int i = 0; i < 4; ++i)
         assert(mu_world_particles_create(&particles, 0x7f5a, pos, zero, light, subtypes[i], 1));
+    assert(mu_world_particles_create(&particles, 0x7f54, pos, zero, light, 0, 1));
     mu_world_particles_step(&particles, 123456);
-    assert(particles.list.count == 5 && particles.stats.unsupported == 0);
+    assert(particles.list.count == 6 && particles.stats.unsupported == 0);
     const int ids[] = {0x7f84, 0x7f38, 0x8021};
     for (int i = 0; i < 3; ++i)
         assert(mu_world_particles_sprite(&particles, ids[i], pos, 1, light, -1, 0, 0, 4) >= 0);
     const float identity[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
     const mu_world_particles_target target = {NULL, backend};
-    assert(mu_world_particles_draw(&particles, identity, &target) == 8);
-    assert(particles.stats.drawn_sprites == 3 && particles.stats.drawn_particles == 5 && vertices == 48);
+    assert(mu_world_particles_draw(&particles, identity, &target) == 9);
+    assert(particles.stats.drawn_sprites == 3 && particles.stats.drawn_particles == 6 && vertices == 54);
     /* Last three effect slots, before rain02/rain03; actual loader sampling metadata. */
     for (int i = MU_WORLD_PT_BITMAPS - 5; i < MU_WORLD_PT_BITMAPS - 2; ++i) {
         assert(particles.bitmaps.slots[i] && particles.bitmaps.filter[i] == 0x2601);
         assert(particles.bitmaps.wrap[i] == 0x2900 && particles.bitmaps.components[i] == 3);
     }
     mu_world_particles_close(&particles);
-    puts("five consumer particles, three registered sprites, eight quads, exact sampling: OK");
+    puts("five consumers, explosion, three registered sprites, nine quads, exact sampling: OK");
     return 0;
 }

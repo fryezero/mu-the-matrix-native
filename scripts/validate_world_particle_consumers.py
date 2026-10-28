@@ -30,7 +30,8 @@ MUTANTS = [
 ]
 
 
-REGISTRATIONS = [(0x01821581, 0x01821599, 0x7f84, 'Effect\\Magic_Ground2.jpg'),
+REGISTRATIONS = [(0x01821701, 0x01821719, 0x7f54, 'Effect\\Explotion01.jpg'),
+                 (0x01821581, 0x01821599, 0x7f84, 'Effect\\Magic_Ground2.jpg'),
                  (0x0182232d, 0x01822345, 0x7f38, 'Effect\\lightning3.jpg'),
                  (0x01821f4d, 0x01821f65, 0x8021, 'Effect\\Impack03.jpg')]
 
