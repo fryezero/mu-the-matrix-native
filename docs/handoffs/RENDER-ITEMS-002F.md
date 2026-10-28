@@ -44,8 +44,17 @@ inventory and the actual GFx item/FBO consumer. Each ground backend tests both q
 level 1, three sprites for three draws, without additional random calls. Authored textured pixels verify
 the sprite clock and repeated icon frames. Missing bones, bounded pools and random order remain covered.
 
-The full preflight `bash scripts/local-macos-ci.sh` passes on the part-5 base plus this lane. The final
-latest-main integration and locked release gate remain pending the merge lock. No hosted workflow is used.
+The full preflight `bash scripts/local-macos-ci.sh` passes on the part-5 base plus this lane:
+1,485 tests across 38 discovery runs, 182 explicit private/unavailable-input skips, seven fixture scenarios
+passed, native viewer/readers built, and 1,379 publication-audit files with zero rejected. The fixture
+journal records 53 inbound frames with zero unbound/undecodable; the existing two unrecovered intents and
+five unsent frames remain explicit. The final latest-main integration and locked release gate remain
+pending the merge lock. No hosted workflow is used.
+
+Self-review of the recovered checkpoint and resumed changes against the brief and repository standards
+found the GL qualifier build failure, the weak ancient-record test input and the ambiguous staff mutant
+anchor, all corrected above. No further blocking issue was found within the implemented subset. Rank 5
+and the owner/shared-state link branches remain partial as recorded below.
 
 ## Offline renders and cleanup
 
