@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../world/world_rt_internal.h"
-static int casts, picks, labels, messages, held, last_skill;
+static int casts, picks, labels, messages, last_skill, walk_held[256], key_message_down;
 void mu_walk_message(mu_walk *w, uint32_t m, uint32_t wp, uint32_t lp)
-{ (void)w; (void)m; (void)wp; (void)lp; ++messages; }
-void mu_walk_key(mu_walk *w, int vk, int down) { (void)w; (void)vk; held += down ? 1 : -1; }
+{ (void)w; (void)wp; (void)lp; ++messages; if (m == 0x100u || m == 0x101u) key_message_down = m == 0x100u; }
+void mu_walk_key(mu_walk *w, int vk, int down) { (void)w; if (vk >= 0 && vk < 256) walk_held[vk] = down; }
 void mu_world_items_alt(mu_world_items *it) { (void)it; ++labels; }
 int mu_world_items_space(mu_world_items *it) { (void)it; ++picks; return 1; }
 void mu_combat_cast(mu_combat *c, int32_t skill, int32_t actor)
@@ -26,7 +26,8 @@ int main(int argc, char **argv)
             mu_input_msg m = {.kind=MU_INPUT_FOCUS}; r = mu_world_rt_input(rt,&m);
         } else r = mu_world_rt_action(rt,argv[i]);
         printf("{\"result\":%d,\"casts\":%d,\"picks\":%d,\"labels\":%d,\"messages\":%d,"
-               "\"skill\":%d,\"digit_held\":%d}\n",r,casts,picks,labels,messages,last_skill,rt->input_down['1']);
+               "\"skill\":%d,\"digit_held\":%d,\"alt_held\":%d,\"key_message_down\":%d}\n",
+               r,casts,picks,labels,messages,last_skill,rt->input_down['1'],walk_held[18],key_message_down);
     }
     free(rt); return 0;
 }

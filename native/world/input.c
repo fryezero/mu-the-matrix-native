@@ -150,6 +150,8 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
             }
             mu_walk_message(&a->walk, 0x202u, 0, 0);
             mu_walk_message(&a->walk, 0x205u, 0, 0);
+            mu_walk_message(&a->walk, 0x208u, 0, 0);
+            mu_walk_message(&a->walk, 0x101u, 0, 0);
             a->input_composing = 0;
 #ifndef MU_WORLD_NO_GL
             if (l) mu_gfx_layer_compose(l, "", -1);
@@ -185,6 +187,7 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
 #endif
         if (!m->down) {
             mu_walk_key(&a->walk, m->vk, 0);
+            mu_walk_message(&a->walk, 0x101u, (uint32_t)m->vk, 0);
 #ifndef MU_WORLD_NO_GL
             if (l) mu_gfx_layer_key(l, 0, m->vk, (uint32_t)m->vk, mods);
 #endif
@@ -193,13 +196,22 @@ int mu_world_rt_input(mu_world_rt *a, const mu_input_msg *m)
         if (a->input_composing || was_down || m->repeat || a->input_state[m->vk] != 2) return 1;
         int used = panel(a, m->vk, mods);
         if (used) return used;
-        if ((!mods || m->vk == 0x12) && gameplay_key(a, m->vk)) return 1;
+        if ((!mods || m->vk == 0x12) && gameplay_key(a, m->vk)) {
+            if (m->vk == 0x12) {   /* SelectObjects also reads the held Alt state. */
+                mu_walk_key(&a->walk, m->vk, 1);
+                mu_walk_message(&a->walk, 0x100u, (uint32_t)m->vk, 0);
+            }
+            return 1;
+        }
         mu_walk_key(&a->walk, m->vk, 1);
         mu_walk_message(&a->walk, 0x100u, (uint32_t)m->vk, 0);
         return 0;
     }
     if (m->kind == MU_INPUT_MESSAGE) {
-        if (m->message == 0x100u || m->message == 0x101u) return 1; /* legacy duplicate */
+        if (m->message == 0x100u || m->message == 0x101u) {
+            mu_input_msg key = {.kind = MU_INPUT_KEY, .vk = (int)m->wparam, .down = m->message == 0x100u};
+            return mu_world_rt_input(a, &key);
+        }
         int x = (int16_t)(m->lparam & 0xffffu), y = (int16_t)(m->lparam >> 16);
         if (m->message >= 0x200u && m->message <= 0x208u) {
             a->input_x = x; a->input_y = y;

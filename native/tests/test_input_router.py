@@ -41,6 +41,13 @@ class InputRouter(unittest.TestCase):
         self.assertEqual(rows[-1]['picks'],1)
         self.assertEqual(rows[-1]['casts'],1)
 
+    def test_alt_keeps_pick_priority_and_release_clears_message_gate(self):
+        rows=self.drive('down:18','up:18','down:37','up:37')
+        self.assertEqual(rows[0]['alt_held'],1)
+        self.assertEqual(rows[1]['alt_held'],0)
+        self.assertEqual(rows[2]['key_message_down'],1)
+        self.assertEqual(rows[3]['key_message_down'],0)
+
     def test_ime_candidate_digit_never_casts(self):
         rows=self.drive('compose:1:%E4%B8%AD','key:49','text:%E4%B8%AD','key:49')
         self.assertEqual(rows[1]['casts'],0)
