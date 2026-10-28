@@ -55,6 +55,7 @@ int main(int argc,char **argv)
             if(!v.used[i])continue;
             ++count;const mu_rp_character *c=&v.records[i];
             if (capacity_mode) continue;
+            if (c->kind == 2) printf("{\"monster_tick\":%u,\"key\":%d,\"model\":%d,\"server_class\":%d,\"level\":%u,\"max_hp\":%u,\"hp\":%u}\n", tick,c->key,c->model,c->class_word,c->level,c->max_hp,c->hp);
             printf("{\"tick\":%u,\"slot\":%d,\"key\":%d,\"class\":%u,\"generation\":%u,\"equipment_revision\":%u,\"helper\":%u,\"helper_slot\":%d,\"x\":%d,\"y\":%d,\"dead\":%u,\"store\":%u}\n",
                 tick,i,c->key,c->class_byte,v.generation[i],v.equipment_revision[i],c->helper,c->slots[10].type,c->tile[0],c->tile[1],c->dead,v.store_open[i]);
         }
