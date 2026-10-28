@@ -70,6 +70,7 @@
 #include "../viewer/gl_headless.h"
 #include "../viewer/ui_gl.h"
 #include "../world/world_gfx.h"
+#include "../world/input_sdl.h"
 #include "../world/world_gfx_options.h"
 #include "../gfx/mu_gfx_layer.h"
 #endif
@@ -81,12 +82,8 @@
 #include "../core/mu_wav.h"
 #include "shell.h"
 
-#define MAX_ACTIONS 128
-
-typedef struct action {
-    int32_t frame;
-    char what[64];
-} action;
+#define MAX_ACTIONS MU_INPUT_SCRIPT_MAX
+typedef mu_input_action action;
 
 typedef struct front {
     const char *root, *session, *out_dir, *backend, *wav_path, *font;
@@ -100,6 +97,7 @@ typedef struct front {
     const char *store;                /* NATIVE-CHARCREATE-001: the OFFLINE DEMO character store */
     int no_store;
     char store_default[4096];
+    int input_actions;
     int double_click;                 /* the scripted click is a double click */
     const char *label, *title;                                 /* NATIVE-APP-001 */
     int32_t width, height, frames, every, headless, audio, quiet, autoplay;
@@ -575,14 +573,25 @@ static void do_action(front *f, const char *what)
     int32_t x, y, n;
     if (!f->quiet)
         fprintf(stderr, "frame %d (scene %d): %s\n", f->frame, mu_shell_scene(s), what);
+    mu_world_rt *rt = mu_shell_scene(s) == MU_SCENE_MAIN ? mu_shell_world(s) : NULL;
+    if (rt && ( !strncmp(what, "key:", 4) || !strncmp(what, "down:", 5) ||
+                !strncmp(what, "up:", 3) || !strncmp(what, "move:", 5) ||
+                !strncmp(what, "ldown:", 6) || !strncmp(what, "lup:", 4) ||
+                !strncmp(what, "rdown:", 6) || !strncmp(what, "rup:", 4) ||
+                !strncmp(what, "focus:", 6) || !strncmp(what, "compose:", 8) || !strncmp(what, "text:", 5))) {
+        ++f->input_actions;
+        int result = mu_world_rt_action(rt, what);
+        if (!f->quiet) fprintf(stderr, "input result %d: %s\n", result, what);
+        return;
+    }
     if (!strcmp(what, "enter") || !strcmp(what, "esc") || !strcmp(what, "left") || !strcmp(what, "right") ||
         !strcmp(what, "tab") || !strcmp(what, "back")) {
         int vk = !strcmp(what, "enter") ? 0x0d : !strcmp(what, "esc") ? 0x1b : !strcmp(what, "left") ? 0x25
                : !strcmp(what, "right") ? 0x27 : !strcmp(what, "tab") ? 0x09 : 0x08;
 #ifndef MU_CLIENT_NO_GL
         if (f->gfx && mu_shell_scene(s) == MU_SCENE_MAIN &&   /* NATIVE-PROGRESS-001: Esc opens the system menu */
-            mu_gfx_layer_key(world_gfx_layer(f->gfx), 1, vk, (uint32_t)vk, 0)) {
-            mu_gfx_layer_key(world_gfx_layer(f->gfx), 0, vk, (uint32_t)vk, 0);
+            mu_world_rt_input(rt, &(mu_input_msg){.kind=MU_INPUT_KEY, .vk=vk, .down=1})) {
+            mu_world_rt_key(rt, vk, 0);
             return;
         }
 #endif
@@ -613,17 +622,6 @@ static void do_action(front *f, const char *what)
         click(f, x, y);
         f->double_click = 1;
     } else if (sscanf(what, "click:%d,%d", &x, &y) == 2) {
-#ifndef MU_CLIENT_NO_GL
-        if (f->gfx && mu_shell_scene(s) == MU_SCENE_MAIN) {   /* NATIVE-PROGRESS-001: the GFx windows first */
-            mu_gfx_layer *l = world_gfx_layer(f->gfx);
-            mu_gfx_layer_mouse(l, 0, 0, x, y);
-            if (mu_gfx_layer_mouse(l, 1, 0, x, y)) {
-                mu_gfx_layer_mouse(l, 2, 0, x, y);
-                return;
-            }
-            mu_gfx_layer_mouse(l, 2, 0, x, y);
-        }
-#endif
         click(f, x, y);
     } else if (sscanf(what, "wheel:%d", &n) == 1) {
         mu_shell_wheel(s, n);
@@ -703,19 +701,17 @@ static void autoplay(front *f)
 
 static int parse_script(front *f, const char *text)
 {
-    f->action_count = 0;
-    for (const char *p = text; *p && f->action_count < MAX_ACTIONS;) {
-        while (*p == ' ' || *p == ';')
-            ++p;
-        if (!*p)
-            break;
-        action *a = &f->actions[f->action_count];
-        int used = 0;
-        if (sscanf(p, "%d:%63[^ ;]%n", &a->frame, a->what, &used) != 2)
+    int count = mu_input_script_parse(text, f->actions);
+    if (count < 0) return 1;
+    for (int i = 0; i < count; ++i) {
+        const char *a = f->actions[i].what;
+        if ((!strncmp(a, "key:", 4) || !strncmp(a, "down:", 5) || !strncmp(a, "up:", 3) ||
+             !strncmp(a, "compose:", 8) || !strncmp(a, "move:", 5) || !strncmp(a, "ldown:", 6) ||
+             !strncmp(a, "lup:", 4) || !strncmp(a, "rdown:", 6) || !strncmp(a, "rup:", 4) ||
+             !strncmp(a, "focus:", 6) || !strncmp(a, "wheel:", 6)) && mu_world_rt_action(NULL, a) == -2)
             return 1;
-        ++f->action_count;
-        p += used;
     }
+    f->action_count = count;
     return 0;
 }
 
@@ -843,6 +839,7 @@ static int headless(front *f)
     int32_t transitions = mu_shell_transitions(f->shell, &lines);
     const mu_scenemgr_globals *g = mu_shell_globals(f->shell);
     const mu_offline_session *session = mu_shell_session(f->shell);
+    if (f->input_actions) mu_world_rt_input_report(mu_shell_world(f->shell), stdout);
     printf("{\"summary\": true, \"renderer\": \"%s\", \"frames\": %d, \"scene\": %d, \"captures\": %d, "
            "\"presents\": %d, \"scene_frames\": {\"2\": %d, \"3\": %d, \"4\": %d, \"5\": %d, \"6\": %d}, "
            "\"visits\": {\"3\": %d, \"5\": %d, \"6\": %d}, \"protocol\": %d, \"world\": %d, \"selected_hero\": %d, "
@@ -1109,7 +1106,8 @@ static int windowed(front *f)
                 snprintf(f->shot, sizeof f->shot, "mu-client-screenshot.png");
                 continue;
             }
-            if (f->gfx && mu_shell_scene(f->shell) == MU_SCENE_MAIN && world_gfx_event(f->gfx, &e, f->scale))
+            if (mu_shell_scene(f->shell) == MU_SCENE_MAIN &&
+                mu_world_rt_sdl_event(mu_shell_world(f->shell), &e, f->scale))
                 continue;   /* the GFx interface took it */
             if (e.type == SDL_QUIT) {
                 mu_shell_request_quit(f->shell);
@@ -1225,7 +1223,7 @@ static int usage(void)
             "                 [--no-audio] [--seconds S]\n"
             "                 [--world-objects DIR] [--charsel-objects DIR] [--login-objects DIR] [--objects-dir DIR]\n"
             "                 [--headless --out-dir DIR --backend gl|soft --frames N --every K]\n"
-            "                 [--auto | --script \"F:ACTION ...\"] [--wav OUT.wav] [--quiet]\n"
+            "                 [--auto | --script \"F:ACTION ...\" | --input-script FILE] [--wav OUT.wav] [--quiet]\n"
             "                 [--gfx DIR [--gfx-open inventory,character] [--gfx-log FILE]]\n"
             "                 [--combat] [--items] [--npc] [--npc-demo FILE] [--no-names] [--no-env] [--no-particles]\n"
             "                 [--progress]   experience, levels and stat points (demo server)\n"
@@ -1294,6 +1292,12 @@ int main(int argc, char **argv)
         else if (!strcmp(k, "--every")) f.every = atoi(v);
         else if (!strcmp(k, "--wav")) f.wav_path = v;
         else if (!strcmp(k, "--script")) { if (parse_script(&f, v)) return usage(); }
+        else if (!strcmp(k, "--input-script")) {
+            char *text = mu_input_script_read(v);
+            if (!text) { fprintf(stderr, "cannot read input script %s\n", v); return 2; }
+            int bad = parse_script(&f, text); free(text);
+            if (bad) return usage();
+        }
         else if (!strcmp(k, "--gfx")) f.gfx_dir = v;
         else if (!strcmp(k, "--gfx-open")) f.gfx_open = v;
         else if (!strcmp(k, "--gfx-log")) f.gfx_log = v;

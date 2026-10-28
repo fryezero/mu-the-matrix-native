@@ -3,17 +3,20 @@
  *   MU_PART(id, ops, pre_tick, tick, frame, draw_gl, draw_soft, report)
  *
  * The row order is the open order (world/main.c load()).  Each number orders that column; 0 = the part has no
- * such hook.  The columns reproduce world/main.c (commit f997742) exactly:
- *   pre_tick   combat_pre_step (main.c:331-341): MoveHero's pick-up, NPC and attack cases before the walk
- *   tick       on_step (main.c:758-826), which copies the client's MoveHero/MoveCharacters order
- *   frame      advance (main.c:1636-1688) after the walk, placement and the render-pass camera
- *   draw_gl    draw_gl (main.c:2296-2518): RenderScene's 3D passes, then the label overlay
- *   draw_soft  draw_soft (main.c:2549-2680): the same in the software raster (helpers and marker differ)
- *   report     report_frame / report_summary (main.c:2684-2919): the frame rows and the summary rows
- * native/tests/test_world_parts.py pins every column against that order, so a reordering is a visible diff
- * (WORLD-ORDER-001 then checks the tick and draw columns against the reconstructed MoveMainScene and
- * RenderMainScene).  A subsystem that acts at two places of a pass has two rows (npc_demo before the actors,
- * npc after the names; actors and actor_effects; items and item_labels).
+ * such hook. Open, pre_tick, frame and report retain the WORLD-RT-001 baseline.
+ * Tick and draw columns are checked against compiled MoveMainScene/RenderMainScene call records by
+ * native/tests/test_world_parts.py. reconstructed/world-order/parts_order.py names the client anchors
+ * and every native grouping, reordering and part without a standalone client call. Those deliberate
+ * adapters preserve the existing outputs; the columns do not claim literal equality with every client
+ * branch. In particular, objects/items/weather ticks and actor effects draw at different native places,
+ * and the software helper/marker placement differs from GL. See docs/research/client-world-order.md.
+ *   pre_tick   combat_pre_step: pick-up, NPC and attack cases before the walk
+ *   tick       on_step, adapted from MoveMainScene's recorded subsystem calls
+ *   frame      advance after the walk, placement and render-pass camera
+ *   draw_gl    draw_gl, adapted from RenderMainScene's recorded calls
+ *   draw_soft  draw_soft, the software raster adaptation of those calls
+ *   report     report_frame / report_summary
+ * A subsystem that acts at two places of a pass has two rows.
  *
  * Every part's file is native/world/parts/<file>.c (several rows may share a file). */
 /*      id             ops                    pre  tick frame  gl  soft rep    world/main.c                                */
@@ -40,3 +43,5 @@ MU_PART(actor_effects, mu_part_actor_effects,   0,    0,   0, 110, 110,   0) /* 
 MU_PART(item_labels,   mu_part_item_labels,     0,    0,   0, 130, 130,   0) /* the ground items' name labels            */
 
 MU_PART(characters, mu_part_characters, 0, 21, 0, 0, 0, 0) /* session MoveCharacters, after actor lane */
+
+MU_PART(haze, mu_part_haze, 0, 0, 0, 125, 125, 0) /* screen weather before 2D labels, RENDER-WORLDS-F */

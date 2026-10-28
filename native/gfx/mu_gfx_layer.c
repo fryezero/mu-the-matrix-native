@@ -829,6 +829,23 @@ static void feed_item_hotkeys(mu_gfx_layer *L)
     invokef(L, MU_GFX_MAIN, path, "setItemHotKeyAll", "[[%s]]", list);
 }
 
+/* Extracted from main's existing useItemHotKey callback. This is the native
+ * offline policy, not a recovered request builder or an authoritative item use. */
+int mu_gfx_layer_use_item_hotkey(mu_gfx_layer *L, int slot)
+{
+    if (!L || slot < 0 || slot >= 4) return 0;
+    if (slot != 0 || L->potions <= 0) {
+        logf_(L, "game: item hotkey %d empty (offline demo)", slot);
+        return 0;
+    }
+    --L->potions;
+    L->hero.hp = L->hero.hp + L->hero.max_hp / 4 > L->hero.max_hp ? L->hero.max_hp :
+                 L->hero.hp + L->hero.max_hp / 4;
+    logf_(L, "game: item hotkey %d used, remaining %d (offline demo)", slot, L->potions);
+    feed_item_hotkeys(L);
+    return 1;
+}
+
 /* The skill table of the data movie (0x00c5e990 / 0x00c5ebaa). */
 static void send_skills(mu_gfx_layer *L)
 {
@@ -1510,12 +1527,7 @@ static const char *on_call_(movie *mv, const char *name, const char *args)
                        !strcmp(s, "offExpTooltip")) {
                 hide_tooltip(L);
             } else if (!strcmp(s, "useItemHotKey")) {
-                if (L->potions > 0) {
-                    L->potions--;
-                    L->hero.hp = L->hero.hp + L->hero.max_hp / 4 > L->hero.max_hp ? L->hero.max_hp
-                                                                                    : L->hero.hp + L->hero.max_hp / 4;
-                    feed_item_hotkeys(L);
-                }
+                (void)mu_gfx_layer_use_item_hotkey(L, 0);
             }
         }
         return NULL;

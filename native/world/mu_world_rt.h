@@ -16,6 +16,7 @@
 #define MU_WORLD_RT_H
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdint.h>
 
 #include "../core/mu_character.h"
@@ -90,14 +91,31 @@ void mu_world_rt_default_options(mu_world_rt_options *options);
 mu_world_rt *mu_world_rt_open(const mu_world_rt_options *options, char *error, size_t error_size);
 void mu_world_rt_close(mu_world_rt *rt);
 
-/* Input in Win32 form: window messages (mouse, wheel) and key states, as the window procedure sees them.
- * hotkey: the world's own keys on a key press (Alt the ground item labels, Space the nearest item, 1..0 the
- * demo skills); right_button: a right button press over a monster with the GFx interface casts the skill
- * bar's selected skill (returns 1: consumed, the window message is not sent). */
+/* INPUT-001: all front ends feed this router. Mouse coordinates are drawable pixels.
+ * Text/preedit are UTF-8; cursor is a code-point index. Candidate keys go only to
+ * an active text input. Return 1 = consumed, 0 = walk/unbound, -1 = unavailable. */
+typedef enum mu_input_kind {
+    MU_INPUT_KEY, MU_INPUT_MESSAGE, MU_INPUT_TEXT, MU_INPUT_COMPOSE, MU_INPUT_FOCUS
+} mu_input_kind;
+typedef struct mu_input_msg {
+    mu_input_kind kind;
+    int vk, down, mods, repeat, cursor;
+    uint32_t message, wparam, lparam;
+    const char *text;
+} mu_input_msg;
+int mu_world_rt_input(mu_world_rt *rt, const mu_input_msg *msg);
+/* One ACTION of the documented FRAME:ACTION script. -2 = invalid action. */
+int mu_world_rt_action(mu_world_rt *rt, const char *action);
+/* Read a <=64 KiB script, strip whole-line or trailing # comments. Caller frees it. */
+char *mu_input_script_read(const char *path);
+#define MU_INPUT_SCRIPT_MAX 128
+typedef struct mu_input_action { int32_t frame; char what[64]; } mu_input_action;
+/* Parse schedule syntax only. Actions remain scene-specific. -1 rejects overflow or malformed frames. */
+int mu_input_script_parse(const char *text, mu_input_action out[MU_INPUT_SCRIPT_MAX]);
+void mu_world_rt_input_report(const mu_world_rt *rt, FILE *out);
+/* Legacy adapters feed the same router, retained for existing hosts. */
 void mu_world_rt_message(mu_world_rt *rt, uint32_t message, uint32_t wparam, uint32_t lparam);
 void mu_world_rt_key(mu_world_rt *rt, int vk, int down);
-int mu_world_rt_hotkey(mu_world_rt *rt, int vk);
-int mu_world_rt_right_button(mu_world_rt *rt);
 
 /* Sets the drawable size and mouse scale (window front ends after creating the context). */
 void mu_world_rt_resize(mu_world_rt *rt, int32_t width, int32_t height);
