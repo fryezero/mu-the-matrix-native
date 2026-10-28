@@ -20,6 +20,7 @@ sound played next to it and the event managers) and is labelled as such.
 The output stays local: it contains client file names. Nothing here is
 committed.
 """
+import native_data_manifest as manifest
 import argparse
 import hashlib
 import json
@@ -172,7 +173,11 @@ def main():
     parser.add_argument('--data', required=True)
     parser.add_argument('--out', required=True, help='JSON output (keep it outside the repository)')
     parser.add_argument('--tsv', help='tab-separated table for native/build/mu-audio')
+    manifest.arguments(parser)
     args = parser.parse_args()
+    if args.tsv:
+        manifest.prepare(args)
+        manifest.prepare_output(args, Path(args.tsv).parent)
     text, data = Path(args.text).read_bytes(), Path(args.data).read_bytes()
     if len(text) != TEXT_BYTES or hashlib.sha256(text).hexdigest() != TEXT_SHA256:
         raise SystemExit('restored text does not match the pinned capture')
@@ -195,6 +200,8 @@ def main():
             if entry['path']:
                 lines.append(f"music\t{entry['index']}\t{entry['path']}\t-\t-\t{entry['evidence']}")
         Path(args.tsv).write_text('\n'.join(lines) + '\n')
+    if args.tsv:
+        manifest.publish(args, Path(args.tsv).parent, 'audio-export-v1', [args.text, args.data])
     print(json.dumps(result['summary']))
 
 

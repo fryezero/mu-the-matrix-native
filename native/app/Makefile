@@ -26,17 +26,18 @@ B ?= ../build/app
 NAME := Mu The Matrix Native Preview
 APP := $(B)/$(NAME).app
 APPQ := "$(APP)"
+CLIENT_SHA256 ?= 3cf91f3c203d305a771b04d00b271871f7ce1c6779b22e30fbae8c4f35b5527a
 SOURCES := Sources/PreviewCore.swift Sources/main.swift
 ICON_SRC := icon/make-icon.swift
 CLIENT := ../build/mu-client
 CONVERTER := ../build/gfxconvert/gfxconvert
 STAMP := $(B)/.app-stamp
-VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(MUGFX_LIB)|$(SDL3_LIB)|$(COMMIT)
+VARS := $(SWIFTC)|$(ARCH)|$(MIN_MACOS)|$(VERSION)|$(BUILD_NUMBER)|$(BUNDLE_ID)|$(MUGFX_LIB)|$(SDL3_LIB)|$(COMMIT)|$(CLIENT_SHA256)
 
 all: $(STAMP)
 
 # Rebuild when a build variable changes (make does not track them itself).
-$(shell mkdir -p '$(B)' && { printf '%s\n' '$(VARS)' | cmp -s - '$(B)/.vars' || { printf '%s\n' '$(VARS)' > '$(B)/.vars'; rm -f '$(B)/Info.plist' '$(STAMP)'; }; })
+$(shell mkdir -p '$(B)' && { printf '%s\n' '$(VARS)' | cmp -s - '$(B)/.vars' || { printf '%s\n' '$(VARS)' > '$(B)/.vars'; rm -f '$(B)/Info.plist' '$(B)/mu-native-data' '$(STAMP)'; }; })
 
 $(CLIENT):
 	$(MAKE) -C .. client
@@ -47,6 +48,13 @@ converter:
 	$(MAKE) -C ../gfx converter
 $(CONVERTER): converter
 	@test -x $@
+
+$(B)/mu-native-data: ../data/manifest.cpp ../data/manifest.h
+	@mkdir -p $(B)
+	$(MAKE) -C .. build/mu-native-data
+	$(CXX) -std=c++17 -O2 -Wall -Wextra -Werror -arch $(ARCH) -mmacosx-version-min=$(MIN_MACOS) -DMU_MANIFEST_TOOL \
+	  -DMU_CLIENT_SHA256='"$(CLIENT_SHA256)"' -isystem $(shell brew --prefix cryptopp)/include \
+	  ../data/manifest.cpp -L$(shell brew --prefix cryptopp)/lib -lcryptopp -o $@
 
 $(B)/MuNativePreview: $(SOURCES)
 	@mkdir -p $(B)
@@ -72,7 +80,7 @@ $(B)/Info.plist: Info.plist.in Makefile
 	    -e 's|@MIN_MACOS@|$(MIN_MACOS)|' -e 's|@COMMIT@|$(COMMIT)|' -e 's|@GFX@|$(if $(MUGFX_LIB),true,false)|' $< > $@
 	plutil -lint $@
 
-$(STAMP): $(CLIENT) $(CONVERTER) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/AppIcon.icns $(B)/Info.plist bundle-dylibs.sh \
+$(STAMP): $(CLIENT) $(CONVERTER) $(B)/mu-native-data $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B)/AppIcon.icns $(B)/Info.plist bundle-dylibs.sh \
           ../client/demo-session.txt ../client/demo-servers.txt ../client/demo-characters.txt \
           ../world/lorencia-demo-placement.txt ../world/lorencia-demo-npc.txt ../world/lorencia-demo-players.txt \
           $(MUGFX_LIB)
@@ -81,7 +89,7 @@ $(STAMP): $(CLIENT) $(CONVERTER) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B
 	  $(APPQ)/Contents/Resources/world
 	cp $(B)/Info.plist $(APPQ)/Contents/Info.plist
 	printf 'APPL????' > $(APPQ)/Contents/PkgInfo
-	cp $(B)/MuNativePreview $(CLIENT) $(CONVERTER) $(APPQ)/Contents/MacOS/
+	cp $(B)/MuNativePreview $(CLIENT) $(CONVERTER) $(B)/mu-native-data $(APPQ)/Contents/MacOS/
 	cp $(B)/libmu-nonet.dylib $(APPQ)/Contents/Frameworks/
 	@if [ -n "$(MUGFX_LIB)" ]; then cp "$(MUGFX_LIB)" $(APPQ)/Contents/Frameworks/libmugfx.dylib && echo "bundled libmugfx ($(MUGFX_LIB))"; \
 	  else echo "NOTE: no libmugfx (native/gfx/build-mugfx.sh or MUGFX_LIB=...): the app uses the GFx stand-ins"; fi
@@ -93,7 +101,7 @@ $(STAMP): $(CLIENT) $(CONVERTER) $(B)/MuNativePreview $(B)/libmu-nonet.dylib $(B
 	# inner code first, then the app (ad-hoc, no hardened runtime: the launcher loads the network guard
 	# into mu-client with DYLD_INSERT_LIBRARIES)
 	for f in $(APPQ)/Contents/Frameworks/*.dylib $(APPQ)/Contents/MacOS/gfxconvert \
-	         $(APPQ)/Contents/MacOS/mu-client; do codesign --force --sign - --timestamp=none "$$f" || exit 1; done
+	         $(APPQ)/Contents/MacOS/mu-client $(APPQ)/Contents/MacOS/mu-native-data; do codesign --force --sign - --timestamp=none "$$f" || exit 1; done
 	codesign --force --sign - --timestamp=none $(APPQ)
 	codesign --verify --strict --deep --verbose=1 $(APPQ)
 	$(APPQ)/Contents/MacOS/MuNativePreview --check-bundle

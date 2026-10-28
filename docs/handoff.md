@@ -1,5 +1,7 @@
 # Continue from here
 
+DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisition procedure](native-data.md). Jump-table diff remains pending on paused NET-DISPATCH-001.
+
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.
 
 RENDER-ITEMS-002 part 1: [handoff](handoffs/RENDER-ITEMS-002.md). Inventory special-code paths are covered; next are the type-specific body/effect switches and Muun integration.

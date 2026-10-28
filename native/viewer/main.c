@@ -1,3 +1,4 @@
+#include "../data/manifest.h"
 /* mu-viewer: native macOS (and Linux) model viewer.
  *
  * Loads a client BMD model and its textures, animates it with the
@@ -594,6 +595,7 @@ int mu_terrain_viewer_main(int argc, char **argv);  /* viewer/terrain_view.c */
 
 int main(int argc, char **argv)
 {
+    if (!mu_native_data_check_args(argc, argv)) return 1;
     if (argc > 1 && !strcmp(argv[1], "--terrain"))
         return mu_terrain_viewer_main(argc, argv);
     if (mu_record_math_environment_supported() != 1) {

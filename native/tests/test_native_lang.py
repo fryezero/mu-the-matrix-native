@@ -226,7 +226,7 @@ def write_lang(directory):
     snap = Path(directory)/'snap.bin'
     snap.write_bytes(synthetic_snapshot())
     out = Path(directory)/'lang'
-    subprocess.run([sys.executable, str(CONVERT), str(snap), '--out', str(out)], check=True, capture_output=True)
+    subprocess.run([sys.executable, str(CONVERT), '--raw-output', str(snap), '--out', str(out)], check=True, capture_output=True)
     return out
 
 
@@ -333,7 +333,7 @@ class ConverterAndLoader(Build):
         for name, data in bad.items():
             path = self.dir/f'bad-{name}.bin'
             path.write_bytes(data)
-            r = subprocess.run([sys.executable, str(CONVERT), str(path), '--out', str(self.dir/f'out-{name}')],
+            r = subprocess.run([sys.executable, str(CONVERT), '--raw-output', str(path), '--out', str(self.dir/f'out-{name}')],
                                capture_output=True, text=True)
             self.assertEqual(r.returncode, 1, name)
             self.assertIn('live_lang_to_plain:', r.stderr)

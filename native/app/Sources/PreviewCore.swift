@@ -39,6 +39,7 @@ enum Paths {
     static var placement: String { resources + "/world/lorencia-demo-placement.txt" }
     static var npcDemo: String { resources + "/world/lorencia-demo-npc.txt" }
     static var players: String { resources + "/world/lorencia-demo-players.txt" }   // NATIVE-HELPERS-001
+    static var manifestTool: String { contents + "/MacOS/mu-native-data" }
     static var converter: String { contents + "/MacOS/gfxconvert" }
 
     static func exists(_ p: String) -> Bool { FileManager.default.fileExists(atPath: p) }
@@ -221,7 +222,16 @@ enum GameData {
     }
 }
 
-// ---------------------------------------------------------------- Native Data (local, optional)
+// ---------------------------------------------------------------- Native Data
+
+enum DataManifest {
+    static let name = "native-data.manifest"
+    static func check(_ dir: String, gameRoot: String) -> String? {
+        let r = DataSetup.run(Paths.manifestTool, ["check", dir, gameRoot + "/main.exe"])
+        return r.status == 0 ? nil : r.output
+    }
+}
+
 
 /// What the Native Data folder holds: lang/ (game text tables), objects/ (decoded EncTerrain<n>.plain),
 /// gfx/ (converted GFx movies), sound/audio-tables.tsv; setup.json records the first-run setup.
@@ -260,6 +270,27 @@ enum DataSetup {
         try? fm.createDirectory(atPath: nd.dir, withIntermediateDirectories: true)
         var result: [String: Step] = [:]
         let scratch = s.scratchDir
+        guard let root = gameRoot else {
+            return ["manifest": Step(status: "failed", files: 0, source: "", detail: "Native Data cannot be used: no game folder. Choose the installed client, then run Setup again.")]
+        }
+        let pin = run(Paths.manifestTool, ["pin", root + "/main.exe"])
+        if pin.status != 0 { return ["manifest": Step(status: "failed", files: 0, source: root, detail: pin.output)] }
+        // Never bless legacy, damaged or mismatched outputs, even with --force.
+        if !Paths.files(nd.dir, { _ in true }).isEmpty {
+            if let error = DataManifest.check(nd.dir, gameRoot: root) {
+                return ["manifest": Step(status: "failed", files: 0, source: nd.dir, detail: error)]
+            }
+            if !force { return ["manifest": Step(status: "kept", files: 1, source: nd.dir, detail: "verified; run --force to regenerate")]
+            }
+        }
+        // Reject unversioned exports before touching the destination.
+        for src in [scratch + "/lang", scratch + "/objects/live/plain", scratch + "/audio/tables"] {
+            if Paths.isDir(src) && !Paths.files(src, { _ in true }).isEmpty,
+               let error = DataManifest.check(src, gameRoot: root) {
+                return ["manifest": Step(status: "failed", files: 0, source: src, detail: error)]
+            }
+        }
+        try? fm.removeItem(atPath: nd.dir + "/" + DataManifest.name)
 
         // 1. GFx movies: gfxconvert over the installed .ozg files, else copies of already converted movies.
         progress("Converting the game's interface movies (GFx → SWF)…")
@@ -291,6 +322,23 @@ enum DataSetup {
         if let data = try? JSONSerialization.data(withJSONObject: record, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: URL(fileURLWithPath: nd.setupRecord), options: .atomic)
         }
+        for dir in [nd.gfx, nd.lang, nd.objects, nd.dir + "/sound"] where Paths.isDir(dir) {
+            let r = run(Paths.manifestTool, ["check", dir, root + "/main.exe"])
+            if r.status != 0 {
+                result["component"] = Step(status: "failed", files: 0, source: dir, detail: r.output)
+            }
+        }
+        let failed = result.values.contains { $0.status == "partial" || $0.status == "failed" || ($0.status == "missing" && $0.files != 0) }
+        if !failed {
+            var inputs = [root + "/main.exe"]
+            for dir in [nd.gfx, nd.lang, nd.objects, nd.dir + "/sound"] where Paths.exists(dir + "/" + DataManifest.name) {
+                inputs.append(dir + "/" + DataManifest.name)
+            }
+            let r = run(Paths.manifestTool, ["write", nd.dir, root + "/main.exe", "app-setup-v1"] + inputs)
+            result["manifest"] = Step(status: r.status == 0 ? "written" : "failed", files: r.status == 0 ? 1 : 0, source: nd.dir, detail: r.output)
+        } else {
+            result["manifest"] = Step(status: "failed", files: 0, source: nd.dir, detail: "Native Data cannot be used: setup is incomplete. Re-acquire into a new folder and run Setup again.")
+        }
         for (k, v) in result.sorted(by: { $0.key < $1.key }) {
             AppLog.write("setup \(k): \(v.status) files=\(v.files) source=\(v.source) \(v.detail)")
         }
@@ -301,9 +349,10 @@ enum DataSetup {
         let fm = FileManager.default
         let have = Paths.files(dst, match)
         if !force && !have.isEmpty { return Step(status: "kept", files: have.count, source: dst, detail: "already present") }
+        let versioned = Paths.exists(src + "/" + DataManifest.name)
         let names = Paths.files(src) { name in
             var d: ObjCBool = false
-            return match(name) && fm.fileExists(atPath: src + "/" + name, isDirectory: &d) && !d.boolValue
+            return (versioned || match(name)) && fm.fileExists(atPath: src + "/" + name, isDirectory: &d) && !d.boolValue
         }
         if names.isEmpty { return Step(status: "missing", files: 0, source: src, detail: "no local files (optional)") }
         try? fm.createDirectory(atPath: dst, withIntermediateDirectories: true)
@@ -313,7 +362,7 @@ enum DataSetup {
             try? fm.removeItem(atPath: target)
             if (try? fm.copyItem(atPath: src + "/" + name, toPath: target)) != nil { copied += 1 }
         }
-        return Step(status: copied == names.count ? "copied" : "partial", files: copied, source: src, detail: "")
+        return Step(status: copied == names.count ? "copied" : "partial", files: copied - (versioned ? 1 : 0), source: src, detail: "")
     }
 
     static func convertMovies(nd: NativeData, gameRoot: String?, scratch: String) -> Step {
@@ -327,6 +376,11 @@ enum DataSetup {
             AppLog.write("gfxconvert (C) status \(r.status)\n" + String(r.output.suffix(4000)))
             let made = Paths.files(tmp) { $0.hasSuffix(".swf") }
             if r.status == 0 && Paths.exists(tmp + "/base.swf") && Paths.exists(tmp + "/main.swf") {
+                let manifest = run(Paths.manifestTool, ["write", tmp, root + "/main.exe", "gfxconvert-app-v1-bridge-transparent-isClient-English-latin", root + "/Data/Interface/GFx"])
+                if manifest.status != 0 {
+                    try? fm.removeItem(atPath: tmp)
+                    return Step(status: "failed", files: 0, source: root, detail: manifest.output)
+                }
                 do {
                     // Publish a complete conversion; keep the old set if installation fails.
                     if Paths.exists(nd.gfx) {
@@ -348,8 +402,14 @@ enum DataSetup {
             why = gameRoot == nil ? "no game folder" : "no Data/Interface/GFx in the game folder"
         }
         // Fallback: movies converted earlier by the repository's tools (NATIVE-GFX-003 / NATIVE-NPC-001).
+        if let root = gameRoot, Paths.isDir(root + "/Data/Interface/GFx") {
+            return Step(status: "failed", files: 0, source: root, detail: why)
+        }
         for src in [scratch + "/npc/movies", scratch + "/gfx3/movies"]
         where Paths.exists(src + "/base.swf") && Paths.exists(src + "/main.swf") {
+            guard let root = gameRoot, DataManifest.check(src, gameRoot: root) == nil else {
+                return Step(status: "failed", files: 0, source: src, detail: "Native Data cannot be used: converted movies need a matching manifest. Re-acquire them and run Setup again.")
+            }
             let step = copyStep(from: src, to: nd.gfx, force: true) { $0.hasSuffix(".swf") }
             return Step(status: step.status, files: step.files, source: src, detail: "copied (\(why))")
         }
