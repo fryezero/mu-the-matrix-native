@@ -78,8 +78,8 @@ These are not extra factory classes and do not count toward 48 or 144. Their ver
 | 3 Noria | 016d8538 switch, verified | 017ff238 switch, verified | 017f9dd1 bounded verified; placement D |
 | 4 Lost Tower | generic only | 017ff238 switch, verified | K verifies 017f6ca7 push helper and 017fa92b sprite producers |
 | 7 Atlans | 016d8538 switch, verified | 017ff238 switch, verified | K verifies default switch landing 017fcb5c; no dedicated Atlans visual case |
-| 8 Tarkan | 016d8538 switch, verified | 01800bf8, B verified | F haze; K verifies 017fb2a4 lamp/plume producers; particle consumers separate |
-| 10 Icarus | generic only | 0180249e bounded verified | C/C2 sky/cover/ribbons/dragons; K verifies type-10 Bone01 flare producer; particle consumer separate |
+| 8 Tarkan | 016d8538 switch, verified | 01800bf8, B verified | F haze; K verifies 017fb2a4 lamp/plume producers; EFFECTS-003 consumers |
+| 10 Icarus | generic only | 0180249e bounded verified | C/C2 sky/cover/ribbons/dragons; K verifies type-10 Bone01 flare producer; EFFECTS-003 consumer |
 | 33, 54 Aida | generic only | 00d6202f bounded verified | E source/reset-history attribution; capture history missing |
 | 37, 40 Kanturu | 00e74a58 bounded verified | 00e74ae0 bounded verified | A bounded flames/after-character verified |
 | 51 Elbeland | 00e30a02 bounded verified | 00e30b86, B verified | E boid movement/clouds verified; captured speeds missing |

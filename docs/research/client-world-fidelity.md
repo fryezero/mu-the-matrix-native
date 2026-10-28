@@ -685,8 +685,9 @@ clock/pool/RNG alignment and mugl-off live scores remain open. No live game was 
 
 ## RENDER-WORLDS-K built-in visuals, 2026-10-28
 
-Lost Tower sprite/push routines, Tarkan visual producers and Icarus's type-10 Bone01 particle producer
-are reconstructed in the [K finding](client-worlds-k.md). Atlans world 7 uses the common default hook chain,
-so its earlier missing dedicated visual-body entry was incorrect. The three surviving original-image
-scores stay 2.019 / 26.897 / 4.006 for Dungeon / Icarus / Kanturu. Lost Tower's native sprites change its
-PNG, but its original PNG is absent. K makes no measured original-image improvement claim.
+Lost Tower sprites/push, Tarkan lamp/plume producers and Icarus's type-10 Bone01 flare are reconstructed.
+EFFECTS-003 supplies their particle consumers/assets. In the final full-draw fourteen-view tour against
+fresh main 037a8899, Dungeon stays 2.021, Icarus improves **26.897 to 23.154**, and Kanturu stays 3.444.
+All 24 unaffected endpoint PNGs, 14 OBJECT and 14 light hashes match. Original images are unavailable
+for the other eleven views. Atlans world 7 selects the default hook chain, not a dedicated visual case.
+[Finding, complete scoreboard and boundaries](client-worlds-k.md), [gate and cleanup](../handoffs/RENDER-WORLDS-K.md).

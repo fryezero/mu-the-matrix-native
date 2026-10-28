@@ -1,105 +1,92 @@
 # RENDER-WORLDS-K
 
-## Implemented scope
+## Result
 
-Built-in Lost Tower visual sprites and hero-driven push helper, Tarkan lamp/plume producers,
-Icarus type-10 Bone01 flare producer, and the Atlans switch inventory correction.
-[Finding and full fourteen-view scoreboard](../research/client-worlds-k.md).
-No factory class is added. No live game, launcher, new capture or running-client read was used.
+Implements built-in Lost Tower sprites and hero-driven push, Tarkan lamp/plume producers and the
+Icarus type-10 Bone01 flare. Atlans's inventory is corrected: its switch selects the default hook
+chain, not a dedicated visual case. The 37 uncaptured factory classes remain outside this lane.
+[Finding and complete fourteen-view scoreboard](../research/client-worlds-k.md).
 
-Base `3a61d99`, branch `codex/render-worlds-k`. Checkpoint `b741954` was pushed during reconstruction.
-Owned files are the new built-in visual source, its narrow shared header/dispatch integration,
-hero-action world-part adapter, native host and instruction tests, validator row and documentation.
-Raklion/Karutan per-world files, item/mesh/scene/audio/effect/particle/joint implementations are untouched.
+Final full-draw image error: Dungeon **2.021 → 2.021**, Icarus **26.897 → 23.154**, Kanturu
+**3.444 → 3.444**. Icarus improves 13.9%. Eleven original PNGs are unavailable, so those image
+scores remain unavailable. Only Lost Tower/Icarus endpoint PNGs change. All **24/24 unaffected
+PNG**, **14/14 OBJECT** and **14/14 light** hashes match the fresh main baseline.
+Every camera/object/light comparison entry is unchanged; all fourteen primary grids remain exact,
+and every view retains zero missing/extra objects. No synchronized live-fidelity claim is made.
 
-## Verified before final integration
+## Locked integration and checks
 
-- Five instruction families, 1,200 cases each: **6,000 equal, zero mismatches/stops**.
-- **18/18 compiled production-C mutants** detected, with zero stopped mutant cases.
-- Registered G/H/I/K: **24,000 equal**, zero mismatches/stops, **83/83 mutants**, four passes and no skips/errors.
-- Synthetic native host exercises current-pose names and world positions, two origins, absent models,
-  one-shot Tarkan plumes, the exact Icarus particle request and Lost Tower's real movement callback.
-  Separate bounded-log test preserves state/RNG at capacities 0, 1 and 64.
-- Fourteen-view before/after: only Lost Tower's first/final PNGs change. **26/26 unaffected PNG,
-  14/14 OBJECT and 14/14 light hashes** match. All camera/object/light comparison scores are unchanged.
-  Icarus's request counter changes 0 to 46 as expected. The three surviving original-image errors stay
-  Dungeon **2.019 → 2.019**, Icarus **26.897 → 26.897**, Kanturu **4.006 → 4.006**.
-  Other eleven original PNGs are absent, so their image error is unavailable.
+Acquired the queued merge lock at **12:53 CDT**, removed only K's queue entry and integrated latest
+main **037a8899ffbd461338cddf25498f76ac03c56020** as **d8a2008**. This includes J #227,
+audio #228, map overlays #229 and EFFECTS-003 #230. Conflicting shared status entries and registry
+rows retain both sides. J's Raklion/Karutan per-world files are untouched by K.
 
-The original Lost Tower type-23 transform input is unwritten. The comparison treats the transform as a
-recording engine boundary and native uses the bone origin. Exact stack-dependent output is unverified.
-Atlans checks the original switch landing and common RNG/model prefix; common event/factory hooks are
-outside that family. Scalar trig/sqrt and pose services retain the documented validator boundaries.
-No independent reviewer was delegated; this implementation agent reviewed source and test assertions.
+- `bash scripts/local-macos-ci.sh`: **1,585 tests across 38 discovery runs**, **201 explicit
+  private/optional skips**, zero failures/errors; **10/10 fixture scenarios**; native viewer and
+  read-only reader builds; publication audit **1,537 files, zero rejected**. Readers were built,
+  never run. No hosted workflow was dispatched.
+- Final registered G/H/I/J/K: **30,000 original-instruction cases**, zero mismatches/stops,
+  **116/116 compiled source mutants**, five passes. K contributes five families, **6,000 cases
+  and 21 mutants**. Signed nonzero angle offsets and strict clock/action/velocity/radius boundaries
+  are included. Original client instructions are never mutated.
+- Registered world-particle consumer regression: **900 checks**, zero differences, **7/7 compiled
+  mutants**. All six registered rows pass with zero errors/skips. The larger consumer corpus and
+  exact original texture registrations belong to EFFECTS-003's published evidence.
+- Native world-host discovery: **10 tests**, one explicit private skip. K's authored model host
+  checks current pose across two origins, missing/unloaded models, one-shot startup, hidden Tarkan
+  lamp position, Icarus's exact request and real Lost Tower movement. Bounded logs preserve state/RNG.
+- **2/2 separately compiled native host controls** catch removal of the type-60 startup exemption
+  or type-63 hidden-lamp pose. The restored production host passes. The first ad-hoc attempt exposed
+  same-second make caching; final controls explicitly rebuild the runtime object/archive/executable.
+- Offline installed-model inspection: **9/9 required named bones across five models** are present.
+  Seventeen portable registry tests and the publication audit pass after resolving incoming rows.
 
-The preflight `bash scripts/local-macos-ci.sh` passes **1,558 tests across 38 discovery runs**,
-with **194 explicit skips**, zero failures/errors, all **9 fixture scenarios**, viewer/readers builds
-and an audit of **1,503 files, zero rejected**. Readers were built but never run.
-This is the pre-J gate; the final latest-main result below must supersede it.
+No runtime code changed after the final gate. Final evidence/status documentation and generated coverage
+wording are checked with the audit before publication. Self-review covers standards, scope, call order,
+model/pose/startup gates and evidence limits. No independent delegated review is claimed.
 
-## Integration still pending
+## Tour method and visible checks
 
-J merge `26018b4f` and item H are integrated in `d7853c0`, pushed. Shared dispatch and top-document
-conflicts retain both implementations. The post-J registered G/H/I/J/K run passes **30,000 instruction
-cases, zero mismatches/stops, 113/113 compiled mutants**, five passes and no errors/skips.
-The production world-host discovery passes 10 tests with one explicit private skip.
+Clean-built baseline 037a8899 by temporarily detaching this owned worktree, then returned to K and
+clean-built it. Main and other agents' checkouts were never built or edited. Both tours run 25 full
+draw frames at 1722 by 1048 with unchanged camera/masks/objects, `--time-series-every 25`, and only
+first/final PNG outputs. The earlier capture-only checkpoint's Dungeon/Kanturu scores and 26 unaffected
+hashes are historical evidence from that mode and are not mixed with the final full-draw comparison.
 
-A fresh clean build of J-main `26018b4f` was made by detaching this owned worktree, rendering, returning
-to K and clean-rebuilding. No other checkout was built or edited. Against that baseline, only Lost Tower's
-two PNGs change; **26/26 unaffected PNG, 14/14 OBJECT and 14/14 light hashes** match. Against K's earlier
-pre-J tour, exactly J's documented three Karutan artifacts differ: final PNG, OBJECT body-light copies
-and frame-light dump. J's intended differences are preserved, not scored as a K regression.
-PERF-004 acquired the merge lock before K's first attempt; K has not merged or started its final gate
-while that lock is held.
-Acquire the shared merge lock for the final latest-main/full-Mac-gate/PR/merge sequence.
-EFFECTS-003 owns particle consumers `0x7ef7/0`, `0x7f5a/4/6/7/8` and sprite registrations
-`0x7f84`, `0x7f38`, `0x8021`; missing consumers retain today's unsupported behavior.
-Original loader sites and exact arguments were sent to that lane. If unmerged at the final gate,
-these exact consumer/asset lists remain open rather than being claimed as drawing.
+The Icarus request counter changes 0 to **575**, exactly 23 visible type-10 objects over 25 draws.
+Final Lost Tower/Icarus and a separate native Tarkan lamp view at tile **14,206**, 1280 by 720,
+were visually inspected. The hidden Bone02 lamp's blue sprite draws above the model. The custom view
+has no original PNG and supplies integration evidence only. Bulk PNGs are deleted once hashed/scored;
+only a handful of endpoints are retained during work. The complete per-view scores are in the finding.
+
+## Scope and limits
+
+The shared object dispatcher changes are limited to these built-in routes, current named bones and
+hero-action plumbing. Existing callbacks consume the producers. Type-60 sidecars cannot suppress the
+initial plume; type-63's hidden mesh still gets a current pose. No new per-frame allocation is added.
+EFFECTS-003 supplies particle 0x7ef7/0 and 0x7f5a/4/6/7/8 consumers plus sprite registrations
+0x7f84/0x7f38/0x8021. K changes no particle/effect/joint, item, perf/mesh/scene or audio implementation.
+
+Lost Tower type 23's original transform input is unwritten. Its comparison treats the transform as
+an engine boundary; native uses the bone origin. Exact stack-dependent output remains unverified.
+Atlans compares only the model/RNG prefix and switch landing; common event/custom/factory hooks
+are outside that family. Scalar trig/sqrt and model/bone services retain their stated boundaries.
+
+Remaining: eleven missing original PNGs, synchronized clock/RNG/ordered effect pools, original
+hero/equipment beyond the current masks, the type-23 transform input, earlier Aida reset history and
+Elbeland speeds. The world-particle renderer still lacks Stone01/02 model slots for type 83's nested
+0x419/0x41a requests, although their lifecycle and combat-host models exist. The other 37 uncaptured
+factory classes, 111 primary methods and separate custom/after/invisible slots need DATA-ACQ-002.
+No new capture or live original client/launcher action was performed.
 
 ## Reproduction and cleanup
 
-Use the repo Python for `scripts/validate_worlds_k.py --cases 1200 --mutations --output <local-json>`
-or the `validate_worlds_k` row in `scripts/run_validators.py`. The production host is
-`native/tests/test_native_worlds_k.py`; authored fixture data contains no client bytes.
+Use repo Python with `scripts/validate_worlds_k.py --cases 1200 --mutations --output <local-json>`
+or the registered row. `native/tests/test_native_worlds_k.py` generates only authored synthetic BMDs.
+Checkpoints include b741954, 0383327, d7853c0, de0d939, 8273cb0, b23a5aa, 881f0f4, 53bc671,
+9f84f04 and d8a2008. The PR retains the final gate and counts.
 
-Local logs/reports live under `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-k/` and
-renders under the sibling `renders/render-worlds-k/`. Bulk PNGs were deleted once hashed/scored;
-only representative Lost Tower/Tarkan/Icarus endpoints were retained during development.
-After merge remove both whole task folders, all worktree builds/temporary outputs, input links,
-worktree and local branch. No new local input needs retention. Committed docs and the PR hold results.
-
-Remaining exact-fidelity inputs: missing original PNGs, synchronized clock/RNG/effect pools, the type-23
-transform input, earlier Aida reset history and Elbeland speeds. The other 37 uncaptured factory classes
-remain outside K and require DATA-ACQ-002.
-
-## Hidden Tarkan producers
-
-A later lifecycle audit found that MoveObject hides Tarkan type 63 before rendering. The native host now
-poses this lamp even when its mesh is hidden, so Bone02 comes from the current object rather than suppressing
-the sprite request. Type 60 is also exempt from imported hidden sidecars until its first visual burst.
-Authored native assertions cover both startup state and the hidden lamp's exact world position.
-Removing either host clause in a separately compiled native mutant is detected: **2/2 host controls**,
-followed by a restored production host pass. These are additional to the 18 instruction-compared mutants.
-The first ad-hoc mutant attempt exposed same-second make caching; the final checks explicitly remove the
-owned runtime object, archive and host executable before each compile, including restoration.
-The final post-EFFECTS-003 tour and gate must cover these host fixes; the earlier tour counts above predate them.
-
-An offline installed-model check also confirms all **9 named-bone requirements across 5 models**:
-Lost Tower types 19/20/23, Tarkan type 63 and Icarus type 10. This checks the loaded asset names,
-not original animation phase. No client process was touched, and the small inspector is deleted with scratch.
-
-Static downstream limit: Tarkan type 83's `0x419/0x41a` requests use the existing Stone01/Stone02
-lifecycle in `reconstructed/combat/skill_fx.c`. The combat renderer loads both models, but the separate
-world-particle host's `fx_model_files` has no slots for them and `draw_models` skips missing slots.
-The remaining work is that world-host model binding, not reconstruction of a missing stone lifecycle.
-K emits and compares the original calls without adding effect/particle files.
-
-## Expanded boundary corpus
-
-The final K corpus adds signed nonzero Tarkan type-83 angles and catches three additional compiled
-mistakes: wrong angle multiplier, inclusive upper clock bound and inclusive Lost Tower velocity guard.
-It retains **6,000 equal cases, zero mismatches/stops**, with **21/21 compiled source mutants**.
-The combined registered G/H/I/J/K rerun now totals **30,000 equal cases and 116/116 source mutants**,
-five passes and no errors/skips. The two native host controls remain separate. Earlier 18/113 counts
-above identify the smaller historical corpus, not the final boundary coverage.
+After merge, delete the entire lane directories
+`~/Documents/MTM/mu-mac-tools/native/{scratch,renders}/render-worlds-k`, all owned build/temporary outputs,
+input symlinks, this worktree and its local branch. No new local input needs retention. Committed docs
+and the PR are the durable evidence. The final reply confirms cleanup.
