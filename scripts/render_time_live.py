@@ -237,6 +237,46 @@ def pair(live, native):
     return out
 
 
+def summarize(live, paired, report, diagnostic=None):
+    """Reviewed, byte-free summary of one live run: phase evidence, the per-component error vectors under
+    LIVE_LIMITS (maxima over samples) and, optionally, an unscored diagnostic native capture paired the same way."""
+    a, b = live['maps'][0]['samples'], paired['maps'][0]['samples']
+    ev = live['phase_evidence']
+    wt = [round((x['world_time'] - a[0]['world_time']) - (y['world_time'] - b[0]['world_time']), 3) for x, y in zip(a, b)]
+    span_ms = a[-1]['world_time'] - a[0]['world_time']
+    components = {}
+    for g in rt.GROUPS:
+        if g == 'rng':
+            continue
+        skip = set(live['maps'][0].get('unavailable', {}).get(g, ()))
+        components[g] = [None if i in skip else round(max(rt.live_error(g, x[g], y[g], i) for x, y in zip(a, b)), 6)
+                         for i in range(rt.GROUPS[g])]
+    m = report['maps'][0]
+    out = {
+        'tile': live['maps'][0]['tile'], 'client_area': ev['client_area'], 'mugl': live['mugl'], 'phase': live['phase'],
+        'edges': ev['edges'], 'fps': round(ev['edges'] * 1000 / span_ms, 2) if span_ms else None,
+        'torn_retries': ev['torn_retries'], 'rejected_reads': len(ev['rejected']),
+        'late_samples': [[s['frame'], s['logic']] for s in ev['samples'] if s['logic'] != s['frame']],
+        'read_ms_max': max(s['read_ms'] for s in ev['samples']),
+        'input_lateness_ms_max': max(ev['input_lateness_ms']),
+        'wheel_seen': sorted({s['input']['wheel'] for s in ev['samples'] if s.get('input')}),
+        'zoom_index_seen': sorted({s['input']['zoom_index'] for s in ev['samples'] if s.get('input')}),
+        'world_time_rel_error_ms': [min(wt), max(wt)],
+        'walk': [live['maps'][0]['coverage']['walk_distance'], paired['maps'][0]['coverage']['walk_distance']],
+        'fov_span': [live['maps'][0]['coverage']['fov_span'], paired['maps'][0]['coverage']['fov_span']],
+        'native_frames': [r['native_frame'] for r in b],
+        'compare': {'passed': report['passed'], 'errors': report['errors'], 'failure_count': m['failure_count'],
+                    'not_compared': m.get('not_compared', {})},
+        'max_error': components, 'limits': {g: v for g, v in rt.LIVE_LIMITS.items() if g in components},
+        'visible_objects': [[x['objects'][17] for x in a], [y['objects'][17] for y in b]],
+    }
+    if diagnostic is not None:
+        d = diagnostic['maps'][0]['samples']
+        out['diagnostic_camera_error'] = [round(max(abs(x['camera'][i] - d[x['steps'] - a[0]['steps']]['camera'][i])
+                                                    for i in (0, 1, 2, 4, 5, 6, 7, 8)), 3) for x in a]
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
@@ -255,6 +295,12 @@ def main(argv=None):
     p.add_argument('--shot', action='append', default=[], help='FRAME=window.png')
     p.add_argument('--title-px', type=int, default=64)
     p.add_argument('--out', type=Path, required=True)
+    p = sub.add_parser('summarize')
+    p.add_argument('live', type=Path)
+    p.add_argument('paired', type=Path)
+    p.add_argument('report', type=Path)
+    p.add_argument('--diagnostic', type=Path, help='unscored dense native capture of the same private plan')
+    p.add_argument('--out', type=Path, required=True)
     p = sub.add_parser('pair')
     p.add_argument('live', type=Path)
     p.add_argument('native', type=Path)
@@ -265,6 +311,12 @@ def main(argv=None):
             events = parse_script(a.script.read_text())
             a.out.write_text(''.join(f'{f} {v} {x} {y}\n' for f, v, x, y in events))
             print(json.dumps({'events': len(events), 'script_sha256': rt.digest(a.script)}))
+            return 0
+        if a.command == 'summarize':
+            load = lambda path: json.loads(path.read_text())
+            out = summarize(load(a.live), load(a.paired), load(a.report), load(a.diagnostic) if a.diagnostic else None)
+            a.out.write_text(json.dumps(out, indent=1) + '\n')
+            print(json.dumps({k: out[k] for k in ('fps', 'rejected_reads', 'world_time_rel_error_ms', 'compare')}))
             return 0
         if a.command == 'pair':
             out = pair(json.loads(a.live.read_text()), json.loads(a.native.read_text()))

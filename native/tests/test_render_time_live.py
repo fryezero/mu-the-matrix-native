@@ -251,6 +251,20 @@ class LiveSelectionAndPairingTests(unittest.TestCase):
             live.pair(s, other)
 
 
+    def test_summary_reports_errors_without_records(self):
+        s = self.export(sampler_lines(torn_at=(110,)))
+        paired = live.pair(s, self.dense_native(s))
+        report = rt.compare(s, paired, 'live')
+        out = live.summarize(s, paired, report, self.dense_native(s))
+        self.assertEqual(out['late_samples'], [[110, 111]])
+        self.assertEqual(out['max_error']['image'], [None] * 48)
+        self.assertEqual(out['max_error']['sky'][:3], [None] * 3)
+        self.assertNotIn('rng', out['max_error'])
+        self.assertEqual(out['compare']['failure_count'], report['maps'][0]['failure_count'])
+        self.assertEqual(len(out['diagnostic_camera_error']), 21)
+        self.assertNotIn('samples', json.dumps(out))
+
+
 class LiveCompareTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
