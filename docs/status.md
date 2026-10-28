@@ -1,5 +1,8 @@
 # Current status
 
+SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
+F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).
+
 ## Character-select runtime, CHARSEL-RT-001, 2026-10-27
 
 `mu_charsel_rt` replaces the textual embed with one options struct and nine explicit parts. The scene-flow

@@ -105,6 +105,8 @@ static void repair_request(void *user,int cell,int npc) {
     mu_gfx_layer_npc_note(g->layer,note);
 }
 
+static int qw(world_gfx *g, mu_quest_action action, const char *name, const char *text, double a, double b)
+{ return mu_quest_session_window(&g->quest,action,name,text,a,b); }
 static void quest_dialog_visible(world_gfx *g, int visible);
 
 /* GlobalText for the layer's labels: the tables read from the client
@@ -456,13 +458,13 @@ static int dialogue_choice(void *user, int index)
     world_gfx *g = user;
     if (!g->have_dlg || !g->dlg_open)
         return 0;
-    if (g->have_quest && g->quest.client.dialog.list_mode) {
+    if (g->have_quest && g->quest.client->dialog.list_mode) {
         /* NATIVE-QUEST-001: npcdialogue's quest-list mode (0x00be906d's first branch; the choice is 1-based) */
-        int leave = 0;
-        mu_quest_dialog_choice(&g->quest.client, index + 1, &leave);
+        int leave = index + 1 == g->quest.client->dialog.options;
+        qw(g, MU_Q_DIALOG_CHOICE, NULL, NULL, index + 1, 0);
         if (leave)
             dialogue_show(g, 0);
-        else if (!g->quest.client.dialog.visible)
+        else if (!g->quest.client->dialog.visible)
             g->dlg_open = 0;
         return 1;
     }
@@ -668,7 +670,8 @@ static int quest_path_start(void *user, int32_t flag, int32_t sx, int32_t sy, in
     g->path_mode = mode;
     g->path_target[0] = tx;
     g->path_target[1] = ty;
-    mu_quest_tab *tab = mu_quest_info_tab(&g->quest.client, g->quest.client.info.tab);
+    const mu_quest_tab *tab = g->quest.client->info.tab >= 2 && g->quest.client->info.tab <= 4 ?
+        &g->quest.client->info.tabs[g->quest.client->info.tab - 2] : NULL;
     g->path_quest = tab ? tab->selected : -1;
     return g->path_started;
 }
@@ -785,8 +788,8 @@ static void quest_event(void *user, const char *line)
     } else if (!strncmp(line, "demo ", 5)) {
         mu_gfx_layer_chat(g->layer, 3, "", line + 5);
     } else if (!strcmp(line, "MyQuestInfo refresh")) {
-        if (g->quest.client.info.visible && g->quest.client.info.tab == 1)
-            mu_classic_tab_refresh(&g->quest.client);
+        if (g->quest.client->info.visible && g->quest.client->info.tab == 1)
+            qw(g, MU_Q_CLASSIC_REFRESH, NULL, NULL, 0, 0);
     } else if (!strncmp(line, "notice ", 7) || !strncmp(line, "msgbox ", 7) || !strncmp(line, "msgbox2 ", 8)) {
         /* a system message to the chat (0x0095f4ec); the native client has no message box window: its text
          * goes to the chat too */
@@ -801,14 +804,14 @@ static void quest_event(void *user, const char *line)
         /* The offline demo has no confirmation movie. Like its NPC-quest give-up fallback, explicitly
          * accept the chapter abort box; the level warning (0x2f) remains a message only. */
         if (!strncmp(line, "msgbox2 MyQuestInfo 46 ", 23))
-            mu_guide_box(&g->quest.client, 0x2e, 0);
+            qw(g, MU_Q_GUIDE_BOX, NULL, NULL, 0x2e, 0);
     }
 }
 
 static void quest_dialog_visible(world_gfx *g, int visible)
 {
     if (g->have_quest)
-        g->quest.client.dialog.visible = visible;
+        qw(g, MU_Q_DIALOG_VISIBLE, NULL, NULL, visible, 0);
 }
 
 static double json_number_at(const char *args, int k)
@@ -882,43 +885,42 @@ static void quest_call(void *user, int movie, const char *name, const char *args
     }
     if (!g->have_quest)
         return;
-    mu_quest_client *c = &g->quest.client;
     char text[8192];
     json_string_at(args, 1, text, sizeof text);
     if (!strcmp(name, "UIInit")) {   /* the movie loaded: the handler's OnLoad (vtable +8) */
         if (movie == MU_GFX_QUEST_PROGRESS)
-            mu_quest_progress_onload(c);
+            qw(g, MU_Q_PROGRESS_LOAD, NULL, NULL, 0, 0);
         else if (movie == MU_GFX_MY_QUEST)
-            mu_quest_info_onload(c);
+            qw(g, MU_Q_INFO_LOAD, NULL, NULL, 0, 0);
         else if (movie == MU_GFX_QUEST_SUMMARY)
-            mu_summary_onload(c);
+            qw(g, MU_Q_SUMMARY_LOAD, NULL, NULL, 0, 0);
         else if (movie == MU_GFX_QUEST_NOTICE)
-            mu_quest_progress_info_onload(c);
+            qw(g, MU_Q_NOTICE_LOAD, NULL, NULL, 0, 0);
         else if (movie == MU_GFX_JOB_QUEST)
-            mu_classic_onload(c);
+            qw(g, MU_Q_CLASSIC_LOAD, NULL, NULL, 0, 0);
         return;
     }
     if (movie == MU_GFX_QUEST_PROGRESS) {
         if (!strcmp(name, "CloseWindow"))
-            mu_quest_progress_close(c);
+            qw(g, MU_Q_PROGRESS_CLOSE, NULL, NULL, 0, 0);
         else
-            mu_quest_progress_callback(c, name, json_number_at(args, 0), text);
+            qw(g, MU_Q_PROGRESS_CALLBACK, name, text, json_number_at(args, 0), 0);
     } else if (movie == MU_GFX_MY_QUEST) {
         double v[2] = {json_number_at(args, 0), json_number_at(args, 1)};
         if (!strcmp(name, "onClickbtnQuestGiveUp")) {
             /* the client asks with a message box (id 0x2d); the native client has none: taken as OK */
-            mu_quest_info_callback(c, name, v, 2, NULL);
-            mu_quest_info_giveup_ok(c);
+            qw(g, MU_Q_INFO_CALLBACK, name, NULL, v[0], v[1]);
+            qw(g, MU_Q_GIVEUP, NULL, NULL, 0, 0);
         } else {
-            mu_quest_info_callback(c, name, v, 2, text);
+            qw(g, MU_Q_INFO_CALLBACK, name, text, v[0], v[1]);
         }
     } else if (movie == MU_GFX_QUEST_SUMMARY) {
-        mu_summary_callback(c, name, (int32_t)json_number_at(args, 0), (int32_t)json_number_at(args, 1));
+        qw(g, MU_Q_SUMMARY, name, NULL, json_number_at(args, 0), json_number_at(args, 1));
     } else if (movie == MU_GFX_JOB_QUEST) {
         if (!strcmp(name, "CloseWindow"))
-            mu_classic_close(c);
+            qw(g, MU_Q_CLASSIC_CALLBACK, "LeaveComplete", NULL, 0, 0);
         else
-            mu_classic_callback(c, name, json_number_at(args, 0));
+            qw(g, MU_Q_CLASSIC_CALLBACK, name, NULL, json_number_at(args, 0), 0);
     } else if (movie == MU_GFX_QUEST_NOTICE && (!strcmp(name, "CloseWindow") || !strcmp(name, "LeaveComplete"))) {
         mu_gfx_layer_show(g->layer, movie, 0);
     }
@@ -934,7 +936,7 @@ static void quest_wrapped(void *user, const char *text)
 {
     world_gfx *g = user;
     if (g->have_quest)
-        mu_quest_dialog_set_text(&g->quest.client, text, 0);
+        qw(g, MU_Q_DIALOG_TEXT, NULL, text, 0, 0);
 }
 
 static int quest_key(void *user, int vk)
@@ -942,9 +944,9 @@ static int quest_key(void *user, int vk)
     world_gfx *g = user;
     if (!g->have_quest)
         return 0;
-    mu_quest_client *c = &g->quest.client;
+    const mu_quest_client *c = g->quest.client;
     if (mu_gfx_layer_is_open(g->layer, MU_GFX_JOB_QUEST) && (vk == 27 || (vk >= '1' && vk <= '3'))) {
-        mu_classic_key(c, vk);
+        qw(g, MU_Q_CLASSIC_KEY, NULL, NULL, vk, 0);
         return 1;
     }
     if (vk == 'T') {          /* the quest window (layer choice: the client's key scan is not reconstructed) */
@@ -952,15 +954,15 @@ static int quest_key(void *user, int vk)
         return 1;
     }
     if (c->progress.visible && vk >= '1' && vk <= '9') {   /* 0x00bede37: 1..9 choose */
-        mu_quest_progress_select(c, vk - '1');
+        qw(g, MU_Q_PROGRESS_SELECT, NULL, NULL, vk - '1', 0);
         return 1;
     }
     if (vk == 27 && c->progress.visible) {
-        mu_quest_progress_close(c);
+        qw(g, MU_Q_PROGRESS_CLOSE, NULL, NULL, 0, 0);
         return 1;
     }
     if (vk == 27 && c->info.visible) {
-        mu_quest_info_close(c);
+        qw(g, MU_Q_INFO_CLOSE, NULL, NULL, 0, 0);
         return 1;
     }
     return 0;
@@ -988,26 +990,26 @@ int world_gfx_quest_setup(world_gfx *g, const char *demo_text)
     g->quest.event = quest_event;
     g->quest.user = g;
     g->quest.travel = quest_travel;
-    mu_quest_set_move_answer(&g->quest.client, quest_move_answer);
+    mu_session_quest_services(g->quest.session,quest_move_answer,quest_word);
     g->have_quest = 1;
     mu_quest_session_load_classic(&g->quest, g->root);
     const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
-    mu_quest_set_hero(&g->quest.client, h ? h->name : "");
-    mu_quest_set_dialogue_words(&g->quest.client, quest_word);
+    qw(g, MU_Q_HERO_NAME, NULL, h ? h->name : "", 0, 0);
+
     /* movies that loaded before the session: their handlers' OnLoad now */
     if (mu_gfx_layer_path(g->layer, MU_GFX_QUEST_PROGRESS)[0])
-        mu_quest_progress_onload(&g->quest.client);
+        qw(g, MU_Q_PROGRESS_LOAD, NULL, NULL, 0, 0);
     if (mu_gfx_layer_path(g->layer, MU_GFX_MY_QUEST)[0])
-        mu_quest_info_onload(&g->quest.client);
+        qw(g, MU_Q_INFO_LOAD, NULL, NULL, 0, 0);
     if (mu_gfx_layer_path(g->layer, MU_GFX_QUEST_SUMMARY)[0]) {
-        mu_summary_callback(&g->quest.client, "onLoad", 0, 0);
+        qw(g, MU_Q_SUMMARY, "onLoad", NULL, 0, 0);
         /* The separate monster-soul tracker has no demo records. Clear the movie's design placeholders. */
         mu_gfx_layer_invoke(g->layer, MU_GFX_QUEST_SUMMARY, NULL, "SetMonsterSoulList", "[[]]");
     }
     if (mu_gfx_layer_path(g->layer, MU_GFX_QUEST_NOTICE)[0])
-        mu_quest_progress_info_onload(&g->quest.client);
+        qw(g, MU_Q_NOTICE_LOAD, NULL, NULL, 0, 0);
     if (mu_gfx_layer_path(g->layer, MU_GFX_JOB_QUEST)[0])
-        mu_classic_onload(&g->quest.client);
+        qw(g, MU_Q_CLASSIC_LOAD, NULL, NULL, 0, 0);
     return 1;
 }
 
@@ -1034,20 +1036,20 @@ void world_gfx_quest_travel_complete(world_gfx *g, int success)
 void world_gfx_quest_step(world_gfx *g)
 {
     if (g && g->have_quest) {
-        mu_quest_client *c = &g->quest.client;
+        const mu_quest_client *c = g->quest.client;
         const mu_gfx_hero *h = mu_gfx_layer_hero(g->layer);
-        c->time = (float)g->time_ms;
-        c->world = g->walk ? g->walk->world : g->world;
-        c->hero_level = h ? h->level : 1;
-        c->hero_level_total = h ? h->level + h->master_level : 1;
-        c->money = h ? (uint32_t)h->zen : 0;
-        c->holding_item = mu_gfx_layer_held(g->layer) >= 0;
-        if (g->walk) {
-            c->hero_class = g->walk->hero.class_byte;
-            c->hero_safe = g->walk->hero.safe_zone;
-            c->hero_x = g->walk->hero.tile[0];
-            c->hero_y = g->walk->hero.tile[1];
+        mu_intent context = {.kind=MU_INTENT_QUEST_CONTEXT};
+        context.u.quest_context.world=g->walk ? g->walk->world : g->world;
+        context.u.quest_context.level=h ? h->level : 1;
+        context.u.quest_context.total=h ? h->level+h->master_level : 1;
+        context.u.quest_context.money=h ? (uint32_t)h->zen : 0;
+        context.u.quest_context.holding=(uint8_t)(mu_gfx_layer_held(g->layer)>=0);
+        if(g->walk) {
+            context.u.quest_context.class_byte=g->walk->hero.class_byte;
+            context.u.quest_context.safe=g->walk->hero.safe_zone;
+            context.u.quest_context.x=g->walk->hero.tile[0]; context.u.quest_context.y=g->walk->hero.tile[1];
         }
+        mu_session_submit(g->quest.session,&context);
         mu_quest_session_step(&g->quest);
         /* A completed walk (or the demo teleport) re-enters the verified arrived branch exactly once. */
         if (g->walk && g->path_mode && !g->walk->hero.movement && g->path_target[0] == c->hero_x &&
@@ -1055,9 +1057,9 @@ void world_gfx_quest_step(world_gfx *g)
             int32_t mode = g->path_mode, quest = g->path_quest;
             g->path_mode = 0;
             if (mode == 1)
-                mu_guide_go(c);
+                qw(g, MU_Q_GUIDE_GO, NULL, NULL, 0, 0);
             else if (mode == 3 && quest >= 0)
-                mu_quest_move(c, quest);
+                qw(g, MU_Q_MOVE, NULL, NULL, quest, 0);
         }
     }
 }
@@ -1081,18 +1083,18 @@ static int quest_action(world_gfx *g, const char *verb, const char *arg)
 {
     if (!g->have_quest || verb[0] != 'q')
         return -1;
-    mu_quest_client *c = &g->quest.client;
+    const mu_quest_client *c = g->quest.client;
     if (!strcmp(verb, "qnext"))
-        return mu_quest_progress_select(c, 0);
+        return qw(g, MU_Q_PROGRESS_SELECT, NULL, NULL, 0, 0);
     if (!strcmp(verb, "qno"))
-        return mu_quest_progress_select(c, 1);
+        return qw(g, MU_Q_PROGRESS_SELECT, NULL, NULL, 1, 0);
     if (!strcmp(verb, "qok")) {
-        mu_quest_progress_confirm(c);
+        qw(g, MU_Q_CONFIRM, NULL, NULL, 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qclose")) {
         if (c->progress.visible)
-            mu_quest_progress_close(c);
+            qw(g, MU_Q_PROGRESS_CLOSE, NULL, NULL, 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qwin")) {
@@ -1120,11 +1122,11 @@ static int quest_action(world_gfx *g, const char *verb, const char *arg)
         return 1;
     }
     if (!strcmp(verb, "qgo"))
-        return mu_quest_info_callback(c, c->info.tab == 0 ? "onClickbtnLeaveGuideQuestImmediately" :
-                                                            "onClickbtnLeaveQuestImmediately", NULL, 0, NULL);
+        return qw(g, MU_Q_INFO_CALLBACK, c->info.tab == 0 ? "onClickbtnLeaveGuideQuestImmediately" :
+                                                            "onClickbtnLeaveQuestImmediately", NULL, 0, 0);
     if (!strcmp(verb, "qtrack")) {
-        mu_quest_info_callback(c, "ScrollingGuideQuestClick", NULL, 0, NULL);
-        mu_summary_guide_refresh(c);
+        qw(g, MU_Q_INFO_CALLBACK, "ScrollingGuideQuestClick", NULL, 0, 0);
+        qw(g, MU_Q_SUMMARY_REFRESH, NULL, NULL, 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qclass")) {
@@ -1132,11 +1134,11 @@ static int quest_action(world_gfx *g, const char *verb, const char *arg)
         return 1;
     }
     if (!strcmp(verb, "qcnext")) {
-        mu_classic_callback(c, "onClickSelectBtn", arg ? atoi(arg) : 0);
+        qw(g, MU_Q_CLASSIC_CALLBACK, "onClickSelectBtn", NULL, arg ? atoi(arg) : 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qcok")) {
-        mu_classic_complete(c);
+        qw(g, MU_Q_CLASSIC_COMPLETE, NULL, NULL, 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qgset")) {
@@ -1150,13 +1152,13 @@ static int quest_action(world_gfx *g, const char *verb, const char *arg)
     }
     if (!strcmp(verb, "qgiveup")) {
         if (c->info.tab == 0)
-            mu_quest_info_callback(c, "onClickbtnGuideQuestGiveUp", NULL, 0, NULL);
+            qw(g, MU_Q_INFO_CALLBACK, "onClickbtnGuideQuestGiveUp", NULL, 0, 0);
         else
-            mu_quest_info_giveup_ok(c);
+            qw(g, MU_Q_GIVEUP, NULL, NULL, 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qcheck")) {
-        mu_quest_info_callback(c, "OnSelectChapterCheck", NULL, 0, NULL);
+        qw(g, MU_Q_INFO_CALLBACK, "OnSelectChapterCheck", NULL, 0, 0);
         return 1;
     }
     if (!strcmp(verb, "qkill")) {
@@ -1532,7 +1534,7 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
     npc_title(o, label, title, sizeof title);
     const mu_npc_demo_row *row = o->demo;
     if (o->kind == MU_NPC_WINDOW_CLASSIC && g->have_quest) {
-        g->quest.client.target_class = o->server_class;
+        qw(g, MU_Q_TARGET, NULL, NULL, o->server_class, 0);
         mu_quest_session_classic_talk(&g->quest);
     } else if (o->kind == MU_NPC_WINDOW_DIALOG && g->have_dlg && o->window.dialogue > 0) {
         /* NATIVE-LANG-002: the client's dialogue: 0x00fdc96c(dialogue NPC), then the open shows state 0
@@ -1543,7 +1545,7 @@ void world_gfx_npc_open(world_gfx *g, const mu_npc_open *o, const char *label)
         mu_dlg_set_npc(&g->dlg, o->window.dialogue);
         g->dlg_npc = o->window.dialogue;
         if (g->have_quest)
-            g->quest.client.dialog.list_mode = 0;      /* 0x00be842c: +0x1d04 = 0 */
+            qw(g, MU_Q_DIALOG_RESET, NULL, NULL, 0, 0);      /* 0x00be842c: +0x1d04 = 0 */
         snprintf(g->dlg_title, sizeof g->dlg_title, "%s", title);
         g->hide_contribute = o->window.dialogue == 0x248 || o->window.dialogue == 0x2fc ||
                              o->window.dialogue == 0x2fd || o->window.dialogue == 0x3ab || o->window.dialogue == 0x3ac;
@@ -1611,12 +1613,12 @@ void world_gfx_npc_close_all(world_gfx *g)
     g->dlg_open = 0;
     quest_dialog_visible(g, 0);
     /* NATIVE-QUEST-001: ReceiveTalk's close-all closes every GFx window, the quest windows by their handlers */
-    if (g->have_quest && g->quest.client.progress.visible)
-        mu_quest_progress_close(&g->quest.client);
-    if (g->have_quest && g->quest.client.info.visible)
-        mu_quest_info_close(&g->quest.client);
+    if (g->have_quest && g->quest.client->progress.visible)
+        qw(g, MU_Q_PROGRESS_CLOSE, NULL, NULL, 0, 0);
+    if (g->have_quest && g->quest.client->info.visible)
+        qw(g, MU_Q_INFO_CLOSE, NULL, NULL, 0, 0);
     if (g->have_quest && mu_gfx_layer_is_open(g->layer, MU_GFX_JOB_QUEST))
-        mu_classic_close(&g->quest.client);
+        qw(g, MU_Q_CLASSIC_CALLBACK, "LeaveComplete", NULL, 0, 0);
 }
 
 int world_gfx_npc_window(world_gfx *g)

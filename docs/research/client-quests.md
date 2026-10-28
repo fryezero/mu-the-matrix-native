@@ -377,3 +377,21 @@ The resume comparison stubs long-path search, GetPath and SendMove with independ
 comparisons execute bounded create/move/render blocks with recording engine services, not the entire game
 loop. The native path/owner/light tests cover their integration separately. Real server quest rules and
 reward-item insertion remain open. No protection or network-encryption work is included.
+
+## 10. Session migration, SESSION-QUEST-001
+
+The whole reconstructed client now belongs to `native/session/domains/quest*`. The core demo half moved to
+`native/fixture/behaviors/quest.c`; window callbacks submit intents and effects become window cues. The quest
+step remains at tick position 40 and now runs in headless mu-walk. [Implementation, checks and limits](../handoffs/SESSION-QUEST-001.md).
+
+Verified regression evidence, unchanged reconstructed sources and validators: 8,203 QUEST-001, 7,004 QUEST-002
+and 2,001 POLISH quest comparisons, zero mismatches, all 13 planted mistakes caught. These use the same
+pinned compatibility-environment captures and the existing modelled-call boundaries from sections 7-9.
+Portable fixture tests separately establish session integration and world-detach/character-select retention.
+They do not establish an account wire flow or new binary equivalence of the adapters.
+
+The prior native demo fed already-decoded F6 70/71 bodies directly to libquest. The session refuses that
+shortcut: it retains the original body bytes in the journal with decode status `body_undecoded` and increments
+the undecodable total, without changing quest state. The three bytes at `0x06fca280` remain unknown. No capture
+or writer investigation was attempted. Send's encryption argument is also preserved; encrypted requests are
+journaled unsent until NET-DECODE. Explicit fixture commands provide the corresponding test replies.

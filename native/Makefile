@@ -209,7 +209,7 @@ $(BUILD)/world-rt-gl/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) world/world_gfx.h
 # Walk-around session, headless software build (NATIVE-WORLD-001).
 # NATIVE-WORLD-002 links the audio library (in-world sound, WAV output).
 $(BUILD)/mu-walk: $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
-	$(CXX) $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) \
+	$(CXX) $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) \
 	  $(AUDIO_LIBS) $(UI_LIBS) -lm -o $@
 # ---- end WORLD-RT-001 block ----
 
@@ -231,7 +231,7 @@ $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 
 $(BUILD)/quest-travel-host: tests/quest_travel_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $(BUILD)/quest_travel_host.o
-	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # NATIVE-SKILL-001: the skill book (core/mu_skill) test host.
 $(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB)
@@ -249,11 +249,6 @@ $(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_proto.c core/mu_protocol.c -o $@
 
-# NATIVE-QUEST-001: the quest session (core/mu_quest over reconstructed/quest) for the tests (ctypes).
-QUEST_LIB_SRC := core/mu_quest.c $(wildcard $(RECON)/quest/quest_*.c)
-$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) core/mu_quest.h $(wildcard $(RECON)/quest/*.h)
-	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -fPIC -shared $(QUEST_LIB_SRC) -o $@
 
 $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
@@ -384,7 +379,7 @@ $(BUILD)/mu-world: $(WORLD_SRC) $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_
 	for f in $(WORLD_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/world/*.o $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	$(CXX) $(BUILD)/world/*.o $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
@@ -414,7 +409,7 @@ $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
 	    -o $(BUILD)/shell/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/shell/*.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/ui_gl.c $(GFX_SRC)
 
@@ -425,7 +420,7 @@ $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_ba
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
 	    -o $(BUILD)/client/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/client/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	$(CXX) $(BUILD)/client/*.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # ---- Mu The Matrix Native Preview.app (NATIVE-APP-001): mu-client as an ad-hoc signed macOS app ----
@@ -494,7 +489,7 @@ $(BUILD)/libmusession_product.a: $(SESSION_PROD_OBJ)
 # ---- FIXTURE-001: the fixture server (native/fixture) and the session CLI (native/tools/mu_session.c) ----
 all: $(BUILD)/mu-session
 
-$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession.a $(LIB) $(SESSION_HDR) $(GEN_STAMP)
+$(BUILD)/mu-session: tools/mu_session.c $(BUILD)/libmusession_world.a $(LIB) $(SESSION_HDR) $(GEN_STAMP)
 	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -c tools/mu_session.c -o $(BUILD)/mu_session.o
 	$(CC) $(BUILD)/mu_session.o $(BUILD)/libmusession.a $(LIB) -lm -o $@
 
@@ -502,3 +497,19 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: all viewer frame-window world charsel client audio audio-live clean preview-app
+
+# SESSION-QUEST-001: offline tools now use the dev session/fixture library.
+CFLAGS += -I build/gen -I session
+$(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
+$(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
+QUEST_LIB_SRC := $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
+$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
+
+# Offline app keeps its no-network-import contract; TCP fixture serving stays in mu-session.
+$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -DMU_FIXTURE_NO_TCP -c $< -o $@
+$(BUILD)/libmusession_world.a: $(filter-out $(BUILD)/sdev/fixture/fixture.o,$(SESSION_DEV_OBJ)) $(BUILD)/sdev/fixture/world_fixture.o
+	rm -f $@
+	ar rcs $@ $^

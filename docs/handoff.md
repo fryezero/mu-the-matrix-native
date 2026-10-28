@@ -1,5 +1,8 @@
 # Continue from here
 
+SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
+the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.
+
 CHARSEL-RT-001 is implemented. See [the lane handoff](handoffs/CHARSEL-RT-001.md) for runtime paths,
 unchanged render comparisons and the 300-case private character-create check. Next: SESSION-ACCOUNT-001.
 

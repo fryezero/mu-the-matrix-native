@@ -43,6 +43,7 @@ def make_tree(tmp: Path) -> Path:
         (t / 'native/fixture/behaviors').mkdir(parents=True)
     (t / 'reconstructed/progress').mkdir(parents=True)
     shutil.copy(ROOT / 'reconstructed/progress/progress.h', t / 'reconstructed/progress/progress.h')
+    shutil.copytree(ROOT / 'reconstructed/quest', t / 'reconstructed/quest')
     return t
 
 
@@ -109,6 +110,7 @@ class Generated(unittest.TestCase):
             'MU_ROUTE(0x55, 0x94, 0x0122a13du, MU_VERIFIED)\nMU_ROUTE(0xA0, 0x11, 0x01223f04u, MU_VERIFIED)\n'
             'MU_ROUTE(0xA0, 0x22, 0x01285b68u, MU_VERIFIED)\nMU_ROUTE(0xA0, 0x30, 0x0127bd9eu, MU_VERIFIED)\n'
             'MU_ROUTE(0xA0, 0x60, 0x01285efau, MU_VERIFIED)\n')
+        append(self.t / 'native/net/dispatch.def', (NATIVE / 'net/dispatch.seed.def').read_text().split('/* Quest findings')[1].split('*/', 1)[1].replace('MU_STATIC', 'MU_VERIFIED'))
         r = gen(self.t)
         self.assertEqual(r.returncode, 0, r.stderr)
         s = self.summary()
