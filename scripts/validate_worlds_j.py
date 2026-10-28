@@ -41,6 +41,7 @@ def family(machine,lib,name,cases):
         present=n%7!=0
         raw=bytearray(v.move_object(g,world,'full'));v.put_i(raw,0x5c,typ)
         v.put_i(raw,0x68,[-2,-1,0,7][(n//3)%4])
+        v.put_f(raw,0xa0,[0.0,-0.0,-2.0,0.25,1.0,3.0][(n//len(TYPES[prefix]))%6])
         time=v.f32(g.choice([0,-0.0,1000,-1000,3926.99072265625,g.uniform(-1e6,1e6)]))
         seed=g.getrandbits(32);rnd,crnd=v.MsvcRand(seed),v.MsvcRand(seed)
         calls,bones,cbones=[],[],[]

@@ -18,6 +18,8 @@ Completes the available captured concrete primary groups, Raklion and Karutan.
   RNG stability, hidden geometry, exact callbacks, current bone positions, changed origin, missing bones and
   sibling-world checks. Public move dispatch preserves exactly one generic animation tick. Zero/one/full
   output capacity preserves state, RNG and bone query order. No new per-frame allocations.
+- Checkpoint `60b6769` was committed and pushed before final integration. The J private unittest wrapper
+  passes 3/3 with no skips; the native world regression passes 9 tests with one explicit private skip.
 - Baseline full Mac gate on `3162017` passes **1,548 tests across 38 discovery runs, 191 explicit skips,
   eight fixture scenarios, publication audit 1,478 files, zero rejected**. Readers built only, never run.
 - G/H/I registered regression passes **18,000 cases, zero mismatches/stops, 65/65 compiled mutants**.
