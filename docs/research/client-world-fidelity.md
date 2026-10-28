@@ -646,3 +646,12 @@ placements remain zero and primary light remains exact. These are regression res
 state. The snapshots still cannot score an active event or moving boid against the original image.
 The full local Mac gate passes 1,445 tests with 175 explicit skips, all six fixture scenarios, viewer/readers
 builds and the publication audit. The disk-exhaustion retry and local evidence paths are recorded in the handoff.
+
+After A #187 advanced main to `89c63acc`, E merged it and preserved both lanes' build/texture additions.
+Both latest-main and combined-tree binaries were clean-built in E's owned worktree. All fourteen scoreboards
+and 28 first/final PNG hashes match between those builds, retaining A's Kanturu sparse image score 4.006.
+The final eight-validator run has 38,098 matching cases and 76 caught compiled mutants. With the separate
+MoveObject and reset/add checks, totals are 41,266 matching cases and 95 compiled mutants, plus both clamp
+controls. The final full Mac gate passes 1,449 tests with 177 explicit skips, all six fixture scenarios and
+the 1,336-file audit with zero rejections. The prior paragraph records the earlier pre-A baseline; the
+`main89-*` reports and the integration section of the handoff are the final combined-tree evidence.

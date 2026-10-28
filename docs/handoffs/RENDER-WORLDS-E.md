@@ -24,17 +24,17 @@ input. Aida's largest near-hero light difference has an accumulation signature; 
 - The native host test covers event arming, the exact expiry boundary, repeated active emissions, missing
   models, special-type skips, quake reset, installed model names and boid-owned particle drawing. The three
   portable Aida-history tests pass.
-- Full `bash scripts/local-macos-ci.sh` passes: 1,445 tests, 175 explicit skips, zero failures/errors;
+- Before the parallel A merge, full `bash scripts/local-macos-ci.sh` passes: 1,445 tests, 175 explicit skips, zero failures/errors;
   6/6 fixture scenarios, 46 incoming frames with zero unbound/undecodable frames; viewer/readers build;
   publication audit 1,322 files, zero rejected. Only evidence documentation changed after this run.
   The first attempt exhausted disk in temporary fixture creation. Losslessly archiving 372 older lane
   PNG/grid files freed 991,876,176 bytes; the complete gate then passed. Current before/after PNGs are intact.
   Logs are `final-20261028-gate.log` and `final-20261028-gate-retry.log`; no test was excluded to pass the retry.
 
-## Final fidelity tour, 2026-10-28
+## Fidelity tour before the parallel A merge, 2026-10-28
 
 The before binary is the retained `resume-main-mu-world` from the prior resume, built at `0a854411`, which is
-still current main. Its SHA-256 is `fea84f85e3dba965b8fe740bb5d2347a60f60e2284f0fd8c3e234c791b1026bc`.
+was current main at that check. Its SHA-256 is `fea84f85e3dba965b8fe740bb5d2347a60f60e2284f0fd8c3e234c791b1026bc`.
 The after binary was rebuilt in this worktree at `8401213`. Both use the same 2026-10-22 object/light snapshots,
 installed assets, camera and 25-step tour manifests. The complete scoreboards are equal; all fourteen final
 PNG SHA-256 values are equal, including every unaffected world. Missing/extra placements are 0/0 before and
@@ -49,6 +49,31 @@ after on all views. Primary-light mean and maximum errors are zero throughout.
 The surviving image scores also remain unchanged: Dungeon 2.019, Icarus 26.897 and Kanturu 3.717. The other
 eleven original PNGs remain unavailable. No active-event or boid image improvement is inferred from this tour.
 `final-20261028-scoreboard-proof.json` records per-view before/after metrics, PNG digests and binary digests.
+
+## Integration with merged A, 2026-10-28
+
+Main advanced to `89c63acc` when A #187 merged immediately after E's first PR attempt. Merge checkpoint
+`960260e` keeps both lanes' build lists and texture mappings: 49 effect bitmaps plus two rain bitmaps,
+including A's four flame textures and E's Map_Smoke1. Shared dispatch retains the deferred object pass,
+Elbeland owner-linked clouds and Raklion timer/quake. The E host and all three A native tests pass together.
+
+Both the new-main baseline and E were clean-built in this owned worktree. The refreshed fourteen-view
+scoreboards and all 28 first/final PNG hashes are equal. Missing/extra objects remain zero and primary light
+remains exact. Aida/Elbeland/Raklion frame-light errors remain 0.65117/0.02078/0.02574. A's Kanturu sparse
+image score remains 4.006 on both builds, with frame-light error 0.01387 on both. No part of A's intended
+rendering change is attributed to E. `main89-scoreboard-proof.json` records the binary and frame hashes;
+the `main89-before` and `main89-after` render trees retain all paths/bytes, with equal files hardlinked to
+save space. Earlier pre-A PNG/grid files were losslessly gzip-archived with original hashes recorded.
+
+Final combined-tree verification: eight registered validators E/B/D/Icarus/C2/F/A/world-order pass with
+38,098 matching cases, zero mismatches/stops, all 76 compiled mutants caught. Including the refreshed
+MoveObject and isolated terrain reset/add-light comparisons gives 41,266 matching cases, 95/95 compiled
+mutants caught and both clamp controls detected. The full Mac gate passes 1,449 tests with 177 explicit skips,
+zero failures/errors; 6/6 fixture scenarios, viewer/readers builds and audit 1,336 files with zero rejected.
+The final gate needed no retry or exclusions. No hosted workflow or original-client reader was run.
+Current reports are `main89-families/`, `main89-object.json`, `main89-light.json`, `main89-gate.log`,
+`main89-scoreboard-proof.json` and `main89-summary.json` in this lane's scratch directory.
+Source checkpoint `960260e` contains the merge; only evidence documentation changed after the gate.
 
 ## Implementation and limits
 
@@ -107,7 +132,7 @@ Both remain local. No input symlinks, captured bytes, decoded assets or generate
 
 ## Remaining work
 
-A's flames/after-character pass remains with that lane; C2's merged Icarus paths pass the regression above.
+A's flames/after-character pass is merged; C2's merged Icarus paths pass the regression above.
 Other open work is the authoritative Raklion state feed, its downstream event effect families, captured Elbeland action speeds,
 the Aida reset-box/history input and fresh synchronized visual captures in a separately authorized run.
 Tarkan/Raklion haze remains outside this lane. Self-review covers standards and the task scope; no independent
