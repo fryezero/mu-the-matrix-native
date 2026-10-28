@@ -29,6 +29,7 @@
 #include <stdint.h>
 
 #include "mu_audio.h"
+#include "../session/mu_cue.h"
 
 #define MU_AUDIO_MUSIC_ENTRIES 76
 #define MU_AUDIO_FRAME_MS 40
@@ -38,6 +39,7 @@ typedef struct mu_audio_table_row {
     char *path;
     int32_t legacy_channels, legacy_3d;  /* -1 when computed at the call site */
     uint32_t loader;
+    uint32_t site; /* optional seventh TSV column, AUDIO-002 */
 } mu_audio_table_row;
 
 typedef struct mu_audio_table {
@@ -72,6 +74,17 @@ int mu_audio_host_command(mu_audio_host *host, const char *command, char *error,
 /* SND_Play of a table id (loaded from the table first when needed), as the
  * client's game code calls it. Returns 1 when it started playing. */
 int mu_audio_host_play(mu_audio_host *host, int32_t id, int32_t loop);
+/* AUDIO-002: consume typed session cues once per reader, including headless runs.
+ * The log is enabled by MU_AUDIO_CUE_LOG, JSONL v1; failures to open it fail init. */
+int mu_audio_host_cue(mu_audio_host *host, const mu_cue *cue, uint32_t session_tick);
+void mu_audio_host_cue_loss(mu_audio_host *host, uint32_t lost, uint32_t session_tick);
+/* Scene music uses a pinned client string-literal address as its identifier
+ * when the shell has no music table. No native pointer or filename is logged. */
+void mu_audio_host_music_literal(mu_audio_host *host, const char *path, uint32_t literal, int play);
+void mu_audio_host_set_event_music(mu_audio_host *host, const mu_event_music_state *state);
+/* Explicit model-open registration in client order, with first-successful-load wins. */
+int mu_audio_host_register_monster(mu_audio_host *host, int32_t type, int preloaded);
+int mu_audio_host_register_npc(mu_audio_host *host, int32_t model, int preloaded);
 /* The per-frame world selection state from now on (the "world" command). */
 void mu_audio_host_set_world(mu_audio_host *host, const mu_world_audio_state *state, int32_t boss_zone);
 /* Observer of the per-frame block's events (mu_world_audio_event_kind). */
