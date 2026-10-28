@@ -82,3 +82,25 @@ Local scratch/renders are scoped to `mu-mac-tools/native/{scratch,renders}/rende
 After merge, delete both folders, lane build/verification outputs, worktree and local
 branch; release the merge lock. Shared Python/evidence symlinks are never staged or
 traversed during cleanup. No new local input needs retention.
+
+## Serialized release
+
+The lock was acquired at 11:36 CDT. Main `3a61d99`, including worlds #219,
+effects #221 and session-items #224, is integrated in `1194012`. Conflicts were
+limited to shared summary rows and appended manifest entries; both lanes are
+retained, with the newer item coverage row. Item code merged automatically.
+
+The locked `bash scripts/local-macos-ci.sh` passes on that integrated runtime:
+**1,559 tests across 38 suites, 193 explicit skips, zero failures**; native viewer
+and read-only reader builds pass. Publication audit: **1,499 files, zero rejected**.
+All **9/9 fixture scenarios and 72 expectations** pass, with **71 inbound frames**,
+zero unbound/undecodable frames, and the existing two unrecovered intents and seven
+unsent requests explicit. Fixture dirty state reflects only the untracked shared
+input symlinks. The result-recording commit changes documentation only.
+
+All three post-change scene hashes and counters remain identical on the integrated
+native build. The combined part-8 validator passes 14,992 cases, zero mismatches,
+9/9 mutants and both table reproductions. No additional input needs retention.
+Self-review found no further blocking issue within the documented no-owner domain;
+full rank-5 owner rendering remains incomplete as stated above. After PR merge,
+release the lock immediately and remove the lane's outputs, worktree and branch.
