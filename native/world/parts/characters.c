@@ -1,12 +1,14 @@
 /* SESSION-VIEWPORT-001. One MoveCharacters walk over leased session records.
  * The --players compatibility option opens a loopback fixture, never a second
- * client-side feed. Monsters retain their separate lane until VIEWPORT-MONSTER. */
+ * client-side feed. VIEWPORT-MONSTER-001 shares this feed and loop with actors. */
 #define _POSIX_C_SOURCE 200809L
 #include "../world_rt_internal.h"
 #include "../../session/mu_session.h"
 #include "../../session/mu_session_seed.h"
 #include "../../fixture/mu_fixture.h"
 #include "../../fixture/characters_demo.h"
+#include "../../fixture/monsters_demo.h"
+#include "../../fixture/behavior.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +20,10 @@ typedef struct characters_part {
     mu_transport *transport;
     void *demo;
     uint32_t tick;
+    mu_world_players services;
 } characters_part;
+
+void world_rt_actors_sync(mu_world_rt *a);
 
 static void record_action(void *context, int32_t slot, uint16_t action, uint16_t prior)
 {
@@ -35,6 +40,11 @@ static void record_action(void *context, int32_t slot, uint16_t action, uint16_t
 static int characters_open(mu_world_rt *a, void *self)
 {
     characters_part *p=self;
+    if (a->actors.session) {
+        p->session = a->actors.session; p->fixture = a->actors.fixture;
+        p->transport = a->actors.transport; p->tick = 1;
+        goto attach;
+    }
     if(!a->players)return 0;
     char path[]="/tmp/mu-characters-XXXXXX";
     int fd=mkstemp(path);
@@ -58,12 +68,17 @@ static int characters_open(mu_world_rt *a, void *self)
     seed.place.tile[0]=a->walk.hero.tile[0];seed.place.tile[1]=a->walk.hero.tile[1];
     p->session=mu_session_open_seeded(&cfg,&seed,error,sizeof error);
     if(!p->session) {fprintf(stderr,"characters: %s\n",error);return 1;}
+attach:
+    p->services.map = a->map; p->services.walk = &a->walk;
     mu_world_port port;
-    mu_world_players_port(a->players,&port);
+    mu_world_players_port(a->players ? a->players : &p->services,&port);
+    mu_session_detach_world(p->session);
     mu_session_attach_world(p->session,&port);
+    if (a->players) {
     a->players->session=p->session;
     a->players->record_action=record_action;
     a->players->record_context=p;
+    }
     p->demo=mu_fixture_behavior_state(p->fixture,"characters");
     return 0;
 }
@@ -79,6 +94,7 @@ static void characters_close(mu_world_rt *a, void *self)
     if(p->session) {mu_session_detach_world(p->session);mu_session_close(p->session);}
     if(p->transport)mu_transport_free(p->transport);
     if(p->fixture)mu_fixture_close(p->fixture);
+    a->actors.session = NULL; a->actors.transport = NULL; a->actors.fixture = NULL;
     memset(p, 0, sizeof *p);
 }
 
@@ -86,23 +102,43 @@ static void characters_tick(mu_world_rt *a, void *self)
 {
     characters_part *p=self;
     if(!p->session)return;
-    if(p->tick)mu_characters_demo_observe(p->demo,a->players);
+    /* Until SESSION-COMBAT, preserve its presentation-only sink/respawn motion through the lease. */
+    if (a->combat && a->has_actors) {
+        mu_sim old = mu_session_sim_begin(p->session);
+        for (int32_t k = 0; k < a->actors.count; ++k) {
+            const mu_world_actor *actor = &a->actors.list[k]; int32_t i = actor->session_slot;
+            if (!old.used[i] || old.characters[i].key != actor->session_key) continue;
+            memcpy(old.characters[i].position, actor->position, sizeof actor->position);
+            memcpy(old.characters[i].angle, actor->angle, sizeof actor->angle);
+            memcpy(old.characters[i].tile, actor->tile, sizeof actor->tile);
+            old.characters[i].movement = actor->moving;
+        }
+        mu_session_sim_end(p->session, &old);
+    }
+    if(p->tick && a->players)mu_characters_demo_observe(p->demo,a->players);
+    if(a->has_actors) mu_monsters_demo_observe(mu_fixture_behavior_state(p->fixture,"monsters"), &a->actors);
     mu_transport_poll(p->transport,++p->tick*40u);
     mu_session_pump(p->session,p->tick*40u);
+    world_rt_actors_sync(a);
     mu_characters_view view=mu_session_characters(p->session);
-    mu_world_players_sync(a->players,&view);
+    if(a->players) mu_world_players_sync(a->players,&view);
     mu_sim sim=mu_session_sim_begin(p->session);
-    a->players->leased_records=sim.characters;
+    if(a->players) a->players->leased_records=sim.characters;
     for(int32_t i=0;i<sim.character_count;++i) {
         if(!sim.used[i])continue;
-        for(int32_t k=0;k<a->players->count;++k)
+        for(int32_t k=0;a->has_actors && k<a->actors.count;++k)
+            if(a->actors.list[k].session_slot==i && a->actors.list[k].session_key==sim.characters[i].key) {
+                mu_world_actors_step_one(&a->actors,k,&sim.characters[i]);break;
+            }
+        for(int32_t k=0;a->players && k<a->players->count;++k)
             if(a->players->list[k].key==sim.characters[i].key) {
                 mu_world_players_step_one(a->players,k,&sim.characters[i]);break;
             }
     }
-    a->players->leased_records=NULL;
+    if(a->players) a->players->leased_records=NULL;
     mu_session_sim_end(p->session,&sim);
-    ++a->players->steps;
+    if(a->players) ++a->players->steps;
+    if(a->has_actors) ++a->actors.steps;
 }
 
 const mu_world_part_ops mu_part_characters = {

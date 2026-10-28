@@ -1,5 +1,7 @@
 # Continue from here
 
+VIEWPORT-MONSTER-001: [handoff](handoffs/VIEWPORT-MONSTER-001.md), shared monster/NPC records and fixture-driven placement.
+
 SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned player records and fixture-driven --players.
 
 RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.

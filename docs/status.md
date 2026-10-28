@@ -1,5 +1,7 @@
 # Current status
 
+VIEWPORT-MONSTER-001 implements the shared monster/NPC session feed and fixture placement. [Evidence](research/client-viewport-monsters.md).
+
 SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
 
 RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).

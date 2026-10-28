@@ -1,0 +1,12 @@
+# VIEWPORT-MONSTER-001. Synthetic monster + NPC in the shared character table.
+endpoint game 127.0.0.1:55902
+use monsters
+join world=0 tile=120,120 class=0x01 level=1 name=Hero slot=0
+at 1 monsters actor 3 123 122 2 label Spider
+at 2 monsters actor 251 118 118 4 label Smith
+at 3 send game c1 08 3d 04 00 7e 78 30
+at 4 send game c1 06 14 01 04 00
+expect characters.rev = 4
+expect unbound = 0
+expect undecodable = 0
+expect fixture.answers = 4

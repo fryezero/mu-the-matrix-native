@@ -1,6 +1,7 @@
 #ifndef MU_CHARACTERS_H
 #define MU_CHARACTERS_H
 #include <stddef.h>
+#include "../../../reconstructed/actors/viewport_monsters.h"
 #include <stdint.h>
 #include "../../../reconstructed/players/remote_players.h"
 typedef struct mu_session mu_session;
@@ -16,6 +17,7 @@ typedef struct mu_characters_view {
     const uint8_t *store_open;
     const char (*store_title)[0x2e];
     int32_t capacity;
+    const mu_monster_viewport *monsters;
 } mu_characters_view;
 mu_characters_view mu_session_characters(const mu_session *s);
 int32_t mu_session_character_index(const mu_session *s, uint16_t key);
