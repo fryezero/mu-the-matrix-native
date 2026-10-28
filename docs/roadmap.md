@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+RENDER-WORLDS-E implements Elbeland boids/clouds and Raklion event timing, and attributes Aida's light outlier. Full Mac gate passes, 1,463 tests; saved-view scores/hashes unchanged. [Checks and remaining inputs](handoffs/RENDER-WORLDS-E.md).
+
 SESSION-COMBAT-001: plaintext loopback combat migration implemented; kills follow server frames, encrypted casts stay unsent. [Checks and limits](handoffs/SESSION-COMBAT-001.md).
 
 

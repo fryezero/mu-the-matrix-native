@@ -156,6 +156,9 @@ typedef struct mu_env_host {
     /* the effect factory 0x0153b02c(bitmap, position, position, angle, ..., owner, scale, ...)
      * of the fish creators in worlds 8, 0x21, 0x22, 0x86 and Kalima (optional) */
     void (*create_effect)(void *context, int32_t bitmap, const mu_env_object *owner, float scale, int32_t argument);
+    void (*create_particle_owned)(void *, int32_t, const float[3], const float[3], const float[3], int32_t, float,
+                                  const mu_env_object *);
+    float (*action_speed)(void *context, const mu_env_object *object); /* BMD action +4, Elbeland */
     void (*open_monster)(void *context, int32_t model); /* 0x0180b0f4, asset request */
 } mu_env_host;
 

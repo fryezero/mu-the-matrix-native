@@ -46,7 +46,7 @@ int mu_pt_kind_supported(int32_t type, int32_t subtype)
     case 0x831d: case 0x83b3: return subtype == 6;
     case 0x8086: return subtype == 0x13 || subtype == 0x18;
     case MU_PT_BITMAP_CLOUDS:
-        return (subtype >= 0 && subtype <= 5) || subtype == 0x14;
+        return (subtype >= 0 && subtype <= 5) || subtype == 0x14 || subtype == 18;
     case MU_PT_BITMAP_WATERFALL1:
         return subtype == 2;
     case MU_PT_BITMAP_SHINY1:
@@ -368,6 +368,7 @@ int mu_pt_create_record(mu_pt_particle *p, const mu_pt_host *h, int32_t type, co
         p->light[0] = p->light[1] = p->light[2] = 0.0f;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (subtype == 18) { mu_pt_elbeland_create(p, h); break; }
         if (subtype <= 5) { mu_pt_icarus_cloud_create(p, h, scale); break; }
         /* 0x015ea60e, subtype 0x14 0x015ec9de: a slow mist sheet around the position */
         p->lifetime = 300;
@@ -672,6 +673,7 @@ int mu_pt_move_record(mu_pt_particle *p, const mu_pt_host *h)
             p->position[2] += p->gravity;
             break;
         case MU_PT_BITMAP_CLOUDS:
+            if (p->subtype == 18) { mu_pt_elbeland_move(p, h); break; }
             if (p->subtype <= 5) { mu_pt_icarus_cloud_move(p, h); break; }
             /* 0x01660fb1, subtype 0x14: rises and brightens for its first 150 steps, then sinks and fades */
             if (!(p->lifetime > 0)) {
@@ -764,7 +766,7 @@ static void state(mu_pt_render_call *c, int32_t wrapper, int32_t argument)
     }
 }
 
-int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out)
+int mu_pt_render_record(mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t mode, float world_time, int32_t ordinal, mu_pt_render_call *out)
 {
     memset(out, 0, sizeof *out);
     /* 0x015912e9: the height filters of the two split passes */
@@ -832,6 +834,7 @@ int mu_pt_render_record(const mu_pt_particle *p, const mu_pt_bitmap *b, uint8_t 
             for (int k = 0; k < 3; ++k) s->light[k] = p->light[k] * p->alpha;
         break;
     case MU_PT_BITMAP_CLOUDS:
+        if (p->subtype == 18) { mu_pt_elbeland_render(p, world_time); s->rotation = p->rotation; break; }
         /* 0x01599675 (subtypes 8, 9, 0x14): the light times the record's alpha */
         if (p->subtype == 0 || p->subtype == 3) {
             float rate = p->subtype == 3 || ordinal % 2 == 0 ? 0.02f : -0.02f;
@@ -930,7 +933,7 @@ int32_t mu_pt_render_all(const mu_pt_system *s, uint8_t mode, const float camera
 {
     int32_t drawn = 0;
     for (int32_t i = 0; i < s->count; ++i) {
-        const mu_pt_particle *p = &s->records[i];
+        mu_pt_particle *p = &s->records[i];
         if (!p->live)
             continue;
         mu_pt_bitmap b;

@@ -77,6 +77,11 @@ static void h_set_action(void *c, mu_env_object *o, int32_t action)
     }
 }
 
+static float h_action_speed(void *c, const mu_env_object *o)
+{
+    (void)c; return 0.25f + (float)o->action * 0.125f;
+}
+
 static void h_animate(void *c, mu_env_object *o, float speed)
 {
     mu_env_event *e = push(c, MU_ENV_EVENT_ANIMATE);
@@ -148,6 +153,12 @@ static void h_open_monster(void *c, int32_t model)
     e->a = model;
 }
 
+static void h_particle_owned(void *c, int32_t bitmap, const float p[3], const float a[3], const float l[3],
+                             int32_t sub, float scale, const mu_env_object *owner)
+{
+    (void)owner; h_particle(c, bitmap, p, a, l, sub, scale);
+}
+
 void mu_env_test_host_bind(mu_env_test_host *t, mu_env_host *h)
 {
     memset(h, 0, sizeof *h);
@@ -156,7 +167,9 @@ void mu_env_test_host_bind(mu_env_test_host *t, mu_env_host *h)
     h->play_sound = h_sound;
     h->set_action = h_set_action;
     h->animate = h_animate;
+    h->action_speed = h_action_speed;
     h->create_particle = h_particle;
+    h->create_particle_owned = h_particle_owned;
     h->kill = h_kill;
     h->init = h_init;
     h->has_model = h_has_model;

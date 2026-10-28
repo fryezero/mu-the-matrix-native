@@ -59,6 +59,8 @@ static void objects_tick(struct mu_world_rt *a, void *self)
                                      a->frustum.y2d};
         a->objects.rt.environment = a->has_env ? &a->env.env : NULL;
         a->objects.rt.hero_safe = (uint8_t)(a->map->attributes[index] & 1u);
+        if (a->world == 57 || a->world == 58) mu_objects_set_clock(&a->objects, a->walk.frame.now);
+        memcpy(a->objects.rt.raklion_hero_angle, h->angle, sizeof h->angle);
         mu_objects_step(&a->objects, &in);
     }
 }
@@ -71,8 +73,10 @@ static void objects_frame(struct mu_world_rt *a, void *self, uint32_t now)
     (void)now;
     if (a->legacy_box)
         return;
-    if (a->has_objects)
+    if (a->has_objects) {
         mu_objects_apply_lights(&a->objects, a->map);
+        if (a->world == 57 || a->world == 58) a->walk.frame.camera.earthquake = a->objects.rt.raklion_quake;
+    }
 }
 
 static void objects_draw_soft(struct mu_world_rt *a, void *self, mu_world_draw *d)
