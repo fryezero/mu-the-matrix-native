@@ -22,14 +22,7 @@ topology and absent/failed cache allocations retain the checked edge path. Trans
 none is cached. The literal mesh entry points remain checked. Each model frees
 its own cache. Identical equipment is not assumed to have identical poses.
 
-The GL batch sets vertex, UV and color array pointers once per session and again
-when the backing buffer moves. Every draw still reads the current vertex bytes.
-The first flush always restores all pointers because other GL users may have
-changed them between sessions. No primitive, state transition or draw is removed.
-A synthetic repeated-session test grows the buffer and overwrites all three GL
-pointers between sessions; removing session invalidation is detected.
-
-`MU_PERF_004_BASELINE=1` restores all prior paths on the same binary.
+`MU_PERF_004_BASELINE=1` restores both prior paths on the same binary.
 `bench_stress.py --perf-004-baseline` records that choice explicitly. Main-thread
 and whole-process CPU time are separate columns; dispatch/driver worker CPU is
 included only by the latter. CPU intervals overlap the GL and Metal queue
@@ -117,3 +110,10 @@ The 20-second pointer/combined pilot measured crowd80 14.73 to 16.79 fps and
 Tormenta80 11.17 to 15.59 fps. Every run fails strict acceptance. These short
 shared-host observations are retained in the aggregate evidence; they do not
 establish a causal speedup or substitute for the final matrix.
+
+The client-array pointer setup experiment was rejected. Its growing-buffer and
+external-state synthetic GL comparisons passed, but the full crowd40 scene
+differed in 98/151 frames. The narrower test missed a real-renderer dependency;
+its exact cause is unresolved. Pointer memoization and its experiment-specific
+tests are removed. All GL pointer/state setup remains unchanged. The failed
+pilot and frame comparison are retained in aggregate evidence.

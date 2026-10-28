@@ -1,6 +1,5 @@
 """Parallel character poses preserve every model window and attachment output."""
 import hashlib
-import json
 import os
 from pathlib import Path
 import subprocess
@@ -62,27 +61,6 @@ class TopologyProof(unittest.TestCase):
                                check=True, capture_output=True)
                 result = subprocess.run([str(host)], capture_output=True)
                 self.assertEqual(result.returncode == 0, i == 0, (i, result))
-
-
-@unittest.skipUnless(sys.platform == 'darwin', 'needs macOS offscreen GL')
-class PointerSetup(unittest.TestCase):
-    def test_growing_storage_and_external_pointer_state(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            source = (NATIVE / 'viewer/gl_batch.c').read_text()
-            for i, variant in enumerate((source, source.replace('    b->array_base = 0;', ''))):
-                src, host = Path(tmp) / 'batch.c', Path(tmp) / 'host'
-                src.write_text(variant)
-                subprocess.run(['clang', '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
-                                '-DGL_SILENCE_DEPRECATION', '-I', str(NATIVE / 'viewer'),
-                                str(HERE / 'perf_gl_host.c'), str(src), str(NATIVE / 'viewer/ui_gl.c'),
-                                str(NATIVE / 'viewer/gl_headless.c'), str(NATIVE / 'core/mu_ui_raster.c'),
-                                '-framework', 'OpenGL', '-lm', '-o', str(host)], check=True, capture_output=True)
-                r = subprocess.run([str(host), 'batch', '256', '192'], capture_output=True, text=True,
-                                   env=dict(os.environ, MU_PERF_004_BASELINE='0'))
-                if r.returncode == 3:
-                    self.skipTest('no offscreen GL context')
-                self.assertEqual(r.returncode, 0, r.stderr)
-                self.assertEqual(json.loads(r.stdout)['identical'], i == 0)
 
 
 if __name__ == '__main__':
