@@ -1,5 +1,9 @@
 # Current status
 
+RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. Locked Mac gate passes 1,563 tests; final G/H/I/J passes 24,000 instruction cases and 95/95 mutants. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
+
+RENDER-ITEMS-002 part 8: 662/1,674 bounded bodies, 17/17 skins, fourteen link targets/nineteen types. Rank-5 mesh streams now draw with lighting; owner-bone effects remain open. Adds eight further ranked armour bodies and spear/shield links. Locked Mac gate passes 1,559 tests. [Checks and limits](handoffs/RENDER-ITEMS-002H.md).
+
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
 RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited primary routes 12/23 to 15/23, weighted 37/77 to 46/77. New instruction evidence: 10,619 instruction comparisons and 381 removal checks, zero mismatches, 8/8 compiled mutants. Locked Mac gate passes 1,550 tests. [Coverage and limits](research/client-skill-visual-coverage.md), [checks](handoffs/RENDER-EFFECTS-002.md).
