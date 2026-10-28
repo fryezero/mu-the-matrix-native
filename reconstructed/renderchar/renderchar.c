@@ -12,6 +12,7 @@
 #include "skin_glow.h"
 #include "item_bodies.h"
 #include "skin_bodies.h"
+#include "item_links.h"
 
 /* sin wrapper 0x009681bd: the CRT sin of a binary32 argument rounded to
  * binary32 (same rule as the mesh-draw port, client-meshdraw-exec.md). */
@@ -576,6 +577,9 @@ int mu_rc_skin_effect(int32_t type, float time, mu_rc_link_effect *out)
 
 int mu_rc_link_supported(int32_t type)
 {
+    for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
+        if (type == mu_rc_link_chains[i].type)
+            return 1;
     return type == 0x12ea || type == 0x12eb || type == 0x12ec || type == 0x12f7 ||
            type == 0x1301 || type == 0x1303 || type == 0x14f0 || type == 0x12fb ||
            type == 0x0ef4 || type == 0x0afc || type == 0x0afd || type == 0x0afe;
@@ -626,12 +630,41 @@ int mu_rc_link_effects_time(int32_t type, float time, mu_rc_random_fn random, vo
                            mu_rc_link_effect *out, int32_t capacity, int32_t *count)
 {
     *count = 0;
-    if (type != 0x14f0 && type != 0x12fb && type != 0x0ef4 && type != 0x0afc && type != 0x0afd && type != 0x0afe)
+    int chain_index = -1;
+    for (size_t i = 0; i < sizeof mu_rc_link_chains / sizeof mu_rc_link_chains[0]; ++i)
+        if (type == mu_rc_link_chains[i].type)
+            chain_index = (int)i;
+    if (chain_index < 0 && type != 0x14f0 && type != 0x12fb && type != 0x0ef4 && type != 0x0afc && type != 0x0afd && type != 0x0afe)
         return MU_RC_SPECIAL;
     float intensity = link_intensity(random(context));
     mu_rc_link_effect effects[20] = {0};
     int n = 0;
-    if (type == 0x14f0) {
+    if (chain_index >= 0) {
+        /* 0x012cb556 / 0x012cb7ab: shared bone chains, original random order. */
+        const mu_rc_link_chain *chain = &mu_rc_link_chains[chain_index];
+        for (int i = 0; i < chain->count; ++i) {
+            int bone = chain->first + i;
+            if (chain->flash && random(context) % 3 == 0) {
+                mu_rc_link_effect *e = &effects[n++];
+                e->sprite = (mu_rc_link_sprite){bone, 0x7f67, 0.6f, {0.4f, 0.4f, 0.4f},
+                                               (float)(random(context) % 360), 0, 4};
+                e->offset[2] = chain->z;
+            }
+            float light[3];
+            for (int k = 0; k < 3; ++k)
+                light[k] = intensity * chain->rgb[k];
+            if (!chain->flash) {
+                mu_rc_link_effect *e = &effects[n++];
+                e->sprite = (mu_rc_link_sprite){bone, 0x7f67, 1.0f, {light[0], light[1], light[2]}, 0, 0, 4};
+                e->offset[2] = chain->z;
+            }
+            if (chain->white && i == chain->count - 1)
+                light[0] = light[1] = light[2] = 1.0f;
+            mu_rc_link_effect *e = &effects[n++];
+            e->sprite = (mu_rc_link_sprite){bone, 0x7ef7, 2.0f, {light[0], light[1], light[2]}, 0, 0, 4};
+            e->offset[2] = chain->z;
+        }
+    } else if (type == 0x14f0) {
         for (int i = 0; i < 10; ++i) {
             float x = (float)i * 30.0f - 180.0f;
             if (random(context) % 3 == 0) {

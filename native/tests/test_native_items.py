@@ -58,9 +58,9 @@ def write_items_world(root):
     return root
 
 
-def run(root, *args, placement=None, check=True):
+def run(root, *args, placement=None, check=True, tool=WALK):
     with tempfile.TemporaryDirectory() as tmp:
-        cmd = [str(WALK), '--game-root', str(root), '--headless', '--backend', 'soft', '--no-audio', '--width', '64',
+        cmd = [str(tool), '--game-root', str(root), '--headless', '--backend', 'soft', '--no-audio', '--width', '64',
                '--height', '64', '--every', '1', '--out-dir', tmp, '--tile', '120,120', *[str(a) for a in args]]
         if placement:
             cmd += ['--placement', str(placement)]

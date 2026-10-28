@@ -158,7 +158,7 @@ def mutations(directory, bodies, links):
         'body-flag-branch': ('flags & 0x40000u ? 5 : 0', '0'),
         'armour-dim-count': ('i < 3; ++i)\n                body_color', 'i < 2; ++i)\n                body_color'),
         'staff-offset': ('(float)i * 30.0f - 180.0f', '(float)i * 31.0f - 180.0f'),
-        'staff-choice': ('random(context) % 3 == 0', 'random(context) % 3 == 1'),
+        'staff-choice': ('if (random(context) % 3 == 0)', 'if (random(context) % 3 == 1)'),
         'bow-bone': ('i == 0 ? 7 : 15', 'i == 0 ? 8 : 15'),
         'bow-scale': ('{0.8f, 1.3f, 2.0f}', '{0.8f, 1.2f, 2.0f}'),
     }

@@ -243,6 +243,13 @@ $(BUILD)/item-render-host: tests/item_render_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/item_render_host.o
 	$(CXX) $(BUILD)/item_render_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+$(BUILD)/inventory-skin-host: tests/inventory_skin_host.c world/world_gfx_game.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c core/mu_renderchar.h $(LIB)
+	@mkdir -p $(BUILD)/inventory-skin
+	for f in tests/inventory_skin_host.c world/world_gfx_game.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c; do \
+	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DGL_SILENCE_DEPRECATION -c $$f -o $(BUILD)/inventory-skin/$$(basename $$f .c).o || exit; \
+	done
+	$(CXX) $(BUILD)/inventory-skin/*.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(GL_LIBS) -lm -o $@
+
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o

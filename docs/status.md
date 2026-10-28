@@ -35,7 +35,7 @@ F6 70/71 stay undecoded and encrypted requests stay unsent pending their separat
 
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
-RENDER-ITEMS-002 part 5: 501/1,674 item bodies and 17/17 class skins; seven link targets/twelve types consumed. Adds 75 body types, the remaining six skins and two sword links. New instruction checks: 25,792 cases, zero mismatches, 9/9 mutants caught. [Checks and limits](handoffs/RENDER-ITEMS-002E.md).
+RENDER-ITEMS-002 part 6: 559/1,674 item bodies and 17/17 class skins; nine link targets/fourteen types consumed. Adds 58 ranked bodies, including all twelve rank-9 types, two sprite chains and ground/inventory skin sprites. New instruction checks: 17,736 cases, zero mismatches, 6/6 mutants caught. Locked Mac gate passes, 1,498 tests. Rank 5 remains pose-dependent and refused. [Checks and limits](handoffs/RENDER-ITEMS-002F.md).
 
 LAYOUT-001 implements the generated manifest, projection/accessor tables, lease/journal integration and JSON reader/validator consumers. [Evidence](research/client-layout-manifest.md).
 
