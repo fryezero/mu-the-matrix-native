@@ -2,76 +2,76 @@
 
 PR [#182](https://github.com/fryezero/mu-the-matrix-native/pull/182) adds ordered player batching,
 direct float-corner delivery, bounded scratch storage and an offline stress/measurement command.
-**The 25 fps goal remains open in all four measured scenarios.** The full before/after table, CPU/GL
-measurement boundaries, unfavorable results and exact reproduction command are in
-[the finding](../research/native-performance-stress.md).
+**The complete 25 fps goal remains open.** Crowd40 passes the committed checker, with pacing tails;
+all three 80-player scenes fail. Full tables, earlier unfavorable results and reproduction commands
+are in [the finding](../research/native-performance-stress.md).
 
-## Scope and result
+## Final result and source boundary
 
-Owned worktree and branch only. No live client, launcher, wire/protection work or captured stat changes.
-All 40/80 players have equipment and nameplates. Each authored scenario starts with 32 wandering
+The final timing source is `e4c9471`, including main `2b8c8f5` and INPUT-001. Before/after fps are
+24.98/24.98, 19.94/22.41, 18.46/21.17 and 13.95/15.98. Each run lasts 60 seconds, excluding 50 warm-up
+frames. Mode order alternates between scenarios. This task's builds/tests/profiling do not overlap
+timing. Other host activity was not controlled; these are paired observations, not a causal guarantee.
+The earlier shared-load regressions and the first serialized repeat remain in the finding.
+
+Latest main `a278d93` adds WORLD-ORDER-001's oracle/tests/comments, with runtime order numbers unchanged.
+The final CLI repair `7493b3f` distinguishes file-valued `--input-script` from inline scripts. The timing
+command does not use that file option. These changes leave the measured scene loop unchanged; a final
+relink was not timed again. Final-source tests and renders are checked separately.
+
+All 40/80 players have equipment and nameplate admission. Each scenario starts with 32 wandering
 monsters, repeated area skills, particles/joints, real Ruffle windows and a map. Missing workload,
-models/textures, particle drops or overflow reject a timing run. No quality reduction was introduced.
+models/textures, particle drops or overflow reject timing. No quality reduction was introduced.
 `--perf-fov 65` is an offline wide-camera override, not complete interactive camera unlocking.
 
-Final timing source `4d556f3` includes main `128679f`, the item expansion, Icarus C2 and monster/session
-migration. Before/after fps are 10.40/12.05, 7.08/6.38, 4.61/6.76 and 5.02/6.99. Runs share this Mac
-with validation work. They do not prove a causal speedup. The Lorencia 80-player pair regresses overall.
-GFx mean time exceeds the whole 40 ms budget in three scenes. Ruffle/Metal GPU execution is unmeasured;
-the asynchronous world-GL interval overlaps CPU submission. Do not add those columns as a GPU split.
+Crowd40's after work p95/p99 is 30.4/32.6 ms, but its actual frame p99 is 45.3 ms. The checker passing
+does not mean every frame takes at most 40 ms. After work p95/p99 in the 80-player scenes is 49.4/51.6,
+51.8/60.4 and 67.9/70.6 ms. Their main-thread CPU means are 43.9/46.7/61.8 ms, already above the whole
+40 ms budget. All four current after runs pass unchanged warning limits; the earlier Tormenta warning
+failure is retained. Warning acceptance does not establish the 25 Hz target.
 
-`--check` fails the strict 25 Hz target in all four scenes. `--check-regression` passes three measured
-after runs and fails Tormenta's earlier warning envelope. The failure is recorded; limits were not widened.
-Completed sampling profiles predate the final main integration. Two integrated repeat sampling attempts
-produced no usable report, so an updated profile remains open.
-
-`mu-world`, `mu-client` and the Preview bundle share the optimized core/runtime. The extreme matrix
-measures `mu-world`; separate extreme autoplay/Preview performance is not established. The final bundle
-was rebuilt with real ABI-3 Ruffle, passed `--check-bundle` and deep signature verification, and was not
-installed over the owner's app.
-
-Minimal integration repairs include the absent-player batch boundary, the full crowd name capacity,
-long text-valued script options in the Native Data guard, and an incremental character-select header
-dependency. Existing owner Native Data was not changed. Tests use a fresh scratch clone with its own
-build-pinned manifest. The renderchar metadata now accounts for all 500 item requests, 106 existing
-record-type exclusions and 394 equal comparisons, plus other sections, 625 total. No mismatch was waived.
+World-GL elapsed queries overlap CPU submission and exclude Ruffle/Metal, so this is not a complete
+CPU/GPU split. Earlier sampling identifies skinning/corner submission and Ruffle AVM1 work. Three
+integrated sampling attempts yielded no usable report, including a 180-second resumption attempt with
+the target alive. Current sampling and complete Ruffle GPU timing remain open.
 
 ## Checks
 
-- Final `bash scripts/local-macos-ci.sh`: 1,417 tests in 38 discovery runs, 171 explicit skips, six fixture
-  scenarios, viewer and reader builds; publication audit 1,282 files, zero rejected.
-- Registry sweep plus incremental merged-source reruns: 86 passing root validator rows, 1,665,962 counted
-  cases, zero failures/errors. All nine affected final-source reruns pass. The four newly merged families
-  catch 26/26 mutants. Existing mesh-draw validation has 14,619 cases and four caught negative controls.
-- Five root families have unavailable original inputs: client LEA decode, model codec, effect tree,
-  effects and objects. The missing pins are the verified-v14 manifest, edge diagnostics and capture-04
-  section. These are explicit skips, not passing comparisons. Sixteen social helper rows are covered
-  through their owning validator. All 107 registry rows are accounted for.
-- The authored direct-corner host matches all 247 pinned stream/table cases and catches both mutants.
-  Seven stress tests are included in the Mac gate. Nine private PERF-001 checks also pass after integration.
-- Twelve private before/after PNG pairs match by full file SHA-256 at frames 0/60/120 across all four
-  scenarios on the integrated source. GFx is disabled in both pixel runs because identical Ruffle runs
-  already have timing-dependent differences. Actual timing uses full Ruffle; its UI was visually checked
-  on the earlier optimized snapshot. No optimization difference is intended in any frame.
+- Final `bash scripts/local-macos-ci.sh`: 1,440 tests in 38 discovery runs, 174 explicit skips, six fixture
+  scenarios, viewer/readers builds; publication audit 1,310 files, zero rejected. No hosted CI.
+- Combined registry sweep and affected-source reruns: 89 passing root rows, 1,670,750 counted cases,
+  zero failures/errors. The fresh input, haze and world-order families catch 24/24 mutants. This is
+  accumulated evidence, not a claim that the entire registry ran again during resumption.
+- Five root families lack private inputs: client LEA decode, model codec, effect tree, effects and
+  objects. Sixteen social helper rows run through their parent. All 110 registry rows are accounted for.
+- Direct-corner host: all 247 exact stream/table cases match, both mutants caught. Existing mesh-draw
+  instruction family: 14,619 cases, four negative controls caught. Eight stress tests are in the gate.
+- Twelve final-source PNG pairs match full-file SHA-256 at frames 0/60/120 across all scenarios. GFx is
+  disabled in both pixel runs because Ruffle already varies with timing even between identical runs.
+  Real Ruffle is enabled for all timing runs. Complete deterministic GFx frame equality is unverified.
+- Nine private PERF-001 tests pass. All fourteen provenance tests pass; the file-script regression
+  first fails on the old exemption. Quality admission covers eight presence/value combinations.
+- Scratch Preview bundle rebuilt with real ABI-3 Ruffle; check-bundle and deep signature checks pass.
+  Owner install, signing state and Native Data were left alone. No live client or launcher was used.
 
 ## Local artifacts
 
-Private files stay outside git under `~/Documents/MTM/mu-mac-tools/native/`:
+Private reports/renders remain under `~/Documents/MTM/mu-mac-tools/native/`, outside git:
 
-- `scratch/native-perf-002/integrated-{before,after}-*/`: final commands, binary hashes, workload logs,
-  CPU/phase/GPU TSV and reports; `integrated-results.json`, `integrated-table.md`, `stress-comparison.html`.
-- `scratch/native-perf-002/validators*/`, `validator-combined-integrated.json`, `gate-final-integrated.log`,
-  `private-perf-integrated.log`; completed earlier profiles `profile-final.txt` and baseline sample reports.
-- `renders/native-perf-002/integrated-render-hashes/`: twelve final byte-identical frame pairs.
-- `scratch/native-perf-002/release/`: rebuilt `mu-world`, `mu-client`, and ad-hoc signed
-  `Mu The Matrix Native Preview.app`. Owner signing/install state was left alone.
+- `scratch/native-perf-002/landing-{before,after}-*/`, `landing-results.json`, `landing-table.md`: final
+  integrated commands, binary hashes, workload summaries, CPU/phase/GPU TSV and reports.
+- `scratch/native-perf-002/resumed-*` and `integrated-*`: earlier results retained without filtering.
+- `scratch/native-perf-002/gate-close.log`, `validator-combined-close.json`, `validators-close/`,
+  `validators-landing/`, `private-perf-close.log`, `pixel-close.log`, `profile-resumed.log`.
+- `renders/native-perf-002/landing-render-hashes/`: twelve final-source byte-identical frame pairs.
+- `scratch/native-perf-002/release/`: rebuilt tools and ad-hoc signed Preview bundle, not installed.
 
 ## Next
 
-Keep issue #176 open for the 25 fps shortfall. Repeat the matrix on an idle Mac, obtain a current sampling
-profile and complete the Ruffle/Metal GPU split. Investigate validated pose/skin caching, AVM1/movie work,
-remaining scene allocations and corner submission. Broaden worlds, movement/skill mixes and real free-camera
-coverage. Safe cache keys must preserve shared-buffer side effects, attachments, light, alpha and roots.
-The demo is not a live crowded-server trace. Separate extreme `mu-client`/Preview timing and the five
-missing-input validator families remain unverified. Cleanup follows the common brief after the authorized
-PR merge; the private reports and release bundle remain outside the removed worktree.
+Keep issue #176 open. Reach 25 fps in the three 80-player scenes and reduce crowd40's pacing tails.
+Obtain a usable current sampling profile and complete Ruffle/Metal timing, then investigate validated
+pose/skin caching, AVM1/movie work, scene allocations and corner submission. Cache keys must retain
+shared-buffer side effects, attachments, light, alpha and roots. Broader worlds/skills/movement and
+interactive free camera, complete GFx frame equality, separate extreme mu-client/Preview timing and
+the five missing-input families remain unverified. This demo is not a live crowded-server trace.
+Cleanup follows the common brief after merge; private reports and the scratch bundle are retained.

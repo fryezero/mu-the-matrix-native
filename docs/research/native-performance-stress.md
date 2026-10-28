@@ -27,6 +27,8 @@ about original x86 behavior. Existing instruction comparisons remain the oracle 
 Two repeat `sample` attempts on the integrated binary produced no usable profile. One was stopped after
 its demo exited; the other exceeded a 90-second timeout. The earlier completed profiles remain the sampling evidence.
 A fresh integrated sampling profile is still needed.
+The resumption's third attempt also timed out after 180 seconds, with the native target kept alive
+throughout. It produced no usable report; its log is retained as `profile-resumed.log` outside git.
 
 ## Changes
 
@@ -133,6 +135,34 @@ Passing this checker does not mean every frame takes at most 40 ms. The three 80
 both its capped-fps and work-tail criteria. All four after runs pass the unchanged M5 warning envelope.
 GFx means after are 6.9/15.4/15.4/17.1 ms. CPU work still exceeds 40 ms in the 80-player scenes.
 
+## Final integrated timing
+
+Timing source `e4c9471` contains main `2b8c8f5` and INPUT-001. The later main merge `a278d93`
+adds WORLD-ORDER-001's oracle, tests and comments; its runtime order numbers are unchanged. The final
+CLI repair preserves file-valued `--input-script` provenance checks while exempting inline scripts.
+The benchmark does not use that file-valued flag. These later changes do not alter the measured scene
+loop; the timing binary's exact hash remains in each report. Final-source rendering and the Mac gate
+are checked separately. No claim is made that a final relink was timed again.
+
+All eight runs last 60 seconds and exclude their first 50 frames. The order and workloads match the
+serialized repeat above. This task ran no builds, tests or profiling concurrently with these pairs.
+Other host activity was not controlled. This is a second paired observation, not proof of a causal gain.
+
+| Scenario | Before fps | After fps | Before p50/p95/p99 ms | After p50/p95/p99 ms | CPU before/after ms | World GL before/after ms |
+|---|---:|---:|---|---|---|---|
+| crowd40 | 24.98 | 24.98 | 40.0/43.5/46.7 | 39.9/43.6/45.3 | 30.5/27.3 | 17.7/14.8 |
+| crowd80 | 19.94 | 22.41 | 50.2/54.8/57.7 | 44.2/49.4/51.6 | 49.6/43.9 | 24.3/19.5 |
+| tormenta80 | 18.46 | 21.17 | 54.1/59.6/65.0 | 47.0/51.8/60.4 | 53.7/46.7 | 27.3/21.2 |
+| retina80 | 13.95 | 15.98 | 71.2/77.9/81.8 | 62.4/67.9/70.6 | 70.8/61.8 | 38.5/31.4 |
+
+Measured frame counts before/after are 1,385/1,384, 1,052/1,179, 971/1,119 and 722/824.
+After work p95/p99 are 30.4/32.6, 49.4/51.6, 51.8/60.4 and 67.9/70.6 ms. Crowd40 passes the
+committed 25 Hz checker in both modes, but its actual frame p99 is 45.3 ms. The three 80-player
+scenes fail both capped-fps and work-tail criteria. All four after runs pass the unchanged warning
+limits. GFx means after are 7.1/15.6/15.9/18.3 ms. CPU means exceed the whole 40 ms budget in the
+80-player scenes. The overlapping world-GL query excludes Ruffle/Metal; a full CPU/GPU split remains
+open. The earlier Tormenta warning failure and unfavorable large-target result are retained above.
+
 ## Reproduction and regression gates
 
 Use local installed inputs and the already converted Native Data. Raw reports, profiles and renders must
@@ -187,6 +217,11 @@ passes without being rejected. The benchmark now rejects this flag and every exi
 flag by presence, matching the renderer's `getenv` checks even for empty values. One regression test
 covers all eight flag/value combinations before the benchmark reads binaries or creates output.
 
+The INPUT-001 merge also exposed that the generic inline-script exemption swallowed its new file-valued
+`--input-script` path. A regression first demonstrated acceptance of an unmanifested managed folder.
+The exemption now excludes this option; all fourteen provenance tests pass, including the existing
+long-inline-script case. No owner Native Data was changed.
+
 Verification results and retained artifact paths are listed in [the handoff](../handoffs/NATIVE-PERF-002.md).
 The committed direct-corner host compares all 247 pinned synthetic cases, including full stream words
 and scratch-table bytes. It normalizes Color3f/Color3fv only, as the backend already does. Both planted
@@ -213,3 +248,9 @@ No visual difference is intended by the optimization. No client assets or render
 - `mu-client` and the Preview bundle share the optimized runtime/core. The extreme matrix measures
   `mu-world`; separate extreme autoplay/Preview-app timing and full interactive unlocked-camera coverage
   remain open. Existing flow/render and bundle checks cover integration, not those performance claims.
+
+Final verification: the Mac gate passes 1,440 tests across 38 discovery runs with 174 explicit skips,
+six fixture scenarios and an audit of 1,310 files with zero rejections. Accumulated current-registry
+evidence covers 89 passing root families and 1,670,750 cases; five roots lack inputs and sixteen helpers
+are covered by parents. The three newly integrated families catch 24/24 mutants. All 110 rows are
+accounted for. See the handoff for final render, private-test and bundle checks and retained artifacts.
