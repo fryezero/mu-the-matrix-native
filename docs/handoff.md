@@ -1,5 +1,7 @@
 # Continue from here
 
+README-STRESS-001: [handoff](handoffs/README-STRESS-001.md). README images 26/27 are privacy-reviewed and pinned; remote armour now retains Data/Effect glow textures. Historical #201 timings remain contextual.
+
 INTEGRATION-GREEN-001: [handoff](handoffs/INTEGRATION-GREEN-001.md). Full offline integration is green with explicit optional skips; captures and corpus identity are documented. No new local input retained; lane artifacts are removed after merge.
 
 RENDER-WORLDS-G: [handoff](handoffs/RENDER-WORLDS-G.md). Inventory and six Santa/Vulcanus methods implemented; 14 unaffected tour hashes unchanged. DATA-ACQ-002 captures and 125 primary methods remain.

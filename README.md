@@ -223,9 +223,24 @@ menu (exit, select server, switch character), and a character that dies respawns
 
 <p align="center"><img src="docs/images/25-progression-character-options-menu.jpg" alt="Character window with stat buttons; the Options window in the original and in the native client; the system menu" width="900"></p>
 
+### 80 players on screen
+
+Eighty offline demo players in Lorencia and Tormenta Island, with varied classes, armour, weapons and wings.
+The HUD and names use synthetic demo values.
+
+<p align="center"><img src="docs/images/26-80-players-lorencia.jpg" alt="Eighty demo players with textured armour, weapons and varied wings in native Lorencia" width="900"></p>
+
+<p align="center"><img src="docs/images/27-80-players-tormenta-combat.jpg" alt="Eighty demo players around a fight with skill effects in native Tormenta Island" width="900"></p>
+
+For context, [NATIVE-PERF-003, PR #201](https://github.com/fryezero/mu-the-matrix-native/pull/201) measured
+**crowd80 at 18.4 fps** and **tormenta80 at 18.9 fps** on this M5 Mac. **The 25 fps target remains open.**
+Those measurements used the full-interface stress workload before this texture-loading correction. These
+screenshots use spaced crowds, eight monsters and closed panels; their throughput was not measured
+([capture details and checks](docs/research/readme-stress.md)).
+
 ### Performance
 
-The native client keeps the client's own **25 FPS** (40 ms) frame cap with headroom in every profiled scene,
+Light offline scenes reach the client's own **25 FPS** (40 ms) frame cap with headroom,
 including full screen: Lorencia needs about 14 ms of work per frame at the preview window size, and with the cap
 removed the GL path renders 69 to 173 FPS at Retina full-screen size (3456 × 2160). See [native performance](docs/research/native-performance.md).
 

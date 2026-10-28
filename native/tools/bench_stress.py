@@ -127,7 +127,9 @@ def workload(rows, expected):
     required = (1, 2, 3, 4, 5, 6, 8)
     if len(models) != expected or any(
             len(r.get('loaded', [])) != 9 or len(r.get('textures_missing', [])) != 9 or
-            any(not r['loaded'][i] or r['textures_missing'][i] != 0 for i in required) for r in models):
+            len(r.get('effect_textures_loaded', [])) != 9 or
+            any(not r['loaded'][i] or r['textures_missing'][i] != 0 or
+                r['effect_textures_loaded'][i] != 6 for i in required) for r in models):
         raise ValueError('player equipment model or texture missing')
     actors = next((r for r in rows if r.get('actors') == 32), {})
     combat = next((r for r in rows if r.get('combat') is True), {})

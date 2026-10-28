@@ -254,3 +254,13 @@ six fixture scenarios and an audit of 1,310 files with zero rejections. Accumula
 evidence covers 89 passing root families and 1,670,750 cases; five roots lack inputs and sixteen helpers
 are covered by parents. The three newly integrated families catch 24/24 mutants. All 110 rows are
 accounted for. See the handoff for final render, private-test and bundle checks and retained artifacts.
+
+## README-STRESS-001 follow-up, 2026-10-28
+
+The bright white/cyan crowd was a native remote-armour texture-loading bug. The
+Data/Player fallback incorrectly used Data/Item as its effect directory, omitting
+all six glow textures despite reporting zero missing base textures. The host
+lookup is corrected; reconstructed item rules are unchanged. The stress
+completeness check now requires the glow textures too. Historical PERF-002/003
+timings predate this correction. See [diagnosis, controlled hashes and README
+captures](readme-stress.md); the new presentation scenes are not timed.
