@@ -2,6 +2,8 @@
 
 - NATIVE-PERF-002: benchmark, preserved-render checks and the measured 25 fps shortfall are in [the handoff](handoffs/NATIVE-PERF-002.md).
 
+RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
+
 RENDER-WORLDS-B: [handoff](handoffs/RENDER-WORLDS-B.md). Per-world moves/placements and snow are wired; nested warp effects and fresh locked live-image comparison remain bounded.
 
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;

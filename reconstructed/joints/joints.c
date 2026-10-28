@@ -121,8 +121,10 @@ int mu_jt_kind_supported(int32_t type, int32_t subtype)
         return subtype == 0 || subtype == 1 || subtype == 41 || subtype == 42;
     case MU_JT_BITMAP_LASER:
         return subtype == 0x43 || subtype == 0x44;
+    case MU_JT_BITMAP_THUNDER:
+        return subtype == 6;
     case MU_JT_TYPE_THUNDER_BOLT:
-        return subtype >= 0x10 && subtype <= 0x1a;
+        return subtype == 0 || (subtype >= 0x10 && subtype <= 0x1a);
     default:
         return 0;
     }
@@ -312,7 +314,24 @@ int mu_jt_create(mu_jt_joint *j, int32_t type, const float position[3], const fl
         j->max_tails = 2;
         j->light[0] = j->light[1] = j->light[2] = 1.0f;
         break;
+    case MU_JT_BITMAP_THUNDER:
+        if (!supported) break;
+        j->scale=scale; j->max_tails=50;
+        j->lifetime=jrand(env)%20+6;
+        j->tail_update=0;
+        j->velocity=(float)(jrand(env)%10)+15.0f;
+        j->light[0]=(float)(jrand(env)%10)/15.0f+F_0_1;
+        j->light[1]=j->light[2]=j->light[0];
+        copy3(j->start,j->position);
+        break;
     case MU_JT_TYPE_THUNDER_BOLT:
+        if (subtype == 0) {
+            j->scale=scale; j->tex_type=MU_JT_BITMAP_THUNDER;
+            j->max_tails=50; j->velocity=(float)(jrand(env)%20)+80.0f;
+            j->lifetime=20; j->brightness=(float)j->max_tails;
+            copy3(j->start,j->position);
+            break;
+        }
         if (!supported)
             break;
         if (!create_thunder_bolt(j, target, scale, env))
@@ -624,6 +643,8 @@ static void move_ring(mu_jt_joint *j, const mu_jt_env *env)
     j->scale = s;
 }
 
+#include "icarus_joints.inc"
+
 int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in)
 {
     if (!mu_jt_kind_supported(j->type, j->subtype))
@@ -840,9 +861,13 @@ int mu_jt_move(mu_jt_joint *j, const mu_jt_env *env, const mu_jt_move_inputs *in
         }
         break;
     }
+    case MU_JT_BITMAP_THUNDER:
+        move_icarus_swirl(j, env);
+        break;
     case MU_JT_TYPE_THUNDER_BOLT:
         /* 0x0156fb0f */
         switch (j->subtype) {
+        case 0: move_icarus_bolt(j, env); break;
         case 0x10: case 0x11: case 0x18: case 0x19: case 0x1a:
             move_bolt(j, env);
             break;
@@ -974,6 +999,11 @@ int mu_jt_render(const mu_jt_joint *j, uint8_t mode, float world_time, const mu_
             /* 0x0158ad67: the bolt's per-tail colour */
             float f = 1.0f;
             switch (j->subtype) {
+            case 0: {
+                int32_t end=trunc_i32(j->brightness);
+                f=end==i ? j->brightness-(float)i : end<i ? 0.0f : 0.7f;
+                break;
+            }
             case 0x10: case 0x11: case 0x12: case 0x13: case 0x18: case 0x19: case 0x1a:
                 u0 = (t + 1.0f) * F_0_33 + u0;
                 u1 = (t + 1.0f) * F_0_33 + u1;

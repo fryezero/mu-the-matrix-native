@@ -134,6 +134,8 @@ static void add_world_models(mu_world_env *e, const char *root, int no_assets)
     } else if (w == 1 || w == 4 || (w >= 0x74 && w <= 0x78)) {
         add_model(e, root, MU_ENV_MODEL_BAT, no_assets);
         add_model(e, root, MU_ENV_MODEL_RAT, no_assets);
+    } else if (w == 10) {
+        add_model(e, root, 0x7c4, no_assets);
     } else if (w == 3) {
         add_model(e, root, MU_ENV_MODEL_BUTTERFLY, no_assets);
     } else if (w == 6) {
@@ -251,6 +253,7 @@ void mu_world_env_step(mu_world_env *e, const mu_world_env_hero *hero, const flo
     in->hero_action = hero->action;
     in->hero_safe_zone = hero->safe_zone;
     in->world_time = world_time;
+    in->ambient_clock = mu_env_cvttss2si(world_time);
     in->frame_time = 0.1f;   /* [0x01cf103c] */
     in->attributes = e->map->attributes;
     in->layer1 = e->map->layer1;
@@ -327,7 +330,7 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
     p.light_ambient = MU_ENV_LIGHT_AMBIENT;
     p.light_scale = MU_ENV_LIGHT_SCALE;
     p.light_minimum = MU_ENV_LIGHT_MINIMUM;
-    p.body_scale = o->scale;
+    p.body_scale = o->type == 0x7c4 ? o->velocity : o->scale; /* dragon OBJECT +0xa0 */
     /* RenderObject(o, a1, ...): Animation(..., !a1) and Transform(..., translate a1) (the setup 0x017ec896, compared
      * in the objects' render family): fish (a1 0) are posed with the scale in the bones, so their normals carry it
      * into the light term; boids (a1 1) are not (NATIVE-LIGHT-001) */
