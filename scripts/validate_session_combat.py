@@ -81,8 +81,10 @@ class Machine:
         p=self.m.alloc(len(b),define=True);self.m.write(p,b);self.m.call(a,[p]);return p
 
 def run(t,d,l,n):
-    machine=Machine(t,d);m=machine.m;rng=random.Random(20261028);counts={}
+    rng=random.Random(20261028);counts={}
     for family in ['damage','die','action','attack','cast','move']:
+        # Fresh service stubs for each family, including every mutant rerun.
+        machine=Machine(t,d);m=machine.m
         for i in range(n):
             machine.reset();c=buf(bytes(0x3700));a=buf(bytes(0x1000));out=buf(bytes(16))
             if family=='damage':
@@ -104,11 +106,16 @@ def run(t,d,l,n):
                     raw=machine.infos[0];assert struct.unpack_from('<ii',raw)==(info.amount,info.type)
                     assert raw[8:14]==bytes([info.flags[3],info.flags[2],info.flags[4],info.flags[7],info.flags[5],info.flags[6]])
             elif family=='die':
+                # Reset writes must clear existing state, not merely agree on zero-filled records.
+                for off,size in [(0x23,1),(0x38,1),(0x2a,1),(0x3230,4),(0x3234,1),(0x325c,1)]:
+                    value=bytes([1+i%127])*size;m.write(machine.char+off,value);c[off:off+size]=value
                 skill=[0,40,59,392,65535][i%5]
                 p=bytearray([0xc1,9,0x17,4,0,skill>>8,skill&255,0,0]);machine.call(0x1234585,p)
                 assert l.mu_combat_die_body(buf(p),len(p),c)
                 for off,size in [(0x23,1),(0x38,1),(0x2a,1),(0x3230,4),(0x3234,1),(0x325c,1)]:assert m.read(machine.char+off,size)==bytes(c)[off:off+size],(family,i,hex(off))
             elif family=='action':
+                for off,size in [(0x21,1),(0x38,1),(0x40,2),(0x3324,4)]:
+                    value=bytes([1+i%127])*size;m.write(machine.char+off,value);c[off:off+size]=value
                 x,y=rng.randrange(256),rng.randrange(256)
                 m.put32(machine.char+0x180,x);m.put32(machine.char+0x184,y);struct.pack_into('<ii',c,0x180,x,y)
                 p=bytes([0xc1,9,0x18,4,0,i%256,0x78+i%2,0xff,0xff]);machine.call(0x1222b6d,p)
@@ -169,7 +176,7 @@ def main():
         caught=[]
         if args.mutants:
             for j,(name,old,new) in enumerate([('damage_word','c+0x14a','c+0x148'),('die','c[0x23]=1','c[0x23]=0'),('action','c[0x21]=1','c[0x21]=2'),('attack','0x43,','0x44,'),('cast','0xd7,','0xd6,'),('move','out[3]=x[0]','out[3]=y[1]')]):
-                source=Path(tmp)/f'mutant{j}.c';source.write_text(SRC.read_text().replace(old,new));target=Path(tmp)/f'mutant{j}.dylib';build(source,target)
+                source=Path(tmp)/f'mutant{j}.c';original=SRC.read_text();assert original.count(old)==1,(name,old);source.write_text(original.replace(old,new));target=Path(tmp)/f'mutant{j}.dylib';build(source,target)
                 try:run(t,d,lib(target),max(32,args.cases//10))
                 except AssertionError:caught.append(name)
                 else:raise AssertionError('survived '+name)
