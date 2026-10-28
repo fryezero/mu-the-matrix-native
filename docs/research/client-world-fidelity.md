@@ -347,7 +347,7 @@ of LoadBitmap at `0x01820fcf`, `0x0182188f`, `0x01821b2f`, `0x01821b4f`, not gue
 
 The synthetic native regression exercises hidden Kanturu emission, Karutan particle/sprite creation and drawing,
 and all four world groups' after-pass bodies on both GL and software backends, ten native sessions in three tests.
-The final local gate passes 1,397 tests with 166 explicit skips and no failures; the audit accepts
+The earlier local gate passed 1,397 tests with 166 explicit skips and no failures; the audit accepts
 1,261 files with no rejection. Item/audio integration preserves all 53 final native frame hashes.
 The character-select build dependency now uses `HEADERS`, replacing undefined `CORE_HDR`, so changes to the
 particle table's struct layout rebuild every character-select consumer.
@@ -382,6 +382,27 @@ effects, world handlers, creation effects, region import and shadow/custom regis
 implementations were retained during integration.
 
 See [the milestone handoff](../handoffs/RENDER-WORLDS-A.md) for the integrated gate and merge record.
+
+### Resume integration, 2026-10-28
+
+Latest main `0a85441` and source checkpoint `c235421` were rebuilt separately in the existing A worktree.
+`parts.def` now places the deferred draw at 85 in both backends, after the environment. The order adapter
+anchors it to the recorded original `0x016d6949` call. Missing-anchor and call-reordering tests cover it;
+the GL viewer marker follows the deferred pass. Other native order adapters remain unchanged.
+Both A and input validator registrations survive the merge. A's manifest now expects 9,000 total cases,
+correcting the prior per-family count of 1,000, without changing the comparison itself.
+
+Registered validators pass 9,000 A cases and 2,400 order cases, zero mismatches/stops, 23/23 compiled mutants
+caught and 294/294 order branch edges. Full Mac gate: 1,444 tests across 38 discovery suites, 175 explicit skips, zero failures; audit 1,324 files, zero rejected.
+All six fixture scenarios and native viewer/readers builds pass. No reader was run against a client.
+
+The refreshed fourteen-view tour reproduces the reported fidelity numbers against the surviving Kanturu PNG:
+sparse error 3.717 -> 4.006 and share over 24 of 0.0275 -> 0.0287; continuous 25-frame error
+3.717 -> 3.444 and share 0.0275 -> 0.0245. All fourteen primary light grids match exactly and all views
+have zero missing/extra placements. Eighteen unaffected frame hashes plus Raklion's two are unchanged.
+Near-hero after-flag counts remain Noria 15, Elbeland 0, Raklion 0 and Karutan 6. Final native frames were
+visually inspected; missing live PNGs, capture history and unsynchronised phases remain explicit limits.
+Reports and artifact paths are in the [updated handoff](../handoffs/RENDER-WORLDS-A.md).
 
 ## 6. RENDER-WORLDS-D, 2026-10-27
 

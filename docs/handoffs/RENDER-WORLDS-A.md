@@ -9,7 +9,7 @@ mutants are caught. Three synthetic native tests cover ten sessions: both flame 
 for four world groups on GL/software. Eight world-part checks pin the combined viewport and deferred draw hooks.
 Character-select's stale core-header dependency was corrected, matching the sibling C fix.
 
-Final local macOS gate passes on main `0b7edfc`: **1,397 tests in 38 discovery runs, 166 explicit skips, zero failures; audit 1,261 files, zero rejected**. Fixture scenarios and native viewer/readers build
+Earlier local macOS gate passed on main `0b7edfc`: **1,397 tests in 38 discovery runs, 166 explicit skips, zero failures; audit 1,261 files, zero rejected**. Fixture scenarios and native viewer/readers build
 also pass. The log is `a-isolated-gate.log`. The earlier world-part count error was fixed; a later parallel run
 exhausted disk space, then passed after owned intermediate PNG cleanup and an isolated temporary directory.
 Siblings B/C, viewport, item and audio integrations are retained. Self-review found no remaining scope/standards
@@ -47,3 +47,34 @@ deferred-object calls must change both projected draw expectations. Sibling inpu
 session integrations remain present. The registered A validator now expects 9,000 total cases, correcting its stale per-family count of 1,000.
 The initial runner rejected only that count; all nine comparisons and thirteen mutants already passed.
 Validation and refreshed fidelity results follow below.
+
+
+### Final resumed checks
+
+Source checkpoint `c235421`, incorporating main `0a85441`:
+
+- Registered private validators: two pass, zero skips/failures/errors. A has nine families, 9,000 cases,
+  zero mismatches/stops and 13/13 compiled mutants caught. World order has 2,400 cases, zero mismatches/stops,
+  294/294 conditional edges and 10/10 compiled mutants caught.
+- Focused world-part checks: 14 tests, one explicit private skip. Validator manifest checks: 17 tests pass.
+  Both original validators also pass through the registered runner.
+- Full `bash scripts/local-macos-ci.sh`: 1,444 tests across 38 discovery suites, 175 explicit skips, zero failures; audit 1,324 files, zero rejected. All six
+  fixture scenarios pass; native viewer and read-only readers build. Readers were not run against a client.
+  The recovered 06:03 log ended mid-suite. It is preserved as `local-macos-ci.interrupted-0603.log`;
+  the completed rerun supplies these final counts.
+  A first rerun exhausted disk space while writing synthetic outputs, recorded in `local-macos-ci.disk-full.log`.
+  Stopped lane-specific test temp directories were removed and identical local artifacts were hardlinked,
+  preserving every render path and byte hash. `disk-space-recovery.json` records the cleanup.
+- Latest-main baseline and integrated branch were separately rebuilt in this owned worktree. Fourteen capture
+  views each have exact primary terrain light and zero missing/extra placements. The nine unaffected views
+  keep all eighteen sparse frame hashes; Raklion keeps two more. Only Noria/Elbeland/Kanturu/Karutan frames change.
+- Kanturu sparse sampling: masked error 3.717 -> 4.006, off-by-more-than-24 share 0.0275 -> 0.0287.
+  Rendering all 25 frames: error 3.717 -> 3.444, share 0.0275 -> 0.0245. Near-hero deferred-flag
+  differences remain Noria 15 -> 15, Elbeland 12 -> 0, Raklion 10 -> 0 and Karutan 6 -> 6.
+  Final Kanturu and all four scoped deferred-world frames were visually inspected.
+
+Fresh reports/logs are in `scratch/render-worlds/resume-20261028/` under the local native tools folder:
+`validators-final/`, `fixture-scenarios/`, `manifest-tests.log`, `local-macos-ci.log`, `gate-summary.json`, `fidelity-summary.json`
+and `fidelity-hashes.json`. Renders are in `renders/render-worlds-a/resume-20261028/`.
+Only this run's intermediate continuous PNGs were removed; first/final frames and scores survive.
+No live game was used. Remaining capture/phase/flag-writer limits above are unchanged.
