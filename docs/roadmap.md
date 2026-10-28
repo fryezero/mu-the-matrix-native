@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+WORLD-ORDER-001 implemented: main-world call-order family and part-column adapters. [Counts and boundaries](handoffs/WORLD-ORDER-001.md).
+
 RENDER-WORLDS-F implements the Tarkan/Raklion screen haze. [Checks and image-score limitation](handoffs/RENDER-WORLDS-F.md).
 
 RENDER-WORLDS-D implements nested warp effects and Noria's missing portal. All fourteen capture views have zero missing/extra placements. [Checks and limits](handoffs/RENDER-WORLDS-D.md).

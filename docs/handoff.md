@@ -1,5 +1,7 @@
 # Continue from here
 
+WORLD-ORDER-001: [handoff](handoffs/WORLD-ORDER-001.md). Tick/draw expectations now read compiled call records; native deviations are explicit. No runtime/order-number change.
+
 RENDER-WORLDS-F: [handoff](handoffs/RENDER-WORLDS-F.md). Missing additive screen passes recovered and wired in both renderers. Original Tarkan/Raklion PNGs are absent, so live-image error remains unmeasured.
 
 RENDER-WORLDS-C2: [handoff](handoffs/RENDER-WORLDS-C2.md). Persistent cover, owner-aware emitter ribbons and integer ambient clock are implemented. Raw Icarus image error is 26.897 / 27.663; exact captured animation phase remains unavailable.
