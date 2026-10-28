@@ -36,8 +36,8 @@ and the surviving 2026-10-22 snapshots/image were used. No changes in `native/wo
   expiry/re-entry; actual environment-to-joint route; distinct boid targets; owner death; logic clock independent
   of elapsed milliseconds. Tour mask test checks intersection with the HUD exclusions, area and empty/wrong-size
   masks. The registered tests retain explicit private-input skips in the portable gate.
-- Final local gate passed on the tree merged with current main `0b7edfc`: **1,395 tests, 166 explicit skips,
-  zero failures**. Fixture scenarios pass; viewer/readers build; audit **1,251 files, zero rejected**. An earlier
+- Final local gate passed on the tree merged with current main `07e5816`, including D #188: **1,397 tests, 167 explicit skips,
+  zero failures**. Fixture scenarios pass; viewer/readers build; audit **1,259 files, zero rejected**. An earlier
   attempt exhausted disk during full-resolution frame capture; its file-write errors were resolved by
   compressing/trimming only C2 renders before this successful rerun. No hosted workflow was dispatched.
 
@@ -82,7 +82,9 @@ The frame-by-frame study measured 307 consecutive full-resolution native frames,
 surviving still: min 26.481, max 32.609, mean 28.691. The 400-step endpoint is separate. The local report retains
 all 307 score rows; selected images remain after storage cleanup. This is a native phase study against a still,
 not an original-client time-series comparison. All thirteen other capture final-frame PNG hashes are unchanged
-for C2 in isolation against #181. No renders, masks, snapshots, raw client bytes or decoded tables are committed.
+for C2 in isolation against #181. After merging D #188, all thirteen also match D's new main baseline,
+including its intended Noria change; Icarus remains 26.897 / 27.663. The C2 8,400-case / 8-mutant suite and
+D's 2,400-case / 8-mutant suite both pass again on that combined tree. No renders, masks, snapshots, raw client bytes or decoded tables are committed.
 
 Reproduce the local study with `scripts/icarus_fidelity.py --help`; use `tour25.json`, `tour400.json`, the local
 ablations and the earlier `renders/render-worlds-c` baseline. Reports and per-element masks are local only.

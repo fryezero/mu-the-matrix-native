@@ -514,7 +514,8 @@ to native phase against one still, not temporal equivalence. The older full effe
 puffs but lack this separate particle list and the boid/joint/sprite pools.
 
 Camera, primary light and static-object comparisons stay in the tour. All thirteen other capture PNG hashes are
-unchanged against #181. `fidelity_tour.py` now accepts optional `element_masks` per map and reports their areas
+unchanged against #181 before the parallel D merge. After D #188, all thirteen match its new main baseline,
+including its Noria change, and Icarus retains the same two scores. `fidelity_tour.py` now accepts optional `element_masks` per map and reports their areas
 and errors without replacing the whole-scene metric; `icarus_fidelity.py` produces the phase and ablation report.
 No moving-region exclusion is used to claim the target passed. Local inputs, frame reports, masks, selected
 renders and the full 307-row score series remain under the C2 scratch/render directories. Renders and captures
