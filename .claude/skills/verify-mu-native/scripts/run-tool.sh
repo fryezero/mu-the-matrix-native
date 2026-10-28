@@ -2,6 +2,7 @@
 # Run one native tool inside a run, isolated, with its evidence captured.
 #
 #   .claude/skills/verify-mu-native/scripts/run-tool.sh RUN NAME TOOL [ARGS...]
+#   .claude/skills/verify-mu-native/scripts/run-tool.sh RUN NAME --fixture [SCENARIO] [ARGS...]
 #
 # TOOL is a program under native/build (mu-client, mu-world, mu-walk, mu-viewer, mu-render, mu-proto,
 # mu-terrain). The tool runs with MU_NATIVE_SETTINGS_DIR=RUN/tmp/settings so it never touches
@@ -15,6 +16,14 @@ RUN=$1; NAME=$2; TOOL=$3; shift 3
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../../../.." && pwd)
 BIN="$REPO/native/build/$TOOL"
+if [ "$TOOL" = --fixture ]; then
+  BIN="$REPO/tools/python/bin/python"
+  if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then
+    SCENARIO=$1; shift
+    set -- --fixture "$SCENARIO" "$@"
+  fi
+  set -- "$REPO/scripts/run_fixture_scenarios.py" --report "$RUN/proof/$NAME" "$@"
+fi
 if [ ! -x "$BIN" ]; then echo "run-tool: $BIN missing (make -C native && make -C native viewer)" >&2; exit 127; fi
 mkdir -p "$RUN/proof" "$RUN/tmp/settings"
 prev=''
