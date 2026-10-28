@@ -3,7 +3,7 @@
 #include "login_world.h"
 #include "object_render.h"
 typedef void (*mu_world_bone_fn)(void *, int32_t, const float[3], float[3]);
-/* Bounded RENDER-WORLDS-A branches; other world handlers remain unsupported. */
+/* Scoped world visual producers and after-character branches. See lane findings for limits. */
 int mu_kanturu_flames(const uint8_t *, int32_t, int32_t, float, mu_obj_rand_fn, mu_world_bone_fn, void *,
                       mu_obj_log *);
 int mu_karutan_flames(const uint8_t *, int32_t, mu_obj_rand_fn, void *, mu_obj_log *);

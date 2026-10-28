@@ -1917,3 +1917,19 @@ mutants = 4
 cases_at = "cases.*"
 mutants_at = "mutants_caught"
 args = ["--text", "{text}", "--data", "{data}", "--cases", "40", "--mutants", "--output", "{report}"]
+
+[validate_worlds_k]
+test = "reconstructed/objects/test_worlds_k.py::WorldsKTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["losttower_visual", "tarkan_visual", "icarus_flare", "losttower_push", "atlans_dispatch"]
+cases = 6000
+mutants = 18
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "1200", "--mutations", "--output", "{report}"]
+[validate_worlds_k.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

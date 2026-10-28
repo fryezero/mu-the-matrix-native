@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-K: Lost Tower sprites/push, Tarkan lamp/plume producers and Icarus type-10 flare producer; Atlans switch inventory corrected. Instruction and locked-gate results are in [the handoff](handoffs/RENDER-WORLDS-K.md). Particle consumers belong to EFFECTS-003.
+
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).
 
 RENDER-EFFECTS-002: Poison, Ice/debris and Power Wave session visuals; audited primary routes 12/23 to 15/23, weighted 37/77 to 46/77. New instruction evidence: 10,619 instruction comparisons and 381 removal checks, zero mismatches, 8/8 compiled mutants. Locked Mac gate passes 1,550 tests. [Coverage and limits](research/client-skill-visual-coverage.md), [checks](handoffs/RENDER-EFFECTS-002.md).

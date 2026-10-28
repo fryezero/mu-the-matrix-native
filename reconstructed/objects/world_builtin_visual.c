@@ -46,7 +46,8 @@ int mu_builtin_visual(uint8_t *o,int32_t index,int32_t world,int has_model,float
             }
         } else if(t==23 && bone) {
             light[0]=l*0.4f;light[1]=l*0.8f;light[2]=l;
-            bone(ctx,"Box03",zero,p);pair(log,index,0x7ef7,p,l*1.5f,light,0);
+            bone(ctx,"Box03",zero,p);
+            for(int k=0;k<2;++k) wv_sprite(index,0x7ef7,p,l*1.5f,light,log);
         } else if(t==40 || t==41) {
             light[0]=light[1]=light[2]=l;
             p[2]+=260.0f;pair(log,index,t==40?0x7f37:0x7f38,p,2.5f,light,rotation);
@@ -60,7 +61,7 @@ int mu_builtin_visual(uint8_t *o,int32_t index,int32_t world,int has_model,float
             mu_obj_set_i32(o,MU_OBJF_HIDDEN_MESH,-2);break;
         case 63:
             if(bone) {
-                const float v=sinf((mu_obj_f32(o,MU_OBJF_ANGLE+8)*5.0f+time)*0.002f)*0.3f+0.7f;
+                const float v=(float)sin((double)((mu_obj_f32(o,MU_OBJF_ANGLE+8)*5.0f+time)*0.002f))*0.3f+0.7f;
                 light[0]=v/1.7f;light[1]=light[2]=v;
                 bone(ctx,"Bone02",zero,p);wv_sprite(index,0x8021,p,v*1.5f,light,log);
             }
@@ -81,7 +82,7 @@ int mu_builtin_visual(uint8_t *o,int32_t index,int32_t world,int has_model,float
                 particle(o,index,0x7f5a,8,p,light,size,log);
                 if(random(ctx)%3==0) {
                     p[0]+=(float)(random(ctx)%128-64);p[1]+=(float)(random(ctx)%128-64);
-                    particle(o,index,0x7f5a,4,p,light,size*2.0f,log);
+                    particle(o,index,0x7f5a,4,p,light,size*0.5f,log);
                     uint32_t a[12]={0};a[0]=(uint32_t)(random(ctx)%2+0x419);
                     memcpy(a+1,o+MU_OBJF_POSITION,12);memcpy(a+4,o+MU_OBJF_ANGLE,12);memcpy(a+7,light,12);
                     wv_emit(log,MU_OBJ_CALL_CREATE_EFFECT,index,a,12);
