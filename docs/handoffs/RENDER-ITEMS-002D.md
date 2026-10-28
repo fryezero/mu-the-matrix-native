@@ -67,9 +67,10 @@ These counts retain the distinct scalar/body/caller/transform/particle boundarie
 
 ## Release gate and review
 
-`bash scripts/local-macos-ci.sh` passes on the tree merged with main `07e5816`: **1,401 tests across
-38 discovery runs, 169 explicit private/unavailable-input skips**. The fixture suite, native viewer,
-reader builds and publication audit pass; **1,261 files audited, zero rejected**. No hosted CI was run.
+`bash scripts/local-macos-ci.sh` passes on the tree merged with main `3526a0a`: **1,403 tests across
+38 discovery runs, 170 explicit private/unavailable-input skips**. The fixture suite, native viewer,
+reader builds and publication audit pass; **1,265 files audited, zero rejected**. No hosted CI was run.
+Spark03/11 also reruns after the parallel particle changes: 1,500 equal cases, 3/3 mutants.
 The initial gate caught a missing header in the ClassNN hook; the include is fixed, the native host and
 six renderer tests pass, and the complete gate was rerun on the stable integrated tree.
 
