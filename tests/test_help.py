@@ -37,7 +37,7 @@ def fixture():
 
 def build_library(directory, sources=None):
     output = Path(directory) / ('libhelp.dylib' if sys.platform == 'darwin' else 'libhelp.so')
-    sources = sources or [ROOT/'reconstructed/help/help.c', ROOT/'reconstructed/data/data_tables.c',
+    sources = sources or [ROOT/'reconstructed/help/help.c', ROOT/'reconstructed/help/help_controller.c', ROOT/'reconstructed/data/data_tables.c',
                           ROOT/'reconstructed/data/data_codec.c']
     subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
                     '-Wconversion', '-fPIC', '-shared', '-I', str(ROOT/'reconstructed/help'),

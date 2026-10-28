@@ -1,5 +1,7 @@
 # Continue from here
 
+SYS-MISC-001b WIP: HelpWindow reader/controller instruction checks and native Ctrl+H hosting; no locked full gate or merge yet. [Exact state and resume steps](handoffs/SYS-MISC-001b.md).
+
 AUDIO-002 part 5: three character-select Enter/Esc sound-25 sites reach the native host. Caller adapters 73 to 76; 5,968 original-tick cases, zero mismatches, 11/11 compiled mutants; locked clean Mac gate passes 1,596 tests. [Checks and limits](handoffs/AUDIO-002E.md).
 
 RENDER-WORLDS-K: built-in Lost Tower/Tarkan/Icarus producers and Atlans dispatch correction; 6,000 instruction cases, 21/21 source mutants plus 2/2 native host controls. Icarus image error 26.897 to 23.154. Locked Mac gate passes 1,585 tests. [Checks and limits](handoffs/RENDER-WORLDS-K.md).

@@ -103,6 +103,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/mix/mix_rules.c $(RECON)/mix/mix_source.c $(RECON)/mix/mix_manager.c $(RECON)/mix/item_actions.c $(RECON)/mix/item_services.c \
              $(RECON)/progress/progress_calc.c $(RECON)/progress/progress_bar.c $(RECON)/progress/progress_recv.c \
              $(RECON)/progress/progress_window.c $(RECON)/progress/progress_options.c \
+             $(RECON)/help/help.c $(RECON)/help/help_controller.c \
              $(RECON)/social/item_options.c $(RECON)/social/item_formula.c $(RECON)/social/item_display.c $(RECON)/social/item_present.c $(RECON)/social/social_packets.c
 CORE_OBJ := $(patsubst %.c,$(BUILD)/%.o,$(CORE_SRC))
 RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
@@ -122,7 +123,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(wildcard $(RECON)/npc/*.h) $(RECON)/price/item_price.h \
            $(RECON)/helpers/helpers.h $(RECON)/helpers/mount_classes.h $(RECON)/helpers/mount_render.h $(RECON)/helpers/mount_class.h $(RECON)/raven/raven.h $(RECON)/pets/pets.h $(wildcard $(RECON)/quest/*.h) \
            $(wildcard $(RECON)/skill/*.h) $(RECON)/map/map.h $(wildcard $(RECON)/social/*.h) $(wildcard $(RECON)/mix/*.h) \
-           $(wildcard $(RECON)/progress/*.h)
+           $(wildcard $(RECON)/progress/*.h) $(RECON)/help/help.h world/world_gfx_help.h
 
 SHLIB_EXT := $(if $(filter Darwin,$(UNAME)),dylib,so)
 
@@ -326,7 +327,7 @@ DL_LIBS := -ldl
 endif
 # NATIVE-GFX-002: the GFx layer (loads libmugfx at run time) for mu-world/mu-client.
 GFX_SRC := world/world_gfx.c world/world_gfx_game.c gfx/mu_gfx_layer.c world/world_names_gfx.c world/world_gfx_skill.c world/world_gfx_tree.c \
-           world/world_gfx_map.c world/world_gfx_options.c world/world_gfx_social.c
+           world/world_gfx_map.c world/world_gfx_options.c world/world_gfx_social.c world/world_gfx_help.c
 GFX_CFLAGS := -I gfx -I $(RECON)/hud
 VIEWER_SRC := viewer/main.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/terrain_view.c
 

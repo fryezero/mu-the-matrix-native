@@ -1,5 +1,7 @@
 # Roadmap and work queue
 
+SYS-MISC-001b WIP: HelpWindow reader/controller instruction checks and native Ctrl+H hosting; no locked full gate or merge yet. [Exact state and resume steps](handoffs/SYS-MISC-001b.md).
+
 RENDER-WORLDS-J completes captured Raklion/Karutan primary groups: 33/144 verified methods, 11/48 classes; 111 methods remain. [Evidence](research/client-worlds-j.md), [checks and limits](handoffs/RENDER-WORLDS-J.md).
 
 SESSION-ITEMS-001a: session ground ownership and fixture 20/21 feed; 26,200 instruction cases with zero mismatches. Locked Mac gate passes 1,555 tests. Pickup-answer/inventory route evidence remains open. [Checks and limits](handoffs/SESSION-ITEMS-001a.md).

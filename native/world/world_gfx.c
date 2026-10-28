@@ -28,6 +28,7 @@
 #include "world_gfx_game.h"
 #include "world_gfx_skill.h"
 #include "world_gfx_tree.h"
+#include "world_gfx_help.h"
 #include "../core/mu_mix.h"
 #include "../../reconstructed/mix/item_actions.h"
 #include "../../reconstructed/mix/item_services.h"
@@ -1327,6 +1328,7 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         world_gfx_close(g);
         return NULL;
     }
+    int have_help = world_gfx_help_load(g->layer, game_root, g->lang);
     demo_items(g);
     g->options = wg_options_open(g->layer, NULL, NULL);   /* NATIVE-PROGRESS-001 */
     /* the movies loaded (and called onLoad) inside mu_gfx_layer_open, before the host existed: replay it */
@@ -1384,6 +1386,8 @@ world_gfx *world_gfx_open(const char *movie_dir, const char *game_root, int widt
         }
     }
     if (open) {
+        if (have_help && strstr(open, "help"))
+            mu_gfx_layer_show(g->layer, MU_GFX_HELP, 1);
         if (strstr(open, "inventory"))
             mu_gfx_layer_show(g->layer, MU_GFX_INVENTORY, 1);
         if (strstr(open, "mix"))

@@ -1,7 +1,9 @@
 # HelpWindow, SYS-MISC-001b
 
-WIP, 2026-10-28. Reader evidence is complete for the bounded cases below.
-The movie is not hosted yet. No original client, network or live game ran.
+WIP, 2026-10-28. The reader and bounded controller comparisons pass; the real
+movie is hosted in an isolated viewer and the native offline client. The
+locked full Mac gate and merge remain open. No original client, network or
+live game ran.
 
 ## Inputs and method
 
@@ -44,7 +46,7 @@ clear-on-failure behavior. It is independent of any game/session feed.
 
 ## Row/controller observations
 
-Static reading, pending controller comparison:
+The controller comparison below verifies these field uses:
 
 | Offset | Observed use |
 |---|---|
@@ -68,8 +70,12 @@ and description after the client's ANSI-to-UTF-8 conversion boundary.
 `0x00b89c17` clears the movie provider and replays both lists.
 
 The current input finding records F1 only as a close path for absent legacy
-windows 24/25. It does not establish an F1-open HelpWindow binding. No native
-binding or menu route is claimed yet.
+windows 24/25. It does not establish an F1-open HelpWindow binding or a
+HelpWindow menu route.
+
+The host now uses Ctrl+H, explicitly logged and documented as a native binding.
+It does not replace F1. Bare H remains the expanded-storage route. HelpWindow
+is optional and Ctrl+H is enabled only after valid installed rows are loaded.
 
 ## Checks at first checkpoint
 
@@ -95,3 +101,74 @@ Portable `tests/test_help.py`: five tests pass, one private-input test skips
 by default. Seven truncation lengths, six corruption offsets, valid/trailing
 files, missing/reload and invalid pointers are covered. Private mode invokes
 the original comparison and mutants. No full Mac gate has run for this WIP.
+
+## Controller and constructor checks
+
+`validate_help_controller.py --cases 64 --mutants`: 832 comparisons, zero
+mismatches, 11 compiled source mutants caught. Cases by family:
+
+| Family | Cases | Comparison |
+|---|---:|---|
+| Constructor provider projection | 64 | Three empty providers; original base/vector/callback boundary trace checked separately |
+| Provider rebuild | 64 | Ordered copies of all selected 136-byte records in all three lists |
+| Hotkeys | 192 | Ordered SetHotKeyData strings, modes 0, 1 and 2 |
+| Chat keys | 64 | Ordered SetChatHotKeyData strings |
+| Reload | 192 | ClearDataProvider followed by the two ordered row streams |
+| Loader | 192 | InitText arguments, SetPosCenter, clear, row streams, success return |
+| Base-load refusal | 64 | No invokes or provider mutation; false return |
+
+Corpus includes empty, 511-row and full 512-row tables, negative/nonstandard
+IDs, both category bytes, retained auxiliary rows, and strings reaching both
+field boundaries. The original constructor executes `0x00b89588` and its
+callback constructor `0x00b89fbc`: base construction, vector offsets, allocation
+of 20 bytes, callback vtable `0x01a8f1d0`, owner pointer and registration at
+handler `+0x30` are checked. Compiled C reproduces the provider projection.
+The native GFx layer supplies its own base window/callback lifetime; C++
+allocation/refcount/exception internals are modeled services, not ported code.
+
+The controller machine allowlists the original bodies and supplies explicit
+STL vector, iterator, std::string, ASCII identity conversion, GlobalText,
+base-load and GFx Invoke services. It executes the actual window selection,
+iteration, filtering, argument offsets and invoke order. The loader's reader
+is a stub supplying its input table; the separate reader families validate
+the file instructions. This is not an original code-page or whole-C++-runtime
+comparison. The callback/GFx allocation failure path remains outside it.
+
+Native capacity is 512 copied records per provider. A rebuild that would
+overflow retained auxiliary rows refuses atomically. Unterminated key/text
+fields refuse before row invokes. These are native bounds absent from the
+original's unbounded STL/string behavior.
+
+## Native hosting and checks
+
+Registration statically pushes alignment 9 at `0x00ac677d`. The shared layer
+opens HelpWindow.swf as an optional MUComponent movie, retains its UIInit path,
+and sizes it through SetWindowSize. The one-time `world_gfx_help_load` reads the
+installed file, sends the recovered controller calls and enables Ctrl+H.
+There is no help frame hook or per-frame allocation. Invalid/missing data clears
+the movie providers and leaves the binding unavailable. The existing native
+Latin-1 conversion is used, as in quest windows. Standard mode 0 is explicit
+native policy; the original mode getter's platform preference is not recovered.
+GlobalText `0xd57..0xd5b` supplies headings when available; compact English
+fallback headings are native labels. Installed row text is not rewritten to
+claim that its listed legacy shortcuts are working native bindings.
+
+- Isolated real-movie viewer: mode 0 sends/displays 32 hotkeys and 14 chat
+  rows; mode 1 sends/displays 28 and 14. Movie provider lengths are read back
+  and checked against the emitted counts. Hotkey and chat renders inspected.
+- Isolated SDL window: 120 frames, count parity and visible rows checked.
+- Native client build passes. Headless GL journey reaches offline scene 6,
+  95 frames, HelpWindow rendered over the world and inspected.
+- Actual native client window: Ctrl+H opens, Esc closes, Ctrl+H reopens, mouse
+  selects the chat tab, Esc closes. Both tab screenshots inspected. Finite
+  scripted run exits at frame 140 in 9.26 seconds, no store or audio enabled.
+- `tests/test_help*.py` with private inputs: 13 tests pass. Two synthetic
+  file-to-layer tests pass, covering valid, missing, truncated, corrupted,
+  toggle, release, focus and close/unbind behavior.
+- Existing GFx2: 16 tests, 8 pass / 8 optional private-renderer skips. GFx3:
+  12 tests, 6 pass / 6 optional skips. Input router: 13 tests, 12 pass / 1
+  optional private skip. No old renderer hash is intentionally changed.
+
+Still required before merge: full current-main Mac gate under the queue/lock,
+review of shared hooks against the active lanes, and any resulting repairs.
+This WIP has no PR and makes no merge or installed-app refresh claim.

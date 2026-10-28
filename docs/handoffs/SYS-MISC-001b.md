@@ -1,60 +1,110 @@
-# SYS-MISC-001b checkpoint
+# SYS-MISC-001b WIP handoff
 
-WIP, 2026-10-28. Owner hard stop is 14:45 CDT; final pushed handoff is due by
-14:40. Keep the worktree for resumption. No merge lock acquired, no PR opened.
-Issue #236 owns this slice; #208 remains stopped and is not resumed.
+2026-10-28. Owner hard stop is 14:45 CDT; leave a pushed handoff by 14:40.
+Keep this worktree for resumption. No merge lock acquired, queue entry added
+or PR opened. Issue #236 owns this slice; #208 remains stopped and untouched.
 
 Branch `codex/sys-misc-001b`, worktree `~/Documents/MTM/worktrees/sys-misc-001b`,
-created from origin/main `374777c`. `tools/python` and `evidence` are untracked
-symlinks to the main checkout's inputs. Never stage them.
+created from origin/main `374777c`. First reader checkpoint `7dfd443` is pushed.
+Current branch commits hold subsequent controller/host work. `tools/python`
+and `evidence` are untracked symlinks to the main checkout's inputs. Never
+stage them. No client-derived rows, movie bytes, captures or images committed.
 
-## Done
+## Current source state
 
-- Read the full common brief, workspace/repo instructions, current status and
-  handoff, roadmap, plan/lane ownership, backlog report, SYS-MISC-001a finding,
-  input/HUD findings and APP-REFRESH handoff.
-- Confirmed the existing helpdata decoder schedule. Added an authored reader
-  wrapper in `reconstructed/help`, portable synthetic-file tests and a pinned
-  original-instruction validator with six compiled source mutants.
-- 56 reader comparisons, zero mismatches: 48 valid synthetic, 6 corrupt, 1
-  missing, 1 installed; 25,088 per-row original decode calls. All six mutants
-  caught. Five portable tests pass, private test skips by default.
-- Recovered static list-selection and row-emitter contracts. Details and
-  source addresses are in `docs/research/client-help-window.md`.
+- `reconstructed/help/help.[ch]`: fixed 512 by 136-byte helpdata reader, reusing
+  the existing data decoder. Missing, truncated and corrupt files clear output
+  and return statuses. Native truncation rejection is distinct from the
+  original's unchecked short fread behavior.
+- `help_controller.c`: copied providers, zero-ID stop, independent category
+  bytes, retained third list, mode filtering, ordered row calls, InitText,
+  SetPosCenter, ClearDataProvider and base-load refusal. Native capacity and
+  unterminated-string refusals are explicit.
+- `validate_help.py` / `validate_help_controller.py`: pinned instruction
+  comparisons and compiled production-source mutants. Manifest rows are added
+  for both. Preserve these small shared-registry additions when reconciling
+  VERIFY-HARNESS-002.
+- `native/help`: isolated real-movie SDL/headless test viewer. It checks movie
+  provider lengths, reuses one frame buffer/texture and uses native test
+  headings. Build outputs belong in lane scratch.
+- `world/world_gfx_help.[ch]`: one-time installed-row load; no frame hook or
+  allocations in the frame loop. GlobalText headings with compact English
+  fallback; existing native Latin-1 conversion; explicit standard mode 0.
+- Minimal shared hooks: optional HelpWindow enum/file/alignment, ready flag,
+  native Ctrl+H toggle, Esc close, world startup load, optional `--gfx-open help`,
+  input forwarding and build entries. A pre-existing unbounded item-service
+  close guard is narrowed to actual store movie IDs so it cannot block Help.
+  The legacy F1 and bare-H routes remain unchanged.
+- Native synthetic adapter tests cover valid/missing/truncated/corrupt input,
+  toggle/release, chat focus, Esc and readiness invalidation. A two-line movie
+  UIInit response was added to the existing GFx stub.
 
-## Next
+Full evidence, addresses, source digests and semantic limits are in
+`docs/research/client-help-window.md`.
 
-First rerun the reader validator after the strengthened service/import checks.
-Then implement and compare provider construction `0x00b89866`, constructor
-`0x00b89588`, loader `0x00b89977`, reload `0x00b89c17`, and row emitters
-`0x00b89cc0` / `0x00b89e69`. Be explicit about modeled STL/GFx/string/code-page
-boundaries. Preserve the independently tested zero-ID stop, category-byte
-selection, ID/mode filtering and third-list append behavior.
+## Checks actually completed
 
-After controller equality, host HelpWindow.swf with installed rows through
-minimal layer hooks. Find an original menu/open route or label the native
-binding. F1 has no recorded HelpWindow-open route. Still required: isolated
-real-movie view, native window check, final current-main full Mac gate under
-the queue/lock, PR and merge. None are claimed by this checkpoint.
+- Reader: 56 comparisons, zero mismatches. Families: 48 valid synthetic,
+  6 corrupt, 1 missing, 1 installed. 25,088 original row decode calls; all six
+  compiled mutants caught. Registry run omits installed data, so expects 55.
+- Controller: 832 comparisons, zero mismatches; all eleven compiled mutants
+  caught. Constructor provider projection 64, build 64, hotkeys 192, chat 64,
+  reload 192, loader 192, base-load refusal 64. C++ base/vector/callback/STL,
+  string and conversion services are explicit boundaries. Constructor trace
+  checks callback ownership/registration, but native C only compares the
+  provider projection. Allocation/refcount/exception internals are not ported.
+- Private Help tests: 13/13 pass. Native synthetic adapter tests: 2/2 pass.
+- Existing GFx2: 16 tests, 8 pass / 8 optional skips. GFx3: 12 tests, 6 pass /
+  6 optional skips. Input router: 13 tests, 12 pass / 1 optional skip.
+- Validator registry: both help validators pass, no fail/error/skip. Registry
+  consistency suite: 17/17 tests pass.
+- Native client build passes. Isolated movie modes show 32/14 and 28/14
+  hotkey/chat rows with actual movie count parity. Both tabs inspected.
+- Isolated SDL window passes. Native client headless GL reaches scene 6 in
+  95 frames, HelpWindow over the world inspected. Actual native client window
+  opens with Ctrl+H, closes with Esc, reopens, switches to chat by mouse and
+  closes. Both tab captures inspected. Finite script exits at frame 140,
+  9.26 seconds, with `--no-store --no-audio`. An earlier test window was
+  terminated after confirming its PID/command because `--frames` bounds only
+  headless mode. Use `--seconds` and/or a scripted `quit` for a window run.
 
-## Local artifacts and resume commands
+No full `scripts/local-macos-ci.sh` gate, latest-main merge, PR or installed
+Preview app refresh is claimed. No original client or network ran.
 
-All lane output lives under `mu-mac-tools/native/scratch/sys-misc-001b` and
-`mu-mac-tools/native/renders/sys-misc-001b`. Reader JSON contains counts/hashes
-only. Remove disposable reports after their summaries are committed. No new
-input needs to be retained; original inputs remain in the shared evidence and
-installed game directories. No original client was accessed or started.
+## Exact next steps
+
+1. Inspect this branch's final diff and integrate the latest main as part of
+   the common brief's final queue/lock sequence. Reconcile the small
+   Makefile/GFx/input/validator registry additions with active lane changes.
+2. Run the registered validators and relevant tests below. Review the bounded
+   constructor projection and original code-page limits before calling the
+   entire original C++ constructor recovered. A native callback lifetime is
+   tested, but it does not reconstruct C++ refcount internals.
+3. Rebuild the native client, repeat Ctrl+H/Esc/tab checks after final integration
+   and confirm resizing retains HelpWindow placement. The shared size hook
+   uses the movie's SetWindowSize to preserve its center fraction.
+4. Acquire the queue/lock only when a full current-main Mac gate and merge can
+   finish. Run the full gate, repair real failures, open/merge the PR, release
+   the lock and clean up per the brief. Do not resume other SYS-MISC windows.
 
 ```sh
-./tools/python/bin/python -m unittest discover -s tests -p test_help.py -v
-./tools/python/bin/python scripts/validate_help.py --cases 48 --mutants \
-  --game-root "<installed-root>" --output "<lane-scratch>/reader.json"
 MU_RECOVERY_INTEGRATION=1 ./tools/python/bin/python -m unittest discover \
-  -s tests -p test_help.py -v
+  -s tests -p 'test_help*.py' -v
+./tools/python/bin/python -m unittest discover -s native/tests -p test_help_layer.py -v
+MU_RECOVERY_INTEGRATION=1 ./tools/python/bin/python scripts/run_validators.py \
+  --private --only validate_help,validate_help_controller --jobs 1 \
+  --report '<lane-scratch>/registry'
 ```
 
-The installed root is recorded as `game_root` in the Preview Native Data
-setup.json. Do not copy whole settings or credentials into logs. Existing
-movie input is `scratch/gfx/all-bridge/HelpWindow.swf`. System `java` is a
-launcher without a runtime; locate the existing local JRE before using JPEXS.
-Do not install or regenerate the movie just to work around that path.
+The installed root is `game_root` in Preview Native Data's setup.json. Read
+only that field; do not log whole settings. Existing inputs: pinned evidence,
+`scratch/gfx/all-bridge/HelpWindow.swf`, and `scratch/polish/libmugfx.dylib`.
+The local JRE is `gfx-deps/jdk/Contents/Home/bin/java` if JPEXS is needed again.
+
+## Cleanup and retained inputs
+
+Delete lane `scratch/sys-misc-001b`, `renders/sys-misc-001b`, native/build and
+Python caches after summaries are committed, before the deadline. They are
+disposable builds, logs, AS exports and screenshots; none is a new input.
+Keep the worktree and its two untracked evidence/Python links. Rebuild from
+source on resume. Do not remove another lane's scratch or the shared inputs.

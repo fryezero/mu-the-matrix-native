@@ -147,7 +147,7 @@ def main():
                 raise AssertionError(f'{label}: reader mismatch, status={status}, outcome={outcome}, units={units}')
             references.append((label, image, missing, expected_status, table))
         if args.mutants:
-            paths = [ROOT/'reconstructed/help/help.c', ROOT/'reconstructed/data/data_tables.c',
+            paths = [ROOT/'reconstructed/help/help.c', ROOT/'reconstructed/help/help_controller.c', ROOT/'reconstructed/data/data_tables.c',
                      ROOT/'reconstructed/data/data_codec.c']
             for name, (filename, before, after) in MUTANTS.items():
                 folder = work/name
