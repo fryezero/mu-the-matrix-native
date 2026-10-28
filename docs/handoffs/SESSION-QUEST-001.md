@@ -37,7 +37,16 @@ Branch `codex/session-quest-001`, isolated worktree created from `707b82c`. No o
 - Four discovered scenarios total **37 inbound frames**, **zero unbound/undecodable**, with all eight hero
   and 17 decodable quest routes. Three unsent encrypted requests and two unrecovered master-point intents
   remain explicit. The new quest progress scenario has one unsent complete request.
-- Full local gate and staged audit: recorded below after the final integration run.
+- Release gate at `6bde129`, integrated through main `fecdddd`: **1,354 tests, 157 explicit skips,
+  zero failures**; viewer and read-only reader builds pass. Audit: **1,186 files, zero rejected**.
+  The final gate is `gate-release.log`; its four-scenario proof is copied to `release-suite/` in scratch.
+  The suite's dirty flag comes from the two untracked local input symlinks; tracked source was clean.
+- A 559-byte window cue was reassembled byte-for-byte against the reconstructed log; nonfinite window
+  input was refused. Product archive inspection found no quest seed or fixture definitions.
+- Self-review covered standards and milestone behavior; no independent review is claimed. GFx code builds
+  in the local app gate, but a private Ruffle quest-movie recipe was not rerun. Synthetic software renders
+  were inspected; the existing render/hash assertions pass. Late static-table binding preserves the seeded
+  class and level, and the isolated layout test now stubs the generated domain list.
 
 ## Changes and limits
 
@@ -64,3 +73,6 @@ The integrated layout audit uses scalar-only quest zones, excluding host pointer
 quest fixture journals are byte-identical. Its zone capacity includes the pinned 484 quest records.
 Renders are under `~/Documents/MTM/mu-mac-tools/native/renders/session-quest-001/`.
 Only authored source and synthetic tables/scenarios are committed.
+
+Operational note: a process-selection error stopped the gate in the separate `session-viewport-001` lane.
+No source files were edited there; that lane's interrupted gate needs rerunning by its owner.
