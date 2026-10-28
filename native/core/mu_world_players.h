@@ -103,6 +103,8 @@ typedef struct mu_world_player {
     int32_t respawn_in;
     uint8_t store_open;
     uint32_t moves, arrivals, creates, destroys, deaths, position_steps;
+    uint32_t session_generation, session_equipment_revision;
+    int32_t session_slot;
     uint8_t equipment[MU_RP_EQUIP_BYTES];   /* the last viewport record's equipment bytes */
     /* NATIVE-HELPERS-001: ChangeCharacterExt's engine calls of the last viewport record (the angel effect, DeleteBug,
      * the mount manager's reset / set) and their count; the mount manager's predicates for the player (riding
@@ -117,7 +119,12 @@ struct mu_world_names;
 struct mu_combat;
 struct mu_social_session;
 
+struct mu_session;
 typedef struct mu_world_players {
+    struct mu_session *session; /* dev runtime session, owned by the characters part */
+    void (*record_action)(void *context, int32_t slot, uint16_t action, uint16_t prior);
+    void *record_context;
+    mu_rp_character *leased_records; /* set only while a simulation lease is open */
     struct mu_social_session *social; /* NATIVE-SOCIAL-001 authoritative offline membership */
     mu_world_player list[MU_WORLD_PLAYERS_MAX];
     int32_t count;
@@ -156,7 +163,11 @@ void mu_world_players_attach(mu_world_players *p, struct mu_world_names *names, 
 
 /* One 40 ms logic step: the demo server's packets, then for every created player MoveCharacters' remote step,
  * the dead counter / fade and the animation step. */
-void mu_world_players_step(mu_world_players *p);
+struct mu_world_port;
+struct mu_characters_view;
+void mu_world_players_port(mu_world_players *p, struct mu_world_port *port);
+void mu_world_players_sync(mu_world_players *p, const struct mu_characters_view *view);
+void mu_world_players_step_one(mu_world_players *p, int32_t index, mu_rp_character *record);
 /* Every rendered frame: places and poses the created players' models. */
 void mu_world_players_frame(mu_world_players *p);
 /* NATIVE-HELPERS-001: SetAction with the Player model's play speed (the rider actions). */

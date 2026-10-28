@@ -22,11 +22,11 @@ COLUMNS = ('pre_tick', 'tick', 'frame', 'draw_gl', 'draw_soft', 'report')
 MAIN_C_ORDER = {
     # load() main.c:459-744 (the rows that open something)
     'open': ['sound', 'npc_demo', 'actors', 'objects', 'env', 'particles', 'combat', 'progress', 'items', 'names',
-             'npc', 'players', 'social', 'helpers', 'map'],
+             'npc', 'players', 'social', 'helpers', 'map', 'characters'],
     # combat_pre_step main.c:331-341
     'pre_tick': ['items', 'npc', 'combat'],
     # on_step main.c:758-826
-    'tick': ['sound', 'actors', 'npc', 'quest_step', 'combat', 'progress', 'players', 'social', 'helpers', 'items',
+    'tick': ['sound', 'actors', 'characters', 'npc', 'quest_step', 'combat', 'progress', 'social', 'helpers', 'items',
              'names', 'objects', 'env', 'particles', 'map'],
     # advance main.c:1660-1686, after mu_walk_update / mu_walk_place / mu_walk_begin_render (terrain_frame's object
     # lights are the objects row)
@@ -47,7 +47,7 @@ SIGNATURE = {
     'pre_tick': {'items': 'mu_world_items_pre_step', 'npc': 'mu_npc_pre_step', 'combat': 'mu_combat_pre_step'},
     'tick': {'sound': 'mu_world_sound_hero_step', 'actors': 'mu_world_actors_step', 'npc': 'mu_npc_step',
              'quest_step': 'world_gfx_quest_step', 'combat': 'mu_combat_step', 'progress': 'mu_progress_step',
-             'players': 'mu_world_players_step', 'social': 'mu_social_step', 'helpers': 'mu_world_helpers_step',
+             'characters': 'mu_world_players_step_one', 'social': 'mu_social_step', 'helpers': 'mu_world_helpers_step',
              'items': 'mu_world_items_step', 'names': 'mu_world_names_step', 'objects': 'mu_objects_step',
              'env': 'mu_world_env_step', 'particles': 'mu_world_particles_step', 'map': 'mu_map_gate_step'},
     'frame': {'items': 'mu_world_items_select', 'terrain': 'mu_world_frame_box', 'objects': 'mu_objects_apply_lights',
@@ -114,7 +114,7 @@ class PartsDefTests(unittest.TestCase):
 
     def test_rows_parse_and_ids_are_unique(self):
         ids = [r['id'] for r in self.rows]
-        self.assertEqual(len(ids), 21)
+        self.assertEqual(len(ids), 22)
         self.assertEqual(len(set(ids)), len(ids))
         self.assertEqual([r['ops'] for r in self.rows], [f'mu_part_{i}' for i in ids])
 

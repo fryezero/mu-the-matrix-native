@@ -165,6 +165,8 @@ class Layout(unittest.TestCase):
 #include <assert.h>
 void mu_dom_hero_zones(const mu_session *s, mu_audit_zones *z) { (void)s; (void)z; }
 void mu_dom_hero_step(mu_session *s, const mu_sim *sim) { (void)s; (void)sim; }
+void mu_dom_characters_zones(const mu_session *s, mu_audit_zones *z) { (void)s; (void)z; }
+void mu_dom_characters_step(mu_session *s, const mu_sim *sim) { (void)s; (void)sim; }
 int main(void) {
     uint8_t bytes[8] = {0};
     mu_audit_zones zs = {0};

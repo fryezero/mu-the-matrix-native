@@ -411,6 +411,7 @@ static int64_t value_of(run *r, const char *key, int *ok)
         {"hero.strength", h.stats[0]}, {"hero.agility", h.stats[1]}, {"hero.vitality", h.stats[2]},
         {"hero.energy", h.stats[3]}, {"hero.command", h.stats[4]}, {"hero.attack_speed", h.attack_speed},
         {"hero.magic_speed", h.magic_speed}, {"hero.class", h.class_byte}, {"hero.derived", h.has_derived},
+        {"characters.rev", mu_session_rev(r->session, MU_DOMAIN_CHARACTERS)},
         {"hero.rev", mu_session_rev(r->session, MU_DOMAIN_HERO)}, {"money", mu_session_money(r->session)},
         {"place.world", pl.world}, {"place.x", pl.tile[0]}, {"place.y", pl.tile[1]}, {"place.seq", pl.seq},
         {"waiting", st.waiting_for_world}, {"phase", st.phase}, {"reason", st.reason},

@@ -1,0 +1,13 @@
+# SESSION-VIEWPORT-001. Synthetic creation, movement, store, death and destroy.
+endpoint game 127.0.0.1:55902
+use characters
+join world=0 tile=120,120 class=0x01 level=1 name=Hero slot=0
+at 1 characters player Aeris class=0x01 at=123,120 dir=3 pet=imp
+at 3 send game c1 08 3d 02 00 7e 78 30
+at 4 send game c1 35 3f 02 00 01 02 00 53 74 6f 72 65 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+at 5 send game c1 05 17 02 00
+at 6 send game c1 06 14 01 02 00
+expect characters.rev = 5
+expect unbound = 0
+expect undecodable = 0
+expect fixture.answers = 5

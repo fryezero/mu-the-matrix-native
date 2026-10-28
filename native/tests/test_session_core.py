@@ -68,8 +68,7 @@ class SessionCore(unittest.TestCase):
             self.assertIsNotNone(i['submit'], i)
         routes = [row['route'] for row in rows if 'route' in row]
         bound = {(x['opcode'], x['sub']): x['apply'] for x in routes if x['apply']}
-        self.assertEqual(len(bound), 8)
-        self.assertTrue(all(name.startswith('hero_') for name in bound.values()))
+        self.assertEqual(sum(name.startswith('hero_') for name in bound.values()), 8)
 
     def test_world_change_barrier_and_attach_idempotency(self):
         scn = self.scenario('at 3 progress respawn map=2 x=20 y=30 dir=3 money=7\n'

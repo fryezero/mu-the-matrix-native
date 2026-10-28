@@ -1438,3 +1438,17 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "200", "--mutations",
 "ok" = true
 "families.*.cases" = {all_min = 1}
 "families.*.equal" = {same_as = "families.*.cases"}
+
+[validate_viewport]
+test = "native/tests/test_session_characters.py::PrivateViewport.test_original_0122d413"
+pins = ["text", "data"]
+families = ["0x12 handler record fields", "key", "apply", "stride", "create prefix", "placement"]
+cases = 6000
+mutants = 6
+cases_at = ["handler_cases", "cases.key", "cases.apply", "cases.stride", "cases.create", "cases.placement"]
+mutants_at = "mutants.caught"
+build = ["reconstructed/players"]
+args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations", "--output", "{report}"]
+[validate_viewport.expect]
+"mismatches" = 0
+"mutants.caught" = 6

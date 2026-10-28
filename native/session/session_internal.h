@@ -72,7 +72,7 @@ typedef struct mu_audit_zone {
     mu_zone zone;
     const char *field;           /* what lives there, for the abort message */
 } mu_audit_zone;
-#define MU_AUDIT_ZONES_MAX 256
+#define MU_AUDIT_ZONES_MAX 16384
 typedef struct mu_audit_zones {
     mu_audit_zone z[MU_AUDIT_ZONES_MAX];
     int count;
