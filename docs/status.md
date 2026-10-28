@@ -1,5 +1,7 @@
 # Current status
 
+RENDER-WORLDS-C: Icarus sky, cloudLight, swirls and dragon paths implemented. Persistent grey coverage remains unresolved; fixed-frame image error regresses. [Evidence](research/client-world-fidelity.md#35-icarus-sky-and-dragons-render-worlds-c), [handoff](handoffs/RENDER-WORLDS-C.md).
+
 - RENDER-TERRAIN-002 implemented: remaining terrain overlays, Chaos smoke, camera frustum, fog/alpha evidence and Kalima signed water; 2,147 Unicorn cases, 0 mismatches, 14/14 compiled mutants, plus 1,800 particle cases. [Evidence](research/client-terrain-remaining.md), [handoff](handoffs/RENDER-TERRAIN-002.md).
 
 RENDER-ITEMS-002 part 1: inventory special-code chain and native remapped-model loading; 5,512 Unicorn cases, zero mismatches, 6/6 mutants. Large body/effect switches remain. [Evidence](research/client-render-items.md).

@@ -330,7 +330,7 @@ static void r_object(void *c, const mu_env_object *o, int32_t a1)
     p.light_ambient = MU_ENV_LIGHT_AMBIENT;
     p.light_scale = MU_ENV_LIGHT_SCALE;
     p.light_minimum = MU_ENV_LIGHT_MINIMUM;
-    p.body_scale = o->scale;
+    p.body_scale = o->type == 0x7c4 ? o->velocity : o->scale; /* dragon OBJECT +0xa0 */
     /* RenderObject(o, a1, ...): Animation(..., !a1) and Transform(..., translate a1) (the setup 0x017ec896, compared
      * in the objects' render family): fish (a1 0) are posed with the scale in the bones, so their normals carry it
      * into the light term; boids (a1 1) are not (NATIVE-LIGHT-001) */

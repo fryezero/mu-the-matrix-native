@@ -4,6 +4,7 @@
 #include <string.h>
 #include "../core/mu_objects_icarus.h"
 #include "../core/mu_particles.h"
+#include "../core/mu_env.h"
 static int effects,sprites,joints;
 static void effect(void *ctx,int32_t type,int32_t sub,const float p[3],const float a[3],const float l[3],int32_t owner)
 { (void)ctx;(void)p;(void)a;(void)l;assert(type==0x1a1 && sub==0 && owner==-1);++effects; }
@@ -13,6 +14,8 @@ static void joint(void *ctx,int32_t type,const float p[3],const float t[3],const
 { (void)ctx;(void)p;(void)t;(void)a; assert((type==0x7f7d && sub==0 && owner==-1 && scale>=40) || (type==0x7f7c && sub==6 && owner==0 && scale>=10));++joints; }
 int main(void)
 {
+    char path[128];
+    assert(mu_env_model_file(10,0x7c4,path,sizeof path) && strcmp(path,"Data/Monster/Monster32.bmd")==0);
     mu_objects *o=calloc(1,sizeof *o);assert(o);
     o->world=10;o->rt.icarus_count=40;o->rt.effect=effect;o->rt.sprite=sprite;o->rt.joint=joint;
     o->count=1; o->rt.images=calloc(1,MU_OBJ_SIZE);assert(o->rt.images);

@@ -103,7 +103,7 @@ HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/re
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
            $(wildcard $(RECON)/data/*.h) $(wildcard $(RECON)/hud/*.h) $(RECON)/scene/scene.h \
-           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h \
+           $(wildcard $(RECON)/combat/*.h) $(RECON)/joints/joints.h $(RECON)/joints/icarus_joints.inc \
            $(RECON)/environment/env.h $(RECON)/environment/env_internal.h \
            $(RECON)/particles/particles.h $(RECON)/particles/particles_internal.h \
            $(wildcard $(RECON)/items/*.h) \

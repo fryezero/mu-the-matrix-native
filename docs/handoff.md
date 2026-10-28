@@ -1,5 +1,7 @@
 # Continue from here
 
+RENDER-WORLDS-C: [Icarus handoff](handoffs/RENDER-WORLDS-C.md). Named sky/object/joint/dragon paths are ported; the persistent grey layer remains a measured fidelity gap.
+
 DATA-ACQ-004 manifest slice: [handoff](handoffs/DATA-ACQ-004.md), [re-acquisition procedure](native-data.md). Jump-table diff remains pending on paused NET-DISPATCH-001.
 
 - RENDER-TERRAIN-002: remaining terrain implementation and evidence are in [the milestone handoff](handoffs/RENDER-TERRAIN-002.md). No live client used; per-world object files untouched.

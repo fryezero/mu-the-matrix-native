@@ -6,15 +6,21 @@ MSVC rand is a seeded recording callback, compared through its final state.
 import argparse
 import ctypes as C
 import json
+import hashlib
 from pathlib import Path
 import random
 import shutil
 import struct
+import sys
 import subprocess
 import tempfile
+from collections import defaultdict
+import validate_joints as vj
 import actor_machine as am
+import pins
 import validate_object_render as v
 ROOT=Path(__file__).resolve().parents[1]
+SUFFIX='dylib' if sys.platform=='darwin' else 'so'
 F3=C.c_float*3
 HERO=0x41010000
 OBJ=0x41020000
@@ -83,15 +89,26 @@ def family(machine,lib,kind,cases):
     return tally
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--cases',type=int,default=1000);ap.add_argument('--mutations',action='store_true');ap.add_argument('--output');args=ap.parse_args()
-    text=am.load_pinned(ROOT/'evidence/x86-text-capture-09/client-text.bin',am.TEXT_BYTES,am.TEXT_SHA256,'text')
-    data=am.load_pinned(ROOT/'evidence/image-data-run10/data-capture-10/client-image-data.bin',am.DATA_BYTES,am.DATA_SHA256,'data')
+    ap=argparse.ArgumentParser();ap.add_argument('--text',type=Path,default=pins.TEXT.default_str());ap.add_argument('--data',type=Path,default=pins.DATA.default_str());ap.add_argument('--cases',type=int,default=1000);ap.add_argument('--mutations',action='store_true');ap.add_argument('--output');args=ap.parse_args()
+    text=am.load_pinned(args.text,am.TEXT_BYTES,am.TEXT_SHA256,'text')
+    data=am.load_pinned(args.data,am.DATA_BYTES,am.DATA_SHA256,'data')
     machine=am.ActorMachine(text,data)
     subprocess.run(['make','-s','-C',str(ROOT/'reconstructed/objects')],check=True)
-    lib=library(ROOT/'reconstructed/objects/libobjects.dylib')
-    report={'pins':{'text':am.TEXT_SHA256,'data':am.DATA_SHA256},'families':{}}
+    lib=library(ROOT/f'reconstructed/objects/libobjects.{SUFFIX}')
+    report={'pins':{'text':am.TEXT_SHA256,'data':am.DATA_SHA256},'families':{}, 'bodies':{name:{'start':hex(a),'end':hex(z),'sha256':hashlib.sha256(text[a-am.TEXT_BASE:z-am.TEXT_BASE]).hexdigest()} for name,a,z in [('sky',0x18016b0,0x1802168),('object',0x180249e,0x1802692)]}}
     for k in ['sky','object']:
         t=family(machine,lib,k,args.cases);report['families'][k]=t.report();print(k,t.report())
+    # These are the two Icarus kinds, separated from the broad joint regression corpus.
+    vj.KINDS=[(0x7f7c,6),(0x7f7d,0)]
+    jm=vj.sf.FxMachine(text,data)
+    subprocess.run(['make','-s','-C',str(ROOT/'reconstructed/joints')],check=True)
+    jlib=vj.load_library(ROOT/f'reconstructed/joints/libclient_joints.{SUFFIX}')
+    for name,fn in vj.FAMILIES:
+        r=vj.vc.Report()
+        fn(jm,jlib,random.Random(20261027),min(args.cases,400),r,defaultdict(int))
+        t=r.families[name]
+        report['families']['icarus_'+name]={'cases':t['cases'],'equal':t['equal'],'mismatch_count':t['cases']-t['equal'],'stopped':0,'details':t}
+        print('icarus_'+name,t['equal'],t['cases'])
     report['mutants']=[]
     if args.mutations:
         for name,old,new,k in [('cloud offset','- 150.0f','- 140.0f','sky'),('lightning height','p[2]-=300','p[2]-=200','sky'),('sprite scale','bits(0.5f)','bits(1.0f)','object'),('swirl subtype','p,p,a,6,','p,p,a,7,','object')]:
@@ -101,6 +118,20 @@ def main():
                 out=root/'mutant.dylib'
                 subprocess.run(['clang','-std=c11','-O2','-shared','-ffp-contract=off','-fPIC',str(p),str(root/'record-math/record_math.c'),'-lm','-o',str(out)],check=True)
                 t=family(machine,library(out),k,min(args.cases,500));report['mutants'].append({'name':name,'caught':t.equal<t.cases and not t.stopped,'cases':t.cases,'differences':t.cases-t.equal})
+    if args.mutations:
+        for name,old,new,which in [('swirl lifetime','j->lifetime=jrand(env)%20+6','j->lifetime=jrand(env)%20+5','joint_create'),('bolt fade','j->brightness-=10.12f','j->brightness-=9.12f','joint_move')]:
+            with tempfile.TemporaryDirectory() as td:
+                root=Path(td)/'reconstructed'
+                for folder in ['joints','record-math','movement']:
+                    shutil.copytree(ROOT/'reconstructed'/folder,root/folder)
+                p=root/'joints'/('joints.c' if which=='joint_create' else 'icarus_joints.inc')
+                source=p.read_text();assert old in source;p.write_text(source.replace(old,new))
+                out=root/'mutant.dylib'
+                subprocess.run(['clang','-std=c11','-O2','-shared','-fPIC','-ffp-contract=off',str(root/'joints/joints.c'),str(root/'record-math/record_math.c'),str(root/'movement/client_movement.c'),'-lm','-o',str(out)],check=True)
+                r=vj.vc.Report()
+                dict(vj.FAMILIES)[which](jm,vj.load_library(out),random.Random(20261027),100,r,defaultdict(int))
+                t=r.families[which]
+                report['mutants'].append({'name':name,'caught':t['equal']<t['cases'],'cases':t['cases'],'differences':t['cases']-t['equal']})
     if args.output: Path(args.output).write_text(json.dumps(report,indent=2)+'\n')
     return int(any(t['mismatch_count'] or t['stopped'] for t in report['families'].values()) or any(not t['caught'] for t in report['mutants']))
 if __name__=='__main__':raise SystemExit(main())

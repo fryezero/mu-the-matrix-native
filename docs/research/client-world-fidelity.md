@@ -185,6 +185,24 @@ reconstructed and verified, not yet created natively) and lightning joints `0x7f
 sprites and `0x7f7c` joints of the world-10 object routine `0x0180249e`; and the soft grey cloud layer of the live view,
 whose source was not identified.
 
+### 3.5 Icarus sky and dragons, RENDER-WORLDS-C
+
+The named sky paths now execute in native C: `0x018016b0` emits its light, cloud model `0x1a1`, and two
+`0x7f7d` joints of subtype **0**, correcting the earlier static subtype-10 label. The world-10 object slice
+`0x0180249e..0x01802692` creates `cloudLight` sprites and `0x7f7c/6` swirls. The existing move-pass events now
+reach the native hosts. `0x00ca2154` creates three dragons, with the existing shared flight/steering, and ten
+emitter records whose mover `0x00ca3189` is also reconstructed. OpenMonster(31) loads Monster32, not Monster31.
+
+Evidence uses the same text/data pins as section 1. `scripts/validate_icarus.py` compares the compiled C and
+ordered host calls, including random consumption. The existing joint and environment validators cover the
+lifecycle. Exact final counts, commands and limitations are in [the handoff](../handoffs/RENDER-WORLDS-C.md).
+
+This is not a claim that the persistent grey layer matches the capture. At 25 steps the image error regresses
+61.760 → 61.854, and at 400 steps 54.673 → 60.942. The verified sky helper emits only once in fifty steps and
+its cloud model lives two steps. Its port, cloud lights and dragons do not explain the persistent coverage in
+the screenshot. Other thirteen capture hashes remain unchanged. Full joint/sprite/attached-tree state at the
+screenshot frame is still needed; no live capture was attempted here.
+
 ### Before and after
 
 | Map | Mean \|Δ\| before → after | Off > 24 | Frame light Δ near hero | Object field differences (map-wide) |
@@ -204,9 +222,9 @@ of objects the client has not moved yet, Raklion and Tarkan's drawn-after flags 
 
 ## 4. Gaps (ranked by visibility)
 
-1. **Icarus's soft cloud layer** (section 3.4): the rising puffs are ported; the grey cloud layer, `0x018016b0`
-   (cloud model, lightning), the `cloudLight` sprites and the blue swirls (`0x0180249e`'s joints `0x7f7c` subtype 6)
-   are not. The Icarus dragons (boids `0x7c4`, `0x00ca2154`) remain unported (NATIVE-ENV-001).
+1. **Icarus's persistent soft grey coverage**: the named sky, cloudLight, blue-swirl and dragon instruction paths
+   are ported in RENDER-WORLDS-C (section 3.5), but the screenshot's grey coverage remains unexplained. The ten
+   accompanying boid emitters' `0x472/1` joint requests are counted by the native host, not rendered.
 2. **Tarkan and Raklion haze**: the client's terrain is up to ~1.35× brighter, the darker light-map areas most, so
    the contrast is compressed; the pattern stays with the ground when the hero moves (second session, two positions
    per map). The primary and frame light grids equal the native ones, the light-offset grid `0x0bc35430` is all zero,

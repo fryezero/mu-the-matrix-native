@@ -53,14 +53,14 @@ static const char *const effect_files[MU_WORLD_PT_EFFECTS] = {
 /* The world objects' effect models (AccessModel, static readings of the loaders): the Tormenta handler's
  * hs_fieldtornado (0x00e4c4de). */
 static const struct { int32_t type, world; const char *file; } fx_model_files[MU_WORLD_FX_MODELS] = {
-    {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"},
     {MU_SFX_MODEL_TORNADO, 0x8d, "Data/Object142/hs_fieldtornado.bmd"},
     /* NATIVE-CHARSEL-003: the character select's sky dragon and its glint (AccessModel 0x018363e8/0x0183641d,
      * textures from Data\Effect\) */
     {MU_SFX_MODEL_STAR_DRAGON, 0x5d, "Data/Effect/stardr01.bmd"},
     {MU_SFX_MODEL_STAR_GLINT, 0x5d, "Data/Effect/stardr02.bmd"},
     /* NATIVE-HELPERS-002: Fenrir's body lightning (AccessModel 0x01834a74, every world: world -1) */
-    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"}};
+    {MU_SFX_MODEL_FENRIR_LIGHTNING, -1, "Data/Effect/lightning_type01.bmd"},
+    {MU_SFX_MODEL_CLOUD, 10, "Data/Object11/cloud.bmd"}};
 
 static int32_t slot_of(int32_t bitmap)
 {
