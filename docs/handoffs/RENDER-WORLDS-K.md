@@ -39,7 +39,18 @@ This is the pre-J gate; the final latest-main result below must supersede it.
 
 ## Integration still pending
 
-Merge latest main immediately after J lands, then rerun G/H/I/J/K and the latest-main tour comparison.
+J merge `26018b4f` and item H are integrated in `d7853c0`, pushed. Shared dispatch and top-document
+conflicts retain both implementations. The post-J registered G/H/I/J/K run passes **30,000 instruction
+cases, zero mismatches/stops, 113/113 compiled mutants**, five passes and no errors/skips.
+The production world-host discovery passes 10 tests with one explicit private skip.
+
+A fresh clean build of J-main `26018b4f` was made by detaching this owned worktree, rendering, returning
+to K and clean-rebuilding. No other checkout was built or edited. Against that baseline, only Lost Tower's
+two PNGs change; **26/26 unaffected PNG, 14/14 OBJECT and 14/14 light hashes** match. Against K's earlier
+pre-J tour, exactly J's documented three Karutan artifacts differ: final PNG, OBJECT body-light copies
+and frame-light dump. J's intended differences are preserved, not scored as a K regression.
+PERF-004 acquired the merge lock before K's first attempt; K has not merged or started its final gate
+while that lock is held.
 Acquire the shared merge lock for the final latest-main/full-Mac-gate/PR/merge sequence.
 EFFECTS-003 owns particle consumers `0x7ef7/0`, `0x7f5a/4/6/7/8` and sprite registrations
 `0x7f84`, `0x7f38`, `0x8021`; missing consumers retain today's unsupported behavior.

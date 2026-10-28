@@ -108,3 +108,12 @@ matching world time, RNG state and ordered particle/sprite/effect pools, and the
 input or a separately captured executable revision which initializes it. Existing Aida light-reset history,
 Elbeland captured speeds and other built-in after-character scope remain as previously documented.
 The other 37 factory classes without captures are outside this milestone. DATA-ACQ-002 remains their input path.
+
+## Post-J regression
+
+J merge `26018b4f` is integrated as `d7853c0`. The combined G/H/I/J/K run passes **30,000 instruction
+cases**, zero mismatches/stops, all **113 compiled mutants**. Ten native world-host tests pass with one
+explicit private skip. A clean J-main build in this owned worktree supplies the new tour baseline;
+only Lost Tower's first/final PNGs change with K. All 26 other PNGs, 14 OBJECT and 14 light hashes match.
+The pre-J and post-J K tours differ only in the three Karutan artifacts documented by J.
+The image scores remain 2.019 / 26.897 / 4.006; no new original image was acquired.
