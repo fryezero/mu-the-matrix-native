@@ -1509,3 +1509,19 @@ args = ["--mutations", "--output", "{report}"]
 "signed_height_009f9b67.matches" = { same_as = "signed_height_009f9b67.cases" }
 "signed_mesh_009f86d6.matches" = { same_as = "signed_mesh_009f86d6.cases" }
 "signed_draw_009f9644.matches" = { same_as = "signed_draw_009f9644.cases" }
+
+[validate_worlds_b]
+test = "reconstructed/objects/test_worlds_b.py::WorldsBTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["devias", "tarkan", "elbeland", "raklion", "devias_records", "raklion_records", "raklion_create", "snow"]
+cases = 4000
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "500", "--mutations", "--output", "{report}"]
+[validate_worlds_b.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0
