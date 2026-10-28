@@ -29,9 +29,13 @@ verification skill support. Work was confined to the dedicated worktree. No nati
   synthetic geometry/noise and offline labels. No real-client screenshot was taken.
 - `bash scripts/local-macos-ci.sh` at `6b0169d`: 1,299 tests, 154 skips, pass. The additional explicit
   discovered fixture suite passed both scenarios; the repository audit rejected zero files.
-- Final integrated gate at `83734e0`, including main through DATA-ACQ-003 merge `ce337ba`: 1,313 tests,
+- Integrated gate at `83734e0`, including main through DATA-ACQ-003 merge `ce337ba`: 1,313 tests,
   155 skips, zero failures. Both scenarios passed again with the counts above; audit: 1,128 files,
   zero rejected. The earlier post-layout gate at `afc84cd` passed 1,301 tests with 155 skips.
+- Final gate at `e7be7a5`, after CHARSEL-RT-001 merge `47c7b00`: 1,313 tests, 155 skips, zero failures;
+  both scenarios passed; audit: 1,142 files, zero rejected. All 27 skill drives were re-proven again
+  on these integrated binaries, with the same model/terrain thresholds, software hashes and unchanged
+  settings. Final proof is in renders `recipes-final/`; the suite is in scratch `charsel-integrated-suite/`.
 - Final self-review against AGENTS.md and the milestone scope found no remaining standards or spec
   defects. The timeout test uses a deterministic control; tab-separated fixture directives have explicit
   scheduling and endpoint checks. No independent review or new private validation is claimed.
