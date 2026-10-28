@@ -88,7 +88,7 @@ below are **static**, not an authored-C effect comparison.
 
 MuunEffectInfo is the multimap at `0x06fbb46c+0x38`. Iterator dereference `0x00aecc71` returns node+0x10;
 `0x0114203d` reads name +4, position +0x1c, rotation +0x28, scale +0x34, bone +0x38 and follow byte +0x3c.
-All four snapshots contain all 16 records and their strings. Local `lang/muun-*.tsv` exports preserve them.
+All four snapshots contain all 16 records and their strings; the exported rows are identical. Local `lang/muun-*.tsv` exports preserve them.
 Native Muun owner creation and effect placement are deferred together to a later part; no unused native
 table API was added here.
 
@@ -114,7 +114,9 @@ Dark Lord sleeve, beer, a box and a quest item. Baseline: two models drawn, six 
 zero missing/refused, 679 triangles. The gallery's change is intended. The character control has a +13
 weapon with excellent/glow passes and Wing01. Both renders have framebuffer SHA-256 `d8a51daf…aeb09` and
 32 passes; the wing still uses the existing special-type fallback. These are native renders inspected locally,
-not a live-client fidelity claim.
+not a live-client fidelity claim. A separate local CGL host exercises the actual GFx item hook and
+its icon FBO: eight drawn, zero missing, eight icons, result 0. `gfx-items.png` retains its bottom-up
+readback order, as passed to the GFx image consumer.
 
 Next: reconstruct a bounded family of RenderObjDraw's 1,674 special types and RenderLinkItem effects,
 feed it through the shared character/ground/inventory body renderer, and add original-instruction streams

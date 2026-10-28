@@ -3,7 +3,7 @@
  *
  * File layout (little-endian):
  *   header  80 bytes: "MUJNL\0\1\0", the client build digest (main.exe SHA-256, 32 bytes), the
- *           layout manifest digest (32 bytes; zero until LAYOUT-001), flags (u32: bit 0 live),
+ *           layout manifest digest (32 bytes; generated layout.json SHA-256), flags (u32: bit 0 live),
  *           reserved (u32)
  *   record  16-byte head {u8 type, u8 direction, u8 conn, u8 flags, u32 tick, u32 ms, u32 length}
  *           then `length` payload bytes:
