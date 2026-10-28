@@ -12,6 +12,8 @@ NATIVE = HERE.parent
 sys.path.insert(0, str(HERE))
 from test_native_npc import write_npc_world, PLACE, TABLE
 from test_native_audio import constant_wav
+from test_native_terrain import write_world
+from test_native_objects import obj_plain, write_models
 
 
 class DomainWorldAudio(unittest.TestCase):
@@ -21,23 +23,28 @@ class DomainWorldAudio(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory(prefix='audio-domain-world-')
         cls.folder = Path(cls.tmp.name)
         cls.root = write_npc_world(cls.folder/'game')
+        write_world(cls.root,34)
+        write_models(cls.root,34,['Object01.bmd'])
+        cls.objects=cls.folder/'objects';cls.objects.mkdir()
+        (cls.objects/'EncTerrain34.plain').write_bytes(obj_plain(34,[(0,12000.,12000.,0.,0.,1.)]))
         cls.place = cls.folder/'placement.txt'; cls.place.write_text(PLACE)
         cls.demo = cls.folder/'npc.txt'; cls.demo.write_text(TABLE)
         wav = cls.folder/'sound.wav'; wav.write_bytes(constant_wav(.125, 8000))
         cls.table = cls.folder/'sounds.tsv'
         # NPC registrations use their original sites; the startup/UI rows are synthetic.
         cls.table.write_text(''.join(f'sound\t{id}\t{wav}\t1\t1\t0\t{site}\n' for id,site in
-            [(25,0),(28,0),(8,0),(9,0),(160,0x1808e5a),(161,0x1808ff8)]))
+            [(0x248,0),(25,0),(28,0),(8,0),(9,0),(160,0x1808e5a),(161,0x1808ff8)]))
 
     @classmethod
     def tearDownClass(cls): cls.tmp.cleanup()
 
-    def run_world(self, name, audio):
+    def run_world(self, name, audio, extra=()):
         log = self.folder/(name+'.jsonl')
         command = [str(NATIVE/'build/mu-walk'), '--game-root', str(self.root), '--headless', '--backend', 'soft',
                    '--placement', str(self.place), '--npc-demo', str(self.demo), '--npc-script', '3:click:smith',
                    '--width','64','--height','64','--every','12','--frames','240','--tile','120,120',
                    '--out-dir',str(self.folder/name),'--sound-table',str(self.table)]
+        command += list(extra)
         if not audio: command += ['--no-audio']
         result = subprocess.run(command, capture_output=True, text=True,
                                 env=dict(os.environ, MU_AUDIO_CUE_LOG=str(log)))
@@ -64,6 +71,17 @@ class DomainWorldAudio(unittest.TestCase):
         # Registration is tied to model-open, not repeated on every tick.
         sites = [r['site'] for r in rows if r['op']=='register']
         self.assertEqual(len(sites), len(set(sites)))
+
+    def test_world_object_ambience_uses_session_and_keeps_frame_hashes(self):
+        extra=['--world','33','--objects-dir',str(self.objects)]
+        on,rows=self.run_world('objects-on',True,extra)
+        off,_=self.run_world('objects-off',False,extra)
+        plays=[r for r in rows if r['op']=='play' and r['id']==0x248]
+        self.assertEqual(len(plays),239)
+        self.assertTrue(all(r['site']==0xd622d1 and r['handler']==0xd6202f and r['at_key']==-2 for r in plays))
+        self.assertEqual(len({r['cue_seq'] for r in plays}),239)
+        self.assertEqual([r['sha256'] for r in on if 'sha256' in r],
+                         [r['sha256'] for r in off if 'sha256' in r])
 
     def test_audio_does_not_change_any_rendered_frame(self):
         on,_ = self.run_world('hash-on', True)

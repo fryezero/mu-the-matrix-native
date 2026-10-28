@@ -376,6 +376,7 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 ++rt->particle_events;
             } else if (m->call == MU_OBJ_CALL_SOUND) {
                 ++rt->sound_events;
+                if (o->sound) o->sound(o->sound_context, (int32_t)m->args[0]);
             }
         }
     }

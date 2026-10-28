@@ -1,6 +1,7 @@
 """AUDIO-002: real hero handler -> ring -> independent audio reader -> PCM/log."""
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -14,12 +15,16 @@ HARNESS=r'''
 #include "session/domains/audio_cue.h"
 #include "core/mu_session_audio.h"
 #include "core/mu_world_audio.h"
+#include "core/mu_objects.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 mu_apply hero_levelup(mu_session *, const mu_frame *);
 static void foot_cue(void *s, uint32_t site, int32_t id) {
     mu_session_sound_emit(s,0x13b1f61,site,id,-2,0);
+}
+static void object_cue(void *s, int32_t id) {
+    assert(mu_session_object_sound(s,id));
 }
 int main(int argc, char **argv) {
     assert(argc == 3);
@@ -50,6 +55,28 @@ int main(int argc, char **argv) {
         for (int i=0;i<5;++i) assert(mu_session_ambient_sound(s,ids[i]));
         assert(!mu_session_ambient_sound(s,9999));
         mu_session_audio_drain(s,&audio,h);mu_session_audio_drain(s,&audio,h);
+    } else if (!strcmp(argv[2],"objects")) {
+        mu_objects objects; mu_objects_init(&objects,0x8d);
+        objects.count=1; objects.records=calloc(1,sizeof *objects.records); assert(objects.records);
+        objects.records[0].type=6; objects.records[0].scale=1;
+        objects.records[0].position[0]=12000;objects.records[0].position[1]=12000;
+        objects.models[6]=calloc(1,sizeof *objects.models[6]);assert(objects.models[6]);
+        objects.models[6]->loaded=1;
+        assert(!mu_objects_start(&objects,NULL));
+        objects.sound=object_cue;objects.sound_context=s;
+        memset(objects.rt.world.block_visible,1,sizeof objects.rt.world.block_visible);
+        objects.rt.images[MU_OBJF_LIVE]=1; objects.rt.images[MU_OBJF_VISIBLE]=1;
+        mu_obj_set_f32(objects.rt.images,MU_OBJF_ALPHA,1);
+        mu_obj_set_f32(objects.rt.images,MU_OBJF_ALPHA_TARGET,1);
+        mu_objects_step_inputs in={0};in.scene_state=6;in.hero[0]=12000;in.hero[1]=12000;
+        mu_objects_step(&objects,&in);
+        assert(objects.rt.sound_events==1);
+        assert(mu_audio_engine_active_voices(mu_audio_host_engine(h))==0);
+        mu_session_audio_drain(s,&audio,h); mu_session_audio_drain(s,&audio,h);
+        in.hero[0]=20000;mu_objects_step(&objects,&in);
+        mu_session_audio_drain(s,&audio,h);
+        assert(objects.rt.sound_events==1);
+        mu_objects_free(&objects);
     } else if (!strcmp(argv[2],"foot")) {
         mu_world_sound sound={0};sound.world=0;sound.host=h;sound.sound_cue=foot_cue;sound.sound_context=s;
         mu_world_sound_hero hero={{12000,12000},{120,120},0x32,5,1,0,0xa91};
@@ -120,6 +147,13 @@ class AudioCues(unittest.TestCase):
         obj=cls.folder/'test.o';cls.exe=cls.folder/'test'
         subprocess.run(['clang','-std=c11','-DMU_SESSION_SEED','-I',str(NATIVE),'-I',str(NATIVE/'build/gen'),'-I',str(NATIVE/'session'),'-c',str(src),'-o',str(obj)],check=True)
         cmd=['clang++',str(obj),str(NATIVE/'build/libmusession.a'),str(NATIVE/'build/libmunative.a'),str(NATIVE/'build/libmuaudio.a'),'-lm','-o',str(cls.exe)]
+        crypto_prefix = subprocess.check_output(['brew','--prefix','cryptopp'],text=True).strip() if shutil.which('brew') else '/usr'
+        cmd += ['-L'+crypto_prefix+'/lib','-lcryptopp']
+        jpeg_prefix = '/usr'
+        if shutil.which('brew'):
+            jpeg = subprocess.run(['brew','--prefix','jpeg-turbo'],capture_output=True,text=True)
+            if jpeg.returncode == 0: jpeg_prefix = jpeg.stdout.strip()
+        if (Path(jpeg_prefix)/'include/jpeglib.h').exists(): cmd += ['-L'+jpeg_prefix+'/lib','-ljpeg']
         if sys.platform=='darwin':cmd+=['-framework','AudioToolbox','-framework','CoreFoundation']
         subprocess.run(cmd,check=True)
         for name,value in [('a',.125),('b',.25)]: (cls.folder/(name+'.wav')).write_bytes(constant_wav(value,8000))
@@ -146,6 +180,10 @@ class AudioCues(unittest.TestCase):
         self.assertEqual([(r['id'],r['site'],r['at_key']) for r in rows],
                          [(12,0xc9fcd5,-3),(13,0xc9fcfb,-3),(14,0xc9fd2f,-3),(138,0xc9fd74,-3),(15,0xca1c80,-3)])
         self.assertEqual([r['handler'] for r in rows],[0xc9eb04]*4+[0xca05b3])
+    def test_object_runtime_emits_selected_sound_once_and_obeys_distance(self):
+        rows=[r for r in self.run_case('objects') if r['op']=='play']
+        self.assertEqual([(r['id'],r['handler'],r['site'],r['at_key']) for r in rows],
+                         [(0x581,0xe4c95e,0xe4ca6a,-2)])
     def test_native_footsteps_emit_before_audio_reader(self):
         rows=[r for r in self.run_case('foot') if r['op']=='play']
         self.assertEqual([(r['id'],r['handler'],r['site']) for r in rows],[(9,0x13b1f61,0x13b202f)]*2)
@@ -190,9 +228,9 @@ class AudioCues(unittest.TestCase):
         subprocess.run([sys.executable,str(NATIVE.parent/'scripts/validate_audio_callers.py'),
                         '--mutations','--report',str(report)],check=True,capture_output=True)
         data=json.loads(report.read_text())
-        self.assertEqual(data['cases'],5108)
+        self.assertEqual(data['cases'],5528)
         self.assertEqual(data['mismatches'],0)
-        self.assertEqual(len(data['mutants']),13)
+        self.assertEqual(len(data['mutants']),18)
         self.assertTrue(all(v=='caught' for v in data['mutants'].values()))
     def test_log_open_failure_is_reported(self):
         r=subprocess.run([str(self.exe),str(self.table),'silent'],capture_output=True,text=True,env=dict(os.environ,MU_AUDIO_CUE_LOG=str(self.folder/'missing/log')))

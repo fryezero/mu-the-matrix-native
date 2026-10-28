@@ -168,6 +168,8 @@ typedef struct mu_objects {
     float uniform_light;              /* > 0: body light (v, v, v) instead of the terrain light */
     uint8_t hidden_type[MU_OBJECT_TYPES]; /* types the running client marked +0x68 = -2 (not drawn) */
     int32_t hidden_types;
+    void (*sound)(void *context, int32_t id); /* selected object sound, in call order */
+    void *sound_context;
     mu_objects_runtime rt;            /* NATIVE-OBJECTS-002 */
 } mu_objects;
 

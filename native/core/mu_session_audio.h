@@ -45,6 +45,27 @@ static inline int mu_session_ambient_sound(mu_session *session, int32_t id)
     mu_session_sound_emit(session, id == 15 ? 0x00ca05b3u : 0x00c9eb04u, site, id, -3, 0);
     return 1;
 }
+/* Sound events already selected by the reconstructed world-object routines.
+ * Ids are unique across these ten sites; keep their original call order. */
+static inline int mu_session_object_sound(mu_session *session, int32_t id)
+{
+    uint32_t routine, site;
+    switch (id) {
+    case 0x248: routine = 0x00d6202fu; site = 0x00d622d1u; break;
+    case 0x26a: routine = 0x00e74ae0u; site = 0x00e74c6eu; break;
+    case 0x268: routine = 0x00e74ae0u; site = 0x00e74f29u; break;
+    case 0x269: routine = 0x00e74ae0u; site = 0x00e74f57u; break;
+    case 0x26b: routine = 0x00e74ae0u; site = 0x00e75033u; break;
+    case 0x26c: routine = 0x00e74ae0u; site = 0x00e7507du; break;
+    case 0x5a5: routine = 0x00e13a9eu; site = 0x00e13bd2u; break;
+    case 0x581: routine = 0x00e4c95eu; site = 0x00e4ca6au; break;
+    case 0x584: routine = 0x00e4c95eu; site = 0x00e4cb19u; break;
+    case 0x583: routine = 0x00e4c95eu; site = 0x00e4cbc8u; break;
+    default: return 0;
+    }
+    mu_session_sound_emit(session, routine, site, id, -2, 0);
+    return 1;
+}
 /* MoveCharacter model cases. buff_1b < 0 means the owning domain has no buff state.
  * rand_value is supplied only for a0b/a06; the caller owns the audio-only RNG. */
 static inline void mu_session_npc_voice(mu_session *session, int32_t model, int32_t rand_value,
