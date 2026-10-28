@@ -15,6 +15,7 @@
 #include "../../reconstructed/objects/worlds_g.h"
 #include "../../reconstructed/objects/worlds_h.h"
 #include "../../reconstructed/objects/worlds_i.h"
+#include "../../reconstructed/objects/worlds_n.h"
 #include "../../reconstructed/objects/icarus.h"
 
 #include <math.h>
@@ -399,6 +400,8 @@ void mu_objects_step(mu_objects *o, const mu_objects_step_inputs *in)
                 tick(o, i, fbits(m->args[0]));
             } else if (m->call == MU_MARKET_BONE_LIGHT) {
                 market_bone_light(o, i, m);
+            } else if (m->call == MU_DEEP_DUNGEON_KEYED_EFFECT) {
+                ++rt->move_unsupported;   /* No native keyed-effect consumer; preserve the refusal. */
             } else if (m->call == MU_OBJ_CALL_ADD_LIGHT && rt->light_count < MU_OBJECT_STEP_LIGHTS) {
                 mu_object_light *l = &rt->lights[rt->light_count++];
                 l->x = fbits(m->args[0]);

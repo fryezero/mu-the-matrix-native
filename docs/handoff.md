@@ -1,5 +1,6 @@
 # Continue from here
 
+RENDER-WORLDS-N: Nixies Lake (113) and Deep Dungeon 1–5 (116–120) primary create/move/visual methods; 52/144 verified methods, 18/48 classes. 13,000 instruction cases, zero mismatches, 29/29 mutants. At the six DATA-ACQ-002 arrival tiles all 13,690 range and 436 after-character differences go to zero; image error mixed (four lower, Deep Dungeon 5 higher). [Evidence](research/client-worlds-n.md), [checks and limits](handoffs/RENDER-WORLDS-N.md).
 NATIVE-PERF-004 (merged, acceptance open): pose workers, exact topology cache, ordered GL capture and a lease-audit fast path; main-thread CPU lower in all seven paired runs, 2,804/2,804 frame pairs identical; strict 25 Hz passes only crowd40. Next: NATIVE-PERF-005. [Checks and limits](handoffs/NATIVE-PERF-004.md).
 
 RENDER-WORLDS-M: six Uruk nested particle lifecycles and the `flare_mono` registration (Market/Raklion kinds were already L's). 18,000 checks, zero mismatches, 17/17 compiled mutants and four original loader calls; 16 saved views unchanged; authored Uruk view 47 unsupported requests to 0. [Evidence](research/client-worlds-m.md), [checks and limits](handoffs/RENDER-WORLDS-M.md).
