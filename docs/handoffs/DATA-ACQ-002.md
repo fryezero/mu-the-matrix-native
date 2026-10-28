@@ -55,8 +55,8 @@ Under `~/Documents/MTM/mu-mac-tools/native/scratch/data-acq-002/`:
   and RENDER-WORLDS-I (Loren Market) can rerun their image checks against `63-vulcanus` and `79-loren-market`.
   G's Santa Village, H's Duel Arena/world 82 and I's Uruk Mountain still have no capture.
 - Native terrain: Abyss of Atlans 2/3 texture-folder mapping; Kubera Mine primary light.
-- AUDIO: replace the inferred music-44 gap with the read (index 44 = iDoppelganger) in `client-audio.md` and the
-  audio tables; no other audio state was read.
+- AUDIO: done by AUDIO-002F (merged #243), which consumed this read: index 44 = iDoppelganger in
+  `client-audio.md` and the Doppelganger music manager. No other audio state was read.
 - Not acquired: effect/particle/joint/sprite pools, RNG phase, emitter-window or weather transitions.
 
 ## Checks
