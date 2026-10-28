@@ -160,6 +160,8 @@ static void objects_after_draw_soft(struct mu_world_rt *a, void *self, mu_world_
     if (!a->has_objects)
         return;
     mu_objects_after_visibility(&a->objects, &a->frustum, 6);
+    const int linear = d->raster->linear;
+    d->raster->linear = 1;
     mu_render_backend backend;
     mu_raster_backend(d->raster, &backend);
     for (int32_t k = 0; k < a->objects.rt.after_count; ++k) {
@@ -178,6 +180,7 @@ static void objects_after_draw_soft(struct mu_world_rt *a, void *self, mu_world_
             mu_scene_draw_model(&m->model, &meshes[j].options, &backend, &ds);
         }
     }
+    d->raster->linear = linear;
     d->raster->textures = NULL;
     d->raster->texture_count = 0;
     d->raster->texture_filter = NULL;
@@ -186,7 +189,8 @@ static void objects_after_draw_soft(struct mu_world_rt *a, void *self, mu_world_
 #ifndef MU_WORLD_NO_GL
 static void objects_after_draw_gl(struct mu_world_rt *a, void *self, mu_world_draw *d)
 {
-    objects_part *p = self;
+    (void)self;
+    objects_part *p = a->part[MU_PART_objects];
     (void)d;
     if (!a->has_objects)
         return;
@@ -216,9 +220,6 @@ static void objects_after_draw_gl(struct mu_world_rt *a, void *self, mu_world_dr
 const mu_world_part_ops mu_part_objects_after = {
     .name = "objects_after",
 #ifndef MU_WORLD_NO_GL
-    .state_size = sizeof(objects_part),
-    .gl_setup = objects_gl_setup,
-    .gl_teardown = objects_gl_teardown,
     .draw_gl = objects_after_draw_gl,
 #endif
     .draw_soft = objects_after_draw_soft,

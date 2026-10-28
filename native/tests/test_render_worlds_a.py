@@ -24,7 +24,7 @@ class Runtime(unittest.TestCase):
         cls.lib = ctypes.CDLL(str(ROOT/'reconstructed/objects/libobjects.dylib'))
         cls.lib.mu_objects_model_file.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_void_p, ctypes.c_size_t]
 
-    def session(self, world, typ):
+    def session(self, world, typ, backend="gl"):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             root = write_open_world(base/'game')
@@ -44,7 +44,7 @@ class Runtime(unittest.TestCase):
             (plain/f'EncTerrain{world+1}.plain').write_bytes(obj_plain(world+1,
                 [(typ,13650,13650,60,0,1)]))
             run = subprocess.run([str(ROOT/'native/build/mu-world'), '--game-root', str(root), '--world', str(world),
-                '--tile', '136,136', '--objects-dir', str(plain), '--headless', '--backend', 'gl', '--frames', '25',
+                '--tile', '136,136', '--objects-dir', str(plain), '--headless', '--backend', backend, '--frames', '25',
                 '--every', '1', '--width', '160', '--height', '100', '--no-audio', '--out-dir', str(base/'out')],
                 capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stderr)
@@ -67,7 +67,8 @@ class Runtime(unittest.TestCase):
         self.assertGreater(particles['drawn_particles'], 0)
 
     def test_after_character_body_reaches_renderer(self):
-        for world, typ in ((3,0x13),(0x33,2),(0x39,0x2e),(0x50,3)):
-            with self.subTest(world=world):
-                objects, _ = self.session(world,typ)
-                self.assertGreater(objects['object_after_meshes'],0)
+        for backend in ('gl', 'soft'):
+            for world, typ in ((3,0x13),(0x33,2),(0x39,0x2e),(0x50,3)):
+                with self.subTest(world=world, backend=backend):
+                    objects, _ = self.session(world,typ,backend)
+                    self.assertGreater(objects['object_after_meshes'],0)
