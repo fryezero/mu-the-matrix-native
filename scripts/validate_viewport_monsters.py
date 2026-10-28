@@ -39,6 +39,11 @@ def handler(text,data,lib,n):
         (0x142c7b5,0),(0x13c0e39,0),(0xd5c9d5,0),(0x13bf480,0),(0x13bfa10,0)]: m.stub(address,lambda mm:0,cleanup)
     m.stub(0x10de7a3,lambda mm:mm.args(1)[0]&1,4)
     observed=[]
+    strides=[]
+    def stride(uc, *unused):
+        frame=uc.reg_read(vp.cm.UC_X86_REG_EBP)
+        strides.append(m.u32(frame-0x30))
+    m.uc.hook_add(vp.cm.UC_HOOK_CODE,stride,begin=0x122d402,end=0x122d402)
     m.stub(0x128723b,lambda mm:observed.append((mm.args(4)[0],mm.args(4)[3])) or 0,0)
     def create(mm):
         cls,x,y,key,level=mm.args(5);cl.create_args=(cls,x,y,key,level)
@@ -53,7 +58,7 @@ def handler(text,data,lib,n):
     rng=random.Random(20261028)
     models=[0x7ae,0xa01,0x808,0xa3e,0xa57,0xa5c,0xa62,0xa6c,0xa4d]
     for i in range(n):
-        cl.reset(world=0x52 if i%3==0 else 0);cl.model=models[i%len(models)];observed.clear()
+        cl.reset(world=0x52 if i%3==0 else 0);cl.model=models[i%len(models)];observed.clear();strides.clear()
         b=bytearray(rng.randbytes(28+56*8));b[26]=i%57;b[9]=b[15]=0
         # Include special tile overrides and both successful and failed path placements.
         if i%9==2: b[4]=[62,183,1][i%3];b[5]=90
@@ -65,6 +70,7 @@ def handler(text,data,lib,n):
         lib.mu_monster_viewport_apply(C.byref(c),C.byref(v),C.byref(env))
         packet=bytes([0xc2,0,(5+v.size)&255,0x13,1])+b[:v.size]
         a=m.alloc(len(packet),define=True);m.write(a,packet);m.call(0x122c426,[a])
+        assert strides==[5+v.size],(i,"stride",strides,v.size)
         assert cl.create_args==(v.server_class,v.x,v.y,v.key,v.level),(i,'create args',cl.create_args)
         for off,fmt,value in [(0x14e,'H',c.level),(0x150,'I',c.max_hp),(0x154,'I',c.hp),
             (0x180,'i',c.tile[0]),(0x184,'i',c.tile[1]),(0x2d,'B',c.target[0]),(0x2e,'B',c.target[1]),

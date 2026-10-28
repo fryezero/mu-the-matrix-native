@@ -42,6 +42,35 @@ class Monsters(unittest.TestCase):
             row=next(x for x in rows if x.get('tick')==tick and 'count' in x)
             self.assertEqual((row['count'],row['rev']),(2,2))
 
+    def test_cache_destroy_effect_and_recreate_identity(self):
+        from test_native_world import write_open_world
+        from test_native_world2 import write_life
+        subprocess.run(['make','-C',str(NATIVE),'build/monsters-lifecycle-host'],check=True,capture_output=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=write_open_world(Path(tmp)/'root');write_life(root)
+            placement=Path(tmp)/'placement.txt'
+            placement.write_text('actor 3 123 122 2\nactor 251 118 118 4\nactor 873 116 118 0\n')
+            result=subprocess.run([str(NATIVE/'build/monsters-lifecycle-host'),str(root),str(placement)],
+                                  capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(json.loads(result.stdout),{'lifecycle':3,'destroyed_effects':1,'reused_identity':1})
+
+    def test_monster_capacity_overflow_and_slot_reuse(self):
+        def packet(key):
+            b=bytearray(33);b[:5]=bytes([0xc2,0,33,0x13,1])
+            b[5:7]=(key|0x8000).to_bytes(2,'big');b[8]=3
+            b[9:13]=bytes([10,10,10,10]);b[13]=0x30
+            return b.hex(' ')
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'capacity.scn'
+            lines=['endpoint game 127.0.0.1:55902']
+            lines += [f'at {i} send game {packet(i)}' for i in range(1,402)]
+            lines += ['at 402 send game c1 06 14 01 00 06', f'at 403 send game {packet(1000)}']
+            p.write_text('\n'.join(lines)+'\n')
+            result,rows=self.drive(p,'capacity')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(rows[0],{'capacity':400,'overflow_ignored':1,'reused_slot':5,'generation':2})
+
 class PrivateMonsters(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION')=='1','private instruction captures')
     def test_original_handler_and_creation(self):

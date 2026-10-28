@@ -100,7 +100,7 @@ static int actors_open(struct mu_world_rt *a, void *self)
     if (!out) { close(fd); unlink(placement); unlink(scenario); return 1; }
     fprintf(out, "endpoint game 127.0.0.1:55902\nuse monsters file=%s\n", placement);
     if (a->players_file && !a->no_players)
-        fprintf(out, "use characters x=%d y=%d file=%s\n", a->walk.hero.tile[0], a->walk.hero.tile[1], a->players_file);
+        fprintf(out, "use characters defer=1 x=%d y=%d file=%s\n", a->walk.hero.tile[0], a->walk.hero.tile[1], a->players_file);
     fclose(out);
     mu_fixture_options options = {scenario, NULL, 0x5eed2026u};
     mu_fixture *fixture = mu_fixture_open(&options, error, sizeof error);

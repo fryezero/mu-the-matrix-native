@@ -94,7 +94,9 @@ static void characters_close(mu_world_rt *a, void *self)
     if(p->session) {mu_session_detach_world(p->session);mu_session_close(p->session);}
     if(p->transport)mu_transport_free(p->transport);
     if(p->fixture)mu_fixture_close(p->fixture);
-    a->actors.session = NULL; a->actors.transport = NULL; a->actors.fixture = NULL;
+    if (p->session && a->actors.session == p->session) {
+        a->actors.session = NULL; a->actors.transport = NULL; a->actors.fixture = NULL;
+    }
     memset(p, 0, sizeof *p);
 }
 

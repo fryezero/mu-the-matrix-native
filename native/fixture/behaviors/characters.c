@@ -16,6 +16,7 @@ static uint32_t demo_rand(mu_world_players *p)
 typedef struct fx_characters {
     mu_world_players players;
     int32_t hero[2];
+    int32_t defer;
 } fx_characters;
 
 void mu_characters_demo_observe(void *self, const mu_world_players *view)
@@ -75,6 +76,7 @@ static void *characters_open(mu_fixture_ctx *ctx, const char *args, char *error,
     (void)ctx;
     fx_characters *f = calloc(1,sizeof *f);
     if (!f) return NULL;
+    f->defer=mu_fx_arg_int(args,"defer",0);
     mu_world_players *p=&f->players;
     p->rng=0x9a7e2026u; p->view_range=12;
     f->hero[0]=mu_fx_arg_int(args,"x",120); f->hero[1]=mu_fx_arg_int(args,"y",120);
@@ -114,6 +116,7 @@ static void characters_step(void *self, mu_fixture_ctx *ctx, uint32_t now)
 {
     (void)now;
     fx_characters *f=self; mu_world_players *p=&f->players;
+    if (f->defer > 0) { --f->defer; return; }
     for(int i=0;i<p->count;++i) {
         mu_world_player *q=&p->list[i]; const mu_world_player_spec *s=&q->spec;
         int dx=abs(q->c.tile[0]-f->hero[0]),dy=abs(q->c.tile[1]-f->hero[1]);

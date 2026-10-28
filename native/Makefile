@@ -555,3 +555,8 @@ $(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP) $(LAYOUT_STAMP) $(SESSION_HDR)
 $(BUILD)/icarus-host: tests/icarus_host.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $(BUILD)/icarus-host.o
 	$(CXX) $(BUILD)/icarus-host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
+# VIEWPORT-MONSTER-001: decoded-record -> model/effect cache lifecycle.
+$(BUILD)/monsters-lifecycle-host: tests/monsters_lifecycle_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(BUILD)/libmusession_world.a
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/monsters_lifecycle_host.o
+	$(CXX) $(BUILD)/monsters_lifecycle_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
