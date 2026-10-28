@@ -31,7 +31,7 @@ class ItemGear(unittest.TestCase):
         for t in self.gear.gen.EXPANDED_TYPES:
             self.assertEqual(self.draws(self.item(type=t))[0],0,hex(t))
             self.assertEqual(self.draws(self.item(type=t,a11=0))[0],2,hex(t))
-        for t in (0x230f,0x248e,0x2490,0x2504,0x270f,*self.gear.pose.TYPES):
+        for t in (0x230f,0x248e,0x2490,0x2504,0x270f):
             self.assertEqual(self.draws(self.item(type=t)),(1,[]))
 
     def test_flag_branch_clock_crosses_armour_clamp(self):

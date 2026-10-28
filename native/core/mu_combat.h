@@ -159,8 +159,6 @@ typedef struct mu_combat {
     uint64_t receive_cursor;
     uint32_t receive_lost;
     uint32_t place_sequence;
-    void (*drop)(void *context,const uint8_t entry[19]);
-    void *drop_context;
     uint32_t actor_revisions[MU_WORLD_ACTORS_MAX];
     /* NATIVE-PARTICLE-001: when set, CreateSprite calls and the particle kinds skill_fx does not reconstruct go
      * to the legacy particle module (mu_particles.h), which draws them in its sprite pass. */

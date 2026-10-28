@@ -13,9 +13,8 @@
  *     the record's target gate rectangle (the live server does so: Lorencia
  *     and Noria warps landed inside gates 17 and 27);
  *   - a gate request for an entrance gate lands on its target gate;
- *   - the minimap units are the entrance gates of the world (portal icons
- *     named after the target map + " Entrance") and the NPCs the host adds,
- *     sent as the 0xE7 sub-3 records the client parses (mu_map_unit_packet).
+ *   - SESSION-MAP-001a moves marker policy to the plaintext fixture and the
+ *     collection to the session; this object borrows only its public view.
  *
  * Quests and other callers travel through mu_map_travel_to / mu_map_travel_move
  * (the "Go Now" hook, see the note at the end).  The host polls
@@ -33,10 +32,10 @@ extern "C" {
 #endif
 
 struct mu_lang;
+struct mu_session;
 
 #define MU_MAP_MOVES_MAX 256
 #define MU_MAP_GATES_MAX 1024
-#define MU_MAP_UNITS_MAX 128
 
 typedef struct mu_map_session {
     char text_ring[4][48];
@@ -63,11 +62,8 @@ typedef struct mu_map_session {
     int32_t loading_world;         /* LoadingWorld [0x0b437c14] */
     /* map overlay */
     mu_map_hud hud;
-    mu_map_unit units[MU_MAP_UNITS_MAX];
-    int nunits;
-    int units_dirty;               /* the host re-sends the units (ClearWorldMap + addUnit) */
-    mu_map_unit npcs[MU_MAP_UNITS_MAX]; /* demo server's NPC records for the loaded world */
-    int nnpcs;
+    uint32_t overlay_epoch;
+    const struct mu_session *overlay; /* borrowed; session owns all marker and dot records */
     /* demo server */
     uint32_t rng;
     int pending;
@@ -88,11 +84,8 @@ const char *mu_map_world_name(const mu_map_session *s, int32_t world);
 /* The world image file name (navimapNN.ozp) and whether it exists under game_root's
  * Data/Interface/GFx/NaviMap (the window's +0x4e byte). */
 int mu_map_session_load_map(mu_map_session *s, const char *game_root, char *name, size_t cap);
-/* The units the demo server sends for the current world (portals; NPCs through mu_map_add_npc). */
-void mu_map_demo_units(mu_map_session *s);
-/* Clear the old world's demo NPC feed before adding the loaded world's actors. */
-void mu_map_clear_npcs(mu_map_session *s);
-void mu_map_add_npc(mu_map_session *s, int32_t key, const char *name, int32_t tile_x, int32_t tile_y);
+/* Bind a read-only overlay view. Detach before closing its session. */
+void mu_map_bind_overlay(mu_map_session *s, const struct mu_session *overlay);
 /* Tab / showMap: the client's rule; returns the result (notice, setShowMap, E7 request). */
 void mu_map_toggle(mu_map_session *s, int show, mu_map_show_result *out);
 

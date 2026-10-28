@@ -60,8 +60,9 @@ class DomainWorldAudio(unittest.TestCase):
         self.assertTrue(voices)
         self.assertTrue(all(r['id']==161 and r['handler']==0x13b23f8 for r in voices))
         missing = [r for r in rows if r['op']=='unrecovered' and r['site']==0x13b5494]
-        self.assertTrue(missing)
-        self.assertTrue(all(r['id']==0x1295ade for r in missing))
+        self.assertEqual(missing, [])
+        # This synthetic Smith animation does not reach frame 5. The frame-driven
+        # session test in test_audio_domains covers both buff values at frame 7.
         feet = [r for r in rows if r['op']=='play' and r['handler']==0x13b1f61]
         self.assertTrue(feet)
         self.assertTrue(all(r['site'] in (0x13b202f,0x13b2156) for r in feet))

@@ -63,7 +63,7 @@ class SessionCore(unittest.TestCase):
         r, rows = run_tool('routes')
         self.assertEqual(r.returncode, 0, r.stderr)
         intents = [row['intent'] for row in rows if 'intent' in row]
-        self.assertEqual({i['name'] for i in intents}, {'add_stat', 'master_point', 'quest_window', 'quest_context', 'combat_attack', 'combat_cast', 'combat_move', 'skill_select', 'skill_save_keys', 'skill_cast', 'skill_master_learn', 'skill_tree4_learn', 'skill_tree4_side'})
+        self.assertEqual({i['name'] for i in intents}, {'item_pickup', 'add_stat', 'master_point', 'quest_window', 'quest_context', 'combat_attack', 'combat_cast', 'combat_move', 'skill_select', 'skill_save_keys', 'skill_cast', 'skill_master_learn', 'skill_tree4_learn', 'skill_tree4_side'})
         for i in intents:
             self.assertIsNotNone(i['submit'], i)
         routes = [row['route'] for row in rows if 'route' in row]

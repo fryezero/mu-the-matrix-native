@@ -56,7 +56,7 @@ K's producer placement is not certified by these consumer tests.
 Only existing ignored Python/evidence symlinks are used; none is staged. No new
 private input needs retention. After merge, remove lane-local scratch/renders,
 all worktree build outputs, this worktree and local branch. Durable evidence is
-this handoff, finding and PR body. Final locked gate and cleanup are recorded below.
+this handoff, finding and PR body. The final locked gate is recorded below; the final reply confirms post-merge cleanup.
 
 Representative installed-data GL PNG hashes at frame 24, three images inspected
 after correcting the explosion asset spelling. Meteorite and Inferno hashes
@@ -79,3 +79,23 @@ mutants total, seventeen against original instructions).
 Own Standards and Spec diff review retains the explicit subset limits above and
 finds no blocking issue in the implemented paths. Shared status edits are limited
 to this milestone's additions. No delegated review or hosted workflow was run.
+
+## Locked release gate
+
+Acquired the queued merge lock at 12:43 CDT after SESSION-MAP-001a and removed
+only this lane's queue entry. Integrated origin/main 4b21583. Resolved shared
+documentation and appended Makefile/validator conflicts by retaining both lanes;
+no incoming behavior was removed. The merge commit follows these checks.
+
+`bash scripts/local-macos-ci.sh` passes: 38 unittest suites, 1,582 tests,
+200 explicit optional/private skips, zero failures; 10/10 fixture scenarios;
+native viewer and read-only reader builds; 1,530 audited files, zero rejected.
+No hosted workflow or live game was run.
+
+On that merged tree, all five native visual tests pass with private checks
+enabled (zero skips), and both new registered validators pass with zero
+failures/errors/skips. Fire Ball and all three representative PNG hashes above
+remain identical after integrating main. The final diff is confined to the
+implemented lane, its minimal hooks, tests, registry entries and documentation.
+No new private input requires retention. All lane outputs are disposable under
+the cleanup rule above.

@@ -122,6 +122,10 @@ static void characters_close(mu_world_rt *a, void *self)
         a->players->record_context=NULL;
     }
     characters_part *p=self;
+    if(p->session && a->ground && a->ground->session==p->session) {
+        mu_session_items_bind(p->session,NULL,NULL);
+        a->ground->session=NULL; a->ground->pool=NULL;
+    }
     if(p->session) {mu_session_detach_world(p->session);mu_session_close(p->session);}
     if(p->transport)mu_transport_free(p->transport);
     if(p->fixture)mu_fixture_close(p->fixture);
@@ -191,7 +195,9 @@ static void characters_tick(mu_world_rt *a, void *self)
                         random = (int32_t)((p->audio_rng >> 16) & 0x7fffu);
                     }
                     float frame = actor->player ? mu_model_frame(&actor->player->player) : mu_actor_frame(&actor->actor);
-                    mu_session_npc_voice(p->session, model, random, sim.characters[i].action, frame, -1);
+                    const mu_monster_viewport *npc = &view.monsters[i];
+                    mu_session_npc_viewport_voice(p->session, model, random, sim.characters[i].action, frame,
+                        a->map->world, npc->key == (uint16_t)sim.characters[i].key ? npc : NULL);
                 }
                 break;
             }

@@ -33,13 +33,6 @@ int world_rt_combat_respawned(void *context)
     return placed;
 }
 
-static void combat_drop(void *context,const uint8_t entry[19])
-{
-    mu_world_rt *a=context;if(!a->ground)return;
-    uint16_t key=(uint16_t)((entry[0]<<8)|entry[1]);int32_t slot=key&0x7fff;if(slot>=1000)return;
-    mu_world_items_receive_entry(a->ground,slot,entry+4,((float)entry[2]+0.5f)*100,((float)entry[3]+0.5f)*100,key>>15);
-}
-
 static int combat_open(struct mu_world_rt *a, void *self)
 {
     (void)self;
@@ -69,7 +62,6 @@ static int combat_open(struct mu_world_rt *a, void *self)
             a->combat->sound_context = a;
         }
         a->combat->session = a->actors.session;
-        a->combat->drop=combat_drop;a->combat->drop_context=a;
     }
     return 0;
 }
