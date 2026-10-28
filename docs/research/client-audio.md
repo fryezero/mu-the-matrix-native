@@ -217,7 +217,8 @@ this log alone is not an original-versus-native FMOD comparison. No original FMO
 
 Seven native tests check handler-to-ring-to-PCM, shared adapter provenance, two independent readers,
 once-only drain, exact 26/1,050 cue loss, suppression, silent drains, site order, explicit event state and
-log-open refusal. Four additional portable checks cover event gates and NPC voice boundaries. The existing
+log-open refusal. Four additional portable checks cover event gates and NPC voice boundaries. Four synthetic world PNGs remain byte-identical with logging off/on, with 3,447 logged decisions
+and 45 play requests in the enabled 40-frame run. The existing
 native audio render hash remains `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
 
 **Unchanged families rerun.** Original audio: 2,407 frame cases, 277 OpenWorld cases, 2,023 manager scripts,

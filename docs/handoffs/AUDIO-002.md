@@ -38,11 +38,18 @@ Branch `codex/audio-002`, own worktree from main `5ebc2b6`. No original client, 
 
 The baseline local Mac gate passed 1,362 tests. The checkpoint gate first caught two manifest ownership
 checks because the private test built validator names dynamically; the tests now name each script explicitly.
+The first integrated gate exposed a pre-existing Makefile typo: character-select runtime objects depended
+on undefined `CORE_HDR`, so they retained the old `mu_objects` layout after the world-lane merge.
+Two existing tests reproduced zero retained objects. Changing that prerequisite to `HEADERS` rebuilt the
+objects and both tests passed unchanged. `make -n -W core/mu_objects.h` confirms header changes now
+schedule the rebuild. This one-line build fix is included; no character-select runtime behavior changed.
 Final gate results are recorded below after integration with current main.
 
 The existing native audio render remains SHA-256
 `207036b711a07277a68466d736760c9440bab5d325ede5f90ddc298f18232897`.
-All existing render/hash expectations are unchanged. No new draw pass or visual behavior is introduced.
+All existing render/hash expectations are unchanged. Four synthetic 40-frame world PNGs are byte-identical
+with cue logging off/on; the enabled run records 3,447 audio decisions and 45 play requests. Renders are
+retained under `~/Documents/MTM/mu-mac-tools/native/renders/audio-002/`. No new draw pass is introduced.
 Reports and logs stay outside the worktree at
 `~/Documents/MTM/mu-mac-tools/native/scratch/audio-002/`, including `unicorn/`, the existing-family reports,
 `test-cues.log` and gate logs. Only authored code, synthetic tests and reviewed summaries are committed.
