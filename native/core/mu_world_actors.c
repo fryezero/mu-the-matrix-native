@@ -200,7 +200,7 @@ int mu_world_actors_init_records(mu_world_actors *s, const char *root, const mu_
 {
     memset(s, 0, sizeof *s); s->map = map;
     s->list = calloc(MU_WORLD_ACTORS_MAX, sizeof *s->list);
-    if (!s->list) return 1;
+    if (!s->list) { snprintf(error, cap, "out of memory"); return 1; }
     if (mu_effect_scene_init(&s->effects, root, 0x2026u) == MU_EFFECT_OK) {
         s->has_effects = 1; mu_effect_scene_set_world(&s->effects, map);
     }

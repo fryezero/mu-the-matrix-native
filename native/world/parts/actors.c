@@ -58,7 +58,9 @@ void world_rt_actors_sync(mu_world_rt *a)
     mu_world_actors next;
     char error[1024];
     if (mu_world_actors_init_records(&next, a->root, a->map, &view, error, sizeof error)) {
-        fprintf(stderr, "actors: %s\n", error); return;
+        fprintf(stderr, "actors: %s\n", error);
+        /* A refused asset must not leave a destroyed/replaced actor or effect visible. */
+        memset(&next, 0, sizeof next); next.map = a->map;
     }
     next.session = a->actors.session; next.fixture = a->actors.fixture; next.transport = a->actors.transport;
     next.record_stamp = stamp;
