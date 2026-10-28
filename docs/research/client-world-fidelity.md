@@ -311,3 +311,126 @@ Elbeland's `0x1a3` boid creation is wired, but its separate environment mover/mo
 Sound calls are compared and counted by the object host, as before. The Tarkan/Raklion haze, visual-pass fields,
 other world-handler classes and siblings A/C remain separate work. Next step: take fresh live captures of Devias, Tarkan, Elbeland and Raklion under the shared game lock in a
 separate authorized run, then rerun the image-error tour. This run did not start a client.
+
+## 6. RENDER-WORLDS-D, 2026-10-27
+
+### Tour and ranking
+
+The initial baseline was main `952868f`. After #181 merged, both the main baseline `5f6b0cf` and D's
+combined branch were rebuilt in D's worktree and the full tour repeated. This includes B #180, terrain #175
+and C #181; no builds ran in the main checkout.
+`scripts/fidelity_tour.py run` rendered all fourteen captured views of thirteen maps at their arrival cameras,
+25 logic steps, GL, 1722 x 1048. It compared the retained 2026-10-22 OBJECT/global/light snapshots.
+Only Dungeon, Icarus and Kanturu have surviving live PNGs, under `renders/readme-sources/`.
+No new live capture was taken. A blank image score for the other eleven views means unavailable.
+
+Ranked by supported visible scope, rather than treating unlike measurements as one score:
+
+1. **Icarus sky/clouds/dragons and Kanturu/Karutan flames/after-character flags.** The retained image errors
+   are Icarus 62.030, Kanturu 3.717 and Dungeon 2.019 at 25 steps. The Icarus and flame/after-character work
+   is now C2's remaining Icarus lane and A's flame/after-character lane; D leaves both intact. After-character field counts are Noria 16,
+   Kanturu 3, Elbeland 19, Raklion 10 and Karutan 6.
+2. **Missing Noria warp placement and rejected nested warp effects.** One Noria object of type 424 was absent;
+   Devias and Raklion each rejected three startup effect calls. These have direct placement/lifecycle code
+   and model evidence, so D fixes both. The portal cameras confirm the native effects draw.
+3. **Aida frame-light outliers and remaining frame light.** Aida has the largest near-hero grid error, 0.65117,
+   concentrated in 21 of 600 cells above 0.05; its worst cell differs by 88.12099. Its object light calls are
+   already reconstructed. The snapshots lack the transient effect/source state needed to attribute this
+   outlier to an additional emitter or capture timing. D does not fit arbitrary brightness to this sample.
+   Dungeon follows at 0.04404; other maps are in the table below. Primary light is exact everywhere.
+4. **Tarkan/Raklion haze and timing-dependent fields.** Eleven arrival views lack live PNGs, so the old image
+   ranking remains historical evidence only. Lost Tower's 25 BlendMesh differences and Atlans's 22 BlendMesh
+   differences include objects the original snapshot had not moved. Atlans also has 35 pulse differences;
+   Lorencia, Devias, Tarkan, Aida and Raklion have the remaining light, pulse, speed or action differences
+   listed in the local detailed scores. Existing instruction comparisons take precedence over forcing a
+   captured time-dependent field. No new unsupported move branch was established by this tour.
+5. **Raklion active event timer and Elbeland boids.** The object/light capture format contains no handler timer
+   state, so the tour cannot assign an active timer image score. Static reading: Raklion's default move calls
+   inherited `0x00ea17c0`; `+0x23` enables its timer, `+0x20` selects event behavior, and `0x00ea186c` emits the
+   event effects/quake. That active lifecycle remains unimplemented, below the reproducible placement/effect
+   defects for this slice. After C #181 merged, Elbeland was reassessed. This arrival view has zero native boids, a safe-zone hero
+   and no live boid-pool snapshot or live PNG. The tour therefore supplies no measured boid deficit. Its
+   now-unblocked movers `0x00ca33c3` and `0x00ca3ce1`, model registration and draw path remain a lower-ranked
+   follow-up that can reuse C's shared flight/render loop. No Elbeland movement equivalence is claimed.
+
+### Verified reconstruction and host integration
+
+Production C lives in `reconstructed/objects/world_warp.c` and `noria.c`. The shared effect factory/mover
+only dispatches the warp cases. Model mappings are static readings of AccessModels
+`0x0183943f`, `0x018397d1` and `0x0183f529`: types `0x1a8/0x1ab`, `0x1a9/0x1ac`, `0x1aa/0x1ad`
+use Npc/warp01, warp02, warp03. Only worlds 2, 3, 57 and 58 load these native effect models.
+
+| Family | Original instructions | Compared |
+|---|---|---|
+| Warp create | Full CreateEffect `0x013c0f19`, branches `0x013c38ef/0x013c391b` | 600 records, all six kinds and subtypes 0/1/default; caller-light clear after copy, lifetime, mesh, RNG, owner/info fields, ordered calls |
+| Warp move | Full MoveEffect `0x0142fd09`, branch `0x01435834` | 600 records; clock pulses, rotation, owner/height, model/animation, motion, expiry, ordered calls and RNG |
+| Warp render selection | `0x015182c6` through the type switch to `0x01518d73`; TestFrustrum `0x016ccc14` executes | 600 records; five 3D planes, exact radius boundary, live/visible and alpha/mesh gates, RenderObject arguments |
+| Noria placement | `0x01839870..0x01839952` | 600 repeated fixed constructor comparisons, including position, angle and record tail |
+
+All **2,400 comparisons equal; zero mismatches, zero stopped cases; 8/8 compiled planted mistakes detected**.
+The placement cases repeat one fixed record, not 600 distinct assets. The common constructor is stubbed as
+zero initialization; engine allocation, animation playback, terrain height and drawing are recording stubs.
+The trigonometric wrappers use the existing host-libm substitution. RenderObject's mesh implementation is
+existing native code, not re-proved by the render-selection family. Pins:
+
+- Text SHA-256 `2bd5f2e9dfb68ae5a3c6b95c5c53be842aaa8d2666996238b3874f503fc93724`.
+- Second-section SHA-256 `c985e2e6dcd155a4768081613c4bb4fa67172545bb250a1556a7f92e25a0672f`.
+
+The mutable light argument is explicit at the reconstructed factory. Native hosts supply a local copy;
+these map-created source records already start with zero light. Runtime mutation of arbitrary caller-owned
+nonzero light is not claimed. The Noria placement reuses B's exact type/position deduplication and named-model
+loading. Noria's five creation calls now join the existing deferred startup queue. The two lines added in
+`native/world/parts/particles.c` pass the current render frustum; no input flow is changed.
+
+The first integration probe exposed a wrong 2D culling assumption. It was replaced with the original five-plane
+3D test and added to the executed comparison. Four synthetic world sessions now create/live/draw respectively
+3/5/3/6 effects with no rejected kinds, and repeat runs have identical stdout and image hashes.
+Native GL portal views were inspected for Devias, Noria and Raklion. The local world-58 installed view has no
+placement input, so its 6-effect integration is synthetic evidence only.
+
+### Scoreboard before and after
+
+| Capture | Missing before / after | Extra before / after | Static field differences before / after | Frame-light mean near hero before / after |
+|---|---:|---:|---:|---:|
+| 00b-lorencia | 0 / 0 | 0 / 0 | 17 / 17 | 0.00713 / 0.00713 |
+| 01-dungeon | 0 / 0 | 0 / 0 | 0 / 0 | 0.04404 / 0.04404 |
+| 02-devias | 0 / 0 | 0 / 0 | 0 / 0 | 0.0 / 0.0 |
+| 02b-devias-town | 0 / 0 | 0 / 0 | 4 / 4 | 0.00068 / 0.00068 |
+| 03-noria | 1 / 0 | 0 / 0 | 23 / 23 | 0.02568 / 0.02568 |
+| 04-losttower | 0 / 0 | 0 / 0 | 25 / 25 | 0.02683 / 0.02683 |
+| 07-atlans | 0 / 0 | 0 / 0 | 57 / 57 | 0.01404 / 0.01404 |
+| 08-tarkan | 0 / 0 | 0 / 0 | 3 / 3 | 0.0 / 0.0 |
+| 10-icarus | 0 / 0 | 0 / 0 | 0 / 0 | 0.0 / 0.0 |
+| 33-aida | 0 / 0 | 0 / 0 | 5 / 5 | 0.65117 / 0.65117 |
+| 37-kanturu | 0 / 0 | 0 / 0 | 3 / 3 | 0.01144 / 0.01144 |
+| 51-elbeland | 0 / 0 | 0 / 0 | 19 / 19 | 0.02078 / 0.02078 |
+| 57-raklion | 0 / 0 | 0 / 0 | 16 / 16 | 0.02574 / 0.02574 |
+| 80-karutan | 0 / 0 | 0 / 0 | 6 / 6 | 0.01339 / 0.01339 |
+
+All primary-grid mean errors remain 0 over 65,536 cells per view. Every frame-grid score is unchanged.
+Noria missing objects falls 1 to 0; all fourteen captures now have zero missing and zero extra objects.
+The thirteen other final PNG SHA-256 values are unchanged, including all ten views outside the changed worlds.
+Noria's arrival camera is away from the new portal; its changed frame reflects the new particle RNG consumption,
+not a measured live-image improvement. Devias/Raklion's arrival frames also remain unchanged, while separate
+portal-camera runs draw 3/5/3 native effect models. Do not substitute those views for live comparisons.
+The three available live-image mean errors remain 2.019 / 62.030 / 3.717 for Dungeon / Icarus / Kanturu.
+
+The existing create/move effect families also pass 1,200 comparisons, zero mismatches. The new validator passes
+through `scripts/run_validators.py`, with its manifest counts and mutants checked. Synthetic placement/dedup
+checks now include Noria. The combined-tree local Mac gate through main #185 passed 1,395 tests across 38 suites with 166 explicit skips, both fixture
+scenarios and viewer/readers builds. The B handler regression retains 4,000 equal comparisons and 10/10
+compiled mutants; the existing object validator passes 2,980 comparisons and 19/19 mutants.
+The post-#183/#184/#185 tour retains the same thirteen unchanged image hashes and every light score.
+Counts and artifact paths are also recorded in the milestone handoff.
+
+### Reproduction and remaining work
+
+Reports/manifests/logs: `~/Documents/MTM/mu-mac-tools/native/scratch/render-worlds-d/`.
+GL frames and complete scoreboards: `~/Documents/MTM/mu-mac-tools/native/renders/render-worlds-d/`.
+Both are local only. Run `scripts/validate_worlds_d.py --cases 600 --mutations --output <local-report>`
+with the repo Python, or its manifest row with private integration enabled.
+
+Next work: A-owned visual paths and C2-owned remaining Icarus paths; unblocked Elbeland mover/model draw; the inherited Raklion event
+lifecycle, including the event-state and timer inputs; attribute Aida's transient frame light from existing
+source/effect code or a separately authorized future capture; fresh locked live images of the changed worlds.
+No live game, launcher, network, service, protection module or running-client memory was touched.

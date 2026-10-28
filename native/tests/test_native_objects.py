@@ -91,7 +91,7 @@ class ObjectsTests(unittest.TestCase):
             self.assertEqual(len(report['models']), 300)
 
     def test_code_created_world_placements_and_keep_all_deduplication(self):
-        for world, count in ((2, 3), (57, 2), (58, 2)):
+        for world, count in ((2, 3), (3, 1), (57, 2), (58, 2)):
             with self.subTest(world=world), tempfile.TemporaryDirectory() as root:
                 folder = world + 1
                 write_world(root, folder)

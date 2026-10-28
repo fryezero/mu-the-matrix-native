@@ -2,6 +2,8 @@
 
 INPUT-001: unified world input and shared scripts; 570 original-instruction cases, zero mismatches, 7/7 mutants. Available native actions and unavailable original panels are listed separately in the [coverage table](research/client-input.md) and [handoff](handoffs/INPUT-001.md).
 
+RENDER-WORLDS-D: six warp effect kinds and Noria portal placement; 2,400 Unicorn cases, zero mismatches, 8/8 compiled mutants. [Evidence](research/client-world-fidelity.md#6-render-worlds-d-2026-10-27), [handoff](handoffs/RENDER-WORLDS-D.md).
+
 AUDIO-002 part 1: event music decisions, monster/NPC registration, bounded NPC voices and native cue logging implemented. 76,150 new Unicorn cases, zero mismatches, 22/22 compiled mutants. [Checks and limits](handoffs/AUDIO-002.md).
 
 SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
