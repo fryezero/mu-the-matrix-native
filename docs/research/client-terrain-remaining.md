@@ -114,6 +114,9 @@ mismatches and zero unsupported overlays, 682,695 GL calls and 371 particles. It
 remain equal. The original face-normal family's 29 generated NaN-sign-only pairs retain their earlier label;
 371/400 ordinary bitwise normal results match, without a numeric mismatch.
 
+The final merged-main Mac gate passes 1,320 tests across 38 suites with 156 explicit skips, the two fixture
+scenarios, viewer/readers builds and repository audit. No hosted workflows were dispatched.
+
 Local artifacts are under `~/Documents/MTM/mu-mac-tools/native/scratch/render-terrain-002/` and
 `~/Documents/MTM/mu-mac-tools/native/renders/render-terrain-002/`. They are not committed.
 

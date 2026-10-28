@@ -82,7 +82,7 @@ struct mu_shell {
     /* login panel (placeholder for the GFx account dialog) */
     int panel, field, typed[2];
     /* embeds */
-    mu_charsel_embed *charsel;
+    mu_charsel_rt *charsel;
     mu_charsel_ui *charsel_ui;
     mu_charsel_list_gfx *charsel_gfx;   /* NATIVE-CHARSEL-003 */
     long picks, pick_hits, double_clicks, gfx_callbacks, gfx_enters, gfx_creates;   /* closed visits */
@@ -387,7 +387,7 @@ static void music(mu_shell *s, uint32_t routine, uint32_t name)
 static void close_charsel(mu_shell *s)
 {
     if (s->charsel) {
-        const mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+        const mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
         s->picks += cs->picks;
         s->pick_hits += cs->pick_hits;
         s->double_clicks += cs->double_clicks;
@@ -425,7 +425,7 @@ static void close_charsel(mu_shell *s)
     if (s->charsel) {
         if (s->platform.embed_closing)
             s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
-        mu_charsel_embed_close(s->charsel);
+        mu_charsel_rt_close(s->charsel);
         s->charsel = NULL;
     }
 }
@@ -569,8 +569,9 @@ static void hook_menu(void *user, int kind)
 /* CreateCharacterScene (the scene-5 tick's first step) with the session's list. */
 static int open_charsel(mu_shell *s)
 {
-    mu_charsel_embed_config c;
-    memset(&c, 0, sizeof c);
+    mu_charsel_rt_options c;
+    mu_charsel_rt_default_options(&c);
+    c.no_ui = 1; /* the shell owns its 2D layer */
     c.root = s->cfg.root;
     c.list_path = s->session.characters_path[0] ? s->session.characters_path : NULL;
     c.list = &s->session.characters;   /* NATIVE-CHARCREATE-001: the session's characters (and the store's) */
@@ -579,13 +580,13 @@ static int open_charsel(mu_shell *s)
     c.height = s->cfg.height;
     c.slot = s->hero_slot >= 0 && mu_offline_session_character(&s->session, s->hero_slot) ? s->hero_slot : -1;
     char error[512];
-    s->charsel = mu_charsel_embed_open(&c, error, sizeof error);
+    s->charsel = mu_charsel_rt_open(&c, error, sizeof error);
     if (!s->charsel) {
         snprintf(s->status, sizeof s->status, "character select: %s", error);
         fprintf(stderr, "%s\n", s->status);
         return 1;
     }
-    mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+    mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
     cs->frame.clock.frame_tick = s->now;
     s->enter_seen = cs->enter_requests;
     s->charsel_ui = calloc(1, sizeof *s->charsel_ui);
@@ -639,7 +640,7 @@ static int rebuild_charsel(mu_shell *s)
 {
     mu_charsel_list_gfx *gfx = s->charsel_gfx;
     s->charsel_gfx = NULL;   /* kept across the rebuild */
-    const mu_charsel_session *old = s->charsel ? mu_charsel_embed_session(s->charsel) : NULL;
+    const mu_charsel_session *old = s->charsel ? mu_charsel_rt_session(s->charsel) : NULL;
     if (old) {
         s->picks += old->picks;
         s->pick_hits += old->pick_hits;
@@ -653,7 +654,7 @@ static int rebuild_charsel(mu_shell *s)
     if (s->charsel) {
         if (s->platform.embed_closing)
             s->platform.embed_closing(s->platform.user, MU_SHELL_EMBED_CHARSEL, s->charsel);
-        mu_charsel_embed_close(s->charsel);
+        mu_charsel_rt_close(s->charsel);
         s->charsel = NULL;
     }
     const char *dir = s->cfg.gfx_dir;
@@ -664,7 +665,7 @@ static int rebuild_charsel(mu_shell *s)
     ++s->charsel_rebuilds;
     if (status)
         return status;
-    mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+    mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
     cs->selected = cs->shown = -1;   /* CreateCharacterScene: SelectedHero = -1 */
     mu_charsel_list_gfx_rebind(gfx, cs);
     return 0;
@@ -984,7 +985,7 @@ static void charsel_frame(mu_shell *s, uint32_t now)
     }
     if (!s->charsel)
         return;
-    mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+    mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
     for (int k = 0; k < s->key_count; ++k) {
         int vk = s->keys[k][0], down = s->keys[k][1];
         /* NATIVE-CHARCREATE-001: the Caution box and the create panel's name box take the keys first; with the
@@ -1009,7 +1010,7 @@ static void charsel_frame(mu_shell *s, uint32_t now)
             continue;
         }
         if (down && (vk == 0x25 || vk == 0x27)) {
-            mu_charsel_embed_select_next(s->charsel, vk == 0x27 ? 1 : -1);   /* the GFx list's selection */
+            mu_charsel_rt_select_next(s->charsel, vk == 0x27 ? 1 : -1);   /* the GFx list's selection */
             if (s->charsel_gfx)
                 mu_charsel_list_gfx_select_slot(s->charsel_gfx, cs->selected);
             continue;
@@ -1073,7 +1074,7 @@ static void charsel_frame(mu_shell *s, uint32_t now)
                 log_transition(s, "character select did not load");
                 return;
             }
-            cs = mu_charsel_embed_session(s->charsel);
+            cs = mu_charsel_rt_session(s->charsel);
         }
         if (s->quit)
             return;
@@ -1244,7 +1245,7 @@ void mu_shell_mouse_button(mu_shell *s, int button, int down)
                                                         s->mouse_y) && down)
             return;
         if (button == 0 && down) {
-            mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+            mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
             uint32_t lp = ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x;
             int dbl = s->last_click && s->now - s->last_click < 500 && abs(s->mouse_x - s->last_click_x) <= 4 &&
                       abs(s->mouse_y - s->last_click_y) <= 4;
@@ -1253,7 +1254,7 @@ void mu_shell_mouse_button(mu_shell *s, int button, int down)
             s->last_click_x = s->mouse_x;
             s->last_click_y = s->mouse_y;
         } else if (button == 0) {
-            mu_charsel_message(mu_charsel_embed_session(s->charsel), MU_WM_LBUTTONUP, 0u,
+            mu_charsel_message(mu_charsel_rt_session(s->charsel), MU_WM_LBUTTONUP, 0u,
                                ((uint32_t)(uint16_t)s->mouse_y << 16) | (uint16_t)s->mouse_x);
         }
     }
@@ -1354,7 +1355,7 @@ void mu_shell_charsel_counts(const mu_shell *s, long out[6])
 {
     long v[6] = {s->picks, s->pick_hits, s->double_clicks, s->gfx_callbacks, s->gfx_enters, s->gfx_creates};
     if (s->charsel) {
-        const mu_charsel_session *cs = mu_charsel_embed_session(s->charsel);
+        const mu_charsel_session *cs = mu_charsel_rt_session(s->charsel);
         v[0] += cs->picks;
         v[1] += cs->pick_hits;
         v[2] += cs->double_clicks;
@@ -1417,7 +1418,7 @@ int mu_shell_charsel_row(mu_shell *s, int32_t row, int32_t *x, int32_t *y)
     return 1;
 }
 
-mu_charsel_embed *mu_shell_charsel(mu_shell *s)
+mu_charsel_rt *mu_shell_charsel(mu_shell *s)
 {
     return s->charsel;
 }
@@ -1578,7 +1579,7 @@ void mu_shell_resize(mu_shell *s, int32_t w, int32_t h)
     if (s->world)
         mu_world_rt_resize(s->world, w, h);
     if (s->charsel) {
-        mu_charsel_embed_resize(s->charsel, w, h);
+        mu_charsel_rt_resize(s->charsel, w, h);
         if (s->charsel_gfx)
             mu_charsel_list_gfx_resize(s->charsel_gfx, w, h);
         if (s->charsel_ui) {   /* CUIMng::CreateCharacterScene again at the new size */
@@ -1586,7 +1587,7 @@ void mu_shell_resize(mu_shell *s, int32_t w, int32_t h)
                 s->platform.ui_target_free(s->platform.user, &s->charsel_target);
             s->charsel_gpu = 0;
             mu_charsel_ui_free(s->charsel_ui);
-            if (mu_charsel_ui_init(s->charsel_ui, s->cfg.root, w, h, s->cfg.font, mu_charsel_embed_session(s->charsel),
+            if (mu_charsel_ui_init(s->charsel_ui, s->cfg.root, w, h, s->cfg.font, mu_charsel_rt_session(s->charsel),
                                    NULL)) {
                 free(s->charsel_ui);
                 s->charsel_ui = NULL;
@@ -1669,7 +1670,7 @@ int32_t mu_shell_end_frame(mu_shell *s, uint32_t now)
     if (s->audio)   /* NATIVE-PERF-001: the host's stream update before the cap measures the pass */
         mu_audio_host_tick(s->audio);
     if (s->g.scene == MU_SCENE_CHARACTER && s->charsel)
-        sleep = mu_charsel_end_render(mu_charsel_embed_session(s->charsel));
+        sleep = mu_charsel_end_render(mu_charsel_rt_session(s->charsel));
     else if (s->g.scene == MU_SCENE_MAIN && s->world)
         sleep = mu_world_rt_end_frame(s->world);
     else {

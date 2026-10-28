@@ -1,6 +1,6 @@
 ---
 name: verify-mu-native
-description: Drive the native Mu The Matrix executables (mu-client scene flow, mu-world/mu-walk walk-around, mu-viewer models and terrain, mu-proto) on a synthetic game root, headless or in a real window, and capture proof. Use to prove a change under native/ or reconstructed/ works the way a user sees it, when asked to verify, demonstrate or screenshot native behaviour, or before merging native work.
+description: Drive the native Mu The Matrix executables on a synthetic game root or run session scenarios over the loopback fixture, and capture proof. Use to verify native behaviour, demonstrate or screenshot a native change, test session routes and inbound frames, or before merging native work.
 ---
 
 # Verify the native client
@@ -11,7 +11,8 @@ or `--terrain`); `mu-walk`, `mu-render`, `mu-terrain` and `mu-proto` are headles
 Every window program also runs headless (`--headless --out-dir DIR`, software or offscreen-GL backend) with
 the same scene code, takes scripted input (`--script "FRAME:ACTION ..."`), prints one JSON row per captured
 frame and a final `{"summary": true, ...}` row on stdout, and logs actions and scene changes on stderr.
-That is the harness. No browser, no PTY, no mocks.
+The separate `--fixture` drive runs `mu-session` over the in-process loopback transport. It proves session
+apply functions and requests with a stub world port; it does not drive scene login or render the world.
 
 The installed client is neither needed nor used. Every run drives a synthetic game root authored by the
 fixtures in `native/tests` (`scripts/make-root.py`). Installed data (`MU_GAME_ROOT`) is an optional,
@@ -37,7 +38,7 @@ Build once (clang, Crypto++, SDL2 and jpeg-turbo from Homebrew; `docs/setup.md`)
 
     make -C native && make -C native viewer
 
-Ready means `native/build/mu-client mu-world mu-walk mu-viewer mu-render mu-proto mu-terrain` all exist.
+Ready means `native/build/mu-client mu-world mu-walk mu-viewer mu-render mu-proto mu-terrain mu-session` all exist.
 Python is the project venv `tools/python/bin/python` (`python3 -m venv tools/python && tools/python/bin/python
 -m pip install -r tools/requirements-lock.txt`). Keep the helper path short:
 
@@ -58,11 +59,10 @@ Teardown: `$V/cleanup.sh "$RUN"`.
 
     $V/doctor.sh "$RUN"
 
-Read-only. Checks that the seven binaries exist, warns when a source under `native/` or `reconstructed/` is
+Read-only. Checks that the eight binaries exist, warns when a source under `native/` or `reconstructed/` is
 newer than the build, checks that the venv imports the fixtures and Pillow, `sdl2-config`, the run's root
 files and recorded commit, that no tool from this run is still running, and that an offscreen GL context can
-be created (it renders the run's model at 16x16 and names the GL renderer). It also says whether a Wine
-client is running, as a reminder that this skill never touches it. Ends with `DOCTOR OK` (exit 0) or
+be created (it renders the run's model at 16x16 and names the GL renderer). Ends with `DOCTOR OK` (exit 0) or
 `DOCTOR FAIL` (exit 1). Run it before trusting any failed drive.
 
 ## Drive
@@ -136,6 +136,15 @@ no arguments). `mu-render info MODEL` prints the parsed layout as JSON.
 Commands: `build HEAD OPCODE PAYLOAD [--xor]`, `parse FRAME`, `dechunk STREAM`, `xor-encode OBJ`,
 `xor-decode OBJ`, all hex. A head outside C1..C4 gives `status: BAD` and exit 1.
 
+### Fixture sessions
+
+    $V/run-tool.sh "$RUN" fixtures --fixture
+    $V/run-tool.sh "$RUN" hero --fixture native/fixture/scenarios/hero-progress.scn \
+        --script '60:inbound:c10c55941500000015000000'
+
+Read [the fixture recipe](features/fixture-session.md) for the JSON contract, count checks and how later
+domain lanes add scenarios. The same runner is part of `make test` and `scripts/local-macos-ci.sh`.
+
 ## Evidence
 
 Everything under `$RUN/proof/` is the proof and survives cleanup: `NAME.cmd` (what ran), `NAME.stdout`
@@ -147,6 +156,9 @@ Standards:
 
 - Exercise the real user path: scripted keys and clicks through the scene code, not the `native/tests`
   hosts, ctypes calls or internal setters. Those are regression tests, not proof.
+- Fixture drives exercise the dev session tool's seeded path. Report them as session evidence, separate
+  from scene or rendering proof. Their inbound journal rows have `jnl: frame_in`; the final row has
+  `summary: true`, `journal` totals and per-scenario `results` with journal counts and route hits.
 - Capture the action and the state it caused: the stderr action line, the frame saved on the scene change,
   and the summary field that changed. A final screen alone is not proof.
 - Verify side effects: list `~/Library/Application Support/MuTheMatrixNative` before and after (unchanged),
