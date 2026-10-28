@@ -16,6 +16,7 @@
 #include "../core/mu_png.h"
 #include "../core/mu_raster.h"
 #include "../core/mu_renderchar.h"
+#include "../core/mu_particles.h"
 #include "../../reconstructed/model-codec/character.h"
 
 typedef struct world_options {
@@ -163,28 +164,6 @@ int mu_render_world_active(void)
     return W.active;
 }
 
-/* Item type from a standard item file name (viewer inference: the client takes
- * the file from its runtime item table, 0x00cd558e). Sword01 -> 0xae6 + 0, ... */
-static int32_t type_from_path(const char *path)
-{
-    static const struct { const char *prefix; int group; } names[] = {
-        {"sword", 0}, {"axe", 1}, {"mace", 2}, {"spear", 3}, {"bow", 4}, {"staff", 5}, {"shield", 6},
-        {"helmmale", 7}, {"armormale", 8}, {"pantmale", 9}, {"glovemale", 10}, {"bootmale", 11}, {"wing", 12},
-    };
-    const char *base = strrchr(path, '/');
-    base = base ? base + 1 : path;
-    for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i) {
-        size_t n = strlen(names[i].prefix);
-        if (strncasecmp(base, names[i].prefix, n) || !isdigit((unsigned char)base[n]))
-            continue;
-        int number = atoi(base + n);
-        if (number < 1)
-            return -1;
-        return 0xae6 + names[i].group * 512 + number - 1;
-    }
-    return -1;
-}
-
 static int write_frames(const mu_options *o, const uint8_t *frames)
 {
     int status = 0;
@@ -254,7 +233,7 @@ int mu_render_world_character(const mu_options *o)
         }
     for (int i = 0; i < MU_CHARACTER_ITEMS; ++i)
         if (!W.type_set[i] && c.items[i].loaded) {
-            W.glow[i].type = type_from_path(c.items[i].path);
+            W.glow[i].type = mu_renderchar_type_from_path(c.items[i].path);
             /* class parts: the part type the client uses (0x01395473: base + skin) */
             if (W.glow[i].type < 0 && i >= MU_PART_HELM && i <= MU_PART_BOOTS && o->class_byte >= 0 && !o->part_paths[i])
                 W.glow[i].type = (int32_t)mu_character_part_type(i, (uint8_t)o->class_byte);
@@ -319,6 +298,25 @@ int mu_render_world_character(const mu_options *o)
     mu_draw_stats stats = {0, 0, 0, 0};
     mu_renderchar_stats rstats = {0, 0};
     char hash[65] = "";
+    mu_world_particles *particles = NULL;
+    long link_sprites = 0;
+    for (int k = MU_CHARACTER_PART_SLOTS; k < MU_CHARACTER_ITEMS; ++k) {
+        int32_t count = 0;
+        mu_rc_link_sprites(W.glow[k].type, 0, NULL, 0, &count);
+        if (count && c.items[k].loaded && !particles) {
+            particles = calloc(1, sizeof *particles);
+            char error[256];
+            if (!particles || mu_world_particles_open(particles, o->game_root, NULL, 0, 1,
+                                                       o->no_textures || !o->game_root, error, sizeof error)) {
+                fprintf(stderr, "link sprite pool unavailable\n");
+                free(particles);
+                free(frames);
+                mu_raster_free(&raster);
+                mu_character_free(&c);
+                return 1;
+            }
+        }
+    }
     for (int32_t n = 0; n < o->frames && frames; ++n) {
         if (n) {
             for (int32_t step = 0; step < o->frame_steps; ++step)
@@ -366,16 +364,23 @@ int mu_render_world_character(const mu_options *o)
             draw.textures = o->no_textures ? NULL : &item->textures;
             mu_renderchar_draw_item(&item->model, &W.glow[links[k]], &env, c.params.light, 1.0f, &draw, &backend,
                                     &stats, &rstats);
+            link_sprites += mu_renderchar_link_effects(&item->model, item->bones, W.glow[links[k]].type, particles);
         }
+        if (particles)
+            mu_world_particles_draw_raster(particles, &raster, raster.view);
         memcpy(frames + frame_bytes * (size_t)n, raster.color, frame_bytes);
         if (n == 0)
             mu_sha256_hex(raster.color, frame_bytes, hash);
     }
     int status = frames ? write_frames(o, frames) : 1;
     printf("{\"sha256\": \"%s\", \"width\": %d, \"height\": %d, \"meshes\": %ld, \"triangles\": %ld, \"passes\": %ld,"
-           " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d}\n",
+           " \"special\": %ld, \"carried\": %d, \"attachments\": %d, \"quality\": %d, \"link_sprites\": %ld}\n",
            hash, o->width, o->height, stats.meshes, raster.triangles, rstats.passes, rstats.special, carried, attached,
-           W.env.quality);
+           W.env.quality, link_sprites);
+    if (particles) {
+        mu_world_particles_close(particles);
+        free(particles);
+    }
     for (size_t k = 0; k < sizeof ATTACH / sizeof ATTACH[0]; ++k)
         mu_renderchar_attach_free(&att[k]);
     free(frames);
@@ -426,7 +431,7 @@ int mu_render_world_actor(const mu_options *o)
             fprintf(stderr, "%s\n", error);
             continue;
         }
-        weapons[s].glow.type = type_from_path(W.actor_weapons[s]);
+        weapons[s].glow.type = mu_renderchar_type_from_path(W.actor_weapons[s]);
         weapons[s].glow.level = W.actor_weapon_levels[s];
         loaded++;
     }

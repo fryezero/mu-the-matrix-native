@@ -287,7 +287,7 @@ def main():
    if family not in names:continue
    with tempfile.TemporaryDirectory(prefix='world-a-mut-') as tmp:
     root=Path(tmp)
-    for d in ['objects','terrain','record-math','model-codec','particles']:
+    for d in ['objects','terrain','record-math','model-codec','particles','movement']:
      shutil.copytree(ROOT/'reconstructed'/d,root/d,ignore=shutil.ignore_patterns('*.dylib','*.so','__pycache__'))
     file=root/'objects'/file;s=file.read_text();pattern=''.join(re.escape(ch)+r'\s*' for ch in old)
     s,count=re.subn(pattern,lambda m:new,s,count=1);assert count==1,(name,old);file.write_text(s)

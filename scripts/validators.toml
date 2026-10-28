@@ -6,6 +6,21 @@
 # (counted at cases_at/mutants_at in its JSON report); args: the owning test's arguments, with placeholders
 # (see run_validators.py); expect: report checks; kind = "helper": imported by its parent, not run alone.
 
+[validate_item_types]
+test = "reconstructed/renderchar/test_item_types.py::ItemTypes.test_private_original_instructions"
+pins = ["text", "data", "flag", "feature"]
+families = ["remaps", "bodies", "links", "bone_helper"]
+cases = 135176
+mutants = 6
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/renderchar", "reconstructed/particles"]
+args = ["--mutations", "--output", "{report}"]
+[validate_item_types.expect]
+"families.*.mismatches" = 0
+"mutants.*" = {truthy = true}
+"remap_rows" = 103
+
 [validate_render_items]
 test = "reconstructed/hud/test_render_items.py::RenderItemsTests.test_private_original_instructions"
 pins = ["text", "data"]
@@ -1495,3 +1510,19 @@ args = ["--text", "{text}", "--data", "{data}", "--cases", "1000", "--mutations"
 "ok" = true
 "families.*.cases" = {all_min = 1000}
 "families.*.equal" = {same_as = "families.*.cases"}
+
+[validate_worlds_b]
+test = "reconstructed/objects/test_worlds_b.py::WorldsBTests.test_original_instructions"
+pins = ["text", "data"]
+families = ["devias", "tarkan", "elbeland", "raklion", "devias_records", "raklion_records", "raklion_create", "snow"]
+cases = 4000
+mutants = 10
+cases_at = "families.*.cases"
+mutants_at = "mutants"
+build = ["reconstructed/objects"]
+args = ["--cases", "500", "--mutations", "--output", "{report}"]
+[validate_worlds_b.expect]
+"families.*.mismatch_count" = 0
+"families.*.stopped" = 0
+"mutants.*.detected" = {all_min = 1}
+"mutants.*.stopped" = 0

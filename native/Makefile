@@ -50,7 +50,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
             core/mu_ui_raster.c core/mu_ui_assets.c core/mu_ui_font.c \
             core/mu_effect.c core/mu_effect_scene.c core/mu_edge.c core/mu_walk.c core/mu_renderchar.c core/mu_path.c \
             core/mu_world_actors.c core/mu_charsel.c core/mu_charsel_ui.c core/mu_login.c \
-            core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_combat.c core/mu_env.c \
+            core/mu_data.c core/mu_hud.c core/mu_hud_tip.c core/mu_objects.c core/mu_objects_runtime.c core/mu_objects_runtime_worlds_b.c core/mu_combat.c core/mu_env.c \
             core/mu_particles.c core/mu_joints.c core/mu_lang.c core/mu_items.c \
             core/mu_label.c core/mu_names.c core/mu_world_names.c core/mu_npc.c core/mu_world_players.c core/mu_perf.c \
             core/mu_world_helpers.c core/mu_world_pets.c core/mu_quest.c core/mu_skill.c core/mu_map.c core/mu_skill_demo.c core/mu_skill_tree4.c core/mu_world_raven.c core/mu_social.c core/mu_mix.c \
@@ -59,7 +59,7 @@ CORE_SRC := core/mu_bmd.c core/mu_model.c core/mu_meshdraw.c core/mu_meshdraw_ca
 RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.c \
              $(RECON)/model-codec/bone_tracks.c $(RECON)/model-codec/pose_builder.c \
              $(RECON)/model-codec/skinning.c $(RECON)/model-codec/character.c $(RECON)/record-math/record_math.c \
-             $(RECON)/terrain/terrain.c $(RECON)/objects/objects.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
+             $(RECON)/terrain/terrain.c $(RECON)/objects/objects.c $(RECON)/objects/object_render.c $(wildcard $(RECON)/objects/world_*_visual.c) $(RECON)/objects/world_after.c $(RECON)/objects/devias.c $(RECON)/objects/tarkan.c $(RECON)/objects/elbeland.c $(RECON)/objects/raklion.c $(RECON)/objects/login_world.c $(RECON)/objects/charsel_world.c \
              $(RECON)/camera/client_camera.c $(RECON)/camera/client_world_camera.c \
              $(RECON)/camera/client_input.c $(RECON)/camera/client_frame.c \
              $(RECON)/actors/actors.c $(RECON)/path/client_path.c \
@@ -75,7 +75,7 @@ RECON_SRC := $(RECON)/model-codec/model_codec.c $(RECON)/model-codec/client_lea.
              $(RECON)/hud/tooltip_html.c $(RECON)/hud/tooltip_format.c \
              $(RECON)/combat/combat.c $(RECON)/combat/skill_fx.c $(RECON)/joints/joints.c \
              $(RECON)/environment/env_core.c $(RECON)/environment/env_boids.c $(RECON)/environment/env_fish.c \
-             $(RECON)/environment/env_leaves.c $(RECON)/environment/env_world.c \
+             $(RECON)/environment/env_leaves.c $(RECON)/environment/raklion_snow.c $(RECON)/environment/env_world.c \
              $(RECON)/particles/particles.c $(RECON)/particles/world_flames.c $(RECON)/particles/sprites.c $(RECON)/particles/shadow.c \
              $(RECON)/particles/visual.c $(RECON)/particles/layout.c \
              $(RECON)/items/ground_items.c $(RECON)/items/item_sets.c \
@@ -98,7 +98,7 @@ RECON_OBJ := $(patsubst $(RECON)/%.c,$(BUILD)/recon/%.o,$(RECON_SRC))
 MODULUS_OBJ := $(BUILD)/modulus.o
 LIB := $(BUILD)/libmunative.a
 HEADERS := $(wildcard core/*.h) $(wildcard $(RECON)/model-codec/*.h) $(RECON)/record-math/record_math.h \
-           $(RECON)/terrain/terrain.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(wildcard $(RECON)/objects/world_visual*.h) $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
+           $(RECON)/terrain/terrain.h $(RECON)/objects/objects.h $(RECON)/objects/object_render.h $(wildcard $(RECON)/objects/world_visual*.h) $(RECON)/objects/worlds_b.h $(RECON)/objects/worlds_b_internal.h $(RECON)/objects/login_world.h $(RECON)/objects/charsel_world.h $(wildcard $(RECON)/camera/*.h) $(wildcard $(RECON)/actors/*.h) \
            $(wildcard $(RECON)/ui/*.h) $(RECON)/effects/effects.h $(RECON)/effects/effects_internal.h \
            $(RECON)/movement/client_movement.h $(RECON)/path/client_path.h \
            $(wildcard $(RECON)/renderchar/*.h) $(RECON)/charsel/charsel.h $(RECON)/charsel/charsel_gfx.h $(RECON)/charsel/charcreate.h \
@@ -209,7 +209,7 @@ $(BUILD)/world-rt-gl/%.o: world/%.c $(WORLD_RT_HDR) $(HEADERS) world/world_gfx.h
 # Walk-around session, headless software build (NATIVE-WORLD-001).
 # NATIVE-WORLD-002 links the audio library (in-world sound, WAV output).
 $(BUILD)/mu-walk: $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
-	$(CXX) $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) \
+	$(CXX) $(BUILD)/world-rt/world_tool.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) \
 	  $(AUDIO_LIBS) $(UI_LIBS) -lm -o $@
 # ---- end WORLD-RT-001 block ----
 
@@ -224,6 +224,11 @@ $(BUILD)/mu-charsel: charsel/main.c charsel/charsel_tool.c $(CHARSEL_RT_OBJ) $(L
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CHARSEL_NO_GL -c charsel/charsel_tool.c -o $(BUILD)/mu_charsel_tool.o
 	$(CXX) $(BUILD)/mu_charsel.o $(BUILD)/mu_charsel_tool.o $(CHARSEL_RT_OBJ) $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
 
+# RENDER-ITEMS-002b saved-pose and sprite-capacity regression.
+$(BUILD)/item-render-host: tests/item_render_host.c $(LIB)
+	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/item_render_host.o
+	$(CXX) $(BUILD)/item_render_host.o $(LIB) $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) -lm -o $@
+
 # Synthetic native helper/effect ownership regression host.
 $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -c $< -o $(BUILD)/helper_fx_host.o
@@ -231,7 +236,7 @@ $(BUILD)/helper-fx-host: tests/helper_fx_host.c $(LIB)
 
 $(BUILD)/quest-travel-host: tests/quest_travel_host.c $(WORLD_RT_HDR) $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a
 	$(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_WORLD_NO_GL -c $< -o $(BUILD)/quest_travel_host.o
-	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/quest_travel_host.o $(WORLD_RT_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) -lm -o $@
 
 # NATIVE-SKILL-001: the skill book (core/mu_skill) test host.
 $(BUILD)/skill-book-host: tests/skill_book_host.c $(LIB)
@@ -249,11 +254,6 @@ $(BUILD)/mu-proto: tools/mu_proto.c core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) tools/mu_proto.c core/mu_protocol.c -o $@
 
-# NATIVE-QUEST-001: the quest session (core/mu_quest over reconstructed/quest) for the tests (ctypes).
-QUEST_LIB_SRC := core/mu_quest.c $(wildcard $(RECON)/quest/quest_*.c)
-$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) core/mu_quest.h $(wildcard $(RECON)/quest/*.h)
-	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -fPIC -shared $(QUEST_LIB_SRC) -o $@
 
 $(BUILD)/libmuprotocol.dylib $(BUILD)/libmuprotocol.so: core/mu_protocol.c core/mu_protocol.h
 	@mkdir -p $(BUILD)
@@ -388,7 +388,7 @@ $(BUILD)/mu-world: $(WORLD_SRC) $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_
 	for f in $(WORLD_SRC); do \
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f -o $(BUILD)/world/$$(basename $$f .c).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/world/*.o $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	$(CXX) $(BUILD)/world/*.o $(BUILD)/world-rt-gl/world_tool.o $(WORLD_RT_GL_OBJ) $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # Character-select window (SDL2 + OpenGL 2.1), NATIVE-CHARSEL-001.
@@ -418,7 +418,7 @@ $(BUILD)/mu-shell: $(CLIENT_SRC) $(CLIENT_HDR) $(LIB) $(BUILD)/libmuaudio.a
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) -DMU_CLIENT_NO_GL -DMU_WORLD_NO_GL -DMU_CHARSEL_NO_GL -c $$f \
 	    -o $(BUILD)/shell/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/shell/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
+	$(CXX) $(BUILD)/shell/*.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 CLIENT_GL_SRC := $(CLIENT_SRC) login/login_gl.c viewer/gl_backend.c viewer/gl_batch.c viewer/gl_headless.c viewer/ui_gl.c $(GFX_SRC)
 
@@ -429,7 +429,7 @@ $(BUILD)/mu-client: $(CLIENT_GL_SRC) $(CLIENT_HDR) login/login_gl.h viewer/gl_ba
 	  $(CC) $(CFLAGS) $(JPEG_CFLAGS) $(GL_CFLAGS) $(GFX_CFLAGS) $$($(SDL_CONFIG) --cflags) -c $$f \
 	    -o $(BUILD)/client/$$(echo "$${f%.c}" | tr / _).o || exit 1; \
 	done
-	$(CXX) $(BUILD)/client/*.o $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
+	$(CXX) $(BUILD)/client/*.o $(BUILD)/libmusession_world.a $(LIB) $(BUILD)/libmuaudio.a $(CRYPTOPP_LIBS) $(JPEG_LIBS) $$($(SDL_CONFIG) --libs) \
 	  $(GL_LIBS) $(GLU_LIBS) $(UI_LIBS) $(AUDIO_LIBS) $(DL_LIBS) -lm -o $@
 
 # ---- Mu The Matrix Native Preview.app (NATIVE-APP-001): mu-client as an ad-hoc signed macOS app ----
@@ -514,6 +514,22 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: all viewer frame-window world charsel client audio audio-live clean preview-app
+
+# SESSION-QUEST-001: offline tools now use the dev session/fixture library.
+CFLAGS += -I build/gen -I session
+$(BUILD)/mu-walk $(BUILD)/mu-world $(BUILD)/mu-shell $(BUILD)/mu-client $(BUILD)/quest-travel-host: $(BUILD)/libmusession_world.a
+$(WORLD_RT_OBJ) $(WORLD_RT_GL_OBJ): $(GEN_STAMP)
+QUEST_LIB_SRC := $(SESSION_SRC) $(NET_SRC) $(FIXTURE_SRC) $(wildcard $(RECON)/quest/quest_*.c) core/mu_protocol.c $(wildcard $(RECON)/progress/progress_*.c) core/mu_lang.c
+$(BUILD)/libmuquest.dylib $(BUILD)/libmuquest.so: $(QUEST_LIB_SRC) $(GEN_STAMP) $(LAYOUT_STAMP)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -shared -fPIC $(QUEST_LIB_SRC) -lm -o $@
+
+# Offline app keeps its no-network-import contract; TCP fixture serving stays in mu-session.
+$(BUILD)/sdev/fixture/world_fixture.o: fixture/fixture.c $(SESSION_HDR) $(GEN_STAMP) $(LAYOUT_STAMP)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SESSION_CFLAGS) -DMU_SESSION_SEED -DMU_SESSION_AUDIT -DMU_FIXTURE_NO_TCP -c $< -o $@
+$(BUILD)/libmusession_world.a: $(filter-out $(BUILD)/sdev/fixture/fixture.o,$(SESSION_DEV_OBJ)) $(BUILD)/sdev/fixture/world_fixture.o
+	rm -f $@
+	ar rcs $@ $^
 
 # DATA-ACQ-004: shared portable manifest validator and acquisition helper.
 all: $(BUILD)/mu-native-data

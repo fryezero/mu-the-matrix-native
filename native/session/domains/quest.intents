@@ -1,0 +1,2 @@
+MU_INTENT_KIND(QUEST_WINDOW, quest_window, struct { int32_t action; char event[96]; char text[4096]; double a, b; })
+MU_INTENT_KIND(QUEST_CONTEXT, quest_context, struct { int32_t world, x, y, level, total; uint32_t money; uint8_t class_byte, safe, holding; })
