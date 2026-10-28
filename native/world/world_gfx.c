@@ -10,6 +10,7 @@
 #include "../core/mu_lang.h"
 #include "../core/mu_npc.h"
 #include "../core/mu_quest.h"
+#include "../core/mu_session_audio.h"
 #include "../core/mu_map.h"
 #include "../core/mu_progress.h"
 #include "world_gfx_options.h"
@@ -50,6 +51,7 @@ struct world_gfx {
     char dlg_title[96];
     /* NATIVE-QUEST-001: the quest session (reconstructed/quest with the demo server) */
     mu_quest_session quest;
+    mu_cue_cursor audio_cursor;
     int have_quest;
     mu_walk *walk;
     mu_map_session *maps;
@@ -1033,7 +1035,7 @@ void world_gfx_quest_travel_complete(world_gfx *g, int success)
     }
 }
 
-void world_gfx_quest_step(world_gfx *g)
+void world_gfx_quest_step(world_gfx *g, mu_audio_host *audio)
 {
     if (g && g->have_quest) {
         const mu_quest_client *c = g->quest.client;
@@ -1051,6 +1053,7 @@ void world_gfx_quest_step(world_gfx *g)
         }
         mu_session_submit(g->quest.session,&context);
         mu_quest_session_step(&g->quest);
+        mu_session_audio_drain(g->quest.session, &g->audio_cursor, audio);
         /* A completed walk (or the demo teleport) re-enters the verified arrived branch exactly once. */
         if (g->walk && g->path_mode && !g->walk->hero.movement && g->path_target[0] == c->hero_x &&
             g->path_target[1] == c->hero_y) {

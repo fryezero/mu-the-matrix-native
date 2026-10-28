@@ -5,7 +5,7 @@ SRC = audio_system.c audio_world.c audio_options.c hero_sound.c
 
 all: libclient_audio.$(SUFFIX)
 
-libclient_audio.$(SUFFIX): $(SRC) client_audio.h hero_sound.h
+libclient_audio.$(SUFFIX): $(SRC) client_audio.h hero_sound.h audio_registration.inc
 	$(CC) $(CFLAGS) -shared $(SRC) -o $@
 
 clean:

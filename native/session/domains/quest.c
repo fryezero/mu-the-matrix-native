@@ -1,5 +1,6 @@
 /* Verified reconstructed/quest runs here only. No fixture or demo policy in this domain. */
 #include "../session_internal.h"
+#include "audio_cue.h"
 #ifdef MU_SESSION_SEED
 #include "../mu_session_seed.h"
 #endif
@@ -40,6 +41,7 @@ static void sink(void *user, const char *line)
         }
         return;
     }
+    if (mu_domain_sound_cue(s, line)) return;
     /* A lossless, chunked window cue preserves the existing log grammar, including long JSON.
      * json is one fragment; args[0] says more follows. Views concatenate before replaying it. */
     size_t n = strlen(line), at = 0;
