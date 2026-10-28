@@ -198,6 +198,25 @@ static void fenrir_lightning_flash(mu_sfx_effect *e, const mu_sfx_env *env)
     env_call(env, &c, e);
 }
 
+/* Inferno ring's burst 0x013c07f4, subtype 0. Creator services are recorded by the validator. */
+void mu_sfx_inferno_burst(const float position[3], uint8_t visible, const mu_sfx_env *env)
+{
+    mu_sfx_effect e;
+    memset(&e, 0, sizeof e);
+    float p[3] = {position[0], position[1], position[2] + 80.0f};
+    const float white[3] = {1.0f, 1.0f, 1.0f};
+    float angle[3] = {0.0f, 0.0f, 0.0f};
+    for (int k = 0; k < 20; ++k) {
+        angle[0] = (float)(smod(env_rand(env), 60) + 150);
+        angle[2] = (float)smod(env_rand(env), 30);
+        call_particle(env, &e, 0x7f25, p, angle, white, 2, 1.0f, -1);
+    }
+    if (visible) {
+        const float gray[3] = {f32bits(0x3f333333u), f32bits(0x3f333333u), f32bits(0x3f333333u)};
+        call_particle(env, &e, 0x7f54, p, angle, gray, 0, 1.0f, -1);
+    }
+}
+
 /* ---------------------------------------------------------------- CreateEffect */
 
 static int effect_supported(int32_t type, int32_t sub)
@@ -206,9 +225,9 @@ static int effect_supported(int32_t type, int32_t sub)
         return 1;
     switch (type) {
     case MU_SFX_MODEL_ARROW: return sub == 0 || sub == 2;
-    case MU_SFX_MODEL_FIRE: return sub == 1;
+    case MU_SFX_MODEL_FIRE: return sub == 0 || sub == 1;
     case MU_SFX_MODEL_ICE: case MU_SFX_MODEL_POISON: case MU_SFX_MODEL_ICE_DEBRIS: case MU_SFX_MODEL_WAVE: return sub == 0;
-    case MU_SFX_BITMAP_THUNDER: return sub == 0;
+    case 0x7f4e: case MU_SFX_BITMAP_THUNDER: return sub == 0;
     case MU_SFX_BITMAP_MAGIC_GROUND2: return sub == 0 || sub == 1;   /* sub 0: the level-up ground (NATIVE-PROGRESS-001) */
     case MU_SFX_MODEL_CIRCLE: case MU_SFX_MODEL_CIRCLE_LIGHT: case MU_SFX_MODEL_INFERNO:
     case MU_SFX_MODEL_LASER: case MU_SFX_TWISTING_SLASH: case MU_SFX_TWISTING_SWIRL:
@@ -445,7 +464,17 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         break;
     }
     case MU_SFX_MODEL_FIRE: {
-        /* 0x013d2f05; subtype 1 takes the default branch 0x013d4086 */
+        /* 0x013d2f05, Meteorite subtype 0; Fire Ball takes 0x013d4086. */
+        if (subtype == 0) {
+            e->blend_mesh = 1;
+            e->lifetime = 40;
+            e->scale = (float)(10 + smod(env_rand(env), 8)) * F_0_1;
+            e->position[0] = ((float)smod(env_rand(env), 32) + 130.0f) + e->position[0];
+            e->position[2] = e->position[2] + 400.0f;
+            e->direction[2] = -50.0f;
+            e->angle[0] = 0.0f; e->angle[1] = 20.0f; e->angle[2] = 0.0f;
+            break;
+        }
         e->blend_mesh = 1;
         e->lifetime = 60;
         e->scale = (float)(8 + smod(env_rand(env), 4)) * F_0_1;
@@ -453,6 +482,17 @@ int mu_sfx_effect_create(mu_sfx_effect *e, int32_t type, int32_t subtype, const 
         e->direction[0] = 0.0f;
         e->direction[1] = -50.0f;
         e->direction[2] = 0.0f;
+        break;
+    }
+    case 0x7f4e: {                                /* 0x013c6a04, Aqua Beam subtype 0 */
+        e->lifetime = 20;
+        e->light[0] = 0.5f; e->light[1] = f32bits(0x3f333333u); e->light[2] = 1.0f;
+        const float v[3] = {0.0f, -50.0f, 0.0f};
+        float m[12];
+        e->scale = 16.0f;
+        mu_angle_matrix(e->angle, m);
+        mu_vector_rotate(v, m, e->direction);
+        /* Hero-only area requests and source-position writeback are outside this visual adapter. */
         break;
     }
     case MU_SFX_BITMAP_THUNDER:
@@ -801,14 +841,29 @@ int mu_sfx_effect_move(mu_sfx_effect *e, const mu_sfx_env *env)
         break;
     }
     case MU_SFX_MODEL_FIRE:
-        /* 0x0146bff4, subtype 1 */
-        e->blend_light = 0.0f;
+        /* 0x0146c821..0x0146cd92: Meteorite terrain contact, before generic motion. */
+        if (sub == 0) {
+            float ground = env_height(env, e->position[0], e->position[1]) + 0.0f;
+            /* Ordinary-world predicate is false in the bounded native adapter. */
+            if (ground > e->position[2]) {
+                e->position[2] = ground;
+                e->direction[0] = e->direction[1] = e->direction[2] = 0.0f;
+                float p[3] = {e->position[0], e->position[1], e->position[2] + 80.0f};
+                for (int k = 0; k < 6; ++k)
+                    call_effect(env, e, MU_SFX_MODEL_STONE1 + smod(env_rand(env), 2),
+                                e->position, e->angle, e->light, 0, -1);
+                call_particle(env, e, 0x7f54, p, e->angle, light, 0, 1.0f, -1);
+                kill_effect(env, e);
+            }
+        }
+        /* 0x0146d591..0x0146db20, shared fire trail and light */
+        e->blend_light = sub == 0 ? (float)(smod(env_rand(env), 4) + 4) * F_0_1 : 0.0f;
         light[0] = lum * 1.0f;
         light[1] = lum * F_0_1;
         light[2] = lum * 0.0f;
         call_terrain_light(env, e, light, 2);
         call_particle(env, e, MU_SFX_BITMAP_FIRE, e->position, e->angle, light, 5, 1.0f, MU_SFX_NO_OWNER);
-        check(env, e, MU_SFX_CALL_CHECK_MAGIC);
+        if (sub == 1) check(env, e, MU_SFX_CALL_CHECK_MAGIC);
         break;
     case MU_SFX_BITMAP_THUNDER:
         /* 0x014468ac, subtype 0 */
@@ -1196,6 +1251,27 @@ int mu_sfx_effect_decal(const mu_sfx_effect *e, int32_t world, mu_sfx_decal *out
         return 0;
     }
     return 1;
+}
+
+/* RenderEffects 0x01519c06..0x0151a401, ordinary-world Aqua Beam subtype 0.
+ * This path emits sprites, then the light at the following point, twenty times. */
+void mu_sfx_aqua_render(mu_sfx_effect *e, const mu_sfx_env *env)
+{
+    if (!e->live || e->type != 0x7f4e || e->subtype != 0) return;
+    mu_sfx_effect at = *e;
+    for (int k = 0; k < 20; ++k) {
+        mu_sfx_call c;
+        memset(&c, 0, sizeof c);
+        c.routine = 0x01692eb7;
+        c.type = MU_SFX_BITMAP_SPARK3;
+        c.owner = -2;
+        c.scale = e->scale;
+        copy3(c.position, at.position);
+        copy3(c.light, e->light);
+        env_call(env, &c, e);
+        for (int j = 0; j < 3; ++j) at.position[j] += e->direction[j];
+        call_terrain_light(env, &at, e->light, 2);
+    }
 }
 
 /* ---------------------------------------------------------------- particles */
