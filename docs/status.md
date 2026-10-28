@@ -1,5 +1,7 @@
 # Current status
 
+SESSION-VIEWPORT-001 implements the loopback character feed, leased player/helper presentation and CHARACTER projection adapters. [Evidence](research/client-session-viewport.md).
+
 SESSION-QUEST-001 moves quest handler state into the session, with fixture replies and headless quest ticks.
 F6 70/71 stay undecoded and encrypted requests stay unsent pending their separate work. [Checks](handoffs/SESSION-QUEST-001.md).
 

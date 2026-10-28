@@ -1,5 +1,7 @@
 # Continue from here
 
+SESSION-VIEWPORT-001: [handoff](handoffs/SESSION-VIEWPORT-001.md), session-owned player records and fixture-driven --players.
+
 SESSION-QUEST-001: [handoff](handoffs/SESSION-QUEST-001.md). Quest state and window actions now use the session;
 the fixture owns demo policy. Next: the 70/71 body bytes and NET-DECODE, then account-owned world attachment.
 

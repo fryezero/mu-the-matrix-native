@@ -103,4 +103,4 @@ class PrivateViewport(unittest.TestCase):
             data=json.loads(report.read_text())
         self.assertEqual(data['mismatches'],0)
         self.assertEqual(data['handler_cases'],1000)
-        self.assertEqual(data['mutants']['caught'],6)
+        self.assertEqual(data['mutants']['caught'],8)

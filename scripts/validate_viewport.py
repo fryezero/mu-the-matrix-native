@@ -2,8 +2,9 @@
 """SESSION-VIEWPORT-001: bounded 0x12 field/default instruction comparisons.
 
 Runs original instruction ranges, never an independent Python decoder oracle.
-This is deliberately not full-handler evidence: effects, name/guild services,
-pet item eligibility, muun table lookup and pose branches remain outside it.
+The entry-to-return cases compare record fields with explicit engine/table
+host answers. Effects, C++ string/guild services, pet eligibility, muun table
+lookup and pose branches remain outside the equality claim.
 """
 import argparse
 import ctypes as C
@@ -28,7 +29,9 @@ class Viewport(C.Structure):
 
 RANGES = [(0x122d486, 0x122d4b6), (0x122d660, 0x122d6a9),
           (0x122d8a1, 0x122d996), (0x122da8e, 0x122db06),
-          (0x122e211, 0x122e22d), (0x137d8a1, 0x137db3e), (0x122dc47, 0x122dd87)]
+          (0x122e211, 0x122e22d), (0x137d8a1, 0x137db3e), (0x122dc47, 0x122dd87),
+          (0x122d4b6, 0x122d4dc), (0x122d996, 0x122da8e),
+          (0x122df8a, 0x122e018), (0x122e10e, 0x122e11c)]
 
 
 def library(path):
@@ -44,7 +47,7 @@ def library(path):
 def compare(client, lib, n):
     m = client.m
     rng = random.Random(20261027)
-    counts = dict(key=0, apply=0, stride=0, create=0, placement=0, bounds=0)
+    counts = dict(key=0, apply=0, stride=0, create=0, placement=0, record=0, bounds=0)
     for _ in range(n):
         b = bytearray(rng.randbytes(0x44 + 56 * 8))
         b[0x43] %= 57
@@ -66,8 +69,42 @@ def compare(client, lib, n):
         m.uc.reg_write(vp.cm.UC_X86_REG_EBP, frame)
         m.uc.reg_write(vp.cm.UC_X86_REG_ESP, frame - 0x180)
         def run(start, end):
-            m.uc.emu_start(start, end, count=100000)
+            # Explicit stop hook also handles a cached translation block whose
+            # natural end lies beyond this range's exclusive boundary.
+            hook=m.uc.hook_add(vp.cm.UC_HOOK_CODE,lambda uc,*a:uc.emu_stop(),begin=end,end=end)
+            try:
+                m.uc.emu_start(start, end, count=100000)
+            finally:
+                m.uc.hook_del(hook)
             assert not m.errors, m.errors
+            assert m.uc.reg_read(vp.cm.UC_X86_REG_EIP)==end
+        # Name, pet words/levels and buff records through original handler reads.
+        observed=[]
+        m.stub(0x194c200, lambda mm: (mm.write(mm.args(3)[0], mm.read(mm.args(3)[1], mm.args(3)[2])),mm.args(3)[0])[1],0)
+        m.stub(0xcd4ea8,lambda mm:0,0)
+        m.stub(0xcd5fac,lambda mm:1,8)
+        m.stub(0x99536d,lambda mm:0,0)
+        m.stub(0x9b46d4,lambda mm:0,4)
+        def pet(mm):
+            code,char,index,enabled=mm.args(4)
+            observed.append(('pet',code,index,mm.read(frame-0x25,1)[0],enabled))
+            return 0
+        m.stub(0x9b9ab9,pet,16)
+        m.stub(0x10de7a3,lambda mm:mm.args(1)[0]&1,4)
+        m.stub(0x128723b,lambda mm:observed.append(('buff',mm.args(4)[0],mm.args(4)[3])),0)
+        m.stub(0xd8b849,lambda mm:observed.append(('buff_owner',mm.args(2)[1])),0)
+        run(*RANGES[7])
+        assert m.read(frame-0xcc,11).split(b'\0')[0] == bytes(v.name).split(b'\0')[0]
+        run(*RANGES[8])
+        assert [x for x in observed if x[0]=='pet'] == [
+            ('pet',v.pet_code[i],i,v.pet_level[i],0) for i in range(3) if v.pet_code[i]!=65535]
+        run(*RANGES[9])
+        assert [x for x in observed if x[0]=='buff'] == [
+            ('buff',v.buff_type[i],v.buff_value[i] if v.buff_type[i]&1 else 0) for i in range(v.buff_count)]
+        assert [x[1] for x in observed if x[0]=='buff_owner'] == list(v.buff_type[:v.buff_count])
+        run(*RANGES[10])
+        assert struct.unpack('<H',m.read(rec+0x42,2))[0] == v.server
+        counts['record']+=1
         run(*RANGES[0])
         assert struct.unpack('<H',m.read(frame - 0x24,2))[0] == v.key
         assert m.u32(frame - 0x98) == v.created
@@ -209,7 +246,9 @@ def main():
                 ('target','c->target[0] = v->target[0]','c->target[0] = v->target[1]'),
                 ('flags','(v->flags >> 1) & 0x3f','(v->flags >> 2) & 0x3f'),
                 ('guild_default','c->guild = -1','c->guild = 0'),
-                ('angle','* 45.0f','* 46.0f')]
+                ('angle','* 45.0f','* 46.0f'),
+                ('name_offset','p + 0x18, 10','p + 0x19, 10'),
+                ('buff_value','p[0x48 + 8 * i]','p[0x47 + 8 * i]')]
         caught=[]
         with tempfile.TemporaryDirectory() as tmp:
             for name,old,new in plants:

@@ -44,11 +44,12 @@ static mu_rp_env environment(mu_session *s)
 
 mu_apply characters_players(mu_session *s, const mu_frame *f)
 {
-    if (f->length < 5 || f->bytes[4] > 75) return MU_APPLY_IGNORED;
+    if (f->length < 5) return MU_APPLY_IGNORED;
+    unsigned count = f->bytes[4] < 75 ? f->bytes[4] : 75;
     /* Validate the entire variable-length packet before changing any slot. */
     mu_rp_viewport v;
     size_t at = 5;
-    for (unsigned k = 0; k < f->bytes[4]; ++k) {
+    for (unsigned k = 0; k < count; ++k) {
         int n = mu_rp_viewport_record(f->bytes + at, (int32_t)(f->length - at), &v);
         if (!n) return MU_APPLY_IGNORED;
         at += (size_t)n;
@@ -56,7 +57,7 @@ mu_apply characters_players(mu_session *s, const mu_frame *f)
     at = 5;
     mu_rp_env e = environment(s);
     int changed = 0;
-    for (unsigned k = 0; k < f->bytes[4]; ++k) {
+    for (unsigned k = 0; k < count; ++k) {
         int n = mu_rp_viewport_record(f->bytes + at, (int32_t)(f->length - at), &v);
         at += (size_t)n;
         if (!strcmp(v.name, "webzen")) continue;
@@ -70,7 +71,9 @@ mu_apply characters_players(mu_session *s, const mu_frame *f)
         mu_rp_character *c = &d->records[i];
         mu_rp_character prior = *c;
         mu_rp_character_create(c, (int16_t)v.key, MU_RP_PLAYER_MODEL, v.x, v.y, 0);
-        if (!allocating) {
+        if (allocating) {
+            c->guild_bytes[0] = c->guild_bytes[1] = c->guild_bytes[2] = c->guild_bytes[4] = 0;
+        } else {
             c->guild = prior.guild;
             memcpy(c->guild_bytes, prior.guild_bytes, sizeof c->guild_bytes);
         }
@@ -99,7 +102,7 @@ mu_apply characters_move(mu_session *s, const mu_frame *f)
     if (i < 0) return MU_APPLY_IGNORED;
     mu_rp_env e = environment(s);
     mu_rp_calls calls = {0};
-    mu_rp_move_packet(f->bytes, &s->characters.records[i], &e, &calls);
+    if (!mu_rp_move_packet(f->bytes, &s->characters.records[i], &e, &calls)) return MU_APPLY_IGNORED;
     mu_session_touch(s, MU_DOMAIN_CHARACTERS);
     return MU_APPLY_DONE;
 }
