@@ -84,17 +84,17 @@ class RenderEffects(unittest.TestCase):
         for name in ('Spark02.OZJ', 'Explosion01.OZJ', 'Fire01.OZJ'):
             (effect/name).write_bytes(ozj_jpeg(32, 32))
         try:
-            for skill in (2, 14):
+            for skill in (2, 12, 14):
                 with self.subTest(skill=skill):
                     rows, images = self.cast(skill, frames=48)
                     summary = next(r for r in rows if r.get('combat') is True)
                     self.assertEqual(summary['requests_unsent'], 1)
                     self.assertEqual((summary['hits'], summary['kills'], summary['unsupported']), (0, 0, 0))
-                    self.assertGreaterEqual(summary['fx_created'], 7 if skill == 2 else 17)
-                    self.assertGreater(summary['particles_created'], 0)
+                    self.assertGreaterEqual(summary['fx_created'], 7 if skill == 2 else (1 if skill == 12 else 17))
+                    self.assertGreater(summary['sprites'] if skill == 12 else summary['particles_created'], 0)
                     frames = [r for r in rows if 'combat_frame' in r]
                     self.assertTrue(any(0x413 in f['effect_types'] for f in frames) if skill == 2 else
-                                    any(0x457 in f['effect_types'] for f in frames))
+                                    any((0x7f4e if skill == 12 else 0x457) in f['effect_types'] for f in frames))
                     self.assertTrue(all(f['monsters'][0]['hp'] == frames[0]['monsters'][0]['hp'] for f in frames))
                     _, absent = self.cast(skill, particles=False, frames=48)
                     self.assertNotEqual(images, absent)
@@ -111,7 +111,7 @@ class RenderEffects(unittest.TestCase):
             r = json.loads(report.read_text())
             self.assertTrue(r['all_equal'])
             self.assertTrue(r['all_mutants_caught'])
-            self.assertEqual(len(r['mutants']), 8)
+            self.assertEqual(len(r['mutants']), 10)
 
     @unittest.skipUnless(os.environ.get('MU_RECOVERY_INTEGRATION') == '1', 'requires pinned private instructions')
     def test_original_instructions_and_compiled_mutants(self):

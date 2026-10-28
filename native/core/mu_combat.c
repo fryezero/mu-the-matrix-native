@@ -694,6 +694,16 @@ static void end_of_attack(mu_combat *c)
         create_effect(c, MU_SFX_MODEL_CIRCLE, 0, pos, h->angle, light, MU_COMBAT_HERO_OBJECT, &info);
         create_effect(c, MU_SFX_MODEL_CIRCLE_LIGHT, 0, pos, h->angle, light, -1, NULL);
         break;
+    case 12: {
+        /* 0x013ac8a2: caster-local (-20,-90,100), then the beam effect. */
+        const float offset[3] = {-20.0f, -90.0f, 100.0f};
+        float m[12], at[3];
+        mu_angle_matrix(h->angle, m);
+        mu_vector_rotate(offset, m, at);
+        for (int k = 0; k < 3; ++k) at[k] += pos[k];
+        create_effect(c, 0x7f4e, 0, at, h->angle, light, -1, NULL);
+        break;
+    }
     case 14:
         /* Inferno 0x013acc46: the ring, then Inferno01 owned by the caster */
         info.skill = 14;
@@ -1445,10 +1455,13 @@ int32_t mu_combat_draw_models(mu_combat *c, mu_combat_model_fn draw, void *conte
     return drawn;
 }
 
-void mu_combat_terrain_lights(const mu_combat *c, mu_world *map)
+void mu_combat_terrain_lights(mu_combat *c, mu_world *map)
 {
     if (!map)
         return;
+    /* Prepare the render-time sprite chain before the world's sprite pass. */
+    for (int i = 0; i < MU_SFX_EFFECTS; ++i)
+        mu_sfx_aqua_render(&c->effects[i], &c->env);
     for (int32_t i = 0; i < c->light_count; ++i)
         mu_world_add_light(map, c->lights[i].x, c->lights[i].y, c->lights[i].rgb, c->lights[i].range);
 }

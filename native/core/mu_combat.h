@@ -280,7 +280,7 @@ int32_t mu_combat_draw_models(mu_combat *combat, mu_combat_model_fn draw, void *
 /* AddTerrainLight calls of the last logic step, applied to the world's frame
  * light after its per-frame copy (the client copies in its move phase and
  * the effects add during the same step). */
-void mu_combat_terrain_lights(const mu_combat *combat, mu_world *map);
+void mu_combat_terrain_lights(mu_combat *combat, mu_world *map);
 
 /* Software drawing of the frame's effect models and quads into a raster
  * whose view/projection are the session's (mu_raster textures are restored). */
