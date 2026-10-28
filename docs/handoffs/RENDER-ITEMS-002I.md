@@ -101,3 +101,12 @@ Local scratch/renders are scoped to `mu-mac-tools/native/{scratch,renders}/rende
 After merge, release the lock and delete both folders, lane build/verification
 outputs, worktree and local branch. Shared Python/evidence links are never staged
 or traversed during cleanup. No new local input needs retention.
+
+## Stable preflight
+
+After freezing the source and test changes, `bash scripts/local-macos-ci.sh`
+passes **1,564 tests across 38 suites, 194 explicit skips, zero failures**;
+all **9/9 fixture scenarios** pass, native viewer/readers build, and publication
+audit accepts **1,502 files, zero rejected**. This preflight is on the lane's
+original main base. The final serialized latest-main gate remains required.
+The lock was occupied by NATIVE-PERF-004, then AUDIO-002D while this lane waited.
